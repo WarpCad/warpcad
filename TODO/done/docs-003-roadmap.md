@@ -6,8 +6,16 @@ priority: high
 model: sonnet
 milestone: M0
 depends: [core-001, core-002, ui-001]
-status: open
+status: done
 ---
+
+> Note: `depends: [core-001, core-002, ui-001]` were all still open when this task was
+> first invoked — resolved as a blocking chain before this task itself could start (see
+> `TODO/done/build-001-project-scaffold.md`'s note for a fourth, undeclared prerequisite
+> found along the way). `TODO/ROADMAP.md` groups the §6 catalog by distinct interaction
+> pattern rather than literal per-row table entries, stated explicitly as a judgment
+> call in the roadmap's own header — see that file for the reasoning.
+
 
 ## Goal
 
