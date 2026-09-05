@@ -71,7 +71,7 @@ revision if a milestone turns out to need finer granularity once it's actually w
 | `core-002` | NDJSON action log + resilient replay engine | ✅ done |
 | `docs-003` | **This file** | ✅ done (this commit) |
 | ✅ `docs-004` | Transcribe §9's 8 scenarios into `TODO/ACCEPTANCE.md` | ✅ done |
-| `core-003` | Spike: fillet/chamfer + Bearing native-op viability | open — **flagged risk, not a committed task** per `Initial design.md` §11 and this file's own Proposed-fix instruction. Its finding gates whether Fillet/Chamfer/Bearing ever appear as real M3/M4 rows below, or whether the OpenCascade.js fork question gets surfaced to the user instead |
+| ✅ `core-003` | Spike: fillet/chamfer + Bearing native-op viability | ✅ done — **split finding.** Rim fillet/chamfer (V1's real semantics) shipped as `modify.filletRim`/`modify.chamferRim`; arbitrary-edge fillet is **not achievable** on `@jscad/modeling`, and the **OpenCascade.js fork question is now open and awaiting the user** (three costed options in the `docs/decisions/geometry-kernel.md` addendum). Bearing is **composite, not native**, and has no V1 source to port — blocked on a spec table, not on the kernel |
 
 ---
 
@@ -132,8 +132,9 @@ spike; it blocks every other row in this milestone, not just the RPi ones.**
 | `core-017` *(reserved)* | Small-display recipes: Mini PiTFT, PiTFT 2.2/2.4, HyperPixel 4 | Creation (op) | `core-014` | — |
 | `core-018` *(reserved)* | Accessory recipes: Active Cooling Fan, HAT, HAT Standoff, Spacer | Creation (op) | `core-014` | — |
 | `ui-020` *(reserved)* | Open sketch mode, draw one entity — `src/sketch/`'s first task; `Initial design.md` gives this far less design depth than the 3D catalog, so this needs its own interaction-model Q&A pass before it's scoped further, per `CLAUDE.md`'s ordering rule | Creation | `render-001` | not one of §9's 8 numbered scenarios (drawn from `picam-touch`'s own toggle matrix, which has no 2D sketching) — but `TODO/ACCEPTANCE.md`'s own template header separately lists "drawing one entity" as a cover-at-minimum case, so `docs-004` should add it as a 9th scenario when this task is scoped, not skip it for lack of a §9 number |
-| *(contingent on `core-003`'s finding)* | Bearing native op | Creation (op) | `core-003` confirms workable | — |
-| *(contingent on `core-003`'s finding)* | Fillet/Chamfer native op, or the OpenCascade.js fork question surfaced to the user | Operation, 1 | `core-003` confirms workable / user decision | — |
+| *(unscoped — needs a spec table)* | Bearing **composite** recipe, beside `hardware.bolt`/`nut`/`washer` | Creation (op) | a real bearing spec table from the user | `core-003` found no `Bearing` in `jscad-hardware` to port; geometry is an ordinary tube and mating already works via `core-001`'s `snap`/`align`, so this is blocked on data, not on the kernel |
+| *(reserved)* | UI surface for `modify.filletRim` / `modify.chamferRim` — a **face**-oriented rim round/bevel, gated on exactly 1 selection | Operation, 1 | `render-001`, selection/inspector | ops already exist and are tested (`core-003`); this row is only the control, its `docs/` page, and its `*.e2e.js`. The `orientation` param names a face (`z+`), **not** an edge — the UI must not present it as edge selection |
+| ⚠️ *(blocked on a user decision)* | Arbitrary-**edge** fillet/chamfer — requires forking to a dual-kernel architecture with `OpenCascade.js` | Operation, 1 | **user answer to the OpenCascade.js question** in `docs/decisions/geometry-kernel.md`'s `core-003` addendum | `core-003` proved this is unachievable on `@jscad/modeling` at any adapter cost — the limit is the geometry representation, not a missing function. Do **not** scope any task promising edge-selected fillets until this is answered |
 
 ---
 
@@ -157,3 +158,4 @@ convention going forward.
 | `core-002` | 2026-09-05 17:33 | ~13m (commit-to-commit gap) |
 | `docs-003` | 2026-09-05 17:38 | ~5m (commit-to-commit gap from `core-002`; `docs` category has no test-suite preflight to time from) |
 | `docs-004` | 2026-09-05 19:35 | ~1h57m (commit-to-commit gap from `docs-003`; `docs` category has no test-suite preflight to time from) |
+| `core-003` | 2026-09-05 19:58 | ~21m (measured live from the Step 3 preflight test run at 19:37 UTC) |

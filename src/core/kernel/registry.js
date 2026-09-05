@@ -36,6 +36,7 @@ import modeling from '@jscad/modeling'
 // See group.js: default import, not named, so this runs under raw Node ESM too.
 const { booleans, primitives, transforms } = modeling
 
+import { chamferRim, filletRim } from './fillet.js'
 import { bolt } from './recipes/hardware.bolt.js'
 
 /** @typedef {import('@jscad/modeling').geometries.geom3.Geom3} Geom3 */
@@ -176,7 +177,40 @@ export const registry = Object.freeze({
 
   'boolean.subtract': native('2+', ({ inputs }) => booleans.subtract(inputs)),
 
+  // Rim ops, not edge ops. These round or bevel the whole rim of one axis-aligned
+  // face — exactly what V1's `.fillet()`/`.chamfer()` did, and the most `@jscad/
+  // modeling` can support. See fillet.js and the TODO/core-003 addendum in
+  // docs/decisions/geometry-kernel.md. `orientation` is a face name, not an axis
+  // vector, so no angle conversion happens here.
+  'modify.filletRim': native(1, ({ params, inputs }) =>
+    filletRim(
+      {
+        radius: params.radius,
+        orientation: params.orientation ?? 'z+',
+        segments: params.segments ?? DEFAULT_SEGMENTS,
+      },
+      inputs[0]
+    )
+  ),
+
+  'modify.chamferRim': native(1, ({ params, inputs }) =>
+    chamferRim({ radius: params.radius, orientation: params.orientation ?? 'z+' }, inputs[0])
+  ),
+
   'hardware.bolt': composite(0, bolt),
+
+  // Deliberately absent, and not an oversight — TODO/core-003 spiked both:
+  //
+  // - `modify.fillet`/`modify.chamfer` on a *selected edge*. Not viable on this
+  //   kernel: V3 has no fillet op, cannot erode a solid (`expand` throws on a
+  //   negative delta), and leaves boolean results as polygon soup with no shared-edge
+  //   topology to name an edge with. Registering the rim ops above under the bare
+  //   names `fillet`/`chamfer` would misrepresent what they do to the UI's tool
+  //   enablement, which is why they carry `Rim` in their names.
+  // - `hardware.bearing`. Not blocked, just unverified: there is no `Bearing` factory
+  //   in the vendored jscad-hardware to port or diff against, and its geometry is an
+  //   ordinary tube, so it belongs here as a `composite` recipe alongside bolt/nut/
+  //   washer once someone supplies a real spec table. It is not a native op.
 })
 
 /**

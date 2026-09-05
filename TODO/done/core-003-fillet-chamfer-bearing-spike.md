@@ -6,8 +6,30 @@ priority: low
 model: opus
 milestone: M0
 depends: [core-001]
-status: open
+status: done
 ---
+
+> **Outcome note — the finding differs from what this task proposed.** The spike went
+> looking for whether V1's `.fillet()`/`.chamfer()` survive the port, and found first
+> that the question was mis-framed: reading the vendored `jscad-utils` source
+> (`util.js:1023-1068`), **V1 never had an arbitrary-edge fillet** — `fillet`/`chamfer`
+> are both `util.reShape`, which rounds the whole *rim* of one axis-aligned face by
+> lofting a single cross-section. That splits the result in two. The rim semantics port
+> to V3 completely and are now shipped and tested as `modify.filletRim`/
+> `modify.chamferRim` (exact to 2e-7 against hand-derived analytic volumes, including on
+> a boolean-union result and a reflex-corner footprint). Arbitrary-edge fillet is **not
+> achievable** on `@jscad/modeling` — no such op, no solid erosion (`expand` throws on a
+> negative delta), and boolean results are polygon soup with 42% unmatched edges, so
+> there is no edge to select or name — and the **OpenCascade.js fork question is
+> surfaced explicitly** in the addendum, with three costed options, for the user to
+> answer before any roadmap task promises edge fillets. Bearing turned out to be a
+> phantom risk: there is **no `Bearing` in the vendored `jscad-hardware`** at all, and
+> no `addConnector`/`.connect` in `jscad-utils` — V1's `CSG.Connector` was loft plumbing
+> inside the fillet code path, not a mating API. Bearing is therefore **composite, not
+> native**, blocked only on a spec table; mating already works via `core-001`'s ported
+> `snap`/`align`. One factual error in `Initial design.md` §5 was found and recorded:
+> V3 2.13.0 has **no** first-class `connectors` type and `curves` holds only `bezier`.
+> Full finding: the `TODO/core-003` addendum in `docs/decisions/geometry-kernel.md`.
 
 ## Goal
 

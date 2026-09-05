@@ -160,4 +160,42 @@ describe('native builders', () => {
       /diameter/
     )
   })
+
+  it('modify.filletRim rounds one face rim and defaults to the top', () => {
+    const cube = build('primitive.cuboid', { params: { size: [20, 20, 20] } })
+    const filleted = build('modify.filletRim', { params: { radius: 3, segments: 64 }, inputs: [cube] })
+    expect(measurements.measureVolume(filleted)).toBeLessThan(measurements.measureVolume(cube))
+    // Same bounding box: a rim op removes material, it does not resize the solid.
+    expect(boundsOf(filleted)[1][2]).toBeCloseTo(10, 3)
+    const bottom = build('modify.filletRim', {
+      params: { radius: 3, segments: 64, orientation: 'z-' },
+      inputs: [cube],
+    })
+    expect(measurements.measureVolume(bottom)).toBeCloseTo(measurements.measureVolume(filleted), 6)
+  })
+
+  it('modify.chamferRim bevels the same rim and takes more material than the fillet', () => {
+    const cube = build('primitive.cuboid', { params: { size: [20, 20, 20] } })
+    const chamfered = build('modify.chamferRim', { params: { radius: 3 }, inputs: [cube] })
+    const filleted = build('modify.filletRim', { params: { radius: 3, segments: 64 }, inputs: [cube] })
+    expect(measurements.measureVolume(chamfered)).toBeLessThan(measurements.measureVolume(filleted))
+  })
+
+  it('gates both rim ops on a single selected object', () => {
+    for (const op of ['modify.filletRim', 'modify.chamferRim']) {
+      expect(registry[op]).toMatchObject({ kind: 'native', operandCount: 1 })
+      expect(acceptsOperandCount(op, 1)).toBe(true)
+      expect(acceptsOperandCount(op, 0)).toBe(false)
+      expect(acceptsOperandCount(op, 2)).toBe(false)
+    }
+  })
+
+  it('registers no general edge fillet or chamfer — TODO/core-003 found none is possible', () => {
+    // Guards the naming decision, not just the absence: if a later task adds an edge
+    // fillet it has to come with its own evidence, and it must not be these rim ops
+    // renamed, because the UI gates tools on what an op claims to accept.
+    expect(registry['modify.fillet']).toBeUndefined()
+    expect(registry['modify.chamfer']).toBeUndefined()
+    expect(registry['hardware.bearing']).toBeUndefined()
+  })
 })
