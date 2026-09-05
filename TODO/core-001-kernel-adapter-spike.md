@@ -5,7 +5,7 @@ kind: feature
 priority: high
 model: opus
 milestone: M0
-depends: [docs-001]
+depends: [docs-001, build-001]
 status: open
 ---
 

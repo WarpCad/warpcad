@@ -1,3 +1,10 @@
 .vscode/
 node_modules/
 .DS_Store
+dist/
+dist-ssr/
+test-results/
+playwright-report/
+blob-report/
+storybook-static/
+*.local

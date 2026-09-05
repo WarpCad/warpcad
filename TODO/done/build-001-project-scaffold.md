@@ -6,8 +6,16 @@ priority: high
 model: sonnet
 milestone: M0
 depends: []
-status: open
+status: done
 ---
+
+> Note: `core-001` (opened after this file was written) turned out to assume this
+> scaffold already existed — its `depends:` frontmatter didn't list `build-001`, even
+> though its Testing section required a working Vitest setup and its Affected files
+> treated `package.json` as pre-existing. Surfaced and confirmed with the user before
+> starting this task; `core-001`'s frontmatter should be corrected to declare this
+> dependency when it's picked up next.
+
 
 ## Goal
 
