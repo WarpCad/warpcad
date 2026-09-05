@@ -70,7 +70,7 @@ revision if a milestone turns out to need finer granularity once it's actually w
 | `core-001` | Kernel-adapter spike (Group port + `hardware.bolt` end-to-end) | ✅ done |
 | `core-002` | NDJSON action log + resilient replay engine | ✅ done |
 | `docs-003` | **This file** | ✅ done (this commit) |
-| `docs-004` | Transcribe §9's 8 scenarios into `TODO/ACCEPTANCE.md` | open — unblocked now that `ui-001` is done; per `CLAUDE.md`'s Working Files section this should be written in the **same session** as this roadmap, not deferred |
+| ✅ `docs-004` | Transcribe §9's 8 scenarios into `TODO/ACCEPTANCE.md` | ✅ done |
 | `core-003` | Spike: fillet/chamfer + Bearing native-op viability | open — **flagged risk, not a committed task** per `Initial design.md` §11 and this file's own Proposed-fix instruction. Its finding gates whether Fillet/Chamfer/Bearing ever appear as real M3/M4 rows below, or whether the OpenCascade.js fork question gets surfaced to the user instead |
 
 ---
@@ -156,3 +156,4 @@ convention going forward.
 | `core-001` | 2026-09-05 17:21 | ~30m (commit-to-commit gap; includes an Opus subagent delegation) |
 | `core-002` | 2026-09-05 17:33 | ~13m (commit-to-commit gap) |
 | `docs-003` | 2026-09-05 17:38 | ~5m (commit-to-commit gap from `core-002`; `docs` category has no test-suite preflight to time from) |
+| `docs-004` | 2026-09-05 19:35 | ~1h57m (commit-to-commit gap from `docs-003`; `docs` category has no test-suite preflight to time from) |
