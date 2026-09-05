@@ -6,7 +6,7 @@ priority: high
 model: sonnet
 milestone: M0
 depends: []
-status: open
+status: done
 ---
 
 ## Goal
