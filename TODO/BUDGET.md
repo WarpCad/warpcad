@@ -50,3 +50,4 @@ whether a milestone boundary was hit.
 
 | batch start (UTC) | batch end (UTC) | ids | ended because | milestone boundary? |
 |---|---|---|---|---|
+| 2026-09-05 19:35 | 2026-09-05 20:00 | `docs-004`, `core-003` | milestone boundary (M0 complete) | yes — M0 |
