@@ -1,0 +1,76 @@
+{
+  "$comment": "The full expansion of one `hardware.bolt` document line into the same op/params vocabulary the document itself uses (Initial design.md §3, §4). Hand-written from the measured behaviour of jscad-hardware V1 `Hardware.Bolt(20, MetricBolts['m10 hex'], 'loose')` — see hardware.bolt.v1-reference.json for the dimensions this is checked against. Millimetres, Z-up. `hardware.bolt.spec.js` asserts the recipe reproduces this exactly.",
+  "params": { "spec": "m10 hex", "length": 20, "fit": "loose" },
+  "records": [
+    {
+      "id": "head.solid",
+      "op": "primitive.hexagon",
+      "params": { "diameter": 18, "height": 6.5 }
+    },
+    {
+      "id": "head",
+      "op": "transform.translate",
+      "params": { "vector": [0, 0, 3.25] },
+      "target": "head.solid",
+      "name": "head"
+    },
+    {
+      "id": "thread.solid",
+      "op": "primitive.cylinder",
+      "params": { "diameter": 10, "height": 20, "segments": 32 }
+    },
+    {
+      "id": "thread",
+      "op": "transform.translate",
+      "params": { "vector": [0, 0, 16.5] },
+      "target": "thread.solid",
+      "name": "thread"
+    },
+    {
+      "id": "tap-head.solid",
+      "op": "primitive.hexagon",
+      "params": { "diameter": 19, "height": 7.5 }
+    },
+    {
+      "id": "tap-head",
+      "op": "transform.translate",
+      "params": { "vector": [0, 0, 3.75] },
+      "target": "tap-head.solid",
+      "name": "tap-head",
+      "hidden": true
+    },
+    {
+      "id": "tap-thread.solid",
+      "op": "primitive.cylinder",
+      "params": { "diameter": 11, "height": 20, "segments": 32 }
+    },
+    {
+      "id": "tap-thread",
+      "op": "transform.translate",
+      "params": { "vector": [0, 0, 17.5] },
+      "target": "tap-thread.solid",
+      "name": "tap-thread",
+      "hidden": true
+    },
+    {
+      "id": "tap-headClearSpace.solid",
+      "op": "primitive.hexagon",
+      "params": { "diameter": 19, "height": 20 }
+    },
+    {
+      "id": "tap-headClearSpace",
+      "op": "transform.translate",
+      "params": { "vector": [0, 0, -2.5] },
+      "target": "tap-headClearSpace.solid",
+      "name": "tap-headClearSpace",
+      "hidden": true
+    },
+    {
+      "id": "tap",
+      "op": "boolean.union",
+      "params": {},
+      "operands": ["tap-head", "tap-thread"],
+      "name": "tap"
+    }
+  ]
+}

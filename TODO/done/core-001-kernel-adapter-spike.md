@@ -6,8 +6,24 @@ priority: high
 model: opus
 milestone: M0
 depends: [docs-001, build-001]
-status: open
+status: done
 ---
+
+> Note: implemented largely as scoped, with three extra native registry entries the
+> bolt recipe couldn't expand without (`primitive.cylinder`, `primitive.hexagon`,
+> `transform.translate`) and a `tables/bolt-specs.js` port of the V1 size tables. The
+> composite/native split held for the bolt, but exposed a real limit worth flagging for
+> `core-003`/future recipe work: a recipe emits records before any geometry exists, so
+> it can't call `group.snap` against arbitrary geometry it didn't itself create — the
+> bolt worked around this because its offsets are all analytic (the size table gives
+> every height), but the Raspberry Pi board spike will hit this directly and needs to
+> decide between a two-phase expand→evaluate→measure→re-expand, or making `group.snap`
+> a real op record the fold resolves. Also found and worked around real breakage in
+> `jscad-utils@3.2.0` (a broken `util.defaults()`, two namespace members dropped) — see
+> `scripts/generate-v1-bolt-fixture.cjs`'s header for the full detail. `"m2.5 socket"`,
+> `Initial design.md`'s running example spec, does not exist in the real V1 tables;
+> `'m10 hex'` and `'1/4 socket'` were used instead, covering both head-type branches.
+
 
 ## Goal
 

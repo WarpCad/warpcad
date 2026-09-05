@@ -12,9 +12,11 @@
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
     "test:e2e:headless": "playwright test",
+    "fixtures:v1-bolt": "node scripts/generate-v1-bolt-fixture.cjs",
     "test": "npm run typecheck && npm run test:unit -- --run && npm run test:e2e:headless"
   },
   "dependencies": {
+    "@jscad/modeling": "2.13.0",
     "pinia": "^4.0.3",
     "vue": "^3.5.42"
   },
@@ -24,6 +26,8 @@
     "@vitejs/plugin-vue": "^6.0.8",
     "@vue/test-utils": "^2.5.0",
     "@vue/tsconfig": "^0.9.1",
+    "jscad-hardware": "1.1.0",
+    "jscad-utils": "3.2.0",
     "jsdom": "^30.0.1",
     "storybook": "^10.6.0",
     "typescript": "^6.0.3",
