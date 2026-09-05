@@ -35,6 +35,11 @@ import { assertOperandCount, getEntry, registry } from './registry.js'
  *   defaults to the real one.
  * @property {Record<string, any>} [tables] Size tables handed to composite recipes.
  * @property {string} [name] Label for the resulting group, used in error messages.
+ * @property {{ byId?: Map<string, Geom3 | Group>, group?: Group }} [initial] Prior
+ *   fold state to continue from — lets a caller (e.g. `src/core/replay.js`'s
+ *   per-action document fold) evaluate one more record against ids an earlier
+ *   `evaluate` call already produced, without re-running the whole history. Copied,
+ *   never mutated in place, so the caller's own `byId`/`group` stay untouched.
  */
 
 /**
@@ -63,8 +68,8 @@ export function evaluate(records, options = {}) {
   const ops = options.registry ?? registry
   const tables = options.tables ?? DEFAULT_TABLES
   /** @type {Map<string, Geom3 | Group>} */
-  const byId = new Map()
-  let group = createGroup(options.name ?? '')
+  const byId = new Map(options.initial?.byId ?? [])
+  let group = options.initial?.group ?? createGroup(options.name ?? '')
 
   for (const record of records) {
     const entry = ops[record.op]
@@ -74,7 +79,7 @@ export function evaluate(records, options = {}) {
       ...(record.target === undefined || record.target === null ? [] : [record.target]),
       ...(record.operands ?? []),
     ]
-    assertOperandCount(record.op, inputIds.length)
+    assertOperandCount(record.op, inputIds.length, ops)
 
     const inputs = inputIds.map((id) => {
       const resolved = byId.get(id)

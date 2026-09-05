@@ -184,10 +184,16 @@ export const registry = Object.freeze({
  * malicious `op` in an NDJSON document must be a loud error, never a silent skip.
  *
  * @param {string} op
+ * @param {Readonly<Record<string, RegistryEntry>>} [ops] Catalogue to look up
+ *   against; defaults to the real one. A caller evaluating against a different
+ *   registry (`evaluate`'s `options.registry` — a test's fake registry, or a
+ *   future document-scoped registry) must pass that same registry here, or this
+ *   would report one of its ops as unknown regardless of what `ops` it was found
+ *   in a moment earlier.
  * @returns {RegistryEntry}
  */
-export function getEntry(op) {
-  const entry = registry[op]
+export function getEntry(op, ops = registry) {
+  const entry = ops[op]
   if (!entry) {
     throw new Error(`unknown op "${op}" — not in the kernel registry`)
   }
@@ -204,10 +210,11 @@ export function getEntry(op) {
  *
  * @param {string} op
  * @param {number} count Number of currently selected operands.
+ * @param {Readonly<Record<string, RegistryEntry>>} [ops] See {@link getEntry}.
  * @returns {boolean}
  */
-export function acceptsOperandCount(op, count) {
-  const { operandCount } = getEntry(op)
+export function acceptsOperandCount(op, count, ops = registry) {
+  const { operandCount } = getEntry(op, ops)
   return operandCount === '2+' ? count >= 2 : count === operandCount
 }
 
@@ -216,11 +223,12 @@ export function acceptsOperandCount(op, count) {
  *
  * @param {string} op
  * @param {number} count
+ * @param {Readonly<Record<string, RegistryEntry>>} [ops] See {@link getEntry}.
  * @returns {void}
  */
-export function assertOperandCount(op, count) {
-  if (!acceptsOperandCount(op, count)) {
-    const { operandCount } = getEntry(op)
+export function assertOperandCount(op, count, ops = registry) {
+  if (!acceptsOperandCount(op, count, ops)) {
+    const { operandCount } = getEntry(op, ops)
     throw new Error(
       `${op}: expected ${operandCount === '2+' ? '2 or more' : operandCount} operand(s), got ${count}`
     )

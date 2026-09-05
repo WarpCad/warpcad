@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import modeling from '@jscad/modeling'
 
-import { acceptsOperandCount, getEntry, registry } from './registry.js'
+import { acceptsOperandCount, assertOperandCount, getEntry, registry } from './registry.js'
 
 const { measurements } = modeling
 
@@ -48,6 +48,26 @@ describe('registry shape', () => {
 
   it('getEntry names the unknown op and does not return undefined', () => {
     expect(() => getEntry('primitive.dodecahedron')).toThrow(/primitive\.dodecahedron/)
+  })
+
+  it('getEntry/acceptsOperandCount/assertOperandCount all honour a caller-supplied registry', () => {
+    // Regression: found while building core-002's replay engine against a fake
+    // registry (CLAUDE.md's "always mock at the boundary") — these three used to
+    // always check the real, hardcoded registry regardless of what `ops` a record
+    // was actually resolved against, so `evaluate({ registry: fakeRegistry })`
+    // rejected every op in the fake registry as "unknown", even ones it defined.
+    const fakeOps = Object.freeze({
+      'fake.thing': /** @type {import('./registry.js').RegistryEntry} */ ({
+        kind: 'native',
+        operandCount: '2+',
+      }),
+    })
+    expect(() => getEntry('fake.thing')).toThrow(/fake\.thing/)
+    expect(getEntry('fake.thing', fakeOps)).toBe(fakeOps['fake.thing'])
+    expect(acceptsOperandCount('fake.thing', 2, fakeOps)).toBe(true)
+    expect(acceptsOperandCount('fake.thing', 1, fakeOps)).toBe(false)
+    expect(() => assertOperandCount('fake.thing', 1, fakeOps)).toThrow(/2 or more/)
+    expect(() => assertOperandCount('fake.thing', 2, fakeOps)).not.toThrow()
   })
 })
 

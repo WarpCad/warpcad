@@ -1,0 +1,108 @@
+/**
+ * The document-level replay engine (`Initial design.md` §3).
+ *
+ * `replay(actions, registry)` is the literal
+ * `actions.reduce((scene, action) => applyAction(scene, action, registry), emptyScene())`
+ * §3 describes: the whole document is an ordered array of plain-JSON action
+ * records, and the current scene is always the result of folding every one of
+ * them from the start. Nothing here imports `@jscad/modeling` directly — only
+ * `evaluate` and `createGroup` from `./kernel/`, so this module is testable in
+ * plain Node against a fake registry (`CLAUDE.md`'s "always mock at the
+ * boundary").
+ *
+ * ## Why this can't just be `kernel/index.js`'s `evaluate` directly
+ *
+ * `evaluate` is the right dispatch logic (native build vs. composite recipe
+ * expansion, operand resolution by id) but it throws on the first problem it
+ * finds — correct for a composite recipe's own internal expansion, which is
+ * code, not untrusted content, so a bug there should fail loudly. A top-level
+ * document is different: it can come from a remote URL (`Initial design.md`
+ * §9 scenario 8, "remote-load safety"), so one bad line — an unknown `op`, a
+ * reference to an id that doesn't exist, a parameter that fails validation —
+ * must be reported and skipped, never allowed to halt every later record's
+ * replay and never able to execute anything. `applyAction` gets this by
+ * wrapping a single-record `evaluate` call in a `try`/`catch` and threading
+ * `evaluate`'s own `initial` option through the fold, rather than
+ * reimplementing operand resolution and composite dispatch a second time.
+ *
+ * @module core/replay
+ */
+
+import { evaluate } from './kernel/index.js'
+import { createGroup } from './kernel/group.js'
+
+/** @typedef {import('@jscad/modeling').geometries.geom3.Geom3} Geom3 */
+/** @typedef {import('./kernel/group.js').Group} Group */
+/** @typedef {import('./kernel/registry.js').OpRecord} OpRecord */
+/** @typedef {import('./kernel/registry.js').RegistryEntry} RegistryEntry */
+
+/**
+ * @typedef {object} ReplayError
+ * @property {string} [id] The offending record's `id`, when it had one.
+ * @property {string} op The offending record's `op`.
+ * @property {string} message What went wrong.
+ */
+
+/**
+ * @typedef {object} Scene
+ * @property {Map<string, Geom3 | Group>} byId Every successfully-applied record's
+ *   value, by its `id`.
+ * @property {Group} group Named results, in the order they were applied.
+ * @property {readonly ReplayError[]} errors Every record that was skipped, in the
+ *   order they were encountered. Never thrown — a scene always evaluates fully.
+ */
+
+/**
+ * An empty scene — the seed value `replay`'s fold starts from.
+ *
+ * @returns {Scene}
+ */
+export function emptyScene() {
+  return { byId: new Map(), group: createGroup(), errors: [] }
+}
+
+/**
+ * Fold one action record into a scene. Never throws: any failure (an unknown
+ * `op`, a `target`/`operands` id that hasn't been applied yet, a parameter that
+ * fails the op's own validation) is appended to the returned scene's `errors`
+ * and the record is skipped — the rest of the document still replays. The
+ * input `scene` is never mutated; a new one is returned.
+ *
+ * An `op` a malicious document invents can only ever fail this module's own
+ * plain-object registry lookup (inside `evaluate`) — there is no `eval` or
+ * `new Function` anywhere in this path, so an `op` string can never execute,
+ * it can only fail to be found.
+ *
+ * @param {Scene} scene
+ * @param {OpRecord} action
+ * @param {Readonly<Record<string, RegistryEntry>>} registry
+ * @returns {Scene}
+ */
+export function applyAction(scene, action, registry) {
+  try {
+    const { byId, group } = evaluate([action], {
+      registry,
+      initial: { byId: scene.byId, group: scene.group },
+    })
+    return { byId, group, errors: scene.errors }
+  } catch (error) {
+    /** @type {ReplayError} */
+    const reported = { op: action.op, message: /** @type {Error} */ (error).message }
+    if (action.id !== undefined) reported.id = action.id
+    return { ...scene, errors: [...scene.errors, reported] }
+  }
+}
+
+/**
+ * Replay a whole document — an ordered array of action records — into a
+ * scene, per `Initial design.md` §3's fold. Equivalent to
+ * `actions.reduce((scene, action) => applyAction(scene, action, registry), emptyScene())`,
+ * provided as a named export since every caller needs it.
+ *
+ * @param {readonly OpRecord[]} actions
+ * @param {Readonly<Record<string, RegistryEntry>>} registry
+ * @returns {Scene}
+ */
+export function replay(actions, registry) {
+  return actions.reduce((scene, action) => applyAction(scene, action, registry), emptyScene())
+}

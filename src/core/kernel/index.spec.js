@@ -127,6 +127,50 @@ describe('evaluate — the fold every op class replays through', () => {
     expect(group.names).toEqual([])
     expect(byId.size).toBe(0)
   })
+
+  it('honours options.registry end to end, including operand-count enforcement', () => {
+    // Regression: assertOperandCount used to check the real hardcoded registry
+    // regardless of options.registry, so a fully custom registry's own ops were
+    // rejected as "unknown" the moment they had operands to count.
+    // `build` returns plain marker values, not real Geom3 — hence `any`.
+    /** @type {any} */
+    const fakeRegistry = Object.freeze({
+      'fake.create': { kind: 'native', operandCount: 0, build: () => 'FAKE_GEOM' },
+      'fake.pair': {
+        kind: 'native',
+        operandCount: '2+',
+        build: (/** @type {any} */ { inputs }) => ({ fake: 'combined', inputs }),
+      },
+    })
+    const { group } = evaluate(
+      [
+        { id: 'a', op: 'fake.create', params: {} },
+        { id: 'b', op: 'fake.create', params: {} },
+        { id: 'c', op: 'fake.pair', operands: ['a', 'b'], name: 'c' },
+      ],
+      { registry: fakeRegistry }
+    )
+    expect(group.parts.c).toEqual({ fake: 'combined', inputs: ['FAKE_GEOM', 'FAKE_GEOM'] })
+
+    expect(() =>
+      evaluate([{ id: 'a', op: 'fake.pair', operands: [] }], { registry: fakeRegistry })
+    ).toThrow(/fake\.pair/)
+  })
+
+  it('continues a prior fold via options.initial rather than starting over', () => {
+    const first = evaluate([
+      { id: 'a', op: 'primitive.cuboid', params: { size: [2, 2, 2] }, name: 'a' },
+    ])
+    const second = evaluate(
+      [{ id: 'b', op: 'transform.translate', params: { vector: [0, 0, 5] }, target: 'a', name: 'b' }],
+      { initial: { byId: first.byId, group: first.group } }
+    )
+    expect(second.group.names).toEqual(['a', 'b'])
+    expect(boundsOf(second.group.parts.b)[0][2]).toBeCloseTo(4, 9)
+    // the seed is copied, not mutated — the first fold's own result is untouched
+    expect(first.group.names).toEqual(['a'])
+    expect(first.byId.size).toBe(1)
+  })
 })
 
 describe('expand — a composite op is inspectable as plain records', () => {

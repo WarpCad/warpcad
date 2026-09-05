@@ -6,8 +6,27 @@ priority: high
 model: sonnet
 milestone: M0
 depends: [core-001]
-status: open
+status: done
 ---
+
+> Note: implemented as scoped (`src/core/ndjson.js`, `src/core/replay.js`), plus a
+> small, additive, backward-compatible extension to `core-001`'s `evaluate()`
+> (`src/core/kernel/index.js`) and its operand-count helpers
+> (`src/core/kernel/registry.js`) to accept a caller-supplied registry/seed state —
+> `applyAction` reuses `evaluate`'s dispatch logic rather than duplicating it, wrapping
+> a single-record call in try/catch for the lenient, never-halts-the-fold semantics
+> this task needs. Surfaced and fixed a real pre-existing bug while doing this:
+> `assertOperandCount`/`acceptsOperandCount`/`getEntry` always checked the real
+> hardcoded registry regardless of `evaluate`'s own `options.registry`, so a custom
+> registry's own ops were rejected as "unknown" the moment they had operands to count
+> — never caught by `core-001`'s own tests because none of them ever exercised a
+> genuinely custom registry. Regression tests added directly to `core-001`'s own spec
+> files (`registry.spec.js`, `index.spec.js`), and its full existing suite re-verified
+> with zero regressions before this closed. Explicitly exercises
+> `Initial design.md` §9 scenario 8 ("Remote-load safety") end to end against the real
+> kernel registry, including the exact malicious-`op` example from this file's own
+> Testing section.
+
 
 ## Goal
 
