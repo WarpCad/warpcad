@@ -8,6 +8,6 @@
       "@/*": ["./src/*"]
     }
   },
-  "include": ["src/**/*.js", "src/**/*.vue"],
+  "include": ["src/**/*.js", "src/**/*.vue", "src/**/*.d.ts"],
   "exclude": ["node_modules", "dist", "e2e"]
 }

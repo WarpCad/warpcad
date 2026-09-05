@@ -4,10 +4,23 @@ category: render
 kind: feature
 priority: high
 model: opus
-milestone: M0
+milestone: M1
 depends: [build-001]
-status: open
+status: done
 ---
+
+> **Shipped note (2026-09-05).** Two things landed beyond the scope written below,
+> both recorded in the commit and the final report rather than absorbed silently.
+> First, `docs/decisions/rendering.md`: `CLAUDE.md` lists Rendering as a
+> *default to reconsider*, and this is the task that pulled a renderer in as a real
+> dependency, which is exactly the trigger its Library-decisions rule names — three.js
+> was compared against Babylon.js and PlayCanvas on real health metrics and confirmed,
+> and the Stack row is now **Committed**. Second, the hand-driven acceptance pass found
+> that the 3D scene was hardcoded dark while the DOM chrome followed
+> `prefers-color-scheme`; the scene palette is now theme-aware, with unit and e2e
+> coverage. Also: an orientation **triad** ships rather than a view cube (`CLAUDE.md`
+> allows either), and `docs/README.md` was added as the documentation index, since no
+> docs-site tool has been chosen yet.
 
 ## Goal
 

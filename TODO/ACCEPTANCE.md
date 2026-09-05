@@ -219,7 +219,19 @@ selection.
 alone, with no dependency on keyboard or mouse input. Tapping the orientation gizmo
 snaps the camera to the corresponding standard view.
 
-**Last run**: (unset — not yet driveable; `render-001` doesn't exist yet)
+**Last run**: 2026-09-05 21:08 — PASS (hand-driven against `render-001`'s viewport at
+820×1180 in WebKit — the engine an iPad actually runs — touch input only, in both light
+and dark colour schemes. Orbit, pan and zoom were each reached through the on-screen
+navigation chrome with no keyboard or mouse; tapping the gizmo's `Z` cap snapped to the
+top view and `−Y` to front, both preserving zoom and pan position. Beyond the scenario's
+own steps: a one-finger diagonal drag, a vertical-only drag (the gesture the previous
+attempt's iPad bug swallowed) in both directions, a two-finger pinch, eight rapid taps
+with no settle time, and a drag ending on top of the chrome overlay all behaved; the page
+never scrolled or overflowed in either axis and the console stayed clean. **The drive
+found one real defect the test suite could not see**: the 3D scene was hardcoded dark
+while the DOM chrome followed `prefers-color-scheme`, so in light mode the app rendered
+light chrome around a dark canvas. Fixed in this task — the scene palette now follows the
+colour scheme, with unit and e2e coverage — and re-driven green in both schemes.)
 
 ### 8. Remote-load safety
 

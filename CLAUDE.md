@@ -273,7 +273,7 @@ previous choice is rejected, not merely unconfirmed, and the question underneath
 | State (UI-only) | Default — reconsider | Pinia, previous attempt |
 | Testing (E2E) | Default — reconsider | Playwright, previous attempt |
 | Testing (component workshop) | Default — reconsider | Storybook, previous attempt |
-| Rendering | Default — reconsider | three.js, previous attempt |
+| Rendering | **Committed** | three.js (pinned `0.185.1`), see `docs/decisions/rendering.md` |
 | PWA | Default — reconsider | vite-plugin-pwa, previous attempt |
 | Hosting | Default — reconsider | GitHub Pages (static, no backend), previous attempt |
 | Geometry kernel | **Committed** | `@jscad/modeling` (JSCAD V3), see `docs/decisions/geometry-kernel.md` |

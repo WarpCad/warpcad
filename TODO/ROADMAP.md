@@ -83,7 +83,7 @@ spec, at all three viewports and all three engines, because it's WebGL from line
 
 | id | Task | Kind | Depends | Acceptance |
 |---|---|---|---|---|
-| `render-001` | App shell + viewport scaffold (grid, orientation gizmo, nav chrome) | — | `build-001` | §9 scenario 7 (touch-only nav) — prerequisite, not yet driveable until this lands |
+| ✅ `render-001` | App shell + viewport scaffold (grid, orientation gizmo, nav chrome) | — | `build-001` | ✅ done — **three.js confirmed** as the renderer (`docs/decisions/rendering.md`, compared against Babylon.js/PlayCanvas on real health metrics; Stack row moved to Committed, pinned to `0.185.1` since three.js has no semver). `AppView.vue` is now the real mounted root. Ships the first `*.e2e.js`, running the full 3 viewport × 3 engine matrix. §9 scenario 7 (touch-only nav) **driven by hand and PASS** — that drive caught a light-mode defect (dark scene under light chrome) no test could see; fixed here |
 | `ui-010` *(reserved)* | Drag-place a primitive — generic mechanism wired to all 7 base primitives (Cube/Cuboid, Cylinder, Cone, Hexagon, Triangle, Tube, Sphere) | Creation | `render-001` | §9 scenario 1 (two independent primitives) |
 | `ui-011` *(reserved)* | Selection → inspector + dimension lines + gizmo | — (selection display) | `ui-010` | underlies scenarios 2, 6 |
 | `ui-012` *(reserved)* | Gizmo move/rotate ↔ numeric-field sync (adds the Inspector's Transform section per `docs/decisions/interaction-model-qa.md` control 4) | — | `ui-011` | strengthens scenario 2 — `docs-004` should add a gizmo-drag step, not just an inspector-field edit (see that Q&A doc's own flag) |
@@ -159,3 +159,4 @@ convention going forward.
 | `docs-003` | 2026-09-05 17:38 | ~5m (commit-to-commit gap from `core-002`; `docs` category has no test-suite preflight to time from) |
 | `docs-004` | 2026-09-05 19:35 | ~1h57m (commit-to-commit gap from `docs-003`; `docs` category has no test-suite preflight to time from) |
 | `core-003` | 2026-09-05 19:58 | ~21m (measured live from the Step 3 preflight test run at 19:37 UTC) |
+| `render-001` | 2026-09-05 21:10 | 29m (measured live from the Step 3 preflight at 20:41 UTC) |

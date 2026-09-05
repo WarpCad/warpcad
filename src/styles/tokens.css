@@ -1,0 +1,81 @@
+/*
+ * Design tokens. Dark mode is primary, light comes from `prefers-color-scheme`,
+ * and every colour is a custom property rather than a hardcoded literal
+ * (CLAUDE.md Conventions).
+ */
+
+:root {
+  color-scheme: dark light;
+
+  --surface-0: #10131a;
+  --surface-1: #171b24;
+  --surface-2: #1f2530;
+  --surface-glass: rgba(23, 27, 36, 0.82);
+  --border: #2c333f;
+  --border-strong: #3d4756;
+
+  --text-1: #e7ecf3;
+  --text-2: #a3aebd;
+  --text-3: #78838f;
+
+  --accent: #5aa9e6;
+  --accent-contrast: #06121d;
+  --axis-x: #c75c5c;
+  --axis-y: #6aa84f;
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+
+  /* Minimum comfortable touch target; phone layout must never go below this
+     for primary controls (CLAUDE.md Responsive Layout). */
+  --tap: 44px;
+  --tap-compact: 38px;
+
+  --shadow-overlay: 0 6px 24px rgba(0, 0, 0, 0.45);
+  --font: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --surface-0: #eef1f6;
+    --surface-1: #f7f9fc;
+    --surface-2: #ffffff;
+    --surface-glass: rgba(247, 249, 252, 0.88);
+    --border: #d3dae4;
+    --border-strong: #b6c0ce;
+
+    --text-1: #131820;
+    --text-2: #47525f;
+    --text-3: #6c7786;
+
+    --accent: #1f6fb2;
+    --accent-contrast: #ffffff;
+
+    --shadow-overlay: 0 6px 24px rgba(20, 30, 45, 0.18);
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+  /* The app is one screen with a full-bleed 3D viewport: the page itself never
+     scrolls, and touch drags must reach the canvas rather than scrolling or
+     rubber-banding the document. */
+  overflow: hidden;
+  overscroll-behavior: none;
+  background: var(--surface-0);
+  color: var(--text-1);
+  font-family: var(--font);
+  -webkit-text-size-adjust: 100%;
+}
+
+#app {
+  height: 100%;
+}
