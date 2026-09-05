@@ -277,7 +277,7 @@ previous choice is rejected, not merely unconfirmed, and the question underneath
 | PWA | Default — reconsider | vite-plugin-pwa, previous attempt |
 | Hosting | Default — reconsider | GitHub Pages (static, no backend), previous attempt |
 | Geometry kernel | **Committed** | `@jscad/modeling` (JSCAD V3), see `docs/decisions/geometry-kernel.md` |
-| Document model / sync | **Open** | previous pick (Yjs/CRDT) explicitly not carried forward — first decide whether multi-writer merge is even a goal this attempt |
+| Document model / sync | **Open** | previous pick (Yjs/CRDT) explicitly not carried forward — first decide whether multi-writer merge is even a goal this attempt; no-CRDT-for-v1 deferral recorded in `docs/decisions/document-sync.md` |
 
 ## Architecture
 
