@@ -29,6 +29,29 @@ export const useSelectionStore = defineStore('selection', () => {
     ids.value = id ? [id] : []
   }
 
+  /**
+   * Add an id to the selection, or drop it if it is already there.
+   *
+   * The minimum multi-select `ui-011` needs to reach the "2+ selected" Inspector
+   * state control 3's Q15 specifies — deliberately *only* that. The Operations
+   * toolbar that multi-selection eventually feeds (a live count badge, the
+   * base/subtrahend order indicator, count-gated boolean buttons) is `ui-014`'s
+   * contract, and building any of it here would leave it half-owned.
+   *
+   * Clearing to nothing when the last selected id is toggled off is the same
+   * end state as clicking empty space, so the Inspector, gizmo and dimension
+   * lines all fall back to their empty contract without a special case.
+   *
+   * @param {string | null | undefined} id
+   * @returns {void}
+   */
+  function toggle(id) {
+    if (!id) return
+    ids.value = ids.value.includes(id)
+      ? ids.value.filter((candidate) => candidate !== id)
+      : [...ids.value, id]
+  }
+
   function clear() {
     ids.value = []
   }
@@ -46,6 +69,7 @@ export const useSelectionStore = defineStore('selection', () => {
     count: computed(() => ids.value.length),
     onlyId: computed(() => (ids.value.length === 1 ? ids.value[0] : null)),
     select,
+    toggle,
     clear,
     has,
   }

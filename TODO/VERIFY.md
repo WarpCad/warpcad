@@ -19,6 +19,25 @@ between sessions — that's itself a signal to move more of it into
 
 ## Queue
 
+### ui-011 — Selection → inspector + dimension lines + gizmo (2026-09-06 01:22)
+
+One entry. The two *structural* defects this task's acceptance drive found — the two
+bottom sheets stacking, and the nav chrome sitting behind the sheet's edge — were fixed
+in the task and re-driven, so they belong in `TODO/ACCEPTANCE.md`'s scenario 2 note, not
+here. What is left is a genuine visual judgment call that no assertion can settle.
+
+- [ ] **Dimension-label collisions at phone width.** The three labels are placed at each
+  dimension line's midpoint, pushed outward from the solid's screen centre
+  (`updateDimensionAnnotation` in `src/render/annotate.js`). That keeps them off the
+  solid, which is the hard part — but nothing stops one from landing under the
+  orientation-gizmo card in the top-right corner, and at 390px that card is large
+  relative to the screen. It happened once in the drive: the X label drifted behind the
+  card while the camera was near the home view on a body placed high in the viewport.
+  Nothing was *wrong* — the number is also in the Inspector's Size row — but it looks
+  untidy. Worth a few minutes of orbiting on a real phone to judge whether this is rare
+  enough to leave, or whether the labels want a simple clamp inside a safe area. Do not
+  reach for a general label-collision solver before deciding it is actually a problem.
+
 ### ui-010 — Drag-place a primitive (2026-09-06 00:58)
 
 One entry only. The scenario-1 drive covers whether placement *works*; what it cannot

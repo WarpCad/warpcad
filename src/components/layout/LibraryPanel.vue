@@ -33,15 +33,38 @@
  * starts — the drag has to be able to end over the viewport, but auto-closing
  * mid-gesture would yank the row out from under the finger that is holding it.
  */
-import { onBeforeUnmount, ref } from 'vue'
+import { onBeforeUnmount, ref, watch } from 'vue'
 
 import { PRIMITIVE_LIBRARY } from '../../core/library.js'
 import { usePlacementStore } from '../../stores/placement.js'
+
+const props = defineProps({
+  /**
+   * Bumped by the root view when the user deliberately opens the Inspector
+   * sheet. A counter rather than a boolean because it is an *event* — "the other
+   * sheet just claimed the slot" — not a state this panel should mirror.
+   */
+  collapseSignal: { type: Number, default: 0 },
+})
+
+const emit = defineEmits(['open-change'])
 
 const placement = usePlacementStore()
 
 const rows = PRIMITIVE_LIBRARY
 const isOpen = ref(false)
+
+watch(
+  () => props.collapseSignal,
+  () => setOpen(false),
+)
+
+/** @param {boolean} value */
+function setOpen(value) {
+  if (isOpen.value === value) return
+  isOpen.value = value
+  emit('open-change', value)
+}
 const dragEl = ref(/** @type {HTMLElement | null} */ (null))
 
 /** Unsubscribe handle for the placement store's pointer feed. */
@@ -122,7 +145,7 @@ onBeforeUnmount(stopTracking)
       data-testid="library-tab"
       :aria-expanded="isOpen"
       aria-controls="library-sheet"
-      @click="isOpen = !isOpen"
+      @click="setOpen(!isOpen)"
     >
       <span class="library__tab-grip" aria-hidden="true" />
       Library

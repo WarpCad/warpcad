@@ -29,6 +29,15 @@ import { Group as ThreeGroup, Mesh, Raycaster, Vector2 } from 'three'
 import Grid from './Grid.vue'
 import OrientationGizmo from './OrientationGizmo.vue'
 import NavigationChrome from './NavigationChrome.vue'
+import DimensionLines from './DimensionLines.vue'
+import Gizmo from './Gizmo.vue'
+import { useSelectedBody } from '../../composables/useSelectedBody.js'
+import {
+  createDimensionAnnotation,
+  createGizmoAnnotation,
+  updateDimensionAnnotation,
+  updateGizmoAnnotation,
+} from '../../render/annotate.js'
 import { createOrbitCamera } from '../../render/camera.js'
 import { createViewport } from '../../render/scene.js'
 import {
@@ -61,9 +70,24 @@ const CLICK_SLOP_PX = 5
 /** The ghost is built once per op at the origin, then moved by `mesh.position`. */
 const GHOST_ORIGIN = Object.freeze({ x: 0, y: 0 })
 
+/** Screen length of each of the transform gizmo's translate arms, in pixels. */
+const GIZMO_ARM_PX = 58
+/** Screen radius of each of its rotate rings. */
+const GIZMO_RING_PX = 40
+/** How far clear of the solid a dimension line is drawn. */
+const DIMENSION_OFFSET_PX = 28
+/** Dimension arrowhead length. */
+const DIMENSION_ARROW_PX = 9
+
 const documentStore = useDocumentStore()
 const placement = usePlacementStore()
 const selection = useSelectionStore()
+/**
+ * What is selected, described in plain numbers. Recomputed when the selection or
+ * the document changes — **not** per frame; the render callback below only
+ * re-*projects* it.
+ */
+const selected = useSelectedBody()
 
 /**
  * Resolve the viewport palette from the OS/browser colour scheme. Dark is
@@ -99,6 +123,23 @@ const overlay = reactive({
   minorMm: 10,
   majorMm: 50,
 })
+
+/**
+ * The selection overlays' screen geometry (`TODO/ui-011`).
+ *
+ * Reactive, unlike the render state below it, because two Vue components draw
+ * from it — and small enough that this is not the case CLAUDE.md's Performance
+ * section forbids. That rule is about deep reactivity walking a multi-megabyte
+ * `Float32Array`; this is a fixed ~60 numbers, **allocated once here and mutated
+ * in place** by `src/render/annotate.js` from inside the render callback, so a
+ * frame writes numbers into an existing structure rather than rebuilding one.
+ */
+const gizmoAnnotation = reactive(createGizmoAnnotation())
+const dimensionAnnotations = reactive([
+  createDimensionAnnotation(),
+  createDimensionAnnotation(),
+  createDimensionAnnotation(),
+])
 
 // --- non-reactive render state -------------------------------------------
 
@@ -183,6 +224,55 @@ function syncOverlay() {
   const t = orbit.state.target
   overlay.target = `${t.x.toFixed(2)},${t.y.toFixed(2)},${t.z.toFixed(2)}`
   overlay.mmPerPixel = orbit.getMmPerPixel(heightPx)
+  syncAnnotations()
+}
+
+/**
+ * Re-project the selection overlays for the frame just drawn.
+ *
+ * Called from the render callback rather than from a watcher, because the gizmo
+ * and the dimension lines have to track the camera: an overlay that only updated
+ * when the *selection* changed would slide off its own solid the moment the user
+ * orbited. That is the same one-camera-two-views trap `render-001` avoided, and
+ * it is why this reads the very orbit state the frame was rendered with.
+ *
+ * Allocates nothing: `annotate.js` writes into the structures allocated above.
+ */
+function syncAnnotations() {
+  const body = selected.value.body
+  if (!body) {
+    // Nothing selected, or two or more — either way there is no single body to
+    // attach a gizmo to, and leaving the last one drawn would point at a solid
+    // the user is no longer working on.
+    gizmoAnnotation.visible = false
+    for (const annotation of dimensionAnnotations) annotation.visible = false
+    return
+  }
+  updateGizmoAnnotation(
+    orbit,
+    body.positionMm[0],
+    body.positionMm[1],
+    body.positionMm[2],
+    widthPx,
+    heightPx,
+    GIZMO_ARM_PX,
+    GIZMO_RING_PX,
+    gizmoAnnotation,
+  )
+  const [minMm, maxMm] = body.boundsMm
+  for (let axis = 0; axis < 3; axis += 1) {
+    updateDimensionAnnotation(
+      orbit,
+      minMm,
+      maxMm,
+      axis,
+      widthPx,
+      heightPx,
+      DIMENSION_OFFSET_PX,
+      DIMENSION_ARROW_PX,
+      dimensionAnnotations[axis],
+    )
+  }
 }
 
 function measure() {
@@ -459,7 +549,12 @@ function onPointerUp(event) {
   // released over the canvas) and must not be read as a click here.
   const isClick = wasTracked && event.pointerId === pressId && pressTravelPx <= CLICK_SLOP_PX
   pressId = -1
-  if (isClick) pickAt(event.clientX, event.clientY)
+  // Shift (or the platform's Cmd/Ctrl) adds to the selection instead of
+  // replacing it — the minimum multi-select `ui-011` needs to reach the "2+
+  // selected" Inspector state. A touch-only equivalent gesture belongs with the
+  // Operations toolbar that actually consumes multi-selection (`ui-014`), not
+  // here, where there would be nothing to do with it yet.
+  if (isClick) pickAt(event.clientX, event.clientY, event.shiftKey || event.metaKey || event.ctrlKey)
 }
 
 /**
@@ -471,8 +566,9 @@ function onPointerUp(event) {
  *
  * @param {number} clientXPx
  * @param {number} clientYPx
+ * @param {boolean} [additive] Add to the selection rather than replacing it.
  */
-function pickAt(clientXPx, clientYPx) {
+function pickAt(clientXPx, clientYPx, additive = false) {
   if (!viewport || bodyMeshes.size === 0) {
     selection.clear()
     return
@@ -481,7 +577,12 @@ function pickAt(clientXPx, clientYPx) {
   pickNdc.set(scratchNdc.x, scratchNdc.y)
   raycaster.setFromCamera(pickNdc, viewport.graph.camera)
   const hits = raycaster.intersectObjects(bodiesGroup.children, false)
-  selection.select(hits.length > 0 ? hits[0].object.name : null)
+  const hitId = hits.length > 0 ? hits[0].object.name : null
+  // Empty space always clears outright, even with the modifier held: it is the
+  // gesture that dismisses the whole selection response — inspector, gizmo and
+  // dimension lines — and an additive version of "nothing" has no meaning.
+  if (additive && hitId) selection.toggle(hitId)
+  else selection.select(hitId)
 }
 
 /** @param {WheelEvent} event */
@@ -646,6 +747,7 @@ onBeforeUnmount(() => {
     :data-theme="theme"
     :data-body-count="documentStore.count"
     :data-selected-id="selection.onlyId ?? ''"
+    :data-selected-count="selection.count"
     :data-placing="placement.isDragging ? 'true' : 'false'"
     :data-ghost="ghostVisible ? 'visible' : 'hidden'"
   >
@@ -682,6 +784,12 @@ onBeforeUnmount(() => {
         {{ body.name }}
       </li>
     </ul>
+
+    <!-- The selection *response* (TODO/ui-011): dimension lines under the
+         gizmo, both attached to whatever is selected right now, both
+         non-interactive so neither can swallow the click that selects. -->
+    <DimensionLines :annotations="dimensionAnnotations" />
+    <Gizmo :annotation="gizmoAnnotation" />
 
     <Grid
       :mm-per-pixel="overlay.mmPerPixel"

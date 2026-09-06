@@ -97,6 +97,17 @@ tab — and re-driven with a screenshot confirming the whole nav pad and readout
 Gizmo and dimension lines are not part of this pass: they are `ui-011`'s contract, so the
 "gizmo and dimension lines attach" half of Expect is deferred, not claimed.)
 
+**Re-checked**: 2026-09-06 01:15 — PASS, and **the deferred half is now met** (`ui-011`).
+A quick re-drive rather than a full one, since that task's changes are additive selection
+*response* and touch no placement logic: at laptop/Chromium, tablet/WebKit and
+phone/WebKit, a Cube then a Cylinder were dragged in with wandering, jittery paths; both
+stayed visible, the first body's millimetre centre was unchanged after the second drop,
+and each drop selected only the new item. Clicking empty grid cleared; clicking each solid
+in turn selected only that one. The previously-deferred half of **Expect** now holds too —
+the gizmo and all three dimension lines attach to whichever body was just clicked and to
+that body alone, never to both at once, confirmed by watching them retarget between the
+two solids and by orbiting with one selected. Console clean.
+
 ### 2. Hardware property edit
 
 **Steps**:
@@ -124,7 +135,49 @@ numeric-field edits stay in sync in both directions.
 control 4 flagged for this scenario — the original §9 draft only checked the
 inspector-field-edit direction.)*
 
-**Last run**: (unset — not yet driveable; `ui-013` and `ui-012` don't exist yet)
+**Last run**: 2026-09-06 01:15 — **PARTIAL PASS** (`ui-011`. Only the
+*Inspector-opens-and-shows-fields* half of this scenario is drivable, and it is
+deliberately reported as a partial rather than a PASS.
+
+**What was driven, and passed**: steps 2's Inspector contract, with a **Cylinder
+substituted for the Bolt** — the Library has no "Hardware" section yet (`ui-013`), so
+step 1 cannot be performed as written. Hand-driven at laptop 1440×900 in Chromium,
+tablet 820×1180 and phone 390×844 in WebKit (the engine an iPad and an iPhone actually
+run). Clicking the placed solid opened the Inspector showing that op's **own** param
+schema — Cylinder → `Diameter 40 mm`, `Height 50 mm`; a Cube in the same session →
+`Size X/Y/Z`; a Tube → `Diameter`, `Inner diameter`, `Height` — alongside the standing
+**Transform** section (Position X/Y/Z, Rotation X/Y/Z, Size X/Y/Z) reading the solid's
+real current values, measured off the evaluated geometry rather than the raw param.
+Beyond the scenario's own steps: six rapid clicks with no settle time, an orbit with a
+body selected (the gizmo and all three dimension lines tracked the camera and kept
+quoting the same millimetres from the new angle), a standard-view snap, and a
+deliberate attempt to **type into a Transform field** — which correctly refused,
+because the panel says out loud that its values are read-only until the transform
+tools land. Console clean in all three drives.
+
+**What is NOT drivable and is therefore NOT claimed**: step 1 (no Hardware/Bolt row —
+`ui-013`), step 3-4 (no editable params, so no mesh update — `ui-012`), and steps 5-8
+in full (no gizmo *drag*, no live field sync, no field-edit-moves-the-mesh — `ui-012`;
+`ui-011` ships the gizmo as visual handles only, by its own scope). This scenario's
+**Expect** section is entirely about those steps, so nothing in it is met yet.
+
+**The drive found two real defects the test suite could not see**, both fixed in
+`ui-011` and re-driven green:
+1. At phone width the Inspector's auto-opening bottom sheet and the Library's bottom
+   sheet claimed the same slot and stacked — the Library's rows legibly bleeding
+   *through* the Inspector's translucent ground into unreadable mush. No spec had ever
+   opened both at once. Resolved by making the phone-width sheet slot exclusive: the
+   Inspector declines to auto-open over a Library sheet the user deliberately opened
+   (its tab shows the selected body's name instead, one tap away), and tapping the
+   Inspector's tab collapses the Library. A drop deliberately does **not** close the
+   Library, because that would break scenario 1's place-several-in-a-row flow.
+2. The viewport's scale readout and the bottom row of its navigation pad sat behind the
+   Inspector sheet's top edge — measured, not guessed: readout at 406-451px against a
+   sheet starting at 426px. The inset formula had counted the sheet's body but not its
+   own 44px tab. Now a three-state inset (`none`/`tab`/`open`), because a *collapsed*
+   sheet still covers 44px of the 3D view. Re-measured at 362-407px against 426px.
+
+A third, smaller thing was found and logged rather than fixed — see `TODO/VERIFY.md`.)
 
 ### 3. Snap-placement of a kit assembly
 
@@ -218,7 +271,32 @@ member mesh narrows to that sub-part (step 6), with the breadcrumb showing the p
 depth. Clicking the breadcrumb's "Group" segment (step 7) steps back up to whole-group
 selection.
 
-**Last run**: (unset — not yet driveable; `ui-015` and `ui-016` don't exist yet)
+**Last run**: 2026-09-06 01:18 — **PARTIAL PASS** (`ui-011`. Only the *single-item
+selection contract* this scenario is built on top of is drivable; the group/sub-part
+behaviour that the scenario is actually about is not, and is not claimed.
+
+**What was driven, and passed**: the selection-targeting half of steps 3-4 and 6, at
+laptop/Chromium, tablet/WebKit and phone/WebKit. Clicking one solid attached the gizmo
+and all three dimension lines to **that solid's own bounding box** and populated the
+Inspector with its schema; clicking a second, different solid **fully retargeted** all
+three — the gizmo moved, the dimension numbers changed from the cube's 40/40/40 to the
+cylinder's 40/40/50, and the cube's `Size` row was replaced by the cylinder's
+`Diameter`/`Height` rather than lingering. Never two bodies annotated at once. Clicking
+empty space cleared the gizmo, the lines and the fields together.
+
+Step 4's *"the Inspector shows no per-item fields (multi-part group state)"* was driven
+in the only form that exists yet — **2 individually-selected bodies**, reached by
+shift-click, which `ui-011` added as the minimum multi-select needed to exercise the
+state (`docs/decisions/interaction-model-qa.md` control 3 Q15). The Inspector showed
+`2 selected` and no per-item fields, did not crash, and — the part that matters — did
+not keep showing the *first* body's fields. Shift-clicking the second body again
+dropped cleanly back to the single-selection contract.
+
+**What is NOT drivable and is therefore NOT claimed**: steps 1-2 (no Raspberry Pi /
+camera-module rows — M2; no "Combine into group" — `ui-015`), the whole
+group-vs-sub-part pick-depth behaviour of steps 5-7, and the breadcrumb (`ui-016`).
+This scenario's **Expect** section is entirely about that behaviour, so none of it is
+met yet — `ui-011` only guarantees the single-item contract it will be layered onto.)
 
 ### 7. Touch-only viewport navigation
 

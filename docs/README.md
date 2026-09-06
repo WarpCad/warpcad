@@ -15,6 +15,9 @@ themselves won't have to move.
 - [Placing a shape](primitive-placement.md) — dragging a primitive out of the
   Library panel into the 3D view, on desktop and on a phone, and selecting
   what you placed.
+- [Selecting a shape, and reading its size](selection-and-inspector.md) — the
+  gizmo, the three dimension lines, and the Inspector panel's parameters and
+  Transform section, on desktop and as a phone bottom sheet.
 - [Moving around the 3D view](viewport-navigation.md) — orbit, pan, zoom, the
   orientation triad, touch gestures, and reading size off the grid.
 
