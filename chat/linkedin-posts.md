@@ -201,3 +201,17 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** old fixed constants `GIZMO_ARM_PX = 58`/`GIZMO_RING_PX = 40` removed and replaced by a bounds-derived, floored-and-capped helper → `src/render/annotate.js` and `src/components/viewport/Viewport.vue` in this session's diff; the arm's rendered midpoint could fall outside the body once it grew, breaking a pre-existing `ui-012` spec, fixed by grabbing near the hub → this session's `npx playwright test` reproduction and fix, and the diff to `e2e/gizmo-transform.e2e.js`; app has no UI path yet to place a custom-size primitive (Library always drops registry defaults; Inspector Size fields are read-only) → `src/core/library.js` and `Inspector.vue`, read this session; full suite green (typecheck, 302 unit, 423 e2e passed / 19 skipped) → `npm run test` output, this session
 **To Add:** before/after screenshot of the gizmo at default vs. zoomed-in size on the same cube; repo URL once public
+
+## [2026-09-06T16:09:07Z] — Shift+drag and right-drag pan the viewport without touching the mode toggle
+
+**Post:** Our browser CAD viewport shipped with orbit-by-default dragging and a Pan mode you switch into with a toolbar toggle — the right design for touch, since there's no modifier key or second mouse button on a tablet. On a mouse it meant every camera pan cost a click to the toolbar and a click back, which is real friction against how desktop 3D tools normally work.
+
+We added the conventional desktop shortcuts on top of the existing toggle: hold Shift and drag with the left button, or just drag with the right button, and the camera pans regardless of the toggle's current setting. The interesting part was a pre-existing conflict — Shift+left-click already meant "add this object to the selection." The fix reuses the same click-vs-drag pixel-travel threshold the selection code already relied on, so a Shift+left press that never turns into a real drag still selects, and one that does still pans, with no second, competing definition of "drag" to get out of sync.
+
+Full suite passed across all three browser engines after the change: typecheck, 302 unit tests, and 432 of 451 end-to-end checks (19 intentional skips).
+
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL #Vue
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** toggle-only pan and `dragMode` predating this change, plus the pre-existing Shift-click additive-select call left untouched → `src/components/viewport/Viewport.vue`, this session's diff; full suite result (typecheck clean, 302/302 unit, 432/451 e2e passed with 19 skips, all three engines) → `npm run test`/`npx playwright test` output, this session
+**To Add:** short screen recording of Shift+drag panning without touching the toolbar; repo URL once public
