@@ -59,6 +59,7 @@ import { paramsForDrop, recordForDrop } from '../../core/library.js'
 import { useDocumentStore } from '../../stores/document.js'
 import { usePlacementStore } from '../../stores/placement.js'
 import { useSelectionStore } from '../../stores/selection.js'
+import { useSettingsStore } from '../../stores/settings.js'
 
 /** Degrees of orbit per pixel of drag. */
 const ORBIT_DEG_PER_PX = 0.4
@@ -84,6 +85,7 @@ const DIMENSION_ARROW_PX = 9
 const documentStore = useDocumentStore()
 const placement = usePlacementStore()
 const selection = useSelectionStore()
+const settings = useSettingsStore()
 const preview = useTransformPreviewStore()
 const transformCommands = useTransformCommands()
 /**
@@ -198,12 +200,15 @@ let pinchDistancePx = 0
 // Click-vs-drag discrimination for selection picking.
 let pressId = -1
 let pressTravelPx = 0
-// Desktop drag-mode override (`TODO/ui-018`): the button and Shift state at the
-// *start* of the tracked press, captured once like `pressId`/`pressTravelPx`
-// above, so a Shift key released mid-drag can't flip the gesture back to orbit
-// halfway through — see `effectiveDragMode()` below.
+// Desktop drag-mode override (`TODO/ui-018`, mapping made a stored preference
+// by `TODO/ui-019`): the button, Shift state and pointer type at the *start*
+// of the tracked press, captured once like `pressId`/`pressTravelPx` above, so
+// a Shift key released mid-drag can't flip the gesture back to orbit halfway
+// through — see `effectiveDragMode()` below.
 let pressButton = -1
 let pressShiftKey = false
+/** @type {string} `PointerEvent.pointerType` at press start: `'mouse'`, `'touch'`, `'pen'`, or `''` between gestures. */
+let pressPointerType = ''
 
 /**
  * The gizmo drag in progress (`TODO/ui-012`).
@@ -658,30 +663,69 @@ const dropTarget = {
 // --- pointer input --------------------------------------------------------
 
 /**
- * The drag mode for the single-pointer gesture in progress, layering this
- * task's desktop overrides on top of the chrome's own `Orbit`/`Pan` toggle
- * (`TODO/ui-018`).
+ * Desktop mouse-button/modifier overrides for the single-pointer gesture in
+ * progress, layered on top of the chrome's own `Orbit`/`Pan` toggle
+ * (`TODO/ui-018`), keyed by `settings.mouseNavPreset` (`TODO/ui-019` made
+ * `ui-018`'s mapping a stored preference rather than a hardcoded one). Adding
+ * a future preset only ever means adding a branch here, never touching the
+ * pointer-handling functions that call `effectiveDragMode()`.
  *
- * Right mouse button always pans, no modifier needed — there is no competing
- * "right-click" meaning elsewhere in this component, unlike Shift+left. A
- * Shift+left press only counts as this task's pan override once its travel
- * has exceeded `CLICK_SLOP_PX`: below that threshold the press is still a
- * *candidate click*, and `onPointerUp`'s own `isClick` check is what fires the
- * Shift-click additive-select path — a Shift+left press that never exceeds the
- * slop must reach that path undisturbed, not be swallowed as a pan.
+ * Gated on `pressPointerType === 'mouse'`: every branch below reads
+ * `pressButton`, and a touch `PointerEvent` reports `button: 0` too, so
+ * without this gate the `left-pans` preset would start panning on an
+ * ordinary one-finger touch orbit. `TODO/ui-019`'s own Interaction model
+ * section is explicit that the preset choice is "moot on touch" — touch
+ * always falls through to the chrome's `dragMode` toggle, regardless of
+ * which mouse preset is selected.
  *
- * `pressShiftKey` and `pressButton` are captured once at `pointerdown` and
- * `pressTravelPx` only ever grows for the life of the gesture (see the
- * bookkeeping above), so once this returns `'pan'` for a Shift+left gesture it
- * keeps returning `'pan'` for the rest of that gesture even if Shift is
- * released before the pointer comes up — the mode is decided once, at the
- * point travel first exceeds the slop, not re-evaluated every move.
+ * @param {import('../../stores/settings.js').MouseNavPresetId} preset
+ * @returns {'orbit' | 'pan' | null} `null` means "no override — fall through
+ *   to the chrome toggle", so the caller only has one fallback to reason about.
+ */
+function mouseDragOverride(preset) {
+  if (preset === 'left-pans') {
+    // The alternate preset: plain left-drag pans, right-drag orbits — the
+    // mirror image of the default below. No Shift/slop gating is needed on
+    // the left-button branch for the same reason the default's plain-left
+    // (no Shift) case needs none: a press that never exceeds `CLICK_SLOP_PX`
+    // still resolves as a click in `onPointerUp`, independent of what this
+    // function returned while its travel was under that threshold.
+    if (pressButton === 0) return 'pan'
+    if (pressButton === 2) return 'orbit'
+    return null
+  }
+  // Default (`shift-or-right-pans`, `ui-018`'s original scheme). Right mouse
+  // button always pans, no modifier needed — there is no competing
+  // "right-click" meaning elsewhere in this component, unlike Shift+left. A
+  // Shift+left press only counts as a pan override once its travel has
+  // exceeded `CLICK_SLOP_PX`: below that threshold the press is still a
+  // *candidate click*, and `onPointerUp`'s own `isClick` check is what fires
+  // the Shift-click additive-select path — a Shift+left press that never
+  // exceeds the slop must reach that path undisturbed, not be swallowed as a
+  // pan.
+  if (pressButton === 2) return 'pan'
+  if (pressButton === 0 && pressShiftKey && pressTravelPx > CLICK_SLOP_PX) return 'pan'
+  return null
+}
+
+/**
+ * The drag mode for the single-pointer gesture in progress.
+ *
+ * `pressButton`, `pressShiftKey` and `pressPointerType` are captured once at
+ * `pointerdown` and `pressTravelPx` only ever grows for the life of the
+ * gesture (see the bookkeeping above), so once this starts returning `'pan'`
+ * for a gesture it keeps returning `'pan'` for the rest of that gesture even
+ * if, say, Shift is released before the pointer comes up — the mode is
+ * decided once, at the point travel first crosses whatever threshold the
+ * active preset uses, not re-evaluated every move.
  *
  * @returns {'orbit' | 'pan'}
  */
 function effectiveDragMode() {
-  if (pressButton === 2) return 'pan'
-  if (pressButton === 0 && pressShiftKey && pressTravelPx > CLICK_SLOP_PX) return 'pan'
+  if (pressPointerType === 'mouse') {
+    const override = mouseDragOverride(settings.mouseNavPreset)
+    if (override) return override
+  }
   return dragMode.value
 }
 
@@ -720,10 +764,12 @@ function onPointerDown(event) {
     pressTravelPx = 0
     pressButton = event.button
     pressShiftKey = event.shiftKey
+    pressPointerType = event.pointerType
   } else {
     // A second contact means this is a gesture, not a click.
     pressId = -1
     pressButton = -1
+    pressPointerType = ''
   }
   isDragging.value = true
 }

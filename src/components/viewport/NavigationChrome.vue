@@ -17,7 +17,8 @@
  * on-screen control and the gesture honestly equivalent rather than two
  * different features that happen to look alike.
  */
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
+import { MOUSE_NAV_PRESETS, useSettingsStore } from '../../stores/settings.js'
 
 const props = defineProps({
   dragMode: {
@@ -29,6 +30,26 @@ const props = defineProps({
 const emit = defineEmits(['step', 'zoom', 'mode', 'reset'])
 
 const verb = computed(() => (props.dragMode === 'pan' ? 'Pan' : 'Orbit'))
+
+// TODO/ui-019: the mouse-navigation preset is read straight from the settings
+// store — this control both shows and changes it, with no need to round-trip
+// through the parent the way the camera controls above do, since nothing
+// outside this store cares which preset is active except `Viewport.vue`'s own
+// `effectiveDragMode()`, which reads the same store directly.
+const settings = useSettingsStore()
+const settingsOpen = ref(false)
+
+function toggleSettings() {
+  settingsOpen.value = !settingsOpen.value
+}
+
+/** @param {string} id */
+function choosePreset(id) {
+  settings.setMouseNavPreset(id)
+  // Closing on selection keeps the popover from lingering over the viewport
+  // for the drag the user is about to make to try the new preset out.
+  settingsOpen.value = false
+}
 
 /** @type {ReadonlyArray<{dir: string, glyph: string, cell: string}>} */
 const STEPS = Object.freeze([
@@ -63,6 +84,38 @@ const STEPS = Object.freeze([
         @click="emit('mode', 'pan')"
       >
         Pan
+      </button>
+      <button
+        type="button"
+        class="chrome__gear"
+        :aria-expanded="settingsOpen"
+        data-testid="nav-settings-gear"
+        title="Mouse navigation settings"
+        aria-label="Mouse navigation settings"
+        @click="toggleSettings"
+      >
+        ⚙
+      </button>
+    </div>
+
+    <div
+      v-if="settingsOpen"
+      class="chrome__presets"
+      role="group"
+      aria-label="Mouse navigation preset"
+      data-testid="nav-settings-panel"
+    >
+      <button
+        v-for="preset in MOUSE_NAV_PRESETS"
+        :key="preset.id"
+        type="button"
+        class="chrome__preset"
+        :class="{ 'chrome__preset--on': settings.mouseNavPreset === preset.id }"
+        :aria-pressed="settings.mouseNavPreset === preset.id"
+        :data-testid="`nav-preset-${preset.id}`"
+        @click="choosePreset(preset.id)"
+      >
+        {{ preset.label }}
       </button>
     </div>
 
@@ -161,6 +214,65 @@ const STEPS = Object.freeze([
   font-weight: 600;
 }
 
+.chrome__gear {
+  flex: 0 0 auto;
+  width: 30px;
+  min-height: 32px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface-1);
+  color: var(--text-2);
+  font-size: 14px;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.chrome__gear[aria-expanded='true'] {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-contrast);
+}
+
+/* Opens upward from the modes row so it never reaches toward the orientation
+   gizmo (top-right) or grows the cluster's footprint while closed — the
+   default state adds nothing to the chrome's on-screen size at all. */
+.chrome__presets {
+  position: absolute;
+  left: 0;
+  bottom: 100%;
+  margin-bottom: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px;
+  min-width: 220px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface-glass);
+  backdrop-filter: blur(6px);
+  box-shadow: var(--shadow-overlay);
+}
+
+.chrome__preset {
+  min-height: var(--tap);
+  padding: 0 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface-1);
+  color: var(--text-2);
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.chrome__preset--on {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-contrast);
+  font-weight: 600;
+}
+
 .chrome__row {
   display: flex;
   align-items: center;
@@ -232,6 +344,21 @@ const STEPS = Object.freeze([
   }
 
   .chrome__mode {
+    min-height: 30px;
+    font-size: 11px;
+  }
+
+  .chrome__gear {
+    min-height: 30px;
+    width: 26px;
+    font-size: 13px;
+  }
+
+  .chrome__presets {
+    min-width: 200px;
+  }
+
+  .chrome__preset {
     min-height: 30px;
     font-size: 11px;
   }

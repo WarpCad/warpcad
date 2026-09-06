@@ -438,6 +438,91 @@ test('mouse drag orbits, and pans once the mode is switched', async ({ page }) =
   await camera(page, 'azimuth').toBeCloseTo(shiftPanned.azimuth, 1)
 })
 
+test('the settings gear opens a mouse-nav preset list, marks the active choice, and switching preset changes drag behavior on the very next drag (TODO/ui-019)', async ({
+  page,
+}) => {
+  const gear = page.getByTestId('nav-settings-gear')
+  const panel = page.getByTestId('nav-settings-panel')
+  await expect(gear).toBeVisible()
+  // Closed by default — the control adds nothing to the chrome's on-screen
+  // footprint until the user actually opens it.
+  await expect(panel).toHaveCount(0)
+
+  await gear.click()
+  await expect(panel).toBeVisible()
+  // The out-of-the-box default (`ui-018`'s scheme) is marked active before
+  // anyone has ever picked anything — re-opening never shows a blank picker.
+  await expect(page.getByTestId('nav-preset-shift-or-right-pans')).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  )
+  await expect(page.getByTestId('nav-preset-left-pans')).toHaveAttribute('aria-pressed', 'false')
+
+  await page.getByTestId('nav-preset-left-pans').click()
+  await expect(panel).toHaveCount(0)
+
+  const start = await cameraState(page)
+  // Plain left-drag, no modifier: pans under the alternate preset (it orbited
+  // under the default — see the 'mouse drag orbits...' test above).
+  await dragCanvas(page, { dx: 0, dy: 80 })
+  await camera(page, 'target').not.toBe(start.target)
+  await camera(page, 'azimuth').toBeCloseTo(start.azimuth, 1)
+  const panned = await cameraState(page)
+
+  // Right-button drag: orbits under the alternate preset — the mirror image
+  // of the default, where right-button always panned.
+  await dragCanvas(page, { dx: 100, dy: 0, button: 2 })
+  await camera(page, 'azimuth').toBeCloseTo(panned.azimuth - 40, 0)
+  await camera(page, 'target').toBe(panned.target)
+
+  // Re-opening the list shows the current choice.
+  await gear.click()
+  await expect(page.getByTestId('nav-preset-left-pans')).toHaveAttribute('aria-pressed', 'true')
+  await expect(page.getByTestId('nav-preset-shift-or-right-pans')).toHaveAttribute(
+    'aria-pressed',
+    'false',
+  )
+})
+
+test('a touch drag still orbits under the alternate mouse-nav preset (TODO/ui-019 — the preset is moot on touch)', async ({
+  page,
+}) => {
+  // `ui-019`'s own Interaction model section: mouse-button conventions have no
+  // touch equivalent (no Shift key, no right button), so a touch drag must
+  // keep following the chrome's Orbit/Pan toggle exactly as it did before this
+  // task, regardless of which mouse preset is selected.
+  await page.getByTestId('nav-settings-gear').click()
+  await page.getByTestId('nav-preset-left-pans').click()
+
+  const start = await cameraState(page)
+  await dragCanvas(page, { dx: 60, dy: 0, pointerType: 'touch' })
+  await camera(page, 'azimuth').toBeCloseTo(start.azimuth - 24, 0)
+  await camera(page, 'target').toBe(start.target)
+})
+
+test('the chosen mouse-nav preset survives a real reload, without reselecting it (TODO/ui-019)', async ({
+  page,
+}) => {
+  await page.getByTestId('nav-settings-gear').click()
+  await page.getByTestId('nav-preset-left-pans').click()
+
+  await page.reload()
+  await expect(page.getByTestId('viewport')).toBeVisible()
+  await expect(page.getByTestId('viewport')).not.toHaveAttribute('data-frames-rendered', '0')
+
+  // The UI shows the persisted choice without the user picking it again...
+  await page.getByTestId('nav-settings-gear').click()
+  await expect(page.getByTestId('nav-preset-left-pans')).toHaveAttribute('aria-pressed', 'true')
+  await page.getByTestId('nav-settings-gear').click()
+  await expect(page.getByTestId('nav-settings-panel')).toHaveCount(0)
+
+  // ...and the actual drag behavior carried over, not just the list's marking.
+  const start = await cameraState(page)
+  await dragCanvas(page, { dx: 0, dy: 80 })
+  await camera(page, 'target').not.toBe(start.target)
+  await camera(page, 'azimuth').toBeCloseTo(start.azimuth, 1)
+})
+
 test('Shift-clicking a body still selects it additively, without dragging (TODO/ui-018 regression)', async ({
   page,
 }) => {
@@ -560,6 +645,39 @@ test('the overlays stay on screen and tappable, and the page never scrolls sidew
     const box = await page.getByTestId(id).boundingBox()
     expect(box?.height ?? 0, id).toBeGreaterThanOrEqual(28)
   }
+
+  // TODO/ui-019: the settings gear adds nothing to the chrome's footprint
+  // while closed (already covered by the `navigation-chrome` bounds check
+  // above, which includes it), but opening its preset popover must not push
+  // it — or any of the other chrome/gizmo controls it sits beside — off
+  // screen, at the tightest reference viewport included in this test's own
+  // matrix.
+  await page.getByTestId('nav-settings-gear').click()
+  const panel = page.getByTestId('nav-settings-panel')
+  await expect(panel).toBeVisible()
+  const panelBox = await panel.boundingBox()
+  expect(panelBox?.x ?? -1, 'nav-settings-panel off the left edge').toBeGreaterThanOrEqual(0)
+  expect(
+    (panelBox?.x ?? 0) + (panelBox?.width ?? 0),
+    'nav-settings-panel off the right edge',
+  ).toBeLessThanOrEqual((pageBox?.width ?? 0) + 1)
+  for (const id of ['orientation-gizmo', 'gizmo-view-home', 'grid-scale-readout']) {
+    const box = await page.getByTestId(id).boundingBox()
+    // Standard axis-aligned rectangle intersection: two boxes overlap unless
+    // one is entirely to the left/right/above/below the other on some axis.
+    const overlaps =
+      box &&
+      panelBox &&
+      box.x < panelBox.x + panelBox.width &&
+      box.x + box.width > panelBox.x &&
+      box.y < panelBox.y + panelBox.height &&
+      box.y + box.height > panelBox.y
+    // These sit far enough from the bottom-left chrome cluster that an
+    // upward-opening popover there should never reach them.
+    expect(overlaps, `nav-settings-panel crowds ${id}`).toBe(false)
+  }
+  await page.getByTestId('nav-settings-gear').click()
+  await expect(panel).toHaveCount(0)
 
   // Visual snapshot per viewport × engine project. Captured as an artifact
   // rather than pixel-diffed: WebGL output legitimately differs between engines

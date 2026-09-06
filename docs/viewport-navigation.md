@@ -68,6 +68,32 @@ adds the clicked object to the current selection instead — see
 `docs/selection-and-inspector.md` — because a Shift+left press that never
 turns into a real drag is a click, not a pan.
 
+### Changing which mouse button pans (the gear icon)
+
+The Shift/right-button shortcuts above are one convention, but not the only
+one people are used to — some other tools put pan on the plain left button
+instead. Click the **gear icon** next to `Orbit`/`Pan` in the navigation pad
+to choose which one WarpCad uses:
+
+1. **Click the gear icon** in the navigation chrome. A short list opens with
+   the current choice already marked.
+2. **Choose "Left-drag pans, right-drag orbits"** to switch — or choose
+   "Shift+Left or Right-drag pans" to go back to the default.
+3. Your very next drag in the 3D view already follows the new choice; nothing
+   else needs a reload or a re-selection.
+4. The choice is remembered: it's saved in your browser and is still active
+   the next time you open WarpCad, even after closing the tab.
+
+| Preset | Left-drag | Right-drag |
+|---|---|---|
+| Shift+Left or Right-drag pans (default) | Orbit, or pans if Shift is held | Pans |
+| Left-drag pans, right-drag orbits | Pans | Orbits |
+
+This only changes the *mouse* shortcuts above — the `Orbit`/`Pan` toggle, the
+direction pad, and every touch gesture on this page work exactly the same
+regardless of which preset is chosen, since there is no Shift key or right
+mouse button on a touchscreen to remap.
+
 ## The orientation triad (top-right)
 
 The triad shows which way the camera is currently pointing: the red spoke is the

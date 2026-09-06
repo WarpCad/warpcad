@@ -6,7 +6,7 @@ priority: medium
 model: sonnet
 milestone: M1
 depends: [ui-018]
-status: open
+status: done
 ---
 
 ## Goal
