@@ -52,3 +52,4 @@ whether a milestone boundary was hit.
 |---|---|---|---|---|
 | 2026-09-05 19:35 | 2026-09-05 20:00 | `docs-004`, `core-003` | milestone boundary (M0 complete) | yes — M0 |
 | 2026-09-05 20:38 | 2026-09-06 01:22 | `render-001`, `ui-010`, `ui-011` | task-count reached (3) | no |
+| ~2026-09-06 12:44 (approximate — not logged synchronously at Step 1) | 2026-09-06 13:14 | `ui-012` | milestone boundary (M1 complete) | yes — M1 |
