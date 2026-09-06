@@ -153,3 +153,19 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** `@jscad/modeling@2.13.0`'s `triangle` returns a geom2, and `cylinderElliptic` takes `startRadius`/`endRadius` pairs rather than a `radiusEnd` → node inspection and source reading of `node_modules/@jscad/modeling`, this session; no command layer existed beforehand (`src/core/` held only `replay.js` and `ndjson.js`) → the diff, and `TODO/done/ui-010-drag-place-primitive.md`'s own Required-addition section; 223 unit + 225 e2e across 3 viewports × 3 engines → `npm run test:unit`/`npm run test:e2e:headless`, this session; phone-width sheet-tab overlap found by the hand-driven acceptance pass, not by a test → `TODO/ACCEPTANCE.md` scenario 1 Last-run note and the screenshots taken this session
 **To Add:** before/after screenshot of the phone-width overlap; repo URL once public
+
+
+## [2026-09-06T01:22:00Z] — Selection response: gizmo, dimension lines, Inspector (TODO/ui-011)
+
+**Post:** Selecting a shape in WarpCad used to just highlight it. Now it attaches a transform gizmo, draws three dimension lines — one per axis, each with extension lines, arrowheads and a millimetre label — and fills an Inspector panel with that shape's own parameters.
+
+The part worth writing down is where the code lives. None of the maths is in a Vue component. World-to-screen projection, which of a bounding box's four parallel edges to dimension against, and the arrowhead geometry all sit in a framework-free module unit-tested in plain Node, including a test asserting it is the exact inverse of the projection the placement ghost already used. The Inspector's fields are read from each operation's own schema in the kernel registry, so registering an eighth primitive gives it a correct panel with no component change. A Cube shows Size X/Y/Z, a Tube shows Diameter, Inner diameter and Height, from one code path.
+
+315 end-to-end tests pass across three viewports and three browser engines. Then I drove the running app by hand on a phone-sized screen, which is where two real defects turned up: the Inspector's bottom sheet and the Library's bottom sheet were claiming the same slot and rendering through each other, and the viewport's zoom controls and scale readout were sitting behind the sheet's top edge by 25 pixels. Neither is visible to an assertion. Both are obvious in a screenshot.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL #Vue #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** projection asserted to be the exact inverse of `src/render/pick.js`'s `projectToWorkingPlane` → the test "is the exact inverse of pick.js projectToWorkingPlane" in `src/render/annotate.spec.js`, passing this session; Inspector fields read from the registry's `ui.defaults` → `src/core/inspector.js` in the diff, with `src/core/inspector.spec.js` covering all 7 primitives plus a Cube/Tube contrast; 315 e2e passing across 3 viewports × 3 engines and 267 unit → `npm test`, this session; the 25px overlap and its fix → measured in the browser during the acceptance drive, 406-451px readout against a 426px sheet top before, 362-407px after, recorded in `TODO/ACCEPTANCE.md` scenario 2
+**To Add:** laptop screenshot of a selected cylinder with all three dimension lines; before/after phone screenshots of the sheet overlap; repo URL once public
