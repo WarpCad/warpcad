@@ -215,3 +215,18 @@ Full suite passed across all three browser engines after the change: typecheck, 
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** toggle-only pan and `dragMode` predating this change, plus the pre-existing Shift-click additive-select call left untouched → `src/components/viewport/Viewport.vue`, this session's diff; full suite result (typecheck clean, 302/302 unit, 432/451 e2e passed with 19 skips, all three engines) → `npm run test`/`npx playwright test` output, this session
 **To Add:** short screen recording of Shift+drag panning without touching the toolbar; repo URL once public
+
+## [2026-09-06T16:25:49Z] — Mouse pan/orbit mapping is now a saved preference (TODO/ui-019)
+
+**Post:** WarpCad's 3D viewport shipped one specific mouse convention for pan versus orbit: hold Shift or use the right mouse button to pan, plain left-drag to orbit. That's a reasonable default, but it isn't universal — some tools people already use put pan on the primary button instead, and a hardcoded scheme fights that muscle memory no matter which one gets picked.
+
+We turned the mapping into a stored preference instead of a fixed rule. A gear icon next to the viewport's Orbit/Pan toggle opens a short list of two presets; picking one applies to the very next drag and is saved to the browser's localStorage — the project's first use of it, so the read/write boundary (a try/catch around a blocked or private-browsing store) was built to be reused by every setting that comes after this one. A touch drag was left untouched on purpose: there's no Shift key or right mouse button on a tablet, so both presets fall back to the existing Orbit/Pan toggle there regardless of which one is selected.
+
+Full suite passed across all three reference viewports and all three browser engines after the change: typecheck clean, 309 unit tests, 459 of 478 end-to-end checks (19 intentional skips).
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL #Vue
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** `ui-018`'s original hardcoded mapping → `TODO/done/ui-018-*.md` and the pre-change `effectiveDragMode()` in `src/components/viewport/Viewport.vue`; first `localStorage` use in the project → grep across `src/` and `e2e/` before implementing, this session, plus the TODO file's own "Affected files" note; touch drags are unaffected by the preset → new `pressPointerType === 'mouse'` gate in `Viewport.vue`, confirmed both by a new e2e regression test and by hand-driving a touch orbit at the iPad viewport (WebKit) after switching presets, this session; full suite result (typecheck clean, 309/309 unit, 459/478 e2e passed with 19 skips, all three engines and viewports) → `npm run test` output, this session
+**To Add:** repo URL once public
