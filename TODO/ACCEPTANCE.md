@@ -434,6 +434,16 @@ desktop overrides — touch has no button/Shift concept, so the new logic's cond
 never trigger on this input path, confirmed by direct observation rather than just
 by code inspection.
 
+**Re-checked**: 2026-09-06 16:38 — PASS (`ui-019`). Re-driven at the iPad viewport
+(820×1180, WebKit, touch-only) after adding the settings gear icon to `NavigationChrome`
+— the concern this re-drive exists to rule out is the new control crowding or covering
+the existing orbit/pan/zoom/orientation-gizmo chrome at this exact viewport. Orbit, pan,
+zoom via chrome, and the gizmo-tap view snap all still worked; the gear icon and its
+preset popover were confirmed (bounding-box checks plus screenshots) not to overlap the
+orientation gizmo, the home button, or the scale readout. The preset choice itself is
+inert on this input path by design — touch has no Shift key or right mouse button — so
+this re-drive is purely a layout/crowding check, not a behavior check.
+
 ### 8. Remote-load safety
 
 **Steps**:
