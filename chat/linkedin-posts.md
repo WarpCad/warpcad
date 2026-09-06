@@ -230,3 +230,18 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** `ui-018`'s original hardcoded mapping → `TODO/done/ui-018-*.md` and the pre-change `effectiveDragMode()` in `src/components/viewport/Viewport.vue`; first `localStorage` use in the project → grep across `src/` and `e2e/` before implementing, this session, plus the TODO file's own "Affected files" note; touch drags are unaffected by the preset → new `pressPointerType === 'mouse'` gate in `Viewport.vue`, confirmed both by a new e2e regression test and by hand-driving a touch orbit at the iPad viewport (WebKit) after switching presets, this session; full suite result (typecheck clean, 309/309 unit, 459/478 e2e passed with 19 skips, all three engines and viewports) → `npm run test` output, this session
 **To Add:** repo URL once public
+
+## [2026-09-06T18:24:35Z] — Killed the white-flash-on-load bug (again)
+
+**Post:** Closed out a white-screen flash on app load in the browser CAD project: for a moment before the dark UI appeared, the page painted its browser-default white background instead.
+
+The cause was structural, not cosmetic. The page's `<head>` had no styling of its own, and the dark background lived in a CSS file that only got pulled in as a side effect of loading the app's JavaScript — so the browser had to fetch and run JS before the correct background ever applied. On a slow connection or a cold cache, that gap is visible. This is also a repeat: both earlier attempts at this project shipped the same class of bug on Safari and iPad specifically, so it got fixed before any more UI landed on the same page shell.
+
+The fix is a few lines of inline CSS in the page head, verified with a script that artificially delays the JavaScript and stylesheet loads and checks the background color across Chromium, Firefox, and WebKit — the browser most likely to reproduce the original bug.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL #SoftwareEngineering
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** root cause (empty `<head>`, dark background arriving only via a JS-module-triggered CSS fetch) → `TODO/done/build-002-fix-load-white-flash.md`'s Problem section and the diff to `index.html`; this bug class shipped on Safari/iPad in both previous attempts → `CLAUDE.md`'s Browser Support section; verified with a 2s artificial delay on JS/CSS responses across Chromium/Firefox/WebKit, background read `#10131a` and the `color-scheme` meta was present 150ms after navigation commit → Playwright script output, this session; full suite green (typecheck clean, 313 unit tests across 19 files, 459 e2e passed with 19 skipped) → `npm run test` output, this session
+**To Add:** repo URL once public
