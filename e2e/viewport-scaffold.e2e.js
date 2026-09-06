@@ -52,17 +52,26 @@ function camera(page, field) {
  * Drive a pointer drag over the canvas. `pointerType: 'touch'` exercises the
  * same handlers a finger does on a device the runner can't emulate natively.
  *
+ * `button`/`shiftKey` exercise `TODO/ui-018`'s desktop pan overrides (Shift+left,
+ * or the right mouse button) on top of the existing plain-left-drag path — every
+ * `PointerEvent` in the gesture carries them, matching how a real held button and
+ * a real held modifier key stay present for a drag's whole duration, not just its
+ * `pointerdown`.
+ *
  * @param {import('@playwright/test').Page} page
- * @param {{ dx: number, dy: number, pointerType?: 'mouse' | 'touch' }} options
+ * @param {{ dx: number, dy: number, pointerType?: 'mouse' | 'touch', button?: number, shiftKey?: boolean }} options
  */
-async function dragCanvas(page, { dx, dy, pointerType = 'mouse' }) {
+async function dragCanvas(page, { dx, dy, pointerType = 'mouse', button = 0, shiftKey = false }) {
   await page.evaluate(
-    ({ dx, dy, pointerType }) => {
+    ({ dx, dy, pointerType, button, shiftKey }) => {
       const canvas = document.querySelector('[data-testid="viewport-canvas"]')
       if (!canvas) throw new Error('no canvas')
       const box = canvas.getBoundingClientRect()
       const x = box.left + box.width / 2
       const y = box.top + box.height / 2
+      // Bitmask: left = 1, right = 2 (per the `PointerEvent.buttons` spec) — held
+      // for `pointermove`, cleared for `pointerup`, mirroring a real press.
+      const buttonsBit = button === 2 ? 2 : 1
       /** @param {string} type @param {number} cx @param {number} cy */
       const fire = (type, cx, cy) =>
         canvas.dispatchEvent(
@@ -70,6 +79,9 @@ async function dragCanvas(page, { dx, dy, pointerType = 'mouse' }) {
             pointerId: 1,
             pointerType,
             isPrimary: true,
+            button,
+            buttons: type === 'pointerup' ? 0 : buttonsBit,
+            shiftKey,
             clientX: cx,
             clientY: cy,
             bubbles: true,
@@ -83,9 +95,109 @@ async function dragCanvas(page, { dx, dy, pointerType = 'mouse' }) {
       fire('pointermove', x + dx, y + dy)
       fire('pointerup', x + dx, y + dy)
     },
-    { dx, dy, pointerType },
+    { dx, dy, pointerType, button, shiftKey },
   )
   await page.waitForTimeout(50)
+}
+
+/**
+ * Open the Library if this viewport keeps it behind a tab, exactly as
+ * `primitive-placement.e2e.js` and `selection-inspector.e2e.js` do — needed here
+ * only for the Shift-click-still-selects regression test, which needs a real
+ * placed body to click on.
+ *
+ * @param {import('@playwright/test').Page} page
+ */
+async function openLibrary(page) {
+  const rows = page.getByTestId('library-rows')
+  if (await rows.isVisible()) return
+  await page.getByTestId('library-tab').click()
+  await expect(rows).toBeVisible()
+}
+
+/**
+ * Drag a Library row into the viewport and release inside it. Same pattern as
+ * `primitive-placement.e2e.js`'s helper of the same name.
+ *
+ * @param {import('@playwright/test').Page} page
+ * @param {{ op: string, fx: number, fy: number }} options
+ */
+async function dragRowIntoViewport(page, { op, fx, fy }) {
+  await page.evaluate(
+    ({ op, fx, fy }) => {
+      const row = document.querySelector(`[data-testid="library-row-${op}"]`)
+      const view = document.querySelector('[data-testid="viewport"]')
+      if (!row || !view) throw new Error(`missing row ${op} or viewport`)
+      const from = row.getBoundingClientRect()
+      const to = view.getBoundingClientRect()
+      const startX = from.left + from.width / 2
+      const startY = from.top + from.height / 2
+      const endX = to.left + to.width * fx
+      const endY = to.top + to.height * fy
+      /** @param {EventTarget} target @param {string} type @param {number} x @param {number} y */
+      const fire = (target, type, x, y) =>
+        target.dispatchEvent(
+          new PointerEvent(type, {
+            pointerId: 7,
+            pointerType: 'mouse',
+            isPrimary: true,
+            button: 0,
+            buttons: type === 'pointerup' ? 0 : 1,
+            clientX: x,
+            clientY: y,
+            bubbles: true,
+            cancelable: true,
+          }),
+        )
+      fire(row, 'pointerdown', startX, startY)
+      for (const t of [0.25, 0.5, 0.75, 1]) {
+        fire(window, 'pointermove', startX + (endX - startX) * t, startY + (endY - startY) * t)
+      }
+      fire(window, 'pointerup', endX, endY)
+    },
+    { op, fx, fy },
+  )
+  await page.waitForTimeout(120)
+}
+
+/**
+ * Click at a fraction of the viewport, as a press that does not move — the
+ * additive-select path `onPointerUp` fires when travel stays under
+ * `CLICK_SLOP_PX`, per `TODO/ui-018`'s own click-vs-drag distinction. Same
+ * pattern as `primitive-placement.e2e.js`'s helper of the same name.
+ *
+ * @param {import('@playwright/test').Page} page
+ * @param {number} fx
+ * @param {number} fy
+ * @param {{ shift?: boolean }} [modifiers]
+ */
+async function clickViewportAt(page, fx, fy, modifiers = {}) {
+  await page.evaluate(
+    ({ fx, fy, shift }) => {
+      const canvas = document.querySelector('[data-testid="viewport-canvas"]')
+      if (!canvas) throw new Error('no canvas')
+      const box = canvas.getBoundingClientRect()
+      const x = box.left + box.width * fx
+      const y = box.top + box.height * fy
+      for (const type of ['pointerdown', 'pointerup']) {
+        canvas.dispatchEvent(
+          new PointerEvent(type, {
+            pointerId: 9,
+            pointerType: 'mouse',
+            isPrimary: true,
+            button: 0,
+            shiftKey: shift === true,
+            clientX: x,
+            clientY: y,
+            bubbles: true,
+            cancelable: true,
+          }),
+        )
+      }
+    },
+    { fx, fy, shift: modifiers.shift === true },
+  )
+  await page.waitForTimeout(90)
 }
 
 test.beforeEach(async ({ page }) => {
@@ -287,16 +399,61 @@ test('the direction pad relabels itself for the active drag mode', async ({ page
 
 test('mouse drag orbits, and pans once the mode is switched', async ({ page }) => {
   const start = await cameraState(page)
+  // Plain left-drag with no Shift, chrome mode still 'orbit': unchanged
+  // (`TODO/ui-018`'s Testing item 4 — the new logic must not swallow this case).
   await dragCanvas(page, { dx: 100, dy: 0 })
   await camera(page, 'azimuth').toBeCloseTo(start.azimuth - 40, 0)
   await camera(page, 'target').toBe(start.target)
   const orbited = await cameraState(page)
 
+  // Shift+left-drag pans regardless of the chrome mode (`TODO/ui-018` item 1):
+  // azimuth stays put, only the target moves. The chrome's own toggle is never
+  // touched by this gesture.
+  await dragCanvas(page, { dx: 0, dy: 80, shiftKey: true })
+  await camera(page, 'target').not.toBe(orbited.target)
+  await camera(page, 'azimuth').toBeCloseTo(orbited.azimuth, 1)
+  await camera(page, 'dragMode').toBe('orbit')
+  const shiftPanned = await cameraState(page)
+
+  // Right-button drag pans too, no modifier needed (`TODO/ui-018` item 2) — and
+  // its release must not pop the browser's native context menu (the task's
+  // "second real gap").
+  await dragCanvas(page, { dx: 40, dy: 0, button: 2 })
+  await camera(page, 'target').not.toBe(shiftPanned.target)
+  await camera(page, 'azimuth').toBeCloseTo(shiftPanned.azimuth, 1)
+  await camera(page, 'dragMode').toBe('orbit')
+  const contextMenuPrevented = await page.evaluate(() => {
+    const canvas = document.querySelector('[data-testid="viewport-canvas"]')
+    const evt = new MouseEvent('contextmenu', { bubbles: true, cancelable: true })
+    canvas.dispatchEvent(evt)
+    return evt.defaultPrevented
+  })
+  expect(contextMenuPrevented).toBe(true)
+
+  // The pre-existing chrome-toggle pan path (unchanged by this task).
   await page.getByTestId('nav-mode-pan').click()
   await camera(page, 'dragMode').toBe('pan')
   await dragCanvas(page, { dx: 0, dy: 80 })
-  await camera(page, 'target').not.toBe(orbited.target)
-  await camera(page, 'azimuth').toBeCloseTo(orbited.azimuth, 1)
+  await camera(page, 'target').not.toBe(shiftPanned.target)
+  await camera(page, 'azimuth').toBeCloseTo(shiftPanned.azimuth, 1)
+})
+
+test('Shift-clicking a body still selects it additively, without dragging (TODO/ui-018 regression)', async ({
+  page,
+}) => {
+  // The real conflict TODO/ui-018 names: Shift+left is already meaningful on a
+  // *click* (additive multi-select). A Shift+left press that never exceeds
+  // CLICK_SLOP_PX must still fire that path, not be swallowed as a pan.
+  await openLibrary(page)
+  await dragRowIntoViewport(page, { op: 'primitive.cuboid', fx: 0.28, fy: 0.42 })
+  await dragRowIntoViewport(page, { op: 'primitive.cylinder', fx: 0.72, fy: 0.3 })
+  const viewport = page.getByTestId('viewport')
+
+  await clickViewportAt(page, 0.28, 0.38)
+  await expect(viewport).toHaveAttribute('data-selected-count', '1')
+
+  await clickViewportAt(page, 0.72, 0.26, { shift: true })
+  await expect(viewport).toHaveAttribute('data-selected-count', '2')
 })
 
 test('drag and the on-screen pad drive the same camera state', async ({ page }) => {

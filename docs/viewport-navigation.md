@@ -20,6 +20,13 @@ Try these in order, with the app open:
    ("Pan camera up" instead of "Orbit camera up"), and dragging in the 3D view
    now slides the view sideways instead of rotating it. Tap `Orbit` to switch
    back.
+   - **With a mouse, you don't have to switch modes at all just to pan for a
+     moment.** Hold Shift and drag with the left mouse button, or just drag with
+     the right mouse button, to pan the camera without touching the `Orbit`/`Pan`
+     toggle. Release Shift or the right button and a plain left-drag orbits
+     again, following whatever the toggle is currently set to. This is purely a
+     desktop shortcut — it doesn't change what the toggle does for touch or for
+     the direction pad.
 3. **Use the `+` and `−` buttons** to the right of the direction pad to zoom in
    and out. With a mouse you can also scroll the wheel over the view; on a touch
    screen, pinch with two fingers.
@@ -46,6 +53,20 @@ Try these in order, with the app open:
 
 The buttons and the drag gesture are the same controls underneath, so the view
 never ends up in a state you can only reach one way.
+
+**Mouse-only shortcuts**, on top of the `Orbit`/`Pan` toggle above:
+
+| Gesture | Result |
+|---|---|
+| Shift + left-button drag | Pans, regardless of the toggle's current setting |
+| Right-button drag | Pans, regardless of the toggle's current setting, no modifier needed |
+
+Both are an *additional* way to reach the same pan the toggle already gives
+you — a plain left-drag with no Shift held still follows whatever the toggle
+currently says. Note that Shift plus a left-button **click** (no drag) still
+adds the clicked object to the current selection instead — see
+`docs/selection-and-inspector.md` — because a Shift+left press that never
+turns into a real drag is a click, not a pan.
 
 ## The orientation triad (top-right)
 

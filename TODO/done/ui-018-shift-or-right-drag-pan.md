@@ -6,7 +6,7 @@ priority: high
 model: sonnet
 milestone: M1
 depends: [render-001]
-status: open
+status: done
 ---
 
 ## Goal

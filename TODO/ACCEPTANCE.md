@@ -134,6 +134,18 @@ now-larger gizmos plausibly overlap; clicking each in turn retargeted the gizmo'
 `553.2,407.5`), never both at once. Screenshots taken at each step confirm this visually —
 each body's own gizmo and dimension lines attach to it alone.
 
+**Re-checked**: 2026-09-06 18:12 — PASS (`ui-018`, clicking/selection half only, per that
+task's own Testing section — the new Shift/right-button pan overrides share the same
+pointer-handling code path scenario 1's clicks depend on). Hand-driven at laptop
+1440×900 in Chromium: a Cube and a Cylinder dropped with wandering, non-straight-line
+paths; both stayed visible (`data-body-count` read `2`). Clicking empty grid cleared the
+selection; clicking the cube selected it alone (count `1`); clicking the cylinder with no
+modifier replaced the selection rather than adding to it (count stayed `1`, not `2`) —
+confirming `ui-018`'s new click-vs-drag travel gating didn't make a plain click
+accidentally additive. Shift-clicking the cube on top of the cylinder selection then
+correctly grew the count to `2`, screenshotted with the Inspector showing "2 selected".
+Console clean.
+
 ### 2. Hardware property edit
 
 **Steps**:
@@ -407,6 +419,20 @@ found one real defect the test suite could not see**: the 3D scene was hardcoded
 while the DOM chrome followed `prefers-color-scheme`, so in light mode the app rendered
 light chrome around a dark canvas. Fixed in this task — the scene palette now follows the
 colour scheme, with unit and e2e coverage — and re-driven green in both schemes.)
+
+**Re-checked**: 2026-09-06 18:12 — PASS (`ui-018`). Re-driven in full even though
+`ui-018`'s own change is gated on desktop-only signals (Shift key, right mouse button)
+a touch device can't produce, because it shares the same `dragMode`/pointer-handling
+code path this scenario exercises. Hand-driven at the iPad viewport (820×1180) in
+WebKit, touch input only: tapping the chrome's orbit step-left button moved the
+azimuth from `-45°` to `-60°`; switching to `Pan` and tapping step-right moved the
+target from `0,0,0` to `15.79,9.12,0`; zoom-in reduced distance from `420` to `336`;
+tapping the orientation gizmo's `Z` cap snapped elevation to `90°` (top view); a
+one-finger touch drag afterward (chrome still in `Pan`) moved the target again, target
+never confused with orbit. Console clean throughout. No regression from `ui-018`'s new
+desktop overrides — touch has no button/Shift concept, so the new logic's conditions
+never trigger on this input path, confirmed by direct observation rather than just
+by code inspection.
 
 ### 8. Remote-load safety
 

@@ -19,6 +19,26 @@ between sessions — that's itself a signal to move more of it into
 
 ## Queue
 
+### ui-018 — Shift+left-drag or right-drag pans the viewport (2026-09-06 16:08)
+
+One entry, a real trackpad/mouse-hardware feel judgment the automated suite and the
+hand-drive (both driven through synthetic `PointerEvent`s at fixed pixel deltas) cannot
+make. Everything *functional* — Shift+left and right-button both pan regardless of the
+chrome toggle, a Shift+left click with no real drag still additively selects, the
+native context menu is suppressed, and a plain left-drag still follows the toggle
+unchanged — is now covered on a standing basis by `TODO/ACCEPTANCE.md` scenarios 1 and
+7, so none of it is restated here.
+
+- [ ] **Right-button drag on a laptop trackpad with no physical right button.** Most
+  trackpads synthesize a right-click via a two-finger tap/click-and-hold rather than a
+  true held "button 2" during a drag, and some trackpad drivers only fire `button: 2`
+  on the initial press, not on subsequent `pointermove` events during the drag. Try an
+  actual two-finger-click-and-drag on a real Mac trackpad and a real two-button mouse
+  and confirm both actually pan smoothly for the drag's whole duration, not just
+  flicker into pan mode for the first frame (the constant to check is
+  `pressButton` in `src/components/viewport/Viewport.vue`, captured once at
+  `pointerdown`).
+
 ### ui-012 — Gizmo move/rotate ↔ numeric-field sync (2026-09-06 13:09)
 
 Two entries, both feel judgments the acceptance drive genuinely cannot make. Everything

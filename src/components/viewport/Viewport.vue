@@ -198,6 +198,12 @@ let pinchDistancePx = 0
 // Click-vs-drag discrimination for selection picking.
 let pressId = -1
 let pressTravelPx = 0
+// Desktop drag-mode override (`TODO/ui-018`): the button and Shift state at the
+// *start* of the tracked press, captured once like `pressId`/`pressTravelPx`
+// above, so a Shift key released mid-drag can't flip the gesture back to orbit
+// halfway through — see `effectiveDragMode()` below.
+let pressButton = -1
+let pressShiftKey = false
 
 /**
  * The gizmo drag in progress (`TODO/ui-012`).
@@ -652,11 +658,39 @@ const dropTarget = {
 // --- pointer input --------------------------------------------------------
 
 /**
+ * The drag mode for the single-pointer gesture in progress, layering this
+ * task's desktop overrides on top of the chrome's own `Orbit`/`Pan` toggle
+ * (`TODO/ui-018`).
+ *
+ * Right mouse button always pans, no modifier needed — there is no competing
+ * "right-click" meaning elsewhere in this component, unlike Shift+left. A
+ * Shift+left press only counts as this task's pan override once its travel
+ * has exceeded `CLICK_SLOP_PX`: below that threshold the press is still a
+ * *candidate click*, and `onPointerUp`'s own `isClick` check is what fires the
+ * Shift-click additive-select path — a Shift+left press that never exceeds the
+ * slop must reach that path undisturbed, not be swallowed as a pan.
+ *
+ * `pressShiftKey` and `pressButton` are captured once at `pointerdown` and
+ * `pressTravelPx` only ever grows for the life of the gesture (see the
+ * bookkeeping above), so once this returns `'pan'` for a Shift+left gesture it
+ * keeps returning `'pan'` for the rest of that gesture even if Shift is
+ * released before the pointer comes up — the mode is decided once, at the
+ * point travel first exceeds the slop, not re-evaluated every move.
+ *
+ * @returns {'orbit' | 'pan'}
+ */
+function effectiveDragMode() {
+  if (pressButton === 2) return 'pan'
+  if (pressButton === 0 && pressShiftKey && pressTravelPx > CLICK_SLOP_PX) return 'pan'
+  return dragMode.value
+}
+
+/**
  * @param {number} dx horizontal pixels travelled
  * @param {number} dy vertical pixels travelled (screen-down positive)
  */
 function applyDrag(dx, dy) {
-  if (dragMode.value === 'pan') orbit.panByPixels(dx, dy, heightPx)
+  if (effectiveDragMode() === 'pan') orbit.panByPixels(dx, dy, heightPx)
   // Dragging "grabs" the scene: pulling right swings the camera left, pulling
   // down tips the top of the scene toward the viewer.
   else orbit.orbit(-dx * ORBIT_DEG_PER_PX, dy * ORBIT_DEG_PER_PX)
@@ -684,9 +718,12 @@ function onPointerDown(event) {
   if (pointers.size === 1) {
     pressId = event.pointerId
     pressTravelPx = 0
+    pressButton = event.button
+    pressShiftKey = event.shiftKey
   } else {
     // A second contact means this is a gesture, not a click.
     pressId = -1
+    pressButton = -1
   }
   isDragging.value = true
 }
@@ -960,6 +997,7 @@ onBeforeUnmount(() => {
       @pointerup="onPointerUp"
       @pointercancel="onPointerUp"
       @wheel="onWheel"
+      @contextmenu.prevent
     />
 
     <p v-if="webglError" class="viewport__error" data-testid="viewport-webgl-unavailable">
