@@ -3,6 +3,17 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="dark light" />
+    <!-- Duplicates src/styles/tokens.css's --surface-0 on purpose (TODO/build-002):
+         this value must paint correctly before any CSS file has loaded, since
+         tokens.css only reaches the page as a JS-module side-effect import, which
+         is too late to prevent a white flash on first paint. -->
+    <style>
+      html,
+      body {
+        background: #10131a;
+      }
+    </style>
     <title>WarpCad</title>
   </head>
   <body>

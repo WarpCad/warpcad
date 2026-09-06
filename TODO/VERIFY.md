@@ -19,6 +19,27 @@ between sessions — that's itself a signal to move more of it into
 
 ## Queue
 
+### build-002 — Fix bright white flash before first paint (FOUC) on app load (2026-09-06 18:22)
+
+One entry. The TODO's own Testing section asked for the throttled-load re-check to be
+done "by eye" specifically because the defect is a paint-timing race that a numeric
+assertion can approximate but not fully stand in for. What was actually run was a
+Playwright script (Chromium/Firefox/WebKit) that delays JS/CSS responses by 2s and
+samples the `<html>`/`<body>` computed background color and the `color-scheme` meta's
+presence 150ms after navigation commit — confirming the dark background (`#10131a`)
+and the meta tag are both already in place well before the delayed resources resolve,
+on all three engines. That is a solid proxy for "the race is closed," but it is not the
+same as a human actually watching a real Slow-3G-throttled load in DevTools and judging
+whether any white frame is perceptible to the eye — a synthetic 150ms sample can miss a
+one-compositor-frame flash that a live visual watch would catch, and Playwright's route
+delay doesn't reproduce a real mobile network's connection-setup latency.
+
+- [ ] **Watch a real Slow-3G + 4x-CPU-throttled load in Chrome/Firefox/Safari DevTools
+  by eye**, on a real machine, and confirm no white frame is visible between navigation
+  and the dark UI appearing — per the TODO's own Testing section, this matters most for
+  WebKit/Safari specifically, since this defect is very plausibly the same white-flash
+  bug both previous attempts shipped on iPad/Safari.
+
 ### ui-018 — Shift+left-drag or right-drag pans the viewport (2026-09-06 16:08)
 
 One entry, a real trackpad/mouse-hardware feel judgment the automated suite and the

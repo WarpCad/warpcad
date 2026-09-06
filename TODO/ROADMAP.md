@@ -93,6 +93,33 @@ spec, at all three viewports and all three engines, because it's WebGL from line
 
 ---
 
+## M1.5 — Selection/gizmo fixes from hands-on use (land before M2)
+
+Filed 2026-09-06 from direct hands-on driving of the running app — exactly the kind of
+signal `CLAUDE.md`'s Verification section says is the loudest in the whole process. Four
+are correctness/legibility defects in the M1 gizmo and dimension-line subsystem
+(`ui-021`, `ui-022`, `ui-023`, `ui-025`); one is a new selection mechanism the user flagged as
+needed once multi-select matters more (`ui-024`); one (`build-002`) is a load-time
+defect in the app shell itself, not the gizmo subsystem, and is sequenced **first in
+this milestone** per explicit instruction — it's a recurrence of a white-flash-on-load
+bug already seen and shelved in the first attempt (`PREVIOUS-ATTEMPT.md`), and
+`CLAUDE.md`'s own Browser Support section separately names this exact failure class
+from the second attempt too, so it gets fixed before any more UI lands on top of the
+same `index.html` shell. Sequenced as their own milestone ahead of M2's new-catalog work
+per explicit instruction: fixes to what's already shipped land before scope grows
+further, rather than queuing behind M2/M3's reserved rows.
+
+| id | Task | Kind | Depends | Acceptance |
+|---|---|---|---|---|
+| ✅ `build-002` | Fix bright white flash before first paint (FOUC) on app load | — (load-shell fix) | `build-001` | none directly — first-paint timing isn't covered by an ACCEPTANCE.md scenario; see the finding's own Testing section |
+| `ui-023` | Dimension lines follow the body's own rotated frame, not the world-axis shadow (a rotated cylinder currently shows its axis-aligned bounding box, not its real diameter/length) | — (correctness fix) | `ui-012`, `ui-017` | scenario 1 (dimension-lines-attach half), scenario 2 (gizmo-drag/dimension-tracking half) — re-drive both against a *rotated* body specifically |
+| `ui-022` | Rotate rings get directional arrows, so they read as drag-to-rotate handles rather than decoration | — (affordance fix) | `ui-017` | none directly; glance at scenario 2's gizmo-drag half on next re-drive |
+| `ui-021` | Gizmo arms/rings get a 3D appearance (shading/taper) instead of flat 2D lines | — (visual fix) | `ui-017` | none |
+| `ui-024` | Drag a selection box (marquee) across the viewport to multi-select bodies, extending the existing Shift-click multi-select | — (new selection mechanism) | `ui-011` | scenario 1 (click-selects-only-that-item half — confirm plain click still doesn't start a marquee) |
+| `ui-025` | Orientation gizmo's axis-label buttons crowd out the triad they annotate — shrink/recede the caps so the current orientation reads off the triad, not just the numeric caption | — (visual fix) | `ui-011` | none directly |
+
+---
+
 ## M2 — Hardware + kit-part catalog, snap-guide placement
 
 | id | Task | Kind | Depends | Acceptance |
@@ -169,3 +196,4 @@ convention going forward.
 | `ui-017` | 2026-09-06 15:47 | ~23m (measured live from the Step 3 preflight at 2026-09-06 15:24 UTC) |
 | `ui-018` | 2026-09-06 16:08 | ~13m (measured live from the Step 3 preflight at 2026-09-06 15:54:49 UTC) |
 | `ui-019` | 2026-09-06 16:24 | ~11m (measured live from the Step 3 preflight at 2026-09-06 16:12:59 UTC) |
+| `build-002` | 2026-09-06 18:22 | ~5m (measured live from the Step 3 preflight at 2026-09-06 18:17:35 UTC) |
