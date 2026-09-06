@@ -187,3 +187,17 @@ Built with Claude Code, reviewed by me.
 **To Add:** screen recording of the drag with the Inspector visible; a diagram of the record lineage (create → move → turn) showing which id renders; repo URL once public
 
 **LinkedIn article:** worth writing. "Why an append-only CAD document duplicates your shape the first time you move it" — the problem generalises to any event-sourced document with derived state, and the lineage-index fix is small enough to show in full.
+
+
+## [2026-09-06T15:50:29Z] — A gizmo that sizes itself to the shape it's attached to (TODO/ui-017)
+
+**Post:** WarpCad's transform gizmo now sizes itself to whatever it's attached to. Select a small part and the arms and rotate rings sit close in; select a large one and they stretch out to clear its silhouette instead of disappearing inside it. Zoom in or out and the same body's gizmo grows or shrinks with it, down to a floor so a tiny part never loses its handle.
+
+The fix itself is a single pure function: take the selected body's bounding box, convert its half-diagonal to screen pixels using the viewport's own mm-per-pixel scale, and clamp between the old fixed size (kept as a floor) and a cap that stops an enormous body from running the gizmo off screen. The more interesting part was catching a side effect: an existing test grabbed the arm's rendered midpoint to simulate a stationary click, and a longer arm can legitimately put that midpoint past the body it belongs to. The fix was to grab nearer the hub instead, where the handle's own dead zone already guarantees the body is underneath.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL #Vue
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** old fixed constants `GIZMO_ARM_PX = 58`/`GIZMO_RING_PX = 40` removed and replaced by a bounds-derived, floored-and-capped helper → `src/render/annotate.js` and `src/components/viewport/Viewport.vue` in this session's diff; the arm's rendered midpoint could fall outside the body once it grew, breaking a pre-existing `ui-012` spec, fixed by grabbing near the hub → this session's `npx playwright test` reproduction and fix, and the diff to `e2e/gizmo-transform.e2e.js`; app has no UI path yet to place a custom-size primitive (Library always drops registry defaults; Inspector Size fields are read-only) → `src/core/library.js` and `Inspector.vue`, read this session; full suite green (typecheck, 302 unit, 423 e2e passed / 19 skipped) → `npm run test` output, this session
+**To Add:** before/after screenshot of the gizmo at default vs. zoomed-in size on the same cube; repo URL once public
