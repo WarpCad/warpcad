@@ -6,8 +6,27 @@ priority: high
 model: sonnet
 milestone: M1
 depends: [ui-012]
-status: open
+status: done
 ---
+
+> **Shipped as proposed, with one deliberate testing substitution.** The
+> Testing section asked for placing "a large primitive (e.g. a 100mm cube) and
+> a small one" — the running app has no way to drop a primitive at a custom
+> size yet (the Library always drops at registry defaults, and the Inspector's
+> Parameters/Size fields are read-only), so both the unit tests and the
+> `e2e/gizmo-transform.e2e.js` addition instead vary the same default 40mm
+> cube's **on-screen** size via the reachable `nav-zoom-in`/`nav-zoom-out`
+> chrome — which is exactly the mechanism this task's own Goal names ("growing
+> and shrinking with it as the user zooms"). The hand-driven acceptance
+> re-drive (Step 6) used two cubes placed close together instead, to exercise
+> the more realistic risk named in Testing: a neighbouring body's overlapping
+> gizmo. One pre-existing `ui-012` e2e spec ("a press on a handle that never
+> moves still selects what is underneath") grabbed the arm's rendered
+> *midpoint*, which the new, larger arm can now legitimately extend past the
+> body's own silhouette — updated to grab near the hub end instead
+> (`dragHandle`'s new `grabFraction` option), which `Gizmo.vue`'s own
+> `ARM_GRAB_FROM` already keeps inside the body's clear zone regardless of arm
+> length.
 
 ## Goal
 
