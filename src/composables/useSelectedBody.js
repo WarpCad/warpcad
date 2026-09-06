@@ -61,6 +61,7 @@ export function useSelectedBody() {
     const dy = preview.tyMm
     const dz = preview.tzMm
     const [min, max] = body.boundsMm
+    const [localMin, localMax] = body.localBoundsMm
     return {
       state: base.state,
       count: base.count,
@@ -79,6 +80,16 @@ export function useSelectedBody() {
         boundsMm: [
           [min[0] + dx, min[1] + dy, min[2] + dz],
           [max[0] + dx, max[1] + dy, max[2] + dz],
+        ],
+        // The **local** box only ever translates (`TODO/ui-023`): turning a body
+        // cannot change the size of the body, so a rotate preview leaves these
+        // three numbers alone and only the previewed `rotationDeg` above swings
+        // the drawn box round. That is strictly better than the world box, which
+        // visibly grows and shrinks mid-drag and then snaps at release — and it
+        // costs no kernel work, because there is nothing to re-measure.
+        localBoundsMm: [
+          [localMin[0] + dx, localMin[1] + dy, localMin[2] + dz],
+          [localMax[0] + dx, localMax[1] + dy, localMax[2] + dz],
         ],
       },
     }

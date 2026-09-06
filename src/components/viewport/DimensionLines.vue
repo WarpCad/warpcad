@@ -45,7 +45,28 @@ const props = defineProps({
  */
 const dimensions = computed(() => /** @type {any} */ (props.annotations))
 
-/** @type {Readonly<Record<string, string>>} */
+/**
+ * Colour per axis — and, since `TODO/ui-023`, per the **body's own** axis rather
+ * than the world's once the body is turned.
+ *
+ * That is the labelling call `ui-023` had to make, and it is deliberate: a
+ * rotated part's "length" stays the same coloured, same lettered number however
+ * the part is turned or the camera orbited, which is what makes it readable at
+ * all and what every CAD tool does. Colouring by *world* axis instead would mean
+ * a tilted cylinder's diameter changed colour as it turned, and would put the
+ * red line on a number that is no longer the part's width.
+ *
+ * The letters and colours stay the same three, and stay matched to the
+ * Inspector's own Size X/Y/Z row (which reads the identical local measurement),
+ * so panel and overlay can never quote different numbers for the same part. The
+ * transform gizmo remains a **global-mode** gizmo drawn on world axes — an
+ * ordinary CAD pairing, and out of scope for this finding by its own note.
+ *
+ * `data-frame` on each group says which of the two a given line is in, so the
+ * distinction is assertable rather than implied.
+ *
+ * @type {Readonly<Record<string, string>>}
+ */
 const AXIS_STROKE = Object.freeze({
   X: 'var(--axis-x)',
   Y: 'var(--axis-y)',
@@ -80,6 +101,7 @@ const visibleCount = () => dimensions.value.filter((annotation) => annotation.vi
       :data-testid="`dimension-${annotation.axis.toLowerCase()}`"
       :data-length-mm="annotation.lengthMm.toFixed(3)"
       :data-label="annotation.label"
+      :data-frame="annotation.frame"
       :stroke="AXIS_STROKE[annotation.axis]"
     >
       <!-- Extension lines: they tie the number to the two corners it measures. -->

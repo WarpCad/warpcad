@@ -245,3 +245,18 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** root cause (empty `<head>`, dark background arriving only via a JS-module-triggered CSS fetch) → `TODO/done/build-002-fix-load-white-flash.md`'s Problem section and the diff to `index.html`; this bug class shipped on Safari/iPad in both previous attempts → `CLAUDE.md`'s Browser Support section; verified with a 2s artificial delay on JS/CSS responses across Chromium/Firefox/WebKit, background read `#10131a` and the `color-scheme` meta was present 150ms after navigation commit → Playwright script output, this session; full suite green (typecheck clean, 313 unit tests across 19 files, 459 e2e passed with 19 skipped) → `npm run test` output, this session
 **To Add:** repo URL once public
+
+## [2026-09-06T19:02:00Z] — Measuring the part instead of its shadow (TODO/ui-023)
+
+**Post:** WarpCad draws three dimension lines on whatever you have selected, so you can read a part's size off the screen without opening a panel. They were measured from the solid's world-axis bounding box, which is exactly right for as long as nothing is rotated.
+
+Rotation landed earlier the same day, and it turned that measurement into misinformation. Tip a 40 mm by 50 mm cylinder over and the axis-aligned box around it is bigger on two axes than the cylinder is, and not one of its three numbers is a diameter or a length. The fix measures the solid in its own frame instead: un-turn it by the inverse of its carried rotation, measure that, then build the box's eight corners back out along the part's own axes. The fiddly part was matching the kernel's rotation convention exactly, which meant reading @jscad/modeling's Tait-Bryan matrix rather than guessing at axis order.
+
+Two things came out of hand-driving it afterward that the test suite could not see. The dimension numbers now hold steady through a rotate-ring drag, which is a better result than the tests asked for. And driving an out-of-order rotation, turning about Y and then about X, exposed a separate pre-existing bug: the stored rotation is a running sum of deltas while the geometry is their composition, and rotations do not commute. That one is filed with its measured reproduction rather than patched over.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL #Geometry #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** dimension lines exist to read size without opening a panel → `CLAUDE.md`'s Interaction Model grid/dimension rules; the world-AABB measurement and its failure on a rotated body → `TODO/done/ui-023-oriented-dimension-lines.md`'s Problem section; rotation became reachable via `ui-012` on 2026-09-06 → git log 660f042; the kernel's convention is active intrinsic Tait-Bryan in z-y-x order → `node_modules/@jscad/modeling/src/maths/mat4/fromTaitBryanRotation.js`, read this session; numbers hold through a ring drag (−34.61°, lines stayed 40/40/50) → hand-driven against the running app this session; the out-of-order defect measured at 46.82/51.05/59.42 instead of 40/40/50 for Y=45 then X=45 → controlled drive this session, recorded in `TODO/core-004-rotation-carried-as-sum-not-composition.md`; full suite green (typecheck, 327 unit, 468 e2e passed/19 skipped) → `npm run test` stages, this session
+**To Add:** side-by-side screenshot of the tilted cylinder before and after; repo URL once public

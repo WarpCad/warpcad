@@ -573,7 +573,13 @@ export function axisFacing(azimuthDeg, elevationDeg, axisIndex) {
 
 /**
  * @typedef {object} DimensionAnnotation
- * @property {string} axis `"X"` | `"Y"` | `"Z"`.
+ * @property {string} axis `"X"` | `"Y"` | `"Z"` — the **body's own** axis once
+ *   `frame` is `"local"`, which for an unrotated body is also the world axis.
+ * @property {'world' | 'local'} frame Which frame `lengthMm` was measured in
+ *   (`TODO/ui-023`). `"world"` while the body is unrotated — where the two
+ *   frames coincide — and `"local"` once it is turned, at which point the number
+ *   is the part's own extent and the line runs along the part's own edge rather
+ *   than along a grid axis.
  * @property {boolean} visible
  * @property {number} lengthMm The measured extent.
  * @property {string} label The extent, formatted with its unit.
@@ -603,6 +609,7 @@ export function axisFacing(azimuthDeg, elevationDeg, axisIndex) {
 export function createDimensionAnnotation() {
   return {
     axis: 'X',
+    frame: /** @type {'world' | 'local'} */ ('world'),
     visible: false,
     lengthMm: 0,
     label: '',
@@ -634,6 +641,110 @@ export function createDimensionAnnotation() {
 }
 
 /**
+ * A box in a body's **own** frame, plus the turn that puts it back in the world
+ * (`TODO/ui-023`).
+ *
+ * `minMm`/`maxMm` are the part's real extents on its real axes — what
+ * `src/core/inspector.js` reports as `localBoundsMm` — rather than the
+ * world-axis-aligned shadow a tilted part casts. A local point maps to world as
+ * `pivotMm + R(rotationDeg)·(local − pivotMm)`, which is the exact inverse of the
+ * un-turn `localBoundsOf` did to measure it; see that function for why any
+ * consistently-used pivot is correct.
+ *
+ * An unrotated body's box is its world box, so a caller with nothing rotated
+ * passes `rotationDeg: [0, 0, 0]` and gets bit-for-bit the pre-`ui-023` result.
+ *
+ * @typedef {object} OrientedBox
+ * @property {readonly number[]} minMm Local-frame minimum, millimetres.
+ * @property {readonly number[]} maxMm Local-frame maximum.
+ * @property {readonly number[]} rotationDeg Degrees per axis, z-y-x Tait-Bryan.
+ * @property {readonly number[]} pivotMm The point the local frame is anchored at.
+ */
+
+/**
+ * Allocate an {@link OrientedBox} once, so a caller updating it per frame
+ * mutates rather than rebuilds — the same contract as every `create*` here.
+ *
+ * @returns {{ minMm: readonly number[], maxMm: readonly number[], rotationDeg: readonly number[], pivotMm: readonly number[] }}
+ */
+export function createOrientedBox() {
+  return { minMm: [0, 0, 0], maxMm: [0, 0, 0], rotationDeg: [0, 0, 0], pivotMm: [0, 0, 0] }
+}
+
+/**
+ * Sines and cosines of the box currently being annotated, loaded once per call
+ * rather than recomputed for each of its nine projected points.
+ */
+const scratchTurn = { active: false, cx: 1, sx: 0, cy: 1, sy: 0, cz: 1, sz: 0, px: 0, py: 0, pz: 0 }
+const scratchPoint = { x: 0, y: 0, z: 0 }
+
+/**
+ * Load a box's rotation into {@link scratchTurn}.
+ *
+ * @param {OrientedBox} box
+ * @returns {boolean} False when the body is unrotated, in which case
+ *   {@link localToWorld} is the identity and nothing below costs anything.
+ */
+function loadTurn(box) {
+  const rotation = box.rotationDeg
+  const x = rotation?.[0] ?? 0
+  const y = rotation?.[1] ?? 0
+  const z = rotation?.[2] ?? 0
+  scratchTurn.active = x !== 0 || y !== 0 || z !== 0
+  if (!scratchTurn.active) return false
+  scratchTurn.cx = Math.cos(x * DEG)
+  scratchTurn.sx = Math.sin(x * DEG)
+  scratchTurn.cy = Math.cos(y * DEG)
+  scratchTurn.sy = Math.sin(y * DEG)
+  scratchTurn.cz = Math.cos(z * DEG)
+  scratchTurn.sz = Math.sin(z * DEG)
+  const pivot = box.pivotMm
+  scratchTurn.px = pivot?.[0] ?? 0
+  scratchTurn.py = pivot?.[1] ?? 0
+  scratchTurn.pz = pivot?.[2] ?? 0
+  return true
+}
+
+/**
+ * Map a local-frame point into world millimetres, using the turn most recently
+ * loaded by {@link loadTurn}.
+ *
+ * `R = Rz(z)·Ry(y)·Rx(x)` — active, intrinsic Tait-Bryan in z-y-x order, which
+ * is what `@jscad/modeling`'s `transforms.rotate` builds and therefore what
+ * `src/core/kernel/registry.js`'s `transform.rotate` op actually applied to the
+ * solid. Applying the three in the wrong order would draw a box that is the
+ * right size and the wrong shape on screen.
+ *
+ * @param {number} lxMm
+ * @param {number} lyMm
+ * @param {number} lzMm
+ * @param {{ x: number, y: number, z: number }} out Mutated in place.
+ * @returns {{ x: number, y: number, z: number }} `out`
+ */
+function localToWorld(lxMm, lyMm, lzMm, out) {
+  if (!scratchTurn.active) {
+    out.x = lxMm
+    out.y = lyMm
+    out.z = lzMm
+    return out
+  }
+  const { cx, sx, cy, sy, cz, sz, px, py, pz } = scratchTurn
+  const vx = lxMm - px
+  const vy = lyMm - py
+  const vz = lzMm - pz
+  // Rx first, then Ry, then Rz — innermost-first, matching the z-y-x intrinsic
+  // order the composed matrix expands to.
+  const y1 = cx * vy - sx * vz
+  const z1 = sx * vy + cx * vz
+  const x2 = cy * vx + sy * z1
+  const z2 = -sy * vx + cy * z1
+  out.x = px + cz * x2 - sz * y1
+  out.y = py + sz * x2 + cz * y1
+  out.z = pz + z2
+  return out
+}
+
+/**
  * Read one corner of a bounding box into world millimetres.
  *
  * @param {readonly number[]} minMm
@@ -654,6 +765,28 @@ function corner(minMm, maxMm, axis, axisPick, pickA, pickB, component) {
 }
 
 /**
+ * One corner of an oriented box, in world millimetres — {@link corner} three
+ * times over, then turned by the loaded rotation.
+ *
+ * @param {readonly number[]} minMm
+ * @param {readonly number[]} maxMm
+ * @param {number} axis
+ * @param {number} axisPick
+ * @param {number} pickA
+ * @param {number} pickB
+ * @param {{ x: number, y: number, z: number }} out Mutated in place.
+ * @returns {{ x: number, y: number, z: number }} `out`
+ */
+function orientedCorner(minMm, maxMm, axis, axisPick, pickA, pickB, out) {
+  return localToWorld(
+    corner(minMm, maxMm, axis, axisPick, pickA, pickB, 0),
+    corner(minMm, maxMm, axis, axisPick, pickA, pickB, 1),
+    corner(minMm, maxMm, axis, axisPick, pickA, pickB, 2),
+    out
+  )
+}
+
+/**
  * Build one axis's dimension line for a bounding box.
  *
  * ## Which edge gets dimensioned
@@ -671,10 +804,27 @@ function corner(minMm, maxMm, axis, axisPick, pickA, pickB, component) {
  * it actually measures — the ordinary drafting convention, and the reason the
  * number stays readable against the solid rather than on top of it.
  *
+ * ## Which frame the number is in
+ *
+ * The box is the body's **own** (`TODO/ui-023`), so the three numbers are the
+ * part's real width, depth and height even when it is tilted — not the larger
+ * world-axis box a tilted part happens to fit inside, which is bigger on every
+ * axis and carries no readable diameter or length at all. `out.frame` says which
+ * of the two a given call produced, so the overlay can tell a user that a
+ * rotated part's lines are being read off the part rather than off the grid.
+ *
+ * The eight corners are built in the local frame and turned into world space one
+ * at a time; the "furthest-from-centre edge wins" selection above then runs
+ * unchanged over that oriented set. Two rotations make the *drawing* degenerate
+ * without making the *measurement* wrong, and both are covered in the spec: a
+ * turn that lines two local axes up on the same screen direction (they draw
+ * parallel, which is the honest picture), and one that points a local axis dead
+ * on at the camera (its edge has no screen direction, and the fallbacks below —
+ * the line's own perpendicular, then straight down — keep every output finite).
+ *
  * @param {OrbitCamera} orbit
- * @param {readonly number[]} minMm Bounding box minimum, millimetres.
- * @param {readonly number[]} maxMm Bounding box maximum.
- * @param {number} axisIndex 0 | 1 | 2.
+ * @param {OrientedBox} boxMm The body's own box and the turn that places it.
+ * @param {number} axisIndex 0 | 1 | 2 — the body's **local** axis.
  * @param {number} widthPx
  * @param {number} heightPx
  * @param {number} offsetPx How far clear of the solid to draw the line.
@@ -684,8 +834,7 @@ function corner(minMm, maxMm, axis, axisPick, pickA, pickB, component) {
  */
 export function updateDimensionAnnotation(
   orbit,
-  minMm,
-  maxMm,
+  boxMm,
   axisIndex,
   widthPx,
   heightPx,
@@ -693,20 +842,22 @@ export function updateDimensionAnnotation(
   arrowPx,
   out
 ) {
+  const { minMm, maxMm } = boxMm
   out.axis = AXIS_LABELS[axisIndex]
+  // Measured off the local box, so it never depends on the camera or on which
+  // way the part happens to be turned.
   const lengthMm = maxMm[axisIndex] - minMm[axisIndex]
   out.lengthMm = lengthMm
   out.label = formatMm(lengthMm)
+  out.frame = loadTurn(boxMm) ? 'local' : 'world'
 
-  worldToScreen(
-    orbit,
+  localToWorld(
     (minMm[0] + maxMm[0]) / 2,
     (minMm[1] + maxMm[1]) / 2,
     (minMm[2] + maxMm[2]) / 2,
-    widthPx,
-    heightPx,
-    scratchCentre
+    scratchPoint
   )
+  worldToScreen(orbit, scratchPoint.x, scratchPoint.y, scratchPoint.z, widthPx, heightPx, scratchCentre)
   if (!scratchCentre.visible) {
     out.visible = false
     return out
@@ -715,24 +866,10 @@ export function updateDimensionAnnotation(
   let bestScore = -1
   let found = false
   for (const [pickA, pickB] of EDGE_CORNERS) {
-    worldToScreen(
-      orbit,
-      corner(minMm, maxMm, axisIndex, 0, pickA, pickB, 0),
-      corner(minMm, maxMm, axisIndex, 0, pickA, pickB, 1),
-      corner(minMm, maxMm, axisIndex, 0, pickA, pickB, 2),
-      widthPx,
-      heightPx,
-      scratchNear
-    )
-    worldToScreen(
-      orbit,
-      corner(minMm, maxMm, axisIndex, 1, pickA, pickB, 0),
-      corner(minMm, maxMm, axisIndex, 1, pickA, pickB, 1),
-      corner(minMm, maxMm, axisIndex, 1, pickA, pickB, 2),
-      widthPx,
-      heightPx,
-      scratchFar
-    )
+    orientedCorner(minMm, maxMm, axisIndex, 0, pickA, pickB, scratchPoint)
+    worldToScreen(orbit, scratchPoint.x, scratchPoint.y, scratchPoint.z, widthPx, heightPx, scratchNear)
+    orientedCorner(minMm, maxMm, axisIndex, 1, pickA, pickB, scratchPoint)
+    worldToScreen(orbit, scratchPoint.x, scratchPoint.y, scratchPoint.z, widthPx, heightPx, scratchFar)
     if (!scratchNear.visible || !scratchFar.visible) continue
 
     const midX = (scratchNear.x + scratchFar.x) / 2

@@ -12,6 +12,7 @@ import {
   gizmoSizeForBounds,
   ringPoints,
   rotateDeltaDeg,
+  screenDirection,
   translateDeltaMm,
   updateDimensionAnnotation,
   updateGizmoAnnotation,
@@ -361,6 +362,31 @@ describe('ringPoints', () => {
   })
 })
 
+/**
+ * An {@link import('./annotate.js').OrientedBox} for a test, defaulting to an
+ * unrotated one whose local frame is anchored at its own centre — i.e. exactly
+ * the world-axis-aligned box every pre-`ui-023` call passed as `min`/`max`.
+ *
+ * @param {readonly number[]} minMm Local-frame minimum.
+ * @param {readonly number[]} maxMm Local-frame maximum.
+ * @param {readonly number[]} [rotationDeg]
+ * @param {readonly number[]} [pivotMm] Point the local frame is anchored at;
+ *   defaults to the local box's own centre.
+ * @returns {import('./annotate.js').OrientedBox}
+ */
+function box(minMm, maxMm, rotationDeg = [0, 0, 0], pivotMm = undefined) {
+  return {
+    minMm,
+    maxMm,
+    rotationDeg,
+    pivotMm: pivotMm ?? [
+      (minMm[0] + maxMm[0]) / 2,
+      (minMm[1] + maxMm[1]) / 2,
+      (minMm[2] + maxMm[2]) / 2,
+    ],
+  }
+}
+
 describe('updateDimensionAnnotation', () => {
   const MIN = [-20, -20, 0]
   const MAX = [20, 20, 50]
@@ -369,12 +395,12 @@ describe('updateDimensionAnnotation', () => {
     const orbit = cameraAt()
     const out = createDimensionAnnotation()
 
-    updateDimensionAnnotation(orbit, MIN, MAX, 0, WIDTH_PX, HEIGHT_PX, 26, 9, out)
+    updateDimensionAnnotation(orbit, box(MIN, MAX), 0, WIDTH_PX, HEIGHT_PX, 26, 9, out)
     expect(out.axis).toBe('X')
     expect(out.lengthMm).toBeCloseTo(40, 9)
     expect(out.label).toBe('40 mm')
 
-    updateDimensionAnnotation(orbit, MIN, MAX, 2, WIDTH_PX, HEIGHT_PX, 26, 9, out)
+    updateDimensionAnnotation(orbit, box(MIN, MAX), 2, WIDTH_PX, HEIGHT_PX, 26, 9, out)
     expect(out.axis).toBe('Z')
     expect(out.lengthMm).toBeCloseTo(50, 9)
     expect(out.label).toBe('50 mm')
@@ -383,7 +409,7 @@ describe('updateDimensionAnnotation', () => {
   it('labels a fractional extent without a wall of decimals', () => {
     const orbit = cameraAt()
     const out = createDimensionAnnotation()
-    updateDimensionAnnotation(orbit, [0, 0, 0], [12.5, 1, 1], 0, WIDTH_PX, HEIGHT_PX, 26, 9, out)
+    updateDimensionAnnotation(orbit, box([0, 0, 0], [12.5, 1, 1]), 0, WIDTH_PX, HEIGHT_PX, 26, 9, out)
 
     expect(out.label).toBe('12.5 mm')
   })
@@ -393,7 +419,7 @@ describe('updateDimensionAnnotation', () => {
     // down the box edge would be invisible against the solid.
     const orbit = cameraAt()
     const out = createDimensionAnnotation()
-    updateDimensionAnnotation(orbit, MIN, MAX, 0, WIDTH_PX, HEIGHT_PX, 26, 9, out)
+    updateDimensionAnnotation(orbit, box(MIN, MAX), 0, WIDTH_PX, HEIGHT_PX, 26, 9, out)
 
     const centre = createScreenPoint()
     worldToScreen(orbit, 0, 0, 25, WIDTH_PX, HEIGHT_PX, centre)
@@ -409,7 +435,7 @@ describe('updateDimensionAnnotation', () => {
   it('keeps the drawn line parallel to the projected axis it measures', () => {
     const orbit = cameraAt({ azimuthDeg: 18, elevationDeg: 27 })
     const out = createDimensionAnnotation()
-    updateDimensionAnnotation(orbit, MIN, MAX, 2, WIDTH_PX, HEIGHT_PX, 26, 9, out)
+    updateDimensionAnnotation(orbit, box(MIN, MAX), 2, WIDTH_PX, HEIGHT_PX, 26, 9, out)
 
     // The offset is applied perpendicular-ish, so the line must still run
     // between the two measured corners' directions, not skew across them.
@@ -425,7 +451,7 @@ describe('updateDimensionAnnotation', () => {
   it('puts an arrowhead at each end, tips on the line ends', () => {
     const orbit = cameraAt()
     const out = createDimensionAnnotation()
-    updateDimensionAnnotation(orbit, MIN, MAX, 1, WIDTH_PX, HEIGHT_PX, 26, 9, out)
+    updateDimensionAnnotation(orbit, box(MIN, MAX), 1, WIDTH_PX, HEIGHT_PX, 26, 9, out)
 
     expect(out.h1).toHaveLength(3)
     expect(out.h2).toHaveLength(3)
@@ -444,7 +470,7 @@ describe('updateDimensionAnnotation', () => {
   it('parks the label on the dimension line, not on the solid', () => {
     const orbit = cameraAt()
     const out = createDimensionAnnotation()
-    updateDimensionAnnotation(orbit, MIN, MAX, 0, WIDTH_PX, HEIGHT_PX, 26, 9, out)
+    updateDimensionAnnotation(orbit, box(MIN, MAX), 0, WIDTH_PX, HEIGHT_PX, 26, 9, out)
 
     const midX = (out.x1 + out.x2) / 2
     const midY = (out.y1 + out.y2) / 2
@@ -454,7 +480,7 @@ describe('updateDimensionAnnotation', () => {
   it('handles a degenerate zero-size box without NaN', () => {
     const orbit = cameraAt()
     const out = createDimensionAnnotation()
-    updateDimensionAnnotation(orbit, [5, 5, 5], [5, 5, 5], 0, WIDTH_PX, HEIGHT_PX, 26, 9, out)
+    updateDimensionAnnotation(orbit, box([5, 5, 5], [5, 5, 5]), 0, WIDTH_PX, HEIGHT_PX, 26, 9, out)
 
     expect(out.lengthMm).toBe(0)
     for (const value of [out.x1, out.y1, out.x2, out.y2, out.labelX, out.labelY]) {
@@ -465,7 +491,7 @@ describe('updateDimensionAnnotation', () => {
   it('hides the annotation when the box is behind the camera', () => {
     const orbit = cameraAt({ azimuthDeg: -90, elevationDeg: 0, distanceMm: 100 })
     const out = createDimensionAnnotation()
-    updateDimensionAnnotation(orbit, [-10, -420, -10], [10, -400, 10], 0, WIDTH_PX, HEIGHT_PX, 26, 9, out)
+    updateDimensionAnnotation(orbit, box([-10, -420, -10], [10, -400, 10]), 0, WIDTH_PX, HEIGHT_PX, 26, 9, out)
 
     expect(out.visible).toBe(false)
   })
@@ -474,9 +500,263 @@ describe('updateDimensionAnnotation', () => {
     const orbit = cameraAt()
     const out = createDimensionAnnotation()
     const head = out.h1[0]
-    updateDimensionAnnotation(orbit, MIN, MAX, 0, WIDTH_PX, HEIGHT_PX, 26, 9, out)
+    updateDimensionAnnotation(orbit, box(MIN, MAX), 0, WIDTH_PX, HEIGHT_PX, 26, 9, out)
     orbit.orbit(30, 10)
-    updateDimensionAnnotation(orbit, MIN, MAX, 0, WIDTH_PX, HEIGHT_PX, 26, 9, out)
+    updateDimensionAnnotation(orbit, box(MIN, MAX), 0, WIDTH_PX, HEIGHT_PX, 26, 9, out)
+
+    expect(out.h1[0]).toBe(head)
+  })
+})
+
+describe('updateDimensionAnnotation on a rotated body (TODO/ui-023)', () => {
+  /**
+   * A rotated body's dimension lines must read the part's **own** extents, not
+   * the world-axis-aligned box its tilted silhouette happens to fit inside.
+   *
+   * The finding's own example: tilt a cylinder 30° about X and the world AABB is
+   * bigger on two axes than the part is, and carries no readable "diameter" or
+   * "length" figure at all. Every assertion below therefore compares against the
+   * part's known local size and, where the two differ, explicitly asserts the
+   * shadow's number is *not* what comes out.
+   *
+   * The rotation convention is `@jscad/modeling`'s `transforms.rotate` — active,
+   * intrinsic Tait-Bryan in z-y-x order, so `R = Rz(z)·Ry(y)·Rx(x)` — which is
+   * what `src/core/kernel/registry.js`'s `transform.rotate` op applies.
+   * {@link rotatedPoint} below re-derives it independently of `annotate.js`, so
+   * the geometric assertions are a real cross-check rather than a tautology.
+   */
+
+  /** A ⌀40 × 50 cylinder resting on the grid, in its own local frame. */
+  const CYL_MIN = [-20, -20, 0]
+  const CYL_MAX = [20, 20, 50]
+  const CYL_PIVOT = [0, 0, 25]
+
+  /**
+   * Rotate a local-frame point into world millimetres, about `pivotMm`.
+   *
+   * @param {readonly number[]} rotationDeg
+   * @param {readonly number[]} pivotMm
+   * @param {readonly number[]} pointMm Local-frame point.
+   * @returns {[number, number, number]}
+   */
+  function rotatedPoint(rotationDeg, pivotMm, pointMm) {
+    /** @param {number} deg @returns {number} */
+    const rad = (deg) => (deg * Math.PI) / 180
+    const [cx, sx] = [Math.cos(rad(rotationDeg[0])), Math.sin(rad(rotationDeg[0]))]
+    const [cy, sy] = [Math.cos(rad(rotationDeg[1])), Math.sin(rad(rotationDeg[1]))]
+    const [cz, sz] = [Math.cos(rad(rotationDeg[2])), Math.sin(rad(rotationDeg[2]))]
+    const vx = pointMm[0] - pivotMm[0]
+    const vy = pointMm[1] - pivotMm[1]
+    const vz = pointMm[2] - pivotMm[2]
+    // Rx, then Ry, then Rz — the z-y-x intrinsic order, applied outermost-last.
+    const y1 = cx * vy - sx * vz
+    const z1 = sx * vy + cx * vz
+    const x2 = cy * vx + sy * z1
+    const z2 = -sy * vx + cy * z1
+    return [pivotMm[0] + cz * x2 - sz * y1, pivotMm[1] + sz * x2 + cz * y1, pivotMm[2] + z2]
+  }
+
+  it('reads a 90°-tilted cylinder s own diameter and length, not its world box', () => {
+    // Tilted 90° about X, the cylinder lies down: its world AABB is 40 × 50 × 40,
+    // so the Y line would read the *length* and the Z line the *diameter* if the
+    // measurement still came off the shadow. Both must stay in the part's frame.
+    const orbit = cameraAt()
+    const out = createDimensionAnnotation()
+    const lying = box(CYL_MIN, CYL_MAX, [90, 0, 0], CYL_PIVOT)
+
+    updateDimensionAnnotation(orbit, lying, 0, WIDTH_PX, HEIGHT_PX, 26, 9, out)
+    expect(out.lengthMm).toBeCloseTo(40, 6)
+
+    updateDimensionAnnotation(orbit, lying, 1, WIDTH_PX, HEIGHT_PX, 26, 9, out)
+    expect(out.lengthMm).toBeCloseTo(40, 6)
+    expect(out.lengthMm).not.toBeCloseTo(50, 3)
+
+    updateDimensionAnnotation(orbit, lying, 2, WIDTH_PX, HEIGHT_PX, 26, 9, out)
+    expect(out.lengthMm).toBeCloseTo(50, 6)
+    expect(out.lengthMm).not.toBeCloseTo(40, 3)
+    expect(out.label).toBe('50 mm')
+  })
+
+  it('reads the finding s own 30°-about-X cylinder correctly', () => {
+    // The world AABB here is 40 × 59.641 × 63.301 — larger on two axes than the
+    // part, and neither number is the diameter or the length.
+    const orbit = cameraAt()
+    const out = createDimensionAnnotation()
+    const tilted = box(CYL_MIN, CYL_MAX, [30, 0, 0], CYL_PIVOT)
+    const shadowY = 40 * Math.cos(Math.PI / 6) + 50 * Math.sin(Math.PI / 6)
+    const shadowZ = 40 * Math.sin(Math.PI / 6) + 50 * Math.cos(Math.PI / 6)
+
+    updateDimensionAnnotation(orbit, tilted, 1, WIDTH_PX, HEIGHT_PX, 26, 9, out)
+    expect(out.lengthMm).toBeCloseTo(40, 6)
+    expect(out.lengthMm).not.toBeCloseTo(shadowY, 3)
+
+    updateDimensionAnnotation(orbit, tilted, 2, WIDTH_PX, HEIGHT_PX, 26, 9, out)
+    expect(out.lengthMm).toBeCloseTo(50, 6)
+    expect(out.lengthMm).not.toBeCloseTo(shadowZ, 3)
+  })
+
+  it('holds up when the body is rotated on all three axes at once', () => {
+    // A 20 × 40 × 60 block, so a mixed-up axis order cannot hide behind equal
+    // extents the way a cube's would.
+    const orbit = cameraAt({ azimuthDeg: 18, elevationDeg: 27 })
+    const out = createDimensionAnnotation()
+    const tumbled = box([-10, -20, 0], [10, 20, 60], [30, 40, 50], [0, 0, 30])
+
+    for (const [axis, expected] of [
+      [0, 20],
+      [1, 40],
+      [2, 60],
+    ]) {
+      updateDimensionAnnotation(orbit, tumbled, axis, WIDTH_PX, HEIGHT_PX, 26, 9, out)
+      expect(out.lengthMm).toBeCloseTo(expected, 6)
+      expect(out.visible).toBe(true)
+    }
+  })
+
+  it('draws each line along the body s rotated axis, not the world axis', () => {
+    // Measuring the right number but drawing it along the wrong edge would still
+    // be wrong. Lying the cylinder down maps its local Z onto world −Y, so the
+    // "length" line must now run front-to-back rather than up.
+    const orbit = cameraAt()
+    const out = createDimensionAnnotation()
+    const lying = box(CYL_MIN, CYL_MAX, [90, 0, 0], CYL_PIVOT)
+    updateDimensionAnnotation(orbit, lying, 2, WIDTH_PX, HEIGHT_PX, 26, 9, out)
+
+    // The local-Z axis through the pivot, projected independently of the module.
+    const near = createScreenPoint()
+    const far = createScreenPoint()
+    const [nx, ny, nz] = rotatedPoint([90, 0, 0], CYL_PIVOT, [0, 0, 0])
+    const [fx, fy, fz] = rotatedPoint([90, 0, 0], CYL_PIVOT, [0, 0, 50])
+    worldToScreen(orbit, nx, ny, nz, WIDTH_PX, HEIGHT_PX, near)
+    worldToScreen(orbit, fx, fy, fz, WIDTH_PX, HEIGHT_PX, far)
+
+    const drawnX = out.a2x - out.a1x
+    const drawnY = out.a2y - out.a1y
+    const axisX = far.x - near.x
+    const axisY = far.y - near.y
+    const cross = drawnX * axisY - drawnY * axisX
+    const scale = Math.hypot(drawnX, drawnY) * Math.hypot(axisX, axisY)
+    // Not exactly parallel, and correctly so: the edge actually dimensioned is
+    // an outer one, offset 20 mm from the axis through the pivot, and at 420 mm
+    // the perspective divide foreshortens the two by different amounts. The
+    // world-axis check below is an order of magnitude away, so this still
+    // discriminates the two candidates decisively.
+    expect(Math.abs(cross) / scale).toBeLessThan(0.1)
+
+    // And it is genuinely a *different* direction from the world Z the old
+    // axis-aligned code would have drawn, so the check above can discriminate.
+    const worldNear = createScreenPoint()
+    const worldFar = createScreenPoint()
+    worldToScreen(orbit, 0, 0, 0, WIDTH_PX, HEIGHT_PX, worldNear)
+    worldToScreen(orbit, 0, 0, 50, WIDTH_PX, HEIGHT_PX, worldFar)
+    const worldAxisX = worldFar.x - worldNear.x
+    const worldAxisY = worldFar.y - worldNear.y
+    const worldCross = drawnX * worldAxisY - drawnY * worldAxisX
+    const worldScale = Math.hypot(drawnX, drawnY) * Math.hypot(worldAxisX, worldAxisY)
+    expect(Math.abs(worldCross) / worldScale).toBeGreaterThan(0.5)
+  })
+
+  it('says which frame it measured in, so the overlay can label it honestly', () => {
+    const orbit = cameraAt()
+    const out = createDimensionAnnotation()
+
+    updateDimensionAnnotation(orbit, box(CYL_MIN, CYL_MAX), 0, WIDTH_PX, HEIGHT_PX, 26, 9, out)
+    expect(out.frame).toBe('world')
+
+    updateDimensionAnnotation(
+      orbit,
+      box(CYL_MIN, CYL_MAX, [0, 0, 45], CYL_PIVOT),
+      0,
+      WIDTH_PX,
+      HEIGHT_PX,
+      26,
+      9,
+      out
+    )
+    expect(out.frame).toBe('local')
+  })
+
+  it('degenerate: two local axes projecting to the same screen direction', () => {
+    // A 40 mm cube turned 45° about Z, viewed from dead level (elevation 0).
+    // Screen-up is world Z there, so *every* vector in the world XY plane — both
+    // the body's local X and its local Y — projects to a purely horizontal screen
+    // direction. The two dimension lines therefore become parallel, which is the
+    // honest picture; what must not happen is a wrong number, a NaN, or a line
+    // that silently vanishes.
+    const orbit = cameraAt({ azimuthDeg: 0, elevationDeg: 0 })
+    const turned = box([-20, -20, 0], [20, 20, 40], [0, 0, 45], [0, 0, 20])
+    const x = createDimensionAnnotation()
+    const y = createDimensionAnnotation()
+    updateDimensionAnnotation(orbit, turned, 0, WIDTH_PX, HEIGHT_PX, 26, 9, x)
+    updateDimensionAnnotation(orbit, turned, 1, WIDTH_PX, HEIGHT_PX, 26, 9, y)
+
+    for (const out of [x, y]) {
+      expect(out.visible).toBe(true)
+      expect(out.lengthMm).toBeCloseTo(40, 6)
+      expect(out.label).toBe('40 mm')
+      for (const value of [out.a1x, out.a1y, out.a2x, out.a2y, out.x1, out.y1, out.x2, out.y2, out.labelX, out.labelY]) {
+        expect(Number.isFinite(value)).toBe(true)
+      }
+    }
+
+    // The degeneracy itself, asserted rather than assumed: from this camera the
+    // body's local X and local Y have the *identical* screen direction — this is
+    // the same affine projection the gizmo's own handles are built from, and it
+    // is where the collapse genuinely happens.
+    const dirX = { x: 0, y: 0 }
+    const dirY = { x: 0, y: 0 }
+    const half = Math.SQRT1_2
+    screenDirection(0, 0, half, half, 0, dirX)
+    screenDirection(0, 0, -half, half, 0, dirY)
+    const cross = dirX.x * dirY.y - dirX.y * dirY.x
+    expect(Math.abs(cross) / (Math.hypot(dirX.x, dirX.y) * Math.hypot(dirY.x, dirY.y))).toBeCloseTo(0, 9)
+
+    // The drawn edges are nonetheless not literally coincident, because the two
+    // are dimensioned at different depths and the perspective divide separates
+    // them — which is why the lines stay individually readable rather than
+    // stacking into one. Worth pinning: it is the only thing keeping this
+    // degenerate view usable.
+    expect(Math.hypot(x.labelX - y.labelX, x.labelY - y.labelY)).toBeGreaterThan(1)
+  })
+
+  it('degenerate: a local axis pointing dead-on at the camera', () => {
+    // Same 45°-about-Z cube, but now viewed straight down its own local X: the
+    // camera's view direction *is* that axis, so it has no screen direction at
+    // all. The measurement must not depend on the projection — the number is the
+    // body's own extent either way — and nothing may come out non-finite.
+    const orbit = cameraAt({ azimuthDeg: 45, elevationDeg: 0 })
+    const turned = box([-20, -20, 0], [20, 20, 40], [0, 0, 45], [0, 0, 20])
+    const out = createDimensionAnnotation()
+    updateDimensionAnnotation(orbit, turned, 0, WIDTH_PX, HEIGHT_PX, 26, 9, out)
+
+    expect(out.lengthMm).toBeCloseTo(40, 6)
+    for (const value of [out.a1x, out.a1y, out.a2x, out.a2y, out.x1, out.y1, out.x2, out.y2, out.labelX, out.labelY]) {
+      expect(Number.isFinite(value)).toBe(true)
+    }
+    for (const head of [out.h1, out.h2]) {
+      for (const point of head) {
+        expect(Number.isFinite(point.x)).toBe(true)
+        expect(Number.isFinite(point.y)).toBe(true)
+      }
+    }
+
+    // The other two axes are unaffected by their neighbour's degeneracy.
+    updateDimensionAnnotation(orbit, turned, 1, WIDTH_PX, HEIGHT_PX, 26, 9, out)
+    expect(out.visible).toBe(true)
+    expect(out.lengthMm).toBeCloseTo(40, 6)
+    updateDimensionAnnotation(orbit, turned, 2, WIDTH_PX, HEIGHT_PX, 26, 9, out)
+    expect(out.visible).toBe(true)
+    expect(out.lengthMm).toBeCloseTo(40, 6)
+  })
+
+  it('allocates nothing new per call, the same as the axis-aligned path', () => {
+    const orbit = cameraAt()
+    const out = createDimensionAnnotation()
+    const head = out.h1[0]
+    const tumbled = box([-10, -20, 0], [10, 20, 60], [30, 40, 50], [0, 0, 30])
+    updateDimensionAnnotation(orbit, tumbled, 0, WIDTH_PX, HEIGHT_PX, 26, 9, out)
+    orbit.orbit(30, 10)
+    updateDimensionAnnotation(orbit, tumbled, 0, WIDTH_PX, HEIGHT_PX, 26, 9, out)
 
     expect(out.h1[0]).toBe(head)
   })

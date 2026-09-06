@@ -129,6 +129,91 @@ export function boundsOf(value) {
   ]
 }
 
+/** Degrees to radians. The single conversion point in this module. */
+const DEG = Math.PI / 180
+
+/**
+ * Bounding box of a solid **in its own local, unrotated frame** (`TODO/ui-023`).
+ *
+ * {@link boundsOf} measures the world-axis-aligned box — the solid's shadow on
+ * the main grid. For an unrotated body that *is* its real size, but the moment a
+ * `transform.rotate` record is applied the two part company: a cylinder tilted
+ * 30° about X fits inside a box that is bigger on two axes than the cylinder is,
+ * and neither of those numbers is its diameter or its length. Dimension lines
+ * exist so a user can read a part's size off the screen, so they need this
+ * measurement, not that one.
+ *
+ * ## How the local frame is recovered
+ *
+ * A rotated solid's polygons carry no memory of the angle that produced them
+ * (see `src/core/transform.js`), so the angle rides along on the record and
+ * arrives here as `rotationDeg`. Applying its **inverse** un-turns the solid back
+ * onto its own axes, and the box of *that* is the part's real size.
+ *
+ * The inverse has to match `src/core/kernel/registry.js`'s `transform.rotate`
+ * exactly. That op calls `@jscad/modeling`'s `transforms.rotate`, which is
+ * active, intrinsic Tait-Bryan in **z-y-x** order — `R = Rz(z)·Ry(y)·Rx(x)` — so
+ * the inverse is `Rx(-x)·Ry(-y)·Rz(-z)`, applied in that order, which is the
+ * three sequential calls below rather than one negated triple. A single
+ * `rotate([-x,-y,-z])` would be `Rz(-z)·Ry(-y)·Rx(-x)`, a *different* rotation.
+ *
+ * ## Why the pivot matters, and why its exact choice does not
+ *
+ * The un-turn happens about `pivotMm`, not the world origin: rotating a body
+ * sitting 300 mm out about the origin would fling it across the scene, and while
+ * that would not change the *size* of the resulting box, it would put it
+ * somewhere unrelated to the solid and cost precision on the way. The returned
+ * box is therefore in a frame anchored at `pivotMm`, and a caller maps a local
+ * point back with `pivot + R·(local − pivot)`. Because that is the exact inverse
+ * of what happens here, *any* consistently-used pivot is correct — which matters,
+ * because a body's world-AABB centre moves when an asymmetric solid (a cone) is
+ * turned, so the pivot used here is not in general the same point the original
+ * `transform.rotate` record turned about.
+ *
+ * ## Known limit of `rotationDeg` itself
+ *
+ * `rotationDeg` is a carried **sum** of the deltas applied to the body, while the
+ * geometry is their **composition** — and rotations do not commute. The two agree
+ * exactly for a history of single-axis turns and for one applied X-then-Y-then-Z,
+ * which is every path the gizmo's rings and the Inspector's fields produce one
+ * edit at a time. An out-of-order mixed history (a Z turn, then an X turn) drifts.
+ * That is a pre-existing property of the carried rotation — it already governs
+ * what the Inspector shows and what `rotateToRecord` subtracts — not something
+ * introduced here; see `TODO/core-004`, filed from this task.
+ *
+ * @param {Geom3 | Group} value
+ * @param {readonly number[]} [rotationDeg] Absolute rotation currently applied,
+ *   per axis. Zero (or absent) short-circuits to {@link boundsOf}.
+ * @param {readonly number[]} [pivotMm] Point to un-turn about; defaults to the
+ *   solid's own bounding-box centre.
+ * @returns {BoundsMm} `[min, max]` in the local frame anchored at `pivotMm`.
+ */
+export function localBoundsOf(value, rotationDeg, pivotMm) {
+  const geometry = toGeom3(value)
+  const x = rotationDeg?.[0] ?? 0
+  const y = rotationDeg?.[1] ?? 0
+  const z = rotationDeg?.[2] ?? 0
+  if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(z)) {
+    throw new Error(`localBoundsOf: rotation must be three finite degree values, got ${JSON.stringify(rotationDeg)}`)
+  }
+  // An unrotated body's local box *is* its world box, bit for bit — worth
+  // short-circuiting both for the cost and so nothing drifts by a float epsilon
+  // in the overwhelmingly common case.
+  if (x === 0 && y === 0 && z === 0) return boundsOf(geometry)
+
+  const pivot = pivotMm ?? centroidOf(geometry)
+  let turned = transforms.translate(
+    /** @type {Vec3Mm} */ ([-pivot[0], -pivot[1], -pivot[2]]),
+    geometry
+  )
+  if (z !== 0) turned = transforms.rotate([0, 0, -z * DEG], turned)
+  if (y !== 0) turned = transforms.rotate([0, -y * DEG, 0], turned)
+  if (x !== 0) turned = transforms.rotate([-x * DEG, 0, 0], turned)
+  return boundsOf(
+    transforms.translate(/** @type {Vec3Mm} */ ([pivot[0], pivot[1], pivot[2]]), turned)
+  )
+}
+
 /**
  * Overall size of a solid or group, in millimetres.
  *

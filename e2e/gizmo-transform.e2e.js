@@ -280,6 +280,42 @@ async function dimensionLengths(page) {
 }
 
 /**
+ * Which frame each dimension line says it measured in (`TODO/ui-023`) — `world`
+ * while the body is unrotated, `local` once it is turned.
+ *
+ * @param {import('@playwright/test').Page} page
+ * @returns {Promise<Record<string, string>>}
+ */
+async function dimensionFrames(page) {
+  const entries = await page.$$eval('[data-testid^="dimension-"][data-frame]', (nodes) =>
+    nodes.map((node) => [node.getAttribute('data-testid') ?? '', node.getAttribute('data-frame') ?? '']),
+  )
+  return Object.fromEntries(entries)
+}
+
+/**
+ * The on-screen angle of one dimension line, in degrees.
+ *
+ * Read off the drawn `<line>` rather than computed, so it measures what a user
+ * actually sees. Used to show that a rotated part's line swings round with the
+ * part even while its *number* stays put — the two halves of `ui-023`.
+ *
+ * @param {import('@playwright/test').Page} page
+ * @param {string} testId e.g. `dimension-x`.
+ * @returns {Promise<number>}
+ */
+async function dimensionLineAngle(page, testId) {
+  const angle = await page.evaluate((id) => {
+    const line = document.querySelector(`[data-testid="${id}"] .dims__line`)
+    if (!line) return null
+    const read = (name) => Number(line.getAttribute(name))
+    return (Math.atan2(read('y2') - read('y1'), read('x2') - read('x1')) * 180) / Math.PI
+  }, testId)
+  expect(angle).not.toBeNull()
+  return /** @type {number} */ (angle)
+}
+
+/**
  * Place one cube and leave it selected, with the Inspector's fields readable.
  *
  * @param {import('@playwright/test').Page} page
@@ -392,26 +428,82 @@ test('a drag and a typed value are the same mutation, in either order', async ({
   expect(await sceneBodies(page)).toHaveLength(1)
 })
 
-test('typing a rotation turns the mesh, and the dimensions prove it really turned', async ({
+test('typing a rotation turns the mesh, and the dimensions still read the cube s own 40 mm (TODO/ui-023)', async ({
   page,
 }) => {
   await placeCube(page)
   const before = await dimensionLengths(page)
   expect(before['dimension-x']).toBeCloseTo(40, 1)
+  expect(await dimensionFrames(page)).toMatchObject({ 'dimension-x': 'world' })
+  const lineBefore = await dimensionLineAngle(page, 'dimension-x')
 
   await typeIntoField(page, 'inspector-rotation-z', 45)
 
   expect(await fieldNumber(page, 'inspector-rotation-z')).toBeCloseTo(45, 1)
-  // A 40 mm cube turned 45° about Z has a bounding box 40·√2 ≈ 56.57 mm across.
-  // Asserting the *measured solid* rather than the field is what proves the
-  // kernel actually rotated the geometry instead of the number changing alone.
+  // `ui-023`: a 40 mm cube turned 45° about Z is still a 40 mm cube. Before that
+  // finding this read 40·√2 ≈ 56.57 mm — the width of the *world-axis box* the
+  // turned cube fits inside, a number that describes no edge of the part and
+  // that a user cannot act on. The line must now quote the part's own edge.
   await expect
     .poll(async () => (await dimensionLengths(page))['dimension-x'])
-    .toBeCloseTo(40 * Math.SQRT2, 0)
+    .toBeCloseTo(40, 1)
+  await expect(page.getByTestId('dimension-x')).toHaveAttribute('data-frame', 'local')
+
+  // The panel and the overlay measure the same thing, so they can never quote a
+  // rotated part at two different sizes.
+  expect(await fieldNumber(page, 'inspector-size-x')).toBeCloseTo(40, 1)
+
+  // ...and it really did turn: the *line* swung round with the cube even though
+  // its number did not, which is the half a stable number alone cannot show.
+  const lineAfter = await dimensionLineAngle(page, 'dimension-x')
+  expect(Math.abs(lineAfter - lineBefore)).toBeGreaterThan(5)
+
   expect(await sceneBodies(page)).toHaveLength(1)
   // Turned on the spot, not swung around the world origin.
   const [after] = await sceneBodies(page)
   expect(after.center[2]).toBeCloseTo(20, 0)
+})
+
+test('a rotate-ring drag leaves a cylinder s own diameter and length on the dimension lines (TODO/ui-023)', async ({
+  page,
+}) => {
+  // The finding's own worked example, driven through the real trigger rather
+  // than a typed field: tilt a cylinder about a horizontal axis and the three
+  // numbers must still be its diameter, its diameter and its length. Under the
+  // old world-axis measurement two of the three grew with the tilt and neither
+  // of those numbers was a dimension of the part at all.
+  await openLibrary(page)
+  await dragRowIntoViewport(page, { op: 'primitive.cylinder', fx: 0.45, fy: 0.4 })
+  await closeLibrary(page)
+  await expect(page.getByTestId('transform-gizmo')).toHaveCount(1)
+
+  const before = await dimensionLengths(page)
+  expect(before['dimension-x']).toBeCloseTo(40, 1)
+  expect(before['dimension-y']).toBeCloseTo(40, 1)
+  expect(before['dimension-z']).toBeCloseTo(50, 1)
+
+  await dragHandle(page, 'gizmo-grab-ring-x', { distancePx: 70, tangential: true })
+
+  // It genuinely turned — the assertion below is worthless if it did not.
+  const turnedBy = await fieldNumber(page, 'inspector-rotation-x')
+  expect(Math.abs(turnedBy)).toBeGreaterThan(5)
+
+  // Whatever angle the drag happened to land on, the part's own three numbers
+  // are unchanged. That is a stronger claim than checking one fixed angle: the
+  // measurement must not depend on the rotation at all.
+  await expect.poll(async () => (await dimensionLengths(page))['dimension-y']).toBeCloseTo(40, 1)
+  const after = await dimensionLengths(page)
+  expect(after['dimension-x']).toBeCloseTo(40, 1)
+  expect(after['dimension-z']).toBeCloseTo(50, 1)
+
+  const frames = await dimensionFrames(page)
+  expect(frames).toMatchObject({
+    'dimension-x': 'local',
+    'dimension-y': 'local',
+    'dimension-z': 'local',
+  })
+
+  expect(await sceneBodies(page)).toHaveLength(1)
 })
 
 test('dragging a rotate ring turns the body and the Rotation fields track it live', async ({

@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { createDocument } from './document.js'
 import { recordForDrop } from './library.js'
 import { describeBody, describeSelection } from './inspector.js'
+import { rotateRecord, translateRecord } from './transform.js'
 import { formatDeg, formatMm } from './units.js'
 
 /**
@@ -191,6 +192,136 @@ describe('describeBody', () => {
     // placed body genuinely is unrotated. `ui-012` writes here.
     const { body } = placed('primitive.cuboid')
     expect(describeBody(body).rotationDeg).toEqual([0, 0, 0])
+  })
+
+  it('measures an unrotated body s local box as exactly its world box', () => {
+    // The local frame only diverges once something turns the body. Until then
+    // the two measurements must agree exactly, or every existing dimension-line
+    // expectation quietly shifts.
+    const { body } = placed('primitive.cylinder', { x: 30, y: -12 })
+    const description = describeBody(body)
+
+    expect(description.localSizeMm[0]).toBeCloseTo(description.sizeMm[0], 9)
+    expect(description.localSizeMm[1]).toBeCloseTo(description.sizeMm[1], 9)
+    expect(description.localSizeMm[2]).toBeCloseTo(description.sizeMm[2], 9)
+    expect(description.localBoundsMm[0][2]).toBeCloseTo(description.boundsMm[0][2], 9)
+    expect(description.localBoundsMm[1][2]).toBeCloseTo(description.boundsMm[1][2], 9)
+  })
+
+  it('inverts a known transform.rotate record back to the part s own size', () => {
+    // The finding's own example: a ⌀40 × 50 cylinder tilted 30° about X. Its
+    // world AABB grows on Y and Z and stops carrying a readable diameter or
+    // length; its local box must still read 40 / 40 / 50.
+    const { document, body } = placed('primitive.cylinder')
+    document.append(rotateRecord(document, body.id, [30, 0, 0]), { origin: 'local' })
+    const description = describeBody(document.bodies()[0])
+
+    expect(description.rotationDeg).toEqual([30, 0, 0])
+    expect(description.localSizeMm[0]).toBeCloseTo(40, 5)
+    expect(description.localSizeMm[1]).toBeCloseTo(40, 5)
+    expect(description.localSizeMm[2]).toBeCloseTo(50, 5)
+
+    // ...and the world box really is the larger shadow, so the two measurements
+    // are genuinely different things rather than the same number twice.
+    expect(description.sizeMm[1]).toBeGreaterThan(50)
+    expect(description.sizeMm[2]).toBeGreaterThan(55)
+  })
+
+  it('inverts a rotation about every axis, in the kernel s own z-y-x order', () => {
+    // A 20 × 40 × 60 block, so a wrong axis order cannot hide behind equal
+    // extents. Applied X, then Y, then Z — the order in which the carried
+    // `rotationDeg` sum is exactly the composed Tait-Bryan rotation.
+    const { document, body } = placed('primitive.cuboid', { x: 0, y: 0 }, { size: [20, 40, 60] })
+    /** @type {[number, number, number][]} */
+    const turns = [
+      [30, 0, 0],
+      [0, 40, 0],
+      [0, 0, 50],
+    ]
+    for (const angles of turns) {
+      document.append(rotateRecord(document, body.id, angles), { origin: 'local' })
+    }
+    const description = describeBody(document.bodies()[0])
+
+    expect(description.rotationDeg).toEqual([30, 40, 50])
+    expect(description.localSizeMm[0]).toBeCloseTo(20, 5)
+    expect(description.localSizeMm[1]).toBeCloseTo(40, 5)
+    expect(description.localSizeMm[2]).toBeCloseTo(60, 5)
+  })
+
+  it('is only as good as the carried rotation: an out-of-order history still drifts', () => {
+    // The known limit of this measurement, pinned here so it cannot become
+    // folklore. `rotationDeg` is a carried **sum** of deltas while the geometry
+    // is their **composition**, and rotations do not commute — so un-turning by
+    // `R(rotationDeg)` is the true inverse only for a single-axis history or one
+    // applied X-then-Y-then-Z (both covered above, both exact). Turn about Y and
+    // *then* X and the sum no longer describes the solid, so the un-turn misses
+    // and the box comes back larger than the part.
+    //
+    // This is pre-existing, not caused by the local measurement: the Inspector's
+    // Rotation fields were already describing an orientation this body is not in.
+    // `TODO/core-004` fixes it by composing instead of adding, at which point
+    // this test flips to expecting 40 / 40 / 50 like its neighbours.
+    const { document, body } = placed('primitive.cylinder')
+    document.append(rotateRecord(document, body.id, [0, 45, 0]), { origin: 'local' })
+    document.append(rotateRecord(document, body.id, [45, 0, 0]), { origin: 'local' })
+    const description = describeBody(document.bodies()[0])
+
+    expect(description.rotationDeg).toEqual([45, 45, 0])
+    // Still strictly better than the world box it replaced — which for this
+    // orientation is larger again — but not yet the part's own 40 / 40 / 50.
+    expect(description.localSizeMm[2]).toBeGreaterThan(50)
+    expect(description.localSizeMm[2]).toBeLessThan(description.sizeMm[2])
+  })
+
+  it('reports the same local size wherever the rotated body is moved to', () => {
+    // Translation must not skew the un-rotation: the inverse turns about the
+    // body's own centre, not the world origin. Moving a tilted part 300 mm out
+    // and 120 mm up must not change a single one of its three numbers.
+    const { document, body } = placed('primitive.cylinder')
+    document.append(rotateRecord(document, body.id, [30, 0, 0]), { origin: 'local' })
+    const before = describeBody(document.bodies()[0]).localSizeMm
+
+    document.append(translateRecord(document, body.id, [300, -220, 120]), { origin: 'local' })
+    const after = describeBody(document.bodies()[0])
+
+    expect(after.positionMm[0]).toBeCloseTo(300, 5)
+    expect(after.localSizeMm[0]).toBeCloseTo(before[0], 9)
+    expect(after.localSizeMm[1]).toBeCloseTo(before[1], 9)
+    expect(after.localSizeMm[2]).toBeCloseTo(before[2], 9)
+  })
+
+  it('anchors the local box so its corners map back onto the real solid', () => {
+    // `localBoundsMm` is expressed in a frame anchored at `positionMm`, which is
+    // the *world AABB* centre — not necessarily the local box's own centre, as a
+    // cone shows. Rotating the local corners back about that same pivot must
+    // land inside the world box, or the drawn oriented box floats off the solid.
+    const { document, body } = placed('primitive.cone')
+    document.append(rotateRecord(document, body.id, [90, 0, 0]), { origin: 'local' })
+    const description = describeBody(document.bodies()[0])
+    const [localMin, localMax] = description.localBoundsMm
+    const [worldMin, worldMax] = description.boundsMm
+    const pivot = description.positionMm
+    const rad = (Math.PI / 180) * description.rotationDeg[0]
+
+    for (const lx of [localMin[0], localMax[0]]) {
+      for (const ly of [localMin[1], localMax[1]]) {
+        for (const lz of [localMin[2], localMax[2]]) {
+          // Rx only, since the rotation here is about X alone.
+          const vy = ly - pivot[1]
+          const vz = lz - pivot[2]
+          const world = [
+            lx,
+            pivot[1] + Math.cos(rad) * vy - Math.sin(rad) * vz,
+            pivot[2] + Math.sin(rad) * vy + Math.cos(rad) * vz,
+          ]
+          for (let axis = 0; axis < 3; axis += 1) {
+            expect(world[axis]).toBeGreaterThanOrEqual(worldMin[axis] - 1e-6)
+            expect(world[axis]).toBeLessThanOrEqual(worldMax[axis] + 1e-6)
+          }
+        }
+      }
+    }
   })
 
   it('falls back to the raw params for an op with no ui schema', () => {

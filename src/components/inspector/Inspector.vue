@@ -425,6 +425,11 @@ function onFieldEnter(event) {
               </label>
             </dd>
 
+            <!-- The part's own size, on its own axes (`TODO/ui-023`) — the very
+                 numbers the viewport's dimension lines quote, so the panel and
+                 the overlay can never disagree about how big a rotated part is.
+                 The larger world-axis box is a different measurement and is not
+                 shown here; it is what the gizmo sizes itself to clear. -->
             <dt class="inspector__label">Size <span class="inspector__unit">(mm)</span></dt>
             <dd class="inspector__value inspector__value--vector">
               <label v-for="(axis, index) in ['x', 'y', 'z']" :key="`s-${axis}`" class="inspector__component">
@@ -434,7 +439,7 @@ function onFieldEnter(event) {
                   type="text"
                   readonly
                   :data-testid="`inspector-size-${axis}`"
-                  :value="formatMmValue(body.sizeMm[index])"
+                  :value="formatMmValue(body.localSizeMm[index])"
                 />
               </label>
             </dd>

@@ -146,6 +146,25 @@ accidentally additive. Shift-clicking the cube on top of the cylinder selection 
 correctly grew the count to `2`, screenshotted with the Inspector showing "2 selected".
 Console clean.
 
+**Re-checked**: 2026-09-06 18:52 — PASS (`ui-023`). Re-driven at laptop 1440×900 in
+Chromium and phone 390×844 in WebKit. A Cube then a Cylinder dragged in on deliberately
+wandering paths (with an overshoot and a doubling-back): **both stayed visible**, and the
+cube's millimetre centre was byte-identical before and after the second drop
+(`-65.69,-20.42,20.00` at laptop, `-41.41,3.85,20.00` at phone). Clicking empty grid
+cleared; clicking each solid in turn selected only that one, with the gizmo and all three
+dimension lines retargeting — the cube's 40/40/40 giving way to the cylinder's 40/40/50.
+
+**The half this task is about, and the half no prior drive of this scenario had ever
+exercised**: the dimension lines were then read off a **rotated** body. Tipping the
+cylinder with a real X rotate-ring drag turned it to `-34.61°` and the three lines still
+read **40 / 40 / 50** — its diameter, its diameter and its length — where before this
+task they would have read the growing world-axis box the tilted cylinder fits inside.
+Typing an exact `62°` held the same three numbers, and a screenshot confirms the 50 mm
+line now runs diagonally *down the cylinder's own axis* rather than staying vertical.
+The Inspector's Size row read the identical 40/40/50, so panel and overlay cannot
+disagree. Orbiting with the tilted body selected left all three numbers unchanged.
+Console clean in both drives.
+
 ### 2. Hardware property edit
 
 **Steps**:
@@ -270,6 +289,39 @@ Testing section named ("doesn't accidentally grab a neighbouring body's overlapp
 gizmo"), confirmed absent rather than merely not obvious. Screenshots at each step show
 the gizmo visibly growing well past the old fixed size and always clearing the selected
 cube's own silhouette. Console clean throughout.
+
+**Re-checked**: 2026-09-06 18:52 — **PARTIAL PASS, still partial for exactly the same
+reasons as before** (`ui-023`). Steps 1 and 3-4 remain blocked on the missing Hardware
+section (`ui-013`) and read-only Parameters, so the first sentence of **Expect** is still
+not claimed. Steps 5-8 were re-driven in full at laptop/Chromium and phone/WebKit,
+because this task changes what the dimension lines measure and they are half of what
+those steps watch.
+
+- **Steps 5-6 (gizmo drag, fields live during it)** still hold: dragging the X arm on a
+  **rotated** cylinder moved it and Position X was sampled mid-gesture at eight points
+  along the drag — laptop `-17.25 → -12.72 → -8.20 → -3.67 → 0.85 → 5.38 → 9.90 → 14.43`,
+  settling at `14.43`. The numbers move *with* the drag, not at release.
+- **Steps 7-8 (typed field moves the mesh)** still hold: typing `-35` into Position Y
+  landed on exactly `-35`.
+- **New, and the point of this re-drive**: the three dimension numbers stayed **frozen
+  across both the drag and the typed move** of a tilted body. Moving something does not
+  change its size, and now the lines say so — previously a rotated body's world-axis box
+  was the thing being reported, so this is the first drive where that claim means
+  anything. Exactly one body throughout; the untouched Cube's centre unchanged.
+
+**One real defect found that no test caught, and it is not this task's**: driving an
+**out-of-order** rotation history — turn about Z (or Y) and *then* about X, which a user
+reaches by dragging one ring and then another — makes the dimension numbers drift again.
+Measured on a ⌀40 × 50 cylinder: `Y=45` then `X=45` reports **46.82 / 51.05 / 59.42**
+instead of 40/40/50, and `Z=90` then `X=90` reports the right three numbers attributed to
+the wrong axes (**50 / 40 / 40**). Single-axis turns and an in-order X→Y→Z history are
+exact. The cause is pre-existing and upstream of this task: `rotationDeg` is carried as a
+**sum** of deltas while the geometry is their **composition**, so the Inspector's own
+Rotation fields were already describing an orientation the body is not in. Filed with the
+measured reproduction as `TODO/core-004`, and pinned by a unit test in
+`src/core/inspector.spec.js` so it cannot quietly become folklore. Not treated as a FAIL
+of this scenario: every step of scenario 2's own **Expect** passes, and the behaviour is
+strictly better than before this task in every case measured, exact in the common ones.
 
 ### 3. Snap-placement of a kit assembly
 

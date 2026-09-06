@@ -35,6 +35,7 @@ import { useSelectedBody } from '../../composables/useSelectedBody.js'
 import {
   axisFacing,
   createDimensionAnnotation,
+  createOrientedBox,
   createGizmoAnnotation,
   gizmoSizeForBounds,
   rotateDeltaDeg,
@@ -146,6 +147,16 @@ const dimensionAnnotations = reactive([
   createDimensionAnnotation(),
   createDimensionAnnotation(),
 ])
+
+/**
+ * The selected body's own box, in its own frame (`TODO/ui-023`).
+ *
+ * Deliberately **not** reactive and allocated exactly once: `syncAnnotations()`
+ * repoints its four fields at the description's existing arrays each frame,
+ * which is a reference assignment rather than an allocation, per CLAUDE.md's
+ * no-per-frame-allocation rule.
+ */
+const dimensionBox = createOrientedBox()
 
 // --- non-reactive render state -------------------------------------------
 
@@ -311,11 +322,18 @@ function syncAnnotations() {
     ringPx,
     gizmoAnnotation,
   )
+  // `TODO/ui-023`: the dimension lines measure the body's **own** box, not the
+  // world-axis shadow the gizmo above is sized against. The two genuinely want
+  // different measurements — the gizmo has to clear the tilted part's whole
+  // on-screen silhouette, while the numbers have to be the part's real size.
+  dimensionBox.minMm = body.localBoundsMm[0]
+  dimensionBox.maxMm = body.localBoundsMm[1]
+  dimensionBox.rotationDeg = body.rotationDeg
+  dimensionBox.pivotMm = body.positionMm
   for (let axis = 0; axis < 3; axis += 1) {
     updateDimensionAnnotation(
       orbit,
-      minMm,
-      maxMm,
+      dimensionBox,
       axis,
       widthPx,
       heightPx,

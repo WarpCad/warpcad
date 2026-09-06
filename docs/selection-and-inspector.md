@@ -44,6 +44,24 @@ re-draw themselves from the new angle. The numbers do not change — a 40 mm cub
 from every angle — but which edge each dimension line is drawn against does, so the
 numbers stay clear of the solid instead of disappearing behind it.
 
+### Once a shape is turned
+
+The dimension lines measure the **shape's own** width, depth and height, along the
+shape's own edges — not along the grid. Turn a shape and the three lines tilt over with
+it and keep reading the same three numbers, because turning something does not change
+how big it is.
+
+That is the useful behaviour, and it is worth being clear about it, because the obvious
+alternative is not useful at all: the smallest *grid-aligned* box a tilted shape fits
+inside is bigger than the shape on nearly every axis, and none of its three numbers is a
+measurement of the shape. A cylinder tipped over on its side would stop showing you its
+diameter and its length, and start showing you the size of an invisible crate around it.
+
+So the red line is the part's own width wherever the part is pointing, the green line is
+its depth, and the blue line is its height. The gizmo's arrows are a separate thing and
+deliberately keep pointing along the **grid's** directions, which is what you want when
+you are moving something in the room rather than measuring it.
+
 ## The Inspector
 
 **On a laptop or a tablet**, the Inspector is the column down the right-hand side of the
@@ -120,10 +138,26 @@ without moving, nothing happens except that you select whatever is underneath.
 4. Drag the **blue ring** (the one circling the Z arrow) about a quarter turn. The
    **Rotation Z** box counts up as you go.
 5. Click into **Rotation Z**, type `45`, press **Enter**. The cube snaps to exactly 45°.
-   The red and green dimension lines now read about **57 mm** rather than 40 mm — that is
-   correct: a 40 mm square turned 45° is 40 × √2 ≈ 56.6 mm across its corners.
+   Watch the dimension lines: they swing round to sit along the cube's new edges, and
+   all three still read **40 mm**. A turned 40 mm cube is still a 40 mm cube, so the
+   numbers should not — and do not — move.
 6. Note that there is still exactly **one** cube. Moving a shape moves it; it never
    leaves a copy behind.
+
+### Worked example: read a tipped-over cylinder
+
+1. Drag a **Cylinder** onto the grid and click it. Standing upright, the red and green
+   lines read **40 mm** (its diameter, measured twice) and the blue one reads **50 mm**
+   (its height).
+2. Drag the **red ring** — the one circling the red arrow — about a quarter turn, so the
+   cylinder tips over onto its side.
+3. Read the lines again. They have tilted over with the cylinder, and they still say
+   **40**, **40** and **50**. The blue one is now lying almost flat across the screen,
+   because "the height of the cylinder" is now pointing sideways — but it is still the
+   cylinder's length, and it is still 50 mm.
+4. Check the Inspector's **Size** row while you are there: **40 / 40 / 50**, the same
+   three numbers. The panel and the lines always agree, because they are the same
+   measurement shown twice.
 
 ## Worked example
 
@@ -157,9 +191,15 @@ arrive with the boolean operations.
 - **I clicked a shape and nothing happened.** Check that you clicked the shape itself and
   not the grid beside it. The shape's base sits at the point you dropped it, so the solid
   is drawn *upward* from there on screen — aim slightly above the spot where you dropped.
-- **The dimension numbers look wrong.** They measure the shape's bounding box — the
-  smallest box the shape fits inside. For a sphere or a cylinder, that means the
-  left-to-right and front-to-back numbers are both the *diameter*, not the radius.
+- **The dimension numbers look wrong.** They measure the smallest box that fits the
+  shape, lined up with the *shape's own* edges. For a sphere or a cylinder, that means
+  the first two numbers are both the *diameter*, not the radius. For a shape you have
+  turned, it means the numbers stay the same as before you turned it — that is the point,
+  not a fault.
+- **I turned a shape and the dimension lines went diagonal.** They are following the
+  shape's own edges, which are diagonal now. The numbers are still the shape's real
+  width, depth and height. If you want the lines back on the grid's directions, set the
+  **Rotation** boxes back to `0`.
 - **I tried to drag a gizmo arrow and the view spun instead.** You caught the grid rather
   than the handle. The handles start a little way out from the middle of the shape, so
   aim at the outer half of the arrow, nearer its head.

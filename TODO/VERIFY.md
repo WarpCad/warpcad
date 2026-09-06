@@ -19,6 +19,24 @@ between sessions — that's itself a signal to move more of it into
 
 ## Queue
 
+### ui-023 — legibility of diagonal dimension lines on a tilted part (2026-09-06 19:02)
+
+Purely a visual/feel judgment, which is why it is here and not an acceptance scenario:
+the numbers themselves are now correct and are checked on a standing basis by scenario 1's
+rotated-body half.
+
+- [ ] Tip a cylinder over about 60° and look at it on a **phone** (390×844). At laptop
+  width the three lines are clearly readable, but they now run diagonally *through* the
+  gizmo's rotate rings rather than sitting square around the silhouette, and the
+  laptop screenshot is already a little busy where a `40 mm` label crosses a ring. Judge
+  whether the labels stay readable at phone width, or whether the lines want a larger
+  offset (`DIMENSION_OFFSET_PX` in `Viewport.vue`) once they are no longer axis-aligned.
+- [ ] While there: two of the three labels can end up close together when a rotation
+  lines two local axes up on nearly the same screen direction (the degenerate case
+  covered numerically in `annotate.spec.js`). The maths is right and the lines are
+  separated by the perspective divide, but whether that separation is *enough* to read
+  at phone size is an eye judgment no assertion makes.
+
 ### build-002 — Fix bright white flash before first paint (FOUC) on app load (2026-09-06 18:22)
 
 One entry. The TODO's own Testing section asked for the throttled-load re-check to be

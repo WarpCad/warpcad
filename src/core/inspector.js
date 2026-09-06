@@ -25,7 +25,7 @@
  * @module core/inspector
  */
 
-import { boundsOf } from './kernel/group.js'
+import { boundsOf, localBoundsOf } from './kernel/group.js'
 import { registry as defaultRegistry } from './kernel/registry.js'
 
 /** @typedef {import('./document.js').Body} Body */
@@ -57,8 +57,16 @@ import { registry as defaultRegistry } from './kernel/registry.js'
  * @property {ParamField[]} params The op's own schema — never position/rotation.
  * @property {Vec3Mm} positionMm Bounding-box centre of the **evaluated** solid.
  * @property {Vec3Mm} rotationDeg Degrees, per axis.
- * @property {Vec3Mm} sizeMm Overall bounding-box size.
- * @property {[Vec3Mm, Vec3Mm]} boundsMm `[min, max]`, what the dimension lines measure.
+ * @property {Vec3Mm} sizeMm Overall **world-axis** bounding-box size — the
+ *   solid's shadow on the grid. Equal to {@link BodyDescription.localSizeMm}
+ *   until the body is rotated; after that it is the larger box the tilted part
+ *   fits inside, which is what the gizmo sizes itself to clear.
+ * @property {[Vec3Mm, Vec3Mm]} boundsMm `[min, max]`, world-axis-aligned.
+ * @property {Vec3Mm} localSizeMm The part's **own** size, measured on its own
+ *   axes — the numbers the dimension lines quote (`TODO/ui-023`).
+ * @property {[Vec3Mm, Vec3Mm]} localBoundsMm `[min, max]` in the body's local
+ *   frame, anchored at {@link BodyDescription.positionMm}: a local point maps
+ *   back to world as `positionMm + R(rotationDeg)·(local − positionMm)`.
  */
 
 /**
@@ -235,6 +243,13 @@ export function rotationOf(body) {
 export function describeBody(body, ops = defaultRegistry) {
   const entry = ops[body.op]
   const [min, max] = boundsOf(body.geometry)
+  /** @type {Vec3Mm} */
+  const positionMm = [(min[0] + max[0]) / 2, (min[1] + max[1]) / 2, (min[2] + max[2]) / 2]
+  const rotationDeg = rotationOf(body)
+  // The part's own size, on its own axes (`TODO/ui-023`). Anchored at
+  // `positionMm` so the dimension lines can map a local corner straight back
+  // into world space without needing a second pivot from anywhere else.
+  const [localMin, localMax] = localBoundsOf(body.geometry, rotationDeg, positionMm)
 
   return {
     id: body.id,
@@ -242,12 +257,21 @@ export function describeBody(body, ops = defaultRegistry) {
     op: body.op,
     opLabel: entry?.ui?.label ?? body.op,
     params: fieldsFor(body.params ?? {}, entry),
-    positionMm: [(min[0] + max[0]) / 2, (min[1] + max[1]) / 2, (min[2] + max[2]) / 2],
-    rotationDeg: rotationOf(body),
+    positionMm,
+    rotationDeg,
     sizeMm: [max[0] - min[0], max[1] - min[1], max[2] - min[2]],
     boundsMm: [
       [min[0], min[1], min[2]],
       [max[0], max[1], max[2]],
+    ],
+    localSizeMm: [
+      localMax[0] - localMin[0],
+      localMax[1] - localMin[1],
+      localMax[2] - localMin[2],
+    ],
+    localBoundsMm: [
+      [localMin[0], localMin[1], localMin[2]],
+      [localMax[0], localMax[1], localMax[2]],
     ],
   }
 }
