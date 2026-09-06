@@ -506,6 +506,98 @@ test('a rotate-ring drag leaves a cylinder s own diameter and length on the dime
   expect(await sceneBodies(page)).toHaveLength(1)
 })
 
+test('two rotate rings in a row leave a cylinder s own diameter and length on the lines, and a typed rotation still lands (TODO/core-004)', async ({
+  page,
+}) => {
+  // `core-004`'s own reproduction, driven through the real triggers: drag the Z
+  // rotate ring, then the X rotate ring. That is an **out-of-order** history, and
+  // it is what a user reaches simply by grabbing one ring and then another.
+  //
+  // The carried rotation used to be the *sum* of those two deltas while the solid
+  // was their *composition*, so the un-turn behind the dimension lines missed and
+  // the numbers drifted back toward the world-axis box `ui-023` had just stopped
+  // them reporting — measured at 46.82 / 51.05 / 59.42 on this very cylinder for
+  // a 45°/45° pair, and 50 / 40 / 40 for a 90°/90° one.
+  await openLibrary(page)
+  await dragRowIntoViewport(page, { op: 'primitive.cylinder', fx: 0.45, fy: 0.4 })
+  await closeLibrary(page)
+  await expect(page.getByTestId('transform-gizmo')).toHaveCount(1)
+
+  const before = await dimensionLengths(page)
+  expect(before['dimension-x']).toBeCloseTo(40, 1)
+  expect(before['dimension-y']).toBeCloseTo(40, 1)
+  expect(before['dimension-z']).toBeCloseTo(50, 1)
+
+  // First ring: Z. Then a second, different ring: X. Two records, two axes, in
+  // the order that used to break.
+  await dragHandle(page, 'gizmo-grab-ring-z', { distancePx: 70, tangential: true })
+  const afterFirst = await fieldNumber(page, 'inspector-rotation-z')
+  expect(Math.abs(afterFirst)).toBeGreaterThan(5)
+
+  await dragHandle(page, 'gizmo-grab-ring-x', { distancePx: 70, tangential: true })
+
+  // Both turns really happened — the assertions below are worthless otherwise.
+  // Checked as an orientation rather than as one field, because composing (unlike
+  // adding) is free to express the same orientation with a different triple.
+  const turned = [
+    await fieldNumber(page, 'inspector-rotation-x'),
+    await fieldNumber(page, 'inspector-rotation-y'),
+    await fieldNumber(page, 'inspector-rotation-z'),
+  ]
+  expect(turned.some((angle) => Math.abs(angle) > 5)).toBe(true)
+  expect(turned.filter((angle) => Math.abs(angle) > 0.5).length).toBeGreaterThanOrEqual(2)
+
+  // Whatever the two drags landed on, the part's own three numbers are its
+  // diameter, its diameter and its length. Turning something does not resize it.
+  await expect.poll(async () => (await dimensionLengths(page))['dimension-z']).toBeCloseTo(50, 1)
+  const after = await dimensionLengths(page)
+  expect(after['dimension-x']).toBeCloseTo(40, 1)
+  expect(after['dimension-y']).toBeCloseTo(40, 1)
+
+  expect(await dimensionFrames(page)).toMatchObject({
+    'dimension-x': 'local',
+    'dimension-y': 'local',
+    'dimension-z': 'local',
+  })
+
+  // Consequence 2 of the finding: typing an absolute rotation on top of an
+  // out-of-order history has to land on the typed value, not on
+  // `target − current` applied to an orientation the body was never in. Editing
+  // one field means "set this axis, leave the other two", so the other two are
+  // captured first and asserted to stay put — a typed X that quietly dragged Y
+  // and Z along with it would be the same class of bug in a new place.
+  const heldY = await fieldNumber(page, 'inspector-rotation-y')
+  const heldZ = await fieldNumber(page, 'inspector-rotation-z')
+
+  await typeIntoField(page, 'inspector-rotation-x', 90)
+  await expect
+    .poll(async () => await fieldNumber(page, 'inspector-rotation-x'))
+    .toBeCloseTo(90, 1)
+  expect(await fieldNumber(page, 'inspector-rotation-y')).toBeCloseTo(heldY, 1)
+  expect(await fieldNumber(page, 'inspector-rotation-z')).toBeCloseTo(heldZ, 1)
+
+  // And it is still the same cylinder: 40 / 40 / 50 on its own axes, after a
+  // typed absolute rotation applied on top of a two-ring history.
+  const typed = await dimensionLengths(page)
+  expect(typed['dimension-x']).toBeCloseTo(40, 1)
+  expect(typed['dimension-y']).toBeCloseTo(40, 1)
+  expect(typed['dimension-z']).toBeCloseTo(50, 1)
+
+  // Zeroing all three fields returns it to flat rather than to some residue of
+  // the history it came through — which the lines report by going back to
+  // measuring in the `world` frame at the cylinder's own upright 40 / 40 / 50.
+  for (const axis of ['z', 'y', 'x']) {
+    await typeIntoField(page, `inspector-rotation-${axis}`, 0)
+  }
+  await expect.poll(async () => (await dimensionFrames(page))['dimension-x']).toBe('world')
+  const flat = await dimensionLengths(page)
+  expect(flat['dimension-x']).toBeCloseTo(40, 1)
+  expect(flat['dimension-y']).toBeCloseTo(40, 1)
+  expect(flat['dimension-z']).toBeCloseTo(50, 1)
+
+  expect(await sceneBodies(page)).toHaveLength(1)
+})
+
 test('dragging a rotate ring turns the body and the Rotation fields track it live', async ({
   page,
 }) => {

@@ -6,8 +6,57 @@ priority: medium
 model: opus
 milestone: M1.5
 depends: [ui-012, ui-023]
-status: open
+status: done
 ---
+
+## What actually shipped (retirement note, 2026-09-06)
+
+**Approach (1) — compose then decompose — was chosen over this file's own
+recommendation of (2), the quaternion.** The reasoning is recorded in full in
+`src/core/rotation.js`'s module header; the short version is that (2)'s stated
+advantage does not survive contact with the code:
+
+1. **(2)'s benefit is illusory here.** The argument for a quaternion was that Euler
+   decomposition is ill-conditioned near a ±90° pitch, so displayed numbers can jump
+   during a smooth drag. But `ui-012`'s display contract — which this file says to
+   keep — *is* three degree fields (`Inspector.vue` reads `body.rotationDeg[index]`).
+   Under a quaternion those fields are a decomposition of the quaternion, using the
+   same z-y-x decomposition, jumping in exactly the same places by exactly the same
+   amounts. (2) moves where the decomposition happens; it does not remove it.
+2. **A z-y-x triple is surjective onto SO(3)** — every orientation has an exact
+   three-degree representation. The decomposition is non-unique, which is a different
+   property from lossy, and harmless when every consumer only rebuilds the matrix. The
+   bug was never "Euler cannot say it", it was "we added when we should have composed".
+3. **Every consumer already speaks this triple and became correct for free.**
+   `localBoundsOf` and `src/render/annotate.js` both rebuild `Rz·Ry·Rx` from
+   `rotationDeg`; neither needed an edit. (2) would have left them on the Euler path
+   (buying nothing for the actual bug) or given each a quaternion path *plus* a legacy
+   Euler path — two routes through the same geometry maths, the drift
+   `src/core/transform.js`'s own header exists to warn about.
+4. **No schema change, so no `replay.js`/NDJSON/fixture migration**, for a benefit
+   point 1 shows is absent.
+5. **Accumulation is not a real cost**: a matrix→triple→matrix round trip is exact to
+   ~1e-15 and happens once per *committed record*, not per drag frame.
+
+**Two things beyond this file's Affected-files list also had to change**, both the same
+defect in another place:
+
+- `rotateToRecord` could no longer compute its delta as `target − current` — that was
+  only the inverse of *adding*. It now builds the relative rotation
+  `R(target)·R(current)⁻¹`, which is what makes consequence 2 ("typing an absolute
+  rotation lands on the typed value") actually true.
+- `src/composables/useSelectedBody.js` added the previewed ring-drag delta to the
+  carried triple componentwise, so the live drag ghost had the identical
+  sum-not-composition bug. It now goes through the same `composeDeg`, which is what
+  stops the preview and the committed record from being able to disagree.
+
+**One behaviour change worth knowing about**: the carried triple is now canonical
+(yaw/roll in `(-180, 180]`, pitch in `[-90, 90]`) rather than cumulative, so a ring
+dragged past half a turn wraps its sign instead of counting on to 200°/370°. Same
+orientation either way; documented for users in `docs/selection-and-inspector.md` and
+logged in `TODO/VERIFY.md` as a feel judgement worth a human glance.
+
+New module: `src/core/rotation.js` (+ `src/core/rotation.spec.js`).
 
 ## Problem
 

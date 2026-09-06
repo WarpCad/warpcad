@@ -218,3 +218,14 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** the world-AABB measurement and its effect on a rotated body → `TODO/done/ui-023-oriented-dimension-lines.md`'s Problem section, plus the pre-change e2e assertion `toBeCloseTo(40 * Math.SQRT2, 0)` at `e2e/gizmo-transform.e2e.js:410` in commit 0fa21e6; rotation has only been reachable since `ui-012` landed the same day → git log 660f042, dated 2026-09-06; a ⌀40×50 cylinder tilted 62° reports 40/40/50 → hand-driven against the running app this session, screenshot captured; a real X rotate-ring drag turned it to −34.61° with the lines unchanged → same drive; full suite green (typecheck, 327 unit, 468 e2e passed/19 skipped across 3 engines × 3 viewports) → `npm run test` stages, this session
 **To Add:** the screenshot of the tilted cylinder with its 50 mm line running down its own axis; repo URL once public
+
+## [2026-09-06T19:19:00Z] — A body's rotation was a running total, not its actual orientation (TODO/core-004)
+
+**Post:** Rotations don't commute, so adding up rotation deltas isn't the same as composing them. WarpCad had been adding. Turn a ⌀40×50 cylinder 45° about Y then 45° about X and it reported its size as 46.82/51.05/59.42 — three numbers, not one of them a dimension of the part. Now composed properly: 40/40/50. #CAD #Geometry #WebGL
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #Geometry #WebGL
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** the carried sum vs. composed geometry, and the measured 46.82/51.05/59.42 and 50/40/40 rows → `TODO/done/core-004-rotation-carried-as-sum-not-composition.md`'s Problem and Measured-reproduction sections; the old `rotation: [current[0] + angles[0], …]` → diff to `src/core/transform.js`; both rows now read 40/40/50 → hand-driven against the running app this session at laptop/Chromium and phone/WebKit, screenshots captured; a Z-ring then X-ring drag leaves a Y term the drags never touched (`20.92 / −8.54 / 21.23`), which a sum cannot produce → same drive; full suite green (typecheck, 346 unit, 477 e2e passed/19 skipped) → `npm run test` stages, this session
+**To Add:** the screenshot of the 45°/45° cylinder reading 40/40/50; repo URL once public

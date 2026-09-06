@@ -170,16 +170,23 @@ const DEG = Math.PI / 180
  * turned, so the pivot used here is not in general the same point the original
  * `transform.rotate` record turned about.
  *
- * ## Known limit of `rotationDeg` itself
+ * ## `rotationDeg` is a faithful description of the solid (`TODO/core-004`)
  *
- * `rotationDeg` is a carried **sum** of the deltas applied to the body, while the
- * geometry is their **composition** — and rotations do not commute. The two agree
- * exactly for a history of single-axis turns and for one applied X-then-Y-then-Z,
- * which is every path the gizmo's rings and the Inspector's fields produce one
- * edit at a time. An out-of-order mixed history (a Z turn, then an X turn) drifts.
- * That is a pre-existing property of the carried rotation — it already governs
- * what the Inspector shows and what `rotateToRecord` subtracts — not something
- * introduced here; see `TODO/core-004`, filed from this task.
+ * This un-turn is only ever as good as the rotation handed to it, so it is worth
+ * saying what that value now guarantees. `rotationDeg` used to be a carried
+ * **sum** of the deltas applied to the body while the geometry was their
+ * **composition**, and rotations do not commute — so the two agreed only for a
+ * history of single-axis turns and for one applied X-then-Y-then-Z. An
+ * out-of-order mixed history (a Z turn, then an X turn) drifted, and the box
+ * below came back larger than the part: a ⌀40 × 50 cylinder turned 45° about Y
+ * and then 45° about X measured 46.82 / 51.05 / 59.42, not one of which is a
+ * dimension of the cylinder.
+ *
+ * `src/core/transform.js` now composes rather than adds, so the carried triple is
+ * the orientation the solid is genuinely in, for any history, and the inverse
+ * taken here is the true inverse. Nothing in this function changed — it was
+ * always the exact inverse of `R(rotationDeg)`; what changed is that
+ * `rotationDeg` is now worth inverting.
  *
  * @param {Geom3 | Group} value
  * @param {readonly number[]} [rotationDeg] Absolute rotation currently applied,

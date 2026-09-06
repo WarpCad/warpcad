@@ -19,6 +19,7 @@
 import { computed } from 'vue'
 
 import { describeSelection } from '../core/inspector.js'
+import { composeDeg } from '../core/rotation.js'
 import { useDocumentStore } from '../stores/document.js'
 import { useSelectionStore } from '../stores/selection.js'
 import { useTransformPreviewStore } from '../stores/transformPreview.js'
@@ -68,11 +69,17 @@ export function useSelectedBody() {
       body: {
         ...body,
         positionMm: [body.positionMm[0] + dx, body.positionMm[1] + dy, body.positionMm[2] + dz],
-        rotationDeg: [
-          body.rotationDeg[0] + preview.rxDeg,
-          body.rotationDeg[1] + preview.ryDeg,
-          body.rotationDeg[2] + preview.rzDeg,
-        ],
+        // Composed, not added (`TODO/core-004`). A previewed ring drag is a
+        // world-frame delta on top of the body's current orientation, exactly
+        // like the record it commits into — so the ghost has to compose it the
+        // same way `src/core/transform.js` will, or a drag on an already-rotated
+        // body would swing the dimension-line box one way during the gesture and
+        // settle somewhere else on release. Going through the one helper is what
+        // keeps the preview and the commit from being able to disagree.
+        rotationDeg: composeDeg(
+          [preview.rxDeg, preview.ryDeg, preview.rzDeg],
+          body.rotationDeg,
+        ),
         // Translated, not re-measured: an axis-aligned box slides with the body.
         // A *rotated* preview's true bounds would need the turned solid, which is
         // exactly the kernel work this preview exists to avoid doing per frame —

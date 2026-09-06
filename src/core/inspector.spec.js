@@ -249,29 +249,76 @@ describe('describeBody', () => {
     expect(description.localSizeMm[2]).toBeCloseTo(60, 5)
   })
 
-  it('is only as good as the carried rotation: an out-of-order history still drifts', () => {
-    // The known limit of this measurement, pinned here so it cannot become
-    // folklore. `rotationDeg` is a carried **sum** of deltas while the geometry
-    // is their **composition**, and rotations do not commute — so un-turning by
-    // `R(rotationDeg)` is the true inverse only for a single-axis history or one
-    // applied X-then-Y-then-Z (both covered above, both exact). Turn about Y and
-    // *then* X and the sum no longer describes the solid, so the un-turn misses
-    // and the box comes back larger than the part.
+  it('measures an out-of-order Y-then-X history as the part s own size (TODO/core-004)', () => {
+    // This test used to pin the *limit* of the measurement: `rotationDeg` was a
+    // carried sum of deltas while the geometry was their composition, so the
+    // un-turn by `R(rotationDeg)` was the true inverse only for a single-axis
+    // history or one applied X-then-Y-then-Z. Turning about Y and *then* X made
+    // the un-turn miss, and this ⌀40 × 50 cylinder measured 46.82 / 51.05 / 59.42
+    // — three numbers, not one of them a dimension of the part.
     //
-    // This is pre-existing, not caused by the local measurement: the Inspector's
-    // Rotation fields were already describing an orientation this body is not in.
-    // `TODO/core-004` fixes it by composing instead of adding, at which point
-    // this test flips to expecting 40 / 40 / 50 like its neighbours.
+    // `core-004` composes instead of adding, so the carried rotation is now the
+    // orientation the solid is genuinely in and the inverse is the true inverse.
+    // The sharpest available proof this finding is fixed.
     const { document, body } = placed('primitive.cylinder')
     document.append(rotateRecord(document, body.id, [0, 45, 0]), { origin: 'local' })
     document.append(rotateRecord(document, body.id, [45, 0, 0]), { origin: 'local' })
     const description = describeBody(document.bodies()[0])
 
-    expect(description.rotationDeg).toEqual([45, 45, 0])
-    // Still strictly better than the world box it replaced — which for this
-    // orientation is larger again — but not yet the part's own 40 / 40 / 50.
-    expect(description.localSizeMm[2]).toBeGreaterThan(50)
-    expect(description.localSizeMm[2]).toBeLessThan(description.sizeMm[2])
+    expect(description.localSizeMm[0]).toBeCloseTo(40, 5)
+    expect(description.localSizeMm[1]).toBeCloseTo(40, 5)
+    expect(description.localSizeMm[2]).toBeCloseTo(50, 5)
+
+    // The carried triple is no longer the sum it used to be — asserted out loud,
+    // because "the sizes are right" would also be true if nothing had changed and
+    // the cylinder had happened to land somewhere forgiving.
+    expect(description.rotationDeg).not.toEqual([45, 45, 0])
+    // ...and the world box really is the larger shadow, so these are still two
+    // genuinely different measurements rather than the same number twice.
+    expect(description.sizeMm[2]).toBeGreaterThan(50)
+  })
+
+  it('measures an out-of-order Z-then-X history as the part s own size (TODO/core-004)', () => {
+    // The reproduction the finding was actually filed from, and the one a user
+    // reaches by dragging the Z rotate ring and then the X rotate ring. Its old
+    // failure was milder only by luck — 90° turns map axes onto axes, so an
+    // inverse wrong by a whole quarter-turn still landed on an axis-aligned box
+    // and reported 50 / 40 / 40: the right three numbers attributed to the wrong
+    // local axes. Nothing but the axis *order* was wrong, which is exactly the
+    // kind of failure a size-only assertion sails past, so the axes are checked
+    // individually here rather than as a set.
+    const { document, body } = placed('primitive.cylinder')
+    document.append(rotateRecord(document, body.id, [0, 0, 90]), { origin: 'local' })
+    document.append(rotateRecord(document, body.id, [90, 0, 0]), { origin: 'local' })
+    const description = describeBody(document.bodies()[0])
+
+    expect(description.localSizeMm[0]).toBeCloseTo(40, 5)
+    expect(description.localSizeMm[1]).toBeCloseTo(40, 5)
+    expect(description.localSizeMm[2]).toBeCloseTo(50, 5)
+    expect(description.rotationDeg).not.toEqual([90, 0, 90])
+  })
+
+  it('measures a mixed out-of-order history on an unequal block, where no axis can hide', () => {
+    // A cylinder is symmetric about its own axis, so two of its three numbers are
+    // equal and a swap between them is invisible. A 20 × 40 × 60 block has three
+    // distinct extents, so the local box has to come back with each one on the
+    // right axis or this fails.
+    const { document, body } = placed('primitive.cuboid', { x: 0, y: 0 }, { size: [20, 40, 60] })
+    /** @type {[number, number, number][]} */
+    const turns = [
+      [0, 0, 35],
+      [20, 0, 0],
+      [0, -50, 0],
+      [15, 0, 0],
+    ]
+    for (const angles of turns) {
+      document.append(rotateRecord(document, body.id, angles), { origin: 'local' })
+    }
+    const description = describeBody(document.bodies()[0])
+
+    expect(description.localSizeMm[0]).toBeCloseTo(20, 5)
+    expect(description.localSizeMm[1]).toBeCloseTo(40, 5)
+    expect(description.localSizeMm[2]).toBeCloseTo(60, 5)
   })
 
   it('reports the same local size wherever the rotated body is moved to', () => {

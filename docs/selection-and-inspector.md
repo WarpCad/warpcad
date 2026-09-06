@@ -159,6 +159,37 @@ without moving, nothing happens except that you select whatever is underneath.
    three numbers. The panel and the lines always agree, because they are the same
    measurement shown twice.
 
+### Worked example: turn a shape about two different axes
+
+Turning about one axis and then a *different* one is worth its own walkthrough, because
+the numbers behave in a way that surprises people the first time.
+
+1. Drag a **Cylinder** onto the grid and click it. Upright, the lines read **40**, **40**
+   and **50**.
+2. Drag the **blue ring** (the one circling the blue Z arrow) about a quarter turn. The
+   **Rotation Z** box counts up as you go.
+3. Now drag the **red ring** about a quarter turn as well. The cylinder tips over on top
+   of the turn it already had.
+4. Read the dimension lines: still **40**, **40** and **50**. Two turns about two axes is
+   still the same cylinder, and the lines are still quoting its diameter and its length,
+   not the size of the box it now happens to occupy.
+5. Look at the **Rotation** boxes. They describe where the shape has actually ended up —
+   which is often **not** the two numbers you dragged. Turning 90° about Z and then 90°
+   about X does not leave you at "90 about Z and 90 about X": turns applied one after
+   another combine into a single new direction, and the boxes show you that combined
+   result. This is the same reason that turning a book face-down then sideways lands
+   somewhere different from doing those two moves the other way round.
+6. Type `0` into all three **Rotation** boxes, one at a time. The cylinder stands back up
+   exactly as it started, and the lines return to reading straight along the grid.
+
+> Each Rotation box sets **that one axis** and leaves the other two alone. So typing `90`
+> into Rotation X puts the shape at 90° about X while keeping whatever Y and Z currently
+> say — it does not reset them.
+
+> Turns are always reported between **-180°** and **180°**. If you keep dragging a ring
+> the same way past half a turn, the number wraps round to the negative side rather than
+> counting on to 200° or 350°. It is the same orientation either way.
+
 ## Worked example
 
 1. Drag a **Cylinder** out of the Library and drop it on the grid.

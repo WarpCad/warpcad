@@ -19,6 +19,30 @@ between sessions — that's itself a signal to move more of it into
 
 ## Queue
 
+### core-004 — how a rotation number wrapping past ±180° feels mid-drag (2026-09-06 19:18)
+
+A feel judgment about a number on screen, not a correctness question, which is why it is
+here rather than an acceptance scenario: the geometry is right either way, and scenario 2
+already checks the *sizes* on a standing basis.
+
+The carried rotation is now canonical — yaw and roll in `(-180, 180]`, pitch in
+`[-90, 90]` — instead of a running total. That is what makes a typed absolute rotation
+and a dragged one comparable at all, and it is inherent to any faithful representation
+(a quaternion decomposes the same way). But it means a ring dragged steadily past half a
+turn makes the Inspector's number flip sign — `179°` to `-179°` — rather than counting
+on to `200°`. The same is true of the two angles that are not being dragged: they can
+move on their own during a single-ring drag, because the composed orientation genuinely
+has components on all three axes.
+
+- [ ] Drag one rotate ring slowly through more than half a turn on a laptop and watch
+  the Rotation fields. Does the sign flip read as the app losing track, or as an
+  obviously-equivalent way of saying the same angle? If the former, the fix is a display
+  concern (an unwrapped "turns" readout, or holding the pre-drag branch for the duration
+  of a gesture), not a change to what is stored — file it as its own `ui-*` finding.
+- [ ] Same drag on the phone (390×844), where the fields are in a bottom sheet and a
+  thumb is over part of the viewport, so there is less peripheral context for what the
+  number is doing.
+
 ### ui-023 — legibility of diagonal dimension lines on a tilted part (2026-09-06 19:02)
 
 Purely a visual/feel judgment, which is why it is here and not an acceptance scenario:

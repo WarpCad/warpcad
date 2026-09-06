@@ -260,3 +260,22 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** dimension lines exist to read size without opening a panel → `CLAUDE.md`'s Interaction Model grid/dimension rules; the world-AABB measurement and its failure on a rotated body → `TODO/done/ui-023-oriented-dimension-lines.md`'s Problem section; rotation became reachable via `ui-012` on 2026-09-06 → git log 660f042; the kernel's convention is active intrinsic Tait-Bryan in z-y-x order → `node_modules/@jscad/modeling/src/maths/mat4/fromTaitBryanRotation.js`, read this session; numbers hold through a ring drag (−34.61°, lines stayed 40/40/50) → hand-driven against the running app this session; the out-of-order defect measured at 46.82/51.05/59.42 instead of 40/40/50 for Y=45 then X=45 → controlled drive this session, recorded in `TODO/core-004-rotation-carried-as-sum-not-composition.md`; full suite green (typecheck, 327 unit, 468 e2e passed/19 skipped) → `npm run test` stages, this session
 **To Add:** side-by-side screenshot of the tilted cylinder before and after; repo URL once public
+
+## [2026-09-06T19:19:00Z] — Choosing against my own written recommendation (TODO/core-004)
+
+**Post:** A bug worth writing up, because the fix I'd pre-committed to on paper turned out to be the wrong one.
+
+WarpCad stored a solid's rotation as three degree numbers, and built each new value by *adding* the latest turn to the previous total. But the geometry applies each turn on top of the last — a composition. Rotations don't commute, so those two agree only for single-axis turns and for one specific mixed order. Any other order and the stored number described an orientation the part wasn't in: a ⌀40×50 cylinder turned 45° about Y then 45° about X reported its size as 46.82 / 51.05 / 59.42.
+
+When I filed the finding I recommended carrying a quaternion instead, on the reasoning that decomposing to Euler angles is ill-conditioned near a ±90° pitch and displayed numbers can jump. Reading the actual code killed that argument: the Inspector shows three degree fields either way, so a quaternion would still be decomposed for display — jumping in exactly the same places. It would have bought a document-schema migration and a permanent second code path through the geometry math, in exchange for nothing this codebase can observe.
+
+So it composes properly and stays three numbers. Two consumers that rebuild the rotation matrix became correct with no edit at all. Two others outside the finding's own file list turned out to carry the same defect and needed fixing — including the live drag preview.
+
+The finding itself came out of a hand-driven acceptance pass, not the test suite. Every automated test passed both before and after it was found.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #Geometry #SoftwareEngineering
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** the sum-vs-composition analysis and the measured 46.82/51.05/59.42 row → `TODO/done/core-004-rotation-carried-as-sum-not-composition.md`; the decision to reject the quaternion and why → that file's retirement note plus `src/core/rotation.js`'s module header; `localBoundsOf` and `annotate.js` needed no edit → diff shows neither's logic changed, only `group.js`'s doc comment; the two extra consumers → diffs to `rotateToRecord` in `src/core/transform.js` and `src/composables/useSelectedBody.js`; the finding was discovered by hand-driving, not by tests → `TODO/ACCEPTANCE.md` scenario 2's 2026-09-06 18:52 entry, filed during `ui-023`; full suite green (typecheck, 346 unit across 20 files, 477 e2e passed/19 skipped) → `npm run test` stages, this session
+**To Add:** repo URL once public, docs site URL once it exists

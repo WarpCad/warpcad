@@ -34,6 +34,15 @@
  * `Body.rotationDeg`. Every record carries it, including translations — a move
  * after a turn must not silently reset the Inspector's Rotation fields to zero.
  *
+ * That carried value is the **composition** of the body's deltas, not their sum
+ * (`TODO/core-004`): `transform.rotate` applies each delta about world axes on
+ * top of whatever the solid already is, and rotations do not commute, so adding
+ * them described a body's orientation faithfully only for a single-axis history
+ * or one applied X-then-Y-then-Z. `src/core/rotation.js` owns that arithmetic —
+ * including why the carried value stays three degree numbers rather than
+ * becoming a quaternion — and both builders below go through it, so the drag path
+ * and the typed path cannot compose differently from each other.
+ *
  * ## Why transform records are unnamed
  *
  * A record with a `name` is added to the scene group's `names` list, which
@@ -47,6 +56,7 @@
  */
 
 import { boundsOf } from './kernel/group.js'
+import { composeDeg, relativeDeg } from './rotation.js'
 
 /** @typedef {import('./document.js').WarpDocument} WarpDocument */
 /** @typedef {import('./document.js').Body} Body */
@@ -170,11 +180,14 @@ export function rotateRecord(document, bodyId, deltaDeg) {
     params: {
       angles,
       center: positionOf(document, bodyId),
-      rotation: /** @type {Vec3Deg} */ ([
-        current[0] + angles[0],
-        current[1] + angles[1],
-        current[2] + angles[2],
-      ]),
+      // Composed, not added (`TODO/core-004`). `transform.rotate` turns the solid
+      // about world axes on top of whatever it already is, so the body's true
+      // orientation after this record is `R(angles)·R(current)` — and rotations
+      // do not commute, so a running sum only agreed with that for a single-axis
+      // history or one applied X-then-Y-then-Z. See `src/core/rotation.js` for
+      // why the carried value stays three degree numbers rather than becoming a
+      // quaternion.
+      rotation: composeDeg(angles, current),
     },
   }
 }
@@ -202,6 +215,14 @@ export function moveToRecord(document, bodyId, targetMm) {
 /**
  * Turn a body to an absolute rotation — the Inspector's typed-Rotation path.
  *
+ * The delta is the *relative* rotation `R(target)·R(current)⁻¹`, not the per-axis
+ * difference `target − current` (`TODO/core-004`). Subtracting was only ever the
+ * right inverse of adding; now that {@link rotateRecord} composes, subtracting
+ * would land the solid somewhere other than the typed value after any
+ * out-of-order history. The two paths have to stay exact inverses of each other,
+ * or a typed field and a ring drag stop being the same mutation — which is the
+ * whole premise of this module.
+ *
  * @param {WarpDocument} document
  * @param {string} bodyId
  * @param {Vec3Deg} targetDeg
@@ -210,11 +231,7 @@ export function moveToRecord(document, bodyId, targetMm) {
 export function rotateToRecord(document, bodyId, targetDeg) {
   const target = requireVec3(targetDeg, 'a rotation')
   const current = rotationOf(document, bodyId)
-  return rotateRecord(document, bodyId, [
-    target[0] - current[0],
-    target[1] - current[1],
-    target[2] - current[2],
-  ])
+  return rotateRecord(document, bodyId, relativeDeg(target, current))
 }
 
 /**

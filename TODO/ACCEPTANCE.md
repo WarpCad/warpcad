@@ -165,6 +165,17 @@ The Inspector's Size row read the identical 40/40/50, so panel and overlay canno
 disagree. Orbiting with the tilted body selected left all three numbers unchanged.
 Console clean in both drives.
 
+**Re-checked**: 2026-09-06 19:16 — PASS (`core-004`). Re-driven at laptop 1440×900 in
+Chromium and phone 390×844 in WebKit, because this task changes what the carried rotation
+*means* and the "gizmo and dimension lines attach" half of **Expect** reads off it. A Cube
+then a Cylinder dragged in on deliberately wandering paths (overshoot, doubling back,
+per-step jitter): **both stayed visible** (`2` bodies), and the cube's millimetre centre
+was byte-identical before and after the second drop — `-65.69,-20.42,20.00` at laptop,
+`-150.84,71.78,20.00` at phone. Clicking empty grid cleared; clicking each solid in turn
+selected only that one, `data-selected-id` moving cleanly `cuboid-1` → `cylinder-2`, with
+the gizmo and all three dimension lines retargeting and the cube's 40/40/40 giving way to
+the cylinder's 40/40/50. Never both annotated at once. Console clean in both drives.
+
 ### 2. Hardware property edit
 
 **Steps**:
@@ -322,6 +333,40 @@ measured reproduction as `TODO/core-004`, and pinned by a unit test in
 `src/core/inspector.spec.js` so it cannot quietly become folklore. Not treated as a FAIL
 of this scenario: every step of scenario 2's own **Expect** passes, and the behaviour is
 strictly better than before this task in every case measured, exact in the common ones.
+
+**Re-checked**: 2026-09-06 19:16 — **PARTIAL PASS, still partial for exactly the same
+reasons as before** (`core-004`). Steps 1 and 3-4 remain blocked on the missing Hardware
+section (`ui-013`) and read-only Parameters, so the first sentence of **Expect** is still
+not claimed. Steps 5-8 were re-driven at laptop/Chromium and phone/WebKit against an
+**out-of-order multi-axis rotated** body, which is the case this task is about.
+
+- **Steps 5-6 (gizmo drag, fields live during it)** still hold, now on a body carrying a
+  composed two-ring rotation: dragging the X arm moved it and Position X was sampled
+  mid-gesture at six points — laptop `-15.34 → -8.91 → -2.47 → 3.97 → 10.41 → 16.84`,
+  settling at `16.84`; phone `-128.50 → -120.82 → -114.06 → -107.44 → -100.06 → -91.71`.
+  The numbers move *with* the drag, not at release.
+- **Steps 7-8 (typed field moves the mesh)** still hold: typing `-35` into Position Y
+  landed on exactly `-35` on both.
+- **The half this task is about**: the `ui-023` defect logged against this scenario on
+  2026-09-06 18:52 is **fixed and confirmed by hand**. Driving the out-of-order histories
+  that used to drift now gives the cylinder's own three numbers in every case. Re-driving
+  the finding's own measured table by typing, on a ⌀40 × 50 cylinder:
+
+  | history | was | now |
+  |---|---|---|
+  | X=30 then X=90 (single axis) | 40 / 40 / 50 | 40 / 40 / 50 |
+  | X=30, Y=40, Z=50 (in order) | 40 / 40 / 50 | 40 / 40 / 50 |
+  | **Z=90 then X=90** | **50 / 40 / 40** (right numbers, wrong axes) | **40 / 40 / 50** |
+  | **Y=45 then X=45** | **46.82 / 51.05 / 59.42** | **40 / 40 / 50** |
+
+  Reached by hand as well as by typing: dragging the **Z rotate ring** and then the **X
+  rotate ring** — the gesture that produces this history without anyone typing anything —
+  left all three lines at 40 / 40 / 50 throughout, mid-gesture as well as at rest, and
+  they stayed at 40 / 40 / 50 after orbiting the camera. The Inspector's Rotation row
+  then read `20.92° / -8.54° / 21.23°` at laptop and `98.84° / 55.89° / -172.66°` at
+  phone: a genuinely three-component orientation with a **Y term the two drags never
+  touched**, which is the visible signature of a composition and something a running sum
+  could not have produced. Screenshots at each step; console clean in both drives.
 
 ### 3. Snap-placement of a kit assembly
 
