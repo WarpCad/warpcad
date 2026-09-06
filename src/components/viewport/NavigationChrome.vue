@@ -124,7 +124,7 @@ const STEPS = Object.freeze([
 .chrome {
   position: absolute;
   left: 12px;
-  bottom: 12px;
+  bottom: calc(12px + var(--viewport-bottom-inset, 0px));
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -219,7 +219,7 @@ const STEPS = Object.freeze([
 @media (max-width: 480px) {
   .chrome {
     left: 8px;
-    bottom: 8px;
+    bottom: calc(8px + var(--viewport-bottom-inset, 0px));
     padding: 4px;
   }
 

@@ -78,7 +78,24 @@ drops (dropping the second body must not hide or replace the first). Clicking ea
 individually selects only that item (gizmo and dimension lines attach to whichever was
 just clicked, not both at once).
 
-**Last run**: (unset — not yet driveable; `render-001` and `ui-010` don't exist yet)
+**Last run**: 2026-09-06 00:52 — PASS (hand-driven against `ui-010`'s drag-placement, twice:
+laptop 1440×900 in Chromium, and phone 390×844 in WebKit — the engine an iPhone actually
+runs — where opening the Library sheet is a real precondition step. Both drives: dragged
+Cube in, then Cylinder to a different point; **both stayed visible**, and the first body's
+millimetre centre was byte-identical before and after the second drop, so the second
+attempt's "new body replaces the old" regression is genuinely absent rather than merely
+not obvious. Each drop selected only the new item. Clicking empty grid cleared the
+selection; clicking the cube selected only the cube; clicking the cylinder moved the
+highlight to the cylinder alone — never both at once. Beyond the scenario's own steps: the
+drags were driven with a wandering, jittery path rather than a straight line, and an orbit
+between operations confirmed both solids are really in the scene from another angle rather
+than a one-frame artefact. Console clean in both drives. **The drive found one real defect
+the test suite could not see**: at phone width the Library sheet's collapsed tab sat on top
+of the navigation chrome's bottom row and the scale readout, partly covering controls
+scenario 7 depends on. Fixed in this task — the viewport's overlays now inset above the
+tab — and re-driven with a screenshot confirming the whole nav pad and readout are clear.
+Gizmo and dimension lines are not part of this pass: they are `ui-011`'s contract, so the
+"gizmo and dimension lines attach" half of Expect is deferred, not claimed.)
 
 ### 2. Hardware property edit
 

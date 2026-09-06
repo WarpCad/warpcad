@@ -34,7 +34,7 @@
 import modeling from '@jscad/modeling'
 
 // See group.js: default import, not named, so this runs under raw Node ESM too.
-const { booleans, primitives, transforms } = modeling
+const { booleans, extrusions, measurements, primitives, transforms } = modeling
 
 import { chamferRim, filletRim } from './fillet.js'
 import { bolt } from './recipes/hardware.bolt.js'
@@ -66,11 +66,18 @@ import { bolt } from './recipes/hardware.bolt.js'
 /** @typedef {(params: any, tables: any) => OpRecord[]} Recipe */
 
 /**
+ * @typedef {object} OpUi
+ * @property {string} label Human name for the op — the Library panel's row title.
+ * @property {Record<string, any>} defaults Params a fresh instance is created with.
+ */
+
+/**
  * @typedef {object} RegistryEntry
  * @property {'native' | 'composite'} kind
  * @property {0 | 1 | '2+'} operandCount How many operands the op consumes.
  * @property {(args: BuildArgs) => Geom3} [build] Native ops only.
  * @property {Recipe} [recipe] Composite ops only.
+ * @property {OpUi} [ui] Present on ops the UI offers as a catalogue row.
  */
 
 /**
@@ -78,10 +85,15 @@ import { bolt } from './recipes/hardware.bolt.js'
  *
  * @param {0 | 1 | '2+'} operandCount
  * @param {(args: BuildArgs) => Geom3} build
+ * @param {OpUi} [ui] Catalogue metadata; see {@link OpUi} and `src/core/library.js`.
  * @returns {RegistryEntry}
  */
-function native(operandCount, build) {
-  return Object.freeze({ kind: 'native', operandCount, build })
+function native(operandCount, build, ui) {
+  return Object.freeze(
+    ui
+      ? { kind: 'native', operandCount, build, ui: Object.freeze(ui) }
+      : { kind: 'native', operandCount, build }
+  )
 }
 
 /**
@@ -113,6 +125,25 @@ function requirePositive(value, label, op) {
 }
 
 /**
+ * Like {@link requirePositive}, but zero is a meaningful value rather than a
+ * degenerate one — a cone's top radius of zero is the point of a cone, not a
+ * mistake.
+ *
+ * @param {unknown} value
+ * @param {string} label
+ * @param {string} op
+ * @returns {number}
+ */
+function requireNonNegative(value, label, op) {
+  if (typeof value !== 'number' || !Number.isFinite(value) || value < 0) {
+    throw new Error(
+      `${op}: ${label} must be a non-negative number of millimetres, got ${String(value)}`
+    )
+  }
+  return value
+}
+
+/**
  * Default segment count for cylindrical surfaces — `@jscad/modeling`'s own cylinder
  * default, kept explicit here so the value is one constant rather than a library
  * default that could move underneath the fixtures.
@@ -136,37 +167,155 @@ export function degToRad(degrees) {
  * @type {Readonly<Record<string, RegistryEntry>>}
  */
 export const registry = Object.freeze({
-  'primitive.cuboid': native(0, ({ params }) =>
-    primitives.cuboid({
-      size: [
-        requirePositive(params.size?.[0], 'size[0]', 'primitive.cuboid'),
-        requirePositive(params.size?.[1], 'size[1]', 'primitive.cuboid'),
-        requirePositive(params.size?.[2], 'size[2]', 'primitive.cuboid'),
-      ],
-      center: params.center ?? [0, 0, 0],
-    })
+  'primitive.cuboid': native(
+    0,
+    ({ params }) =>
+      primitives.cuboid({
+        size: [
+          requirePositive(params.size?.[0], 'size[0]', 'primitive.cuboid'),
+          requirePositive(params.size?.[1], 'size[1]', 'primitive.cuboid'),
+          requirePositive(params.size?.[2], 'size[2]', 'primitive.cuboid'),
+        ],
+        center: params.center ?? [0, 0, 0],
+      }),
+    { label: 'Cube', defaults: { size: [40, 40, 40] } }
   ),
 
-  'primitive.cylinder': native(0, ({ params }) =>
-    primitives.cylinder({
-      radius: requirePositive(params.diameter, 'diameter', 'primitive.cylinder') / 2,
-      height: requirePositive(params.height, 'height', 'primitive.cylinder'),
-      segments: params.segments ?? DEFAULT_SEGMENTS,
-      center: params.center ?? [0, 0, 0],
-    })
+  'primitive.cylinder': native(
+    0,
+    ({ params }) =>
+      primitives.cylinder({
+        radius: requirePositive(params.diameter, 'diameter', 'primitive.cylinder') / 2,
+        height: requirePositive(params.height, 'height', 'primitive.cylinder'),
+        segments: params.segments ?? DEFAULT_SEGMENTS,
+        center: params.center ?? [0, 0, 0],
+      }),
+    { label: 'Cylinder', defaults: { diameter: 40, height: 50 } }
+  ),
+
+  // `@jscad/modeling` has no `cone` primitive either, and this is the same
+  // composition situation `primitive.hexagon` below documents: the cone family is
+  // reachable from `cylinderElliptic`, whose real V3 signature (confirmed by
+  // reading node_modules, not from memory) is
+  // `{ height, startRadius: [x, y], endRadius: [x, y], startAngle, endAngle,
+  // segments, center }` — *not* the `radiusEnd` a cylinder-with-a-taper guess
+  // would reach for. A point-topped cone is `endRadius: [0, 0]`; leaving
+  // `topDiameter` set instead gives the truncated cone (frustum) a CAD user
+  // expects the same row to produce, so it is one op with an optional param
+  // rather than two near-identical registry entries.
+  'primitive.cone': native(
+    0,
+    ({ params }) => {
+      const baseRadius = requirePositive(params.diameter, 'diameter', 'primitive.cone') / 2
+      const topRadius =
+        params.topDiameter === undefined || params.topDiameter === null
+          ? 0
+          : requireNonNegative(params.topDiameter, 'topDiameter', 'primitive.cone') / 2
+      return primitives.cylinderElliptic({
+        height: requirePositive(params.height, 'height', 'primitive.cone'),
+        startRadius: [baseRadius, baseRadius],
+        endRadius: [topRadius, topRadius],
+        segments: params.segments ?? DEFAULT_SEGMENTS,
+        center: params.center ?? [0, 0, 0],
+      })
+    },
+    { label: 'Cone', defaults: { diameter: 40, height: 50 } }
   ),
 
   // `@jscad/modeling` has no `hexagon` primitive. jscad-utils' `Parts.Hexagon` was a
   // 6-point CAG extruded to height, with a vertex on +X and flats at r*sqrt(3)/2 —
   // which is exactly a 6-segment cylinder in V3, phase included. Verified against V1
   // output in hardware.bolt.spec.js rather than assumed.
-  'primitive.hexagon': native(0, ({ params }) =>
-    primitives.cylinder({
-      radius: requirePositive(params.diameter, 'diameter', 'primitive.hexagon') / 2,
-      height: requirePositive(params.height, 'height', 'primitive.hexagon'),
-      segments: 6,
-      center: params.center ?? [0, 0, 0],
-    })
+  'primitive.hexagon': native(
+    0,
+    ({ params }) =>
+      primitives.cylinder({
+        radius: requirePositive(params.diameter, 'diameter', 'primitive.hexagon') / 2,
+        height: requirePositive(params.height, 'height', 'primitive.hexagon'),
+        segments: 6,
+        center: params.center ?? [0, 0, 0],
+      }),
+    { label: 'Hexagon', defaults: { diameter: 40, height: 20 } }
+  ),
+
+  // `@jscad/modeling` *does* export `triangle`, but it is a **2D** primitive — it
+  // returns a `geom2` (a `sides` array), not the `geom3` every other entry here
+  // produces and the only thing the mesh bridge can render. §6's "Triangle" base
+  // creation row is a solid, so this composes the 2D triangle with
+  // `extrusions.extrudeLinear`, exactly the CAG-extruded-to-height shape V1 used.
+  // The 2D triangle is also built in the +X/+Y quadrant with a vertex at the
+  // origin, unlike every other primitive here, so the prism is re-centred on its
+  // own bounding box afterwards — otherwise a dropped triangle would land beside
+  // the pointer rather than under it.
+  'primitive.triangle': native(
+    0,
+    ({ params }) => {
+      const sides = params.sides ?? [40, 40, 40]
+      const profile = primitives.triangle({
+        type: 'SSS',
+        values: [
+          requirePositive(sides[0], 'sides[0]', 'primitive.triangle'),
+          requirePositive(sides[1], 'sides[1]', 'primitive.triangle'),
+          requirePositive(sides[2], 'sides[2]', 'primitive.triangle'),
+        ],
+      })
+      const prism = extrusions.extrudeLinear(
+        { height: requirePositive(params.height, 'height', 'primitive.triangle') },
+        profile
+      )
+      const [min, max] = measurements.measureBoundingBox(prism)
+      const center = params.center ?? [0, 0, 0]
+      return transforms.translate(
+        [
+          center[0] - (min[0] + max[0]) / 2,
+          center[1] - (min[1] + max[1]) / 2,
+          center[2] - (min[2] + max[2]) / 2,
+        ],
+        prism
+      )
+    },
+    { label: 'Triangle', defaults: { sides: [45, 45, 45], height: 30 } }
+  ),
+
+  // No `tube` primitive upstream, and no extruded-ring helper either
+  // (`extrudeRectangular` thickens a path outward, which is a different shape and
+  // gets the wall thickness wrong on the inside). A tube is therefore the boolean
+  // it has always been: the bore subtracted from the outer cylinder. The two end
+  // caps are deliberately coplanar — checked against the kernel rather than
+  // assumed, and V3's subtract handles them exactly (identical polygon count and
+  // volume to an epsilon-lengthened bore), so no fudge factor is introduced.
+  'primitive.tube': native(
+    0,
+    ({ params }) => {
+      const op = 'primitive.tube'
+      const outerRadius = requirePositive(params.diameter, 'diameter', op) / 2
+      const innerRadius = requirePositive(params.innerDiameter, 'innerDiameter', op) / 2
+      if (innerRadius >= outerRadius) {
+        throw new Error(
+          `${op}: innerDiameter must be smaller than diameter, got ` +
+            `${params.innerDiameter} against ${params.diameter}`
+        )
+      }
+      const height = requirePositive(params.height, 'height', op)
+      const segments = params.segments ?? DEFAULT_SEGMENTS
+      const center = params.center ?? [0, 0, 0]
+      return booleans.subtract(
+        primitives.cylinder({ radius: outerRadius, height, segments, center }),
+        primitives.cylinder({ radius: innerRadius, height, segments, center })
+      )
+    },
+    { label: 'Tube', defaults: { diameter: 40, innerDiameter: 26, height: 50 } }
+  ),
+
+  'primitive.sphere': native(
+    0,
+    ({ params }) =>
+      primitives.sphere({
+        radius: requirePositive(params.diameter, 'diameter', 'primitive.sphere') / 2,
+        segments: params.segments ?? DEFAULT_SEGMENTS,
+        center: params.center ?? [0, 0, 0],
+      }),
+    { label: 'Sphere', defaults: { diameter: 40 } }
   ),
 
   'transform.translate': native(1, ({ params, inputs }) =>

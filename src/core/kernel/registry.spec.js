@@ -42,6 +42,40 @@ describe('registry shape', () => {
     expect(registry['boolean.subtract']).toMatchObject({ kind: 'native', operandCount: '2+' })
   })
 
+  it('carries all seven base creation primitives, each creating geometry from nothing', () => {
+    // §6's Base creation rows, and the set TODO/ui-010's Library panel lists. The
+    // panel is built by iterating this registry, so a missing entry here is a
+    // missing row there — that is the point of asserting the whole set.
+    for (const op of [
+      'primitive.cuboid',
+      'primitive.cylinder',
+      'primitive.cone',
+      'primitive.hexagon',
+      'primitive.triangle',
+      'primitive.tube',
+      'primitive.sphere',
+    ]) {
+      expect(registry[op], op).toMatchObject({ kind: 'native', operandCount: 0 })
+    }
+  })
+
+  it('gives every creation op the UI metadata the Library panel is built from', () => {
+    // CLAUDE.md's creation-vs-operation rule: "read the registry, don't hardcode a
+    // list" only produces a working UI if the registry itself encodes what the UI
+    // needs. A row needs a human label and a set of default params to drop with.
+    for (const [op, entry] of Object.entries(registry)) {
+      const ui = entry.ui
+      if (!ui) continue
+      expect(typeof ui.label, op).toBe('string')
+      expect(ui.label.length, op).toBeGreaterThan(0)
+      expect(typeof ui.defaults, op).toBe('object')
+      expect(() => build(op, { params: ui.defaults }), op).not.toThrow()
+    }
+    for (const op of Object.keys(registry).filter((key) => key.startsWith('primitive.'))) {
+      expect(registry[op]?.ui, `${op} has no ui metadata`).toBeTruthy()
+    }
+  })
+
   it('carries hardware.bolt as a composite that creates geometry from nothing', () => {
     expect(registry['hardware.bolt']).toMatchObject({ kind: 'composite', operandCount: 0 })
   })
@@ -187,6 +221,119 @@ describe('native builders', () => {
       expect(acceptsOperandCount(op, 1)).toBe(true)
       expect(acceptsOperandCount(op, 0)).toBe(false)
       expect(acceptsOperandCount(op, 2)).toBe(false)
+    }
+  })
+
+  it('primitive.sphere takes a diameter and centres on the origin', () => {
+    const bounds = boundsOf(build('primitive.sphere', { params: { diameter: 24 } }))
+    expect(bounds[0][0]).toBeCloseTo(-12, 9)
+    expect(bounds[1][0]).toBeCloseTo(12, 9)
+    expect(bounds[1][2]).toBeCloseTo(12, 9)
+    const moved = boundsOf(build('primitive.sphere', { params: { diameter: 10, center: [0, 0, 5] } }))
+    expect(moved[0][2]).toBeCloseTo(0, 9)
+    expect(moved[1][2]).toBeCloseTo(10, 9)
+  })
+
+  it('primitive.cone tapers from a full base diameter to a point', () => {
+    const cone = build('primitive.cone', { params: { diameter: 20, height: 30 } })
+    const bounds = boundsOf(cone)
+    expect(bounds[0][0]).toBeCloseTo(-10, 6)
+    expect(bounds[1][0]).toBeCloseTo(10, 6)
+    expect(bounds[0][2]).toBeCloseTo(-15, 9)
+    expect(bounds[1][2]).toBeCloseTo(15, 9)
+    // A cone is a third of the cylinder that encloses it — the tolerance is the
+    // 32-segment polygonal approximation of both, not the arithmetic.
+    const cylinder = build('primitive.cylinder', { params: { diameter: 20, height: 30 } })
+    expect(measurements.measureVolume(cone)).toBeCloseTo(
+      measurements.measureVolume(cylinder) / 3,
+      3
+    )
+  })
+
+  it('primitive.cone accepts a truncated top (a frustum) via topDiameter', () => {
+    const frustum = build('primitive.cone', {
+      params: { diameter: 20, topDiameter: 10, height: 10 },
+    })
+    const bounds = boundsOf(frustum)
+    expect(bounds[1][0]).toBeCloseTo(10, 6)
+    // Cross-section at the top is half the base, so the frustum holds more than a
+    // full cone and less than a cylinder of the same base.
+    const cone = build('primitive.cone', { params: { diameter: 20, height: 10 } })
+    const cylinder = build('primitive.cylinder', { params: { diameter: 20, height: 10 } })
+    const volume = measurements.measureVolume(frustum)
+    expect(volume).toBeGreaterThan(measurements.measureVolume(cone))
+    expect(volume).toBeLessThan(measurements.measureVolume(cylinder))
+  })
+
+  it('primitive.tube is hollow: same envelope as its cylinder, less material', () => {
+    const tube = build('primitive.tube', {
+      params: { diameter: 20, innerDiameter: 12, height: 20 },
+    })
+    const bounds = boundsOf(tube)
+    expect(bounds[0][0]).toBeCloseTo(-10, 6)
+    expect(bounds[1][2]).toBeCloseTo(10, 9)
+    const solid = build('primitive.cylinder', { params: { diameter: 20, height: 20 } })
+    const bore = build('primitive.cylinder', { params: { diameter: 12, height: 20 } })
+    expect(measurements.measureVolume(tube)).toBeCloseTo(
+      measurements.measureVolume(solid) - measurements.measureVolume(bore),
+      6
+    )
+  })
+
+  it('primitive.tube rejects a bore that is not strictly inside the outer wall', () => {
+    const params = { diameter: 20, height: 10 }
+    expect(() => build('primitive.tube', { params: { ...params, innerDiameter: 20 } })).toThrow(
+      /innerDiameter/
+    )
+    expect(() => build('primitive.tube', { params: { ...params, innerDiameter: 25 } })).toThrow(
+      /innerDiameter/
+    )
+    expect(() => build('primitive.tube', { params: { ...params, innerDiameter: 0 } })).toThrow(
+      /innerDiameter/
+    )
+  })
+
+  it('primitive.triangle is a prism, centred like every other primitive', () => {
+    const prism = build('primitive.triangle', { params: { sides: [30, 30, 30], height: 10 } })
+    const bounds = boundsOf(prism)
+    expect(bounds[1][2] - bounds[0][2]).toBeCloseTo(10, 9)
+    // Equilateral, side 30: width 30, altitude 30*sqrt(3)/2.
+    expect(bounds[1][0] - bounds[0][0]).toBeCloseTo(30, 6)
+    expect(bounds[1][1] - bounds[0][1]).toBeCloseTo((30 * Math.sqrt(3)) / 2, 6)
+    // Centred on the origin, not sitting in the +X/+Y quadrant the way
+    // @jscad/modeling's own 2D triangle is.
+    expect((bounds[0][0] + bounds[1][0]) / 2).toBeCloseTo(0, 6)
+    expect((bounds[0][1] + bounds[1][1]) / 2).toBeCloseTo(0, 6)
+    expect((bounds[0][2] + bounds[1][2]) / 2).toBeCloseTo(0, 9)
+    // Area * height, within the exact arithmetic — a prism has no curved surface
+    // to approximate, so this one is not a tolerance-of-segments case.
+    const area = ((30 * Math.sqrt(3)) / 2 / 2) * 30
+    expect(measurements.measureVolume(prism)).toBeCloseTo(area * 10, 6)
+  })
+
+  it('primitive.triangle rejects degenerate side lengths', () => {
+    expect(() => build('primitive.triangle', { params: { sides: [1, 1, 5], height: 5 } })).toThrow()
+    expect(() => build('primitive.triangle', { params: { sides: [10, 10, 0], height: 5 } })).toThrow(
+      /sides\[2\]/
+    )
+    expect(() =>
+      build('primitive.triangle', { params: { sides: [10, 10, 10], height: 0 } })
+    ).toThrow(/height/)
+  })
+
+  it('rejects degenerate dimensions on every one of the seven base primitives', () => {
+    /** @type {[string, Record<string, any>, RegExp][]} */
+    const cases = [
+      ['primitive.cuboid', { size: [0, 10, 10] }, /size\[0\]/],
+      ['primitive.cylinder', { diameter: 10, height: -1 }, /height/],
+      ['primitive.hexagon', { diameter: Number.NaN, height: 5 }, /diameter/],
+      ['primitive.sphere', { diameter: 0 }, /diameter/],
+      ['primitive.cone', { diameter: 0, height: 5 }, /diameter/],
+      ['primitive.tube', { diameter: Number.POSITIVE_INFINITY, innerDiameter: 4, height: 5 }, /diameter/],
+      ['primitive.triangle', { sides: [10, 10, 10], height: Number.NaN }, /height/],
+    ]
+    for (const [op, params, message] of cases) {
+      expect(() => build(op, { params }), `${op} accepted ${JSON.stringify(params)}`).toThrow(message)
     }
   })
 

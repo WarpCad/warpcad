@@ -19,6 +19,22 @@ between sessions — that's itself a signal to move more of it into
 
 ## Queue
 
+### ui-010 — Drag-place a primitive (2026-09-06 00:58)
+
+One entry only. The scenario-1 drive covers whether placement *works*; what it cannot
+cover is whether the gesture feels right under a real finger, because every drag in
+that drive was a synthesised `PointerEvent` sequence with no contact area, no
+momentum, and no chance of the sheet being in the way of the hand holding it.
+
+- [ ] **Sheet-to-viewport drag on real phone hardware.** At 390px the Library is a
+  bottom sheet, so the drag starts near the bottom of the screen, crosses the sheet's
+  own edge, and has to end up somewhere in the visible strip of grid above it — a
+  path that only exists at phone width and that no other gesture in the app takes.
+  Try it on an actual iPhone: is there enough uncovered viewport above the open sheet
+  to drop into comfortably, or does the sheet want to be shorter (its `max-height` is
+  `46vh` in `src/components/layout/LibraryPanel.vue`)? Does the translucent ghost read
+  clearly against the grid at that size, or does a thumb cover it entirely?
+
 ### render-001 — App shell + viewport scaffold (2026-09-05 21:10)
 
 Both items are physical-hardware feel judgments that the scenario-7 drive cannot make

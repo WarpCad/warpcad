@@ -43,11 +43,11 @@ avoid re-running stages that already passed.
 
 | Stage | Command | Warm baseline | Abort timeout |
 |---|---|---|---|
-| Typecheck | `npm run typecheck` | *(not yet measured)* | 30s |
-| Unit | `npm run test:unit -- --run` | *(not yet measured)* | 60s |
-| Browser | `npm run test:browser -- --run` | *(not yet measured)* | 90s |
-| Component workshop | `npm run test:storybook -- --run` | *(not yet measured)* | 90s |
-| E2E | `npm run test:e2e:headless` | *(not yet measured)* | 180s |
+| Typecheck | `npm run typecheck` | ~1s (2026-09-06, ui-010) | 30s |
+| Unit | `npm run test:unit -- --run` | ~1s / 223 tests (2026-09-06, ui-010) | 60s |
+| Browser | `npm run test:browser -- --run` | *(stage not defined in package.json)* | 90s |
+| Component workshop | `npm run test:storybook -- --run` | *(stage not defined in package.json)* | 90s |
+| E2E | `npm run test:e2e:headless` | ~31s / 225 tests, 9-way matrix (2026-09-06, ui-010) | 180s |
 
 **Record the warm baseline for each stage in this file the first time you measure it**
 (warm cache, `node_modules/.vite` populated, single machine), so future sessions can

@@ -12,6 +12,9 @@ themselves won't have to move.
 
 ## Using WarpCad
 
+- [Placing a shape](primitive-placement.md) — dragging a primitive out of the
+  Library panel into the 3D view, on desktop and on a phone, and selecting
+  what you placed.
 - [Moving around the 3D view](viewport-navigation.md) — orbit, pan, zoom, the
   orientation triad, touch gestures, and reading size off the grid.
 

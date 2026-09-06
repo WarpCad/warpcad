@@ -1,0 +1,126 @@
+/**
+ * Screen → world picking against the working plane.
+ *
+ * Framework-free on purpose, exactly like `camera.js`: no three.js, no DOM. It
+ * reads the same orbit-camera model the renderer and the nav chrome already share,
+ * so a drag-placement ghost is positioned from the *same* camera state the frame
+ * is drawn with rather than a second, parallel projection that can drift.
+ *
+ * Conventions per CLAUDE.md: millimetres, Z-up. Every function here names its
+ * coordinate space at the boundary — `client` is CSS pixels relative to the
+ * viewport, `ndc` is normalised device coordinates in [-1, 1] with +Y up, and the
+ * result is millimetres in document space.
+ *
+ * ## Working plane
+ *
+ * The plane is Z=0, the grid plane, because at this point in the roadmap there is
+ * no other geometry to project against (`docs/decisions/interaction-model-qa.md`
+ * control 1). The plane is a parameter rather than a constant so the later task
+ * that projects onto an existing face has somewhere to put it, not a rewrite.
+ *
+ * ## Allocation
+ *
+ * Everything writes into a caller-supplied vector. CLAUDE.md forbids per-frame
+ * allocation in the pointer path, and this runs on every `pointermove` of a drag.
+ */
+
+import { rightFromSpherical, upFromSpherical } from './camera.js'
+
+const DEG = Math.PI / 180
+
+/** @typedef {{ x: number, y: number, z: number }} Vec3 */
+/** @typedef {{ x: number, y: number }} Vec2 */
+/** @typedef {import('./camera.js').OrbitCamera} OrbitCamera */
+
+// Pre-allocated scratch, module-scoped: the pointer path allocates nothing.
+const scratchRight = { x: 0, y: 0, z: 0 }
+const scratchUp = { x: 0, y: 0, z: 0 }
+
+/**
+ * CSS-pixel client coordinates → normalised device coordinates.
+ *
+ * Screen Y grows downward and NDC Y grows upward, so the vertical axis flips here
+ * — the single place that flip happens.
+ *
+ * @param {number} clientXPx
+ * @param {number} clientYPx
+ * @param {{ left: number, top: number, width: number, height: number }} rect
+ *   The viewport's bounding rect, in CSS pixels.
+ * @param {Vec2} out Mutated in place.
+ * @returns {Vec2} `out`
+ */
+export function ndcFromClient(clientXPx, clientYPx, rect, out) {
+  out.x = rect.width > 0 ? ((clientXPx - rect.left) / rect.width) * 2 - 1 : 0
+  out.y = rect.height > 0 ? -(((clientYPx - rect.top) / rect.height) * 2 - 1) : 0
+  return out
+}
+
+/**
+ * True when an NDC point is inside the viewport rather than out over the panels.
+ *
+ * @param {Vec2} ndc
+ * @returns {boolean}
+ */
+export function ndcIsInside(ndc) {
+  return ndc.x >= -1 && ndc.x <= 1 && ndc.y >= -1 && ndc.y <= 1
+}
+
+/**
+ * Project a screen point onto the working plane, in millimetres.
+ *
+ * Builds the view ray directly from the camera's spherical state rather than
+ * inverting a projection matrix: the ray direction is the forward vector plus the
+ * screen-right and screen-up vectors scaled by the NDC position and the field of
+ * view, which is the same construction a perspective unprojection performs and
+ * needs no matrix, no three.js, and no allocation.
+ *
+ * @param {OrbitCamera} orbit
+ * @param {number} ndcX In [-1, 1], +1 at the right edge.
+ * @param {number} ndcY In [-1, 1], +1 at the top edge.
+ * @param {number} aspect Viewport width / height.
+ * @param {Vec3} out Mutated in place.
+ * @param {number} [planeZMm] Working-plane height; the grid plane by default.
+ * @returns {Vec3 | null} `out`, or `null` when the ray never meets the plane in
+ *   front of the camera (a grazing view, or a plane behind the viewer). A caller
+ *   showing a placement ghost must treat `null` as "no valid drop position" rather
+ *   than falling back to the origin.
+ */
+export function projectToWorkingPlane(orbit, ndcX, ndcY, aspect, out, planeZMm = 0) {
+  const { azimuthDeg, elevationDeg, distanceMm, target } = orbit.state
+  const az = azimuthDeg * DEG
+  const el = elevationDeg * DEG
+  const cosEl = Math.cos(el)
+  const sinEl = Math.sin(el)
+
+  // Unit vector from target toward the camera; the camera looks back along it.
+  const dirX = cosEl * Math.cos(az)
+  const dirY = cosEl * Math.sin(az)
+  const dirZ = sinEl
+
+  const originX = target.x + distanceMm * dirX
+  const originY = target.y + distanceMm * dirY
+  const originZ = target.z + distanceMm * dirZ
+
+  rightFromSpherical(azimuthDeg, elevationDeg, scratchRight)
+  upFromSpherical(azimuthDeg, elevationDeg, scratchUp)
+
+  const tanHalfFov = Math.tan((orbit.fovDeg * DEG) / 2)
+  const rightScale = ndcX * tanHalfFov * (aspect > 0 ? aspect : 1)
+  const upScale = ndcY * tanHalfFov
+
+  const rayX = -dirX + scratchRight.x * rightScale + scratchUp.x * upScale
+  const rayY = -dirY + scratchRight.y * rightScale + scratchUp.y * upScale
+  const rayZ = -dirZ + scratchRight.z * rightScale + scratchUp.z * upScale
+
+  // Parallel to the plane (or so near it that the intersection is meaningless).
+  if (Math.abs(rayZ) < 1e-9) return null
+
+  const t = (planeZMm - originZ) / rayZ
+  // Behind the camera: the plane is there, but not in the direction being looked.
+  if (!(t > 0) || !Number.isFinite(t)) return null
+
+  out.x = originX + rayX * t
+  out.y = originY + rayY * t
+  out.z = planeZMm
+  return out
+}
