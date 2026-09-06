@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { createDocument } from './document.js'
+import { boundsOf } from './kernel/group.js'
 
 /**
  * A fake registry, per CLAUDE.md's "always mock at the boundary" — the command
@@ -14,6 +15,11 @@ const fakeRegistry = Object.freeze({
     kind: 'native',
     operandCount: 0,
     build: (/** @type {any} */ { params }) => ({ tag: 'box', size: params.size ?? 1 }),
+  }),
+  'fake.move': Object.freeze({
+    kind: 'native',
+    operandCount: 1,
+    build: (/** @type {any} */ { params }) => ({ tag: 'moved', by: params.by ?? 0 }),
   }),
   'fake.explode': Object.freeze({
     kind: 'native',
@@ -189,5 +195,162 @@ describe('createDocument — the command layer', () => {
     const geometry = /** @type {any} */ (scene.byId.get('cube-1'))
     expect(geometry.polygons.length).toBeGreaterThan(0)
     expect(document.bodies()).toHaveLength(1)
+  })
+})
+
+describe('supersession — one logical body per lineage (TODO/ui-012)', () => {
+  /**
+   * The regression this whole mechanism exists to prevent, stated as directly as
+   * it can be: a transform record has its own id and its own entry in
+   * `scene.byId`, so a `bodies()` that reported "one Body per record with an id"
+   * would render the moved body *and* the body it moved from — the exact inverse
+   * of ACCEPTANCE.md scenario 1's "placing a second body silently hid the first".
+   */
+  it('a transform does not add a second body', () => {
+    const document = doc()
+    document.append({ id: 'a', op: 'fake.box', name: 'Box 1', params: { size: 3 } }, { origin: 'local' })
+    expect(document.bodies()).toHaveLength(1)
+
+    document.append(
+      { id: 'a-move-1', op: 'fake.move', target: 'a', supersedes: 'a', params: { by: 5 } },
+      { origin: 'local' }
+    )
+
+    expect(document.bodies()).toHaveLength(1)
+    // Nothing is deleted: a future undo/redo needs the whole chain.
+    expect(document.records).toHaveLength(2)
+    expect(document.scene.byId.has('a')).toBe(true)
+    expect(document.scene.byId.has('a-move-1')).toBe(true)
+  })
+
+  it('the surviving body keeps its logical identity but reports the newest geometry', () => {
+    const document = doc()
+    document.append({ id: 'a', op: 'fake.box', name: 'Box 1', params: { size: 3 } }, { origin: 'local' })
+    document.append(
+      { id: 'a-move-1', op: 'fake.move', target: 'a', supersedes: 'a', params: { by: 5 } },
+      { origin: 'local' }
+    )
+    const [body] = document.bodies()
+
+    // Identity is the *lineage root*, so a selection, a mesh and a data-testid
+    // all survive a move rather than being torn down and rebuilt under a new id.
+    expect(body.id).toBe('a')
+    expect(body.name).toBe('Box 1')
+    expect(body.op).toBe('fake.box')
+    expect(body.params).toEqual({ size: 3 })
+    // Geometry is the terminal record's.
+    expect(body.recordId).toBe('a-move-1')
+    expect(body.geometry).toEqual({ tag: 'moved', by: 5 })
+  })
+
+  it('chains: a second transform supersedes the first, still one body', () => {
+    const document = doc()
+    document.append({ id: 'a', op: 'fake.box', name: 'Box 1' }, { origin: 'local' })
+    document.append(
+      { id: 'm1', op: 'fake.move', target: 'a', supersedes: 'a', params: { by: 5 } },
+      { origin: 'local' }
+    )
+    document.append(
+      { id: 'm2', op: 'fake.move', target: 'm1', supersedes: 'm1', params: { by: 9 } },
+      { origin: 'local' }
+    )
+    const bodies = document.bodies()
+    expect(bodies).toHaveLength(1)
+    expect(bodies[0].id).toBe('a')
+    expect(bodies[0].recordId).toBe('m2')
+    expect(bodies[0].geometry).toEqual({ tag: 'moved', by: 9 })
+    expect(document.currentIdOf('a')).toBe('m2')
+    // Asking from anywhere in the lineage gives the same answer.
+    expect(document.currentIdOf('m1')).toBe('m2')
+  })
+
+  it('leaves other bodies alone, and keeps creation order', () => {
+    const document = doc()
+    document.append({ id: 'a', op: 'fake.box', name: 'Box 1' }, { origin: 'local' })
+    document.append({ id: 'b', op: 'fake.box', name: 'Box 2' }, { origin: 'local' })
+    document.append(
+      { id: 'm1', op: 'fake.move', target: 'a', supersedes: 'a', params: { by: 5 } },
+      { origin: 'local' }
+    )
+    const bodies = document.bodies()
+    expect(bodies).toHaveLength(2)
+    // A moved body keeps its place in the list rather than jumping to the end.
+    expect(bodies.map((body) => body.id)).toEqual(['a', 'b'])
+    expect(bodies[1].recordId).toBe('b')
+    expect(bodies[1].geometry).toEqual({ tag: 'box', size: 1 })
+  })
+
+  it('refuses to supersede an unknown id, or one already superseded', () => {
+    const document = doc()
+    document.append({ id: 'a', op: 'fake.box', name: 'Box 1' }, { origin: 'local' })
+    expect(() =>
+      document.append(
+        { id: 'x', op: 'fake.move', target: 'a', supersedes: 'nope', params: { by: 1 } },
+        { origin: 'local' }
+      )
+    ).toThrow(/supersedes/)
+
+    document.append(
+      { id: 'm1', op: 'fake.move', target: 'a', supersedes: 'a', params: { by: 5 } },
+      { origin: 'local' }
+    )
+    // `a` is no longer the lineage's terminal record — superseding it again would
+    // fork the lineage and put two live representations of one body on screen.
+    expect(() =>
+      document.append(
+        { id: 'm2', op: 'fake.move', target: 'a', supersedes: 'a', params: { by: 7 } },
+        { origin: 'local' }
+      )
+    ).toThrow(/supersedes/)
+    expect(document.bodies()).toHaveLength(1)
+  })
+
+  it('carries a rotation state param forward off the terminal record', () => {
+    // `transform.*` records carry the body's *absolute* rotation so the Inspector
+    // can read it without the document layer knowing what a rotation means.
+    const document = doc()
+    document.append({ id: 'a', op: 'fake.box', name: 'Box 1' }, { origin: 'local' })
+    expect(document.bodies()[0].rotationDeg).toEqual([0, 0, 0])
+
+    document.append(
+      {
+        id: 'r1',
+        op: 'fake.move',
+        target: 'a',
+        supersedes: 'a',
+        params: { by: 0, rotation: [0, 0, 45] },
+      },
+      { origin: 'local' }
+    )
+    expect(document.bodies()[0].rotationDeg).toEqual([0, 0, 45])
+  })
+
+  it('a real move through the real kernel leaves exactly one body, at the new place', () => {
+    const document = createDocument()
+    document.append(
+      {
+        id: 'cube-1',
+        op: 'primitive.cuboid',
+        name: 'Cube 1',
+        params: { size: [10, 10, 10], center: [0, 0, 5] },
+      },
+      { origin: 'local' }
+    )
+    document.append(
+      {
+        id: 'cube-1-move-1',
+        op: 'transform.translate',
+        target: 'cube-1',
+        supersedes: 'cube-1',
+        params: { vector: [25, 0, 0] },
+      },
+      { origin: 'local' }
+    )
+
+    const bodies = document.bodies()
+    expect(bodies).toHaveLength(1)
+    const [min, max] = boundsOf(bodies[0].geometry)
+    expect((min[0] + max[0]) / 2).toBeCloseTo(25, 6)
+    expect((min[2] + max[2]) / 2).toBeCloseTo(5, 6)
   })
 })

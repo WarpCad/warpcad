@@ -53,6 +53,11 @@ import { bolt } from './recipes/hardware.bolt.js'
  * @property {Record<string, any>} [params] Plain JSON; never a function or code.
  * @property {string} [target] Id of the primary operand.
  * @property {string[]} [operands] Ids of additional operands.
+ * @property {string} [supersedes] Id of the record whose *logical body* this
+ *   record replaces — a move or a turn of an existing object rather than a new
+ *   one. `src/core/document.js` reads this to report one body per lineage instead
+ *   of one per record; the kernel fold itself ignores it. See that module's
+ *   supersession note.
  * @property {string} [name] Names the result as a part of the resulting group.
  * @property {boolean} [hidden] Named but excluded from the group's default combine.
  */
@@ -321,6 +326,35 @@ export const registry = Object.freeze({
   'transform.translate': native(1, ({ params, inputs }) =>
     transforms.translate(/** @type {Vec3Mm} */ (params.vector), inputs[0])
   ),
+
+  // Degrees in `params`, radians here — this module is the single place that
+  // conversion happens (see the unit-boundary note at the top of the file), so
+  // no component and no recipe ever handles a radian.
+  //
+  // `center` is what makes this usable as a *gizmo* rotate rather than a bare
+  // kernel call: `transforms.rotate` turns about the world origin, so rotating a
+  // body sitting 300 mm out would fling it across the scene instead of turning
+  // it on the spot. Translating to the centre, rotating, and translating back is
+  // the transform a user means when they drag a rotate ring.
+  'transform.rotate': native(1, ({ params, inputs }) => {
+    const op = 'transform.rotate'
+    const angles = params.angles ?? [0, 0, 0]
+    if (!Array.isArray(angles) || angles.length !== 3 || !angles.every(Number.isFinite)) {
+      throw new Error(`${op}: angles must be three finite degree values, got ${JSON.stringify(angles)}`)
+    }
+    const center = params.center ?? [0, 0, 0]
+    if (!Array.isArray(center) || center.length !== 3 || !center.every(Number.isFinite)) {
+      throw new Error(`${op}: center must be three finite millimetre values`)
+    }
+    const turned = transforms.rotate(
+      [degToRad(angles[0]), degToRad(angles[1]), degToRad(angles[2])],
+      transforms.translate(
+        /** @type {Vec3Mm} */ ([-center[0], -center[1], -center[2]]),
+        inputs[0]
+      )
+    )
+    return transforms.translate(/** @type {Vec3Mm} */ (center), turned)
+  }),
 
   'boolean.union': native('2+', ({ inputs }) => booleans.union(inputs)),
 

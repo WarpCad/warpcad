@@ -170,6 +170,47 @@ describe('native builders', () => {
     ])
   })
 
+  it('transform.rotate takes degrees and turns its input about its own centre', () => {
+    // Degrees in, radians at the registry boundary — this module's own documented
+    // unit convention, and the reason no component ever sees a radian.
+    const bar = build('primitive.cuboid', { params: { size: [20, 4, 4], center: [0, 0, 10] } })
+    const turned = build('transform.rotate', {
+      params: { angles: [0, 0, 90], center: [0, 0, 10] },
+      inputs: [bar],
+    })
+    const bounds = boundsOf(turned)
+    // A quarter turn about Z swaps the 20 mm and 4 mm extents...
+    expect(bounds[1][0] - bounds[0][0]).toBeCloseTo(4, 6)
+    expect(bounds[1][1] - bounds[0][1]).toBeCloseTo(20, 6)
+    // ...and rotating about the body's *own* centre leaves it where it was,
+    // rather than flinging it around the world origin.
+    expect((bounds[0][0] + bounds[1][0]) / 2).toBeCloseTo(0, 6)
+    expect((bounds[0][2] + bounds[1][2]) / 2).toBeCloseTo(10, 6)
+  })
+
+  it('transform.rotate defaults its centre to the world origin', () => {
+    const bar = build('primitive.cuboid', { params: { size: [20, 4, 4], center: [20, 0, 0] } })
+    const turned = build('transform.rotate', { params: { angles: [0, 0, 90] }, inputs: [bar] })
+    const bounds = boundsOf(turned)
+    // Rotated about [0,0,0], the bar swings from +X onto +Y.
+    expect((bounds[0][0] + bounds[1][0]) / 2).toBeCloseTo(0, 6)
+    expect((bounds[0][1] + bounds[1][1]) / 2).toBeCloseTo(20, 6)
+  })
+
+  it('transform.rotate rejects a non-finite angle rather than emitting NaN geometry', () => {
+    const cube = build('primitive.cuboid', { params: { size: [2, 2, 2] } })
+    expect(() =>
+      build('transform.rotate', { params: { angles: [0, Number.NaN, 0] }, inputs: [cube] })
+    ).toThrow(/angles/)
+  })
+
+  it('transform.rotate is a single-operand edit, like transform.translate', () => {
+    expect(registry['transform.rotate']).toMatchObject({ kind: 'native', operandCount: 1 })
+    expect(acceptsOperandCount('transform.rotate', 0)).toBe(false)
+    expect(acceptsOperandCount('transform.rotate', 1)).toBe(true)
+    expect(acceptsOperandCount('transform.rotate', 2)).toBe(false)
+  })
+
   it('boolean.union merges every input', () => {
     const a = build('primitive.cuboid', { params: { size: [2, 2, 2], center: [-3, 0, 0] } })
     const b = build('primitive.cuboid', { params: { size: [2, 2, 2], center: [3, 0, 0] } })

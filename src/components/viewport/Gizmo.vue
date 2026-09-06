@@ -1,15 +1,32 @@
 <script setup>
 /**
  * The transform gizmo: three translate arrows and three rotate rings, attached
- * to the selected body's origin.
+ * to the selected body's origin, and draggable.
  *
- * **Visual only in this task** (`TODO/ui-011`). The handles show where the
- * body's axes are and that it is the thing about to be moved; making them
- * draggable — and keeping that drag in sync with the Inspector's numeric fields
- * — is `ui-012`'s whole contract. Wiring half of it here would leave two
- * half-owners of the same behaviour, so this component listens for no pointer
- * events at all and is explicitly `pointer-events: none`: a gizmo that swallowed
- * clicks would break the click-to-select this task exists to respond to.
+ * `ui-011` drew these handles; `ui-012` made them work. What this component
+ * still does *not* do is any arithmetic — it reports which handle a pointer
+ * grabbed and where that pointer has got to, and `Viewport.vue` turns that into
+ * millimetres and degrees through `src/render/annotate.js`. Same division as the
+ * drawing half, for the same reason (CLAUDE.md: a component doing coordinate
+ * maths is a bug waiting to happen).
+ *
+ * ## Hit targets are not the drawn shapes
+ *
+ * A 2.5 px arm and a 1.5 px ring are aimable with a mouse and hopeless with a
+ * fingertip, so every handle carries an invisible companion with a fat stroke —
+ * fatter still at phone width, per `docs/decisions/interaction-model-qa.md`
+ * control 4 Q16 ("a larger invisible hit-test radius than their rendered size, to
+ * compensate for finger contact area"). Two consequences are deliberate:
+ *
+ * - **The SVG stays `pointer-events: none`; only the hit targets opt in.** The
+ *   gizmo sits directly over the body the user clicks to select, and a
+ *   full-surface overlay would break click-to-select outright — the failure
+ *   `ui-011`'s "the overlays never swallow the click that selects" spec guards.
+ * - **The arms' hit targets start part-way out**, leaving the hub and the body's
+ *   middle clear, and a press that never moves is reported as a **click** for the
+ *   viewport to pick with. So grabbing a handle and changing your mind selects
+ *   what is underneath rather than doing nothing at all — a dead zone the size of
+ *   the gizmo would be its own bug.
  *
  * ## Screen-space SVG, like the rest of the viewport's chrome
  *
@@ -77,6 +94,96 @@ const ringPaths = computed(() =>
     return { axis: ring.axis, points: path.trimEnd() }
   }),
 )
+
+/**
+ * Where along an arm its hit target begins, as a fraction of the arm's length.
+ * Everything closer in belongs to the hub — and to whatever solid is drawn
+ * behind it, which the user still has to be able to click.
+ */
+const ARM_GRAB_FROM = 0.45
+
+/**
+ * Total pointer travel, in pixels, below which a press on a handle is a click
+ * rather than a drag. Matches `Viewport.vue`'s own slop: a tap on a touch screen
+ * always wanders a pixel or two, and the two must agree or a gesture would count
+ * as a drag here and a click there.
+ */
+const CLICK_SLOP_PX = 5
+
+const emit = defineEmits(['handle-down', 'handle-move', 'handle-up', 'handle-click'])
+
+/** Start points of each arm's hit target — the drawn line, trimmed at the hub end. */
+const armGrabs = computed(() =>
+  gizmo.value.arrows.map((arrow) => ({
+    axis: arrow.axis,
+    visible: arrow.visible,
+    x1: gizmo.value.originX + (arrow.tipX - gizmo.value.originX) * ARM_GRAB_FROM,
+    y1: gizmo.value.originY + (arrow.tipY - gizmo.value.originY) * ARM_GRAB_FROM,
+    x2: arrow.tipX,
+    y2: arrow.tipY,
+  })),
+)
+
+/** The drag in progress: which handle, and how far the pointer has wandered. */
+let dragPointerId = -1
+let dragStartX = 0
+let dragStartY = 0
+let dragTravelPx = 0
+
+/**
+ * @param {PointerEvent} event
+ * @param {'translate' | 'rotate'} kind
+ * @param {number} axisIndex 0 | 1 | 2.
+ */
+function onHandleDown(event, kind, axisIndex) {
+  // Stop the press reaching the canvas underneath: without this the viewport
+  // would start orbiting the camera at the same time as the body moves.
+  event.stopPropagation()
+  event.preventDefault()
+  dragPointerId = event.pointerId
+  dragStartX = event.clientX
+  dragStartY = event.clientY
+  dragTravelPx = 0
+  try {
+    /** @type {Element} */ (event.currentTarget).setPointerCapture?.(event.pointerId)
+  } catch {
+    // Capture is an optimisation: without it a drag simply ends when the pointer
+    // leaves the handle. It throws outright on pointer ids the browser does not
+    // consider active (synthetic events in specs), and must never take the
+    // gesture down with it.
+  }
+  emit('handle-down', { kind, axisIndex, clientX: event.clientX, clientY: event.clientY })
+}
+
+/** @param {PointerEvent} event */
+function onHandleMove(event) {
+  if (event.pointerId !== dragPointerId) return
+  event.stopPropagation()
+  dragTravelPx += Math.abs(event.clientX - dragStartX) + Math.abs(event.clientY - dragStartY)
+  emit('handle-move', { clientX: event.clientX, clientY: event.clientY })
+}
+
+/** @param {PointerEvent} event */
+function onHandleUp(event) {
+  if (event.pointerId !== dragPointerId) return
+  event.stopPropagation()
+  try {
+    /** @type {Element} */ (event.currentTarget).releasePointerCapture?.(event.pointerId)
+  } catch {
+    // Same as capture above: cleanup never throws out of a pointer handler.
+  }
+  dragPointerId = -1
+  const travelPx = Math.abs(event.clientX - dragStartX) + Math.abs(event.clientY - dragStartY)
+  if (travelPx <= CLICK_SLOP_PX && dragTravelPx <= CLICK_SLOP_PX) {
+    // Pressed a handle and changed their mind. Hand it back as a click so the
+    // viewport picks what is underneath, rather than leaving a gizmo-shaped dead
+    // zone over the very solid the gizmo is attached to.
+    emit('handle-up', { cancelled: true })
+    emit('handle-click', { clientX: event.clientX, clientY: event.clientY })
+    return
+  }
+  emit('handle-up', { cancelled: false })
+}
 </script>
 
 <template>
@@ -124,6 +231,36 @@ const ringPaths = computed(() =>
       :cy="gizmo.originY"
       r="3.5"
     />
+
+    <!-- Hit targets, drawn last so they sit above everything they stand for.
+         Invisible and far fatter than the handles they cover; the rings come
+         first so that where an arm crosses a ring, the arm wins. -->
+    <polygon
+      v-for="ring in ringPaths"
+      :key="`grab-ring-${ring.axis}`"
+      class="tgizmo__grab tgizmo__grab--ring"
+      :data-testid="`gizmo-grab-ring-${ring.axis.toLowerCase()}`"
+      :points="ring.points"
+      @pointerdown="onHandleDown($event, 'rotate', ringPaths.indexOf(ring))"
+      @pointermove="onHandleMove"
+      @pointerup="onHandleUp"
+      @pointercancel="onHandleUp"
+    />
+    <line
+      v-for="(grab, index) in armGrabs"
+      v-show="grab.visible"
+      :key="`grab-arm-${grab.axis}`"
+      class="tgizmo__grab tgizmo__grab--arm"
+      :data-testid="`gizmo-grab-arm-${grab.axis.toLowerCase()}`"
+      :x1="grab.x1"
+      :y1="grab.y1"
+      :x2="grab.x2"
+      :y2="grab.y2"
+      @pointerdown="onHandleDown($event, 'translate', index)"
+      @pointermove="onHandleMove"
+      @pointerup="onHandleUp"
+      @pointercancel="onHandleUp"
+    />
   </svg>
 </template>
 
@@ -134,10 +271,41 @@ const ringPaths = computed(() =>
   width: 100%;
   height: 100%;
   overflow: visible;
-  /* The gizmo is not interactive in this task, and it sits directly over the
-     bodies the user clicks to select — swallowing those clicks would break the
-     very trigger it is the feedback for. */
+  /* The surface itself never takes a pointer: the gizmo sits directly over the
+     bodies the user clicks to select, and swallowing those clicks would break
+     the very trigger it is the feedback for. Only the hit targets below opt in. */
   pointer-events: none;
+}
+
+.tgizmo__grab {
+  stroke: transparent;
+  /* `stroke`, not `all`: a ring's hit area is its band, never the disc inside
+     it, which is exactly where the body the user still needs to click sits. */
+  pointer-events: stroke;
+  /* 22px against a 2.5px arm — aimable with a mouse without being a wall. */
+  stroke-width: 22;
+  cursor: grab;
+}
+
+.tgizmo__grab:active {
+  cursor: grabbing;
+}
+
+.tgizmo__grab--arm {
+  stroke-linecap: round;
+}
+
+.tgizmo__grab--ring {
+  fill: none;
+}
+
+/* Phone width: a fingertip covers roughly 9mm of glass against a mouse
+   pointer's single pixel, so the handles need a genuinely bigger catchment —
+   not the same target with a bigger icon (interaction-model-qa control 4, Q16). */
+@media (max-width: 640px) {
+  .tgizmo__grab {
+    stroke-width: 34;
+  }
 }
 
 .tgizmo__ring {

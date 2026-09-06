@@ -54,17 +54,37 @@
  * - **Tapping this panel's tab claims the slot**, collapsing the Library. The
  *   user asked for this panel; the other one gets out of the way.
  *
- * ## Read-only in this task
+ * ## Transform is writable; the op's own params are not (yet)
  *
- * `TODO/ui-011` is the display contract; `ui-012` makes these fields writable
- * and keeps them in sync with a gizmo drag. The fields are marked `readonly`
- * rather than omitted so `ui-012` has real fields to wire, and the panel says so
- * out loud rather than leaving a user poking at a box that silently ignores them.
+ * `ui-012` made the Transform section's Position and Rotation fields editable,
+ * and they are the *same* mutation a gizmo drag performs — both go through
+ * `src/composables/useTransformCommands.js`, so typing `40` and dragging to 40 mm
+ * cannot produce different records (control 4's "either path results in the same
+ * underlying mutation").
+ *
+ * Two things stay read-only, deliberately rather than by omission:
+ *
+ * - **Size**, because it is a *measurement* of the solid, not an input. Resizing
+ *   a cylinder means editing its `diameter`/`height` params, which is the next
+ *   bullet, and a writable Size box would imply a non-uniform scale op that does
+ *   not exist.
+ * - **The op's own params** (`diameter`, `height`, `size`…). Editing those is a
+ *   different mutation — rewriting a creation record's params and re-evaluating
+ *   everything downstream of it, rather than appending a transform — and it
+ *   belongs with the task that lands it. The panel says which is which out loud
+ *   rather than leaving a user poking at a box that silently ignores them.
+ *
+ * During a gizmo drag the Position and Rotation fields read the *uncommitted*
+ * preview (`src/stores/transformPreview.js`) via `useSelectedBody`, which is what
+ * makes them track the drag live rather than jumping at release — control 4's
+ * "not only after release". A field the user is actively typing into is left
+ * alone, so a live re-render cannot overwrite half-typed input.
  */
 import { computed, ref, watch } from 'vue'
 
 import { useSelectedBody } from '../../composables/useSelectedBody.js'
 import { useSelectionStore } from '../../stores/selection.js'
+import { useTransformCommands } from '../../composables/useTransformCommands.js'
 import { formatDeg, formatMmValue } from '../../core/units.js'
 
 const props = defineProps({
@@ -178,6 +198,104 @@ function displayValue(value, unit) {
   if (typeof value !== 'number') return String(value ?? '')
   return unit === 'mm' ? formatMmValue(value) : String(value)
 }
+
+// --- editable Transform fields (TODO/ui-012) ------------------------------
+
+const transformCommands = useTransformCommands()
+
+/**
+ * The field the user currently has focus in, e.g. `"position-0"`, or `''`.
+ *
+ * A live gizmo drag re-renders these fields sixty times a second. Rebinding the
+ * `value` of a field somebody is *typing* into would eat their keystrokes and
+ * move their caret, so the focused field is left showing exactly what was typed
+ * until it commits.
+ */
+const editingField = ref('')
+
+/**
+ * What the focused field displayed at the moment it was focused.
+ *
+ * Bound back to that field for as long as it stays focused, so the bound value
+ * never *changes* and Vue therefore never writes to the element — leaving what
+ * the user is typing exactly where it is. Returning `undefined` instead would put
+ * the literal string "undefined" in the box, and re-binding the live value would
+ * fight the keyboard.
+ */
+const editingSnapshot = ref('')
+
+/**
+ * The value to show in one Transform field: the live number, unless this is the
+ * field being edited.
+ *
+ * @param {string} key
+ * @param {string} display Already formatted for display.
+ * @returns {string}
+ */
+function fieldValue(key, display) {
+  return editingField.value === key ? editingSnapshot.value : display
+}
+
+/**
+ * Parse what a user typed into a numeric field.
+ *
+ * Tolerant of the unit suffix the field itself displays — `"12.5 mm"` and `"45°"`
+ * round-trip, because a user who selects-all and retypes will often keep it —
+ * and of a comma decimal separator. Anything that is not a number is rejected by
+ * returning `null`, which restores the field rather than committing a `NaN`
+ * transform the kernel would reject anyway.
+ *
+ * @param {string} text
+ * @returns {number | null}
+ */
+function parseNumeric(text) {
+  const cleaned = text.replace(/[°\s]/g, '').replace(/mm$/i, '').replace(',', '.')
+  if (cleaned === '' || cleaned === '-') return null
+  const value = Number(cleaned)
+  return Number.isFinite(value) ? value : null
+}
+
+/**
+ * @param {Event} event
+ * @param {string} key
+ * @returns {void}
+ */
+function onFieldFocus(event, key) {
+  editingSnapshot.value = /** @type {HTMLInputElement} */ (event.target).value
+  editingField.value = key
+}
+
+/**
+ * Commit a typed Transform field — the blur/Enter trigger control 4 specifies.
+ *
+ * @param {Event} event
+ * @param {'position' | 'rotation'} which
+ * @param {number} axisIndex
+ * @returns {void}
+ */
+function commitTransformField(event, which, axisIndex) {
+  const input = /** @type {HTMLInputElement} */ (event.target)
+  const parsed = parseNumeric(input.value)
+  const selectedBody = body.value
+  // Releasing the field first means the re-render below repaints it with the
+  // document's own formatting — which is also how a rejected value is undone,
+  // with no separate "restore" path to keep in step.
+  editingField.value = ''
+  if (parsed === null || !selectedBody) return
+  if (which === 'position') transformCommands.setPositionAxis(selectedBody.id, axisIndex, parsed)
+  else transformCommands.setRotationAxis(selectedBody.id, axisIndex, parsed)
+}
+
+/**
+ * Enter commits without waiting for focus to move — a user typing a position and
+ * pressing Enter expects the body to move, not to have to click elsewhere first.
+ *
+ * @param {KeyboardEvent} event
+ * @returns {void}
+ */
+function onFieldEnter(event) {
+  /** @type {HTMLInputElement} */ (event.target).blur()
+}
 </script>
 
 <template>
@@ -276,25 +394,33 @@ function displayValue(value, unit) {
               <label v-for="(axis, index) in ['x', 'y', 'z']" :key="`p-${axis}`" class="inspector__component">
                 <span class="inspector__component-label">{{ axis.toUpperCase() }}</span>
                 <input
-                  class="inspector__input"
+                  class="inspector__input inspector__input--editable"
                   type="text"
-                  readonly
+                  inputmode="decimal"
                   :data-testid="`inspector-position-${axis}`"
-                  :value="formatMmValue(body.positionMm[index])"
+                  :aria-label="`Position ${axis.toUpperCase()} in millimetres`"
+                  :value="fieldValue(`position-${index}`, formatMmValue(body.positionMm[index]))"
+                  @focus="onFieldFocus($event, `position-${index}`)"
+                  @blur="commitTransformField($event, 'position', index)"
+                  @keydown.enter.prevent="onFieldEnter"
                 />
               </label>
             </dd>
 
-            <dt class="inspector__label">Rotation</dt>
+            <dt class="inspector__label">Rotation <span class="inspector__unit">(°)</span></dt>
             <dd class="inspector__value inspector__value--vector">
               <label v-for="(axis, index) in ['x', 'y', 'z']" :key="`r-${axis}`" class="inspector__component">
                 <span class="inspector__component-label">{{ axis.toUpperCase() }}</span>
                 <input
-                  class="inspector__input"
+                  class="inspector__input inspector__input--editable"
                   type="text"
-                  readonly
+                  inputmode="decimal"
                   :data-testid="`inspector-rotation-${axis}`"
-                  :value="formatDeg(body.rotationDeg[index])"
+                  :aria-label="`Rotation ${axis.toUpperCase()} in degrees`"
+                  :value="fieldValue(`rotation-${index}`, formatDeg(body.rotationDeg[index]))"
+                  @focus="onFieldFocus($event, `rotation-${index}`)"
+                  @blur="commitTransformField($event, 'rotation', index)"
+                  @keydown.enter.prevent="onFieldEnter"
                 />
               </label>
             </dd>
@@ -315,9 +441,10 @@ function displayValue(value, unit) {
           </dl>
         </section>
 
-        <p class="inspector__note" data-testid="inspector-readonly-note">
-          These values are read-only for now. Dragging the gizmo in the 3D view and typing
-          into these fields both arrive with the transform tools.
+        <p class="inspector__note" data-testid="inspector-transform-note">
+          Position and rotation are editable — type a value and press Enter, or drag the
+          gizmo's arrows and rings in the 3D view. Size and the parameters above are
+          read-only for now.
         </p>
       </template>
     </div>
@@ -455,6 +582,18 @@ function displayValue(value, unit) {
 .inspector__input:read-only {
   color: var(--text-2);
   cursor: default;
+}
+
+/* An editable field has to *look* editable, or a user will assume the whole
+   panel is still the read-only display `ui-011` shipped and never try typing. */
+.inspector__input--editable {
+  border-color: var(--border-strong, var(--border));
+  color: var(--text-1);
+}
+
+.inspector__input--editable:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
 }
 
 .inspector__unit {

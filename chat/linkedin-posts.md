@@ -169,3 +169,21 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** projection asserted to be the exact inverse of `src/render/pick.js`'s `projectToWorkingPlane` → the test "is the exact inverse of pick.js projectToWorkingPlane" in `src/render/annotate.spec.js`, passing this session; Inspector fields read from the registry's `ui.defaults` → `src/core/inspector.js` in the diff, with `src/core/inspector.spec.js` covering all 7 primitives plus a Cube/Tube contrast; 315 e2e passing across 3 viewports × 3 engines and 267 unit → `npm test`, this session; the 25px overlap and its fix → measured in the browser during the acceptance drive, 406-451px readout against a 426px sheet top before, 362-407px after, recorded in `TODO/ACCEPTANCE.md` scenario 2
 **To Add:** laptop screenshot of a selected cylinder with all three dimension lines; before/after phone screenshots of the sheet overlap; repo URL once public
+
+
+## [2026-09-06T13:09:00Z] — The bug that only exists because the document is append-only (TODO/ui-012)
+
+**Post:** WarpCad's transform gizmo became draggable this week. Drag an arrow and the shape moves; the Inspector's position fields count along with your pointer instead of jumping when you let go. Type a number into those fields and the shape moves to match. Both routes go through one function, so they cannot drift apart.
+
+The interesting part was not the drag maths. This project's document is an append-only log of operations, which is what makes a parametric history possible at all. But it means moving a shape is not an edit, it is a new record that consumes the old one and produces a new result with a new id. The obvious render loop walks the records and draws one body per id, which quietly draws the shape you moved and the shape you moved it from. One cube in, two cubes out, on the very first drag. The fix was a lineage index: the document now reports one body per logical object, with its stable identity taken from the record that created it and its geometry from the newest record in the chain. Nothing is deleted, because a future undo needs the whole chain; supersession only changes what gets drawn twice.
+
+Worth noting what caught it. The task file predicted this failure by reading the code before any of it was written, so it never reached a screen. What the hand-driven pass added was the confirmation: turn a 40mm cube 45 degrees about Z and its bounding dimensions read 56.569mm, which is 40 times root two, and typing 0 back returns them to exactly 40.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL #Vue #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** the duplication is real, not hypothetical → `src/core/document.spec.js`'s new "a transform does not add a second body" test failed with "expected [ …(2) ] to have a length of 1 but got 2" against the pre-change `bodies()`, this session; supersession deletes nothing → `document.js` retains every record in `entries`/`scene.byId`, asserted in the same spec; one shared mutation behind both triggers → `src/core/transform.js` + `src/composables/useTransformCommands.js` in the diff, with a spec asserting a drag-built and a typed-built record land the same position; 40mm cube at 45° about Z measures 56.569mm and returns to exactly 40 at 0° → hand-driven exploratory pass, this session; the problem was named in the task file before implementation → `TODO/done/ui-012-gizmo-transform-sync.md`'s "Required addition" section; 295 unit and 414 e2e tests green across 3 viewports × 3 engines → `npm test`, this session
+**To Add:** screen recording of the drag with the Inspector visible; a diagram of the record lineage (create → move → turn) showing which id renders; repo URL once public
+
+**LinkedIn article:** worth writing. "Why an append-only CAD document duplicates your shape the first time you move it" — the problem generalises to any event-sourced document with derived state, and the lineage-index fix is small enough to show in full.

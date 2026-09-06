@@ -10,7 +10,8 @@ Click — or tap — directly on a shape in the 3D view. Three things happen at 
 
 1. **A gizmo appears at the middle of the shape.** Three coloured arrows point along the
    part's X, Y and Z directions, and three faint rings circle it. The arrows are the
-   move handles and the rings are the rotate handles.
+   move handles and the rings are the rotate handles — both draggable, see
+   [Moving and turning a shape](#moving-and-turning-a-shape).
 2. **Three dimension lines are drawn**, one per direction, each with a dashed leader
    line, an arrow at each end, and a number in millimetres. You always get all three at
    once — the width, the depth and the height — so you can read a part's real size
@@ -66,15 +67,55 @@ from the shape's own definition rather than from a fixed form:
 **Transform** — where the shape is and how it is turned:
 
 - **Position X/Y/Z** — the middle of the shape, in millimetres from the grid's origin.
-- **Rotation X/Y/Z** — in degrees. Everything reads `0°` today, because nothing has been
-  able to rotate a shape yet.
+  **Editable** — see [Moving and turning a shape](#moving-and-turning-a-shape) below.
+- **Rotation X/Y/Z** — in degrees. **Editable**, the same way.
 - **Size X/Y/Z** — the same three numbers the dimension lines are showing, in case you
-  would rather read them in the panel.
+  would rather read them in the panel. Read-only: this is a *measurement* of the shape,
+  not a setting. To change how big a shape is you change its parameters above.
 
-> **These fields are read-only for now.** They show you real, current values, but typing
-> in them does nothing yet, and the gizmo's arrows and rings cannot be dragged yet
-> either. Both arrive together with the transform tools, so that dragging a handle and
-> typing a number always agree with each other.
+> The **Parameters** section is still read-only. It shows you real, current values, but
+> typing in them does nothing yet.
+
+## Moving and turning a shape
+
+There are two ways to move a selected shape, and they always agree with each other —
+they are the same change made from two places, not two separate features.
+
+**In the 3D view**, drag any of the gizmo's three arrows to move the shape along that
+direction. The shape follows your pointer as you drag, and the Inspector's **Position**
+numbers count up or down in step with it — you do not have to let go to see where you
+are. Drag one of the three rings to turn the shape about that axis; it turns on the
+spot, about its own middle, and the **Rotation** numbers track the drag the same way.
+Let go and the change is made.
+
+**In the Inspector**, click into any Position or Rotation box, type a value, and press
+**Enter** (or click away). The shape moves to match straight away. A Position is in
+millimetres from the grid's origin and a Rotation is in degrees; you can leave the `mm`
+or `°` in place when you retype a value, and a negative number is fine.
+
+If you type something that is not a number, the box puts the old value back and nothing
+moves.
+
+The handles have a generous invisible catchment around them, wider than they look, so
+they are reachable with a fingertip on a phone as well as with a mouse pointer — you do
+not have to hit the thin line exactly. If you press a handle and change your mind
+without moving, nothing happens except that you select whatever is underneath.
+
+### Worked example: move and turn a cube
+
+1. Drag a **Cube** onto the grid and click it. The Inspector shows **Position** with a Z
+   of `20`, because a 40 mm cube resting on the grid has its middle 20 mm up.
+2. Drag the **red arrow** (X) to the right. Watch the **Position X** box: it changes as
+   you drag, not just when you let go. Release at about 60 mm.
+3. Now click into the **Position X** box, type `0`, and press **Enter**. The cube slides
+   straight back to where it started.
+4. Drag the **blue ring** (the one circling the Z arrow) about a quarter turn. The
+   **Rotation Z** box counts up as you go.
+5. Click into **Rotation Z**, type `45`, press **Enter**. The cube snaps to exactly 45°.
+   The red and green dimension lines now read about **57 mm** rather than 40 mm — that is
+   correct: a 40 mm square turned 45° is 40 × √2 ≈ 56.6 mm across its corners.
+6. Note that there is still exactly **one** cube. Moving a shape moves it; it never
+   leaves a copy behind.
 
 ## Worked example
 
@@ -111,6 +152,11 @@ arrive with the boolean operations.
 - **The dimension numbers look wrong.** They measure the shape's bounding box — the
   smallest box the shape fits inside. For a sphere or a cylinder, that means the
   left-to-right and front-to-back numbers are both the *diameter*, not the radius.
+- **I tried to drag a gizmo arrow and the view spun instead.** You caught the grid rather
+  than the handle. The handles start a little way out from the middle of the shape, so
+  aim at the outer half of the arrow, nearer its head.
+- **I typed a position and the shape did not move.** Press **Enter**, or click somewhere
+  else, to commit it — the shape moves when you finish editing, not on every keystroke.
 - **The Inspector sheet keeps covering the 3D view on my phone.** Swipe it down by its
   grab handle. The view's own navigation controls move up out of the way while the sheet
   is open, so they are never trapped underneath it.

@@ -390,6 +390,101 @@ export function ringPoints(ring, originX, originY, out) {
   return out
 }
 
+// --- gizmo drag (TODO/ui-012) ----------------------------------------------
+
+/**
+ * How far a pointer drag has slid a body along one axis, in millimetres.
+ *
+ * The arm's own screen image is the axis: the pointer delta is projected onto it,
+ * so dragging *across* an axis handle contributes nothing rather than sliding the
+ * body sideways. `mmPerPixel` is the viewport's own scale — the same number the
+ * grid readout quotes — so a 10 mm drag looks like 10 mm on the grid underneath it.
+ *
+ * An axis pointing straight at the camera has no screen direction at all, and
+ * `updateGizmoAnnotation` hides its arm; a drag there returns zero rather than
+ * dividing by a vanishing length.
+ *
+ * @param {GizmoAnnotation} gizmo
+ * @param {number} axisIndex 0 | 1 | 2.
+ * @param {number} dxPx Pointer travel since the drag began.
+ * @param {number} dyPx
+ * @param {number} mmPerPixel
+ * @returns {number} Millimetres along that axis, signed.
+ */
+export function translateDeltaMm(gizmo, axisIndex, dxPx, dyPx, mmPerPixel) {
+  const arrow = gizmo.arrows[axisIndex]
+  if (!arrow || !arrow.visible) return 0
+  const armX = arrow.tipX - gizmo.originX
+  const armY = arrow.tipY - gizmo.originY
+  const armLength = Math.hypot(armX, armY)
+  if (!(armLength > EPSILON_PX)) return 0
+  return ((dxPx * armX + dyPx * armY) / armLength) * mmPerPixel
+}
+
+/**
+ * How far a rotate-ring drag has turned a body, in degrees.
+ *
+ * The sweep is the change in the pointer's angle *around the gizmo's hub*, not
+ * its raw travel — which is what makes a ring drag feel like turning a dial
+ * rather than pushing a slider, and what keeps the rotation right when the user
+ * wanders off the drawn ellipse mid-drag.
+ *
+ * Two sign conventions meet here. Screen Y grows downward, so an increasing
+ * `atan2` angle is *clockwise* on screen, while a positive right-hand rotation
+ * about an axis pointing at the viewer reads *counter-clockwise* — hence the
+ * negation. And grabbing the ring of an axis pointing **away** from the viewer
+ * means grabbing the far side of the circle, where the same on-screen sweep is
+ * the opposite rotation — hence `facing`. Getting either backwards produces a
+ * gizmo that turns the wrong way, which no assertion about magnitude would catch.
+ *
+ * @param {number} originX Gizmo hub, in CSS pixels.
+ * @param {number} originY
+ * @param {number} fromXPx Where the drag began.
+ * @param {number} fromYPx
+ * @param {number} toXPx Where the pointer is now.
+ * @param {number} toYPx
+ * @param {number} facing `+1` when the axis points toward the camera, `-1` away.
+ * @returns {number} Degrees about that axis, signed, wrapped to (-180, 180].
+ */
+export function rotateDeltaDeg(originX, originY, fromXPx, fromYPx, toXPx, toYPx, facing) {
+  const fromX = fromXPx - originX
+  const fromY = fromYPx - originY
+  const toX = toXPx - originX
+  const toY = toYPx - originY
+  // A pointer sitting exactly on the hub has no angle to measure from.
+  if (!(Math.hypot(fromX, fromY) > EPSILON_PX) || !(Math.hypot(toX, toY) > EPSILON_PX)) return 0
+
+  let sweep = Math.atan2(toY, toX) - Math.atan2(fromY, fromX)
+  // Wrap across the ±180° seam: without this, a 10° nudge past the seam reads as
+  // a 350° spin in the other direction.
+  while (sweep > Math.PI) sweep -= 2 * Math.PI
+  while (sweep < -Math.PI) sweep += 2 * Math.PI
+  const degrees = ((-sweep * 180) / Math.PI) * facing
+  // Normalise negative zero: it is not a different angle, but it would print as
+  // "-0°" in a field a user is reading (`src/core/units.js` does the same).
+  return degrees === 0 ? 0 : degrees
+}
+
+/**
+ * Whether an axis points toward the camera (`+1`) or away from it (`-1`).
+ *
+ * @param {number} azimuthDeg
+ * @param {number} elevationDeg
+ * @param {number} axisIndex 0 | 1 | 2.
+ * @returns {1 | -1}
+ */
+export function axisFacing(azimuthDeg, elevationDeg, axisIndex) {
+  const az = azimuthDeg * DEG
+  const el = elevationDeg * DEG
+  const cosEl = Math.cos(el)
+  // The unit vector from the camera target toward the camera — the same one
+  // `worldToScreen` builds its view ray from.
+  let toward = Math.sin(el)
+  if (axisIndex === 0) toward = cosEl * Math.cos(az)
+  else if (axisIndex === 1) toward = cosEl * Math.sin(az)
+  return toward >= 0 ? 1 : -1
+}
+
 // --- dimension lines -------------------------------------------------------
 
 /**

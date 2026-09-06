@@ -25,7 +25,7 @@
  * rather than a permanently-spinning rAF loop burning battery on a static scene.
  */
 import { onBeforeUnmount, onMounted, reactive, ref, shallowRef, watch } from 'vue'
-import { Group as ThreeGroup, Mesh, Raycaster, Vector2 } from 'three'
+import { Euler, Group as ThreeGroup, Mesh, Raycaster, Vector2, Vector3 } from 'three'
 import Grid from './Grid.vue'
 import OrientationGizmo from './OrientationGizmo.vue'
 import NavigationChrome from './NavigationChrome.vue'
@@ -33,11 +33,16 @@ import DimensionLines from './DimensionLines.vue'
 import Gizmo from './Gizmo.vue'
 import { useSelectedBody } from '../../composables/useSelectedBody.js'
 import {
+  axisFacing,
   createDimensionAnnotation,
   createGizmoAnnotation,
+  rotateDeltaDeg,
+  translateDeltaMm,
   updateDimensionAnnotation,
   updateGizmoAnnotation,
 } from '../../render/annotate.js'
+import { useTransformCommands } from '../../composables/useTransformCommands.js'
+import { useTransformPreviewStore } from '../../stores/transformPreview.js'
 import { createOrbitCamera } from '../../render/camera.js'
 import { createViewport } from '../../render/scene.js'
 import {
@@ -82,6 +87,8 @@ const DIMENSION_ARROW_PX = 9
 const documentStore = useDocumentStore()
 const placement = usePlacementStore()
 const selection = useSelectionStore()
+const preview = useTransformPreviewStore()
+const transformCommands = useTransformCommands()
 /**
  * What is selected, described in plain numbers. Recomputed when the selection or
  * the document changes — **not** per frame; the render callback below only
@@ -195,6 +202,37 @@ let pinchDistancePx = 0
 let pressId = -1
 let pressTravelPx = 0
 
+/**
+ * The gizmo drag in progress (`TODO/ui-012`).
+ *
+ * Allocated once and mutated, like every other pointer structure here: a drag
+ * writes into it on every `pointermove`, and CLAUDE.md's Performance rule is
+ * explicit that the pointer path allocates nothing.
+ *
+ * `centre*Mm` and `originPx` are captured at `pointerdown` and deliberately not
+ * refreshed: a rotation is measured against where the drag *started*, so the
+ * sweep stays stable even as the preview turns the solid underneath it.
+ */
+const gizmoDrag = {
+  active: false,
+  /** @type {'translate' | 'rotate'} */
+  kind: 'translate',
+  axisIndex: 0,
+  bodyId: '',
+  startXPx: 0,
+  startYPx: 0,
+  originXPx: 0,
+  originYPx: 0,
+  facing: 1,
+  centreXMm: 0,
+  centreYMm: 0,
+  centreZMm: 0,
+}
+
+// Scratch for the preview transform below — allocated once, never per frame.
+const previewEuler = new Euler()
+const previewCentre = new Vector3()
+
 const framesRendered = shallowRef(0)
 
 function scheduleRender() {
@@ -298,6 +336,14 @@ function measure() {
  * removed only for an id the document no longer has. Rebuilding the whole group
  * from scratch would be simpler and is exactly how the second attempt ended up
  * with a second body replacing the first (ACCEPTANCE.md scenario 1).
+ *
+ * Meshes are keyed by a body's **lineage root** id, which is what makes a move
+ * update a body rather than duplicate it: `document.bodies()` reports one entry
+ * per logical object however many transform records it has accumulated (see
+ * `src/core/document.js`'s supersession note), so a moved body is the same mesh
+ * with new geometry — and the selection pointing at it survives, because its id
+ * did not change. `recordId` is what actually changed, so that is what decides
+ * whether the geometry needs rebuilding.
  */
 function syncBodies() {
   if (!bodyMaterial) return
@@ -305,9 +351,23 @@ function syncBodies() {
   const live = new Set()
   for (const body of bodies) {
     live.add(body.id)
-    if (bodyMeshes.has(body.id)) continue
+    const existing = bodyMeshes.get(body.id)
+    if (existing) {
+      if (existing.userData.recordId === body.recordId) continue
+      // The body was transformed: swap in the new geometry and drop whatever
+      // preview transform the drag left on the object, since the translation or
+      // rotation is now baked into the vertices themselves.
+      const previous = existing.geometry
+      existing.geometry = geom3ToBufferGeometry(toGeom3(body.geometry))
+      previous.dispose()
+      existing.position.set(0, 0, 0)
+      existing.quaternion.identity()
+      existing.userData.recordId = body.recordId
+      continue
+    }
     const mesh = new Mesh(geom3ToBufferGeometry(toGeom3(body.geometry)), bodyMaterial)
     mesh.name = body.id
+    mesh.userData.recordId = body.recordId
     bodyMeshes.set(body.id, mesh)
     bodiesGroup.add(mesh)
   }
@@ -339,6 +399,143 @@ function applyMaterialTheme() {
   bodyMaterial?.color.setHex(palette.body)
   selectedMaterial?.color.setHex(palette.selected)
   ghostMaterial?.color.setHex(palette.ghost)
+}
+
+// --- gizmo drag (TODO/ui-012) ---------------------------------------------
+
+/**
+ * Show the drag in progress on the mesh itself, without touching the document.
+ *
+ * The transform is `p → centre + R·(p − centre) + t`: a body's geometry is baked
+ * in world millimetres, so turning the object about its own origin would spin it
+ * around the world origin instead — a body 300 mm out would fly across the
+ * scene. Written to the three.js object as `quaternion = R` and
+ * `position = centre − R·centre + t`, which is that same transform.
+ *
+ * Nothing here is a document mutation: exactly one `transform.*` record is
+ * appended, on release, with the whole gesture's delta. See
+ * `src/stores/transformPreview.js` for why.
+ */
+function applyPreviewTransform() {
+  const mesh = bodyMeshes.get(gizmoDrag.bodyId)
+  if (!mesh) return
+  // 'ZYX' matches `@jscad/modeling`'s own Tait-Bryan order, so the preview turns
+  // the same way the committed geometry will.
+  previewEuler.set(
+    (preview.rxDeg * Math.PI) / 180,
+    (preview.ryDeg * Math.PI) / 180,
+    (preview.rzDeg * Math.PI) / 180,
+    'ZYX',
+  )
+  mesh.quaternion.setFromEuler(previewEuler)
+  previewCentre.set(gizmoDrag.centreXMm, gizmoDrag.centreYMm, gizmoDrag.centreZMm)
+  previewCentre.applyQuaternion(mesh.quaternion)
+  mesh.position.set(
+    gizmoDrag.centreXMm - previewCentre.x + preview.txMm,
+    gizmoDrag.centreYMm - previewCentre.y + preview.tyMm,
+    gizmoDrag.centreZMm - previewCentre.z + preview.tzMm,
+  )
+  scheduleRender()
+}
+
+/** Put the dragged mesh back where the document says it is. */
+function clearPreviewTransform() {
+  const mesh = bodyMeshes.get(gizmoDrag.bodyId)
+  if (mesh) {
+    mesh.position.set(0, 0, 0)
+    mesh.quaternion.identity()
+  }
+  preview.clear()
+  gizmoDrag.active = false
+  gizmoDrag.bodyId = ''
+  scheduleRender()
+}
+
+/** @param {{ kind: 'translate' | 'rotate', axisIndex: number, clientX: number, clientY: number }} event */
+function onGizmoHandleDown(event) {
+  const body = selected.value.body
+  // Exactly one body, per control 4's precondition. The gizmo is not drawn in
+  // any other state, so this is a guard rather than a branch.
+  if (!body) return
+  gizmoDrag.active = true
+  gizmoDrag.kind = event.kind
+  gizmoDrag.axisIndex = event.axisIndex
+  gizmoDrag.bodyId = body.id
+  gizmoDrag.startXPx = event.clientX
+  gizmoDrag.startYPx = event.clientY
+  gizmoDrag.originXPx = gizmoAnnotation.originX
+  gizmoDrag.originYPx = gizmoAnnotation.originY
+  gizmoDrag.facing = axisFacing(orbit.state.azimuthDeg, orbit.state.elevationDeg, event.axisIndex)
+  gizmoDrag.centreXMm = body.positionMm[0]
+  gizmoDrag.centreYMm = body.positionMm[1]
+  gizmoDrag.centreZMm = body.positionMm[2]
+  preview.begin(body.id)
+}
+
+/** @param {{ clientX: number, clientY: number }} event */
+function onGizmoHandleMove(event) {
+  if (!gizmoDrag.active) return
+  const dxPx = event.clientX - gizmoDrag.startXPx
+  const dyPx = event.clientY - gizmoDrag.startYPx
+
+  if (gizmoDrag.kind === 'translate') {
+    const deltaMm = translateDeltaMm(
+      gizmoAnnotation,
+      gizmoDrag.axisIndex,
+      dxPx,
+      dyPx,
+      orbit.getMmPerPixel(heightPx),
+    )
+    preview.setTranslate(
+      gizmoDrag.axisIndex === 0 ? deltaMm : 0,
+      gizmoDrag.axisIndex === 1 ? deltaMm : 0,
+      gizmoDrag.axisIndex === 2 ? deltaMm : 0,
+    )
+  } else {
+    const deltaDeg = rotateDeltaDeg(
+      gizmoDrag.originXPx,
+      gizmoDrag.originYPx,
+      gizmoDrag.startXPx - viewportRect.left,
+      gizmoDrag.startYPx - viewportRect.top,
+      event.clientX - viewportRect.left,
+      event.clientY - viewportRect.top,
+      gizmoDrag.facing,
+    )
+    preview.setRotate(
+      gizmoDrag.axisIndex === 0 ? deltaDeg : 0,
+      gizmoDrag.axisIndex === 1 ? deltaDeg : 0,
+      gizmoDrag.axisIndex === 2 ? deltaDeg : 0,
+    )
+  }
+  applyPreviewTransform()
+}
+
+/** @param {{ cancelled: boolean }} event */
+function onGizmoHandleUp(event) {
+  if (!gizmoDrag.active) return
+  const bodyId = gizmoDrag.bodyId
+  const kind = gizmoDrag.kind
+  /** @type {[number, number, number]} */
+  const translate = [preview.txMm, preview.tyMm, preview.tzMm]
+  /** @type {[number, number, number]} */
+  const rotate = [preview.rxDeg, preview.ryDeg, preview.rzDeg]
+
+  // Drop the preview *before* committing, so the record's baked geometry and the
+  // object's own transform are never both applied for a frame — which would show
+  // the body at twice the distance it was dragged.
+  clearPreviewTransform()
+  if (event.cancelled) return
+
+  if (kind === 'translate') transformCommands.translateBy(bodyId, translate)
+  else transformCommands.rotateBy(bodyId, rotate)
+  syncBodies()
+}
+
+/** @param {{ clientX: number, clientY: number }} event */
+function onGizmoHandleClick(event) {
+  // A press on a handle that never moved: pick what is underneath, so the gizmo
+  // is not a dead zone over the solid it is attached to.
+  pickAt(event.clientX, event.clientY, false)
 }
 
 // --- drag placement (the drop-target contract) ----------------------------
@@ -750,6 +947,7 @@ onBeforeUnmount(() => {
     :data-selected-count="selection.count"
     :data-placing="placement.isDragging ? 'true' : 'false'"
     :data-ghost="ghostVisible ? 'visible' : 'hidden'"
+    :data-transforming="preview.isActive ? 'true' : 'false'"
   >
     <canvas
       ref="canvasEl"
@@ -789,7 +987,13 @@ onBeforeUnmount(() => {
          gizmo, both attached to whatever is selected right now, both
          non-interactive so neither can swallow the click that selects. -->
     <DimensionLines :annotations="dimensionAnnotations" />
-    <Gizmo :annotation="gizmoAnnotation" />
+    <Gizmo
+      :annotation="gizmoAnnotation"
+      @handle-down="onGizmoHandleDown"
+      @handle-move="onGizmoHandleMove"
+      @handle-up="onGizmoHandleUp"
+      @handle-click="onGizmoHandleClick"
+    />
 
     <Grid
       :mm-per-pixel="overlay.mmPerPixel"

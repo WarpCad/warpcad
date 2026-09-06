@@ -19,6 +19,35 @@ between sessions — that's itself a signal to move more of it into
 
 ## Queue
 
+### ui-012 — Gizmo move/rotate ↔ numeric-field sync (2026-09-06 13:09)
+
+Two entries, both feel judgments the acceptance drive genuinely cannot make. Everything
+*functional* about this task — the fields tracking a drag live, a typed value moving the
+mesh, and above all "exactly one body after a move" — is now covered on a standing basis
+by `TODO/ACCEPTANCE.md` scenarios 1 and 2, so none of it is restated here.
+
+- [ ] **The dimension lines do not turn during a rotate-ring drag.** They track a
+  *translate* drag exactly, but during a rotation the preview keeps the body's
+  axis-aligned bounding box and only settles onto the real turned bounds on release
+  (`src/composables/useSelectedBody.js` says why: the true bounds of a partly-turned
+  solid need the kernel to rotate it, which is precisely the per-frame work the preview
+  exists to avoid). Functionally correct, and the numbers are right the instant you let
+  go. The open question is whether it *reads* as broken mid-drag — three dimension lines
+  visibly not following the solid they annotate — or whether nobody notices because they
+  are watching the solid. Judge it by eye on a Cube at laptop width; if it reads badly,
+  the cheap fix is hiding the lines while a rotate preview is active, not measuring the
+  turned solid every frame.
+- [ ] **Rotate-ring drag feel under a real finger.** A ring drag maps the pointer's sweep
+  *around the gizmo hub* to degrees, so how much rotation a given finger movement
+  produces depends on how far out from the hub you grabbed — near the hub a small
+  movement spins it fast. That is the correct dial behaviour and it felt fine with a
+  synthesised pointer, but a fingertip has contact area and lands less precisely than a
+  mouse: the driven sweeps produced about −52° at laptop width and about −105° at phone
+  width for the same 70px gesture, purely because the fatter phone hit target moves the
+  effective grab point. Try it on a real iPhone and iPad and say whether the phone case
+  is too fast to control; if it is, the fix is clamping the effective grab radius in
+  `rotateDeltaDeg`'s caller, not shrinking the touch target back down.
+
 ### ui-011 — Selection → inspector + dimension lines + gizmo (2026-09-06 01:22)
 
 One entry. The two *structural* defects this task's acceptance drive found — the two

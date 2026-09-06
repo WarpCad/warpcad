@@ -108,6 +108,24 @@ the gizmo and all three dimension lines attach to whichever body was just clicke
 that body alone, never to both at once, confirmed by watching them retarget between the
 two solids and by orbiting with one selected. Console clean.
 
+**Re-checked**: 2026-09-06 13:12 — PASS (`ui-012`). Re-checked in full rather than
+glanced at, because that task replaced how `document.bodies()` decides what to render —
+exactly the subsystem this scenario's regression lives in. Driven at laptop/Chromium and
+phone/WebKit: a Cube then a Cylinder dragged in on wandering, jittery paths; **both stayed
+visible**, and each drop selected only the new item. Clicking empty grid cleared; clicking
+each solid in turn selected only that one, with the gizmo and dimension lines retargeting.
+
+**The new half, and the reason for the re-check**: with the Cube selected, its gizmo's X
+arrow was dragged. Afterwards there were still **exactly two bodies, not three** — the
+moved Cube kept its own id (`cuboid-1`) rather than becoming a second entry alongside the
+record that moved it. That is the duplication regression `ui-012`'s supersession mechanism
+exists to prevent, and it is genuinely absent rather than merely not obvious. The
+**untouched Cylinder's millimetre centre was byte-identical** before and after
+(`-24.05,143.77,25.00` at laptop, `-57.80,110.02,25.00` at phone), so there is no
+cross-talk through the document fold. Snapping to the front view afterwards showed both
+solids still present from another angle rather than a one-frame artefact. Console clean in
+both drives.
+
 ### 2. Hardware property edit
 
 **Steps**:
@@ -178,6 +196,44 @@ in full (no gizmo *drag*, no live field sync, no field-edit-moves-the-mesh — `
    sheet still covers 44px of the 3D view. Re-measured at 362-407px against 426px.
 
 A third, smaller thing was found and logged rather than fixed — see `TODO/VERIFY.md`.)
+
+**Re-checked**: 2026-09-06 13:12 — **PARTIAL PASS, and the whole gizmo/field half of
+Expect is now met** (`ui-012`). Still a partial, and deliberately reported as one: the
+`spec`/`fit` property edit this scenario is *named* after is still not drivable. What
+changed is that every one of steps 5-8 now is. Hand-driven at laptop 1440×900 in Chromium,
+tablet 820×1180 and phone 390×844 in WebKit, with a **Cylinder standing in for the Bolt**.
+
+**What was driven, and passed** — the entire **Expect** section's second and third
+sentences:
+- **Steps 5-6 (gizmo drag, fields live during it)**: dragging the X translate arrow moved
+  the mesh, and the Inspector's Position X was sampled *mid-gesture* at six points along
+  the drag — laptop: `-42.40 → -38.16 → -33.23 → -29.01 → -21.67 → -17.69`, settling at
+  `-16.09`. The numbers move **with** the drag, not at release, which is the specific claim
+  control 4 makes and the one a before/after look cannot make. Same on tablet and phone.
+- **Steps 7-8 (typed field moves the mesh)**: typing `-35` into Position Y and pressing
+  Enter moved the solid to exactly `-35`, on all three.
+- **The two directions agree**: after a drag, the field read the mesh's own centre to the
+  displayed precision; after a typed edit, the previously-dragged axis stayed where the
+  drag had left it rather than being reset.
+- **Beyond the scenario's own steps**: a rotate-ring drag (Rotation Z tracked live the same
+  way, `-39.6° → -52.2°` across the sweep) and a typed `45°`; garbage input (`abc`) into a
+  Position field, which correctly restored the previous value and moved nothing; four rapid
+  drags in a row with no settle time, which accumulated correctly and left exactly one body;
+  a drag performed **after orbiting the camera** to 15° az / 50° el, which still moved the
+  body along X alone; and a Z-arm drag, which moved Z alone. A Cube typed to 45° about Z
+  made its X/Y dimension lines read **56.569 mm** — exactly 40·√2 — and typing `0` back
+  returned them to exactly `40`, so the rotation is real geometry rather than a number in a
+  box, and it is reversible without drift. Console clean in every drive.
+
+**What is still NOT drivable and is therefore NOT claimed**: **step 1** (no Hardware
+section and no Bolt row — `ui-013`), and **steps 3-4** (changing `spec`/`fit` and watching
+the mesh change shape). Step 3-4 is blocked twice over: there is no Bolt to have a `spec`,
+and `ui-012` deliberately left the **Parameters** fields read-only, because editing those
+means rewriting a creation record and re-evaluating what depends on it — a different
+mutation from appending a transform, belonging to whichever task lands it. So the first
+sentence of **Expect** ("the mesh visibly changes shape after the spec/fit edit") remains
+unmet. The Inspector now says which fields are editable and which are not, rather than
+`ui-011`'s blanket "read-only for now" note, so a user is not misled about either.
 
 ### 3. Snap-placement of a kit assembly
 

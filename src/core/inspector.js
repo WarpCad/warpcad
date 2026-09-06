@@ -193,17 +193,24 @@ function fieldsFor(params, entry) {
 /**
  * Rotation currently applied to a body, in degrees.
  *
- * Zero for every body today, and that is a real measurement rather than a
- * placeholder: nothing in the registry can rotate a solid yet
- * (`transform.rotate` does not exist), so every placed body genuinely is
- * unrotated. It is a named function rather than a literal so `ui-012` — which
- * introduces the rotate op and the gizmo drag that drives it — has one place to
- * make it real, instead of hunting for a `[0, 0, 0]` buried in a component.
+ * `ui-011` built this as a seam returning `[0, 0, 0]` — a real measurement at the
+ * time, since nothing in the registry could rotate a solid. `ui-012` made it
+ * real: a rotated solid's polygons carry no memory of the angle that produced
+ * them, so the absolute rotation rides along on each transform record's params
+ * and `document.js` surfaces the terminal record's copy as `Body.rotationDeg`.
+ * See `src/core/transform.js` for why it is carried rather than re-derived.
+ *
+ * The `params.rotation` fallback stays for a body whose *creation* record carried
+ * a rotation directly — a composite recipe's output, or a loaded document.
  *
  * @param {Body} body
  * @returns {Vec3Mm} Degrees per axis.
  */
 export function rotationOf(body) {
+  const carried = body.rotationDeg
+  if (Array.isArray(carried) && carried.length === 3 && carried.every(Number.isFinite)) {
+    return [carried[0], carried[1], carried[2]]
+  }
   const rotation = body.params?.rotation
   if (Array.isArray(rotation) && rotation.length === 3 && rotation.every(Number.isFinite)) {
     return [rotation[0], rotation[1], rotation[2]]

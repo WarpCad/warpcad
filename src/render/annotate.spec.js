@@ -4,11 +4,14 @@ import { createOrbitCamera } from './camera.js'
 import { projectToWorkingPlane } from './pick.js'
 import {
   RING_SEGMENTS,
+  axisFacing,
   createDimensionAnnotation,
   createGizmoAnnotation,
   createRingPoints,
   createScreenPoint,
   ringPoints,
+  rotateDeltaDeg,
+  translateDeltaMm,
   updateDimensionAnnotation,
   updateGizmoAnnotation,
   worldToScreen,
@@ -407,5 +410,82 @@ describe('updateDimensionAnnotation', () => {
     updateDimensionAnnotation(orbit, MIN, MAX, 0, WIDTH_PX, HEIGHT_PX, 26, 9, out)
 
     expect(out.h1[0]).toBe(head)
+  })
+})
+
+describe('gizmo drag maths (TODO/ui-012)', () => {
+  /**
+   * The gizmo's handles became draggable in `ui-012`, and the arithmetic that
+   * turns a pointer path into millimetres and degrees lives here for the same
+   * reason everything else in this module does: a component doing coordinate
+   * maths is a bug waiting to happen, and this is the maths a user feels most
+   * directly — a drag that moves the wrong distance or turns the wrong way is
+   * obvious to a human and invisible to a screenshot.
+   */
+
+  it('projects a pointer delta onto an axis arm, in millimetres', () => {
+    const orbit = cameraAt()
+    const gizmo = createGizmoAnnotation()
+    updateGizmoAnnotation(orbit, 0, 0, 0, WIDTH_PX, HEIGHT_PX, 58, 40, gizmo)
+
+    const arrow = gizmo.arrows[0]
+    const armX = arrow.tipX - gizmo.originX
+    const armY = arrow.tipY - gizmo.originY
+    const armLength = Math.hypot(armX, armY)
+    const ux = armX / armLength
+    const uy = armY / armLength
+
+    // Dragging exactly along the arm by 100 px, at 0.5 mm/px, is 50 mm along X.
+    expect(translateDeltaMm(gizmo, 0, ux * 100, uy * 100, 0.5)).toBeCloseTo(50, 6)
+    // Backwards along it is the same distance, negated.
+    expect(translateDeltaMm(gizmo, 0, -ux * 100, -uy * 100, 0.5)).toBeCloseTo(-50, 6)
+    // Perpendicular to it contributes nothing: dragging across an axis handle
+    // must not slide the body along it.
+    expect(translateDeltaMm(gizmo, 0, -uy * 100, ux * 100, 0.5)).toBeCloseTo(0, 6)
+  })
+
+  it('gives an axis with no screen direction a zero delta rather than NaN', () => {
+    // Straight down the Z axis: Z has no screen image at all, so a drag on a
+    // handle that is not being drawn must be inert, not a division by zero.
+    const orbit = cameraAt()
+    orbit.snapTo('top')
+    const gizmo = createGizmoAnnotation()
+    updateGizmoAnnotation(orbit, 0, 0, 0, WIDTH_PX, HEIGHT_PX, 58, 40, gizmo)
+
+    expect(gizmo.arrows[2].visible).toBe(false)
+    expect(translateDeltaMm(gizmo, 2, 40, 40, 0.5)).toBe(0)
+  })
+
+  it('measures a rotate ring drag as a signed screen-space sweep', () => {
+    // A quarter sweep counter-clockwise on screen (screen Y grows *down*, so
+    // "up" is -y) about an axis pointing at the viewer is +90°.
+    expect(rotateDeltaDeg(100, 100, 110, 100, 100, 90, 1)).toBeCloseTo(90, 6)
+    // The same sweep about an axis pointing away from the viewer is -90°: the
+    // ring the user is grabbing is the far side of the same circle.
+    expect(rotateDeltaDeg(100, 100, 110, 100, 100, 90, -1)).toBeCloseTo(-90, 6)
+    // And the reverse sweep negates.
+    expect(rotateDeltaDeg(100, 100, 100, 90, 110, 100, 1)).toBeCloseTo(-90, 6)
+  })
+
+  it('wraps a rotate sweep across the ±180° seam rather than jumping a full turn', () => {
+    // Crossing the seam is the classic bug: a naive difference reports -350°
+    // for a 10° nudge, and the body spins.
+    const delta = rotateDeltaDeg(0, 0, Math.cos(3.0), Math.sin(3.0), Math.cos(-3.0), Math.sin(-3.0), 1)
+    expect(Math.abs(delta)).toBeLessThan(90)
+  })
+
+  it('reports a drag of no distance as no rotation', () => {
+    expect(rotateDeltaDeg(100, 100, 120, 100, 120, 100, 1)).toBe(0)
+    // A pointer exactly on the hub has no angle at all — inert, not NaN.
+    expect(rotateDeltaDeg(100, 100, 100, 100, 130, 100, 1)).toBe(0)
+  })
+
+  it('knows which way each axis faces the camera', () => {
+    const orbit = cameraAt()
+    orbit.snapTo('top')
+    // Looking down from +Z, the Z axis points straight at the viewer.
+    expect(axisFacing(orbit.state.azimuthDeg, orbit.state.elevationDeg, 2)).toBe(1)
+    orbit.snapTo('bottom')
+    expect(axisFacing(orbit.state.azimuthDeg, orbit.state.elevationDeg, 2)).toBe(-1)
   })
 })
