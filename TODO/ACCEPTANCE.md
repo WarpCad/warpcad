@@ -126,6 +126,14 @@ cross-talk through the document fold. Snapping to the front view afterwards show
 solids still present from another angle rather than a one-frame artefact. Console clean in
 both drives.
 
+**Re-checked**: 2026-09-06 15:44 — PASS (`ui-017`, quick glance only, as its own Testing
+section calls for — the gizmo-attaches half is the same overlay code path `ui-017`
+resized, not new selection logic). Two cubes dropped close enough together that their
+now-larger gizmos plausibly overlap; clicking each in turn retargeted the gizmo's
+`data-origin` cleanly from one body to the other every time (`435.9,407.5` →
+`553.2,407.5`), never both at once. Screenshots taken at each step confirm this visually —
+each body's own gizmo and dimension lines attach to it alone.
+
 ### 2. Hardware property edit
 
 **Steps**:
@@ -234,6 +242,22 @@ mutation from appending a transform, belonging to whichever task lands it. So th
 sentence of **Expect** ("the mesh visibly changes shape after the spec/fit edit") remains
 unmet. The Inspector now says which fields are editable and which are not, rather than
 `ui-011`'s blanket "read-only for now" note, so a user is not misled about either.
+
+**Re-checked**: 2026-09-06 15:44 — **PARTIAL PASS, still partial for the same reasons as
+before** (`ui-017`). This task only resizes the gizmo's arms/rings to clear the selected
+body's own on-screen silhouette instead of a fixed 58px/40px — it does not touch steps
+1/3-4's blockers, so the partial-pass boundary is unchanged. What was re-driven: two
+cubes dropped close together (so their now-larger gizmos plausibly overlap), zoomed in
+until the rendered `gizmo-arm-x` measured 184px on screen (versus the old fixed 58px),
+then dragged. **The correct body moved each time and its close neighbour never did**:
+dragging the right-hand cube's gizmo moved only that cube (`29.45,12.79` →
+`36.07,12.79`), the left-hand cube stayed exactly put; after resetting zoom and
+re-selecting the left-hand cube, dragging its gizmo moved only it (`-2.23,-18.89` →
+`10.7,-18.89`), leaving the other body untouched. This is exactly the risk the task's own
+Testing section named ("doesn't accidentally grab a neighbouring body's overlapping
+gizmo"), confirmed absent rather than merely not obvious. Screenshots at each step show
+the gizmo visibly growing well past the old fixed size and always clearing the selected
+cube's own silhouette. Console clean throughout.
 
 ### 3. Snap-placement of a kit assembly
 

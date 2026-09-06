@@ -36,6 +36,7 @@ import {
   axisFacing,
   createDimensionAnnotation,
   createGizmoAnnotation,
+  gizmoSizeForBounds,
   rotateDeltaDeg,
   translateDeltaMm,
   updateDimensionAnnotation,
@@ -75,10 +76,6 @@ const CLICK_SLOP_PX = 5
 /** The ghost is built once per op at the origin, then moved by `mesh.position`. */
 const GHOST_ORIGIN = Object.freeze({ x: 0, y: 0 })
 
-/** Screen length of each of the transform gizmo's translate arms, in pixels. */
-const GIZMO_ARM_PX = 58
-/** Screen radius of each of its rotate rings. */
-const GIZMO_RING_PX = 40
 /** How far clear of the solid a dimension line is drawn. */
 const DIMENSION_OFFSET_PX = 28
 /** Dimension arrowhead length. */
@@ -286,6 +283,12 @@ function syncAnnotations() {
     for (const annotation of dimensionAnnotations) annotation.visible = false
     return
   }
+  const [minMm, maxMm] = body.boundsMm
+  // `TODO/ui-017`: sized to the selected body's own on-screen bounding box —
+  // `overlay.mmPerPixel` is current because `syncOverlay` sets it immediately
+  // before calling here — rather than the fixed 58px/40px `ui-011` originally
+  // used, so the rings and arms always extend clear of the rendered object.
+  const { armPx, ringPx } = gizmoSizeForBounds(minMm, maxMm, overlay.mmPerPixel)
   updateGizmoAnnotation(
     orbit,
     body.positionMm[0],
@@ -293,11 +296,10 @@ function syncAnnotations() {
     body.positionMm[2],
     widthPx,
     heightPx,
-    GIZMO_ARM_PX,
-    GIZMO_RING_PX,
+    armPx,
+    ringPx,
     gizmoAnnotation,
   )
-  const [minMm, maxMm] = body.boundsMm
   for (let axis = 0; axis < 3; axis += 1) {
     updateDimensionAnnotation(
       orbit,

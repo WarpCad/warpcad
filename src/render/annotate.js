@@ -248,6 +248,90 @@ export function createGizmoAnnotation() {
 }
 
 /**
+ * Floor for the translate arm's screen length, in pixels — `TODO/ui-012`'s own
+ * tuned value for a comfortably grabbable handle. A tiny object's gizmo never
+ * shrinks below this, even though it grows past it for a large one.
+ */
+export const GIZMO_ARM_FLOOR_PX = 58
+
+/** Floor for the rotate ring's screen radius, in pixels. Same rationale. */
+export const GIZMO_RING_FLOOR_PX = 40
+
+/**
+ * How far clear of the body's own on-screen half-diagonal the arm/ring extend,
+ * once the body is big enough that the floor stops being the binding
+ * constraint. Kept smaller for the ring than the arm so the ring — attached at
+ * the same origin — stays inside the translate arms rather than poking past
+ * them, matching today's `58 > 40` ordering at every size.
+ */
+const GIZMO_ARM_CLEARANCE_PX = 16
+const GIZMO_RING_CLEARANCE_PX = 8
+
+/**
+ * Ceiling on both, so an enormous body's gizmo doesn't grow enough to run off
+ * screen.
+ */
+const GIZMO_ARM_MAX_PX = 220
+const GIZMO_RING_MAX_PX = 180
+
+/**
+ * Size the transform gizmo's translate arms and rotate rings to clear the
+ * selected body's own on-screen silhouette (`TODO/ui-017`), instead of the
+ * fixed pixel size `TODO/ui-011` originally drew them at.
+ *
+ * The body's bounding-box half-diagonal — the same `[minMm, maxMm]` pair
+ * `Viewport.vue`'s `syncAnnotations()` already destructures for the dimension
+ * lines — is converted to screen pixels via `mmPerPixel` (the same conversion
+ * `DimensionLines` uses), then clamped between a floor (today's original
+ * 58px/40px, so a tiny object's handles stay exactly as grabbable as
+ * `ui-012` tuned them) and a cap (so an enormous body's gizmo can't run off
+ * screen).
+ *
+ * Deliberately not perspective-projected or angle-dependent: like
+ * {@link updateGizmoAnnotation} itself, this only needs a single screen-space
+ * scale for the whole gizmo, not a per-axis one.
+ *
+ * @param {readonly number[]} minMm Bounding box minimum, millimetres.
+ * @param {readonly number[]} maxMm Bounding box maximum.
+ * @param {number} mmPerPixel The viewport's current millimetres-per-pixel scale
+ *   (`orbit.getMmPerPixel(heightPx)`). Non-finite or non-positive is treated as
+ *   the floor, rather than dividing by zero or producing `NaN`.
+ * @returns {{ armPx: number, ringPx: number }}
+ */
+export function gizmoSizeForBounds(minMm, maxMm, mmPerPixel) {
+  if (!(mmPerPixel > 0)) {
+    return { armPx: GIZMO_ARM_FLOOR_PX, ringPx: GIZMO_RING_FLOOR_PX }
+  }
+  const spanX = maxMm[0] - minMm[0]
+  const spanY = maxMm[1] - minMm[1]
+  const spanZ = maxMm[2] - minMm[2]
+  const halfDiagonalMm = 0.5 * Math.hypot(spanX, spanY, spanZ)
+  const halfDiagonalPx = halfDiagonalMm / mmPerPixel
+
+  const armPx = clamp(
+    Math.max(GIZMO_ARM_FLOOR_PX, halfDiagonalPx + GIZMO_ARM_CLEARANCE_PX),
+    GIZMO_ARM_FLOOR_PX,
+    GIZMO_ARM_MAX_PX
+  )
+  const ringPx = clamp(
+    Math.max(GIZMO_RING_FLOOR_PX, halfDiagonalPx + GIZMO_RING_CLEARANCE_PX),
+    GIZMO_RING_FLOOR_PX,
+    GIZMO_RING_MAX_PX
+  )
+  return { armPx, ringPx }
+}
+
+/**
+ * @param {number} value
+ * @param {number} min
+ * @param {number} max
+ * @returns {number}
+ */
+function clamp(value, min, max) {
+  return Math.min(Math.max(value, min), max)
+}
+
+/**
  * Position the transform gizmo at a body's origin.
  *
  * Visual only — `TODO/ui-011` draws the handles and `ui-012` makes them

@@ -11,7 +11,15 @@ Click — or tap — directly on a shape in the 3D view. Three things happen at 
 1. **A gizmo appears at the middle of the shape.** Three coloured arrows point along the
    part's X, Y and Z directions, and three faint rings circle it. The arrows are the
    move handles and the rings are the rotate handles — both draggable, see
-   [Moving and turning a shape](#moving-and-turning-a-shape).
+   [Moving and turning a shape](#moving-and-turning-a-shape). **The gizmo's size follows
+   the shape it is attached to**, rather than staying a fixed size: its arms and rings
+   always extend a short distance past the shape's own outline, growing for a larger
+   shape (or as you zoom in) and shrinking for a smaller one (or as you zoom out) — down
+   to a comfortably grabbable minimum, so a tiny part's handles never shrink to nothing.
+   Select a small bolt and a large case shell in turn — the gizmo's arms and rotate rings
+   resize each time, always extending a short distance past whichever object's outline,
+   rather than staying a fixed size that disappears inside a large object or dwarfs a
+   small one.
 2. **Three dimension lines are drawn**, one per direction, each with a dashed leader
    line, an arrow at each end, and a number in millimetres. You always get all three at
    once — the width, the depth and the height — so you can read a part's real size

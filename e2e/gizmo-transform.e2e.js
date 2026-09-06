@@ -143,24 +143,53 @@ async function fieldNumber(page, testId) {
  * @param {(page: import('@playwright/test').Page) => Promise<void>} [options.midDrag]
  * @param {boolean} [options.tangential] Drag across the handle rather than along
  *   it — what a rotate ring needs.
+ * @param {number} [options.grabFraction] Where along an **arm's** own hit-target
+ *   line (`x1,y1` → `x2,y2`) to press, as a fraction from the hub end. Defaults
+ *   to the drawn line's own bounding-box midpoint (the previous, only, choice) —
+ *   fine for an actual drag, which cares about the delta, not the exact start
+ *   point. `TODO/ui-017` made the arm's length track the selected body's own
+ *   on-screen size, so a handle long enough to clear a large body can now put
+ *   its *midpoint* outside that body's own silhouette; a caller testing what a
+ *   stationary press "falls through to" needs a point nearer the hub, which
+ *   `Gizmo.vue`'s own header comment says is deliberately left inside the
+ *   body's clear zone (`ARM_GRAB_FROM`).
  */
-async function dragHandle(page, testId, { distancePx, midDrag, tangential = false }) {
+async function dragHandle(
+  page,
+  testId,
+  { distancePx, midDrag, tangential = false, grabFraction },
+) {
   // The gizmo is drawn from the viewport's *render callback*, so it appears a
   // frame after the selection it belongs to. `data-selected-id` flipping is
   // therefore not proof the handles exist yet — waiting on the handle itself is.
   await expect(page.locator(`[data-testid="${testId}"]`)).toBeAttached()
   const plan = await page.evaluate(
-    ({ testId, distancePx, tangential }) => {
+    ({ testId, distancePx, tangential, grabFraction }) => {
       const el = document.querySelector(`[data-testid="${testId}"]`)
       const view = document.querySelector('[data-testid="viewport"]')
       if (!el || !view) throw new Error(`missing handle ${testId}`)
       const gizmo = document.querySelector('[data-testid="transform-gizmo"]')
       const [ox, oy] = (gizmo?.getAttribute('data-origin') ?? '0,0').split(',').map(Number)
       const rect = view.getBoundingClientRect()
-      const box = el.getBoundingClientRect()
-      // Grab the middle of the handle's own box, wherever the camera has put it.
-      const startX = box.left + box.width / 2
-      const startY = box.top + box.height / 2
+
+      let startX
+      let startY
+      if (grabFraction != null && el.hasAttribute('x1')) {
+        // The SVG overlay sits at the viewport's own origin with no extra
+        // scaling, so its line-endpoint attributes are already CSS pixels
+        // relative to `rect`.
+        const x1 = Number(el.getAttribute('x1'))
+        const y1 = Number(el.getAttribute('y1'))
+        const x2 = Number(el.getAttribute('x2'))
+        const y2 = Number(el.getAttribute('y2'))
+        startX = rect.left + x1 + (x2 - x1) * grabFraction
+        startY = rect.top + y1 + (y2 - y1) * grabFraction
+      } else {
+        // Grab the middle of the handle's own box, wherever the camera has put it.
+        const box = el.getBoundingClientRect()
+        startX = box.left + box.width / 2
+        startY = box.top + box.height / 2
+      }
       // Outward from the gizmo hub, or at right angles to that for a ring.
       let dx = startX - (rect.left + ox)
       let dy = startY - (rect.top + oy)
@@ -175,7 +204,7 @@ async function dragHandle(page, testId, { distancePx, midDrag, tangential = fals
         endY: startY + uy * distancePx,
       }
     },
-    { testId, distancePx, tangential },
+    { testId, distancePx, tangential, grabFraction: grabFraction ?? null },
   )
 
   /**
@@ -486,7 +515,12 @@ test('a press on a handle that never moves still selects what is underneath', as
   await expect(page.getByTestId('viewport')).toHaveAttribute('data-selected-id', cube.id)
 
   const centreBefore = (await sceneBodies(page))[0].center
-  await dragHandle(page, 'gizmo-grab-arm-x', { distancePx: 0 })
+  // `TODO/ui-017`: the arm's hit target now extends far enough to clear a large
+  // body's own silhouette, so its rendered *midpoint* is no longer guaranteed to
+  // sit over the body — press near the hub end instead, which `Gizmo.vue`'s own
+  // `ARM_GRAB_FROM` deliberately keeps inside the body's clear zone regardless
+  // of how long the arm grows.
+  await dragHandle(page, 'gizmo-grab-arm-x', { distancePx: 0, grabFraction: 0.05 })
   // Nothing moved, nothing was appended, and the selection survived.
   expect((await sceneBodies(page))[0].center).toEqual(centreBefore)
   await expect(page.getByTestId('viewport')).toHaveAttribute('data-selected-id', cube.id)
@@ -530,4 +564,124 @@ test('the page never scrolls sideways with the gizmo handles mounted', async ({ 
   }))
   expect(overflow.x).toBeLessThanOrEqual(1)
   expect(overflow.y).toBeLessThanOrEqual(1)
+})
+
+/**
+ * The X arm's, and the same axis's ring's, screen geometry, read straight from
+ * the rendered SVG — no maths of our own, just what `annotate.js` already wrote
+ * (TODO/ui-017).
+ *
+ * There is no way to drop a primitive at a custom size yet (the Library always
+ * drops at its registry defaults, and the Inspector's Parameters/Size fields are
+ * read-only — `inspector-param-size-x` and `inspector-size-x` above), so this
+ * varies the body's **on-screen** bounding box the way `ui-017`'s own Goal
+ * describes doing it — "growing and shrinking with it as the user zooms" — via
+ * the reachable `nav-zoom-in`/`nav-zoom-out` chrome, rather than via a "large
+ * cube vs. small cube" pair the app cannot actually place yet.
+ *
+ * @param {import('@playwright/test').Page} page
+ * @returns {Promise<{
+ *   originX: number, originY: number, armPx: number, ringPx: number,
+ *   armTipX: number, armTipY: number, grabTipX: number, grabTipY: number,
+ * } | null>}
+ */
+function gizmoXGeometry(page) {
+  return page.evaluate(() => {
+    const gizmo = document.querySelector('[data-testid="transform-gizmo"]')
+    const arm = document.querySelector('[data-testid="gizmo-arm-x"]')
+    const grabArm = document.querySelector('[data-testid="gizmo-grab-arm-x"]')
+    const ring = document.querySelector('[data-testid="gizmo-ring-x"]')
+    if (!gizmo || !arm || !grabArm || !ring) return null
+    const [originX, originY] = (gizmo.getAttribute('data-origin') ?? '0,0').split(',').map(Number)
+    const armTipX = Number(arm.getAttribute('x2'))
+    const armTipY = Number(arm.getAttribute('y2'))
+    const armPx = Math.hypot(armTipX - originX, armTipY - originY)
+    const points = (ring.getAttribute('points') ?? '')
+      .trim()
+      .split(' ')
+      .map((pair) => pair.split(',').map(Number))
+    const ringPx = points.reduce(
+      (max, [x, y]) => Math.max(max, Math.hypot(x - originX, y - originY)),
+      0,
+    )
+    return {
+      originX,
+      originY,
+      armPx,
+      ringPx,
+      armTipX,
+      armTipY,
+      grabTipX: Number(grabArm.getAttribute('x2')),
+      grabTipY: Number(grabArm.getAttribute('y2')),
+    }
+  })
+}
+
+/**
+ * The grid readout's current millimetres-per-pixel, from the same
+ * `data-scale-mm` attribute and scale-bar width `viewport-scaffold.e2e.js`
+ * already reads — the only DOM-visible proxy for `overlay.mmPerPixel`.
+ *
+ * @param {import('@playwright/test').Page} page
+ * @returns {Promise<number>}
+ */
+async function mmPerPixelNow(page) {
+  const scaleMm = Number(await page.getByTestId('grid-scale-readout').getAttribute('data-scale-mm'))
+  const bar = await page.getByTestId('grid-scale-bar').boundingBox()
+  return scaleMm / (bar?.width || 1)
+}
+
+test('the gizmo grows past its floor size as the selected body reads larger on screen, and shrinks back toward the floor without going under it', async ({
+  page,
+}) => {
+  await placeCube(page)
+  await page.getByTestId('nav-reset').click()
+  await page.waitForTimeout(80)
+
+  const baseline = await gizmoXGeometry(page)
+  expect(baseline).not.toBeNull()
+
+  // The gizmo genuinely clears the body's own projected bounding box at the
+  // default view — not just "bigger than the old fixed constant" but "bigger
+  // than the body it surrounds", the exact regression `ui-017`'s Goal describes
+  // ("the rings sit inside or barely clear of the object's own silhouette").
+  const baselineLengths = Object.values(await dimensionLengths(page))
+  const baselineMmPerPixel = await mmPerPixelNow(page)
+  const baselineHalfDiagonalPx = (0.5 * Math.hypot(...baselineLengths)) / baselineMmPerPixel
+  expect(baselineLengths.length).toBeGreaterThan(0)
+  expect(baseline?.armPx ?? 0).toBeGreaterThan(baselineHalfDiagonalPx)
+  expect(baseline?.ringPx ?? 0).toBeGreaterThan(baselineHalfDiagonalPx)
+
+  // The invisible hit target scales the very same way as the visible handle —
+  // ui-017's own Interaction model note: the drawn arm and its grab target share
+  // one tip (both come from the same `arrow.tipX/tipY` in annotate.js), so a
+  // bigger ring can never visually promise a bigger target than is actually
+  // clickable/tappable.
+  expect(baseline?.grabTipX).toBeCloseTo(baseline?.armTipX ?? NaN, 1)
+  expect(baseline?.grabTipY).toBeCloseTo(baseline?.armTipY ?? NaN, 1)
+
+  // Zoom in hard: the same 40mm cube now covers far more of the screen, so its
+  // gizmo must grow further still — the whole point of ui-017, versus the fixed
+  // 58px/40px it replaces, which never responded to zoom at all. (A very large
+  // on-screen body is expected to hit this module's own growth cap rather than
+  // track the silhouette exactly, so this step only checks relative growth, not
+  // the bounding-box comparison above.)
+  for (let i = 0; i < 10; i += 1) await page.getByTestId('nav-zoom-in').click()
+  await page.waitForTimeout(80)
+  const zoomedIn = await gizmoXGeometry(page)
+  expect(zoomedIn?.armPx ?? 0).toBeGreaterThan(baseline?.armPx ?? Infinity)
+  expect(zoomedIn?.ringPx ?? 0).toBeGreaterThan(baseline?.ringPx ?? Infinity)
+  // The arm still extends further than the ring at the same origin, matching
+  // today's 58 > 40 ordering at every size.
+  expect(zoomedIn?.armPx ?? 0).toBeGreaterThan(zoomedIn?.ringPx ?? Infinity)
+
+  // Zoom back out, well past the original distance: the same cube now reads as
+  // only a handful of screen pixels, so the gizmo must shrink — but never below
+  // the floor `ui-012` already tuned as comfortably grabbable.
+  for (let i = 0; i < 20; i += 1) await page.getByTestId('nav-zoom-out').click()
+  await page.waitForTimeout(80)
+  const zoomedOut = await gizmoXGeometry(page)
+  expect(zoomedOut?.armPx ?? Infinity).toBeLessThan(zoomedIn?.armPx ?? -Infinity)
+  expect(zoomedOut?.armPx ?? 0).toBeGreaterThanOrEqual(58 - 0.5)
+  expect(zoomedOut?.ringPx ?? 0).toBeGreaterThanOrEqual(40 - 0.5)
 })

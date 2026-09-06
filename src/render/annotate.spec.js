@@ -9,6 +9,7 @@ import {
   createGizmoAnnotation,
   createRingPoints,
   createScreenPoint,
+  gizmoSizeForBounds,
   ringPoints,
   rotateDeltaDeg,
   translateDeltaMm,
@@ -248,6 +249,74 @@ describe('updateGizmoAnnotation', () => {
 
     expect(out.arrows[0]).toBe(firstArrow)
     expect(out.rings[0]).toBe(firstRing)
+  })
+})
+
+describe('gizmoSizeForBounds (TODO/ui-017)', () => {
+  it('gives a zero-size bounding box the floor size, not NaN or zero', () => {
+    const { armPx, ringPx } = gizmoSizeForBounds([0, 0, 0], [0, 0, 0], 1)
+    expect(armPx).toBeGreaterThan(0)
+    expect(ringPx).toBeGreaterThan(0)
+    expect(Number.isNaN(armPx)).toBe(false)
+    expect(Number.isNaN(ringPx)).toBe(false)
+    // The floor is today's fixed constants: a tiny object must not shrink below
+    // what ui-012 already tuned as comfortably grabbable.
+    expect(armPx).toBeCloseTo(58, 6)
+    expect(ringPx).toBeCloseTo(40, 6)
+  })
+
+  it('stays at the floor for a small object that fits well inside it', () => {
+    // A 10mm cube at 1mm/px projects to a 10px half-diagonal — far smaller than
+    // the floor, so the floor should win rather than shrinking further.
+    const { armPx, ringPx } = gizmoSizeForBounds([0, 0, 0], [10, 10, 10], 1)
+    expect(armPx).toBeCloseTo(58, 6)
+    expect(ringPx).toBeCloseTo(40, 6)
+  })
+
+  it('grows past the floor for a body whose on-screen half-diagonal exceeds it', () => {
+    // A 300mm cube at 1mm/px has a half-diagonal of 150*sqrt(3) ≈ 259.8px screen
+    // half-diagonal — comfortably past the floor, so the size must grow to clear
+    // the body's own silhouette.
+    const { armPx, ringPx } = gizmoSizeForBounds([0, 0, 0], [300, 300, 300], 1)
+    expect(armPx).toBeGreaterThan(58)
+    expect(ringPx).toBeGreaterThan(40)
+    // The arm must stay outside the ring, matching today's 58 > 40 ordering, so
+    // rings never poke out past the translate arms that anchor them.
+    expect(armPx).toBeGreaterThan(ringPx)
+  })
+
+  it('grows monotonically with a larger bounding box, at a few mmPerPixel values', () => {
+    for (const mmPerPixel of [0.5, 1, 4]) {
+      const small = gizmoSizeForBounds([0, 0, 0], [20, 20, 20], mmPerPixel)
+      const large = gizmoSizeForBounds([0, 0, 0], [400, 400, 400], mmPerPixel)
+      expect(large.armPx).toBeGreaterThanOrEqual(small.armPx)
+      expect(large.ringPx).toBeGreaterThanOrEqual(small.ringPx)
+    }
+  })
+
+  it('shrinks toward the floor, not below it, as mmPerPixel grows (zoomed out)', () => {
+    // The same real-world body reads as fewer screen pixels the further the
+    // camera zooms out, so its gizmo should shrink toward the floor but never
+    // past it.
+    const zoomedIn = gizmoSizeForBounds([0, 0, 0], [300, 300, 300], 0.5)
+    const zoomedOut = gizmoSizeForBounds([0, 0, 0], [300, 300, 300], 50)
+    expect(zoomedOut.armPx).toBeLessThan(zoomedIn.armPx)
+    expect(zoomedOut.armPx).toBeCloseTo(58, 6)
+    expect(zoomedOut.ringPx).toBeCloseTo(40, 6)
+  })
+
+  it('caps the growth so an enormous body does not run the gizmo off screen', () => {
+    const { armPx, ringPx } = gizmoSizeForBounds([0, 0, 0], [1e6, 1e6, 1e6], 1)
+    expect(Number.isFinite(armPx)).toBe(true)
+    expect(Number.isFinite(ringPx)).toBe(true)
+    expect(armPx).toBeLessThan(500)
+    expect(ringPx).toBeLessThan(500)
+  })
+
+  it('treats a non-finite mmPerPixel (e.g. a degenerate camera state) as the floor', () => {
+    const { armPx, ringPx } = gizmoSizeForBounds([0, 0, 0], [300, 300, 300], 0)
+    expect(armPx).toBeCloseTo(58, 6)
+    expect(ringPx).toBeCloseTo(40, 6)
   })
 })
 
