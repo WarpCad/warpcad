@@ -30,6 +30,18 @@ const emit = defineEmits(['snap'])
 const ORIGIN = Object.freeze({ x: 0, y: 0, z: 0 })
 const RADIUS = 33
 
+/**
+ * How far the visible spoke line extends past its own cap's anchor point
+ * (TODO/ui-025). The cap buttons stay anchored at `RADIUS` — unchanged, so the
+ * existing touch-target floor and the mobile `@media` breakpoint's own cap
+ * sizing are untouched — but the colored spoke itself is drawn to
+ * `RADIUS * SPOKE_SCALE`, so a short tail of color pokes out past the cap's
+ * outer edge into the dial's remaining margin. Both endpoints live in the same
+ * `viewBox="-50 -50 100 100"` coordinate space, so this scales identically at
+ * every breakpoint rather than needing a separate mobile constant.
+ */
+const SPOKE_SCALE = 1.42
+
 /** Module-scope scratch so re-projection allocates no vectors. */
 const basisRight = { x: 0, y: 0, z: 0 }
 const basisUp = { x: 0, y: 0, z: 0 }
@@ -88,8 +100,8 @@ const orientationLabel = computed(
           :class="{ 'gizmo__spoke--negative': !cap.positive }"
           x1="0"
           y1="0"
-          :x2="cap.x"
-          :y2="cap.y"
+          :x2="cap.x * SPOKE_SCALE"
+          :y2="cap.y * SPOKE_SCALE"
           :stroke="cap.label.includes('X') ? 'var(--axis-x)' : cap.label.includes('Y') ? 'var(--axis-y)' : 'var(--accent)'"
         />
         <circle class="gizmo__hub" cx="0" cy="0" r="2.5" />
@@ -171,7 +183,7 @@ const orientationLabel = computed(
 }
 
 .gizmo__hub {
-  fill: var(--text-3);
+  fill: var(--accent);
 }
 
 .gizmo__cap {
@@ -183,7 +195,10 @@ const orientationLabel = computed(
   transform: translate(-50%, -50%);
   border: 1px solid var(--border-strong);
   border-radius: 50%;
-  background: var(--surface-2);
+  /* Translucent rather than opaque (TODO/ui-025): the spoke passing underneath
+     a cap stays partially visible through it instead of being fully occluded. */
+  background: color-mix(in srgb, var(--surface-2) 62%, transparent);
+  backdrop-filter: blur(1px);
   color: var(--text-1);
   font: 600 11px/1 var(--font-mono);
   cursor: pointer;
@@ -191,8 +206,13 @@ const orientationLabel = computed(
 }
 
 .gizmo__cap--negative {
-  background: var(--surface-1);
+  /* Recede further than the positive caps (TODO/ui-025) — smaller opacity and
+     an outline-only fill — so the six caps stop reading as six equal-weight
+     buttons and the solid positive-axis triad reads as the dominant element. */
+  background: color-mix(in srgb, var(--surface-1) 28%, transparent);
+  border-style: dashed;
   color: var(--text-3);
+  opacity: 0.7;
 }
 
 .gizmo__cap:hover,

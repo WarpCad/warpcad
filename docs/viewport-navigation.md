@@ -98,7 +98,11 @@ mouse button on a touchscreen to remap.
 
 The triad shows which way the camera is currently pointing: the red spoke is the
 X axis, green is Y, and blue is Z. Solid spokes point toward you; dashed ones
-point away.
+point away. Each spoke's colour is visible right through the button sitting on
+top of it, and pokes a short tail out past the button's edge, so you can read
+the current orientation off the triad itself rather than off the numeric
+"az/el" caption underneath. The buttons for the axes pointing away from you
+are drawn fainter and dashed, so the three axes actually facing you stand out.
 
 Each labelled cap is a button, and clicking one moves the camera **onto** that
 axis:

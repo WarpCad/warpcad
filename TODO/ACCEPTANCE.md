@@ -594,6 +594,21 @@ orientation gizmo, the home button, or the scale readout. The preset choice itse
 inert on this input path by design — touch has no Shift key or right mouse button — so
 this re-drive is purely a layout/crowding check, not a behavior check.
 
+**Re-checked**: 2026-09-07 18:52 — PASS (`ui-025`). `ui-025`'s own Testing section
+judged this scenario "none directly" affected (purely a cap-opacity/spoke-length CSS
+change, no trigger-semantics change), but step 5 of this scenario literally taps the
+orientation gizmo, so that call was verified by hand rather than taken on faith. Driven
+at the iPad viewport (820×1180, WebKit, touch-only) in both dark and light colour
+schemes: a real touch `tap()` on the `Z` cap snapped to top (elevation 90°), a tap on
+the `−Y`/front cap — one of the now-dashed, more-translucent *negative*-axis caps, the
+element whose styling changed the most — snapped to front (azimuth −90°, elevation 0°)
+without any loss of hit-testability, and a tap on `X`/right in light theme snapped to
+azimuth 0°. All three snaps landed exactly where scenario 1/`ui-011` already established
+they should. Beyond the scenario's own steps: screenshotted the gizmo after each tap —
+the triad reads clearly through the translucent caps with a visible colour stub past
+each button's edge, in both themes, at this exact viewport, which is the legibility
+`ui-025` exists to fix. No regression.
+
 ### 8. Remote-load safety
 
 **Steps**:

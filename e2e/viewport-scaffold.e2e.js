@@ -337,6 +337,38 @@ test('the orientation gizmo snaps the camera to standard views', async ({ page }
   await camera(page, 'azimuth').toBeCloseTo(-45, 1)
 })
 
+test('the orientation gizmo dial is a snapshot target for cap/triad visual weight (TODO/ui-025)', async ({
+  page,
+  browserName,
+}, testInfo) => {
+  // Purely a look-at-it-yourself artifact, not a pixel diff (same reasoning as
+  // the transform gizmo's `shaded-gizmo-*` snapshot in gizmo-transform.e2e.js):
+  // the caps'/spokes' relative visual weight is a legibility judgment call, not
+  // something a numeric assertion can usefully encode. Chromium-only is
+  // acceptable per the TODO's own Testing section — this is a DOM/SVG overlay,
+  // not WebGL, so there's no cross-engine rendering risk to catch here.
+  test.skip(browserName !== 'chromium', 'DOM/SVG overlay — no cross-engine rendering risk')
+
+  await expect(page.getByTestId('orientation-gizmo')).toBeVisible()
+
+  // Confirm the dial actually holds all six caps plus a visible hub — the
+  // structural check a snapshot alone can't guarantee survived a CSS edit.
+  const dial = page.getByTestId('orientation-gizmo').locator('.gizmo__dial')
+  for (const view of ['right', 'left', 'back', 'front', 'top', 'bottom']) {
+    await expect(page.getByTestId(`gizmo-view-${view}`)).toBeVisible()
+  }
+  await expect(dial.locator('.gizmo__hub')).toBeVisible()
+  await expect(dial.locator('.gizmo__spoke')).toHaveCount(6)
+
+  mkdirSync(SNAPSHOT_DIR, { recursive: true })
+  const file = join(SNAPSHOT_DIR, `orientation-gizmo-${testInfo.project.name}.png`)
+  await dial.screenshot({ path: file })
+  await testInfo.attach(`orientation-gizmo-${testInfo.project.name}`, {
+    path: file,
+    contentType: 'image/png',
+  })
+})
+
 test('the gizmo triad re-projects as the camera moves', async ({ page }) => {
   const xCap = page.getByTestId('gizmo-view-right') // the +X axis cap
   const zCap = page.getByTestId('gizmo-view-top') // the +Z axis cap
