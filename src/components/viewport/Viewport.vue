@@ -31,17 +31,23 @@ import OrientationGizmo from './OrientationGizmo.vue'
 import NavigationChrome from './NavigationChrome.vue'
 import DimensionLines from './DimensionLines.vue'
 import Gizmo from './Gizmo.vue'
+import MarqueeSelect from './MarqueeSelect.vue'
 import { useSelectedBody } from '../../composables/useSelectedBody.js'
 import {
   axisFacing,
   createDimensionAnnotation,
   createOrientedBox,
   createGizmoAnnotation,
+  createMarqueeRect,
+  createBoxScreenBounds,
   gizmoSizeForBounds,
+  marqueeIntersectsBox,
   rotateDeltaDeg,
   translateDeltaMm,
+  updateBoxScreenBounds,
   updateDimensionAnnotation,
   updateGizmoAnnotation,
+  updateMarqueeRect,
 } from '../../render/annotate.js'
 import { useTransformCommands } from '../../composables/useTransformCommands.js'
 import { useTransformPreviewStore } from '../../stores/transformPreview.js'
@@ -56,6 +62,7 @@ import {
 } from '../../render/mesh.js'
 import { ndcFromClient, projectToWorkingPlane } from '../../render/pick.js'
 import { evaluateOp, toGeom3 } from '../../core/kernel/index.js'
+import { boundsOf } from '../../core/kernel/group.js'
 import { paramsForDrop, recordForDrop } from '../../core/library.js'
 import { useDocumentStore } from '../../stores/document.js'
 import { usePlacementStore } from '../../stores/placement.js'
@@ -112,7 +119,12 @@ function preferredTheme() {
 const rootEl = ref(/** @type {HTMLElement | null} */ (null))
 const canvasEl = ref(/** @type {HTMLCanvasElement | null} */ (null))
 
-/** @type {import('vue').Ref<'orbit' | 'pan'>} */
+/**
+ * @type {import('vue').Ref<'orbit' | 'pan' | 'select'>} `'select'` is
+ * `TODO/ui-024`'s touch equivalent for marquee-select — a third chrome toggle
+ * alongside Orbit/Pan (`TODO/ui-018`), since touch has no modifier key at all
+ * for the desktop Ctrl/Cmd-drag path below.
+ */
 const dragMode = ref('orbit')
 const theme = ref(preferredTheme())
 const webglError = ref('')
@@ -157,6 +169,19 @@ const dimensionAnnotations = reactive([
  * no-per-frame-allocation rule.
  */
 const dimensionBox = createOrientedBox()
+
+/**
+ * The marquee-select rectangle's screen geometry (`TODO/ui-024`).
+ *
+ * Reactive for the same reason `gizmoAnnotation` above is: `MarqueeSelect.vue`
+ * draws straight from it. Unlike the camera-driven overlays, this is written
+ * directly from the pointer path (`onPointerMove`) rather than only from the
+ * render callback — the same precedent `src/stores/transformPreview.js`'s own
+ * per-`pointermove` writes already set for this component, and still a
+ * handful of numbers, not the multi-megabyte structure CLAUDE.md's
+ * Performance rule is actually about.
+ */
+const marqueeRect = reactive(createMarqueeRect())
 
 // --- non-reactive render state -------------------------------------------
 
@@ -220,6 +245,24 @@ let pressButton = -1
 let pressShiftKey = false
 /** @type {string} `PointerEvent.pointerType` at press start: `'mouse'`, `'touch'`, `'pen'`, or `''` between gestures. */
 let pressPointerType = ''
+// Marquee-select bookkeeping (`TODO/ui-024`), captured at press start like the
+// pan-override fields above and for the same reason: a modifier released
+// mid-drag must not flip the gesture's meaning halfway through.
+let pressCtrlKey = false
+let pressMetaKey = false
+let pressStartClientX = 0
+let pressStartClientY = 0
+/**
+ * What the single-pointer gesture in progress has resolved to, decided once
+ * — by {@link decideGestureKind} — the moment its travel first exceeds
+ * `CLICK_SLOP_PX`, and left `''` for the rest of a press that never becomes a
+ * drag at all (an ordinary click). Sticky for the life of the gesture, same
+ * discipline as `effectiveDragMode()`'s own note on `pressShiftKey`.
+ * @type {'' | 'orbit' | 'pan' | 'select' | 'marquee'}
+ */
+let gestureKind = ''
+/** Whether the in-progress marquee adds to the selection rather than replacing it. */
+let marqueeAdditive = false
 
 /**
  * The gizmo drag in progress (`TODO/ui-012`).
@@ -247,6 +290,9 @@ const gizmoDrag = {
   centreYMm: 0,
   centreZMm: 0,
 }
+
+/** Scratch for a marquee release's body-vs-rectangle test (`TODO/ui-024`). */
+const boxScreenBounds = createBoxScreenBounds()
 
 // Scratch for the preview transform below — allocated once, never per frame.
 const previewEuler = new Euler()
@@ -737,7 +783,14 @@ function mouseDragOverride(preset) {
  * decided once, at the point travel first crosses whatever threshold the
  * active preset uses, not re-evaluated every move.
  *
- * @returns {'orbit' | 'pan'}
+ * `dragMode.value` can also be `'select'` (`TODO/ui-024`'s marquee toggle):
+ * `decideGestureKind` above intercepts that case into a marquee before ever
+ * reaching here in the ordinary flow, but a press that starts *on* a body
+ * while `'select'` is active still falls through to this function (there is
+ * no separate "drag a body directly" gesture, so it behaves like any other
+ * non-`'pan'` mode and orbits — see `applyDrag`'s `!== 'pan'` check).
+ *
+ * @returns {'orbit' | 'pan' | 'select'}
  */
 function effectiveDragMode() {
   if (pressPointerType === 'mouse') {
@@ -757,6 +810,51 @@ function applyDrag(dx, dy) {
   // down tips the top of the scene toward the viewer.
   else orbit.orbit(-dx * ORBIT_DEG_PER_PX, dy * ORBIT_DEG_PER_PX)
   scheduleRender()
+}
+
+/**
+ * Decide, once per single-pointer gesture, whether a drag orbits, pans, or
+ * starts a marquee-select rectangle (`TODO/ui-024`).
+ *
+ * Marquee needs a way to claim a gesture without colliding with `ui-018`'s
+ * pan overrides (Shift+left-drag, right-drag) or the plain-left-drag orbit
+ * default those gestures — and their regression specs — already depend on.
+ * Recorded in `docs/decisions/interaction-model-qa.md`'s marquee addendum:
+ * two paths reach marquee, checked *before* falling through to
+ * {@link effectiveDragMode}, so neither disturbs its existing behaviour when
+ * neither path applies:
+ *
+ * - **Mouse**: Ctrl or Cmd held at press-down — a modifier `mouseDragOverride`
+ *   never reads — with the press having started on empty space (not on a
+ *   body's mesh; a gizmo handle never reaches this component at all, since
+ *   `Gizmo.vue`'s own hit targets sit above the canvas and stop the event
+ *   there).
+ * - **Any pointer type, including touch**: the chrome's own `dragMode` toggle
+ *   set to `'select'` — the touch equivalent this control needs, since touch
+ *   has no modifier key, mirroring the existing Orbit/Pan toggle.
+ *
+ * Either path sets {@link marqueeAdditive} from `pressShiftKey` — additive
+ * marquee is desktop-only for now (stated explicitly, per this task's own
+ * Interaction model section, rather than left implicit): touch has no
+ * keyboard, so `pressShiftKey` is simply never true for a touch gesture and
+ * a touch marquee always replaces the selection, with no special-casing
+ * needed here.
+ *
+ * The empty-space test is a raycast, deferred to the moment travel first
+ * crosses `CLICK_SLOP_PX` (not to every `pointerdown`) so an ordinary click
+ * never pays for it — the same "once per gesture, not once per frame" cost
+ * class {@link pickAt}'s own click-time raycast already pays.
+ *
+ * @returns {'orbit' | 'pan' | 'select' | 'marquee'}
+ */
+function decideGestureKind() {
+  const marqueeModifier = pressPointerType === 'mouse' && (pressCtrlKey || pressMetaKey)
+  const marqueeToggle = dragMode.value === 'select'
+  if ((marqueeModifier || marqueeToggle) && !hitsBodyAt(pressStartClientX, pressStartClientY)) {
+    marqueeAdditive = pressShiftKey
+    return 'marquee'
+  }
+  return effectiveDragMode()
 }
 
 /** @param {PointerEvent} event */
@@ -782,12 +880,26 @@ function onPointerDown(event) {
     pressTravelPx = 0
     pressButton = event.button
     pressShiftKey = event.shiftKey
+    pressCtrlKey = event.ctrlKey
+    pressMetaKey = event.metaKey
     pressPointerType = event.pointerType
+    pressStartClientX = event.clientX
+    pressStartClientY = event.clientY
+    gestureKind = ''
+    marqueeAdditive = false
+    // Defensive: a marquee only ever ends (release or cancel) with this
+    // cleared already, but a fresh press is the right place to guarantee it
+    // regardless of how the previous gesture ended.
+    marqueeRect.visible = false
   } else {
-    // A second contact means this is a gesture, not a click.
+    // A second contact means this is a gesture, not a click — and never a
+    // marquee: abandon one already in progress rather than leave its
+    // rectangle stuck on screen.
     pressId = -1
     pressButton = -1
     pressPointerType = ''
+    if (gestureKind === 'marquee') marqueeRect.visible = false
+    gestureKind = ''
   }
   isDragging.value = true
 }
@@ -813,7 +925,7 @@ function onPointerMove(event) {
   if (pointers.size >= 2) {
     // Two-finger gesture: pinch to zoom, and drag to pan regardless of the
     // active drag mode — the standard touch idiom, and the only way to zoom by
-    // gesture on a device with no wheel.
+    // gesture on a device with no wheel. Never a marquee (see onPointerDown).
     const separation = pointerSeparation()
     if (separation > 0 && pinchDistancePx > 0) {
       orbit.dolly(pinchDistancePx / separation)
@@ -823,6 +935,23 @@ function onPointerMove(event) {
     orbit.panByPixels(dx / 2, dy / 2, heightPx)
     scheduleRender()
     return
+  }
+
+  if (event.pointerId === pressId) {
+    if (gestureKind === '' && pressTravelPx > CLICK_SLOP_PX) {
+      gestureKind = decideGestureKind()
+      if (gestureKind === 'marquee') marqueeRect.visible = true
+    }
+    if (gestureKind === 'marquee') {
+      updateMarqueeRect(
+        pressStartClientX - viewportRect.left,
+        pressStartClientY - viewportRect.top,
+        event.clientX - viewportRect.left,
+        event.clientY - viewportRect.top,
+        marqueeRect,
+      )
+      return
+    }
   }
 
   applyDrag(dx, dy)
@@ -844,17 +973,58 @@ function onPointerUp(event) {
     secondaryId = -1
     isDragging.value = false
   }
+  const wasPressPointer = wasTracked && event.pointerId === pressId
   // A press that barely moved is a click: pick whatever is under it. A pointer
   // this component never saw go down belongs to something else (a placement drag
   // released over the canvas) and must not be read as a click here.
-  const isClick = wasTracked && event.pointerId === pressId && pressTravelPx <= CLICK_SLOP_PX
+  const isClick = wasPressPointer && pressTravelPx <= CLICK_SLOP_PX
+  const wasMarquee = wasPressPointer && gestureKind === 'marquee'
   pressId = -1
+  gestureKind = ''
+
+  if (wasMarquee) {
+    marqueeRect.visible = false
+    // `pointercancel` (bound to this same handler) means the gesture was
+    // interrupted rather than deliberately released — abandon it with no
+    // selection change, the same as a cancelled gizmo drag.
+    if (event.type !== 'pointercancel') finishMarquee(marqueeAdditive, event.clientX, event.clientY)
+    return
+  }
   // Shift (or the platform's Cmd/Ctrl) adds to the selection instead of
   // replacing it — the minimum multi-select `ui-011` needs to reach the "2+
   // selected" Inspector state. A touch-only equivalent gesture belongs with the
   // Operations toolbar that actually consumes multi-selection (`ui-014`), not
   // here, where there would be nothing to do with it yet.
   if (isClick) pickAt(event.clientX, event.clientY, event.shiftKey || event.metaKey || event.ctrlKey)
+}
+
+/**
+ * Whether a screen point lands on a body's mesh — the marquee's own
+ * "started on empty space" precondition (`decideGestureKind` above), and the
+ * same raycast {@link pickAt} performs on click, factored out so both share
+ * one implementation rather than two that could drift apart.
+ *
+ * @param {number} clientXPx
+ * @param {number} clientYPx
+ * @returns {boolean}
+ */
+function hitsBodyAt(clientXPx, clientYPx) {
+  return raycastBodyId(clientXPx, clientYPx) !== null
+}
+
+/**
+ * @param {number} clientXPx
+ * @param {number} clientYPx
+ * @returns {string | null} The id of the body under the point, nearest first, or
+ *   `null` when nothing is there (including when there is no viewport yet).
+ */
+function raycastBodyId(clientXPx, clientYPx) {
+  if (!viewport || bodyMeshes.size === 0) return null
+  ndcFromClient(clientXPx, clientYPx, viewportRect, scratchNdc)
+  pickNdc.set(scratchNdc.x, scratchNdc.y)
+  raycaster.setFromCamera(pickNdc, viewport.graph.camera)
+  const hits = raycaster.intersectObjects(bodiesGroup.children, false)
+  return hits.length > 0 ? hits[0].object.name : null
 }
 
 /**
@@ -873,16 +1043,42 @@ function pickAt(clientXPx, clientYPx, additive = false) {
     selection.clear()
     return
   }
-  ndcFromClient(clientXPx, clientYPx, viewportRect, scratchNdc)
-  pickNdc.set(scratchNdc.x, scratchNdc.y)
-  raycaster.setFromCamera(pickNdc, viewport.graph.camera)
-  const hits = raycaster.intersectObjects(bodiesGroup.children, false)
-  const hitId = hits.length > 0 ? hits[0].object.name : null
+  const hitId = raycastBodyId(clientXPx, clientYPx)
   // Empty space always clears outright, even with the modifier held: it is the
   // gesture that dismisses the whole selection response — inspector, gizmo and
   // dimension lines — and an additive version of "nothing" has no meaning.
   if (additive && hitId) selection.toggle(hitId)
   else selection.select(hitId)
+}
+
+/**
+ * Finish a marquee-select drag (`TODO/ui-024`): intersect every body's world
+ * bounding box against the dragged rectangle — partial overlap counts as
+ * enclosed, per this task's own Testing section — and hand the resulting id
+ * list to the selection store, replacing or adding to the current selection
+ * per {@link marqueeAdditive}.
+ *
+ * @param {boolean} additive
+ * @param {number} clientXPx Pointer-up position — the marquee's second corner.
+ * @param {number} clientYPx
+ */
+function finishMarquee(additive, clientXPx, clientYPx) {
+  updateMarqueeRect(
+    pressStartClientX - viewportRect.left,
+    pressStartClientY - viewportRect.top,
+    clientXPx - viewportRect.left,
+    clientYPx - viewportRect.top,
+    marqueeRect,
+  )
+  const enclosed = []
+  if (viewport) {
+    for (const body of documentStore.raw.bodies()) {
+      const [minMm, maxMm] = boundsOf(body.geometry)
+      updateBoxScreenBounds(orbit, minMm, maxMm, widthPx, heightPx, boxScreenBounds)
+      if (marqueeIntersectsBox(marqueeRect, boxScreenBounds)) enclosed.push(body.id)
+    }
+  }
+  selection.selectMany(enclosed, additive)
 }
 
 /** @param {WheelEvent} event */
@@ -1098,6 +1294,10 @@ onBeforeUnmount(() => {
       @handle-up="onGizmoHandleUp"
       @handle-click="onGizmoHandleClick"
     />
+    <!-- The marquee-select rectangle (TODO/ui-024): drawn only while a
+         marquee drag is in progress, above the gizmo/dimension overlays so
+         it is never occluded by them mid-drag. -->
+    <MarqueeSelect :rect="marqueeRect" />
 
     <Grid
       :mm-per-pixel="overlay.mmPerPixel"

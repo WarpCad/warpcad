@@ -215,6 +215,67 @@ function isSheetWidth(page) {
   return size !== null && size.width <= 640
 }
 
+/**
+ * Switch the viewport's drag mode to `'select'` (`TODO/ui-024`'s marquee
+ * toggle) via the nav chrome — the touch-reachable path to marquee, and the
+ * one this file's own marquee tests drive so the same mechanism is exercised
+ * at every reference viewport, phone included, without relying on a
+ * mouse-only Ctrl/Cmd modifier a touch project can't express.
+ *
+ * @param {import('@playwright/test').Page} page
+ */
+async function enableMarqueeMode(page) {
+  await page.getByTestId('nav-mode-select').click()
+  await expect(page.getByTestId('navigation-chrome')).toHaveAttribute('data-drag-mode', 'select')
+}
+
+/**
+ * Drag a marquee rectangle across the canvas between two fractional corners.
+ * Real `PointerEvent`s, matching this file's other drag helpers, so the same
+ * gesture drives every engine including the ones with no touch emulation.
+ *
+ * @param {import('@playwright/test').Page} page
+ * @param {{ fromFx: number, fromFy: number, toFx: number, toFy: number, additive?: boolean }} options
+ *   `additive` holds Shift for the whole drag — the desktop-only additive
+ *   modifier this task's own decision records (see
+ *   `docs/decisions/interaction-model-qa.md`'s marquee addendum).
+ */
+async function dragMarquee(page, { fromFx, fromFy, toFx, toFy, additive = false }) {
+  await page.evaluate(
+    ({ fromFx, fromFy, toFx, toFy, additive }) => {
+      const canvas = document.querySelector('[data-testid="viewport-canvas"]')
+      if (!canvas) throw new Error('no canvas')
+      const box = canvas.getBoundingClientRect()
+      const x1 = box.left + box.width * fromFx
+      const y1 = box.top + box.height * fromFy
+      const x2 = box.left + box.width * toFx
+      const y2 = box.top + box.height * toFy
+      const fire = (type, x, y) =>
+        canvas.dispatchEvent(
+          new PointerEvent(type, {
+            pointerId: 13,
+            pointerType: 'mouse',
+            isPrimary: true,
+            button: 0,
+            buttons: type === 'pointerup' ? 0 : 1,
+            shiftKey: additive === true,
+            clientX: x,
+            clientY: y,
+            bubbles: true,
+            cancelable: true,
+          }),
+        )
+      fire('pointerdown', x1, y1)
+      for (const t of [0.33, 0.66, 1]) {
+        fire('pointermove', x1 + (x2 - x1) * t, y1 + (y2 - y1) * t)
+      }
+      fire('pointerup', x2, y2)
+    },
+    { fromFx, fromFy, toFx, toFy, additive },
+  )
+  await page.waitForTimeout(90)
+}
+
 test.beforeEach(async ({ page }) => {
   await page.goto('/')
   await expect(page.getByTestId('viewport')).toBeVisible()
@@ -506,4 +567,87 @@ test('the page never scrolls sideways with the Inspector mounted', async ({ page
   }))
   expect(overflow.x).toBeLessThanOrEqual(1)
   expect(overflow.y).toBeLessThanOrEqual(1)
+})
+
+test('dragging a selection box (marquee) multi-selects the bodies it encloses (TODO/ui-024)', async ({
+  page,
+}) => {
+  await openLibrary(page)
+  // The cube/cylinder positions are the same pair `viewport-scaffold.e2e.js`'s
+  // own Shift-click regression and this file's other multi-select tests
+  // already drop and click successfully at every reference viewport and
+  // engine — proven screen positions, not a fresh guess. The sphere sits in
+  // the opposite corner (near the top, well clear of the pair's own row) so
+  // it stays outside the marquee below regardless of how the isometric
+  // camera's projection skews a screen fraction at a given aspect ratio — the
+  // failure a same-row placement hit on the portrait tablet project during
+  // this task's own drive. All three stay near the top half of the canvas so
+  // the drop lands on the visible viewport rather than under the open
+  // Library sheet at phone width, where the sheet overlays the bottom.
+  await dragRowIntoViewport(page, { op: 'primitive.cuboid', fx: 0.28, fy: 0.42 })
+  await dragRowIntoViewport(page, { op: 'primitive.cylinder', fx: 0.72, fy: 0.3 })
+  await dragRowIntoViewport(page, { op: 'primitive.sphere', fx: 0.95, fy: 0.05 })
+  const [cube, cylinder, sphere] = await sceneBodies(page)
+  await closeLibrary(page)
+
+  await enableMarqueeMode(page)
+  // A snug rectangle around the cube/cylinder pair's own proven positions —
+  // comfortably short of the sphere's corner in both directions.
+  await dragMarquee(page, { fromFx: 0.15, fromFy: 0.18, toFx: 0.8, toFy: 0.5 })
+
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-selected-count', '2')
+  await expect(page.getByTestId('inspector-multi')).toHaveText('2 selected')
+  await expect(page.getByTestId(`scene-body-${cube.id}`)).toHaveAttribute('data-selected', 'true')
+  await expect(page.getByTestId(`scene-body-${cylinder.id}`)).toHaveAttribute(
+    'data-selected',
+    'true',
+  )
+  // The marquee started on empty space and never reached the third body — it
+  // must not be swept in just because the drag happened in its direction.
+  await expect(page.getByTestId(`scene-body-${sphere.id}`)).toHaveAttribute(
+    'data-selected',
+    'false',
+  )
+
+  // Dragging a marquee that encloses nothing clears the selection outright,
+  // same as clicking empty space — control 3's own regression this task must
+  // not break for its new empty-space drag handling (see re-drive note in
+  // TODO/ui-024).
+  await dragMarquee(page, { fromFx: 0.02, fromFy: 0.02, toFx: 0.12, toFy: 0.12 })
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-selected-count', '0')
+})
+
+test('holding Shift makes a marquee add to the selection instead of replacing it (TODO/ui-024 additive mode)', async ({
+  page,
+}) => {
+  // The desktop-only additive-marquee decision this task's own Interaction
+  // model section required recording rather than leaving implicit — see
+  // `docs/decisions/interaction-model-qa.md`'s marquee addendum.
+  await openLibrary(page)
+  // Both drops stay in the viewport's upper portion for the same reason as
+  // the test above — the phone-width Library sheet covers the lower part of
+  // the viewport while it is open.
+  await dragRowIntoViewport(page, { op: 'primitive.cuboid', fx: 0.15, fy: 0.25 })
+  await dragRowIntoViewport(page, { op: 'primitive.cylinder', fx: 0.8, fy: 0.4 })
+  const [cube, cylinder] = await sceneBodies(page)
+  await closeLibrary(page)
+
+  await enableMarqueeMode(page)
+  await dragMarquee(page, { fromFx: 0.05, fromFy: 0.05, toFx: 0.35, toFy: 0.4 })
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-selected-count', '1')
+  await expect(page.getByTestId(`scene-body-${cube.id}`)).toHaveAttribute('data-selected', 'true')
+
+  await dragMarquee(page, {
+    fromFx: 0.65,
+    fromFy: 0.05,
+    toFx: 0.95,
+    toFy: 0.55,
+    additive: true,
+  })
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-selected-count', '2')
+  await expect(page.getByTestId(`scene-body-${cube.id}`)).toHaveAttribute('data-selected', 'true')
+  await expect(page.getByTestId(`scene-body-${cylinder.id}`)).toHaveAttribute(
+    'data-selected',
+    'true',
+  )
 })

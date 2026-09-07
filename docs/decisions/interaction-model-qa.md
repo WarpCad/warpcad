@@ -283,3 +283,62 @@ already drafted in `Initial design.md` §9 — every one is either a direct matc
 refinement to an existing scenario's steps. `docs-004` should incorporate the two
 flagged refinements (gizmo-drag step in scenario 2; Subtract base-indicator check in
 scenario 4) when it transcribes §9's drafts into the real file.
+
+---
+
+## Addendum: marquee (drag-box) multi-select — modifier key and touch equivalent (`TODO/ui-024`)
+
+`TODO/ui-024`'s own Interaction model section asked for this decision to be recorded
+here rather than made silently mid-implementation ("record the choice ... control 6's
+area"). Control 6 above is a different mechanism (group vs. sub-part re-targeting), so
+this is its own addendum rather than an edit to that section — cross-referenced from
+here so a future reader looking for "the marquee decision" finds it either way.
+
+**The problem.** `TODO/ui-018`/`ui-019` already claim the desktop drag surface: plain
+left-drag orbits (the default the whole viewport-scaffold regression suite depends on),
+Shift+left-drag and right-drag both pan. The TODO's own prose recommended "plain
+left-drag on empty space starts a marquee," but that would silently steal the one
+gesture `e2e/viewport-scaffold.e2e.js`'s `'mouse drag orbits, and pans once the mode is
+switched'` test (and the everyday orbit gesture itself) depends on — orbiting via a
+plain left-drag is the primary way anyone navigates the viewport with a mouse, and nothing
+in this task's own scope is worth breaking it for. That literal recommendation was
+**not** implemented; the decision below replaces it.
+
+**The decision, in two parts:**
+
+1. **Desktop: Ctrl (or Cmd) held at press-down, drag starting on empty space** — not on
+   a body's mesh, not on a gizmo handle (which never reaches this gesture at all, since
+   `Gizmo.vue`'s own hit targets sit above the canvas and stop the event there). Ctrl/Cmd
+   is genuinely free: `mouseDragOverride()` never reads it, so it collides with nothing
+   `ui-018`/`ui-019` already claimed. **Additive mode** (add to the selection rather than
+   replace it) is Shift held at the same time — Shift is otherwise claimed for panning,
+   but only when Ctrl/Cmd is *not* also held, so `Ctrl/Cmd+Shift+drag` reaches marquee's
+   additive path rather than the pan override.
+2. **Any pointer type, including touch — the touch equivalent this task's own
+   Interaction model section requires stating explicitly: a third `'select'` mode on the
+   viewport's existing Orbit/Pan chrome toggle** (`NavigationChrome.vue`,
+   `data-testid="nav-mode-select"`), mirroring the toggle `ui-018` already built for
+   exactly this kind of gesture ambiguity. With `'select'` active, a plain one-finger
+   drag from empty space starts a marquee — touch's only path, since touch has no
+   modifier key at all. Additive mode is still Shift, which is simply never true on a
+   touch pointer, so touch marquees always replace the selection — the explicit,
+   stated **"additive marquee is desktop-only for now"** decision the TODO's Interaction
+   model section asked to record rather than leave implicit, rather than a second
+   touch-only toggle this task's own M-effort estimate didn't budget for.
+
+Both paths are gated in `Viewport.vue`'s `decideGestureKind()`, checked before falling
+through to `effectiveDragMode()` — so neither disturbs orbit/pan's existing behaviour
+when neither modifier nor the `'select'` toggle applies, which is exactly what let the
+existing `ui-018`/`ui-019` regression specs keep passing unmodified.
+
+**Precedence edge case, decided explicitly rather than left implicit:** a Ctrl/Cmd-held
+drag (or a drag while `'select'` mode is active) that *starts on a body* is not a
+marquee — the precondition above requires empty space. It falls through to ordinary
+orbit, the same as any other drag that doesn't match a more specific gesture; there is
+no separate "grab and drag a body directly" gesture in this app (that is the transform
+gizmo's job).
+
+**Partial overlap counts as enclosed** (a marquee that clips even a corner of a body
+selects it), matching most CAD/DCC tools' rubber-band convention — stated in
+`TODO/ui-024`'s own Testing section and implemented in
+`src/render/annotate.js`'s `marqueeIntersectsBox`.

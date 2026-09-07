@@ -184,6 +184,31 @@ Cylinder dropped in the viewport: `data-body-count` read `2` immediately after b
 drops, with distinct centres (`-94.18,2.36,20` and `45.65,5.4,25`). Clicking each in turn
 retargeted the gizmo cleanly between the two, screenshotted at each step. Console clean.
 
+**Re-checked**: 2026-09-07 18:41 — PASS (`ui-024`, click-selects-only-that-item half
+only, per that task's own Testing section — the new marquee/drag-box logic added a
+"drag started on empty space" branch to the same `Viewport.vue` pointer-dispatch code
+this scenario's clicks go through, so this checks that branch didn't regress a plain
+click into starting a marquee instead). Driven at laptop 1440×900 in Chromium via a
+real headless-browser session (`chromium.launch()` against the dev server — the
+`chromium-cli` this project's `run` skill prefers is not installed in this
+environment): a Cube then a Cylinder dropped with a wandering, jittery drag path;
+`data-body-count` read `2` immediately after both drops. Clicking empty grid cleared
+the selection (`data-selected-id` → `""`); clicking the cube selected only it
+(`cuboid-1`); clicking the cylinder moved the highlight to the cylinder alone
+(`cylinder-2`, confirmed different from the cube's id) — never both at once.
+Screenshotted at each step.
+
+**Beyond scenario 1's own steps, the new capability itself**: a third body (a Sphere)
+was dropped in a far corner, then a marquee was dragged two ways — via the new
+`Select` nav-chrome toggle (touch's own path) and via desktop's Ctrl+drag — each time
+enclosing the Cube and Cylinder and correctly excluding the far Sphere
+(`data-selected-count` read `2` both times, Inspector showed "2 selected", and the
+screenshot confirms exactly the enclosed two are highlighted). An empty-space marquee
+cleared the selection (count `0`). Switching back to Orbit mode and plain-dragging the
+canvas still orbited the camera (`azimuth` moved from `-45.00` to `-121.00`) —
+confirming the new gesture-precedence logic did not swallow the ordinary orbit drag.
+Console clean throughout.
+
 ### 2. Hardware property edit
 
 **Steps**:

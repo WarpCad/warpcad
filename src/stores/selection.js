@@ -57,6 +57,33 @@ export const useSelectionStore = defineStore('selection', () => {
   }
 
   /**
+   * Replace the selection with a whole set of ids, or add them to whatever is
+   * already selected — the marquee-select response (`TODO/ui-024`): replacing
+   * on a plain drag, matching what a plain click already does; adding when
+   * the drag is additive, matching what Shift already means for a click.
+   *
+   * An empty `selectedIds` in additive mode is a no-op: "the drag enclosed
+   * nothing" must not clear a selection the user already had. In replace
+   * mode an empty list *does* clear it, the same as {@link select}'s own
+   * empty-clears-everything contract — a marquee dragged over nothing is the
+   * drag-gesture equivalent of clicking empty space.
+   *
+   * @param {string[]} selectedIds
+   * @param {boolean} [additive]
+   * @returns {void}
+   */
+  function selectMany(selectedIds, additive = false) {
+    if (!additive) {
+      ids.value = [...selectedIds]
+      return
+    }
+    if (selectedIds.length === 0) return
+    const next = new Set(ids.value)
+    for (const id of selectedIds) next.add(id)
+    ids.value = [...next]
+  }
+
+  /**
    * @param {string} id
    * @returns {boolean}
    */
@@ -70,6 +97,7 @@ export const useSelectionStore = defineStore('selection', () => {
     onlyId: computed(() => (ids.value.length === 1 ? ids.value[0] : null)),
     select,
     toggle,
+    selectMany,
     clear,
     has,
   }

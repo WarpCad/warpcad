@@ -19,6 +19,28 @@ between sessions — that's itself a signal to move more of it into
 
 ## Queue
 
+### ui-024 — marquee drag feel on real touch hardware (2026-09-07 18:41)
+
+A device-specific quirk, not a correctness question — `e2e/selection-inspector.e2e.js`'s
+new marquee tests run across all three engines at all three reference viewports
+including phone/tablet, but Playwright's touch emulation dispatches synthetic
+`PointerEvent`s directly; it does not reproduce a real capacitive touchscreen's own
+scroll-suppression, momentum, or contact-area quirks. Not covered by a standing
+`TODO/ACCEPTANCE.md` scenario (scenario 7, touch-only navigation, predates this
+control and doesn't cover selection).
+
+- [ ] On a real phone/tablet, tap the nav chrome's **Select** button, then drag a
+  finger from empty grid space: the box should track the finger smoothly with no
+  visible lag, and the gesture must not also scroll the page or trigger the browser's
+  own pull-to-refresh/back-swipe — `touch-action: none` is already set on the canvas
+  for orbit/pan (`ui-018`'s own fix for exactly this class of bug on iPad), but the
+  marquee is new code sharing that same element, not a guarantee it inherited by
+  itself without a real device confirming it.
+- [ ] Confirm the **Select** button itself is comfortably tappable at phone width
+  next to the existing Orbit/Pan buttons — the chrome row grew by one button for this
+  task, and only a bounding-box assertion (`>=36px`) checked size in e2e, not whether
+  three adjacent small buttons are comfortable to hit accurately with a real thumb.
+
 ### ui-021 — gradient/shadow subtlety at the gizmo's floor size, and on real touch hardware (2026-09-07 17:09)
 
 A visual/feel judgment call, not a correctness question — the e2e spec asserts the

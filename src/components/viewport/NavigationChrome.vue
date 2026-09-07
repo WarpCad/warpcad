@@ -22,7 +22,7 @@ import { MOUSE_NAV_PRESETS, useSettingsStore } from '../../stores/settings.js'
 
 const props = defineProps({
   dragMode: {
-    type: /** @type {import('vue').PropType<'orbit' | 'pan'>} */ (String),
+    type: /** @type {import('vue').PropType<'orbit' | 'pan' | 'select'>} */ (String),
     required: true,
   },
 })
@@ -84,6 +84,18 @@ const STEPS = Object.freeze([
         @click="emit('mode', 'pan')"
       >
         Pan
+      </button>
+      <button
+        type="button"
+        class="chrome__mode"
+        :class="{ 'chrome__mode--on': dragMode === 'select' }"
+        :aria-pressed="dragMode === 'select'"
+        data-testid="nav-mode-select"
+        title="Drag a box to select several bodies (TODO/ui-024)"
+        aria-label="Drag to select"
+        @click="emit('mode', 'select')"
+      >
+        Select
       </button>
       <button
         type="button"

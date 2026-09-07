@@ -226,6 +226,34 @@ gizmo and dimension lines go away for the same reason. This state is the startin
 for operations that need two shapes, such as cutting one out of another; those tools
 arrive with the boolean operations.
 
+### Dragging a selection box (marquee)
+
+To select several objects at once, press and drag from empty space in the viewport — a
+selection box follows your pointer; release it, and every object inside the box is
+selected, showing *"<n> selected"* in the Inspector. It's the fastest way to grab
+several shapes without clicking each one individually, and it's the only way to
+multi-select on a touch device, where there is no Shift key to hold at all.
+
+An object only needs to be **partly** inside the box to be picked up — you don't have to
+enclose a shape completely, just clip it.
+
+**On a laptop or desktop with a mouse**, hold **Ctrl** (or **Cmd** on a Mac) and drag
+from empty space to draw the box. An ordinary drag with no modifier still orbits the
+camera, exactly as it always has — the marquee only starts once Ctrl/Cmd is held down,
+so navigating the viewport by dragging never changes. Add **Shift** at the same time
+(**Ctrl+Shift**, or **Cmd+Shift**) to add the enclosed shapes to whatever is already
+selected, instead of replacing it — the same thing Shift already means for a click.
+
+**On a touch device** — or if you'd rather not hold a modifier key on a mouse — tap the
+**Select** button in the navigation controls at the bottom of the viewport (next to
+Orbit and Pan). While it's active, a one-finger drag from empty space draws the
+selection box instead of orbiting the camera. Tap **Orbit** or **Pan** again to go back
+to navigating. Additive marquees (adding to an existing selection with a second drag)
+need Shift, which isn't available on touch, so a touch marquee always replaces the
+current selection rather than adding to it.
+
+Dragging a box over nothing clears the selection, the same as clicking empty space.
+
 ## Troubleshooting
 
 - **I clicked a shape and nothing happened.** Check that you clicked the shape itself and

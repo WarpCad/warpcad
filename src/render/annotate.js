@@ -1068,3 +1068,155 @@ function copyScreenPoint(from, to) {
   to.depth = from.depth
   to.visible = from.visible
 }
+
+// --- marquee select (TODO/ui-024) ------------------------------------------
+
+/**
+ * @typedef {object} MarqueeRect
+ * @property {boolean} visible
+ * @property {number} x Top-left corner, CSS pixels from the viewport's left edge.
+ * @property {number} y
+ * @property {number} width
+ * @property {number} height
+ */
+
+/**
+ * Allocate the marquee-select rectangle's output structure once, so a drag
+ * updates it in place per `pointermove` rather than rebuilding it — CLAUDE.md's
+ * no-per-frame-allocation rule, and a marquee drag can fire many `pointermove`
+ * events between rendered frames.
+ *
+ * @returns {MarqueeRect}
+ */
+export function createMarqueeRect() {
+  return { visible: false, x: 0, y: 0, width: 0, height: 0 }
+}
+
+/**
+ * Normalise two dragged screen points into a top-left/width/height rectangle.
+ *
+ * The two points can arrive in either order — a drag can go in any of the four
+ * diagonal directions — so this is `Math.min`/`Math.abs`, not a plain
+ * subtraction. A degenerate zero-travel drag (the same point given twice) is a
+ * valid input here: it produces a zero-size rectangle rather than throwing.
+ * `Viewport.vue` never actually reaches this function with zero travel — its
+ * own `CLICK_SLOP_PX` gating keeps a true click from starting a marquee at
+ * all, per this task's Testing section — but the pure helper still has to stay
+ * well-defined for that input, and the spec exercises it directly.
+ *
+ * @param {number} x1Px
+ * @param {number} y1Px
+ * @param {number} x2Px
+ * @param {number} y2Px
+ * @param {MarqueeRect} out Mutated in place. `visible` is left untouched — that
+ *   is the caller's concern (whether a marquee is in progress at all), not
+ *   this function's.
+ * @returns {MarqueeRect} `out`
+ */
+export function updateMarqueeRect(x1Px, y1Px, x2Px, y2Px, out) {
+  out.x = Math.min(x1Px, x2Px)
+  out.y = Math.min(y1Px, y2Px)
+  out.width = Math.abs(x2Px - x1Px)
+  out.height = Math.abs(y2Px - y1Px)
+  return out
+}
+
+/**
+ * @typedef {object} BoxScreenBounds
+ * @property {boolean} visible False when every corner of the box projected
+ *   behind the camera — nothing on screen to test the marquee against.
+ * @property {number} minX
+ * @property {number} minY
+ * @property {number} maxX
+ * @property {number} maxY
+ */
+
+/**
+ * Allocate a body's screen-space bounding box once, so testing several bodies
+ * against a marquee mutates one structure in a loop rather than allocating
+ * one per body.
+ *
+ * @returns {BoxScreenBounds}
+ */
+export function createBoxScreenBounds() {
+  return { visible: false, minX: 0, minY: 0, maxX: 0, maxY: 0 }
+}
+
+// Scratch for updateBoxScreenBounds's own per-corner projection.
+const scratchMarqueeCorner = createScreenPoint()
+
+/**
+ * Project a **world-axis-aligned** bounding box's eight corners to screen
+ * space and reduce them to the axis-aligned screen rectangle of whichever
+ * corners land in front of the camera.
+ *
+ * Deliberately the *world* box (`Body.boundsMm` — `src/core/inspector.js`,
+ * also what `src/core/kernel/group.js`'s `boundsOf` returns), not the body's
+ * own oriented local box {@link updateDimensionAnnotation} measures: a
+ * marquee is a screen-space rectangle test, so what matters is where the
+ * body's silhouette actually falls on screen, corners included, regardless of
+ * whether the body itself is turned.
+ *
+ * @param {OrbitCamera} orbit
+ * @param {readonly number[]} minMm
+ * @param {readonly number[]} maxMm
+ * @param {number} widthPx
+ * @param {number} heightPx
+ * @param {BoxScreenBounds} out Mutated in place.
+ * @returns {BoxScreenBounds} `out`
+ */
+export function updateBoxScreenBounds(orbit, minMm, maxMm, widthPx, heightPx, out) {
+  let minX = Infinity
+  let minY = Infinity
+  let maxX = -Infinity
+  let maxY = -Infinity
+  let any = false
+  for (let corner = 0; corner < 8; corner += 1) {
+    const xMm = corner & 1 ? maxMm[0] : minMm[0]
+    const yMm = corner & 2 ? maxMm[1] : minMm[1]
+    const zMm = corner & 4 ? maxMm[2] : minMm[2]
+    worldToScreen(orbit, xMm, yMm, zMm, widthPx, heightPx, scratchMarqueeCorner)
+    if (!scratchMarqueeCorner.visible) continue
+    any = true
+    if (scratchMarqueeCorner.x < minX) minX = scratchMarqueeCorner.x
+    if (scratchMarqueeCorner.x > maxX) maxX = scratchMarqueeCorner.x
+    if (scratchMarqueeCorner.y < minY) minY = scratchMarqueeCorner.y
+    if (scratchMarqueeCorner.y > maxY) maxY = scratchMarqueeCorner.y
+  }
+  out.visible = any
+  out.minX = any ? minX : 0
+  out.minY = any ? minY : 0
+  out.maxX = any ? maxX : 0
+  out.maxY = any ? maxY : 0
+  return out
+}
+
+/**
+ * Whether a body's projected screen bounds fall inside, or merely overlap,
+ * the marquee rectangle.
+ *
+ * Partial overlap counts as enclosed, matching most CAD/DCC tools' marquee
+ * convention — `TODO/ui-024`'s own Testing section states this choice rather
+ * than leaving it implicit: a rectangle that clips even a corner of a body
+ * selects it, the same forgiving standard ordinary rubber-band selection uses
+ * everywhere else. Ordinary axis-aligned rectangle intersection, one edge
+ * comparison per side.
+ *
+ * Takes the `x`/`y`/`width`/`height` shape rather than the full
+ * {@link MarqueeRect}, deliberately: `visible` is the caller's own concern
+ * (whether a marquee is in progress at all), not a fact this pure geometry
+ * test needs to know about.
+ *
+ * @param {{ x: number, y: number, width: number, height: number }} rect
+ * @param {BoxScreenBounds} bounds
+ * @returns {boolean}
+ */
+export function marqueeIntersectsBox(rect, bounds) {
+  if (!bounds.visible) return false
+  return (
+    bounds.minX <= rect.x + rect.width &&
+    bounds.maxX >= rect.x &&
+    bounds.minY <= rect.y + rect.height &&
+    bounds.maxY >= rect.y
+  )
+}
