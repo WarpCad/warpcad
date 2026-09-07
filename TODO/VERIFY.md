@@ -19,6 +19,25 @@ between sessions — that's itself a signal to move more of it into
 
 ## Queue
 
+### ui-022 — ring arrowhead legibility at phone width and at the gizmo's floor size (2026-09-07 16:17)
+
+A visual/feel judgment call, not a correctness question — the maths is asserted exactly
+in `annotate.spec.js` and the e2e spec confirms the markers render, but neither can judge
+whether the chevrons *read* as an arrow to a person rather than as a stray dot once the
+gizmo shrinks. Not a standing acceptance scenario: scenario 2's gizmo-drag half checks
+that dragging still works, not how the ring's own decoration looks at a given size.
+
+`ringArrowheads`' size (`RING_ARROW_SIZE_RATIO = 0.16` of the ring's own screen radius)
+was only eyeballed at laptop width against a body sized comfortably above the gizmo's
+58px/40px floor (`ui-017`). Two cases that ratio was never looked at:
+
+- [ ] At phone width (390×844), with the ring at or near `GIZMO_RING_FLOOR_PX` (40px) —
+  confirm the two chevrons per ring are still individually distinguishable as arrows,
+  not a single blob, at a real fingertip's viewing distance.
+- [ ] On a heavily edge-on ring (camera looking nearly along that axis, e.g. after a
+  standard-view snap) — confirm the chevron near the ring's collapsed end doesn't
+  visually merge into the ring's own line.
+
 ### core-004 — how a rotation number wrapping past ±180° feels mid-drag (2026-09-06 19:18)
 
 A feel judgment about a number on screen, not a correctness question, which is why it is

@@ -474,6 +474,92 @@ export function ringPoints(ring, originX, originY, out) {
   return out
 }
 
+/**
+ * The two ring parameters {@link ringArrowheads} decorates: a quarter turn and
+ * three-quarters of a turn around the same `origin + u·cos t + v·sin t` circle
+ * {@link ringPoints} samples (`TODO/ui-022`). Picked a quarter-turn apart so
+ * the pair reads as "this circle spins" rather than two marks stacked on top
+ * of each other, and *not* placed at `t = 0`/`π` because those are exactly the
+ * points a heavily edge-on ring collapses toward, which would crowd both
+ * chevrons into the same spot on screen.
+ */
+const RING_ARROW_T = Object.freeze([Math.PI / 2, (3 * Math.PI) / 2])
+
+/**
+ * How large each ring arrowhead is drawn, relative to the ring's own screen
+ * size. Small on purpose (`TODO/ui-022`'s "keep them small relative to
+ * `ringPx` so they don't compete with the translate arms' own arrowheads for
+ * visual weight" — the arms' own heads are `armPx * 0.26`, and rings are
+ * already drawn smaller than arms per `ui-017`'s `58 > 40` ordering).
+ */
+const RING_ARROW_SIZE_RATIO = 0.16
+
+/**
+ * Allocate the two three-point arrowhead triangles {@link ringArrowheads}
+ * writes into — the same nested three-point convention
+ * {@link createDimensionAnnotation}'s `h1`/`h2` already use, so a caller
+ * updating this per frame mutates rather than rebuilds.
+ *
+ * @returns {{ x: number, y: number }[][]}
+ */
+export function createRingArrowheads() {
+  return [0, 1].map(() => [
+    { x: 0, y: 0 },
+    { x: 0, y: 0 },
+    { x: 0, y: 0 },
+  ])
+}
+
+/**
+ * Two small chevrons marking a rotate ring's drag direction (`TODO/ui-022`) —
+ * the visual cue a bare ring otherwise doesn't carry: "drag along me to spin
+ * the object," not "decorative circle" or "selection halo," the same job the
+ * translate arms' own arrowheads already do for the move handles.
+ *
+ * The ring is the circle `origin + u·cos t + v·sin t` ({@link ringPoints}); its
+ * tangent at `t` is the derivative, `-u·sin t + v·cos t` — cheap to compute
+ * from the same `ring.ux/uy/vx/vy` the ring itself already carries, no new
+ * projection needed. Each chevron's tip sits exactly on the ring at that `t`
+ * (the same point `ringPoints` would sample there) and its base trails behind
+ * along the tangent, mirroring {@link writeArrowhead}'s own
+ * tip-then-base-corners convention used for the dimension lines.
+ *
+ * @param {GizmoRing} ring
+ * @param {number} originX
+ * @param {number} originY
+ * @param {{ x: number, y: number }[][]} out Mutated in place; see
+ *   {@link createRingArrowheads}. `out[0]` sits a quarter turn around the
+ *   ring, `out[1]` three-quarters.
+ * @returns {{ x: number, y: number }[][]} `out`
+ */
+export function ringArrowheads(ring, originX, originY, out) {
+  const arrowPx =
+    0.5 * (Math.hypot(ring.ux, ring.uy) + Math.hypot(ring.vx, ring.vy)) * RING_ARROW_SIZE_RATIO
+  for (let index = 0; index < RING_ARROW_T.length; index += 1) {
+    const t = RING_ARROW_T[index]
+    const cos = Math.cos(t)
+    const sin = Math.sin(t)
+    const tipX = originX + ring.ux * cos + ring.vx * sin
+    const tipY = originY + ring.uy * cos + ring.vy * sin
+
+    let dirX = -ring.ux * sin + ring.vx * cos
+    let dirY = -ring.uy * sin + ring.vy * cos
+    const dirLength = Math.hypot(dirX, dirY)
+    if (dirLength > EPSILON_PX) {
+      dirX /= dirLength
+      dirY /= dirLength
+    } else {
+      // Both spanning directions vanished at this sample (a fully degenerate,
+      // effectively invisible ring) — fall back to a fixed direction so the
+      // output stays finite rather than an all-zero, undrawable triangle.
+      dirX = 1
+      dirY = 0
+    }
+    writeArrowhead(out[index], tipX, tipY, dirX, dirY, arrowPx)
+  }
+  return out
+}
+
 // --- gizmo drag (TODO/ui-012) ----------------------------------------------
 
 /**

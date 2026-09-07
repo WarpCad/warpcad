@@ -11,8 +11,12 @@ Click — or tap — directly on a shape in the 3D view. Three things happen at 
 1. **A gizmo appears at the middle of the shape.** Three coloured arrows point along the
    part's X, Y and Z directions, and three faint rings circle it. The arrows are the
    move handles and the rings are the rotate handles — both draggable, see
-   [Moving and turning a shape](#moving-and-turning-a-shape). **The gizmo's size follows
-   the shape it is attached to**, rather than staying a fixed size: its arms and rings
+   [Moving and turning a shape](#moving-and-turning-a-shape). **The rotate rings carry
+   small arrow markers along their circumference**, so they read as "drag along me to
+   spin the object" rather than as a plain decorative circle or a selection halo — two
+   small triangles per ring, pointing the way a drag there turns the shape.
+   **The gizmo's size follows the shape it is attached to**, rather than staying a
+   fixed size: its arms and rings
    always extend a short distance past the shape's own outline, growing for a larger
    shape (or as you zoom in) and shrinking for a smaller one (or as you zoom out) — down
    to a comfortably grabbable minimum, so a tiny part's handles never shrink to nothing.
@@ -112,7 +116,9 @@ direction. The shape follows your pointer as you drag, and the Inspector's **Pos
 numbers count up or down in step with it — you do not have to let go to see where you
 are. Drag one of the three rings to turn the shape about that axis; it turns on the
 spot, about its own middle, and the **Rotation** numbers track the drag the same way.
-Let go and the change is made.
+Let go and the change is made. The small arrow markers on each ring are there for
+exactly this: they show you which way a drag along that ring will spin the shape,
+before you have grabbed anything.
 
 **In the Inspector**, click into any Position or Rotation box, type a value, and press
 **Enter** (or click away). The shape moves to match straight away. A Position is in

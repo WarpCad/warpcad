@@ -45,7 +45,7 @@
  */
 import { computed } from 'vue'
 
-import { createRingPoints, ringPoints } from '../../render/annotate.js'
+import { createRingArrowheads, createRingPoints, ringArrowheads, ringPoints } from '../../render/annotate.js'
 
 const props = defineProps({
   /**
@@ -92,6 +92,29 @@ const ringPaths = computed(() =>
     let path = ''
     for (const point of points) path += `${point.x.toFixed(2)},${point.y.toFixed(2)} `
     return { axis: ring.axis, points: path.trimEnd() }
+  }),
+)
+
+/**
+ * Two small direction chevrons per ring (`TODO/ui-022`) — the cue that a bare
+ * ring otherwise doesn't carry: "drag along me to spin the object," not
+ * "decorative circle." Same allocate-once-per-ring, mutate-per-frame buffer
+ * convention as `ringBuffers` above.
+ */
+const ringArrowBuffers = [createRingArrowheads(), createRingArrowheads(), createRingArrowheads()]
+
+const ringArrowPaths = computed(() =>
+  gizmo.value.rings.map((ring, index) => {
+    const heads = ringArrowheads(ring, gizmo.value.originX, gizmo.value.originY, ringArrowBuffers[index])
+    return {
+      axis: ring.axis,
+      heads: heads.map(
+        (head, headIndex) => ({
+          key: headIndex,
+          points: `${head[0].x.toFixed(2)},${head[0].y.toFixed(2)} ${head[1].x.toFixed(2)},${head[1].y.toFixed(2)} ${head[2].x.toFixed(2)},${head[2].y.toFixed(2)}`,
+        }),
+      ),
+    }
   }),
 )
 
@@ -204,6 +227,19 @@ function onHandleUp(event) {
       :stroke="AXIS_STROKE[ring.axis]"
     />
 
+    <!-- Direction chevrons on each ring (TODO/ui-022): the "drag to rotate"
+         cue a bare circle doesn't otherwise carry. -->
+    <template v-for="ringArrow in ringArrowPaths" :key="`ring-arrows-${ringArrow.axis}`">
+      <polygon
+        v-for="head in ringArrow.heads"
+        :key="`ring-arrow-${ringArrow.axis}-${head.key}`"
+        class="tgizmo__ring-arrow"
+        :data-testid="`gizmo-rotate-arrow-${ringArrow.axis.toLowerCase()}-${head.key}`"
+        :points="head.points"
+        :fill="AXIS_STROKE[ringArrow.axis]"
+      />
+    </template>
+
     <g v-for="arrow in gizmo.arrows" :key="`arm-${arrow.axis}`">
       <template v-if="arrow.visible">
         <line
@@ -314,6 +350,12 @@ function onHandleUp(event) {
   stroke-opacity: 0.55;
   /* Keeps the stroke a real width even where a ring is seen almost edge-on. */
   vector-effect: non-scaling-stroke;
+}
+
+.tgizmo__ring-arrow {
+  /* Slightly more opaque than the ring's own faint stroke so the direction
+     cue reads clearly without competing with the translate arms' heads. */
+  opacity: 0.75;
 }
 
 .tgizmo__arm {

@@ -353,6 +353,43 @@ test('the gizmo mounts draggable hit targets, larger than the handles they cover
   expect(strokePx).toBeGreaterThanOrEqual(20)
 })
 
+test('each visible rotate ring carries direction-arrow markers (TODO/ui-022)', async ({
+  page,
+  browserName,
+}) => {
+  // Chromium only: this is SVG geometry, not a WebGL/canvas-sensitive path —
+  // the ring positions it decorates are already covered by
+  // ui-011/ui-012/ui-017's specs across the full engine matrix.
+  test.skip(browserName !== 'chromium', 'SVG geometry only needs Chromium coverage (TODO/ui-022)')
+
+  await placeCube(page)
+
+  // A bare ring reads as decoration; the arrowhead markers are what tell a
+  // user "drag along me to spin the object" before they ever touch it.
+  // These are deliberately `gizmo-rotate-arrow-*`, not `gizmo-ring-arrow-*` —
+  // `selection-inspector.e2e.js`'s own `[data-testid^="gizmo-ring-"]` selector
+  // (asserting exactly the 3 ring polygons) would otherwise also match the
+  // new arrowhead markers and start over-counting.
+  const visibleRingAxes = await page.locator('[data-testid^="gizmo-ring-"]').evaluateAll((rings) =>
+    rings
+      .filter((el) => el.getAttribute('points'))
+      .map((el) => /** @type {string} */ (el.getAttribute('data-testid')).replace('gizmo-ring-', '')),
+  )
+  expect(visibleRingAxes.length).toBeGreaterThan(0)
+
+  for (const axis of visibleRingAxes) {
+    const arrows = page.locator(`[data-testid^="gizmo-rotate-arrow-${axis}-"]`)
+    await expect(arrows).toHaveCount(2)
+    for (const index of [0, 1]) {
+      const points = await page
+        .locator(`[data-testid="gizmo-rotate-arrow-${axis}-${index}"]`)
+        .getAttribute('points')
+      // A real triangle: three non-degenerate coordinate pairs.
+      expect((points ?? '').trim().split(' ')).toHaveLength(3)
+    }
+  }
+})
+
 test('dragging a translate arm moves the body, and the Position fields track it live', async ({
   page,
 }, testInfo) => {

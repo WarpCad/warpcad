@@ -7,9 +7,11 @@ import {
   axisFacing,
   createDimensionAnnotation,
   createGizmoAnnotation,
+  createRingArrowheads,
   createRingPoints,
   createScreenPoint,
   gizmoSizeForBounds,
+  ringArrowheads,
   ringPoints,
   rotateDeltaDeg,
   screenDirection,
@@ -359,6 +361,91 @@ describe('ringPoints', () => {
 
     ringPoints(gizmo.rings[1], gizmo.originX, gizmo.originY, points)
     expect(points[0]).toBe(first)
+  })
+})
+
+describe('ringArrowheads', () => {
+  it('places both arrowhead tips on the ring itself (TODO/ui-022)', () => {
+    // A bare ring reads as decoration; the tip of each chevron must sit
+    // exactly where ringPoints() would sample the ring at that same
+    // parameter, or the arrowheads would float off the circle they are
+    // supposed to be decorating.
+    const orbit = cameraAt({ azimuthDeg: -90, elevationDeg: 90 })
+    const gizmo = createGizmoAnnotation()
+    updateGizmoAnnotation(orbit, 0, 0, 0, WIDTH_PX, HEIGHT_PX, 60, 44, gizmo)
+
+    const heads = createRingArrowheads()
+    ringArrowheads(gizmo.rings[2], gizmo.originX, gizmo.originY, heads)
+
+    expect(heads).toHaveLength(2)
+    for (const head of heads) {
+      expect(head).toHaveLength(3)
+      const [tip] = head
+      // The Z ring here is a true circle of radius 44 (same fixture as
+      // ringPoints' own "face-on ring" test above), so every point on it —
+      // including each arrowhead's tip — sits exactly 44px from the origin.
+      expect(Math.hypot(tip.x - gizmo.originX, tip.y - gizmo.originY)).toBeCloseTo(44, 6)
+    }
+    // The quarter-turn and three-quarters-turn tips are on opposite sides of
+    // the ring, not the same spot.
+    const [tip1] = heads[0]
+    const [tip2] = heads[1]
+    expect(Math.hypot(tip1.x - tip2.x, tip1.y - tip2.y)).toBeGreaterThan(80)
+  })
+
+  it('points each arrowhead tangent to the ring, not radially outward', () => {
+    // A generic (non-axis-aligned) view, so ring.ux/uy/vx/vy are a real
+    // ellipse rather than the top-view's convenient perpendicular circle —
+    // the case the TODO calls out where the tangent is the derivative
+    // `-u*sin(t) + v*cos(t)`, not just "perpendicular to the radius".
+    const orbit = cameraAt({ azimuthDeg: 24, elevationDeg: 31 })
+    const gizmo = createGizmoAnnotation()
+    updateGizmoAnnotation(orbit, 0, 0, 0, WIDTH_PX, HEIGHT_PX, 60, 44, gizmo)
+
+    for (const ring of gizmo.rings) {
+      const heads = createRingArrowheads()
+      ringArrowheads(ring, gizmo.originX, gizmo.originY, heads)
+
+      const params = [Math.PI / 2, (3 * Math.PI) / 2]
+      heads.forEach((head, index) => {
+        const [tip, base1, base2] = head
+        const t = params[index]
+        const cos = Math.cos(t)
+        const sin = Math.sin(t)
+
+        // The tip is the exact point ringPoints() would sample at this t.
+        expect(tip.x).toBeCloseTo(gizmo.originX + ring.ux * cos + ring.vx * sin, 6)
+        expect(tip.y).toBeCloseTo(gizmo.originY + ring.uy * cos + ring.vy * sin, 6)
+
+        // The chevron's base sits behind the tip along the analytic tangent
+        // direction, the same "base corners project behind the tip" contract
+        // the translate arrows' own heads already carry.
+        let tangentX = -ring.ux * sin + ring.vx * cos
+        let tangentY = -ring.uy * sin + ring.vy * cos
+        const tangentLength = Math.hypot(tangentX, tangentY)
+        if (tangentLength > 1e-6) {
+          tangentX /= tangentLength
+          tangentY /= tangentLength
+          const midX = (base1.x + base2.x) / 2
+          const midY = (base1.y + base2.y) / 2
+          const along = (midX - tip.x) * tangentX + (midY - tip.y) * tangentY
+          expect(along).toBeGreaterThan(0)
+        }
+      })
+    }
+  })
+
+  it('reuses the caller\'s nested triangle buffers', () => {
+    const orbit = cameraAt()
+    const gizmo = createGizmoAnnotation()
+    updateGizmoAnnotation(orbit, 0, 0, 0, WIDTH_PX, HEIGHT_PX, 60, 44, gizmo)
+    const heads = createRingArrowheads()
+    const firstTriangle = heads[0]
+    const firstPoint = heads[0][0]
+
+    ringArrowheads(gizmo.rings[2], gizmo.originX, gizmo.originY, heads)
+    expect(heads[0]).toBe(firstTriangle)
+    expect(heads[0][0]).toBe(firstPoint)
   })
 })
 
