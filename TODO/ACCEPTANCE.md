@@ -176,6 +176,14 @@ selected only that one, `data-selected-id` moving cleanly `cuboid-1` → `cylind
 the gizmo and all three dimension lines retargeting and the cube's 40/40/40 giving way to
 the cylinder's 40/40/50. Never both annotated at once. Console clean in both drives.
 
+**Re-checked**: 2026-09-07 17:07 — PASS (`ui-021`, quick glance only, as its own Testing
+section calls for — this task only re-textures the gizmo's arms/heads/rings with SVG
+gradients and a drop-shadow filter, the same overlay code path this scenario's "gizmo
+attaches" half depends on, and touches no placement or selection logic). A Cube then a
+Cylinder dropped in the viewport: `data-body-count` read `2` immediately after both
+drops, with distinct centres (`-94.18,2.36,20` and `45.65,5.4,25`). Clicking each in turn
+retargeted the gizmo cleanly between the two, screenshotted at each step. Console clean.
+
 ### 2. Hardware property edit
 
 **Steps**:
@@ -367,6 +375,26 @@ not claimed. Steps 5-8 were re-driven at laptop/Chromium and phone/WebKit agains
   phone: a genuinely three-component orientation with a **Y term the two drags never
   touched**, which is the visible signature of a composition and something a running sum
   could not have produced. Screenshots at each step; console clean in both drives.
+
+**Re-checked**: 2026-09-07 17:07 — **PARTIAL PASS, still partial for the same reasons as
+before** (`ui-021`). This task only changes how the gizmo's arms/heads/rings are painted
+(per-axis SVG gradients, a double-stroke ring band, a drop-shadow filter) — it doesn't
+touch steps 1/3-4's blockers, so the partial-pass boundary is unchanged. What was
+re-driven, at laptop 1440×900 in Chromium: **step 5-6** — dragging the X translate arm
+80px moved the cube and Position X was sampled live at six points mid-gesture
+(`-89.53 → -84.89 → -80.24 → -75.6 → -70.95 → -66.31`), settling at `-66.31` — the field
+moves *with* the drag, exactly as before this task's shading change. **Step 5-6 again,
+rotation**: dragging the Z ring, grabbed at a real point on its rim (not its
+bounding-box centre, which is the gizmo's own origin and gives a false negative — noted
+here so a future re-check doesn't rediscover this), turned the cube and Rotation Z was
+sampled live at six points (`0 → -9.11 → -17.78 → -25.69 → -32.68 → -38.73`), settling at
+`-43.9`. **The point of this re-drive**: the new shading did not change the hit-test
+geometry or the drag maths — both handles are still grabbable and both fields still
+track live, at the same handle locations `ui-012`/`ui-017` established. Also re-checked
+`ui-022`'s own repro while in the same session (its arrow markers are drawn by the same
+component this task restyled): all three visible rings (`x`, `y`, `z`) still carry
+exactly 2 triangular direction-arrow markers each, not swallowed or hidden by the new
+gradient/shadow. Console clean.
 
 ### 3. Snap-placement of a kit assembly
 

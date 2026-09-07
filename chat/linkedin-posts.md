@@ -296,3 +296,18 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** the rings carried no drag-direction cue before this change → `TODO/done/ui-022-rotate-ring-direction-arrows.md`'s Problem section; the arrowhead maths reuses the existing dimension-line convention → diff to `src/render/annotate.js`, `writeArrowhead()` is unchanged and now called from the new `ringArrowheads()`; full suite green (typecheck, 349 unit tests across 20 files, 480 e2e passed/25 skipped across 3 browser engines × 3 viewports) → `npm run test` stages, this session; the markers render without blocking the ring's own drag → hand-driven against the running app this session, live Position/Rotation field tracking observed with the markers present
 **To Add:** repo URL once public, docs site URL once it exists
+
+## [2026-09-07T17:10:41Z] — The transform gizmo gets a shaded, 3D look (TODO/ui-021)
+
+**Post:** WarpCad's transform gizmo — the move arrows and rotate rings that appear on a selected part — worked correctly but looked wrong: uniform-width lines and flat triangles, a 2D diagram sitting on top of a 3D scene.
+
+The fix stays entirely inside the existing SVG overlay: per-axis gradient fills that shade each arm and arrowhead like a lit rod or cone, a double-stroke band on each rotate ring to suggest a tube rather than a wire, and a shared drop-shadow filter that lifts the handles off the scene. No new geometry, no new rendering technology, just paint.
+
+One new wrinkle: the lighter gradient stop uses CSS color-mix(), the first use of that function anywhere in this codebase. Verified it resolves correctly, rather than silently falling back to black, across Chromium, Firefox, and WebKit before shipping.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL #UX
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** the handles were a uniform-width `<line>`/flat `<polygon>` with no shading before this change → `TODO/done/ui-021-gizmo-3d-appearance.md`'s Problem section; the fix is per-axis SVG `<linearGradient>`s (objectBoundingBox, no per-frame geometry) plus a double-stroke ring band/core and a shared `drop-shadow` filter → diff to `src/components/viewport/Gizmo.vue`; `color-mix()` is new to this repo (no prior use anywhere) and was verified to resolve correctly, not fall back to black, in Chromium, Firefox and WebKit → this session's manual cross-engine check; full suite green (typecheck, 349 unit tests across 20 files, 483 e2e passed/31 skipped across 3 engines × 3 viewports) → `npm run test` stages, this session
+**To Add:** repo URL once public, docs site URL once it exists

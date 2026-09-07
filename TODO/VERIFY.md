@@ -19,6 +19,29 @@ between sessions — that's itself a signal to move more of it into
 
 ## Queue
 
+### ui-021 — gradient/shadow subtlety at the gizmo's floor size, and on real touch hardware (2026-09-07 17:09)
+
+A visual/feel judgment call, not a correctness question — the e2e spec asserts the
+gradients and shadow filter are actually wired up (real `<defs>` entries, real stop
+colours, three genuinely distinct axis hues), and a hand-drive at laptop width in
+Chromium/Firefox/WebKit confirmed the effect renders and doesn't break hit-testing. What
+that drive could not judge: whether the effect still *reads* as 3D shading, rather than
+disappearing into noise, at the extremes this task's own Testing section flagged as
+worth a second look —
+
+- [ ] At the gizmo's floor size (58px arm / 40px ring, `ui-017`'s minimum — the size
+  most selections actually render at on an average-sized part) the gradient's highlight
+  band is only a few pixels wide. Screenshots taken during this task's own drive looked
+  fine at 1440×900 desktop resolution, but that is not the same claim as legible on a
+  real phone/tablet screen's pixel density and viewing distance — CLAUDE.md's
+  Responsive Layout section asks for real on-device hand-testing, not just a Chromium
+  viewport emulation, and this task's own drive was desktop-emulation only.
+- [ ] The double-stroke ring "tube" cue (a dim gradient band plus a thin bright core,
+  both drawn from the same points) is the subtlest of the three techniques used here —
+  worth a specific glance on a real device to confirm it doesn't just look like a
+  slightly-thicker single ring, which would mean that particular technique earned its
+  added draw call for nothing.
+
 ### ui-022 — ring arrowhead legibility at phone width and at the gizmo's floor size (2026-09-07 16:17)
 
 A visual/feel judgment call, not a correctness question — the maths is asserted exactly

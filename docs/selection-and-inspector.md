@@ -9,7 +9,10 @@ come from the same gesture: click it.
 Click — or tap — directly on a shape in the 3D view. Three things happen at once:
 
 1. **A gizmo appears at the middle of the shape.** Three coloured arrows point along the
-   part's X, Y and Z directions, and three faint rings circle it. The arrows are the
+   part's X, Y and Z directions, and three faint rings circle it. The arms, their
+   arrowheads and the rings are shaded with a subtle highlight and a soft drop shadow,
+   so the handles read as small 3D objects sitting on top of the scene rather than as
+   flat 2D lines — the colour-coding itself is unchanged. The arrows are the
    move handles and the rings are the rotate handles — both draggable, see
    [Moving and turning a shape](#moving-and-turning-a-shape). **The rotate rings carry
    small arrow markers along their circumference**, so they read as "drag along me to

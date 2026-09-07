@@ -45,7 +45,13 @@
  */
 import { computed } from 'vue'
 
-import { createRingArrowheads, createRingPoints, ringArrowheads, ringPoints } from '../../render/annotate.js'
+import {
+  AXIS_LABELS,
+  createRingArrowheads,
+  createRingPoints,
+  ringArrowheads,
+  ringPoints,
+} from '../../render/annotate.js'
 
 const props = defineProps({
   /**
@@ -73,6 +79,44 @@ const AXIS_STROKE = Object.freeze({
   Y: 'var(--axis-y)',
   Z: 'var(--accent)',
 })
+
+/**
+ * Ids of the per-axis `<linearGradient>`s declared in this component's `<defs>`
+ * (`TODO/ui-021`) — a lighter tint of the axis colour fading to the axis colour
+ * itself, so the arm/head/ring read as lit from one side rather than as a flat
+ * colour fill. Kept as ids rather than inlining the gradient markup at each use
+ * site, the same way `AXIS_STROKE` is one lookup table rather than three
+ * `arrow.axis === 'X' ? ... : ...` chains everywhere it's read.
+ *
+ * @type {Readonly<Record<string, string>>}
+ */
+const AXIS_GRADIENT_ID = Object.freeze({
+  X: 'gizmo-shade-x',
+  Y: 'gizmo-shade-y',
+  Z: 'gizmo-shade-z',
+})
+
+/**
+ * Same idea as {@link AXIS_GRADIENT_ID}, a subtler variant for the rings.
+ *
+ * @type {Readonly<Record<string, string>>}
+ */
+const AXIS_RING_GRADIENT_ID = Object.freeze({
+  X: 'gizmo-ring-shade-x',
+  Y: 'gizmo-ring-shade-y',
+  Z: 'gizmo-ring-shade-z',
+})
+
+/**
+ * `url(#id)` reference for an SVG paint attribute (`stroke`/`fill`), built
+ * once per lookup rather than re-templated at every call site.
+ *
+ * @param {string} id
+ * @returns {string}
+ */
+function paintUrl(id) {
+  return `url(#${id})`
+}
 
 /**
  * Point buffers, allocated once per ring and reused for the life of the
@@ -217,12 +261,62 @@ function onHandleUp(event) {
     :data-origin="`${gizmo.originX.toFixed(1)},${gizmo.originY.toFixed(1)}`"
     aria-hidden="true"
   >
-    <!-- Rotate rings first, so the translate arrows draw on top of them. -->
+    <!-- Per-axis shading gradients (TODO/ui-021): a lighter tint fading to the
+         axis colour, so the arm/head/ring read as lit from one side instead of
+         as a flat colour fill. `objectBoundingBox` (the default, so no
+         coordinates below) means each shape shades against its *own* bounds —
+         cheap, and it needs no per-frame recomputation as the camera moves,
+         unlike the geometry these shapes are drawn from. -->
+    <defs>
+      <linearGradient
+        v-for="axis in AXIS_LABELS"
+        :key="`shade-${axis}`"
+        :id="AXIS_GRADIENT_ID[axis]"
+        x1="0%"
+        y1="0%"
+        x2="100%"
+        y2="100%"
+      >
+        <stop offset="0%" :stop-color="`color-mix(in srgb, ${AXIS_STROKE[axis]} 50%, white 50%)`" />
+        <stop offset="100%" :stop-color="AXIS_STROKE[axis]" />
+      </linearGradient>
+      <linearGradient
+        v-for="axis in AXIS_LABELS"
+        :key="`ring-shade-${axis}`"
+        :id="AXIS_RING_GRADIENT_ID[axis]"
+        x1="0%"
+        y1="0%"
+        x2="100%"
+        y2="100%"
+      >
+        <stop offset="0%" :stop-color="`color-mix(in srgb, ${AXIS_STROKE[axis]} 65%, white 35%)`" />
+        <stop offset="100%" :stop-color="AXIS_STROKE[axis]" />
+      </linearGradient>
+    </defs>
+
+    <!-- Rotate rings first, so the translate arrows draw on top of them. Drawn
+         as a dim, gradient-shaded band (the "tube wall") plus a thin, brighter
+         core of the same axis colour on top (the "tube's near side catching
+         the light") — TODO/ui-021's "double-stroke band" option, cheaper than
+         new ring geometry since both reuse the same `ringPaths` points. -->
     <polygon
       v-for="ring in ringPaths"
       :key="`ring-${ring.axis}`"
       class="tgizmo__ring"
       :data-testid="`gizmo-ring-${ring.axis.toLowerCase()}`"
+      :points="ring.points"
+      :stroke="paintUrl(AXIS_RING_GRADIENT_ID[ring.axis])"
+    />
+    <!-- Deliberately `gizmo-core-ring-*`, not `gizmo-ring-core-*`:
+         `selection-inspector.e2e.js`'s own `[data-testid^="gizmo-ring-"]`
+         selector expects exactly 3 matches (the band polygons above alone) —
+         the same collision `ui-022`'s arrowheads already hit once, see the
+         comment above that block. -->
+    <polygon
+      v-for="ring in ringPaths"
+      :key="`ring-core-${ring.axis}`"
+      class="tgizmo__ring-core"
+      :data-testid="`gizmo-core-ring-${ring.axis.toLowerCase()}`"
       :points="ring.points"
       :stroke="AXIS_STROKE[ring.axis]"
     />
@@ -240,6 +334,10 @@ function onHandleUp(event) {
       />
     </template>
 
+    <!-- Arms and heads shaded the same way as the rings (TODO/ui-021): the
+         gradient reads as a highlight along one side of a cylindrical rod
+         (arm) or cone (head), rather than the flat colour fill both drew
+         before. -->
     <g v-for="arrow in gizmo.arrows" :key="`arm-${arrow.axis}`">
       <template v-if="arrow.visible">
         <line
@@ -249,13 +347,13 @@ function onHandleUp(event) {
           :y1="gizmo.originY"
           :x2="arrow.tipX"
           :y2="arrow.tipY"
-          :stroke="AXIS_STROKE[arrow.axis]"
+          :stroke="paintUrl(AXIS_GRADIENT_ID[arrow.axis])"
         />
         <polygon
           class="tgizmo__head"
           :data-testid="`gizmo-head-${arrow.axis.toLowerCase()}`"
           :points="`${arrow.tipX},${arrow.tipY} ${arrow.h1x},${arrow.h1y} ${arrow.h2x},${arrow.h2y}`"
-          :fill="AXIS_STROKE[arrow.axis]"
+          :fill="paintUrl(AXIS_GRADIENT_ID[arrow.axis])"
         />
       </template>
     </g>
@@ -344,12 +442,35 @@ function onHandleUp(event) {
   }
 }
 
+/*
+ * TODO/ui-021: the shared "lift it off the scene" cue. A soft, dark
+ * drop-shadow reads as depth in *both* themes — unlike a stroke or fill
+ * colour, a shadow doesn't need a light/dark variant, because "something is
+ * slightly raised above what's behind it" looks the same regardless of which
+ * theme is drawing what's behind it. Kept small (1-2px) so it stays a depth
+ * cue rather than a glow.
+ */
 .tgizmo__ring {
   fill: none;
-  stroke-width: 1.5;
-  stroke-opacity: 0.55;
+  /* Widened from the original 1.5px into a band (TODO/ui-021): this is now the
+     "tube wall" half of the double-stroke tube cue, with `.tgizmo__ring-core`
+     below drawn on top as the "tube's lit side" highlight. */
+  stroke-width: 3;
+  stroke-opacity: 0.5;
   /* Keeps the stroke a real width even where a ring is seen almost edge-on. */
   vector-effect: non-scaling-stroke;
+  filter: drop-shadow(0 1px 1.5px rgba(0, 0, 0, 0.32));
+}
+
+.tgizmo__ring-core {
+  fill: none;
+  stroke-width: 1;
+  stroke-opacity: 0.9;
+  vector-effect: non-scaling-stroke;
+  /* Pure decoration on top of `.tgizmo__ring`'s own hit-test story: the grab
+     targets are a separate, later set of elements, per this component's own
+     header comment, and this core adds no hit target of its own. */
+  pointer-events: none;
 }
 
 .tgizmo__ring-arrow {
@@ -361,11 +482,17 @@ function onHandleUp(event) {
 .tgizmo__arm {
   stroke-width: 2.5;
   stroke-linecap: round;
+  filter: drop-shadow(0 1px 1.5px rgba(0, 0, 0, 0.32));
+}
+
+.tgizmo__head {
+  filter: drop-shadow(0 1px 1.5px rgba(0, 0, 0, 0.32));
 }
 
 .tgizmo__hub {
   fill: var(--text-1);
   stroke: var(--surface-0);
   stroke-width: 1.5;
+  filter: drop-shadow(0 1px 1.5px rgba(0, 0, 0, 0.32));
 }
 </style>

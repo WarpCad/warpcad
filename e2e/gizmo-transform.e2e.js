@@ -390,6 +390,73 @@ test('each visible rotate ring carries direction-arrow markers (TODO/ui-022)', a
   }
 })
 
+test('the arm, head, ring and hub carry 3D shading rather than flat colour (TODO/ui-021)', async ({
+  page,
+  browserName,
+}, testInfo) => {
+  // Chromium only: this is SVG/CSS gradient-and-filter wiring, not a
+  // WebGL/canvas-sensitive path — the geometry it decorates is already covered
+  // by ui-011/ui-012/ui-017/ui-022's specs across the full engine matrix. The
+  // WebKit/Firefox side is a manual spot-check per this task's own Testing
+  // section, since SVG filter/gradient support has real cross-engine history.
+  test.skip(browserName !== 'chromium', 'shading is CSS/SVG-only; Chromium coverage is enough (TODO/ui-021)')
+
+  await placeCube(page)
+
+  // Flat colour used to be `var(--axis-x)` etc directly on `stroke`/`fill`
+  // (see `ui-011`/`ui-022`); shading routes those through a per-axis
+  // `<linearGradient>` instead, so the drawn shapes now *reference* a gradient
+  // rather than carrying a flat colour value.
+  const armStroke = await page.locator('[data-testid="gizmo-arm-x"]').getAttribute('stroke')
+  expect(armStroke).toMatch(/^url\(#/)
+  const headFill = await page.locator('[data-testid="gizmo-head-x"]').getAttribute('fill')
+  expect(headFill).toMatch(/^url\(#/)
+
+  // Each referenced gradient must actually exist in the SVG's `<defs>`, with
+  // two real stops — a gradient id that resolves to nothing draws as a flat
+  // black shape, which would be a worse regression than the flat colour it
+  // replaced.
+  const gradientId = /** @type {string} */ (armStroke).match(/^url\(#([^)]+)\)$/)?.[1]
+  expect(gradientId).toBeTruthy()
+  const stopCount = await page
+    .locator(`[data-testid="transform-gizmo"] defs #${gradientId} stop`)
+    .count()
+  expect(stopCount).toBe(2)
+
+  // A ring's visible stroke is now the same gradient treatment, plus a thin
+  // brighter core drawn on top of it (the "tube, not a wire" cue) — the ring
+  // is drawn from the same axis-coloured family as its arm, so a user reading
+  // "which axis is this" is never given a different answer by the ring than
+  // by the arm.
+  const ringStroke = await page.locator('[data-testid="gizmo-ring-x"]').getAttribute('stroke')
+  expect(ringStroke).toMatch(/^url\(#/)
+  await expect(page.locator('[data-testid="gizmo-core-ring-x"]')).toHaveCount(1)
+
+  // The colour coding itself must survive shading: X, Y and Z still resolve to
+  // three genuinely different colours (the point `AXIS_STROKE` exists to
+  // guarantee), read off the gradient's own stops rather than assumed.
+  const finalStopColors = await page.evaluate(() => {
+    const axes = ['x', 'y', 'z']
+    return axes.map((axis) => {
+      const arm = document.querySelector(`[data-testid="gizmo-arm-${axis}"]`)
+      const stroke = arm?.getAttribute('stroke') ?? ''
+      const id = stroke.match(/^url\(#([^)]+)\)$/)?.[1]
+      const stops = id ? document.querySelectorAll(`#${id} stop`) : []
+      const last = stops[stops.length - 1]
+      return last ? getComputedStyle(last).stopColor : null
+    })
+  })
+  expect(finalStopColors.every(Boolean)).toBe(true)
+  expect(new Set(finalStopColors).size).toBe(3)
+
+  // Save a look-at-it-yourself screenshot alongside the existing drag
+  // snapshots (`moved-*.png`) — a diff target for the next visual pass, not an
+  // automated pixel assertion (CLAUDE.md: a snapshot only proves *something*
+  // changed here, not that it looks better).
+  mkdirSync(SNAPSHOT_DIR, { recursive: true })
+  await page.screenshot({ path: join(SNAPSHOT_DIR, `shaded-gizmo-${testInfo.project.name}.png`) })
+})
+
 test('dragging a translate arm moves the body, and the Position fields track it live', async ({
   page,
 }, testInfo) => {
