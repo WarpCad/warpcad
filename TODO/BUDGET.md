@@ -56,3 +56,4 @@ whether a milestone boundary was hit.
 | ~2026-09-06 15:24 (approximate) | 2026-09-06 16:38 | `ui-017`, `ui-018`, `ui-019` | task-count reached (3); also a milestone boundary (M1 complete, 2nd time) | yes — M1 |
 | 2026-09-06 18:16 | 2026-09-06 19:23 | `build-002`, `ui-023`, `core-004` | task-count reached (3) | no |
 | 2026-09-07 16:04 | 2026-09-07 18:47 | `ui-022`, `ui-021`, `ui-024` | task-count reached (3) | no |
+| 2026-09-07 18:53 | 2026-09-07 18:58 | `ui-025` | milestone boundary (M1.5 complete) | yes — M1.5 |
