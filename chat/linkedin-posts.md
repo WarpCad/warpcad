@@ -279,3 +279,20 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** the sum-vs-composition analysis and the measured 46.82/51.05/59.42 row → `TODO/done/core-004-rotation-carried-as-sum-not-composition.md`; the decision to reject the quaternion and why → that file's retirement note plus `src/core/rotation.js`'s module header; `localBoundsOf` and `annotate.js` needed no edit → diff shows neither's logic changed, only `group.js`'s doc comment; the two extra consumers → diffs to `rotateToRecord` in `src/core/transform.js` and `src/composables/useSelectedBody.js`; the finding was discovered by hand-driving, not by tests → `TODO/ACCEPTANCE.md` scenario 2's 2026-09-06 18:52 entry, filed during `ui-023`; full suite green (typecheck, 346 unit across 20 files, 477 e2e passed/19 skipped) → `npm run test` stages, this session
 **To Add:** repo URL once public, docs site URL once it exists
+
+## [2026-09-07T16:18:46Z] — A small affordance fix: making a drag handle look like one (TODO/ui-022)
+
+**Post:** Not every fix in WarpCad is geometry math. This one was about a circle not looking like a handle.
+
+The transform gizmo on a selected part has three colored arrows for moving it and three faint rings for turning it. The arrows already had arrowheads, so it was obvious what dragging one would do. The rings were just thin circles — visually indistinguishable from a selection halo or a decorative reference line, with nothing suggesting "grab and spin."
+
+The fix adds two small chevron markers per ring, drawn tangent to the circle so they point the direction a drag there will turn the part. The math reuses the arrowhead-drawing function already written for the dimension lines, computed straight from the ring's own screen-space geometry with no new projection step.
+
+Small scope, real value: a control that works but doesn't look operable fails the same test as one that isn't wired up at all, just later and by a person instead of an automated check.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL #UX
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** the rings carried no drag-direction cue before this change → `TODO/done/ui-022-rotate-ring-direction-arrows.md`'s Problem section; the arrowhead maths reuses the existing dimension-line convention → diff to `src/render/annotate.js`, `writeArrowhead()` is unchanged and now called from the new `ringArrowheads()`; full suite green (typecheck, 349 unit tests across 20 files, 480 e2e passed/25 skipped across 3 browser engines × 3 viewports) → `npm run test` stages, this session; the markers render without blocking the ring's own drag → hand-driven against the running app this session, live Position/Rotation field tracking observed with the markers present
+**To Add:** repo URL once public, docs site URL once it exists

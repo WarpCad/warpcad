@@ -229,3 +229,14 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** the carried sum vs. composed geometry, and the measured 46.82/51.05/59.42 and 50/40/40 rows → `TODO/done/core-004-rotation-carried-as-sum-not-composition.md`'s Problem and Measured-reproduction sections; the old `rotation: [current[0] + angles[0], …]` → diff to `src/core/transform.js`; both rows now read 40/40/50 → hand-driven against the running app this session at laptop/Chromium and phone/WebKit, screenshots captured; a Z-ring then X-ring drag leaves a Y term the drags never touched (`20.92 / −8.54 / 21.23`), which a sum cannot produce → same drive; full suite green (typecheck, 346 unit, 477 e2e passed/19 skipped) → `npm run test` stages, this session
 **To Add:** the screenshot of the 45°/45° cylinder reading 40/40/50; repo URL once public
+
+## [2026-09-07T16:18:46Z] — Rotate rings now show which way they spin (TODO/ui-022)
+
+**Post:** WarpCad's rotate-ring handles were just thin circles — nothing told you they were drag targets rather than decoration or a selection halo. Added small arrow markers along each ring pointing the drag direction, the same cue the move arrows already carry. #CAD #WebGL #Geometry
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL #Geometry
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** the rings carried no visual cue distinguishing "drag handle" from decoration → `TODO/done/ui-022-rotate-ring-direction-arrows.md`'s Problem section; the fix draws two chevrons per ring tangent to the circle, reusing the existing `writeArrowhead()` convention → diff to `src/render/annotate.js` (`ringArrowheads`) and `src/components/viewport/Gizmo.vue`; full suite green (typecheck, 349 unit tests across 20 files, 480 e2e passed/25 skipped across 3 engines × 3 viewports) → `npm run test` stages, this session; the markers render and the ring's drag still works with them present, both translate and rotate → hand-driven against the running app this session, screenshots captured
+**To Add:** screenshot of the arrow markers on a selected cylinder's gizmo; repo URL once public
