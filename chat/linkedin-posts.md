@@ -311,3 +311,18 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** the handles were a uniform-width `<line>`/flat `<polygon>` with no shading before this change → `TODO/done/ui-021-gizmo-3d-appearance.md`'s Problem section; the fix is per-axis SVG `<linearGradient>`s (objectBoundingBox, no per-frame geometry) plus a double-stroke ring band/core and a shared `drop-shadow` filter → diff to `src/components/viewport/Gizmo.vue`; `color-mix()` is new to this repo (no prior use anywhere) and was verified to resolve correctly, not fall back to black, in Chromium, Firefox and WebKit → this session's manual cross-engine check; full suite green (typecheck, 349 unit tests across 20 files, 483 e2e passed/31 skipped across 3 engines × 3 viewports) → `npm run test` stages, this session
 **To Add:** repo URL once public, docs site URL once it exists
+
+## [2026-09-07T18:05:52Z] — Drag-box (marquee) multi-select (TODO/ui-024)
+
+**Post:** WarpCad's viewport already let you Shift-click to build a multi-selection. It didn't have the gesture every 3D and 2D tool trains you to reach for first: drag a box, grab everything inside it.
+
+The interesting part wasn't the geometry — project each body's bounding box to screen space, test overlap against the dragged rectangle — it was the gesture itself. The original spec's own suggestion, a plain left-drag from empty space, would have quietly broken the existing plain-drag-orbits-the-camera default the whole navigation test suite depends on. Landed on Ctrl/Cmd+drag for desktop instead, plus a third "Select" mode on the existing Orbit/Pan toggle for touch, where there's no modifier key to hold at all.
+
+Partial overlap counts as enclosed, matching the convention most CAD and DCC tools use for rubber-band selection.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL #UX
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** multi-select previously required Shift-clicking each body individually → `src/stores/selection.js`'s pre-existing `toggle()` and `TODO/done/ui-024-drag-box-multi-select.md`'s own Goal section; the drag-box gesture projects each body's world-axis bounding box to screen space and tests overlap with the dragged rectangle, partial overlap counts as enclosed → diff to `src/render/annotate.js` (`updateBoxScreenBounds`, `marqueeIntersectsBox`); the trigger is Ctrl/Cmd+drag on desktop and a new "Select" chrome toggle on touch, not the TODO's own literal "plain left-drag" suggestion, because that would have broken the existing plain-drag-orbits default → `docs/decisions/interaction-model-qa.md`'s new addendum, and `e2e/viewport-scaffold.e2e.js`'s pre-existing orbit-drag regression test which was re-run and still passes; typecheck and 356 unit tests across 21 files passed, and every e2e spec touching this change (marquee's own two new tests, the pan-gesture regressions, and the click-select regressions) passed across all 3 engines × 3 viewports when run in isolation → this session's `npm run typecheck`/`test:unit`/`playwright test` runs
+**To Add:** screenshot of the marquee rectangle mid-drag; repo URL once public

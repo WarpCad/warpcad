@@ -251,3 +251,14 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** the handles were a uniform-width `<line>`/flat `<polygon>` with no shading before this change → `TODO/done/ui-021-gizmo-3d-appearance.md`'s Problem section; the fix is per-axis SVG `<linearGradient>`s plus a double-stroke ring band and a shared `drop-shadow` filter, no changes to `src/render/annotate.js` → diff to `src/components/viewport/Gizmo.vue`; `color-mix()` (new to this repo) resolves correctly rather than falling back to black in Chromium, Firefox and WebKit → this session's manual cross-engine check; full suite green (typecheck, 349 unit tests across 20 files, 483 e2e passed/31 skipped across 3 engines × 3 viewports) → `npm run test` stages, this session; `ui-022`'s rotate-ring arrow markers still render (2 per visible ring) after the restyle → this session's hand-drive of the running app
 **To Add:** before/after screenshot of a selected cube's gizmo; repo URL once public
+
+## [2026-09-07T18:05:52Z] — Drag-box (marquee) multi-select (TODO/ui-024)
+
+**Post:** WarpCad's viewport now supports drag-box (marquee) multi-select — grab several parts at once by dragging a box, the standard CAD/DCC gesture and the only way to multi-select on touch. Ctrl/Cmd+drag on desktop, a new Select toggle for touch.
+
+Built with Claude Code, reviewed by me. #CAD #WebGL #UX
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL #UX
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** multi-select previously required Shift-clicking each body individually → `src/stores/selection.js`'s pre-existing `toggle()` and `TODO/done/ui-024-drag-box-multi-select.md`'s own Goal section; the drag-box gesture projects each body's world-axis bounding box to screen space and tests overlap with the dragged rectangle, partial overlap counts as enclosed → diff to `src/render/annotate.js` (`updateBoxScreenBounds`, `marqueeIntersectsBox`); the trigger is Ctrl/Cmd+drag on desktop and a new "Select" chrome toggle on touch, not the TODO's own literal "plain left-drag" suggestion, because that would have broken the existing plain-drag-orbits default → `docs/decisions/interaction-model-qa.md`'s new addendum, and `e2e/viewport-scaffold.e2e.js`'s pre-existing orbit-drag regression test which was re-run and still passes; typecheck and 356 unit tests across 21 files passed, and every e2e spec touching this change (marquee's own two new tests, the pan-gesture regressions, and the click-select regressions) passed across all 3 engines × 3 viewports when run in isolation → this session's `npm run typecheck`/`test:unit`/`playwright test` runs
+**To Add:** screenshot of the marquee rectangle mid-drag; repo URL once public
