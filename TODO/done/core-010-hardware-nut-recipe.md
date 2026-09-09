@@ -6,8 +6,30 @@ priority: medium
 model: sonnet
 milestone: M2
 depends: [core-001]
-status: open
+status: done
 ---
+
+> **What actually shipped (retirement note, 2026-09-09):** implemented as scoped, one
+> single-record `primitive.hexagon` expansion, no group, no translate. The one thing
+> this file left unresolved — the V1→V3 centring difference (V1 builds a nut base-at
+> `z=0`, matching `Parts.Hexagon`'s convention; V3 centres it, matching every other
+> `primitive.*` row `library.js` places, per this file's own "center passed straight
+> through" instruction) — meant the dimensional diff compares **size**
+> (`bounds[1]-bounds[0]` per axis) and volume against the V1 reference fixture, not raw
+> bounding-box position, since the two are deliberately not co-located. Documented in
+> `hardware.nut.js`'s own module doc. `fit` was made **required, with no default** —
+> V1's own `Hardware.Nut(nut, fit)` has none either (unlike `Bolt`'s `fit = fit ||
+> 'loose'`), so an omitted fit throws the same class of error an unknown one does,
+> rather than inventing a default V1 never had. The dimensional diff covers three
+> cases, not two: `m4`/loose, `1/4 hex`/close (both tables, per this file's own Testing
+> section), plus `m4`/tap — the one fit class with a **negative** clearance delta,
+> added so the arithmetic's sign is verified against real V1 output rather than just
+> asserted. Also confirmed directly (not assumed): `src/core/library.js`'s `buildRows`
+> filters registry keys to `op.startsWith('primitive.')`, so `hardware.nut` — like
+> `hardware.bolt` before it — stays invisible to the Library panel regardless of `ui`
+> metadata until an explicit Hardware Library section is built to read composite ops
+> too. That section is still not part of this task, per this file's own Interaction
+> model note.
 
 ## Goal
 

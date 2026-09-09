@@ -13,6 +13,7 @@
     "build-storybook": "storybook build",
     "test:e2e:headless": "playwright test",
     "fixtures:v1-bolt": "node scripts/generate-v1-bolt-fixture.cjs",
+    "fixtures:v1-nut": "node scripts/generate-v1-nut-fixture.cjs",
     "test": "npm run typecheck && npm run test:unit -- --run && npm run test:e2e:headless"
   },
   "dependencies": {

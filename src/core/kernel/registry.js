@@ -38,6 +38,7 @@ const { booleans, extrusions, measurements, primitives, transforms } = modeling
 
 import { chamferRim, filletRim } from './fillet.js'
 import { bolt } from './recipes/hardware.bolt.js'
+import { nut } from './recipes/hardware.nut.js'
 
 /** @typedef {import('@jscad/modeling').geometries.geom3.Geom3} Geom3 */
 /** @typedef {[number, number, number]} Vec3Mm */
@@ -382,6 +383,12 @@ export const registry = Object.freeze({
 
   'hardware.bolt': composite(0, bolt),
 
+  // TODO/core-010: single-record expansion — Hardware.Nut returns one bare CSG in
+  // V1, not a Group, so there is no second part to snap this one against. See
+  // recipes/hardware.nut.js's module doc for the V1→V3 centring difference this
+  // makes explicit.
+  'hardware.nut': composite(0, nut),
+
   // Deliberately absent, and not an oversight — TODO/core-003 spiked both:
   //
   // - `modify.fillet`/`modify.chamfer` on a *selected edge*. Not viable on this
@@ -392,8 +399,8 @@ export const registry = Object.freeze({
   //   enablement, which is why they carry `Rim` in their names.
   // - `hardware.bearing`. Not blocked, just unverified: there is no `Bearing` factory
   //   in the vendored jscad-hardware to port or diff against, and its geometry is an
-  //   ordinary tube, so it belongs here as a `composite` recipe alongside bolt/nut/
-  //   washer once someone supplies a real spec table. It is not a native op.
+  //   ordinary tube, so it belongs here as a `composite` recipe alongside washer once
+  //   someone supplies a real spec table. It is not a native op.
 })
 
 /**
