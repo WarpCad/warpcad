@@ -6,13 +6,17 @@ import { acceptsOperandCount, assertOperandCount, getEntry, registry } from './r
 const { measurements } = modeling
 
 /** @typedef {import('@jscad/modeling').geometries.geom3.Geom3} Geom3 */
+/** @typedef {import('@jscad/modeling').geometries.geom2.Geom2} Geom2 */
 
 /**
  * Call a native entry's builder directly, bypassing the fold.
  *
+ * Returns `Geom3 | Geom2` rather than a solid: `profile.roundedRectangle` builds a
+ * flat profile (TODO/core-012), and the tests below measure it the same way.
+ *
  * @param {string} op
- * @param {{ params?: Record<string, any>, inputs?: Geom3[] }} [args]
- * @returns {Geom3}
+ * @param {{ params?: Record<string, any>, inputs?: any[] }} [args]
+ * @returns {Geom3 | Geom2}
  */
 function build(op, { params = {}, inputs = [] } = {}) {
   const entry = getEntry(op)
@@ -20,7 +24,7 @@ function build(op, { params = {}, inputs = [] } = {}) {
   return entry.build({ params, inputs })
 }
 
-/** @param {Geom3} geometry */
+/** @param {Geom3 | Geom2} geometry */
 const boundsOf = (geometry) => measurements.measureBoundingBox(geometry)
 
 describe('registry shape', () => {
@@ -78,6 +82,93 @@ describe('registry shape', () => {
 
   it('carries hardware.bolt as a composite that creates geometry from nothing', () => {
     expect(registry['hardware.bolt']).toMatchObject({ kind: 'composite', operandCount: 0 })
+  })
+
+  it('carries §6’s three kit parts as composites that create geometry from nothing', () => {
+    for (const op of ['kit.board', 'kit.boardFrame', 'kit.anchor']) {
+      expect(registry[op], op).toMatchObject({ kind: 'composite', operandCount: 0 })
+    }
+  })
+
+  it('keeps the 2D profile ops out of the primitive.* namespace, and out of the panel', () => {
+    // TODO/core-012: `src/core/library.js` filters registry keys on `primitive.` and
+    // throws on any match without `ui` metadata, so naming a geom2-producing op
+    // `primitive.roundedRectangle` would either break the Library panel's build or
+    // offer a flat profile as a draggable body. Neither of these is a placeable row.
+    for (const op of ['profile.roundedRectangle', 'profile.extrudeLinear']) {
+      expect(op.startsWith('primitive.'), op).toBe(false)
+      expect(registry[op]?.ui, `${op} must not be offered as a catalogue row`).toBeUndefined()
+    }
+  })
+})
+
+describe('the 2D profile layer (TODO/core-012)', () => {
+  const { geometries } = modeling
+
+  it('builds a rounded rectangle as a 2D profile, not a solid', () => {
+    const profile = build('profile.roundedRectangle', {
+      params: { size: [40, 30], roundRadius: 3 },
+    })
+    expect(geometries.geom2.isA(profile)).toBe(true)
+    expect(geometries.geom3.isA(profile)).toBe(false)
+    const [min, max] = boundsOf(profile)
+    expect(max[0] - min[0]).toBeCloseTo(40, 6)
+    expect(max[1] - min[1]).toBeCloseTo(30, 6)
+  })
+
+  it('treats a zero corner radius as a square corner rather than an error', () => {
+    const profile = build('profile.roundedRectangle', { params: { size: [10, 10] } })
+    const [min, max] = boundsOf(profile)
+    expect(max[0] - min[0]).toBeCloseTo(10, 6)
+  })
+
+  it('names the op and the parameter when a corner radius cannot fit', () => {
+    // Upstream's own message — "roundRadius must be smaller than the radius of all
+    // dimensions" — names neither, and fires for the sliver just under half too.
+    expect(() =>
+      build('profile.roundedRectangle', { params: { size: [10, 10], roundRadius: 5 } })
+    ).toThrow(/profile\.roundedRectangle: roundRadius must be smaller than half/)
+    expect(() =>
+      build('profile.roundedRectangle', { params: { size: [10, 10], roundRadius: 4.999999 } })
+    ).toThrow(/profile\.roundedRectangle: roundRadius/)
+    expect(() =>
+      build('profile.roundedRectangle', { params: { size: [0, 10], roundRadius: 1 } })
+    ).toThrow(/profile\.roundedRectangle: size\[0\]/)
+  })
+
+  it('extrudes a profile into a solid of the requested height, based on z = 0', () => {
+    const profile = build('profile.roundedRectangle', {
+      params: { size: [40, 30], roundRadius: 3 },
+    })
+    const prism = build('profile.extrudeLinear', { params: { height: 1.62 }, inputs: [profile] })
+    expect(geometries.geom3.isA(prism)).toBe(true)
+    const [min, max] = boundsOf(prism)
+    expect(min[2]).toBeCloseTo(0, 6)
+    expect(max[2]).toBeCloseTo(1.62, 6)
+  })
+
+  it('rejects a solid operand instead of silently passing it through', () => {
+    // Upstream `extrudeLinear` returns anything that is neither geom2 nor path2
+    // *unchanged*, so without this guard the mistake would surface as wrong geometry
+    // several records later, with nothing pointing back at the cause.
+    const solid = build('primitive.cuboid', { params: { size: [10, 10, 10] } })
+    expect(() =>
+      build('profile.extrudeLinear', { params: { height: 2 }, inputs: [solid] })
+    ).toThrow(/profile\.extrudeLinear: operand must be a 2D profile \(geom2\), got a 3D solid/)
+  })
+
+  it('rejects a non-positive extrusion height', () => {
+    const profile = build('profile.roundedRectangle', { params: { size: [10, 10] } })
+    expect(() => build('profile.extrudeLinear', { params: { height: 0 }, inputs: [profile] })).toThrow(
+      /profile\.extrudeLinear: height/
+    )
+  })
+
+  it('needs exactly one operand to extrude, and none to build a profile', () => {
+    expect(acceptsOperandCount('profile.roundedRectangle', 0)).toBe(true)
+    expect(acceptsOperandCount('profile.roundedRectangle', 1)).toBe(false)
+    expect(acceptsOperandCount('profile.extrudeLinear', 1)).toBe(true)
+    expect(acceptsOperandCount('profile.extrudeLinear', 0)).toBe(false)
   })
 
   it('getEntry names the unknown op and does not return undefined', () => {

@@ -105,7 +105,13 @@ export function evaluate(records, options = {}) {
       }).group
     } else {
       if (!entry.build) throw new Error(`${record.op}: native entry has no build function`)
-      value = entry.build({ params: record.params ?? {}, inputs })
+      // A `profile.*` op returns a flat `geom2` rather than a solid (TODO/core-012).
+      // Such a value only ever transits the fold as an *unnamed* intermediate inside
+      // a composite recipe's own nested `evaluate` below — whose `byId` is discarded,
+      // only its `group` escaping — and a group is built from `name`d records alone,
+      // every one of which is a solid. So the fold's public types stay solid-only and
+      // this is the one place the wider possibility is acknowledged.
+      value = /** @type {Geom3} */ (entry.build({ params: record.params ?? {}, inputs }))
     }
 
     if (record.id !== undefined) {

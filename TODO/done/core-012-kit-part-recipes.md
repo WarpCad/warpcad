@@ -6,8 +6,41 @@ priority: medium
 model: opus
 milestone: M2
 depends: [core-001]
-status: open
+status: done
 ---
+
+> **What actually shipped, and the one place it diverged from this file** (`/fix-todo`
+> Step 7). All three recipes landed as specified — `kit.board`, `kit.boardFrame` and
+> `kit.anchor`, all `composite(0, ...)`, ported from the sources named below, with the
+> 2D-subtract-before-extrude ordering and the bake-the-snap-in pattern intact.
+>
+> **The Affected-files list was one item short.** A `composite` recipe expands into
+> *other registry ops*, and the registry had no 2D vocabulary at all — no way to name a
+> rounded-rectangle profile or an extrusion as a record. `primitive.triangle` had hidden
+> the same profile-then-extrude shape inside a single native entry, which works for one
+> primitive but not for `BoardFrame`, whose whole point is a `boolean.subtract` sitting
+> *between* the profile and the extrude. So two new native ops came with this task:
+> **`profile.roundedRectangle`** (geom2, 0 operands) and **`profile.extrudeLinear`**
+> (geom2 → geom3, 1 operand). Without them the only way to honour "all `composite(0,
+> ...)`" would have been to put the geometry in `registry.js` as natives, which
+> contradicts the same list.
+>
+> They are deliberately **not** `primitive.*`: `src/core/library.js` filters the Library
+> panel's rows on that prefix and *throws* on a match with no `ui` metadata, so a
+> `primitive.roundedRectangle` would either break the panel's build or offer a flat
+> profile as a draggable body. Pinned by a `registry.spec.js` test.
+>
+> Two smaller consequences worth naming: `registry.js`'s `RegistryEntry.build` typedef
+> now returns `Geom3 | Geom2` (a `KernelGeometry`), and `src/core/kernel/index.js` has
+> one narrowing cast where the fold binds a built value — with the reasoning that a
+> `geom2` only ever transits a composite's *nested* fold as an unnamed intermediate,
+> whose `byId` is discarded, so the kernel's public types stay solid-only.
+>
+> On the flagged rotation-sign check: verified by measurement, and the answer is that
+> the sign is **immaterial here** — the post is a cylinder, symmetric about its own
+> axis, so ±90° about X give bit-identical bounding boxes, and the align/snap that
+> follow fix the position outright. Both facts are asserted in `kit.anchor.spec.js`
+> rather than left as a comment.
 
 > **Source note, resolved during write-up**: the vendored `jscad-utils@3.2.0` in this
 > project's `node_modules` (the version `core-001`'s bolt port and `core-010`/`011`'s

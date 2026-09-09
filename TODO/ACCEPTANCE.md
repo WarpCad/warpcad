@@ -231,6 +231,41 @@ paths.
 
 Console clean in all three drives.
 
+**Re-checked**: 2026-09-09 14:21 — PASS (`core-012`). That task's own Testing section judged
+no scenario to move on it (three kernel recipes, no UI surface), and that call stands — but
+it added five entries to `src/core/kernel/registry.js`, and `src/core/library.js` builds this
+scenario's Library rows *by iterating that registry* and **throws** on any `primitive.*` entry
+without `ui` metadata. A new op kind added to the pipeline a past finding was fixed in is
+exactly `CLAUDE.md`'s standing-regression-surface case, so it was driven rather than assumed.
+Laptop 1440×900 in Chromium; kernel-only change, so one engine rather than three (the 9-way
+e2e matrix ran green separately).
+
+- **`ui-010`'s own repro, re-run**: the panel still renders **exactly seven rows** — Cube,
+  Cylinder, Cone, Hexagon, Triangle, Tube, Sphere — with no `profile.roundedRectangle`,
+  `profile.extrudeLinear`, `kit.board`, `kit.boardFrame` or `kit.anchor` leaking in, and no
+  throw at panel build. The three kit ops are unreachable from the Library panel, as
+  `core-010` already confirmed and this task did nothing to change.
+- **The scenario itself**: a Cube then a Cylinder dragged in on wandering paths with a
+  deliberate overshoot and doubling-back; both stayed visible (`data-body-count` = 2) and the
+  cube's millimetre centre was **byte-identical** before and after the second drop
+  (`-75.17,-25.15,20.00`). Each drop selected only the new item. Clicking empty grid cleared
+  the selection (`data-selected-id` → `""`); clicking the cube selected `cuboid-1` alone;
+  clicking the cylinder moved the highlight to `cylinder-2` alone. An orbit afterwards showed
+  both solids still present from the new angle. Console clean.
+- **A false alarm worth writing down so the next drive doesn't rediscover it**: the first
+  deselect probe clicked the lower-left of the viewport (fx 0.13, fy 0.86) and the selection
+  did *not* clear. `elementFromPoint` there returns `DIV.chrome__pad` inside
+  `#navigation-chrome` — that is the nav chrome's own button pad, not empty viewport space, so
+  refusing to deselect is correct. Deselect fires normally at fx 0.04/fy 0.06 (where the e2e
+  spec clicks) and at fx 0.50/fy 0.86 (bare canvas). Not a defect and not a regression.
+- **Beyond the scenario, since no UI can reach the new recipes**: all three were evaluated
+  through the real fold *in the browser* (the same `src/core/kernel/index.js` the app imports,
+  not a Node-only harness) — `kit.board` → one `board` part measuring 60 × 40 × 1.62 mm,
+  `kit.boardFrame` → one `frame` part at 59.9998 × 40.0003 × 1.62 (the ~1e-4 mm of 2D-boolean
+  noise its module doc describes), `kit.anchor` → a two-part group (`hole`, `post`) measuring
+  12 × 12 × 9. No console errors, so nothing in the new 2D `geom2` layer trips the browser
+  build or the mesh bridge.
+
 ### 2. Hardware property edit
 
 **Steps**:

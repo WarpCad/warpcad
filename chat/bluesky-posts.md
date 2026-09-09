@@ -306,3 +306,14 @@ Built with Claude Code, reviewed by me. #CAD #WebGL
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** one `primitive.tube` record always, one hidden `primitive.cylinder` only when `fit` is given → `src/core/kernel/recipes/hardware.washer.js` in the diff; diffed against real V1 `Hardware.Washer()` output for `ImperialWashers['1/4']` with `fit: 'loose'` and with `fit` omitted → `hardware.washer.spec.js`'s "dimensional diff" describe block and the generated `hardware.washer.v1-reference.json` fixture; no `MetricWashers` table exists in `jscad-hardware` at any version this project has access to → `TODO/core-011-hardware-washer-recipe.md`'s Goal section, citing the vendored 1.1.0, the author's own current 5.0.0 tree, and the `jscad-hardware2` v1 tree; metric sizes checked against ISO 7089 by table-conformance test, not a V1 diff → `hardware.washer.spec.js`'s "washer spec table" describe block; full suite green (typecheck, 413 unit tests across 23 files, 571 e2e passed/42 skipped) → this session's `npm run typecheck`/`test:unit`/`test:e2e:headless` runs
 **To Add:** repo URL once public
+
+## [2026-09-09T14:26:00Z] — Kit-part composite recipes: Board, BoardFrame, Anchor (TODO/core-012)
+
+**Post:** WarpCad's kernel grew a 2D layer. Porting jscad-utils' BoardFrame meant keeping V1's ordering: subtract the two rounded rectangles while flat, then extrude. Doing that to same-height solids is the non-manifold trap V1's own comment warns about.
+
+Built with Claude Code, reviewed by me. #CAD
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** V1 subtracts the two rounded rectangles in 2D specifically to avoid "BSP non-manifold artifacts that occur when subtracting two same-height `Board` solids" → `parts.js`'s own doc comment on `BoardFrame` in `/Users/johncole/src/jscad/jscad-utils` (6.0.0), read directly this session; the port preserves that ordering as records → `src/core/kernel/recipes/kit.boardFrame.js` in the diff, with `kit.boardFrame.spec.js` asserting the extrude's `target` is the subtract's `id`; the 2D layer is new (`profile.roundedRectangle`, `profile.extrudeLinear`) → this diff's `src/core/kernel/registry.js`; full suite green (typecheck, 457 unit tests across 26 files, 571 e2e passed/42 skipped) → this session's `npm run typecheck`/`test:unit`/`test:e2e:headless` runs
+**To Add:** repo URL once public

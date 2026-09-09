@@ -34,14 +34,26 @@
 import modeling from '@jscad/modeling'
 
 // See group.js: default import, not named, so this runs under raw Node ESM too.
-const { booleans, extrusions, measurements, primitives, transforms } = modeling
+const { booleans, extrusions, geometries, measurements, primitives, transforms } = modeling
 
 import { chamferRim, filletRim } from './fillet.js'
 import { bolt } from './recipes/hardware.bolt.js'
 import { nut } from './recipes/hardware.nut.js'
 import { washer } from './recipes/hardware.washer.js'
+import { anchor } from './recipes/kit.anchor.js'
+import { board } from './recipes/kit.board.js'
+import { boardFrame } from './recipes/kit.boardFrame.js'
 
 /** @typedef {import('@jscad/modeling').geometries.geom3.Geom3} Geom3 */
+/** @typedef {import('@jscad/modeling').geometries.geom2.Geom2} Geom2 */
+/**
+ * What a native op's `build` may hand back. Almost always a solid; the `profile.*`
+ * pair (TODO/core-012) is the exception, producing and consuming the flat `geom2`
+ * profiles a composite kit recipe subtracts and extrudes before anything renders.
+ * Only a *named* record's value reaches the mesh bridge, and those are all solids.
+ *
+ * @typedef {Geom3 | Geom2} KernelGeometry
+ */
 /** @typedef {[number, number, number]} Vec3Mm */
 
 /**
@@ -67,7 +79,10 @@ import { washer } from './recipes/hardware.washer.js'
 /**
  * @typedef {object} BuildArgs
  * @property {Record<string, any>} params The record's `params`, plain JSON.
- * @property {Geom3[]} inputs Resolved operand geometry, `target` first.
+ * @property {Geom3[]} inputs Resolved operand geometry, `target` first. Typed as
+ *   solids because every op but one consumes solids; `profile.extrudeLinear` is
+ *   handed a `geom2` and narrows it itself, since the fold does not track which
+ *   flavour of geometry an id holds (see {@link KernelGeometry}).
  */
 
 /** @typedef {(params: any, tables: any) => OpRecord[]} Recipe */
@@ -82,7 +97,7 @@ import { washer } from './recipes/hardware.washer.js'
  * @typedef {object} RegistryEntry
  * @property {'native' | 'composite'} kind
  * @property {0 | 1 | '2+'} operandCount How many operands the op consumes.
- * @property {(args: BuildArgs) => Geom3} [build] Native ops only.
+ * @property {(args: BuildArgs) => KernelGeometry} [build] Native ops only.
  * @property {Recipe} [recipe] Composite ops only.
  * @property {OpUi} [ui] Present on ops the UI offers as a catalogue row.
  */
@@ -91,7 +106,7 @@ import { washer } from './recipes/hardware.washer.js'
  * A native entry: it builds geometry itself.
  *
  * @param {0 | 1 | '2+'} operandCount
- * @param {(args: BuildArgs) => Geom3} build
+ * @param {(args: BuildArgs) => KernelGeometry} build
  * @param {OpUi} [ui] Catalogue metadata; see {@link OpUi} and `src/core/library.js`.
  * @returns {RegistryEntry}
  */
@@ -148,6 +163,47 @@ function requireNonNegative(value, label, op) {
     )
   }
   return value
+}
+
+/**
+ * `@jscad/modeling`'s own `EPS`, which its `roundedRectangle` subtracts before
+ * comparing a corner radius against the half-dimension. Mirrored here so this
+ * module's error message wins for every radius upstream would have rejected,
+ * including the sliver just below the half-dimension.
+ */
+const KERNEL_EPS_MM = 1e-5
+
+/**
+ * A rounded corner cannot be larger than the half-dimension it has to fit inside —
+ * upstream throws "roundRadius must be smaller than the radius of all dimensions",
+ * which names neither the op nor the parameter a user actually typed.
+ *
+ * @param {number} radiusMm
+ * @param {number} smallerSideMm The shorter of the two side lengths.
+ * @param {string} label Parameter name, as the caller's own params spell it.
+ * @param {string} op
+ * @returns {void}
+ */
+function assertCornerRadiusFits(radiusMm, smallerSideMm, label, op) {
+  if (radiusMm > 0 && radiusMm >= smallerSideMm / 2 - KERNEL_EPS_MM) {
+    throw new Error(
+      `${op}: ${label} must be smaller than half the shortest side ` +
+        `(${smallerSideMm / 2} mm), got ${radiusMm}`
+    )
+  }
+}
+
+/**
+ * A geometry's type name, for an error message. `@jscad/modeling` values are plain
+ * objects with no constructor to report, so this reads their shape instead.
+ *
+ * @param {unknown} value
+ * @returns {string}
+ */
+function describeGeometry(value) {
+  if (geometries.geom3.isA(value)) return 'a 3D solid (geom3)'
+  if (geometries.path2.isA(value)) return 'a 2D path (path2)'
+  return typeof value === 'object' && value !== null ? 'an unrecognised geometry' : String(value)
 }
 
 /**
@@ -325,6 +381,61 @@ export const registry = Object.freeze({
     { label: 'Sphere', defaults: { diameter: 40 } }
   ),
 
+  // ## The 2D profile layer (TODO/core-012)
+  //
+  // Two ops that deal in `geom2`, not `geom3`. They exist because §6's Kit-part rows
+  // (Board, BoardFrame) are *composite* — a recipe expands into other registry ops
+  // and builds nothing itself — and a rounded-rectangle slab has no expansion in
+  // terms of the 3D vocabulary above. `primitive.triangle` faced the same
+  // profile-then-extrude shape and solved it inside one native entry; that works for
+  // a single primitive but not for BoardFrame, which has to subtract two profiles
+  // **while they are still 2D** (see recipes/kit.boardFrame.js for why that ordering
+  // is load-bearing). Splitting the profile and the extrude into two ops is what lets
+  // `boolean.subtract` — already polymorphic over geom2/geom3 upstream — sit between
+  // them as a plain record.
+  //
+  // They are deliberately **not** named `primitive.*`. `src/core/library.js` builds
+  // the Library panel by filtering registry keys on that prefix and requires `ui`
+  // metadata on every match, so a `primitive.roundedRectangle` would either break
+  // that build or offer a flat `geom2` as a draggable body. A `profile.*` op is an
+  // intermediate value, never a placeable one.
+  'profile.roundedRectangle': native(0, ({ params }) => {
+    const op = 'profile.roundedRectangle'
+    const size = params.size ?? []
+    const width = requirePositive(size[0], 'size[0]', op)
+    const length = requirePositive(size[1], 'size[1]', op)
+    const roundRadius = requireNonNegative(params.roundRadius ?? 0, 'roundRadius', op)
+    assertCornerRadiusFits(roundRadius, Math.min(width, length), 'roundRadius', op)
+    return primitives.roundedRectangle({
+      size: [width, length],
+      roundRadius,
+      segments: params.segments ?? DEFAULT_SEGMENTS,
+      center: params.center ?? [0, 0],
+    })
+  }),
+
+  // Extrudes a 2D profile up from `z = 0` to `z = height`, exactly as V1's
+  // `CAG.extrude({ offset: [0, 0, thickness] })` did. The result is *not* re-centred
+  // here: a recipe that wants the registry's usual centred-on-`center` convention
+  // emits its own `transform.translate`, which keeps that placement visible in the
+  // expansion the way `hardware.bolt.js` argues for.
+  'profile.extrudeLinear': native(1, ({ params, inputs }) => {
+    const op = 'profile.extrudeLinear'
+    // `BuildArgs.inputs` is typed as solids because every other op consumes solids;
+    // this is the one op whose operand is a profile, so it narrows here.
+    const profile = /** @type {Geom2} */ (/** @type {unknown} */ (inputs[0]))
+    if (!geometries.geom2.isA(profile)) {
+      // Upstream `extrudeLinear` returns anything that is neither a geom2 nor a
+      // path2 *unchanged*, so without this the op would silently pass a solid
+      // through and the mistake would surface as wrong geometry much later.
+      throw new Error(`${op}: operand must be a 2D profile (geom2), got ${describeGeometry(profile)}`)
+    }
+    return extrusions.extrudeLinear(
+      { height: requirePositive(params.height, 'height', op) },
+      profile
+    )
+  }),
+
   'transform.translate': native(1, ({ params, inputs }) =>
     transforms.translate(/** @type {Vec3Mm} */ (params.vector), inputs[0])
   ),
@@ -394,6 +505,17 @@ export const registry = Object.freeze({
   // always, `clearance` only `if (fit)`. See recipes/hardware.washer.js's module doc
   // for the V1→V3 hidden-clearance divergence this makes explicit.
   'hardware.washer': composite(0, washer),
+
+  // TODO/core-012: §6's three Kit-part rows. All three expand through the
+  // `profile.*` pair above rather than building geometry themselves; `kit.anchor` is
+  // the one recipe in the project that touches `@jscad/modeling` at all, and only to
+  // measure throwaway probe geometry for a snap it then bakes in as a number (see
+  // recipes/kit.anchor.js). None carries `ui` metadata: the Library panel's rows come
+  // from `primitive.*` entries only, so these stay unreachable from the panel until
+  // a task extends it — stated rather than left to be discovered.
+  'kit.board': composite(0, board),
+  'kit.boardFrame': composite(0, boardFrame),
+  'kit.anchor': composite(0, anchor),
 
   // Deliberately absent, and not an oversight — TODO/core-003 spiked both:
   //
