@@ -23,6 +23,7 @@
 import { add, createGroup, toGeom3 } from './group.js'
 import { boltSpecs } from './tables/bolt-specs.js'
 import { nutSpecs } from './tables/nut-specs.js'
+import { washerSpecs } from './tables/washer-specs.js'
 import { FIT_CLEARANCE_MM } from './tables/fit-clearances.js'
 import { assertOperandCount, getEntry, registry } from './registry.js'
 
@@ -51,7 +52,7 @@ import { assertOperandCount, getEntry, registry } from './registry.js'
  */
 
 /** Size tables every composite recipe can read. */
-const DEFAULT_TABLES = Object.freeze({ boltSpecs, nutSpecs, FIT_CLEARANCE_MM })
+const DEFAULT_TABLES = Object.freeze({ boltSpecs, nutSpecs, washerSpecs, FIT_CLEARANCE_MM })
 
 /**
  * Fold op records into geometry.
@@ -188,4 +189,5 @@ export {
 } from './group.js'
 export { boltSpecs, FIT_CLASSES, inchToMm } from './tables/bolt-specs.js'
 export { nutSpecs } from './tables/nut-specs.js'
+export { washerSpecs } from './tables/washer-specs.js'
 export { FIT_CLEARANCE_MM } from './tables/fit-clearances.js'

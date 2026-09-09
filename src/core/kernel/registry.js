@@ -39,6 +39,7 @@ const { booleans, extrusions, measurements, primitives, transforms } = modeling
 import { chamferRim, filletRim } from './fillet.js'
 import { bolt } from './recipes/hardware.bolt.js'
 import { nut } from './recipes/hardware.nut.js'
+import { washer } from './recipes/hardware.washer.js'
 
 /** @typedef {import('@jscad/modeling').geometries.geom3.Geom3} Geom3 */
 /** @typedef {[number, number, number]} Vec3Mm */
@@ -389,6 +390,11 @@ export const registry = Object.freeze({
   // makes explicit.
   'hardware.nut': composite(0, nut),
 
+  // TODO/core-011: `Hardware.Washer` returns a two-part Group in V1 — `washer`
+  // always, `clearance` only `if (fit)`. See recipes/hardware.washer.js's module doc
+  // for the V1→V3 hidden-clearance divergence this makes explicit.
+  'hardware.washer': composite(0, washer),
+
   // Deliberately absent, and not an oversight — TODO/core-003 spiked both:
   //
   // - `modify.fillet`/`modify.chamfer` on a *selected edge*. Not viable on this
@@ -399,8 +405,8 @@ export const registry = Object.freeze({
   //   enablement, which is why they carry `Rim` in their names.
   // - `hardware.bearing`. Not blocked, just unverified: there is no `Bearing` factory
   //   in the vendored jscad-hardware to port or diff against, and its geometry is an
-  //   ordinary tube, so it belongs here as a `composite` recipe alongside washer once
-  //   someone supplies a real spec table. It is not a native op.
+  //   ordinary tube, so it belongs here as a `composite` recipe once someone supplies
+  //   a real spec table. It is not a native op.
 })
 
 /**

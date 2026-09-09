@@ -6,7 +6,7 @@ priority: medium
 model: sonnet
 milestone: M2
 depends: [core-001]
-status: open
+status: done
 ---
 
 ## Goal
