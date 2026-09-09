@@ -125,10 +125,10 @@ further, rather than queuing behind M2/M3's reserved rows.
 
 | id | Task | Kind | Depends | Acceptance |
 |---|---|---|---|---|
-| `ui-013` *(reserved)* | Drag-place hardware/kit-part with snap guides — generic snap-assist mechanism | Creation | `ui-010` | §9 scenario 3 (snap-placement of a kit assembly) |
-| `core-010` *(reserved)* | `hardware.nut` composite recipe, dimensionally diffed against V1 | Creation (op) | `core-001` | feeds `ui-013`'s Library panel |
-| `core-011` *(reserved)* | `hardware.washer` composite recipe, dimensionally diffed against V1 | Creation (op) | `core-001` | feeds `ui-013`'s Library panel |
-| `core-012` *(reserved)* | Kit-part composite recipes: Board, BoardFrame, Anchor (§6's multi-part-`Group`-as-one-draggable example) | Creation (op) | `core-001` | feeds `ui-013`'s Library panel |
+| `ui-013` | Drag-place hardware/kit-part with snap guides — generic snap-assist mechanism | Creation | `ui-010` | §9 scenario 3 (snap-placement of a kit assembly) — see the task's own sequencing note: driven with whatever composite parts exist at implementation time, since the scenario's literal RPi+Camera example is M4 |
+| `core-010` | `hardware.nut` composite recipe, dimensionally diffed against V1 | Creation (op) | `core-001` | feeds `ui-013`'s Library panel |
+| `core-011` | `hardware.washer` composite recipe, dimensionally diffed against V1 | Creation (op) | `core-001` | feeds `ui-013`'s Library panel |
+| `core-012` | Kit-part composite recipes: Board, BoardFrame, Anchor (§6's multi-part-`Group`-as-one-draggable example) — `BoardFrame`/`Anchor` don't exist in the `jscad-utils@3.2.0` vendored here, but are confirmed in the user's `jscad-utils@6.0.0`; all three fully scoped, ported by reading that source (no fixture-diff dependency added) | Creation (op) | `core-001` | feeds `ui-013`'s Library panel |
 
 ---
 
@@ -139,7 +139,9 @@ further, rather than queuing behind M2/M3's reserved rows.
 | `ui-014` *(reserved)* | Boolean operation (Union/Subtract/Intersect) with selection-count gating — the Operations toolbar per `docs/decisions/interaction-model-qa.md` control 5, including Subtract's base/subtrahend visual indicator | Operation, 2+ | `ui-011` | §9 scenario 4 (boolean gating, incl. Subtract-order indicator check per the Q&A doc's flag), scenario 5 (hidden-part boolean — bolt tap-clearance) |
 | `ui-015` *(reserved)* | "Combine into group" operation | Operation, 2+ | `ui-014` | feeds `ui-016` |
 | `ui-016` *(reserved)* | Group selection vs. clicking a sub-part (`Group.pick` surfaced as a selection behavior, per control 6) | — (selection display) | `ui-015` | §9 scenario 6 (group vs. sub-part selection) |
-| `core-013` *(reserved)* | Wire the remaining Group-math operations to the registry: Snap, Align, Enlarge/Fit, Bisect (§6 Operation table) | Operation | `core-001` | feeds later UI tasks that expose these; `.bisect` specifically feeds a future `picam-2`-style case-shell-split task, per §9 scenario 5's own source note |
+| `core-013` | Wire `group.snap`/`group.align` to the op registry, with sub-part-addressed operands — scoped against a real survey of 1,600+ `.snap`/`.align` call sites across the user's own `~/src/jscad/` projects | Operation | `core-001` | feeds `ui-026`; no `ACCEPTANCE.md` scenario directly, see the task's own Testing section |
+| `ui-026` *(reserved)* | Expose `group.snap`/`group.align` as a document operation — precise computed reposition of one placed item against another (or a named sub-part of either), distinct from `ui-013`'s drag-time visual snap guides | Operation | `core-013` | feeds §9 scenario 3 (kit assembly placement), scenario 5 (hidden-part boolean) once scoped |
+| `core-019` *(reserved)* | Wire the remaining Group-math operations to the registry: Enlarge/Fit, Bisect (§6 Operation table) — split from `core-013`, which covers only Snap/Align | Operation | `core-001` | feeds later UI tasks; `.bisect` specifically feeds a future `picam-2`-style case-shell-split task, per §9 scenario 5's own source note |
 
 ---
 
