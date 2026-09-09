@@ -124,3 +124,55 @@ export function projectToWorkingPlane(orbit, ndcX, ndcY, aspect, out, planeZMm =
   out.z = planeZMm
   return out
 }
+
+/**
+ * @typedef {object} PlacementNeighbour
+ * @property {readonly number[]} centroidMm The body's bounding-box centre, in
+ *   document millimetres (`centroidOf` in `src/core/kernel/group.js`).
+ */
+
+/**
+ * Which existing body a placement drag should snap against: the one whose
+ * centroid is nearest the ghost's projected position (`TODO/ui-013`,
+ * `Initial design.md` §7a's "closest item ... when >1 item is in the scene").
+ *
+ * ## Which distance, said out loud
+ *
+ * **World-space, and measured in the working plane** — the XY millimetre
+ * distance from the projected drop point to each candidate's centroid — not
+ * screen-space, and not a full 3D distance. Two reasons, both worth stating
+ * rather than leaving to be re-derived:
+ *
+ * - *Not screen-space*: the drop point is already millimetres on the plane, so a
+ *   world-space test needs no projection per candidate per `pointermove`, and it
+ *   cannot change its answer when the user orbits without moving the pointer.
+ * - *Not 3D*: a drag places on the plane and carries no height, so a tall body
+ *   would otherwise measure as "further away" purely for being tall, and the
+ *   nearest item under the pointer would lose to a shorter one beside it.
+ *
+ * Allocation-free and index-returning rather than item-returning, because this
+ * runs on every `pointermove` of a drag (CLAUDE.md's Performance rule).
+ *
+ * @param {readonly PlacementNeighbour[]} items The bodies already in the scene.
+ * @param {number} xMm The ghost's projected position on the working plane.
+ * @param {number} yMm
+ * @returns {number} Index into `items`, or `-1` when there is nothing to snap to
+ *   — an empty scene, which is `ui-013`'s own stated precondition for behaving
+ *   exactly as `ui-010` already did.
+ */
+export function nearestOnPlane(items, xMm, yMm) {
+  let bestIndex = -1
+  let bestSquaredMm = Infinity
+  for (let index = 0; index < items.length; index += 1) {
+    const centroid = items[index].centroidMm
+    const dx = centroid[0] - xMm
+    const dy = centroid[1] - yMm
+    const squared = dx * dx + dy * dy
+    // Strictly less, so an exact tie keeps the earlier body — deterministic
+    // rather than dependent on iteration order.
+    if (!(squared < bestSquaredMm)) continue
+    bestSquaredMm = squared
+    bestIndex = index
+  }
+  return bestIndex
+}

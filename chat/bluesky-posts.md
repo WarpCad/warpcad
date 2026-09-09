@@ -273,3 +273,14 @@ Built with Claude Code, reviewed by me. #CAD #WebGL
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** the six 32px caps nearly tiled the 116px dial, leaving only a sliver of the triad visible before this change → this session's before-screenshot of the shipped component plus `TODO/ui-025-orientation-gizmo-label-legibility.md`'s own Problem section; `RADIUS` (cap anchor) was left unchanged because growing it would overflow the mobile 96px dial, which sits at zero margin already (33 + 15 cap-radius = 48 = 96/2) → arithmetic on `OrientationGizmo.vue`'s own constants in the diff; the fix is a separate, larger spoke-only radius (`SPOKE_SCALE`), translucent `color-mix()` cap backgrounds, and a further-receded `.gizmo__cap--negative` → diff to `src/components/viewport/OrientationGizmo.vue`; `color-mix()` resolves identically (not falling back) in Chromium, Firefox and WebKit → this session's manual cross-engine `getComputedStyle` check; full suite green (typecheck, 356 unit tests/21 files, 504 e2e passed/37 skipped across 3 engines × 3 viewports) → this session's `npm run typecheck`/`test:unit`/`test:e2e:headless` runs; this was the last open row in `TODO/ROADMAP.md`'s M1.5 table, now fully ✅ → diff to `TODO/ROADMAP.md`
 **To Add:** before/after screenshot of the dial; repo URL once public
+
+## [2026-09-09T13:08:36Z] — Snap guides for drag placement (TODO/ui-013)
+
+**Post:** Dropping a second part in WarpCad now grows dashed guides on the nearest one, and the ghost snaps to them before you let go. Five alignments per axis — centre line, flush face, touching face — nearest wins inside a screen-pixel radius, so it reads the same at any zoom.
+
+Built with Claude Code, reviewed by me. #CAD #WebGL
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** five candidate alignments per working-plane axis, nearest within tolerance wins → `SNAP_ALIGNMENTS`/`updateSnap` in the diff to `src/core/library.js`; the tolerance is a screen-pixel constant converted through `mmPerPixel` → `SNAP_TOLERANCE_PX`/`snapToleranceMm` in the same diff, plus `src/core/library.spec.js`'s conversion tests passing this session; the ghost snaps before release and the snapped position is what commits → this session's hand-drive, where the identical screen gesture landed at `-110.70,70.22` with a reference present and `-97.21,70.61` on an empty page (laptop/Chromium)
+**To Add:** short screen capture of a ghost snapping onto a placed cube; repo URL once public

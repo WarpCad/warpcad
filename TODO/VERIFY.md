@@ -19,6 +19,24 @@ between sessions — that's itself a signal to move more of it into
 
 ## Queue
 
+### ui-013 — does a 48 px snap radius *feel* right on real hardware? (2026-09-09 13:12)
+
+A feel judgement, not a correctness question. `SNAP_TOLERANCE_PX = 48` is pinned by unit
+tests and its zoom behaviour was measured during the drive (engagement shrank from 83.7 mm
+apart at camera distance 420 to ~7 mm at 110, so zooming in genuinely buys finer control),
+but "is the assist helpful or grabby" is the one thing neither a test nor a headless
+screenshot can answer. At default zoom on a laptop the guides start about 80-110 px out;
+on a phone about 60 px.
+
+- [ ] On a real phone and a real iPad, drop three or four solids near each other in a row
+  and judge whether the snap helps or fights you — in particular whether you can still
+  place something deliberately *just* beside another part without it jumping flush, and
+  whether a fingertip's own imprecision makes 48 px feel too small rather than too large.
+- [ ] Look at the magenta guides on a real screen against the dark grid, at an angle and
+  in daylight. They were chosen (over `--accent`) on a desktop screenshot, where they read
+  clearly; a phone at low brightness is the case that screenshot can't stand in for.
+
+
 ### ui-024 — marquee drag feel on real touch hardware (2026-09-07 18:41)
 
 A device-specific quirk, not a correctness question — `e2e/selection-inspector.e2e.js`'s

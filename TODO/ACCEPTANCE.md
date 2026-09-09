@@ -209,6 +209,28 @@ canvas still orbited the camera (`azimuth` moved from `-45.00` to `-121.00`) —
 confirming the new gesture-precedence logic did not swallow the ordinary orbit drag.
 Console clean throughout.
 
+**Re-checked**: 2026-09-09 13:06 — PASS (`ui-013`). Re-driven in full rather than
+glanced at, because that task changes the **drop-commit path itself**: a drop no longer
+commits the raw pointer position but a snapped one, which is precisely the code this
+scenario's regression ("placing a second body hides or replaces the first") lives in.
+Driven at laptop/Chromium, phone/WebKit and tablet/WebKit, with wandering, jittery drag
+paths.
+
+- A Cube then a Cylinder, dropped **far apart** so no snap was involved: both stayed
+  visible (`data-body-count` = 2) and the cube's millimetre centre was **byte-identical**
+  before and after the second drop — laptop `-136.01,6.72,20.00`, phone
+  `-99.57,43.16,20.00`, tablet `-91.41,51.32,20.00`. Each drop selected only the new item.
+- Clicking empty grid cleared the selection; clicking the cube selected `cuboid-1` alone;
+  clicking the cylinder moved the highlight to `cylinder-2` alone — never both at once.
+- **And the new case this task creates**, driven separately: a second body dropped
+  *deliberately snapped onto* the first. The snapped-against body was still there and
+  still **byte-identical** afterwards (`-110.70,70.22,20.00` before and after at laptop;
+  `-99.29,81.63,20.00` at phone) — a snap moves the body being placed and touches nothing
+  else, which is the specific way this task could have reintroduced the old regression.
+  Exactly two bodies, not one and not three.
+
+Console clean in all three drives.
+
 ### 2. Hardware property edit
 
 **Steps**:
@@ -439,7 +461,65 @@ gradient/shadow. Console clean.
 snaps into place once within tolerance (step 4), and on release the camera module sits
 aligned to the board's mounting holes, not at an arbitrary offset position.
 
-**Last run**: (unset — not yet driveable; `ui-013` doesn't exist yet)
+**Last run**: 2026-09-09 13:06 — **PASS, with a named stand-in for the two parts**
+(`ui-013`). Hand-driven at laptop 1440×900 in Chromium, phone 390×844 in WebKit and
+tablet 820×1180 in WebKit (the engine an iPhone and an iPad actually run), touch input
+on both touch viewports.
+
+**The stand-in, stated rather than glossed**: steps 1-2 name a Raspberry Pi 5 board and
+a Camera Module V3. Both are M4 items (`core-014`/`core-015`) and neither exists yet;
+`hardware.nut`/`hardware.washer` (`core-010`/`core-011`) had not landed either, and
+`hardware.bolt` — which does exist in the kernel — has no Library row yet, since the
+Hardware section is fed by those same M2 recipe tasks. So the drive used **a Cube as the
+reference item and a Cylinder as the part snapped onto it**, per this task's own
+sequencing note ("proving it against any two placeable items is the bar"). What is
+claimed here is therefore the **mechanism**: guides on approach, a snapped ghost, and a
+snapped commit. The literal RPi-plus-camera assembly remains `core-014`'s own bar.
+
+**Steps 3-4 (the half no scripted spec can make on its own)**: the second row was dragged
+in on a wandering, jittery path with a deliberate overshoot and a doubling-back, and
+`data-snapped`/the guide count were sampled at **ten points along the approach** rather
+than at one. The guides genuinely appear *on approach* and not before — laptop:
+`fx=0.90 … 0.60` all un-snapped, then snapped from `fx=0.56` inward; phone: un-snapped
+to `fx=0.66`, snapped from `fx=0.60`. Retreating back out to the far corner mid-drag
+dropped them again, and coming back in brought them back — driven four times in a row
+(`far → close → far → close`), which is the check that matters most: a guide that once
+appeared and then never let go would pass every fixed script ever written.
+
+**Step 5, and the claim the whole scenario turns on**: the **snapped** position committed,
+not the raw pointer position. Measured rather than eyeballed — the identical screen
+gesture was replayed on a second, empty page where there was nothing to snap to, and the
+two drops landed in different places: laptop `-110.70,70.22` (snapped, exactly the
+reference's own centre) against `-97.21,70.61` (the raw pointer alone); phone
+`-99.29,81.63` against `-89.71,78.11`; tablet `-96.74,84.18` against `-88.04,79.79`. The
+placed part is aligned to the reference, not at an arbitrary offset — which is exactly
+what **Expect** asks for.
+
+**Beyond the scenario's own steps**: an **orbit** between drags, after which the guides
+still projected onto the solid from the new angle (and correctly switched from a centre
+alignment to a face alignment as the approach angle changed); a **cancel** mid-gesture,
+which cleared both guides and ghost and placed nothing; the drag driven under
+`pointerType: 'touch'` end to end on both touch viewports; and the **light colour
+scheme** as well as dark. Console clean in every drive.
+
+**The drive found two real defects no test could see, both fixed in this task and
+re-driven**:
+1. When the ghost snapped *centred* on the reference, the two boxes coincided, so the
+   guide spanned only their union — a dashed stub exactly as long as the solid it lay on
+   top of, geometrically correct and invisible in practice. Guides now overhang by one
+   tolerance at each end (`GUIDE_OVERHANG_RATIO`), so the line runs visibly past what it
+   aligns; pinned by a unit test asserting the span exceeds the solid's own size.
+2. The guides were drawn in `--accent`, which is also the transform gizmo's ring colour
+   and the Z dimension line's — so over a selected body (and the body just dropped *is*
+   selected) they read as a fourth part of the gizmo rather than as a placement cue. They
+   now have their own `--snap-guide` token, magenta, defined for both colour schemes.
+
+**Also measured, since `ui-013` calls for the tolerance to read the same at any zoom**:
+the engagement distance shrinks monotonically as the camera zooms in — 83.7 mm apart at
+distance 420, 70.0 mm at 215, and only ~7 mm at 110 — so zooming in does buy finer
+control rather than the snap staying equally grabby. The exact conversion
+(`SNAP_TOLERANCE_PX × mmPerPixel`) is pinned by unit tests; how the 48 px radius *feels*
+on real hardware is logged in `TODO/VERIFY.md` rather than claimed here.
 
 ### 4. Boolean gating
 

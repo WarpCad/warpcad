@@ -32,6 +32,7 @@ import NavigationChrome from './NavigationChrome.vue'
 import DimensionLines from './DimensionLines.vue'
 import Gizmo from './Gizmo.vue'
 import MarqueeSelect from './MarqueeSelect.vue'
+import SnapGuides from './SnapGuides.vue'
 import { useSelectedBody } from '../../composables/useSelectedBody.js'
 import {
   axisFacing,
@@ -44,10 +45,12 @@ import {
   marqueeIntersectsBox,
   rotateDeltaDeg,
   translateDeltaMm,
+  createSnapGuideAnnotations,
   updateBoxScreenBounds,
   updateDimensionAnnotation,
   updateGizmoAnnotation,
   updateMarqueeRect,
+  updateSnapGuideAnnotations,
 } from '../../render/annotate.js'
 import { useTransformCommands } from '../../composables/useTransformCommands.js'
 import { useTransformPreviewStore } from '../../stores/transformPreview.js'
@@ -60,10 +63,20 @@ import {
   disposeMesh,
   geom3ToBufferGeometry,
 } from '../../render/mesh.js'
-import { ndcFromClient, projectToWorkingPlane } from '../../render/pick.js'
+import { nearestOnPlane, ndcFromClient, projectToWorkingPlane } from '../../render/pick.js'
 import { evaluateOp, toGeom3 } from '../../core/kernel/index.js'
 import { boundsOf } from '../../core/kernel/group.js'
-import { paramsForDrop, recordForDrop } from '../../core/library.js'
+import {
+  boxAtPoint,
+  clearSnap,
+  createBoxMm,
+  createSnapState,
+  ghostBoxAtOrigin,
+  paramsForDrop,
+  recordForDrop,
+  snapToleranceMm,
+  updateSnap,
+} from '../../core/library.js'
 import { useDocumentStore } from '../../stores/document.js'
 import { usePlacementStore } from '../../stores/placement.js'
 import { useSelectionStore } from '../../stores/selection.js'
@@ -183,6 +196,26 @@ const dimensionBox = createOrientedBox()
  */
 const marqueeRect = reactive(createMarqueeRect())
 
+/**
+ * The dashed placement guides' screen geometry (`TODO/ui-013`).
+ *
+ * Reactive for the same reason `marqueeRect` above is, and written from the same
+ * place: the pointer path, once per `pointermove` of a placement drag rather
+ * than once per rendered frame. That is the right cadence here — a placement
+ * drag is the one gesture during which the camera does not move, so a guide only
+ * ever needs re-projecting when the pointer does. Two objects of six fields,
+ * mutated in place by `src/render/annotate.js`; nothing like the multi-megabyte
+ * `Float32Array` CLAUDE.md's Performance rule is actually about.
+ */
+const snapGuides = reactive(createSnapGuideAnnotations())
+
+/**
+ * Whether the ghost is currently being held in line by a snap — the drag's own
+ * "this is why the preview jumped" signal, and what an `*.e2e.js` spec asserts
+ * mid-gesture instead of pixel-picking the canvas.
+ */
+const snapped = ref(false)
+
 // --- non-reactive render state -------------------------------------------
 
 const orbit = createOrbitCamera()
@@ -219,6 +252,17 @@ bodiesGroup.name = 'bodies'
 const bodyMeshes = new Map()
 /** Ghost geometry, cached per op so a drag builds each shape at most once. */
 const ghostGeometry = new Map()
+/**
+ * The ghost's *box*, cached per op alongside its geometry (`TODO/ui-013`).
+ *
+ * The snap needs the dragged shape's bounding box on every `pointermove`, and
+ * measuring one means evaluating the solid — far too expensive for the pointer
+ * path. Measured once per op at the working-plane origin instead, then
+ * translated by `boxAtPoint`, which is pure arithmetic over six numbers.
+ *
+ * @type {Map<string, import('../../core/library.js').BoxMm>}
+ */
+const ghostBoxes = new Map()
 /** @type {Mesh | null} */
 let ghostMesh = null
 let ghostOp = ''
@@ -647,6 +691,123 @@ function ghostGeometryFor(op) {
   return geometry
 }
 
+/**
+ * The ghost's box for an op, built once and cached — see {@link ghostBoxes}.
+ *
+ * @param {string} op
+ * @returns {import('../../core/library.js').BoxMm}
+ */
+function ghostBoxFor(op) {
+  let box = ghostBoxes.get(op)
+  if (!box) {
+    box = ghostBoxAtOrigin(op)
+    ghostBoxes.set(op, box)
+  }
+  return box
+}
+
+// --- snap-assisted placement (TODO/ui-013) --------------------------------
+
+/**
+ * What the ghost can snap against: every body already in the document, with the
+ * two measurements the snap needs.
+ *
+ * Rebuilt when the *document* changes, never per `pointermove`: nothing can
+ * appear, move or vanish during a placement drag, and `boundsOf` walks a solid's
+ * polygons — a cost that has no business inside the pointer path (CLAUDE.md's
+ * Performance rule). One drag therefore measures each body at most once.
+ *
+ * @type {{ id: string, centroidMm: number[], box: import('../../core/library.js').BoxMm }[]}
+ */
+const snapNeighbours = []
+let snapNeighboursVersion = -1
+
+/** The ghost's box at the raw pointer position — allocated once, mutated. */
+const ghostBox = createBoxMm()
+/** Which alignment (if any) the ghost is being held in, and its guides. */
+const snapState = createSnapState()
+/** The point the drop will commit at: the pointer's, plus the snap offset. */
+const dropPointMm = { x: 0, y: 0 }
+
+function refreshSnapNeighbours() {
+  if (snapNeighboursVersion === documentStore.version) return
+  snapNeighboursVersion = documentStore.version
+  snapNeighbours.length = 0
+  for (const body of documentStore.raw.bodies()) {
+    const [minMm, maxMm] = boundsOf(body.geometry)
+    snapNeighbours.push({
+      id: body.id,
+      centroidMm: [
+        (minMm[0] + maxMm[0]) / 2,
+        (minMm[1] + maxMm[1]) / 2,
+        (minMm[2] + maxMm[2]) / 2,
+      ],
+      box: { minMm, maxMm },
+    })
+  }
+}
+
+/** Push the current snap state out to the overlay and the DOM flag. */
+function syncSnapGuides() {
+  updateSnapGuideAnnotations(orbit, snapState.guides, widthPx, heightPx, snapGuides)
+  // Guarded, like `setGhostVisible`: this flips at most a handful of times per
+  // gesture rather than once per pointer event.
+  if (snapped.value !== snapState.snapped) snapped.value = snapState.snapped
+}
+
+/** Drop every trace of the last drag's snap. */
+function clearSnapFeedback() {
+  clearSnap(snapState)
+  syncSnapGuides()
+}
+
+/**
+ * Where a drop actually lands: the projected pointer point, moved by whatever
+ * alignment the nearest existing body pulls it into.
+ *
+ * **The single source of both the preview and the commit**, deliberately. The
+ * ghost the user is watching and the record the release appends both come
+ * through here, so the solid cannot land somewhere the preview never showed —
+ * the same reasoning that made `paramsForDrop` shared in `ui-010`, and the exact
+ * class of drift `ui-013`'s "on drop, the **snapped** position commits" line is
+ * about.
+ *
+ * @param {string} op
+ * @param {number} clientXPx
+ * @param {number} clientYPx
+ * @returns {{ x: number, y: number } | null} `null` when the pointer does not
+ *   meet the working plane at all — no valid drop position, snapped or not.
+ */
+function resolveDropPoint(op, clientXPx, clientYPx) {
+  const point = projectPointer(clientXPx, clientYPx)
+  if (!point) {
+    clearSnapFeedback()
+    return null
+  }
+  dropPointMm.x = point.x
+  dropPointMm.y = point.y
+
+  refreshSnapNeighbours()
+  const nearest = nearestOnPlane(snapNeighbours, point.x, point.y)
+  if (nearest === -1) {
+    // `ui-013`'s precondition: an empty scene has nothing to align to, so the
+    // drag stays exactly the one `ui-010` built.
+    clearSnap(snapState)
+  } else {
+    boxAtPoint(ghostBoxFor(op), dropPointMm, ghostBox)
+    updateSnap(
+      ghostBox,
+      snapNeighbours[nearest].box,
+      snapToleranceMm(orbit.getMmPerPixel(heightPx)),
+      snapState,
+    )
+    dropPointMm.x += snapState.dxMm
+    dropPointMm.y += snapState.dyMm
+  }
+  syncSnapGuides()
+  return dropPointMm
+}
+
 /** @param {boolean} value */
 function setGhostVisible(value) {
   // Guarded so a drag that stays inside the viewport writes no reactive state at
@@ -694,12 +855,14 @@ const dropTarget = {
       ghostMesh.geometry = ghostGeometryFor(op)
       ghostOp = op
     }
-    const point = projectPointer(clientXPx, clientYPx)
+    const point = resolveDropPoint(op, clientXPx, clientYPx)
     if (!point) {
       setGhostVisible(false)
       scheduleRender()
       return
     }
+    // The **snapped** point, so the preview shows where the drop will actually
+    // land rather than where the pointer happens to be (`TODO/ui-013`).
     ghostMesh.position.set(point.x, point.y, 0)
     setGhostVisible(true)
     scheduleRender()
@@ -707,11 +870,12 @@ const dropTarget = {
 
   clearPreview() {
     setGhostVisible(false)
+    clearSnapFeedback()
     scheduleRender()
   },
 
   commit(op, clientXPx, clientYPx) {
-    const point = projectPointer(clientXPx, clientYPx)
+    const point = resolveDropPoint(op, clientXPx, clientYPx)
     if (!point) return null
     // Every document mutation goes through the command layer, inside a
     // transaction with an origin (CLAUDE.md Architecture). The component never
@@ -1214,6 +1378,9 @@ onBeforeUnmount(() => {
   bodiesGroup.clear()
   for (const geometry of ghostGeometry.values()) geometry.dispose()
   ghostGeometry.clear()
+  ghostBoxes.clear()
+  snapNeighbours.length = 0
+  snapNeighboursVersion = -1
   ghostMesh = null
   ghostOp = ''
   bodyMaterial?.dispose()
@@ -1246,6 +1413,7 @@ onBeforeUnmount(() => {
     :data-selected-count="selection.count"
     :data-placing="placement.isDragging ? 'true' : 'false'"
     :data-ghost="ghostVisible ? 'visible' : 'hidden'"
+    :data-snapped="snapped ? 'true' : 'false'"
     :data-transforming="preview.isActive ? 'true' : 'false'"
   >
     <canvas
@@ -1298,6 +1466,10 @@ onBeforeUnmount(() => {
          marquee drag is in progress, above the gizmo/dimension overlays so
          it is never occluded by them mid-drag. -->
     <MarqueeSelect :rect="marqueeRect" />
+    <!-- The dashed placement guides (TODO/ui-013): drawn only while a drag is
+         being held in line with an existing item, above the selection overlays
+         so the alignment being offered is never occluded mid-drag. -->
+    <SnapGuides :guides="snapGuides" />
 
     <Grid
       :mm-per-pixel="overlay.mmPerPixel"

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { createOrbitCamera, STANDARD_VIEWS } from './camera.js'
-import { ndcFromClient, projectToWorkingPlane } from './pick.js'
+import { nearestOnPlane, ndcFromClient, projectToWorkingPlane } from './pick.js'
 
 /** @param {Record<string, any>} [options] */
 function camera(options = {}) {
@@ -124,5 +124,50 @@ describe('projectToWorkingPlane — screen point to a millimetre point on Z=0', 
     const orbit = camera()
     const target = { x: 1, y: 2, z: 3 }
     expect(projectToWorkingPlane(orbit, 0.25, 0.25, 1.5, target)).toBe(target)
+  })
+})
+
+describe('nearestOnPlane — which existing item a placement drag snaps against', () => {
+  /**
+   * @param {number[][]} centroids
+   * @returns {{ centroidMm: readonly number[] }[]}
+   */
+  const items = (centroids) => centroids.map((centroidMm) => ({ centroidMm }))
+
+  it('has nothing to snap to in an empty scene', () => {
+    // TODO/ui-013's precondition, stated rather than left implicit: with zero
+    // existing items a drag behaves exactly as `ui-010` already built it — no
+    // guides, no snap, no "nearest" item to invent.
+    expect(nearestOnPlane([], 0, 0)).toBe(-1)
+  })
+
+  it('picks the closest centroid, measured in the working plane', () => {
+    const scene = items([
+      [200, 0, 20],
+      [30, 40, 20],
+      [-500, -500, 20],
+    ])
+    expect(nearestOnPlane(scene, 0, 0)).toBe(1)
+    expect(nearestOnPlane(scene, 190, 5, )).toBe(0)
+    expect(nearestOnPlane(scene, -480, -520)).toBe(2)
+  })
+
+  it('ignores height: a tall body is not further away for being tall', () => {
+    // The distance is deliberately the *working-plane* (world XY) one, not a 3D
+    // one and not a screen-space one — a drag places on the plane, so how tall
+    // a candidate happens to be says nothing about how near the drop is to it.
+    const scene = items([
+      [10, 0, 2000],
+      [80, 0, 5],
+    ])
+    expect(nearestOnPlane(scene, 0, 0)).toBe(0)
+  })
+
+  it('breaks an exact tie toward the first item, deterministically', () => {
+    const scene = items([
+      [10, 0, 20],
+      [-10, 0, 20],
+    ])
+    expect(nearestOnPlane(scene, 0, 0)).toBe(0)
   })
 })

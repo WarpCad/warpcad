@@ -1220,3 +1220,85 @@ export function marqueeIntersectsBox(rect, bounds) {
     bounds.maxY >= rect.y
   )
 }
+
+// --- snap guides (TODO/ui-013) ---------------------------------------------
+
+/**
+ * @typedef {object} SnapGuideAnnotation
+ * @property {boolean} visible
+ * @property {string} axis `"X"` | `"Y"` — the working-plane axis being aligned.
+ * @property {string} kind `"center"` | `"edge"` — which feature of the reference
+ *   body the line lies on, so the overlay can style them differently.
+ * @property {number} x1 CSS pixels from the viewport's left edge.
+ * @property {number} y1
+ * @property {number} x2
+ * @property {number} y2
+ */
+
+/**
+ * Allocate the two guide annotations once — one per working-plane axis, which is
+ * as many as {@link updateSnapGuideAnnotations}'s input can ever produce.
+ *
+ * @returns {SnapGuideAnnotation[]}
+ */
+export function createSnapGuideAnnotations() {
+  return [0, 1].map((axis) => ({
+    visible: false,
+    axis: AXIS_LABELS[axis],
+    kind: 'edge',
+    x1: 0,
+    y1: 0,
+    x2: 0,
+    y2: 0,
+  }))
+}
+
+// Scratch for the two endpoints of the guide currently being projected.
+const scratchGuideA = createScreenPoint()
+const scratchGuideB = createScreenPoint()
+
+/**
+ * Project the dashed placement guides `src/core/library.js`'s `updateSnap`
+ * produced into screen space (`TODO/ui-013`).
+ *
+ * The guides are genuine world-space lines lying on the working plane — a line
+ * of constant X or Y through the reference body's centre or one of its faces — so
+ * they are fully perspective-projected through the same {@link worldToScreen}
+ * every other overlay uses, exactly like the dimension lines and unlike the
+ * screen-constant gizmo. A guide that were only *approximately* projected would
+ * appear beside the face it claims to be on, which is the one thing it must not
+ * do.
+ *
+ * Both endpoints have to land in front of the camera. A line with one end behind
+ * the viewer has a mathematically valid but mirrored projection, and drawing it
+ * would put a guide across the wrong half of the screen; hiding it is the honest
+ * picture, matching {@link updateDimensionAnnotation}'s own rule.
+ *
+ * @param {OrbitCamera} orbit
+ * @param {readonly import('../core/library.js').SnapGuide[]} guides
+ * @param {number} widthPx
+ * @param {number} heightPx
+ * @param {SnapGuideAnnotation[]} out Mutated in place; see
+ *   {@link createSnapGuideAnnotations}.
+ * @returns {SnapGuideAnnotation[]} `out`
+ */
+export function updateSnapGuideAnnotations(orbit, guides, widthPx, heightPx, out) {
+  for (let index = 0; index < out.length; index += 1) {
+    const annotation = out[index]
+    const guide = guides[index]
+    if (!guide || !guide.visible) {
+      annotation.visible = false
+      continue
+    }
+    annotation.axis = AXIS_LABELS[guide.axis]
+    annotation.kind = guide.kind
+    worldToScreen(orbit, guide.x1Mm, guide.y1Mm, guide.zMm, widthPx, heightPx, scratchGuideA)
+    worldToScreen(orbit, guide.x2Mm, guide.y2Mm, guide.zMm, widthPx, heightPx, scratchGuideB)
+    annotation.visible = scratchGuideA.visible && scratchGuideB.visible
+    annotation.x1 = scratchGuideA.x
+    annotation.y1 = scratchGuideA.y
+    annotation.x2 = scratchGuideB.x
+    annotation.y2 = scratchGuideB.y
+  }
+  return out
+}

@@ -38,6 +38,46 @@ hide the cube: **each drop adds a new, independent object, and everything you pl
 earlier stays exactly where you put it.** If you ever see an earlier object vanish
 when you drop a new one, that is a bug worth reporting.
 
+## Lining a shape up with one you already placed
+
+Once there is something on the grid, dropping the *next* thing beside it gets help. As
+your preview comes near an existing object, **dashed guide lines appear on that object**
+and the preview jumps a little to line up with them. Let go while the lines are showing
+and the shape lands exactly on that alignment, not at the raw spot your pointer was
+over.
+
+Try it:
+
+1. Drag a **Cube** into the 3D view and drop it. Nothing special happens — with an empty
+   grid there is nothing to line up against.
+2. Now drag a **Cylinder** in, and move it slowly toward the cube rather than dropping it
+   straight away.
+3. As you get close, one or two dashed lines appear **on the cube** — running through its
+   middle, or along one of its faces — and the cylinder's preview snaps onto them.
+4. Let go. The cylinder is placed lined up with the cube: sharing its centre line,
+   sitting flush with one of its faces, or resting right up against it, depending on
+   which line you were nearest.
+
+Reading the lines:
+
+- A **long-dashed** line runs through the middle of the object. Snapping to it puts the
+  two objects' centres on the same line — this is the one you want for dropping a washer
+  onto a bolt, or centring a part on a plate.
+- A **short-dashed** line runs along one of the object's faces. Snapping to it either
+  lines the two faces up with each other, or butts the new shape right up against that
+  face with no gap.
+
+The lines only appear when your preview is genuinely **near** the object — within about
+half an inch on screen. They only assist with placement across the grid (left/right and
+front/back), never with height, because a drag always drops onto the grid. And they only
+ever measure against the object your preview is nearest to, so a crowded scene does not
+fill up with lines.
+
+If you would rather place a shape somewhere close to another one *without* it lining
+itself up, either drop it further away and move it in afterwards, or zoom in first —
+"near enough to snap" is a distance on your screen, so zooming in makes it a smaller
+distance on the model and gives you finer control.
+
 ## Selecting what you placed
 
 - Click (or tap) an object in the 3D view to select it. Only the object you clicked is

@@ -6,8 +6,59 @@ priority: high
 model: opus
 milestone: M2
 depends: [ui-010]
-status: open
+status: done
 ---
+
+> **What actually shipped, and where it departed from the Proposed fix below.** The
+> mechanism landed as scoped — dashed guides on the nearest existing item, a ghost held
+> in line within a tolerance radius, and the **snapped** position committing on drop —
+> but three calls differ from what this file proposed, each deliberately:
+>
+> 1. **`calcSnap` is reused as arithmetic, not as a call.** `group.js` is untouched.
+>    `calcSnap` takes solids, measures a bounding box and allocates a vector per call,
+>    while the snap runs on every `pointermove` against five candidate alignments per
+>    axis — which CLAUDE.md's Performance rule rules out. `src/core/library.js`'s
+>    `alignmentOffsetMm` is the same `reference-side − moving-side` arithmetic reduced to
+>    scalars, and each of its five alignments names the `SNAP_SIDES` orientation it
+>    corresponds to. The equivalence is **asserted in the spec against `calcSnap` and
+>    `calcCenterWith` themselves** rather than claimed in a comment.
+> 2. **The tolerance constant is `SNAP_TOLERANCE_PX`, not `SNAP_TOLERANCE_MM`.** The
+>    intent this file states — "scaled by the current `mmPerPixel` … so close enough reads
+>    the same at any zoom level" — is a *screen* radius converted at the boundary; a
+>    millimetre constant multiplied by `mmPerPixel` would be mm²/px. The unit is in the
+>    name and `snapToleranceMm(mmPerPixel)` is the named conversion, per CLAUDE.md's
+>    "name every conversion at its boundary".
+> 3. **A proximity gate was added that this file did not anticipate.** An axis only snaps
+>    when the ghost is also within tolerance of the reference on the *other* axis.
+>    Without it, two solids at opposite corners of the grid still share an axis to within
+>    a millimetre whenever the drag happened to travel along the other one, and the drop
+>    was silently shifted into line with something 400 mm away — found by driving the app,
+>    not by reading the maths. §7a asks for a snap "within a tolerance **radius** on
+>    approach", and this is what makes it one. The cost is deliberate and named: the
+>    long-range "line these two up across the whole canvas" guide a 2D design tool offers
+>    is **not** provided here; aligning two distant solids is `ui-026`'s explicit
+>    `group.snap`/`group.align` operation, with an operand order and an undo entry.
+>
+> Nearest-item selection is **world-space distance measured in the working plane** (XY
+> millimetres from the projected drop point to each body's centroid), stated in
+> `src/render/pick.js`'s own docs — not screen-space, so it cannot change its answer when
+> the camera orbits without the pointer moving, and not 3D, so a tall body is not "further
+> away" for being tall. Snapping is X/Y only: a placement drag projects onto the working
+> plane and carries no height at all.
+>
+> Two defects the hand-drive caught that no test could, both fixed here: a centred guide
+> spanning only the two coincident boxes was a stub *exactly as long as the solid it lay
+> on top of* (guides now overhang by one tolerance at each end), and the guides shared
+> `--accent` with the transform gizmo's rings and the Z dimension line, so over a selected
+> body they read as part of the gizmo (they now have their own `--snap-guide` token, in
+> both colour schemes).
+>
+> Driven with a **Cube and a Cylinder** standing in for scenario 3's Raspberry Pi and
+> camera module, per the sequencing note in Goal: `core-010`/`core-011` had not landed,
+> and `hardware.bolt` — which exists in the kernel — still has no Library row, because the
+> Hardware section is fed by those same recipe tasks. No Hardware section was added here;
+> that stays with `core-010`/`core-011`/`core-012`.
+
 
 ## Goal
 

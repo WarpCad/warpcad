@@ -10,6 +10,7 @@ import {
   createRingArrowheads,
   createRingPoints,
   createScreenPoint,
+  createSnapGuideAnnotations,
   gizmoSizeForBounds,
   ringArrowheads,
   ringPoints,
@@ -18,6 +19,7 @@ import {
   translateDeltaMm,
   updateDimensionAnnotation,
   updateGizmoAnnotation,
+  updateSnapGuideAnnotations,
   worldToScreen,
 } from './annotate.js'
 
@@ -923,5 +925,73 @@ describe('gizmo drag maths (TODO/ui-012)', () => {
     expect(axisFacing(orbit.state.azimuthDeg, orbit.state.elevationDeg, 2)).toBe(1)
     orbit.snapTo('bottom')
     expect(axisFacing(orbit.state.azimuthDeg, orbit.state.elevationDeg, 2)).toBe(-1)
+  })
+})
+
+describe('updateSnapGuideAnnotations — the dashed placement guides (TODO/ui-013)', () => {
+  /**
+   * @param {Partial<import('../core/library.js').SnapGuide>} [overrides]
+   * @returns {import('../core/library.js').SnapGuide[]}
+   */
+  function guides(overrides = {}) {
+    return [
+      {
+        axis: 0,
+        visible: true,
+        kind: 'center',
+        x1Mm: 0,
+        y1Mm: -20,
+        x2Mm: 0,
+        y2Mm: 120,
+        zMm: 0,
+        ...overrides,
+      },
+      { axis: 1, visible: false, kind: 'edge', x1Mm: 0, y1Mm: 0, x2Mm: 0, y2Mm: 0, zMm: 0 },
+    ]
+  }
+
+  it('projects both millimetre endpoints of a guide to screen pixels', () => {
+    const orbit = cameraAt()
+    const out = createSnapGuideAnnotations()
+    updateSnapGuideAnnotations(orbit, guides(), WIDTH_PX, HEIGHT_PX, out)
+
+    expect(out[0].visible).toBe(true)
+    expect(out[0].axis).toBe('X')
+    expect(out[0].kind).toBe('center')
+    // Same projection the rest of the overlay uses, so the guide lands on the
+    // solid it is drawn against rather than near it.
+    const near = createScreenPoint()
+    worldToScreen(orbit, 0, -20, 0, WIDTH_PX, HEIGHT_PX, near)
+    expect(out[0].x1).toBeCloseTo(near.x, 9)
+    expect(out[0].y1).toBeCloseTo(near.y, 9)
+    const far = createScreenPoint()
+    worldToScreen(orbit, 0, 120, 0, WIDTH_PX, HEIGHT_PX, far)
+    expect(out[0].x2).toBeCloseTo(far.x, 9)
+    expect(out[0].y2).toBeCloseTo(far.y, 9)
+    // The second guide was not snapped, so it is not drawn.
+    expect(out[1].visible).toBe(false)
+  })
+
+  it('hides a guide whose endpoints fall behind the camera', () => {
+    // The camera sits at y = -100 looking toward +Y; this guide is well behind
+    // it, where the projection is valid but mirrored.
+    const orbit = cameraAt({ azimuthDeg: -90, elevationDeg: 0, distanceMm: 100 })
+    const out = createSnapGuideAnnotations()
+    updateSnapGuideAnnotations(
+      orbit,
+      guides({ x1Mm: -20, y1Mm: -400, x2Mm: 20, y2Mm: -400 }),
+      WIDTH_PX,
+      HEIGHT_PX,
+      out,
+    )
+    expect(out[0].visible).toBe(false)
+  })
+
+  it('mutates its output rather than allocating a new one per frame', () => {
+    const orbit = cameraAt()
+    const out = createSnapGuideAnnotations()
+    const first = out[0]
+    updateSnapGuideAnnotations(orbit, guides(), WIDTH_PX, HEIGHT_PX, out)
+    expect(out[0]).toBe(first)
   })
 })

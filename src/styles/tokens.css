@@ -22,6 +22,13 @@
   --accent-contrast: #06121d;
   --axis-x: #c75c5c;
   --axis-y: #6aa84f;
+  /* Placement snap guides (`TODO/ui-013`). Deliberately its own hue rather than
+     `--accent`: the guides are drawn over a selected body's transform gizmo and
+     dimension lines, which are already accent-blue, axis-red and axis-green, and
+     a fourth overlay in a colour one of them already owns reads as part of that
+     overlay rather than as the placement cue it is. Magenta is the convention
+     design tools use for smart guides, for the same reason. */
+  --snap-guide: #e879f9;
 
   --radius-sm: 6px;
   --radius-md: 10px;
@@ -52,6 +59,9 @@
 
     --accent: #1f6fb2;
     --accent-contrast: #ffffff;
+    /* Darkened for the light scheme: the dark theme's fuchsia is unreadable on
+       a near-white grid. */
+    --snap-guide: #a21caf;
 
     --shadow-overlay: 0 6px 24px rgba(20, 30, 45, 0.18);
   }
