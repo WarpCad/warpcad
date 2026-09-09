@@ -356,3 +356,18 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** the e2e spec asserted finite, on-canvas guide endpoints and passed while the centred guide was still an invisible stub → `e2e/snap-placement.e2e.js`'s "the guide lines are drawn on the canvas, not off it" test in the diff, and the fix's own new unit test "extends a centred guide past the solids" in `src/core/library.spec.js`; the guides shared `--accent` with the gizmo's rings and the Z dimension line → pre-change `SnapGuides.vue` stroke plus `DimensionLines.vue`'s existing `Z: 'var(--accent)'`, resolved by the new `--snap-guide` token in `src/styles/tokens.css`; without the proximity gate a far-corner drag snapped → this session's first hand-drive run, which logged `far corner: snapped=true` before the gate was added; full suite green (typecheck, 380 unit tests across 21 files, 571 e2e passed / 42 skipped across 3 engines × 3 viewports) → this session's `npm test` run
 **To Add:** before/after screenshot showing the stub guide vs the overhanging one; repo URL once public
+
+## [2026-09-09T13:23:11Z] — hardware.nut composite recipe (TODO/core-010)
+
+**Post:** WarpCad's geometry kernel now knows how to build a hex nut, ported from jscad-hardware's V1 `Hardware.Nut()` factory as a single hexagonal-prism recipe — the same composite-recipe pattern the bolt recipe proved earlier in this project.
+
+One detail worth calling out: V1's `Nut()` has no default fit class, unlike its `Bolt()` sibling, which defaults to `loose`. The new recipe matches that exactly rather than smoothing it over — an omitted fit throws the same error an unknown one does. The V1-vs-V3 dimensional diff also had to change shape: V1 builds the nut sitting on the grid at Z=0, V3 centers it like every other primitive a user can place, so the fixture compares size and volume rather than raw position, with the difference documented directly in the recipe's own comments.
+
+Also confirmed directly rather than assumed: the Library panel that lets users drag parts into the viewport only reads `primitive.*` registry entries right now, so this recipe — like the bolt before it — stays kernel-only until a dedicated Hardware section gets built. Full suite: typecheck, 395 unit tests, 571 end-to-end tests, all green.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** same composite-recipe pattern the bolt recipe used → `f9bbfa4` (`TODO/core-001`, 2026-09-05) and this diff's `src/core/kernel/recipes/hardware.nut.js`; V1's `Nut()` has no default fit unlike `Bolt()`'s `fit = fit || 'loose'` → `node_modules/jscad-hardware/jscad-hardware.jscad` lines 20-21 and 81-82, read directly this session; V1 builds the nut base-at-z=0, V3 centers it → generated `hardware.nut.v1-reference.json` fixture (`bounds[0][2] = 0`) vs. `primitive.hexagon`'s `center` default in `src/core/kernel/registry.js`; Library panel reads only `primitive.*` registry rows → `src/core/library.js`'s `buildRows`, read this session; full suite green (typecheck, 395 unit tests, 571 e2e passed/42 skipped) → this session's `npm run typecheck`/`test:unit`/`test:e2e:headless` runs
+**To Add:** repo URL once public

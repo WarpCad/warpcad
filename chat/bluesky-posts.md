@@ -284,3 +284,14 @@ Built with Claude Code, reviewed by me. #CAD #WebGL
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** five candidate alignments per working-plane axis, nearest within tolerance wins → `SNAP_ALIGNMENTS`/`updateSnap` in the diff to `src/core/library.js`; the tolerance is a screen-pixel constant converted through `mmPerPixel` → `SNAP_TOLERANCE_PX`/`snapToleranceMm` in the same diff, plus `src/core/library.spec.js`'s conversion tests passing this session; the ghost snaps before release and the snapped position is what commits → this session's hand-drive, where the identical screen gesture landed at `-110.70,70.22` with a reference present and `-97.21,70.61` on an empty page (laptop/Chromium)
 **To Add:** short screen capture of a ghost snapping onto a placed cube; repo URL once public
+
+## [2026-09-09T13:23:11Z] — hardware.nut composite recipe (TODO/core-010)
+
+**Post:** Added hardware.nut to WarpCad's geometry kernel: one hex-prism recipe, dimensionally diffed against real jscad-hardware V1 output across loose, tap and close fits. Still no Library-panel row for it yet.
+
+Built with Claude Code, reviewed by me. #CAD #WebGL
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** one hexagonal-prism op record, no group/translate → `src/core/kernel/recipes/hardware.nut.js` in the diff; diffed against real V1 `Hardware.Nut()` output for `m4`/loose, `m4`/tap and `1/4 hex`/close → `hardware.nut.spec.js`'s "dimensional diff" describe block and the generated `hardware.nut.v1-reference.json` fixture; Library panel still only reads `primitive.*` registry rows → `src/core/library.js`'s `buildRows` filter, read this session; full suite green (typecheck, 395 unit tests, 571 e2e passed/42 skipped) → this session's `npm run typecheck`/`test:unit`/`test:e2e:headless` runs
+**To Add:** repo URL once public
