@@ -61,6 +61,37 @@
  * value and carries it forward on every transform record. This is "state carried
  * on the record", not rotation-specific logic in the command layer.
  *
+ * ## Consumption: several bodies retired into one (`TODO/ui-014`)
+ *
+ * A boolean is the other shape a record can have: two or more existing bodies go
+ * in, one new body comes out, and the operands stop being separately selectable.
+ * That is *not* supersession, and overloading `supersedes` into an array to say
+ * it would conflate two different claims under one field name. A moved Cube is
+ * still that Cube — which is exactly why `Body.op`/`params`/`name` are read from
+ * the lineage root. A Subtract result is not "the base, but consumed": it is a
+ * new thing built from two others, and asking whose `op` and `params` it
+ * inherits has no honest answer.
+ *
+ * So a record may instead carry **`consumes`**, an array of ids it retires into
+ * itself. The mechanism is deliberately generic rather than boolean-specific —
+ * `ui-015`'s "combine into group" is the same 2-in/1-out shape and should need
+ * no change here:
+ *
+ * - The consuming record is its **own new lineage root**, which is already what
+ *   happens for any record without `supersedes`. Its identity, name and op are
+ *   its own.
+ * - Each consumed id is validated exactly as a `supersedes` reference is — it
+ *   must exist, be its lineage's current terminal, and not already have been
+ *   consumed. Both fields go through `resolveLiveRoot` for that reason.
+ * - `mergedInto` records root → consuming record. `bodies()` skips a retired
+ *   root, and `currentIdOf` walks *through* one, so a stale reference to a body
+ *   that has since been unioned into something else still resolves forward — the
+ *   same guarantee supersession already gives a moved body.
+ * - Nothing is deleted here either. Every operand's record stays in `entries`
+ *   and in `scene.byId`, which is what a future undo/redo needs.
+ *
+ * The two fields are mutually exclusive; a record setting both is rejected.
+ *
  * ## Loud locally, lenient remotely
  *
  * `replay.js` skips and reports a bad record because a document can arrive from an
@@ -158,10 +189,54 @@ export function createDocument(options = {}) {
   /** Record ids that begin a lineage, in the order they were created. */
   /** @type {string[]} */
   const rootOrder = []
+  /**
+   * Lineage root id → the id of the record that **absorbed** it (`consumes`).
+   * A root with an entry here has stopped being an independently selectable
+   * body; see the consumption note above.
+   */
+  /** @type {Map<string, string>} */
+  const mergedInto = new Map()
   /** @type {Map<string, OpRecord>} */
   const recordById = new Map()
   let scene = emptyScene()
   let idCounter = 0
+
+  /**
+   * Resolve `id` to the lineage root it currently, *live*, represents — or throw
+   * saying why it cannot.
+   *
+   * Shared by `supersedes` and `consumes` deliberately: the two fields make
+   * different claims about the record naming them, but the three things that
+   * make a reference valid are identical, and letting them drift apart is how
+   * one of them ends up quietly accepting a body the other rejects.
+   *
+   * @param {string} id
+   * @param {'supersedes' | 'consumes'} field Named in the error, so a failure
+   *   says which claim was refused rather than just "bad id".
+   * @returns {string} The lineage root id.
+   */
+  function resolveLiveRoot(id, field) {
+    const root = rootById.get(id)
+    if (root === undefined) {
+      throw new Error(`document.append: ${field} "${id}" — no such record in this document`)
+    }
+    if (terminalByRoot.get(root) !== id) {
+      throw new Error(
+        `document.append: ${field} "${id}", which has itself already been superseded by ` +
+          `"${terminalByRoot.get(root)}" — forking a lineage would put two live ` +
+          'representations of one body on screen'
+      )
+    }
+    const absorbed = mergedInto.get(root)
+    if (absorbed !== undefined) {
+      throw new Error(
+        `document.append: ${field} "${id}", which has already been consumed by "${absorbed}" — ` +
+          'it is no longer a body on screen, so operating on it would resurrect something ' +
+          'the user can neither see nor select'
+      )
+    }
+    return root
+  }
 
   /** @type {WarpDocument} */
   const document = {
@@ -194,27 +269,49 @@ export function createDocument(options = {}) {
         throw new Error(`document.append: duplicate record id "${record.id}"`)
       }
 
-      // Resolve supersession *before* the trial fold, so a bad lineage reference
-      // is rejected as loudly as a bad parameter and nothing half-applies.
+      // Resolve lineage references *before* the trial fold, so a bad one is
+      // rejected as loudly as a bad parameter and nothing half-applies.
+      if (record.supersedes !== undefined && record.consumes !== undefined) {
+        throw new Error(
+          'document.append: a record may set `supersedes` or `consumes`, never both — ' +
+            'continuing one body\'s identity and retiring several into a new one are ' +
+            'different claims, and a record making both has no coherent meaning'
+        )
+      }
+
       let supersededRoot
       if (record.supersedes !== undefined) {
-        const root = rootById.get(record.supersedes)
-        if (root === undefined) {
-          throw new Error(
-            `document.append: supersedes "${record.supersedes}" — no such record in this document`
-          )
-        }
-        if (terminalByRoot.get(root) !== record.supersedes) {
-          throw new Error(
-            `document.append: supersedes "${record.supersedes}", which has itself already been ` +
-              `superseded by "${terminalByRoot.get(root)}" — forking a lineage would put two live ` +
-              'representations of one body on screen'
-          )
-        }
         if (record.id === undefined) {
           throw new Error('document.append: a record that supersedes another needs its own `id`')
         }
-        supersededRoot = root
+        supersededRoot = resolveLiveRoot(record.supersedes, 'supersedes')
+      }
+
+      /** @type {string[]} */
+      const consumedRoots = []
+      if (record.consumes !== undefined) {
+        if (!Array.isArray(record.consumes) || record.consumes.length === 0) {
+          throw new Error(
+            'document.append: `consumes` must be a non-empty array of record ids — ' +
+              `got ${JSON.stringify(record.consumes)}`
+          )
+        }
+        if (record.id === undefined) {
+          throw new Error('document.append: a record that consumes others needs its own `id`')
+        }
+        const seen = new Set()
+        for (const consumed of record.consumes) {
+          const root = resolveLiveRoot(consumed, 'consumes')
+          if (seen.has(root)) {
+            throw new Error(
+              `document.append: consumes "${consumed}" twice over — it and another named id ` +
+                `belong to the same body ("${root}"), which would retire one lineage while ` +
+                'counting it as two operands'
+            )
+          }
+          seen.add(root)
+          consumedRoots.push(root)
+        }
       }
 
       // Trial fold. `applyAction` never throws — it reports — so a failure shows up
@@ -235,6 +332,11 @@ export function createDocument(options = {}) {
         rootById.set(record.id, root)
         terminalByRoot.set(root, record.id)
         if (root === record.id) rootOrder.push(record.id)
+        // A consuming record is its own new lineage root (the line above already
+        // made it one, since it carries no `supersedes`); what is left is to
+        // retire the lineages it absorbed, so `bodies()` stops reporting them and
+        // `currentIdOf` starts resolving through them.
+        for (const consumedRoot of consumedRoots) mergedInto.set(consumedRoot, record.id)
       }
       scene = candidate
       document.version += 1
@@ -252,8 +354,23 @@ export function createDocument(options = {}) {
      * rather than on the original.
      */
     currentIdOf(id) {
-      const root = rootById.get(id)
-      return root === undefined ? undefined : terminalByRoot.get(root)
+      let root = rootById.get(id)
+      if (root === undefined) return undefined
+      // Walk forward through both kinds of continuation: a supersession moves
+      // the answer along one lineage, and a consumption hops to the lineage that
+      // absorbed it. Without the second hop, a selection or an MCP reference to
+      // a body that has since been unioned into something else would dangle on
+      // a record that is no longer on screen.
+      const visited = new Set()
+      for (;;) {
+        const terminal = terminalByRoot.get(root) ?? root
+        const absorbedBy = mergedInto.get(root)
+        if (absorbedBy === undefined || visited.has(root)) return terminal
+        visited.add(root)
+        const nextRoot = rootById.get(absorbedBy)
+        if (nextRoot === undefined) return terminal
+        root = nextRoot
+      }
     },
 
     bodies() {
@@ -263,6 +380,10 @@ export function createDocument(options = {}) {
       // order the bodies were *created*, so moving one does not shuffle it to
       // the end of the Inspector's or the scene list's ordering.
       for (const rootId of rootOrder) {
+        // Absorbed into a later record (`consumes`): the two solids a boolean
+        // ate stop being independently selectable bodies. This one line is the
+        // whole of that behaviour on the read side.
+        if (mergedInto.has(rootId)) continue
         const terminalId = terminalByRoot.get(rootId) ?? rootId
         const geometry = scene.byId.get(terminalId)
         if (geometry === undefined) continue

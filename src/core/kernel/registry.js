@@ -94,6 +94,14 @@ import { boardFrame } from './recipes/kit.boardFrame.js'
  *   one. `src/core/document.js` reads this to report one body per lineage instead
  *   of one per record; the kernel fold itself ignores it. See that module's
  *   supersession note.
+ * @property {string[]} [consumes] Ids of the logical bodies this record **retires
+ *   into itself** — a boolean or a grouping, where two or more existing bodies go
+ *   in and one new one comes out (TODO/ui-014). Mutually exclusive with
+ *   `supersedes`, and a different claim: `supersedes` *continues* one body's
+ *   identity, while a consuming record is its own new body that happens to have
+ *   been built from others. Like `supersedes`, the kernel fold ignores it
+ *   entirely — it is `src/core/document.js` that stops reporting the operands as
+ *   independently selectable bodies.
  * @property {string} [name] Names the result as a part of the resulting group.
  * @property {boolean} [hidden] Named but excluded from the group's default combine.
  */
@@ -563,6 +571,13 @@ export const registry = Object.freeze({
   'boolean.union': native('2+', ({ inputs }) => booleans.union(inputs)),
 
   'boolean.subtract': native('2+', ({ inputs }) => booleans.subtract(inputs)),
+
+  // The third of §6's Operation rows (TODO/ui-014). `subtract` and `intersect`
+  // are both order-dependent in the same way — `inputs[0]` is the base, and the
+  // fold puts `target` there before any `operands` (see `index.js`'s
+  // `inputRefs`) — which is what lets the Operations toolbar map "first
+  // selected" onto "base" without the document layer knowing about selection.
+  'boolean.intersect': native('2+', ({ inputs }) => booleans.intersect(inputs)),
 
   // ## Positioning one placed item against another (TODO/core-013)
   //

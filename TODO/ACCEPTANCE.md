@@ -300,6 +300,32 @@ matrix ran green separately: 571 passed, 42 skipped, identical to the pre-change
   a `{ id, pieces }` operand throws by name rather than silently measuring the whole bolt. No
   console errors, so nothing in the new operand-resolution path trips the browser build.
 
+**Re-checked**: 2026-09-10 17:52 — PASS (`ui-014`). Re-driven in full rather than glanced
+at, because this task changes **`document.bodies()` itself** — it adds a second way for a
+record to stop being reported as a body (`consumes`), and this scenario's named regression
+("placing a second body hides or replaces the first") lives in exactly that loop. Laptop
+1440×900 in Chromium.
+
+- **`ui-010`'s own repro, re-run** (this task adds a registry entry, and `library.js`
+  builds this scenario's rows by iterating the registry): still **exactly seven rows** —
+  Cube, Cylinder, Cone, Hexagon, Triangle, Tube, Sphere — with no `boolean.intersect`
+  leaking in. The new op is `boolean.*`, not `primitive.*`, so the panel's filter never
+  sees it; asserted in `registry.spec.js` as well, since "an operation must never appear
+  as a creation row" is the rule this whole task exists to honour.
+- **The scenario itself**: a Cube then a Cylinder dragged in on wandering, jittery paths
+  with an overshoot and a doubling-back. **Both stayed visible** (`data-body-count` = 2),
+  and the cube's millimetre centre was **byte-identical before and after the second drop**
+  (`-97.25,-22.01,20.00` both times). Clicking empty grid cleared the selection (count 0);
+  clicking the cube selected `cuboid-1` alone; clicking the cylinder moved the highlight to
+  `cylinder-2` alone, count 1 each time — never both at once — with the gizmo retargeting
+  and the dimension lines changing to the cylinder's 40/40/50. A front-view snap afterwards
+  showed both solids still present from the new angle. Console clean.
+- **The new failure mode this task could have introduced, checked directly**: that a
+  `consumes` record retires *more* than it should. It does not — with two bodies placed and
+  neither consumed, `bodies()` still reports both; the skip is keyed on the consuming
+  record's own named roots, and the unit suite pins the untouched-bodies case
+  (`leaves untouched bodies alone and keeps creation order`).
+
 ### 2. Hardware property edit
 
 **Steps**:
@@ -618,7 +644,54 @@ selected (step 6).
 `docs/decisions/interaction-model-qa.md` control 5 flagged for this scenario — the
 original §9 draft only checked count-gating, not the order indicator.)*
 
-**Last run**: (unset — not yet driveable; `ui-014` doesn't exist yet)
+**Last run**: 2026-09-10 17:52 — **PASS** (`ui-014`, the task that makes this scenario
+driveable at all — first run of this scenario ever). Hand-driven at laptop 1440×900 in
+Chromium, and touch-only at phone 390×844 and tablet 820×1180 in WebKit (the engine an
+iPhone and an iPad actually run).
+
+- **Steps 2-3, the count gate**: with one solid selected the toolbar read `1 selected`,
+  all three buttons were `disabled`, and hovering any of them showed **"Select 2 or more
+  solids"** — the tooltip this scenario asks for by name. Shift-clicking the second solid
+  flipped the badge to `2 selected` and enabled all three. Checked at 0, 1 and 2 selected
+  rather than only at the enabled end, because a presence-gate and a count-gate are
+  indistinguishable if you only ever look at "something is selected".
+- **Step 4, the base/subtrahend indicator** — the half `docs/decisions/interaction-model-qa.md`
+  control 5 flagged, and the half a scripted spec can assert but not judge. It reads
+  clearly: the first-picked solid keeps the amber selection colour and the second turns
+  **teal**, an unmistakably different hue rather than a dimmer shade of the same one, and
+  the badge spells it out in words next to two matching colour chips ("first is the
+  base"). Confirmed by screenshot at every viewport, not by reading the data attribute.
+  Picking the two solids in the **opposite** order swapped the colours, so the indicator
+  follows the click order rather than document order.
+- **Steps 5-6, the result**: driven for all three operations against two 40 mm cubes
+  overlapping by exactly 20 mm, and **measured by volume rather than by eye**, since a
+  boolean that quietly returned one of its operands would look plausible in a screenshot.
+  Subtract → one body, 20×40×40, **32 000 mm³**; Union → 60×40×40, **96 000 mm³**;
+  Intersect → 20×40×40, **32 000 mm³** — all three exactly the arithmetic answer, each a
+  clean 6-polygon solid. Two bodies became one every time (not three, not zero), the
+  result auto-selected with the Inspector and gizmo attaching to it, and the toolbar
+  **dimmed again** because one selected is no longer two.
+- **Order really drove Subtract**: the same pair run base-first-A gave a result centred at
+  the cut side of A, and base-first-B gave the mirror — the results differ, so ordering is
+  genuine rather than incidental.
+- **Beyond the scenario's own steps**: driven touch-only at phone and tablet (multi-select
+  via the `Select` marquee chrome, since a touch device has no Shift key), where the
+  toolbar sits at the viewport's top-left, clear of both bottom sheets, with 38 px/44 px
+  tap targets and no horizontal page scroll; pressing an operation a second time is inert
+  rather than throwing, because the button is genuinely disabled; and one operand was
+  **moved first**, which is the case that would silently cut a hole where a body *used to
+  be* if the toolbar named lineage roots instead of `currentIdOf(...)`. Console clean in
+  every drive.
+
+**One rough edge found, logged not fixed, and not this task's**: when two faces are
+*nearly* but not exactly coplanar — which is what you get by typing a rounded coordinate
+against a dragged, full-precision one — `@jscad/modeling`'s subtract leaves paper-thin
+sliver polygons. The volume is still right (32 004.54 mm³ against 32 000 expected, a
+0.014 % error) but the **bounding box still spans the uncut base**, so the dimension
+lines and the Inspector's Size row report the *original* 40 mm rather than the cut 20 mm.
+Exactly-coplanar and clearly-non-coplanar inputs are both clean (6 polygons, exact
+volume). Pre-existing kernel numerics, reachable since `core-001`, unrelated to this
+task's changes — logged in `TODO/VERIFY.md` with the measured reproduction.
 
 ### 5. Hidden-part boolean (bolt tap-clearance)
 
@@ -635,8 +708,38 @@ diameter (the fastener's thread-clearance geometry), not the bolt's visible
 head/thread mesh diameter — confirming the hidden geometry, not just the rendered
 mesh, drives the boolean result.
 
-**Last run**: (unset — not yet driveable; `ui-014` and a case-shell primitive/composite
-don't exist yet)
+**Last run**: 2026-09-10 17:52 — **NOT DRIVEABLE, and deliberately not claimed**
+(`ui-014`). The boolean half this scenario needs now exists and is proven by scenario 4;
+what is still missing is everything that would put a bolt and a shell on screen to run it
+on. Checked by driving rather than by reading code, so the blockers are stated as
+measurements:
+
+- **Step 2 is unreachable**: the Library panel offers exactly **seven rows**, all
+  `primitive.*` (Cube, Cylinder, Cone, Hexagon, Triangle, Tube, Sphere), and has no
+  sections at all. There is no Bolt row — `src/core/library.js`'s `buildRows` filters to
+  `op.startsWith('primitive.')`, so `hardware.bolt` is invisible to the panel however
+  complete the recipe is (the already-confirmed note from `core-010`). Step 1's
+  "case-shell solid" has no row either; a Cube would stand in, but with no bolt to cut
+  with it there is nothing to stand in *for*.
+- **Steps 3-4 would work if the operands existed**: the Operations toolbar, the
+  multi-select gesture and the shell-selected-first ordering are all exactly scenario 4's,
+  which passes.
+- **And the `Expect` itself is blocked twice over, at the kernel, not just the UI.** The
+  bolt's clearance geometry is addressable as the part `tap`, but a `boolean.subtract`
+  naming a sub-part is **deliberately rejected** by `core-013` — re-confirmed by hand
+  against the current code: *"boolean.subtract: operand "bolt1" names pieces ("tap"), but
+  boolean.subtract consumes whole solids — only group.snap/group.align can address a
+  sub-part"*. So there is no route today by which the hidden tap-clearance, rather than
+  the visible head/thread, drives a boolean — which is the entire claim this scenario
+  makes. Whichever task lands the Hardware Library section needs to answer that too.
+- **A second, independent blocker was found while checking this, and filed**: a composite
+  appended through the command layer absorbs every earlier named body into its own group
+  (a bolt placed after a plate reports `names: ["Shell 1", "head", "thread", "tap"]`), so
+  subtracting it removes the whole plate and returns an empty solid. Correct through the
+  batch `evaluate()` path, wrong through `document.append`, and **wrong with or without
+  `ui-014`'s changes** — pre-existing, currently unreachable because no composite has a
+  Library row. Measured reproduction in `TODO/core-020-composite-absorbs-earlier-bodies.md`.
+  This must be fixed before this scenario can pass even once a Bolt row exists.
 
 ### 6. Group vs. sub-part selection
 

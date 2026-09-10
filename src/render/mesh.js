@@ -80,10 +80,29 @@ export function geom3ToBufferGeometry(geometry) {
  * Body colours, per colour scheme. Deliberately not near-black in either scheme:
  * SECOND-ATTEMPT.md lists "the scene is very dark" as a bug that shipped twice,
  * and a body has to read as a solid object against the grid at a glance.
+ *
+ * `secondary` is the **rest** of a multi-body selection, where `selected` is the
+ * one picked first (`TODO/ui-014`). That distinction is not decoration: the
+ * first-picked solid is Subtract's base and every later one is a subtrahend, so
+ * "which of these is the thing being cut?" has to be answerable by looking at the
+ * scene, before the button is pressed. Teal rather than a dimmer amber, for the
+ * same reason `--snap-guide` is magenta: the gizmo's rings and the Z dimension
+ * line are already accent-blue, and a second highlight in a hue something else
+ * owns reads as part of that overlay rather than as its own signal.
  */
 export const BODY_COLORS = Object.freeze({
-  dark: Object.freeze({ body: 0x9fc0e8, selected: 0xffc46b, ghost: 0xffc46b }),
-  light: Object.freeze({ body: 0x6f8fb8, selected: 0xd4802a, ghost: 0xd4802a }),
+  dark: Object.freeze({
+    body: 0x9fc0e8,
+    selected: 0xffc46b,
+    secondary: 0x66d9c0,
+    ghost: 0xffc46b,
+  }),
+  light: Object.freeze({
+    body: 0x6f8fb8,
+    selected: 0xd4802a,
+    secondary: 0x0f8a72,
+    ghost: 0xd4802a,
+  }),
 })
 
 /** @typedef {keyof typeof BODY_COLORS} MeshTheme */

@@ -322,6 +322,28 @@ describe('native builders', () => {
     expect(boundsOf(result)[1][2]).toBeCloseTo(2, 6)
   })
 
+  it('boolean.intersect keeps only the volume every input shares (TODO/ui-014)', () => {
+    // Two 10 mm cubes offset by 6 mm along X overlap in a 4 × 10 × 10 slab.
+    const a = build('primitive.cuboid', { params: { size: [10, 10, 10], center: [-3, 0, 0] } })
+    const b = build('primitive.cuboid', { params: { size: [10, 10, 10], center: [3, 0, 0] } })
+    expect(boundsOf(build('boolean.intersect', { inputs: [a, b] }))).toEqual([
+      [-2, -5, -5],
+      [2, 5, 5],
+    ])
+  })
+
+  it('boolean.intersect is a 2-or-more operand op, like the other two booleans', () => {
+    expect(registry['boolean.intersect']).toMatchObject({ kind: 'native', operandCount: '2+' })
+    expect(acceptsOperandCount('boolean.intersect', 1)).toBe(false)
+    expect(acceptsOperandCount('boolean.intersect', 2)).toBe(true)
+    expect(acceptsOperandCount('boolean.intersect', 5)).toBe(true)
+    // It is an *operation*, not a catalogue row: the Library panel is built by
+    // iterating `primitive.*` entries with `ui` metadata, and an operation that
+    // leaked in there would be the undifferentiated create/operate dropdown
+    // CLAUDE.md's Interaction Model rules out.
+    expect(registry['boolean.intersect'].ui).toBeUndefined()
+  })
+
   it('rejects degenerate primitive dimensions instead of emitting an empty solid', () => {
     expect(() => build('primitive.cylinder', { params: { diameter: 10, height: 0 } })).toThrow(
       /height/

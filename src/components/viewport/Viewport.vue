@@ -32,6 +32,7 @@ import NavigationChrome from './NavigationChrome.vue'
 import DimensionLines from './DimensionLines.vue'
 import Gizmo from './Gizmo.vue'
 import MarqueeSelect from './MarqueeSelect.vue'
+import OperationsToolbar from './OperationsToolbar.vue'
 import SnapGuides from './SnapGuides.vue'
 import { useSelectedBody } from '../../composables/useSelectedBody.js'
 import {
@@ -268,6 +269,8 @@ let ghostMesh = null
 let ghostOp = ''
 let bodyMaterial = /** @type {any} */ (null)
 let selectedMaterial = /** @type {any} */ (null)
+/** The rest of a multi-body selection — everything but the one picked first. */
+let secondaryMaterial = /** @type {any} */ (null)
 let ghostMaterial = /** @type {any} */ (null)
 
 // Pointer bookkeeping. Entries are allocated on pointerdown and mutated in
@@ -503,6 +506,27 @@ function syncBodies() {
 }
 
 /**
+ * What role a body plays in the current selection.
+ *
+ * Three states rather than two, because in a 2+ selection the solid picked
+ * **first** is not just "also selected" — it is Subtract's base, and everything
+ * picked after it is a subtrahend (`TODO/ui-014`). A user has to be able to see
+ * which is which before pressing the button, so the distinction is painted onto
+ * the solids themselves rather than only living inside the toolbar.
+ *
+ * The single source for both the material below and the `data-selection-role`
+ * the scene list announces, so the DOM cannot claim an order the render does not
+ * show.
+ *
+ * @param {string} id A body's lineage root id.
+ * @returns {'base' | 'secondary' | 'none'}
+ */
+function selectionRole(id) {
+  if (!selection.has(id)) return 'none'
+  return selection.ids[0] === id ? 'base' : 'secondary'
+}
+
+/**
  * Highlight whatever is selected. Deliberately the whole of this task's
  * selection *response*: the inspector, the dimension lines and the transform
  * gizmo are `ui-011`'s contract, not this one's.
@@ -510,7 +534,10 @@ function syncBodies() {
 function applySelectionMaterial() {
   if (!bodyMaterial) return
   for (const [id, mesh] of bodyMeshes) {
-    mesh.material = selection.has(id) ? selectedMaterial : bodyMaterial
+    const role = selectionRole(id)
+    if (role === 'base') mesh.material = selectedMaterial
+    else if (role === 'secondary') mesh.material = secondaryMaterial
+    else mesh.material = bodyMaterial
   }
   scheduleRender()
 }
@@ -519,6 +546,7 @@ function applyMaterialTheme() {
   const palette = BODY_COLORS[theme.value] ?? BODY_COLORS.dark
   bodyMaterial?.color.setHex(palette.body)
   selectedMaterial?.color.setHex(palette.selected)
+  secondaryMaterial?.color.setHex(palette.secondary)
   ghostMaterial?.color.setHex(palette.ghost)
 }
 
@@ -1317,6 +1345,7 @@ onMounted(() => {
   const palette = BODY_COLORS[theme.value] ?? BODY_COLORS.dark
   bodyMaterial = createBodyMaterial(palette.body)
   selectedMaterial = createBodyMaterial(palette.selected)
+  secondaryMaterial = createBodyMaterial(palette.secondary)
   ghostMaterial = createGhostMaterial(palette.ghost)
 
   try {
@@ -1385,9 +1414,11 @@ onBeforeUnmount(() => {
   ghostOp = ''
   bodyMaterial?.dispose()
   selectedMaterial?.dispose()
+  secondaryMaterial?.dispose()
   ghostMaterial?.dispose()
   bodyMaterial = null
   selectedMaterial = null
+  secondaryMaterial = null
   ghostMaterial = null
   viewport?.dispose()
   viewport = null
@@ -1446,6 +1477,7 @@ onBeforeUnmount(() => {
         :data-body-name="body.name"
         :data-body-center="`${body.center[0].toFixed(2)},${body.center[1].toFixed(2)},${body.center[2].toFixed(2)}`"
         :data-selected="selection.has(body.id) ? 'true' : 'false'"
+        :data-selection-role="selectionRole(body.id)"
       >
         {{ body.name }}
       </li>
@@ -1481,6 +1513,12 @@ onBeforeUnmount(() => {
       :elevation-deg="overlay.elevationDeg"
       @snap="onSnap"
     />
+    <!-- The Operations toolbar (TODO/ui-014): viewport chrome, in the same
+         band as the navigation controls below and deliberately *not* a row in
+         the Library panel beside Cube and Cylinder. CLAUDE.md: creation and
+         operation are never the same list, and an operation control stays
+         disabled until its operands are actually selected. -->
+    <OperationsToolbar />
     <NavigationChrome
       :drag-mode="dragMode"
       @step="onStep"

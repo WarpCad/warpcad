@@ -19,6 +19,50 @@ between sessions — that's itself a signal to move more of it into
 
 ## Queue
 
+### ui-014 — a *nearly* coplanar subtract reports the uncut size (2026-09-10 17:20)
+
+Not a feel question and not `ui-014`'s own code — pre-existing `@jscad/modeling` numerics,
+reachable since `core-001` — but it surfaces *through* the new Operations toolbar, it is
+not covered by any acceptance scenario (scenario 4 measures volume, which is correct), and
+it is the kind of thing only a human reading the panel would notice. Logged with the
+measurement so nobody has to rediscover it.
+
+When two solids' faces are **nearly but not exactly** coplanar, `boolean.subtract` leaves
+paper-thin sliver polygons along those faces, and the slivers keep the result's bounding
+box at the **uncut** extent. The material really is removed — the volume is right — but the
+three dimension lines and the Inspector's Size row quote the original size, which is the
+number a user would actually read and act on.
+
+Measured, two 40 mm cubes overlapping 20 mm, in Chromium:
+
+| faces | polygons | volume (expect 32 000) | reported size |
+|---|---|---|---|
+| exactly coplanar | 6 | 32 000 | 20 × 40 × 40 ✅ |
+| clearly non-coplanar | 6 | 32 000 | 20 × 40 × 40 ✅ |
+| **off by ~0.001 mm** | **10** | **32 004.54** | **40 × 40 × 40** ❌ |
+
+The near-coplanar case is not exotic: it is what you get by **typing a rounded coordinate
+for one body against another that was dragged into place**, which is exactly how a user
+lines two things up. Reached in `ui-014`'s own drive without trying to.
+
+- [ ] Decide whether this is worth its own finding (a tolerance-snap on operand
+  coordinates, a post-boolean sliver cleanup, or measuring the result some way other than
+  its raw bounding box) or is acceptable as-is. Judge it by dragging two cubes into rough
+  overlap by hand and typing a round position for one of them, then reading the dimension
+  lines against the shape actually on screen.
+
+### ui-014 — the Inspector shows an empty PARAMETERS heading for a boolean result (2026-09-10 17:20)
+
+Cosmetic, one-off, and genuinely a judgement call rather than a defect. A boolean result
+has no creation parameters, so selecting one leaves the Inspector's **PARAMETERS** section
+header standing over nothing, with the Transform section below it. It is not wrong — the
+body really has no parameters — but an empty labelled section reads as something that
+failed to load.
+
+- [ ] Look at it and decide: hide the header when a body has no params, or say something
+  in the empty space ("this shape was built from others"). Visible in the drive's
+  `Subtract 1` screenshot.
+
 ### ui-013 — does a 48 px snap radius *feel* right on real hardware? (2026-09-09 13:12)
 
 A feel judgement, not a correctness question. `SNAP_TOLERANCE_PX = 48` is pinned by unit

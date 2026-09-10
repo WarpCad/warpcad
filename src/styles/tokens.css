@@ -29,6 +29,14 @@
      overlay rather than as the placement cue it is. Magenta is the convention
      design tools use for smart guides, for the same reason. */
   --snap-guide: #e879f9;
+  /* The rest of a multi-body selection, where `--accent` marks the one picked
+     first (`TODO/ui-014`). Its own token rather than a dimmed `--accent`,
+     following `--snap-guide`'s precedent: the two colours carry different
+     meanings — base versus subtrahend — and a shade of one hue reads as
+     "the same thing, slightly faded" rather than as a different role. Kept in
+     step with `BODY_COLORS.*.secondary` in `src/render/mesh.js`, which paints
+     the solids themselves. */
+  --accent-secondary: #66d9c0;
 
   --radius-sm: 6px;
   --radius-md: 10px;
@@ -62,6 +70,9 @@
     /* Darkened for the light scheme: the dark theme's fuchsia is unreadable on
        a near-white grid. */
     --snap-guide: #a21caf;
+    /* Darkened for the same reason as the guide colour above: the dark theme's
+       teal has no contrast against a near-white panel. */
+    --accent-secondary: #0f8a72;
 
     --shadow-overlay: 0 6px 24px rgba(20, 30, 45, 0.18);
   }

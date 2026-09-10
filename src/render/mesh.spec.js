@@ -111,7 +111,7 @@ describe('materials', () => {
   it('offers a body colour per colour scheme, and none of them is near-black', () => {
     for (const scheme of /** @type {const} */ (['dark', 'light'])) {
       const palette = /** @type {Record<string, number>} */ (BODY_COLORS[scheme])
-      for (const key of ['body', 'selected', 'ghost']) {
+      for (const key of ['body', 'selected', 'secondary', 'ghost']) {
         const color = palette[key]
         const luminance =
           (((color >> 16) & 0xff) + ((color >> 8) & 0xff) + (color & 0xff)) / 3
@@ -130,6 +130,24 @@ describe('materials', () => {
 
   it('makes a committed body opaque', () => {
     expect(createBodyMaterial(BODY_COLORS.dark.body).transparent).toBe(false)
+  })
+
+  it('gives the secondary selection a colour of its own, distinct from all three others', () => {
+    // TODO/ui-014: in a 2+ selection the first-picked solid is Subtract's base
+    // and the rest are subtrahends, and that order has to read *on screen*
+    // before the button is pressed (ACCEPTANCE.md scenario 4, step 4). A
+    // "distinct" highlight that is actually the same hex as the primary one, or
+    // as an unselected body, would satisfy every structural assertion in the app
+    // and still show the user nothing — so the distinctness is asserted here, on
+    // the numbers themselves, rather than inferred from a data attribute.
+    for (const scheme of /** @type {const} */ (['dark', 'light'])) {
+      const palette = /** @type {Record<string, number>} */ (BODY_COLORS[scheme])
+      for (const key of ['body', 'selected', 'secondary']) {
+        expect(typeof palette[key], `${scheme}.${key} must be a colour`).toBe('number')
+      }
+      const distinct = new Set([palette.body, palette.selected, palette.secondary])
+      expect(distinct.size, `${scheme} body/selected/secondary must differ`).toBe(3)
+    }
   })
 })
 

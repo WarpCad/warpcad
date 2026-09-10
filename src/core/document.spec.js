@@ -28,6 +28,15 @@ const fakeRegistry = Object.freeze({
       throw new Error('fake.explode always fails')
     },
   }),
+  // A 2-or-more-in, one-out op — the shape a boolean has (TODO/ui-014) and the
+  // one `consumes` exists for. Deliberately not called `fake.boolean`: the
+  // mechanism is not boolean-specific, and `ui-015`'s "combine into group" is
+  // the same shape.
+  'fake.merge': Object.freeze({
+    kind: 'native',
+    operandCount: '2+',
+    build: (/** @type {any} */ { inputs }) => ({ tag: 'merged', of: inputs.length }),
+  }),
 })
 
 /** @param {object} [options] */
@@ -352,5 +361,285 @@ describe('supersession — one logical body per lineage (TODO/ui-012)', () => {
     const [min, max] = boundsOf(bodies[0].geometry)
     expect((min[0] + max[0]) / 2).toBeCloseTo(25, 6)
     expect((min[2] + max[2]) / 2).toBeCloseTo(5, 6)
+  })
+})
+
+describe('consumption — several bodies retired into one (TODO/ui-014)', () => {
+  /**
+   * `supersedes` answers "this record *continues* that body's identity" — a moved
+   * Cube is still a Cube, so `Body.op`/`params`/`name` keep coming from the root.
+   * A boolean result is not a continuation of either operand: there is no honest
+   * answer to *whose* op and params it inherits. So it gets its own field and its
+   * own lineage, and the operands stop being independently selectable.
+   */
+  /**
+   * @param {ReturnType<typeof doc>} document
+   * @returns {ReturnType<typeof doc>}
+   */
+  function twoBoxes(document) {
+    document.append({ id: 'a', op: 'fake.box', name: 'Box 1' }, { origin: 'local' })
+    document.append({ id: 'b', op: 'fake.box', name: 'Box 2' }, { origin: 'local' })
+    return document
+  }
+
+  it('merges two roots into one body — not three, and not zero', () => {
+    const document = twoBoxes(doc())
+    expect(document.bodies()).toHaveLength(2)
+
+    document.append(
+      { id: 'm', op: 'fake.merge', name: 'Union 1', target: 'a', operands: ['b'], consumes: ['a', 'b'] },
+      { origin: 'local' }
+    )
+
+    const bodies = document.bodies()
+    expect(bodies).toHaveLength(1)
+    // The result is its own new lineage root, so its identity, name and op are
+    // its own rather than borrowed from whichever operand happened to be first.
+    expect(bodies[0].id).toBe('m')
+    expect(bodies[0].recordId).toBe('m')
+    expect(bodies[0].name).toBe('Union 1')
+    expect(bodies[0].op).toBe('fake.merge')
+    expect(bodies[0].geometry).toEqual({ tag: 'merged', of: 2 })
+    // Nothing is deleted — a future undo/redo needs the whole chain, exactly as
+    // supersession keeps every intermediate record.
+    expect(document.records).toHaveLength(3)
+    expect(document.scene.byId.has('a')).toBe(true)
+    expect(document.scene.byId.has('b')).toBe(true)
+  })
+
+  it('resolves a consumed id forward to whatever now represents it', () => {
+    const document = twoBoxes(doc())
+    document.append(
+      { id: 'm', op: 'fake.merge', target: 'a', operands: ['b'], consumes: ['a', 'b'] },
+      { origin: 'local' }
+    )
+    expect(document.currentIdOf('a')).toBe('m')
+    expect(document.currentIdOf('b')).toBe('m')
+    expect(document.currentIdOf('m')).toBe('m')
+  })
+
+  it('chains a merge through a later merge, and through a transform', () => {
+    // A + B -> C, then C + D -> E. A reference to `a` two operations later still
+    // resolves all the way forward, the same guarantee supersession gives.
+    const document = twoBoxes(doc())
+    document.append({ id: 'd', op: 'fake.box', name: 'Box 3' }, { origin: 'local' })
+    document.append(
+      { id: 'c', op: 'fake.merge', target: 'a', operands: ['b'], consumes: ['a', 'b'] },
+      { origin: 'local' }
+    )
+    document.append(
+      { id: 'e', op: 'fake.merge', target: 'c', operands: ['d'], consumes: ['c', 'd'] },
+      { origin: 'local' }
+    )
+    expect(document.bodies()).toHaveLength(1)
+    expect(document.bodies()[0].id).toBe('e')
+    expect(document.currentIdOf('a')).toBe('e')
+    expect(document.currentIdOf('b')).toBe('e')
+    expect(document.currentIdOf('d')).toBe('e')
+
+    // A merged result is an ordinary body: it can then be moved like any other.
+    document.append(
+      { id: 'e-move-1', op: 'fake.move', target: 'e', supersedes: 'e', params: { by: 4 } },
+      { origin: 'local' }
+    )
+    expect(document.bodies()).toHaveLength(1)
+    expect(document.currentIdOf('a')).toBe('e-move-1')
+  })
+
+  it('consumes a moved body by its current record, and retires the whole lineage', () => {
+    // What the toolbar actually passes: `document.currentIdOf(bodyId)`, never the
+    // lineage root, because the root's entry in `scene.byId` still holds the
+    // *pre-move* geometry — subtracting that would cut a hole where the body used
+    // to be.
+    const document = doc()
+    document.append({ id: 'a', op: 'fake.box', name: 'Box 1' }, { origin: 'local' })
+    document.append({ id: 'b', op: 'fake.box', name: 'Box 2' }, { origin: 'local' })
+    document.append(
+      { id: 'a-move-1', op: 'fake.move', target: 'a', supersedes: 'a', params: { by: 5 } },
+      { origin: 'local' }
+    )
+    expect(document.currentIdOf('a')).toBe('a-move-1')
+
+    document.append(
+      {
+        id: 'm',
+        op: 'fake.merge',
+        target: 'a-move-1',
+        operands: ['b'],
+        consumes: ['a-move-1', 'b'],
+      },
+      { origin: 'local' }
+    )
+    expect(document.bodies()).toHaveLength(1)
+    expect(document.bodies()[0].id).toBe('m')
+    // Retiring the terminal retires the lineage it belongs to, so the root id the
+    // selection was holding resolves forward rather than dangling.
+    expect(document.currentIdOf('a')).toBe('m')
+  })
+
+  it('leaves untouched bodies alone and keeps creation order', () => {
+    const document = twoBoxes(doc())
+    document.append({ id: 'c', op: 'fake.box', name: 'Box 3' }, { origin: 'local' })
+    document.append(
+      { id: 'm', op: 'fake.merge', target: 'b', operands: ['c'], consumes: ['b', 'c'] },
+      { origin: 'local' }
+    )
+    const bodies = document.bodies()
+    expect(bodies).toHaveLength(2)
+    // `a` keeps its place at the head of the list; the result joins at the end
+    // because it is genuinely a new body, not a continuation of `b`.
+    expect(bodies.map((body) => body.id)).toEqual(['a', 'm'])
+    expect(bodies[0].geometry).toEqual({ tag: 'box', size: 1 })
+  })
+
+  it('refuses to consume an unknown id, an already-consumed one, or a superseded one', () => {
+    const document = twoBoxes(doc())
+    expect(() =>
+      document.append(
+        { id: 'x', op: 'fake.merge', target: 'a', operands: ['b'], consumes: ['a', 'nope'] },
+        { origin: 'local' }
+      )
+    ).toThrow(/consumes/)
+    // Rejected *before* anything is committed: no half-applied merge.
+    expect(document.bodies()).toHaveLength(2)
+
+    document.append(
+      { id: 'm', op: 'fake.merge', target: 'a', operands: ['b'], consumes: ['a', 'b'] },
+      { origin: 'local' }
+    )
+    document.append({ id: 'c', op: 'fake.box', name: 'Box 3' }, { origin: 'local' })
+    // `a` has been absorbed into `m`; consuming it again would resurrect a body
+    // the user can no longer see or select.
+    expect(() =>
+      document.append(
+        { id: 'x2', op: 'fake.merge', target: 'a', operands: ['c'], consumes: ['a', 'c'] },
+        { origin: 'local' }
+      )
+    ).toThrow(/consumes/)
+
+    // And a record that is not its lineage's terminal — the same fork this
+    // module rejects for `supersedes`.
+    document.append(
+      { id: 'c-move-1', op: 'fake.move', target: 'c', supersedes: 'c', params: { by: 2 } },
+      { origin: 'local' }
+    )
+    expect(() =>
+      document.append(
+        { id: 'x3', op: 'fake.merge', target: 'm', operands: ['c'], consumes: ['m', 'c'] },
+        { origin: 'local' }
+      )
+    ).toThrow(/consumes/)
+  })
+
+  it('refuses to supersede a body that has been consumed', () => {
+    // The mirror of the case above: a moved body cannot be moved again once a
+    // boolean has absorbed it, because there is nothing on screen to move.
+    const document = twoBoxes(doc())
+    document.append(
+      { id: 'm', op: 'fake.merge', target: 'a', operands: ['b'], consumes: ['a', 'b'] },
+      { origin: 'local' }
+    )
+    expect(() =>
+      document.append(
+        { id: 'mv', op: 'fake.move', target: 'a', supersedes: 'a', params: { by: 1 } },
+        { origin: 'local' }
+      )
+    ).toThrow(/supersedes/)
+    expect(document.bodies()).toHaveLength(1)
+  })
+
+  it('refuses a record that both supersedes and consumes', () => {
+    // Two different meanings — continue one identity, or retire several into a
+    // new one — and no coherent answer for what a record doing both would mean.
+    const document = twoBoxes(doc())
+    expect(() =>
+      document.append(
+        {
+          id: 'm',
+          op: 'fake.merge',
+          target: 'a',
+          operands: ['b'],
+          supersedes: 'a',
+          consumes: ['a', 'b'],
+        },
+        { origin: 'local' }
+      )
+    ).toThrow(/supersedes.*consumes|consumes.*supersedes/)
+    expect(document.bodies()).toHaveLength(2)
+  })
+
+  it('refuses a consuming record with no id of its own, or a malformed consumes list', () => {
+    const document = twoBoxes(doc())
+    expect(() =>
+      document.append(
+        { op: 'fake.merge', target: 'a', operands: ['b'], consumes: ['a', 'b'] },
+        { origin: 'local' }
+      )
+    ).toThrow(/id/)
+    expect(() =>
+      document.append(
+        { id: 'm', op: 'fake.merge', target: 'a', operands: ['b'], consumes: /** @type {any} */ ('a') },
+        { origin: 'local' }
+      )
+    ).toThrow(/consumes/)
+    expect(() =>
+      document.append(
+        { id: 'm', op: 'fake.merge', target: 'a', operands: ['b'], consumes: [] },
+        { origin: 'local' }
+      )
+    ).toThrow(/consumes/)
+    // The same body named twice would retire one lineage and silently count it
+    // as two operands.
+    expect(() =>
+      document.append(
+        { id: 'm', op: 'fake.merge', target: 'a', operands: ['a'], consumes: ['a', 'a'] },
+        { origin: 'local' }
+      )
+    ).toThrow(/consumes/)
+    expect(document.bodies()).toHaveLength(2)
+  })
+
+  it('a real subtract through the real kernel leaves exactly one body, cut to size', () => {
+    const document = createDocument()
+    document.append(
+      {
+        id: 'cube-1',
+        op: 'primitive.cuboid',
+        name: 'Cube 1',
+        params: { size: [10, 10, 10], center: [0, 0, 5] },
+      },
+      { origin: 'local' }
+    )
+    document.append(
+      {
+        id: 'cube-2',
+        op: 'primitive.cuboid',
+        name: 'Cube 2',
+        params: { size: [10, 10, 6], center: [0, 0, 12] },
+      },
+      { origin: 'local' }
+    )
+    expect(document.bodies()).toHaveLength(2)
+
+    document.append(
+      {
+        id: 'bool-1',
+        op: 'boolean.subtract',
+        name: 'Subtract 1',
+        target: 'cube-1',
+        operands: ['cube-2'],
+        consumes: ['cube-1', 'cube-2'],
+      },
+      { origin: 'local' }
+    )
+
+    const bodies = document.bodies()
+    expect(bodies).toHaveLength(1)
+    expect(bodies[0].id).toBe('bool-1')
+    // The second cube's lower half overlapped the first from z = 9 upward, so
+    // the result is the first cube with its top 1 mm removed.
+    const [min, max] = boundsOf(bodies[0].geometry)
+    expect(max[2]).toBeCloseTo(9, 6)
+    expect(min[2]).toBeCloseTo(0, 6)
   })
 })

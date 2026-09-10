@@ -18,6 +18,9 @@ themselves won't have to move.
 - [Selecting a shape, and reading its size](selection-and-inspector.md) — the
   gizmo, the three dimension lines, and the Inspector panel's parameters and
   Transform section, on desktop and as a phone bottom sheet.
+- [Combining shapes: Union, Subtract and Intersect](booleans.md) — the
+  Operations toolbar, why its buttons stay dimmed until two shapes are selected,
+  and how to tell which shape Subtract is about to cut.
 - [Moving around the 3D view](viewport-navigation.md) — orbit, pan, zoom, the
   orientation triad, touch gestures, and reading size off the grid.
 

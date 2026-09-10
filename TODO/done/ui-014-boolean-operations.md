@@ -6,8 +6,35 @@ priority: high
 model: opus
 milestone: M3
 depends: [ui-011]
-status: open
+status: done
 ---
+
+> **What actually shipped, where it differs from this file.** Three deviations, all
+> small, all recorded rather than silently absorbed:
+>
+> 1. **The toolbar sits at the viewport's top-left, not stacked above the nav chrome.**
+>    This file's Small-screen bullet asked for the bottom-left navigation-chrome band. It
+>    is still viewport chrome and still not a fourth bottom-sheet tab — the load-bearing
+>    part — but the bottom-left corner turned out to be the wrong half of the screen for a
+>    control whose *enabled state* the user watches while picking the second solid: at
+>    phone width the bottom band already carries the nav pad, the scale readout, the
+>    Library tab and the Inspector sheet, which at a 2-body selection stack to roughly
+>    630 px of an ~800 px viewport. Top-left is the one corner nothing else claims
+>    (navigation bottom-left, readout bottom-right, orientation gizmo top-right), it
+>    clears both sheets outright rather than by arithmetic, and it avoids the settings
+>    popover — which opens *upward* out of the chrome — covering the toolbar.
+> 2. **Operands are named by `document.currentIdOf(...)`, not by the raw selection ids**
+>    this file's sketch passed. A selection holds *lineage root* ids, and a root's entry in
+>    the evaluated scene still holds the geometry the body had when it was first placed —
+>    so subtracting it would cut a hole where the body *used to be*. Covered by a unit test
+>    and hit for real in the acceptance drive, which moved an operand before combining it.
+> 3. **`consumes` validation also rejects a duplicate lineage and an empty/non-array
+>    value**, which this file did not specify — cheap guards on the same code path, each
+>    with a test.
+>
+> Everything else — the `consumes` field, its mutual exclusion with `supersedes`, the
+> shared validation helper, the `mergedInto` index, `bodies()` skipping a retired root, and
+> `currentIdOf` chaining through a merge — shipped as proposed.
 
 ## Goal
 
