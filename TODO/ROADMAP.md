@@ -136,7 +136,7 @@ further, rather than queuing behind M2/M3's reserved rows.
 
 | id | Task | Kind | Depends | Acceptance |
 |---|---|---|---|---|
-| `ui-014` *(reserved)* | Boolean operation (Union/Subtract/Intersect) with selection-count gating — the Operations toolbar per `docs/decisions/interaction-model-qa.md` control 5, including Subtract's base/subtrahend visual indicator | Operation, 2+ | `ui-011` | §9 scenario 4 (boolean gating, incl. Subtract-order indicator check per the Q&A doc's flag), scenario 5 (hidden-part boolean — bolt tap-clearance) |
+| `ui-014` | Boolean operation (Union/Subtract/Intersect) with selection-count gating — the Operations toolbar per `docs/decisions/interaction-model-qa.md` control 5, including Subtract's base/subtrahend visual indicator | Operation, 2+ | `ui-011` | §9 scenario 4 (boolean gating, incl. Subtract-order indicator check per the Q&A doc's flag), scenario 5 (hidden-part boolean — bolt tap-clearance) — scoped in `TODO/ui-014-boolean-operations.md`, which also proposes a `consumes` mechanism `ui-015` should reuse rather than re-derive |
 | `ui-015` *(reserved)* | "Combine into group" operation | Operation, 2+ | `ui-014` | feeds `ui-016` |
 | `ui-016` *(reserved)* | Group selection vs. clicking a sub-part (`Group.pick` surfaced as a selection behavior, per control 6) | — (selection display) | `ui-015` | §9 scenario 6 (group vs. sub-part selection) |
 | ✅ `core-013` | Wire `group.snap`/`group.align` to the op registry, with sub-part-addressed operands — scoped against a real survey of 1,600+ `.snap`/`.align` call sites across the user's own `~/src/jscad/` projects | Operation | `core-001` | feeds `ui-026`; no `ACCEPTANCE.md` scenario directly, see the task's own Testing section |
