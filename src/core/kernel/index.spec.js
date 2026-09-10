@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import modeling from '@jscad/modeling'
 
 import { combine, isGroup } from './group.js'
-import { evaluate, evaluateOp, expand } from './index.js'
+import { evaluate, evaluateOp, expand, registry } from './index.js'
 
 const { measurements } = modeling
 
@@ -170,6 +170,140 @@ describe('evaluate — the fold every op class replays through', () => {
     // the seed is copied, not mutated — the first fold's own result is untouched
     expect(first.group.names).toEqual(['a'])
     expect(first.byId.size).toBe(1)
+  })
+})
+
+describe('operand resolution — bare ids, sub-part addresses, and who sees a raw Group (TODO/core-013)', () => {
+  const BOLT = { spec: 'm10 hex', length: 20, fit: 'loose' }
+
+  /** Records every fold below starts from: one composite, one bare solid. */
+  const seed = [
+    { id: 'bolt1', op: 'hardware.bolt', params: BOLT },
+    { id: 'plate', op: 'primitive.cuboid', params: { size: [40, 40, 4] } },
+  ]
+
+  /**
+   * The real catalogue plus two probes that report what the fold handed them —
+   * one declaring `rawOperands`, one not. Spreading the real registry keeps the
+   * seed records above buildable.
+   *
+   * @type {any}
+   */
+  const probes = Object.freeze({
+    ...registry,
+    'probe.raw': {
+      kind: 'native',
+      operandCount: '2+',
+      rawOperands: true,
+      build: (/** @type {any} */ { inputs }) => ({ seen: inputs }),
+    },
+    'probe.flat': {
+      kind: 'native',
+      operandCount: '2+',
+      build: (/** @type {any} */ { inputs }) => ({ seen: inputs }),
+    },
+  })
+
+  it('treats { id } with no pieces exactly like the bare id it wraps', () => {
+    const bare = evaluate([
+      { id: 'a', op: 'primitive.cuboid', params: { size: [10, 10, 10] } },
+      { id: 'b', op: 'primitive.cuboid', params: { size: [10, 10, 6], center: [0, 0, 5] } },
+      { id: 'c', op: 'boolean.subtract', target: 'a', operands: ['b'], name: 'r' },
+    ])
+    const wrapped = evaluate([
+      { id: 'a', op: 'primitive.cuboid', params: { size: [10, 10, 10] } },
+      { id: 'b', op: 'primitive.cuboid', params: { size: [10, 10, 6], center: [0, 0, 5] } },
+      { id: 'c', op: 'boolean.subtract', target: { id: 'a' }, operands: [{ id: 'b' }], name: 'r' },
+    ])
+    expect(boundsOf(wrapped.group.parts.r)).toEqual(boundsOf(bare.group.parts.r))
+  })
+
+  it('hands a rawOperands op the un-combined value and the piece name beside it', () => {
+    // This is the whole point of TODO/core-013: `byId` has always held the bolt's
+    // head/thread/tap breakdown, it was just never routed anywhere an op could see it.
+    const { byId } = evaluate(
+      [
+        ...seed,
+        {
+          id: 'probe',
+          op: 'probe.raw',
+          target: { id: 'bolt1', pieces: 'head' },
+          operands: ['plate'],
+        },
+      ],
+      { registry: probes }
+    )
+    const { seen } = /** @type {any} */ (byId.get('probe'))
+    expect(isGroup(seen[0].value)).toBe(true)
+    expect(seen[0].value.names).toEqual(['head', 'thread', 'tap'])
+    expect(seen[0].pieces).toBe('head')
+    // target first, then operands — the same ordering every other op relies on
+    expect(isGroup(seen[1].value)).toBe(false)
+    expect(seen[1].pieces).toBeUndefined()
+  })
+
+  it('still flattens every other op’s operands to bare geometry, unchanged', () => {
+    // The regression this task most has to avoid: `evaluate` is shared by every op,
+    // and only the two that opt in may see anything but a solid.
+    const { byId } = evaluate(
+      [...seed, { id: 'probe', op: 'probe.flat', target: 'bolt1', operands: ['plate'] }],
+      { registry: probes }
+    )
+    const { seen } = /** @type {any} */ (byId.get('probe'))
+    expect(isGroup(seen[0])).toBe(false)
+    expect(seen[0].polygons.length).toBeGreaterThan(0)
+    expect(seen).toHaveLength(2)
+  })
+
+  it('refuses a sub-part address on an op that cannot use one, rather than ignoring it', () => {
+    // Silently dropping `pieces` would subtract the whole bolt while the record says
+    // otherwise — wrong geometry, no error, exactly the class of bug this project
+    // has already shipped twice.
+    expect(() =>
+      evaluate([
+        ...seed,
+        { id: 'cut', op: 'boolean.subtract', target: 'plate', operands: [{ id: 'bolt1', pieces: 'tap' }] },
+      ])
+    ).toThrow(/names pieces \("tap"\)/)
+  })
+
+  it('names the id in the not-yet-evaluated error whichever form the reference took', () => {
+    expect(() =>
+      evaluate([{ id: 'a', op: 'boolean.union', operands: [{ id: 'nope' }, 'alsoNope'] }])
+    ).toThrow(/nope/)
+  })
+
+  it('rejects a malformed operand reference by shape, not as a missing id', () => {
+    // `{ pieces: 'head' }` with no id used to stringify to "[object Object]" and be
+    // reported as an unevaluated id, which sends a reader looking for the wrong bug.
+    // Both references below are deliberately not `OperandRef`s — the cast is what
+    // lets a type-checked spec assert on a document that got the shape wrong.
+    expect(() =>
+      evaluate(
+        /** @type {any[]} */ ([
+          ...seed,
+          { id: 'x', op: 'boolean.union', operands: ['plate', { pieces: 'head' }] },
+        ])
+      )
+    ).toThrow(/must be an id or \{ id, pieces \}/)
+    expect(() =>
+      evaluate(
+        /** @type {any[]} */ ([...seed, { id: 'x', op: 'boolean.union', operands: ['plate', 42] }])
+      )
+    ).toThrow(/must be an id or \{ id, pieces \}/)
+  })
+
+  it('counts an object reference as one operand, like the bare id', () => {
+    expect(() =>
+      evaluate([...seed, { id: 'x', op: 'boolean.union', operands: [{ id: 'plate' }] }])
+    ).toThrow(/expected 2 or more operand/)
+    // and two of them satisfy it, so the count is really reading the array
+    expect(() =>
+      evaluate([
+        ...seed,
+        { id: 'x', op: 'boolean.union', operands: [{ id: 'plate' }, { id: 'bolt1' }] },
+      ])
+    ).not.toThrow()
   })
 })
 

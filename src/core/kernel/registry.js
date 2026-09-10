@@ -37,6 +37,7 @@ import modeling from '@jscad/modeling'
 const { booleans, extrusions, geometries, measurements, primitives, transforms } = modeling
 
 import { chamferRim, filletRim } from './fillet.js'
+import { align, calcCenterWith, calcSnap, isGroup, pick, snap } from './group.js'
 import { bolt } from './recipes/hardware.bolt.js'
 import { nut } from './recipes/hardware.nut.js'
 import { washer } from './recipes/hardware.washer.js'
@@ -46,15 +47,36 @@ import { boardFrame } from './recipes/kit.boardFrame.js'
 
 /** @typedef {import('@jscad/modeling').geometries.geom3.Geom3} Geom3 */
 /** @typedef {import('@jscad/modeling').geometries.geom2.Geom2} Geom2 */
+/** @typedef {import('./group.js').Group} Group */
 /**
- * What a native op's `build` may hand back. Almost always a solid; the `profile.*`
- * pair (TODO/core-012) is the exception, producing and consuming the flat `geom2`
- * profiles a composite kit recipe subtracts and extrudes before anything renders.
- * Only a *named* record's value reaches the mesh bridge, and those are all solids.
+ * What a native op's `build` may hand back. Almost always a solid. Two exceptions,
+ * both narrow and both deliberate: the `profile.*` pair (TODO/core-012) produces and
+ * consumes the flat `geom2` profiles a composite kit recipe subtracts and extrudes
+ * before anything renders, and the `group.*` pair (TODO/core-013) hands back the
+ * `Group` it moved, parts intact, so the next record can still name one of them.
+ * Only a *named* record's value reaches the mesh bridge, and a `Group` collapses to
+ * a solid on the way in (`group.js`'s `add`), so nothing downstream widens.
  *
- * @typedef {Geom3 | Geom2} KernelGeometry
+ * @typedef {Geom3 | Geom2 | Group} KernelGeometry
+ */
+/**
+ * One operand as a `rawOperands` op sees it: the value still un-combined, and the
+ * piece names the record addressed it by, if any (TODO/core-013).
+ *
+ * @typedef {object} ResolvedOperand
+ * @property {Geom3 | Group} value The value bound to the id, *not* flattened.
+ * @property {string} [pieces] Comma-separated part names; absent means the whole thing.
  */
 /** @typedef {[number, number, number]} Vec3Mm */
+
+/**
+ * How a record names an operand: a bare id — every op's shape, and the only shape
+ * before TODO/core-013 — or `{ id, pieces }`, naming a subset of that record's parts.
+ * Only `group.snap`/`group.align` accept the second form; every other op rejects it
+ * rather than quietly measuring the whole thing. See `index.js`'s `normalizeRef`.
+ *
+ * @typedef {string | { id: string, pieces?: string }} OperandRef
+ */
 
 /**
  * One line of the document, or one line of a composite recipe's expansion — the
@@ -65,8 +87,8 @@ import { boardFrame } from './recipes/kit.boardFrame.js'
  * @property {string} [id] Referenceable by `target`/`operands` from later records.
  * @property {string} op Registry key.
  * @property {Record<string, any>} [params] Plain JSON; never a function or code.
- * @property {string} [target] Id of the primary operand.
- * @property {string[]} [operands] Ids of additional operands.
+ * @property {OperandRef} [target] The primary operand.
+ * @property {OperandRef[]} [operands] Additional operands.
  * @property {string} [supersedes] Id of the record whose *logical body* this
  *   record replaces — a move or a turn of an existing object rather than a new
  *   one. `src/core/document.js` reads this to report one body per lineage instead
@@ -80,9 +102,11 @@ import { boardFrame } from './recipes/kit.boardFrame.js'
  * @typedef {object} BuildArgs
  * @property {Record<string, any>} params The record's `params`, plain JSON.
  * @property {Geom3[]} inputs Resolved operand geometry, `target` first. Typed as
- *   solids because every op but one consumes solids; `profile.extrudeLinear` is
- *   handed a `geom2` and narrows it itself, since the fold does not track which
+ *   solids because that is what almost every op consumes; the two op families that
+ *   consume something else narrow it themselves, since the fold does not track which
  *   flavour of geometry an id holds (see {@link KernelGeometry}).
+ *   `profile.extrudeLinear` is handed a `geom2`; an entry declaring `rawOperands` is
+ *   handed {@link ResolvedOperand}s instead of geometry at all.
  */
 
 /** @typedef {(params: any, tables: any) => OpRecord[]} Recipe */
@@ -98,6 +122,12 @@ import { boardFrame } from './recipes/kit.boardFrame.js'
  * @property {'native' | 'composite'} kind
  * @property {0 | 1 | '2+'} operandCount How many operands the op consumes.
  * @property {(args: BuildArgs) => KernelGeometry} [build] Native ops only.
+ * @property {boolean} [rawOperands] Native ops only. The fold flattens every operand
+ *   to a solid before `build` sees it, which is right for a boolean or a transform
+ *   and wrong for the `group.*` pair — snapping a bolt by its head needs the head,
+ *   and the result has to keep the thread and tap so the next record can name them.
+ *   Setting this asks the fold for {@link ResolvedOperand}s instead. Two entries use
+ *   it; anything else consuming a composite still gets the combined solid.
  * @property {Recipe} [recipe] Composite ops only.
  * @property {OpUi} [ui] Present on ops the UI offers as a catalogue row.
  */
@@ -119,6 +149,18 @@ function native(operandCount, build, ui) {
 }
 
 /**
+ * A native entry that wants its operands un-combined. See `rawOperands` on
+ * {@link RegistryEntry} for why two ops need this and nothing else should.
+ *
+ * @param {0 | 1 | '2+'} operandCount
+ * @param {(args: BuildArgs) => KernelGeometry} build
+ * @returns {RegistryEntry}
+ */
+function rawNative(operandCount, build) {
+  return Object.freeze({ kind: 'native', operandCount, rawOperands: true, build })
+}
+
+/**
  * A composite entry: it expands into more op records and builds nothing.
  *
  * @param {0 | 1 | '2+'} operandCount
@@ -127,6 +169,55 @@ function native(operandCount, build, ui) {
  */
 function composite(operandCount, recipe) {
   return Object.freeze({ kind: 'composite', operandCount, recipe })
+}
+
+/**
+ * The two operands a `group.*` op needs: the thing being moved, then the thing it is
+ * moved against. `operandCount` cannot say "exactly two" — its vocabulary is
+ * `0 | 1 | '2+'`, and widening it would change the UI's tool-enablement contract for
+ * every op — so `'2+'` gates the selection and this makes the extra operand loud
+ * rather than silently ignored.
+ *
+ * @param {any[]} inputs
+ * @param {string} op
+ * @returns {[ResolvedOperand, ResolvedOperand]}
+ */
+function requireTwoOperands(inputs, op) {
+  if (inputs.length !== 2) {
+    throw new Error(
+      `${op}: expected exactly 2 operands — the item to move, then the item to move ` +
+        `it against — got ${inputs.length}`
+    )
+  }
+  return /** @type {[ResolvedOperand, ResolvedOperand]} */ (inputs)
+}
+
+/**
+ * @param {unknown} axes
+ * @param {string} op
+ * @returns {string}
+ */
+function requireAxes(axes, op) {
+  if (typeof axes !== 'string' || axes.length === 0) {
+    throw new Error(
+      `${op}: axes must name one or more of x, y, z — e.g. "z" or "xy" — got ${String(axes)}`
+    )
+  }
+  return axes
+}
+
+/**
+ * What a `group.*` op measures its reference against: the whole value, or just the
+ * parts the record named. The fold has already checked that a named-pieces operand
+ * really is a group, so this cannot be handed a bare solid with pieces set.
+ *
+ * @param {ResolvedOperand} operand
+ * @returns {Geom3 | Group}
+ */
+function referenceOf(operand) {
+  return operand.pieces === undefined
+    ? operand.value
+    : pick(/** @type {Group} */ (operand.value), operand.pieces)
 }
 
 /**
@@ -472,6 +563,78 @@ export const registry = Object.freeze({
   'boolean.union': native('2+', ({ inputs }) => booleans.union(inputs)),
 
   'boolean.subtract': native('2+', ({ inputs }) => booleans.subtract(inputs)),
+
+  // ## Positioning one placed item against another (TODO/core-013)
+  //
+  // The arithmetic under both of these is `core-001`'s, already ported and covered
+  // by `group.spec.js`; these entries are wiring, and deliberately contain no maths
+  // of their own. What they add is *reach*: until now `snap`/`align` could only be
+  // called as pure functions inside a single recipe's own expansion (which is all
+  // `kit.anchor` does), because the fold flattened every operand before any op saw
+  // it. They are `rawOperands` entries for that reason — see that flag on
+  // `RegistryEntry`, and `index.js`'s `normalizeRef` for the `{ id, pieces }`
+  // address a record uses to name one part of another placed item.
+  //
+  // A survey of 1,617 real `.snap(`/`.align(` calls across 109 of the user's own
+  // `.jscad` projects backs the shape of these two entries, and every test case in
+  // `registry.spec.js` reproduces a cited call site rather than an invented one;
+  // `recipes/__fixtures__/group-snap-align.real-usage.md` is the table.
+  //
+  // Two things follow V1 exactly and are worth stating, because both look like bugs
+  // from the outside:
+  //
+  //  1. **The named pieces drive the offset; the whole group still moves.** V1's
+  //     `Group.prototype.snap(part, ...)` computes from `combine(part)` and then
+  //     `map`s the translate over *every* part. A bolt snapped by its head brings
+  //     its thread and tap along — that is the entire point of a group.
+  //  2. **The result is still a group.** `.snap(...).snap(...)` is the dominant idiom
+  //     in the survey, and it only works if the first result's parts are still there
+  //     to be named by the second.
+  //
+  // A bare solid (a placed primitive, not a composite) is not a special case: it has
+  // no parts to name, and `calcSnap`/`calcCenterWith` already take `Geom3 | Group`
+  // uniformly, so it falls through the same branch minus the group bookkeeping.
+  'group.snap': rawNative('2+', ({ params, inputs }) => {
+    const op = 'group.snap'
+    const [moving, reference] = requireTwoOperands(inputs, op)
+    const axes = requireAxes(params.axes, op)
+    if (isGroup(moving.value)) {
+      return snap(
+        moving.value,
+        /** @type {string} */ (moving.pieces),
+        referenceOf(reference),
+        axes,
+        params.orientation,
+        params.deltaMm
+      )
+    }
+    return transforms.translate(
+      calcSnap(moving.value, referenceOf(reference), axes, params.orientation, params.deltaMm),
+      moving.value
+    )
+  }),
+
+  // Same shape as `group.snap`, one argument shorter: V1's `align` has no
+  // orientation because it always centres. `deltaMm` may be a scalar or a per-axis
+  // vector, exactly as `calcCenterWith` takes it.
+  'group.align': rawNative('2+', ({ params, inputs }) => {
+    const op = 'group.align'
+    const [moving, reference] = requireTwoOperands(inputs, op)
+    const axes = requireAxes(params.axes, op)
+    if (isGroup(moving.value)) {
+      return align(
+        moving.value,
+        /** @type {string} */ (moving.pieces),
+        referenceOf(reference),
+        axes,
+        params.deltaMm
+      )
+    }
+    return transforms.translate(
+      calcCenterWith(moving.value, axes, referenceOf(reference), params.deltaMm),
+      moving.value
+    )
+  }),
 
   // Rim ops, not edge ops. These round or bevel the whole rim of one axis-aligned
   // face — exactly what V1's `.fillet()`/`.chamfer()` did, and the most `@jscad/

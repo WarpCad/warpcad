@@ -6,8 +6,38 @@ priority: medium
 model: opus
 milestone: M3
 depends: [core-001]
-status: open
+status: done
 ---
+
+> **What actually shipped, where it differs from the proposal below.** Three
+> resolutions, all narrower than what this file proposed rather than wider:
+>
+> 1. **One spelling for the sub-part address, not three.** The Proposed fix named
+>    `{ id, pieces }`, a record-level `targetPieces`, *and* a `params.movingPieces`
+>    for what is one idea. Shipped: only `{ id, pieces }`, on `target` and on each
+>    `operands` entry alike. `pieces` reads the same on both sides — *measure using
+>    only these named parts* — and the asymmetry the three spellings were reaching
+>    for (the moving group travels as a whole, the reference never moves) belongs to
+>    the op, not to the address. `params` therefore carries only `axes`,
+>    `orientation` and `deltaMm`.
+> 2. **`operandCount` is `'2+'`, not `1`.** The fold counts `target` as an input
+>    (`transform.translate` is `1` with a target and no operands), so `1` would have
+>    rejected every real record. The registry's vocabulary is `0 | 1 | '2+'` and has
+>    no "exactly two"; widening it would change the UI tool-enablement contract for
+>    every op, so `'2+'` gates the selection and the op itself rejects a third
+>    operand loudly rather than ignoring it.
+> 3. **`pieces` is optional, not required.** V1's `part` argument is positional and
+>    always passed, but `combine(group, undefined)` already means "all visible
+>    parts", which is exactly the whole-object snap of survey pattern 1 — so omitting
+>    it is the documented way to spell that, not an error.
+>
+> Two things were also added beyond the proposal, both because `evaluate()` is shared
+> by every op: an operand naming `pieces` on an op that cannot use them is **rejected
+> by name** rather than silently measured whole, and a malformed reference is
+> reported as a bad *shape* rather than as a missing id. Both surface through
+> `src/core/replay.js` as per-record warnings, so a remote document carrying one is
+> skipped and reported rather than halting the replay (acceptance scenario 8,
+> re-driven).
 
 ## Goal
 

@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest'
 import modeling from '@jscad/modeling'
 
 import { acceptsOperandCount, assertOperandCount, getEntry, registry } from './registry.js'
+import { calcCenterWith, calcSnap, centroidOf, isGroup, pick } from './group.js'
+import { evaluate } from './index.js'
 
 const { measurements } = modeling
 
@@ -21,7 +23,9 @@ const { measurements } = modeling
 function build(op, { params = {}, inputs = [] } = {}) {
   const entry = getEntry(op)
   if (!entry.build) throw new Error(`${op} is not a native op`)
-  return entry.build({ params, inputs })
+  // A `group.*` entry may hand back a Group (TODO/core-013); no test below calls
+  // this helper on one, and the two that measure a group go through `evaluate`.
+  return /** @type {Geom3 | Geom2} */ (entry.build({ params, inputs }))
 }
 
 /** @param {Geom3 | Geom2} geometry */
@@ -476,5 +480,449 @@ describe('native builders', () => {
     expect(registry['modify.fillet']).toBeUndefined()
     expect(registry['modify.chamfer']).toBeUndefined()
     expect(registry['hardware.bearing']).toBeUndefined()
+  })
+})
+
+// ---------------------------------------------------------------------------
+// TODO/core-013 — group.snap / group.align
+//
+// Every case below reproduces a **real** call from the user's own `.jscad`
+// projects, cited by file:line, rather than an invented arrangement of boxes;
+// `recipes/__fixtures__/group-snap-align.real-usage.md` is the table those
+// citations come from. The arithmetic itself is `core-001`'s, already covered by
+// `group.spec.js` — what these tests are for is the *wiring*: that a document
+// record can reach it, and that a sub-part address survives the fold.
+// ---------------------------------------------------------------------------
+
+/** Params every bolt in these tests is built from — the shape `index.spec.js` uses. */
+const BOLT = { spec: 'm10 hex', length: 20, fit: 'loose' }
+
+/**
+ * Evaluate records and hand back the value bound to `id`.
+ *
+ * @param {any[]} records
+ * @param {string} id
+ * @returns {any}
+ */
+function valueOf(records, id) {
+  return got(evaluate(records).byId, id)
+}
+
+/**
+ * The value bound to `id`, failing the test rather than handing back `undefined` —
+ * every id these tests ask for is one they just evaluated.
+ *
+ * @param {Map<string, any>} byId
+ * @param {string} id
+ * @returns {any}
+ */
+function got(byId, id) {
+  const value = byId.get(id)
+  if (value === undefined) throw new Error(`nothing bound to id "${id}"`)
+  return value
+}
+
+describe('group.snap — TODO/core-013', () => {
+  it('registers as a two-operand operation, not a creation row', () => {
+    // CLAUDE.md's creation-vs-operation rule: snapping needs a thing to move *and*
+    // a thing to move against, so it must never be offered at zero or one selected.
+    expect(registry['group.snap']).toMatchObject({ kind: 'native' })
+    expect(acceptsOperandCount('group.snap', 0)).toBe(false)
+    expect(acceptsOperandCount('group.snap', 1)).toBe(false)
+    expect(acceptsOperandCount('group.snap', 2)).toBe(true)
+    expect(registry['group.snap']?.ui).toBeUndefined()
+  })
+
+  it('snaps a whole solid against another, both delta signs (laptop-stand.jscad:52-53)', () => {
+    // `.snap(body, "x", "inside-", 2.5)` / `.snap(body, "y", "inside+", -2.5)` —
+    // survey pattern 1: `this` is a bare solid, so no piece names anywhere.
+    const base = [
+      { id: 'body', op: 'primitive.cuboid', params: { size: [100, 60, 20] } },
+      { id: 'foot', op: 'primitive.cuboid', params: { size: [10, 10, 5] } },
+    ]
+    const inside = valueOf(
+      [
+        ...base,
+        {
+          id: 'placed',
+          op: 'group.snap',
+          target: 'foot',
+          operands: ['body'],
+          params: { axes: 'x', orientation: 'inside-', deltaMm: 2.5 },
+        },
+      ],
+      'placed'
+    )
+    // `inside-` flushes the moving min to the reference min; +2.5 holds it proud of it.
+    expect(boundsOf(inside)[0][0]).toBeCloseTo(-50 + 2.5, 9)
+
+    const outside = valueOf(
+      [
+        ...base,
+        {
+          id: 'placed',
+          op: 'group.snap',
+          target: 'foot',
+          operands: ['body'],
+          params: { axes: 'y', orientation: 'inside+', deltaMm: -2.5 },
+        },
+      ],
+      'placed'
+    )
+    expect(boundsOf(outside)[1][1]).toBeCloseTo(30 - 2.5, 9)
+
+    // A bare solid in is a bare solid out — nothing is wrapped in a group on the way.
+    expect(isGroup(inside)).toBe(false)
+  })
+
+  it('drives the offset from a named moving piece and moves the whole group (PiPiece.jscad:263)', () => {
+    // `.snap('head', picase, 'z', 'outside+')` — survey pattern 2. The offset comes
+    // from the bolt's *head* alone; the thread and tap travel with it.
+    const records = [
+      { id: 'picase', op: 'primitive.cuboid', params: { size: [80, 50, 30] } },
+      { id: 'bolt1', op: 'hardware.bolt', params: BOLT },
+      {
+        id: 'placed',
+        op: 'group.snap',
+        target: { id: 'bolt1', pieces: 'head' },
+        operands: ['picase'],
+        params: { axes: 'z', orientation: 'outside+' },
+      },
+    ]
+    const placed = valueOf(records, 'placed')
+
+    // The group survives the op — this is what lets V1's `.snap(...).snap(...)` chain
+    // work at all, and what keeps the hidden `tap` reachable for a later subtract.
+    expect(isGroup(placed)).toBe(true)
+    expect(placed.names).toEqual(['head', 'thread', 'tap'])
+
+    // head 0..6.5 → its max lands on the case's min (-15), so the offset is -21.5.
+    expect(boundsOf(placed.parts.head)[1][2]).toBeCloseTo(-15, 9)
+    // and every other part moved by that same -21.5, not by its own offset.
+    expect(boundsOf(placed.parts.thread)[0][2]).toBeCloseTo(6.5 - 21.5, 9)
+    expect(boundsOf(placed.parts.tap)[1][2]).toBeCloseTo(27.5 - 21.5, 9)
+
+    // Naming no piece measures the whole bolt (max z 27.5) and lands somewhere else
+    // entirely — which is what makes the assertion above about `pieces`, not luck.
+    const whole = valueOf(
+      [...records.slice(0, 2), { ...records[2], target: 'bolt1' }],
+      'placed'
+    )
+    expect(boundsOf(whole.parts.head)[1][2]).toBeCloseTo(6.5 - 42.5, 9)
+  })
+
+  it('reaches a named piece of a *different* placed item as the reference (pvc-joints2.jscad:302-303)', () => {
+    // `.snap('head', hinge.parts.body, 'x', 'outside-')` — survey pattern 3, the one
+    // shape nothing in this project could express before this task: a sub-part on
+    // the moving side *and* a sub-part of another document item on the reference side.
+    const records = [
+      { id: 'hinge', op: 'hardware.bolt', params: BOLT },
+      { id: 'anchor1', op: 'kit.anchor', params: {} },
+      {
+        id: 'placed',
+        op: 'group.snap',
+        target: { id: 'anchor1', pieces: 'post' },
+        operands: [{ id: 'hinge', pieces: 'thread' }],
+        params: { axes: 'x', orientation: 'outside-' },
+      },
+    ]
+    const placed = valueOf(records, 'placed')
+
+    // post min x −2.5 flushed to thread max x +5 ⇒ offset 7.5. Each of the three
+    // less-specific addressings gives a different number (12, 10, 14.5), so this
+    // asserts both piece names were honoured, not just one of them.
+    expect(boundsOf(placed.parts.post)[0][0]).toBeCloseTo(5, 9)
+    expect(boundsOf(placed.parts.hole)[0][0]).toBeCloseTo(-5 + 7.5, 9)
+    expect(placed.names).toEqual(['hole', 'post'])
+
+    /** @param {any} target @param {any} operand */
+    const offsetFor = (target, operand) =>
+      boundsOf(
+        valueOf([...records.slice(0, 2), { ...records[2], target, operands: [operand] }], 'placed')
+          .parts.post
+      )[0][0] + 2.5
+    expect(offsetFor({ id: 'anchor1', pieces: 'post' }, 'hinge')).toBeCloseTo(12, 9)
+    expect(offsetFor('anchor1', { id: 'hinge', pieces: 'thread' })).toBeCloseTo(10, 9)
+    expect(offsetFor('anchor1', 'hinge')).toBeCloseTo(14.5, 9)
+  })
+
+  it('keeps a negative delta negative (solar-panel-bracket.jscad:110,113)', () => {
+    // `.snap(mount.parts.negative, 'y', 'outside+', 5)` against
+    // `.snap(mount.parts.negative, 'x', 'inside+', -2)` — the same call shape with the
+    // delta pointing both ways. A sign silently flipped or clamped to zero here would
+    // turn a deliberate clearance into an interference, and both still evaluate.
+    const base = [
+      { id: 'panel', op: 'primitive.cuboid', params: { size: [100, 60, 10] } },
+      { id: 'mount', op: 'primitive.cuboid', params: { size: [10, 10, 10] } },
+    ]
+    /** @param {number} deltaMm */
+    const snapWith = (deltaMm) =>
+      boundsOf(
+        valueOf(
+          [
+            ...base,
+            {
+              id: 'placed',
+              op: 'group.snap',
+              target: 'mount',
+              operands: ['panel'],
+              params: { axes: 'y', orientation: 'outside+', deltaMm },
+            },
+          ],
+          'placed'
+        )
+      )[1][1]
+
+    expect(snapWith(5)).toBeCloseTo(-30 + 5, 9)
+    expect(snapWith(-2)).toBeCloseTo(-30 - 2, 9)
+    expect(snapWith(5) - snapWith(-2)).toBeCloseTo(7, 9)
+    // and no delta at all is flush, not silently offset by something
+    expect(snapWith(0)).toBeCloseTo(-30, 9)
+  })
+
+  it('chains, the way every real V1 call site does', () => {
+    // `.snap(...).snap(...)` is the dominant idiom in the survey. It only works if
+    // the first op's result is still a group whose pieces the second can name.
+    const placed = valueOf(
+      [
+        { id: 'picase', op: 'primitive.cuboid', params: { size: [80, 50, 30] } },
+        { id: 'rail', op: 'primitive.cuboid', params: { size: [10, 10, 10], center: [40, 0, 0] } },
+        { id: 'bolt1', op: 'hardware.bolt', params: BOLT },
+        {
+          id: 'first',
+          op: 'group.snap',
+          target: { id: 'bolt1', pieces: 'head' },
+          operands: ['picase'],
+          params: { axes: 'z', orientation: 'outside+' },
+        },
+        {
+          id: 'second',
+          op: 'group.snap',
+          target: { id: 'first', pieces: 'head' },
+          operands: ['rail'],
+          params: { axes: 'x', orientation: 'outside+' },
+        },
+      ],
+      'second'
+    )
+    expect(placed.names).toEqual(['head', 'thread', 'tap'])
+    // the second snap moved x only; the first snap's z result is still standing
+    expect(boundsOf(placed.parts.head)[1][2]).toBeCloseTo(-15, 9)
+    expect(boundsOf(placed.parts.head)[1][0]).toBeCloseTo(35, 9)
+  })
+
+  it('agrees with calcSnap called directly on the same two solids', () => {
+    // The op is wiring, not arithmetic — so it must produce exactly what the ported
+    // function produces, with no re-derivation of its own.
+    const { byId } = evaluate([
+      { id: 'body', op: 'primitive.cuboid', params: { size: [100, 60, 20] } },
+      { id: 'foot', op: 'primitive.cuboid', params: { size: [10, 10, 5] } },
+      {
+        id: 'placed',
+        op: 'group.snap',
+        target: 'foot',
+        operands: ['body'],
+        params: { axes: 'xy', orientation: 'center+', deltaMm: 1.25 },
+      },
+    ])
+    const expected = calcSnap(got(byId, 'foot'), got(byId, 'body'), 'xy', 'center+', 1.25)
+    const before = boundsOf(got(byId, 'foot'))[0]
+    const after = boundsOf(got(byId, 'placed'))[0]
+    for (const axis of [0, 1, 2]) {
+      expect(after[axis] - before[axis]).toBeCloseTo(expected[axis], 9)
+    }
+  })
+
+  it('rejects the degenerate cases by their existing names, not new messages', () => {
+    const base = [
+      { id: 'picase', op: 'primitive.cuboid', params: { size: [80, 50, 30] } },
+      { id: 'bolt1', op: 'hardware.bolt', params: BOLT },
+    ]
+    /** @param {any} record */
+    const run = (record) => () => evaluate([...base, { id: 'placed', ...record }])
+    const ok = { axes: 'z', orientation: 'outside+' }
+
+    // a moving piece that isn't in the group — group.js's own resolvePieces message
+    expect(
+      run({
+        op: 'group.snap',
+        target: { id: 'bolt1', pieces: 'nosuchpart' },
+        operands: ['picase'],
+        params: ok,
+      })
+    ).toThrow(/no part named "nosuchpart"/)
+
+    // the same on the reference side
+    expect(
+      run({
+        op: 'group.snap',
+        target: 'picase',
+        operands: [{ id: 'bolt1', pieces: 'nosuchpart' }],
+        params: ok,
+      })
+    ).toThrow(/no part named "nosuchpart"/)
+
+    // an unknown orientation — calcSnap's existing check
+    expect(
+      run({
+        op: 'group.snap',
+        target: 'bolt1',
+        operands: ['picase'],
+        params: { axes: 'z', orientation: 'sideways' },
+      })
+    ).toThrow(/unknown orientation "sideways"/)
+
+    // pieces named against a bare solid, which has no parts to name
+    expect(
+      run({
+        op: 'group.snap',
+        target: { id: 'picase', pieces: 'head' },
+        operands: ['bolt1'],
+        params: ok,
+      })
+    ).toThrow(/picase/)
+    expect(
+      run({
+        op: 'group.snap',
+        target: 'bolt1',
+        operands: [{ id: 'picase', pieces: 'head' }],
+        params: ok,
+      })
+    ).toThrow(/picase/)
+
+    // an unknown axis — axisApply's existing check
+    expect(
+      run({ op: 'group.snap', target: 'bolt1', operands: ['picase'], params: { axes: 'w', orientation: 'outside+' } })
+    ).toThrow(/unknown axis w/)
+
+    // more operands than it can use, rather than silently ignoring the extras
+    expect(
+      run({ op: 'group.snap', target: 'bolt1', operands: ['picase', 'picase'], params: ok })
+    ).toThrow(/group\.snap/)
+  })
+})
+
+describe('group.align — TODO/core-013', () => {
+  it('registers as a two-operand operation with no orientation of its own', () => {
+    expect(registry['group.align']).toMatchObject({ kind: 'native' })
+    expect(acceptsOperandCount('group.align', 1)).toBe(false)
+    expect(acceptsOperandCount('group.align', 2)).toBe(true)
+  })
+
+  it('centres a solid on a named piece of a placed group, on all three axes (leafblower.jscad:114)', () => {
+    // `.align(part.parts.collar, 'xyz')` — a bare solid centred on another item's
+    // sub-part, the reference-side half of survey pattern 3.
+    const records = [
+      { id: 'part', op: 'hardware.bolt', params: BOLT },
+      {
+        id: 'drain',
+        op: 'primitive.cylinder',
+        params: { diameter: 4, height: 20, center: [20, 10, 40] },
+      },
+      {
+        id: 'holes',
+        op: 'group.align',
+        target: 'drain',
+        operands: [{ id: 'part', pieces: 'head' }],
+        params: { axes: 'xyz' },
+      },
+    ]
+    const { byId } = evaluate(records)
+    const head = pick(got(byId, 'part'), 'head')
+    const centred = centroidOf(got(byId, 'holes'))
+    const target = centroidOf(head)
+    for (const axis of [0, 1, 2]) expect(centred[axis]).toBeCloseTo(target[axis], 9)
+
+    // head's centre is z 3.25; the whole bolt's is 13.75 — so naming the piece is
+    // what puts it there, and the test would still pass on the wrong one otherwise.
+    expect(centred[2]).toBeCloseTo(3.25, 9)
+  })
+
+  it('moves the whole group when a moving piece is named (pvc-joints2.jscad:302)', () => {
+    // `.align('head', hinge.parts.pipe, 'xz')` — both sides named, align flavour.
+    const { byId } = evaluate([
+      { id: 'hinge', op: 'hardware.bolt', params: BOLT },
+      { id: 'anchor1', op: 'kit.anchor', params: {} },
+      {
+        id: 'placed',
+        op: 'group.align',
+        target: { id: 'anchor1', pieces: 'post' },
+        operands: [{ id: 'hinge', pieces: 'thread' }],
+        params: { axes: 'xz' },
+      },
+    ])
+    const placed = got(byId, 'placed')
+    expect(placed.names).toEqual(['hole', 'post'])
+
+    const expected = calcCenterWith(
+      pick(got(byId, 'anchor1'), 'post'),
+      'xz',
+      pick(got(byId, 'hinge'), 'thread')
+    )
+    const before = centroidOf(got(byId, 'anchor1').parts.hole)
+    const after = centroidOf(placed.parts.hole)
+    for (const axis of [0, 1, 2]) {
+      expect(after[axis] - before[axis]).toBeCloseTo(expected[axis], 9)
+    }
+    // y was not named, so nothing moved on it
+    expect(after[1]).toBeCloseTo(before[1], 9)
+  })
+
+  it('takes a delta, scalar or per-axis, the way calcCenterWith does', () => {
+    const base = [
+      { id: 'panel', op: 'primitive.cuboid', params: { size: [100, 60, 10] } },
+      { id: 'mount', op: 'primitive.cuboid', params: { size: [10, 10, 10], center: [30, 20, 10] } },
+    ]
+    /** @param {any} deltaMm */
+    const alignWith = (deltaMm) =>
+      centroidOf(
+        valueOf(
+          [
+            ...base,
+            {
+              id: 'placed',
+              op: 'group.align',
+              target: 'mount',
+              operands: ['panel'],
+              params: { axes: 'xy', ...(deltaMm === undefined ? {} : { deltaMm }) },
+            },
+          ],
+          'placed'
+        )
+      )
+    expect(alignWith(undefined)[0]).toBeCloseTo(0, 9)
+    expect(alignWith(4)[0]).toBeCloseTo(4, 9)
+    expect(alignWith(-3)[1]).toBeCloseTo(-3, 9)
+    expect(alignWith([1, 2, 0])[0]).toBeCloseTo(1, 9)
+    expect(alignWith([1, 2, 0])[1]).toBeCloseTo(2, 9)
+  })
+
+  it('rejects the same degenerate cases as group.snap', () => {
+    const base = [
+      { id: 'picase', op: 'primitive.cuboid', params: { size: [80, 50, 30] } },
+      { id: 'bolt1', op: 'hardware.bolt', params: BOLT },
+    ]
+    /** @param {any} record */
+    const run = (record) => () => evaluate([...base, { id: 'placed', ...record }])
+
+    expect(
+      run({
+        op: 'group.align',
+        target: { id: 'bolt1', pieces: 'nosuchpart' },
+        operands: ['picase'],
+        params: { axes: 'z' },
+      })
+    ).toThrow(/no part named "nosuchpart"/)
+    expect(
+      run({
+        op: 'group.align',
+        target: { id: 'picase', pieces: 'head' },
+        operands: ['bolt1'],
+        params: { axes: 'z' },
+      })
+    ).toThrow(/picase/)
+    expect(
+      run({ op: 'group.align', target: 'bolt1', operands: ['picase'], params: { axes: 'q' } })
+    ).toThrow(/unknown axis q/)
   })
 })

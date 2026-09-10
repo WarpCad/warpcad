@@ -20,7 +20,7 @@
  * @module core/kernel
  */
 
-import { add, createGroup, toGeom3 } from './group.js'
+import { add, createGroup, isGroup, toGeom3 } from './group.js'
 import { boltSpecs } from './tables/bolt-specs.js'
 import { nutSpecs } from './tables/nut-specs.js'
 import { washerSpecs } from './tables/washer-specs.js'
@@ -55,6 +55,46 @@ import { assertOperandCount, getEntry, registry } from './registry.js'
 const DEFAULT_TABLES = Object.freeze({ boltSpecs, nutSpecs, washerSpecs, FIT_CLEARANCE_MM })
 
 /**
+ * Normalise one `target`/`operands` entry to `{ id, pieces }`.
+ *
+ * A reference is either a bare id — every op's shape, unchanged since `core-001` —
+ * or `{ id, pieces }`, which names a subset of that record's parts (TODO/core-013).
+ * `pieces` reads the same on both sides of a `group.*` op: *measure using only these
+ * named parts*. Which side it is decides what that measurement then does — the
+ * moving group still travels as a whole, the reference never moves at all — but
+ * that asymmetry belongs to the op, not to the address.
+ *
+ * V1 spelled the reference side `hinge.parts.body`, and the dot-path string
+ * `'hinge.body'` was the obvious transcription of it. It was rejected: every id
+ * lookup in this fold (`byId.get`, the duplicate-id check) would have to special-case
+ * a `.`-delimited string, which is a change to the shared path for the sake of two
+ * ops — and ids are user-supplied, so a legitimate id containing a dot would become
+ * unaddressable.
+ *
+ * @param {unknown} ref
+ * @param {string} op Named in the error, so a bad record says which line it is.
+ * @returns {{ id: string, pieces?: string }}
+ */
+function normalizeRef(ref, op) {
+  if (typeof ref === 'string') return { id: ref }
+  if (ref !== null && typeof ref === 'object') {
+    const { id, pieces } = /** @type {{ id?: unknown, pieces?: unknown }} */ (ref)
+    if (typeof id === 'string' && id.length > 0) {
+      if (pieces !== undefined && typeof pieces !== 'string') {
+        throw new Error(
+          `${op}: operand "${id}" has a non-string \`pieces\` — it must be a ` +
+            `comma-separated part name list, e.g. "head" or "head,thread"`
+        )
+      }
+      return pieces === undefined ? { id } : { id, pieces }
+    }
+  }
+  throw new Error(
+    `${op}: operand reference must be an id or { id, pieces }, got ${JSON.stringify(ref)}`
+  )
+}
+
+/**
  * Fold op records into geometry.
  *
  * A record's value is bound to its `id` and can be referenced by later records; a
@@ -78,21 +118,51 @@ export function evaluate(records, options = {}) {
     const entry = ops[record.op]
     if (!entry) throw new Error(`unknown op "${record.op}" — not in the kernel registry`)
 
-    const inputIds = [
+    const inputRefs = [
       ...(record.target === undefined || record.target === null ? [] : [record.target]),
       ...(record.operands ?? []),
-    ]
-    assertOperandCount(record.op, inputIds.length, ops)
+    ].map((ref) => normalizeRef(ref, record.op))
+    assertOperandCount(record.op, inputRefs.length, ops)
 
-    const inputs = inputIds.map((id) => {
-      const resolved = byId.get(id)
+    // Almost every op is handed flat `Geom3`, and must be: a boolean or a transform
+    // has no use for a composite's part breakdown and would have to collapse it
+    // anyway. The two `group.*` ops (TODO/core-013) are the exception — snapping a
+    // bolt *by its head* needs the head, and the answer has to keep the thread and
+    // tap so the next op can still name them — so an entry may declare
+    // `rawOperands` and receive {@link ResolvedOperand}s instead. The array is typed
+    // loosely here because its element type is the entry's choice, not the fold's;
+    // each raw op narrows it, the same way `profile.extrudeLinear` narrows a geom2.
+    const wantsRaw = entry.rawOperands === true
+    /** @type {any[]} */
+    const inputs = inputRefs.map((ref) => {
+      const resolved = byId.get(ref.id)
       if (resolved === undefined) {
         throw new Error(
-          `${record.op}: operand "${id}" has not been evaluated ` +
+          `${record.op}: operand "${ref.id}" has not been evaluated ` +
             `(known ids: ${[...byId.keys()].join(',') || 'none'})`
         )
       }
-      return toGeom3(resolved)
+      if (!wantsRaw) {
+        if (ref.pieces !== undefined) {
+          // Dropping the piece name silently would subtract the whole bolt while the
+          // record plainly says `tap` — wrong geometry with no error, which is the
+          // exact failure class this project has already shipped twice.
+          throw new Error(
+            `${record.op}: operand "${ref.id}" names pieces ("${ref.pieces}"), but ` +
+              `${record.op} consumes whole solids — only group.snap/group.align can ` +
+              `address a sub-part`
+          )
+        }
+        return toGeom3(resolved)
+      }
+      if (ref.pieces !== undefined && !isGroup(resolved)) {
+        throw new Error(
+          `${record.op}: operand "${ref.id}" names pieces ("${ref.pieces}") but is a ` +
+            `single solid, not a group — only a composite item (a hardware.* or kit.* ` +
+            `line) has named parts to address`
+        )
+      }
+      return { value: resolved, pieces: ref.pieces }
     })
 
     /** @type {Geom3 | Group} */
@@ -111,7 +181,9 @@ export function evaluate(records, options = {}) {
       // only its `group` escaping — and a group is built from `name`d records alone,
       // every one of which is a solid. So the fold's public types stay solid-only and
       // this is the one place the wider possibility is acknowledged.
-      value = /** @type {Geom3} */ (entry.build({ params: record.params ?? {}, inputs }))
+      // A `group.*` op hands back the `Group` it was given, parts intact — that is
+      // what lets V1's `.snap(...).snap(...)` chain survive the fold as two records.
+      value = /** @type {Geom3 | Group} */ (entry.build({ params: record.params ?? {}, inputs }))
     }
 
     if (record.id !== undefined) {

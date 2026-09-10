@@ -317,3 +317,16 @@ Built with Claude Code, reviewed by me. #CAD
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** V1 subtracts the two rounded rectangles in 2D specifically to avoid "BSP non-manifold artifacts that occur when subtracting two same-height `Board` solids" → `parts.js`'s own doc comment on `BoardFrame` in `/Users/johncole/src/jscad/jscad-utils` (6.0.0), read directly this session; the port preserves that ordering as records → `src/core/kernel/recipes/kit.boardFrame.js` in the diff, with `kit.boardFrame.spec.js` asserting the extrude's `target` is the subtract's `id`; the 2D layer is new (`profile.roundedRectangle`, `profile.extrudeLinear`) → this diff's `src/core/kernel/registry.js`; full suite green (typecheck, 457 unit tests across 26 files, 571 e2e passed/42 skipped) → this session's `npm run typecheck`/`test:unit`/`test:e2e:headless` runs
 **To Add:** repo URL once public
+
+## [2026-09-10T15:47:00Z] — group.snap/group.align wired to the op registry (TODO/core-013)
+
+**Post:** WarpCad can now place one part against another by name: this bolt's head, flush with that hinge's body. Sub-part addressing on both sides.
+
+I surveyed 2,147 real .snap/.align calls in my JSCAD projects first. A third reach into another item's .parts.
+
+Built with Claude Code, reviewed by me. #CAD
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** 1,361 `.snap(` + 786 `.align(` = 2,147 calls across 123 `*.jscad` files in `~/src/jscad/`, of which 719 (~33%) name `.parts.` on the reference side → grep run this session with `--include='*.jscad' --exclude-dir=node_modules --exclude-dir=dist`; sub-part addressing on both `target` and `operands` → `src/core/kernel/index.js`'s `normalizeRef` and the two `rawNative` entries in `registry.js`, this diff, with `registry.spec.js`'s "reaches a named piece of a *different* placed item as the reference" test; full suite green (typecheck, 477 unit tests across 26 files, 571 e2e passed/42 skipped) → this session's `npm run typecheck`/`test:unit`/`test:e2e:headless` runs
+**To Add:** repo URL once public

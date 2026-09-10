@@ -266,6 +266,40 @@ e2e matrix ran green separately).
   12 × 12 × 9. No console errors, so nothing in the new 2D `geom2` layer trips the browser
   build or the mesh bridge.
 
+**Re-checked**: 2026-09-10 15:40 — PASS (`core-013`). That task's own Testing section judged
+no scenario to pass or fail on it (two kernel registry entries, no UI surface), and that call
+stands — but it also changed **`evaluate()`'s operand resolution**, the fold every op in the
+document goes through, and this scenario's named regression ("placing a second body hides or
+replaces the first") lives in exactly that fold. `CLAUDE.md`'s standing-regression-surface rule
+therefore applies whether or not any new control exists, so it was driven rather than assumed.
+Laptop 1440×900 in Chromium; kernel-only change, so one engine rather than three (the 9-way e2e
+matrix ran green separately: 571 passed, 42 skipped, identical to the pre-change baseline).
+
+- **`ui-010`'s own repro, re-run** (two new registry keys, and `src/core/library.js` builds this
+  scenario's Library rows by iterating that registry): still **exactly seven rows** — Cube,
+  Cylinder, Cone, Hexagon, Triangle, Tube, Sphere — with no `group.snap`/`group.align` leaking
+  in and no throw at panel build. The two new ops are `group.*`, not `primitive.*`, so the
+  panel's filter never sees them.
+- **The scenario itself**: a Cube then a Cylinder dragged in on wandering, jittery paths with a
+  deliberate overshoot and a doubling-back. **Both stayed visible** (`data-body-count` = 2), and
+  the cube's millimetre centre read off the Inspector was **byte-identical before and after the
+  second drop** (`-74,-19,20` both times) — the specific regression signature, confirmed absent
+  rather than merely not obvious. Each drop selected only the new item. Clicking empty grid
+  cleared the selection (`data-selected-id` → `""`, count 0); clicking the cube selected
+  `cuboid-1` alone; clicking the cylinder moved the highlight to `cylinder-2` alone, never both
+  at once. An orbit afterwards (azimuth → `-128.60`) showed both solids still present from the
+  new angle rather than a one-frame artefact. Screenshot confirms both bodies rendered, the
+  gizmo and all three dimension lines on the selected cylinder, and the Inspector populated.
+  Console clean.
+- **Beyond the scenario, since no UI can reach the new ops**: both were evaluated through the
+  real fold *in the browser* (the same `src/core/kernel/index.js` the app imports, not a
+  Node-only harness). `group.snap` with `target: { id: 'bolt1', pieces: 'head' }` against a
+  cuboid returned a **group with its parts intact** (`head`, `thread`, `tap`) whose head max-z
+  landed exactly on the case's min-z (`-15`); `group.align` with a named piece on *both* sides
+  returned `hole`/`post` intact. The guard also fires in the browser: `boolean.subtract` handed
+  a `{ id, pieces }` operand throws by name rather than silently measuring the whole bolt. No
+  console errors, so nothing in the new operand-resolution path trips the browser build.
+
 ### 2. Hardware property edit
 
 **Steps**:
@@ -746,3 +780,14 @@ the rest of the document still loads" at line 233, passes against the real
 already-passing rather than left blank — the UI-driven walkthrough above still applies
 once a loader UI exists to drive it through, at which point this should be re-run
 by hand and this line updated.)
+
+**Re-checked**: 2026-09-10 15:40 — PASS (`core-013`), still through the replay engine rather
+than a loader UI, for the same reason as above. Re-checked deliberately and not by assumption:
+this scenario's whole claim is that a **bad record is skipped and reported, never executed**,
+and `core-013` introduces a *new class* of record-level error — a malformed or misplaced
+operand reference — that no prior drive of this scenario had ever seen. Driven against the real
+`src/core/replay.js`: a four-record document whose 2nd record carries a reference with no id
+(`{ pieces: 'head' }`) and whose 3rd names a sub-part on a `boolean.subtract` that cannot use
+one. **Both bad records were skipped and surfaced as warnings naming the record id, the op and
+the reason**, neither was executed, and the 1st and 4th records still replayed into the scene
+(`parts: a, c`). So the new throw paths behave as loadable-document warnings, not as a halt.
