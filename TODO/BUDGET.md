@@ -65,3 +65,12 @@ Note on the row above: the M2 milestone-boundary five-minute free-form pass (fla
 the previous row) had not been confirmed done when this batch started. Asked the user
 explicitly at Step 0 of this tick; they said skip it and proceed. Recorded here rather
 than silently treated as satisfied.
+
+| 2026-09-10 16:49 | 2026-09-10 22:29 | `ui-014`, `core-020` | blocked — every remaining M3 row (`ui-015`, `ui-016`, `ui-026`, `core-019`) is again a reserved id with no file; batch also stopped short of task-count (2 of 3) rather than scope a third row without checking in again | no — M3, not last remaining row |
+
+Note on the row above: `ui-014` was unblocked by scoping it as its own task first
+(commit `beef31c`, `TODO/ui-014-boolean-operations.md`), per the user's explicit
+"scope it now, then keep going" answer to the batch-10 check-in. `core-020` was filed
+by `ui-014`'s own acceptance drive (a real pre-existing composite-fold bug, not a
+scoping gap) and picked up next since it already had a real file and satisfied deps,
+ahead of the still-unscoped `ui-015`/`ui-016`/`ui-026`/`core-019` reserved rows.
