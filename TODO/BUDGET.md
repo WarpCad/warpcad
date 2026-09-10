@@ -59,3 +59,9 @@ whether a milestone boundary was hit.
 | 2026-09-07 18:53 | 2026-09-07 18:58 | `ui-025` | milestone boundary (M1.5 complete) | yes — M1.5 |
 | 2026-09-09 12:37 | 2026-09-09 13:38 | `ui-013`, `core-010`, `core-011` | task-count reached (3) | no |
 | 2026-09-09 14:02 | 2026-09-09 14:37 | `core-012` | milestone boundary (M2 complete) | yes — M2 |
+| 2026-09-10 15:25 | 2026-09-10 15:57 | `core-013` | blocked — every remaining M3 row is a *reserved* id (`ui-014`, `ui-015`, `ui-016`, `ui-026`, `core-019`) with no `TODO/<id>-*.md` file yet, so there is nothing for `/fix-todo` to run; this is a scoping gap, not an open-dependency block | no — M3, not last remaining row |
+
+Note on the row above: the M2 milestone-boundary five-minute free-form pass (flagged by
+the previous row) had not been confirmed done when this batch started. Asked the user
+explicitly at Step 0 of this tick; they said skip it and proceed. Recorded here rather
+than silently treated as satisfied.
