@@ -1,5 +1,18 @@
 # LinkedIn Posts
 
+## [2026-09-11T14:33:33Z] — Group.assemble: the toolbar's fourth button, and the Firefox bug it exposed
+
+**Post:** Shipped the fourth button on WarpCad's Operations toolbar: Group. Where Union, Subtract and Intersect compute a new volume and discard what went into it, Group keeps every selected solid's own geometry fully intact — addressable by name — while making the whole collection behave as one selectable, movable body.
+
+The interesting part wasn't the feature itself; it was what the project's own end-to-end suite caught after adding it. A wider toolbar row started overlapping the orientation gizmo's corner, but only on a narrow viewport pane and only in Firefox, where slightly wider button labels pushed the collision from cosmetic to an actual dropped click. Root-caused with direct bounding-box measurement across engines, fixed with a container-relative CSS constraint instead of a page-width guess.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL #SoftwareEngineering
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** Group keeps every solid's own geometry intact, addressable by name → `src/core/kernel/registry.js` `group.assemble` entry (diff), pinned by `registry.spec.js`; toolbar/gizmo overlap at tablet width → this-session bounding-box probe (`.viewport` pane measured 390px wide against an 820px page, ops toolbar right edge 548px vs. gizmo left edge 458px); Firefox rendering the row ~15px wider → this-session probe (308.0px Firefox vs. 293.2px Chromium at phone width); fix verified with the full suite green (502 unit tests, 608 e2e tests, 122 skipped, 0 failures) → this session's `npm run test:unit`/`npm run test:e2e:headless` output
+**To Add:** repo URL once public, docs site URL once it exists
+
 ## [2026-09-05T16:20:34Z] — Kickoff commit: third CAD attempt + geometry kernel decision
 
 **Post:** Starting a third build of a browser-based parametric CAD app, and this kickoff commit leads with two retrospectives instead of a feature list.

@@ -1,5 +1,18 @@
 # BlueSky Posts
 
+## [2026-09-11T14:33:33Z] — Group.assemble: the toolbar's fourth button, and the Firefox bug it exposed
+
+**Post:** WarpCad's Operations toolbar just got a 4th button: Group. Unlike Union/Subtract/Intersect, nothing is merged or cut away — every solid keeps its own geometry, addressable by name, while acting as one selectable/movable body.
+
+Found and fixed a real Firefox-only layout bug along the way: the wider toolbar started overlapping the orientation gizmo on narrow panes. Built with Claude Code, reviewed by me.
+
+#CAD #WebGL #OpenSource
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** Group keeps every solid's own geometry intact → `src/core/kernel/registry.js` `group.assemble` entry (diff), pinned by `registry.spec.js`; Firefox-only overlap bug → this-session bounding-box probe (ops toolbar 548px right edge vs. gizmo 458px left edge at tablet width; Firefox button row measured 308.0px wide vs. Chromium's 293.2px at phone width)
+**To Add:** repo URL once public, docs site URL once it exists
+
 ## [2026-09-05T16:20:34Z] — Kickoff commit: third CAD attempt + geometry kernel decision
 
 **Post:** Kicking off a third build of a browser CAD app — this time the first commit leads with two retrospectives instead of a feature list. Baking in what broke the last two attempts (untested-until-assembled UI, tests that pass while the app doesn't) plus JSCAD V3 as the geometry kernel. #CAD #WebGL #OpenSource
