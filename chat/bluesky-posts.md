@@ -1,5 +1,22 @@
 # BlueSky Posts
 
+## [2026-09-11T20:02:00Z] — Clicking into a group: the feature that turned out to live in the render path
+
+**Post:** WarpCad can now click *into* a group: select it once, click a member again, and the selection narrows to that part — breadcrumb, its own dimensions, its own params.
+
+Filed as a click-handler task. Wasn't one. Groups were flattened via a CSG union before ever reaching a mesh, and after a union no polygon knows which part it came from — there was nothing for a handler to resolve. Real fix: one mesh per part.
+
+Best bug of the day: 45 e2e cases passed while the gizmo visibly sat on screen. Drilling in changes no body id, so nothing invalidated the render. Only the app itself showed it.
+
+Built with Claude Code, reviewed by me.
+
+#CAD #WebGL #OpenSource
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** Union loses per-part identity → `src/core/kernel/group.js` `toGeom3`/`combine`, replaced at the mesh call site by `createBodyObject` in `src/render/mesh.js` (diff), pinned by `mesh.spec.js`; stale gizmo → this session's RED run (`toHaveCount(0)` saw 1 element across 14 polls until the `selection.subPart` watcher landed); suite green → this session's `npm run test` (521 unit, 653 e2e, 0 failures)
+**To Add:** repo URL once public, docs site URL once it exists
+
 ## [2026-09-11T14:33:33Z] — Group.assemble: the toolbar's fourth button, and the Firefox bug it exposed
 
 **Post:** WarpCad's Operations toolbar just got a 4th button: Group. Unlike Union/Subtract/Intersect, nothing is merged or cut away — every solid keeps its own geometry, addressable by name, while acting as one selectable/movable body.

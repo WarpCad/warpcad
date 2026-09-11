@@ -1,5 +1,22 @@
 # LinkedIn Posts
 
+## [2026-09-11T20:02:00Z] — Clicking into a group: the feature that turned out to live in the render path
+
+**Post:** Shipped pick depth in WarpCad: once a group is selected, clicking again on one of its members narrows the selection to just that part, with a breadcrumb — "Group 1 ▸ Cube 1" — so the change in depth is visible rather than a silent field swap.
+
+I had this filed as a click-handler task. It wasn't. Every consumer flattened a group before it reached a mesh, and that flattening runs a CSG union — after which no polygon remembers which part it came from. There was no data for a click handler to resolve, at any level of cleverness. The fix was one mesh per named part instead of one mesh per body, and a recursive raycast.
+
+Two details I'd have got wrong by guessing. A part that was moved *before* being grouped has a translate record as its most recent state, so recovering "this is a 40 mm cube" means walking back to the creation record, not reading the id you were handed. And the gizmo has to be genuinely absent while you're looking inside a group, not just inert — there is no record a transform could target that means "only this part", so a draggable gizmo would quietly move the whole assembly while the panel named one piece of it.
+
+The bug worth reporting: 45 end-to-end cases passed while the gizmo visibly stayed on screen. Drilling in changes no body id, so nothing invalidated the render, and the stale overlay only cleared on the next camera move — later than any assertion looked. Found by driving the app, which is the entire reason that step exists.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL #SoftwareEngineering
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** Flattening a group runs a CSG union that loses per-part identity → `src/core/kernel/group.js` `toGeom3`/`combine` (existing code), replaced at the mesh-building call site by `createBodyObject` in `src/render/mesh.js` (diff), pinned by `mesh.spec.js` (per-part buffers match `geom3ToBufferGeometry(parts[name])` exactly, and together span `boundsOf(group)`); moved-before-grouped part recovers its creation record → `creationRecordOf` in `src/core/inspector.js` (diff), pinned by `inspector.spec.js` "still recovers the creation record after the part was moved before grouping"; gizmo absent while drilled in → `syncAnnotations` in `src/components/viewport/Viewport.vue` (diff) + `e2e/group-subpart-selection.e2e.js` asserting `transform-gizmo` count 0; the stale-gizmo defect → this session's RED run (`toHaveCount(0)` resolved to 1 element for 14 polls before the `selection.subPart` watcher was added); suite green → this session's `npm run test` (521 unit, 653 e2e, 122 skipped, 0 failures), new spec 45/45 across 3 viewports x 3 engines
+**To Add:** repo URL once public, docs site URL once it exists
+
 ## [2026-09-11T14:33:33Z] — Group.assemble: the toolbar's fourth button, and the Firefox bug it exposed
 
 **Post:** Shipped the fourth button on WarpCad's Operations toolbar: Group. Where Union, Subtract and Intersect compute a new volume and discard what went into it, Group keeps every selected solid's own geometry fully intact — addressable by name — while making the whole collection behave as one selectable, movable body.

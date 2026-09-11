@@ -19,6 +19,40 @@ between sessions — that's itself a signal to move more of it into
 
 ## Queue
 
+### ui-016 — look at `hardware.bolt` and `kit.anchor` on screen the moment they get Library rows (2026-09-11 20:02)
+
+`ui-016` changed how **every** Group-valued body is rendered: one mesh per named part
+instead of one mesh built from `combine()`, which is a CSG union. That union used to
+merge parts that interpenetrate into a single clean surface; separate meshes do not, so
+two overlapping parts can show a seam or z-fight along their shared boundary.
+
+This is not a hypothetical. Measured during this task's regression check rather than
+assumed, by comparing each composite's per-part boxes:
+
+- **`hardware.bolt`** — its visible `tap` part overlaps *both* `head` and `thread`.
+- **`kit.anchor`** — its `hole` part overlaps `post`, and the two share a **coplanar
+  face** at `y = -5`, which is the worst case for z-fighting specifically.
+
+Every other composite is clean (`kit.board`, `hardware.washer`: one visible part each;
+no group anywhere carries `holes`, so the combined-mesh fallback never triggers today).
+
+**Why this is a manual item and not a spec or a scenario**: neither composite is
+reachable from the Library — the Hardware and Kit sections are M2 — so nothing a user
+can place today renders through the overlapping path at all, and there is no scenario
+that could drive it. It is also a pure *visual* judgment: "does this read as one part
+or as two badly-drawn ones" is not a number a test can assert. `ACCEPTANCE.md`
+scenario 5 (the bolt's tap clearance) is still marked NOT DRIVEABLE for the same
+reachability reason, so it does not cover this either.
+
+- [ ] When `hardware.*` / `kit.*` get Library rows (M2), place a **Bolt** and an
+  **Anchor**, orbit right around each one, and look for a seam or flickering surface
+  where `tap` meets `head`/`thread` and where `hole` meets `post` — at all three
+  reference viewports, and in WebKit as well as Chromium (depth-buffer precision
+  differs between engines, so a z-fight can be engine-specific). If either reads badly,
+  the fix is documented at `createBodyObject` in `src/render/mesh.js`: fall back to the
+  combined mesh for that body — trading its pick depth for a clean surface — rather
+  than re-unioning every group and losing pick depth for the ones that never needed it.
+
 ### core-020 — the snap radius is wider than the parts, so two solids cannot be drag-placed *partially* overlapping (2026-09-10 22:25)
 
 Found while driving `ACCEPTANCE.md` scenario 4 during `core-020`'s Step 6. Not a

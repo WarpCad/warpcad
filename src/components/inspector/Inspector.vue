@@ -112,6 +112,20 @@ const described = useSelectedBody()
  */
 const body = computed(() => described.value.body)
 
+/**
+ * True while the selection is drilled into one named part of a group
+ * (`TODO/ui-016`).
+ *
+ * Everything this panel shows is **read-only** in that state, Transform
+ * included — not as a policy choice but because there is nothing to write to:
+ * `document.bodies()` exposes group-level ids only, so a `transform.*` record
+ * committed from here would move the whole group while the panel named one
+ * part. The viewport hides the gizmo for the same reason, so the two halves of
+ * control 4's "either path results in the same underlying mutation" stay
+ * consistent by both being absent rather than one of them lying.
+ */
+const isSubPart = computed(() => Boolean(body.value?.subPart))
+
 const isOpen = ref(false)
 
 /**
@@ -281,7 +295,11 @@ function commitTransformField(event, which, axisIndex) {
   // document's own formatting — which is also how a rejected value is undone,
   // with no separate "restore" path to keep in step.
   editingField.value = ''
-  if (parsed === null || !selectedBody) return
+  // A drilled-into sub-part's fields are `readonly`, so this should be
+  // unreachable — but the guard is here rather than assumed, because the one
+  // thing worse than no gizmo in this state is a numeric field that silently
+  // moves the whole group (`TODO/ui-016`).
+  if (parsed === null || !selectedBody || isSubPart.value) return
   if (which === 'position') transformCommands.setPositionAxis(selectedBody.id, axisIndex, parsed)
   else transformCommands.setRotationAxis(selectedBody.id, axisIndex, parsed)
 }
@@ -305,6 +323,7 @@ function onFieldEnter(event) {
     :data-state="described.state"
     :data-open="isOpen ? 'true' : 'false'"
     :data-selected-id="body?.id ?? ''"
+    :data-sub-part="body?.subPart?.partName ?? ''"
     aria-label="Inspector"
   >
     <button
@@ -339,6 +358,29 @@ function onFieldEnter(event) {
       </template>
 
       <template v-else-if="body">
+        <!-- The pick-depth breadcrumb (TODO/ui-016). Present only while a part
+             inside a group is the selection, and the whole reason control 6
+             asks for it: without it, narrowing from the assembly to one member
+             is a silent field swap, indistinguishable on screen from a bug. -->
+        <nav
+          v-if="body.subPart"
+          class="inspector__breadcrumb"
+          data-testid="inspector-breadcrumb"
+          aria-label="Selection depth"
+        >
+          <button
+            type="button"
+            class="inspector__crumb inspector__crumb--link"
+            data-testid="inspector-breadcrumb-group"
+            @click="selection.stepUp()"
+          >
+            {{ body.subPart.groupName }}
+          </button>
+          <span class="inspector__crumb-sep" aria-hidden="true">▸</span>
+          <span class="inspector__crumb" data-testid="inspector-breadcrumb-part" aria-current="true">
+            {{ body.subPart.partName }}
+          </span>
+        </nav>
         <p class="inspector__name" data-testid="inspector-name">{{ body.name }}</p>
         <p class="inspector__op" data-testid="inspector-op" :data-op="body.op">
           {{ body.opLabel }}
@@ -394,9 +436,11 @@ function onFieldEnter(event) {
               <label v-for="(axis, index) in ['x', 'y', 'z']" :key="`p-${axis}`" class="inspector__component">
                 <span class="inspector__component-label">{{ axis.toUpperCase() }}</span>
                 <input
-                  class="inspector__input inspector__input--editable"
+                  class="inspector__input"
+                  :class="{ 'inspector__input--editable': !isSubPart }"
                   type="text"
                   inputmode="decimal"
+                  :readonly="isSubPart"
                   :data-testid="`inspector-position-${axis}`"
                   :aria-label="`Position ${axis.toUpperCase()} in millimetres`"
                   :value="fieldValue(`position-${index}`, formatMmValue(body.positionMm[index]))"
@@ -412,9 +456,11 @@ function onFieldEnter(event) {
               <label v-for="(axis, index) in ['x', 'y', 'z']" :key="`r-${axis}`" class="inspector__component">
                 <span class="inspector__component-label">{{ axis.toUpperCase() }}</span>
                 <input
-                  class="inspector__input inspector__input--editable"
+                  class="inspector__input"
+                  :class="{ 'inspector__input--editable': !isSubPart }"
                   type="text"
                   inputmode="decimal"
+                  :readonly="isSubPart"
                   :data-testid="`inspector-rotation-${axis}`"
                   :aria-label="`Rotation ${axis.toUpperCase()} in degrees`"
                   :value="fieldValue(`rotation-${index}`, formatDeg(body.rotationDeg[index]))"
@@ -446,7 +492,12 @@ function onFieldEnter(event) {
           </dl>
         </section>
 
-        <p class="inspector__note" data-testid="inspector-transform-note">
+        <p v-if="isSubPart" class="inspector__note" data-testid="inspector-transform-note">
+          You are looking inside {{ body.subPart?.groupName }}. A part is shown here for
+          measurement only — move or turn the whole group instead, by stepping back up to
+          it with the {{ body.subPart?.groupName }} link above.
+        </p>
+        <p v-else class="inspector__note" data-testid="inspector-transform-note">
           Position and rotation are editable — type a value and press Enter, or drag the
           gizmo's arrows and rings in the 3D view. Size and the parameters above are
           read-only for now.
@@ -498,6 +549,48 @@ function onFieldEnter(event) {
 .inspector__count {
   font-weight: 600;
   color: var(--text-1);
+}
+
+/* The pick-depth breadcrumb (TODO/ui-016). Wraps rather than truncates: a part
+   name is the one thing on this row a user needs to read in full, and at 390px
+   "Group 1 ▸ Raspberry Pi 5" does not fit on one line. */
+.inspector__breadcrumb {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 4px;
+  font-size: 11px;
+  color: var(--text-3);
+}
+
+.inspector__crumb {
+  min-width: 0;
+  padding: 0;
+  font-size: 11px;
+}
+
+.inspector__crumb--link {
+  /* A real tap target at phone width without a button's usual chrome — this
+     reads as a breadcrumb, not as a fifth control competing with the toolbar. */
+  min-height: 28px;
+  padding: 4px 2px;
+  border: none;
+  background: none;
+  color: var(--accent, var(--text-2));
+  font: inherit;
+  font-size: 11px;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.inspector__crumb--link:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.inspector__crumb-sep {
+  color: var(--text-3);
 }
 
 .inspector__name {

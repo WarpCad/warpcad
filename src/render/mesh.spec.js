@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import modeling from '@jscad/modeling'
 
+import { add, boundsOf, createGroup } from '../core/kernel/group.js'
 import {
   BODY_COLORS,
   createBodyMaterial,
+  createBodyObject,
   createGhostMaterial,
   createMesh,
   disposeMesh,
@@ -166,5 +168,83 @@ describe('createMesh / disposeMesh', () => {
     // Materials are shared across every body; disposing one body must not take
     // the shared material out from under the others.
     expect(materialDisposed).toBe(false)
+  })
+})
+
+describe('createBodyObject (TODO/ui-016)', () => {
+  /**
+   * Three separated cuboids under one Group, the shape `group.assemble` builds
+   * from a 3-body selection.
+   *
+   * @returns {import('../core/kernel/group.js').Group}
+   */
+  function threePartGroup() {
+    let group = createGroup('assembly')
+    group = add(group, primitives.cuboid({ size: [10, 10, 10], center: [0, 0, 0] }), 'Cube 1')
+    group = add(group, primitives.cuboid({ size: [10, 10, 10], center: [40, 0, 0] }), 'Cube 2')
+    group = add(group, primitives.cuboid({ size: [10, 10, 10], center: [0, 60, 0] }), 'Cube 3')
+    return group
+  }
+
+  it('builds one mesh per named part, each the part s own geometry with no boolean applied', () => {
+    const material = createBodyMaterial(BODY_COLORS.dark.body)
+    const group = threePartGroup()
+    const object = createBodyObject(group, material, 'group-1')
+
+    expect(object.children).toHaveLength(3)
+    expect(object.name).toBe('group-1')
+    for (const partName of group.names) {
+      const child = /** @type {import('three').Mesh} */ (
+        object.children.find((candidate) => candidate.userData.partName === partName)
+      )
+      expect(child).toBeTruthy()
+      expect(child.userData.bodyId).toBe('group-1')
+      // Byte-for-byte the part's own triangles: a `combine()` on the way through
+      // would union the three into one solid and lose which part is which, which
+      // is the whole reason a raycast cannot reach a sub-part today.
+      const direct = geom3ToBufferGeometry(group.parts[partName])
+      expect(Array.from(child.geometry.getAttribute('position').array)).toEqual(
+        Array.from(direct.getAttribute('position').array),
+      )
+    }
+  })
+
+  it('loses nothing and duplicates nothing: the parts together span the whole group s bounds', () => {
+    const material = createBodyMaterial(BODY_COLORS.dark.body)
+    const group = threePartGroup()
+    const object = createBodyObject(group, material, 'group-1')
+
+    const min = [Infinity, Infinity, Infinity]
+    const max = [-Infinity, -Infinity, -Infinity]
+    for (const child of object.children) {
+      const [partMin, partMax] = bufferBounds(/** @type {import('three').Mesh} */ (child).geometry)
+      for (let axis = 0; axis < 3; axis += 1) {
+        min[axis] = Math.min(min[axis], partMin[axis])
+        max[axis] = Math.max(max[axis], partMax[axis])
+      }
+    }
+    const [groupMin, groupMax] = boundsOf(group)
+    for (let axis = 0; axis < 3; axis += 1) {
+      expect(min[axis]).toBeCloseTo(groupMin[axis], 6)
+      expect(max[axis]).toBeCloseTo(groupMax[axis], 6)
+    }
+  })
+
+  it('a bare solid is still one plain mesh, with no part structure to drill into', () => {
+    const material = createBodyMaterial(BODY_COLORS.dark.body)
+    const object = createBodyObject(primitives.cuboid({ size: [4, 4, 4] }), material, 'cuboid-1')
+    expect(object.children).toHaveLength(0)
+    expect(object.name).toBe('cuboid-1')
+    expect(object.userData.partName).toBeUndefined()
+    expect(/** @type {import('three').Mesh} */ (object).geometry.getAttribute('position').count).toBe(36)
+  })
+
+  it('a hidden part is not rendered, matching what combine() would have drawn', () => {
+    const material = createBodyMaterial(BODY_COLORS.dark.body)
+    let group = createGroup('assembly')
+    group = add(group, primitives.cuboid({ size: [10, 10, 10] }), 'shell')
+    group = add(group, primitives.cuboid({ size: [4, 4, 4] }), 'tap', { hidden: true })
+    const object = createBodyObject(group, material, 'group-2')
+    expect(object.children.map((child) => child.userData.partName)).toEqual(['shell'])
   })
 })

@@ -437,3 +437,159 @@ describe('describeSelection', () => {
     expect(selection.body).toBeNull()
   })
 })
+
+describe('describeSelection — drilled into a group s sub-part (TODO/ui-016)', () => {
+  /**
+   * Two placed cuboids combined by the Operations toolbar's Group button — the
+   * exact record shape `OperationsToolbar.vue`'s `run()` appends, including the
+   * `consumes`/`params.names` pairing this task's case 1 recovery reads.
+   *
+   * @param {{ move?: boolean }} [options] Move the first cube before grouping,
+   *   so its terminal record is a `transform.translate` and the recovery has to
+   *   walk `supersedes` back to the creation record rather than reading the
+   *   operand id it was handed.
+   */
+  function groupedPair({ move = false } = {}) {
+    const document = createDocument()
+    document.append(recordForDrop('primitive.cuboid', { x: 0, y: 0 }, document), { origin: 'local' })
+    document.append(recordForDrop('primitive.cylinder', { x: 200, y: 0 }, document), {
+      origin: 'local',
+    })
+    const [first, second] = document.bodies()
+    if (move) {
+      document.append(translateRecord(document, first.id, [0, 0, 25]), { origin: 'local' })
+    }
+    const rootIds = [first.id, second.id]
+    const names = document.bodies().map((body) => body.name)
+    const id = document.nextId('group')
+    const operandIds = rootIds.map((rootId) => document.currentIdOf(rootId) ?? rootId)
+    document.append(
+      {
+        id,
+        op: 'group.assemble',
+        name: document.nextName('Group'),
+        target: operandIds[0],
+        operands: operandIds.slice(1),
+        consumes: operandIds,
+        params: { names },
+      },
+      { origin: 'local' },
+    )
+    return { document, groupId: id, names }
+  }
+
+  it('case 1: recovers the grouped body s own op and params, not the group s', () => {
+    const { document, groupId, names } = groupedPair()
+    const selection = describeSelection(document.bodies(), [groupId], {
+      subPart: { bodyId: groupId, partName: names[1] },
+      records: document.records,
+    })
+
+    const body = present(selection.body)
+    expect(selection.state).toBe('single')
+    expect(body.name).toBe(names[1])
+    expect(body.op).toBe('primitive.cylinder')
+    expect(present(body.subPart).partName).toBe(names[1])
+    // The cylinder's own schema, read-only — not the group's `names` param.
+    const keys = body.params.map((field) => field.key)
+    expect(keys).toContain('diameter')
+    expect(keys).toContain('height')
+    expect(keys).not.toContain('names')
+  })
+
+  it('case 1: still recovers the creation record after the part was moved before grouping', () => {
+    const { document, groupId, names } = groupedPair({ move: true })
+    const selection = describeSelection(document.bodies(), [groupId], {
+      subPart: { bodyId: groupId, partName: names[0] },
+      records: document.records,
+    })
+
+    const body = present(selection.body)
+    expect(body.op).toBe('primitive.cuboid')
+    expect(body.params.map((field) => field.key)).toContain('size')
+  })
+
+  it('measures the sub-part s own box, not the whole group s', () => {
+    const { document, groupId, names } = groupedPair()
+    const whole = present(describeSelection(document.bodies(), [groupId]).body)
+    const part = present(
+      describeSelection(document.bodies(), [groupId], {
+        subPart: { bodyId: groupId, partName: names[0] },
+        records: document.records,
+      }).body,
+    )
+    // The two cubes are 200 mm apart along X, so the combined box is far wider
+    // than either part alone.
+    expect(whole.sizeMm[0]).toBeGreaterThan(part.sizeMm[0] + 100)
+    expect(part.sizeMm[0]).toBeCloseTo(40, 6)
+  })
+
+  it('case 2: a composite group with no consumed record falls back to bounds and name only', () => {
+    // Built by hand rather than through `recordForDrop`: the kit recipes are
+    // registry ops with no Library row yet (M2), and this case is about a Group
+    // whose parts came from a recipe's own internal expansion — there is no
+    // consumed top-level record to recover an op or params from.
+    const document = createDocument()
+    document.append(
+      {
+        id: 'board-1',
+        op: 'kit.board',
+        name: 'Board 1',
+        params: { width: 40, height: 30, cornerRadius: 3, thickness: 1.6 },
+      },
+      { origin: 'local' },
+    )
+    const body = document.bodies()[0]
+    const geometry = /** @type {any} */ (body.geometry)
+    expect(Array.isArray(geometry.names)).toBe(true)
+    const partName = geometry.names[0]
+
+    const selection = describeSelection(document.bodies(), [body.id], {
+      subPart: { bodyId: body.id, partName },
+      records: document.records,
+    })
+    const described = present(selection.body)
+    expect(described.name).toBe(partName)
+    // No consumed top-level record exists for a recipe's internal expansion, so
+    // there is nothing honest to show but the measurement.
+    expect(described.params).toEqual([])
+    expect(described.op).toBe('')
+    expect(present(described.subPart).partName).toBe(partName)
+    expect(described.sizeMm.every((value) => value > 0)).toBe(true)
+  })
+
+  it('throws on a part name the group does not have, rather than describing nothing', () => {
+    const { document, groupId } = groupedPair()
+    expect(() =>
+      describeSelection(document.bodies(), [groupId], {
+        subPart: { bodyId: groupId, partName: 'no-such-part' },
+        records: document.records,
+      }),
+    ).toThrow(/no-such-part/)
+  })
+
+  it('ignores a sub-part left pointing at a body that is no longer the selection', () => {
+    const { document, groupId, names } = groupedPair()
+    const selection = describeSelection(document.bodies(), [groupId], {
+      subPart: { bodyId: 'some-other-body', partName: names[0] },
+      records: document.records,
+    })
+    // Falls straight back to the whole-group contract rather than throwing or
+    // describing a part of something the user is not looking at.
+    expect(present(selection.body).id).toBe(groupId)
+    expect(present(selection.body).subPart).toBeUndefined()
+  })
+
+  it('leaves the ordinary single-body path untouched when no sub-part is active', () => {
+    // ACCEPTANCE scenario 2's Inspector-fields contract: adding the argument
+    // must not change what an ordinary selection describes.
+    const { document, body } = placed('primitive.cylinder')
+    const without = describeSelection(document.bodies(), [body.id])
+    const withEmpty = describeSelection(document.bodies(), [body.id], {
+      subPart: null,
+      records: document.records,
+    })
+    expect(withEmpty).toEqual(without)
+    expect(present(without.body).subPart).toBeUndefined()
+  })
+})

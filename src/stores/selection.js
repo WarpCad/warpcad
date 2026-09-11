@@ -20,6 +20,33 @@ export const useSelectionStore = defineStore('selection', () => {
   const ids = ref([])
 
   /**
+   * How deep inside the selected body the selection currently points
+   * (`TODO/ui-016`), or `null` for the ordinary whole-body selection.
+   *
+   * A second dimension rather than a different kind of selection: `ids` still
+   * says *which body*, and drilling in never changes it, so stepping back up is
+   * a matter of dropping this and nothing else. That is what lets the gizmo's
+   * whole-group contract return byte-identically from the breadcrumb.
+   *
+   * @type {import('vue').Ref<{ bodyId: string, partName: string } | null>}
+   */
+  const subPart = ref(null)
+
+  /**
+   * Drop a pick depth that no longer names the single selected body.
+   *
+   * Called from the paths that *replace* a selection. Deliberately not from
+   * {@link toggle}: the additive path is untouched by this task, and a depth
+   * left behind by a Shift-click is inert anyway, because `describeSelection`
+   * only honours one whose `bodyId` is the single selected body.
+   */
+  function pruneSubPart() {
+    const current = subPart.value
+    if (!current) return
+    if (ids.value.length !== 1 || ids.value[0] !== current.bodyId) subPart.value = null
+  }
+
+  /**
    * Replace the selection with a single id, or clear it when given nothing.
    *
    * @param {string | null | undefined} id
@@ -27,6 +54,36 @@ export const useSelectionStore = defineStore('selection', () => {
    */
   function select(id) {
     ids.value = id ? [id] : []
+    pruneSubPart()
+  }
+
+  /**
+   * Narrow the selection to one named part **inside** the already-selected body
+   * — control 6's pick depth. Called with a part name the raycast actually landed
+   * on, so a second click on a sibling re-targets straight to it rather than
+   * having to step up first.
+   *
+   * A no-op unless exactly one body is selected: control 6's precondition is
+   * that a group is already selected as a whole, and a depth hung off a multi-
+   * or empty selection would describe something the user is not looking at.
+   *
+   * @param {string | null | undefined} partName
+   * @returns {void}
+   */
+  function drillInto(partName) {
+    if (!partName || ids.value.length !== 1) return
+    subPart.value = { bodyId: ids.value[0], partName }
+  }
+
+  /**
+   * Step back out to the whole body, leaving {@link ids} alone — the
+   * breadcrumb's group segment, and a UI affordance only: nothing here
+   * raycasts.
+   *
+   * @returns {void}
+   */
+  function stepUp() {
+    subPart.value = null
   }
 
   /**
@@ -54,6 +111,7 @@ export const useSelectionStore = defineStore('selection', () => {
 
   function clear() {
     ids.value = []
+    pruneSubPart()
   }
 
   /**
@@ -75,6 +133,7 @@ export const useSelectionStore = defineStore('selection', () => {
   function selectMany(selectedIds, additive = false) {
     if (!additive) {
       ids.value = [...selectedIds]
+      pruneSubPart()
       return
     }
     if (selectedIds.length === 0) return
@@ -93,11 +152,14 @@ export const useSelectionStore = defineStore('selection', () => {
 
   return {
     ids,
+    subPart,
     count: computed(() => ids.value.length),
     onlyId: computed(() => (ids.value.length === 1 ? ids.value[0] : null)),
     select,
     toggle,
     selectMany,
+    drillInto,
+    stepUp,
     clear,
     has,
   }

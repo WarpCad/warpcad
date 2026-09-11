@@ -25,12 +25,24 @@
  * @module core/inspector
  */
 
-import { boundsOf, localBoundsOf } from './kernel/group.js'
+import { boundsOf, isGroup, localBoundsOf } from './kernel/group.js'
 import { registry as defaultRegistry } from './kernel/registry.js'
 
 /** @typedef {import('./document.js').Body} Body */
+/** @typedef {import('./kernel/registry.js').OpRecord} OpRecord */
 /** @typedef {import('./kernel/registry.js').RegistryEntry} RegistryEntry */
 /** @typedef {[number, number, number]} Vec3Mm */
+
+/**
+ * Which named part **inside** a body the selection currently points at
+ * (`TODO/ui-016`), as `src/stores/selection.js` holds it.
+ *
+ * @typedef {object} SubPartRef
+ * @property {string} bodyId The body the depth belongs to. Checked against the
+ *   actual selection before it is honoured, so a depth left behind by a
+ *   multi-select describes nothing rather than the wrong thing.
+ * @property {string} partName
+ */
 
 /**
  * @typedef {object} FieldComponent
@@ -50,7 +62,10 @@ import { registry as defaultRegistry } from './kernel/registry.js'
 
 /**
  * @typedef {object} BodyDescription
- * @property {string} id
+ * @property {string} id The body's own id — the **group's** id even when this
+ *   describes one part inside it, because that is still the only thing the
+ *   document can be asked about. See {@link BodyDescription.subPart} for why
+ *   nothing may write through it in that state.
  * @property {string} name
  * @property {string} op
  * @property {string} opLabel Registry `ui.label` where there is one, else the op.
@@ -67,6 +82,15 @@ import { registry as defaultRegistry } from './kernel/registry.js'
  * @property {[Vec3Mm, Vec3Mm]} localBoundsMm `[min, max]` in the body's local
  *   frame, anchored at {@link BodyDescription.positionMm}: a local point maps
  *   back to world as `positionMm + R(rotationDeg)·(local − positionMm)`.
+ * @property {{ groupName: string, partName: string }} [subPart] Present only
+ *   while the selection is drilled into one named part of a group
+ *   (`TODO/ui-016`). Its presence is the signal that **everything here is
+ *   display-only**: `document.bodies()` exposes group-level ids only, so there
+ *   is no record a `transform.*` op could target that means "just this part".
+ *   A gizmo attached in this state would either throw on drag or silently move
+ *   the whole group — breaking CLAUDE.md's "gizmo and numeric fields drive the
+ *   same underlying transform" contract — so the UI hides the gizmo and freezes
+ *   the Transform fields whenever this is set.
  */
 
 /**
@@ -277,6 +301,144 @@ export function describeBody(body, ops = defaultRegistry) {
 }
 
 /**
+ * Walk a record id back to the **creation** record of its lineage.
+ *
+ * A grouping record's `consumes` names each operand by its *current* id, which
+ * for a body that has been moved is a `transform.translate` record — whose op
+ * and params describe the move, not the part. Following `supersedes` back to the
+ * record that started the lineage is what recovers "this was a 40 mm cube",
+ * which is the only thing worth showing in a sub-part's Parameters section.
+ *
+ * Defensive against a cycle it should never see: a malformed document must
+ * degrade to a bounds-only description, not hang the panel.
+ *
+ * @param {string} id
+ * @param {Map<string, OpRecord>} byId
+ * @returns {OpRecord | undefined}
+ */
+function creationRecordOf(id, byId) {
+  let record = byId.get(id)
+  const visited = new Set()
+  while (record?.supersedes !== undefined && !visited.has(record.supersedes)) {
+    visited.add(record.supersedes)
+    const previous = byId.get(record.supersedes)
+    if (!previous) break
+    record = previous
+  }
+  return record
+}
+
+/**
+ * `partName → the record that built it`, for a group produced by
+ * `group.assemble` — **case 1** of this task's two param-recovery cases.
+ *
+ * `group.assemble` writes `consumes: [id, …]` and `params.names: [name, …]` in
+ * the same order (`OperationsToolbar.vue`'s `run()`), and `document.js` keeps
+ * every consumed record in `entries` even though `bodies()` stops reporting it —
+ * so zipping the two and walking each id back to its creation record recovers
+ * each part's real op and params.
+ *
+ * **Case 2** — a group whose parts came from a composite recipe's own internal
+ * expansion (`kit.board`, `kit.boardFrame`, `kit.anchor`, and any future one) —
+ * has no `consumes` to zip, because nothing top-level was consumed to build it.
+ * This returns an empty map there, and the caller falls back to describing the
+ * part by name and measurement alone. That mirrors `group.assemble`'s own stated
+ * scope limit on nested composite operands, one layer further out.
+ *
+ * @param {Body} body
+ * @param {readonly OpRecord[]} records The document's records, in order.
+ * @returns {Map<string, OpRecord>}
+ */
+function partRecordsFor(body, records) {
+  /** @type {Map<string, OpRecord>} */
+  const byPart = new Map()
+  if (records.length === 0) return byPart
+
+  /** @type {Map<string, OpRecord>} */
+  const byId = new Map()
+  for (const record of records) {
+    if (record.id !== undefined) byId.set(record.id, record)
+  }
+
+  const root = byId.get(body.id)
+  const consumed = root?.consumes
+  const names = root?.params?.names
+  if (!Array.isArray(consumed) || !Array.isArray(names)) return byPart
+  for (let index = 0; index < names.length && index < consumed.length; index += 1) {
+    const record = creationRecordOf(consumed[index], byId)
+    if (record) byPart.set(String(names[index]), record)
+  }
+  return byPart
+}
+
+/**
+ * Describe one named part inside a Group-valued body (`TODO/ui-016`).
+ *
+ * Measured off the part's own solid rather than the group's combined one, which
+ * is the entire visible point: the dimension lines and the Size row have to
+ * shrink to the part a user just clicked, not keep quoting the assembly.
+ *
+ * @param {Body} body A body whose `geometry` is a Group.
+ * @param {string} partName
+ * @param {readonly OpRecord[]} records
+ * @param {Readonly<Record<string, RegistryEntry>>} ops
+ * @returns {BodyDescription}
+ * @throws {Error} When the group has no such part — the same contract
+ *   `group.js`'s own `pick()` has, and for the same reason: a silent empty
+ *   description would read on screen as a body that lost its geometry.
+ */
+export function describeSubPart(body, partName, records, ops = defaultRegistry) {
+  const group = body.geometry
+  if (!isGroup(group)) {
+    throw new Error(`describeSubPart: body "${body.id}" is not a group, it has no part "${partName}"`)
+  }
+  const part = group.parts[partName]
+  if (!part) {
+    throw new Error(
+      `describeSubPart: no part named "${partName}" in body "${body.id}" ` +
+        `(parts: ${Object.keys(group.parts).join(',') || 'none'})`
+    )
+  }
+
+  const record = partRecordsFor(body, records).get(partName)
+  const entry = record ? ops[record.op] : undefined
+  const [min, max] = boundsOf(part)
+  /** @type {Vec3Mm} */
+  const positionMm = [(min[0] + max[0]) / 2, (min[1] + max[1]) / 2, (min[2] + max[2]) / 2]
+  // The whole group's carried rotation: every part was turned with it, so the
+  // part's own local frame is the group's frame (`core-004`'s composed triple).
+  const rotationDeg = rotationOf(body)
+  const [localMin, localMax] = localBoundsOf(part, rotationDeg, positionMm)
+
+  return {
+    id: body.id,
+    name: partName,
+    // Case 2 leaves both blank rather than borrowing the group's own op, which
+    // would claim on screen that this part *is* a `kit.board`.
+    op: record?.op ?? '',
+    opLabel: entry?.ui?.label ?? (record ? record.op : 'Part'),
+    params: record ? fieldsFor(record.params ?? {}, entry) : [],
+    positionMm,
+    rotationDeg,
+    sizeMm: [max[0] - min[0], max[1] - min[1], max[2] - min[2]],
+    boundsMm: [
+      [min[0], min[1], min[2]],
+      [max[0], max[1], max[2]],
+    ],
+    localSizeMm: [
+      localMax[0] - localMin[0],
+      localMax[1] - localMin[1],
+      localMax[2] - localMin[2],
+    ],
+    localBoundsMm: [
+      [localMin[0], localMin[1], localMin[2]],
+      [localMax[0], localMax[1], localMax[2]],
+    ],
+    subPart: { groupName: body.name, partName },
+  }
+}
+
+/**
  * Describe a whole selection — the state machine
  * `docs/decisions/interaction-model-qa.md` control 3 Q15 specifies.
  *
@@ -291,18 +453,42 @@ export function describeBody(body, ops = defaultRegistry) {
  * A selected id the document no longer holds resolves to the empty state rather
  * than throwing: a panel that crashes on a stale id takes the whole app with it.
  *
+ * A `subPart` narrows the `single` state to one named part of a Group-valued
+ * body (`TODO/ui-016`) — but only one whose `bodyId` really is the single
+ * selected body. A depth left pointing somewhere else (a Shift-click grew the
+ * selection and shrank it back, a stale id) falls straight back to the
+ * whole-body description rather than throwing or describing a part of something
+ * the user is no longer looking at.
+ *
  * @param {readonly Body[]} bodies Every body currently in the document.
  * @param {readonly string[]} selectedIds
- * @param {Readonly<Record<string, RegistryEntry>>} [ops]
+ * @param {object} [options]
+ * @param {SubPartRef | null} [options.subPart] Active pick depth, if any.
+ * @param {readonly OpRecord[]} [options.records] The document's records, needed
+ *   only to recover a sub-part's own op/params (case 1). Without them a
+ *   sub-part is still described, by name and measurement alone.
+ * @param {Readonly<Record<string, RegistryEntry>>} [options.ops] Catalogue; the
+ *   real one by default. A test passes a fake (CLAUDE.md: "mock at the boundary").
  * @returns {SelectionDescription}
  */
-export function describeSelection(bodies, selectedIds, ops = defaultRegistry) {
+export function describeSelection(bodies, selectedIds, options = {}) {
+  const ops = options.ops ?? defaultRegistry
   if (selectedIds.length >= 2) {
     return { state: 'multi', count: selectedIds.length, body: null }
   }
   if (selectedIds.length === 1) {
     const body = bodies.find((candidate) => candidate.id === selectedIds[0])
-    if (body) return { state: 'single', count: 1, body: describeBody(body, ops) }
+    if (body) {
+      const subPart = options.subPart
+      if (subPart && subPart.bodyId === body.id) {
+        return {
+          state: 'single',
+          count: 1,
+          body: describeSubPart(body, subPart.partName, options.records ?? [], ops),
+        }
+      }
+      return { state: 'single', count: 1, body: describeBody(body, ops) }
+    }
   }
   return { state: 'empty', count: 0, body: null }
 }

@@ -49,17 +49,54 @@ merged volume.
 
 ## What happens to the original shapes
 
-The two shapes you grouped are **gone as independently-selectable bodies** — you
-cannot click just one of them on its own anymore, the same way a boolean result
-replaces its operands in the scene list. The difference is what is *inside* the
-result: a boolean's result is one computed volume; a group's result still contains
-both original solids, complete, just not addressable individually yet.
+The two shapes you grouped are **gone as independently-selectable bodies in the
+scene list** — the group is one entry, the same way a boolean result replaces its
+operands. The difference is what is *inside* the result: a boolean's result is one
+computed volume, while a group's result still contains both original solids,
+complete — and you can look at either one individually, as the next section shows.
 
-**There is no way yet to select just one part of a group and edit it on its own.**
-That capability — clicking into a group to reach one of its members — is planned
-for a later release. For now, once two shapes are grouped, you can move, rotate,
-or feed the whole group into another Group or boolean operation, but you cannot
-pick out a single part of it.
+## Selecting a part inside a group
+
+Once a group is selected as a whole, **clicking again on one of its parts narrows
+the selection to just that part**. This is a two-step gesture on purpose: the first
+click always gives you the whole group, so you never have to fight your way back
+out to the assembly when that is what you meant to grab.
+
+Continuing from the worked example above:
+
+1. Click empty grid to deselect, then click either cube. The whole group is
+   selected: the gizmo and the dimension lines span **both** cubes, and the
+   Inspector shows the group as one object.
+2. Click **the same cube a second time**. The selection narrows to that cube
+   alone. Three things change together, so you can see it happened:
+   - The Inspector header gains a breadcrumb reading **`Group 1 ▸ Cube 1`**.
+   - The dimension lines shrink from the pair's combined span to that one cube's
+     own size — 40 mm on each axis, for a default Cube.
+   - The Inspector shows that cube's own name and parameters instead of the
+     group's.
+3. Click the **other** cube. You go straight to it — `Group 1 ▸ Cube 2` — without
+   having to step back up to the group first.
+4. Click the **`Group 1`** part of the breadcrumb to step back up to the whole
+   group. The gizmo returns, sized to both cubes again.
+5. Click empty grid to deselect everything.
+
+### Looking inside a group is read-only
+
+While you are looking at a part inside a group, **the transform gizmo disappears
+and the Inspector's Position and Rotation fields stop being editable.** That is
+deliberate, not a missing feature: WarpCad can move the *group*, but it has no way
+yet to move one member independently of the others. Showing a gizmo that quietly
+moved the whole assembly — while the panel beside it named a single part — would be
+worse than showing none.
+
+So while drilled in you can read a part's name, size, position and parameters, but
+not change them. Click the breadcrumb's group segment to step back up, and the
+gizmo and editable fields come back for the group as a whole.
+
+One kind of group is an exception to the parameter half: parts that came from a
+**built-in multi-part shape** (rather than from shapes you grouped yourself) show
+their name and measurements but no parameter fields, because those parts were never
+separate shapes you created and so have no parameters of their own to show.
 
 ## Notes and gotchas
 
@@ -70,7 +107,11 @@ pick out a single part of it.
   grouping B-then-A — there is nothing analogous to Subtract's base/subtrahend
   distinction.
 - **A group's dimension lines and Inspector report the combined bounding box** —
-  the smallest box that contains every part — not any single part's own size.
+  the smallest box that contains every part — not any single part's own size. To
+  read one part's own size, click into it as described above.
+- **Shift-clicking works on whole groups, not on parts.** Adding to a selection
+  always operates on entire bodies; looking inside a group is a display depth, not
+  a second thing you can add to a multi-selection.
 
 ## See also
 

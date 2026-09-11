@@ -60,9 +60,11 @@ import { createViewport } from '../../render/scene.js'
 import {
   BODY_COLORS,
   createBodyMaterial,
+  createBodyObject,
   createGhostMaterial,
-  disposeMesh,
+  disposeBodyObject,
   geom3ToBufferGeometry,
+  updateBodyObject,
 } from '../../render/mesh.js'
 import { nearestOnPlane, ndcFromClient, projectToWorkingPlane } from '../../render/pick.js'
 import { evaluateOp, toGeom3 } from '../../core/kernel/index.js'
@@ -246,10 +248,18 @@ const scratchPoint = { x: 0, y: 0, z: 0 }
 const pickNdc = new Vector2()
 const raycaster = new Raycaster()
 
-/** Committed bodies, one mesh per document record id. */
+/**
+ * Committed bodies, one scene object per document body id.
+ *
+ * A **bare solid is one `Mesh`; a Group-valued body is a `THREE.Group` of one
+ * mesh per named part** (`TODO/ui-016`, `src/render/mesh.js`'s
+ * `createBodyObject`). That structure is what a raycast needs in order to
+ * resolve a hit to a part rather than only to a body — the old single combined
+ * mesh had already unioned the parts away.
+ */
 const bodiesGroup = new ThreeGroup()
 bodiesGroup.name = 'bodies'
-/** @type {Map<string, Mesh>} */
+/** @type {Map<string, Mesh | ThreeGroup>} */
 const bodyMeshes = new Map()
 /** Ghost geometry, cached per op so a drag builds each shape at most once. */
 const ghostGeometry = new Map()
@@ -398,23 +408,35 @@ function syncAnnotations() {
     for (const annotation of dimensionAnnotations) annotation.visible = false
     return
   }
-  const [minMm, maxMm] = body.boundsMm
-  // `TODO/ui-017`: sized to the selected body's own on-screen bounding box —
-  // `overlay.mmPerPixel` is current because `syncOverlay` sets it immediately
-  // before calling here — rather than the fixed 58px/40px `ui-011` originally
-  // used, so the rings and arms always extend clear of the rendered object.
-  const { armPx, ringPx } = gizmoSizeForBounds(minMm, maxMm, overlay.mmPerPixel)
-  updateGizmoAnnotation(
-    orbit,
-    body.positionMm[0],
-    body.positionMm[1],
-    body.positionMm[2],
-    widthPx,
-    heightPx,
-    armPx,
-    ringPx,
-    gizmoAnnotation,
-  )
+  if (body.subPart) {
+    // Drilled into one named part of a group (`TODO/ui-016`). The dimension
+    // lines below still draw — they *measure*, and measuring the clicked part is
+    // the point of the feature — but the gizmo does not, because it is a drag
+    // handle and there is no record a `transform.*` op could target that means
+    // "just this part". An attached gizmo here would move the whole group while
+    // the Inspector named the part, which is precisely the "gizmo and numeric
+    // fields drive the same transform" contract CLAUDE.md requires and this
+    // state cannot satisfy. See `src/core/inspector.js`'s `subPart` field.
+    gizmoAnnotation.visible = false
+  } else {
+    const [minMm, maxMm] = body.boundsMm
+    // `TODO/ui-017`: sized to the selected body's own on-screen bounding box —
+    // `overlay.mmPerPixel` is current because `syncOverlay` sets it immediately
+    // before calling here — rather than the fixed 58px/40px `ui-011` originally
+    // used, so the rings and arms always extend clear of the rendered object.
+    const { armPx, ringPx } = gizmoSizeForBounds(minMm, maxMm, overlay.mmPerPixel)
+    updateGizmoAnnotation(
+      orbit,
+      body.positionMm[0],
+      body.positionMm[1],
+      body.positionMm[2],
+      widthPx,
+      heightPx,
+      armPx,
+      ringPx,
+      gizmoAnnotation,
+    )
+  }
   // `TODO/ui-023`: the dimension lines measure the body's **own** box, not the
   // world-axis shadow the gizmo above is sized against. The two genuinely want
   // different measurements — the gizmo has to clear the tilted part's whole
@@ -480,25 +502,29 @@ function syncBodies() {
       if (existing.userData.recordId === body.recordId) continue
       // The body was transformed: swap in the new geometry and drop whatever
       // preview transform the drag left on the object, since the translation or
-      // rotation is now baked into the vertices themselves.
-      const previous = existing.geometry
-      existing.geometry = geom3ToBufferGeometry(toGeom3(body.geometry))
-      previous.dispose()
-      existing.position.set(0, 0, 0)
-      existing.quaternion.identity()
-      existing.userData.recordId = body.recordId
-      continue
+      // rotation is now baked into the vertices themselves. `updateBodyObject`
+      // refuses when the object's *shape* changed — a bare body that became a
+      // group, or a group whose part list differs — and the rebuild below picks
+      // that up rather than patching one body's geometry into another's slots.
+      if (updateBodyObject(existing, body.geometry)) {
+        existing.position.set(0, 0, 0)
+        existing.quaternion.identity()
+        existing.userData.recordId = body.recordId
+        continue
+      }
+      bodiesGroup.remove(existing)
+      disposeBodyObject(existing)
+      bodyMeshes.delete(body.id)
     }
-    const mesh = new Mesh(geom3ToBufferGeometry(toGeom3(body.geometry)), bodyMaterial)
-    mesh.name = body.id
-    mesh.userData.recordId = body.recordId
-    bodyMeshes.set(body.id, mesh)
-    bodiesGroup.add(mesh)
+    const object = createBodyObject(body.geometry, bodyMaterial, body.id)
+    object.userData.recordId = body.recordId
+    bodyMeshes.set(body.id, object)
+    bodiesGroup.add(object)
   }
-  for (const [id, mesh] of bodyMeshes) {
+  for (const [id, object] of bodyMeshes) {
     if (live.has(id)) continue
-    bodiesGroup.remove(mesh)
-    disposeMesh(mesh)
+    bodiesGroup.remove(object)
+    disposeBodyObject(object)
     bodyMeshes.delete(id)
   }
   applySelectionMaterial()
@@ -533,11 +559,20 @@ function selectionRole(id) {
  */
 function applySelectionMaterial() {
   if (!bodyMaterial) return
-  for (const [id, mesh] of bodyMeshes) {
+  for (const [id, object] of bodyMeshes) {
     const role = selectionRole(id)
-    if (role === 'base') mesh.material = selectedMaterial
-    else if (role === 'secondary') mesh.material = secondaryMaterial
-    else mesh.material = bodyMaterial
+    const material =
+      role === 'base' ? selectedMaterial : role === 'secondary' ? secondaryMaterial : bodyMaterial
+    // A Group-valued body is a container of part meshes (`TODO/ui-016`), so the
+    // highlight is painted onto every part: a group selects and highlights as
+    // one object, exactly as it did when it was a single combined mesh. The
+    // drilled-into part is deliberately *not* highlighted differently — its
+    // feedback is the breadcrumb, the dimension lines and the absent gizmo.
+    if (object instanceof ThreeGroup) {
+      for (const child of object.children) /** @type {Mesh} */ (child).material = material
+    } else {
+      object.material = material
+    }
   }
   scheduleRender()
 }
@@ -1205,26 +1240,63 @@ function hitsBodyAt(clientXPx, clientYPx) {
 }
 
 /**
+ * What is under a screen point: the body, and — for a Group-valued body, whose
+ * scene object is a container of per-part meshes (`TODO/ui-016`) — which of its
+ * named parts the ray actually landed on.
+ *
+ * **Recursive**, unlike the flat intersect this replaced: a group's part meshes
+ * are children of its container, and a non-recursive test would intersect the
+ * container itself (which has no geometry) and report nothing at all. That is
+ * the one line that would silently make every grouped body unpickable.
+ *
  * @param {number} clientXPx
  * @param {number} clientYPx
- * @returns {string | null} The id of the body under the point, nearest first, or
+ * @returns {{ bodyId: string, partName?: string } | null} Nearest hit, or
  *   `null` when nothing is there (including when there is no viewport yet).
  */
-function raycastBodyId(clientXPx, clientYPx) {
+function raycastHit(clientXPx, clientYPx) {
   if (!viewport || bodyMeshes.size === 0) return null
   ndcFromClient(clientXPx, clientYPx, viewportRect, scratchNdc)
   pickNdc.set(scratchNdc.x, scratchNdc.y)
   raycaster.setFromCamera(pickNdc, viewport.graph.camera)
-  const hits = raycaster.intersectObjects(bodiesGroup.children, false)
-  return hits.length > 0 ? hits[0].object.name : null
+  const hits = raycaster.intersectObjects(bodiesGroup.children, true)
+  if (hits.length === 0) return null
+  const object = hits[0].object
+  return { bodyId: object.name, partName: object.userData.partName }
 }
 
 /**
- * Select the body under a screen point, or clear the selection when the click
- * lands on empty space.
+ * @param {number} clientXPx
+ * @param {number} clientYPx
+ * @returns {string | null} The id of the body under the point, nearest first.
+ */
+function raycastBodyId(clientXPx, clientYPx) {
+  return raycastHit(clientXPx, clientYPx)?.bodyId ?? null
+}
+
+/**
+ * Select the body under a screen point, narrow to one of its parts, or clear the
+ * selection when the click lands on empty space.
  *
  * Raycasting only on click, never per pointermove: this is the one place an
  * allocation-bearing three.js call is acceptable, because it runs once per tap.
+ *
+ * ## Pick depth (`TODO/ui-016`, interaction-model-qa control 6)
+ *
+ * A click on a group's member mesh means one of two different things depending
+ * on what is already selected, and that is the whole feature:
+ *
+ * - **The group is not already the single selection** → select the whole group.
+ *   A first click never jumps straight to a sub-part; a user who wants the
+ *   assembly must not have to fight their way back out to it.
+ * - **The group is already the single selection** → narrow to the clicked part.
+ *   This covers re-targeting to a *sibling* too: clicking a different member
+ *   while drilled in goes straight there rather than stepping up first, since
+ *   the group is still the selected body throughout.
+ *
+ * The Shift/marquee-additive path is untouched: an additive click operates on
+ * whole bodies, because a sub-part is a display depth, not a second selectable
+ * thing to add to a set.
  *
  * @param {number} clientXPx
  * @param {number} clientYPx
@@ -1235,12 +1307,21 @@ function pickAt(clientXPx, clientYPx, additive = false) {
     selection.clear()
     return
   }
-  const hitId = raycastBodyId(clientXPx, clientYPx)
+  const hit = raycastHit(clientXPx, clientYPx)
   // Empty space always clears outright, even with the modifier held: it is the
   // gesture that dismisses the whole selection response — inspector, gizmo and
   // dimension lines — and an additive version of "nothing" has no meaning.
-  if (additive && hitId) selection.toggle(hitId)
-  else selection.select(hitId)
+  if (!hit) {
+    selection.clear()
+    return
+  }
+  if (additive) {
+    selection.toggle(hit.bodyId)
+    return
+  }
+  const alreadyThisBody = selection.ids.length === 1 && selection.ids[0] === hit.bodyId
+  if (hit.partName && alreadyThisBody) selection.drillInto(hit.partName)
+  else selection.select(hit.bodyId)
 }
 
 /**
@@ -1367,6 +1448,14 @@ onMounted(() => {
   stopWatchers.push(
     watch(() => documentStore.version, syncBodies),
     watch(() => selection.ids, applySelectionMaterial, { deep: true }),
+    // Pick depth changes nothing about *which* body is selected, so it never
+    // reaches the watcher above — but it does change what the overlays draw
+    // (`TODO/ui-016`: the dimension lines shrink to the part, the gizmo goes).
+    // `syncAnnotations` runs from the render callback, so without this the
+    // gizmo would simply stay on screen until the next camera move: the exact
+    // class of "it passed its own test and still looked broken" defect
+    // SECOND-ATTEMPT.md is about.
+    watch(() => selection.subPart, scheduleRender, { deep: true }),
   )
 
   if (typeof ResizeObserver !== 'undefined' && rootEl.value) {
@@ -1402,7 +1491,7 @@ onBeforeUnmount(() => {
   themeQuery?.removeEventListener('change', onThemeChange)
   themeQuery = null
   canvasEl.value?.removeEventListener('webglcontextlost', onContextLost)
-  for (const mesh of bodyMeshes.values()) disposeMesh(mesh)
+  for (const object of bodyMeshes.values()) disposeBodyObject(object)
   bodyMeshes.clear()
   bodiesGroup.clear()
   for (const geometry of ghostGeometry.values()) geometry.dispose()

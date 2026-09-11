@@ -404,6 +404,28 @@ task caught a real cross-engine layout regression in this exact area (below).
   rows and stays entirely clear of the gizmo's dial at this width.
 - Console clean in every drive (laptop/Chromium and phone/WebKit).
 
+**Re-checked**: 2026-09-11 19:45 — PASS (`ui-016`). Re-driven in full rather than
+glanced at, because that task changes **how a Group-valued body becomes a mesh** — one
+mesh per named part instead of one mesh from the combined solid — which is the render
+path this scenario's "both remain visible" regression lives in. Driven at
+laptop/Chromium, tablet/WebKit and phone/WebKit with wandering, overshooting drag paths.
+
+A Cube then a second Cube dropped well apart: **both stayed visible**, and the first
+cube's millimetre centre was byte-identical before and after the second drop
+(`-103.21,-27.98,20.00` at laptop, `-66.23,9.00,20.00` at phone). Clicking empty grid
+cleared; clicking each in turn selected only that one, gizmo and all three dimension
+lines retargeting, never both at once.
+
+**The half this task put at risk, and the reason for the full re-drive**: the two cubes
+were then grouped, drilled into, stepped back out of, and a **third, unrelated Cylinder
+dropped afterwards**. The scene ended with **exactly two bodies** (`Group 1`,
+`Cylinder 1`) and a screenshot confirms **all three solids visibly on the grid** — both
+grouped cubes rendering complete and separate, plus the new cylinder with its own gizmo
+and its own `Diameter`/`Height` fields. Per-part meshing lost nothing, duplicated
+nothing, and did not resurrect the second attempt's "the new body replaces the old"
+regression. Orbiting afterwards confirmed all three from another angle rather than a
+one-frame artefact. Console clean in all three drives.
+
 ### 2. Hardware property edit
 
 **Steps**:
@@ -615,6 +637,23 @@ track live, at the same handle locations `ui-012`/`ui-017` established. Also re-
 component this task restyled): all three visible rings (`x`, `y`, `z`) still carry
 exactly 2 triangular direction-arrow markers each, not swallowed or hidden by the new
 gradient/shadow. Console clean.
+
+**Re-checked**: 2026-09-11 19:45 — **PARTIAL PASS, still partial for exactly the same
+reason as every entry above** (`ui-016`: steps 1-4's Bolt spec/fit edit is still not
+drivable — no Hardware Library section, M2 — and is not claimed). Re-driven because
+this task **changes `describeSelection`'s signature**, which every field in this
+scenario reads through, so "the ordinary single-body path is unaffected when no
+sub-part is active" had to be confirmed on screen and not only in a unit test.
+
+Driven at laptop/Chromium with a Cylinder standing in for the Bolt: selecting it opened
+the Inspector with its **own** schema (`Diameter 40 mm`, `Height 50 mm`) plus the
+standing Transform section, unchanged from the last drive. Typing `60` into Position X
+and pressing Enter moved the solid to exactly `60.00` (step 7-8's field→mesh
+direction). Dragging the gizmo's X arm then updated the Position X field **live**,
+sampled at four points mid-drag (`64.18 → 69.06 → 75.33 → 82.29`), and the committed
+centre on release was `82.29` — the same number the field had been showing, so gizmo
+and numeric entry still drive one transform in both directions (step 6's "not only
+after release"). Console clean.
 
 ### 3. Snap-placement of a kit assembly
 
@@ -929,6 +968,51 @@ camera-module rows — M2; no "Combine into group" — `ui-015`), the whole
 group-vs-sub-part pick-depth behaviour of steps 5-7, and the breadcrumb (`ui-016`).
 This scenario's **Expect** section is entirely about that behaviour, so none of it is
 met yet — `ui-011` only guarantees the single-item contract it will be layered onto.)
+
+**Re-checked**: 2026-09-11 19:45 — **PASS. This scenario's whole Expect section is now
+met** (`ui-016`, the task that completes it). Hand-driven end to end at
+laptop/Chromium, tablet/WebKit and phone/WebKit — the two engines an iPad and iPhone
+actually run — with wandering, jittery drag paths, off-centre clicks, and an orbit
+between operations rather than a fixed click sequence.
+
+**Substitution, stated rather than glossed**: steps 1-2 still cannot be performed as
+written — there are no Raspberry Pi / camera-module Library rows (M2), so **two Cubes
+dropped well apart** stand in for the three named parts, combined with the real
+"Combine into group" button (`ui-015`). The pick-depth behaviour under test is
+identical; only the parts' identities are substitutes.
+
+**Every clause of Expect, driven and passed**:
+- *First click on an unselected group selects the whole group, never a sub-part*
+  (step 4): after clearing the selection, one click anywhere on the group selected
+  `Group 1` as a whole — gizmo and all three dimension lines spanning the combined box
+  (109.54 / 256.92 / 40 mm at laptop), no breadcrumb.
+- *A second, distinct click narrows to that sub-part* (step 6): clicking the same cube
+  again switched the Inspector to `Cube 1`, the dimension lines shrank from the pair's
+  combined span to that one cube's own **40 / 40 / 40 mm**, and the Inspector showed
+  the cube's *own* `Size X/Y/Z` params — the original consumed record's schema,
+  recovered through `consumes`/`params.names`, not the group's.
+- *The breadcrumb shows the pick depth*: the header read **`Group 1 ▸ Cube 1`**, with
+  `Group 1` rendered as an underlined link. Read off a screenshot at all three
+  viewports, not only from the DOM.
+- *Clicking the "Group" segment steps back up* (step 7): the breadcrumb vanished, the
+  gizmo reattached, and the dimension lines went back to the combined 109.54 / 256.92 /
+  40 mm. Then clicking empty grid cleared everything — gizmo, lines and fields.
+
+**Beyond the scenario's own steps**, because a fixed script would not have caught
+these: clicking a **different** member while already drilled into the first re-targeted
+straight to it (`Group 1 ▸ Cube 2`) with no step-up — this task's own explicit call on
+the one behaviour control 6 left implicit. **Orbiting while drilled in** kept the
+dimension lines on the part and the gizmo absent, rather than the overlays snapping
+back on the next camera move. The **gizmo is genuinely absent** while drilled in, not
+merely inert, and the Inspector's Position/Rotation fields render `readonly` with a
+note saying why — the display-only rule this task set itself, confirmed on screen.
+Console clean in all three drives.
+
+**One thing worth knowing, not a failure**: while drilled in, *both* cubes stay painted
+the selected colour — a group highlights as one object, and the drilled-into part is
+identified by the dimension lines, the breadcrumb and the panel rather than by a third
+highlight colour. That reads correctly on screen; noting it so the next drive does not
+mistake it for a bug.
 
 ### 7. Touch-only viewport navigation
 

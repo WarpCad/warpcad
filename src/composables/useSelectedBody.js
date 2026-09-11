@@ -48,15 +48,26 @@ export function useSelectedBody() {
     // Read the version so a document mutation invalidates the description: the
     // bodies themselves live outside Vue's reactivity on purpose.
     void documentStore.version
-    return describeSelection(documentStore.raw.bodies(), selection.ids)
+    return describeSelection(documentStore.raw.bodies(), selection.ids, {
+      // The pick depth (`TODO/ui-016`), and the records a drilled-into part's
+      // own op/params are recovered from. `records` is a plain array of JSON
+      // lines, not geometry, so reading it here costs nothing like the bodies
+      // above do — and it is read inside the *cheap*-invalidation computed on
+      // purpose, since it only ever changes when `version` does.
+      subPart: selection.subPart,
+      records: documentStore.raw.records,
+    })
   })
 
   return computed(() => {
     const base = described.value
     const body = base.body
     // The common case — nothing being dragged — returns the very same object,
-    // so no allocation and no downstream invalidation happen at rest.
-    if (!body || !preview.isActive || preview.bodyId !== body.id) return base
+    // so no allocation and no downstream invalidation happen at rest. A body
+    // drilled into a sub-part never takes the preview path at all: there is no
+    // gizmo to drag in that state, and a preview delta measured for the whole
+    // group would slide the part's box away from the part.
+    if (!body || body.subPart || !preview.isActive || preview.bodyId !== body.id) return base
 
     const dx = preview.txMm
     const dy = preview.tyMm
