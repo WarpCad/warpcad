@@ -386,3 +386,14 @@ Built with Claude Code, reviewed by me. #CAD
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** bolt stored as `["Shell 1","head","thread","tap"]` spanning `-20,-20,0 .. 20,20,27` before the fix, `["head","thread","tap"]` at `-9.25,-8.01,0 .. 9.25,8.01,27` after → RED test run and browser drive against the real modules, this session; subtract returned an empty solid (`0,0,0 .. 0,0,0`) before and a real hole after (bounds `-20,-20,0 .. 20,20,6`, volume 8 266.2 mm³ of a 9 600 mm³ plate) → same drive; cause is `{ ...options }` carrying `initial` into the recipe's nested `evaluate` → this diff, `src/core/kernel/index.js`
 **To Add:** repo URL once public; a before/after render of the plate would carry this one
+
+## [2026-09-11T20:23:14Z] — Snap and Align: two buttons that move a shape without consuming it (TODO/ui-026)
+
+**Post:** Two new buttons landed on WarpCad's Operations toolbar: Snap and Align. Select two solids, move one flush against the other or centered on it. Unlike Union/Subtract/Group, neither solid gets consumed here, both stay selectable.
+
+Built with Claude Code, reviewed by me. #CAD #WebGL
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** exactly-2 gating, distinct from the other four buttons' "2+" → `src/components/viewport/OperationsToolbar.vue` in this diff, `EXACT_OPERANDS`/`snapAlignDisabled`; Union/Subtract/Intersect/Group retire operands via `consumes` → same file's pre-existing `run()`, unchanged by this diff; Snap/Align append a `supersedes` record instead, so both solids stay independently selectable → this diff, `commitSnapAlign()`, confirmed by `e2e/snap-align-operation.e2e.js`'s body-count and click-through assertions this session; `Body.name`/`op`/`params` read from a lineage's root record, never a superseding one → `src/core/document.js`'s own module doc, pre-existing; kernel side (`group.snap`/`group.align` registered) landed 2026-09-10 → `git log` commit 39fc42f; full suite green (typecheck, 521 unit tests across 27 files, 671 e2e passed / 158 skipped) → this session's `npm run test` output
+**To Add:** repo URL once public; a screenshot of the Snap/Align popover mid-selection would carry this one
