@@ -24,6 +24,9 @@ themselves won't have to move.
 - [Combining shapes into a group](groups.md) — the Operations toolbar's fourth
   button, which combines shapes into one selectable body without merging or
   discarding any of their geometry.
+- [Precise placement: Snap and Align](snap-align.md) — the Operations toolbar's
+  fifth and sixth buttons, which move one shape to a computed position against
+  another without combining or discarding either one.
 - [Moving around the 3D view](viewport-navigation.md) — orbit, pan, zoom, the
   orientation triad, touch gestures, and reading size off the grid.
 

@@ -1,7 +1,7 @@
 <script setup>
 /**
- * The Operations toolbar: Union, Subtract, Intersect (`TODO/ui-014`) and Group
- * (`TODO/ui-015`).
+ * The Operations toolbar: Union, Subtract, Intersect (`TODO/ui-014`), Group
+ * (`TODO/ui-015`), and Snap/Align (`TODO/ui-026`).
  *
  * This control exists in this shape because of a rule CLAUDE.md calls
  * non-negotiable:
@@ -9,32 +9,91 @@
  * > Creation and operation are never the same list. [...] An operation control is
  * > disabled or hidden until its required operands are actually selected.
  *
- * So these three buttons are deliberately **not** rows in the Library panel
+ * So these buttons are deliberately **not** rows in the Library panel
  * beside Cube and Cylinder, and deliberately not a dropdown built by iterating
  * the registry — the previous attempt's boolean menu was exactly that, and it
  * offered every registered feature type as if they were interchangeable. An
  * operation is a different kind of thing from a creation, it has a precondition,
  * and the control has to say so before it is pressed rather than failing after.
  *
- * Two things follow from that and are the whole behaviour here:
+ * Two things follow from that and are the whole behaviour of the first four
+ * buttons:
  *
  * 1. **Enablement is gated on selection _count_, not presence.** Fewer than two
- *    solids and all three buttons are disabled, with a live "N selected" badge so
- *    the requirement is legible *before* it is met rather than only after.
+ *    solids and Union/Subtract/Intersect/Group are disabled, with a live "N
+ *    selected" badge so the requirement is legible *before* it is met rather
+ *    than only after.
  * 2. **Order is part of the operand set, not just membership.** Subtract's base
  *    is the solid picked first; everything picked after it is removed from that.
  *    The badge says so in words, and `Viewport.vue` paints the base and the rest
  *    in two different colours so the same fact reads off the scene itself
  *    (`TODO/ACCEPTANCE.md` scenario 4, step 4).
  *
- * The record it appends names operands by `document.currentIdOf(...)`, never by
- * the selection's own ids. A selection holds *lineage root* ids, which stay
- * stable across a move — but the root's entry in the evaluated scene still holds
- * the geometry the body had when it was first placed. Subtracting that would cut
- * a hole where the body used to be, which is exactly the class of bug that looks
- * fine until someone drags something first.
+ * The record `run()` appends names operands by `document.currentIdOf(...)`,
+ * never by the selection's own ids. A selection holds *lineage root* ids, which
+ * stay stable across a move — but the root's entry in the evaluated scene still
+ * holds the geometry the body had when it was first placed. Subtracting that
+ * would cut a hole where the body used to be, which is exactly the class of bug
+ * that looks fine until someone drags something first.
+ *
+ * ## Snap and Align are a different shape (`TODO/ui-026`)
+ *
+ * Two more buttons follow the same operand-resolution discipline but diverge on
+ * every other axis, and both divergences are load-bearing, not stylistic:
+ *
+ * 1. **Exactly 2 operands, not "2 or more".** `group.snap`/`group.align`'s
+ *    registry entries (`core-013`) throw on any operand count but 2 — the item
+ *    being moved, and the item it is moved against — so these two buttons gate
+ *    `disabled` on `selection.count !== 2` rather than the shared
+ *    `MINIMUM_OPERANDS` used above.
+ * 2. **They need parameters a stateless click cannot supply**, so clicking one
+ *    while enabled opens a popover — a toggle-to-open/click-again-to-close
+ *    control state borrowed from `ui-019`'s mouse-nav settings gear, though
+ *    *not* that popover's row-anchored positioning; see the CSS comment on
+ *    `.ops__popover` for why that had to diverge — to collect an axis set, an
+ *    orientation (Snap only) and a millimetre offset, rather than appending a
+ *    record immediately.
+ * 3. **The appended record `supersedes`, never `consumes`.** Every button above
+ *    reduces its operands into a *new* body and retires every input — that is
+ *    what `consumes` means, and it is correct for a boolean or a Group, both of
+ *    which build something new out of their operands. `group.snap`/
+ *    `group.align` do the opposite: they return the *moved* geometry for the
+ *    first operand alone, and the second operand's value is only ever read, not
+ *    written. Semantically that is a transform, not a combination — the same
+ *    shape `src/core/transform.js`'s `translateRecord`/`rotateRecord` already
+ *    use for a gizmo drag — so the record here targets/supersedes the moving
+ *    solid's current terminal id, exactly as those do, and (also like those two)
+ *    carries no `name`: `src/core/document.js`'s own module doc states that
+ *    `Body.name` is read from a lineage's **root** record, never a superseding
+ *    one, so a `name` on this record would be silently unused dead weight —
+ *    omitting it matches the established `transform.*` precedent rather than the
+ *    `consumes`-based booleans' precedent, which is the wrong one to copy here.
+ *    Reusing `consumes` instead would silently retire the *reference* solid from
+ *    `bodies()` even though its geometry never changed — a real bug, not a style
+ *    choice, per this file's own commit history.
+ * 4. **The reference operand's own value is measured, never mutated** — so
+ *    unlike every button above, both solids remain independently selectable
+ *    after a commit. Only the moving solid's selection changes (it stays
+ *    selected; the reference drops out of the selection), and because a
+ *    `supersedes`-based move never changes its body's *lineage root* id
+ *    (`selection.ids[0]` stays valid throughout, the same fact that lets a
+ *    gizmo drag skip reselecting), the post-commit selection is
+ *    `selection.select(selection.ids[0])` rather than the new record's own id.
+ *
+ * `deltaMm`'s two ops do not actually share a shape, which the popover's single
+ * offset field respects rather than papering over: `group.js`'s `calcSnap`
+ * (which `group.snap` calls) only ever adds its `deltaMm` as one scalar across
+ * every checked axis (`axisApply`'s `+ (deltaMm ?? 0)`), while `calcCenterWith`
+ * (`group.align`) accepts either a scalar or a per-axis vector. Offering a
+ * per-axis vector for Snap would silently hand `calcSnap` an array where it
+ * expects a number — array-plus-number arithmetic that produces `NaN` with no
+ * thrown error, exactly the "wrong geometry with no error" failure class
+ * `core-013`'s own `index.js` comments call out for an unrelated case. So this
+ * popover offers one scalar offset field for both ops, applied uniformly across
+ * whichever axes are checked; a true per-axis Align offset is left for a later
+ * task rather than built here on an untested assumption about `calcSnap`.
  */
-import { computed } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 
 import { useDocumentStore } from '../../stores/document.js'
 import { useSelectionStore } from '../../stores/selection.js'
@@ -148,6 +207,172 @@ function run(op, label) {
   // selection → inspector → gizmo contract with no special case.
   selection.select(id)
 }
+
+// --- Snap / Align (TODO/ui-026) --------------------------------------------
+
+/**
+ * The two operations that need a popover instead of a stateless click.
+ *
+ * @type {ReadonlyArray<{ op: 'group.snap' | 'group.align', label: string, glyph: string, hint: string }>}
+ */
+const SNAP_ALIGN_OPERATIONS = Object.freeze([
+  {
+    op: 'group.snap',
+    label: 'Snap',
+    glyph: '⇥',
+    hint: 'Move the moving item flush against the reference, on the checked axes',
+  },
+  {
+    op: 'group.align',
+    label: 'Align',
+    glyph: '⇔',
+    hint: 'Centre the moving item on the reference, on the checked axes',
+  },
+])
+
+/** @type {ReadonlyArray<'x' | 'y' | 'z'>} */
+const AXES = Object.freeze(['x', 'y', 'z'])
+
+/**
+ * The 6 canonical `SNAP_SIDES` keys `group.js` exports, one name per distinct
+ * behaviour. `above-*`/`below-*` are literal aliases of four of these six (see
+ * `group.js`'s own `SNAP_SIDES` table) — exposing all 10 would just show the
+ * same six behaviours under two names each for four of them.
+ *
+ * @type {ReadonlyArray<{ value: string, label: string }>}
+ */
+const SNAP_ORIENTATIONS = Object.freeze([
+  { value: 'outside+', label: 'Outside +' },
+  { value: 'outside-', label: 'Outside −' },
+  { value: 'inside+', label: 'Inside +' },
+  { value: 'inside-', label: 'Inside −' },
+  { value: 'center+', label: 'Center +' },
+  { value: 'center-', label: 'Center −' },
+])
+
+/** Snap/Align's own precondition: exactly 2, not "2 or more" (see module doc). */
+const EXACT_OPERANDS = 2
+
+const snapAlignDisabled = computed(() => selection.count !== EXACT_OPERANDS)
+
+/** What a disabled Snap/Align button says when hovered or long-pressed. */
+const SNAP_ALIGN_DISABLED_HINT = `Select exactly ${EXACT_OPERANDS} solids`
+
+/**
+ * @param {{ label: string, hint: string }} operation
+ * @returns {string}
+ */
+function snapAlignTitleFor(operation) {
+  return snapAlignDisabled.value
+    ? SNAP_ALIGN_DISABLED_HINT
+    : `${operation.label} — ${operation.hint}`
+}
+
+/** Which popover is open, or none. */
+const openPopover = ref(/** @type {'group.snap' | 'group.align' | null} */ (null))
+
+/** Axis checkboxes — reset to unchecked every time a popover opens. */
+const axesChecked = reactive(/** @type {Record<'x' | 'y' | 'z', boolean>} */ ({
+  x: false,
+  y: false,
+  z: false,
+}))
+
+/** Snap-only orientation, defaults to the first canonical option on open. */
+const orientation = ref(SNAP_ORIENTATIONS[0].value)
+
+/** Millimetre offset, applied uniformly across every checked axis (see module doc). */
+const offsetMm = ref(0)
+
+/** The checked axes, in `x`/`y`/`z` order, as the single string the registry wants. */
+const axesString = computed(() => AXES.filter((axis) => axesChecked[axis]).join(''))
+
+const canCommitSnapAlign = computed(
+  () => !snapAlignDisabled.value && axesString.value.length > 0,
+)
+
+// If the selection stops being exactly 2 while a popover is open — a third
+// solid picked, or one deselected — the precondition this popover exists to
+// enforce is no longer met, so it closes itself rather than staying open for
+// a commit that would now throw inside the registry's own `requireTwoOperands`.
+watch(snapAlignDisabled, (isDisabled) => {
+  if (isDisabled) openPopover.value = null
+})
+
+/**
+ * Open a popover, or close it if its own button is clicked again.
+ *
+ * @param {'group.snap' | 'group.align'} op
+ * @returns {void}
+ */
+function togglePopover(op) {
+  if (snapAlignDisabled.value) return
+  if (openPopover.value === op) {
+    openPopover.value = null
+    return
+  }
+  // A fresh form every time: an axis/orientation/offset left checked from a
+  // previous Snap would otherwise silently carry over onto a different pair
+  // of solids.
+  axesChecked.x = false
+  axesChecked.y = false
+  axesChecked.z = false
+  orientation.value = SNAP_ORIENTATIONS[0].value
+  offsetMm.value = 0
+  openPopover.value = op
+}
+
+/** Close whichever popover is open without appending anything. */
+function closePopover() {
+  openPopover.value = null
+}
+
+/**
+ * Commit the open popover's Snap or Align. See the module doc above for why
+ * this appends a `supersedes` record, never a `consumes` one.
+ *
+ * @returns {void}
+ */
+function commitSnapAlign() {
+  const op = openPopover.value
+  if (!op || !canCommitSnapAlign.value) return
+
+  // Same operand-resolution discipline as `run()` above: the raw selection ids
+  // are lineage roots, and the kernel needs each operand's *current* terminal
+  // id, not the geometry it had when first placed.
+  const operandIds = selection.ids.map((id) => documentStore.raw.currentIdOf(id) ?? id)
+  const [base, reference] = operandIds
+  const id = documentStore.raw.nextId(op === 'group.snap' ? 'snap' : 'align')
+
+  /** @type {Record<string, any>} */
+  const params = { axes: axesString.value, deltaMm: offsetMm.value }
+  if (op === 'group.snap') params.orientation = orientation.value
+
+  /** @type {import('../../core/kernel/registry.js').OpRecord} */
+  const record = {
+    id,
+    op,
+    // `target` before `operands` is the fold's own input order, so the
+    // first-selected ("moving") solid lands at `inputs[0]` — exactly the
+    // operand `group.snap`/`group.align` move, per `core-013`'s registry.
+    target: base,
+    operands: [reference],
+    // Not `consumes` — see the module doc's "Snap and Align are a different
+    // shape" section for why that would be a real bug here, not a style choice.
+    supersedes: base,
+    params,
+  }
+
+  documentStore.append(record, { origin: 'local' })
+
+  // `base` above is the moving solid's *terminal* id (what the record has to
+  // build on); `selection.ids[0]` is its *lineage root*, which is what stays a
+  // valid identity across this move — the same reason a gizmo drag never has
+  // to reselect after committing a `transform.*` record. The reference solid
+  // drops out of the selection; only the moved solid stays selected.
+  selection.select(selection.ids[0])
+  closePopover()
+}
 </script>
 
 <template>
@@ -157,7 +382,7 @@ function run(op, label) {
     :data-enabled="disabled ? 'false' : 'true'"
     :data-selected-count="selection.count"
     role="group"
-    aria-label="Boolean and group operations"
+    aria-label="Boolean, group and snap/align operations"
   >
     <p class="ops__badge" data-testid="operations-count">
       <span class="ops__count">{{ selection.count }} selected</span>
@@ -186,7 +411,107 @@ function run(op, label) {
         <span class="ops__glyph" aria-hidden="true">{{ operation.glyph }}</span>
         <span class="ops__label">{{ operation.label }}</span>
       </button>
+
+      <!-- Snap/Align (TODO/ui-026): appended to the same row as the four
+           stateless buttons above, but each opens a popover rather than
+           committing immediately — see the module doc's "Snap and Align are a
+           different shape" section for why. -->
+      <button
+        v-for="operation in SNAP_ALIGN_OPERATIONS"
+        :key="operation.op"
+        type="button"
+        class="ops__btn"
+        :disabled="snapAlignDisabled"
+        :data-testid="`operation-${operation.label.toLowerCase()}`"
+        :data-op="operation.op"
+        :aria-expanded="openPopover === operation.op"
+        :title="snapAlignTitleFor(operation)"
+        :aria-label="snapAlignTitleFor(operation)"
+        @click="togglePopover(operation.op)"
+      >
+        <span class="ops__glyph" aria-hidden="true">{{ operation.glyph }}</span>
+        <span class="ops__label">{{ operation.label }}</span>
+      </button>
     </div>
+
+    <!-- Teleported to `<body>`, not left as a normal descendant of `.ops` —
+         see this class's own CSS comment for why. `.ops` has a
+         `backdrop-filter`, and Chromium treats any element with a
+         non-`none` `backdrop-filter` as the *containing block* for its
+         `position: fixed` descendants rather than letting them resolve
+         against the real browser viewport. That silently re-centred this
+         popover on `.ops`'s own ~182px-wide box instead of the page,
+         which is what actually produced the off-screen/negative-`x` failure
+         a first pass of this file's own e2e spec caught — `<Teleport>` moves
+         the DOM node itself out from under `.ops` so `position: fixed` means
+         what it says. -->
+    <Teleport to="body">
+      <div v-if="openPopover" class="ops__popover-backdrop" @click="closePopover" />
+      <div
+        v-if="openPopover"
+        class="ops__popover"
+        data-testid="snap-align-popover"
+        :data-op="openPopover"
+      >
+        <p class="ops__popover-note">
+          Moves the <strong>moving</strong> item (first selected) against the
+          <strong>reference</strong> item (second selected), which never moves.
+          Unlike every other button here, both stay separately selectable
+          afterward — nothing is combined.
+        </p>
+
+        <fieldset class="ops__popover-axes">
+          <legend>Axes</legend>
+          <label v-for="axis in AXES" :key="axis" class="ops__checkbox">
+            <input
+              type="checkbox"
+              v-model="axesChecked[axis]"
+              :data-testid="`snap-align-axis-${axis}`"
+            />
+            {{ axis.toUpperCase() }}
+          </label>
+        </fieldset>
+
+        <label v-if="openPopover === 'group.snap'" class="ops__popover-field">
+          Orientation
+          <select v-model="orientation" data-testid="snap-align-orientation">
+            <option v-for="choice in SNAP_ORIENTATIONS" :key="choice.value" :value="choice.value">
+              {{ choice.label }}
+            </option>
+          </select>
+        </label>
+        <p v-else class="ops__popover-hint">Align always centres — there is no orientation to pick.</p>
+
+        <label class="ops__popover-field">
+          Offset (mm)
+          <input type="number" v-model.number="offsetMm" data-testid="snap-align-offset" />
+        </label>
+
+        <!-- Named-sub-part addressing ("snap this bolt by its head") is
+             explicitly out of scope this cut — TODO/ui-026's Proposed fix. -->
+        <p class="ops__popover-hint">Whole-object snap/align only — sub-part addressing isn't available yet.</p>
+
+        <div class="ops__popover-actions">
+          <button
+            type="button"
+            class="ops__popover-cancel"
+            data-testid="snap-align-cancel"
+            @click="closePopover"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            class="ops__popover-commit"
+            :disabled="!canCommitSnapAlign"
+            data-testid="snap-align-commit"
+            @click="commitSnapAlign"
+          >
+            {{ openPopover === 'group.snap' ? 'Snap' : 'Align' }}
+          </button>
+        </div>
+      </div>
+    </Teleport>
   </div>
 </template>
 
@@ -317,6 +642,190 @@ function run(op, label) {
   color: var(--text-3);
 }
 
+/*
+ * Snap/Align's popover (TODO/ui-026) — `position: fixed` and centred near the
+ * top of the *viewport*, deliberately not anchored below `.ops` the way
+ * `ui-019`'s gear popover anchors below `.chrome`. That was the first design
+ * tried here, and it broke two different ways, both found by this file's own
+ * e2e spec rather than designed up front:
+ *
+ * 1. **A row-anchored popover collides with relocated nav chrome.** At phone
+ *    width, this popover's own precondition (exactly 2 solids selected) is
+ *    exactly the state that auto-opens the Inspector's bottom sheet, which
+ *    pushes `NavigationChrome` upward by up to ~430px (`AppView.vue`'s
+ *    `--viewport-bottom-inset`, the same custom property `Grid.vue`/
+ *    `NavigationChrome.vue` read for their own bottom clearance) — squarely
+ *    into the band a row-anchored, six-field popover would occupy. An
+ *    `axis-z` checkbox and `nav-step-right` measured at nearly the same
+ *    on-screen coordinates, and Playwright's "element intercepts pointer
+ *    events" was exactly this, not a flaky test.
+ * 2. **`.ops` has a `backdrop-filter`**, which Chromium treats as making `.ops`
+ *    the *containing block* for `position: fixed` descendants rather than the
+ *    real browser viewport — so even after moving off the button row, a plain
+ *    (non-teleported) `position: fixed` popover centred with `left: 50%`
+ *    centred on `.ops`'s own ~182px-wide box, not the page, and clipped off
+ *    the left edge.
+ *
+ * Both are solved by the `<Teleport to="body">` in the template, not by
+ * anything in this rule: teleporting moves the popover *and* its backdrop to
+ * the end of `<body>`, which (a) makes `position: fixed` resolve against the
+ * real viewport again, and (b) — since Vue appends teleported content after
+ * everything already in `<body>` — puts both above every other viewport
+ * overlay in paint order without this rule needing its own `z-index` fight
+ * with `NavigationChrome`. The full-page, click-catching backdrop
+ * (`.ops__popover-backdrop`) is what actually makes any *geometric* overlap
+ * with nav chrome harmless: nothing beneath the backdrop is reachable while a
+ * popover is open, regardless of where either box happens to sit on screen.
+ *
+ * `width` is deliberately capped by `100vw`, not by `.ops`'s own (already
+ * tight, gizmo-avoiding) `max-width` — this popover is taller and denser than
+ * the six-button row above it, so it needs more room than that budget leaves,
+ * and unlike the button row it opens only on demand rather than sitting
+ * visible at all times. `min(260px, calc(100vw - 32px))` is what `ui-026`'s
+ * own Testing section calls for explicitly: "stays on-screen and reachable by
+ * touch at 390px width" — 260px comfortably fits a stacked checkbox/select/
+ * number-input form, and the `100vw` clamp is the literal off-screen-clipping
+ * guard at any narrower width than that. `max-height` plus `overflow-y: auto`
+ * is a matching vertical guard against an unreasonably short viewport —
+ * content scrolls inside the popover rather than ever running off-screen.
+ */
+.ops__popover-backdrop {
+  position: fixed;
+  inset: 0;
+  /* Transparent on purpose: this is a click-catcher, not a dimming overlay —
+     the whole point of the popover staying anchored near the top is that the
+     scene underneath stays legible while parameters are picked. */
+  background: transparent;
+  z-index: 9;
+}
+
+.ops__popover {
+  position: fixed;
+  top: 64px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(260px, calc(100vw - 32px));
+  /* A generic short-viewport guard, not a precise nav-chrome-avoidance
+     calculation — `--viewport-bottom-inset` (used above by `.ops`'s siblings)
+     does not inherit here, since the teleported popover is no longer a
+     descendant of the element that sets it. That precision is unnecessary
+     now: the backdrop above is what keeps this popover's on-screen position
+     safe to interact with, not this cap. */
+  max-height: calc(100vh - 96px);
+  overflow-y: auto;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface-glass);
+  backdrop-filter: blur(6px);
+  box-shadow: var(--shadow-overlay);
+  z-index: 10;
+}
+
+.ops__popover-note {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--text-2);
+}
+
+.ops__popover-hint {
+  margin: 0;
+  font-size: 10px;
+  line-height: 1.3;
+  color: var(--text-3);
+}
+
+.ops__popover-axes {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+
+.ops__popover-axes legend {
+  padding: 0;
+  margin-right: 2px;
+  font-size: 11px;
+  color: var(--text-2);
+}
+
+.ops__checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--text-1);
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.ops__checkbox input {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  cursor: pointer;
+}
+
+.ops__popover-field {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 11px;
+  color: var(--text-2);
+}
+
+.ops__popover-field select,
+.ops__popover-field input {
+  min-height: var(--tap-compact);
+  padding: 0 8px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface-1);
+  color: var(--text-1);
+  font-size: 13px;
+}
+
+.ops__popover-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.ops__popover-cancel,
+.ops__popover-commit {
+  flex: 1;
+  min-height: var(--tap-compact);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.ops__popover-cancel {
+  border: 1px solid var(--border-strong);
+  background: var(--surface-2);
+  color: var(--text-2);
+}
+
+.ops__popover-commit {
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: var(--accent-contrast);
+  font-weight: 600;
+}
+
+.ops__popover-commit:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 @media (max-width: 640px) {
   .ops {
     top: 8px;
@@ -349,6 +858,15 @@ function run(op, label) {
 
   .ops__label {
     font-size: 11px;
+  }
+
+  .ops__popover {
+    /* Positioning is unchanged at this width — it is already `position: fixed`
+       and viewport-relative (see its own CSS comment above), not derived from
+       `.ops`'s box, so nothing here needs to move. Only the padding/gaps
+       tighten, to match the rest of the toolbar's phone-width density. */
+    padding: 8px;
+    gap: 6px;
   }
 }
 </style>

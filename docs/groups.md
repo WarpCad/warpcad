@@ -118,6 +118,9 @@ separate shapes you created and so have no parameters of their own to show.
 - [Combining shapes: Union, Subtract and Intersect](booleans.md) — the same
   toolbar's other three buttons, which compute a new volume instead of keeping
   every part intact.
+- [Precise placement: Snap and Align](snap-align.md) — the same toolbar's fifth
+  and sixth buttons, which also keep every shape intact but, unlike Group,
+  never combine them into one selectable body at all.
 - [Placing a shape](primitive-placement.md) — getting shapes into the view in the
   first place.
 - [Selecting a shape, and reading its size](selection-and-inspector.md) — what

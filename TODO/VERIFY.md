@@ -19,6 +19,21 @@ between sessions — that's itself a signal to move more of it into
 
 ## Queue
 
+### ui-026 — Snap/Align operation (2026-09-11 20:20)
+
+- [ ] The Snap/Align popover is a **modal-style overlay with a full-page,
+  click-catching backdrop** — a departure from `ui-019`'s row-anchored gear
+  popover, forced by a real phone-width collision with `NavigationChrome`
+  (see the retired TODO's own note and `OperationsToolbar.vue`'s
+  `.ops__popover` CSS comment for the mechanics). Functionally verified by
+  headless Chromium and Firefox/WebKit-equivalent hit-testing (a real click on
+  a background control while the popover is open is genuinely blocked), but
+  the *feel* of a centred modal appearing over the viewport — rather than
+  growing out of the button the way every other popover in this app does —
+  hasn't been judged on real phone/tablet hardware. Worth a real-device check
+  next time someone is testing on-device, specifically: does it read as
+  "this button opened a thing" or as a jarring, disconnected overlay.
+
 ### ui-016 — look at `hardware.bolt` and `kit.anchor` on screen the moment they get Library rows (2026-09-11 20:02)
 
 `ui-016` changed how **every** Group-valued body is rendered: one mesh per named part

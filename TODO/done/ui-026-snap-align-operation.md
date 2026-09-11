@@ -6,8 +6,43 @@ priority: medium
 model: sonnet
 milestone: M3
 depends: [core-013]
-status: open
+status: done
 ---
+
+> **What actually shipped, where it differs from the proposal below.** Two
+> deliberate narrowings, both stated here rather than silently done:
+>
+> 1. **The appended record omits `name`.** The record shape sketched in
+>    Affected files below (`{ id, op, name, target, operands, supersedes,
+>    params }`) includes `name`, but `document.js`'s own module doc states that
+>    `Body.name`/`op`/`params` are read from a lineage's **root** record, never
+>    a superseding one — so a `name` here would be silently unused. Omitting it
+>    matches the established precedent for a `supersedes`-shaped record,
+>    `src/core/transform.js`'s `translateRecord`/`rotateRecord` (the gizmo
+>    drag's own commit), which carry no `name` either, rather than copying the
+>    `consumes`-based booleans' shape where a name is genuinely needed (they
+>    are their own new lineage root).
+> 2. **The Offset field is one scalar for both ops, not a per-axis vector for
+>    Align.** `group.js`'s `calcSnap` (which `group.snap` calls) only ever adds
+>    its `deltaMm` as a single scalar across every checked axis — its own
+>    signature has no vector form. Offering a per-axis vector in the popover
+>    for *Align* only (where `calcCenterWith` does accept one) while Snap stays
+>    scalar-only would need two different field shapes depending on which
+>    button opened the popover, for a case neither this file's Interaction
+>    model nor its Testing section actually exercises. A single scalar field,
+>    applied uniformly to both ops, avoids ever handing `calcSnap` an array
+>    where it expects a number (silent `NaN`, no thrown error) and is what
+>    shipped; a true per-axis Align offset is left for a later task.
+>
+> Also found and fixed during this task, not proposed by it: the popover's
+> first design (anchored below the button row, like `ui-019`'s gear popover)
+> broke two ways at phone width — a `<Teleport to="body">` was needed, both to
+> escape `.ops`'s `backdrop-filter` (which Chromium treats as the containing
+> block for `position: fixed` descendants) and to clear `NavigationChrome`
+> after the Inspector's bottom sheet relocates it. See
+> `src/components/viewport/OperationsToolbar.vue`'s own `.ops__popover` CSS
+> comment for the full account — this was caught by this task's own e2e spec,
+> not designed up front.
 
 ## Goal
 

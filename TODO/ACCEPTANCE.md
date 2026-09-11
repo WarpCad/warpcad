@@ -426,6 +426,32 @@ nothing, and did not resurrect the second attempt's "the new body replaces the o
 regression. Orbiting afterwards confirmed all three from another angle rather than a
 one-frame artefact. Console clean in all three drives.
 
+**Re-checked**: 2026-09-11 20:19 — PASS (`ui-026`). Re-driven specifically because Snap
+and Align are the first buttons on the Operations toolbar whose entire point is that
+**both operands remain independently selectable afterward** — every prior button
+(Union/Subtract/Intersect/Group) retires its operands via `consumes`, so this is the
+first time this scenario's "stay visible, stay independently selectable" claim is
+checked against a `supersedes`-based commit path instead.
+
+Driven at laptop 1440×900 (Chromium): a Cube and a Cylinder dropped apart, both stayed
+visible (`data-body-count` 2), and clicking each in turn selected only that one. Then
+both were selected (Cube first, Cylinder second — Shift-click), **Align** opened, the Z
+axis checked, and committed. **`data-body-count` stayed at 2** (not 1, the way a
+boolean or Group would have left it) — both `Cube 1` and `Cylinder 1` were still present
+in the scene list by name, at `-103.21,-27.98,25.00` and `-33.67,188.95,25.00`
+respectively, not merged into one entry. A **third, unrelated Cube** was then dropped:
+body count became exactly **3**, and all three bodies' centres — including the two from
+before the Align commit — were unchanged from immediately after that commit, confirming
+the new `supersedes` path doesn't disturb `document.bodies()`'s existing "both remain
+visible" guarantee.
+
+Beyond the scenario's own steps: reselected the same Cube/Cylinder pair afterward and
+ran **Snap** (Z, `outside+`, 5 mm offset) — the Cube's position changed a second time
+(to `-103.21,-27.98,-15.00`, matching `calcSnap`'s own arithmetic exactly, not
+eyeballed) while the Cylinder's stayed byte-identical, and both remained separately
+clickable, each opening its own Inspector entry (`Cube 1`, `Cylinder 1`) with no
+breadcrumb or merged fields. Console clean throughout.
+
 ### 2. Hardware property edit
 
 **Steps**:
@@ -732,6 +758,47 @@ distance 420, 70.0 mm at 215, and only ~7 mm at 110 — so zooming in does buy f
 control rather than the snap staying equally grabby. The exact conversion
 (`SNAP_TOLERANCE_PX × mmPerPixel`) is pinned by unit tests; how the 48 px radius *feels*
 on real hardware is logged in `TODO/VERIFY.md` rather than claimed here.
+
+**Re-checked**: 2026-09-11 20:19 — **PASS, with the same named stand-in `ui-013` used**
+(`ui-026`). `core-013`'s own retirement note states this task "feeds §9 scenario 3 (kit
+assembly placement)" once it exists, for the still-M4-blocked RPi/Camera case — the
+Raspberry Pi 5 board and Camera Module V3 remain unbuilt Library rows, so this re-drive
+again stands a Cube in as the reference item and a Cylinder in as the item being
+positioned against it, exactly as `ui-013`'s own PASS entry above already established
+for the drag-time mechanism. What's new here is the **precise, computed** counterpart:
+not a drag-time snap guide, but the Operations toolbar's new Snap/Align buttons moving
+an *already-placed* item against another on command.
+
+Driven at laptop 1440×900 (Chromium): a Cube and a Cylinder dropped apart and confirmed
+not overlapping. Selected Cube then Cylinder (order matters — Cube is "moving", Cylinder
+is "reference"), opened **Align**, checked the **Z** axis, and clicked **Align** inside
+the popover. The Cube's centre moved from `z=20.00` to `z=25.00` — exactly the
+Cylinder's own centre — while its **X and Y stayed at `-103.21,-27.98`, untouched**, and
+the popover's own copy read *"Moves the moving item (first selected) against the
+reference item (second selected), which never moves. Unlike every other button here,
+both stay separately selectable afterward — nothing is combined"* — the literal
+divergence-from-precedent this task's Interaction model calls for, present verbatim, not
+paraphrased into something weaker. Clicking the Cube afterward showed its own
+`Cube 1` Inspector entry; clicking the Cylinder showed its own `Cylinder 1` — neither
+merged, no breadcrumb, no stale fields.
+
+Re-selected the same pair and ran **Snap** (Z axis, orientation `Outside +`, 5 mm
+offset): the Cube moved a second time, to `z=-15.00`, matching `calcSnap`'s own
+arithmetic on the two real bodies' bounds to the hundredth of a millimetre
+(`0 − 45 + 5 = −40`, `25.00 + (−40) = −15.00`) — computed independently, not eyeballed
+against a screenshot. The Cylinder's position was byte-identical before and after both
+commits. Console clean throughout.
+
+**Beyond the scenario's own steps, driven freeform at phone width (390×844, touch,
+WebKit)**: the popover — new UI surface this task adds — rendered fully on-screen with
+no horizontal clipping and every control (axis checkboxes, orientation dropdown, offset
+field, Cancel/commit buttons) reachable by touch. A real (hit-tested, not a bypassing
+`element.click()`) touch tap on the on-screen nav-chrome's Pan button *while the popover
+was open* was correctly swallowed by the popover's own backdrop rather than reaching the
+control underneath — confirmed by the drag mode staying `orbit` rather than flipping to
+`pan`. Screenshot on file. This is the literal check this task's own Interaction model
+flagged as needing its own verification ("it may need to anchor differently... check for
+edge-of-viewport clipping at phone width specifically"), and it holds.
 
 ### 4. Boolean gating
 
