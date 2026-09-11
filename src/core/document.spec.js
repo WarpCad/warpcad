@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import modeling from '@jscad/modeling'
 
 import { createDocument } from './document.js'
-import { boundsOf } from './kernel/group.js'
+import { boundsOf, isGroup } from './kernel/group.js'
 
 const { measurements } = modeling
 
@@ -744,5 +744,55 @@ describe('consumption — several bodies retired into one (TODO/ui-014)', () => 
     const [min, max] = boundsOf(bodies[0].geometry)
     expect(max[2]).toBeCloseTo(9, 6)
     expect(min[2]).toBeCloseTo(0, 6)
+  })
+
+  // TODO/ui-015: `group.assemble` is `consumes`-shaped exactly like a boolean — 2+
+  // ids in, 1 new lineage root out — which is precisely the module comment above
+  // (`document.js:78`) claims needs no change here. This pins that claim with a
+  // real assertion rather than leaving it to be trusted by inspection.
+  it('a group.assemble through the real kernel leaves exactly one body whose geometry is a Group, and resolves consumed ids forward', () => {
+    const document = createDocument()
+    document.append(
+      {
+        id: 'cube-1',
+        op: 'primitive.cuboid',
+        name: 'Cube 1',
+        params: { size: [10, 10, 10], center: [-10, 0, 0] },
+      },
+      { origin: 'local' }
+    )
+    document.append(
+      {
+        id: 'cube-2',
+        op: 'primitive.cuboid',
+        name: 'Cube 2',
+        params: { size: [10, 10, 10], center: [10, 0, 0] },
+      },
+      { origin: 'local' }
+    )
+    expect(document.bodies()).toHaveLength(2)
+
+    document.append(
+      {
+        id: 'group-1',
+        op: 'group.assemble',
+        name: 'Group 1',
+        target: 'cube-1',
+        operands: ['cube-2'],
+        consumes: ['cube-1', 'cube-2'],
+        params: { names: ['Cube 1', 'Cube 2'] },
+      },
+      { origin: 'local' }
+    )
+
+    const bodies = document.bodies()
+    expect(bodies).toHaveLength(1)
+    expect(bodies[0].id).toBe('group-1')
+    expect(isGroup(bodies[0].geometry)).toBe(true)
+    // Both consumed ids resolve forward through the new lineage root, same as a
+    // boolean's operands do — a stale reference to either original cube still
+    // finds the group rather than dangling.
+    expect(document.currentIdOf('cube-1')).toBe('group-1')
+    expect(document.currentIdOf('cube-2')).toBe('group-1')
   })
 })

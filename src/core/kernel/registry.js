@@ -37,7 +37,7 @@ import modeling from '@jscad/modeling'
 const { booleans, extrusions, geometries, measurements, primitives, transforms } = modeling
 
 import { chamferRim, filletRim } from './fillet.js'
-import { align, calcCenterWith, calcSnap, isGroup, pick, snap } from './group.js'
+import { add, align, calcCenterWith, calcSnap, createGroup, isGroup, pick, snap } from './group.js'
 import { bolt } from './recipes/hardware.bolt.js'
 import { nut } from './recipes/hardware.nut.js'
 import { washer } from './recipes/hardware.washer.js'
@@ -578,6 +578,55 @@ export const registry = Object.freeze({
   // `inputRefs`) — which is what lets the Operations toolbar map "first
   // selected" onto "base" without the document layer knowing about selection.
   'boolean.intersect': native('2+', ({ inputs }) => booleans.intersect(inputs)),
+
+  // The fourth Operations-toolbar button (TODO/ui-015), placed beside the booleans
+  // rather than beside `group.snap`/`group.align` below despite the shared `group.`
+  // prefix: its *shape* matches the booleans exactly — `2+` operands, each already
+  // flattened to a plain `Geom3` by the fold before `build` ever sees it — while
+  // `group.snap`/`align`'s `rawOperands` machinery (un-combined `ResolvedOperand`s,
+  // so a bolt can be snapped by its head alone) is irrelevant here.
+  //
+  // Unlike a boolean, nothing is discarded: every operand becomes its own named
+  // part of a new Group, addressable later (TODO/ui-016) rather than merged away.
+  // `params.names` supplies one display name per operand, in the same order as
+  // `inputs` — the toolbar builds that array from each operand's current body name
+  // (`OperationsToolbar.vue`'s `run()`), so a grouped part reads as "Cube 1" rather
+  // than an opaque record id once `ui-016` surfaces a per-part breadcrumb.
+  //
+  // Deliberately **not** `rawOperands`: a composite operand (a placed
+  // `hardware.bolt`, say) arrives here with its own internal parts already
+  // collapsed into one solid by `toGeom3`, so grouping two composites does not
+  // preserve either one's own sub-structure inside the new outer group. That is a
+  // real, stated scope limit, not an oversight — preserving a *nested* composite's
+  // parts would need `rawOperands` and `add()`'s `subpartPrefix` option
+  // (`group.js:398-420`, already built for exactly this), but wiring that through
+  // has no consumer until a UI can address a doubly-nested part, which is
+  // `ui-016`-or-later work. Building it here would be exactly the premature
+  // generality CLAUDE.md warns against.
+  'group.assemble': native('2+', ({ params, inputs }) => {
+    const op = 'group.assemble'
+    const names = params.names
+    if (!Array.isArray(names) || names.length !== inputs.length) {
+      throw new Error(
+        `${op}: expected one name per operand (${inputs.length}), got ${JSON.stringify(names)}`
+      )
+    }
+    // `add()` below assigns `parts[partName] = object` by plain assignment — a
+    // duplicate name would silently overwrite an earlier part instead of erroring,
+    // which is the "wrong geometry with no error" failure class `index.js`'s own
+    // `normalizeRef` comment already calls out for a different case. Sibling
+    // bodies can't collide in practice (`document.js`'s `nextName` counter
+    // guarantees "Cube 1"/"Cube 2"), but this op should not *trust* that
+    // invariant from outside its own module.
+    if (new Set(names).size !== names.length) {
+      throw new Error(`${op}: operand names must be unique, got ${JSON.stringify(names)}`)
+    }
+    let group = createGroup()
+    inputs.forEach((geometry, index) => {
+      group = add(group, geometry, names[index])
+    })
+    return group
+  }),
 
   // ## Positioning one placed item against another (TODO/core-013)
   //

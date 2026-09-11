@@ -6,8 +6,54 @@ priority: high
 model: sonnet
 milestone: M3
 depends: [ui-014]
-status: open
+status: done
 ---
+
+> **What actually shipped, where it differs from this file's own plan** (same
+> convention `ui-014`'s retired file used): the registry entry, the toolbar's fourth
+> button, and the `params.names` mechanism all landed exactly as proposed below. Four
+> real deviations, found while implementing and verifying rather than designed up
+> front:
+>
+> 1. **`OperationsToolbar.spec.js` does not exist** (confirmed at Step 2, as this
+>    file's own Affected files section flagged as a possibility) — there is no
+>    component-level test file alongside `OperationsToolbar.vue` for any of the four
+>    buttons, boolean or Group. Its Testing-section case is therefore not written;
+>    coverage for the button's wiring comes from `e2e/group-combine.e2e.js` instead
+>    (real app, not a component harness), which is the stronger guarantee anyway.
+> 2. **The `params.names` lookup uses `selection.ids` (lineage roots), not
+>    `operandIds` (terminal ids)** as this file's own Proposed fix sketched
+>    (`operandIds.map(id => documentStore.bodies.find(b => b.id === id)?.name ?? id)`).
+>    `documentStore.bodies` keys each summary by its *lineage root* id, while
+>    `operandIds` (built via `currentIdOf`) holds each operand's *terminal* record id —
+>    the two only coincide for a body that has never been moved. The proposed lookup
+>    would have silently fallen back to an opaque record id for any moved operand
+>    instead of its real name. Fixed by looking the name up from `selection.ids`
+>    (index-aligned with `operandIds`) instead.
+> 3. **A fourth button's width broke a corner of the tablet layout — found by this
+>    task's own full e2e run, not designed for up front.** Adding Group pushed the
+>    toolbar's natural width from ~251px to ~326px, and at tablet width the persistent
+>    Library/Inspector side panels leave the 3D viewport *pane* itself only ~390px wide
+>    (a page-width media query never sees this — the page is 820px). The wider row
+>    reached into the orientation gizmo's own corner, and Firefox's ~15px-wider button
+>    labels turned that into a real, deterministic "intercepts pointer events" failure
+>    in `viewport-scaffold.e2e.js`/`selection-inspector.e2e.js` (not this task's own new
+>    spec) at tablet and phone widths. Fixed in `OperationsToolbar.vue`'s `<style>`: a
+>    container-relative `max-width` on `.ops` (reserving the gizmo's own footprint) plus
+>    unconditional `flex-wrap` on `.ops__row`, replacing a page-width-only cap that could
+>    no longer catch a pane-width squeeze. Verified by direct bounding-box measurement in
+>    both Chromium and Firefox, and re-driven by hand in WebKit at phone width (see
+>    `TODO/ACCEPTANCE.md` scenario 1's re-check).
+> 4. **Testid derivation changed from `operation.op.replace('boolean.', '')` to
+>    `operation.label.toLowerCase()`**, so the fourth button reads `operation-group`
+>    instead of the unchanged `operation-group.assemble` the old replace-only-`boolean.`
+>    logic would have produced. Backward-compatible for the existing three (`union`/
+>    `subtract`/`intersect` lower-case exactly as before).
+>
+> Also not in the original plan: an `aria-label` update on the toolbar's root
+> (`"Boolean operations"` → `"Boolean and group operations"`, nothing depended on the
+> old string) and an `id` prefix of `'group'` rather than `'bool'` for a
+> `group.assemble` record's own id, for readability in an NDJSON document.
 
 ## Goal
 

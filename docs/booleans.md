@@ -5,16 +5,19 @@ of them into one — merging them, cutting one out of another, or keeping only t
 they have in common. They are how a plain box becomes a case with a bolt hole in it.
 
 The three operations live in the **Operations toolbar**, in the top-left corner of the
-3D view. They are deliberately *not* in the Library panel next to Cube and Cylinder:
-the Library creates new shapes out of nothing, while these three act on shapes you have
-already placed. That is a different kind of action with a different requirement, and the
-toolbar says so before you press anything.
+3D view — alongside a fourth button, **Group**, which combines shapes without merging
+their geometry; see [Combining shapes into a group](groups.md) for that one. They are
+deliberately *not* in the Library panel next to Cube and Cylinder: the Library creates
+new shapes out of nothing, while these act on shapes you have already placed. That is a
+different kind of action with a different requirement, and the toolbar says so before
+you press anything.
 
 | Button | What it does |
 |---|---|
 | **∪ Union** | Merges the selected solids into a single one. |
 | **− Subtract** | Removes every solid you selected *after* the first one from that first one. |
 | **∩ Intersect** | Keeps only the volume that all the selected solids share, and discards the rest. |
+| **⊞ Group** | Combines the selected solids into one selectable body, keeping each one's own geometry intact — see [Combining shapes into a group](groups.md). |
 
 ## You need at least two shapes selected
 

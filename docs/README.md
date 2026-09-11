@@ -21,6 +21,9 @@ themselves won't have to move.
 - [Combining shapes: Union, Subtract and Intersect](booleans.md) — the
   Operations toolbar, why its buttons stay dimmed until two shapes are selected,
   and how to tell which shape Subtract is about to cut.
+- [Combining shapes into a group](groups.md) — the Operations toolbar's fourth
+  button, which combines shapes into one selectable body without merging or
+  discarding any of their geometry.
 - [Moving around the 3D view](viewport-navigation.md) — orbit, pan, zoom, the
   orientation triad, touch gestures, and reading size off the grid.
 

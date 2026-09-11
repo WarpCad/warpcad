@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import modeling from '@jscad/modeling'
 
 import { acceptsOperandCount, assertOperandCount, getEntry, registry } from './registry.js'
-import { calcCenterWith, calcSnap, centroidOf, isGroup, pick } from './group.js'
+import { calcCenterWith, calcSnap, centroidOf, combine, isGroup, pick } from './group.js'
 import { evaluate } from './index.js'
 
 const { measurements } = modeling
@@ -342,6 +342,84 @@ describe('native builders', () => {
     // leaked in there would be the undifferentiated create/operate dropdown
     // CLAUDE.md's Interaction Model rules out.
     expect(registry['boolean.intersect'].ui).toBeUndefined()
+  })
+
+  // TODO/ui-015: unlike the booleans above, `group.assemble` keeps every operand's
+  // own geometry intact — addressable by name — rather than collapsing them into one
+  // combined solid. Its `combine()` still unions the same way `boolean.union` does,
+  // which is the cross-check every test below leans on: grouping must not silently
+  // lose or double geometry relative to the boolean it otherwise resembles.
+  describe('group.assemble — TODO/ui-015', () => {
+    it('is a 2-or-more operand op, like the booleans, and carries no ui metadata', () => {
+      expect(registry['group.assemble']).toMatchObject({ kind: 'native', operandCount: '2+' })
+      expect(acceptsOperandCount('group.assemble', 1)).toBe(false)
+      expect(acceptsOperandCount('group.assemble', 2)).toBe(true)
+      expect(acceptsOperandCount('group.assemble', 5)).toBe(true)
+      // Same reasoning as boolean.intersect above: an operation must never leak
+      // into the Library panel's creation rows.
+      expect(registry['group.assemble'].ui).toBeUndefined()
+    })
+
+    it('builds a Group whose names/parts match the given names 1:1, one part per operand', () => {
+      const a = build('primitive.cuboid', { params: { size: [10, 10, 10], center: [-10, 0, 0] } })
+      const b = build('primitive.cuboid', { params: { size: [10, 10, 10], center: [10, 0, 0] } })
+      const result = /** @type {any} */ (
+        build('group.assemble', { params: { names: ['Cube 1', 'Cube 2'] }, inputs: [a, b] })
+      )
+      expect(isGroup(result)).toBe(true)
+      expect(result.names).toEqual(['Cube 1', 'Cube 2'])
+      expect(result.parts['Cube 1']).toBe(a)
+      expect(result.parts['Cube 2']).toBe(b)
+    })
+
+    it('accepts 3 or more operands, one part per name, in order', () => {
+      const a = build('primitive.cuboid', { params: { size: [10, 10, 10], center: [-20, 0, 0] } })
+      const b = build('primitive.cuboid', { params: { size: [10, 10, 10], center: [0, 0, 0] } })
+      const c = build('primitive.cuboid', { params: { size: [10, 10, 10], center: [20, 0, 0] } })
+      const result = /** @type {any} */ (
+        build('group.assemble', { params: { names: ['A', 'B', 'C'] }, inputs: [a, b, c] })
+      )
+      expect(result.names).toEqual(['A', 'B', 'C'])
+      expect(result.parts).toEqual({ A: a, B: b, C: c })
+    })
+
+    it("combine()'s output volume equals boolean.union's for the same inputs — grouping loses nothing", () => {
+      // Overlapping, not just adjacent, so a naive implementation that dropped or
+      // double-counted a part would show up as a volume mismatch rather than
+      // being masked by the two solids not sharing any space at all.
+      const a = build('primitive.cuboid', { params: { size: [10, 10, 10], center: [-3, 0, 0] } })
+      const b = build('primitive.cuboid', { params: { size: [10, 10, 10], center: [3, 0, 0] } })
+      const grouped = /** @type {any} */ (
+        build('group.assemble', { params: { names: ['A', 'B'] }, inputs: [a, b] })
+      )
+      const groupVolume = measurements.measureVolume(combine(grouped))
+      const unionVolume = measurements.measureVolume(
+        /** @type {Geom3} */ (build('boolean.union', { inputs: [a, b] }))
+      )
+      expect(groupVolume).toBeCloseTo(unionVolume, 6)
+    })
+
+    it('throws when names has a different length than inputs', () => {
+      const a = build('primitive.cuboid', { params: { size: [10, 10, 10] } })
+      const b = build('primitive.cuboid', { params: { size: [10, 10, 10], center: [20, 0, 0] } })
+      expect(() =>
+        build('group.assemble', { params: { names: ['only-one'] }, inputs: [a, b] })
+      ).toThrow(/one name per operand/)
+      expect(() => build('group.assemble', { params: {}, inputs: [a, b] })).toThrow(
+        /one name per operand/
+      )
+      expect(() =>
+        build('group.assemble', { params: { names: ['a', 'b', 'c'] }, inputs: [a, b] })
+      ).toThrow(/one name per operand/)
+    })
+
+    it('throws on duplicate names rather than silently overwriting a part (group.js add() assigns by name)', () => {
+      const a = build('primitive.cuboid', { params: { size: [10, 10, 10] } })
+      const b = build('primitive.cuboid', { params: { size: [10, 10, 10], center: [20, 0, 0] } })
+      expect(() =>
+        build('group.assemble', { params: { names: ['Cube 1', 'Cube 1'] }, inputs: [a, b] })
+      ).toThrow(/unique/)
+    })
   })
 
   it('rejects degenerate primitive dimensions instead of emitting an empty solid', () => {

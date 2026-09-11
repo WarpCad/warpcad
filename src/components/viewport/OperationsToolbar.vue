@@ -1,6 +1,7 @@
 <script setup>
 /**
- * The Operations toolbar: Union, Subtract, Intersect (`TODO/ui-014`).
+ * The Operations toolbar: Union, Subtract, Intersect (`TODO/ui-014`) and Group
+ * (`TODO/ui-015`).
  *
  * This control exists in this shape because of a rule CLAUDE.md calls
  * non-negotiable:
@@ -67,6 +68,12 @@ const OPERATIONS = Object.freeze([
     glyph: '∩',
     hint: 'Keep only the volume the selected solids share',
   },
+  {
+    op: 'group.assemble',
+    label: 'Group',
+    glyph: '⊞',
+    hint: "Combine into one selectable body — each solid's own geometry stays intact",
+  },
 ])
 
 /** The precondition, stated once. CLAUDE.md gates on count, not presence. */
@@ -97,25 +104,43 @@ function run(op, label) {
 
   // Resolve every selected body to the record that currently represents it —
   // see the module note above on why the raw selection ids are the wrong thing
-  // to hand the kernel.
+  // to hand the kernel as `target`/`operands`.
   const operandIds = selection.ids.map((id) => documentStore.raw.currentIdOf(id) ?? id)
   const [base, ...rest] = operandIds
-  const id = documentStore.raw.nextId('bool')
+  const id = documentStore.raw.nextId(op === 'group.assemble' ? 'group' : 'bool')
 
-  documentStore.append(
-    {
-      id,
-      op,
-      name: documentStore.raw.nextName(label),
-      // `target` before `operands` is the fold's own input order, so the
-      // first-selected solid lands at `inputs[0]` — which is what makes it
-      // Subtract's minuend without this component knowing any kernel maths.
-      target: base,
-      operands: rest,
-      consumes: operandIds,
-    },
-    { origin: 'local' },
-  )
+  /** @type {import('../../core/kernel/registry.js').OpRecord} */
+  const record = {
+    id,
+    op,
+    name: documentStore.raw.nextName(label),
+    // `target` before `operands` is the fold's own input order, so the
+    // first-selected solid lands at `inputs[0]` — which is what makes it
+    // Subtract's minuend without this component knowing any kernel maths.
+    target: base,
+    operands: rest,
+    consumes: operandIds,
+  }
+
+  // `group.assemble` (TODO/ui-015) needs one display name per operand, so the
+  // resulting Group's parts are addressable by name rather than by opaque
+  // record id (the breadcrumb `ui-016` builds later). Looked up by
+  // **`selection.ids`**, not by `operandIds` above: `documentStore.bodies` keys
+  // each summary by its *lineage root* id, while `operandIds` holds each
+  // operand's *terminal* record id — the two only coincide for a body that has
+  // never been superseded (moved). Looking up by the terminal id would silently
+  // miss every moved operand and fall back to its opaque record id instead of
+  // its real name.
+  if (op === 'group.assemble') {
+    record.params = {
+      names: selection.ids.map((rootId) => {
+        const body = documentStore.bodies.find((candidate) => candidate.id === rootId)
+        return body?.name ?? rootId
+      }),
+    }
+  }
+
+  documentStore.append(record, { origin: 'local' })
 
   // The operands are gone as independent bodies, so leaving them selected would
   // point the Inspector and the gizmo at things that are no longer on screen.
@@ -132,7 +157,7 @@ function run(op, label) {
     :data-enabled="disabled ? 'false' : 'true'"
     :data-selected-count="selection.count"
     role="group"
-    aria-label="Boolean operations"
+    aria-label="Boolean and group operations"
   >
     <p class="ops__badge" data-testid="operations-count">
       <span class="ops__count">{{ selection.count }} selected</span>
@@ -152,7 +177,7 @@ function run(op, label) {
         type="button"
         class="ops__btn"
         :disabled="disabled"
-        :data-testid="`operation-${operation.op.replace('boolean.', '')}`"
+        :data-testid="`operation-${operation.label.toLowerCase()}`"
         :data-op="operation.op"
         :title="titleFor(operation)"
         :aria-label="titleFor(operation)"
@@ -174,6 +199,20 @@ function run(op, label) {
  * because this toolbar's *enabled state* is what the user is watching while they
  * pick the second solid — a control that only becomes visible once the sheets
  * are dismissed would be telling them nothing at the moment they need it.
+ *
+ * `max-width` below is relative to `.viewport` (this component's containing
+ * block, `position: relative` in `Viewport.vue`) rather than the page, and
+ * that distinction is load-bearing (found by `TODO/ui-015`'s own e2e run, not
+ * designed up front): at tablet width the persistent Library and Inspector side
+ * panels leave the 3D viewport *pane* itself far narrower than the page (measured
+ * ~390px against an 820px page), so the page-width phone breakpoint below never
+ * sees the problem. Adding this fourth button pushed the row's natural width
+ * (~326px) far enough right to physically overlap the orientation gizmo's own
+ * dial — not just its outer box, its clickable view caps — which a Playwright
+ * click then reports as "intercepted", not merely a cosmetic overlap. `184px`
+ * is the gizmo's own container width (130px) plus its `right: 12px` inset plus
+ * a margin, so the row wraps to a second line before it ever reaches that
+ * corner, regardless of how a narrower pane's width ends up divided around it.
  */
 .ops {
   position: absolute;
@@ -183,6 +222,7 @@ function run(op, label) {
   flex-direction: column;
   gap: 6px;
   padding: 6px;
+  max-width: calc(100% - 24px - 184px);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   background: var(--surface-glass);
@@ -230,6 +270,11 @@ function run(op, label) {
 .ops__row {
   display: flex;
   gap: 4px;
+  /* Unconditional, not gated behind the phone media query below: the new
+     `max-width` on `.ops` above is what decides *whether* wrapping is needed
+     (container-relative, so it also catches the tablet-pane squeeze), and this
+     is what actually performs it once that width is exceeded. */
+  flex-wrap: wrap;
 }
 
 .ops__btn {
@@ -277,13 +322,21 @@ function run(op, label) {
     top: 8px;
     left: 8px;
     padding: 4px;
-    /* Never wider than the screen: the row wraps to two lines before it would
-       push the page into horizontal scrolling (CLAUDE.md Responsive Layout). */
-    max-width: calc(100vw - 16px);
-  }
-
-  .ops__row {
-    flex-wrap: wrap;
+    /* No `max-width` override here on purpose (there used to be one,
+       `calc(100vw - 16px)` — removed): at phone width the viewport pane spans
+       essentially the whole page (Library/Inspector are bottom sheets there,
+       not side panels), so `calc(100vw - 16px)` (≈374px on a 390px phone) is
+       *looser* than the base rule's container-relative cap above (≈182px) —
+       and because this block is declared later, it was winning and silently
+       undoing the base rule's protection at exactly the width where the
+       orientation gizmo's corner is tightest. Confirmed by measurement, not
+       assumed: Firefox renders this row's button labels ~15px wider than
+       Chromium, which was just enough at the old 374px cap to reach past the
+       gizmo's Front-view cap's own click point — a real, engine-specific
+       regression this fourth button caused, caught by `TODO/ui-015`'s own full
+       e2e run. Inheriting the tighter base cap fixes it in every engine at
+       once rather than re-deriving a second, phone-specific budget.
+    */
   }
 
   .ops__btn {

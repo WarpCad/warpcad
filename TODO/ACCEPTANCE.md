@@ -353,6 +353,57 @@ separately: 598 passed / 96 skipped, identical to the pre-change baseline).
   `hardware.washer`, `hardware.bolt`, `kit.anchor` after a primitive): each keeps only its
   own parts and its own bounds, so a composite no longer absorbs what came before it.
 
+**Re-checked**: 2026-09-11 14:31 — PASS (`ui-015`). Re-driven in full rather than glanced
+at, per this task's own Testing section: `group.assemble` is `consumes`-shaped exactly
+like a boolean — 2+ operand ids in, 1 new lineage root out — so it changes
+`document.bodies()`'s output the same way `ui-014`'s Union/Subtract/Intersect did, and
+this scenario's named regression ("placing a second body hides or replaces the first")
+lives in exactly that loop. Driven with a real headless Chromium session at laptop
+1440×900 (`chromium.launch()` against the dev server, the `chromium-cli` this project's
+`run` skill prefers still not installed in this environment, same as `ui-024`'s drive),
+plus a supplementary phone 390×844 WebKit touch-only drive (the engine an iPhone
+actually runs) — not required by this task's own Testing section (which reasons
+Chromium-only, DOM/state logic), done anyway because the automated e2e run for this same
+task caught a real cross-engine layout regression in this exact area (below).
+
+- **The scenario itself**: a Cube then a Cylinder dragged in on wandering, jittery paths
+  with a deliberate overshoot and a doubling-back. **Both stayed visible**
+  (`data-body-count` = 2), with distinct centres
+  (`-103.21,-27.98,20.00` / `-33.67,188.95,25.00`). Clicking empty grid cleared the
+  selection (count 0); clicking the cube selected `cuboid-1` alone; clicking the
+  cylinder moved the highlight to `cylinder-2` alone — never both at once. Console clean.
+- **This task's own new case, driven exactly as its Testing section names it** — "confirm
+  placing, grouping, and then placing a third unrelated body afterward doesn't regress
+  body-count or visibility": selecting both (`2 selected`) enabled all four toolbar
+  buttons including the new **Group**; clicking it left **exactly one body**
+  (`group-3`, `op: group.assemble`), auto-selected, with the toolbar dimming again — the
+  transform gizmo attached and the three dimension lines read **109.54 / 256.92 / 50 mm**,
+  far past a single 40 mm cube's own size, confirming the combined bounding box spans
+  both originals rather than one shrunk/discarded volume. A **third body (a Sphere)**
+  was then dropped: body count became exactly **2** (the group plus the sphere, neither
+  three nor one), both listed, and the **group's own centre was byte-identical before and
+  after** the unrelated placement (`-68.44,80.48,25.00` both times) — the specific
+  regression signature this scenario exists to catch, confirmed absent rather than merely
+  not obvious.
+- **The cross-engine defect this same task's automated e2e run found, and re-driven here
+  by hand to confirm the fix holds under real touch input**: the fourth Group button
+  widened the Operations toolbar enough that, on the narrow 3D-viewport pane the tablet
+  layout's persistent side panels leave (measured ~390px against an 820px page — a
+  page-width media query alone never catches this), it started overlapping the
+  orientation gizmo's own clickable view caps. Chromium tolerated it by a few pixels;
+  Firefox's ~15px-wider button-label rendering pushed it past the Front-view cap's click
+  point and Playwright reported a genuine "intercepts pointer events" timeout — not
+  flakiness, reproduced deterministically pre-fix and absent post-fix. Fixed with a
+  container-relative `max-width` on the toolbar (reserving the gizmo's own corner) plus
+  unconditional row-wrapping, verified by direct bounding-box measurement in both engines
+  before shipping. Re-driven by hand at phone width in WebKit with real touch
+  `PointerEvent`s: dragged two cubes in via the Library sheet, marquee-selected both
+  (touch has no Shift key), tapped **Group** — one body resulted — and then successfully
+  **tapped the orientation gizmo's Front-view cap** with no interception or retry, the
+  exact gesture that failed before the fix. Screenshot confirms the toolbar wraps to two
+  rows and stays entirely clear of the gizmo's dial at this width.
+- Console clean in every drive (laptop/Chromium and phone/WebKit).
+
 ### 2. Hardware property edit
 
 **Steps**:
