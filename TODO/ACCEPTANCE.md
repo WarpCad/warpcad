@@ -1116,3 +1116,30 @@ operand reference — that no prior drive of this scenario had ever seen. Driven
 one. **Both bad records were skipped and surfaced as warnings naming the record id, the op and
 the reason**, neither was executed, and the 1st and 4th records still replayed into the scene
 (`parts: a, c`). So the new throw paths behave as loadable-document warnings, not as a halt.
+
+### 9. Open sketch mode and draw one entity
+
+Added per `TODO/ROADMAP.md`'s own instruction: not one of `Initial design.md` §9's
+original 8 (drawn from `picam-touch`'s toggle matrix, which has no 2D sketching), but
+this file's own template header names "drawing one entity" as a cover-at-minimum case.
+Written now, alongside `TODO/ui-020-sketch-mode-line-entity.md`'s scoping, from
+`docs/decisions/interaction-model-qa.md`'s new section 7 Q&A rather than invented here.
+
+**Steps**:
+1. Open the app to an empty scene.
+2. Click the **Sketch** toggle in the viewport chrome.
+3. Confirm the camera snaps to a straight-on view of the working plane and a Sketch
+   toolbar (Line tool, Exit Sketch) appears.
+4. Pointer-down at one point on the grid, drag to a second point, release.
+5. Click empty space, then click the drawn line.
+6. Click **Exit Sketch**.
+
+**Expect**: Sketch mode's own chrome (camera lock, Sketch toolbar) appears on step 2-3,
+distinct from ordinary orbit/pan/zoom mode. The drag in step 4 shows a live preview
+segment following the pointer and commits one visible line entity on release, rendered
+in a style distinct from 3D solid geometry. Step 5's click selects the line and shows
+its own fields (start/end/length) in the Inspector, with no 3D transform gizmo attached
+(per section 7's Q14). Exiting in step 6 returns free orbit and hides the Sketch
+toolbar; the drawn line remains in the scene, not deleted by exiting.
+
+**Last run**: not yet driven — `ui-020` is scoped but not yet implemented.

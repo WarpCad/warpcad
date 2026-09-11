@@ -14,6 +14,13 @@ Q1-9 (the general Phase 1 questions) are answered once, for all six controls, by
 repeated per-control here — only the UI-surface questions (Q10-17) are specific enough
 per-control to need individual answers.
 
+**Section 7 below is a later addition, not one of the original six.** `Initial
+design.md` gives sketch mode far less design depth than the 3D catalog (two flagged
+risk notes, no §7 mockup) — `TODO/ui-020`'s own roadmap row says this needs its own
+Q&A pass before it can be scoped, per `CLAUDE.md`'s ordering rule, the same rule that
+produced sections 1-6 in the first place. Answered here rather than in a second
+document so every control this project has designed stays in one place.
+
 ---
 
 ## 1. Drag-place a primitive (§7a, empty-scene case — no snap guide)
@@ -342,3 +349,90 @@ gizmo's job).
 selects it), matching most CAD/DCC tools' rubber-band convention — stated in
 `TODO/ui-024`'s own Testing section and implemented in
 `src/render/annotate.js`'s `marqueeIntersectsBox`.
+
+---
+
+## 7. Open sketch mode and draw one entity (new — `src/sketch/`'s first control, `TODO/ui-020`)
+
+Scoped narrowly on purpose: `Initial design.md` gives this no mockup at all, and
+`src/sketch/`'s eventual full job (snapping, dimensions, constraint solving, profile
+detection) is not this control's job — this answers only "open sketch mode, and draw
+one entity," the minimum bar `TODO/ACCEPTANCE.md`'s own template header names, with a
+straight line segment as that one entity. Every later sketch tool (rectangle, circle,
+arc, constraints) is a follow-up task extending this control, not something this pass
+has to anticipate.
+
+- **Q10 (flow)** — Precondition: **nothing selected**, and no operand requirement —
+  this is a mode entry, not an operand-gated operation, the same shape as the existing
+  Orbit/Pan/Select nav-chrome toggle (`ui-018`/`ui-024`), not the shape of a
+  boolean/Snap/Align button. Trigger: a **Sketch** toggle button in the main viewport
+  chrome, alongside the existing nav-chrome controls (not the Library or Operations
+  toolbar — this isn't a creation or an operation on a body, it's a mode). Clicking it
+  enters sketch mode: the camera snaps to look straight down the working plane's normal
+  (reusing `render-001`'s existing orientation-gizmo snap-to-view mechanism, aimed at
+  the plane rather than a named axis face) and locks there — orbit is suspended while
+  sketch mode is active, replaced entirely by the drawing gesture below, per Q13. A
+  **Sketch toolbar** appears (currently one tool: **Line**) and an **Exit Sketch**
+  control appears alongside it. Drawing: with Line active (the only tool, so active by
+  default on entry), pointer-down on the working plane starts a live preview segment
+  from that point to the current pointer position; pointer-up commits it as one sketch
+  entity. Feedback: the committed line renders as a persistent 2D stroke on the working
+  plane, distinct in style (a thin, bright, single-color stroke — not a 3D solid's
+  shaded material) from any 3D geometry already in the scene, so a user can tell at a
+  glance that what they just drew is sketch geometry, not a body. Exiting sketch mode
+  (the Exit control, or re-clicking the Sketch toggle) returns the camera to free orbit
+  and hides the Sketch toolbar; the drawn entity persists in the scene as sketch data,
+  it does not disappear on exit.
+- **Q11 (operand count)** — n/a; this is a creation flow (drawing new geometry), not an
+  operation on existing geometry, per Q11's own carve-out for creation controls.
+- **Q12 (control location)** — Needs one genuinely new control surface: the Sketch
+  toggle lives in the main viewport chrome (the same chrome row `ui-018`/`ui-019`'s nav
+  controls and the orientation gizmo already occupy), and the Sketch toolbar (Line tool
+  + Exit) is a new, mode-gated toolbar that only mounts while sketch mode is active —
+  distinct from the always-present Operations toolbar the same way the Library sheet is
+  distinct from the Inspector sheet: a third mode-specific surface, not a repurposing of
+  an existing one. "Register a tool type and let a generic list render it" is
+  explicitly not the answer here either, mirroring the Creation-vs-Operation rule's own
+  reasoning: a sketch tool (Line, later Rectangle/Circle/Arc) is drawing-specific chrome,
+  not a row that belongs beside Cube/Cylinder in the 3D-primitive Library.
+- **Q13 (drag-to-place)** — Yes, and this is the one place this control most directly
+  extends the existing rule rather than restating it: drawing a line is itself a drag
+  gesture, pointer-down at the start point, a live preview segment following the
+  pointer exactly like `ui-010`'s drag-to-place ghost, commit on release — the 2D
+  analogue of `CLAUDE.md`'s "geometry is created by placing it in the 3D view, not
+  spawning it at a fixed transform" rule, applied to a sketch entity instead of a
+  primitive body. A zero-length release (pointer-down and pointer-up at the same
+  point, no drag at all) commits **nothing** — CLAUDE.md's own numerical-code
+  convention of covering degenerate cases (zero-length segments) applied at the
+  interaction layer, not just in a kernel unit test.
+- **Q14 (inspector/gizmo contract)** — Once committed, a line entity behaves as a
+  selectable object: clicking it shows its own fields in the Inspector (start point,
+  end point, length — plain numeric fields, no registry `ui.defaults` lookup, since
+  sketch entities live in `src/sketch/`'s own model, not the kernel registry
+  `describeBody` reads from). **No 3D transform gizmo attaches** — translate/rotate
+  handles are a 3D-body affordance and a sketch entity lives flat on the working plane —
+  instead, each endpoint gets its own small draggable handle directly on the entity
+  (the 2D-sketch equivalent of a gizmo, dragging one point rather than the whole
+  entity), and editing a handle updates the same Inspector numeric fields live, the
+  same "gizmo drag and numeric fields must drive the same underlying value and stay in
+  sync" contract control 4 already established for 3D transforms, applied to endpoint
+  coordinates instead of a translate/rotate triple.
+- **Q15 (selection count)** — n/a for this task: drawing is the only capability this
+  control adds. Selecting and editing an already-drawn entity (Q14 above) works at the
+  ordinary single-selection count; a future multi-entity sketch tool (a rectangle made
+  of four lines, a constraint spanning two entities) is not this task's concern and
+  should answer its own Q15 when scoped.
+- **Q16 (phone width)** — The Sketch toolbar (Line + Exit) is a bottom chrome row at
+  phone width, matching the existing nav-chrome's own collapse pattern
+  (`ui-018`/`ui-019`) rather than a new layout idiom. Drawing itself needs no
+  modifier key at all on any pointer type (unlike the marquee's Ctrl/Cmd-or-`'select'`-
+  mode split in section 6's addendum) — sketch mode's own orbit-suspension (Q10) means
+  a plain one-finger drag is unambiguously "draw," on mouse and touch alike, with no
+  gesture collision to resolve. This is a genuine simplification worth stating
+  explicitly rather than assuming touch needs its own special case here.
+- **Q17 (acceptance scenario)** — Not one of `Initial design.md` §9's original 8
+  (drawn from `picam-touch`'s toggle matrix, which has no 2D sketching), but
+  `TODO/ACCEPTANCE.md`'s own template header separately names "drawing one entity" as
+  a cover-at-minimum case. Add it as **scenario 9** when `ui-020` is scoped (this Q&A
+  pass's own job, done alongside this section — see `TODO/ACCEPTANCE.md`) rather than
+  skip it for lack of a §9 number, per that file's own instruction.
