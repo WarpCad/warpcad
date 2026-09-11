@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import modeling from '@jscad/modeling'
 
 import { applyAction, emptyScene, replay } from './replay.js'
+import { combine } from './kernel/group.js'
 import { registry as kernelRegistry } from './kernel/registry.js'
 import { parseNdjson, serializeNdjson } from './ndjson.js'
 
@@ -214,6 +215,48 @@ describe('wired against the real core-001 kernel registry', () => {
     // the bolt's tap-clearance carved a hole — the result is not just the plain cuboid
     const bounds = measurements.measureBoundingBox(scene.group.parts.case)
     expect(bounds[1][2]).toBeCloseTo(5, 9)
+  })
+
+  it('a composite applied one record at a time keeps only its own parts (TODO/core-020)', () => {
+    // The incremental path — one `applyAction` per record, the scene so far
+    // threaded in — is what the command layer uses on every append. A composite
+    // folded that way used to assemble its expansion into the accumulated scene
+    // group, so the bolt ended up owning every body placed before it and spanning
+    // the whole scene. Pinned here, at the replay boundary, as well as at the
+    // command layer, because both callers depend on it.
+    let scene = emptyScene()
+    scene = applyAction(
+      scene,
+      { id: 'shell', op: 'primitive.cuboid', name: 'Shell 1', params: { size: [40, 40, 6], center: [0, 0, 3] } },
+      kernelRegistry
+    )
+    scene = applyAction(
+      scene,
+      { id: 'lug', op: 'primitive.cuboid', name: 'Lug 1', params: { size: [8, 8, 8], center: [30, 0, 4] } },
+      kernelRegistry
+    )
+    scene = applyAction(
+      scene,
+      { id: 'bolt1', op: 'hardware.bolt', name: 'Bolt 1', params: { spec: 'm10 hex', length: 20, fit: 'close' } },
+      kernelRegistry
+    )
+    expect(scene.errors).toEqual([])
+
+    const bolt = /** @type {import('./kernel/group.js').Group} */ (scene.byId.get('bolt1'))
+    expect(bolt.names).toEqual(['head', 'thread', 'tap'])
+    // `parts` legitimately also holds the recipe's hidden `tap-*` sub-parts, so
+    // what is asserted is that nothing from the surrounding scene got in.
+    expect(Object.keys(bolt.parts)).not.toContain('Shell 1')
+    expect(Object.keys(bolt.parts)).not.toContain('Lug 1')
+    // the scene group still holds all three bodies, each under its own name
+    expect(scene.group.names).toEqual(['Shell 1', 'Lug 1', 'Bolt 1'])
+
+    // and the bolt measures like a bolt: an m10 head is well under 40 mm across,
+    // so a bolt that had swallowed the shell would fail this outright
+    const [min, max] = measurements.measureBoundingBox(combine(bolt))
+    expect(min[0]).toBeGreaterThan(-15)
+    expect(max[0]).toBeLessThan(15)
+    expect(max[2]).toBeCloseTo(27, 6)
   })
 
   it('a document round-tripped through NDJSON still replays cleanly against the real kernel', () => {

@@ -326,6 +326,33 @@ record to stop being reported as a body (`consumes`), and this scenario's named 
   record's own named roots, and the unit suite pins the untouched-bodies case
   (`leaves untouched bodies alone and keeps creation order`).
 
+**Re-checked**: 2026-09-10 22:19 — PASS (`core-020`). Re-driven rather than glanced at,
+because this fix changes **`evaluate()`'s composite-expansion branch** — the fold every
+placed body goes through — and this scenario's named regression ("placing a second body
+hides or replaces the first") lives in exactly that fold. Laptop 1440×900 in Chromium;
+kernel-only change, so one engine rather than three (the 9-way e2e matrix ran green
+separately: 598 passed / 96 skipped, identical to the pre-change baseline).
+
+- **The scenario itself**: a Cube then a Cylinder dragged in on wandering, jittery paths
+  with a deliberate overshoot and a doubling-back. **Both stayed visible**
+  (`data-body-count` = 2), and the cube's millimetre centre was **byte-identical before
+  and after the second drop** (`-74.00,-19.00,20.00` both times) — the specific regression
+  signature, confirmed absent rather than merely not obvious. Each drop selected only the
+  new item. Clicking empty grid cleared the selection (`data-selected-id` → `""`, count
+  0); clicking the cube selected `cuboid-1` alone; clicking the cylinder moved the
+  highlight to `cylinder-2` alone, never both at once. An orbit afterwards showed both
+  solids still present from the new angle. Console clean.
+- **`ui-010`'s own repro, re-run** (this fix touches the fold `src/core/library.js` reads
+  through): still **exactly seven rows** — Cube, Cylinder, Cone, Hexagon, Triangle, Tube,
+  Sphere — no composite leaking in, no throw at panel build.
+- **The new guarantee, checked directly in the browser**: a plate then a bolt appended
+  through `document.append` now stores the bolt with `names: ["head","thread","tap"]` and
+  bolt-sized bounds (`-9.25,-8.01,0 .. 9.25,8.01,27`) — **identical to the batch
+  `evaluate()` path**, where before the fix it read `["Shell 1","head","thread","tap"]`
+  spanning `-20,-20,0 .. 20,20,27`. Driven four composites deep (`hardware.nut`,
+  `hardware.washer`, `hardware.bolt`, `kit.anchor` after a primitive): each keeps only its
+  own parts and its own bounds, so a composite no longer absorbs what came before it.
+
 ### 2. Hardware property edit
 
 **Steps**:
@@ -693,6 +720,34 @@ Exactly-coplanar and clearly-non-coplanar inputs are both clean (6 polygons, exa
 volume). Pre-existing kernel numerics, reachable since `core-001`, unrelated to this
 task's changes — logged in `TODO/VERIFY.md` with the measured reproduction.
 
+**Re-checked**: 2026-09-10 22:19 — PASS (`core-020`). Not required by that task's own
+scope (no composite appears anywhere in this scenario), but re-driven because the fix
+sits in `evaluate()`'s shared fold and this scenario's whole claim is about what a
+boolean returns. Laptop 1440×900 in Chromium.
+
+- **Steps 2-3, the count gate**, unchanged: 0 selected → all three buttons disabled with
+  the tooltip **"Select 2 or more solids"**; 1 selected → still disabled, same tooltip;
+  2 selected → badge reads `2 selected` / "first is the base" and all three enable.
+- **Steps 5-6**: Subtract left **exactly one body**, auto-selected, and the toolbar
+  **dimmed again**. Measured by volume rather than by eye, on geometry replayed from the
+  document's own records: two 40 mm cubes (64 000 mm³ each) offset 10.62 mm in X and Y
+  gave **29 484.3 mm³**, against the arithmetic answer 64 000 − 29.38²×40 = **29 477**
+  (the 7 mm³ gap is the rounded centre readout, not the kernel). So material really is
+  removed, and the result is neither operand.
+- **Two degenerate cases driven deliberately, since both look like the `core-020` bug
+  and neither is**: two **coincident** cubes subtract to an empty body (`0 × 0 × 0`) —
+  arithmetically correct, A−A is nothing; and two **non-overlapping** cubes subtract to
+  the base cube untouched (40 × 40 × 40). Both are right, and both were confirmed by
+  reading the operands' centres rather than assumed.
+- **A placement quirk found while driving this, logged not fixed**: at the default camera
+  distance the snap engagement radius (48 px converted to mm) is *wider than a 40 mm
+  cube*, so dragging a second cube anywhere near the first pulls it into **exact
+  coincidence** rather than a partial overlap — which then subtracts to an empty body.
+  Step 1 of this scenario ("drag two solids so they overlap") is therefore not performable
+  by drag alone until you zoom in (5 zoom-in taps shrinks the radius enough; the overlap
+  above was reached that way). Not this task's, not a regression — logged in
+  `TODO/VERIFY.md`.
+
 ### 5. Hidden-part boolean (bolt tap-clearance)
 
 **Steps**:
@@ -740,6 +795,38 @@ measurements:
   `ui-014`'s changes** — pre-existing, currently unreachable because no composite has a
   Library row. Measured reproduction in `TODO/core-020-composite-absorbs-earlier-bodies.md`.
   This must be fixed before this scenario can pass even once a Bolt row exists.
+
+**Re-checked**: 2026-09-10 22:19 — **STILL NOT DRIVEABLE, but one of its three blockers
+is now gone** (`core-020`). This is the task filed *from* this scenario's last check, so
+the point of this re-drive is to say precisely which blockers remain. Checked by driving
+against the real modules in the browser, not by reading code. Laptop 1440×900, Chromium.
+
+- **Blocker 3 of 3 — the composite-absorption bug — is FIXED and confirmed by
+  measurement.** The reproduction recorded on 2026-09-10 17:52 no longer reproduces: a
+  plate then a bolt through `document.append` now stores the bolt as
+  `names: ["head","thread","tap"]` with bounds `-9.25,-8.01,0 .. 9.25,8.01,27`, matching
+  the batch `evaluate()` path exactly, where before it read
+  `["Shell 1","head","thread","tap"]` spanning the whole plate. **And the consequence is
+  gone with it**: `boolean.subtract(shell, bolt1)` through the incremental path now
+  returns a real plate-with-a-hole — bounds `-20,-20,0 .. 20,20,6`, volume **8 266.2 mm³**
+  against the plate's own 9 600, i.e. a 1 333.8 mm³ hole whose cross-section (222.3 mm²)
+  is exactly the hexagonal head's — where before it returned an **empty** solid
+  (`0,0,0 .. 0,0,0`) and silently erased the plate.
+- **Blocker 1 — no Bolt Library row — REMAINS.** The panel still offers exactly seven
+  rows, all `primitive.*`; `src/core/library.js` filters to `op.startsWith('primitive.')`,
+  so step 2 ("drag a Bolt in") is still unreachable from the UI. Unchanged by this task,
+  which is a kernel fix and deliberately adds no control.
+- **Blocker 2 — a boolean cannot address a sub-part — REMAINS**, and re-confirmed verbatim
+  against the current code: *"boolean.subtract: operand "bolt1" names pieces ("tap"), but
+  boolean.subtract consumes whole solids — only group.snap/group.align can address a
+  sub-part"*. So the specific claim in **Expect** — that the hidden `tap` clearance, not
+  the visible head/thread, drives the hole — still has no route. The hole measured above
+  is the **whole bolt's** silhouette (head-sized), which is why this is reported as
+  progress, not as a pass.
+
+So: the scenario's kernel foundation is now sound, and what stands between it and a first
+real pass is a UI task (a Hardware Library section) plus a decision on how a boolean names
+a sub-part. Both belong to whichever task lands the Hardware section.
 
 ### 6. Group vs. sub-part selection
 

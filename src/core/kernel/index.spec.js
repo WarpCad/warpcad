@@ -82,7 +82,57 @@ describe('evaluate — the fold every op class replays through', () => {
       { id: 'bolt1', op: 'hardware.bolt', params: { spec: 'm10 hex', length: 20, fit: 'loose' } },
       { id: 'cut', op: 'boolean.subtract', target: 'plate', operands: ['bolt1'], name: 'plate' },
     ])
-    expect(boundsOf(group.parts.plate)).toBeDefined()
+    // Deliberately bounds and volume, not `toBeDefined()`: an *empty* geometry —
+    // which is exactly what a bolt that had swallowed the plate would subtract the
+    // plate down to (TODO/core-020) — has a defined bounding box too, so the
+    // original spelling of this assertion could not tell the two apart.
+    const [min, max] = boundsOf(group.parts.plate)
+    expect(min).toEqual([-20, -20, 0])
+    expect(max).toEqual([20, 20, 4])
+    // the plate, minus one bolt-sized hole through it — not the whole plate gone
+    const plateVolume = 40 * 40 * 4
+    expect(measurements.measureVolume(group.parts.plate)).toBeGreaterThan(plateVolume * 0.8)
+    expect(measurements.measureVolume(group.parts.plate)).toBeLessThan(plateVolume)
+  })
+
+  it('expands a composite into its own group, never into a scene handed in as `initial`', () => {
+    // The incremental path (`src/core/replay.js`'s applyAction) evaluates one
+    // record at a time against the scene so far, threaded in as `initial`. A
+    // composite's recipe expansion must not be assembled into *that* group, or
+    // every body already placed becomes one of the bolt's own parts and the bolt
+    // spans the whole scene (TODO/core-020).
+    const before = evaluate([
+      { id: 'shell', op: 'primitive.cuboid', params: { size: [40, 40, 6], center: [0, 0, 3] }, name: 'Shell 1' },
+    ])
+    const { byId } = evaluate(
+      [{ id: 'bolt1', op: 'hardware.bolt', params: { spec: 'm10 hex', length: 20, fit: 'close' }, name: 'Bolt 1' }],
+      { initial: { byId: before.byId, group: before.group } }
+    )
+    const bolt = asGroup(byId.get('bolt1'))
+    expect(bolt.names).toEqual(['head', 'thread', 'tap'])
+    // the recipe's own hidden `tap-*` sub-parts belong here; the scene's body does not
+    expect(Object.keys(bolt.parts)).not.toContain('Shell 1')
+    // and it measures like a bolt, not like a 40 mm plate
+    const [min, max] = boundsOf(combine(bolt))
+    expect(min[0]).toBeGreaterThan(-15)
+    expect(max[0]).toBeLessThan(15)
+  })
+
+  it('keeps a composite recipe from resolving ids that belong to the surrounding scene', () => {
+    // The same leak seen from the other side: a recipe's records address their own
+    // ids only. If the surrounding scene's `byId` is visible inside the expansion,
+    // a document id colliding with a recipe id would silently change what a
+    // composite is built from.
+    const before = evaluate([
+      { id: 'head', op: 'primitive.cuboid', params: { size: [40, 40, 6] }, name: 'Head Fake' },
+    ])
+    const { byId } = evaluate(
+      [{ id: 'bolt1', op: 'hardware.bolt', params: { spec: 'm10 hex', length: 20, fit: 'close' } }],
+      { initial: { byId: before.byId, group: before.group } }
+    )
+    const bolt = asGroup(byId.get('bolt1'))
+    expect(bolt.names).toEqual(['head', 'thread', 'tap'])
+    expect(boundsOf(combine(bolt))[1][0]).toBeLessThan(15)
   })
 
   it('rejects an unknown op by name rather than skipping it silently', () => {

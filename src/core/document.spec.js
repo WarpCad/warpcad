@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest'
+import modeling from '@jscad/modeling'
 
 import { createDocument } from './document.js'
 import { boundsOf } from './kernel/group.js'
+
+const { measurements } = modeling
 
 /**
  * A fake registry, per CLAUDE.md's "always mock at the boundary" — the command
@@ -597,6 +600,106 @@ describe('consumption — several bodies retired into one (TODO/ui-014)', () => 
       )
     ).toThrow(/consumes/)
     expect(document.bodies()).toHaveLength(2)
+  })
+
+  it('a composite appended after other bodies keeps only its own parts (TODO/core-020)', () => {
+    const document = createDocument()
+    document.append(
+      {
+        id: 'shell',
+        op: 'primitive.cuboid',
+        name: 'Shell 1',
+        params: { size: [40, 40, 6], center: [0, 0, 3] },
+      },
+      { origin: 'local' }
+    )
+    document.append(
+      {
+        id: 'lug',
+        op: 'primitive.cuboid',
+        name: 'Lug 1',
+        params: { size: [8, 8, 8], center: [30, 0, 4] },
+      },
+      { origin: 'local' }
+    )
+    document.append(
+      {
+        id: 'bolt1',
+        op: 'hardware.bolt',
+        name: 'Bolt 1',
+        params: { spec: 'm10 hex', length: 20, fit: 'close' },
+      },
+      { origin: 'local' }
+    )
+
+    // The direct assertion: the stored bolt is a bolt, not a bolt that has
+    // absorbed the two bodies placed before it. Appending incrementally used to
+    // produce names ['Shell 1', 'Lug 1', 'head', 'thread', 'tap'] here, with
+    // bounds spanning the whole plate.
+    const bolt = /** @type {import('./kernel/group.js').Group} */ (document.scene.byId.get('bolt1'))
+    expect(bolt.names).toEqual(['head', 'thread', 'tap'])
+    // `parts` also holds the recipe's own hidden `tap-*` sub-parts (V1 parity),
+    // so the claim here is not a fixed key list — it is that nothing belonging to
+    // the surrounding document is in there at all.
+    expect(Object.keys(bolt.parts)).not.toContain('Shell 1')
+    expect(Object.keys(bolt.parts)).not.toContain('Lug 1')
+
+    expect(document.bodies().map((body) => body.name)).toEqual(['Shell 1', 'Lug 1', 'Bolt 1'])
+    const [min, max] = boundsOf(document.bodies()[2].geometry)
+    expect(min[0]).toBeGreaterThan(-15)
+    expect(max[0]).toBeLessThan(15)
+    expect(max[2]).toBeCloseTo(27, 6)
+  })
+
+  it('subtracting a composite from a plate cuts a hole, it does not erase the plate (TODO/core-020)', () => {
+    // ACCEPTANCE.md scenario 5 in miniature, through the incremental command
+    // layer rather than a batch evaluate: the tap-clearance body of a bolt is
+    // what gets subtracted, so the plate must survive with a hole in it. This
+    // asserts volume as well as bounds on purpose — the batch-path test this
+    // mirrors originally asserted only that the bounds were *defined*, which an
+    // empty geometry satisfies, and that is precisely what let core-020 through.
+    const document = createDocument()
+    document.append(
+      {
+        id: 'plate',
+        op: 'primitive.cuboid',
+        name: 'Plate 1',
+        params: { size: [40, 40, 6], center: [0, 0, 3] },
+      },
+      { origin: 'local' }
+    )
+    document.append(
+      {
+        id: 'bolt1',
+        op: 'hardware.bolt',
+        name: 'Bolt 1',
+        params: { spec: 'm10 hex', length: 20, fit: 'close' },
+      },
+      { origin: 'local' }
+    )
+    document.append(
+      {
+        id: 'cut',
+        op: 'boolean.subtract',
+        name: 'Subtract 1',
+        target: 'plate',
+        operands: ['bolt1'],
+        consumes: ['plate', 'bolt1'],
+      },
+      { origin: 'local' }
+    )
+
+    const bodies = document.bodies()
+    expect(bodies).toHaveLength(1)
+    const [min, max] = boundsOf(bodies[0].geometry)
+    expect(min).toEqual([-20, -20, 0])
+    expect(max).toEqual([20, 20, 6])
+    const plateVolume = 40 * 40 * 6
+    const cutVolume = measurements.measureVolume(
+      /** @type {any} */ (bodies[0].geometry)
+    )
+    expect(cutVolume).toBeGreaterThan(plateVolume * 0.8)
+    expect(cutVolume).toBeLessThan(plateVolume)
   })
 
   it('a real subtract through the real kernel leaves exactly one body, cut to size', () => {

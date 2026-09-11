@@ -19,6 +19,32 @@ between sessions — that's itself a signal to move more of it into
 
 ## Queue
 
+### core-020 — the snap radius is wider than the parts, so two solids cannot be drag-placed *partially* overlapping (2026-09-10 22:25)
+
+Found while driving `ACCEPTANCE.md` scenario 4 during `core-020`'s Step 6. Not a
+regression and not this task's code — `ui-013`'s snap, behaving as specified — but it
+makes a scenario step unperformable as written, and the failure it produces looks exactly
+like the bug `core-020` just fixed, which is why it is worth a human's eyes rather than
+another assertion.
+
+At the default camera distance the snap engagement radius is 48 px converted to mm, which
+scenario 3 already measured at **~83.7 mm** — *wider than a 40 mm cube*. So dragging a
+second cube anywhere near the first does not give a partial overlap; it pulls the ghost
+into **exact coincidence** (both bodies measured at `-21.62,-21.62,20.00`). Subtracting
+two coincident solids then returns an empty body, correctly — but on screen it reads as
+"Subtract deleted my model". Scenario 4's step 1 ("drag two solids into the viewport so
+they overlap") therefore cannot be performed by drag alone at default zoom; five taps of
+zoom-in shrinks the radius enough, and that is how the 29 484.3 mm³ result recorded
+against scenario 4 was actually reached.
+
+- [ ] Judge, by hand on real hardware, whether the snap should refuse a *centre-on-centre*
+  alignment when both solids are already within each other's bounds — or whether an
+  overlapping drop should snap to a face rather than a centre. This is a feel question
+  about what a user means by dropping a part on top of another one, not a numeric one.
+- [ ] Related and cheap to check at the same time: whether an empty boolean result should
+  say so out loud (a toast, or a refusal) rather than silently leaving a `0 × 0 × 0` body
+  in the scene list. Two coincident operands are the common way to reach it by accident.
+
 ### ui-014 — a *nearly* coplanar subtract reports the uncut size (2026-09-10 17:20)
 
 Not a feel question and not `ui-014`'s own code — pre-existing `@jscad/modeling` numerics,

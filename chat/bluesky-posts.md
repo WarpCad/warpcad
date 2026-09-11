@@ -343,3 +343,16 @@ Built with Claude Code, reviewed by me. #CAD
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** three operations, count-gated at 2+ → `src/components/viewport/OperationsToolbar.vue` in this diff, `disabled = selection.count < 2`; amber base / teal subtrahend → `BODY_COLORS.*.secondary` in `src/render/mesh.js` and `selectionRole()` in `Viewport.vue`, this diff, with `mesh.spec.js` asserting body/selected/secondary are three distinct colours in both schemes; visible before the button is pressed → `TODO/ACCEPTANCE.md` scenario 4 hand-drive this session, screenshotted at laptop/Chromium and phone/tablet WebKit; full suite green (typecheck, 490 unit tests across 26 files, 598 e2e passed/96 skipped) → this session's `npm test` run
 **To Add:** repo URL once public; a screenshot of the amber/teal pair mid-selection would carry this one
+
+## [2026-09-10T22:25:00Z] — Composite absorbed every earlier body into its own group (TODO/core-020)
+
+**Post:** Found a good one in WarpCad. Place a plate, then place a bolt, and the bolt quietly swallowed the plate — it listed the plate as one of its own parts and grew to span it. Subtract that "bolt" and the whole plate vanished.
+
+Cause: a spread operator. The recipe expansion inherited the caller's scene as its starting group.
+
+Built with Claude Code, reviewed by me. #CAD
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** bolt stored as `["Shell 1","head","thread","tap"]` spanning `-20,-20,0 .. 20,20,27` before the fix, `["head","thread","tap"]` at `-9.25,-8.01,0 .. 9.25,8.01,27` after → RED test run and browser drive against the real modules, this session; subtract returned an empty solid (`0,0,0 .. 0,0,0`) before and a real hole after (bounds `-20,-20,0 .. 20,20,6`, volume 8 266.2 mm³ of a 9 600 mm³ plate) → same drive; cause is `{ ...options }` carrying `initial` into the recipe's nested `evaluate` → this diff, `src/core/kernel/index.js`
+**To Add:** repo URL once public; a before/after render of the plate would carry this one

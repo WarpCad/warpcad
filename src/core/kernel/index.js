@@ -43,6 +43,8 @@ import { assertOperandCount, getEntry, registry } from './registry.js'
  *   per-action document fold) evaluate one more record against ids an earlier
  *   `evaluate` call already produced, without re-running the whole history. Copied,
  *   never mutated in place, so the caller's own `byId`/`group` stay untouched.
+ *   Applies to *these* records only — a composite record's recipe always expands
+ *   against an empty fold, never against this scene (TODO/core-020).
  */
 
 /**
@@ -169,8 +171,19 @@ export function evaluate(records, options = {}) {
     let value
     if (entry.kind === 'composite') {
       if (!entry.recipe) throw new Error(`${record.op}: composite entry has no recipe`)
+      // Only `registry` and `tables` cross into the expansion — deliberately *not*
+      // `options.initial`, and so deliberately not `...options` (TODO/core-020).
+      // A recipe is a closed definition: its records address its own ids and
+      // assemble into its own group. Spreading the caller's options carried
+      // `initial` in, and since `initial.group` is what this fold seeds `group`
+      // from, the expansion assembled into the *scene* group instead of a fresh
+      // one — so a bolt appended after two bodies came back owning them as parts,
+      // and spanning them. That never showed in a batch `evaluate([...])`, where
+      // no caller passes `initial`; it appeared only on the incremental path
+      // every document append takes (`src/core/replay.js`'s applyAction).
       value = evaluate(entry.recipe(record.params ?? {}, tables), {
-        ...options,
+        registry: ops,
+        tables,
         name: record.op,
       }).group
     } else {

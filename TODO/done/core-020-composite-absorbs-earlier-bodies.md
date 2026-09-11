@@ -6,8 +6,21 @@ priority: high
 model: opus
 milestone: M3
 depends: [core-002, core-001]
-status: open
+status: done
 ---
+
+> **What actually shipped.** The file's "likely cause" was right about *where* but
+> named the wrong side of the boundary as the suspect. `replay.js`'s `initial`
+> threading is correct and was not touched. The bug was one spread operator in
+> `src/core/kernel/index.js`'s composite branch: it passed `{ ...options, name }`
+> into the recipe's nested `evaluate`, and `options` carries `initial` — whose
+> `group` is exactly what the fold seeds `group` from. So the expansion assembled
+> into the *caller's scene group* instead of a fresh one. It also leaked
+> `initial.byId`, so a document id colliding with a recipe id threw
+> `duplicate record id` (confirmed in the RED run, and covered by a test). The fix
+> passes `registry`/`tables`/`name` explicitly and never `initial` — a recipe is a
+> closed definition. Three-line change plus comments; five tests added across the
+> command layer, the fold and the replay boundary.
 
 ## Problem
 
