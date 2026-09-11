@@ -74,3 +74,5 @@ Note on the row above: `ui-014` was unblocked by scoping it as its own task firs
 by `ui-014`'s own acceptance drive (a real pre-existing composite-fold bug, not a
 scoping gap) and picked up next since it already had a real file and satisfied deps,
 ahead of the still-unscoped `ui-015`/`ui-016`/`ui-026`/`core-019` reserved rows.
+
+| 2026-09-11 13:58 | 2026-09-11 13:58 | *(none)* | blocked — identical scoping gap as the previous two batches: every remaining M3 row with satisfied deps (`ui-015`, `ui-026`, `core-019`) is still a reserved id with no `TODO/<id>-*.md` file (confirmed via a fresh `ls TODO/*.md` and `TODO/done/`, not assumed from this file's own history); `ui-016` additionally depends on the still-unscoped `ui-015`. No file was created for any of them since the last check-in, so this tick asked the user directly rather than re-running the same hourly re-check a third time | no — M3, no eligible task run |
