@@ -23,6 +23,18 @@ import { rightFromSpherical, upFromSpherical, positionFromSpherical } from '../.
 const props = defineProps({
   azimuthDeg: { type: Number, required: true },
   elevationDeg: { type: Number, required: true },
+  /**
+   * Whether snapping is currently unavailable (`TODO/ui-020`: sketch mode owns
+   * the camera orientation while it is active).
+   *
+   * The triad keeps drawing — it is still the honest readout of where the
+   * camera is looking, and that reassurance is exactly what a user wants while
+   * locked to the working plane. Only its *snap* buttons go dead, because
+   * snapping to Front mid-sketch would turn the working plane edge-on and make
+   * drawing silently impossible: a screen-point ray parallel to the plane has
+   * no intersection, so every drag would land nowhere with no explanation.
+   */
+  disabled: { type: Boolean, default: false },
 })
 
 const emit = defineEmits(['snap'])
@@ -88,6 +100,7 @@ const orientationLabel = computed(
   <div
     class="gizmo"
     data-testid="orientation-gizmo"
+    :data-disabled="disabled ? 'true' : 'false'"
     :data-azimuth="azimuthDeg.toFixed(2)"
     :data-elevation="elevationDeg.toFixed(2)"
   >
@@ -120,7 +133,8 @@ const orientationLabel = computed(
         }"
         :data-testid="`gizmo-view-${cap.view}`"
         :data-depth="cap.depth.toFixed(3)"
-        :title="cap.title"
+        :disabled="disabled"
+        :title="disabled ? 'Camera orientation is locked to the working plane while sketching' : cap.title"
         :aria-label="cap.title"
         @click="emit('snap', cap.view)"
       >
@@ -132,6 +146,7 @@ const orientationLabel = computed(
       type="button"
       class="gizmo__home"
       data-testid="gizmo-view-home"
+      :disabled="disabled"
       title="Home view (isometric)"
       aria-label="Home view (isometric)"
       @click="emit('snap', 'home')"
@@ -143,6 +158,14 @@ const orientationLabel = computed(
 </template>
 
 <style scoped>
+/* Visibly unavailable rather than silently inert, per CLAUDE.md's rule that a
+   control whose precondition does not hold is disabled, not dead. */
+.gizmo[data-disabled='true'] .gizmo__cap,
+.gizmo[data-disabled='true'] .gizmo__home {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
 .gizmo {
   position: absolute;
   top: 12px;

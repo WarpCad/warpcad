@@ -92,6 +92,33 @@
  *
  * The two fields are mutually exclusive; a record setting both is rejected.
  *
+ * ## Sketch records: in the log, past the kernel (`TODO/ui-020`)
+ *
+ * A sketch entity — today a straight line on the working plane — is 2D vector
+ * data, not a `Geom3` or a `Group`. It still belongs in *this* log: it is a
+ * document mutation, it needs an origin, and a future undo/redo has to be able
+ * to scope it exactly like any other record. What it does **not** belong in is
+ * the geometry kernel. So `append` recognises a `sketch.`-prefixed op and routes
+ * it to a parallel {@link WarpDocument.sketchEntities} map, skipping the trial
+ * fold entirely.
+ *
+ * The alternative — registering `sketch.line` in the kernel registry — would
+ * mean either inventing a third `RegistryEntry.kind` that `evaluate()` has to
+ * branch on, or teaching the kernel adapter about records that produce no
+ * geometry. Both cross the `src/core/kernel/` boundary CLAUDE.md's Project
+ * Structure draws on purpose ("everything else in `core/` talks to the kernel
+ * through this interface"). Skipping the round-trip keeps the boundary intact,
+ * and `document.spec.js` asserts it as a **call count** on a registry entry that
+ * deliberately exists — "never built" is only evidence if building would have
+ * worked.
+ *
+ * Everything else about a sketch record is ordinary: same id rules, same origin
+ * requirement, same `supersedes` lineage bookkeeping (so an endpoint edit
+ * replaces an entity in place rather than doubling it — the same defect
+ * supersession already prevents for a moved body). `consumes` is refused: it
+ * retires bodies into a new one, and a sketch line is not a body and eats
+ * nothing.
+ *
  * ## Loud locally, lenient remotely
  *
  * `replay.js` skips and reports a bad record because a document can arrive from an
@@ -138,6 +165,20 @@ import { applyAction, emptyScene } from './replay.js'
  */
 
 /**
+ * @typedef {object} SketchEntityRecord
+ * @property {string} id The **lineage root's** id — stable across endpoint edits,
+ *   so a selection and an overlay element keep pointing at the same entity.
+ * @property {string} recordId The **terminal** record's id.
+ * @property {string} name Display name, e.g. `"Line 1"`. From the root record.
+ * @property {string} op The `sketch.*` op, from the root record.
+ * @property {Record<string, any>} params The **terminal** record's params, plain
+ *   JSON. Note this differs from `Body.params`, which come from the *root*: a
+ *   body's params say what it *is* and a transform record carries the movement
+ *   separately, whereas a sketch endpoint edit rewrites the entity's own
+ *   coordinates, so the newest record is the entity's current geometry.
+ */
+
+/**
  * @typedef {object} WarpDocument
  * @property {readonly DocumentEntry[]} entries
  * @property {readonly OpRecord[]} records
@@ -147,6 +188,7 @@ import { applyAction, emptyScene } from './replay.js'
  * @property {(id: string) => string | undefined} originOf
  * @property {(id: string) => string | undefined} currentIdOf
  * @property {() => Body[]} bodies
+ * @property {() => SketchEntityRecord[]} sketchEntities
  * @property {(prefix?: string) => string} nextId
  * @property {(label: string) => string} nextName
  */
@@ -160,6 +202,13 @@ import { applyAction, emptyScene } from './replay.js'
 function isVec3(value) {
   return Array.isArray(value) && value.length === 3 && value.every(Number.isFinite)
 }
+
+/**
+ * Ops routed past the kernel into {@link WarpDocument.sketchEntities} — see the
+ * sketch-records note above. A **prefix**, not a fixed list, so the later
+ * rectangle/circle/arc tools need no change here.
+ */
+const SKETCH_OP_PREFIX = 'sketch.'
 
 /**
  * Create a document.
@@ -189,6 +238,13 @@ export function createDocument(options = {}) {
   /** Record ids that begin a lineage, in the order they were created. */
   /** @type {string[]} */
   const rootOrder = []
+  /**
+   * The same, for sketch lineages (`sketch.*` ops) — a **parallel** list rather
+   * than a flag on `rootOrder`, so `bodies()` cannot accidentally report an
+   * entity that has no geometry and `sketchEntities()` cannot report a solid.
+   * @type {string[]}
+   */
+  const sketchRootOrder = []
   /**
    * Lineage root id → the id of the record that **absorbed** it (`consumes`).
    * A root with an entry here has stopped being an independently selectable
@@ -279,6 +335,19 @@ export function createDocument(options = {}) {
         )
       }
 
+      // A sketch record is a document mutation like any other — origin-tagged,
+      // id-checked, lineage-tracked — but it produces no geometry, so it is
+      // routed past the kernel entirely. Checked **before** the trial fold
+      // below, which is the whole of the boundary-preserving claim in this
+      // module's sketch-records note.
+      const isSketch = record.op.startsWith(SKETCH_OP_PREFIX)
+      if (isSketch && record.consumes !== undefined) {
+        throw new Error(
+          `document.append: ${record.op} may not set \`consumes\` — retiring bodies into a ` +
+            'new one is a solid-geometry claim, and a sketch entity is not a body'
+        )
+      }
+
       let supersededRoot
       if (record.supersedes !== undefined) {
         if (record.id === undefined) {
@@ -314,11 +383,19 @@ export function createDocument(options = {}) {
         }
       }
 
+      if (isSketch && record.id === undefined) {
+        throw new Error(
+          'document.append: a sketch record needs its own `id` — an entity has to be ' +
+            'selectable, and a later endpoint edit has to name what it supersedes'
+        )
+      }
+
       // Trial fold. `applyAction` never throws — it reports — so a failure shows up
       // as a *new* entry in the candidate scene's error list, and the record is
-      // rejected rather than committed.
+      // rejected rather than committed. Skipped outright for a sketch record:
+      // there is no geometry to evaluate and no registry entry to look up.
       const errorsBefore = scene.errors.length
-      const candidate = applyAction(scene, record, ops)
+      const candidate = isSketch ? scene : applyAction(scene, record, ops)
       if (candidate.errors.length > errorsBefore) {
         const failure = candidate.errors[candidate.errors.length - 1]
         throw new Error(`document.append: ${failure.op} could not be applied — ${failure.message}`)
@@ -331,7 +408,7 @@ export function createDocument(options = {}) {
         const root = supersededRoot ?? record.id
         rootById.set(record.id, root)
         terminalByRoot.set(root, record.id)
-        if (root === record.id) rootOrder.push(record.id)
+        if (root === record.id) (isSketch ? sketchRootOrder : rootOrder).push(record.id)
         // A consuming record is its own new lineage root (the line above already
         // made it one, since it carries no `supersedes`); what is left is to
         // retire the lineages it absorbed, so `bodies()` stops reporting them and
@@ -402,6 +479,35 @@ export function createDocument(options = {}) {
         })
       }
       return bodies
+    },
+
+    /**
+     * The document's sketch entities, one per lineage — `bodies()`'s shape, for
+     * the half of the document the kernel never sees.
+     *
+     * Op-agnostic on purpose: it hands back `params` verbatim and never
+     * interprets them, so a later `sketch.circle` needs no change here.
+     * `src/sketch/entity.js` is what reads a line's params back out, and it
+     * validates rather than trusting them.
+     */
+    sketchEntities() {
+      /** @type {SketchEntityRecord[]} */
+      const entities = []
+      for (const rootId of sketchRootOrder) {
+        const terminalId = terminalByRoot.get(rootId) ?? rootId
+        const rootRecord = recordById.get(rootId)
+        if (rootRecord === undefined) continue
+        const terminalRecord = recordById.get(terminalId) ?? rootRecord
+        entities.push({
+          id: rootId,
+          recordId: terminalId,
+          name: rootRecord.name ?? rootId,
+          op: rootRecord.op,
+          // The terminal record's, not the root's — see `SketchEntityRecord`.
+          params: terminalRecord.params ?? {},
+        })
+      }
+      return entities
     },
 
     nextId(prefix = 'op') {

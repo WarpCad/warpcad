@@ -34,6 +34,23 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### ui-020 — sketch mode on real touch hardware, and the lines' lifetime (2026-09-12 17:35)
+
+Scenario 9 now covers sketch mode's whole flow on a standing basis, and the Step 6
+drive already measured the layout numerically at all three reference viewports
+(bounding-box collision checks against the orientation gizmo and nav chrome, plus a
+10×10 hit-test grid of how much canvas is actually reachable — 69% at phone width in
+sketch mode). What that *cannot* settle is fingertip precision and the feel of a
+drawing gesture, neither of which a synthetic pointer or a headless engine reproduces.
+Rows 1-2 are that. Row 3 is a limitation this task knowingly ships rather than a thing
+to judge.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | On a real phone and iPad, draw several lines in a row with a fingertip. Is the 14px pick tolerance (`SKETCH_PICK_TOLERANCE_PX`) enough to reliably *select* a thin line by tapping it, and are the 11px endpoint handles grabbable without zooming in first? A fingertip contact patch is far larger than either number, and both were tuned against a mouse. | Open | |
+| 2 | On the same hardware, judge whether the drawn stroke reads clearly against the grid in **both** colour schemes — the line is `--sketch-stroke` (a bright cyan) and the grid's major lines are close in weight. A stroke that disappears into the grid on a sunlit phone screen is the same class of defect as the second attempt's too-dark scene, and the only device that can answer it is a real one outdoors. | Open | |
+| 3 | Confirm the missing-delete story is acceptable for now: there is **no way to delete a sketch line**, so a mis-drawn line stays for the session (`docs/sketch-mode.md` says so out loud under "Coming later"). Undo/redo does not exist yet either, so this is not an oversight specific to sketching — but sketching is the first feature where a user can create clutter in one careless gesture. If it grates in practice, that is a signal to pull a delete/undo task forward rather than leave it to the sketch-tools milestone. | Open | |
+
 ### ui-026 — Snap/Align operation (2026-09-11 20:20)
 
 The Snap/Align popover is a **modal-style overlay with a full-page, click-catching

@@ -29,6 +29,9 @@ themselves won't have to move.
   another without combining or discarding either one.
 - [Moving around the 3D view](viewport-navigation.md) — orbit, pan, zoom, the
   orientation triad, touch gestures, and reading size off the grid.
+- [Sketch mode: drawing a line on the working plane](sketch-mode.md) — the
+  `Sketch` toggle, the camera lock, drawing and editing a 2D line, and what
+  sketch mode changes about the other viewport controls while it's active.
 
 ## Decisions
 

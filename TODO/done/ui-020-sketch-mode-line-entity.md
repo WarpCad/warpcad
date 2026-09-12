@@ -6,8 +6,35 @@ priority: medium
 model: opus
 milestone: M4
 depends: [render-001]
-status: open
+status: done
 ---
+
+> **What actually shipped** — the design decisions above landed as written (the
+> `sketch.*` fold branch, `sketchEntities()`, the SVG stroke overlay, the reused
+> `camera.snapTo('top')` and `pick.js` projection). Four things go beyond what this
+> file listed, three of them found by the Step 6 acceptance drive rather than by any
+> test, and all recorded in `TODO/ACCEPTANCE.md` scenario 9's Last run entry:
+>
+> - **Files beyond Affected files**: `src/render/annotate.js` (the stroke projection
+>   and segment-distance helpers, where every other overlay's maths already lives),
+>   `src/components/viewport/SketchStrokes.vue` (the overlay, extracted rather than
+>   inlined per the thin-views rule), `src/composables/useSketchCommands.js` and
+>   `src/stores/sketchPreview.js` (mirroring `useTransformCommands`/`transformPreview`,
+>   so the draw gesture, the endpoint handles and the Inspector's typed fields are
+>   structurally one mutation path), `src/stores/selection.js` (a separate `sketchId`,
+>   so a selected line can never present itself as a boolean operand), and
+>   `NavigationChrome.vue`/`OrientationGizmo.vue` (the toggle's home, and the camera
+>   lock's other half).
+> - **The drawn line is not auto-selected**, unlike a dropped primitive — the drive
+>   found auto-selection auto-opening the phone Inspector sheet over the line that had
+>   just been drawn (reachable canvas 69% → 29%).
+> - **Sketch mode claims the viewport's single top-left toolbar slot**, hiding the
+>   Operations toolbar and the drag-mode row for the duration; a top-centred Sketch
+>   toolbar collided with the orientation gizmo at both the tablet and phone
+>   references, where the viewport element is 390px wide either way.
+> - **Endpoint editing is in scope**, since this file's own Testing section required
+>   dragging a handle and watching the Inspector update — so the `supersedes`-a-sketch-
+>   record path this file described as a future task is built and covered.
 
 ## Goal
 

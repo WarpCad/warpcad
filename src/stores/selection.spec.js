@@ -96,3 +96,58 @@ describe('selection store — sub-part pick depth (TODO/ui-016)', () => {
     expect(selection.subPart).toEqual({ bodyId: 'group-1', partName: 'Cube 1' })
   })
 })
+
+describe('sketch selection (TODO/ui-020)', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+  })
+
+  it('selecting a sketch entity leaves the body count at zero', () => {
+    // The whole reason `sketchId` is a separate ref: every count-gated tool in
+    // the app reads `count`, and a line must never present itself as a boolean
+    // operand. This is the assertion that would fail if a later refactor folded
+    // sketch ids back into `ids`.
+    const selection = useSelectionStore()
+    selection.select('body-1')
+    selection.selectSketch('sketch-1')
+    expect(selection.sketchId).toBe('sketch-1')
+    expect(selection.ids).toEqual([])
+    expect(selection.count).toBe(0)
+    expect(selection.onlyId).toBeNull()
+  })
+
+  it('is mutually exclusive with body selection, in both directions', () => {
+    const selection = useSelectionStore()
+    selection.selectSketch('sketch-1')
+    selection.select('body-1')
+    expect(selection.sketchId).toBeNull()
+    expect(selection.ids).toEqual(['body-1'])
+
+    selection.selectSketch('sketch-1')
+    selection.toggle('body-2')
+    expect(selection.sketchId).toBeNull()
+
+    selection.selectSketch('sketch-1')
+    selection.selectMany(['body-3'])
+    expect(selection.sketchId).toBeNull()
+  })
+
+  it('clears with everything else, and drops a stale sub-part depth', () => {
+    const selection = useSelectionStore()
+    selection.select('group-1')
+    selection.drillInto('Part A')
+    selection.selectSketch('sketch-1')
+    expect(selection.subPart).toBeNull()
+
+    selection.clear()
+    expect(selection.sketchId).toBeNull()
+    expect(selection.ids).toEqual([])
+  })
+
+  it('treats an empty id as clearing the sketch selection', () => {
+    const selection = useSelectionStore()
+    selection.selectSketch('sketch-1')
+    selection.selectSketch('')
+    expect(selection.sketchId).toBeNull()
+  })
+})

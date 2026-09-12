@@ -84,7 +84,11 @@ import { computed, ref, watch } from 'vue'
 
 import { useSelectedBody } from '../../composables/useSelectedBody.js'
 import { useSelectionStore } from '../../stores/selection.js'
+import { useDocumentStore } from '../../stores/document.js'
+import { useSketchPreviewStore } from '../../stores/sketchPreview.js'
 import { useTransformCommands } from '../../composables/useTransformCommands.js'
+import { useSketchCommands } from '../../composables/useSketchCommands.js'
+import { lengthOf } from '../../sketch/entity.js'
 import { formatDeg, formatMmValue } from '../../core/units.js'
 
 const props = defineProps({
@@ -103,6 +107,67 @@ const SWIPE_DISMISS_PX = 36
 
 const selection = useSelectionStore()
 const described = useSelectedBody()
+const documentStore = useDocumentStore()
+const sketchPreview = useSketchPreviewStore()
+const sketchCommands = useSketchCommands()
+
+// --- the sketch-entity branch (TODO/ui-020) -------------------------------
+
+/**
+ * The selected sketch entity, with a live endpoint drag folded in — or `null`.
+ *
+ * **Alongside** the body contract above, never replacing it: a sketch entity
+ * and a body are different kinds of thing, and the selection store keeps them
+ * mutually exclusive (see its `sketchId`), so exactly one of these two branches
+ * is ever non-null.
+ *
+ * Reading `sketchPreview` here is what makes the fields track an endpoint
+ * handle **live** rather than jumping at release — section 7's Q14, and the
+ * same contract control 4 already established for the 3D gizmo.
+ */
+const sketchEntity = computed(() => {
+  const id = selection.sketchId
+  if (!id) return null
+  const entity = documentStore.sketchEntities.find((candidate) => candidate.id === id)
+  if (!entity) return null
+  if (!sketchPreview.isActive || sketchPreview.entityId !== id) return entity
+  /** @type {[number, number]} */
+  const point = [sketchPreview.xMm, sketchPreview.yMm]
+  const startMm = sketchPreview.which === 'start' ? point : entity.startMm
+  const endMm = sketchPreview.which === 'end' ? point : entity.endMm
+  // Length is recomputed from the previewed points through the *same* helper
+  // the document uses, so the panel and the overlay can never quote two
+  // different numbers for one line.
+  return { ...entity, startMm, endMm, lengthMm: lengthOf(startMm, endMm) }
+})
+
+/**
+ * What this panel is currently describing: `'sketch'`, or whatever the body
+ * description says. One value, so the sheet state, the auto-open watcher and
+ * the template all branch on the same thing rather than three near-copies.
+ *
+ * @returns {string}
+ */
+const panelState = computed(() => (sketchEntity.value ? 'sketch' : described.value.state))
+
+/**
+ * Commit one typed endpoint coordinate — the same mutation the endpoint handle
+ * performs, through the same composable, so typing `40` and dragging to 40 mm
+ * cannot produce different records.
+ *
+ * @param {Event} event
+ * @param {'start' | 'end'} which
+ * @param {number} axisIndex 0 for X, 1 for Y.
+ * @returns {void}
+ */
+function commitSketchField(event, which, axisIndex) {
+  const input = /** @type {HTMLInputElement} */ (event.target)
+  const parsed = parseNumeric(input.value)
+  const entity = sketchEntity.value
+  editingField.value = ''
+  if (parsed === null || !entity) return
+  sketchCommands.setEndpointAxis(entity.id, which, axisIndex, parsed)
+}
 
 /**
  * The single selected body, or `null`. Named separately from `described` so the
@@ -143,7 +208,7 @@ const isOpen = ref(false)
  */
 function sheetState() {
   if (isOpen.value) return 'open'
-  return described.value.state === 'empty' ? 'none' : 'tab'
+  return panelState.value === 'empty' ? 'none' : 'tab'
 }
 
 function reportSheet() {
@@ -160,7 +225,7 @@ function setOpen(value) {
 // means a selection that resolves to nothing (a stale id) does not pop an empty
 // sheet open at phone width.
 watch(
-  [() => described.value.state, () => props.librarySheetOpen],
+  [() => panelState.value, () => props.librarySheetOpen],
   ([state, libraryOpen]) => {
     setOpen(state !== 'empty' && !libraryOpen)
   },
@@ -320,9 +385,9 @@ function onFieldEnter(event) {
   <aside
     class="inspector"
     data-testid="inspector"
-    :data-state="described.state"
+    :data-state="panelState"
     :data-open="isOpen ? 'true' : 'false'"
-    :data-selected-id="body?.id ?? ''"
+    :data-selected-id="sketchEntity?.id ?? body?.id ?? ''"
     :data-sub-part="body?.subPart?.partName ?? ''"
     aria-label="Inspector"
   >
@@ -337,15 +402,87 @@ function onFieldEnter(event) {
       @pointerup="onGripUp"
     >
       <span class="inspector__grip" aria-hidden="true" />
-      {{ body ? body.name : 'Inspector' }}
+      {{ sketchEntity?.name ?? (body ? body.name : 'Inspector') }}
     </button>
 
     <div id="inspector-sheet" class="inspector__sheet">
       <h2 class="inspector__heading">Inspector</h2>
 
-      <p v-if="described.state === 'empty'" class="inspector__empty" data-testid="inspector-empty">
+      <p v-if="panelState === 'empty'" class="inspector__empty" data-testid="inspector-empty">
         (nothing selected)
       </p>
+
+      <!-- A sketch entity (TODO/ui-020). Its own branch, not a variation on the
+           body one: there is no registry `ui.defaults` schema to read, no
+           Transform section (a line is not moved or turned as a whole here) and
+           no gizmo — the two draggable endpoint handles in the viewport are the
+           2D equivalent, per section 7's Q14. -->
+      <template v-else-if="sketchEntity">
+        <p class="inspector__name" data-testid="inspector-name">{{ sketchEntity.name }}</p>
+        <p class="inspector__op" data-testid="inspector-op" :data-op="sketchEntity.op">
+          Sketch line
+        </p>
+
+        <section
+          class="inspector__section"
+          data-testid="inspector-sketch"
+          :data-entity-id="sketchEntity.id"
+        >
+          <h3 class="inspector__section-title">Geometry</h3>
+          <dl class="inspector__fields">
+            <template v-for="end in ['start', 'end']" :key="end">
+              <dt class="inspector__label">
+                {{ end === 'start' ? 'Start' : 'End' }} <span class="inspector__unit">(mm)</span>
+              </dt>
+              <dd class="inspector__value inspector__value--vector">
+                <label
+                  v-for="(axis, index) in ['x', 'y']"
+                  :key="`${end}-${axis}`"
+                  class="inspector__component"
+                >
+                  <span class="inspector__component-label">{{ axis.toUpperCase() }}</span>
+                  <input
+                    class="inspector__input inspector__input--editable"
+                    type="text"
+                    inputmode="decimal"
+                    :data-testid="`inspector-sketch-${end}-${axis}`"
+                    :aria-label="`${end === 'start' ? 'Start' : 'End'} ${axis.toUpperCase()} in millimetres`"
+                    :value="
+                      fieldValue(
+                        `sketch-${end}-${index}`,
+                        formatMmValue((end === 'start' ? sketchEntity.startMm : sketchEntity.endMm)[index]),
+                      )
+                    "
+                    @focus="onFieldFocus($event, `sketch-${end}-${index}`)"
+                    @blur="commitSketchField($event, end === 'start' ? 'start' : 'end', index)"
+                    @keydown.enter.prevent="onFieldEnter"
+                  />
+                </label>
+              </dd>
+            </template>
+
+            <!-- Read-only, like the body panel's Size row and for the same
+                 reason: length is a *measurement* of the line, not an input.
+                 Typing one would have to decide which endpoint moves, and there
+                 is no honest answer to that. -->
+            <dt class="inspector__label">Length <span class="inspector__unit">(mm)</span></dt>
+            <dd class="inspector__value">
+              <input
+                class="inspector__input"
+                type="text"
+                readonly
+                data-testid="inspector-sketch-length"
+                :value="formatMmValue(sketchEntity.lengthMm)"
+              />
+            </dd>
+          </dl>
+        </section>
+
+        <p class="inspector__note" data-testid="inspector-sketch-note">
+          Drag either round handle on the line in the 3D view, or type a coordinate here
+          and press Enter — both do the same thing. Length follows whichever you change.
+        </p>
+      </template>
 
       <template v-else-if="described.state === 'multi'">
         <p class="inspector__count" data-testid="inspector-multi">

@@ -1302,3 +1302,94 @@ export function updateSnapGuideAnnotations(orbit, guides, widthPx, heightPx, out
   }
   return out
 }
+
+// --- sketch strokes (TODO/ui-020) -----------------------------------------
+
+/** Scratch for a sketch stroke's two projected endpoints. */
+const scratchStrokeA = createScreenPoint()
+const scratchStrokeB = createScreenPoint()
+
+/**
+ * @typedef {object} SketchStrokeAnnotation
+ * @property {string} id The entity's lineage-root id, or `''` for the live draft.
+ * @property {boolean} visible False when either endpoint is behind the camera.
+ * @property {number} x1 CSS pixels from the viewport's left edge.
+ * @property {number} y1
+ * @property {number} x2
+ * @property {number} y2
+ * @property {number} lengthMm The segment's real length — what the Inspector
+ *   quotes, carried here so the overlay and the panel cannot round it two
+ *   different ways.
+ */
+
+/**
+ * One sketch stroke's screen geometry, allocated once and mutated thereafter.
+ *
+ * @returns {SketchStrokeAnnotation}
+ */
+export function createSketchStroke() {
+  return { id: '', visible: false, x1: 0, y1: 0, x2: 0, y2: 0, lengthMm: 0 }
+}
+
+/**
+ * Project one sketch segment from the working plane onto the screen.
+ *
+ * A sketch entity lives at Z=0 — the same working plane `pick.js` projects a
+ * pointer *onto* — so this is exactly that projection run backwards, through
+ * the same camera state the frame was rendered with. That is what keeps a drawn
+ * line glued to the grid as the camera moves, rather than drifting the way a
+ * second, parallel projection would (`render-001`'s one-camera rule).
+ *
+ * @param {OrbitCamera} orbit
+ * @param {readonly number[]} startMm `[x, y]` on the working plane.
+ * @param {readonly number[]} endMm
+ * @param {number} widthPx
+ * @param {number} heightPx
+ * @param {SketchStrokeAnnotation} out Mutated in place — no per-frame allocation.
+ * @returns {SketchStrokeAnnotation} `out`
+ */
+export function updateSketchStroke(orbit, startMm, endMm, widthPx, heightPx, out) {
+  worldToScreen(orbit, startMm[0], startMm[1], 0, widthPx, heightPx, scratchStrokeA)
+  worldToScreen(orbit, endMm[0], endMm[1], 0, widthPx, heightPx, scratchStrokeB)
+  out.visible = scratchStrokeA.visible && scratchStrokeB.visible
+  out.x1 = scratchStrokeA.x
+  out.y1 = scratchStrokeA.y
+  out.x2 = scratchStrokeB.x
+  out.y2 = scratchStrokeB.y
+  out.lengthMm = Math.hypot(endMm[0] - startMm[0], endMm[1] - startMm[1])
+  return out
+}
+
+/**
+ * Shortest distance, in pixels, from a point to a **segment** (not the infinite
+ * line through it) — how a click picks a drawn sketch entity.
+ *
+ * Screen-space rather than a WebGL raycast, because a sketch stroke is drawn as
+ * an SVG overlay: a raycast would need a `Line` in the scene plus a threshold
+ * fudge, while this is exact, allocation-free, and gives the same answer at
+ * every zoom level because the tolerance it is compared against is itself in
+ * pixels (the same reasoning as `library.js`'s `SNAP_TOLERANCE_PX`).
+ *
+ * Degenerate case covered on purpose (CLAUDE.md's numerical convention): a
+ * zero-length segment measures the distance to its single point rather than
+ * dividing by zero.
+ *
+ * @param {number} px
+ * @param {number} py
+ * @param {number} x1
+ * @param {number} y1
+ * @param {number} x2
+ * @param {number} y2
+ * @returns {number} Pixels, always ≥ 0.
+ */
+export function distanceToSegmentPx(px, py, x1, y1, x2, y2) {
+  const dx = x2 - x1
+  const dy = y2 - y1
+  const lengthSquared = dx * dx + dy * dy
+  if (lengthSquared === 0) return Math.hypot(px - x1, py - y1)
+  // Clamped to [0, 1]: past either end, the nearest point *on the segment* is
+  // that endpoint, not a projection out beyond it.
+  let t = ((px - x1) * dx + (py - y1) * dy) / lengthSquared
+  t = t < 0 ? 0 : t > 1 ? 1 : t
+  return Math.hypot(px - (x1 + t * dx), py - (y1 + t * dy))
+}

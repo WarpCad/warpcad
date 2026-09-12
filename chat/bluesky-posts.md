@@ -421,3 +421,16 @@ Built with Claude Code, reviewed by me. #CAD #OpenSource
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** the scoping pass claimed no real recipe attaches a separately-built accessory to a separately-built board → `TODO/done/core-014a-recipe-geometry-measurement-decision.md`'s own investigation section; eight recipes take an externally-built board group as a parameter → `~/src/jscad/jscad-raspberrypi/src/` at `62a8e3b`, re-surveyed this session: `hat.js:24`, `hyper-pixel-4-rectangular.js:17`, `touch-display-7inch.js:16`, `touch-screen2.js:16`, `miniPiTFT.js:81`, `pi-tft22.js:28`, `pi-tft24.js:48`, `spacer.js:51`; two require it (no guard, unconditional use) → `touch-screen2.js:16` used at `:179-181`, `touch-display-7inch.js:16` used at `:153-154`; the decision (no two-phase expansion) unchanged → `docs/decisions/composite-recipe-geometry.md`, this diff
 **To Add:** repo URL once public; nothing visual — this commit is a decision doc
+
+## [2026-09-12T17:35:00Z] — Sketch mode: the bug only a hand-drive could see (TODO/ui-020)
+
+**Post:** Shipped 2D sketch mode. Typecheck green, 584 unit tests green, 90 new e2e assertions green across 3 browsers x 3 viewports.
+
+Then I drove it by hand and found every drawn line was an invisible dead strip that swallowed clicks. The specs fired pointer events straight at the canvas, so they skipped the browser hit-testing that was the whole bug.
+
+Built with Claude Code, reviewed by me. #CAD #WebGL #Testing
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL #Testing
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** typecheck clean, 584 unit tests across 28 files, 761 e2e passed / 158 skipped → this session's `npm run typecheck`, `npm run test:unit -- --run` and `npm run test:e2e:headless` runs; 90 new e2e assertions = 10 tests x 9 projects → `npx playwright test e2e/sketch-line-entity.e2e.js` this session, `playwright.config.js`'s 3-engine x 3-viewport matrix; each stroke carried a transparent 18px `pointer-events: stroke` hit target that swallowed `pointerdown` → the removed markup in this diff, `SketchStrokes.vue`'s header note; every spec in this file dispatches synthetic `PointerEvent`s at the canvas element and bypasses hit-testing → `e2e/sketch-line-entity.e2e.js`'s own helpers, this diff
+**To Add:** repo URL once public; a screen recording of drawing a line and dragging an endpoint would carry this one

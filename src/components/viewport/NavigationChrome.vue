@@ -25,11 +25,33 @@ const props = defineProps({
     type: /** @type {import('vue').PropType<'orbit' | 'pan' | 'select'>} */ (String),
     required: true,
   },
+  /**
+   * Whether sketch mode is active (`TODO/ui-020`).
+   *
+   * While it is, a plain drag *draws* rather than orbits or pans, so the
+   * drag-mode row below is selecting between three things none of which are
+   * happening — and the mouse-nav preset beside it configures the very gesture
+   * that has been reclaimed. The whole row is hidden for the duration rather
+   * than disabled.
+   *
+   * That is a deliberate departure from this project's usual
+   * disabled-not-hidden rule, and the reason is a finding from `ui-020`'s own
+   * acceptance drive: at the 390px phone reference the chrome cluster, the
+   * Sketch toolbar and the auto-opened Inspector sheet between them left the
+   * drawn line almost entirely occluded. That rule exists for *operation*
+   * buttons, where "this exists but needs operands" is information the user
+   * needs; a mode selector for a mode you are not in is not that — the Sketch
+   * button immediately below stays visible and says exactly where the gesture
+   * went, and the row comes straight back on exit.
+   */
+  sketchMode: { type: Boolean, default: false },
 })
 
-const emit = defineEmits(['step', 'zoom', 'mode', 'reset'])
+const emit = defineEmits(['step', 'zoom', 'mode', 'reset', 'sketch'])
 
-const verb = computed(() => (props.dragMode === 'pan' ? 'Pan' : 'Orbit'))
+// While sketching, a plain drag draws and the direction pad pans — orbit is
+// suspended (section 7's Q10), so the pad must not claim to orbit either.
+const verb = computed(() => (props.sketchMode || props.dragMode === 'pan' ? 'Pan' : 'Orbit'))
 
 // TODO/ui-019: the mouse-navigation preset is read straight from the settings
 // store — this control both shows and changes it, with no need to round-trip
@@ -62,7 +84,7 @@ const STEPS = Object.freeze([
 
 <template>
   <div class="chrome" data-testid="navigation-chrome" :data-drag-mode="dragMode">
-    <div class="chrome__modes" role="group" aria-label="Viewport drag mode">
+    <div v-if="!sketchMode" class="chrome__modes" role="group" aria-label="Viewport drag mode">
       <button
         type="button"
         class="chrome__mode"
@@ -109,6 +131,27 @@ const STEPS = Object.freeze([
         ⚙
       </button>
     </div>
+
+    <!-- The Sketch mode toggle (TODO/ui-020). Its own row rather than a fourth
+         chip in the drag-mode group above: this enters a *mode*, it does not
+         choose what a drag already does — and a fourth chip would not leave a
+         real tap target at 390px width. -->
+    <button
+      type="button"
+      class="chrome__sketch"
+      :class="{ 'chrome__sketch--on': sketchMode }"
+      :aria-pressed="sketchMode"
+      data-testid="nav-sketch-toggle"
+      :title="sketchMode ? 'Leave sketch mode' : 'Draw 2D sketch geometry on the working plane'"
+      @click="emit('sketch')"
+    >
+      <!-- Always "Sketch", never relabelled to "Exit Sketch": the Sketch
+           toolbar already carries an `Exit Sketch` button, and two identically
+           labelled controls on screen at once read as a bug. This is a toggle
+           and shows its state the way the Orbit/Pan/Select chips above do —
+           pressed, and painted in the accent colour. -->
+      Sketch
+    </button>
 
     <div
       v-if="settingsOpen"
@@ -220,6 +263,25 @@ const STEPS = Object.freeze([
 }
 
 .chrome__mode--on {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-contrast);
+  font-weight: 600;
+}
+
+.chrome__sketch {
+  min-height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface-1);
+  color: var(--text-2);
+  font-size: 12px;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.chrome__sketch--on {
   background: var(--accent);
   border-color: var(--accent);
   color: var(--accent-contrast);
@@ -355,7 +417,8 @@ const STEPS = Object.freeze([
     height: var(--tap-compact);
   }
 
-  .chrome__mode {
+  .chrome__mode,
+  .chrome__sketch {
     min-height: 30px;
     font-size: 11px;
   }

@@ -37,6 +37,14 @@
      step with `BODY_COLORS.*.secondary` in `src/render/mesh.js`, which paints
      the solids themselves. */
   --accent-secondary: #66d9c0;
+  /* Committed sketch geometry (`TODO/ui-020`). Its own token for the same
+     reason `--snap-guide` has one: a sketch line is a *different kind of thing*
+     from every solid and overlay around it, and the whole point of its styling
+     is that a user can tell at a glance that what they drew is 2D construction
+     geometry rather than a body. Sharing `--accent` would make it read as "the
+     selected thing" instead. Selected sketch geometry does switch to
+     `--accent`, which is consistent with every other selection in the app. */
+  --sketch-stroke: #38bdf8;
 
   --radius-sm: 6px;
   --radius-md: 10px;
@@ -73,6 +81,10 @@
     /* Darkened for the same reason as the guide colour above: the dark theme's
        teal has no contrast against a near-white panel. */
     --accent-secondary: #0f8a72;
+    /* Darkened for the same reason as the two above: the dark theme's sky blue
+       washes out against a near-white grid, and a sketch line a user cannot see
+       is the exact failure this token exists to prevent. */
+    --sketch-stroke: #0369a1;
 
     --shadow-overlay: 0 6px 24px rgba(20, 30, 45, 0.18);
   }

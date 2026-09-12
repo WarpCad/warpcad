@@ -19,9 +19,21 @@ import { computed, ref, shallowRef } from 'vue'
 
 import { createDocument } from '../core/document.js'
 import { boundsOf } from '../core/kernel/group.js'
+import { lengthOf, lineFromParams } from '../sketch/entity.js'
 
 /** @typedef {import('../core/document.js').Body} Body */
 /** @typedef {import('../core/kernel/registry.js').OpRecord} OpRecord */
+
+/**
+ * @typedef {object} SketchEntitySummary
+ * @property {string} id Lineage-root id — stable across endpoint edits.
+ * @property {string} recordId
+ * @property {string} name
+ * @property {string} op
+ * @property {[number, number]} startMm Millimetres on the Z=0 working plane.
+ * @property {[number, number]} endMm
+ * @property {number} lengthMm
+ */
 
 /**
  * @typedef {object} BodySummary
@@ -38,8 +50,35 @@ export const useDocumentStore = defineStore('document', () => {
   const version = ref(0)
   /** @type {import('vue').ShallowRef<BodySummary[]>} */
   const bodies = shallowRef(/** @type {BodySummary[]} */ ([]))
+  /**
+   * The document's sketch entities (`TODO/ui-020`), already parsed into the
+   * shape the overlay and the Inspector read.
+   *
+   * Unlike `bodies` above, this genuinely *is* plain data all the way down —
+   * four numbers per entity, no kernel geometry anywhere near it — so there is
+   * no imperative-read caveat here. A malformed record (a document from an
+   * untrusted URL) is dropped rather than rendered, per `lineFromParams`.
+   *
+   * @type {import('vue').ShallowRef<SketchEntitySummary[]>}
+   */
+  const sketchEntities = shallowRef(/** @type {SketchEntitySummary[]} */ ([]))
 
   function refresh() {
+    sketchEntities.value = raw.sketchEntities().flatMap((entity) => {
+      const line = lineFromParams(entity.id, entity.params)
+      if (!line) return []
+      return [
+        {
+          id: entity.id,
+          recordId: entity.recordId,
+          name: entity.name,
+          op: entity.op,
+          startMm: line.startMm,
+          endMm: line.endMm,
+          lengthMm: lengthOf(line.startMm, line.endMm),
+        },
+      ]
+    })
     bodies.value = raw.bodies().map((body) => {
       // Measured off the evaluated geometry, not read out of the creation
       // record's `center` param. Once a body can be *moved* (`ui-012`), that
@@ -81,7 +120,9 @@ export const useDocumentStore = defineStore('document', () => {
     raw,
     version,
     bodies,
+    sketchEntities,
     count: computed(() => bodies.value.length),
+    sketchCount: computed(() => sketchEntities.value.length),
     append,
     refresh,
   }

@@ -1192,6 +1192,24 @@ the triad reads clearly through the translucent caps with a visible colour stub 
 each button's edge, in both themes, at this exact viewport, which is the legibility
 `ui-025` exists to fix. No regression.
 
+**Re-checked**: 2026-09-12 17:31 — PASS (`ui-020`). Re-driven in full because this task
+adds a new branch to `Viewport.vue`'s gesture routing (`decideGestureKind` returns
+`'sketch'`, `applyDrag` bails while sketching) and changes what the direction pad and
+the orientation gizmo do — all on the exact code path this scenario exercises. The
+concern being ruled out is that ordinary 3D navigation, *outside* sketch mode, is
+completely unaffected by the new branch merely existing. Hand-driven at the iPad
+reference (820×1180, WebKit, touch input only) in **both** dark and light colour
+schemes: chrome-tap orbit moved azimuth −45°→−60°; switching to Pan and tapping
+step-right moved the target 0,0,0→15.79,9.12,0; zoom in/out moved distance
+420→336→420; tapping the gizmo's `Z` cap snapped to top (el 90°) and `−Y` to front
+(az −90°, el 0°). Every number is identical to the values this scenario's previous
+re-drives recorded, so the new branch changed nothing on this path. Beyond the
+scenario's own steps: one-finger horizontal, **vertical in both directions** (the
+gesture the previous attempt's iPad bug swallowed), and diagonal touch drags all
+orbited; a two-finger pinch zoomed 420→129.23; sketch mode stayed off throughout, so
+the new `sketchMode` guard never fired on this path — confirmed by direct observation
+rather than by code inspection. No horizontal overflow, console clean in both schemes.
+
 ### 8. Remote-load safety
 
 **Steps**:
@@ -1251,4 +1269,47 @@ its own fields (start/end/length) in the Inspector, with no 3D transform gizmo a
 (per section 7's Q14). Exiting in step 6 returns free orbit and hides the Sketch
 toolbar; the drawn line remains in the scene, not deleted by exiting.
 
-**Last run**: not yet driven — `ui-020` is scoped but not yet implemented.
+**Last run**: 2026-09-12 17:28 — PASS (`ui-020`, the task that implements this scenario).
+Hand-driven against the running app at the laptop reference (1440×900, Chromium) with
+real mouse input — deliberately not the synthetic `PointerEvent`s this task's own
+`e2e/sketch-line-entity.e2e.js` dispatches at the canvas, since only a real press goes
+through the browser's own hit-testing. All six steps behaved: the Sketch toggle snapped
+the camera from the isometric home view (az −45°, el 35.26°) to straight down the
+working plane (az −90°, el 90°) and mounted the Sketch toolbar with Line already
+active; a drag showed a live dashed preview tracking the pointer (206.7 mm mid-drag)
+and committed one 206.7 mm line on release, rendered as a thin bright cyan stroke,
+visibly unlike a shaded solid; clicking empty space then the line selected it and filled
+the Inspector with Start (−84.07, 69.59), End (68.78, −69.59) and Length 206.72, with
+two endpoint handles and **no** 3D transform gizmo; Exit Sketch restored free orbit
+(a drag on empty canvas moved az −90°→−142°, el 90°→66°) and all three lines stayed in
+the scene. Beyond the scenario's own steps: an endpoint-handle drag updated the
+Inspector's length live mid-gesture (206.72 → 226.21) and committed one superseding
+record rather than a second line; a motionless tap committed nothing; a fast
+near-vertical drag, a drag released outside the viewport, zoom and pad-pan while
+sketching, dropping a cube alongside the sketch, and re-entering sketch mode with a
+body present all behaved; console clean throughout; verified at all three reference
+viewports with no horizontal overflow.
+
+**The drive found three real defects the green test suite could not see**, all fixed in
+this task and re-driven:
+
+1. *An invisible dead strip across the viewport.* Each stroke carried a transparent
+   18px-wide `pointer-events: stroke` hit target above the canvas (copied from
+   `Gizmo.vue`'s handles). It swallowed every `pointerdown` landing on a drawn line, so
+   a drag started there neither drew nor orbited. Every spec passed throughout, because
+   they dispatch events straight at the canvas element and bypass hit-testing. The hit
+   targets were dead weight — picking goes through a screen-space distance test — so
+   they were removed, and the regression is now covered by a real-mouse spec.
+2. *The Sketch toolbar collided with the orientation gizmo at the tablet and phone
+   references.* The viewport element is only 390px wide at **both** (persistent side
+   columns at 820, full-width at 390), so a top-centred bar ran into the top-right
+   gizmo. Moved to the viewport's top-left toolbar slot, which the Operations toolbar
+   now yields while sketching — that toolbar acts on selected solids, and sketch mode
+   selects only sketch geometry, so it was dead chrome in the one slot needed.
+3. *Committing a line hid the line you had just drawn, on a phone.* Auto-selecting the
+   new entity auto-opened the Inspector's bottom sheet; measured with a 10×10 hit-test
+   grid, reachable canvas fell from 69% to 29% of the view and the fresh line sat
+   behind the sheet. A drawn line is no longer auto-selected — drawing several in a row
+   is the whole point of sketch mode, the same reasoning `AppView.vue` already applies
+   to not closing the Library on every drop, and scenario 9's own step 5 treats
+   selecting as a separate deliberate click anyway. Back to 69% after the fix.

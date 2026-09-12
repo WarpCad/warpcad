@@ -10,7 +10,9 @@ import {
   createRingArrowheads,
   createRingPoints,
   createScreenPoint,
+  createSketchStroke,
   createSnapGuideAnnotations,
+  distanceToSegmentPx,
   gizmoSizeForBounds,
   ringArrowheads,
   ringPoints,
@@ -19,6 +21,7 @@ import {
   translateDeltaMm,
   updateDimensionAnnotation,
   updateGizmoAnnotation,
+  updateSketchStroke,
   updateSnapGuideAnnotations,
   worldToScreen,
 } from './annotate.js'
@@ -993,5 +996,60 @@ describe('updateSnapGuideAnnotations — the dashed placement guides (TODO/ui-01
     const first = out[0]
     updateSnapGuideAnnotations(orbit, guides(), WIDTH_PX, HEIGHT_PX, out)
     expect(out[0]).toBe(first)
+  })
+})
+
+describe('sketch strokes (TODO/ui-020)', () => {
+  it('projects a working-plane segment through the same camera the frame used', () => {
+    const orbit = createOrbitCamera()
+    orbit.snapTo('top')
+    const stroke = createSketchStroke()
+    updateSketchStroke(orbit, [-20, 0], [20, 0], 800, 600, stroke)
+
+    expect(stroke.visible).toBe(true)
+    expect(stroke.lengthMm).toBeCloseTo(40, 9)
+    // Looking straight down at a segment centred on the origin: the two ends
+    // land either side of the viewport centre, at the same height.
+    expect(stroke.y1).toBeCloseTo(stroke.y2, 6)
+    expect((stroke.x1 + stroke.x2) / 2).toBeCloseTo(400, 6)
+    expect(stroke.x1).not.toBeCloseTo(stroke.x2, 1)
+  })
+
+  it('round-trips against pick.js — what a drag drew is where it is drawn', () => {
+    // The contract that actually matters: `pick.js` turns a pointer into
+    // millimetres and this turns those millimetres back into pixels. If the two
+    // disagreed, a line would commit somewhere other than where it was dragged.
+    const orbit = createOrbitCamera()
+    const aspect = 800 / 600
+    const a = projectToWorkingPlane(orbit, -0.4, 0.25, aspect, { x: 0, y: 0, z: 0 })
+    const b = projectToWorkingPlane(orbit, 0.3, -0.15, aspect, { x: 0, y: 0, z: 0 })
+    if (!a || !b) throw new Error('the default camera must see the working plane')
+
+    const stroke = createSketchStroke()
+    updateSketchStroke(orbit, [a.x, a.y], [b.x, b.y], 800, 600, stroke)
+    expect(stroke.x1).toBeCloseTo(((-0.4 + 1) / 2) * 800, 6)
+    expect(stroke.y1).toBeCloseTo(((1 - 0.25) / 2) * 600, 6)
+    expect(stroke.x2).toBeCloseTo(((0.3 + 1) / 2) * 800, 6)
+    expect(stroke.y2).toBeCloseTo(((1 - -0.15) / 2) * 600, 6)
+  })
+
+  it('hides a stroke whose endpoints fall behind the camera', () => {
+    const orbit = createOrbitCamera({ distanceMm: 100, target: { x: 0, y: 0, z: 0 } })
+    const stroke = createSketchStroke()
+    updateSketchStroke(orbit, [0, 0], [100000, 0], 800, 600, stroke)
+    expect(stroke.visible).toBe(false)
+  })
+
+  it('measures distance to a segment, not to the infinite line through it', () => {
+    // Perpendicular, inside the span.
+    expect(distanceToSegmentPx(50, 10, 0, 0, 100, 0)).toBeCloseTo(10, 9)
+    // Past the end: the nearest point on the segment is the endpoint itself,
+    // so this is 10 (not 0, which an unclamped projection would report).
+    expect(distanceToSegmentPx(110, 0, 0, 0, 100, 0)).toBeCloseTo(10, 9)
+    expect(distanceToSegmentPx(-6, 8, 0, 0, 100, 0)).toBeCloseTo(10, 9)
+    // On the segment.
+    expect(distanceToSegmentPx(30, 0, 0, 0, 100, 0)).toBeCloseTo(0, 9)
+    // Degenerate segment: distance to the one point, no division by zero.
+    expect(distanceToSegmentPx(3, 4, 0, 0, 0, 0)).toBeCloseTo(5, 9)
   })
 })
