@@ -270,20 +270,35 @@ Create the file (with the header below) if it somehow doesn't exist yet:
 Appended by `/fix-todo` Step 9, but narrower in scope than the previous attempt's file
 of the same name — see `CLAUDE.md`'s Verification section. Only what's genuinely
 one-off and not already covered by a standing `TODO/ACCEPTANCE.md` scenario belongs
-here. Newest entry at the top. Check items off (`[ ]` → `[x]`) as you verify them.
+here. Newest entry at the top. Each entry is a short prose note followed by a table —
+one row per thing to check by hand. Fill in Status and Notes as you actually verify;
+leave the entry and its filled-in rows in place afterward as a record.
+
+Status values: `Open` (not yet checked), `OK` (checked, fine as-is), `Issue` (checked,
+found a real problem — file it as its own TODO and put the id in Notes), or `N/A` (no
+longer checkable as written — say why in Notes). Notes is free text: what you actually
+saw, on what device.
 
 ## Queue
 ```
 
 Then **prepend** (not append — newest first, per the header above) one entry
-per completed task that has something worth logging:
+per completed task that has something worth logging. A one-row entry looks like:
 
 ```markdown
 ### <id> — <title> (<UTC timestamp, same format as the Completion Log>)
 
-- [ ] <specific thing not covered by an acceptance scenario: visual/UX feel,
-  cross-device behavior, a case this task explicitly deferred>
+<one or two sentences: why this is here, what was already measured or ruled out>
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | <specific thing not covered by an acceptance scenario: visual/UX feel, cross-device behavior, a case this task explicitly deferred> | Open | |
 ```
+
+Add one row per thing worth checking, not one entry per thing — a task that surfaces
+several related checks is one heading with a multi-row table, not several headings.
+Leave **Status** as `Open` and **Notes** blank when writing the entry; those columns
+are filled in later, by whoever actually drives the check by hand, not by this skill.
 
 Only commit once the user confirms, per `/commit` Step 9 — unless this
 invocation is running from a scheduled/unattended context that was set up with
