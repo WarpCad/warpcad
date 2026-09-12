@@ -91,3 +91,13 @@ rate limit had cleared — the implementation was never redone. `ui-026` ran cle
 start to finish in one agent, no interruption. **M3 is now fully ✅ — this milestone
 boundary needs the five-minute free-form human pass at phone/tablet/laptop viewports
 before M4 work starts**, per `CLAUDE.md`'s Verification section.
+
+Note on the row above: the M3 milestone-boundary pass was done by the user directly
+(2026-09-12, outside this loop) and surfaced a real bug — a Cylinder's Diameter field
+in the Inspector doesn't accept edits — scoped as `TODO/ui-029-editable-primitive-
+parameters.md` (M4, commit `4bd4a50`). Confirmed explicitly with the user at the start
+of this tick that this counts as the required pass; M4 work may proceed. Two other
+pending changes found uncommitted at the same time were committed separately first:
+`TODO/VERIFY.md`'s checkbox-to-table reformat (commit `fb0030e`) and the `ui-029`
+scoping itself (`4bd4a50`); a draft LinkedIn post was found alongside them but held
+out per the user's explicit choice, not committed.
