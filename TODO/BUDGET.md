@@ -117,4 +117,4 @@ typecheck clean, 559/559 unit, 671/158/0 e2e, matching the agent's own reported
 numbers exactly; `git show --stat` confirms only the decision doc, `ROADMAP.md`, the
 retirement note, and two chat drafts changed — no source touched.
 
-| 2026-09-12 16:59 | *(in progress)* | `ui-020`, `ui-027` | *(in progress, 2 of 3 — task-count cap next)* | *(in progress)* |
+| 2026-09-12 16:59 | 2026-09-12 22:12 | `ui-020`, `ui-027`, `ui-029` | task-count reached (3) | no — M4, `core-014`–`018` (reserved), `ui-028` (reserved), Bearing (unscoped, blocked on data) all still open |
