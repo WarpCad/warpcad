@@ -6,8 +6,35 @@ priority: medium
 model: sonnet
 milestone: M4
 depends: [render-001]
-status: open
+status: done
 ---
+
+> **Shipped with three deliberate deviations from this file's own spec, each found by
+> reading the current code/tests rather than re-deriving from scratch, per `/fix-todo`
+> Step 2:**
+>
+> 1. **The appended record omits `name`**, even though this file's own Affected files
+>    section lists one in the record shape. `src/core/transform.js`'s "Why transform
+>    records are unnamed" section (and `OperationsToolbar.vue`'s own Snap/Align code,
+>    landed one task earlier) documents a specific, checked reason a `supersedes`-based
+>    record must stay unnamed: `Body.name` reads from a lineage's *root* record only, so
+>    a name here is dead weight at best and, if this id is ever handed to `combine()`, a
+>    real duplicate-name bug at worst. Followed that established precedent instead.
+> 2. **The e2e spec does not assert a bounding-box shrink**, though this file's Testing
+>    section asked for one. `fillet.js`'s own module doc and `fillet.spec.js`'s "leaves
+>    the bounding box alone" unit test both state the bounding box is deliberately
+>    *unchanged* by a rim fillet/chamfer — only rim material is removed. Added
+>    `volumeOf` (`src/core/kernel/group.js`) and a `data-body-volume` DOM attribute
+>    instead, and asserted volume strictly decreases, matching how `fillet.spec.js`
+>    itself checks correctness.
+> 3. **A new CSS fix, outside the originally listed Affected files**: adding two buttons
+>    to `OperationsToolbar.vue`'s already-cramped phone-width row (4 wrapped rows of 2,
+>    not 3) reached far enough down to overlap `NavigationChrome` once the Inspector
+>    sheet pushed it up on selection — found by this task's own full e2e run at phone
+>    width, not designed for up front. Fixed by hiding each button's text label below
+>    640px width (icon + `title`/`aria-label` only), the same `--tap-compact` icon-only
+>    pattern `NavigationChrome.vue` already uses at its own breakpoint. Logged as a
+>    human-judgment follow-up in `TODO/VERIFY.md` (icon legibility without labels).
 
 ## Goal
 
