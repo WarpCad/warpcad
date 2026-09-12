@@ -18,7 +18,7 @@ import { defineStore } from 'pinia'
 import { computed, ref, shallowRef } from 'vue'
 
 import { createDocument } from '../core/document.js'
-import { boundsOf } from '../core/kernel/group.js'
+import { boundsOf, volumeOf } from '../core/kernel/group.js'
 import { lengthOf, lineFromParams } from '../sketch/entity.js'
 
 /** @typedef {import('../core/document.js').Body} Body */
@@ -41,6 +41,14 @@ import { lengthOf, lineFromParams } from '../sketch/entity.js'
  * @property {string} name
  * @property {string} op
  * @property {[number, number, number]} center Millimetres, Z-up.
+ * @property {[[number, number, number], [number, number, number]]} bounds
+ *   World-axis-aligned `[min, max]`, millimetres — added by `TODO/ui-027`,
+ *   keeping the two corners `center` was already averaging away rather than
+ *   discarding them.
+ * @property {number} volumeMm3 Also added by `TODO/ui-027`: a rim fillet/
+ *   chamfer deliberately leaves `bounds` unchanged (`fillet.js`'s own module
+ *   doc and `fillet.spec.js`'s "leaves the bounding box alone" case), so this
+ *   is what an e2e spec actually checks to confirm rim material was removed.
  */
 
 export const useDocumentStore = defineStore('document', () => {
@@ -96,6 +104,8 @@ export const useDocumentStore = defineStore('document', () => {
           (min[1] + max[1]) / 2,
           (min[2] + max[2]) / 2,
         ]),
+        bounds: /** @type {[[number, number, number], [number, number, number]]} */ ([min, max]),
+        volumeMm3: volumeOf(body.geometry),
       }
     })
     version.value = raw.version

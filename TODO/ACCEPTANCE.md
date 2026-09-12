@@ -494,6 +494,36 @@ pre-change baseline).
   silent mirror, and the operand gate reports `modify.bisect: expected 1 operand(s),
   got 0`. No console errors, so nothing in the new ops trips the browser build.
 
+**Re-checked**: 2026-09-12 15:53 — PASS (`ui-027`). Re-driven because Fillet/Chamfer
+is the second `OperationsToolbar.vue` control (after `ui-026`'s Snap/Align) to add a
+`supersedes`-based commit path alongside the existing `consumes`-based one, and
+because this task's own Testing section names this scenario explicitly. Hand-driven
+against the real dev server (no `chromium-cli` in this environment, so a small
+Playwright-driven Node script filled in, screenshotting at each step): a Cube dragged
+in and dropped, then a Cylinder to a different point — **both stayed visible**
+(2 bodies), and clicking empty space then each solid in turn selected only that one.
+With the Cube alone selected, Fillet was opened, "Top (+Z)" chosen, radius 5mm, and
+committed: the popover closed, the body count stayed at **2** (not 3 or 1), the
+Cylinder's centre was **byte-identical** before and after
+(`-40.73,181.89,25.00`), and the Cube's own volume dropped (64000 → 63188.3 mm³) —
+the real, kernel-test-backed signal that the rim actually changed (see
+`e2e/fillet-chamfer-operation.e2e.js`'s own header for why volume, not bounding box).
+A second drive with a dramatic 15mm radius on a 40mm cube, snapped to the Front
+orientation-gizmo view, visually confirmed the actual claim rather than just the
+numbers: a flat-walled box below, a clean rounded dome above — exactly the "whole rim
+of one face" shape `docs/fillet-chamfer.md` describes, not a whole-body collapse
+(an elevated 3/4-view screenshot of the same shape looked almost sphere-like at a
+glance, purely a foreshortening effect of viewing a domed cap from above — the
+Front-view drive was what actually settled it). Console clean throughout (only the
+Vite HMR connect log and a benign headless-GL "GPU stall due to ReadPixels"
+performance notice, not an application error).
+
+**Regression-surface baseline, `ui-026`'s own e2e spec re-run unchanged**:
+`e2e/snap-align-operation.e2e.js`, all 18 cases, at all three reference viewports
+(that spec's own chromium-only scope, per its header) — 18/18 passed, confirming
+Fillet/Chamfer's new third commit path on the same `run()`/popover machinery didn't
+disturb Snap/Align's `supersedes` path landed one task earlier.
+
 ### 2. Hardware property edit
 
 **Steps**:

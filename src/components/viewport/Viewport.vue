@@ -1945,7 +1945,12 @@ onBeforeUnmount(() => {
     <!-- The scene's contents, in the DOM. Not decoration: it is what makes the
          placed bodies assertable and announceable without pixel-picking a
          canvas, and it is the minimal "is this selected?" signal TODO/ui-010
-         asks for. The inspector that will *edit* a body is ui-011's. -->
+         asks for. The inspector that will *edit* a body is ui-011's.
+         `data-body-bounds` and `data-body-volume` (TODO/ui-027) are for a
+         fillet/chamfer spec: the bounding box is *unchanged by design* for a
+         rim op (`fillet.js`'s own module doc), so `data-body-bounds` alone
+         cannot confirm one actually ran — `data-body-volume` is the real
+         signal, since rim material is genuinely removed either way. -->
     <ul class="viewport__bodies" data-testid="scene-bodies">
       <li
         v-for="body in documentStore.bodies"
@@ -1955,6 +1960,8 @@ onBeforeUnmount(() => {
         :data-body-op="body.op"
         :data-body-name="body.name"
         :data-body-center="`${body.center[0].toFixed(2)},${body.center[1].toFixed(2)},${body.center[2].toFixed(2)}`"
+        :data-body-bounds="`${body.bounds[0][0].toFixed(2)},${body.bounds[0][1].toFixed(2)},${body.bounds[0][2].toFixed(2)},${body.bounds[1][0].toFixed(2)},${body.bounds[1][1].toFixed(2)},${body.bounds[1][2].toFixed(2)}`"
+        :data-body-volume="body.volumeMm3.toFixed(3)"
         :data-selected="selection.has(body.id) ? 'true' : 'false'"
         :data-selection-role="selectionRole(body.id)"
       >

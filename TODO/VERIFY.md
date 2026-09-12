@@ -34,6 +34,36 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### ui-027 — icon-only phone toolbar, and the first user-facing kernel-error message (2026-09-12 15:58)
+
+Two things this task shipped are functionally verified (headless e2e, all three
+engines and viewports, plus a hand-driven check against the real dev server) but
+turn on human judgment an automated check can't render:
+
+1. Adding Fillet/Chamfer made the Operations toolbar's phone-width layout run out of
+   vertical room — 4 wrapped rows of 2 buttons reached into `NavigationChrome`'s own
+   space once the Inspector sheet pushed it up on selection (measured: `y≈242` vs.
+   the chrome's `y≈207`). The fix hides each button's text label below 640px width,
+   leaving icon + `title`/`aria-label` only — the same `--tap-compact` square-icon
+   pattern `NavigationChrome.vue` already uses at its own breakpoint, not a new one.
+   Confirmed this clears the collision and that every `*.e2e.js` spec covering this
+   toolbar still passes at phone width. Not confirmed: whether eight bare glyphs
+   (∪ − ∩ ⊞ ⇥ ⇔ ◠ ◢) are actually *identifiable* at a glance on a real phone, or
+   whether they read as an opaque row of symbols until tapped once.
+2. `commitFilletChamfer`'s catch block is this toolbar's first path that shows a
+   *thrown kernel error* to the user (every op before this validated only shape, not
+   a value like radius-vs-solid-size) — a plain `<p>` inside the popover, unstyled as
+   an alert (this codebase has no `--danger` token yet — see the CSS comment). Its
+   *existence* and *trigger condition* are e2e-tested; its wording
+   (`fillet.js`'s own `Error` message, e.g. `"modify.filletRim: radius 45mm must be
+   less than the solid's 40mm extent along the axis"`) has not been read by anyone
+   who didn't already know what it meant.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | On a real phone, glance at the Operations toolbar with a body selected (all 8 icon-only buttons visible) *before* reading any documentation. Can you guess what Fillet (◠) and Chamfer (◢) do from the glyph alone, or only from `title` on long-press? If it's illegible, a future task should swap in real SVG icons rather than Unicode glyphs. | Open | |
+| 2 | Trigger the radius-too-large error (Fillet a face with a radius at or past the solid's own extent) and read the resulting popover message as a first-time user would, not as the person who wrote it. Does "radius 45mm must be less than the solid's 40mm extent along the axis" make sense without already knowing what `fillet.js` means by "extent along the axis"? | Open | |
+
 ### ui-020 — sketch mode on real touch hardware, and the lines' lifetime (2026-09-12 17:35)
 
 Scenario 9 now covers sketch mode's whole flow on a standing basis, and the Step 6

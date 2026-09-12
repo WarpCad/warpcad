@@ -27,6 +27,9 @@ themselves won't have to move.
 - [Precise placement: Snap and Align](snap-align.md) — the Operations toolbar's
   fifth and sixth buttons, which move one shape to a computed position against
   another without combining or discarding either one.
+- [Rounding or bevelling an edge: Fillet and Chamfer](fillet-chamfer.md) — the
+  Operations toolbar's seventh and eighth buttons, which round or bevel the
+  whole rim of one chosen face on a single selected shape.
 - [Moving around the 3D view](viewport-navigation.md) — orbit, pan, zoom, the
   orientation triad, touch gestures, and reading size off the grid.
 - [Sketch mode: drawing a line on the working plane](sketch-mode.md) — the

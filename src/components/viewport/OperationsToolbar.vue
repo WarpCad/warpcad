@@ -92,6 +92,42 @@
  * popover offers one scalar offset field for both ops, applied uniformly across
  * whichever axes are checked; a true per-axis Align offset is left for a later
  * task rather than built here on an untested assumption about `calcSnap`.
+ *
+ * ## Fillet and Chamfer are a third shape (`TODO/ui-027`)
+ *
+ * `core-003` ported `modify.filletRim`/`modify.chamferRim` — rounding or
+ * bevelling the whole rim of one axis-aligned **face**. Not an edge: this is
+ * the one fillet semantics `@jscad/modeling` can support at all (see the
+ * `TODO/core-003` addendum in `docs/decisions/geometry-kernel.md`), and every
+ * label in this popover says "face" for exactly that reason.
+ *
+ * 1. **Exactly 1 operand — CLAUDE.md's own named example.** "A fillet on one
+ *    edge... stays disabled unless exactly one applicable object is selected"
+ *    is CLAUDE.md's literal wording for a single-object tool; both registry
+ *    entries are `native(1, ...)`, a lone `inputs[0]`. So this pair gates
+ *    `disabled` on `selection.count !== 1`, its own genuine divergence from
+ *    every other button on this toolbar (2+ above, exactly 2 for Snap/Align).
+ * 2. **`supersedes`, not `consumes` — but unlike Snap/Align, unnamed.** The op
+ *    edits the one solid it targets and replaces it in place, the same shape
+ *    `src/core/transform.js`'s `translateRecord`/`rotateRecord` use — so the
+ *    record here targets/supersedes the selected solid's current terminal id,
+ *    never `operands`/`consumes`. `TODO/ui-027`'s own Affected files note
+ *    lists a `name` field in this record's shape; deliberately **not**
+ *    followed here, because `transform.js`'s own "Why transform records are
+ *    unnamed" section gives a specific, checked reason a supersedes-based
+ *    record must stay unnamed (`Body.name` reads from a lineage's *root*
+ *    record only, so a name here is dead weight at best and, if this id is
+ *    ever handed to `combine()`, a duplicate `group.js` does not deduplicate).
+ *    Same precedent Snap/Align already followed one section up.
+ * 3. **The first user-facing runtime kernel-error display.** Every op above
+ *    validates only shape (enough operands, a real axis string). Fillet/
+ *    Chamfer's own registry entries validate a *value* — is this radius
+ *    positive, and does it fit the solid it's aimed at (`fillet.js`'s
+ *    `requireRadius`/`assertPrismaticBand`/`assertRadiusFits`) — and throw a
+ *    real `Error` when it doesn't. Nothing before this task has needed to
+ *    show a thrown kernel error to a user rather than let it vanish into the
+ *    console, so `opError` below and its popover `<p>` are new ground, not a
+ *    third copy of an existing pattern.
  */
 import { computed, reactive, ref, watch } from 'vue'
 
@@ -268,8 +304,108 @@ function snapAlignTitleFor(operation) {
     : `${operation.label} — ${operation.hint}`
 }
 
+// --- Fillet / Chamfer (TODO/ui-027) -----------------------------------------
+
+/**
+ * The two rim ops. See the module doc's "Fillet and Chamfer are a third
+ * shape" section for why exactly-1, `supersedes`, and no `name`.
+ *
+ * @type {ReadonlyArray<{ op: 'modify.filletRim' | 'modify.chamferRim', label: string, glyph: string, hint: string, scopeNote: string }>}
+ */
+const FILLET_CHAMFER_OPERATIONS = Object.freeze([
+  {
+    op: 'modify.filletRim',
+    label: 'Fillet',
+    glyph: '◠',
+    hint: 'Round the rim of one face',
+    scopeNote: 'Rounds the whole rim of the chosen face — not a single edge.',
+  },
+  {
+    op: 'modify.chamferRim',
+    label: 'Chamfer',
+    glyph: '◢',
+    hint: 'Bevel the rim of one face',
+    scopeNote: 'Bevels the whole rim of the chosen face — not a single edge.',
+  },
+])
+
+/**
+ * The six `RIM_ORIENTATIONS` (`src/core/kernel/fillet.js`) by plain-language
+ * face label — never "edge", per this task's own labelling requirement.
+ *
+ * @type {ReadonlyArray<{ value: string, label: string }>}
+ */
+const FACE_OPTIONS = Object.freeze([
+  { value: 'z+', label: 'Top (+Z)' },
+  { value: 'z-', label: 'Bottom (−Z)' },
+  { value: 'y+', label: 'Front (+Y)' },
+  { value: 'y-', label: 'Back (−Y)' },
+  { value: 'x+', label: 'Right (+X)' },
+  { value: 'x-', label: 'Left (−X)' },
+])
+
+/** Fillet/Chamfer's own precondition: exactly 1 — CLAUDE.md's single-object-tool case. */
+const EXACT_ONE = 1
+
+const filletChamferDisabled = computed(() => selection.count !== EXACT_ONE)
+
+/** What a disabled Fillet/Chamfer button says when hovered or long-pressed. */
+const FILLET_CHAMFER_DISABLED_HINT = `Select exactly ${EXACT_ONE} solid`
+
+/**
+ * @param {{ label: string, hint: string }} operation
+ * @returns {string}
+ */
+function filletChamferTitleFor(operation) {
+  return filletChamferDisabled.value
+    ? FILLET_CHAMFER_DISABLED_HINT
+    : `${operation.label} — ${operation.hint}`
+}
+
+/**
+ * @param {string | null} op
+ * @returns {op is 'modify.filletRim' | 'modify.chamferRim'}
+ */
+function isFilletChamferOp(op) {
+  return op === 'modify.filletRim' || op === 'modify.chamferRim'
+}
+
+/** Face dropdown state — defaults to the first option, unlike Radius below. */
+const faceOrientation = ref(FACE_OPTIONS[0].value)
+
+/**
+ * Radius (mm). No default — `modify.filletRim`/`chamferRim`'s own registry
+ * entries have none either, and this task's Interaction model says so
+ * explicitly, so the popover's commit button stays disabled until a value is
+ * actually typed rather than silently committing whatever a stale default was.
+ *
+ * @type {import('vue').Ref<number | null>}
+ */
+const radiusMm = ref(/** @type {number | null} */ (null))
+
+/**
+ * The first user-facing runtime kernel-error message (see module doc §3), or
+ * `null` when nothing has failed. Cleared every time a popover opens or closes
+ * so a stale failure from a previous attempt never lingers into the next one.
+ *
+ * @type {import('vue').Ref<string | null>}
+ */
+const opError = ref(/** @type {string | null} */ (null))
+
+const canCommitFilletChamfer = computed(
+  () =>
+    !filletChamferDisabled.value &&
+    typeof radiusMm.value === 'number' &&
+    Number.isFinite(radiusMm.value) &&
+    radiusMm.value > 0,
+)
+
 /** Which popover is open, or none. */
-const openPopover = ref(/** @type {'group.snap' | 'group.align' | null} */ (null))
+const openPopover = ref(
+  /** @type {'group.snap' | 'group.align' | 'modify.filletRim' | 'modify.chamferRim' | null} */ (
+    null
+  ),
+)
 
 /** Axis checkboxes — reset to unchecked every time a popover opens. */
 const axesChecked = reactive(/** @type {Record<'x' | 'y' | 'z', boolean>} */ ({
@@ -296,7 +432,13 @@ const canCommitSnapAlign = computed(
 // enforce is no longer met, so it closes itself rather than staying open for
 // a commit that would now throw inside the registry's own `requireTwoOperands`.
 watch(snapAlignDisabled, (isDisabled) => {
-  if (isDisabled) openPopover.value = null
+  if (isDisabled && !isFilletChamferOp(openPopover.value)) openPopover.value = null
+})
+
+// Same self-closing discipline for Fillet/Chamfer's own exactly-1 precondition
+// — deselecting, or extending to a second solid, while the popover is open.
+watch(filletChamferDisabled, (isDisabled) => {
+  if (isDisabled && isFilletChamferOp(openPopover.value)) openPopover.value = null
 })
 
 /**
@@ -319,12 +461,36 @@ function togglePopover(op) {
   axesChecked.z = false
   orientation.value = SNAP_ORIENTATIONS[0].value
   offsetMm.value = 0
+  opError.value = null
+  openPopover.value = op
+}
+
+/**
+ * Open the Fillet or Chamfer popover, or close it if its own button is
+ * clicked again — same toggle mechanism as {@link togglePopover}, reused
+ * rather than reinvented a third time, per this task's own Interaction model.
+ *
+ * @param {'modify.filletRim' | 'modify.chamferRim'} op
+ * @returns {void}
+ */
+function toggleFilletChamferPopover(op) {
+  if (filletChamferDisabled.value) return
+  if (openPopover.value === op) {
+    openPopover.value = null
+    return
+  }
+  // A fresh form every time — a face/radius left over from a previous Fillet
+  // would otherwise silently carry over onto a different solid or a Chamfer.
+  faceOrientation.value = FACE_OPTIONS[0].value
+  radiusMm.value = null
+  opError.value = null
   openPopover.value = op
 }
 
 /** Close whichever popover is open without appending anything. */
 function closePopover() {
   openPopover.value = null
+  opError.value = null
 }
 
 /**
@@ -373,6 +539,59 @@ function commitSnapAlign() {
   selection.select(selection.ids[0])
   closePopover()
 }
+
+/**
+ * Commit the open popover's Fillet or Chamfer. See the module doc's "Fillet
+ * and Chamfer are a third shape" section for why this record is `supersedes`-
+ * based and unnamed, and for why a thrown kernel error is caught and shown
+ * here rather than left to the console — `filletRim`/`chamferRim` validate the
+ * radius against the solid's own geometry (`assertPrismaticBand`,
+ * `assertRadiusFits`, `requireRadius` in `src/core/kernel/fillet.js`) and
+ * throw on a perfectly well-formed request against the wrong shape or size,
+ * which no button on this toolbar before this one has needed to surface.
+ *
+ * @returns {void}
+ */
+function commitFilletChamfer() {
+  const op = openPopover.value
+  if (!isFilletChamferOp(op) || !canCommitFilletChamfer.value) return
+
+  const onlyId = selection.onlyId
+  if (!onlyId) return
+
+  // Same operand-resolution discipline as `run()`/`commitSnapAlign()` above:
+  // the selection id is a lineage root, and the kernel needs the operand's
+  // *current* terminal id, not the geometry it had when first placed.
+  const targetId = documentStore.raw.currentIdOf(onlyId) ?? onlyId
+  const id = documentStore.raw.nextId(op === 'modify.filletRim' ? 'fillet' : 'chamfer')
+
+  /** @type {import('../../core/kernel/registry.js').OpRecord} */
+  const record = {
+    id,
+    op,
+    // See the module doc: unnamed on purpose, unlike TODO/ui-027's own
+    // Affected files note — `Body.name` is read from the lineage's root
+    // record only, so a name on a superseding record is inert at best.
+    target: targetId,
+    supersedes: targetId,
+    params: { radius: radiusMm.value, orientation: faceOrientation.value },
+  }
+
+  try {
+    documentStore.append(record, { origin: 'local' })
+  } catch (error) {
+    // The first user-facing runtime kernel-error path on this toolbar — shown
+    // in the popover itself rather than only thrown to the console, per the
+    // module doc's §3. The popover stays open so the value can be corrected.
+    opError.value = error instanceof Error ? error.message : String(error)
+    return
+  }
+
+  // `supersedes` keeps `onlyId` — the lineage root — valid throughout, the
+  // same reason a gizmo drag or a Snap/Align commit never has to reselect.
+  selection.select(onlyId)
+  closePopover()
+}
 </script>
 
 <template>
@@ -382,7 +601,7 @@ function commitSnapAlign() {
     :data-enabled="disabled ? 'false' : 'true'"
     :data-selected-count="selection.count"
     role="group"
-    aria-label="Boolean, group and snap/align operations"
+    aria-label="Boolean, group, snap/align and fillet/chamfer operations"
   >
     <p class="ops__badge" data-testid="operations-count">
       <span class="ops__count">{{ selection.count }} selected</span>
@@ -432,6 +651,26 @@ function commitSnapAlign() {
         <span class="ops__glyph" aria-hidden="true">{{ operation.glyph }}</span>
         <span class="ops__label">{{ operation.label }}</span>
       </button>
+
+      <!-- Fillet/Chamfer (TODO/ui-027): this toolbar's first exactly-1-gated
+           pair, per CLAUDE.md's own single-object-tool rule. Same popover
+           toggle mechanism as Snap/Align above, a different field set. -->
+      <button
+        v-for="operation in FILLET_CHAMFER_OPERATIONS"
+        :key="operation.op"
+        type="button"
+        class="ops__btn"
+        :disabled="filletChamferDisabled"
+        :data-testid="`operation-${operation.label.toLowerCase()}`"
+        :data-op="operation.op"
+        :aria-expanded="openPopover === operation.op"
+        :title="filletChamferTitleFor(operation)"
+        :aria-label="filletChamferTitleFor(operation)"
+        @click="toggleFilletChamferPopover(operation.op)"
+      >
+        <span class="ops__glyph" aria-hidden="true">{{ operation.glyph }}</span>
+        <span class="ops__label">{{ operation.label }}</span>
+      </button>
     </div>
 
     <!-- Teleported to `<body>`, not left as a normal descendant of `.ops` —
@@ -448,7 +687,63 @@ function commitSnapAlign() {
     <Teleport to="body">
       <div v-if="openPopover" class="ops__popover-backdrop" @click="closePopover" />
       <div
-        v-if="openPopover"
+        v-if="openPopover && isFilletChamferOp(openPopover)"
+        class="ops__popover"
+        data-testid="fillet-chamfer-popover"
+        :data-op="openPopover"
+      >
+        <p class="ops__popover-note">
+          {{ FILLET_CHAMFER_OPERATIONS.find((operation) => operation.op === openPopover)?.scopeNote }}
+        </p>
+
+        <label class="ops__popover-field">
+          Face
+          <select v-model="faceOrientation" data-testid="fillet-chamfer-face">
+            <option v-for="choice in FACE_OPTIONS" :key="choice.value" :value="choice.value">
+              {{ choice.label }}
+            </option>
+          </select>
+        </label>
+
+        <label class="ops__popover-field">
+          Radius (mm)
+          <input
+            type="number"
+            v-model.number="radiusMm"
+            min="0"
+            data-testid="fillet-chamfer-radius"
+          />
+        </label>
+
+        <!-- The first user-facing runtime kernel-error path on this toolbar —
+             see the module doc's §3 and `commitFilletChamfer`'s own comment. -->
+        <p v-if="opError" class="ops__popover-error" data-testid="fillet-chamfer-error">
+          {{ opError }}
+        </p>
+
+        <div class="ops__popover-actions">
+          <button
+            type="button"
+            class="ops__popover-cancel"
+            data-testid="fillet-chamfer-cancel"
+            @click="closePopover"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            class="ops__popover-commit"
+            :disabled="!canCommitFilletChamfer"
+            data-testid="fillet-chamfer-commit"
+            @click="commitFilletChamfer"
+          >
+            {{ openPopover === 'modify.filletRim' ? 'Fillet' : 'Chamfer' }}
+          </button>
+        </div>
+      </div>
+
+      <div
+        v-else-if="openPopover"
         class="ops__popover"
         data-testid="snap-align-popover"
         :data-op="openPopover"
@@ -740,6 +1035,24 @@ function commitSnapAlign() {
   color: var(--text-3);
 }
 
+/*
+ * The first user-facing runtime kernel-error display on this toolbar
+ * (TODO/ui-027 — see the module doc's §3). No dedicated "danger" custom
+ * property exists in this codebase yet (`Viewport.vue`'s own `.viewport__error`
+ * is neutral surface/text colours, not a red), so this follows that same
+ * established convention rather than introducing a new token for one message.
+ */
+.ops__popover-error {
+  margin: 0;
+  padding: 6px 8px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface-1);
+  color: var(--text-1);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
 .ops__popover-axes {
   display: flex;
   align-items: center;
@@ -849,15 +1162,39 @@ function commitSnapAlign() {
   }
 
   .ops__btn {
-    /* Still a comfortable tap target at 390px: three buttons of ~70px plus gaps
-       fit inside the phone's width with room to spare. */
+    /* Icon-only below (TODO/ui-027 made this necessary — see `.ops__label`'s
+       own comment), so this is now a roughly square compact tap target, the
+       same `--tap-compact` (38px) square `NavigationChrome.vue`'s own
+       icon-only buttons already use at its narrower breakpoint — not a new
+       convention, the established one for this exact situation. */
     min-height: var(--tap-compact);
-    padding: 0 8px;
+    min-width: var(--tap-compact);
+    padding: 0 6px;
     font-size: 11px;
   }
 
+  /*
+   * Hidden below 640px, not just shrunk (TODO/ui-027). Eight buttons across
+   * four wrapped rows of two (Union/Subtract, Intersect/Group, Snap/Align,
+   * Fillet/Chamfer added by this task) reached ~242px tall with a body
+   * selected — and selecting a body is `TODO/ui-011`'s own trigger for the
+   * phone-width Inspector bottom sheet, which pushes `NavigationChrome`
+   * upward by up to ~430px (the same `--viewport-bottom-inset` cited by the
+   * Snap/Align popover's own CSS comment above). Measured, not assumed: with
+   * a body selected at 390×844, `nav-mode-orbit` sat at `y≈207` while this
+   * toolbar's fourth (Fillet/Chamfer) row ended at `y≈242` — a ~35px real
+   * overlap Playwright reported as "element intercepts pointer events" on
+   * `operation-fillet` itself, discovered by this task's own full e2e run,
+   * not designed for up front. A horizontally scrolling row was considered
+   * and rejected: CLAUDE.md's Responsive Layout section is explicit that
+   * primary UI must "collapse or reflow" at phone width, "never require
+   * horizontal scrolling." Hiding the label (each button's `aria-label`/
+   * `title` already carries the same text, so nothing is lost for assistive
+   * tech) shrinks 8 buttons from 4 wrapped rows of 2 back down to 2 rows of
+   * 4, which clears the same gap comfortably at every selection state.
+   */
   .ops__label {
-    font-size: 11px;
+    display: none;
   }
 
   .ops__popover {

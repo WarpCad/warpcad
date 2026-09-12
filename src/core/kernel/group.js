@@ -129,6 +129,26 @@ export function boundsOf(value) {
   ]
 }
 
+/**
+ * Volume of a solid or group, in cubic millimetres.
+ *
+ * Added by `TODO/ui-027`: `modify.filletRim`/`chamferRim` deliberately leave a
+ * solid's axis-aligned bounding box unchanged (`fillet.js`'s own module doc —
+ * "the face keeps its position... material is removed from the rim only",
+ * confirmed by `fillet.spec.js`'s own "leaves the bounding box alone" case),
+ * so `boundsOf` above cannot tell a rim operation's UI spec whether anything
+ * actually happened. Volume can: rim material is genuinely removed (fillet)
+ * or replaced with less material (chamfer), so it strictly decreases either
+ * way — the real, kernel-test-backed signal to check instead of a bounding
+ * box that is invariant by design.
+ *
+ * @param {Geom3 | Group} value
+ * @returns {number}
+ */
+export function volumeOf(value) {
+  return measurements.measureVolume(toGeom3(value))
+}
+
 /** Degrees to radians. The single conversion point in this module. */
 const DEG = Math.PI / 180
 

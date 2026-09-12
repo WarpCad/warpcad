@@ -106,6 +106,9 @@ still selects only that one.
 - [Combining shapes into a group](groups.md) — the toolbar's Group button,
   which also keeps every original shape intact but, unlike Snap/Align, merges
   them into one selectable body.
+- [Rounding or bevelling an edge: Fillet and Chamfer](fillet-chamfer.md) — the
+  toolbar's other exact-count-gated pair (exactly one shape, rather than Snap/
+  Align's exactly two), reusing the same popover pattern.
 - [Placing a shape](primitive-placement.md) — drag-time snap guides, the
   live-alignment mechanism Snap and Align's own precise, computed positioning
   is the after-the-fact counterpart to.
