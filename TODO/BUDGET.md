@@ -79,4 +79,15 @@ ahead of the still-unscoped `ui-015`/`ui-016`/`ui-026`/`core-019` reserved rows.
 | 2026-09-11 14:03 | 2026-09-11 14:41 | `ui-015` | user chose to stop after 1 of 3 tasks rather than also scope+run `ui-016` (the next M3 row, itself unblocked by `ui-015` but still reserved with no file) — asked explicitly since `ui-016` is a materially different kind of task (new Inspector breadcrumb/click-depth UI) than `ui-015`'s toolbar-button addition, not assumed to carry the same go-ahead automatically | no — M3, `ui-016`/`ui-026`/`core-019` still unscoped |
 | 2026-09-11 18:57 | 2026-09-11 18:57 | *(none)* | blocked — same scoping gap as the prior three batches, re-confirmed fresh via `ls TODO/*.md` and `TODO/done/`: `ui-016` (deps `ui-015`, now done), `ui-026` (deps `core-013`, now done), and `core-019` (deps `core-001`, done) are all dependency-unblocked but still reserved with no `TODO/<id>-*.md` file, so there is nothing for `/fix-todo` to run. This invocation was a plain `/run-todos`, not `/loop /run-todos`, so it stops here for the user rather than scheduling a check-in | no — M3, no eligible task run |
 | 2026-09-11 19:00 | 2026-09-11 19:33 | `ui-016` | user chose to scope `ui-016` now and run it in the same tick, after the scoping-gap check-in above — scoped in `TODO/ui-016-group-subpart-selection.md` (commit `e091f2b`), run to completion by a fresh opus agent (commit `5fc938a`), independently re-verified (typecheck clean, 521/521 unit, 653 passed/122 skipped/0 failed e2e, matching the agent's own reported numbers exactly). Single-tick `/run-todos` invocation (not `/loop /run-todos`), so it stops here rather than continuing toward the 3-task batch cap | no — M3, `ui-026`/`core-019` still unscoped |
-| 2026-09-11 19:52 | *(in progress)* | `ui-026` | *(in progress)* | *(pending)* |
+| 2026-09-11 19:52 | 2026-09-12 15:15 | `ui-026`, `core-019` | milestone boundary (M3 complete) — batch stopped at 2 of 3 tasks rather than pull in an M4 row, since `core-019` completing M3 triggers the check-in regardless of the task-count cap not yet being hit, per this file's own Milestone boundary rule | yes — M3 |
+
+Note on the row above: `core-019`'s own run was interrupted mid-Step-7 by an Opus API
+rate limit (session-limit 429, reset ~18h30m later) after its implementation and Step 6
+acceptance-drive were already complete and independently verified (typecheck clean,
+559/559 unit, 671/158/0 e2e — matching the interrupted agent's own in-progress claims
+exactly). Rather than discard that verified work, a fresh sonnet agent was spawned to
+finish only the remaining bookkeeping (retirement note, ROADMAP.md, commit) once the
+rate limit had cleared — the implementation was never redone. `ui-026` ran cleanly
+start to finish in one agent, no interruption. **M3 is now fully ✅ — this milestone
+boundary needs the five-minute free-form human pass at phone/tablet/laptop viewports
+before M4 work starts**, per `CLAUDE.md`'s Verification section.
