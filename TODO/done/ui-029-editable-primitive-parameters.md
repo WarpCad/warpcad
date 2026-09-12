@@ -6,8 +6,58 @@ priority: high
 model: opus
 milestone: M4
 depends: [ui-011, ui-012]
-status: open
+status: done
 ---
+
+> **Shipped, with four things worth recording — three deviations from this file's own
+> spec and one defect this task's own verification found mid-flight, per `/fix-todo`
+> Step 2/Step 6:**
+>
+> 1. **The rebuilt record omits `name`**, though the Proposed fix says "`op` and `name`
+>    copied from the root". `src/core/transform.js`'s "Why transform records are
+>    unnamed" section gives a specific, checked reason a `supersedes`-based record must
+>    stay unnamed — `Body.name` is read from a lineage's *root* record only, so a name
+>    here is inert at best and a duplicate `group.js` does not deduplicate at worst.
+>    `ui-027` made the identical call one task earlier; followed that precedent rather
+>    than opening a second one.
+> 2. **The lineage-walk helper is split across two modules, not one.**
+>    `document.js` gained `lineageOf(id)` — a read-only, **op-agnostic** walk returning
+>    a lineage root-first — and the *policy* ("is everything above the creation record a
+>    transform?") lives in the new framework-free `src/core/paramEdit.js`. The command
+>    layer stays ignorant of what any particular op means, which is the boundary its own
+>    module doc draws; the guard stays unit-testable against a hand-built entries array,
+>    which is what this file's Testing section asks for.
+> 3. **`Body.params` no longer always come from the lineage root** — the one change
+>    outside this file's Affected files list, and it was not optional. `document.js`
+>    read `Body.params` off the root record, so a rebuilt body kept *displaying* its
+>    original diameter while rendering the new one. Caught by this task's own e2e run,
+>    not by reasoning. They now come from the newest record carrying the root's own op
+>    (`paramEdit.js`'s `currentParamsRecordOf`); a `transform.*`'s params are still never
+>    read as dimensions, which was the original reason that field was pinned to the root.
+> 4. **A real defect, found and fixed mid-task**: the first implementation spread each
+>    edit from the **root's** params, so a second edit silently resurrected whatever the
+>    first had changed (edit Diameter, then Height, and the diameter jumped back). Both
+>    the panel and the next edit now read their base through the same helper, so they
+>    cannot disagree. Pinned by `paramEdit.spec.js`'s "chained edits" describe block.
+>
+> **Kernel-error display, the cross-reference this file and `ui-027` both asked for**:
+> `ui-027` landed first, so it built the first user-facing runtime kernel-error surface
+> (`OperationsToolbar.vue`'s `opError` and its popover `<p>`). This task **reuses that
+> convention** rather than inventing a second: the Inspector's `paramError` and its
+> `.inspector__error` paragraph follow the same shape, the same neutral styling (no
+> `danger` token exists in this codebase yet), and the same "the message is not a latched
+> state" behaviour. A note to that effect has been added to
+> `TODO/done/ui-027-fillet-chamfer-rim-operation.md`.
+>
+> **Follow-up question this file asked to settle at Step 2** — "is replaying a
+> fillet/chamfer/boolean on top of a rebuilt creation record worth a follow-up TODO?"
+> **Yes, but not urgently**, and it is deliberately left unfiled here rather than
+> speculatively scoped: a rim op's params are measured against the exact solid they were
+> aimed at, so re-running one against a resized body can legitimately fail
+> `assertRadiusFits` — or, worse, succeed and produce a rim nobody asked for. The honest
+> shape of that task is "let the user re-enter the rim parameters after a resize", which
+> is a UI question, not a replay engine, and it should be scoped when someone actually
+> hits the freeze. The freeze is discoverable and self-explaining in the meantime.
 
 ## Goal
 

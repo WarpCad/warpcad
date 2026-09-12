@@ -42,9 +42,14 @@
  *   the same thing across a drag instead of being torn down and rebuilt.
  * - `Body.recordId` is the **terminal** record's id, and its geometry is what
  *   renders — always the newest state.
- * - `Body.op`/`params`/`name` come from the **root**, because that is what the
- *   body *is*: a Cube stays a Cube with a 40 mm size after you move it, and the
- *   Inspector must keep showing that rather than the translate's `vector`.
+ * - `Body.op`/`name` come from the **root**, because that is what the body *is*:
+ *   a Cube stays a Cube after you move it. `Body.params` follow the same
+ *   principle rather than the same record — a transform's params are never read
+ *   as dimensions of the part (that is the point), but a later record that
+ *   rebuilt the body from *edited* params is exactly what the Inspector must
+ *   show, so they come from the newest record carrying the root's own op. See
+ *   `src/core/paramEdit.js` (`TODO/ui-029`), which is also where the next edit
+ *   reads its base from, so the panel and the next mutation cannot disagree.
  *
  * Chosen over the alternative shape — a mutable "latest id" pointer, or deleting
  * the superseded entry — precisely because it deletes nothing. Every intermediate
@@ -135,6 +140,7 @@
  */
 
 import { registry as defaultRegistry } from './kernel/registry.js'
+import { currentParamsRecordOf } from './paramEdit.js'
 import { applyAction, emptyScene } from './replay.js'
 
 /** @typedef {import('./kernel/registry.js').OpRecord} OpRecord */
@@ -157,8 +163,11 @@ import { applyAction, emptyScene } from './replay.js'
  *   is. Equal to `id` for a body that has never been transformed.
  * @property {string} name Display name, e.g. `"Cube 1"`. From the root record.
  * @property {string} op Registry key the body was created by. From the root.
- * @property {Record<string, any>} params The root record's params, plain JSON —
- *   what the body *is*, not how it has since been moved.
+ * @property {Record<string, any>} params What the body *is*, plain JSON — not
+ *   how it has since been moved. The root record's params, unless a later
+ *   record in the lineage rebuilt the body from edited ones (`TODO/ui-029`), in
+ *   which case the newest of those; a `transform.*` record's params are never
+ *   read here. See `src/core/paramEdit.js`'s `currentParamsRecordOf`.
  * @property {[number, number, number]} rotationDeg Absolute rotation carried on
  *   the terminal record, degrees per axis. `[0, 0, 0]` for an unturned body.
  * @property {Geom3 | Group} geometry Derived, disposable — never persisted.
@@ -187,6 +196,7 @@ import { applyAction, emptyScene } from './replay.js'
  * @property {(record: OpRecord, transaction: { origin: string }) => { record: OpRecord, scene: Scene }} append
  * @property {(id: string) => string | undefined} originOf
  * @property {(id: string) => string | undefined} currentIdOf
+ * @property {(id: string) => OpRecord[]} lineageOf
  * @property {() => Body[]} bodies
  * @property {() => SketchEntityRecord[]} sketchEntities
  * @property {(prefix?: string) => string} nextId
@@ -450,6 +460,46 @@ export function createDocument(options = {}) {
       }
     },
 
+    /**
+     * Every record in `id`'s lineage, **root first, current terminal last**.
+     *
+     * Read-only, and deliberately op-agnostic: it reports what a lineage is made
+     * of and passes no judgement on it. `TODO/ui-029` is the first caller — it
+     * has to know whether anything other than a `transform.*` sits between a
+     * body's creation record and its terminal before it offers to rebuild that
+     * creation record from edited params, because rebuilding would silently
+     * discard whatever else is in there (a fillet's rounded rim, say). That
+     * policy lives in `src/core/paramEdit.js`, not here; this module only knows
+     * about lineages, never about what any particular op means.
+     *
+     * Walked *backwards* along `supersedes` from the terminal and then reversed,
+     * since the indexes this module keeps point that way. Answers the same for
+     * any id in the lineage, not just its root, and is cycle-guarded: a
+     * malformed document must give a short answer, not hang the caller.
+     *
+     * @param {string} id Any record id in the lineage — root, terminal, or
+     *   anything in between.
+     * @returns {OpRecord[]} Empty when this document has no such record.
+     */
+    lineageOf(id) {
+      const root = rootById.get(id)
+      if (root === undefined) return []
+      /** @type {OpRecord[]} */
+      const chain = []
+      const visited = new Set()
+      let cursor = terminalByRoot.get(root) ?? root
+      for (;;) {
+        if (visited.has(cursor)) break
+        visited.add(cursor)
+        const record = recordById.get(cursor)
+        if (record === undefined) break
+        chain.push(record)
+        if (record.supersedes === undefined) break
+        cursor = record.supersedes
+      }
+      return chain.reverse()
+    },
+
     bodies() {
       /** @type {Body[]} */
       const bodies = []
@@ -468,12 +518,20 @@ export function createDocument(options = {}) {
         if (rootRecord === undefined) continue
         const terminalRecord = recordById.get(terminalId) ?? rootRecord
         const carried = terminalRecord.params?.rotation ?? rootRecord.params?.rotation
+        // Not always the root's params, since `TODO/ui-029`: editing a body's own
+        // diameter appends a *fresh creation record* over the lineage's terminal,
+        // and that record's params are what the body now is. A `transform.*` in
+        // between is still skipped — a translate's `vector` is not a dimension of
+        // the part, which is the reason this field was pinned to the root in the
+        // first place. `paramEdit.js` owns that rule and builds the next edit from
+        // the same record, so the panel and the next mutation cannot disagree.
+        const paramsRecord = currentParamsRecordOf(document.lineageOf(rootId)) ?? rootRecord
         bodies.push({
           id: rootId,
           recordId: terminalId,
           name: rootRecord.name ?? rootId,
           op: rootRecord.op,
-          params: rootRecord.params ?? {},
+          params: paramsRecord.params ?? {},
           rotationDeg: isVec3(carried) ? [carried[0], carried[1], carried[2]] : [0, 0, 0],
           geometry,
         })

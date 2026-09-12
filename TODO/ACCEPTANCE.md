@@ -524,6 +524,43 @@ performance notice, not an application error).
 Fillet/Chamfer's new third commit path on the same `run()`/popover machinery didn't
 disturb Snap/Align's `supersedes` path landed one task earlier.
 
+**Re-checked**: 2026-09-12 21:58 — PASS (`ui-029`). Re-driven because this is the second
+task after `ui-012` to append a **new kind of superseding record** through
+`document.js`'s shared append/fold path — a *creation* record superseding another
+lineage's terminal, a direction nothing had exercised before — and because it changed
+where `Body.params` are read from, which every body in this scenario goes through.
+Hand-driven at laptop 1440×900 in Chromium (no `chromium-cli` in this environment, so a
+Playwright-driven Node session against the real dev server, same as `ui-015`/`ui-024`).
+
+- **The scenario itself**: a Cube then a Cylinder dragged in on wandering, jittery paths
+  with a deliberate overshoot past the drop point and a doubling-back. **Both stayed
+  visible** (`data-body-count` = 2), and the cube's millimetre centre was
+  **byte-identical before and after the second drop** (`-68.56,-23.29,20.00` both times).
+  Clicking empty grid cleared the selection (count 0); clicking the cube selected
+  `cuboid-1` alone; clicking the cylinder moved the highlight to `cylinder-2` alone.
+- **The new record kind, driven directly**: the cylinder's Diameter was then edited
+  40 → 12 in the Inspector. Body count **stayed at 2** — a rebuild supersedes, it does
+  not fork a lineage into a second live body — and the **untouched cube's centre was
+  byte-identical** across the edit, so there is no cross-talk through the fold. A
+  **third, unrelated Sphere** was then dropped: count became exactly **3**, all three
+  listed by name, and the edited cylinder was still 12 mm across afterwards
+  (`[12, 12, 50]`) — the edit was not undone by a later unrelated append.
+- Console clean.
+
+**Regression re-check, `TODO/done/core-020-composite-absorbs-earlier-bodies.md`'s own
+repro** (`CLAUDE.md`'s standing-regression-surface rule: this task is the next one to
+append a new record kind through the same shared path since that fix closed). Run in the
+browser against the real fold: a plate placed, then a bolt. The bolt's group holds
+**only its own parts** — `head, thread, tap-head, tap-thread, tap-headClearSpace, tap` —
+with no `Plate 1` absorbed into it, which is the exact symptom that finding fixed. Then,
+the half that is new here: a **param edit on the plate** (`size` → `[60, 40, 5]`) through
+the same append path. Afterwards `bodies()` still reports exactly `plate, bolt`, the
+bolt's part list is unchanged, and the plate's params read `[60, 40, 5]`. The composite
+neither absorbed the resized plate nor lost its own parts. (The part list is six names
+rather than the three that entry recorded; that is `core-010`/`core-011`'s later bolt
+recipe, not a change from this task — the load-bearing claim, that `Plate 1` is not among
+them, holds.)
+
 ### 2. Hardware property edit
 
 **Steps**:
@@ -752,6 +789,67 @@ sampled at four points mid-drag (`64.18 → 69.06 → 75.33 → 82.29`), and the
 centre on release was `82.29` — the same number the field had been showing, so gizmo
 and numeric entry still drive one transform in both directions (step 6's "not only
 after release"). Console clean.
+
+**Re-checked**: 2026-09-12 21:58 — **PARTIAL PASS, and the blocker named in every
+previous entry since 2026-09-06 is gone** (`ui-029`). Still a partial, and still
+deliberately reported as one — but for **one** remaining reason instead of two. Driven at
+laptop 1440×900 in Chromium, laptop in **Firefox**, and phone 390×844 in **WebKit** (the
+engine an iPhone actually runs), with a **Cylinder standing in for the Bolt**.
+
+**The half that has been unmet through all seven previous drives of this scenario
+(one `Last run` plus six `Re-checked`, 2026-09-06 to 2026-09-11), now met** — steps 3-4,
+"the mesh visibly changes shape after the property edit", the first sentence of
+**Expect**:
+- The Inspector's **Parameters** fields are editable (`data-editable="true"`). Typing
+  `10` into **Diameter** and pressing Enter narrowed the cylinder from 40 mm to 10 mm
+  across on all three engines: measured size went `[40, 40, 50]` → `[10, 10, 50]`, the
+  **Height was untouched**, the Size row followed to `10 / 10 / 50`, the dimension lines
+  resized, and the field itself read `10` afterwards. The screenshot shows a narrow rod
+  where a fat cylinder was.
+- **It stayed exactly where it was** — centre `-60.51,36.03,25.00` before and after,
+  byte-identical. This is the specific silent-snap-back failure the task was written
+  around, confirmed absent rather than merely not obvious.
+
+**Steps 5-8 re-driven and still holding** (they read through the same panel this task
+changed): a real **gizmo X-arm drag** moved the body with Position X sampled live at five
+points mid-gesture — laptop `-53.27 → -46.03 → -38.79 → -31.55 → -24.31`, phone/WebKit
+`-45.92 → -38.22 → -30.53 → -22.83 → -15.14` — settling where the field had been showing;
+then typing `-35` into Position Y landed on exactly `-35`. Gizmo and numeric entry still
+drive one transform in both directions.
+
+**Beyond the scenario's own steps**, because this task's failure mode is silent:
+- **A param edit on a body that had already been moved *and* turned**: with the cylinder
+  at `-24.31,-35.00,25.00` and Rotation X `30°`, editing **Height** 50 → 20 left the
+  centre byte-identical, the rotation still `30°`, the diameter untouched, and exactly
+  one body. Editing a parameter does not undo a move.
+- **Chained edits**: Diameter → 18 after the Height edit kept Height at 20 rather than
+  resurrecting the original 50. (This was genuinely broken mid-task — the first
+  implementation spread each edit from the lineage's *root* params, so the second edit
+  silently undid the first. Found by this task's own e2e run, fixed, and pinned by unit
+  tests.)
+- **Four rapid edits with no settle time** (12, 30, 7, 22) accumulated correctly and left
+  one body.
+- **Garbage input** (`abc`) restored the previous value and changed nothing, with no
+  error shown — it never reaches the kernel.
+- **A value the kernel refuses** (Height `0`) showed a visible message under the fields
+  rather than vanishing into the console, and committed **nothing**: the solid kept its
+  size. Correcting it to `35` cleared the message and committed normally. This reuses
+  `ui-027`'s own popover-error convention rather than a second one.
+- **The frozen case**: after a Fillet, the Parameters section reported
+  `data-editable="false"`, `data-blocked-by="modify.filletRim"`, every field was
+  `readonly`, and a note named the Fillet. Forcing `5` into the frozen Diameter box
+  programmatically and blurring it changed nothing — volume identical to 3 decimal
+  places — so the rounded rim is not discardable even by a determined user. Transform
+  still worked on that same body, which is the point: the *parameters* freeze, not the
+  panel.
+- Console clean in all three drives.
+
+**What is still NOT drivable and is therefore NOT claimed**: **step 1** (no Hardware
+section and no Bolt row — M2), and with it the `spec`/`fit` half of step 3. Those are
+`kind: 'text'` enum fields needing a dropdown fed by the recipe's own valid values, which
+`ui-029` explicitly scoped out — a numeric parser is the wrong control for them. So this
+scenario stays PARTIAL, but the reason has narrowed from "no editable params at all" to
+"no enum editor, and no Bolt to need one".
 
 ### 3. Snap-placement of a kit assembly
 

@@ -34,6 +34,20 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### ui-029 — a frozen field's affordance, and a second kernel-error surface (2026-09-12 22:05)
+
+Editable Inspector parameters are functionally verified (unit suite, the full 9-way
+e2e matrix, and a hand-drive at laptop/Chromium, laptop/Firefox and phone/WebKit that
+moved `ACCEPTANCE.md` scenario 2 off its long-standing PARTIAL blocker). Two things
+left over turn on human judgment an automated check cannot render, and both are
+deliberately *shared* with `ui-027`'s entry above rather than diverging from it —
+if either is changed, both surfaces should move together.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | A body carrying a Fillet/Chamfer has its **Parameters** fields frozen, with a note naming the op. The note is legible and correct at all three reference widths (checked). What is *not* settled: whether a frozen field **looks** frozen at a glance before anyone reads the note. The only visual difference is `:read-only`'s `color: var(--text-2)` against `--text-1` plus the absent `--editable` border, which in the laptop screenshot is subtle enough that the Diameter box reads much like an editable one. Decide on a real screen whether that needs a stronger treatment (dimmed ground, a lock glyph) — and if so, apply it to *every* read-only field in the panel (Size, sub-part Transform), not just this case | Open | |
+| 2 | The Inspector's kernel-error message reuses `ui-027`'s convention verbatim, which means it also inherits its wording problem: a rejected diameter shows `document.append: primitive.cylinder could not be applied — primitive.cylinder: height must be a positive number of millimetres, got 0`. The second half is genuinely useful; the `document.append:` prefix and the repeated op key are internals leaking into a user-facing panel. Judge on a real screen whether to strip the command-layer prefix at the display boundary — this is the same row as `ui-027`'s own error-wording check, and the fix belongs in one shared place now that there are two surfaces showing it | Open | |
+
 ### ui-027 — icon-only phone toolbar, and the first user-facing kernel-error message (2026-09-12 15:58)
 
 Two things this task shipped are functionally verified (headless e2e, all three

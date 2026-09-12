@@ -85,7 +85,9 @@ same idea.
 ### What it shows
 
 **Parameters** — the shape's own settings, which differ per shape because they are read
-from the shape's own definition rather than from a fixed form:
+from the shape's own definition rather than from a fixed form. **These are editable**:
+type a new number and press **Enter** and the shape is rebuilt at that size, staying
+exactly where it is. See [Resizing a shape](#resizing-a-shape) below.
 
 | Shape | Parameters |
 |---|---|
@@ -106,8 +108,52 @@ from the shape's own definition rather than from a fixed form:
   would rather read them in the panel. Read-only: this is a *measurement* of the shape,
   not a setting. To change how big a shape is you change its parameters above.
 
-> The **Parameters** section is still read-only. It shows you real, current values, but
-> typing in them does nothing yet.
+## Resizing a shape
+
+The **Parameters** boxes at the top of the Inspector are how you change how big a shape
+is. Click into one, type a number, and press **Enter** (or click away). The shape is
+rebuilt at the new size straight away, and **it stays centred where it already was** —
+resizing is not a move, so nothing jumps back to the origin or to where you first
+dropped it. The gizmo and the dimension lines resize to match, because they measure the
+shape rather than remembering it.
+
+Parameters are in millimetres, the same as Position, and you can leave the `mm` in place
+when you retype a value. Each box sets **that one parameter** and leaves the others
+alone, so changing a cylinder's Diameter does not touch its Height. For a shape with a
+multi-part parameter — a cube's **Size X/Y/Z**, a triangle's **Side lengths A/B/C** —
+each box is one part of it, so you can make a cube into a slab by changing X alone.
+
+If you type something that is not a number, the box puts the old value back and nothing
+changes. If you type a number the shape cannot be built from — a diameter of `0`, or a
+negative height — nothing changes either, and a short message appears under the boxes
+saying what was wrong. Correct the number and it commits normally; the message is not a
+state you have to clear.
+
+### Worked example: narrow a cylinder
+
+1. Drag a **Cylinder** onto the grid and click it. The Inspector's **Parameters**
+   section shows **Diameter 40.000 mm** and **Height 50.000 mm**.
+2. Click into the **Diameter** box, type `10`, and press **Enter**.
+3. The cylinder narrows to 10 mm across, **staying centred on the same spot** — it does
+   not slide anywhere. The box now reads `10.000 mm`, and the Inspector's **Size** row
+   below reads `10 / 10 / 50`: two of the three numbers changed, the height did not.
+4. Move the cylinder somewhere else with the gizmo, then come back and change its
+   **Height** to `20`. It stays exactly where you moved it. Editing a parameter never
+   undoes a move.
+
+### When Parameters are greyed out
+
+Two cases, and the panel tells you which:
+
+- **You are looking inside a group.** The breadcrumb at the top of the panel shows
+  `Group ▸ Part`. A part inside a group is shown for measurement only — step back up to
+  the group with the breadcrumb link to change anything.
+- **The shape has a Fillet or a Chamfer on it.** Changing a parameter rebuilds the shape
+  from its numbers, and a rebuilt shape cannot carry a rounded or bevelled rim with it —
+  so rather than quietly throwing your fillet away, the app freezes those boxes and says
+  so underneath them. You can still move and turn the shape; it is only its own
+  dimensions that are fixed. If you need a different size, make the shape the size you
+  want first, then round it.
 
 ## Moving and turning a shape
 

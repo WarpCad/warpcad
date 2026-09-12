@@ -986,3 +986,122 @@ describe('sketch records — a non-geometry op that never reaches the kernel (TO
     expect(document.sketchEntities()).toEqual([])
   })
 })
+
+describe('lineageOf and a creation record superseding a creation record (TODO/ui-029)', () => {
+  it('walks a lineage root-first, from the creation record to the current terminal', () => {
+    const document = doc()
+    document.append({ id: 'a', op: 'fake.box', name: 'Box 1' }, { origin: 'local' })
+    document.append(
+      { id: 'a-move-1', op: 'fake.move', target: 'a', supersedes: 'a' },
+      { origin: 'local' }
+    )
+    document.append(
+      { id: 'a-move-2', op: 'fake.move', target: 'a-move-1', supersedes: 'a-move-1' },
+      { origin: 'local' }
+    )
+    // An untouched body's lineage is just itself.
+    document.append({ id: 'b', op: 'fake.box', name: 'Box 2' }, { origin: 'local' })
+
+    expect(document.lineageOf('a').map((record) => record.id)).toEqual(['a', 'a-move-1', 'a-move-2'])
+    // Answered the same from anywhere in the lineage, not only from its root —
+    // a caller holding a terminal id must not get a truncated answer.
+    expect(document.lineageOf('a-move-2').map((record) => record.id)).toEqual([
+      'a',
+      'a-move-1',
+      'a-move-2',
+    ])
+    expect(document.lineageOf('b').map((record) => record.id)).toEqual(['b'])
+    expect(document.lineageOf('nope')).toEqual([])
+  })
+
+  it('folds a creation record that supersedes another creation record, still one body', () => {
+    // The direction every other supersession test covers is a `transform.*` over a
+    // creation record. `TODO/ui-029` edits a primitive's own params by appending a
+    // *fresh creation record* over the lineage's terminal instead — legal under
+    // this module's own rule (supersession only cares which record is terminal,
+    // never which op built either one), and this is what pins that.
+    const document = doc()
+    document.append(
+      { id: 'a', op: 'fake.box', name: 'Box 1', params: { size: 3 } },
+      { origin: 'local' }
+    )
+    document.append(
+      { id: 'a-param-1', op: 'fake.box', supersedes: 'a', params: { size: 9 } },
+      { origin: 'local' }
+    )
+
+    const bodies = document.bodies()
+    expect(bodies).toHaveLength(1)
+    const [body] = bodies
+    // Identity and name still come from the root — a resized Box is still Box 1.
+    expect(body.id).toBe('a')
+    expect(body.name).toBe('Box 1')
+    expect(body.recordId).toBe('a-param-1')
+    expect(body.op).toBe('fake.box')
+    // ...but the geometry is the newest record's, which is the whole point.
+    expect(body.geometry).toEqual({ tag: 'box', size: 9 })
+    // ...and so are `Body.params`, which is what makes the Inspector show the
+    // value that was just typed rather than the one the body was created with.
+    // A `transform.*` in between is still skipped — see the next case.
+    expect(body.params).toEqual({ size: 9 })
+    expect(document.currentIdOf('a')).toBe('a-param-1')
+    expect(document.lineageOf('a').map((record) => record.op)).toEqual(['fake.box', 'fake.box'])
+  })
+
+  it('never reads a transform record\'s params as the body\'s own dimensions', () => {
+    // The reason `Body.params` was pinned to the root before `ui-029`: a
+    // translate's `vector` is not a size. A rebuild changes which *creation*
+    // record is read, and must not weaken this.
+    const document = doc()
+    document.append(
+      { id: 'a', op: 'fake.box', name: 'Box 1', params: { size: 3 } },
+      { origin: 'local' }
+    )
+    document.append(
+      { id: 'a-move-1', op: 'fake.move', target: 'a', supersedes: 'a', params: { by: 7 } },
+      { origin: 'local' }
+    )
+    expect(document.bodies()[0].params).toEqual({ size: 3 })
+
+    document.append(
+      { id: 'a-param-1', op: 'fake.box', supersedes: 'a-move-1', params: { size: 9 } },
+      { origin: 'local' }
+    )
+    expect(document.bodies()[0].params).toEqual({ size: 9 })
+
+    // And a transform appended *after* the rebuild still does not displace it.
+    document.append(
+      {
+        id: 'a-move-2',
+        op: 'fake.move',
+        target: 'a-param-1',
+        supersedes: 'a-param-1',
+        params: { by: 2 },
+      },
+      { origin: 'local' }
+    )
+    expect(document.bodies()[0].params).toEqual({ size: 9 })
+    expect(document.bodies()[0].id).toBe('a')
+  })
+
+  it('keeps a param rebuild from forking a lineage or disturbing its neighbours', () => {
+    const document = doc()
+    document.append({ id: 'a', op: 'fake.box', params: { size: 3 } }, { origin: 'local' })
+    document.append({ id: 'b', op: 'fake.box', params: { size: 4 } }, { origin: 'local' })
+    document.append(
+      { id: 'a-param-1', op: 'fake.box', supersedes: 'a', params: { size: 9 } },
+      { origin: 'local' }
+    )
+
+    expect(document.bodies().map((body) => body.id)).toEqual(['a', 'b'])
+    expect(document.scene.byId.get('b')).toEqual({ tag: 'box', size: 4 })
+    // Superseding the now-stale terminal a second time is refused, exactly as it
+    // is for a transform — one live representation per body, always.
+    expect(() =>
+      document.append(
+        { id: 'a-param-2', op: 'fake.box', supersedes: 'a', params: { size: 11 } },
+        { origin: 'local' }
+      )
+    ).toThrow(/already been superseded/)
+  })
+})

@@ -54,7 +54,7 @@
  * - **Tapping this panel's tab claims the slot**, collapsing the Library. The
  *   user asked for this panel; the other one gets out of the way.
  *
- * ## Transform is writable; the op's own params are not (yet)
+ * ## Transform is writable, and so are the op's own params (TODO/ui-029)
  *
  * `ui-012` made the Transform section's Position and Rotation fields editable,
  * and they are the *same* mutation a gizmo drag performs — both go through
@@ -62,17 +62,29 @@
  * cannot produce different records (control 4's "either path results in the same
  * underlying mutation").
  *
- * Two things stay read-only, deliberately rather than by omission:
+ * `ui-029` extends the identical field contract — `editingField`/
+ * `editingSnapshot`/`fieldValue`/`parseNumeric`/`onFieldFocus`/`onFieldEnter` —
+ * to the **Parameters** section's numeric fields, wired to
+ * `src/composables/useParamCommands.js` instead. Not a parallel implementation:
+ * the live-typing guard that stops a re-render eating a half-typed value is the
+ * same code, keyed by `param-*` rather than `position-*`/`rotation-*`.
+ *
+ * Three things stay read-only, each deliberately rather than by omission:
  *
  * - **Size**, because it is a *measurement* of the solid, not an input. Resizing
- *   a cylinder means editing its `diameter`/`height` params, which is the next
- *   bullet, and a writable Size box would imply a non-uniform scale op that does
- *   not exist.
- * - **The op's own params** (`diameter`, `height`, `size`…). Editing those is a
- *   different mutation — rewriting a creation record's params and re-evaluating
- *   everything downstream of it, rather than appending a transform — and it
- *   belongs with the task that lands it. The panel says which is which out loud
- *   rather than leaving a user poking at a box that silently ignores them.
+ *   a cylinder means editing its `diameter`/`height` params instead, and a
+ *   writable Size box would imply a non-uniform scale op that does not exist.
+ * - **`text`-kind params** — a bolt's `spec`/`fit`. Those are enums, not numbers:
+ *   they need a dropdown fed by the recipe's own valid values, which is a
+ *   genuinely different control and explicitly outside `ui-029`'s scope.
+ * - **Every param of a body whose history carries a non-transform op** — a
+ *   fillet, a chamfer. Editing a param rebuilds the creation record from
+ *   scratch, and that rebuild cannot carry a rounded rim with it, so the panel
+ *   freezes those fields and says which op is in the way. This is `ui-016`'s
+ *   "freeze rather than silently do the wrong thing" precedent applied to a
+ *   second section; the guard itself lives in `src/core/paramEdit.js`, because a
+ *   guard against silent data loss that lives only in a component is one `v-if`
+ *   away from not being a guard.
  *
  * During a gizmo drag the Position and Rotation fields read the *uncommitted*
  * preview (`src/stores/transformPreview.js`) via `useSelectedBody`, which is what
@@ -87,6 +99,7 @@ import { useSelectionStore } from '../../stores/selection.js'
 import { useDocumentStore } from '../../stores/document.js'
 import { useSketchPreviewStore } from '../../stores/sketchPreview.js'
 import { useTransformCommands } from '../../composables/useTransformCommands.js'
+import { useParamCommands } from '../../composables/useParamCommands.js'
 import { useSketchCommands } from '../../composables/useSketchCommands.js'
 import { lengthOf } from '../../sketch/entity.js'
 import { formatDeg, formatMmValue } from '../../core/units.js'
@@ -379,6 +392,134 @@ function commitTransformField(event, which, axisIndex) {
 function onFieldEnter(event) {
   /** @type {HTMLInputElement} */ (event.target).blur()
 }
+
+// --- editable Parameters fields (TODO/ui-029) -----------------------------
+
+const paramCommands = useParamCommands()
+
+/**
+ * Plain-language names for the ops that can freeze this section, for the note
+ * below. Only the ops that can actually get into a primitive's lineage today
+ * need an entry; anything else falls back to its own registry key, which is
+ * still more useful than "an operation".
+ *
+ * @type {Readonly<Record<string, string>>}
+ */
+const BLOCKING_OP_LABELS = Object.freeze({
+  'modify.filletRim': 'Fillet',
+  'modify.chamferRim': 'Chamfer',
+})
+
+/**
+ * Whether this body's own params may be edited, and what stands in the way when
+ * they may not.
+ *
+ * Reads the document imperatively — `documentStore.version` is the reactive
+ * trigger, the same pattern `useSelectedBody` uses, because the lineage lives
+ * outside Vue's reactivity on purpose (CLAUDE.md's Performance section).
+ *
+ * @returns {import('../../core/paramEdit.js').ParamEditability}
+ */
+const paramEditability = computed(() => {
+  void documentStore.version
+  const selected = body.value
+  // A drilled-into sub-part has no record of its own to target — the identical
+  // reason the Transform section is already frozen in that state (`ui-016`),
+  // extended here rather than re-derived.
+  if (!selected || isSubPart.value) return { editable: false, blockedBy: null }
+  return paramCommands.canEdit(selected.id)
+})
+
+const paramsEditable = computed(() => paramEditability.value.editable)
+
+/** The blocking op's plain-language name, or `''` when nothing is blocking. */
+const blockingOpLabel = computed(() => {
+  const op = paramEditability.value.blockedBy
+  if (!op) return ''
+  return BLOCKING_OP_LABELS[op] ?? op
+})
+
+/**
+ * The last kernel validation error a param edit produced, or `null`.
+ *
+ * The same user-facing runtime kernel-error contract `ui-027` established for
+ * the Fillet/Chamfer popover (`OperationsToolbar.vue`'s `opError`), reused here
+ * rather than invented a second time — a diameter of `0` or a negative height
+ * hits `requirePositive`'s throw in the registry, and a user who typed it needs
+ * to see why nothing happened rather than have it vanish into the console.
+ *
+ * @type {import('vue').Ref<string | null>}
+ */
+const paramError = ref(/** @type {string | null} */ (null))
+
+// A message about a value on *this* body must not linger onto the next one.
+watch(() => body.value?.id, () => { paramError.value = null })
+
+/**
+ * Is this particular field editable? `text`-kind params (a bolt's `spec`/`fit`)
+ * stay read-only even on an otherwise editable body: they are enums needing a
+ * dropdown, not a numeric parser — `TODO/ui-029`'s explicit scope cut.
+ *
+ * @param {import('../../core/inspector.js').ParamField} field
+ * @returns {boolean}
+ */
+function fieldEditable(field) {
+  return paramsEditable.value && (field.kind === 'number' || field.kind === 'vector')
+}
+
+/**
+ * Run one param edit, surfacing a kernel rejection in the panel.
+ *
+ * @param {() => void} edit
+ * @returns {void}
+ */
+function runParamEdit(edit) {
+  paramError.value = null
+  try {
+    edit()
+  } catch (error) {
+    paramError.value = error instanceof Error ? error.message : String(error)
+  }
+}
+
+/**
+ * Commit a typed scalar param field — a Diameter, a Height.
+ *
+ * @param {Event} event
+ * @param {string} key
+ * @returns {void}
+ */
+function commitParamField(event, key) {
+  const input = /** @type {HTMLInputElement} */ (event.target)
+  const parsed = parseNumeric(input.value)
+  const selectedBody = body.value
+  // Released first, so the re-render repaints the field with the document's own
+  // formatting — which is also how a rejected value is undone, exactly as the
+  // Transform fields already do it.
+  editingField.value = ''
+  // The fields are `readonly` when this is false, so this should be unreachable
+  // — the guard is here rather than assumed, because the failure mode it stands
+  // in front of is silent data loss, not a visible error.
+  if (parsed === null || !selectedBody || !paramsEditable.value) return
+  runParamEdit(() => paramCommands.setParam(selectedBody.id, key, parsed))
+}
+
+/**
+ * Commit one typed component of a vector param — Size X, Side B.
+ *
+ * @param {Event} event
+ * @param {string} key
+ * @param {number} index
+ * @returns {void}
+ */
+function commitParamComponent(event, key, index) {
+  const input = /** @type {HTMLInputElement} */ (event.target)
+  const parsed = parseNumeric(input.value)
+  const selectedBody = body.value
+  editingField.value = ''
+  if (parsed === null || !selectedBody || !paramsEditable.value) return
+  runParamEdit(() => paramCommands.setParamComponent(selectedBody.id, key, index, parsed))
+}
 </script>
 
 <template>
@@ -523,7 +664,12 @@ function onFieldEnter(event) {
           {{ body.opLabel }}
         </p>
 
-        <section class="inspector__section" data-testid="inspector-params">
+        <section
+          class="inspector__section"
+          data-testid="inspector-params"
+          :data-editable="paramsEditable ? 'true' : 'false'"
+          :data-blocked-by="paramEditability.blockedBy ?? ''"
+        >
           <h3 class="inspector__section-title">Parameters</h3>
           <dl class="inspector__fields">
             <template v-for="field in body.params" :key="field.key">
@@ -533,17 +679,28 @@ function onFieldEnter(event) {
                 </dt>
                 <dd class="inspector__value inspector__value--vector">
                   <label
-                    v-for="component in field.components"
+                    v-for="(component, index) in field.components"
                     :key="component.label"
                     class="inspector__component"
                   >
                     <span class="inspector__component-label">{{ component.label }}</span>
                     <input
                       class="inspector__input"
+                      :class="{ 'inspector__input--editable': fieldEditable(field) }"
                       type="text"
-                      readonly
+                      inputmode="decimal"
+                      :readonly="!fieldEditable(field)"
                       :data-testid="`inspector-param-${field.key}-${component.label.toLowerCase()}`"
-                      :value="displayValue(component.value, field.unit)"
+                      :aria-label="`${field.label} ${component.label}${field.unit === 'mm' ? ' in millimetres' : ''}`"
+                      :value="
+                        fieldValue(
+                          `param-${field.key}-${index}`,
+                          displayValue(component.value, field.unit),
+                        )
+                      "
+                      @focus="onFieldFocus($event, `param-${field.key}-${index}`)"
+                      @blur="commitParamComponent($event, field.key, index)"
+                      @keydown.enter.prevent="onFieldEnter"
                     />
                   </label>
                 </dd>
@@ -553,16 +710,45 @@ function onFieldEnter(event) {
                 <dd class="inspector__value">
                   <input
                     class="inspector__input"
+                    :class="{ 'inspector__input--editable': fieldEditable(field) }"
                     type="text"
-                    readonly
+                    inputmode="decimal"
+                    :readonly="!fieldEditable(field)"
                     :data-testid="`inspector-param-${field.key}`"
-                    :value="displayValue(field.value, field.unit)"
+                    :aria-label="`${field.label}${field.unit === 'mm' ? ' in millimetres' : ''}`"
+                    :value="fieldValue(`param-${field.key}`, displayValue(field.value, field.unit))"
+                    @focus="onFieldFocus($event, `param-${field.key}`)"
+                    @blur="commitParamField($event, field.key)"
+                    @keydown.enter.prevent="onFieldEnter"
                   />
                   <span v-if="field.unit" class="inspector__unit">{{ field.unit }}</span>
                 </dd>
               </template>
             </template>
           </dl>
+
+          <!-- The same user-facing kernel-error surface `ui-027` established in
+               the Fillet/Chamfer popover, reused rather than reinvented: a
+               diameter of 0 throws inside the registry, and the user who typed
+               it has to see why nothing moved. -->
+          <p v-if="paramError" class="inspector__error" data-testid="inspector-param-error">
+            {{ paramError }}
+          </p>
+
+          <!-- Freeze rather than silently do the wrong thing (`ui-016`'s
+               precedent, applied to this section). Rebuilding the creation
+               record cannot carry a rounded rim with it, so the fields stay
+               read-only and say which op is in the way. -->
+          <p
+            v-if="!paramsEditable && !isSubPart"
+            class="inspector__note"
+            data-testid="inspector-params-note"
+          >
+            These parameters are read-only because this shape has
+            {{ blockingOpLabel ? `a ${blockingOpLabel}` : 'another operation' }} applied on
+            top of it. Changing a parameter rebuilds the shape from these numbers, which
+            would throw that away — so it is frozen rather than done quietly.
+          </p>
         </section>
 
         <section class="inspector__section" data-testid="inspector-transform">
@@ -636,8 +822,8 @@ function onFieldEnter(event) {
         </p>
         <p v-else class="inspector__note" data-testid="inspector-transform-note">
           Position and rotation are editable — type a value and press Enter, or drag the
-          gizmo's arrows and rings in the 3D view. Size and the parameters above are
-          read-only for now.
+          gizmo's arrows and rings in the 3D view. Size is read-only: it is a measurement
+          of the shape, not a setting — change the parameters above to resize it.
         </p>
       </template>
     </div>
@@ -842,6 +1028,24 @@ function onFieldEnter(event) {
   font-size: 11px;
   line-height: 1.45;
   color: var(--text-3);
+}
+
+/*
+ * A kernel validation error from a typed param (TODO/ui-029). Deliberately the
+ * same neutral treatment `OperationsToolbar.vue`'s `.ops__popover-error`
+ * (TODO/ui-027) already uses — no dedicated "danger" custom property exists in
+ * this codebase yet, and inventing a red token for the second message of this
+ * kind would leave the two error surfaces looking like different features.
+ */
+.inspector__error {
+  margin: 8px 0 0;
+  padding: 6px 8px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  color: var(--text-1);
+  font-size: 11px;
+  line-height: 1.4;
 }
 
 /* --- phone: an auto-opening bottom sheet (interaction-model-qa control 3, Q16) */

@@ -445,3 +445,18 @@ Built with Claude Code, reviewed by me. #CAD #WebGL
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** `modify.filletRim`/`chamferRim` and their registry entries already existed and were already tested → `src/core/kernel/registry.js:715-733`, `src/core/kernel/fillet.spec.js` (pre-existing, not part of this diff); the kernel deliberately leaves a rim-filleted shape's bounding box unchanged → `src/core/kernel/fillet.js`'s own module doc and `fillet.spec.js`'s "leaves the bounding box alone" test (pre-existing); e2e spec checks volume instead, added `volumeOf` → `src/core/kernel/group.js`, `e2e/fillet-chamfer-operation.e2e.js`, this diff; adding two buttons pushed the phone-width toolbar from 3 wrapped rows to 4, reaching into `NavigationChrome` (measured `y≈207` vs. the new row's `y≈242`) → this session's own bounding-box measurement against the running dev server; this is the third time this same toolbar hit a phone-width collision as buttons were added → `TODO/ROADMAP.md`'s own `ui-015` and `ui-026` completion-log rows; fix hides button text labels below 640px, matching an existing pattern → this diff's `OperationsToolbar.vue` CSS, `NavigationChrome.vue`'s pre-existing `--tap-compact` icon buttons; full suite green (typecheck clean, 588 unit tests / 29 files, 797 e2e passed / 158 skipped) → this session's `npm run typecheck`/`test:unit -- --run`/`test:e2e:headless` runs; new spec 36/36 passed (4 tests × 9 projects) → `npx playwright test e2e/fillet-chamfer-operation.e2e.js`, this session; `ui-026`'s own e2e spec re-run unchanged, 18/18 passed → `npx playwright test e2e/snap-align-operation.e2e.js`, this session; `ui-026` shipped 2026-09-11 → `git log 7f1a2f8`
 **To Add:** repo URL once public; a before/after screenshot of a filleted cube (a Front-view render shows the rounded-dome-on-a-box shape most clearly) would carry this one
+
+## [2026-09-12T22:10:00Z] — Editable parameters, and the edit the app refuses to make (TODO/ui-029)
+
+**Post:** WarpCad: type a new diameter in the Inspector and the cylinder narrows, staying where you put it.
+
+The interesting part is what it refuses. A shape with a fillet keeps its parameters frozen -- rebuilding from numbers would silently eat the rim.
+
+#CAD #WebGL
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** typing a diameter narrows the solid and leaves its centre byte-identical (`-60.51,36.03,25.00` before and after, size `[40,40,50]` -> `[10,10,50]`) → this session's hand-drive against the dev server at laptop/Chromium, laptop/Firefox and phone/WebKit; a filleted body's Parameters section reports `data-editable="false"`, every field is `readonly`, and forcing a value into it changes the solid's volume by nothing (13094.015 both times) → same drive; the fields were read-only by deliberate deferral, not oversight → `src/components/inspector/Inspector.vue`'s pre-existing doc comment and `TODO/ui-029`'s own Goal section; full suite green (typecheck clean, 613 unit tests / 30 files, 842 e2e passed / 158 skipped, against a 797-passed baseline before this task) → this session's `npm run typecheck` / `test:unit -- --run` / `test:e2e:headless` runs
+**To Add:** repo URL once public; a short screen recording of the diameter edit (the shape narrowing in place, dimension lines resizing with it) would carry this one better than a still

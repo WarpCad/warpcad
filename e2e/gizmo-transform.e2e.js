@@ -815,7 +815,7 @@ test('a press on a handle that never moves still selects what is underneath', as
   await expect(page.getByTestId('viewport')).toHaveAttribute('data-transforming', 'false')
 })
 
-test('the Transform fields say they are editable, and the params say they are not', async ({
+test('the Transform fields say they are editable, and Size still says it is not', async ({
   page,
 }) => {
   await placeCube(page)
@@ -826,9 +826,16 @@ test('the Transform fields say they are editable, and the params say they are no
 
   await expect(page.getByTestId('inspector-position-x')).not.toHaveAttribute('readonly', '')
   await expect(page.getByTestId('inspector-rotation-z')).not.toHaveAttribute('readonly', '')
-  // Still read-only, and deliberately so — resizing is a different mutation.
+  // Still read-only, and deliberately so: Size is a *measurement* of the solid,
+  // not an input, and a writable Size box would imply a non-uniform scale op
+  // that does not exist. Resizing means editing the shape's own params instead.
   await expect(page.getByTestId('inspector-size-x')).toHaveAttribute('readonly', '')
-  await expect(page.getByTestId('inspector-param-size-x')).toHaveAttribute('readonly', '')
+  // `TODO/ui-029` made exactly that param editable — this line used to assert the
+  // opposite, and its premise was retired by that task rather than regressed by
+  // it. The behaviour behind it now lives in `e2e/inspector-param-edit.e2e.js`;
+  // what stays here is that the two sections do **not** say the same thing, which
+  // is the claim this case was always really making.
+  await expect(page.getByTestId('inspector-param-size-x')).not.toHaveAttribute('readonly', '')
 })
 
 test('a rejected value restores the field rather than moving the body', async ({ page }) => {

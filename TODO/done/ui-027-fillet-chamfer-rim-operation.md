@@ -36,6 +36,26 @@ status: done
 >    pattern `NavigationChrome.vue` already uses at its own breakpoint. Logged as a
 >    human-judgment follow-up in `TODO/VERIFY.md` (icon legibility without labels).
 
+> **Cross-reference, per this file's and `TODO/ui-029`'s matching requests** ("whichever
+> task lands first should say so in a short note in the other's file"): **this task
+> landed first**, so the first user-facing runtime kernel-error display is the one built
+> here — `opError` in `OperationsToolbar.vue` and its popover `<p>`/`.ops__popover-error`.
+> `ui-029` (editable Inspector parameters, landed 2026-09-12) needed the same surface for
+> a rejected diameter or height and **reused this convention rather than building a
+> second one**: `Inspector.vue`'s `paramError` and `.inspector__error` follow the same
+> shape, the same neutral styling (no `danger` custom property exists in this codebase
+> yet — both defer to `Viewport.vue`'s `.viewport__error` precedent), and the same
+> "the message clears on the next good value rather than latching" behaviour. If the
+> wording or styling of kernel errors is ever revisited, these two surfaces move
+> together.
+>
+> One further note for whoever touches this control next: a body carrying a Fillet or
+> Chamfer now has its Inspector **Parameters** section frozen read-only (`ui-029`'s
+> lineage guard, `src/core/paramEdit.js`) — rebuilding a creation record from edited
+> params cannot carry a rounded rim with it, so the edit is refused rather than done
+> quietly. The panel names this op as the reason. That is a deliberate interaction
+> between the two features, not an accident of ordering.
+
 ## Goal
 
 `core-003` ported and registered `modify.filletRim`/`modify.chamferRim` — rounding or
