@@ -6,8 +6,50 @@ priority: high
 model: opus
 milestone: M4
 depends: []
-status: open
+status: done
 ---
+
+> **Note: the decision below is correct, but its investigation was not — and the
+> difference matters enough to state before anyone reads the rest of this file.**
+>
+> The Step 4 re-verification did what this file's own Proposed fix asked ("a future
+> implementer confirming this file's claims should re-check `~/src/jscad/
+> jscad-raspberrypi/src/*.js` fresh rather than trust a possibly-stale survey") — and
+> the survey did not survive it. This file's central factual claim, that
+> *"attaching a separately-built camera module to a separately-built board is not done
+> inside any real recipe,"* is **false as a statement about this library**. It is true
+> of the camera-module family, which is what the scoping pass actually sampled. It is
+> false of the display/HAT/screen family, which is the larger share of M4: eight
+> recipes take an externally-built board group as a parameter and measure against it —
+> `hat.js:24`, `hyper-pixel-4-rectangular.js:17`, `touch-display-7inch.js:16`,
+> `touch-screen2.js:16`, `miniPiTFT.js:81`, `pi-tft22.js:28`, `pi-tft24.js:48`,
+> `spacer.js:51` — and the last two of those four displays **require** it. This
+> project's own `core-013` fixture table already contradicted the claim too: 719 of
+> 2,147 real call sites (~33%) name `.parts.` on the reference side.
+>
+> **The decision still stands, on different and stronger grounds.** In every one of
+> those eight recipes the external board is used for exactly one thing — positioning
+> the *finished* accessory relative to the board — which is precisely the top-level
+> `group.snap`/`group.align` record `core-013` already shipped. The split into
+> "internal offsets from an origin probe" + "placement from a top-level record" is
+> **exact rather than approximate**, because `calcSnap`/`calcCenterWith` are
+> translation-equivariant (`kit.anchor.js:142-145`, already documented and tested
+> here). And `spacer.js:52`'s `mb = mb || BPlus().parts.mb` is V1 itself building a
+> throwaway probe board — `core-012`'s pattern, predating this project.
+>
+> So: two-phase expansion is still not adopted, M4 is still unblocked, no code
+> changed. What changed is that `core-016`-`core-018` now carry a concrete, named
+> requirement (drop the board parameter, expand standalone) instead of inheriting an
+> unexamined "this doesn't happen here," and one real exception is on the record
+> rather than absent: `touch-screen2.js:184-193`'s hidden `noGoPower` clearance
+> marker positions a single piece of the accessory against the board's GPIO header,
+> which "move the whole accessory" cannot express.
+>
+> Full write-up, with the corrected survey and both tables:
+> `docs/decisions/composite-recipe-geometry.md`. The lesson worth keeping is the
+> cheap one this file's own Effort section predicted: a survey that reaches a
+> convenient conclusion from a partial sample is exactly what an opus-tier re-check
+> is for, and the re-check cost minutes.
 
 ## Goal
 
