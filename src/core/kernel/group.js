@@ -52,7 +52,7 @@ import modeling from '@jscad/modeling'
 // `@jscad/modeling@2.x` is CommonJS. A bundler resolves its named exports, but raw
 // Node ESM does not — and `CLAUDE.md` requires `src/core/` to be testable in plain
 // Node. Destructuring the default export works under both.
-const { booleans, measurements, transforms } = modeling
+const { booleans, measurements, primitives, transforms } = modeling
 
 /** @typedef {import('@jscad/modeling').geometries.geom3.Geom3} Geom3 */
 /** @typedef {[number, number, number]} Vec3Mm A millimetre vector, Z-up. */
@@ -522,4 +522,310 @@ export function align(group, movingPieces, reference, axes, delta) {
     delta
   )
   return translate(group, offset)
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+ * Resizing and cutting (TODO/core-019)
+ *
+ * Three more `jscad-utils` ports, and unlike `snap`/`align` above these are real
+ * translations rather than wiring: nothing in this module covered them before.
+ * `enlarge` and `fit` are the same arithmetic V1 used, expressed over
+ * `@jscad/modeling`'s argument order; `bisect` is a deliberate *technique*
+ * substitution, explained on the function itself.
+ *
+ * Each is checked against measured V1 output rather than against a reading of V1's
+ * source — `scripts/generate-v1-modify-fixture.cjs` runs the real `jscad-utils@3.2.0`
+ * under Node and `group.spec.js` diffs against what it recorded, the same discipline
+ * `core-010`/`core-011` used for `hardware.nut`/`hardware.washer`. That was not
+ * ceremony: two of V1's conventions here are invisible in its source (which half of a
+ * bisect is `positive`, and what a negative offset measures from), and the first one
+ * reads backwards from the source alone.
+ * ──────────────────────────────────────────────────────────────────────────── */
+
+/** Axis letters in index order, for error messages that name the offending axis. */
+const AXIS_NAMES = Object.freeze(['x', 'y', 'z'])
+
+/**
+ * Validate a per-axis millimetre triple.
+ *
+ * @param {unknown} value
+ * @param {string} label Function name, so the throw says which call was wrong.
+ * @returns {Vec3Mm}
+ */
+function requireVec3Mm(value, label) {
+  if (!Array.isArray(value) || value.length !== 3 || !value.every((n) => Number.isFinite(n))) {
+    throw new Error(
+      `${label}: expected three finite millimetre values [x, y, z], got ${JSON.stringify(value)}`
+    )
+  }
+  return /** @type {Vec3Mm} */ ([value[0], value[1], value[2]])
+}
+
+/**
+ * Scale a solid or group about its own bounding-box centre, so it changes size
+ * without moving.
+ *
+ * This is exactly V1's arithmetic, not merely an equivalent of it. V1 scaled about
+ * the world origin and then translated by `−(centroid(scaled) − centroid(original))`;
+ * because a bounding-box centre scales linearly, that composes to `f·(p − c) + c` —
+ * a scale about `c`. The same two steps are kept here rather than the more obvious
+ * translate-scale-translate sandwich, so the float path matches V1's to the digit.
+ *
+ * A group keeps its named parts, scaled by the *group's* factor rather than each
+ * part recomputing one from its own bounds — the same reason `translate` above maps
+ * over parts, and the reason `group.snap` hands back a group at all: a bolt that has
+ * been resized should still have an addressable head.
+ *
+ * @param {Geom3 | Group} value
+ * @param {Vec3Mm} factors Per-axis scale factors; every one must be positive.
+ * @returns {Geom3 | Group} A group in, a group out.
+ */
+function scaleAboutCentroid(value, factors) {
+  const centre = centroidOf(value)
+  /** @type {Vec3Mm} */
+  const offset = [
+    centre[0] - factors[0] * centre[0],
+    centre[1] - factors[1] * centre[1],
+    centre[2] - factors[2] * centre[2],
+  ]
+  /** @param {Geom3} geometry */
+  const apply = (geometry) => transforms.translate(offset, transforms.scale(factors, geometry))
+
+  if (!isGroup(value)) return apply(value)
+
+  /** @type {Record<string, Geom3>} */
+  const parts = {}
+  for (const [name, geometry] of Object.entries(value.parts)) parts[name] = apply(geometry)
+  return Object.freeze({
+    name: value.name,
+    names: value.names,
+    parts: Object.freeze(parts),
+    holes: Object.freeze(value.holes.map(apply)),
+  })
+}
+
+/**
+ * Grow (or shrink) a solid by an **absolute millimetre amount per axis**, keeping its
+ * centroid where it is. The V3 port of `jscad-utils`' `util.enlarge`.
+ *
+ * `enlarge(box, [1, 1, 1])` makes every dimension 1 mm larger — not 1% larger, and not
+ * 1 mm larger *on each side*. A zero delta leaves that axis alone, matching V1's own
+ * `util.scale(size, 0) === 1` short-circuit (which is also why a zero delta is legal on
+ * a zero-thickness axis, where no scale factor exists).
+ *
+ * ## Two divergences from V1, both deliberate
+ *
+ * 1. **The delta is one `[x, y, z]` vector, not three optional arguments.** V1 accepted
+ *    either, and the two published versions disagree about what the spread form does
+ *    when an argument is omitted: `jscad-utils@3.2.0`'s shipped bundle reads
+ *    `[x, y, z]` literally, so `enlarge(o, 3)` produces `NaN` geometry, while its
+ *    current source defaults `y` and `z` to `x`. Taking a vector makes the question
+ *    disappear rather than picking a side, and matches how every op record in this
+ *    project passes params anyway.
+ * 2. **A delta that would collapse or invert an axis throws, naming the axis.** V1
+ *    silently produced a mirrored solid: a −12 mm delta on a 10 mm axis gave a 2 mm
+ *    wide *inside-out* body, measured and recorded in the fixture. `@jscad/modeling`
+ *    would refuse it anyway — `transforms.scale` throws "factors must be positive" —
+ *    so the choice here is not whether to fail, but whether the failure says which
+ *    axis and why. See `CLAUDE.md` on covering degenerate cases loudly.
+ *
+ * @param {Geom3 | Group} value
+ * @param {Vec3Mm} deltaMm Per-axis absolute growth in millimetres; negative shrinks.
+ * @returns {Geom3 | Group} A group in, a group out, parts intact.
+ */
+export function enlarge(value, deltaMm) {
+  const delta = requireVec3Mm(deltaMm, 'enlarge')
+  const size = sizeOf(value)
+  const factors = /** @type {Vec3Mm} */ (
+    AXIS_NAMES.map((axis, index) => {
+      if (delta[index] === 0) return 1
+      const current = size[index]
+      const target = current + delta[index]
+      if (!(current > 0)) {
+        throw new Error(
+          `enlarge: ${axis} is ${current} mm thick, so a ${delta[index]} mm delta has no ` +
+            `scale factor — translate or rebuild the solid instead`
+        )
+      }
+      if (!(target > 0)) {
+        throw new Error(
+          `enlarge: ${axis} delta ${delta[index]} mm would ` +
+            `${target === 0 ? 'collapse' : 'invert'} a ${current} mm axis (new size ` +
+            `${target} mm). V1 silently mirrored the solid here; this port refuses`
+        )
+      }
+      return target / current
+    })
+  )
+  return scaleAboutCentroid(value, factors)
+}
+
+/**
+ * Scale a solid so each axis reaches an **absolute target size**, keeping its centroid
+ * where it is. The V3 port of `jscad-utils`' `util.fit`, V1's usual way of sizing a
+ * text label to the space it has to sit in.
+ *
+ * Where {@link enlarge} takes a delta, this takes the finished size: `fit(o, [5, 5, 5])`
+ * makes the solid 5 mm on every axis whatever it was before.
+ *
+ * ## V1 behaviours reproduced exactly, because real call sites rely on them
+ *
+ * - **A target of `0` means "leave this axis alone"**, V1's own documented sentinel
+ *   (`if (a[i] === 0) return 1` in its source). It is not "scale this axis to nothing".
+ * - **`keepAspectRatio` applies the single smallest ratio to all three axes**, so the
+ *   solid keeps its proportions and lands *inside* the target box rather than filling
+ *   it. Note the quirk this inherits: a zero axis contributes a ratio of `1` to that
+ *   minimum, so `fit(o, [15, 0, 60], true)` scales by `1` — nothing moves, and the 15
+ *   and 60 go unmet. Surprising, measured, and preserved (fixture case
+ *   "a zero axis's sentinel 1 can win the keep_aspect_ratio min").
+ *
+ * Unlike {@link enlarge}, no guard here diverges from V1 on the ordinary path; a
+ * *negative* target is rejected, since V1 would mirror the solid and no call site in
+ * the surveyed corpus passes one.
+ *
+ * @param {Geom3 | Group} value
+ * @param {Vec3Mm} sizeMm Per-axis target size in millimetres; `0` means don't scale.
+ * @param {boolean} [keepAspectRatio] Scale all axes by the smallest ratio instead.
+ * @returns {Geom3 | Group} A group in, a group out, parts intact.
+ */
+export function fit(value, sizeMm, keepAspectRatio = false) {
+  const target = requireVec3Mm(sizeMm, 'fit')
+  const size = sizeOf(value)
+  const ratios = AXIS_NAMES.map((axis, index) => {
+    // V1's `fitRatio`: a zero target contributes 1, and that 1 is still a candidate
+    // for the minimum below. See the doc comment's note on the quirk that creates.
+    if (target[index] === 0) return 1
+    if (target[index] < 0) {
+      throw new Error(`fit: ${axis} target ${target[index]} mm is negative; sizes are unsigned`)
+    }
+    if (!(size[index] > 0)) {
+      throw new Error(
+        `fit: ${axis} is ${size[index]} mm thick and cannot be scaled to ${target[index]} mm`
+      )
+    }
+    return target[index] / size[index]
+  })
+  const uniform = Math.min(...ratios)
+  const factors = /** @type {Vec3Mm} */ (
+    ratios.map((ratio, index) => {
+      if (target[index] === 0) return 1
+      return keepAspectRatio ? uniform : ratio
+    })
+  )
+  return scaleAboutCentroid(value, factors)
+}
+
+/**
+ * How far past the solid's own bounds the half-space box below extends, as a multiple
+ * of the solid's largest dimension. Ten is arbitrary but not magic: it only has to be
+ * comfortably more than one so the box cannot end inside the solid and leave a stray
+ * face, while staying small enough that the boolean works at the solid's own scale
+ * rather than against a number large enough to cost precision.
+ */
+const HALF_SPACE_REACH_FACTOR = 10
+
+/**
+ * Floor for the reach above, in millimetres, so a degenerate input — an empty solid,
+ * or a sliver with near-zero extent on every axis — still produces a box with real
+ * volume instead of a zero-sized cuboid `@jscad/modeling` would reject.
+ */
+const HALF_SPACE_MIN_REACH_MM = 1
+
+/**
+ * Cut one solid in two along a plane perpendicular to `axis`, returning a group of
+ * the two halves. The V3 port of `jscad-utils`' `util.bisect`.
+ *
+ * ## Scope: the straight cut only (TODO/core-019)
+ *
+ * V1's `bisect` also accepts `angle`, `rotateaxis` and `rotateoffset` to *tilt* the cut
+ * plane. **That form is deliberately not ported here.** A survey of ~55 real call sites
+ * across the user's own `.jscad` projects found ~47 passing only `axis` and `offset`;
+ * the angled form is a real but minority (~15%) shape, and it needs a rotated
+ * ortho-normal cut-plane basis that `@jscad/modeling` has no equivalent for — real
+ * undesigned geometry work with no consumer in this project yet. It gets its own task
+ * when a recipe or a control actually needs it, the same deferral `core-003` made for
+ * arbitrary-edge fillet. Passing an angle here is not silently ignored: this signature
+ * has nowhere to put one.
+ *
+ * ## Which half is which, and where the offset measures from
+ *
+ * Both conventions come from running V1, not from reading it (see this section's
+ * header comment, and `__fixtures__/modify.v1-reference.json`):
+ *
+ * - **`negative` is the half on the axis's minimum side; `positive` is the maximum
+ *   side.** V1 builds them through `cutByPlane`, whose retained-side convention lives
+ *   in `@jscad/csg` — so its source reads, misleadingly, as though the names went the
+ *   other way. Measured: a 10 mm cube cut on `z` at offset 2 puts the **2 mm** piece in
+ *   `negative` and the **8 mm** piece in `positive`.
+ * - **A positive offset measures from the minimum face; a negative one from the
+ *   maximum face**, so `offset: 2` and `offset: -2` on that cube are mirror images.
+ *   An **omitted** offset cuts at the centre — but `0` does not: it cuts at the minimum
+ *   face, leaving `negative` empty. V1 distinguishes the two (`util.isEmpty` accepts
+ *   only `undefined`/`null`) and so does this.
+ * - **`-0` is a real, distinct V1 idiom** meaning "the maximum face", used by real call
+ *   sites (`.bisect('y', -0, ...)`), and it is honoured here. Note that it cannot
+ *   survive a document round-trip: `JSON.stringify(-0)` is `"0"`, which means the
+ *   opposite face. An op record that wants the maximum face should pass the solid's own
+ *   size as a negative offset rather than relying on `-0`.
+ *
+ * ## Technique: a half-space box, not a cut plane
+ *
+ * V1 cut against an infinite plane (`CSG.OrthoNormalBasis` + `cutByPlane`).
+ * `@jscad/modeling` has no infinite-plane primitive and no `cutByPlane`, so the
+ * standard boolean-kernel equivalent is used instead: build one axis-aligned box that
+ * covers the whole `+axis` half-space over this solid's extent, with its near face
+ * exactly on the cut plane. Intersecting with it yields `positive`; subtracting it
+ * yields `negative`. The two halves together reproduce the original's volume, which
+ * `group.spec.js` asserts directly rather than assuming.
+ *
+ * @param {Geom3 | Group} value Solid to cut. A group is combined first — the result's
+ *   parts are the two halves, so a group's own part names cannot survive.
+ * @param {string} axis `'x'`, `'y'` or `'z'`: the cut plane's normal.
+ * @param {number} [offsetMm] Where to cut along that axis. Omitted cuts at the centre.
+ * @returns {Group} A two-part group, `negative` then `positive` — V1's names and V1's
+ *   order.
+ */
+export function bisect(value, axis, offsetMm) {
+  const index = AXIS_INDEX[axis]
+  if (index === undefined) {
+    throw new Error(`bisect: unknown axis ${JSON.stringify(axis)}, expected 'x', 'y' or 'z'`)
+  }
+  const geometry = toGeom3(value)
+  const [min, max] = boundsOf(geometry)
+  const size = sizeOf(geometry)
+
+  let cutMm
+  if (offsetMm === undefined || offsetMm === null) {
+    cutMm = min[index] + size[index] / 2
+  } else if (!Number.isFinite(offsetMm)) {
+    throw new Error(`bisect: offset must be a finite millimetre value, got ${offsetMm}`)
+  } else if (offsetMm < 0 || Object.is(offsetMm, -0)) {
+    // V1's `util.getDelta`: a negative offset (its `isNegative` counts `-0`) is
+    // measured back from the maximum face instead of forward from the minimum.
+    cutMm = max[index] + offsetMm
+  } else {
+    cutMm = min[index] + offsetMm
+  }
+
+  const reach = Math.max(HALF_SPACE_REACH_FACTOR * Math.max(...size), HALF_SPACE_MIN_REACH_MM)
+  /** @type {Vec3Mm} */
+  const halfSpaceSize = [0, 0, 0]
+  /** @type {Vec3Mm} */
+  const halfSpaceCentre = [0, 0, 0]
+  for (let i = 0; i < 3; i++) {
+    if (i === index) {
+      // Near face exactly on the cut plane, far face well past the solid.
+      halfSpaceSize[i] = reach
+      halfSpaceCentre[i] = cutMm + reach / 2
+    } else {
+      // Overhang the solid on both sides, so the box never clips it sideways.
+      halfSpaceSize[i] = size[i] + 2 * reach
+      halfSpaceCentre[i] = (min[i] + max[i]) / 2
+    }
+  }
+  const halfSpace = primitives.cuboid({ size: halfSpaceSize, center: halfSpaceCentre })
+
+  const positive = booleans.intersect(geometry, halfSpace)
+  const negative = booleans.subtract(geometry, halfSpace)
+  return add(add(createGroup('bisect'), negative, 'negative'), positive, 'positive')
 }

@@ -452,6 +452,48 @@ eyeballed) while the Cylinder's stayed byte-identical, and both remained separat
 clickable, each opening its own Inspector entry (`Cube 1`, `Cylinder 1`) with no
 breadcrumb or merged fields. Console clean throughout.
 
+**Re-checked**: 2026-09-11 20:41 — PASS (`core-019`). That task's own Testing section
+judged no scenario to pass or fail on it (three kernel ports, no UI surface), and that
+call stands — but it adds three keys to `src/core/kernel/registry.js`, and
+`src/core/library.js` builds this scenario's Library rows *by iterating that registry*
+and **throws** on any `primitive.*` entry without `ui` metadata. A new op kind added to
+the pipeline a past finding was fixed in is exactly `CLAUDE.md`'s
+standing-regression-surface case, so it was driven rather than assumed. Laptop
+1440×900 in Chromium; kernel-only change, so one engine rather than three (the full
+e2e matrix ran green separately: 671 passed / 158 skipped, identical to the
+pre-change baseline).
+
+- **`ui-010`'s own repro, re-run**: the panel still renders **exactly seven rows** —
+  Cube, Cylinder, Cone, Hexagon, Triangle, Tube, Sphere — with no `modify.enlarge`,
+  `modify.fit` or `modify.bisect` leaking in, and no throw at panel build. The three
+  new ops are `modify.*`, not `primitive.*`, so the panel's filter never sees them;
+  also asserted in `registry.spec.js`, since "an operation must never appear as a
+  creation row" is the rule that check exists for.
+- **The scenario itself**: a Cube then a Cylinder dragged in on wandering, jittery
+  paths with a deliberate overshoot *past* the drop point and a doubling-back. **Both
+  stayed visible** (`data-body-count` = 2), and the cube's millimetre centre was
+  **byte-identical before and after the second drop** (`-74.00,-19.00,20.00` both
+  times) — the specific regression signature, confirmed absent rather than merely not
+  obvious. Each drop selected only the new item. Clicking empty grid cleared the
+  selection; clicking the cube selected `cuboid-1` alone; clicking the cylinder moved
+  the highlight to `cylinder-2` alone, never both at once. An orbit afterwards left
+  both bodies present and their centres unchanged, so neither is a one-frame artefact.
+  The screenshot confirms both solids rendered on the grid, the gizmo and all three
+  dimension lines on the selected cylinder (40/40/50), and the Inspector populated.
+  Console clean.
+- **Beyond the scenario, since no UI can reach the new ops**: all three were evaluated
+  through the real fold *in the browser* (the same `src/core/kernel/index.js` the app
+  imports, not a Node-only harness), against a 10 × 20 × 30 mm brick.
+  `modify.enlarge` with `deltaMm: [2, 0, -4]` → **12 × 20 × 26**, matching measured V1
+  exactly; `modify.fit` to `[5, 5, 5]` → **5 × 5 × 5** independently and **1.667 ×
+  3.333 × 5** with `keepAspectRatio` (one uniform 1/6 factor, not three);
+  `modify.bisect` on `z` at offset 2 → a **group with its parts intact**, `names`
+  `["negative","positive"]`, the halves measuring 2 mm and 28 mm on z. The new guard
+  also fires in the browser rather than only under Node: a `-12 mm` delta on a 10 mm
+  axis throws *"enlarge: x delta -12 mm would invert a 10 mm axis"* instead of V1's
+  silent mirror, and the operand gate reports `modify.bisect: expected 1 operand(s),
+  got 0`. No console errors, so nothing in the new ops trips the browser build.
+
 ### 2. Hardware property edit
 
 **Steps**:

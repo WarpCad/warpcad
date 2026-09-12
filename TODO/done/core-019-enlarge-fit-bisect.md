@@ -6,8 +6,35 @@ priority: medium
 model: opus
 milestone: M3
 depends: [core-001]
-status: open
+status: done
 ---
+
+> **What actually shipped.** Landed essentially as proposed, with no scope
+> narrowing beyond what this file already called for — the degenerate-delta
+> guard on `enlarge` (missing from V1, added here), the half-space-box technique
+> substitution for `bisect` (`@jscad/modeling` has no `OrthoNormalBasis`/cutplane
+> equivalent V1's own `bisect` used), and the straight-cut-only scope limit were
+> all pre-decided in this file and shipped unchanged.
+>
+> One thing worth recording that this file didn't spell out to this level of
+> detail: `bisect`'s `negative`/`positive` naming and its offset-sign convention
+> (a **negative** offset measures back from the max face, and `-0` is a real,
+> distinct V1 idiom also meaning "the max face") both read backwards from V1's
+> source and only resolved correctly by *running* V1 —
+> `scripts/generate-v1-modify-fixture.cjs` records real `jscad-utils@3.2.0`
+> output rather than a source-reading guess, the same discipline
+> `core-010`/`core-011` used for `hardware.nut`/`washer`, and it's what caught
+> both here.
+>
+> Two follow-ups this file asked to be named rather than left implicit, now
+> named for real in `TODO/ROADMAP.md`'s M4+ table:
+>
+> - **`ui-028`** *(reserved)* — the UI surface these three ops still have none
+>   of, the same gap `core-013`'s own retirement note flagged for
+>   `group.snap`/`group.align`, which became `ui-026`.
+> - **`core-021`** *(reserved)* — the angled-bisect form
+>   (`angle`/`rotateaxis`/`rotateoffset`) this file deliberately deferred, not a
+>   vague "someday": a real task, blocked on a real recipe or control needing it.
 
 ## Goal
 

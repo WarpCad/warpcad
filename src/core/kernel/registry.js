@@ -37,7 +37,19 @@ import modeling from '@jscad/modeling'
 const { booleans, extrusions, geometries, measurements, primitives, transforms } = modeling
 
 import { chamferRim, filletRim } from './fillet.js'
-import { add, align, calcCenterWith, calcSnap, createGroup, isGroup, pick, snap } from './group.js'
+import {
+  add,
+  align,
+  bisect,
+  calcCenterWith,
+  calcSnap,
+  createGroup,
+  enlarge,
+  fit,
+  isGroup,
+  pick,
+  snap,
+} from './group.js'
 import { bolt } from './recipes/hardware.bolt.js'
 import { nut } from './recipes/hardware.nut.js'
 import { washer } from './recipes/hardware.washer.js'
@@ -718,6 +730,40 @@ export const registry = Object.freeze({
 
   'modify.chamferRim': native(1, ({ params, inputs }) =>
     chamferRim({ radius: params.radius, orientation: params.orientation ?? 'z+' }, inputs[0])
+  ),
+
+  // ## Resizing and cutting one placed item (TODO/core-019)
+  //
+  // Three more `jscad-utils` ports, all `operandCount: 1` — they edit one existing
+  // solid, so the UI's creation-vs-operation rule keeps them out of the Library panel
+  // (which reads `primitive.*` alone) and disables them unless exactly one object is
+  // selected. Like the rim pair above, the arithmetic lives in `group.js` and is
+  // diffed there against measured V1 output; these entries are dispatch only.
+  //
+  // No `ui` metadata, and no UI task claims them yet — stated rather than left to be
+  // discovered, the same way the `kit.*` trio below says so. A future control that
+  // exposes `modify.bisect` should append its record with `supersedes: <original id>`:
+  // one body goes in and one two-part group comes out, which is the same "same object,
+  // new geometry" lineage `transform.*` already established, not the `consumes` shape
+  // a boolean uses.
+
+  // `deltaMm` here is a per-axis `[x, y, z]` vector — deliberately *not* the scalar
+  // that `group.snap`'s identically-named param takes. Both are millimetres; only the
+  // shape differs, and `enlarge` throws by name rather than coercing a scalar.
+  'modify.enlarge': native(1, ({ params, inputs }) => enlarge(inputs[0], params.deltaMm)),
+
+  // `sizeMm` is an absolute target size, not a delta; a `0` on an axis means "leave
+  // this one alone" (V1's own sentinel). See `fit`'s doc comment for the aspect-ratio
+  // quirk a zero axis introduces.
+  'modify.fit': native(1, ({ params, inputs }) =>
+    fit(inputs[0], params.sizeMm, params.keepAspectRatio ?? false)
+  ),
+
+  // Returns a two-part `Group` (`negative`, `positive`), not a solid — which is why
+  // `KernelGeometry` admits a `Group` at all. Straight cuts only; the angled form V1
+  // also supported is explicitly out of scope, see `bisect`'s doc comment.
+  'modify.bisect': native(1, ({ params, inputs }) =>
+    bisect(inputs[0], params.axis, params.offsetMm)
   ),
 
   'hardware.bolt': composite(0, bolt),

@@ -6,11 +6,14 @@ import {
   addHole,
   align,
   axisApply,
+  bisect,
   calcCenterWith,
   calcSnap,
   centroidOf,
   combine,
   createGroup,
+  enlarge,
+  fit,
   isGroup,
   pick,
   sizeOf,
@@ -18,10 +21,12 @@ import {
   toGeom3,
   translate,
 } from './group.js'
+import v1Reference from './__fixtures__/modify.v1-reference.json'
 
 const { measurements, primitives } = modeling
 
 /** @typedef {import('@jscad/modeling').geometries.geom3.Geom3} Geom3 */
+/** @typedef {import('./group.js').Group} Group */
 
 /** A 10mm cube centred on the origin: bounds [-5,-5,-5] .. [5,5,5]. */
 const big = () => primitives.cuboid({ size: [10, 10, 10] })
@@ -258,5 +263,278 @@ describe('toGeom3', () => {
     const geometry = big()
     expect(toGeom3(geometry)).toBe(geometry)
     expect(boundsOf(toGeom3(add(createGroup(), geometry, 'a')))).toEqual(boundsOf(geometry))
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// TODO/core-019 — enlarge / fit / bisect, diffed against measured V1 output.
+//
+// Every case below that carries a `v1` label is checked against
+// `__fixtures__/modify.v1-reference.json`, which `scripts/generate-v1-modify-fixture.cjs`
+// records by running the *real* `jscad-utils@3.2.0` under Node — the same
+// measure-don't-guess discipline `hardware.nut`/`hardware.washer` (core-010/core-011)
+// already use. That mattered here: reading V1's source suggested `bisect`'s smaller
+// half is the `positive` one, and running it proves the opposite (see `bisect`'s doc
+// comment in group.js).
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Digits of agreement required against V1, matching the hardware recipe specs. */
+const MM_TOLERANCE = 6
+/** Boolean results carry more float noise than a pure transform; see bisect below. */
+const MM_BOOLEAN_TOLERANCE = 6
+
+/** The fixture's `brick`: size [10, 20, 30] centred at [1, 2, 3]. Asymmetric on purpose. */
+const brick = () => primitives.cuboid({ size: [10, 20, 30], center: [1, 2, 3] })
+/** The fixture's `cube`: V1's own bisect doc-comment example, 10mm on the origin. */
+const cube = () => primitives.cuboid({ size: [10, 10, 10] })
+
+/** @param {number[][]} bounds */
+const sizeOfBounds = (bounds) => [
+  bounds[1][0] - bounds[0][0],
+  bounds[1][1] - bounds[0][1],
+  bounds[1][2] - bounds[0][2],
+]
+
+/** @param {number[][]} bounds */
+const centreOfBounds = (bounds) => [
+  (bounds[0][0] + bounds[1][0]) / 2,
+  (bounds[0][1] + bounds[1][1]) / 2,
+  (bounds[0][2] + bounds[1][2]) / 2,
+]
+
+/**
+ * Assert a V3 solid has V1's measured size and centre. Position is compared as the
+ * bounding-box centre rather than raw min/max so a failure reads as "wrong size" or
+ * "wrong place" instead of four correlated bound failures.
+ *
+ * @param {Geom3} actual
+ * @param {{ bounds: number[][] }} expected A fixture entry's `input`/`result`/part.
+ * @param {string} label
+ * @param {number} [digits]
+ */
+function expectMatchesV1(actual, expected, label, digits = MM_TOLERANCE) {
+  const actualBounds = boundsOf(actual)
+  const expectedSize = sizeOfBounds(expected.bounds)
+  const expectedCentre = centreOfBounds(expected.bounds)
+  const actualSize = sizeOfBounds(actualBounds)
+  const actualCentre = centreOfBounds(actualBounds)
+  for (const axis of [0, 1, 2]) {
+    expect(actualSize[axis], `${label} size[${axis}]`).toBeCloseTo(expectedSize[axis], digits)
+    expect(actualCentre[axis], `${label} centre[${axis}]`).toBeCloseTo(expectedCentre[axis], digits)
+  }
+}
+
+/**
+ * A fixture `enlarge`/`fit` case's arguments, whether V1 took them spread or as an
+ * array.
+ *
+ * @param {readonly any[]} args
+ * @returns {[number, number, number]}
+ */
+const vectorArg = (args) => {
+  const values = Array.isArray(args[0]) ? args[0] : args.slice(0, 3)
+  return [values[0], values[1], values[2]]
+}
+
+/**
+ * Narrow a `Geom3 | Group` result to a solid, so the measurement helpers above can
+ * take it. `enlarge`/`fit` hand back whichever kind they were given.
+ *
+ * @param {Geom3 | Group} value
+ * @returns {Geom3}
+ */
+const solid = (value) => toGeom3(value)
+
+/**
+ * Narrow a `Geom3 | Group` result to a group, failing the test rather than the
+ * typecheck if it isn't one.
+ *
+ * @param {Geom3 | Group} value
+ * @returns {Group}
+ */
+function asGroup(value) {
+  if (!isGroup(value)) throw new Error('expected a Group, got a bare solid')
+  return value
+}
+
+describe('enlarge', () => {
+  const cases = v1Reference.enlarge.filter((entry) => !entry.label.startsWith('V1 silently'))
+
+  it.each(cases)('matches V1: $label', (entry) => {
+    expectMatchesV1(brick(), entry.input, 'input')
+    expectMatchesV1(solid(enlarge(brick(), vectorArg(entry.args))), entry.result, entry.label)
+  })
+
+  it('grows each axis by its own absolute millimetre delta and holds the centroid', () => {
+    const grown = enlarge(brick(), [2, 0, -4])
+    expect(sizeOf(grown)[0]).toBeCloseTo(12, 9)
+    expect(sizeOf(grown)[1]).toBeCloseTo(20, 9)
+    expect(sizeOf(grown)[2]).toBeCloseTo(26, 9)
+    const centroid = centroidOf(grown)
+    expect(centroid[0]).toBeCloseTo(1, 9)
+    expect(centroid[1]).toBeCloseTo(2, 9)
+    expect(centroid[2]).toBeCloseTo(3, 9)
+  })
+
+  it('shrinks the same way a negative delta on every axis', () => {
+    const shrunk = enlarge(brick(), [-2, -2, -2])
+    expect(sizeOf(shrunk)).toEqual([8, 18, 28].map((n) => expect.closeTo(n, 9)))
+    expect(centroidOf(shrunk)).toEqual([1, 2, 3].map((n) => expect.closeTo(n, 9)))
+  })
+
+  it('throws, naming the axis, where V1 silently inverted the solid', () => {
+    // The measured V1 behaviour this diverges from: a -12mm delta on a 10mm axis
+    // produced a *mirrored* 2mm-wide solid rather than an error (fixture case
+    // "V1 silently inverts when a delta exceeds the axis size").
+    const inverted = /** @type {(typeof v1Reference.enlarge)[number]} */ (
+      v1Reference.enlarge.find((entry) => entry.label.startsWith('V1 silently'))
+    )
+    expect(sizeOfBounds(inverted.result.bounds)[0]).toBeCloseTo(2, 9)
+
+    expect(() => enlarge(brick(), [-12, 0, 0])).toThrow(/enlarge: x/)
+    // Exactly -size collapses rather than inverts; equally loud, same axis name.
+    expect(() => enlarge(brick(), [0, -20, 0])).toThrow(/enlarge: y/)
+    expect(() => enlarge(brick(), [0, 0, -30])).toThrow(/enlarge: z/)
+  })
+
+  it('rejects a delta that is not three finite millimetre values', () => {
+    expect(() => enlarge(brick(), /** @type {any} */ ([1, 2]))).toThrow(/three finite/)
+    expect(() => enlarge(brick(), [1, Number.NaN, 3])).toThrow(/three finite/)
+  })
+
+  it('keeps a group’s named parts, scaling each about the whole group’s centroid', () => {
+    const pair = add(add(createGroup('pair'), small(), 'a'), big(), 'b')
+    const grown = asGroup(enlarge(pair, [10, 10, 10]))
+    expect(grown.names).toEqual(['a', 'b'])
+    // The group as a whole grows by the delta...
+    expect(sizeOf(grown)[0]).toBeCloseTo(20, 9)
+    // ...and each part scales by that same factor (2x), rather than each part being
+    // enlarged by 10mm on its own.
+    expect(sizeOf(grown.parts.a)[0]).toBeCloseTo(8, 9)
+    expect(sizeOf(grown.parts.b)[0]).toBeCloseTo(20, 9)
+  })
+})
+
+describe('fit', () => {
+  it.each(v1Reference.fit)('matches V1: $label', (entry) => {
+    const keepAspectRatio = entry.args[3] === true
+    expectMatchesV1(
+      solid(fit(brick(), vectorArg(entry.args), keepAspectRatio)),
+      entry.result,
+      entry.label
+    )
+  })
+
+  it('scales each axis to its own absolute target and stays on the original centroid', () => {
+    const fitted = fit(brick(), [5, 10, 15])
+    expect(sizeOf(fitted)).toEqual([5, 10, 15].map((n) => expect.closeTo(n, 9)))
+    expect(centroidOf(fitted)).toEqual([1, 2, 3].map((n) => expect.closeTo(n, 9)))
+  })
+
+  it('applies one uniform factor — the smallest ratio — when keeping the aspect ratio', () => {
+    // [10,20,30] against a [5,5,5] target: ratios 0.5 / 0.25 / 1/6, so the uniform
+    // factor is 1/6. The claim is that all three axes move by the *same* factor, not
+    // that they land on the target, so assert the factor rather than the sizes.
+    const fitted = fit(brick(), [5, 5, 5], true)
+    const size = sizeOf(fitted)
+    const factors = [size[0] / 10, size[1] / 20, size[2] / 30]
+    expect(factors[1]).toBeCloseTo(factors[0], 9)
+    expect(factors[2]).toBeCloseTo(factors[0], 9)
+    expect(factors[0]).toBeCloseTo(1 / 6, 9)
+    // Independent scaling on the same input hits the target on all three instead.
+    expect(sizeOf(fit(brick(), [5, 5, 5]))).toEqual([5, 5, 5].map((n) => expect.closeTo(n, 9)))
+  })
+
+  it('treats a zero target as V1’s do-not-scale-this-axis sentinel', () => {
+    const fitted = fit(brick(), [5, 0, 15])
+    expect(sizeOf(fitted)[1]).toBeCloseTo(20, 9)
+    expect(sizeOf(fitted)[0]).toBeCloseTo(5, 9)
+    expect(sizeOf(fitted)[2]).toBeCloseTo(15, 9)
+  })
+
+  it('rejects a negative target and a non-finite one, naming the axis', () => {
+    expect(() => fit(brick(), [5, -10, 15])).toThrow(/fit: y/)
+    expect(() => fit(brick(), /** @type {any} */ ([5, 10]))).toThrow(/three finite/)
+  })
+
+  it('keeps a group’s named parts', () => {
+    const pair = add(add(createGroup('pair'), small(), 'a'), big(), 'b')
+    const fitted = asGroup(fit(pair, [5, 5, 5]))
+    expect(fitted.names).toEqual(['a', 'b'])
+    expect(sizeOf(fitted)).toEqual([5, 5, 5].map((n) => expect.closeTo(n, 9)))
+  })
+})
+
+describe('bisect', () => {
+  /**
+   * A fixture bisect case's offset, restoring the `-0` JSON cannot carry.
+   *
+   * @param {readonly any[]} args
+   * @returns {number | undefined}
+   */
+  const offsetOf = (args) => (args[1] === '-0' ? -0 : args[1])
+
+  it.each(v1Reference.bisect)('matches V1: $label', (entry) => {
+    const halves = bisect(cube(), String(entry.args[0]), offsetOf(entry.args))
+    expect(halves.names).toEqual(entry.names)
+    const expectedParts = /** @type {Record<string, { bounds: number[][] }>} */ (entry.parts)
+    for (const part of entry.names) {
+      expectMatchesV1(halves.parts[part], expectedParts[part], part, MM_BOOLEAN_TOLERANCE)
+    }
+  })
+
+  it("reproduces V1's own doc example, positive on the +axis side", () => {
+    // V1's doc comment: "a 10mm cube with an offset of 2 will create a 2mm side and
+    // an 8mm side". Measured V1 puts the 2mm side in `negative` — the half on the
+    // axis's minimum side — and the 8mm side in `positive`.
+    const halves = bisect(cube(), 'z', 2)
+    expect(sizeOf(halves.parts.negative)[2]).toBeCloseTo(2, 6)
+    expect(sizeOf(halves.parts.positive)[2]).toBeCloseTo(8, 6)
+    expect(boundsOf(halves.parts.negative)[1][2]).toBeCloseTo(-3, 6)
+    expect(boundsOf(halves.parts.positive)[0][2]).toBeCloseTo(-3, 6)
+  })
+
+  it('measures a negative offset from the larger side instead', () => {
+    const halves = bisect(cube(), 'z', -2)
+    expect(sizeOf(halves.parts.negative)[2]).toBeCloseTo(8, 6)
+    expect(sizeOf(halves.parts.positive)[2]).toBeCloseTo(2, 6)
+  })
+
+  it('cuts at the centre when no offset is given', () => {
+    const halves = bisect(cube(), 'z')
+    expect(sizeOf(halves.parts.negative)[2]).toBeCloseTo(5, 6)
+    expect(sizeOf(halves.parts.positive)[2]).toBeCloseTo(5, 6)
+  })
+
+  it('loses and duplicates nothing: the two halves add up to the original', () => {
+    const original = measurements.measureVolume(cube())
+    for (const offset of [2, -2, undefined, 4.5, -0.25]) {
+      const halves = bisect(cube(), 'z', offset)
+      const total =
+        measurements.measureVolume(halves.parts.negative) +
+        measurements.measureVolume(halves.parts.positive)
+      expect(total, `offset ${offset}`).toBeCloseTo(original, 6)
+    }
+  })
+
+  it('leaves one half empty when the cut plane misses the solid entirely', () => {
+    const past = bisect(cube(), 'z', 20)
+    expect(measurements.measureVolume(past.parts.positive)).toBeCloseTo(0, 9)
+    expect(measurements.measureVolume(past.parts.negative)).toBeCloseTo(1000, 6)
+    expect(sizeOf(past.parts.negative)).toEqual([10, 10, 10].map((n) => expect.closeTo(n, 6)))
+  })
+
+  it('cuts on any named axis and rejects anything else', () => {
+    expect(sizeOf(bisect(cube(), 'x', 3).parts.negative)[0]).toBeCloseTo(3, 6)
+    expect(sizeOf(bisect(cube(), 'y', 3).parts.negative)[1]).toBeCloseTo(3, 6)
+    expect(() => bisect(cube(), 'w', 1)).toThrow(/bisect: unknown axis/)
+    expect(() => bisect(cube(), 'z', Number.NaN)).toThrow(/finite/)
+  })
+
+  it('collapses a group to one solid before cutting it', () => {
+    const pair = add(add(createGroup('pair'), small(), 'a'), big(), 'b')
+    const halves = bisect(pair, 'z', 2)
+    expect(halves.names).toEqual(['negative', 'positive'])
+    expect(sizeOf(halves.parts.negative)[2]).toBeCloseTo(2, 6)
   })
 })

@@ -451,6 +451,77 @@ describe('native builders', () => {
     expect(measurements.measureVolume(chamfered)).toBeLessThan(measurements.measureVolume(filleted))
   })
 
+  // TODO/core-019. These three are wiring over `group.js`'s ported arithmetic, which
+  // `group.spec.js` already diffs against measured V1 output — so what is checked here
+  // is the *dispatch*: that each entry reads the param names its doc comment promises
+  // and hands them to the right function in the right order.
+  it('modify.enlarge grows each axis by its own millimetre delta, holding the centroid', () => {
+    const brick = build('primitive.cuboid', { params: { size: [10, 20, 30] } })
+    const grown = build('modify.enlarge', { params: { deltaMm: [2, 0, -4] }, inputs: [brick] })
+    const bounds = boundsOf(grown)
+    expect(bounds[1][0] - bounds[0][0]).toBeCloseTo(12, 9)
+    expect(bounds[1][1] - bounds[0][1]).toBeCloseTo(20, 9)
+    expect(bounds[1][2] - bounds[0][2]).toBeCloseTo(26, 9)
+    expect(bounds[0][0] + bounds[1][0]).toBeCloseTo(0, 9)
+    // The param is a per-axis vector, so a missing one must fail loudly rather than
+    // be read as a scalar the way `group.snap`'s same-named `deltaMm` is.
+    expect(() => build('modify.enlarge', { params: {}, inputs: [brick] })).toThrow(/three finite/)
+  })
+
+  it('modify.fit scales to absolute target sizes and honours keepAspectRatio', () => {
+    const brick = build('primitive.cuboid', { params: { size: [10, 20, 30] } })
+    const independent = boundsOf(
+      build('modify.fit', { params: { sizeMm: [5, 5, 5] }, inputs: [brick] })
+    )
+    expect(independent[1][0] - independent[0][0]).toBeCloseTo(5, 9)
+    expect(independent[1][2] - independent[0][2]).toBeCloseTo(5, 9)
+
+    const uniform = boundsOf(
+      build('modify.fit', {
+        params: { sizeMm: [5, 5, 5], keepAspectRatio: true },
+        inputs: [brick],
+      })
+    )
+    // One factor (1/6) across all three axes, not three independent ones.
+    expect(uniform[1][0] - uniform[0][0]).toBeCloseTo(10 / 6, 9)
+    expect(uniform[1][2] - uniform[0][2]).toBeCloseTo(5, 9)
+  })
+
+  it('modify.bisect cuts one solid into a two-part negative/positive group', () => {
+    const cube = build('primitive.cuboid', { params: { size: [10, 10, 10] } })
+    const entry = getEntry('modify.bisect')
+    if (!entry.build) throw new Error('modify.bisect must be a native op')
+    const halves = /** @type {any} */ (
+      entry.build({ params: { axis: 'z', offsetMm: 2 }, inputs: [/** @type {Geom3} */ (cube)] })
+    )
+    expect(isGroup(halves)).toBe(true)
+    // V1's order and V1's names, verbatim — see group.js's bisect doc comment.
+    expect(halves.names).toEqual(['negative', 'positive'])
+    const negative = boundsOf(halves.parts.negative)
+    const positive = boundsOf(halves.parts.positive)
+    expect(negative[1][2] - negative[0][2]).toBeCloseTo(2, 6)
+    expect(positive[1][2] - positive[0][2]).toBeCloseTo(8, 6)
+    expect(() =>
+      /** @type {NonNullable<typeof entry.build>} */ (entry.build)({
+        params: {},
+        inputs: [/** @type {Geom3} */ (cube)],
+      })
+    ).toThrow(/bisect: unknown axis/)
+  })
+
+  it('gates all five modify ops on a single selected object', () => {
+    for (const op of ['modify.enlarge', 'modify.fit', 'modify.bisect']) {
+      expect(registry[op]).toMatchObject({ kind: 'native', operandCount: 1 })
+      expect(acceptsOperandCount(op, 1)).toBe(true)
+      expect(acceptsOperandCount(op, 0)).toBe(false)
+      expect(acceptsOperandCount(op, 2)).toBe(false)
+      // An operation is never a creation row: `src/core/library.js` builds the
+      // Library panel from `primitive.*` alone, and these must not leak into it.
+      expect(op.startsWith('primitive.')).toBe(false)
+      expect(registry[op].ui).toBeUndefined()
+    }
+  })
+
   it('gates both rim ops on a single selected object', () => {
     for (const op of ['modify.filletRim', 'modify.chamferRim']) {
       expect(registry[op]).toMatchObject({ kind: 'native', operandCount: 1 })
