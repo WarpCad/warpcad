@@ -101,3 +101,18 @@ pending changes found uncommitted at the same time were committed separately fir
 `TODO/VERIFY.md`'s checkbox-to-table reformat (commit `fb0030e`) and the `ui-029`
 scoping itself (`4bd4a50`); a draft LinkedIn post was found alongside them but held
 out per the user's explicit choice, not committed.
+
+| 2026-09-12 16:41 | 2026-09-12 16:56 | `core-014a` | single-tick invocation (plain `/run-todos`, not `/loop /run-todos`) — stops after one task per this file's own header | no — M4, `core-014`/`015`/`016`/`017`/`018`/`ui-020`/`ui-027`/`ui-029`/`core-021`/edge-fillet all still open |
+
+Note on the row above: `core-014a` was a decision-doc task with no code changes, so
+Step 6's acceptance-scenario re-drive did not apply (explicitly stated as such, not
+silently skipped) — see the retired file's own Testing section and the commit
+message. Worth flagging here because the task's own re-verification step overturned
+its original survey: the scoping pass had concluded no real `jscad-raspberrypi`
+recipe measures a separately-built accessory against a separately-built board: a
+fresh survey found eight that do, two requiring it. The decision (no two-phase fold
+redesign needed) survived on different grounds, and `core-016`/`017`/`018` now carry
+a named requirement in `TODO/ROADMAP.md` as a result. Independently re-verified:
+typecheck clean, 559/559 unit, 671/158/0 e2e, matching the agent's own reported
+numbers exactly; `git show --stat` confirms only the decision doc, `ROADMAP.md`, the
+retirement note, and two chat drafts changed — no source touched.
