@@ -34,6 +34,26 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### core-015 — three camera-module judgment calls a bounding box cannot answer (2026-09-13 19:15)
+
+The geometry is not in question and needs no hand-check: every part of all five variants
+(plus the flipped HQ) is diffed against the real `jscad-raspberrypi@62a8e3b` library's own
+bounding boxes in `raspberrypi.cameraModule.spec.js`, that diff was mutation-tested so it
+genuinely bites, and a v3 and an HQ were both rendered in the real viewport during this
+task's Step 6 drive. What is left is three things a number cannot settle — two of them
+*port decisions with no V1 precedent to check against*, which is what separates them from
+`core-014`'s row 1 below.
+
+Nothing here belongs in `TODO/ACCEPTANCE.md`: no scenario can reach this recipe yet (there
+is still no Hardware/Kit Library row to drag a camera from), and all three are one-time
+looks rather than standing checks.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | Render each of the five models and eyeball them against the real cameras (or V1's own `test/images/create a camera v*.snap.png`): do the sensor, lens barrel, ribbon and mount read as the right parts in the right places to someone who knows the hardware? The fixture proves the port matches *V1*; it cannot prove V1 was right. | Open | |
+| 2 | Confirm `DEFAULT_MODEL = 'v3'` is the right default. This is a **port decision with no V1 answer to check against** — V1 ships five separate factories and no shared entry point, so nothing was carried over here. `v3` was chosen as the current-generation standard camera and to keep the op usable with no params, like every sibling composite. If a different default (or requiring `model` outright) is wanted, it is a one-line change in `raspberrypi.cameraModule.js`. | Open | |
+| 3 | Confirm which way `flipTripodMount` should default for the HQ camera. V1's `HQCameraModule(flipTripodMount = false)` gives the name but not the intent; measured here, `true` raises the tripod post in z relative to the mount block (`3.68..15.18` vs `-0.2..11.3`). Whether the `false` default matches how a real HQ camera's tripod boss actually sits needs the hardware in hand. | Open | |
+
 ### core-014 — two judgment calls only a Raspberry Pi owner can settle (2026-09-13 18:44)
 
 The geometry itself is not in question and does not need a hand-check: every one of the

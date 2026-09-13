@@ -475,3 +475,18 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** 294 characters including the disclosure line → counted this session; one recipe covering models 2/3/4/5 from one `model` param, 23/25/33/38 emitted parts per model → `src/core/kernel/recipes/raspberrypi.bplus.js` and this session's browser drive; 115 parts diffed against the real `jscad-raspberrypi@62a8e3b` library with 0 mismatches and a worst delta of 1.4210854715202004e-14 mm → the V1-vs-V3 comparison run this session, now committed as `recipes/__fixtures__/raspberrypi.bplus.v1-reference.json` and asserted in `raspberrypi.bplus.spec.js`; the 36 hand-written assertions all passed on their first run, before the V1 fixture existed → this session's vitest output
 **To Add:** repo URL once public; the viewport screenshot of the rendered Pi 4 board (ethernet/USB stack, connector row, GPIO strip) carries this one better than text
+
+## 2026-09-13T19:15:00Z — Five Pi camera modules, and a spec that was wrong three ways
+
+**Post:** Five Raspberry Pi camera modules, one kernel recipe, a model param.
+
+The spec said rotate the HQ mounting holes about each part's own centre. V1 turns them about the world origin. Follow the spec and all four stack in one corner.
+
+The fixture caught it.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #RaspberryPi #OpenSource
+**Evidence:** 294 characters including the disclosure line → counted this session; five variants (v1/v2/v3/hq/arducam-hq) behind one `model` param → `src/core/kernel/recipes/raspberrypi.cameraModule.js`; the spec's instruction "each rotate about the part's own centre, per `ui-012`'s convention" → `TODO/done/core-015-camera-module-recipes.md` Proposed fix; V1 rotating about the world origin → `hq_camera-module.js:57-59`'s `hole.rotateZ(90)` plus the fixture's own hole bounds, and `registry.js`'s `transform.rotate` defaulting `center` to `[0,0,0]`; "all four stack in one corner" → mutation test run this session, which reported the hole2→hole1 angle step as 0° instead of 90° when `center` was set to the part's own centre
+**Disclosure:** Built with Claude Code, reviewed by me.
+**To Add:** repo URL once public; a viewport screenshot of the rendered HQ camera (38 mm board, lens-mount ring with a real bore, tripod block) would carry this better than text

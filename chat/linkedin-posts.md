@@ -581,3 +581,20 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** one recipe, four model branches from one `model` param → `src/core/kernel/recipes/raspberrypi.bplus.js`; 23/25/33/38 parts for models 2/3/4/5 → this session's browser evaluation through the real fold; 36 assertions passing on the first run before the fixture existed → this session's vitest output; 115 parts matched with 0 mismatches, worst delta 1.4210854715202004e-14 mm → the V1-vs-V3 diff run this session against a checkout of `jscad-raspberrypi` at commit 62a8e3b ("Release 5.0.0"); a 0.5 mm mutation in one connector's datum fails 3 spec cases → mutation run this session; four recipes build on this one (`core-015` through `core-018`) → `TODO/ROADMAP.md`'s M4 table, which lists all four as depending on `core-014`
 **To Add:** repo URL once public; the rendered Pi 4 screenshot from this task's Step 6 drive
+
+## 2026-09-13T19:15:00Z — When the spec is wrong and only the external fixture knows
+
+**Post:** Ported the five Raspberry Pi camera modules into WarpCad's geometry kernel today: v1, v2, v3, the official HQ camera, and Arducam's clone of it, all behind one recipe with a model parameter.
+
+The task spec I was working from was wrong in three separate places, and that turned out to be the useful part. It listed three mechanisms the port would need; there were four, because one variant ends its placement chain with a stretch call the inventory missed. It also instructed that the HQ camera's four mounting holes be built by rotating one hole about its own centre. The original library rotates about the world origin, which is what walks the hole around to the other three corners. Follow the instruction literally and all four holes stack up in the same corner.
+
+Neither mistake would have been caught by the tests I wrote, because I wrote them from the same reading of the source that produced the mistakes. What caught them was running the original JSCAD library once and committing every part's bounding box as a fixture. All 67 tests passed on the first run, which is exactly when a self-written suite proves least, so I deliberately broke the implementation both ways to confirm the fixture actually bites. It does.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #Geometry #RaspberryPi #OpenSource
+**Evidence:** five variants behind one `model` param → `src/core/kernel/recipes/raspberrypi.cameraModule.js`; the spec's three-mechanism inventory and its "each rotate about the part's own centre" instruction → `TODO/done/core-015-camera-module-recipes.md` Proposed fix; the missed fourth mechanism → `camera-module-v2.js:84`'s `.stretch('x', 4)` in `jscad-raspberrypi@62a8e3b`; V1 rotating about the world origin → `hq_camera-module.js:57-59` plus `registry.js`'s `transform.rotate` defaulting `center` to `[0,0,0]`; 67 tests passing on the first run → this session's vitest output; both mutations failing the fixture diff → mutation run this session (holes-about-own-centre fails 6 cases, stretch-folded-in-up-front fails 2)
+**Disclosure:** Built with Claude Code, reviewed by me.
+**To Add:** repo URL once public; side-by-side render of the v3 and HQ cameras
+
+**LinkedIn article:** not warranted for this commit on its own — it is a port following the pattern `core-014` established a day earlier (commit 47e2857), so the architecture story belongs to that one. There is a cumulative theme worth an article once one more of these lands: across `core-014` and `core-015`, the hand-written assertions passed first try both times and the externally generated fixture is what found the real errors. That is a concrete argument about where test value actually comes from, and it needs a third data point before it is more than an anecdote.

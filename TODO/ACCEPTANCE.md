@@ -608,6 +608,51 @@ usbc, hdmi1, hdmi2, avjack, camera, display, gpio, activityled, powerled, micros
 than stretching back to the plate at x = −120. `bodies()` still reports both. The symptom that
 finding fixed is absent against the new composite.
 
+**Re-checked**: 2026-09-13 19:05 — PASS (`core-015`). Same reasoning as `core-014`'s entry
+directly above, and deliberately re-driven rather than assumed to be covered by it: this task
+adds a *second* key to `src/core/kernel/registry.js`, and `src/core/library.js` builds this
+scenario's rows by iterating that registry. "The previous task proved the filter holds" is not
+a standing guarantee — a second registration is a second chance to trip it. Laptop 1440×900 in
+Chromium, Playwright-driven against the real dev server; kernel-only change, so one engine,
+with the full e2e matrix run separately (842 passed / 158 skipped, identical to the
+pre-change baseline).
+
+- **Library row count, re-run**: the panel still renders **exactly seven rows** — Cube,
+  Cylinder, Cone, Hexagon, Triangle, Tube, Sphere — read off the rendered DOM, and
+  `PRIMITIVE_LIBRARY` in the browser is those same seven `primitive.*` ops. No
+  `raspberrypi.cameraModule` leaking in, no throw at panel build.
+- **The scenario itself**: a Cube then a Cylinder dragged in on wandering, jittery paths.
+  **Both stayed visible** after the second drop, and each drop selected only the new item.
+  Clicking empty grid cleared the selection (`0 selected`, inspector "(nothing selected)");
+  clicking the cube selected the cube alone (`1 selected`, inspector "Cube 1"); clicking the
+  cylinder moved the highlight to the cylinder alone (inspector "Cylinder 1") — never both at
+  once, with the gizmo and dimension lines retargeting between them. An orbit between the two
+  drops confirmed both solids are really in the scene from another angle. Console clean.
+- **Beyond the scenario, since no UI can reach the new recipe**: all five models were folded
+  *in the browser* through the same `src/core/kernel/index.js` the app imports — 21/21/21
+  parts for v1/v2/v3 and 13/10 for hq/arducam-hq, a 38 × 38 × 1.1 mm board for hq and
+  38 × 38 × 1.6 for arducam-hq, `v3` at 23.862 × 25 × 1.12. Then **actually rendered**, which
+  a fold result cannot stand in for: a v3 appended through the document store draws a
+  recognisable camera — the small rectangular board, the square sensor block, the cylindrical
+  lens barrel standing on it and the ribbon strip off one edge — and an HQ appended alongside
+  draws its 38 mm square board, the big lens-mount ring with a real bore through it, and the
+  tripod block projecting past the front edge. Neither a blank frame nor an undifferentiated
+  blob. No console or page errors, so nothing in the new recipe trips the browser build or the
+  mesh bridge. (The two sit coincident at the origin because no composite takes a `center`
+  param yet — `core-014`'s own module doc says so; expected, not a defect of this task.)
+
+**Regression re-check, `TODO/done/core-020-composite-absorbs-earlier-bodies.md`'s own repro,
+re-run against *this* composite** — the rule is that a closed finding's subsystem is a standing
+surface, so `core-014` having passed it does not discharge it for the next composite kind. Run
+in the browser, in core-020's own shape: a `Shell 1` 40 × 40 × 6 plate appended first, then a
+`raspberrypi.cameraModule` v3 appended after it through `document.append`. The camera's group
+holds **only its own parts** — `board, sensor, lens, lensribbon, ribbon` — with no `Shell 1`
+among them, and its bounds (`-11.931,-12.5,-2.75 .. 11.931,12.5,9.925`) are camera-sized. The
+incremental path's names and bounds are **identical to the batch `evaluate()` path's**, which
+is the comparison that finding turned on. And its severe consequence was re-checked directly:
+`boolean.subtract(shell, camera)` through the incremental path yields the correct plate
+(`-20,-20,0 .. 20,20,6`), not the EMPTY solid the bug produced.
+
 ### 2. Hardware property edit
 
 **Steps**:

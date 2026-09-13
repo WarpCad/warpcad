@@ -57,6 +57,7 @@ import { anchor } from './recipes/kit.anchor.js'
 import { board } from './recipes/kit.board.js'
 import { boardFrame } from './recipes/kit.boardFrame.js'
 import { bplus } from './recipes/raspberrypi.bplus.js'
+import { cameraModule } from './recipes/raspberrypi.cameraModule.js'
 
 /** @typedef {import('@jscad/modeling').geometries.geom3.Geom3} Geom3 */
 /** @typedef {import('@jscad/modeling').geometries.geom2.Geom2} Geom2 */
@@ -800,6 +801,15 @@ export const registry = Object.freeze({
   // holes as hidden parts rather than subtracted `group.holes`). No `ui` metadata,
   // for the same reason the `kit.*` trio above has none.
   'raspberrypi.bplus': composite(0, bplus),
+
+  // TODO/core-015: the five Raspberry Pi camera boards — v1, v2, v3, the official HQ
+  // and Arducam's HQ clone — behind one `model` param, the same shape as `bplus` above
+  // and for the same reason. Same probe-and-bake mechanism too; what is new is that
+  // some parts are derived from *another part's record* rather than from a primitive
+  // (`modify.enlarge` for the `-nogo` keep-outs, `transform.rotate` for the HQ
+  // variants' three copied corner holes), which the fold already supports and no new
+  // op was needed for. No `ui` metadata, for the same reason nothing else here has it.
+  'raspberrypi.cameraModule': composite(0, cameraModule),
 
   // Deliberately absent, and not an oversight — TODO/core-003 spiked both:
   //
