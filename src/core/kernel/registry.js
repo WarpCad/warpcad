@@ -56,6 +56,7 @@ import { washer } from './recipes/hardware.washer.js'
 import { anchor } from './recipes/kit.anchor.js'
 import { board } from './recipes/kit.board.js'
 import { boardFrame } from './recipes/kit.boardFrame.js'
+import { bplus } from './recipes/raspberrypi.bplus.js'
 
 /** @typedef {import('@jscad/modeling').geometries.geom3.Geom3} Geom3 */
 /** @typedef {import('@jscad/modeling').geometries.geom2.Geom2} Geom2 */
@@ -789,6 +790,16 @@ export const registry = Object.freeze({
   'kit.board': composite(0, board),
   'kit.boardFrame': composite(0, boardFrame),
   'kit.anchor': composite(0, anchor),
+
+  // TODO/core-014: the catalogue's largest recipe — a whole Raspberry Pi board, every
+  // connector, with one `model` param picking the revision (2/3/4/5) the way
+  // `hardware.bolt`'s `spec` picks a size. Like `kit.anchor` it measures throwaway
+  // probe geometry to resolve V1's ~120 chained snap/align/midlineTo calls, and bakes
+  // each result in as a plain translate; see recipes/raspberrypi.bplus.js's module
+  // doc for the two deliberate narrowings from V1 (no `dimCheck` rulers, and mounting
+  // holes as hidden parts rather than subtracted `group.holes`). No `ui` metadata,
+  // for the same reason the `kit.*` trio above has none.
+  'raspberrypi.bplus': composite(0, bplus),
 
   // Deliberately absent, and not an oversight — TODO/core-003 spiked both:
   //

@@ -561,6 +561,53 @@ rather than the three that entry recorded; that is `core-010`/`core-011`'s later
 recipe, not a change from this task — the load-bearing claim, that `Plate 1` is not among
 them, holds.)
 
+**Re-checked**: 2026-09-13 18:35 — PASS (`core-014`). That task's own Testing section judged
+no scenario to pass or fail on it (one kernel recipe plus a dimension table, no UI surface),
+and that call stands — but it adds a key to `src/core/kernel/registry.js`, and
+`src/core/library.js` builds this scenario's Library rows *by iterating that registry* and
+**throws** on any `primitive.*` entry without `ui` metadata. That is the same standing
+regression surface `core-012`/`core-013`/`core-019`/`core-020` each drove rather than
+assumed, so it was driven here too. Laptop 1440×900 in Chromium (a Playwright-driven session
+against the real dev server — no `chromium-cli` in this environment, same as those drives);
+kernel-only change, so one engine rather than three, with the full e2e matrix run separately
+(842 passed / 158 skipped, identical to the pre-change baseline).
+
+- **`ui-010`'s own repro, re-run**: the panel still renders **exactly seven rows** — Cube,
+  Cylinder, Cone, Hexagon, Triangle, Tube, Sphere — with no `raspberrypi.bplus` leaking in
+  and no throw at panel build. The new op is `raspberrypi.*`, not `primitive.*`, so the
+  panel's filter never sees it.
+- **The scenario itself**: a Cube then a Cylinder dragged in on wandering, jittery paths with
+  a deliberate overshoot *past* the drop point and a doubling-back. **Both stayed visible**
+  (`data-body-count` = 2), and the cube's millimetre centre was **byte-identical before and
+  after the second drop** (`-71.43,-26.16,20.00` both times) — the specific regression
+  signature, confirmed absent rather than merely not obvious. Clicking empty grid cleared the
+  selection (`data-selected-id` → `""`); clicking the cube selected `cuboid-1` alone; clicking
+  the cylinder moved the highlight to `cylinder-2` alone, never both at once. An orbit
+  afterwards left both bodies present with unchanged centres, so neither is a one-frame
+  artefact. Console clean.
+- **Beyond the scenario, since no UI can reach the new recipe**: it was evaluated through the
+  real fold *in the browser* (the same `src/core/kernel/index.js` the app imports, not a
+  Node-only harness) for all four models — 23/25/33/38 parts for models 2/3/4/5, an 85 × 56 ×
+  1.32 mm board every time, `hole1` spanning `1.875..5.125` on both x and y (centre 3.5, 3.5),
+  and an unknown model throwing *"raspberrypi.bplus: unknown model 7, expected one of
+  2 | 3 | 4 | 5"* rather than rendering something wrong. Then **actually rendered**, which a
+  fold result cannot stand in for: a Pi 4 appended through `document.append` draws a
+  recognisable board in the viewport — the flat 85 × 56 slab, the ethernet and stacked USB
+  jacks along the right edge, the USB-C/HDMI/AV row along the front, the GPIO strip and both
+  ribbon connectors — not a blank frame and not one undifferentiated blob. A Pi 5 appended
+  alongside rendered too. No console errors, so nothing in the new recipe trips the browser
+  build or the mesh bridge.
+
+**Regression re-check, `TODO/done/core-020-composite-absorbs-earlier-bodies.md`'s own repro**
+(`CLAUDE.md`'s standing-regression-surface rule: this is the first *new composite kind* added
+to the expansion path since that fix closed, which is exactly the change class that finding
+was about). Run in the browser against the real fold: a `Plate 1` placed first, then the Pi
+appended after it. The Pi's group holds **only its own parts** — `mb, ethernet, usb1, usb2,
+usbc, hdmi1, hdmi2, avjack, camera, display, gpio, activityled, powerled, microsd` — with no
+`Plate 1` among them, and the Pi's bounds are Pi-sized (`-2.5,-2,-1.5 .. 88,56,17.05`) rather
+than stretching back to the plate at x = −120. `bodies()` still reports both. The symptom that
+finding fixed is absent against the new composite.
+
 ### 2. Hardware property edit
 
 **Steps**:

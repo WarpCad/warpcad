@@ -566,3 +566,18 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** the Parameters fields were read-only by deliberate deferral → `src/components/inspector/Inspector.vue`'s pre-existing doc comment, `TODO/ui-029`'s Goal section; pose is re-applied via existing builders, rotate-then-move → this diff's `src/composables/useParamCommands.js` and its module doc; a fillet cannot be re-applied so the lineage is frozen → this diff's `src/core/paramEdit.js`, and the hand-drive's `data-blocked-by="modify.filletRim"` reading with volume unchanged at 13094.015 after forcing a value into the frozen field; the stale-params defect was caught by the e2e run, not the unit suite → this session: `src/core/paramEdit.spec.js` and the full unit suite were green while `e2e/inspector-param-edit.e2e.js` failed on `inspector-param-diameter` still reading 40 after an edit to 10; full suite green afterwards (typecheck clean, 613 unit, 842 e2e passed / 158 skipped, baseline 797) → this session's three test-stage runs
 **To Add:** repo URL once public; a screenshot pair — an editable Parameters section beside a frozen one showing the fillet note — would carry the "what it refuses" half of this post
+
+## 2026-09-13T18:44:00Z — Raspberry Pi board recipe, diffed against the real V1 library
+
+**Post:** WarpCad now has a Raspberry Pi in its parts catalogue. One recipe, four board revisions behind a single `model` parameter, about fifty connectors and mounting holes placed by the same snap and align arithmetic the original jscad library used. It is a port of jscad-raspberrypi's BPlus(), and it was mostly mechanical work.
+
+The interesting part was the verification. I wrote 36 assertions from reading the original source, and every one of them passed on the first run. That is exactly the situation where a test suite proves the least: it confirms the code matches my reading of the source, not that it matches the source. So I ran the real V1 library in a checkout of its own repo, dumped the bounding box of every part on every model, and committed those numbers as a fixture the spec now diffs against.
+
+115 parts across four board revisions, matching to 1.4e-14 millimetres. Then I mutated one connector's position by half a millimetre to confirm the fixture actually bites, and it failed three cases. Four more recipes build on this one, so that fixture stays as a regression surface rather than a one-time check.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #RaspberryPi #WebGL #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** one recipe, four model branches from one `model` param → `src/core/kernel/recipes/raspberrypi.bplus.js`; 23/25/33/38 parts for models 2/3/4/5 → this session's browser evaluation through the real fold; 36 assertions passing on the first run before the fixture existed → this session's vitest output; 115 parts matched with 0 mismatches, worst delta 1.4210854715202004e-14 mm → the V1-vs-V3 diff run this session against a checkout of `jscad-raspberrypi` at commit 62a8e3b ("Release 5.0.0"); a 0.5 mm mutation in one connector's datum fails 3 spec cases → mutation run this session; four recipes build on this one (`core-015` through `core-018`) → `TODO/ROADMAP.md`'s M4 table, which lists all four as depending on `core-014`
+**To Add:** repo URL once public; the rendered Pi 4 screenshot from this task's Step 6 drive

@@ -6,8 +6,69 @@ priority: high
 model: opus
 milestone: M4
 depends: [core-001, core-014a]
-status: open
+status: done
 ---
+
+## What actually shipped (retirement note)
+
+Shipped as scoped: `raspberrypi.bplus` with all four model branches, a generic
+probe-and-bake expansion helper rather than fifty hand-copied blocks, and
+`tables/rpi-parts.js` as plain data. Records emitted per model: 23 parts for model 2,
+25 for model 3, 33 for model 4, 38 for model 5.
+
+**One thing scoped *out* of this task turned out to be possible, and was done.** The
+Testing section reasoned that no real V1 execution fixture could be wired in, because
+`jscad-raspberrypi` is not a dependency of this project. That is true, and it stays
+true — but V1 can still be *run once elsewhere* and its numbers committed. It was:
+`BPlus(model).parts[name].getBounds()` was dumped for all four models from a checkout
+of `jscad-raspberrypi@62a8e3b` and is now
+`recipes/__fixtures__/raspberrypi.bplus.v1-reference.json`, diffed part-by-part in the
+spec. **All 115 parts across the four models match V1's own bounding boxes to within
+1.4e-14 mm, and the visible-part name sets are identical.** This is the difference
+between "the port matches one reading of `bplus.js`" and "the port matches V1", and
+`core-015`-`018` extend this same subsystem, so it is a standing regression surface
+rather than a one-time check (`CLAUDE.md`'s Verification section). The fixture diff was
+mutation-tested — a deliberate 0.5 mm error in one connector's datum fails three cases —
+so it is not a test that cannot fail.
+
+**Deviations from the spec, all deliberate:**
+
+1. **`dimCheck` dropped**, exactly as the task's own scope-narrowing paragraph asked.
+   Nine hidden coloured rulers in `pi4`, no functional geometry, no `pi5`/model-2/3
+   equivalent. The spec asserts no part name matches `/dimcheck/i`.
+2. **Mounting holes are hidden parts, not subtracted holes.** V1 *also* adds them as
+   hidden parts (`group.add(group.holes[0], 'hole1', true)`), which is reproduced
+   exactly — but V1 additionally assigns `group.holes`, making `combine()` subtract them
+   from the whole assembly. No `OpRecord` field reaches `group.js`'s `addHole`, so that
+   half is not expressible today and the board renders undrilled. Recorded here rather
+   than worked around: a consumer that wants them drilled emits its own
+   `boolean.subtract` against `hole1`-`hole4`. Arguably the better behaviour anyway —
+   V1's subtraction also carved the micro-USB shell, which overlaps `hole1`.
+3. **No `center` param.** `kit.board`/`kit.anchor` centre themselves on one; this
+   recipe keeps V1's frame (board's minimum corner on the origin) because its internal
+   datums — the mounting holes at `(3.5, 3.5)`, "midline to x 32.5" — are quoted against
+   that corner and are the whole point of an assembly. No UI can place this op yet, and
+   `library.js`'s drop maths positions from the bounding box regardless.
+4. **An unknown `model` throws** instead of V1's silent coercion (`!model → 2`,
+   `true → 3`, anything `≥ 5 → pi5`). The Testing section asked for the throw; noting
+   here that it makes `bplus(6)` an error where V1 built a Pi 5.
+5. **Two-solid parts also expose their sub-solids** as hidden named parts
+   (`usb1-body`, `avjack-block`, `powerswitch-block`, …) alongside the `boolean.union`,
+   following `hardware.bolt`'s `tap-head`/`tap-thread` precedent. V1 exposes these for
+   the USB and AV jacks but not for the Pi 5 power switch; the two extra names are the
+   only V3 parts with no V1 counterpart, and the spec says so explicitly.
+6. **Pi 4's USB clearance renamed** from V1's `usb1clearance` subpart to
+   `clearance-usb1`, matching every other clearance volume here and V1's own Pi 5
+   spelling.
+7. **`MicroUsbPlug`/`UsbWifiAdapter` not ported** into the table — V1 accessory
+   assemblies `BPlus` never calls and no `core-015`-`018` row needs. Noted in the
+   table's own doc as `core-018`'s to add if an accessory recipe wants them.
+
+**Unchanged from the spec** and worth confirming: the `AvJack`/`PSW` rotation signs were
+measured rather than assumed, and are immaterial for the same reason `kit.anchor` found
+— both are cylinders positioned by an align/snap *after* the turn. The recipe never
+hard-codes a rotation's consequence at all: `cylinderPart` builds both the V1-framed and
+the V3-framed solid and differences their centroids.
 
 ## Goal
 

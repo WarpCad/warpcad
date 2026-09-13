@@ -460,3 +460,18 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** typing a diameter narrows the solid and leaves its centre byte-identical (`-60.51,36.03,25.00` before and after, size `[40,40,50]` -> `[10,10,50]`) → this session's hand-drive against the dev server at laptop/Chromium, laptop/Firefox and phone/WebKit; a filleted body's Parameters section reports `data-editable="false"`, every field is `readonly`, and forcing a value into it changes the solid's volume by nothing (13094.015 both times) → same drive; the fields were read-only by deliberate deferral, not oversight → `src/components/inspector/Inspector.vue`'s pre-existing doc comment and `TODO/ui-029`'s own Goal section; full suite green (typecheck clean, 613 unit tests / 30 files, 842 e2e passed / 158 skipped, against a 797-passed baseline before this task) → this session's `npm run typecheck` / `test:unit -- --run` / `test:e2e:headless` runs
 **To Add:** repo URL once public; a short screen recording of the diameter edit (the shape narrowing in place, dimension lines resizing with it) would carry this one better than a still
+
+## 2026-09-13T18:44:00Z — Raspberry Pi board recipe, diffed against the real V1 library
+
+**Post:** Ported jscad-raspberrypi's BPlus() into WarpCad's kernel: a Pi board, 4 variants, ~50 parts, one param.
+
+Then I ran the real V1 library and diffed every part: 115 boxes, matching to 1.4e-14 mm.
+
+My tests passed first try. That's when I trust them least.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #RaspberryPi #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** 294 characters including the disclosure line → counted this session; one recipe covering models 2/3/4/5 from one `model` param, 23/25/33/38 emitted parts per model → `src/core/kernel/recipes/raspberrypi.bplus.js` and this session's browser drive; 115 parts diffed against the real `jscad-raspberrypi@62a8e3b` library with 0 mismatches and a worst delta of 1.4210854715202004e-14 mm → the V1-vs-V3 comparison run this session, now committed as `recipes/__fixtures__/raspberrypi.bplus.v1-reference.json` and asserted in `raspberrypi.bplus.spec.js`; the 36 hand-written assertions all passed on their first run, before the V1 fixture existed → this session's vitest output
+**To Add:** repo URL once public; the viewport screenshot of the rendered Pi 4 board (ethernet/USB stack, connector row, GPIO strip) carries this one better than text

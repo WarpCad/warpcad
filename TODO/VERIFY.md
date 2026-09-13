@@ -34,6 +34,26 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### core-014 — two judgment calls only a Raspberry Pi owner can settle (2026-09-13 18:44)
+
+The geometry itself is not in question and does not need a hand-check: every one of the
+115 parts across models 2/3/4/5 is diffed part-by-part against the real
+`jscad-raspberrypi@62a8e3b` library's own bounding boxes in
+`raspberrypi.bplus.spec.js`, matching to 1.4e-14 mm, and the board was rendered in the
+real viewport during this task's Step 6 drive. What is left is two things a number
+cannot answer, both deliberately chosen rather than discovered, and both needing an eye
+that knows the actual hardware — which is this project's own author (they wrote
+`jscad-raspberrypi`).
+
+Neither belongs in `TODO/ACCEPTANCE.md`: no scenario can reach this recipe yet (there is
+no Hardware/Kit Library row to drag a Pi from — see the retired task's Interaction model
+section), and row 1 is a one-time look, not a standing check.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | Render a `raspberrypi.bplus` at each model and eyeball it against a real board (or V1's own `test/images/create a bplus.snap.png`): do the connectors read as the right parts in the right places to someone who knows the hardware? The diff proves it matches *V1*; it cannot prove V1 was right, and V1's own dimensions were eyeballed with the `dimCheck` rulers this port drops. | Open | |
+| 2 | Decide whether the board should render **drilled**. V1 assigns `group.holes`, so its combined board has the four mounting holes cut through it; this port carries them as hidden `hole1`-`hole4` parts only, because no `OpRecord` field reaches `group.js`'s `addHole` (see the retired task's deviation 2). The board therefore renders solid. If drilled is wanted, it needs either a record-level hole flag or a `boolean.subtract` in the recipe — file whichever as its own TODO. Note V1's own subtraction also carves the micro-USB shell, which overlaps `hole1`, so "match V1 exactly" is probably not the right answer. | Open | |
+
 ### ui-029 — a frozen field's affordance, and a second kernel-error surface (2026-09-12 22:05)
 
 Editable Inspector parameters are functionally verified (unit suite, the full 9-way
