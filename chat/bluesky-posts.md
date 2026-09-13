@@ -490,3 +490,18 @@ Built with Claude Code, reviewed by me.
 **Evidence:** 294 characters including the disclosure line → counted this session; five variants (v1/v2/v3/hq/arducam-hq) behind one `model` param → `src/core/kernel/recipes/raspberrypi.cameraModule.js`; the spec's instruction "each rotate about the part's own centre, per `ui-012`'s convention" → `TODO/done/core-015-camera-module-recipes.md` Proposed fix; V1 rotating about the world origin → `hq_camera-module.js:57-59`'s `hole.rotateZ(90)` plus the fixture's own hole bounds, and `registry.js`'s `transform.rotate` defaulting `center` to `[0,0,0]`; "all four stack in one corner" → mutation test run this session, which reported the hole2→hole1 angle step as 0° instead of 90° when `center` was set to the part's own centre
 **Disclosure:** Built with Claude Code, reviewed by me.
 **To Add:** repo URL once public; a viewport screenshot of the rendered HQ camera (38 mm board, lens-mount ring with a real bore, tripod block) would carry this better than text
+
+## 2026-09-13T19:50:00Z — Two touch displays, and a library method that mutates
+
+**Post:** Ported two Raspberry Pi touch displays into WarpCad's kernel.
+
+The spec said one mounting pad gets rotated. The jscad-utils `rotate` mutates the group in place, and the source rotates before it clones, so all four inherit the turn. Its sibling recipe clones first and only turns two.
+
+Same method, opposite result, one `clone()` apart.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #RaspberryPi #OpenSource
+**Evidence:** 297 characters including the disclosure line → counted this session; "rotate mutates the group in place" → `jscad-utils/src/group.js:246-272`, whose own docstring reads "This mutates the group"; "rotates before it clones, so all four inherit the turn" → `touch-display-7inch.js:69` vs `:75,81,87`, confirmed by the V1 execution fixture recording all four pads at 12x8 rather than the built 8x12; "its sibling clones first and only turns two" → `touch-screen2.js:97,103` call `clone()` before `rotate()`, fixture shows pads 1/2 at 5.6x12 and pads 3/4 at 12x5.6; "the spec said one mounting pad" → `TODO/done/core-016-touch-display-recipes.md` Proposed fix
+**Disclosure:** Built with Claude Code, reviewed by me.
+**To Add:** repo URL once public; the viewport screenshot of the 7-inch display with a B+ board seated on it (captured this session) is the strongest visual here

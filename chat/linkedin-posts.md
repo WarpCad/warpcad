@@ -598,3 +598,20 @@ Built with Claude Code, reviewed by me.
 **To Add:** repo URL once public; side-by-side render of the v3 and HQ cameras
 
 **LinkedIn article:** not warranted for this commit on its own — it is a port following the pattern `core-014` established a day earlier (commit 47e2857), so the architecture story belongs to that one. There is a cumulative theme worth an article once one more of these lands: across `core-014` and `core-015`, the hand-written assertions passed first try both times and the externally generated fixture is what found the real errors. That is a concrete argument about where test value actually comes from, and it needs a third data point before it is more than an anecdote.
+
+## 2026-09-13T19:50:00Z — Dropping a required parameter, and what a real execution fixture keeps catching
+
+**Post:** Two more Raspberry Pi accessories are in WarpCad's geometry kernel: the official 7-inch touch display and the HyperPixel 4. Both were interesting for a reason that had nothing to do with geometry.
+
+In the original jscad library, each of these factories takes the Pi board itself as a required argument, because the last thing it does is align the screen's mounting pads to the board's holes. That is not geometry, though. It is an assembly step between two finished bodies, and WarpCad already shipped that step as a user-facing Snap/Align control back on 2026-09-12. So the board parameter was dropped and each screen now expands standalone in its own frame.
+
+The part worth writing down is what the port's own written spec got wrong. It said one of the four mounting pads gets rotated 90 degrees. The underlying library method mutates the group in place, and the source rotates before it clones, so all four end up turned. It also suggested confirming the rotation by measuring the hole's bounding box, which cannot work: the hole is the pivot, and a 32-segment cylinder turned 90 degrees maps exactly onto itself. Both mistakes were caught by diffing against real output from the original library rather than against a reading of its source. That is the third task in a row where that fixture found something a hand-written assertion would have restated instead of checked.
+
+Driven end to end in the running app afterward, the assembled screen and board match the original to within 1.4e-14 mm.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL #RaspberryPi #OpenSource
+**Evidence:** "each factory takes the board as a required argument" → `touch-display-7inch.js:16`, `touch-screen2.js:16`; "the last thing it does is align the mounting pads to the board's holes" → `touch-display-7inch.js:152-154`, `touch-screen2.js:179-181`; "WarpCad already shipped that step as Snap/Align on 2026-09-12" → git log f4cad79 (TODO/ui-026); "the spec said one of four pads gets rotated" and "confirm by measuring the hole's own bounding box" → `TODO/done/core-016-touch-display-recipes.md` Proposed fix and Testing sections; "the method mutates in place" → `jscad-utils/src/group.js:246-272`; "all four end up turned" → V1 execution fixture, all four pads 12x8; "a 32-segment cylinder turned 90 degrees maps onto itself" → fixture records every hole at an unchanged 3x3 bounding box; "third task in a row" → `TODO/done/core-014-raspberrypi-bplus.md` and `core-015-camera-module-recipes.md` retirement notes, both recording fixture-caught spec errors; "1.4e-14 mm" → app drive this session, 29 TouchScreen2 parts compared live against the fixture after the sub-part-addressed attachment
+**Disclosure:** Built with Claude Code, reviewed by me.
+**To Add:** repo URL once public; screenshot of the 7-inch display with the B+ seated on it

@@ -1062,6 +1062,57 @@ control underneath — confirmed by the drag mode staying `orbit` rather than fl
 flagged as needing its own verification ("it may need to anchor differently... check for
 edge-of-viewport clipping at phone width specifically"), and it holds.
 
+**Re-checked**: 2026-09-13 19:43 — **PASS, and for the first time with no stand-in for
+the two parts** (`core-016`). Every prior entry above stood a Cube and a Cylinder in for
+the board-plus-accessory pair, because no composite existed. `core-014` and this task
+close that: the drive used a **real `raspberrypi.bplus` board and a real
+`raspberrypi.touchScreen2` screen**, then repeated the whole thing with
+`raspberrypi.touchDisplay7inch`. This is the RPi-plus-accessory case `ui-013`'s and
+`ui-026`'s own entries named as still-blocked and deferred to M4.
+
+Driven at laptop 1440×900 (Chromium) and phone 390×844 (touch). Both bodies were
+appended through the document store's own `append` — the command layer, the same one
+`OperationsToolbar.vue` uses — rather than dragged from the Library, because the Library
+is `primitive.*`-only by design (`src/core/library.js:58`) and no composite has a row
+yet; that is `core-016`'s own stated Interaction model, not a gap this drive found.
+
+**What the re-drive was actually for** (`CLAUDE.md`'s standing-regression-surface rule):
+`ui-026` proved Snap/Align against two primitives with one part each. These composites
+have **29 and 27 named parts**, so the question was whether the operation still resolves
+against a Group that size. It does:
+
+- Both composites rendered — 467 and 478 distinct canvas colours respectively, so a real
+  drawn frame, not the blank/black rectangle `SECOND-ATTEMPT.md` warns about. Screenshots
+  on file; the 7-inch shot shows the board seated on the display with every connector.
+- Each body was individually pickable by a real hit-tested viewport click despite the
+  part count, and `data-selected-count` went 1 → 2 on shift-click, enabling Snap/Align.
+- **Align (Z)** moved the screen by exactly the difference of the two centres and left
+  the Pi's `hole1` bounds byte-identical.
+- **Snap (Z, `outside+`, 5 mm offset)** moved the screen by −11.7000 mm — computed
+  independently from `calcSnap`'s own arithmetic on the two real bodies' bounds
+  (`pi.min.z(−1.5) − screen.max.z(15.2) + 5`), not eyeballed — the Pi again unmoved, and
+  both bodies still separately listed afterward.
+- At phone width the popover fitted fully (x 65…325 inside 390) with `scrollWidth` 390,
+  i.e. no horizontal overflow, with both composites loaded.
+
+**The V1-equivalent attachment, driven as records**: the two sub-part-addressed records
+`core-016` hands to the user — `group.align` on `xy` and `group.snap` on `z`/`outside+`,
+addressed `{ id, pieces: 'piMountingPost1' }` / `'piMountingPad1'` against the Pi's
+`hole1` and `mb` — were appended live and the result compared part-by-part against real
+`jscad-raspberrypi@62a8e3b` output. **All 29 TouchScreen2 parts match V1 to 1.4e-14 mm,
+and all 27 7-inch parts to 3.6e-15 mm.** That is the claim "dropping the board parameter
+changes the frame and nothing else", checked in the running app rather than argued.
+Console clean in every drive.
+
+**One real gap this drive found, and it is not a regression** — the popover itself says
+*"Whole-object snap/align only — sub-part addressing isn't available yet."* So the
+attachment above is reachable through the **document/command layer** (proved) but **not
+yet through the toolbar by hand**: a user can select the screen and the Pi and snap them
+whole-object, but cannot say "this pad against that hole". `core-013` registered
+`pieces`; no UI constructs it. This is the same standing blocker scenario 5 records as
+its "Blocker 2", now reached from a second direction, and it wants its own `ui-*` task —
+logged in `TODO/VERIFY.md` rather than silently absorbed here.
+
 ### 4. Boolean gating
 
 **Steps**:

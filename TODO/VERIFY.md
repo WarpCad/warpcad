@@ -34,6 +34,39 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### core-016 — the touch-display attachment a user cannot yet perform by hand (2026-09-13 19:50)
+
+The geometry needs no hand-check and is deliberately not listed below: every part of both
+screens is diffed against real `jscad-raspberrypi@62a8e3b` bounding boxes in
+`raspberrypi.touchDisplay7inch.spec.js` / `raspberrypi.touchScreen2.spec.js`, that diff
+was mutation-tested so it cannot be a test that never bites, and Step 6 drove the whole
+assembly live in the running app — a real `raspberrypi.bplus` plus each real screen,
+attached with the sub-part-addressed `group.align`/`group.snap` records, matching V1 to
+1.4e-14 mm. `TODO/ACCEPTANCE.md` scenario 3 now carries that as a standing check, so it
+is not restated here.
+
+What is left is one real gap and two judgment calls no bounding box can settle.
+
+Row 1 is the important one. This task's whole design is that the board-attachment step
+becomes *the user's own* `ui-026` Snap/Align action — but the popover states, in its own
+copy, **"Whole-object snap/align only — sub-part addressing isn't available yet."**
+`core-013` registered `pieces` and the kernel honours it (proved live), but no UI builds
+such an operand, so a user can snap the screen to the Pi as whole objects and cannot say
+"this mounting pad against that hole". That is the same standing blocker scenario 5
+records as its "Blocker 2", now reached from a second direction, and it is the difference
+between this recipe pair being *usable as designed* and merely *correct*. It wants its
+own `ui-*` task rather than another VERIFY row next time it is noticed.
+
+Row 2 is the `noGoPower` narrowing, which is exact for the case V1 itself produced and
+only diverges outside it — worth one look by someone who actually designs enclosures,
+since they are the only person who can say whether the frozen offset matters.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | Snap/Align cannot address a sub-part from the UI, so the board attachment this task is designed around is reachable only through the command layer. Confirm the gap, then file it as its own `ui-*` task (sub-part operands for `group.snap`/`group.align`, feeding off `ui-016`'s pick-depth selection) rather than logging it here again. | Open | |
+| 2 | `raspberrypi.touchScreen2`'s hidden `noGoPower` marker is frozen at the offset a stock B+ at the stock attachment datum produces (zero divergence from V1 there, asserted). Judgment call for whoever designs a real enclosure: does a marker that no longer tracks the header on a non-stock board cause a real problem, or is the frozen constant fine? If it is a problem, that is revival condition #2 in `docs/decisions/composite-recipe-geometry.md` (reopen recipe nesting), not an ad-hoc fix. | Open | |
+| 3 | Both screens are large parts (193×111 mm and 143×91 mm) next to a 85×56 mm board. Eyeball on a real phone and tablet whether a freshly placed screen frames sensibly at the default camera distance, or whether it arrives clipped/oversized enough that a Library row for these would need its own framing behaviour. | Open | |
+
 ### core-015 — three camera-module judgment calls a bounding box cannot answer (2026-09-13 19:15)
 
 The geometry is not in question and needs no hand-check: every part of all five variants

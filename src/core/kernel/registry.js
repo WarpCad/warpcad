@@ -58,6 +58,8 @@ import { board } from './recipes/kit.board.js'
 import { boardFrame } from './recipes/kit.boardFrame.js'
 import { bplus } from './recipes/raspberrypi.bplus.js'
 import { cameraModule } from './recipes/raspberrypi.cameraModule.js'
+import { touchDisplay7inch } from './recipes/raspberrypi.touchDisplay7inch.js'
+import { touchScreen2 } from './recipes/raspberrypi.touchScreen2.js'
 
 /** @typedef {import('@jscad/modeling').geometries.geom3.Geom3} Geom3 */
 /** @typedef {import('@jscad/modeling').geometries.geom2.Geom2} Geom2 */
@@ -810,6 +812,21 @@ export const registry = Object.freeze({
   // variants' three copied corner holes), which the fold already supports and no new
   // op was needed for. No `ui` metadata, for the same reason nothing else here has it.
   'raspberrypi.cameraModule': composite(0, cameraModule),
+
+  // TODO/core-016: the two Raspberry Pi touch displays. These are the first recipes to
+  // hit `docs/decisions/composite-recipe-geometry.md`'s Family B requirement — V1's
+  // factories take the *board* as a required argument — and the decision it records is
+  // to drop it. Both expand standalone in their own lens-corner frame; V1's closing
+  // `align('piMountingPad1'/'piMountingPost1', rpi.parts.hole1, 'xy')` +
+  // `snap(..., rpi.parts.mb, 'z', 'outside+')` is not geometry but an assembly step,
+  // and it is already shipped as ui-026's Snap/Align control, sub-part addressed as
+  // `{ id, pieces: 'piMountingPad1' }`. Each pad and post is therefore its own named
+  // part rather than one merged solid, so ui-016's pick-depth can reach it.
+  //
+  // See raspberrypi.touchScreen2.js's NO_GO_POWER_MM for the one call that genuinely
+  // mixed frames, and what dropping the board narrows about it.
+  'raspberrypi.touchDisplay7inch': composite(0, touchDisplay7inch),
+  'raspberrypi.touchScreen2': composite(0, touchScreen2),
 
   // Deliberately absent, and not an oversight — TODO/core-003 spiked both:
   //
