@@ -118,3 +118,4 @@ numbers exactly; `git show --stat` confirms only the decision doc, `ROADMAP.md`,
 retirement note, and two chat drafts changed — no source touched.
 
 | 2026-09-12 16:59 | 2026-09-12 22:12 | `ui-020`, `ui-027`, `ui-029` | task-count reached (3) | no — M4, `core-014`–`018` (reserved), `ui-028` (reserved), Bearing (unscoped, blocked on data) all still open |
+| 2026-09-13 18:14 | 2026-09-13 20:05 | `core-014`, `core-015`, `core-016` | task-count reached (3) | no — M4, `core-017`, `core-018`, `ui-028`, `core-021` (reserved), edge-fillet (blocked on user decision) still open |
