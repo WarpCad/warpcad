@@ -1,0 +1,115 @@
+---
+title: "Camera Module composite recipes: v1, v2, v3, HQ, Arducam HQ"
+category: core
+kind: feature
+priority: medium
+model: opus
+milestone: M4
+depends: [core-014]
+status: open
+---
+
+## Goal
+
+Five composite recipes — or one `raspberrypi.cameraModule` factory with a `model`
+param (`'v1' | 'v2' | 'v3' | 'hq' | 'arducam-hq'`), mirroring `core-014`'s "one factory,
+a param selects the variant" shape, per this roadmap row's own note that it should
+follow `raspberrypi.bplus`'s pattern — reproducing `jscad-raspberrypi@62a8e3b`'s five
+camera factories. All five are pure Family A per
+`docs/decisions/composite-recipe-geometry.md`'s survey (`bplus.js`'s own ~120
+self-referential call sites are the same shape) — none takes an external board
+parameter, so none of that decision's board-parameter-drop requirement applies here.
+
+## Interaction model
+
+n/a — no Library row exists for any composite op yet (`core-010`'s already-confirmed
+`library.js` filter). Feeds a future Hardware/Kit Library section.
+
+## Documentation
+
+n/a — no control exists yet.
+
+## Affected files
+
+- `src/core/kernel/recipes/raspberrypi.cameraModule.js` (new)
+- `src/core/kernel/recipes/raspberrypi.cameraModule.spec.js` (new)
+- `src/core/kernel/registry.js` (register `'raspberrypi.cameraModule': composite(0,
+  cameraModule)`)
+
+Real V1 source, `~/src/jscad/jscad-raspberrypi/src/` at `62a8e3b`:
+`camera-module-v1.js:28-116`, `camera-module-v2.js:12-115`, `camera-module-v3.js:26-121`,
+`hq_camera-module.js:41-115`, `arducam_hq_camera-module.js:40-100`. (`camera-module.js`
+is dead code in the source tree — it references `this.Parts` inside a non-method
+`export default function`, which cannot resolve; it is not re-exported from
+`index.js` and no other file imports it. Not ported.)
+
+## Proposed fix
+
+**Reuse three already-shipped mechanisms rather than inventing new ones — this recipe
+needs no new kernel op.** Reading all five sources together, every part decomposes
+into machinery this project already has:
+
+- **The rounded board.** All five boards are `Parts.RoundedCube(w, h, thickness,
+  cornerRadius).Center()` — exactly `kit.board.js`'s `profile.roundedRectangle` +
+  `profile.extrudeLinear` pair, not `kit.board`'s composite op itself (a composite
+  can't invoke another composite's expansion — `docs/decisions/composite-recipe-
+  geometry.md`'s "recipe nesting" row is explicitly deferred). Reuse the *pattern*
+  inline: v1's board is a plain `Cube` (no rounding, `camera-module-v1.js:33`); v2/v3
+  and both HQ variants use the rounded form.
+- **`enlarge` for every `*-nogo` clearance volume.** `.enlarge(dx, dy, dz)` on an
+  already-placed part (`camera-module-v3.js:104,112`; identically shaped in v1/v2;
+  `hq_camera-module.js:106`; `arducam_hq_camera-module.js:91`) is exactly `modify.
+  enlarge` (`core-019`, `registry.js:753`) — append one record targeting the part's own
+  id, no new op.
+- **`boolean.subtract`/`boolean.union`** for the mount rings (HQ/Arducam HQ:
+  `mount.subtract(mountInside)`, `hq_camera-module.js:77`) and the tripod mount
+  (`tripodMountBase.union(tripodMount)`, `:94`) — both already-registered ops, dispatch
+  only.
+- **`transform.rotate`** for the HQ variants' four holes (`hole.rotateZ(90)` / `(180)` /
+  `(-90)`, `hq_camera-module.js:57-59` and identically in the Arducam variant) — build
+  one hole record, then three more as `transform.rotate` records targeting it (each
+  rotate is about the part's own centre per this project's existing convention,
+  `ui-012`'s `transform.rotate`) rather than four independently-positioned holes; V1's
+  own choice to rotate rather than reposition is worth preserving since the four holes
+  are the same shape at 90° apart around the board centre.
+
+**Per-part placement** (board-relative `.snap`/`.align`/`.midlineTo` chains — sensor,
+lens, ribbon, mounts, pins) follows `core-014`'s generic probe-and-bake pattern
+directly: build the part's real geometry, measure with `group.js`, bake one
+`transform.translate`. Nothing here needs a new measurement primitive.
+
+**`v1` is the outlier worth flagging**: its board is a flat, unrounded `Cube`
+(`camera-module-v1.js:33`), while v2/v3 round it — a real difference between variants,
+not an omission, and the model-branch table in this recipe needs to carry it rather
+than assume v1 follows v2/v3's board shape.
+
+**The `-nogo` naming across all five (`bottom-nogo`, `ribbon-nogo`) is V1's own
+term for a hidden clearance/keep-out volume**, structurally identical to
+`hardware.bolt`'s `tap-*` hidden parts — mark these records `hidden: true`, matching
+that established convention rather than inventing a new one.
+
+## Effort
+
+M — five variants, but each is small (≤10 parts) and every mechanism it needs
+(rounded-box pattern, `enlarge`, `boolean.subtract`/`union`, `transform.rotate`) is
+already shipped and tested elsewhere in the registry; the work is application, the
+same shape `core-010`/`core-011` turned out to be once `core-001`'s pattern existed.
+
+## Testing
+
+Vitest, one `.spec.js`, plain Node. No V1 execution fixture (same call as `core-012`/
+`core-014` for anything past the original `hardware.bolt`/`nut`/`washer` fixture set).
+Geometric-relation assertions per variant: board size and thickness match the source
+constants above; hole centres match the stated `(x, y)` pairs (v3:
+`(2,2)`/`(2,23)`/`(14.5,2)`/`(14.5,23)`; v1/v2 use their own listed pairs); the HQ
+variants' four holes are confirmed 90° apart around the board centre by measuring
+their bounding boxes after rotation, not by trusting the rotate call; `mount`'s
+bounding box matches the ring's outer diameter (subtraction shouldn't shrink it); each
+`*-nogo` part's bounding box is exactly its source part's box grown by the stated
+`enlarge` delta. Degenerate case: an unknown `model` value throws by name.
+
+No `*.e2e.js` — no UI surface exists yet.
+
+Acceptance scenarios: none directly pass/fail on this task alone — feeds scenario 3's
+eventual RPi-plus-camera pair alongside `core-014`. No closed finding's subsystem is
+extended here in a way that needs re-running.
