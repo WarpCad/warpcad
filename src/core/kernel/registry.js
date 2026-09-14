@@ -58,6 +58,10 @@ import { board } from './recipes/kit.board.js'
 import { boardFrame } from './recipes/kit.boardFrame.js'
 import { bplus } from './recipes/raspberrypi.bplus.js'
 import { cameraModule } from './recipes/raspberrypi.cameraModule.js'
+import { hyperPixel4Rectangular } from './recipes/raspberrypi.hyperPixel4Rectangular.js'
+import { miniPiTFT } from './recipes/raspberrypi.miniPiTFT.js'
+import { piTFT22 } from './recipes/raspberrypi.piTFT22.js'
+import { piTFT24 } from './recipes/raspberrypi.piTFT24.js'
 import { touchDisplay7inch } from './recipes/raspberrypi.touchDisplay7inch.js'
 import { touchScreen2 } from './recipes/raspberrypi.touchScreen2.js'
 
@@ -827,6 +831,28 @@ export const registry = Object.freeze({
   // mixed frames, and what dropping the board narrows about it.
   'raspberrypi.touchDisplay7inch': composite(0, touchDisplay7inch),
   'raspberrypi.touchScreen2': composite(0, touchScreen2),
+
+  // TODO/core-017: the four small displays. Family B again — every one of these takes
+  // an external board in V1 and every one of them drops it here — but with a wrinkle
+  // the touch pair did not have: `PiTFT22`/`PiTFT24` never *use* the board, they
+  // forward it into `Hat(piMotherBoard, options)`, so dropping it means calling a
+  // standalone Hat. That expansion lives in recipes/raspberrypi.hat.js and is shared
+  // by both; TODO/core-018 should register it as `raspberrypi.hat` rather than
+  // re-porting `hat.js` (see that module's header).
+  //
+  // These are also the first recipes to use `boolean.*` and `modify.*` ops *inside*
+  // an expansion rather than as document-level operators. Two things came out of
+  // that, both written up in recipes/raspberrypi.miniPiTFT.js's module doc: a
+  // composite cannot address a sibling record's sub-part except through
+  // `group.snap`/`group.align` (an op-level rule, not a nesting one), so V1's chained
+  // `.bisect().parts.negative` ports as the same half-space subtraction `bisect`
+  // itself performs; and `modify.chamferRim` had to learn V1's negative-radius
+  // semantics, because `miniPiTFT`'s display clearance is an outward flare rather
+  // than a bevel. No `ui` metadata, for the same reason nothing else here has it.
+  'raspberrypi.miniPiTFT': composite(0, miniPiTFT),
+  'raspberrypi.piTFT22': composite(0, piTFT22),
+  'raspberrypi.piTFT24': composite(0, piTFT24),
+  'raspberrypi.hyperPixel4Rectangular': composite(0, hyperPixel4Rectangular),
 
   // Deliberately absent, and not an oversight — TODO/core-003 spiked both:
   //

@@ -200,21 +200,110 @@ function assertRadiusFits(base, radius, op) {
 }
 
 /**
- * Positive, finite, and smaller than the solid's extent along the axis.
+ * Non-zero, finite, and narrower than the solid's extent along the axis.
+ *
+ * ## Why a negative radius is allowed (TODO/core-017)
+ *
+ * V1's `util.chamfer` builds its far slice as `enlarge(slice, [-radius * 2, -radius *
+ * 2])` (`jscad-utils/src/util.js:1608-1624`) and `util.enlarge` adds an absolute delta
+ * to each dimension, so a **negative** radius grows the face instead of insetting it:
+ * the band becomes an outward flare rather than a bevel. Its own `sliceParams` reads
+ * `Math.abs(radius)` for the cut plane, so only the profile's direction flips, never
+ * the band's height or which face it is on.
+ *
+ * That is not a curiosity — `jscad-raspberrypi`'s `miniPiTFT.js:125` uses it to build
+ * a display clearance volume 5mm wider on every side than the display it protects,
+ * and there is no other op in this registry that produces a frustum. So the sign is
+ * honoured here rather than rejected. Only `0` is meaningless, and it still throws.
  *
  * @param {unknown} value
  * @param {number} extentMm Solid's size along the rim axis.
  * @param {string} op
- * @returns {number}
+ * @returns {number} The signed radius; callers take {@link bandOf} for the height.
  */
 function requireRadius(value, extentMm, op) {
-  if (typeof value !== 'number' || !Number.isFinite(value) || value <= 0) {
-    throw new Error(`${op}: radius must be a positive number of millimetres, got ${String(value)}`)
+  if (typeof value !== 'number' || !Number.isFinite(value) || value === 0) {
+    throw new Error(
+      `${op}: radius must be a non-zero number of millimetres — positive to cut the rim ` +
+        `inward, negative to flare it outward — got ${String(value)}`
+    )
   }
-  if (value >= extentMm) {
-    throw new Error(`${op}: radius ${value}mm must be less than the solid's ${extentMm}mm extent along the axis`)
+  if (Math.abs(value) >= extentMm) {
+    throw new Error(
+      `${op}: radius ${value}mm must be narrower than the solid's ${extentMm}mm extent along the axis`
+    )
   }
   return value
+}
+
+/**
+ * The band height a signed radius sweeps: always positive, always measured back from
+ * the target face, exactly as V1's `sliceParams` does with its own `Math.abs`.
+ *
+ * @param {number} radius
+ * @returns {number}
+ */
+function bandOf(radius) {
+  return Math.abs(radius)
+}
+
+/**
+ * Rotate an offset outline's vertex list so vertex `i` still corresponds to vertex `i`
+ * of the outline it came from.
+ *
+ * `extrudeFromSlices` walls slice `n` to slice `n + 1` by index, so the two lists have
+ * to agree on where the outline starts. They usually do — and every inward offset this
+ * module took before `TODO/core-017` did, which is why this was never needed. An
+ * **outward** `expansions.offset` does not: for a square it hands back
+ * `[[13,-13],[13,13],[-13,13],[-13,-13]]` against a base of
+ * `[[-10,-10],[10,-10],[10,10],[-10,10]]` — the same four corners, rotated one place.
+ * Lofted as-is, every wall quad joins a corner to its *neighbour* and the solid comes
+ * out twisted: a 3mm flare on a 20mm cube measured 556mm³ where 1596mm³ was right, and
+ * crept towards the true value as slices were added rather than being wrong by a fixed
+ * amount, which is exactly what a twist looks like.
+ *
+ * A pure offset moves every vertex and creates none (with `corners: 'edge'`), so the
+ * correspondence is recoverable: take the cyclic shift that minimises total squared
+ * distance between the two rings. Shift zero wins whenever the kernel already agreed,
+ * which is why this is a no-op for every case that worked before.
+ *
+ * @param {Geom2} base Outline the offset was taken from.
+ * @param {Geom2} offsetOutline Result of `expansions.offset`.
+ * @param {string} op Named in the error.
+ * @returns {Geom2}
+ */
+function alignVertices(base, offsetOutline, op) {
+  const from = geometries.geom2.toPoints(base)
+  const to = geometries.geom2.toPoints(offsetOutline)
+  if (to.length !== from.length) {
+    // `extrudeFromSlices` cannot wall two rings of different lengths into anything
+    // meaningful, and quietly returning a mangled solid is the failure class this
+    // whole module exists to refuse.
+    throw new Error(
+      `${op}: the rim profile changes the cross-section's vertex count ` +
+        `(${from.length} to ${to.length}), so the sweep has no correspondence to loft ` +
+        'along. This happens when an offset merges or splits part of the outline; use ' +
+        'a smaller radius.'
+    )
+  }
+  let bestShift = 0
+  let bestCost = Infinity
+  for (let shift = 0; shift < from.length; shift += 1) {
+    let cost = 0
+    for (let index = 0; index < from.length; index += 1) {
+      const a = from[index]
+      const b = to[(index + shift) % from.length]
+      cost += (a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2
+    }
+    if (cost < bestCost) {
+      bestCost = cost
+      bestShift = shift
+    }
+  }
+  if (bestShift === 0) return offsetOutline
+  return geometries.geom2.fromPoints(
+    from.map((_unused, index) => to[(index + bestShift) % from.length])
+  )
 }
 
 /**
@@ -236,7 +325,7 @@ function sweepRim({ solid, radius, orientation, slices, profile, op }) {
   const bounds = measurements.measureBoundingBox(canonical)
   const faceZ = bounds[1][2]
   const r = requireRadius(radius, bounds[1][2] - bounds[0][2], op)
-  const cutZ = faceZ - r
+  const cutZ = faceZ - bandOf(r)
 
   const base = sectionAt(canonical, bounds, cutZ)
   assertPrismaticBand(base, sectionAt(canonical, bounds, faceZ), op)
@@ -245,10 +334,17 @@ function sweepRim({ solid, radius, orientation, slices, profile, op }) {
   // the callback: the check below is a comparison between slices, and depending on
   // `extrudeFromSlices` to invoke its callback in index order would make a
   // correctness guard hostage to an implementation detail of the kernel.
-  assertRadiusFits(base, r, op)
+  //
+  // Only for an inward radius: the guard exists because an over-large *inset*
+  // collapses the outline through zero and re-expands it inverted. An outward offset
+  // has no such failure mode — the section only grows — so applying the guard to a
+  // negative radius would reject every legitimate flare.
+  if (r > 0) assertRadiusFits(base, r, op)
   const steps = Array.from({ length: slices }, (_unused, index) => profile(index / (slices - 1), r))
   const outlines = steps.map(({ inset }) =>
-    inset === 0 ? base : expansions.offset({ delta: -inset, corners: 'edge' }, base)
+    inset === 0
+      ? base
+      : alignVertices(base, expansions.offset({ delta: -inset, corners: 'edge' }, base), op)
   )
 
   const loft = extrusions.extrudeFromSlices(
@@ -290,23 +386,26 @@ export function filletRim({ radius, orientation = 'z+', segments = DEFAULT_RIM_S
     orientation,
     slices: Math.max(2, segments),
     // Uniform in arc angle rather than in height: the same quarter circle V1 swept,
-    // sampled evenly along it instead of bunching near the face.
+    // sampled evenly along it instead of bunching near the face. `rise` takes the
+    // band's height, which is unsigned; only `inset` carries the sign, so a negative
+    // radius bulges the rim outward over the same band.
     profile: (p, r) => {
       const angle = (p * Math.PI) / 2
-      return { inset: r * (1 - Math.cos(angle)), rise: r * Math.sin(angle) }
+      return { inset: r * (1 - Math.cos(angle)), rise: Math.abs(r) * Math.sin(angle) }
     },
     op: 'modify.filletRim',
   })
 }
 
 /**
- * Bevel the rim of one axis-aligned face with a straight 45° profile.
+ * Bevel the rim of one axis-aligned face with a straight 45° profile — or, with a
+ * negative radius, flare it outward instead (see {@link requireRadius}).
  *
  * Ports `jscad-utils`' `util.chamfer(object, radius, orientation)`. Two slices are
  * exact — the profile is a straight line — so this needs no segment count.
  *
  * @param {object} options
- * @param {number} options.radius Chamfer size, millimetres.
+ * @param {number} options.radius Chamfer size, millimetres. Negative flares outward.
  * @param {string} [options.orientation] Face to bevel, default `'z+'`.
  * @param {Geom3} solid
  * @returns {Geom3}
@@ -317,7 +416,7 @@ export function chamferRim({ radius, orientation = 'z+' }, solid) {
     radius,
     orientation,
     slices: 2,
-    profile: (p, r) => ({ inset: r * p, rise: r * p }),
+    profile: (p, r) => ({ inset: r * p, rise: Math.abs(r) * p }),
     op: 'modify.chamferRim',
   })
 }

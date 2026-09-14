@@ -178,11 +178,50 @@ describe('rim ops reject what they cannot model, rather than returning wrong geo
   })
 
   it('rejects degenerate radii and unknown orientations by name', () => {
-    expect(() => filletRim({ radius: 0 }, cube20())).toThrow(/positive number of millimetres/)
-    expect(() => filletRim({ radius: -1 }, cube20())).toThrow(/positive number of millimetres/)
-    expect(() => filletRim({ radius: NaN }, cube20())).toThrow(/positive number of millimetres/)
-    expect(() => filletRim({ radius: 25 }, cube20())).toThrow(/less than the solid's 20mm extent/)
+    expect(() => filletRim({ radius: 0 }, cube20())).toThrow(/non-zero number of millimetres/)
+    expect(() => filletRim({ radius: NaN }, cube20())).toThrow(/non-zero number of millimetres/)
+    expect(() => filletRim({ radius: 25 }, cube20())).toThrow(/narrower than the solid's 20mm extent/)
+    expect(() => filletRim({ radius: -25 }, cube20())).toThrow(/narrower than the solid's 20mm extent/)
     expect(() => filletRim({ radius: 3, orientation: 'q+' }, cube20())).toThrow(/orientation must be one of/)
+  })
+
+  it('flares the rim outward on a negative radius, as V1 does (TODO/core-017)', () => {
+    // `util.chamfer`'s slicer is `enlarge(slice, [-radius * 2, -radius * 2])`
+    // (`jscad-utils/src/util.js:1608-1624`) and `util.enlarge` adds an absolute delta
+    // to each dimension, so a negative radius grows the far slice instead of insetting
+    // it. `sliceParams` reads `Math.abs(radius)` for the cut plane, so the band's
+    // height and the face it sits on are unchanged — only the direction flips.
+    //
+    // `jscad-raspberrypi`'s `miniPiTFT.js:125` depends on this to build a clearance
+    // frustum, and nothing else in this registry produces one. Rejecting the sign
+    // (which this op used to do) forced that recipe to approximate the volume 10mm
+    // too small in x and y.
+    const flared = chamferRim({ radius: -3, orientation: 'z+' }, cube20())
+    const [min, max] = measurements.measureBoundingBox(flared)
+    // The face grows by the radius on every side; the band's height is unchanged, so
+    // the solid neither gets taller nor moves.
+    // 3 decimal places, the same tolerance the bounding-box test above uses and for
+    // the same reason: `sectionAt` reads a cross-section through `project`, whose
+    // `unionGeom2` round-trip inflates the outline by a shape-dependent ~6e-5mm. On
+    // an inward rim that lands inside the remainder and never shows; on an outward
+    // flare the loft *is* the bounding box, so it leaks out. 60 nanometres.
+    expect(max[0] - min[0]).toBeCloseTo(26, 3)
+    expect(max[1] - min[1]).toBeCloseTo(26, 3)
+    expect(max[2] - min[2]).toBeCloseTo(20, 3)
+    expect(min[2]).toBeCloseTo(-10, 3)
+
+    // And it is a frustum, not a step: the added material tapers from nothing at the
+    // cut plane to a full 3mm ledge at the face, so it is well under the 3mm-deep
+    // prism a step would add.
+    const stepVolume = 26 * 26 * 3 - 20 * 20 * 3
+    const added = volumeOf(flared) - volumeOf(cube20())
+    expect(added).toBeGreaterThan(0)
+    expect(added).toBeLessThan(stepVolume)
+
+    // The inward case is unchanged, and the two are genuinely opposite.
+    expect(volumeOf(chamferRim({ radius: 3, orientation: 'z+' }, cube20()))).toBeLessThan(
+      volumeOf(cube20())
+    )
   })
 })
 

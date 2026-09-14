@@ -34,6 +34,29 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### core-017 — one pre-existing rim-op limit, and a hidden-volume judgment call (2026-09-14 19:34)
+
+The geometry needs no hand-check and is deliberately not listed below: every part of all
+four small displays is diffed against real `jscad-raspberrypi@62a8e3b` bounding boxes in
+`__fixtures__/raspberrypi.smallDisplays.v1-reference.json`, mutation-tested three ways, and
+all four were rendered live in the viewport during Step 6 as genuinely drawn boards rather
+than blank frames. What is left is one limit that predates this task and one call a bounding
+box cannot settle.
+
+Row 1 is the important one. It was **found by driving the app during this task's Step 6 but
+is not caused by it** — it reproduces identically against `git show HEAD:src/core/kernel/
+fillet.js`, verified directly. It is a genuine contradiction between `ui-027`'s stated
+Interaction model and `fillet.js`'s `assertPrismaticBand` guard, and settling it is a product
+decision (narrow the doc, or relax the guard for the cases where the band really is
+prismatic) rather than a bug fix, which is why it is logged here instead of being fixed
+inside a commit about display recipes.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | `ui-027` says "committing a *second* Fillet/Chamfer against a *different* face of the same, already-rounded body must work identically — nothing about this control is one shot per body." It is not so for a **perpendicular** face: fillet a 40mm cube's Top (+Z) at r=3, then try Chamfer on Right (+X) at r=2, and the popover shows *"the solid is not prismatic over the rim band — cross-section area changes from 1590.044mm² at the cut plane to 1481.431mm² at the face."* The guard is correct (the rounded top really does make the x-section non-prismatic) and it fails loudly rather than returning wrong geometry, so nothing is unsafe — but the documented promise is wrong as written. Decide which side moves, and file the follow-up: narrow `docs/fillet-chamfer.md` and `ui-027`'s wording to "a different face, provided the band is still prismatic", or teach the guard to accept a band whose section change is itself the previous rim op. Note the *opposite* face (`z-` after `z+`) should still work — worth confirming while you are here. | Open | |
+| 2 | `miniPiTFT`'s `display-clearance` is the catalogue's first **outward-flared** volume (V1's `.chamfer(-5, 'z+')`) — a frustum 10mm wider at the top than the display it protects. It is hidden geometry, so nothing renders it and no acceptance scenario can see it. Once something consumes clearance volumes for real (an enclosure generator, or a Library row that can place one visibly), eyeball the flare against a real Adafruit Mini PiTFT: is a 5mm-per-side draft over the top 5mm actually the clearance a printed case wants, or was V1's number chosen for a different bezel? The port reproduces V1 exactly either way; this is asking whether V1 was right. | Open | |
+| 3 | `fillet.js`'s cross-section is read through `project`, whose `unionGeom2` round-trip inflates the outline by a shape-dependent ~6e-6 to 6e-5 mm. Harmless and invisible on an inward rim (it lands inside the remainder), and the reason `display-clearance` is compared to V1 at 4 decimal places rather than the 9 every other part uses. If a future task ever needs a rim op accurate to better than a micron — or starts stacking outward flares, where the error would compound — this is the place it comes from, and the fix is a section reader that does not round-trip through `unionGeom2`. Nothing to do today; recorded so the next person does not rediscover it from scratch. | Open | |
+
 ### core-016 — the touch-display attachment a user cannot yet perform by hand (2026-09-13 19:50)
 
 The geometry needs no hand-check and is deliberately not listed below: every part of both

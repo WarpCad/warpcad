@@ -505,3 +505,17 @@ Built with Claude Code, reviewed by me.
 **Evidence:** 297 characters including the disclosure line → counted this session; "rotate mutates the group in place" → `jscad-utils/src/group.js:246-272`, whose own docstring reads "This mutates the group"; "rotates before it clones, so all four inherit the turn" → `touch-display-7inch.js:69` vs `:75,81,87`, confirmed by the V1 execution fixture recording all four pads at 12x8 rather than the built 8x12; "its sibling clones first and only turns two" → `touch-screen2.js:97,103` call `clone()` before `rotate()`, fixture shows pads 1/2 at 5.6x12 and pads 3/4 at 12x5.6; "the spec said one mounting pad" → `TODO/done/core-016-touch-display-recipes.md` Proposed fix
 **Disclosure:** Built with Claude Code, reviewed by me.
 **To Add:** repo URL once public; the viewport screenshot of the 7-inch display with a B+ board seated on it (captured this session) is the strongest visual here
+
+---
+
+## 2026-09-14T19:34Z · core-017 — four small-display recipes, and a twisted loft
+
+Ported four Raspberry Pi display boards into WarpCad's kernel. Best bug: an outward chamfer lofted 556mm3 where 1596 was right. jscad's offset hands back the outline rotated one vertex, extrudeFromSlices walls by index, so every side came out twisted.
+
+Built with Claude Code, reviewed by me.
+
+**Links:** [Repo](<repo-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** none — the post is already at 292 characters including the disclosure, and none of #CAD/#RaspberryPi would fit without cutting the actual finding
+**Evidence:** 292 characters including the disclosure line → counted this session; "four Raspberry Pi display boards" → `raspberrypi.miniPiTFT`, `piTFT22`, `piTFT24`, `hyperPixel4Rectangular`, all four registered in `src/core/kernel/registry.js` in this commit; "556mm3 where 1596 was right" → measured this session against `@jscad/modeling` 2.13.0, a 3mm outward flare on a 20mm cube (analytic frustum volume (5/6)(400 + 4·529 + 676) = 1596mm3); "offset hands back the outline rotated one vertex" → `expansions.offset({delta: 3, corners: 'edge'})` on a 20mm square returns `[[13,-13],[13,13],[-13,13],[-13,-13]]` against a base of `[[-10,-10],[10,-10],[10,10],[-10,10]]`, printed this session; "extrudeFromSlices walls by index" → the convergence signature (556 → 1136 → 1381mm3 at 2/3/5 slices) measured this session, which is a twist rather than a fixed error
+**Disclosure:** Built with Claude Code, reviewed by me.
+**To Add:** repo URL once public

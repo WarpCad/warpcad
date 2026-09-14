@@ -653,6 +653,47 @@ is the comparison that finding turned on. And its severe consequence was re-chec
 `boolean.subtract(shell, camera)` through the incremental path yields the correct plate
 (`-20,-20,0 .. 20,20,6`), not the EMPTY solid the bug produced.
 
+**Re-checked**: 2026-09-14 19:26 — PASS (`core-017`). Re-driven for the same reason
+`core-015`'s entry above gives, four times over: this task adds **four** keys to
+`src/core/kernel/registry.js`, and `src/core/library.js` builds this scenario's rows by
+iterating that registry. Laptop 1440×900 in Chromium, Playwright-driven against the real
+dev server on a wandering, overshooting drag path rather than the straight ramp the e2e
+specs use; kernel-only change, with the full e2e matrix run separately.
+
+- **Library row count, re-run**: the panel still renders **exactly seven rows** — Cube,
+  Cylinder, Cone, Hexagon, Triangle, Tube, Sphere. None of `raspberrypi.miniPiTFT`,
+  `piTFT22`, `piTFT24` or `hyperPixel4Rectangular` leaks in, and the panel builds without
+  throwing.
+- **The scenario itself**: a Cube then a Sphere dragged in. **Both stayed visible** after
+  the second drop (`cuboid-1` at 64 000 mm³ and `sphere-2` at 32 975.5 mm³ both still
+  reported), and each drop selected only the new item.
+- **Pushed well past the scenario's two items, deliberately**, because "adding an item
+  overwrote the previous one" is the exact failure this scenario exists to catch: **six**
+  successive cubes were dragged in and all six survived as distinct bodies
+  (`cuboid-1`…`cuboid-6`), each click selecting exactly one. A seventh drop deliberately
+  *onto* an already-occupied point still added a body (6 → 7), and an eighth dragged in
+  **while another body was selected** also landed (7 → 8). Console and page errors: none
+  across the whole session.
+
+**Regression re-check, `TODO/done/core-020-composite-absorbs-earlier-bodies.md`'s own
+repro, run against all four new composite kinds** — the rule is that a closed finding's
+subsystem is a standing surface, so `core-014`/`015`/`016` having passed it does not
+discharge it here. In core-020's own shape: a `Shell 1` 40 × 40 × 6 plate appended first,
+then each screen appended after it through `document.append`. For all four, the screen's
+group holds **only its own parts** (5 / 8 / 5 / 6 visible parts), no `Shell 1` among them,
+and the incremental path's names and bounds are **identical to the batch `evaluate()`
+path's** — the comparison that finding turned on. Its severe consequence was re-checked
+directly too: `boolean.subtract(shell, screen)` through the incremental path yields a real
+plate for every one of the four (`-20,-20,0 .. 20,20,6` for the three HAT-framed screens;
+`-20,-20,1.65 .. 20,20,2.15`, 800 mm³, for HyperPixel 4, which is the 0.5 mm gap between
+its board and its LCD and is arithmetically right), never the EMPTY solid the bug produced.
+
+**Note: no `kernel/index.js` fold change was made by this task.** `TODO/core-017`
+anticipated one might be needed for nested sub-part addressing and required this re-check
+if so. It was not needed — see the task's retirement note — but the re-check was run
+anyway, on the "four new composite kinds" grounds above.
+
+
 ### 2. Hardware property edit
 
 **Steps**:
@@ -1217,6 +1258,34 @@ boolean returns. Laptop 1440×900 in Chromium.
   by drag alone until you zoom in (5 zoom-in taps shrinks the radius enough; the overlap
   above was reached that way). Not this task's, not a regression — logged in
   `TODO/VERIFY.md`.
+
+**Re-checked**: 2026-09-14 19:26 — PASS (`core-017`). Not required by that task's own
+scope — no composite reaches this scenario — but re-driven because this task modifies
+`src/core/kernel/fillet.js`, which backs the Fillet and Chamfer buttons sitting on **this
+scenario's own toolbar**. Laptop 1440×900 in Chromium.
+
+- **Steps 2-3, the count gate**, unchanged: with one body selected the badge read
+  `1 selected` and Subtract was `disabled` with the tooltip **"Select 2 or more solids"**;
+  shift-clicking a second body moved the badge to `2 selected` / **"first is the base"**
+  and enabled it.
+- **Steps 5-6**: Subtract took the document from **8 bodies to 7** and the button
+  **disabled itself again** immediately afterwards.
+- **The toolbar's other buttons were exercised in the same session** since `fillet.js`
+  changed underneath them: Fillet on a 40 mm cube, face "Top (+Z)", radius 3 mm, committed
+  cleanly and took the body from 64 000 mm³ to **63 700.84 mm³** — rim material removed,
+  bounding box unchanged, which is `ui-027`'s own stated contract. That number is
+  **bit-identical to the pre-change `fillet.js`** (63 700.904 mm³ measured directly against
+  `git show HEAD:src/core/kernel/fillet.js`), so the negative-radius support and the
+  vertex-realignment fix this task added are a genuine no-op for every positive radius the
+  UI can produce — the popover gates commit on `radius > 0` and the input carries `min="0"`,
+  so the relaxed sign is not reachable from this control at all.
+- **One pre-existing limit surfaced while driving, not a regression and not this task's**:
+  committing a *second* rim op against a *perpendicular* face of an already-filleted body
+  is refused by `assertPrismaticBand` ("the solid is not prismatic over the rim band"),
+  which `ui-027`'s Interaction model says should work. The error surfaces cleanly in the
+  popover rather than producing wrong geometry, and it **reproduces identically against
+  `fillet.js` at HEAD**, so it predates this task. Logged in `TODO/VERIFY.md`.
+
 
 ### 5. Hidden-part boolean (bolt tap-clearance)
 
