@@ -56,12 +56,16 @@ import { washer } from './recipes/hardware.washer.js'
 import { anchor } from './recipes/kit.anchor.js'
 import { board } from './recipes/kit.board.js'
 import { boardFrame } from './recipes/kit.boardFrame.js'
+import { activeCoolingFan } from './recipes/raspberrypi.activeCoolingFan.js'
 import { bplus } from './recipes/raspberrypi.bplus.js'
 import { cameraModule } from './recipes/raspberrypi.cameraModule.js'
+import { hat } from './recipes/raspberrypi.hat.js'
+import { hatStandoff } from './recipes/raspberrypi.hatStandoff.js'
 import { hyperPixel4Rectangular } from './recipes/raspberrypi.hyperPixel4Rectangular.js'
 import { miniPiTFT } from './recipes/raspberrypi.miniPiTFT.js'
 import { piTFT22 } from './recipes/raspberrypi.piTFT22.js'
 import { piTFT24 } from './recipes/raspberrypi.piTFT24.js'
+import { spacer } from './recipes/raspberrypi.spacer.js'
 import { touchDisplay7inch } from './recipes/raspberrypi.touchDisplay7inch.js'
 import { touchScreen2 } from './recipes/raspberrypi.touchScreen2.js'
 
@@ -853,6 +857,32 @@ export const registry = Object.freeze({
   'raspberrypi.piTFT22': composite(0, piTFT22),
   'raspberrypi.piTFT24': composite(0, piTFT24),
   'raspberrypi.hyperPixel4Rectangular': composite(0, hyperPixel4Rectangular),
+
+  // TODO/core-018: the four accessories. `raspberrypi.hat` is the standalone Hat
+  // expansion core-017 already shipped as a module because PiTFT22/PiTFT24 needed it
+  // first — registered here rather than re-ported, so all three ops are the same
+  // geometry from the same call. The other three are new, and each contributes
+  // something the catalogue did not have:
+  //
+  // - `activeCoolingFan` is the only recipe with nothing to measure. Every offset is
+  //   a literal constant, so it expands to a plain boolean chain with no probe.
+  // - `hatStandoff` takes its two *diameters* from core-014's tables/rpi-parts.js and
+  //   neither of its heights, which V1 passes explicitly (10 and 13, not the table's
+  //   1.5 and 4). That split is asserted in its spec because taking the table
+  //   wholesale builds a plausible-looking standoff that is 8.5mm too short.
+  // - `spacer` is the Family B recipe whose board parameter V1 *itself* probes away
+  //   (`spacer.js:52`), the first to reuse a sibling composite (`kit.boardFrame`) as
+  //   a record rather than re-port it, and the only one with real trigonometry. It
+  //   also found the catalogue's sharpest V1 quirk: `CAG.roundedRectangle` silently
+  //   clamps a too-large corner radius rather than rejecting it, so the brace V1
+  //   asks to round at 3.1 is really rounded at 3.0. See rpi-recipe-kit.js's
+  //   `clampCornerRadius`, and that recipe's module doc for the rest.
+  //
+  // No `ui` metadata, for the same reason nothing else here has it.
+  'raspberrypi.activeCoolingFan': composite(0, activeCoolingFan),
+  'raspberrypi.hat': composite(0, hat),
+  'raspberrypi.hatStandoff': composite(0, hatStandoff),
+  'raspberrypi.spacer': composite(0, spacer),
 
   // Deliberately absent, and not an oversight — TODO/core-003 spiked both:
   //

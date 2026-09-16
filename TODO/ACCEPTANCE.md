@@ -693,6 +693,19 @@ anticipated one might be needed for nested sub-part addressing and required this
 if so. It was not needed — see the task's retirement note — but the re-check was run
 anyway, on the "four new composite kinds" grounds above.
 
+**Re-checked**: 2026-09-16 23:18 — PASS (`core-018`). Re-driven because this task adds four
+entries to `src/core/kernel/registry.js`, and this scenario's first step is the Library panel,
+whose rows are *derived from that registry* — the precedent `core-012`/`013`/`019`/`020` set is
+that a registry change re-checks `ui-010`'s 7-row repro rather than assuming the filter holds.
+Checked both ways: statically, `buildRows` filters `op.startsWith('primitive.')`, so four
+`raspberrypi.*` composites cannot reach it; and in the **running app**, the panel renders exactly
+7 rows — Cube, Cylinder, Cone, Hexagon, Triangle, Tube, Sphere — unchanged, with the registry now
+holding 40 ops. Driven at laptop 1440×900/Chromium with deliberately wandering, jittery drag paths
+rather than straight lines: a Cube dragged in, then a Cylinder to a different point. **Both stayed
+visible** and `data-body-count` went 1 → 2, so the second attempt's "new body replaces the old"
+regression is absent. Clicking empty grid cleared the selection; clicking each solid in turn
+selected only that one (`cuboid-1`, then `cylinder-2`, never both), with the gizmo and all three
+dimension lines retargeting. Console clean, no page errors.
 
 ### 2. Hardware property edit
 
@@ -984,6 +997,17 @@ section and no Bolt row — M2), and with it the `spec`/`fit` half of step 3. Th
 scenario stays PARTIAL, but the reason has narrowed from "no editable params at all" to
 "no enum editor, and no Bolt to need one".
 
+**Re-checked**: 2026-09-16 23:20 — **PARTIAL PASS, for the same single reason as the entries above
+and not because of this task** (`core-018`). Steps 1-4 (the Bolt `spec`/`fit` edit) are still not
+drivable — the Library panel has one section, "Primitives", and no Hardware row — so they are not
+claimed. Re-driven anyway because this task changes `registry.js`, which `src/core/inspector.js`
+reads to build a body's param schema. **Steps 5-8 pass**, driven at laptop/Chromium: with a Cube
+selected, its gizmo's X grab-arm was dragged and the Inspector's Position X was sampled *during*
+the gesture — it read -13.51 → -4 → 6.45 → 16.9 while the button was still down, so the fields
+track the drag live rather than only on release. Typing `-30` into Position X and pressing Enter
+moved the mesh to match. Body count stayed 1 throughout, so the moved Cube kept its identity
+rather than becoming a second body. Console clean.
+
 ### 3. Snap-placement of a kit assembly
 
 **Steps**:
@@ -1154,6 +1178,18 @@ whole-object, but cannot say "this pad against that hole". `core-013` registered
 its "Blocker 2", now reached from a second direction, and it wants its own `ui-*` task —
 logged in `TODO/VERIFY.md` rather than silently absorbed here.
 
+**Re-checked**: 2026-09-16 23:21 — PASS (`core-018`). Re-driven because this task makes
+`kit.boardFrame` — a composite this scenario's machinery also uses — be consumed *as a record
+nested inside another composite's expansion* for the first time. Driven at laptop/Chromium with a
+Cube as the anchor and a Cylinder crept toward it: dashed alignment guides appeared during the
+drag while the pointer was still down, the ghost snapped, and on release the Cylinder landed at
+X/Y `-13.51, -13.51` — exactly the anchor's own centre, concentric rather than at an arbitrary
+offset — while the anchor itself never moved. After release the guide elements are still in the
+DOM but each reports `visible: false` and nothing is drawn on screen; checked explicitly rather
+than inferred from an element count, because a count-only check had suggested otherwise. Console
+clean. The RPi-board-plus-camera wording of the Steps is still driven with primitives, since no
+Raspberry Pi Library section exists — unchanged by this task, which adds no `ui` metadata.
+
 ### 4. Boolean gating
 
 **Steps**:
@@ -1286,6 +1322,16 @@ scenario's own toolbar**. Laptop 1440×900 in Chromium.
   popover rather than producing wrong geometry, and it **reproduces identically against
   `fillet.js` at HEAD**, so it predates this task. Logged in `TODO/VERIFY.md`.
 
+**Re-checked**: 2026-09-16 23:19 — PASS (`core-018`). Not required by this task's own scope — no
+composite of its reaches this scenario — but re-driven because tool enablement reads
+`acceptsOperandCount` off the very registry this task extends, and because the result of Subtract
+comes out of the shared fold. Driven at laptop/Chromium with two overlapping Cubes: at 1 selected
+the badge read "1 selected · select 2 or more solids" and Union/Subtract/Intersect were disabled;
+shift-clicking the second took the badge to "2 selected", enabled all three, and showed the
+"first is the base" legend **before** Subtract ran. Subtract left exactly one solid
+(`bool-3`, `boolean.subtract`), still selected, with material visibly removed where the second
+cube overlapped, and the toolbar disabled itself again. The Inspector correctly froze the
+result's params as read-only. Console clean.
 
 ### 5. Hidden-part boolean (bolt tap-clearance)
 
@@ -1366,6 +1412,26 @@ against the real modules in the browser, not by reading code. Laptop 1440×900, 
 So: the scenario's kernel foundation is now sound, and what stands between it and a first
 real pass is a UI task (a Hardware Library section) plus a decision on how a boolean names
 a sub-part. Both belong to whichever task lands the Hardware section.
+
+**Re-checked**: 2026-09-16 23:23 — **STILL NOT DRIVEABLE, and deliberately not claimed**
+(`core-018`). Unchanged by this task and blocked for the same reason as every entry above: there
+is no Hardware Library section, so no bolt can be put on screen by hand. Noted here rather than
+skipped because this task's `raspberrypi.spacer` emits hidden parts of its own, so the
+*mechanism* this scenario tests — hidden geometry participating in a boolean — was exercised
+another way: `core-020`'s original reproduction was re-run (below) and a `boolean.subtract` of a
+Spacer from a plate returned the correct plate bounds rather than empty geometry.
+
+**Closed-finding re-run, `core-020` (composite absorbs earlier bodies)**: this task adds four
+composite registry entries and, in `raspberrypi.spacer`, nests a composite (`kit.boardFrame`)
+inside another composite's expansion for the first time — squarely the subsystem that finding was
+filed against. Its original repro was re-run verbatim (a plate appended, then a composite
+appended, both through `document.append`'s incremental path, compared against a batch
+`evaluate()`): `hardware.bolt` still reports `["head","thread","tap"]` with identical bounds both
+ways, and all four new ops likewise — `activeCoolingFan` `["board"]`, `hat` `["mb","gpio"]`,
+`hatStandoff` `["standoff"]`, `spacer` `["spacer"]`, none absorbing "Shell 1" and every one
+matching its batch evaluation exactly. The finding's "severe and silent" consequence was checked
+directly too: `subtract(shell, spacer)` through the command layer returns
+`-20,-20,0 .. 20,20,6`, the correct plate, not the empty result the bug produced.
 
 ### 6. Group vs. sub-part selection
 
@@ -1462,6 +1528,16 @@ the selected colour — a group highlights as one object, and the drilled-into p
 identified by the dimension lines, the breadcrumb and the panel rather than by a third
 highlight colour. That reads correctly on screen; noting it so the next drive does not
 mistake it for a bug.
+
+**Re-checked**: 2026-09-16 23:22 — PASS (`core-018`). Re-driven because this task's new recipes
+emit **hidden** named parts (the Hat's four mounting holes, the Spacer's four posts), which is the
+sub-part addressing this scenario is about. Driven at laptop/Chromium: a Cube and a Cylinder
+placed, both selected, "Group" clicked — one body `group-3` (`group.assemble`) resulted, whose
+volume 126428.903 mm³ is exactly the two members' 64000.000 + 62428.903. After clearing the
+selection, the **first** click on the group's mesh selected the whole group ("Group 1", no
+breadcrumb), and a **second** click at the same point narrowed to the member ("Cylinder 1") with
+the breadcrumb reading "Group 1 ▸ Cylinder 1" and the dimension lines shrinking to that member
+alone. The Inspector explained the sub-part is shown for measurement only. Console clean.
 
 ### 7. Touch-only viewport navigation
 

@@ -3,32 +3,20 @@
  * **standalone** — a blank Raspberry Pi HAT: a 65.02 x 56.39 x 1.62 board, four
  * mounting holes, and the GPIO header hanging off its underside.
  *
- * ## Why this is a module and not a registered op (read before `TODO/core-018`)
+ * ## Why this was a module before it was a registered op
  *
- * `core-018` owns `raspberrypi.hat` as a document-level composite. It has **not landed
- * yet** — `core-017` ran first — and `PiTFT22`/`PiTFT24` both need the expansion
- * *now*: `pi-tft22.js:29` and `pi-tft24.js:61` each forward their `piMotherBoard`
- * straight into `Hat(piMotherBoard, options)` rather than using it themselves, so
- * "drop the board parameter" for those two means "call a standalone Hat".
+ * `core-018` owns `raspberrypi.hat` as a document-level composite, but `core-017` ran
+ * first and `PiTFT22`/`PiTFT24` both needed the expansion *then*: `pi-tft22.js:29` and
+ * `pi-tft24.js:61` each forward their `piMotherBoard` straight into
+ * `Hat(piMotherBoard, options)` rather than using it themselves, so "drop the board
+ * parameter" for those two means "call a standalone Hat".
  *
- * Per `TODO/core-017`'s own instruction, the expansion is built here rather than
- * blocking on `core-018`, and **`core-018` should register this builder rather than
- * re-porting `hat.js` from scratch**:
- *
- * ```js
- * // recipes/raspberrypi.hat.js
- * export function hat(params = {}) {
- *   const builder = createBuilder()
- *   addHat(builder, params)
- *   return builder.build()
- * }
- * // registry.js
- * 'raspberrypi.hat': composite(0, hat),
- * ```
- *
- * {@link addHat} already returns every part by name, so that wrapper is the whole of
- * it. `core-018`'s `hat-standoff.js` port can reuse {@link HAT_MM}'s hole table the
- * same way `PiTFT24`'s spacers do.
+ * Per `TODO/core-017`'s own instruction the expansion was built here rather than
+ * blocking on `core-018`, and `core-018` then registered {@link hat} — this module's
+ * own five-line wrapper around {@link addHat} — instead of re-porting `hat.js` from
+ * scratch. Nothing about the expansion changed when the op landed, so
+ * `raspberrypi.hat`, `raspberrypi.piTFT22` and `raspberrypi.piTFT24` are all the same
+ * geometry from the same call.
  *
  * ## The one thing this cannot reproduce
  *
@@ -43,8 +31,9 @@
  * @module core/kernel/recipes/raspberrypi.hat
  */
 
-import { chain, cuboidPart, cylinderPart, roundedCubePart } from './rpi-recipe-kit.js'
+import { chain, createBuilder, cuboidPart, cylinderPart, roundedCubePart } from './rpi-recipe-kit.js'
 
+/** @typedef {import('../registry.js').OpRecord} OpRecord */
 /** @typedef {import('./rpi-recipe-kit.js').Builder} Builder */
 /** @typedef {import('./rpi-recipe-kit.js').Part} Part */
 
@@ -135,4 +124,33 @@ export function addHat(_builder) {
     .snap(mb, 'z', 'outside+')
 
   return { mb, gpio, holes }
+}
+
+/**
+ * Expand a `raspberrypi.hat` document line into the op records that define it.
+ *
+ * Takes no parameters. V1's `Hat(pi, options)` has two and this port keeps neither:
+ * `pi` is the attachment `docs/decisions/composite-recipe-geometry.md` moves out to
+ * the user's own `group.snap`/`group.align`, and `options.hatHeight` only ever fed
+ * that attachment's final translate (`hat.js:68`). It survives as
+ * {@link HAT_MM.defaultHatHeightMm} because `PiTFT24` reuses the number as a spacer
+ * length, not because anything here reads it.
+ *
+ * The four mounting holes are emitted as **hidden** parts, matching V1's own
+ * `hat.add(hole, 'holeN', true, 'holes')`; see this module's header for why the board
+ * renders undrilled.
+ *
+ * @param {Record<string, any>} [params] Ignored; this hat has no variants.
+ * @returns {OpRecord[]} Op records in the same schema the document stores.
+ */
+export function hat(params = {}) {
+  void params
+  const builder = createBuilder()
+
+  const { mb, gpio, holes } = addHat(builder)
+  builder.place(mb, 'mb')
+  builder.place(gpio, 'gpio')
+  holes.forEach((hole, index) => builder.place(hole, `hole${index + 1}`, { hidden: true }))
+
+  return builder.build()
 }

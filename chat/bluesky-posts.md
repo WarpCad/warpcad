@@ -519,3 +519,17 @@ Built with Claude Code, reviewed by me.
 **Evidence:** 292 characters including the disclosure line → counted this session; "four Raspberry Pi display boards" → `raspberrypi.miniPiTFT`, `piTFT22`, `piTFT24`, `hyperPixel4Rectangular`, all four registered in `src/core/kernel/registry.js` in this commit; "556mm3 where 1596 was right" → measured this session against `@jscad/modeling` 2.13.0, a 3mm outward flare on a 20mm cube (analytic frustum volume (5/6)(400 + 4·529 + 676) = 1596mm3); "offset hands back the outline rotated one vertex" → `expansions.offset({delta: 3, corners: 'edge'})` on a 20mm square returns `[[13,-13],[13,13],[-13,13],[-13,-13]]` against a base of `[[-10,-10],[10,-10],[10,10],[-10,10]]`, printed this session; "extrudeFromSlices walls by index" → the convergence signature (556 → 1136 → 1381mm3 at 2/3/5 slices) measured this session, which is a twist rather than a fixed error
 **Disclosure:** Built with Claude Code, reviewed by me.
 **To Add:** repo URL once public
+
+---
+
+## 2026-09-16T23:28Z · core-018 — four accessory recipes, and a silent clamp
+
+Ported four Raspberry Pi accessories into WarpCad's kernel. Best find: the spacer asks jscad for a 3.1mm corner radius on a 6.2mm brace. Old CSG silently clamps that to 3.0. Modern jscad throws. Reproduce the clamp and the volume matches V1 to 12 digits.
+
+Built with Claude Code, reviewed by me.
+
+**Links:** [Repo](<repo-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** none — the post is at 295 characters including the disclosure, and no tag fits without cutting the finding itself
+**Evidence:** 295 characters including the disclosure line → counted this session; "four Raspberry Pi accessories" → `raspberrypi.activeCoolingFan`, `hat`, `hatStandoff`, `spacer`, all four registered in `src/core/kernel/registry.js` in this commit; "asks jscad for a 3.1mm corner radius on a 6.2mm brace" → `jscad-raspberrypi@62a8e3b` `src/spacer.js:82`, `Parts.Board(tri.C + 5.5, 6.2, 3.1, options.thickness)`; "old CSG silently clamps that to 3.0" → `@jscad/csg/src/api/primitives2d.js` `roundedRectangle`, `maxroundradius = Math.min(radius.x, radius.y); maxroundradius -= 0.1`, read this session; "modern jscad throws" → `@jscad/modeling` 2.13.0 rejects a roundRadius not strictly under half the shortest side, as does this repo's own `assertCornerRadiusFits` in `src/core/kernel/registry.js`; "matches V1 to 12 digits" → V1 execution fixture 496.94410833398206 mm³ against this port's 496.94410833398257 mm³, both measured this session
+**Disclosure:** Built with Claude Code, reviewed by me.
+**To Add:** repo URL once public; a render of the spacer's diagonal cross-brace would carry this one visually

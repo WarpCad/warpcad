@@ -75,6 +75,8 @@ export const inchToMm = (inches) => inches * 25.4
  * @property {Vec3Mm} offsetMm Accumulated placement.
  * @property {Geom3} geom Probe geometry, already placed. Discarded after expansion.
  * @property {{ angles: Vec3Mm, center: Vec3Mm }} [turn] Optional post-placement turn.
+ * @property {Vec3Mm} [postOffsetMm] Placement accumulated *after* {@link turnAboutZ},
+ *   emitted as a second translate on top of the rotation. See {@link move}.
  * @property {string} [name] Set by {@link place}.
  * @property {boolean} [hidden]
  * @property {boolean} [finalized] Internal: {@link Builder} has emitted its records.
@@ -209,9 +211,43 @@ export function tubePart(id, outerDiameterMm, innerDiameterMm, heightMm) {
 }
 
 /**
+ * V1's own silent clamp on a rounded rectangle's corner radius.
+ *
+ * `CAG.roundedRectangle` (`@jscad/csg/src/api/primitives2d.js`) does **not** reject a
+ * radius that is too large for the rectangle — it quietly shrinks it:
+ *
+ * ```js
+ * let maxroundradius = Math.min(radius.x, radius.y)   // half-extents, not sides
+ * maxroundradius -= 0.1
+ * roundradius = Math.min(roundradius, maxroundradius)
+ * roundradius = Math.max(0, roundradius)
+ * ```
+ *
+ * That 0.1 is a bare constant in upstream, not a tolerance derived from anything, and
+ * it is load-bearing for at least one real call site: `spacer.js:82` asks for a 3.1
+ * radius on a 6.2-wide brace and actually gets 3.0. Reproducing the clamp is the
+ * difference between matching V1's geometry and throwing, because both
+ * `@jscad/modeling` and this registry's own `assertCornerRadiusFits` reject a radius
+ * that is not strictly smaller than half the shortest side.
+ *
+ * @param {number} cornerRadiusMm As the V1 source spells it.
+ * @param {number} widthMm
+ * @param {number} heightMm
+ * @returns {number} The radius V1 would really have used.
+ */
+export function clampCornerRadius(cornerRadiusMm, widthMm, heightMm) {
+  return Math.max(0, Math.min(cornerRadiusMm, Math.min(widthMm, heightMm) / 2 - 0.1))
+}
+
+/**
  * V1's `Parts.RoundedCube(x, y, thickness, cornerRadius)` and `Parts.Board(width,
  * height, cornerRadius, thickness)` — the same solid, with the last two arguments
  * swapped. Minimum corner on the origin.
+ *
+ * The corner radius passes through {@link clampCornerRadius} first, because both V1
+ * factories build the profile with `CAG.roundedRectangle` and inherit its clamp. Every
+ * call site that predates `TODO/core-018` asks for a radius well inside the limit, so
+ * this changes nothing for them.
  *
  * @param {string} id
  * @param {number} widthMm
@@ -221,9 +257,10 @@ export function tubePart(id, outerDiameterMm, innerDiameterMm, heightMm) {
  * @returns {Part}
  */
 export function roundedCubePart(id, widthMm, heightMm, thicknessMm, cornerRadiusMm) {
+  const roundRadius = clampCornerRadius(cornerRadiusMm, widthMm, heightMm)
   const profile = primitives.roundedRectangle({
     size: [widthMm, heightMm],
-    roundRadius: cornerRadiusMm,
+    roundRadius,
     segments: SEGMENTS,
     center: [0, 0],
   })
@@ -232,7 +269,7 @@ export function roundedCubePart(id, widthMm, heightMm, thicknessMm, cornerRadius
       {
         id: `${id}.profile`,
         op: 'profile.roundedRectangle',
-        params: { size: [widthMm, heightMm], roundRadius: cornerRadiusMm, segments: SEGMENTS },
+        params: { size: [widthMm, heightMm], roundRadius, segments: SEGMENTS },
       },
       {
         id: `${id}.prism`,
@@ -248,6 +285,91 @@ export function roundedCubePart(id, widthMm, heightMm, thicknessMm, cornerRadius
 }
 
 /**
+ * V1's `Parts.BoardFrame(outerX, outerY, innerX, innerY, cornerRadius, thickness)` —
+ * a hollow rounded rectangle — emitted as **one `kit.boardFrame` record**, not as a
+ * re-port of its five.
+ *
+ * That op shipped in `TODO/core-012` and already makes exactly this shape, including
+ * V1's 2D-subtract-before-extrude ordering and its guards; `TODO/core-018` asks for it
+ * to be reused as a record rather than duplicated. A composite record nested inside a
+ * composite expansion needs nothing special from the fold — `evaluate` recurses, the
+ * inner fold's ids stay in the inner fold, and the `Group` it returns collapses to a
+ * solid the moment the next record consumes it.
+ *
+ * The probe geometry is still built here, because a record cannot be measured. It is
+ * the same construction `kit.boardFrame` emits, so what is duplicated is a
+ * measurement, not a definition: if the two ever disagree the spec's fixture diff
+ * fails rather than silently shifting the frame.
+ *
+ * `kit.boardFrame` centres its result on the origin (`kit.board.js`'s
+ * `centringVector`), so this part's natural offset is zero, unlike every corner-framed
+ * primitive above it.
+ *
+ * @param {string} id
+ * @param {number} outerWidthMm
+ * @param {number} outerHeightMm
+ * @param {number} innerWidthMm
+ * @param {number} innerHeightMm
+ * @param {number} cornerRadiusMm
+ * @param {number} thicknessMm
+ * @returns {Part}
+ */
+export function boardFramePart(
+  id,
+  outerWidthMm,
+  outerHeightMm,
+  innerWidthMm,
+  innerHeightMm,
+  cornerRadiusMm,
+  thicknessMm
+) {
+  const roundRadius = clampCornerRadius(cornerRadiusMm, innerWidthMm, innerHeightMm)
+  const outline = booleans.subtract(
+    primitives.roundedRectangle({
+      size: [outerWidthMm, outerHeightMm],
+      roundRadius,
+      segments: SEGMENTS,
+      center: [0, 0],
+    }),
+    primitives.roundedRectangle({
+      size: [innerWidthMm, innerHeightMm],
+      roundRadius,
+      segments: SEGMENTS,
+      center: [0, 0],
+    })
+  )
+  return makePart(id, {
+    baseRecords: [
+      {
+        id: `${id}.frame`,
+        op: 'kit.boardFrame',
+        params: {
+          outerWidth: outerWidthMm,
+          outerHeight: outerHeightMm,
+          innerWidth: innerWidthMm,
+          innerHeight: innerHeightMm,
+          cornerRadius: roundRadius,
+          thickness: thicknessMm,
+          segments: SEGMENTS,
+        },
+      },
+    ],
+    baseId: `${id}.frame`,
+    // `kit.boardFrame` centres its own result on the origin (`kit.board.js`'s
+    // `centringVector`), unlike every corner-framed primitive in this kit. So the
+    // probe has to be centred *here*, and the natural offset left at zero: baking a
+    // `-thickness / 2` into the offset instead would centre the probe correctly and
+    // then emit a record that centres the frame a second time, dropping it half a
+    // thickness below where it was measured.
+    base: transforms.translate(
+      [0, 0, -thicknessMm / 2],
+      extrusions.extrudeLinear({ height: thicknessMm }, /** @type {any} */ (outline))
+    ),
+    naturalOffsetMm: [0, 0, 0],
+  })
+}
+
+/**
  * Translate one or more parts together, keeping probe geometry and baked offset in step.
  *
  * @param {Part[]} parts
@@ -256,7 +378,18 @@ export function roundedCubePart(id, widthMm, heightMm, thicknessMm, cornerRadius
  */
 export function move(parts, vectorMm) {
   for (const part of parts) {
-    part.offsetMm = addVectors(part.offsetMm, vectorMm)
+    // A translate applied *after* a turn cannot be folded into `offsetMm`: the
+    // records put the translate before the rotation, and rotating a translated solid
+    // is not the same as translating a rotated one unless the vector happens to lie
+    // on the rotation axis. So a post-turn move accumulates separately and
+    // {@link createBuilder}'s `finalize` emits it as its own trailing translate.
+    // This is exactly V1's own call order in `spacer.js:82-85` —
+    // `Board(...).rotateZ(b).translate([dx, dy, 0]).snap(...)`.
+    if (part.turn) {
+      part.postOffsetMm = addVectors(part.postOffsetMm ?? [0, 0, 0], vectorMm)
+    } else {
+      part.offsetMm = addVectors(part.offsetMm, vectorMm)
+    }
     part.geom = transforms.translate(vectorMm, part.geom)
   }
 }
@@ -282,6 +415,17 @@ export function clonePart(id, part) {
     baseId: part.baseId.replace(part.id, id),
     offsetMm: [...part.offsetMm],
     geom: part.geom,
+    ...(part.turn
+      ? {
+          turn: {
+            angles: /** @type {Vec3Mm} */ ([...part.turn.angles]),
+            center: /** @type {Vec3Mm} */ ([...part.turn.center]),
+          },
+        }
+      : {}),
+    ...(part.postOffsetMm
+      ? { postOffsetMm: /** @type {Vec3Mm} */ ([...part.postOffsetMm]) }
+      : {}),
   }
 }
 
@@ -442,15 +586,27 @@ export function createBuilder() {
     records.push(translate)
     part.finalRecord = translate
     if (part.turn) {
+      const moved = part.postOffsetMm && part.postOffsetMm.some((value) => value !== 0)
       /** @type {OpRecord} */
       const rotate = {
-        id: part.id,
+        id: moved ? `${part.id}.turned` : part.id,
         op: 'transform.rotate',
         params: { angles: [...part.turn.angles], center: [...part.turn.center] },
         target: translateId,
       }
       records.push(rotate)
       part.finalRecord = rotate
+      if (moved) {
+        /** @type {OpRecord} */
+        const after = {
+          id: part.id,
+          op: 'transform.translate',
+          params: { vector: [.../** @type {Vec3Mm} */ (part.postOffsetMm)] },
+          target: `${part.id}.turned`,
+        }
+        records.push(after)
+        part.finalRecord = after
+      }
     }
     return part.id
   }

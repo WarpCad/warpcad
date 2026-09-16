@@ -6,8 +6,44 @@ priority: medium
 model: opus
 milestone: M4
 depends: [core-014]
-status: open
+status: done
 ---
+
+> **What actually shipped, and the three places this file's own Proposed fix was wrong.**
+> All four recipes landed as scoped, plus a V1 execution fixture this file's Testing
+> section said not to build ("No V1 execution fixture") — reversed for the fifth task
+> running, and it earned its keep immediately by catching two of the three errors below.
+>
+> 1. **`Parts.Board`'s corner radius is silently clamped, and `Spacer` depends on it.**
+>    `spacer.js:82` asks for a 3.1 radius on a 6.2-wide brace — exactly half its width.
+>    `CAG.roundedRectangle` does not reject that; it shrinks it to
+>    `min(halfWidth, halfHeight) - 0.1` = **3.0**. Ported literally, the recipe *throws*:
+>    `@jscad/modeling` and this registry's own `assertCornerRadiusFits` both require a
+>    radius strictly under half the shortest side. The clamp is now reproduced in the
+>    kit's `clampCornerRadius`, and with it the brace matches V1's volume to twelve
+>    significant figures (496.94410833398 against 496.94410833398).
+> 2. **`HatStandoff` takes its heights from neither table entry.** This file reads it as
+>    "one `boolean.union` over two parts from `core-014`'s `tables/rpi-parts.js`". True of
+>    the two *diameters* (6.2 and 2.8); false of the heights, which `hat-standoff.js:15-16`
+>    passes explicitly as `options.height` and `options.height + 3` — 10 and 13, against
+>    the table's own 1.5 and 4. Taking the table wholesale builds a standoff 8.5mm short
+>    that still looks like a standoff. Its spec now asserts the split, not just the result.
+> 3. **`Spacer`'s degenerate case does not fail the way this file predicted.** It asks for
+>    `gussetInside >= gussetOutside` to "throw the same way `kit.boardFrame` already throws
+>    on that condition (reuse, not reinvent, the guard)" — which is what shipped, and is
+>    the better behaviour, but V1 does *not* throw that way: its 2D subtraction empties the
+>    frame and `assertValidCSG` reports `parts:BoardFrame: invalid CSG: Empty mesh: no
+>    polygons`. Both fail; only one says why. Recorded in the spec so the divergence is
+>    deliberate rather than assumed identical.
+>
+> Two smaller deviations, both stated in the code: `Hat` was **registered, not re-ported**
+> (`core-017` had already shipped the standalone expansion as `recipes/raspberrypi.hat.js`,
+> exactly as this file's Goal anticipated), and the shared kit grew a **post-turn translate**
+> — V1's `Board(...).rotateZ(b).translate([dx,dy,0])` cannot fold its translate into the
+> pre-rotation offset, because the emitted records apply the translate *before* the rotate
+> and the two do not commute off the rotation axis. `mirroredY()` needed no mirror op: a
+> rounded rectangle reflected about `y = 0` is the same rectangle turned by the negated
+> angle, which is exact rather than an approximation and is held to that by the fixture.
 
 ## Goal
 

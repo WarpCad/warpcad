@@ -34,6 +34,21 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### core-018 — a broken Firefox toolchain, and two shapes no bounding box can judge (2026-09-16 23:28)
+
+Step 6 re-drove five acceptance scenarios and re-ran two closed findings' repros, and all four
+new recipes were evaluated through the real render bridge in both Chromium and WebKit (identical
+triangle counts, all-finite vertex data, no page errors). What is left here is one environment
+fault that needs a human on their own machine, and two judgments that are about whether a shape
+looks *right*, which V1 agreement cannot settle — the port can reproduce V1 exactly and V1 can
+still be a shape nobody wants to print.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | **Firefox will not launch in this environment at all** — `browserType.launch: Could not find profile folder`, failing all 276 firefox-project e2e tests. Confirmed pre-existing and unrelated to this task by reproducing it on a clean stashed tree at HEAD. Chromium and WebKit are unaffected (587 passed, 0 failed). Needs a human to decide whether the Playwright Firefox install is corrupt here only (`npx playwright install firefox`) or whether CI sees it too — until then, one of the three engines `CLAUDE.md` names as a real target is unverified for every task, not just this one. | Open | |
+| 2 | **Does the `Spacer`'s diagonal cross-brace look right, and is it printable?** Its geometry reproduces V1 to 0.000000 mm³ and its angle is asserted against closed-form trigonometry, so it is provably the shape V1 makes — but nobody has looked at a picture of one. Worth a glance specifically at where the two mirrored bars cross near the centre and at the 3.0mm-rounded ends (V1 asks for 3.1 and is silently clamped): a brace that is correct and still has a sliver or a near-tangent overlap there is a print problem, not a geometry problem. | Open | |
+| 3 | **Is the `hatStandoff`'s peg-through-pad the intended solid?** V1 unions a 2.8mm peg straddling z=0 with a 6.2mm pad, so the peg protrudes 1.5mm *both* above and below the pad rather than standing on it. That is faithfully ported and fixture-confirmed, but it means the part as built has a spigot on its underside; whether a real HAT standoff should be printed that way, or whether V1's shape assumes the underside gets cut by whatever it mounts into, is a call for someone who has handled one. | Open | |
+
 ### core-017 — one pre-existing rim-op limit, and a hidden-volume judgment call (2026-09-14 19:34)
 
 The geometry needs no hand-check and is deliberately not listed below: every part of all
