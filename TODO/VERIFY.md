@@ -51,8 +51,8 @@ green including its real Y-axis cut.
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | Bisect a cube on **Y** in the running app, drill into each half, and judge whether `negative` landing on the far side reads as a bug. If it does, that is a decision to diverge from V1 — file it as its own TODO rather than patching it here | Open | |
-| 2 | Read `docs/resize-bisect.md`'s new "a cut on **Y** names them the other way round" paragraph cold and judge whether it actually prevents the surprise, or just documents it after the fact | Open | |
+| 1 | Bisect a cube on **Y** in the running app, drill into each half, and judge whether `negative` landing on the far side reads as a bug. If it does, that is a decision to diverge from V1 — file it as its own TODO rather than patching it here | Issue | Decided without waiting for the hand-drive: the user judged it a real inconsistency at this task's own check-in (2026-09-17) and chose to diverge from V1 rather than keep it. Filed as `TODO/core-022-bisect-negative-always-min-side.md` |
+| 2 | Read `docs/resize-bisect.md`'s new "a cut on **Y** names them the other way round" paragraph cold and judge whether it actually prevents the surprise, or just documents it after the fact | N/A | Moot once `core-022` ships — that paragraph is removed rather than kept, since there's no longer a per-axis exception to explain |
 
 ### core-018 — a broken Firefox toolchain, and two shapes no bounding box can judge (2026-09-16 23:28)
 
