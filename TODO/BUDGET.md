@@ -210,3 +210,33 @@ typecheck clean, 848/848 unit, `e2e/resize-bisect-operation.e2e.js` green on bot
 `chromium-laptop` and `webkit-laptop` (12/12), and the "e2e spec is name-agnostic"
 claim this task's own file made was confirmed by reading the spec, not just trusted.
 No acceptance-scenario re-drive needed, same reasoning as `core-021`.
+
+At the check-in the user asked to work on the Bearing blocker directly ("do the bearing
+spec table") rather than recheck hourly or answer the OpenCascade.js question. Sourced a
+real DIN 625/ISO 15 deep-groove ball bearing table (608, 6000-6004, 6200-6204,
+6300-6304) via `WebSearch`/`WebFetch`, cross-checked against two independent published
+sources (igus and ISK/Be-cu), which agreed exactly on every value — presented to the
+user before scoping. Scoped as `core-023` (commit `e0ee671`), unblocking the roadmap's
+long-standing "unscoped — needs a spec table" Bearing row. User chose to continue the
+loop and run it immediately.
+
+| 2026-09-17 15:35 | 2026-09-17 15:48 | `core-023` | blocked — one remaining M4 row (edge-fillet) still needs the OpenCascade.js user decision; `core-023` was the only eligible row and is now done | no — M4 not fully ✅, but its only remaining row is blocked on that one input |
+
+Note on the row above: `hardware.bearing` registered (`d8463a8`, plus `478ac3e` for
+social drafts) as a one-record `primitive.tube` composite — the simplest of the four
+`hardware.*` recipes, no `fit`/conditional part, since there's no V1 source to mirror
+one from at all (`core-003` already confirmed `jscad-hardware` has no `Bearing`
+factory). The table-injection wiring turned out to live in `kernel/index.js`'s
+`DEFAULT_TABLES`, not `registry.js` — confirmed by reading rather than assumed, per the
+task's own flagged uncertainty. Volume sanity check (`608` built through the real fold
+at 64 segments) measured **2305.363mm³**, matching `core-003`'s own already-recorded
+spike figure exactly — strong evidence the table and tessellation assumptions haven't
+drifted, in place of the V1 fixture diff this recipe can't have. Independently
+re-verified by this loop: typecheck clean, 879/879 unit (+28), the bearing spec file's
+own 28 tests re-run directly, and the spec table's 16 values checked against this
+loop's own independently-sourced data — exact match on every row. No acceptance-scenario
+or closed-finding re-drive needed — kernel-only, no UI surface, same reasoning
+`core-010`/`core-011`/`core-012` gave for their own `hardware.*`/`kit.*` additions.
+
+**M4's last open row is now `edge-fillet`, blocked on the user's own OpenCascade.js
+fork decision** — nothing else remains for `/run-todos` to pick up.
