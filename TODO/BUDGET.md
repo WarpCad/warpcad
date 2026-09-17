@@ -150,3 +150,41 @@ by this loop before logging: typecheck clean, 826/826 unit, a spot-check of
 against a Bisect-produced group for the first time) both read as real, specific PASS
 reports, not boilerplate. The untracked `chat/linkedin-third-times-the-charm.md` draft
 was confirmed untouched throughout, per the user's implicit "don't touch that one."
+
+At the check-in, asked the user how to handle the three blocked M4 rows rather than
+silently scheduling an hourly recheck; they chose to resolve `core-021` by scoping it
+now (commit `45910f7`, `TODO/core-021-angled-bisect.md`) rather than answer the
+OpenCascade.js question or provide a Bearing spec table. Scoping found the roadmap
+row's own premise was too pessimistic: the angled cut reduces to a coordinate-transform
+composition of `core-019`'s existing straight-cut machinery, not new boolean geometry
+— confirmed by reading real V1 (`jscad-utils@3.2.0`) and `@jscad/csg` source rather than
+guessing. Kept `model: opus` per this project's convention for rotation-center/axis
+numerics, not because the technique itself is novel. The user then chose to continue
+the loop and run it immediately rather than stop for the day.
+
+| 2026-09-17 13:44 | 2026-09-17 13:56 | `core-021` | blocked — same two remaining M4 blockers as before (Bearing, edge-fillet), both still needing a user decision/data this loop cannot supply; `core-021` was the only eligible row and is now done | no — M4 not fully ✅, but its only remaining rows are both blocked on the same kind of input |
+
+Note on the row above: this is a real finding, not a routine port — worth reading in
+full before treating this row as routine bookkeeping. The angled-bisect implementation
+(`0c4d08d`, plus `2f764dc` for social drafts) landed exactly as scoped
+(coordinate-transform composition, no new boolean geometry), but its own new V1
+fixture cases exposed a **latent, already-shipped defect**: `core-019`'s straight
+`bisect` was wrong on the `y` axis specifically — V1 builds that one cut plane from a
+left-handed basis pair (`['X','Z']`, confirmed directly against
+`node_modules/jscad-utils/src/util.js:906-923` by this loop, not just trusted from the
+agent's report), so V1's own `negative` half is the **maximum**-side piece on `y` alone,
+opposite of `x`/`z`. `core-019`'s original fixture only covered `x`/`z`, so nothing
+measured it, and `group.spec.js` had encoded the wrong expectation since `core-019`
+shipped. Fixed in both the straight and angled paths via one `NEGATIVE_IS_MAX_SIDE`
+table, pinned by two new straight-`y` fixture cases. This is a **behavior change to
+already-shipped, user-reachable code** (a `y`-axis Bisect via `ui-028`'s popover now
+names its halves the other way round) — flagged explicitly in a new `TODO/VERIFY.md`
+entry as an open product judgment call (reproduce V1's quirk faithfully, which is what
+shipped, vs. diverge for least-surprise), not silently decided either way. Independently
+re-verified by this loop: typecheck clean, 848/848 unit (+22 from before), the vendored
+V1 source directly inspected to confirm the handedness claim, and
+`e2e/resize-bisect-operation.e2e.js` re-run green on both `chromium-laptop` and
+`webkit-laptop` (12/12), including its real Y-axis Bisect case. No acceptance-scenario
+re-drive was needed or attempted — this task has no UI surface of its own and doesn't
+change the two-part `Group` shape `ui-016`'s subsystem cares about, only which half
+carries which name, per the task's own Testing section.
