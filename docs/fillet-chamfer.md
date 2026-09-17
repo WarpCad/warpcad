@@ -105,6 +105,9 @@ creation parameters, not its current rounded-off silhouette.
 - [Precise placement: Snap and Align](snap-align.md) — the toolbar's other
   exact-count-gated pair (exactly two, rather than Fillet/Chamfer's exactly
   one), and the popover pattern Fillet/Chamfer's own popover reuses.
+- [Resizing and cutting a shape: Enlarge, Fit and Bisect](resize-bisect.md) —
+  the toolbar's other exactly-1-gated trio, reusing this pair's own popover
+  pattern a third time.
 - [The geometry kernel decision, and its fillet/chamfer addendum](decisions/geometry-kernel.md#addendum-todocore-003-filletchamfer-and-bearing-spiked) —
   the full technical reasoning behind the rim-only limitation.
 - [Selecting a shape, and reading its size](selection-and-inspector.md) — what

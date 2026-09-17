@@ -30,6 +30,10 @@ themselves won't have to move.
 - [Rounding or bevelling an edge: Fillet and Chamfer](fillet-chamfer.md) — the
   Operations toolbar's seventh and eighth buttons, which round or bevel the
   whole rim of one chosen face on a single selected shape.
+- [Resizing and cutting a shape: Enlarge, Fit and Bisect](resize-bisect.md) —
+  the Operations toolbar's ninth, tenth and eleventh buttons, which grow or
+  shrink a single selected shape, resize it to an exact size, or cut it into
+  two independently selectable parts.
 - [Moving around the 3D view](viewport-navigation.md) — orbit, pan, zoom, the
   orientation triad, touch gestures, and reading size off the grid.
 - [Sketch mode: drawing a line on the working plane](sketch-mode.md) — the

@@ -6,8 +6,63 @@ priority: medium
 model: sonnet
 milestone: M4
 depends: [render-001, core-019]
-status: open
+status: done
 ---
+
+> **Shipped matching this file's own spec closely — no deliberate deviations to
+> record, unlike `ui-027`'s retirement note.** Implementation (`OperationsToolbar.vue`'s
+> three new buttons/popovers plus `e2e/resize-bisect-operation.e2e.js`) was written in
+> an unlogged prior session and found already sitting uncommitted in the tree at the
+> start of this task's own run — see `TODO/BUDGET.md`'s note on the batch this was
+> picked up in. This retirement note covers what this run itself verified and added on
+> top of that implementation, having read the diff in full against this file's own
+> Interaction model and Testing sections rather than trusting the prior session's own
+> summary of it:
+>
+> 1. **The `exactOneDisabled`/`isExactOneOp` generalisation matches this file's own
+>    "reuse the mechanism, don't re-derive it" instruction exactly** — `ui-027`'s
+>    `filletChamferDisabled`/`isFilletChamferOp` were renamed and widened to cover all
+>    five exactly-1-gated buttons (Fillet, Chamfer, Enlarge, Fit, Bisect) rather than a
+>    third selection-count computed being bolted on beside them.
+> 2. **Fit's `0`-means-unchanged sentinel got the real UI affordance this file called
+>    for**, not a silent match to the kernel's own convention: fields default to the
+>    selected body's own current size (read from `documentStore.bodies`' pre-computed
+>    `bounds`, never raw kernel `geometry`), and Commit stays disabled via a frozen
+>    opened-value snapshot comparison rather than an all-zero check.
+> 3. **Bisect's offset field ships with no default**, exactly as this file's §3 asked
+>    — Commit stays disabled until a real value is typed.
+> 4. **All three commit as `supersedes`-based, unnamed records**, the same convention
+>    `ui-027` established and this file's own Proposed fix called for — including
+>    Bisect, whose result is a two-part `Group` rather than another solid. This is the
+>    first `supersedes` record in this codebase to change `KernelGeometry` *kind*
+>    rather than just value, and this task's own Testing section flagged it as an
+>    unexercised integration risk to verify by hand rather than assume — see the
+>    hand-drive result below, which is genuinely new coverage, not a formality.
+>
+> **What this run verified beyond the implementation it inherited:**
+>
+> - Full viewport×engine matrix: **8 of 9 cells green** (`chromium`/`webkit` ×
+>   phone/tablet/laptop, 36/36 tests total, including the `chromium-laptop` cell the
+>   handoff had already confirmed). The 3 `firefox-*` cells fail at browser **launch**
+>   (`Could not find profile folder`) — confirmed to be a pre-existing sandbox defect,
+>   not a code regression, by reproducing the identical failure against the
+>   already-shipped `e2e/fillet-chamfer-operation.e2e.js`. Logged to
+>   `TROUBLESHOOTING.md` (2026-09-17 entry) rather than guessed at, silently skipped, or
+>   left as a one-line aside the way `core-018`'s own Completion Log row had left it.
+> - `docs/resize-bisect.md` written with both worked examples this file's
+>   Documentation section specified (Enlarge growing a cube 10mm on Z centred on its
+>   own middle; Bisect cutting a cylinder into `negative`/`positive` and drilling into
+>   one via the breadcrumb), cross-linked from `docs/snap-align.md` and
+>   `docs/fillet-chamfer.md`, and added to `docs/README.md`'s sidebar list.
+> - `TODO/ACCEPTANCE.md` scenario 1 re-driven by hand against the real dev server:
+>   **PASS** (see that file's own re-check entry, dated 2026-09-17).
+> - `ui-016`'s original closed-finding repro re-run **specifically against a
+>   Bisect-produced group** for the first time (previously only ever exercised against
+>   a `consumes`-produced one, per this file's own "extends ui-016's subsystem" note):
+>   **PASS** — the whole two-part group holds the gizmo after commit, drilling in
+>   detaches it and reads the `negative` half's own 20mm Y-dimension (not the whole
+>   40mm), and stepping back out via the breadcrumb reattaches the gizmo and restores
+>   the full 40mm reading.
 
 ## Goal
 

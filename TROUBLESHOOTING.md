@@ -79,6 +79,71 @@ that starts naming them needs the `add()` fix in the same diff.
    belongs with a task that has a reason to call `combine()` and can therefore test it
    against a real expectation.
 
+---
+
+### 2026-09-17 — Firefox Playwright projects can't launch at all in this sandbox: "Could not find profile folder"
+
+**What happened:**
+
+While running `TODO/ui-028`'s full 9-way engine × viewport matrix, every `firefox-*`
+project (`firefox-phone`, `firefox-tablet`, `firefox-laptop`) failed **at browser
+launch**, before any page loaded or any assertion ran:
+
+```
+<launching> .../firefox/Nightly.app/Contents/MacOS/firefox -no-remote -headless -profile ... -juggler-pipe -silent
+[err] *** You are running in headless mode.
+[err] Could not find profile folder.
+<process did exit: exitCode=1, signal=null>
+Error: browserType.launch: Failed to launch the browser process.
+```
+
+`npx playwright install firefox` completes with no output (it believes the browser is
+already installed) and does not fix it.
+
+**Why it happened:**
+
+Not diagnosed further than "the cached Firefox build under
+`~/Library/Caches/ms-playwright/firefox-*` in this sandbox is broken" — this is a
+sandbox/environment defect, not a Playwright config or test-writing mistake in this
+repo. Confirmed by re-running an already-shipped, already-green spec
+(`e2e/fillet-chamfer-operation.e2e.js`, from `TODO/done/ui-027-...md`) against
+`firefox-laptop` alone: it fails identically, with the same "Could not find profile
+folder" message, for a spec that has nothing to do with `ui-028`.
+
+**Why this matters for every future task in this environment:**
+
+Any task whose Testing section calls for the full Chromium/Firefox/WebKit matrix
+(`CLAUDE.md`'s Browser Support section) will see this same launch-time failure on all
+three `firefox-*` projects, for reasons unrelated to whatever that task actually
+changed. Don't spend time trying to fix the code, and don't treat it as a code
+regression — confirm it against an unrelated, already-shipped spec first (as above) to
+tell the two apart quickly, then report the other 6 (or, on a non-viewport-specific
+spec, other 2) matrix cells' results and name Firefox as environment-blocked rather
+than fixed or skipped.
+
+**Fix / Prevention:**
+
+Not fixed here (out of scope for a UI task, and the fix is sandbox/cache
+reinstallation, not a repo change). If this needs to be unblocked for real: try
+removing `~/Library/Caches/ms-playwright/firefox-*` entirely and re-running `npx
+playwright install firefox` (a no-op reinstall over a corrupted cache may not
+re-fetch), or run the Firefox projects in CI/a different machine instead of this
+sandbox until its cache is confirmed healthy.
+
+**Steps taken to resolve:**
+
+1. Ran the full matrix for `e2e/resize-bisect-operation.e2e.js`; all 8 non-Firefox
+   projects passed (30/30 tests), all 3 Firefox projects failed at launch (18/18
+   launch failures, 0 reaching a page).
+2. Ran `npx playwright install firefox` — no-op, failure unchanged.
+3. Re-ran the same 3 Firefox projects against `e2e/fillet-chamfer-operation.e2e.js`
+   (a different, already-shipped, already-green spec) to isolate repo-code vs.
+   environment — identical failure, confirming this is environment-wide, not specific
+   to the new spec or the new code.
+4. Logged here rather than blocking `ui-028` on it, since 8 of 9 matrix cells are
+   green and the 9th fails identically on code that shipped and passed review days
+   earlier.
+
 <!-- Template for new entries:
 
 ### YYYY-MM-DD — [Short title describing the discovery]

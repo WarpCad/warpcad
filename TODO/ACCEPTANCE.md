@@ -707,6 +707,47 @@ regression is absent. Clicking empty grid cleared the selection; clicking each s
 selected only that one (`cuboid-1`, then `cylinder-2`, never both), with the gizmo and all three
 dimension lines retargeting. Console clean, no page errors.
 
+**Re-checked**: 2026-09-17 13:26 — PASS (`ui-028`). Re-driven because this task adds a
+third `supersedes`-based commit path to `OperationsToolbar.vue` (after `ui-026`'s and
+`ui-027`'s), and because Bisect's own result is the first `supersedes` record in this
+codebase to change `KernelGeometry` *kind* — a solid becoming a two-part `Group` —
+rather than just its value, which is exactly the class of change this scenario's named
+regression ("placing a second body hides or replaces the first") lives closest to.
+Hand-driven via a Playwright-driven Node script against the real dev server (no
+`chromium-cli` in this environment, same substitution `ui-015`/`ui-024`/`ui-027`/`ui-029`
+each used) at laptop 1440×900 in Chromium, with wandering, jittery drag paths.
+
+- A Cube then a Cylinder dragged in on deliberately wandering paths: **both stayed
+  visible** (`data-body-count` 1 → 2), reported as `cuboid-1` (64000 mm³) and
+  `cylinder-2` (62428.903 mm³). The cube's own volume was unchanged after the second
+  drop (still 64000 mm³ in the post-cylinder listing) — this drive read body
+  id/op/name/volume rather than millimetre centres, so volume-invariance is the
+  no-cross-talk evidence here rather than a byte-identical position, stated explicitly
+  rather than implied.
+- Clicking empty grid cleared the selection (`data-selected-count` → `0`); clicking
+  the cube selected `cuboid-1` alone (count `1`); clicking the cylinder moved the
+  highlight to `cylinder-2` alone (count `1`) — never both at once.
+- Console clean (only the Vite HMR connect log and benign headless-GL "GPU stall due
+  to ReadPixels" performance notices, not an application error).
+
+**This task's own new integration case, driven separately and specifically** (its
+Testing section names this as an unexercised risk: a `supersedes` record that changes
+`KernelGeometry` *kind*, not just value): a fresh Cube (40×40×40, 64000 mm³) placed and
+selected, Bisect opened, axis **Y**, offset **20**, committed. `data-body-count` stayed
+at **1** (not 2) and the id stayed `cuboid-1` — `supersedes`, not `consumes`. Clicking
+the body once kept the whole two-part group selected with the gizmo attached and the Y
+dimension line reading the full **40mm**. Clicking again at the same point drilled in:
+the gizmo detached (count `0`), the Inspector breadcrumb read `Cube 1 > negative`, and
+the Y dimension line now read **20mm** — the drilled-in half's own size, not the whole
+group's. Clicking the breadcrumb's group segment stepped back out: breadcrumb gone,
+gizmo reattached (count `1`), selected id back to `cuboid-1`, and the Y dimension line
+back to the full **40mm** — confirming `ui-016`'s pick-depth/breadcrumb contract holds
+against a `supersedes`-produced group exactly as it already did against a `consumes`-
+produced one. Screenshots taken at the whole-group-selected, drilled-in, and
+stepped-back-out states confirm this visually (a real 40×40×40 cube, then the same
+cube shown drilled into its lower `negative` half at 40×20×40, per the Inspector's own
+Size row).
+
 ### 2. Hardware property edit
 
 **Steps**:

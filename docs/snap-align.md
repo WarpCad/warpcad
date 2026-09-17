@@ -109,6 +109,9 @@ still selects only that one.
 - [Rounding or bevelling an edge: Fillet and Chamfer](fillet-chamfer.md) — the
   toolbar's other exact-count-gated pair (exactly one shape, rather than Snap/
   Align's exactly two), reusing the same popover pattern.
+- [Resizing and cutting a shape: Enlarge, Fit and Bisect](resize-bisect.md) —
+  another exactly-1-gated trio, for changing one shape's size or cutting it in
+  two rather than moving it against a second shape.
 - [Placing a shape](primitive-placement.md) — drag-time snap guides, the
   live-alignment mechanism Snap and Align's own precise, computed positioning
   is the after-the-fact counterpart to.
