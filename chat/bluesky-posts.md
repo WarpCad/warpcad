@@ -533,3 +533,18 @@ Built with Claude Code, reviewed by me.
 **Evidence:** 295 characters including the disclosure line → counted this session; "four Raspberry Pi accessories" → `raspberrypi.activeCoolingFan`, `hat`, `hatStandoff`, `spacer`, all four registered in `src/core/kernel/registry.js` in this commit; "asks jscad for a 3.1mm corner radius on a 6.2mm brace" → `jscad-raspberrypi@62a8e3b` `src/spacer.js:82`, `Parts.Board(tri.C + 5.5, 6.2, 3.1, options.thickness)`; "old CSG silently clamps that to 3.0" → `@jscad/csg/src/api/primitives2d.js` `roundedRectangle`, `maxroundradius = Math.min(radius.x, radius.y); maxroundradius -= 0.1`, read this session; "modern jscad throws" → `@jscad/modeling` 2.13.0 rejects a roundRadius not strictly under half the shortest side, as does this repo's own `assertCornerRadiusFits` in `src/core/kernel/registry.js`; "matches V1 to 12 digits" → V1 execution fixture 496.94410833398206 mm³ against this port's 496.94410833398257 mm³, both measured this session
 **Disclosure:** Built with Claude Code, reviewed by me.
 **To Add:** repo URL once public; a render of the spacer's diagonal cross-brace would carry this one visually
+
+## 2026-09-17T13:33Z · ui-028 — Enlarge, Fit, Bisect: a solid becomes a group mid-lineage
+
+**Post:** WarpCad's Operations toolbar just got Enlarge, Fit and Bisect: grow/shrink a solid, resize to an exact target, or cut it into two selectable parts along an axis.
+
+Bisect turns a solid into a group mid-lineage, proven end to end for the first time.
+
+#CAD #WebGL
+Built with Claude Code, reviewed by me.
+
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL
+**Evidence:** Three new controls, `supersedes`-based unnamed records → `src/components/viewport/OperationsToolbar.vue` `commitResize` (this commit), pinned by `e2e/resize-bisect-operation.e2e.js` (6/6 on chromium-laptop, this session); Bisect is the first `supersedes` record to change `KernelGeometry` kind from solid to `Group` → `TODO/done/ui-028-resize-bisect-controls.md`'s own Proposed fix text, flagging it as previously unexercised; full matrix 8/9 cells green (`chromium`/`webkit` x phone/tablet/laptop, 36/36 tests), Firefox blocked at browser launch and confirmed pre-existing by reproducing against the already-shipped `e2e/fillet-chamfer-operation.e2e.js` → this session's `npx playwright test` output, logged in `TROUBLESHOOTING.md`'s 2026-09-17 entry; hand-driven `TODO/ACCEPTANCE.md` scenario 1 and `ui-016`'s grouped-body repro against Bisect's own output, both PASS → this session's Playwright-driven Node script output and `TODO/ACCEPTANCE.md`'s 2026-09-17 13:26 re-check entry
+**Disclosure:** Built with Claude Code, reviewed by me.
+**To Add:** repo URL once public, docs site URL once it exists
