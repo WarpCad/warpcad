@@ -1,5 +1,24 @@
 # LinkedIn Posts
 
+## [2026-09-17T13:56:00Z] — The test that disagreed with my code, and was right
+
+**Post:** Shipped angled bisect in WarpCad — cutting a solid along a plane that's tilted away from perpendicular, rather than square to an axis. The roadmap had flagged it as the risky one: "needs a rotated cut-plane construction the geometry kernel has no direct primitive for."
+
+It needed no such thing. For any rigid motion T, cutting a solid with a tilted plane is the same as rotating the solid the other way, cutting it with the *untilted* plane you already have, and rotating both halves back. The tilted cut is the straight cut in a different coordinate frame. That turned a feature I'd scoped as new geometry into two rotations wrapped around code that already existed and was already tested.
+
+The part worth writing down is what happened next. This project checks its geometry ports by running the original 2015-era library under Node and recording what it actually produces, then diffing against it — measured output, not a reading of the source. Ten new cases went in. Three failed, all of them cuts on the Y axis, all off by an entire half.
+
+My first instinct was that my new fixtures were wrong. They weren't. The original library builds its cut plane from a pair of basis vectors — right-handed for X and Z, but left-handed for Y. So on that one axis it keeps the opposite piece, and the two halves come back under swapped names. My port had assumed all three axes behaved alike, and the previous task's fixtures happened to cover only X and Z. The bug had been sitting there, with a passing test asserting the wrong number.
+
+Two things I'd have got wrong by reasoning instead of measuring: that, and the tolerance. I'd written into the spec that two extra rotations would cost precision and the comparison would need loosening. Measured, the worst error was 4.5e-10 mm — below the resolution of my own fixture file. I deleted the caveat and wrote the number.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #ComputationalGeometry #SoftwareEngineering
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** Transform composition → `bisect` in `src/core/kernel/group.js` (turn by −angle, existing `cutHalfSpaces`, turn back); Y-axis defect → V1's `util.normalVector` basis pairs `['Y','Z']`/`['X','Y']` vs `['X','Z']`, now `NEGATIVE_IS_MAX_SIDE`, pinned by two new straight-y cases in `scripts/generate-v1-modify-fixture.cjs`; tolerance → worst bounds residual 4.5e-10 mm across all 10 angled fixture cases, measured this session; suite green → 848 unit tests (+22), `e2e/resize-bisect-operation.e2e.js` green on chromium-laptop
+**To Add:** repo URL once public, docs site URL once it exists
+
 ## [2026-09-11T20:02:00Z] — Clicking into a group: the feature that turned out to live in the render path
 
 **Post:** Shipped pick depth in WarpCad: once a group is selected, clicking again on one of its members narrows the selection to just that part, with a breadcrumb — "Group 1 ▸ Cube 1" — so the change in depth is visible rather than a silent field swap.

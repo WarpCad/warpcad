@@ -1,5 +1,24 @@
 # BlueSky Posts
 
+## [2026-09-17T13:56:00Z] — The test that disagreed with my code, and was right
+
+**Post:** Shipped angled bisect in WarpCad — cutting a solid on a tilted plane. Roadmap called it the risky one: "needs a rotated cut-plane construction the kernel has no primitive for."
+
+It didn't. Cutting with a tilted plane = rotate the solid the other way, cut with the flat plane you already have, rotate both halves back. New feature, no new geometry.
+
+Then the fixtures — real output from the 2015 library, recorded and diffed — failed three cases, all on Y, all off by a whole half. I assumed my new fixtures were wrong. They weren't: the old library builds that one axis's cut plane from a left-handed basis pair, so it keeps the opposite piece. My port had assumed all three axes matched, and the previous task's fixtures only covered X and Z. A passing test had been asserting the wrong number the whole time.
+
+Also wrong: my own note predicting the extra rotations would cost precision. Worst error, measured, was 4.5e-10 mm.
+
+Built with Claude Code, reviewed by me.
+
+#CAD #ComputationalGeometry #OpenSource
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #ComputationalGeometry #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** `cut(S, T·P) = T(cut(T⁻¹S, P))` → `bisect` in `src/core/kernel/group.js`; Y defect → `NEGATIVE_IS_MAX_SIDE`, two new straight-y fixture cases; 4.5e-10 mm → worst residual across 10 angled cases; 848 unit tests green (+22), bisect e2e green on chromium-laptop
+**To Add:** repo URL once public, docs site URL once it exists
+
 ## [2026-09-11T20:02:00Z] — Clicking into a group: the feature that turned out to live in the render path
 
 **Post:** WarpCad can now click *into* a group: select it once, click a member again, and the selection narrows to that part — breadcrumb, its own dimensions, its own params.
