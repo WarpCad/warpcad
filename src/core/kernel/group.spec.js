@@ -315,6 +315,37 @@ const centreOfBounds = (bounds) => [
  * @param {string} label
  * @param {number} [digits]
  */
+/**
+ * Which fixture-measured half a bisect fixture entry's own `parts.negative` /
+ * `parts.positive` should be compared against, under this port's TODO/core-022
+ * naming (`negative` always the minimum-side half, on every axis).
+ *
+ * The fixture is real, measured V1 output, labeled with *V1's own* naming — and V1
+ * names the y-axis halves the opposite way round from x/z (TODO/core-021). This
+ * port no longer reproduces that quirk, so for a `y`-axis case this port's
+ * `negative` corresponds to the fixture's measured `positive` (V1's min-side half,
+ * which V1 itself called `positive` on y alone), and vice versa. `x`/`z` fixture
+ * entries need no swap — V1's naming already agrees with this port's on those axes.
+ *
+ * @param {string} axis
+ * @param {Record<string, { bounds: number[][] }>} fixtureParts
+ * @returns {Record<string, { bounds: number[][] }>}
+ */
+const expectedPartsFor = (axis, fixtureParts) =>
+  axis === 'y'
+    ? { negative: fixtureParts.positive, positive: fixtureParts.negative }
+    : fixtureParts
+
+/**
+ * Assert a V3 solid has V1's measured size and centre. Position is compared as the
+ * bounding-box centre rather than raw min/max so a failure reads as "wrong size" or
+ * "wrong place" instead of four correlated bound failures.
+ *
+ * @param {Geom3} actual
+ * @param {{ bounds: number[][] }} expected A fixture entry's `input`/`result`/part.
+ * @param {string} label
+ * @param {number} [digits]
+ */
 function expectMatchesV1(actual, expected, label, digits = MM_TOLERANCE) {
   const actualBounds = boundsOf(actual)
   const expectedSize = sizeOfBounds(expected.bounds)
@@ -478,9 +509,13 @@ describe('bisect', () => {
   const offsetOf = (args) => (args[1] === '-0' ? -0 : args[1])
 
   it.each(v1Reference.bisect)('matches V1: $label', (entry) => {
-    const halves = bisect(cube(), String(entry.args[0]), offsetOf(entry.args))
+    const axis = String(entry.args[0])
+    const halves = bisect(cube(), axis, offsetOf(entry.args))
     expect(halves.names).toEqual(entry.names)
-    const expectedParts = /** @type {Record<string, { bounds: number[][] }>} */ (entry.parts)
+    const expectedParts = expectedPartsFor(
+      axis,
+      /** @type {Record<string, { bounds: number[][] }>} */ (entry.parts)
+    )
     for (const part of entry.names) {
       expectMatchesV1(halves.parts[part], expectedParts[part], part, MM_BOOLEAN_TOLERANCE)
     }
@@ -529,8 +564,7 @@ describe('bisect', () => {
 
   it('cuts on any named axis and rejects anything else', () => {
     expect(sizeOf(bisect(cube(), 'x', 3).parts.negative)[0]).toBeCloseTo(3, 6)
-    // The y axis names its halves the other way round — see the dedicated case below.
-    expect(sizeOf(bisect(cube(), 'y', 3).parts.positive)[1]).toBeCloseTo(3, 6)
+    expect(sizeOf(bisect(cube(), 'y', 3).parts.negative)[1]).toBeCloseTo(3, 6)
     expect(() => bisect(cube(), 'w', 1)).toThrow(/bisect: unknown axis/)
     expect(() => bisect(cube(), 'z', Number.NaN)).toThrow(/finite/)
   })
@@ -542,18 +576,25 @@ describe('bisect', () => {
     expect(sizeOf(halves.parts.negative)[2]).toBeCloseTo(2, 6)
   })
 
-  it('puts negative on the max side for a y cut, the min side for x and z (TODO/core-021)', () => {
-    // Measured, and genuinely surprising: V1 builds its cut plane from
-    // `util.normalVector(axis).orthoNormalCartesian`, which is `['Y','Z']` for x and
-    // `['X','Y']` for z — both right-handed, normal `+x` / `+z` — but `['X','Z']` for
-    // y, a *left*-handed pair whose normal is `−y`. So a y cut retains the opposite
-    // half, and V1's `negative` is the maximum-side piece on that one axis alone.
-    // core-019's straight port assumed min-side for all three; the straight fixture
-    // only covered x and z, so nothing caught it until this task's angled y cases.
-    expect(sizeOf(bisect(cube(), 'x', 3).parts.negative)[0]).toBeCloseTo(3, 6)
-    expect(sizeOf(bisect(cube(), 'z', 3).parts.negative)[2]).toBeCloseTo(3, 6)
-    expect(sizeOf(bisect(cube(), 'y', 3).parts.negative)[1]).toBeCloseTo(7, 6)
-    expect(sizeOf(bisect(cube(), 'y', 3).parts.positive)[1]).toBeCloseTo(3, 6)
+  it('puts negative on the minimum side on every axis, with no per-axis exception (TODO/core-022)', () => {
+    // TODO/core-021 measured that V1 itself names the y-axis halves the opposite way
+    // round from x/z (V1's cut-plane basis is left-handed for y alone). TODO/core-022
+    // is a deliberate, user-decided divergence from that V1 quirk, not a reversion of
+    // core-021's own (correct) finding about what V1 does: this port's `negative`
+    // always means the minimum-side half and `positive` the maximum-side half, on
+    // every axis, with no per-axis exception. Asserted directly on the returned
+    // group's own bounds, not merely inferred from size or from the fixture.
+    const axisIndex = { x: 0, y: 1, z: 2 }
+    for (const axis of /** @type {const} */ (['x', 'y', 'z'])) {
+      const halves = bisect(cube(), axis, 3)
+      const i = axisIndex[axis]
+      const negativeBounds = boundsOf(halves.parts.negative)
+      const positiveBounds = boundsOf(halves.parts.positive)
+      expect(negativeBounds[1][i], `${axis}: negative's far bound stays <= positive's near bound`)
+        .toBeLessThanOrEqual(positiveBounds[0][i] + 1e-6)
+      expect(sizeOf(halves.parts.negative)[i], `${axis}: negative is the 3mm min-side piece`).toBeCloseTo(3, 6)
+      expect(sizeOf(halves.parts.positive)[i], `${axis}: positive is the 7mm max-side piece`).toBeCloseTo(7, 6)
+    }
   })
 })
 
@@ -608,7 +649,10 @@ describe('bisect, angled', () => {
       rotateOffset
     )
     expect(halves.names).toEqual(entry.names)
-    const expectedParts = /** @type {Record<string, { bounds: number[][] }>} */ (entry.parts)
+    const expectedParts = expectedPartsFor(
+      String(axis),
+      /** @type {Record<string, { bounds: number[][] }>} */ (entry.parts)
+    )
     for (const part of entry.names) {
       expectMatchesV1(halves.parts[part], expectedParts[part], part, MM_ANGLED_TOLERANCE)
     }

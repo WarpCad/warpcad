@@ -823,28 +823,6 @@ function cutHalfSpaces(geometry, axisIndex, cutMm) {
 }
 
 /**
- * Which cut axes name their **maximum**-side half `negative` (TODO/core-021).
- *
- * V1 builds its cut plane from `util.normalVector(axis).orthoNormalCartesian`, a pair
- * of cartesian basis letters: `['Y','Z']` for x and `['X','Y']` for z, both
- * right-handed, so the plane normal comes out `+x` / `+z` and `cutByPlane` keeps the
- * minimum side as `negative`. For y it is `['X','Z']` — a *left*-handed pair, whose
- * normal is `−y` — so a y cut retains the opposite half and V1's `negative` is the
- * maximum-side piece on that one axis alone.
- *
- * Almost certainly an oversight in V1 rather than a design decision, but it is
- * measured, shipped behaviour that real `.bisect('y', ...)` call sites were written
- * against, so it is reproduced rather than tidied — the same call the rest of this
- * module makes. `core-019`'s port assumed the minimum side for all three axes and its
- * fixture happened to cover only x and z, so nothing caught this until `core-021`'s
- * angled y cases disagreed with measured V1 by a whole half. Pinned now by fixture
- * cases on both the straight and angled forms.
- *
- * @type {Readonly<Record<string, boolean>>}
- */
-const NEGATIVE_IS_MAX_SIDE = Object.freeze({ x: false, y: true, z: false })
-
-/**
  * Which world axis the cut plane tilts about when `rotateAxis` is omitted, per cut
  * axis. V1's own table, verbatim.
  *
@@ -910,10 +888,14 @@ const DEFAULT_ROTATE_AXIS = Object.freeze({ x: 'y', y: 'x', z: 'x' })
  * header comment, and `__fixtures__/modify.v1-reference.json`):
  *
  * - **`negative` is the half on the axis's minimum side; `positive` is the maximum
- *   side.** V1 builds them through `cutByPlane`, whose retained-side convention lives
- *   in `@jscad/csg` — so its source reads, misleadingly, as though the names went the
- *   other way. Measured: a 10 mm cube cut on `z` at offset 2 puts the **2 mm** piece in
- *   `negative` and the **8 mm** piece in `positive`.
+ *   side — on every axis, with no exception.** V1 itself diverges on `y` (its cut-plane
+ *   basis is left-handed there, making V1's own `negative` the maximum-side half on
+ *   that one axis alone — see `TODO/done/core-021-*.md`); this port deliberately does
+ *   not reproduce that quirk (`TODO/done/core-022-*.md`, decided by the user
+ *   2026-09-17), on the grounds that a human driving the app has no reason to expect
+ *   one axis to behave differently from the other two. Measured: a 10 mm cube cut on
+ *   `z` at offset 2 puts the **2 mm** piece in `negative` and the **8 mm** piece in
+ *   `positive`; the same holds on `y`.
  * - **A positive offset measures from the minimum face; a negative one from the
  *   maximum face**, so `offset: 2` and `offset: -2` on that cube are mirror images.
  *   An **omitted** offset cuts at the centre — but `0` does not: it cuts at the minimum
@@ -960,15 +942,13 @@ export function bisect(value, axis, offsetMm, angleDeg, rotateAxis, rotateOffset
   const cutMm = resolveAxisPositionMm(min, max, size, index, offsetMm)
 
   /**
-   * Name the two halves the way V1 does for this axis. See
-   * {@link NEGATIVE_IS_MAX_SIDE} for why `y` is not like the other two.
+   * Name the two halves: `negative` is always the minimum-side half, `positive` the
+   * maximum-side half, on every axis (`TODO/done/core-022-*.md`).
    *
    * @param {{ lower: Geom3, upper: Geom3 }} halves
    */
-  const asGroup = ({ lower, upper }) => {
-    const [negative, positive] = NEGATIVE_IS_MAX_SIDE[axis] ? [upper, lower] : [lower, upper]
-    return add(add(createGroup('bisect'), negative, 'negative'), positive, 'positive')
-  }
+  const asGroup = ({ lower, upper }) =>
+    add(add(createGroup('bisect'), lower, 'negative'), upper, 'positive')
 
   if (angleDeg !== undefined && angleDeg !== null && !Number.isFinite(angleDeg)) {
     throw new Error(`bisect: angle must be a finite degree value, got ${angleDeg}`)

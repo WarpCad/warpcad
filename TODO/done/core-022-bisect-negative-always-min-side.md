@@ -6,8 +6,53 @@ priority: medium
 model: sonnet
 milestone: M4
 depends: [core-021]
-status: open
+status: done
 ---
+
+> **What actually shipped.** Exactly the Proposed fix below, no scope changes.
+> `NEGATIVE_IS_MAX_SIDE` and its consulting branch in `asGroup` are gone;
+> `asGroup` now unconditionally returns `{ negative: lower, positive: upper }`
+> for both the straight and angled cut paths. `bisect`'s own doc comment lost
+> the "which cut axes name their maximum-side half `negative`" section and now
+> states the min-side/max-side convention as holding "on every axis, with no
+> exception," citing this task and `core-021` for why `y` used to differ and
+> why that's now a deliberate divergence rather than an oversight left in.
+>
+> `group.spec.js` got a new `expectedPartsFor(axis, fixtureParts)` helper: for
+> `y`-axis fixture cases it swaps which of the fixture's own measured
+> `negative`/`positive` halves this port's `negative`/`positive` are expected
+> to match (the fixture itself — real, measured V1 output — is untouched, per
+> the TODO's own instruction not to regenerate it). Both `it.each` blocks
+> (`v1Reference.bisect`, `v1Reference.bisectAngled`) route through it now. The
+> two direct `y`-specific assertions from `core-021` flipped back to
+> min-side-is-`negative` (`bisect(cube(), 'y', 3).parts.negative` is the 3mm
+> piece, `.positive` the 7mm piece — the same shape as `x`/`z`, not a special
+> case). The old dedicated "puts negative on the max side for a y cut" test was
+> replaced outright with a new contract test that asserts, for each of
+> `x`/`y`/`z`, that `negative`'s bounds sit entirely on the minimum side of
+> `positive`'s bounds along the cut axis — checked on real geometry, not
+> inferred from size or the fixture.
+>
+> `docs/resize-bisect.md`'s "a cut on Y names them the other way round" caveat
+> paragraph is deleted; the surrounding prose now just says `negative` is
+> always the lower side, positive the higher, on every axis including Y.
+>
+> Full unit suite (848 tests, 42 files) and typecheck both green.
+> `e2e/resize-bisect-operation.e2e.js` re-run on `chromium-laptop`, confirmed
+> genuinely name-agnostic as claimed (`expect(['negative','positive']).toContain(partName)`,
+> no dependency on which physical half gets which name) — 6/6 green, no spec
+> changes needed. Full `npm run test:e2e:headless` also run: all Chromium and
+> WebKit projects green (623 passed); the three `firefox-*` projects failed at
+> browser launch, a pre-existing sandbox defect logged in `TROUBLESHOOTING.md`
+> (2026-09-17) and confirmed unrelated to this change by that entry's own
+> methodology (an unrelated already-shipped spec fails the same way).
+>
+> No `TODO/ACCEPTANCE.md` scenario re-drive: none of the 9 fixed scenarios
+> touches bisect naming (checked all 9 headings, including the closest
+> candidate, "Group vs. sub-part selection" — no mention of bisect/negative/
+> positive there), matching this task's own Testing section reasoning.
+> `TODO/VERIFY.md`'s `core-021` row was already updated at scoping time to
+> point at this task as its resolution; no further edit needed.
 
 ## Goal
 
