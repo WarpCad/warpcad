@@ -132,3 +132,21 @@ docs page, no `ROADMAP.md` update, no retirement note, nothing committed). Verif
 before asking: typecheck clean, 826/826 unit tests, and the new e2e spec's own 6 tests
 all pass on `chromium-laptop`. Asked the user explicitly rather than guessing; they
 chose to finish it now rather than discard or commit it half-done. See the next row.
+
+| 2026-09-17 13:14 | 2026-09-17 13:41 | `ui-028` | blocked — every remaining M4 row (`core-021` reserved and deliberately deferred, Bearing unscoped/blocked on a user data table, edge-fillet blocked on the OpenCascade.js user decision) needs a human input this loop cannot supply, not another task | no — M4 not fully ✅, but its only remaining rows are all blocked on the same kind of input |
+
+Note on the row above: `ui-028`'s own uncommitted implementation (found at Step 0, see
+the row above) was picked up by a fresh sonnet agent rather than redone — it reviewed
+the existing diff against the TODO's own spec, ran the full 3-viewport×3-engine e2e
+matrix (8/9 green; the 3 `firefox-*` cells fail at browser launch in this sandbox,
+confirmed pre-existing and unrelated by reproducing the identical failure against the
+already-shipped `fillet-chamfer-operation.e2e.js`, logged to `TROUBLESHOOTING.md`),
+wrote `docs/resize-bisect.md`, updated `ROADMAP.md`, wrote the retirement note, and
+committed (`fc876fd`, plus `739ef0b` for the social drafts). Independently re-verified
+by this loop before logging: typecheck clean, 826/826 unit, a spot-check of
+`chromium-phone`/`chromium-tablet`/`webkit-laptop` (18/18) plus the previously-confirmed
+`chromium-laptop` (6/6), and the Firefox failure re-reproduced against the older spec.
+`TODO/ACCEPTANCE.md` scenario 1 and `ui-016`'s original closed-finding repro (re-run
+against a Bisect-produced group for the first time) both read as real, specific PASS
+reports, not boilerplate. The untracked `chat/linkedin-third-times-the-charm.md` draft
+was confirmed untouched throughout, per the user's implicit "don't touch that one."
