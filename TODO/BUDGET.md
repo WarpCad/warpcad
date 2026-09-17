@@ -240,3 +240,21 @@ or closed-finding re-drive needed — kernel-only, no UI surface, same reasoning
 
 **M4's last open row is now `edge-fillet`, blocked on the user's own OpenCascade.js
 fork decision** — nothing else remains for `/run-todos` to pick up.
+
+At the check-in the user asked to work through the OpenCascade.js decision directly
+rather than recheck hourly or stop. Presented the three costed options from
+`core-003`'s spike (`docs/decisions/geometry-kernel.md`); user chose **Option 1** —
+ship rim-only (`ui-027`, already shipped), drop arbitrary-edge fillet from the catalog
+permanently, not deferred. Recorded in the decision doc's own addendum and in
+`TODO/ROADMAP.md`'s `edge-fillet` row (commit `110c71b`).
+
+**M4 is now fully ✅ — and since `M4+` is the last milestone section written in
+`TODO/ROADMAP.md` (confirmed by reading the file's own `## ` headers; no `M5` exists
+yet), the entire currently-planned roadmap is now complete.** Per this file's own
+Milestone boundary rule and `CLAUDE.md`'s Verification section, this needs the
+five-minute free-form human pass at phone/tablet/laptop viewports before any further
+milestone work starts — and since no further milestone is even written yet, planning
+one (a kickoff-style pass, not a `/run-todos` batch) is the actual next step, not
+another automated tick. Stopping the loop here rather than looping on an empty
+backlog — see `.claude/commands/run-todos.md` Step 2's own "no remaining ids at all"
+case.
