@@ -432,6 +432,20 @@ const paramEditability = computed(() => {
 
 const paramsEditable = computed(() => paramEditability.value.editable)
 
+/**
+ * Is the thing standing in the way of an edit the body's **own recipe**, rather
+ * than an operation stacked on top of it (`TODO/ui-030`)?
+ *
+ * A bolt's `spec` is a key into a size table and its `fit` is a clearance class:
+ * neither is a millimetre, and the dropdown they need is `ui-029`'s explicit
+ * scope cut. The distinction matters on screen, not just in the model — telling
+ * someone their bolt is frozen "because an operation is applied on top of it"
+ * would be a lie about a part they have only just dropped.
+ *
+ * @returns {boolean}
+ */
+const isRecipePart = computed(() => Boolean(body.value?.isRecipe) && !paramsEditable.value)
+
 /** The blocking op's plain-language name, or `''` when nothing is blocking. */
 const blockingOpLabel = computed(() => {
   const op = paramEditability.value.blockedBy
@@ -744,10 +758,18 @@ function commitParamComponent(event, key, index) {
             class="inspector__note"
             data-testid="inspector-params-note"
           >
-            These parameters are read-only because this shape has
-            {{ blockingOpLabel ? `a ${blockingOpLabel}` : 'another operation' }} applied on
-            top of it. Changing a parameter rebuilds the shape from these numbers, which
-            would throw that away — so it is frozen rather than done quietly.
+            <template v-if="isRecipePart">
+              These are catalogue values for a ready-made part, not dimensions you can
+              type over: {{ body.opLabel }} is built from a size table, so changing it
+              means picking another size rather than entering a number. Move, rotate and
+              delete all work as usual.
+            </template>
+            <template v-else>
+              These parameters are read-only because this shape has
+              {{ blockingOpLabel ? `a ${blockingOpLabel}` : 'another operation' }} applied on
+              top of it. Changing a parameter rebuilds the shape from these numbers, which
+              would throw that away — so it is frozen rather than done quietly.
+            </template>
           </p>
         </section>
 

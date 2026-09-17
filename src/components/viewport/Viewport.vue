@@ -83,8 +83,9 @@ import {
   createBoxMm,
   createSnapState,
   ghostBoxAtOrigin,
+  ghostOffsetMm,
   paramsForDrop,
-  recordForDrop,
+  recordsForDrop,
   snapToleranceMm,
   updateSnap,
 } from '../../core/library.js'
@@ -327,6 +328,20 @@ const ghostGeometry = new Map()
  * @type {Map<string, import('../../core/library.js').BoxMm>}
  */
 const ghostBoxes = new Map()
+/**
+ * How far the ghost *mesh* has to sit from the drop point, cached per op
+ * (`TODO/ui-030`).
+ *
+ * Zero on all three axes for a primitive, whose geometry is built already resting
+ * at the origin because its position is one of its own params. A composite recipe
+ * has no position param, so its geometry comes out wherever the recipe builds it
+ * and the mesh carries the difference — the same offset the drop's trailing
+ * `transform.translate` will commit, so the preview cannot promise a position the
+ * commit then ignores.
+ *
+ * @type {Map<string, [number, number, number]>}
+ */
+const ghostOffsets = new Map()
 /** @type {Mesh | null} */
 let ghostMesh = null
 let ghostOp = ''
@@ -1089,6 +1104,23 @@ function ghostBoxFor(op) {
   return box
 }
 
+/**
+ * The ghost mesh's offset from the drop point for an op — see
+ * {@link ghostOffsets}. Cached for the same reason the box is: it is measured off
+ * built geometry, which has no business in the pointer path.
+ *
+ * @param {string} op
+ * @returns {[number, number, number]}
+ */
+function ghostOffsetFor(op) {
+  let offset = ghostOffsets.get(op)
+  if (!offset) {
+    offset = ghostOffsetMm(op)
+    ghostOffsets.set(op, offset)
+  }
+  return offset
+}
+
 // --- snap-assisted placement (TODO/ui-013) --------------------------------
 
 /**
@@ -1245,8 +1277,11 @@ const dropTarget = {
       return
     }
     // The **snapped** point, so the preview shows where the drop will actually
-    // land rather than where the pointer happens to be (`TODO/ui-013`).
-    ghostMesh.position.set(point.x, point.y, 0)
+    // land rather than where the pointer happens to be (`TODO/ui-013`), plus the
+    // offset a composite's geometry needs to sit where its drop will commit it
+    // (`TODO/ui-030` — zero for every primitive).
+    const offset = ghostOffsetFor(op)
+    ghostMesh.position.set(point.x + offset[0], point.y + offset[1], offset[2])
     setGhostVisible(true)
     scheduleRender()
   },
@@ -1263,11 +1298,19 @@ const dropTarget = {
     // Every document mutation goes through the command layer, inside a
     // transaction with an origin (CLAUDE.md Architecture). The component never
     // touches the action log itself.
-    const record = recordForDrop(op, { x: point.x, y: point.y }, documentStore.raw)
-    documentStore.append(record, { origin: 'local' })
-    selection.select(record.id)
+    //
+    // One drop can be more than one record (`TODO/ui-030`): a composite recipe
+    // has no position param, so placing one is its own record plus a trailing
+    // `transform.translate` that supersedes it. The component stays ignorant of
+    // which case it is in — it appends what `recordsForDrop` hands back, in
+    // order — and the **first** record is the body's lineage root either way,
+    // which is the id the document reports and therefore the id to select.
+    const records = recordsForDrop(op, { x: point.x, y: point.y }, documentStore.raw)
+    for (const record of records) documentStore.append(record, { origin: 'local' })
+    const rootId = records[0].id ?? null
+    if (rootId) selection.select(rootId)
     syncBodies()
-    return record.id ?? null
+    return rootId
   },
 }
 

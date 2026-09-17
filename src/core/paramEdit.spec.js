@@ -220,6 +220,21 @@ describe('the read-only guard — never silently discard a downstream op (TODO/u
     ).toEqual({ editable: false, blockedBy: 'boolean.union' })
   })
 
+  it('refuses a composite recipe root — its params are a catalogue choice, not dimensions (TODO/ui-030)', () => {
+    // A bolt's `spec` is an enum keyed into a size table and its `fit` is a
+    // clearance class; neither is a millimetre a numeric field can parse, and a
+    // rebuild from a half-typed spec string throws inside the recipe. So the
+    // whole section stays read-only until the dropdown `ui-029` scoped out
+    // exists — reported as blocked by the recipe's own op, which is the honest
+    // answer to "why can't I type here".
+    expect(
+      paramEditability([
+        { id: 'bolt-1', op: 'hardware.bolt', params: { spec: 'm10 hex', length: 20 } },
+        { id: 'bolt-1-drop-2', op: 'transform.translate', supersedes: 'bolt-1', params: {} },
+      ])
+    ).toEqual({ editable: false, blockedBy: 'hardware.bolt' })
+  })
+
   it('refuses an empty lineage rather than reporting it editable', () => {
     expect(paramEditability([])).toEqual({ editable: false, blockedBy: null })
   })

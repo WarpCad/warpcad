@@ -12,9 +12,11 @@ themselves won't have to move.
 
 ## Using WarpCad
 
-- [Placing a shape](primitive-placement.md) — dragging a primitive out of the
-  Library panel into the 3D view, on desktop and on a phone, lining a new shape
-  up with one already placed, and selecting what you placed.
+- [Placing a shape](primitive-placement.md) — dragging an item out of the
+  Library panel into the 3D view, on desktop and on a phone: the basic solids in
+  **Primitives**, the ready-made fasteners in **Hardware** (Bolt, Nut, Washer,
+  Bearing), lining a new shape up with one already placed, and selecting what you
+  placed.
 - [Selecting a shape, and reading its size](selection-and-inspector.md) — the
   gizmo, the three dimension lines, and the Inspector panel's parameters and
   Transform section, on desktop and as a phone bottom sheet.

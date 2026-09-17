@@ -34,6 +34,27 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### ui-030 — hardware parts are much smaller than the primitives they share a grid with (2026-09-17 19:35)
+
+Two visual/feel judgments that the acceptance drive surfaced but cannot settle, both
+about *scale* rather than correctness — the geometry is right and dimensionally verified
+against V1, and `ACCEPTANCE.md` scenarios 1, 2 and 5 already cover placement, selection
+and the Inspector on a standing basis, so only what they cannot judge is logged here.
+
+An M4 nut is about 8 mm across and an M6 washer about 12 mm, against a default Cube of
+40 mm, and at the viewport's default zoom the nut and washer render as a few pixels each
+(visible in the drive's own screenshot: the bolt reads clearly, the nut and washer are
+specks). Nothing is wrong — those are the real sizes of those parts — but whether the
+defaults should be bigger, or the camera should frame a newly-placed body, is a taste
+call for a human at a real screen. The related, sharper consequence *is* already logged
+where it belongs (a bolt inside a shell cannot be picked by clicking at all — scenario 5's
+own entry, and `TODO/core-024`).
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | At the default zoom on a real screen, are a placed Nut and Washer big enough to see and to click, or should the Hardware rows' default specs be larger (or the camera frame what was just dropped)? | Open | |
+| 2 | On a real phone and a real tablet: the Library sheet now holds eleven rows and Hardware is below the fold, so reaching Bolt is a genuine scroll inside a 46vh sheet. Does that scroll feel right with a thumb, or does the sheet want to be taller / the sections collapsible? | Open | |
+
 ### core-021 — a Y-axis bisect now names its halves the other way round (2026-09-17 13:56)
 
 One entry, and it is a genuine judgment call rather than a restated pass. `core-021`

@@ -4,7 +4,7 @@ import modeling from '@jscad/modeling'
 import { acceptsOperandCount, assertOperandCount, getEntry, registry } from './registry.js'
 import { calcCenterWith, calcSnap, centroidOf, combine, isGroup, pick } from './group.js'
 import { evaluate, evaluateOp, expand } from './index.js'
-import { PRIMITIVE_LIBRARY } from '../library.js'
+import { HARDWARE_LIBRARY, PRIMITIVE_LIBRARY } from '../library.js'
 
 const { measurements } = modeling
 
@@ -78,7 +78,16 @@ describe('registry shape', () => {
       expect(typeof ui.label, op).toBe('string')
       expect(ui.label.length, op).toBeGreaterThan(0)
       expect(typeof ui.defaults, op).toBe('object')
-      expect(() => build(op, { params: ui.defaults }), op).not.toThrow()
+      // A composite has no `build` of its own to call — TODO/ui-030 gave the
+      // `hardware.*` four this same metadata — so it is checked through the fold
+      // that actually builds it. The claim is identical either way: a row's
+      // defaults must really produce geometry, or the panel offers a drag that
+      // throws on release.
+      if (entry.kind === 'composite') {
+        expect(() => evaluateOp(op, ui.defaults), op).not.toThrow()
+      } else {
+        expect(() => build(op, { params: ui.defaults }), op).not.toThrow()
+      }
     }
     for (const op of Object.keys(registry).filter((key) => key.startsWith('primitive.'))) {
       expect(registry[op]?.ui, `${op} has no ui metadata`).toBeTruthy()
@@ -709,12 +718,43 @@ describe('hardware.bearing (TODO/core-023) — composite, registered once a spec
     expect(isGroup(group) && group.names).toEqual(['bearing'])
   })
 
-  it('is not visible to library.js\'s buildRows — same as hardware.bolt/nut/washer, since it does not start with "primitive."', () => {
+  it('is a Hardware row, never a Primitives one (TODO/ui-030 replaced core-023\'s "invisible to the panel")', () => {
+    // Until `ui-030` this read "is not visible to buildRows at all" — true then,
+    // and the gap every one of core-010/011/023's retirement notes flagged. The
+    // claim that matters now is the *section*: creation rows are grouped by what
+    // they are, and a composite recipe must not leak into the primitives list.
     expect(PRIMITIVE_LIBRARY.map((row) => row.op)).not.toContain('hardware.bearing')
-    // Regression check on the filter itself, not just this recipe (TODO/core-023's
-    // own Testing section) — a new registry addition is a second chance to trip the
-    // panel filter, same reasoning core-010 established for hardware.nut.
     expect(PRIMITIVE_LIBRARY).toHaveLength(7)
+    expect(HARDWARE_LIBRARY.map((row) => row.op)).toContain('hardware.bearing')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// TODO/ui-030 — `composite()`'s catalogue metadata
+// ---------------------------------------------------------------------------
+
+describe('composite() ui metadata — what earns a recipe a Library row', () => {
+  it('threads and freezes a `ui` argument, exactly as native() already does', () => {
+    const entry = registry['hardware.bolt']
+    expect(entry.kind).toBe('composite')
+    expect(entry.ui).toEqual({ label: 'Bolt', defaults: { spec: 'm10 hex', length: 20, fit: 'loose' } })
+    expect(Object.isFrozen(entry.ui)).toBe(true)
+  })
+
+  it('gives all four hardware recipes a label and defaults that really build', () => {
+    for (const op of ['hardware.bolt', 'hardware.nut', 'hardware.washer', 'hardware.bearing']) {
+      const { ui } = registry[op]
+      expect(ui?.label, op).toMatch(/\S/)
+      expect(() => evaluateOp(op, /** @type {any} */ (ui).defaults), op).not.toThrow()
+    }
+  })
+
+  it('leaves the kit.* and raspberrypi.* families without one, per ui-030\'s scope', () => {
+    // `ui-031` extends the mechanism to them; nothing here hardcodes a list, so
+    // the panel gains a row the moment one of those entries gains `ui` metadata.
+    for (const op of ['kit.board', 'kit.boardFrame', 'kit.anchor', 'raspberrypi.bplus']) {
+      expect(registry[op].ui, op).toBeUndefined()
+    }
   })
 })
 

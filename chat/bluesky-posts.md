@@ -592,3 +592,15 @@ Built with Claude Code, reviewed by me.
 **Evidence:** 293 characters including the disclosure line → counted this session; "no Bearing factory" → `docs/decisions/geometry-kernel.md` Finding 2, confirmed directly against vendored `jscad-hardware@1.1.0`, whose only factories are `Bolt`/`Washer`/`Nut`; "table from DIN 625, cross-checked against two catalogs" → `src/core/kernel/tables/bearing-specs.js`'s own module doc, cites igus's DIN 625 table and ISK's/Be-cu's 6200/6300-series charts; "608 through the fold" → `src/core/kernel/recipes/hardware.bearing.spec.js`'s geometric sanity check, built via `evaluateOp('hardware.bearing', { spec: '608', segments: 64 })`; "2305.363mm3, matching an earlier spike exactly" → `docs/decisions/geometry-kernel.md` Finding 2's own recorded measurement at 64 segments, reproduced to three decimal places this session against an ideal 2309.071mm³ (735π)
 **Disclosure:** Built with Claude Code, reviewed by me.
 **To Add:** repo URL once public; a render of a 608 bearing mated to its shaft (already verified in Finding 2's own spike) would make the "no source, verify differently" story concrete
+
+## 2026-09-17T19:35Z · ui-030 — the fastener recipes finally have a Library row
+
+**Post:** WarpCad's bolt recipe has existed since 2026-09-05 and you couldn't put one on screen: the Library panel filtered its rows to primitive.*. Now there's a Hardware section. The catch was placement -- no recipe takes a position param, so a drop commits the recipe plus a translate that supersedes it.
+
+Built with Claude Code, reviewed by me.
+
+**Links:** [Repo](<repo-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** none — the post is at 297 characters including the disclosure, and a tag would cost the mechanism sentence
+**Evidence:** "bolt recipe has existed since 2026-09-05" → `git log -1 -- src/core/kernel/recipes/hardware.bolt.js` = f9bbfa4, 2026-09-05; "the Library panel filtered its rows to primitive.*" → `src/core/library.js`'s `buildRows` before this commit, `op.startsWith('primitive.')`; "no recipe takes a position param" → true of `hardware.bolt` only in the strict sense — nut/washer/bearing do accept a `center` and pass it to their own primitive, corrected in the retired TODO's note; the *mechanism* claim (drop commits recipe + superseding translate) → `recordsForDrop` in `src/core/library.js`, this commit; 297 characters including the disclosure → counted this session
+**Disclosure:** Built with Claude Code, reviewed by me.
+**To Add:** repo URL once public; the drive screenshot (a bolt, nut, washer and bearing on the grid beside a cube and a sphere) would carry this post

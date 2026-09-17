@@ -107,3 +107,40 @@ to mirror closely.
 - **Closed-finding regression surface**: `core-020`'s repro (a composite must not absorb
   an unrelated earlier body) — re-run specifically through a boolean that now resolves a
   sub-part operand, since this is new code in the exact fold `core-020` fixed.
+
+## Measured update from `ui-030`'s Step 6 drive (2026-09-17)
+
+`ui-030` has landed, so the "no Bolt Library row" blocker is gone and this file's
+"second and final named blocker" framing needs one correction before this task is
+scoped: **there are now two things in the way, not one, and the second was not visible
+until a composite could actually be placed by hand.**
+
+1. The guard this task is about is unchanged, re-confirmed verbatim against the current
+   code during that drive:
+   *"boolean.subtract: operand "bolt-1-drop-2" names pieces ("tap"), but boolean.subtract
+   consumes whole solids — only group.snap/group.align can address a sub-part"*.
+2. **A *placed* composite has no named sub-parts left to address.** A drag-drop of a
+   composite commits the recipe's record plus a trailing `transform.translate` that
+   supersedes it (`src/core/library.js`'s `recordsForDrop`), and the fold hands every
+   native op a flat `Geom3` — `src/core/kernel/index.js`'s own operand-resolution note
+   says so deliberately: *"a boolean or a transform has no use for a composite's part
+   breakdown and would have to collapse it anyway."* Measured, same session: the bolt as
+   built reports `names: ["head","thread","tap"]` (identical to the batch `evaluate()`
+   path), and the same bolt after its drop translate reports `names: undefined`. This is
+   **not** specific to the drop: the gizmo's own `transform.translate` already flattens
+   any group a user drags, so it applies to every composite the moment it is moved.
+
+So lifting this file's guard alone would leave scenario 5 still unpassable: there would
+be a route to name `tap`, and nothing named `tap` on the body the user actually placed.
+Whatever this task decides has to say explicitly whether a composite's part breakdown
+survives a transform — either by making the transform ops group-aware, or by resolving a
+sub-part operand through the body's *lineage* (the creation record still expands to the
+named parts) rather than through its evaluated terminal geometry. `ui-035` (sub-part
+snap/align operands) sits on the same question and should be scoped with it.
+
+Related UI observation from the same drive, worth knowing before scoping: with a bolt
+standing inside a 40 mm shell the bolt is **completely enclosed and cannot be picked by
+clicking at all** — probing a grid of points over it never selected it. Until there is a
+timeline or scene list to select from (`ui-032`), scenario 5's "select both the shell and
+the bolt" step has no hand-driveable route once the two actually overlap, independent of
+either kernel question above.

@@ -372,20 +372,48 @@ describe('describeBody', () => {
   })
 
   it('falls back to the raw params for an op with no ui schema', () => {
-    // `hardware.bolt` is a composite with no `ui` metadata until ui-013 adds it.
-    // The Inspector must degrade to showing what the record carries rather than
-    // throwing, which would take the whole panel down with it.
+    // `kit.board` is a composite with no `ui` metadata — one of the family
+    // TODO/ui-031 will give a Library row, not TODO/ui-030. The Inspector must
+    // degrade to showing what the record carries rather than throwing, which
+    // would take the whole panel down with it. (This case used `hardware.bolt`
+    // until ui-030 gave it that metadata; it needs an op that genuinely has
+    // none, or it stops testing the fallback at all.)
     const document = createDocument()
     const record = {
-      id: 'bolt-1',
-      op: 'hardware.bolt',
-      name: 'Bolt 1',
-      params: { spec: 'm10 hex', length: 20, fit: 'close' },
+      id: 'board-1',
+      op: 'kit.board',
+      name: 'Board 1',
+      params: { width: 40, height: 30, thickness: 3, cornerRadius: 2 },
     }
     document.append(record, { origin: 'local' })
     const description = describeBody(document.bodies()[0])
 
-    expect(description.opLabel).toBe('hardware.bolt')
+    expect(description.opLabel).toBe('kit.board')
+    expect(description.params.map((field) => field.key)).toEqual([
+      'width',
+      'height',
+      'thickness',
+      'cornerRadius',
+    ])
+  })
+
+  it('shows a hardware recipe under its own label and schema order (TODO/ui-030)', () => {
+    const document = createDocument()
+    document.append(
+      {
+        id: 'bolt-1',
+        op: 'hardware.bolt',
+        name: 'Bolt 1',
+        params: { spec: 'm10 hex', length: 20, fit: 'close' },
+      },
+      { origin: 'local' }
+    )
+    const description = describeBody(document.bodies()[0])
+
+    // The row's own label, not the registry key — the panel offers "Bolt".
+    expect(description.opLabel).toBe('Bolt')
+    // The registry schema's key order, which is the order the row's defaults
+    // name them in, rather than whatever order the record happens to carry.
     expect(description.params.map((field) => field.key)).toEqual(['spec', 'length', 'fit'])
     const spec = present(description.params.find((field) => field.key === 'spec'))
     expect(spec.kind).toBe('text')

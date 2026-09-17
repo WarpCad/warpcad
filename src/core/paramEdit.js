@@ -52,6 +52,8 @@
  * @module core/paramEdit
  */
 
+import { registry } from './kernel/registry.js'
+
 /** @typedef {import('./document.js').WarpDocument} WarpDocument */
 /** @typedef {import('./kernel/registry.js').OpRecord} OpRecord */
 
@@ -110,6 +112,19 @@ export function paramEditability(lineage) {
   // its geometry *is* its operands — there is nothing to rebuild it from, and
   // the params a user would be editing do not exist.
   if (root.consumes !== undefined || root.operands !== undefined || root.target !== undefined) {
+    return { editable: false, blockedBy: root.op }
+  }
+
+  // A composite recipe's params are a **catalogue choice**, not dimensions
+  // (`TODO/ui-030`). A bolt's `spec` is a key into a size table and its `fit` is a
+  // clearance class: both need a dropdown fed by the recipe's own valid values,
+  // which is exactly the control `ui-029` scoped out when it made numeric params
+  // editable, and a rebuild from a half-typed spec string throws inside the recipe
+  // rather than resizing anything. Freezing the section is `ui-016`'s precedent
+  // again — say so on screen rather than offer an edit that cannot work. This is
+  // `ACCEPTANCE.md` scenario 2's remaining blocker, named here rather than left
+  // as an empty field a user discovers by typing into it.
+  if (registry[root.op]?.kind === 'composite') {
     return { editable: false, blockedBy: root.op }
   }
 

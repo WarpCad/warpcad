@@ -1,16 +1,24 @@
 <script setup>
 /**
- * The Library panel's "Primitives" section: one draggable row per `primitive.*`
- * op the kernel registry carries.
+ * The Library panel: one draggable row per catalogue item the kernel registry
+ * offers, grouped into sections — "Primitives" (`primitive.*`) and "Hardware"
+ * (`hardware.*`, `TODO/ui-030`).
  *
- * ## One mechanism, seven rows
+ * ## One mechanism, eleven rows
  *
- * CLAUDE.md forbids seven near-identical hand-copies, and it equally forbids a
+ * CLAUDE.md forbids eleven near-identical hand-copies, and it equally forbids a
  * menu built by blindly iterating a registry. Both are satisfied the same way:
- * the rows come from `src/core/library.js`, which derives them from the registry's
- * own `ui` metadata and `operandCount`, and the drag payload is nothing but the
- * op string. Registering an eighth primitive gives it a row, a ghost preview and
- * a working drop with no change to this file.
+ * the sections and their rows come from `src/core/library.js`, which derives them
+ * from the registry's own `ui` metadata and `operandCount`, and the drag payload
+ * is nothing but the op string. Registering an eighth primitive — or giving a
+ * `kit.*` recipe `ui` metadata, which is all `ui-031` has left to do — gives it a
+ * row, a ghost preview and a working drop with no change to this file.
+ *
+ * The two sections differ in **nothing** a user can feel: same gesture, same
+ * ghost, same drop, same selection afterwards. What differs is invisible and
+ * lives entirely in `library.js` — a primitive carries its position in its own
+ * `center` param, while a hardware recipe has no position param at all and is
+ * moved into place by a trailing `transform.translate`.
  *
  * These are **creation** rows — `operandCount: 0`, geometry from nothing — and
  * they live in their own section, never mixed into a list with operations like
@@ -35,7 +43,7 @@
  */
 import { onBeforeUnmount, ref, watch } from 'vue'
 
-import { PRIMITIVE_LIBRARY } from '../../core/library.js'
+import { LIBRARY_SECTIONS } from '../../core/library.js'
 import { usePlacementStore } from '../../stores/placement.js'
 
 const props = defineProps({
@@ -51,7 +59,7 @@ const emit = defineEmits(['open-change'])
 
 const placement = usePlacementStore()
 
-const rows = PRIMITIVE_LIBRARY
+const sections = LIBRARY_SECTIONS
 const isOpen = ref(false)
 
 watch(
@@ -152,26 +160,37 @@ onBeforeUnmount(stopTracking)
     </button>
 
     <div id="library-sheet" class="library__sheet">
-      <h2 class="library__heading">Primitives</h2>
       <p class="library__hint" data-testid="library-hint">
-        Drag a shape into the 3D view to place it.
+        Drag an item into the 3D view to place it.
       </p>
-      <ul class="library__rows" data-testid="library-rows">
-        <li v-for="row in rows" :key="row.op">
-          <button
-            type="button"
-            class="library__row"
-            :class="{ 'library__row--active': placement.op === row.op }"
-            :data-testid="`library-row-${row.op}`"
-            :data-op="row.op"
-            :data-label="row.label"
-            @pointerdown="onRowPointerDown($event, row)"
-          >
-            <span class="library__swatch" :data-shape="row.op" aria-hidden="true" />
-            {{ row.label }}
-          </button>
-        </li>
-      </ul>
+      <template v-for="section in sections" :key="section.id">
+        <h2 class="library__heading" :data-testid="`library-heading-${section.id}`">
+          {{ section.title }}
+        </h2>
+        <!-- The primitives list keeps the bare `library-rows` id it has had since
+             ui-010: a dozen existing specs open the panel by waiting on it, and
+             renaming it would be churn with no reader-facing gain. Every other
+             section is `library-rows-<id>`. -->
+        <ul
+          class="library__rows"
+          :data-testid="section.id === 'primitive' ? 'library-rows' : `library-rows-${section.id}`"
+        >
+          <li v-for="row in section.rows" :key="row.op">
+            <button
+              type="button"
+              class="library__row"
+              :class="{ 'library__row--active': placement.op === row.op }"
+              :data-testid="`library-row-${row.op}`"
+              :data-op="row.op"
+              :data-label="row.label"
+              @pointerdown="onRowPointerDown($event, row)"
+            >
+              <span class="library__swatch" :data-shape="row.op" aria-hidden="true" />
+              {{ row.label }}
+            </button>
+          </li>
+        </ul>
+      </template>
     </div>
 
     <!-- Follows the pointer while the drag is over ordinary UI; the viewport's
@@ -211,12 +230,18 @@ onBeforeUnmount(stopTracking)
 }
 
 .library__heading {
-  margin: 0 0 2px;
+  margin: 0 0 6px;
   font-size: 12px;
   font-weight: 650;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--text-3);
+}
+
+/* A section heading that is not the first one needs room above it, or the two
+   lists read as one long list with a word in the middle. */
+.library__rows + .library__heading {
+  margin-top: 14px;
 }
 
 .library__hint {
@@ -291,6 +316,39 @@ onBeforeUnmount(stopTracking)
 
 .library__swatch[data-shape='primitive.hexagon'] {
   clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);
+}
+
+/* Hardware (TODO/ui-030). Silhouettes cut from the same swatch the primitives
+   use rather than icon art: at 18px a bolt's profile and a washer's ring read
+   from across the panel, and a per-part SVG would be four assets to keep in step
+   with four recipes for no more legibility. */
+.library__swatch[data-shape='hardware.bolt'] {
+  /* Head across the top, shank down the middle — a bolt in elevation. */
+  clip-path: polygon(14% 0%, 86% 0%, 86% 34%, 66% 34%, 66% 100%, 34% 100%, 34% 34%, 14% 34%);
+}
+
+.library__swatch[data-shape='hardware.nut'] {
+  clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);
+  /* The bore, so a nut is not mistaken for the hexagon primitive above it. */
+  background:
+    radial-gradient(circle at 50% 50%, var(--surface-1) 0 26%, transparent 26%),
+    linear-gradient(140deg, var(--border-strong), var(--surface-1));
+}
+
+.library__swatch[data-shape='hardware.washer'],
+.library__swatch[data-shape='hardware.bearing'] {
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 50% 50%, var(--surface-1) 0 34%, transparent 34%),
+    linear-gradient(140deg, var(--border-strong), var(--surface-1));
+}
+
+/* A bearing's bore is the smaller of the two, which is what tells the two rings
+   apart at this size. */
+.library__swatch[data-shape='hardware.bearing'] {
+  background:
+    radial-gradient(circle at 50% 50%, var(--surface-1) 0 22%, transparent 22%),
+    linear-gradient(140deg, var(--border-strong), var(--surface-1));
 }
 
 .library__drag-icon {

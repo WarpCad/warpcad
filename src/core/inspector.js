@@ -69,6 +69,11 @@ import { registry as defaultRegistry } from './kernel/registry.js'
  * @property {string} name
  * @property {string} op
  * @property {string} opLabel Registry `ui.label` where there is one, else the op.
+ * @property {boolean} isRecipe True for a composite recipe — a ready-made
+ *   catalogue part (`hardware.*`) rather than a primitive or an operation's
+ *   result. `TODO/ui-030`: what the panel needs to explain *why* such a part's
+ *   parameters are read-only, which is a different reason from a fillet having
+ *   frozen them.
  * @property {ParamField[]} params The op's own schema — never position/rotation.
  * @property {Vec3Mm} positionMm Bounding-box centre of the **evaluated** solid.
  * @property {Vec3Mm} rotationDeg Degrees, per axis.
@@ -280,6 +285,7 @@ export function describeBody(body, ops = defaultRegistry) {
     name: body.name,
     op: body.op,
     opLabel: entry?.ui?.label ?? body.op,
+    isRecipe: entry?.kind === 'composite',
     params: fieldsFor(body.params ?? {}, entry),
     positionMm,
     rotationDeg,
@@ -417,6 +423,10 @@ export function describeSubPart(body, partName, records, ops = defaultRegistry) 
     // would claim on screen that this part *is* a `kit.board`.
     op: record?.op ?? '',
     opLabel: entry?.ui?.label ?? (record ? record.op : 'Part'),
+    // A sub-part is a primitive inside a recipe's expansion, never a recipe
+    // itself — and its params are frozen for `ui-016`'s own reason (no record of
+    // its own to target), not for `ui-030`'s.
+    isRecipe: false,
     params: record ? fieldsFor(record.params ?? {}, entry) : [],
     positionMm,
     rotationDeg,

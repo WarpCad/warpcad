@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest'
 import modeling from '@jscad/modeling'
 
 import {
+  HARDWARE_LIBRARY,
+  LIBRARY_SECTIONS,
   PRIMITIVE_LIBRARY,
   SNAP_ALIGNMENTS,
   SNAP_TOLERANCE_PX,
@@ -13,11 +15,14 @@ import {
   createSnapState,
   gapMm,
   ghostBoxAtOrigin,
+  ghostOffsetMm,
+  paramsForDrop,
   recordForDrop,
+  recordsForDrop,
   snapToleranceMm,
   updateSnap,
 } from './library.js'
-import { calcCenterWith, calcSnap } from './kernel/group.js'
+import { boundsOf, calcCenterWith, calcSnap } from './kernel/group.js'
 import { evaluateOp } from './kernel/index.js'
 import { createDocument } from './document.js'
 
@@ -66,6 +71,177 @@ describe('PRIMITIVE_LIBRARY — the Library panel rows, derived from the registr
       'Tube',
       'Sphere',
     ])
+  })
+})
+
+describe('HARDWARE_LIBRARY — the catalogue rows a composite recipe earns (TODO/ui-030)', () => {
+  it('lists the four hardware.* recipes, in catalogue order, and nothing else', () => {
+    expect(HARDWARE_LIBRARY.map((row) => row.op)).toEqual([
+      'hardware.bolt',
+      'hardware.nut',
+      'hardware.washer',
+      'hardware.bearing',
+    ])
+    expect(HARDWARE_LIBRARY.map((row) => row.label)).toEqual(['Bolt', 'Nut', 'Washer', 'Bearing'])
+  })
+
+  it('carries the same row contract as a primitive row, plus the kind the drop branches on', () => {
+    for (const row of HARDWARE_LIBRARY) {
+      expect(row.defaults, row.op).toBeTypeOf('object')
+      // Creation rows, exactly like the primitives: geometry from nothing, so
+      // they belong in the same "create" half of CLAUDE.md's creation-vs-
+      // operation split and never in an operand-gated list.
+      expect(row.operandCount, row.op).toBe(0)
+      expect(row.kind, row.op).toBe('composite')
+      // Every default actually builds — a row whose defaults throw is a row
+      // that looks fine in the panel and fails on the first drag.
+      expect(() => evaluateOp(row.op, row.defaults), row.op).not.toThrow()
+    }
+    expect(PRIMITIVE_LIBRARY.every((row) => row.kind === 'native')).toBe(true)
+  })
+
+  it('groups the rows into two named sections rather than one undifferentiated list', () => {
+    expect(LIBRARY_SECTIONS.map((section) => section.id)).toEqual(['primitive', 'hardware'])
+    expect(LIBRARY_SECTIONS.map((section) => section.title)).toEqual(['Primitives', 'Hardware'])
+    expect(LIBRARY_SECTIONS[0].rows).toBe(PRIMITIVE_LIBRARY)
+    expect(LIBRARY_SECTIONS[1].rows).toBe(HARDWARE_LIBRARY)
+    // The primitives section is untouched by this: seven rows, same order.
+    expect(PRIMITIVE_LIBRARY).toHaveLength(7)
+  })
+})
+
+describe('recordsForDrop — placing a composite, which has no position param (TODO/ui-030)', () => {
+  it('commits a primitive as exactly one record, position folded into its own params', () => {
+    const document = createDocument()
+    const records = recordsForDrop('primitive.cuboid', { x: 12, y: -8 }, document)
+    expect(records).toHaveLength(1)
+    expect(records[0].op).toBe('primitive.cuboid')
+    expect(records[0].params?.center).toEqual([12, -8, 20])
+  })
+
+  it('commits a composite as its own record plus a trailing translate that supersedes it', () => {
+    const document = createDocument()
+    const records = recordsForDrop('hardware.bolt', { x: 30, y: -45 }, document)
+    expect(records).toHaveLength(2)
+    const [created, moved] = records
+    expect(created.op).toBe('hardware.bolt')
+    expect(created.name).toBe('Bolt 1')
+    // The recipe would silently ignore a `center`, so folding the drop point in
+    // there — the primitive path's shortcut — would place every bolt at the
+    // recipe's own fixed origin however far the user dragged.
+    expect(created.params?.center).toBeUndefined()
+    expect(moved.op).toBe('transform.translate')
+    expect(moved.target).toBe(created.id)
+    // Supersession, not a second body: one drag is one thing on screen.
+    expect(moved.supersedes).toBe(created.id)
+    expect(moved.name).toBeUndefined()
+    expect(moved.params?.vector).toEqual([30, -45, 0])
+  })
+
+  it('lands every hardware row at the drop point, resting on the grid, as one body', () => {
+    // The specific regression Option 2 of TODO/ui-030 exists to prevent: a part
+    // committed at the recipe's internal origin rather than where it was dropped.
+    for (const row of HARDWARE_LIBRARY) {
+      const document = createDocument()
+      const records = recordsForDrop(row.op, { x: -62.5, y: 18.25 }, document)
+      let scene = null
+      for (const record of records) ({ scene } = document.append(record, { origin: 'local' }))
+      const bodies = document.bodies()
+      expect(bodies, row.op).toHaveLength(1)
+      expect(bodies[0].name, row.op).toBe(`${row.label} 1`)
+      expect(bodies[0].op, row.op).toBe(row.op)
+      const [min, max] = boundsOf(bodies[0].geometry)
+      expect((min[0] + max[0]) / 2, `${row.op} X`).toBeCloseTo(-62.5, 6)
+      expect((min[1] + max[1]) / 2, `${row.op} Y`).toBeCloseTo(18.25, 6)
+      expect(min[2], `${row.op} does not rest on Z=0`).toBeCloseTo(0, 6)
+      expect(max[2], `${row.op} has no height`).toBeGreaterThan(0)
+      expect(scene).not.toBeNull()
+    }
+  })
+
+  it('does not absorb the body placed before it (TODO/done/core-020, through the drop path)', () => {
+    // core-020's own reproduction — a plate, then a bolt — driven through the
+    // records a *drag-drop* commits rather than through a hand-built
+    // `document.append` call, which is what this task makes possible for the
+    // first time. Both records are checked, because the composite's own group is
+    // built by the first one and the second is a new way to reach the same fold.
+    const document = createDocument()
+    document.append(recordForDrop('primitive.cuboid', { x: 0, y: 0 }, document), { origin: 'local' })
+    const [created, moved] = recordsForDrop('hardware.bolt', { x: 60, y: 0 }, document)
+
+    document.append(created, { origin: 'local' })
+    const asBuilt = /** @type {any} */ (document.bodies()[1].geometry)
+    // Its own three visible parts, and not "Cube 1" among them — the exact
+    // assertion core-020 turned on.
+    expect(asBuilt.names).toEqual(['head', 'thread', 'tap'])
+    const [boltMin, boltMax] = boundsOf(asBuilt)
+    expect(boltMax[0] - boltMin[0]).toBeLessThan(25)
+
+    document.append(moved, { origin: 'local' })
+    const bodies = document.bodies()
+    expect(bodies.map((body) => body.name)).toEqual(['Cube 1', 'Bolt 1'])
+    // The cube is still its own size and still 60 mm away, not swallowed.
+    const [cubeMin, cubeMax] = boundsOf(bodies[0].geometry)
+    expect(cubeMax[0] - cubeMin[0]).toBeCloseTo(40, 6)
+    const [movedMin, movedMax] = boundsOf(bodies[1].geometry)
+    expect((movedMin[0] + movedMax[0]) / 2).toBeCloseTo(60, 6)
+    expect(movedMax[0] - movedMin[0]).toBeCloseTo(boltMax[0] - boltMin[0], 6)
+  })
+
+  it('flattens the placed composite into one solid — stated, because it is a real consequence', () => {
+    // Not a defect of this task and not a choice it makes: `src/core/kernel/
+    // index.js`'s fold hands every native op a flat `Geom3` ("a boolean or a
+    // transform has no use for a composite's part breakdown"), so the trailing
+    // translate collapses the group exactly as the gizmo's own `transform.
+    // translate` already collapses any group a user drags. Nothing a user *sees*
+    // changes — the render path draws `combine()` of the visible parts, which is
+    // this same solid — but a placed part has no addressable sub-parts, which is
+    // what `TODO/ui-035` (sub-part snap/align operands) and `ACCEPTANCE.md`
+    // scenario 5 (the bolt's `tap`) will both need. Pinned here so the next task
+    // to want it finds a failing expectation rather than a surprise.
+    const document = createDocument()
+    for (const record of recordsForDrop('hardware.bolt', { x: 0, y: 0 }, document)) {
+      document.append(record, { origin: 'local' })
+    }
+    const placed = /** @type {any} */ (document.bodies()[0].geometry)
+    expect(placed.names).toBeUndefined()
+    expect(placed.polygons).toBeTypeOf('object')
+  })
+
+  it('numbers hardware instances per type, like the primitive rows', () => {
+    const document = createDocument()
+    const names = []
+    for (const op of ['hardware.bolt', 'hardware.nut', 'hardware.bolt']) {
+      const records = recordsForDrop(op, { x: 0, y: 0 }, document)
+      for (const record of records) document.append(record, { origin: 'local' })
+      names.push(String(records[0].name))
+    }
+    expect(names).toEqual(['Bolt 1', 'Nut 1', 'Bolt 2'])
+  })
+
+  it('refuses the single-record shortcut for a composite rather than misplacing it', () => {
+    const document = createDocument()
+    expect(() => recordForDrop('hardware.bolt', { x: 5, y: 5 }, document)).toThrow(
+      /recordsForDrop/
+    )
+  })
+
+  it('leaves a composite drop out of the params entirely', () => {
+    const params = paramsForDrop('hardware.washer', { x: 99, y: 99 })
+    expect(params.center).toBeUndefined()
+    expect(params.spec).toBe('m6')
+  })
+
+  it('measures a composite ghost as the shape that will actually land', () => {
+    // The ghost the user drags and the solid the drop commits come from one
+    // measurement, so the preview cannot promise a position the commit ignores.
+    const box = ghostBoxAtOrigin('hardware.nut')
+    expect(box.minMm[2]).toBeCloseTo(0, 6)
+    expect((box.minMm[0] + box.maxMm[0]) / 2).toBeCloseTo(0, 6)
+    const offset = ghostOffsetMm('hardware.nut')
+    // A centred hexagon has to be lifted by half its height to rest on the grid.
+    expect(offset[2]).toBeCloseTo(box.maxMm[2] / 2, 6)
+    expect(ghostOffsetMm('primitive.cuboid')).toEqual([0, 0, 0])
   })
 })
 

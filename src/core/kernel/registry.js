@@ -196,12 +196,24 @@ function rawNative(operandCount, build) {
 /**
  * A composite entry: it expands into more op records and builds nothing.
  *
+ * The optional `ui` is the same catalogue metadata {@link native} already takes,
+ * threaded through here by `TODO/ui-030` so a recipe can earn a Library row on
+ * exactly the same terms a primitive does — one mechanism reading the registry,
+ * not a second hand-maintained list of "the composites worth offering". A recipe
+ * without it stays invisible to the panel, which is how `kit.*` and
+ * `raspberrypi.*` remain out of scope until `ui-031` gives them one.
+ *
  * @param {0 | 1 | '2+'} operandCount
  * @param {Recipe} recipe
+ * @param {OpUi} [ui] Catalogue metadata; see {@link OpUi} and `src/core/library.js`.
  * @returns {RegistryEntry}
  */
-function composite(operandCount, recipe) {
-  return Object.freeze({ kind: 'composite', operandCount, recipe })
+function composite(operandCount, recipe, ui) {
+  return Object.freeze(
+    ui
+      ? { kind: 'composite', operandCount, recipe, ui: Object.freeze(ui) }
+      : { kind: 'composite', operandCount, recipe }
+  )
 }
 
 /**
@@ -793,32 +805,55 @@ export const registry = Object.freeze({
     )
   ),
 
-  'hardware.bolt': composite(0, bolt),
+  // TODO/ui-030: the four entries below are the first composites to carry `ui`
+  // metadata, which is the whole of what puts them in the Library panel's new
+  // Hardware section — `src/core/library.js` reads the registry, so nothing there
+  // or in `LibraryPanel.vue` names a bolt.
+  //
+  // Each `defaults` picks **one** representative size out of that part's own
+  // table, because a row is a starting point a user then edits, not a catalogue
+  // browser: `m10 hex`/20 mm is the bolt `hardware.bolt.spec.js` diffs against V1,
+  // `m4` the only metric nut in `nut-specs.js`, `m6` a mid metric washer from
+  // core-011's ISO-7089 port, and `608` the skate bearing core-023/core-003
+  // measured. Every `fit` is `'loose'` — V1's own and only stated default
+  // (`Hardware.Bolt`'s `fit = fit || 'loose'`) — rather than three different
+  // judgement calls. `hardware.nut` has no default fit of its own (see its module
+  // doc) so naming one here is required, not decorative.
+  'hardware.bolt': composite(0, bolt, {
+    label: 'Bolt',
+    defaults: { spec: 'm10 hex', length: 20, fit: 'loose' },
+  }),
 
   // TODO/core-010: single-record expansion — Hardware.Nut returns one bare CSG in
   // V1, not a Group, so there is no second part to snap this one against. See
   // recipes/hardware.nut.js's module doc for the V1→V3 centring difference this
   // makes explicit.
-  'hardware.nut': composite(0, nut),
+  'hardware.nut': composite(0, nut, { label: 'Nut', defaults: { spec: 'm4', fit: 'loose' } }),
 
   // TODO/core-011: `Hardware.Washer` returns a two-part Group in V1 — `washer`
   // always, `clearance` only `if (fit)`. See recipes/hardware.washer.js's module doc
   // for the V1→V3 hidden-clearance divergence this makes explicit.
-  'hardware.washer': composite(0, washer),
+  'hardware.washer': composite(0, washer, {
+    label: 'Washer',
+    defaults: { spec: 'm6', fit: 'loose' },
+  }),
 
   // TODO/core-023: no V1 source exists at all — `jscad-hardware` has no `Bearing`
   // factory (`docs/decisions/geometry-kernel.md`, Finding 2). One-record expansion,
   // simpler than washer: no `fit`/conditional second part. See
   // recipes/hardware.bearing.js's module doc.
-  'hardware.bearing': composite(0, bearing),
+  'hardware.bearing': composite(0, bearing, { label: 'Bearing', defaults: { spec: '608' } }),
 
   // TODO/core-012: §6's three Kit-part rows. All three expand through the
   // `profile.*` pair above rather than building geometry themselves; `kit.anchor` is
   // the one recipe in the project that touches `@jscad/modeling` at all, and only to
   // measure throwaway probe geometry for a snap it then bakes in as a number (see
-  // recipes/kit.anchor.js). None carries `ui` metadata: the Library panel's rows come
-  // from `primitive.*` entries only, so these stay unreachable from the panel until
-  // a task extends it — stated rather than left to be discovered.
+  // recipes/kit.anchor.js). None carries `ui` metadata, so none has a Library row.
+  // Since TODO/ui-030 that is the *only* thing standing between these and the panel
+  // — the four `hardware.*` entries above became reachable purely by gaining it —
+  // and TODO/ui-031 is the task that adds it, after confirming by hand that the
+  // dropped-board expansion `docs/decisions/composite-recipe-geometry.md` records
+  // still holds when a real row drives it.
   'kit.board': composite(0, board),
   'kit.boardFrame': composite(0, boardFrame),
   'kit.anchor': composite(0, anchor),

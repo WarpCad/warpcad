@@ -748,6 +748,40 @@ stepped-back-out states confirm this visually (a real 40×40×40 cube, then the 
 cube shown drilled into its lower `negative` half at 40×20×40, per the Inspector's own
 Size row).
 
+**Re-checked**: 2026-09-17 19:10 — PASS (`ui-030`). Re-driven **in full**, not glanced at,
+because this task changes `src/core/library.js`'s shared drop-commit path — the one every
+placed body goes through — and changes its arity: a drop can now commit **two** records
+rather than one. Hand-driven via a Playwright-driven Node script against the real dev
+server (no `chromium-cli` in this environment, the same substitution
+`ui-015`/`ui-024`/`ui-027`/`ui-028`/`ui-029` each used), laptop 1440x900 in Chromium and
+phone 390x844 in WebKit, with deliberately wandering, overshooting drag paths rather than
+the straight ramp the e2e specs use.
+
+- **The scenario itself**: a Cube then a Cylinder dragged in. **Both stayed visible**, and
+  the cube's millimetre centre was **byte-identical** before and after the second drop
+  (`-136.01,6.72,20.00` both times) with its volume unchanged at 64 000 mm³ — so the
+  second attempt's "new body replaces the old" regression is genuinely absent rather than
+  merely not obvious. Each drop selected only the new item. Clicking empty grid cleared
+  the selection (`data-selected-count` → 0); clicking the cube selected `cuboid-1` alone,
+  clicking the cylinder moved the highlight to `cylinder-2` alone — never both at once.
+- **Pushed past the scenario, deliberately mixing the two row kinds**, since this task's
+  own risk is that a composite drop (two records) corrupts the single-record path: a
+  Bolt, a Sphere, a Washer, a Nut and a Bearing were dragged in after the first two.
+  **Seven bodies, seven distinct millimetre centres, nothing replaced anything** —
+  `cuboid-1`, `cylinder-2`, `bolt-3`, `sphere-5`, `washer-6`, `nut-8`, `bearing-10`. The
+  id gaps (4, 7, 9) are each composite's own trailing `transform.translate` record, which
+  is the mechanism working, not a leak: every one of those is **one** body in the scene
+  list, not two. Orbiting afterwards showed all seven still present from another angle
+  rather than a one-frame artefact.
+- **Phone 390x844 / WebKit, touch only**: a Bolt, a Cube and a Bearing placed by
+  `pointerType: 'touch'` drags out of the bottom sheet — three bodies, three distinct
+  centres. The sheet is genuinely scrollable now that there are eleven rows
+  (`scrollHeight` 643 vs a 388 px sheet) and **Hardware is below the fold**, so reaching
+  it is a real scroll — confirmed by driving at 390 px rather than read off the CSS, per
+  `ui-030`'s own Small-screen-behavior bullet. No horizontal page scroll; tap targets
+  unchanged at 44 px.
+- Console and page errors: **none**, in either drive.
+
 ### 2. Hardware property edit
 
 **Steps**:
@@ -1048,6 +1082,40 @@ the gesture — it read -13.51 → -4 → 6.45 → 16.9 while the button was sti
 track the drag live rather than only on release. Typing `-30` into Position X and pressing Enter
 moved the mesh to match. Body count stayed 1 throughout, so the moved Cube kept its identity
 rather than becoming a second body. Console clean.
+
+**Re-checked**: 2026-09-17 19:12 — **PARTIAL PASS, and the partial has moved** (`ui-030`).
+**Step 1 is driveable for the first time**: the Library panel now has a **Hardware**
+section and a real Bolt row, so "drag a Bolt into the viewport and release" is a gesture a
+person can actually perform. It was hand-driven at laptop 1440x900/Chromium and phone
+390x844/WebKit.
+
+- **Steps 1-2 PASS.** The Bolt drops at the release point resting on the grid
+  (`-59.50,59.50,13.75`, size 19 x 16.45 x 27.5 mm) and is selected. The Inspector opens
+  on it showing its own recipe schema — **Spec `m10 hex`, Length `20`, Fit `loose`** —
+  alongside the standing Transform section reading the solid's real position, rotation and
+  size. (`color` is not among them: that is `data-005`/`ui-037`, not this task, and is not
+  claimed here.)
+- **Steps 3-4 remain NOT driveable and are not claimed** — but the reason has narrowed
+  again and is now *stated on screen* rather than discovered by typing. All three fields
+  are `readonly`, the section reports `data-editable="false"`
+  `data-blocked-by="hardware.bolt"`, and the panel explains itself: *"These are catalogue
+  values for a ready-made part, not dimensions you can type over: Bolt is built from a
+  size table, so changing it means picking another size rather than entering a number.
+  Move, rotate and delete all work as usual."* Forcing `99` into the frozen Length
+  programmatically and blurring changed **nothing** — same volume, same body — so the
+  freeze is not merely cosmetic. What is still missing is the size picker `ui-029`
+  explicitly scoped out; a numeric parser is the wrong control for `spec`/`fit`.
+- **Steps 5-8 PASS on a composite**, which is new and was the real question this re-check
+  existed to answer: a placed Bolt's lineage *already ends in* a `transform.translate` (the
+  drop's own), so a gizmo drag stacks a second one. With the Bolt selected, its gizmo's X
+  grab-arm was dragged and Position X was sampled **during** the gesture: `-58.11 →
+  -52.64 → -47.17 → -41.71 → -36.24`, settling at `-36.24` — live, not only on release.
+  A rotate-ring drag turned it to `-45.94°` about Z. Typing `-35` into Position Y moved it
+  to exactly `-35.00`. Throughout: **one body, same id (`bolt-1`), volume unchanged at
+  3 647.047 mm³** — the moved bolt kept its identity rather than becoming a second body.
+  A Cube driven with the identical gesture in the same session gave identical samples,
+  which is how "the gizmo works on a composite" was told apart from "the driver worked".
+- Console and page errors: none.
 
 ### 3. Snap-placement of a kit assembly
 
@@ -1473,6 +1541,64 @@ ways, and all four new ops likewise — `activeCoolingFan` `["board"]`, `hat` `[
 matching its batch evaluation exactly. The finding's "severe and silent" consequence was checked
 directly too: `subtract(shell, spacer)` through the command layer returns
 `-20,-20,0 .. 20,20,6`, the correct plate, not the empty result the bug produced.
+
+**Re-checked**: 2026-09-17 19:20 — **STILL NOT DRIVEABLE, and deliberately not claimed**
+(`ui-030`). This is the task that closes this scenario's *first* named blocker, so the
+point of this entry is to say precisely what is left. Driven, not read: laptop
+1440x900/Chromium against the real dev server, plus kernel-level measurements taken in the
+running browser against the real modules.
+
+- **Blocker 1 — no Bolt Library row — is GONE.** The panel now has a **Hardware** section
+  with Bolt, Nut, Washer and Bearing, and step 2 ("drag a Bolt in") is a gesture a person
+  can perform. Step 1's "case-shell solid" still has no row of its own, but a Cube stands
+  in for it exactly as this scenario always intended.
+- **Blocker 2 — a boolean cannot address a sub-part — REMAINS**, re-confirmed verbatim
+  against the current code, now through a *placed* bolt rather than a hand-built record:
+  *"boolean.subtract: operand "bolt-1-drop-2" names pieces ("tap"), but boolean.subtract
+  consumes whole solids — only group.snap/group.align can address a sub-part"*. This is
+  `TODO/core-024`, which `ui-030` explicitly does not touch.
+- **Blocker 3 — NEW, found by this drive, and it is why lifting blocker 2 alone would not
+  be enough.** A *placed* composite has **no named sub-parts left to address**. Measured
+  in the same session: the bolt **as built** reports `names: ["head","thread","tap"]`,
+  identical to the batch `evaluate()` path — but after the trailing `transform.translate`
+  that a drag-drop commits to put it where the user dropped it, the same body reports
+  `names: undefined`. That is not a defect of this task: `src/core/kernel/index.js`'s
+  operand resolution hands every native op a flat `Geom3` on purpose (*"a boolean or a
+  transform has no use for a composite's part breakdown and would have to collapse it
+  anyway"*), so the gizmo's own translate already flattens any group a user drags. But it
+  means the `tap` this scenario's **Expect** turns on does not exist on the body a user
+  actually places. Logged against `TODO/core-024` with the measurements, since that task
+  has to decide it.
+- **A fourth, purely-UI obstacle, also new**: with the bolt standing *inside* a 40 mm
+  shell it is completely enclosed and **cannot be picked by clicking at all** — a probe
+  grid of clicks across and around its position never selected it, and the toolbar
+  therefore never reached "2 selected". Step 3 ("select both the shell and the bolt") has
+  no hand-driveable route once the two genuinely overlap, until there is a timeline or
+  scene list to select from (`ui-032`).
+- **What *does* work now, and is worth recording as progress rather than a pass**:
+  subtracting a **whole** placed bolt from a plate, through the real drop records, gives
+  the correct plate-with-a-hole — bounds `-20,-20,0 .. 20,20,6`, volume **8 193.14 mm³**
+  against the plate's own 9 600, i.e. a **1 406.86 mm³** hole — never the empty solid
+  `core-020` once produced. The hole is the **whole bolt's** clearance silhouette, not the
+  `tap`-only clearance this scenario asks for, which is exactly why this is reported as
+  three-blockers-down-to-two-plus-one-new and not as a pass.
+
+**Closed-finding re-run, `core-020` (a composite absorbs earlier bodies)** — mandatory
+here, because `ui-030` is the **first** task to make that pipeline reachable from the real
+UI rather than only from tests and MCP. Run in core-020's own shape and also through the
+actual drag-drop UI:
+
+- Through the **drop records** (`recordsForDrop`, the path a drag now commits): a `Shell 1`
+  40 x 40 x 6 plate appended first, then a Bolt. The bolt's group holds **only its own
+  parts** — `["head","thread","tap"]`, no `Shell 1` among them — with bounds
+  `-9.5,-8.227,0 .. 9.5,8.227,27.5`, **identical to the batch `evaluate()` path's**, which
+  is the comparison that finding turned on. The plate is untouched at `-20,-20,0 ..
+  20,20,6`, and after the bolt's trailing translate there are exactly **two** bodies,
+  `Shell 1` and `Bolt 1`.
+- Through the **real UI**, which is what is new: a Cube dragged in, then a Bolt dragged in
+  after it. Two bodies; the cube kept its own id, its own name and a **byte-identical**
+  millimetre centre. The finding's severe consequence was re-checked directly as above —
+  `subtract(shell, bolt)` returns a real plate, not EMPTY.
 
 ### 6. Group vs. sub-part selection
 
