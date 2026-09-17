@@ -119,3 +119,16 @@ retirement note, and two chat drafts changed — no source touched.
 
 | 2026-09-12 16:59 | 2026-09-12 22:12 | `ui-020`, `ui-027`, `ui-029` | task-count reached (3) | no — M4, `core-014`–`018` (reserved), `ui-028` (reserved), Bearing (unscoped, blocked on data) all still open |
 | 2026-09-13 18:14 | 2026-09-13 20:05 | `core-014`, `core-015`, `core-016` | task-count reached (3) | no — M4, `core-017`, `core-018`, `ui-028`, `core-021` (reserved), edge-fillet (blocked on user decision) still open |
+
+Note on the row above: `core-017` ran to completion (commit `c1af594`) outside this loop's own bookkeeping — a real task, properly scoped and closed, just not logged as its own Runner Log row when it happened. Recorded here rather than silently absorbed into the next row, per this file's own "history, not logic the runner reads back" convention.
+
+| 2026-09-16 23:34 | 2026-09-17 13:14 | `core-018` | wall-clock reached (batch found still open on a fresh tick, real elapsed time well past the 3h cap; not a continuous unattended run) | no — M4, `ui-028` still open; `core-021` (reserved), Bearing (unscoped, blocked on data), edge-fillet (blocked on user decision) not eligible |
+
+Note on the row above: this tick's Step 0 also found substantial *uncommitted* work for
+`ui-028` already sitting in the tree (full `OperationsToolbar.vue` implementation plus
+its 466-line e2e spec) — not logged in this file, so it came from outside this loop's
+own bookkeeping, mid-flight rather than complete (TODO file still `status: open`, no
+docs page, no `ROADMAP.md` update, no retirement note, nothing committed). Verified
+before asking: typecheck clean, 826/826 unit tests, and the new e2e spec's own 6 tests
+all pass on `chromium-laptop`. Asked the user explicitly rather than guessing; they
+chose to finish it now rather than discard or commit it half-done. See the next row.
