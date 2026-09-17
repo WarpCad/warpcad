@@ -784,6 +784,122 @@
       }
     },
     {
+      "label": "the y axis names its halves the other way round",
+      "args": [
+        "y",
+        3
+      ],
+      "input": {
+        "bounds": [
+          [
+            -5,
+            -5,
+            -5
+          ],
+          [
+            5,
+            5,
+            5
+          ]
+        ],
+        "volume": 1000
+      },
+      "names": [
+        "negative",
+        "positive"
+      ],
+      "parts": {
+        "negative": {
+          "bounds": [
+            [
+              -5,
+              -2,
+              -5
+            ],
+            [
+              5,
+              5,
+              5
+            ]
+          ],
+          "volume": 700
+        },
+        "positive": {
+          "bounds": [
+            [
+              -5,
+              -5,
+              -5
+            ],
+            [
+              5,
+              -2,
+              5
+            ]
+          ],
+          "volume": 300
+        }
+      }
+    },
+    {
+      "label": "the y axis, negative offset, still the other way round",
+      "args": [
+        "y",
+        -3
+      ],
+      "input": {
+        "bounds": [
+          [
+            -5,
+            -5,
+            -5
+          ],
+          [
+            5,
+            5,
+            5
+          ]
+        ],
+        "volume": 1000
+      },
+      "names": [
+        "negative",
+        "positive"
+      ],
+      "parts": {
+        "negative": {
+          "bounds": [
+            [
+              -5,
+              2,
+              -5
+            ],
+            [
+              5,
+              5,
+              5
+            ]
+          ],
+          "volume": 300
+        },
+        "positive": {
+          "bounds": [
+            [
+              -5,
+              -5,
+              -5
+            ],
+            [
+              5,
+              2,
+              5
+            ]
+          ],
+          "volume": 700
+        }
+      }
+    },
+    {
       "label": "cut plane entirely past the max bound",
       "args": [
         "z",
@@ -838,6 +954,616 @@
             ]
           ],
           "volume": 0
+        }
+      }
+    }
+  ],
+  "bisectAngled": [
+    {
+      "label": "real call site: bisect('x', 0, 120, 'z')",
+      "solid": "cube",
+      "args": [
+        "x",
+        0,
+        120,
+        "z"
+      ],
+      "input": {
+        "bounds": [
+          [
+            -5,
+            -5,
+            -5
+          ],
+          [
+            5,
+            5,
+            5
+          ]
+        ],
+        "volume": 1000
+      },
+      "names": [
+        "negative",
+        "positive"
+      ],
+      "parts": {
+        "negative": {
+          "bounds": [
+            [
+              -5,
+              -5,
+              -5
+            ],
+            [
+              5,
+              5,
+              5
+            ]
+          ],
+          "volume": 783.493649054
+        },
+        "positive": {
+          "bounds": [
+            [
+              -5,
+              0,
+              -5
+            ],
+            [
+              3.660254038,
+              5,
+              5
+            ]
+          ],
+          "volume": 216.506350946
+        }
+      }
+    },
+    {
+      "label": "real call site: bisect('y', -0, 30, 'x', 0)",
+      "solid": "cube",
+      "args": [
+        "y",
+        "-0",
+        30,
+        "x",
+        0
+      ],
+      "input": {
+        "bounds": [
+          [
+            -5,
+            -5,
+            -5
+          ],
+          [
+            5,
+            5,
+            5
+          ]
+        ],
+        "volume": 1000
+      },
+      "names": [
+        "negative",
+        "positive"
+      ],
+      "parts": {
+        "negative": {
+          "bounds": [
+            [
+              -5,
+              -0.773502692,
+              -5
+            ],
+            [
+              5,
+              5,
+              5
+            ]
+          ],
+          "volume": 288.675134595
+        },
+        "positive": {
+          "bounds": [
+            [
+              -5,
+              -5,
+              -5
+            ],
+            [
+              5,
+              5,
+              5
+            ]
+          ],
+          "volume": 711.324865405
+        }
+      }
+    },
+    {
+      "label": "default rotateaxis for a cut on x is y",
+      "solid": "brick",
+      "args": [
+        "x",
+        4,
+        25
+      ],
+      "input": {
+        "bounds": [
+          [
+            -4,
+            -8,
+            -12
+          ],
+          [
+            6,
+            12,
+            18
+          ]
+        ],
+        "volume": 6000
+      },
+      "names": [
+        "negative",
+        "positive"
+      ],
+      "parts": {
+        "negative": {
+          "bounds": [
+            [
+              -4,
+              -8,
+              -5.578027682
+            ],
+            [
+              6,
+              12,
+              18
+            ]
+          ],
+          "volume": 2571.098615898
+        },
+        "positive": {
+          "bounds": [
+            [
+              -4,
+              -8,
+              -12
+            ],
+            [
+              6,
+              12,
+              15.867041523
+            ]
+          ],
+          "volume": 3428.901384102
+        }
+      }
+    },
+    {
+      "label": "default rotateaxis for a cut on y is x",
+      "solid": "brick",
+      "args": [
+        "y",
+        6,
+        25
+      ],
+      "input": {
+        "bounds": [
+          [
+            -4,
+            -8,
+            -12
+          ],
+          [
+            6,
+            12,
+            18
+          ]
+        ],
+        "volume": 6000
+      },
+      "names": [
+        "negative",
+        "positive"
+      ],
+      "parts": {
+        "negative": {
+          "bounds": [
+            [
+              -4,
+              -8,
+              -12
+            ],
+            [
+              6,
+              12,
+              18
+            ]
+          ],
+          "volume": 4189.392638884
+        },
+        "positive": {
+          "bounds": [
+            [
+              -4,
+              -8,
+              -12
+            ],
+            [
+              6,
+              4.994614872,
+              15.867041523
+            ]
+          ],
+          "volume": 1810.607361116
+        }
+      }
+    },
+    {
+      "label": "default rotateaxis for a cut on z is x",
+      "solid": "brick",
+      "args": [
+        "z",
+        8,
+        25
+      ],
+      "input": {
+        "bounds": [
+          [
+            -4,
+            -8,
+            -12
+          ],
+          [
+            6,
+            12,
+            18
+          ]
+        ],
+        "volume": 6000
+      },
+      "names": [
+        "negative",
+        "positive"
+      ],
+      "parts": {
+        "negative": {
+          "bounds": [
+            [
+              -4,
+              -8,
+              -12
+            ],
+            [
+              6,
+              12,
+              0.663076582
+            ]
+          ],
+          "volume": 1600
+        },
+        "positive": {
+          "bounds": [
+            [
+              -4,
+              -8,
+              -8.663076582
+            ],
+            [
+              6,
+              12,
+              18
+            ]
+          ],
+          "volume": 4400
+        }
+      }
+    },
+    {
+      "label": "omitted rotateoffset hinges on the third axis centre",
+      "solid": "brick",
+      "args": [
+        "z",
+        8,
+        25,
+        "x"
+      ],
+      "input": {
+        "bounds": [
+          [
+            -4,
+            -8,
+            -12
+          ],
+          [
+            6,
+            12,
+            18
+          ]
+        ],
+        "volume": 6000
+      },
+      "names": [
+        "negative",
+        "positive"
+      ],
+      "parts": {
+        "negative": {
+          "bounds": [
+            [
+              -4,
+              -8,
+              -12
+            ],
+            [
+              6,
+              12,
+              0.663076582
+            ]
+          ],
+          "volume": 1600
+        },
+        "positive": {
+          "bounds": [
+            [
+              -4,
+              -8,
+              -8.663076582
+            ],
+            [
+              6,
+              12,
+              18
+            ]
+          ],
+          "volume": 4400
+        }
+      }
+    },
+    {
+      "label": "rotateoffset 0 hinges on the third axis min face, not its centre",
+      "solid": "brick",
+      "args": [
+        "z",
+        8,
+        25,
+        "x",
+        0
+      ],
+      "input": {
+        "bounds": [
+          [
+            -4,
+            -8,
+            -12
+          ],
+          [
+            6,
+            12,
+            18
+          ]
+        ],
+        "volume": 6000
+      },
+      "names": [
+        "negative",
+        "positive"
+      ],
+      "parts": {
+        "negative": {
+          "bounds": [
+            [
+              -4,
+              -8,
+              -12
+            ],
+            [
+              6,
+              12,
+              5.326153163
+            ]
+          ],
+          "volume": 2532.61531631
+        },
+        "positive": {
+          "bounds": [
+            [
+              -4,
+              -8,
+              -4
+            ],
+            [
+              6,
+              12,
+              18
+            ]
+          ],
+          "volume": 3467.38468369
+        }
+      }
+    },
+    {
+      "label": "negative rotateoffset hinges off the third axis max face",
+      "solid": "brick",
+      "args": [
+        "y",
+        6,
+        20,
+        "z",
+        -3
+      ],
+      "input": {
+        "bounds": [
+          [
+            -4,
+            -8,
+            -12
+          ],
+          [
+            6,
+            12,
+            18
+          ]
+        ],
+        "volume": 6000
+      },
+      "names": [
+        "negative",
+        "positive"
+      ],
+      "parts": {
+        "negative": {
+          "bounds": [
+            [
+              -4,
+              -4.54779164,
+              -12
+            ],
+            [
+              6,
+              12,
+              18
+            ]
+          ],
+          "volume": 4418.38214056
+        },
+        "positive": {
+          "bounds": [
+            [
+              -4,
+              -8,
+              -12
+            ],
+            [
+              6,
+              -0.908089297,
+              18
+            ]
+          ],
+          "volume": 1581.61785944
+        }
+      }
+    },
+    {
+      "label": "explicit zero angle is the straight cut",
+      "solid": "cube",
+      "args": [
+        "z",
+        2,
+        0
+      ],
+      "input": {
+        "bounds": [
+          [
+            -5,
+            -5,
+            -5
+          ],
+          [
+            5,
+            5,
+            5
+          ]
+        ],
+        "volume": 1000
+      },
+      "names": [
+        "negative",
+        "positive"
+      ],
+      "parts": {
+        "negative": {
+          "bounds": [
+            [
+              -5,
+              -5,
+              -5
+            ],
+            [
+              5,
+              5,
+              -3
+            ]
+          ],
+          "volume": 200
+        },
+        "positive": {
+          "bounds": [
+            [
+              -5,
+              -5,
+              -3
+            ],
+            [
+              5,
+              5,
+              5
+            ]
+          ],
+          "volume": 800
+        }
+      }
+    },
+    {
+      "label": "explicit zero angle is the straight cut, off-origin solid",
+      "solid": "brick",
+      "args": [
+        "x",
+        4,
+        0
+      ],
+      "input": {
+        "bounds": [
+          [
+            -4,
+            -8,
+            -12
+          ],
+          [
+            6,
+            12,
+            18
+          ]
+        ],
+        "volume": 6000
+      },
+      "names": [
+        "negative",
+        "positive"
+      ],
+      "parts": {
+        "negative": {
+          "bounds": [
+            [
+              -4,
+              -8,
+              -12
+            ],
+            [
+              0,
+              12,
+              18
+            ]
+          ],
+          "volume": 2400
+        },
+        "positive": {
+          "bounds": [
+            [
+              0,
+              -8,
+              -12
+            ],
+            [
+              6,
+              12,
+              18
+            ]
+          ],
+          "volume": 3600
         }
       }
     }

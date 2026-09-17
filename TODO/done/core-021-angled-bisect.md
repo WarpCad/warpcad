@@ -6,8 +6,70 @@ priority: medium
 model: opus
 milestone: M4
 depends: [core-019]
-status: open
+status: done
 ---
+
+> **What actually shipped.** The seven-step algorithm in Proposed fix landed
+> unchanged, and its central bet paid off exactly as argued: the tilt really is a
+> coordinate-transform composition around `core-019`'s existing half-space-box cut,
+> not a new boolean technique. `resolveAxisPositionMm` and `cutHalfSpaces` were
+> factored out as described, `bisect()` grew the three optional params, and the
+> falsy-`angleDeg` short-circuit skips the rotate/cut/rotate-back path outright —
+> `group.spec.js` asserts **exact** equality (`toBe`/`toEqual`, not `toBeCloseTo`) of
+> both bounds and volume against a straight cut for `undefined`, `null`, `0` and `-0`,
+> which is the only assertion shape that can tell a real short-circuit from a
+> rotate-by-zero.
+>
+> **The one real finding, and it was not in this file's plan: `core-019`'s straight
+> port was wrong on the `y` axis.** V1 builds its cut plane from
+> `util.normalVector(axis).orthoNormalCartesian` — `['Y','Z']` for x and `['X','Y']`
+> for z, both right-handed, normals `+x`/`+z` — but `['X','Z']` for y, a *left*-handed
+> pair whose normal is `−y`. So a `y` cut retains the opposite half, and V1's
+> `negative` is the **maximum**-side piece on that one axis alone. `core-019` assumed
+> min-side for all three and its fixture happened to cover only `x` and `z`, so nothing
+> measured it; `group.spec.js` even encoded the wrong expectation
+> (`bisect(cube(),'y',3).parts.negative` asserted 3 mm, V1 measures 7 mm). Three of
+> this task's ten angled fixture cases are `y` cuts and disagreed with measured V1 by a
+> whole half, which is how it surfaced. Fixed in the straight path too — a
+> `NEGATIVE_IS_MAX_SIDE` table both paths consult — and pinned by two new *straight*
+> `y` fixture cases so it cannot regress. This is the second time on this exact
+> function that reading V1's source gave the wrong answer and running it gave the right
+> one; the fixture discipline earned its keep twice now.
+>
+> **That makes one clause of this file's own Goal unsatisfiable as written.** "An
+> omitted or zero `angleDeg` is bit-identical to today's straight cut (no behaviour
+> change for any existing caller)" assumed today's straight cut was correct. It is
+> bit-identical for `x` and `z`; for `y` the two halves now come back under the other
+> name, because the old answer was a defect. The clause's *intent* — that the
+> refactor itself changes nothing — is fully met and directly tested.
+>
+> **Measured tolerance, which came out the opposite of what this file predicted.** The
+> Proposed fix's precision caveat budgeted for a looser tolerance on the angled cases
+> because of the two extra rotations. Measured across all ten angled fixture cases, the
+> worst bounds residual against V1 is **4.5e-10 mm** and the worst volume residual
+> **2.8e-10 mm³** — at the fixture's own 9-decimal rounding floor, i.e. too small for
+> the measurement to resolve. The angled specs therefore compare at the same **6**
+> decimal places the straight ones use, not a looser number. Stated on
+> `MM_ANGLED_TOLERANCE` and on `bisect`'s doc comment rather than quietly dropped.
+>
+> **Two small additions beyond Affected files**, both consequences of the `y` finding
+> rather than scope creep: two straight-`y` cases in the generator's existing
+> `bisectCases` array, and a corrected paragraph in `docs/resize-bisect.md`, whose
+> "`negative` (the near side of the cut)" line became wrong for `y` the moment this
+> landed. This task's Documentation section is still `n/a` in the sense it meant — no
+> new control, no new page — but leaving a shipped page actively misleading about a
+> user-visible naming rule was not an option.
+>
+> **Verification.** Typecheck clean; full unit suite 848 passing (826 before, +22);
+> `e2e/resize-bisect-operation.e2e.js` re-run green on `chromium-laptop`, all 6 tests,
+> including the one that drives a real **Y-axis** bisect through the popover and drills
+> into a half via `ui-016`'s pick-depth — the exact path the `y` flip touches. No
+> acceptance scenario was driven and none should have been: this file's own Testing
+> section says "none directly" (kernel-only, no UI surface added), and it explicitly
+> rules out re-running `ui-016`'s repro on the grounds that this task changes where the
+> cut plane sits, not the two-part `Group` shape `ui-016` cares about. That reasoning
+> still holds after the `y` finding — the shape is unchanged, only which half carries
+> which name — and the e2e re-run exercised it anyway.
 
 ## Goal
 

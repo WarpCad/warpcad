@@ -752,20 +752,157 @@ const HALF_SPACE_REACH_FACTOR = 10
 const HALF_SPACE_MIN_REACH_MM = 1
 
 /**
- * Cut one solid in two along a plane perpendicular to `axis`, returning a group of
- * the two halves. The V3 port of `jscad-utils`' `util.bisect`.
+ * Resolve an offset along one axis into an absolute millimetre position, using V1's
+ * `util.getDelta` convention. Shared by `bisect`'s `offsetMm` and its `rotateOffsetMm`
+ * for the same reason V1 shares one `getDelta` for both: they are the same three-way
+ * argument, and having two copies is how the two drift apart.
  *
- * ## Scope: the straight cut only (TODO/core-019)
+ * Three distinct behaviours off one argument, all measured rather than read:
+ * **omitted** (`undefined`/`null`) is the axis's centre; a **negative** value — and
+ * `-0` counts, V1's `util.isNegative` tests `1/n` — measures back from the maximum
+ * face; anything else, `0` included, measures forward from the minimum face.
  *
- * V1's `bisect` also accepts `angle`, `rotateaxis` and `rotateoffset` to *tilt* the cut
- * plane. **That form is deliberately not ported here.** A survey of ~55 real call sites
- * across the user's own `.jscad` projects found ~47 passing only `axis` and `offset`;
- * the angled form is a real but minority (~15%) shape, and it needs a rotated
- * ortho-normal cut-plane basis that `@jscad/modeling` has no equivalent for — real
- * undesigned geometry work with no consumer in this project yet. It gets its own task
- * when a recipe or a control actually needs it, the same deferral `core-003` made for
- * arbitrary-edge fillet. Passing an angle here is not silently ignored: this signature
- * has nowhere to put one.
+ * @param {BoundsMm[0]} min Minimum corner of the solid being measured.
+ * @param {BoundsMm[1]} max Maximum corner.
+ * @param {Vec3Mm} size Overall size, i.e. `max - min`.
+ * @param {number} axisIndex `0`, `1` or `2`.
+ * @param {number | null} [offsetMm]
+ * @param {string} [label] Prefixes the throw, so it says which argument was wrong.
+ * @returns {number} An absolute position in millimetres along that axis.
+ */
+function resolveAxisPositionMm(min, max, size, axisIndex, offsetMm, label = 'bisect: offset') {
+  if (offsetMm === undefined || offsetMm === null) return min[axisIndex] + size[axisIndex] / 2
+  if (!Number.isFinite(offsetMm)) {
+    throw new Error(`${label} must be a finite millimetre value, got ${offsetMm}`)
+  }
+  // V1's `util.getDelta`: a negative offset (its `isNegative` counts `-0`) is measured
+  // back from the maximum face instead of forward from the minimum.
+  if (offsetMm < 0 || Object.is(offsetMm, -0)) return max[axisIndex] + offsetMm
+  return min[axisIndex] + offsetMm
+}
+
+/**
+ * Cut a solid with the plane `axis = cutMm`, returning both halves named for the side
+ * of the axis each sits on. Purely geometric: it takes no view on which half V1 calls
+ * `negative`, because that answer is axis-dependent (see {@link bisect}).
+ *
+ * The technique is the half-space box described on {@link bisect}. `cutMm` is an
+ * absolute position, deliberately not an offset — the angled path resolves the cut
+ * position against the *original* solid and then cuts a *rotated* one, so offset
+ * resolution and the cut itself cannot share a frame.
+ *
+ * @param {Geom3} geometry
+ * @param {number} axisIndex `0`, `1` or `2`.
+ * @param {number} cutMm Absolute cut position along that axis.
+ * @returns {{ lower: Geom3, upper: Geom3 }} `lower` is the minimum-side piece.
+ */
+function cutHalfSpaces(geometry, axisIndex, cutMm) {
+  const [min, max] = boundsOf(geometry)
+  const size = sizeOf(geometry)
+  const reach = Math.max(HALF_SPACE_REACH_FACTOR * Math.max(...size), HALF_SPACE_MIN_REACH_MM)
+  /** @type {Vec3Mm} */
+  const halfSpaceSize = [0, 0, 0]
+  /** @type {Vec3Mm} */
+  const halfSpaceCentre = [0, 0, 0]
+  for (let i = 0; i < 3; i++) {
+    if (i === axisIndex) {
+      // Near face exactly on the cut plane, far face well past the solid.
+      halfSpaceSize[i] = reach
+      halfSpaceCentre[i] = cutMm + reach / 2
+    } else {
+      // Overhang the solid on both sides, so the box never clips it sideways.
+      halfSpaceSize[i] = size[i] + 2 * reach
+      halfSpaceCentre[i] = (min[i] + max[i]) / 2
+    }
+  }
+  const halfSpace = primitives.cuboid({ size: halfSpaceSize, center: halfSpaceCentre })
+  return {
+    lower: booleans.subtract(geometry, halfSpace),
+    upper: booleans.intersect(geometry, halfSpace),
+  }
+}
+
+/**
+ * Which cut axes name their **maximum**-side half `negative` (TODO/core-021).
+ *
+ * V1 builds its cut plane from `util.normalVector(axis).orthoNormalCartesian`, a pair
+ * of cartesian basis letters: `['Y','Z']` for x and `['X','Y']` for z, both
+ * right-handed, so the plane normal comes out `+x` / `+z` and `cutByPlane` keeps the
+ * minimum side as `negative`. For y it is `['X','Z']` — a *left*-handed pair, whose
+ * normal is `−y` — so a y cut retains the opposite half and V1's `negative` is the
+ * maximum-side piece on that one axis alone.
+ *
+ * Almost certainly an oversight in V1 rather than a design decision, but it is
+ * measured, shipped behaviour that real `.bisect('y', ...)` call sites were written
+ * against, so it is reproduced rather than tidied — the same call the rest of this
+ * module makes. `core-019`'s port assumed the minimum side for all three axes and its
+ * fixture happened to cover only x and z, so nothing caught this until `core-021`'s
+ * angled y cases disagreed with measured V1 by a whole half. Pinned now by fixture
+ * cases on both the straight and angled forms.
+ *
+ * @type {Readonly<Record<string, boolean>>}
+ */
+const NEGATIVE_IS_MAX_SIDE = Object.freeze({ x: false, y: true, z: false })
+
+/**
+ * Which world axis the cut plane tilts about when `rotateAxis` is omitted, per cut
+ * axis. V1's own table, verbatim.
+ *
+ * @type {Readonly<Record<string, string>>}
+ */
+const DEFAULT_ROTATE_AXIS = Object.freeze({ x: 'y', y: 'x', z: 'x' })
+
+/**
+ * Cut one solid in two along a plane perpendicular to `axis` — optionally *tilted*
+ * away from perpendicular — returning a group of the two halves. The V3 port of
+ * `jscad-utils`' `util.bisect(object, axis, offset, angle, rotateaxis, rotateoffset)`.
+ *
+ * ## The tilted form (TODO/core-021)
+ *
+ * `core-019` ported the straight cut and deferred the angle. It is here now, and it
+ * turned out not to need the rotated ortho-normal cut-plane basis that deferral
+ * assumed: tilting is a *coordinate transform* around the straight cut, not a new
+ * boolean technique. For any isometry `T`, `cut(S, P) = T(cut(T⁻¹S, T⁻¹P))`; take `T`
+ * to be V1's own `rotate(rotationCenter, rotationAxis, angle)` and `T⁻¹P` is exactly
+ * the untilted plane the straight path already cuts against. So the angled path turns
+ * the solid by `−angleDeg`, runs the identical half-space-box cut, and turns both
+ * halves back — no new geometry, and the straight path stays the thing being tested.
+ *
+ * Three axes are in play and each has its own default, which is where the real cost of
+ * this form is:
+ *
+ * - **`axis`** is the cut plane's normal, as in the straight form.
+ * - **`rotateAxis`** is the world axis the plane physically tilts about. Omitted, it
+ *   comes from V1's table: `x→y`, `y→x`, `z→x`. It may not equal `axis` — V1's own
+ *   sorted-pair lookup would silently return `undefined` for that (`"xx"` is not a key
+ *   of `{xy:'z', yz:'x', xz:'y'}`) and carry on with a `NaN` rotation centre; this port
+ *   throws, naming both axes.
+ * - **The third axis** — neither of the above — is where `rotateOffsetMm` positions the
+ *   tilt hinge, under the *same* three-way sign convention `offsetMm` uses (see
+ *   {@link resolveAxisPositionMm}). Omitted therefore means that axis's **centre**, not
+ *   zero, which is a real distinction for any solid not centred on the origin.
+ *
+ * The rotation centre's component on the tilt axis is the solid's own centroid there,
+ * matching V1. That component is mathematically inert — expanding `R(v−c)+c` for `c`
+ * sliding along the rotation axis shows the along-axis part of `c` cancels — but
+ * *some* number is needed, and V1's is as good as any.
+ *
+ * **An omitted, `null` or zero `angleDeg` short-circuits to the straight path with no
+ * rotation calls at all**, rather than rotating by zero degrees and back. That is a
+ * behavioural default (V1's own `angle = angle || 0`), not just a numeric one: the
+ * round trip would otherwise push float noise into every ordinary straight cut, and
+ * `group.spec.js` asserts exact equality here rather than closeness precisely so a
+ * "rotate by 0" implementation cannot pass.
+ *
+ * **Precision**: the two extra rotations cost the same class of rounding
+ * {@link localBoundsOf} already discloses for this codebase's other
+ * rotate-then-restore paths, and `core-021` expected to have to loosen the angled
+ * specs' tolerance because of it. Measured, it did not: the worst bounds residual
+ * against V1 across the whole fixture is **4.5e-10 mm**, at the fixture's own 9-decimal
+ * rounding floor, so the angled cases compare at the same 6 places the straight ones
+ * do. Bit-exactness still is not *promised* for a tilted cut — it is a rotate-and-back
+ * round trip and nothing guarantees it lands on the same float — but the straight cut
+ * genuinely keeps it, which is what the short-circuit above is for.
  *
  * ## Which half is which, and where the offset measures from
  *
@@ -801,11 +938,18 @@ const HALF_SPACE_MIN_REACH_MM = 1
  * @param {Geom3 | Group} value Solid to cut. A group is combined first — the result's
  *   parts are the two halves, so a group's own part names cannot survive.
  * @param {string} axis `'x'`, `'y'` or `'z'`: the cut plane's normal.
- * @param {number} [offsetMm] Where to cut along that axis. Omitted cuts at the centre.
+ * @param {number | null} [offsetMm] Where to cut along that axis. Omitted cuts at the
+ *   centre.
+ * @param {number | null} [angleDeg] Degrees to tilt the cut plane. Omitted, `null` or
+ *   zero leaves it perpendicular to `axis` and takes the straight path exactly.
+ * @param {string | null} [rotateAxis] World axis the plane tilts about; defaults per
+ *   {@link DEFAULT_ROTATE_AXIS}. Must differ from `axis`.
+ * @param {number | null} [rotateOffsetMm] Where the tilt hinge sits along the third
+ *   axis. Omitted means that axis's **centre**, not zero.
  * @returns {Group} A two-part group, `negative` then `positive` — V1's names and V1's
  *   order.
  */
-export function bisect(value, axis, offsetMm) {
+export function bisect(value, axis, offsetMm, angleDeg, rotateAxis, rotateOffsetMm) {
   const index = AXIS_INDEX[axis]
   if (index === undefined) {
     throw new Error(`bisect: unknown axis ${JSON.stringify(axis)}, expected 'x', 'y' or 'z'`)
@@ -813,39 +957,82 @@ export function bisect(value, axis, offsetMm) {
   const geometry = toGeom3(value)
   const [min, max] = boundsOf(geometry)
   const size = sizeOf(geometry)
+  const cutMm = resolveAxisPositionMm(min, max, size, index, offsetMm)
 
-  let cutMm
-  if (offsetMm === undefined || offsetMm === null) {
-    cutMm = min[index] + size[index] / 2
-  } else if (!Number.isFinite(offsetMm)) {
-    throw new Error(`bisect: offset must be a finite millimetre value, got ${offsetMm}`)
-  } else if (offsetMm < 0 || Object.is(offsetMm, -0)) {
-    // V1's `util.getDelta`: a negative offset (its `isNegative` counts `-0`) is
-    // measured back from the maximum face instead of forward from the minimum.
-    cutMm = max[index] + offsetMm
-  } else {
-    cutMm = min[index] + offsetMm
+  /**
+   * Name the two halves the way V1 does for this axis. See
+   * {@link NEGATIVE_IS_MAX_SIDE} for why `y` is not like the other two.
+   *
+   * @param {{ lower: Geom3, upper: Geom3 }} halves
+   */
+  const asGroup = ({ lower, upper }) => {
+    const [negative, positive] = NEGATIVE_IS_MAX_SIDE[axis] ? [upper, lower] : [lower, upper]
+    return add(add(createGroup('bisect'), negative, 'negative'), positive, 'positive')
   }
 
-  const reach = Math.max(HALF_SPACE_REACH_FACTOR * Math.max(...size), HALF_SPACE_MIN_REACH_MM)
-  /** @type {Vec3Mm} */
-  const halfSpaceSize = [0, 0, 0]
-  /** @type {Vec3Mm} */
-  const halfSpaceCentre = [0, 0, 0]
-  for (let i = 0; i < 3; i++) {
-    if (i === index) {
-      // Near face exactly on the cut plane, far face well past the solid.
-      halfSpaceSize[i] = reach
-      halfSpaceCentre[i] = cutMm + reach / 2
-    } else {
-      // Overhang the solid on both sides, so the box never clips it sideways.
-      halfSpaceSize[i] = size[i] + 2 * reach
-      halfSpaceCentre[i] = (min[i] + max[i]) / 2
-    }
+  if (angleDeg !== undefined && angleDeg !== null && !Number.isFinite(angleDeg)) {
+    throw new Error(`bisect: angle must be a finite degree value, got ${angleDeg}`)
   }
-  const halfSpace = primitives.cuboid({ size: halfSpaceSize, center: halfSpaceCentre })
+  // V1's own `angle = angle || 0`: a falsy angle means "no tilt", and taking the
+  // straight path outright is what keeps an ordinary cut bit-identical rather than
+  // rounded through a zero-degree round trip.
+  if (!angleDeg) return asGroup(cutHalfSpaces(geometry, index, cutMm))
 
-  const positive = booleans.intersect(geometry, halfSpace)
-  const negative = booleans.subtract(geometry, halfSpace)
-  return add(add(createGroup('bisect'), negative, 'negative'), positive, 'positive')
+  const tiltAxis = rotateAxis ?? DEFAULT_ROTATE_AXIS[axis]
+  const tiltIndex = AXIS_INDEX[tiltAxis]
+  if (tiltIndex === undefined) {
+    throw new Error(
+      `bisect: unknown rotateAxis ${JSON.stringify(tiltAxis)}, expected 'x', 'y' or 'z'`
+    )
+  }
+  if (tiltIndex === index) {
+    throw new Error(
+      `bisect: rotateAxis "${tiltAxis}" is also the cut axis "${axis}" — a plane cannot ` +
+        `tilt about its own normal. Pick one of the other two axes`
+    )
+  }
+  // The remaining axis, neither cut nor tilt. Indices are 0,1,2 and sum to 3.
+  const hingeIndex = 3 - index - tiltIndex
+  const hingeMm = resolveAxisPositionMm(
+    min,
+    max,
+    size,
+    hingeIndex,
+    rotateOffsetMm,
+    'bisect: rotateOffset'
+  )
+
+  /** @type {Vec3Mm} */
+  const centre = [0, 0, 0]
+  centre[index] = cutMm
+  centre[hingeIndex] = hingeMm
+  // Inert — see the doc comment — but V1 fills it with the centroid, so this does too.
+  centre[tiltIndex] = (min[tiltIndex] + max[tiltIndex]) / 2
+
+  /**
+   * Turn a solid about `centre` along the tilt axis. The same translate-rotate-translate
+   * sandwich `localBoundsOf` above uses for a pivot-anchored rotation.
+   *
+   * @param {Geom3} solid
+   * @param {number} radians
+   * @returns {Geom3}
+   */
+  const turn = (solid, radians) => {
+    /** @type {Vec3Mm} */
+    const rotation = [0, 0, 0]
+    rotation[tiltIndex] = radians
+    return transforms.translate(
+      centre,
+      transforms.rotate(
+        rotation,
+        transforms.translate(/** @type {Vec3Mm} */ ([-centre[0], -centre[1], -centre[2]]), solid)
+      )
+    )
+  }
+
+  // `cut(S, T·P) = T(cut(T⁻¹S, P))`: turn the solid the other way, cut against the
+  // plane the straight path already knows how to cut, turn both halves back.
+  const radians = angleDeg * DEG
+  const { lower, upper } = cutHalfSpaces(turn(geometry, -radians), index, cutMm)
+  return asGroup({ lower: turn(lower, radians), upper: turn(upper, radians) })
 }

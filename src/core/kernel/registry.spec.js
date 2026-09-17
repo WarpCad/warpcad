@@ -509,6 +509,42 @@ describe('native builders', () => {
     ).toThrow(/bisect: unknown axis/)
   })
 
+  it('modify.bisect forwards the angled params by name, and works without them', () => {
+    // TODO/core-021. The registry's job here is threading three optional params
+    // through under the right names — a silent typo would land as `undefined` and
+    // degrade to a straight cut with no error anywhere, which is exactly the failure
+    // a registry-level test exists to catch.
+    const brick = build('primitive.cuboid', { params: { size: [10, 20, 30] } })
+    const entry = getEntry('modify.bisect')
+    if (!entry.build) throw new Error('modify.bisect must be a native op')
+    /** @param {Record<string, unknown>} params */
+    const cut = (params) =>
+      /** @type {any} */ (entry.build?.({ params, inputs: [/** @type {Geom3} */ (brick)] }))
+
+    const straight = cut({ axis: 'z', offsetMm: 8 })
+    const tilted = cut({ axis: 'z', offsetMm: 8, angleDeg: 25, rotateAxis: 'x', rotateOffsetMm: 0 })
+    expect(tilted.names).toEqual(['negative', 'positive'])
+    // `angleDeg` reached the kernel: a 25° tilt hinged off the y min face lifts the
+    // negative half's top well above the straight cut's flat one.
+    expect(boundsOf(tilted.parts.negative)[1][2]).toBeGreaterThan(
+      boundsOf(straight.parts.negative)[1][2] + 1
+    )
+    // `rotateAxis` reached it too: tilting about y instead of x is a different cut.
+    const aboutY = cut({ axis: 'z', offsetMm: 8, angleDeg: 25, rotateAxis: 'y', rotateOffsetMm: 0 })
+    expect(boundsOf(aboutY.parts.negative)[1][2]).not.toBeCloseTo(
+      boundsOf(tilted.parts.negative)[1][2],
+      3
+    )
+    // And `rotateOffsetMm`: hinging on the third axis's centre instead of its min
+    // face leaves the cut balanced, so the negative half's top drops back down.
+    const centred = cut({ axis: 'z', offsetMm: 8, angleDeg: 25, rotateAxis: 'x' })
+    expect(boundsOf(centred.parts.negative)[1][2]).toBeLessThan(
+      boundsOf(tilted.parts.negative)[1][2]
+    )
+    // Omitting all three still dispatches, unchanged from before this task.
+    expect(boundsOf(straight.parts.negative)[1][2]).toBeCloseTo(-7, 6)
+  })
+
   it('gates all five modify ops on a single selected object', () => {
     for (const op of ['modify.enlarge', 'modify.fit', 'modify.bisect']) {
       expect(registry[op]).toMatchObject({ kind: 'native', operandCount: 1 })

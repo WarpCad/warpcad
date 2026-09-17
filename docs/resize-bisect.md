@@ -89,8 +89,15 @@ same shape, same id, same position in the scene list, just a new size. Nothing
 new appears in the scene.
 
 **Bisect** is different: the one shape you selected becomes a **two-part
-group**, named `negative` (the near side of the cut) and `positive` (the far
-side). The group as a whole is still one selectable item in the scene — click
+group**, named `negative` and `positive`. For a cut on **X** or **Z**,
+`negative` is the piece on the lower side of the cut and `positive` the piece
+on the higher side. A cut on **Y** names them the other way round — that is
+inherited, deliberately, from the original `jscad-utils` behaviour these
+operations reproduce, so that existing designs cut the same way here as they
+did there. If you are picking a half by name after a Y cut and get the one you
+did not expect, this is why; pick the other one.
+
+The group as a whole is still one selectable item in the scene — click
 it once and the gizmo and dimension lines attach to the whole pair, exactly as
 they did before the cut. Click again to drill into either half individually,
 the same way any other grouped body works — see

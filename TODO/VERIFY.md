@@ -34,6 +34,26 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### core-021 — a Y-axis bisect now names its halves the other way round (2026-09-17 13:56)
+
+One entry, and it is a genuine judgment call rather than a restated pass. `core-021`
+found that `core-019`'s straight `bisect` was wrong on the `y` axis — V1 builds that
+one cut plane from a left-handed basis pair, so its `negative` is the **maximum**-side
+half on `y` and the minimum-side half on `x`/`z`. The port now reproduces V1 exactly,
+which is this project's standing rule and is fully covered by fixture cases on both the
+straight and angled forms. What no test can decide is whether faithfully reproducing
+what is almost certainly a V1 *oversight* is the right call for a human driving the
+app, who has no reason to expect one axis to behave differently from the other two. The
+alternative — "negative is always the lower side", diverging from V1 and documenting it
+— is equally defensible and was not chosen unilaterally. Everything else this task
+touched is covered: 848 unit tests, and `e2e/resize-bisect-operation.e2e.js` re-run
+green including its real Y-axis cut.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | Bisect a cube on **Y** in the running app, drill into each half, and judge whether `negative` landing on the far side reads as a bug. If it does, that is a decision to diverge from V1 — file it as its own TODO rather than patching it here | Open | |
+| 2 | Read `docs/resize-bisect.md`'s new "a cut on **Y** names them the other way round" paragraph cold and judge whether it actually prevents the surprise, or just documents it after the fact | Open | |
+
 ### core-018 — a broken Firefox toolchain, and two shapes no bounding box can judge (2026-09-16 23:28)
 
 Step 6 re-drove five acceptance scenarios and re-ran two closed findings' repros, and all four

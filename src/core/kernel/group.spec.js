@@ -36,6 +36,9 @@ const small = () => primitives.cuboid({ size: [4, 4, 4] })
 /** @param {Geom3} geometry */
 const boundsOf = (geometry) => measurements.measureBoundingBox(geometry)
 
+/** @param {Geom3} geometry */
+const volumeOf = (geometry) => measurements.measureVolume(geometry)
+
 describe('axisApply', () => {
   it('writes only the named axes and leaves the rest at zero', () => {
     expect(axisApply('z', () => 7)).toEqual([0, 0, 7])
@@ -526,7 +529,8 @@ describe('bisect', () => {
 
   it('cuts on any named axis and rejects anything else', () => {
     expect(sizeOf(bisect(cube(), 'x', 3).parts.negative)[0]).toBeCloseTo(3, 6)
-    expect(sizeOf(bisect(cube(), 'y', 3).parts.negative)[1]).toBeCloseTo(3, 6)
+    // The y axis names its halves the other way round — see the dedicated case below.
+    expect(sizeOf(bisect(cube(), 'y', 3).parts.positive)[1]).toBeCloseTo(3, 6)
     expect(() => bisect(cube(), 'w', 1)).toThrow(/bisect: unknown axis/)
     expect(() => bisect(cube(), 'z', Number.NaN)).toThrow(/finite/)
   })
@@ -536,5 +540,218 @@ describe('bisect', () => {
     const halves = bisect(pair, 'z', 2)
     expect(halves.names).toEqual(['negative', 'positive'])
     expect(sizeOf(halves.parts.negative)[2]).toBeCloseTo(2, 6)
+  })
+
+  it('puts negative on the max side for a y cut, the min side for x and z (TODO/core-021)', () => {
+    // Measured, and genuinely surprising: V1 builds its cut plane from
+    // `util.normalVector(axis).orthoNormalCartesian`, which is `['Y','Z']` for x and
+    // `['X','Y']` for z — both right-handed, normal `+x` / `+z` — but `['X','Z']` for
+    // y, a *left*-handed pair whose normal is `−y`. So a y cut retains the opposite
+    // half, and V1's `negative` is the maximum-side piece on that one axis alone.
+    // core-019's straight port assumed min-side for all three; the straight fixture
+    // only covered x and z, so nothing caught it until this task's angled y cases.
+    expect(sizeOf(bisect(cube(), 'x', 3).parts.negative)[0]).toBeCloseTo(3, 6)
+    expect(sizeOf(bisect(cube(), 'z', 3).parts.negative)[2]).toBeCloseTo(3, 6)
+    expect(sizeOf(bisect(cube(), 'y', 3).parts.negative)[1]).toBeCloseTo(7, 6)
+    expect(sizeOf(bisect(cube(), 'y', 3).parts.positive)[1]).toBeCloseTo(3, 6)
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// TODO/core-021 — the angled `angle`/`rotateaxis`/`rotateoffset` form of bisect.
+//
+// Same measure-don't-guess discipline as the straight form above, and for the same
+// reason: three of this form's conventions (which way a positive angle tilts, whether
+// an omitted `rotateoffset` means centre or zero, and which half stays `negative` once
+// the plane is no longer axis-aligned) are settled only by running V1.
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('bisect, angled', () => {
+  /**
+   * Restore a fixture arg JSON could not carry: `-0` (stringified) and an omitted
+   * middle argument (`null`). V1 treats `null` and `undefined` identically here —
+   * `util.isEmpty` accepts both, and `rotateaxis || default` is falsy either way.
+   *
+   * @param {any} value
+   * @returns {any}
+   */
+  const argOf = (value) => {
+    if (value === '-0') return -0
+    return value === null ? undefined : value
+  }
+
+  /**
+   * The same 6 digits the straight form uses — measured, not assumed.
+   *
+   * core-021's own spec predicted the two extra rotations (forward to cut, back to
+   * restore) would need a looser number than the straight cut's, and budgeted for
+   * saying so. They don't: the worst bounds residual across all ten angled cases is
+   * **4.5e-10 mm**, which is at the fixture's own rounding floor — it records to 9
+   * decimal places — so the measurement cannot even resolve the error. `@jscad/modeling`
+   * rotating an axis-aligned brick through a clean angle and back is very nearly exact,
+   * and the boolean is doing the same work it does for a straight cut either way.
+   * Left at 6 rather than tightened further, so this matches its straight-form
+   * neighbour and does not become a tripwire for an unrelated float change.
+   */
+  const MM_ANGLED_TOLERANCE = 6
+
+  const solidFor = (/** @type {string} */ name) => (name === 'brick' ? brick() : cube())
+
+  it.each(v1Reference.bisectAngled)('matches V1: $label', (entry) => {
+    const [axis, offset, angle, rotateAxis, rotateOffset] = entry.args.map(argOf)
+    const halves = bisect(
+      solidFor(entry.solid),
+      String(axis),
+      offset,
+      angle,
+      rotateAxis,
+      rotateOffset
+    )
+    expect(halves.names).toEqual(entry.names)
+    const expectedParts = /** @type {Record<string, { bounds: number[][] }>} */ (entry.parts)
+    for (const part of entry.names) {
+      expectMatchesV1(halves.parts[part], expectedParts[part], part, MM_ANGLED_TOLERANCE)
+    }
+  })
+
+  it('applies the default rotate axis per cut axis — x→y, y→x, z→x', () => {
+    // The claim is that omitting `rotateAxis` *applies* the default rather than
+    // merely being accepted, so each omission is compared against the same call with
+    // the default named explicitly — and against the other two axes, to prove the
+    // table is consulted rather than one axis being hardcoded.
+    for (const [axis, expected] of /** @type {const} */ ([
+      ['x', 'y'],
+      ['y', 'x'],
+      ['z', 'x'],
+    ])) {
+      const implicit = bisect(brick(), axis, 5, 25)
+      const explicit = bisect(brick(), axis, 5, 25, expected)
+      for (const part of ['negative', 'positive']) {
+        expect(boundsOf(implicit.parts[part]), `${axis} default → ${expected}, ${part}`).toEqual(
+          boundsOf(explicit.parts[part]).map((corner) =>
+            corner.map((n) => expect.closeTo(n, MM_ANGLED_TOLERANCE))
+          )
+        )
+      }
+      // And a *different* tilt axis really does produce a different cut, so the
+      // agreement above is not two calls that ignore the argument entirely. Compared
+      // on bounds rather than volume, because volume cannot tell them apart: with the
+      // hinge on the third axis's own centre the plane rises as far on one side as it
+      // falls on the other, so *every* tilt axis removes the same 3000 mm³ here.
+      const other = axis === 'z' ? 'y' : 'z'
+      const otherBounds = boundsOf(bisect(brick(), axis, 5, 25, other).parts.negative)
+      const implicitBounds = boundsOf(implicit.parts.negative)
+      const differs = otherBounds.some((corner, c) =>
+        corner.some((n, i) => Math.abs(n - implicitBounds[c][i]) > 0.5)
+      )
+      expect(differs, `${axis}: tilting about ${other} must differ from default ${expected}`).toBe(
+        true
+      )
+    }
+  })
+
+  it('hinges an omitted rotateOffsetMm on the third axis centre, not on zero', () => {
+    // Only an off-origin solid can tell those apart — on the origin-centred cube the
+    // two answers coincide. The brick is centred at [1,2,3], size [10,20,30].
+    const omitted = bisect(brick(), 'z', 8, 25, 'x')
+    const atCentre = bisect(brick(), 'z', 8, 25, 'x', 20 / 2)
+    const atZero = bisect(brick(), 'z', 8, 25, 'x', 0)
+    expect(volumeOf(omitted.parts.negative)).toBeCloseTo(
+      volumeOf(atCentre.parts.negative),
+      MM_ANGLED_TOLERANCE
+    )
+    expect(volumeOf(omitted.parts.negative)).not.toBeCloseTo(volumeOf(atZero.parts.negative), 3)
+    // A hinge on the third axis's own centre keeps the cut balanced: the plane rises
+    // as far above the cut position on one side as it drops below it on the other, so
+    // the tilt removes exactly as much as it adds and the halves match a straight cut.
+    expect(volumeOf(omitted.parts.negative)).toBeCloseTo(
+      volumeOf(bisect(brick(), 'z', 8).parts.negative),
+      MM_ANGLED_TOLERANCE
+    )
+  })
+
+  it('measures a negative rotateOffsetMm from the third axis max face, like offsetMm', () => {
+    // Same `getDelta` convention V1 reuses for both parameters — see `bisect`'s doc
+    // comment. Note which axis that is: cutting on y and tilting about z leaves **x**
+    // as the third axis, and the brick's x runs −4..6, so −3 means x = 3, which is
+    // also 10 − 3 = 7 measured forward from the minimum face.
+    const negative = bisect(brick(), 'y', 6, 20, 'z', -3)
+    const fromMin = bisect(brick(), 'y', 6, 20, 'z', 10 - 3)
+    expect(volumeOf(negative.parts.negative)).toBeCloseTo(
+      volumeOf(fromMin.parts.negative),
+      MM_ANGLED_TOLERANCE
+    )
+  })
+
+  it('short-circuits a falsy angle to the straight cut, bit for bit', () => {
+    // Not "rotates by zero degrees and back" — that would push float noise into every
+    // ordinary straight-cut caller. The claim is exact equality, not closeness, which
+    // is the only assertion that can tell a real short-circuit from a no-op rotation.
+    const straight = bisect(brick(), 'x', 4)
+    for (const angle of [undefined, null, 0, -0]) {
+      const same = bisect(brick(), 'x', 4, /** @type {any} */ (angle))
+      for (const part of ['negative', 'positive']) {
+        expect(boundsOf(same.parts[part]), `angle ${String(angle)}, ${part}`).toEqual(
+          boundsOf(straight.parts[part])
+        )
+        expect(volumeOf(same.parts[part]), `angle ${String(angle)}, ${part}`).toBe(
+          volumeOf(straight.parts[part])
+        )
+      }
+    }
+  })
+
+  it('conserves volume across the tilted cut', () => {
+    for (const [axis, angle, tilt] of /** @type {const} */ ([
+      ['x', 120, 'z'],
+      ['y', 30, 'x'],
+      ['z', 25, 'y'],
+      ['z', -40, 'x'],
+    ])) {
+      const halves = bisect(brick(), axis, 5, angle, tilt)
+      const total = volumeOf(halves.parts.negative) + volumeOf(halves.parts.positive)
+      expect(total, `${axis} @ ${angle}° about ${tilt}`).toBeCloseTo(6000, 4)
+    }
+  })
+
+  it('throws when the tilt axis is the cut axis, naming both', () => {
+    // V1's own sorted-pair lookup would hand back `undefined` here — `"xx"` is not a
+    // key of `{xy:'z', yz:'x', xz:'y'}` — and carry on with a `NaN` rotation centre
+    // rather than erroring. This port refuses by name instead.
+    expect(() => bisect(cube(), 'x', 2, 30, 'x')).toThrow(/bisect: rotateAxis/)
+    expect(() => bisect(cube(), 'x', 2, 30, 'x')).toThrow(/x/)
+    expect(() => bisect(cube(), 'z', 2, 30, 'z')).toThrow(/bisect: rotateAxis/)
+    expect(() => bisect(cube(), 'z', 2, 30, 'w')).toThrow(/bisect: unknown rotateAxis/)
+    expect(() => bisect(cube(), 'z', 2, Number.NaN)).toThrow(/finite/)
+    expect(() => bisect(cube(), 'z', 2, 30, 'x', Number.NaN)).toThrow(/finite/)
+  })
+
+  it('tilts the cut visibly rather than accepting the angle and ignoring it', () => {
+    // The cheapest possible guard against a silently-dropped parameter: a straight z
+    // cut at the centre of the brick leaves a flat-topped 10x20x15 negative half,
+    // while a 25° tilt about x hinged off the y min face leaves one that reaches
+    // higher — same volume-conservation, different shape.
+    const straight = bisect(brick(), 'z', 15)
+    const tilted = bisect(brick(), 'z', 15, 25, 'x', 0)
+    expect(boundsOf(straight.parts.negative)[1][2]).toBeCloseTo(3, 6)
+    expect(boundsOf(tilted.parts.negative)[1][2]).toBeGreaterThan(
+      boundsOf(straight.parts.negative)[1][2] + 1
+    )
+    // ...and the tilt is the real trigonometric one, not an arbitrary shove: the
+    // plane climbs `tan(25°)` per millimetre along y, over the brick's 20 mm.
+    expect(boundsOf(tilted.parts.negative)[1][2]).toBeCloseTo(
+      3 + 20 * Math.tan((25 * Math.PI) / 180),
+      MM_ANGLED_TOLERANCE
+    )
+  })
+
+  it('collapses a group before cutting it, and still returns the two V1 names', () => {
+    const pair = add(add(createGroup('pair'), small(), 'a'), big(), 'b')
+    const halves = bisect(pair, 'z', 2, 15)
+    expect(halves.names).toEqual(['negative', 'positive'])
+    expect(volumeOf(halves.parts.negative) + volumeOf(halves.parts.positive)).toBeCloseTo(
+      volumeOf(toGeom3(pair)),
+      4
+    )
   })
 })

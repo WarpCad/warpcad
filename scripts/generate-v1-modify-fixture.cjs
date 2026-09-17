@@ -168,6 +168,15 @@ function main() {
     { label: 'zero offset cuts at the min face', args: ['z', 0] },
     { label: 'negative zero cuts at the max face', args: ['z', -0] },
     { label: 'another axis', args: ['x', 3] },
+    // TODO/core-021 found the straight form's one unmeasured corner: V1 builds its cut
+    // plane from `util.normalVector(axis).orthoNormalCartesian`, which is `['Y','Z']`
+    // for x and `['X','Y']` for z — right-handed, normals `+x`/`+z` — but `['X','Z']`
+    // for y, a *left*-handed pair whose normal is `−y`. So a y cut keeps the opposite
+    // half and V1's `negative` is the maximum-side piece on that axis alone. The
+    // original bisect cases covered only x and z, so nothing measured this; core-019's
+    // port assumed min-side for all three and was wrong on y. Pinned here for good.
+    { label: 'the y axis names its halves the other way round', args: ['y', 3] },
+    { label: 'the y axis, negative offset, still the other way round', args: ['y', -3] },
     { label: 'cut plane entirely past the max bound', args: ['z', 20] },
   ].map(({ label, args }) => {
     const group = util.bisect(cube(), ...args)
@@ -179,6 +188,83 @@ function main() {
       // finding the port has to state — see group.js's `bisect` doc comment.
       args: args.map((a) => (Object.is(a, -0) ? '-0' : a)),
       input: measure(cube()),
+      names: group.names,
+      parts,
+    }
+  })
+
+  // ── TODO/core-021: the angled form, `bisect(o, axis, offset, angle, rotateaxis,
+  // rotateoffset)` ────────────────────────────────────────────────────────────────
+  //
+  // Three things here cannot be settled by reading V1's source, which is why they are
+  // measured rather than derived:
+  //
+  //  1. **Which way a positive `angle` tilts the plane.** V1 hands the angle to
+  //     `@jscad/csg`'s `rotate(rotationCenter, rotationAxis, degrees)`; the V3 port
+  //     reaches the same result by rotating the *solid* by the negated angle and
+  //     cutting flat. Whether those two signs agree is a measurement, not a derivation.
+  //  2. **`rotateoffset` omitted defaults to the third axis's *centre*, not zero.**
+  //     Only an off-origin solid can tell those apart, so the cases that prove it use
+  //     `brick` (centred at [1,2,3]) rather than the origin-centred `cube` — on the
+  //     cube the two answers coincide and the case would prove nothing.
+  //  3. **An explicit `angle: 0` measures identically to the straight form.** That is
+  //     what makes it safe for the V3 port to short-circuit a falsy angle to the
+  //     untilted code path with no rotation calls at all, rather than rotating by zero
+  //     degrees and reintroducing float noise into every ordinary straight-cut caller.
+  const bisectAngledCases = [
+    // The two real `.bisect(` call shapes core-019's own survey found, verbatim.
+    { label: "real call site: bisect('x', 0, 120, 'z')", solid: 'cube', args: ['x', 0, 120, 'z'] },
+    {
+      label: "real call site: bisect('y', -0, 30, 'x', 0)",
+      solid: 'cube',
+      args: ['y', -0, 30, 'x', 0],
+    },
+    // Default `rotateaxis` table — {x:'y', y:'x', z:'x'} — one case per cut axis.
+    { label: "default rotateaxis for a cut on x is y", solid: 'brick', args: ['x', 4, 25] },
+    { label: "default rotateaxis for a cut on y is x", solid: 'brick', args: ['y', 6, 25] },
+    { label: "default rotateaxis for a cut on z is x", solid: 'brick', args: ['z', 8, 25] },
+    // Omitted vs. explicit-zero `rotateoffset`, on the off-origin brick so the two
+    // genuinely differ (see note 2 above).
+    {
+      label: 'omitted rotateoffset hinges on the third axis centre',
+      solid: 'brick',
+      args: ['z', 8, 25, 'x'],
+    },
+    {
+      label: 'rotateoffset 0 hinges on the third axis min face, not its centre',
+      solid: 'brick',
+      args: ['z', 8, 25, 'x', 0],
+    },
+    {
+      label: 'negative rotateoffset hinges off the third axis max face',
+      solid: 'brick',
+      args: ['y', 6, 20, 'z', -3],
+    },
+    // Explicit zero angle: must measure the same as the straight fixture entry for the
+    // same axis/offset. The regression anchor for the falsy-angle short-circuit.
+    { label: 'explicit zero angle is the straight cut', solid: 'cube', args: ['z', 2, 0] },
+    {
+      label: 'explicit zero angle is the straight cut, off-origin solid',
+      solid: 'brick',
+      args: ['x', 4, 0],
+    },
+  ].map(({ label, solid, args }) => {
+    const make = solid === 'brick' ? brick : cube
+    const group = util.bisect(make(), ...args)
+    const parts = {}
+    for (const key of Object.keys(group.parts)) parts[key] = measure(group.parts[key])
+    return {
+      label,
+      solid,
+      // `-0` does not survive JSON (`JSON.stringify(-0) === '0'`), same as the straight
+      // cases above. `null` stands in for an omitted middle argument, which V1 treats
+      // identically to `undefined` (`util.isEmpty` accepts both, and `rotateaxis ||
+      // default` is falsy either way).
+      args: args.map((a) => {
+        if (Object.is(a, -0)) return '-0'
+        return a === undefined ? null : a
+      }),
+      input: measure(make()),
       names: group.names,
       parts,
     }
@@ -199,6 +285,9 @@ function main() {
     enlarge: enlargeCases,
     fit: fitCases,
     bisect: bisectCases,
+    // Its own key rather than more rows on `bisect`: an angled case carries three more
+    // parameters and a `solid` selector the straight shape has no slot for.
+    bisectAngled: bisectAngledCases,
   }
 
   fs.mkdirSync(path.dirname(OUT_PATH), { recursive: true })

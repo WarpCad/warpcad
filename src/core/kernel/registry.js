@@ -772,10 +772,24 @@ export const registry = Object.freeze({
   ),
 
   // Returns a two-part `Group` (`negative`, `positive`), not a solid — which is why
-  // `KernelGeometry` admits a `Group` at all. Straight cuts only; the angled form V1
-  // also supported is explicitly out of scope, see `bisect`'s doc comment.
+  // `KernelGeometry` admits a `Group` at all.
+  //
+  // `angleDeg`/`rotateAxis`/`rotateOffsetMm` (TODO/core-021) tilt the cut plane away
+  // from perpendicular; all three are optional and omitting them is exactly the
+  // straight cut, down to the float. Two defaults are worth knowing before writing a
+  // record: an omitted `rotateAxis` follows V1's per-cut-axis table (`x→y`, `y→x`,
+  // `z→x`), and an omitted `rotateOffsetMm` hinges on the third axis's **centre**, not
+  // on zero. See `bisect`'s doc comment for both, and for why a `y` cut names its
+  // halves the opposite way round from an `x` or `z` one.
   'modify.bisect': native(1, ({ params, inputs }) =>
-    bisect(inputs[0], params.axis, params.offsetMm)
+    bisect(
+      inputs[0],
+      params.axis,
+      params.offsetMm,
+      params.angleDeg,
+      params.rotateAxis,
+      params.rotateOffsetMm
+    )
   ),
 
   'hardware.bolt': composite(0, bolt),
