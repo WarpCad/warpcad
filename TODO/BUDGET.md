@@ -188,3 +188,25 @@ V1 source directly inspected to confirm the handedness claim, and
 re-drive was needed or attempted — this task has no UI surface of its own and doesn't
 change the two-part `Group` shape `ui-016`'s subsystem cares about, only which half
 carries which name, per the task's own Testing section.
+
+At the check-in, asked the user what to do about the Y-axis finding directly (not just
+log it and move on); they chose to diverge from V1 for least-surprise rather than keep
+the faithfully-reproduced-but-inconsistent naming. Scoped that as `core-022`
+(commit `7ed12df`) — a small (S), well-precedented reversal of `core-021`'s own
+`NEGATIVE_IS_MAX_SIDE` table — and resolved `TODO/VERIFY.md`'s `core-021` entry
+accordingly rather than leaving it open. User chose to continue the loop and run it.
+
+| 2026-09-17 14:19 | 2026-09-17 14:32 | `core-022` | blocked — same two remaining M4 blockers as before (Bearing, edge-fillet); `core-022` was the only eligible row and is now done | no — M4 not fully ✅, but its only remaining rows are both blocked on the same kind of input |
+
+Note on the row above: `negative`/`positive` now always mean min-side/max-side on every
+axis (`8dad197`, plus `cf9d4b1` for social drafts) — `NEGATIVE_IS_MAX_SIDE` deleted,
+`asGroup` simplified unconditionally, the real V1 fixture data left untouched (it's a
+historical record of measured output, not a naming contract) with a new
+`expectedPartsFor` swap helper handling the `y`-axis comparison instead. The agent also
+caught and fixed a real internal inconsistency in this loop's own scoping file (the
+Proposed fix's example values contradicted its own "min-side" label); resolved by the
+geometrically-correct reading, matching the Goal section. Independently re-verified:
+typecheck clean, 848/848 unit, `e2e/resize-bisect-operation.e2e.js` green on both
+`chromium-laptop` and `webkit-laptop` (12/12), and the "e2e spec is name-agnostic"
+claim this task's own file made was confirmed by reading the spec, not just trusted.
+No acceptance-scenario re-drive needed, same reasoning as `core-021`.
