@@ -205,6 +205,22 @@ Per §11's own instruction, this is surfaced rather than quietly resolved or dro
 > implemented. **`docs-003`'s roadmap should not commit any task that promises
 > edge-selected fillets until this is answered.**
 
+### Answered (2026-09-17): Option 1 — ship rim-only, drop edge fillet from the catalog
+
+The user chose the zero-cost option explicitly, not by default or by inaction: rim
+fillet/chamfer (`modify.filletRim`/`modify.chamferRim`, shipped in `ui-027`) is the
+catalog's whole fillet/chamfer surface, permanently, not a placeholder pending a
+second kernel. Arbitrary-edge fillet/chamfer is **out of scope for this project** —
+not deferred, not revisited unless a real design need overturns this decision
+explicitly and re-opens it as its own question, the same way any other closed
+architectural decision here would be revisited (see this file's own header on
+re-running the Library-decisions health check only when a deferred dependency is
+actually about to be pulled in — the analogous trigger here is a real design that
+needs it, not a calendar date).
+
+No `OpenCascade.js` dependency is added, no dual-kernel fork is scoped. `TODO/ROADMAP.md`'s
+M4 `edge-fillet` row is closed accordingly — see that file for the exact record.
+
 ## Finding 2 — Bearing: the risk was a phantom, and §5's premise is wrong
 
 §6 marks Bearing *Native (tentative)*, sourced to `hardware.Bearing`, and §5 says its
