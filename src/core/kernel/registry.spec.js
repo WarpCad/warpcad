@@ -3,7 +3,8 @@ import modeling from '@jscad/modeling'
 
 import { acceptsOperandCount, assertOperandCount, getEntry, registry } from './registry.js'
 import { calcCenterWith, calcSnap, centroidOf, combine, isGroup, pick } from './group.js'
-import { evaluate } from './index.js'
+import { evaluate, evaluateOp, expand } from './index.js'
+import { PRIMITIVE_LIBRARY } from '../library.js'
 
 const { measurements } = modeling
 
@@ -686,7 +687,34 @@ describe('native builders', () => {
     // renamed, because the UI gates tools on what an op claims to accept.
     expect(registry['modify.fillet']).toBeUndefined()
     expect(registry['modify.chamfer']).toBeUndefined()
-    expect(registry['hardware.bearing']).toBeUndefined()
+  })
+})
+
+describe('hardware.bearing (TODO/core-023) — composite, registered once a spec table existed', () => {
+  it('is registered as a composite op that creates geometry from nothing', () => {
+    expect(registry['hardware.bearing']).toMatchObject({ kind: 'composite', operandCount: 0 })
+  })
+
+  it('dispatches through the registry the same as hardware.bolt/nut/washer', () => {
+    const records = expand('hardware.bearing', { spec: '608' })
+    expect(records).toEqual([
+      {
+        id: 'bearing',
+        op: 'primitive.tube',
+        params: { diameter: 22, innerDiameter: 8, height: 7 },
+        name: 'bearing',
+      },
+    ])
+    const group = evaluateOp('hardware.bearing', { spec: '608' })
+    expect(isGroup(group) && group.names).toEqual(['bearing'])
+  })
+
+  it('is not visible to library.js\'s buildRows — same as hardware.bolt/nut/washer, since it does not start with "primitive."', () => {
+    expect(PRIMITIVE_LIBRARY.map((row) => row.op)).not.toContain('hardware.bearing')
+    // Regression check on the filter itself, not just this recipe (TODO/core-023's
+    // own Testing section) — a new registry addition is a second chance to trip the
+    // panel filter, same reasoning core-010 established for hardware.nut.
+    expect(PRIMITIVE_LIBRARY).toHaveLength(7)
   })
 })
 

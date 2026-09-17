@@ -6,8 +6,29 @@ priority: medium
 model: sonnet
 milestone: M4
 depends: [core-001]
-status: open
+status: done
 ---
+
+> **What actually shipped.** Exactly the Proposed fix below, with one confirmed
+> divergence from its own speculation: the TODO asked to "confirm the real
+> wiring mechanism rather than guessing" for how the shared `tables` object
+> reaches a composite recipe. It is **not** `registry.js` — that module only
+> maps `'hardware.bearing': composite(0, bearing)`, exactly like the other
+> three. The actual table-injection point is `src/core/kernel/index.js`'s
+> `DEFAULT_TABLES` object, which every composite recipe's `evaluate`/`expand`/
+> `evaluateOp` call reads; `bearingSpecs` was added there, alongside
+> `boltSpecs`/`nutSpecs`/`washerSpecs`, plus a re-export at the bottom of that
+> file. No new mechanism — the existing one, extended by one row, which is why
+> no closed finding's repro needed re-running per this file's own Regression
+> surface note. The recipe also grew one field beyond the Proposed fix's exact
+> code: an optional `params.segments` passthrough (mirroring the precedent
+> `hardware.bolt.js` already set, not washer's), added so the volume sanity
+> check below could reproduce `core-003`'s spike at its own 64-segment
+> tessellation assumption rather than the registry's 32-segment default. A
+> pre-existing `registry.spec.js` assertion (`expect(registry['hardware.bearing']).toBeUndefined()`,
+> filed under the fillet/chamfer "deliberately absent" test) was removed and
+> replaced with a positive registration/dispatch/invisibility block, since that
+> line would otherwise now assert something false.
 
 ## Goal
 

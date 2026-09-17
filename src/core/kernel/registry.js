@@ -53,6 +53,7 @@ import {
 import { bolt } from './recipes/hardware.bolt.js'
 import { nut } from './recipes/hardware.nut.js'
 import { washer } from './recipes/hardware.washer.js'
+import { bearing } from './recipes/hardware.bearing.js'
 import { anchor } from './recipes/kit.anchor.js'
 import { board } from './recipes/kit.board.js'
 import { boardFrame } from './recipes/kit.boardFrame.js'
@@ -805,6 +806,12 @@ export const registry = Object.freeze({
   // for the V1→V3 hidden-clearance divergence this makes explicit.
   'hardware.washer': composite(0, washer),
 
+  // TODO/core-023: no V1 source exists at all — `jscad-hardware` has no `Bearing`
+  // factory (`docs/decisions/geometry-kernel.md`, Finding 2). One-record expansion,
+  // simpler than washer: no `fit`/conditional second part. See
+  // recipes/hardware.bearing.js's module doc.
+  'hardware.bearing': composite(0, bearing),
+
   // TODO/core-012: §6's three Kit-part rows. All three expand through the
   // `profile.*` pair above rather than building geometry themselves; `kit.anchor` is
   // the one recipe in the project that touches `@jscad/modeling` at all, and only to
@@ -898,7 +905,7 @@ export const registry = Object.freeze({
   'raspberrypi.hatStandoff': composite(0, hatStandoff),
   'raspberrypi.spacer': composite(0, spacer),
 
-  // Deliberately absent, and not an oversight — TODO/core-003 spiked both:
+  // Deliberately absent, and not an oversight — TODO/core-003 spiked this:
   //
   // - `modify.fillet`/`modify.chamfer` on a *selected edge*. Not viable on this
   //   kernel: V3 has no fillet op, cannot erode a solid (`expand` throws on a
@@ -906,10 +913,11 @@ export const registry = Object.freeze({
   //   topology to name an edge with. Registering the rim ops above under the bare
   //   names `fillet`/`chamfer` would misrepresent what they do to the UI's tool
   //   enablement, which is why they carry `Rim` in their names.
-  // - `hardware.bearing`. Not blocked, just unverified: there is no `Bearing` factory
-  //   in the vendored jscad-hardware to port or diff against, and its geometry is an
-  //   ordinary tube, so it belongs here as a `composite` recipe once someone supplies
-  //   a real spec table. It is not a native op.
+  //
+  // `hardware.bearing` was in this same "spiked, not yet registered" state as of
+  // core-003 — see `docs/decisions/geometry-kernel.md` Finding 2 — but TODO/core-023
+  // supplied the missing spec table and it is now registered above, alongside
+  // `hardware.bolt`/`nut`/`washer`.
 })
 
 /**
