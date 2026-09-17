@@ -1770,3 +1770,98 @@ this task and re-driven:
    is the whole point of sketch mode, the same reasoning `AppView.vue` already applies
    to not closing the Library on every drop, and scenario 9's own step 5 treats
    selecting as a separate deliberate click anyway. Back to 69% after the fix.
+
+### 10. Save, reload, and confirm nothing changed
+
+Added 2026-09-17 alongside `TODO/ROADMAP.md`'s new M5, per this file's own rule that a
+new capability class (persistence) earns a new scenario rather than folding into an
+existing one. Steps and Expect are written now; the scoping Q&A that fixes the actual
+trigger controls (`data-002`) may rename them — update this scenario to match the real
+control names once that Q&A lands, the same way scenarios 1-9 were rewritten against
+`ui-001`'s confirmed names rather than left as `Initial design.md` §9's provisional
+wording.
+
+**Steps**:
+1. Place a cube, a cylinder, and union them together.
+2. Save the project (whatever the confirmed trigger turns out to be — see `data-002`).
+3. Reload the page (or close and reopen the app) with no other action in between.
+4. Confirm the project reopens automatically, or open it explicitly if that's the
+   confirmed flow.
+
+**Expect**: The unioned result reappears exactly as left — same body, same position,
+same history — with no manual re-import step the user has to remember, unless the
+Q&A explicitly decided persistence is opt-in rather than automatic. Nothing silently
+reverts to an earlier state and nothing silently discards the union.
+
+**Last run**: not yet built.
+
+### 11. Export a solid and confirm it opens elsewhere
+
+Added 2026-09-17 alongside `TODO/ROADMAP.md`'s new M5, same rule as scenario 10.
+
+**Steps**:
+1. Place a cube and a cylinder and union them together.
+2. Select the result and trigger Export (whatever the confirmed control turns out to
+   be — see `data-002`).
+3. Choose STL (the v1-priority format).
+4. Open the downloaded file in any other tool that reads STL (a slicer, a mesh viewer,
+   even a quick reopen in a new browser tab if one's available) to confirm it's a real,
+   non-empty, non-corrupt mesh — not just that a download happened.
+
+**Expect**: A file downloads with a sensible default name. It opens cleanly outside
+WarpCad and visibly matches the shape that was in the viewport (not an empty mesh, not
+a bounding box, not the pre-union separate solids).
+
+**Last run**: not yet built.
+
+### 12. Edit a step in the middle of the history and confirm it replays
+
+Added 2026-09-17 alongside `TODO/ROADMAP.md`'s new M5, per the same new-capability-class
+rule — this is the scenario this milestone exists for, modeled directly on the concrete
+case that prompted it: chamfer an edge 5mm, place a few more items, then decide the
+chamfer should have been 3mm.
+
+**Steps**:
+1. Place a cube.
+2. Apply a chamfer of 5mm to one face (per `ui-027`'s existing rim-chamfer control).
+3. Place a sphere elsewhere in the scene (a step that comes *after* the chamfer in the
+   timeline and does not depend on it).
+4. Open the timeline/history view (whatever the confirmed trigger turns out to be — see
+   `data-002`) and find the chamfer step.
+5. Change its radius from 5mm to 3mm and confirm the edit.
+
+**Expect**: The cube's chamfer visibly changes from 5mm to 3mm. The sphere placed after
+it in step 3 is untouched — still present, same position, same size. The timeline view
+shows the edited step's new value, not the old one. If a later step's own validity
+depended on the old chamfer value in a way that's now broken (the degenerate case Phase
+1 Q4 asks every feature to name), the app says so visibly rather than silently
+producing wrong geometry — the exact failure class `SECOND-ATTEMPT.md` and this file
+both exist to catch.
+
+**Last run**: not yet built.
+
+### 13. Recolor a placed body
+
+Added 2026-09-17 alongside `TODO/ROADMAP.md`'s new M7, scoped from a real-usage survey
+of `~/src/jscad/` that found `.color(...)` used in ~65 of ~80 surveyed real projects —
+more consistently than fillet/chamfer or snap/align, both already core scenarios here.
+Per this file's own new-capability-class rule: color is a new user-visible capability,
+not a variant of an existing one, so it earns its own scenario rather than folding into
+scenario 1 or 2.
+
+**Steps**:
+1. Place a cube and a cylinder, apart from each other.
+2. Select the cube. Open its color control (whatever the confirmed trigger turns out to
+   be — see `ui-037`) and pick a visibly different color (e.g. red).
+3. Click empty viewport space to deselect, then select the cylinder and confirm its
+   color is unchanged.
+4. Re-select the cube and confirm its new color persisted (not reset by the
+   deselect/reselect round-trip).
+
+**Expect**: Only the cube's mesh visibly changes color; the cylinder stays whatever
+color it started as — a color edit on one body must not leak onto another, the same
+"no cross-talk" property every other scenario in this file checks for its own
+mutation. The cube's new color survives a deselect/reselect cycle and an unrelated
+third body being placed afterward, without a page reload.
+
+**Last run**: not yet built.

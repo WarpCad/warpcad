@@ -8,6 +8,28 @@ actually shipped versus what was originally scoped. `docs-003` itself turned out
 have an undeclared prerequisite chain (`build-001` was needed before `core-001` could
 run at all); see `TODO/done/build-001-project-scaffold.md`'s own note.
 
+## Status summary
+
+Kept up to date at every milestone boundary and whenever this file's own table rows
+change — a stale summary is worse than none, so update this section in the same
+edit that closes a milestone or adds/reserves a row below, not as a separate pass.
+
+| Milestone | Status |
+|---|---|
+| M0 — Kickoff: decisions, spike, scaffold | ✅ **Done** (9/9 tasks) |
+| M1 — Viewport scaffold + first primitive creation | ✅ **Done** (7/7 tasks) |
+| M1.5 — Selection/gizmo fixes from hands-on use | ✅ **Done** (7/7 tasks) |
+| M2 — Hardware + kit-part catalog, snap-guide placement | ✅ **Done** (4/4 tasks) |
+| M3 — Booleans, selection-count gating, group/sub-part selection | ✅ **Done** (7/7 tasks) |
+| M4+ — Raspberry Pi accessory catalog, sketch mode, flagged-risk follow-ups | ✅ **Done** (13/13 tasks) |
+| M5 — Hardware Library surface, closing the fastener reachability gap | 🔶 **In progress** — `ui-030` underway; `ui-031`, `core-024`, `ui-035`, `ui-036`, `core-025` scoped (2026-09-17) into real `TODO/<id>.md` files, none started |
+| M6 — Persistence, export, and timeline history editing | ⬜ **Not started** — all 10 rows scoped (2026-09-17) into real `TODO/<id>.md` files, blocked on `data-001`'s Library decision |
+| M7 — Color, mirror, the Screw hardware family, and a Bill-of-Materials panel | ⬜ **Not started** — all rows scoped (2026-09-17) into real `TODO/<id>.md` files, from a real-usage survey of `~/src/jscad/`, corrected same-day after the user caught a scoping bug in the first mirror count (see the milestone's own header) |
+
+Every M0-M4 milestone closed with its own human free-form pass per `CLAUDE.md`'s
+Verification section (see each milestone's last row below). M5, M6 and M7 have not had
+theirs yet because none is finished.
+
 ## How to read this file
 
 - Each milestone is a table. A row is either a **real task** (`✅`/plain id links to a
@@ -181,6 +203,195 @@ standalone rather than try to resolve it against `core-020`'s empty fold.
 | ✅ `core-021` | Angled `bisect` — the `angle`/`rotateaxis`/`rotateoffset` tilted-cutplane form V1 supports and `core-019` deliberately left out | Operation, 1 | `core-019` | ✅ done — and the roadmap line's own premise turned out to be wrong in the helpful direction: **no rotated cut-plane construction was needed at all.** The tilt is a coordinate-transform composition around `core-019`'s existing half-space-box cut (`cut(S, T·P) = T(cut(T⁻¹S, P))`), so `bisect` turns the solid by `−angle`, runs the *same* straight cut, and turns both halves back — no new boolean geometry. `resolveAxisPositionMm` and `cutHalfSpaces` factored out and shared by both paths; a falsy `angleDeg` short-circuits to the straight path with **zero** rotation calls, asserted by exact equality rather than closeness. Diffed against 10 new measured-V1 `bisectAngled` fixture cases, including both real call shapes from `core-019`'s survey. **The real find was a latent `core-019` defect this task's fixtures exposed: the straight port was wrong on the `y` axis.** V1's cut-plane basis is `['X','Z']` for y — a *left*-handed pair, normal `−y` — against right-handed `['Y','Z']`/`['X','Y']` for x/z, so V1's `negative` is the **max**-side half on `y` alone. `core-019`'s fixture covered only x and z, so nothing measured it and `group.spec.js` encoded the wrong expectation. Fixed in both paths via one `NEGATIVE_IS_MAX_SIDE` table, pinned by two new *straight* `y` fixture cases, and corrected in `docs/resize-bisect.md`, whose "`negative` (the near side)" line was now misleading. Second time on this same function that reading V1 gave the wrong answer and running it gave the right one. **Tolerance came out the opposite of the file's own prediction**: the two extra rotations were expected to need a looser comparison, but the worst residual across all ten angled cases is **4.5e-10 mm**, at the fixture's 9-decimal rounding floor — so the angled specs compare at the same 6 places the straight ones do. 848 unit tests green (+22); `e2e/resize-bisect-operation.e2e.js` re-run green on `chromium-laptop`, incl. its real Y-axis bisect drilled via `ui-016` pick-depth. No acceptance scenario driven, per this task's own "none directly" (kernel-only, no new UI surface) — scoped in `TODO/done/core-021-angled-bisect.md` |
 | ✅ `core-022` | Bisect's `negative` half should always be the min-side piece, regardless of axis (diverge from V1's own `y`-axis quirk `core-021` faithfully reproduced) | Operation, 1 | `core-021` | ✅ done — a deletion, not new logic: `NEGATIVE_IS_MAX_SIDE` and its consulting branch in `asGroup` are gone, so `bisect` now unconditionally returns `{ negative: lower, positive: upper }` on every axis, straight and angled paths alike. The fixture (real, measured V1 output) is untouched by design; a new `expectedPartsFor(axis, fixtureParts)` helper in `group.spec.js` swaps which fixture-measured half `y`-axis cases compare against, so the regression coverage still proves the fixture is matched correctly under the new naming. New explicit contract test asserts `negative`'s bounds sit on the minimum side of `positive`'s, directly on geometry, for all three axes — the actual behavior this task adds, not just a fixture diff. `docs/resize-bisect.md`'s per-axis caveat paragraph is gone. 848 unit tests + typecheck green; `e2e/resize-bisect-operation.e2e.js` re-run on `chromium-laptop`, confirmed genuinely name-agnostic as the file claimed (6/6 green, no spec changes); full `npm run test:e2e:headless` also green on every Chromium/WebKit project (Firefox blocked by the pre-existing sandbox defect in `TROUBLESHOOTING.md`, confirmed unrelated). No acceptance-scenario re-drive — none of the 9 fixed scenarios touches bisect naming. User decided explicitly (2026-09-17, at `core-021`'s own check-in) to diverge from V1 for least-surprise rather than keep the faithfully-reproduced but axis-inconsistent naming — resolves the open judgment call `TODO/VERIFY.md`'s `core-021` entry logged rather than decided unilaterally. Scoped in `TODO/done/core-022-bisect-negative-always-min-side.md` |
 | ✅ `edge-fillet` *(decision, no code)* | Arbitrary-**edge** fillet/chamfer — requires forking to a dual-kernel architecture with `OpenCascade.js` | Operation, 1 | user answer to the OpenCascade.js question | ✅ decided (2026-09-17) — **Option 1: ship rim-only, drop edge fillet from the catalog, permanently.** `core-003` proved arbitrary-edge fillet is unachievable on `@jscad/modeling` at any adapter cost (no stable edge/face identity to select against, not a missing function); rim fillet/chamfer (`ui-027`) is the catalog's whole fillet/chamfer surface now, matching what V1 and the reference designs (`picam-2`/`picam-touch`) already do without edge fillets. No `OpenCascade.js` dependency added, no dual-kernel fork scoped. Not deferred — re-opens only if a real design need overturns this explicitly, the same bar this project's other closed architectural decisions use. Recorded in `docs/decisions/geometry-kernel.md`'s addendum. **This milestone's own last open row — M4 is now fully ✅ and needs the human free-form pass before M5 starts**, per `CLAUDE.md`'s Verification section |
+
+---
+
+## M5 — Hardware Library surface, closing the fastener reachability gap
+
+Scoped from the human free-form pass M4's own last row calls for (`CLAUDE.md`'s
+Verification section): trying to place a Raspberry Pi part in the running app surfaced
+that every `hardware.*`/`kit.*`/`raspberrypi.*` recipe from M2 and M4 is fully built
+and verified at the kernel level but has **no Library-panel row at all** — the panel
+still offers exactly the seven `primitive.*` rows `ui-010` shipped, because
+`src/core/library.js`'s `buildRows` filters on `op.startsWith('primitive.')`. This was
+flagged, not missed: `core-010`, `core-011`, `ui-013` and `TODO/ACCEPTANCE.md`
+scenario 5's repeated re-checks all name it as the same open gap.
+
+| id | Task | Kind | Depends | Acceptance |
+|---|---|---|---|---|
+| `ui-030` | Hardware Library section (Bolt, Nut, Washer, Bearing) — the simplest, `operandCount: 0`, no-board-parameter composite family, scoped as the mechanism follow-on tasks build from | Creation | `core-010`, `core-011`, `core-023`, `core-003` | feeds §9 scenario 1 (re-drive, shared drop-commit path) and scenario 5 (closes one of its two named blockers — see the task's own Proposed fix for why the other, sub-part-addressed boolean operands, is deliberately not bundled in) — scoped in `TODO/ui-030-hardware-library-panel.md` |
+| `ui-031` | Extend the Hardware Library mechanism to Kit-parts (Board, BoardFrame, Anchor) and the Raspberry Pi accessory catalog (`raspberrypi.bplus` and its accessories) | Creation | `ui-030` | feeds §9 scenario 3 (kit assembly, currently stood in for by Cube/Cylinder) and scenario 6 (group/sub-part selection, currently stood in for by two Cubes) — scoped in `TODO/ui-031-hardware-library-kit-and-rpi-accessories.md` |
+| `core-024` | Decide how a boolean operand can address a composite's hidden sub-part (e.g. `hardware.bolt`'s `tap`) — `core-013` currently rejects this outright | Operation | `core-013`, `ui-030` | feeds §9 scenario 5's remaining blocker after `ui-030` lands — scoped in `TODO/core-024-boolean-subpart-operand-addressing.md` |
+
+The three rows below were not scoped from a fresh drive — they're flagged, decided-or-
+specified, but never-scheduled follow-ups sitting in already-closed tasks' own
+retirement notes, surfaced by an audit of `TODO/done/` on 2026-09-17 per the user's own
+request rather than left to be rediscovered later:
+
+| id | Task | Kind | Depends | Acceptance |
+|---|---|---|---|---|
+| `ui-035` | Sub-part-addressed operands for the Snap/Align popover (`ui-026`) — the kernel already accepts `{ id, pieces }` for `group.snap`/`group.align` (`core-013`, proved live), but the UI only ever sends whole-object operands; `core-016`'s own retirement note names this exact gap ("Whole-object snap/align only — sub-part addressing isn't available yet") and its `TODO/VERIFY.md` entry says explicitly to "file it as its own `ui-*` task ... rather than logging it here again" | Operation, exactly 2 | `ui-016` (pick-depth selection), `core-013` | feeds §9 scenario 3 (precise sub-part attachment, e.g. a screen's mounting pad against a Pi's hole, not just whole-body placement) — scoped in `TODO/ui-035-snap-align-subpart-operands.md` |
+| `ui-036` | UI surface for angled Bisect — an Angle field, Rotate-axis dropdown, and Rotate-offset field added to the existing Bisect popover (`ui-028`), exposing the `angleDeg`/`rotateAxis`/`rotateOffsetMm` params `core-021` already shipped at the kernel level with no control anywhere to reach them. `core-021`'s own Interaction model section pre-answers precondition/trigger/feedback for exactly this control (unchanged 1-selection precondition, falsy-default Angle, no-default offset per `ui-028`'s own convention) so this task starts from an already-resolved spec rather than a blank one | Operation, 1 | `core-021`, `ui-028` | none directly (no new scenario; re-drive scenario 1 for the shared popover mechanism, per `CLAUDE.md`'s standing-regression-surface rule) — docs land on the existing `docs/resize-bisect.md` page as a third worked example, per that page's own two-example structure, not a new page — scoped in `TODO/ui-036-angled-bisect-controls.md` |
+| `core-025` *(tech debt)* | Extract the shared "probe-and-bake" recipe-expansion kit (`makePart`/`cuboidPart`/`cylinderPart`/`roundedCubePart`/`move`/`chain`/`place`/`emit`/`addVectors`) that `core-014`, `core-015`, `core-016`, and `core-017`'s `rpi-recipe-kit.js` each independently grew a ~200-line copy of. `core-015` asked `core-016` to decide ("a sample of two cannot settle it, a sample of three can"); `core-016` decided **yes, extract** but did not do it in that commit; `core-017` built a fourth copy as `rpi-recipe-kit.js` specifically as "the module it should grow into rather than a sixth copy" and confirmed the refactor "is still open and still wants its own task" — no task has claimed it since | — (refactor) | `core-014`, `core-015`, `core-016`, `core-017`, `core-018` | none directly (pure internal refactor, no behavior change) — re-run all four V1-execution fixtures (`core-014`/`015`/`016`/`017`) as this task's own regression proof, since a shared kit touching four already-diffed recipes is exactly `CLAUDE.md`'s standing-regression-surface case — scoped in `TODO/core-025-recipe-expansion-kit-extraction.md` |
+
+---
+
+## M6 — Persistence, export, and timeline history editing
+
+Added 2026-09-17, directly from the user reading this file and flagging the gap rather
+than from a hands-on drive: `CLAUDE.md`'s own Project Structure section has named
+`src/storage/` and `src/components/timeline/` ("the feature history list, rollback,
+suppress, reorder") since before M0, and its Architecture section has required
+transaction-origin-scoped undo/redo the whole time — `ui-012`'s own retirement note
+(M1) explicitly built the `supersedes` lineage index "for the undo/redo a later task
+needs," and that later task was never named. No milestone through M5 ever scheduled
+saving, loading, exporting, or editing a past step; M1-M5 built the document engine and
+every op these capabilities need, but never the capabilities themselves. Three new
+`TODO/ACCEPTANCE.md` scenarios (10-12) were written alongside this milestone per that
+file's own new-capability-class rule, modeled on the concrete case that prompted this:
+chamfer an edge 5mm, place a few more items, then decide the chamfer should have been
+3mm. Sequenced after M5 for standing-cadence reasons (one human free-form pass between
+milestones, per `CLAUDE.md`'s Verification section), not because either M5 row is a
+real technical prerequisite for this one.
+
+**Kickoff-level scope, confirmed with the user before this section was written** (the
+same status M0's `docs-001`/`docs-002` had for kernel/sync):
+
+- **Persistence targets both local storage and a hosted git backend for v1** — not
+  local-only-with-hosted-deferred. Local means IndexedDB autosave of the action log
+  plus File System Access Save-As/Open for a portable project file; hosted means the
+  "hosted git-based backend" `CLAUDE.md`'s Storage bullet already named, read/written
+  directly from the browser with a user-supplied token — the same BYOK pattern the AI
+  chat client already uses for its own API key, not a new auth mechanism.
+- **Export targets STL, OBJ, and glTF for v1.** STEP (a true parametric interchange
+  format, not a mesh) is explicitly out of scope — it would need the same
+  `OpenCascade.js` fork question `core-003`/`edge-fillet` already declined for
+  arbitrary-edge fillet, and revisiting that is its own decision, not a rider on this
+  milestone.
+
+Per `CLAUDE.md`'s Interaction Model section, no UI-surface row below gets scaffolded
+until its own precondition/trigger/feedback answers exist — `data-002` is this
+milestone's `ui-001`, and every row after it depends on it directly or transitively.
+Grouped by mechanism, not by literal control, per this file's own granularity decision
+above: one data-layer task for mid-history edit+replay (used by both the timeline panel
+and, implicitly, by every future op), one task per storage backend (local vs. hosted
+differ enough in real ways — auth, network failure, conflict on reconnect — to earn
+separate rows the way M2's hardware-vs-kit-part split did), and one UI task per distinct
+surface (timeline panel, save/load, export) rather than three controls crammed into one
+task's Testing section.
+
+| id | Task | Kind | Depends | Acceptance |
+|---|---|---|---|---|
+| `data-001` | Persistence/export Library decision — IndexedDB wrapper choice, File System Access usage, a GitHub API client for the hosted backend, and STL/OBJ/glTF serialization (`@jscad/io`, which pairs with the committed kernel but isn't installed yet, vs. three.js's own exporters, which run off the rendered mesh instead) — each compared with a real rejection table per `CLAUDE.md`'s Library decisions process, written to `docs/decisions/persistence-export.md` | — (architecture) | `docs-002` | none directly — scoped in `TODO/data-001-persistence-export-library-decision.md` |
+| `data-002` | Interaction-model Q&A (`.claude/commands/feature.md` Phase 1, Q10-16) for save/load, export, and timeline-history controls — fixes real trigger names before scenarios 10-12 above get rewritten against them, the same way `ui-001` fixed scenarios 1-9's wording | — (architecture) | `data-001` | feeds scenarios 10, 11, 12 — scoped in `TODO/data-002-persistence-interaction-model-qa.md` |
+| `data-003` | Undo/redo command stack scoped by transaction origin, per `CLAUDE.md`'s Architecture section — the mechanism `ui-012` built its `supersedes` lineage index to support and flagged as needed by a later task; still unbuilt | — (document model) | `data-002` | scenario 12's "nothing silently reverts" half — scoped in `TODO/data-003-undo-redo-transaction-origin.md` |
+| `data-004` | Edit a past timeline entry's params in place and replay every entry after it — generalises `ui-029`'s existing `lineageOf` walk and read-only-guard pattern from "rebuild the selected body's own creation record" to any record type in any body's history, and must define what happens when a downstream entry's validity depended on the old value (surface the break, per this milestone's own scenario 12 Expect — never silently produce wrong geometry, the exact failure class `SECOND-ATTEMPT.md` names) | — (document model) | `data-003` | scenario 12 — scoped in `TODO/data-004-timeline-entry-edit-replay.md` |
+| `io-001` | Local persistence: IndexedDB autosave of the action log, plus File System Access Save-As/Open for a portable project file | — (storage) | `data-002` | scenario 10 (local path) — scoped in `TODO/io-001-local-persistence-indexeddb-filesystem-access.md` |
+| `io-002` | Hosted git-backend persistence — user-supplied token stored the same way the AI chat key already is, reads/writes the project file to a repo, defines its own conflict behavior on reconnect (the single-writer assumption in `docs/decisions/document-sync.md` stops holding the moment two browser tabs or a human-plus-MCP-session both point at the same remote file) | — (storage) | `io-001` | scenario 10 (remote path) — scoped in `TODO/io-002-hosted-git-backend-persistence.md`, which found the "AI chat key already uses this pattern" premise stale — no AI chat client exists yet, so this becomes the first real token-storage boundary, not a reuse |
+| `io-003` | Export the current scene (or selection) to STL, OBJ, or glTF | Operation, 1+ | `data-002` | scenario 11 — scoped in `TODO/io-003-export-stl-obj-gltf.md` |
+| `ui-032` | Timeline panel — `src/components/timeline/`'s first task: list every history entry, select one to preview the document at that point, edit a step's params in place (wired to `data-004`), suppress a step without deleting it, reorder, roll back | — (new panel) | `data-004` | scenario 12 — scoped in `TODO/ui-032-timeline-panel.md` |
+| `ui-033` | Save/Load UI surface — trigger control(s), local-vs-hosted choice, feedback (per `data-002`'s confirmed answers) | — (new UI surface) | `io-001`, `io-002` | scenario 10 — scoped in `TODO/ui-033-save-load-ui-surface.md` |
+| `ui-034` | Export UI surface — trigger control, format picker, selection-vs-whole-scene choice, feedback | Operation, 1+ | `io-003` | scenario 11 — scoped in `TODO/ui-034-export-ui-surface.md` |
+
+---
+
+## M7 — Color, mirror, the Screw hardware family, and a Bill-of-Materials panel
+
+Scoped 2026-09-17 from a real-usage survey of `~/src/jscad/`, done at the user's own
+request to check that every earlier milestone's scope — "colors, holes, groups" named
+explicitly — actually covers what the user's own corpus of real parts uses. The survey
+excluded vendored/bundled library copies (`dist/`, `node_modules`, compiled webpack
+chunks, `csg.js`/`openscad.js` vendor copies) and covered ~644 authored files across
+~80 real project directories plus the `jscad-utils`/`jscad-hardware`/`jscad-raspberrypi`
+source this project already ports from. Full method and counts are the survey agent's
+own report from this session; the findings below are the real, previously-unflagged
+gaps it found, one correction to that same survey's own first pass (mirror — see
+below), and two already-decided-against non-gaps worth recording so they aren't
+re-derived later.
+
+**Groups and holes — already covered, no new rows needed.** Groups are used in ~51 of
+~80 projects and are already this project's best-covered mechanism (`ui-015`, `ui-016`,
+`group.assemble`/`.snap`/`.align`, every `hardware.*`/`kit.*`/`raspberrypi.*` composite).
+Holes are universally built by cylinder-subtraction plus the `Hardware.Bolt`/`Nut`/
+`Washer`/`Bearing` recipes this project has already ported (`core-010`, `core-011`,
+`core-023`) — the one real remaining gap for holes, a boolean operand addressing a
+composite's hidden sub-part (e.g. subtracting a bolt's own `tap` to cut its clearance
+hole), is **already named and reserved as `core-024`** in M5 above; this milestone does
+not duplicate it.
+
+**Color is the real gap, and it's a regression, not just a missing feature.** `.color(
+name)` / `.color(name, alpha)` is used in ~65 of ~80 surveyed projects — more
+consistently than fillet/chamfer or snap/align, both of which this project already
+treats as core surface. Grepping `src/core/kernel/` and `src/render/mesh.js` directly
+confirms there is **no color field anywhere in the document model, the op registry, or
+the Inspector** — `createBodyMaterial()` exists in `src/render/mesh.js` but is called
+with one of four fixed theme-palette colors (`body`/`selected`/`secondary`/`ghost`),
+never a per-body value. Worse: this project's own already-shipped recipes **silently
+dropped** color when porting V1 source that used it — `hardware.washer.js`'s and
+`hardware.nut.js`'s module docs discuss at length why `clearance`'s V1 `.color('red')`
+part became `hidden: true` here, but neither mentions that V1's `washer`/`nut` parts
+were *also* explicitly colored (`.color('gray')`) and that information was dropped
+without comment. `jscad-raspberrypi` goes further still and uses the alpha channel
+(`Parts.Board(...).color('green', 0.75)`), which this project has no representation for
+at all.
+
+**Correction (2026-09-17, same day): the first pass of this survey was wrong about
+mirror, and the user caught it from direct knowledge of their own projects before this
+file was corrected.** The original grep pass reported "0 real hits after excluding
+vendored bundles," which was a scoping bug, not a true negative — it searched a
+narrower file set than the rest of this survey and missed real project subdirectories
+entirely. Re-run directly, scoped the same way as every other count in this milestone
+(real project dirs only, vendored `csg.js`/`OpenJSCAD.org`/`docs`/`min.js` copies
+excluded): `.mirror(`/`.mirrored(`/`.mirrorX(`/`.mirrorY(`/`.mirrorZ(` appear in **at
+least 15 real project files**, not zero — `scope-ring/index.js:52`
+(`cableTie.mirrorY()`), `solar-panel-bracket`, `pvc-joints`, `cube-hook`,
+`window-motor` (four files), `gate-parts`, `meshboard-bracket`, `light-mount`,
+`drive-mount`, `guide-mount` (two files), `scope-jack2` (three files), `cord-wrap` and
+`cord-wrap-orig` — plus, notably, **`jscad-raspberrypi/src/spacer.js` and
+`boardutils.js` themselves**, the library `core-018` already ported `spacer` from.
+`core-018`'s own retirement note recorded that one specific mirror call
+(`mirroredY()` on a rounded rectangle) needed no mirror op because reflecting a
+rounded rectangle about `y = 0` is the same shape turned by the negated angle — a
+trick that happens to work for that one symmetric profile, not evidence the general
+operation is unneeded. `mirror` is added back below as a real task, not folded into
+the "won't build" note.
+
+**Hull and a dedicated pattern/array helper, re-checked with the same corrected
+method, hold up as genuinely unused — not folded into the same mistake.** Every
+non-library `.hull(`/`\bhull(` hit outside `scope-ring/index.js` traces to
+`OpenJSCAD.org`'s own stock example files, and that one hit is two lines, both
+commented out (`// const { hull } = require('@jscad/modeling').hulls;` and
+`//   .hull([clampCyl.translateX(4)])`, `scope-ring/index.js:6,61`) — dead code, not a
+missed real usage the way mirror was. The apparent `.pattern(`/`.array(` hits (16 of
+them) are a different false trail, not a scoping bug: every one resolves to
+`jscad-utils`' `Group.prototype.array(parts, map)` (`jscad-utils/src/group.js:529`),
+which converts a *named group's parts* into a plain JS array for iteration — unrelated
+to placing repeated copies of a shape in a grid or pattern. No project in this corpus
+does that with a dedicated helper; repeated placement is still always a hand-rolled
+loop. Both are recorded as **deliberately not being added**, on this now-doubly-checked
+evidence. Angled cuts, the other candidate gap, are already fully covered by
+`transform.rotate` + `boolean.subtract`, which ~61 of 80 projects already use for
+exactly that, against only ~7 using the dedicated `.wedge()` shape. Text/label is real
+but rare and always indirect (~12 projects, via `jscad-utils`' own `label()` wrapper
+around `vector_text()`) — named below as a single low-priority reserved row rather than
+either a full task or a silent gap.
+
+| id | Task | Kind | Depends | Acceptance |
+|---|---|---|---|---|
+| `core-026` | Add a `color` field to composite-recipe `OpRecord`s, alongside the existing `hidden` field, and port the V1 `.color(...)` calls `hardware.washer`/`hardware.nut`/`hardware.bearing`/`kit.board`/`kit.boardFrame`/`kit.anchor` each silently dropped (their own module docs discuss `hidden` at length and never mention this) — kernel-only, no UI surface yet | — (kernel/document model) | `core-001` | none directly; re-run each ported recipe's own V1-diff fixture, since this changes what every one of them emits — scoped in `TODO/core-026-composite-recipe-color-field.md` |
+| `data-005` | Document-model support for a per-body color override (and, since `ui-016` already exposes a Group's named sub-parts individually, optionally per-part) — a field carried on a creation/composite record the same way `hidden` already is, with a sensible default so every existing body keeps rendering exactly as today | — (document model) | `core-002`, `core-026` | none directly — scoped in `TODO/data-005-per-body-color-override.md` |
+| `ui-037` | Inspector color control — a swatch/picker for the selected body (or drilled-in sub-part per `ui-016`), gated on exactly 1 selection like `ui-027`/`ui-028`'s rim-op controls, writing through `data-005`'s field and driving `src/render/mesh.js`'s per-body material (today fixed to the theme palette regardless of body) | — (selection/inspector) | `data-005`, `ui-011` | feeds a new §9-style scenario (13, added when this task lands, per `ACCEPTANCE.md`'s own new-capability-class rule) — scoped in `TODO/ui-037-inspector-color-control.md` |
+| `core-027` | `hardware.screw` composite family (`PanHead`, `FlatHead`) — a genuinely distinct fastener recipe from `hardware.bolt`, not a rename: different head geometry, and `FlatHead` specifically needs a countersink cut `hardware.bolt`'s hex/socket head never required. `jscad-hardware/src/hardware.js:224`'s `Screw` export also tracks its own BOM key (`Pan Head Screw ${name}`) internally, which `core-010`/`core-011`/`core-023` never had to reckon with since nothing reads `Hardware.BOM` yet — first real input to `ui-038` below | Creation (op) | `core-001` | none directly; feeds the eventual Hardware Library panel mechanism (`ui-030`/`ui-031`) the same way `core-023`'s Bearing did — scoped in `TODO/core-027-hardware-screw-family.md` |
+| `ui-038` | Bill-of-Materials panel — a read-only readout tallying placed hardware/kit-part bodies by spec (e.g. "M4 Bolt × 3"), matching `jscad-hardware`'s own built-in BOM-tracking convention confirmed live inside the library's own recipe functions (not just an app-level habit of the surveyed projects — ~26 of 80 call sites read `Hardware.BOM` back out). Placement, not this panel, is the a real prerequisite: a body has to be both placeable and identifiable by spec before it can be tallied | — (new panel, `inspector/` or `display/`) | `ui-030` | none directly — scoped in `TODO/ui-038-bill-of-materials-panel.md` |
+| `core-028` | `transform.mirror` — reflect a body about an axis-aligned plane through a point (default its own centre). `@jscad/modeling` (the committed kernel) already ships `mirrorX`/`mirrorY`/`mirrorZ` directly, so this is expected to be a small, low-risk port mirroring (no pun intended) `transform.rotate`'s own shape — **the real open question is document semantics, not geometry**: every real corpus usage (`scope-ring/index.js:52`'s `cableTie2 = cableTie.mirrorY()` is the clearest example) keeps the original body and produces a *second*, separate mirrored one, which is a **creation-shaped** result, not the in-place `supersedes` pattern `modify.enlarge`/`modify.bisect` use — naming this explicitly so whoever scopes the task doesn't default to the wrong one of the two just because `modify.*` is the nearest existing precedent | Creation (op) | `core-001` | none directly; kernel-only until `ui-039` — scoped in `TODO/core-028-transform-mirror.md` |
+| `ui-039` | UI surface for `transform.mirror`, gated on exactly 1 selection, following whichever document semantics `core-028` resolves (a new body alongside the original, most likely, per that row's own note) | Operation, 1 | `core-028`, `render-001` | feeds a new §9-style scenario when it lands, per `ACCEPTANCE.md`'s own new-capability-class rule — scoped in `TODO/ui-039-mirror-ui-surface.md` |
+| `render-002` *(low priority)* | Text/label as a placed body — ports `jscad-utils`' `label()` wrapper around `vector_text()`. Named here rather than silently dropped, but deliberately **not** sequenced with the rest of this milestone: usage is real but rare (~12 of 80 projects, always through the wrapper, never a bare `vector_text()` call) and always for one-off labeling, not a load-bearing modeling operation the way color/holes/groups/mirror are — pull this forward only if a real design need surfaces one, the same bar `edge-fillet`'s M4 decision used | Creation (op) | `core-001` | none directly — scoped (speculatively, not sequenced) in `TODO/render-002-text-label-body.md` |
+
+Sequenced after M6 for the same standing-cadence reason M6 gives for following M5 — one
+human free-form pass between milestones — not because any M6 row is a real technical
+prerequisite for this one; `core-026`/`data-005`/`ui-037`/`core-028`/`ui-039` could be
+pulled ahead of M6 if the user wants color/mirror landed sooner, since none of them
+touch persistence or undo/redo.
 
 ---
 
