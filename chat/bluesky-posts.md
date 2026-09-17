@@ -580,3 +580,15 @@ Built with Claude Code, reviewed by me.
 **Evidence:** Y-axis bisect swapped negative/positive vs. X/Z because V1's cut-plane basis is left-handed only on Y → `TODO/done/core-021-angled-bisect.md`, prior `group.js` doc comment; user decided explicitly (2026-09-17) to diverge from V1 rather than keep the per-axis exception → `TODO/done/core-022-bisect-negative-always-min-side.md`'s Goal section; `NEGATIVE_IS_MAX_SIDE` table and its branch deleted, `negative` always the min-side half now → `src/core/kernel/group.js`, this commit; the real V1 fixture measurements are untouched, only which recorded half this port's own names are checked against changed for Y → `src/core/kernel/group.spec.js`'s new `expectedPartsFor` helper, this commit; 848 unit tests + typecheck green, `e2e/resize-bisect-operation.e2e.js` green on chromium-laptop → this session's test runs
 **Disclosure:** Built with Claude Code, reviewed by me.
 **To Add:** repo URL once public; a render of a cube bisected on Y showing which half is which would make the naming fix concrete
+
+## 2026-09-17T15:45Z · core-023 — hardware.bearing, the one recipe with no source to port
+
+**Post:** WarpCad's kernel now registers hardware.bearing. Its source library has no Bearing factory -- nothing to diff against. Table from DIN 625, cross-checked against two catalogs. Built a 608 through the fold: 2305.363mm3, matching an earlier spike exactly.
+
+Built with Claude Code, reviewed by me.
+
+**Links:** [Repo](<repo-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** none — the post is at 293 characters including the disclosure, and no tag fits without cutting the finding itself
+**Evidence:** 293 characters including the disclosure line → counted this session; "no Bearing factory" → `docs/decisions/geometry-kernel.md` Finding 2, confirmed directly against vendored `jscad-hardware@1.1.0`, whose only factories are `Bolt`/`Washer`/`Nut`; "table from DIN 625, cross-checked against two catalogs" → `src/core/kernel/tables/bearing-specs.js`'s own module doc, cites igus's DIN 625 table and ISK's/Be-cu's 6200/6300-series charts; "608 through the fold" → `src/core/kernel/recipes/hardware.bearing.spec.js`'s geometric sanity check, built via `evaluateOp('hardware.bearing', { spec: '608', segments: 64 })`; "2305.363mm3, matching an earlier spike exactly" → `docs/decisions/geometry-kernel.md` Finding 2's own recorded measurement at 64 segments, reproduced to three decimal places this session against an ideal 2309.071mm³ (735π)
+**Disclosure:** Built with Claude Code, reviewed by me.
+**To Add:** repo URL once public; a render of a 608 bearing mated to its shaft (already verified in Finding 2's own spike) would make the "no source, verify differently" story concrete
