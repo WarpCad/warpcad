@@ -567,3 +567,16 @@ Built with Claude Code, reviewed by me.
 **Evidence:** Three new controls, `supersedes`-based unnamed records → `src/components/viewport/OperationsToolbar.vue` `commitResize` (this commit), pinned by `e2e/resize-bisect-operation.e2e.js` (6/6 on chromium-laptop, this session); Bisect is the first `supersedes` record to change `KernelGeometry` kind from solid to `Group` → `TODO/done/ui-028-resize-bisect-controls.md`'s own Proposed fix text, flagging it as previously unexercised; full matrix 8/9 cells green (`chromium`/`webkit` x phone/tablet/laptop, 36/36 tests), Firefox blocked at browser launch and confirmed pre-existing by reproducing against the already-shipped `e2e/fillet-chamfer-operation.e2e.js` → this session's `npx playwright test` output, logged in `TROUBLESHOOTING.md`'s 2026-09-17 entry; hand-driven `TODO/ACCEPTANCE.md` scenario 1 and `ui-016`'s grouped-body repro against Bisect's own output, both PASS → this session's Playwright-driven Node script output and `TODO/ACCEPTANCE.md`'s 2026-09-17 13:26 re-check entry
 **Disclosure:** Built with Claude Code, reviewed by me.
 **To Add:** repo URL once public, docs site URL once it exists
+
+## 2026-09-17T14:32Z · core-022 — Bisect's negative half stops changing meaning on one axis
+
+**Post:** WarpCad's Bisect names two halves negative/positive. The 2015-era library it ports gets Y backwards from X/Z, a left-handed basis, faithfully reproduced at first. Stopped carrying that forward: negative is always the min-side half now, every axis.
+
+#CAD #WebGL
+Built with Claude Code, reviewed by me.
+
+**Links:** [Repo](<repo-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL
+**Evidence:** Y-axis bisect swapped negative/positive vs. X/Z because V1's cut-plane basis is left-handed only on Y → `TODO/done/core-021-angled-bisect.md`, prior `group.js` doc comment; user decided explicitly (2026-09-17) to diverge from V1 rather than keep the per-axis exception → `TODO/done/core-022-bisect-negative-always-min-side.md`'s Goal section; `NEGATIVE_IS_MAX_SIDE` table and its branch deleted, `negative` always the min-side half now → `src/core/kernel/group.js`, this commit; the real V1 fixture measurements are untouched, only which recorded half this port's own names are checked against changed for Y → `src/core/kernel/group.spec.js`'s new `expectedPartsFor` helper, this commit; 848 unit tests + typecheck green, `e2e/resize-bisect-operation.e2e.js` green on chromium-laptop → this session's test runs
+**Disclosure:** Built with Claude Code, reviewed by me.
+**To Add:** repo URL once public; a render of a cube bisected on Y showing which half is which would make the naming fix concrete
