@@ -660,3 +660,14 @@ Built with Claude Code, reviewed by me.
 **Evidence:** "four files each carried a private copy" → the four `function makePart`/`chain`/`addVectors` definitions removed in this diff, in `raspberrypi.bplus.js`, `cameraModule.js`, `touchDisplay7inch.js`, `touchScreen2.js`; "1,047 fewer lines" → `wc -l` on `src/core/kernel/recipes/*.js` this session, 10,865 before and 9,818 after; "34 recipe outputs ... byte for byte, identical" → `cmp` on JSON dumps of 34 recipe/param variants this session, 180,793 bytes both times
 **Disclosure:** Built with Claude Code, reviewed by me.
 **To Add:** repo URL once public
+
+## 2026-09-18T20:19:00Z — Measuring an export path instead of arguing about it
+
+**Post:** Picked WarpCad's STL export path by measuring, not arguing. three.js's exporter, fed by my own mesh bridge, emits a non-watertight solid: 100 of 362 edges lack a second face. JSCAD's serializer repairs them first. Slicers care.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Evidence:** "100 of 362 edges lack a second face" → edge audit this session, feeding `src/render/mesh.js`'s `geom3ToBufferGeometry` output through three.js `STLExporter` on a 10mm cube minus a Ø6mm cylinder; "JSCAD's serializer repairs them first" → `@jscad/stl-serializer@2.1.23/index.js:63` calls `modifiers.generalize({snap:true, triangulate:true})`, read from source this session, and the same audit returns 292 triangles / 0 unmatched edges
+**Disclosure:** Built with Claude Code, reviewed by me.
+**To Add:** repo URL once public; a diagram of a T-junction edge for the non-watertight case

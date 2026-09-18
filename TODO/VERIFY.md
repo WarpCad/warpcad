@@ -34,6 +34,30 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### data-001 — Persistence/export Library decision (2026-09-18 20:20)
+
+This task shipped no code, so nothing here is about how something looks. It is here
+because `docs/decisions/persistence-export.md` makes **one load-bearing claim about real
+devices that was taken from caniuse and MDN rather than measured on hardware**, and
+`io-001` is about to build its whole Save/Open path on top of it. The claim: File System
+Access is desktop-Chromium-only (~30.85% global, no pickers on Safari, Firefox, or
+**Chrome for Android**), therefore the `<a download>` / `<input type="file">` fallback is
+the *primary* path on every phone and tablet this project supports, not an edge case.
+
+Both rows below are cheap, and both are worth doing **before** `io-001` starts rather
+than after, because each one would invalidate a different part of that plan. Row 2 is the
+one that actually worries me: iOS Safari has historically handled `<a download>` on a
+blob URL by *opening* the file in a tab rather than saving it, and if that is still true
+then the fallback this decision calls "primary" does not work on the two devices the
+second attempt's stop note specifically complained about. No acceptance scenario covers
+this (scenario 10 is "not yet built"), and no automated spec can, since Playwright's
+WebKit is not iOS Safari and does not share its download behaviour.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | In a JS console (or a scratch page) on real iPhone Safari, real iPad Safari, and desktop Chrome, evaluate `typeof window.showSaveFilePicker`. Expect `"undefined"` on both iOS devices and `"function"` on desktop Chrome. Anything else means the capability gate in `docs/decisions/persistence-export.md` sub-decision 2 is wrong and `io-001`'s branch needs rethinking before it is written. | Open | |
+| 2 | On real iPhone **and** iPad Safari, trigger a plain `<a download="test.ndjson">` pointing at a `Blob` object URL and see what actually happens: does a file land somewhere the user can retrieve it (Files app / Downloads), or does it just open the text in a new tab? If it opens rather than downloads, the "fallback is the primary path" plan is broken on iOS specifically, and `io-001` needs a different Save mechanism there (Web Share API `files:`, or copy-to-clipboard) — file it as its own TODO and put the id in Notes. | Open | |
+
 ### ui-036 — Angled Bisect controls (2026-09-18 19:14)
 
 Measured live at 390x844 (WebKit): the six-field popover is 260 x 466 px, no internal scroll, and every control hit-tests. What automation cannot judge is how it *reads*: the popover's glass background lets the Inspector sheet's text show through behind it now that it sits above that sheet.

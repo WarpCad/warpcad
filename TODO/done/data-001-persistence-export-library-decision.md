@@ -6,8 +6,42 @@ priority: high
 model: opus
 milestone: M6
 depends: [docs-002]
-status: open
+status: done
 ---
+
+> **Retirement note (2026-09-18).** Shipped as specified — all four sub-decisions made
+> in `docs/decisions/persistence-export.md` with real measured numbers and a rejection
+> table each. Three things came out **differently from what this file anticipated**, and
+> all three change downstream tasks rather than just recording a preference:
+>
+> 1. **Sub-decision 4 is not either/or — it's a split, because `@jscad/io` has no glTF
+>    serializer at all.** `npm view @jscad/gltf-serializer` returns 404 and the umbrella
+>    package's dependency list covers 3mf/amf/dxf/obj/stl/svg/x3d/json only. So STL and
+>    OBJ come from `@jscad/stl-serializer`/`@jscad/obj-serializer` (kernel geometry,
+>    `src/core/export.js`) and glTF can only come from three.js's `GLTFExporter`
+>    (render mesh, `src/render/export.js`). **`io-003`'s Affected files must be updated**
+>    — it assumed one module would win outright.
+> 2. **The kernel-vs-render asymmetry this file asked to have "stated explicitly" turned
+>    out to be a measured correctness defect, not a preference.** Fed through this repo's
+>    own `src/render/mesh.js`, three.js's `STLExporter` emits a **non-watertight** solid
+>    (100 of 362 undirected edges unmatched on a cube-minus-cylinder) because the mesh
+>    bridge fan-triangulates raw BSP output with its T-junctions intact;
+>    `@jscad/stl-serializer` runs `generalize({snap,triangulate})` first and emits a
+>    closed manifold (0 unmatched). The float32 worry, by contrast, is **not** real —
+>    measured max deviation 9.591e-8 mm — and is recorded as rejected rather than left
+>    implying support for the same conclusion.
+> 3. **File System Access is desktop-Chromium-only (~31% global), not merely
+>    "Chromium-only"** — Chrome for Android has no pickers either. Given `CLAUDE.md`'s
+>    phone-first mandate, the download/upload fallback is therefore the **primary** path
+>    and must be built first, with FSA as the enhancement. This also puts a naming
+>    constraint on `ui-033`: a "Save" that silently means "download another copy" on
+>    Safari is a mislabel.
+>
+> Also narrower than this file implied: the `@jscad/io` **umbrella** costs 68,211 B gzip
+> versus 2,363 B for the two serializer leaves actually needed — install the leaves.
+> Dependencies added at exact pinned versions (`idb` 8.0.3,
+> `@jscad/stl-serializer`/`@jscad/obj-serializer` 2.1.23); nothing imports them yet, and
+> the build is byte-identical before and after (same chunk hash, 262.67 kB gzip).
 
 ## Goal
 

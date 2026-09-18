@@ -18,6 +18,9 @@
   },
   "dependencies": {
     "@jscad/modeling": "2.13.0",
+    "@jscad/obj-serializer": "2.1.23",
+    "@jscad/stl-serializer": "2.1.23",
+    "idb": "8.0.3",
     "pinia": "^4.0.3",
     "three": "0.185.1",
     "vue": "^3.5.42"
