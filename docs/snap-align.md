@@ -59,8 +59,61 @@ first pick, teal for the second) before you open either popover.
 Both solids remain separately selectable afterward — click the Cylinder, and
 it opens its own Inspector entry exactly as before. Nothing was combined.
 
+## A second example: positioning against one named part
+
+A [group](groups.md) — and every composite item from the Library's Hardware,
+Kit and Raspberry Pi sections, such as a **Raspberry Pi 5** board or a **Bolt** —
+is made of *named parts*. Snap and Align can work against one of those parts
+specifically, instead of against the whole item's overall bounding box. That is
+how you position something against a **particular mounting hole** on a board,
+rather than against the middle of the board.
+
+To do it, [drill into the part](selection-and-inspector.md) first:
+
+1. From the Library's "Raspberry Pi" section, pick **Pi 5** in the **Raspberry
+   Pi** row's Model dropdown and drag the row into the 3D view. Drag a **Cube**
+   in as well, as the thing you want to position.
+2. **Click the board once.** The whole board is selected — the Inspector shows
+   its overall size (about 85 × 56 mm).
+3. **Click again, on the part you care about** — say the Ethernet jack at the
+   board's end. The selection narrows to that named part, and the Inspector
+   grows a breadcrumb reading `Raspberry Pi 1 › ethernet`. (Each part carries
+   the name the board's recipe gives it: `mb` for the PCB itself, `ethernet`,
+   `usb1`, `usb2`, `gpio`, and so on.)
+4. Hold **Shift** and click the Cube. Two things are now selected, and the board
+   is still drilled into that one part.
+5. Click **Align**. The popover's top line names exactly what it is about to do:
+   **Aligning Raspberry Pi 1 › ethernet to Cube 1**. That `›` is the
+   confirmation you drilled to the depth you meant.
+6. Check the **X** and **Y** axes and click **Align**.
+
+The board moves so that **the Ethernet jack** — not the board's centre — lines
+up with the Cube. The rest of the board comes along with it: addressing a part
+changes what gets *measured*, never what gets *moved*. A bolt snapped by its
+head brings its thread and tap with it.
+
+**You can only drill into a part you can click.** A part that sits *inside*
+another one — a Raspberry Pi's mounting holes, for instance, which pass through
+the board — is hidden behind the part in front of it, so clicking never reaches
+it. Orbit the view (bottom-left navigation controls) until the part you want is
+the one facing you.
+
+**You can drill into one side only.** The moving item and the reference item do
+not have to be at the same depth — a whole screen positioned against one hole on
+a board is the ordinary case, not a special one. Whichever side you drilled
+into is the side that gets measured by its part; the other is measured whole.
+
+**To go back to whole-item addressing**, click the breadcrumb's first segment
+(the item's own name) in the Inspector, or click empty space and start the
+selection again. The popover's top line always tells you which you are on.
+
 ## The popover's fields
 
+- **What's being positioned** — the top line, naming the moving item first and
+  the reference item second, each with its `›` part name if you drilled into it.
+  Read this before committing: a part-addressed move and a whole-item move look
+  identical once they have happened, and this line is the only place the
+  difference is visible beforehand.
 - **Axes** — one or more of X/Y/Z, any combination. Only the checked axes are
   affected; an unchecked axis is left exactly where it was.
 - **Orientation** (Snap only) — which side of the reference shape to sit flush
@@ -82,12 +135,12 @@ still selects only that one.
 
 ## Not yet supported
 
-- **Sub-parts of a group.** Snapping or aligning *by* one named piece of a
-  composite item (for example, positioning a bolt by its head rather than its
-  whole body) isn't available from this popover yet — only whole-shape
-  snap/align, on both the moving and the reference side. The popover says so.
 - **A per-axis offset.** The Offset field is a single millimetre value applied
   to every checked axis alike, not a separate value per axis.
+- **Both sides addressed by part at once.** You can drill into one part at a time,
+  so one of the two operands is addressed by part and the other is addressed
+  whole. Positioning two named parts of two different composites against each
+  other in a single step isn't possible yet.
 
 ## Notes and gotchas
 

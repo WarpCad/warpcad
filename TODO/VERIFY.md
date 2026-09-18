@@ -34,6 +34,32 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### ui-035 — an occluded sub-part still cannot be picked, and one feel question about the new operand line (2026-09-18 01:55)
+
+The operand mechanism itself needs no hand-check and is deliberately not listed below:
+`TODO/ACCEPTANCE.md` scenario 3 now carries it as a standing check, driven live against
+a real Raspberry Pi 5 at both laptop and phone and verified as arithmetic against an
+independent kernel probe (the `ethernet` part sits at (+34.50, -17.30) mm from the
+board's bbox centre, and the live move implies exactly that to the hundredth of a
+millimetre, in both directions of addressing). What is left is one real gap this task
+cannot close from inside itself, and one judgment no measurement settles.
+
+Row 1 is the important one, and it is the reason `docs/snap-align.md` no longer uses a
+mounting hole in its worked example. This task's own Goal names "a specific hole on a Pi
+board" as the case it exists to enable. The *operand* half of that now works. The
+*selection* half does not: a mounting hole passes through the PCB, so a raycast hits
+`mb` in front of it every time. A 289-point pointer sweep across a real Pi 5 at the
+default camera reached only `mb`, `ethernet`, `usb1` and `usb2` — four of the board's
+thirty-odd named parts. This is a `ui-016` picking limitation reached from a new
+direction, and `ui-032` (the enclosed-body picking task scenario 5 is also blocked on)
+is the natural place for it rather than a task of its own; the sweep result is recorded
+here so that scoping does not have to rediscover it.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | Confirm the occlusion gap and decide where it belongs. Place a Raspberry Pi 5, try by hand to drill into `hole1`-`hole4` — including by orbiting underneath the board, which the automated sweep did not try, since the hole's underside is coplanar with the PCB's and may or may not win the depth tie. If it is genuinely unreachable from every angle, fold it into `ui-032`'s scope (an occluded *part*, alongside its enclosed *body*) rather than filing a fourth picking task. `docs/snap-align.md` already tells users to orbit until the part faces them, which is the honest workaround only if it actually works. | Open | |
+| 2 | Feel check on the new operand line ("Aligning **Raspberry Pi 1 › ethernet** to **Cube 1**"), on real phone and tablet hardware rather than an emulated viewport. It measured fully inside the popover at 390px with no page scroll, but two things are judgment: whether it reads as *confirmation to check* or as decoration one skims past on the way to the commit button, and whether a genuinely long composite part name (the catalogue ships names like `powerswitch-button` and `clearance-statusled`) wrapping to three lines pushes the Cancel/commit pair uncomfortably far down a 390px-tall popover. | Open | |
+
 ### core-024 — a placed composite is now meshed part-by-part; look at the two interpenetrating recipes on real hardware (2026-09-18 00:52)
 
 `src/render/mesh.js` draws a `Group` body one mesh per visible part instead of one

@@ -627,3 +627,14 @@ Built with Claude Code, reviewed by me.
 **Evidence:** "transforms used to flatten a composite" → measured this session in the running browser, A/B with the change stashed: `names` null before, `["head","thread","tap"]` after; "booleans can now cut with a named piece" → this commit's `subPartOperands` flag plus measured cuts (whole bolt 60352.953 mm³ remaining vs `head,thread` 61071.390); "moving a group destroyed the group" → stashed A/B this session, `group.assemble` then a gizmo-style `transform.translate`: `isGroup:false, names:null` before, `["Cube 1","Cube 2"]` after
 **Disclosure:** Built with Claude Code, reviewed by me.
 **To Add:** repo URL once public; a screen recording of drilling into a placed Bolt (breadcrumb reads "Bolt 1 > tap") would carry this one
+
+## 2026-09-18T01:55:00Z — Snap/Align can finally address one named part of a composite
+
+**Post:** WarpCad's Snap/Align popover used to print "sub-part addressing isn't available yet". It doesn't anymore. Drill into a Raspberry Pi's Ethernet jack, snap a part flush to that instead of the whole board. Checked to a hundredth of a mm against the kernel.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL
+**Evidence:** "the popover printed that line" → the exact string removed in this diff, shipped by `ui-026` (git log 3f5c87b, 2026-09-11); "drill into a Pi's Ethernet jack and snap to it" → driven live this session against a real `raspberrypi.bplus` model 5 at laptop 1440x900 and phone 390x844, popover read "Aligning Raspberry Pi 1 › ethernet to Cube 1"; "checked to a hundredth of a mm" → independent kernel probe this session puts the `ethernet` part at (+34.50, -17.30) mm from the board's bbox centre, and `cube - board_after` in the running app came out (34.50, -17.30) at both viewports
+**Disclosure:** Built with Claude Code, reviewed by me.
+**To Add:** repo URL once public; the phone-width screenshot of the popover reading "Aligning Raspberry Pi 1 › ethernet to Cube 1" carries this one

@@ -831,6 +831,22 @@ deliberately wandering, overshooting drag paths that double back past the drop p
   over it; it is the toolbar, not a defect.
 - Console and page errors: **none**.
 
+**Re-checked**: 2026-09-18 01:44 — PASS (`ui-035`). Re-driven because this task changes
+what operand shape the Operations toolbar's commit path can produce — a record that now
+sometimes carries `{ id, pieces }` where it always carried a bare id — and every body in
+this scenario reaches the screen through the same `evaluate()` fold that resolves it.
+Laptop 1440×900 in Chromium, Playwright-driven against the real dev server, drags
+deliberately wandering with an overshoot past the drop point and a doubling-back.
+
+- A Cube then a Cylinder dragged in: **both stayed visible**, and the cube's millimetre
+  centre was **byte-identical before and after the second drop** (`-80.04,-34.77,20.00`
+  both times) — the second attempt's "new body replaces the old" signature, absent.
+- Clicking bare canvas cleared the selection (`data-selected-id` → `""`); clicking the
+  cube selected `cuboid-1` alone, with the **gizmo attached and all three dimension
+  lines** (`data-axis-count` = 3); clicking the cylinder moved the highlight to
+  `cylinder-2` alone, `data-selected-count` staying at 1 — never both at once.
+- Console and page errors: **none**.
+
 ### 2. Hardware property edit
 
 **Steps**:
@@ -1379,6 +1395,63 @@ real dev server.
   designed (aligned to the board's centre line on one axis, left alone on the other),
   not a partial failure. The Pi itself never moved.
 - Console clean. Screenshots taken on approach and after the drop.
+
+**Re-checked**: 2026-09-18 01:47 — **PASS, and the sub-part half of this scenario is
+real for the first time** (`ui-035`). `core-016`'s own retirement note recorded the
+honest gap this re-drive closes: the assembly it designed (a screen's pad against a
+*particular* hole) was reachable through the command layer but the popover itself said
+*"Whole-object snap/align only — sub-part addressing isn't available yet."* That line is
+gone, and what replaces it was driven rather than asserted.
+
+**The scenario's own steps 1-5, with the real parts** (no Cube/Cylinder stand-in): a
+**Raspberry Pi 5** (the `Raspberry Pi` row's own Model dropdown, `ui-031`) and a **Camera
+Module V3** dragged in at laptop 1440×900. Both rendered complete. The camera was dragged
+toward the board on a wandering path with a deliberate overshoot and a doubling-back,
+sampling at seven points: un-snapped at t=0.15/0.40/0.65, **snapped** at 0.85, released
+again on the overshoot at 1.15, and snapped again coming back (0.95, 1.00) — the guide
+genuinely lets go and re-engages rather than latching once. Three guides drawn throughout.
+On release the camera's **Y was byte-identical to the board's** (`-40.53` both) while X
+stayed where the pointer was: per-axis snapping, not an arbitrary offset. **PASS.**
+
+**The new half — precise attachment by named part.** Driven at laptop 1440×900 (mouse)
+and phone 390×844 (touch pointers end to end), both Chromium:
+
+- Clicking the board once selects the whole board; clicking again narrows to the part
+  under the ray, with the Inspector breadcrumb reading `Raspberry Pi 1 › ethernet`.
+- Shift-clicking a Cube makes it exactly 2, **with the pick depth surviving**, and the
+  Align popover's new top line states what is armed: *"Aligning **Raspberry Pi 1 ›
+  ethernet** to **Cube 1**"*. This line is the whole feedback contract — a sub-part move
+  and a whole-object move look identical once they have happened.
+- Committing X+Y moved the board so the **Ethernet jack**, not the board's centre, landed
+  on the Cube. Verified as arithmetic against the kernel rather than eyeballed: an
+  independent probe measures the `ethernet` part's centre at **(+34.50, −17.30) mm** from
+  the board's bounding-box centre, and the live move implies exactly `cube − board_after`
+  = **(34.50, −17.30)** at *both* viewports, to the hundredth of a millimetre. A
+  whole-object align would have put the board's own centre on the Cube instead. The
+  Inspector's own readout for the drilled part agrees a third time (board centre
+  `-139.01,113.60` + offset = part position `-104.51,96.30`).
+- **The reverse direction, which is the realistic assembly**: with the board drilled in
+  and Shift-clicked off and back on, it lands at the *end* of the selection and becomes
+  the **reference** — *"Snapping **Cube 1** to **Raspberry Pi 1 › ethernet**"*. Snap on
+  X+Y at `center+` moved **the Cube** and left the board byte-identical (`-27.02,-27.02`
+  before and after); the Cube's max corner landed exactly on the jack's centre
+  (`7.48,-44.32`), which is `center+`'s own definition. So addressing is genuinely
+  **asymmetric**: either operand may be a part while the other is whole.
+- At **390 px** the popover measured x=65 w=260 (inside a 390 px client) with the new
+  operand line at x=74 w=242 — fully inside the popover, `scrollWidth === clientWidth`,
+  no horizontal page scroll. Screenshot on file; the line sits directly above
+  Cancel/Align, which is the last thing read before committing.
+- Console clean in every drive.
+
+**What the drive found that no test would have**: the Goal's own literal example — "a
+specific **hole** on a Pi board" — is still not performable, for a reason outside this
+task. A 289-point pointer sweep across the board at the default camera reached only
+`mb`, `ethernet`, `usb1` and `usb2`; `hole1`–`hole4` pass *through* the PCB, so the
+raycast hits `mb` in front of them every time. The operand mechanism is complete and
+proven, but the *selection* of an occluded part is a `ui-016` picking limitation. This
+corrected `docs/snap-align.md` (which had been drafted around a mounting hole, and now
+uses the Ethernet jack, a part actually reachable) and is logged in `TODO/VERIFY.md`
+rather than silently left as a doc that describes something a user cannot do.
 
 ### 4. Boolean gating
 

@@ -20,6 +20,15 @@ import { test, expect } from '@playwright/test'
  * element whose fit at 390px width needs its own check, per this task's own
  * Interaction model.
  *
+ * `TODO/ui-035` added the last two cases — a drilled-in **sub-part** as one of
+ * the two operands — and keeps that narrowing for the same reason plus one more:
+ * what this task changed is which *operand shape* the commit builds, still DOM/
+ * state logic, and the one genuinely WebGL-dependent step it leans on (the
+ * second click that drills into a group member's own mesh) is already covered at
+ * all three viewports **and** all three engines by `group-subpart-selection.e2e.js`,
+ * which exists precisely because that raycast is a canvas surface. Repeating it
+ * nine ways here would re-test `ui-016`'s picking, not this task's addressing.
+ *
  * The expected positions below are computed with the exact same formulas
  * `src/core/kernel/group.js`'s `calcSnap`/`calcCenterWith` use (the module doc
  * on `OperationsToolbar.vue` cites the same source), applied to each body's own
@@ -447,6 +456,155 @@ test('a third selected body disables both Snap and Align, same exact-2 gate as t
 
   await expect(page.getByTestId('operation-snap')).toBeDisabled()
   await expect(page.getByTestId('operation-align')).toBeDisabled()
+})
+
+/**
+ * Two cubes combined into one Group, plus a third, separate cube — the fixture
+ * `TODO/ui-035` needs, and deliberately assembled through the app's own shipped
+ * paths (`ui-015`'s Group button, `ui-016`'s two-click drill-in) rather than by
+ * poking state in.
+ *
+ * The two group members are dropped far apart on purpose: the group's own
+ * bounding-box centre then sits nowhere near either member's, which is the whole
+ * reason "did this address the sub-part or the whole group?" is a question
+ * arithmetic can answer rather than a matter of reading the record back.
+ *
+ * @param {import('@playwright/test').Page} page
+ */
+async function placeGroupAndThirdCube(page) {
+  await openLibrary(page)
+  await dragRowIntoViewport(page, { op: 'primitive.cuboid', ...CUBE.drop })
+  await dragRowIntoViewport(page, { op: 'primitive.cylinder', ...CYLINDER.drop })
+  await closeLibrary(page)
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-body-count', '2')
+  // Each member's own centre, measured *before* the Group — `group.assemble`
+  // moves nothing, so these are still each part's own centres afterward, and
+  // they are what a sub-part-addressed Align has to be computed against.
+  const [cube, cylinder] = await sceneBodies(page)
+
+  await clickViewportAt(page, CUBE.click.fx, CUBE.click.fy)
+  await clickViewportAt(page, CYLINDER.click.fx, CYLINDER.click.fy, { shift: true })
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-selected-count', '2')
+  await page.getByTestId('operation-group').click()
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-body-count', '1')
+  const groupId = (await page.getByTestId('viewport').getAttribute('data-selected-id')) ?? ''
+
+  // The reference body, placed after the Group so it cannot be swept into it.
+  // Same third-body position the exact-2 gating test above already proves is
+  // separately clickable at every reference viewport.
+  await openLibrary(page)
+  await dragRowIntoViewport(page, { op: 'primitive.cuboid', fx: 0.5, fy: 0.36 })
+  await closeLibrary(page)
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-body-count', '2')
+
+  const bodies = await sceneBodies(page)
+  const group = bodies.find((candidate) => candidate.id === groupId)
+  const reference = bodies.find((candidate) => candidate.id !== groupId)
+  return { cube, cylinder, group, reference }
+}
+
+test('Align addresses a drilled-in sub-part: the whole Group moves by that part’s own arithmetic, and the popover names it (TODO/ui-035)', async ({
+  page,
+}) => {
+  const { cube, group, reference } = await placeGroupAndThirdCube(page)
+
+  const partCenter = parseCenter(cube.center) // "Cube 1" — the drilled-in member
+  const groupCenter = parseCenter(group.center)
+  const referenceCenter = parseCenter(reference.center)
+
+  // The two candidate answers have to be far enough apart that the assertion
+  // below is really distinguishing them, not passing on a coincidence.
+  expect(
+    Math.abs(partCenter[0] - groupCenter[0]),
+    'the member’s own X centre and the group’s differ enough to tell the two answers apart',
+  ).toBeGreaterThan(5)
+
+  // Drill in the way a user does: deselect, click once (whole group), click the
+  // same member again (narrow to it), then Shift-click the second body.
+  await clickViewportAt(page, 0.04, 0.06)
+  await clickViewportAt(page, CUBE.click.fx, CUBE.click.fy)
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-selected-id', group.id)
+  await clickViewportAt(page, CUBE.click.fx, CUBE.click.fy)
+  await expect(page.getByTestId('inspector-breadcrumb-part')).toHaveText('Cube 1')
+  await clickViewportAt(page, 0.5, 0.32, { shift: true })
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-selected-count', '2')
+
+  await page.getByTestId('operation-align').click()
+  const popover = page.getByTestId('snap-align-popover')
+  await expect(popover).toBeVisible()
+
+  // The feedback half of this task: which depth is about to be committed has to
+  // be readable inside the popover, because a sub-part-addressed move looks
+  // exactly like a whole-object one once it has happened.
+  const operands = page.getByTestId('snap-align-operands')
+  await expect(operands).toBeVisible()
+  await expect(operands).toHaveAttribute('data-subpart', 'true')
+  await expect(page.getByTestId('snap-align-operand-moving')).toHaveText(/›\s*Cube 1$/)
+  // The line fits the popover at every reference viewport, 390px included —
+  // this task's Interaction model asks for that to be confirmed, not assumed.
+  const operandsBox = await operands.boundingBox()
+  const popoverBox = await popover.boundingBox()
+  expect(operandsBox.x + operandsBox.width).toBeLessThanOrEqual(popoverBox.x + popoverBox.width + 1)
+
+  await page.getByTestId('snap-align-axis-x').check()
+  await page.getByTestId('snap-align-commit').click()
+  await expect(popover).toHaveCount(0)
+
+  // Both bodies survive — `supersedes`, not `consumes`, unchanged from ui-026.
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-body-count', '2')
+
+  const after = await sceneBodies(page)
+  const groupAfter = after.find((candidate) => candidate.id === group.id)
+  const referenceAfter = after.find((candidate) => candidate.id === reference.id)
+  const actual = parseCenter(groupAfter.center)
+
+  // `calcCenterWith` against **Cube 1's** centre, with the whole group carried
+  // along by that same delta (`registry.js`: "the named pieces drive the offset;
+  // the whole group still moves"). Whole-object addressing would instead have
+  // landed the *group's* centre on the reference — the second expectation is
+  // what makes this a real distinction rather than a restatement.
+  const expectedX = groupCenter[0] + (referenceCenter[0] - partCenter[0])
+  // One decimal, not two, and for a stated reason rather than to make a number
+  // fit: `data-body-center` renders each coordinate through `.toFixed(2)`, and
+  // this expectation is built from **three** separately rounded readings, so up
+  // to ~0.015 mm of pure display rounding can accumulate in it before any
+  // geometry is involved (measured: 0.010 at tablet width). 0.05 mm is still
+  // three orders of magnitude tighter than the ~50 mm gap between the two
+  // answers this test exists to tell apart.
+  expect(actual[0]).toBeCloseTo(expectedX, 1)
+  expect(Math.abs(actual[0] - referenceCenter[0])).toBeGreaterThan(5)
+  // Only X was checked.
+  expect(actual[1]).toBeCloseTo(groupCenter[1], 1)
+  expect(actual[2]).toBeCloseTo(groupCenter[2], 1)
+  // The reference never moved.
+  expect(referenceAfter.center).toBe(reference.center)
+
+  // Still a group with both parts: `group.align` returns the moved group, so the
+  // member is still there to drill into a second time (`core-013`'s own §2).
+  await clickViewportAt(page, 0.04, 0.06)
+  await clickViewportAt(page, CUBE.click.fx, CUBE.click.fy)
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-selected-id', group.id)
+})
+
+test('with nothing drilled in, the popover names both whole bodies and commits ui-026’s own whole-object result (TODO/ui-035 regression guard)', async ({
+  page,
+}) => {
+  const [cube, cylinder] = await placeCubeAndCylinder(page)
+  await selectCubeThenCylinder(page)
+
+  await page.getByTestId('operation-align').click()
+  const operands = page.getByTestId('snap-align-operands')
+  await expect(operands).toHaveAttribute('data-subpart', 'false')
+  await expect(page.getByTestId('snap-align-operand-moving')).toHaveText(cube.name)
+  await expect(page.getByTestId('snap-align-operand-reference')).toHaveText(cylinder.name)
+
+  await page.getByTestId('snap-align-axis-z').check()
+  await page.getByTestId('snap-align-commit').click()
+
+  const after = await sceneBodies(page)
+  const cubeAfter = after.find((candidate) => candidate.id === cube.id)
+  const expectedZ = calcAlignZ(parseCenter(cube.center), parseCenter(cylinder.center), 0)
+  expect(parseCenter(cubeAfter.center)[2]).toBeCloseTo(parseCenter(cube.center)[2] + expectedZ, 2)
 })
 
 test('the popover stays on-screen and reachable at 390px width — no horizontal page scroll', async ({

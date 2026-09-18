@@ -81,6 +81,51 @@
  *    gizmo drag skip reselecting), the post-commit selection is
  *    `selection.select(selection.ids[0])` rather than the new record's own id.
  *
+ * ### Sub-part-addressed operands (`TODO/ui-035`)
+ *
+ * `core-013` registered both of these as `rawOperands`/`subPartOperands` entries,
+ * so a record may address one operand as `{ id, pieces }` — *measure against this
+ * named part of that composite* — instead of as a bare id. `ui-026` never built
+ * one: it mapped `selection.ids` straight to ids, so the popover carried a printed
+ * disclaimer saying sub-part addressing was unavailable, and the attachment
+ * `core-016`'s Raspberry Pi/screen recipes are designed around (a screen's pad
+ * against a *particular* hole) was reachable from the command layer and not by
+ * hand. `snapAlignOperands` below closes that: it reads `ui-016`'s pick depth
+ * (`selection.subPart`) at commit time and builds the addressed form for whichever
+ * operand is drilled into.
+ *
+ * Three things about it are decisions, not mechanics:
+ *
+ * 1. **Addressing is asymmetric on purpose.** One operand may be a named part
+ *    while the other is a whole body, which is the case the Goal actually names
+ *    — a whole screen positioned against one hole on a board. Requiring matched
+ *    drill depth on both sides would forbid exactly the realistic use and buy
+ *    nothing: the kernel resolves each operand independently (`index.js`'s
+ *    `normalizeRef`, `registry.js`'s `referenceOf`), so there is no arithmetic
+ *    reason for the two sides to agree. Every other 2-operand control on this
+ *    toolbar treats both sides identically, so this is a genuine divergence and
+ *    stated here rather than left to be inferred from the code.
+ * 2. **`pieces` goes on the operand; `supersedes` stays a bare id.** `supersedes`
+ *    names the *record* whose logical body this one continues (`document.js`'s
+ *    supersession note) — it is lineage bookkeeping, not an operand, and putting
+ *    an object there would break `bodies()` outright. So the same terminal id
+ *    appears twice in one record in two different shapes, deliberately.
+ * 3. **The addressed part drives the offset; the whole body still moves.** That
+ *    is V1's own semantics, carried by `registry.js`'s `group.snap`/`group.align`
+ *    entries — a bolt snapped by its head brings its thread along. So a
+ *    sub-part-addressed move looks on screen exactly like a whole-object one
+ *    (one body slides), which is why the popover now *names* both operands and
+ *    their depth: without that, the only way to tell which of two quite
+ *    different commits is about to happen is to run it and measure. The
+ *    Inspector's own breadcrumb (`ui-016`) is not enough — it is a different
+ *    panel, and it only ever describes a single-body selection.
+ *
+ * This is also the first Snap/Align commit that can be *rejected* by the kernel:
+ * a `pieces` naming a part the group does not have, or a bare solid with a stale
+ * pick depth hung off it, throws inside the fold (`index.js`). So this pair now
+ * carries the same `opError` display Fillet/Chamfer introduced, rather than
+ * letting a thrown error vanish into the console mid-click.
+ *
  * `deltaMm`'s two ops do not actually share a shape, which the popover's single
  * offset field respects rather than papering over: `group.js`'s `calcSnap`
  * (which `group.snap` calls) only ever adds its `deltaMm` as one scalar across
@@ -568,6 +613,58 @@ const canCommitSnapAlign = computed(
 )
 
 /**
+ * @typedef {object} SnapAlignOperand
+ * @property {import('../../core/kernel/registry.js').OperandRef} ref What the
+ *   record actually carries: a bare terminal id, or `{ id, pieces }` when this
+ *   operand is drilled into a named part (`TODO/ui-035`).
+ * @property {string} terminalId The same id on its own, for `supersedes` — which
+ *   is lineage bookkeeping and never an operand reference (see the module doc).
+ * @property {string} label What the popover shows: the body's name, plus its part
+ *   after a `›` when drilled in.
+ * @property {boolean} isSubPart
+ */
+
+/**
+ * The two selected items, resolved into the operands a Snap/Align record would
+ * carry right now — the one place this component decides what "the moving item"
+ * and "the reference item" actually *are* (`TODO/ui-035`). A computed rather
+ * than something `commitSnapAlign` works out for itself, because the popover has
+ * to be able to *show* the same answer before it is committed.
+ *
+ * Three reads, each with a reason it cannot be one of the others:
+ *
+ * - `documentStore.raw.currentIdOf(rootId)` — the *terminal* record id, which is
+ *   what the kernel binds geometry to. The same discipline `run()` above states
+ *   at length: a selection holds lineage-root ids, and a root's own entry still
+ *   holds the geometry the body had when it was first placed.
+ * - `documentStore.bodies` — keyed by *root* id, so the display name is looked up
+ *   by `rootId`, not by the terminal id above. Exactly the lookup `run()`'s
+ *   `group.assemble` names branch already has to make for the same reason.
+ * - `selection.subPart` — `ui-016`'s pick depth, which carries the body it
+ *   belongs to (`bodyId`, a root id), so it is matched against `rootId` too. It
+ *   is a single depth for the whole selection, which is what makes asymmetric
+ *   addressing the natural shape here rather than a special case: at most one of
+ *   the two operands can be drilled in at a time.
+ *
+ * @type {import('vue').ComputedRef<SnapAlignOperand[]>}
+ */
+const snapAlignOperands = computed(() =>
+  selection.ids.map((rootId) => {
+    const terminalId = documentStore.raw.currentIdOf(rootId) ?? rootId
+    const body = documentStore.bodies.find((candidate) => candidate.id === rootId)
+    const name = body?.name ?? rootId
+    const depth = selection.subPart
+    const partName = depth && depth.bodyId === rootId ? depth.partName : null
+    return {
+      ref: partName === null ? terminalId : { id: terminalId, pieces: partName },
+      terminalId,
+      label: partName === null ? name : `${name} › ${partName}`,
+      isSubPart: partName !== null,
+    }
+  }),
+)
+
+/**
  * Any of this toolbar's five exactly-1-gated ops (Fillet, Chamfer, Enlarge,
  * Fit, Bisect) — `TODO/ui-028` joined three more to the pair `isFilletChamferOp`
  * already named, so the two watches below (and each other) need a combined
@@ -657,11 +754,11 @@ function commitSnapAlign() {
   const op = openPopover.value
   if (!op || !canCommitSnapAlign.value) return
 
-  // Same operand-resolution discipline as `run()` above: the raw selection ids
-  // are lineage roots, and the kernel needs each operand's *current* terminal
-  // id, not the geometry it had when first placed.
-  const operandIds = selection.ids.map((id) => documentStore.raw.currentIdOf(id) ?? id)
-  const [base, reference] = operandIds
+  // Both operands, already resolved to terminal ids and (where the user has
+  // drilled in) to a named part — see {@link snapAlignOperands} and the module
+  // doc's "Sub-part-addressed operands" section.
+  const [moving, reference] = snapAlignOperands.value
+  if (!moving || !reference) return
   const id = documentStore.raw.nextId(op === 'group.snap' ? 'snap' : 'align')
 
   /** @type {Record<string, any>} */
@@ -675,15 +772,27 @@ function commitSnapAlign() {
     // `target` before `operands` is the fold's own input order, so the
     // first-selected ("moving") solid lands at `inputs[0]` — exactly the
     // operand `group.snap`/`group.align` move, per `core-013`'s registry.
-    target: base,
-    operands: [reference],
+    target: moving.ref,
+    operands: [reference.ref],
     // Not `consumes` — see the module doc's "Snap and Align are a different
     // shape" section for why that would be a real bug here, not a style choice.
-    supersedes: base,
+    // A bare id even when `target` above is `{ id, pieces }`: this names the
+    // record whose logical body continues, not an operand (module doc §2).
+    supersedes: moving.terminalId,
     params,
   }
 
-  documentStore.append(record, { origin: 'local' })
+  try {
+    documentStore.append(record, { origin: 'local' })
+  } catch (error) {
+    // New to this pair with `TODO/ui-035`: a `pieces` address the fold rejects
+    // (a part name the group no longer has, a pick depth left hanging off a body
+    // that is no longer a composite) throws where nothing could throw before.
+    // Surfaced in the popover rather than the console, the path Fillet/Chamfer
+    // established; the popover stays open so the depth can be corrected.
+    opError.value = error instanceof Error ? error.message : String(error)
+    return
+  }
 
   // `base` above is the moving solid's *terminal* id (what the record has to
   // build on); `selection.ids[0]` is its *lineage root*, which is what stays a
@@ -1190,9 +1299,32 @@ function commitResize() {
           <input type="number" v-model.number="offsetMm" data-testid="snap-align-offset" />
         </label>
 
-        <!-- Named-sub-part addressing ("snap this bolt by its head") is
-             explicitly out of scope this cut — TODO/ui-026's Proposed fix. -->
-        <p class="ops__popover-hint">Whole-object snap/align only — sub-part addressing isn't available yet.</p>
+        <!-- What is actually about to be committed, named (TODO/ui-035). This
+             replaces ui-026's printed "sub-part addressing isn't available yet"
+             disclaimer, which is now false. It is not decoration: a
+             sub-part-addressed move and a whole-object one both just slide one
+             body, so without this line the only way to tell which of the two is
+             armed is to run it and measure. The Inspector's breadcrumb is a
+             different panel and only ever describes a single-body selection. -->
+        <p
+          class="ops__popover-operands"
+          data-testid="snap-align-operands"
+          :data-subpart="snapAlignOperands.some((operand) => operand.isSubPart) ? 'true' : 'false'"
+        >
+          {{ openPopover === 'group.snap' ? 'Snapping' : 'Aligning' }}
+          <strong data-testid="snap-align-operand-moving">{{ snapAlignOperands[0]?.label }}</strong>
+          to
+          <strong data-testid="snap-align-operand-reference">{{
+            snapAlignOperands[1]?.label
+          }}</strong>
+        </p>
+
+        <!-- A `pieces` address the kernel rejects — the same first-user-facing
+             kernel-error path Fillet/Chamfer established, reused rather than
+             reinvented (TODO/ui-035). -->
+        <p v-if="opError" class="ops__popover-error" data-testid="snap-align-error">
+          {{ opError }}
+        </p>
 
         <div class="ops__popover-actions">
           <button
@@ -1441,6 +1573,29 @@ function commitResize() {
   font-size: 10px;
   line-height: 1.3;
   color: var(--text-3);
+}
+
+/*
+ * The named operands (TODO/ui-035). Deliberately *not* `.ops__popover-hint`'s
+ * 10px muted grey: this is the line that says which of two visually identical
+ * commits is armed, so it reads at the note's weight rather than a footnote's.
+ * `overflow-wrap: anywhere` because a composite's part names are not budgeted
+ * (`raspberrypi.bplus` ships parts like `piMountingPad1`), and the popover is
+ * only `min(260px, 100vw - 32px)` wide — a long name has to wrap inside that
+ * box rather than push it past the 390px phone width the popover's own CSS
+ * comment above guards.
+ */
+.ops__popover-operands {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--text-2);
+  overflow-wrap: anywhere;
+}
+
+.ops__popover-operands strong {
+  color: var(--text-1);
+  font-weight: 650;
 }
 
 /*

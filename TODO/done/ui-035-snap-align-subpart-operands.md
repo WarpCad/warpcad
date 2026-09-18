@@ -6,8 +6,50 @@ priority: medium
 model: opus
 milestone: M5
 depends: [ui-016, core-013]
-status: open
+status: done
 ---
+
+> **Retirement note.** Shipped as scoped, with the file's own open design question
+> answered the way it recommended and three things it did not anticipate.
+>
+> **The asymmetric-operand decision: allow it, explicitly.** A commit may carry a
+> sub-part-addressed operand on one side and a whole-body operand on the other, in
+> either direction. Two reasons beyond the realistic-case argument the file already
+> made. First, the kernel resolves each operand independently (`index.js`'s
+> `normalizeRef`, `registry.js`'s `referenceOf`), so there is no arithmetic reason
+> for the two sides to agree — requiring symmetry would have been a UI rule with
+> nothing under it. Second, and decisive: `selection.subPart` is a **single** depth
+> for the whole selection, and `drillInto` is a no-op unless exactly one body is
+> selected, so *at most one* of the two operands can be drilled in at a time.
+> Symmetric addressing is not merely undesirable here, it is unrepresentable.
+> Asymmetry is therefore the natural shape rather than a special case.
+>
+> **Which side gets the part is reachable both ways, and the useful one is the
+> reverse of the obvious one.** Drill in, then Shift-click the second body, and the
+> drilled body is `ids[0]` — the *moving* operand. Shift-click the drilled body off
+> and back on and it lands at the end, becoming the *reference* while its depth
+> survives (`toggle` is the one selection path that deliberately does not prune it).
+> That second path is the realistic assembly — "snap this Cube to that board's
+> Ethernet jack" — and both were driven live in Step 6.
+>
+> **Two things the file did not scope, both added because this change made them
+> real.** (1) A kernel-error display for this pair of buttons: before this task a
+> Snap/Align commit could not be rejected by the fold, and a `pieces` naming a part
+> the group does not have now can be, so `opError` and a `snap-align-error` element
+> follow Fillet/Chamfer's established path rather than letting a throw vanish into
+> the console mid-click. (2) The operand-name line the Interaction model asked for
+> is shown **always**, not only when drilled in — it doubles as the moving/reference
+> order made legible, which `ui-026`'s note only described in the abstract.
+>
+> **A limitation the drive found, outside this task's reach.** The Goal's literal
+> example — "a specific **hole** on a Pi board" — still cannot be performed, because
+> a mounting hole passes *through* the PCB and the raycast hits `mb` in front of it.
+> A 289-point pointer sweep over a real Pi 5 reached only `mb`, `ethernet`, `usb1`
+> and `usb2`. The operand mechanism is complete and proven against real parts; the
+> *selection* of an occluded sub-part is a `ui-016` picking limitation, logged in
+> `TODO/VERIFY.md`. `docs/snap-align.md` was corrected to use the Ethernet jack (a
+> part actually reachable) rather than a hole, instead of documenting something a
+> user cannot do.
 
 ## Goal
 
