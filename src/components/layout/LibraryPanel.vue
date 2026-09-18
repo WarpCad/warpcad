@@ -1,28 +1,50 @@
 <script setup>
 /**
  * The Library panel: one draggable row per catalogue item the kernel registry
- * offers, grouped into sections — "Primitives" (`primitive.*`) and "Hardware"
- * (`hardware.*`, `TODO/ui-030`).
+ * offers, grouped into sections — "Primitives" (`primitive.*`), "Hardware"
+ * (`hardware.*`, `TODO/ui-030`), "Kit Parts" (`kit.*`) and "Raspberry Pi"
+ * (`raspberrypi.*`, both `TODO/ui-031`).
  *
- * ## One mechanism, eleven rows
+ * ## One mechanism, twenty-six rows
  *
- * CLAUDE.md forbids eleven near-identical hand-copies, and it equally forbids a
- * menu built by blindly iterating a registry. Both are satisfied the same way:
+ * CLAUDE.md forbids twenty-six near-identical hand-copies, and it equally forbids
+ * a menu built by blindly iterating a registry. Both are satisfied the same way:
  * the sections and their rows come from `src/core/library.js`, which derives them
  * from the registry's own `ui` metadata and `operandCount`, and the drag payload
- * is nothing but the op string. Registering an eighth primitive — or giving a
- * `kit.*` recipe `ui` metadata, which is all `ui-031` has left to do — gives it a
- * row, a ghost preview and a working drop with no change to this file.
+ * is the op string plus whatever variant the row offers. `ui-031` added fifteen
+ * rows and two whole sections and this file gained no recipe name, no section
+ * name and no per-part branch — the claim `ui-030` made, collected on.
  *
- * The two sections differ in **nothing** a user can feel: same gesture, same
- * ghost, same drop, same selection afterwards. What differs is invisible and
- * lives entirely in `library.js` — a primitive carries its position in its own
- * `center` param, while a hardware recipe has no position param at all and is
- * moved into place by a trailing `transform.translate`.
+ * The sections differ in **nothing** a user can feel: same gesture, same ghost,
+ * same drop, same selection afterwards. What differs is invisible and lives
+ * entirely in `library.js` — a primitive carries its position in its own `center`
+ * param, while a recipe has no position param at all and is moved into place by a
+ * trailing `transform.translate`.
  *
  * These are **creation** rows — `operandCount: 0`, geometry from nothing — and
- * they live in their own section, never mixed into a list with operations like
+ * they live in their own sections, never mixed into a list with operations like
  * union or fillet that need operands selected first.
+ *
+ * ## A row with a variant (`TODO/ui-031`)
+ *
+ * Two rows — the Raspberry Pi board and the Camera Module — are one registry op
+ * parameterised by `model`, per `core-014a`'s "one factory, not one draggable per
+ * revision" decision. They carry a `<select>` **inside the row, beside the drag
+ * handle**, so:
+ *
+ * - the drag gesture itself is byte-for-byte the one every other row uses —
+ *   `onRowPointerDown` still reads a fixed payload off the row it was pressed on;
+ * - the choice is made *before* the drag, where it is visible, rather than in a
+ *   modifier held during it or a dialog after it;
+ * - the panel names no recipe: which rows have a choice, what param it sets and
+ *   what values it offers all come off `row.choice`, so a third such recipe is a
+ *   registry change and nothing here.
+ *
+ * The `<select>` is a sibling of the drag button rather than a child, because a
+ * form control inside a `<button>` is invalid HTML and would never receive its own
+ * pointer events. That sibling relationship is also what keeps a press on the
+ * dropdown from starting a placement — `onRowPointerDown` is bound to the button
+ * alone.
  *
  * ## Input
  *
@@ -41,7 +63,7 @@
  * starts — the drag has to be able to end over the viewport, but auto-closing
  * mid-gesture would yank the row out from under the finger that is holding it.
  */
-import { onBeforeUnmount, ref, watch } from 'vue'
+import { onBeforeUnmount, reactive, ref, watch } from 'vue'
 
 import { LIBRARY_SECTIONS } from '../../core/library.js'
 import { usePlacementStore } from '../../stores/placement.js'
@@ -121,8 +143,46 @@ function stopTracking() {
 }
 
 /**
+ * The variant currently selected on each row that offers one, keyed by op
+ * (`TODO/ui-031`) — `{ 'raspberrypi.bplus': 4, 'raspberrypi.cameraModule': 'v3' }`.
+ *
+ * Seeded from each row's own registry default rather than from a literal here, so
+ * the `<select>` opens showing exactly what a drag would place if it were never
+ * touched. Panel state, not document state: it is which variant the *next* drag
+ * from that row commits, and it deliberately persists across drags, because
+ * someone placing a Pi 5 and then a second Pi 5 should not have to pick twice.
+ *
+ * @type {Record<string, any>}
+ */
+const chosen = reactive(
+  Object.fromEntries(
+    LIBRARY_SECTIONS.flatMap((section) => section.rows)
+      .filter((row) => row.choice)
+      .map((row) => [row.op, row.defaults[/** @type {any} */ (row.choice).param]]),
+  ),
+)
+
+/**
+ * The params a drag from this row commits on top of its defaults — the chosen
+ * variant, or nothing at all for a row with no choice.
+ *
+ * Returns a fresh object only for the rows that need one; every other row hands
+ * back the shared frozen empty, so the common drag allocates nothing.
+ *
+ * @param {import('../../core/library.js').LibraryRow} row
+ * @returns {Record<string, any>}
+ */
+function overridesFor(row) {
+  if (!row.choice) return NO_OVERRIDES
+  return { [row.choice.param]: chosen[row.op] }
+}
+
+/** Shared payload for the rows with nothing to choose. See {@link overridesFor}. */
+const NO_OVERRIDES = Object.freeze({})
+
+/**
  * @param {PointerEvent} event
- * @param {{ op: string, label: string }} row
+ * @param {import('../../core/library.js').LibraryRow} row
  */
 function onRowPointerDown(event, row) {
   // Left button / primary contact only: a right-click or a middle-click must not
@@ -134,7 +194,10 @@ function onRowPointerDown(event, row) {
   window.addEventListener('pointermove', onWindowPointerMove)
   window.addEventListener('pointerup', onWindowPointerUp)
   window.addEventListener('pointercancel', onWindowPointerCancel)
-  placement.begin(row.op, row.label, event.clientX, event.clientY)
+  // The variant is read **here**, once, at the start of the gesture — so the
+  // ghost and the committed record are built from the same choice even if the
+  // dropdown were somehow changed mid-drag.
+  placement.begin(row.op, row.label, event.clientX, event.clientY, overridesFor(row))
 }
 
 onBeforeUnmount(stopTracking)
@@ -175,7 +238,7 @@ onBeforeUnmount(stopTracking)
           class="library__rows"
           :data-testid="section.id === 'primitive' ? 'library-rows' : `library-rows-${section.id}`"
         >
-          <li v-for="row in section.rows" :key="row.op">
+          <li v-for="row in section.rows" :key="row.op" class="library__item">
             <button
               type="button"
               class="library__row"
@@ -188,6 +251,23 @@ onBeforeUnmount(stopTracking)
               <span class="library__swatch" :data-shape="row.op" aria-hidden="true" />
               {{ row.label }}
             </button>
+            <!-- A variant picked before the drag (ui-031). Outside the button on
+                 purpose: a form control inside a <button> is invalid HTML and
+                 would never get its own pointer events — and keeping it a sibling
+                 is exactly what stops a press on it starting a placement. -->
+            <label v-if="row.choice" class="library__choice">
+              <span class="library__choice-label">{{ row.choice.label }}</span>
+              <select
+                v-model="chosen[row.op]"
+                class="library__choice-select"
+                :data-testid="`library-choice-${row.op}`"
+                :aria-label="`${row.choice.label} for ${row.label}`"
+              >
+                <option v-for="option in row.choice.options" :key="String(option.value)" :value="option.value">
+                  {{ option.label }}
+                </option>
+              </select>
+            </label>
           </li>
         </ul>
       </template>
@@ -257,6 +337,48 @@ onBeforeUnmount(stopTracking)
   margin: 0;
   padding: 0;
   list-style: none;
+}
+
+.library__item {
+  display: grid;
+  gap: 4px;
+}
+
+/* The variant control (ui-031). Indented under its row and visibly quieter than
+   it, so the row still reads as the thing you drag and this as a setting on it —
+   not as a second, competing control of equal weight. */
+.library__choice {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-left: 28px;
+}
+
+.library__choice-label {
+  font-size: 11px;
+  color: var(--text-3);
+}
+
+.library__choice-select {
+  flex: 1;
+  min-width: 0;
+  /* 32px, not the row's 44px: this is a setting reached deliberately after
+     reading the row, not a primary tap target, and a second 44px control per row
+     would cost 12 rows' worth of height in a 46vh phone sheet. Still comfortably
+     above the ~24px a native select needs to be tappable. */
+  min-height: 32px;
+  padding: 2px 6px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-1);
+  color: var(--text-1);
+  font: inherit;
+  font-size: 12px;
+}
+
+.library__choice-select:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
 }
 
 .library__row {
@@ -348,6 +470,71 @@ onBeforeUnmount(stopTracking)
 .library__swatch[data-shape='hardware.bearing'] {
   background:
     radial-gradient(circle at 50% 50%, var(--surface-1) 0 22%, transparent 22%),
+    linear-gradient(140deg, var(--border-strong), var(--surface-1));
+}
+
+/* Kit parts and Raspberry Pi (TODO/ui-031). Grouped by *silhouette* rather than
+   one bespoke swatch per recipe: at 18px a board, a frame, a ring and a screen
+   are the only shapes that actually read, and fifteen near-identical rounded
+   rectangles would be fifteen assets to keep in step with no gain in legibility.
+   What distinguishes the rows at this size is their label; what the swatch says
+   is which *kind* of thing it is. */
+.library__swatch[data-shape^='kit.'],
+.library__swatch[data-shape^='raspberrypi.'] {
+  /* The default: a bare board. */
+  border-radius: 2px;
+}
+
+/* A frame — a board with its middle cut out. */
+.library__swatch[data-shape='kit.boardFrame'] {
+  background:
+    linear-gradient(var(--surface-1), var(--surface-1)) padding-box content-box,
+    linear-gradient(140deg, var(--border-strong), var(--surface-1));
+  padding: 4px;
+}
+
+/* An anchor and a standoff are both a bored cylinder, seen end-on. */
+.library__swatch[data-shape='kit.anchor'],
+.library__swatch[data-shape='raspberrypi.hatStandoff'] {
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 50% 50%, var(--surface-1) 0 30%, transparent 30%),
+    linear-gradient(140deg, var(--border-strong), var(--surface-1));
+}
+
+/* A populated board: the GPIO header as a stripe along one edge. */
+.library__swatch[data-shape='raspberrypi.bplus'],
+.library__swatch[data-shape='raspberrypi.hat'],
+.library__swatch[data-shape='raspberrypi.spacer'] {
+  background:
+    linear-gradient(to bottom, var(--text-3) 0 3px, transparent 3px),
+    linear-gradient(140deg, var(--border-strong), var(--surface-1));
+}
+
+/* A camera: the lens barrel, centred. */
+.library__swatch[data-shape='raspberrypi.cameraModule'] {
+  background:
+    radial-gradient(circle at 50% 50%, var(--text-3) 0 30%, transparent 30%),
+    linear-gradient(140deg, var(--border-strong), var(--surface-1));
+}
+
+/* A screen: an inset display area inside a bezel. */
+.library__swatch[data-shape='raspberrypi.touchDisplay7inch'],
+.library__swatch[data-shape='raspberrypi.touchScreen2'],
+.library__swatch[data-shape='raspberrypi.hyperPixel4Rectangular'],
+.library__swatch[data-shape='raspberrypi.miniPiTFT'],
+.library__swatch[data-shape='raspberrypi.piTFT22'],
+.library__swatch[data-shape='raspberrypi.piTFT24'] {
+  background:
+    linear-gradient(var(--text-3), var(--text-3)) padding-box content-box,
+    linear-gradient(140deg, var(--border-strong), var(--surface-1));
+  padding: 3px;
+}
+
+/* A fan: a round hub in a square shroud. */
+.library__swatch[data-shape='raspberrypi.activeCoolingFan'] {
+  background:
+    radial-gradient(circle at 50% 50%, transparent 0 20%, var(--text-3) 20% 46%, transparent 46%),
     linear-gradient(140deg, var(--border-strong), var(--surface-1));
 }
 

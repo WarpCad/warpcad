@@ -88,6 +88,7 @@ import {
   recordsForDrop,
   snapToleranceMm,
   updateSnap,
+  variantKey,
 } from '../../core/library.js'
 import { useDocumentStore } from '../../stores/document.js'
 import { usePlacementStore } from '../../stores/placement.js'
@@ -315,21 +316,25 @@ const bodiesGroup = new ThreeGroup()
 bodiesGroup.name = 'bodies'
 /** @type {Map<string, Mesh | ThreeGroup>} */
 const bodyMeshes = new Map()
-/** Ghost geometry, cached per op so a drag builds each shape at most once. */
+/**
+ * Ghost geometry, cached per `variantKey` so a drag builds each shape at most
+ * once. Keyed by variant rather than by op since `TODO/ui-031`, because one op can
+ * now be several shapes — see `ghostGeometryFor`.
+ */
 const ghostGeometry = new Map()
 /**
- * The ghost's *box*, cached per op alongside its geometry (`TODO/ui-013`).
+ * The ghost's *box*, cached per variant alongside its geometry (`TODO/ui-013`).
  *
  * The snap needs the dragged shape's bounding box on every `pointermove`, and
  * measuring one means evaluating the solid — far too expensive for the pointer
- * path. Measured once per op at the working-plane origin instead, then
+ * path. Measured once per variant at the working-plane origin instead, then
  * translated by `boxAtPoint`, which is pure arithmetic over six numbers.
  *
  * @type {Map<string, import('../../core/library.js').BoxMm>}
  */
 const ghostBoxes = new Map()
 /**
- * How far the ghost *mesh* has to sit from the drop point, cached per op
+ * How far the ghost *mesh* has to sit from the drop point, cached per variant
  * (`TODO/ui-030`).
  *
  * Zero on all three axes for a primitive, whose geometry is built already resting
@@ -1073,50 +1078,66 @@ function projectPointer(clientXPx, clientYPx) {
 }
 
 /**
- * The ghost's geometry for an op, built once and cached. It is built at the
+ * All three ghost caches below are keyed by `variantKey(op, overrides)` rather
+ * than by `op` (`TODO/ui-031`), because a row can now carry a chosen variant and
+ * `raspberrypi.bplus` is one op with five different shapes behind it. Keying on
+ * the op alone would draw whichever model happened to be dragged first for every
+ * model dragged after it — a preview quietly lying about what the drop commits.
+ * Every key is computed once per gesture, in `preview`/`commit`, never per
+ * `pointermove`.
+ *
+ * The ghost's geometry for a variant, built once and cached. It is built at the
  * origin through the *same* `paramsForDrop` the commit uses, so the preview is
  * the shape that will actually land — including resting on the working plane
  * rather than sunk half into it.
  *
+ * @param {string} key From `variantKey`.
  * @param {string} op
+ * @param {Record<string, any>} overrides
  */
-function ghostGeometryFor(op) {
-  let geometry = ghostGeometry.get(op)
+function ghostGeometryFor(key, op, overrides) {
+  let geometry = ghostGeometry.get(key)
   if (!geometry) {
-    geometry = geom3ToBufferGeometry(toGeom3(evaluateOp(op, paramsForDrop(op, GHOST_ORIGIN))))
-    ghostGeometry.set(op, geometry)
+    geometry = geom3ToBufferGeometry(
+      toGeom3(evaluateOp(op, paramsForDrop(op, GHOST_ORIGIN, overrides))),
+    )
+    ghostGeometry.set(key, geometry)
   }
   return geometry
 }
 
 /**
- * The ghost's box for an op, built once and cached — see {@link ghostBoxes}.
+ * The ghost's box for a variant, built once and cached — see {@link ghostBoxes}.
  *
+ * @param {string} key From `variantKey`.
  * @param {string} op
+ * @param {Record<string, any>} overrides
  * @returns {import('../../core/library.js').BoxMm}
  */
-function ghostBoxFor(op) {
-  let box = ghostBoxes.get(op)
+function ghostBoxFor(key, op, overrides) {
+  let box = ghostBoxes.get(key)
   if (!box) {
-    box = ghostBoxAtOrigin(op)
-    ghostBoxes.set(op, box)
+    box = ghostBoxAtOrigin(op, overrides)
+    ghostBoxes.set(key, box)
   }
   return box
 }
 
 /**
- * The ghost mesh's offset from the drop point for an op — see
+ * The ghost mesh's offset from the drop point for a variant — see
  * {@link ghostOffsets}. Cached for the same reason the box is: it is measured off
  * built geometry, which has no business in the pointer path.
  *
+ * @param {string} key From `variantKey`.
  * @param {string} op
+ * @param {Record<string, any>} overrides
  * @returns {[number, number, number]}
  */
-function ghostOffsetFor(op) {
-  let offset = ghostOffsets.get(op)
+function ghostOffsetFor(key, op, overrides) {
+  let offset = ghostOffsets.get(key)
   if (!offset) {
-    offset = ghostOffsetMm(op)
-    ghostOffsets.set(op, offset)
+    offset = ghostOffsetMm(op, overrides)
+    ghostOffsets.set(key, offset)
   }
   return offset
 }
@@ -1187,13 +1208,15 @@ function clearSnapFeedback() {
  * class of drift `ui-013`'s "on drop, the **snapped** position commits" line is
  * about.
  *
+ * @param {string} key From `variantKey` — what the ghost box is cached under.
  * @param {string} op
+ * @param {Record<string, any>} overrides
  * @param {number} clientXPx
  * @param {number} clientYPx
  * @returns {{ x: number, y: number } | null} `null` when the pointer does not
  *   meet the working plane at all — no valid drop position, snapped or not.
  */
-function resolveDropPoint(op, clientXPx, clientYPx) {
+function resolveDropPoint(key, op, overrides, clientXPx, clientYPx) {
   const point = projectPointer(clientXPx, clientYPx)
   if (!point) {
     clearSnapFeedback()
@@ -1209,7 +1232,7 @@ function resolveDropPoint(op, clientXPx, clientYPx) {
     // drag stays exactly the one `ui-010` built.
     clearSnap(snapState)
   } else {
-    boxAtPoint(ghostBoxFor(op), dropPointMm, ghostBox)
+    boxAtPoint(ghostBoxFor(key, op, overrides), dropPointMm, ghostBox)
     updateSnap(
       ghostBox,
       snapNeighbours[nearest].box,
@@ -1256,21 +1279,24 @@ const dropTarget = {
     return under !== null && root.contains(under)
   },
 
-  preview(op, clientXPx, clientYPx) {
+  preview(op, clientXPx, clientYPx, overrides = {}) {
     if (!viewport || !op) return
+    // The variant, not the op: two models of one board are two different meshes,
+    // so `ghostOp` has to compare the thing that actually decides the geometry.
+    const key = variantKey(op, overrides)
     if (!ghostMesh) {
-      ghostMesh = new Mesh(ghostGeometryFor(op), ghostMaterial)
+      ghostMesh = new Mesh(ghostGeometryFor(key, op, overrides), ghostMaterial)
       ghostMesh.name = 'placement-ghost'
       // Drawn after the solids so its translucency composites over them.
       ghostMesh.renderOrder = 1
-      ghostOp = op
+      ghostOp = key
       viewport.graph.scene.add(ghostMesh)
     }
-    if (ghostOp !== op) {
-      ghostMesh.geometry = ghostGeometryFor(op)
-      ghostOp = op
+    if (ghostOp !== key) {
+      ghostMesh.geometry = ghostGeometryFor(key, op, overrides)
+      ghostOp = key
     }
-    const point = resolveDropPoint(op, clientXPx, clientYPx)
+    const point = resolveDropPoint(key, op, overrides, clientXPx, clientYPx)
     if (!point) {
       setGhostVisible(false)
       scheduleRender()
@@ -1280,7 +1306,7 @@ const dropTarget = {
     // land rather than where the pointer happens to be (`TODO/ui-013`), plus the
     // offset a composite's geometry needs to sit where its drop will commit it
     // (`TODO/ui-030` — zero for every primitive).
-    const offset = ghostOffsetFor(op)
+    const offset = ghostOffsetFor(key, op, overrides)
     ghostMesh.position.set(point.x + offset[0], point.y + offset[1], offset[2])
     setGhostVisible(true)
     scheduleRender()
@@ -1292,8 +1318,8 @@ const dropTarget = {
     scheduleRender()
   },
 
-  commit(op, clientXPx, clientYPx) {
-    const point = resolveDropPoint(op, clientXPx, clientYPx)
+  commit(op, clientXPx, clientYPx, overrides = {}) {
+    const point = resolveDropPoint(variantKey(op, overrides), op, overrides, clientXPx, clientYPx)
     if (!point) return null
     // Every document mutation goes through the command layer, inside a
     // transaction with an origin (CLAUDE.md Architecture). The component never
@@ -1305,7 +1331,10 @@ const dropTarget = {
     // which case it is in — it appends what `recordsForDrop` hands back, in
     // order — and the **first** record is the body's lineage root either way,
     // which is the id the document reports and therefore the id to select.
-    const records = recordsForDrop(op, { x: point.x, y: point.y }, documentStore.raw)
+    // `overrides` is the variant chosen on the row before the drag (ui-031) — the
+    // same object the preview above was built from, so the board that lands is the
+    // board that was shown.
+    const records = recordsForDrop(op, { x: point.x, y: point.y }, documentStore.raw, overrides)
     for (const record of records) documentStore.append(record, { origin: 'local' })
     const rootId = records[0].id ?? null
     if (rootId) selection.select(rootId)

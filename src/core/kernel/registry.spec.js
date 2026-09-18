@@ -749,11 +749,40 @@ describe('composite() ui metadata — what earns a recipe a Library row', () => 
     }
   })
 
-  it('leaves the kit.* and raspberrypi.* families without one, per ui-030\'s scope', () => {
-    // `ui-031` extends the mechanism to them; nothing here hardcodes a list, so
-    // the panel gains a row the moment one of those entries gains `ui` metadata.
-    for (const op of ['kit.board', 'kit.boardFrame', 'kit.anchor', 'raspberrypi.bplus']) {
-      expect(registry[op].ui, op).toBeUndefined()
+  it('gives the kit.* and raspberrypi.* families one too, and they really build (TODO/ui-031)', () => {
+    // This test asserted the *opposite* until `ui-031` — `ui-030` scoped those two
+    // families out, and the claim it was pinning was that nothing hardcodes a
+    // list, so a family joins the panel the moment its entries gain `ui`
+    // metadata. That is precisely what happened: fifteen entries gained metadata
+    // here and neither `library.js` nor `LibraryPanel.vue` learned a recipe name.
+    const ops = Object.keys(registry).filter(
+      (op) => op.startsWith('kit.') || op.startsWith('raspberrypi.')
+    )
+    expect(ops).toHaveLength(15)
+    for (const op of ops) {
+      const { ui } = registry[op]
+      expect(ui?.label, op).toMatch(/\S/)
+      expect(Object.isFrozen(ui), op).toBe(true)
+      expect(() => evaluateOp(op, /** @type {any} */ (ui).defaults), op).not.toThrow()
+    }
+  })
+
+  it('offers a variant choice on the two model-parameterised recipes, and no others', () => {
+    // `core-014a`'s "one factory, not one draggable per revision", as a registry
+    // contract rather than a comment: an op is a row, and a revision is a value.
+    const withChoice = Object.keys(registry).filter((op) => registry[op].ui?.choice)
+    expect(withChoice).toEqual(['raspberrypi.bplus', 'raspberrypi.cameraModule'])
+
+    for (const op of withChoice) {
+      const choice = /** @type {any} */ (registry[op].ui).choice
+      expect(choice.param, op).toBe('model')
+      expect(Object.isFrozen(choice.options), op).toBe(true)
+      // The row's own default has to be one of the values it offers, or the panel
+      // opens showing a selection the control cannot represent.
+      expect(
+        choice.options.map((/** @type {any} */ option) => option.value),
+        op
+      ).toContain(/** @type {any} */ (registry[op].ui).defaults.model)
     }
   })
 })

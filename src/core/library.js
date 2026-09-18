@@ -53,6 +53,13 @@ import { registry } from './kernel/registry.js'
  * @property {'native' | 'composite'} kind Which half of {@link recordsForDrop}
  *   places it. A native op takes its position as a `center` param; a composite
  *   recipe has no position param at all and is moved by a trailing translate.
+ * @property {import('./kernel/registry.js').OpUiChoice | null} choice A variant the
+ *   user picks before dragging (`TODO/ui-031`), or `null` for a row that is one
+ *   fixed shape. Copied straight off the registry entry: which rows have one, what
+ *   it sets and what it offers are all the registry's business, so the panel
+ *   renders a control without naming a recipe and this module does not branch on it
+ *   at all — a chosen value simply arrives as the `overrides` argument every
+ *   function here already took.
  */
 
 /**
@@ -83,23 +90,46 @@ const ROW_ORDER = Object.freeze([
   'hardware.nut',
   'hardware.washer',
   'hardware.bearing',
+  'kit.board',
+  'kit.boardFrame',
+  'kit.anchor',
+  // The Raspberry Pi section reads outward from the board (`TODO/ui-031`): the
+  // board itself, what plugs straight into it, then the accessories, then the
+  // screens — which is the order someone building a Pi enclosure reaches for them
+  // in, and not the alphabetical order `Object.keys` would give.
+  'raspberrypi.bplus',
+  'raspberrypi.cameraModule',
+  'raspberrypi.hat',
+  'raspberrypi.hatStandoff',
+  'raspberrypi.spacer',
+  'raspberrypi.activeCoolingFan',
+  'raspberrypi.touchDisplay7inch',
+  'raspberrypi.touchScreen2',
+  'raspberrypi.hyperPixel4Rectangular',
+  'raspberrypi.miniPiTFT',
+  'raspberrypi.piTFT22',
+  'raspberrypi.piTFT24',
 ])
 
 /**
  * The sections the panel renders, in order, and the op namespace each is built
  * from.
  *
- * Adding `hardware` here (`TODO/ui-030`) is deliberately *not* "show every
- * registry entry": CLAUDE.md forbids a menu built by blindly iterating a
- * registry, and the `kit.*`/`raspberrypi.*` families are genuinely not ready to
- * be dragged (see `ui-031`). A section is a namespace the project has decided to
- * offer; within it, `ui` metadata still decides row by row.
+ * Still deliberately *not* "show every registry entry", now that all four
+ * creation namespaces are here (`TODO/ui-031`): CLAUDE.md forbids a menu built by
+ * blindly iterating a registry, and the registry holds plenty that must never
+ * appear as a creation row — `boolean.*`, `modify.*`, `group.*`, `transform.*`,
+ * `profile.*`. A section is a namespace the project has decided to offer; within
+ * it, `ui` metadata still decides row by row, and {@link buildRows} throws rather
+ * than silently listing anything that turns out to need operands.
  *
  * @type {readonly { id: string, title: string }[]}
  */
 const SECTION_DEFINITIONS = Object.freeze([
   Object.freeze({ id: 'primitive', title: 'Primitives' }),
   Object.freeze({ id: 'hardware', title: 'Hardware' }),
+  Object.freeze({ id: 'kit', title: 'Kit Parts' }),
+  Object.freeze({ id: 'raspberrypi', title: 'Raspberry Pi' }),
 ])
 
 /**
@@ -110,9 +140,9 @@ const SECTION_DEFINITIONS = Object.freeze([
 function buildRows(ops, namespace) {
   const prefix = `${namespace}.`
   // `ui` metadata, not merely the namespace: a registry entry earns a row by
-  // saying what to call it and what to build it with. That is what keeps
-  // `kit.*`-style entries out of the panel without a second exclusion list, and
-  // what will let `ui-031` add them by touching only the registry.
+  // saying what to call it and what to build it with. `ui-031` added fifteen rows
+  // through exactly that door and changed nothing here — which is the claim this
+  // filter was making, now actually collected on.
   const keys = Object.keys(ops).filter((op) => op.startsWith(prefix) && ops[op].ui)
   keys.sort((a, b) => {
     const rankA = ROW_ORDER.indexOf(a)
@@ -140,6 +170,7 @@ function buildRows(ops, namespace) {
       defaults: ui.defaults,
       operandCount: entry.operandCount,
       kind: entry.kind,
+      choice: ui.choice ?? null,
     })
   })
 }
@@ -160,7 +191,29 @@ export const PRIMITIVE_LIBRARY = Object.freeze(buildRows(registry, 'primitive'))
 export const HARDWARE_LIBRARY = Object.freeze(buildRows(registry, 'hardware'))
 
 /**
- * The two sections that are exported in their own right, by id — so
+ * The "Kit Parts" section (`TODO/ui-031`): `Initial design.md` §6's three Kit-part
+ * rows, built and kernel-verified by `core-012` and unreachable from the app until
+ * they gained `ui` metadata.
+ *
+ * @type {readonly LibraryRow[]}
+ */
+export const KIT_LIBRARY = Object.freeze(buildRows(registry, 'kit'))
+
+/**
+ * The "Raspberry Pi" section (`TODO/ui-031`): the whole `core-014`-`core-018`
+ * catalogue — the board, the cameras, the HAT trio, the fan and the five screens.
+ *
+ * Twelve rows for twelve recipes, **not** twelve plus one per board revision and
+ * camera variant: `raspberrypi.bplus` and `raspberrypi.cameraModule` are each one
+ * factory with a `model` param (`core-014a`), so each is one row carrying a
+ * {@link LibraryRow}`.choice`.
+ *
+ * @type {readonly LibraryRow[]}
+ */
+export const RASPBERRYPI_LIBRARY = Object.freeze(buildRows(registry, 'raspberrypi'))
+
+/**
+ * The sections that are exported in their own right, by id — so
  * {@link LIBRARY_SECTIONS} hands out the *same* frozen arrays rather than a
  * second copy of each, and a caller comparing them by identity is right to.
  *
@@ -169,6 +222,8 @@ export const HARDWARE_LIBRARY = Object.freeze(buildRows(registry, 'hardware'))
 const SECTION_ROWS = Object.freeze({
   primitive: PRIMITIVE_LIBRARY,
   hardware: HARDWARE_LIBRARY,
+  kit: KIT_LIBRARY,
+  raspberrypi: RASPBERRYPI_LIBRARY,
 })
 
 /**
@@ -285,6 +340,36 @@ export function paramsForDrop(op, pointMm, overrides = {}) {
   // and do nothing, which is worse than not writing one.
   if (row.kind === 'composite') return params
   return { ...params, center: restingCenter(op, params, pointMm) }
+}
+
+/**
+ * A cache key that tells one *variant* of a row apart from another (`TODO/ui-031`).
+ *
+ * The viewport caches a ghost's built geometry, its measured box and its resting
+ * offset per op, because all three are measured off real geometry and have no
+ * business in the pointer path. A row with a {@link LibraryRow}`.choice` breaks
+ * that assumption: `raspberrypi.bplus` is one op and five different solids, so an
+ * op-keyed cache would draw whichever model was dragged *first* for every model
+ * dragged afterwards — a preview quietly lying about what the drop commits, which
+ * is the exact class of drift `ui-010` made `paramsForDrop` shared to rule out.
+ *
+ * Sorted, so `{ model: 5, fit: 'loose' }` and `{ fit: 'loose', model: 5 }` are one
+ * cache entry rather than two. `JSON.stringify` per value rather than per object
+ * for the same reason: object key order is insertion order, and a cache that
+ * missed on it would rebuild a 50-part board on every pointer event.
+ *
+ * Called once per gesture (on `begin`), never per `pointermove`.
+ *
+ * @param {string} op
+ * @param {Record<string, any>} [overrides] The variant's chosen params, if any.
+ * @returns {string} `op` itself when there is nothing to distinguish, so an
+ *   unvaried row keys exactly as it did before this existed.
+ */
+export function variantKey(op, overrides = {}) {
+  const keys = Object.keys(overrides)
+  if (keys.length === 0) return op
+  keys.sort()
+  return `${op}?${keys.map((key) => `${key}=${JSON.stringify(overrides[key])}`).join('&')}`
 }
 
 /**

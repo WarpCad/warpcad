@@ -35,11 +35,19 @@ import { computed, ref } from 'vue'
 /**
  * @typedef {object} DropTarget
  * @property {(clientXPx: number, clientYPx: number) => boolean} contains
- * @property {(op: string, clientXPx: number, clientYPx: number) => void} preview
+ * @property {(op: string, clientXPx: number, clientYPx: number, overrides: Record<string, any>) => void} preview
  * @property {() => void} clearPreview
- * @property {(op: string, clientXPx: number, clientYPx: number) => string | null} commit
+ * @property {(op: string, clientXPx: number, clientYPx: number, overrides: Record<string, any>) => string | null} commit
  *   Returns the new body's id, or `null` if the drop could not be placed.
  */
+
+/**
+ * The payload of a drag with nothing chosen on it — every row but the two
+ * model-parameterised ones. Shared and frozen rather than a fresh `{}` per
+ * gesture, so the common case allocates nothing and cannot be mutated by a
+ * subscriber.
+ */
+const NO_OVERRIDES = Object.freeze({})
 
 export const usePlacementStore = defineStore('placement', () => {
   const op = ref('')
@@ -48,6 +56,21 @@ export const usePlacementStore = defineStore('placement', () => {
 
   // Non-reactive live gesture state — see the module comment.
   const pointer = { x: 0, y: 0, overTarget: false }
+
+  /**
+   * The variant chosen on the row before this drag started (`TODO/ui-031`) — a
+   * Raspberry Pi's `model`, and nothing at all for every other row.
+   *
+   * Part of the gesture's payload alongside `op`, not a second gesture: the row's
+   * `<select>` is read once, at `begin`, and the same object then reaches the
+   * preview and the commit, so the board being previewed cannot be a different
+   * model from the board being placed. Non-reactive and plain for the same reason
+   * `pointer` is — it changes at most once per gesture and is read inside the
+   * pointer path.
+   *
+   * @type {Record<string, any>}
+   */
+  let overrides = NO_OVERRIDES
 
   /** @type {DropTarget | null} */
   let target = null
@@ -92,22 +115,26 @@ export const usePlacementStore = defineStore('placement', () => {
     const inside = target ? target.contains(clientXPx, clientYPx) : false
     pointer.overTarget = inside
     if (!target) return
-    if (inside) target.preview(op.value, clientXPx, clientYPx)
+    if (inside) target.preview(op.value, clientXPx, clientYPx, overrides)
     else target.clearPreview()
   }
 
   /**
    * Start dragging a Library row.
    *
-   * @param {string} nextOp Registry key — the whole payload of the gesture.
+   * @param {string} nextOp Registry key — the bulk of the payload of the gesture.
    * @param {string} nextLabel Human name, for the icon that follows the pointer.
    * @param {number} clientXPx
    * @param {number} clientYPx
+   * @param {Record<string, any>} [nextOverrides] The variant chosen on the row, if
+   *   it has one to choose (`TODO/ui-031`). Read once, here, and used for both the
+   *   preview and the commit.
    * @returns {void}
    */
-  function begin(nextOp, nextLabel, clientXPx, clientYPx) {
+  function begin(nextOp, nextLabel, clientXPx, clientYPx, nextOverrides = NO_OVERRIDES) {
     op.value = nextOp
     label.value = nextLabel
+    overrides = nextOverrides
     track(clientXPx, clientYPx)
     notify()
   }
@@ -126,6 +153,9 @@ export const usePlacementStore = defineStore('placement', () => {
   function finish() {
     op.value = ''
     label.value = ''
+    // Cleared with the rest of the gesture: a variant left standing would be
+    // handed to the *next* drag, which may well be a row that has no such param.
+    overrides = NO_OVERRIDES
     pointer.overTarget = false
     notify()
   }
@@ -140,7 +170,10 @@ export const usePlacementStore = defineStore('placement', () => {
   function drop(clientXPx, clientYPx) {
     if (!op.value) return null
     track(clientXPx, clientYPx)
-    const placed = pointer.overTarget && target ? target.commit(op.value, clientXPx, clientYPx) : null
+    const placed =
+      pointer.overTarget && target
+        ? target.commit(op.value, clientXPx, clientYPx, overrides)
+        : null
     target?.clearPreview()
     finish()
     return placed

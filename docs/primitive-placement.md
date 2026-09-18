@@ -3,12 +3,15 @@
 WarpCad builds parts out of solids. The quickest way to get your first solid into a
 project is to drag one out of the **Library** panel and drop it into the 3D view.
 
-The Library has two sections, and the gesture is identical in both:
+The Library has four sections, and the gesture is identical in all of them:
 
 - **Primitives** — the basic solids you shape a part out of: Cube, Cylinder, Cone,
   Hexagon, Triangle, Tube, Sphere.
 - **Hardware** — ready-made, real-world fasteners at their real sizes: Bolt, Nut,
   Washer, Bearing.
+- **Kit Parts** — the general-purpose building blocks: Board, Board Frame, Anchor.
+- **Raspberry Pi** — real Raspberry Pi boards and accessories at their real
+  dimensions: the board itself, cameras, HATs, the cooling fan and five screens.
 
 ## Where the Library panel is
 
@@ -82,6 +85,59 @@ editable as usual. See [Selecting a shape](selection-and-inspector.md).
 > **Note:** a bolt's outline includes its **clearance** envelope — slightly larger than
 > the metal — which is what makes subtracting a bolt from a plate leave a hole the bolt
 > actually fits through, rather than one it jams in.
+
+## Placing a kit part
+
+Below Hardware is **Kit Parts** — three general-purpose blocks you build enclosures and
+brackets out of:
+
+| Row | What you get | Default |
+| --- | --- | --- |
+| Board | A flat slab with rounded corners | 40 × 30 mm, 1.62 mm thick, 3 mm corners |
+| Board Frame | The same slab with a rectangular window cut out of it | 40 × 30 outer, 30 × 20 window |
+| Anchor | A post with a matching hole, as one two-part item | ⌀10 × 10 mm |
+
+1. Scroll down past Hardware to the **Kit Parts** section.
+2. Drag **Board** into the 3D view exactly the way you dragged a Cube.
+3. Release. It lands at the spot you released, resting on the grid, selected.
+
+## Placing a Raspberry Pi part
+
+The last section, **Raspberry Pi**, holds twelve real parts at their real dimensions —
+useful as the thing you design a case *around*, and as an operand for Subtract when you
+want a cut-out that something actually fits through.
+
+1. Scroll down to the **Raspberry Pi** section.
+2. Drag **Raspberry Pi** into the 3D view. Before you start the drag, use the row's
+   **Model** dropdown to choose Pi 4 or Pi 5 — the preview and the placed board both
+   reflect whichever is selected, so you can see which board you are getting before you
+   let go.
+3. Release to place it, exactly like a primitive.
+
+Two rows have that dropdown, because the same part comes in several revisions:
+
+| Row | Models | Default |
+| --- | --- | --- |
+| Raspberry Pi | Pi 2 / B+, Pi 3, Pi 4, Pi 5 | Pi 4 |
+| Camera Module | Camera v1, v2, v3, HQ Camera, Arducam HQ | Camera v3 |
+
+Your choice sticks until you change it, so placing three Pi 5s means picking the model
+once, not three times. Every other row is a single fixed part with nothing to choose.
+
+The rest of the section is accessories: **HAT**, **HAT Standoff**, **Spacer**, **Active
+Cooling Fan**, and the screens — **7-inch Touch Display**, **Touchscreen 2**,
+**HyperPixel 4**, **Mini PiTFT**, **PiTFT 2.2** and **PiTFT 2.4**.
+
+> **Each part is placed on its own, not attached to a board.** Dragging in a HAT or a
+> screen gives you that part by itself, resting on the grid wherever you dropped it —
+> it does not arrive already mounted on a Pi, and placing a Pi afterwards does not pull
+> it into position. That is deliberate: mounting one part onto another is its own
+> step, so you can see and undo it. Place both parts, select them, and use **Snap** or
+> **Align** to bring them together — see [Snapping and aligning](snap-align.md).
+
+Like a hardware part, a placed Raspberry Pi part's Inspector parameters (including
+`model`) are **read-only** — they are catalogue choices, not numbers to type over. To
+place a different model, pick it on the row and drag in a new one.
 
 ## Lining a shape up with one you already placed
 

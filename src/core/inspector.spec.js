@@ -372,29 +372,29 @@ describe('describeBody', () => {
   })
 
   it('falls back to the raw params for an op with no ui schema', () => {
-    // `kit.board` is a composite with no `ui` metadata — one of the family
-    // TODO/ui-031 will give a Library row, not TODO/ui-030. The Inspector must
-    // degrade to showing what the record carries rather than throwing, which
-    // would take the whole panel down with it. (This case used `hardware.bolt`
-    // until ui-030 gave it that metadata; it needs an op that genuinely has
-    // none, or it stops testing the fallback at all.)
+    // The Inspector must degrade to showing what the record carries rather than
+    // throwing, which would take the whole panel down with it.
+    //
+    // This case has now moved twice, and for the same reason both times: it needs
+    // an op that *genuinely* has no `ui` metadata, or it stops testing the
+    // fallback at all. It used `hardware.bolt` until `ui-030` gave that metadata,
+    // then `kit.board` until `ui-031` gave the whole kit/rpi catalogue theirs.
+    // `profile.roundedRectangle` is now the only 0-operand op in the registry
+    // with none — it is a 2D building block that no Library row offers — so it is
+    // both the honest choice and, if it ever gains a row, the signal to move this
+    // test again rather than let it quietly assert nothing.
     const document = createDocument()
     const record = {
-      id: 'board-1',
-      op: 'kit.board',
-      name: 'Board 1',
-      params: { width: 40, height: 30, thickness: 3, cornerRadius: 2 },
+      id: 'profile-1',
+      op: 'profile.roundedRectangle',
+      name: 'Profile 1',
+      params: { size: [40, 30], roundRadius: 3 },
     }
     document.append(record, { origin: 'local' })
     const description = describeBody(document.bodies()[0])
 
-    expect(description.opLabel).toBe('kit.board')
-    expect(description.params.map((field) => field.key)).toEqual([
-      'width',
-      'height',
-      'thickness',
-      'cornerRadius',
-    ])
+    expect(description.opLabel).toBe('profile.roundedRectangle')
+    expect(description.params.map((field) => field.key)).toEqual(['size', 'roundRadius'])
   })
 
   it('shows a hardware recipe under its own label and schema order (TODO/ui-030)', () => {

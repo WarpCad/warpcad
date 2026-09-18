@@ -604,3 +604,15 @@ Built with Claude Code, reviewed by me.
 **Evidence:** "bolt recipe has existed since 2026-09-05" → `git log -1 -- src/core/kernel/recipes/hardware.bolt.js` = f9bbfa4, 2026-09-05; "the Library panel filtered its rows to primitive.*" → `src/core/library.js`'s `buildRows` before this commit, `op.startsWith('primitive.')`; "no recipe takes a position param" → true of `hardware.bolt` only in the strict sense — nut/washer/bearing do accept a `center` and pass it to their own primitive, corrected in the retired TODO's note; the *mechanism* claim (drop commits recipe + superseding translate) → `recordsForDrop` in `src/core/library.js`, this commit; 297 characters including the disclosure → counted this session
 **Disclosure:** Built with Claude Code, reviewed by me.
 **To Add:** repo URL once public; the drive screenshot (a bolt, nut, washer and bearing on the grid beside a cube and a sphere) would carry this post
+
+## 2026-09-18T00:05Z · ui-031 — the rest of the catalogue, and a row that asks which model
+
+**Post:** WarpCad's Library went from 11 rows to 26: every kit part and the whole Raspberry Pi catalogue, built for days and only now draggable. The Pi and camera rows carry a model dropdown -- one factory, not one row per revision. #CAD #WebGL
+
+Built with Claude Code, reviewed by me.
+
+**Links:** [Repo](<repo-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL — 275 characters including the disclosure, counted this session
+**Evidence:** "11 rows to 26" → `LIBRARY_SECTIONS` totals measured this session (primitive 7 + hardware 4 + kit 3 + raspberrypi 12); ui-030's own eleven-row figure → `TODO/ACCEPTANCE.md` scenario 1's 2026-09-17 entry; "built for days" → `git log -1` per recipe: `kit.board` 2026-09-09 (70da2a4), `raspberrypi.bplus` 2026-09-13 (47e2857), `raspberrypi.spacer` 2026-09-16 (3fc97b5); "one factory, not one row per revision" → `core-014a`'s decision as quoted in `TODO/ui-031`'s own Goal
+**Disclosure:** Built with Claude Code, reviewed by me.
+**To Add:** repo URL once public; the laptop drive screenshot (Kit Parts + Raspberry Pi sections with both Model dropdowns visible, a Pi 5 and a camera on the grid) carries this one

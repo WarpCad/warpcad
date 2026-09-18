@@ -6,8 +6,60 @@ priority: high
 model: opus
 milestone: M5
 depends: [ui-030]
-status: open
+status: done
 ---
+
+> **What actually shipped, and the judgment call this file asked to have stated.**
+>
+> **The model selector is a row-level `<select>`, as recommended** — one row per recipe,
+> a variant chosen on it before the drag, rather than one row per revision. The
+> alternative was weighed rather than waved off: four Pi rows plus five camera rows
+> would make a 26-row panel a 33-row one in which nine rows are the same two parts, and
+> it would bake a revision list into the panel that the recipe is supposed to own. The
+> chosen shape keeps `core-014a`'s "one factory, not one draggable per revision"
+> decision true of the UI and not just of the kernel.
+>
+> Three things worth knowing beyond the plan:
+>
+> 1. **The variant had to be threaded through four layers, and the ghost caches had to be
+>    re-keyed.** `paramsForDrop`/`recordsForDrop`/`ghostBoxAtOrigin` already took an
+>    `overrides` argument (`ui-010` built that in), so `library.js` needed no branch at
+>    all — but `placement.js` carried only an op string, and `Viewport.vue` cached built
+>    ghost geometry, boxes and offsets **per op**. One op is now several solids, so an
+>    op-keyed cache would have drawn whichever model was dragged first for every model
+>    dragged after it. New `variantKey(op, overrides)` in `core/library.js` is what those
+>    three caches key on now. This was the real work; the fifteen rows were the easy half,
+>    exactly as this file predicted.
+> 2. **`kit.board` and `kit.boardFrame` needed real `defaults`, not `{}`.** They are the
+>    only recipes in the catalogue with *required* params their own recipe has no default
+>    for (`cornerRadius`; the frame's four sizes), so a row with empty defaults would have
+>    thrown the instant it was picked up. Caught by the unit test that builds every row's
+>    defaults, which is why that test exists.
+> 3. **This file's own row arithmetic was wrong** — it says "22-row" twice; 7 + 4 + 3 + 12
+>    is **26**. Corrected in the code comments rather than carried forward.
+>
+> **The standalone-expansion assumption held, confirmed by driving.** The eight
+> board-taking accessories do expand standalone and render complete on their own, resting
+> on the grid wherever dropped — a HAT's GPIO header hangs 8.72 mm below its own board
+> origin and the drop still seats it correctly on Z=0. Nothing floated at a
+> board-relative origin. The decision doc's paper answer survived the first real drive
+> unchanged. What *is* worth saying plainly, and is now in `docs/primitive-placement.md`:
+> a dragged-in accessory arrives **unattached**, and mounting it onto a board is a
+> separate Snap/Align step by design.
+>
+> **Two existing tests' claims were rewritten where this task made them false**, the same
+> way `ui-030` had to: `registry.spec.js`'s "leaves kit/rpi without `ui` metadata, per
+> ui-030's scope" now asserts the opposite (and that all fifteen build), and
+> `inspector.spec.js`'s no-`ui`-schema fallback case moved from `kit.board` to
+> `profile.roundedRectangle` — now the only 0-operand op in the registry with no `ui`, so
+> the fallback is still genuinely exercised rather than quietly asserting nothing.
+>
+> **Scenario 6's deeper half is still not reachable, and is not claimed.** Drilling into a
+> *group member* works with real parts (breadcrumb "Group 1 ▸ Camera Module 1"); drilling
+> into a *placed recipe's own* sub-part (the Pi's `usbc`) does not, because the trailing
+> `transform.translate` flattens the group — `ui-030` measured and pinned this, and
+> `TODO/core-024` owns the decision. Confirmed by hand against a 15-part body for the
+> first time rather than assumed from ui-030's note.
 
 ## Goal
 

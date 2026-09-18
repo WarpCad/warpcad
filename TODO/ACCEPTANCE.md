@@ -782,6 +782,30 @@ the straight ramp the e2e specs use.
   unchanged at 44 px.
 - Console and page errors: **none**, in either drive.
 
+**Re-checked**: 2026-09-17 23:58 — PASS (`ui-031`). Re-driven **in full**, because this
+task changes the same shared drop-commit path `ui-030` did and adds a second thing that
+travels with a drag — a chosen variant — through `placement.js`, `Viewport.vue`'s drop
+target and `library.js`'s record builder. Hand-driven via a Playwright-driven Node
+session against the real dev server (no `chromium-cli` in this environment, the same
+substitution `ui-015`/`ui-024`/`ui-027`/`ui-028`/`ui-029`/`ui-030` each used), laptop
+1440x900 in Chromium, with deliberately wandering, overshooting drag paths.
+
+- **The scenario itself**: a Cube then a Cylinder dragged in. **Both stayed visible**
+  (`data-body-count` = 2), and the cube's millimetre centre was **byte-identical** before
+  and after the second drop (`-165.69,28.72,20.00` both times) with its volume unchanged
+  at 64 000 mm³. Each drop selected only the new item. Clicking the cube selected
+  `cuboid-1` alone, clicking the cylinder moved the highlight to `cylinder-2` alone —
+  never both at once.
+- **A false alarm worth writing down, alongside `core-012`'s own**: the first deselect
+  probe clicked the viewport's top-left (fx 0.04, fy 0.06) and the selection did *not*
+  clear. `elementFromPoint` there returns `BUTTON.ops__btn` — the Operations toolbar's
+  own button, not empty viewport space — so refusing to deselect is correct. Deselect
+  fires normally at three genuinely bare points (fx 0.50/fy 0.85, 0.85/0.70, 0.12/0.50),
+  each confirmed to be `CANVAS.viewport__canvas` underneath. Not a defect, and the same
+  class of trap as `core-012`'s nav-chrome entry — the toolbar has simply grown enough
+  since then to reach that corner.
+- Console clean.
+
 ### 2. Hardware property edit
 
 **Steps**:
@@ -1299,6 +1323,38 @@ than inferred from an element count, because a count-only check had suggested ot
 clean. The RPi-board-plus-camera wording of the Steps is still driven with primitives, since no
 Raspberry Pi Library section exists — unchanged by this task, which adds no `ui` metadata.
 
+**Re-checked**: 2026-09-17 23:58 — **PASS, and for the first time with the parts this
+scenario actually names** (`ui-031`). Every prior run of this scenario since `ui-013`
+used a Cube-and-Cylinder stand-in, because steps 1-2 name a **Raspberry Pi 5 board** and
+a **Camera Module V3** and neither had a Library row. Both now do, so the stand-in is
+retired and the literal scenario was driven. Laptop 1440x900 in Chromium, against the
+real dev server.
+
+- **Step 1**: the Raspberry Pi row's **Model** dropdown opened on `4` (the row default),
+  was set to **Pi 5**, and the board was dragged in — landing at `-63.57,32.97,9.54`,
+  90.5 x 57 x 19.07 mm, drawn as a recognisable Pi 5 with its ethernet/USB stack, the
+  USB-C and HDMI row, the GPIO strip and both ribbon connectors. Not a blank frame and
+  not one undifferentiated blob.
+- **Steps 3-4, the half no scripted spec can make on its own**: the Camera Module row's
+  dropdown (defaulting to `v3`) was left at **Camera v3** and the camera crept toward the
+  board, with `data-snapped` sampled at **eleven points on the approach** — and, crucially,
+  sampled *after letting Vue flush*, which an earlier pass of this drive got wrong and
+  which produced a false "never snaps" reading worth recording so the next drive doesn't
+  repeat it. The guides genuinely appear **on approach and not before**: un-snapped from
+  fx 0.95 down to 0.66, snapped from **fx 0.62** inward. Retreating back out to fx 0.70 /
+  0.85 / 0.95 dropped them again, and coming back in (0.70 → 0.58 → 0.50) brought them
+  back — driven far → close → far → close, which is the check that matters most, since a
+  guide that appeared once and never let go would pass any fixed script ever written.
+- **Step 5, and the claim the whole scenario turns on**: the **snapped** position
+  committed, not the raw pointer position — measured rather than eyeballed by replaying
+  the identical gesture on a second, empty page with nothing to snap to. The two drops
+  landed in **different places**: `-63.57,48.97` snapped against `-48.27,48.27` raw. The
+  camera's X is **byte-identical to the Pi's own X** (`-63.57`), while its Y stayed where
+  the pointer was — which is the per-axis independent snapping working exactly as
+  designed (aligned to the board's centre line on one axis, left alone on the other),
+  not a partial failure. The Pi itself never moved.
+- Console clean. Screenshots taken on approach and after the drop.
+
 ### 4. Boolean gating
 
 **Steps**:
@@ -1705,6 +1761,39 @@ selection, the **first** click on the group's mesh selected the whole group ("Gr
 breadcrumb), and a **second** click at the same point narrowed to the member ("Cylinder 1") with
 the breadcrumb reading "Group 1 ▸ Cylinder 1" and the dimension lines shrinking to that member
 alone. The Inspector explained the sub-part is shown for measurement only. Console clean.
+
+**Re-checked**: 2026-09-18 00:04 — **PASS, and for the first time with real multi-part
+composites** (`ui-031`). Every prior run used a two-Cube stand-in, because steps 1-2 name
+a Raspberry Pi 5 board, a Camera Module V3 and a screen part, and none had a Library row.
+Laptop 1440x900 in Chromium, against the real dev server.
+
+- **Steps 1-2**: a **Pi 5** and a **Camera Module V3** placed from their own Library rows
+  (each picked on its row's Model dropdown first), then both selected — click, then
+  Shift-click — and **Combine into group** clicked. One body resulted (`group-5`,
+  "Group 1"), and its bounds span **both** parts (`-148.46,-56.48,0 .. -21.74,201.45,19.07`),
+  which is the combined box rather than one shrunk or discarded volume.
+- **Steps 3-4**: clicking bare grid cleared the selection (count 0); the **first** click
+  on the group's mesh selected the **whole group** — `group-5`, count 1, **no breadcrumb**
+  — with the three dimension lines reading **126.719 / 257.922 / 19.07 mm**, the whole
+  assembly's box. The first click never jumped straight to a sub-part, which is exactly
+  what **Expect** asks.
+- **Steps 5-6**: a second, distinct click landing on the **camera module's own mesh**
+  narrowed to it: the breadcrumb read **"Group 1 ▸ Camera Module 1"**, the Inspector
+  header showed `Camera Module 1` / op `Camera Module` with its `model` parameter reading
+  `v3`, and the dimension lines shrank to **23.862 / 25 / 12.675 mm** — the Camera v3's
+  own real dimensions, not the group's. Screenshotted.
+- **Step 7**: clicking the breadcrumb's **Group 1** segment stepped back out — breadcrumb
+  gone, selection back to `group-5`, dimension lines back to 126.719 / 257.922 / 19.07.
+- **What is still NOT claimed, and why**: `ui-031`'s Testing section suggested drilling
+  into the **Pi's own `usbc` sub-part**. That is *not* reachable and is not claimed here.
+  A *placed* composite is flattened by its own trailing `transform.translate` — `ui-030`
+  measured this and pinned it with a unit test — so a dropped Pi has no addressable
+  internal parts, only the whole solid. Confirmed by hand against a genuinely 15-part
+  body for the first time: a second click on a lone placed Pi kept `bplus-1` selected with
+  no breadcrumb. The pick-depth contract this scenario is about works, one level up, on
+  **group members**; reaching a recipe's internal parts is `TODO/core-024`'s decision,
+  already filed, and unchanged by this task.
+- Console clean.
 
 ### 7. Touch-only viewport navigation
 

@@ -58,8 +58,8 @@ import { anchor } from './recipes/kit.anchor.js'
 import { board } from './recipes/kit.board.js'
 import { boardFrame } from './recipes/kit.boardFrame.js'
 import { activeCoolingFan } from './recipes/raspberrypi.activeCoolingFan.js'
-import { bplus } from './recipes/raspberrypi.bplus.js'
-import { cameraModule } from './recipes/raspberrypi.cameraModule.js'
+import { BPLUS_MODELS, bplus } from './recipes/raspberrypi.bplus.js'
+import { CAMERA_MODULE_MODELS, cameraModule } from './recipes/raspberrypi.cameraModule.js'
 import { hat } from './recipes/raspberrypi.hat.js'
 import { hatStandoff } from './recipes/raspberrypi.hatStandoff.js'
 import { hyperPixel4Rectangular } from './recipes/raspberrypi.hyperPixel4Rectangular.js'
@@ -145,10 +145,56 @@ import { touchScreen2 } from './recipes/raspberrypi.touchScreen2.js'
 /** @typedef {(params: any, tables: any) => OpRecord[]} Recipe */
 
 /**
+ * @typedef {object} OpUiOption
+ * @property {any} value The param value this option sets.
+ * @property {string} label Human name for it, e.g. `"Pi 5"`.
+ */
+
+/**
+ * @typedef {object} OpUiChoice
+ * @property {string} param Which param the control sets — always one of
+ *   {@link OpUi}`.defaults`' own keys, so the row opens showing its real default.
+ * @property {string} label Label for the control itself, e.g. `"Model"`.
+ * @property {readonly OpUiOption[]} options Every value the recipe accepts.
+ */
+
+/**
  * @typedef {object} OpUi
  * @property {string} label Human name for the op — the Library panel's row title.
  * @property {Record<string, any>} defaults Params a fresh instance is created with.
+ * @property {OpUiChoice} [choice] A variant the user picks **before** dragging
+ *   (`TODO/ui-031`). Present on the two recipes that are one factory parameterised
+ *   by `model` (`core-014a`'s "one factory, not one draggable per revision"), and
+ *   on nothing else: a row with no choice is a fixed shape the way a Bolt is. The
+ *   panel renders whatever is here and names no recipe of its own, so a third
+ *   variant-bearing recipe is a change in this file alone.
  */
+
+/**
+ * Build a `model` choice out of a recipe's **own** exported list of valid models.
+ *
+ * Derived rather than hand-copied on purpose: a sixth camera added to
+ * `recipes/raspberrypi.cameraModule.js` appears in the panel automatically, and
+ * cannot silently go missing the way a second list would drift. Only the labels
+ * are written here, because a display name is not something the recipe knows.
+ *
+ * @param {readonly any[]} values The recipe's exported model list.
+ * @param {Record<string, string>} labels Display name per model, keyed by `String(value)`.
+ * @returns {OpUiChoice}
+ */
+function modelChoice(values, labels) {
+  return Object.freeze({
+    param: 'model',
+    label: 'Model',
+    options: Object.freeze(
+      values.map((value) => {
+        const label = labels[String(value)]
+        if (!label) throw new Error(`modelChoice: no label for model ${JSON.stringify(value)}`)
+        return Object.freeze({ value, label })
+      })
+    ),
+  })
+}
 
 /**
  * @typedef {object} RegistryEntry
@@ -848,15 +894,28 @@ export const registry = Object.freeze({
   // `profile.*` pair above rather than building geometry themselves; `kit.anchor` is
   // the one recipe in the project that touches `@jscad/modeling` at all, and only to
   // measure throwaway probe geometry for a snap it then bakes in as a number (see
-  // recipes/kit.anchor.js). None carries `ui` metadata, so none has a Library row.
-  // Since TODO/ui-030 that is the *only* thing standing between these and the panel
-  // — the four `hardware.*` entries above became reachable purely by gaining it —
-  // and TODO/ui-031 is the task that adds it, after confirming by hand that the
-  // dropped-board expansion `docs/decisions/composite-recipe-geometry.md` records
-  // still holds when a real row drives it.
-  'kit.board': composite(0, board),
-  'kit.boardFrame': composite(0, boardFrame),
-  'kit.anchor': composite(0, anchor),
+  // recipes/kit.anchor.js). TODO/ui-031 gave all three `ui` metadata, which was
+  // indeed the only thing standing between them and the panel — no recipe, fold or
+  // component change was needed, exactly as the note here predicted.
+  //
+  // `kit.board` and `kit.boardFrame` are the two entries in the whole catalogue
+  // whose recipes have **required** params with no default of their own
+  // (`cornerRadius`; the frame's four sizes), so `defaults` here is load-bearing
+  // rather than a convenience: without it the row would throw the instant it was
+  // picked up. The numbers are core-012's own spec fixtures — a representative
+  // starting board a user then edits, the same way `hardware.bolt` names one spec
+  // out of a table rather than offering the table.
+  'kit.board': composite(0, board, {
+    label: 'Board',
+    defaults: { width: 40, height: 30, cornerRadius: 3 },
+  }),
+  'kit.boardFrame': composite(0, boardFrame, {
+    label: 'Board Frame',
+    defaults: { outerWidth: 40, outerHeight: 30, innerWidth: 30, innerHeight: 20, cornerRadius: 3 },
+  }),
+  // V1's own `Anchor(width = 10, height = 10)` defaults, named here rather than
+  // left implicit, so the Inspector shows what the row actually placed.
+  'kit.anchor': composite(0, anchor, { label: 'Anchor', defaults: { width: 10, height: 10 } }),
 
   // TODO/core-014: the catalogue's largest recipe — a whole Raspberry Pi board, every
   // connector, with one `model` param picking the revision (2/3/4/5) the way
@@ -864,9 +923,31 @@ export const registry = Object.freeze({
   // probe geometry to resolve V1's ~120 chained snap/align/midlineTo calls, and bakes
   // each result in as a plain translate; see recipes/raspberrypi.bplus.js's module
   // doc for the two deliberate narrowings from V1 (no `dimCheck` rulers, and mounting
-  // holes as hidden parts rather than subtracted `group.holes`). No `ui` metadata,
-  // for the same reason the `kit.*` trio above has none.
-  'raspberrypi.bplus': composite(0, bplus),
+  // holes as hidden parts rather than subtracted `group.holes`).
+  //
+  // TODO/ui-031: **one row with a `model` choice on it**, not four rows. That is
+  // `core-014a`'s own "one factory, not one draggable per revision" decision carried
+  // into the UI, and the alternative was weighed rather than assumed — four Pi rows
+  // plus five camera rows would turn a 26-row panel into a 33-row one in which nine
+  // of the rows are the same two parts, and would bake a revision list into the
+  // panel that the recipe is supposed to own.
+  //
+  // The default is **4**, not the recipe's own `DEFAULT_MODEL` of 2. Those are
+  // answering different questions: the recipe's default is V1's (`BPlus(model = 2)`,
+  // a 2014 board) and has to stay put or every existing document line changes
+  // meaning, while a Library row is a starting point for new work, where the
+  // current-generation board is the honest guess. Same reason `hardware.nut`'s row
+  // names a `fit` the recipe itself has no default for.
+  'raspberrypi.bplus': composite(0, bplus, {
+    label: 'Raspberry Pi',
+    defaults: { model: 4 },
+    choice: modelChoice(BPLUS_MODELS, {
+      2: 'Pi 2 / B+',
+      3: 'Pi 3',
+      4: 'Pi 4',
+      5: 'Pi 5',
+    }),
+  }),
 
   // TODO/core-015: the five Raspberry Pi camera boards — v1, v2, v3, the official HQ
   // and Arducam's HQ clone — behind one `model` param, the same shape as `bplus` above
@@ -874,8 +955,24 @@ export const registry = Object.freeze({
   // some parts are derived from *another part's record* rather than from a primitive
   // (`modify.enlarge` for the `-nogo` keep-outs, `transform.rotate` for the HQ
   // variants' three copied corner holes), which the fold already supports and no new
-  // op was needed for. No `ui` metadata, for the same reason nothing else here has it.
-  'raspberrypi.cameraModule': composite(0, cameraModule),
+  // op was needed for.
+  //
+  // TODO/ui-031: the second and last row with a choice, same shape as `bplus` above.
+  // Its default *is* the recipe's own `v3` here, because that default was already a
+  // port decision rather than a carried-over V1 constant (V1 ships five separate
+  // factories with no shared entry point) and was already chosen as "the
+  // current-generation standard camera" — the same question a Library row asks.
+  'raspberrypi.cameraModule': composite(0, cameraModule, {
+    label: 'Camera Module',
+    defaults: { model: 'v3' },
+    choice: modelChoice(CAMERA_MODULE_MODELS, {
+      v1: 'Camera v1',
+      v2: 'Camera v2',
+      v3: 'Camera v3',
+      hq: 'HQ Camera',
+      'arducam-hq': 'Arducam HQ',
+    }),
+  }),
 
   // TODO/core-016: the two Raspberry Pi touch displays. These are the first recipes to
   // hit `docs/decisions/composite-recipe-geometry.md`'s Family B requirement — V1's
@@ -889,8 +986,22 @@ export const registry = Object.freeze({
   //
   // See raspberrypi.touchScreen2.js's NO_GO_POWER_MM for the one call that genuinely
   // mixed frames, and what dropping the board narrows about it.
-  'raspberrypi.touchDisplay7inch': composite(0, touchDisplay7inch),
-  'raspberrypi.touchScreen2': composite(0, touchScreen2),
+  //
+  // TODO/ui-031 gave both `ui` metadata. `touchScreen2` keeps V1's own factory name
+  // rather than the product name its module doc quotes: that doc calls it "the
+  // HyperPixel 4 rectangular display", which is also what `hyperPixel4Rectangular`
+  // below is called, and the two are measurably different parts (143 x 91 x 15 mm
+  // against 98 x 58 x 24). Labelling both "HyperPixel 4" would put two
+  // indistinguishable rows in the panel, so the ambiguity is left where V1 put it
+  // instead of being resolved by guess.
+  'raspberrypi.touchDisplay7inch': composite(0, touchDisplay7inch, {
+    label: '7-inch Touch Display',
+    defaults: {},
+  }),
+  'raspberrypi.touchScreen2': composite(0, touchScreen2, {
+    label: 'Touchscreen 2',
+    defaults: {},
+  }),
 
   // TODO/core-017: the four small displays. Family B again — every one of these takes
   // an external board in V1 and every one of them drops it here — but with a wrinkle
@@ -908,11 +1019,14 @@ export const registry = Object.freeze({
   // `.bisect().parts.negative` ports as the same half-space subtraction `bisect`
   // itself performs; and `modify.chamferRim` had to learn V1's negative-radius
   // semantics, because `miniPiTFT`'s display clearance is an outward flare rather
-  // than a bevel. No `ui` metadata, for the same reason nothing else here has it.
-  'raspberrypi.miniPiTFT': composite(0, miniPiTFT),
-  'raspberrypi.piTFT22': composite(0, piTFT22),
-  'raspberrypi.piTFT24': composite(0, piTFT24),
-  'raspberrypi.hyperPixel4Rectangular': composite(0, hyperPixel4Rectangular),
+  // than a bevel. All four gained `ui` metadata in TODO/ui-031.
+  'raspberrypi.miniPiTFT': composite(0, miniPiTFT, { label: 'Mini PiTFT', defaults: {} }),
+  'raspberrypi.piTFT22': composite(0, piTFT22, { label: 'PiTFT 2.2', defaults: {} }),
+  'raspberrypi.piTFT24': composite(0, piTFT24, { label: 'PiTFT 2.4', defaults: {} }),
+  'raspberrypi.hyperPixel4Rectangular': composite(0, hyperPixel4Rectangular, {
+    label: 'HyperPixel 4',
+    defaults: {},
+  }),
 
   // TODO/core-018: the four accessories. `raspberrypi.hat` is the standalone Hat
   // expansion core-017 already shipped as a module because PiTFT22/PiTFT24 needed it
@@ -934,11 +1048,14 @@ export const registry = Object.freeze({
   //   asks to round at 3.1 is really rounded at 3.0. See rpi-recipe-kit.js's
   //   `clampCornerRadius`, and that recipe's module doc for the rest.
   //
-  // No `ui` metadata, for the same reason nothing else here has it.
-  'raspberrypi.activeCoolingFan': composite(0, activeCoolingFan),
-  'raspberrypi.hat': composite(0, hat),
-  'raspberrypi.hatStandoff': composite(0, hatStandoff),
-  'raspberrypi.spacer': composite(0, spacer),
+  // All four gained `ui` metadata in TODO/ui-031.
+  'raspberrypi.activeCoolingFan': composite(0, activeCoolingFan, {
+    label: 'Active Cooling Fan',
+    defaults: {},
+  }),
+  'raspberrypi.hat': composite(0, hat, { label: 'HAT', defaults: {} }),
+  'raspberrypi.hatStandoff': composite(0, hatStandoff, { label: 'HAT Standoff', defaults: {} }),
+  'raspberrypi.spacer': composite(0, spacer, { label: 'Spacer', defaults: {} }),
 
   // Deliberately absent, and not an oversight — TODO/core-003 spiked this:
   //

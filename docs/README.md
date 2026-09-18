@@ -15,8 +15,10 @@ themselves won't have to move.
 - [Placing a shape](primitive-placement.md) — dragging an item out of the
   Library panel into the 3D view, on desktop and on a phone: the basic solids in
   **Primitives**, the ready-made fasteners in **Hardware** (Bolt, Nut, Washer,
-  Bearing), lining a new shape up with one already placed, and selecting what you
-  placed.
+  Bearing), the building blocks in **Kit Parts** (Board, Board Frame, Anchor) and
+  the real boards and accessories in **Raspberry Pi** — including picking which
+  board revision or camera a row places. Also: lining a new shape up with one
+  already placed, and selecting what you placed.
 - [Selecting a shape, and reading its size](selection-and-inspector.md) — the
   gizmo, the three dimension lines, and the Inspector panel's parameters and
   Transform section, on desktop and as a phone bottom sheet.

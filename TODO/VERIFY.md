@@ -34,6 +34,30 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### ui-031 — the Inspector's collapsed tab overlaps the bottom of the open Library sheet at phone width (2026-09-18 00:05)
+
+One layout observation the Step 6 drive surfaced and **measured**, which no acceptance
+scenario covers and which this task did not create but did make far easier to reach.
+At 390x844, with the Library sheet open *and a body selected*, the Inspector's collapsed
+tab occupies y 748-792 while the Library sheet still spans y 456-844 — so the tab sits on
+top of the sheet's bottom **96 px**, about two rows' worth. With `ui-030`'s eleven rows
+you rarely scrolled that far; with this task's twenty-six you routinely do, and the last
+row (PiTFT 2.4) is exactly where you end up.
+
+**Ruled out already, so nobody re-checks it**: this does not block anything. The sheet
+scrolls (`overflow-y: auto`, `scrollHeight` 1499 against a 388 px sheet), every row can
+be brought above the tab, and the drive placed a Pi 5 by touch from the Raspberry Pi
+section at the bottom of the list with no trouble. It is also not row-count-dependent in
+its *cause* — the same overlap exists with two rows — so it is a pre-existing
+sheet-stacking question, not a regression. What is new is only how often you meet it.
+Left as a judgment call rather than fixed here, because deciding how two bottom sheets
+share one slot is a layout concern of its own and not this task's to settle unilaterally.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | On a real iPhone: open the Library sheet with something selected, scroll to the bottom of the Raspberry Pi section, and judge whether the Inspector tab sitting over the last ~2 rows reads as broken or as ordinary sheet stacking. If broken, file it as its own `ui-*` task (inset the sheet's bottom padding by the tab's height, or collapse one sheet when the other opens). | Open | |
+| 2 | Same viewport: confirm the two Model dropdowns are comfortable to operate with a thumb. They are 32 px tall rather than the rows' 44 px — a deliberate call so twelve extra controls don't cost twelve rows of height in a 46vh sheet, but 32 px is below the usual 44 px tap-target guidance and only a real thumb can settle whether that was the right trade. | Open | |
+
 ### ui-030 — hardware parts are much smaller than the primitives they share a grid with (2026-09-17 19:35)
 
 Two visual/feel judgments that the acceptance drive surfaced but cannot settle, both

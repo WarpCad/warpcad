@@ -3,8 +3,10 @@ import modeling from '@jscad/modeling'
 
 import {
   HARDWARE_LIBRARY,
+  KIT_LIBRARY,
   LIBRARY_SECTIONS,
   PRIMITIVE_LIBRARY,
+  RASPBERRYPI_LIBRARY,
   SNAP_ALIGNMENTS,
   SNAP_TOLERANCE_PX,
   alignmentCoordMm,
@@ -21,7 +23,10 @@ import {
   recordsForDrop,
   snapToleranceMm,
   updateSnap,
+  variantKey,
 } from './library.js'
+import { BPLUS_MODELS } from './kernel/recipes/raspberrypi.bplus.js'
+import { CAMERA_MODULE_MODELS } from './kernel/recipes/raspberrypi.cameraModule.js'
 import { boundsOf, calcCenterWith, calcSnap } from './kernel/group.js'
 import { evaluateOp } from './kernel/index.js'
 import { createDocument } from './document.js'
@@ -100,13 +105,231 @@ describe('HARDWARE_LIBRARY — the catalogue rows a composite recipe earns (TODO
     expect(PRIMITIVE_LIBRARY.every((row) => row.kind === 'native')).toBe(true)
   })
 
-  it('groups the rows into two named sections rather than one undifferentiated list', () => {
-    expect(LIBRARY_SECTIONS.map((section) => section.id)).toEqual(['primitive', 'hardware'])
-    expect(LIBRARY_SECTIONS.map((section) => section.title)).toEqual(['Primitives', 'Hardware'])
+  it('gives the hardware rows their own named section rather than one undifferentiated list', () => {
+    // Narrowed by `TODO/ui-031`, which added two more sections and so made the
+    // original "there are exactly two" wording false. What this test was *about*
+    // is unchanged and still checked: Hardware is its own titled section, holding
+    // its own rows, never mixed into the Primitives list.
+    expect(LIBRARY_SECTIONS.map((section) => section.id).slice(0, 2)).toEqual([
+      'primitive',
+      'hardware',
+    ])
+    expect(LIBRARY_SECTIONS.map((section) => section.title).slice(0, 2)).toEqual([
+      'Primitives',
+      'Hardware',
+    ])
     expect(LIBRARY_SECTIONS[0].rows).toBe(PRIMITIVE_LIBRARY)
     expect(LIBRARY_SECTIONS[1].rows).toBe(HARDWARE_LIBRARY)
     // The primitives section is untouched by this: seven rows, same order.
     expect(PRIMITIVE_LIBRARY).toHaveLength(7)
+  })
+})
+
+describe('KIT_LIBRARY / RASPBERRYPI_LIBRARY — the rest of the catalogue (TODO/ui-031)', () => {
+  it('lists the three kit.* recipes, in catalogue order', () => {
+    expect(KIT_LIBRARY.map((row) => row.op)).toEqual(['kit.board', 'kit.boardFrame', 'kit.anchor'])
+    expect(KIT_LIBRARY.map((row) => row.label)).toEqual(['Board', 'Board Frame', 'Anchor'])
+  })
+
+  it('lists all twelve raspberrypi.* recipes, board first', () => {
+    expect(RASPBERRYPI_LIBRARY.map((row) => row.op)).toEqual([
+      'raspberrypi.bplus',
+      'raspberrypi.cameraModule',
+      'raspberrypi.hat',
+      'raspberrypi.hatStandoff',
+      'raspberrypi.spacer',
+      'raspberrypi.activeCoolingFan',
+      'raspberrypi.touchDisplay7inch',
+      'raspberrypi.touchScreen2',
+      'raspberrypi.hyperPixel4Rectangular',
+      'raspberrypi.miniPiTFT',
+      'raspberrypi.piTFT22',
+      'raspberrypi.piTFT24',
+    ])
+    expect(RASPBERRYPI_LIBRARY).toHaveLength(12)
+  })
+
+  it('groups the catalogue into four named sections rather than one long list', () => {
+    expect(LIBRARY_SECTIONS.map((section) => section.id)).toEqual([
+      'primitive',
+      'hardware',
+      'kit',
+      'raspberrypi',
+    ])
+    expect(LIBRARY_SECTIONS.map((section) => section.title)).toEqual([
+      'Primitives',
+      'Hardware',
+      'Kit Parts',
+      'Raspberry Pi',
+    ])
+    expect(LIBRARY_SECTIONS[2].rows).toBe(KIT_LIBRARY)
+    expect(LIBRARY_SECTIONS[3].rows).toBe(RASPBERRYPI_LIBRARY)
+    // The two sections that already existed are untouched by this.
+    expect(PRIMITIVE_LIBRARY).toHaveLength(7)
+    expect(HARDWARE_LIBRARY).toHaveLength(4)
+  })
+
+  it('gives every new row defaults that actually build', () => {
+    // A row whose defaults throw looks fine in the panel and fails on the first
+    // drag. `kit.board`/`kit.boardFrame` are the real risk here: both *require*
+    // params the recipe has no default for (`cornerRadius`, the four frame
+    // sizes), so a `defaults: {}` copied from the rpi rows would ship a row that
+    // throws the moment it is picked up.
+    for (const row of [...KIT_LIBRARY, ...RASPBERRYPI_LIBRARY]) {
+      expect(row.operandCount, row.op).toBe(0)
+      expect(row.kind, row.op).toBe('composite')
+      expect(row.label, row.op).toMatch(/\S/)
+      expect(() => evaluateOp(row.op, row.defaults), row.op).not.toThrow()
+    }
+  })
+
+  it('offers a model choice on exactly the two model-parameterised rows, and nowhere else', () => {
+    // `core-014a`'s "one factory, not one draggable per revision" decision, as a
+    // UI contract: one row, a choice on it — not four Pi rows and five camera
+    // rows. Every other row in the whole catalogue has nothing to choose.
+    const withChoice = [...PRIMITIVE_LIBRARY, ...HARDWARE_LIBRARY, ...KIT_LIBRARY, ...RASPBERRYPI_LIBRARY]
+      .filter((row) => row.choice)
+      .map((row) => row.op)
+    expect(withChoice).toEqual(['raspberrypi.bplus', 'raspberrypi.cameraModule'])
+  })
+
+  it('offers exactly the models the recipe itself accepts, and defaults to one of them', () => {
+    // Derived from the recipes' own exported lists rather than hand-copied, so a
+    // sixth camera added to the recipe cannot silently miss the panel.
+    const byOp = Object.fromEntries(RASPBERRYPI_LIBRARY.map((row) => [row.op, row]))
+    const pi = byOp['raspberrypi.bplus']
+    const camera = byOp['raspberrypi.cameraModule']
+
+    expect(pi.choice?.param).toBe('model')
+    expect(pi.choice?.options.map((option) => option.value)).toEqual([...BPLUS_MODELS])
+    expect(camera.choice?.options.map((option) => option.value)).toEqual([...CAMERA_MODULE_MODELS])
+
+    // The row's default must be one of its own options, or the `<select>` opens
+    // showing a value it cannot represent.
+    for (const row of [pi, camera]) {
+      const values = row.choice?.options.map((option) => option.value) ?? []
+      expect(values, row.op).toContain(row.defaults[row.choice?.param ?? ''])
+      for (const option of row.choice?.options ?? []) {
+        expect(option.label, `${row.op} ${String(option.value)}`).toMatch(/\S/)
+      }
+    }
+    // The most common current-generation parts, not V1's own historical defaults
+    // (`bplus` defaults to model 2 in the recipe — a 2014 board).
+    expect(pi.defaults.model).toBe(4)
+    expect(camera.defaults.model).toBe('v3')
+  })
+
+  it('builds every option of every choice row, not only the default', () => {
+    for (const row of RASPBERRYPI_LIBRARY.filter((candidate) => candidate.choice)) {
+      const param = /** @type {string} */ (row.choice?.param)
+      for (const option of row.choice?.options ?? []) {
+        expect(
+          () => evaluateOp(row.op, { ...row.defaults, [param]: option.value }),
+          `${row.op} ${String(option.value)}`
+        ).not.toThrow()
+      }
+    }
+  })
+
+  it('commits the chosen model rather than the row default, and lands it at the drop point', () => {
+    const document = createDocument()
+    const [created, moved] = recordsForDrop(
+      'raspberrypi.bplus',
+      { x: -40, y: 25 },
+      document,
+      { model: 5 }
+    )
+    expect(created.op).toBe('raspberrypi.bplus')
+    expect(created.params?.model).toBe(5)
+    expect(created.name).toBe('Raspberry Pi 1')
+    expect(moved.op).toBe('transform.translate')
+    expect(moved.supersedes).toBe(created.id)
+
+    for (const record of [created, moved]) document.append(record, { origin: 'local' })
+    const bodies = document.bodies()
+    expect(bodies).toHaveLength(1)
+    const [min, max] = boundsOf(bodies[0].geometry)
+    expect((min[0] + max[0]) / 2).toBeCloseTo(-40, 6)
+    expect((min[1] + max[1]) / 2).toBeCloseTo(25, 6)
+    expect(min[2]).toBeCloseTo(0, 6)
+  })
+
+  it('measures the ghost for the chosen model, not for the default one', () => {
+    // The preview and the commit come from one measurement (`ui-010`), and a
+    // variant is exactly the case where that could silently drift: a Pi 5 ghost
+    // drawn from a Pi 2's box would promise a shape the drop does not deliver.
+    const pi2 = ghostBoxAtOrigin('raspberrypi.bplus', { model: 2 })
+    const pi5 = ghostBoxAtOrigin('raspberrypi.bplus', { model: 5 })
+    expect(pi5.maxMm[2]).not.toBeCloseTo(pi2.maxMm[2], 3)
+
+    const v3 = ghostBoxAtOrigin('raspberrypi.cameraModule', { model: 'v3' })
+    const hq = ghostBoxAtOrigin('raspberrypi.cameraModule', { model: 'hq' })
+    expect(hq.maxMm[0] - hq.minMm[0]).toBeGreaterThan(v3.maxMm[0] - v3.minMm[0] + 10)
+  })
+
+  it('keys a variant apart from its op, stably, whatever order the overrides come in', () => {
+    // The viewport caches built ghost geometry per op; a variant changes that
+    // geometry, so it has to change the cache key too or the second model dragged
+    // shows the first one's mesh.
+    expect(variantKey('raspberrypi.bplus')).toBe('raspberrypi.bplus')
+    expect(variantKey('raspberrypi.bplus', {})).toBe('raspberrypi.bplus')
+    expect(variantKey('raspberrypi.bplus', { model: 5 })).not.toBe(
+      variantKey('raspberrypi.bplus', { model: 4 })
+    )
+    expect(variantKey('raspberrypi.bplus', { model: 5 })).not.toBe('raspberrypi.bplus')
+    expect(variantKey('x', { a: 1, b: 2 })).toBe(variantKey('x', { b: 2, a: 1 }))
+  })
+
+  it('lands every kit and Raspberry Pi row at the drop point, resting on the grid, as one body', () => {
+    // The same claim `ui-030` makes for the four fasteners, across thirteen more
+    // recipes — several of which build well below z = 0 in their own frame
+    // (a HAT's GPIO header hangs 8.72 mm under its board), so "rests on the grid"
+    // is a real measurement here and not a restatement of the recipe's origin.
+    for (const row of [...KIT_LIBRARY, ...RASPBERRYPI_LIBRARY]) {
+      const document = createDocument()
+      const records = recordsForDrop(row.op, { x: 33.5, y: -77.25 }, document)
+      expect(records, row.op).toHaveLength(2)
+      for (const record of records) document.append(record, { origin: 'local' })
+      const bodies = document.bodies()
+      expect(bodies, row.op).toHaveLength(1)
+      expect(bodies[0].name, row.op).toBe(`${row.label} 1`)
+      const [min, max] = boundsOf(bodies[0].geometry)
+      expect((min[0] + max[0]) / 2, `${row.op} X`).toBeCloseTo(33.5, 6)
+      expect((min[1] + max[1]) / 2, `${row.op} Y`).toBeCloseTo(-77.25, 6)
+      expect(min[2], `${row.op} does not rest on Z=0`).toBeCloseTo(0, 6)
+      expect(max[2], `${row.op} has no height`).toBeGreaterThan(0)
+    }
+  })
+
+  it('does not absorb the body placed before it (TODO/done/core-020, across the new kinds)', () => {
+    // `CLAUDE.md`'s standing-regression-surface rule: every one of these is a new
+    // composite kind reaching the expansion path that finding was fixed in, so the
+    // finding's own repro is re-run against them rather than assumed discharged by
+    // the fasteners having passed it.
+    for (const op of [
+      'kit.board',
+      'kit.anchor',
+      'raspberrypi.bplus',
+      'raspberrypi.cameraModule',
+      'raspberrypi.hat',
+      'raspberrypi.spacer',
+    ]) {
+      const document = createDocument()
+      document.append(recordForDrop('primitive.cuboid', { x: 0, y: 0 }, document), {
+        origin: 'local',
+      })
+      const [created] = recordsForDrop(op, { x: 200, y: 0 }, document)
+      document.append(created, { origin: 'local' })
+      const asBuilt = /** @type {any} */ (document.bodies()[1].geometry)
+      // Its own parts, and never "Cube 1" among them — the exact assertion
+      // core-020 turned on.
+      expect(asBuilt.names ?? [], op).not.toContain('Cube 1')
+      // And its own size: the bug stretched a composite's bounds back to whatever
+      // was placed before it.
+      const [min, max] = boundsOf(asBuilt)
+      expect(max[0] - min[0], `${op} spans back to the cube`).toBeLessThan(200)
+      expect(document.bodies().map((body) => body.name)[0], op).toBe('Cube 1')
+    }
   })
 })
 
