@@ -258,3 +258,79 @@ one (a kickoff-style pass, not a `/run-todos` batch) is the actual next step, no
 another automated tick. Stopping the loop here rather than looping on an empty
 backlog — see `.claude/commands/run-todos.md` Step 2's own "no remaining ids at all"
 case.
+
+Note: between that stop and this next tick, the user worked through kickoff for a new
+M5 (Hardware Library surface) plus fully scoping M6 and M7 outside this loop — confirmed
+fresh at this tick's Step 0 via `TODO/ROADMAP.md`'s own Status summary and a `ls TODO/`
+listing, not assumed from memory.
+
+| 2026-09-17 18:45 | 2026-09-17 19:52 | `ui-030`, `ui-031`, `core-024` | task-count reached (3) | no — M5 not fully ✅, `ui-035`, `ui-036`, `core-025`, and the newly-filed `ui-040` still open |
+
+Note on the row above: `ui-030` (Hardware Library section — Bolt/Nut/Washer/Bearing,
+composite placement via a superseding `transform.translate`) ran to completion in a
+fresh opus agent (commit `a3a590f`), independently re-verified by this loop: typecheck
+clean, 896/896 unit (+17, matching the agent's own reported number exactly), and the new
+`e2e/hardware-library-placement.e2e.js` spec re-run directly across all six non-Firefox
+projects (46/46 passed, 2 touch-only skips on non-touch laptop projects — Firefox
+excluded per the pre-existing sandbox launch defect in `TROUBLESHOOTING.md`). `git show
+--stat` confirmed the file list matches the agent's own report exactly, including that
+the untracked `chat/linkedin-third-times-the-charm.md` draft was correctly left
+untouched. Scenario 1 PASS, scenario 2's step 1 driveable for the first time (still
+PARTIAL — steps 3-4 blocked on a size picker `ui-029` deliberately deferred), scenario 5
+still NOT DRIVEABLE with a newly-measured third blocker (a placed composite's `Group` is
+flattened by its own drop translate, so it has no named sub-parts left to address even
+once the boolean-operand guard is lifted) logged with real measurements onto
+`TODO/core-024`, correcting that file's "second and final blocker" framing rather than
+leaving it stale. `core-020`'s closed-finding repro re-run and PASS both via the drop
+records and, for the first time, via the real drag-drop UI. `TODO/VERIFY.md` gained one
+genuine, specific entry (default hardware-part scale at the shared grid, and the Library
+sheet's now-eleven-row scroll at phone/tablet) — not boilerplate, read in full before
+logging here.
+
+Note on `ui-031` (extends `ui-030`'s mechanism to `kit.*`/`raspberrypi.*` — 15 more
+composite recipes, 26 rows total, plus a model-choice `<select>` for the two
+parameterised factories `bplus`/`cameraModule`): the agent's own run hit a session-limit
+429 mid-Step-5 (reset 17:50 America/Chicago) after real, verifiable progress (11 files
+modified, a new e2e spec) — rather than discard it or wait out a long reset like
+`core-019`'s, the reset had already passed by the time this was noticed, so the same
+agent was resumed in place via `SendMessage` once it cleared, and it re-ran every stage
+from scratch afterward rather than trusting its own pre-interruption state. Landed as
+commit `bc1d22e`. Independently re-verified by this loop: typecheck clean, 909/909 unit
+(+13, matching exactly), and the new `e2e/kit-rpi-library-placement.e2e.js` spec re-run
+directly across all six non-Firefox projects (46/46 passed, 2 touch-only skips, same
+Firefox exclusion as above). `git show --stat`/commit message confirmed against the
+agent's report exactly, including that this loop's own then-uncommitted `TODO/BUDGET.md`
+edit and the pre-existing `chat/linkedin-third-times-the-charm.md` draft were both
+correctly left alone a second time. Scenarios 3 and 6 driven with their *real* named
+parts (Raspberry Pi 5, Camera Module V3) for the first time ever, replacing the
+Cube/Cylinder and two-Cube stand-ins `ui-013`/`ui-026`/`ui-016` had used since M2/M3 —
+both PASS, with per-axis snap independence and group/sub-part breadcrumb behavior
+measured, not eyeballed. Scenario 1 re-driven and PASS, including a diagnosed false
+alarm (a viewport corner that no longer deselects because the Operations toolbar has
+grown into it — correct behavior, not a regression). `core-020`'s repro re-run against
+five new composite kinds via the real UI and six via unit tests, all PASS. `TODO/VERIFY.md`
+gained one genuine entry (Inspector-tab-over-Library-sheet overlap at phone width;
+Model-dropdown height being a real thumb-feel call) — read in full, not boilerplate.
+
+Note on `core-024` (boolean sub-part operand addressing — the last of scenario 5's two
+named kernel blockers): landed as commit `c410dff`, independently re-verified by this
+loop: typecheck clean, 924/924 unit (+15, matching exactly), and the full non-Firefox
+e2e matrix re-run directly (714 passed, 84 skipped, 0 failed) since this is a shared
+`evaluate()`/operand-resolution change touching every boolean and transform op, not just
+its own new spec. `git show --stat`/commit message confirmed against the agent's report
+exactly, including that `TODO/BUDGET.md` (this file, still uncommitted) and the
+pre-existing `chat/linkedin-third-times-the-charm.md` draft were both left alone again.
+**Scenario 5 is honestly still NOT DRIVEABLE, and the agent said so rather than
+overclaiming**: both kernel blockers (no Bolt row; sub-part addressing refused) are now
+closed and measured live (a sub-part subtract on a placed bolt produces the correct,
+different volume depending on which parts are named), but a genuine third and fourth
+blocker remain — the boolean toolbar has no UI path to emit a `{ id, pieces }` operand,
+and an enclosed part can't be picked by clicking until a scene list exists (`ui-032`).
+Filed the UI half as new `TODO/ui-040`, explicitly scoped to merge with the
+already-reserved `ui-035` since both now sit on the identical selection-depth gap. Also
+fixed a real latent defect the Step 6 drive found, not assumed: moving a `group.assemble`
+group with the gizmo silently destroyed its parts, breaking drill-in with no error —
+covered by a new A/B test. `TODO/VERIFY.md` gained one specific, GPU-relevant entry
+(coplanar-face z-fighting risk on two real composites, pixel-diffed on this machine's
+GPU as a baseline, flagged for a second look on real device hardware) — not boilerplate.
+**Batch closed at task-count reached (3): `ui-030`, `ui-031`, `core-024`.**
