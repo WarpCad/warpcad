@@ -6,8 +6,24 @@ priority: medium
 model: sonnet
 milestone: M5
 depends: [core-021, ui-028]
-status: open
+status: done
 ---
+
+> **Retirement note (2026-09-18).** Shipped as specified: Angle (default `0`, the one field
+> here that *should* default to a real value because `0` genuinely is "no tilt"),
+> Rotate-axis (only the two axes perpendicular to the cut axis, re-defaulted to the kernel's own
+> table whenever the cut axis changes; `DEFAULT_ROTATE_AXIS` is now exported from `group.js` so the
+> dropdown and the kernel cannot drift apart) and Rotate-offset (no default; left blank it is
+> *omitted* from `params`, not sent as `0`). A falsy Angle commits a record with the exact
+> pre-existing shape (`{ axis, offsetMm }`, no other keys), pinned by a `toEqual` unit test. One thing
+> the file did not anticipate: **the six-field popover overran into the phone Inspector bottom sheet**
+> (z-index 11 above the popover's 10), so the sheet intercepted every pointer event aimed at Commit at
+> 390px. Only the e2e fit test extended for this task caught it; the popover and its backdrop now sit
+> at z-index 31/30, above the Inspector, SketchToolbar and Library sheets, which is right for a modal.
+> The e2e's first draft asserted a *Y* extent for a Z-cut and failed on every engine (a tilt about X
+> leaves Y untouched); it now cuts a 40 mm cube at 20 mm mid-height and asserts the halves' Z extent is
+> ~31.5 mm (20 + 20*tan 30 deg) instead of a straight cut's 20 mm. `docs/resize-bisect.md` gained the
+> third worked example; its stale "Not yet supported: angled cuts" bullet was removed.
 
 ## Goal
 

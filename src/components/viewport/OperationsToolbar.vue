@@ -210,9 +210,49 @@
  *    blank rather than pre-filled with a value that *looks* safe (`0`, which cuts
  *    at the minimum face, not the centre — `bisect` distinguishes an omitted
  *    offset from a literal `0`, and this popover never omits one).
+ *
+ * ## Angled Bisect (`TODO/ui-036`)
+ *
+ * `core-021` shipped `modify.bisect`'s tilted-cut-plane form
+ * (`angleDeg`/`rotateAxis`/`rotateOffsetMm`) at the kernel level with, by that
+ * file's own admission, "no control anywhere that can reach it." This task adds
+ * the three fields to the existing Bisect popover above — no new commit path, no
+ * new gating logic, the same `isResizeOp`/`canCommitResize`/`commitResize`
+ * plumbing `ui-028` already built, per `core-021`'s own Interaction model section
+ * (reused here rather than re-derived, per that file's own note).
+ *
+ * 1. **Angle defaults to `0`, unlike every other field on this popover.** Every
+ *    other field here (Offset, Rotate-offset) is deliberately left blank so a
+ *    pre-filled value can never look like a safe default for something that
+ *    isn't. Angle is the opposite case: `0` genuinely *is* "no tilt" — the exact
+ *    falsy short-circuit `bisect()` itself applies — so defaulting to `0` is
+ *    accurate, not a trap.
+ * 2. **A falsy Angle must produce a record with the exact same shape as before
+ *    this task** — only `axis`/`offsetMm`, no `angleDeg`/`rotateAxis`/
+ *    `rotateOffsetMm` keys at all, not those three keys present with falsy
+ *    values. `commitResize`'s own regression guard is this shape, not a value
+ *    check, per the TODO's own Testing section.
+ * 3. **Rotate-axis's default follows the kernel's own per-cut-axis table**
+ *    (`DEFAULT_ROTATE_AXIS`, imported from `group.js` rather than duplicated —
+ *    the same "import the kernel's constant instead of hand-copying it"
+ *    precedent `Viewport.vue` already set for `boundsOf`), and its dropdown only
+ *    ever offers the two axes perpendicular to the current cut axis — the
+ *    cut axis itself is never a legal tilt axis (`bisect()` throws on that
+ *    combination by name). Changing the cut axis re-defaults Rotate-axis rather
+ *    than leaving it stranded on a now-invalid value.
+ * 4. **Rotate-offset has no default, same convention as the straight Offset
+ *    field** — but unlike Offset, an unset Rotate-offset does not block Commit:
+ *    the kernel's own default (the third axis's centre) is a real, sensible
+ *    answer to "leave it alone," which is exactly the flow this task's own Goal
+ *    names as the expected one ("leaving Rotate-offset at its default"). Left
+ *    blank, it is *omitted* from `params`, not sent as `0` or `null` — `bisect`'s
+ *    doc comment distinguishes an omitted `rotateOffsetMm` (centre) from a
+ *    literal `0` (the minimum face), the identical distinction the straight
+ *    Offset field already has to make.
  */
 import { computed, reactive, ref, watch } from 'vue'
 
+import { DEFAULT_ROTATE_AXIS } from '../../core/kernel/group.js'
 import { useDocumentStore } from '../../stores/document.js'
 import { useSelectionStore } from '../../stores/selection.js'
 
@@ -567,6 +607,56 @@ const bisectAxis = ref(/** @type {'x' | 'y' | 'z'} */ (AXES[0]))
  */
 const bisectOffsetMm = ref(/** @type {number | null} */ (null))
 
+/**
+ * Bisect's tilt angle, degrees. Defaults to `0` — "no tilt," the exact falsy
+ * short-circuit `bisect()` itself applies (`TODO/ui-036`; see the module doc's
+ * "Angled Bisect" section for why this is the one field on this popover that
+ * *should* default to a real value rather than start blank).
+ *
+ * @type {import('vue').Ref<number | null>}
+ */
+const bisectAngleDeg = ref(/** @type {number | null} */ (0))
+
+/**
+ * Bisect's tilt axis — the world axis the cut plane rotates about. Only the two
+ * axes perpendicular to the current cut axis are legal ({@link bisectRotateAxisOptions}),
+ * and this ref is re-defaulted to {@link DEFAULT_ROTATE_AXIS}'s entry for the
+ * current cut axis whenever that axis changes (see the `watch` below).
+ *
+ * @type {import('vue').Ref<'x' | 'y' | 'z'>}
+ */
+const bisectRotateAxis = ref(/** @type {'x' | 'y' | 'z'} */ (DEFAULT_ROTATE_AXIS[bisectAxis.value]))
+
+/**
+ * The two axes perpendicular to the current cut axis — the only legal values
+ * for {@link bisectRotateAxis}'s dropdown (`bisect()` throws if the tilt axis
+ * equals the cut axis).
+ *
+ * @type {import('vue').ComputedRef<Array<'x' | 'y' | 'z'>>}
+ */
+const bisectRotateAxisOptions = computed(() => AXES.filter((axis) => axis !== bisectAxis.value))
+
+// Changing the cut axis can strand Rotate-axis on a value that is no longer in
+// `bisectRotateAxisOptions` (e.g. cut axis x -> z with Rotate-axis left on
+// 'y', still valid, vs. cut axis x -> y with Rotate-axis on 'y', now invalid
+// since it equals the new cut axis) — re-default it to the kernel's own table
+// every time, rather than only when the stale value would actually be illegal,
+// so "leaving it alone" always reproduces the documented common case.
+watch(bisectAxis, (axis) => {
+  bisectRotateAxis.value = /** @type {'x' | 'y' | 'z'} */ (DEFAULT_ROTATE_AXIS[axis])
+})
+
+/**
+ * Bisect's tilt hinge position along the third axis (neither the cut axis nor
+ * the tilt axis), millimetres. No default — see the module doc's "Angled
+ * Bisect" §4: left blank, this is *omitted* from the record at commit time so
+ * the kernel's own default (that axis's centre) applies, rather than sent as a
+ * literal `0` or `null`.
+ *
+ * @type {import('vue').Ref<number | null>}
+ */
+const bisectRotateOffsetMm = ref(/** @type {number | null} */ (null))
+
 const canCommitResize = computed(() => {
   const op = openPopover.value
   if (!isResizeOp(op) || exactOneDisabled.value) return false
@@ -910,8 +1000,16 @@ function toggleResizePopover(op) {
   } else {
     // modify.bisect — axis resets to the first option; offset stays blank
     // (see the module doc's §3 for why no default is pre-filled here).
+    // Angle/Rotate-axis/Rotate-offset (TODO/ui-036) reset too: Angle to its
+    // own falsy default, Rotate-axis to the kernel's table entry for the
+    // just-reset axis (the `watch` above also fires from this assignment, but
+    // setting it here too keeps this branch a complete, self-contained reset
+    // rather than relying on watcher ordering), Rotate-offset left blank.
     bisectAxis.value = AXES[0]
     bisectOffsetMm.value = null
+    bisectAngleDeg.value = 0
+    bisectRotateAxis.value = /** @type {'x' | 'y' | 'z'} */ (DEFAULT_ROTATE_AXIS[AXES[0]])
+    bisectRotateOffsetMm.value = null
   }
   openPopover.value = op
 }
@@ -954,7 +1052,30 @@ function commitResize() {
       keepAspectRatio: fitKeepAspectRatio.value,
     }
   } else {
-    params = { axis: bisectAxis.value, offsetMm: bisectOffsetMm.value }
+    // modify.bisect (TODO/ui-036 extends this with the angled form). A falsy
+    // Angle must produce a record with the *exact* same shape as before this
+    // task — only `axis`/`offsetMm`, no `angleDeg`/`rotateAxis`/
+    // `rotateOffsetMm` keys at all — per the module doc's "Angled Bisect" §2
+    // and this task's own Testing section regression guard.
+    const angleDeg = bisectAngleDeg.value
+    const hasTilt = typeof angleDeg === 'number' && Number.isFinite(angleDeg) && angleDeg !== 0
+    if (hasTilt) {
+      const rotateOffsetMm = bisectRotateOffsetMm.value
+      params = {
+        axis: bisectAxis.value,
+        offsetMm: bisectOffsetMm.value,
+        angleDeg,
+        rotateAxis: bisectRotateAxis.value,
+        // Omitted, not `null`, when left blank — see the module doc's §4: an
+        // omitted rotateOffsetMm hinges on the third axis's own centre, which
+        // is a different, real value from a literal `0`.
+        ...(typeof rotateOffsetMm === 'number' && Number.isFinite(rotateOffsetMm)
+          ? { rotateOffsetMm }
+          : {}),
+      }
+    } else {
+      params = { axis: bisectAxis.value, offsetMm: bisectOffsetMm.value }
+    }
   }
 
   /** @type {import('../../core/kernel/registry.js').OpRecord} */
@@ -1230,6 +1351,36 @@ function commitResize() {
           <p class="ops__popover-hint">
             No default on purpose — type where along the axis to cut, measured
             from that axis's minimum face.
+          </p>
+
+          <!-- Angled Bisect (TODO/ui-036): tilts the cut plane instead of
+               leaving it perpendicular to Axis. Angle at 0 (its own default)
+               collapses to exactly the straight cut above, down to the
+               record's own shape — see the module doc's "Angled Bisect"
+               section. -->
+          <label class="ops__popover-field">
+            Angle (degrees)
+            <input type="number" v-model.number="bisectAngleDeg" data-testid="resize-bisect-angle" />
+          </label>
+          <label class="ops__popover-field">
+            Rotate-axis
+            <select v-model="bisectRotateAxis" data-testid="resize-bisect-rotate-axis">
+              <option v-for="axis in bisectRotateAxisOptions" :key="axis" :value="axis">
+                {{ axis.toUpperCase() }}
+              </option>
+            </select>
+          </label>
+          <label class="ops__popover-field">
+            Rotate-offset (mm)
+            <input
+              type="number"
+              v-model.number="bisectRotateOffsetMm"
+              data-testid="resize-bisect-rotate-offset"
+            />
+          </label>
+          <p class="ops__popover-hint">
+            No default on purpose, same as Offset above — left blank, the tilt
+            hinges on the third axis's own centre.
           </p>
         </template>
 
@@ -1531,7 +1682,12 @@ function commitResize() {
      the whole point of the popover staying anchored near the top is that the
      scene underneath stays legible while parameters are picked. */
   background: transparent;
-  z-index: 9;
+  /* Above the phone Inspector bottom sheet (z-index 11), the SketchToolbar (12)
+     and the open Library sheet (20) on purpose (TODO/ui-036): the popover is
+     modal, and once Bisect grew to six fields its lower controls extended into
+     the band the auto-opened Inspector sheet occupies at 390px, which then
+     intercepted every pointer event aimed at Commit. */
+  z-index: 30;
 }
 
 .ops__popover {
@@ -1558,7 +1714,7 @@ function commitResize() {
   background: var(--surface-glass);
   backdrop-filter: blur(6px);
   box-shadow: var(--shadow-overlay);
-  z-index: 10;
+  z-index: 31;
 }
 
 .ops__popover-note {

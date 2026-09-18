@@ -400,6 +400,88 @@ test('Bisect: commit stays disabled until an offset is typed, then cuts the cube
   expect(backToWholeYMm).toBeCloseTo(wholeGroupYMm, 0)
 })
 
+test('Bisect: a real Angle tilts the cut plane, producing an asymmetric split rather than the axis-aligned bounds a straight cut would produce (TODO/ui-036)', async ({
+  page,
+}) => {
+  const before = await placeAndSelectCube(page)
+
+  await page.getByTestId('operation-bisect').click()
+  const popover = page.getByTestId('resize-popover')
+  await expect(popover).toHaveAttribute('data-op', 'modify.bisect')
+
+  // Angle/Rotate-axis/Rotate-offset (TODO/ui-036) — the three new fields.
+  // Angle defaults to 0 (unlike Offset, which has no default at all).
+  await expect(page.getByTestId('resize-bisect-angle')).toHaveValue('0')
+  // Rotate-axis defaults to the kernel's own per-cut-axis table entry —
+  // cut axis defaults to 'x' (AXES[0]), whose table entry is 'y'.
+  await expect(page.getByTestId('resize-bisect-rotate-axis')).toHaveValue('y')
+
+  await page.getByTestId('resize-bisect-axis').selectOption('z')
+  // Cut axis changed to 'z' -> Rotate-axis re-defaults to the table's 'z'
+  // entry ('x'), not left stranded on 'y'.
+  await expect(page.getByTestId('resize-bisect-rotate-axis')).toHaveValue('x')
+  await page.getByTestId('resize-bisect-offset').fill('20')
+  await page.getByTestId('resize-bisect-angle').fill('30')
+  // Rotate-offset left at its own (blank) default — the Goal's own "leaving
+  // Rotate-offset at its default" flow.
+  await expect(page.getByTestId('resize-commit')).toBeEnabled()
+  await page.getByTestId('resize-commit').click()
+  await expect(popover).toHaveCount(0)
+
+  const viewport = page.getByTestId('viewport')
+  await expect(viewport).toHaveAttribute('data-body-count', '1')
+  await expect(viewport).toHaveAttribute('data-selected-id', before.id)
+  const [afterBisect] = await sceneBodies(page)
+  expect(afterBisect.id).toBe(before.id)
+  // Volume conservation holds for the angled form exactly as the straight
+  // one — `bisect()`'s own doc comment states the technique is a coordinate
+  // transform around the same half-space cut, not a new boolean.
+  expect(afterBisect.volumeMm3).toBeCloseTo(before.volumeMm3, 0)
+
+  // The commit leaves the whole group selected; a click at the body's own
+  // original centre point drills into whichever half sits there, same
+  // reliable-drill-in technique this file's own header explains.
+  await clickViewportAt(page, CUBE.click.fx, CUBE.click.fy)
+  const breadcrumb = page.getByTestId('inspector-breadcrumb')
+  await expect(breadcrumb).toBeVisible()
+  const partName = await page.getByTestId('inspector-breadcrumb-part').textContent()
+  expect(['negative', 'positive']).toContain(partName)
+
+  // The real proof this is a *tilted* split, not the axis-aligned one a
+  // straight cut would produce: the cube is 40mm on a side and the cut sits at
+  // its mid-height (offset 20mm from the Z minimum face), so a straight Z cut
+  // would leave each half exactly 20mm tall with X and Y still the full 40mm.
+  // Tilting the plane 30 degrees about X (hinged on the Y centre, so it rises
+  // by 20 * tan(30) = ~11.5mm at one Y face and drops by as much at the other)
+  // makes each half's Z extent 20 + 11.5 = ~31.5mm instead — a straight cut can
+  // never produce that.
+  const partLengths = await dimensionLengths(page)
+  expect(partLengths).toHaveLength(3)
+  const partZMm = await dimensionLengthOf(page, 'z')
+  expect(partZMm).toBeGreaterThan(20 + 5)
+  expect(partZMm).toBeLessThan(40 - 5)
+  expect(partZMm).toBeCloseTo(20 + 20 * Math.tan((30 * Math.PI) / 180), 0)
+  // X is the tilt axis, so it is untouched.
+  expect(await dimensionLengthOf(page, 'x')).toBeCloseTo(40, 0)
+
+  // Still a genuine, non-degenerate sub-part — neither sliver nor the whole
+  // shape re-labelled (same sanity bound the straight-cut test above uses).
+  const partVolume = partLengths[0] * partLengths[1] * partLengths[2]
+  expect(partVolume).toBeGreaterThan(before.volumeMm3 * 0.02)
+  expect(partVolume).toBeLessThan(before.volumeMm3 * 0.98)
+
+  // ui-016's closed-finding regression surface, re-driven specifically
+  // against an *angled*-Bisect-produced group (ui-028's own drive only ever
+  // exercised a straight-Bisect-produced one) — drilling in shows a correct,
+  // smaller dimension (checked above), and stepping back out via the
+  // breadcrumb reattaches the gizmo and restores the full-group reading.
+  await expect(page.getByTestId('transform-gizmo')).toHaveCount(0)
+  await page.getByTestId('inspector-breadcrumb-group').click()
+  await expect(breadcrumb).toHaveCount(0)
+  await expect(viewport).toHaveAttribute('data-selected-id', before.id)
+  await expect(page.getByTestId('transform-gizmo')).toHaveCount(1)
+})
+
 test('a resize the kernel rejects (a delta that would invert an axis) surfaces visibly in the popover, and commits nothing', async ({
   page,
 }) => {
@@ -450,9 +532,36 @@ test('the resize popover stays on-screen and reachable at every reference viewpo
   const scrollWidth = await page.evaluate(() => document.documentElement.scrollWidth)
   expect(scrollWidth).toBeLessThanOrEqual(clientWidth + 1)
 
-  for (const testid of ['resize-bisect-axis', 'resize-bisect-offset', 'resize-cancel', 'resize-commit']) {
-    const controlBox = await page.getByTestId(testid).boundingBox()
+  // TODO/ui-036: Bisect's popover now also carries Angle / Rotate-axis /
+  // Rotate-offset, so it's taller than it was — confirm it still fits
+  // vertically with no internal scrolling, and that every control is actually
+  // hit-testable (the topmost element at its centre is itself or a descendant),
+  // rather than merely having a bounding box.
+  const innerHeight = await page.evaluate(() => window.innerHeight)
+  expect(box.y).toBeGreaterThanOrEqual(0)
+  expect(box.y + box.height).toBeLessThanOrEqual(innerHeight + 1)
+  const scrolls = await popover.evaluate((el) => el.scrollHeight > el.clientHeight + 1)
+  expect(scrolls).toBe(false)
+
+  for (const testid of [
+    'resize-bisect-axis',
+    'resize-bisect-offset',
+    'resize-bisect-angle',
+    'resize-bisect-rotate-axis',
+    'resize-bisect-rotate-offset',
+    'resize-cancel',
+    'resize-commit',
+  ]) {
+    const control = page.getByTestId(testid)
+    const controlBox = await control.boundingBox()
     expect(controlBox).not.toBeNull()
+    expect(controlBox.y + controlBox.height).toBeLessThanOrEqual(innerHeight + 1)
+    const hit = await control.evaluate((el) => {
+      const rect = el.getBoundingClientRect()
+      const top = document.elementFromPoint(rect.x + rect.width / 2, rect.y + rect.height / 2)
+      return top === el || el.contains(top) || (top !== null && top.closest('label') === el.closest('label'))
+    })
+    expect(hit, `${testid} is hit-testable`).toBe(true)
   }
 
   // The toolbar row itself, with an eleventh button now on it, must not

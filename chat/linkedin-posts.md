@@ -784,3 +784,18 @@ Built with Claude Code, reviewed by me.
 **Evidence:** "for a week" → `ui-026` shipped the disclaimer 2026-09-11 (git log 3f5c87b), removed today 2026-09-18; "kernel accepted a sub-part operand since September 10" → `core-013` (git log 39fc42f, 2026-09-10); "reachable through the command layer and not by hand" → `TODO/done/core-016-touch-display-recipes.md`'s own retirement note and its `TODO/VERIFY.md` row; "popover states Aligning Raspberry Pi 1 › ethernet to Cube 1" → live drive this session, laptop and phone; "two drilled-in operands are not representable" → `src/stores/selection.js`, a single `subPart` ref plus `drillInto`'s no-op unless exactly one body is selected; "289-point sweep reached four named parts" → 17x17 pointer sweep this session over a real Pi 5, reaching only `mb`, `ethernet`, `usb1`, `usb2`
 **Disclosure:** Built with Claude Code, reviewed by me.
 **To Add:** repo URL once public; a short screen recording of the drill-in plus the popover line would carry this better than a still
+
+## 2026-09-18T19:14:00Z — A tilted cut, and the test that caught a popover hiding its own button
+
+**Post:** WarpCad's Bisect operation now cuts along a tilted plane. The geometry kernel has supported this since `core-021`, but nothing in the interface could ask for it. The Bisect popover gains three fields: Angle, Rotate-axis (only the two axes perpendicular to the cut axis, re-defaulted whenever the cut axis changes), and Rotate-offset, which has no default on purpose. Leaving Angle at zero commits exactly the record it always did.
+
+The check that mattered was the boring one. The popover is now six fields tall, and at 390 px wide the phone Inspector sheet sat on top of its lower half and swallowed every click on Commit. The desktop run never showed it, and neither did the existing tests. A fit-and-hit-test assertion did, and the fix was to lift the modal above the sheets.
+
+Measured against the running app: a 40 mm cube cut at mid-height with a 30 degree tilt gives halves 31.5 mm tall instead of 20, matching 20 + 20 tan 30 and a direct kernel call to the third decimal.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL #OpenSource
+**Evidence:** "supported this since core-021" → `TODO/done/core-021*.md` retirement note; "six fields tall, phone Inspector sheet sat on top, swallowed every click on Commit" → Playwright log this session on chromium-phone and webkit-phone ("`<p class=inspector__op>` from `<div id=app>` subtree intercepts pointer events", Test timeout 30000ms) before the popover z-index moved from 10 to 31; "Leaving Angle at zero commits exactly the record it always did" → `OperationsToolbar.spec.js` `toEqual({ axis: 'x', offsetMm: 3 })` plus three `not.toHaveProperty` assertions; "31.5 mm ... 20 + 20 tan 30 ... direct kernel call" → e2e assertion and a `bisect(cylinder, 'z', 20, 30, 'x')` probe this session giving negative z bounds 0 to 31.547 and positive 8.453 to 50
+**Disclosure:** Built with Claude Code, reviewed by me.
+**To Add:** repo URL once public; a still of the phone-width popover showing all six fields

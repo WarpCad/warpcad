@@ -863,9 +863,15 @@ function cutHalfSpaces(geometry, axisIndex, cutMm) {
  * Which world axis the cut plane tilts about when `rotateAxis` is omitted, per cut
  * axis. V1's own table, verbatim.
  *
+ * Exported (not just module-local) so `TODO/ui-036`'s Rotate-axis dropdown can
+ * default itself to the same table this module already enforces at commit time,
+ * rather than hand-duplicating the three-entry map in `OperationsToolbar.vue` and
+ * risking the two silently drifting apart — `Viewport.vue` already imports a
+ * constant (`boundsOf`) straight from this module for the same reason.
+ *
  * @type {Readonly<Record<string, string>>}
  */
-const DEFAULT_ROTATE_AXIS = Object.freeze({ x: 'y', y: 'x', z: 'x' })
+export const DEFAULT_ROTATE_AXIS = Object.freeze({ x: 'y', y: 'x', z: 'x' })
 
 /**
  * Cut one solid in two along a plane perpendicular to `axis` — optionally *tilted*

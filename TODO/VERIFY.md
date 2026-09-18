@@ -34,6 +34,15 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### ui-036 — Angled Bisect controls (2026-09-18 19:14)
+
+Measured live at 390x844 (WebKit): the six-field popover is 260 x 466 px, no internal scroll, and every control hit-tests. What automation cannot judge is how it *reads*: the popover's glass background lets the Inspector sheet's text show through behind it now that it sits above that sheet.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | On a real iPhone, open Bisect with a body selected and read the popover over the auto-opened Inspector sheet: is the faint Inspector text ("INSPECTOR", part name) showing through behind the fields distracting enough to want a more opaque popover background at phone width? | Open | |
+| 2 | On a real iPhone, tap into the Angle field and check the numeric keyboard offers a minus sign (Angle accepts negative degrees); `type="number"` keyboards without one are an iOS quirk the desktop drive cannot show | Open | |
+
 ### ui-035 — an occluded sub-part still cannot be picked, and one feel question about the new operand line (2026-09-18 01:55)
 
 The operand mechanism itself needs no hand-check and is deliberately not listed below:

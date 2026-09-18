@@ -169,6 +169,157 @@ describe('OperationsToolbar — Fillet/Chamfer (TODO/ui-027)', () => {
 })
 
 /**
+ * Angled Bisect (`TODO/ui-036`) — `core-021` shipped `modify.bisect`'s
+ * `angleDeg`/`rotateAxis`/`rotateOffsetMm` params at the kernel level with no
+ * control that could reach them; this task adds the three fields to the
+ * existing Bisect popover (`ui-028`). No prior `OperationsToolbar.spec.js`
+ * coverage exists for Bisect at all (only `e2e/resize-bisect-operation.e2e.js`
+ * exercises it) — these two cases are the unit-level regression guard the
+ * TODO's own Testing section asks for: the new fields thread through to the
+ * right param names, and — the one this task calls out explicitly as a
+ * regression risk — a falsy Angle must produce a record identical in *shape*
+ * to the pre-existing straight-only commit, not silently grow an `angleDeg: 0`
+ * key onto every ordinary Bisect from now on.
+ */
+describe('OperationsToolbar — angled Bisect (TODO/ui-036)', () => {
+  /** @type {ReturnType<typeof useDocumentStore>} */
+  let documentStore
+  /** @type {ReturnType<typeof useSelectionStore>} */
+  let selection
+
+  beforeEach(() => {
+    setActivePinia(createPinia())
+    documentStore = useDocumentStore()
+    selection = useSelectionStore()
+  })
+
+  /** @param {string} [id] */
+  function placeCube(id = 'cube-1') {
+    documentStore.append(
+      {
+        id,
+        op: 'primitive.cuboid',
+        name: 'Cube 1',
+        params: { size: [10, 10, 10], center: [0, 0, 5] },
+      },
+      { origin: 'local' },
+    )
+  }
+
+  /** @returns {DOMWrapper<HTMLElement>} */
+  function body() {
+    return new DOMWrapper(document.body)
+  }
+
+  it('a falsy Angle commits a record shaped exactly like the pre-existing straight-only Bisect (no angleDeg/rotateAxis/rotateOffsetMm keys at all)', async () => {
+    placeCube('cube-1')
+    selection.select('cube-1')
+    const wrapper = mount(OperationsToolbar)
+    const appendSpy = vi.spyOn(documentStore, 'append')
+
+    await wrapper.get('[data-testid="operation-bisect"]').trigger('click')
+    // Angle field defaults to 0 (falsy) on open — left untouched here.
+    await body().get('[data-testid="resize-bisect-offset"]').setValue(3)
+    await body().get('[data-testid="resize-commit"]').trigger('click')
+
+    expect(appendSpy).toHaveBeenCalledTimes(1)
+    const [record] = appendSpy.mock.calls[0]
+    expect(record.op).toBe('modify.bisect')
+    // The regression guard this task's own Testing section names: identical
+    // shape to the pre-ui-036 commit, not just "angleDeg happens to be 0".
+    expect(record.params).toEqual({ axis: 'x', offsetMm: 3 })
+    expect(record.params).not.toHaveProperty('angleDeg')
+    expect(record.params).not.toHaveProperty('rotateAxis')
+    expect(record.params).not.toHaveProperty('rotateOffsetMm')
+  })
+
+  it('a real Angle and Rotate-axis commit into params.angleDeg/rotateAxis, with Rotate-offset omitted when left at its own (unset) default', async () => {
+    placeCube('cube-1')
+    selection.select('cube-1')
+    const wrapper = mount(OperationsToolbar)
+    const appendSpy = vi.spyOn(documentStore, 'append')
+
+    await wrapper.get('[data-testid="operation-bisect"]').trigger('click')
+    await body().get('[data-testid="resize-bisect-axis"]').setValue('x')
+    await body().get('[data-testid="resize-bisect-offset"]').setValue(0)
+    await body().get('[data-testid="resize-bisect-angle"]').setValue(30)
+    // Rotate-axis dropdown for cut axis 'x' defaults to the kernel's own
+    // per-axis table ('y') — confirm the default rather than re-picking it,
+    // proving the dropdown really does default itself rather than starting
+    // blank/invalid.
+    expect(
+      /** @type {HTMLSelectElement} */ (
+        body().get('[data-testid="resize-bisect-rotate-axis"]').element
+      ).value,
+    ).toBe('y')
+    // Rotate-offset left untouched — per this task's own "no default,
+    // mirrors the straight offset field's own convention" rule, an unset
+    // Rotate-offset must not silently become a `0` in the record.
+    await body().get('[data-testid="resize-commit"]').trigger('click')
+
+    expect(appendSpy).toHaveBeenCalledTimes(1)
+    const [record] = appendSpy.mock.calls[0]
+    expect(record.params?.axis).toBe('x')
+    expect(record.params?.offsetMm).toBe(0)
+    expect(record.params?.angleDeg).toBe(30)
+    expect(record.params?.rotateAxis).toBe('y')
+    // Omitted, not defaulted to 0/null — the kernel's own doc comment defaults
+    // an omitted rotateOffsetMm to the third axis's centre, not to zero.
+    expect(record.params).not.toHaveProperty('rotateOffsetMm')
+  })
+
+  it('a typed Rotate-offset commits into params.rotateOffsetMm, including a literal 0 (which is not the same as leaving it blank)', async () => {
+    placeCube('cube-1')
+    selection.select('cube-1')
+    const wrapper = mount(OperationsToolbar)
+    const appendSpy = vi.spyOn(documentStore, 'append')
+
+    await wrapper.get('[data-testid="operation-bisect"]').trigger('click')
+    await body().get('[data-testid="resize-bisect-offset"]').setValue(5)
+    await body().get('[data-testid="resize-bisect-angle"]').setValue(-15)
+    await body().get('[data-testid="resize-bisect-rotate-axis"]').setValue('z')
+    await body().get('[data-testid="resize-bisect-rotate-offset"]').setValue(0)
+    await body().get('[data-testid="resize-commit"]').trigger('click')
+
+    expect(appendSpy).toHaveBeenCalledTimes(1)
+    const [record] = appendSpy.mock.calls[0]
+    expect(record.params).toEqual({
+      axis: 'x',
+      offsetMm: 5,
+      angleDeg: -15,
+      rotateAxis: 'z',
+      rotateOffsetMm: 0,
+    })
+  })
+
+  it('the Rotate-axis dropdown only offers the two axes perpendicular to the cut axis, re-defaulting when the cut axis changes', async () => {
+    placeCube('cube-1')
+    selection.select('cube-1')
+    const wrapper = mount(OperationsToolbar)
+
+    await wrapper.get('[data-testid="operation-bisect"]').trigger('click')
+    const rotateAxisSelect = body().get('[data-testid="resize-bisect-rotate-axis"]')
+    const selectEl = /** @type {HTMLSelectElement} */ (rotateAxisSelect.element)
+    const optionsFor = () =>
+      rotateAxisSelect
+        .findAll('option')
+        .map((option) => /** @type {HTMLOptionElement} */ (option.element).value)
+
+    // Cut axis 'x' (the popover's own default on open) -> perpendicular pair
+    // is y/z, defaulting to the kernel's own table entry for x ('y').
+    expect(optionsFor().sort()).toEqual(['y', 'z'])
+    expect(selectEl.value).toBe('y')
+
+    // Switching the cut axis to 'z' changes the perpendicular pair to x/y and
+    // re-defaults Rotate-axis to the kernel's own table entry for z ('x') —
+    // not left stranded on the old axis's default.
+    await body().get('[data-testid="resize-bisect-axis"]').setValue('z')
+    expect(optionsFor().sort()).toEqual(['x', 'y'])
+    expect(selectEl.value).toBe('x')
+  })
+})
+
+/**
  * Sub-part-addressed operands for Snap/Align (`TODO/ui-035`).
  *
  * `core-013` registered `group.snap`/`group.align` as `rawOperands` entries that

@@ -847,6 +847,8 @@ deliberately wandering with an overshoot past the drop point and a doubling-back
   `cylinder-2` alone, `data-selected-count` staying at 1 — never both at once.
 - Console and page errors: **none**.
 
+**Re-checked**: 2026-09-18 19:13 — PASS (`ui-036`). Re-driven because this task adds three fields to the Bisect popover on the shared `OperationsToolbar.vue` commit path and raises the popover's z-index above the phone Inspector sheet. Real mouse, jittery drag path, human-paced typing. Laptop 1440x900 (Chromium): cube then cylinder dropped at different points, both stayed (`cuboid-1` 64000 mm^3, `cylinder-2` 62428.9 mm^3); bare-canvas click cleared selection (count 0); cube click selected `cuboid-1` alone (gizmo 1, dims 40/40/40); cylinder click moved selection to `cylinder-2` alone (gizmo 1, dims 40/40/50). Phone 390x844 (WebKit, pointer not touch emulation — Playwright cannot drive a touch drag): same sequence, same numbers, but only the right third of the canvas is free of nav chrome, so both bodies had to be dropped there (pre-existing layout, not this task). Then the new popover: 260 x 466 px on the 844 px phone viewport, no internal scroll, Commit clickable by a real click (before the z-index fix the Inspector sheet intercepted it — caught by the e2e fit test, not by the old drive). Body count stayed 2, volume conserved (62428.903 -> 62428.903 mm^3). A straight Z Bisect of the cube at 20 mm (Angle left 0) gave part dims 40 x 40 x 20, unchanged from before. Console clean in both drives.
+
 ### 2. Hardware property edit
 
 **Steps**:
@@ -1991,6 +1993,8 @@ depends on a body still being a group.
   far below anything visible. Logged to `TODO/VERIFY.md` for a look on real hardware,
   where z-precision differs.
 - Console clean.
+
+**Re-checked**: 2026-09-18 19:13 — PASS (`ui-036`). Re-run against the *angled*-Bisect-produced group `ui-016`'s own repro names (previously only straight-Bisect groups). Drove a real cylinder (40 mm dia x 50 mm) bisected on Z at Offset 20 mm, Angle 30 degrees, Rotate-axis X, at laptop 1440x900 (Chromium) and phone 390x844 (WebKit). Clicking the group selected the whole thing (gizmo 1, dims 40 x 40 x 50); a second click drilled into a part (breadcrumb `Cylinder 1 > positive`, gizmo detached to 0) with **correct, tilted dimensions: positive 40 x 40 x 41.547 mm, negative 40 x 40 x 31.547 mm** (20 +/- 20*tan(30 deg)=11.547; matches a direct kernel `bisect()` call's bounds exactly), both engines. The `Cylinder 1` breadcrumb segment stepped back out to the whole group: breadcrumb gone, gizmo reattached (1), dims back to 40 x 40 x 50. Clicking bare canvas cleared the selection. Console clean.
 
 ### 7. Touch-only viewport navigation
 

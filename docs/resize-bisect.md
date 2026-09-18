@@ -44,6 +44,22 @@ and all three buttons light up.
    back out the same way that page describes — via the breadcrumb — to return
    to the whole pair.
 
+## A worked example: an angled Bisect
+
+Bisect can also tilt the cut plane instead of keeping it flat, for an
+asymmetric split.
+
+1. Select a cylinder already placed in the scene.
+2. Click **Bisect**. Choose axis **Z** and set **Offset** to `0`, same as the
+   straight-cut example above (offsets are millimetres).
+3. Set **Angle** to `30` (degrees) and leave **Rotate-axis** at its own
+   default (**X**). Leave **Rotate-offset** blank.
+4. Click **Bisect** inside the popover.
+5. Instead of a flat cut straight across, the cut plane tilts 30° around the
+   X axis — the two resulting halves are asymmetric, not mirror images of each
+   other, and the same click-once/click-again/breadcrumb behaviour described
+   above still applies to each one.
+
 ## The popovers' fields
 
 ### Enlarge
@@ -80,6 +96,19 @@ and all three buttons light up.
   minimum face. There is **no default value** — you must type one before the
   popover's own Bisect button turns on, since a pre-filled value here could
   easily be mistaken for a safe default when it isn't.
+- **Angle (degrees)** — tilts the cut plane away from flat. Defaults to `0`,
+  meaning no tilt — leaving it at `0` produces exactly the straight cut
+  described above. A non-zero value tilts the plane, per the worked example
+  above.
+- **Rotate-axis** — which world axis the cut plane physically tilts about.
+  Only offers the two axes other than the one you're cutting along (a plane
+  can't tilt about the same axis it's already perpendicular to), and defaults
+  to a sensible choice for whichever cut axis is selected — leaving it alone
+  reproduces the common case.
+- **Rotate-offset (mm)** — positions the tilt hinge along the one remaining
+  axis (neither the cut axis nor the rotate axis). Like Offset, there is **no
+  pre-filled value** — but unlike Offset, leaving it blank is a valid, expected
+  choice: the hinge defaults to that axis's own centre, not to `0`.
 - **Cancel** closes any of the three popovers without changing anything.
 
 ## What happens to the shape afterward
@@ -102,8 +131,6 @@ full click-once/click-again mechanism.
 
 ## Not yet supported
 
-- **Angled cuts.** Bisect only cuts straight across one axis — there's no
-  control for a tilted cut plane.
 - **A live size preview while dragging.** All three fields are typed values,
   committed on click — there's no drag-to-resize handle in the viewport for
   these operations (unlike moving or rotating, which do have a gizmo).

@@ -638,3 +638,15 @@ Built with Claude Code, reviewed by me.
 **Evidence:** "the popover printed that line" → the exact string removed in this diff, shipped by `ui-026` (git log 3f5c87b, 2026-09-11); "drill into a Pi's Ethernet jack and snap to it" → driven live this session against a real `raspberrypi.bplus` model 5 at laptop 1440x900 and phone 390x844, popover read "Aligning Raspberry Pi 1 › ethernet to Cube 1"; "checked to a hundredth of a mm" → independent kernel probe this session puts the `ethernet` part at (+34.50, -17.30) mm from the board's bbox centre, and `cube - board_after` in the running app came out (34.50, -17.30) at both viewports
 **Disclosure:** Built with Claude Code, reviewed by me.
 **To Add:** repo URL once public; the phone-width screenshot of the popover reading "Aligning Raspberry Pi 1 › ethernet to Cube 1" carries this one
+
+## 2026-09-18T19:14:00Z — Angled Bisect finally has controls, and one popover had to move
+
+**Post:** WarpCad's Bisect can cut along a tilted plane now. The kernel supported it since yesterday with no way to reach it. A 30 degree tilt on a 40 mm cube gives halves 31.5 mm tall, not 20. A phone-width check caught the bigger popover hiding under a sheet.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL
+**Evidence:** "kernel supported it since yesterday with no way to reach it" → `core-021`'s Completion Log row (2026-09-17 13:56) and its own retirement note (angled form, "no control anywhere that can reach it"); "31.5 mm tall, not 20" → measured live this session (drilled halves 31.547 and 41.547 mm on a 50 mm cylinder, Z extent of a 40 mm cube half in the e2e), equal to 20 + 20*tan(30 deg) and to a direct kernel `bisect()` call; "hiding under a sheet" → the phone e2e projects timing out with "`p.inspector__op` intercepts pointer events" on the Commit button before the z-index change
+**Disclosure:** Built with Claude Code, reviewed by me.
+**To Add:** repo URL once public; a short clip of the tilted halves being drilled into at phone width
+
