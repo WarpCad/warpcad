@@ -34,6 +34,33 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### core-024 — a placed composite is now meshed part-by-part; look at the two interpenetrating recipes on real hardware (2026-09-18 00:52)
+
+`src/render/mesh.js` draws a `Group` body one mesh per visible part instead of one
+combined solid, and warned in its own module doc that two shipped composites
+interpenetrate — `hardware.bolt`'s `tap` overlaps `head` and `thread`, and
+`kit.anchor`'s `hole` shares a **coplanar face** with its `post` — asking for a look
+"when those rows land". Before this task no *placed* composite ever reached that path,
+because the drop translate flattened it; now every one does.
+
+**Already measured, so this is not an open question so much as a second opinion on a
+different GPU.** A/B screenshots at a hard zoom and from the Front view, with the change
+stashed and unstashed (the toggle itself verified live, so it is a real comparison):
+`hardware.bolt` is **byte-identical** both ways, and `kit.anchor` differs by **52 pixels
+out of 1 296 000** (max channel delta 55) in the 3/4 view and 19 px (max delta 9) from
+the front — present, and far below visible. That was headless Chromium on this machine.
+Depth-buffer precision and coplanar-face tie-breaking are exactly the things that differ
+between GPUs and drivers, which is the one reason this is worth a human's eye rather
+than closed on the numbers. `mesh.js`'s own documented fix, if it reads badly, is to
+fall back to the combined mesh for that body (the `holes` branch is the pattern),
+trading its pick depth for a clean surface — not to re-union everything.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | Place an **Anchor** (Kit Parts) on a real phone/tablet, zoom in hard, and orbit slowly around the join between its `post` and its `hole` — looking for a flickering or shimmering seam where the two share a face, which is what a z-fight looks like in motion and what a still screenshot cannot show | Open | |
+| 2 | Same, for a **Bolt**, at the base of the head where `head` and `tap` share the `z = 0` plane — the one coincident surface in that recipe, normally face-down on the grid and so usually hidden | Open | |
+| 3 | Confirm a placed composite still reads as one solid object rather than visibly separate pieces, at ordinary working zoom on a real device — the question the pixel diff answers only for one GPU | Open | |
+
 ### ui-031 — the Inspector's collapsed tab overlaps the bottom of the open Library sheet at phone width (2026-09-18 00:05)
 
 One layout observation the Step 6 drive surfaced and **measured**, which no acceptance

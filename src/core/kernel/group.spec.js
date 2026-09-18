@@ -15,6 +15,7 @@ import {
   enlarge,
   fit,
   isGroup,
+  mapGeometry,
   pick,
   sizeOf,
   snap,
@@ -23,7 +24,7 @@ import {
 } from './group.js'
 import v1Reference from './__fixtures__/modify.v1-reference.json'
 
-const { measurements, primitives } = modeling
+const { measurements, primitives, transforms } = modeling
 
 /** @typedef {import('@jscad/modeling').geometries.geom3.Geom3} Geom3 */
 /** @typedef {import('./group.js').Group} Group */
@@ -228,6 +229,38 @@ describe('snap / align / translate', () => {
     const moved = translate(group, [0, 0, 5])
     expect(boundsOf(moved.parts.a)[0][2]).toBeCloseTo(0, 9)
     expect(boundsOf(moved.parts.hidden)[0][2]).toBeCloseTo(3, 9)
+  })
+})
+
+describe('mapGeometry (TODO/core-024)', () => {
+  const lift = (/** @type {any} */ geometry) => transforms.translate([0, 0, 5], geometry)
+
+  it('returns a solid for a solid and a group for a group', () => {
+    expect(isGroup(mapGeometry(big(), lift))).toBe(false)
+    expect(boundsOf(/** @type {any} */ (mapGeometry(big(), lift)))[0][2]).toBeCloseTo(0, 9)
+
+    const group = add(add(createGroup('g'), big(), 'a'), small(), 'hidden', { hidden: true })
+    const mapped = /** @type {any} */ (mapGeometry(group, lift))
+    expect(isGroup(mapped)).toBe(true)
+    // Names, hidden parts and the group's own label all survive — this is what
+    // "a bolt you moved is still a bolt" means in practice.
+    expect(mapped.name).toBe('g')
+    expect(mapped.names).toEqual(['a'])
+    expect(Object.keys(mapped.parts)).toEqual(['a', 'hidden'])
+    expect(boundsOf(mapped.parts.hidden)[0][2]).toBeCloseTo(3, 9)
+  })
+
+  it('maps holes as well as parts, so a bore travels with its shell', () => {
+    const withHole = addHole(add(createGroup(), big(), 'a'), small())
+    const mapped = /** @type {any} */ (mapGeometry(withHole, lift))
+    expect(mapped.holes).toHaveLength(1)
+    expect(boundsOf(mapped.holes[0])[0][2]).toBeCloseTo(3, 9)
+  })
+
+  it('does not mutate what it was given', () => {
+    const group = add(createGroup(), big(), 'a')
+    mapGeometry(group, lift)
+    expect(boundsOf(group.parts.a)[0][2]).toBeCloseTo(-5, 9)
   })
 })
 

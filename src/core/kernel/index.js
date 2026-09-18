@@ -20,7 +20,7 @@
  * @module core/kernel
  */
 
-import { add, createGroup, isGroup, toGeom3 } from './group.js'
+import { add, combine, createGroup, isGroup, toGeom3 } from './group.js'
 import { boltSpecs } from './tables/bolt-specs.js'
 import { nutSpecs } from './tables/nut-specs.js'
 import { washerSpecs } from './tables/washer-specs.js'
@@ -72,6 +72,15 @@ const DEFAULT_TABLES = Object.freeze({
  * named parts*. Which side it is decides what that measurement then does — the
  * moving group still travels as a whole, the reference never moves at all — but
  * that asymmetry belongs to the op, not to the address.
+ *
+ * A `boolean.*` op reads it the same way, one verb along: *cut/join/keep using only
+ * these named parts* (TODO/core-024). One vocabulary for every op that accepts the
+ * address, so `pieces` never has to be re-learned per op — which is also why the
+ * comma-separated list is kept rather than a single name. The corpus this project
+ * ports from addresses several parts at once constantly: `combine('head,thread')`
+ * is its most common sub-part call of all, and `pi.combine('ethernet,usb1,usb2')`
+ * cutting three port clearances from a case in one boolean is the shape of the real
+ * work.
  *
  * V1 spelled the reference side `hinge.parts.body`, and the dot-path string
  * `'hinge.body'` was the obvious transcription of it. It was rejected: every id
@@ -133,15 +142,31 @@ export function evaluate(records, options = {}) {
     ].map((ref) => normalizeRef(ref, record.op))
     assertOperandCount(record.op, inputRefs.length, ops)
 
-    // Almost every op is handed flat `Geom3`, and must be: a boolean or a transform
-    // has no use for a composite's part breakdown and would have to collapse it
-    // anyway. The two `group.*` ops (TODO/core-013) are the exception — snapping a
-    // bolt *by its head* needs the head, and the answer has to keep the thread and
-    // tap so the next op can still name them — so an entry may declare
-    // `rawOperands` and receive {@link ResolvedOperand}s instead. The array is typed
-    // loosely here because its element type is the entry's choice, not the fold's;
-    // each raw op narrows it, the same way `profile.extrudeLinear` narrows a geom2.
+    // Two independent questions are asked of every operand here, and keeping them
+    // apart is what makes this readable (TODO/core-024):
+    //
+    //  1. **Does `build` see the value un-combined?** (`rawOperands`) Most ops want
+    //     a flat `Geom3` and must have one. The `group.*` pair needs the group
+    //     itself — snapping a bolt *by its head* needs the head, and the answer has
+    //     to keep the thread and tap so the next record can still name them — and
+    //     the two `transform.*` ops need it so that a moved composite stays a
+    //     composite.
+    //  2. **May the record name a subset of the operand's parts?**
+    //     (`subPartOperands`) The `group.*` pair and the three booleans may; a
+    //     boolean discards geometry anyway, so naming a subset costs nothing that
+    //     was not already being discarded. A transform may *not*: it edits one body
+    //     in place, so honouring `pieces` would silently delete the parts it did not
+    //     name.
+    //
+    // Whatever the answers, a `pieces` address is never *ignored*. Dropping it would
+    // subtract the whole bolt while the record plainly says `tap` — wrong geometry
+    // with no error, the exact failure class this project has already shipped twice.
+    //
+    // The array is typed loosely because its element type is the entry's choice, not
+    // the fold's; each raw op narrows it, the same way `profile.extrudeLinear`
+    // narrows a geom2.
     const wantsRaw = entry.rawOperands === true
+    const acceptsPieces = entry.subPartOperands === true
     /** @type {any[]} */
     const inputs = inputRefs.map((ref) => {
       const resolved = byId.get(ref.id)
@@ -151,27 +176,39 @@ export function evaluate(records, options = {}) {
             `(known ids: ${[...byId.keys()].join(',') || 'none'})`
         )
       }
-      if (!wantsRaw) {
-        if (ref.pieces !== undefined) {
-          // Dropping the piece name silently would subtract the whole bolt while the
-          // record plainly says `tap` — wrong geometry with no error, which is the
-          // exact failure class this project has already shipped twice.
+      if (ref.pieces !== undefined) {
+        if (!acceptsPieces) {
           throw new Error(
             `${record.op}: operand "${ref.id}" names pieces ("${ref.pieces}"), but ` +
-              `${record.op} consumes whole solids — only group.snap/group.align can ` +
-              `address a sub-part`
+              `${record.op} consumes its operand whole — only group.snap/group.align ` +
+              `and the boolean.* ops can address a sub-part`
           )
         }
-        return toGeom3(resolved)
+        if (!isGroup(resolved)) {
+          throw new Error(
+            `${record.op}: operand "${ref.id}" names pieces ("${ref.pieces}") but is a ` +
+              `single solid, not a group — only a composite item (a hardware.* or kit.* ` +
+              `line) has named parts to address`
+          )
+        }
+        if (!wantsRaw) {
+          // A named subset, flattened the same way the whole thing would have been —
+          // `combine` is what `bolt.combine('tap')` meant in V1, and it re-validates
+          // the names itself. Its throw is re-raised with the op and the operand in
+          // front of it, so a bad `pieces` says which document line is wrong rather
+          // than only which part is missing.
+          try {
+            return combine(resolved, ref.pieces)
+          } catch (error) {
+            throw new Error(
+              `${record.op}: operand "${ref.id}" — ` +
+                `${error instanceof Error ? error.message : String(error)}`
+            )
+          }
+        }
       }
-      if (ref.pieces !== undefined && !isGroup(resolved)) {
-        throw new Error(
-          `${record.op}: operand "${ref.id}" names pieces ("${ref.pieces}") but is a ` +
-            `single solid, not a group — only a composite item (a hardware.* or kit.* ` +
-            `line) has named parts to address`
-        )
-      }
-      return { value: resolved, pieces: ref.pieces }
+      if (wantsRaw) return { value: resolved, pieces: ref.pieces }
+      return toGeom3(resolved)
     })
 
     /** @type {Geom3 | Group} */

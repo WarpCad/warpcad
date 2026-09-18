@@ -47,6 +47,7 @@ import {
   enlarge,
   fit,
   isGroup,
+  mapGeometry,
   pick,
   snap,
 } from './group.js'
@@ -97,8 +98,10 @@ import { touchScreen2 } from './recipes/raspberrypi.touchScreen2.js'
 /**
  * How a record names an operand: a bare id — every op's shape, and the only shape
  * before TODO/core-013 — or `{ id, pieces }`, naming a subset of that record's parts.
- * Only `group.snap`/`group.align` accept the second form; every other op rejects it
- * rather than quietly measuring the whole thing. See `index.js`'s `normalizeRef`.
+ * The ops that accept the second form are the ones carrying `subPartOperands`:
+ * `group.snap`/`group.align` (TODO/core-013) and the three `boolean.*` ops
+ * (TODO/core-024). Every other op rejects it rather than quietly consuming the whole
+ * thing. See `index.js`'s `normalizeRef`.
  *
  * @typedef {string | { id: string, pieces?: string }} OperandRef
  */
@@ -205,8 +208,18 @@ function modelChoice(values, labels) {
  *   to a solid before `build` sees it, which is right for a boolean or a transform
  *   and wrong for the `group.*` pair — snapping a bolt by its head needs the head,
  *   and the result has to keep the thread and tap so the next record can name them.
- *   Setting this asks the fold for {@link ResolvedOperand}s instead. Two entries use
- *   it; anything else consuming a composite still gets the combined solid.
+ *   Setting this asks the fold for {@link ResolvedOperand}s instead. The `group.*`
+ *   pair and the two `transform.*` ops use it; anything else consuming a composite
+ *   still gets the combined solid.
+ * @property {boolean} [subPartOperands] May an operand be addressed as
+ *   `{ id, pieces }` — a named subset of a composite's parts (TODO/core-024)?
+ *   Orthogonal to `rawOperands`, which asks a different question (does `build` see
+ *   the value un-combined?): `group.snap`/`group.align` set both, the three
+ *   `boolean.*` ops set only this one and still receive a flat solid, and
+ *   `transform.*` sets only `rawOperands` because it must keep a group whole.
+ *   Without this flag the fold refuses a `pieces` address rather than dropping it,
+ *   since dropping it would consume the whole bolt while the record plainly says
+ *   `tap`.
  * @property {Recipe} [recipe] Composite ops only.
  * @property {OpUi} [ui] Present on ops the UI offers as a catalogue row.
  */
@@ -228,15 +241,58 @@ function native(operandCount, build, ui) {
 }
 
 /**
- * A native entry that wants its operands un-combined. See `rawOperands` on
- * {@link RegistryEntry} for why two ops need this and nothing else should.
+ * A native entry that wants its operands un-combined **and** may be addressed by
+ * sub-part. See `rawOperands` and `subPartOperands` on {@link RegistryEntry}.
  *
  * @param {0 | 1 | '2+'} operandCount
  * @param {(args: BuildArgs) => KernelGeometry} build
  * @returns {RegistryEntry}
  */
 function rawNative(operandCount, build) {
+  return Object.freeze({
+    kind: 'native',
+    operandCount,
+    rawOperands: true,
+    subPartOperands: true,
+    build,
+  })
+}
+
+/**
+ * A native entry that receives its operand **un-combined but whole** — a group in,
+ * a group out — and refuses a sub-part address (TODO/core-024).
+ *
+ * The two `transform.*` ops, and deliberately nothing else. A transform edits one
+ * body *in place*: honouring a `pieces` address would have to throw away the parts
+ * it did not name, so a record saying "move the bolt's head" would silently delete
+ * the thread. Refusing is the same reasoning the fold has always applied, now
+ * stated as a property of the op rather than as a property of being flattened.
+ *
+ * @param {0 | 1 | '2+'} operandCount
+ * @param {(args: BuildArgs) => KernelGeometry} build
+ * @returns {RegistryEntry}
+ */
+function wholeGroupNative(operandCount, build) {
   return Object.freeze({ kind: 'native', operandCount, rawOperands: true, build })
+}
+
+/**
+ * A native entry whose operands arrive **flattened, but may be flattened from a
+ * named subset of a composite's parts** (TODO/core-024).
+ *
+ * The three booleans. A boolean consumes its operands into one new solid, so
+ * naming a subset costs nothing that was not already being discarded — which is
+ * exactly what makes it safe here and unsafe on a transform. The real `.jscad`
+ * corpus behind this decision does it constantly and in both directions:
+ * `.subtract([bolt.combine('tap')])`, `.subtract([motor.combine('pto,screw1,
+ * screw2')])`, `.union(pi.combine('ethernet,usb1,usb2'))`.
+ *
+ * @param {0 | 1 | '2+'} operandCount
+ * @param {(args: BuildArgs) => KernelGeometry} build
+ * @returns {RegistryEntry}
+ */
+function subPartNative(operandCount, build) {
+  return Object.freeze({ kind: 'native', operandCount, subPartOperands: true, build })
 }
 
 /**
@@ -281,6 +337,20 @@ function requireTwoOperands(inputs, op) {
     )
   }
   return /** @type {[ResolvedOperand, ResolvedOperand]} */ (inputs)
+}
+
+/**
+ * The single operand of a one-operand `rawOperands` op, typed (TODO/core-024).
+ *
+ * The count itself is already guaranteed by `assertOperandCount` in the fold; this
+ * is the narrowing {@link requireTwoOperands} does for the `group.*` pair, for the
+ * two `transform.*` ops that consume exactly one.
+ *
+ * @param {any[]} inputs
+ * @returns {ResolvedOperand}
+ */
+function soleOperand(inputs) {
+  return /** @type {ResolvedOperand} */ (inputs[0])
 }
 
 /**
@@ -618,8 +688,26 @@ export const registry = Object.freeze({
     )
   }),
 
-  'transform.translate': native(1, ({ params, inputs }) =>
-    transforms.translate(/** @type {Vec3Mm} */ (params.vector), inputs[0])
+  // ## A transform preserves what it is handed (TODO/core-024)
+  //
+  // Both `transform.*` ops map their geometry function over a group's parts and
+  // holes rather than collapsing it first, so **a bolt you moved is still a
+  // bolt**: its `head`, `thread` and `tap` are still addressable afterwards.
+  //
+  // This is not a convenience. Every composite a user places commits a trailing
+  // `transform.translate` to put it where they dropped it (`src/core/library.js`'s
+  // `recordsForDrop`), and the gizmo commits another every time they drag it — so
+  // before this, no composite a user could actually *see* had any parts left to
+  // name, and `boolean.subtract(shell, { id: bolt, pieces: 'tap' })` had nothing to
+  // resolve against. It also matches V1, whose `Group.translate` mapped over parts,
+  // which is why `bolt.combine('tap')` works after a `.snap()` in the real corpus.
+  //
+  // They are `rawOperands` (to see the group at all) but **not** `subPartOperands`
+  // — see `wholeGroupNative`.
+  'transform.translate': wholeGroupNative(1, ({ params, inputs }) =>
+    mapGeometry(soleOperand(inputs).value, (geometry) =>
+      transforms.translate(/** @type {Vec3Mm} */ (params.vector), geometry)
+    )
   ),
 
   // Degrees in `params`, radians here — this module is the single place that
@@ -631,7 +719,7 @@ export const registry = Object.freeze({
   // body sitting 300 mm out would fling it across the scene instead of turning
   // it on the spot. Translating to the centre, rotating, and translating back is
   // the transform a user means when they drag a rotate ring.
-  'transform.rotate': native(1, ({ params, inputs }) => {
+  'transform.rotate': wholeGroupNative(1, ({ params, inputs }) => {
     const op = 'transform.rotate'
     const angles = params.angles ?? [0, 0, 0]
     if (!Array.isArray(angles) || angles.length !== 3 || !angles.every(Number.isFinite)) {
@@ -641,26 +729,38 @@ export const registry = Object.freeze({
     if (!Array.isArray(center) || center.length !== 3 || !center.every(Number.isFinite)) {
       throw new Error(`${op}: center must be three finite millimetre values`)
     }
-    const turned = transforms.rotate(
-      [degToRad(angles[0]), degToRad(angles[1]), degToRad(angles[2])],
-      transforms.translate(
-        /** @type {Vec3Mm} */ ([-center[0], -center[1], -center[2]]),
-        inputs[0]
+    // One transform, applied to every part — a turn about the *group's* centre,
+    // not each part turning about its own. See `mapGeometry`.
+    return mapGeometry(soleOperand(inputs).value, (geometry) => {
+      const turned = transforms.rotate(
+        [degToRad(angles[0]), degToRad(angles[1]), degToRad(angles[2])],
+        transforms.translate(
+          /** @type {Vec3Mm} */ ([-center[0], -center[1], -center[2]]),
+          geometry
+        )
       )
-    )
-    return transforms.translate(/** @type {Vec3Mm} */ (center), turned)
+      return transforms.translate(/** @type {Vec3Mm} */ (center), turned)
+    })
   }),
 
-  'boolean.union': native('2+', ({ inputs }) => booleans.union(inputs)),
+  // ## The three booleans, and why they may name a composite's parts
+  //
+  // All three are `subPartNative` (TODO/core-024): an operand may arrive as
+  // `{ id, pieces }`, and the fold hands `build` the union of just those named
+  // parts — still one flat solid, so nothing below changes. The decision and the
+  // corpus evidence behind it live on `subPartNative` itself; what matters here is
+  // that it is the *family* rule, not a `subtract`-only special case, because the
+  // real call sites union port clearances as readily as they subtract tap holes.
+  'boolean.union': subPartNative('2+', ({ inputs }) => booleans.union(inputs)),
 
-  'boolean.subtract': native('2+', ({ inputs }) => booleans.subtract(inputs)),
+  'boolean.subtract': subPartNative('2+', ({ inputs }) => booleans.subtract(inputs)),
 
   // The third of §6's Operation rows (TODO/ui-014). `subtract` and `intersect`
   // are both order-dependent in the same way — `inputs[0]` is the base, and the
   // fold puts `target` there before any `operands` (see `index.js`'s
   // `inputRefs`) — which is what lets the Operations toolbar map "first
   // selected" onto "base" without the document layer knowing about selection.
-  'boolean.intersect': native('2+', ({ inputs }) => booleans.intersect(inputs)),
+  'boolean.intersect': subPartNative('2+', ({ inputs }) => booleans.intersect(inputs)),
 
   // The fourth Operations-toolbar button (TODO/ui-015), placed beside the booleans
   // rather than beside `group.snap`/`group.align` below despite the shared `group.`

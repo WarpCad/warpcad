@@ -616,3 +616,14 @@ Built with Claude Code, reviewed by me.
 **Evidence:** "11 rows to 26" → `LIBRARY_SECTIONS` totals measured this session (primitive 7 + hardware 4 + kit 3 + raspberrypi 12); ui-030's own eleven-row figure → `TODO/ACCEPTANCE.md` scenario 1's 2026-09-17 entry; "built for days" → `git log -1` per recipe: `kit.board` 2026-09-09 (70da2a4), `raspberrypi.bplus` 2026-09-13 (47e2857), `raspberrypi.spacer` 2026-09-16 (3fc97b5); "one factory, not one row per revision" → `core-014a`'s decision as quoted in `TODO/ui-031`'s own Goal
 **Disclosure:** Built with Claude Code, reviewed by me.
 **To Add:** repo URL once public; the laptop drive screenshot (Kit Parts + Raspberry Pi sections with both Model dropdowns visible, a Pi 5 and a camera on the grid) carries this one
+
+## 2026-09-18T00:52:00Z — A boolean can name a composite's sub-part, and a moved part keeps its parts
+
+**Post:** A bolt you moved is still a bolt. WarpCad's transforms flattened composites into one solid, so a placed fastener had no head or thread left to name. Booleans can now cut with one named piece. Driving it found a silent bug: moving a group destroyed it.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL
+**Evidence:** "transforms used to flatten a composite" → measured this session in the running browser, A/B with the change stashed: `names` null before, `["head","thread","tap"]` after; "booleans can now cut with a named piece" → this commit's `subPartOperands` flag plus measured cuts (whole bolt 60352.953 mm³ remaining vs `head,thread` 61071.390); "moving a group destroyed the group" → stashed A/B this session, `group.assemble` then a gizmo-style `transform.translate`: `isGroup:false, names:null` before, `["Cube 1","Cube 2"]` after
+**Disclosure:** Built with Claude Code, reviewed by me.
+**To Add:** repo URL once public; a screen recording of drilling into a placed Bolt (breadcrumb reads "Bolt 1 > tap") would carry this one

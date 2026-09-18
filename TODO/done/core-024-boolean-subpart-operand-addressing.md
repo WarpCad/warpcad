@@ -6,8 +6,76 @@ priority: high
 model: opus
 milestone: M5
 depends: [core-013, ui-030]
-status: open
+status: done
 ---
+
+## What actually shipped (retirement note)
+
+**Both** halves of the question this file raised, because either alone is worthless: a
+boolean may now address a sub-part, *and* a composite keeps its parts through a
+transform so there is something left to address on a body the user actually placed.
+
+**The decision, and why.** Option 1 of the Proposed fix — resolve `{ id, pieces }` to
+the named parts' own geometry via `combine` — with the guard narrowed rather than
+removed. Option 2 (a purpose-built `boolean.subtractHidden`) was **rejected on the
+facts**: it keys on `hidden`, and the part this scenario needs, `hardware.bolt`'s `tap`,
+is **not hidden** — the recipe adds it visible, exactly as V1 did. An op gated on
+hiddenness could not have addressed the very case that motivated it. The corpus survey
+this file asked for settled the rest, across 923 source `.jscad` files (build
+artefacts excluded):
+`.subtract([bolt.combine('tap')])` and `.subtract([motor.combine('pto,screw1,screw2')])`
+sit beside `.union(pi.combine('ethernet,usb1,usb2'))`, so this is a **family** rule for
+all three booleans and both operand positions, not a subtract-only special case — and
+`pieces` **stays comma-list valued**, because multi-part addressing is not an edge case
+there: `combine('head,thread')` is the corpus's most common sub-part address at 16
+occurrences, and 82 `combine()` calls in all name a comma list.
+
+**The degenerate case the file asked to be settled explicitly**: *any named part is
+addressable, hidden or visible.* Both are covered by tests that say so by name.
+
+**The transform half**, which this file's own Measured update flagged as unresolved and
+offered two routes for. Chosen: **make the transform ops group-aware**, not
+lineage-resolution. Lineage-walking is the same arithmetic computed later and
+duplicatively, it breaks the moment a non-transform op intervenes, and it would require
+the fold to start reading `supersedes`, which `evaluate()` deliberately ignores. The
+group-aware route is also what V1 did — `Group.translate` mapped over parts, which is
+why `bolt.combine('tap')` works *after* a `.snap()` in the real corpus. Implemented as
+one exported helper, `group.js`'s `mapGeometry`, used by both `transform.translate` and
+`transform.rotate`; `src/core/library.spec.js`'s pinned "flattens the placed composite"
+expectation — written by `ui-030` specifically so "the next task to want it finds a
+failing expectation rather than a surprise" — was inverted, as intended.
+
+**Two orthogonal registry flags, not one.** `rawOperands` asks whether `build` sees the
+value un-combined; the new `subPartOperands` asks whether the *record* may name a
+subset. `group.snap`/`group.align` set both, the booleans set only the second,
+`transform.*` sets only the first — and a transform still **refuses** a `pieces` address,
+because it edits one body in place and honouring one would silently delete the parts it
+did not name.
+
+**Scenario 5 is still not hand-driveable, and is not claimed.** Both of its *kernel*
+blockers are closed and measured, but two UI blockers remain: the Operations toolbar has
+no route to emit a sub-part operand (and the selection store cannot even hold "two
+selected, one drilled in"), filed as **`TODO/ui-040`** to be scoped together with
+`ui-035`, which sits on the identical gaps; and a bolt enclosed in a shell still cannot
+be picked at all until `ui-032`. See `ACCEPTANCE.md` scenario 5's own entry.
+
+**A correction this task owes the scenario**: `combine(bolt)` and `combine(bolt, 'tap')`
+are byte-identical (3 647.047 mm³ each, measured), because `tap` is visible and contains
+`head` and `thread`. Scenario 5's Expect describes a distinction `hardware.bolt` does not
+have; the address that changes the result is `head,thread`. Recorded in `ACCEPTANCE.md`.
+
+**A latent defect fixed on the way, found only by driving**: before this change, moving
+a `group.assemble` group with the gizmo collapsed it to a bare solid, so drilling into a
+group stopped working the moment the user dragged it — scenario 6's steps 5-7, breaking
+silently with no error and no test covering it. Verified as an explicit stashed A/B.
+
+**`docs/booleans.md` was deliberately left alone.** This file anticipated a sentence
+there if "select a sub-part, then Subtract" changed meaning. It has not changed for a
+user: there is no UI route to a sub-part operand yet, so documenting one would describe
+something nobody can do. The user-visible change this task *did* make — a placed or
+moved library part keeps its named parts, so clicking it twice drills in — is documented
+in `docs/groups.md` instead, where pick depth already lives. `docs/booleans.md`'s example
+is `ui-040`'s to write, and that task's spec says so.
 
 ## Goal
 

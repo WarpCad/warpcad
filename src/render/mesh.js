@@ -251,10 +251,17 @@ export function disposeBodyObject(object) {
  *
  * Returns `false` when the shape changed (a bare body that became a group, or a
  * group whose part list differs), so the caller rebuilds rather than trying to
- * patch a mismatched object. That case does not arise from a transform, which
- * is the only thing that currently re-evaluates a body in place — but "same
- * shape" is a precondition worth checking rather than assuming, because getting
- * it wrong would render one body's geometry inside another's part slots.
+ * patch a mismatched object. "Same shape" is a precondition worth checking rather
+ * than assuming, because getting it wrong would render one body's geometry inside
+ * another's part slots.
+ *
+ * A transform used to be the interesting case here, because it collapsed a group
+ * into a bare solid and so always changed the shape. Since TODO/core-024 it no
+ * longer does — `transform.translate`/`transform.rotate` map over a group's parts
+ * and hand back a group with the same part list — so moving a composite now takes
+ * the in-place per-part path below rather than forcing a rebuild. `ui-029`'s
+ * param-edit rebuild is the case that genuinely can change shape (a cylinder
+ * bisected into a two-part group, TODO/ui-028).
  *
  * @param {Mesh | ThreeGroup} object
  * @param {Geom3 | KernelGroup} geometry

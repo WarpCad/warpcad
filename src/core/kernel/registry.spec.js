@@ -24,9 +24,19 @@ const { measurements } = modeling
 function build(op, { params = {}, inputs = [] } = {}) {
   const entry = getEntry(op)
   if (!entry.build) throw new Error(`${op} is not a native op`)
+  // A `rawOperands` entry is handed `{ value, pieces }` rather than geometry, so
+  // bare geometry passed here is wrapped for it (TODO/core-024 made the two
+  // `transform.*` ops raw, and every call below predates that). An input that is
+  // already an operand — how the `group.snap`/`group.align` cases call this — has a
+  // `value` key and is passed through untouched; neither a `Geom3` nor a `Group`
+  // has one.
+  const resolved =
+    entry.rawOperands === true
+      ? inputs.map((input) => (input && input.value !== undefined ? input : { value: input }))
+      : inputs
   // A `group.*` entry may hand back a Group (TODO/core-013); no test below calls
   // this helper on one, and the two that measure a group go through `evaluate`.
-  return /** @type {Geom3 | Geom2} */ (entry.build({ params, inputs }))
+  return /** @type {Geom3 | Geom2} */ (entry.build({ params, inputs: resolved }))
 }
 
 /** @param {Geom3 | Geom2} geometry */
@@ -49,6 +59,39 @@ describe('registry shape', () => {
     expect(registry['primitive.cuboid']).toMatchObject({ kind: 'native', operandCount: 0 })
     expect(registry['boolean.union']).toMatchObject({ kind: 'native', operandCount: '2+' })
     expect(registry['boolean.subtract']).toMatchObject({ kind: 'native', operandCount: '2+' })
+  })
+
+  it('says per entry whether an operand may be addressed by sub-part (TODO/core-024)', () => {
+    // The decision, pinned as data rather than as prose. Two orthogonal flags:
+    // `rawOperands` asks whether `build` sees the value un-combined, and
+    // `subPartOperands` asks whether the *record* may name a subset of its parts.
+    for (const op of ['boolean.union', 'boolean.subtract', 'boolean.intersect']) {
+      // A boolean consumes its operands into one new solid, so naming a subset
+      // costs nothing that was not already being discarded — but it still wants
+      // flat geometry, exactly as before.
+      expect(registry[op].subPartOperands, op).toBe(true)
+      expect(registry[op].rawOperands, op).toBeUndefined()
+    }
+    for (const op of ['group.snap', 'group.align']) {
+      expect(registry[op].subPartOperands, op).toBe(true)
+      expect(registry[op].rawOperands, op).toBe(true)
+    }
+    for (const op of ['transform.translate', 'transform.rotate']) {
+      // A transform edits one body in place: it must see a group to keep it whole,
+      // and must refuse a sub-part address, since honouring one would silently
+      // delete the parts it did not name.
+      expect(registry[op].rawOperands, op).toBe(true)
+      expect(registry[op].subPartOperands, op).toBeUndefined()
+    }
+    // And nothing else has quietly acquired either flag.
+    const addressable = Object.keys(registry).filter((op) => registry[op].subPartOperands)
+    expect(addressable.sort()).toEqual([
+      'boolean.intersect',
+      'boolean.subtract',
+      'boolean.union',
+      'group.align',
+      'group.snap',
+    ])
   })
 
   it('carries all seven base creation primitives, each creating geometry from nothing', () => {

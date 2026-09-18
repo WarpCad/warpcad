@@ -478,6 +478,43 @@ export function pick(group, pieces) {
 }
 
 /**
+ * Apply one geometry function to a solid, or to **every part and hole** of a group,
+ * returning the same kind of value it was given.
+ *
+ * This is what "a transform preserves what it is handed" means in one place
+ * (TODO/core-024). A composite that has been moved or turned is still a composite:
+ * its head is still addressable as `head`, exactly as V1's `Group.map`/`Group.
+ * translate` kept a positioned bolt's parts addressable — which is the whole reason
+ * `bolt.combine('tap')` works in the real `.jscad` corpus *after* the bolt has been
+ * snapped into place, not only before.
+ *
+ * The same function is applied to every part rather than each part recomputing one
+ * of its own. That is load-bearing for anything measured from the group as a whole
+ * — a rotation about the *group's* centre is not a rotation about each part's
+ * centre — and it is the same discipline {@link enlarge}'s `scaleAboutCentroid`
+ * already follows for the same reason.
+ *
+ * @template {Geom3 | Group} T
+ * @param {T} value
+ * @param {(geometry: Geom3) => Geom3} fn Applied to a solid, or per part and hole.
+ * @returns {T} A group in, a group out; a solid in, a solid out.
+ */
+export function mapGeometry(value, fn) {
+  if (!isGroup(value)) return /** @type {T} */ (fn(/** @type {Geom3} */ (value)))
+  /** @type {Record<string, Geom3>} */
+  const parts = {}
+  for (const [name, geometry] of Object.entries(value.parts)) parts[name] = fn(geometry)
+  return /** @type {T} */ (
+    Object.freeze({
+      name: value.name,
+      names: value.names,
+      parts: Object.freeze(parts),
+      holes: Object.freeze(value.holes.map(fn)),
+    })
+  )
+}
+
+/**
  * Translate every part and hole of a group, returning a new group.
  *
  * @param {Group} group

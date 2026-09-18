@@ -27,8 +27,8 @@ import {
 } from './library.js'
 import { BPLUS_MODELS } from './kernel/recipes/raspberrypi.bplus.js'
 import { CAMERA_MODULE_MODELS } from './kernel/recipes/raspberrypi.cameraModule.js'
-import { boundsOf, calcCenterWith, calcSnap } from './kernel/group.js'
-import { evaluateOp } from './kernel/index.js'
+import { boundsOf, calcCenterWith, calcSnap, volumeOf } from './kernel/group.js'
+import { evaluate, evaluateOp } from './kernel/index.js'
 import { createDocument } from './document.js'
 
 const { measurements } = modeling
@@ -411,24 +411,69 @@ describe('recordsForDrop — placing a composite, which has no position param (T
     expect(movedMax[0] - movedMin[0]).toBeCloseTo(boltMax[0] - boltMin[0], 6)
   })
 
-  it('flattens the placed composite into one solid — stated, because it is a real consequence', () => {
-    // Not a defect of this task and not a choice it makes: `src/core/kernel/
-    // index.js`'s fold hands every native op a flat `Geom3` ("a boolean or a
-    // transform has no use for a composite's part breakdown"), so the trailing
-    // translate collapses the group exactly as the gizmo's own `transform.
-    // translate` already collapses any group a user drags. Nothing a user *sees*
-    // changes — the render path draws `combine()` of the visible parts, which is
-    // this same solid — but a placed part has no addressable sub-parts, which is
-    // what `TODO/ui-035` (sub-part snap/align operands) and `ACCEPTANCE.md`
-    // scenario 5 (the bolt's `tap`) will both need. Pinned here so the next task
-    // to want it finds a failing expectation rather than a surprise.
+  it('still does not absorb an earlier body when a boolean addresses its sub-part', () => {
+    // `TODO/done/core-020`'s regression surface, re-entered deliberately
+    // (CLAUDE.md's standing-regression-surface rule): `TODO/core-024` puts new code
+    // in the exact fold that finding was filed against — the incremental
+    // `document.append` path — and adds a *second* way for a composite's parts to
+    // reach an op. The symptom to rule out is the same one: the bolt's group
+    // quietly containing "Cube 1", so cutting with it erases the cube and returns
+    // an empty solid.
+    const document = createDocument()
+    document.append(recordForDrop('primitive.cuboid', { x: 0, y: 0 }, document), { origin: 'local' })
+    for (const record of recordsForDrop('hardware.bolt', { x: 0, y: 0 }, document)) {
+      document.append(record, { origin: 'local' })
+    }
+
+    const [cube, bolt] = document.bodies()
+    const placed = /** @type {any} */ (bolt.geometry)
+    // Only the bolt's own parts, after the drop translate as well as before it.
+    expect(placed.names).toEqual(['head', 'thread', 'tap'])
+    expect(Object.keys(placed.parts)).not.toContain('Cube 1')
+
+    // And the severe consequence that finding turned on, now through a *sub-part*
+    // operand rather than a whole one: the result is the cube minus a bolt-sized
+    // hole, never the EMPTY solid the bug produced.
+    const { group } = evaluate([
+      { id: 'shell', op: 'primitive.cuboid', params: { size: [40, 40, 40], center: [0, 0, 20] } },
+      { id: 'bolt', op: 'hardware.bolt', params: { spec: 'm10 hex', length: 20, fit: 'loose' } },
+      { id: 'drop', op: 'transform.translate', params: { vector: [0, 0, 0] }, target: 'bolt' },
+      {
+        id: 'cut',
+        op: 'boolean.subtract',
+        target: 'shell',
+        operands: [{ id: 'drop', pieces: 'tap' }],
+        name: 'r',
+      },
+    ])
+    const shellVolume = 40 * 40 * 40
+    const cutVolume = volumeOf(group.parts.r)
+    expect(cutVolume).toBeGreaterThan(0)
+    expect(cutVolume).toBeLessThan(shellVolume)
+    expect(boundsOf(group.parts.r)).toEqual([
+      [-20, -20, 0],
+      [20, 20, 40],
+    ])
+    // The cube placed first is untouched by any of it.
+    const [cubeMin, cubeMax] = boundsOf(cube.geometry)
+    expect(cubeMax[0] - cubeMin[0]).toBeCloseTo(40, 6)
+  })
+
+  it('keeps the placed composite’s named parts through its own drop translate', () => {
+    // This expectation used to read the other way, and said so: the fold flattened
+    // every operand, so the trailing translate a composite drop commits collapsed
+    // the group and a *placed* part had no addressable sub-parts. `TODO/core-024`
+    // is the task that came to want them — `ACCEPTANCE.md` scenario 5 addresses a
+    // bolt's `tap` on the body the user actually dropped — and the decision it
+    // made is that a transform preserves what it is handed. A bolt you moved is
+    // still a bolt.
     const document = createDocument()
     for (const record of recordsForDrop('hardware.bolt', { x: 0, y: 0 }, document)) {
       document.append(record, { origin: 'local' })
     }
     const placed = /** @type {any} */ (document.bodies()[0].geometry)
-    expect(placed.names).toBeUndefined()
-    expect(placed.polygons).toBeTypeOf('object')
+    expect(placed.names).toEqual(['head', 'thread', 'tap'])
+    expect(Object.keys(placed.parts)).toContain('tap-thread')
   })
 
   it('numbers hardware instances per type, like the primitive rows', () => {

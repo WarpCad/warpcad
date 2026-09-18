@@ -806,6 +806,31 @@ substitution `ui-015`/`ui-024`/`ui-027`/`ui-028`/`ui-029`/`ui-030` each used), l
   since then to reach that corner.
 - Console clean.
 
+**Re-checked**: 2026-09-18 00:41 — PASS (`core-024`). Re-driven **in full**, not glanced
+at, because this task changes `evaluate()`'s shared operand resolution — the fold every
+op goes through, the same standing-regression-surface reasoning `core-013` and `core-020`
+each used — **and** changes what `transform.translate`/`transform.rotate` return, which
+is the record every placed composite and every gizmo drag commits. Laptop 1440x900 in
+Chromium, via a Playwright-driven Node session against the real dev server (no
+`chromium-cli` in this environment, the same substitution
+`ui-015`/`ui-024`/`ui-027`/`ui-028`/`ui-029`/`ui-030`/`ui-031` each used), with
+deliberately wandering, overshooting drag paths that double back past the drop point.
+
+- **The scenario itself**: a Cube then a Cylinder dragged in. **Both stayed visible**,
+  and the cube's millimetre centre was **byte-identical before and after the second
+  drop** (`-25.82,-66.07,20.00` both times) — the specific regression signature,
+  confirmed absent rather than merely not obvious. Each drop selected only the new item.
+- Clicking bare canvas cleared the selection (`data-selected-count` → `0`) at **three**
+  genuinely bare points, each confirmed to be `CANVAS.viewport__canvas` underneath
+  (fx 0.50/fy 0.88, 0.88/0.80, 0.20/0.20); clicking the cube then selected `Cube 1`
+  alone and clicking the cylinder moved the highlight to `Cylinder 1` alone — never both
+  at once.
+- **`ui-031`'s false alarm reproduced exactly, and confirmed still a false alarm**: the
+  first deselect probe at fx 0.04/fy 0.06 again hit `BUTTON.ops__btn` and correctly did
+  not deselect. Recorded a second time because two consecutive drives have now tripped
+  over it; it is the toolbar, not a defect.
+- Console and page errors: **none**.
+
 ### 2. Hardware property edit
 
 **Steps**:
@@ -1656,6 +1681,70 @@ actual drag-drop UI:
   millimetre centre. The finding's severe consequence was re-checked directly as above —
   `subtract(shell, bolt)` returns a real plate, not EMPTY.
 
+**Re-checked**: 2026-09-18 00:41 — **STILL NOT DRIVEABLE end to end, and deliberately not
+claimed — but both of its *kernel* blockers are now closed** (`core-024`). This is the
+task filed to answer this scenario's kernel question, so the point of this entry is to
+say precisely what changed and precisely what is left. Driven, not read: laptop
+1440x900/Chromium against the real dev server, with kernel measurements taken in the
+running browser against the same modules the app imports.
+
+- **Blocker 1 — no Bolt Library row — GONE** (`ui-030`, unchanged here).
+- **Blocker 2 — a boolean cannot address a sub-part — GONE.** `boolean.union`,
+  `boolean.subtract` and `boolean.intersect` now accept `{ id, pieces }` and resolve it
+  through `combine`, on either side of the op. Measured live, cutting a 40 mm shell with
+  a *placed* bolt: whole bolt → 60 352.953 mm³ remaining, `pieces: 'tap'` → **60 352.953,
+  identical**, `pieces: 'head,thread'` → 61 071.390, `pieces: 'head'` → 62 632.113. So
+  the address genuinely selects geometry rather than being ignored. A bad part name now
+  throws naming the op, the operand *and* the part: *"boolean.subtract: operand "drop" —
+  combine: no part named "tip" in group "hardware.bolt" (parts: head,thread,tap-head,
+  tap-thread,tap-headClearSpace,tap)"*.
+- **Blocker 3 — a placed composite has no named sub-parts left to address — GONE.** A
+  transform now preserves what it is handed. Measured in the browser: the bolt as built
+  reports `names: ["head","thread","tap"]`, and after its drop `transform.translate`
+  reports **`["head","thread","tap"]`** where `ui-030`'s drive measured `undefined`;
+  after a `transform.rotate`, likewise. Confirmed through the UI too — clicking a
+  *placed* bolt a second time now drills in, with the Inspector breadcrumb reading
+  **`Bolt 1▸tap`**, where before this task it did nothing at all.
+- **Blocker 4 — NEW, and purely UI: there is no route by which the toolbar can send a
+  sub-part operand.** `OperationsToolbar.vue`'s `run()` builds operands from
+  `document.currentIdOf(id)` alone, and `selection.js`'s `drillInto` is a documented
+  no-op unless exactly **one** body is selected — so "shell selected, plus the bolt
+  drilled to `tap`" is not an expressible selection state, whatever the kernel now
+  accepts. Filed as `TODO/ui-040`, scoped to be done together with `ui-035`, which sits
+  on the identical two gaps for Snap/Align.
+- **Blocker 5 — still UI, unchanged from `ui-030`'s drive**: a bolt standing inside a
+  shell is completely enclosed and cannot be picked by clicking at all, so step 3 has no
+  hand-driveable route once the two genuinely overlap, until `ui-032` gives a scene list
+  or timeline to select from.
+
+**And a correction to this scenario's own Expect, measured rather than argued.** It asks
+for "a hole sized to match the bolt's hidden tap-clearance diameter, not the bolt's
+visible head/thread mesh diameter". For `hardware.bolt` **that distinction does not
+exist**: `tap` is a *visible* part (the recipe's own module doc says so, following V1,
+which added it with `hidden = false`) and it geometrically contains both `head` and
+`thread` — so `combine(bolt)` and `combine(bolt, 'tap')` are byte-identical, measured at
+**3 647.047 mm³ each**. A whole-bolt subtract has therefore *always* cut the clearance
+envelope, and the hole `ui-030` recorded as "the whole bolt's silhouette, not the
+`tap`-only clearance" was in fact both at once. The address that changes the result is
+`head,thread` — the bolt's metal, 2 928.610 mm³ — which cuts a **smaller** hole, not a
+larger one. Whoever drives this scenario next should either rewrite Expect against a
+composite where the two genuinely differ (a Pi board's port clearances are the real
+case) or state that for a bolt the sub-part address buys explicitness rather than
+different geometry. Recorded here so the next drive does not spend its time hunting a
+difference this recipe does not have.
+
+**Closed-finding re-run, `TODO/done/core-020-composite-absorbs-earlier-bodies.md`** —
+mandatory here, because this task puts new code in the exact fold that finding was filed
+against and adds a second way for a composite's parts to reach an op. Run in core-020's
+own shape through the real document fold in the browser: a `Cube 1` placed first, then a
+Bolt through `recordsForDrop`. The bolt's group holds **only its own parts** —
+`["head","thread","tap"]`, with `Cube 1` absent from `Object.keys(parts)` — and
+bolt-sized bounds (`-9.5,-8.227,0 .. 9.5,8.227,27.5`), with the cube untouched at
+`-140,-20,0 .. -100,20,40`. The finding's severe consequence was re-checked **through a
+sub-part operand specifically**, which is the new code: `subtract(shell, { id, pieces:
+'tap' })` returns a real plate — bounds `-20,-20,0 .. 20,20,6`, volume **8 193.142 mm³**
+— never the EMPTY solid the bug produced. Console clean.
+
 ### 6. Group vs. sub-part selection
 
 **Steps**:
@@ -1793,6 +1882,41 @@ Laptop 1440x900 in Chromium, against the real dev server.
   no breadcrumb. The pick-depth contract this scenario is about works, one level up, on
   **group members**; reaching a recipe's internal parts is `TODO/core-024`'s decision,
   already filed, and unchanged by this task.
+- Console clean.
+
+**Re-checked**: 2026-09-18 00:41 — **PASS, and the entry directly above is now out of
+date in the best way** (`core-024`). Driven rather than assumed, because that task
+changes what a `transform.*` returns and this scenario's entire subject — pick depth —
+depends on a body still being a group.
+
+- **The limitation the `ui-031` entry above records is gone.** A *placed* composite is no
+  longer flattened by its own drop translate, and a second click on a lone placed Bolt
+  now drills in: the Inspector breadcrumb reads **`Bolt 1▸tap`**, where the drive one
+  entry above measured "kept `bplus-1` selected with no breadcrumb". Reaching a recipe's
+  internal parts was `core-024`'s decision to make, and it made it: a composite that has
+  been moved is still a composite.
+- **A latent defect in this scenario's own subject, found by driving and now fixed.**
+  Run as an explicit A/B against the same code with the change stashed: group two cubes
+  (`group.assemble` → `names: ["Cube 1","Cube 2"]`), then move the group the way the
+  gizmo does (a `transform.translate` through `src/core/transform.js`). **Before**, the
+  moved group came back `isGroup: false, names: null` — so drilling into a group
+  *silently stopped working the moment the user dragged it*, which is steps 5-7 of this
+  scenario breaking with no error and no test catching it. **After**, the moved group
+  still reports `names: ["Cube 1","Cube 2"]`, and the body count stays 1 either way. This
+  was never filed as a finding because nothing had driven step 5 *after* a move; it is
+  recorded here so the fix is attributable.
+- **No visual regression from per-part meshing, measured rather than eyeballed.** A
+  placed composite is now a `Group` body, so `src/render/mesh.js` meshes it part by part
+  instead of as one combined solid — the seam/z-fighting tradeoff that module's own doc
+  flagged and asked to be looked at "when those rows land". Screenshotted at a hard zoom
+  and from the Front view, with the change stashed and unstashed, and diffed pixel by
+  pixel: `hardware.bolt` renders **byte-identical** both ways (the A/B toggle itself
+  verified live — `names` null before, populated after — so this is a real comparison and
+  not a cached module). `kit.anchor`, the harder case because its `hole` shares a
+  coplanar face with its `post`, differs by **52 pixels out of 1 296 000** (max channel
+  delta 55) in the 3/4 view and **19 pixels** (max delta 9) from the front — present but
+  far below anything visible. Logged to `TODO/VERIFY.md` for a look on real hardware,
+  where z-precision differs.
 - Console clean.
 
 ### 7. Touch-only viewport navigation

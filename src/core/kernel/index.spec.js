@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import modeling from '@jscad/modeling'
 
-import { combine, isGroup } from './group.js'
+import { combine, isGroup, volumeOf } from './group.js'
 import { evaluate, evaluateOp, expand, registry } from './index.js'
 
 const { measurements } = modeling
@@ -241,10 +241,13 @@ describe('operand resolution — bare ids, sub-part addresses, and who sees a ra
    */
   const probes = Object.freeze({
     ...registry,
+    // `rawOperands` and `subPartOperands` are two questions, not one
+    // (TODO/core-024): this probe answers yes to both, the way `group.snap` does.
     'probe.raw': {
       kind: 'native',
       operandCount: '2+',
       rawOperands: true,
+      subPartOperands: true,
       build: (/** @type {any} */ { inputs }) => ({ seen: inputs }),
     },
     'probe.flat': {
@@ -306,13 +309,20 @@ describe('operand resolution — bare ids, sub-part addresses, and who sees a ra
   })
 
   it('refuses a sub-part address on an op that cannot use one, rather than ignoring it', () => {
-    // Silently dropping `pieces` would subtract the whole bolt while the record says
+    // Silently dropping `pieces` would move the whole bolt while the record says
     // otherwise — wrong geometry, no error, exactly the class of bug this project
-    // has already shipped twice.
+    // has already shipped twice. `transform.*` is the family this still applies to
+    // (TODO/core-024): a transform edits one body in place, so honouring `pieces`
+    // would have to discard the parts it did not name.
     expect(() =>
       evaluate([
         ...seed,
-        { id: 'cut', op: 'boolean.subtract', target: 'plate', operands: [{ id: 'bolt1', pieces: 'tap' }] },
+        {
+          id: 'moved',
+          op: 'transform.translate',
+          params: { vector: [0, 0, 5] },
+          target: { id: 'bolt1', pieces: 'tap' },
+        },
       ])
     ).toThrow(/names pieces \("tap"\)/)
   })
@@ -354,6 +364,210 @@ describe('operand resolution — bare ids, sub-part addresses, and who sees a ra
         { id: 'x', op: 'boolean.union', operands: [{ id: 'plate' }, { id: 'bolt1' }] },
       ])
     ).not.toThrow()
+  })
+})
+
+/* ─────────────────────────────────────────────────────────────────────────────
+ * Sub-part-addressed boolean operands, and parts surviving a transform
+ * (TODO/core-024)
+ *
+ * Two halves of one decision, and neither is worth anything without the other:
+ * a boolean may now name a composite's parts, *and* a composite that has been
+ * moved still has parts to name. See the module doc in `index.js` and the
+ * `subPartOperands` flag in `registry.js`.
+ * ──────────────────────────────────────────────────────────────────────────── */
+describe('sub-part-addressed boolean operands (TODO/core-024)', () => {
+  const BOLT = { spec: 'm10 hex', length: 20, fit: 'loose' }
+
+  /** A block big enough to swallow the whole bolt, so a hole's volume is the
+   *  addressed parts' own volume exactly rather than some clipped fraction. */
+  const BLOCK = { size: [40, 40, 30], center: [0, 0, 15] }
+  const BLOCK_VOLUME_MM3 = 40 * 40 * 30
+
+  const seed = [
+    { id: 'bolt1', op: 'hardware.bolt', params: BOLT },
+    { id: 'block', op: 'primitive.cuboid', params: BLOCK },
+  ]
+
+  /**
+   * Volume of the block after subtracting `operand` from it.
+   *
+   * @param {any} operand
+   * @param {any[]} [records] Extra records folded before the cut.
+   * @returns {number}
+   */
+  function cutVolume(operand, records = []) {
+    const { group } = evaluate([
+      ...seed,
+      ...records,
+      { id: 'cut', op: 'boolean.subtract', target: 'block', operands: [operand], name: 'r' },
+    ])
+    return volumeOf(group.parts.r)
+  }
+
+  /** The bolt on its own, for comparing a hole against the parts that made it. */
+  const bolt = () => asGroup(evaluate([seed[0]]).byId.get('bolt1'))
+
+  it('cuts with the named part’s own geometry, not the whole composite', () => {
+    // The decision this task exists to make, measured by volume per this project's
+    // convention since `ui-014`. `head,thread` is the bolt's *metal*; the corpus
+    // survey behind this task found `combine('head,thread')` its single most common
+    // sub-part address (16 occurrences, and 82 `combine()` calls name a comma list
+    // at all), which is why the comma list is the case pinned
+    // here rather than a single name.
+    const metalHole = BLOCK_VOLUME_MM3 - cutVolume({ id: 'bolt1', pieces: 'head,thread' })
+    expect(metalHole).toBeCloseTo(volumeOf(combine(bolt(), 'head,thread')), 6)
+
+    // And it is genuinely *less* than the whole bolt removes — the assertion that
+    // fails if `pieces` is quietly dropped, which is the failure mode this whole
+    // guard-and-resolve path exists to rule out.
+    const wholeHole = BLOCK_VOLUME_MM3 - cutVolume('bolt1')
+    expect(metalHole).toBeLessThan(wholeHole)
+
+    // One hard analytic number, so the two measurements above cannot agree by both
+    // being wrong: the head is a hexagonal prism, 18 mm across corners, 6.5 mm tall.
+    const headOnlyHole = BLOCK_VOLUME_MM3 - cutVolume({ id: 'bolt1', pieces: 'head' })
+    expect(headOnlyHole).toBeCloseTo(((3 * Math.sqrt(3)) / 2) * 9 * 9 * 6.5, 6)
+  })
+
+  it('addresses a hidden part as readily as a visible one — both are named parts', () => {
+    // The degenerate case TODO/core-024 asks to settle explicitly rather than leave
+    // undefined. Answer: **any named part, hidden or visible**. A rule keyed on
+    // `hidden` would not even reach this scenario's own target — `hardware.bolt`
+    // adds `tap` with `hidden: false`, exactly as V1 did.
+    const boltGroup = bolt()
+    expect(boltGroup.names).toEqual(['head', 'thread', 'tap'])
+    expect(Object.keys(boltGroup.parts)).toContain('tap-thread')
+    expect(boltGroup.names).not.toContain('tap-thread')
+
+    const hiddenHole = BLOCK_VOLUME_MM3 - cutVolume({ id: 'bolt1', pieces: 'tap-thread' })
+    expect(hiddenHole).toBeCloseTo(volumeOf(boltGroup.parts['tap-thread']), 6)
+  })
+
+  it('measures a bolt’s `tap` as exactly its whole silhouette — this recipe, stated', () => {
+    // Worth pinning because ACCEPTANCE.md scenario 5 is written as though the two
+    // differ ("the hidden tap-clearance diameter, not the visible head/thread mesh
+    // diameter"). For `hardware.bolt` they are the same solid: `tap` is a *visible*
+    // part and it contains both the head and the thread, so `combine()` of the
+    // whole bolt is the tap envelope. Addressing `tap` is therefore correct and
+    // explicit, not a geometry change — the address that does change the result is
+    // `head,thread` above.
+    expect(volumeOf(combine(bolt(), 'tap'))).toBeCloseTo(volumeOf(combine(bolt())), 9)
+    expect(cutVolume({ id: 'bolt1', pieces: 'tap' })).toBeCloseTo(cutVolume('bolt1'), 9)
+  })
+
+  it('accepts a sub-part address on all three booleans, and on either side', () => {
+    // No reason to let `intersect` differ from `subtract`, and the corpus has real
+    // `.union(pi.combine('ethernet,usb1,usb2'))` call sites as well as subtracts —
+    // so this is one rule for the family, not a subtract-only special case.
+    for (const op of ['boolean.union', 'boolean.subtract', 'boolean.intersect']) {
+      expect(() =>
+        evaluate([...seed, { id: 'r', op, target: 'block', operands: [{ id: 'bolt1', pieces: 'head' }] }])
+      ).not.toThrow()
+    }
+    // …and with the sub-part as the *base*, which V1 also does
+    // (`pimount.combine().subtract(pimount.combine('nuts,bolts'))`).
+    expect(() =>
+      evaluate([
+        ...seed,
+        { id: 'r', op: 'boolean.subtract', target: { id: 'bolt1', pieces: 'tap' }, operands: ['block'] },
+      ])
+    ).not.toThrow()
+  })
+
+  it('names the op, the operand and the part when a piece name does not exist', () => {
+    expect(() =>
+      evaluate([
+        ...seed,
+        { id: 'r', op: 'boolean.subtract', target: 'block', operands: [{ id: 'bolt1', pieces: 'tip' }] },
+      ])
+    ).toThrow(/boolean\.subtract.*bolt1.*no part named "tip"/s)
+  })
+
+  it('refuses a sub-part address on a bare solid, which has no parts to name', () => {
+    expect(() =>
+      evaluate([
+        ...seed,
+        { id: 'r', op: 'boolean.subtract', target: 'block', operands: [{ id: 'block', pieces: 'head' }] },
+      ])
+    ).toThrow(/single solid, not a group/)
+  })
+})
+
+describe('a composite keeps its parts through a transform (TODO/core-024)', () => {
+  const BOLT = { spec: 'm10 hex', length: 20, fit: 'loose' }
+  const seed = [{ id: 'bolt1', op: 'hardware.bolt', params: BOLT }]
+
+  it('translates a group part by part, so a moved bolt is still a bolt', () => {
+    // The blocker `ui-030`'s drive measured: a placed composite commits a trailing
+    // `transform.translate`, and before this task that translate flattened the
+    // group — so the `tap` a boolean wants to address did not exist on the body the
+    // user actually placed. V1's own `Group.translate` mapped over parts; this is
+    // that behaviour, restored.
+    const { byId } = evaluate([
+      ...seed,
+      { id: 'moved', op: 'transform.translate', params: { vector: [60, 0, 0] }, target: 'bolt1' },
+    ])
+    const moved = asGroup(byId.get('moved'))
+    expect(moved.names).toEqual(['head', 'thread', 'tap'])
+    expect(Object.keys(moved.parts)).toEqual(Object.keys(asGroup(byId.get('bolt1')).parts))
+
+    const [before] = boundsOf(combine(asGroup(byId.get('bolt1')), 'head'))
+    const [after] = boundsOf(combine(moved, 'head'))
+    expect(after[0] - before[0]).toBeCloseTo(60, 9)
+    expect(after[2]).toBeCloseTo(before[2], 9)
+  })
+
+  it('rotates a group part by part, about the record’s own centre', () => {
+    const { byId } = evaluate([
+      ...seed,
+      {
+        id: 'turned',
+        op: 'transform.rotate',
+        params: { angles: [90, 0, 0], center: [0, 0, 0] },
+        target: 'bolt1',
+      },
+    ])
+    const turned = asGroup(byId.get('turned'))
+    expect(turned.names).toEqual(['head', 'thread', 'tap'])
+    // A quarter turn about X takes the thread's +Z run onto −Y.
+    const [min, max] = boundsOf(combine(turned, 'thread'))
+    expect(min[1]).toBeCloseTo(-26.5, 6)
+    expect(max[2] - min[2]).toBeCloseTo(10, 6)
+  })
+
+  it('leaves a bare solid a bare solid — a transform preserves what it is handed', () => {
+    const { byId } = evaluate([
+      { id: 'c', op: 'primitive.cuboid', params: { size: [10, 10, 10] } },
+      { id: 'moved', op: 'transform.translate', params: { vector: [0, 0, 5] }, target: 'c' },
+    ])
+    expect(isGroup(byId.get('moved'))).toBe(false)
+    expect(boundsOf(/** @type {any} */ (byId.get('moved')))).toEqual([
+      [-5, -5, 0],
+      [5, 5, 10],
+    ])
+  })
+
+  it('lets a boolean address a sub-part of a composite that has already been moved', () => {
+    // The end-to-end shape ACCEPTANCE.md scenario 5 needs, and the reason both
+    // halves of this task had to land together: a bolt placed by drag-drop is a
+    // recipe record *plus* a trailing translate, and the boolean addresses the
+    // translate's result, not the recipe's.
+    const records = [
+      ...seed,
+      { id: 'drop', op: 'transform.translate', params: { vector: [0, 0, 0] }, target: 'bolt1' },
+      { id: 'block', op: 'primitive.cuboid', params: { size: [40, 40, 30], center: [0, 0, 15] } },
+      {
+        id: 'cut',
+        op: 'boolean.subtract',
+        target: 'block',
+        operands: [{ id: 'drop', pieces: 'head,thread' }],
+        name: 'r',
+      },
+    ]
+    const { group, byId } = evaluate(records)
+    const hole = 40 * 40 * 30 - volumeOf(group.parts.r)
+    expect(hole).toBeCloseTo(volumeOf(combine(asGroup(byId.get('bolt1')), 'head,thread')), 6)
   })
 })
 
