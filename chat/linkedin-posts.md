@@ -799,3 +799,18 @@ Built with Claude Code, reviewed by me.
 **Evidence:** "supported this since core-021" → `TODO/done/core-021*.md` retirement note; "six fields tall, phone Inspector sheet sat on top, swallowed every click on Commit" → Playwright log this session on chromium-phone and webkit-phone ("`<p class=inspector__op>` from `<div id=app>` subtree intercepts pointer events", Test timeout 30000ms) before the popover z-index moved from 10 to 31; "Leaving Angle at zero commits exactly the record it always did" → `OperationsToolbar.spec.js` `toEqual({ axis: 'x', offsetMm: 3 })` plus three `not.toHaveProperty` assertions; "31.5 mm ... 20 + 20 tan 30 ... direct kernel call" → e2e assertion and a `bisect(cylinder, 'z', 20, 30, 'x')` probe this session giving negative z bounds 0 to 31.547 and positive 8.453 to 50
 **Disclosure:** Built with Claude Code, reviewed by me.
 **To Add:** repo URL once public; a still of the phone-width popover showing all six fields
+
+## 2026-09-18T19:27:00Z — Deleting four copies of a helper set, and proving nothing moved
+
+**Post:** Four of WarpCad's Raspberry Pi recipes (the board, the camera module and two touch displays) each carried their own copy of the same helpers for measuring a throwaway solid and baking the result into a translate. The task file had been asking for one shared module since the third copy appeared. It's done: one kit, the four copies gone, the recipes directory 1,047 lines shorter.
+
+A refactor like this has no failing test to write first, so the check has to be something that can actually fail. Before touching any recipe I serialised every output the recipes produce (all four board models at two clearances, all five cameras with and without the tripod flip, both touch displays, and the eight recipes already on the kit) and saved it as JSON. After the kit change, and again after each of the four migrations, the dump was re-taken and compared byte for byte. 34 variants, 180,793 bytes, identical every time, so a mismatch would have named exactly one file.
+
+The copies had drifted only in signature, not in behaviour: an extra frame argument here, a rotation option there. The shared version takes the union as optional arguments that default to the old behaviour. The unit suite still passes at 936 tests, and the browser suite is green across Chromium and WebKit at phone, tablet and laptop sizes.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Evidence:** "four recipes each carried their own copy" → the deleted `makePart`/`cuboidPart`/`cylinderPart`/`chain`/`place`/`emit` definitions in this diff; "asking for one shared module since the third copy appeared" → `TODO/done/core-025-recipe-expansion-kit-extraction.md` Goal text (`core-015` asked `core-016` to decide; `core-016` decided yes; `core-017` built a fourth copy as the kit); "1,047 lines shorter" → `wc -l` on `src/core/kernel/recipes/*.js`, 10,865 before, 9,818 after; "34 variants, 180,793 bytes, identical" → `cmp` of before/after JSON dumps this session, re-taken after the kit change and after each migration; "drifted only in signature" → line-by-line comparison of the four copies against the kit this session; "936 tests" → `npm run test:unit -- --run` this session, 43 files, before and after; "green across Chromium and WebKit at phone, tablet and laptop" → Playwright this session, chromium+guards 399 passed / 10 skipped, webkit 328 passed / 80 skipped
+**Disclosure:** Built with Claude Code, reviewed by me.
+**To Add:** repo URL once public; the before/after `wc -l` numbers as a small table

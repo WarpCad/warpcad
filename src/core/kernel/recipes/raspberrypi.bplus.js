@@ -85,16 +85,22 @@
  * @module core/kernel/recipes/raspberrypi.bplus
  */
 
-import modeling from '@jscad/modeling'
-
-import { axisApply, calcCenterWith, calcSnap, centroidOf, sizeOf } from '../group.js'
+import { calcSnap } from '../group.js'
 import { BPLUS_BOARD, MOUNTING_HOLES_MM, rpiParts } from '../tables/rpi-parts.js'
-
-// See group.js: default import, not named, so this runs under raw Node ESM too.
-const { booleans, extrusions, primitives, transforms } = modeling
+import {
+  addVectors,
+  chain,
+  createBuilder,
+  cuboidPart,
+  cylinderPart,
+  move,
+  roundedCubePart,
+} from './rpi-recipe-kit.js'
 
 /** @typedef {import('@jscad/modeling').geometries.geom3.Geom3} Geom3 */
 /** @typedef {import('../registry.js').OpRecord} OpRecord */
+/** @typedef {import('./rpi-recipe-kit.js').Part} Part */
+/** @typedef {import('./rpi-recipe-kit.js').Builder} Builder */
 /** @typedef {[number, number, number]} Vec3Mm */
 /** @typedef {import('../tables/rpi-parts.js').RpiPartSpec} RpiPartSpec */
 
@@ -110,180 +116,18 @@ export const DEFAULT_MODEL = 2
 export const DEFAULT_CLEARANCE_MM = 5
 
 /**
- * Segment count for every cylinder here. Matches `registry.js`'s `DEFAULT_SEGMENTS`
- * and `@jscad/csg`'s `defaultResolution2D`, which V1 passed explicitly — so a V1 and a
- * V3 mounting hole tessellate the same way. Emitted into each record rather than left
- * to a library default, so a future upstream change cannot silently move geometry.
- * Defined locally rather than imported from `registry.js`, which imports *this* file.
- */
-const CYLINDER_SEGMENTS = 32
-
-/**
- * Degrees to radians. Local for the same reason {@link CYLINDER_SEGMENTS} is: the
- * registry's own `degToRad` lives in the module that imports this one.
- *
- * @param {number} degrees
- * @returns {number}
- */
-function degToRad(degrees) {
-  return (degrees * Math.PI) / 180
-}
-
-/**
- * One solid on its way to a position: the records that build it un-placed, the
- * millimetre offset accumulated so far, and a probe sitting where that offset puts it.
- *
- * @typedef {object} Part
- * @property {string} id
- * @property {OpRecord[]} baseRecords Records that build the solid before placement.
- * @property {string} baseId Id of the last base record — the translate's target.
- * @property {Vec3Mm} offsetMm Accumulated placement, baked into one translate at emit.
- * @property {Geom3} geom Probe geometry, currently placed. Thrown away.
- * @property {string} [name] Part name in the resulting group.
- * @property {boolean} [hidden] Named but out of the group's default combine.
- */
-
-/**
- * @typedef {{ kind: 'part', part: Part } |
- *   { kind: 'union', id: string, name: string, operands: string[], hidden?: boolean }}
- *   PlanItem
- */
-
-/**
- * @param {...(readonly number[])} vectors
- * @returns {Vec3Mm}
- */
-function addVectors(...vectors) {
-  return /** @type {Vec3Mm} */ (
-    vectors.reduce(
-      (total, vector) => [total[0] + vector[0], total[1] + vector[1], total[2] + vector[2]],
-      [0, 0, 0]
-    )
-  )
-}
-
-/**
- * Assemble a {@link Part} from the records that build it and the position V1's own
- * factory left it in.
- *
- * `naturalOffsetMm` is the whole V1→V3 impedance mismatch in one number. V1's
- * factories disagree about where a fresh solid sits — `Parts.Cube` puts its minimum
- * corner on the origin, `Parts.Cylinder` its base, `CSG_cube` its centre — while every
- * `primitive.*` op here is centred. That difference is not cosmetic, because a
- * `.midlineTo` or a bare `.translate` moves a solid *relatively*: run V1's chain from
- * the wrong starting point and every relative step lands somewhere else.
+ * The motherboard: a rounded rectangle extruded to thickness, the same
+ * `profile.roundedRectangle` → `profile.extrudeLinear` pair `kit.board` emits. V1's
+ * `Board` leaves it in the positive quadrant with its underside on `z = 0`, which is
+ * the frame every other datum in this file is quoted against.
  *
  * @param {string} id
- * @param {object} args
- * @param {OpRecord[]} args.baseRecords
- * @param {string} args.baseId
- * @param {Geom3} args.base Geometry the base records produce.
- * @param {Vec3Mm} args.naturalOffsetMm Where V1's factory left this solid, relative to
- *   where the base records put it.
+ * @param {number} cornerRadiusMm
  * @returns {Part}
  */
-function makePart(id, { baseRecords, baseId, base, naturalOffsetMm }) {
-  return {
-    id,
-    baseRecords,
-    baseId,
-    offsetMm: naturalOffsetMm,
-    geom: transforms.translate(naturalOffsetMm, base),
-  }
-}
-
-/**
- * A box. V1's `Parts.Cube({x, y, z})` (`frame: 'corner'`) or `Parts.CSG_cube` with a
- * symmetric radius (`frame: 'center'`).
- *
- * @param {string} id
- * @param {readonly number[]} sizeMm
- * @param {'corner' | 'center'} frame
- * @returns {Part}
- */
-function cuboidPart(id, sizeMm, frame) {
-  const size = /** @type {Vec3Mm} */ ([sizeMm[0], sizeMm[1], sizeMm[2]])
-  return makePart(id, {
-    baseRecords: [{ id: `${id}.solid`, op: 'primitive.cuboid', params: { size: [...size] } }],
-    baseId: `${id}.solid`,
-    base: primitives.cuboid({ size }),
-    naturalOffsetMm:
-      frame === 'corner' ? [size[0] / 2, size[1] / 2, size[2] / 2] : [0, 0, 0],
-  })
-}
-
-/**
- * A cylinder, optionally laid on its side the way V1's `AvJack`/`PSW` lay theirs.
- *
- * The rotated case is where "measured, not assumed" earns its keep: V1 turns a solid
- * whose base is on `z = 0` about the world origin, while the emitted records turn a
- * *centred* solid about the same origin — two different results. Rather than reason
- * about which way the difference points, both are built and their centroids
- * differenced, so the baked offset is whatever the geometry actually says.
- *
- * @param {string} id
- * @param {number} diameterMm
- * @param {number} heightMm
- * @param {'base' | 'center'} frame
- * @param {readonly number[]} [rotationDeg] V1's pre-placement turn, in degrees.
- * @returns {Part}
- */
-function cylinderPart(id, diameterMm, heightMm, frame, rotationDeg) {
-  const upright = primitives.cylinder({
-    radius: diameterMm / 2,
-    height: heightMm,
-    segments: CYLINDER_SEGMENTS,
-  })
-  /** @type {Vec3Mm} */
-  const uprightNaturalMm = frame === 'base' ? [0, 0, heightMm / 2] : [0, 0, 0]
-
-  /** @type {OpRecord[]} */
-  const baseRecords = [
-    {
-      id: `${id}.solid`,
-      op: 'primitive.cylinder',
-      params: { diameter: diameterMm, height: heightMm, segments: CYLINDER_SEGMENTS },
-    },
-  ]
-
-  if (!rotationDeg) {
-    return makePart(id, {
-      baseRecords,
-      baseId: `${id}.solid`,
-      base: upright,
-      naturalOffsetMm: uprightNaturalMm,
-    })
-  }
-
-  /** @param {Geom3} geometry */
-  const turn = (geometry) =>
-    transforms.rotate(
-      [degToRad(rotationDeg[0]), degToRad(rotationDeg[1]), degToRad(rotationDeg[2])],
-      geometry
-    )
-
-  const base = turn(upright)
-  const v1Natural = turn(transforms.translate(uprightNaturalMm, upright))
-  const baseCentre = centroidOf(base)
-  const naturalCentre = centroidOf(v1Natural)
-
-  baseRecords.push({
-    id: `${id}.turned`,
-    op: 'transform.rotate',
-    params: { angles: [rotationDeg[0], rotationDeg[1], rotationDeg[2]] },
-    target: `${id}.solid`,
-  })
-
-  return makePart(id, {
-    baseRecords,
-    baseId: `${id}.turned`,
-    base,
-    naturalOffsetMm: [
-      naturalCentre[0] - baseCentre[0],
-      naturalCentre[1] - baseCentre[1],
-      naturalCentre[2] - baseCentre[2],
-    ],
-  })
+function boardPart(id, cornerRadiusMm) {
+  const { widthMm, heightMm, thicknessMm } = BPLUS_BOARD
+  return roundedCubePart(id, widthMm, heightMm, thicknessMm, cornerRadiusMm)
 }
 
 /**
@@ -297,145 +141,10 @@ function specPart(id, spec) {
   if (spec.op === 'primitive.cuboid') {
     return cuboidPart(id, spec.params.size, /** @type {'corner' | 'center'} */ (spec.frame))
   }
-  return cylinderPart(
-    id,
-    spec.params.diameter,
-    spec.params.height,
-    /** @type {'base' | 'center'} */ (spec.frame),
-    spec.rotationDeg
-  )
-}
-
-/**
- * The motherboard: a rounded rectangle extruded to thickness, the same
- * `profile.roundedRectangle` → `profile.extrudeLinear` pair `kit.board` emits. V1's
- * `Board` leaves it in the positive quadrant with its underside on `z = 0`, which is
- * the frame every other datum in this file is quoted against.
- *
- * @param {string} id
- * @param {number} cornerRadiusMm
- * @returns {Part}
- */
-function boardPart(id, cornerRadiusMm) {
-  const { widthMm, heightMm, thicknessMm } = BPLUS_BOARD
-  const profile = primitives.roundedRectangle({
-    size: [widthMm, heightMm],
-    roundRadius: cornerRadiusMm,
-    segments: CYLINDER_SEGMENTS,
-    center: [0, 0],
+  return cylinderPart(id, spec.params.diameter, spec.params.height, {
+    frame: /** @type {'base' | 'center'} */ (spec.frame),
+    rotationDeg: spec.rotationDeg,
   })
-  return makePart(id, {
-    baseRecords: [
-      {
-        id: `${id}.profile`,
-        op: 'profile.roundedRectangle',
-        params: {
-          size: [widthMm, heightMm],
-          roundRadius: cornerRadiusMm,
-          segments: CYLINDER_SEGMENTS,
-        },
-      },
-      {
-        id: `${id}.prism`,
-        op: 'profile.extrudeLinear',
-        params: { height: thicknessMm },
-        target: `${id}.profile`,
-      },
-    ],
-    baseId: `${id}.prism`,
-    base: extrusions.extrudeLinear({ height: thicknessMm }, profile),
-    naturalOffsetMm: [widthMm / 2, heightMm / 2, 0],
-  })
-}
-
-/**
- * Geometry to measure a reference against. A list of parts is unioned, which is what
- * V1 did implicitly whenever a `Group` was handed to something that wanted a solid.
- *
- * @param {Part | Part[]} reference
- * @returns {Geom3}
- */
-function geomOf(reference) {
-  const parts = Array.isArray(reference) ? reference : [reference]
-  return parts.length === 1 ? parts[0].geom : booleans.union(parts.map((part) => part.geom))
-}
-
-/**
- * @param {Part[]} parts
- * @param {Vec3Mm} vectorMm
- */
-function move(parts, vectorMm) {
-  for (const part of parts) {
-    part.offsetMm = addVectors(part.offsetMm, vectorMm)
-    part.geom = transforms.translate(vectorMm, part.geom)
-  }
-}
-
-/**
- * V1's placement chain, one call at a time.
- *
- * `target` is what moves — one part, or several that travel together the way a V1
- * `Group` did. `ruler` is what gets measured, which for a group is the one named part
- * V1 passed as the first argument to `group.snap('body', ...)`.
- *
- * @param {Part | Part[]} target
- * @param {Part} [ruler] Defaults to the first (or only) part.
- */
-function chain(target, ruler) {
-  const parts = Array.isArray(target) ? target : [target]
-  const measured = ruler ?? parts[0]
-
-  const api = {
-    /**
-     * @param {Part | Part[]} reference
-     * @param {string} axes
-     * @param {string} orientation A key of `group.js`'s `SNAP_SIDES`.
-     * @param {number} [deltaMm]
-     */
-    snap(reference, axes, orientation, deltaMm) {
-      move(parts, calcSnap(measured.geom, geomOf(reference), axes, orientation, deltaMm))
-      return api
-    },
-
-    /**
-     * @param {Part | Part[]} reference
-     * @param {string} axes
-     */
-    align(reference, axes) {
-      move(parts, calcCenterWith(measured.geom, axes, geomOf(reference)))
-      return api
-    },
-
-    /**
-     * V1's `util.calcmidlineTo`, quirk included: it returns `to - size / 2` as a
-     * *relative* translation, without consulting where the solid currently is. That
-     * only means "put the midline at `to`" when the solid's minimum on that axis is
-     * still zero — which, in `bplus.js`, it always is, because every factory starts on
-     * the origin and every earlier link in the chain touches a different axis. Ported
-     * as the relative translate it actually is rather than as the absolute placement
-     * it is usually mistaken for, so a future call site that breaks that precondition
-     * diverges from V1 the same way V1 diverges from itself.
-     *
-     * @param {string} axis
-     * @param {number} toMm
-     */
-    midlineTo(axis, toMm) {
-      const size = sizeOf(measured.geom)
-      move(
-        parts,
-        axisApply(axis, (index) => toMm - size[index] / 2)
-      )
-      return api
-    },
-
-    /** @param {Vec3Mm} vectorMm */
-    translate(vectorMm) {
-      move(parts, vectorMm)
-      return api
-    },
-  }
-
-  return api
 }
 
 /**
@@ -463,64 +172,6 @@ function rightSide(part, mb, offsetMm) {
 }
 
 /**
- * @param {PlanItem[]} plan
- * @param {Part} part
- * @param {string} name
- * @param {{ hidden?: boolean }} [options]
- * @returns {Part}
- */
-function place(plan, part, name, options = {}) {
-  part.name = name
-  if (options.hidden) part.hidden = true
-  plan.push({ kind: 'part', part })
-  return part
-}
-
-/**
- * A part V1 built as a two-solid `Group`: both solids stay addressable as hidden
- * parts, and the visible part is their union — `hardware.bolt.js`'s `tap` shape.
- *
- * @param {PlanItem[]} plan
- * @param {string} name
- * @param {Part[]} parts
- */
-function placeUnion(plan, name, parts) {
-  for (const part of parts) place(plan, part, part.id, { hidden: true })
-  plan.push({ kind: 'union', id: name, name, operands: parts.map((part) => part.id) })
-}
-
-/**
- * @param {PlanItem} item
- * @returns {OpRecord[]}
- */
-function emit(item) {
-  if (item.kind === 'union') {
-    return [
-      {
-        id: item.id,
-        op: 'boolean.union',
-        params: {},
-        operands: [...item.operands],
-        name: item.name,
-        ...(item.hidden ? { hidden: true } : {}),
-      },
-    ]
-  }
-  const { part } = item
-  return [
-    ...part.baseRecords,
-    {
-      id: part.id,
-      op: 'transform.translate',
-      params: { vector: [...part.offsetMm] },
-      target: part.baseId,
-      ...(part.name ? { name: part.name } : {}),
-      ...(part.hidden ? { hidden: true } : {}),
-    },
-  ]
-}
-
-/**
  * V1's `RPiParts.AvJack()`: a block with a barrel snapped onto its `-y` face.
  *
  * @param {string} id
@@ -537,12 +188,12 @@ function avJack(id) {
  * The model 2/3 USB jack: `RPiParts.UsbJack()`, positioned by the translation V1
  * assembles from four separate `calcSnap` calls before cloning.
  *
- * @param {PlanItem[]} plan
+ * @param {Builder} builder
  * @param {string} id
  * @param {Part} mb
  * @param {number} yMidlineMm
  */
-function addUsbJack(plan, id, mb, yMidlineMm) {
+function addUsbJack(builder, id, mb, yMidlineMm) {
   const body = specPart(`${id}-body`, rpiParts.usbJackBody)
   const flange = specPart(`${id}-flange`, rpiParts.usbJackFlange)
   chain(flange).align(body, 'yz').snap(body, 'x', 'outside-')
@@ -557,48 +208,48 @@ function addUsbJack(plan, id, mb, yMidlineMm) {
   )
 
   chain([body, flange], body).translate(translationMm).midlineTo('y', yMidlineMm)
-  placeUnion(plan, id, [body, flange])
+  builder.placeUnion(id, [body, flange])
 }
 
 /**
  * Models 2 and 3 — one shared board with a two-line LED fork (`bplus.js:627-745`).
  *
- * @param {PlanItem[]} plan
+ * @param {Builder} builder
  * @param {object} context
  * @param {number} context.model
  * @param {Part} context.mb
  */
-function addModelB(plan, { model, mb }) {
+function addModelB(builder, { model, mb }) {
   const ethernet = rightSide(specPart('ethernet', rpiParts.ethernetJack), mb, [2, 0, 0])
   chain(ethernet).midlineTo('y', 10.25)
-  place(plan, ethernet, 'ethernet')
+  builder.place(ethernet, 'ethernet')
 
-  addUsbJack(plan, 'usb1', mb, 29)
-  addUsbJack(plan, 'usb2', mb, 47)
+  addUsbJack(builder, 'usb1', mb, 29)
+  addUsbJack(builder, 'usb2', mb, 47)
 
   const microusb = specPart('microusb', rpiParts.microUsb)
   chain(microusb).snap(mb, 'z', 'outside-').midlineTo('x', 10.6).translate([0, -2, 0])
-  place(plan, microusb, 'microusb')
+  builder.place(microusb, 'microusb')
 
   const hdmi = specPart('hdmi', rpiParts.hdmi)
   chain(hdmi).snap(mb, 'z', 'outside-').midlineTo('x', 32).translate([0, -2, 0])
-  place(plan, hdmi, 'hdmi')
+  builder.place(hdmi, 'hdmi')
 
   const av = avJack('avjack')
   chain(av.parts, av.block).snap(mb, 'z', 'outside-').midlineTo('x', 53.5)
-  placeUnion(plan, 'avjack', av.parts)
+  builder.placeUnion('avjack', av.parts)
 
   const camera = specPart('camera', rpiParts.ribbon)
   chain(camera).snap(mb, 'z', 'outside-').midlineTo('x', 45)
-  place(plan, camera, 'camera')
+  builder.place(camera, 'camera')
 
   const display = specPart('display', rpiParts.ribbon)
   chain(display).snap(mb, 'z', 'outside-').midlineTo('x', 3.5).midlineTo('y', 28)
-  place(plan, display, 'display')
+  builder.place(display, 'display')
 
   const gpio = specPart('gpio', rpiParts.gpio)
   chain(gpio).snap(mb, 'z', 'outside-').midlineTo('x', 32.5).midlineTo('y', 52.5)
-  place(plan, gpio, 'gpio')
+  builder.place(gpio, 'gpio')
 
   const activityled = specPart('activityled', rpiParts.boardLed)
   const powerled = specPart('powerled', rpiParts.boardLed)
@@ -609,22 +260,22 @@ function addModelB(plan, { model, mb }) {
     chain(activityled).snap(mb, 'z', 'outside-').translate([1, 43.5, 0])
     chain(powerled).snap(mb, 'z', 'outside-').translate([1, 46, 0])
   }
-  place(plan, activityled, 'activityled')
-  place(plan, powerled, 'powerled')
+  builder.place(activityled, 'activityled')
+  builder.place(powerled, 'powerled')
 }
 
 /**
  * The Pi 4 USB jack (`bplus.js:94-171`): body, flange, and its own clearance slab.
  * `usb2` is V1's clone re-snapped to the board's `-y` edge and midlined to 27.
  *
- * @param {PlanItem[]} plan
+ * @param {Builder} builder
  * @param {string} id
  * @param {object} context
  * @param {Part} context.mb
  * @param {number} context.clearanceMm
  * @param {number} [context.yMidlineMm] Re-placement for the second jack.
  */
-function addPi4UsbJack(plan, id, { mb, clearanceMm, yMidlineMm }) {
+function addPi4UsbJack(builder, id, { mb, clearanceMm, yMidlineMm }) {
   const flangeSizeMm = 1
   // V1: "top of flange to bottom of board - board thickness".
   const flangeTopMm = 17.6 - 1.55
@@ -645,25 +296,25 @@ function addPi4UsbJack(plan, id, { mb, clearanceMm, yMidlineMm }) {
     chain([body, flange, clearance], body).snap(mb, 'y', 'inside-').midlineTo('y', yMidlineMm)
   }
 
-  placeUnion(plan, id, [body, flange])
+  builder.placeUnion(id, [body, flange])
   // V1 carried this as a `clearance` subpart of the jack's own group; naming it
   // `clearance-<jack>` matches every other clearance volume in this recipe, and the
   // Pi 5 branch, where V1 itself spells them that way.
-  place(plan, clearance, `clearance-${id}`, { hidden: true })
+  builder.place(clearance, `clearance-${id}`, { hidden: true })
 }
 
 /**
  * Model 4 (`bplus.js:33-326`), less the `dimCheck` rulers — see the module doc.
  *
- * @param {PlanItem[]} plan
+ * @param {Builder} builder
  * @param {object} context
  * @param {Part} context.mb
  * @param {number} context.clearanceMm
  */
-function addPi4(plan, { mb, clearanceMm }) {
+function addPi4(builder, { mb, clearanceMm }) {
   const ethernet = rightSide(cuboidPart('ethernet', [21.38, 16.12, 13.83], 'corner'), mb, [3, 0, 0])
   chain(ethernet).midlineTo('y', 45.75)
-  place(plan, ethernet, 'ethernet')
+  builder.place(ethernet, 'ethernet')
 
   const smallClearanceMm = 0.5
   const ethernetClearance = cuboidPart(
@@ -672,10 +323,10 @@ function addPi4(plan, { mb, clearanceMm }) {
     'corner'
   )
   chain(ethernetClearance).align(ethernet, 'yz').snap(ethernet, 'x', 'outside-')
-  place(plan, ethernetClearance, 'clearance-ethernet', { hidden: true })
+  builder.place(ethernetClearance, 'clearance-ethernet', { hidden: true })
 
-  addPi4UsbJack(plan, 'usb1', { mb, clearanceMm })
-  addPi4UsbJack(plan, 'usb2', { mb, clearanceMm, yMidlineMm: 27 })
+  addPi4UsbJack(builder, 'usb1', { mb, clearanceMm })
+  addPi4UsbJack(builder, 'usb2', { mb, clearanceMm, yMidlineMm: 27 })
 
   /**
    * The three front-edge connectors share a shape: a block overhanging the board's
@@ -692,7 +343,7 @@ function addPi4(plan, { mb, clearanceMm }) {
       .snap(mb, 'y', 'inside-', -1)
       .snap(mb, 'z', 'outside-')
       .midlineTo('x', xMidlineMm)
-    place(plan, part, name)
+    builder.place(part, name)
 
     const clearance = cuboidPart(
       `clearance-${name}`,
@@ -700,7 +351,7 @@ function addPi4(plan, { mb, clearanceMm }) {
       'corner'
     )
     chain(clearance).align(part, 'xz').snap(part, 'y', 'outside+')
-    place(plan, clearance, `clearance-${name}`, { hidden: true })
+    builder.place(clearance, `clearance-${name}`, { hidden: true })
   }
 
   frontConnector('usbc', [10, 7.5, 3.2], [10.5, 3.7], 3.5 + 7.7)
@@ -711,26 +362,26 @@ function addPi4(plan, { mb, clearanceMm }) {
   chain(av.parts, av.block)
     .snap(mb, 'z', 'outside-')
     .midlineTo('x', 3.5 + 7.7 + 14.8 + 13.5 + 7 + 7.5)
-  placeUnion(plan, 'avjack', av.parts)
+  builder.placeUnion('avjack', av.parts)
 
-  const avClearance = cylinderPart('clearance-avjack', 6.5, clearanceMm + 1, 'base', [90, 0, 0])
+  const avClearance = cylinderPart('clearance-avjack', 6.5, clearanceMm + 1, { frame: 'base', rotationDeg: [90, 0, 0] })
   chain(avClearance).align(av.parts, 'xz').snap(av.parts, 'y', 'outside+', 1)
-  place(plan, avClearance, 'clearance-avjack', { hidden: true })
+  builder.place(avClearance, 'clearance-avjack', { hidden: true })
 
   const camera = specPart('camera', rpiParts.ribbon)
   chain(camera).snap(mb, 'z', 'outside-').midlineTo('x', 3.5 + 7.7 + 14.8 + 13.5 + 7)
-  place(plan, camera, 'camera')
+  builder.place(camera, 'camera')
 
   const display = specPart('display', rpiParts.ribbon)
   chain(display).snap(mb, 'z', 'outside-').midlineTo('x', 4).midlineTo('y', 24.5 + 3.5)
-  place(plan, display, 'display')
+  builder.place(display, 'display')
 
   const gpio = specPart('gpio', rpiParts.gpio)
   chain(gpio)
     .snap(mb, 'z', 'outside-')
     .midlineTo('x', 29 + 3.5)
     .midlineTo('y', 56 - 3.5)
-  place(plan, gpio, 'gpio')
+  builder.place(gpio, 'gpio')
 
   /**
    * @param {string} name
@@ -739,11 +390,11 @@ function addPi4(plan, { mb, clearanceMm }) {
   const led = (name, yMidlineMm) => {
     const part = specPart(name, rpiParts.boardLed)
     chain(part).snap(mb, 'z', 'outside-').midlineTo('x', 1.1).midlineTo('y', yMidlineMm)
-    place(plan, part, name)
+    builder.place(part, name)
 
-    const clearance = cylinderPart(`clearance-${name}`, 2, clearanceMm, 'base', [0, 90, 0])
+    const clearance = cylinderPart(`clearance-${name}`, 2, clearanceMm, { frame: 'base', rotationDeg: [0, 90, 0] })
     chain(clearance).align(part, 'yz').snap(mb, 'x', 'outside+')
-    place(plan, clearance, `clearance-${name}`, { hidden: true })
+    builder.place(clearance, `clearance-${name}`, { hidden: true })
   }
 
   led('activityled', 8)
@@ -753,30 +404,30 @@ function addPi4(plan, { mb, clearanceMm }) {
 /**
  * Model 5 (`bplus.js:335-550`).
  *
- * @param {PlanItem[]} plan
+ * @param {Builder} builder
  * @param {object} context
  * @param {Part} context.mb
  * @param {number} context.clearanceMm
  */
-function addPi5(plan, { mb, clearanceMm }) {
+function addPi5(builder, { mb, clearanceMm }) {
   const cpu = cuboidPart('cpu', [17, 17, 3], 'corner')
   chain(cpu)
     .translate([0, 15, 0])
     .midlineTo('x', 29 + 3.5)
     .snap(mb, 'z', 'outside-')
-  place(plan, cpu, 'cpu')
+  builder.place(cpu, 'cpu')
 
   const cpuClearance = cuboidPart('clearance-cpu', [17, 17, clearanceMm], 'corner')
   chain(cpuClearance).align(cpu, 'xy').snap(cpu, 'z', 'outside-')
-  place(plan, cpuClearance, 'clearance-cpu', { hidden: true })
+  builder.place(cpuClearance, 'clearance-cpu', { hidden: true })
 
   const ethernet = rightSide(cuboidPart('ethernet', [21.5, 16.5, 13.5], 'corner'), mb, [3, 0, 0])
   chain(ethernet).midlineTo('y', 10.2)
-  place(plan, ethernet, 'ethernet')
+  builder.place(ethernet, 'ethernet')
 
   const ethernetClearance = cuboidPart('clearance-ethernet', [clearanceMm, 16.5, 13.5], 'corner')
   chain(ethernetClearance).align(ethernet, 'yz').snap(ethernet, 'x', 'outside-')
-  place(plan, ethernetClearance, 'clearance-ethernet', { hidden: true })
+  builder.place(ethernetClearance, 'clearance-ethernet', { hidden: true })
 
   /**
    * @param {string} id
@@ -791,11 +442,11 @@ function addPi5(plan, { mb, clearanceMm }) {
     chain(flange).snap(body, 'x', 'outside-').align(body, 'yz')
 
     chain([body, flange], body).midlineTo('y', yMidlineMm)
-    placeUnion(plan, id, [body, flange])
+    builder.placeUnion(id, [body, flange])
 
     const clearance = cuboidPart(`clearance-${id}`, [clearanceMm, 15, clearanceHeightMm], 'corner')
     chain(clearance).align([body, flange], 'yz').snap([body, flange], 'x', 'outside-')
-    place(plan, clearance, `clearance-${id}`, { hidden: true })
+    builder.place(clearance, `clearance-${id}`, { hidden: true })
   }
 
   usbJack('usb1', 29.1, 16.5)
@@ -813,7 +464,7 @@ function addPi5(plan, { mb, clearanceMm }) {
       .snap(mb, 'y', 'inside-', -1)
       .snap(mb, 'z', 'outside-')
       .midlineTo('x', xMidlineMm)
-    place(plan, part, name)
+    builder.place(part, name)
 
     const clearance = cuboidPart(
       `clearance-${name}`,
@@ -821,7 +472,7 @@ function addPi5(plan, { mb, clearanceMm }) {
       'corner'
     )
     chain(clearance).align(part, 'xz').snap(part, 'y', 'outside+')
-    place(plan, clearance, `clearance-${name}`, { hidden: true })
+    builder.place(clearance, `clearance-${name}`, { hidden: true })
   }
 
   frontConnector('usbc', [10, 7.5, 3.2], [10.5, 3.7], 11.2)
@@ -830,53 +481,53 @@ function addPi5(plan, { mb, clearanceMm }) {
 
   const camera0 = specPart('camera0', rpiParts.camDisplay)
   chain(camera0).snap(mb, 'z', 'outside-').midlineTo('x', 55)
-  place(plan, camera0, 'camera0')
+  builder.place(camera0, 'camera0')
 
   const camera1 = specPart('camera1', rpiParts.camDisplay)
   chain(camera1).snap(mb, 'z', 'outside-').midlineTo('x', 50)
-  place(plan, camera1, 'camera1')
+  builder.place(camera1, 'camera1')
 
   // V1 names the PCIe connector `display`, which is what a Pi 5's FPC socket in this
   // position actually drives. Kept, so a downstream part can address it by the name
   // every other model uses.
   const display = specPart('display', rpiParts.pcie)
   chain(display).snap(mb, 'z', 'outside-').midlineTo('x', 3.5).midlineTo('y', 30)
-  place(plan, display, 'display')
+  builder.place(display, 'display')
 
   const gpio = specPart('gpio', rpiParts.gpio)
   chain(gpio)
     .snap(mb, 'z', 'outside-')
     .midlineTo('x', 29 + 3.5)
     .midlineTo('y', 56 - 3.5)
-  place(plan, gpio, 'gpio')
+  builder.place(gpio, 'gpio')
 
   const statusled = specPart('statusled', rpiParts.boardLed)
   chain(statusled).snap(mb, 'z', 'outside-').midlineTo('x', 1.1).midlineTo('y', 13.3)
-  place(plan, statusled, 'statusled')
+  builder.place(statusled, 'statusled')
 
-  const statusledClearance = cylinderPart('clearance-statusled', 2, clearanceMm, 'base', [0, 90, 0])
+  const statusledClearance = cylinderPart('clearance-statusled', 2, clearanceMm, { frame: 'base', rotationDeg: [0, 90, 0] })
   chain(statusledClearance).align(statusled, 'yz').snap(mb, 'x', 'outside+')
-  place(plan, statusledClearance, 'clearance-statusled', { hidden: true })
+  builder.place(statusledClearance, 'clearance-statusled', { hidden: true })
 
   const pswBlock = specPart('powerswitch-block', rpiParts.pswBlock)
   const pswButton = specPart('powerswitch-button', rpiParts.pswButton)
   chain(pswButton).align(pswBlock, 'yz').snap(pswBlock, 'x', 'outside+')
   const psw = [pswBlock, pswButton]
   chain(psw, pswBlock).snap(mb, 'z', 'outside-').snap(mb, 'x', 'inside-').midlineTo('y', 18.4)
-  placeUnion(plan, 'powerswitch', psw)
+  builder.placeUnion('powerswitch', psw)
 
-  const pswClearance = cylinderPart('clearance-powerswitch', 3, clearanceMm, 'base', [0, 90, 0])
+  const pswClearance = cylinderPart('clearance-powerswitch', 3, clearanceMm, { frame: 'base', rotationDeg: [0, 90, 0] })
   chain(pswClearance).align(psw, 'yz').snap(psw, 'x', 'outside+')
-  place(plan, pswClearance, 'clearance-powerswitch', { hidden: true })
+  builder.place(pswClearance, 'clearance-powerswitch', { hidden: true })
 }
 
 /**
  * The two Pi 5 fan-mount holes and their clearance cylinders (`bplus.js:769-805`).
  *
- * @param {PlanItem[]} plan
+ * @param {Builder} builder
  * @param {Part} mb
  */
-function addFanHoles(plan, mb) {
+function addFanHoles(builder, mb) {
   /**
    * @param {string} name
    * @param {number} xMm
@@ -887,14 +538,14 @@ function addFanHoles(plan, mb) {
       name,
       MOUNTING_HOLES_MM.diameterMm,
       BPLUS_BOARD.thicknessMm,
-      /** @type {'center'} */ (rpiParts.mountingHole.frame)
+      { frame: /** @type {'center'} */ (rpiParts.mountingHole.frame) }
     )
     chain(hole).snap(mb, 'xy', 'inside-').align(mb, 'z').midlineTo('x', xMm).midlineTo('y', yMm)
-    place(plan, hole, name, { hidden: true })
+    builder.place(hole, name, { hidden: true })
 
-    const clearance = cylinderPart(`clearance-${name.replace('hole', '')}`, 4.5, 4, 'base')
+    const clearance = cylinderPart(`clearance-${name.replace('hole', '')}`, 4.5, 4, { frame: 'base' })
     chain(clearance).align(hole, 'xy').snap(mb, 'z', 'outside+')
-    place(plan, clearance, `clearance-${name.replace('hole', '')}`, { hidden: true })
+    builder.place(clearance, `clearance-${name.replace('hole', '')}`, { hidden: true })
   }
 
   fanHole('fan1hole', 3.5, 6 + 3.5)
@@ -936,32 +587,31 @@ export function bplus(params) {
   }
   const clearanceMm = requirePositiveMm(clearance, 'clearance')
 
-  /** @type {PlanItem[]} */
-  const plan = []
+  const builder = createBuilder()
 
   const mb = boardPart('mb', BPLUS_BOARD.bplusCornerRadiusMm)
-  place(plan, mb, 'mb')
+  builder.place(mb, 'mb')
 
-  if (model < 4) addModelB(plan, { model, mb })
-  else if (model === 4) addPi4(plan, { mb, clearanceMm })
-  else addPi5(plan, { mb, clearanceMm })
+  if (model < 4) addModelB(builder, { model, mb })
+  else if (model === 4) addPi4(builder, { mb, clearanceMm })
+  else addPi5(builder, { mb, clearanceMm })
 
   const microsd = cuboidPart('microsd', [15.2, 12, 1.5], 'corner')
   chain(microsd).snap(mb, 'z', 'outside+').midlineTo('y', 28).translate([-2.5, 0, 0])
-  place(plan, microsd, 'microsd')
+  builder.place(microsd, 'microsd')
 
   MOUNTING_HOLES_MM.positions.forEach(([xMm, yMm], index) => {
     const hole = cylinderPart(
       `hole${index + 1}`,
       MOUNTING_HOLES_MM.diameterMm,
       MOUNTING_HOLES_MM.heightMm,
-      /** @type {'center'} */ (rpiParts.mountingHole.frame)
+      { frame: /** @type {'center'} */ (rpiParts.mountingHole.frame) }
     )
     chain(hole).snap(mb, 'xy', 'inside-').align(mb, 'z').midlineTo('x', xMm).midlineTo('y', yMm)
-    place(plan, hole, `hole${index + 1}`, { hidden: true })
+    builder.place(hole, `hole${index + 1}`, { hidden: true })
   })
 
-  if (model >= 5) addFanHoles(plan, mb)
+  if (model >= 5) addFanHoles(builder, mb)
 
-  return plan.flatMap(emit)
+  return builder.build()
 }

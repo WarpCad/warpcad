@@ -79,30 +79,27 @@
  * is hidden, so `combine()` returns the pad alone. This port emits one part.
  * `piMountingPad1` is the case where the combined entry is genuinely different, since
  * its group has two visible members, so that one is emitted as a `boolean.union` over
- * two hidden leaves — `hardware.bolt.js`'s `tap` shape, and `raspberrypi.bplus.js`'s
- * {@link placeUnion}.
+ * two hidden leaves — `hardware.bolt.js`'s `tap` shape, and `raspberrypi.bplus.js`'s,
+ * now the kit's `builder.placeUnion` (`rpi-recipe-kit.js`).
  *
  * @module core/kernel/recipes/raspberrypi.touchDisplay7inch
  */
 
-import modeling from '@jscad/modeling'
+import {
+  centreOf,
+  chain,
+  createBuilder,
+  cuboidPart,
+  cylinderPart,
+  move,
+  roundedCubePart,
+  turnAboutZ,
+} from './rpi-recipe-kit.js'
 
-import { calcCenterWith, calcSnap, centroidOf } from '../group.js'
-
-// See group.js: default import, not named, so this runs under raw Node ESM too.
-const { extrusions, primitives, transforms } = modeling
-
-/** @typedef {import('@jscad/modeling').geometries.geom3.Geom3} Geom3 */
 /** @typedef {import('../registry.js').OpRecord} OpRecord */
+/** @typedef {import('./rpi-recipe-kit.js').Part} Part */
+/** @typedef {import('./rpi-recipe-kit.js').Builder} Builder */
 /** @typedef {[number, number, number]} Vec3Mm */
-
-/**
- * Segment count for every cylinder and rounded corner here. Matches `registry.js`'s
- * `DEFAULT_SEGMENTS` and `@jscad/csg`'s `defaultResolution2D`, which V1 passed
- * explicitly. Defined locally rather than imported from `registry.js`, which imports
- * *this* file.
- */
-const SEGMENTS = 32
 
 /** `touch-display-7inch.js:21` — `Parts.RoundedCube(192.96, 110.76, 0.7, 8)`. */
 const LENS_MM = Object.freeze({ xMm: 192.96, yMm: 110.76, thicknessMm: 0.7, cornerRadiusMm: 8 })
@@ -165,303 +162,6 @@ const NO_GO_POWER_MM = Object.freeze({
 })
 
 /**
- * One solid on its way to a position: the records that build it un-placed, the
- * millimetre offset accumulated so far, a probe sitting where that offset puts it, and
- * optionally one turn applied after the placement.
- *
- * @typedef {object} Part
- * @property {string} id
- * @property {OpRecord[]} baseRecords Records that build the solid before placement.
- * @property {string} baseId Id of the last base record — the translate's target.
- * @property {Vec3Mm} offsetMm Accumulated placement, baked into one translate at emit.
- * @property {Geom3} geom Probe geometry, currently placed. Thrown away.
- * @property {{ angles: Vec3Mm, center: Vec3Mm }} [turn] A post-placement rotation.
- * @property {string} [name] Part name in the resulting group.
- * @property {boolean} [hidden] Named but out of the group's default combine.
- */
-
-/**
- * @typedef {{ kind: 'part', part: Part } |
- *   { kind: 'union', id: string, name: string, operands: string[] }} PlanItem
- */
-
-/**
- * @param {...(readonly number[])} vectors
- * @returns {Vec3Mm}
- */
-function addVectors(...vectors) {
-  return /** @type {Vec3Mm} */ (
-    vectors.reduce(
-      (total, vector) => [total[0] + vector[0], total[1] + vector[1], total[2] + vector[2]],
-      [0, 0, 0]
-    )
-  )
-}
-
-/**
- * @param {number} degrees
- * @returns {number}
- */
-function degToRad(degrees) {
-  return (degrees * Math.PI) / 180
-}
-
-/**
- * @param {string} id
- * @param {object} args
- * @param {OpRecord[]} args.baseRecords
- * @param {string} args.baseId
- * @param {Geom3} args.base Geometry the base records produce.
- * @param {Vec3Mm} args.naturalOffsetMm Where V1's own factory leaves a fresh solid,
- *   relative to this project's always-centred `primitive.*` ops.
- * @returns {Part}
- */
-function makePart(id, { baseRecords, baseId, base, naturalOffsetMm }) {
-  return {
-    id,
-    baseRecords,
-    baseId,
-    offsetMm: naturalOffsetMm,
-    geom: transforms.translate(naturalOffsetMm, base),
-  }
-}
-
-/**
- * V1's `Parts.Cube({x, y, z})`: a box with its minimum corner on the origin
- * (`jscad-utils/src/parts.js:81-90` — `CSG.cube({ center: size/2, radius: size/2 })`).
- *
- * @param {string} id
- * @param {readonly number[]} sizeMm
- * @returns {Part}
- */
-function cuboidPart(id, sizeMm) {
-  const size = /** @type {Vec3Mm} */ ([sizeMm[0], sizeMm[1], sizeMm[2]])
-  return makePart(id, {
-    baseRecords: [{ id: `${id}.solid`, op: 'primitive.cuboid', params: { size: [...size] } }],
-    baseId: `${id}.solid`,
-    base: primitives.cuboid({ size }),
-    naturalOffsetMm: [size[0] / 2, size[1] / 2, size[2] / 2],
-  })
-}
-
-/**
- * V1's `Parts.Cylinder(diameter, height)`: upright, its base on `z = 0`, centred on the
- * origin in plan (`jscad-utils/src/parts.js:135-147`).
- *
- * @param {string} id
- * @param {number} diameterMm
- * @param {number} heightMm
- * @returns {Part}
- */
-function cylinderPart(id, diameterMm, heightMm) {
-  return makePart(id, {
-    baseRecords: [
-      {
-        id: `${id}.solid`,
-        op: 'primitive.cylinder',
-        params: { diameter: diameterMm, height: heightMm, segments: SEGMENTS },
-      },
-    ],
-    baseId: `${id}.solid`,
-    base: primitives.cylinder({ radius: diameterMm / 2, height: heightMm, segments: SEGMENTS }),
-    naturalOffsetMm: [0, 0, heightMm / 2],
-  })
-}
-
-/**
- * V1's `Parts.RoundedCube(x, y, thickness, cornerRadius)` — a rounded rectangle
- * extruded to thickness, minimum corner on the origin. The same
- * `profile.roundedRectangle` → `profile.extrudeLinear` pair `kit.board` emits; a
- * composite cannot invoke another composite's expansion, so this reuses the pattern
- * rather than the op.
- *
- * @param {string} id
- * @param {number} widthMm
- * @param {number} heightMm
- * @param {number} thicknessMm
- * @param {number} cornerRadiusMm
- * @returns {Part}
- */
-function roundedCubePart(id, widthMm, heightMm, thicknessMm, cornerRadiusMm) {
-  const profile = primitives.roundedRectangle({
-    size: [widthMm, heightMm],
-    roundRadius: cornerRadiusMm,
-    segments: SEGMENTS,
-    center: [0, 0],
-  })
-  return makePart(id, {
-    baseRecords: [
-      {
-        id: `${id}.profile`,
-        op: 'profile.roundedRectangle',
-        params: { size: [widthMm, heightMm], roundRadius: cornerRadiusMm, segments: SEGMENTS },
-      },
-      {
-        id: `${id}.prism`,
-        op: 'profile.extrudeLinear',
-        params: { height: thicknessMm },
-        target: `${id}.profile`,
-      },
-    ],
-    baseId: `${id}.prism`,
-    base: extrusions.extrudeLinear({ height: thicknessMm }, profile),
-    naturalOffsetMm: [widthMm / 2, heightMm / 2, 0],
-  })
-}
-
-/**
- * @param {Part[]} parts
- * @param {Vec3Mm} vectorMm
- */
-function move(parts, vectorMm) {
-  for (const part of parts) {
-    part.offsetMm = addVectors(part.offsetMm, vectorMm)
-    part.geom = transforms.translate(vectorMm, part.geom)
-  }
-}
-
-/**
- * V1's `group.rotate(solid, axis, angle)`, narrowed to the one axis these sources use.
- * The pivot is `pivot`'s current bounding-box centre — `jscad-utils`' `util.centroid`
- * is the box centre, not the centre of mass, and `group.js`'s {@link centroidOf} is the
- * ported equal.
- *
- * Recorded as a `transform.rotate` with an explicit `center`, because that op's
- * `center` defaults to the **world origin** — the correction `core-015`'s retirement
- * note had to make to its own TODO spec, and the reason this one passes a centre
- * rather than relying on a default.
- *
- * @param {Part} part
- * @param {Part} pivot
- * @param {number} angleDeg
- * @returns {Part}
- */
-function turnAbout(part, pivot, angleDeg) {
-  const center = centroidOf(pivot.geom)
-  part.turn = { angles: [0, 0, angleDeg], center }
-  part.geom = transforms.translate(
-    center,
-    transforms.rotate(
-      [0, 0, degToRad(angleDeg)],
-      transforms.translate(/** @type {Vec3Mm} */ ([-center[0], -center[1], -center[2]]), part.geom)
-    )
-  )
-  return part
-}
-
-/**
- * V1's placement chain, one call at a time.
- *
- * @param {Part | Part[]} target What moves.
- * @param {Part} [ruler] What gets measured; defaults to the first (or only) part.
- */
-function chain(target, ruler) {
-  const parts = Array.isArray(target) ? target : [target]
-  const measured = ruler ?? parts[0]
-
-  const api = {
-    /**
-     * @param {Part} reference
-     * @param {string} axes
-     * @param {string} orientation A key of `group.js`'s `SNAP_SIDES`.
-     * @param {number} [deltaMm]
-     */
-    snap(reference, axes, orientation, deltaMm) {
-      move(parts, calcSnap(measured.geom, reference.geom, axes, orientation, deltaMm))
-      return api
-    },
-
-    /**
-     * @param {Part} reference
-     * @param {string} axes
-     */
-    align(reference, axes) {
-      move(parts, calcCenterWith(measured.geom, axes, reference.geom))
-      return api
-    },
-
-    /** @param {readonly number[]} vectorMm */
-    translate(vectorMm) {
-      move(parts, /** @type {Vec3Mm} */ ([vectorMm[0], vectorMm[1], vectorMm[2]]))
-      return api
-    },
-  }
-
-  return api
-}
-
-/**
- * @param {PlanItem[]} plan
- * @param {Part} part
- * @param {string} name
- * @param {{ hidden?: boolean }} [options]
- * @returns {Part}
- */
-function place(plan, part, name, options = {}) {
-  part.name = name
-  if (options.hidden) part.hidden = true
-  plan.push({ kind: 'part', part })
-  return part
-}
-
-/**
- * A part V1 built as a multi-solid `Group` whose `combine()` is genuinely more than any
- * one member: every solid stays addressable as a hidden part, and the visible part is
- * their union. `hardware.bolt.js`'s `tap` shape, and `raspberrypi.bplus.js`'s.
- *
- * @param {PlanItem[]} plan
- * @param {string} name
- * @param {Part[]} parts
- */
-function placeUnion(plan, name, parts) {
-  for (const part of parts) place(plan, part, part.id, { hidden: true })
-  plan.push({ kind: 'union', id: name, name, operands: parts.map((part) => part.id) })
-}
-
-/**
- * @param {PlanItem} item
- * @returns {OpRecord[]}
- */
-function emit(item) {
-  if (item.kind === 'union') {
-    return [
-      {
-        id: item.id,
-        op: 'boolean.union',
-        params: {},
-        operands: [...item.operands],
-        name: item.name,
-      },
-    ]
-  }
-  const { part } = item
-  const label = {
-    ...(part.name ? { name: part.name } : {}),
-    ...(part.hidden ? { hidden: true } : {}),
-  }
-  // The turn, when there is one, is the part's last record and therefore the one that
-  // carries its name — so the document's named part is the turned solid, not the
-  // un-turned one underneath it.
-  const translate = {
-    id: part.turn ? `${part.id}.placed` : part.id,
-    op: 'transform.translate',
-    params: { vector: [...part.offsetMm] },
-    target: part.baseId,
-    ...(part.turn ? {} : label),
-  }
-  if (!part.turn) return [...part.baseRecords, translate]
-  return [
-    ...part.baseRecords,
-    translate,
-    {
-      id: part.id,
-      op: 'transform.rotate',
-      params: { angles: [...part.turn.angles], center: [...part.turn.center] },
-      target: translate.id,
-      ...label,
-    },
-  ]
-}
 
 /**
  * Expand a `raspberrypi.touchDisplay7inch` document line into the op records that
@@ -477,8 +177,7 @@ function emit(item) {
 export function touchDisplay7inch(params = {}) {
   void params
 
-  /** @type {PlanItem[]} */
-  const plan = []
+  const builder = createBuilder()
 
   const lens = roundedCubePart(
     'lens',
@@ -487,14 +186,14 @@ export function touchDisplay7inch(params = {}) {
     LENS_MM.thicknessMm,
     LENS_MM.cornerRadiusMm
   )
-  place(plan, lens, 'lens')
+  builder.place(lens, 'lens')
 
   const backPlate = cuboidPart('backPlate', BACK_PLATE_MM)
   chain(backPlate)
     .snap(lens, 'xy', 'inside-')
     .snap(lens, 'z', 'outside-')
     .translate(BACK_PLATE_OFFSET_MM)
-  place(plan, backPlate, 'backPlate')
+  builder.place(backPlate, 'backPlate')
 
   SCREEN_MOUNTING_PAD_OFFSETS_MM.forEach((cloneOffsetMm, index) => {
     const n = index + 1
@@ -513,10 +212,10 @@ export function touchDisplay7inch(params = {}) {
     move([pad, hole], /** @type {Vec3Mm} */ ([...cloneOffsetMm]))
     // All four, not just pad 1 — see the module doc on `Group.rotate` mutating. The
     // hole is the pivot, so it neither moves nor changes shape; only the pad does.
-    turnAbout(pad, hole, 90)
+    turnAboutZ(pad, centreOf(hole), 90)
 
-    place(plan, pad, `screenMountingPad${n}`)
-    place(plan, hole, `screenMountingPad${n}hole`, { hidden: true })
+    builder.place(pad, `screenMountingPad${n}`)
+    builder.place(hole, `screenMountingPad${n}hole`, { hidden: true })
   })
 
   PI_MOUNTING_PAD_OFFSETS_MM.forEach((cloneOffsetMm, index) => {
@@ -535,7 +234,7 @@ export function touchDisplay7inch(params = {}) {
     // The one assembly here whose combined solid is more than any single member, and
     // the one the dropped attachment step measures — so it is a real union, not a
     // renamed pad.
-    placeUnion(plan, `piMountingPad${n}`, [pad, post])
+    builder.placeUnion(`piMountingPad${n}`, [pad, post])
   })
 
   const noGoPower = cuboidPart('noGoPower', NO_GO_POWER_MM.sizeMm)
@@ -545,7 +244,7 @@ export function touchDisplay7inch(params = {}) {
     .snap(backPlate, 'z', 'outside-')
     .translate(NO_GO_POWER_MM.offsetMm)
   // V1 adds this one visible (`:147`'s `false`), unlike its TouchScreen2 namesake.
-  place(plan, noGoPower, 'noGoPower')
+  builder.place(noGoPower, 'noGoPower')
 
-  return plan.flatMap(emit)
+  return builder.build()
 }

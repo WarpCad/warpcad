@@ -650,3 +650,13 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **To Add:** repo URL once public; a short clip of the tilted halves being drilled into at phone width
 
+## 2026-09-18T19:27:00Z — Four copies of the same 200 lines, now one
+
+**Post:** WarpCad's Raspberry Pi recipes each carried a private copy of the same place-and-measure helpers. Four files, one module now, 1,047 fewer lines. No behaviour change, and I checked that the dumb way: 34 recipe outputs serialised before and after, compared byte for byte. Identical.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Evidence:** "four files each carried a private copy" → the four `function makePart`/`chain`/`addVectors` definitions removed in this diff, in `raspberrypi.bplus.js`, `cameraModule.js`, `touchDisplay7inch.js`, `touchScreen2.js`; "1,047 fewer lines" → `wc -l` on `src/core/kernel/recipes/*.js` this session, 10,865 before and 9,818 after; "34 recipe outputs ... byte for byte, identical" → `cmp` on JSON dumps of 34 recipe/param variants this session, 180,793 bytes both times
+**Disclosure:** Built with Claude Code, reviewed by me.
+**To Add:** repo URL once public

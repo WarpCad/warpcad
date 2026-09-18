@@ -75,13 +75,25 @@
 
 import modeling from '@jscad/modeling'
 
-import { axisApply, calcCenterWith, calcSnap, enlarge, sizeOf } from '../group.js'
+import { axisApply, enlarge } from '../group.js'
+import {
+  addVectors,
+  chain,
+  createBuilder,
+  cuboidPart,
+  cylinderPart,
+  degToRad,
+  makePart,
+  roundedCubePart,
+} from './rpi-recipe-kit.js'
 
 // See group.js: default import, not named, so this runs under raw Node ESM too.
-const { extrusions, primitives, transforms } = modeling
+const { primitives, transforms } = modeling
 
 /** @typedef {import('@jscad/modeling').geometries.geom3.Geom3} Geom3 */
 /** @typedef {import('../registry.js').OpRecord} OpRecord */
+/** @typedef {import('./rpi-recipe-kit.js').Part} Part */
+/** @typedef {import('./rpi-recipe-kit.js').Builder} Builder */
 /** @typedef {[number, number, number]} Vec3Mm */
 
 const OP = 'raspberrypi.cameraModule'
@@ -108,14 +120,6 @@ export const CAMERA_MODULE_MODELS = Object.freeze(
 export const DEFAULT_MODEL = 'v3'
 
 /**
- * Segment count for every cylinder and rounded corner here. Matches `registry.js`'s
- * `DEFAULT_SEGMENTS` and `@jscad/csg`'s `defaultResolution2D`, which V1 passed
- * explicitly. Defined locally rather than imported from `registry.js`, which imports
- * *this* file.
- */
-const SEGMENTS = 32
-
-/**
  * `jscad-utils`' `util.NOZZEL_SIZE` (`src/util.js:26`) — the extrusion width V1 rounds
  * pin diameters down to, so a printed pin is a whole number of perimeters.
  */
@@ -133,165 +137,7 @@ function nearestUnder(desiredMm) {
   return Math.floor(desiredMm / NOZZLE_SIZE_MM) * NOZZLE_SIZE_MM
 }
 
-/**
- * @param {number} degrees
- * @returns {number}
- */
-function degToRad(degrees) {
-  return (degrees * Math.PI) / 180
-}
 
-/**
- * One solid on its way to a position: the records that build it un-placed, the
- * millimetre offset accumulated so far, and a probe sitting where that offset puts it.
- *
- * @typedef {object} Part
- * @property {string} id
- * @property {OpRecord[]} baseRecords Records that build the solid before placement.
- * @property {string} baseId Id of the last base record — the translate's target.
- * @property {Vec3Mm} offsetMm Accumulated placement, baked into one translate at emit.
- * @property {Geom3} geom Probe geometry, currently placed. Thrown away.
- * @property {string} [name] Part name in the resulting group.
- * @property {boolean} [hidden] Named but out of the group's default combine.
- */
-
-/**
- * @typedef {{ kind: 'part', part: Part } |
- *   { kind: 'boolean', id: string, op: 'boolean.union' | 'boolean.subtract',
- *     target: string, operands: string[], name?: string, hidden?: boolean }} PlanItem
- */
-
-/**
- * @param {...(readonly number[])} vectors
- * @returns {Vec3Mm}
- */
-function addVectors(...vectors) {
-  return /** @type {Vec3Mm} */ (
-    vectors.reduce(
-      (total, vector) => [total[0] + vector[0], total[1] + vector[1], total[2] + vector[2]],
-      [0, 0, 0]
-    )
-  )
-}
-
-/**
- * Assemble a {@link Part} from the records that build it and the position V1's own
- * factory left it in.
- *
- * `naturalOffsetMm` is the V1→V3 impedance mismatch in one number: V1's factories
- * disagree about where a fresh solid sits (`Parts.Cube` puts its minimum corner on the
- * origin, `Parts.Cylinder` its base, `.Center()` centres xy and leaves z alone) while
- * every `primitive.*` op here is centred. That difference is not cosmetic, because
- * `midlineTo` and a bare `.translate` move a solid *relatively*.
- *
- * @param {string} id
- * @param {object} args
- * @param {OpRecord[]} args.baseRecords
- * @param {string} args.baseId
- * @param {Geom3} args.base Geometry the base records produce.
- * @param {Vec3Mm} args.naturalOffsetMm
- * @returns {Part}
- */
-function makePart(id, { baseRecords, baseId, base, naturalOffsetMm }) {
-  return {
-    id,
-    baseRecords,
-    baseId,
-    offsetMm: naturalOffsetMm,
-    geom: transforms.translate(naturalOffsetMm, base),
-  }
-}
-
-/**
- * V1's `Parts.Cube({x, y, z})`: a box with its minimum corner on the origin.
- *
- * @param {string} id
- * @param {readonly number[]} sizeMm
- * @returns {Part}
- */
-function cuboidPart(id, sizeMm) {
-  const size = /** @type {Vec3Mm} */ ([sizeMm[0], sizeMm[1], sizeMm[2]])
-  return makePart(id, {
-    baseRecords: [{ id: `${id}.solid`, op: 'primitive.cuboid', params: { size: [...size] } }],
-    baseId: `${id}.solid`,
-    base: primitives.cuboid({ size }),
-    naturalOffsetMm: [size[0] / 2, size[1] / 2, size[2] / 2],
-  })
-}
-
-/**
- * V1's `Parts.Cylinder(diameter, height)`: upright, its base on `z = 0`, centred on the
- * origin in plan.
- *
- * @param {string} id
- * @param {number} diameterMm
- * @param {number} heightMm
- * @returns {Part}
- */
-function cylinderPart(id, diameterMm, heightMm) {
-  return makePart(id, {
-    baseRecords: [
-      {
-        id: `${id}.solid`,
-        op: 'primitive.cylinder',
-        params: { diameter: diameterMm, height: heightMm, segments: SEGMENTS },
-      },
-    ],
-    baseId: `${id}.solid`,
-    base: primitives.cylinder({
-      radius: diameterMm / 2,
-      height: heightMm,
-      segments: SEGMENTS,
-    }),
-    naturalOffsetMm: [0, 0, heightMm / 2],
-  })
-}
-
-/**
- * V1's `Parts.RoundedCube(x, y, thickness, cornerRadius)` — a rounded rectangle
- * extruded to thickness, the same `profile.roundedRectangle` → `profile.extrudeLinear`
- * pair `kit.board` emits. (A composite cannot invoke another composite's expansion, so
- * this reuses the pattern rather than the op.)
- *
- * @param {string} id
- * @param {number} widthMm
- * @param {number} heightMm
- * @param {number} thicknessMm
- * @param {number} cornerRadiusMm
- * @param {'corner' | 'centred'} frame `'corner'` is V1's bare `RoundedCube`;
- *   `'centred'` is the same thing with `.Center()` applied — xy only, never z.
- * @returns {Part}
- */
-function roundedCubePart(id, widthMm, heightMm, thicknessMm, cornerRadiusMm, frame) {
-  const profile = primitives.roundedRectangle({
-    size: [widthMm, heightMm],
-    roundRadius: cornerRadiusMm,
-    segments: SEGMENTS,
-    center: [0, 0],
-  })
-  return makePart(id, {
-    baseRecords: [
-      {
-        id: `${id}.profile`,
-        op: 'profile.roundedRectangle',
-        params: {
-          size: [widthMm, heightMm],
-          roundRadius: cornerRadiusMm,
-          segments: SEGMENTS,
-        },
-      },
-      {
-        id: `${id}.prism`,
-        op: 'profile.extrudeLinear',
-        params: { height: thicknessMm },
-        target: `${id}.profile`,
-      },
-    ],
-    baseId: `${id}.prism`,
-    base: extrusions.extrudeLinear({ height: thicknessMm }, profile),
-    naturalOffsetMm: frame === 'corner' ? [widthMm / 2, heightMm / 2, 0] : [0, 0, 0],
-  })
-}
 
 /**
  * A part built *from another part's result* rather than from a primitive — V1's
@@ -373,130 +219,6 @@ function stretchCuboid(part, axis, distanceMm) {
   return part
 }
 
-/**
- * @param {Part[]} parts
- * @param {Vec3Mm} vectorMm
- */
-function move(parts, vectorMm) {
-  for (const part of parts) {
-    part.offsetMm = addVectors(part.offsetMm, vectorMm)
-    part.geom = transforms.translate(vectorMm, part.geom)
-  }
-}
-
-/**
- * V1's placement chain, one call at a time.
- *
- * @param {Part | Part[]} target What moves.
- * @param {Part} [ruler] What gets measured; defaults to the first (or only) part.
- */
-function chain(target, ruler) {
-  const parts = Array.isArray(target) ? target : [target]
-  const measured = ruler ?? parts[0]
-
-  const api = {
-    /**
-     * @param {Part} reference
-     * @param {string} axes
-     * @param {string} orientation A key of `group.js`'s `SNAP_SIDES`.
-     * @param {number} [deltaMm]
-     */
-    snap(reference, axes, orientation, deltaMm) {
-      move(parts, calcSnap(measured.geom, reference.geom, axes, orientation, deltaMm))
-      return api
-    },
-
-    /**
-     * V1's `.align(to, axis)`. Worth noting because three call sites in these sources
-     * pass a third argument (`camera-module-v1.js:84`'s `.align(lens, 'y', 'inside-')`)
-     * that `add-prototype.js:186` simply does not accept — it is silently ignored there
-     * and deliberately not reproduced here.
-     *
-     * @param {Part} reference
-     * @param {string} axes
-     */
-    align(reference, axes) {
-      move(parts, calcCenterWith(measured.geom, axes, reference.geom))
-      return api
-    },
-
-    /**
-     * V1's `util.calcmidlineTo`, quirk included: it returns `to - size / 2` as a
-     * *relative* translation, without consulting where the solid currently is. In these
-     * five sources every call site is preceded by a `snap(board, …, 'inside-')` on the
-     * same axis, so the solid's minimum is the board's minimum and the result really is
-     * "put the midline `to` millimetres in from the board's edge". Ported as the
-     * relative translate it actually is, so a future call site that breaks that
-     * precondition diverges from V1 the same way V1 diverges from itself.
-     *
-     * @param {string} axis
-     * @param {number} toMm
-     */
-    midlineTo(axis, toMm) {
-      const size = sizeOf(measured.geom)
-      move(
-        parts,
-        axisApply(axis, (index) => toMm - size[index] / 2)
-      )
-      return api
-    },
-
-    /** @param {Vec3Mm} vectorMm */
-    translate(vectorMm) {
-      move(parts, vectorMm)
-      return api
-    },
-  }
-
-  return api
-}
-
-/**
- * @param {PlanItem[]} plan
- * @param {Part} part
- * @param {string | null} name `null` for a pure intermediate — a cutting tool, or the
- *   un-booleaned half of a part V1 only ever exposes through its boolean.
- * @param {{ hidden?: boolean }} [options]
- * @returns {Part}
- */
-function place(plan, part, name, options = {}) {
-  if (name !== null) part.name = name
-  if (options.hidden) part.hidden = true
-  plan.push({ kind: 'part', part })
-  return part
-}
-
-/**
- * @param {PlanItem} item
- * @returns {OpRecord[]}
- */
-function emit(item) {
-  if (item.kind === 'boolean') {
-    return [
-      {
-        id: item.id,
-        op: item.op,
-        params: {},
-        target: item.target,
-        operands: [...item.operands],
-        ...(item.name ? { name: item.name } : {}),
-        ...(item.hidden ? { hidden: true } : {}),
-      },
-    ]
-  }
-  const { part } = item
-  return [
-    ...part.baseRecords,
-    {
-      id: part.id,
-      op: 'transform.translate',
-      params: { vector: [...part.offsetMm] },
-      target: part.baseId,
-      ...(part.name ? { name: part.name } : {}),
-      ...(part.hidden ? { hidden: true } : {}),
-    },
-  ]
-}
 
 /**
  * The four mounting-hole centres every classic variant shares, measured from the
@@ -514,10 +236,10 @@ const CLASSIC_HOLE_CENTRES_MM = Object.freeze([
  * The v1/v2/v3 family. One board, four holes with a mount and a pin each, a sensor with
  * a lens and a lens ribbon, a display ribbon down the `+x` edge, and two keep-outs.
  *
- * @param {PlanItem[]} plan
+ * @param {Builder} builder
  * @param {CameraModel} model
  */
-function addClassicFamily(plan, model) {
+function addClassicFamily(builder, model) {
   // `t` is V1's own variable name and is *not* always the board thickness: v3 makes the
   // board 1.12 thick (`camera-module-v3.js:32`) while leaving `t` at 1.1, which is why
   // its pins float 0.01 mm clear of each face.
@@ -572,23 +294,23 @@ function addClassicFamily(plan, model) {
           spec.cornerRadiusMm,
           'centred'
         )
-  place(plan, board, 'board')
+  builder.place(board, 'board')
 
   /** @type {Part[]} */
   const holes = []
   CLASSIC_HOLE_CENTRES_MM.forEach(([xMm, yMm], index) => {
     const hole = cylinderPart(`hole${index}`, 2.2, spec.holeDepthMm)
     chain(hole).snap(board, 'xy', 'inside-').midlineTo('x', xMm).midlineTo('y', yMm)
-    place(plan, hole, `hole${index}`, { hidden: true })
+    builder.place(hole, `hole${index}`, { hidden: true })
     holes.push(hole)
 
     const mount = cylinderPart(`mount${index}`, 4, spec.mountHeightMm)
     chain(mount).align(hole, 'xy').snap(board, 'z', 'outside-')
-    place(plan, mount, `mount${index}`, { hidden: true })
+    builder.place(mount, `mount${index}`, { hidden: true })
 
     const pin = cylinderPart(`pin${index}`, nearestUnder(1.5), tMm)
     chain(pin).align(hole, 'xy').align(board, 'z')
-    place(plan, pin, `pin${index}`, { hidden: true })
+    builder.place(pin, `pin${index}`, { hidden: true })
   })
 
   const sensor = cuboidPart('sensor', spec.sensorMm)
@@ -597,24 +319,24 @@ function addClassicFamily(plan, model) {
     .snap(board, 'z', 'outside-')
     .midlineTo('x', 14.5)
     .midlineTo('y', 12.5)
-  place(plan, sensor, 'sensor')
+  builder.place(sensor, 'sensor')
 
   if (model === 'v1') {
     // A square block, not a barrel — the one variant whose lens is a cuboid.
     const lens = cuboidPart('lens', [8.5, 8.5, 5.9 - tMm - 2])
     chain(lens).align(sensor, 'xy').snap(sensor, 'z', 'outside-')
-    place(plan, lens, 'lens')
+    builder.place(lens, 'lens')
 
     const lensribbon = cuboidPart('lensribbon', [7.56, 10, 2.65 - tMm])
     chain(lensribbon)
       .snap(board, 'z', 'outside-')
       .align(lens, 'y')
       .snap(lens, 'x', 'outside+', -1)
-    place(plan, lensribbon, 'lensribbon')
+    builder.place(lensribbon, 'lensribbon')
   } else if (model === 'v2') {
     const lens = cylinderPart('lens', 7.3, 1.6)
     chain(lens).align(sensor, 'xy').snap(sensor, 'z', 'outside-')
-    place(plan, lens, 'lens')
+    builder.place(lens, 'lens')
 
     const lensribbon = cuboidPart('lensribbon', [4, 9, 2.65 - tMm])
     chain(lensribbon)
@@ -623,11 +345,11 @@ function addClassicFamily(plan, model) {
       .midlineTo('x', 4.7)
       .midlineTo('y', 13.8)
     stretchCuboid(lensribbon, 'x', 4)
-    place(plan, lensribbon, 'lensribbon')
+    builder.place(lensribbon, 'lensribbon')
   } else {
     const lens = cylinderPart('lens', 8.1, 6.98 - 3.875)
     chain(lens).align(sensor, 'xy').snap(sensor, 'z', 'outside-')
-    place(plan, lens, 'lens')
+    builder.place(lens, 'lens')
 
     const lensribbon = cuboidPart('lensribbon', [7.3, 8.9, 2.65 - tMm])
     chain(lensribbon)
@@ -635,7 +357,7 @@ function addClassicFamily(plan, model) {
       .align(sensor, 'y')
       .translate([0, -1.5, 0])
       .snap(board, 'z', 'outside-')
-    place(plan, lensribbon, 'lensribbon')
+    builder.place(lensribbon, 'lensribbon')
   }
 
   const ribbon = cuboidPart('ribbon', spec.ribbonMm)
@@ -644,7 +366,7 @@ function addClassicFamily(plan, model) {
     .snap(board, 'y', 'inside-')
     .snap(board, 'z', 'outside+')
     .midlineTo('y', 12.5)
-  place(plan, ribbon, 'ribbon')
+  builder.place(ribbon, 'ribbon')
 
   // The underside keep-out: a slab as wide as the board less the ribbon's own strip,
   // with a generously enlarged copy of each mounting hole cut out of it.
@@ -657,16 +379,15 @@ function addClassicFamily(plan, model) {
     'corner'
   )
   chain(slab).snap(board, 'xy', 'inside-').snap(board, 'z', 'outside+')
-  place(plan, slab, null)
+  builder.place(slab, null)
 
   const cuts = holes.map((hole, index) => {
     const cut = enlargedPart(`bottom-nogo.cut${index}`, hole, [3, 3, 5])
     // Unnamed: a cutting tool is not a part of the assembly, unlike the `-nogo`
     // volumes themselves, which are hidden but addressable.
-    return place(plan, cut, null)
+    return builder.place(cut, null)
   })
-  plan.push({
-    kind: 'boolean',
+  builder.placeBoolean({
     id: 'bottom-nogo',
     op: 'boolean.subtract',
     target: slab.id,
@@ -677,7 +398,7 @@ function addClassicFamily(plan, model) {
 
   const ribbonNogo = enlargedPart('ribbon-nogo', ribbon, [2, -1, -1])
   chain(ribbonNogo).snap(ribbon, 'x', 'outside-')
-  place(plan, ribbonNogo, 'ribbon-nogo', { hidden: true })
+  builder.place(ribbonNogo, 'ribbon-nogo', { hidden: true })
 }
 
 /**
@@ -685,11 +406,11 @@ function addClassicFamily(plan, model) {
  * same four rotated corner holes, same lens-mount ring; the Arducam drops the tripod
  * mount and uses a smaller, taller ring on a thicker board.
  *
- * @param {PlanItem[]} plan
+ * @param {Builder} builder
  * @param {CameraModel} model
  * @param {boolean} flipTripodMount
  */
-function addHqFamily(plan, model, flipTripodMount) {
+function addHqFamily(builder, model, flipTripodMount) {
   const spec =
     model === 'hq'
       ? {
@@ -710,11 +431,11 @@ function addHqFamily(plan, model, flipTripodMount) {
         }
 
   const board = roundedCubePart('board', 38, 38, spec.thicknessMm, 1.4, 'centred')
-  place(plan, board, 'board')
+  builder.place(board, 'board')
 
   const hole1 = cylinderPart('hole1', 3.25, 10)
   chain(hole1).snap(board, 'xy', 'inside+', 1.25).translate([-4, -4, -5])
-  place(plan, hole1, 'hole1', { hidden: true })
+  builder.place(hole1, 'hole1', { hidden: true })
 
   // `hq_camera-module.js:57-59` turns the *same* hole by 90/180/-90 rather than
   // positioning four holes. `transforms.rotate` — and this project's `transform.rotate`
@@ -729,19 +450,19 @@ function addHqFamily(plan, model, flipTripodMount) {
       source: hole1,
       base: transforms.rotate([0, 0, degToRad(angleDeg)], hole1.geom),
     })
-    place(plan, turned, `hole${index + 2}`, { hidden: true })
+    builder.place(turned, `hole${index + 2}`, { hidden: true })
   })
 
   const sensor = cuboidPart('sensor', [8.5, 8.5, 1])
   chain(sensor).snap(board, 'z', 'outside-').align(board, 'xy')
-  place(plan, sensor, 'sensor')
+  builder.place(sensor, 'sensor')
 
   // V1 keeps the un-subtracted cylinder as `mount-clearance` and adds the ring as
   // `mount`, so both names describe the same solid at two stages. Emitted the same way:
   // the clearance record *is* the subtraction's base.
   const mountClearance = cylinderPart('mount-clearance', spec.mountDiameterMm, spec.mountHeightMm)
   chain(mountClearance).snap(board, 'z', 'outside-').align(board, 'xy')
-  place(plan, mountClearance, 'mount-clearance', { hidden: true })
+  builder.place(mountClearance, 'mount-clearance', { hidden: true })
 
   const mountInside = cylinderPart(
     'mount-inside',
@@ -749,10 +470,9 @@ function addHqFamily(plan, model, flipTripodMount) {
     spec.mountHeightMm
   )
   chain(mountInside).snap(board, 'z', 'outside-').align(board, 'xy')
-  place(plan, mountInside, null)
+  builder.place(mountInside, null)
 
-  plan.push({
-    kind: 'boolean',
+  builder.placeBoolean({
     id: 'mount',
     op: 'boolean.subtract',
     target: mountClearance.id,
@@ -766,13 +486,12 @@ function addHqFamily(plan, model, flipTripodMount) {
       .snap(mountClearance, 'z', 'inside+')
       .snap(board, 'y', 'inside-', -1)
       .align(mountClearance, 'x')
-    place(plan, baseSolid, null)
+    builder.place(baseSolid, null)
 
     // The base is carved by the same bore the ring is, so the tripod block follows the
     // lens mount's curve. The carve does not move its bounding box — the block is wider
     // than the bore's chord at that y — so the post below can still snap against it.
-    plan.push({
-      kind: 'boolean',
+    builder.placeBoolean({
       id: 'tripodMount-base',
       op: 'boolean.subtract',
       target: baseSolid.id,
@@ -786,10 +505,9 @@ function addHqFamily(plan, model, flipTripodMount) {
       .snap(baseSolid, 'z', flipTripodMount ? 'inside-' : 'inside+')
       .snap(baseSolid, 'y', 'outside+')
       .align(mountClearance, 'x')
-    place(plan, post, 'tripodMount-post', { hidden: true })
+    builder.place(post, 'tripodMount-post', { hidden: true })
 
-    plan.push({
-      kind: 'boolean',
+    builder.placeBoolean({
       id: 'tripodMount',
       op: 'boolean.union',
       target: 'tripodMount-base',
@@ -800,11 +518,11 @@ function addHqFamily(plan, model, flipTripodMount) {
 
   const ribbon = cuboidPart('ribbon', [20.8, 5.5, spec.ribbonThicknessMm])
   chain(ribbon).snap(board, 'y', 'inside-').snap(board, 'z', 'outside+').align(board, 'x')
-  place(plan, ribbon, 'ribbon')
+  builder.place(ribbon, 'ribbon')
 
   const ribbonNogo = enlargedPart('ribbon-nogo', ribbon, [2, 4, -1])
   chain(ribbonNogo).snap(ribbon, 'y', 'outside+')
-  place(plan, ribbonNogo, 'ribbon-nogo', { hidden: true })
+  builder.place(ribbonNogo, 'ribbon-nogo', { hidden: true })
 }
 
 /**
@@ -834,11 +552,10 @@ export function cameraModule(params) {
     )
   }
 
-  /** @type {PlanItem[]} */
-  const plan = []
+  const builder = createBuilder()
 
-  if (model === 'hq' || model === 'arducam-hq') addHqFamily(plan, model, flipTripodMount)
-  else addClassicFamily(plan, model)
+  if (model === 'hq' || model === 'arducam-hq') addHqFamily(builder, model, flipTripodMount)
+  else addClassicFamily(builder, model)
 
-  return plan.flatMap(emit)
+  return builder.build()
 }

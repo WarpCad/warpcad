@@ -1,21 +1,19 @@
 /**
- * The probe-and-bake kit the `raspberrypi.*` small-display recipes share.
+ * The probe-and-bake kit every `raspberrypi.*` composite recipe shares.
  *
- * ## Why this exists, and why it is not the extraction `core-016` deferred
+ * ## Where this came from
  *
- * `core-014` invented the probe-and-bake expansion pattern, `core-015` grew a narrower
- * cousin of it, and `core-016` grew a third and concluded — on a sample of three —
- * that the common core is worth extracting, but that doing so is a refactor of
- * already-shipped, fixture-verified recipes and wants its own task with those fixtures
- * as its safety net. That task is still open, and this module does not do it: nothing
- * in `raspberrypi.bplus.js`, `raspberrypi.cameraModule.js`,
- * `raspberrypi.touchDisplay7inch.js` or `raspberrypi.touchScreen2.js` imports from
- * here or was touched by `core-017`.
- *
- * What this is, instead, is the home for `core-017`'s **four new** recipes plus their
- * shared `Hat`, which would otherwise have copied the same ~200 lines five times. When
- * the deferred extraction task runs, this is the module it should grow into rather
- * than a sixth copy.
+ * `core-014` invented the probe-and-bake expansion pattern, `core-015` and `core-016`
+ * each grew their own ~200-line copy of it, and `core-017` built this module as a
+ * fourth so its own five recipes would not need a fifth. `core-025` finished the job:
+ * `raspberrypi.bplus.js`, `raspberrypi.cameraModule.js`,
+ * `raspberrypi.touchDisplay7inch.js` and `raspberrypi.touchScreen2.js` now import
+ * everything here instead of carrying private copies, and their expansions were checked
+ * to emit byte-identical records before and after. Where the copies had differed only
+ * in *signature* (a `frame` argument on {@link cuboidPart}, a `rotationDeg` option on
+ * {@link cylinderPart}, a `frame` argument on {@link roundedCubePart}, an array
+ * reference in {@link chain}), this module took the union of them as optional arguments
+ * whose defaults reproduce the older behaviour exactly.
  *
  * ## The pattern, in one paragraph
  *
@@ -29,8 +27,8 @@
  *
  * ## Deriving one part from others
  *
- * Unlike `core-014`-`016`, this task needs booleans and `modify.*` ops *inside* an
- * expansion, over parts the same expansion just placed. {@link booleanPart} and
+ * Unlike the first three recipe sets, `core-017` needed booleans and `modify.*` ops
+ * *inside* an expansion, over parts the same expansion just placed. {@link booleanPart} and
  * {@link modifyPart} do that: they finalise their operands (freezing those operands'
  * placement and emitting their records), then add one more record on top. An operand
  * that is *also* named as a part of its own — V1 does this constantly, e.g. a button's
@@ -63,6 +61,17 @@ export const SEGMENTS = 32
  * @returns {number}
  */
 export const inchToMm = (inches) => inches * 25.4
+
+/**
+ * Degrees to radians. Local to the recipes because the registry's own copy lives in the
+ * module that imports them.
+ *
+ * @param {number} degrees
+ * @returns {number}
+ */
+export function degToRad(degrees) {
+  return (degrees * Math.PI) / 180
+}
 
 /**
  * One part under construction: the records that build it in its own natural frame, the
@@ -116,19 +125,22 @@ export function makePart(id, { baseRecords, baseId, base, naturalOffsetMm }) {
 }
 
 /**
- * V1's `Parts.Cube({x, y, z})`: minimum corner on the origin.
+ * V1's `Parts.Cube({x, y, z})`: minimum corner on the origin. `frame: 'center'` is V1's
+ * `Parts.CSG_cube` with a symmetric radius instead, which is already centred on all
+ * three axes — the frame `raspberrypi.bplus.js`'s spec table needs for some parts.
  *
  * @param {string} id
  * @param {readonly number[]} sizeMm
+ * @param {'corner' | 'center'} [frame]
  * @returns {Part}
  */
-export function cuboidPart(id, sizeMm) {
+export function cuboidPart(id, sizeMm, frame = 'corner') {
   const size = /** @type {Vec3Mm} */ ([sizeMm[0], sizeMm[1], sizeMm[2]])
   return makePart(id, {
     baseRecords: [{ id: `${id}.solid`, op: 'primitive.cuboid', params: { size: [...size] } }],
     baseId: `${id}.solid`,
     base: primitives.cuboid({ size }),
-    naturalOffsetMm: [size[0] / 2, size[1] / 2, size[2] / 2],
+    naturalOffsetMm: frame === 'corner' ? [size[0] / 2, size[1] / 2, size[2] / 2] : [0, 0, 0],
   })
 }
 
@@ -154,24 +166,72 @@ export function centeredCuboidPart(id, sizeMm) {
  * `frame: 'center'` is V1's `Parts.CSG_cylinder({ start: [0,0,-h/2], end: [0,0,h/2] })`
  * shape, which `MountingHole` and `Mountingpad` both use so the solid straddles a board.
  *
+ * `rotationDeg` is V1's pre-placement turn (`AvJack`'s `rotateX(90)`, `PSW`'s
+ * `rotateY(90)`), which lays the cylinder on its side. That case is where "measured, not
+ * assumed" earns its keep: V1 turns a solid whose base is on `z = 0` about the world
+ * origin, while the emitted records turn a *centred* solid about the same origin — two
+ * different results. Rather than reason about which way the difference points, both are
+ * built and their centroids differenced, so the baked offset is whatever the geometry
+ * actually says.
+ *
  * @param {string} id
  * @param {number} diameterMm
  * @param {number} heightMm
- * @param {{ frame?: 'base' | 'center' }} [options]
+ * @param {{ frame?: 'base' | 'center', rotationDeg?: readonly number[] }} [options]
  * @returns {Part}
  */
 export function cylinderPart(id, diameterMm, heightMm, options = {}) {
+  const { rotationDeg } = options
+  const upright = primitives.cylinder({ radius: diameterMm / 2, height: heightMm, segments: SEGMENTS })
+  /** @type {Vec3Mm} */
+  const uprightNaturalMm = [0, 0, options.frame === 'center' ? 0 : heightMm / 2]
+
+  /** @type {OpRecord[]} */
+  const baseRecords = [
+    {
+      id: `${id}.solid`,
+      op: 'primitive.cylinder',
+      params: { diameter: diameterMm, height: heightMm, segments: SEGMENTS },
+    },
+  ]
+
+  if (!rotationDeg) {
+    return makePart(id, {
+      baseRecords,
+      baseId: `${id}.solid`,
+      base: upright,
+      naturalOffsetMm: uprightNaturalMm,
+    })
+  }
+
+  /** @param {Geom3} geometry */
+  const turn = (geometry) =>
+    transforms.rotate(
+      [degToRad(rotationDeg[0]), degToRad(rotationDeg[1]), degToRad(rotationDeg[2])],
+      geometry
+    )
+
+  const base = turn(upright)
+  const v1Natural = turn(transforms.translate(uprightNaturalMm, upright))
+  const baseCentre = centroidOf(base)
+  const naturalCentre = centroidOf(v1Natural)
+
+  baseRecords.push({
+    id: `${id}.turned`,
+    op: 'transform.rotate',
+    params: { angles: [rotationDeg[0], rotationDeg[1], rotationDeg[2]] },
+    target: `${id}.solid`,
+  })
+
   return makePart(id, {
-    baseRecords: [
-      {
-        id: `${id}.solid`,
-        op: 'primitive.cylinder',
-        params: { diameter: diameterMm, height: heightMm, segments: SEGMENTS },
-      },
+    baseRecords,
+    baseId: `${id}.turned`,
+    base,
+    naturalOffsetMm: [
+      naturalCentre[0] - baseCentre[0],
+      naturalCentre[1] - baseCentre[1],
+      naturalCentre[2] - baseCentre[2],
     ],
-    baseId: `${id}.solid`,
-    base: primitives.cylinder({ radius: diameterMm / 2, height: heightMm, segments: SEGMENTS }),
-    naturalOffsetMm: [0, 0, options.frame === 'center' ? 0 : heightMm / 2],
   })
 }
 
@@ -254,9 +314,11 @@ export function clampCornerRadius(cornerRadiusMm, widthMm, heightMm) {
  * @param {number} heightMm
  * @param {number} thicknessMm
  * @param {number} cornerRadiusMm
+ * @param {'corner' | 'centred'} [frame] `'corner'` is V1's bare `RoundedCube`;
+ *   `'centred'` is the same thing with `.Center()` applied — xy only, never z.
  * @returns {Part}
  */
-export function roundedCubePart(id, widthMm, heightMm, thicknessMm, cornerRadiusMm) {
+export function roundedCubePart(id, widthMm, heightMm, thicknessMm, cornerRadiusMm, frame = 'corner') {
   const roundRadius = clampCornerRadius(cornerRadiusMm, widthMm, heightMm)
   const profile = primitives.roundedRectangle({
     size: [widthMm, heightMm],
@@ -280,7 +342,7 @@ export function roundedCubePart(id, widthMm, heightMm, thicknessMm, cornerRadius
     ],
     baseId: `${id}.prism`,
     base: extrusions.extrudeLinear({ height: thicknessMm }, profile),
-    naturalOffsetMm: [widthMm / 2, heightMm / 2, 0],
+    naturalOffsetMm: frame === 'corner' ? [widthMm / 2, heightMm / 2, 0] : [0, 0, 0],
   })
 }
 
@@ -443,7 +505,7 @@ export function chain(target, ruler) {
 
   const api = {
     /**
-     * @param {Part | Geom3} reference
+     * @param {Part | Part[] | Geom3} reference
      * @param {string} axes
      * @param {string} orientation A key of `group.js`'s `SNAP_SIDES`.
      * @param {number} [deltaMm]
@@ -454,7 +516,7 @@ export function chain(target, ruler) {
     },
 
     /**
-     * @param {Part | Geom3} reference
+     * @param {Part | Part[] | Geom3} reference
      * @param {string} axes
      */
     align(reference, axes) {
@@ -492,10 +554,16 @@ export function chain(target, ruler) {
 }
 
 /**
- * @param {Part | Geom3} value
+ * Geometry to measure a reference against. A list of parts is unioned, which is what V1
+ * did implicitly whenever a `Group` was handed to something that wanted a solid.
+ *
+ * @param {Part | Part[] | Geom3} value
  * @returns {Geom3}
  */
 function geomOf(value) {
+  if (Array.isArray(value)) {
+    return value.length === 1 ? value[0].geom : booleans.union(value.map((part) => part.geom))
+  }
   return /** @type {Part} */ (value).geom ?? /** @type {Geom3} */ (value)
 }
 
@@ -545,11 +613,29 @@ export function boundsOfPart(part) {
 }
 
 /**
+ * One boolean record a recipe places over ids it has already placed, carrying its own
+ * label — the shape `raspberrypi.cameraModule.js`'s keep-out volumes need, where the
+ * operands are unnamed cutting tools and only the result is a part.
+ *
+ * @typedef {object} PlacedBoolean
+ * @property {string} id
+ * @property {'boolean.union' | 'boolean.subtract' | 'boolean.intersect'} op
+ * @property {string} target
+ * @property {readonly string[]} operands
+ * @property {string} name
+ * @property {boolean} [hidden]
+ */
+
+/**
  * The expansion under construction: an ordered record list plus the parts named in it.
  *
  * @typedef {object} Builder
  * @property {(part: Part) => string} finalize
- * @property {(part: Part, name: string, options?: { hidden?: boolean }) => Part} place
+ * @property {(part: Part, name: string | null, options?: { hidden?: boolean }) => Part} place
+ *   `name: null` places a pure intermediate — a cutting tool, or the un-booleaned half
+ *   of a part V1 only ever exposes through its boolean — that is built but not labelled.
+ * @property {(name: string, parts: readonly Part[]) => void} placeUnion
+ * @property {(item: PlacedBoolean) => void} placeBoolean
  * @property {() => OpRecord[]} build
  */
 
@@ -559,7 +645,11 @@ export function boundsOfPart(part) {
 export function createBuilder() {
   /** @type {OpRecord[]} */
   const records = []
-  /** @type {Part[]} */
+  /**
+   * Parts and hand-built records, in the order the recipe placed them.
+   *
+   * @type {({ kind: 'part', part: Part } | { kind: 'record', record: OpRecord })[]}
+   */
   const placed = []
 
   /**
@@ -611,27 +701,72 @@ export function createBuilder() {
     return part.id
   }
 
+  /**
+   * @param {Part} part
+   * @param {string | null} name
+   * @param {{ hidden?: boolean }} [options]
+   * @returns {Part}
+   */
+  function place(part, name, options = {}) {
+    if (name !== null) part.name = name
+    if (options.hidden) part.hidden = true
+    placed.push({ kind: 'part', part })
+    return part
+  }
+
   return {
     finalize,
 
+    place,
+
     /**
-     * @param {Part} part
+     * A part V1 built as a multi-solid `Group` whose `combine()` is genuinely more than
+     * any one member: every solid stays addressable as a hidden part, and the visible
+     * part is their union — `hardware.bolt.js`'s `tap` shape.
+     *
      * @param {string} name
-     * @param {{ hidden?: boolean }} [options]
-     * @returns {Part}
+     * @param {readonly Part[]} parts
      */
-    place(part, name, options = {}) {
-      part.name = name
-      if (options.hidden) part.hidden = true
-      placed.push(part)
-      return part
+    placeUnion(name, parts) {
+      for (const part of parts) place(part, part.id, { hidden: true })
+      placed.push({
+        kind: 'record',
+        record: {
+          id: name,
+          op: 'boolean.union',
+          params: {},
+          operands: parts.map((part) => part.id),
+          name,
+        },
+      })
+    },
+
+    /** @param {PlacedBoolean} item */
+    placeBoolean(item) {
+      placed.push({
+        kind: 'record',
+        record: {
+          id: item.id,
+          op: item.op,
+          params: {},
+          target: item.target,
+          operands: [...item.operands],
+          ...(item.name ? { name: item.name } : {}),
+          ...(item.hidden ? { hidden: true } : {}),
+        },
+      })
     },
 
     build() {
-      for (const part of placed) {
+      for (const item of placed) {
+        if (item.kind === 'record') {
+          records.push(item.record)
+          continue
+        }
+        const { part } = item
         finalize(part)
         const record = /** @type {OpRecord} */ (part.finalRecord)
-        record.name = part.name
+        if (part.name) record.name = part.name
         if (part.hidden) record.hidden = true
       }
       return records

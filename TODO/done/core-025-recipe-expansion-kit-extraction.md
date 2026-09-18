@@ -6,8 +6,27 @@ priority: low
 model: sonnet
 milestone: M5
 depends: [core-014, core-015, core-016, core-017, core-018]
-status: open
+status: done
 ---
+
+> **What actually shipped.** Exactly the refactor the file proposed, with one correction
+> to its premise: only **four** recipes still carried private helper copies
+> (`raspberrypi.bplus`, `cameraModule`, `touchDisplay7inch`, `touchScreen2`).
+> `core-018`'s recipes (`hat`, `hatStandoff`, `spacer`, `activeCoolingFan`), and
+> `core-017`'s, were *already* importing `rpi-recipe-kit.js`, so there was nothing to
+> migrate there — they were re-verified because the kit changed under them, not because
+> they changed. **Drift check (Proposed fix step 1): none that changes any output.** The
+> copies differed only in signature (`cuboidPart` `frame`, `cylinderPart` `rotationDeg`,
+> `roundedCubePart` `'centred'` frame, `chain` accepting a `Part[]` reference) and in two
+> code paths no call site reaches (the kit clamps corner radius the way V1's
+> `CAG.roundedRectangle` does; a `move` after a `turn` goes to a trailing translate in the
+> kit but folded into the pre-turn one in the copies). The kit took the union as optional
+> arguments whose defaults are the older behaviour, plus `degToRad` and three `Builder`
+> methods (`placeUnion`, `placeBoolean`, and `place(part, null)` for unlabelled
+> intermediates) replacing the copies' `plan`/`emit` pair. Proof it changed nothing: a
+> 34-variant JSON sweep of every `raspberrypi.*` recipe was byte-identical before and
+> after (re-taken after the kit change and after each migration), on top of the unchanged
+> 936-test suite. `recipes/` went from 10,865 to 9,818 lines (-1,047).
 
 ## Goal
 
