@@ -114,7 +114,7 @@ status: done
 > contract (which is built) and explicitly does not require re-parenting. Rewriting what a
 > record points at is a guess about intent, and this project's Verification section exists
 > because silent guesses about geometry are how the second attempt shipped wrong solids
-> under a green suite. Filed as `TODO/data-005`, `depends: [data-004, ui-032]`, with the
+> under a green suite. Filed as `TODO/data-006`, `depends: [data-004, ui-032]`, with the
 > number, three candidate feedback shapes and a recommendation — and a note to drive
 > `ui-032` by hand before starting it.
 >
@@ -127,7 +127,7 @@ status: done
 > - **`replaceRecord` refuses to change `op`/`supersedes`/`consumes`/`target`/`operands`.**
 >   That guard is what makes the re-fold "the same fold, one input changed" rather than a
 >   re-parent with its own correctness argument, and it is what keeps `canMove`'s static
->   check honest. `data-005` has to widen it knowingly if it is ever built.
+>   check honest. `data-006` has to widen it knowingly if it is ever built.
 > - **Undo of a row action is an inverse, not a snapshot.** Restoring a before/after
 >   snapshot of `entries` would silently delete any record another writer appended in
 >   between — the exact thing section 19's origin scoping exists to prevent. So a
