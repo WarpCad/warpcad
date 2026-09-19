@@ -866,6 +866,24 @@ lesson worth keeping: a selected body's gizmo rings overlay its neighbours, so a
 aimed *through* them selects nothing new — the same as it would for a human, not a defect.
 Console clean in every drive.
 
+**Re-checked**: 2026-09-19 14:00 UTC — PASS (`io-002`). Re-driven because this task adds a
+second writer to the persistence/mutation path scenario 1's bodies travel through (a store
+subscribed to `documentStore.version`, feeding a push scheduler), and "does a new subscriber
+on that path disturb placement" is exactly the question a green unit suite cannot answer.
+Hand-driven at **chromium/laptop 1440×900** and **webkit/phone 390×844** with wandering,
+jittery drag paths. Both drives: Cube dropped, then Cylinder at a different point — **both
+stayed visible**, and the Cube's millimetre centre was byte-identical before and after the
+second drop (laptop `-81.26,-35.99,20.00`; phone `-48.40,-3.14,20.00`, volume `64000.000`
+both times). Clicking empty grid cleared the selection (0); clicking the Cube selected only
+it with the gizmo attached; clicking the Cylinder moved the selection to it alone — never
+both. A screenshot at laptop width shows both solids, the Inspector reading `Cylinder 1`
+(Ø40 × 50 mm at `-46.44, 176.18, 25`) and the operations toolbar correctly greying Union at
+one selected. Console clean in both drives apart from the usual WebGL ReadPixels perf
+notice. One harness lesson, not a defect: a synthetic click dispatched at the viewport
+*wrapper* rather than at `viewport-canvas` does not clear the selection, because the app
+listens on the canvas — the first drive's apparent "empty click did not clear" was my
+driver, and clicking the canvas as a real pointer does clears it every time.
+
 ### 2. Hardware property edit
 
 **Steps**:
@@ -2303,6 +2321,43 @@ committed before the page dies) and is why `src/storage/localMirror.js` exists. 
 `e2e/local-persistence.e2e.js` against real download/file-chooser events, not by clicking a
 File menu), 8-10 (hosted). **Not claimed**: native File System Access Save As on desktop
 Chrome — an OS dialog nothing headless can drive (see `TODO/VERIFY.md`).
+
+**Re-checked**: 2026-09-19 14:05 UTC — **local half PASS; hosted half (steps 8-10) NOT
+DRIVEABLE and deliberately not claimed** (`io-002`).
+
+*Not driveable, and why*: steps 8-10 need a real scratch GitHub repository and a real
+fine-grained token, and this run had neither — nor may it: nothing in this project's
+automated loop may hold a real credential or make a real request to a git host. They also
+need `ui-033`'s **File ▾ → Connect repository… / Save to / Load from / Auto-push** items,
+which do not exist. What *is* claimed below is the same mechanism driven through the store
+functions `ui-033` will call, against a **fully intercepted** `api.github.com`. The hosted
+half of this scenario stays open for a human with a scratch repo.
+
+*Local half (steps 1-5), re-driven in full* because this task adds a second subscriber to
+the mutation path autosave uses. **chromium/laptop 1440×900** and **webkit/phone 390×844**
+(touch-only: the nav chrome's **Select** mode and a marquee round both solids, exactly as
+the scenario prescribes for a phone; no keyboard at any point). Cube + overlapping Cylinder
+→ Union → **one** `boolean.union` body, volume `126428.903` mm³ on both engines (the same
+figure `io-001`'s own drive measured — the union is byte-for-byte the same result). The
+chip went to **`Saved · 09:03`** on its own. **Reload with nothing else in between**: the
+union came back with identical id/op/centre/volume (`-15.35,-27.91,25.00` laptop,
+`-70.25,46.28,25.00` phone), chip **`Restored your last session`**, undo *and* redo
+disabled, selection empty. Union stayed correctly **disabled at one solid selected** and
+enabled at two.
+
+*Hosted mechanism, driven against the mock* (chromium/laptop and webkit/laptop): connect →
+`No project file yet — the first Save to owner/repo will create it`, auto-push **off**;
+Save → one commit `WarpCad: save` whose bytes are **identical to the local project file**,
+project-state line included; a second writer commits; the next Save is **refused** with
+*The repository copy changed since you last loaded or saved it* and the repository is
+**untouched**; **Cancel** writes nothing and leaves the dot at `!`; **Overwrite remote**
+writes the local document; **Load remote** replaces the project and clears undo/redo. The
+token never appeared in a request URL, in any page text, or in any console line, and
+**Disconnect** deleted the stored credential outright (verified by reading IndexedDB
+directly) while leaving the model on screen. **One real defect found by driving and fixed
+in this task**: after **Cancel** with auto-push off, the File dot returned to solid "in
+sync" although the repository copy was known to have diverged — it now stays `!` and the
+chip says `owner/repo changed — Save to or Load from it to resolve`.
 
 ### 11. Export a solid and confirm it opens elsewhere
 

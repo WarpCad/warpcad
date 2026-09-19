@@ -6,8 +6,31 @@ priority: medium
 model: opus
 milestone: M6
 depends: [io-001]
-status: open
+status: done
 ---
+
+> **What actually shipped, 2026-09-19.** Slightly wider than these Affected files
+> predicted, and narrower in one place, both for reasons this file could not have known
+> when it was written (it predates `data-002`'s section 11 and
+> `persistence-export.md`'s sub-decision 3):
+>
+> - **Four modules, not two.** `src/storage/hostedBackend.js` (hand-rolled `fetch`
+>   client: origin allowlist, error normalisation, sha conflict detection, UTF-8-safe
+>   chunked base64) and `src/storage/tokenStorage.js` (the generic credential store) as
+>   planned, plus `src/storage/autoPush.js` (the debounce/max-wait/backoff state machine
+>   §11 added after this file was written) and `src/stores/hosted.js` (the store
+>   `ui-033` calls). The scheduler is pure logic with an injected clock, so all of §11's
+>   numbers are asserted with fake timers rather than described in prose.
+> - **No UI, by design.** The File ▾ hosted group, the Connect dialog, the conflict modal
+>   and the File-button dot are `ui-033`'s; this task exposes the store API it calls and
+>   names it in the retirement note.
+> - **Two rules implemented that this file did not state**, both from §11: the first Save
+>   into a repository that **already has** a project file this session never loaded goes
+>   down the conflict path rather than overwriting, and a diverged repository keeps
+>   reporting `!` after **Cancel** (found by driving, not by a test).
+> - **Branch**: the repository's default branch, no branch field — `data-002` left this
+>   "Still open"; the simplest defensible default is recorded in `hostedBackend.js` and
+>   in `docs/save-load.md`, and adding a branch field later is additive.
 
 ## Goal
 

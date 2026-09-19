@@ -34,6 +34,23 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### io-002 — Hosted git-backend persistence (2026-09-19 14:09 UTC)
+
+Everything about this task that *can* be checked without a real credential is covered on a
+standing basis: `src/storage/*.spec.js` + `src/stores/hosted.spec.js` (59 cases, including the
+whole auto-push state machine under fake timers), `e2e/hosted-persistence.e2e.js` on chromium +
+webkit against an intercepted `api.github.com`, and `ACCEPTANCE.md` scenario 10 — whose hosted
+half (steps 8-10, a real scratch repo and a real token) is **already the standing home** for
+"does this work against real GitHub", so it is deliberately **not** duplicated here. The two
+rows below are the ones a mocked host cannot answer even in principle, because they are claims
+about the *real service's* behaviour rather than about this code. The open real-device rows from
+`io-001`/`data-002` are not repeated either.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | **A project over 1 MB, against real GitHub.** The Contents API stops returning file content above ~1 MB (`"encoding": "none"`, empty `content`), and `hostedBackend.js` follows the blob endpoint rather than reading that as an empty project — which would commit a truncated log over a real one. That branch is tested against a fake answer shaped from the docs, never against the real service. Build a log past 1 MB (a few hundred placements, or a big imported part), Save to a scratch repo, reload with site data cleared, and Load it back: does the whole model return? | Open | |
+| 2 | **403 really is two different failures.** A missing `Contents: write` permission and a rate limit both arrive as 403, and they are told apart here by `x-ratelimit-remaining`/the body text, then reported as different messages (*"does not have permission… Contents: read and write"* vs *"Rate limited — try again in N minutes"*). Confirm against the real API with a deliberately read-only fine-grained token: is the wrong-permission message the one that appears, and is it true? | Open | |
+
 ### io-001 — Local persistence: IndexedDB autosave, restore and the save-status chip (2026-09-19 13:31)
 
 Autosave/restore, the flush-on-hide path, the blocked-storage state and the chip layout are

@@ -726,3 +726,14 @@ Built with Claude Code, reviewed by me.
 **Evidence:** "autosaves to IndexedDB and flushes on pagehide, as specced" → `docs/decisions/interaction-model-qa.md` section 8 and `src/storage/autosave.js`, this diff; "placed a solid, reloaded within half a second, it was gone" → a hand-driven Playwright run in real Chromium this session, and `e2e/local-persistence.e2e.js`'s "reloading immediately after an edit" test, which failed before `localMirror.js` existed and passes in chromium and webkit after; "the put was issued but never committed" → the same session's debug run: a patched `IDBObjectStore.put` logged the call and neither `complete` nor `abort` ever fired before the reload; "synchronous localStorage copy, cleared once IndexedDB has it" → `src/storage/localMirror.js` and `createAutosaver`'s `flushSync`, this diff
 **Disclosure:** Built with Claude Code, reviewed by me.
 **To Add:** repo URL once public; the failing-then-passing test output side by side
+
+## 2026-09-19T14:09:00Z — The blob sha is the conflict check
+
+**Post:** Hosted saves in WarpCad: the GitHub Contents API blob sha IS the conflict check. Stale sha, 409, so the app asks (overwrite / load / cancel) instead of merging. Trap: never echo the server error text, a 401 body can quote the token it just rejected.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebDev
+**Evidence:** "the blob sha is the conflict check, stale sha returns 409" → `docs/decisions/persistence-export.md` sub-decision 3 (commit 86ff04b), implemented in `src/storage/hostedBackend.js` and exercised by `hostedBackend.spec.js`'s 409/422 case, this diff; "asks overwrite / load / cancel instead of merging" → `docs/decisions/interaction-model-qa.md` §11 and `resolveConflict` in `src/stores/hosted.js`, this diff; "never echo the server error text, a 401 body can quote the token" → `failureOf` in `hostedBackend.js` reads the body for classification only and every message is this module's own wording; asserted by `hostedBackend.spec.js`'s "never puts the token in a message, a URL, or a serialised error", which feeds GitHub a 401 body containing the sentinel token
+**Disclosure:** Built with Claude Code, reviewed by me.
+**To Add:** repo URL once public

@@ -906,3 +906,20 @@ Built with Claude Code, reviewed by me.
 **To Add:** repo URL once public; a screenshot of the header chip in its three states
 
 **LinkedIn article suggestion:** Not yet. The general lesson (a page that is being unloaded can only do synchronous work, so "flush on pagehide" needs a synchronous fallback) is worth a short article once the File menu and hosted backend land, so it can sit inside the whole persistence story rather than stand alone.
+
+## 2026-09-19T14:09:00Z — The conflict answer was already in the API
+
+WarpCad can now read and write its project file to a GitHub repository, authenticated with a token you paste in yourself. No Octokit: the whole surface is three REST endpoints, and the library measured 43,769 bytes gzipped, 16.7% of the current app bundle.
+
+The design question that actually mattered was what happens when the repository copy has moved on, and the answer turned out to be sitting in the API already. The Contents endpoint takes the last known blob sha on a write and rejects a stale one with a 409. So the app refuses and asks: overwrite remote, load remote, or cancel. It never merges, and it never overwrites something this session has not seen, including on the very first save into a repository that already had a project file. Auto-push is opt-in, folds a burst of edits into one commit, and a conflict pauses it rather than resolving it for you.
+
+Two real defects came out of driving the running app by hand rather than reading test output. A leftover success message outranked "Offline, will retry" in the status chip, and the status dot went back to solid green the moment a conflict dialog was cancelled, although the repository was still diverged. 59 unit tests and 14 browser tests were passing while both of those were true.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebDev #GitHubAPI
+**Evidence:** "no Octokit, three REST endpoints, 43,769 bytes gzipped, 16.7% of the app bundle" → `docs/decisions/persistence-export.md` sub-decision 3, commit 86ff04b; "Contents endpoint takes the last known blob sha and rejects a stale one with 409" → same decision record, implemented in `src/storage/hostedBackend.js`, this diff; "never merges" → `docs/decisions/document-sync.md` and `resolveConflict` in `src/stores/hosted.js`, this diff; "never overwrites something this session has not seen, including the first save into a repository that already had a file" → the `adopted` guard in `src/stores/hosted.js` and its spec case, this diff, per `interaction-model-qa.md` §11; "auto-push is opt-in and folds a burst into one commit; a conflict pauses it" → `src/storage/autoPush.js` and its fake-timer spec, this diff; "two defects found by driving" → this session's hand-driven runs in chromium and webkit (chip read "No project file yet" while auto-push was failing offline; dot read `in-sync` straight after Cancel), both fixed in this diff and pinned by `hosted.spec.js` cases; "59 unit tests and 14 browser tests" → vitest run of the four new specs (59 passed) and `npx playwright test e2e/hosted-persistence.e2e.js` (14 passed across chromium-laptop and webkit-laptop), this session
+**Disclosure:** Built with Claude Code, reviewed by me.
+**To Add:** repo URL once public; a screen capture of the conflict dialog once ui-033 exists to raise it
+
+**LinkedIn article suggestion:** Yes, once `ui-033` lands. "Persistence without a backend" would now have the whole arc: one NDJSON action log, the same bytes in IndexedDB, in a downloaded file and in a git commit; a flush on pagehide that does not flush; and a conflict rule borrowed from an HTTP status code instead of a CRDT.
