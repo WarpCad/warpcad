@@ -874,3 +874,18 @@ Built with Claude Code, reviewed by me.
 **To Add:** repo URL once public; a diagram of the log with a step spliced out and re-folded
 
 **LinkedIn article suggestion:** Worth one, and it is close to ready. "Undo is not the inverse of your last action" — the general lesson is that undo in an event-sourced or append-only model is usually taught as compensating events, and that teaching breaks the moment an event's effect is to retire other entities rather than to add one. Structure: the append-only model and why it is attractive for CAD, the compensating-event default, the operation that has no compensating event, remove-and-re-derive with the single-implementation argument, and the insert-at-index dividend. Hold until the timeline panel ships so the history-panel screenshots are real.
+
+## 2026-09-19T04:59:00Z — Four timeline features that turned out to be one
+
+**Post:** Parametric CAD needs history you can go back and change. Edit a chamfer you set to 5mm three steps ago, and every step after it should replay against 3mm. Suppress a step without deleting it. Reorder two. Roll back to a point, insert a new part there, roll forward again.
+
+That reads like four features. In WarpCad it is one: splice the log, then re-fold it through the same function a normal append already uses. The previous task had built that re-fold for undo. This one widened it by exactly two parameters, so entries can be marked suppressed and the fold can stop at a rollback marker. No second replay engine to drift out of step with the first.
+
+The part I expected to be a judgment call was measured instead. Re-folding the worst case, editing the very first of 200 records with a fillet on every body, takes 67ms on my laptop. That is a deliberate button press, not a frame, so the incremental version stays unbuilt until a real document makes it hurt. And when a later step genuinely cannot survive the edit, the whole thing is refused by name rather than half-applied: "Step 4 (Fillet Cube 1) can't be built: radius 4mm doesn't fit."
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL #OpenSource
+**Evidence:** "one primitive" → this diff: `replaceRecord`/`setSuppressed`/`moveStep`/`rollBackTo`/`insertAt` all call `rebuildFrom(nextEntries, nextRollbackAt)`; "the previous task had built that re-fold for undo" → `TODO/done/data-003-undo-redo-transaction-origin.md`, committed 81c73c0, whose retirement note says `data-004` "should widen it, not replace it"; "widened by exactly two parameters" → `DocumentEntry.suppressed` and `rollbackAt`, this diff; "67ms, 200 records, fillet on every body" → benchmark run this session on this Mac, median of 5, with 17ms at 40 records and 34ms at 100; "refused by name rather than half-applied" → `ReplayRejection` carrying a `BrokenStep`, and `rebuildFrom`'s snapshot restore on failure, this diff, asserted by `src/core/timeline.spec.js`
+**Disclosure:** Built with Claude Code, reviewed by me.
+**To Add:** repo URL once public; a short screen capture once the timeline panel (ui-032) exists to drive it from

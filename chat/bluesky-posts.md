@@ -693,3 +693,25 @@ Built with Claude Code, reviewed by me.
 **Evidence:** "retires its two operands into itself" → `src/core/document.js`'s `consumes`/`mergedInto` mechanism, which `bodies()` reads to stop reporting an absorbed lineage; "no record you can append un-retires them" → `mergedInto` is set by the consuming record's existence, so the inverse would need a new anti-record concept — reasoning recorded in the retirement note of `TODO/done/data-003-undo-redo-transaction-origin.md`; "re-folds through the same code an append uses" → `rebuildFrom` calls `ingest`, the function `append` calls, this diff; "Redo is then insert-at-index" → `document.redo()` splices the step back at its original index, this diff, and `docs/decisions/interaction-model-qa.md` section 18 names insert-at-index as a fixed requirement on `data-004`
 **Disclosure:** Built with Claude Code, reviewed by me.
 **To Add:** repo URL once public; a short clip of undoing a subtract and both operands coming back selected
+
+## 2026-09-19T04:59:00Z — One re-fold, four timeline features
+
+**Post:** Timeline editing in WarpCad: edit a past step, suppress one, reorder, roll back and insert at the marker. Four features, one primitive — splice the log, re-fold it through the same function an append uses. Editing the first of 200 fillet-heavy records costs 67ms. Slow enough to notice, not slow enough to optimise yet.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Evidence:** "four features, one primitive" → this diff: `replaceRecord`/`setSuppressed`/`moveStep`/`rollBackTo`+`insertAt` all call `rebuildFrom(nextEntries, nextRollbackAt)`; "the same function an append uses" → `rebuildFrom` calls `ingest`, which `appendAll` calls, this diff; "67ms editing the first of 200 records" → benchmark run this session on this Mac, 50 bodies each cuboid+move+filletRim+move, median of 5 (17ms at 40 records, 34ms at 100, 67ms at 200); "not slow enough to optimise yet" → CLAUDE.md Performance's measure-before-optimising rule, and the 16ms budget is pan/zoom/drag, not a row action
+**Disclosure:** Built with Claude Code, reviewed by me.
+**To Add:** repo URL once public; a clip of a chamfer radius edited mid-history with a later body sitting still
+
+## 2026-09-19T04:59:30Z — The guard I went to relax and didn't
+
+**Post:** A fillet in a body's history freezes its size fields in WarpCad — rebuilding the creation record would silently drop the rounded rim. The timeline task was meant to relax that. It shouldn't: an *append* discards the fillet, a mid-history *replace* leaves it in place to replay. Same-looking rule, different question. Writing the difference down found a gap neither test had.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Evidence:** "freezes its size fields" → `paramEditability` in `src/core/paramEdit.js`, built by `TODO/done/ui-029-editable-primitive-parameters.md`; "the timeline task was meant to relax that" → `TODO/done/data-004-timeline-entry-edit-replay.md`'s Affected files: the guard "needs revisiting … since replaying past such an op is exactly this task's whole point"; "an append discards the fillet, a replace leaves it in place" → `paramEdit.js` module doc, this diff; "found a gap neither test had" → `stepParamEditability` shows a `transform.rotate` row has only the absolute `rotation` param `core-004` carries forward, so it is not editable at all — stated in this diff, in the retirement note and in `TODO/VERIFY.md` row 2
+**Disclosure:** Built with Claude Code, reviewed by me.
+**To Add:** repo URL once public

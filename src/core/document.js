@@ -170,6 +170,81 @@
  * not survive a reload or an Open, so nothing here is serialised and the seed
  * loop at the bottom of `createDocument` clears them.
  *
+ * ## Revising the log, not just growing it (`TODO/data-004`)
+ *
+ * Everything above grows the log at one end. Sections 15-18 of
+ * `docs/decisions/interaction-model-qa.md` ask for four more things, and the
+ * whole of `data-004` is the observation that they are **one** operation:
+ *
+ * | Section | What the user does | What the log does |
+ * |---|---|---|
+ * | 15 | Edit a past step's params | swap one entry's record, re-fold |
+ * | 16 | Suppress / unsuppress a step | flag one entry, re-fold without it |
+ * | 17 | Move a step up / down | swap two entries, re-fold |
+ * | 18 | Roll back, insert at the marker, roll forward | move a boundary / splice, re-fold |
+ *
+ * So `data-004` **widens {@link rebuildFrom}** rather than building a second
+ * replay mechanism beside it — exactly what `data-003`'s retirement note asked
+ * for. The widening is two parameters' worth: entries may carry `suppressed`,
+ * and the fold stops at a **rollback marker** (`rollbackAt` — the *count* of
+ * active entries, `null` when the whole log is active). Everything else is the
+ * same `ingest` loop `append` has always used, which is still the entire
+ * correctness argument: there is one implementation of `supersedes`/`consumes`/
+ * `mergedInto`/root ordering and no chance of a partial-refold disagreeing with
+ * a full one.
+ *
+ * Full re-fold, not incremental, per this task's own Proposed fix and CLAUDE.md's
+ * "measure before optimising". Measured, worst case (editing the **first** row,
+ * so everything re-folds), against the real kernel:
+ *
+ * | Log | Median full re-fold |
+ * |---|---|
+ * | 40 records, 10 bodies | 17 ms |
+ * | 100 records, 25 bodies | 34 ms |
+ * | 200 records, 50 bodies | 67 ms |
+ *
+ * Linear in record count and dominated by the kernel — each body there carries a
+ * `modify.filletRim`, the most expensive op in the registry — not by this
+ * module's bookkeeping. A re-fold happens on a deliberate row action, never per
+ * frame, so CLAUDE.md's 16 ms budget (which is about pan/zoom/drag) is not the
+ * bar this has to clear. No incremental re-fold until a document is big enough
+ * for that to be measured as a real problem.
+ *
+ * ### The broken-step contract (what `ui-032` consumes)
+ *
+ * A row action either succeeds or is **rejected atomically**: section 15's
+ * "the edit is atomic — if any record in the replay throws, nothing changes",
+ * which section 16 (suppress), 17 (reorder) and 18 (roll forward) all reuse by
+ * name. The refusal is a {@link ReplayRejection} carrying a {@link BrokenStep} —
+ * the row's id, its **1-based step number**, its label and a reason — so the
+ * panel can say `Step 4 (Fillet Cube 1) can't be built: radius 4 mm doesn't fit`
+ * and chip that exact row, rather than parsing a string. Two reason shapes,
+ * deliberately only two:
+ *
+ * - **`needs <name>`** — the row references a record this fold no longer has
+ *   (suppressed out, reordered after it, superseded by an insert). Checked
+ *   *before* the trial fold, because `ingest`'s own message names an **id** and
+ *   a user needs a **body name**: section 16's `Step 3 (Union) needs Cube 1`.
+ * - **`can't be built: <why>`** — the record's own build threw, which is the
+ *   failure mode `modify.filletRim`'s `assertRadiusFits` already produces. This
+ *   task's Proposed fix asked for exactly that reuse rather than a new
+ *   "invalid downstream" concept.
+ *
+ * The **inactive tail is different**, and section 18 says why: an insert while
+ * rolled back succeeds even if it breaks a tail row, because inserting was the
+ * user's intent and the tail is not part of the evaluated document. So after
+ * every successful re-fold the tail is **shadow-checked** — folded into a
+ * throwaway document — and the rows that would not build come back from
+ * {@link WarpDocument.brokenSteps} and as `TimelineRow.broken`, informationally.
+ * It costs nothing when nothing is rolled back, which is the common case.
+ *
+ * **Not built, deliberately:** section 18's "Unsure" re-parenting of a tail row
+ * onto an inserted record. The flag-and-resolve contract above is what that
+ * section *requires*; re-parenting is what it asks `data-004` to measure. It is
+ * measured and filed as `TODO/data-005`, not built here — rewriting what a
+ * record points at is a different claim from replaying it, and guessing it wrong
+ * is how a replay silently produces the wrong solid.
+ *
  * ## Loud locally, lenient remotely
  *
  * `replay.js` skips and reports a bad record because a document can arrive from an
@@ -199,7 +274,101 @@ import { applyAction, emptyScene } from './replay.js'
  * @typedef {object} DocumentEntry
  * @property {OpRecord} record The line as it was appended.
  * @property {string} origin Who wrote it — `'local'` for this user's own edits.
+ * @property {boolean} [suppressed] Section 16: the row is still in the log and
+ *   still in `ui-032`'s list, but the fold skips it and the document evaluates
+ *   as if it never happened. Absent means active; nothing is ever deleted.
  */
+
+/**
+ * One row that cannot be built, named the way a user can act on it.
+ *
+ * **This is the contract `ui-032` consumes** — the thing `data-004`'s
+ * Interaction model says the panel "cannot build correct feedback without". It
+ * arrives two ways, and both carry this same shape rather than a string the
+ * panel would have to parse:
+ *
+ * - thrown inside a {@link ReplayRejection}, when an action on the **active**
+ *   document is refused atomically (sections 15-18);
+ * - returned from {@link WarpDocument.brokenSteps} and set on
+ *   `TimelineRow.broken`, when an **inactive** tail row is flagged
+ *   informationally by the shadow check (section 18).
+ *
+ * @typedef {object} BrokenStep
+ * @property {string} id The failing record's id; `''` for a record with none.
+ * @property {number} step Its **1-based** row number, as the timeline numbers
+ *   rows — section 15's `Step 4 (…)`, not an array index.
+ * @property {string} label The row label, from the same shallow table Undo's
+ *   tooltip uses. `ui-032` renders its own richer label and may ignore this.
+ * @property {string} reason Either `needs <body name>` or
+ *   `can't be built: <why>`. See the module note for why only those two.
+ */
+
+/**
+ * One row of `ui-032`'s History list, derived — never stored.
+ *
+ * @typedef {object} TimelineRow
+ * @property {number} step 1-based row number.
+ * @property {string} id The record's id, `''` if it has none.
+ * @property {OpRecord} record The record itself, for the panel's own labelling
+ *   and for the op's param editor.
+ * @property {string} origin Section 19's origin chip (`local`, `mcp`, …).
+ * @property {string} label Shallow label — `Place Cube 1`, `Chamfer Cube 1`.
+ * @property {boolean} suppressed Section 16: greyed, struck through, chipped.
+ * @property {boolean} active `false` for a row past the rollback marker —
+ *   dimmed, chipped `inactive`, and simply not evaluated (section 18).
+ * @property {string | null} broken The shadow check's reason, or `null`.
+ */
+
+/**
+ * Whether a `Move up` / `Move down` button is honestly pressable.
+ *
+ * Section 17 requires this be **cheap and static** — read off operand/
+ * `consumes`/`supersedes` references and the marker, with no fold — so the
+ * disabled state is right *before* the press. The full replay stays the final
+ * arbiter; this only rules out what is provably illegal.
+ *
+ * @typedef {object} MoveLegality
+ * @property {boolean} allowed
+ * @property {string | null} reason The tooltip when it is not, e.g.
+ *   `Step 3 uses step 2's result`. `null` when it is.
+ */
+
+/**
+ * How one undoable row action changed the log, so undo can invert it.
+ *
+ * Deliberately *not* a before/after snapshot of `entries`: a snapshot restored
+ * on undo would silently delete any record another writer appended in between,
+ * which is the exact thing section 19's origin scoping exists to prevent. An
+ * inverse is position-independent and survives that.
+ *
+ * @typedef {object} LogRevision
+ * @property {'replace' | 'suppress' | 'reorder' | 'rollback'} kind
+ * @property {string} [id] The row acted on.
+ * @property {OpRecord} [from] `replace`: the record as it was.
+ * @property {OpRecord} [to] `replace`: the record it became.
+ * @property {boolean} [fromSuppressed]
+ * @property {boolean} [toSuppressed]
+ * @property {number} [delta] `reorder`: `-1` up, `+1` down.
+ */
+
+/**
+ * A replay refused, naming the row that stopped it.
+ *
+ * Thrown — not returned — because section 15's decided answer is "reject
+ * atomically": there is no partial success to hand back, and a caller that
+ * ignored a returned error list would leave the user with the silently-wrong
+ * geometry this whole milestone exists to prevent. The {@link BrokenStep} rides
+ * on the error so `ui-032` never parses {@link Error.message}.
+ */
+export class ReplayRejection extends Error {
+  /** @param {BrokenStep} step */
+  constructor(step) {
+    super(`Step ${step.step} (${step.label}) ${step.reason}`)
+    this.name = 'ReplayRejection'
+    /** @type {BrokenStep} */
+    this.step = step
+  }
+}
 
 /**
  * @typedef {object} Body
@@ -250,6 +419,13 @@ import { applyAction, emptyScene } from './replay.js'
  *   this framework-free module knowing what a selection is.
  * @property {number} [index] Where the step's first record sat when it was
  *   removed; redo re-inserts there. See the undo/redo note above.
+ * @property {LogRevision} [revision] Set instead of `records` for a `data-004`
+ *   row action, which revises an entry rather than adding one. Undo applies the
+ *   inverse; redo applies it again.
+ * @property {number | null} [rollbackBefore] The marker before the step, so undo
+ *   puts it back — section 18: "Undo removes the inserted row and moves the
+ *   marker back".
+ * @property {number | null} [rollbackAfter] The marker after it, for redo.
  */
 
 /**
@@ -271,6 +447,17 @@ import { applyAction, emptyScene } from './replay.js'
  * @property {(id: string) => string | undefined} currentIdOf
  * @property {(id: string) => string | undefined} rootOf
  * @property {(id: string) => OpRecord[]} lineageOf
+ * @property {(id: string) => OpRecord | undefined} recordOf
+ * @property {() => TimelineRow[]} timeline
+ * @property {() => BrokenStep[]} brokenSteps
+ * @property {() => number | null} rollbackAt
+ * @property {(id: string, record: OpRecord, transaction: TransactionOptions) => { scene: Scene }} replaceRecord
+ * @property {(id: string, suppressed: boolean, transaction: TransactionOptions) => { scene: Scene }} setSuppressed
+ * @property {(id: string, delta: number) => MoveLegality} canMove
+ * @property {(id: string, delta: number, transaction: TransactionOptions) => { scene: Scene }} moveStep
+ * @property {(index: number, records: readonly OpRecord[], transaction: TransactionOptions) => { records: OpRecord[], scene: Scene }} insertAt
+ * @property {(id: string, transaction: TransactionOptions) => { scene: Scene }} rollBackTo
+ * @property {(transaction: TransactionOptions) => { scene: Scene }} rollForward
  * @property {() => Body[]} bodies
  * @property {() => SketchEntityRecord[]} sketchEntities
  * @property {() => boolean} canUndo
@@ -359,6 +546,77 @@ function referencedIdsOf(record) {
 }
 
 /**
+ * The lineage-shaping fields a `data-004` edit may **not** touch.
+ *
+ * Section 15 edits a step's *parameters*. What the step operates on is the
+ * shape of the log itself: every later record's `supersedes`/`target`/
+ * `operands` was resolved against it, and {@link WarpDocument.canMove}'s static
+ * legality check reads it. Changing one of these under the name "edit" would be
+ * a reorder or a re-parent wearing an edit's clothes.
+ */
+const SHAPE_FIELDS = Object.freeze(['op', 'supersedes', 'consumes', 'target', 'operands'])
+
+/**
+ * Index every record in an entry list by id — including the ones a fold is
+ * *skipping*, which is the point: the record a suppressed step's dependant is
+ * missing is precisely one the derived indexes no longer hold.
+ *
+ * @param {readonly DocumentEntry[]} list
+ * @returns {Map<string, OpRecord>}
+ */
+function recordMapOf(list) {
+  /** @type {Map<string, OpRecord>} */
+  const byId = new Map()
+  for (const entry of list) {
+    if (entry.record.id !== undefined) byId.set(entry.record.id, entry.record)
+  }
+  return byId
+}
+
+/**
+ * What a user would call `id` — the record's own name, or its lineage root's,
+ * walked back along `supersedes`.
+ *
+ * Section 16's refusal is `Step 3 (Union) needs Cube 1`, not "needs op-7". A
+ * transform or param-edit record carries no name of its own (`transform.js`
+ * explains why), so the walk is what turns a reference to a body's *current*
+ * record into the body's name. Cycle-guarded: a malformed document gets a short
+ * answer, not a hang.
+ *
+ * @param {string} id
+ * @param {Map<string, OpRecord>} byId
+ * @returns {string} The name, or `id` itself when nothing names it.
+ */
+function displayNameOf(id, byId) {
+  const visited = new Set()
+  let cursor = id
+  for (;;) {
+    if (visited.has(cursor)) return id
+    visited.add(cursor)
+    const record = byId.get(cursor)
+    if (record === undefined) return id
+    if (typeof record.name === 'string' && record.name.length > 0) return record.name
+    if (typeof record.supersedes !== 'string') return id
+    cursor = record.supersedes
+  }
+}
+
+/**
+ * A failed ingest's message, with this module's own framing stripped off.
+ *
+ * `ingest` says `document.append: modify.filletRim could not be applied — …`,
+ * which is right for a thrown developer error and wrong inside `Step 4 (Fillet
+ * Cube 1) can't be built: …`, where the row and the op are already named.
+ *
+ * @param {unknown} error
+ * @returns {string}
+ */
+function reasonOf(error) {
+  const message = error instanceof Error ? error.message : String(error)
+  return message.replace(/^document\.append: /, '').replace(/^\S+ could not be applied — /, '')
+}
+
+/**
  * Create a document.
  *
  * @param {object} [options]
@@ -404,6 +662,22 @@ export function createDocument(options = {}) {
   const recordById = new Map()
   let scene = emptyScene()
   let idCounter = 0
+  /**
+   * Section 18's rollback marker, stored as the **count of active entries** —
+   * `entries[0 .. rollbackAt - 1]` are folded, the rest are the inactive tail.
+   * A count rather than a row id because that is what every consumer actually
+   * asks (`Rolled back to step 2 of 5`, "insert here", "is this row active"),
+   * and because it stays meaningful when the row it sat after is later moved.
+   * `null` means the whole log is active, which is the ordinary state.
+   * @type {number | null}
+   */
+  let rollbackAt = null
+  /**
+   * Inactive-tail rows the shadow check could not build, id → reason. Recomputed
+   * on every successful re-fold, and empty whenever nothing is rolled back.
+   * @type {Map<string, string>}
+   */
+  let brokenById = new Map()
 
   /**
    * Resolve `id` to the lineage root it currently, *live*, represents — or throw
@@ -602,33 +876,230 @@ export function createDocument(options = {}) {
   }
 
   /**
-   * Re-derive the whole document from a new entry list — the one mutation
-   * primitive underneath undo (remove a step), redo (insert it back at its
-   * index) and, when `data-004` arrives, insert-at-the-marker and edit-in-place.
+   * Ingest one entry as part of a re-fold, turning any failure into the
+   * row-named {@link ReplayRejection} sections 15-18 all specify.
    *
-   * **Atomic**: if any record no longer folds, the captured indexes go back and
-   * the error propagates, so the caller's refusal leaves the document exactly as
-   * it was. That is the same contract section 18 requires of a broken roll-forward.
+   * The missing-reference check runs **before** the trial fold on purpose: a
+   * row whose operand was suppressed out, reordered after it or superseded by
+   * an insert is the *common* failure here, and `ingest` reports it by record
+   * id ("no such record `op-7`") where the user needs a body name.
+   *
+   * @param {DocumentEntry} entry
+   * @param {number} index Zero-based position; the message says `index + 1`.
+   * @param {Map<string, OpRecord>} byId Every record in the list being folded.
+   */
+  function ingestRow(entry, index, byId) {
+    const { record } = entry
+    for (const referenced of referencedIdsOf(record)) {
+      if (recordById.has(referenced)) continue
+      throw new ReplayRejection({
+        id: record.id ?? '',
+        step: index + 1,
+        label: labelFor([record], byId),
+        reason: `needs ${displayNameOf(referenced, byId)}`,
+      })
+    }
+    try {
+      ingest(record, entry.origin)
+    } catch (error) {
+      throw new ReplayRejection({
+        id: record.id ?? '',
+        step: index + 1,
+        label: labelFor([record], byId),
+        reason: `can't be built: ${reasonOf(error)}`,
+      })
+    }
+  }
+
+  /**
+   * Fold the **inactive tail** into a throwaway document and report which of its
+   * rows would not build — section 18's shadow check.
+   *
+   * Informational, never a rejection: "the insert itself still succeeds, because
+   * inserting was the user's intent and the tail is not part of the evaluated
+   * document". A row that fails is *skipped* rather than aborting the check, so
+   * a later independent row is still judged on its own merits — the same
+   * skip-and-report leniency `replay.js` applies to an untrusted document, and
+   * for the same reason: this is a report, not an evaluation.
+   *
+   * A whole second `createDocument` rather than a cleverer partial fold, for the
+   * reason the module note gives: one implementation of the lineage rules. It
+   * costs nothing in the ordinary case because there is no tail to check.
+   *
+   * @param {readonly DocumentEntry[]} nextEntries
+   * @param {number} activeCount
+   * @param {Map<string, OpRecord>} byId
+   * @returns {Map<string, string>} Row id → reason.
+   */
+  function shadowCheckTail(nextEntries, activeCount, byId) {
+    /** @type {Map<string, string>} */
+    const broken = new Map()
+    if (activeCount >= nextEntries.length) return broken
+
+    const scratch = createDocument({ registry: ops })
+    /** @type {Set<string>} */
+    const built = new Set()
+    /** @param {DocumentEntry} entry */
+    const feed = (entry) => {
+      scratch.append(entry.record, { origin: entry.origin })
+      if (entry.record.id !== undefined) built.add(entry.record.id)
+    }
+
+    for (let index = 0; index < activeCount; index += 1) {
+      const entry = nextEntries[index]
+      if (entry.suppressed === true) continue
+      // Cannot throw: this prefix is the fold that just succeeded. Guarded
+      // anyway so a shadow check can never be the thing that breaks a document.
+      try {
+        feed(entry)
+      } catch {
+        /* ignored — see above */
+      }
+    }
+
+    for (let index = activeCount; index < nextEntries.length; index += 1) {
+      const entry = nextEntries[index]
+      if (entry.suppressed === true) continue
+      const key = entry.record.id ?? `#${index + 1}`
+      const missing = referencedIdsOf(entry.record).find((id) => !built.has(id))
+      if (missing !== undefined) {
+        broken.set(key, `needs ${displayNameOf(missing, byId)}`)
+        continue
+      }
+      try {
+        feed(entry)
+      } catch (error) {
+        broken.set(key, `can't be built: ${reasonOf(error)}`)
+      }
+    }
+    return broken
+  }
+
+  /**
+   * Re-derive the whole document from a new entry list and a new marker — the
+   * one mutation primitive underneath undo (remove a step), redo (insert it back
+   * at its index) and every `data-004` row action (replace one entry, flag one,
+   * swap two, move the marker).
+   *
+   * **Atomic**: if any active record no longer folds, the captured indexes go
+   * back and the error propagates, so the caller's refusal leaves the document
+   * exactly as it was — sections 15-18's shared contract, and the reason
+   * `rollbackAt`/`brokenById` are assigned only after the loop survives.
    *
    * A full re-fold rather than a partial one, deliberately — `data-004`'s own
-   * Proposed fix makes the argument and this task's mechanism has to agree with
-   * it: correctness-by-construction from reusing the proven fold beats a speed
-   * win with no measured need. `idCounter` is **not** reset, so an id can never
-   * be handed out twice across an undo.
+   * Proposed fix makes the argument: correctness-by-construction from reusing
+   * the proven fold beats a speed win with no measured need. `idCounter` is
+   * **not** reset, so an id can never be handed out twice across an undo.
    *
    * @param {DocumentEntry[]} nextEntries
+   * @param {number | null} [nextRollbackAt] Active-entry count; defaults to the
+   *   current marker, so an operation that does not move it need not say so.
    */
-  function rebuildFrom(nextEntries) {
+  function rebuildFrom(nextEntries, nextRollbackAt = rollbackAt) {
     const snapshot = captureDerived()
+    const activeCount = nextRollbackAt ?? nextEntries.length
+    const byId = recordMapOf(nextEntries)
     resetDerived(null)
     try {
-      for (const entry of nextEntries) ingest(entry.record, entry.origin)
+      for (let index = 0; index < activeCount && index < nextEntries.length; index += 1) {
+        const entry = nextEntries[index]
+        // Suppressed: in the log, in the list, out of the fold (section 16).
+        if (entry.suppressed === true) continue
+        ingestRow(entry, index, byId)
+      }
     } catch (error) {
       resetDerived(snapshot)
       throw error
     }
     entries.length = 0
     entries.push(...nextEntries)
+    rollbackAt = nextRollbackAt
+    brokenById = shadowCheckTail(nextEntries, activeCount, byId)
+  }
+
+  /**
+   * Where `id` sits in the log, or `-1`. Reads `entries`, not the derived
+   * indexes, so it answers for a suppressed or inactive row too.
+   *
+   * @param {string | undefined} id
+   * @returns {number}
+   */
+  function indexOfRecord(id) {
+    return id === undefined ? -1 : entries.findIndex((entry) => entry.record.id === id)
+  }
+
+  /**
+   * Apply a {@link LogRevision} in the given direction and re-fold.
+   *
+   * @param {LogRevision} revision
+   * @param {number | null} targetRollbackAt
+   */
+  function applyRevision(revision, targetRollbackAt) {
+    const next = entries.slice()
+    const index = indexOfRecord(revision.id)
+    if (revision.kind !== 'rollback' && index < 0) {
+      throw new Error(
+        `document.undo: step "${revision.id}" is no longer in this document, so the ` +
+          'action that changed it cannot be reversed'
+      )
+    }
+    if (revision.kind === 'replace') {
+      next[index] = { ...next[index], record: /** @type {OpRecord} */ (revision.to) }
+    } else if (revision.kind === 'suppress') {
+      next[index] = { ...next[index], suppressed: revision.toSuppressed === true }
+    } else if (revision.kind === 'reorder') {
+      const target = index + (revision.delta ?? 0)
+      if (target < 0 || target >= next.length) {
+        throw new Error(`document.undo: step "${revision.id}" can no longer move back`)
+      }
+      ;[next[index], next[target]] = [next[target], next[index]]
+    }
+    // 'rollback' revises nothing but the marker, which `targetRollbackAt` is.
+    rebuildFrom(next, targetRollbackAt)
+  }
+
+  /**
+   * The revision that puts a revision back.
+   *
+   * @param {LogRevision} revision
+   * @returns {LogRevision}
+   */
+  function invertRevision(revision) {
+    if (revision.kind === 'replace') return { ...revision, from: revision.to, to: revision.from }
+    if (revision.kind === 'suppress') {
+      return {
+        ...revision,
+        fromSuppressed: revision.toSuppressed,
+        toSuppressed: revision.fromSuppressed,
+      }
+    }
+    if (revision.kind === 'reorder') return { ...revision, delta: -(revision.delta ?? 0) }
+    return revision
+  }
+
+  /**
+   * Record a completed row action as one undoable step, with the same origin
+   * scoping `appendAll` applies: only the local user's own row actions are
+   * something Undo can reach.
+   *
+   * @param {TransactionOptions} transaction
+   * @param {string} label
+   * @param {LogRevision} revision
+   * @param {number | null} rollbackBefore
+   */
+  function pushRevision(transaction, label, revision, rollbackBefore) {
+    document.version += 1
+    if (transaction?.origin !== 'local') return
+    undoStack.push({
+      origin: 'local',
+      label: transaction.label ?? label,
+      records: [],
+      meta: transaction.meta,
+      revision,
+      rollbackBefore,
+      rollbackAfter: rollbackAt,
+    })
+    redoStack.length = 0
   }
 
   /** @type {HistoryStep[]} */
@@ -646,16 +1117,24 @@ export function createDocument(options = {}) {
    * one operand would claim something untrue.
    *
    * @param {readonly OpRecord[]} records
+   * @param {Map<string, OpRecord>} [byId] Fallback name source, for a row the
+   *   derived indexes do not hold: one being folded right now, one past the
+   *   rollback marker, or a suppressed one. Without it those rows would lose
+   *   their subject's name at exactly the moment a message needs it.
    * @returns {string}
    */
-  function labelFor(records) {
+  function labelFor(records, byId) {
     const record = records[0]
     const subject = record.supersedes ?? record.target
     const rootId = typeof subject === 'string' ? rootById.get(subject) : undefined
     // The *root's* name, not the acting record's: a transform and a param edit
     // both carry generated ids and no name of their own, and what the user calls
     // the thing is "Cube 1" — the same reason `Body.name` reads from the root.
-    const subjectName = rootId === undefined ? undefined : recordById.get(rootId)?.name
+    let subjectName = rootId === undefined ? undefined : recordById.get(rootId)?.name
+    if (subjectName === undefined && typeof subject === 'string' && byId !== undefined) {
+      const resolved = displayNameOf(subject, byId)
+      subjectName = resolved === subject ? undefined : resolved
+    }
 
     const verb = /** @type {Record<string, string>} */ (STEP_VERBS)[record.op]
     if (verb !== undefined) {
@@ -708,12 +1187,22 @@ export function createDocument(options = {}) {
      * Not atomic across the batch by design: each record is trial-folded and
      * committed in turn, exactly as a loop of `append` calls was, so a failure
      * partway leaves the earlier records in. That is unchanged behaviour from
-     * `ui-030`'s own loop; making the batch atomic is `data-004`'s contract to
-     * define, since it is the task that needs a rejected *replay* to change
-     * nothing.
+     * `ui-030`'s own loop; `data-004`'s atomicity contract is about a rejected
+     * *replay*, which is {@link rebuildFrom}'s, not this fast path's.
+     *
+     * **While rolled back, this inserts at the marker** (`data-004`, section
+     * 18: "any new local mutation … is inserted immediately after the marker").
+     * Putting it here rather than in `ui-032` is what makes drag-place, the
+     * Operations toolbar, the gizmo, the Inspector and Sketch all obey section
+     * 18's "nothing is blocked" without one of them knowing the marker exists.
+     * Non-local records take the same path, deliberately: appending one past the
+     * marker would land it in the inactive tail, where the user would never see
+     * the arrival section 19 point 3 says must announce itself.
      */
     appendAll(records, transaction) {
       const origin = transaction?.origin
+      if (rollbackAt !== null) return document.insertAt(rollbackAt, records, transaction)
+
       /** @type {OpRecord[]} */
       const appended = []
       for (const record of records) {
@@ -733,12 +1222,60 @@ export function createDocument(options = {}) {
           label: transaction.label ?? labelFor(appended),
           records: appended,
           meta: transaction.meta,
+          rollbackBefore: null,
+          rollbackAfter: null,
         })
         // Point 3: only a *new local mutation* clears redo. A remote arrival
         // must not, or someone else's edit silently eats the user's redo.
         redoStack.length = 0
       }
 
+      document.version += 1
+      return { records: appended, scene }
+    },
+
+    /**
+     * Splice records in at a position and re-fold — section 18's fixed
+     * requirement on this task, and already half-built: `redo` has been
+     * insert-at-index since `data-003`.
+     *
+     * Atomic, unlike `appendAll`'s fast path, because it goes through
+     * {@link rebuildFrom}: a record that will not fold leaves the log untouched
+     * rather than half-inserted. The marker moves with the insert when the
+     * insert lands at or before it, which is what makes the strip's counts
+     * (`step 3 of 6 — 3 later steps inactive`) come out right, and what `undo`
+     * puts back via `rollbackBefore`.
+     */
+    insertAt(index, records, transaction) {
+      const origin = transaction?.origin
+      if (typeof origin !== 'string' || origin.length === 0) {
+        throw new Error(
+          'document.insertAt: a transaction origin is required — ' +
+            "every mutation is origin-tagged so undo/redo can be scoped to the local user's own edits"
+        )
+      }
+      const at = Math.max(0, Math.min(index, entries.length))
+      const rollbackBefore = rollbackAt
+      const next = entries.slice()
+      next.splice(at, 0, ...records.map((record) => ({ record, origin })))
+      rebuildFrom(
+        next,
+        rollbackAt === null || at > rollbackAt ? rollbackAt : rollbackAt + records.length
+      )
+
+      const appended = records.slice()
+      if (origin === 'local' && appended.length > 0) {
+        undoStack.push({
+          origin,
+          label: transaction.label ?? labelFor(appended, recordMapOf(next)),
+          records: appended,
+          meta: transaction.meta,
+          index: at,
+          rollbackBefore,
+          rollbackAfter: rollbackAt,
+        })
+        redoStack.length = 0
+      }
       document.version += 1
       return { records: appended, scene }
     },
@@ -776,6 +1313,16 @@ export function createDocument(options = {}) {
       const step = undoStack.at(-1)
       if (step === undefined) return undefined
 
+      // A `data-004` row action added no record, so there is nothing to take
+      // out and nothing to orphan — it is reversed by applying its inverse.
+      if (step.revision !== undefined) {
+        applyRevision(invertRevision(step.revision), step.rollbackBefore ?? null)
+        undoStack.pop()
+        redoStack.push(step)
+        document.version += 1
+        return step
+      }
+
       const stepRecords = new Set(step.records)
       const undoneIds = new Set(
         step.records.map((record) => record.id).filter((id) => typeof id === 'string')
@@ -793,7 +1340,10 @@ export function createDocument(options = {}) {
       }
 
       const index = entries.findIndex((entry) => entry.record === step.records[0])
-      rebuildFrom(entries.filter((entry) => !stepRecords.has(entry.record)))
+      rebuildFrom(
+        entries.filter((entry) => !stepRecords.has(entry.record)),
+        step.rollbackBefore ?? null
+      )
       undoStack.pop()
       redoStack.push({ ...step, index })
       document.version += 1
@@ -814,13 +1364,20 @@ export function createDocument(options = {}) {
     redo() {
       const step = redoStack.at(-1)
       if (step === undefined) return undefined
+      if (step.revision !== undefined) {
+        applyRevision(step.revision, step.rollbackAfter ?? null)
+        redoStack.pop()
+        undoStack.push(step)
+        document.version += 1
+        return step
+      }
       const next = entries.slice()
       next.splice(
         step.index ?? next.length,
         0,
         ...step.records.map((record) => ({ record, origin: step.origin }))
       )
-      rebuildFrom(next)
+      rebuildFrom(next, step.rollbackAfter ?? null)
       redoStack.pop()
       undoStack.push(step)
       document.version += 1
@@ -883,6 +1440,269 @@ export function createDocument(options = {}) {
      */
     rootOf(id) {
       return rootById.get(id)
+    },
+
+    /**
+     * One record by id, read off `entries` rather than the derived indexes — so
+     * it answers for a suppressed or inactive row too, which is exactly what
+     * `ui-032`'s list and its Edit form need.
+     */
+    recordOf(id) {
+      return entries.find((entry) => entry.record.id === id)?.record
+    },
+
+    /** Section 18's marker, as an active-entry count. `null` when not rolled back. */
+    rollbackAt() {
+      return rollbackAt
+    },
+
+    /**
+     * Every row, in log order — `ui-032`'s whole data source.
+     *
+     * Derived on call, never stored: the panel re-reads it after every version
+     * bump, and a stored copy is one more thing that can disagree with the log.
+     */
+    timeline() {
+      const activeCount = rollbackAt ?? entries.length
+      const byId = recordMapOf(entries)
+      return entries.map((entry, index) => ({
+        step: index + 1,
+        id: entry.record.id ?? '',
+        record: entry.record,
+        origin: entry.origin,
+        label: labelFor([entry.record], byId),
+        suppressed: entry.suppressed === true,
+        active: index < activeCount,
+        broken: brokenById.get(entry.record.id ?? `#${index + 1}`) ?? null,
+      }))
+    },
+
+    /**
+     * The inactive tail rows the shadow check could not build — section 18's
+     * `broken` chips, as {@link BrokenStep}s rather than a flag, so the panel
+     * can show the reason on hover without asking again.
+     *
+     * Always empty when nothing is rolled back: a failure in the **active**
+     * document is an atomic rejection, never a flag.
+     */
+    brokenSteps() {
+      if (brokenById.size === 0) return []
+      const byId = recordMapOf(entries)
+      /** @type {BrokenStep[]} */
+      const steps = []
+      entries.forEach((entry, index) => {
+        const reason = brokenById.get(entry.record.id ?? `#${index + 1}`)
+        if (reason === undefined) return
+        steps.push({
+          id: entry.record.id ?? '',
+          step: index + 1,
+          label: labelFor([entry.record], byId),
+          reason,
+        })
+      })
+      return steps
+    },
+
+    /**
+     * Section 15: edit one past step **in place** and replay everything after it.
+     *
+     * The replacement keeps the step's id and everything the log's shape is
+     * built on (see {@link SHAPE_FIELDS}) — only its params change. That is what
+     * makes this safe without re-parenting anything: every later record's
+     * reference still names a record that is still there, so the re-fold is
+     * literally "the same fold, one input changed", which is the correctness
+     * argument this task's Proposed fix asked for.
+     *
+     * Atomic. A later record that will not build throws a {@link ReplayRejection}
+     * naming that row, and the document is left exactly as it was — including
+     * the derived indexes, which `rebuildFrom` restores from its snapshot.
+     *
+     * Build the replacement with `src/core/paramEdit.js`'s `stepParamEditRecord`
+     * rather than by hand; it owns which params are editable on a past step and
+     * why, the same way `paramEditability` owns `ui-029`'s append-path rule.
+     */
+    replaceRecord(id, record, transaction) {
+      const index = indexOfRecord(id)
+      if (index < 0) {
+        throw new Error(`document.replaceRecord: no step "${id}" in this document`)
+      }
+      if (record === null || record === undefined) {
+        throw new Error(
+          'document.replaceRecord: a replacement record is required — `stepParamEditRecord` ' +
+            'returns `null` for an edit that changes nothing, and that means there is nothing to do'
+        )
+      }
+      const current = entries[index].record
+      if (record.id !== id) {
+        throw new Error(
+          `document.replaceRecord: the replacement for "${id}" carries \`id\` ` +
+            `"${record.id}" — a step is replaced in place precisely so every later record's ` +
+            'reference to it stays valid, so its id may never change'
+        )
+      }
+      for (const field of SHAPE_FIELDS) {
+        const key = /** @type {keyof OpRecord} */ (field)
+        if (JSON.stringify(record[key] ?? null) === JSON.stringify(current[key] ?? null)) continue
+        throw new Error(
+          `document.replaceRecord: the replacement for "${id}" changes \`${field}\` — ` +
+            'editing a past step rewrites its parameters, never what it operates on; ' +
+            'changing that is a reorder or a new step, not an edit'
+        )
+      }
+
+      const rollbackBefore = rollbackAt
+      const next = entries.slice()
+      next[index] = { ...next[index], record }
+      rebuildFrom(next)
+      pushRevision(
+        transaction,
+        `Edit step ${index + 1}`,
+        { kind: 'replace', id, from: current, to: record },
+        rollbackBefore
+      )
+      return { scene }
+    },
+
+    /**
+     * Section 16: take a step out of the evaluation without taking it out of the
+     * log, or put it back.
+     *
+     * Non-destructive by construction — the entry keeps its place and its
+     * record, and the fold skips it. Unsuppress therefore restores *exactly* the
+     * previous result, because it is the same fold again.
+     *
+     * Allowed on an inactive row (section 18's "cheap — nothing needs
+     * evaluating"), and refused by name when a later **active** step needs the
+     * one being suppressed: `Step 3 (Union) needs Cube 1`.
+     */
+    setSuppressed(id, suppressed, transaction) {
+      const index = indexOfRecord(id)
+      if (index < 0) {
+        throw new Error(`document.setSuppressed: no step "${id}" in this document`)
+      }
+      const was = entries[index].suppressed === true
+      const wanted = suppressed === true
+      if (was === wanted) return { scene }
+
+      const rollbackBefore = rollbackAt
+      const next = entries.slice()
+      next[index] = { ...next[index], suppressed: wanted }
+      rebuildFrom(next)
+      pushRevision(
+        transaction,
+        `${wanted ? 'Suppress' : 'Unsuppress'} step ${index + 1}`,
+        { kind: 'suppress', id, fromSuppressed: was, toSuppressed: wanted },
+        rollbackBefore
+      )
+      return { scene }
+    },
+
+    /**
+     * Section 17's static legality check, so `Move up` / `Move down` are honestly
+     * disabled *before* the press rather than throwing after it.
+     *
+     * Cheap and reference-based, never a fold. Because a move swaps **adjacent**
+     * rows, only the pair matters: the illegal case is the later row referencing
+     * the earlier one, which after the swap would put a step above the step
+     * whose result it uses. Anything subtler is left to the replay, which
+     * section 17 keeps as the final arbiter.
+     */
+    canMove(id, delta) {
+      const index = indexOfRecord(id)
+      if (index < 0) return { allowed: false, reason: `no step "${id}" in this document` }
+      if (delta !== 1 && delta !== -1) {
+        return { allowed: false, reason: 'a step moves one position at a time' }
+      }
+      const target = index + delta
+      if (target < 0) return { allowed: false, reason: 'this is already the first step' }
+      if (target >= entries.length) {
+        return { allowed: false, reason: 'this is already the last step' }
+      }
+      if (rollbackAt !== null && index < rollbackAt !== target < rollbackAt) {
+        return { allowed: false, reason: 'Roll forward to move a step past the rollback point' }
+      }
+      const earlier = delta === 1 ? index : target
+      const later = delta === 1 ? target : index
+      const earlierId = entries[earlier].record.id
+      if (earlierId !== undefined && referencedIdsOf(entries[later].record).includes(earlierId)) {
+        return {
+          allowed: false,
+          reason: `Step ${later + 1} uses step ${earlier + 1}'s result`,
+        }
+      }
+      return { allowed: true, reason: null }
+    },
+
+    /**
+     * Section 17: move one step one position, and replay.
+     *
+     * Refuses an illegal move through {@link WarpDocument.canMove} before
+     * touching anything, and any move the replay then rejects is refused
+     * atomically by {@link rebuildFrom} — "order unchanged".
+     */
+    moveStep(id, delta, transaction) {
+      const verdict = document.canMove(id, delta)
+      if (!verdict.allowed) throw new Error(`document.moveStep: ${verdict.reason}`)
+
+      const index = indexOfRecord(id)
+      const target = index + delta
+      const rollbackBefore = rollbackAt
+      const next = entries.slice()
+      ;[next[index], next[target]] = [next[target], next[index]]
+      rebuildFrom(next)
+      pushRevision(
+        transaction,
+        `Move step ${index + 1} ${delta < 0 ? 'up' : 'down'}`,
+        { kind: 'reorder', id, delta },
+        rollbackBefore
+      )
+      return { scene }
+    },
+
+    /**
+     * Section 18: set the rollback marker just after a step, so the rows past it
+     * stop being evaluated.
+     *
+     * Nothing is deleted and nothing is blocked — `appendAll` keeps working and
+     * inserts at the marker. Refused on the last row (there would be no tail) and
+     * on an already-inactive row ("an inactive row cannot be a rollback target").
+     */
+    rollBackTo(id, transaction) {
+      const index = indexOfRecord(id)
+      if (index < 0) throw new Error(`document.rollBackTo: no step "${id}" in this document`)
+      if (index >= entries.length - 1) {
+        throw new Error(
+          `document.rollBackTo: "${id}" is the last step, so there is nothing after it to ` +
+            'roll back past'
+        )
+      }
+      if (rollbackAt !== null && index >= rollbackAt) {
+        throw new Error(
+          `document.rollBackTo: "${id}" is already inactive — roll forward first, since an ` +
+            'inactive row cannot be a rollback target'
+        )
+      }
+      const rollbackBefore = rollbackAt
+      rebuildFrom(entries.slice(), index + 1)
+      pushRevision(transaction, `Roll back to step ${index + 1}`, { kind: 'rollback' }, rollbackBefore)
+      return { scene }
+    },
+
+    /**
+     * Section 18: clear the marker and replay the whole log in its new order —
+     * active rows, inserted rows, then the formerly-inactive ones.
+     *
+     * Atomic, "with the same contract as an edit": a tail row that can no longer
+     * be built throws a {@link ReplayRejection} naming it, the marker stays, and
+     * nothing changes. `ui-032` prefixes that message with `Can't roll forward:`;
+     * the row and the reason are already on the error's `step`.
+     */
+    rollForward(transaction) {
+      if (rollbackAt === null) return { scene }
+      const rollbackBefore = rollbackAt
+      rebuildFrom(entries.slice(), null)
+      pushRevision(transaction, 'Roll forward', { kind: 'rollback' }, rollbackBefore)
+      return { scene }
     },
 
     /**
@@ -998,11 +1818,15 @@ export function createDocument(options = {}) {
       // single-writer append log (docs/decisions/document-sync.md — no CRDT for
       // v1), so a counter is unique, and a readable id makes an NDJSON document
       // diffable by a human and by the AI partner.
+      // Checked against `entries`, not only `originById`: a suppressed or
+      // rolled-back row is in the log and not in the derived indexes, and
+      // handing its id out again would make it collide the moment the row is
+      // unsuppressed or rolled forward (`data-004`).
       let candidate
       do {
         idCounter += 1
         candidate = `${prefix}-${idCounter}`
-      } while (originById.has(candidate))
+      } while (originById.has(candidate) || indexOfRecord(candidate) >= 0)
       return candidate
     },
 

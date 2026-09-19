@@ -47,6 +47,38 @@
  * `assertRadiusFits` — or, worse, succeed and produce a rim nobody asked for.
  * Freezing is the honest answer until someone asks for the other one.
  *
+ * ## Editing a *past* step, which is a different question (`TODO/data-004`)
+ *
+ * `data-004` asked for the guard above to be **revisited**, since "replaying
+ * past such an op is exactly this task's whole point rather than something to
+ * refuse". Revisited, and the answer is that it was never the same question:
+ *
+ * - {@link paramEditability} guards the **append** path. It is right, and
+ *   unchanged. Appending a rebuilt creation record over a lineage's terminal
+ *   *discards* whatever the lineage did in between, because a `primitive.*` op
+ *   builds from params and nothing else. The fillet really would vanish.
+ * - {@link stepParamEditability} guards the **replace** path. `data-004` swaps
+ *   one row's record in place and re-folds the whole log, so the fillet record
+ *   is still sitting there, still after the row being edited, and still runs.
+ *   Nothing is discarded, so there is nothing to freeze — and a rim op that no
+ *   longer fits is *reported by name*, not silently dropped.
+ *
+ * So the two guards differ exactly where the mechanisms differ. What the
+ * replace path refuses instead is narrower and is about the row itself:
+ *
+ * - a row that **has no params of its own** — a boolean or a group, whose
+ *   geometry *is* its operands (section 15: "Boolean/Group rows have no params:
+ *   `Edit` is disabled");
+ * - a **composite recipe** row, for the reason {@link paramEditability} already
+ *   gives: a bolt's `spec` is a catalogue choice needing a dropdown, not a
+ *   number. `ui-032` may lift this the day it builds that control;
+ * - `rotation`, on any row. `src/core/transform.js` carries a body's
+ *   **absolute** rotation forward on every later transform record, so editing
+ *   one row's value is silently overwritten by the next one — the "wrong
+ *   geometry, no error" class this milestone exists to catch. A consequence
+ *   worth stating plainly: a `transform.rotate` row's *only* param is that
+ *   value, so such a row is not editable at all today.
+ *
  * Framework-free, per CLAUDE.md's Project Structure: no Vue, no DOM, no three.js.
  *
  * @module core/paramEdit
@@ -333,4 +365,128 @@ export function paramEditRecord(document, bodyId, changes) {
     params,
     supersedes: terminal.id,
   }
+}
+
+/**
+ * Params no **past step** edit may write, whatever a caller asks for.
+ *
+ * Shorter than {@link RESERVED_PARAMS} on purpose. `center` is reserved on the
+ * append path because writing it there fights `useParamCommands.js`'s
+ * pose-restore step; on the replace path there is no pose restore — a later
+ * `transform.translate` is a *relative* vector that replays on top of wherever
+ * the creation record now puts the solid — so editing a placement's own centre
+ * is exactly the "position" section 15 lists as editable. `rotation` stays
+ * reserved for the reason the module note gives: it is carried absolutely.
+ */
+const RESERVED_STEP_PARAMS = Object.freeze(new Set(['rotation', 'segments']))
+
+/**
+ * May this row's parameters be edited in place (`data-004`, section 15)?
+ *
+ * Takes the **record**, not a lineage: the replace path re-folds the whole log,
+ * so what a row's lineage happens to contain is no longer the question — see
+ * the module note. Pure, so `ui-032` can call it per row while rendering.
+ *
+ * @param {OpRecord | undefined} record
+ * @returns {ParamEditability} `blockedBy` is the op to name in the disabled
+ *   `Edit` button's reason, `null` when there is simply no such row.
+ */
+export function stepParamEditability(record) {
+  if (!record || typeof record.op !== 'string') return { editable: false, blockedBy: null }
+  // A boolean or a group: its geometry *is* its operands, and the params a user
+  // would be editing do not exist. Section 15: "This step has no parameters".
+  if (record.consumes !== undefined) return { editable: false, blockedBy: record.op }
+  // A catalogue choice, not a dimension — see the module note.
+  if (registry[record.op]?.kind === 'composite') return { editable: false, blockedBy: record.op }
+  const editable = Object.keys(record.params ?? {}).filter(
+    (key) => !RESERVED_STEP_PARAMS.has(key)
+  )
+  if (editable.length === 0) return { editable: false, blockedBy: record.op }
+  return { editable: true, blockedBy: null }
+}
+
+/**
+ * Every value a param may take: a finite number, a vector of them, or one of
+ * the string/boolean choices a real op already uses (`modify.filletRim`'s
+ * `face`, a future `mode` flag).
+ *
+ * Deliberately wider than {@link requireFiniteParam}, which guards the append
+ * path's numeric-dimension edits only. Still narrow enough that a `NaN` or an
+ * arbitrary object can never reach the kernel as a silently malformed solid.
+ *
+ * @param {string} key
+ * @param {unknown} value
+ * @returns {void}
+ */
+function requireStepParam(key, value) {
+  if (typeof value === 'string' || typeof value === 'boolean') return
+  const values = Array.isArray(value) ? value : [value]
+  for (const entry of values) {
+    if (typeof entry !== 'number' || !Number.isFinite(entry)) {
+      throw new Error(
+        `paramEdit: ${key} must be a finite number, a vector of them, a string or a boolean — ` +
+          `got ${JSON.stringify(entry)}, and a NaN would reach the kernel as a silently ` +
+          'malformed solid'
+      )
+    }
+  }
+}
+
+/**
+ * Build the replacement for a **past step**, with some of its params changed.
+ *
+ * The result is the same record with a new `params` — same `id`, same `op`,
+ * same `supersedes`/`consumes`/`target`/`operands`. That is not incidental:
+ * `document.replaceRecord` refuses a replacement that changes any of those,
+ * because every later record in the log was resolved against them, and keeping
+ * them is what makes the re-fold "the same fold, one input changed" rather than
+ * a re-parenting with a correctness argument of its own.
+ *
+ * Spread from the row's **own** params, not the body's current ones: this edits
+ * one point in history, and the rows after it still carry whatever they carry.
+ *
+ * @param {WarpDocument} document
+ * @param {string} recordId The row's record id — from `document.timeline()`.
+ * @param {Record<string, number | readonly number[] | string | boolean>} changes
+ * @returns {OpRecord | null} `null` when nothing actually changes, the same
+ *   "a no-op delta appends nothing" convention {@link paramEditRecord} follows.
+ * @throws {Error} When there is no such row, when the row has no editable
+ *   params (see {@link stepParamEditability}), or when a change is malformed.
+ *   Nothing is written here either way — the caller hands the result to
+ *   `document.replaceRecord`.
+ */
+export function stepParamEditRecord(document, recordId, changes) {
+  const record = document.recordOf(recordId)
+  if (record === undefined) throw new Error(`paramEdit: no step "${recordId}" in this document`)
+
+  const { editable, blockedBy } = stepParamEditability(record)
+  if (!editable) {
+    throw new Error(
+      `paramEdit: step "${recordId}" has no editable parameters — a ${blockedBy ?? 'record'} ` +
+        'is built from its operands or from a catalogue choice, not from numbers this path ' +
+        'can rewrite'
+    )
+  }
+
+  const current = record.params ?? {}
+  /** @type {Record<string, any>} */
+  const params = { ...current }
+  let changed = false
+  for (const [key, value] of Object.entries(changes)) {
+    if (RESERVED_STEP_PARAMS.has(key)) {
+      throw new Error(
+        `paramEdit: "${key}" is not editable on a past step — rotation is carried as an ` +
+          'absolute value on every later transform record, so editing one row\'s copy would ' +
+          'be silently overwritten by the next, and segments is a tessellation detail rather ' +
+          'than a dimension'
+      )
+    }
+    requireStepParam(key, value)
+    if (sameValue(current[key], value)) continue
+    params[key] = Array.isArray(value) ? value.slice() : value
+    changed = true
+  }
+  if (!changed) return null
+
+  return { ...record, params }
 }

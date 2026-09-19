@@ -34,6 +34,21 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### data-004 — Edit a past timeline entry's params in place and replay after it (2026-09-19 04:59)
+
+Almost everything this task built is already covered on a standing basis — `ACCEPTANCE.md`
+scenario 12 owns the whole edit/suppress/reorder/rollback surface, and 39 unit cases cover
+the mechanism — so only the three things below are logged here, and none of them is a
+restated pass. Two are **judgment calls that need a human looking at a screen**, which is
+exactly what this file is for and what no assertion of mine can settle; the third is a
+number that should be re-taken on real hardware rather than trusted from a laptop.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | The full re-fold measured 67 ms for a 200-record, 50-fillet document on this Mac. That is a **row action, not a frame**, so it is within budget by design — but it is also the first operation in this app whose cost scales with document length. Re-take it on the **iPad and the iPhone** once `ui-032` gives it a trigger: if a mid-history edit on a real phone feels like a hang rather than a pause, the incremental re-fold this task deliberately did not build becomes a real task rather than a deferred one. Record the device and the felt latency, not just the number | Open | |
+| 2 | A `transform.rotate` row is **not editable at all** (its only param is the absolute rotation `core-004` carries forward, so editing one row's copy would be silently overwritten by the next). This is correct and is now stated in code — but it is a capability a user may well expect. When `ui-032` lands, judge by hand whether the disabled `Edit` button's reason reads as *an honest limitation* or as *a bug*. If it reads as a bug, that is a real finding and wants its own `TODO/<id>.md`, not a wording tweak | Open | |
+| 3 | Section 18's inactive-tail `broken` flag is informational by decision: an insert that breaks a tail row still succeeds. `data-004` measured that **36% of roll-back-then-move cases** break at least one row (filed as `TODO/data-005`). Once `ui-032` can show the chip, drive scenario 12 step 10 a few times as an exploring human and judge whether being told "this later step can no longer be built, Suppress it or Undo" is *acceptable* or *infuriating* — that judgment, not the 36%, is what should decide whether `data-005` gets built | Open | |
+
 ### data-003 — Undo/redo command stack scoped by transaction origin (2026-09-19 03:58)
 
 The mechanism itself is covered by standing checks and is deliberately not restated here:
