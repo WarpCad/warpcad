@@ -1850,6 +1850,31 @@ function onReset() {
   scheduleRender()
 }
 
+/**
+ * Frame the camera on everything in the document (`TODO/io-001`).
+ *
+ * Runs when a whole document is *loaded* — an autosave restore or an Open —
+ * never on an edit. A loaded project whose geometry sits outside the default view
+ * would otherwise read as an empty scene, and a user who had panned away before
+ * reloading would reopen the app to what looks like lost work
+ * (`interaction-model-qa.md` §10). Orientation is kept; only target and distance
+ * move. Reads the summaries' plain `bounds`, so no geometry is touched.
+ */
+function frameLoadedContent() {
+  const summaries = documentStore.bodies
+  if (summaries.length === 0) return
+  const min = [Infinity, Infinity, Infinity]
+  const max = [-Infinity, -Infinity, -Infinity]
+  for (const body of summaries) {
+    for (let axis = 0; axis < 3; axis += 1) {
+      min[axis] = Math.min(min[axis], body.bounds[0][axis])
+      max[axis] = Math.max(max[axis], body.bounds[1][axis])
+    }
+  }
+  orbit.frameBounds(min, max, heightPx > 0 ? widthPx / heightPx : 1)
+  scheduleRender()
+}
+
 /** @param {'orbit' | 'pan'} mode */
 function onMode(mode) {
   if (sketchMode.value) return
@@ -1903,6 +1928,9 @@ onMounted(() => {
   unregisterTarget = placement.registerTarget(dropTarget)
   stopWatchers.push(
     watch(() => documentStore.version, syncBodies),
+    // A loaded document (restore / Open), as opposed to an edit: frame it. Declared
+    // after the `syncBodies` watcher so the meshes exist before the camera moves.
+    watch(() => documentStore.loadRevision, frameLoadedContent),
     // Sketch entities never reach `syncBodies` — they are not meshes — so the
     // overlay gets its own watcher. `syncSketchStrokes` runs from the render
     // callback for camera moves; this covers the case where the *document*
@@ -1940,6 +1968,7 @@ onMounted(() => {
   // A document that already has content (a reload, a loaded file) renders on
   // mount rather than waiting for the next mutation.
   syncBodies()
+  if (documentStore.loadRevision > 0) frameLoadedContent()
 })
 
 onBeforeUnmount(() => {

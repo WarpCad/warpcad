@@ -41,6 +41,10 @@ themselves won't have to move.
 - [Undoing and redoing a change](undo-redo.md) — the two buttons at the right of
   the top bar, the Ctrl/Cmd+Z shortcuts, what counts as one step, what Undo puts
   back on screen, and why Undo never removes a change you didn't make.
+- [Saving and reopening your work](save-load.md) — your work autosaves as you go
+  and reopens where you left off when you reload; the little status light at the
+  right of the top bar; what it says when your browser won't let WarpCad store
+  anything; and what is still to come (saving a portable file, opening one).
 - [Moving around the 3D view](viewport-navigation.md) — orbit, pan, zoom, the
   orientation triad, touch gestures, and reading size off the grid.
 - [Sketch mode: drawing a line on the working plane](sketch-mode.md) — the

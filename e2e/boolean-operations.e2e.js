@@ -324,12 +324,13 @@ test('Subtract cuts the later-selected solid out of the first — reversing the 
   await expect(page.getByTestId('viewport')).toHaveAttribute('data-body-count', '1')
   const [aMinusB] = await sceneBodies(page)
 
-  // A fresh scene: nothing here is persisted, so a reload is an empty document.
-  await page.reload()
-  await expect(page.getByTestId('viewport')).toHaveAttribute('data-body-count', '0')
-  const [freshA, freshB] = await placeTwoCubes(page)
-  // The same two solids, in the same two places, as a precondition of the
-  // comparison below meaning anything.
+  // Back to the same two solids in the same two places. This used to reload for a
+  // fresh document ("nothing is persisted"); since `io-001` a reload restores the last
+  // session on purpose, so the way back is Undo — which also proves the subtract came
+  // back out cleanly, the precondition of the comparison below meaning anything.
+  await page.getByTestId('undo-button').click()
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-body-count', '2')
+  const [freshA, freshB] = await sceneBodies(page)
   expect(freshA.center).toBe(cubeA.center)
   expect(freshB.center).toBe(cubeB.center)
 

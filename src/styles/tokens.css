@@ -51,6 +51,9 @@
      deliberately not a red borrowed from `--axis-x`, which means the X axis
      everywhere else in the app and would read as an axis label on a panel. */
   --danger: #e06c75;
+  /* Save-status chip's "Saving…" (`TODO/io-001`): amber beside --accent-secondary's green (saved)
+     and --danger's red (failed) — three states a dot can tell apart by colour *and* by shape. */
+  --warn: #e5b567;
 
   --radius-sm: 6px;
   --radius-md: 10px;
@@ -94,6 +97,7 @@
     /* Darkened for the same reason as the three above — a warning nobody can
        read against a near-white panel is a warning that was not given. */
     --danger: #b3261e;
+    --warn: #9a6a12;
 
     --shadow-overlay: 0 6px 24px rgba(20, 30, 45, 0.18);
   }

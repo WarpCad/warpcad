@@ -6,8 +6,47 @@ priority: medium
 model: sonnet
 milestone: M6
 depends: [data-002]
-status: open
+status: done
 ---
+
+
+> **What actually shipped (2026-09-19).** The task file predates the M6 decisions; where it
+> conflicts, `docs/decisions/persistence-export.md` and `docs/decisions/interaction-model-qa.md`
+> §8-10 won. Built: **autosave + silent restore + the `save-status` chip** (mounted in the header
+> document bar, a dot at phone width, right edge still 380 of 390px) and the **file Save/Open
+> mechanism with a first-class fallback** (no File ▾ menu, no shortcuts, no hosted, no Export —
+> those are `ui-033`/`ui-034`/`io-002`). Files: `src/core/project.js` (the one on-storage/on-disk
+> format: the NDJSON action log plus, only when needed, **one trailing `project-state` line**
+> carrying suppressed row ids, the rollback marker and non-local origins — so a rolled-back or
+> suppressed document restores **faithfully**, not refused), `WarpDocument.loadEntries` (atomic,
+> clears both undo stacks exactly like the seed loop), `src/storage/{autosave,indexeddb,localMirror,
+> fileSystem}.js`, `src/stores/persistence.js`, `src/components/display/SaveStatus.vue`,
+> `Viewport.vue` framing on `loadRevision`, `camera.frameBounds`, `docs/save-load.md`.
+>
+> **One thing the file did not anticipate, found by driving real Chromium, not by reading code:**
+> the spec'd flush on `visibilitychange`/`pagehide` is **not sufficient** — an IndexedDB
+> transaction *started* in those handlers is not committed before a reload tears the page down
+> (the `put` is issued; the transaction neither completes nor aborts), so "place a solid, reload
+> within 500 ms" lost the solid. Fixed with a **synchronous `localStorage` safety copy**
+> (`localMirror.js`) written only from the dying-page flush, cleared as soon as IndexedDB has the
+> same text, and compared by timestamp at startup. A regression test (`reloading immediately after
+> an edit…`) fails without it in Chromium and passes in Chromium + WebKit with it.
+>
+> **Deliberate non-decisions.** Multi-tab autosave is **last-writer-wins** (the Q&A's drafted
+> revision counter / `BroadcastChannel` is not built; no locking invented). Undo history does not
+> survive reload (restore goes through `loadEntries`, which clears the stacks). No `fake-indexeddb`
+> dependency: the adapter is unit-tested against an injected `idb` `openDB` fake and exercised for
+> real in Chromium and WebKit by the e2e spec. `boolean-operations.e2e.js`'s "fresh scene via
+> `page.reload()`" became an Undo, because a reload now (correctly) restores the session.
+>
+> **What `ui-033` should call** (all on `usePersistenceStore()`): `fileCapabilities`
+> (`{ mode, canSaveInPlace, saveLabel: 'Save' | 'Download copy', saveAsLabel: 'Save As…' | null,
+> openLabel }` — label the menu from it; both save items carry `data-testid="file-save"`),
+> `saveFile({ saveAs })` (Ctrl/Cmd+S → `saveFile()`), `openFile()` (call it synchronously from the
+> click; it does **not** confirm — show `file-open-confirm` first when `documentStore.count > 0`),
+> `openText(text, name)`, and `chipText`/`chipTone`/`errorMessage`/`dismissError()`. Not driveable
+> until then: scenario 10's file and hosted halves, and the native File System Access dialog
+> (one row in `TODO/VERIFY.md`).
 
 ## Goal
 

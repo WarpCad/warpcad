@@ -855,6 +855,17 @@ deliberately wandering with an overshoot past the drop point and a doubling-back
 
 **Re-checked**: 2026-09-19 04:47 — PASS (`data-004`). Re-driven because this task widens the *same* `rebuildFrom` re-fold `data-003` built, and every body in the document now goes through a fold that can skip entries (suppressed), stop early (rolled back) and be re-entered by an insert — so "does placing a second body still leave the first alone" is being asked of a materially different fold. Laptop 1440x900 (Chromium), real mouse, wandering drag paths. A Cube dropped at 0.35/0.5, then a Sphere at 0.68/0.45: **both stayed** and the Cube's millimetre centre, bounds and volume were byte-identical before and after the second drop (`-41.39,-41.39,20.00` / `64000.000` both times). A third drop — a **Bolt**, a composite — left both of the first two byte-identical again and reported its own bounds (`59.55,-77.28,0.00 .. 78.55,-60.82,27.50`, volume `3647.047`), i.e. its own ~19mm footprint around its own drop point, not a group stretched back over the Cube at −61mm or the Sphere at +95mm: `core-020`'s repro, re-run through the real drag-drop UI. A screenshot shows all three solids on screen, separate and correctly shaped, with the Inspector reading the Bolt. Console clean.
 
+**Re-checked**: 2026-09-19 — PASS (`io-001`: startup now restores a document, touching the
+load path every body takes). Hand-driven with a real mouse and wandering, jittery drags
+(not dispatched events): chromium/laptop, and webkit/phone 390×844, webkit/tablet 820×1180,
+chromium/phone, chromium/tablet. Cube then Cylinder dropped at different points: both stayed
+visible; the first body's millimetre centre was identical before and after the second drop
+(laptop `-98.51,-23.28,20.00`; phone `-143.29,79.88,20.00`), each click selected only that
+solid with one gizmo, an empty-grid click cleared it. The drive also produced one harness
+lesson worth keeping: a selected body's gizmo rings overlay its neighbours, so a Shift-click
+aimed *through* them selects nothing new — the same as it would for a human, not a defect.
+Console clean in every drive.
+
 ### 2. Hardware property edit
 
 **Steps**:
@@ -2271,7 +2282,27 @@ shows **Download copy** instead — drive whichever your browser shows, and say 
   **Cancel** the second local edit does **not** raise the dialog again and does not push;
   an explicit **Save to owner/repo** raises it again.
 
-**Last run**: not yet built.
+**Last run**: 2026-09-19 — **local autosave/reload half PASS; file half and hosted half not
+driveable yet** (`io-001`; File ▾ / History / Open… are `ui-033`/`ui-032`, hosted is `io-002`).
+Hand-driven with a real mouse and jittery drags at chromium/laptop and webkit/laptop (full
+sequence), plus webkit/phone, webkit/tablet, chromium/phone, chromium/tablet (touch
+viewports). Steps 1-5 of the scenario: Cube + overlapping Cylinder dropped, both selected,
+**Union** pressed → one `boolean.union` body at `-78.51,-23.28,25.00`, volume `126428.903`
+mm³ (chromium) / `-79.04,-22.90,25.00` (webkit). The chip went **`Saving…` → `Saved · 08:26`**
+on its own. **Reload with nothing else in between**: the union reappeared with identical
+id/op/centre/volume, no prompt, chip `Restored your last session` (reverting to `Saved · …`
+after ~6 s), undo and redo both disabled, selection empty, and the camera re-framed on the
+content (after panning 14 nav steps away, the target went from `-412.12,-110.43,301.69` back
+to `-130.20,132.86,25.00` = the bodies' centre; screenshot confirmed both bodies in view at
+390px). Odd-moment reloads: ~60 ms after placing a Sphere (before the 500 ms debounce),
+mid-placement-drag (ghost visible, `data-placing=true`), and 40 ms after an edit on the
+phone viewports — every one kept the last committed state and no ghost body; the first of
+these **initially failed in real Chromium** (an IndexedDB write started in `pagehide` is not
+committed before the page dies) and is why `src/storage/localMirror.js` exists. Not driven
+(no UI yet): steps 5's History rows, 6-7 (File round-trip — the mechanism is covered by
+`e2e/local-persistence.e2e.js` against real download/file-chooser events, not by clicking a
+File menu), 8-10 (hosted). **Not claimed**: native File System Access Save As on desktop
+Chrome — an OS dialog nothing headless can drive (see `TODO/VERIFY.md`).
 
 ### 11. Export a solid and confirm it opens elsewhere
 

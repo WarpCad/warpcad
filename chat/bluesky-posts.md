@@ -715,3 +715,14 @@ Built with Claude Code, reviewed by me.
 **Evidence:** "freezes its size fields" → `paramEditability` in `src/core/paramEdit.js`, built by `TODO/done/ui-029-editable-primitive-parameters.md`; "the timeline task was meant to relax that" → `TODO/done/data-004-timeline-entry-edit-replay.md`'s Affected files: the guard "needs revisiting … since replaying past such an op is exactly this task's whole point"; "an append discards the fillet, a replace leaves it in place" → `paramEdit.js` module doc, this diff; "found a gap neither test had" → `stepParamEditability` shows a `transform.rotate` row has only the absolute `rotation` param `core-004` carries forward, so it is not editable at all — stated in this diff, in the retirement note and in `TODO/VERIFY.md` row 2
 **Disclosure:** Built with Claude Code, reviewed by me.
 **To Add:** repo URL once public
+
+## 2026-09-19T13:31:00Z — Saving on pagehide does not survive a reload
+
+**Post:** WarpCad autosaves to IndexedDB and flushes on pagehide, per spec. I placed a solid and reloaded inside half a second: gone. The put was issued but never committed before the page died. Fix: a synchronous localStorage copy, cleared once IndexedDB has it.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebDev
+**Evidence:** "autosaves to IndexedDB and flushes on pagehide, as specced" → `docs/decisions/interaction-model-qa.md` section 8 and `src/storage/autosave.js`, this diff; "placed a solid, reloaded within half a second, it was gone" → a hand-driven Playwright run in real Chromium this session, and `e2e/local-persistence.e2e.js`'s "reloading immediately after an edit" test, which failed before `localMirror.js` existed and passes in chromium and webkit after; "the put was issued but never committed" → the same session's debug run: a patched `IDBObjectStore.put` logged the call and neither `complete` nor `abort` ever fired before the reload; "synchronous localStorage copy, cleared once IndexedDB has it" → `src/storage/localMirror.js` and `createAutosaver`'s `flushSync`, this diff
+**Disclosure:** Built with Claude Code, reviewed by me.
+**To Add:** repo URL once public; the failing-then-passing test output side by side

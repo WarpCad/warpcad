@@ -467,6 +467,7 @@ export class ReplayRejection extends Error {
  * @property {() => HistoryStep | undefined} undo
  * @property {() => HistoryStep | undefined} redo
  * @property {() => void} clearHistory
+ * @property {(entries: readonly DocumentEntry[], rollbackAt?: number | null) => void} loadEntries
  * @property {(prefix?: string) => string} nextId
  * @property {(label: string) => string} nextName
  */
@@ -1395,6 +1396,55 @@ export function createDocument(options = {}) {
     clearHistory() {
       undoStack.length = 0
       redoStack.length = 0
+    },
+
+    /**
+     * Replace the whole log — the load path shared by autosave restore and Open
+     * (`TODO/io-001`), the one place a document arrives from outside rather
+     * than being built up by edits.
+     *
+     * **Atomic**, because it is {@link rebuildFrom}: an entry that does not
+     * fold (an op this build does not know, a step whose operand is missing, a
+     * record from a newer file) throws a {@link ReplayRejection} naming the row,
+     * and the document is exactly as it was — Open's "a bad file leaves the
+     * current project untouched". Nothing about the *file's* shape is checked
+     * here; that is `src/core/project.js`'s `parseProject`, which runs first.
+     *
+     * **Clears both undo stacks on success**, exactly as the seed loop at the
+     * bottom of {@link createDocument} does, and for the same reason — section
+     * 19: "the undo/redo stacks start empty after a reload and after Open". A
+     * *refused* load deliberately leaves them alone: nothing was replaced, so
+     * nothing about the user's history became untrue.
+     *
+     * `idCounter` is not reset (see {@link rebuildFrom}); `nextId` already skips
+     * ids present in `entries`, so ids in the loaded log are never handed out.
+     *
+     * @param {readonly DocumentEntry[]} nextEntries
+     * @param {number | null} [nextRollbackAt] Count of active entries, as
+     *   {@link WarpDocument.rollbackAt} reports it; `null` for a whole-log-active
+     *   document. Must leave at least one active row and one inactive one.
+     */
+    loadEntries(nextEntries, nextRollbackAt = null) {
+      if (
+        nextRollbackAt !== null &&
+        !(Number.isInteger(nextRollbackAt) && nextRollbackAt >= 1 && nextRollbackAt < nextEntries.length)
+      ) {
+        throw new Error(
+          `document.loadEntries: rollback marker ${JSON.stringify(nextRollbackAt)} is not a count ` +
+            `between 1 and ${nextEntries.length - 1} for a log of ${nextEntries.length} steps`
+        )
+      }
+      rebuildFrom(
+        nextEntries.map((entry) => ({
+          record: entry.record,
+          origin: entry.origin,
+          ...(entry.suppressed === true ? { suppressed: true } : {}),
+        })),
+        nextRollbackAt
+      )
+      undoStack.length = 0
+      redoStack.length = 0
+      document.version += 1
     },
 
     originOf(id) {

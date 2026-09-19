@@ -54,6 +54,8 @@ export const STANDARD_VIEWS = Object.freeze({
 
 export const MIN_DISTANCE_MM = 5
 export const MAX_DISTANCE_MM = 100000
+/** Breathing room around framed content: 1.25× the exact fit. */
+const FRAME_MARGIN = 1.25
 export const MIN_ELEVATION_DEG = -90
 export const MAX_ELEVATION_DEG = 90
 
@@ -197,6 +199,7 @@ export function chooseScaleBar(mmPerPx, maxPx) {
  * @property {(factor: number) => void} dolly
  * @property {(view: string) => boolean} snapTo
  * @property {() => void} reset
+ * @property {(min: readonly number[], max: readonly number[], aspect?: number) => void} frameBounds
  * @property {(out: Vec3) => Vec3} getPosition
  * @property {(out: Vec3) => Vec3} getUp
  * @property {(viewportHeightPx: number) => number} getMmPerPixel
@@ -290,6 +293,25 @@ export function createOrbitCamera(options = {}) {
       state.elevationDeg = preset.elevationDeg
       camera.version += 1
       return true
+    },
+
+    frameBounds(min, max, aspect = 1) {
+      if (![...min, ...max].every(Number.isFinite)) return
+      const cx = (min[0] + max[0]) / 2
+      const cy = (min[1] + max[1]) / 2
+      const cz = (min[2] + max[2]) / 2
+      const radius = Math.hypot(max[0] - min[0], max[1] - min[1], max[2] - min[2]) / 2
+      // The bounding *sphere* fits whatever orientation the camera is in, so the
+      // framing does not change under the user when they orbit. The narrower of the
+      // two fields of view decides: on a portrait phone that is the horizontal one.
+      const halfV = (camera.fovDeg * DEG) / 2
+      const halfH = Math.atan(Math.tan(halfV) * (aspect > 0 ? aspect : 1))
+      const fit = Math.min(halfV, halfH)
+      state.target.x = cx
+      state.target.y = cy
+      state.target.z = cz
+      state.distanceMm = clamp((radius / Math.sin(fit)) * FRAME_MARGIN, MIN_DISTANCE_MM, MAX_DISTANCE_MM)
+      camera.version += 1
     },
 
     reset() {

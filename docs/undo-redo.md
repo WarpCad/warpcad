@@ -75,7 +75,8 @@ a shape and nothing is left selected, because nothing was selected before you dr
 
 ## Two things worth knowing
 
-**Undo does not survive a reload.** Your *model* is kept, but the list of steps to undo is
+**Undo does not survive a reload.** Your *model* is kept (see [Saving and
+reopening your work](save-load.md)), but the list of steps to undo is
 not: after refreshing the page or opening a different project, both buttons start out
 greyed. If you want to be able to get back to an earlier state after a reload, keep a
 saved copy rather than relying on Undo.

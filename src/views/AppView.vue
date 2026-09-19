@@ -12,12 +12,22 @@
  * is not reachable from here is not shipped, whatever its own tests say
  * (PREVIOUS-ATTEMPT.md's core failure).
  */
-import { ref } from 'vue'
+import { onMounted, ref } from 'vue'
 
 import Inspector from '../components/inspector/Inspector.vue'
+import SaveStatus from '../components/display/SaveStatus.vue'
 import HistoryControls from '../components/layout/HistoryControls.vue'
 import LibraryPanel from '../components/layout/LibraryPanel.vue'
 import Viewport from '../components/viewport/Viewport.vue'
+import { usePersistenceStore } from '../stores/persistence.js'
+
+// Restore the last autosaved session and start autosaving (`TODO/io-001`). Started on
+// mount, not at store creation: the app renders first, the restore lands a moment later
+// and frames the camera, and a slow or blocked store can never delay first paint.
+const persistence = usePersistenceStore()
+onMounted(() => {
+  void persistence.start()
+})
 
 /**
  * Whether the Inspector's phone-width bottom sheet is currently open.
@@ -63,11 +73,12 @@ const libraryCollapse = ref(0)
       <!-- The "document bar" cluster (`docs/decisions/interaction-model-qa.md`,
            cross-cutting): document-level controls that are not gated on
            selection, right-aligned in the one strip that is always visible.
-           `data-003` fills the first two slots; the History toggle (`ui-032`),
-           File ▾ (`ui-033`/`ui-034`) and the save-status chip (`io-001`) land to
-           their right without moving them. -->
+           `data-003` fills the first two slots and the save-status chip (`io-001`)
+           the last; the History toggle (`ui-032`) and File ▾ (`ui-033`/`ui-034`)
+           slot in between without moving either. -->
       <div class="app__document-bar" data-testid="document-bar">
         <HistoryControls />
+        <SaveStatus />
       </div>
     </header>
     <main

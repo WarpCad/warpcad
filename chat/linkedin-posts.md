@@ -889,3 +889,20 @@ Built with Claude Code, reviewed by me.
 **Evidence:** "one primitive" → this diff: `replaceRecord`/`setSuppressed`/`moveStep`/`rollBackTo`/`insertAt` all call `rebuildFrom(nextEntries, nextRollbackAt)`; "the previous task had built that re-fold for undo" → `TODO/done/data-003-undo-redo-transaction-origin.md`, committed 81c73c0, whose retirement note says `data-004` "should widen it, not replace it"; "widened by exactly two parameters" → `DocumentEntry.suppressed` and `rollbackAt`, this diff; "67ms, 200 records, fillet on every body" → benchmark run this session on this Mac, median of 5, with 17ms at 40 records and 34ms at 100; "refused by name rather than half-applied" → `ReplayRejection` carrying a `BrokenStep`, and `rebuildFrom`'s snapshot restore on failure, this diff, asserted by `src/core/timeline.spec.js`
 **Disclosure:** Built with Claude Code, reviewed by me.
 **To Add:** repo URL once public; a short screen capture once the timeline panel (ui-032) exists to drive it from
+
+## 2026-09-19T13:31:00Z — The flush on pagehide that did not flush
+
+WarpCad now autosaves. Every change schedules a debounced write of the whole action log to IndexedDB, and reopening the app restores it silently, with a small status light in the header: amber ring while saving, green disc when saved, red square if the browser will not let it store anything. The spec also said to flush immediately when the page is hidden or closed, because mobile Safari kills backgrounded tabs without warning. I built exactly that.
+
+Then I drove the app the way a hurried person does: place a solid, reload straight away. In real Chromium the solid was gone. Patching `IDBObjectStore.put` to log showed the write was issued during `pagehide` and that the transaction neither completed nor aborted before the page was torn down. IndexedDB is asynchronous, and a dying page cannot wait for it. No unit test could have found this, because the fake store I tested against commits instantly.
+
+The fix is small and unglamorous: when the page is hidden, write the unsaved log synchronously to `localStorage` as well, clear that copy as soon as IndexedDB has the same text, and compare timestamps at startup. A regression test now reloads within the debounce window and passes in Chromium and WebKit; it failed in Chromium before the fix.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebDev #IndexedDB
+**Evidence:** "debounced write of the whole action log to IndexedDB, restores silently" → `src/storage/autosave.js`, `src/stores/persistence.js`, this diff; "amber ring / green disc / red square" → `src/components/display/SaveStatus.vue`, this diff; "spec said to flush immediately when hidden or closed ... mobile Safari kills backgrounded tabs" → `docs/decisions/interaction-model-qa.md` section 8, Q10; "in real Chromium the solid was gone" and "the write was issued during pagehide, transaction neither completed nor aborted" → this session's hand-driven debug run with a patched `IDBObjectStore.put` (put logged with visibilityState `visible`, no tx event recorded, IndexedDB empty after reload, body count 0); "the fake store commits instantly" → `src/storage/indexeddb.spec.js`'s fake, this diff; "small fix: synchronous localStorage copy, cleared once IndexedDB has it, timestamps compared at startup" → `src/storage/localMirror.js` and `createAutosaver.restore`, this diff; "regression test passes in Chromium and WebKit, failed in Chromium before the fix" → `e2e/local-persistence.e2e.js` runs this session (failed at 0 bodies before `localMirror.js`; 27 passed on chromium-laptop + webkit-laptop after)
+**Disclosure:** Built with Claude Code, reviewed by me.
+**To Add:** repo URL once public; a screenshot of the header chip in its three states
+
+**LinkedIn article suggestion:** Not yet. The general lesson (a page that is being unloaded can only do synchronous work, so "flush on pagehide" needs a synchronous fallback) is worth a short article once the File menu and hosted backend land, so it can sit inside the whole persistence story rather than stand alone.

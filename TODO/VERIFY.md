@@ -34,6 +34,21 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### io-001 — Local persistence: IndexedDB autosave, restore and the save-status chip (2026-09-19 13:31)
+
+Autosave/restore, the flush-on-hide path, the blocked-storage state and the chip layout are
+all covered on a standing basis (`e2e/local-persistence.e2e.js` on chromium + webkit, and
+`ACCEPTANCE.md` scenario 10's local half, re-driven by hand this task). The two open real-device
+rows from `data-001`/`data-002`/`data-003` (real iPhone/iPad header feel) are **not repeated**
+here — the chip's dot now sits in that same header, so check it in the same sitting. What is
+left is what a headless WebKit and a simulated `indexedDB` cannot stand in for:
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | **Real iPhone Safari, the tab-kill path.** Place a shape, then within about a second swipe to the home screen (or lock the phone) and later reopen the tab/app. Is the last shape still there? The save-on-hide path (`visibilitychange`/`pagehide` → a synchronous `localStorage` copy, then IndexedDB) was found necessary in real Chromium and passes in headless WebKit, but iOS suspends and kills tabs on its own schedule that no headless run reproduces. | Open | |
+| 2 | The chip is a **10px dot** at phone width, coloured *and* shaped (grey idle, amber ring saving, green disc saved, red square failed). Is it legible at arm's length, in sunlight and in dark mode, and does the ring/disc/square difference actually read without relying on hue? (Judgment call; not asserted anywhere.) | Open | |
+| 3 | **A real private window** in Safari and Firefox (not the simulated throw the e2e uses). Does WebKit/Gecko actually block IndexedDB there, and if so does the chip go red with the app usable? `docs/save-load.md` claims only that private windows *in some browsers* block or wipe storage — tighten or loosen that sentence to what you see. | Open | |
+
 ### data-004 — Edit a past timeline entry's params in place and replay after it (2026-09-19 04:59)
 
 Almost everything this task built is already covered on a standing basis — `ACCEPTANCE.md`

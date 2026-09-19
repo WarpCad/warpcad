@@ -254,3 +254,56 @@ describe('mmPerPixel / chooseScaleBar', () => {
     expect(chooseScaleBar(1, 0)).toMatchObject({ lengthMm: 0, label: '—' })
   })
 })
+
+describe('frameBounds — frame loaded content (TODO/io-001)', () => {
+  it('targets the centre of the box and keeps the current orientation', () => {
+    const camera = createOrbitCamera({ azimuthDeg: 30, elevationDeg: 20 })
+    camera.frameBounds([100, 200, 0], [140, 260, 10])
+    expect(camera.state.target).toEqual({ x: 120, y: 230, z: 5 })
+    expect(camera.state.azimuthDeg).toBe(30)
+    expect(camera.state.elevationDeg).toBe(20)
+  })
+
+  it('backs off far enough that the whole bounding sphere fits the field of view, with margin', () => {
+    const camera = createOrbitCamera()
+    camera.frameBounds([-50, -50, -50], [50, 50, 50])
+    const radius = Math.sqrt(3) * 50
+    const needed = radius / Math.sin((camera.fovDeg * Math.PI) / 360)
+    expect(camera.state.distanceMm).toBeGreaterThan(needed)
+    expect(camera.state.distanceMm).toBeLessThan(needed * 1.6)
+  })
+
+  it('backs off further for a portrait viewport, where the horizontal field of view is the narrow one', () => {
+    const wide = createOrbitCamera()
+    const tall = createOrbitCamera()
+    wide.frameBounds([-50, -50, 0], [50, 50, 10], 1.6)
+    tall.frameBounds([-50, -50, 0], [50, 50, 10], 390 / 700)
+    expect(tall.state.distanceMm).toBeGreaterThan(wide.state.distanceMm)
+  })
+
+  it('never zooms in past the minimum distance for a tiny or degenerate box', () => {
+    const camera = createOrbitCamera()
+    camera.frameBounds([1, 1, 1], [1, 1, 1])
+    expect(camera.state.distanceMm).toBeGreaterThanOrEqual(MIN_DISTANCE_MM)
+    expect(camera.state.target).toEqual({ x: 1, y: 1, z: 1 })
+  })
+
+  it('clamps at the maximum distance for an enormous box', () => {
+    const camera = createOrbitCamera()
+    camera.frameBounds([0, 0, 0], [1e9, 1e9, 1e9])
+    expect(camera.state.distanceMm).toBe(MAX_DISTANCE_MM)
+  })
+
+  it('ignores non-finite bounds rather than sending the camera to NaN', () => {
+    const camera = createOrbitCamera()
+    const before = { ...camera.state, target: { ...camera.state.target } }
+    camera.frameBounds([NaN, 0, 0], [1, 1, 1])
+    expect(camera.state).toEqual(before)
+  })
+
+  it('bumps the version so the render loop redraws', () => {
+    const camera = createOrbitCamera()
+    camera.frameBounds([0, 0, 0], [10, 10, 10])
+    expect(camera.version).toBe(1)
+  })
+})

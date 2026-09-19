@@ -84,6 +84,14 @@ export const useDocumentStore = defineStore('document', () => {
   const canRedo = ref(false)
   const undoLabel = ref('')
   const redoLabel = ref('')
+  /**
+   * Bumped each time a whole document is *loaded* (autosave restore, Open) as
+   * opposed to edited. The viewport frames the camera on it: a loaded project
+   * whose geometry sits outside the default view would otherwise read as an empty
+   * scene — the same class of defect as the second attempt's "too dark to see
+   * anything" (`interaction-model-qa.md` §10). Edits deliberately do not move it.
+   */
+  const loadRevision = ref(0)
 
   function refresh() {
     canUndo.value = raw.canUndo()
@@ -171,6 +179,29 @@ export const useDocumentStore = defineStore('document', () => {
   }
 
   /**
+   * Replace the whole document with a parsed project (`TODO/io-001`) — the one
+   * entry point for autosave restore and Open.
+   *
+   * Throws the command layer's `ReplayRejection` (naming the step) if any entry
+   * does not fold, and in that case **nothing has changed**: the load is atomic,
+   * so selection, history and the document are exactly as they were.
+   *
+   * On success selection is cleared (it named bodies that may no longer exist —
+   * and selection is UI state, never persisted), both undo stacks are empty
+   * (section 19), and {@link loadRevision} moves so the viewport frames the new
+   * content.
+   *
+   * @param {readonly import('../core/document.js').DocumentEntry[]} entries
+   * @param {number | null} [rollbackAt]
+   */
+  function load(entries, rollbackAt = null) {
+    raw.loadEntries(entries, rollbackAt)
+    useSelectionStore().clear()
+    loadRevision.value += 1
+    refresh()
+  }
+
+  /**
    * Put a remembered selection back, dropping anything that is no longer there.
    *
    * "If those bodies still exist" is load-bearing: undoing the *placement* of a
@@ -254,6 +285,8 @@ export const useDocumentStore = defineStore('document', () => {
     canRedo,
     undoLabel,
     redoLabel,
+    loadRevision,
+    load,
     append,
     appendAll,
     undo,
