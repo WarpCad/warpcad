@@ -6,8 +6,63 @@ priority: medium
 model: sonnet
 milestone: M6
 depends: [data-002]
-status: open
+status: done
 ---
+
+> **What actually shipped, 2026-09-19.** The serialization mechanism only — **no UI, no
+> download, and no `e2e/export.e2e.js`**, all of which are `ui-034`'s (File ▾ → Export… does
+> not exist yet, so there is nothing for a Playwright download-interception spec to drive;
+> the same goes for `TODO/ACCEPTANCE.md` scenario 11, recorded there as not driveable rather
+> than faked). The CLAUDE.md reachability and docs-page gates for UI-touching work therefore
+> apply to `ui-034`; `docs/export.md` is written anyway, and says plainly that the button is
+> still to come.
+>
+> **Path taken (confirmed, not assumed):** the split `data-001` chose, unchanged. STL and OBJ
+> in `src/core/export.js` via `@jscad/stl-serializer` / `@jscad/obj-serializer` (kernel
+> `Geom3`, framework-free); glTF in `src/render/export.js` via three.js's `GLTFExporter`,
+> lazy-loaded with a dynamic import. Neither module downloads anything. Nothing in
+> `data-001` proved wrong: the kernel-side STL measured **0 unmatched edges** on the same
+> cube-minus-Ø6-bore shape where three.js's exporter left 100 of 362, at the same 292
+> triangles / 438 edges that document reported.
+>
+> **The two open points, decided:**
+> - **(a) Several bodies are ONE combined file**, not one file per body — what a slicer plate
+>   or mesh viewer expects, and the filename says so (`warpcad-scene.<ext>`). A **Group-valued
+>   body exports as its `combine()`d solid** (visible parts unioned, holes subtracted, hidden
+>   parts out), for all three formats, so they never disagree about what a body is.
+>   `ui-034`'s popover can state "one file" as fact.
+> - **(b) glTF is binary `.glb`**, as the Q&A proposed: one file, no sidecar `.bin`.
+>
+> **One decision the file did not anticipate: glTF is written in glTF's own space.** The
+> document is mm / Z-up; glTF is metres / Y-up, and feeding it straight through would open a
+> thousand times too large and lying on its back in every viewer. A single root node carries
+> a -90 degree X rotation and a 0.001 scale; the vertex data stays in millimetres. STL and OBJ
+> are unitless and written as-is (mm, Z-up), which is what slicers assume.
+>
+> **Surface `ui-034` calls** (all pure, all in `src/core/export.js` unless noted):
+> `resolveExportScope(bodies, selectedIds)` (0 selected → whole scene, else the selection in
+> scene order; a drilled-in sub-part already arrives as its parent's id; a non-empty selection
+> matching nothing is refused, not widened), `exportFilename(bodies, format)`,
+> `exportBodies(bodies, 'stl' | 'obj')`, `exportGltf(bodies)` in `src/render/export.js`
+> (async), and `EXPORT_FORMATS` for the picker's labels. Each result is
+> `{ bytes, filename, mimeType, triangleCount }`. Refusals throw `ExportError` with a `code`
+> (`nothing-to-export`, `empty-geometry`, `evaluation-failed`, `stale-selection`) and, where a
+> body is to blame, its `bodyName`. `document.bodies()` entries satisfy `ExportBody`
+> structurally, so the UI passes them straight in.
+>
+> **Verified beyond the unit specs:** the STL and OBJ of a real evaluated union re-read by
+> numpy and three.js's `STLLoader`/`OBJLoader` (independent of the serializer) — signed volume
+> within 1.3e-5 relative of the kernel's, the same bounding box, 0 unmatched edges — and a
+> production Rollup bundle of both modules run in Node (the CJS serializers survive
+> bundling, and `GLTFExporter` lands in its own lazy chunk). `npm run build`'s main chunk is
+> byte-identical (`index-CdEecrN5.js`, 963.66 kB / 272.30 kB gzip) with and without the new
+> modules, because nothing in the app graph imports them yet — the serializers' 2.4 KB and
+> the exporter's 11 KB gzip enter the bundle when `ui-034` does. Firefox projects were not run
+> (launch failure, `TROUBLESHOOTING.md`), but there is no Playwright spec of this task's own
+> to run there.
+>
+> **What the unit tests cannot say:** they never open a file in a real slicer or glTF viewer.
+> That is scenario 11's job and is owed when `ui-034` lands.
 
 ## Goal
 

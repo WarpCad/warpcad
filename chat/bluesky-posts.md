@@ -737,3 +737,12 @@ Built with Claude Code, reviewed by me.
 **Evidence:** "the blob sha is the conflict check, stale sha returns 409" → `docs/decisions/persistence-export.md` sub-decision 3 (commit 86ff04b), implemented in `src/storage/hostedBackend.js` and exercised by `hostedBackend.spec.js`'s 409/422 case, this diff; "asks overwrite / load / cancel instead of merging" → `docs/decisions/interaction-model-qa.md` §11 and `resolveConflict` in `src/stores/hosted.js`, this diff; "never echo the server error text, a 401 body can quote the token" → `failureOf` in `hostedBackend.js` reads the body for classification only and every message is this module's own wording; asserted by `hostedBackend.spec.js`'s "never puts the token in a message, a URL, or a serialised error", which feeds GitHub a 401 body containing the sentinel token
 **Disclosure:** Built with Claude Code, reviewed by me.
 **To Add:** repo URL once public
+
+## 2026-09-19T15:25:00Z — STL from the kernel, not the render mesh
+
+**Post:** WarpCad export, serialization half: STL and OBJ come from the CAD kernel, not the render mesh. three.js's STLExporter on a cube-minus-bore left 100 of 362 edges open. The kernel path: 0 of 438. glTF gets a root node for mm/Z-up to m/Y-up. Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #3DPrinting #WebGL
+**Evidence:** "100 of 362 edges open on three.js's STLExporter" → `docs/decisions/persistence-export.md` sub-decision 4 (commit 86ff04b); "kernel path 0 of 438" → numpy edge count on the STL this session, and `src/core/export.spec.js`; "glTF root node mm/Z-up to m/Y-up" → `src/render/export.js`, this diff
+**Disclosure:** Built with Claude Code, reviewed by me.
+**To Add:** repo URL once public; a slicer screenshot of the exported part once the Export dialog (ui-034) exists

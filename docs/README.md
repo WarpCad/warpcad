@@ -45,6 +45,9 @@ themselves won't have to move.
   and reopens where you left off when you reload; the little status light at the
   right of the top bar; what it says when your browser won't let WarpCad store
   anything; and what is still to come (saving a portable file, opening one).
+- [Exporting your model: STL, OBJ and glTF](export.md) — what each export format
+  contains, which bodies go into a file, how files are named, and when an export
+  is refused. (The File ▾ → Export… button itself is still to come; the page says so.)
 - [Moving around the 3D view](viewport-navigation.md) — orbit, pan, zoom, the
   orientation triad, touch gestures, and reading size off the grid.
 - [Sketch mode: drawing a line on the working plane](sketch-mode.md) — the

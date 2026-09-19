@@ -923,3 +923,20 @@ Built with Claude Code, reviewed by me.
 **To Add:** repo URL once public; a screen capture of the conflict dialog once ui-033 exists to raise it
 
 **LinkedIn article suggestion:** Yes, once `ui-033` lands. "Persistence without a backend" would now have the whole arc: one NDJSON action log, the same bytes in IndexedDB, in a downloaded file and in a git commit; a flush on pagehide that does not flush; and a conflict rule borrowed from an HTTP status code instead of a CRDT.
+
+## 2026-09-19T15:25:00Z — Export bytes that a slicer will accept
+
+**Post:** The serialization half of WarpCad's export is in: STL and OBJ written from the modelling kernel's own solids, and a binary glTF written through three.js. There is no button yet; that is the next task, and the docs page says so rather than describing a control that does not exist.
+
+The reason STL does not come from what is drawn on screen: the earlier library comparison found three.js's STL exporter, fed by the app's render mesh, left 100 of 362 edges without a second face on a cube with a hole drilled through it. A slicer either refuses that or quietly repairs it into the wrong solid. Written from the kernel, the same shape has 0 of 438 unmatched. I re-read the output with numpy and with three.js's own loaders, neither sharing code with the writer, and the union I tried came back at the kernel's volume to within 0.0013 percent.
+
+Two smaller decisions are worth recording. Several bodies go into one file, not one file each. And glTF is metres and Y-up while the document is millimetres and Z-up, so a root node carries the conversion; without it the model opens a thousand times too large and on its side.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #3DPrinting #WebGL
+**Evidence:** "100 of 362 edges" → `docs/decisions/persistence-export.md` sub-decision 4, commit 86ff04b; "0 of 438 unmatched" → numpy edge count on the exported drilled-cube STL this session; "kernel's volume to within 0.0013 percent" → union STL volume 11371.311 vs kernel 11371.161 mm³ (1.3e-5 relative), this session; "re-read with numpy and three.js's own loaders" → this session's scratch scripts; "no button yet" → `TODO/ui-034-export-ui-surface.md` still open, `docs/export.md`; "glTF metres/Y-up, root node carries conversion" → `src/render/export.js` and its spec, this diff
+**Disclosure:** Built with Claude Code, reviewed by me.
+**To Add:** repo URL once public; an exported part open in a slicer once ui-034 lands
+
+**LinkedIn article suggestion:** Not yet. Once ui-034 lands and a real part has gone through a slicer, "Why our STL does not come from the mesh you see" has the whole arc: the measured non-watertight surface, the kernel-side fix, and the units and up-axis trap in glTF.

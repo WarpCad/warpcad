@@ -9,6 +9,16 @@ depends: [io-003]
 status: open
 ---
 
+> **`io-003` is done (2026-09-19) — the mechanism this task calls exists.** Read
+> `TODO/done/io-003-export-stl-obj-gltf.md`'s "What actually shipped" note first: it lists the
+> exact surface (`resolveExportScope`, `exportFilename`, `exportBodies`, `exportGltf`,
+> `EXPORT_FORMATS`, `ExportError` codes), states that several bodies are **one combined file**
+> (so the popover's scope line can say so), and that `docs/export.md` is already written and
+> says the button is still to come — **update it as part of this task** to describe the real
+> control. This task also owns the `e2e/export.e2e.js` download-interception spec and driving
+> `ACCEPTANCE.md` scenario 11 (recorded there as not driveable until now), and adds the
+> `VERIFY.md` glTF size/orientation check's precondition.
+
 ## Goal
 
 `io-003` builds the STL/OBJ/glTF serialization mechanism. This task is its control

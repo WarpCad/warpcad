@@ -34,6 +34,19 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### io-003 — Export serialization: STL, OBJ, glTF (2026-09-19 15:21 UTC)
+
+The STL and OBJ bytes were re-read by numpy and three.js's own loaders (closed surface, kernel volume to
+1.3e-5 relative) and the `.glb` container by an independent parser, but **no real slicer or glTF viewer has
+opened any of them**, because the control that produces a download (`ui-034`) does not exist yet. Scenario 11
+covers "opens cleanly and matches the viewport"; this entry is only the glTF judgement it does not name — that
+the file is the right *size and way up*, which is the one place the export deliberately differs from the
+document's space (mm / Z-up in, metres / Y-up out) and which only a real viewer can confirm.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | Once `ui-034` lands: export a body you know the size of (a 40 mm cube standing on the grid) as glTF and open the `.glb` in a real viewer (Blender, `gltf-viewer.donmccurdy.com`, macOS Quick Look). It should stand **upright** (not lying on its side) and read **40 mm / 0.04 m** across, not 40 m or 0.04 mm. | Open | |
+
 ### io-002 — Hosted git-backend persistence (2026-09-19 14:09 UTC)
 
 Everything about this task that *can* be checked without a real credential is covered on a

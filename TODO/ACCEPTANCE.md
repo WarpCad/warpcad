@@ -884,6 +884,15 @@ notice. One harness lesson, not a defect: a synthetic click dispatched at the vi
 listens on the canvas — the first drive's apparent "empty click did not clear" was my
 driver, and clicking the canvas as a real pointer does clears it every time.
 
+**Re-checked**: 2026-09-19 15:20 UTC — PASS (`io-003`, smoke only: that task adds two new modules nothing in the
+app imports yet, so the app's main bundle is byte-identical — same hashed chunk with and without them — and this
+is a confidence check, not a regression hunt). Hand-driven at laptop 1440×900 in Chromium against the dev
+server: dragged a Cube in with a wandering, jittery path, then a Cylinder to a different point. Both stayed in
+the scene (`scene-body-cuboid-1`, `scene-body-cylinder-2`), the second drop selected only the Cylinder, clicking
+empty grid cleared the selection and the gizmo, clicking the cube selected Cube 1 alone and then the cylinder
+selected Cylinder 1 alone (one gizmo each time, never both), and an orbit left both bodies in the scene.
+Console clean.
+
 ### 2. Hardware property edit
 
 **Steps**:
@@ -2397,6 +2406,23 @@ Control names: header **File ▾ → Export…** (`file-export`), which opens th
 - Step 7: a single `.glb` file downloads and shows the same shape.
 
 **Last run**: not yet built.
+
+**Re-checked**: 2026-09-19 15:20 UTC — **NOT DRIVEABLE, and deliberately not claimed** (`io-003`). This scenario is
+driven through **File ▾ → Export…** and its popover, which `ui-034` builds and which does not exist yet; `io-003`
+is only the serialization underneath it, so there is no control to press, no download to find, and no popover
+to read Scope/Format off. What `io-003` *could* measure, it did, against the same evaluated union this scenario
+builds (a 20 mm cube plus a Ø12 × 40 cylinder, centred 10 mm off-axis), on the STL and OBJ bytes only — the
+bytes the scenario's step 5 would hand to a slicer: parsed back by two parsers that share no code with the
+serializer (a hand-written one in the unit spec, and numpy plus three.js's `STLLoader`/`OBJLoader` out of band),
+the STL read 286 triangles, signed volume 11371.311 mm³ against the kernel's 11371.161 (1.3e-5 relative),
+bounding box −10…16 × −10…10 × −20…20, and **0 of 429 undirected edges unmatched (closed manifold)**; the OBJ
+read 145 shared vertices, 286 faces, the same volume and the same 0 unmatched edges. A cube minus a Ø6 bore
+(the shape `persistence-export.md` found three.js's `STLExporter` non-watertight on: 100 of 362 edges) came out
+of the kernel path at 292 triangles, 438 edges, **0 unmatched**. The `.glb` was checked by an independent
+container parser (header, JSON and BIN chunks, world bounds through the node transform), not opened in an
+external glTF viewer. **Still owed when `ui-034` lands:** the whole of Expect — the dimmed empty-scene Export…,
+Scope/Format defaults, the `union-1.stl` download and chip, and above all opening the real downloaded files in
+a slicer / mesh viewer and comparing them to the viewport, which no byte-level check replaces.
 
 ### 12. Edit a step in the middle of the history and confirm it replays
 
