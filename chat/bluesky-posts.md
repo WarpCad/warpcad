@@ -671,3 +671,14 @@ Built with Claude Code, reviewed by me.
 **Evidence:** "100 of 362 edges lack a second face" → edge audit this session, feeding `src/render/mesh.js`'s `geom3ToBufferGeometry` output through three.js `STLExporter` on a 10mm cube minus a Ø6mm cylinder; "JSCAD's serializer repairs them first" → `@jscad/stl-serializer@2.1.23/index.js:63` calls `modifiers.generalize({snap:true, triangulate:true})`, read from source this session, and the same audit returns 292 triangles / 0 unmatched edges
 **Disclosure:** Built with Claude Code, reviewed by me.
 **To Add:** repo URL once public; a diagram of a T-junction edge for the non-watertight case
+
+## 2026-09-19T03:12:00Z — Rollback where later steps point at earlier records
+
+**Post:** Designing WarpCad's timeline rollback: insert a step at the marker and later steps replay after it. Catch: history is an append-only log where records point at earlier records by id. Move a body while rolled back and a later step that builds on it is now broken. Flag it, never guess.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Evidence:** "append-only log where records point at earlier records by id" → `src/core/document.js` module doc (immutable entries, `supersedes` lineage), read this session; "a later step that builds on it is now broken" → `docs/decisions/interaction-model-qa.md` section 18 (design, not yet built or reproduced); "Flag it, never guess" → the same section's shadow-check and atomic roll-forward contract
+**Disclosure:** Built with Claude Code, reviewed by me.
+**To Add:** repo URL once public; a diagram of a log with a rollback marker and a flagged tail row

@@ -19,6 +19,15 @@ Export, pick a format, and a file downloads — matching `TODO/ACCEPTANCE.md` sc
 
 ## Interaction model
 
+> **Superseded by `data-002`** (`docs/decisions/interaction-model-qa.md` section 12;
+> confirmed by the user 2026-09-19). Where this section disagrees, that document wins:
+> Export is **not** an Operations-toolbar button — it is **File ▾ → Export…** in the header
+> bar, opening a popover with a Scope choice (defaults to the selection when one exists,
+> otherwise the whole scene; always overridable) and a Format choice (STL default, OBJ,
+> glTF `.glb`). It **is** disabled: with no bodies to export, and while previewing a past
+> timeline state. The "never disabled" gating shape and the `OperationsToolbar.vue` edit
+> described below no longer apply.
+
 - **Precondition** — none in the disabled/enabled sense (0 or 1+ selected are both
   valid, with different scope per `io-003`'s Goal); an Operation-shaped control
   regardless (it acts on existing geometry, never creates any), so it belongs on the

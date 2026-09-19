@@ -2191,70 +2191,188 @@ this task and re-driven:
 
 ### 10. Save, reload, and confirm nothing changed
 
-Added 2026-09-17 alongside `TODO/ROADMAP.md`'s new M5, per this file's own rule that a
-new capability class (persistence) earns a new scenario rather than folding into an
-existing one. Steps and Expect are written now; the scoping Q&A that fixes the actual
-trigger controls (`data-002`) may rename them — update this scenario to match the real
-control names once that Q&A lands, the same way scenarios 1-9 were rewritten against
-`ui-001`'s confirmed names rather than left as `Initial design.md` §9's provisional
-wording.
+Added 2026-09-17 alongside `TODO/ROADMAP.md`'s M6, per this file's rule that a new
+capability class (persistence) earns a new scenario rather than folding into an existing
+one. Steps rewritten against `docs/decisions/interaction-model-qa.md` sections 8-11
+(`data-002`, confirmed by the user) rather than the provisional wording this scenario was first written with —
+the same treatment `ui-001` gave scenarios 1-9. Control names: the header's **File ▾**
+menu (`file-menu-button`), its **Save** / **Download copy** / **Open…** items, and the
+header's save-status chip (`save-status`). **Label depends on the browser**: desktop
+Chromium shows **Save** (and **Save As…**); Firefox, Safari and every phone or tablet
+shows **Download copy** instead — drive whichever your browser shows, and say which.
 
 **Steps**:
-1. Place a cube, a cylinder, and union them together.
-2. Save the project (whatever the confirmed trigger turns out to be — see `data-002`).
-3. Reload the page (or close and reopen the app) with no other action in between.
-4. Confirm the project reopens automatically, or open it explicitly if that's the
-   confirmed flow.
+1. Open the app to an empty scene (a fresh browser profile, or clear site data first).
+2. Drag a Cube from the Library's "Primitives" section into the viewport, then drag a
+   Cylinder so it **overlaps** the cube. Select both (click one, Shift-click the other;
+   on a phone, use the nav chrome's **Select** mode and drag a box round both) and press
+   **Union** on the Operations toolbar. One body remains, selected. Note its position in
+   the Inspector's Transform fields.
+3. Without touching anything, watch the header's save-status chip: it should move from
+   `Saving…` to `Saved · <time>` on its own (at phone width the chip is a dot — read its
+   full text from the top of the File menu).
+4. **Reload the page** with no other action in between (browser reload).
+5. The project should already be there. Open **History** in the header and note its rows.
+6. *File round-trip.* Open **File ▾** and choose **Save** (desktop Chromium: pick a
+   location in the picker) or **Download copy** (everywhere else). Read the chip: it
+   should name the file (`Saved to warpcad-project.ndjson` / `Download started:
+   warpcad-project-<timestamp>.ndjson`). Then change the scene: drag a Sphere in.
+7. **File ▾ → Open…**, confirm **Replace** in the dialog, and choose the file you just
+   saved (on a phone, from the browser's file chooser / the Files app).
+8. *Hosted half — run only when a scratch GitHub repo and a fine-grained token limited to
+   it are available; otherwise report "hosted half not driven".* **File ▾ → Connect
+   repository…**, paste the token, enter `owner/repo`, press **Connect**. Then **File ▾
+   → Save to owner/repo** and confirm the chip says `Saved to owner/repo` and a commit
+   appears on GitHub. Change the file on GitHub directly (a second commit), return to the
+   app, drop a Sphere in, and press **Save to owner/repo** again.
+9. *Hosted auto-push — same scratch repo.* Resolve step 8's dialog with **Load remote**.
+   Then **File ▾ → Auto-push** (it is off by default; turning it on pushes once
+   immediately). Drop a Sphere in, then Cylinder, **wait about 40 seconds without
+   touching anything**, and watch the File button's dot. Press **Ctrl/Cmd+S**
+   (Save / Download copy) and confirm no network push happens.
+10. *Auto-push conflict.* With Auto-push still on, make another commit to the file on
+    GitHub directly, return to the app, drop one more Cube in, and wait about 40 seconds.
+    When the dialog appears press **Cancel**, make one more local edit, and wait again.
 
-**Expect**: The unioned result reappears exactly as left — same body, same position,
-same history — with no manual re-import step the user has to remember, unless the
-Q&A explicitly decided persistence is opt-in rather than automatic. Nothing silently
-reverts to an earlier state and nothing silently discards the union.
+**Expect**:
+- After step 4 the unioned body reappears **exactly as left** — one body, same position
+  (compare with the Inspector), the same rows in History (Cube, Cylinder, Union) — with no
+  manual re-import step and no "restore?" prompt; the chip reads `Restored your last
+  session`. Nothing reverts to an earlier state and the union is not discarded.
+- After step 6 the label matched the browser (**Save** on desktop Chromium, **Download
+  copy** elsewhere — never a "Save" that only downloads a copy), and the chip named the
+  file. Cancelling the desktop picker shows no error.
+- After step 7 the Sphere from step 6 is **gone** and the union-only project is back,
+  framed in the viewport, with the chip `Opened <file> · N steps`, N matching the row count seen in step 5. A garbage file (try a
+  text file renamed `.ndjson`) is refused by name and leaves the current project untouched.
+- After step 8 the second **Save to owner/repo** does **not** overwrite: a dialog says the
+  repository copy changed and offers **Overwrite remote / Load remote / Cancel**. Choosing
+  **Cancel** leaves the GitHub file as the second commit left it.
+- Step 9: Auto-push is **off until switched on**. After the edits the dot goes from the
+  hollow **pending** ring to the animated **pushing** ring to solid green **in sync**, the
+  chip reads `Pushed · <time>`, and GitHub shows **one** new `WarpCad: auto-push ...`
+  commit for the burst (Sphere and Cylinder together, not two). Ctrl/Cmd+S does not
+  produce a commit.
+- Step 10: the dot turns to the amber `!`, the menu item reads `Auto-push paused —
+  repository changed`, and the **Overwrite remote / Load remote / Cancel** dialog appears
+  **once** and never over a drag in progress. Nothing on GitHub is overwritten. After
+  **Cancel** the second local edit does **not** raise the dialog again and does not push;
+  an explicit **Save to owner/repo** raises it again.
 
 **Last run**: not yet built.
 
 ### 11. Export a solid and confirm it opens elsewhere
 
-Added 2026-09-17 alongside `TODO/ROADMAP.md`'s new M5, same rule as scenario 10.
+Added 2026-09-17 alongside `TODO/ROADMAP.md`'s M6, same rule as scenario 10. Steps
+rewritten against `docs/decisions/interaction-model-qa.md` section 12 (`data-002`).
+Control names: header **File ▾ → Export…** (`file-export`), which opens the export popover
+(`export-popover`) with a **Scope** choice and a **Format** choice.
 
 **Steps**:
-1. Place a cube and a cylinder and union them together.
-2. Select the result and trigger Export (whatever the confirmed control turns out to
-   be — see `data-002`).
-3. Choose STL (the v1-priority format).
-4. Open the downloaded file in any other tool that reads STL (a slicer, a mesh viewer,
-   even a quick reopen in a new browser tab if one's available) to confirm it's a real,
-   non-empty, non-corrupt mesh — not just that a download happened.
+1. Open the app to an empty scene. Open **File ▾** and look at **Export…**, then close the
+   menu.
+2. Drag a Cube and a Cylinder in so they overlap, select both, press **Union** on the
+   Operations toolbar. The union is now the one selected body.
+3. **File ▾ → Export…**. Read the popover before touching anything: note which Scope is
+   chosen and which Format is chosen.
+4. Leave Scope and Format as they are and press **Export**.
+5. Find the downloaded file. Open it in something that reads STL — a slicer, a mesh viewer,
+   macOS Quick Look, or an online STL viewer — and look at the shape.
+6. Back in the app, click empty viewport space to clear the selection, then **File ▾ →
+   Export…** again. Read the Scope line, choose **OBJ**, press **Export**, and open that
+   file in a mesh viewer.
+7. Repeat once more choosing **glTF (.glb)** and open it in any glTF viewer.
 
-**Expect**: A file downloads with a sensible default name. It opens cleanly outside
-WarpCad and visibly matches the shape that was in the viewport (not an empty mesh, not
-a bounding box, not the pre-union separate solids).
+**Expect**:
+- Step 1: **Export…** is **dimmed**, with `Nothing to export` as its reason, on an empty scene.
+- Step 3: Scope reads **Selection — Union 1**, already chosen, because the union was
+  selected; Format reads **STL**. The popover never leaves the user guessing what will be
+  exported. Pressing **File ▾** did not clear the selection.
+- Step 4: a file named `union-1.stl` downloads (browser-dependent folder; on a phone, the
+  browser's download sheet), and the chip says `Exported union-1.stl`.
+- Step 5: the file opens cleanly outside WarpCad and visibly **matches the shape in the
+  viewport** — one merged cube-and-cylinder solid — not an empty mesh, a bounding box, or
+  the two pre-union solids overlapping. (Slicers that flag non-manifold meshes should
+  raise nothing.)
+- Step 6: with nothing selected the Scope defaults to **Whole scene — 1 body**, and the
+  file is named `warpcad-scene.obj`.
+- Step 7: a single `.glb` file downloads and shows the same shape.
 
 **Last run**: not yet built.
 
 ### 12. Edit a step in the middle of the history and confirm it replays
 
-Added 2026-09-17 alongside `TODO/ROADMAP.md`'s new M5, per the same new-capability-class
+Added 2026-09-17 alongside `TODO/ROADMAP.md`'s M6, per the same new-capability-class
 rule — this is the scenario this milestone exists for, modeled directly on the concrete
 case that prompted it: chamfer an edge 5mm, place a few more items, then decide the
-chamfer should have been 3mm.
+chamfer should have been 3mm. Steps rewritten against
+`docs/decisions/interaction-model-qa.md` sections 13-19 (`data-002`, confirmed by the
+user). Control names: the
+header's **History** toggle (`timeline-toggle`), the timeline's rows and the selected
+row's action bar (**Edit**, **Suppress**, **Move up/down**, **Roll back to here**), the
+preview strip and the rollback strip (with **Roll forward**), and the header's **Undo** /
+**Redo** buttons. At phone width
+(390px) History opens as a bottom sheet and the Inspector will not auto-open while it is up.
 
 **Steps**:
-1. Place a cube.
-2. Apply a chamfer of 5mm to one face (per `ui-027`'s existing rim-chamfer control).
-3. Place a sphere elsewhere in the scene (a step that comes *after* the chamfer in the
-   timeline and does not depend on it).
-4. Open the timeline/history view (whatever the confirmed trigger turns out to be — see
-   `data-002`) and find the chamfer step.
-5. Change its radius from 5mm to 3mm and confirm the edit.
+1. Open the app to an empty scene. Drag a Cube in.
+2. With the cube the only selected body, press **Chamfer** on the Operations toolbar,
+   choose **Top (+Z)**, set Radius to `5`, and press **Chamfer** in the popover. The top rim
+   bevels.
+3. Drag a Sphere from the Library into an empty part of the viewport. Select it and note
+   its position and size in the Inspector.
+4. Open **History** in the header. Read the rows.
+5. Tap the **Chamfer** row. Look at the viewport and at the strip under the header.
+6. In that row's action bar press **Edit**, change Radius from `5` to `3`, press **Apply**.
+7. Look at the viewport, the sphere's Inspector values, and the Chamfer row's label.
+8. Press **Undo** in the header, look, then press **Redo** (on desktop, try Ctrl/Cmd+Z
+   too — but with the cursor in the viewport, not in a numeric field).
+9. Tap the Chamfer row and press **Suppress**; look; then press **Unsuppress** in the same
+   row.
+10. Tap the Chamfer row and press **Roll back to here**; look at the viewport, the
+    strip and the list. **With the rollback still active**, drag a Cone in from the
+    Library to an empty part of the viewport, well away from the Sphere's spot. Look at
+    the viewport, the strip and the list again. Then press **Roll forward** on the strip.
+11. Tap the Sphere row and press **Move up**; look; press **Undo**.
+12. *Break it on purpose.* Select the cube alone, press **Fillet**, choose **Top (+Z)**,
+    radius `4`, commit. Then in History tap the **Chamfer** row, **Edit**, set Radius to
+    `18` (the chamfer now eats nearly the whole top face, so the later fillet cannot fit),
+    press **Apply**.
 
-**Expect**: The cube's chamfer visibly changes from 5mm to 3mm. The sphere placed after
-it in step 3 is untouched — still present, same position, same size. The timeline view
-shows the edited step's new value, not the old one. If a later step's own validity
-depended on the old chamfer value in a way that's now broken (the degenerate case Phase
-1 Q4 asks every feature to name), the app says so visibly rather than silently
-producing wrong geometry — the exact failure class `SECOND-ATTEMPT.md` and this file
-both exist to catch.
+**Expect**:
+- Step 4: History lists at least, in order, `Cube 1 — placed`, `Chamfer Top (+Z) 5 mm on
+  Cube 1`, `Sphere 1 — placed` (drag-move rows may also appear).
+- Step 5: the strip reads `Previewing step 2 of 3 — read-only` with a **Back to latest**
+  button; the viewport shows the chamfered cube and **no sphere**; the Library, the
+  Operations toolbar and the gizmo are disabled; Undo/Redo and **File ▾ → Export…** are
+  disabled. Nothing about it looks editable.
+- Step 7: the strip is gone. The cube's chamfer is **visibly smaller (3 mm)**. The **sphere
+  is untouched** — still present, same position, same size as in step 3. The Chamfer row
+  now reads `3 mm`, not `5 mm`. The body count is unchanged.
+- Step 8: Undo returns the bevel to **5 mm** and the sphere stays put; Redo returns it to
+  3 mm. Neither silently reverts the sphere nor the cube.
+- Step 9: Suppress turns the cube back to an **unchamfered cube** with the sphere
+  untouched, and the row is greyed and struck through; Unsuppress brings the 3 mm bevel back.
+- Step 10, on rolling back: the Sphere **disappears** from the viewport, the Sphere row
+  dims and is chipped `inactive` below a drawn marker line, and the strip reads `Rolled
+  back to step 2 of 3` with a **Roll forward** button and the line `New steps insert here
+  · 1 later step inactive`. Nothing is greyed out: the Library, Operations toolbar and
+  gizmo all still work.
+- Step 10, after the Cone drop: the Cone **appears and stays**; the Sphere is **still
+  hidden**; in the list the Cone row sits **directly under the Chamfer row and above the
+  marker line** (row 3), the Sphere row is still `inactive` below it (now row 4), and the
+  strip reads `Rolled back to step 3 of 4` (step numbers throughout assume no extra
+  drag-move rows; if there are some, read the same ordering off the labels). On **Roll forward** the strip disappears, the
+  Sphere **reappears at exactly the position and size it had in step 3**, all three bodies
+  (chamfered Cube, Cone, Sphere) are on screen, the row order is Cube, Chamfer, Cone,
+  Sphere, and nothing was deleted or reordered along the way.
+- Step 11: the rows swap and the viewport looks **identical**; Undo swaps them back.
+- Step 12: either the edit applies and the geometry is visibly correct, **or** it is
+  refused with a named message (`Step 5 (Fillet Top (+Z) 4 mm on Cube 1) can't be built:
+  ...`), the document is unchanged (the chamfer still reads its old value) and the failing
+  row is marked `broken` while the message is up. **Not acceptable**: the cube vanishes or
+  turns wrong-shaped, the sphere moves or disappears, or nothing at all is said — the exact
+  failure class `SECOND-ATTEMPT.md` and this file both exist to catch.
 
 **Last run**: not yet built.
 

@@ -6,8 +6,41 @@ priority: high
 model: sonnet
 milestone: M6
 depends: [data-001]
-status: open
+status: done
 ---
+
+> **Retirement note (2026-09-19).** Shipped as specified — `docs/decisions/interaction-model-qa.md`
+> sections 8-19 answer Q10-17 for Autosave, Save, Load, Hosted storage, Export, the Timeline
+> panel (open/close plus select-to-preview, edit-in-place, suppress, reorder, rollback each
+> separately) and Undo/Redo, and `TODO/ACCEPTANCE.md` scenarios 10, 11 and 12 are rewritten
+> against those control names with the "whatever the confirmed trigger turns out to be"
+> placeholders gone. **How it ran differs from the file's Proposed fix:** rather than a live
+> Phase-1 Q&A, the agent drafted every answer from existing precedent and the user reviewed
+> the draft in one pass, confirming most of it and changing two things.
+>
+> **Two answers the user changed from the draft, and both grew the scope of a downstream
+> task:** (1) hosted saves stay explicit but gain a **per-connection opt-in Auto-push, off by
+> default** (`io-002`/`ui-033` inherit a debounce, a shape-coded status dot, and a rule that a
+> 409 pauses auto-push and raises the conflict dialog rather than overwriting); (2) rollback
+> is **Fusion-style** — creation is not blocked while rolled back, new steps **insert at the
+> marker** and the formerly-inactive rows replay after them on roll-forward, which puts an
+> insert-at-index primitive and an inactive-tail shadow check on `data-004`, and leaves one
+> flagged open question there (moving a body that a later row also builds on flags that row
+> `broken`; whether to re-parent it instead is `data-004`'s to measure).
+>
+> **Four things came out different from what the downstream files assumed**, and each of
+> those files now carries a "Superseded by `data-002`" note (and no other edit): Export is
+> **File ▾ → Export…** in the header bar, not an Operations-toolbar button, and *is*
+> disabled with no bodies or while previewing (`ui-034`); every global control (Undo, Redo,
+> History, File ▾) lives in the **header bar**, not nav-chrome, because the viewport corners
+> and the Operations toolbar are already at their width limit (`ui-033`); hosted writes are
+> not "automatic" by default (`ui-033`, `io-002`); and `io-003`'s Affected files must build
+> both `src/core/export.js` and `src/render/export.js` (a note `data-001` had recorded but
+> not written into the file). The smaller calls the user did not explicitly decide are
+> listed under "Still open" in the Q&A's Decisions log rather than silently defaulted.
+>
+> No code changed, so no `*.e2e.js`, unit test or Step 6 drive applies; `TODO/ACCEPTANCE.md`
+> 10-12 are the deliverable, and stay "not yet built" until `ui-032`/`ui-033`/`ui-034` land.
 
 ## Goal
 

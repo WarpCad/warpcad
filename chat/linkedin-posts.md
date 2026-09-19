@@ -831,3 +831,25 @@ Built with Claude Code, reviewed by me.
 **To Add:** repo URL once public; the before/after edge-audit numbers as a small table
 
 **LinkedIn article suggestion:** Worth one. "Why your browser CAD app's STL export is probably not watertight" — the T-junction problem is real, general to any BSP/CSG kernel feeding a render mesh, and almost never discussed; the audit method (count undirected edges, flag any not shared by exactly two faces) is about fifteen lines and reusable by anyone shipping mesh export from a web app. Structure: the problem (a mesh that renders perfectly and slices wrong), the insight (render tessellation and manufacturing geometry are different requirements), what was built (the split export path), takeaway (measure the export, do not assume the renderer's mesh is the part), CTA (the audit snippet).
+
+## 2026-09-19T03:12:00Z — Designing rollback for a log where every record points at another record
+
+**Post:** Before building any of WarpCad's save, export, and history-editing controls I wrote down what each one does, on which screen sizes, and what confirms it worked. Most of it was routine. One decision was not, and the user reversed my first answer to it.
+
+The question: when the timeline is rolled back to step 2 of 5, what should happen if you place a new shape? My draft blocked creation until you rolled forward, because it avoided a hard question. The user chose the behaviour CAD users actually expect: the new step inserts at the rollback marker, and the three later steps stay dimmed and replay after it on roll-forward.
+
+The hard question is real, though, because of how this document works. It is an append-only log, and a record that edits a body does not change the old record; it points at it by id. So if you roll back, move a cube, and roll forward, a later step that says "chamfer that cube's current state" still points at the state from before your move. Two records now claim to replace the same predecessor.
+
+The design that came out of it: after every insert, the inactive tail is shadow-checked and any row that would no longer build gets flagged `broken` immediately, with the reason. Roll-forward is all-or-nothing, the same contract as editing a past step, so it can refuse and name the row instead of half-applying. The resolution is to suppress the broken row or undo the insert. It never produces wrong geometry, and it is honest that moving a body a later step builds on is the common way to hit this. Whether to re-parent the later step onto your new record instead is written down as an open question, to be measured once there is a working timeline to measure it on.
+
+None of that is built yet. This was the interaction-model pass that comes before it, and it already changed two tasks' scope.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL #OpenSource
+**Evidence:** "the user chose the behaviour CAD users expect ... inserts at the rollback marker" → `docs/decisions/interaction-model-qa.md` section 18, "Fusion-style insert-at-the-marker — decided by the user"; "append-only log ... points at it by id" → `src/core/document.js` module doc ("The log is append-only and its entries are immutable", `supersedes` lineage indexes) read this session; "Two records now claim to replace the same predecessor" → the section 18 Unsure bullet, derived from that module doc's supersession rule, not from a running repro (nothing here is built); "shadow-checked ... flagged broken" and "all-or-nothing" → sections 15 and 18 of the same doc; "already changed two tasks' scope" → `TODO/done/data-002-persistence-interaction-model-qa.md` retirement note (`io-002` gains an auto-push debounce and 409-pause rule, `data-004` gains an insert-at-index primitive and the tail shadow check)
+**Disclosure:** Built with Claude Code, reviewed by me.
+**To Add:** repo URL once public; a small diagram of the log with a marker, an inserted row, and a broken tail row
+
+**LinkedIn article suggestion:** Worth one, once the timeline is built and the conflict rate is measured rather than predicted. "Rollback in an id-referenced history: what a Fusion-style marker costs you" — the marker is easy; what a row that points at a superseded record should do is the actual design. Structure: the naive model (a numbered list you can insert into), why ids break it, the flag-and-resolve contract versus regenerating the tail, and the measured conflict rate. Do not publish before that number exists.
+**To Add:** repo URL once public

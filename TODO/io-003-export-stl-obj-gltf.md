@@ -47,6 +47,15 @@ per `TODO/ACCEPTANCE.md` scenario 11's own concrete bar.
 
 ## Affected files
 
+> **Superseded by `data-001` and `data-002`.** This list assumed a single export module
+> would win outright. Per `docs/decisions/persistence-export.md`, export is **split**:
+> STL and OBJ in `src/core/export.js` (kernel `Geom3`/`Group`, via `@jscad/stl-serializer`
+> and `@jscad/obj-serializer`), and glTF in **`src/render/export.js`** (three.js
+> `GLTFExporter` over the `THREE.Mesh` from `src/render/mesh.js` — `@jscad/io` has no
+> glTF serializer). Neither module triggers the download; the UI does. `data-002`
+> (`docs/decisions/interaction-model-qa.md` section 12) fixes the trigger as header
+> **File ▾ → Export…**.
+
 - `src/core/export.js` (new, framework-free per `CLAUDE.md`'s Project Structure — pure
   serialization logic, no DOM/download side effect) — takes one or more evaluated
   `Geom3`/`Group` values and a format, returns file bytes.

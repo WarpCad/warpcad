@@ -34,6 +34,25 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### data-002 — M6 interaction-model Q&A (2026-09-19 03:10)
+
+This task shipped no code, so nothing here is about how something looks. One claim in
+`docs/decisions/interaction-model-qa.md` section 10 is **from memory, not measured**, is
+load-bearing for `io-001`, and cannot be checked by any automated spec (Playwright's WebKit
+is not iOS Safari): that an `<input type="file">` on iOS Safari **greys out files whose type
+it does not recognise**, which is why the Q&A asks `io-001` to use an `accept` list of
+`.ndjson,.json,.txt` plus `text/plain` rather than a custom extension alone. If a real
+iPhone lets a plain `.ndjson` be picked from the Files app with any `accept` value, the
+constraint is moot; if it cannot with `.ndjson,.json,.txt`, `io-001` needs a different
+project-file extension. Cheap, and worth doing before `io-001` starts, alongside the two
+open rows in the `data-001` entry below (same devices, same scratch page). The header's
+390px width budget is also arithmetic rather than measurement, but `ui-033` will hand-drive
+it at 390px as part of its own acceptance run, so it is not a separate row here.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | On real iPhone **and** iPad Safari, put `<input type="file" accept=".ndjson,.json,.txt,text/plain">` on a scratch page, and try to pick a file named `project.ndjson` saved in the Files app. Then try again with a bare `accept=".ndjson"` and with no `accept` at all. Record which of the three let the file be selected. If only the no-`accept` case works, `io-001` should drop `accept` entirely and validate the file's content instead of its extension. | Open | |
+
 ### data-001 — Persistence/export Library decision (2026-09-18 20:20)
 
 This task shipped no code, so nothing here is about how something looks. It is here

@@ -20,6 +20,15 @@ explicitly load one back, and connect/use a hosted repository — with autosave 
 
 ## Interaction model
 
+> **Superseded by `data-002`** (`docs/decisions/interaction-model-qa.md` sections 8-11;
+> confirmed by the user 2026-09-19). Where this section disagrees, that document wins:
+> the controls are the **header bar's File ▾ menu** (not a settings-gear-style control)
+> with the save-status chip and a File-button status dot; the local items are labelled by
+> capability (**Save** / **Save As…** where File System Access exists, **Download copy**
+> everywhere else) and **Open…** with a confirm-replace dialog; hosted writes are
+> **explicit `Save to` / `Load from`, plus a per-connection opt-in Auto-push (off by
+> default)** — not "automatic" — and Ctrl/Cmd+S never touches the network.
+
 - **Precondition** — nothing selected; document-level action.
 - **Trigger** — per `data-002`'s confirmed answer: likely a menu or toolbar control
   (mirroring `ui-019`'s settings-gear placement precedent for a global, non-selection-

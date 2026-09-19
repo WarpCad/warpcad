@@ -36,6 +36,15 @@ display convention.
 
 ## Interaction model
 
+> **Superseded by `data-002`** (`docs/decisions/interaction-model-qa.md` section 11;
+> confirmed by the user 2026-09-19). Where this section disagrees, that document wins:
+> hosted writes are **explicit** (`Save to owner/repo` / `Load from owner/repo`) with a
+> **per-connection opt-in Auto-push, off by default** — a trailing 30-second debounce
+> with a 5-minute cap, shape-coded status dot, and a 409 that **pauses auto-push and
+> raises the Overwrite remote / Load remote / Cancel dialog rather than overwriting**.
+> The Connect form is a modal dialog with a password-type token field, validated before
+> anything is stored.
+
 - **Precondition** — nothing selected.
 - **Trigger** — per `data-002`'s confirmed answer: likely a "Connect hosted storage"
   control (`ui-033`'s surface) that opens a form for a token and repo/path; this task
