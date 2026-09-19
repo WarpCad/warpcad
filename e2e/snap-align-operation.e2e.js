@@ -514,10 +514,19 @@ test('Align addresses a drilled-in sub-part: the whole Group moves by that part�
 
   // The two candidate answers have to be far enough apart that the assertion
   // below is really distinguishing them, not passing on a coincidence.
+  //
+  // Threshold lowered from 5 to 4 by `TODO/data-003`, which put 44px Undo/Redo
+  // buttons in the header and so grew it from ~30px to ~53px at the 390px phone
+  // reference. That shifts the phone camera's projection slightly, and this
+  // fixture's X separation there went from 5.61 mm to 4.69 mm — it had been
+  // sitting just above a round-number guard. Deliberately not re-tuned by moving
+  // the drop points, which are shared with seven other tests in this file. The
+  // guard still does its job: the assertion it protects has a 0.05 mm tolerance,
+  // so 4.69 mm is ~90× the margin needed to tell the two answers apart.
   expect(
     Math.abs(partCenter[0] - groupCenter[0]),
     'the member’s own X centre and the group’s differ enough to tell the two answers apart',
-  ).toBeGreaterThan(5)
+  ).toBeGreaterThan(4)
 
   // Drill in the way a user does: deselect, click once (whole group), click the
   // same member again (narrow to it), then Shift-click the second body.
@@ -572,7 +581,11 @@ test('Align addresses a drilled-in sub-part: the whole Group moves by that part�
   // three orders of magnitude tighter than the ~50 mm gap between the two
   // answers this test exists to tell apart.
   expect(actual[0]).toBeCloseTo(expectedX, 1)
-  expect(Math.abs(actual[0] - referenceCenter[0])).toBeGreaterThan(5)
+  // The mirror of the fixture guard at the top of this test — after a sub-part
+  // Align the group's centre misses the reference's by exactly the part-to-group
+  // offset, so this is the same 4.69 mm quantity and moved from 5 to 4 for the
+  // same reason recorded there (`TODO/data-003`'s taller phone header).
+  expect(Math.abs(actual[0] - referenceCenter[0])).toBeGreaterThan(4)
   // Only X was checked.
   expect(actual[1]).toBeCloseTo(groupCenter[1], 1)
   expect(actual[2]).toBeCloseTo(groupCenter[2], 1)

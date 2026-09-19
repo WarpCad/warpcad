@@ -15,6 +15,7 @@
 import { ref } from 'vue'
 
 import Inspector from '../components/inspector/Inspector.vue'
+import HistoryControls from '../components/layout/HistoryControls.vue'
 import LibraryPanel from '../components/layout/LibraryPanel.vue'
 import Viewport from '../components/viewport/Viewport.vue'
 
@@ -59,6 +60,15 @@ const libraryCollapse = ref(0)
       <p class="app__hint" data-testid="app-hint">
         Drag a shape in from the Library · click a shape to inspect it · drag to orbit
       </p>
+      <!-- The "document bar" cluster (`docs/decisions/interaction-model-qa.md`,
+           cross-cutting): document-level controls that are not gated on
+           selection, right-aligned in the one strip that is always visible.
+           `data-003` fills the first two slots; the History toggle (`ui-032`),
+           File ▾ (`ui-033`/`ui-034`) and the save-status chip (`io-001`) land to
+           their right without moving them. -->
+      <div class="app__document-bar" data-testid="document-bar">
+        <HistoryControls />
+      </div>
     </header>
     <main
       class="app__body"
@@ -88,11 +98,26 @@ const libraryCollapse = ref(0)
 
 .app__bar {
   display: flex;
-  align-items: baseline;
+  /* Centred, not baseline-aligned, since `data-003`: the bar now holds 44px tap
+     targets as well as text, and a baseline would hang them off the title's
+     text baseline instead of centring them in the strip. */
+  align-items: center;
   gap: 12px;
-  padding: 8px 14px;
+  /* Tighter than the old 8px because the 44px controls now set the bar's height
+     (~52px at phone width, up from ~30px). The cross-cutting decision calls that
+     growth a deliberate cost; there is no reason to add to it with padding. */
+  padding: 4px 14px;
   border-bottom: 1px solid var(--border);
   background: var(--surface-1);
+}
+
+.app__document-bar {
+  /* Right-aligned, and the thing that pushes it there — so the cluster stays put
+     as `ui-032`/`ui-033` add controls beside it. */
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .app__title {
@@ -174,9 +199,19 @@ const libraryCollapse = ref(0)
   }
 }
 
+@media (max-width: 640px) {
+  /* The hint is mouse-oriented prose ("drag to orbit") that already truncated to
+     nothing at 390px, and the document-bar cluster needs the width more. Hidden
+     rather than shrunk, per the cross-cutting phone budget: title ~60px + Undo
+     44 + Redo 44 + the controls still to come + gaps ≈ 320px at 390px wide. */
+  .app__hint {
+    display: none;
+  }
+}
+
 @media (max-width: 480px) {
   .app__bar {
-    padding: 6px 10px;
+    padding: 4px 10px;
     gap: 8px;
   }
 

@@ -1335,7 +1335,12 @@ const dropTarget = {
     // same object the preview above was built from, so the board that lands is the
     // board that was shown.
     const records = recordsForDrop(op, { x: point.x, y: point.y }, documentStore.raw, overrides)
-    for (const record of records) documentStore.append(record, { origin: 'local' })
+    // `appendAll`, not a loop of `append` (`TODO/data-003`): a composite's two
+    // records are one *drag*, and undo's granularity is one user-meaningful
+    // action. Appending them separately would cost two presses of Undo for one
+    // drop, the second of which would briefly leave the part sitting at its
+    // un-translated origin.
+    documentStore.appendAll(records, { origin: 'local' })
     const rootId = records[0].id ?? null
     if (rootId) selection.select(rootId)
     syncBodies()

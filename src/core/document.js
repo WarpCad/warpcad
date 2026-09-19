@@ -124,6 +124,52 @@
  * retires bodies into a new one, and a sketch line is not a body and eats
  * nothing.
  *
+ * ## Undo/redo: remove-and-rebuild, not inverse-append (`TODO/data-003`)
+ *
+ * CLAUDE.md has required origin-scoped undo since before M0, and `append` has
+ * demanded an origin since `ui-010` precisely so it could be built later. The
+ * design question the TODO left open was what "undo" *means* for an append-only
+ * log: append a compensating inverse record, or take the step back out and
+ * re-derive. **Decided: take it out and re-derive**, for three reasons that are
+ * not matters of taste:
+ *
+ * 1. `docs/decisions/interaction-model-qa.md` section 18 settles it from the
+ *    user's side — "nothing in the timeline removes history; **only Undo removes
+ *    a recent step**", and section 19's own worked example is Undo *removing* an
+ *    inserted row. An inverse-append would put two rows in `ui-032`'s History
+ *    panel for one press of Undo and one press of Redo, which is the opposite of
+ *    what was confirmed.
+ * 2. There is no honest inverse for a `consumes` record. Undoing a boolean has
+ *    to un-retire two lineages, and nothing that can be *appended* does that —
+ *    `mergedInto` is set by the consuming record's existence. An "anti-record"
+ *    would be a second, parallel history mechanism invented to avoid touching
+ *    the first.
+ * 3. It composes with `data-004` instead of fighting it. Removing a step is
+ *    `splice` + re-fold; `data-004`'s insert-at-the-marker is `splice` + re-fold;
+ *    its mid-history param edit is `splice` + re-fold. Redo is literally an
+ *    **insert-at-index** — the primitive section 18 requires of `data-004` —
+ *    already built and exercised here.
+ *
+ * What keeps that safe is that the rebuild re-runs {@link ingest}, the *same*
+ * function `append` uses, over the remaining entries in order. There is no
+ * second implementation of lineage bookkeeping to drift: `supersedes`,
+ * `consumes`, `mergedInto`, root ordering and the trial fold are all re-derived
+ * by the code that derived them the first time. A rebuild that throws restores
+ * the captured indexes and rethrows, so a refused undo changes nothing — the
+ * same atomic contract `data-004` needs for a broken replay.
+ *
+ * Origin scoping is the other half. Only a `'local'` step is ever pushed onto
+ * the undo stack, so a programmatic or remote record is in `entries`, in
+ * `bodies()` and (later) in the History panel, but is never something Undo can
+ * reach. And because removing a record that a *later* record still references
+ * would leave a hole, `undo` refuses by name when a step someone else added
+ * depends on the one being taken back — section 19's point 4, rather than
+ * deleting their work.
+ *
+ * The stacks are deliberately **in-memory only**: section 19 decided undo does
+ * not survive a reload or an Open, so nothing here is serialised and the seed
+ * loop at the bottom of `createDocument` clears them.
+ *
  * ## Loud locally, lenient remotely
  *
  * `replay.js` skips and reports a bad record because a document can arrive from an
@@ -188,17 +234,52 @@ import { applyAction, emptyScene } from './replay.js'
  */
 
 /**
+ * One thing the user did, which may have taken more than one record.
+ *
+ * Section 19's granularity rule is "one user-meaningful action = one step": a
+ * whole gizmo drag, one param commit, one drag-placement — and a composite
+ * placement is two records (`ui-030`: the recipe, then the translate that puts
+ * it where the pointer let go), which must still be one press of Undo.
+ *
+ * @typedef {object} HistoryStep
+ * @property {string} origin Always `'local'` for anything on the stacks.
+ * @property {string} label What the button says it will undo, e.g. `Move Cube 1`.
+ * @property {OpRecord[]} records In log order.
+ * @property {any} meta Opaque to this module — `src/stores/document.js` parks the
+ *   selection that existed before the step here, so undo can restore it without
+ *   this framework-free module knowing what a selection is.
+ * @property {number} [index] Where the step's first record sat when it was
+ *   removed; redo re-inserts there. See the undo/redo note above.
+ */
+
+/**
+ * @typedef {object} TransactionOptions
+ * @property {string} origin Who is writing — `'local'` for this user's own edits.
+ * @property {string} [label] Overrides the derived step label.
+ * @property {any} [meta] Carried on the step, opaque here.
+ */
+
+/**
  * @typedef {object} WarpDocument
  * @property {readonly DocumentEntry[]} entries
  * @property {readonly OpRecord[]} records
  * @property {Scene} scene Current derived scene.
- * @property {number} version Bumps on every successful append.
- * @property {(record: OpRecord, transaction: { origin: string }) => { record: OpRecord, scene: Scene }} append
+ * @property {number} version Bumps on every successful append, undo and redo.
+ * @property {(record: OpRecord, transaction: TransactionOptions) => { record: OpRecord, scene: Scene }} append
+ * @property {(records: readonly OpRecord[], transaction: TransactionOptions) => { records: OpRecord[], scene: Scene }} appendAll
  * @property {(id: string) => string | undefined} originOf
  * @property {(id: string) => string | undefined} currentIdOf
+ * @property {(id: string) => string | undefined} rootOf
  * @property {(id: string) => OpRecord[]} lineageOf
  * @property {() => Body[]} bodies
  * @property {() => SketchEntityRecord[]} sketchEntities
+ * @property {() => boolean} canUndo
+ * @property {() => boolean} canRedo
+ * @property {() => HistoryStep | undefined} pendingUndo
+ * @property {() => HistoryStep | undefined} pendingRedo
+ * @property {() => HistoryStep | undefined} undo
+ * @property {() => HistoryStep | undefined} redo
+ * @property {() => void} clearHistory
  * @property {(prefix?: string) => string} nextId
  * @property {(label: string) => string} nextName
  */
@@ -219,6 +300,63 @@ function isVec3(value) {
  * rectangle/circle/arc tools need no change here.
  */
 const SKETCH_OP_PREFIX = 'sketch.'
+
+/**
+ * Verb per op, for the Undo/Redo tooltip's `Undo: Move Cube 1` (section 19).
+ *
+ * Deliberately shallow: naming the *action* is all a button needs. `ui-032`'s
+ * timeline rows want the richer `Chamfer Top (+Z) 5 mm on Cube 1`, which reads
+ * params and belongs with the panel that shows them, not here. An op missing
+ * from this table is a creation op and is labelled `Place <name>`, which is why
+ * the hardware/kit/raspberrypi families need no entries.
+ */
+const STEP_VERBS = Object.freeze({
+  'transform.translate': 'Move',
+  'transform.rotate': 'Rotate',
+  'boolean.union': 'Union',
+  'boolean.subtract': 'Subtract',
+  'boolean.intersect': 'Intersect',
+  'group.assemble': 'Group',
+  'group.snap': 'Snap',
+  'group.align': 'Align',
+  'modify.filletRim': 'Fillet',
+  'modify.chamferRim': 'Chamfer',
+  'modify.enlarge': 'Resize',
+  'modify.fit': 'Fit',
+  'modify.bisect': 'Bisect',
+})
+
+/**
+ * Every record id this record depends on — the four ways one line of the log can
+ * name another.
+ *
+ * Used by `undo` to refuse taking a step back out from under something that
+ * still points at it. It reads `target`/`operands` the same way
+ * `src/core/kernel/index.js` builds `inputRefs` (a ref may be a bare id or a
+ * `{ id, pieces }` sub-part address, `core-024`), plus the two lineage fields
+ * this module owns. Missing one of these would be the *silent* failure mode:
+ * the undo would succeed and the rebuild would then fail, or worse, succeed
+ * against the wrong operand.
+ *
+ * @param {OpRecord} record
+ * @returns {string[]}
+ */
+function referencedIdsOf(record) {
+  /** @type {string[]} */
+  const ids = []
+  /** @param {unknown} ref */
+  const push = (ref) => {
+    if (typeof ref === 'string') ids.push(ref)
+    else if (ref && typeof ref === 'object' && typeof (/** @type {any} */ (ref).id) === 'string') {
+      ids.push(/** @type {any} */ (ref).id)
+    }
+  }
+  push(record.supersedes)
+  push(record.target)
+  for (const consumed of record.consumes ?? []) push(consumed)
+  for (const operand of record.operands ?? []) push(operand)
+  return ids
+}
 
 /**
  * Create a document.
@@ -304,6 +442,237 @@ export function createDocument(options = {}) {
     return root
   }
 
+  /**
+   * Validate one record against the current derived state, trial-fold it, and
+   * commit its lineage bookkeeping — everything `append` does except pushing the
+   * entry itself.
+   *
+   * Split out so that `rebuildFrom` can re-run **this exact function** over the
+   * remaining entries after an undo, rather than a second, parallel
+   * implementation of the same rules. See the undo/redo note at the top of the
+   * module: that single-implementation property is the whole correctness
+   * argument for remove-and-rebuild.
+   *
+   * @param {OpRecord} record
+   * @param {string} origin
+   */
+  function ingest(record, origin) {
+    if (typeof origin !== 'string' || origin.length === 0) {
+      throw new Error(
+        'document.append: a transaction origin is required — ' +
+          "every mutation is origin-tagged so undo/redo can be scoped to the local user's own edits"
+      )
+    }
+    if (!record || typeof record.op !== 'string' || record.op.length === 0) {
+      throw new Error('document.append: a record needs an `op`')
+    }
+    if (record.id !== undefined && originById.has(record.id)) {
+      throw new Error(`document.append: duplicate record id "${record.id}"`)
+    }
+
+    // Resolve lineage references *before* the trial fold, so a bad one is
+    // rejected as loudly as a bad parameter and nothing half-applies.
+    if (record.supersedes !== undefined && record.consumes !== undefined) {
+      throw new Error(
+        'document.append: a record may set `supersedes` or `consumes`, never both — ' +
+          "continuing one body's identity and retiring several into a new one are " +
+          'different claims, and a record making both has no coherent meaning'
+      )
+    }
+
+    // A sketch record is a document mutation like any other — origin-tagged,
+    // id-checked, lineage-tracked — but it produces no geometry, so it is
+    // routed past the kernel entirely. Checked **before** the trial fold
+    // below, which is the whole of the boundary-preserving claim in this
+    // module's sketch-records note.
+    const isSketch = record.op.startsWith(SKETCH_OP_PREFIX)
+    if (isSketch && record.consumes !== undefined) {
+      throw new Error(
+        `document.append: ${record.op} may not set \`consumes\` — retiring bodies into a ` +
+          'new one is a solid-geometry claim, and a sketch entity is not a body'
+      )
+    }
+
+    let supersededRoot
+    if (record.supersedes !== undefined) {
+      if (record.id === undefined) {
+        throw new Error('document.append: a record that supersedes another needs its own `id`')
+      }
+      supersededRoot = resolveLiveRoot(record.supersedes, 'supersedes')
+    }
+
+    /** @type {string[]} */
+    const consumedRoots = []
+    if (record.consumes !== undefined) {
+      if (!Array.isArray(record.consumes) || record.consumes.length === 0) {
+        throw new Error(
+          'document.append: `consumes` must be a non-empty array of record ids — ' +
+            `got ${JSON.stringify(record.consumes)}`
+        )
+      }
+      if (record.id === undefined) {
+        throw new Error('document.append: a record that consumes others needs its own `id`')
+      }
+      const seen = new Set()
+      for (const consumed of record.consumes) {
+        const root = resolveLiveRoot(consumed, 'consumes')
+        if (seen.has(root)) {
+          throw new Error(
+            `document.append: consumes "${consumed}" twice over — it and another named id ` +
+              `belong to the same body ("${root}"), which would retire one lineage while ` +
+              'counting it as two operands'
+          )
+        }
+        seen.add(root)
+        consumedRoots.push(root)
+      }
+    }
+
+    if (isSketch && record.id === undefined) {
+      throw new Error(
+        'document.append: a sketch record needs its own `id` — an entity has to be ' +
+          'selectable, and a later endpoint edit has to name what it supersedes'
+      )
+    }
+
+    // Trial fold. `applyAction` never throws — it reports — so a failure shows up
+    // as a *new* entry in the candidate scene's error list, and the record is
+    // rejected rather than committed. Skipped outright for a sketch record:
+    // there is no geometry to evaluate and no registry entry to look up.
+    const errorsBefore = scene.errors.length
+    const candidate = isSketch ? scene : applyAction(scene, record, ops)
+    if (candidate.errors.length > errorsBefore) {
+      const failure = candidate.errors[candidate.errors.length - 1]
+      throw new Error(`document.append: ${failure.op} could not be applied — ${failure.message}`)
+    }
+
+    if (record.id !== undefined) {
+      originById.set(record.id, origin)
+      recordById.set(record.id, record)
+      const root = supersededRoot ?? record.id
+      rootById.set(record.id, root)
+      terminalByRoot.set(root, record.id)
+      if (root === record.id) (isSketch ? sketchRootOrder : rootOrder).push(record.id)
+      // A consuming record is its own new lineage root (the line above already
+      // made it one, since it carries no `supersedes`); what is left is to
+      // retire the lineages it absorbed, so `bodies()` stops reporting them and
+      // `currentIdOf` starts resolving through them.
+      for (const consumedRoot of consumedRoots) mergedInto.set(consumedRoot, record.id)
+    }
+    scene = candidate
+  }
+
+  /**
+   * Everything derived from `entries`, copied shallowly so a failed rebuild can
+   * put it all back. Cheap — these are maps of short strings and one scene
+   * reference; the fold they index is what costs, and that is not copied.
+   */
+  function captureDerived() {
+    return {
+      originById: new Map(originById),
+      rootById: new Map(rootById),
+      terminalByRoot: new Map(terminalByRoot),
+      rootOrder: rootOrder.slice(),
+      sketchRootOrder: sketchRootOrder.slice(),
+      mergedInto: new Map(mergedInto),
+      recordById: new Map(recordById),
+      scene,
+    }
+  }
+
+  /** @param {ReturnType<typeof captureDerived> | null} snapshot */
+  function resetDerived(snapshot) {
+    originById.clear()
+    rootById.clear()
+    terminalByRoot.clear()
+    rootOrder.length = 0
+    sketchRootOrder.length = 0
+    mergedInto.clear()
+    recordById.clear()
+    scene = emptyScene()
+    if (!snapshot) return
+    for (const [key, value] of snapshot.originById) originById.set(key, value)
+    for (const [key, value] of snapshot.rootById) rootById.set(key, value)
+    for (const [key, value] of snapshot.terminalByRoot) terminalByRoot.set(key, value)
+    rootOrder.push(...snapshot.rootOrder)
+    sketchRootOrder.push(...snapshot.sketchRootOrder)
+    for (const [key, value] of snapshot.mergedInto) mergedInto.set(key, value)
+    for (const [key, value] of snapshot.recordById) recordById.set(key, value)
+    scene = snapshot.scene
+  }
+
+  /**
+   * Re-derive the whole document from a new entry list — the one mutation
+   * primitive underneath undo (remove a step), redo (insert it back at its
+   * index) and, when `data-004` arrives, insert-at-the-marker and edit-in-place.
+   *
+   * **Atomic**: if any record no longer folds, the captured indexes go back and
+   * the error propagates, so the caller's refusal leaves the document exactly as
+   * it was. That is the same contract section 18 requires of a broken roll-forward.
+   *
+   * A full re-fold rather than a partial one, deliberately — `data-004`'s own
+   * Proposed fix makes the argument and this task's mechanism has to agree with
+   * it: correctness-by-construction from reusing the proven fold beats a speed
+   * win with no measured need. `idCounter` is **not** reset, so an id can never
+   * be handed out twice across an undo.
+   *
+   * @param {DocumentEntry[]} nextEntries
+   */
+  function rebuildFrom(nextEntries) {
+    const snapshot = captureDerived()
+    resetDerived(null)
+    try {
+      for (const entry of nextEntries) ingest(entry.record, entry.origin)
+    } catch (error) {
+      resetDerived(snapshot)
+      throw error
+    }
+    entries.length = 0
+    entries.push(...nextEntries)
+  }
+
+  /** @type {HistoryStep[]} */
+  const undoStack = []
+  /** @type {HistoryStep[]} */
+  const redoStack = []
+
+  /**
+   * What the Undo/Redo button says it will do (section 19: "the tooltip and
+   * `aria-label` name the action").
+   *
+   * A `consumes` record gets the bare verb — `Subtract`, not `Subtract Cube 1` —
+   * for the reason the consumption note above already gives: a boolean's result
+   * is a new thing built from several bodies, not an edit of its base, so naming
+   * one operand would claim something untrue.
+   *
+   * @param {readonly OpRecord[]} records
+   * @returns {string}
+   */
+  function labelFor(records) {
+    const record = records[0]
+    const subject = record.supersedes ?? record.target
+    const rootId = typeof subject === 'string' ? rootById.get(subject) : undefined
+    // The *root's* name, not the acting record's: a transform and a param edit
+    // both carry generated ids and no name of their own, and what the user calls
+    // the thing is "Cube 1" — the same reason `Body.name` reads from the root.
+    const subjectName = rootId === undefined ? undefined : recordById.get(rootId)?.name
+
+    const verb = /** @type {Record<string, string>} */ (STEP_VERBS)[record.op]
+    if (verb !== undefined) {
+      if (record.consumes !== undefined) return verb
+      return subjectName === undefined ? verb : `${verb} ${subjectName}`
+    }
+    // No verb, but it supersedes something: this is an in-place edit rebuilding
+    // a body from changed params (`ui-029`) or a sketch endpoint move
+    // (`ui-020`), both of which reuse the *creation* op and so would otherwise
+    // be labelled as placing a brand-new body with a generated id.
+    if (record.supersedes !== undefined) {
+      return subjectName === undefined ? 'Edit' : `Edit ${subjectName}`
+    }
+    const noun = record.name ?? record.id ?? record.op
+    return record.op.startsWith(SKETCH_OP_PREFIX) ? `Draw ${noun}` : `Place ${noun}`
+  }
+
   /** @type {WarpDocument} */
   const document = {
     get entries() {
@@ -321,113 +690,154 @@ export function createDocument(options = {}) {
     version: 0,
 
     append(record, transaction) {
+      const { records, scene: next } = document.appendAll([record], transaction)
+      return { record: records[0], scene: next }
+    },
+
+    /**
+     * Append several records as **one undoable step**.
+     *
+     * The plural form is the primitive and `append` is the singular case of it,
+     * rather than the other way round, because section 19's granularity rule is
+     * about user actions and one action is not always one record: placing a
+     * composite is its recipe record plus the translate that drops it where the
+     * pointer let go (`ui-030`). Appending those in a loop would cost the user
+     * two presses of Undo for one drag — and would leave the intermediate,
+     * un-positioned state on screen in between.
+     *
+     * Not atomic across the batch by design: each record is trial-folded and
+     * committed in turn, exactly as a loop of `append` calls was, so a failure
+     * partway leaves the earlier records in. That is unchanged behaviour from
+     * `ui-030`'s own loop; making the batch atomic is `data-004`'s contract to
+     * define, since it is the task that needs a rejected *replay* to change
+     * nothing.
+     */
+    appendAll(records, transaction) {
       const origin = transaction?.origin
-      if (typeof origin !== 'string' || origin.length === 0) {
-        throw new Error(
-          'document.append: a transaction origin is required — ' +
-            "every mutation is origin-tagged so undo/redo can be scoped to the local user's own edits"
-        )
-      }
-      if (!record || typeof record.op !== 'string' || record.op.length === 0) {
-        throw new Error('document.append: a record needs an `op`')
-      }
-      if (record.id !== undefined && originById.has(record.id)) {
-        throw new Error(`document.append: duplicate record id "${record.id}"`)
+      /** @type {OpRecord[]} */
+      const appended = []
+      for (const record of records) {
+        ingest(record, origin)
+        entries.push({ record, origin })
+        appended.push(record)
       }
 
-      // Resolve lineage references *before* the trial fold, so a bad one is
-      // rejected as loudly as a bad parameter and nothing half-applies.
-      if (record.supersedes !== undefined && record.consumes !== undefined) {
-        throw new Error(
-          'document.append: a record may set `supersedes` or `consumes`, never both — ' +
-            'continuing one body\'s identity and retiring several into a new one are ' +
-            'different claims, and a record making both has no coherent meaning'
-        )
+      // Origin scoping, the whole of it on the write side: only this user's own
+      // edits become something Undo can reach. A programmatic or remote record
+      // is a first-class part of the document — it is in `entries`, in
+      // `bodies()`, and will carry an origin chip in `ui-032`'s History — but it
+      // is not theirs to take back (section 19, point 1).
+      if (origin === 'local' && appended.length > 0) {
+        undoStack.push({
+          origin,
+          label: transaction.label ?? labelFor(appended),
+          records: appended,
+          meta: transaction.meta,
+        })
+        // Point 3: only a *new local mutation* clears redo. A remote arrival
+        // must not, or someone else's edit silently eats the user's redo.
+        redoStack.length = 0
       }
 
-      // A sketch record is a document mutation like any other — origin-tagged,
-      // id-checked, lineage-tracked — but it produces no geometry, so it is
-      // routed past the kernel entirely. Checked **before** the trial fold
-      // below, which is the whole of the boundary-preserving claim in this
-      // module's sketch-records note.
-      const isSketch = record.op.startsWith(SKETCH_OP_PREFIX)
-      if (isSketch && record.consumes !== undefined) {
-        throw new Error(
-          `document.append: ${record.op} may not set \`consumes\` — retiring bodies into a ` +
-            'new one is a solid-geometry claim, and a sketch entity is not a body'
-        )
-      }
+      document.version += 1
+      return { records: appended, scene }
+    },
 
-      let supersededRoot
-      if (record.supersedes !== undefined) {
-        if (record.id === undefined) {
-          throw new Error('document.append: a record that supersedes another needs its own `id`')
-        }
-        supersededRoot = resolveLiveRoot(record.supersedes, 'supersedes')
-      }
+    canUndo() {
+      return undoStack.length > 0
+    },
 
-      /** @type {string[]} */
-      const consumedRoots = []
-      if (record.consumes !== undefined) {
-        if (!Array.isArray(record.consumes) || record.consumes.length === 0) {
+    canRedo() {
+      return redoStack.length > 0
+    },
+
+    pendingUndo() {
+      return undoStack.at(-1)
+    },
+
+    pendingRedo() {
+      return redoStack.at(-1)
+    },
+
+    /**
+     * Take the most recent local step back out of the log and re-derive.
+     *
+     * Refuses — by name, without changing anything — when a record outside the
+     * step still references one inside it (section 19, point 4). In practice
+     * that can only be a record someone else added, since the step being undone
+     * is by construction the newest *local* one; the check is written against
+     * "any other entry" rather than "any remote entry" so it stays honest if
+     * that ever stops being true.
+     *
+     * @returns {HistoryStep | undefined} The step undone, or `undefined` when
+     *   there was nothing to undo.
+     */
+    undo() {
+      const step = undoStack.at(-1)
+      if (step === undefined) return undefined
+
+      const stepRecords = new Set(step.records)
+      const undoneIds = new Set(
+        step.records.map((record) => record.id).filter((id) => typeof id === 'string')
+      )
+      for (const entry of entries) {
+        if (stepRecords.has(entry.record)) continue
+        for (const referenced of referencedIdsOf(entry.record)) {
+          if (!undoneIds.has(referenced)) continue
+          const blocker = entry.record.name ?? entry.record.id ?? entry.record.op
           throw new Error(
-            'document.append: `consumes` must be a non-empty array of record ids — ' +
-              `got ${JSON.stringify(record.consumes)}`
+            `document.undo: "${blocker}", added via ${entry.origin}, depends on ` +
+              `"${step.label}" — suppress or edit it first`
           )
         }
-        if (record.id === undefined) {
-          throw new Error('document.append: a record that consumes others needs its own `id`')
-        }
-        const seen = new Set()
-        for (const consumed of record.consumes) {
-          const root = resolveLiveRoot(consumed, 'consumes')
-          if (seen.has(root)) {
-            throw new Error(
-              `document.append: consumes "${consumed}" twice over — it and another named id ` +
-                `belong to the same body ("${root}"), which would retire one lineage while ` +
-                'counting it as two operands'
-            )
-          }
-          seen.add(root)
-          consumedRoots.push(root)
-        }
       }
 
-      if (isSketch && record.id === undefined) {
-        throw new Error(
-          'document.append: a sketch record needs its own `id` — an entity has to be ' +
-            'selectable, and a later endpoint edit has to name what it supersedes'
-        )
-      }
-
-      // Trial fold. `applyAction` never throws — it reports — so a failure shows up
-      // as a *new* entry in the candidate scene's error list, and the record is
-      // rejected rather than committed. Skipped outright for a sketch record:
-      // there is no geometry to evaluate and no registry entry to look up.
-      const errorsBefore = scene.errors.length
-      const candidate = isSketch ? scene : applyAction(scene, record, ops)
-      if (candidate.errors.length > errorsBefore) {
-        const failure = candidate.errors[candidate.errors.length - 1]
-        throw new Error(`document.append: ${failure.op} could not be applied — ${failure.message}`)
-      }
-
-      entries.push({ record, origin })
-      if (record.id !== undefined) {
-        originById.set(record.id, origin)
-        recordById.set(record.id, record)
-        const root = supersededRoot ?? record.id
-        rootById.set(record.id, root)
-        terminalByRoot.set(root, record.id)
-        if (root === record.id) (isSketch ? sketchRootOrder : rootOrder).push(record.id)
-        // A consuming record is its own new lineage root (the line above already
-        // made it one, since it carries no `supersedes`); what is left is to
-        // retire the lineages it absorbed, so `bodies()` stops reporting them and
-        // `currentIdOf` starts resolving through them.
-        for (const consumedRoot of consumedRoots) mergedInto.set(consumedRoot, record.id)
-      }
-      scene = candidate
+      const index = entries.findIndex((entry) => entry.record === step.records[0])
+      rebuildFrom(entries.filter((entry) => !stepRecords.has(entry.record)))
+      undoStack.pop()
+      redoStack.push({ ...step, index })
       document.version += 1
-      return { record, scene }
+      return step
+    },
+
+    /**
+     * Put the most recently undone step back where it was.
+     *
+     * Insert-at-index, not append: a remote record may have arrived while the
+     * step was undone, and the redone step belongs at its original position so
+     * the log keeps the order everything else was built against. This is the
+     * same primitive `data-004` needs for inserting at the rollback marker —
+     * built here first because redo needed it anyway.
+     *
+     * @returns {HistoryStep | undefined}
+     */
+    redo() {
+      const step = redoStack.at(-1)
+      if (step === undefined) return undefined
+      const next = entries.slice()
+      next.splice(
+        step.index ?? next.length,
+        0,
+        ...step.records.map((record) => ({ record, origin: step.origin }))
+      )
+      rebuildFrom(next)
+      redoStack.pop()
+      undoStack.push(step)
+      document.version += 1
+      return step
+    },
+
+    /**
+     * Forget both stacks, leaving the document itself alone.
+     *
+     * Section 19 decided the stacks start empty after a reload and after Open /
+     * Load-from-repo: "a user who reloads cannot undo their last edit — the
+     * accepted cost of the simplest honest rule". Seeding a document from a
+     * loaded file is the same case, so `createDocument` calls this below.
+     */
+    clearHistory() {
+      undoStack.length = 0
+      redoStack.length = 0
     },
 
     originOf(id) {
@@ -458,6 +868,21 @@ export function createDocument(options = {}) {
         if (nextRoot === undefined) return terminal
         root = nextRoot
       }
+    },
+
+    /**
+     * The lineage root `id` belongs to — a body's stable identity, which is what
+     * `bodies()` reports and what a selection holds.
+     *
+     * The inverse question to `currentIdOf`, and added for the same caller
+     * `data-003` added that one for: after a redo, the store has the step's
+     * *record* ids and needs the *body* ids to put the selection back.
+     *
+     * @param {string} id
+     * @returns {string | undefined}
+     */
+    rootOf(id) {
+      return rootById.get(id)
     },
 
     /**
@@ -596,6 +1021,11 @@ export function createDocument(options = {}) {
     document.append(action, { origin: options.origin ?? 'local' })
   }
   document.version = 0
+  // Loading a document is not a stack of things to undo back out of, even though
+  // the seed loop goes through the same origin-tagged command layer everything
+  // else does — section 19: "the undo/redo stacks start empty after a reload and
+  // after Open / Load-from-repo".
+  document.clearHistory()
 
   return document
 }

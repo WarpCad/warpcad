@@ -6,8 +6,88 @@ priority: medium
 model: opus
 milestone: M6
 depends: [data-002]
-status: open
+status: done
 ---
+
+> ## What actually shipped, and the design decision behind it
+>
+> **Placement superseded.** This file's Interaction model guessed "two small buttons in
+> the existing toolbar chrome ... alongside `ui-019`'s settings gear". That guess is
+> overridden by `docs/decisions/interaction-model-qa.md`'s cross-cutting "document bar"
+> decision (commit `e7c1993`), confirmed by the user after this file was written: Undo and
+> Redo are document-level and not selection-gated, so they live in the app's existing
+> full-width header bar (`.app__bar` in `AppView.vue`), right-aligned, as 44px icon
+> buttons. Only Undo and Redo were built here; the History toggle (`ui-032`), File menu
+> (`ui-033`/`ui-034`) and save-status chip (`io-001`) are the rest of that cluster and are
+> left to their own tasks. `AppView.vue` gained a right-aligned `document-bar` wrapper
+> sized so those three land beside these two without moving them.
+>
+> **The design question the file left open — inverse-append vs truncation — resolved as
+> neither, but much closer to truncation: remove the step and re-derive.** The file
+> recommended investigating inverse-append first, *and* required checking it against
+> `data-004`. That check is what decided it, on three grounds:
+>
+> 1. **The confirmed answers rule inverse-append out.** Section 18 states "nothing in the
+>    timeline removes history; **only Undo removes a recent step**", and its worked example
+>    is Undo *removing* an inserted row. An inverse-append would put two rows in `ui-032`'s
+>    History panel for one Undo and two more for one Redo — the opposite of what the user
+>    confirmed.
+> 2. **There is no honest inverse for a `consumes` record.** Undoing a boolean must
+>    un-retire two lineages, and nothing that can be *appended* does that: `mergedInto` is
+>    set by the consuming record's mere existence. An "anti-record" would be a second,
+>    parallel history mechanism invented purely to avoid touching the first.
+> 3. **Remove-and-rebuild composes with `data-004` instead of fighting it.** Undo is
+>    `splice`-out + re-fold; `data-004`'s insert-at-the-marker is `splice`-in + re-fold; its
+>    mid-history param edit is `splice`-replace + re-fold. **Redo is literally an
+>    insert-at-index** — the primitive section 18 names as a fixed requirement on
+>    `data-004` — so that primitive is now built, exercised and proven by every redo, rather
+>    than waiting to be invented. The internal `rebuildFrom(nextEntries)` is the one
+>    mutation primitive all four operations sit on; `data-004` should widen it, not replace
+>    it.
+>
+> What makes it safe against the lineage machinery the file worried about is that the
+> rebuild re-runs **`ingest`, the same function `append` uses**, over the remaining entries
+> in order. There is no second implementation of `supersedes`/`consumes`/`mergedInto`/root
+> ordering to drift out of step, which is the same correctness-by-construction argument
+> `data-004`'s own Proposed fix makes for a full re-fold. A rebuild that throws restores the
+> captured indexes and rethrows, so a refused undo changes nothing — the atomic contract
+> section 18 requires of a broken roll-forward, also already built.
+>
+> **Origin scoping** is a one-line consequence of that shape: only an `origin: 'local'`
+> step is pushed onto the undo stack, so a programmatic or remote record stays in
+> `entries` and in `bodies()` but is unreachable by Undo. Because removing a record that a
+> later record still references would leave a hole, `undo` refuses **by name** when any
+> other entry still points at the step being taken back (`referencedIdsOf` reads
+> `supersedes`, `consumes`, `target` and `operands`, matching how `kernel/index.js` builds
+> `inputRefs`) — section 19's point 4. Only a new *local* mutation clears redo, so a remote
+> arrival cannot silently eat the user's redo.
+>
+> **Also decided here, as the file asked:** *one gesture = one step* needed a plural
+> primitive, so `appendAll` is now the primitive and `append` the singular case of it —
+> a composite placement's two records (`ui-030`) are one press of Undo, not two.
+> *Selection restoration* is real: the store parks the pre-mutation selection on the step
+> as opaque `meta` (the core stays framework-free), undo restores it filtered to bodies
+> that still exist, and redo instead selects the step's own lineage roots, so redoing a
+> placement leaves the placed body selected exactly as placing it did. Undo history does
+> **not** survive a reload or a seeded load — `createDocument` clears the stacks after its
+> seed loop, per section 19.
+>
+> **Two knock-on changes outside the Affected files list.** (1) `src/styles/tokens.css`
+> gained a `--danger` token (dark + light); the file had no error colour and the refusal
+> message needed one rather than a hardcoded literal. (2) `e2e/snap-align-operation.e2e.js`
+> has two fixture-sanity guards lowered from `> 5` to `> 4`: the 44px header buttons grow
+> the phone header from ~30px to 53px, which shifts the phone camera's projection enough
+> that that fixture's X separation went from 5.61 mm to 4.69 mm. The guards protect an
+> assertion with a 0.05 mm tolerance, so 4.69 mm is still ~90x the margin needed; the drop
+> fractions were deliberately *not* re-tuned because seven other tests in that file share
+> them. Both changes are recorded in `TODO/VERIFY.md`.
+>
+> **Not built, deliberately:** the "disabled while previewing" gate (section 19) has no
+> preview state to read until `ui-032` exists — `HistoryControls.vue` says so at the point
+> the condition belongs. The refusal live region is wired but unreachable in the app today
+> (nothing produces a non-local record until MCP or `io-002`); `ui-033`'s shared
+> `save-status` chip should absorb it.
+
 
 ## Goal
 

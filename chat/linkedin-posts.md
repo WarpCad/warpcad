@@ -853,3 +853,24 @@ Built with Claude Code, reviewed by me.
 
 **LinkedIn article suggestion:** Worth one, once the timeline is built and the conflict rate is measured rather than predicted. "Rollback in an id-referenced history: what a Fusion-style marker costs you" — the marker is easy; what a row that points at a superseded record should do is the actual design. Structure: the naive model (a numbered list you can insert into), why ids break it, the flag-and-resolve contract versus regenerating the tail, and the measured conflict rate. Do not publish before that number exists.
 **To Add:** repo URL once public
+
+## 2026-09-19T03:58:00Z — The undo design that only looked obvious
+
+**Post:** WarpCad's document is an append-only log of modelling actions, replayed to produce the scene. The obvious way to add undo to a log like that is to append the inverse of the last action. I had written that down as the recommended approach before building it. It was wrong, for a reason specific to CAD.
+
+A boolean operation does not just add a record. It retires its operands: subtract a sphere from a cube and both original bodies stop being separately selectable, because the record that consumed them says so. Undoing that means un-retiring two lineages, and there is no record you can append that does it. You would have to invent an anti-record, which is a second history mechanism built to avoid touching the first. The confirmed interaction design ruled it out from the other direction too, in plainer language: only Undo removes a step, and an inverse-append would show two rows in the history panel for one press of Undo.
+
+So undo removes the step from the log and re-derives everything. The part that makes that safe is not the splice, it is that the rebuild re-runs the same function an append runs, over the remaining records in order. There is exactly one implementation of the lineage bookkeeping, so there is nothing to drift. A rebuild that throws puts the old indexes back and reports, so a refused undo changes nothing.
+
+The payoff was unplanned. Redo has to put the step back where it was, not at the end, because a record from elsewhere may have arrived meanwhile. That is an insert-at-index on the log, which is exactly the primitive the next task needs for Fusion-style rollback, where new steps insert at a marker. It is built, exercised on every redo, and atomic on failure, before the task that requires it starts.
+
+Origin scoping came almost free. Only local-origin steps go on the stack, so a step added by an AI assistant or pulled from shared storage is in the document and in the history but is not something Undo can reach. If undoing your step would orphan one of theirs, Undo refuses and names the blocker rather than leaving a hole.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL #OpenSource
+**Evidence:** "I had written that down as the recommended approach" → `TODO/done/data-003-undo-redo-transaction-origin.md`'s own Proposed fix ("Recommend investigating the inverse-append approach first"), which also required checking it against `data-004`; "retires its operands ... because the record that consumed them says so" → `src/core/document.js`'s `consumes`/`mergedInto` mechanism and `bodies()`'s skip of an absorbed root; "only Undo removes a step" → `docs/decisions/interaction-model-qa.md` section 18, verbatim ("nothing in the timeline removes history; only Undo removes a recent step"), confirmed by the user in commit e7c1993; "the rebuild re-runs the same function an append runs" and "puts the old indexes back" → `rebuildFrom`/`ingest`/`captureDerived` in this diff; "exactly the primitive the next task needs" → section 18's fixed requirement on `data-004` of "an insert-at-index primitive on the log"; "only local-origin steps go on the stack" and the named refusal → `appendAll`/`undo` in this diff, covered by `src/core/history.spec.js`; test state → typecheck clean, 951 unit tests, 745 e2e passing across chromium and webkit at phone/tablet/laptop this session
+**Disclosure:** Built with Claude Code, reviewed by me.
+**To Add:** repo URL once public; a diagram of the log with a step spliced out and re-folded
+
+**LinkedIn article suggestion:** Worth one, and it is close to ready. "Undo is not the inverse of your last action" — the general lesson is that undo in an event-sourced or append-only model is usually taught as compensating events, and that teaching breaks the moment an event's effect is to retire other entities rather than to add one. Structure: the append-only model and why it is attractive for CAD, the compensating-event default, the operation that has no compensating event, remove-and-re-derive with the single-implementation argument, and the insert-at-index dividend. Hold until the timeline panel ships so the history-panel screenshots are real.

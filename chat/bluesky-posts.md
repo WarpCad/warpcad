@@ -682,3 +682,14 @@ Built with Claude Code, reviewed by me.
 **Evidence:** "append-only log where records point at earlier records by id" → `src/core/document.js` module doc (immutable entries, `supersedes` lineage), read this session; "a later step that builds on it is now broken" → `docs/decisions/interaction-model-qa.md` section 18 (design, not yet built or reproduced); "Flag it, never guess" → the same section's shadow-check and atomic roll-forward contract
 **Disclosure:** Built with Claude Code, reviewed by me.
 **To Add:** repo URL once public; a diagram of a log with a rollback marker and a flagged tail row
+
+## 2026-09-19T03:58:00Z — Undo in an append-only log: remove the step, don't invent its opposite
+
+**Post:** WarpCad's document is an append-only log, so undo looked like "append the inverse". Except a boolean's record retires its two operands into itself, and no record you can append un-retires them. So undo splices the step out and re-folds through the same code an append uses. Redo is then insert-at-index.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Evidence:** "retires its two operands into itself" → `src/core/document.js`'s `consumes`/`mergedInto` mechanism, which `bodies()` reads to stop reporting an absorbed lineage; "no record you can append un-retires them" → `mergedInto` is set by the consuming record's existence, so the inverse would need a new anti-record concept — reasoning recorded in the retirement note of `TODO/done/data-003-undo-redo-transaction-origin.md`; "re-folds through the same code an append uses" → `rebuildFrom` calls `ingest`, the function `append` calls, this diff; "Redo is then insert-at-index" → `document.redo()` splices the step back at its original index, this diff, and `docs/decisions/interaction-model-qa.md` section 18 names insert-at-index as a fixed requirement on `data-004`
+**Disclosure:** Built with Claude Code, reviewed by me.
+**To Add:** repo URL once public; a short clip of undoing a subtract and both operands coming back selected

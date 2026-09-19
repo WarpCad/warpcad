@@ -34,6 +34,22 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### data-003 — Undo/redo command stack scoped by transaction origin (2026-09-19 03:58)
+
+The mechanism itself is covered by standing checks and is deliberately not restated here:
+`ACCEPTANCE.md` scenarios 1, 2, 4 and 12 were all re-driven by hand for this task, and
+`src/core/history.spec.js` plus `e2e/undo-redo.e2e.js` (3 viewports x chromium/webkit)
+cover the rest. What is left is three things a scenario genuinely does not check — a
+layout cost the confirmed design accepted on paper but nobody has seen on glass, a
+contract with no reachable trigger in the app yet, and a threshold this task moved in
+another task's spec.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | **On a real iPhone and a real iPad**: the header is now ~53px tall at phone width (was ~30px) because Undo/Redo are 44px tap targets, and the mouse-oriented hint text is hidden below 641px. Does the taller bar feel right, and are the two buttons comfortably thumb-reachable one-handed? The 390px budget was checked arithmetically and in a screenshot, never on glass. | Open | |
+| 2 | The undo **refusal** path (`history-refusal`, `role="alert"`) cannot be triggered from the app today — nothing produces a non-local record until the MCP surface or `io-002` exists — so it is proven only by `history.spec.js`. When `io-002` lands, confirm the message actually appears and reads sensibly, and fold it into `ui-033`'s shared `save-status` chip rather than leaving a second status surface. | Open | |
+| 3 | `e2e/snap-align-operation.e2e.js`'s two fixture-sanity guards were lowered `> 5` → `> 4` because this task's taller phone header shifts the phone camera's projection (that fixture's X separation went 5.61 mm → 4.69 mm). The guards still sit ~90x above the 0.05 mm tolerance they protect, and the shared drop fractions were deliberately left alone. Worth a second opinion on whether the fixture should instead be re-positioned when someone next touches that file. | Open | |
+
 ### data-002 — M6 interaction-model Q&A (2026-09-19 03:10)
 
 This task shipped no code, so nothing here is about how something looks. One claim in

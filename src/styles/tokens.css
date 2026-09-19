@@ -45,6 +45,12 @@
      selected thing" instead. Selected sketch geometry does switch to
      `--accent`, which is consistent with every other selection in the app. */
   --sketch-stroke: #38bdf8;
+  /* A refused action's explanation (`TODO/data-003`'s undo refusal, and the
+     persistent-error half of the one status surface `ui-033` will own). The
+     first token in this file for "this did not happen, and here is why" —
+     deliberately not a red borrowed from `--axis-x`, which means the X axis
+     everywhere else in the app and would read as an axis label on a panel. */
+  --danger: #e06c75;
 
   --radius-sm: 6px;
   --radius-md: 10px;
@@ -85,6 +91,9 @@
        washes out against a near-white grid, and a sketch line a user cannot see
        is the exact failure this token exists to prevent. */
     --sketch-stroke: #0369a1;
+    /* Darkened for the same reason as the three above — a warning nobody can
+       read against a near-white panel is a warning that was not given. */
+    --danger: #b3261e;
 
     --shadow-overlay: 0 6px 24px rgba(20, 30, 45, 0.18);
   }

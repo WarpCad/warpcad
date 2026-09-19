@@ -38,6 +38,9 @@ themselves won't have to move.
   the Operations toolbar's ninth, tenth and eleventh buttons, which grow or
   shrink a single selected shape, resize it to an exact size, or cut it into
   two independently selectable parts.
+- [Undoing and redoing a change](undo-redo.md) — the two buttons at the right of
+  the top bar, the Ctrl/Cmd+Z shortcuts, what counts as one step, what Undo puts
+  back on screen, and why Undo never removes a change you didn't make.
 - [Moving around the 3D view](viewport-navigation.md) — orbit, pan, zoom, the
   orientation triad, touch gestures, and reading size off the grid.
 - [Sketch mode: drawing a line on the working plane](sketch-mode.md) — the
