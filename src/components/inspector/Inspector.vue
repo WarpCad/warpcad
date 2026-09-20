@@ -106,11 +106,18 @@ import { formatDeg, formatMmValue } from '../../core/units.js'
 
 const props = defineProps({
   /**
-   * True while the Library's bottom sheet holds the single phone-width sheet
-   * slot. Purely a phone-width concern: at tablet and laptop both panels are
-   * persistent columns and nothing competes.
+   * True while another panel's bottom sheet holds the single phone-width sheet
+   * slot — the Library, or (since `TODO/ui-032`) History. Purely a phone-width
+   * concern: at tablet and laptop these are persistent columns and nothing
+   * competes.
+   *
+   * Named for the *slot* rather than for the Library specifically, which is
+   * what it always meant: this panel does not care which sibling is up, only
+   * that one is, so it declines to auto-open over a panel the user deliberately
+   * asked for. `AppView.vue` owns the arbitration; it is the only thing that
+   * can see all three.
    */
-  librarySheetOpen: { type: Boolean, default: false },
+  sheetSlotClaimed: { type: Boolean, default: false },
 })
 
 const emit = defineEmits(['sheet-change', 'claim-sheet'])
@@ -238,7 +245,7 @@ function setOpen(value) {
 // means a selection that resolves to nothing (a stale id) does not pop an empty
 // sheet open at phone width.
 watch(
-  [() => panelState.value, () => props.librarySheetOpen],
+  [() => panelState.value, () => props.sheetSlotClaimed],
   ([state, libraryOpen]) => {
     setOpen(state !== 'empty' && !libraryOpen)
   },

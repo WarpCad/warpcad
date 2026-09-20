@@ -38,6 +38,11 @@ themselves won't have to move.
   the Operations toolbar's ninth, tenth and eleventh buttons, which grow or
   shrink a single selected shape, resize it to an exact size, or cut it into
   two independently selectable parts.
+- [The History panel: revisiting any step you've taken](timeline.md) — the
+  **History** button in the top bar, the list of every step in your model, and the
+  five things you can do to a past step: look at the model as it was then, change
+  its numbers and have everything after it rebuild, switch it off without deleting
+  it, reorder it, or park the model at an earlier point and keep building there.
 - [Undoing and redoing a change](undo-redo.md) — the two buttons at the right of
   the top bar, the Ctrl/Cmd+Z shortcuts, what counts as one step, what Undo puts
   back on screen, and why Undo never removes a change you didn't make.

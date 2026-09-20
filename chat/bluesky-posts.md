@@ -746,3 +746,13 @@ Built with Claude Code, reviewed by me.
 **Evidence:** "100 of 362 edges open on three.js's STLExporter" → `docs/decisions/persistence-export.md` sub-decision 4 (commit 86ff04b); "kernel path 0 of 438" → numpy edge count on the STL this session, and `src/core/export.spec.js`; "glTF root node mm/Z-up to m/Y-up" → `src/render/export.js`, this diff
 **Disclosure:** Built with Claude Code, reviewed by me.
 **To Add:** repo URL once public; a slicer screenshot of the exported part once the Export dialog (ui-034) exists
+
+## 2026-09-20T22:05:00Z — Timeline (History) panel: edit a past step, everything after it replays
+
+**Post:** WarpCad has a History panel now. Chamfered an edge 5mm, placed more parts, want it at 3mm? Edit that step; everything after it replays. Suppress, reorder and Fusion-style rollback too. Driving it by hand at 390px found two overlap bugs the green suite could not see. Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL #Vue
+**Evidence:** "edit a step, everything after replays" → `ACCEPTANCE.md` scenario 12 steps 6-7 driven this session (cube volume 62166.718 → 63316.033, sphere byte-identical); "two overlap bugs at 390px" → measured this session, Inspector tab over the sheet's last rows and nav chrome 44px into the Operations toolbar at 46vh; "green suite could not see them" → the 862-test e2e matrix passed before and after both fixes
+**Disclosure:** Built with Claude Code, reviewed by me.
+**To Add:** repo URL once public; a short screen recording of the 5mm → 3mm edit rebuilding downstream
+

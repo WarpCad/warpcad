@@ -940,3 +940,19 @@ Built with Claude Code, reviewed by me.
 **To Add:** repo URL once public; an exported part open in a slicer once ui-034 lands
 
 **LinkedIn article suggestion:** Not yet. Once ui-034 lands and a real part has gone through a slicer, "Why our STL does not come from the mesh you see" has the whole arc: the measured non-watertight surface, the kernel-side fix, and the units and up-axis trap in glTF.
+
+## 2026-09-20T22:05:00Z — Timeline (History) panel: parametric history editing, and what only a hand-drive caught
+
+**Post:** WarpCad's History panel shipped today. It lists every step in a model, and you can go back and change one: chamfer an edge at 5mm, place a few more parts, then decide it should have been 3mm. Edit that step and everything after it replays on top of the change. Suppress a step without deleting it, reorder steps, or roll the model back to an earlier point and keep building from there, Fusion-style.
+
+The data layer for all five of those landed the day before, so this task was mostly wiring. The interesting part was verification. The automated suite went green early and stayed green, and the panel still had real defects: at phone width the Inspector's collapsed tab sat on top of the sheet's last rows and silently ate taps on them, and the sheet at its first height pushed the viewport's navigation controls 44 pixels into the operations toolbar. Both were found by driving the running app at 390x844 by hand and measuring the rectangles, not by a test.
+
+That is the whole reason this project treats a fixed set of end-to-end scenarios as a separate gate from the test suite. A passing spec proves the click sequence its author wrote still works. It does not prove a person can use the thing. The panel now sizes its phone sheet from that arithmetic rather than a guessed number, and clears the toolbar by 57 pixels.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL #Vue #SoftwareTesting
+**Evidence:** "data layer landed the day before" → git log 4ff386d, TODO/data-004 dated 2026-09-19, this commit 2026-09-20; "44px overlap at 46vh" and "57px clearance at 34vh" → direct getBoundingClientRect measurement at 390x844 WebKit, this session; "suite green before and after" → 1247 unit tests and 862 e2e (non-Firefox matrix) passing at both points, this session; "five interactions" → TODO/ui-032's own Goal section
+**Disclosure:** Built with Claude Code, reviewed by me.
+**To Add:** repo URL once public; the 390px before/after screenshots of the nav-chrome overlap
+

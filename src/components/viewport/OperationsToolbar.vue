@@ -255,6 +255,8 @@ import { computed, reactive, ref, watch } from 'vue'
 import { DEFAULT_ROTATE_AXIS } from '../../core/kernel/group.js'
 import { useDocumentStore } from '../../stores/document.js'
 import { useSelectionStore } from '../../stores/selection.js'
+import { RIM_FACE_OPTIONS } from '../../core/timelineLabel.js'
+import { useTimelineStore } from '../../stores/timeline.js'
 
 const documentStore = useDocumentStore()
 const selection = useSelectionStore()
@@ -296,7 +298,14 @@ const OPERATIONS = Object.freeze([
 /** The precondition, stated once. CLAUDE.md gates on count, not presence. */
 const MINIMUM_OPERANDS = 2
 
-const disabled = computed(() => selection.count < MINIMUM_OPERANDS)
+/**
+ * §14, point 3: every Operations toolbar button is disabled while a past step
+ * is being previewed. Folded into the three existing gates rather than bolted
+ * on at each button, so a future button cannot forget it.
+ */
+const timeline = useTimelineStore()
+
+const disabled = computed(() => selection.count < MINIMUM_OPERANDS || timeline.previewing)
 
 /** What a disabled button says when hovered or long-pressed. */
 const DISABLED_HINT = `Select ${MINIMUM_OPERANDS} or more solids`
@@ -411,7 +420,7 @@ const SNAP_ORIENTATIONS = Object.freeze([
 /** Snap/Align's own precondition: exactly 2, not "2 or more" (see module doc). */
 const EXACT_OPERANDS = 2
 
-const snapAlignDisabled = computed(() => selection.count !== EXACT_OPERANDS)
+const snapAlignDisabled = computed(() => selection.count !== EXACT_OPERANDS || timeline.previewing)
 
 /** What a disabled Snap/Align button says when hovered or long-pressed. */
 const SNAP_ALIGN_DISABLED_HINT = `Select exactly ${EXACT_OPERANDS} solids`
@@ -457,14 +466,11 @@ const FILLET_CHAMFER_OPERATIONS = Object.freeze([
  *
  * @type {ReadonlyArray<{ value: string, label: string }>}
  */
-const FACE_OPTIONS = Object.freeze([
-  { value: 'z+', label: 'Top (+Z)' },
-  { value: 'z-', label: 'Bottom (−Z)' },
-  { value: 'y+', label: 'Front (+Y)' },
-  { value: 'y-', label: 'Back (−Y)' },
-  { value: 'x+', label: 'Right (+X)' },
-  { value: 'x-', label: 'Left (−X)' },
-])
+// Canonical since `TODO/ui-032`: the History panel has to label a *past*
+// chamfer with the same words this popover offered when it was created, and two
+// copies of this table would drift into a row reading `Top (+Z)` beside a form
+// reading `z+`.
+const FACE_OPTIONS = RIM_FACE_OPTIONS
 
 /**
  * The exactly-1 precondition, shared by Fillet, Chamfer, Enlarge, Fit and Bisect —
@@ -475,7 +481,7 @@ const FACE_OPTIONS = Object.freeze([
  */
 const EXACT_ONE = 1
 
-const exactOneDisabled = computed(() => selection.count !== EXACT_ONE)
+const exactOneDisabled = computed(() => selection.count !== EXACT_ONE || timeline.previewing)
 
 /** What a disabled exactly-1-gated button says when hovered or long-pressed. */
 const EXACT_ONE_DISABLED_HINT = `Select exactly ${EXACT_ONE} solid`

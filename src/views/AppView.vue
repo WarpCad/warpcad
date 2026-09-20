@@ -12,14 +12,18 @@
  * is not reachable from here is not shipped, whatever its own tests say
  * (PREVIOUS-ATTEMPT.md's core failure).
  */
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 
 import Inspector from '../components/inspector/Inspector.vue'
 import SaveStatus from '../components/display/SaveStatus.vue'
 import HistoryControls from '../components/layout/HistoryControls.vue'
 import LibraryPanel from '../components/layout/LibraryPanel.vue'
+import TimelinePanel from '../components/timeline/TimelinePanel.vue'
+import TimelineStrips from '../components/timeline/TimelineStrips.vue'
+import TimelineToggle from '../components/timeline/TimelineToggle.vue'
 import Viewport from '../components/viewport/Viewport.vue'
 import { usePersistenceStore } from '../stores/persistence.js'
+import { useTimelineStore } from '../stores/timeline.js'
 
 // Restore the last autosaved session and start autosaving (`TODO/io-001`). Started on
 // mount, not at store creation: the app renders first, the restore lands a moment later
@@ -61,6 +65,38 @@ const inspectorSheet = ref('none')
 const libraryOpen = ref(false)
 /** Bumped to tell the Library the Inspector has claimed the sheet slot. */
 const libraryCollapse = ref(0)
+
+/**
+ * The History panel joins the same one-sheet-slot argument (`TODO/ui-032`, §13).
+ *
+ * There is now a third panel that wants the phone's single bottom-sheet slot,
+ * and §13 settles the arbitration in the same asymmetric shape the other two
+ * already use — opening History is something the user *asked* for, so:
+ *
+ * - opening History collapses the Library sheet (below);
+ * - while History is open the Inspector **declines to auto-open on selection**,
+ *   exactly as it already declines over an open Library;
+ * - tapping the Inspector's tab closes History (it emits `claim-sheet`).
+ *
+ * Nothing new was invented for this: the Inspector's existing "something else
+ * owns the slot" input is reused, which is why it is now named for the slot
+ * rather than for the Library specifically.
+ */
+const timeline = useTimelineStore()
+const sheetSlotClaimed = computed(() => libraryOpen.value || timeline.open)
+
+watch(
+  () => timeline.open,
+  (open) => {
+    if (open) libraryCollapse.value += 1
+  }
+)
+
+/** Tapping the Inspector's tab is a deliberate claim on the slot — History yields. */
+function onInspectorClaim() {
+  libraryCollapse.value += 1
+  timeline.setOpen(false)
+}
 </script>
 
 <template>
@@ -78,22 +114,34 @@ const libraryCollapse = ref(0)
            slot in between without moving either. -->
       <div class="app__document-bar" data-testid="document-bar">
         <HistoryControls />
+        <TimelineToggle />
         <SaveStatus />
       </div>
     </header>
+    <!-- Between the header and the main area, deliberately outside the viewport
+         (§14): the viewport's own four corners are already spoken for, and
+         `ui-015`'s retirement note is what a control growing into the
+         orientation gizmo's corner actually costs. -->
+    <TimelineStrips />
     <main
       class="app__body"
       :data-inspector-sheet="inspectorSheet"
+      :data-timeline-sheet="timeline.open ? 'open' : 'none'"
     >
       <LibraryPanel
         :collapse-signal="libraryCollapse"
         @open-change="libraryOpen = $event"
       />
-      <Viewport />
+      <!-- The viewport column, which the History dock shares at ≥641px and
+           which the History sheet overlays at phone width. -->
+      <div class="app__stage">
+        <Viewport />
+        <TimelinePanel />
+      </div>
       <Inspector
-        :library-sheet-open="libraryOpen"
+        :sheet-slot-claimed="sheetSlotClaimed"
         @sheet-change="inspectorSheet = $event"
-        @claim-sheet="libraryCollapse += 1"
+        @claim-sheet="onInspectorClaim()"
       />
     </main>
   </div>
@@ -150,6 +198,27 @@ const libraryCollapse = ref(0)
   white-space: nowrap;
 }
 
+.app__stage {
+  /* The viewport column. A flex column at ≥641px so the History dock takes a
+     fixed slice off the bottom and the viewport keeps the rest; `position:
+     relative` so the phone-width History sheet can overlay the viewport
+     without escaping the column. */
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+/* The viewport takes whatever the History dock leaves. `min-height: 0` is the
+   load-bearing half: without it a flex child refuses to shrink below its
+   content and the dock would push the canvas off the bottom of the column
+   instead of sharing it. */
+.app__stage > :deep(.viewport) {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
 .app__body {
   position: relative;
   display: grid;
@@ -167,6 +236,24 @@ const libraryCollapse = ref(0)
      its collapsed tab is — both kept in step with the panel's own values. */
   --inspector-sheet-height: 38vh;
   --inspector-tab-height: 44px;
+  /* How tall the History sheet is at phone width, and how far up from the
+     bottom edge it has to start so the Library and Inspector tabs are not
+     sitting on top of its last rows. Zero offset at widths where History is a
+     dock rather than a sheet. `TimelinePanel.vue` reads both.
+
+     **34vh, not the 46vh §13 sketched, and the number is arithmetic rather
+     than taste.** At 390×844 the viewport is 791px, the Operations toolbar
+     wraps to 167px and the nav chrome is 200px — 367px of controls that both
+     have to stay on screen. The sheet's total claim on the bottom edge is
+     `bottom + height + 12`, and the chrome is pushed up by exactly that, so
+     keeping the chrome clear of the toolbar needs `bottom + height + 12 ≤
+     844 − 200 − 228`, i.e. a height of at most ~308px against a 96px offset.
+     46vh (388px) overlapped them by a measured 44px — the nav chrome landing
+     *inside* the toolbar, which is `CLAUDE.md`'s "a panel that only works by
+     covering a control" failure outright. Found by hand-driving scenario 12 at
+     phone width, not by a spec. */
+  --timeline-sheet-height: 34vh;
+  --timeline-sheet-bottom: 0px;
   /* Phone first (CLAUDE.md Responsive Layout): one column, the viewport, with
      the Library panel and the Inspector overlaying it as bottom sheets. The
      persistent columns below are the wide-screen case, not the default. */
@@ -192,6 +279,34 @@ const libraryCollapse = ref(0)
   .app__body[data-inspector-sheet='open'] {
     --viewport-bottom-inset: calc(
       var(--library-tab-height) + var(--inspector-tab-height) + var(--inspector-sheet-height) + 12px
+    );
+  }
+
+  /* The History sheet claims the slot outright (§13: the Inspector declines to
+     auto-open while it is up), so it wins the inset rather than stacking on
+     top of the others. Last rule wins at equal specificity — which is why this
+     sits below the Inspector's two, deliberately. The same reasoning
+     `ui-010`'s hand-drive forced for the Library tab: a sheet that covers the
+     nav chrome and the scale readout is a defect a passing spec cannot see. */
+  /* The History sheet clears the Library tab always, and the Inspector's tab
+     whenever that is showing too. Found by hand-driving scenario 12 at 390×844
+     in WebKit: with a body selected, the Inspector's 44px tab sat on top of the
+     sheet's last row and silently swallowed taps on it — the same
+     tab-covers-a-control defect `ui-010`'s own acceptance drive found with the
+     Library tab and the nav chrome, and equally invisible to a passing spec
+     that happened to tap a row higher up the list. */
+  .app__body {
+    --timeline-sheet-bottom: var(--library-tab-height);
+  }
+
+  .app__body[data-inspector-sheet='tab'],
+  .app__body[data-inspector-sheet='open'] {
+    --timeline-sheet-bottom: calc(var(--library-tab-height) + var(--inspector-tab-height));
+  }
+
+  .app__body[data-timeline-sheet='open'] {
+    --viewport-bottom-inset: calc(
+      var(--timeline-sheet-bottom) + var(--timeline-sheet-height) + 12px
     );
   }
 }

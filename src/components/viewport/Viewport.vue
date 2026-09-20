@@ -24,7 +24,7 @@
  * Rendering is on demand: a frame is scheduled when something actually changes,
  * rather than a permanently-spinning rAF loop burning battery on a static scene.
  */
-import { onBeforeUnmount, onMounted, reactive, ref, shallowRef, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, reactive, ref, shallowRef, watch } from 'vue'
 import { Euler, Group as ThreeGroup, Mesh, Raycaster, Vector2, Vector3 } from 'three'
 import Grid from './Grid.vue'
 import OrientationGizmo from './OrientationGizmo.vue'
@@ -93,6 +93,7 @@ import {
 import { useDocumentStore } from '../../stores/document.js'
 import { usePlacementStore } from '../../stores/placement.js'
 import { useSelectionStore } from '../../stores/selection.js'
+import { useTimelineStore } from '../../stores/timeline.js'
 import { useSettingsStore } from '../../stores/settings.js'
 
 /** Degrees of orbit per pixel of drag. */
@@ -134,6 +135,41 @@ const DIMENSION_OFFSET_PX = 28
 const DIMENSION_ARROW_PX = 9
 
 const documentStore = useDocumentStore()
+/**
+ * The History panel's preview state (`TODO/ui-032`, §14).
+ *
+ * Three things follow from a preview being active, and all three live here
+ * because this component owns what the user actually sees:
+ *
+ * 1. **What renders** — {@link renderSource} below, the previewed prefix of the
+ *    log rather than the live document.
+ * 2. **What cannot be touched** — picking, the gizmo, and a drop commit are all
+ *    gated, because the viewport is showing a state the document is not in.
+ * 3. **That it is obviously not live** — the amber inset outline, which is the
+ *    non-textual half of §14's feedback and the thing that makes the mode
+ *    legible at a glance rather than only by reading the strip.
+ */
+const timeline = useTimelineStore()
+
+/**
+ * The document to draw: the preview, or the real one.
+ *
+ * A single accessor rather than a flag plus a lookup, so no code path can test
+ * one and read the other — which would render the live scene under a strip
+ * claiming it is step 2 of 5.
+ */
+function renderSource() {
+  return timeline.previewDocument() ?? documentStore.raw
+}
+
+/**
+ * What the scene list and `data-body-count` report.
+ *
+ * Must follow {@link renderSource}, not the live document: while previewing,
+ * the canvas shows the previewed prefix, and a DOM readout still counting the
+ * latest document would say "2 bodies" over a picture of one.
+ */
+const announcedBodies = computed(() => timeline.previewBodies ?? documentStore.bodies)
 const placement = usePlacementStore()
 const selection = useSelectionStore()
 const settings = useSettingsStore()
@@ -833,7 +869,11 @@ function measure() {
  */
 function syncBodies() {
   if (!bodyMaterial) return
-  const bodies = documentStore.raw.bodies()
+  // Preview bodies carry the *same* lineage-root ids as live ones — they come
+  // from the same records — so entering and leaving a preview adds and removes
+  // exactly the meshes that differ, through the same additive path a normal
+  // edit takes. Nothing about preview needs its own rebuild strategy.
+  const bodies = renderSource().bodies()
   const live = new Set()
   for (const body of bodies) {
     live.add(body.id)
@@ -1334,6 +1374,10 @@ const dropTarget = {
     // `overrides` is the variant chosen on the row before the drag (ui-031) — the
     // same object the preview above was built from, so the board that lands is the
     // board that was shown.
+    // Guarded here as well as on the Library's rows: this is the line that
+    // actually mutates the log, and a drop that slipped through during a
+    // preview would append to the latest document, out of the user's sight.
+    if (timeline.previewing) return null
     const records = recordsForDrop(op, { x: point.x, y: point.y }, documentStore.raw, overrides)
     // `appendAll`, not a loop of `append` (`TODO/data-003`): a composite's two
     // records are one *drag*, and undo's granularity is one user-meaningful
@@ -1732,6 +1776,11 @@ function raycastBodyId(clientXPx, clientYPx) {
  * @param {boolean} [additive] Add to the selection rather than replacing it.
  */
 function pickAt(clientXPx, clientYPx, additive = false) {
+  // §14, point 4: body selection is cleared on entering preview and the
+  // Inspector reads `(nothing selected)` throughout. Letting a click select a
+  // *previewed* body would put the Inspector and a disabled gizmo on an object
+  // that is not in the document — the looks-live-but-isn't case again.
+  if (timeline.previewing) return
   // Sketch geometry is drawn *over* the solids, so it is tested first — the
   // click resolves to what the user can actually see under the pointer. Never
   // additively: a sketch entity is not a boolean operand (see the selection
@@ -1928,6 +1977,9 @@ onMounted(() => {
   unregisterTarget = placement.registerTarget(dropTarget)
   stopWatchers.push(
     watch(() => documentStore.version, syncBodies),
+    // Entering, leaving or moving a preview changes what is on screen without
+    // changing the document, so it needs its own trigger.
+    watch(() => timeline.previewStep, syncBodies),
     // A loaded document (restore / Open), as opposed to an edit: frame it. Declared
     // after the `syncBodies` watcher so the meshes exist before the camera moves.
     watch(() => documentStore.loadRevision, frameLoadedContent),
@@ -2021,13 +2073,14 @@ onBeforeUnmount(() => {
     :data-frames-rendered="framesRendered"
     :data-webgl="webglError ? 'unavailable' : 'ready'"
     :data-theme="theme"
-    :data-body-count="documentStore.count"
+    :data-body-count="announcedBodies.length"
     :data-selected-id="selection.onlyId ?? ''"
     :data-selected-count="selection.count"
     :data-placing="placement.isDragging ? 'true' : 'false'"
     :data-ghost="ghostVisible ? 'visible' : 'hidden'"
     :data-snapped="snapped ? 'true' : 'false'"
     :data-transforming="preview.isActive ? 'true' : 'false'"
+    :data-previewing="timeline.previewing ? 'true' : 'false'"
     :data-sketch-mode="sketchMode ? 'true' : 'false'"
     :data-sketch-count="documentStore.sketchCount"
     :data-selected-sketch-id="selection.sketchId ?? ''"
@@ -2059,7 +2112,7 @@ onBeforeUnmount(() => {
          signal, since rim material is genuinely removed either way. -->
     <ul class="viewport__bodies" data-testid="scene-bodies">
       <li
-        v-for="body in documentStore.bodies"
+        v-for="body in announcedBodies"
         :key="body.id"
         :data-testid="`scene-body-${body.id}`"
         :data-body-id="body.id"
@@ -2080,6 +2133,7 @@ onBeforeUnmount(() => {
          non-interactive so neither can swallow the click that selects. -->
     <DimensionLines :annotations="dimensionAnnotations" />
     <Gizmo
+      v-if="!timeline.previewing"
       :annotation="gizmoAnnotation"
       @handle-down="onGizmoHandleDown"
       @handle-move="onGizmoHandleMove"
@@ -2151,6 +2205,20 @@ onBeforeUnmount(() => {
   height: 100%;
   overflow: hidden;
   background: var(--surface-0);
+}
+
+/* §14, point 2: "the viewport gets an amber inset outline." An `outline` rather
+   than a border so it costs the canvas no layout, and `pointer-events: none` on
+   the pseudo-element so the mode indicator can never eat an orbit drag. Amber
+   is the same colour the preview strip uses — one colour for one idea. */
+.viewport[data-previewing='true']::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  outline: 3px solid var(--warn);
+  outline-offset: -3px;
+  z-index: 5;
 }
 
 .viewport__canvas {

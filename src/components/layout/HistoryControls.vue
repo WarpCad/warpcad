@@ -27,11 +27,23 @@
  * there is nothing to read here yet — that task adds the condition to
  * `disabled`, rather than this one inventing a flag nothing sets.
  */
-import { onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 
 import { useDocumentStore } from '../../stores/document.js'
+import { useTimelineStore } from '../../stores/timeline.js'
 
 const documentStore = useDocumentStore()
+const timeline = useTimelineStore()
+
+/**
+ * §14, point 3: while previewing, "Undo/Redo" are disabled along with
+ * everything else that would mutate the document. The viewport is not the
+ * document during a preview, so a button that acted on the document while
+ * pointing at a past state would be the looks-live-but-isn't defect this whole
+ * milestone is built against.
+ */
+const undoDisabled = computed(() => !documentStore.canUndo || timeline.previewing)
+const redoDisabled = computed(() => !documentStore.canRedo || timeline.previewing)
 
 /**
  * The refusal from the last attempt, if it was refused.
@@ -83,7 +95,7 @@ function onKeydown(event) {
   if (key === 'z') action = event.shiftKey ? 'redo' : 'undo'
   else if (key === 'y' && !event.shiftKey) action = 'redo'
   if (!action) return
-  if (action === 'undo' ? !documentStore.canUndo : !documentStore.canRedo) return
+  if (action === 'undo' ? undoDisabled.value : redoDisabled.value) return
   event.preventDefault()
   run(/** @type {'undo' | 'redo'} */ (action))
 }
@@ -98,9 +110,21 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
       type="button"
       class="history__button"
       data-testid="undo-button"
-      :disabled="!documentStore.canUndo"
-      :title="documentStore.canUndo ? `Undo: ${documentStore.undoLabel}` : 'Nothing to undo'"
-      :aria-label="documentStore.canUndo ? `Undo: ${documentStore.undoLabel}` : 'Nothing to undo'"
+      :disabled="undoDisabled"
+      :title="
+        timeline.previewing
+          ? 'Leave the preview to undo'
+          : documentStore.canUndo
+            ? `Undo: ${documentStore.undoLabel}`
+            : 'Nothing to undo'
+      "
+      :aria-label="
+        timeline.previewing
+          ? 'Leave the preview to undo'
+          : documentStore.canUndo
+            ? `Undo: ${documentStore.undoLabel}`
+            : 'Nothing to undo'
+      "
       :data-undo-label="documentStore.undoLabel"
       @click="run('undo')"
     >
@@ -114,9 +138,21 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
       type="button"
       class="history__button"
       data-testid="redo-button"
-      :disabled="!documentStore.canRedo"
-      :title="documentStore.canRedo ? `Redo: ${documentStore.redoLabel}` : 'Nothing to redo'"
-      :aria-label="documentStore.canRedo ? `Redo: ${documentStore.redoLabel}` : 'Nothing to redo'"
+      :disabled="redoDisabled"
+      :title="
+        timeline.previewing
+          ? 'Leave the preview to redo'
+          : documentStore.canRedo
+            ? `Redo: ${documentStore.redoLabel}`
+            : 'Nothing to redo'
+      "
+      :aria-label="
+        timeline.previewing
+          ? 'Leave the preview to redo'
+          : documentStore.canRedo
+            ? `Redo: ${documentStore.redoLabel}`
+            : 'Nothing to redo'
+      "
       :data-redo-label="documentStore.redoLabel"
       @click="run('redo')"
     >

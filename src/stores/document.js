@@ -51,6 +51,40 @@ import { useSelectionStore } from './selection.js'
  *   doc and `fillet.spec.js`'s "leaves the bounding box alone" case), so this
  *   is what an e2e spec actually checks to confirm rim material was removed.
  */
+/**
+ * One evaluated body as the plain, non-geometry summary the DOM and the specs
+ * read.
+ *
+ * Exported since `TODO/ui-032`, which needs the *previewed* document summarised
+ * the same way the live one is. Sharing the function rather than the shape is
+ * the point: two mappings would let the scene list and the preview disagree
+ * about what a body's centre is, and "the readout contradicts the picture" is
+ * the failure class this project's Verification section exists for.
+ *
+ * @param {import('../core/document.js').Body} body
+ * @returns {BodySummary}
+ */
+export function summarizeBody(body) {
+  // Measured off the evaluated geometry, not read out of the creation record's
+  // `center` param. Once a body can be *moved* (`ui-012`), that param stops
+  // describing where the body is — it is where the body was first dropped — and
+  // this summary is what the scene list announces and what specs assert a
+  // placement against. Same measurement, and the same reasoning, as
+  // `src/core/inspector.js`'s Transform section.
+  const [min, max] = boundsOf(body.geometry)
+  return {
+    id: body.id,
+    name: body.name,
+    op: body.op,
+    center: /** @type {[number, number, number]} */ ([
+      (min[0] + max[0]) / 2,
+      (min[1] + max[1]) / 2,
+      (min[2] + max[2]) / 2,
+    ]),
+    bounds: /** @type {[[number, number, number], [number, number, number]]} */ ([min, max]),
+    volumeMm3: volumeOf(body.geometry),
+  }
+}
 
 export const useDocumentStore = defineStore('document', () => {
   // Plain and non-reactive on purpose — see the module comment.
@@ -93,6 +127,7 @@ export const useDocumentStore = defineStore('document', () => {
    */
   const loadRevision = ref(0)
 
+
   function refresh() {
     canUndo.value = raw.canUndo()
     canRedo.value = raw.canRedo()
@@ -113,27 +148,7 @@ export const useDocumentStore = defineStore('document', () => {
         },
       ]
     })
-    bodies.value = raw.bodies().map((body) => {
-      // Measured off the evaluated geometry, not read out of the creation
-      // record's `center` param. Once a body can be *moved* (`ui-012`), that
-      // param stops describing where the body is — it is where the body was
-      // first dropped — and this summary is what the scene list announces and
-      // what specs assert a placement against. Same measurement, and the same
-      // reasoning, as `src/core/inspector.js`'s Transform section.
-      const [min, max] = boundsOf(body.geometry)
-      return {
-        id: body.id,
-        name: body.name,
-        op: body.op,
-        center: /** @type {[number, number, number]} */ ([
-          (min[0] + max[0]) / 2,
-          (min[1] + max[1]) / 2,
-          (min[2] + max[2]) / 2,
-        ]),
-        bounds: /** @type {[[number, number, number], [number, number, number]]} */ ([min, max]),
-        volumeMm3: volumeOf(body.geometry),
-      }
-    })
+    bodies.value = raw.bodies().map(summarizeBody)
     version.value = raw.version
   }
 

@@ -893,6 +893,25 @@ empty grid cleared the selection and the gizmo, clicking the cube selected Cube 
 selected Cylinder 1 alone (one gizmo each time, never both), and an orbit left both bodies in the scene.
 Console clean.
 
+**Re-checked**: 2026-09-20 22:00 — PASS (`ui-032`). Re-driven rather than glanced at, because that task adds
+a whole new way for `document.bodies()`'s reported set to change shape — a suppress, a reorder, a rollback and
+a mid-history edit all re-fold the log — and this scenario's named regression ("placing a second body hides or
+replaces the first") lives in exactly that fold. Laptop 1440×900 in Chromium, from a cleared IndexedDB, with
+wandering drag paths.
+
+A Cube then a Cylinder dragged in: **both stayed visible** (`data-body-count` 2) and the cube's millimetre
+centre was **byte-identical before and after the second drop** (`-111.08,56.74,20.00` both times) — the
+regression signature, absent rather than merely not obvious. Each drop selected only the new item. Clicking
+empty grid cleared the selection (count 0); clicking the cube selected `cuboid-1` alone; clicking the cylinder
+moved the highlight to `cylinder-2` alone, never both at once. Console clean.
+
+**The new failure mode this task could have introduced, checked directly**: that the *preview* leaks into the
+live scene. It does not — entering a preview reports only the previewed prefix (`["Cube 1"]` of two bodies)
+and leaving it restores both, with no record appended, no undo step created and `rollbackAt()` still `null`.
+An early build of this task got the **rendering** right and left the **announcement** reading the live
+document, so the canvas showed one body while the DOM said two; caught by `e2e/timeline-panel.e2e.js`, fixed
+by routing both through one accessor, and pinned by a store test.
+
 ### 2. Hardware property edit
 
 **Steps**:
@@ -2510,6 +2529,68 @@ What **was** driven, by hand, at laptop 1440x900 (Chromium) and phone 390x844 in
 - Console clean in all three drives; a screenshot confirms the phone layout (3D view above, Inspector sheet below, Undo/Redo in the header, ops toolbar overlaying the viewport) is legible and operable at 390px.
 
 The honest summary: after `data-004` this scenario's *mechanism* is built and unit-proven, and its *reachability* is unchanged. It cannot be driven in full until `ui-032`.
+
+**Last run**: 2026-09-20 22:00 — **PASS, driven in full for the first time** (`ui-032`). Every step
+1-12 was driven by hand at **laptop 1440×900 in Chromium** and **phone 390×844 in WebKit** (the engine an
+iPhone actually runs) — 51 checks per drive, console clean in both. Not the e2e spec re-run: wandering,
+overshooting drag paths, a different action order, and readings taken off what the app actually announces.
+Two steps carry an honest caveat, stated below rather than papered over.
+
+- **Steps 1-3 PASS** — Cube in, Chamfer → Top (+Z) → `5` committed (volume `64000.000 → 62166.718` laptop,
+  `→ 62166.670` phone: material really came off), then a Sphere dropped elsewhere. The chamfered cube's
+  volume was byte-identical before and after that drop.
+- **Step 4 PASS** — History opens from the header and lists exactly `Cube 1 — placed`,
+  `Chamfer Top (+Z) 5 mm on Cube 1`, `Sphere 1 — placed`.
+- **Step 5 PASS, all of it** — the strip reads **`Previewing step 2 of 3 — read-only`** with **Back to
+  latest**; the viewport carries the amber outline (`data-previewing="true"`) and shows **the chamfered cube
+  and no sphere** (body count `1`, scene list `["Cube 1"]`); Undo, Redo, the Operations toolbar and the
+  Library rows are all disabled; nothing is selected, so no gizmo. *Caveat, by design*: at phone width the
+  Library-rows check is unreachable — §13 gives History and the Library one shared sheet slot, so reaching
+  the Library means closing History, which ends the preview. The disabled state is proved at tablet and
+  laptop, where both are persistent columns.
+- **Steps 6-7 PASS** — Edit opened the step's own fields inline, with the **Face menu still reading
+  `Top (+Z)`**; Radius `5 → 3`, Apply. The strip cleared, the **cube's bevel shrank**
+  (`62166.718 → 63316.033`, i.e. back toward but not to the unchamfered `64000`), the **Sphere was
+  byte-identical in both centre and volume** (`-69.47,324.78,20.00 / 32975.534` before and after), the body
+  count was unchanged, and the row relabelled itself to `Chamfer Top (+Z) 3 mm on Cube 1`.
+- **Step 8 PASS** — Undo returned the bevel to exactly `62166.718` with the sphere unmoved; Redo returned it
+  to exactly `63316.033`. At laptop, **Ctrl/Cmd+Z and Ctrl/Cmd+Shift+Z from the viewport did the same**; on
+  the phone the two 44px header buttons were the only path used, no keyboard at all.
+- **Step 9 PASS** — Suppress returned the cube to exactly `64000.000` (a plain 40 mm cube) with the sphere
+  untouched, greyed and struck the row through and chipped it `suppressed`, and **deleted nothing** (still
+  three rows). Unsuppress restored exactly `63316.033`.
+- **Step 10 PASS, including the insert** — rolling back to step 2 hid the Sphere (count `1`), dimmed and
+  chipped its row `inactive` below a drawn marker line, and put up **`Rolled back to step 2 of 3`** /
+  **`New steps insert here · 1 later step inactive`**. Nothing was greyed out and Undo still worked. A Cone
+  dragged in **with the rollback still active** landed as **row 3, above the marker**, the Sphere stayed
+  hidden at row 4 `inactive`, and the strip updated to **`Rolled back to step 3 of 4`**. On **Roll forward**
+  the strip vanished, **the Sphere reappeared byte-identical to step 3** (`-69.47,324.78,20.00 / 32975.534`),
+  all three bodies were on screen, and the order was Cube, Chamfer, Cone, Sphere — nothing deleted, nothing
+  reordered. At phone width this was driven the way §18 says a phone user would: History closed for the drag
+  (the strip **outlived the panel**, confirmed), then reopened.
+- **Step 11 PASS** — Move up swapped the rows and **every solid stayed in exactly the same place at the same
+  size**; Undo swapped them back. *Worth recording*: the DOM scene *list* order does change, because
+  `document.bodies()` walks creation order and a reorder genuinely changes that. The rendered picture is
+  identical; only the list sequence differs. Checked order-insensitively for that reason.
+- **Step 12 — the caveat that matters.** The scenario's **literal** setup cannot arm: after a 5 mm top
+  chamfer, `modify.filletRim` **refuses** a 4 mm fillet on the same face with *"the solid is not prismatic
+  over the rim band — cross-section area changes from 1600.012mm² at the cut plane to 1156.145mm² at the
+  face"*. That is `core-003`'s deliberate guard, pre-existing and correct, not a `ui-032` defect — but it
+  means the scenario's own words describe a setup the app will not build. **The break path was therefore
+  driven in its equivalent shape** and passed in full: a 4 mm top fillet on a *plain* cube, then the cube's
+  own row edited to shrink it to 2 × 2 mm so the fillet above can no longer fit. The result is exactly §15's
+  contract — **`Step 4 (Fillet Top (+Z) 4 mm on Cube 1) can't be built: modify.filletRim: radius 4mm is
+  wider than the cross-section can absorb …`**, the document **completely unchanged** (rows byte-identical,
+  no body vanished or turned wrong-shaped, checked back at the latest state), the failing row chipped
+  `broken`, and the form still open with the typed value. Driving the scenario's literal text instead, the
+  edit simply applied and the scene stayed coherent — the other branch of its own **Expect**.
+
+**Two real defects this drive found that no passing spec could see, both fixed in `ui-032`:** at phone width
+the Inspector's collapsed tab sat **on top of the History sheet's last rows** and silently swallowed taps on
+them; and the sheet at its first-drafted 46vh pushed the nav chrome **44px into the Operations toolbar**
+(measured: chrome top 184 vs toolbar bottom 228). The sheet now insets above both tabs and is sized from that
+arithmetic (34vh), re-measured at 57px clearance. Same class as the defect `ui-010`'s own drive found with
+the Library tab over the nav chrome.
 
 ### 13. Recolor a placed body
 

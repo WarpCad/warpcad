@@ -6,8 +6,94 @@ priority: medium
 model: opus
 milestone: M6
 depends: [data-004]
-status: open
+status: done
 ---
+
+> ## What actually shipped, and the decisions behind it
+>
+> **Not split.** The file's own Scope note invited a split by interaction if five
+> interactions did not fit one task's Effort. Investigation at Step 2 said they do, for a
+> reason the note could not have known when it was written: `data-004` landed *all five*
+> row actions as single methods on the document (`replaceRecord`, `setSuppressed`,
+> `canMove`/`moveStep`, `rollBackTo`/`rollForward`/`insertAt`), each already unit-proven.
+> The expensive half of this task is the shared machinery — the panel, the row, the
+> preview plumbing, the three-panel sheet arbitration, the disable-everything-while-
+> previewing gates, the docs and the e2e harness — and every one of those is needed for
+> "list + preview" alone. Suppress, reorder and rollback each cost one more button on a
+> row action bar that already had to exist. Splitting would have built that bar twice and,
+> more to the point, left `ACCEPTANCE.md` scenario 12 a **partial** pass for a third
+> consecutive task; `data-004`'s own retirement note already records it as "built and
+> unit-proven, reachability unchanged". It is now driven in full, twice.
+>
+> ### Built exactly as sections 13-18 specify, with three things they left to Step 2
+>
+> - **§13's "Unsure" on collapsing consecutive transform rows: measured and declined.**
+>   The section asked this task to check how many records a drag emits before committing
+>   to collapsing them. `useTransformCommands.js` calls `documentStore.append` **once** per
+>   drag — one gesture, one record, one row — so the "busy session produces many `Move
+>   Cube 1` rows" premise does not hold, and there is nothing to collapse. No row grouping
+>   was built.
+> - **§17's drag handle: deliberately not built**, as that section itself decided — up/down
+>   buttons only in v1, because a touch drag inside a scrollable bottom sheet fights the
+>   scroll.
+> - **The inherited `transform.rotate` gap, surfaced rather than papered over.**
+>   `data-004`'s note asked this task by name to disable `Edit` on a rotate row with the
+>   real reason instead of rendering an empty form. Done: the button is disabled and says
+>   *"Rotation is carried as an absolute value on every later step, so it can't be edited
+>   here — turn the body with the gizmo or the Inspector instead."* Composite rows are
+>   likewise disabled with their own reason (`ui-029`/`ui-030`'s freeze), and boolean/group
+>   rows with §15's own "This step has no parameters". Three different refusals, three
+>   different sentences — the core reports all three as one flag, and distinguishing them
+>   is this layer's job.
+>
+> ### `ui-016`'s occluded-sub-part picking gap — weighed, and out of scope
+>
+> `TODO/VERIFY.md` flagged this "for `ui-032`'s future scope to weigh". **Decision: out of
+> scope, and it should not be folded in.** That gap is about the *raycast* — a mounting
+> hole behind a PCB cannot be clicked because the ray stops at the part in front. The
+> History panel is a list, which is a picking route that needs no raycast at all, and this
+> task touches picking only to *disable* it during a preview. Making the timeline a
+> selection route for occluded sub-parts would also cut straight across §13's confirmed
+> answer that a row selection and a body selection are **two different selections that
+> never trigger each other**. It belongs with `ui-040`/`ui-016`'s own sub-part addressing
+> work, not here.
+>
+> ### Four defects found by verification, not by reasoning
+>
+> Worth recording because three of the four were invisible to a green suite:
+>
+> 1. **The preview rendered but did not announce.** Meshes switched to the previewed
+>    prefix while `data-body-count` and the scene list still read the live document — the
+>    canvas showed one body and the DOM said two. Caught by the new e2e spec on its first
+>    run. Fixed by routing both through one accessor and sharing `summarizeBody` with the
+>    live path, so the two cannot disagree.
+> 2. **The Inspector's tab sat on top of the History sheet's last rows** at 390px and
+>    silently swallowed taps on them. Found by hand-driving scenario 12, not by a spec that
+>    happened to tap a row higher up the list — the same class as the defect `ui-010`'s
+>    drive found with the Library tab over the nav chrome.
+> 3. **The sheet at its first-drafted 46vh pushed the nav chrome 44px into the Operations
+>    toolbar** (measured: chrome top 184 vs toolbar bottom 228). The height is now derived
+>    from that arithmetic rather than picked — 34vh, re-measured at 57px clearance.
+> 4. **The refusal message used the core's shallow label.** `ReplayRejection.message` is
+>    built from `BrokenStep.label` (`Fillet Cube 1`), where §15 specifies the rich
+>    `Fillet Top (+Z) 4 mm on Cube 1` — without the face and radius, two fillets on one
+>    body give two identical refusals. The panel now rebuilds the message from its own
+>    label, which `BrokenStep`'s own typedef explicitly invites.
+>
+> ### A correction to `ACCEPTANCE.md` scenario 12's own text
+>
+> Step 12's literal setup — chamfer the top 5 mm, then fillet the *same* face 4 mm —
+> **cannot arm**: `modify.filletRim` refuses a non-prismatic rim band (`core-003`'s
+> deliberate guard). The break path was driven in its equivalent shape instead (fillet a
+> plain cube, then shrink the cube under it) and passes in full. The scenario's Steps are
+> left as written, since this file's list is fixed; the caveat is recorded in its Last-run
+> entry so the next drive does not rediscover it.
+>
+> ### One thing deliberately left alone
+>
+> `data-006` (tail re-parenting) stays out of scope and unstarted, as its own file says —
+> it depends on this task precisely so a human can drive the panel first and judge whether
+> the 36% figure `data-004` measured is a papercut worth a new contract.
 
 ## Goal
 

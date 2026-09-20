@@ -34,6 +34,22 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### ui-032 — Timeline (History) panel (2026-09-20 22:05 UTC)
+
+`ACCEPTANCE.md` scenario 12 was driven in full at laptop/Chromium and phone/WebKit, so nothing
+that scenario already covers is repeated here. What is left is genuinely one-off: two *feel*
+judgments that only a hand on real hardware can make, and one decision this task was asked to
+record. The measured facts behind them — the phone sheet is 34vh with the nav chrome clearing the
+Operations toolbar by 57px, and the tablet dock is 220px inside a viewport column roughly 390px
+wide at the 820px reference — are in the task's retirement note; what nobody has judged is whether
+those numbers *feel* right to use.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | **On a real iPhone**, open History with three or four bodies placed and try to actually work: read the rows, tap one, edit a value, roll back. The sheet is 34vh (~287px) and the 3D view above it keeps only ~296px, most of which the Operations toolbar and nav chrome overlay. The arithmetic says nothing *collides*; the open question is whether the remaining sliver of viewport is enough to see what a row action just did to the model, or whether the honest answer at phone width is that History wants a full-screen presentation rather than a sheet. If it is the latter, that is a real finding and wants its own `TODO/<id>.md` | Open | |
+| 2 | **On a real iPad**, same exercise against the 220px bottom dock. At the 820px reference the viewport column is only ~390px wide, so the dock takes over a third of the 3D view's height while it is open. Judge whether the "select a row, watch the viewport" loop the panel is built around actually works at that size, or whether the dock wants to be collapsible to a strip | Open | |
+| 3 | The inline edit form uses 16px inputs specifically so iOS Safari does not zoom the page on focus (`§15`'s own phone rule). Verified by construction, never on a real iPhone. Tap into the Radius field on device and confirm the page does **not** zoom and the form does not scroll out from under the thumb | Open | |
+
 ### io-003 — Export serialization: STL, OBJ, glTF (2026-09-19 15:21 UTC)
 
 The STL and OBJ bytes were re-read by numpy and three.js's own loaders (closed surface, kernel volume to
@@ -185,7 +201,7 @@ here so that scoping does not have to rediscover it.
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | Confirm the occlusion gap and decide where it belongs. Place a Raspberry Pi 5, try by hand to drill into `hole1`-`hole4` — including by orbiting underneath the board, which the automated sweep did not try, since the hole's underside is coplanar with the PCB's and may or may not win the depth tie. If it is genuinely unreachable from every angle, fold it into `ui-032`'s scope (an occluded *part*, alongside its enclosed *body*) rather than filing a fourth picking task. `docs/snap-align.md` already tells users to orbit until the part faces them, which is the honest workaround only if it actually works. | Open | |
+| 1 | Confirm the occlusion gap and decide where it belongs. Place a Raspberry Pi 5, try by hand to drill into `hole1`-`hole4` — including by orbiting underneath the board, which the automated sweep did not try, since the hole's underside is coplanar with the PCB's and may or may not win the depth tie. If it is genuinely unreachable from every angle, fold it into `ui-032`'s scope (an occluded *part*, alongside its enclosed *body*) rather than filing a fourth picking task. `docs/snap-align.md` already tells users to orbit until the part faces them, which is the honest workaround only if it actually works. | Open | **`ui-032` has now weighed the "fold it into `ui-032`" half and declined it (2026-09-20).** That gap is about the *raycast*; the History panel is a list, which is a picking route needing no raycast at all, and `ui-032` touches picking only to disable it during a preview. Folding it in would also cut across §13's confirmed rule that a row selection and a body selection are two different selections that never trigger each other. The occlusion question itself is still open and still worth the hand-check above — it belongs with `ui-040`/`ui-016`'s sub-part addressing work, not with the timeline. |
 | 2 | Feel check on the new operand line ("Aligning **Raspberry Pi 1 › ethernet** to **Cube 1**"), on real phone and tablet hardware rather than an emulated viewport. It measured fully inside the popover at 390px with no page scroll, but two things are judgment: whether it reads as *confirmation to check* or as decoration one skims past on the way to the commit button, and whether a genuinely long composite part name (the catalogue ships names like `powerswitch-button` and `clearance-statusled`) wrapping to three lines pushes the Cancel/commit pair uncomfortably far down a 390px-tall popover. | Open | |
 
 ### core-024 — a placed composite is now meshed part-by-part; look at the two interpenetrating recipes on real hardware (2026-09-18 00:52)

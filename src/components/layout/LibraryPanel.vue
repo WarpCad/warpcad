@@ -67,6 +67,7 @@ import { onBeforeUnmount, reactive, ref, watch } from 'vue'
 
 import { LIBRARY_SECTIONS } from '../../core/library.js'
 import { usePlacementStore } from '../../stores/placement.js'
+import { useTimelineStore } from '../../stores/timeline.js'
 
 const props = defineProps({
   /**
@@ -80,6 +81,14 @@ const props = defineProps({
 const emit = defineEmits(['open-change'])
 
 const placement = usePlacementStore()
+/**
+ * §14, point 3: while a past step is being previewed, "Library rows
+ * (drag-to-place)" are disabled along with everything else that would mutate
+ * the document. Dropping a shape onto a viewport showing step 2 of 5 would
+ * append it to the *latest* document, somewhere the user cannot see — the
+ * silently-wrong outcome `SECOND-ATTEMPT.md` is a catalogue of.
+ */
+const timeline = useTimelineStore()
 
 const sections = LIBRARY_SECTIONS
 const isOpen = ref(false)
@@ -188,6 +197,10 @@ function onRowPointerDown(event, row) {
   // Left button / primary contact only: a right-click or a middle-click must not
   // start a placement the user can't see themselves having started.
   if (event.button !== 0) return
+  // Belt and braces with the `disabled` attribute below: a pointerdown can
+  // still arrive from a synthetic event or a stale gesture, and a placement
+  // started during a preview would commit against the wrong document.
+  if (timeline.previewing) return
   event.preventDefault()
   stopTracking()
   unsubscribe = placement.subscribe(positionDragIcon)
@@ -246,6 +259,8 @@ onBeforeUnmount(stopTracking)
               :data-testid="`library-row-${row.op}`"
               :data-op="row.op"
               :data-label="row.label"
+              :disabled="timeline.previewing"
+              :title="timeline.previewing ? 'Leave the preview to place a shape' : undefined"
               @pointerdown="onRowPointerDown($event, row)"
             >
               <span class="library__swatch" :data-shape="row.op" aria-hidden="true" />
