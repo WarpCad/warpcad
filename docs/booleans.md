@@ -76,6 +76,84 @@ colour chips matching the two highlight colours.
 Try step 4 again with **Union** instead and you get one merged shape spanning both
 cubes; with **Intersect** you get only the small block where the two cubes overlapped.
 
+## Cutting with just one part of a multi-part shape
+
+Most Library parts are a single solid, but the hardware and Raspberry Pi parts are
+**made of named parts** — a Raspberry Pi has a board, an Ethernet jack, two USB stacks
+and more; a bolt has a head, a thread and a tap-clearance envelope. See
+[Selecting a part inside a group](groups.md) for how to select one.
+
+A boolean can use **one named part instead of the whole shape**. That is how you cut a
+port opening in a case wall: you want a hole the size of the Ethernet jack, not a hole
+the size of the whole board.
+
+**How to select a part:** click the shape once — the whole thing is selected. Click a
+second time, landing on the part you want. The Inspector header now reads a breadcrumb
+like `Raspberry Pi 1 ▸ ethernet`, and the gizmo shrinks to that part alone.
+
+**The Operations toolbar then says what it is about to use.** Under the `2 selected`
+badge it names both shapes in the order you picked them, and a part shows after a `›`:
+
+> **Cube 1** then **Raspberry Pi 1 › ethernet**
+>
+> *› names one part of that body — the three booleans use just that part. Group still
+> uses the whole body.*
+
+This line matters more than it looks. A part-subtract and a whole-shape subtract look
+*identical* on screen until the geometry changes, so this is the only thing that tells
+you which one you are about to get. Read it before you click.
+
+**On a phone** the toolbar has no room for that line — it would land on top of the
+navigation controls — so the same text is on the buttons instead: press and hold Union,
+Subtract or Intersect and the tooltip reads
+*"Subtract — Remove every later-selected solid from the first (Cube 1 then Raspberry Pi
+1 › ethernet — booleans use that part; Group uses the whole body)"*. Same information,
+same moment, no covered controls.
+
+### A worked example: an Ethernet port opening
+
+1. Open the Library panel, drag a **Cube** into the 3D view, and drag a **Raspberry
+   Pi** in so the board's Ethernet end overlaps the cube. (Units are millimetres
+   throughout.)
+2. Click the Pi once — the whole board is selected. Click the **Ethernet jack** (the
+   metal box at the board's edge) a second time. The Inspector breadcrumb reads
+   `Raspberry Pi 1 ▸ ethernet`.
+3. You now need the **cube** to be the base, because Subtract cuts the first thing you
+   picked. The part you drilled into is currently first, so: hold **Shift** and click
+   the Ethernet jack once to take the Pi out of the selection, Shift-click the **cube**,
+   then Shift-click the Ethernet jack again to put the Pi back — at the end this time.
+   Its part stays selected through all of that.
+4. The toolbar now reads **Cube 1** then **Raspberry Pi 1 › ethernet**.
+5. Click **Subtract**.
+
+**What you get:** a rectangular opening in the cube the size of the Ethernet jack —
+**21.38 × 16.12 × 13.83 mm**, which you can read off the Inspector's Size fields while
+the part is selected — and nothing else removed. Had you skipped step 2 and subtracted
+the whole Pi, the cube would instead have had the board's entire **85 × 56 mm**
+footprint cut out of it, which is not a port opening, it is a missing wall. Driven on a
+40 mm cube with the board pushed 7 mm into one face, the difference is easy to see in
+the numbers: the Ethernet jack removes **1 208 mm³**, the whole board removes
+**5 661 mm³**.
+
+### Three things to know
+
+- **One part at a time.** The selection carries a single part, so you cut with the
+  Ethernet jack *or* USB port 1, not both at once. Run a second Subtract for the next
+  one; that is the normal way to build a multi-port case wall.
+- **Group ignores the part.** The `⊞ Group` button always uses the whole shape, even
+  when a part is selected — the toolbar's note says so while a part is selected, so you
+  do not have to remember it. Only Union, Subtract and Intersect read the part.
+- **The whole shape is still consumed.** Cutting with the Ethernet jack still uses up
+  the Pi as a separate object, exactly like any other Subtract. If you want to keep the
+  board, place a second one, or undo and use [Snap](snap-align.md) to position a copy.
+
+A word about bolts specifically, because it is a natural thing to try: a bolt's `tap`
+part is its clearance envelope and it *contains* the head and thread, so cutting with
+`tap` gives you exactly the same hole as cutting with the whole bolt. That is not a bug
+— for a bolt, selecting the part buys you clarity about what you meant, not different
+geometry. The parts that genuinely change the result are the ones that are a *portion*
+of the shape, like a single jack on a board.
+
 ## What happens to the original shapes
 
 The two shapes you combined are **gone as separate objects** — you cannot click either

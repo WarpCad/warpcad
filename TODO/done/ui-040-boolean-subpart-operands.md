@@ -6,8 +6,78 @@ priority: medium
 model: opus
 milestone: M5
 depends: [core-024, ui-016, ui-032]
-status: open
+status: done
 ---
+
+> **Retirement note — what actually shipped, and what the file got wrong.**
+>
+> **The design question this file called "the whole of it" answered itself the moment
+> the code was read: neither option.** The file proposed relaxing `drillInto`'s
+> exactly-one-body rule *or* adding a second depth slot, on the premise that "shell
+> selected, plus the bolt drilled to `tap`" is not an expressible selection. **That
+> premise was already stale when it was written.** `ui-035` shipped on exactly the
+> opposite fact: a depth needs one selected body to be *set*, but `toggle` is
+> deliberately the one selection path that does **not** prune it, so Shift-clicking the
+> drilled body out of the selection and back in lands it second with its depth intact.
+> So `src/stores/selection.js` is **untouched by this task**. Both alternatives cost
+> something real for nothing: relaxing the rule would let a depth attach to a
+> multi-selection the Inspector cannot display (its breadcrumb only ever describes a
+> single-body selection), so the user would carry an *invisible* pick depth into every
+> count-gated tool — the ambiguity this file asked to avoid, reached from the other
+> side; a second slot would double the state to address an operand nothing can use.
+> Either way `selection.count` is untouched by depth, which is what keeps every existing
+> gate meaning exactly what it did.
+>
+> **`ui-035` and the booleans now share one code path, literally.** That file's
+> `snapAlignOperands` computed became `selectedOperands`, and both `run()` and
+> `commitSnapAlign()` read it. The two button groups still disagree about operand count,
+> order and lineage bookkeeping, but "what does this selection resolve to, at what
+> depth" is one question with one answer, and answering it twice is how they would
+> drift. This file's suggestion to do the two tasks as one was right in substance; it
+> arrived a task late, so it was honoured by reuse instead of by merge.
+>
+> **Three things the file did not scope, each added because this change made it real.**
+> (1) `consumes` stays **bare ids** — it names records, not operands, exactly as
+> `supersedes` does, so a sub-part subtract still retires the whole bolt. (2) **Group is
+> the exception and says so on screen**: `group.assemble`'s registry entry is plain
+> `native`, not `subPartOperands`, so `run()` sends it bare ids even when a depth is set
+> and the operand line carries a note saying the depth applies to the three booleans
+> only — a silently-ignored address is the "wrong geometry, no error" class this
+> project has shipped twice. (3) A **kernel-error display** for these four buttons: a
+> boolean commit could not be rejected before this task and now can, so `runError` and
+> an `operation-error` element follow Fillet/Chamfer's established path rather than
+> letting a throw vanish into the console mid-click.
+>
+> **The feedback line does not fit at phone width, and that is measured.** At 390x844
+> the column between this toolbar's top and the navigation chrome's first button is
+> 151px, and the badge plus the wrapped button row already spend ~147px of it. The first
+> pass put the operand line above the buttons and pushed **Align underneath the chrome's
+> Pan button**, where it could no longer be clicked at all — caught by `ui-035`'s own
+> phone spec, a long way from anything this task wrote. So the line sits **below** the
+> buttons, is hidden under 640px, and the same text rides on every button's
+> `title`/long-press at every width — this toolbar's own established touch affordance,
+> the one `ACCEPTANCE.md` scenario 4 already checks at phone. The e2e asserts button
+> actionability with a trial click rather than rectangle arithmetic, because "receives
+> pointer events" is the property that actually broke.
+>
+> **The third obstacle is still open, and `ui-032` did not close it** — checked, not
+> assumed. The History panel's rows are a *row* selection, which `data-002` §13's
+> confirmed rule says never triggers a body selection, and the `scene-bodies` list is an
+> announcement, not a control. A 121-point click probe over a fully enclosed bolt
+> selected nothing but the shell. Scenario 5 is therefore driven to a **full pass with a
+> partial overlap** (the bolt pushed 7 mm into the cube's face by Align + Snap, its head
+> still pickable) and **not** claimed for a fully enclosed operand; the remainder is
+> filed as `TODO/ui-041`, deliberately not folded in here. `ui-016`'s occluded-sub-part
+> raycast gap is *the same underlying limitation one layer down* and is named in that
+> file rather than fixed here, for the same reason.
+>
+> **The docs example is written against a case where the address genuinely differs**,
+> per this file's own warning. Measured from the UI on a 40 mm cube: a `hardware.bolt`
+> drilled to `tap` removes **986.379 mm³** and the whole bolt removes **986.379 mm³ —
+> identical**, while a Raspberry Pi drilled to `ethernet` removes **1 207.743 mm³**
+> against the whole board's **5 661.317 mm³**. `docs/booleans.md` uses the Pi, with the
+> jack's own **21.38 x 16.12 x 13.83 mm** read off the Inspector, and states the bolt
+> case plainly as the thing not to expect a difference from.
 
 ## Goal
 

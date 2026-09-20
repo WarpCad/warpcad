@@ -141,7 +141,7 @@ async function clickViewportAt(page, fx, fy, modifiers = {}) {
 
 /**
  * @param {import('@playwright/test').Page} page
- * @returns {Promise<{ id: string, op: string, name: string, center: string, role: string }[]>}
+ * @returns {Promise<{ id: string, op: string, name: string, center: string, bounds: string, volume: number, role: string }[]>}
  */
 function sceneBodies(page) {
   return page.$$eval('[data-testid="scene-bodies"] li', (nodes) =>
@@ -150,6 +150,11 @@ function sceneBodies(page) {
       op: node.getAttribute('data-body-op') ?? '',
       name: node.getAttribute('data-body-name') ?? '',
       center: node.getAttribute('data-body-center') ?? '',
+      // `TODO/ui-040` reads these two: a sub-part-addressed boolean's whole
+      // claim is that the *result's extent* follows the named part rather than
+      // the whole composite, which the centre alone cannot settle.
+      bounds: node.getAttribute('data-body-bounds') ?? '',
+      volume: Number(node.getAttribute('data-body-volume') ?? '0'),
       role: node.getAttribute('data-selection-role') ?? '',
     })),
   )
@@ -431,4 +436,271 @@ test('the toolbar stays clear of the page edges and the panels at every width', 
   }))
   expect(overflow.x).toBeLessThanOrEqual(1)
   expect(overflow.y).toBeLessThanOrEqual(1)
+})
+
+// --- Sub-part-addressed operands (TODO/ui-040) -------------------------------
+
+/**
+ * `"minX,minY,minZ,maxX,maxY,maxZ"` as rendered by `data-body-bounds`, parsed.
+ *
+ * @param {string} bounds
+ * @returns {number[]}
+ */
+function parseBounds(bounds) {
+  return bounds.split(',').map(Number)
+}
+
+/**
+ * The largest per-component gap between two bounding boxes — how far apart two
+ * candidate answers are, measured without assuming *which* axis separates them.
+ * Deliberately not an X-only comparison: the drop fractions these fixtures use
+ * are screen-space, and the camera's projection differs per reference viewport,
+ * so which world axis two on-screen-separated bodies end up separated along is
+ * not the same at 390px as at 1440px (found by running this file at all three,
+ * not reasoned about up front).
+ *
+ * @param {number[]} a
+ * @param {number[]} b
+ * @returns {number}
+ */
+function maxBoundsGap(a, b) {
+  return Math.max(...a.map((value, index) => Math.abs(value - b[index])))
+}
+
+/**
+ * The axis-aligned bounding box of two bodies taken together — what a Union of
+ * them has to span. Plain min/max arithmetic is exact here because every body
+ * in this fixture is an axis-aligned cuboid, so this is the real expected
+ * answer rather than an approximation of one.
+ *
+ * @param {number[]} a
+ * @param {number[]} b
+ * @returns {number[]}
+ */
+function mergeBounds(a, b) {
+  return [
+    Math.min(a[0], b[0]),
+    Math.min(a[1], b[1]),
+    Math.min(a[2], b[2]),
+    Math.max(a[3], b[3]),
+    Math.max(a[4], b[4]),
+    Math.max(a[5], b[5]),
+  ]
+}
+
+/**
+ * Two cubes combined into one Group, plus a third cube placed afterwards — the
+ * same fixture shape `snap-align-operation.e2e.js` uses for `TODO/ui-035`,
+ * reused rather than re-invented, because it is the one already proven to place
+ * and click reliably at all three reference viewports. The two members sit far
+ * apart on screen, which is what makes "did the boolean use the member or the
+ * whole group?" a question this file's bounds arithmetic can answer.
+ *
+ * Returns each member's own bounds as measured **before** the Group —
+ * `group.assemble` moves nothing, so they are still each part's own bounds
+ * afterwards.
+ *
+ * @param {import('@playwright/test').Page} page
+ */
+async function placeGroupAndThirdCube(page) {
+  const [memberA, memberB] = await placeTwoCubes(page)
+  await selectBothCubes(page, 'a-first')
+  await page.getByTestId('operation-group').click()
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-body-count', '1')
+  const groupId = (await page.getByTestId('viewport').getAttribute('data-selected-id')) ?? ''
+
+  // Placed after the Group so it cannot be swept into it. Same third-body
+  // position ui-035's own fixture already proves is separately clickable at
+  // every reference viewport, and comfortably above the ~0.45 fy band where a
+  // 390px-wide drop starts missing the grid entirely.
+  await openLibrary(page)
+  await dragRowIntoViewport(page, { op: 'primitive.cuboid', fx: 0.5, fy: 0.36 })
+  await closeLibrary(page)
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-body-count', '2')
+
+  const bodies = await sceneBodies(page)
+  const group = bodies.find((candidate) => candidate.id === groupId)
+  const third = bodies.find((candidate) => candidate.id !== groupId)
+  return { memberA, memberB, group, third }
+}
+
+/** Where the third cube renders, for clicking it. */
+const THIRD_CUBE_CLICK = { fx: 0.5, fy: 0.32 }
+
+/**
+ * Deselect, click the group once (whole), click the same member again (drill
+ * in) — `ui-016`'s pick depth, driven the way a user reaches it.
+ *
+ * @param {import('@playwright/test').Page} page
+ * @param {{ id: string }} group
+ * @param {string} partName
+ */
+async function drillIntoMemberA(page, group, partName) {
+  await clickViewportAt(page, 0.04, 0.06)
+  await clickViewportAt(page, CUBE_A.click.fx, CUBE_A.click.fy)
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-selected-id', group.id)
+  await clickViewportAt(page, CUBE_A.click.fx, CUBE_A.click.fy)
+  await expect(page.getByTestId('inspector-breadcrumb-part')).toHaveText(partName)
+}
+
+test('Subtract addresses a drilled-in sub-part: the result is that member, not the whole group (TODO/ui-040)', async ({
+  page,
+}) => {
+  const { memberA, memberB, group, third } = await placeGroupAndThirdCube(page)
+
+  const memberBounds = parseBounds(memberA.bounds)
+  const groupBounds = parseBounds(group.bounds)
+  // The fixture guard: the two candidate answers have to be far enough apart
+  // that the assertion below is really telling them apart rather than passing
+  // on a coincidence. These are whole cube-widths apart at every viewport.
+  expect(
+    maxBoundsGap(groupBounds, memberBounds),
+    'the member’s own extent and the group’s differ enough to tell the two answers apart',
+  ).toBeGreaterThan(10)
+
+  await drillIntoMemberA(page, group, memberA.name)
+  await clickViewportAt(page, THIRD_CUBE_CLICK.fx, THIRD_CUBE_CLICK.fy, { shift: true })
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-selected-count', '2')
+
+  // The feedback half of this task: which depth is armed has to be readable
+  // *before* the click, because a sub-part boolean and a whole-body one can
+  // look identical until the geometry changes. Two channels, because the
+  // visible line does not fit at phone width — see the component's own phone
+  // media-query comment for that measurement. The long-press title carries it
+  // at every width; the line itself is shown above 640px.
+  await expect(page.getByTestId('operation-subtract')).toHaveAttribute(
+    'title',
+    new RegExp(`›\\s*${memberA.name}.*Group uses the whole body`),
+  )
+
+  const operands = page.getByTestId('operation-operands')
+  const width = page.viewportSize().width
+  if (width <= 640) {
+    await expect(operands).toBeHidden()
+  } else {
+    await expect(operands).toBeVisible()
+    await expect(operands).toHaveAttribute('data-subpart', 'true')
+    await expect(page.getByTestId('operation-operand-base')).toHaveText(
+      new RegExp(`›\\s*${memberA.name}$`),
+    )
+    await expect(page.getByTestId('operation-operand-rest')).toHaveText(third.name)
+    // The note that says the depth applies to the booleans and not to Group.
+    await expect(page.getByTestId('operation-operands-note')).toBeVisible()
+    // It fits the toolbar rather than spilling out of it.
+    const operandsBox = await operands.boundingBox()
+    const toolbarBox = await page.getByTestId('operations-toolbar').boundingBox()
+    expect(operandsBox.x + operandsBox.width).toBeLessThanOrEqual(
+      toolbarBox.x + toolbarBox.width + 1,
+    )
+  }
+
+  // And nothing this task added pushes a button of this toolbar under the
+  // navigation chrome. A trial click is the assertion rather than rectangle
+  // arithmetic, because "receives pointer events" is the property that actually
+  // broke: the first pass of this task put the operand line *above* the
+  // buttons, and its wrapped lines at 390px moved Align underneath the chrome's
+  // Pan button — still visible, still the right size, and no longer clickable.
+  // The two containers' bounding boxes have always touched by ~1px at phone
+  // width, so rectangle arithmetic here would fail on a condition that predates
+  // this task and say nothing about the one that does not.
+  for (const name of [...OPERATIONS, 'group', 'snap', 'align']) {
+    await page.getByTestId(`operation-${name}`).click({ trial: true, timeout: 3000 })
+  }
+
+  await page.getByTestId('operation-subtract').click()
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-body-count', '1')
+  await expect(page.getByTestId('operation-error')).toHaveCount(0)
+
+  const [result] = await sceneBodies(page)
+  const actual = parseBounds(result.bounds)
+  // The base was `{ id, pieces: "<member A>" }`, and the third cube does not
+  // overlap it, so the result is that member alone — never the whole group,
+  // whose far member is still 10+ mm beyond this extent.
+  for (let index = 0; index < 6; index += 1) {
+    expect(actual[index], `bounds[${index}] follows the addressed member`).toBeCloseTo(
+      memberBounds[index],
+      1,
+    )
+  }
+  // Stated as its own assertion rather than left implicit in the loop: the
+  // whole-group answer is excluded, which is the claim that fails if `pieces`
+  // were silently dropped on the way to the kernel.
+  expect(maxBoundsGap(actual, groupBounds)).toBeGreaterThan(10)
+  expect(memberB.name).not.toBe(memberA.name)
+})
+
+test('a drilled-in body picked *second* addresses its part too — the base-first order Subtract needs (TODO/ui-040)', async ({
+  page,
+}) => {
+  const { memberA, group, third } = await placeGroupAndThirdCube(page)
+  const memberBounds = parseBounds(memberA.bounds)
+  const groupBounds = parseBounds(group.bounds)
+  const thirdBounds = parseBounds(third.bounds)
+
+  await drillIntoMemberA(page, group, memberA.name)
+  // The documented route to "base first, drilled-in body second": Shift-click
+  // the drilled body out of the selection and back in, which lands it at the
+  // end with its depth intact (`toggle` is the one selection path that
+  // deliberately does not prune a pick depth).
+  await clickViewportAt(page, CUBE_A.click.fx, CUBE_A.click.fy, { shift: true })
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-selected-count', '0')
+  await clickViewportAt(page, THIRD_CUBE_CLICK.fx, THIRD_CUBE_CLICK.fy, { shift: true })
+  await clickViewportAt(page, CUBE_A.click.fx, CUBE_A.click.fy, { shift: true })
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-selected-count', '2')
+
+  // The order is now third-cube-first, so *it* is the base and the drilled body
+  // is the operand — the arrangement scenario 5 asks for. Read from the title,
+  // which carries the same summary at every width, phone included.
+  await expect(page.getByTestId('operation-union')).toHaveAttribute(
+    'title',
+    new RegExp(`${third.name} then .*›\\s*${memberA.name}`),
+  )
+
+  // Union rather than Subtract here, deliberately: these two solids do not
+  // overlap, so a Subtract could not distinguish the two candidate answers at
+  // all (the base comes back unchanged either way) while a Union's extent
+  // follows exactly whichever operand was really used.
+  await page.getByTestId('operation-union').click()
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-body-count', '1')
+
+  const [result] = await sceneBodies(page)
+  const actual = parseBounds(result.bounds)
+  const expected = mergeBounds(thirdBounds, memberBounds)
+  const wholeGroupAnswer = mergeBounds(thirdBounds, groupBounds)
+  expect(maxBoundsGap(wholeGroupAnswer, expected)).toBeGreaterThan(10)
+  for (let index = 0; index < 6; index += 1) {
+    expect(actual[index], `bounds[${index}]`).toBeCloseTo(expected[index], 1)
+  }
+})
+
+test('with nothing drilled in, a boolean still spans the whole group — ui-014’s own result, unchanged (TODO/ui-040 regression guard)', async ({
+  page,
+}) => {
+  const { group, third } = await placeGroupAndThirdCube(page)
+  const groupBounds = parseBounds(group.bounds)
+  const thirdBounds = parseBounds(third.bounds)
+
+  await clickViewportAt(page, 0.04, 0.06)
+  await clickViewportAt(page, THIRD_CUBE_CLICK.fx, THIRD_CUBE_CLICK.fy)
+  await clickViewportAt(page, CUBE_A.click.fx, CUBE_A.click.fy, { shift: true })
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-selected-count', '2')
+
+  // No depth anywhere in the selection, so both channels name two plain bodies
+  // and neither carries a part marker.
+  const title = (await page.getByTestId('operation-union').getAttribute('title')) ?? ''
+  expect(title).toContain(`then ${group.name}`)
+  expect(title).not.toContain('›')
+  if (page.viewportSize().width > 640) {
+    await expect(page.getByTestId('operation-operands')).toHaveAttribute('data-subpart', 'false')
+    await expect(page.getByTestId('operation-operand-rest')).toHaveText(group.name)
+    await expect(page.getByTestId('operation-operands-note')).toHaveCount(0)
+  }
+
+  await page.getByTestId('operation-union').click()
+  const [result] = await sceneBodies(page)
+  const actual = parseBounds(result.bounds)
+  const expected = mergeBounds(thirdBounds, groupBounds)
+  for (let index = 0; index < 6; index += 1) {
+    expect(actual[index], `bounds[${index}]`).toBeCloseTo(expected[index], 1)
+  }
 })

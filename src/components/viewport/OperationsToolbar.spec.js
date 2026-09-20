@@ -602,3 +602,203 @@ describe('OperationsToolbar — sub-part-addressed Snap/Align operands (TODO/ui-
     expect(documentStore.bodies).toHaveLength(2)
   })
 })
+
+describe('OperationsToolbar — sub-part-addressed boolean operands (TODO/ui-040)', () => {
+  /** @type {ReturnType<typeof useDocumentStore>} */
+  let documentStore
+  /** @type {ReturnType<typeof useSelectionStore>} */
+  let selection
+
+  beforeEach(() => {
+    setActivePinia(createPinia())
+    documentStore = useDocumentStore()
+    selection = useSelectionStore()
+  })
+
+  /**
+   * @param {string} id
+   * @param {string} name
+   * @param {[number, number, number]} center
+   */
+  function placeCuboid(id, name, center) {
+    documentStore.append(
+      { id, op: 'primitive.cuboid', name, params: { size: [10, 10, 10], center } },
+      { origin: 'local' },
+    )
+  }
+
+  /**
+   * The same fixture `TODO/ui-035`'s own block above uses, deliberately reused
+   * rather than re-invented: two 10 mm cuboids 100 mm apart on X combined into
+   * one Group whose parts are named "Cube 1"/"Cube 2", plus a separate cuboid
+   * to be the boolean's base. The 100 mm gap is what lets arithmetic answer
+   * "did this address the member or the whole group?" — the group's own bounds
+   * run x=-5..105 while "Cube 1"'s run x=-5..5.
+   *
+   * @returns {void}
+   */
+  function placeGroupAndCuboid() {
+    placeCuboid('cube-1', 'Cube 1', [0, 0, 5])
+    placeCuboid('cube-2', 'Cube 2', [100, 0, 5])
+    documentStore.append(
+      {
+        id: 'group-1',
+        op: 'group.assemble',
+        name: 'Group 1',
+        target: 'cube-1',
+        operands: ['cube-2'],
+        consumes: ['cube-1', 'cube-2'],
+        params: { names: ['Cube 1', 'Cube 2'] },
+      },
+      { origin: 'local' },
+    )
+    placeCuboid('base-1', 'Base 1', [0, 200, 5])
+  }
+
+  /**
+   * The reachable hand gesture, verbatim, for "base first, drilled-in body
+   * second" — `TODO/ui-035`'s own retirement note is where this is written
+   * down: drilling needs exactly one body selected, and `toggle` is the one
+   * selection path that deliberately does **not** prune the depth, so clicking
+   * the drilled body out of the selection and back in lands it at the end with
+   * its depth intact. That order matters for Subtract, whose base is whatever
+   * was picked first.
+   *
+   * @param {string} drilledId
+   * @param {string} partName
+   * @param {string} baseId
+   * @returns {void}
+   */
+  function drillThenSelectBaseFirst(drilledId, partName, baseId) {
+    selection.select(drilledId)
+    selection.drillInto(partName)
+    selection.toggle(drilledId) // out of the selection, depth kept
+    selection.toggle(baseId) // the base, picked first
+    selection.toggle(drilledId) // back in, at the end, still drilled
+  }
+
+  /** @returns {DOMWrapper<HTMLElement>} */
+  function body() {
+    return new DOMWrapper(document.body)
+  }
+
+  /**
+   * @param {string} id Lineage-root id.
+   * @returns {import('../../stores/document.js').BodySummary}
+   */
+  function bodyById(id) {
+    const found = documentStore.bodies.find((candidate) => candidate.id === id)
+    if (!found) throw new Error(`no body "${id}" in the document`)
+    return found
+  }
+
+  it('a drilled-in operand commits as { id, pieces } while the base stays a bare id, and `consumes` stays bare ids throughout', async () => {
+    placeGroupAndCuboid()
+    drillThenSelectBaseFirst('group-1', 'Cube 1', 'base-1')
+    expect(selection.ids).toEqual(['base-1', 'group-1'])
+
+    const wrapper = mount(OperationsToolbar)
+    const appendSpy = vi.spyOn(documentStore, 'append')
+    await wrapper.get('[data-testid="operation-subtract"]').trigger('click')
+
+    expect(appendSpy).toHaveBeenCalledTimes(1)
+    const record = appendSpy.mock.calls[0][0]
+    expect(record.op).toBe('boolean.subtract')
+    // The base was picked first and is not drilled into — a bare id, exactly
+    // as every boolean before this task.
+    expect(record.target).toBe('base-1')
+    // The whole point of this task: the second operand names the part.
+    expect(record.operands).toEqual([{ id: 'group-1', pieces: 'Cube 1' }])
+    // `consumes` is lineage bookkeeping, never an operand reference — the same
+    // distinction `ui-035` drew for `supersedes`. Both operand bodies are
+    // retired whole, whichever part the boolean actually cut with.
+    expect(record.consumes).toEqual(['base-1', 'group-1'])
+  })
+
+  it('a whole-body selection still commits BARE ids — the regression every existing boolean depends on', async () => {
+    placeGroupAndCuboid()
+    selection.select('base-1')
+    selection.toggle('group-1')
+
+    const wrapper = mount(OperationsToolbar)
+    const appendSpy = vi.spyOn(documentStore, 'append')
+    await wrapper.get('[data-testid="operation-union"]').trigger('click')
+
+    const record = appendSpy.mock.calls[0][0]
+    expect(record.target).toBe('base-1')
+    // Bare strings, not `{ id }` objects with no `pieces` — the kernel accepts
+    // both, but every existing document, fixture and round-trip test in this
+    // repo carries the bare form.
+    expect(record.operands).toEqual(['group-1'])
+    expect(record.consumes).toEqual(['base-1', 'group-1'])
+  })
+
+  it('cuts with the addressed part only: a Union with a drilled-in member spans that member, never the whole group', async () => {
+    placeGroupAndCuboid()
+    const group = bodyById('group-1')
+    // The fixture guard: the two candidate answers are 100 mm apart.
+    expect(group.bounds[1][0]).toBeCloseTo(105, 6)
+
+    drillThenSelectBaseFirst('group-1', 'Cube 1', 'base-1')
+    const wrapper = mount(OperationsToolbar)
+    await wrapper.get('[data-testid="operation-union"]').trigger('click')
+
+    expect(documentStore.bodies).toHaveLength(1)
+    const result = documentStore.bodies[0]
+    // "Cube 1" alone reaches x=5; the whole group would have reached x=105.
+    expect(result.bounds[1][0]).toBeCloseTo(5, 6)
+    expect(result.bounds[0][1]).toBeCloseTo(-5, 6)
+    expect(result.bounds[1][1]).toBeCloseTo(205, 6)
+  })
+
+  it('Group ignores a pick depth and still commits bare ids — its registry entry is not `subPartOperands`', async () => {
+    placeGroupAndCuboid()
+    drillThenSelectBaseFirst('group-1', 'Cube 1', 'base-1')
+
+    const wrapper = mount(OperationsToolbar)
+    const appendSpy = vi.spyOn(documentStore, 'append')
+    await wrapper.get('[data-testid="operation-group"]').trigger('click')
+
+    const record = appendSpy.mock.calls[0][0]
+    expect(record.op).toBe('group.assemble')
+    expect(record.target).toBe('base-1')
+    expect(record.operands).toEqual(['group-1'])
+    expect(record.params?.names).toEqual(['Base 1', 'Group 1'])
+  })
+
+  it('names both operands, with the drilled-in one shown by part, before anything is committed', async () => {
+    placeGroupAndCuboid()
+    drillThenSelectBaseFirst('group-1', 'Cube 1', 'base-1')
+
+    const wrapper = mount(OperationsToolbar)
+    const operands = wrapper.get('[data-testid="operation-operands"]')
+    expect(operands.attributes('data-subpart')).toBe('true')
+    expect(wrapper.get('[data-testid="operation-operand-base"]').text()).toBe('Base 1')
+    expect(wrapper.get('[data-testid="operation-operand-rest"]').text()).toBe('Group 1 › Cube 1')
+  })
+
+  it('shows plain body names, and no sub-part marker, when nothing is drilled in', async () => {
+    placeGroupAndCuboid()
+    selection.select('base-1')
+    selection.toggle('group-1')
+
+    const wrapper = mount(OperationsToolbar)
+    const operands = wrapper.get('[data-testid="operation-operands"]')
+    expect(operands.attributes('data-subpart')).toBe('false')
+    expect(wrapper.get('[data-testid="operation-operand-rest"]').text()).toBe('Group 1')
+  })
+
+  it('a part name the kernel rejects surfaces on the toolbar instead of throwing past the click', async () => {
+    placeGroupAndCuboid()
+    drillThenSelectBaseFirst('group-1', 'No Such Part', 'base-1')
+
+    const wrapper = mount(OperationsToolbar)
+    await wrapper.get('[data-testid="operation-subtract"]').trigger('click')
+
+    const error = wrapper.get('[data-testid="operation-error"]')
+    expect(error.text().length).toBeGreaterThan(0)
+    // Nothing committed: both bodies still there, selection untouched.
+    expect(documentStore.bodies).toHaveLength(2)
+    expect(selection.ids).toEqual(['base-1', 'group-1'])
+  })
+})

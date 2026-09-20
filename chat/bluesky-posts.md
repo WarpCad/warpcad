@@ -756,3 +756,14 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **To Add:** repo URL once public; a short screen recording of the 5mm → 3mm edit rebuilding downstream
 
+
+## 2026-09-20T23:59:00Z — Cut a case with one port, not the whole board
+
+**Post:** WarpCad booleans can now cut with ONE named part of a multi-part model. Click a Raspberry Pi, click its Ethernet jack, Subtract: 1207.743mm³ removed. Subtract the whole board instead and it's 5661.317mm³ — a missing wall, not a port. The selection store needed no change; a shipped idiom already held the state.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL #Vue
+**Evidence:** "1207.743 vs 5661.317 mm³ out of a 40mm cube" → both measured from `data-body-volume` in the running app this session (64000 → 62792.257 with `ethernet`, → 58338.683 whole); "the selection store needed no change" → `src/stores/selection.js` is absent from this diff, because `toggle` deliberately does not prune a pick depth (its own doc comment, shipped in `ui-035`)
+**Disclosure:** Built with Claude Code, reviewed by me.
+**To Add:** repo URL once public; a render of the cut port opening

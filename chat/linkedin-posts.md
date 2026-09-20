@@ -956,3 +956,22 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **To Add:** repo URL once public; the 390px before/after screenshots of the nav-chrome overlap
 
+
+## 2026-09-20T23:59:00Z — The feature was already there; the task was finding out
+
+**Post:** WarpCad can now cut a boolean with a single named part of a multi-part model — subtract just a Raspberry Pi's Ethernet jack from a case wall, instead of the whole board's footprint. On a 40mm test cube the jack removes 1207.743mm³; the whole board removes 5661.317mm³, which is not a port opening, it is a missing wall.
+
+The task file said the hard part was a design decision: the selection store could not hold "shell selected, plus the board drilled into its Ethernet jack", so either relax the rule that you can only drill into a single selected body, or add a second slot to hold the depth. Both would have made every selection-count-gated tool in the app harder to reason about.
+
+Neither was needed. A task three commits earlier had already shipped the answer without anyone writing it down as one: the additive-select path deliberately does not discard a pick depth, so you shift-click the drilled body out of the selection and back in, and it lands second with its depth intact. The store is untouched by this change. The operand-building code the earlier task wrote is now the only one, shared by both button groups instead of copied.
+
+The cost landed somewhere the file could not have predicted: a phone screen. The new line naming what is about to be cut does not fit at 390px — 151 pixels of column against 147 already spent — and the first attempt pushed a button underneath the navigation controls, where it was still visible, still the right size, and no longer clickable. That was caught by a different feature's phone test, not by anything this change wrote.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL #Vue #SoftwareDesign
+**Evidence:** "1207.743 vs 5661.317 mm³" → measured from `data-body-volume` in the running app this session; "the store is untouched" → `src/stores/selection.js` absent from this diff; "toggle deliberately does not prune the depth" → that function's own doc comment, shipped in `ui-035` (commit e5a46dc); "151px against 147px" → `getBoundingClientRect` at 390x844 Chromium this session (toolbar top y=61, chrome's first button y=212, badge+button row bottom y=208.3); "caught by a different feature's phone test" → `e2e/snap-align-operation.e2e.js:506` failed at chromium-phone on the first pass with "Pan button intercepts pointer events"
+**Disclosure:** Built with Claude Code, reviewed by me.
+**To Add:** repo URL once public; a before/after of the port opening vs the whole-board cut
+
+**LinkedIn article suggestion:** Not yet, but this is the second task in a row where the stated design question dissolved once the existing code was read. If it happens a third time, "the task file is a hypothesis, not a spec" is worth writing up properly.

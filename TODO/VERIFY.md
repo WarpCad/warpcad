@@ -34,6 +34,18 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### ui-040 — Sub-part-addressed boolean operands (2026-09-20 23:59 UTC)
+
+Everything about *whether it works* is covered by `ACCEPTANCE.md` scenarios 4, 5 and 6, all
+re-driven and measured, so only the two judgment calls this task made for phone width are
+logged here — both are "does this feel right to a person holding the device", which no
+assertion in this repo can answer.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | At 390px the operand line (*"Cube 1 then Bolt 1 › tap"*) is **hidden**, because the column above the navigation chrome is already full — measured, 151px against ~147px spent — and the same text is on the buttons' long-press instead. On a real iPhone: is a long-press actually how someone would discover which depth is armed, or does a sub-part boolean feel like it commits blind at that width? If it feels blind, the answer is probably a different home for the line (the Inspector's 2-selected state), not a smaller font. | Open | |
+| 2 | A rejected sub-part commit shows its kernel error on the toolbar, and at phone width that message sits in the same band as the navigation chrome's buttons, so the toolbar is lifted above the chrome **only while an error is showing**. On a real device: does that read as an error, or as the toolbar glitching over the nav pad? Reachable by drilling into a part, Shift-clicking a second body, then rolling the History back so the part no longer exists, then clicking Subtract. | Open | |
+
 ### ui-032 — Timeline (History) panel (2026-09-20 22:05 UTC)
 
 `ACCEPTANCE.md` scenario 12 was driven in full at laptop/Chromium and phone/WebKit, so nothing

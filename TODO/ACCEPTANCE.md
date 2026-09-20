@@ -912,6 +912,14 @@ An early build of this task got the **rendering** right and left the **announcem
 document, so the canvas showed one body while the DOM said two; caught by `e2e/timeline-panel.e2e.js`, fixed
 by routing both through one accessor, and pinned by a store test.
 
+**Re-checked**: 2026-09-20 23:58 — **PASS** (`ui-040`, which changes the operand every
+boolean commits and so touches the fold this scenario's regression lives in). Laptop
+1440x900/Chromium, drags driven on wandering, jittery paths rather than straight lines:
+a Cube then a Cylinder dropped at different points, **both stayed visible**, clicking
+empty grid cleared the selection, and clicking each in turn selected only that one
+(`cuboid-1` → `cylinder-2`, never both). Still exactly two bodies after navigating the
+camera between operations. Console clean.
+
 ### 2. Hardware property edit
 
 **Steps**:
@@ -1522,6 +1530,18 @@ corrected `docs/snap-align.md` (which had been drafted around a mounting hole, a
 uses the Ethernet jack, a part actually reachable) and is logged in `TODO/VERIFY.md`
 rather than silently left as a doc that describes something a user cannot do.
 
+**Re-checked**: 2026-09-20 23:58 — **PASS** (`ui-040`). Re-driven because this task's
+whole design question was whether `drillInto`'s rule had to change — it did not, and
+this is the scenario that would have caught it if it had. Laptop/Chromium: two solids
+grouped, a third placed beside them; the first click on the group selected the **whole
+group**, a second click on a member drilled to **`Cube 1`**, a click on the other member
+re-targeted straight to **`Cylinder 1`** without stepping up first, and the breadcrumb's
+group segment stepped back up (no part crumb left). `ui-035`'s own path was re-driven on
+top of it: with `Group 1 › Cube 1` drilled and a third body Shift-clicked, the Align
+popover read **"Aligning Group 1 › Cube 1 to Cone 1"** with `data-subpart="true"`, and
+the commit moved the group by the member's own arithmetic (centre x -74.57 → -93.11)
+while the reference stayed put. Console clean.
+
 ### 4. Boolean gating
 
 **Steps**:
@@ -1668,6 +1688,19 @@ result's params as read-only. Console clean.
 **Re-checked**: 2026-09-19 03:52 — PASS, undo-relevant slice only (`data-003`), per that task's own Testing section. Laptop 1440x900 (Chromium), two genuinely **overlapping** solids (a Cube, and a Sphere typed into overlap through the Inspector's Position fields — a first attempt with two drops was abandoned because snap-placement lands the second body concentric with the first, which is a drive artefact, not an app defect). The count gate re-confirmed: 1 selected left Subtract `disabled` with the "Select 2 or more solids" tooltip; shift-clicking the second took `data-selected-count` to 2 and enabled it. Subtract left exactly one solid with **material really removed** (`64000.000 -> 54858.239` mm3) and disabled the toolbar again. **The half this task adds**: pressing Undo brought **both original operands back, byte-identical** — `Cube 1@-75.79,-40.02,20.00/v64000.000` and `Sphere 1@-49.79,-36.02,20.00/v32975.534`, the exact strings recorded before the boolean — neither merged nor missing, which is `ui-014`'s `consumes` repro re-run against the rebuild. Both came back **selected** (count 2, per section 19's "undoing a boolean brings back and selects both operands"), and the Operations toolbar correctly re-enabled itself at that count rather than staying stuck in its post-boolean state. Redo returned to `54858.239` exactly. Console clean.
 
 **Re-checked**: 2026-09-19 04:52 — PASS (`data-004`). Re-driven because a `consumes` record is the hardest case for a re-fold — undoing or replaying one has to *un-retire* two lineages — and this task changed the fold every one of them goes through. Laptop 1440x900 (Chromium), real mouse. **The count gate, both directions**: with 1 selected, Union/Subtract/Intersect/Group/Snap/Align were all `disabled` and Fillet/Chamfer/Enlarge/Fit/Bisect all enabled; Shift-clicking the second body took `data-selected-count` to 2 and **exactly inverted** every one of those ten — the multi-operand five enabled, the single-operand five disabled. Not "some became enabled": the whole gate flipped as a unit. Subtract then left exactly one body, `Subtract 1`, and both operands stopped being separately selectable. **Undo brought both back byte-identical** (`Cube 1@-41.39,-41.39,20.00/v64000.000`, `Sphere 1@51.41,11.15,20.00/v32975.534` — string-compared against the values recorded before the boolean, equal), and Redo re-consumed them back to the single `Subtract 1`. `ui-014`'s `consumes` repro, re-run against the widened fold. Console clean.
+
+**Re-checked**: 2026-09-20 23:58 — **PASS** (`ui-040`, which changes `run()` and the
+operand every one of these buttons commits). Laptop 1440x900/Chromium, driven out of
+order rather than down the list. At 0 selected the toolbar read `0 selected` /
+*"select 2 or more solids"* and `data-enabled="false"`; at 1 it stayed disabled with the
+hover/long-press title **"Select 2 or more solids"**; at 2 it flipped to `2 selected` /
+*"first is the base"* with the roles reading `Cube 1=base`, `Cylinder 1=secondary` —
+the colour distinction this scenario's step 4 exists to check. The new operand line read
+**"Cube 1 then Cylinder 1"**, with no part marker, which is the regression that matters:
+an undrilled selection still commits bare ids. Step 5 was driven on a genuinely
+overlapping pair (two 40 mm cubes overlapped 20 mm by hand, via Align Y/Z then Snap X
+`inside+` 20): **64 000 → 32 000.000 mm³**, exactly the half removed, one body left,
+selected, toolbar disabled again. Console clean.
 
 ### 5. Hidden-part boolean (bolt tap-clearance)
 
@@ -1890,6 +1923,55 @@ bolt-sized bounds (`-9.5,-8.227,0 .. 9.5,8.227,27.5`), with the cube untouched a
 sub-part operand specifically**, which is the new code: `subtract(shell, { id, pieces:
 'tap' })` returns a real plate — bounds `-20,-20,0 .. 20,20,6`, volume **8 193.142 mm³**
 — never the EMPTY solid the bug produced. Console clean.
+
+**Re-checked**: 2026-09-20 23:58 — **FULL PASS, for the first time**, with one honest
+limit stated rather than papered over (`ui-040`). Hand-driven against the real dev
+server at laptop 1440x900/Chromium and phone 390x844/WebKit, with every number measured
+off `data-body-volume`/`data-body-bounds` in the running app.
+
+- **Blocker 4 — the toolbar had no route to send a sub-part operand — GONE.** Driven:
+  a Cube and a Bolt dragged in, the bolt clicked twice to drill to `tap` (Inspector
+  breadcrumb `Bolt 1 ▸ tap`), Shift-clicked out of the selection, the cube Shift-clicked
+  in, the bolt Shift-clicked back in so it lands second — the toolbar then read
+  **"Cube 1 then Bolt 1 › tap — booleans use that part; Group uses the whole body"** and
+  Subtract committed. So the two halves this scenario needed (`core-024`'s kernel, this
+  task's UI) now meet.
+- **Blocker 4's premise was stale and is recorded as such.** `TODO/ui-040` claimed the
+  selection store "cannot even hold" the state. It already could: `ui-035` shipped on
+  the same fact, because `toggle` is deliberately the one selection path that does not
+  prune a pick depth. No change to `selection.js` was needed or made, so every
+  count-gated tool's gate is byte-identical to before.
+- **The measured result, with a real hole.** A drag-drop *snaps* a placed body flush
+  against its neighbour (`ui-013`), so overlapping the two is itself a hand step: Align
+  on Y/Z, then Snap on X `inside+` with a 12 mm offset, which leaves the bolt 7 mm into
+  the cube's face and its head still pickable. Cube 1 = 64 000.000 mm³. Subtract with
+  **`tap`** → **63 013.621 mm³**. Subtract with the **whole bolt**, same geometry, same
+  gesture minus the drill → **63 013.621 mm³, identical**. That is this scenario's own
+  correction confirmed from the UI for the first time: for `hardware.bolt` the sub-part
+  address buys explicitness, not different geometry.
+- **And a case where it genuinely differs, driven end to end**, since a doc that claimed
+  a difference nobody can observe would be worse than none: a **Raspberry Pi** in place
+  of the bolt, drilled to **`ethernet`**. Same 40 mm cube: `ethernet` → **62 792.257
+  mm³** (a **1 207.743 mm³** port opening), the **whole board** → **58 338.683 mm³** (a
+  **5 661.317 mm³** hole, the board's whole footprint). A 4.7x difference, visible in
+  the scene and in the numbers. The jack's own size reads **21.38 x 16.12 x 13.83 mm**
+  off the Inspector while drilled in; `docs/booleans.md`'s worked example is written
+  against exactly this and those numbers are the measured ones.
+- **Blocker 5 — a fully enclosed body cannot be picked — STILL OPEN, and `ui-032` did
+  not close it.** Checked rather than assumed: the History panel's rows are a *row*
+  selection, which by `data-002` §13's confirmed rule never triggers a body selection,
+  so it is not a route to select an enclosed body. There is no clickable scene list
+  either (`data-body-count` is an announcement, not a control). So the scenario's step 3
+  is driveable only while both bodies remain pickable — which, as above, a partial
+  overlap satisfies and a full envelopment does not. Filed as **`TODO/ui-041`** rather
+  than widened into this task.
+- **Phone 390x844/WebKit**: the same drill-and-dance reached "2 selected" with the depth
+  intact, and all six operation buttons stayed clickable. The operand *line* is
+  deliberately hidden at this width — there is no room for it above the navigation
+  chrome, measured — and the same text is on every button's long-press instead:
+  *"Subtract — Remove every later-selected solid from the first (Cube 1 then Bolt 1 ›
+  tap — booleans use that part; Group uses the whole body)"*. Console clean in every
+  drive.
 
 ### 6. Group vs. sub-part selection
 

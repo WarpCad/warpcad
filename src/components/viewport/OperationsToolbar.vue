@@ -90,7 +90,7 @@
  * disclaimer saying sub-part addressing was unavailable, and the attachment
  * `core-016`'s Raspberry Pi/screen recipes are designed around (a screen's pad
  * against a *particular* hole) was reachable from the command layer and not by
- * hand. `snapAlignOperands` below closes that: it reads `ui-016`'s pick depth
+ * hand. `selectedOperands` below closes that: it reads `ui-016`'s pick depth
  * (`selection.subPart`) at commit time and builds the addressed form for whichever
  * operand is drilled into.
  *
@@ -138,6 +138,53 @@
  * popover offers one scalar offset field for both ops, applied uniformly across
  * whichever axes are checked; a true per-axis Align offset is left for a later
  * task rather than built here on an untested assumption about `calcSnap`.
+ *
+ * ### The same addressing, for Union/Subtract/Intersect (`TODO/ui-040`)
+ *
+ * `core-024` opened the other half of that door — the three booleans are
+ * `subPartNative` registry entries now, so *"subtract this composite's `tap`,
+ * not the whole bolt"* is a record the kernel will evaluate — and nothing in the
+ * UI could say it, because `run()` above built every operand from
+ * `currentIdOf(id)` alone. That is all this task changes, and three of the four
+ * decisions in it are about what it deliberately does **not** change:
+ *
+ * 1. **`selection.js` is untouched: no relaxed `drillInto`, no second depth
+ *    slot.** `TODO/ui-040` proposed one or the other, on the premise that
+ *    "shell selected, plus the bolt drilled to `tap`" is not an expressible
+ *    selection. It already is, and `ui-035` shipped on exactly that fact: a
+ *    depth needs one selected body to be *set*, but `toggle` is deliberately
+ *    the one selection path that does not prune it, so clicking the drilled
+ *    body out of the selection and back in lands it second with its depth
+ *    intact. Both proposed alternatives cost something real for nothing.
+ *    Relaxing the exactly-one rule would let a depth attach to a multi-
+ *    selection the Inspector cannot display (its breadcrumb only ever
+ *    describes a single-body selection), so a user would carry an invisible
+ *    pick depth into every count-gated tool on this toolbar — the ambiguity
+ *    the task was scoped to avoid, arrived at from the other direction. A
+ *    second depth slot would double the state to address a second operand
+ *    nothing can use: `group.assemble` refuses `pieces` outright, and the
+ *    corpus idiom this exists for cuts *one* composite's named parts out of a
+ *    plain shell. Either way `selection.count` is untouched by depth, which is
+ *    what keeps every existing count gate meaning exactly what it did.
+ * 2. **One operand-building path, not two.** `snapAlignOperands` became
+ *    `selectedOperands` and both `run()` and `commitSnapAlign()` read it. The
+ *    two buttons groups disagree about operand *count*, *order* and lineage
+ *    bookkeeping, but "what does this selection resolve to, at what depth" is
+ *    one question with one answer, and having answered it twice is how the two
+ *    would drift.
+ * 3. **`consumes` stays bare ids, exactly as `supersedes` did.** Both name
+ *    *records*, not operands. So a sub-part subtract still retires the whole
+ *    bolt from `bodies()` — it was the cutting tool, and a boolean has always
+ *    consumed its operands whole. Cutting with one part and keeping the body
+ *    would be a non-consuming boolean, which is a different feature.
+ * 4. **Group is the exception, and says so on screen.** `group.assemble` is a
+ *    plain `native` entry (see its own registry comment on nested composites),
+ *    so handing it a `{ id, pieces }` would throw rather than mean anything.
+ *    `run()` therefore sends it bare terminal ids even when a depth is set, and
+ *    the operand line carries a note saying the depth applies to the three
+ *    booleans and not to Group — a silently-ignored address is precisely the
+ *    "wrong geometry, no error" class `index.js`'s own operand-resolution note
+ *    refuses to allow.
  *
  * ## Fillet and Chamfer are a third shape (`TODO/ui-027`)
  *
@@ -315,8 +362,31 @@ const DISABLED_HINT = `Select ${MINIMUM_OPERANDS} or more solids`
  * @returns {string}
  */
 function titleFor(operation) {
-  return disabled.value ? DISABLED_HINT : `${operation.label} — ${operation.hint}`
+  if (disabled.value) return DISABLED_HINT
+  // The operand summary rides along in the title as well as in the visible
+  // line below the buttons (`TODO/ui-040`), because that line is the one piece
+  // of this toolbar that does **not** fit at phone width — measured, not
+  // assumed: at 390px the column between this toolbar's top and the navigation
+  // chrome's first button holds the badge and the button row with ~4px to
+  // spare, so an extra text line either pushes a button under the chrome or is
+  // painted behind it. Long-press is this toolbar's own established touch
+  // affordance for exactly this (it is how the disabled hint above is read on a
+  // phone, and `ACCEPTANCE.md` scenario 4 checks it there), so the depth is
+  // reachable at every width rather than only where it can be shown outright.
+  return `${operation.label} — ${operation.hint} (${operandSummary.value})`
 }
+
+/**
+ * The error from the last stateless-button commit that the kernel rejected, or
+ * `null` (`TODO/ui-040`). Separate from {@link opError}, which belongs to the
+ * popovers: the two can be on screen at the same time (a Snap popover is open
+ * while Union/Subtract/Intersect are also enabled, since both gates are met at
+ * exactly 2 selected), and one shared ref would print the same message twice in
+ * two places.
+ *
+ * @type {import('vue').Ref<string | null>}
+ */
+const runError = ref(/** @type {string | null} */ (null))
 
 /**
  * Run one operation over the current selection.
@@ -327,12 +397,23 @@ function titleFor(operation) {
  */
 function run(op, label) {
   if (disabled.value) return
+  runError.value = null
 
-  // Resolve every selected body to the record that currently represents it —
-  // see the module note above on why the raw selection ids are the wrong thing
-  // to hand the kernel as `target`/`operands`.
-  const operandIds = selection.ids.map((id) => documentStore.raw.currentIdOf(id) ?? id)
-  const [base, ...rest] = operandIds
+  // Every selected body, resolved to the record that currently represents it
+  // and — where the user has drilled in — to a named part (`TODO/ui-040`; see
+  // {@link selectedOperands} and the module doc's "Sub-part-addressed operands"
+  // section, which is now this component's one operand-building path rather
+  // than a Snap/Align-only one). The module note above on why the raw selection
+  // ids are the wrong thing to hand the kernel still applies underneath it.
+  const operands = selectedOperands.value
+  // `boolean.*`'s registry entries are `subPartNative` — they may be handed a
+  // `{ id, pieces }`. `group.assemble`'s is plain `native`, deliberately (see
+  // its own registry comment on nested composites), so a `pieces` address there
+  // would throw rather than do anything: a pick depth is *ignored* for Group,
+  // and the operand line below keeps saying so by naming the depth it is
+  // dropping. That is the one asymmetry between the four buttons on this row.
+  const addressable = op.startsWith('boolean.')
+  const [base, ...rest] = operands
   const id = documentStore.raw.nextId(op === 'group.assemble' ? 'group' : 'bool')
 
   /** @type {import('../../core/kernel/registry.js').OpRecord} */
@@ -343,30 +424,43 @@ function run(op, label) {
     // `target` before `operands` is the fold's own input order, so the
     // first-selected solid lands at `inputs[0]` — which is what makes it
     // Subtract's minuend without this component knowing any kernel maths.
-    target: base,
-    operands: rest,
-    consumes: operandIds,
+    target: addressable ? base.ref : base.terminalId,
+    operands: rest.map((operand) => (addressable ? operand.ref : operand.terminalId)),
+    // Bare terminal ids, always — `consumes` names the *records* this one
+    // retires, which is lineage bookkeeping, not an operand reference. Exactly
+    // the distinction `ui-035` drew for `supersedes`: an object here would
+    // break `bodies()` outright. A sub-part-addressed boolean still retires the
+    // whole composite it cut with, the same as a whole-body one.
+    consumes: operands.map((operand) => operand.terminalId),
   }
 
   // `group.assemble` (TODO/ui-015) needs one display name per operand, so the
   // resulting Group's parts are addressable by name rather than by opaque
-  // record id (the breadcrumb `ui-016` builds later). Looked up by
-  // **`selection.ids`**, not by `operandIds` above: `documentStore.bodies` keys
-  // each summary by its *lineage root* id, while `operandIds` holds each
-  // operand's *terminal* record id — the two only coincide for a body that has
-  // never been superseded (moved). Looking up by the terminal id would silently
-  // miss every moved operand and fall back to its opaque record id instead of
-  // its real name.
+  // record id (the breadcrumb `ui-016` builds later). `SelectedOperand.name` is
+  // the body's own name looked up by **lineage root** id — `documentStore.bodies`
+  // keys each summary that way, while an operand's terminal record id only
+  // coincides with it for a body that has never been superseded (moved), so
+  // looking up by the terminal id would silently miss every moved operand and
+  // fall back to its opaque record id. Deliberately `name`, not `label`: a
+  // drilled-in operand joins the new group under its own body name, never
+  // "Group 1 › Cube 1".
   if (op === 'group.assemble') {
-    record.params = {
-      names: selection.ids.map((rootId) => {
-        const body = documentStore.bodies.find((candidate) => candidate.id === rootId)
-        return body?.name ?? rootId
-      }),
-    }
+    record.params = { names: operands.map((operand) => operand.name) }
   }
 
-  documentStore.append(record, { origin: 'local' })
+  try {
+    documentStore.append(record, { origin: 'local' })
+  } catch (error) {
+    // New to these four buttons with `TODO/ui-040`: a `pieces` address the fold
+    // rejects (a part name the composite no longer has, a pick depth left
+    // hanging off a body that is no longer a composite) throws where nothing
+    // could throw before — every operand used to be a bare id the fold had
+    // already evaluated. Surfaced on the toolbar rather than the console, the
+    // path Fillet/Chamfer established and Snap/Align reused; the selection is
+    // left alone so the depth can be corrected.
+    runError.value = error instanceof Error ? error.message : String(error)
+    return
+  }
 
   // The operands are gone as independent bodies, so leaving them selected would
   // point the Inspector and the gizmo at things that are no longer on screen.
@@ -709,23 +803,26 @@ const canCommitSnapAlign = computed(
 )
 
 /**
- * @typedef {object} SnapAlignOperand
+ * @typedef {object} SelectedOperand
  * @property {import('../../core/kernel/registry.js').OperandRef} ref What the
  *   record actually carries: a bare terminal id, or `{ id, pieces }` when this
- *   operand is drilled into a named part (`TODO/ui-035`).
- * @property {string} terminalId The same id on its own, for `supersedes` — which
- *   is lineage bookkeeping and never an operand reference (see the module doc).
- * @property {string} label What the popover shows: the body's name, plus its part
+ *   operand is drilled into a named part (`TODO/ui-035`, `TODO/ui-040`).
+ * @property {string} terminalId The same id on its own, for `supersedes` and for
+ *   `consumes` — both lineage bookkeeping, never an operand reference (see the
+ *   module doc).
+ * @property {string} name The body's own name, with no part attached — what
+ *   `group.assemble` needs for its `params.names`.
+ * @property {string} label What the toolbar shows: {@link name}, plus its part
  *   after a `›` when drilled in.
  * @property {boolean} isSubPart
  */
 
 /**
- * The two selected items, resolved into the operands a Snap/Align record would
- * carry right now — the one place this component decides what "the moving item"
- * and "the reference item" actually *are* (`TODO/ui-035`). A computed rather
- * than something `commitSnapAlign` works out for itself, because the popover has
- * to be able to *show* the same answer before it is committed.
+ * Every selected item, resolved into the operands a record would carry right
+ * now — the one place this component decides what its operands actually *are*
+ * (`TODO/ui-035`, generalised to every button by `TODO/ui-040`). A computed
+ * rather than something each commit works out for itself, because the toolbar
+ * has to be able to *show* the same answer before anything is committed.
  *
  * Three reads, each with a reason it cannot be one of the others:
  *
@@ -742,9 +839,9 @@ const canCommitSnapAlign = computed(
  *   addressing the natural shape here rather than a special case: at most one of
  *   the two operands can be drilled in at a time.
  *
- * @type {import('vue').ComputedRef<SnapAlignOperand[]>}
+ * @type {import('vue').ComputedRef<SelectedOperand[]>}
  */
-const snapAlignOperands = computed(() =>
+const selectedOperands = computed(() =>
   selection.ids.map((rootId) => {
     const terminalId = documentStore.raw.currentIdOf(rootId) ?? rootId
     const body = documentStore.bodies.find((candidate) => candidate.id === rootId)
@@ -754,11 +851,54 @@ const snapAlignOperands = computed(() =>
     return {
       ref: partName === null ? terminalId : { id: terminalId, pieces: partName },
       terminalId,
+      name,
       label: partName === null ? name : `${name} › ${partName}`,
       isSubPart: partName !== null,
     }
   }),
 )
+
+/** Whether any selected operand is currently drilled into a named part. */
+const hasSubPartOperand = computed(() =>
+  selectedOperands.value.some((operand) => operand.isSubPart),
+)
+
+/**
+ * Every operand after the first, named — the "…removed from it" half of the
+ * badge line. Joined here rather than in the template so the rendered text has
+ * no interpolation whitespace to trim around the separator.
+ *
+ * @type {import('vue').ComputedRef<string>}
+ */
+const restOperandLabels = computed(() =>
+  selectedOperands.value
+    .slice(1)
+    .map((operand) => operand.label)
+    .join(', '),
+)
+
+/**
+ * The same operand line as one plain string, for a `title`/`aria-label`.
+ *
+ * @type {import('vue').ComputedRef<string>}
+ */
+const operandSummary = computed(() => {
+  const operands = selectedOperands.value
+  if (operands.length === 0) return ''
+  const suffix = hasSubPartOperand.value
+    ? ' — booleans use that part; Group uses the whole body'
+    : ''
+  return `${operands[0].label} then ${restOperandLabels.value}${suffix}`
+})
+
+// A rejected commit's message describes one particular operand set, so it goes
+// stale the moment that set changes — including the pick-depth change that is
+// usually how the user *fixes* it. Cleared on any operand change rather than
+// only on the next click, so a corrected selection does not sit under a
+// message saying the old one was wrong.
+watch(selectedOperands, () => {
+  runError.value = null
+})
 
 /**
  * Any of this toolbar's five exactly-1-gated ops (Fillet, Chamfer, Enlarge,
@@ -851,9 +991,9 @@ function commitSnapAlign() {
   if (!op || !canCommitSnapAlign.value) return
 
   // Both operands, already resolved to terminal ids and (where the user has
-  // drilled in) to a named part — see {@link snapAlignOperands} and the module
+  // drilled in) to a named part — see {@link selectedOperands} and the module
   // doc's "Sub-part-addressed operands" section.
-  const [moving, reference] = snapAlignOperands.value
+  const [moving, reference] = selectedOperands.value
   if (!moving || !reference) return
   const id = documentStore.raw.nextId(op === 'group.snap' ? 'snap' : 'align')
 
@@ -1118,6 +1258,7 @@ function commitResize() {
     class="ops"
     data-testid="operations-toolbar"
     :data-enabled="disabled ? 'false' : 'true'"
+    :data-error="runError ? 'true' : 'false'"
     :data-selected-count="selection.count"
     role="group"
     aria-label="Boolean, group, snap/align, fillet/chamfer and resize/bisect operations"
@@ -1132,6 +1273,7 @@ function commitResize() {
       </span>
       <span v-else class="ops__legend">{{ DISABLED_HINT.toLowerCase() }}</span>
     </p>
+
 
     <div class="ops__row">
       <button
@@ -1212,6 +1354,51 @@ function commitResize() {
         <span class="ops__label">{{ operation.label }}</span>
       </button>
     </div>
+
+    <!-- What these four buttons are actually about to operate on, named
+         (TODO/ui-040) — the same feedback Snap/Align's popover carries for the
+         same reason, out here because these four commit on a single click with
+         no popover to put it in. It is not decoration: a sub-part subtract and
+         a whole-body subtract can produce different geometry from an
+         identical-looking selection, and for `hardware.bolt` they produce
+         literally the same solid, so without this line the only way to tell
+         which one is armed is to run it and measure.
+
+         **Below the button row, not above it**, and that is load-bearing rather
+         than aesthetic: this toolbar's `max-width` is ~182px at the 390px phone
+         reference, so a two-body operand line wraps to two or three lines
+         there. Above the buttons, those lines push the whole row down — far
+         enough, measured, that `Align` landed underneath the navigation
+         chrome's Pan button and stopped being clickable at all (caught by
+         `ui-035`'s own phone spec, not by looking at it). Below them, the
+         buttons never move, and the text is the only thing that can be pushed
+         anywhere. The e2e spec asserts the non-overlap directly at every
+         reference viewport rather than trusting this comment. -->
+    <p
+      v-if="!disabled"
+      class="ops__operands"
+      data-testid="operation-operands"
+      :data-subpart="hasSubPartOperand ? 'true' : 'false'"
+    >
+      <strong data-testid="operation-operand-base">{{ selectedOperands[0]?.label }}</strong>
+      then
+      <strong data-testid="operation-operand-rest">{{ restOperandLabels }}</strong>
+      <!-- Group is the one button on this row that cannot address a part (its
+           registry entry is not `subPartOperands`), so naming the three
+           booleans here rather than "these buttons" is the difference between a
+           true hint and one that silently mis-describes a fourth case. Folded
+           into the same paragraph rather than given its own element, to spend
+           as few of the phone layout's scarce lines as the point can be made
+           in. -->
+      <span v-if="hasSubPartOperand" class="ops__operands-note" data-testid="operation-operands-note">
+        — booleans use that part; Group uses the whole body.
+      </span>
+    </p>
+
+    <!-- A `pieces` address the kernel rejects, surfaced where it happened
+         rather than in the console — the path Fillet/Chamfer established and
+         Snap/Align reused (TODO/ui-040). -->
+    <p v-if="runError" class="ops__error" data-testid="operation-error">{{ runError }}</p>
 
     <!-- Teleported to `<body>`, not left as a normal descendant of `.ops` —
          see this class's own CSS comment for why. `.ops` has a
@@ -1466,13 +1653,13 @@ function commitResize() {
         <p
           class="ops__popover-operands"
           data-testid="snap-align-operands"
-          :data-subpart="snapAlignOperands.some((operand) => operand.isSubPart) ? 'true' : 'false'"
+          :data-subpart="hasSubPartOperand ? 'true' : 'false'"
         >
           {{ openPopover === 'group.snap' ? 'Snapping' : 'Aligning' }}
-          <strong data-testid="snap-align-operand-moving">{{ snapAlignOperands[0]?.label }}</strong>
+          <strong data-testid="snap-align-operand-moving">{{ selectedOperands[0]?.label }}</strong>
           to
           <strong data-testid="snap-align-operand-reference">{{
-            snapAlignOperands[1]?.label
+            selectedOperands[1]?.label
           }}</strong>
         </p>
 
@@ -1568,6 +1755,48 @@ function commitResize() {
   display: inline-flex;
   align-items: center;
   gap: 4px;
+}
+
+/*
+ * The operand line (TODO/ui-040). `overflow-wrap: anywhere` for the same reason
+ * `.ops__popover-operands` has it: a body name is user-visible text of no fixed
+ * length, and this box is deliberately narrow (`.ops`'s gizmo-avoiding
+ * `max-width` is ~182px at the 390px phone reference), so a long name has to
+ * break rather than push the toolbar out from under its own max-width.
+ */
+.ops__operands {
+  margin: 0;
+  padding: 0 2px;
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--text-3);
+  overflow-wrap: anywhere;
+}
+
+.ops__operands strong {
+  color: var(--text-2);
+  font-weight: 650;
+}
+
+.ops__operands-note {
+  color: var(--text-3);
+}
+
+/*
+ * Same neutral treatment as `.ops__popover-error` — this codebase has no
+ * "danger" custom property, and that pair's own comment records the decision
+ * not to introduce one for a single message.
+ */
+.ops__error {
+  margin: 0;
+  padding: 6px 8px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface-1);
+  color: var(--text-1);
+  font-size: 11px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
 }
 
 .ops__swatch {
@@ -1864,7 +2093,37 @@ function commitResize() {
   cursor: not-allowed;
 }
 
+/*
+ * The kernel-error message is transient and has to be readable when it does
+ * appear, and at phone width it lands in the same band as the navigation
+ * chrome's own buttons (see `.ops__operands`'s phone rule below for the
+ * measurement). The chrome carries no `z-index` of its own and simply paints
+ * later, so lifting this box only while an error is showing puts the message in
+ * front for as long as it exists and changes nothing the rest of the time —
+ * deliberately not a standing `z-index` on `.ops`, which would park this
+ * toolbar permanently over controls it has no business covering.
+ */
+.ops[data-error='true'] {
+  z-index: 2;
+}
+
 @media (max-width: 640px) {
+  /*
+   * The operand line is the one thing on this toolbar that does not fit at
+   * phone width, and that is measured rather than judged: at 390x844 the
+   * column between this toolbar's top (y=61) and the navigation chrome's first
+   * button (y=212) is 151px, and the badge plus the wrapped button row already
+   * spend ~147px of it. An extra line either pushes a button under the chrome
+   * — which happened, and took `ui-035`'s Align button out of reach entirely —
+   * or is painted behind it, since the chrome paints later. So at this width
+   * the same text is read by long-pressing any of the four buttons instead
+   * (`titleFor`), which is this toolbar's own established touch affordance for
+   * its disabled hint, not a hover-only fallback.
+   */
+  .ops__operands {
+    display: none;
+  }
+
   .ops {
     top: 8px;
     left: 8px;
