@@ -38,6 +38,23 @@ worth its cost (the alternative is a file a strict slicer rejects), but "we made
 path twice as slow and said nothing" is exactly the kind of silence this project's
 retrospectives are about.
 
+**Update, 2026-09-21 (`io-005`) — glTF now pays the same cost, on the same thread.** `io-005`
+put `makeWatertight` on `exportGltf`'s path too (`docs/decisions/persistence-export.md`
+sub-decision 4 for why), so the third format is no longer the cheap one. Measured the same
+way, same machine, five runs, a 24-body scene (24 unions, 6,480 triangles out):
+
+| what is exported | before `io-005` | after `io-005` | added |
+|---|---|---|---|
+| 24 bodies as one `.glb` | 1.6 ms | 13.7 ms | **+12.1 ms** (median; range +11.8 to +13.8) |
+| one body as a `.glb` | — | 0.5-12.6 ms depending on size | 0.7-3.4 ms of it the repair |
+
+The written file also grows ~15% (416,200 → 478,408 B for those 24 bodies) from the inserted
+vertices. This is **added to this finding rather than filed as a second one**: it is the same
+defect (a synchronous, unbounded kernel pass on the main thread during export), now on all
+three formats, and the fix — move export into the worker — closes it for all three at once.
+Note the shape of it differs from STL's: glTF's own serialization was nearly free (1.6 ms),
+so here the repair is essentially the *whole* blocking cost rather than a doubling of it.
+
 ## Affected files
 
 - `src/core/export.js` — `exportBodies`, synchronous

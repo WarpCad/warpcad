@@ -73,7 +73,7 @@ are not solids and are not exported.
 |---|---|---|---|
 | **STL** | `.stl` (binary) | Slicers and 3D printing | The default. Written so the surface is closed — no gaps for a slicer to complain about or "repair" into the wrong shape. |
 | **OBJ** | `.obj` | Mesh viewers and other modelling tools | Triangles, with shared corner points. Closed, exactly like the STL — it is written from the same solid. |
-| **glTF** | `.glb` (one binary file) | Web viewers, game engines, AR | A single self-contained file — there is no separate `.bin` to lose. |
+| **glTF** | `.glb` (one binary file) | Web viewers, game engines, AR | A single self-contained file — there is no separate `.bin` to lose. Closed, like the other two. |
 
 STL and OBJ carry no unit of their own; they are written in **millimetres**, with **Z up**,
 which is what slicers assume — your 40 mm cube is a 40-unit cube.
@@ -107,15 +107,34 @@ The quickest check is to open it somewhere else. Any slicer (PrusaSlicer, Cura, 
 Studio), a mesh viewer (MeshLab, Blender, macOS Quick Look for STL and OBJ), or an online
 glTF viewer will do. The shape should match your viewport, at the size you built it.
 
-An STL or OBJ from WarpCad is a **closed surface**: every edge is shared by exactly two
-triangles. If your slicer offers a mesh check — PrusaSlicer's *Fix by Netfabb*, Bambu
-Studio's repair prompt, MeshLab's **Filters → Selection → Select non-manifold edges** — it
-should find nothing to repair, whether you exported a plain box, a Union of two shapes, a
-bolt from the library, or a whole scene of them in one file.
+Every file WarpCad writes — STL, OBJ **and** glTF — is a **closed surface**: every edge is
+shared by exactly two triangles. If your slicer offers a mesh check — PrusaSlicer's *Fix by
+Netfabb*, Bambu Studio's repair prompt, MeshLab's **Filters → Selection → Select
+non-manifold edges** — it should find nothing to repair, whether you exported a plain box, a
+Union of two shapes, a bolt from the library, or a whole scene of them in one file.
+
+### Trying it on a shape that used to be the hard case
+
+Worth doing once, because this is the shape that was wrong until recently and it is quick:
+
+1. Drag a **Cylinder** into the viewport, then a **Cube**, and drag the cube so the two
+   overlap.
+2. Select both (click one, Shift-click the other) and press **Union**.
+3. **File ▾ → Export…**, choose **glTF (.glb)**, press **Export**. You get `union-1.glb`.
+4. Open it in Blender (**File → Import → glTF 2.0**) or at
+   [gltf-viewer.donmccurdy.com](https://gltf-viewer.donmccurdy.com/).
+
+The solid should stand upright, read **0.04 m** across if you built a 40 mm cube, and — the
+part that changed — import as **one closed shell**, not a surface with holes along the seam
+where the cylinder meets the cube. In Blender, *Edit Mode → Select → All by Trait →
+Non Manifold* should select nothing. Export the same body as STL and you should see the
+same solid, with the same closed surface: the three formats do not disagree about the shape
+you built.
 
 ## Related
 
 - [Saving and reopening your work](save-load.md) — saving your *model* (which you can
   edit again) is separate from exporting a *mesh* (a finished shape other tools read).
-- Why STL is written from the modelling kernel rather than from what is drawn on screen:
+- Why STL is written from the modelling kernel rather than from what is drawn on screen,
+  and why the glTF is closed too although a viewer does not need it to be:
   [`decisions/persistence-export.md`](decisions/persistence-export.md).

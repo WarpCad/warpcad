@@ -1,5 +1,24 @@
 # LinkedIn Posts
 
+## [2026-09-21T15:55:00Z] — The export format I'd argued didn't need fixing
+
+**Post:** WarpCad writes three mesh formats: STL, OBJ and glTF. Last week I closed a real defect in the first two — ordinary shapes were coming out with open edges, gaps where one face's long edge met two shorter edges of its neighbour. The glTF I left alone, on what still looks like reasonable grounds: a .glb goes to a viewer or a game engine, and a renderer draws triangles without ever asking whether they share edges.
+
+Rather than leave that as a judgement call, I filed it as a question with a measurement attached. The answer came back worse than I expected. The glTF path is serialized from the mesh the viewport draws, which fan-triangulates raw boolean output with no repair pass at all — not a partial one, none. A Raspberry Pi board came out with 271 of its 920 edges unshared. A union placed off the origin, 44 of 262. Even the two shapes the kernel path had always been right about read 42 and 88, because they had never gone through that path.
+
+So I closed it, and wrote down why in the decision record rather than in a commit message: the repair already existed, an unclosed .glb sitting next to a closed STL of the same body is a surprising inconsistency, and export is paid once per click rather than once per frame. All five shapes now read zero.
+
+The part I would have got wrong by reasoning: the repair works by inserting vertices into the middle of edges, and those vertices are collinear with the edge they split. The mesh bridge fans each polygon from its first corner. Put those together and a repaired board produced 101 zero-area triangles out of 672 — invisible on screen, undefined normals, and something no open-edge count would have caught. The fix is to pick a corner the fan is clean from. Always using a centroid fan, which is what the kernel's own serializer does, also works and emits forty percent more triangles, so it lost on the measurement rather than on taste.
+
+The viewport itself is untouched, and I checked that rather than claiming it: the mesh bridge's default output is bit-identical float for float to what it produced before, on four shapes, at 0.007 to 0.018 ms per rebuild against a 16 ms frame budget.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #ComputationalGeometry #WebGL
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** "a viewer or a game engine, which does not need [a watertight solid]" → `src/render/export.js` module header as `io-003` wrote it; 44/46/271/42/88 open edges → re-measured this session straight off `geom3ToBufferGeometry`'s position attribute, strict criterion (`uses === 2 && net === 0`), reproducing `TODO/io-005`'s own table exactly; all five now 0 → same criterion applied to the `.glb`'s POSITION accessor by an independent parser, in `src/render/export.spec.js` and in real files downloaded from `npm run dev` at laptop/Chromium and phone/WebKit; 101 of 672 zero-area → measured on a repaired `raspberrypi.bplus` before the triangulation change; centroid fan 40% more triangles → 302/360/1106/442/488 vs 184/212/682/270/284 across the five shapes; bit-identical bridge output → every float compared with `Object.is` against `git show HEAD:src/render/mesh.js` on four shapes; 0.007-0.018 ms → 200-iteration timing this session, same machine; STL/OBJ unchanged → `io-004`'s numbers reproduced through the UI (0 of 309 on the union, 0 of 342 on a bolt); suite → 1392 unit tests green, 1087 e2e passed across chromium/webkit at all three viewports (Firefox cannot launch in this sandbox and is not claimed)
+**To Add:** repo URL once public, docs site URL once it exists
+
 ## [2026-09-17T13:56:00Z] — The test that disagreed with my code, and was right
 
 **Post:** Shipped angled bisect in WarpCad — cutting a solid along a plane that's tilted away from perpendicular, rather than square to an axis. The roadmap had flagged it as the risky one: "needs a rotated cut-plane construction the geometry kernel has no direct primitive for."

@@ -6,8 +6,34 @@
  * (`docs/decisions/persistence-export.md`, sub-decision 4), so it goes through three.js's
  * `GLTFExporter` over the same `BufferGeometry` the mesh bridge builds for the viewport.
  * STL and OBJ are serialized kernel-side in `src/core/export.js`, where a slicer gets a
- * watertight solid; a glTF consumer is a viewer or a game engine, which does not need
- * one, so the render mesh is the right source here.
+ * watertight solid.
+ *
+ * ## Why the `.glb` is watertight too (`TODO/io-005`)
+ *
+ * `io-003` reasoned that a glTF consumer is a viewer or a game engine, which does not
+ * need a closed solid, and left this path on the raw render mesh. Measured, that mesh
+ * is open on every shape worth exporting — 44 of 262 undirected edges on a plain Union
+ * placed off the origin, 46 of 290 on a placed bolt, 271 of 920 on a `raspberrypi.bplus`,
+ * and 42 / 88 even on the two shapes `io-003` measured and the kernel path was always
+ * right about — because {@link geom3ToBufferGeometry} fan-triangulates raw boolean
+ * output with no T-junction pass at all, not even a partial one.
+ *
+ * The reasoning still holds for a *renderer*, which draws triangles and never asks
+ * whether they share edges. It does not hold for the narrower consumers that made the
+ * question worth asking: importing into Blender or a DCC tool and then editing or
+ * printing, physics/collision baking, and anything that welds vertices. So this path
+ * runs the same `makeWatertight` the kernel formats do, on three grounds recorded in
+ * `docs/decisions/persistence-export.md` sub-decision 4: the mechanism already exists
+ * and is one call, an unclosed `.glb` beside a closed STL of the same body is a
+ * surprising inconsistency, and export is a one-shot action that can afford the
+ * 0.7-3.4 ms per body the repair costs. **The viewport still uses the plain fan** — the
+ * repair is not in the bridge, and nothing about what the app draws changed.
+ *
+ * The one thing the export path needs that the viewport does not: the repair inserts
+ * vertices that are *collinear* with the edge they split, and fanning such a polygon
+ * from corner 0 makes a zero-area triangle whose normal is undefined (measured: 101 of
+ * 672 triangles on a repaired board). Hence `triangulation: 'non-degenerate'` below;
+ * see {@link geom3ToBufferGeometry} for how it picks an apex.
  *
  * Like its core sibling this module **does not trigger a download** — it returns bytes,
  * a filename and a mime type, and `TODO/ui-034` hands them to the browser.
@@ -40,6 +66,7 @@
 import { BufferAttribute, Group, Mesh, MeshStandardMaterial } from 'three'
 
 import { EXPORT_FORMATS, exportFilename, solidsForExport } from '../core/export.js'
+import { makeWatertight } from '../core/kernel/watertight.js'
 import { geom3ToBufferGeometry } from './mesh.js'
 
 /** @typedef {import('../core/export.js').ExportBody} ExportBody */
@@ -75,7 +102,11 @@ export async function exportGltf(bodies) {
   const material = new MeshStandardMaterial({ color: 0xb0b8c4, metalness: 0.1, roughness: 0.6 })
   let triangleCount = 0
   const geometries = solids.map(({ name, solid }) => {
-    const geometry = geom3ToBufferGeometry(solid)
+    // Closed geometry, like STL and OBJ — `TODO/io-005`, and the module comment above
+    // for why the answer to "does a .glb need to be watertight?" came out as yes. The
+    // repair runs HERE and not in the bridge: it costs 0.7-3.4 ms per body, which a
+    // one-shot export can pay and a viewport rebuild inside a 16 ms frame cannot.
+    const geometry = geom3ToBufferGeometry(makeWatertight(solid), { triangulation: 'non-degenerate' })
     triangleCount += /** @type {BufferAttribute} */ (geometry.getAttribute('position')).count / 3
     const mesh = new Mesh(geometry, material)
     mesh.name = name

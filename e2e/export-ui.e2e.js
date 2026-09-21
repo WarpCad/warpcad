@@ -543,17 +543,30 @@ test('nothing selected: Scope defaults to the whole scene (Selection radio disab
 test('glTF: a single .glb whose root node carries the mm→m, Z-up→Y-up conversion and whose data is closed geometry', async ({
   page,
 }) => {
+  // An off-origin UNION, not a plain cuboid: a cuboid's render mesh is closed either way,
+  // so it could never have failed the watertightness assertion at the bottom of this test
+  // and the title's "closed geometry" claim was riding on a shape that proved nothing.
+  // This is the shape `io-004`/`io-005` were both filed against — a Ø40 × 50 cylinder and a
+  // 40 mm cube, placed where scenario 11 step 2 places them — whose render mesh measured
+  // 44 of 262 edges open before `io-005`. Seeded through the store and unioned by pressing
+  // the real button: a drag cannot place an overlap this precisely, and at 390 × 844 a drop
+  // below ~fy 0.45 misses the grid entirely (the same reason the neighbouring tests seed).
   await storeApi(page).run(async (api) => {
-    api.documentStore.append({ id: 'cube', op: 'primitive.cuboid', name: 'Cube 1', params: { size: [40, 40, 40], center: [0, 0, 20] } })
-    api.selection.select('cube')
+    api.documentStore.append({ id: 'cyl', op: 'primitive.cylinder', name: 'Cylinder 1', params: { diameter: 40, height: 50, center: [-100.89, 66.93, 25] } })
+    api.documentStore.append({ id: 'cube', op: 'primitive.cuboid', name: 'Cube 1', params: { size: [40, 40, 40], center: [-95, 75, 20] } })
+    api.selection.selectMany(['cyl', 'cube'])
   })
-  const [cube] = await sceneBodies(page)
+  await expect(page.getByTestId('operation-union')).toBeEnabled()
+  await page.getByTestId('operation-union').click()
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-body-count', '1')
+  const [union] = await sceneBodies(page)
+
   await openExportPopover(page)
   await page.getByTestId('export-format-glb').check()
-  await expect(page.getByTestId('export-summary')).toHaveText('Exports Cube 1 as cube-1.glb')
+  await expect(page.getByTestId('export-summary')).toHaveText('Exports Union 1 as union-1.glb')
 
   const { name, bytes } = await pressExport(page)
-  expect(name).toBe('cube-1.glb')
+  expect(name).toBe('union-1.glb')
   const glb = parseGlb(bytes)
   const { json, readVec3 } = glb
 
@@ -574,17 +587,23 @@ test('glTF: a single .glb whose root node carries the mm→m, Z-up→Y-up conver
 
   const [{ world }] = worldMeshes(glb)
   const range = (axis) => [Math.min(...world.map((p) => p[axis])), Math.max(...world.map((p) => p[axis]))]
-  // A 40 mm cube on the ground, centred on the origin, is 0.04 m across in every axis, stands
-  // upright (Y is up now: 0 → 0.04), and straddles X and Z by ±0.02.
-  const [x0, x1] = range(0)
-  const [y0, y1] = range(1)
-  const [z0, z1] = range(2)
-  expect(x0).toBeCloseTo(-0.02, 5)
-  expect(x1).toBeCloseTo(0.02, 5)
-  expect(y0).toBeCloseTo(0, 5)
-  expect(y1).toBeCloseTo(0.04, 5)
-  expect(z0).toBeCloseTo(-0.02, 5)
-  expect(z1).toBeCloseTo(0.02, 5)
+  // The viewport's own reading of this body's millimetre bounds, pushed through the same
+  // conversion the root node declares: X stays X, document Z becomes glTF Y (up), document
+  // Y becomes glTF -Z. Read from the app rather than hardcoded, so this still describes the
+  // solid the user is looking at if the tessellation ever shifts.
+  // `data-body-bounds` is printed to 2 decimals (0.01 mm), so 4 places of a metre.
+  const [minX, minY, minZ, maxX, maxY, maxZ] = union.bounds
+  for (const [axis, low, high] of /** @type {[number, number, number][]} */ ([
+    [0, minX / 1000, maxX / 1000],
+    [1, minZ / 1000, maxZ / 1000],
+    [2, -maxY / 1000, -minY / 1000],
+  ])) {
+    const [low0, high0] = range(axis)
+    expect(low0).toBeCloseTo(low, 4)
+    expect(high0).toBeCloseTo(high, 4)
+  }
+  // Y is up now, and this solid sits on the ground: it starts at 0 rather than below it.
+  expect(range(1)[0]).toBeCloseTo(0, 4)
 
   // The vertex data itself is still millimetres (the node converts), and is closed geometry
   // whose volume is the kernel's.
@@ -592,7 +611,10 @@ test('glTF: a single .glb whose root node carries the mm→m, Z-up→Y-up conver
   const tris = []
   for (let i = 0; i + 2 < positions.length; i += 3) tris.push([...positions[i], ...positions[i + 1], ...positions[i + 2]])
   const stats = meshStats(tris)
-  expect(Math.abs(stats.volume - cube.volume) / cube.volume).toBeLessThan(1e-4)
+  // `io-005`: the .glb is held to the same bar as the STL and OBJ above, not a weaker one.
+  // This was 44 of 262 before the repair landed, on this exact shape.
+  expect(stats.unmatchedEdges, 'the .glb mesh is closed, like the STL and OBJ of the same body').toBe(0)
+  expect(Math.abs(stats.volume - union.volume) / union.volume).toBeLessThan(1e-4)
 })
 
 test('while History previews a past state Export… is dimmed with the way out; it is live again after leaving', async ({

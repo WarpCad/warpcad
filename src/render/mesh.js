@@ -39,15 +39,43 @@ function trianglesInFan(vertexCount) {
 }
 
 /**
+ * Smallest triangle area the fan below will accept as real, in mm². Anything under it
+ * is a sliver whose face normal is numerical noise, so it is treated as zero-area.
+ *
+ * Deliberately far above the `1e-12` the specs assert with: the specs judge float32
+ * coordinates read back out of a file, and a triangle that is only marginally non-zero
+ * in the kernel's doubles can round to exactly zero on the way there. The margin costs
+ * nothing — it only moves a handful of polygons onto the centroid fan below.
+ */
+const MIN_TRIANGLE_AREA = 1e-9
+
+/**
  * Convert kernel geometry into a three.js `BufferGeometry` in millimetres, Z-up —
  * the same space the document uses, so no unit conversion happens here and the
  * scene's world units are document millimetres throughout.
  *
  * @param {Geom3} geometry Kernel solid.
+ * @param {{ triangulation?: 'fan' | 'non-degenerate' }} [options]
+ *   `'fan'` (the default, and what the viewport uses) fans every polygon from its
+ *   corner 0 — the cheapest correct triangulation of a convex polygon, and the one
+ *   every measurement and snapshot in this project was taken against.
+ *
+ *   `'non-degenerate'` is the **export** path's mode (`TODO/io-005`), and exists for
+ *   one specific reason. `src/core/kernel/watertight.js` closes a solid by inserting a
+ *   vertex into the middle of an edge, and those inserted vertices are *collinear with
+ *   the edge they split*. Fanning such a polygon from corner 0 puts three collinear
+ *   points in a triangle whenever the apex is on a subdivided edge — a zero-area
+ *   triangle, which draws as nothing and whose face normal is a normalized
+ *   `(0, 0, 0)`. Measured on a repaired `raspberrypi.bplus`: **101 of 672 triangles**.
+ *   This mode picks a corner the fan is clean from, and falls back to a centroid fan
+ *   for the few polygons where no corner is (measured: 5 of 217 polygons on that same
+ *   board). Both keep the surface closed; see the module comment in
+ *   `src/render/export.js`.
  * @returns {BufferGeometry} Non-indexed, with computed vertex normals.
  */
-export function geom3ToBufferGeometry(geometry) {
+export function geom3ToBufferGeometry(geometry, options) {
   const polygons = geometry?.polygons ?? []
+  if (options?.triangulation === 'non-degenerate') return nonDegenerateFan(polygons)
 
   let triangles = 0
   for (const polygon of polygons) triangles += trianglesInFan(polygon.vertices.length)
@@ -70,6 +98,119 @@ export function geom3ToBufferGeometry(geometry) {
       positions[offset + 7] = c[1]
       positions[offset + 8] = c[2]
       offset += 9
+    }
+  }
+
+  const buffer = new BufferGeometry()
+  buffer.setAttribute('position', new BufferAttribute(positions, 3))
+  buffer.computeVertexNormals()
+  return buffer
+}
+
+/**
+ * Twice the area of a triangle — `|(b - a) × (c - a)|`.
+ *
+ * @param {number[]} a
+ * @param {number[]} b
+ * @param {number[]} c
+ * @returns {number}
+ */
+function doubledArea(a, b, c) {
+  const ux = b[0] - a[0]
+  const uy = b[1] - a[1]
+  const uz = b[2] - a[2]
+  const vx = c[0] - a[0]
+  const vy = c[1] - a[1]
+  const vz = c[2] - a[2]
+  return Math.hypot(uy * vz - uz * vy, uz * vx - ux * vz, ux * vy - uy * vx)
+}
+
+/**
+ * The first corner a fan over this polygon produces no sliver from, or `-1` when there
+ * is none and the caller should use a centroid fan instead.
+ *
+ * Any corner is a valid apex for a convex polygon, which is what the kernel emits, so
+ * this only ever trades one correct triangulation for another correct one.
+ *
+ * @param {number[][]} vertices
+ * @returns {number}
+ */
+function cleanApex(vertices) {
+  const count = vertices.length
+  for (let apex = 0; apex < count; apex += 1) {
+    let clean = true
+    for (let step = 2; step < count && clean; step += 1) {
+      const area = doubledArea(vertices[apex], vertices[(apex + step - 1) % count], vertices[(apex + step) % count])
+      if (!(area / 2 > MIN_TRIANGLE_AREA)) clean = false
+    }
+    if (clean) return apex
+  }
+  return -1
+}
+
+/**
+ * The export path's triangulation: like the fan above, but never emitting a zero-area
+ * triangle — see {@link geom3ToBufferGeometry}'s `options.triangulation`.
+ *
+ * The centroid of a convex polygon is strictly interior to it, so the fallback fan can
+ * produce no sliver either; it costs one extra triangle per polygon (`n` rather than
+ * `n - 2`) and is used only where a corner fan genuinely cannot work.
+ *
+ * @param {{ vertices: number[][] }[]} polygons
+ * @returns {BufferGeometry} Non-indexed, with computed vertex normals.
+ */
+function nonDegenerateFan(polygons) {
+  /** @type {number[]} Chosen apex per polygon, or -1 for a centroid fan. */
+  const apexes = []
+  let triangles = 0
+  for (const polygon of polygons) {
+    const count = polygon.vertices.length
+    if (count < 3) {
+      apexes.push(0)
+      continue
+    }
+    const apex = cleanApex(polygon.vertices)
+    apexes.push(apex)
+    triangles += apex < 0 ? count : trianglesInFan(count)
+  }
+
+  const positions = new Float32Array(triangles * 9)
+  let offset = 0
+  /**
+   * @param {number[]} a
+   * @param {number[]} b
+   * @param {number[]} c
+   */
+  const write = (a, b, c) => {
+    positions[offset] = a[0]
+    positions[offset + 1] = a[1]
+    positions[offset + 2] = a[2]
+    positions[offset + 3] = b[0]
+    positions[offset + 4] = b[1]
+    positions[offset + 5] = b[2]
+    positions[offset + 6] = c[0]
+    positions[offset + 7] = c[1]
+    positions[offset + 8] = c[2]
+    offset += 9
+  }
+
+  for (let index = 0; index < polygons.length; index += 1) {
+    const vertices = polygons[index].vertices
+    const count = vertices.length
+    if (count < 3) continue
+    const apex = apexes[index]
+    if (apex < 0) {
+      const centroid = [0, 0, 0]
+      for (const vertex of vertices) {
+        centroid[0] += vertex[0] / count
+        centroid[1] += vertex[1] / count
+        centroid[2] += vertex[2] / count
+      }
+      for (let corner = 0; corner < count; corner += 1) write(centroid, vertices[corner], vertices[(corner + 1) % count])
+      continue
+    }
+    for (let step = 2; step < count; step += 1) {
+      write(vertices[apex], vertices[(apex + step - 1) % count], vertices[(apex + step) % count])
     }
   }
 

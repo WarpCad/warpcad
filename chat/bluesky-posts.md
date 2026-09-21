@@ -1,5 +1,18 @@
 # BlueSky Posts
 
+## [2026-09-21T15:55:00Z] — The export format I'd argued didn't need fixing
+
+**Post:** Shipped: WarpCad's .glb exports are watertight now. This was the format I'd argued didn't need to be — a viewer draws triangles, it never asks whether they share edges.
+
+Measured before deciding: 271 of 920 open edges on a Raspberry Pi board. Now 0.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** "a viewer or a game engine, which does not need [a watertight solid]" → `src/render/export.js` module header as written by `io-003`; 271 of 920 → re-measured this session off `geom3ToBufferGeometry`'s position attribute, strict criterion (`uses === 2 && net === 0`); 0 after → same criterion on the `.glb`'s POSITION accessor, in `src/render/export.spec.js` and in a real downloaded file from `npm run dev`; the catch → 101 of 672 zero-area triangles measured on a repaired `raspberrypi.bplus` before the triangulation changed
+**To Add:** repo URL once public, docs site URL once it exists
+
 ## [2026-09-17T13:56:00Z] — The test that disagreed with my code, and was right
 
 **Post:** Shipped angled bisect in WarpCad — cutting a solid on a tilted plane. Roadmap called it the risky one: "needs a rotated cut-plane construction the kernel has no primitive for."

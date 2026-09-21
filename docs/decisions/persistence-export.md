@@ -336,6 +336,79 @@ call. glTF goes through three.js because there is no alternative — and that is
 acceptable precisely because glTF's consumer is a **viewer**, where the render path's
 tessellation is not merely adequate but is literally the thing being previewed.
 
+### Amendment, 2026-09-21 (`io-005`) — **should a `.glb` be watertight at all? Yes, and it now is**
+
+The paragraph above makes a claim that has to be separated into two: *"a glTF consumer
+is a viewer, so the render mesh is the right source"*. The **source** half is still
+forced — `@jscad/io` ships no glTF serializer, so there is no other path. The
+**watertightness** half was an inference, and `io-005` was filed to settle it with
+numbers rather than leave it inferred. **This section is the answer; it is decided, and
+the next person should not re-open it.**
+
+**What the render mesh actually measured.** Counting undirected edges not used by
+exactly two triangles walking them in opposite directions (`uses === 2 && net === 0`,
+the strict criterion `src/core/export.spec.js`'s `io-004` block already holds STL and
+OBJ to), straight off `geom3ToBufferGeometry`'s position attribute:
+
+| body | render mesh, before | `.glb` after `io-005` | STL/OBJ after `io-004` |
+|---|---|---|---|
+| Ø40×50 cylinder ∪ 40 mm cube at (-100.89, 66.93, 25) | **44 of 262** | **0 of 276** | 0 of 309 |
+| a placed `hardware.bolt` (m10 hex, 30 long) | **46 of 290** | **0 of 318** | 0 of 342 |
+| `raspberrypi.bplus` | **271 of 920** | **0 of 1023** | 0 of 1203 |
+| `io-003`'s union (20 mm cube ∪ Ø12 cylinder) | **42 of 372** | **0 of 405** | 0 of 429 |
+| `io-003`'s bored cube (10 mm cube − Ø6) | **88 of 356** | **0 of 426** | 0 of 438 |
+| a plain 10 mm cuboid | 0 of 18 | 0 of 18 (12 triangles, unchanged) | 0 of 18 |
+
+Note rows 4 and 5: the render mesh was open even on the two shapes `io-003` measured and
+the kernel path was always right about, because the bridge fan-triangulates raw boolean
+output with **no** T-junction pass — not a partial one like the serializer's, none.
+
+**Why yes, and the honest weight of each reason.** The original reasoning is not wrong
+about renderers: a renderer draws triangles and never asks whether they share edges, and
+nothing on screen changes either way. The cases where it does matter are genuinely
+narrower — importing into Blender or a DCC tool and then editing or printing, physics and
+collision baking, and any consumer that welds vertices. Weighed against that, three
+things decided it:
+
+1. **The mechanism already exists and the change is one call.** `makeWatertight`
+   (`src/core/kernel/watertight.js`) was built for `io-004` and is already proven on
+   eight shapes; using it here is a line in `src/render/export.js`, not a new algorithm.
+2. **An unclosed `.glb` beside a closed STL of the same body is a surprising
+   inconsistency** — and one this project had already written down as a thing to warn a
+   human about (`TODO/VERIFY.md`'s glTF row). "The three formats never disagree about
+   what a body is" is `io-003`'s own rule for scope and naming; this extends it to the
+   surface itself.
+3. **It is paid once per click, not per frame.** Measured: +12.1 ms median on a 24-body
+   scene (1.6 ms → 13.7 ms over five runs), 0.7-3.4 ms for a single body. The file grows
+   ~15% (416,200 → 478,408 B for those 24 bodies) from the inserted vertices.
+
+**What it explicitly does NOT do: touch the viewport.** The repair is in
+`src/render/export.js`, not in `geom3ToBufferGeometry`, because that function runs on
+every rebuild of every body against a 16 ms frame budget and the repair costs 0.7-3.4 ms
+*per body*. Verified rather than asserted: `geom3ToBufferGeometry`'s default output is
+**bit-identical** to its pre-`io-005` output on all four measured shapes (every float
+compared with `Object.is`), at an unchanged 0.007-0.018 ms per rebuild.
+
+**The one trap, and why the triangulation changed with it.** The repair inserts vertices
+that are *collinear* with the edge they split. Fanning such a polygon from corner 0 — what
+the bridge does — puts three collinear points in a triangle whenever the apex sits on a
+subdivided edge, producing a **zero-area triangle** whose face normal is a normalized
+`(0, 0, 0)`. Measured on a repaired `raspberrypi.bplus`: **101 of 672 triangles**. So the
+export path asks for `triangulation: 'non-degenerate'`, which picks a corner the fan is
+clean from and falls back to a centroid fan for the few polygons where no corner is
+(5 of 217 polygons on that board, 0 of 59 on the union). Rejected alternative, with the
+number that rejected it: **always centroid-fanning** (what `@jscad`'s own serializer
+does) also reaches 0 open edges and 0 slivers, but emits `n` triangles per polygon
+instead of `n - 2` — **40% more triangles** across the table above, and it would double a
+plain cuboid from 12 to 24 for no gain at all. Every shape now measures 0 open edges,
+0 zero-area triangles, per-face-consistent outward normals, positive (outward-wound)
+volume within 4e-8 relative of the kernel's, and a **bit-identical bounding box**.
+
+**Still not known, and not claimed:** no real glTF viewer has ever opened a file this app
+produced — not before `io-005` and not after. Everything above is measured by parsers in
+this repo that share no code with the exporter. `TODO/VERIFY.md`'s glTF row is where that
+gap lives.
+
 ### Module ownership — the Project Structure answer `data-001` asked for
 
 **Export is split across both layers, and the split is principled rather than a

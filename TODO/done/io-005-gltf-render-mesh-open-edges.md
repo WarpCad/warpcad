@@ -5,8 +5,59 @@ kind: finding
 priority: medium
 model: opus
 depends: [io-003, io-004]
-status: open
+status: done
 ---
+
+## What actually shipped (2026-09-21)
+
+**The decision the file asked for first, answered with numbers: yes, a `.glb` should be
+closed — and now is.** The prior question was genuinely open (`io-003`: "a glTF consumer is
+a viewer or a game engine, which does not need [a watertight solid]"), and it is now
+recorded in `docs/decisions/persistence-export.md` sub-decision 4 as an amendment, with the
+measurements, the rejected alternative and the cost, so nobody re-opens it. Three reasons
+decided it, in the honest order of their weight: the mechanism already existed and the
+change is one call; an unclosed `.glb` sitting beside a closed STL of the *same body* is a
+surprising inconsistency the project had already written a `TODO/VERIFY.md` warning about;
+and it is paid once per click rather than per frame. The narrower consumers that do care
+(Blender/DCC import-then-edit-or-print, physics and collision baking, anything that welds
+vertices) are real, and they are what tipped it — not renderers, which never ask.
+
+All five of the file's numbers were **re-measured, not taken on trust**, and reproduced
+exactly as RED before anything changed: 44 of 262, 46 of 290, 271 of 920, 42 of 372, 88 of
+356, by the strict `uses === 2 && net === 0` criterion straight off `geom3ToBufferGeometry`'s
+position attribute. After: **0** on every one of them, measured on the `.glb` bytes through
+an independent POSITION-accessor parser, with volume within 4e-8 relative of the kernel's,
+outward-positive winding, and a **bit-identical bounding box**.
+
+**The fan-triangulation trap the file warned about was real, and is why this was not a
+one-liner.** Calling `makeWatertight` and stopping there reaches 0 open edges and introduces
+**zero-area triangles — 6, 1, 101, 17 and 36 across the five shapes** (101 of 672 triangles
+on a repaired `raspberrypi.bplus`), because the repair inserts vertices *collinear* with the
+edge they split and the bridge fans from corner 0. A zero-area triangle draws as nothing and
+its face normal is a normalized `(0, 0, 0)`. So `geom3ToBufferGeometry` gained an opt-in
+`triangulation: 'non-degenerate'` mode that scans for an apex the fan is clean from and falls
+back to a centroid fan only where no corner works (measured: 5 of 217 polygons on that board,
+1 of 87 on `io-003`'s union, 0 of 59 on the placed union). **Always centroid-fanning — what
+`@jscad`'s own serializer does — was measured and rejected**: it also reaches 0 with no
+slivers, but emits `n` triangles per polygon instead of `n - 2`, which is **40% more
+triangles** across the table and would double a plain cuboid from 12 to 24 for no gain.
+
+**The viewport is untouched, and that is proven rather than asserted.** The repair is in
+`src/render/export.js`, not in the bridge. `geom3ToBufferGeometry`'s default output was
+compared float-for-float (`Object.is`) against its pre-`io-005` output on four shapes
+including a `raspberrypi.bplus` — **bit-identical**, 1,440 / 1,602 / 4,707 / 1,872 floats —
+at an unchanged 0.007-0.018 ms per rebuild against the 16 ms frame budget. Acceptance
+scenario 1 was re-driven anyway, at both reference viewports.
+
+**Cost, measured and recorded where it belongs:** +12.1 ms median on a 24-body glTF export
+(1.6 → 13.7 ms over five runs) and ~15% more bytes (416,200 → 478,408 B). Added to
+`TODO/perf-001-export-off-main-thread.md` as an update to the same finding rather than filed
+as a duplicate — it is the same defect (a synchronous unbounded kernel pass on the main
+thread), now on all three formats, and one fix closes all three.
+
+**Not done, and not claimed:** no real glTF viewer has ever opened a file this app produces
+— not before this task and not after. Scenario 11 step 5 remains NOT DRIVEN; every number
+above comes from parsers in this repo that share no code with the exporter.
 
 ## Problem
 
