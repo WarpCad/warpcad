@@ -5,8 +5,40 @@ kind: finding
 priority: high
 model: opus
 depends: [io-003, ui-034]
-status: open
+status: done
 ---
+
+## What actually shipped (2026-09-21)
+
+The file proposed `modifiers.generalize({ snap, simplify, triangulate })` or
+`retessellate` + a welding pass. **Both were measured and both changed nothing** — 6 open
+edges on the union, 40 on the bolt, 24 on a Raspberry Pi board, before and after — because
+`@jscad/stl-serializer` and `@jscad/obj-serializer` *already* call exactly that
+`generalize` themselves (`stl-serializer/index.js:63`). Running it again is a no-op.
+
+The root cause turned out to be inside that pass, and it is measurable: `generalize`
+**snaps first** (to `measureEpsilon`, a bounding-box-derived grid — 4.8e-4 mm for the
+union) and *then* asks `insertTjunctions` whether a vertex lies on an edge, which compares
+against a **fixed `EPS = 1e-5 mm`** regardless of the grid it just snapped to. Snapping
+displaces a genuinely collinear vertex by up to `√3/2 × ε ≈ 4.2e-4 mm`, some 40× that
+tolerance, so the junction stops being recognised. T-junctions on axis-aligned edges
+survive the snap exactly — which is every one in the two shapes `io-003` measured, and
+none of the ones on a hex head's diagonal rim or in a solid placed at 66.93 mm.
+
+So the fix is a new `src/core/kernel/watertight.js` (`makeWatertight`), called from
+`exportBodies` before serializing. It inserts the missing vertices itself, using the
+serializer's own snap grid **only as an identity key** and never rounding a coordinate, so
+the exported bounding box is bit-identical to before and the collinearity test runs on the
+kernel's own doubles. Once a vertex is shared, the serializer's later snap cannot undo it:
+identical coordinates snap identically. Measured 0 open edges on all eight shapes, both
+formats, both readings of the criterion, with no zero-area triangle introduced. The full
+candidate comparison and the rejected orderings are in that module's header.
+
+Two things were found and **filed rather than folded in**: the `.glb` is serialized from
+the render mesh and still has 44 of 262 open edges on the same union (**`io-005`**), and
+the repair roughly doubles a main-thread export that `io-003` already ran synchronously —
+22.9 ms → 48.1 ms for a 24-body scene (**`perf-001`**). Nobody has opened any exported file
+in a real slicer; that stays open in `TODO/VERIFY.md`.
 
 ## Problem
 

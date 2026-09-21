@@ -785,3 +785,13 @@ Built with Claude Code, reviewed by me.
 **Evidence:** "STL, OBJ and glTF" → `e2e/export-ui.e2e.js` downloads and parses all three on chromium and webkit at three viewports; "says which file you'll get" → `export-summary` (`Exports Union 1 as union-1.stl`), asserted there; "Undo with it open and the line changes" → the e2e presses Ctrl+Z with the popover open and asserts the line goes from `Union 1` to `2 bodies together as warpcad-scene.stl`; "never widens" → the explicit-Selection-vanishes e2e and unit case; "found T-junctions" → cylinder-plus-cube union read back this session: 9 of 300 edges unmatched, volume 88074.774 vs the kernel's 88074.793, filed as `TODO/io-004`
 **Disclosure:** Built with Claude Code, reviewed by me.
 **To Add:** repo URL once public; a short recording of Ctrl+Z changing the popover's line
+
+## 2026-09-21T16:10:00Z — The mesh repair that ran, and repaired nothing
+
+**Post:** My STL exporter called a T-junction repair pass. It ran every time and fixed nothing on half my shapes. It snaps vertices to a grid sized from the bounding box, then asks whether a vertex is on an edge using a fixed 1e-5mm — after moving it up to 4.2e-4mm. Move the same solid to the origin and the bug vanishes. Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #3DPrinting #OpenSource
+**Evidence:** "snaps to a grid sized from the bounding box" → `@jscad/modeling` `measurements/calculateEpsilonFromBounds.js` (`EPS * total / dimensions`), measured at 4.799e-4 mm for the union under test this session; "fixed 1e-5mm" → `operations/modifiers/insertTjunctions.js` compares against `constants.EPS`, which `maths/constants.js` defines as 1e-5; "up to 4.2e-4mm" → √3/2 × 4.799e-4, the worst-case displacement of `vec3.snap` on that grid; "move it to the origin and the bug vanishes" → measured both ways this session: the same cylinder ∪ cube read 6 of 303 edges open at centre (-100.89, 66.93, 25) and 0 of 429 at the origin, and io-003's origin-centred union developed 34 open edges once translated and rotated
+**Disclosure:** Built with Claude Code, reviewed by me.
+**To Add:** repo URL once public; a diagram of the snap-then-test ordering
+

@@ -17,6 +17,14 @@
  * so a slicer gets a closed manifold. glTF has no kernel-side serializer at all
  * (`@jscad/io` ships none) and lives in `src/render/export.js`.
  *
+ * That repair turned out to be **partial**, which is `TODO/io-004`: it snaps to a
+ * bounding-box-derived grid and only then tests collinearity, against a fixed 1e-5 mm,
+ * so it misses every T-junction its own snap moved further than that — 6 open edges on
+ * a plain Union placed away from the origin, 40 on a placed bolt, 0 on the two shapes
+ * `io-003` happened to measure. Solids go through {@link makeWatertight} here before
+ * being serialized, which inserts the missing vertices without moving any coordinate.
+ * `src/core/kernel/watertight.js` carries the measurements and the rejected candidates.
+ *
  * ## Decisions this module owns (`TODO/io-003`)
  *
  * - **Several bodies are ONE file**, not one file each. "Export these" in every slicer
@@ -43,6 +51,7 @@ import stlSerializer from '@jscad/stl-serializer'
 import objSerializer from '@jscad/obj-serializer'
 
 import { toGeom3 } from './kernel/group.js'
+import { makeWatertight } from './kernel/watertight.js'
 
 /** @typedef {import('@jscad/modeling').geometries.geom3.Geom3} Geom3 */
 /** @typedef {import('./kernel/group.js').Group} KernelGroup */
@@ -282,7 +291,13 @@ export function exportBodies(bodies, format) {
       'glTF is exported from the rendered mesh — use exportGltf in src/render/export.js'
     )
   }
-  const solids = solidsForExport(bodies).map((entry) => entry.solid)
+  // T-junction repair before serializing, not after: the serializer's own pass is the
+  // thing that misses these (`TODO/io-004`, and `src/core/kernel/watertight.js` for why),
+  // and by the time it has written bytes there is no topology left to repair. glTF does
+  // NOT come through here — it is serialized from the render mesh in
+  // `src/render/export.js`, which has the same T-junctions and worse; that is measured
+  // and filed as `TODO/io-005`, not silently folded in.
+  const solids = solidsForExport(bodies).map((entry) => makeWatertight(entry.solid))
 
   const chunks =
     format === 'stl'

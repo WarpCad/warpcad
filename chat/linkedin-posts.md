@@ -1009,3 +1009,20 @@ Built with Claude Code, reviewed by me.
 **To Add:** repo URL once public; a slicer screenshot once someone opens a real file
 
 **LinkedIn article suggestion:** Not yet. If the T-junction question resolves into a real slicer result, "does an STL that is geometrically closed count as watertight" is worth a short technical piece.
+
+## 2026-09-21T16:10:00Z — A repair pass that ran on every export and fixed nothing
+
+**Post:**
+Every STL WarpCad writes goes through a T-junction repair. I knew it was there, I had measured its output on two shapes, and both came back as closed manifolds. So when a bolt and an ordinary Union exported with open edges, my first instinct was to call that repair again, harder. That was the fix the finding proposed. It changed nothing, because the serializer already calls it.
+
+The defect is an ordering problem. The pass snaps every vertex to a grid derived from the model's bounding box — 4.8e-4 mm for the solid I was testing — and only then asks whether a vertex lies on a neighbouring edge, comparing against a constant 1e-5 mm that has nothing to do with the grid it just applied. Snapping can move a genuinely collinear vertex by 4.2e-4 mm, forty times the tolerance used to recognise it. A T-junction on an axis-aligned edge survives the snap untouched, which is why the two shapes I had checked read zero and a hex head's diagonal rim did not. Take a solid that exports cleanly at the origin, move it to 66.93 mm, and 34 edges open up.
+
+What shipped inserts the missing vertices before the serializer sees the solid, using that same snap grid purely as an identity key and never rounding a coordinate. The exported bounding box is bit-identical to before. Ten candidates were measured across eight shapes first, and the obvious ordering lost: snapping before repairing also reaches zero open edges, but it moves geometry and runs about twice as slow. Eight shapes, two formats, zero open edges. Nobody has opened one of these files in a real slicer yet, which is the one claim I still cannot make.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #ComputationalGeometry #3DPrinting
+**Evidence:** "the serializer already calls it" → `@jscad/stl-serializer/index.js:63` calls `modifiers.generalize({ snap: true, triangulate: true })`; re-running it measured 6/40/24 open edges before and after, unchanged; "4.8e-4 mm" → `measureEpsilon` on the union under test, measured this session; "constant 1e-5 mm" → `insertTjunctions.js` against `maths/constants.js`'s `EPS`; "4.2e-4 mm" → √3/2 × 4.799e-4; "34 edges open up" → io-003's origin-centred union, translated to (-100.89, 66.93, 25) and rotated 37°, measured in the RED run of `src/core/export.spec.js` this session; "bit-identical bounding box" → measured 0.00e+0 delta on all eight shapes, against 2.29e-4 mm for the snap-first variant; "about twice as slow" → 75 ms vs 39 ms repairing a 24-body export, same machine, same run; "eight shapes, two formats, zero open edges" → `src/core/export.spec.js`'s io-004 block plus the standalone harness, both readings of the criterion; "nobody has opened one in a real slicer" → `TODO/VERIFY.md` row 2, still Open
+**Disclosure:** Built with Claude Code, reviewed by me.
+**To Add:** repo URL once public; a diagram of snap-then-test versus key-only matching
+

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import modeling from '@jscad/modeling'
 
 import { evaluate } from './kernel/index.js'
-import { add, createGroup, volumeOf } from './kernel/group.js'
+import { add, boundsOf, createGroup, volumeOf } from './kernel/group.js'
 import {
   EXPORT_FORMATS,
   ExportError,
@@ -149,6 +149,59 @@ function unmatchedEdges(triangles) {
   let unmatched = 0
   for (const count of counts.values()) if (count % 2 !== 0) unmatched += 1
   return unmatched
+}
+
+/**
+ * The **stricter** reading of the same question, and the one `e2e/export-ui.e2e.js`
+ * already applies to a downloaded file: every undirected edge must be used by exactly
+ * two triangles, once each way. {@link unmatchedEdges} above counts parity only, so it
+ * would forgive four faces meeting on one edge, or two faces wound the same way.
+ * Both are asserted from `io-004` on, because a slicer objects to either.
+ *
+ * @param {number[][][]} triangles
+ * @returns {{ open: number, edges: number }}
+ */
+function openEdges(triangles) {
+  /** @param {number[]} vertex */
+  const key = (vertex) => vertex.map((value) => Math.round(value * 1000)).join(',')
+  /** @type {Map<string, { uses: number, net: number }>} */
+  const edges = new Map()
+  for (const triangle of triangles) {
+    const ids = triangle.map(key)
+    for (let index = 0; index < 3; index += 1) {
+      const from = ids[index]
+      const to = ids[(index + 1) % 3]
+      if (from === to) continue
+      const forward = from < to
+      const edge = forward ? `${from}|${to}` : `${to}|${from}`
+      const entry = edges.get(edge) ?? { uses: 0, net: 0 }
+      entry.uses += 1
+      entry.net += forward ? 1 : -1
+      edges.set(edge, entry)
+    }
+  }
+  let open = 0
+  for (const { uses, net } of edges.values()) if (uses !== 2 || net !== 0) open += 1
+  return { open, edges: edges.size }
+}
+
+/**
+ * Triangles with no area. Inserting a vertex into an edge is exactly the operation that
+ * produces one by accident (three collinear corners), so the repair has to be checked
+ * for them rather than assumed clean.
+ *
+ * @param {number[][][]} triangles
+ * @returns {number}
+ */
+function degenerateTriangles(triangles) {
+  let count = 0
+  for (const [a, b, c] of triangles) {
+    const u = [b[0] - a[0], b[1] - a[1], b[2] - a[2]]
+    const v = [c[0] - a[0], c[1] - a[1], c[2] - a[2]]
+    const cross = [u[1] * v[2] - u[2] * v[1], u[2] * v[0] - u[0] * v[2], u[0] * v[1] - u[1] * v[0]]
+    if (!(Math.hypot(...cross) / 2 > 1e-12)) count += 1
+  }
+  return count
 }
 
 /**
@@ -378,6 +431,148 @@ describe('exportBodies — several bodies and Group-valued bodies', () => {
     const mesh = parseBinaryStl(exportBodies([body('Bolt 1', bolt)], 'stl').bytes)
     expect(mesh.triangleCount).toBeGreaterThan(0)
     expect(signedVolume(mesh.triangles) / volumeOf(bolt)).toBeCloseTo(1, 3)
+  })
+})
+
+describe('exportBodies — every exported surface is watertight (io-004)', () => {
+  // `io-003` measured 0 unmatched edges on two shapes and read that as a property of the
+  // kernel-side serializer. It is not: driving `ui-034` found ordinary shapes where the
+  // serializer's own T-junction repair silently gives up — a plain Union placed off the
+  // origin (6 open edges) and a placed bolt (40, all on the hex head's rim). The table
+  // below is the general claim instead of the two-shape one, and it is asserted on the
+  // BYTES, through the parsers above, in both kernel-side formats.
+  /** @type {[string, () => any, number][]} Name, geometry, kernel volume tolerance (relative). */
+  const shapes = [
+    [
+      // io-004 reproduction 1: what ACCEPTANCE scenario 11 step 2 builds by hand.
+      'a Union placed away from the origin',
+      () => {
+        const { byId } = evaluate([
+          { id: 'cyl', op: 'primitive.cylinder', params: { diameter: 40, height: 50, center: [-100.89, 66.93, 25] } },
+          { id: 'cube', op: 'primitive.cuboid', params: { size: [40, 40, 40], center: [-95, 75, 20] } },
+          { id: 'u', op: 'boolean.union', target: 'cyl', operands: ['cube'] },
+        ])
+        return byId.get('u')
+      },
+      1e-4,
+    ],
+    [
+      // io-004 reproduction 2: a Group body, exported as its combine()d solid.
+      'a placed hardware.bolt (m10 hex, 30 long)',
+      () => {
+        const { byId } = evaluate([{ id: 'b', op: 'hardware.bolt', params: { spec: 'm10 hex', length: 30 } }])
+        return byId.get('b')
+      },
+      1e-4,
+    ],
+    [
+      'a hardware.nut',
+      () => {
+        const { byId } = evaluate([{ id: 'n', op: 'hardware.nut', params: { spec: 'm4', fit: 'loose' } }])
+        return byId.get('n')
+      },
+      1e-4,
+    ],
+    [
+      'a kit.boardFrame',
+      () => {
+        const { byId } = evaluate([
+          {
+            id: 'f',
+            op: 'kit.boardFrame',
+            params: { outerWidth: 40, outerHeight: 30, innerWidth: 30, innerHeight: 20, cornerRadius: 3 },
+          },
+        ])
+        return byId.get('f')
+      },
+      1e-4,
+    ],
+    [
+      // io-003's own two measured shapes, which must STAY at 0 — this is the closed
+      // finding whose subsystem this task extends (CLAUDE.md, Verification).
+      "io-003's union (a 20 mm cube and a Ø12 cylinder)",
+      () => {
+        const { byId } = evaluate([
+          { id: 'cube', op: 'primitive.cuboid', params: { size: [20, 20, 20] } },
+          { id: 'cyl', op: 'primitive.cylinder', params: { diameter: 12, height: 40, center: [10, 0, 0] } },
+          { id: 'u', op: 'boolean.union', target: 'cube', operands: ['cyl'] },
+        ])
+        return byId.get('u')
+      },
+      1e-4,
+    ],
+    [
+      "io-003's bored cube (10 mm cube minus a Ø6 bore)",
+      () => {
+        const { byId } = evaluate([
+          { id: 'cube', op: 'primitive.cuboid', params: { size: [10, 10, 10] } },
+          { id: 'bore', op: 'primitive.cylinder', params: { diameter: 6, height: 20, segments: 32 } },
+          { id: 'd', op: 'boolean.subtract', target: 'cube', operands: ['bore'] },
+        ])
+        return byId.get('d')
+      },
+      1e-4,
+    ],
+    [
+      // A body the user has MOVED and TURNED. Kernel geometry carries transforms
+      // lazily, so a repair that rebuilt the solid from `geometry.polygons` instead of
+      // `toPolygons()` would export it unmoved — or, if it copied the transform matrix
+      // onto the rebuilt solid, apply the move twice. Both show up here as a volume or
+      // a bounding box that does not match the kernel's.
+      'a union that has then been translated and rotated',
+      () => {
+        const { byId } = evaluate([
+          { id: 'cube', op: 'primitive.cuboid', params: { size: [20, 20, 20] } },
+          { id: 'cyl', op: 'primitive.cylinder', params: { diameter: 12, height: 40, center: [10, 0, 0] } },
+          { id: 'u', op: 'boolean.union', target: 'cube', operands: ['cyl'] },
+          { id: 'r', op: 'transform.rotate', target: 'u', params: { angles: [0, 0, 37] } },
+          { id: 't', op: 'transform.translate', target: 'r', params: { vector: [-100.89, 66.93, 25] } },
+        ])
+        return byId.get('t')
+      },
+      1e-4,
+    ],
+  ]
+
+  for (const [label, make, tolerance] of shapes) {
+    for (const format of /** @type {const} */ (['stl', 'obj'])) {
+      it(`writes ${label} as a closed manifold ${format.toUpperCase()}`, () => {
+        const geometry = make()
+        const result = exportBodies([body('Part 1', geometry)], format)
+        const mesh = format === 'stl' ? parseBinaryStl(result.bytes) : parseObj(result.bytes)
+
+        // The bar io-004 was filed for, both readings of it.
+        expect(openEdges(mesh.triangles).open, 'undirected edges not used by exactly two faces').toBe(0)
+        expect(unmatchedEdges(mesh.triangles)).toBe(0)
+
+        // ...without having quietly changed the solid to get there.
+        const kernelVolume = volumeOf(geometry)
+        expect(Math.abs(signedVolume(mesh.triangles) / kernelVolume - 1)).toBeLessThan(tolerance)
+        expect(signedVolume(mesh.triangles), 'outward winding, so the volume is positive').toBeGreaterThan(0)
+        expect(degenerateTriangles(mesh.triangles), 'no zero-area triangles introduced').toBe(0)
+
+        const [kernelMin, kernelMax] = boundsOf(geometry)
+        const [min, max] = boundsOfTriangles(mesh.triangles)
+        for (let axis = 0; axis < 3; axis += 1) {
+          expect(min[axis]).toBeCloseTo(kernelMin[axis], 2)
+          expect(max[axis]).toBeCloseTo(kernelMax[axis], 2)
+        }
+      })
+    }
+  }
+
+  it('keeps several bodies in one file watertight, each of them', () => {
+    const { byId } = evaluate([
+      { id: 'cyl', op: 'primitive.cylinder', params: { diameter: 40, height: 50, center: [-100.89, 66.93, 25] } },
+      { id: 'cube', op: 'primitive.cuboid', params: { size: [40, 40, 40], center: [-95, 75, 20] } },
+      { id: 'u', op: 'boolean.union', target: 'cyl', operands: ['cube'] },
+      { id: 'b', op: 'hardware.bolt', params: { spec: 'm10 hex', length: 30 } },
+    ])
+    const union = /** @type {any} */ (byId.get('u'))
+    const bolt = /** @type {any} */ (byId.get('b'))
+    const mesh = parseBinaryStl(exportBodies([body('Union 1', union), body('Bolt 1', bolt)], 'stl').bytes)
+    expect(openEdges(mesh.triangles).open).toBe(0)
+    expect(signedVolume(mesh.triangles) / (volumeOf(union) + volumeOf(bolt))).toBeCloseTo(1, 4)
   })
 })
 

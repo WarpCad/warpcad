@@ -67,18 +67,12 @@ combined solid** you would actually print: its visible parts fused together, wit
 holes cut out. A part that is hidden stays out, exactly as it is on screen. Sketch lines
 are not solids and are not exported.
 
-One rough edge to know about: an exported STL or OBJ can carry a few tiny seams where two
-faces meet at different resolutions — seen on a bolt, and on a Union of a cylinder and a cube.
-The shape and volume are right and nothing is missing, and slicers normally weld such seams
-without asking, but a strict mesh checker may flag them. (This is a known issue, not something
-you did.)
-
 ## The three formats
 
 | Format | File | Best for | Notes |
 |---|---|---|---|
 | **STL** | `.stl` (binary) | Slicers and 3D printing | The default. Written so the surface is closed — no gaps for a slicer to complain about or "repair" into the wrong shape. |
-| **OBJ** | `.obj` | Mesh viewers and other modelling tools | Triangles, with shared corner points. |
+| **OBJ** | `.obj` | Mesh viewers and other modelling tools | Triangles, with shared corner points. Closed, exactly like the STL — it is written from the same solid. |
 | **glTF** | `.glb` (one binary file) | Web viewers, game engines, AR | A single self-contained file — there is no separate `.bin` to lose. |
 
 STL and OBJ carry no unit of their own; they are written in **millimetres**, with **Z up**,
@@ -112,6 +106,12 @@ is downloaded:
 The quickest check is to open it somewhere else. Any slicer (PrusaSlicer, Cura, Bambu
 Studio), a mesh viewer (MeshLab, Blender, macOS Quick Look for STL and OBJ), or an online
 glTF viewer will do. The shape should match your viewport, at the size you built it.
+
+An STL or OBJ from WarpCad is a **closed surface**: every edge is shared by exactly two
+triangles. If your slicer offers a mesh check — PrusaSlicer's *Fix by Netfabb*, Bambu
+Studio's repair prompt, MeshLab's **Filters → Selection → Select non-manifold edges** — it
+should find nothing to repair, whether you exported a plain box, a Union of two shapes, a
+bolt from the library, or a whole scene of them in one file.
 
 ## Related
 

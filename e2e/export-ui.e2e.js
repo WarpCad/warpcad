@@ -733,11 +733,55 @@ test('a drilled-in sub-part selection exports its WHOLE parent body, and the pop
   const stats = meshStats(parseBinaryStl(bytes))
   // The whole combined bolt, not the one part: the kernel's volume for the body.
   expect(Math.abs(stats.volume - bolt.volume) / bolt.volume).toBeLessThan(2e-3)
-  // Deliberately NOT asserting `unmatchedEdges === 0` here: the combined bolt's STL has 20 open
-  // edge pairs at the hex head's rim (T-junctions — the volume is right, the surface is closed
-  // geometrically, but not vertex-matched). That is `io-003`'s serializer on a Group body, found
-  // while driving this task, and is filed as TODO/io-004; asserting a bug's exact count would
-  // pin it, and asserting 0 would fail on it. The single-solid cases above do assert 0.
+  // This assertion is what `TODO/io-004` was filed to make possible. Until it landed, the
+  // combined bolt's STL had 20 open edge pairs at the hex head's rim — T-junctions, with the
+  // volume right and nothing missing — and this spec could only assert the volume. A Group
+  // body goes through the same repair as any other now, so a downloaded bolt is closed.
+  expect(stats.unmatchedEdges, 'a Group body is watertight too (io-004)').toBe(0)
+})
+
+test('a cylinder and a cube placed away from the origin and unioned export closed, not merely the right volume', async ({
+  page,
+}) => {
+  // io-004's first reproduction, driven through the real UI: the same shape ACCEPTANCE
+  // scenario 11 step 2 builds by hand. Placed off-origin on purpose — at the origin the
+  // serializer's own T-junction repair happens to succeed, which is exactly why io-003
+  // measured 0 and believed it general.
+  await storeApi(page).run(async (api) => {
+    api.documentStore.append({
+      id: 'cyl',
+      op: 'primitive.cylinder',
+      name: 'Cylinder 1',
+      params: { diameter: 40, height: 50, center: [-100.89, 66.93, 25] },
+    })
+    api.documentStore.append({
+      id: 'cube',
+      op: 'primitive.cuboid',
+      name: 'Cube 1',
+      params: { size: [40, 40, 40], center: [-95, 75, 20] },
+    })
+    api.selection.selectMany(['cyl', 'cube'])
+  })
+  await expect(page.getByTestId('operation-union')).toBeEnabled()
+  await page.getByTestId('operation-union').click()
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-body-count', '1')
+  const [union] = await sceneBodies(page)
+
+  await openExportPopover(page)
+  const stl = await pressExport(page)
+  expect(stl.name).toBe('union-1.stl')
+  const stlStats = meshStats(parseBinaryStl(stl.bytes))
+  expect(stlStats.unmatchedEdges, 'STL of an off-origin union is closed (io-004)').toBe(0)
+  expect(Math.abs(stlStats.volume - union.volume) / union.volume).toBeLessThan(1e-4)
+
+  // The same solid feeds OBJ, so it carries the same repair.
+  await openExportPopover(page)
+  await page.getByTestId('export-format-obj').check()
+  const obj = await pressExport(page)
+  expect(obj.name).toBe('union-1.obj')
+  const objStats = meshStats(parseObj(obj.bytes))
+  expect(objStats.unmatchedEdges, 'OBJ of an off-origin union is closed (io-004)').toBe(0)
+  expect(Math.abs(objStats.volume - union.volume) / union.volume).toBeLessThan(1e-4)
 })
 
 test('Esc and the backdrop close the popover without exporting; Cancel too', async ({ page }) => {
