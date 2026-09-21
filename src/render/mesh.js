@@ -21,7 +21,15 @@
  * boundary").
  */
 
-import { BufferAttribute, BufferGeometry, Group as ThreeGroup, Mesh, MeshStandardMaterial } from 'three'
+import {
+  BufferAttribute,
+  BufferGeometry,
+  GreaterDepth,
+  Group as ThreeGroup,
+  Mesh,
+  MeshBasicMaterial,
+  MeshStandardMaterial,
+} from 'three'
 
 import { isGroup, toGeom3 } from '../core/kernel/group.js'
 
@@ -277,6 +285,58 @@ export function createGhostMaterial(color) {
     metalness: 0,
     roughness: 0.9,
   })
+}
+
+/**
+ * Material for a selected body's **x-ray twin** (`TODO/ui-041`).
+ *
+ * A selection is painted by swapping a body's material, which is invisible when the
+ * body is completely inside another: the enclosing shell wins the depth test at every
+ * pixel, so "the bolt is now selected" changed no pixel on the canvas (measured: 0
+ * changed pixels). The twin is the same geometry drawn again with the depth test
+ * inverted — `GreaterDepth` passes only where something nearer is already in the depth
+ * buffer — so it shows **only the part of the selected body that is hidden**, as a
+ * translucent tint in its selection colour. Where the body is not occluded it draws
+ * nothing at all, so an ordinary selection looks exactly as it did.
+ *
+ * Front faces only, which is what stops a lone selected body's own far side from
+ * tinting through its near side; the polygon offset pulls the twin *nearer*, so its
+ * own coincident front face can never pass a strict `Greater` against itself.
+ *
+ * @param {number} color
+ * @returns {MeshBasicMaterial}
+ */
+export function createXrayMaterial(color) {
+  return new MeshBasicMaterial({
+    color,
+    transparent: true,
+    opacity: 0.5,
+    depthFunc: GreaterDepth,
+    depthWrite: false,
+    polygonOffset: true,
+    polygonOffsetFactor: -1,
+    polygonOffsetUnits: -1,
+  })
+}
+
+/**
+ * Give a body mesh an x-ray twin (see {@link createXrayMaterial}) as a child, so it
+ * follows every transform the mesh gets — including a gizmo drag's live preview.
+ * Shares the mesh's geometry rather than copying it, and is excluded from picking:
+ * a twin that answered the raycast would make the selected body claim clicks aimed at
+ * the shell in front of it.
+ *
+ * @param {Mesh} mesh
+ * @param {MeshBasicMaterial} material
+ * @returns {Mesh} The twin, so the caller can remove it again.
+ */
+export function addXrayTwin(mesh, material) {
+  const twin = new Mesh(mesh.geometry, material)
+  twin.renderOrder = 2
+  twin.raycast = () => {}
+  twin.name = 'xray-twin'
+  mesh.add(twin)
+  return twin
 }
 
 /**

@@ -300,6 +300,74 @@ current selection rather than adding to it.
 
 Dragging a box over nothing clears the selection, the same as clicking empty space.
 
+## Selecting a shape you cannot click: the Objects list
+
+A shape that sits **completely inside** another one cannot be clicked, from any angle —
+your click always lands on the outer shape first. A bolt standing inside a case shell is
+the usual example, and it is exactly the shape you most want to select, to cut it out of
+the shell. The **Objects** list is the way in: it names every shape in your model, and
+tapping a name selects that shape, with no clicking in the 3D view at all.
+
+Open it with the **Objects** button in the top bar (the cube icon, between Undo/Redo and
+History). On a laptop or tablet it opens as a strip along the bottom of the 3D view; on a
+phone it opens as a sheet from the bottom. Close it with the button again, or its **✕**.
+It starts closed each time you open the app.
+
+- **Tap a row** to select that shape and *only* that shape. Everything you get from
+  clicking a shape happens: the Inspector fills in, the gizmo and dimension lines appear,
+  and the shape is highlighted.
+- **Tap the small box on the left of a row** to add that shape to the selection (or take it
+  out again). This is the way to select two shapes on a phone, where there is no Shift key
+  — and it works on a laptop too. On a laptop you can also Shift-, Ctrl- or Cmd-click the
+  row. The box shows a number: **1** is the shape that comes first (the one Subtract cuts
+  *from*), **2** and up are the rest — the same two colours the Operations toolbar uses.
+- You can mix the two routes freely: click one shape in the 3D view, then add a hidden one
+  from the list, or the other way round.
+- Each row shows the shape's name and its size (width × depth × height, in millimetres),
+  so you can tell a 40 mm shell from the small bolt inside it.
+
+**You can see a hidden shape is selected.** Because the shell would otherwise hide it, a
+selected shape that is out of sight shows through as a translucent tint in its selection
+colour. A shape that is not hidden looks exactly as it always did.
+
+The list only shows shapes that are in your model *right now*. If you have suppressed a
+step, or rolled History back past it, that shape is not in the scene, so it is not in the
+list — a note at the bottom says how many steps are missing for that reason. The Objects
+list and the [History panel](timeline.md) share the same spot, so opening one closes the
+other. They are different lists: History is numbered *steps* you have taken; Objects is
+the *shapes* that result. Picking a History step never selects a shape, and picking a
+shape never selects a step.
+
+### Worked example: cut a hidden bolt out of a shell
+
+You need a Cube (the shell) and a Bolt (the hardware) with the bolt entirely inside it. A
+drag always places a new shape flush against its neighbour, so build the overlap by hand:
+place a Cube and a Bolt, then use **Align** and **Snap** from the Operations toolbar (see
+[Precise placement: Snap and Align](snap-align.md)) to move the bolt inside the cube — or open a
+project that already has one inside the other.
+
+1. Click the top bar's **Objects** button. Two rows appear: *Cube 1* and *Bolt 1*.
+2. Try clicking the bolt in the 3D view. You get the cube every time — the bolt is inside
+   it. That is the problem the list solves.
+3. **Tap the *Cube 1* row.** The cube is selected. The Operations toolbar says *1 selected*.
+4. **Tap the little box on the *Bolt 1* row.** The box turns teal and shows **2**; the
+   *Cube 1* box shows **1**. The Operations toolbar now says *2 selected — first is the
+   base*, and **Subtract** lights up. In the 3D view the hidden bolt shows through the cube
+   as a teal tint.
+5. Press **Subtract**. The cube now has a bolt-shaped cavity, the *Bolt 1* row disappears
+   from the list (that shape has been used up), and the cube's volume has dropped by exactly
+   the bolt's volume. Press **Undo** to bring the bolt back.
+
+If you only tap the *Bolt 1* row (step 3 on the bolt instead), the bolt alone is selected:
+its Inspector and gizmo appear, and you can move or rotate it — even though the cube is
+in front of it — by dragging the gizmo's arrows or typing into the Position boxes.
+
+**One limit:** the list selects whole shapes. A hardware part such as a bolt is built from
+named pieces (its head, thread and `tap` clearance) that you normally reach by clicking it
+a second time (see [Combining shapes](booleans.md)); a shape that is completely hidden
+cannot be clicked twice, so you cannot pick one of its pieces this way. For a bolt this
+makes no difference to a Subtract — the whole bolt and its `tap` piece cut the same hole.
+
 ## Troubleshooting
 
 - **I clicked a shape and nothing happened.** Check that you clicked the shape itself and
@@ -319,6 +387,14 @@ Dragging a box over nothing clears the selection, the same as clicking empty spa
   aim at the outer half of the arrow, nearer its head.
 - **I typed a position and the shape did not move.** Press **Enter**, or click somewhere
   else, to commit it — the shape moves when you finish editing, not on every keystroke.
+- **I can't click the shape I want — something else is in front of it.** Open the
+  [Objects list](#selecting-a-shape-you-cannot-click-the-objects-list) and tap its name.
+- **The Objects list is greyed out and says it is read-only.** It does that while you are
+  previewing a past step in History (or in sketch mode). Come back to the latest step, or
+  leave sketch mode, and it works again.
+- **A shape I know is in the model is missing from the Objects list.** Its step is probably
+  suppressed or rolled back — see the note at the bottom of the list, and the
+  [History panel](timeline.md).
 - **The Inspector sheet keeps covering the 3D view on my phone.** Swipe it down by its
   grab handle. The view's own navigation controls move up out of the way while the sheet
   is open, so they are never trapped underneath it.

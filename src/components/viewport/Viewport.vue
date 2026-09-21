@@ -24,6 +24,7 @@
  * Rendering is on demand: a frame is scheduled when something actually changes,
  * rather than a permanently-spinning rAF loop burning battery on a static scene.
  */
+import { storeToRefs } from 'pinia'
 import { computed, onBeforeUnmount, onMounted, reactive, ref, shallowRef, watch } from 'vue'
 import { Euler, Group as ThreeGroup, Mesh, Raycaster, Vector2, Vector3 } from 'three'
 import Grid from './Grid.vue'
@@ -66,10 +67,12 @@ import { isDegenerate } from '../../sketch/entity.js'
 import { createOrbitCamera } from '../../render/camera.js'
 import { createViewport } from '../../render/scene.js'
 import {
+  addXrayTwin,
   BODY_COLORS,
   createBodyMaterial,
   createBodyObject,
   createGhostMaterial,
+  createXrayMaterial,
   disposeBodyObject,
   geom3ToBufferGeometry,
   updateBodyObject,
@@ -95,6 +98,7 @@ import { usePlacementStore } from '../../stores/placement.js'
 import { useSelectionStore } from '../../stores/selection.js'
 import { useTimelineStore } from '../../stores/timeline.js'
 import { useSettingsStore } from '../../stores/settings.js'
+import { useSketchModeStore } from '../../stores/sketchMode.js'
 
 /** Degrees of orbit per pixel of drag. */
 const ORBIT_DEG_PER_PX = 0.4
@@ -287,12 +291,14 @@ const snapped = ref(false)
 /**
  * Whether sketch mode is active (`TODO/ui-020`).
  *
- * Local to this component rather than a store: nothing outside the viewport
- * needs to know — the Inspector reacts to the *selection*, not to the mode, and
- * keeping it here means the mode cannot be left switched on by something that
- * has no way to switch it off.
+ * The viewport is still the only thing that switches it. It lives in a store
+ * since `TODO/ui-041` because the Objects list is the first thing outside the
+ * viewport that needs to *read* it: a click on a solid selects nothing in sketch
+ * mode, so a list row that did would be a second, unguarded route to the state
+ * that guard exists to prevent. Cleared on unmount, so the mode still cannot be
+ * left on by something with no way to turn it off.
  */
-const sketchMode = ref(false)
+const { active: sketchMode } = storeToRefs(useSketchModeStore())
 /** The active sketch tool. One value today; see `SketchToolbar.vue`. */
 const sketchTool = ref('line')
 
@@ -391,6 +397,12 @@ let selectedMaterial = /** @type {any} */ (null)
 /** The rest of a multi-body selection — everything but the one picked first. */
 let secondaryMaterial = /** @type {any} */ (null)
 let ghostMaterial = /** @type {any} */ (null)
+/** X-ray tints for a selected body's hidden part (`TODO/ui-041`), base and secondary. */
+let xrayMaterial = /** @type {any} */ (null)
+let xraySecondaryMaterial = /** @type {any} */ (null)
+/** The twins currently attached, so a selection change can take them all off again. */
+/** @type {Mesh[]} */
+const xrayTwins = []
 
 // Pointer bookkeeping. Entries are allocated on pointerdown and mutated in
 // place on move, so pointermove itself allocates nothing.
@@ -939,10 +951,26 @@ function selectionRole(id) {
  */
 function applySelectionMaterial() {
   if (!bodyMaterial) return
+  // Twins are rebuilt from scratch on every call: cheap (selection-change rate, not
+  // frame rate), and it means a body whose geometry was swapped by a move or an edit
+  // can never keep a twin pointing at the geometry it just disposed.
+  for (const twin of xrayTwins) twin.removeFromParent()
+  xrayTwins.length = 0
   for (const [id, object] of bodyMeshes) {
     const role = selectionRole(id)
     const material =
       role === 'base' ? selectedMaterial : role === 'secondary' ? secondaryMaterial : bodyMaterial
+    // A selected body also gets an x-ray twin, because a body completely inside another
+    // is occluded at every pixel and swapping its material alone changes nothing on the
+    // canvas. Where it is not hidden the twin draws nothing. See `createXrayMaterial`.
+    if (role !== 'none') {
+      const tint = role === 'base' ? xrayMaterial : xraySecondaryMaterial
+      if (object instanceof ThreeGroup) {
+        for (const child of object.children) xrayTwins.push(addXrayTwin(/** @type {Mesh} */ (child), tint))
+      } else {
+        xrayTwins.push(addXrayTwin(/** @type {Mesh} */ (object), tint))
+      }
+    }
     // A Group-valued body is a container of part meshes (`TODO/ui-016`), so the
     // highlight is painted onto every part: a group selects and highlights as
     // one object, exactly as it did when it was a single combined mesh. The
@@ -963,6 +991,8 @@ function applyMaterialTheme() {
   selectedMaterial?.color.setHex(palette.selected)
   secondaryMaterial?.color.setHex(palette.secondary)
   ghostMaterial?.color.setHex(palette.ghost)
+  xrayMaterial?.color.setHex(palette.selected)
+  xraySecondaryMaterial?.color.setHex(palette.secondary)
 }
 
 // --- gizmo drag (TODO/ui-012) ---------------------------------------------
@@ -1958,6 +1988,8 @@ onMounted(() => {
   selectedMaterial = createBodyMaterial(palette.selected)
   secondaryMaterial = createBodyMaterial(palette.secondary)
   ghostMaterial = createGhostMaterial(palette.ghost)
+  xrayMaterial = createXrayMaterial(palette.selected)
+  xraySecondaryMaterial = createXrayMaterial(palette.secondary)
 
   try {
     viewport = createViewport(canvas, { fovDeg: orbit.fovDeg, theme: theme.value })
@@ -2024,6 +2056,7 @@ onMounted(() => {
 })
 
 onBeforeUnmount(() => {
+  sketchMode.value = false
   if (rafId) cancelAnimationFrame(rafId)
   rafId = 0
   unregisterTarget?.()
@@ -2050,10 +2083,15 @@ onBeforeUnmount(() => {
   selectedMaterial?.dispose()
   secondaryMaterial?.dispose()
   ghostMaterial?.dispose()
+  xrayMaterial?.dispose()
+  xraySecondaryMaterial?.dispose()
+  xrayTwins.length = 0
   bodyMaterial = null
   selectedMaterial = null
   secondaryMaterial = null
   ghostMaterial = null
+  xrayMaterial = null
+  xraySecondaryMaterial = null
   viewport?.dispose()
   viewport = null
 })

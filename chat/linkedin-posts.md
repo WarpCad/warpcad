@@ -1068,3 +1068,19 @@ Built with Claude Code, reviewed by me.
 **Evidence:** "346 ms" / "224 to 233" / "27 ms at 4x and 39 at 6x" / "11 frames" → `bench/export-mainthread.mjs`, Chromium, CDP CPU throttling, n=5 per cell, all measured this session on the same scene in the same session; "27.01 → 4.82" and "89.92 → 20.78" → `bench/export-benchmark.mjs`, Apple M4 Pro, Node v24.14.1, median of 20 runs (5 for the huge scene); "28 of 80" / "43.4" → phase breakdown of the same export measured this session; "6.5 ms to clone, 0.11 ms back, ~57 ms relocated" → transport measurement this session; "nothing had ever actually built [a worker]" → `grep 'new Worker' src` returned nothing at HEAD before this change; "all ten identical" → `bench/watertight-equivalence.mjs`, comparing ordered vertex digests and whole-file STL/OBJ/GLB digests before and after
 **Disclosure:** Built with Claude Code, reviewed by me.
 **To Add:** repo URL once public; the phase-breakdown and before/after frame-gap tables as images
+
+
+## 2026-09-21T20:40:00Z — The selection that worked and changed nothing on screen
+
+My browser CAD app had a real gap: a bolt sitting completely inside a 40 mm cube cannot be selected. Every way of selecting something is a ray cast from the pointer, and the ray hits the cube first. A grid of 121 clicks across and around the cube selected the cube or nothing, and the bolt never. I added an Objects list to the header, whose rows select the body they name, with a small per-row check so two shapes can be selected on a phone that has no Shift key. The alternative, letting a repeat click cycle through the bodies under the pointer, would have put a second meaning on the gesture that already drills into a part, so I didn't take it.
+
+It worked, and it was still wrong. Tapping the bolt's row filled in the Inspector and attached the move handles, but I diffed the WebGL canvas alone, with every overlay hidden, before and after. Zero pixels changed. A selection is painted by swapping the body's material, and the cube wins the depth test at every pixel where the bolt would show, so nothing on the 3D view said the bolt was selected. The task's own wording promised the same look as a clicked body; that was false, and I'd only have known by measuring.
+
+The fix is small: a selected body is drawn a second time with the depth test inverted, so it appears only where something nearer already hides it. An ordinary selection is unchanged; a hidden one shows through as a tinted silhouette. The canvas diff went from 0 to about 1,190 pixels in both Chromium and WebKit. With the bolt selected from the list and the cube added, Subtract left the cube at 61,108.343 mm³, which is its 64,000 minus the bolt's 2,891.657.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL #ThreeJS #Vue
+**Evidence:** "121 clicks ... the cube or nothing, and the bolt never" → the 11x11 click grid in `e2e/objects-panel.e2e.js`, which asserts the cube was found and the bolt was not; "per-row check ... no Shift key" → `objects-check-<id>` buttons, and `e2e` selects two bodies via row + check only, at phone width; "second meaning on the gesture that already drills into a part" → `docs/decisions/interaction-model-qa.md` section 20 and `TODO/done/ui-016-group-subpart-selection.md`; "Zero pixels" → canvas-only screenshot diff before the fix, Chromium 1440x900, this session; "0 to about 1,190 ... Chromium and WebKit" → 1185 and 1186 changed pixels, same fixture, this session; "61,108.343 = 64,000 minus 2,891.657" → `data-body-volume` of the cube, the bolt, and the Subtract result read off the running app at laptop, tablet and phone this session
+**Disclosure:** Built with Claude Code, reviewed by me.
+**To Add:** repo URL once public; before/after screenshots of the enclosed bolt's tint

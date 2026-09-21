@@ -34,6 +34,18 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### ui-041 — Objects list: the real-phone feel, and the x-ray tint (2026-09-21 20:36 UTC)
+
+Everything measurable here is measured and standing (`e2e/objects-panel.e2e.js` at three viewports,
+`ACCEPTANCE.md` scenario 5). What is left is judgement a Playwright touch emulation cannot make:
+whether the new sheet and toggle *feel* right under a real thumb, and whether the hidden-body tint is
+legible on a real screen in sunlight rather than a 1440px monitor.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | On a real iPhone, open **Objects**, tap a row, tap a check, tap **Subtract**: are the 44px rows and checks comfortable, does the sheet scroll without fighting the page, and does a row tap ever land on the check by mistake (or the reverse)? | Open | |
+| 2 | With a body enclosed in another (open a project that has one), select the enclosed body from the list: is the **teal/amber x-ray tint** legible at phone size in both the dark and light themes, and does it read as "hidden body, selected" rather than as a rendering glitch? At 390px the selected body's gizmo can sit partly under the nav chrome (the phone framing is not adjusted for the sheet) — is that workable, or does it want the camera to re-frame? | Open | |
+
 ### perf-001 — export moved into a worker, and the slow-export pending state (2026-09-21 19:32 UTC)
 
 Everything measurable here is already measured and standing: the freeze (worst animation-frame gap, 224 → 27 ms at 4x CPU throttling and 346 → 40 ms at 6x, `bench/results/2026-09-21-perf-001.md`, re-runnable with one command), the threshold behaviour (5/5 appearances on a 24-body export, 0/5 on a one-body one even at 6x), the output equivalence (SHA-256 over the ordered vertex list and the whole written STL/OBJ/GLB for all ten `io-004`/`io-005` shapes), and `ACCEPTANCE.md` scenario 11's byte-level re-drive. The e2e matrix covers the pending state at all three viewports in Chromium and WebKit. What is left is the one thing a throttling multiplier is **not**: a real phone.

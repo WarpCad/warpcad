@@ -6,8 +6,74 @@ priority: medium
 model: sonnet
 milestone: M6
 depends: [ui-032, ui-040]
-status: open
+status: done
 ---
+
+> ## What actually shipped, and the decisions behind it
+>
+> **Route (a), the Objects list — not (b), pick-cycling.** The runner's recommendation stood.
+> (b) collides with `ui-016`'s "second click drills into a part" in exactly the case that
+> motivates this task (an enclosed *composite*: "drill if it has parts, else cycle" makes an
+> enclosed plain body reachable and the enclosed bolt not), cannot be discovered, and needs a
+> "same point again" gesture touch does not have. Recorded, with the rest, as
+> `docs/decisions/interaction-model-qa.md` **section 20**.
+>
+> - **Header toggle + one shared slot.** An **Objects** button (cube glyph) sits between Redo and
+>   History in the document-bar cluster. The panel is History's dock (>=641px) / History's bottom
+>   sheet (phone), reusing its offsets — no fourth overlay technology. The CSS variables were
+>   renamed `--timeline-sheet-*` -> `--bottom-panel-*` now that two panels read them. Objects and
+>   History are mutually exclusive at every width; the Inspector declines to auto-open over the
+>   Objects sheet exactly as it does over History.
+> - **Rows select through the ordinary store.** A row tap = the whole selection (and drops a pick
+>   depth: a row names a body); the row's **check** — a `<button>`, deliberately not an `<input>`,
+>   because `HistoryControls`' Ctrl+Z guard would treat a checkbox as text entry — or Shift/Ctrl/Cmd
+>   on the row is `selection.toggle`, so a phone reaches "2 selected" with no Shift key and
+>   `ui-040`'s depth-preserving dance still composes. The check shows the body's place in the
+>   selection (1 = Subtract's base) in the toolbar's own two colours.
+> - **§13 not reversed, and the lists are told apart** by heading, glyph, printed `Selects bodies`
+>   line, row content (name + size + check vs numbered step), and selected look (full-row fill vs
+>   left bar). Tested in both directions.
+> - **Rolled-back / suppressed bodies have no row** (rows = the announced scene) and a printed note
+>   says why. **Previewing** is read-only with a printed reason — but since opening Objects ends a
+>   preview, that state is unreachable from the UI; implemented and unit-tested anyway. **Sketch
+>   mode** disables it too, which moved `sketchMode` from a private ref in `Viewport.vue` to
+>   `src/stores/sketchMode.js`.
+>
+> ### The trap the file did not mention was real
+>
+> Selecting the enclosed bolt from the list changed **0 canvas pixels**: the highlight is a
+> material swap and the shell wins the depth test everywhere. The Inspector, the list row and the
+> gizmo/dimension lines (SVG overlays) all worked, and a gizmo drag on the enclosed bolt works, so
+> "identical to a clicked body" was false on the canvas alone. **Fixed, minimally:** a selected
+> body gets an **x-ray twin** — same geometry, `GreaterDepth`, front faces, 50% — that draws only
+> where the body is hidden, child of the mesh so it follows a gizmo drag, excluded from the
+> raycast. ~1 186 changed pixels in Chromium and WebKit; <40 after deselecting; an unoccluded
+> selection is unchanged.
+>
+> ### Deliberately not built, filed rather than widened
+>
+> - **Expandable part rows** (for `ui-016`'s drill-down / `ui-040`'s sub-part operands): optional,
+>   not built. Consequence stated plainly — an enclosed body can be a *whole-body* operand, but its
+>   hidden sub-parts cannot be addressed by a boolean while it is enclosed. **`TODO/ui-042`.** For
+>   `hardware.bolt` this changes no geometry (whole bolt and `tap` cut the same hole).
+> - **`ui-043`** — found while measuring, and **pre-existing** (identical numbers with this task
+>   stashed): at 390x844 with one body selected and the Inspector sheet open, the nav chrome rides
+>   21px over the Operations toolbar.
+>
+> ### Two things this task fixed that it did not set out to
+>
+> - Opening the phone **Library sheet** with History open stacked the Library *behind* History's
+>   sheet (found by hand-driving at 390px). The same three lines now close Objects and History when
+>   the Library opens.
+> - Adding a 44px control to the header caused **26px of horizontal overflow at 320px** (below the
+>   390px target, but it had none before); the brand title yields below 360px.
+>
+> ### Honest process note
+>
+> The store, component and canvas twin were written **before** their unit specs, not after —
+> RED was demonstrated by mutation (removing the disabled guard and the twin's `raycast` opt-out
+> each failed the specs that name them), not by a failing run first. The e2e was written against
+> the finished UI.
 
 ## Goal
 

@@ -1256,6 +1256,152 @@ existing toolbar chrome" note; `CLAUDE.md`'s touch-device rule.*
 
 ---
 
+## 20. Objects list — select any body by name (`TODO/ui-041`)
+
+*Precedent: §13's confirmed rule that a History row and a body are two selections that
+never trigger each other; §13's one bottom dock / bottom sheet; `ui-016`'s "second click
+drills into a part"; `ui-014`'s selection-count gating. Written by `ui-041` (2026-09-21),
+so unlike sections 8-19 this one records a decision made **while building**.*
+
+**Decision: (a), a scene/objects list — not (b), cycling the pick under the pointer.**
+The runner recommended (a) and the build overturned nothing. The reasons, in the order they
+decided it:
+
+1. **(b) puts a second meaning on the most-used gesture in the app.** A repeat click on the
+   same body already means "drill into a part" (`ui-016`, control 6). Cycling would need a
+   rule for which of the two a second click is, and any such rule breaks one of them:
+   "drill if the hit has parts, else cycle" makes an enclosed *plain* body reachable and an
+   enclosed *composite* — the very bolt that motivates this task — not.
+2. **(b) cannot be discovered.** Nothing on screen says a second click cycles; (a) is a
+   labelled control in the header.
+3. **(b) needs a gesture touch does not have.** A phone tap has no "same point again within
+   N ms" that survives an orbit; a row is a 44px target.
+4. **(a) answers a question nothing else does** — "what is in this document?" — and collides
+   with nothing. `data-body-count` and the `scene-bodies` list are an announcement, not a
+   control.
+
+- **Q10 (flow)** — Precondition: none (available whenever the document has bodies; an empty
+  one says `No objects yet — drag a shape in from the Library`). Trigger: **Objects** button
+  in the header's document-bar cluster (`objects-toggle`, `aria-pressed`, cube glyph), between
+  Redo and History; close by pressing it again or the panel's `✕` (`objects-close`). Default
+  closed on every device, every load, not persisted — the same as History (§13). Feedback:
+  the panel opens and the toggle shows pressed.
+  - **≥641px: the same bottom dock as History** (~220px, inside the viewport column).
+    **Phone: the same bottom sheet in History's slot**, with History's offsets
+    (`--bottom-panel-height` / `--bottom-panel-bottom`, renamed from `--timeline-sheet-*` now
+    two panels read them), so the Library and Inspector tabs and the viewport's nav chrome
+    clear it exactly as they clear History. **No fourth overlay technology and no fourth
+    slot.**
+  - **Arbitration.** Objects and History are **mutually exclusive at every width** — opening
+    either closes the other (which ends a History preview, as closing History always does).
+    They are things the user asked for, so they are not stacked. Everything else treats
+    "either open" as "the slot is claimed": the Inspector declines to auto-open over the
+    Objects sheet and its collapsed tab carries the selected body's name; tapping the
+    Inspector's tab closes Objects; opening Objects collapses the Library sheet. **And the
+    reverse, found by hand-driving at 390px:** opening the Library sheet closes Objects *and*
+    History. Before this task tapping the Library tab with History open put the Library's
+    sheet **behind** History's, both half-visible; that hole was `ui-032`'s and is now
+    closed for both, in the same three lines.
+- **Q11 (operand count)** — the list is how a selection of any size is reached; it does not
+  gate anything itself. Every count gate reads `selection.count`, which the list feeds
+  through the ordinary store (below).
+- **Q12 (control location)** — `src/components/layout/ObjectsPanel.vue` and
+  `ObjectsToggle.vue`; state in `src/stores/objectsPanel.js`; mounted by `AppView.vue`.
+- **Q13 (drag-to-place)** — n/a.
+- **Q14 (inspector/gizmo contract)** — A row selects the body it names through
+  `useSelectionStore` — the same store a raycast click writes — so the highlight, the
+  Inspector, the transform gizmo, the dimension lines and the Operations toolbar's count are
+  **identical to a clicked body**, one property at a time, with one honest exception that was
+  measured and then fixed (see "The enclosed-body trap" below).
+  - **Plain click/tap on a row** makes that body the whole selection and **drops any pick
+    depth** (a row names a body, so it means the whole body — the way a first click on a group
+    does). **The check** on the row's left (or Shift/Ctrl/Cmd-click on the row) is additive:
+    exactly what Shift-click does in the viewport, `selection.toggle`, which is also the one
+    path that leaves a pick depth alone — so `ui-040`'s "drilled bolt, shift out, add the
+    cube, add the bolt back" still composes, and list and viewport clicks mix freely.
+    **This is how a touch screen reaches "2 selected" with no Shift key.**
+  - The check shows the body's **place in the selection** (`1` = Subtract's base), in the
+    Operations toolbar's own two colours (`--accent`, `--accent-secondary`).
+  - Rows are a **button** each for name and check, deliberately not `<input>`s:
+    `HistoryControls`' Ctrl+Z guard treats any `INPUT`/`TEXTAREA`/`SELECT` as text entry, so a
+    checkbox would silently disable undo while it had focus. Tested.
+- **Q15 (selection count)** — n/a for the panel; it can select 0..N bodies. Reaching "2
+  selected" purely from the list is tested at three viewports.
+- **Q16 (phone width)** — As above. Rows and checks are ≥44px. The header has 33px of slack
+  at 390px with the new button (measured; it had 83px), and the title yields (`display:none`)
+  below 360px, where the new control would otherwise have caused 26px of horizontal overflow
+  at 320px.
+- **Q17 (acceptance scenario)** — Scenario 5, the enclosed-operand step.
+
+### How the two lists are told apart
+
+They share a slot but not a look, and are never open together. **Objects**: heading
+`OBJECTS`, a cube glyph on its toggle (History's is a list glyph), a printed line `Selects
+bodies · tap a row, tap the check to add more`, rows that are **a name and a size** with a
+**check on the left**, and a **full-row fill** when selected. **History**: heading `HISTORY`,
+rows that are **numbered steps** with a glyph, chips and an action bar, and a **left accent
+bar** when selected. §13's rule is unchanged and tested in both directions: an Objects row
+never calls `timeline.selectRow`, and History never touches the body selection except to
+clear it on entering a preview (§14).
+
+### What the list shows, and what it does when it cannot select
+
+- **Rows = the announced scene** (`timeline.previewBodies ?? documentStore.bodies`), so it can
+  never name a body the scene does not contain. A body past a rollback marker, or whose step is
+  suppressed, has no summary and therefore **no row** — and a printed note says why a row is
+  missing: `N suppressed or rolled-back steps — their bodies are not in the scene, so they are
+  not listed.`
+- **One row per body; a Group is one row.** **Expandable part rows** (for `ui-016`'s
+  drill-down and `ui-040`'s sub-part operands) are **not built** — the motivating case needs
+  body-level selection only. Consequence, stated plainly: **an enclosed body can be selected
+  and used as a whole-body operand, but its hidden sub-parts (`tap`) cannot be addressed by a
+  boolean while it is enclosed**, because drilling in is still a second viewport click.
+  Filed as a follow-on (see the task's retirement note).
+- **Read-only during a History preview** (§14): rows are disabled and a printed reason
+  replaces the hint — `Previewing history — read-only…` — and the list shows the previewed
+  set. Since the two panels are mutually exclusive this state is **unreachable from the UI**
+  (opening Objects ends the preview); it is implemented and unit-tested anyway, because the
+  alternative — a stale live list under a preview strip — is the "looks live but isn't"
+  failure class.
+- **Disabled in sketch mode**, with a printed reason: a click on a solid selects nothing there
+  (a body in the selection would light a Union button in a mode where that toolbar is hidden),
+  so a row that did would be a second, unguarded route to the same state. That needed sketch
+  mode to be readable from outside the viewport, so it moved from a private ref in
+  `Viewport.vue` to `src/stores/sketchMode.js` (the viewport is still the only writer, and
+  clears it on unmount).
+- A selection made in the viewport scrolls its row into view.
+
+### The enclosed-body trap, measured
+
+The task file's own "Feedback" bullet promised the highlight, Inspector and gizmo of a
+clicked body. **Measured with the bolt entirely inside a 40 mm cube: selecting it from the
+list changed 0 canvas pixels.** The highlight is a material swap, and the enclosing shell
+wins the depth test at every pixel. The Inspector, the list row and the gizmo/dimension
+lines all worked (the last two are SVG overlays above the canvas, so occlusion cannot touch
+them, and a gizmo drag on the enclosed body moves it — driven), but "identical to a clicked
+body" was false on the canvas.
+
+**Fixed minimally, not filed away:** a selected body also gets an **x-ray twin** — the same
+geometry drawn again with the depth test inverted (`GreaterDepth`), front faces only, 50%
+opacity, in its selection colour (amber for the base, teal for the rest), as a child of the
+body's mesh so it follows a gizmo drag. `GreaterDepth` passes only where something nearer is
+already in the depth buffer, so it draws **only the part of the selected body that is hidden**:
+an ordinary, unoccluded selection draws nothing extra and looks exactly as before. The twin
+answers no raycast (it would otherwise let the selected body claim clicks aimed at the shell
+in front of it). Measured after: **~1,190 changed pixels** in Chromium and WebKit on the same
+fixture, returning to <40 on deselect.
+
+### Not decided here
+
+Expandable part rows (above); a text filter and the behaviour with a large document (the
+list scrolls like History's, `scrollIntoView` follows a viewport selection, but neither was
+driven with more than a handful of bodies); and the pre-existing phone-width
+overlap between the Operations toolbar and the navigation chrome when a single body is
+selected and the Inspector sheet is open (found while measuring, present on the commit before
+this task, filed separately).
+
+---
+
 ## Summary: M6 acceptance-scenario cross-reference
 
 | Section | Control | Scenario | New scenario needed? |
@@ -1268,6 +1414,7 @@ existing toolbar chrome" note; `CLAUDE.md`'s touch-device rule.*
 | 13-17 | Timeline open + preview/edit/suppress/reorder | 12 | No |
 | 18 | Timeline rollback, insert at the marker, roll forward | 12 | No |
 | 19 | Undo / Redo | 12 ("nothing silently reverts") | No |
+| 20 | Objects list (select any body by name) | 5 (enclosed operand), 4 (count gate), 1 | No |
 
 `TODO/ACCEPTANCE.md` scenarios 10, 11 and 12 are rewritten against these control names
 (the M6 analogue of `ui-001` rewriting 1-9). No fourth scenario is needed.

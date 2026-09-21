@@ -2,12 +2,16 @@ import { describe, expect, it } from 'vitest'
 import modeling from '@jscad/modeling'
 
 import { add, boundsOf, createGroup } from '../core/kernel/group.js'
+import { GreaterDepth, Raycaster, Vector3 } from 'three'
+
 import {
+  addXrayTwin,
   BODY_COLORS,
   createBodyMaterial,
   createBodyObject,
   createGhostMaterial,
   createMesh,
+  createXrayMaterial,
   disposeMesh,
   geom3ToBufferGeometry,
 } from './mesh.js'
@@ -246,5 +250,56 @@ describe('createBodyObject (TODO/ui-016)', () => {
     group = add(group, primitives.cuboid({ size: [4, 4, 4] }), 'tap', { hidden: true })
     const object = createBodyObject(group, material, 'group-2')
     expect(object.children.map((child) => child.userData.partName)).toEqual(['shell'])
+  })
+})
+
+describe('x-ray twin (TODO/ui-041)', () => {
+  const cube = () => primitives.cuboid({ size: [10, 10, 10] })
+
+  it('draws only where something nearer already is: depth test inverted, no depth write', () => {
+    const material = createXrayMaterial(0xffc46b)
+    // The one property the whole feature rests on. A LessEqual twin would draw the body
+    // twice over itself; a Greater one draws exactly the part that is hidden.
+    expect(material.depthFunc).toBe(GreaterDepth)
+    expect(material.depthWrite).toBe(false)
+    expect(material.transparent).toBe(true)
+    expect(material.opacity).toBeGreaterThan(0)
+    expect(material.opacity).toBeLessThan(1)
+    // Pulled nearer, so a coincident front face can never pass a strict Greater vs itself.
+    expect(material.polygonOffsetFactor).toBeLessThan(0)
+  })
+
+  it('is a child of the mesh, sharing its geometry — so it follows every transform', () => {
+    const material = createBodyMaterial(0x9fc0e8)
+    const mesh = createMesh(cube(), material)
+    const twin = addXrayTwin(mesh, createXrayMaterial(0xffc46b))
+    expect(twin.parent).toBe(mesh)
+    expect(twin.geometry).toBe(mesh.geometry)
+    // A move of the body (the gizmo's live preview writes position on the mesh) moves it too.
+    mesh.position.set(5, 0, 0)
+    mesh.updateMatrixWorld(true)
+    expect(new Vector3().setFromMatrixPosition(twin.matrixWorld).x).toBeCloseTo(5, 6)
+  })
+
+  it('is invisible to picking: a raycast that hits the body reports the body, never the twin', () => {
+    const mesh = createMesh(cube(), createBodyMaterial(0x9fc0e8))
+    mesh.name = 'body-1'
+    addXrayTwin(mesh, createXrayMaterial(0xffc46b))
+    const caster = new Raycaster(new Vector3(0, 0, 50), new Vector3(0, 0, -1))
+    const hits = caster.intersectObject(mesh, true)
+    expect(hits.length).toBeGreaterThan(0)
+    expect(hits.every((hit) => hit.object === mesh)).toBe(true)
+  })
+
+  it('a Group body gets a twin per part mesh, without changing the container children', () => {
+    let group = createGroup()
+    group = add(group, cube(), 'shell')
+    group = add(group, primitives.cuboid({ size: [4, 4, 4] }), 'head')
+    const object = createBodyObject(group, createBodyMaterial(0x9fc0e8), 'group-9')
+    const before = object.children.length
+    for (const child of object.children) addXrayTwin(/** @type {import("three").Mesh} */ (child), createXrayMaterial(0xffc46b))
+    // `updateBodyObject` checks `container.children.length === group.names.length`; a twin
+    // hung on the container itself would make every later edit of a composite rebuild it.
+    expect(object.children).toHaveLength(before)
   })
 })

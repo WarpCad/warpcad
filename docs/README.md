@@ -21,7 +21,8 @@ themselves won't have to move.
   already placed, and selecting what you placed.
 - [Selecting a shape, and reading its size](selection-and-inspector.md) — the
   gizmo, the three dimension lines, and the Inspector panel's parameters and
-  Transform section, on desktop and as a phone bottom sheet.
+  Transform section, on desktop and as a phone bottom sheet. Also the **Objects**
+  list, for selecting a shape you cannot click because it is inside another one.
 - [Combining shapes: Union, Subtract and Intersect](booleans.md) — the
   Operations toolbar, why its buttons stay dimmed until two shapes are selected,
   and how to tell which shape Subtract is about to cut.

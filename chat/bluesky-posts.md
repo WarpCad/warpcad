@@ -817,3 +817,13 @@ Built with Claude Code, reviewed by me.
 **Evidence:** "a third of a second" → worst animation-frame gap 346.1 ms at 6x CPU throttling on a 24-body export, Chromium, measured this session via `bench/export-mainthread.mjs`; "5.6x faster" → `makeWatertight` on that scene, 27.01 → 4.82 ms median of 20 runs, Apple M4 Pro / Node 24, `bench/export-benchmark.mjs`; "224ms to 233ms" → same scene, worst frame gap at 4x CPU throttling before and after the repair optimisation, both measured this session; "28ms of 80" / "43" → phase breakdown of the same 24-body export: `toGeom3` 43.4 ms, `makeWatertight` 28.0 ms, serialize 8.7 ms
 **Disclosure:** Built with Claude Code, reviewed by me.
 **To Add:** repo URL once public; the phase-breakdown table as an image
+
+
+## 2026-09-21T20:40:00Z — Selecting a body you can't see
+
+**Post:** A bolt sat fully inside a 40mm cube in my CAD app. My new list selected it fine: Inspector, gizmo, all there. The canvas changed zero pixels; the cube wins the depth test everywhere. Fix: redraw the hidden part with the depth test flipped. Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL #ThreeJS
+**Evidence:** "bolt sat fully inside a 40mm cube" → fixture in `e2e/objects-panel.e2e.js` (cube -20,-20,0..20,20,40; bolt -9.50,-8.23,8.00..9.50,8.23,27.50), read off `data-body-bounds` this session; "Inspector, gizmo, all there" → the same e2e asserts `inspector` contains the bolt's name and `transform-gizmo` is visible after the row is tapped; "zero pixels" → WebGL canvas alone with every overlay hidden, before/after selecting the bolt from the list, before the fix: 0 changed pixels (Chromium, 1440x900, this session); "redraw the hidden part with the depth test flipped" → `createXrayMaterial` in `src/render/mesh.js` (`depthFunc: GreaterDepth`), after: 1185 changed pixels in Chromium and 1186 in WebKit
+**Disclosure:** Built with Claude Code, reviewed by me.
+**To Add:** repo URL once public; a before/after pair of the cube with the bolt's tint showing through

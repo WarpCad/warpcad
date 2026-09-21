@@ -212,8 +212,8 @@ const relatedIds = computed(() => {
     right: 0;
     /* Set by `AppView.vue`, which is the only thing that can see the Library
        tab and the Inspector tab at the same time as this sheet. */
-    bottom: var(--timeline-sheet-bottom, 0px);
-    height: var(--timeline-sheet-height, 46vh);
+    bottom: var(--bottom-panel-bottom, 0px);
+    height: var(--bottom-panel-height, 46vh);
     border-top: 1px solid var(--border-strong);
     box-shadow: var(--shadow-overlay);
   }
