@@ -22,12 +22,31 @@ shape to something else.
    the right of the top bar says `Exported union-1.stl`. Open the file in your slicer or a
    mesh viewer: it should look exactly like what you had on screen.
 
+### A big export tells you it is working
+
+Most exports finish before you have let go of the mouse. A large one — a whole scene of
+boards and bolts, or a single very detailed solid — takes longer, and WarpCad says so instead
+of looking frozen: after about a tenth of a second the **Export** button changes to
+**Exporting…** and a line appears under it naming the file being written, for example
+`Writing warpcad-scene.stl…`. Both disappear the moment the download starts.
+
+You can keep using the app while that line is showing. The file is built in the background,
+so the 3D view still orbits and pans and the rest of the window still responds — on a phone
+especially, where the same export takes several times longer than on a laptop. A quick export
+never shows either of these; if you see them, the file really is a big one.
+
+If something is wrong with what you asked for, the message that appears is a **red** one and
+the panel stays open (see [When an export is refused](#when-an-export-is-refused)) — the
+`Writing…` line is only ever about progress, never about a problem.
+
 **Cancel**, **Esc**, or tapping anywhere outside the panel closes it without exporting anything.
 Nothing in your model or your selection changes while you do any of this.
 
 On a phone the panel is the same one, with 44-pixel tap targets. Your browser's own download
 sheet is the confirmation there — on an iPhone or iPad the file lands in the Files app under
 Downloads, and **Preparing…** shows on the button for a moment the first time you pick glTF.
+A phone is several times slower at building the file than a laptop, so the **Exporting…**
+state above is the one you are most likely to see on one.
 
 ## When Export… is greyed out
 

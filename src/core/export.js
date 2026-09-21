@@ -44,6 +44,15 @@
  *
  * Framework-free per CLAUDE.md: no Vue, no DOM, no three.js. Runs in plain Node.
  *
+ * ## Who calls this, since `TODO/perf-001`
+ *
+ * {@link exportBodies} is still the one implementation, but the **UI no longer calls it
+ * directly**: `stores/exportDialog.js` goes through `src/core/exportClient.js`, which runs
+ * this same function inside `src/core/export.worker.js` so the main thread does not freeze
+ * for a third of a second on a phone. This module stays synchronous and unchanged — it is
+ * what the worker runs, what the fallback runs when a `Worker` cannot be constructed, and
+ * what every unit test here measures.
+ *
  * @module core/export
  */
 

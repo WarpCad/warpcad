@@ -5,7 +5,7 @@ kind: finding
 priority: medium
 model: opus
 depends: [io-003, io-004, ui-034]
-status: open
+status: done
 ---
 
 ## Problem
@@ -105,3 +105,107 @@ gets built.
 - Closed findings whose repro steps get re-run: `io-004` (the eight shapes' open-edge counts
   and volumes) and `ui-034` (the Export popover still downloads STL/OBJ/GLB, scope, refusals
   by name).
+
+## What actually shipped (2026-09-21)
+
+**Both separable pieces, plus the pending state — and the architecture question was decided
+by measurement, not by picking the bigger option.** The file asked for one of two things and
+said to "say which, with the reason, rather than assuming the bigger one". The measurement
+that settled it was not the one this file predicted.
+
+### The finding's own premise was half wrong, and measuring it is what redirected the work
+
+This file is written as though the repair were the dominant cost of a slow export. On a
+single large solid it is. On the **multi-body scene**, it is not — breaking the 24-body export
+into phases (`bench/export-benchmark.mjs`) gives:
+
+| phase | before | after |
+|---|---|---|
+| `toGeom3` — combining 24 composite bodies, i.e. real kernel booleans | 43.4 ms | 43.4 ms |
+| `makeWatertight` | 28.0 ms | **4.8 ms** |
+| `stlSerializer.serialize` | 8.7 ms | 8.7 ms |
+
+**76% of the remaining cost is the `combine()`, not the repair.** Optimising the repair alone
+could never have got this scene under budget — and measured end to end, it barely moved the
+*freeze*: the worst animation-frame gap on a 24-body export went 224.1 -> 233.3 ms at 4x CPU
+throttling (unchanged within noise) even though the repair itself got 5.6x faster, because the
+freeze was never mostly the repair.
+
+### (a) The repair is near-linear, with provably identical output
+
+Two changes, neither of which alters a single byte of any exported file:
+
+- **Integer corner identity** (`CornerIdentity`) instead of a `` `${ix},${iy},${iz}` `` string
+  per vertex per pass — the larger win at the sizes actually reachable today.
+- **A uniform spatial hash** (`CornerGrid`) walked along each open edge, which is the structure
+  this file asked for. It removes the quadratic term (2.38 M candidate tests per pass on a
+  16k-polygon solid).
+
+Measured (Apple M4 Pro, Node 24, median of 20 runs; 5 for the huge solid):
+
+| solid | polygons | before | after |
+|---|---|---|---|
+| one `raspberrypi.bplus` | 217 | 1.71 ms | **0.39 ms** (4.4x) |
+| 24 bodies | 3,492 | 27.01 ms | **4.82 ms** (5.6x) |
+| sphere `segments: 96` u cube | 4,107 | 20.18 ms | **3.79 ms** (5.3x) |
+| sphere `segments: 192` u cube | 16,275 | 89.92 ms | **20.78 ms** (4.3x) |
+
+**Output equivalence is proven, not assumed** — this file's own Testing section calls a faster
+repair that stops finding a T-junction "a regression, not an optimisation".
+`bench/watertight-equivalence.mjs` compares, across all ten shapes `io-004`'s and `io-005`'s
+spec tables cover: the repaired solid's polygon count, its total vertex count, a SHA-256 over
+every vertex coordinate **in order**, and a SHA-256 of the whole written STL, OBJ and GLB.
+**All ten identical.** Ordering is preserved deliberately — hits are sorted by distance along
+the edge and then by first-walked order, which is exactly what a stable sort over the old
+insertion-ordered corner list produced.
+
+### (b) An export-only worker — yes, and here is the number that justified it
+
+The file's condition was a measured multi-hundred-millisecond block at phone-class CPU after
+(a). Driving the real app in Chromium with CDP CPU throttling, **after** the repair
+optimisation, a 24-body export still froze the main thread for **233 ms at 4x and 346 ms at
+6x**. That is the bar, met.
+
+The clone cost, which the runner rightly flagged might eat the win, was measured rather than
+assumed: packing the 24-body scene costs **0.18 ms**, `structuredClone` of it **6.5 ms**, and
+the finished 618 KB STL comes back in **0.11 ms** (a `Uint8Array` is transferable). About a
+ninth of what it relocates. It does not eat the win.
+
+Result, same scene and session, worst animation-frame gap:
+
+| cpu | no worker | with worker |
+|---|---|---|
+| 1x | 61.1 ms | **17.2 ms** (the 60 Hz vsync floor) |
+| 4x | 233.3 ms | **27.3 ms** |
+| 6x | 346.1 ms | **39.5 ms** |
+
+**What was deliberately NOT built**: the general kernel-evaluation worker RPC. This worker is
+entered from the export path alone; no `evaluate()` caller and no part of the document fold
+changed. The 43.4 ms `combine()` above is the evidence that the general RPC is worth doing,
+and it is filed as **`TODO/core-029`** with these numbers rather than smuggled in here.
+
+### Rejected, with the reason
+
+- **Optimise the repair and stop** (option (a) alone) — rejected by the frame-gap measurement
+  above: 233 ms at 4x CPU is still a dead app on a phone, and a pending state set just before a
+  synchronous block **cannot paint at all**, so the file's "honest minimum" fallback would have
+  been a spinner nobody ever sees.
+- **Put three.js's `GLTFExporter` in the worker too** — rejected by measurement: meshing and
+  serializing a `.glb` is ~5 ms of its ~54 ms, and `src/core/` may not import three.js
+  (`CLAUDE.md`, Project Structure). The worker does glTF's kernel-shaped half and hands back
+  prepared solids; a unit test asserts the resulting file is **byte-identical** to the direct one.
+- **Change `exportBodies` to be async** — rejected: it stays synchronous and unchanged, so it
+  remains what the worker runs, what the fallback runs, and what every existing spec measures.
+  `src/core/exportClient.js` is the new seam, and `stores/exportDialog.js` is its only caller.
+
+### The pending state
+
+`Exporting...` on the button and a `role="status"` line naming the file, after 100 ms. Measured
+to appear when it should and not when it should not: **0 of 5** appearances on a one-body export
+even at 6x CPU throttling, **5 of 5** on a 24-body one. Covered at all three reference viewports
+in `e2e/export-ui.e2e.js`, in Chromium and WebKit, and documented in `docs/export.md`.
+
+One honest caveat: on this laptop at **1x**, a 24-body export lands right at the threshold, so
+the line is either absent or a ~10 ms flash. That is the borderline every threshold has; the
+case that matters (phone-class CPU) is unambiguous.
+

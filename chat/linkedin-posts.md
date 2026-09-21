@@ -1045,3 +1045,26 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **To Add:** repo URL once public; a diagram of snap-then-test versus key-only matching
 
+
+## 2026-09-21T19:33:00Z — The optimisation that worked and didn't help
+
+I spent the first part of this task making a mesh-repair pass 5.6 times faster. It worked. It also made almost no difference to the thing I was trying to fix, and finding that out was the actual job.
+
+The symptom: exporting a 24-body scene from my browser CAD app froze the main thread for 346 ms at phone-class CPU speeds. The finding I'd written for myself blamed a T-junction repair pass I'd added days earlier, which had roughly doubled export time. That reasoning was sound and the fix was real — integer corner identity instead of building a string key per vertex per pass, plus a uniform spatial hash so each open edge only asks the corners near it. Measured on an M4 Pro over 20 runs: 27.01 ms to 4.82 ms on that scene, 89.92 to 20.78 on a deliberately huge one.
+
+Then I measured the freeze again. 224 ms to 233 ms. Within noise.
+
+So I broke the export into phases instead of trusting the story I'd written. The repair was 28 ms of 80. Combining composite bodies into single solids — real boolean operations, the kind a CAD kernel does — was 43.4. I had optimised the second-biggest cost and left three quarters of the problem in place. No amount of making the repair faster was going to fix this, and the only reason I know that is that I measured before and after rather than after alone.
+
+The real fix was a Web Worker, which the project's own architecture notes had specified from the start and which nothing had ever actually built. What made it a decision rather than a reflex was the cost of moving geometry across the boundary: these are plain JavaScript arrays with nothing transferable about them, so every polygon gets copied. That could easily have eaten the win. Measured: 6.5 ms to clone the scene out, 0.11 ms for the finished 618 KB file to come back, against ~57 ms relocated. Worth it, and now I can point at why. Worst frame gap is 27 ms at 4x throttling and 39 at 6x, and the app paints 11 frames during an export instead of stalling through it.
+
+The part I'm most careful about: a faster repair that quietly stops finding a T-junction is a regression wearing an optimisation's clothes. So the change had to prove it produced identical output, not merely correct-looking output — a SHA-256 over every repaired vertex in order, and over the whole written STL, OBJ and glTF, across all ten shapes my two previous mesh findings assert on. All ten identical. That check found nothing, which is exactly what I wanted it to find.
+
+I also deliberately didn't build the bigger thing. Kernel evaluation still runs on the main thread everywhere else, and that 43.4 ms number is the argument for fixing it — but that touches every caller and the document history, so it's filed with the measurement attached rather than smuggled into a task about export.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #Performance #WebDev #ComputationalGeometry
+**Evidence:** "346 ms" / "224 to 233" / "27 ms at 4x and 39 at 6x" / "11 frames" → `bench/export-mainthread.mjs`, Chromium, CDP CPU throttling, n=5 per cell, all measured this session on the same scene in the same session; "27.01 → 4.82" and "89.92 → 20.78" → `bench/export-benchmark.mjs`, Apple M4 Pro, Node v24.14.1, median of 20 runs (5 for the huge scene); "28 of 80" / "43.4" → phase breakdown of the same export measured this session; "6.5 ms to clone, 0.11 ms back, ~57 ms relocated" → transport measurement this session; "nothing had ever actually built [a worker]" → `grep 'new Worker' src` returned nothing at HEAD before this change; "all ten identical" → `bench/watertight-equivalence.mjs`, comparing ordered vertex digests and whole-file STL/OBJ/GLB digests before and after
+**Disclosure:** Built with Claude Code, reviewed by me.
+**To Add:** repo URL once public; the phase-breakdown and before/after frame-gap tables as images

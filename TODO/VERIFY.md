@@ -34,6 +34,15 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### perf-001 — export moved into a worker, and the slow-export pending state (2026-09-21 19:32 UTC)
+
+Everything measurable here is already measured and standing: the freeze (worst animation-frame gap, 224 → 27 ms at 4x CPU throttling and 346 → 40 ms at 6x, `bench/results/2026-09-21-perf-001.md`, re-runnable with one command), the threshold behaviour (5/5 appearances on a 24-body export, 0/5 on a one-body one even at 6x), the output equivalence (SHA-256 over the ordered vertex list and the whole written STL/OBJ/GLB for all ten `io-004`/`io-005` shapes), and `ACCEPTANCE.md` scenario 11's byte-level re-drive. The e2e matrix covers the pending state at all three viewports in Chromium and WebKit. What is left is the one thing a throttling multiplier is **not**: a real phone.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | **On a real iPhone and a real iPad, does a big export still feel alive?** CPU throttling at 4-6x is a stand-in for a phone, not a measurement of one — a real device also differs in memory pressure, thermal throttling and how Safari schedules a module worker. Build a heavy scene (a dozen library boards and bolts), press **Export**, and judge two things by hand: does the viewport really keep responding to a drag *while* `Writing warpcad-scene.stl…` is showing, and does the file still arrive? Then the borderline case the numbers cannot settle: on a fast laptop at 1x a 24-body export lands right at the 100 ms threshold, so the line is absent or a ~10 ms flash. On a phone the same export is several times slower, so it should show properly — **but if it flickers on and off, or appears for so short a time that it reads as a glitch rather than as progress, the threshold is wrong for real hardware** and is worth raising. File it if so. | Open | |
+| 2 | **Does the worker actually survive a real mobile Safari backgrounding?** Start a big export on an iPhone and immediately switch apps or lock the screen, then come back. iOS suspends timers and can terminate workers aggressively; the code falls back to the main thread only when a worker cannot be *constructed*, not when a live one is killed mid-job — in that case `runExport` rejects and the popover shows `Export failed: …` rather than quietly retrying. Is that what happens, and is the message survivable (popover still open, Export still pressable)? If iOS kills workers routinely on backgrounding, a retry-on-the-main-thread path becomes worth having and should be filed. | Open | |
+
 ### ui-034 — File ▾ → Export… (2026-09-21 14:50 UTC)
 
 Everything checkable without a person or a real slicer is covered on a standing basis: `e2e/export-ui.e2e.js`

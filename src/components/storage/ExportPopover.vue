@@ -14,6 +14,16 @@
  * - **Format**, a segmented radio: STL (default) · OBJ · glTF (.glb), remembered per viewer.
  * - `Export` (commit) and `Cancel`. `Export` reads `Preparing…` while glTF's lazy exporter
  *   loads; a refusal appears **by name** in a `role="alert"` and the popover stays open.
+ * - **A slow export says so** (`TODO/perf-001`). Precondition: an export is in flight and has
+ *   been for longer than `PENDING_AFTER_MS`. Trigger: the Export press itself — this is
+ *   feedback on an existing control, not a new one to find. Feedback: the button reads
+ *   `Exporting…` and stays disabled, and a `role="status"` line under it names the file
+ *   (`Writing warpcad-scene.stl…`). Both clear when the download starts, when the export is
+ *   refused, or when the popover is closed. It is armed by a timer rather than set on press,
+ *   so a 5 ms export never flashes it — measured at 0/5 appearances on a one-body scene even
+ *   at 6× CPU throttling, against 5/5 on a 24-body one. The state is worth showing only
+ *   because `src/core/exportClient.js` put the work in a worker: while the main thread was
+ *   doing the serializing itself, nothing could have painted it.
  * - Notes only when they apply: the rolled-back label, the whole-body note for a drilled-in
  *   selection, and the reason when Export became unavailable while the popover was open.
  *
@@ -68,6 +78,17 @@ const style = computed(() => ({
 
 /** The one-line reason Export cannot go ahead right now, if any. */
 const blockedText = computed(() => dialog.unavailableReason || dialog.scopeProblem)
+
+/**
+ * `Export` → `Preparing…` (glTF's lazy exporter chunk) → `Exporting…` (the export has
+ * been running longer than `PENDING_AFTER_MS`, `TODO/perf-001`). The slow-export state
+ * wins when both apply, because by then the chunk has long since loaded and what the
+ * user is waiting for is the file.
+ */
+const commitLabel = computed(() => {
+  if (dialog.pending) return 'Exporting…'
+  return dialog.preparing ? 'Preparing…' : 'Export'
+})
 
 watch(
   () => dialog.isOpen,
@@ -164,6 +185,9 @@ onBeforeUnmount(() => window.removeEventListener('resize', measure))
           {{ blockedText }}
         </p>
         <p v-if="dialog.error" class="export__error" role="alert" data-testid="export-error">{{ dialog.error }}</p>
+        <p v-if="dialog.pending" class="export__note export__pending" role="status" data-testid="export-pending">
+          Writing {{ dialog.pendingFile }}…
+        </p>
 
         <div class="export__actions">
           <button type="button" class="export__button" data-testid="export-cancel" @click="dialog.close()">
@@ -175,7 +199,7 @@ onBeforeUnmount(() => window.removeEventListener('resize', measure))
             data-testid="export-commit"
             :disabled="!dialog.canExport"
           >
-            {{ dialog.preparing ? 'Preparing…' : 'Export' }}
+            {{ commitLabel }}
           </button>
         </div>
       </form>
@@ -320,6 +344,12 @@ onBeforeUnmount(() => window.removeEventListener('resize', measure))
 
 .export__note--warn {
   background: color-mix(in srgb, var(--warn) 14%, var(--surface-1));
+}
+
+/* Same shape as a note, but marked as activity rather than as a warning. */
+.export__pending {
+  border-left: 3px solid var(--accent);
+  color: var(--text-2);
 }
 
 .export__error {

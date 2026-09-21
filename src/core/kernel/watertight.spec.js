@@ -132,4 +132,36 @@ describe('makeWatertight', () => {
     expect(openSides(repaired)).toBe(0)
     expect(measurements.measureVolume(repaired)).toBeCloseTo(measurements.measureVolume(union), 4)
   })
+
+  it('closes a body far bigger than the spatial hash\'s cell size (perf-001)', () => {
+    // `perf-001` replaced "test every open edge against every corner in the solid" with a
+    // uniform spatial hash. That is only equivalent if the hash's neighbourhood is wide
+    // enough: a grid that looked at one cell instead of the 3x3x3 block around each
+    // sample would miss junctions whose two sides fall either side of a cell boundary,
+    // and would do it only on bodies large enough to have many cells — which is exactly
+    // the size no other test in this file reaches.
+    const big = booleans.union(
+      primitives.sphere({ radius: 40, segments: 96 }),
+      primitives.cuboid({ size: [60, 60, 60], center: [30, 30, 30] })
+    )
+    expect(geometries.geom3.toPolygons(big).length).toBeGreaterThan(3000)
+
+    const repaired = makeWatertight(big)
+    expect(openSides(repaired)).toBe(0)
+    expect(measurements.measureVolume(repaired)).toBeCloseTo(measurements.measureVolume(big), 3)
+    expect(measurements.measureBoundingBox(repaired)).toEqual(measurements.measureBoundingBox(big))
+  })
+
+  it('is stable: repairing an already-repaired solid inserts nothing more', () => {
+    // The repair runs on both export paths (`io-004`, `io-005`) and, since `perf-001`,
+    // possibly on either side of a worker boundary. Running it twice must be a no-op,
+    // or a `.glb` built from worker-prepared solids would differ from a direct one.
+    const union = booleans.union(
+      primitives.cylinder({ radius: 20, height: 50, center: [-100.89, 66.93, 25] }),
+      primitives.cuboid({ size: [40, 40, 40], center: [-95, 75, 20] })
+    )
+    const once = makeWatertight(union)
+    const twice = makeWatertight(once)
+    expect(twice).toBe(once) // same object: the second pass found nothing to do
+  })
 })

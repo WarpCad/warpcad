@@ -82,15 +82,29 @@ export const GLTF_ROOT_NAME = 'warpcad-export'
  * Serialize bodies to a binary glTF. Several bodies go into one file, one node each,
  * named after the body.
  *
+ * ## Prepared solids (`TODO/perf-001`)
+ *
+ * `options.prepared` lets the caller hand in solids that have **already** been
+ * validated (`solidsForExport`) and repaired (`makeWatertight`) — which is what
+ * `src/core/exportClient.js` does, because the worker did that half off the main
+ * thread. It is an optimisation, never a different result: passing it skips exactly
+ * the two calls below and nothing else, and omitting it (every other caller, and every
+ * existing spec) runs the original path unchanged. The remaining work — meshing and
+ * `GLTFExporter` — measured ~5 ms of a 24-body `.glb`'s ~54 ms, so it stays here rather
+ * than dragging three.js into the worker for one format.
+ *
  * @param {readonly ExportBody[]} bodies What to write — the caller has already applied
  *   the selection rule (see `resolveExportScope` in `src/core/export.js`).
+ * @param {object} [options]
+ * @param {{ name: string, solid: any }[]} [options.prepared] Already validated and
+ *   repaired solids, in `bodies` order.
  * @returns {Promise<ExportResult>}
  * @throws {import('../core/export.js').ExportError} `nothing-to-export`,
  *   `evaluation-failed` or `empty-geometry`, exactly as for STL and OBJ.
  */
-export async function exportGltf(bodies) {
+export async function exportGltf(bodies, options = {}) {
   // Validate before loading the exporter: a refusal should not cost a chunk download.
-  const solids = solidsForExport(bodies)
+  const solids = options.prepared ?? solidsForExport(bodies)
 
   const { GLTFExporter } = await import('three/addons/exporters/GLTFExporter.js')
 
@@ -106,7 +120,10 @@ export async function exportGltf(bodies) {
     // for why the answer to "does a .glb need to be watertight?" came out as yes. The
     // repair runs HERE and not in the bridge: it costs 0.7-3.4 ms per body, which a
     // one-shot export can pay and a viewport rebuild inside a 16 ms frame cannot.
-    const geometry = geom3ToBufferGeometry(makeWatertight(solid), { triangulation: 'non-degenerate' })
+    // Unless the worker already did it (`options.prepared`, `TODO/perf-001`) — in which
+    // case running it again would be a no-op that still costs its whole scan.
+    const repaired = options.prepared ? solid : makeWatertight(solid)
+    const geometry = geom3ToBufferGeometry(repaired, { triangulation: 'non-degenerate' })
     triangleCount += /** @type {BufferAttribute} */ (geometry.getAttribute('position')).count / 3
     const mesh = new Mesh(geometry, material)
     mesh.name = name

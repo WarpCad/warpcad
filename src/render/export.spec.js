@@ -9,9 +9,11 @@
 import { describe, expect, it } from 'vitest'
 import modeling from '@jscad/modeling'
 
-import { ExportError } from '../core/export.js'
+import { ExportError, solidsForExport } from '../core/export.js'
 import { evaluate } from '../core/kernel/index.js'
 import { add, boundsOf, createGroup, volumeOf } from '../core/kernel/group.js'
+import { makeWatertight } from '../core/kernel/watertight.js'
+import { packSolids, unpackSolids } from '../core/kernel/transport.js'
 import { exportGltf } from './export.js'
 
 const { primitives, geometries } = modeling
@@ -488,5 +490,46 @@ describe('exportGltf — every exported surface is watertight (io-005)', () => {
     // an edge with the other.
     expect(openEdges(trianglesOfGlb(glb)).open).toBe(0)
     expect(degenerateTriangles(trianglesOfGlb(glb))).toBe(0)
+  })
+})
+
+describe('exportGltf with worker-prepared solids (perf-001)', () => {
+  /**
+   * `TODO/perf-001` moved the combine-and-repair half of a `.glb` into the export
+   * worker, so `exportGltf` can be handed solids that are already validated and
+   * repaired. The only thing that makes that safe is this: the file must come out
+   * **byte for byte** the same as when this module does that work itself. `io-005`'s
+   * whole point was that a `.glb` which merely looks right is not good enough.
+   */
+  it('writes the same bytes as the direct path, for one body and for several', async () => {
+    const { byId } = evaluate([
+      { id: 'cyl', op: 'primitive.cylinder', params: { diameter: 40, height: 50, center: [-100.89, 66.93, 25] } },
+      { id: 'cube', op: 'primitive.cuboid', params: { size: [40, 40, 40], center: [-95, 75, 20] } },
+      { id: 'u', op: 'boolean.union', target: 'cyl', operands: ['cube'] },
+      { id: 'b', op: 'hardware.bolt', params: { spec: 'm10 hex', length: 30 } },
+    ])
+    for (const bodies of [
+      [body('Union 1', byId.get('u'))],
+      [body('Union 1', byId.get('u')), body('Bolt 1', byId.get('b'))],
+    ]) {
+      // Exactly what `src/core/exportJob.js` prepares and the client hands back.
+      const prepared = solidsForExport(bodies).map(({ name, solid }) => ({ name, solid: makeWatertight(solid) }))
+      const roundTripped = unpackSolids(structuredClone(packSolids(prepared)))
+
+      const direct = await exportGltf(bodies)
+      const viaWorker = await exportGltf(bodies, { prepared: roundTripped })
+
+      expect(viaWorker.filename).toBe(direct.filename)
+      expect(viaWorker.triangleCount).toBe(direct.triangleCount)
+      expect(viaWorker.bytes.byteLength).toBe(direct.bytes.byteLength)
+      expect(Array.from(viaWorker.bytes)).toEqual(Array.from(direct.bytes))
+    }
+  })
+
+  it('still refuses a body with no triangles when the caller prepared nothing', async () => {
+    // The prepared path skips `solidsForExport`, so the refusal has to have happened
+    // in the worker — the client never reaches here with a bad body. Without
+    // `prepared`, the refusal is this module's own, unchanged.
+    await expect(exportGltf([body('Ghost', geometries.geom3.create())])).rejects.toBeInstanceOf(ExportError)
   })
 })

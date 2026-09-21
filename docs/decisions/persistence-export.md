@@ -428,6 +428,26 @@ involvement at all"). `io-003` should be updated to build both modules. `io-003`
 instructs its implementer to "state explicitly, once `data-001` resolves, which path this
 task actually took and why" — this section is that answer, and it is *both*.
 
+#### Amendment, 2026-09-21 (`perf-001`) — a third module, and the split survives it
+
+Export now runs in a worker (`src/core/export.worker.js`), which does not change the
+ownership above so much as put a thread boundary through it:
+
+- **`src/core/exportJob.js`** is the whole job as one pure function, and it is what runs
+  inside the worker. It calls the *same* `solidsForExport` and `makeWatertight` the main
+  thread would, so there is no second implementation to drift — the failure mode both
+  `io-004` and `io-005` were about.
+- **`src/core/kernel/transport.js`** packs `Geom3`/`Group` for `postMessage`. Measured at
+  0.18 ms to pack and 6.5 ms to clone a 24-body scene, against ~57 ms of work relocated,
+  so the clone does not eat the win (`bench/results/2026-09-21-perf-001.md`).
+- **glTF still finishes on the main thread**, because the split above still holds:
+  `GLTFExporter` is three.js and `src/core/` may not import it. The worker does glTF's
+  kernel-shaped half (combine and repair, ~48 of a 24-body `.glb`'s ~54 ms) and hands back
+  prepared solids; `exportGltf(bodies, { prepared })` meshes and serializes them. A unit
+  test asserts that file is **byte-identical** to the direct one.
+- **The synchronous path remains**, as the fallback when a `Worker` cannot be constructed.
+  It is the pre-`perf-001` behaviour exactly: slower, still freezing, never failing.
+
 ### One ecosystem caveat, recorded rather than buried
 
 `@jscad/io` and its serializers see **678 weekly downloads**, against 33,792 for

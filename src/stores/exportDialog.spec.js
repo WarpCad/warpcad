@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { ExportError } from '../core/export.js'
 import { useDocumentStore } from './document.js'
-import { setExportDependencies, useExportDialogStore } from './exportDialog.js'
+import { PENDING_AFTER_MS, setExportDependencies, useExportDialogStore } from './exportDialog.js'
 import { setPersistenceDependencies, usePersistenceStore } from './persistence.js'
 import { useSelectionStore } from './selection.js'
 import { useSettingsStore } from './settings.js'
@@ -476,5 +476,114 @@ describe('the document changing under an open popover (stale selection, decision
     documentStore.load([])
     expect(dialog.unavailableReason).toBe('Nothing to export')
     expect(dialog.canExport).toBe(false)
+  })
+})
+
+describe('the pending state for a slow export (perf-001)', () => {
+  /**
+   * `TODO/perf-001` moved export into a worker precisely so this state can *paint*
+   * while the file is being written; the rule it must obey is that a quick export
+   * never shows one. Time is faked rather than waited on, so the threshold itself is
+   * what is asserted rather than how fast this machine happens to be.
+   *
+   * These drive the store's real `commit()` against the real `io-003` serializers; only
+   * the download and the lazy glTF exporter are faked, as everywhere else in this file.
+   */
+
+  it('a quick export shows no pending state at all — not even for a moment', async () => {
+    const { dialog, downloads } = setup()
+    dialog.open()
+    await dialog.commit()
+    expect(dialog.pending).toBe(false)
+    expect(downloads).toHaveLength(1)
+  })
+
+  it('an export still running at the threshold says so, and names the file it is writing', async () => {
+    vi.useFakeTimers()
+    try {
+      const { dialog } = setup()
+      let release
+      setExportDependencies({
+        download: () => {},
+        loadGltfExporter: () =>
+          new Promise((resolve) => {
+            release = () =>
+              resolve(async () => ({ bytes: new Uint8Array(1), filename: 'warpcad-scene.glb', mimeType: 'm', triangleCount: 1 }))
+          }),
+      })
+      dialog.open()
+      dialog.chooseFormat('glb')
+      const inFlight = dialog.commit()
+
+      // Just under the threshold: still nothing, because a flash would read as a glitch.
+      await vi.advanceTimersByTimeAsync(PENDING_AFTER_MS - 1)
+      expect(dialog.pending).toBe(false)
+
+      await vi.advanceTimersByTimeAsync(2)
+      expect(dialog.pending).toBe(true)
+      expect(dialog.pendingFile).toBe('warpcad-scene.glb')
+
+      release()
+      await inFlight
+      expect(dialog.pending).toBe(false)
+      expect(dialog.pendingFile).toBe('')
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('a refusal clears the pending state and still appears BY NAME, with the popover open', async () => {
+    vi.useFakeTimers()
+    try {
+      const { dialog, documentStore, downloads } = setup({ seed: 'none' })
+      documentStore.append({ id: 'ghost', op: 'primitive.cuboid', name: 'Ghost', params: { size: [10, 10, 10] } })
+      setExportDependencies({
+        download: () => {},
+        loadGltfExporter: async () => async () => {
+          await new Promise((resolve) => setTimeout(resolve, 500))
+          throw new ExportError('empty-geometry', 'Cannot export "Ghost": it has no triangles', 'Ghost')
+        },
+      })
+      dialog.open()
+      dialog.chooseFormat('glb')
+      const inFlight = dialog.commit()
+
+      await vi.advanceTimersByTimeAsync(PENDING_AFTER_MS + 1)
+      expect(dialog.pending).toBe(true)
+
+      await vi.advanceTimersByTimeAsync(600)
+      await inFlight
+      expect(dialog.pending).toBe(false)
+      expect(dialog.error).toBe('Cannot export "Ghost": it has no triangles')
+      expect(dialog.isOpen).toBe(true)
+      expect(downloads).toHaveLength(0)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('closing the popover mid-export drops the pending state with the export', async () => {
+    vi.useFakeTimers()
+    try {
+      const { dialog } = setup()
+      setExportDependencies({
+        download: () => {},
+        loadGltfExporter: () => new Promise(() => {}), // never resolves
+      })
+      dialog.open()
+      dialog.chooseFormat('glb')
+      dialog.commit()
+      await vi.advanceTimersByTimeAsync(PENDING_AFTER_MS + 1)
+      expect(dialog.pending).toBe(true)
+
+      dialog.close()
+      expect(dialog.pending).toBe(false)
+      expect(dialog.pendingFile).toBe('')
+      // And the timer really is gone, rather than firing into a closed popover.
+      await vi.advanceTimersByTimeAsync(1000)
+      expect(dialog.pending).toBe(false)
+    } finally {
+      vi.useRealTimers()
+    }
   })
 })

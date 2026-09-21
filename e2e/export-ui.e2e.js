@@ -889,3 +889,218 @@ test('layout, measured: the menu row and the popover fit, are tappable at 44px, 
   }
   await page.screenshot({ path: join(SNAPSHOT_DIR, `popover-measured-${testInfo.project.name}.png`) })
 })
+
+// ---------------------------------------------------------------------------------------
+// The export worker and the slow-export pending state (`TODO/perf-001`)
+// ---------------------------------------------------------------------------------------
+
+/**
+ * Both engines, all three viewports, for a specific reason: this is a **module worker**
+ * (`new Worker(new URL(…), { type: 'module' })`), which is bundled differently by Vite
+ * and implemented differently by Chromium and WebKit — exactly the "works in Chrome is
+ * not evidence" surface `CLAUDE.md`'s Browser Support section is about. Firefox cannot
+ * launch in this sandbox (`TROUBLESHOOTING.md`, 2026-09-17), so the claim is
+ * chromium + webkit.
+ *
+ * The pending state is watched with a `MutationObserver` installed *before* the press,
+ * rather than polled afterwards: it is by nature brief, and a poll that missed it would
+ * report the opposite of the truth.
+ *
+ * @param {import('@playwright/test').Page} page
+ */
+async function watchPendingState(page) {
+  await page.evaluate(() => {
+    window.__pendingSeen = 0
+    window.__pendingText = ''
+    window.__pendingRects = []
+    const look = () => {
+      const el = document.querySelector('[data-testid="export-pending"]')
+      if (!el) return
+      window.__pendingSeen += 1
+      window.__pendingText = el.textContent.trim()
+      const box = el.getBoundingClientRect()
+      window.__pendingRects.push({ x: box.x, y: box.y, width: box.width, height: box.height })
+    }
+    new MutationObserver(look).observe(document.body, { childList: true, subtree: true })
+    look()
+  })
+}
+
+/** @param {import('@playwright/test').Page} page */
+const pendingReport = (page) =>
+  page.evaluate(() => ({
+    seen: window.__pendingSeen,
+    text: window.__pendingText,
+    rects: window.__pendingRects,
+  }))
+
+/**
+ * A scene big enough that the export genuinely takes longer than the 100 ms threshold
+ * on every engine here: 12 `raspberrypi.bplus` boards and 12 bolts, all Group bodies,
+ * so the worker pays for 24 `combine()` calls as well as 24 repairs. Seeded, not
+ * dragged — no drag can place 24 library parts, and the action under test is the
+ * Export press, not the placement.
+ *
+ * @param {import('@playwright/test').Page} page
+ */
+async function seedBigScene(page) {
+  await storeApi(page).run(async (api) => {
+    for (let index = 0; index < 12; index += 1) {
+      const at = [(index % 4) * 150, Math.floor(index / 4) * 150, 0]
+      api.documentStore.append({ id: `pi${index}`, op: 'raspberrypi.bplus', name: `Board ${index + 1}`, params: {} })
+      // `consumes` so the move absorbs the body it moved, leaving 24 bodies and not 48.
+      // They have to be APART: 24 coincident solids would share every edge 24 ways, and
+      // the closed-manifold check below would read that as 1,545 open edges.
+      api.documentStore.append({
+        id: `pit${index}`,
+        op: 'transform.translate',
+        name: `Board ${index + 1}`,
+        target: `pi${index}`,
+        consumes: [`pi${index}`],
+        params: { vector: at },
+      })
+      api.documentStore.append({
+        id: `bolt${index}`,
+        op: 'hardware.bolt',
+        name: `Bolt ${index + 1}`,
+        params: { spec: 'm10 hex', length: 30 },
+      })
+      api.documentStore.append({
+        id: `boltt${index}`,
+        op: 'transform.translate',
+        name: `Bolt ${index + 1}`,
+        target: `bolt${index}`,
+        consumes: [`bolt${index}`],
+        params: { vector: [at[0] + 70, at[1], 0] },
+      })
+    }
+  })
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-body-count', '24', { timeout: 60_000 })
+}
+
+test('the export really runs in a worker, and the file it writes is still closed', async ({ page }) => {
+  // The point of the worker is that the main thread is free; the point of THIS test is
+  // that the bytes did not change on the way there and back (`io-004`, `io-005`).
+  await page.goto('/')
+  await placeTwoCubes(page)
+  await unionTheCubes(page)
+  const [union] = await sceneBodies(page)
+
+  await openExportPopover(page)
+  const { name, bytes } = await pressExport(page)
+
+  const usedWorker = await page.evaluate(async () => {
+    const { workerAvailable } = await import('/src/core/exportClient.js')
+    return workerAvailable()
+  })
+  expect(usedWorker, 'the worker answered — this is not silently the fallback path').toBe(true)
+
+  expect(name).toBe('union-1.stl')
+  const stats = meshStats(parseBinaryStl(bytes))
+  expect(stats.unmatchedEdges, '0 open edges, through the worker').toBe(0)
+  expect(Math.abs(stats.volume - union.volume) / union.volume).toBeLessThan(1e-4)
+})
+
+test('the pending state tracks how long the export ACTUALLY took, not how big the scene looks', async ({ page }) => {
+  // The contract is a biconditional — the state appears if and only if the export ran
+  // longer than the 100 ms threshold — so that is what is asserted, against the measured
+  // duration of this very run rather than against an assumption about how fast this
+  // machine is. Asserting a flat "a one-body export never shows it" looked right and was
+  // wrong: under the full 8-way parallel matrix a one-body export really does cross
+  // 100 ms sometimes, and the state appearing then is the feature working, not failing.
+  //
+  // The crisp threshold evidence lives where time can be controlled instead of measured:
+  // `src/stores/exportDialog.spec.js` and `src/components/storage/ExportPopover.spec.js`
+  // drive it with fake timers, and `bench/results/2026-09-21-perf-001.md` measured 0/5
+  // appearances on a one-body scene against 5/5 on a 24-body one, unloaded.
+  await page.goto('/')
+  await placeTwoCubes(page)
+  await unionTheCubes(page)
+  await openExportPopover(page)
+  await watchPendingState(page)
+
+  const started = Date.now()
+  const { name } = await pressExport(page)
+  const elapsed = Date.now() - started
+  expect(name).toBe('union-1.stl')
+
+  const report = await pendingReport(page)
+  if (elapsed < 80) {
+    expect(report.seen, `export took ${elapsed} ms, comfortably under the threshold — no pending state`).toBe(0)
+  } else if (elapsed > 200) {
+    expect(report.seen, `export took ${elapsed} ms, well over the threshold — the pending state is owed`).toBeGreaterThan(0)
+  }
+  // Between 80 and 200 ms the answer depends on where inside the press the clock actually
+  // started, so nothing is asserted rather than something flaky. Either way the state must
+  // be GONE by the time the download lands.
+  await expect(page.getByTestId('export-pending')).toHaveCount(0)
+})
+
+test('a slow export says so, names the file, and stays clear of everything else', async ({ page }, testInfo) => {
+  test.setTimeout(180_000)
+  await page.goto('/')
+  await seedBigScene(page)
+
+  await openExportPopover(page)
+  await expect(page.getByTestId('export-scope-scene')).toBeChecked()
+  await watchPendingState(page)
+
+  const [download] = await Promise.all([
+    page.waitForEvent('download', { timeout: 120_000 }),
+    page.getByTestId('export-commit').click(),
+  ])
+
+  const report = await pendingReport(page)
+  expect(report.seen, 'the pending state appeared while the file was being written').toBeGreaterThan(0)
+  expect(report.text).toBe('Writing warpcad-scene.stl…')
+  // It painted at a real size, inside the viewport, at every reference width.
+  const viewport = page.viewportSize()
+  for (const rect of report.rects) {
+    expect(rect.width, 'pending line has width').toBeGreaterThan(0)
+    expect(rect.height, 'pending line has height').toBeGreaterThan(0)
+    expect(rect.x).toBeGreaterThanOrEqual(0)
+    expect(rect.x + rect.width).toBeLessThanOrEqual(viewport.width + 0.5)
+  }
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+
+  // And the file that arrived is the real thing, not a placeholder.
+  expect(download.suggestedFilename()).toBe('warpcad-scene.stl')
+  const bytes = readFileSync(await download.path())
+  expect(bytes.byteLength).toBeGreaterThan(100_000)
+  expect(meshStats(parseBinaryStl(bytes)).unmatchedEdges, '0 open edges on a 24-body scene').toBe(0)
+  await page.screenshot({ path: join(SNAPSHOT_DIR, `pending-after-${testInfo.project.name}.png`) })
+})
+
+test('the pending state does not block a refusal: it still appears by name and nothing downloads', async ({ page }) => {
+  // `ui-034`'s contract, re-run against the worker path: a refusal must cross the
+  // boundary and land in the popover by name, with the popover still open.
+  await page.goto('/')
+  await storeApi(page).run(async (api) => {
+    api.documentStore.append({ id: 'cube', op: 'primitive.cuboid', name: 'Cube 1', params: { size: [10, 10, 10] } })
+    api.documentStore.append({
+      id: 'big',
+      op: 'primitive.cuboid',
+      name: 'Big',
+      params: { size: [40, 40, 40] },
+    })
+    // Subtracting a solid that swallows the cube leaves a body with no triangles.
+    api.documentStore.append({ id: 'ghost', op: 'boolean.subtract', name: 'Ghost', target: 'cube', operands: ['big'], consumes: ['cube', 'big'] })
+  })
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-body-count', '1')
+
+  await openExportPopover(page)
+  await watchPendingState(page)
+
+  let downloaded = false
+  page.on('download', () => {
+    downloaded = true
+  })
+  await page.getByTestId('export-commit').click()
+
+  const error = page.getByTestId('export-error')
+  await expect(error).toBeVisible()
+  await expect(error).toContainText('Ghost')
+  await expect(page.getByTestId('export-popover')).toBeVisible()
+  await expect(page.getByTestId('export-pending')).toHaveCount(0)
+  expect(downloaded, 'no file for a refused export').toBe(false)
+})

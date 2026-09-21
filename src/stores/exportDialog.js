@@ -46,13 +46,28 @@
  * popover during that moment discards the result (a token check) instead of downloading a file
  * the user already walked away from.
  *
+ * ## Off the main thread, and saying so (`TODO/perf-001`)
+ *
+ * `commit()` no longer calls `exportBodies` itself: it goes through
+ * `src/core/exportClient.js`, which runs the combine, the repair and the serialization in a
+ * worker. Measured in Chromium against the real app, that took a 24-body scene's main-thread
+ * freeze from **233 ms to 27 ms at 4× CPU throttling and 346 ms to 40 ms at 6×**. Nothing
+ * about this store's contract changed — the same `ExportResult` comes back, and a refusal is
+ * still an `ExportError` with its `code` and body name, whichever side of the boundary raised
+ * it — so every rule above still reads the same way.
+ *
+ * That is also what makes {@link PENDING_AFTER_MS} worth having. A pending state set just
+ * before a synchronous block could never paint; with the work in a worker it can, and the
+ * viewport stays live underneath it.
+ *
  * @module stores/exportDialog
  */
 
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 
-import { EXPORT_FORMATS, ExportError, exportBodies, exportFilename, resolveExportScope } from '../core/export.js'
+import { EXPORT_FORMATS, ExportError, exportFilename, resolveExportScope } from '../core/export.js'
+import { pendingFilename, runExport } from '../core/exportClient.js'
 import { downloadBytes } from '../storage/download.js'
 import { useDocumentStore } from './document.js'
 import { usePersistenceStore } from './persistence.js'
@@ -64,6 +79,18 @@ import { useTimelineStore } from './timeline.js'
 /** @typedef {import('../core/export.js').ExportResult} ExportResult */
 /** @typedef {import('../core/export.js').ExportFormat} ExportFormat */
 /** @typedef {'selection' | 'scene'} ExportScope */
+
+/**
+ * How long an export may take before the popover says so (`TODO/perf-001`).
+ *
+ * 100 ms is the threshold the finding names, and it is the right order: measured in
+ * Chromium against the real app, a one-body export is 5-20 ms even at 4× CPU
+ * throttling and finishes long before this fires, while a 24-body scene takes 224 ms
+ * at 4× and 339 ms at 6× — so the state appears exactly when there is something to
+ * wait for. Changing it is a UX decision, not a tuning knob: below ~100 ms a person
+ * reads a flash of text as a glitch rather than as progress.
+ */
+export const PENDING_AFTER_MS = 100
 
 /**
  * @typedef {object} ExportDependencies
@@ -128,8 +155,28 @@ export const useExportDialogStore = defineStore('exportDialog', () => {
   const exporting = ref(false)
   /** True while a glTF export is in flight — the button's `Preparing…`. */
   const preparing = ref(false)
+  /**
+   * True once an export has been running longer than {@link PENDING_AFTER_MS} — the
+   * button's `Exporting…` and the `Writing …` line (`TODO/perf-001`).
+   *
+   * Deliberately *not* set when the export starts: a 5 ms export that flashed a
+   * pending state would be worse than no feedback at all. It is armed by a timer, so a
+   * quick export finishes first and the user never sees one.
+   */
+  const pending = ref(false)
+  /** The file the pending state names, so the user knows what is being written. */
+  const pendingFile = ref('')
+  /** @type {ReturnType<typeof setTimeout> | null} */
+  let pendingTimer = null
   /** Bumped by every commit and by close(); a continuation whose token is stale is discarded. */
   let attempt = 0
+
+  function clearPending() {
+    if (pendingTimer !== null) clearTimeout(pendingTimer)
+    pendingTimer = null
+    pending.value = false
+    pendingFile.value = ''
+  }
 
   const format = computed(() => settings.exportFormat)
 
@@ -226,6 +273,7 @@ export const useExportDialogStore = defineStore('exportDialog', () => {
     isOpen.value = false
     exporting.value = false
     preparing.value = false
+    clearPending()
     error.value = ''
     chosenScope.value = null
   }
@@ -267,8 +315,14 @@ export const useExportDialogStore = defineStore('exportDialog', () => {
         throw new ExportError('stale-selection', 'The selection changed — choose what to export')
       }
       const { bodies } = resolveExportScope(live, ids)
-      const result =
-        wanted === 'glb' ? await (await deps.loadGltfExporter())(bodies) : exportBodies(bodies, wanted)
+      // Only a *slow* export gets a pending state, and only once it is actually slow:
+      // the work is in the worker (`src/core/exportClient.js`), so the main thread is
+      // free to paint this — which is the whole reason it is worth showing.
+      pendingFile.value = pendingFilename(bodies, wanted)
+      pendingTimer = setTimeout(() => {
+        if (mine === attempt) pending.value = true
+      }, PENDING_AFTER_MS)
+      const result = await runExport(bodies, wanted, { loadGltfExporter: deps.loadGltfExporter })
       if (mine !== attempt) return // closed while it was preparing: nobody is waiting for this file
       deps.download(result)
       persistence.announce(`Exported ${result.filename}`)
@@ -283,6 +337,7 @@ export const useExportDialogStore = defineStore('exportDialog', () => {
       if (mine === attempt) {
         exporting.value = false
         preparing.value = false
+        clearPending()
       }
     }
   }
@@ -293,6 +348,8 @@ export const useExportDialogStore = defineStore('exportDialog', () => {
     error,
     exporting,
     preparing,
+    pending,
+    pendingFile,
     format,
     unavailableReason,
     selectionAvailable,

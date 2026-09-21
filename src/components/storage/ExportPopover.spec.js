@@ -214,3 +214,48 @@ describe('ExportPopover (TODO/ui-034)', () => {
     expect(document.body.querySelector('[role="radiogroup"][aria-label="Format"]')).not.toBeNull()
   })
 })
+
+describe('the pending state for a slow export (perf-001)', () => {
+  it('shows "Exporting…" and a Writing … status line once past the threshold, then clears', async () => {
+    const { dialog } = setup()
+    let release
+    setExportDependencies({
+      download: () => {},
+      loadGltfExporter: () =>
+        new Promise((resolve) => {
+          release = () =>
+            resolve(async () => ({ bytes: new Uint8Array(1), filename: 'warpcad-scene.glb', mimeType: 'm', triangleCount: 1 }))
+        }),
+    })
+    dialog.open()
+    dialog.chooseFormat('glb')
+    await nextTick()
+    q('export-commit').click()
+    await nextTick()
+
+    // Before the threshold: `Preparing…`, and no status line yet.
+    expect(q('export-pending')).toBeNull()
+
+    await vi.waitFor(() => expect(dialog.pending).toBe(true))
+    await nextTick()
+    expect(q('export-commit').textContent.trim()).toBe('Exporting…')
+    expect(q('export-commit').disabled).toBe(true)
+    const status = q('export-pending')
+    expect(status).not.toBeNull()
+    expect(status.getAttribute('role')).toBe('status')
+    expect(status.textContent.trim()).toBe('Writing warpcad-scene.glb…')
+
+    release()
+    await vi.waitFor(() => expect(q('export-popover')).toBeNull())
+  })
+
+  it('a quick export never renders the status line', async () => {
+    const { dialog } = setup()
+    dialog.open()
+    await nextTick()
+    q('export-commit').click()
+    await vi.waitFor(() => expect(downloads).toHaveLength(1))
+    await nextTick()
+    expect(q('export-pending')).toBeNull()
+  })
+})

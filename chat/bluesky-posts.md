@@ -808,3 +808,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **To Add:** repo URL once public; a diagram of the snap-then-test ordering
 
+
+## 2026-09-21T19:33:00Z — I made the slow part 5.6x faster and the freeze didn't move
+
+**Post:** Export froze my CAD app for a third of a second. The obvious culprit was a mesh-repair pass I'd added last week, so I optimised it — 5.6x faster. The freeze went from 224ms to 233ms. Then I measured the phases properly: the repair was 28ms of 80. Combining composite bodies was 43. I'd optimised the wrong thing first, and only the measurement said so. Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebDev #Performance
+**Evidence:** "a third of a second" → worst animation-frame gap 346.1 ms at 6x CPU throttling on a 24-body export, Chromium, measured this session via `bench/export-mainthread.mjs`; "5.6x faster" → `makeWatertight` on that scene, 27.01 → 4.82 ms median of 20 runs, Apple M4 Pro / Node 24, `bench/export-benchmark.mjs`; "224ms to 233ms" → same scene, worst frame gap at 4x CPU throttling before and after the repair optimisation, both measured this session; "28ms of 80" / "43" → phase breakdown of the same 24-body export: `toGeom3` 43.4 ms, `makeWatertight` 28.0 ms, serialize 8.7 ms
+**Disclosure:** Built with Claude Code, reviewed by me.
+**To Add:** repo URL once public; the phase-breakdown table as an image
