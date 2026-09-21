@@ -212,4 +212,20 @@ describe('timeline store (TODO/ui-032)', () => {
     expect(timeline.previewing).toBe(false)
     expect(timeline.previewDocument()).toBeNull()
   })
+  it('loading a whole project ends the preview even when the same row ids come back (TODO/ui-033)', () => {
+    // Open… of the file you just saved reloads the SAME ids. A preview that survived would
+    // leave the viewport frozen, read-only, on a past state of a document that no longer
+    // exists (§10: "any preview/rollback strip is cleared").
+    const doc = seedScenario12()
+    const timeline = useTimelineStore()
+    timeline.selectRow('chamfer-2')
+    expect(timeline.previewing).toBe(true)
+
+    const entries = doc.raw.entries.map((entry) => ({ record: entry.record, origin: entry.origin }))
+    doc.load(entries, null)
+
+    expect(timeline.previewing).toBe(false)
+    expect(timeline.selectedId).toBe('')
+    expect(timeline.previewDocument()).toBeNull()
+  })
 })

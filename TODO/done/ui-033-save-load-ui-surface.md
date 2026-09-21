@@ -6,8 +6,48 @@ priority: medium
 model: sonnet
 milestone: M6
 depends: [io-001, io-002]
-status: open
+status: done
 ---
+
+> ## What actually shipped, 2026-09-21
+>
+> **The File ▾ menu, built exactly as `data-002` §8-11 specify, with six things the Q&A left to
+> the building task** (all recorded in `docs/decisions/interaction-model-qa.md` §11's "Settled
+> while building" bullet):
+>
+> - **`hosted.start()` is called at boot** — `io-002` deliberately left it unwired. It runs
+>   *after* the local restore has landed (`src/composables/useStorageBoot.js`), because §11
+>   rule 3 decides "is the restored document ahead of the last push?" by hashing the document,
+>   which is the empty scene until the restore finishes. Covered by a unit spec and by an e2e
+>   that reloads with auto-push on and asserts the dot and a scheduled push with nothing clicked.
+> - **Branch and path unchanged**: default branch, no branch field, `warpcad-project.ndjson`.
+> - **While History previews**, Save / Download copy and Open… stay enabled (§14 as written).
+>   The menu says Save writes the *current* project, not the preview, and a completed Open or
+>   Load **ends the preview** — a change in `stores/timeline.js` (it watches `loadRevision`),
+>   because re-opening the file you just saved brings back the *same row ids* and a preview keyed
+>   on an id would otherwise survive and freeze the viewport on a document that no longer exists.
+> - **`Replace token…` is a menu item** (and a button in the Connect dialog): rule 6's recovery
+>   path ("`Connect repository…` → `Replace token`") needs a way in while connected, and the
+>   Connect item is replaced by the connected group. It reconnects, so Auto-push comes back off.
+> - **Errors can be dismissed.** §"one status surface" says errors persist "until the next
+>   success *or until dismissed*", and nothing offered dismissal: the chip is now a real button
+>   while it shows an error (opens the menu, §8) and the menu offers *Dismiss this message*.
+> - **Of two transient notices the newer wins** in the chip (`useStatusSurface`), because a fixed
+>   order let `Restored your last session` sit on top of a Connect the user had just performed.
+>
+> **Two defects found by driving, not by the suite, and fixed here**: (1) after **Cancel** on the
+> conflict dialog the auto-push menu item fell back to `Auto-push paused — will retry`, promising
+> a retry §11 rule 5 says is not coming — a one-line fix in `stores/hosted.js` (`divergent`, not
+> `conflict`), pinned by a unit assertion that fails without it; (2) the conflict dialog printed
+> its sentence twice on a phone screenshot (title plus the store's identically worded detail
+> line), now shown only when it says something different.
+>
+> **Deliberately not done**: `Export…` (`ui-034` — the menu marks where it goes and needs no
+> restructuring); a `New project` item (§10 flags it as a gap, not scope); a native
+> `showSaveFilePicker` click (an OS dialog — proven against an injected fake, and left in
+> `TODO/VERIFY.md`); scenario 10's **hosted half against a real repository** — not driveable
+> here (no real token, no real network, and none may be used) — driven against a `page.route`
+> mock of `api.github.com` only, and stated as such in `TODO/ACCEPTANCE.md`.
 
 ## Goal
 

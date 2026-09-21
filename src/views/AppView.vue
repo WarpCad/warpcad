@@ -16,21 +16,30 @@ import { computed, onMounted, ref, watch } from 'vue'
 
 import Inspector from '../components/inspector/Inspector.vue'
 import SaveStatus from '../components/display/SaveStatus.vue'
+import FileMenu from '../components/storage/FileMenu.vue'
+import { bootStorage } from '../composables/useStorageBoot.js'
 import HistoryControls from '../components/layout/HistoryControls.vue'
 import LibraryPanel from '../components/layout/LibraryPanel.vue'
 import TimelinePanel from '../components/timeline/TimelinePanel.vue'
 import TimelineStrips from '../components/timeline/TimelineStrips.vue'
 import TimelineToggle from '../components/timeline/TimelineToggle.vue'
 import Viewport from '../components/viewport/Viewport.vue'
+import { useHostedStore } from '../stores/hosted.js'
 import { usePersistenceStore } from '../stores/persistence.js'
 import { useTimelineStore } from '../stores/timeline.js'
 
 // Restore the last autosaved session and start autosaving (`TODO/io-001`). Started on
 // mount, not at store creation: the app renders first, the restore lands a moment later
 // and frames the camera, and a slow or blocked store can never delay first paint.
+//
+// Then the hosted connection (`TODO/ui-033`): `io-002` deliberately left `hosted.start()`
+// unwired until there was a File-button dot to say a restored auto-push connection is live.
+// `bootStorage` runs it *after* the local restore has landed — see that module for why the
+// order is load-bearing.
 const persistence = usePersistenceStore()
+const hosted = useHostedStore()
 onMounted(() => {
-  void persistence.start()
+  void bootStorage({ persistence, hosted })
 })
 
 /**
@@ -110,11 +119,12 @@ function onInspectorClaim() {
            cross-cutting): document-level controls that are not gated on
            selection, right-aligned in the one strip that is always visible.
            `data-003` fills the first two slots and the save-status chip (`io-001`)
-           the last; the History toggle (`ui-032`) and File ▾ (`ui-033`/`ui-034`)
-           slot in between without moving either. -->
+           the last; the History toggle (`ui-032`) and File ▾ (`ui-033`, which
+           `ui-034`'s Export… joins) sit in between without moving either. -->
       <div class="app__document-bar" data-testid="document-bar">
         <HistoryControls />
         <TimelineToggle />
+        <FileMenu />
         <SaveStatus />
       </div>
     </header>

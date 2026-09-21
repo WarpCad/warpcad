@@ -72,41 +72,90 @@ followed by the reason — and keeps the unreadable copy aside rather than writi
   change wins.** If you keep two tabs open on different models, whichever changed last is
   the one that reopens. Work in one tab at a time.
 
-## Saving a portable file, and opening one — arriving with the File menu
+## The File menu
 
-> **Not in the app yet.** The **File** menu that will hold *Save*, *Open…* and
-> *Download copy* is a separate piece of work. Nothing on this page needs it, and there
-> is no button for it today.
+Everything on this page beyond autosave starts at **File ▾**, in the top bar, between
+**History** and the status light. It works the same on a laptop, a tablet and a phone: tap
+it and a menu opens under it, with two groups — **this device** at the top, and **Hosted
+storage** below the divider. The first line of the menu repeats the status message in full,
+which is how you read it on a phone, where the status light in the bar is only a dot.
 
-What is already in place underneath it, so you know what to expect:
+Opening the menu never changes what is selected, and nothing in it is greyed out because of
+what is selected.
 
-- A project file is a plain text file named `warpcad-project.ndjson` (on browsers that
-  can only download, `warpcad-project-20260919-1402.ndjson`, with the date and time, so
-  copies don't overwrite each other). It contains the same steps autosave keeps.
-- **On desktop Chrome and Edge** you'll get **Save** and **Save As…**, which write to a
-  file you choose and can save over it again. **On every other browser — Firefox, Safari,
-  and all phones and tablets, including Chrome on Android —** you'll get one item,
-  **Download copy**, which downloads a fresh file each time. On an iPhone or iPad that
-  file lands wherever Safari's downloads go (usually the Files app's **Downloads**
-  folder). This isn't a limitation of WarpCad: those browsers don't let a web page write
-  to a file on your device directly.
-- **Open…** will check the whole file first. A file that isn't a WarpCad project, or that
-  needs a newer version of WarpCad, is refused **by name** (with the line number where it
-  goes wrong) and your current model is left exactly as it was. Opening a file replaces
-  your model and, like a reload, clears the undo history.
+### Saving a file you can keep — and what the item is called
 
-## Keeping a copy in a GitHub repository — arriving with the File menu
+A project file is a plain text file named `warpcad-project.ndjson`. It holds the same steps
+autosave keeps, so it opens on any device, and it is what you hand to somebody else.
+
+What the item is *called* depends on your browser, because browsers differ in what a web page
+may do:
+
+- **On desktop Chrome and Edge** you get **Save** and **Save As…**. **Save** asks where to put
+  the file the first time, and after that writes over the same file with no further question.
+  **Save As…** always asks.
+- **On every other browser — Firefox, Safari, and all phones and tablets, including Chrome on
+  Android —** you get one item, **Download copy**. It downloads a fresh file every time, named
+  with the date and time (`warpcad-project-20260921-1402.ndjson`) so copies don't overwrite
+  each other. It is never called "Save", because it doesn't save over anything. This isn't a
+  limit of WarpCad: those browsers don't let a web page write to a file on your device
+  directly. On an iPhone or iPad the file lands wherever Safari's downloads go, usually the
+  **Files** app's **Downloads** folder, and Safari's own download indicator is the
+  confirmation you'll actually see.
+
+**Ctrl+S** (Cmd+S on a Mac) does the same as that item, from the keyboard. It only ever saves or
+downloads a local file — it never sends anything over the network, whether or not you are
+connected to a repository.
+
+After you choose it the status line tells you what happened: **Saved to
+warpcad-project.ndjson · 14:02** where the browser can save in place, or **Download started:
+warpcad-project-20260921-1402.ndjson** where it can only download (it says "started" because a
+browser can't confirm a download finished). Cancelling the file picker is not an error, and
+says nothing.
+
+### Opening a file
+
+**File ▾ → Open…** (or **Ctrl/Cmd+O**) replaces your model with the one in a project file.
+
+1. If your current model has anything in it, WarpCad first asks: **Open replaces the current
+   project. Save or download it first if you want to keep it.** Choose **Replace** to carry on
+   or **Cancel** to stop — nothing has been touched yet, and the file picker hasn't opened.
+2. Pick the file. On a phone that is your browser's file chooser (or the Files app).
+3. WarpCad checks the *whole* file before it replaces anything. A file that isn't a WarpCad
+   project, or that needs a newer version of WarpCad, is refused **by name**, with the line
+   where it goes wrong, and your current model is left exactly as it was. The message stays
+   until you do something else.
+4. If it is good, the model appears, the view moves to show all of it, nothing is selected,
+   any history preview is ended, and the status line says **Opened warpcad-project.ndjson · 5
+   steps**.
+
+Opening a file can't be undone — undo and redo both start empty, like a reload — which is
+exactly why the question comes first.
+
+### Try it: save a copy, change your mind, and get it back
+
+1. Drag a **Cube** and a **Cylinder** into the 3D view.
+2. Open **File ▾** and choose **Download copy** (or **Save**). The status line names the file.
+3. Drag a **Sphere** in as well — three shapes now.
+4. **File ▾ → Open…**, press **Replace**, and choose the file you just downloaded.
+5. The sphere is gone, and the cube and cylinder are back, framed in the view. The status line
+   says **Opened … · 2 steps**.
+
+### While History is showing a past step
+
+If you have selected an earlier step in **History**, the 3D view is showing that step, read-only.
+**Save and Download copy still write your *current* project** — not the step you are looking
+at — and the menu says so at the top while it is true. **Open…** still works, and ends the
+preview when the new project loads.
+
+## Keeping a copy in a GitHub repository
 
 Autosave keeps your work in *this* browser, on *this* device. Connecting a GitHub
 repository gives you the other thing: a copy that outlives the browser, that you can open
 on another machine, and that has a history of commits you can read.
 
-> **Not in the app yet.** The **File** menu items described here — *Connect repository…*,
-> *Save to owner/repo*, *Load from owner/repo*, *Auto-push* and *Disconnect* — are a
-> separate piece of work, and there are no buttons for them today. What is in place is
-> everything underneath: the connection, the saving and loading, the conflict check, and
-> where your token is kept. This section describes what you will do, so that nothing about
-> it is a surprise — and so you can decide *now* what kind of token to create.
+Everything here is in the **Hosted storage** group of the **File ▾** menu. It is optional: the
+rest of WarpCad never needs it, and nothing is sent anywhere until you connect.
 
 ### What you will need
 
@@ -123,7 +172,7 @@ A **fine-grained personal access token**, created at
 
 ### Connecting
 
-1. **File ▾ → Connect repository…**
+1. **File ▾ → Connect repository…** A dialog opens.
 2. Paste the token, type the repository as `owner/repo` (for example
    `janecoder/enclosure-parts`), and leave the path as `warpcad-project.ndjson` unless you
    want the file somewhere else in the repository.
@@ -134,9 +183,23 @@ A **fine-grained personal access token**, created at
    again in N minutes*.
 4. If the repository has no project file yet, that is not an error: you will see *No
    project file yet — the first Save to owner/repo will create it*.
+5. The dialog now says **Token saved in this browser** and offers **Done** and **Replace
+   token**. It never shows the token again. A small dot appears on the **File** button to show
+   the connection.
 
 WarpCad writes to the repository's **default branch** (usually `main`), and to the one file
 you named. It does not create branches, open pull requests, or touch any other file.
+
+### A worked example
+
+1. Drag a Cube into the 3D view, then open **File ▾ → Connect repository…**, paste your token,
+   enter `janecoder/enclosure-parts`, and press **Connect**, then **Done**.
+2. **File ▾ → Save to janecoder/enclosure-parts.** The status line reads **Saved to
+   janecoder/enclosure-parts · 14:05**, the dot on **File** is a solid green disc, and a commit
+   named `WarpCad: save` appears in the repository.
+3. Drag a Cylinder in and press **Save to janecoder/enclosure-parts** again for a second commit.
+4. On another device, connect the same repository and choose **File ▾ → Load from
+   janecoder/enclosure-parts**: your cube and cylinder appear.
 
 ### Saving and loading
 
@@ -145,7 +208,8 @@ you named. It does not create branches, open pull requests, or touch any other f
   same bytes as *Download copy*, so anything saved to GitHub opens with **Open…** and the
   reverse.
 - **File ▾ → Load from owner/repo** replaces your current model with the repository's copy.
-  It is checked the same way **Open…** checks a file: a file that isn't a WarpCad project
+  If your model has anything in it you are asked to confirm first, the same question **Open…**
+  asks. It is checked the same way **Open…** checks a file: a file that isn't a WarpCad project
   is refused by name, with the line that goes wrong, and your current model is left exactly
   as it was. Like opening a file, loading clears the undo history.
 
@@ -154,7 +218,7 @@ you named. It does not create branches, open pull requests, or touch any other f
 **Auto-push is off until you switch it on**, for every repository you connect. Every write
 is a commit, and committing on your behalf is not something WarpCad decides for you.
 
-When you do switch it on (**File ▾ → Auto-push**): it pushes once immediately, so you can
+When you do switch it on (**File ▾ → Auto-push**, a tick shows it is on): it pushes once immediately, so you can
 see it work, and after that it pushes **about half a minute after you stop making changes**
 — so a burst of work (a drag, a few dimension edits, a union) becomes **one** commit named
 `WarpCad: auto-push <time>`, not five. If you keep working without a pause it pushes anyway
@@ -171,6 +235,8 @@ shape as well as colour:
 | animated ring | Pushing now |
 | **!** amber | Paused, and it needs you — see below |
 | **✕** red | Stopped — the token was rejected |
+
+The same words appear in the status line, and it and the dot always agree.
 
 **Ctrl/Cmd+S never pushes.** It saves or downloads a local file, with auto-push on or off.
 Nothing in WarpCad uses the network because you pressed a keyboard shortcut.
@@ -216,6 +282,10 @@ the browser the whole time.
 - Browser storage is **not encrypted**. That is exactly why the advice above is a
   fine-grained token limited to one repository: if someone can read your browser profile,
   the worst they get is write access to one repository's parts file, not your account.
+- **File ▾ → Replace token…** asks for a new token for the same repository — for when the old
+  one expired or was revoked (the status line turns red and says so, and tapping it opens the
+  File menu). Replacing starts a fresh connection, so Auto-push comes back **off**; switch it
+  on again if you want it.
 - **File ▾ → Disconnect** deletes the stored token and the connection outright, and turns
   auto-push off. Your model stays exactly where it is — disconnecting is about the
   repository, not about your work.

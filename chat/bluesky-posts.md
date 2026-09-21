@@ -767,3 +767,12 @@ Built with Claude Code, reviewed by me.
 **Evidence:** "1207.743 vs 5661.317 mm³ out of a 40mm cube" → both measured from `data-body-volume` in the running app this session (64000 → 62792.257 with `ethernet`, → 58338.683 whole); "the selection store needed no change" → `src/stores/selection.js` is absent from this diff, because `toggle` deliberately does not prune a pick depth (its own doc comment, shipped in `ui-035`)
 **Disclosure:** Built with Claude Code, reviewed by me.
 **To Add:** repo URL once public; a render of the cut port opening
+
+## 2026-09-21T13:46:00Z — A File menu that won't call a download "Save"
+
+**Post:** WarpCad has a File menu now. On browsers that can't write a file in place, the item says "Download copy", never "Save". A hosted repo that changed under you gets a three-button dialog instead of a merge, held back until your drag ends. Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL #Vue
+**Evidence:** "Download copy, never Save" → `src/components/storage/FileMenu.vue` labels from `persistence.fileCapabilities`, and `e2e/save-load-ui.e2e.js` asserts it on chromium and webkit; "three-button dialog instead of a merge" → `src/components/storage/ConflictDialog.vue` (Overwrite remote / Load remote / Cancel); "held back until your drag ends" → driven this session: a conflict came due at 30s while a Library drag was held to 40s, the dialog did not appear until the release (webkit/laptop, webkit/phone, chromium/laptop, chromium/phone, against a mocked `api.github.com`)
+**Disclosure:** Built with Claude Code, reviewed by me.
+**To Add:** repo URL once public; a screen recording of the conflict dialog appearing after a drag ends

@@ -1,15 +1,15 @@
 <script setup>
 /**
- * The header's save-status chip (`TODO/io-001`) — the app's one status surface
- * for autosave, and later for the result of an explicit save/open
- * (`docs/decisions/interaction-model-qa.md`, cross-cutting "The one status
- * surface"; section 8).
+ * The header's save-status chip (`TODO/io-001`, extended by `TODO/ui-033`) — the app's one
+ * status surface for autosave, the result of an explicit save/open, and hosted state
+ * (`docs/decisions/interaction-model-qa.md`, cross-cutting "The one status surface"; §8).
  *
- * Read-only: it shows `usePersistenceStore`'s state and owns none of it, which
- * is why it lives in `display/` (badges, counters, status indicators) rather than
- * `storage/`. Clicking it does nothing yet — the Q&A has an error state open the
- * File ▾ menu, but that menu is `ui-033`'s; a chip that pretended to be a button
- * with nothing behind it would be a dead control.
+ * Read-only apart from one thing: **a persistent error makes it a button that opens the File
+ * menu** (§8: "clicking it opens the File menu, whose Save/Download item is then the user's
+ * escape hatch"). Until `ui-033` there was no menu to open, and a chip that pretended to be a
+ * button with nothing behind it would have been a dead control; now there is, so the chip is a
+ * real `<button>` exactly while it has something to offer — and a plain status element the
+ * rest of the time. Which store's message it shows is `useStatusSurface`'s decision.
  *
  * **Two layouts, one element.** At ≥641px it is a dot plus text. At phone width
  * the text collapses out of sight and only the 10px dot stays (green saved /
@@ -25,27 +25,32 @@
  */
 import { computed } from 'vue'
 
-import { usePersistenceStore } from '../../stores/persistence.js'
+import { useStatusSurface } from '../../composables/useStatusSurface.js'
+import { useFileMenuStore } from '../../stores/fileMenu.js'
 
-const persistence = usePersistenceStore()
+const surface = useStatusSurface()
+const menu = useFileMenuStore()
 
-const isError = computed(() => persistence.chipTone === 'error')
+const isError = computed(() => surface.tone.value === 'error')
 </script>
 
 <template>
-  <div
+  <component
+    :is="isError ? 'button' : 'div'"
     class="save-status"
-    :class="`save-status--${persistence.chipTone}`"
+    :class="[`save-status--${surface.tone.value}`, { 'save-status--button': isError }]"
+    :type="isError ? 'button' : undefined"
     :role="isError ? 'alert' : 'status'"
     :aria-live="isError ? 'assertive' : 'polite'"
-    :aria-label="persistence.chipText"
-    :title="persistence.chipText"
-    :data-tone="persistence.chipTone"
+    :aria-label="surface.text.value"
+    :title="isError ? `${surface.text.value} — open the File menu` : surface.text.value"
+    :data-tone="surface.tone.value"
     data-testid="save-status"
+    @click="isError && menu.openMenu()"
   >
     <span class="save-status__dot" aria-hidden="true" data-testid="save-status-dot" />
-    <span class="save-status__text" data-testid="save-status-text">{{ persistence.chipText }}</span>
-  </div>
+    <span class="save-status__text" data-testid="save-status-text">{{ surface.text.value }}</span>
+  </component>
 </template>
 
 <style scoped>
@@ -61,6 +66,17 @@ const isError = computed(() => persistence.chipTone === 'error')
   padding: 0 4px;
   font-size: 12px;
   color: var(--text-3);
+}
+
+.save-status--button {
+  /* A real button only while it has an error to act on: reset the UA chrome so it reads as
+     the same chip, and give it a full tap target. */
+  min-height: var(--tap);
+  border: 0;
+  background: transparent;
+  font-family: inherit;
+  cursor: pointer;
+  touch-action: manipulation;
 }
 
 .save-status__text {
@@ -88,6 +104,16 @@ const isError = computed(() => persistence.chipTone === 'error')
   border: 2px solid var(--warn);
 }
 
+/* Paused / needs you (a diverged repository): amber text, solid amber dot. */
+.save-status--warn {
+  color: var(--warn);
+}
+
+.save-status--warn .save-status__dot {
+  background: var(--warn);
+  border-radius: 3px;
+}
+
 /* Failed: red square, and the text itself turns red. */
 .save-status--error {
   color: var(--danger);
@@ -104,6 +130,14 @@ const isError = computed(() => persistence.chipTone === 'error')
     width: 20px;
     justify-content: center;
     padding: 0;
+  }
+
+  .save-status--button {
+    /* A 28px-wide, full-height target that still takes only 20px of the header's row: the
+       negative margins give the extra 8px back, so the error state does not shift Undo,
+       Redo, History and File sideways at the one width where every pixel is budgeted. */
+    width: 28px;
+    margin: 0 -4px;
   }
 
   .save-status__text {

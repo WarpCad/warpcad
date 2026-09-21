@@ -801,6 +801,21 @@ the Snap/Align popover for a many-field form; section 10's confirm-replace.*
   per debounce for every user); and two top-level controls instead of one menu.
 - **Unsure — branch.** The design uses the repo's default branch and does not expose a
   branch field. Cheap to add later; omitted to keep the phone dialog to three fields.
+- **Settled while building `ui-033` (2026-09-21).** (1) **Branch and path unchanged**: the
+  repository's default branch, no branch field, and `warpcad-project.ndjson` as the Path
+  field's default — nothing in building the dialog argued otherwise. (2) **`Replace token…` is
+  a menu item, not only a button inside the Connect dialog**: the rule-6 recovery ("`Connect
+  repository…` → `Replace token`") needs a way in while connected, and `Connect repository…`
+  is replaced by the connected group once connected. It is shown whenever a connection exists;
+  it reconnects, so Auto-push comes back **off**. (3) **`Load from owner/repo`'s replace
+  confirm** uses the same dialog as `Open…` with its first clause naming the repository
+  ("Loading owner/repo replaces the current project. …"). (4) **The chip is a button while it
+  shows an error** (§8) and the File menu then offers **Dismiss this message**: §"one status
+  surface" says errors persist "until the next success *or until dismissed*", and nothing
+  offered dismissal. (5) **Of two transient notices, the newer wins** in the chip.
+  (6) While **History is previewing**, Save/Download copy and `Open…` stay enabled (§14, as
+  written), the menu says Save writes the current project not the preview, and a completed
+  Open/Load ends the preview.
 
 ---
 

@@ -38,7 +38,7 @@
  */
 
 import { defineStore } from 'pinia'
-import { computed, ref, shallowRef } from 'vue'
+import { computed, ref, shallowRef, watch } from 'vue'
 
 import { createDocument } from '../core/document.js'
 import { buildNameIndex, describeRow } from '../core/timelineLabel.js'
@@ -228,6 +228,21 @@ export const useTimelineStore = defineStore('timeline', () => {
     void documentStore.version
     return previewDocument()?.bodies().map(summarizeBody) ?? null
   })
+
+  // Loading a whole project (Open…, Load from a repository, `ui-033`) replaces the document
+  // outright. The row ids may well come back the same — Open… of the file just saved — so a
+  // preview keyed on an id would otherwise survive and freeze the viewport, read-only, on a
+  // past state of a document that no longer exists (§10: "any preview/rollback strip is
+  // cleared"). The rollback marker needs nothing: it is document state, read fresh.
+  watch(
+    () => documentStore.loadRevision,
+    () => {
+      previewRequested.value = false
+      selectedId.value = ''
+      error.value = null
+    },
+    { flush: 'sync' }
+  )
 
   /** @param {boolean} next */
   function setOpen(next) {

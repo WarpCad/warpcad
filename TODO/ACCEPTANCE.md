@@ -920,6 +920,16 @@ empty grid cleared the selection, and clicking each in turn selected only that o
 (`cuboid-1` → `cylinder-2`, never both). Still exactly two bodies after navigating the
 camera between operations. Console clean.
 
+**Re-checked**: 2026-09-21 13:39 UTC — PASS (`ui-033`, as part of scenario 10's drive: the new header File ▾
+control, the chip's new sources and a new modal layer all sit over this scenario's surface, and Open…/Load now
+replace the whole document). webkit/laptop 1440×900, webkit/phone 390×844 (touch), chromium/laptop,
+chromium/phone. A Cube then a Cylinder dropped on wandering, jittery paths: **both stayed visible**
+(`data-body-count` 2) and the first body's millimetre centre was byte-identical before and after the second
+drop (`-67.02,29.51,20.00` laptop, `-56.51,40.02,20.00` phone). Clicking empty grid cleared the selection;
+clicking each solid selected only that one (laptop probe: cylinder `0.51,0.32`, cube `0.44,0.37`). Opening the
+File menu with a body selected left the selection unchanged (asserted by the e2e at every viewport, and the
+menu was opened over the Inspector sheet at phone). Console clean.
+
 ### 2. Hardware property edit
 
 **Steps**:
@@ -2468,6 +2478,90 @@ directly) while leaving the model on screen. **One real defect found by driving 
 in this task**: after **Cancel** with auto-push off, the File dot returned to solid "in
 sync" although the repository copy was known to have diverged — it now stays `!` and the
 chip says `owner/repo changed — Save to or Load from it to resolve`.
+
+**Re-checked**: 2026-09-21 13:39 UTC — **PASS: local half in full (steps 1-7) through the real File ▾ menu;
+hosted half (steps 8-10) driven against a `page.route` MOCK of `api.github.com` ONLY — the hosted half
+against a REAL scratch repository is NOT DRIVEABLE here and is NOT claimed** (`ui-033`).
+
+*Not driveable, and why*: steps 8-10 name "a scratch GitHub repo and a fine-grained token limited to it".
+This run had neither, and nothing in this project's automated loop may hold a real credential or reach a
+real git host, so no token was asked for or invented. What is claimed is the **UI and the mechanism**
+under a fully intercepted host (a sentinel token string; every request was checked to have gone to
+`api.github.com` only, with the token in the `Authorization` header and never in a URL, the page HTML, or
+the console). A human with a scratch repo still owns the real-host half. Also not clicked: the **native**
+File System Access picker on desktop Chromium (an OS dialog nothing headless can drive) — chromium/laptop
+reported the right labels (**Save** + **Save As…**) and the native path is proven against an injected fake
+in `e2e/save-load-ui.e2e.js`; `TODO/VERIFY.md` keeps the by-hand click.
+
+*How it was driven*: a Playwright session against `npm run dev`, not the e2e spec — real `PointerEvent`
+drags with jitter, the actions deliberately out of order (peeking at the Connect dialog and Escaping out
+before doing anything, opening and abandoning the menu by tapping outside, cancelling the confirm, opening a
+file while History was previewing, a drag held across a conflict coming due). **webkit/laptop 1440×900,
+webkit/phone 390×844 (touch, `tap()`), chromium/laptop, chromium/phone.** Firefox cannot launch in this
+sandbox (`TROUBLESHOOTING.md`); tablet 820×1180 is covered by the e2e layout measurements only, not by hand.
+
+*Local half (steps 1-7), webkit — the fallback path, the real one on every phone*:
+- Empty scene; Cube then overlapping Cylinder dropped; both selected (click + Shift-click at laptop,
+  **Select-mode marquee at phone**); **Union** → one `boolean.union` body, volume `126428.903` mm³ on both
+  sizes (`-67.02,49.51,25.00` laptop, `-56.51,60.02,25.00` phone).
+- Chip: **`Saving…` → `Saved · 08:30`** on its own. At phone the menu's first line reads the same text.
+- Reload, nothing in between: the union back **byte-identical** (same centre and volume), chip
+  `Restored your last session`, undo **and** redo disabled, selection empty. History: 3 rows
+  (`Cube 1 — placed`, `Cylinder 1 — placed`, `Union …`).
+- File ▾ label: **`Download copy`, no Save As…** (webkit has no File System Access); chromium showed
+  **`Save` + `Save As…`**. Download named `warpcad-project-20260921-0830.ndjson`; chip
+  `Download started: warpcad-project-20260921-0830.ndjson`. A Sphere then dropped in.
+- **Open…**: confirm appears top-anchored (`t=64`, `l=8,r=382` at 390px), Cancel and Escape each lose
+  nothing; Replace → file chooser → the Sphere is **gone**, the union back with the identical centre and
+  volume, chip **`Opened … · 3 steps`** (3 = the History rows seen earlier), camera **re-framed** (wandered
+  to `-255.62,-139.08,25` with 14 pad steps, back to `-56.51,60.02,25` = the body's centre), preview strip
+  cleared, undo/redo empty. A text file renamed `notes.txt` is refused **by name** with its line
+  (`Couldn't open notes.txt: line 1 is not valid JSON …`), stays on the chip 1.8 s later, leaves the
+  project at 1 body; tapping the erroring chip opens the File menu, whose **Dismiss this message** clears it.
+- **Layout, measured**: menu rect `l=34,r=354,t=54,b=251` at 390px (fully on screen), and a hit-test at the
+  centre of `file-save`, `file-open` and `hosted-connect` returned the item itself with a 44px row — i.e.
+  **above** the Inspector and Library sheets. Header at 390px: `File` button `306-354`, chip `360-380`,
+  `scrollWidth 390` (no horizontal overflow); the erroring chip grows to a 28×44 target **without moving**
+  Undo/Redo/History/File.
+
+*Hosted half, against the mock (all four runs)*: Connect dialog inputs are **16px**, the token field
+`type=password`; a wrong repository is refused *before* anything is stored (`Repository not found, or the
+token has no access to it`); then `Token saved in this browser`, the token field **gone from the DOM**, dot =
+`in-sync`, chip `No project file yet — the first Save to drive-test/scratch will create it`. **Save to** →
+exactly one commit `WarpCad: save`, remote bytes **equal** the local project bytes, chip `Saved to
+drive-test/scratch · 08:30`. A second writer commits; Save to again → the three-button dialog (`t=64`,
+`l=8,r=382`), GitHub **untouched**; **Cancel** → still the second writer's file, dot stays `!` (`paused`),
+the dialog does not return by itself; an explicit Save re-raises it; **Load remote** replaces the project
+(`bool-3,their-cube`), undo cleared, dot `in-sync`. **Auto-push** off until switched on; on → one immediate
+push (`1 → 2` commits); two edits 1.5 s apart, hands off: dot `pending` at 2 s → `in-sync` at **32 s**
+(sampled every 250 ms — `pushing` is too brief against a mock to catch, and is shown in a separate
+screenshot with a 4 s delayed PUT), **one** `WarpCad: auto-push 2026-09-21T13:31:33.193Z` commit for the
+burst. **Ctrl/Cmd+S / Download copy while connected with auto-push on: 0 network requests (10 → 10).**
+**A conflict that came due while a drag was HELD** (edit at t=0, drag started at 24 s and held to 40 s):
+the dot reached `paused` at 30 s and the dialog did **not** appear for the ~10 s remaining of the drag; it
+appeared once, right after the release, and **Load remote** resumed auto-push. Step 10: edit, wait ~40 s →
+dot `pending` → `paused` at **30 s**, the dialog **once**, GitHub untouched; after **Cancel** the menu item
+reads **`Auto-push paused — repository changed`**, a further local edit and 36 s raised no dialog and made
+**0 requests (13 → 13)**. Nothing escaped to any non-mocked origin; the sentinel token never appeared in a
+URL, the page HTML, or the console.
+
+*Two real defects found by driving, both fixed in this task* (see `TODO/done/ui-033-*.md`): after **Cancel**
+the auto-push item read `Auto-push paused — will retry` (a retry §11 rule 5 says is not coming) — fixed in
+`stores/hosted.js`; and a stale `Couldn't open notes.txt` error outranked, and hid, every later hosted
+success message — fixed by making errors dismissible and the newer notice win. **Console**: one WebKit/Chromium
+`Failed to load resource … 404` per Connect against an empty repository — the mock's honest answer to
+"no project file yet" (real GitHub answers the same); no page errors.
+
+*Closed-finding surfaces re-driven* (webkit/laptop, webkit/phone, chromium/laptop, chromium/phone, 20 checks
+each, all PASS): **`io-001`** — a solid dropped then reloaded 186-501 ms later survived, undo empty after
+restore; **`data-003`/`data-004`** — undo/redo, a suppressed row and a rollback marker (`rollbackAt 2`)
+saved as a file (511 bytes, **byte-identical to `serializeProject`**) then re-opened: the re-serialised
+project is byte-identical, same bodies, row 2 still suppressed, the rollback strip still shown, undo empty;
+**`io-002`** — the first Save into a repository that already held a file raised the conflict dialog with the
+line *o/r already has a project file that this session has not loaded* and wrote nothing, Cancel left the dot
+at `!`; **`ui-032`** — header cluster order Undo, Redo, History, File, chip preserved; Esc with the File menu
+open closes **only** the menu (the preview stays), the next Esc leaves the preview; while previewing, undo/redo
+are disabled, Save stays enabled and the menu says Save writes the current project.
 
 ### 11. Export a solid and confirm it opens elsewhere
 

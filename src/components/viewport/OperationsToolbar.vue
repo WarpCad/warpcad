@@ -297,10 +297,11 @@
  *    literal `0` (the minimum face), the identical distinction the straight
  *    Offset field already has to make.
  */
-import { computed, reactive, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue'
 
 import { DEFAULT_ROTATE_AXIS } from '../../core/kernel/group.js'
 import { useDocumentStore } from '../../stores/document.js'
+import { useOverlaysStore } from '../../stores/overlays.js'
 import { useSelectionStore } from '../../stores/selection.js'
 import { RIM_FACE_OPTIONS } from '../../core/timelineLabel.js'
 import { useTimelineStore } from '../../stores/timeline.js'
@@ -642,6 +643,13 @@ const openPopover = ref(
     null
   ),
 )
+
+// Tell the app an operation popover is open, so a background hosted-conflict dialog is deferred
+// rather than stacked over it (TODO/ui-033, data-002 §11 rule 5: "no other popover or dialog
+// is open"). Reporting only; nothing here reads it back.
+const overlays = useOverlaysStore()
+watch(openPopover, (open) => overlays.setOpen('ops-popover', open !== null))
+onBeforeUnmount(() => overlays.setOpen('ops-popover', false))
 
 // --- Enlarge / Fit / Bisect (TODO/ui-028) -----------------------------------
 

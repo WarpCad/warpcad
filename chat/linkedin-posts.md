@@ -975,3 +975,21 @@ Built with Claude Code, reviewed by me.
 **To Add:** repo URL once public; a before/after of the port opening vs the whole-board cut
 
 **LinkedIn article suggestion:** Not yet, but this is the second task in a row where the stated design question dissolved once the existing code was read. If it happens a third time, "the task file is a hypothesis, not a spec" is worth writing up properly.
+
+## 2026-09-21T13:46:00Z — A File menu that will not call a download "Save"
+
+**LinkedIn post:**
+WarpCad now has a File menu. On desktop Chrome and Edge it offers Save and Save As, which write over a file you chose. On every other browser, including every phone and tablet, it offers one item called Download copy, because those browsers cannot write a file in place, and calling a fresh download "Save" would misdescribe what just happened.
+
+The hosted half connects a GitHub repository with a token you paste once and never see again. Saves are explicit, auto-push is opt-in, and if the repository changed since you last loaded it there is no merge: a three-button dialog asks whether to overwrite it, load it, or cancel. Driving the app by hand found the parts a green test suite missed. After Cancel, the menu item promised "will retry" when nothing was going to; and a stale "couldn't open notes.txt" error sat on top of every later success message until errors became dismissible.
+
+One detail worth having: a conflict that comes due while you are dragging a part is held back until you let go. In the run, the dot turned amber at 30 seconds, the drag was held to 40, and the dialog appeared once, right after the release. All of the hosted behaviour was driven against a mocked GitHub; a real scratch repository was not available for that run.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL #Vue #SoftwareDesign
+**Evidence:** "Save and Save As on desktop Chrome and Edge, Download copy elsewhere" → `src/storage/fileSystem.js` `getFileCapabilities` and `docs/save-load.md`; "token pasted once and never shown again" → `src/components/storage/ConnectDialog.vue` (uncontrolled field, removed from the DOM after Connect) and `e2e/save-load-ui.e2e.js`; "three-button dialog" → `ConflictDialog.vue`; "will retry after Cancel" and "stale error over later success" → both found while driving this session and fixed in this diff (`src/stores/hosted.js`, `src/components/storage/FileMenu.vue`, `src/composables/useStatusSurface.js`); "dot amber at 30 seconds, drag held to 40, dialog once after release" → drive output this session, four runs (webkit/laptop, webkit/phone, chromium/laptop, chromium/phone); "mocked GitHub, no real repository" → `TODO/ACCEPTANCE.md` scenario 10's re-check entry
+**Disclosure:** Built with Claude Code, reviewed by me.
+**To Add:** repo URL once public; a short recording of the dialog appearing after a drag ends
+
+**LinkedIn article suggestion:** Not yet. If the "one status surface fed by two stores" precedence rules keep growing (they did in this task), that is worth a short piece on why a fixed message order was wrong.

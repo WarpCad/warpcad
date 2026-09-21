@@ -34,6 +34,21 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### ui-033 — File ▾ menu: Save / Open… / hosted storage (2026-09-21 13:46 UTC)
+
+Everything checkable without a person, a real credential or a real device is covered on a standing
+basis: `e2e/save-load-ui.e2e.js` (chromium + webkit, all three viewports), `ACCEPTANCE.md` scenario 10
+(re-driven by hand against a mocked `api.github.com`), and the unit specs. The `data-001` rows on real
+iOS `<a download>` and `<input type=file accept>` behaviour, and the `io-001` header-feel rows, are **not
+repeated** — the File button is in that same header, so check it in the same sitting. Three things are left
+that only a real device or a real OS dialog can answer:
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | **The native File System Access picker on real desktop Chrome or Edge** — an OS dialog nothing headless can click, proven here only against an injected fake. **Save** should open the picker the first time and then write over the same file with **no** second prompt (`Saved to warpcad-project.ndjson · HH:MM`); **Save As…** should always prompt; cancelling either picker should be silent; **Open…** then **Save** should write back to the file you opened. Edit the file in a text editor between two Saves to see the write really lands on disk. | Open | |
+| 2 | **Real iPhone Safari, the Connect dialog with the keyboard up.** Tap **File ▾ → Connect repository…**, tap the Token field. The inputs are 16px so the page should **not** zoom, and the dialog is top-anchored so the keyboard should not hide the fields or the Connect button. Also: does iOS offer to autofill a saved password or autocorrect/capitalise into the token field despite `autocomplete="off"` / `autocapitalize="none"` (Safari does not always honour the former)? Use a made-up token; do not paste a real one to test this. | Open | |
+| 3 | **The File-button status dot at real phone size.** It is a 14px badge on the button's corner (solid green disc in sync, hollow ring pending, spinning ring pushing, amber `!` paused, red `✕` failed), shape-coded so it does not rely on hue. Judgment call: can you tell those five apart at arm's length, in sunlight and in dark mode, and does the spinning ring read as "working" rather than "stuck"? (Reduced-motion users get a dashed ring instead of a spin — check that setting reads too.) | Open | |
+
 ### ui-040 — Sub-part-addressed boolean operands (2026-09-20 23:59 UTC)
 
 Everything about *whether it works* is covered by `ACCEPTANCE.md` scenarios 4, 5 and 6, all

@@ -21,8 +21,9 @@ import { join } from 'node:path'
  * ## What is and is not reachable by a real click here
  *
  * Autosave and restore have no trigger, so they are driven the way a user does:
- * place things, reload the page. **File ▾, Save, Open and Download-copy controls
- * do not exist yet** (`ui-033`), and this spec does not fake a button to click.
+ * place things, reload the page. **The File ▾ menu now exists (`ui-033`), and
+ * `e2e/save-load-ui.e2e.js` clicks it**; this spec still drives the file mechanism
+ * through the store functions, which is the layer *under* those clicks.
  * The file mechanism is driven through the same functions `ui-033` will call —
  * `src/storage/fileSystem.js` and `src/stores/persistence.js` — imported into the
  * page from the Vite dev server (`import('/src/…')`, the same module instances

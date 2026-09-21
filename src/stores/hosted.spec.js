@@ -481,12 +481,15 @@ describe('useHostedStore', () => {
 
       expect(hosted.dotState).toBe('paused')
       expect(hosted.conflictOpen).toBe(true)
-      expect(hosted.autoPushLabel).toMatch(/paused/i)
+      expect(hosted.autoPushLabel).toBe('Auto-push paused — repository changed')
 
       await hosted.resolveConflict('cancel')
       expect(hosted.conflictOpen).toBe(false)
       expect(hosted.autoPushEnabled).toBe(true) // paused, not off
       expect(hosted.dotState).toBe('paused')
+      // Found by driving the File menu (TODO/ui-033): the label fell back to "will retry" the
+      // moment the dialog closed — promising a retry that §11 rule 5 says is not coming.
+      expect(hosted.autoPushLabel).toBe('Auto-push paused — repository changed')
 
       documentStore.append(cube('cube-2', [40, 0, 5]))
       await nextTick()

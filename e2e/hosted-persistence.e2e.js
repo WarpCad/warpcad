@@ -22,19 +22,18 @@ import { test, expect } from '@playwright/test'
  *   engine-sensitive, and WebKit is the engine an iPhone actually runs, so
  *   Chromium-only would not be an honest claim either. Firefox cannot launch in this
  *   sandbox (`TROUBLESHOOTING.md`, 2026-09-17), so the claim is chromium + webkit.
- * - **Laptop viewport only.** Nothing here is a layout concern: this task builds no
- *   controls. `ui-033`'s File menu, Connect dialog and conflict modal are what get
- *   the three-viewport layout treatment, in `ui-033`.
+ * - **Laptop viewport only.** Nothing here is a layout concern: this task built no
+ *   controls. The File menu, Connect dialog and conflict modal got the three-viewport
+ *   layout treatment in `ui-033`'s own spec.
  *
  * ## What is and is not reachable by a real click here
  *
- * **Nothing yet, and this spec does not fake a button.** The File ▾ menu's hosted
- * group, the Connect dialog and the `hosted-conflict` modal are `ui-033`'s
- * (`TODO/ui-033-save-load-ui-surface.md`). As `e2e/local-persistence.e2e.js` does for
- * the file mechanism, this drives the **same store functions `ui-033` will call** —
- * `src/stores/hosted.js` — imported from the Vite dev server so they are the module
- * instances the running app itself loaded, with the real `fetch` client and the real
- * IndexedDB credential store underneath.
+ * **`e2e/save-load-ui.e2e.js` (`TODO/ui-033`) is where the File ▾ menu's hosted group, the
+ * Connect dialog and the `hosted-conflict` modal are clicked.** This spec keeps driving the
+ * layer underneath them, as `e2e/local-persistence.e2e.js` does for the file mechanism: the
+ * **same store functions the menu calls** — `src/stores/hosted.js` — imported from the Vite
+ * dev server so they are the module instances the running app itself loaded, with the real
+ * `fetch` client and the real IndexedDB credential store underneath.
  */
 
 /** A sentinel, not a credential. Nothing in this repository has ever been a real token. */

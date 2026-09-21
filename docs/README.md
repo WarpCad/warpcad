@@ -48,8 +48,11 @@ themselves won't have to move.
   back on screen, and why Undo never removes a change you didn't make.
 - [Saving and reopening your work](save-load.md) — your work autosaves as you go
   and reopens where you left off when you reload; the little status light at the
-  right of the top bar; what it says when your browser won't let WarpCad store
-  anything; and what is still to come (saving a portable file, opening one).
+  right of the top bar; the **File ▾** menu — saving a copy (Save on desktop
+  Chrome and Edge, Download copy everywhere else), opening one, and keeping a
+  copy in a GitHub repository, with auto-push and what happens when someone else
+  changed it first; and what it says when your browser won't let WarpCad store
+  anything.
 - [Exporting your model: STL, OBJ and glTF](export.md) — what each export format
   contains, which bodies go into a file, how files are named, and when an export
   is refused. (The File ▾ → Export… button itself is still to come; the page says so.)

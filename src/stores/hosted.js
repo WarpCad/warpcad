@@ -304,7 +304,10 @@ export const useHostedStore = defineStore('hosted', () => {
 
   const autoPushLabel = computed(() => {
     if (!autoPushEnabled.value) return 'Auto-push — pushes now and after each burst of edits'
-    if (pushState.value === 'paused' && conflict.value !== null) return 'Auto-push paused — repository changed'
+    // `divergent`, not `conflict`: Cancel closes the dialog (`conflict` → null) but leaves the
+    // repository diverged and auto-push paused, and §11 rule 5 says the item keeps reading
+    // "repository changed" — "will retry" would promise a retry that is not going to happen.
+    if (pushState.value === 'paused' && divergent.value) return 'Auto-push paused — repository changed'
     if (pushState.value === 'paused') return 'Auto-push paused — will retry'
     if (pushState.value === 'failed') return 'Auto-push stopped — see the error'
     return 'Auto-push on'
