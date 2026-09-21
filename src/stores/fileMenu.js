@@ -35,6 +35,7 @@ import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 
 import { useDocumentStore } from './document.js'
+import { useExportDialogStore } from './exportDialog.js'
 import { useHostedStore } from './hosted.js'
 import { usePersistenceStore } from './persistence.js'
 
@@ -44,6 +45,7 @@ export const useFileMenuStore = defineStore('fileMenu', () => {
   const documentStore = useDocumentStore()
   const persistence = usePersistenceStore()
   const hosted = useHostedStore()
+  const exportDialog = useExportDialogStore()
 
   const menuOpen = ref(false)
   const connectOpen = ref(false)
@@ -51,7 +53,9 @@ export const useFileMenuStore = defineStore('fileMenu', () => {
   const confirm = ref(null)
 
   /** Anything of this menu's own that is open — what defers a background conflict dialog. */
-  const anyOpen = computed(() => menuOpen.value || connectOpen.value || confirm.value !== null)
+  const anyOpen = computed(
+    () => menuOpen.value || connectOpen.value || confirm.value !== null || exportDialog.isOpen
+  )
 
   /** @returns {boolean} Whether replacing the project would discard anything. */
   function hasContent() {
@@ -82,9 +86,21 @@ export const useFileMenuStore = defineStore('fileMenu', () => {
     void persistence.saveFile({ saveAs })
   }
 
+  /**
+   * `Export…` (`TODO/ui-034`): swap the menu for the export popover. A no-op while Export is
+   * unavailable — the item is dimmed with the reason then, so this is the belt to its braces.
+   */
+  function requestExport() {
+    if (exportDialog.unavailableReason !== '') return
+    menuOpen.value = false
+    exportDialog.open()
+  }
+
   /** `Open…` (and Ctrl/Cmd+O): confirm first when there is anything to lose. */
   function requestOpen() {
     menuOpen.value = false
+    // A replace-confirm about to land over an open export popover would leave it half-hidden.
+    exportDialog.close()
     if (hasContent()) {
       confirm.value = 'open'
       return
@@ -130,6 +146,10 @@ export const useFileMenuStore = defineStore('fileMenu', () => {
    *   so an Escape with nothing open still reaches the History strip's "leave preview".
    */
   function dismissTopmost() {
+    if (exportDialog.isOpen) {
+      exportDialog.close()
+      return true
+    }
     if (confirm.value !== null) {
       confirm.value = null
       return true
@@ -155,6 +175,7 @@ export const useFileMenuStore = defineStore('fileMenu', () => {
     closeMenu,
     toggleMenu,
     saveLocal,
+    requestExport,
     requestOpen,
     requestLoad,
     confirmReplace,

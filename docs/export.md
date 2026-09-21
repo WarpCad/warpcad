@@ -1,18 +1,54 @@
 # Exporting your model: STL, OBJ and glTF
 
-> **Status: the file writing is built; the button is not yet.** WarpCad can already turn
-> your model into STL, OBJ and glTF files, and the rules below are what those files
-> contain. The control that asks for one — **File ▾ → Export…** in the top bar — arrives
-> with the export dialog task (`ui-034`). Until then there is nothing on screen to click,
-> and this page describes what the button will hand you when it lands. Nothing below is
-> a button you can press today.
+Export turns your model into a **mesh file** other tools read — an STL for a slicer, an OBJ for
+a mesh viewer, a glTF for a web viewer or game engine. It is separate from
+[saving](save-load.md): saving keeps your model editable in WarpCad; exporting hands a finished
+shape to something else.
 
-## What you will do (once the Export dialog lands)
+## Exporting a file, step by step
 
-1. Select a body in the 3D view — or select nothing, to export everything.
-2. Open **File ▾ → Export…**, pick **STL**, and press **Export**.
-3. A file called something like `union-1.stl` downloads right away. Open it in your slicer
-   or any mesh viewer: it should look exactly like what you had on screen.
+1. Select the body you want — click it in the 3D view. (Select nothing to export
+   **everything**; select several to export just those, together in one file.)
+2. Open **File ▾** in the top bar and choose **Export…**. A small panel opens under the button.
+3. Read the panel before you touch anything:
+   - **Scope** says what is going to be written. With something selected it is already set to
+     `Selection — Union 1` (or `Selection — 2 bodies, in one file`); with nothing selected it is
+     `Whole scene — 3 bodies, in one file`. You can switch between the two.
+   - **Format** is **STL** unless you picked something else last time — WarpCad remembers your
+     last choice on this device.
+   - The line underneath spells out exactly what you will get, name included:
+     `Exports Union 1 as union-1.stl`.
+4. Press **Export**. The panel closes, your browser downloads the file, and the status light at
+   the right of the top bar says `Exported union-1.stl`. Open the file in your slicer or a
+   mesh viewer: it should look exactly like what you had on screen.
+
+**Cancel**, **Esc**, or tapping anywhere outside the panel closes it without exporting anything.
+Nothing in your model or your selection changes while you do any of this.
+
+On a phone the panel is the same one, with 44-pixel tap targets. Your browser's own download
+sheet is the confirmation there — on an iPhone or iPad the file lands in the Files app under
+Downloads, and **Preparing…** shows on the button for a moment the first time you pick glTF.
+
+## When Export… is greyed out
+
+The menu item is never hidden; when it can't be used it says why, right under its name:
+
+| You see under **Export…** | Why | What to do |
+|---|---|---|
+| **Nothing to export** | The scene has no solid bodies yet. Sketch lines are not solids and are not exported. | Place a shape first. |
+| **Return to the latest step to export** | The History panel is showing you a *past* step (it says **Previewing step 2 of 5**). Exporting what you see there would hand you a file that isn't your model. | Press **Back to latest** in the strip under the top bar (or **Esc**). |
+
+If you have **rolled back** in History (the strip says **Rolled back to step 2 of 5**), Export
+still works and exports the model **as it is at that point** — the panel reminds you with
+`(rolled back — 3 later steps not included)` so you never export an earlier state by accident.
+
+## If something changes while the panel is open
+
+The panel always shows what would be exported **right now**. If you press Undo (Ctrl/Cmd+Z)
+with it open and the selection changes, the line changes with it. If you had *explicitly*
+chosen **Selection** and the selection disappears, Export is switched off and the panel says
+`The selection changed — choose what to export` — it will not quietly export the whole scene
+instead. Pick a scope again and go on.
 
 ## What gets exported
 
@@ -30,6 +66,12 @@ A body made of several named parts (a bolt, a nut, a library item) exports as th
 combined solid** you would actually print: its visible parts fused together, with any
 holes cut out. A part that is hidden stays out, exactly as it is on screen. Sketch lines
 are not solids and are not exported.
+
+One rough edge to know about: an exported STL or OBJ can carry a few tiny seams where two
+faces meet at different resolutions — seen on a bolt, and on a Union of a cylinder and a cube.
+The shape and volume are right and nothing is missing, and slicers normally weld such seams
+without asking, but a strict mesh checker may flag them. (This is a known issue, not something
+you did.)
 
 ## The three formats
 
@@ -54,11 +96,13 @@ size in a glTF viewer) and leaves your geometry untouched.
 
 ## When an export is refused
 
-WarpCad would rather tell you than hand you a file that will not open:
+WarpCad would rather tell you than hand you a file that will not open. A refusal appears in red
+inside the panel, which stays open so you can change the scope or format and try again — no file
+is downloaded:
 
 | You see | Why |
 |---|---|
-| **Nothing to export** | The scene has no bodies. |
+| **Nothing to export** | The scene has no bodies (normally the menu item is greyed out before you get here). |
 | **Cannot export "Ghost": it has no triangles** | That body has no surface to write — an empty result of a boolean, say. The message names the body. |
 | **Cannot export "Hollow One": …** | That body's shape could not be reduced to one solid (a group with every part hidden). Named so you know which one to fix. |
 | **The selection no longer matches anything** | Something you had selected was changed or absorbed by an operation before you exported; reselect and try again. |

@@ -39,10 +39,15 @@
  * defect this milestone is built against. `Open…` stays enabled too; the load ends the preview
  * (`stores/timeline.js`).
  *
- * ## Where `Export…` goes (`TODO/ui-034`)
+ * ## `Export…` (`TODO/ui-034`)
  *
- * In the "this device" group, after `Open…` — see the marked comment in the template. It needs
- * no restructuring, only a new item.
+ * The last item of the "this device" group, after `Open…`: pressing it swaps this menu for the
+ * export popover (`ExportPopover.vue`, `stores/exportDialog.js`). It is **dimmed with its reason
+ * visible on the row** — `Nothing to export`, or `Return to the latest step to export` while
+ * History previews — and uses `aria-disabled` rather than `disabled`, so it stays focusable
+ * (a keyboard or screen-reader user can land on it and hear why), the reason is its accessible
+ * description (`aria-describedby`), and on a phone — where a `title` tooltip never shows — the
+ * reason is simply printed under the label. Pressing a dimmed item does nothing.
  *
  * Every real action is a call into `stores/fileMenu.js` (when to ask), `stores/persistence.js`
  * (the local file) or `stores/hosted.js` (the repository): no persistence logic lives here.
@@ -50,6 +55,7 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 
 import { useStatusSurface } from '../../composables/useStatusSurface.js'
+import { useExportDialogStore } from '../../stores/exportDialog.js'
 import { useFileMenuStore } from '../../stores/fileMenu.js'
 import { useHostedStore } from '../../stores/hosted.js'
 import { useOverlaysStore } from '../../stores/overlays.js'
@@ -61,9 +67,11 @@ import { useTransformPreviewStore } from '../../stores/transformPreview.js'
 import HostedDot from '../display/HostedDot.vue'
 import ConflictDialog from './ConflictDialog.vue'
 import ConnectDialog from './ConnectDialog.vue'
+import ExportPopover from './ExportPopover.vue'
 import ReplaceConfirmDialog from './ReplaceConfirmDialog.vue'
 
 const menu = useFileMenuStore()
+const exportDialog = useExportDialogStore()
 const hosted = useHostedStore()
 const persistence = usePersistenceStore()
 const timeline = useTimelineStore()
@@ -291,8 +299,26 @@ onBeforeUnmount(() => {
             >
               {{ capabilities.openLabel }}
             </button>
-            <!-- TODO/ui-034: `Export…` (data-testid="file-export") goes here, last in this group.
-                 Disabled while `timeline.previewing`, with the reason. -->
+            <button
+              type="button"
+              role="menuitem"
+              class="file-menu__item file-menu__item--stacked"
+              data-testid="file-export"
+              :aria-disabled="exportDialog.unavailableReason !== '' ? 'true' : undefined"
+              :aria-describedby="exportDialog.unavailableReason !== '' ? 'file-export-reason' : undefined"
+              :title="exportDialog.unavailableReason !== '' ? exportDialog.unavailableReason : undefined"
+              @click="menu.requestExport()"
+            >
+              <span>Export…</span>
+              <span
+                v-if="exportDialog.unavailableReason !== ''"
+                id="file-export-reason"
+                class="file-menu__reason"
+                data-testid="file-export-reason"
+              >
+                {{ exportDialog.unavailableReason }}
+              </span>
+            </button>
           </div>
 
           <div class="file-menu__divider" role="separator">
@@ -364,6 +390,7 @@ onBeforeUnmount(() => {
       </template>
     </Teleport>
 
+    <ExportPopover :anchor="buttonRef" />
     <ReplaceConfirmDialog />
     <ConnectDialog />
     <ConflictDialog />
@@ -473,7 +500,7 @@ onBeforeUnmount(() => {
   touch-action: manipulation;
 }
 
-.file-menu__item:hover:not(:disabled),
+.file-menu__item:hover:not(:disabled):not([aria-disabled='true']),
 .file-menu__item:focus-visible {
   background: var(--surface-2);
   outline: none;
@@ -482,6 +509,33 @@ onBeforeUnmount(() => {
 .file-menu__item:disabled {
   opacity: 0.45;
   cursor: default;
+}
+
+/* A dimmed-but-focusable item: only the label is dimmed. Its reason is the whole point of the
+   row, so it stays at full contrast rather than being dimmed along with what it explains. */
+.file-menu__item[aria-disabled='true'] {
+  cursor: default;
+}
+
+.file-menu__item[aria-disabled='true'] > span:first-child {
+  opacity: 0.5;
+}
+
+/* A label with a reason printed under it (Export…, when dimmed). Padding rather than a fixed
+   height keeps the 44px minimum from the base rule while letting a wrapped reason grow. */
+.file-menu__item--stacked {
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 0;
+  padding-top: 6px;
+  padding-bottom: 6px;
+}
+
+.file-menu__reason {
+  font-size: 12px;
+  line-height: 1.3;
+  color: var(--text-2);
 }
 
 .file-menu__item--danger {

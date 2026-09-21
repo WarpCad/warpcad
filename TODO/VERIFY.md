@@ -34,6 +34,17 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### ui-034 — File ▾ → Export… (2026-09-21 14:50 UTC)
+
+Everything checkable without a person or a real slicer is covered on a standing basis: `e2e/export-ui.e2e.js`
+(chromium + webkit, all three viewports — real downloads parsed by an independent reader), `ACCEPTANCE.md`
+scenario 11 (driven by hand), and the unit specs. What is left is what only a hand and a real tool can judge:
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | **Real iPhone Safari: does the download actually land and can you find it?** Export a body as STL from the phone. The chip is a dot on a phone, so the browser's own download sheet (and the Files app's Downloads) is the only confirmation the user sees. Does `union-1.stl` appear, is the `Preparing…` button state on glTF perceptible or a flash, and does pressing Export feel like it did something before the sheet appears? Also: do the popover's 44 px scope/format segments feel like a comfortable thumb target, and does the dimmed **Export…** row's printed reason read as an explanation rather than clutter? | Open | |
+| 2 | **Open one exported STL and one OBJ in a real slicer or mesh checker** (PrusaSlicer / Cura / Bambu Studio / MeshLab) — both a plain Union and a placed bolt. The bytes have **9 of 300 edges unmatched on the union and ~40 on the bolt** (T-junctions, volume correct; `TODO/io-004`). Does the slicer accept it silently, offer to "repair" it, or refuse? This is the answer to how urgent `io-004` really is, and it is what `ACCEPTANCE.md` scenario 11's step 5 is for. | Open | |
+
 ### ui-033 — File ▾ menu: Save / Open… / hosted storage (2026-09-21 13:46 UTC)
 
 Everything checkable without a person, a real credential or a real device is covered on a standing
@@ -81,14 +92,14 @@ those numbers *feel* right to use.
 
 The STL and OBJ bytes were re-read by numpy and three.js's own loaders (closed surface, kernel volume to
 1.3e-5 relative) and the `.glb` container by an independent parser, but **no real slicer or glTF viewer has
-opened any of them**, because the control that produces a download (`ui-034`) does not exist yet. Scenario 11
+opened any of them** — `ui-034` (2026-09-21) built the control and drove real downloads, and re-read the bytes by an independent parser (including the glTF root matrix), but still no real viewer was available, so this row is still open. Scenario 11
 covers "opens cleanly and matches the viewport"; this entry is only the glTF judgement it does not name — that
 the file is the right *size and way up*, which is the one place the export deliberately differs from the
 document's space (mm / Z-up in, metres / Y-up out) and which only a real viewer can confirm.
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | Once `ui-034` lands: export a body you know the size of (a 40 mm cube standing on the grid) as glTF and open the `.glb` in a real viewer (Blender, `gltf-viewer.donmccurdy.com`, macOS Quick Look). It should stand **upright** (not lying on its side) and read **40 mm / 0.04 m** across, not 40 m or 0.04 mm. | Open | |
+| 1 | Now that `ui-034` has landed (File ▾ → Export…, choose **glTF (.glb)**): export a body you know the size of (a 40 mm cube standing on the grid) as glTF and open the `.glb` in a real viewer (Blender, `gltf-viewer.donmccurdy.com`, macOS Quick Look). It should stand **upright** (not lying on its side) and read **40 mm / 0.04 m** across, not 40 m or 0.04 mm. | Open | |
 
 ### io-002 — Hosted git-backend persistence (2026-09-19 14:09 UTC)
 

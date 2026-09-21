@@ -6,8 +6,50 @@ priority: medium
 model: sonnet
 milestone: M6
 depends: [io-003]
-status: open
+status: done
 ---
+
+> ## What actually shipped, 2026-09-21
+>
+> **File ▾ → Export…, built to `data-002` §12 (which overrode this file's Operations-toolbar text),
+> with these decisions the Q&A left to the building task** (recorded in
+> `docs/decisions/interaction-model-qa.md` §12's "Settled while building" bullet):
+>
+> - **(a) The document changing under an open popover** — Ctrl+Z, a programmatic edit or a hosted pull
+>   can all do it (the backdrop stops a pointer, not those). Every line is **derived live** from the
+>   document and selection rather than snapshotted at open; the file is built from `raw.bodies()` at
+>   the moment of the press; a scope the user chose **explicitly** and that has since vanished
+>   **blocks** Export (`The selection changed — choose what to export`) instead of widening to the whole
+>   scene, while an untouched *default* just follows the selection. Unit-tested and driven with a real
+>   Ctrl+Z in `e2e/export-ui.e2e.js`.
+> - **(b) One download path.** `storage/download.js` (`<a download>` on a Blob URL, revoked after 30 s)
+>   is now what `Download copy` uses too — `fileSystem.js`'s private copy was replaced, not duplicated.
+> - **(c) Placement.** Export… is last in the "this device" group. Measured old tree against new at all
+>   three viewports: the header cluster is identical, Save/Open… rows are at the same y, and only the
+>   Hosted group moved (by exactly the new row); the menu is 242 px tall at 390.
+> - **(d) Accessibility.** The dimmed item is `aria-disabled`, not `disabled` (still focusable), with its
+>   reason **printed under the label** (a `title` never shows on a phone), wired as its accessible
+>   description via `aria-describedby`.
+> - **Availability precedence**: previewing beats empty (`Return to the latest step to export`). A
+>   refusal is shown **by name inside the popover, which stays open**, not on the chip; success goes to
+>   the chip. `Preparing…` shows on the button for any glTF export while it is in flight.
+> - **Filename rule, one deviation from `ACCEPTANCE.md` scenario 11's original wording**: `io-003`
+>   names a file by *body count* (one body → its name, several → `warpcad-scene.<ext>`), so a whole
+>   scene of ONE body exports as `union-1.obj`, not `warpcad-scene.obj` as the scenario said. The
+>   popover's summary line states the exact filename before the press, and the scenario was corrected
+>   to match rather than the rule changed (io-003 shipped and tested it).
+>
+> **Found by driving, not fixed here:** `io-003`'s "0 unmatched edges" does not hold in general — the
+> STL/OBJ of a hand-built cylinder ∪ cube has 9 of 300 edges unmatched and a placed bolt ~40 of 302
+> (T-junctions; the volume is right). A pre-existing serializer property, not a regression from this
+> task: filed as `TODO/io-004`. Also noted, out of scope: `HistoryControls.vue`'s Ctrl+Z guard treats any
+> `<input>` — including a radio — as text entry, so the undo shortcut is a no-op while focus is on one of
+> the popover's radios (it works from any button).
+>
+> **Not done, and not claimed:** no real slicer, mesh viewer or glTF viewer has opened any exported file
+> (`TODO/VERIFY.md`). Firefox projects were not run (launch failure in this sandbox,
+> `TROUBLESHOOTING.md`); the claim is Chromium + WebKit at all three viewports.
+> `e2e/export.e2e.js` (the name the `io-003` note used) shipped as `e2e/export-ui.e2e.js`.
 
 > **`io-003` is done (2026-09-19) — the mechanism this task calls exists.** Read
 > `TODO/done/io-003-export-stl-obj-gltf.md`'s "What actually shipped" note first: it lists the

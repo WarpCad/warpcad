@@ -367,6 +367,17 @@ export const usePersistenceStore = defineStore('persistence', () => {
     errorMessage.value = ''
   }
 
+  /**
+   * Put a transient result message on the one status surface — what `Exported union-1.stl`
+   * (`TODO/ui-034`) uses. A notice, not an error: it clears itself, and it does not touch a
+   * persistent error that is already showing (that outranks it in `useStatusSurface`).
+   *
+   * @param {string} text
+   */
+  function announce(text) {
+    showNotice(text, DOWNLOAD_NOTICE_MS)
+  }
+
   return {
     autosaveState,
     savedAt,
@@ -383,5 +394,6 @@ export const usePersistenceStore = defineStore('persistence', () => {
     openFile,
     openText,
     dismissError,
+    announce,
   }
 })

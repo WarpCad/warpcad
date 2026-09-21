@@ -33,6 +33,8 @@
  * @module storage/fileSystem
  */
 
+import { downloadBytes } from './download.js'
+
 /** The FSA picker's accepted types, and the `<input accept>` list — see {@link ACCEPT_ATTRIBUTE}. */
 const PICKER_TYPES = [
   {
@@ -58,9 +60,6 @@ export const ACCEPT_ATTRIBUTE = '.ndjson,.json,.txt,text/plain,application/x-ndj
 const MIME = 'application/x-ndjson'
 const BASE_NAME = 'warpcad-project'
 const EXTENSION = '.ndjson'
-
-/** How long the object URL outlives the click — revoking at once can cancel the download. */
-const REVOKE_AFTER_MS = 30_000
 
 /**
  * @typedef {object} FileCapabilities
@@ -187,26 +186,11 @@ export function createFileStorage(env = globalThis) {
    * @returns {SaveResult}
    */
   function downloadCopy(text, name) {
-    try {
-      const blob = new env.Blob([text], { type: MIME })
-      const url = env.URL.createObjectURL(blob)
-      const anchor = env.document.createElement('a')
-      anchor.href = url
-      anchor.download = name
-      anchor.style.display = 'none'
-      env.document.body.appendChild(anchor)
-      anchor.click()
-      anchor.remove()
-      // A download cannot be confirmed to have landed, only started — the
-      // caller's wording ("Download started") must reflect that.
-      // Called detached: `window.setTimeout` throws "Illegal invocation" when `this` is some
-      // other object, which is exactly what a caller-supplied `env` would be.
-      const { setTimeout: later } = env
-      later(() => env.URL.revokeObjectURL(url), REVOKE_AFTER_MS)
-      return { ok: true, mode: 'fallback', name }
-    } catch (error) {
-      return { ok: false, error: messageOf(error), name }
-    }
+    // The one download implementation, shared with Export… (`storage/download.js`). A download
+    // cannot be confirmed to have landed, only started — the caller's wording ("Download
+    // started") must reflect that.
+    const result = downloadBytes(text, name, MIME, env)
+    return result.ok ? { ok: true, mode: 'fallback', name } : result
   }
 
   /**

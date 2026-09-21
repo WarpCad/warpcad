@@ -881,6 +881,26 @@ never disabled" — see below.***
   the browser, so on iOS Safari the download sheet is the confirmation. No horizontal
   scroll; the popover is `min(320px, 100vw − 16px)`.
 - **Q17 (acceptance scenario)** — Scenario 11.
+- **Settled while building `ui-034` (2026-09-21).** (1) **Availability precedence**: when Export
+  is both previewing and empty, the reason is `Return to the latest step to export` — the mode the
+  user is *in*, and leaving it is the action that fixes it. (2) **The dimmed item is
+  `aria-disabled`, not `disabled`**, with its reason **printed under the label** and wired as its
+  accessible description (`aria-describedby`) plus a `title`: a `title` never shows on a phone and a
+  natively disabled button cannot be focused, so the reason would otherwise be unreachable for touch
+  and keyboard users. Pressing it does nothing. (3) **The document changing under an open popover**
+  is answered by *deriving every line live*, not by snapshotting at open: the backdrop stops a
+  pointer, not Ctrl+Z, a programmatic edit or a hosted pull. The file is built from the document at
+  the moment of the press; a scope the user chose **explicitly** and that has since vanished blocks
+  Export (`The selection changed — choose what to export`) instead of widening to the whole scene,
+  while an untouched **default** just keeps following the selection. (4) **One download path**:
+  `storage/download.js` (`<a download>` on a Blob URL, revoked after 30 s) is shared with `Download
+  copy`, not a second copy. (5) **A refusal is shown by name inside the popover, which stays open** —
+  a `role="alert"` next to the controls that can fix it — rather than on the chip, which the popover's
+  close would leave behind; success goes to the chip (`Exported union-1.stl`). (6) `Preparing…` shows
+  on the button for any glTF export while it is in flight (the exporter is a lazy import, so it is
+  only *noticeable* the first time). (7) The whole-body export of a drilled-in selection is **stated
+  in the popover** (`Exports the whole body "Bolt 1", not just the selected part "…"`), closing the
+  §12 "Unsure" in favour of the parent body.
 
 ---
 

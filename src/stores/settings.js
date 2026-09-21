@@ -31,10 +31,23 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 
+import { EXPORT_FORMATS } from '../core/export.js'
+
 /** @typedef {'shift-or-right-pans' | 'left-pans'} MouseNavPresetId */
 
 /** Namespaced so a future setting added to this store doesn't collide. */
 const STORAGE_KEY = 'warpcad.mouseNav'
+
+/** The Export popover's last format (`TODO/ui-034`), same boundary rules as above. */
+const EXPORT_FORMAT_KEY = 'warpcad.exportFormat'
+
+/** STL is the v1 priority (`interaction-model-qa.md` §12): scenario 11's consumer is a slicer. */
+export const DEFAULT_EXPORT_FORMAT = /** @type {import('../core/export.js').ExportFormat} */ ('stl')
+
+/** @param {unknown} value @returns {value is import('../core/export.js').ExportFormat} */
+function isExportFormat(value) {
+  return typeof value === 'string' && Object.prototype.hasOwnProperty.call(EXPORT_FORMATS, value)
+}
 
 /** `ui-018`'s original, hardcoded scheme — the out-of-the-box default. */
 export const DEFAULT_MOUSE_NAV_PRESET = /** @type {MouseNavPresetId} */ ('shift-or-right-pans')
@@ -88,6 +101,27 @@ function writeStoredMouseNavPreset(id) {
   }
 }
 
+/**
+ * @returns {import('../core/export.js').ExportFormat}
+ */
+function readStoredExportFormat() {
+  try {
+    const stored = localStorage.getItem(EXPORT_FORMAT_KEY)
+    return isExportFormat(stored) ? stored : DEFAULT_EXPORT_FORMAT
+  } catch {
+    return DEFAULT_EXPORT_FORMAT
+  }
+}
+
+/** @param {import('../core/export.js').ExportFormat} format */
+function writeStoredExportFormat(format) {
+  try {
+    localStorage.setItem(EXPORT_FORMAT_KEY, format)
+  } catch {
+    // Remembered for this session in memory; just not across reloads.
+  }
+}
+
 export const useSettingsStore = defineStore('settings', () => {
   /** @type {import('vue').Ref<MouseNavPresetId>} */
   const mouseNavPreset = ref(readStoredMouseNavPreset())
@@ -106,8 +140,26 @@ export const useSettingsStore = defineStore('settings', () => {
     writeStoredMouseNavPreset(mouseNavPreset.value)
   }
 
+  /** @type {import('vue').Ref<import('../core/export.js').ExportFormat>} */
+  const exportFormat = ref(readStoredExportFormat())
+
+  /**
+   * Remember the Export popover's format (`TODO/ui-034`). An unknown value is ignored,
+   * not stored — a corrupt call must not poison the next session's default.
+   *
+   * @param {string} format One of `EXPORT_FORMATS`' keys.
+   * @returns {void}
+   */
+  function setExportFormat(format) {
+    if (!isExportFormat(format)) return
+    exportFormat.value = format
+    writeStoredExportFormat(format)
+  }
+
   return {
     mouseNavPreset,
     setMouseNavPreset,
+    exportFormat,
+    setExportFormat,
   }
 })

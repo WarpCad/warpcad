@@ -53,9 +53,11 @@ themselves won't have to move.
   copy in a GitHub repository, with auto-push and what happens when someone else
   changed it first; and what it says when your browser won't let WarpCad store
   anything.
-- [Exporting your model: STL, OBJ and glTF](export.md) — what each export format
-  contains, which bodies go into a file, how files are named, and when an export
-  is refused. (The File ▾ → Export… button itself is still to come; the page says so.)
+- [Exporting your model: STL, OBJ and glTF](export.md) — **File ▾ → Export…**:
+  choosing the whole scene or just your selection, picking STL, OBJ or glTF, what
+  each format contains, how files are named, why the menu item is sometimes
+  greyed out (nothing to export; History is showing a past step), what a rolled-back
+  export holds, and what it says when an export is refused.
 - [Moving around the 3D view](viewport-navigation.md) — orbit, pan, zoom, the
   orientation triad, touch gestures, and reading size off the grid.
 - [Sketch mode: drawing a line on the working plane](sketch-mode.md) — the

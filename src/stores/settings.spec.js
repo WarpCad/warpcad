@@ -130,3 +130,34 @@ describe('useSettingsStore — mouse navigation preset', () => {
     expect(settings.mouseNavPreset).toBe('left-pans')
   })
 })
+
+describe('exportFormat (TODO/ui-034)', () => {
+  it('defaults to stl, remembers a choice, and rejects anything that is not a format', async () => {
+    vi.stubGlobal('localStorage', fakeLocalStorage())
+    const { useSettingsStore } = await import('./settings.js')
+    const settings = useSettingsStore()
+    expect(settings.exportFormat).toBe('stl')
+    settings.setExportFormat('glb')
+    expect(settings.exportFormat).toBe('glb')
+    expect(localStorage.getItem('warpcad.exportFormat')).toBe('glb')
+    settings.setExportFormat('step')
+    expect(settings.exportFormat).toBe('glb')
+  })
+
+  it('a stored value that is not a format falls back to stl', async () => {
+    const fake = fakeLocalStorage()
+    fake._seed('warpcad.exportFormat', 'dxf')
+    vi.stubGlobal('localStorage', fake)
+    const { useSettingsStore } = await import('./settings.js')
+    expect(useSettingsStore().exportFormat).toBe('stl')
+  })
+
+  it('a throwing localStorage never crashes reading or writing it', async () => {
+    vi.stubGlobal('localStorage', fakeLocalStorage({ throwing: true }))
+    const { useSettingsStore } = await import('./settings.js')
+    const settings = useSettingsStore()
+    expect(settings.exportFormat).toBe('stl')
+    expect(() => settings.setExportFormat('obj')).not.toThrow()
+    expect(settings.exportFormat).toBe('obj')
+  })
+})

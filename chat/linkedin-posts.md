@@ -993,3 +993,19 @@ Built with Claude Code, reviewed by me.
 **To Add:** repo URL once public; a short recording of the dialog appearing after a drag ends
 
 **LinkedIn article suggestion:** Not yet. If the "one status surface fed by two stores" precedence rules keep growing (they did in this task), that is worth a short piece on why a fixed message order was wrong.
+
+## 2026-09-21T14:50:00Z — Export that states the file before it writes it
+
+**LinkedIn post:**
+WarpCad can now export what you built: File, then Export, and pick STL, OBJ or glTF. The panel states exactly what you will get before you press the button, down to the filename (Exports Union 1 as union-1.stl), and it defaults to your selection when there is one and the whole scene when there is not. When there is nothing to export, or the History panel is showing a past step, the menu item is dimmed with the reason printed under it rather than hidden behind a tooltip a phone never shows.
+
+The interesting decision was what an open panel should do when the document changes under it. The backdrop stops a mouse, but not Ctrl+Z, so nothing in the panel is a snapshot: every line is derived from the live document, and if you had explicitly chosen "Selection" and the selection disappears, Export switches off instead of exporting the whole scene. Driving it by hand also found something the tests had not: the STL of a plain cylinder-plus-cube union reads back with the right volume (2 parts in 10 million) but 9 of 300 edges unmatched, T-junctions the earlier serialization work had reported as zero on the two shapes it happened to check. That is filed as its own high-priority task, and no real slicer has opened any file yet.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL #Vue #SoftwareDesign
+**Evidence:** "STL, OBJ or glTF, default to selection else scene" → `src/stores/exportDialog.js` and `e2e/export-ui.e2e.js` at chromium and webkit, three viewports; "dimmed with the reason printed under it" → `src/components/storage/FileMenu.vue`, asserted via `toHaveAccessibleDescription` in the e2e; "backdrop stops a mouse, not Ctrl+Z" → e2e presses Ctrl+Z with the popover open (focus on the Export button, because `HistoryControls.vue` treats a focused radio as text entry); "Export switches off instead of exporting the whole scene" → the explicit-Selection e2e and its unit case; "2 parts in 10 million, 9 of 300 edges" → drive output this session (laptop/Chromium: volume 88074.774 vs 88074.793 kernel, 9 of 300 unmatched), reproduced in plain Node at 6 of 303; "earlier work reported zero on two shapes" → `TODO/done/io-003-export-stl-obj-gltf.md`; "filed as high-priority" → `TODO/io-004-stl-obj-open-edges-t-junctions.md`; "no real slicer" → `TODO/VERIFY.md`
+**Disclosure:** Built with Claude Code, reviewed by me.
+**To Add:** repo URL once public; a slicer screenshot once someone opens a real file
+
+**LinkedIn article suggestion:** Not yet. If the T-junction question resolves into a real slicer result, "does an STL that is geometrically closed count as watertight" is worth a short technical piece.

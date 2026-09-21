@@ -776,3 +776,12 @@ Built with Claude Code, reviewed by me.
 **Evidence:** "Download copy, never Save" → `src/components/storage/FileMenu.vue` labels from `persistence.fileCapabilities`, and `e2e/save-load-ui.e2e.js` asserts it on chromium and webkit; "three-button dialog instead of a merge" → `src/components/storage/ConflictDialog.vue` (Overwrite remote / Load remote / Cancel); "held back until your drag ends" → driven this session: a conflict came due at 30s while a Library drag was held to 40s, the dialog did not appear until the release (webkit/laptop, webkit/phone, chromium/laptop, chromium/phone, against a mocked `api.github.com`)
 **Disclosure:** Built with Claude Code, reviewed by me.
 **To Add:** repo URL once public; a screen recording of the conflict dialog appearing after a drag ends
+
+## 2026-09-21T14:50:00Z — Export says which file you'll get before you press it
+
+**Post:** WarpCad exports STL, OBJ and glTF now. The panel names the exact file before you press. Undo with it open and the line changes; "just this body" never quietly widens to the whole scene. Reading the bytes back found T-junctions I'd assumed weren't there. Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL #Vue
+**Evidence:** "STL, OBJ and glTF" → `e2e/export-ui.e2e.js` downloads and parses all three on chromium and webkit at three viewports; "says which file you'll get" → `export-summary` (`Exports Union 1 as union-1.stl`), asserted there; "Undo with it open and the line changes" → the e2e presses Ctrl+Z with the popover open and asserts the line goes from `Union 1` to `2 bodies together as warpcad-scene.stl`; "never widens" → the explicit-Selection-vanishes e2e and unit case; "found T-junctions" → cylinder-plus-cube union read back this session: 9 of 300 edges unmatched, volume 88074.774 vs the kernel's 88074.793, filed as `TODO/io-004`
+**Disclosure:** Built with Claude Code, reviewed by me.
+**To Add:** repo URL once public; a short recording of Ctrl+Z changing the popover's line

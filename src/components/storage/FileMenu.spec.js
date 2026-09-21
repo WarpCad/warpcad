@@ -9,7 +9,9 @@ enableAutoUnmount(afterEach)
 
 import { useDocumentStore } from '../../stores/document.js'
 import { useHostedStore, setHostedDependencies } from '../../stores/hosted.js'
+import { setExportDependencies } from '../../stores/exportDialog.js'
 import { setPersistenceDependencies, usePersistenceStore } from '../../stores/persistence.js'
+import { useSelectionStore } from '../../stores/selection.js'
 import { useTimelineStore } from '../../stores/timeline.js'
 import FileMenu from './FileMenu.vue'
 
@@ -256,5 +258,102 @@ describe('FileMenu — dismissing a persistent message (TODO/ui-033, data-002 "o
     await nextTick()
     expect(usePersistenceStore().errorMessage).toBe('')
     expect(body().q('file-menu-status-dismiss')).toBeNull()
+  })
+})
+
+describe('FileMenu — Export… (TODO/ui-034, data-002 §12)', () => {
+  it('sits last in the "This device" group, after Open…, before the hosted divider', async () => {
+    const { wrapper } = setup('fallback')
+    await openMenu(wrapper)
+    const group = document.body.querySelector('[role="group"][aria-label="This device"]')
+    const ids = Array.from(group.querySelectorAll('button')).map((b) => b.getAttribute('data-testid'))
+    expect(ids).toEqual(['file-save', 'file-open', 'file-export'])
+  })
+
+  it('an empty scene: dimmed, with the reason visible AND as the accessible description', async () => {
+    const { wrapper } = setup('fallback')
+    await openMenu(wrapper)
+    const item = body().q('file-export')
+    expect(item.textContent).toContain('Export…')
+    expect(item.getAttribute('aria-disabled')).toBe('true')
+    expect(item.getAttribute('title')).toBe('Nothing to export')
+    const reason = body().q('file-export-reason')
+    expect(reason.textContent.trim()).toBe('Nothing to export')
+    expect(item.getAttribute('aria-describedby')).toBe(reason.id)
+    expect(reason.id).not.toBe('')
+  })
+
+  it('pressing the dimmed item does nothing — the menu stays, no popover', async () => {
+    const { wrapper } = setup('fallback')
+    await openMenu(wrapper)
+    body().q('file-export').click()
+    await nextTick()
+    expect(body().q('file-menu')).not.toBeNull()
+    expect(body().q('export-popover')).toBeNull()
+  })
+
+  it('while History previews it is dimmed with the way out as the reason', async () => {
+    const { wrapper } = setup('fallback')
+    const doc = useDocumentStore()
+    doc.append(cube('cube-1'))
+    doc.append(cube('cube-2'))
+    useTimelineStore().selectRow('cube-1')
+    await openMenu(wrapper)
+    expect(body().q('file-export').getAttribute('aria-disabled')).toBe('true')
+    expect(body().q('file-export-reason').textContent.trim()).toBe('Return to the latest step to export')
+  })
+
+  it('with a body it is live (no reason, no aria-disabled), and pressing it swaps the menu for the popover', async () => {
+    const { wrapper } = setup('fallback')
+    useDocumentStore().append(cube('cube-1'))
+    await openMenu(wrapper)
+    const item = body().q('file-export')
+    expect(item.getAttribute('aria-disabled')).toBeNull()
+    expect(body().q('file-export-reason')).toBeNull()
+    item.click()
+    await nextTick()
+    expect(body().q('file-menu')).toBeNull()
+    expect(body().q('export-popover')).not.toBeNull()
+  })
+
+  it('opening the File menu does not disturb the selection Export\'s scope depends on', async () => {
+    const { wrapper } = setup('fallback')
+    useDocumentStore().append(cube('cube-1'))
+    useSelectionStore().select('cube-1')
+    await openMenu(wrapper)
+    body().q('file-export').click()
+    await nextTick()
+    expect(useSelectionStore().ids).toEqual(['cube-1'])
+    expect(body().q('export-scope-selection').checked).toBe(true)
+  })
+
+  it('Escape closes the popover first, and swallows the key only then', async () => {
+    const { wrapper } = setup('fallback')
+    useDocumentStore().append(cube('cube-1'))
+    await openMenu(wrapper)
+    body().q('file-export').click()
+    await nextTick()
+    const first = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true })
+    window.dispatchEvent(first)
+    await nextTick()
+    expect(first.defaultPrevented).toBe(true)
+    expect(body().q('export-popover')).toBeNull()
+    const second = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true })
+    window.dispatchEvent(second)
+    expect(second.defaultPrevented).toBe(false)
+  })
+
+  it('clicking the backdrop closes the popover without exporting anything', async () => {
+    const downloads = []
+    setExportDependencies({ download: (r) => downloads.push(r), loadGltfExporter: async () => async () => ({}) })
+    const { wrapper } = setup('fallback')
+    useDocumentStore().append(cube('cube-1'))
+    await openMenu(wrapper)
+    body().q('file-export').click()
+    await nextTick()
+    body().q('export-backdrop').click()
+    await nextTick()
+    expect(body().q('export-popover')).toBeNull()
+    expect(downloads).toEqual([])
   })
 })
