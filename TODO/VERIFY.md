@@ -34,6 +34,21 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### ui-043 — phone toolbar/chrome margin is thin: 6px, not 0, but real-Safari font metrics were never checked (2026-09-22 14:36 UTC)
+
+The fix closes both measured overlaps (21px and a previously-unmeasured 6px) to a uniform 6px
+*clear gap* at 390×844, confirmed by a standing e2e spec (`e2e/phone-toolbar-chrome-fit.e2e.js`,
+which will catch a future regression here automatically) and a hand-drive in this sandbox's
+WebKit and Chromium. What none of that proves is that real iOS Safari renders the same 11px
+system-font legend at the same pixel width as this sandbox's WebKit build — a font-metric
+difference of even a few px would erase the margin. Not a case for a bigger fix (there is no
+slack left to spend without reopening the trade the retirement note describes), just a real-device
+check the standing spec cannot perform for itself.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | On a real iPhone (Safari, 390pt-class device), select one body so the Inspector sheet auto-opens, and confirm the Operations toolbar and the navigation chrome (Orbit/Pan/Select row) do not visually touch or overlap. Repeat with two bodies selected. | Open | |
+
 ### ui-042 — Objects list part rows: chevron feel, and a wrong-order empty result (2026-09-22 13:51 UTC)
 
 Everything measurable is measured and standing (`e2e/objects-panel.e2e.js`'s new part-row cases at

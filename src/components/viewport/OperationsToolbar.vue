@@ -359,6 +359,19 @@ const disabled = computed(() => selection.count < MINIMUM_OPERANDS || timeline.p
 const DISABLED_HINT = `Select ${MINIMUM_OPERANDS} or more solids`
 
 /**
+ * The same meaning as {@link DISABLED_HINT}, shortened for the badge's own legend
+ * line at phone width (`TODO/ui-043`). Below 640px the full sentence next to the
+ * count ("0 selected" / "1 selected") does not fit `.ops`'s own gizmo-avoiding
+ * `max-width` on one line, and the wrapped second line was measured pushing this
+ * toolbar's total height 21px into `NavigationChrome`'s own top edge — the
+ * navigation chrome overlap this constant exists to close. Nothing is lost: the
+ * full sentence is still what {@link titleFor} returns for every button's
+ * `title`/`aria-label`, this toolbar's own established long-press affordance for
+ * exactly this width (see that function's own comment).
+ */
+const DISABLED_HINT_SHORT = `Select ${MINIMUM_OPERANDS}+`
+
+/**
  * @param {{ label: string, hint: string }} operation
  * @returns {string}
  */
@@ -368,10 +381,12 @@ function titleFor(operation) {
   // line below the buttons (`TODO/ui-040`), because that line is the one piece
   // of this toolbar that does **not** fit at phone width — measured, not
   // assumed: at 390px the column between this toolbar's top and the navigation
-  // chrome's first button holds the badge and the button row with ~4px to
-  // spare, so an extra text line either pushes a button under the chrome or is
-  // painted behind it. Long-press is this toolbar's own established touch
-  // affordance for exactly this (it is how the disabled hint above is read on a
+  // chrome's own top holds the badge and the button row with a ~6px margin
+  // after `TODO/ui-043`'s fix (see that media-query block's own comment for
+  // the full arithmetic), so an extra text line would spend the whole margin
+  // and then some, either pushing a button under the chrome or painting behind
+  // it. Long-press is this toolbar's own established touch affordance for
+  // exactly this (it is how the disabled hint above is read on a
   // phone, and `ACCEPTANCE.md` scenario 4 checks it there), so the depth is
   // reachable at every width rather than only where it can be shown outright.
   return `${operation.label} — ${operation.hint} (${operandSummary.value})`
@@ -1279,7 +1294,14 @@ function commitResize() {
       <span v-if="!disabled" class="ops__legend" data-testid="operations-legend">
         <span class="ops__swatch ops__swatch--base" aria-hidden="true" />first is the base
       </span>
-      <span v-else class="ops__legend">{{ DISABLED_HINT.toLowerCase() }}</span>
+      <!-- Two strings, one shown at a time by CSS (`TODO/ui-043`): the full
+           sentence above 640px, a short one at/below it so the legend never
+           wraps to a second line there — see `DISABLED_HINT_SHORT`'s own
+           comment for the measured overlap this closes. -->
+      <span v-else class="ops__legend">
+        <span class="ops__legend-full">{{ DISABLED_HINT.toLowerCase() }}</span>
+        <span class="ops__legend-short">{{ DISABLED_HINT_SHORT.toLowerCase() }}</span>
+      </span>
     </p>
 
 
@@ -1766,6 +1788,16 @@ function commitResize() {
 }
 
 /*
+ * The disabled-state legend's short form (`TODO/ui-043`) stays hidden above
+ * 640px, where the full sentence fits `.ops`'s own width on one line — see
+ * `DISABLED_HINT_SHORT`'s own comment in the script block for the measurement
+ * that makes the swap necessary below that width.
+ */
+.ops__legend-short {
+  display: none;
+}
+
+/*
  * The operand line (TODO/ui-040). `overflow-wrap: anywhere` for the same reason
  * `.ops__popover-operands` has it: a body name is user-visible text of no fixed
  * length, and this box is deliberately narrow (`.ops`'s gizmo-avoiding
@@ -2119,14 +2151,17 @@ function commitResize() {
   /*
    * The operand line is the one thing on this toolbar that does not fit at
    * phone width, and that is measured rather than judged: at 390x844 the
-   * column between this toolbar's top (y=61) and the navigation chrome's first
-   * button (y=212) is 151px, and the badge plus the wrapped button row already
-   * spend ~147px of it. An extra line either pushes a button under the chrome
-   * — which happened, and took `ui-035`'s Align button out of reach entirely —
-   * or is painted behind it, since the chrome paints later. So at this width
-   * the same text is read by long-pressing any of the four buttons instead
-   * (`titleFor`), which is this toolbar's own established touch affordance for
-   * its disabled hint, not a hover-only fallback.
+   * column between this toolbar's top (y=61) and the navigation chrome's top
+   * (y=207, after `TODO/ui-043`'s fix below closed the badge's own wrap) is
+   * ~146px, and the button row alone already spends ~122px of it (11
+   * icon-only buttons wrapped across three rows), leaving no room for an
+   * extra line without reopening the overlap `TODO/ui-043` closed. An extra
+   * line either pushes a button under the chrome — which happened once, and
+   * took `ui-035`'s Align button out of reach entirely — or is painted behind
+   * it, since the chrome paints later. So at this width the same text is read
+   * by long-pressing any of the four buttons instead (`titleFor`), which is
+   * this toolbar's own established touch affordance for its disabled hint,
+   * not a hover-only fallback.
    */
   .ops__operands {
     display: none;
@@ -2135,7 +2170,15 @@ function commitResize() {
   .ops {
     top: 8px;
     left: 8px;
-    padding: 4px;
+    padding: 2px 4px;
+    /* Tighter than the base rule's 6px (`TODO/ui-043`): this toolbar's own
+       total height, not just the badge's line count, is what has to fit above
+       `NavigationChrome` at this width — see `.ops__row`'s own gap override
+       below and `DISABLED_HINT_SHORT`'s script-block comment for the full
+       measurement. Trimming *this* container's padding/gap, never a bottom
+       sheet's height or `--tap-compact`, is the budget this fix is allowed to
+       spend from. */
+    gap: 2px;
     /* No `max-width` override here on purpose (there used to be one,
        `calc(100vw - 16px)` — removed): at phone width the viewport pane spans
        essentially the whole page (Library/Inspector are bottom sheets there,
@@ -2151,6 +2194,29 @@ function commitResize() {
        e2e run. Inheriting the tighter base cap fixes it in every engine at
        once rather than re-deriving a second, phone-specific budget.
     */
+  }
+
+  /*
+   * The badge's disabled-state legend swaps to its short form here
+   * (`TODO/ui-043`) — see `DISABLED_HINT_SHORT`'s own script-block comment.
+   */
+  .ops__legend-full {
+    display: none;
+  }
+
+  .ops__legend-short {
+    display: inline;
+  }
+
+  /*
+   * The base rule's 4px row/column gap, tightened (`TODO/ui-043`): this row
+   * wraps to three lines at this width (11 icon-only buttons, `.ops`'s own
+   * gizmo-avoiding `max-width`), so the *vertical* saving compounds across two
+   * row-gaps. `--tap-compact` (the button size itself) and the row content are
+   * both untouched — only the breathing room between rows/buttons shrinks.
+   */
+  .ops__row {
+    gap: 2px;
   }
 
   .ops__btn {

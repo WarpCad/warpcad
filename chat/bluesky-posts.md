@@ -844,3 +844,14 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** "backwards" order → driven by hand against the running app, confirmed by the Operations toolbar's own operand-line text reading "Raspberry Pi B+ › ethernet then Shell 1"; "append at the end" → `selection.selectPart`'s additive branch in `src/stores/selection.js`; "4,545 / 23,168" → `shell.volumeMm3 - result.volumeMm3` and `shell.volumeMm3 - wholeBoardResult.volumeMm3` computed directly against `@jscad/modeling`'s own `booleans.subtract`, independent of the app, in `e2e/objects-panel.e2e.js`
 **To Add:** repo URL once public, docs site URL once it exists
+
+## 2026-09-22T14:32:57Z — Fixed a phone-width layout overlap in WarpCad's toolbar/nav-chrome
+
+**Post:** Fixed a phone-width bug in WarpCad (browser CAD app): the on-screen nav chrome was overlapping the Operations toolbar at 390px. The known overlap was 21px — measuring further turned up a second, unrecorded 6px overlap in a different selection state, same root cause. One CSS fix, one new standing test. #WebGL #CAD #OpenSource
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #WebGL #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** "21px overlap reproduced exactly" → this session's Playwright measurement against `npm run dev`, matching `TODO/ui-043`'s own recorded numbers (toolbar bottom 228, chrome top 207); "a second, unrecorded 6px overlap" → this session's own measurement at two-selected + Inspector-sheet-open, a combination `TODO/ui-043`'s own Problem section says was never measured; "one new standing test" → `e2e/phone-toolbar-chrome-fit.e2e.js`, 2 cases, 12/12 passing across chromium/webkit × phone/tablet/laptop, this session
+**To Add:** repo URL once public, docs site URL once it exists

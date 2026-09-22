@@ -1103,3 +1103,18 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** "produces the wrong cut" → hand-driven against `npm run dev`, the Operations toolbar's own operand line read "Raspberry Pi B+ › ethernet then Shell 1" for the wrong order and "Shell 1 then Raspberry Pi B+ › ethernet" for the right one; "appends it at the end" → `selection.selectPart(bodyId, partName, additive)` in `src/stores/selection.js`; "4,545 / 23,168 cubic millimetres" → `booleans.subtract` computed directly against `@jscad/modeling`, independent of the app's own code path, in `e2e/objects-panel.e2e.js`; suite → 1,489 unit tests green, full non-Firefox e2e matrix (chromium/webkit × phone/tablet/laptop) 1203 passed, 0 failed
 **To Add:** repo URL once public, docs site URL once it exists
+
+## 2026-09-22T14:32:57Z — Fixed a phone-width layout overlap in WarpCad's toolbar/nav-chrome
+
+**Post:** Shipped a small but instructive fix in WarpCad, the browser CAD app I'm building: at phone width, the on-screen navigation chrome was overlapping the toolbar that holds Union, Subtract, Fillet and the rest of the operation buttons.
+
+The known bug was a 21px overlap in one selection state. Measuring the combination the original bug report had flagged as untested turned up a second, smaller overlap nobody had recorded — 6px, in a different selection state, from the same underlying cause. Fixing only the reported case would have left the second one live.
+
+The fix trims the toolbar's own phone-width spacing rather than touching a bottom sheet's height or the shared touch-target size, and a new automated test now checks both selection states across six browser/viewport combinations so the overlap can't quietly come back.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** "21px overlap in one selection state" → `TODO/done/ui-043-phone-toolbar-chrome-overlap.md`'s own recorded numbers, reproduced exactly this session; "a second, smaller overlap nobody had recorded — 6px" → this session's own Playwright measurement at two-selected + Inspector-sheet-open; "six browser/viewport combinations" → `e2e/phone-toolbar-chrome-fit.e2e.js` run across chromium/webkit × phone/tablet/laptop, 12/12 passing, this session
+**To Add:** repo URL once public, docs site URL once it exists

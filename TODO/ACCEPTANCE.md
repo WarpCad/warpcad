@@ -1726,6 +1726,8 @@ selected, toolbar disabled again. Console clean.
 
 **Re-checked**: 2026-09-22 13:51 UTC — **PASS** (`ui-042`, which adds a pick *depth* reachable from the list — the count gate has to stay blind to it). Laptop Chromium and WebKit, tablet Chromium, phone WebKit. Driven with the depth set at every step, not just at the end: one body expanded and a child part tapped (**1 selected**, drilled — Union/Subtract/Intersect still disabled, exactly as an un-drilled 1 selected is), a second body added by its own check (**2 selected**, enabled — the *depth stayed on the first body* the whole time), the drilled body's own parent check toggled out (**1 selected**, disabled again — the depth was left in place, inert, per `ui-040`'s own dance) and back in (**2 selected**, enabled, depth revived on the same part). At every one of those four states the ten-button gate (the multi-operand five vs. the five single-operand ones) read exactly what an equivalent **un-drilled** selection of the same count reads — confirmed by comparing the two enabled/disabled arrays directly rather than by eye. Console clean.
 
+**Re-checked**: 2026-09-22 14:33 UTC — **PASS** (`ui-043`, phone-width nav-chrome/toolbar overlap fix — re-driven specifically at **390×844**, since the badge/legend text this task touches is exactly what this scenario's step 2-3 reads). Real drag-and-drop (a Cube then a Cylinder, wandering pointer paths, `pointerType: 'touch'`) followed by real clicks, WebKit and Chromium. **Steps 2-3, the count gate**: 1 selected → `data-enabled="false"`, `title="Select 2 or more solids"` (the full sentence, unchanged — the phone-only legend shortening this task adds is cosmetic, not a title change), and the badge visibly reads `select 2+` at this width; shift-clicking the second body → `data-enabled="true"`, badge `first is the base`. **Step 4**: `data-selection-role` read `base` on the first-clicked body and `secondary` on the second, confirmed from the DOM at the same states the toolbar was measured in. **Steps 5-6**: Subtract took the document from 2 bodies to 1, the toolbar disabled again. **The scenario's own claim plus this task's own**: at both 1- and 2-selected, with the Inspector sheet open (the state the file's own numbers came from), `operations-toolbar`'s bounding rect and `navigation-chrome`'s did **not** intersect (a live measurement, not the fixed synthetic-selection one this task's own e2e spec also runs) — a real regression this scenario would not otherwise have caught, since scenario 4's own steps never previously drove the two-selected state at phone width with the Inspector open specifically. Every toolbar button and the chrome's `nav-mode-orbit`/`nav-mode-pan`/`nav-mode-select` passed a trial click (topmost-element-at-centre) in both selection states. Console clean in both engines.
+
 ### 5. Hidden-part boolean (bolt tap-clearance)
 
 **Steps**:
@@ -2286,6 +2288,24 @@ gesture the previous attempt's iPad bug swallowed), and diagonal touch drags all
 orbited; a two-finger pinch zoomed 420→129.23; sketch mode stayed off throughout, so
 the new `sketchMode` guard never fired on this path — confirmed by direct observation
 rather than by code inspection. No horizontal overflow, console clean in both schemes.
+
+**Re-checked**: 2026-09-22 14:33 UTC — PASS (`ui-043`). Re-driven at **phone (390×844)**
+rather than the scenario's own iPad reference, since this task's fix touches
+`NavigationChrome`'s clearance from the Operations toolbar — a phone-width-specific
+concern the iPad viewport never exercises (at ≥641px no sheet ever insets the chrome).
+WebKit and Chromium, touch context (`hasTouch: true`), driven through the chrome
+buttons directly (Playwright cannot dispatch a real touch drag). Orbit: tapping
+`nav-step-right` while in Orbit mode moved azimuth `-45.00°→-30.00°` (elevation
+unchanged). Pan: switching to Pan and tapping `nav-step-right` moved the camera target
+`0.00,0.00,0.00→18.66,18.66,0.00`. Zoom: `nav-zoom-in` moved distance `420.00→336.00`
+— the identical number this scenario's own iPad drives have recorded since 2026-09-06,
+confirming the zoom step itself is viewport-independent. Orientation gizmo: tapping
+`gizmo-view-top` snapped `elevation 35.26°→90.00°` (and azimuth to `-90.00°`, the
+gizmo's own top-view convention). All four chrome buttons plus every Operations
+toolbar button passed a trial click at both 1- and 2-selected in the same session
+(this scenario's chrome half and scenario 4's toolbar half share one screen at phone
+width, so both were driven together rather than as two separate page loads). Console
+clean in both engines.
 
 ### 8. Remote-load safety
 
