@@ -362,11 +362,51 @@ If you only tap the *Bolt 1* row (step 3 on the bolt instead), the bolt alone is
 its Inspector and gizmo appear, and you can move or rotate it — even though the cube is
 in front of it — by dragging the gizmo's arrows or typing into the Position boxes.
 
-**One limit:** the list selects whole shapes. A hardware part such as a bolt is built from
-named pieces (its head, thread and `tap` clearance) that you normally reach by clicking it
-a second time (see [Combining shapes](booleans.md)); a shape that is completely hidden
-cannot be clicked twice, so you cannot pick one of its pieces this way. For a bolt this
-makes no difference to a Subtract — the whole bolt and its `tap` piece cut the same hole.
+### Picking one piece of a hidden shape
+
+A shape built from named pieces — a bolt's head/thread/`tap`, a Raspberry Pi's jacks and
+ports — normally opens those pieces by clicking it a *second* time in the 3D view (see
+[Combining shapes](booleans.md)). A shape that is completely hidden inside another one
+cannot be clicked even once, let alone twice, so the Objects list gives every row that
+has pieces a small **▸** disclosure arrow at its right edge. Tap it to show the shape's
+pieces as indented rows underneath — including pieces that are themselves invisible
+(like a bolt's `tap` clearance), because those are exactly what you would want to
+subtract with.
+
+**Worked example: an Ethernet port opening in a fully enclosed case.** You have a
+Raspberry Pi B+ built entirely inside a case shell — the whole board, not just resting
+against a wall of it.
+
+1. Open **Objects**. Two rows appear: *Shell 1* and *Raspberry Pi B+*. Trying to click
+   the Pi in the 3D view gets you the shell every time.
+2. **Tap the *Shell 1* row first.** The shell is selected — *1 selected*. This step has
+   to come first: Subtract always cuts from whatever you selected *first*, and you want
+   the case to be what gets cut, not the board.
+3. **Tap the ▸ next to *Raspberry Pi B+*.** Its pieces list opens underneath — `mb`,
+   `ethernet`, `usb1`, `hdmi`, and so on, with a handful of invisible mounting pieces
+   at the bottom (each labelled *hidden*).
+4. **Tap the little box on the *ethernet* row.** It turns teal and shows **2**; the
+   *Shell 1* box still shows **1**. The Operations toolbar reads **Shell 1 then
+   Raspberry Pi B+ › ethernet**, and **Subtract** lights up.
+5. Press **Subtract**. The case gets a jack-sized opening — **4 545.0 mm³** worth of
+   material removed, not the board's whole **23 168.2 mm³** footprint — and the Pi
+   disappears from the list, used up like any Subtract operand.
+
+**Tap a piece row itself** (not its box) to select *only* that piece of that shape,
+replacing whatever was selected before — the same as tapping a plain row does for a
+whole shape. Tapping the parent's own row afterward steps back up to the whole shape.
+A piece you have addressed stays named on its parent row (`› ethernet`) even while the
+pieces list is collapsed, so you can always see what a Subtract is about to cut with
+before you press it.
+
+**Order matters, and the list shows you before you commit.** If you tap *ethernet*
+before *Shell 1*, the Pi becomes the base and the shell becomes the thing subtracted
+*from* it — the badge reads **Raspberry Pi B+ › ethernet then Shell 1**, the wrong way
+round. Read the badge before pressing Subtract; it always names which shape is the base.
+
+A hardware bolt's `tap` piece is the one case where addressing a piece changes nothing:
+`tap` is the bolt's full clearance envelope, so cutting with it or with the whole bolt
+gives the identical hole.
 
 ## Troubleshooting
 

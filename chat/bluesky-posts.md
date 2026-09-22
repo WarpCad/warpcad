@@ -827,3 +827,20 @@ Built with Claude Code, reviewed by me.
 **Evidence:** "bolt sat fully inside a 40mm cube" → fixture in `e2e/objects-panel.e2e.js` (cube -20,-20,0..20,20,40; bolt -9.50,-8.23,8.00..9.50,8.23,27.50), read off `data-body-bounds` this session; "Inspector, gizmo, all there" → the same e2e asserts `inspector` contains the bolt's name and `transform-gizmo` is visible after the row is tapped; "zero pixels" → WebGL canvas alone with every overlay hidden, before/after selecting the bolt from the list, before the fix: 0 changed pixels (Chromium, 1440x900, this session); "redraw the hidden part with the depth test flipped" → `createXrayMaterial` in `src/render/mesh.js` (`depthFunc: GreaterDepth`), after: 1185 changed pixels in Chromium and 1186 in WebKit
 **Disclosure:** Built with Claude Code, reviewed by me.
 **To Add:** repo URL once public; a before/after pair of the cube with the bolt's tint showing through
+
+## [2026-09-22T13:41:00Z] — The worked example in the task file was backwards
+
+**Post:** Shipped: WarpCad's Objects list can now expand a composite (a Raspberry Pi, a bolt) and address one of its pieces directly — even when it's sealed inside another shape and no click can reach it.
+
+The task file's own suggested flow was: tap the part, then add the enclosing shape. I drove it before building anything else. It's backwards — Subtract cuts from whatever you select *first*, so that order makes the tiny part the base and the case the thing removed from it.
+
+Fixed by making the list's "add" gesture always append at the end of the selection, depth and all. Case first, then the part's check, reaches the right order — and the toolbar names it before you commit, so you never have to guess.
+
+Measured: an enclosed Pi's ethernet jack cuts 4,545 mm³ out of a case. The whole board would have cut 23,168.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** "backwards" order → driven by hand against the running app, confirmed by the Operations toolbar's own operand-line text reading "Raspberry Pi B+ › ethernet then Shell 1"; "append at the end" → `selection.selectPart`'s additive branch in `src/stores/selection.js`; "4,545 / 23,168" → `shell.volumeMm3 - result.volumeMm3` and `shell.volumeMm3 - wholeBoardResult.volumeMm3` computed directly against `@jscad/modeling`'s own `booleans.subtract`, independent of the app, in `e2e/objects-panel.e2e.js`
+**To Add:** repo URL once public, docs site URL once it exists

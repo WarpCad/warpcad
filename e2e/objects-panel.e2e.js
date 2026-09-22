@@ -1,7 +1,13 @@
 import { mkdirSync } from 'node:fs'
 import { join } from 'node:path'
 
+import jscad from '@jscad/modeling'
 import { test, expect } from '@playwright/test'
+
+import { createDocument } from '../src/core/document.js'
+import { combine, volumeOf } from '../src/core/kernel/group.js'
+
+const { booleans } = jscad
 
 /**
  * The Objects list (`TODO/ui-041`), driven against `/` — the running app.
@@ -692,4 +698,366 @@ test('phone: the Library sheet, Objects and History never stack — opening one 
   await page.getByTestId('library-tab').click()
   await expect(page.getByTestId('library-rows')).toBeVisible()
   expect(await visible('timeline-panel')).toBe(false)
+})
+
+
+/* ------------------------------------------------------------------------------------ *
+ * TODO/ui-042 — expandable part rows: a Raspberry Pi's `ethernet` jack, addressed from the
+ * Objects list while the Pi is entirely inside a case.
+ *
+ * Engines/viewports: all three reference viewports, Chromium and WebKit (Firefox does not
+ * launch in this sandbox — TROUBLESHOOTING.md). The Pi is seeded through the document store
+ * for the same reason the bolt is above: a drag-drop snaps flush, so no drag can put one body
+ * inside another. Every action under test is a real click.
+ * ------------------------------------------------------------------------------------ */
+
+/**
+ * The expected numbers, computed **independently of the app**: the kernel's own geometry,
+ * booleaned directly with `@jscad/modeling`, never through `boolean.subtract`'s registry
+ * entry or the toolbar. A 100 x 70 x 40 case with a Raspberry Pi B+ wholly inside it.
+ */
+function enclosedPiKernel() {
+  const doc = createDocument()
+  doc.append(
+    { id: 'shell', op: 'primitive.cuboid', name: 'Shell 1', params: { size: [100, 70, 40], center: [42, 27, 10] } },
+    { origin: 'local' },
+  )
+  doc.append({ id: 'pi', op: 'raspberrypi.bplus', name: 'Raspberry Pi B+', params: {} }, { origin: 'local' })
+  const [shell, pi] = doc.bodies()
+  const group = /** @type {any} */ (pi.geometry)
+  const shellGeometry = /** @type {any} */ (shell.geometry)
+  return {
+    shellVolume: volumeOf(shellGeometry),
+    piVolume: volumeOf(group),
+    ethernetVolume: volumeOf(group.parts.ethernet),
+    /** Case minus the ethernet jack alone. */
+    shellMinusEthernet: volumeOf(booleans.subtract(shellGeometry, group.parts.ethernet)),
+    /** Case minus the whole board. */
+    shellMinusPi: volumeOf(booleans.subtract(shellGeometry, combine(group))),
+    partCount: group.names.length + Object.keys(group.parts).filter((name) => !group.names.includes(name)).length,
+    hiddenCount: Object.keys(group.parts).filter((name) => !group.names.includes(name)).length,
+  }
+}
+
+/** @param {import('@playwright/test').Page} page */
+async function seedEnclosedPi(page) {
+  await storeApi(page).run((api) => {
+    api.documentStore.append({
+      id: 'shell',
+      op: 'primitive.cuboid',
+      name: 'Shell 1',
+      params: { size: [100, 70, 40], center: [42, 27, 10] },
+    })
+    api.documentStore.append({ id: 'pi', op: 'raspberrypi.bplus', name: 'Raspberry Pi B+', params: {} })
+    api.documentStore.append({
+      id: 'ball',
+      op: 'primitive.sphere',
+      name: 'Sphere 1',
+      params: { diameter: 20, center: [200, 0, 10] },
+    })
+  })
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-body-count', '3')
+}
+
+/** @param {import('@playwright/test').Page} page */
+function subPartOf(page) {
+  return storeApi(page).run((api) => api.selection.subPart)
+}
+
+/**
+ * Scroll a list item into view *within the sheet* and report whether the topmost element at
+ * its centre is the item itself — the trial click.
+ *
+ * @param {import('@playwright/test').Page} page
+ * @param {string} testId
+ */
+async function scrolledReachable(page, testId) {
+  await page.getByTestId(testId).scrollIntoViewIfNeeded()
+  return isReachable(page, testId)
+}
+
+test('an enclosed Raspberry Pi: expand it, address `ethernet`, add the case FIRST, Subtract — a jack-sized opening, measured against the kernel', async ({
+  page,
+}, testInfo) => {
+  const kernel = enclosedPiKernel()
+  await seedEnclosedPi(page)
+  const wide = (page.viewportSize()?.width ?? 0) > 640
+  await page.evaluate(() => {
+    window.__notReloaded = true
+  })
+
+  // The premise, proved rather than assumed: a grid of real canvas clicks over the case
+  // selects the case and never the board — the Pi cannot be clicked, from here.
+  const picked = new Set()
+  for (let row = 0; row < 9; row += 1) {
+    for (let col = 0; col < 9; col += 1) {
+      await clickViewportAt(page, 0.3 + col * 0.05, 0.16 + row * 0.06)
+      const id = await page.getByTestId('viewport').getAttribute('data-selected-id')
+      if (id) picked.add(id)
+    }
+  }
+  expect(picked.has('pi'), 'no click should ever reach the enclosed Pi').toBe(false)
+  expect(picked.has('shell'), 'sanity: the case itself is clickable').toBe(true)
+  await clickViewportAt(page, 0.02, 0.02)
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-selected-count', '0')
+
+  await openObjects(page)
+  // Only the composite has a disclosure chevron.
+  await expect(page.getByTestId('objects-expand-pi')).toBeVisible()
+  await expect(page.getByTestId('objects-expand-shell')).toHaveCount(0)
+  await expect(page.getByTestId('objects-expand-ball')).toHaveCount(0)
+  await expect(page.getByTestId('objects-expand-pi')).toHaveAttribute('aria-expanded', 'false')
+  await expect(page.getByTestId('objects-part-pi-ethernet')).toHaveCount(0)
+
+  await page.getByTestId('objects-expand-pi').click()
+  await expect(page.getByTestId('objects-expand-pi')).toHaveAttribute('aria-expanded', 'true')
+  await expect(page.getByTestId('objects-part-pi-ethernet')).toBeVisible()
+  // Expanding is not selecting.
+  expect(await selectedIds(page)).toEqual([])
+  // Every part the kernel says the Pi has is listed — visible and hidden — once each.
+  const partItems = await page.$$eval('[data-testid^="objects-part-item-pi-"]', (nodes) =>
+    nodes.map((node) => ({ hidden: node.getAttribute('data-hidden') })),
+  )
+  expect(partItems).toHaveLength(kernel.partCount)
+  expect(partItems.filter((item) => item.hidden === 'true')).toHaveLength(kernel.hiddenCount)
+  // Hidden parts are labelled as hidden, visible ones are not.
+  await expect(page.getByTestId('objects-part-hidden-pi-usb1-body')).toHaveText('hidden')
+  await expect(page.getByTestId('objects-part-hidden-pi-ethernet')).toHaveCount(0)
+
+  // Human order, part-first, because that is what the task file's own flow suggests: tap
+  // `ethernet`, then add the case. It gives the WRONG boolean, and the list says so.
+  await page.getByTestId('objects-part-pi-ethernet').click()
+  expect(await selectedIds(page)).toEqual(['pi'])
+  expect(await subPartOf(page)).toEqual({ bodyId: 'pi', partName: 'ethernet' })
+  await expect(page.getByTestId('objects-part-item-pi-ethernet')).toHaveAttribute('data-selected', 'true')
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-selected-count', '1')
+  await expect(page.getByTestId('operation-subtract')).toBeDisabled() // one operand
+  await page.getByTestId('objects-check-shell').click()
+  expect(await selectedIds(page)).toEqual(['pi', 'shell'])
+  await expect(page.getByTestId('objects-check-pi')).toHaveText('1') // the Pi is the BASE
+  await expect(page.getByTestId('objects-check-shell')).toHaveText('2')
+  await expect(page.getByTestId('operation-subtract')).toHaveAttribute(
+    'title',
+    /Raspberry Pi B\+ › ethernet then Shell 1/,
+  )
+  if (wide) {
+    await expect(page.getByTestId('operation-operand-base')).toHaveText('Raspberry Pi B+ › ethernet')
+    await expect(page.getByTestId('operation-operand-rest')).toHaveText('Shell 1')
+  }
+
+  // The natural order: the case's row (a plain tap replaces the selection and drops the
+  // depth), then the jack's check. The case is the base; the jack is subtracted from it.
+  await page.getByTestId('objects-row-shell').click()
+  expect(await selectedIds(page)).toEqual(['shell'])
+  expect(await subPartOf(page)).toBeNull()
+  await page.getByTestId('objects-part-check-pi-ethernet').click()
+  expect(await selectedIds(page)).toEqual(['shell', 'pi'])
+  expect(await subPartOf(page)).toEqual({ bodyId: 'pi', partName: 'ethernet' })
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-selected-count', '2')
+  await expect(page.getByTestId('objects-check-shell')).toHaveText('1')
+  await expect(page.getByTestId('objects-check-pi')).toHaveText('2')
+  await expect(page.getByTestId('objects-part-check-pi-ethernet')).toHaveText('2')
+  await expect(page.getByTestId('objects-drilled-pi')).toHaveText('› ethernet')
+  await expect(page.getByTestId('operations-count')).toContainText('2 selected')
+  await expect(page.getByTestId('operation-subtract')).toBeEnabled()
+  await expect(page.getByTestId('operation-subtract')).toHaveAttribute(
+    'title',
+    /Shell 1 then Raspberry Pi B\+ › ethernet/,
+  )
+  if (wide) {
+    await expect(page.getByTestId('operation-operand-base')).toHaveText('Shell 1')
+    await expect(page.getByTestId('operation-operand-rest')).toHaveText('Raspberry Pi B+ › ethernet')
+  }
+  // Collapsing the parts leaves the address on the parent row: it is never invisible.
+  await page.getByTestId('objects-expand-pi').click()
+  await expect(page.getByTestId('objects-part-pi-ethernet')).toHaveCount(0)
+  await expect(page.getByTestId('objects-drilled-pi')).toHaveText('› ethernet')
+
+  const before = await sceneBodies(page)
+  const shellBefore = before.find((body) => body.name === 'Shell 1')
+  const piBefore = before.find((body) => body.name === 'Raspberry Pi B+')
+  // The app's own measurements agree with the kernel's before anything is cut.
+  expect(shellBefore?.volumeMm3).toBeCloseTo(kernel.shellVolume, 2)
+  expect(piBefore?.volumeMm3).toBeCloseTo(kernel.piVolume, 2)
+
+  await page.getByTestId('operation-subtract').click()
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-body-count', '2')
+  const after = await sceneBodies(page)
+  const result = after.find((body) => body.name !== 'Sphere 1')
+  expect(result, 'the subtract result').toBeDefined()
+  const measured = /** @type {any} */ (result).volumeMm3
+  // Cut with the ethernet jack ONLY: exactly the kernel's `shell - ethernet`...
+  expect(measured).toBeCloseTo(kernel.shellMinusEthernet, 1)
+  expect(kernel.shellVolume - measured).toBeCloseTo(kernel.ethernetVolume, 1)
+  // ...and provably not the whole-board cut, which removes far more.
+  expect(kernel.shellVolume - kernel.shellMinusPi).toBeGreaterThan(kernel.ethernetVolume * 1.5)
+  expect(Math.abs(measured - kernel.shellMinusPi)).toBeGreaterThan(1000)
+  // Nothing moved, nothing reloaded.
+  expect(/** @type {any} */ (result).bounds).toBe(shellBefore?.bounds)
+  expect(await page.evaluate(() => window.__notReloaded)).toBe(true)
+  console.log(
+    `[ui-042 ${testInfo.project.name}] shell ${kernel.shellVolume.toFixed(3)} - ethernet ${kernel.ethernetVolume.toFixed(3)} = ${measured.toFixed(3)} (kernel ${kernel.shellMinusEthernet.toFixed(3)}); whole-board cut would be ${kernel.shellMinusPi.toFixed(3)}`,
+  )
+
+  // Undo restores both, and the list's row for the Pi returns collapsed (it left the scene).
+  await page.getByTestId('undo-button').click()
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-body-count', '3')
+  await expect(page.getByTestId('objects-expand-pi')).toHaveAttribute('aria-expanded', 'false')
+})
+
+test('re-targeting and stepping back up: the list and the viewport agree about a pick depth', async ({ page }) => {
+  await seedEnclosedPi(page)
+  const wide = (page.viewportSize()?.width ?? 0) > 640
+  await openObjects(page)
+  await page.getByTestId('objects-expand-pi').click()
+
+  await page.getByTestId('objects-part-pi-ethernet').click()
+  expect(await subPartOf(page)).toEqual({ bodyId: 'pi', partName: 'ethernet' })
+  if (wide) await expect(page.getByTestId('inspector-breadcrumb-part')).toHaveText('ethernet')
+
+  // A sibling: straight there, no step up first — as a second viewport click on a sibling.
+  await page.getByTestId('objects-part-pi-hdmi').click()
+  expect(await subPartOf(page)).toEqual({ bodyId: 'pi', partName: 'hdmi' })
+  await expect(page.getByTestId('objects-part-item-pi-ethernet')).toHaveAttribute('data-selected', 'false')
+  await expect(page.getByTestId('objects-part-item-pi-hdmi')).toHaveAttribute('data-selected', 'true')
+  if (wide) await expect(page.getByTestId('inspector-breadcrumb-part')).toHaveText('hdmi')
+
+  // The same part again: stays drilled (a repeat viewport click does not step back up).
+  await page.getByTestId('objects-part-pi-hdmi').click()
+  expect(await subPartOf(page)).toEqual({ bodyId: 'pi', partName: 'hdmi' })
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-selected-count', '1')
+
+  // A hidden part is addressable too, and depth is never a second body.
+  await page.getByTestId('objects-part-pi-usb1-body').scrollIntoViewIfNeeded()
+  await page.getByTestId('objects-part-pi-usb1-body').click()
+  expect(await subPartOf(page)).toEqual({ bodyId: 'pi', partName: 'usb1-body' })
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-selected-count', '1')
+
+  // The parent row steps back up to the whole body — the breadcrumb's "group" segment.
+  await page.getByTestId('objects-row-pi').click()
+  expect(await subPartOf(page)).toBeNull()
+  expect(await selectedIds(page)).toEqual(['pi'])
+  await expect(page.getByTestId('objects-drilled-pi')).toHaveCount(0)
+  if (wide) await expect(page.getByTestId('inspector-breadcrumb-part')).toHaveCount(0)
+
+  // Empty canvas clears it all, the list included.
+  await clickViewportAt(page, 0.02, 0.02)
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-selected-count', '0')
+  await expect(page.getByTestId('objects-part-item-pi-usb1-body')).toHaveAttribute('data-selected', 'false')
+})
+
+test('a second viewport click still drills (ui-016), and the collapsed list row names the part it reached', async ({
+  page,
+}) => {
+  // Not enclosed: a Pi on its own, so real clicks can reach it — the viewport route this
+  // task must leave intact, and the list following it.
+  await storeApi(page).run((api) => {
+    api.documentStore.append({ id: 'pi', op: 'raspberrypi.bplus', name: 'Raspberry Pi B+', params: {} })
+  })
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-body-count', '1')
+  await openObjects(page)
+
+  let hit = false
+  for (let row = 0; row < 12 && !hit; row += 1) {
+    for (let col = 0; col < 12 && !hit; col += 1) {
+      await clickViewportAt(page, 0.3 + col * 0.03, 0.2 + row * 0.04)
+      hit = (await page.getByTestId('viewport').getAttribute('data-selected-id')) === 'pi'
+      if (hit) {
+        // Same point again: the second click drills into the part under it.
+        await clickViewportAt(page, 0.3 + col * 0.03, 0.2 + row * 0.04)
+      }
+    }
+  }
+  expect(hit, 'a click should reach the Pi').toBe(true)
+  const depth = await subPartOf(page)
+  expect(depth?.bodyId).toBe('pi')
+  expect(typeof depth?.partName).toBe('string')
+  // The list follows the viewport: the parent row names the drilled part while collapsed...
+  await expect(page.getByTestId('objects-drilled-pi')).toHaveText(`› ${depth?.partName}`)
+  // ...and expanding it shows exactly that child row filled.
+  await page.getByTestId('objects-expand-pi').click()
+  await expect(page.getByTestId(`objects-part-item-pi-${depth?.partName}`)).toHaveAttribute('data-selected', 'true')
+  await expect(page.locator('[data-testid^="objects-part-item-pi-"][data-selected="true"]')).toHaveCount(1)
+})
+
+test('phone-first layout with a fully expanded Pi: chevrons and child rows are 44px, reachable, and the sheet scrolls', async ({
+  page,
+}, testInfo) => {
+  const kernel = enclosedPiKernel()
+  await seedEnclosedPi(page)
+  await openObjects(page)
+  await page.getByTestId('objects-expand-pi').click()
+  await page.getByTestId('objects-row-shell').click()
+  await page.getByTestId('objects-part-check-pi-ethernet').click()
+  await page.waitForTimeout(250)
+
+  // The row list stays usable with every part showing: it is a scrolling region, and the
+  // whole Pi (`partCount` child rows at 44px each) does not fit in the sheet — it scrolls.
+  const scroll = await page.evaluate(() => {
+    const list = document.querySelector('[data-testid="objects-rows"]')
+    if (!list) return null
+    return { client: list.clientHeight, scroll: list.scrollHeight }
+  })
+  expect(scroll).not.toBeNull()
+  expect(/** @type {any} */ (scroll).scroll).toBeGreaterThan(/** @type {any} */ (scroll).client)
+
+  // Every control on the first screenful, then the last row after scrolling, trial-clicked.
+  for (const testId of [
+    'objects-row-shell',
+    'objects-check-shell',
+    'objects-row-pi',
+    'objects-check-pi',
+    'objects-expand-pi',
+    'objects-part-pi-ethernet',
+    'objects-part-check-pi-ethernet',
+    'objects-part-pi-hdmi',
+    'objects-part-check-pi-hdmi',
+    'objects-part-pi-hole4',
+    'objects-part-check-pi-hole4',
+    'objects-row-ball',
+    'objects-check-ball',
+  ]) {
+    const reach = await scrolledReachable(page, testId)
+    expect(reach.found, testId).toBe(true)
+    expect(reach.onScreen, `${testId} on screen`).toBe(true)
+    expect(reach.topmostIsItem, `${testId} is covered by something`).toBe(true)
+    expect(reach.height, `${testId} tap-target height`).toBeGreaterThanOrEqual(44)
+  }
+  // The chevron is a 44 x 44 target.
+  await page.getByTestId('objects-expand-pi').scrollIntoViewIfNeeded()
+  const chevron = await rectOf(page, 'objects-expand-pi')
+  expect(/** @type {any} */ (chevron).right - /** @type {any} */ (chevron).left).toBeGreaterThanOrEqual(44)
+  expect(/** @type {any} */ (chevron).bottom - /** @type {any} */ (chevron).top).toBeGreaterThanOrEqual(44)
+
+  // Nothing pushes the page sideways, and no child row is wider than the sheet.
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)
+  expect(overflow).toBeLessThanOrEqual(0)
+  const rowsOverflowX = await page.evaluate(() => {
+    const list = document.querySelector('[data-testid="objects-rows"]')
+    return list ? list.scrollWidth - list.clientWidth : 0
+  })
+  expect(rowsOverflowX).toBeLessThanOrEqual(0)
+
+  // The surfaces around the sheet are still clear of it.
+  const surfaces = ['objects-panel', 'operations-toolbar', 'navigation-chrome', 'inspector-tab', 'library-tab']
+  /** @type {Record<string, any>} */
+  const rects = {}
+  for (const id of surfaces) rects[id] = await rectOf(page, id)
+  for (const a of surfaces) {
+    for (const b of surfaces) {
+      if (a >= b || !rects[a] || !rects[b]) continue
+      expect(overlaps(rects[a], rects[b]), `${a} overlaps ${b}`).toBe(false)
+    }
+  }
+  expect((await isReachable(page, 'operation-subtract')).topmostIsItem).toBe(true)
+
+  // Reachable and selectable at the far end of the list: the last child row still selects.
+  await page.getByTestId('objects-part-pi-hole4').scrollIntoViewIfNeeded()
+  await page.getByTestId('objects-part-pi-hole4').click()
+  expect(await subPartOf(page)).toEqual({ bodyId: 'pi', partName: 'hole4' })
+
+  console.log(
+    `[ui-042 ${testInfo.project.name}] Pi parts ${kernel.partCount} (${kernel.hiddenCount} hidden); sheet client ${/** @type {any} */ (scroll).client}px vs content ${/** @type {any} */ (scroll).scroll}px; chevron ${Math.round(/** @type {any} */ (chevron).right - /** @type {any} */ (chevron).left)}x${Math.round(/** @type {any} */ (chevron).bottom - /** @type {any} */ (chevron).top)}`,
+  )
+  await page.screenshot({ path: join(SNAPSHOT_DIR, `objects-parts-${testInfo.project.name}.png`) })
 })

@@ -1084,3 +1084,22 @@ Built with Claude Code, reviewed by me.
 **Evidence:** "121 clicks ... the cube or nothing, and the bolt never" → the 11x11 click grid in `e2e/objects-panel.e2e.js`, which asserts the cube was found and the bolt was not; "per-row check ... no Shift key" → `objects-check-<id>` buttons, and `e2e` selects two bodies via row + check only, at phone width; "second meaning on the gesture that already drills into a part" → `docs/decisions/interaction-model-qa.md` section 20 and `TODO/done/ui-016-group-subpart-selection.md`; "Zero pixels" → canvas-only screenshot diff before the fix, Chromium 1440x900, this session; "0 to about 1,190 ... Chromium and WebKit" → 1185 and 1186 changed pixels, same fixture, this session; "61,108.343 = 64,000 minus 2,891.657" → `data-body-volume` of the cube, the bolt, and the Subtract result read off the running app at laptop, tablet and phone this session
 **Disclosure:** Built with Claude Code, reviewed by me.
 **To Add:** repo URL once public; before/after screenshots of the enclosed bolt's tint
+
+## [2026-09-22T13:41:00Z] — The worked example in my own task file was backwards
+
+**Post:** Last week I shipped a way to select a shape completely hidden inside another one — a bolt inside a case, a board inside an enclosure — from a list, since no click can ever reach it. That closed the "whole shape" half of the problem. The half left open: a hidden shape built from *named pieces*, like a Raspberry Pi's individual ports, still couldn't have one piece addressed, because reaching a piece meant clicking twice, and you can't click a hidden shape once.
+
+This week's fix adds a disclosure arrow to any shape in that list that has pieces, and lets a piece row be tapped the same two ways a whole shape's row already can be.
+
+The part worth writing down is what I found while proving the flow works, before building it. My own task file's suggested sequence was: expand the shape, tap the piece you want, then add the enclosing case. I drove that by hand first, against the real running app, and it produces the wrong cut. This app's Subtract always removes everything selected *after* the first thing from the first thing. Tap the piece first, and the piece's own tiny shape becomes what gets cut *from* — the case ends up subtracted from a port-sized fragment, not the other way around.
+
+The fix isn't a warning in the docs telling people to do it in the right order. It's making the natural order the one that works: adding a shape to the selection from this list always appends it at the end, whatever depth it's carrying. Select the case first, then the piece, and the order comes out right automatically — and the toolbar's existing operand-name line proves it on screen before you press anything, rather than after.
+
+Measured on a real fixture, a Pi built entirely inside a case: addressing just the ethernet jack removes 4,545 cubic millimetres. Cutting with the whole board instead would have removed 23,168 — a hole the size of the board, not a port.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** "produces the wrong cut" → hand-driven against `npm run dev`, the Operations toolbar's own operand line read "Raspberry Pi B+ › ethernet then Shell 1" for the wrong order and "Shell 1 then Raspberry Pi B+ › ethernet" for the right one; "appends it at the end" → `selection.selectPart(bodyId, partName, additive)` in `src/stores/selection.js`; "4,545 / 23,168 cubic millimetres" → `booleans.subtract` computed directly against `@jscad/modeling`, independent of the app's own code path, in `e2e/objects-panel.e2e.js`; suite → 1,489 unit tests green, full non-Firefox e2e matrix (chromium/webkit × phone/tablet/laptop) 1203 passed, 0 failed
+**To Add:** repo URL once public, docs site URL once it exists

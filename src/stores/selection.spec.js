@@ -151,3 +151,116 @@ describe('sketch selection (TODO/ui-020)', () => {
     expect(selection.sketchId).toBeNull()
   })
 })
+
+/**
+ * `selectPart` — pick depth addressed by **body id**, so the Objects list can name a part
+ * of a body that no click can reach (`TODO/ui-042`).
+ *
+ * `drillInto` is deliberately untouched: it is the viewport's second-click path and its
+ * "exactly one body selected" rule is `ui-016`'s contract. `selectPart` is the explicit
+ * sibling for a route that already knows which body it means.
+ */
+describe('selection store — selectPart (TODO/ui-042)', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+  })
+
+  it('plain: the body becomes the whole selection, drilled — exactly what select + drillInto does', () => {
+    const selection = useSelectionStore()
+    selection.select('shell')
+    selection.selectPart('pi', 'ethernet')
+    expect(selection.ids).toEqual(['pi'])
+    expect(selection.subPart).toEqual({ bodyId: 'pi', partName: 'ethernet' })
+
+    const other = useSelectionStore()
+    other.select('pi')
+    other.drillInto('ethernet')
+    expect(other.subPart).toEqual(selection.subPart)
+  })
+
+  it('plain, again on the same part: stays drilled — a repeat viewport click does not step back up', () => {
+    const selection = useSelectionStore()
+    selection.selectPart('pi', 'ethernet')
+    selection.selectPart('pi', 'ethernet')
+    expect(selection.subPart).toEqual({ bodyId: 'pi', partName: 'ethernet' })
+    expect(selection.ids).toEqual(['pi'])
+  })
+
+  it('plain, on a sibling: re-targets straight to it, as a second viewport click on a sibling does', () => {
+    const selection = useSelectionStore()
+    selection.selectPart('pi', 'ethernet')
+    selection.selectPart('pi', 'hdmi')
+    expect(selection.subPart).toEqual({ bodyId: 'pi', partName: 'hdmi' })
+    expect(selection.count).toBe(1)
+  })
+
+  it('additive: adds the body AT THE END with the depth — so a body selected first stays the boolean base', () => {
+    const selection = useSelectionStore()
+    selection.select('shell')
+    selection.selectPart('pi', 'ethernet', true)
+    // Order is the operand order: the shell is first (Subtract's base), the Pi second.
+    expect(selection.ids).toEqual(['shell', 'pi'])
+    expect(selection.subPart).toEqual({ bodyId: 'pi', partName: 'ethernet' })
+  })
+
+  it('additive on a body that is already selected: keeps its position, only the depth changes', () => {
+    const selection = useSelectionStore()
+    selection.selectMany(['pi', 'shell'])
+    selection.selectPart('pi', 'ethernet', true)
+    expect(selection.ids).toEqual(['pi', 'shell'])
+    expect(selection.subPart).toEqual({ bodyId: 'pi', partName: 'ethernet' })
+    selection.selectPart('pi', 'hdmi', true)
+    expect(selection.ids).toEqual(['pi', 'shell'])
+    expect(selection.subPart).toEqual({ bodyId: 'pi', partName: 'hdmi' })
+  })
+
+  it('additive on the part that is already addressed: steps back up to the whole body, body stays selected', () => {
+    const selection = useSelectionStore()
+    selection.select('shell')
+    selection.selectPart('pi', 'ethernet', true)
+    selection.selectPart('pi', 'ethernet', true)
+    expect(selection.ids).toEqual(['shell', 'pi'])
+    expect(selection.subPart).toBeNull()
+  })
+
+  it('never changes count — depth is not a second operand (ui-040 invariant)', () => {
+    const selection = useSelectionStore()
+    selection.select('shell')
+    expect(selection.count).toBe(1)
+    selection.selectPart('pi', 'ethernet', true)
+    expect(selection.count).toBe(2)
+    selection.selectPart('pi', 'hdmi', true)
+    expect(selection.count).toBe(2)
+    selection.selectPart('pi', 'hdmi', true)
+    expect(selection.count).toBe(2)
+  })
+
+  it('one depth at a time: a part on a second body takes the slot from the first — never two silently', () => {
+    const selection = useSelectionStore()
+    selection.selectPart('pi', 'ethernet')
+    selection.selectPart('bolt', 'tap', true)
+    expect(selection.ids).toEqual(['pi', 'bolt'])
+    expect(selection.subPart).toEqual({ bodyId: 'bolt', partName: 'tap' })
+  })
+
+  it('ignores an empty id or part name, and drops a sketch selection like every body route', () => {
+    const selection = useSelectionStore()
+    selection.select('shell')
+    selection.selectPart('', 'x')
+    selection.selectPart('pi', '')
+    selection.selectPart(null, null)
+    expect(selection.ids).toEqual(['shell'])
+    expect(selection.subPart).toBeNull()
+
+    selection.selectSketch('line-1')
+    selection.selectPart('pi', 'ethernet', true)
+    expect(selection.sketchId).toBeNull()
+  })
+
+  it('drillInto is unchanged: still a no-op unless exactly one body is selected (ui-016)', () => {
+    const selection = useSelectionStore()
+    selection.selectMany(['a', 'b'])
+    selection.drillInto('tap')
+    expect(selection.subPart).toBeNull()
+  })
+})

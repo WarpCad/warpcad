@@ -344,6 +344,24 @@ export function isGroup(value) {
 }
 
 /**
+ * Whether a body's geometry can be addressed part-by-part: a {@link Group} with at least
+ * one **named** (visible) part and no holes.
+ *
+ * This is the one place that condition lives. The renderer draws such a body as one mesh
+ * per part (`createBodyObject`), which is what makes a viewport second click able to drill
+ * to a part; the document summary lists such a body's parts for the Objects list
+ * (`TODO/ui-042`). A group with holes is drawn as one combined mesh — a per-part mesh would
+ * render straight through them — and a group with only hidden parts cannot be drawn
+ * part-by-part at all, so neither offers a part to point at.
+ *
+ * @param {unknown} value
+ * @returns {value is Group}
+ */
+export function hasNamedParts(value) {
+  return isGroup(value) && value.names.length > 0 && value.holes.length === 0
+}
+
+/**
  * Reduce a solid *or* a group to a single solid. A group collapses via
  * {@link combine}, matching `jscad-utils`, where handing a `Group` to something that
  * wanted geometry implicitly combined it.

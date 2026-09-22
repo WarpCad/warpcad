@@ -31,7 +31,7 @@ import {
   MeshStandardMaterial,
 } from 'three'
 
-import { isGroup, toGeom3 } from '../core/kernel/group.js'
+import { hasNamedParts, toGeom3 } from '../core/kernel/group.js'
 
 /** @typedef {import('@jscad/modeling').geometries.geom3.Geom3} Geom3 */
 /** @typedef {import('../core/kernel/group.js').Group} KernelGroup */
@@ -411,7 +411,7 @@ export function createMesh(geometry, material) {
  *   property of the hit object rather than a second lookup.
  */
 export function createBodyObject(geometry, material, bodyId) {
-  if (isGroup(geometry) && geometry.names.length > 0 && geometry.holes.length === 0) {
+  if (hasNamedParts(geometry)) {
     const container = new ThreeGroup()
     container.name = bodyId
     for (const partName of geometry.names) {
@@ -469,7 +469,7 @@ export function disposeBodyObject(object) {
  * @returns {boolean} True when the object was updated in place.
  */
 export function updateBodyObject(object, geometry) {
-  const grouped = isGroup(geometry) && geometry.names.length > 0 && geometry.holes.length === 0
+  const grouped = hasNamedParts(geometry)
   if (grouped !== object instanceof ThreeGroup) return false
 
   if (!grouped) {

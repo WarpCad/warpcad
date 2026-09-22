@@ -23,6 +23,19 @@
  * bar, and its selection is a *step*, never a body (`data-002` §13). Opening one closes
  * the other (`AppView.vue`), so they are never on screen together to be confused.
  *
+ * **Parts of a composite (`TODO/ui-042`).** A composite body (a Raspberry Pi, a bolt) has a
+ * disclosure chevron at the right of its row; opening it lists the body's named parts
+ * as indented child rows, hidden ones (a tap-clearance solid) included and labelled. This
+ * is the hand route to `ui-016`'s "second click drills into a part" for a body no click
+ * can reach — a Pi's `ethernet` jack while the Pi is inside a case — and so to `ui-040`'s
+ * sub-part boolean operands. Child rows follow **the same two gestures as body rows**, on
+ * purpose, so the whole list obeys one rule: tapping a child row makes *that body at that
+ * part* the whole selection; tapping its **check** (or Shift/Ctrl/Cmd on the row) adds it
+ * to the selection **at the end**. Order is operand order: to cut the `ethernet` jack out
+ * of a case, tap the case's row first, then the jack's check. The checks read `1`/`2`, the
+ * parent row names the part it is addressed at even while collapsed (`› ethernet`), and the
+ * Operations toolbar's operand line says the same before anything is committed.
+ *
  * Two layouts, phone first, sharing History's slot and its offsets so the Library and
  * Inspector tabs and the viewport's nav chrome stay clear (`AppView.vue`'s
  * `--bottom-panel-*` variables): a bottom dock inside the viewport column at ≥641px, a
@@ -43,6 +56,13 @@ const documentStore = useDocumentStore()
 const disabled = computed(() => objects.disabledReason !== '')
 
 /**
+ * Whether any row has a chevron. When one does, the rows without one keep an empty
+ * 44px slot in its place so every body's size lines up; when none does (the common case
+ * — a scene of primitives) no width is spent on it.
+ */
+const anyExpandable = computed(() => objects.rows.some((row) => row.expandable))
+
+/**
  * Steps that are in the log but not in the scene — suppressed, or past the rollback
  * marker. Their bodies are absent from the list *because* they are absent from the
  * scene; saying so keeps a missing row from reading as a bug.
@@ -58,6 +78,15 @@ const absentSteps = computed(() => {
  */
 function onRowClick(event, id) {
   objects.choose(id, event.shiftKey || event.ctrlKey || event.metaKey)
+}
+
+/**
+ * @param {MouseEvent} event
+ * @param {string} id
+ * @param {string} partName
+ */
+function onPartClick(event, id, partName) {
+  objects.choosePart(id, partName, event.shiftKey || event.ctrlKey || event.metaKey)
 }
 
 // A body selected in the viewport (or by marquee) should be findable in the list without
@@ -110,7 +139,7 @@ watch(
       {{ objects.disabledReason }}
     </p>
     <p v-else class="panel__note" data-testid="objects-hint">
-      Selects bodies · tap a row, tap the check to add more
+      Selects bodies · tap a row, the check adds more · ▸ shows a composite's parts
     </p>
 
     <p v-if="objects.rows.length === 0" class="panel__empty" data-testid="objects-empty">
@@ -121,36 +150,114 @@ watch(
       <li
         v-for="row in objects.rows"
         :key="row.id"
-        class="row"
-        :class="{ 'row--selected': row.selected }"
+        class="item"
         :data-testid="`objects-item-${row.id}`"
         :data-selected="row.selected ? 'true' : 'false'"
         :data-role="row.role"
+        :data-expanded="row.expanded ? 'true' : 'false'"
       >
-        <button
-          type="button"
-          class="row__check"
-          :class="`row__check--${row.role}`"
-          role="checkbox"
-          :aria-checked="row.selected"
-          :aria-label="`${row.selected ? 'Remove' : 'Add'} ${row.name} ${row.selected ? 'from' : 'to'} the selection`"
-          :data-testid="`objects-check-${row.id}`"
-          :disabled="disabled"
-          @click="objects.choose(row.id, true)"
+        <div class="row" :class="{ 'row--selected': row.selected }">
+          <button
+            type="button"
+            class="row__check"
+            :class="`row__check--${row.role}`"
+            role="checkbox"
+            :aria-checked="row.selected"
+            :aria-label="`${row.selected ? 'Remove' : 'Add'} ${row.name} ${row.selected ? 'from' : 'to'} the selection`"
+            :data-testid="`objects-check-${row.id}`"
+            :disabled="disabled"
+            @click="objects.choose(row.id, true)"
+          >
+            <span aria-hidden="true">{{ row.selected ? row.order : '' }}</span>
+          </button>
+          <button
+            type="button"
+            class="row__body"
+            :aria-pressed="row.selected"
+            :data-testid="`objects-row-${row.id}`"
+            :disabled="disabled"
+            @click="onRowClick($event, row.id)"
+          >
+            <span class="row__label">
+              <span class="row__name" data-testid="objects-row-name">{{ row.name }}</span>
+              <span
+                v-if="row.drilledPart"
+                class="row__drilled"
+                :data-testid="`objects-drilled-${row.id}`"
+                >› {{ row.drilledPart }}</span
+              >
+            </span>
+            <span class="row__size">{{ row.size }}</span>
+          </button>
+          <!-- A button, never an input: HistoryControls' Ctrl+Z guard treats any <input> as
+               text entry. Not disabled with the rows — reading a part's name selects nothing. -->
+          <button
+            v-if="row.expandable"
+            type="button"
+            class="row__chevron"
+            :class="{ 'row__chevron--open': row.expanded }"
+            :aria-expanded="row.expanded"
+            :aria-controls="`objects-parts-${row.id}`"
+            :aria-label="`${row.expanded ? 'Hide' : 'Show'} ${row.parts.length} parts of ${row.name}`"
+            :title="`${row.expanded ? 'Hide' : 'Show'} the parts of ${row.name}`"
+            :data-testid="`objects-expand-${row.id}`"
+            @click="objects.toggleExpanded(row.id)"
+          >
+            <span aria-hidden="true">▸</span>
+          </button>
+          <span v-else-if="anyExpandable" class="row__chevron-spacer" aria-hidden="true"></span>
+        </div>
+
+        <ul
+          v-if="row.expanded"
+          :id="`objects-parts-${row.id}`"
+          class="parts"
+          :data-testid="`objects-parts-${row.id}`"
+          :aria-label="`Parts of ${row.name}`"
         >
-          <span aria-hidden="true">{{ row.selected ? row.order : '' }}</span>
-        </button>
-        <button
-          type="button"
-          class="row__body"
-          :aria-pressed="row.selected"
-          :data-testid="`objects-row-${row.id}`"
-          :disabled="disabled"
-          @click="onRowClick($event, row.id)"
-        >
-          <span class="row__name" data-testid="objects-row-name">{{ row.name }}</span>
-          <span class="row__size">{{ row.size }}</span>
-        </button>
+          <li
+            v-for="part in row.parts"
+            :key="part.name"
+            class="part"
+            :class="{ 'part--selected': part.selected, 'part--hidden': part.hidden }"
+            :data-testid="`objects-part-item-${row.id}-${part.name}`"
+            :data-selected="part.selected ? 'true' : 'false'"
+            :data-hidden="part.hidden ? 'true' : 'false'"
+          >
+            <button
+              type="button"
+              class="row__check"
+              :class="`row__check--${part.role}`"
+              role="checkbox"
+              :aria-checked="part.selected"
+              :aria-label="`${part.selected ? 'Stop addressing' : 'Address'} ${part.name} of ${row.name}${part.selected ? '' : ', adding the body to the selection'}`"
+              :data-testid="`objects-part-check-${row.id}-${part.name}`"
+              :disabled="disabled"
+              @click="objects.choosePart(row.id, part.name, true)"
+            >
+              <span aria-hidden="true">{{ part.selected ? part.order : '' }}</span>
+            </button>
+            <button
+              type="button"
+              class="part__body"
+              :aria-pressed="part.selected"
+              :aria-label="`${part.name}${part.hidden ? ' (hidden part)' : ''}, part of ${row.name}`"
+              :data-testid="`objects-part-${row.id}-${part.name}`"
+              :disabled="disabled"
+              @click="onPartClick($event, row.id, part.name)"
+            >
+              <span class="part__name" :data-testid="`objects-part-name-${row.id}-${part.name}`">{{
+                part.name
+              }}</span>
+              <span
+                v-if="part.hidden"
+                class="part__hidden"
+                :data-testid="`objects-part-hidden-${row.id}-${part.name}`"
+                >hidden</span
+              >
+            </button>
+          </li>
+        </ul>
       </li>
     </ul>
 
@@ -243,11 +350,14 @@ watch(
   min-height: 0;
 }
 
+.item {
+  border-bottom: 1px solid var(--border);
+}
+
 .row {
   display: flex;
   align-items: stretch;
   min-height: var(--tap);
-  border-bottom: 1px solid var(--border);
 }
 
 /* A selected body is a full-row fill — History's selected *step* is a left accent bar
@@ -312,8 +422,28 @@ watch(
 }
 
 .row__body:hover,
+.part__body:hover,
 .row__check:hover span {
   border-color: var(--accent);
+}
+
+.row__label {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  line-height: 1.2;
+}
+
+/* The part this body is addressed at, kept on the parent row so it is visible even while
+   the parts are collapsed — an address must never be invisible. */
+.row__drilled {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--accent);
 }
 
 .row__name {
@@ -330,7 +460,106 @@ watch(
   font-variant-numeric: tabular-nums;
 }
 
+.row__chevron,
+.row__chevron-spacer {
+  flex: 0 0 var(--tap);
+  width: var(--tap);
+  min-height: var(--tap);
+}
+
+.row__chevron {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--text-2);
+  font-size: 14px;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.row__chevron span {
+  display: inline-block;
+  transition: transform 0.12s ease;
+}
+
+.row__chevron--open span {
+  transform: rotate(90deg);
+}
+
+.row__chevron:hover {
+  color: var(--text-1);
+}
+
+/* Child rows: indented under the parent, the same 44px height and the same check, so a
+   part is picked exactly the way a body is. The left rule ties them to their parent. */
+.parts {
+  margin: 0;
+  padding: 0 0 0 20px;
+  list-style: none;
+  border-top: 1px solid var(--border);
+  background: color-mix(in srgb, var(--surface-2, var(--surface-1)) 60%, var(--surface-1));
+}
+
+.part {
+  display: flex;
+  align-items: stretch;
+  min-height: var(--tap);
+  border-left: 2px solid var(--border);
+}
+
+.part + .part {
+  border-top: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
+}
+
+.part--selected {
+  background: color-mix(in srgb, var(--accent) 18%, var(--surface-1));
+  border-left-color: var(--accent);
+}
+
+.part__body {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px 0 2px;
+  border: none;
+  background: transparent;
+  color: var(--text-1);
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.part__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.part--hidden .part__name {
+  color: var(--text-2);
+  font-style: italic;
+}
+
+.part__hidden {
+  flex: 0 0 auto;
+  padding: 1px 6px;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+
 .row__body:disabled,
+.part__body:disabled,
 .row__check:disabled {
   cursor: not-allowed;
   opacity: 0.55;

@@ -6,8 +6,45 @@ priority: low
 model: sonnet
 milestone: M6
 depends: [ui-041]
-status: open
+status: done
 ---
+
+> ## What actually shipped, and the decisions behind it
+>
+> **The file's own worked-example flow is a trap, and this file said so — it was real.** Tap
+> `ethernet`, then add the shell (the file's literal step order) makes the *part's body* the
+> boolean base, backwards from what a port opening needs (Subtract cuts every later-selected
+> operand from the first). Fixed by giving the Objects list an explicit, named action —
+> `selection.selectPart(bodyId, partName, additive)` — whose **additive** gesture adds the body
+> **at the end** of `ids` with the depth on it (a body already selected keeps its position;
+> addressing the already-addressed part steps back up to the whole body). That makes "case row
+> first, then the part's check" reach the right order without any change to `drillInto`'s
+> existing exactly-one-body rule (`ui-016`), and the toolbar's existing operand line
+> (`selectedOperands`, `ui-040`) proves the order before commit with no changes of its own.
+> `selection.count` stays exactly `ids.length` throughout — a depth is never a second operand.
+> Recorded as `docs/decisions/interaction-model-qa.md` §20's dated addendum.
+> - **`summarizeBody` gains `partNames`/`hiddenPartNames`**, not by re-deriving "is this a
+>   composite worth expanding" in the component, but by extracting `createBodyObject`'s own
+>   part-addressability test into `hasNamedParts` (`src/core/kernel/group.js`) and calling it
+>   from both places — so the renderer (what can be drilled by a raycast) and the Objects list
+>   (what gets a chevron) can never disagree about which body is a composite.
+> - **Hidden parts are listed and labelled**, deliberately: a tap-clearance solid or a Pi's
+>   mounting hole is exactly what a boolean wants to address, and `combine()` skips them the
+>   same way whether or not they're addressed by name.
+> - **Expansion is a UI-only Pinia ref** (`expandedIds`), keyed by lineage-root id so a move,
+>   rename or param edit leaves it alone, and watched against the **live** document (not the
+>   previewed one) so History preview never collapses anything and a body that leaves the live
+>   scene forgets its expansion rather than growing the set forever.
+> - **Measured, not assumed**: an enclosed Raspberry Pi's `ethernet` cuts 4 545.0 mm3 from a
+>   100x70x40 case versus 23 168.2 mm3 for the whole board (both read directly off the kernel,
+>   independent of the app) — this file's own headline claim, now driven and true.
+>
+> Honest process note: RED was shown by writing all five spec files first (`selection.spec.js`,
+> `summarizeBody.spec.js`, `objectsPanel.spec.js`, `ObjectsPanel.spec.js`,
+> `OperationsToolbar.spec.js`) and running them — 44 failures for the right reason
+> (`selectPart is not a function`, `partNames` undefined, no `objects-expand-*` in the DOM) —
+> before any implementation code, correcting the previous run's shortcut of writing code first
+> and demonstrating RED by mutation.
 
 ## Goal
 

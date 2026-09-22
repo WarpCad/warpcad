@@ -110,6 +110,56 @@ export const useSelectionStore = defineStore('selection', () => {
   }
 
   /**
+   * Address one named part of a body **by that body's id** — the Objects list's route to
+   * a part of a body no click can reach (`TODO/ui-042`).
+   *
+   * {@link drillInto} cannot do this and is deliberately left alone: it is the viewport's
+   * second-click path, it takes no body id (it trusts that the one selected body is the one
+   * the click landed on), and its "exactly one body selected" rule is `ui-016`'s contract.
+   * A list row *names* its body, so this action is explicit about which one, and it may
+   * therefore also express "this body is the *second* operand and is addressed at a part" —
+   * a state a viewport click can only reach through `ui-040`'s toggle-out-and-back-in dance.
+   *
+   * - **Plain** — the body becomes the whole selection, drilled: exactly `select(bodyId)`
+   *   then `drillInto(partName)`. A repeat on the same part leaves it drilled, and a tap on
+   *   a sibling re-targets, as a repeat / sibling viewport click does.
+   * - **Additive** — the body joins the selection **at the end** (so whatever was picked
+   *   first stays the boolean's base — `ui-014`/`ui-040`) with the depth on it; a body that
+   *   is already selected keeps its position and only the depth changes. Additive on the
+   *   part that is *already* addressed steps back up to the whole body and leaves the body
+   *   selected, mirroring how a check toggles.
+   *
+   * Depth never touches {@link ids}, so `count` — the number every count gate reads — is
+   * unchanged by it (`ui-040`'s invariant). There is one depth slot: addressing a part on a
+   * second body moves it rather than holding two, which is the shape `selectedOperands`
+   * already assumes.
+   *
+   * @param {string | null | undefined} bodyId
+   * @param {string | null | undefined} partName
+   * @param {boolean} [additive]
+   * @returns {void}
+   */
+  function selectPart(bodyId, partName, additive = false) {
+    if (!bodyId || !partName) return
+    sketchId.value = null
+    if (!additive) {
+      ids.value = [bodyId]
+      subPart.value = { bodyId, partName }
+      return
+    }
+    const alreadyAddressed =
+      ids.value.includes(bodyId) &&
+      subPart.value?.bodyId === bodyId &&
+      subPart.value.partName === partName
+    if (alreadyAddressed) {
+      subPart.value = null
+      return
+    }
+    if (!ids.value.includes(bodyId)) ids.value = [...ids.value, bodyId]
+    subPart.value = { bodyId, partName }
+  }
+
+  /**
    * Step back out to the whole body, leaving {@link ids} alone — the
    * breadcrumb's group segment, and a UI affordance only: nothing here
    * raycasts.
@@ -200,6 +250,7 @@ export const useSelectionStore = defineStore('selection', () => {
     toggle,
     selectMany,
     drillInto,
+    selectPart,
     stepUp,
     clear,
     has,

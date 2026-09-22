@@ -10,6 +10,7 @@ enableAutoUnmount(afterEach)
 import { useDocumentStore } from '../../stores/document.js'
 import { useObjectsPanelStore } from '../../stores/objectsPanel.js'
 import { useSelectionStore } from '../../stores/selection.js'
+import { useSketchModeStore } from '../../stores/sketchMode.js'
 import { useTimelineStore } from '../../stores/timeline.js'
 import ObjectsPanel from './ObjectsPanel.vue'
 import ObjectsToggle from './ObjectsToggle.vue'
@@ -139,5 +140,158 @@ describe('ObjectsPanel + ObjectsToggle (TODO/ui-041)', () => {
     expect(useObjectsPanelStore().open).toBe(true)
     expect(button.attributes('aria-pressed')).toBe('true')
     expect(button.attributes('aria-label')).toBe('Close Objects')
+  })
+})
+
+/**
+ * `TODO/ui-042` — expandable part rows, at component level: what a chevron and a child row
+ * say and do. The reachability half (mounted in the real root view, at three viewports,
+ * with a real Subtract measured against the kernel) is `e2e/objects-panel.e2e.js`.
+ */
+describe('ObjectsPanel — part rows (TODO/ui-042)', () => {
+  let pinia
+  beforeEach(() => {
+    pinia = createPinia()
+    setActivePinia(pinia)
+    const doc = useDocumentStore()
+    doc.append({ id: 'shell', op: 'primitive.cuboid', name: 'Shell 1', params: { size: [100, 70, 40], center: [42, 27, 10] } })
+    doc.append({ id: 'pi', op: 'raspberrypi.bplus', name: 'Raspberry Pi B+', params: {} })
+    useObjectsPanelStore().setOpen(true)
+  })
+
+  const mountPanel = () => mount(ObjectsPanel, { global: { plugins: [pinia] } })
+  const part = (name) => `[data-testid="objects-part-pi-${name}"]`
+  const partCheck = (name) => `[data-testid="objects-part-check-pi-${name}"]`
+
+  it('only the composite gets a chevron; it starts collapsed, with aria-expanded and no child rows', () => {
+    const wrapper = mountPanel()
+    expect(wrapper.find('[data-testid="objects-expand-shell"]').exists()).toBe(false)
+    const chevron = wrapper.get('[data-testid="objects-expand-pi"]')
+    expect(chevron.element.tagName).toBe('BUTTON')
+    expect(chevron.attributes('aria-expanded')).toBe('false')
+    expect(chevron.attributes('aria-label')).toMatch(/Show .*parts of Raspberry Pi B\+/)
+    expect(wrapper.find(part('ethernet')).exists()).toBe(false)
+  })
+
+  it('the chevron expands the parts in place — and expanding selects nothing', async () => {
+    const wrapper = mountPanel()
+    const selection = useSelectionStore()
+    await wrapper.get('[data-testid="objects-expand-pi"]').trigger('click')
+    expect(wrapper.get('[data-testid="objects-expand-pi"]').attributes('aria-expanded')).toBe('true')
+    expect(wrapper.get('[data-testid="objects-expand-pi"]').attributes('aria-label')).toMatch(/Hide .*parts of Raspberry Pi B\+/)
+    expect(wrapper.find(part('ethernet')).exists()).toBe(true)
+    expect(selection.ids).toEqual([])
+    // The body rows' own name list is unchanged: child rows use their own name testid.
+    expect(wrapper.findAll('[data-testid="objects-row-name"]').map((n) => n.text())).toEqual(['Shell 1', 'Raspberry Pi B+'])
+    expect(wrapper.get('[data-testid="objects-part-name-pi-ethernet"]').text()).toBe('ethernet')
+
+    await wrapper.get('[data-testid="objects-expand-pi"]').trigger('click')
+    expect(wrapper.find(part('ethernet')).exists()).toBe(false)
+  })
+
+  it('labels hidden parts as hidden, and lists them after the visible ones', async () => {
+    const wrapper = mountPanel()
+    await wrapper.get('[data-testid="objects-expand-pi"]').trigger('click')
+    const items = wrapper.findAll('[data-testid^="objects-part-item-pi-"]')
+    const flags = items.map((item) => item.attributes('data-hidden'))
+    expect(flags.includes('true')).toBe(true)
+    expect(flags.indexOf('true')).toBeGreaterThan(flags.lastIndexOf('false'))
+    expect(wrapper.get('[data-testid="objects-part-item-pi-ethernet"]').text()).not.toMatch(/hidden/)
+    expect(wrapper.get('[data-testid="objects-part-item-pi-usb1-body"]').text()).toMatch(/hidden/)
+  })
+
+  it('a child row tap selects that part of that body — the same two selections a second viewport click makes', async () => {
+    const wrapper = mountPanel()
+    const selection = useSelectionStore()
+    await wrapper.get('[data-testid="objects-expand-pi"]').trigger('click')
+    await wrapper.get(part('ethernet')).trigger('click')
+    expect(selection.ids).toEqual(['pi'])
+    expect(selection.subPart).toEqual({ bodyId: 'pi', partName: 'ethernet' })
+    expect(wrapper.get('[data-testid="objects-part-item-pi-ethernet"]').attributes('data-selected')).toBe('true')
+    expect(wrapper.get(part('ethernet')).attributes('aria-pressed')).toBe('true')
+    // Re-targeting to a sibling moves the fill.
+    await wrapper.get(part('hdmi')).trigger('click')
+    expect(wrapper.get('[data-testid="objects-part-item-pi-ethernet"]').attributes('data-selected')).toBe('false')
+    expect(wrapper.get('[data-testid="objects-part-item-pi-hdmi"]').attributes('data-selected')).toBe('true')
+    // Depth is never a second body.
+    expect(selection.count).toBe(1)
+  })
+
+  it('shell row, then the part\'s check: two bodies in the right order, the part named on the Pi row even collapsed', async () => {
+    const wrapper = mountPanel()
+    const selection = useSelectionStore()
+    await wrapper.get('[data-testid="objects-row-shell"]').trigger('click')
+    await wrapper.get('[data-testid="objects-expand-pi"]').trigger('click')
+    await wrapper.get(partCheck('ethernet')).trigger('click')
+    expect(selection.ids).toEqual(['shell', 'pi'])
+    expect(selection.subPart).toEqual({ bodyId: 'pi', partName: 'ethernet' })
+    expect(wrapper.get('[data-testid="objects-check-shell"]').text()).toBe('1')
+    expect(wrapper.get('[data-testid="objects-check-pi"]').text()).toBe('2')
+    expect(wrapper.get(partCheck('ethernet')).text()).toBe('2')
+    expect(wrapper.get(partCheck('ethernet')).attributes('aria-checked')).toBe('true')
+    // Collapse: the drilled part is still named on the parent row, so the address is never hidden.
+    await wrapper.get('[data-testid="objects-expand-pi"]').trigger('click')
+    expect(wrapper.get('[data-testid="objects-drilled-pi"]').text()).toContain('ethernet')
+    // Toggling the part's check off again un-addresses it, and the body stays.
+    await wrapper.get('[data-testid="objects-expand-pi"]').trigger('click')
+    await wrapper.get(partCheck('ethernet')).trigger('click')
+    expect(selection.ids).toEqual(['shell', 'pi'])
+    expect(selection.subPart).toBeNull()
+    expect(wrapper.find('[data-testid="objects-drilled-pi"]').exists()).toBe(false)
+  })
+
+  it('Shift on a child row is the additive gesture, like Shift on a body row', async () => {
+    const wrapper = mountPanel()
+    const selection = useSelectionStore()
+    await wrapper.get('[data-testid="objects-row-shell"]').trigger('click')
+    await wrapper.get('[data-testid="objects-expand-pi"]').trigger('click')
+    await wrapper.get(part('ethernet')).trigger('click', { shiftKey: true })
+    expect(selection.ids).toEqual(['shell', 'pi'])
+    expect(selection.subPart).toEqual({ bodyId: 'pi', partName: 'ethernet' })
+  })
+
+  it('the parent\'s check does not disturb the depth; a plain tap on the parent row steps back up', async () => {
+    const wrapper = mountPanel()
+    const selection = useSelectionStore()
+    await wrapper.get('[data-testid="objects-expand-pi"]').trigger('click')
+    await wrapper.get(part('ethernet')).trigger('click')
+    await wrapper.get('[data-testid="objects-check-shell"]').trigger('click') // add shell, after the Pi
+    expect(selection.ids).toEqual(['pi', 'shell'])
+    expect(selection.subPart).toEqual({ bodyId: 'pi', partName: 'ethernet' })
+    await wrapper.get('[data-testid="objects-row-pi"]').trigger('click')
+    expect(selection.ids).toEqual(['pi'])
+    expect(selection.subPart).toBeNull()
+  })
+
+  it('part rows are buttons (never inputs — Ctrl+Z guard), and the checkbox role carries a name', async () => {
+    const wrapper = mountPanel()
+    await wrapper.get('[data-testid="objects-expand-pi"]').trigger('click')
+    expect(wrapper.get(part('ethernet')).element.tagName).toBe('BUTTON')
+    expect(wrapper.get(partCheck('ethernet')).element.tagName).toBe('BUTTON')
+    expect(wrapper.get(partCheck('ethernet')).attributes('aria-label')).toMatch(/ethernet/)
+    expect(wrapper.findAll('input')).toHaveLength(0)
+  })
+
+  it('in sketch mode the part rows are disabled with the printed reason, but the chevron still reads', async () => {
+    const wrapper = mountPanel()
+    useSketchModeStore().active = true
+    await nextTick()
+    await wrapper.get('[data-testid="objects-expand-pi"]').trigger('click')
+    expect(wrapper.get(part('ethernet')).attributes('disabled')).toBeDefined()
+    expect(wrapper.get(partCheck('ethernet')).attributes('disabled')).toBeDefined()
+    expect(wrapper.get('[data-testid="objects-expand-pi"]').attributes('disabled')).toBeUndefined()
+    expect(wrapper.get('[data-testid="objects-disabled-reason"]').text()).toMatch(/Sketch mode/)
+    await wrapper.get(part('ethernet')).trigger('click')
+    expect(useSelectionStore().ids).toEqual([])
+  })
+
+  it('a body deleted while expanded takes its child rows with it, without an error', async () => {
+    const wrapper = mountPanel()
+    await wrapper.get('[data-testid="objects-expand-pi"]').trigger('click')
+    expect(wrapper.find(part('ethernet')).exists()).toBe(true)
+    useDocumentStore().undo()
+    await nextTick()
+    expect(wrapper.find('[data-testid="objects-expand-pi"]').exists()).toBe(false)
+    expect(wrapper.find(part('ethernet')).exists()).toBe(false)
   })
 })

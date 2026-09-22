@@ -217,3 +217,257 @@ describe('objects panel store (TODO/ui-041)', () => {
     expect(objects.choose('shell')).toBe(true)
   })
 })
+
+
+/**
+ * Expandable part rows (`TODO/ui-042`).
+ *
+ * The Objects list selects whole bodies (`ui-041`), which is enough to pick an enclosed
+ * bolt but not one *piece* of an enclosed composite — a Pi's `ethernet` jack — because
+ * drilling into a part was a second viewport click, and an enclosed body cannot be clicked
+ * once. These specs pin the rows' tree, the expansion state, and — the part that is easy
+ * to get wrong — the **operand order** that comes out of the two gestures.
+ */
+describe('objects panel store — part rows (TODO/ui-042)', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+  })
+
+  /**
+   * A 100 x 70 x 40 shell with a Raspberry Pi B+ standing entirely inside it (Pi bounds
+   * x -2.5..87, y -2..56, z -1.5..17.16; shell x -8..92, y -8..62, z -10..30), plus a
+   * bare sphere well clear of both.
+   */
+  function seedEnclosedPi() {
+    const doc = useDocumentStore()
+    doc.append({ id: 'shell', op: 'primitive.cuboid', name: 'Shell 1', params: { size: [100, 70, 40], center: [42, 27, 10] } })
+    doc.append({ id: 'pi', op: 'raspberrypi.bplus', name: 'Raspberry Pi B+', params: {} })
+    doc.append({ id: 'ball', op: 'primitive.sphere', name: 'Sphere 1', params: { diameter: 20, center: [200, 0, 10] } })
+    return doc
+  }
+
+  it('only a composite row is expandable; a bare solid has no parts to show', () => {
+    seedEnclosedPi()
+    const objects = useObjectsPanelStore()
+    const [shell, pi, ball] = objects.rows
+    expect([shell.expandable, pi.expandable, ball.expandable]).toEqual([false, true, false])
+    expect(shell.parts).toEqual([])
+    expect(ball.parts).toEqual([])
+    expect(pi.parts.map((part) => part.name)).toContain('ethernet')
+  })
+
+  it('lists the visible parts first, then the hidden ones, each flagged', () => {
+    seedEnclosedPi()
+    const objects = useObjectsPanelStore()
+    const pi = objects.rows[1]
+    const firstHidden = pi.parts.findIndex((part) => part.hidden)
+    expect(firstHidden).toBeGreaterThan(0)
+    // Nothing visible after the first hidden one.
+    expect(pi.parts.slice(firstHidden).every((part) => part.hidden)).toBe(true)
+    expect(pi.parts.slice(0, firstHidden).every((part) => !part.hidden)).toBe(true)
+    expect(pi.parts.find((part) => part.name === 'usb1-body')).toMatchObject({ hidden: true })
+    expect(pi.parts.find((part) => part.name === 'ethernet')).toMatchObject({ hidden: false })
+  })
+
+  it('every row starts collapsed; toggling expands and collapses it, and the row reports it', () => {
+    seedEnclosedPi()
+    const objects = useObjectsPanelStore()
+    expect(objects.rows[1].expanded).toBe(false)
+    objects.toggleExpanded('pi')
+    expect(objects.rows[1].expanded).toBe(true)
+    expect(objects.isExpanded('pi')).toBe(true)
+    objects.toggleExpanded('pi')
+    expect(objects.rows[1].expanded).toBe(false)
+  })
+
+  it('refuses to expand a body with no parts — there is nothing to show', () => {
+    seedEnclosedPi()
+    const objects = useObjectsPanelStore()
+    objects.toggleExpanded('shell')
+    expect(objects.rows[0].expanded).toBe(false)
+    expect(objects.isExpanded('shell')).toBe(false)
+  })
+
+  it('expansion is UI-only: it neither selects anything nor touches the document', () => {
+    const doc = seedEnclosedPi()
+    const objects = useObjectsPanelStore()
+    const selection = useSelectionStore()
+    const version = doc.version
+    objects.toggleExpanded('pi')
+    expect(selection.ids).toEqual([])
+    expect(selection.subPart).toBeNull()
+    expect(doc.version).toBe(version)
+  })
+
+  it('a body that leaves the scene forgets its expansion; a body renamed or moved keeps it', () => {
+    const doc = seedEnclosedPi()
+    const objects = useObjectsPanelStore()
+    objects.toggleExpanded('pi')
+
+    // Moving the Pi supersedes its record but keeps its lineage-root id — still expanded.
+    doc.append({ id: 'pi-move', op: 'transform.translate', target: 'pi', supersedes: 'pi', params: { vector: [1, 0, 0] } })
+    const piRow = () => objects.rows.find((row) => row.id === 'pi')
+    expect(piRow()?.expanded).toBe(true)
+
+    // Undo the move: still expanded. Undo the sphere's creation and then the Pi's: gone,
+    // and redoing it does NOT resurrect a stale expansion.
+    doc.undo()
+    expect(piRow()?.expanded).toBe(true)
+    doc.undo() // sphere
+    doc.undo() // pi
+    expect(objects.rows.map((row) => row.id)).toEqual(['shell'])
+    doc.redo() // pi
+    expect(piRow()).toBeDefined()
+    expect(piRow()?.expanded).toBe(false)
+  })
+
+  it('a rolled-back body drops out of the list, and comes back collapsed', () => {
+    seedEnclosedPi()
+    const objects = useObjectsPanelStore()
+    const commands = useTimelineCommands()
+    objects.toggleExpanded('pi')
+    commands.rollBackTo('shell')
+    expect(objects.rows.map((row) => row.id)).toEqual(['shell'])
+    commands.rollForward()
+    const piRow = objects.rows.find((row) => row.id === 'pi')
+    expect(piRow).toBeDefined()
+    expect(piRow?.expanded).toBe(false)
+  })
+
+  it('choosePart (plain) selects the body and its part — the shell already selected is REPLACED, like a plain row tap', () => {
+    seedEnclosedPi()
+    const objects = useObjectsPanelStore()
+    const selection = useSelectionStore()
+    objects.choose('shell')
+    expect(objects.choosePart('pi', 'ethernet')).toBe(true)
+    expect(selection.ids).toEqual(['pi'])
+    expect(selection.subPart).toEqual({ bodyId: 'pi', partName: 'ethernet' })
+    expect(selection.count).toBe(1)
+    const row = objects.rows[1]
+    expect(row.selected).toBe(true)
+    expect(row.drilledPart).toBe('ethernet')
+    expect(row.parts.find((part) => part.name === 'ethernet')).toMatchObject({ selected: true })
+    expect(row.parts.filter((part) => part.selected)).toHaveLength(1)
+  })
+
+  it('THE ORDER TRAP: shell first, then the Pi part\'s check — the shell is the boolean base, the part the operand', () => {
+    seedEnclosedPi()
+    const objects = useObjectsPanelStore()
+    const selection = useSelectionStore()
+    objects.choose('shell') // tap the shell's row
+    objects.choosePart('pi', 'ethernet', true) // tap ethernet's check
+    // ids[0] is Subtract's base (`ui-014`/`ui-040`): the shell. The Pi is subtracted from it.
+    expect(selection.ids).toEqual(['shell', 'pi'])
+    expect(selection.subPart).toEqual({ bodyId: 'pi', partName: 'ethernet' })
+    expect(selection.count).toBe(2)
+    expect(objects.rows.map((row) => row.role)).toEqual(['base', 'secondary', 'none'])
+    expect(objects.rows[1].parts.find((part) => part.name === 'ethernet')).toMatchObject({ selected: true, order: 2, role: 'secondary' })
+  })
+
+  it('the wrong order is expressible but visible: part first, shell second makes the Pi the base', () => {
+    seedEnclosedPi()
+    const objects = useObjectsPanelStore()
+    const selection = useSelectionStore()
+    objects.choosePart('pi', 'ethernet')
+    objects.choose('shell', true)
+    expect(selection.ids).toEqual(['pi', 'shell'])
+    // The list says so on the rows: the Pi's check is 1 (base), the shell's 2.
+    expect(objects.rows[1]).toMatchObject({ order: 1, role: 'base', drilledPart: 'ethernet' })
+    expect(objects.rows[0]).toMatchObject({ order: 2, role: 'secondary' })
+  })
+
+  it('a second plain tap on the same part leaves it drilled — the list and a repeat viewport click agree', () => {
+    seedEnclosedPi()
+    const objects = useObjectsPanelStore()
+    const selection = useSelectionStore()
+    objects.choosePart('pi', 'ethernet')
+    objects.choosePart('pi', 'ethernet')
+    expect(selection.subPart).toEqual({ bodyId: 'pi', partName: 'ethernet' })
+  })
+
+  it('a plain tap on a sibling re-targets; the parent row\'s plain tap steps back up to the whole body', () => {
+    seedEnclosedPi()
+    const objects = useObjectsPanelStore()
+    const selection = useSelectionStore()
+    objects.choosePart('pi', 'ethernet')
+    objects.choosePart('pi', 'hdmi')
+    expect(selection.subPart).toEqual({ bodyId: 'pi', partName: 'hdmi' })
+    expect(objects.rows[1].parts.filter((part) => part.selected).map((part) => part.name)).toEqual(['hdmi'])
+    objects.choose('pi')
+    expect(selection.subPart).toBeNull()
+    expect(selection.ids).toEqual(['pi'])
+    expect(objects.rows[1].drilledPart).toBeNull()
+  })
+
+  it('an additive tap on the addressed part un-addresses it; the body stays selected, in place', () => {
+    seedEnclosedPi()
+    const objects = useObjectsPanelStore()
+    const selection = useSelectionStore()
+    objects.choose('shell')
+    objects.choosePart('pi', 'ethernet', true)
+    objects.choosePart('pi', 'ethernet', true)
+    expect(selection.ids).toEqual(['shell', 'pi'])
+    expect(selection.subPart).toBeNull()
+  })
+
+  it('the parent row\'s check adds and removes the WHOLE body and leaves a depth alone (ui-040 dance)', () => {
+    seedEnclosedPi()
+    const objects = useObjectsPanelStore()
+    const selection = useSelectionStore()
+    objects.choosePart('pi', 'ethernet')
+    objects.choose('pi', true) // check: out
+    objects.choose('shell', true)
+    objects.choose('pi', true) // check: back in, at the end
+    expect(selection.ids).toEqual(['shell', 'pi'])
+    expect(selection.subPart).toEqual({ bodyId: 'pi', partName: 'ethernet' })
+  })
+
+  it('a depth left on a body that is no longer selected does not light up its child row', () => {
+    seedEnclosedPi()
+    const objects = useObjectsPanelStore()
+    objects.choosePart('pi', 'ethernet')
+    objects.choose('pi', true) // out of the selection, depth inert
+    expect(objects.rows[1].selected).toBe(false)
+    expect(objects.rows[1].drilledPart).toBeNull()
+    expect(objects.rows[1].parts.some((part) => part.selected)).toBe(false)
+  })
+
+  it('refuses a part the body does not have, an unknown body, and a bare solid', () => {
+    seedEnclosedPi()
+    const objects = useObjectsPanelStore()
+    const selection = useSelectionStore()
+    expect(objects.choosePart('pi', 'no-such-part')).toBe(false)
+    expect(objects.choosePart('nope', 'ethernet')).toBe(false)
+    expect(objects.choosePart('shell', 'ethernet')).toBe(false)
+    expect(selection.ids).toEqual([])
+    expect(selection.subPart).toBeNull()
+  })
+
+  it('a hidden part can be addressed too — it is exactly what a boolean wants', () => {
+    seedEnclosedPi()
+    const objects = useObjectsPanelStore()
+    const selection = useSelectionStore()
+    expect(objects.choosePart('pi', 'usb1-body')).toBe(true)
+    expect(selection.subPart).toEqual({ bodyId: 'pi', partName: 'usb1-body' })
+  })
+
+  it('part rows follow the same disabled rules as body rows; expanding is read-only and stays live', () => {
+    seedEnclosedPi()
+    const objects = useObjectsPanelStore()
+    const selection = useSelectionStore()
+    useSketchModeStore().active = true
+    expect(objects.choosePart('pi', 'ethernet')).toBe(false)
+    expect(selection.ids).toEqual([])
+    // Reading the part names is not a selection, so it stays available.
+    objects.toggleExpanded('pi')
+    expect(objects.rows[1].expanded).toBe(true)
+    useSketchModeStore().active = false
+
+    const timeline = useTimelineStore()
+    timeline.selectRow('shell')
+    expect(timeline.previewing).toBe(true)
+    expect(objects.choosePart('pi', 'ethernet')).toBe(false)
+    timeline.endPreview()
+    expect(objects.choosePart('pi', 'ethernet')).toBe(true)
+  })
+})

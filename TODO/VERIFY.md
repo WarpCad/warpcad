@@ -34,7 +34,18 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
-### ui-041 — Objects list: the real-phone feel, and the x-ray tint (2026-09-21 20:36 UTC)
+### ui-042 — Objects list part rows: chevron feel, and a wrong-order empty result (2026-09-22 13:51 UTC)
+
+Everything measurable is measured and standing (`e2e/objects-panel.e2e.js`'s new part-row cases at
+three viewports, `ACCEPTANCE.md` scenarios 5/4/6/1). Two things are not, deliberately not
+duplicating `ui-041`'s own real-phone-feel row above: the *new* nested-row/chevron interaction
+specifically (a level of touch target `ui-041` didn't have), and a kernel behaviour this task's own
+hand-drive surfaced but did not introduce or fix.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | On a real phone, expand a composite with many parts (a Raspberry Pi), scroll the part list, and tap a hidden part's row and its check: does the indent read clearly as "inside this body" at a glance, does the chevron's rotate-on-open animation feel responsive, and does scrolling the parts ever fight scrolling the outer panel? | Open | |
+| 2 | Addressing a part on the body that ends up as Subtract's *target* (the wrong-order case: e.g. drilling a small part first, then adding a much larger enclosing body second) can make the kernel return a **zero-volume result with no error** — a small solid entirely swallowed by what it's being subtracted with leaves nothing. This is existing kernel/boolean behaviour, not something this task changed, and it committed cleanly in the drive rather than crashing. Does a silently-empty result (one body left in the scene, at zero size) read as confusing or alarming to a real user, and is a "this result is empty" affordance worth a future finding? | Open | |
 
 Everything measurable here is measured and standing (`e2e/objects-panel.e2e.js` at three viewports,
 `ACCEPTANCE.md` scenario 5). What is left is judgement a Playwright touch emulation cannot make:

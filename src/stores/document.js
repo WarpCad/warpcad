@@ -18,7 +18,7 @@ import { defineStore } from 'pinia'
 import { computed, ref, shallowRef } from 'vue'
 
 import { createDocument } from '../core/document.js'
-import { boundsOf, volumeOf } from '../core/kernel/group.js'
+import { boundsOf, hasNamedParts, volumeOf } from '../core/kernel/group.js'
 import { lengthOf, lineFromParams } from '../sketch/entity.js'
 import { useSelectionStore } from './selection.js'
 
@@ -50,6 +50,14 @@ import { useSelectionStore } from './selection.js'
  *   chamfer deliberately leaves `bounds` unchanged (`fillet.js`'s own module
  *   doc and `fillet.spec.js`'s "leaves the bounding box alone" case), so this
  *   is what an e2e spec actually checks to confirm rim material was removed.
+ * @property {string[]} partNames The body's **visible** named parts in group order, or
+ *   `[]` for a bare solid (`TODO/ui-042`). Non-empty exactly when the body is drawn
+ *   part-by-part (`hasNamedParts` — the condition `createBodyObject` uses), which is what
+ *   makes it a composite the Objects list can expand and a boolean can address.
+ * @property {string[]} hiddenPartNames Parts that exist in the group but are absent from
+ *   `names` — a tap-clearance solid, a Raspberry Pi's mounting holes. Still addressable
+ *   (`pieces` resolves against every part), which is exactly why the Objects list shows
+ *   them. `[]` whenever {@link BodySummary.partNames} is.
  */
 /**
  * One evaluated body as the plain, non-geometry summary the DOM and the specs
@@ -72,6 +80,8 @@ export function summarizeBody(body) {
   // placement against. Same measurement, and the same reasoning, as
   // `src/core/inspector.js`'s Transform section.
   const [min, max] = boundsOf(body.geometry)
+  const geometry = body.geometry
+  const composite = hasNamedParts(geometry)
   return {
     id: body.id,
     name: body.name,
@@ -83,6 +93,10 @@ export function summarizeBody(body) {
     ]),
     bounds: /** @type {[[number, number, number], [number, number, number]]} */ ([min, max]),
     volumeMm3: volumeOf(body.geometry),
+    partNames: composite ? [...geometry.names] : [],
+    hiddenPartNames: composite
+      ? Object.keys(geometry.parts).filter((name) => !geometry.names.includes(name))
+      : [],
   }
 }
 

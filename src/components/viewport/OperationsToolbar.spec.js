@@ -17,6 +17,7 @@ enableAutoUnmount(afterEach)
 import OperationsToolbar from './OperationsToolbar.vue'
 import { useDocumentStore } from '../../stores/document.js'
 import { useSelectionStore } from '../../stores/selection.js'
+import { useObjectsPanelStore } from '../../stores/objectsPanel.js'
 
 /**
  * Fillet and Chamfer (`TODO/ui-027`) — the toolbar's first **exactly-1**-gated
@@ -800,5 +801,67 @@ describe('OperationsToolbar — sub-part-addressed boolean operands (TODO/ui-040
     // Nothing committed: both bodies still there, selection untouched.
     expect(documentStore.bodies).toHaveLength(2)
     expect(selection.ids).toEqual(['base-1', 'group-1'])
+  })
+})
+
+/**
+ * The two Objects-list gestures (`TODO/ui-042`) feed the same operand line and the same
+ * commit as a viewport drill-in, and the order they produce is the boolean's order.
+ */
+describe('OperationsToolbar — operands chosen from the Objects list (TODO/ui-042)', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+    const doc = useDocumentStore()
+    doc.append({ id: 'shell', op: 'primitive.cuboid', name: 'Shell 1', params: { size: [100, 70, 40], center: [42, 27, 10] } })
+    doc.append({ id: 'pi', op: 'raspberrypi.bplus', name: 'Raspberry Pi B+', params: {} })
+  })
+
+  it('shell row then the part check: the line reads "Shell 1 then Raspberry Pi B+ › ethernet", and Subtract cuts with the jack only', async () => {
+    const documentStore = useDocumentStore()
+    const objects = useObjectsPanelStore()
+    objects.choose('shell')
+    objects.choosePart('pi', 'ethernet', true)
+
+    const wrapper = mount(OperationsToolbar)
+    expect(wrapper.get('[data-testid="operation-operand-base"]').text()).toBe('Shell 1')
+    expect(wrapper.get('[data-testid="operation-operand-rest"]').text()).toBe('Raspberry Pi B+ › ethernet')
+    expect(wrapper.get('[data-testid="operation-subtract"]').attributes('disabled')).toBeUndefined()
+
+    const appendSpy = vi.spyOn(documentStore, 'append')
+    await wrapper.get('[data-testid="operation-subtract"]').trigger('click')
+    const record = appendSpy.mock.calls[0][0]
+    expect(record.target).toBe('shell')
+    expect(record.operands).toEqual([{ id: 'pi', pieces: 'ethernet' }])
+
+    // Volume against the kernel: the shell minus the ethernet jack alone (the Pi is wholly
+    // inside the shell), not minus the whole board.
+    const [result] = documentStore.bodies
+    expect(documentStore.bodies).toHaveLength(1)
+    expect(result.volumeMm3).toBeCloseTo(100 * 70 * 40 - 4544.99892, 2)
+  })
+
+  it('the wrong order is on the line before commit: part first makes the Pi the base', () => {
+    const objects = useObjectsPanelStore()
+    objects.choosePart('pi', 'ethernet')
+    objects.choose('shell', true)
+    const wrapper = mount(OperationsToolbar)
+    expect(wrapper.get('[data-testid="operation-operand-base"]').text()).toBe('Raspberry Pi B+ › ethernet')
+    expect(wrapper.get('[data-testid="operation-operand-rest"]').text()).toBe('Shell 1')
+  })
+
+  it('a depth changes no count gate: two bodies enable Subtract with or without a part addressed', () => {
+    const objects = useObjectsPanelStore()
+    objects.choose('shell')
+    objects.choose('pi', true)
+    const whole = mount(OperationsToolbar)
+    const enabledWhole = ['union', 'subtract', 'intersect', 'group', 'snap', 'align'].map(
+      (op) => whole.get(`[data-testid="operation-${op}"]`).attributes('disabled') === undefined,
+    )
+    objects.choosePart('pi', 'ethernet', true)
+    const drilled = mount(OperationsToolbar)
+    const enabledDrilled = ['union', 'subtract', 'intersect', 'group', 'snap', 'align'].map(
+      (op) => drilled.get(`[data-testid="operation-${op}"]`).attributes('disabled') === undefined,
+    )
+    expect(enabledDrilled).toEqual(enabledWhole)
   })
 })
