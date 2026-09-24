@@ -948,6 +948,8 @@ menu was opened over the Inspector sheet at phone). Console clean.
 
 **Re-checked**: 2026-09-24 17:50 UTC: **PASS at laptop Chromium and laptop WebKit; FAIL at phone WebKit on step 4's taps, pre-existing, filed as `TODO/ui-045`** (`core-031`). Both bodies remain after both drops, in all three. Laptop: clicking empty grid clears the selection, then the cube and then the cylinder each select alone. Phone WebKit with **trusted** touch taps (`page.touchscreen.tap`, not the synthetic mouse-type events every e2e spec uses): the empty-space tap clears, but after it neither body tap selects anything. A tap that lands on the Inspector sheet instead leaves later body taps working. Synthetic mouse- or touch-type presses at the same points select correctly, and Chromium's touch emulation works. The same probe against a production build of `65b86de` (before `core-031`) fails identically, and `core-031` touches no selection or pointer code. It is filed rather than fixed here, with the evidence, and a real iPhone/iPad check is in `TODO/VERIFY.md`.
 
+**Re-checked**: 2026-09-24 19:45 UTC — **PASS at phone WebKit and phone Chromium** (`ui-045`'s own Step 6 re-drive, real `page.touchscreen.tap`, no synthetic events). Launched the dev server and drove it directly (not via a Playwright *test*) with a Cube and Cylinder dropped clear of every overlay band (nav chrome, orientation gizmo, Operations toolbar, Inspector sheet — the bands `TODO/ui-046` catalogues). A trusted empty-space tap cleared the selection; a trusted tap on the Cube selected it; a trusted tap on the Cylinder selected it; and — beyond the scenario's own steps — a direct Cylinder-to-Cube trusted retarget with **no** intervening empty tap also worked, on both engines. Screenshots confirm a normal, fully-rendered scene at every step (not blank/broken), and both engines' console stayed clean. **This does not overturn `core-031`'s FAIL above as wrong** — see `TODO/done/ui-045-webkit-touch-tap-select-after-empty-tap.md`'s own retirement note: the original coordinates that failed there land inside `NavigationChrome`'s raised footprint once an Inspector sheet is open (filed separately as `TODO/ui-046`), which is why this re-drive deliberately used coordinates proven clear of it rather than the original ones. No bug was found in the selection/raycasting code itself.
+
 ### 2. Hardware property edit
 
 **Steps**:
@@ -1746,6 +1748,8 @@ selected, toolbar disabled again. Console clean.
 
 **Re-checked**: 2026-09-24 17:50 UTC: **PASS** (`core-031`). Production build, **laptop Chromium, laptop WebKit and phone WebKit**, 4/4 checks each, console clean. Two cubes were made to overlap by moving Cube 2 onto Cube 1 with the Inspector's X/Y fields. With one selected (by the Objects list), Union/Subtract/Intersect are disabled, titled `Select 2 or more solids`. With two, the toolbar reads `2 selected` and they enable. Subtract leaves one selected body, `Subtract 1`, at 38997.760 mm³ (phone 39007.291), down from 64000, with the toolbar disabled again.
 
+**Re-checked**: 2026-09-24 19:45 UTC — **PASS, selection steps only** (`ui-045`'s Step 6 re-drive; steps 5-6's boolean commit were not re-driven, this task touched no operation-execution code). Phone WebKit, real touch throughout, dev server launched and driven directly. Two Cubes dropped clear of every overlay band. A trusted tap selected the first alone — `data-selected-count` 1, Union genuinely `disabled` (verified via the real DOM property, not just an attribute). A trusted tap on empty space cleared it, then a real one-finger **marquee drag** (the Select-mode chrome toggle, this app's touch-only route to multi-select) enclosing both Cubes took the count to 2 and enabled Union. **One real driver mistake caught and corrected, not an app defect**: an earlier marquee attempt started its drag on top of the Operations toolbar (a live DOM-target check confirmed the press literally landed on toolbar chrome, not canvas) and silently did nothing — exactly the `TODO/ui-046`-class hazard, tripped organically while driving rather than by a script. Re-driven from a canvas-confirmed start point, clean. Console clean.
+
 ### 5. Hidden-part boolean (bolt tap-clearance)
 
 **Steps**:
@@ -2326,6 +2330,20 @@ toolbar button passed a trial click at both 1- and 2-selected in the same sessio
 (this scenario's chrome half and scenario 4's toolbar half share one screen at phone
 width, so both were driven together rather than as two separate page loads). Console
 clean in both engines.
+
+**Re-checked**: 2026-09-24 19:45 UTC — **PASS** (`ui-045`'s Step 6 re-drive, since this
+task's change lives in the same pointer-handling code this scenario's gestures go
+through). Driven at the **iPad reference viewport (820×1180), WebKit, touch input
+only** — the scenario's own steps, not the phone substitution `ui-043`'s re-check
+used. Orbit via the chrome's step button moved azimuth `-45.00°→-30.00°`; switching to
+Pan and stepping moved the target off `0,0,0`; `nav-zoom-in` reduced distance
+`336.00→` (below the pre-zoom figure); tapping the orientation gizmo's top cap snapped
+elevation to exactly `90.00°`. **Beyond the scenario's own steps**: a real one-finger
+drag directly on the canvas, dragged in the direction that leaves the 90° top-view
+clamp rather than pressing further into it, tilted elevation to `30.00°` — confirming
+the gizmo-snap and the free-drag path agree on which way is "away from" a pole rather
+than only checking that *a* number changed. Screenshots at each step show a normal,
+fully-rendered scene. Console clean.
 
 ### 8. Remote-load safety
 

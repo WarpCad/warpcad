@@ -480,6 +480,88 @@ test('the overlays never swallow the click that selects', async ({ page }) => {
   }
 })
 
+test('a real (trusted) touch tap still selects a body after a trusted tap on empty space (TODO/ui-045)', async ({
+  page,
+  hasTouch,
+}) => {
+  // Every other test in this file — including "the overlays never swallow the
+  // click that selects" right above, which drives the exact same
+  // empty-then-body sequence — uses `clickViewportAt`'s *synthetic*
+  // mouse-type `PointerEvent`s, dispatched directly on the canvas *node*,
+  // even on the touch-capable phone/tablet projects. That direct dispatch is
+  // exactly why no existing spec ever catches this class of regression: it
+  // invokes the canvas's own listeners regardless of what a real tap at that
+  // screen point would actually hit first. A trusted tap
+  // (`page.touchscreen.tap`) goes through the browser's real hit-testing, so
+  // it can land on whatever overlay chrome is genuinely on top at that pixel
+  // — the transform gizmo, the navigation pad once it insets above an open
+  // sheet, or the Inspector sheet itself — none of which a synthetic
+  // canvas-node dispatch can ever be blocked by. `TODO/ui-045`'s own
+  // diagnosis session confirmed this by elimination: raycasting, the camera,
+  // and `pickAt` all behave identically for a trusted vs. a synthetic tap at
+  // the same coordinates once nothing else is in the way (verified directly
+  // via temporary instrumentation); every reproduction that failed did so
+  // because the tap's real target was `nav-step-right` or an open sheet, not
+  // the canvas — and once that stray tap happened to press a *camera* button,
+  // the *next* tap (aimed at a body's old screen position) missed because the
+  // camera had silently moved. This test drives the sequence with points
+  // proven clear of every overlay band at this viewport, so it exercises the
+  // one thing `TODO/ui-045` actually asks for — a real trusted-touch repeat
+  // of ACCEPTANCE.md scenario 1 step 4 — without also depending on this
+  // file's bodies happening to dodge whatever chrome is on screen.
+  test.skip(!hasTouch, 'no touch emulation in this project')
+
+  await openLibrary(page)
+  // Both bodies land on the right two-thirds of the canvas, between 20% and
+  // 45% down: clear of the top-left Operations toolbar, the top-right
+  // orientation gizmo, the left-anchored navigation chrome even once it
+  // insets above an open sheet, and the bottom-anchored Inspector/Library
+  // sheets. `closeLibrary` below keeps the canvas's rect from moving between
+  // the drop and the first tap.
+  await dragRowIntoViewport(page, { op: 'primitive.cuboid', fx: 0.85, fy: 0.25 })
+  await dragRowIntoViewport(page, { op: 'primitive.cylinder', fx: 0.6, fy: 0.4 })
+  await closeLibrary(page)
+  const [cube, cylinder] = await sceneBodies(page)
+
+  const box = await page.getByTestId('viewport-canvas').boundingBox()
+  if (!box) throw new Error('no canvas box')
+  const point = (fx, fy) => ({ x: box.x + box.width * fx, y: box.y + box.height * fy })
+  const empty = point(0.5, 0.06)
+  const cubePoint = point(0.85, 0.25)
+  const cylinderPoint = point(0.6, 0.4)
+
+  // A trusted tap on empty canvas space clears the selection.
+  await page.touchscreen.tap(empty.x, empty.y)
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-selected-id', '')
+
+  // The tap `TODO/ui-045` describes failing: a trusted touch tap directly on
+  // a body, right after a trusted tap on empty space.
+  await page.touchscreen.tap(cubePoint.x, cubePoint.y)
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-selected-id', cube.id)
+
+  // And selecting the other body, still by trusted touch.
+  await page.touchscreen.tap(cylinderPoint.x, cylinderPoint.y)
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-selected-id', cylinder.id)
+
+  // Repeat once more with an empty tap between each — the exact scenario-1
+  // step-4 wording ("click empty viewport space to clear selection, then
+  // click the cube, then click the cylinder") — plus a body-to-body retarget
+  // with *no* empty tap in between, which is the case that would have caught
+  // a residual selection-state bug the first pass papered over.
+  await page.touchscreen.tap(empty.x, empty.y)
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-selected-id', '')
+  await page.touchscreen.tap(cubePoint.x, cubePoint.y)
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-selected-id', cube.id)
+  await page.touchscreen.tap(cylinderPoint.x, cylinderPoint.y)
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-selected-id', cylinder.id)
+  await page.touchscreen.tap(cubePoint.x, cubePoint.y)
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-selected-id', cube.id)
+
+  // The camera never drifted along the way — the tell-tale sign of a stray
+  // tap having pressed a navigation button instead of reaching the canvas.
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-camera-azimuth', '-45.00')
+})
+
 test('at phone width one bottom sheet at a time, and selection opens the Inspector', async ({
   page,
 }, testInfo) => {

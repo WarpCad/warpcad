@@ -5,8 +5,43 @@ kind: finding
 priority: high
 model: sonnet
 depends: []
-status: open
+status: done
 ---
+
+> ## What actually shipped, and why this closes as a diagnosis rather than a confirmed fix
+>
+> **No bug was found in `Viewport.vue`'s pointer-handling or raycasting code.** Extensive
+> controlled reproduction (Playwright webkit-phone/tablet and chromium-phone/tablet, both
+> `page.touchscreen.tap` and synthetic `canvas.dispatchEvent`, with temporary `console.log`
+> instrumentation of `onPointerUp` and `pickAt`'s `raycastHit` result, removed before this
+> commit) never found a case where a trusted tap that genuinely reached the canvas
+> (`isClick: true`, `pickAt` actually called) raycast differently than a synthetic tap at
+> the identical point and state. Every reproduction that looked like this file's symptom
+> turned out, on inspection, to be a stray tap landing on `NavigationChrome` (once raised
+> above an open bottom sheet) or the transform gizmo *instead of* the canvas — confirmed by
+> a capture-phase `window` listener logging `event.target`. Because every existing spec's
+> selection helper (`clickViewportAt`, `dragRowIntoViewport`) dispatches `PointerEvent`s
+> directly on the canvas *node*, bypassing real DOM hit-testing entirely, none of them —
+> and no synthetic-event comparison, including this file's own — could ever have
+> distinguished "the raycast is wrong" from "the tap's real target wasn't the canvas."
+>
+> **Shipped**: `event.preventDefault()` on `Viewport.vue`'s `onPointerDown`, which is the
+> spec-defined way to suppress WebKit's post-touch compatibility `click` — the concrete
+> artifact this file's own event log flagged as suspicious, even though no listener in this
+> codebase was found to react to it. Also shipped: new `page.touchscreen.tap`-based
+> (trusted touch) coverage in `e2e/selection-inspector.e2e.js`, at coordinates verified
+> clear of every overlay band, covering exactly this file's Testing section's ask — a gesture
+> no existing spec drove with real touch input before.
+>
+> **This is reported honestly as a diagnosis plus a defensive mitigation, not a confirmed
+> fix**: the new test was checked explicitly (via `git stash`) to pass identically with the
+> `preventDefault()` change present or absent, so it does not prove the original defect is
+> resolved — only that it could not be reproduced in this sandbox once DOM occlusion is
+> controlled for. The `TODO/VERIFY.md` real-device row this file's own Testing section
+> already named is what actually settles it. See `TROUBLESHOOTING.md`'s 2026-09-24 entry for
+> the full step-by-step diagnostic trail (five hypotheses ruled out in turn), and
+> `TODO/ui-046-nav-chrome-raised-position-can-overlap-canvas-content.md` for a real, separate
+> defect found along the way and filed rather than folded in here.
 
 ## Problem
 

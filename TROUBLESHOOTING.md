@@ -144,6 +144,144 @@ sandbox until its cache is confirmed healthy.
    green and the 9th fails identically on code that shipped and passed review days
    earlier.
 
+### 2026-09-24 — `TODO/ui-045`'s "trusted touch stops selecting" could not be reproduced as a pointer/raycast bug; it reproduces as viewport-chrome occlusion instead
+
+**What happened:**
+
+`TODO/ui-045` reported that on webkit-phone, a **trusted** `page.touchscreen.tap`
+directly on a body's canvas pixel selected nothing after a trusted tap had already
+landed on empty space, while a **synthetic** `PointerEvent` dispatched at the same
+point/state selected correctly — and named `Viewport.vue`'s `onPointerDown`/
+`onPointerUp` (specifically `setPointerCapture` succeeding only for a trusted
+pointer, and WebKit's post-touch compatibility `click`) as the likely cause.
+
+Extensive controlled reproduction in this sandbox (Playwright's WebKit-phone/tablet
+and Chromium-phone/tablet projects, both `page.touchscreen.tap` and synthetic
+`canvas.dispatchEvent(new PointerEvent(...))`, with temporary `console.log`
+instrumentation of `onPointerUp` and `pickAt`'s `raycastHit` result) could **not**
+reproduce a case where a trusted tap that genuinely reached the canvas
+(`isClick: true`, `pressTravelPx: 0`, `pickAt` called) found no hit while a
+synthetic tap at the identical point/state found one. Every reproduction that
+looked like the reported symptom, on inspection, turned out to be one of these,
+all ruled out one at a time:
+
+1. **Literal coordinates from the finding are not portable.** The finding's own
+   pixel examples ((372,240)/(135,290)/(268,255)) only mean anything for the exact
+   camera/scene state they were measured against; replayed against a freshly
+   dropped scene in this sandbox they simply don't land on the bodies at all —
+   confirmed because even a *synthetic* tap at those same literal coordinates also
+   found no hit.
+2. **X-ray twin meshes were not the culprit.** `addXrayTwin` (`src/render/mesh.js`)
+   sets `twin.raycast = () => {}`, explicitly excluding twins from picking — so a
+   selected body's x-ray twin cannot be what a raycast resolves to instead of the
+   real mesh.
+3. **The transform gizmo's own screen-space rings are a real, separate overlap
+   hazard.** A tap that lands on the gizmo attached to the *previously* selected
+   body (e.g. a tap aimed at "empty grid" near a still-selected body) is captured
+   by `Gizmo.vue`'s `onHandleDown`, which calls `event.stopPropagation()` — so it
+   never reaches the canvas's own `onPointerDown` at all. For a press that doesn't
+   move, `onHandleUp` correctly forwards to `pickAt` via a `handle-click` emit, so
+   this path is *not* a bug in isolation — but it is the first proof that a real,
+   coordinate-based trusted tap can be intercepted by DOM/SVG overlay chrome in a
+   way a same-element `canvas.dispatchEvent()` (what every existing spec's
+   `clickViewportAt` helper does) structurally cannot be.
+4. **The real, reproducible chain**: `NavigationChrome` (`src/components/viewport/
+   NavigationChrome.vue`) raises itself above an open bottom sheet via
+   `--viewport-bottom-inset`. Once raised, at phone width its cluster (mode
+   toggles + D-pad + zoom + settings gear) occupies a real, ~194×200px hit region
+   that can land on top of wherever a body happens to be rendered on canvas. A
+   trusted tap aimed at that body instead presses a real nav-chrome button
+   (confirmed via a capture-phase window listener logging `event.target`:
+   `target=nav-step-right`, not the canvas) — and if that button is a
+   camera-moving one (a D-pad step, in the reproduction), **the camera silently
+   orbits**. Every *subsequent* tap, computed for the body's pre-nudge screen
+   position, then misses for a real, separate, correct reason: the body moved on
+   screen because the camera did. Chained together this reproduces "tap the Cube,
+   then the Cylinder — nothing is selected, either time" byte-for-byte, entirely
+   without any bug in `pickAt`/raycasting, and — critically — **entirely on
+   Chromium too**, not only WebKit, which the original finding's own synthetic-vs-
+   trusted comparison could never have shown, because dispatching a `PointerEvent`
+   directly on the canvas node always invokes its listeners regardless of what
+   visually and positionally overlaps it. Filed separately as `TODO/ui-046` (a
+   layout hazard, not a pointer-handling bug) rather than folded into `ui-045`.
+5. **With coordinates verified clear of every overlay band** (Operations toolbar,
+   orientation gizmo, navigation chrome even fully raised, Inspector/Library
+   sheets), the exact empty→body→body sequence — and body→body with *no*
+   intervening empty tap — worked correctly on **every single trusted-tap
+   repetition**, on both webkit-phone and chromium-phone, **both before and after**
+   any code change. This was checked explicitly by `git stash`-ing the code change
+   out and re-running the identical instrumented sequence.
+
+**Why it happened:**
+
+Most likely, the original diagnosis session's own synthetic-vs-trusted comparison
+was itself contaminated by exactly the mechanism in point 4 above (or something
+adjacent to it — the gizmo in point 3 is a second, independently-confirmed way a
+"same point" comparison can differ between a real hit-test and a same-element
+dispatch) without realizing that a synthetic `canvas.dispatchEvent()` bypasses real
+DOM hit-testing entirely, so it can never be blocked by whatever chrome/gizmo/sheet
+genuinely sits on top of the canvas at that pixel. That would make "trusted fails,
+synthetic succeeds at the same point" look like a WebKit/touch-trust bug when it is
+actually "the trusted tap's real target wasn't the canvas at all." This sandbox's
+Playwright-driven WebKit is also a plausible but unconfirmed second factor — see
+Fix/Prevention.
+
+**Fix / Prevention:**
+
+- Applied a real, defensible, low-risk improvement regardless of the above:
+  `Viewport.vue`'s `onPointerDown` now calls `event.preventDefault()`, which is the
+  spec-defined way to suppress WebKit's post-touch compatibility mouse/`click`
+  sequence — the concrete artifact the original finding's own event log flagged as
+  suspicious, even though no listener in this codebase was found to react to it.
+- Added `e2e/selection-inspector.e2e.js`'s new trusted-touch test (`page.
+  touchscreen.tap`, not a synthetic dispatch) driving repeated empty/body/body
+  taps, including body→body with no intervening empty tap, at coordinates verified
+  clear of every overlay band — durable coverage of a gesture no existing spec in
+  this repo drives with real touch input.
+- This test **passes both before and after** the `preventDefault()` change in this
+  sandbox, so it does not constitute proof the original defect is fixed — only that
+  it cannot be reproduced here once DOM occlusion is controlled for. **The
+  decisive check is still the real-device row `TODO/core-031` already logged in
+  `TODO/VERIFY.md`** — an actual iPhone/iPad is the only thing that can confirm or
+  rule this out, exactly as `TODO/ui-045`'s own "Not yet known" note anticipated.
+- If a real device *does* reproduce a canvas-targeted trusted-tap failure, re-open
+  with that device's own event log (target, `pointerId`, coordinates) captured the
+  same way this session's temporary instrumentation did — `console.log` in
+  `onPointerUp` and in `pickAt` right before its `raycastHit` call — since that is
+  what let every hypothesis here be confirmed or ruled out on the actual evidence
+  rather than by re-reading the code.
+
+**Steps taken to resolve:**
+
+1. Reproduced the exact `TODO/ui-045` literal coordinates against a freshly dropped
+   scene; found even a synthetic tap at the same coordinates missed, ruling out
+   "trust" as the variable for that specific case (coordinates aren't portable
+   across scenes).
+2. Read `addXrayTwin` (`src/render/mesh.js`) and confirmed `twin.raycast = () =>
+   {}` rules out x-ray twins as a raycast-order hazard.
+3. Instrumented `window` with capture-phase `pointerdown`/`pointerup`/`click`
+   listeners logging `event.target`'s `data-testid`; found a "cube tap" landing on
+   `nav-step-right` instead of the canvas once `NavigationChrome` had raised itself
+   above an auto-opened Inspector sheet.
+4. Instrumented `Viewport.vue`'s `onPointerUp` and `pickAt` directly (temporary
+   `console.log`, removed before commit) to confirm: when a tap's target truly is
+   the canvas, `isClick` is `true` and `raycastHit` runs — and found a case where
+   the *identical* screen point that hit the cylinder cleanly earlier in the same
+   test run later missed, traced to the camera having silently orbited (`data-
+   camera-azimuth` changed) because an intervening tap had pressed a nav-chrome
+   button rather than reaching the canvas.
+5. Rebuilt the reproduction with coordinates checked against `navigation-chrome`'s,
+   `orientation-gizmo`'s, and the Inspector sheet's own `boundingBox()`s to
+   guarantee no overlap, and confirmed the full empty/body/body sequence — with and
+   without intervening empty taps — passes on **every** repetition, on both
+   `webkit-phone` and `chromium-phone`.
+6. Re-ran step 5's exact sequence with `git stash` isolating the `preventDefault()`
+   change in or out of the tree, to confirm honestly that the new test does not
+   distinguish the two — logged here rather than silently claimed as a proven fix.
+7. Filed `TODO/ui-046` for the confirmed, separate chrome-occlusion hazard (point 4
+   above), since it is real and reproducible but is a layout question, not this
+   finding's pointer-handling one.
+
 <!-- Template for new entries:
 
 ### YYYY-MM-DD — [Short title describing the discovery]

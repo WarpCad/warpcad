@@ -1573,6 +1573,18 @@ function decideGestureKind() {
 function onPointerDown(event) {
   const canvas = canvasEl.value
   if (!canvas) return
+  // `TODO/ui-045`: without this, a **trusted** touch press leaves WebKit free
+  // to synthesise its compatibility mouse sequence (`mousedown`/`mouseup`/
+  // `click`) once the touch ends — nothing here listens for it, but its mere
+  // dispatch is enough to disturb the browser's own hit-testing/gesture state
+  // for whichever real touch tap lands on the canvas next, which is exactly
+  // the "a trusted tap selects nothing" symptom the finding describes.
+  // Calling `preventDefault()` on the *initiating* `pointerdown` is what the
+  // Pointer Events spec uses to suppress that compatibility sequence
+  // entirely — a synthetic `PointerEvent` in a test has no such sequence to
+  // suppress, which is exactly why every existing spec's synthetic taps never
+  // surfaced this.
+  event.preventDefault()
   try {
     canvas.setPointerCapture?.(event.pointerId)
   } catch {
