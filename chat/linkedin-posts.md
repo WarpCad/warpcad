@@ -1179,3 +1179,19 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** 74 / 157 ms row action before → TODO/done/core-031 Problem table (from bench/results/2026-09-24-core-030.md); 10-30 ms byId transport → fold-benchmark run this session (10.3 / 18.9 / 30.3 ms); combine() ~95% of cached 24-body re-fold → CPU profile this session; 284 → 30 ms and 458 → 20 ms → evaluation-mainthread runs this session, bench/results/2026-09-24-core-031.md; Open still a full fold → fold-benchmark Open rows (70.2 / 127.4 ms after); refusals synchronous and named → foldReuse.spec.js + scenario 12 step 12 drive
 **To Add:** screenshot of the History panel with a broken-step refusal; the before/after table
+
+## 2026-09-24T20:43:07Z — Chasing a "WebKit-only touch bug" that turned out to be layout, not a browser bug (TODO/ui-045)
+
+**Post:**
+A finding came in from WarpCad's own acceptance-test process: on WebKit at phone width, a real (trusted) touch tap would stop selecting bodies after a tap on empty space, while a synthetic pointer event at the identical coordinate worked fine. That contrast — trusted fails, synthetic succeeds — pointed straight at a browser-level pointer-handling bug, and the filed diagnosis was specific: something about pointer capture or WebKit's compatibility mouse events.
+
+I could not reproduce a case where a trusted tap that genuinely reached the canvas raycast differently than a synthetic one. Every failure I could trigger traced back to the same thing: the tap's real target wasn't the canvas at all. It landed on the navigation chrome (which repositions itself above an open bottom sheet) or the transform gizmo instead — both real, on-screen elements a synthetic `dispatchEvent()` straight at the canvas node simply never has to clear, which is exactly why none of this app's dozens of existing selection tests had ever caught it.
+
+That reframes the finding rather than closes it clean: the "trusted vs. synthetic" comparison that looked like proof of a WebKit bug was actually proof that synthetic-dispatch tests give false confidence about real touch input. I shipped the one concrete, defensible fix the original diagnosis surfaced (suppressing WebKit's post-touch compatibility click), added the first real trusted-touch selection test in the codebase, and filed the actual chrome-overlap hazard as its own separate issue rather than pretend it explains everything. The honest status: a diagnosis with a mitigation, verified not to make anything worse, with a real-device check still the deciding step.
+
+Built with Claude Code, reviewed by me.
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebDevelopment #Testing #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** diagnosis method → temporary console.log instrumentation of Viewport.vue's onPointerUp/pickAt plus a capture-phase window listener logging event.target, this session; stray-tap-hits-chrome trace → logged target=nav-step-right for a tap aimed at a dropped body, camera azimuth measurably changing as a result; A/B of the fix → git stash comparison of the new e2e test with the preventDefault() change present vs. absent, identical pass; full regression check → non-Firefox Playwright matrix (chromium/webkit × phone/tablet/laptop) 1237 passed, 198 skipped, 0 failed, both before and after; separate hazard filed → TODO/ui-046, reproduced independently three times including once organically while hand-driving the acceptance scenarios
+**To Add:** repo URL once public; a short screen recording of the failure mode and the corrected re-drive side by side

@@ -899,3 +899,14 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** 458 → 20 ms (24-bodies, row action = Suppress, 4x CPU, Chromium headless, production build, M4 Pro) → bench/evaluation-mainthread.mjs run this session, recorded in bench/results/2026-09-24-core-031.md; "only what changed rebuilds" → src/core/foldReuse.spec.js build counts
 **To Add:** a before/after frame-gap chart from bench/results/2026-09-24-core-031.md
+
+## [2026-09-24T20:43:07Z] — A "WebKit touch bug" that turned out not to be one (TODO/ui-045)
+
+**Post:** A filed bug said trusted touch taps stopped selecting bodies in WarpCad after a tap on empty space, WebKit only. I could not reproduce it as a real bug — every failure traced back to the tap landing on nav chrome or a sheet instead of the canvas, invisible to every existing test because they all dispatch synthetic events straight at the canvas. Shipped a real fix for the one thing I could confirm, plus new trusted-touch e2e coverage, and filed the actual chrome-overlap hazard separately.
+
+Built with Claude Code, reviewed by me.
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebDev #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** no raycast discrepancy found → this session's instrumented onPointerUp/pickAt runs, webkit-phone and chromium-phone, `git stash` A/B of the code change; stray-tap-hits-chrome mechanism → capture-phase event.target log showing `target=nav-step-right` for a tap aimed at a body; full non-Firefox matrix 1237 passed / 198 skipped / 0 failed both before and after this commit; new coverage → e2e/selection-inspector.e2e.js's page.touchscreen.tap test
+**To Add:** repo URL once public; a short GIF of the trusted-touch test passing at phone width
