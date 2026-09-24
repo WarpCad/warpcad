@@ -5,8 +5,31 @@ kind: feature
 priority: medium
 model: opus
 depends: [core-030]
-status: open
+status: done
 ---
+
+> **What shipped (2026-09-24): not option 1. A fold cache, measured first, with no contract
+> change.** The measurement this file asked for came first. Option 1's own main-thread
+> return cost (packing the whole `scene.byId` back) is 10-30 ms per row action, before any
+> pending state, and it would make every refusal late. Meanwhile a row action changes one
+> row, so almost every record's inputs are unchanged. So the re-fold stayed synchronous
+> and became incremental by construction. `evaluate` takes a per-document `FoldCache`,
+> keyed by the record object, checked against its JSON, the identical operand values, the
+> registry and the tables, which reuses every unchanged build. It also keeps each
+> composite's `combine()`d scene part: a profile showed that union, not the build, was ~95 %
+> of a cached 24-body re-fold. `createDocument` shares the cache with its tail shadow check
+> and, through `document.foldCache`, with the History preview. Node: row actions 72-74 →
+> 0.7-2.1 ms (fillet-50) and 118-158 → 0.1-6.5 ms (24 bodies); the Undo fallback 73 / 131 →
+> 0.9 / 0.1 ms. Browser, 4× CPU, worst frame gap: row action 284 → 30 ms and 458 → 20 ms;
+> row select 168 → 19 and 232 → 18 ms. Every refusal is still synchronous, named and
+> atomic, and no caller changed. What the cache cannot make cheap is genuinely new work: a
+> cold Open (70 / 127 / 196 ms) and an edit at the root of one long dependent lineage
+> (chain-40, 202 ms). That is filed as `TODO/core-032`, with option 1 or a pending indicator
+> as its candidates. The Testing section's cancellation bullets (a superseded fold never
+> landing, queued row actions) apply only to an asynchronous fold, so they move to
+> `core-032` with it. See `docs/decisions/kernel-evaluation-worker.md` slice 3 and
+> `bench/results/2026-09-24-core-031.md`. Found by the acceptance re-drive, pre-existing
+> and filed: `TODO/ui-045`.
 
 ## Problem
 

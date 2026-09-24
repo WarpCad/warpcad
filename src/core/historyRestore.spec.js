@@ -93,7 +93,10 @@ const box = (id, size = 1) => ({ id, op: 'fake.box', name: id, params: { size } 
  */
 function seededFake(bodies, options = {}) {
   const { registry, calls } = countingRegistry()
-  const document = createDocument({ registry, ...options })
+  // Uncached by default (TODO/core-031): with the fold cache on, a fold-path Undo
+  // rebuilds nothing it already had, so "zero builds" would stop telling a restore
+  // apart from a fold — which is the whole of what this file's counts are evidence of.
+  const document = createDocument({ registry, foldCache: null, ...options })
   document.appendAll(
     Array.from({ length: bodies }, (unused, index) => box(`seed-${index}`)),
     { origin: 'remote' }
@@ -190,7 +193,15 @@ describe('Undo/Redo of the most recent change restore, never re-fold (TODO/core-
     expect(calls.count).toBe(0)
   })
 
-  it('still re-folds for the row action itself — only the Undo of it is free', () => {
+  it('the row action itself re-folds, but (core-031) builds nothing whose inputs are unchanged', () => {
+    const { document, calls } = seededFake(10, { foldCache: new WeakMap() })
+    document.append(box('a'), { origin: 'local' })
+    calls.count = 0
+    document.setSuppressed('a', true, { origin: 'local' })
+    expect(calls.count).toBe(0)
+  })
+
+  it('without the fold cache, the row action itself builds every active record again', () => {
     const { document, calls } = seededFake(10)
     document.append(box('a'), { origin: 'local' })
     calls.count = 0
@@ -393,7 +404,8 @@ function observe(document, options = {}) {
  * @param {any} document
  */
 function freshFoldOf(document) {
-  const reference = createDocument({ registry: realRegistry })
+  // No fold cache (TODO/core-031): every record really is built again, from nothing.
+  const reference = createDocument({ registry: realRegistry, foldCache: null })
   reference.loadEntries(document.entries, document.rollbackAt())
   return reference
 }
@@ -406,7 +418,8 @@ function freshFoldOf(document) {
  */
 function differential(script) {
   const restoring = createDocument()
-  const folding = createDocument({ restorableSteps: 0 })
+  // The old path on both counts: no restore (core-030) and no fold cache (core-031).
+  const folding = createDocument({ restorableSteps: 0, foldCache: null })
   script.forEach((act, index) => {
     /** @type {unknown} */
     let restoringError
@@ -526,6 +539,57 @@ describe('identical to the synchronous fold, action by action (real kernel)', ()
       (d) => d.append({ id: 'their-move', op: 'transform.translate', target: 'cube-1', supersedes: 'cube-1', params: { vector: [0, 9, 0] } }, { origin: 'mcp' }),
       (d) => d.undo(),
       (d) => d.append(sphere, local),
+      (d) => d.undo(),
+    ])
+  })
+
+  it('(core-031) row actions over dependency chains, composites and sub-part operands', () => {
+    const plate = { id: 'plate', op: 'primitive.cuboid', name: 'Plate', params: { size: [80, 30, 6], center: [0, 0, 3] } }
+    const hole = (/** @type {number} */ index, /** @type {number} */ diameter) => ({ id: `hole-${index}`, op: 'primitive.cylinder', name: `Hole ${index}`, params: { diameter, height: 20, center: [-30 + index * 15, 0, 3] } })
+    const cut = (/** @type {number} */ index, /** @type {string} */ from) => ({ id: `cut-${index}`, op: 'boolean.subtract', name: 'Plate', target: from, operands: [`hole-${index}`], consumes: [from, `hole-${index}`] })
+    const bolt = { id: 'bolt', op: 'hardware.bolt', name: 'Bolt', params: { spec: 'm10 hex', length: 30 } }
+    const block = { id: 'block', op: 'primitive.cuboid', name: 'Block', params: { size: [30, 30, 30], center: [0, 60, 15] } }
+    const tapped = { id: 'tapped', op: 'boolean.subtract', name: 'Block', target: 'block', operands: [{ id: 'bolt', pieces: 'tap' }], consumes: ['block'] }
+    differential([
+      (d) => d.append(plate, local),
+      (d) => d.append(hole(1, 5), local),
+      (d) => d.append(cut(1, 'plate'), local),
+      (d) => d.append(hole(2, 6), local),
+      (d) => d.append(cut(2, 'cut-1'), local),
+      (d) => d.append(bolt, local),
+      (d) => d.append(block, local),
+      (d) => d.append(tapped, local),
+      // Edit the chain's root: every later cut rebuilds, the bolt and block do not.
+      (d) => d.replaceRecord('plate', { ...plate, params: { ...plate.params, size: [90, 30, 6] } }, local),
+      // Edit a hole in the middle of the chain.
+      (d) => d.replaceRecord('hole-1', hole(1, 7), local),
+      // Edit the composite: the sub-part operand (`tap`) changes, so the subtract rebuilds.
+      (d) => d.replaceRecord('bolt', { ...bolt, params: { spec: 'm12 hex', length: 30 } }, local),
+      (d) => d.setSuppressed('tapped', true, local),
+      (d) => d.setSuppressed('tapped', false, local),
+      (d) => d.moveStep('bolt', -1, local),
+      (d) => d.rollBackTo('cut-1', local),
+      (d) => d.append(cone, local),
+      (d) => d.rollForward(local),
+      (d) => d.append(sphere, { origin: 'mcp' }),
+      (d) => d.undo(), // behind an MCP write: the fold path, on a warm cache
+      (d) => d.undo(),
+      (d) => d.redo(),
+      (d) => d.loadEntries(d.entries.slice(0, 6)), // Open, on a warm cache
+      (d) => d.replaceRecord('hole-2', hole(2, 4), local),
+    ])
+  })
+
+  it('(core-031) a refusal on a warm cache is identical to the uncached one, and leaves both unchanged', () => {
+    differential([
+      (d) => d.append(cube, local),
+      (d) => d.append(chamfer(5), local),
+      (d) => d.append({ id: 'cube-1-fillet', op: 'modify.filletRim', target: 'cube-1-chamfer', supersedes: 'cube-1-chamfer', params: { face: 'top', radius: 4 } }, local),
+      (d) => d.append(sphere, local),
+      (d) => d.replaceRecord('cube-1-chamfer', chamfer(18), local), // refused: the fillet no longer fits
+      (d) => d.replaceRecord('cube-1-chamfer', chamfer(18), local), // and again: never cached
+      (d) => d.setSuppressed('cube-1-chamfer', true, local), // fine: the fillet lands on the cube
+      (d) => d.setSuppressed('cube-1', true, local), // refused: needs Cube 1
       (d) => d.undo(),
     ])
   })

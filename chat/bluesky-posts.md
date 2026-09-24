@@ -890,3 +890,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** two presses / drop-spot state → TODO/ui-044 Problem, reproduced this session by the new e2e case against the old composable ("Undo: Move Cylinder 1"); one step + atomic refusal → src/core/documentBatch.spec.js and useParamCommands.spec.js, 1552/1552 this session
 **To Add:** a before/after GIF of the Undo press
+
+## 2026-09-24T17:57:55Z — History row actions reuse unchanged builds instead of re-folding the whole log (TODO/core-031)
+
+**Post:** Editing a step in WarpCad's History used to rebuild every body in the part. Now each step's build is cached against its exact inputs, so only what changed rebuilds. At 4x CPU throttling, a row action's worst frame gap went 458 ms → 20 ms on a 24-body scene. Built with Claude Code, reviewed by me.
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebDev #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** 458 → 20 ms (24-bodies, row action = Suppress, 4x CPU, Chromium headless, production build, M4 Pro) → bench/evaluation-mainthread.mjs run this session, recorded in bench/results/2026-09-24-core-031.md; "only what changed rebuilds" → src/core/foldReuse.spec.js build counts
+**To Add:** a before/after frame-gap chart from bench/results/2026-09-24-core-031.md

@@ -73,16 +73,22 @@ export function emptyScene() {
  * `new Function` anywhere in this path, so an `op` string can never execute,
  * it can only fail to be found.
  *
+ * `cache` (`TODO/core-031`) lets a re-fold reuse this record's value when it meets
+ * the same record against the same operand values again — see `FoldCache` in
+ * `./kernel/index.js`. It changes how much work a fold does, never what it returns.
+ *
  * @param {Scene} scene
  * @param {OpRecord} action
  * @param {Readonly<Record<string, RegistryEntry>>} registry
+ * @param {import('./kernel/index.js').FoldCache | null} [cache]
  * @returns {Scene}
  */
-export function applyAction(scene, action, registry) {
+export function applyAction(scene, action, registry, cache = null) {
   try {
     const { byId, group } = evaluate([action], {
       registry,
       initial: { byId: scene.byId, group: scene.group },
+      cache,
     })
     return { byId, group, errors: scene.errors }
   } catch (error) {

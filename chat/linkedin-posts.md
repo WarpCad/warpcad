@@ -1163,3 +1163,19 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** rebuild-from-creation-params + pose restore → src/composables/useParamCommands.js module doc; separate steps and one-Undo symptom → TODO/ui-044 Problem, reproduced this session (RED e2e); move-back measured against rebuilt part → useParamCommands.js comments; merge + atomic restore → document.batch in the diff + documentBatch.spec.js; five-Undo exact walk → s44 drive this session on laptop Chromium, laptop/phone/tablet WebKit
 **To Add:** screenshot of the Undo tooltip before/after
+
+## 2026-09-24T17:57:55Z — History row actions reuse unchanged builds instead of re-folding the whole log (TODO/core-031)
+
+**Post:**
+WarpCad keeps a part as an ordered history of steps, and the geometry is always rebuilt from that history. Editing, suppressing or reordering one step used to rebuild the whole history on the main thread: 74 ms on a 200-step test part and 157 ms on a 24-body assembly, per click, on an M4 Pro in Node.
+
+The planned fix was to move that rebuild into a Web Worker. I measured that first. Shipping the rebuilt scene back from a worker would cost 10 to 30 ms on the main thread by itself, and every "this edit breaks step 6" error would arrive late. A single row action changes one step, though, so almost nothing needs rebuilding. Each step's result is now cached against the exact objects it was built from, and a step downstream of a change sees a new input and rebuilds. The one surprise was that on the assembly, the remaining cost was not the builds at all. It was re-merging each composite part into the scene, so that merged part is cached too.
+
+In the production build at 4x CPU throttling, the worst frame gap for a History row action went from 284 ms to 30 ms on the 200-step part and from 458 ms to 20 ms on the assembly. Every refusal still happens synchronously and names the step. Opening a file is still a full rebuild; that one is next.
+
+Built with Claude Code, reviewed by me.
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebDevelopment #Performance #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** 74 / 157 ms row action before → TODO/done/core-031 Problem table (from bench/results/2026-09-24-core-030.md); 10-30 ms byId transport → fold-benchmark run this session (10.3 / 18.9 / 30.3 ms); combine() ~95% of cached 24-body re-fold → CPU profile this session; 284 → 30 ms and 458 → 20 ms → evaluation-mainthread runs this session, bench/results/2026-09-24-core-031.md; Open still a full fold → fold-benchmark Open rows (70.2 / 127.4 ms after); refusals synchronous and named → foldReuse.spec.js + scenario 12 step 12 drive
+**To Add:** screenshot of the History panel with a broken-step refusal; the before/after table

@@ -32,13 +32,15 @@
  * A preview is a **throwaway document folded from a prefix of the log** — the
  * same trick `document.js`'s own tail shadow-check uses, and for the same
  * reason: there is one implementation of the fold, so a previewed state cannot
- * disagree with the real one. It is held in a plain, non-reactive variable
+ * disagree with the real one. It folds on the live document's fold cache
+ * (`TODO/core-031`), so it builds nothing the live fold already built. It is held
+ * in a plain, non-reactive variable
  * because it holds kernel geometry, which CLAUDE.md's Performance section puts
  * off-limits to Vue's deep reactivity.
  */
 
 import { defineStore } from 'pinia'
-import { computed, ref, shallowRef, watch } from 'vue'
+import { computed, ref, shallowRef, toRaw, watch } from 'vue'
 
 import { createDocument } from '../core/document.js'
 import { buildNameIndex, describeRow } from '../core/timelineLabel.js'
@@ -184,12 +186,19 @@ export const useTimelineStore = defineStore('timeline', () => {
     const key = `${step}:${documentStore.version}`
     if (previewDoc !== null && key === previewKey) return previewDoc
 
-    const prefix = documentStore.raw.entries.slice(0, step).map((entry) => ({
+    // `toRaw`: Pinia hands `raw` back as a reactive proxy, and the fold cache is keyed
+    // by the *raw* record objects and holds raw geometry — a proxied record would miss
+    // it, and a proxied cache would hand back proxied geometry (CLAUDE.md, Performance).
+    const live = toRaw(documentStore.raw)
+    const prefix = live.entries.slice(0, step).map((entry) => ({
       record: entry.record,
       origin: entry.origin,
       ...(entry.suppressed === true ? { suppressed: true } : {}),
     }))
-    const scratch = createDocument()
+    // The live document's fold cache (TODO/core-031): a prefix of the log is records
+    // the live fold already built against the same operands, so the preview reuses
+    // every one of them instead of folding the prefix from scratch on each row click.
+    const scratch = createDocument({ foldCache: live.foldCache })
     try {
       // Any prefix of a log that folds must itself fold — every reference in a
       // record points backwards. Guarded anyway: a preview is a read, and a

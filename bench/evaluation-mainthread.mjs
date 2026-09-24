@@ -11,6 +11,14 @@
  * 2. **undo** — the Undo button, undoing that placement (a full re-fold of the log).
  * 3. **boolean** — two bodies ticked in the Objects list, then Union.
  * 4. **inspector** — the Union's X position typed into the Inspector and committed.
+ * 5. **row-select** (`TODO/core-031`) — a mid-log History row clicked, which previews
+ *    that step (a fold of the log's prefix), until the preview strip shows.
+ * 6. **row-action** (`TODO/core-031`) — the row action itself, a re-fold of the whole
+ *    log: on `fillet-50` one field of that row changed and **Apply** pressed; on
+ *    `24-bodies`, where no row has an editable field (moves have none and a library
+ *    part's options are not editable from History), **Suppress** pressed. Measured until
+ *    the edit form closes / the row reads suppressed, the preview ends and every body's
+ *    volume has landed.
  *
  * The scene is loaded through **File ▾ → Open…** with a generated `.ndjson`, not through
  * the store: this has to run against the production build (`perf-benchmark.md` rule 2),
@@ -73,10 +81,18 @@ function twentyFourScene() {
   }).flat()
 }
 
-/** @type {Record<string, { records: any[], bodies: number }>} */
+/**
+ * `row`: the History row the row-select/row-action interactions use — mid-log, so the
+ * preview folds a real prefix — and the field its edit changes, or none for Suppress.
+ *
+ * @type {Record<string, { records: any[], bodies: number, row: { step: number, field?: string, value?: string } }>}
+ */
 const SCENES = {
-  'fillet-50': { records: filletScene(), bodies: 50 },
-  '24-bodies': { records: twentyFourScene(), bodies: 24 },
+  // Step 100 is `u24`, body 25's last move: edit its Z.
+  'fillet-50': { records: filletScene(), bodies: 50, row: { step: 100, field: 'vector-2', value: '6' } },
+  // Step 24 is `boltt5`, "Move Bolt 6". No 24-bodies row is editable from History, so
+  // the row action is Suppress (the bolt stays, un-moved: the body count is unchanged).
+  '24-bodies': { records: twentyFourScene(), bodies: 24, row: { step: 24 } },
 }
 
 /** @param {number[]} samples */
@@ -170,9 +186,9 @@ for (const sceneName of ONLY ? [ONLY] : Object.keys(SCENES)) {
 
   for (const rate of RATES) {
     /** @type {Record<string, number[]>} */
-    const gaps = { 'drag-place': [], undo: [], boolean: [], inspector: [] }
+    const gaps = { 'drag-place': [], undo: [], boolean: [], inspector: [], 'row-select': [], 'row-action': [] }
     /** @type {Record<string, number[]>} */
-    const spans = { 'drag-place': [], undo: [], boolean: [], inspector: [] }
+    const spans = { 'drag-place': [], undo: [], boolean: [], inspector: [], 'row-select': [], 'row-action': [] }
 
     for (let run = 0; run < RUNS; run += 1) {
       // A fresh context every run: autosave restores the last document from IndexedDB.
@@ -214,13 +230,15 @@ for (const sceneName of ONLY ? [ONLY] : Object.keys(SCENES)) {
       /**
        * @param {string} name
        * @param {() => Promise<void>} act
-       * @param {number} expected
+       * @param {number | (() => Promise<void>)} expected A body count to settle on, or
+       *   a wait of the interaction's own.
        */
       const measure = async (name, act, expected) => {
         await page.waitForTimeout(300)
         await startWatch(page)
         await act()
-        await settled(page, expected)
+        if (typeof expected === 'number') await settled(page, expected)
+        else await expected()
         // A few more frames, so a result that lands just after the DOM settles is counted.
         await page.waitForTimeout(250)
         const { worst, elapsed } = await stopWatch(page)
@@ -246,6 +264,29 @@ for (const sceneName of ONLY ? [ONLY] : Object.keys(SCENES)) {
       await field.click()
       await field.fill('37')
       await measure('inspector', () => field.press('Enter'), before - 1)
+
+      // TODO/core-031: the History row action, as a user performs it.
+      await page.keyboard.press('Escape')
+      await page.getByTestId('timeline-toggle').click()
+      await page.getByTestId('timeline-panel').waitFor()
+      const row = page.getByTestId(`timeline-row-${scene.row.step}`)
+      await row.scrollIntoViewIfNeeded()
+      await measure('row-select', () => row.click(), () => page.getByTestId('timeline-preview-strip').waitFor({ timeout: 120_000 }))
+      if (scene.row.field !== undefined) {
+        await page.getByTestId('timeline-edit').click()
+        await page.getByTestId(`timeline-field-${scene.row.field}`).fill(scene.row.value ?? '')
+        await measure('row-action', () => page.getByTestId('timeline-apply').click(), async () => {
+          await page.getByTestId('timeline-edit-form').waitFor({ state: 'detached', timeout: 120_000 })
+          await page.getByTestId('timeline-preview-strip').waitFor({ state: 'detached', timeout: 120_000 })
+          await settled(page, before - 1)
+        })
+      } else {
+        await measure('row-action', () => page.getByTestId('timeline-suppress').click(), async () => {
+          await page.waitForFunction((step) => document.querySelector(`[data-testid="timeline-row-${step}"]`)?.getAttribute('data-suppressed') === 'true', scene.row.step, { timeout: 120_000 })
+          await page.getByTestId('timeline-preview-strip').waitFor({ state: 'detached', timeout: 120_000 })
+          await settled(page, before - 1)
+        })
+      }
 
       if (rate > 1) await session.send('Emulation.setCPUThrottlingRate', { rate: 1 })
       await context.close()

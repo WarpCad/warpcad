@@ -104,6 +104,17 @@ describe('timeline store (TODO/ui-032)', () => {
     expect(preview?.bodies().map((body) => body.name)).toEqual(['Cube 1'])
   })
 
+  it('folds the preview on the live document\'s fold cache: nothing it already built is built again (TODO/core-031)', () => {
+    const doc = seedScenario12()
+    const timeline = useTimelineStore()
+    timeline.selectRow('chamfer-2')
+
+    const preview = timeline.previewDocument()
+    const live = doc.raw.bodies().find((body) => body.recordId === 'chamfer-2')
+    // The very object the live fold built — a cache hit, not an equal rebuild.
+    expect(preview?.bodies()[0].geometry).toBe(live?.geometry)
+  })
+
   it('does not preview the last row — it *is* the current document (§14)', () => {
     seedScenario12()
     const timeline = useTimelineStore()

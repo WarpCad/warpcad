@@ -49,7 +49,72 @@ import { assertOperandCount, getEntry, registry } from './registry.js'
  *   never mutated in place, so the caller's own `byId`/`group` stay untouched.
  *   Applies to *these* records only — a composite record's recipe always expands
  *   against an empty fold, never against this scene (TODO/core-020).
+ * @property {FoldCache | null} [cache] Reuse a record's value when it is folded again
+ *   against the very same inputs (TODO/core-031) — see {@link FoldCache}. Omitted or
+ *   `null`: every record builds, as it always did.
  */
+
+/**
+ * @typedef {object} CachedBuild
+ * @property {string} json The record as JSON when it was built, so an object mutated
+ *   in place after the fact can never be served its old value.
+ * @property {readonly unknown[]} inputs The operand values it resolved to, by identity.
+ * @property {readonly (string | undefined)[]} pieces Each operand's `pieces` address.
+ * @property {Readonly<Record<string, RegistryEntry>>} registry
+ * @property {Record<string, any>} tables
+ * @property {Geom3 | Group} value
+ * @property {Geom3} [part] A Group value's `combine()`d solid — what adding it to the
+ *   fold's group under its `name` stores — kept once computed, because that union
+ *   (not the build) was most of a cached re-fold on a composite-heavy scene.
+ */
+
+/**
+ * A record's last successful build, keyed by the record object (TODO/core-031).
+ *
+ * A build is a pure function of the record, the operand values it resolves and the
+ * registry/tables it runs against; geometry values are immutable (`applyAction` and
+ * this fold only ever make new ones). So when a re-fold meets the same record object,
+ * with identical JSON, resolving to the **identical** operand objects, under the same
+ * registry and tables, the cached value is exactly what building again would return —
+ * and a record downstream of a changed one sees a new operand object and rebuilds. A
+ * build that throws is never cached. A `WeakMap`, so a record nothing holds any more
+ * takes its value with it.
+ *
+ * @typedef {WeakMap<object, CachedBuild>} FoldCache
+ */
+
+/**
+ * What `add(group, value, name)` stores for a cached build: the value itself, or for
+ * a Group, its combined solid — computed at most once per cache entry. Identical to
+ * what `add` computes from the Group, since `combine` is a pure function of it.
+ *
+ * @param {CachedBuild} cached
+ * @returns {Geom3}
+ */
+function partOf(cached) {
+  if (!isGroup(cached.value)) return /** @type {Geom3} */ (cached.value)
+  if (cached.part === undefined) cached.part = combine(cached.value)
+  return cached.part
+}
+
+/**
+ * @param {CachedBuild | undefined} cached
+ * @param {string} json
+ * @param {readonly unknown[]} inputs
+ * @param {readonly (string | undefined)[]} pieces
+ * @param {Readonly<Record<string, RegistryEntry>>} ops
+ * @param {Record<string, any>} tables
+ * @returns {cached is CachedBuild}
+ */
+function cacheHit(cached, json, inputs, pieces, ops, tables) {
+  if (cached === undefined) return false
+  if (cached.registry !== ops || cached.tables !== tables || cached.json !== json) return false
+  if (cached.inputs.length !== inputs.length) return false
+  for (let index = 0; index < inputs.length; index += 1) {
+    if (cached.inputs[index] !== inputs[index] || cached.pieces[index] !== pieces[index]) return false
+  }
+  return true
+}
 
 /**
  * @typedef {object} EvaluateResult
@@ -134,6 +199,7 @@ export function evaluate(records, options = {}) {
   /** @type {Map<string, Geom3 | Group>} */
   const byId = new Map(options.initial?.byId ?? [])
   let group = options.initial?.group ?? createGroup(options.name ?? '')
+  const cache = options.cache ?? null
 
   for (const record of records) {
     const entry = ops[record.op]
@@ -144,6 +210,30 @@ export function evaluate(records, options = {}) {
       ...(record.operands ?? []),
     ].map((ref) => normalizeRef(ref, record.op))
     assertOperandCount(record.op, inputRefs.length, ops)
+
+    // TODO/core-031: the same record against the same operand objects is the same
+    // value. Resolution is checked first (and throws exactly as below), so a hit can
+    // never skip a reference error — only the build.
+    /** @type {string | undefined} */
+    let json
+    /** @type {unknown[] | undefined} */
+    let resolvedInputs
+    if (cache !== null) {
+      json = JSON.stringify(record)
+      resolvedInputs = inputRefs.map((ref) => byId.get(ref.id))
+      const pieces = inputRefs.map((ref) => ref.pieces)
+      const cached = cache.get(record)
+      if (!resolvedInputs.includes(undefined) && cacheHit(cached, json, resolvedInputs, pieces, ops, tables)) {
+        if (record.id !== undefined) {
+          if (byId.has(record.id)) {
+            throw new Error(`duplicate record id "${record.id}" — ids must be unique within a fold`)
+          }
+          byId.set(record.id, cached.value)
+        }
+        if (record.name) group = add(group, partOf(cached), record.name, { hidden: record.hidden === true })
+        continue
+      }
+    }
 
     // Two independent questions are asked of every operand here, and keeping them
     // apart is what makes this readable (TODO/core-024):
@@ -246,6 +336,20 @@ export function evaluate(records, options = {}) {
       value = /** @type {Geom3 | Group} */ (entry.build({ params: record.params ?? {}, inputs }))
     }
 
+    /** @type {CachedBuild | undefined} */
+    let built
+    if (cache !== null && json !== undefined && resolvedInputs !== undefined) {
+      built = {
+        json,
+        inputs: resolvedInputs,
+        pieces: inputRefs.map((ref) => ref.pieces),
+        registry: ops,
+        tables,
+        value,
+      }
+      cache.set(record, built)
+    }
+
     if (record.id !== undefined) {
       if (byId.has(record.id)) {
         throw new Error(`duplicate record id "${record.id}" — ids must be unique within a fold`)
@@ -254,7 +358,7 @@ export function evaluate(records, options = {}) {
     }
 
     if (record.name) {
-      group = add(group, value, record.name, { hidden: record.hidden === true })
+      group = add(group, built === undefined ? value : partOf(built), record.name, { hidden: record.hidden === true })
     }
   }
 

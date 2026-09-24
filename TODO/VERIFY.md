@@ -34,6 +34,23 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### core-031 — row actions on the fold cache, and what only real hardware can settle (2026-09-24 17:58 UTC)
+
+`core-031` makes every History row action (edit, suppress, move, roll back, roll forward,
+insert while rolled back), the Undo fallback and the row-click preview reuse each unchanged
+record's build instead of re-folding the whole log. Proved here: results identical to the
+uncached fold after every action (unit differential, real kernel), and identical to a cold
+reload in the app. In headless Chromium at 4× CPU the worst frame gap for a row action went
+284 → 30 ms (200 records) and 458 → 20 ms (24 bodies), and for selecting a row 168 → 19 and
+232 → 18 ms. Scenario 12 passed in full in Chromium and WebKit, phone included. Three things
+it could not settle headless:
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | On a real iPhone and iPad: place two bodies, tap empty grid to deselect, then tap each body. Does each tap select that body? Headless WebKit with trusted touch says **no** after an empty-space tap; Chromium says yes. This decides whether `TODO/ui-045` is a real-device bug or an emulation artifact. | Open | |
+| 2 | Desktop Chrome, real GPU: in History, select a mid-log row (the preview strip appears), then press **Back to latest** or **Roll forward**. Does the 3D view flash blank for a frame as the strip goes away and the viewport grows? Headless Chromium captures a blank canvas in the first frame and a correct one by 500 ms. That is pre-existing, and dismissing the strip alone does it too. Say whether a person can see it. | Open | |
+| 3 | On a phone, on a document of 20+ bodies (Open `bench/`'s 24-body scene or build one): tap a History row, then Edit or Suppress it. Does the row action now feel instant, with no stall between the tap and the viewport updating? | Open | |
+
 ### core-030 — Undo/Redo by restore, felt on real hardware (2026-09-24 15:59 UTC)
 
 `core-030` makes Undo/Redo restore the state captured with each step instead of re-folding the

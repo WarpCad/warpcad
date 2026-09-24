@@ -1,9 +1,11 @@
-# Kernel evaluation off the main thread: one RPC, landed in two slices
+# Kernel evaluation off the main thread: one RPC, and the fold made cheap in three slices
 
 Status: **Decided** (`TODO/core-029`, 2026-09-24). Slice 1 shipped with this record.
 Slice 2 (`TODO/core-030`, 2026-09-24) measured its two candidates and shipped **restore,
-don't re-fold** for Undo/Redo (see "Slice 2" at the end). What still re-folds on the main
-thread is `TODO/core-031`.
+don't re-fold** for Undo/Redo (see "Slice 2"). Slice 3 (`TODO/core-031`, 2026-09-24)
+measured the asynchronous fold for what was left and landed a **fold cache** instead
+(see "Slice 3" at the end). What is still genuinely new work on the main thread, a cold
+Open and an edit at the root of a long dependent lineage, is `TODO/core-032`.
 
 `CLAUDE.md`'s Architecture section: *"All kernel work happens off the main thread (a Web
 Worker, regardless of which geometry library ends up inside it). The main thread must
@@ -174,3 +176,87 @@ that has to reach behind someone else's write, where restoring would delete it.
 | Option 2 keyed on "is this step the log's tail" | Too weak. A remote write *after* the step, or a batch that failed half-way, still leaves the step at a position from which restoring would drop someone else's record. The whole-state token catches every such case with one comparison, and `historyRestore.spec.js` asserts each one. |
 | Storing the snapshot on the `HistoryStep` itself | Steps are handed to the store (`pendingUndo()` for the button label). A `WeakMap` keyed by step keeps a whole document snapshot out of what a label reader holds. |
 | Unbounded restore history | A long session on a large document would grow memory with no limit. After 50 presses of Undo in a row, one re-fold is the least of the waits. |
+
+## Slice 3 (`TODO/core-031`): row actions, the Undo fallback and the preview — a fold cache, not a worker fold
+
+`core-031` was filed to move the re-fold that `core-030` left behind into the evaluation
+worker (option 1): a timeline **row action** itself (edit, suppress, move, roll back, roll
+forward, insert while rolled back), **Undo after a non-local write**, a step older than
+`restorableSteps`, and **Open**. Its own instruction was to *measure first* whether row
+actions justify making every refusal asynchronous, and to record the answer rather than
+assume it.
+
+### Measured first
+
+Node, M4 Pro, medians, `bench/fold-benchmark.mjs` (extended with every row action, Open, a
+single-lineage `chain-40` scene and option 1's true return cost). Full numbers:
+`bench/results/2026-09-24-core-031.md`.
+
+1. **Where a row action's time went.** On `fillet-50` it was the builds: 200 records
+   rebuilt when one lineage of four changed. On the 24-body scene it was mostly *not* the
+   builds. `evaluate`'s scene-group `add` `combine()`s (a real union) every named
+   Group-valued record, on every fold. A CPU profile of a cached suppress showed 0 builds
+   and ~95 ms in `add → combine → union`.
+2. **What option 1 would still cost on the main thread.** A worker fold has to hand back
+   `scene.byId`, every record's value, not just the terminal bodies. A later synchronous
+   `append` resolves operands against it. Pack + structuredClone + unpack of the whole map
+   is **10.3 / 18.9 / 30.3 ms** (fillet-50 / 24-bodies / chain-40). That is one to two
+   frames on the main thread on every row action, plus a pending state for every caller
+   and late refusals for `ui-032`, the stores and Open.
+3. **How often the work is really new.** A row action changes one row. On every measured
+   scene except a single long lineage, almost every record's inputs are unchanged.
+
+In the production build (Chromium, worst frame gap, 4× CPU as the phone stand-in), the
+row action measured 284 ms (fillet-50, Edit) and 458 ms (24-bodies, Suppress). Selecting
+the row first, which previews it by folding the prefix, cost another 168 / 232 ms.
+
+### Options compared
+
+| | 1. Fold as a worker job | 2. Pending indicator on the sync fold | 3. **Fold cache** (landed) |
+|---|---|---|---|
+| Row action, fillet-50 (Node) | ~10 ms transport left on main | 72-74 ms, announced | **0.7-2.1 ms** |
+| Row action, 24-bodies (Node) | ~19 ms transport left on main | 118-158 ms, announced | **0.1-6.5 ms** |
+| Undo behind an MCP write | as above | 73 / 131 ms | **0.9 / 0.1 ms** |
+| History preview (row click) | a second job | unchanged | cache hits (one line: share the live cache) |
+| chain-40, edit at the root | moved off-thread (~30 ms transport) | 202 ms, announced | 202 ms, unchanged |
+| Open (cold records) | moved off-thread | announced | unchanged (70 / 127 / 196 ms) |
+| Refusal contract | every refusal late; every caller pending | unchanged | **unchanged** |
+| Correctness risk | a second copy of state across a boundary | none | a cache that must never serve stale — keyed on record identity **and** JSON, identical operand objects, registry and tables; failures never cached; differential-tested against `foldCache: null` |
+
+### Decision: option 3 now; option 1 only for what is genuinely new work
+
+- **Mechanism.** `evaluate` takes an optional `cache` (`FoldCache`, a `WeakMap` keyed by the
+  record object). A record's build is reused when the cached entry has the same JSON, the
+  **identical** resolved operand objects and `pieces`, and the same registry and tables.
+  Otherwise it builds and caches. Operand resolution runs first, so a missing reference
+  throws exactly as before. A throw is never cached. A Group value's `combine()`d scene
+  part is kept on the same entry, so the scene group is not re-unioned either.
+  `createDocument` owns one cache per document, shares it with its tail shadow check, and
+  exposes it as `document.foldCache` for the History preview (`stores/timeline.js`,
+  through `toRaw`, because Pinia hands `raw` back as a reactive proxy). `foldCache: null`
+  is the uncached fold.
+- **Exact by construction.** Geometry values are immutable and builds are pure. A record
+  downstream of a changed one sees a new operand object and rebuilds. The one known
+  in-place mutation, jscad applying a lazy transform, is the same solid, as slice 2
+  already established. `historyRestore.spec.js`'s differential now runs its twin and its
+  fresh fold uncached, so every real-kernel script compares cached against uncached after
+  every action, including new ones over dependency chains, composites and sub-part
+  operands. In the app, a reload (a cold autosave-restore fold) reproduces the warm
+  document's volumes and bounds byte for byte.
+- **Measured after** (`bench/results/2026-09-24-core-031.md`). Browser, 4× CPU:
+  row action **284 → 30 ms** (fillet-50) and **458 → 20 ms** (24-bodies); row select
+  **168 → 19 ms** and **232 → 18 ms**. Node row actions are 0.1-6.5 ms, except chain-40's
+  root edit. Drag-place, boolean, Inspector and Undo are unchanged.
+- **No contract change.** `replaceRecord`, `setSuppressed`, `moveStep`, `rollBackTo`,
+  `rollForward`, `insertAt`, `loadEntries` and the fallback `undo`/`redo` are still
+  synchronous and still refuse by name, atomically. No caller changed.
+
+### Rejection table (slice 3)
+
+| Rejected | Specific reason |
+|---|---|
+| Option 1 for row actions | Measured: the cache takes every measured row action to at most one frame of Node work, which is less than option 1's own main-thread return cost (10-30 ms of `byId` transport). And option 1 would make every refusal late. It still wins for genuinely new work (cold Open, a long dependent lineage's root edit), which is filed as `TODO/core-032` with these numbers. |
+| A pending indicator alone | It announces a 280-430 ms block at 4-6× CPU instead of removing it. It would also need a painted frame before the fold, which makes the call asynchronous anyway. It stays a candidate for Open in `core-032`. |
+| Caching by record JSON alone (content-addressed) | It would also hit for a freshly parsed Open of the same document. But it needs a strongly held, bounded map, and a new object with equal JSON is exactly the case where "is this the same record" deserves a second look. Identity plus a JSON check is cheaper and cannot leak. |
+| Caching only builds, not the scene-group part | The profile showed the 24-body re-fold was ~95 % `combine()` in `add`, so a build-only cache moved it from 150 to 125 ms. Keeping the combined part took it to 0.1-6.5 ms. |
+| A module-global cache | The differential spec's "fresh fold" twin must share nothing, and documents on different registries must never share entries. So the cache is per document, and shared only on purpose. |

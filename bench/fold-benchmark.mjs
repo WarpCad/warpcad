@@ -217,6 +217,119 @@ for (const [sceneName, records] of Object.entries(SCENES)) {
     },
     ({ document }) => document.undo(),
   ) })
+  // `TODO/core-031` rows: every other row action, and Open, on the same scene.
+  const middle = records[Math.floor(records.length / 2)].id
+  const lastRecord = records.at(-1)
+  rows.push({ scene: sceneName, ...measureInteraction(
+    'edit the LAST row',
+    () => ({ document: seeded(records) }),
+    ({ document }) => document.replaceRecord(lastRecord.id, { ...lastRecord, params: { ...lastRecord.params } }, { origin: 'local' }),
+  ) })
+  rows.push({ scene: sceneName, ...measureInteraction(
+    'suppress the last row',
+    () => ({ document: seeded(records) }),
+    ({ document }) => document.setSuppressed(lastRecord.id, true, { origin: 'local' }),
+  ) })
+  rows.push({ scene: sceneName, ...measureInteraction(
+    // The last body's creation row, up past the previous body's final row: legal in both.
+    'move a row up one (last body\'s first row)',
+    () => ({ document: seeded(records) }),
+    ({ document }) => document.moveStep(records.at(-4).id, -1, { origin: 'local' }),
+  ) })
+  rows.push({ scene: sceneName, ...measureInteraction(
+    'roll back to the middle row',
+    () => ({ document: seeded(records) }),
+    ({ document }) => document.rollBackTo(middle, { origin: 'local' }),
+  ) })
+  rows.push({ scene: sceneName, ...measureInteraction(
+    'roll forward (from the middle)',
+    () => {
+      const document = seeded(records)
+      document.rollBackTo(middle, { origin: 'local' })
+      return { document }
+    },
+    ({ document }) => document.rollForward({ origin: 'local' }),
+  ) })
+  rows.push({ scene: sceneName, ...measureInteraction(
+    'Open (loadEntries of the same records)',
+    () => ({ document: createDocument(), entries: records.map((record) => ({ record, origin: 'local' })) }),
+    ({ document, entries }) => document.loadEntries(entries),
+  ) })
+}
+
+// ---------------------------------------------------------------------------
+// `TODO/core-031`: the two numbers the async-fold decision turns on.
+//
+// 1. Option 1's real return cost. `transport` above ships *terminal bodies* only; a
+//    worker fold has to hand back `scene.byId` — every record's value — because a
+//    later synchronous `append` resolves operands against it.
+// 2. The worst case for anything that reuses per-record results: one body built by a
+//    long single lineage, edited at its FIRST row, so every later record really does
+//    depend on the edit.
+// ---------------------------------------------------------------------------
+
+/** One plate with `holes` cylinders subtracted from it in turn — a single lineage. */
+function chainScene(holes) {
+  const records = [{ id: 'plate', op: 'primitive.cuboid', name: 'Plate', params: { size: [400, 40, 10], center: [0, 0, 5] } }]
+  let current = 'plate'
+  for (let index = 0; index < holes; index += 1) {
+    const hole = `h${index}`
+    const cut = `s${index}`
+    records.push({ id: hole, op: 'primitive.cylinder', name: `Hole ${index + 1}`, params: { diameter: 5, height: 20, center: [-190 + index * 9.5, 0, 5] } })
+    records.push({ id: cut, op: 'boolean.subtract', name: 'Plate', target: current, operands: [hole], consumes: [current, hole] })
+    current = cut
+  }
+  return records
+}
+
+/** pack → structuredClone → unpack of every value in `scene.byId`. */
+function roundTripById(/** @type {any} */ document) {
+  const packed = [...document.scene.byId].map(([id, value]) => ({ id, geometry: packGeometry(value) }))
+  const cloned = structuredClone(packed)
+  cloned.map((/** @type {any} */ entry) => unpackGeometry(entry.geometry))
+}
+
+const optionOneRows = []
+for (const [sceneName, records] of Object.entries(SCENES)) {
+  const document = seeded(records)
+  const samples = []
+  for (let run = 0; run < RUNS; run += 1) {
+    const started = performance.now()
+    roundTripById(document)
+    samples.push(performance.now() - started)
+  }
+  optionOneRows.push({ scene: sceneName, values: document.scene.byId.size, ...stats(samples) })
+}
+
+const chainRecords = chainScene(40)
+const chainName = 'chain-40 (1 plate, 40 subtracts, 81 records)'
+rows.push({ scene: chainName, ...measureInteraction(
+  'edit the FIRST row (every later row depends on it)',
+  () => ({ document: seeded(chainRecords) }),
+  ({ document }) => document.replaceRecord('plate', { ...chainRecords[0], params: { ...chainRecords[0].params } }, { origin: 'local' }),
+) })
+rows.push({ scene: chainName, ...measureInteraction(
+  'edit the LAST hole',
+  () => ({ document: seeded(chainRecords) }),
+  ({ document }) => {
+    const hole = chainRecords.at(-2)
+    document.replaceRecord(hole.id, { ...hole, params: { ...hole.params } }, { origin: 'local' })
+  },
+) })
+rows.push({ scene: chainName, ...measureInteraction(
+  'Open (loadEntries)',
+  () => ({ document: createDocument(), entries: chainRecords.map((record) => ({ record, origin: 'local' })) }),
+  ({ document, entries }) => document.loadEntries(entries),
+) })
+{
+  const document = seeded(chainRecords)
+  const samples = []
+  for (let run = 0; run < RUNS; run += 1) {
+    const started = performance.now()
+    roundTripById(document)
+    samples.push(performance.now() - started)
+  }
+  optionOneRows.push({ scene: chainName, values: document.scene.byId.size, ...stats(samples) })
 }
 
 const fixed = (/** @type {number} */ value) => value.toFixed(1).padStart(7)
@@ -226,6 +339,11 @@ for (const row of rows) {
   console.log(
     `${row.scene.padEnd(34)} | ${row.label.padEnd(52)} | ${fixed(row.fold.median)} (${fixed(row.fold.p95)}) | ${fixed(row.summary.median)} (${fixed(row.summary.p95)}) | ${fixed(row.worker.median)} (${fixed(row.worker.p95)}) | ${fixed(row.transport.median)} (${fixed(row.transport.p95)})`,
   )
+}
+
+console.log('\ncore-031 — option 1 return cost: pack + structuredClone + unpack of the WHOLE scene.byId, median (p95) ms')
+for (const row of optionOneRows) {
+  console.log(`${row.scene.padEnd(48)} ${String(row.values).padStart(4)} values ${fixed(row.median)} (${fixed(row.p95)})`)
 }
 
 // Option 2's threshold: each op kind alone, against a fresh fold.
@@ -350,4 +468,4 @@ for (const [name, script] of Object.entries(SESSIONS)) {
   console.log(`${name.padEnd(78)} restored ${String(restored).padStart(2)} · re-folded ${folded}`)
 }
 
-if (JSON_OUT) writeFileSync(JSON_OUT, JSON.stringify({ runs: RUNS, node: process.version, rows, opRows, coverage }, null, 2))
+if (JSON_OUT) writeFileSync(JSON_OUT, JSON.stringify({ runs: RUNS, node: process.version, rows, opRows, coverage, optionOneRows }, null, 2))

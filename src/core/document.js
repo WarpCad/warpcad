@@ -190,9 +190,32 @@
  * `historyRestore.spec.js` runs every script against an always-fold twin
  * (`restorableSteps: 0`) and a fresh fold, comparing after each action.
  *
- * What still re-folds, and is `TODO/core-031` (moving that fold into the
- * evaluation worker): the row actions themselves, Open/restore, and the fallback
- * cases above.
+ * What still re-folds: the row actions themselves, Open/restore, and the fallback
+ * cases above. `TODO/core-031` made that re-fold cheap rather than asynchronous —
+ * see the next note.
+ *
+ * ### A re-fold reuses every record whose inputs did not change (`TODO/core-031`)
+ *
+ * The re-fold still runs the one `ingest` loop over the whole entry list — the
+ * single-implementation argument below is untouched — but each record's build is
+ * looked up in a per-document {@link import('./kernel/index.js').FoldCache}: keyed by
+ * the record object, checked against its JSON (so a record mutated in place is never
+ * served stale), the **identical** operand values it resolves to, and the registry.
+ * Geometry is immutable and a build is pure, so a hit *is* the value a fresh build
+ * returns; a record downstream of a change sees a new operand object and rebuilds.
+ * A named composite's `combine()`d scene part is kept beside its value, because on a
+ * composite-heavy scene that union, not the build, was most of a cached re-fold.
+ *
+ * Measured (Node, medians, `bench/results/2026-09-24-core-031.md`): every row action
+ * on `data-004`'s 200-record scene 72-74 ms → 0.7-2.1 ms, on the 24-body scene
+ * 118-158 ms → 0.1-6.5 ms, and the Undo fallback behind an MCP write 73 / 131 ms →
+ * 0.9 / 0.1 ms. **Every refusal stays synchronous, named and atomic** — nothing about
+ * the contract `ui-032`, the stores and Open read changed, which is why this was
+ * chosen over moving the fold into the evaluation worker
+ * (`docs/decisions/kernel-evaluation-worker.md`, slice 3). What it cannot make cheap
+ * is work that really is new: Open of records never built here (a cold fold), and an
+ * edit at the root of one long dependent lineage, where every later row does depend
+ * on it. `foldCache: null` is the uncached fold the equivalence specs compare against.
  *
  * ## Revising the log, not just growing it (`TODO/data-004`)
  *
@@ -218,8 +241,11 @@
  * a full one.
  *
  * Full re-fold, not incremental, per this task's own Proposed fix and CLAUDE.md's
- * "measure before optimising". Measured, worst case (editing the **first** row,
- * so everything re-folds), against the real kernel:
+ * "measure before optimising". (`core-031` later made it incremental *by
+ * construction* — the same full loop, with unchanged builds served from the fold
+ * cache — once it was measured as a real cost; see the note above.) Measured when
+ * this landed, worst case (editing the **first** row, so everything re-folds),
+ * against the real kernel:
  *
  * | Log | Median full re-fold |
  * |---|---|
@@ -464,6 +490,9 @@ export class ReplayRejection extends Error {
  * @property {readonly DocumentEntry[]} entries
  * @property {readonly OpRecord[]} records
  * @property {Scene} scene Current derived scene.
+ * @property {import('./kernel/index.js').FoldCache | null} foldCache This document's
+ *   per-record build cache (`TODO/core-031`), for a throwaway document folding a
+ *   prefix of this one (the History preview) to share; `null` when opened without one.
  * @property {number} version Bumps on every successful append, undo and redo.
  * @property {(record: OpRecord, transaction: TransactionOptions) => { record: OpRecord, scene: Scene }} append
  * @property {(records: readonly OpRecord[], transaction: TransactionOptions) => { records: OpRecord[], scene: Scene }} appendAll
@@ -668,10 +697,19 @@ function reasonOf(error) {
  *   redo) steps keep the derived state needed to reverse them **without a re-fold**
  *   (`TODO/core-030`). Older steps still undo, by re-folding. `0` turns restoring off
  *   entirely — the always-fold path, which the equivalence spec runs as the twin.
+ * @param {import('./kernel/index.js').FoldCache | null} [options.foldCache] Where a
+ *   re-fold looks up each record's previous build (`TODO/core-031`). Omitted: a fresh
+ *   cache of this document's own. Another document's `foldCache`: share it — the tail
+ *   shadow check and the History preview do, so neither rebuilds what the live
+ *   document already built; only share between documents on the **same registry**
+ *   (the cache also checks). `null`: no reuse, every fold builds every record — the
+ *   uncached reference the equivalence specs compare against.
  * @returns {WarpDocument}
  */
 export function createDocument(options = {}) {
   const ops = options.registry ?? defaultRegistry
+  /** @type {import('./kernel/index.js').FoldCache | null} */
+  const foldCache = options.foldCache === undefined ? new WeakMap() : options.foldCache
   const restorableSteps = Math.max(0, Math.floor(options.restorableSteps ?? DEFAULT_RESTORABLE_STEPS))
 
   /** @type {DocumentEntry[]} */
@@ -961,7 +999,7 @@ export function createDocument(options = {}) {
     // rejected rather than committed. Skipped outright for a sketch record:
     // there is no geometry to evaluate and no registry entry to look up.
     const errorsBefore = scene.errors.length
-    const candidate = isSketch ? scene : applyAction(scene, record, ops)
+    const candidate = isSketch ? scene : applyAction(scene, record, ops, foldCache)
     if (candidate.errors.length > errorsBefore) {
       const failure = candidate.errors[candidate.errors.length - 1]
       throw new Error(`document.append: ${failure.op} could not be applied — ${failure.message}`)
@@ -1083,7 +1121,7 @@ export function createDocument(options = {}) {
     const broken = new Map()
     if (activeCount >= nextEntries.length) return broken
 
-    const scratch = createDocument({ registry: ops })
+    const scratch = createDocument({ registry: ops, foldCache })
     /** @type {Set<string>} */
     const built = new Set()
     /** @param {DocumentEntry} entry */
@@ -1323,6 +1361,10 @@ export function createDocument(options = {}) {
 
     get scene() {
       return scene
+    },
+
+    get foldCache() {
+      return foldCache
     },
 
     version: 0,
