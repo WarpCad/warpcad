@@ -1195,3 +1195,18 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** diagnosis method → temporary console.log instrumentation of Viewport.vue's onPointerUp/pickAt plus a capture-phase window listener logging event.target, this session; stray-tap-hits-chrome trace → logged target=nav-step-right for a tap aimed at a dropped body, camera azimuth measurably changing as a result; A/B of the fix → git stash comparison of the new e2e test with the preventDefault() change present vs. absent, identical pass; full regression check → non-Firefox Playwright matrix (chromium/webkit × phone/tablet/laptop) 1237 passed, 198 skipped, 0 failed, both before and after; separate hazard filed → TODO/ui-046, reproduced independently three times including once organically while hand-driving the acceptance scenarios
 **To Add:** repo URL once public; a short screen recording of the failure mode and the corrected re-drive side by side
+
+## 2026-09-24T21:16:41Z — Phone nav controls fold away while a panel is open (TODO/ui-046)
+
+**Post:** On a phone, opening the Inspector in WarpCad pushes the on-screen navigation pad up so it isn't hidden behind the panel. Pushed up, the pad covered about 194×200 pixels of the 3D view, which is often where the part you just placed sits. A real tap on a cube in that area pressed "orbit right" and nudged the camera. After that, the next tap aimed at the cube missed too.
+
+None of the existing end-to-end tests could see this. They send pointer events straight to the canvas element, which skips the browser's own hit-testing. The new test uses a real touchscreen tap at page coordinates, so it goes through the same path as a finger.
+
+The fix: while a panel is open at phone width, the pad folds to a single 48×48 ✥ button, and one tap brings back the full set of controls. An existing layout test caught the first version putting that button on a row of its own. That row made the expanded pad 44px taller and pushed it into the toolbar above, so the button moved into the pad row. Pinch-to-zoom and drag gestures keep working while the pad is folded.
+
+Built with Claude Code, reviewed by me.
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebDev #Testing
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** 194×200 footprint and misdirected tap → TODO/ui-046 Problem, reproduced this session (WebKit + Chromium, 390×844); synthetic canvas-node dispatch blind spot → TODO/ui-046 Problem + e2e helper source (canvas.dispatchEvent); 48×48 collapsed → this session's drive and new e2e assertion; first-version overlap caught by ui-043 spec → this session's e2e failure (chrome top 197 vs toolbar bottom 201, expanded chrome 244px tall); pinch/drag still available → Viewport.vue two-finger handler, docs/viewport-navigation.md
+**To Add:** side-by-side phone screenshots, folded vs expanded

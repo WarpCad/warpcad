@@ -910,3 +910,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** no raycast discrepancy found → this session's instrumented onPointerUp/pickAt runs, webkit-phone and chromium-phone, `git stash` A/B of the code change; stray-tap-hits-chrome mechanism → capture-phase event.target log showing `target=nav-step-right` for a tap aimed at a body; full non-Firefox matrix 1237 passed / 198 skipped / 0 failed both before and after this commit; new coverage → e2e/selection-inspector.e2e.js's page.touchscreen.tap test
 **To Add:** repo URL once public; a short GIF of the trusted-touch test passing at phone width
+
+## 2026-09-24T21:16:41Z — Phone nav controls fold away while a panel is open (TODO/ui-046)
+
+**Post:** On a phone, WarpCad's navigation pad used to rise above an open panel and cover ~194×200px of the 3D view. A tap on a cube under it hit "orbit right" instead. Now the pad folds to one 48px ✥ button while a panel is open. Tap it to expand. Built with Claude Code, reviewed by me.
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebDev
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** 194×200 raised footprint, tap landing on nav-step-right → TODO/ui-046 Problem + this session's throwaway repro (chrome box 8,207 194×200; tap left Cylinder selected) in WebKit and Chromium at 390×844; 48×48 collapsed → this session's drive (x 8-56, y 359-407) and the new e2e size assertion
+**To Add:** before/after phone screenshots (shots/webkit-phone-1 and -3 from this session's drive)
