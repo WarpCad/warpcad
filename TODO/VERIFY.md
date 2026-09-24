@@ -34,6 +34,16 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### ui-046 — Nav chrome folds to a ✥ toggle while a phone sheet is open (2026-09-24 21:16)
+
+Emulated WebKit and Chromium at 390×844 confirmed the fold, the expand and every button inside it (ACCEPTANCE.md scenarios 1, 7 and 9). What emulation can't judge is whether a person on a real phone recognizes the ✥ glyph as "navigation controls" without reading the docs.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | On a real iPhone (Safari): select a body so the Inspector opens, then without instructions find a way to orbit with the on-screen buttons. Does the ✥ toggle read as the way in? | Open | |
+| 2 | Same phone: with the Inspector open, tap a body sitting just above the ✥ toggle. Does it select without nudging the camera? | Open | |
+
+
 ### core-031 — row actions on the fold cache, and what only real hardware can settle (2026-09-24 17:58 UTC)
 
 `core-031` makes every History row action (edit, suppress, move, roll back, roll forward,

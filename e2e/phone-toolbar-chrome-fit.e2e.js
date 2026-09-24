@@ -231,6 +231,15 @@ async function closeSheets(page) {
  * @param {string} label For the assertion messages.
  */
 async function assertNoOverlapAndReachable(page, label) {
+  // Since `TODO/ui-046` the chrome collapses to a single toggle while a sheet raises
+  // it at phone width. This spec's claim is about the *expanded* footprint — the
+  // largest the chrome gets next to the toolbar — so open it first when collapsed.
+  const expand = page.getByTestId('nav-expand-toggle')
+  if ((await expand.isVisible()) && (await expand.getAttribute('aria-expanded')) === 'false') {
+    await expand.click()
+    await expect(expand).toHaveAttribute('aria-expanded', 'true')
+  }
+
   const toolbar = await rectOf(page, 'operations-toolbar')
   const chrome = await rectOf(page, 'navigation-chrome')
   expect(toolbar, `${label}: toolbar must be rendered`).not.toBeNull()

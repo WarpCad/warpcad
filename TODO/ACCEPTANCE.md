@@ -950,6 +950,8 @@ menu was opened over the Inspector sheet at phone). Console clean.
 
 **Re-checked**: 2026-09-24 19:45 UTC — **PASS at phone WebKit and phone Chromium** (`ui-045`'s own Step 6 re-drive, real `page.touchscreen.tap`, no synthetic events). Launched the dev server and drove it directly (not via a Playwright *test*) with a Cube and Cylinder dropped clear of every overlay band (nav chrome, orientation gizmo, Operations toolbar, Inspector sheet — the bands `TODO/ui-046` catalogues). A trusted empty-space tap cleared the selection; a trusted tap on the Cube selected it; a trusted tap on the Cylinder selected it; and — beyond the scenario's own steps — a direct Cylinder-to-Cube trusted retarget with **no** intervening empty tap also worked, on both engines. Screenshots confirm a normal, fully-rendered scene at every step (not blank/broken), and both engines' console stayed clean. **This does not overturn `core-031`'s FAIL above as wrong** — see `TODO/done/ui-045-webkit-touch-tap-select-after-empty-tap.md`'s own retirement note: the original coordinates that failed there land inside `NavigationChrome`'s raised footprint once an Inspector sheet is open (filed separately as `TODO/ui-046`), which is why this re-drive deliberately used coordinates proven clear of it rather than the original ones. No bug was found in the selection/raycasting code itself.
 
+**Re-checked**: 2026-09-24 21:15 UTC — **PASS at phone WebKit and phone Chromium** (`ui-046`, hand-driven with a script-free exploratory driver: wandering real-mouse drags from the Library, then real `page.touchscreen.tap` for every selection). Cube dropped at (0.22, 0.45), inside the band the raised nav chrome used to cover, and Cylinder at (0.72, 0.30). Both stayed visible. With the Inspector sheet up, the chrome is now a 48×48 **✥** toggle at `x 8-56, y 359-407` (was `194×200` at `y 207-407`), and `elementFromPoint` at the cube's position is `viewport-canvas`. A 6-tap sequence (empty, cube, cylinder, cube, empty, cube) selected exactly what was tapped each time, and the camera azimuth never moved from −45.00, so no stray tap reached a camera button. No horizontal overflow, console clean.
+
 ### 2. Hardware property edit
 
 **Steps**:
@@ -2345,6 +2347,8 @@ the gizmo-snap and the free-drag path agree on which way is "away from" a pole r
 than only checking that *a* number changed. Screenshots at each step show a normal,
 fully-rendered scene. Console clean.
 
+**Re-checked**: 2026-09-24 21:15 UTC — **PASS at tablet and phone, WebKit and Chromium** (`ui-046`, touch taps only). Tablet 820×1180: no **✥** toggle, and orbit, pan, zoom and the `−Y`/`Z` gizmo snaps all worked from the chrome. Phone 390×844 with the Inspector sheet open: the chrome starts folded, one tap on **✥** opens it at `y 207-407` (the Operations toolbar ends at `bottom 201`, so `ui-043`'s 6px gap is intact). Orbit right/up, Pan mode + pan left, zoom in/out, the `Z` gizmo cap and `⌂` all changed the camera readouts as expected, and **✥** stayed open across all of them. Another tap folded it. Clearing the selection dropped the chrome back to the bottom edge in full. Reselecting reopened it folded, not expanded, and the Objects sheet folds it the same way.
+
 ### 8. Remote-load safety
 
 **Steps**:
@@ -2448,6 +2452,8 @@ this task and re-driven:
    is the whole point of sketch mode, the same reasoning `AppView.vue` already applies
    to not closing the Library on every drop, and scenario 9's own step 5 treats
    selecting as a separate deliberate click anyway. Back to 69% after the fix.
+
+**Re-checked**: 2026-09-24 21:15 UTC — **PASS at phone WebKit and phone Chromium** (`ui-046`: the `Sketch` toggle now folds away with the rest of the nav chrome while a sheet is open). With nothing selected, `Sketch` was tapped directly and one line was drawn (`data-sketch-count` 1). With the line selected and the Inspector open, the chrome folded to **✥** and `Exit Sketch` on the Sketch toolbar stayed visible and left sketch mode on one tap.
 
 ### 10. Save, reload, and confirm nothing changed
 

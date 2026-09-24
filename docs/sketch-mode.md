@@ -106,7 +106,10 @@ Leave sketch mode and everything comes straight back, exactly as it was.
   selection you had, and vice versa.
 - **On a phone**, the Sketch toolbar is a compact bar across the top of the 3D
   view, and the Inspector's line fields open in the usual bottom sheet. Drawing
-  needs no modifier key on any device.
+  needs no modifier key on any device. While that sheet (or any other bottom
+  panel) is open, the navigation controls fold down to a single **✥** button.
+  Tap it to get `Sketch` back, or use `Exit Sketch` on the Sketch toolbar,
+  which is always visible (see `docs/viewport-navigation.md`).
 
 ---
 

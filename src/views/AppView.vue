@@ -111,6 +111,21 @@ const timeline = useTimelineStore()
 const objects = useObjectsPanelStore()
 const sheetSlotClaimed = computed(() => libraryOpen.value || timeline.open || objects.open)
 
+/**
+ * Whether an open sheet is pushing the viewport's nav chrome up off the bottom edge
+ * (`TODO/ui-046`) — exactly the three states the `--viewport-bottom-inset` rules
+ * below raise it for, and no others.
+ *
+ * Raised, the full chrome sat over ~194×200px of live canvas at 390px, and a real tap
+ * on a body underneath landed on `nav-step-right` and silently orbited the camera. The
+ * chrome collapses to a single toggle in this state; it gates that on its own
+ * `≤640px` media query, so this flag being true at laptop width (the History dock is
+ * "open" there too) changes nothing.
+ */
+const navRaised = computed(
+  () => inspectorSheet.value === 'open' || timeline.open || objects.open,
+)
+
 watch(
   () => timeline.open,
   (open) => {
@@ -200,7 +215,7 @@ function onInspectorClaim() {
       <!-- The viewport column, which the History dock shares at ≥641px and
            which the History sheet overlays at phone width. -->
       <div class="app__stage">
-        <Viewport />
+        <Viewport :nav-raised="navRaised" />
         <TimelinePanel />
         <ObjectsPanel />
       </div>

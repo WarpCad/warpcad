@@ -329,6 +329,21 @@ async function placeCube(page, { fx = 0.45, fy = 0.4 } = {}) {
   await expect(page.getByTestId('inspector-transform')).toBeVisible()
 }
 
+/**
+ * Unfold the navigation chrome if it is folded behind its phone-only toggle — it
+ * collapses while a bottom sheet raises it at ≤640px (`TODO/ui-046`). A no-op
+ * everywhere else.
+ *
+ * @param {import('@playwright/test').Page} page
+ */
+async function openNavChrome(page) {
+  const toggle = page.getByTestId('nav-expand-toggle')
+  if ((await toggle.isVisible()) && (await toggle.getAttribute('aria-expanded')) === 'false') {
+    await toggle.click()
+    await expect(toggle).toHaveAttribute('aria-expanded', 'true')
+  }
+}
+
 test.beforeEach(async ({ page }) => {
   await page.goto('/')
   await expect(page.getByTestId('viewport')).toBeVisible()
@@ -930,6 +945,7 @@ test('the gizmo grows past its floor size as the selected body reads larger on s
   page,
 }) => {
   await placeCube(page)
+  await openNavChrome(page)
   await page.getByTestId('nav-reset').click()
   await page.waitForTimeout(80)
 

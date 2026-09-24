@@ -5,8 +5,35 @@ kind: finding
 priority: medium
 model: sonnet
 depends: []
-status: open
+status: done
 ---
+
+> ## What actually shipped
+>
+> **Option A, as an auto-collapse, chosen by the user from the three options below.** At
+> `≤640px`, whenever a sheet raises the chrome (Inspector open, History open, or Objects
+> open, which are exactly the three `--viewport-bottom-inset` states in `AppView.vue`), the
+> whole cluster folds down to a single 38px **✥** toggle (`nav-expand-toggle`). Collapsed, the
+> footprint is **48×48 at `x 8-56, y 359-407`**, down from 194×200 at `y 207-407`, measured
+> in WebKit and Chromium at 390×844. Tapping **✥** expands the full cluster. The expand
+> state resets whenever the raise changes, so a new sheet always opens folded. `AppView.vue`
+> computes `navRaised`, `Viewport.vue` passes it through, and `NavigationChrome.vue` gates
+> the fold behind its own 640px media query, so tablet and laptop never see the toggle.
+>
+> **One layout correction found by `ui-043`'s own spec:** the first version put **✥** on a
+> row of its own. That added 44px to the *expanded* cluster and pushed it 4px into the
+> Operations toolbar, the exact overlap `ui-043` fixed. **✥** now sits at the left of the pad
+> row, bottom-aligned, so expanding adds width instead of height. The expanded cluster is
+> back at `y 207-407` against the toolbar's `bottom 201` (ui-043's 6px gap), and it stays
+> in the same corner whether folded or open.
+>
+> **Accepted cost:** at phone width with a sheet open, `Orbit`/`Pan`/`Select` and `Sketch`
+> are now one extra tap away. Six existing specs clicked those buttons in exactly that
+> state. They now call a local `openNavChrome` helper first, which is the user's real extra
+> tap, not a workaround. `Exit Sketch` on the Sketch toolbar is unaffected. Touch gestures on
+> the canvas (one-finger drag, two-finger pinch and pan) keep working while the chrome is
+> folded. Docs: `docs/viewport-navigation.md` (new "On a phone" subsection with a worked
+> example) and a note in `docs/sketch-mode.md`.
 
 ## Problem
 

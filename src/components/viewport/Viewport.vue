@@ -174,6 +174,15 @@ function renderSource() {
  * latest document would say "2 bodies" over a picture of one.
  */
 const announcedBodies = computed(() => timeline.previewBodies ?? documentStore.bodies)
+
+defineProps({
+  /**
+   * Whether a phone-width bottom sheet has pushed the nav chrome up over the canvas
+   * (`TODO/ui-046`). Owned by `AppView.vue`, the only thing that can see every sheet;
+   * passed straight through to `NavigationChrome`, which collapses in response.
+   */
+  navRaised: { type: Boolean, default: false },
+})
 const placement = usePlacementStore()
 const selection = useSelectionStore()
 const settings = useSettingsStore()
@@ -2242,6 +2251,7 @@ onBeforeUnmount(() => {
     <NavigationChrome
       :drag-mode="dragMode"
       :sketch-mode="sketchMode"
+      :raised="navRaised"
       @step="onStep"
       @zoom="onZoom"
       @mode="onMode"

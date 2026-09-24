@@ -26,6 +26,21 @@ import { join } from 'node:path'
 
 const SNAPSHOT_DIR = join(process.cwd(), 'test-results', 'boolean-snapshots')
 
+/**
+ * Unfold the navigation chrome if it is folded behind its phone-only toggle — it
+ * collapses while a bottom sheet raises it at ≤640px (`TODO/ui-046`). A no-op
+ * everywhere else.
+ *
+ * @param {import('@playwright/test').Page} page
+ */
+async function openNavChrome(page) {
+  const toggle = page.getByTestId('nav-expand-toggle')
+  if ((await toggle.isVisible()) && (await toggle.getAttribute('aria-expanded')) === 'false') {
+    await toggle.click()
+    await expect(toggle).toHaveAttribute('aria-expanded', 'true')
+  }
+}
+
 test.skip(
   ({ browserName }) => browserName !== 'chromium',
   'DOM/state logic, no new WebGL/canvas/touch surface — see this file’s header and TODO/ui-014',
@@ -375,6 +390,7 @@ test('Intersect of two genuinely overlapping solids leaves a real solid, not an 
   // Both solids are stacked on the same spot, so a click cannot reliably pick
   // one and then the other — the marquee (`ui-024`) is the gesture that selects
   // an overlapping pair, and it is reachable by touch at every width.
+  await openNavChrome(page)
   await page.getByTestId('nav-mode-select').click()
   await page.evaluate(() => {
     const canvas = document.querySelector('[data-testid="viewport-canvas"]')

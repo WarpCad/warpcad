@@ -17,7 +17,7 @@
  * on-screen control and the gesture honestly equivalent rather than two
  * different features that happen to look alike.
  */
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { MOUSE_NAV_PRESETS, useSettingsStore } from '../../stores/settings.js'
 
 const props = defineProps({
@@ -45,6 +45,19 @@ const props = defineProps({
    * went, and the row comes straight back on exit.
    */
   sketchMode: { type: Boolean, default: false },
+  /**
+   * Whether an open phone-width sheet has pushed this cluster up off the bottom edge
+   * (`TODO/ui-046`).
+   *
+   * Raised, the full cluster covered ~194×200px of live canvas at 390px, and a real
+   * tap on a body underneath it pressed `nav-step-right` instead — silently orbiting
+   * the camera, so every later tap aimed at that body's old position missed too.
+   * While raised, and only at `≤640px` (the same breakpoint the raise itself lives
+   * behind), the cluster collapses to one toggle in the corner and expands on a tap.
+   * Two-finger pinch/pan and a one-finger drag keep working on the canvas meanwhile,
+   * so collapsing costs discoverability for one tap, not the ability to navigate.
+   */
+  raised: { type: Boolean, default: false },
 })
 
 const emit = defineEmits(['step', 'zoom', 'mode', 'reset', 'sketch'])
@@ -73,6 +86,25 @@ function choosePreset(id) {
   settingsOpen.value = false
 }
 
+// TODO/ui-046: whether the user has opened the cluster while it is raised. Reset
+// whenever the raise itself changes, so opening a sheet always starts collapsed —
+// an expansion from a previous sheet must not come back covering a body the user
+// has placed since.
+const expanded = ref(false)
+
+watch(
+  () => props.raised,
+  () => {
+    expanded.value = false
+  },
+)
+
+function toggleExpanded() {
+  expanded.value = !expanded.value
+  // The preset popover is anchored to the rows being hidden; it goes with them.
+  if (!expanded.value) settingsOpen.value = false
+}
+
 /** @type {ReadonlyArray<{dir: string, glyph: string, cell: string}>} */
 const STEPS = Object.freeze([
   { dir: 'up', glyph: '▲', cell: 'up' },
@@ -83,98 +115,127 @@ const STEPS = Object.freeze([
 </script>
 
 <template>
-  <div class="chrome" data-testid="navigation-chrome" :data-drag-mode="dragMode">
-    <div v-if="!sketchMode" class="chrome__modes" role="group" aria-label="Viewport drag mode">
-      <button
-        type="button"
-        class="chrome__mode"
-        :class="{ 'chrome__mode--on': dragMode === 'orbit' }"
-        :aria-pressed="dragMode === 'orbit'"
-        data-testid="nav-mode-orbit"
-        title="Drag to orbit"
-        @click="emit('mode', 'orbit')"
-      >
-        Orbit
-      </button>
-      <button
-        type="button"
-        class="chrome__mode"
-        :class="{ 'chrome__mode--on': dragMode === 'pan' }"
-        :aria-pressed="dragMode === 'pan'"
-        data-testid="nav-mode-pan"
-        title="Drag to pan"
-        @click="emit('mode', 'pan')"
-      >
-        Pan
-      </button>
-      <button
-        type="button"
-        class="chrome__mode"
-        :class="{ 'chrome__mode--on': dragMode === 'select' }"
-        :aria-pressed="dragMode === 'select'"
-        data-testid="nav-mode-select"
-        title="Drag a box to select several bodies (TODO/ui-024)"
-        aria-label="Drag to select"
-        @click="emit('mode', 'select')"
-      >
-        Select
-      </button>
-      <button
-        type="button"
-        class="chrome__gear"
-        :aria-expanded="settingsOpen"
-        data-testid="nav-settings-gear"
-        title="Mouse navigation settings"
-        aria-label="Mouse navigation settings"
-        @click="toggleSettings"
-      >
-        ⚙
-      </button>
-    </div>
+  <div
+    class="chrome"
+    :class="{ 'chrome--raised': raised, 'chrome--expanded': expanded }"
+    data-testid="navigation-chrome"
+    :data-drag-mode="dragMode"
+  >
+    <!-- The rows above the pad. `display: contents` everywhere except a
+         collapsed raised phone cluster, where it is `display: none`
+         (TODO/ui-046) — so wrapping them changes nothing about the column
+         layout. The pad and zoom are hidden individually below, because the
+         expand toggle shares their row. -->
+    <div class="chrome__body">
+      <div v-if="!sketchMode" class="chrome__modes" role="group" aria-label="Viewport drag mode">
+        <button
+          type="button"
+          class="chrome__mode"
+          :class="{ 'chrome__mode--on': dragMode === 'orbit' }"
+          :aria-pressed="dragMode === 'orbit'"
+          data-testid="nav-mode-orbit"
+          title="Drag to orbit"
+          @click="emit('mode', 'orbit')"
+        >
+          Orbit
+        </button>
+        <button
+          type="button"
+          class="chrome__mode"
+          :class="{ 'chrome__mode--on': dragMode === 'pan' }"
+          :aria-pressed="dragMode === 'pan'"
+          data-testid="nav-mode-pan"
+          title="Drag to pan"
+          @click="emit('mode', 'pan')"
+        >
+          Pan
+        </button>
+        <button
+          type="button"
+          class="chrome__mode"
+          :class="{ 'chrome__mode--on': dragMode === 'select' }"
+          :aria-pressed="dragMode === 'select'"
+          data-testid="nav-mode-select"
+          title="Drag a box to select several bodies (TODO/ui-024)"
+          aria-label="Drag to select"
+          @click="emit('mode', 'select')"
+        >
+          Select
+        </button>
+        <button
+          type="button"
+          class="chrome__gear"
+          :aria-expanded="settingsOpen"
+          data-testid="nav-settings-gear"
+          title="Mouse navigation settings"
+          aria-label="Mouse navigation settings"
+          @click="toggleSettings"
+        >
+          ⚙
+        </button>
+      </div>
 
-    <!-- The Sketch mode toggle (TODO/ui-020). Its own row rather than a fourth
-         chip in the drag-mode group above: this enters a *mode*, it does not
-         choose what a drag already does — and a fourth chip would not leave a
-         real tap target at 390px width. -->
-    <button
-      type="button"
-      class="chrome__sketch"
-      :class="{ 'chrome__sketch--on': sketchMode }"
-      :aria-pressed="sketchMode"
-      data-testid="nav-sketch-toggle"
-      :title="sketchMode ? 'Leave sketch mode' : 'Draw 2D sketch geometry on the working plane'"
-      @click="emit('sketch')"
-    >
-      <!-- Always "Sketch", never relabelled to "Exit Sketch": the Sketch
-           toolbar already carries an `Exit Sketch` button, and two identically
-           labelled controls on screen at once read as a bug. This is a toggle
-           and shows its state the way the Orbit/Pan/Select chips above do —
-           pressed, and painted in the accent colour. -->
-      Sketch
-    </button>
-
-    <div
-      v-if="settingsOpen"
-      class="chrome__presets"
-      role="group"
-      aria-label="Mouse navigation preset"
-      data-testid="nav-settings-panel"
-    >
+      <!-- The Sketch mode toggle (TODO/ui-020). Its own row rather than a fourth
+           chip in the drag-mode group above: this enters a *mode*, it does not
+           choose what a drag already does — and a fourth chip would not leave a
+           real tap target at 390px width. -->
       <button
-        v-for="preset in MOUSE_NAV_PRESETS"
-        :key="preset.id"
         type="button"
-        class="chrome__preset"
-        :class="{ 'chrome__preset--on': settings.mouseNavPreset === preset.id }"
-        :aria-pressed="settings.mouseNavPreset === preset.id"
-        :data-testid="`nav-preset-${preset.id}`"
-        @click="choosePreset(preset.id)"
+        class="chrome__sketch"
+        :class="{ 'chrome__sketch--on': sketchMode }"
+        :aria-pressed="sketchMode"
+        data-testid="nav-sketch-toggle"
+        :title="sketchMode ? 'Leave sketch mode' : 'Draw 2D sketch geometry on the working plane'"
+        @click="emit('sketch')"
       >
-        {{ preset.label }}
+        <!-- Always "Sketch", never relabelled to "Exit Sketch": the Sketch
+             toolbar already carries an `Exit Sketch` button, and two identically
+             labelled controls on screen at once read as a bug. This is a toggle
+             and shows its state the way the Orbit/Pan/Select chips above do —
+             pressed, and painted in the accent colour. -->
+        Sketch
       </button>
+
+      <div
+        v-if="settingsOpen"
+        class="chrome__presets"
+        role="group"
+        aria-label="Mouse navigation preset"
+        data-testid="nav-settings-panel"
+      >
+        <button
+          v-for="preset in MOUSE_NAV_PRESETS"
+          :key="preset.id"
+          type="button"
+          class="chrome__preset"
+          :class="{ 'chrome__preset--on': settings.mouseNavPreset === preset.id }"
+          :aria-pressed="settings.mouseNavPreset === preset.id"
+          :data-testid="`nav-preset-${preset.id}`"
+          @click="choosePreset(preset.id)"
+        >
+          {{ preset.label }}
+        </button>
+      </div>
     </div>
 
     <div class="chrome__row">
+      <!-- Only ever displayed at ≤640px while raised (TODO/ui-046). In the pad
+           row, not a row of its own: a row would add ~44px of height to the
+           expanded cluster, and `ui-043` measured the raised chrome with only
+           ~6px to spare against the Operations toolbar above it. Bottom-aligned
+           so it sits in the same corner collapsed and expanded — the second
+           tap lands where the first did. -->
+      <button
+        type="button"
+        class="chrome__expand"
+        :aria-expanded="expanded"
+        data-testid="nav-expand-toggle"
+        :title="expanded ? 'Hide navigation controls' : 'Show navigation controls'"
+        :aria-label="expanded ? 'Hide navigation controls' : 'Show navigation controls'"
+        @click="toggleExpanded"
+      >
+        ✥
+      </button>
       <div class="chrome__pad" role="group" :aria-label="`${verb} the camera`">
         <button
           v-for="step in STEPS"
@@ -242,6 +303,33 @@ const STEPS = Object.freeze([
   background: var(--surface-glass);
   backdrop-filter: blur(6px);
   box-shadow: var(--shadow-overlay);
+}
+
+.chrome__body {
+  display: contents;
+}
+
+/* Hidden everywhere except a raised phone cluster — see the media block below. */
+.chrome__expand {
+  display: none;
+  width: var(--tap-compact);
+  height: var(--tap-compact);
+  place-items: center;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  color: var(--text-1);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  touch-action: manipulation;
+  align-self: flex-end;
+}
+
+.chrome__expand[aria-expanded='true'] {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-contrast);
 }
 
 .chrome__modes {
@@ -436,6 +524,22 @@ const STEPS = Object.freeze([
   .chrome__preset {
     min-height: 30px;
     font-size: 11px;
+  }
+}
+
+/* TODO/ui-046. 640px, not the 480px above: this follows `AppView.vue`'s own
+   `--viewport-bottom-inset` breakpoint, which is where the raise itself happens.
+   Collapsed, the cluster is one 38px toggle plus its padding (~48px square)
+   instead of ~194×200px sitting over whatever body the user placed there. */
+@media (max-width: 640px) {
+  .chrome--raised .chrome__expand {
+    display: grid;
+  }
+
+  .chrome--raised:not(.chrome--expanded) .chrome__body,
+  .chrome--raised:not(.chrome--expanded) .chrome__pad,
+  .chrome--raised:not(.chrome--expanded) .chrome__zoom {
+    display: none;
   }
 }
 </style>

@@ -40,6 +40,21 @@ import { test, expect } from '@playwright/test'
  * cube" / "⌀40 × 50 cylinder" facts about the Library's default primitives).
  */
 
+/**
+ * Unfold the navigation chrome if it is folded behind its phone-only toggle — it
+ * collapses while a bottom sheet raises it at ≤640px (`TODO/ui-046`). A no-op
+ * everywhere else.
+ *
+ * @param {import('@playwright/test').Page} page
+ */
+async function openNavChrome(page) {
+  const toggle = page.getByTestId('nav-expand-toggle')
+  if ((await toggle.isVisible()) && (await toggle.getAttribute('aria-expanded')) === 'false') {
+    await toggle.click()
+    await expect(toggle).toHaveAttribute('aria-expanded', 'true')
+  }
+}
+
 test.skip(
   ({ browserName }) => browserName !== 'chromium',
   'DOM/state logic, no new WebGL/canvas/touch surface — see this file’s header and TODO/ui-026',
@@ -430,6 +445,7 @@ test('a third selected body disables both Snap and Align, same exact-2 gate as t
   await dragRowIntoViewport(page, { op: 'primitive.cuboid', fx: 0.5, fy: 0.36 })
   await closeLibrary(page)
 
+  await openNavChrome(page)
   await page.getByTestId('nav-mode-select').click()
   await page.evaluate(() => {
     const canvas = document.querySelector('[data-testid="viewport-canvas"]')

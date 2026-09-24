@@ -216,6 +216,19 @@ function isSheetWidth(page) {
 }
 
 /**
+ * Page coordinates of a test id's centre, for a trusted `page.touchscreen.tap`.
+ *
+ * @param {import('@playwright/test').Page} page
+ * @param {string} testId
+ * @returns {Promise<[number, number]>}
+ */
+async function centreOf(page, testId) {
+  const box = await page.getByTestId(testId).boundingBox()
+  if (!box) throw new Error(`no box for ${testId}`)
+  return [box.x + box.width / 2, box.y + box.height / 2]
+}
+
+/**
  * Switch the viewport's drag mode to `'select'` (`TODO/ui-024`'s marquee
  * toggle) via the nav chrome — the touch-reachable path to marquee, and the
  * one this file's own marquee tests drive so the same mechanism is exercised
@@ -225,6 +238,7 @@ function isSheetWidth(page) {
  * @param {import('@playwright/test').Page} page
  */
 async function enableMarqueeMode(page) {
+  await openNavChrome(page)
   await page.getByTestId('nav-mode-select').click()
   await expect(page.getByTestId('navigation-chrome')).toHaveAttribute('data-drag-mode', 'select')
 }
@@ -274,6 +288,21 @@ async function dragMarquee(page, { fromFx, fromFy, toFx, toFy, additive = false 
     { fromFx, fromFy, toFx, toFy, additive },
   )
   await page.waitForTimeout(90)
+}
+
+/**
+ * Unfold the navigation chrome if it is folded behind its phone-only toggle — it
+ * collapses while a bottom sheet raises it at ≤640px (`TODO/ui-046`). A no-op
+ * everywhere else.
+ *
+ * @param {import('@playwright/test').Page} page
+ */
+async function openNavChrome(page) {
+  const toggle = page.getByTestId('nav-expand-toggle')
+  if ((await toggle.isVisible()) && (await toggle.getAttribute('aria-expanded')) === 'false') {
+    await toggle.click()
+    await expect(toggle).toHaveAttribute('aria-expanded', 'true')
+  }
 }
 
 test.beforeEach(async ({ page }) => {
@@ -560,6 +589,79 @@ test('a real (trusted) touch tap still selects a body after a trusted tap on emp
   // The camera never drifted along the way — the tell-tale sign of a stray
   // tap having pressed a navigation button instead of reaching the canvas.
   await expect(page.getByTestId('viewport')).toHaveAttribute('data-camera-azimuth', '-45.00')
+})
+
+test('a body under the raised navigation chrome stays selectable by a real touch tap, and the chrome expands on demand (TODO/ui-046)', async ({
+  page,
+  hasTouch,
+}) => {
+  // `TODO/ui-046`'s exact repro: a Cube at (0.28, 0.42) — the lower-left
+  // quadrant several tests above already use — and a Cylinder elsewhere, which
+  // the drop auto-selects, which opens the Inspector sheet, which raises the
+  // navigation chrome to sit just above it. Before the fix the raised chrome
+  // covered roughly x 8-202, y 207-407 at 390×844, and a trusted tap aimed at
+  // the Cube landed on `nav-step-right` and silently orbited the camera. Only
+  // a trusted tap can catch this: `clickViewportAt` dispatches on the canvas
+  // node and never goes through the browser's hit-testing at all.
+  test.skip(!hasTouch || !isSheetWidth(page), 'the chrome only rises above a sheet at phone width')
+
+  await openLibrary(page)
+  await dragRowIntoViewport(page, { op: 'primitive.cuboid', fx: 0.28, fy: 0.42 })
+  await dragRowIntoViewport(page, { op: 'primitive.cylinder', fx: 0.75, fy: 0.3 })
+  await expectInspectorContentVisible(page)
+  const [cube, cylinder] = await sceneBodies(page)
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-selected-id', cylinder.id)
+
+  // Raised over an open sheet, the chrome is one small toggle in the corner —
+  // not a D-pad sitting on top of the canvas.
+  const toggle = page.getByTestId('nav-expand-toggle')
+  await expect(toggle).toBeVisible()
+  await expect(toggle).toHaveAttribute('aria-expanded', 'false')
+  await expect(page.getByTestId('nav-step-right')).toBeHidden()
+  const chrome = await page.getByTestId('navigation-chrome').boundingBox()
+  if (!chrome) throw new Error('no chrome box')
+  expect(chrome.width, 'collapsed chrome width').toBeLessThanOrEqual(60)
+  expect(chrome.height, 'collapsed chrome height').toBeLessThanOrEqual(60)
+
+  const box = await page.getByTestId('viewport-canvas').boundingBox()
+  if (!box) throw new Error('no canvas box')
+  const cubePoint = { x: box.x + box.width * 0.28, y: box.y + box.height * 0.42 }
+
+  // The tap `TODO/ui-046` describes being swallowed.
+  await page.touchscreen.tap(cubePoint.x, cubePoint.y)
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-selected-id', cube.id)
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-camera-azimuth', '-45.00')
+
+  // The full cluster is one tap away, and every button in it still works.
+  await page.touchscreen.tap(...(await centreOf(page, 'nav-expand-toggle')))
+  await expect(toggle).toHaveAttribute('aria-expanded', 'true')
+  await expect(page.getByTestId('nav-step-right')).toBeVisible()
+  await page.touchscreen.tap(...(await centreOf(page, 'nav-step-right')))
+  await expect(page.getByTestId('viewport')).not.toHaveAttribute('data-camera-azimuth', '-45.00')
+
+  // And collapses again on a second tap of the same toggle.
+  await page.touchscreen.tap(...(await centreOf(page, 'nav-expand-toggle')))
+  await expect(toggle).toHaveAttribute('aria-expanded', 'false')
+  await expect(page.getByTestId('nav-step-right')).toBeHidden()
+})
+
+test('the navigation chrome is fully expanded, with no collapse toggle, whenever no sheet raises it (TODO/ui-046)', async ({
+  page,
+}) => {
+  // Nothing selected, no sheet up: the chrome sits at the bottom edge where it
+  // never covers much canvas, so collapsing it there would only cost a tap.
+  // This also holds at every width where the Inspector is a column rather
+  // than a sheet — the collapse is phone-and-raised only.
+  await expect(page.getByTestId('nav-step-right')).toBeVisible()
+  await expect(page.getByTestId('nav-expand-toggle')).toBeHidden()
+
+  await openLibrary(page)
+  await dragRowIntoViewport(page, { op: 'primitive.cuboid', fx: 0.5, fy: 0.38 })
+  await expectInspectorContentVisible(page)
+  if (!isSheetWidth(page)) {
+    await expect(page.getByTestId('nav-step-right')).toBeVisible()
+    await expect(page.getByTestId('nav-expand-toggle')).toBeHidden()
+  }
 })
 
 test('at phone width one bottom sheet at a time, and selection opens the Inspector', async ({

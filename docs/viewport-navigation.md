@@ -54,6 +54,31 @@ Try these in order, with the app open:
 The buttons and the drag gesture are the same controls underneath, so the view
 never ends up in a state you can only reach one way.
 
+### On a phone: the pad folds away while a panel is open
+
+On a phone, opening a bottom panel (the Inspector, History, or the Objects
+list) pushes the navigation pad up so it sits above the panel. Up there it would
+cover the middle of the 3D view, where your objects usually are. So instead the
+whole pad folds down to a single **✥** button in the corner. That way a tap on an
+object in that area selects the object, and can't nudge the camera by accident.
+
+Example: place a cube near the lower-left of the view, then drop a cylinder
+somewhere else.
+
+1. The cylinder is selected and the Inspector panel slides up. The navigation
+   pad is now just the **✥** button, sitting above the panel.
+2. Tap the cube. It becomes the selected object and the camera stays where it
+   was.
+3. Tap **✥** to open the full pad (`Orbit`/`Pan`/`Select`, `Sketch`, the arrows,
+   `⌂` and zoom). The **✥** button turns highlighted and stays in the same
+   corner.
+4. Use the arrows as usual, then tap **✥** again to fold the pad back down.
+
+Closing or switching the panel folds the pad again, so the next panel always
+opens with the view clear. You can still move the camera with your fingers while
+the pad is folded (see Touch gestures below). The fold only happens on a phone
+with a panel open. On a tablet or a computer, the pad is always shown in full.
+
 **Mouse-only shortcuts**, on top of the `Orbit`/`Pan` toggle above:
 
 | Gesture | Result |
@@ -128,6 +153,7 @@ direction changes — so you can line up a view without losing your place.
 | Two-finger pinch | Zoom in and out |
 | Two-finger drag | Pan, whichever mode is selected |
 | Tap a triad cap or a pad button | Same as clicking it |
+| Tap **✥** (phone, with a panel open) | Opens or folds away the navigation pad |
 
 The 3D view claims your drags, so the page itself never scrolls or bounces while
 you are moving the camera.

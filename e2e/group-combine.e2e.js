@@ -21,6 +21,21 @@ import { test, expect } from '@playwright/test'
  * horizontal scroll at phone width.
  */
 
+/**
+ * Unfold the navigation chrome if it is folded behind its phone-only toggle — it
+ * collapses while a bottom sheet raises it at ≤640px (`TODO/ui-046`). A no-op
+ * everywhere else.
+ *
+ * @param {import('@playwright/test').Page} page
+ */
+async function openNavChrome(page) {
+  const toggle = page.getByTestId('nav-expand-toggle')
+  if ((await toggle.isVisible()) && (await toggle.getAttribute('aria-expanded')) === 'false') {
+    await toggle.click()
+    await expect(toggle).toHaveAttribute('aria-expanded', 'true')
+  }
+}
+
 test.skip(
   ({ browserName }) => browserName !== 'chromium',
   'DOM/state logic, no new WebGL/canvas/touch surface — see this file’s header and TODO/ui-015',
@@ -265,6 +280,7 @@ test('Group accepts three or more selected solids at once, same "2+" gate as the
 
   // Marquee-select all three at once (`ui-024`), order-independent per this
   // task's own Interaction model — Group has no base/subtrahend asymmetry.
+  await openNavChrome(page)
   await page.getByTestId('nav-mode-select').click()
   await page.evaluate(() => {
     const canvas = document.querySelector('[data-testid="viewport-canvas"]')
