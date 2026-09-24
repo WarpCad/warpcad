@@ -139,7 +139,12 @@ async function clickViewportAt(page, fx, fy, modifiers = {}) {
  * @param {import('@playwright/test').Page} page
  * @returns {Promise<{ id: string, name: string, volume: number, bounds: number[] }[]>}
  */
-function sceneBodies(page) {
+async function sceneBodies(page) {
+  // A composite's volume is a kernel union, measured in the evaluation worker since
+  // `TODO/core-029`: `data-body-volume` is absent until it lands, so wait for it.
+  await page.waitForFunction(() =>
+    [...document.querySelectorAll('[data-testid="scene-bodies"] li')].every((node) => node.hasAttribute('data-body-volume')),
+  )
   return page.$$eval('[data-testid="scene-bodies"] li', (nodes) =>
     nodes.map((node) => ({
       id: node.getAttribute('data-body-id') ?? '',

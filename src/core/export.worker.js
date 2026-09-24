@@ -21,9 +21,10 @@
  * `CLAUDE.md`'s Architecture says all kernel work belongs off the main thread, and this
  * is the first piece of it to move. It is deliberately **export-only**: it is entered
  * from the export path alone, and no `evaluate()` caller or the document fold changes
- * because of it. Moving evaluation itself is a separate, larger task
- * (`TODO/core-029-kernel-evaluation-worker-rpc.md`), which this worker is meant to
- * inform rather than pre-empt.
+ * because of it. Evaluation got its own worker in `TODO/core-029`
+ * (`src/core/kernel/evaluation.worker.js`, one RPC for all kernel evaluation — see
+ * `docs/decisions/kernel-evaluation-worker.md`), modelled on this one. Export keeps its
+ * own: it is a one-shot job with a transferable answer and no need for cancellation.
  *
  * @module core/export.worker
  */

@@ -13,6 +13,8 @@ with the machine, engine and build mode at the top.
 | `fixtures/export-scenes.js` | the scenes themselves, built through the real `evaluate()` | imported by the others |
 | `export-benchmark.mjs` | the **work**: repair, STL/OBJ/glTF serialization, and the structured-clone cost of a worker boundary, in Node | `node bench/export-benchmark.mjs` |
 | `export-mainthread.mjs` | the **freeze**: the worst animation-frame gap during a real export, driven through the real UI in Chromium, with CPU throttling | `node bench/export-mainthread.mjs` (needs a server — see below) |
+| `fold-benchmark.mjs` | where the main thread's **kernel** time goes per mutation (drag-place, boolean, move, Undo, row edit): the fold, the store's per-body summary, what the evaluation worker takes over, and transport — plus each op's cost alone (`TODO/core-029`) | `node bench/fold-benchmark.mjs --runs 11` |
+| `evaluation-mainthread.mjs` | the **freeze** per mutation: worst animation-frame gap for a real drag-place, Undo, Union and Inspector edit, **production build**, scenes loaded through File ▾ → Open…, CPU throttled 1/4/6× (`TODO/core-029`) | `node bench/evaluation-mainthread.mjs --url http://localhost:4173` (needs `vite preview`) |
 | `watertight-equivalence.mjs` | not a benchmark: proves an optimised repair produces **identical output**, vertex for vertex and byte for byte | `node bench/watertight-equivalence.mjs --out after.json --compare before.json` |
 
 ## Running them

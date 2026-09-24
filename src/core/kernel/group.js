@@ -118,10 +118,52 @@ export function axisApply(axes, valueFor) {
 /**
  * Bounding box of a solid or group, in millimetres.
  *
+ * A hole-free group is measured **part by part, never unioned** (`TODO/core-029`). The
+ * box around a union of solids is the box around their boxes, so the union — the
+ * expensive half of `combine()`, and until `core-029` the largest piece of kernel work
+ * the main thread did on every mutation, because every body summary, snap target and
+ * marquee test called this — bought nothing here. Measured against the real union on
+ * every library composite: equal to within 7e-15 mm, at ~0.01 ms instead of 1-8 ms
+ * each (`measure.spec.js` holds it to 1e-9).
+ *
+ * The parts measured are the ones `combine()` would have unioned — the visible
+ * `names`, so a hidden tap clearance never widens the box — and an empty part (no
+ * polygons) is skipped, as the union would contribute nothing for it. A group carrying
+ * **holes** still goes through the exact `combine()`: a subtraction can shrink the box,
+ * and only doing it says by how much. Nothing in the app builds such a group today.
+ *
  * @param {Geom3 | Group} value
  * @returns {BoundsMm}
  */
 export function boundsOf(value) {
+  if (isGroup(value) && value.holes.length === 0 && value.names.length > 0) {
+    /** @type {Vec3Mm} */
+    const min = [Infinity, Infinity, Infinity]
+    /** @type {Vec3Mm} */
+    const max = [-Infinity, -Infinity, -Infinity]
+    let measured = 0
+    for (const name of resolvePieces(value)) {
+      const part = value.parts[name]
+      if (part.polygons.length === 0) continue
+      const [partMin, partMax] = measurements.measureBoundingBox(part)
+      for (let axis = 0; axis < 3; axis += 1) {
+        if (partMin[axis] < min[axis]) min[axis] = partMin[axis]
+        if (partMax[axis] > max[axis]) max[axis] = partMax[axis]
+      }
+      measured += 1
+    }
+    // `+ 0` turns a `-0` into `0`: a part's own box can report `-0` where the union's
+    // reported `0`, and a signed zero would otherwise leak into the vectors recipes and
+    // drops bake into records (`library.spec.js`'s drop translate caught exactly that).
+    if (measured > 0) {
+      return [
+        [min[0] + 0, min[1] + 0, min[2] + 0],
+        [max[0] + 0, max[1] + 0, max[2] + 0],
+      ]
+    }
+    // Every visible part is empty: fall through, so the answer is whatever an empty
+    // union measures — the same as it always was.
+  }
   const [min, max] = measurements.measureBoundingBox(toGeom3(value))
   return [
     [min[0], min[1], min[2]],

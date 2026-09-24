@@ -34,6 +34,22 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### core-029 — the evaluation worker on a real phone and tablet, and the ~80 ms drop floor (2026-09-24 02:50 UTC)
+
+`core-029` moved a composite body's volume union into a module worker and stopped `boundsOf`
+unioning at all. Proved here: identical answers to the main thread (unit, e2e digit-for-digit
+in Chromium and WebKit at all three viewports), the production chunk loading in both engines,
+and the freeze gone at 4-6× CPU throttling in headless Chromium. Not provable here: a real iOS
+Safari/iPadOS module worker under memory pressure, and what the remaining ~70-90 ms drag-place
+gap is — it barely moves with CPU throttling (77 → 80 → 92 ms at 1×/4×/6×), so it is probably
+the headless software rasteriser, which says nothing about a real GPU.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | On a real iPhone (Safari), drop a Raspberry Pi and then a Bolt. Open the Objects list: both rows show a size, and the scene responds while they land (no visible hitch on the second drop). If a remote Web Inspector is attached, confirm an `evaluation.worker-*.js` worker exists and the console is clean. | Open | |
+| 2 | On a real iPad, with ~10 Raspberry Pi boards placed (drag them in), drag one more Cube in and then press Undo. The drag-place should feel instant; Undo will still pause briefly (that is `core-030`, expected). Note roughly how long Undo hangs. | Open | |
+| 3 | Install the PWA, go offline, reload, and drop a Bolt: its measurement must still land (the worker chunk is in the service-worker precache — 9 entries, up from 8 — but offline was not driven here). | Open | |
+
 ### ui-043 — phone toolbar/chrome margin is thin: 6px, not 0, but real-Safari font metrics were never checked (2026-09-22 14:36 UTC)
 
 The fix closes both measured overlaps (21px and a previously-unmeasured 6px) to a uniform 6px

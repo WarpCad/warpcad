@@ -226,7 +226,19 @@ export const useTimelineStore = defineStore('timeline', () => {
     if (previewStep.value === null) return null
     // Depend on the version too: an edit while previewing re-folds the prefix.
     void documentStore.version
+    // And on landed measurements (`TODO/core-029`): a previewed composite's volume is
+    // measured in the evaluation worker, and this has to re-read it when it arrives.
+    void documentStore.measureRevision
     return previewDocument()?.bodies().map(summarizeBody) ?? null
+  })
+
+  // A previewed prefix is a fresh fold, so its composites are new geometry the cache has
+  // never seen. Ask for them on the preview's own channel — never the live scene's — so
+  // scrubbing the timeline cannot supersede the live document's measurements.
+  watch(previewBodies, (summaries) => {
+    if (!summaries?.some((summary) => summary.volumeMm3 === null)) return
+    const preview = previewDocument()
+    if (preview) documentStore.measurePreview(preview.bodies())
   })
 
   // Loading a whole project (Open…, Load from a repository, `ui-033`) replaces the document

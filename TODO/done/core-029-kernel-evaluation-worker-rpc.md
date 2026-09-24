@@ -5,8 +5,27 @@ kind: feature
 priority: medium
 model: opus
 depends: [perf-001, data-004]
-status: open
+status: done
 ---
+
+> **What shipped (2026-09-24) — the decision plus its first slice; the fold itself is
+> `TODO/core-030`.** Measured before choosing (`bench/fold-benchmark.mjs`,
+> `bench/evaluation-mainthread.mjs`, results in `bench/results/2026-09-24-core-029.md`):
+> no single op is expensive (worst median 3.5 ms), so option 2's threshold would have moved
+> almost nothing; the costs are aggregate. The largest was not the fold at all but the
+> store's per-body summary, which re-unioned every composite on every refresh (97-144 ms per
+> mutation on the 24-body scene); the other is the full re-fold (70-78 ms / 157-163 ms).
+> **Option 1 chosen** (`docs/decisions/kernel-evaluation-worker.md`): one evaluation RPC —
+> `src/core/kernel/evaluation.worker.js`, `evaluationClient.js` (channels, generation
+> tokens, latest-only worker queue, sync fallback, `setEvaluationWorkerFactory` seam) and a
+> `kind`-dispatched `evaluationJob.js`. Its first job is the composite volume union
+> (`measureGeometry`, the same function the fallback runs, cached per geometry object);
+> `boundsOf` now measures a hole-free group part by part with no union (exact to 7e-15 mm).
+> Result, production build, 4× CPU: the 24-body scene's drag-place freeze 440 → 78 ms,
+> boolean 325 → 28 ms, Inspector edit 285 → 20 ms, Undo 761 → 466 ms. **Not moved:**
+> `data-004`'s 200-record re-fold on Undo (282 ms at 4×) — that is the fold, and moving it
+> changes the command layer's synchronous refusal contract, so it is `core-030` with these
+> numbers rather than a half-wired change here.
 
 ## Problem
 

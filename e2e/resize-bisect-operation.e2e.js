@@ -157,10 +157,19 @@ async function clickViewportAt(page, fx, fy, modifiers = {}) {
 }
 
 /**
+ * Every body in the scene list, once each one's volume has been measured.
+ *
+ * A composite's volume (a bisect result is a two-part group) is a kernel union, which
+ * `TODO/core-029` moved into the evaluation worker: `data-body-volume` is absent until
+ * the worker's answer lands, so this waits for it rather than reading `NaN`.
+ *
  * @param {import('@playwright/test').Page} page
  * @returns {Promise<{ id: string, op: string, name: string, volumeMm3: number }[]>}
  */
-function sceneBodies(page) {
+async function sceneBodies(page) {
+  await page.waitForFunction(() =>
+    [...document.querySelectorAll('[data-testid="scene-bodies"] li')].every((node) => node.hasAttribute('data-body-volume')),
+  )
   return page.$$eval('[data-testid="scene-bodies"] li', (nodes) =>
     nodes.map((node) => ({
       id: node.getAttribute('data-body-id') ?? '',

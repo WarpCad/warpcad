@@ -18,7 +18,10 @@ import { defineStore } from 'pinia'
 import { computed, ref, shallowRef } from 'vue'
 
 import { createDocument } from '../core/document.js'
-import { boundsOf, hasNamedParts, volumeOf } from '../core/kernel/group.js'
+import { createEvaluationChannel, evaluationWorkerAvailable } from '../core/kernel/evaluationClient.js'
+import { boundsOf, hasNamedParts, isGroup } from '../core/kernel/group.js'
+import { cachedMeasurementOf, measureGeometry, rememberMeasurement } from '../core/kernel/measure.js'
+import { packGeometry } from '../core/kernel/transport.js'
 import { lengthOf, lineFromParams } from '../sketch/entity.js'
 import { useSelectionStore } from './selection.js'
 
@@ -46,10 +49,13 @@ import { useSelectionStore } from './selection.js'
  *   World-axis-aligned `[min, max]`, millimetres — added by `TODO/ui-027`,
  *   keeping the two corners `center` was already averaging away rather than
  *   discarding them.
- * @property {number} volumeMm3 Also added by `TODO/ui-027`: a rim fillet/
+ * @property {number | null} volumeMm3 Also added by `TODO/ui-027`: a rim fillet/
  *   chamfer deliberately leaves `bounds` unchanged (`fillet.js`'s own module
  *   doc and `fillet.spec.js`'s "leaves the bounding box alone" case), so this
  *   is what an e2e spec actually checks to confirm rim material was removed.
+ *   **`null` while a composite body's volume is still being measured** by the
+ *   evaluation worker (`TODO/core-029`): it needs a kernel union, which no longer
+ *   runs on the main thread. Never a guess — absent until it is known.
  * @property {string[]} partNames The body's **visible** named parts in group order, or
  *   `[]` for a bare solid (`TODO/ui-042`). Non-empty exactly when the body is drawn
  *   part-by-part (`hasNamedParts` — the condition `createBodyObject` uses), which is what
@@ -59,6 +65,75 @@ import { useSelectionStore } from './selection.js'
  *   (`pieces` resolves against every part), which is exactly why the Objects list shows
  *   them. `[]` whenever {@link BodySummary.partNames} is.
  */
+/**
+ * A body's measurements as far as they are known **right now**, without running a
+ * kernel union on the main thread (`TODO/core-029`).
+ *
+ * - Already measured (by the worker, or earlier here): the cached answer. The cache is
+ *   keyed by geometry object, and every kernel value is immutable, so an unchanged
+ *   body is never measured twice — the reason a drag-place of one Cube no longer
+ *   re-measures every Raspberry Pi already on the plate.
+ * - A bare solid, or no worker to defer to: measured on the spot, exactly as before
+ *   `core-029`. A bare solid's volume involves no union, and without a worker there is
+ *   nowhere else for the work to go.
+ * - A composite, with a worker: the box now (`boundsOf` needs no union), the volume
+ *   `null` until the worker's answer lands — see {@link requestMeasurements}.
+ *
+ * @param {Body['geometry']} geometry
+ * @returns {{ bounds: import('../core/kernel/group.js').BoundsMm, volumeMm3: number | null }}
+ */
+function measurementNow(geometry) {
+  const cached = cachedMeasurementOf(geometry)
+  if (cached) return cached
+  if (!isGroup(geometry) || !evaluationWorkerAvailable()) {
+    const measured = measureGeometry(geometry)
+    rememberMeasurement(geometry, measured)
+    return measured
+  }
+  return { bounds: boundsOf(geometry), volumeMm3: null }
+}
+
+/**
+ * Send every body whose measurement is still unknown to the evaluation worker, and
+ * call `onLanded` once the answer is in the cache.
+ *
+ * Only the bodies still waiting are sent — typically the one just placed or moved — and
+ * a request on the same channel supersedes this one if the document changes again
+ * before the worker starts it (the channel's generation rule, `evaluationClient.js`).
+ * A superseded answer is simply dropped: the newer request carries every body that is
+ * still waiting, so nothing is lost by ignoring it.
+ *
+ * @param {readonly Body[]} list
+ * @param {import('../core/kernel/evaluationClient.js').EvaluationChannel} channel
+ * @param {() => void} onLanded
+ */
+function requestMeasurements(list, channel, onLanded) {
+  const waiting = list
+    .map((body) => body.geometry)
+    .filter((geometry) => isGroup(geometry) && !cachedMeasurementOf(geometry))
+  if (waiting.length === 0 || !evaluationWorkerAvailable()) return
+  channel.request({ kind: 'measure', bodies: waiting.map((geometry) => packGeometry(geometry)) }).then(
+    (outcome) => {
+      if (outcome.superseded) return
+      outcome.result.measurements.forEach((measured, index) => {
+        const geometry = waiting[index]
+        rememberMeasurement(
+          geometry,
+          measured.error === undefined && measured.bounds && measured.volumeMm3 !== undefined
+            ? { bounds: measured.bounds, volumeMm3: measured.volumeMm3 }
+            : // Unmeasurable (a group with nothing visible). Before `core-029` that threw
+              // out of `refresh()` and took the whole UI with it; now it reads as NaN.
+              { bounds: boundsOf(geometry), volumeMm3: Number.NaN }
+        )
+      })
+      onLanded()
+    },
+    (error) => {
+      console.error('evaluation worker refused a measure job', error)
+    }
+  )
+}
+
 /**
  * One evaluated body as the plain, non-geometry summary the DOM and the specs
  * read.
@@ -79,8 +154,9 @@ export function summarizeBody(body) {
   // this summary is what the scene list announces and what specs assert a
   // placement against. Same measurement, and the same reasoning, as
   // `src/core/inspector.js`'s Transform section.
-  const [min, max] = boundsOf(body.geometry)
   const geometry = body.geometry
+  const { bounds, volumeMm3 } = measurementNow(geometry)
+  const [min, max] = bounds
   const composite = hasNamedParts(geometry)
   return {
     id: body.id,
@@ -92,7 +168,7 @@ export function summarizeBody(body) {
       (min[2] + max[2]) / 2,
     ]),
     bounds: /** @type {[[number, number, number], [number, number, number]]} */ ([min, max]),
-    volumeMm3: volumeOf(body.geometry),
+    volumeMm3,
     partNames: composite ? [...geometry.names] : [],
     hiddenPartNames: composite
       ? Object.keys(geometry.parts).filter((name) => !geometry.names.includes(name))
@@ -140,7 +216,32 @@ export const useDocumentStore = defineStore('document', () => {
    * anything" (`interaction-model-qa.md` §10). Edits deliberately do not move it.
    */
   const loadRevision = ref(0)
+  /**
+   * Bumped when measurements land from the evaluation worker (`TODO/core-029`), so a
+   * computed that summarises bodies — the timeline preview's — re-reads the cache.
+   */
+  const measureRevision = ref(0)
+  /** The live scene's measurement stream; a preview has its own, so neither cancels the other. */
+  const sceneChannel = createEvaluationChannel('scene')
+  const previewChannel = createEvaluationChannel('preview')
 
+  function resummarize() {
+    bodies.value = raw.bodies().map(summarizeBody)
+    measureRevision.value += 1
+  }
+
+  /**
+   * Ask the worker to measure a *previewed* document's bodies (`TODO/ui-032`'s
+   * timeline preview). On its own channel, so scrubbing the preview never supersedes
+   * the live scene's measurements.
+   *
+   * @param {readonly Body[]} list
+   */
+  function measurePreview(list) {
+    requestMeasurements(list, previewChannel, () => {
+      measureRevision.value += 1
+    })
+  }
 
   function refresh() {
     canUndo.value = raw.canUndo()
@@ -162,8 +263,10 @@ export const useDocumentStore = defineStore('document', () => {
         },
       ]
     })
-    bodies.value = raw.bodies().map(summarizeBody)
+    const list = raw.bodies()
+    bodies.value = list.map(summarizeBody)
     version.value = raw.version
+    requestMeasurements(list, sceneChannel, resummarize)
   }
 
   /**
@@ -315,6 +418,8 @@ export const useDocumentStore = defineStore('document', () => {
     undoLabel,
     redoLabel,
     loadRevision,
+    measureRevision,
+    measurePreview,
     load,
     append,
     appendAll,

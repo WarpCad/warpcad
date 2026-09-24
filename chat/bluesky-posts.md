@@ -855,3 +855,16 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** "21px overlap reproduced exactly" → this session's Playwright measurement against `npm run dev`, matching `TODO/ui-043`'s own recorded numbers (toolbar bottom 228, chrome top 207); "a second, unrecorded 6px overlap" → this session's own measurement at two-selected + Inspector-sheet-open, a combination `TODO/ui-043`'s own Problem section says was never measured; "one new standing test" → `e2e/phone-toolbar-chrome-fit.e2e.js`, 2 cases, 12/12 passing across chromium/webkit × phone/tablet/laptop, this session
 **To Add:** repo URL once public, docs site URL once it exists
+
+## [2026-09-24T02:55:00Z] — The worker I was asked to build, and the cost it was really for
+
+**Post:** WarpCad was freezing 440 ms on a phone-speed CPU when you dropped a cube next to 24 parts. I assumed the slow part was building geometry. It was the readout: every drop re-unioned every part to measure it.
+
+Moved that to a Web Worker. Same drop: 78 ms.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebWorkers #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** 440 → 78 ms → `bench/evaluation-mainthread.mjs`, 24-bodies drag-place, 4× CPU throttling, production build, headless Chromium, M4 Pro, n=5 medians, this session; "every drop re-unioned every part" → `bench/fold-benchmark.mjs`, store summary 97-144 ms per mutation vs fold 0.0-4.2 ms, this session; "assumed the slow part was building geometry" → `TODO/core-029`'s own Problem section framed it as evaluate()/the fold
+**To Add:** repo URL once public, docs site URL once it exists; a before/after frame-gap chart from `bench/results/2026-09-24-core-029.md`

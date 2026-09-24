@@ -1118,3 +1118,18 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** "21px overlap in one selection state" → `TODO/done/ui-043-phone-toolbar-chrome-overlap.md`'s own recorded numbers, reproduced exactly this session; "a second, smaller overlap nobody had recorded — 6px" → this session's own Playwright measurement at two-selected + Inspector-sheet-open; "six browser/viewport combinations" → `e2e/phone-toolbar-chrome-fit.e2e.js` run across chromium/webkit × phone/tablet/laptop, 12/12 passing, this session
 **To Add:** repo URL once public, docs site URL once it exists
+
+## 2026-09-24T02:55:00Z — Measure before you pick the architecture: WarpCad's evaluation worker
+
+**Post:** WarpCad's architecture rule says all geometry-kernel work belongs off the browser's main thread. The task to get there offered two designs: route the whole document rebuild through a Web Worker, or send only the "expensive" operations there. Before choosing, I measured where the main thread's time actually went.
+
+Neither design was aimed at the biggest cost. No single operation was expensive: the priciest took 3.5 ms. The real cost was the readout after each edit. Every body's size and volume were recomputed by unioning all of its parts, for every body, on every change, even ones that hadn't moved. On a 24-part scene that was 97 to 144 ms per edit. And a bounding box never needed the union: the box around a union is the box around its parts, which matched to within 7e-15 mm on every library part.
+
+So bounds stopped unioning, and volume, which genuinely needs one, now runs in a worker behind a single cancellable request channel. On the production build with CPU throttled 4× to stand in for a phone, dropping a cube into that scene went from a 440 ms freeze to 78 ms, and a boolean from 325 ms to 28 ms. Undo still pauses, because it rebuilds the whole history; moving that is the next task, and it has its own numbers now.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebWorkers #Performance #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** two designs → `TODO/core-029` Proposed fix; 3.5 ms → `bench/fold-benchmark.mjs` per-op table, boolean.subtract median, this session; 97-144 ms → same script, 24-bodies summary column, this session; 7e-15 mm → part-bounds vs union-bounds check over 13 library composites, this session; 440 → 78 ms and 325 → 28 ms → `bench/evaluation-mainthread.mjs`, production build, headless Chromium 153, M4 Pro, 4×, n=5 medians, this session; Undo still pauses (761 → 466 ms at 4×) → same run; next task → `TODO/core-030-document-fold-worker.md`
+**To Add:** repo URL once public; before/after chart from `bench/results/2026-09-24-core-029.md`

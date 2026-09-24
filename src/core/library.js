@@ -312,7 +312,10 @@ export function restingOffsetMm(op, params, pointMm) {
   return [
     pointMm.x - (min[0] + max[0]) / 2,
     pointMm.y - (min[1] + max[1]) / 2,
-    -min[2],
+    // `0 - z`, not `-z`: negating a `0` gives `-0`, which would ride into the record's
+    // vector. Which sign of zero the box reports is an accident of how it was measured
+    // (a part's own box and a union's disagree — `TODO/core-029`), so don't depend on it.
+    0 - min[2],
   ]
 }
 

@@ -65,13 +65,26 @@ describe('useTimelineCommands (TODO/ui-032)', () => {
     return found
   }
 
+  /**
+   * A body's measured volume. Always known here: these are bare solids, measured on the
+   * spot (a composite's could be `null` while the evaluation worker runs — TODO/core-029).
+   *
+   * @param {ReturnType<typeof useDocumentStore>} doc @param {string} name
+   * @returns {number}
+   */
+  function volume(doc, name) {
+    const measured = body(doc, name).volumeMm3
+    if (measured === null) throw new Error(`${name} has not been measured`)
+    return measured
+  }
+
   // --- section 15: edit in place -----------------------------------------
 
   it('edits a past step and replays every step after it, leaving the rest byte-identical', () => {
     const doc = seedScenario12()
     const timeline = useTimelineCommands()
 
-    const cubeBefore = body(doc, 'Cube 1').volumeMm3
+    const cubeBefore = volume(doc, 'Cube 1')
     const sphereBefore = JSON.stringify(body(doc, 'Sphere 1'))
 
     const result = timeline.applyEdit('chamfer-2', { radius: 3 })
@@ -100,7 +113,7 @@ describe('useTimelineCommands (TODO/ui-032)', () => {
     const doc = seedScenario12()
     const timeline = useTimelineCommands()
     const sphereBefore = JSON.stringify(body(doc, 'Sphere 1'))
-    const cubeAt5 = body(doc, 'Cube 1').volumeMm3
+    const cubeAt5 = volume(doc, 'Cube 1')
 
     timeline.applyEdit('chamfer-2', { radius: 3 })
     expect(doc.canUndo).toBe(true)

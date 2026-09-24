@@ -13,9 +13,12 @@
  * `hardware.bolt` line and the eleven primitive/transform/boolean records it expands
  * into are not two evaluation paths, they are one path called twice.
  *
- * This module is framework-free and synchronous. The worker RPC that keeps kernel
- * work off the main thread (`CLAUDE.md`, Architecture) wraps this; it is not built
- * yet and is deliberately not assumed by anything here.
+ * This module is framework-free and synchronous, and it stays that way: the worker RPC
+ * that keeps kernel work off the main thread (`CLAUDE.md`, Architecture) *wraps* it
+ * rather than changing it — `./evaluation.worker.js` runs this same code on the other
+ * side of a `postMessage`, so there is one fold, never two. What goes through that RPC so
+ * far is recorded in `docs/decisions/kernel-evaluation-worker.md` (`TODO/core-029`: the
+ * per-body measurement unions; `TODO/core-030`: the document fold itself).
  *
  * @module core/kernel
  */

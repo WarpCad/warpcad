@@ -2147,7 +2147,10 @@ onBeforeUnmount(() => {
          fillet/chamfer spec: the bounding box is *unchanged by design* for a
          rim op (`fillet.js`'s own module doc), so `data-body-bounds` alone
          cannot confirm one actually ran — `data-body-volume` is the real
-         signal, since rim material is genuinely removed either way. -->
+         signal, since rim material is genuinely removed either way.
+         A composite's volume needs a kernel union, which runs in the evaluation
+         worker (TODO/core-029): until it lands the attribute is ABSENT, never a
+         placeholder number — a spec waits for it rather than reading a guess. -->
     <ul class="viewport__bodies" data-testid="scene-bodies">
       <li
         v-for="body in announcedBodies"
@@ -2158,7 +2161,7 @@ onBeforeUnmount(() => {
         :data-body-name="body.name"
         :data-body-center="`${body.center[0].toFixed(2)},${body.center[1].toFixed(2)},${body.center[2].toFixed(2)}`"
         :data-body-bounds="`${body.bounds[0][0].toFixed(2)},${body.bounds[0][1].toFixed(2)},${body.bounds[0][2].toFixed(2)},${body.bounds[1][0].toFixed(2)},${body.bounds[1][1].toFixed(2)},${body.bounds[1][2].toFixed(2)}`"
-        :data-body-volume="body.volumeMm3.toFixed(3)"
+        :data-body-volume="body.volumeMm3 === null ? undefined : body.volumeMm3.toFixed(3)"
         :data-selected="selection.has(body.id) ? 'true' : 'false'"
         :data-selection-role="selectionRole(body.id)"
       >
