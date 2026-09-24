@@ -1148,3 +1148,18 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** 474 → 18.5 ms → `bench/evaluation-mainthread.mjs`, 24-bodies Undo worst frame gap, 4× CPU throttling (the bench's phone stand-in), production build, headless Chromium, M4 Pro, n=5 medians, before build 335d361 vs this tree, this session; 296 → 22.0 ms → same run, fillet-50 (200 records); "re-run the whole model history" → `src/core/document.js` undo() at 335d361 calls rebuildFrom (full re-fold), TODO/core-030 Problem; "every Undo in a single-user session is a restore" → `bench/fold-benchmark.mjs` coverage section, this session (3/3, 20/20; 3/4 with an MCP write between); "no caller changed" → the diff (only src/core/document.js in src/ changes); "timeline edits and Open still re-run" → fold-benchmark after-run (edit first row 74.0 / 157.2 ms) and TODO/core-031
 **To Add:** repo URL once public, docs site URL once it exists; a before/after frame-gap chart. Article candidate: "Restore, don't recompute: undo for a deterministic modeling history" (problem → the determinism insight → the state token → measured result → what still recomputes)
+
+## 2026-09-24T16:36:18Z — One Undo takes back a whole Inspector param edit (TODO/ui-044)
+
+**Post:** In WarpCad, a browser-based parametric CAD app, changing a part's diameter in the Inspector rebuilds it from its creation parameters. A part the user has already moved comes back at its original spot, so the edit also records a move (and, for a turned part, a rotation) to put it back where it was. Those records were saved as separate Undo steps. One press of Undo removed only the move and left the thinner part sitting where it was first dropped.
+
+The records could not simply be saved together up front, because the move-back is measured against the rebuilt part. The fix is a small primitive in the document layer: run the edit's appends in order, reading the model between them, then merge whatever they recorded into one Undo step. If any piece is refused, the document and both undo stacks go back exactly as they were.
+
+Driven by hand on the production build in Chromium and WebKit, phone and tablet included: move a cylinder, narrow it, subtract it from a cube, then Undo five times. Every press lands on the exact state before one user action.
+
+Built with Claude Code, reviewed by me.
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebDev #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** rebuild-from-creation-params + pose restore → src/composables/useParamCommands.js module doc; separate steps and one-Undo symptom → TODO/ui-044 Problem, reproduced this session (RED e2e); move-back measured against rebuilt part → useParamCommands.js comments; merge + atomic restore → document.batch in the diff + documentBatch.spec.js; five-Undo exact walk → s44 drive this session on laptop Chromium, laptop/phone/tablet WebKit
+**To Add:** screenshot of the Undo tooltip before/after

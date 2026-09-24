@@ -366,3 +366,50 @@ test('a value the kernel rejects is shown in the panel and commits nothing', asy
   const [fixed] = await sceneBodies(page)
   expect(sizeOf(fixed)[0]).toBeCloseTo(25, 1)
 })
+
+test('one Undo takes back a param edit on a moved body whole, not only its move-back (TODO/ui-044)', async ({ page }) => {
+  // `ui-044`'s own steps 1-5. The edit is a rebuilt record plus a move-back;
+  // committed separately, one Undo removed only the move-back and left the thin
+  // cylinder at its drop spot, a state the user never made.
+  await openLibrary(page)
+  await dragRowIntoViewport(page, { op: 'primitive.sphere', fx: 0.72, fy: 0.38 })
+  await dragRowIntoViewport(page, { op: 'primitive.cylinder', fx: 0.36, fy: 0.38 })
+  await closeLibrary(page)
+  const viewport = page.getByTestId('viewport')
+  await expect(viewport).toHaveAttribute('data-body-count', '2')
+  await expect(viewport).toHaveAttribute('data-selected-count', '1')
+  await expect(page.getByTestId('inspector-params')).toBeVisible()
+
+  const byOp = async (op) => (await sceneBodies(page)).find((body) => body.op === op)
+  const sphere = await byOp('primitive.sphere')
+
+  await typeIntoField(page, 'inspector-position-x', 33)
+  const moved = await byOp('primitive.cylinder')
+  expect(moved.center[0]).toBeCloseTo(33, 1)
+  expect(sizeOf(moved)[0]).toBeCloseTo(40, 1)
+
+  await typeIntoField(page, 'inspector-param-diameter', 12)
+  const edited = await byOp('primitive.cylinder')
+  expect(sizeOf(edited)[0]).toBeCloseTo(12, 1)
+  expect(edited.center[0]).toBeCloseTo(33, 1)
+
+  const undo = page.getByTestId('undo-button')
+  await expect(undo).toHaveAttribute('title', 'Undo: Edit Cylinder 1')
+  await undo.click()
+
+  // One press: the moved 40 mm cylinder, exactly where it was moved to.
+  await expect.poll(async () => sizeOf(await byOp('primitive.cylinder'))[0]).toBeCloseTo(40, 1)
+  const undone = await byOp('primitive.cylinder')
+  expect(undone.center[0]).toBeCloseTo(moved.center[0], 1)
+  expect(undone.center[1]).toBeCloseTo(moved.center[1], 1)
+  expect(undone.center[2]).toBeCloseTo(moved.center[2], 1)
+  // The next step back is the move itself, not a leftover piece of the edit.
+  await expect(undo).toHaveAttribute('title', 'Undo: Move Cylinder 1')
+  // The Sphere was never part of it.
+  expect((await byOp('primitive.sphere')).bounds).toEqual(sphere.bounds)
+
+  // And Redo puts the whole edit back in one press.
+  await page.getByTestId('redo-button').click()
+  await expect.poll(async () => sizeOf(await byOp('primitive.cylinder'))[0]).toBeCloseTo(12, 1)
+  expect((await byOp('primitive.cylinder')).center[0]).toBeCloseTo(33, 1)
+})

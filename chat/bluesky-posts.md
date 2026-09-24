@@ -879,3 +879,14 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** 474 → 18.5 ms → `bench/evaluation-mainthread.mjs`, 24-bodies Undo worst frame gap, 4× CPU throttling (the bench's phone stand-in), production build, headless Chromium, M4 Pro, n=5 medians, before build 335d361 vs this tree, this session; 296 → 22.0 ms → same run, fillet-50 (200 records); "re-run the whole model history" → `src/core/document.js` undo() at 335d361 calls rebuildFrom (full re-fold), TODO/core-030 Problem; "every Undo in a single-user session is a restore" → `bench/fold-benchmark.mjs` coverage section, this session (3/3, 20/20; 3/4 with an MCP write between); "no caller changed" → the diff (only src/core/document.js in src/ changes); "timeline edits and Open still re-run" → fold-benchmark after-run (edit first row 74.0 / 157.2 ms) and TODO/core-031
 **To Add:** repo URL once public, docs site URL once it exists; the before/after Undo frame-gap table from `bench/results/2026-09-24-core-030.md` as a chart
+
+## 2026-09-24T16:36:18Z — One Undo takes back a whole Inspector param edit (TODO/ui-044)
+
+**Post:** Resizing a moved part in WarpCad took two Undo presses, and the first one left it thin but back at its drop spot, a state you never made. Now the edit plus the moves that keep it in place are one step, and a rejected value changes nothing. #CAD
+
+Built with Claude Code, reviewed by me.
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** two presses / drop-spot state → TODO/ui-044 Problem, reproduced this session by the new e2e case against the old composable ("Undo: Move Cylinder 1"); one step + atomic refusal → src/core/documentBatch.spec.js and useParamCommands.spec.js, 1552/1552 this session
+**To Add:** a before/after GIF of the Undo press

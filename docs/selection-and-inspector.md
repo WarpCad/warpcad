@@ -140,6 +140,11 @@ state you have to clear.
 4. Move the cylinder somewhere else with the gizmo, then come back and change its
    **Height** to `20`. It stays exactly where you moved it. Editing a parameter never
    undoes a move.
+5. Press **Undo** once. The cylinder is 50 mm tall again, **still where you moved it**:
+   one press takes back the whole edit, and the Undo button's tooltip now reads
+   `Undo: Move Cylinder 1`, the move you made in step 4. If you open **History**, the
+   edit shows as two rows, `Cylinder 1 — edited` and the `Move Cylinder 1` just below
+   it that keeps the resized shape in place. Undo and Redo treat those two rows as one step.
 
 ### When Parameters are greyed out
 

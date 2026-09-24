@@ -467,6 +467,7 @@ export class ReplayRejection extends Error {
  * @property {number} version Bumps on every successful append, undo and redo.
  * @property {(record: OpRecord, transaction: TransactionOptions) => { record: OpRecord, scene: Scene }} append
  * @property {(records: readonly OpRecord[], transaction: TransactionOptions) => { records: OpRecord[], scene: Scene }} appendAll
+ * @property {<T>(build: (document: WarpDocument) => T, options?: { label?: string }) => T} batch
  * @property {(id: string) => string | undefined} originOf
  * @property {(id: string) => string | undefined} currentIdOf
  * @property {(id: string) => string | undefined} rootOf
@@ -1400,6 +1401,70 @@ export function createDocument(options = {}) {
 
       document.version += 1
       return { records: appended, scene }
+    },
+
+    /**
+     * Run `build`, which appends through this document as often as it needs,
+     * and make everything it did **one undoable step** — atomically
+     * (`TODO/ui-044`).
+     *
+     * {@link WarpDocument.appendAll} covers several records that can all be
+     * written down before any is committed. A param edit cannot be: its
+     * rotate-back and move-back are measured against the body the rebuilt record
+     * produces, so each record has to be built after the one before has folded.
+     * `batch` lets `build` do exactly that through the ordinary `append`
+     * (rolled back or not; the marker path is `insertAt`'s, unchanged), then
+     * merges the local steps it pushed into one, labelled by the first unless
+     * `options.label` says otherwise.
+     *
+     * Atomic, unlike `appendAll`'s fast path: if `build` throws, the state
+     * captured before it (`TODO/core-030`'s {@link restoreState}, exact by
+     * construction) and both stacks are put back, and the error is rethrown.
+     * `version` still moves forward, never back to a number a reader may have
+     * cached against a state from the middle of the batch.
+     *
+     * @template T
+     * @param {(document: WarpDocument) => T} build
+     * @param {{ label?: string }} [options]
+     * @returns {T}
+     */
+    batch(build, options = {}) {
+      const before = captureState()
+      const undoBefore = undoStack.slice()
+      const redoBefore = redoStack.slice()
+      /** @type {T} */
+      let result
+      try {
+        result = build(document)
+      } catch (error) {
+        restoreState(before)
+        undoStack.splice(0, undoStack.length, ...undoBefore)
+        redoStack.splice(0, redoStack.length, ...redoBefore)
+        document.version += 1
+        throw error
+      }
+
+      // The steps `build` pushed, oldest first. Only local record steps are
+      // merged: a row action (`revision`) inside a batch has no records to
+      // concatenate, and is left as its own step rather than guessed at.
+      const pushed = undoStack.slice(undoBefore.length)
+      const mergeable = pushed.length > 1 && pushed.every((step) => step.revision === undefined)
+      if (options.label !== undefined && pushed.length === 1) pushed[0].label = options.label
+      if (!mergeable) return result
+
+      const [first] = pushed
+      /** @type {HistoryStep} */
+      const merged = {
+        ...first,
+        label: options.label ?? first.label,
+        // Contiguous in the log: appended at the tail, or inserted one after
+        // another at a marker that advances with each insert.
+        records: pushed.flatMap((step) => step.records),
+        rollbackAfter: /** @type {HistoryStep} */ (pushed.at(-1)).rollbackAfter,
+      }
+      undoStack.splice(undoBefore.length, pushed.length, merged)
+      keepRestore(undoStack, merged, before)
+      return result
     },
 
     /**

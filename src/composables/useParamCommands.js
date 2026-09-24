@@ -7,7 +7,7 @@
  * does not, and it is the whole reason this module exists rather than being two
  * lines in `Inspector.vue`:
  *
- * ## Three appends, in one order, for one user action
+ * ## Three appends, in one order, as one undo step
  *
  * A rebuilt creation record ignores every record before it (`paramEdit.js`'s own
  * module doc), so a body that had been moved and turned comes back at its
@@ -30,6 +30,13 @@
  * a second implementation of that arithmetic is exactly what `transform.js`'s
  * module doc exists to prevent.
  *
+ * All three go through one `documentStore.batch` (`TODO/ui-044`), so they are one
+ * Undo step labelled `Edit <body>`. Committed separately they were two or three,
+ * and one press of Undo left the body at its creation spot with the new params, a
+ * state the user never made. `appendAll` cannot do this: the rotate-back and
+ * move-back are measured against the rebuilt body, so each record can only be
+ * built once the one before it has folded, which `batch` allows.
+ *
  * ## Failing safe
  *
  * The guard is re-checked here before anything is built, even though the panel
@@ -41,9 +48,9 @@
  * A kernel validation error (a diameter of `0` hitting `requirePositive`) is
  * *thrown to the caller* rather than swallowed, so the Inspector can show it —
  * the same user-facing kernel-error contract `ui-027` established for the
- * Fillet/Chamfer popover, reused here rather than reinvented. `document.append`
- * trial-folds and rejects before committing anything, so a rejected edit leaves
- * the document exactly as it was.
+ * Fillet/Chamfer popover, reused here rather than reinvented. `batch` is atomic,
+ * so a rejected edit leaves the document and the undo stack exactly as they were,
+ * whichever of the three records refused.
  *
  * @module composables/useParamCommands
  */
@@ -63,17 +70,6 @@ import { useDocumentStore } from '../stores/document.js'
  */
 export function useParamCommands() {
   const documentStore = useDocumentStore()
-
-  /**
-   * Every mutation goes through the command layer inside an origin-tagged
-   * transaction (CLAUDE.md Architecture). `'local'` because the trigger is this
-   * user's own typing.
-   *
-   * @param {import('../core/kernel/registry.js').OpRecord} record
-   */
-  function commit(record) {
-    documentStore.append(record, { origin: 'local' })
-  }
 
   /**
    * Rebuild one body's creation record with new params, then put it back where
@@ -98,21 +94,27 @@ export function useParamCommands() {
     const positionMm = positionOf(raw, bodyId)
     const rotationDeg = rotationOf(raw, bodyId)
 
-    // May throw (a diameter of 0, a kernel range check). Nothing is appended
-    // when it does — `document.append` trial-folds first — so the body is left
-    // whole and the caller shows the message.
-    commit(record)
+    // Every mutation goes through the command layer inside an origin-tagged
+    // transaction (CLAUDE.md Architecture); `'local'` because the trigger is this
+    // user's own typing. May throw (a diameter of 0, a kernel range check); the
+    // batch then leaves everything as it was and the caller shows the message.
+    documentStore.batch(
+      (commit) => {
+        commit(record)
 
-    if (rotationDeg.some((deg) => deg !== 0)) {
-      commit(rotateToRecord(raw, bodyId, rotationDeg))
-    }
-    // Re-measured rather than assumed: the rebuilt solid is a different size, and
-    // the rotation above may have shifted its bounding-box centre, so this asks
-    // where the body *is now* before deciding how far it has to go back.
-    const rebuiltMm = positionOf(raw, bodyId)
-    if (rebuiltMm.some((mm, index) => mm !== positionMm[index])) {
-      commit(moveToRecord(raw, bodyId, positionMm))
-    }
+        if (rotationDeg.some((deg) => deg !== 0)) {
+          commit(rotateToRecord(raw, bodyId, rotationDeg))
+        }
+        // Re-measured rather than assumed: the rebuilt solid is a different size,
+        // and the rotation above may have shifted its bounding-box centre, so this
+        // asks where the body *is now* before deciding how far it has to go back.
+        const rebuiltMm = positionOf(raw, bodyId)
+        if (rebuiltMm.some((mm, index) => mm !== positionMm[index])) {
+          commit(moveToRecord(raw, bodyId, positionMm))
+        }
+      },
+      { origin: 'local' }
+    )
   }
 
   return {

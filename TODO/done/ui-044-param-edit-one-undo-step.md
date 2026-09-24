@@ -5,8 +5,26 @@ kind: finding
 priority: high
 model: sonnet
 depends: []
-status: open
+status: done
 ---
+
+> **What shipped (2026-09-24):** the param edit's rebuilt record, rotate-back and
+> move-back are now **one Undo step** labelled `Edit <body>`, and a refusal on any of the
+> three leaves the document and both stacks exactly as they were. `appendAll` could not
+> carry it, because the rotate-back and move-back are measured against the rebuilt body.
+> So the fix is a new core primitive, `document.batch(build)` in `src/core/document.js`,
+> exposed as the document store's `batch`. The build calls the ordinary `append` as often
+> as it needs, reading the live document between calls, and the local steps it pushed
+> are merged into one. Atomicity comes from `core-030`'s `captureState`/`restoreState`.
+> It works on the rolled-back `insertAt` path too, with the marker advancing past both records.
+> Scope grew past the Affected files to `src/core/document.js`, `src/stores/document.js`,
+> `src/core/documentBatch.spec.js` (new) and `docs/selection-and-inspector.md`.
+> **Not done: "History shows the edit as one step."** History lists one row per log
+> record, and `data-004`'s row actions (Edit, Suppress, Move) work on individual records,
+> so the rebuilt record and its `Move <body>` still show as two rows. Grouping rows is a
+> timeline-design change, not this S fix. The docs page states the two-row behaviour
+> plainly rather than implying one row.
+
 
 ## Problem
 

@@ -311,6 +311,38 @@ export const useDocumentStore = defineStore('document', () => {
   }
 
   /**
+   * Several appends that each need the document *as the previous one left it*,
+   * committed as **one undoable step**, atomically (`TODO/ui-044`, core's
+   * `document.batch`). `build` gets an `append` to call as often as it needs and
+   * reads `raw` between calls; a throw anywhere inside leaves the document and
+   * both stacks exactly as they were and reaches the caller unchanged.
+   *
+   * Refreshed once at the end rather than per record: the intermediate states
+   * are never meant to be seen.
+   *
+   * @template T
+   * @param {(append: (record: OpRecord) => OpRecord) => T} build
+   * @param {{ origin?: string, label?: string }} [transaction]
+   * @returns {T}
+   */
+  function batch(build, transaction = {}) {
+    const origin = transaction.origin ?? 'local'
+    // Captured once, before the first record: the selection to restore on Undo is
+    // the one that existed before the whole action, as `appendAll` does per step.
+    const meta = origin === 'local' ? { selectionBefore: [...useSelectionStore().ids] } : undefined
+    const result = raw.batch(
+      () =>
+        build((record) => {
+          raw.appendAll([record], { origin, meta })
+          return record
+        }),
+      { label: transaction.label }
+    )
+    refresh()
+    return result
+  }
+
+  /**
    * Replace the whole document with a parsed project (`TODO/io-001`) — the one
    * entry point for autosave restore and Open.
    *
@@ -423,6 +455,7 @@ export const useDocumentStore = defineStore('document', () => {
     load,
     append,
     appendAll,
+    batch,
     undo,
     redo,
     refresh,
