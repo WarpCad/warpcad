@@ -170,6 +170,30 @@
  * not survive a reload or an Open, so nothing here is serialised and the seed
  * loop at the bottom of `createDocument` clears them.
  *
+ * ### Restore, don't re-fold, when nothing has changed since (`TODO/core-030`)
+ *
+ * Remove-and-rebuild re-runs the whole log through the kernel: 70-78 ms on
+ * `data-004`'s 200-record scene and 124-163 ms on the 24-body composite scene, on
+ * the main thread, per press. But the fold is deterministic, so when *nothing* has
+ * been written since a step — the ordinary Undo — the state the document had just
+ * before that step is exactly what the rebuild would produce, and it is simply put
+ * back: O(1), synchronous, with every refusal contract above untouched.
+ *
+ * "Nothing has been written since" is one integer: every change to entries,
+ * marker or derived state assigns a fresh `stateToken`, and each step records the
+ * token of the state it produced. Undo restores only on a match; otherwise — a
+ * remote or MCP record interleaved, a batch that failed part-way, a step aged out
+ * of the bounded `restorableSteps` window — it re-folds exactly as it always did,
+ * refusing by name where it always did. Redo is the mirror, and a fold-path Undo
+ * still leaves its Redo restorable. The rebuild stays the single source of truth;
+ * the restore only ever hands back a state that rebuild itself produced.
+ * `historyRestore.spec.js` runs every script against an always-fold twin
+ * (`restorableSteps: 0`) and a fresh fold, comparing after each action.
+ *
+ * What still re-folds, and is `TODO/core-031` (moving that fold into the
+ * evaluation worker): the row actions themselves, Open/restore, and the fallback
+ * cases above.
+ *
  * ## Revising the log, not just growing it (`TODO/data-004`)
  *
  * Everything above grows the log at one end. Sections 15-18 of
@@ -558,6 +582,18 @@ function referencedIdsOf(record) {
 const SHAPE_FIELDS = Object.freeze(['op', 'supersedes', 'consumes', 'target', 'operands'])
 
 /**
+ * How many recent steps can be undone/redone by restoring rather than re-folding,
+ * by default (`TODO/core-030`).
+ *
+ * Each such step holds shallow copies of the derived indexes and `entries` — maps of
+ * short strings, O(records) — plus a reference to a scene whose geometry is shared
+ * with its neighbours, not copied. Bounded so a long session on a large document
+ * cannot grow that without limit; 50 presses of Undo in a row is well past what a
+ * user does before re-folding one step would be the least of their waits.
+ */
+const DEFAULT_RESTORABLE_STEPS = 50
+
+/**
  * Index every record in an entry list by id — including the ones a fold is
  * *skipping*, which is the point: the record a suppressed step's dependant is
  * missing is precisely one the derived indexes no longer hold.
@@ -627,10 +663,15 @@ function reasonOf(error) {
  * @param {readonly OpRecord[]} [options.actions] Records to seed the log with, e.g.
  *   a loaded NDJSON document.
  * @param {string} [options.origin] Origin recorded against the seed records.
+ * @param {number} [options.restorableSteps] How many of the most recent undo (and
+ *   redo) steps keep the derived state needed to reverse them **without a re-fold**
+ *   (`TODO/core-030`). Older steps still undo, by re-folding. `0` turns restoring off
+ *   entirely — the always-fold path, which the equivalence spec runs as the twin.
  * @returns {WarpDocument}
  */
 export function createDocument(options = {}) {
   const ops = options.registry ?? defaultRegistry
+  const restorableSteps = Math.max(0, Math.floor(options.restorableSteps ?? DEFAULT_RESTORABLE_STEPS))
 
   /** @type {DocumentEntry[]} */
   const entries = []
@@ -679,6 +720,110 @@ export function createDocument(options = {}) {
    * @type {Map<string, string>}
    */
   let brokenById = new Map()
+
+  /**
+   * Identity of the document's **whole** current state — entries, marker and
+   * everything derived from them (`TODO/core-030`). Every change assigns a fresh
+   * value from `tokenCounter`, never a reused one; restoring a captured state puts
+   * back the token it was captured with. So "this is exactly the state step S
+   * produced" is one integer comparison, and it is what makes restoring instead of
+   * re-folding safe: a step is only ever reversed by restore when nothing — a remote
+   * record, a half-failed batch, a load — has touched the document since.
+   */
+  let tokenCounter = 0
+  let stateToken = 0
+  /**
+   * How many recent steps keep a restorable state. `0` while the seed loop at the
+   * bottom runs (its history is cleared anyway, and capturing per seed record would
+   * make a large seed quadratic), then {@link restorableSteps}.
+   */
+  let keepRestorable = 0
+
+  /**
+   * @typedef {object} DocumentState
+   * @property {ReturnType<typeof captureDerived>} derived
+   * @property {DocumentEntry[]} entries
+   * @property {number | null} rollbackAt
+   * @property {Map<string, string>} brokenById
+   * @property {number} token
+   */
+
+  /**
+   * What reversing a history step without a fold needs, keyed by the step object.
+   *
+   * On an **undo**-stack step: `state` is the document before the step, restorable
+   * while the document is still at `token` — the state the step produced. On a
+   * **redo**-stack step it is the mirror: `state` is the document the step had
+   * produced, restorable while the document is still at `token` — the state its undo
+   * left. A `WeakMap`, not a field on {@link HistoryStep}, because steps are handed
+   * to the store (`pendingUndo`), and a snapshot of the whole document is not
+   * something a label reader should be carrying.
+   *
+   * @type {WeakMap<HistoryStep, { state: DocumentState, token: number }>}
+   */
+  const restoreOf = new WeakMap()
+
+  function bumpState() {
+    tokenCounter += 1
+    stateToken = tokenCounter
+  }
+
+  /** @returns {DocumentState} */
+  function captureState() {
+    return {
+      derived: captureDerived(),
+      entries: entries.slice(),
+      rollbackAt,
+      brokenById,
+      token: stateToken,
+    }
+  }
+
+  /**
+   * Put a captured state back, token included. Exact by construction: `scene` and
+   * every geometry in it are immutable values (`applyAction` returns a new scene and
+   * `evaluate` copies `byId`), `brokenById` is replaced rather than mutated, and the
+   * index maps are the captured copies.
+   *
+   * @param {DocumentState} state
+   */
+  function restoreState(state) {
+    resetDerived(state.derived)
+    entries.length = 0
+    entries.push(...state.entries)
+    rollbackAt = state.rollbackAt
+    brokenById = state.brokenById
+    stateToken = state.token
+  }
+
+  /**
+   * Attach restore data to a step just pushed onto `stack`, and drop it from the
+   * step that has just aged past {@link keepRestorable}.
+   *
+   * @param {HistoryStep[]} stack
+   * @param {HistoryStep} step
+   * @param {DocumentState | null} state
+   */
+  function keepRestore(stack, step, state) {
+    if (keepRestorable === 0 || state === null) {
+      restoreOf.delete(step)
+    } else {
+      restoreOf.set(step, { state, token: stateToken })
+    }
+    const aged = stack[stack.length - 1 - keepRestorable]
+    if (aged !== undefined) restoreOf.delete(aged)
+  }
+
+  /**
+   * The restore data for `step`, if it is valid **now** — the document is still at
+   * exactly the state it was recorded against.
+   *
+   * @param {HistoryStep} step
+   */
+  function restorable(step) {
+    const entry = restoreOf.get(step)
+    return entry !== undefined && entry.token === stateToken ? entry.state : null
+  }
 
   /**
    * Resolve `id` to the lineage root it currently, *live*, represents — or throw
@@ -995,9 +1140,13 @@ export function createDocument(options = {}) {
    * @param {DocumentEntry[]} nextEntries
    * @param {number | null} [nextRollbackAt] Active-entry count; defaults to the
    *   current marker, so an operation that does not move it need not say so.
+   * @returns {DocumentState} The state **before** the rebuild, so the caller can
+   *   record it on the step it pushes and a later Undo can put it back without
+   *   this fold running again (`TODO/core-030`).
    */
   function rebuildFrom(nextEntries, nextRollbackAt = rollbackAt) {
-    const snapshot = captureDerived()
+    const prior = captureState()
+    const snapshot = prior.derived
     const activeCount = nextRollbackAt ?? nextEntries.length
     const byId = recordMapOf(nextEntries)
     resetDerived(null)
@@ -1016,6 +1165,8 @@ export function createDocument(options = {}) {
     entries.push(...nextEntries)
     rollbackAt = nextRollbackAt
     brokenById = shadowCheckTail(nextEntries, activeCount, byId)
+    bumpState()
+    return prior
   }
 
   /**
@@ -1034,6 +1185,7 @@ export function createDocument(options = {}) {
    *
    * @param {LogRevision} revision
    * @param {number | null} targetRollbackAt
+   * @returns {DocumentState} The state before it, from {@link rebuildFrom}.
    */
   function applyRevision(revision, targetRollbackAt) {
     const next = entries.slice()
@@ -1056,7 +1208,7 @@ export function createDocument(options = {}) {
       ;[next[index], next[target]] = [next[target], next[index]]
     }
     // 'rollback' revises nothing but the marker, which `targetRollbackAt` is.
-    rebuildFrom(next, targetRollbackAt)
+    return rebuildFrom(next, targetRollbackAt)
   }
 
   /**
@@ -1087,11 +1239,14 @@ export function createDocument(options = {}) {
    * @param {string} label
    * @param {LogRevision} revision
    * @param {number | null} rollbackBefore
+   * @param {DocumentState} prior The state before the action, from
+   *   {@link rebuildFrom}, kept so its Undo need not re-fold.
    */
-  function pushRevision(transaction, label, revision, rollbackBefore) {
+  function pushRevision(transaction, label, revision, rollbackBefore, prior) {
     document.version += 1
     if (transaction?.origin !== 'local') return
-    undoStack.push({
+    /** @type {HistoryStep} */
+    const step = {
       origin: 'local',
       label: transaction.label ?? label,
       records: [],
@@ -1099,7 +1254,9 @@ export function createDocument(options = {}) {
       revision,
       rollbackBefore,
       rollbackAfter: rollbackAt,
-    })
+    }
+    undoStack.push(step)
+    keepRestore(undoStack, step, prior)
     redoStack.length = 0
   }
 
@@ -1204,12 +1361,19 @@ export function createDocument(options = {}) {
       const origin = transaction?.origin
       if (rollbackAt !== null) return document.insertAt(rollbackAt, records, transaction)
 
+      // Only a local step is ever undone, so only a local step needs the state
+      // before it kept (`TODO/core-030`) — a remote or seed append pays nothing.
+      const prior = origin === 'local' && keepRestorable > 0 ? captureState() : null
+
       /** @type {OpRecord[]} */
       const appended = []
       for (const record of records) {
         ingest(record, origin)
         entries.push({ record, origin })
         appended.push(record)
+        // Per committed record, not once at the end: a batch that throws part-way
+        // has still changed the document, and no step's restore data may match it.
+        bumpState()
       }
 
       // Origin scoping, the whole of it on the write side: only this user's own
@@ -1218,14 +1382,17 @@ export function createDocument(options = {}) {
       // `bodies()`, and will carry an origin chip in `ui-032`'s History — but it
       // is not theirs to take back (section 19, point 1).
       if (origin === 'local' && appended.length > 0) {
-        undoStack.push({
+        /** @type {HistoryStep} */
+        const step = {
           origin,
           label: transaction.label ?? labelFor(appended),
           records: appended,
           meta: transaction.meta,
           rollbackBefore: null,
           rollbackAfter: null,
-        })
+        }
+        undoStack.push(step)
+        keepRestore(undoStack, step, prior)
         // Point 3: only a *new local mutation* clears redo. A remote arrival
         // must not, or someone else's edit silently eats the user's redo.
         redoStack.length = 0
@@ -1259,14 +1426,15 @@ export function createDocument(options = {}) {
       const rollbackBefore = rollbackAt
       const next = entries.slice()
       next.splice(at, 0, ...records.map((record) => ({ record, origin })))
-      rebuildFrom(
+      const prior = rebuildFrom(
         next,
         rollbackAt === null || at > rollbackAt ? rollbackAt : rollbackAt + records.length
       )
 
       const appended = records.slice()
       if (origin === 'local' && appended.length > 0) {
-        undoStack.push({
+        /** @type {HistoryStep} */
+        const step = {
           origin,
           label: transaction.label ?? labelFor(appended, recordMapOf(next)),
           records: appended,
@@ -1274,7 +1442,9 @@ export function createDocument(options = {}) {
           index: at,
           rollbackBefore,
           rollbackAfter: rollbackAt,
-        })
+        }
+        undoStack.push(step)
+        keepRestore(undoStack, step, prior)
         redoStack.length = 0
       }
       document.version += 1
@@ -1314,12 +1484,34 @@ export function createDocument(options = {}) {
       const step = undoStack.at(-1)
       if (step === undefined) return undefined
 
+      // `TODO/core-030`: nothing has touched the document since this step, so
+      // the state before it is exactly what re-folding the log without it would
+      // produce — the fold is deterministic — and it is put back instead, O(1).
+      // No refusal is possible here: nothing was written after the step, so
+      // nothing can depend on it, and the state being restored already folded.
+      const before = restorable(step)
+      if (before !== null) {
+        const after = captureState()
+        restoreState(before)
+        undoStack.pop()
+        /** @type {HistoryStep} */
+        const redoStep =
+          step.revision !== undefined
+            ? step
+            : { ...step, index: after.entries.findIndex((entry) => entry.record === step.records[0]) }
+        redoStack.push(redoStep)
+        keepRestore(redoStack, redoStep, after)
+        document.version += 1
+        return step
+      }
+
       // A `data-004` row action added no record, so there is nothing to take
       // out and nothing to orphan — it is reversed by applying its inverse.
       if (step.revision !== undefined) {
-        applyRevision(invertRevision(step.revision), step.rollbackBefore ?? null)
+        const after = applyRevision(invertRevision(step.revision), step.rollbackBefore ?? null)
         undoStack.pop()
         redoStack.push(step)
+        keepRestore(redoStack, step, after)
         document.version += 1
         return step
       }
@@ -1341,12 +1533,16 @@ export function createDocument(options = {}) {
       }
 
       const index = entries.findIndex((entry) => entry.record === step.records[0])
-      rebuildFrom(
+      const after = rebuildFrom(
         entries.filter((entry) => !stepRecords.has(entry.record)),
         step.rollbackBefore ?? null
       )
       undoStack.pop()
-      redoStack.push({ ...step, index })
+      const redoStep = { ...step, index }
+      redoStack.push(redoStep)
+      // Even after a fold, Redo from here can restore: the state this Undo left
+      // is what Redo would re-fold back to, so the state before it is the answer.
+      keepRestore(redoStack, redoStep, after)
       document.version += 1
       return step
     },
@@ -1365,10 +1561,25 @@ export function createDocument(options = {}) {
     redo() {
       const step = redoStack.at(-1)
       if (step === undefined) return undefined
-      if (step.revision !== undefined) {
-        applyRevision(step.revision, step.rollbackAfter ?? null)
+
+      // The mirror of undo's restore (`TODO/core-030`): still at the state this
+      // step's Undo left, so the state before that Undo is exactly the answer.
+      const done = restorable(step)
+      if (done !== null) {
+        const before = captureState()
+        restoreState(done)
         redoStack.pop()
         undoStack.push(step)
+        keepRestore(undoStack, step, before)
+        document.version += 1
+        return step
+      }
+
+      if (step.revision !== undefined) {
+        const before = applyRevision(step.revision, step.rollbackAfter ?? null)
+        redoStack.pop()
+        undoStack.push(step)
+        keepRestore(undoStack, step, before)
         document.version += 1
         return step
       }
@@ -1378,9 +1589,10 @@ export function createDocument(options = {}) {
         0,
         ...step.records.map((record) => ({ record, origin: step.origin }))
       )
-      rebuildFrom(next, step.rollbackAfter ?? null)
+      const before = rebuildFrom(next, step.rollbackAfter ?? null)
       redoStack.pop()
       undoStack.push(step)
+      keepRestore(undoStack, step, before)
       document.version += 1
       return step
     },
@@ -1603,12 +1815,13 @@ export function createDocument(options = {}) {
       const rollbackBefore = rollbackAt
       const next = entries.slice()
       next[index] = { ...next[index], record }
-      rebuildFrom(next)
+      const prior = rebuildFrom(next)
       pushRevision(
         transaction,
         `Edit step ${index + 1}`,
         { kind: 'replace', id, from: current, to: record },
-        rollbackBefore
+        rollbackBefore,
+        prior
       )
       return { scene }
     },
@@ -1637,12 +1850,13 @@ export function createDocument(options = {}) {
       const rollbackBefore = rollbackAt
       const next = entries.slice()
       next[index] = { ...next[index], suppressed: wanted }
-      rebuildFrom(next)
+      const prior = rebuildFrom(next)
       pushRevision(
         transaction,
         `${wanted ? 'Suppress' : 'Unsuppress'} step ${index + 1}`,
         { kind: 'suppress', id, fromSuppressed: was, toSuppressed: wanted },
-        rollbackBefore
+        rollbackBefore,
+        prior
       )
       return { scene }
     },
@@ -1699,12 +1913,13 @@ export function createDocument(options = {}) {
       const rollbackBefore = rollbackAt
       const next = entries.slice()
       ;[next[index], next[target]] = [next[target], next[index]]
-      rebuildFrom(next)
+      const prior = rebuildFrom(next)
       pushRevision(
         transaction,
         `Move step ${index + 1} ${delta < 0 ? 'up' : 'down'}`,
         { kind: 'reorder', id, delta },
-        rollbackBefore
+        rollbackBefore,
+        prior
       )
       return { scene }
     },
@@ -1733,8 +1948,14 @@ export function createDocument(options = {}) {
         )
       }
       const rollbackBefore = rollbackAt
-      rebuildFrom(entries.slice(), index + 1)
-      pushRevision(transaction, `Roll back to step ${index + 1}`, { kind: 'rollback' }, rollbackBefore)
+      const prior = rebuildFrom(entries.slice(), index + 1)
+      pushRevision(
+        transaction,
+        `Roll back to step ${index + 1}`,
+        { kind: 'rollback' },
+        rollbackBefore,
+        prior
+      )
       return { scene }
     },
 
@@ -1750,8 +1971,8 @@ export function createDocument(options = {}) {
     rollForward(transaction) {
       if (rollbackAt === null) return { scene }
       const rollbackBefore = rollbackAt
-      rebuildFrom(entries.slice(), null)
-      pushRevision(transaction, 'Roll forward', { kind: 'rollback' }, rollbackBefore)
+      const prior = rebuildFrom(entries.slice(), null)
+      pushRevision(transaction, 'Roll forward', { kind: 'rollback' }, rollbackBefore, prior)
       return { scene }
     },
 
@@ -1895,6 +2116,7 @@ export function createDocument(options = {}) {
     document.append(action, { origin: options.origin ?? 'local' })
   }
   document.version = 0
+  keepRestorable = restorableSteps
   // Loading a document is not a stack of things to undo back out of, even though
   // the seed loop goes through the same origin-tagged command layer everything
   // else does — section 19: "the undo/redo stacks start empty after a reload and

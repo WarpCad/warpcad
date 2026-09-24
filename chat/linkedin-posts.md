@@ -1133,3 +1133,18 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** two designs → `TODO/core-029` Proposed fix; 3.5 ms → `bench/fold-benchmark.mjs` per-op table, boolean.subtract median, this session; 97-144 ms → same script, 24-bodies summary column, this session; 7e-15 mm → part-bounds vs union-bounds check over 13 library composites, this session; 440 → 78 ms and 325 → 28 ms → `bench/evaluation-mainthread.mjs`, production build, headless Chromium 153, M4 Pro, 4×, n=5 medians, this session; Undo still pauses (761 → 466 ms at 4×) → same run; next task → `TODO/core-030-document-fold-worker.md`
 **To Add:** repo URL once public; before/after chart from `bench/results/2026-09-24-core-029.md`
+
+## [2026-09-24T16:00:35Z] — Undo that puts things back instead of rebuilding them
+
+**Post:** Undo in WarpCad, a browser-based parametric CAD app, used to work by taking the step out and re-running every remaining step of the model's history through the geometry kernel. On a scene of 24 parts that froze the screen for 474 ms per press at 4x CPU throttling, the stand-in the benchmark uses for a phone.
+
+The history is deterministic, so when nothing has been written since a step, the state just before it is exactly what re-running would produce. The document now keeps that state alongside the step and puts it back on Undo. One integer says whether anything changed in between (another writer's edit, a half-failed batch); if it did, Undo re-runs the history as before, refusals and all. Nothing that calls Undo had to change.
+
+Same scene, same press, same throttling: 18.5 ms. A 200-step filleted scene went from 296 ms to 22 ms. Editing a step in the middle of the timeline and opening a file still re-run the history on the main thread, and that is the next task.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebDev #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** 474 → 18.5 ms → `bench/evaluation-mainthread.mjs`, 24-bodies Undo worst frame gap, 4× CPU throttling (the bench's phone stand-in), production build, headless Chromium, M4 Pro, n=5 medians, before build 335d361 vs this tree, this session; 296 → 22.0 ms → same run, fillet-50 (200 records); "re-run the whole model history" → `src/core/document.js` undo() at 335d361 calls rebuildFrom (full re-fold), TODO/core-030 Problem; "every Undo in a single-user session is a restore" → `bench/fold-benchmark.mjs` coverage section, this session (3/3, 20/20; 3/4 with an MCP write between); "no caller changed" → the diff (only src/core/document.js in src/ changes); "timeline edits and Open still re-run" → fold-benchmark after-run (edit first row 74.0 / 157.2 ms) and TODO/core-031
+**To Add:** repo URL once public, docs site URL once it exists; a before/after frame-gap chart. Article candidate: "Restore, don't recompute: undo for a deterministic modeling history" (problem → the determinism insight → the state token → measured result → what still recomputes)

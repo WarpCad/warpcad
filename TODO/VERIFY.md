@@ -34,6 +34,21 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### core-030 — Undo/Redo by restore, felt on real hardware (2026-09-24 15:59 UTC)
+
+`core-030` makes Undo/Redo restore the state captured with each step instead of re-folding the
+log. Proved here: identical results to the always-fold path after every action (a unit
+differential against an always-fold twin plus a fresh fold), zero kernel work per press
+(counted at the registry), and in headless Chromium the worst frame gap at 4× CPU went
+296 → 22 ms (200 records) and 474 → 18.5 ms (24 bodies). Scenario 12 was driven in full in
+Chromium and WebKit, phone included. That cannot say how it *feels* on a real GPU and a real
+touch screen, or whether the 50-step restore window's memory shows on an older device.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | On a real iPhone and iPad: drop about 12 Raspberry Pis and 12 Bolts, then tap **Undo** ten times as fast as you can, then **Redo** ten times. Every tap lands with no visible stall, and the scene ends exactly where it started. Before `core-030` each tap froze the screen for about half a second on this scene. | Open | |
+| 2 | Same device, the same heavy scene: make about 60 small edits (move, param edit, place), then Undo all the way back. The first 50 Undos should feel instant. The ones past 50 re-fold and may pause briefly, which is expected. Nothing should reload the tab or run out of memory. | Open | |
+
 ### core-029 — the evaluation worker on a real phone and tablet, and the ~80 ms drop floor (2026-09-24 02:50 UTC)
 
 `core-029` moved a composite body's volume union into a module worker and stopped `boundsOf`

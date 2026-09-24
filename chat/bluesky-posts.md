@@ -868,3 +868,14 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** 440 → 78 ms → `bench/evaluation-mainthread.mjs`, 24-bodies drag-place, 4× CPU throttling, production build, headless Chromium, M4 Pro, n=5 medians, this session; "every drop re-unioned every part" → `bench/fold-benchmark.mjs`, store summary 97-144 ms per mutation vs fold 0.0-4.2 ms, this session; "assumed the slow part was building geometry" → `TODO/core-029`'s own Problem section framed it as evaluate()/the fold
 **To Add:** repo URL once public, docs site URL once it exists; a before/after frame-gap chart from `bench/results/2026-09-24-core-029.md`
+
+## [2026-09-24T16:00:35Z] — Undo that puts things back instead of rebuilding them
+
+**Post:** Undo in WarpCad used to re-run the whole model history: 474 ms of frozen screen per press on a 24-part scene at phone-class CPU speed. Now it puts back the state saved with that step. Same press: 18.5 ms.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** 474 → 18.5 ms → `bench/evaluation-mainthread.mjs`, 24-bodies Undo worst frame gap, 4× CPU throttling (the bench's phone stand-in), production build, headless Chromium, M4 Pro, n=5 medians, before build 335d361 vs this tree, this session; 296 → 22.0 ms → same run, fillet-50 (200 records); "re-run the whole model history" → `src/core/document.js` undo() at 335d361 calls rebuildFrom (full re-fold), TODO/core-030 Problem; "every Undo in a single-user session is a restore" → `bench/fold-benchmark.mjs` coverage section, this session (3/3, 20/20; 3/4 with an MCP write between); "no caller changed" → the diff (only src/core/document.js in src/ changes); "timeline edits and Open still re-run" → fold-benchmark after-run (edit first row 74.0 / 157.2 ms) and TODO/core-031
+**To Add:** repo URL once public, docs site URL once it exists; the before/after Undo frame-gap table from `bench/results/2026-09-24-core-030.md` as a chart

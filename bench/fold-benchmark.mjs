@@ -38,6 +38,7 @@ import { createDocument } from '../src/core/document.js'
 import { setEvaluationWorkerFactory } from '../src/core/kernel/evaluationClient.js'
 import { isGroup } from '../src/core/kernel/group.js'
 import { evaluate } from '../src/core/kernel/index.js'
+import { registry } from '../src/core/kernel/registry.js'
 import { measureGeometry } from '../src/core/kernel/measure.js'
 import { packGeometry, unpackGeometry } from '../src/core/kernel/transport.js'
 import { summarizeBody } from '../src/stores/document.js'
@@ -186,6 +187,36 @@ for (const [sceneName, records] of Object.entries(SCENES)) {
     () => ({ document: seeded(records) }),
     ({ document }) => document.replaceRecord(firstId, { ...records[0], params: { ...records[0].params } }, { origin: 'local' }),
   ) })
+  // `TODO/core-030` rows: the other half of the history, and the fallback.
+  rows.push({ scene: sceneName, ...measureInteraction(
+    'Redo (the placement, after its Undo)',
+    () => {
+      const document = seeded(records)
+      document.appendAll([{ id: 'new', op: 'primitive.cuboid', name: 'New', params: { size: [20, 20, 20], center: [900, 900, 10] } }], { origin: 'local' })
+      document.undo()
+      return { document }
+    },
+    ({ document }) => document.redo(),
+  ) })
+  rows.push({ scene: sceneName, ...measureInteraction(
+    'Undo of the first-row edit',
+    () => {
+      const document = seeded(records)
+      document.replaceRecord(firstId, { ...records[0], params: { ...records[0].params } }, { origin: 'local' })
+      return { document }
+    },
+    ({ document }) => document.undo(),
+  ) })
+  rows.push({ scene: sceneName, ...measureInteraction(
+    'Undo after a remote record arrived (fold fallback)',
+    () => {
+      const document = seeded(records)
+      document.appendAll([{ id: 'new', op: 'primitive.cuboid', name: 'New', params: { size: [20, 20, 20], center: [900, 900, 10] } }], { origin: 'local' })
+      document.appendAll([{ id: 'theirs', op: 'primitive.cuboid', name: 'Theirs', params: { size: [20, 20, 20], center: [-900, 900, 10] } }], { origin: 'mcp' })
+      return { document }
+    },
+    ({ document }) => document.undo(),
+  ) })
 }
 
 const fixed = (/** @type {number} */ value) => value.toFixed(1).padStart(7)
@@ -237,4 +268,86 @@ for (const [name, opRecords] of Object.entries(OPS)) {
   console.log(`${name.padEnd(36)} ${fixed(result.median)} (${fixed(result.p95)})`)
 }
 
-if (JSON_OUT) writeFileSync(JSON_OUT, JSON.stringify({ runs: RUNS, node: process.version, rows, opRows }, null, 2))
+// ---------------------------------------------------------------------------
+// `TODO/core-030` option 2: how much real use does "restore, don't re-fold" cover?
+//
+// Every Undo/Redo press in a scripted session is classified by whether the kernel
+// ran at all — counted at the registry boundary (a Proxy over the real registry
+// counting op lookups), not inferred from timing. A press with zero lookups was
+// served by restoring the captured state; anything else re-folded.
+// ---------------------------------------------------------------------------
+
+function countingRegistry() {
+  const counter = { lookups: 0 }
+  const proxied = new Proxy(registry, {
+    get(target, key, receiver) {
+      if (typeof key === 'string' && key.includes('.')) counter.lookups += 1
+      return Reflect.get(target, key, receiver)
+    },
+  })
+  return { registry: proxied, counter }
+}
+
+const local = { origin: 'local' }
+const cube = { id: 'cube-1', op: 'primitive.cuboid', name: 'Cube 1', params: { size: [20, 20, 20], center: [0, 0, 10] } }
+const chamfer = (/** @type {number} */ radius) => ({ id: 'cube-1-chamfer', op: 'modify.chamferRim', target: 'cube-1', supersedes: 'cube-1', params: { radius } })
+const sphere = { id: 'sphere-1', op: 'primitive.sphere', name: 'Sphere 1', params: { diameter: 16, center: [40, 0, 8] } }
+const cone = { id: 'cone-1', op: 'primitive.cone', name: 'Cone 1', params: { diameter: 10, height: 12, center: [-40, 0, 6] } }
+
+/** @type {Record<string, Array<[string, (d: any) => unknown]>>} */
+const SESSIONS = {
+  // TODO/ACCEPTANCE.md scenario 12, steps 1-11, as the command layer sees them.
+  'scenario 12 (edit, suppress, roll back, insert, move — with their Undo/Redo)': [
+    ['act', (d) => d.append(cube, local)],
+    ['act', (d) => d.append(chamfer(5), local)],
+    ['act', (d) => d.append(sphere, local)],
+    ['act', (d) => d.replaceRecord('cube-1-chamfer', chamfer(3), local)],
+    ['press', (d) => d.undo()],
+    ['press', (d) => d.redo()],
+    ['act', (d) => d.setSuppressed('cube-1-chamfer', true, local)],
+    ['act', (d) => d.setSuppressed('cube-1-chamfer', false, local)],
+    ['act', (d) => d.rollBackTo('cube-1-chamfer', local)],
+    ['act', (d) => d.append(cone, local)],
+    ['act', (d) => d.rollForward(local)],
+    ['act', (d) => d.moveStep('sphere-1', -1, local)],
+    ['press', (d) => d.undo()],
+  ],
+  'build 10 steps, Undo all 10, Redo 5, Undo 5': [
+    ...Array.from({ length: 5 }, (unused, index) => [
+      /** @type {['act', (d: any) => unknown]} */ (['act', (d) => d.append({ id: `b${index}`, op: 'primitive.cuboid', name: `B${index}`, params: { size: [10, 10, 10], center: [index * 20, 0, 5] } }, local)]),
+      /** @type {['act', (d: any) => unknown]} */ (['act', (d) => d.append({ id: `b${index}-mv`, op: 'transform.translate', target: `b${index}`, supersedes: `b${index}`, params: { vector: [0, 5, 0] } }, local)]),
+    ]).flat(),
+    ...Array.from({ length: 10 }, () => /** @type {['press', (d: any) => unknown]} */ (['press', (d) => d.undo()])),
+    ...Array.from({ length: 5 }, () => /** @type {['press', (d: any) => unknown]} */ (['press', (d) => d.redo()])),
+    ...Array.from({ length: 5 }, () => /** @type {['press', (d: any) => unknown]} */ (['press', (d) => d.undo()])),
+  ],
+  'an MCP write lands between two local steps, then Undo x2, Redo x2': [
+    ['act', (d) => d.append(cube, local)],
+    ['act', (d) => d.append(sphere, { origin: 'mcp' })],
+    ['act', (d) => d.append(cone, local)],
+    ['press', (d) => d.undo()],
+    ['press', (d) => d.undo()],
+    ['press', (d) => d.redo()],
+    ['press', (d) => d.redo()],
+  ],
+}
+
+console.log('\ncore-030 coverage — Undo/Redo presses served by restore (zero kernel lookups) vs re-fold')
+const coverage = []
+for (const [name, script] of Object.entries(SESSIONS)) {
+  const { registry: proxied, counter } = countingRegistry()
+  const document = createDocument({ registry: /** @type {any} */ (proxied) })
+  let restored = 0
+  let folded = 0
+  for (const [kind, act] of script) {
+    counter.lookups = 0
+    act(document)
+    if (kind !== 'press') continue
+    if (counter.lookups === 0) restored += 1
+    else folded += 1
+  }
+  coverage.push({ session: name, restored, folded })
+  console.log(`${name.padEnd(78)} restored ${String(restored).padStart(2)} · re-folded ${folded}`)
+}
+
+if (JSON_OUT) writeFileSync(JSON_OUT, JSON.stringify({ runs: RUNS, node: process.version, rows, opRows, coverage }, null, 2))

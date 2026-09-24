@@ -5,8 +5,29 @@ kind: feature
 priority: medium
 model: opus
 depends: [core-029]
-status: open
+status: done
 ---
+
+> **What shipped (2026-09-24): option 2, measured, with option 1's remainder filed as
+> `TODO/core-031`.**
+>
+> - **Mechanism.** Undo and Redo now **restore** the derived state captured with the step
+>   instead of re-folding the log, whenever nothing has been written since. A whole-state
+>   token decides that, and a bounded window of 50 steps keeps it (`restorableSteps`).
+> - **No contract change.** `undo()`/`redo()` stay synchronous with every refusal intact,
+>   and no caller changed.
+> - **Coverage.** Every Undo/Redo press restored in the scripted single-user sessions,
+>   including scenario 12's row actions. Undo after an MCP/remote write, a step older than 50,
+>   the row actions themselves, and Open/restore still re-fold. That is option 1's territory,
+>   and its contract question is now scoped to those paths alone in `core-031`.
+> - **Numbers.** Headline, production build, Chromium, 4× CPU: fillet-50 Undo **296 → 22.0 ms**,
+>   24-body Undo **474 → 18.5 ms** worst frame gap. In Node, Undo/Redo went from 74-142 ms to
+>   0.0-0.1 ms (`bench/results/2026-09-24-core-030.md`).
+> - **Testing section.** Covered by `src/core/historyRestore.spec.js`: zero-kernel-call
+>   counts, a differential against an always-fold twin plus a fresh fold after every action,
+>   and the fallback and refusal cases. Its **worker-boundary mock and async cancellation**
+>   bullets do not apply to option 2, which has no worker and nothing asynchronous. They move
+>   to `core-031` verbatim.
 
 ## Problem
 
