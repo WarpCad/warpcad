@@ -136,7 +136,18 @@ import { touchScreen2 } from './recipes/raspberrypi.touchScreen2.js'
  *   (TODO/core-026). Composite recipes set it from V1's `.color(name)` through
  *   `./colors.js`'s `v1ColorToRecord`. Absent means uncoloured, not a default colour.
  * @property {number} [colorAlpha] Its alpha in `(0, 1]` — V1's `.color(name, alpha)`.
- *   Omitted when 1, and never present without `color`.
+ *   Omitted when 1, and never present without `color`. Doubles as `colorOverride`'s
+ *   own alpha on a `style.recolor` record (TODO/data-005) — the two colour fields
+ *   never coexist on one record, so one alpha field serves both.
+ * @property {number} [colorOverride] A **user** colour override, `0xRRGGBB`
+ *   (TODO/data-005) — distinct from `color`, which is a composite recipe's own
+ *   baked-in default. Only ever set on a `style.recolor` record; the kernel fold
+ *   does not interpret it, exactly as it does not interpret `hidden` or `color`.
+ * @property {string} [subPart] Narrows a `style.recolor` record's `colorOverride`
+ *   to one named part of the superseded body's `Group` (TODO/data-005), mirroring
+ *   `ui-016`'s single-part selection address rather than `pieces`'s comma-list
+ *   operand addressing (TODO/core-024) — a colour override always targets exactly
+ *   one part, never a set. Absent means the override applies to the whole body.
  */
 
 /**
@@ -747,6 +758,22 @@ export const registry = Object.freeze({
       return transforms.translate(/** @type {Vec3Mm} */ (center), turned)
     })
   }),
+
+  // ## A colour override changes nothing about the geometry (TODO/data-005)
+  //
+  // `src/core/document.js`'s `setColorOverride` appends this record the same way
+  // `transform.translate`/`rotate` append theirs — `target`/`supersedes` both set
+  // to the lineage's current terminal, unnamed (see `src/core/transform.js`'s "Why
+  // transform records are unnamed") — but unlike a transform it does not move
+  // anything: `colorOverride`/`colorAlpha`/`subPart` are metadata the kernel fold
+  // is deliberately incurious about, exactly as it already is about `hidden` and
+  // `color`. `wholeGroupNative` is still the right shape rather than plain
+  // `native`: a `native` entry would flatten a composite's `Group` to a solid via
+  // `combine()` on the way in, discarding the very part breakdown a per-part
+  // override needs `Body.geometry` to still have afterwards. So the operand
+  // arrives and leaves whole, byte-identical — the override lives entirely on the
+  // record, for `document.js`'s `bodies()` to read back, not on the geometry.
+  'style.recolor': wholeGroupNative(1, ({ inputs }) => soleOperand(inputs).value),
 
   // ## The three booleans, and why they may name a composite's parts
   //

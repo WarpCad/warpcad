@@ -435,7 +435,25 @@ export class ReplayRejection extends Error {
  *   read here. See `src/core/paramEdit.js`'s `currentParamsRecordOf`.
  * @property {[number, number, number]} rotationDeg Absolute rotation carried on
  *   the terminal record, degrees per axis. `[0, 0, 0]` for an unturned body.
+ * @property {ColorOverride[]} [colorOverrides] User colour overrides in force for
+ *   this body (TODO/data-005), one entry per distinct `subPart` plus at most one
+ *   whole-body entry (no `subPart`) — undefined when none of this lineage's
+ *   records ever set one, the default that leaves every existing body's rendered
+ *   appearance unchanged. See `colorOverridesOf`.
  * @property {Geom3 | Group} geometry Derived, disposable — never persisted.
+ */
+
+/**
+ * One user colour override, as `Body.colorOverrides` reports it — read-only,
+ * derived from the newest `style.recolor` record targeting this part (or the
+ * whole body). `TODO/ui-037` writes these; `src/render/mesh.js` will eventually
+ * be what interprets `color`/`colorAlpha`, exactly as it will for `hidden`.
+ *
+ * @typedef {object} ColorOverride
+ * @property {number} color `0xRRGGBB`.
+ * @property {number} [colorAlpha] `(0, 1]`. Omitted when 1.
+ * @property {string} [subPart] The named part this override targets. Absent
+ *   means the whole body.
  */
 
 /**
@@ -507,6 +525,7 @@ export class ReplayRejection extends Error {
  * @property {() => number | null} rollbackAt
  * @property {(id: string, record: OpRecord, transaction: TransactionOptions) => { scene: Scene }} replaceRecord
  * @property {(id: string, suppressed: boolean, transaction: TransactionOptions) => { scene: Scene }} setSuppressed
+ * @property {(id: string, override: { color: number, colorAlpha?: number, subPart?: string }, transaction: TransactionOptions) => { record: OpRecord, scene: Scene }} setColorOverride
  * @property {(id: string, delta: number) => MoveLegality} canMove
  * @property {(id: string, delta: number, transaction: TransactionOptions) => { scene: Scene }} moveStep
  * @property {(index: number, records: readonly OpRecord[], transaction: TransactionOptions) => { records: OpRecord[], scene: Scene }} insertAt
@@ -542,6 +561,42 @@ function isVec3(value) {
  * rectangle/circle/arc tools need no change here.
  */
 const SKETCH_OP_PREFIX = 'sketch.'
+
+/**
+ * The op `setColorOverride` appends (TODO/data-005) — see its own doc comment in
+ * `src/core/kernel/registry.js` for why the kernel fold does not interpret it.
+ */
+const RECOLOR_OP = 'style.recolor'
+
+/**
+ * The colour override currently in force for a body, read back off its lineage
+ * (TODO/data-005) — `bodies()`'s analogue of `currentParamsRecordOf` for
+ * `Body.params`, but keyed by *which part* rather than always the whole body,
+ * since an override may target one named sub-part (`ui-016`'s single-part
+ * addressing) without touching its siblings.
+ *
+ * Walked **root to terminal**, keeping the newest `style.recolor` record per
+ * `subPart` (or per "the whole body", the `undefined` key) — so overriding
+ * `usbc` and, later, `ethernet` tracks both independently, and re-overriding
+ * `usbc` again only replaces its own entry. A lineage with no such record
+ * returns `undefined`, the default-unchanged case every existing body keeps.
+ *
+ * @param {readonly OpRecord[]} lineage Root-first, as `lineageOf` returns.
+ * @returns {ColorOverride[] | undefined}
+ */
+function colorOverridesOf(lineage) {
+  /** @type {Map<string | undefined, ColorOverride>} */
+  const bySubPart = new Map()
+  for (const record of lineage) {
+    if (record.op !== RECOLOR_OP || record.colorOverride === undefined) continue
+    bySubPart.set(record.subPart, {
+      color: record.colorOverride,
+      ...(record.colorAlpha !== undefined ? { colorAlpha: record.colorAlpha } : {}),
+      ...(record.subPart !== undefined ? { subPart: record.subPart } : {}),
+    })
+  }
+  return bySubPart.size === 0 ? undefined : [...bySubPart.values()]
+}
 
 /**
  * Verb per op, for the Undo/Redo tooltip's `Undo: Move Cube 1` (section 19).
@@ -1969,6 +2024,85 @@ export function createDocument(options = {}) {
     },
 
     /**
+     * TODO/data-005: recolour a placed body, or one of its named sub-parts,
+     * after the fact — the user-facing half of `TODO/core-026`'s recipe-baked
+     * `color`. Appends a **new, unnamed `style.recolor` record** over `id`'s
+     * current terminal, the same supersedes-based edit shape `TODO/ui-029`'s
+     * param edit and `src/core/transform.js`'s move/rotate already use, so the
+     * override stays visible in the timeline (`ui-032`) the way a param edit
+     * does, rather than silently rewriting history. See `style.recolor`'s own
+     * doc comment in `src/core/kernel/registry.js` for why the kernel fold does
+     * not interpret the colour it carries.
+     *
+     * `override.subPart`, if given, narrows the override to one named part of
+     * the body's `Group` — `ui-016`'s single-part selection address
+     * (`{ bodyId, partName }`), not `core-024`'s comma-list `pieces` operand
+     * addressing: a colour override always targets exactly one part, never a
+     * set, so reusing `pieces`'s plural shape here would claim a capability
+     * this does not have. Composes with `core-024` by staying out of its way
+     * rather than by reusing its field. Absent, the override applies to the
+     * whole body. Overriding a second part later does not disturb the first —
+     * see `colorOverridesOf`.
+     *
+     * `id` may be any record in the body's lineage, not just its root — the
+     * same generosity `document.currentIdOf` already gives every other lookup
+     * here.
+     *
+     * There is deliberately no way to *clear* an override in this task: that
+     * is a real, separate need only once `TODO/ui-037` exists to drive it.
+     *
+     * @param {string} id
+     * @param {{ color: number, colorAlpha?: number, subPart?: string }} override
+     * @param {TransactionOptions} transaction
+     */
+    setColorOverride(id, override, transaction) {
+      if (override === null || typeof override !== 'object') {
+        throw new Error('document.setColorOverride: an override object is required')
+      }
+      if (!Number.isInteger(override.color) || override.color < 0 || override.color > 0xffffff) {
+        throw new Error(
+          'document.setColorOverride: `color` must be a 0xRRGGBB integer, got ' +
+            JSON.stringify(override.color)
+        )
+      }
+      if (
+        override.colorAlpha !== undefined &&
+        (!Number.isFinite(override.colorAlpha) || override.colorAlpha <= 0 || override.colorAlpha > 1)
+      ) {
+        throw new Error(
+          'document.setColorOverride: `colorAlpha` must be a number in (0, 1], got ' +
+            JSON.stringify(override.colorAlpha)
+        )
+      }
+      if (
+        override.subPart !== undefined &&
+        (typeof override.subPart !== 'string' || override.subPart.length === 0)
+      ) {
+        throw new Error(
+          'document.setColorOverride: `subPart` must be a non-empty string, got ' +
+            JSON.stringify(override.subPart)
+        )
+      }
+
+      const currentId = document.currentIdOf(id)
+      if (currentId === undefined) {
+        throw new Error(`document.setColorOverride: no such body "${id}" in this document`)
+      }
+      const record = {
+        id: document.nextId(`${id}-color`),
+        op: RECOLOR_OP,
+        target: currentId,
+        supersedes: currentId,
+        colorOverride: override.color,
+        ...(override.colorAlpha !== undefined && override.colorAlpha !== 1
+          ? { colorAlpha: override.colorAlpha }
+          : {}),
+        ...(override.subPart !== undefined ? { subPart: override.subPart } : {}),
+      }
+      return document.append(record, transaction)
+    },
+
+    /**
      * Section 17's static legality check, so `Move up` / `Move down` are honestly
      * disabled *before* the press rather than throwing after it.
      *
@@ -2148,7 +2282,9 @@ export function createDocument(options = {}) {
         // the part, which is the reason this field was pinned to the root in the
         // first place. `paramEdit.js` owns that rule and builds the next edit from
         // the same record, so the panel and the next mutation cannot disagree.
-        const paramsRecord = currentParamsRecordOf(document.lineageOf(rootId)) ?? rootRecord
+        const lineage = document.lineageOf(rootId)
+        const paramsRecord = currentParamsRecordOf(lineage) ?? rootRecord
+        const colorOverrides = colorOverridesOf(lineage)
         bodies.push({
           id: rootId,
           recordId: terminalId,
@@ -2156,6 +2292,7 @@ export function createDocument(options = {}) {
           op: rootRecord.op,
           params: paramsRecord.params ?? {},
           rotationDeg: isVec3(carried) ? [carried[0], carried[1], carried[2]] : [0, 0, 0],
+          ...(colorOverrides !== undefined ? { colorOverrides } : {}),
           geometry,
         })
       }

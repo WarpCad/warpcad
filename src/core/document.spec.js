@@ -24,6 +24,17 @@ const fakeRegistry = Object.freeze({
     operandCount: 1,
     build: (/** @type {any} */ { params }) => ({ tag: 'moved', by: params.by ?? 0 }),
   }),
+  // The real op name (`TODO/data-005`), not a `fake.*` alias: `document.js`'s
+  // `setColorOverride` hardcodes `style.recolor`, so exercising it against this
+  // fake registry needs an entry under that exact key. Identity, like the real
+  // `wholeGroupNative` build in `kernel/registry.js` — a colour override changes
+  // nothing about the geometry, only the record's own `colorOverride` field, which
+  // `document.js` reads back independently of this build function.
+  'style.recolor': Object.freeze({
+    kind: 'native',
+    operandCount: 1,
+    build: (/** @type {any} */ { inputs }) => inputs[0],
+  }),
   'fake.explode': Object.freeze({
     kind: 'native',
     operandCount: 0,
@@ -1103,5 +1114,248 @@ describe('lineageOf and a creation record superseding a creation record (TODO/ui
         { origin: 'local' }
       )
     ).toThrow(/already been superseded/)
+  })
+})
+
+describe('setColorOverride — user colour overrides (TODO/data-005)', () => {
+  it('a body with no override reports exactly as before — the regression guard', () => {
+    const document = doc()
+    document.append({ id: 'a', op: 'fake.box', name: 'Box 1', params: { size: 3 } }, { origin: 'local' })
+    const [body] = document.bodies()
+    expect(body.colorOverrides).toBeUndefined()
+    expect(body.params).toEqual({ size: 3 })
+  })
+
+  it('reports the new colour while every other field stays unchanged', () => {
+    const document = doc()
+    document.append({ id: 'a', op: 'fake.box', name: 'Box 1', params: { size: 3 } }, { origin: 'local' })
+    const before = document.bodies()[0]
+
+    const { record } = document.setColorOverride('a', { color: 0xff0000 }, { origin: 'local' })
+
+    expect(record.op).toBe('style.recolor')
+    expect(record.supersedes).toBe('a')
+    expect(record.target).toBe('a')
+    expect(record.name).toBeUndefined() // unnamed, per `ui-029`'s established precedent
+
+    const [body] = document.bodies()
+    expect(body.id).toBe('a') // same lineage, same logical body
+    expect(body.recordId).toBe(record.id) // the override is now the terminal
+    expect(body.colorOverrides).toEqual([{ color: 0xff0000 }])
+    // Nothing else moved: params and the rest of the body are untouched.
+    expect(body.params).toEqual(before.params)
+    expect(body.op).toBe(before.op)
+    expect(body.name).toBe(before.name)
+    expect(body.rotationDeg).toEqual(before.rotationDeg)
+  })
+
+  it('omits colorAlpha when 1, carries it through otherwise', () => {
+    const document = doc()
+    document.append({ id: 'a', op: 'fake.box' }, { origin: 'local' })
+
+    document.setColorOverride('a', { color: 0x00ff00, colorAlpha: 1 }, { origin: 'local' })
+    expect(document.bodies()[0].colorOverrides).toEqual([{ color: 0x00ff00 }])
+
+    const document2 = doc()
+    document2.append({ id: 'a', op: 'fake.box' }, { origin: 'local' })
+    document2.setColorOverride('a', { color: 0x00ff00, colorAlpha: 0.5 }, { origin: 'local' })
+    expect(document2.bodies()[0].colorOverrides).toEqual([{ color: 0x00ff00, colorAlpha: 0.5 }])
+  })
+
+  it('a second whole-body override replaces the first, not appends a second entry', () => {
+    const document = doc()
+    document.append({ id: 'a', op: 'fake.box' }, { origin: 'local' })
+    document.setColorOverride('a', { color: 0xff0000 }, { origin: 'local' })
+    document.setColorOverride('a', { color: 0x0000ff }, { origin: 'local' })
+    expect(document.bodies()[0].colorOverrides).toEqual([{ color: 0x0000ff }])
+  })
+
+  it('an override survives a later transform, still readable off the lineage', () => {
+    const document = doc()
+    document.append({ id: 'a', op: 'fake.box' }, { origin: 'local' })
+    document.setColorOverride('a', { color: 0xff0000 }, { origin: 'local' })
+    document.append(
+      { id: 'a-move-1', op: 'fake.move', target: 'a-color-1', supersedes: 'a-color-1', params: { by: 5 } },
+      { origin: 'local' }
+    )
+    const [body] = document.bodies()
+    expect(body.colorOverrides).toEqual([{ color: 0xff0000 }])
+    expect(document.scene.byId.get('a-move-1')).toEqual({ tag: 'moved', by: 5 })
+  })
+
+  describe('per-part addressing (subPart)', () => {
+    it('an override on one sub-part carries its name and does not affect its siblings', () => {
+      const document = doc()
+      document.append({ id: 'a', op: 'fake.box' }, { origin: 'local' })
+      document.setColorOverride('a', { color: 0xff0000, subPart: 'usbc' }, { origin: 'local' })
+      const [body] = document.bodies()
+      expect(body.colorOverrides).toEqual([{ color: 0xff0000, subPart: 'usbc' }])
+      // Only `usbc` is named — nothing claims `ethernet` or any other sibling part
+      // is affected, since each entry is scoped to its own `subPart` key.
+    })
+
+    it('overriding two different sub-parts tracks both independently', () => {
+      const document = doc()
+      document.append({ id: 'a', op: 'fake.box' }, { origin: 'local' })
+      document.setColorOverride('a', { color: 0xff0000, subPart: 'usbc' }, { origin: 'local' })
+      document.setColorOverride('a', { color: 0x00ff00, subPart: 'ethernet' }, { origin: 'local' })
+      const [body] = document.bodies()
+      expect(body.colorOverrides).toHaveLength(2)
+      expect(body.colorOverrides).toEqual(
+        expect.arrayContaining([
+          { color: 0xff0000, subPart: 'usbc' },
+          { color: 0x00ff00, subPart: 'ethernet' },
+        ])
+      )
+    })
+
+    it('re-overriding the same sub-part replaces only that entry', () => {
+      const document = doc()
+      document.append({ id: 'a', op: 'fake.box' }, { origin: 'local' })
+      document.setColorOverride('a', { color: 0xff0000, subPart: 'usbc' }, { origin: 'local' })
+      document.setColorOverride('a', { color: 0x00ff00, subPart: 'ethernet' }, { origin: 'local' })
+      document.setColorOverride('a', { color: 0x0000ff, subPart: 'usbc' }, { origin: 'local' })
+      const [body] = document.bodies()
+      expect(body.colorOverrides).toEqual(
+        expect.arrayContaining([
+          { color: 0x0000ff, subPart: 'usbc' },
+          { color: 0x00ff00, subPart: 'ethernet' },
+        ])
+      )
+      expect(body.colorOverrides).toHaveLength(2)
+    })
+
+    it('a whole-body override and a per-part override on the same body coexist as separate entries', () => {
+      const document = doc()
+      document.append({ id: 'a', op: 'fake.box' }, { origin: 'local' })
+      document.setColorOverride('a', { color: 0xff0000 }, { origin: 'local' })
+      document.setColorOverride('a', { color: 0x00ff00, subPart: 'usbc' }, { origin: 'local' })
+      const [body] = document.bodies()
+      expect(body.colorOverrides).toEqual(
+        expect.arrayContaining([{ color: 0xff0000 }, { color: 0x00ff00, subPart: 'usbc' }])
+      )
+      expect(body.colorOverrides).toHaveLength(2)
+    })
+  })
+
+  describe('degenerate cases', () => {
+    it('refuses a non-numeric or out-of-range color', () => {
+      const document = doc()
+      document.append({ id: 'a', op: 'fake.box' }, { origin: 'local' })
+      expect(() =>
+        document.setColorOverride('a', /** @type {any} */ ({ color: 'red' }), { origin: 'local' })
+      ).toThrow(/color/)
+      expect(() =>
+        document.setColorOverride('a', { color: -1 }, { origin: 'local' })
+      ).toThrow(/color/)
+      expect(() =>
+        document.setColorOverride('a', { color: 0x1000000 }, { origin: 'local' })
+      ).toThrow(/color/)
+      expect(document.bodies()[0].colorOverrides).toBeUndefined()
+    })
+
+    it('refuses a colorAlpha outside (0, 1]', () => {
+      const document = doc()
+      document.append({ id: 'a', op: 'fake.box' }, { origin: 'local' })
+      expect(() =>
+        document.setColorOverride('a', { color: 0xff0000, colorAlpha: 0 }, { origin: 'local' })
+      ).toThrow(/colorAlpha/)
+      expect(() =>
+        document.setColorOverride('a', { color: 0xff0000, colorAlpha: 1.5 }, { origin: 'local' })
+      ).toThrow(/colorAlpha/)
+    })
+
+    it('refuses an empty subPart', () => {
+      const document = doc()
+      document.append({ id: 'a', op: 'fake.box' }, { origin: 'local' })
+      expect(() =>
+        document.setColorOverride('a', { color: 0xff0000, subPart: '' }, { origin: 'local' })
+      ).toThrow(/subPart/)
+    })
+
+    it('refuses overriding a body that does not exist', () => {
+      const document = doc()
+      expect(() =>
+        document.setColorOverride('nope', { color: 0xff0000 }, { origin: 'local' })
+      ).toThrow(/no such body/)
+    })
+  })
+
+  describe('closed-finding regression surface (TODO/core-020)', () => {
+    it('overriding a sub-part of a composite disturbs neither its own part list nor an earlier body', () => {
+      // Against the real kernel, mirroring the describe block above's own
+      // core-020 reproduction: a shell, a lug, then a bolt — and now a colour
+      // override on the bolt's `tap` sub-part on top. `core-020`'s regression
+      // was a composite absorbing every previously-placed body into its own
+      // group; `style.recolor`'s identity-passthrough build is new code in
+      // that exact fold, so it gets the same check.
+      const document = createDocument()
+      document.append(
+        { id: 'shell', op: 'primitive.cuboid', name: 'Shell 1', params: { size: [40, 40, 6], center: [0, 0, 3] } },
+        { origin: 'local' }
+      )
+      document.append(
+        { id: 'lug', op: 'primitive.cuboid', name: 'Lug 1', params: { size: [8, 8, 8], center: [30, 0, 4] } },
+        { origin: 'local' }
+      )
+      document.append(
+        { id: 'bolt1', op: 'hardware.bolt', name: 'Bolt 1', params: { spec: 'm10 hex', length: 20, fit: 'close' } },
+        { origin: 'local' }
+      )
+
+      document.setColorOverride('bolt1', { color: 0xff0000, subPart: 'tap' }, { origin: 'local' })
+
+      const boltTerminalId = document.currentIdOf('bolt1')
+      if (boltTerminalId === undefined) throw new Error('expected a live "bolt1" lineage')
+      const bolt = /** @type {import('./kernel/group.js').Group} */ (document.scene.byId.get(boltTerminalId))
+      expect(bolt.names).toEqual(['head', 'thread', 'tap'])
+      expect(Object.keys(bolt.parts)).not.toContain('Shell 1')
+      expect(Object.keys(bolt.parts)).not.toContain('Lug 1')
+
+      // Body count, order and names: unchanged. The override is a fourth
+      // record in the log, not a fourth body.
+      expect(document.bodies().map((body) => body.name)).toEqual(['Shell 1', 'Lug 1', 'Bolt 1'])
+      const boltBody = document.bodies()[2]
+      expect(boltBody.colorOverrides).toEqual([{ color: 0xff0000, subPart: 'tap' }])
+      const [min, max] = boundsOf(boltBody.geometry)
+      expect(min[0]).toBeGreaterThan(-15)
+      expect(max[0]).toBeLessThan(15)
+      expect(max[2]).toBeCloseTo(27, 6)
+
+      // The earlier bodies are untouched — still their own bounds, no override.
+      expect(document.bodies()[0].colorOverrides).toBeUndefined()
+      expect(document.bodies()[1].colorOverrides).toBeUndefined()
+    })
+
+    it('undo removes a colour override, redo restores it (TODO/data-003/core-030)', () => {
+      const document = doc()
+      document.append({ id: 'a', op: 'fake.box' }, { origin: 'local' })
+      document.setColorOverride('a', { color: 0xff0000 }, { origin: 'local' })
+      expect(document.bodies()[0].colorOverrides).toEqual([{ color: 0xff0000 }])
+
+      document.undo()
+      expect(document.bodies()[0].colorOverrides).toBeUndefined()
+
+      document.redo()
+      expect(document.bodies()[0].colorOverrides).toEqual([{ color: 0xff0000 }])
+    })
+
+    it('a re-fold with the fold cache reports the same override as an uncached one (TODO/core-031)', () => {
+      // The cached and fresh-build paths sharing one behaviour is exactly the
+      // property `core-026`'s own `partOptions` helper exists to guarantee for
+      // `hidden`/`color` — a colour override is new code in the same fold, so
+      // it gets the same equivalence check, against the real kernel.
+      const cached = createDocument({ restorableSteps: 0 })
+      const uncached = createDocument({ restorableSteps: 0, foldCache: null })
+      for (const document of [cached, uncached]) {
+        document.append({ id: 'a', op: 'primitive.cuboid', name: 'Cube 1', params: { size: [10, 10, 10] } }, { origin: 'local' })
+        document.setColorOverride('a', { color: 0x00ff00, subPart: 'foo' }, { origin: 'local' })
+        // A second, unrelated append forces a re-fold to walk past the override
+        // record again, exercising the cache hit/miss path on both sides.
+        document.append({ id: 'b', op: 'primitive.cuboid', name: 'Cube 2', params: { size: [5, 5, 5] } }, { origin: 'local' })
+      }
+      expect(cached.bodies()[0].colorOverrides).toEqual(uncached.bodies()[0].colorOverrides)
+      expect(cached.bodies()[0].colorOverrides).toEqual([{ color: 0x00ff00, subPart: 'foo' }])
+    })
   })
 })

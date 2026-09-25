@@ -239,6 +239,20 @@ describe('the read-only guard — never silently discard a downstream op (TODO/u
     expect(paramEditability([])).toEqual({ editable: false, blockedBy: null })
   })
 
+  it('allows a lineage carrying a colour override (TODO/data-005) — nothing is lost by rebuilding past it', () => {
+    // Unlike `modify.filletRim` above, `style.recolor` never touches geometry —
+    // `document.js`'s `colorOverridesOf` reads it off every record in the walked
+    // lineage, not just the terminal's own build — so a rebuilt creation record
+    // does not discard it the way a fillet's rounded rim would be discarded.
+    expect(
+      paramEditability([
+        { id: 'a', op: 'primitive.cylinder', params: { diameter: 40 } },
+        { id: 'b', op: 'style.recolor', target: 'a', supersedes: 'a', colorOverride: 0xff0000 },
+        { id: 'c', op: 'transform.translate', supersedes: 'b', params: {} },
+      ])
+    ).toEqual({ editable: true, blockedBy: null })
+  })
+
   it('reads the same verdict straight off a live document', () => {
     const editable = withCylinder([
       {

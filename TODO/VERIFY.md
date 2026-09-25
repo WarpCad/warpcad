@@ -34,6 +34,21 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### data-005 — Per-body / per-part colour override, document model only (2026-09-25 13:57)
+
+No UI exists to create an override yet (`ui-037`), so nothing here is hand-checkable
+today — this is a note for whoever drives `ui-037`'s own Step 6, not an open item on
+this task. `Body.colorOverrides` tracks a whole-body override and any number of
+per-part overrides as independent entries, and a later override never clears an
+earlier, differently-targeted one — that's a document-model decision, proven correct
+by unit test, but "correct" and "reads as intuitive to a person picking colours" are
+different questions this task has no control to ask with yet.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | Once `ui-037` exists: override a whole body's colour, then override one of its named sub-parts to a different colour. Does the rendered result read as "that one part is different", not as two colours silently fighting or the whole-body override winning unexpectedly? | Open | |
+| 2 | Same setup: clear the sub-part override (once `ui-037` builds a clear affordance — this task deliberately did not). Does the whole-body override reassert itself on that part, or does the part stay stuck at its old sub-part colour? | Open | |
+
 ### ui-046 — Nav chrome folds to a ✥ toggle while a phone sheet is open (2026-09-24 21:16)
 
 Emulated WebKit and Chromium at 390×844 confirmed the fold, the expand and every button inside it (ACCEPTANCE.md scenarios 1, 7 and 9). What emulation can't judge is whether a person on a real phone recognizes the ✥ glyph as "navigation controls" without reading the docs.

@@ -108,6 +108,16 @@ import { registry } from './kernel/registry.js'
 const TRANSFORM_OP_PREFIX = 'transform.'
 
 /**
+ * `TODO/data-005`'s colour-override record. Safe to rebuild past for a stronger
+ * reason than a transform is: it is identity-passthrough geometry (its own
+ * `style.recolor` registry entry hands its operand straight back, unread), and
+ * `document.js`'s `colorOverridesOf` reads it off *every* record in the walked
+ * lineage, not just the terminal's own build — so, unlike a transform's pose, a
+ * rebuild does not even need to *reapply* it. It just keeps being there.
+ */
+const RECOLOR_OP = 'style.recolor'
+
+/**
  * Params this path will not write, whatever a caller asks for.
  *
  * `center` is the body's *position* — the Transform section owns it, and writing
@@ -162,8 +172,9 @@ export function paramEditability(lineage) {
 
   for (const record of rest) {
     // A move or a turn: re-applied from the body's measured pose afterwards, so
-    // nothing it did is lost.
-    if (record.op.startsWith(TRANSFORM_OP_PREFIX)) continue
+    // nothing it did is lost. A colour override: never applied to geometry at
+    // all, so there is nothing a rebuild could lose in the first place.
+    if (record.op.startsWith(TRANSFORM_OP_PREFIX) || record.op === RECOLOR_OP) continue
     // An **earlier param edit** — the root's own op, built from its own params
     // alone. Editing a parameter is not one-shot per body, and a rebuild that
     // refused to allow a second rebuild would freeze the field the instant it
