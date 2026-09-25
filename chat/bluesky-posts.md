@@ -919,3 +919,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** 194×200 raised footprint, tap landing on nav-step-right → TODO/ui-046 Problem + this session's throwaway repro (chrome box 8,207 194×200; tap left Cylinder selected) in WebKit and Chromium at 390×844; 48×48 collapsed → this session's drive (x 8-56, y 359-407) and the new e2e size assertion
 **To Add:** before/after phone screenshots (shots/webkit-phone-1 and -3 from this session's drive)
+
+## 2026-09-25T01:36:34Z — Composite parts keep their V1 colours (TODO/core-026)
+
+**Post:** WarpCad's ports of the V1 JSCAD hardware parts kept every dimension and dropped every colour. V1 drew a washer gray with a red clearance; the port drew neither. Recipe records now carry V1's .color() as 0xRRGGBB plus alpha, diffed against V1's own output. Built with Claude Code, reviewed by me.
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** washer gray/red in V1 → jscad-hardware.jscad:57-76 and the regenerated hardware.washer.v1-reference.json (V1's real .color() loaded, this session); ports dropped it → TODO/core-026 Problem; 0xRRGGBB + alpha → src/core/kernel/colors.js in the diff; diffed against V1 output → hardware.washer/bolt specs, 84 files / 1647 unit tests passing this session
+**To Add:** a V1 render of the gray washer / red clearance beside WarpCad's once data-005/ui-037 draw the colour

@@ -1210,3 +1210,18 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** 194×200 footprint and misdirected tap → TODO/ui-046 Problem, reproduced this session (WebKit + Chromium, 390×844); synthetic canvas-node dispatch blind spot → TODO/ui-046 Problem + e2e helper source (canvas.dispatchEvent); 48×48 collapsed → this session's drive and new e2e assertion; first-version overlap caught by ui-043 spec → this session's e2e failure (chrome top 197 vs toolbar bottom 201, expanded chrome 244px tall); pinch/drag still available → Viewport.vue two-finger handler, docs/viewport-navigation.md
 **To Add:** side-by-side phone screenshots, folded vs expanded
+
+## 2026-09-25T01:36:34Z — Composite parts keep their V1 colours (TODO/core-026)
+
+**Post:** WarpCad rebuilds the parts from the V1 JSCAD libraries (bolts, washers, Raspberry Pi boards) as plain JSON op records. Those ports reproduced every dimension and silently lost every `.color(...)` call. V1 drew a washer gray with a red clearance cylinder, and a Pi board green at 75% opacity. The ported records had nowhere to put either.
+
+Records now carry a numeric colour and an optional alpha. V1's colour names are converted once, at the recipe boundary, through a table the test suite re-reads from V1's own source on every run. The fixture generators that already ran the real V1 code for dimensions now load V1's real `.color()` too. So the washer's 128/255 gray is a measured value, not a remembered one, and every dimension in those fixtures came back byte-identical.
+
+Re-reading V1 also corrected the task itself: V1's Nut, Board and BoardFrame never called `.color()` at all, so nothing was ported there. The bolt, which wasn't on the list, had lost its gray head, silver thread and red clearance parts. Nothing draws the colour yet. This change stops it being lost, and the renderer picks it up later.
+
+Built with Claude Code, reviewed by me.
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource #Testing
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** JSON op records → src/core/kernel/registry.js OpRecord typedef; dropped .color() → TODO/core-026 Problem; washer gray/red, Pi board green 0.75 → jscad-hardware.jscad:57-76, jscad-raspberrypi@62a8e3b src/rpi-parts.js:12; table re-read each run → colors.spec.js (?raw import of jscad-utils-color.jscad); generators load real .color(), 128/255 gray, dims byte-identical → scripts/generate-v1-*-fixture.cjs diff + this session's fixture comparison; Nut/Board/BoardFrame no .color() → jscad-hardware.jscad:81-83, jscad-utils src/parts.js:418-472; bolt gray/silver/red → jscad-utils@3.2.0 dist/index.js:1934-1945 + regenerated hardware.bolt.v1-reference.json; not drawn yet → no src/render change in the diff
+**To Add:** side-by-side V1 render vs WarpCad once the renderer consumes the field
