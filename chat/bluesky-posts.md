@@ -928,3 +928,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** washer gray/red in V1 → jscad-hardware.jscad:57-76 and the regenerated hardware.washer.v1-reference.json (V1's real .color() loaded, this session); ports dropped it → TODO/core-026 Problem; 0xRRGGBB + alpha → src/core/kernel/colors.js in the diff; diffed against V1 output → hardware.washer/bolt specs, 84 files / 1647 unit tests passing this session
 **To Add:** a V1 render of the gray washer / red clearance beside WarpCad's once data-005/ui-037 draw the colour
+
+## [2026-09-25T13:59:15Z] — A colour override that shows up in the timeline (TODO/data-005)
+
+**Post:** WarpCad bodies can now carry a colour override, per body or per named sub-part — recolour a Pi board's USB-C port without touching the rest. It's a history-visible edit record, not a silent overwrite. Built with Claude Code, reviewed by me. #CAD #WebGL #OpenSource
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** per-body/per-part override, history-visible via a new supersedes record → src/core/document.js/kernel/registry.js diff, this session; sub-part example (Pi board USB-C) → TODO/data-005-per-body-color-override.md's own Goal wording (a Pi board's `usbc` part)
+**To Add:** a screenshot once `ui-037` gives this a control to drive from — none exists yet.

@@ -1225,3 +1225,16 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** JSON op records → src/core/kernel/registry.js OpRecord typedef; dropped .color() → TODO/core-026 Problem; washer gray/red, Pi board green 0.75 → jscad-hardware.jscad:57-76, jscad-raspberrypi@62a8e3b src/rpi-parts.js:12; table re-read each run → colors.spec.js (?raw import of jscad-utils-color.jscad); generators load real .color(), 128/255 gray, dims byte-identical → scripts/generate-v1-*-fixture.cjs diff + this session's fixture comparison; Nut/Board/BoardFrame no .color() → jscad-hardware.jscad:81-83, jscad-utils src/parts.js:418-472; bolt gray/silver/red → jscad-utils@3.2.0 dist/index.js:1934-1945 + regenerated hardware.bolt.v1-reference.json; not drawn yet → no src/render change in the diff
 **To Add:** side-by-side V1 render vs WarpCad once the renderer consumes the field
+
+## [2026-09-25T13:59:15Z] — A colour override that shows up in the timeline (TODO/data-005)
+
+**Post:** A few weeks ago WarpCad's composite parts — bolts, washers, Raspberry Pi boards — started carrying their own baked-in colours, ported from the original JSCAD library they came from. That was one half of the picture: a recipe's own default, fixed at build time.
+
+This closes the other half: a user can now override a placed body's colour after the fact, either for the whole body or for one named part inside an assembly — recolouring just a Pi board's USB-C port without touching the board around it. The override is its own record appended on top of the body's history rather than a rewrite of how it was created, so it shows up in the timeline the same way a resize or a fillet does, and undo/redo treat it like any other edit.
+
+Built with Claude Code, reviewed by me.
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** composite parts carry baked-in colour → TODO/done/core-026-composite-recipe-color-field.md, git log 7a31566; per-body/per-part override as a new history record → src/core/document.js diff, this session; undo/redo and timeline treat it like any other edit → document.spec.js's undo/redo case and paramEditability fix, this session's test output
+**To Add:** a screenshot once `ui-037` builds the actual colour picker — no control exists yet.
