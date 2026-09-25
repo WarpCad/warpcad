@@ -62,6 +62,7 @@ import {
 import { useTransformCommands } from '../../composables/useTransformCommands.js'
 import { useSketchCommands } from '../../composables/useSketchCommands.js'
 import { useTransformPreviewStore } from '../../stores/transformPreview.js'
+import { useColorPreviewStore } from '../../stores/colorPreview.js'
 import { useSketchPreviewStore } from '../../stores/sketchPreview.js'
 import { isDegenerate } from '../../sketch/entity.js'
 import { createOrbitCamera } from '../../render/camera.js'
@@ -71,12 +72,15 @@ import {
   BODY_COLORS,
   createBodyMaterial,
   createBodyObject,
+  createColorMaterialCache,
   createGhostMaterial,
   createXrayMaterial,
   disposeBodyObject,
   geom3ToBufferGeometry,
+  paintBodyObject,
   updateBodyObject,
 } from '../../render/mesh.js'
+import { colorIntToCssHex, ownOverrideOf } from '../../core/colorOverride.js'
 import { nearestOnPlane, ndcFromClient, projectToWorkingPlane } from '../../render/pick.js'
 import { evaluateOp, toGeom3 } from '../../core/kernel/index.js'
 import { boundsOf } from '../../core/kernel/group.js'
@@ -187,6 +191,7 @@ const placement = usePlacementStore()
 const selection = useSelectionStore()
 const settings = useSettingsStore()
 const preview = useTransformPreviewStore()
+const colorPreview = useColorPreviewStore()
 const transformCommands = useTransformCommands()
 const sketchPreview = useSketchPreviewStore()
 const sketchCommands = useSketchCommands()
@@ -409,6 +414,14 @@ let ghostMaterial = /** @type {any} */ (null)
 /** X-ray tints for a selected body's hidden part (`TODO/ui-041`), base and secondary. */
 let xrayMaterial = /** @type {any} */ (null)
 let xraySecondaryMaterial = /** @type {any} */ (null)
+/**
+ * Materials for bodies carrying a user colour override (`TODO/ui-037`), one per
+ * colour/alpha/selection role — see `createColorMaterialCache`. A body with no
+ * override never touches this and keeps the three shared materials above.
+ *
+ * @type {import('../../render/mesh.js').ColorMaterialCache | null}
+ */
+let colorMaterials = null
 /** The twins currently attached, so a selection change can take them all off again. */
 /** @type {Mesh[]} */
 const xrayTwins = []
@@ -900,6 +913,9 @@ function syncBodies() {
     live.add(body.id)
     const existing = bodyMeshes.get(body.id)
     if (existing) {
+      // Read by `paintBodies`. Set before the early-out on purpose: a timeline
+      // preview can hand back the same terminal with a different history.
+      existing.userData.colorOverrides = body.colorOverrides
       if (existing.userData.recordId === body.recordId) continue
       // The body was transformed: swap in the new geometry and drop whatever
       // preview transform the drag left on the object, since the translation or
@@ -919,6 +935,7 @@ function syncBodies() {
     }
     const object = createBodyObject(body.geometry, bodyMaterial, body.id)
     object.userData.recordId = body.recordId
+    object.userData.colorOverrides = body.colorOverrides
     bodyMeshes.set(body.id, object)
     bodiesGroup.add(object)
   }
@@ -967,8 +984,6 @@ function applySelectionMaterial() {
   xrayTwins.length = 0
   for (const [id, object] of bodyMeshes) {
     const role = selectionRole(id)
-    const material =
-      role === 'base' ? selectedMaterial : role === 'secondary' ? secondaryMaterial : bodyMaterial
     // A selected body also gets an x-ray twin, because a body completely inside another
     // is occluded at every pixel and swapping its material alone changes nothing on the
     // canvas. Where it is not hidden the twin draws nothing. See `createXrayMaterial`.
@@ -980,18 +995,65 @@ function applySelectionMaterial() {
         xrayTwins.push(addXrayTwin(/** @type {Mesh} */ (object), tint))
       }
     }
-    // A Group-valued body is a container of part meshes (`TODO/ui-016`), so the
-    // highlight is painted onto every part: a group selects and highlights as
-    // one object, exactly as it did when it was a single combined mesh. The
-    // drilled-into part is deliberately *not* highlighted differently — its
-    // feedback is the breadcrumb, the dimension lines and the absent gizmo.
-    if (object instanceof ThreeGroup) {
-      for (const child of object.children) /** @type {Mesh} */ (child).material = material
-    } else {
-      object.material = material
-    }
   }
+  paintBodies()
+}
+
+/**
+ * Put the right material on every body: its selection role, and its colour
+ * overrides (`TODO/ui-037`). Split out of {@link applySelectionMaterial} so a live
+ * colour-picker preview can repaint **without** rebuilding the x-ray twins — the
+ * picker fires `input` at pointer rate, and twins are a `new Mesh` apiece.
+ *
+ * A Group-valued body is a container of part meshes (`TODO/ui-016`), so the
+ * highlight is painted onto every part: a group selects and highlights as one
+ * object, exactly as it did when it was a single combined mesh. The drilled-into
+ * part is deliberately *not* highlighted differently — its feedback is the
+ * breadcrumb, the dimension lines and the absent gizmo. A colour override, by
+ * contrast, *can* differ per part: see `paintBodyObject`.
+ */
+function paintBodies() {
+  if (!bodyMaterial || !colorMaterials) return
+  const shared = { body: bodyMaterial, selected: selectedMaterial, secondary: secondaryMaterial }
+  const previewId = colorPreview.bodyId
+  colorMaterials.beginPass()
+  for (const [id, object] of bodyMeshes) {
+    paintBodyObject(object, {
+      role: selectionRole(id),
+      overrides: object.userData.colorOverrides,
+      preview: previewId === id ? { color: colorPreview.color, subPart: colorPreview.subPart } : null,
+      shared,
+      cache: colorMaterials,
+    })
+  }
+  colorMaterials.endPass()
   scheduleRender()
+}
+
+/**
+ * What the scene list announces as a body's colour (`TODO/ui-037`): the
+ * whole-body override as `#rrggbb`, or `''` for the theme default. Part overrides
+ * are listed separately in `data-body-part-colors`.
+ *
+ * @param {{ colorOverrides?: readonly import('../../core/document.js').ColorOverride[] }} body
+ * @returns {string}
+ */
+function announcedColor(body) {
+  const own = ownOverrideOf(body.colorOverrides, undefined)
+  return own ? colorIntToCssHex(own.color) : ''
+}
+
+/**
+ * `part=#rrggbb;part=#rrggbb`, for the parts that carry their own override.
+ *
+ * @param {{ colorOverrides?: readonly import('../../core/document.js').ColorOverride[] }} body
+ * @returns {string}
+ */
+function announcedPartColors(body) {
+  return (body.colorOverrides ?? [])
+    .filter((entry) => entry.subPart !== undefined)
+    .map((entry) => `${entry.subPart}=${colorIntToCssHex(entry.color)}`)
+    .join(';')
 }
 
 function applyMaterialTheme() {
@@ -1002,6 +1064,7 @@ function applyMaterialTheme() {
   ghostMaterial?.color.setHex(palette.ghost)
   xrayMaterial?.color.setHex(palette.selected)
   xraySecondaryMaterial?.color.setHex(palette.secondary)
+  colorMaterials?.setHighlights({ selected: palette.selected, secondary: palette.secondary })
 }
 
 // --- gizmo drag (TODO/ui-012) ---------------------------------------------
@@ -2011,6 +2074,7 @@ onMounted(() => {
   ghostMaterial = createGhostMaterial(palette.ghost)
   xrayMaterial = createXrayMaterial(palette.selected)
   xraySecondaryMaterial = createXrayMaterial(palette.secondary)
+  colorMaterials = createColorMaterialCache({ selected: palette.selected, secondary: palette.secondary })
 
   try {
     viewport = createViewport(canvas, { fovDeg: orbit.fovDeg, theme: theme.value })
@@ -2045,6 +2109,10 @@ onMounted(() => {
       scheduleRender()
     }),
     watch(() => selection.ids, applySelectionMaterial, { deep: true }),
+    // The Inspector's colour picker, while it is open (`TODO/ui-037`): the mesh
+    // follows every `input` event with no document write. Repaint only — the
+    // selection has not changed, so the twins stay as they are.
+    watch(() => [colorPreview.bodyId, colorPreview.subPart, colorPreview.color], paintBodies),
     // Pick depth changes nothing about *which* body is selected, so it never
     // reaches the watcher above — but it does change what the overlays draw
     // (`TODO/ui-016`: the dimension lines shrink to the part, the gizmo goes).
@@ -2106,6 +2174,8 @@ onBeforeUnmount(() => {
   ghostMaterial?.dispose()
   xrayMaterial?.dispose()
   xraySecondaryMaterial?.dispose()
+  colorMaterials?.dispose()
+  colorMaterials = null
   xrayTwins.length = 0
   bodyMaterial = null
   selectedMaterial = null
@@ -2185,6 +2255,8 @@ onBeforeUnmount(() => {
         :data-body-volume="body.volumeMm3 === null ? undefined : body.volumeMm3.toFixed(3)"
         :data-selected="selection.has(body.id) ? 'true' : 'false'"
         :data-selection-role="selectionRole(body.id)"
+        :data-body-color="announcedColor(body)"
+        :data-body-part-colors="announcedPartColors(body)"
       >
         {{ body.name }}
       </li>

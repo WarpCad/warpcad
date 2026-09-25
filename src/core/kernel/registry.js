@@ -139,10 +139,12 @@ import { touchScreen2 } from './recipes/raspberrypi.touchScreen2.js'
  *   Omitted when 1, and never present without `color`. Doubles as `colorOverride`'s
  *   own alpha on a `style.recolor` record (TODO/data-005) — the two colour fields
  *   never coexist on one record, so one alpha field serves both.
- * @property {number} [colorOverride] A **user** colour override, `0xRRGGBB`
+ * @property {number | null} [colorOverride] A **user** colour override, `0xRRGGBB`
  *   (TODO/data-005) — distinct from `color`, which is a composite recipe's own
  *   baked-in default. Only ever set on a `style.recolor` record; the kernel fold
  *   does not interpret it, exactly as it does not interpret `hidden` or `color`.
+ *   `null` is a **reset** of that record's key back to the default (TODO/ui-037's
+ *   `document.clearColorOverride`).
  * @property {string} [subPart] Narrows a `style.recolor` record's `colorOverride`
  *   to one named part of the superseded body's `Group` (TODO/data-005), mirroring
  *   `ui-016`'s single-part selection address rather than `pieces`'s comma-list

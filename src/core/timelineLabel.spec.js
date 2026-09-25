@@ -116,3 +116,29 @@ describe('timeline row labels (TODO/ui-032)', () => {
     expect(describeRow(a, buildNameIndex([a, b]))).toBe('Move')
   })
 })
+
+describe('colour rows in History (TODO/ui-037)', () => {
+  const cube = { id: 'cuboid-1', op: 'primitive.cuboid', name: 'Cube 1', params: { size: [40, 40, 40] } }
+
+  it('says which colour, and on what', () => {
+    const recolor = { id: 'cuboid-1-color-1', op: 'style.recolor', target: 'cuboid-1', supersedes: 'cuboid-1', colorOverride: 0xff0000 }
+    expect(describeRow(recolor, buildNameIndex([cube, recolor]))).toBe('Color #ff0000 on Cube 1')
+  })
+
+  it('names the part when the override targets one', () => {
+    const recolor = {
+      id: 'cuboid-1-color-1',
+      op: 'style.recolor',
+      target: 'cuboid-1',
+      supersedes: 'cuboid-1',
+      colorOverride: 0x0000ff,
+      subPart: 'usbc',
+    }
+    expect(describeRow(recolor, buildNameIndex([cube, recolor]))).toBe('Color usbc #0000ff on Cube 1')
+  })
+
+  it('calls a cleared override a reset rather than printing a colour it does not have', () => {
+    const reset = { id: 'cuboid-1-color-2', op: 'style.recolor', target: 'cuboid-1', supersedes: 'cuboid-1', colorOverride: null }
+    expect(describeRow(reset, buildNameIndex([cube, reset]))).toBe('Reset color on Cube 1')
+  })
+})

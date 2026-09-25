@@ -30,6 +30,7 @@
  */
 
 import { RIM_ORIENTATIONS } from './kernel/fillet.js'
+import { colorIntToCssHex } from './colorOverride.js'
 
 /** @typedef {import('./kernel/registry.js').OpRecord} OpRecord */
 
@@ -188,6 +189,17 @@ export function describeRow(record, names) {
       .map((ref) => nameOf(ref, index))
       .filter((name) => name !== undefined)
     return operands.length > 0 ? `${verb} ${operands.join(' + ')}` : verb
+  }
+
+  // A colour step (`TODO/ui-037`): which colour, on which part, of what — or a
+  // reset, which has no colour to print. Built here rather than from the verb
+  // table because the interesting part of the row is the value, as with a rim op.
+  if (record.op === 'style.recolor') {
+    const on = subject === undefined ? '' : ` on ${subject}`
+    if (record.colorOverride === null) return `Reset color${on}`
+    const part = typeof record.subPart === 'string' ? `${record.subPart} ` : ''
+    const value = typeof record.colorOverride === 'number' ? colorIntToCssHex(record.colorOverride) : '?'
+    return `Color ${part}${value}${on}`
   }
 
   if (RIM_OPS.has(record.op)) {

@@ -9,11 +9,14 @@ import {
   BODY_COLORS,
   createBodyMaterial,
   createBodyObject,
+  createColorMaterialCache,
   createGhostMaterial,
   createMesh,
   createXrayMaterial,
   disposeMesh,
   geom3ToBufferGeometry,
+  OVERRIDE_HIGHLIGHT_INTENSITY,
+  paintBodyObject,
 } from './mesh.js'
 
 const { primitives, measurements } = modeling
@@ -301,5 +304,233 @@ describe('x-ray twin (TODO/ui-041)', () => {
     // `updateBodyObject` checks `container.children.length === group.names.length`; a twin
     // hung on the container itself would make every later edit of a composite rebuild it.
     expect(object.children).toHaveLength(before)
+  })
+})
+
+describe('per-body colour overrides (TODO/ui-037)', () => {
+  const palette = BODY_COLORS.dark
+
+  function shared() {
+    return {
+      body: createBodyMaterial(palette.body),
+      selected: createBodyMaterial(palette.selected),
+      secondary: createBodyMaterial(palette.secondary),
+    }
+  }
+
+  function cache() {
+    return createColorMaterialCache({ selected: palette.selected, secondary: palette.secondary })
+  }
+
+  /** @param {any} object */
+  const materialOf = (object) => /** @type {any} */ (object).material
+
+  function boltGroup() {
+    let group = createGroup('bolt')
+    group = add(group, primitives.cuboid({ size: [10, 10, 4], center: [0, 0, 2] }), 'head')
+    group = add(group, primitives.cuboid({ size: [4, 4, 20], center: [0, 0, 14] }), 'thread')
+    group = add(group, primitives.cuboid({ size: [2, 2, 2], center: [0, 0, 30] }), 'tap')
+    return group
+  }
+
+  it('a body with no override still uses the shared palette material, the very same instance', () => {
+    const materials = shared()
+    const colors = cache()
+    const mesh = createBodyObject(primitives.cuboid({ size: [10, 10, 10] }), materials.body, 'a')
+
+    for (const [role, expected] of /** @type {const} */ ([
+      ['none', materials.body],
+      ['base', materials.selected],
+      ['secondary', materials.secondary],
+    ])) {
+      colors.beginPass()
+      paintBodyObject(mesh, { role, overrides: undefined, preview: null, shared: materials, cache: colors })
+      colors.endPass()
+      expect(materialOf(mesh)).toBe(expected)
+    }
+    // Nothing was allocated for a body that never asked for a colour.
+    expect(colors.size).toBe(0)
+  })
+
+  it('a body with an override renders with a material of that colour, not the shared palette', () => {
+    const materials = shared()
+    const colors = cache()
+    const mesh = createBodyObject(primitives.cuboid({ size: [10, 10, 10] }), materials.body, 'a')
+
+    colors.beginPass()
+    paintBodyObject(mesh, { role: 'none', overrides: [{ color: 0xff0000 }], preview: null, shared: materials, cache: colors })
+    colors.endPass()
+
+    const material = materialOf(mesh)
+    expect(material).not.toBe(materials.body)
+    expect(material.color.getHex()).toBe(0xff0000)
+    expect(material.transparent).toBe(false)
+    expect(material.opacity).toBe(1)
+    // Unselected: no highlight glow on top of the user's colour.
+    expect(material.emissive.getHex()).toBe(0x000000)
+  })
+
+  it('carries colorAlpha through as opacity', () => {
+    const materials = shared()
+    const colors = cache()
+    const mesh = createBodyObject(primitives.cuboid({ size: [10, 10, 10] }), materials.body, 'a')
+    paintBodyObject(mesh, {
+      role: 'none',
+      overrides: [{ color: 0x00ff00, colorAlpha: 0.5 }],
+      preview: null,
+      shared: materials,
+      cache: colors,
+    })
+    expect(materialOf(mesh).transparent).toBe(true)
+    expect(materialOf(mesh).opacity).toBeCloseTo(0.5, 9)
+  })
+
+  it('a selected recoloured body keeps its own colour and is tinted, so both the pick and the selection read', () => {
+    const materials = shared()
+    const colors = cache()
+    const mesh = createBodyObject(primitives.cuboid({ size: [10, 10, 10] }), materials.body, 'a')
+
+    paintBodyObject(mesh, { role: 'base', overrides: [{ color: 0xff0000 }], preview: null, shared: materials, cache: colors })
+    const base = materialOf(mesh)
+    expect(base.color.getHex()).toBe(0xff0000)
+    expect(base.emissive.getHex()).toBe(palette.selected)
+    expect(base.emissiveIntensity).toBeCloseTo(OVERRIDE_HIGHLIGHT_INTENSITY, 9)
+
+    paintBodyObject(mesh, { role: 'secondary', overrides: [{ color: 0xff0000 }], preview: null, shared: materials, cache: colors })
+    expect(materialOf(mesh).color.getHex()).toBe(0xff0000)
+    expect(materialOf(mesh).emissive.getHex()).toBe(palette.secondary)
+    expect(materialOf(mesh)).not.toBe(base)
+  })
+
+  it('a sub-part override wins on its part; the whole-body override paints every other part', () => {
+    const materials = shared()
+    const colors = cache()
+    const object = createBodyObject(boltGroup(), materials.body, 'bolt')
+
+    paintBodyObject(object, {
+      role: 'none',
+      overrides: [{ color: 0xff0000 }, { color: 0x0000ff, subPart: 'tap' }],
+      preview: null,
+      shared: materials,
+      cache: colors,
+    })
+    const byPart = Object.fromEntries(object.children.map((child) => [child.userData.partName, materialOf(child)]))
+    expect(byPart.tap.color.getHex()).toBe(0x0000ff)
+    expect(byPart.head.color.getHex()).toBe(0xff0000)
+    expect(byPart.thread.color.getHex()).toBe(0xff0000)
+    // Same colour, same material: two parts do not get two copies.
+    expect(byPart.head).toBe(byPart.thread)
+  })
+
+  it('with only a sub-part override, the other parts keep the shared palette', () => {
+    const materials = shared()
+    const colors = cache()
+    const object = createBodyObject(boltGroup(), materials.body, 'bolt')
+    paintBodyObject(object, {
+      role: 'none',
+      overrides: [{ color: 0x0000ff, subPart: 'tap' }],
+      preview: null,
+      shared: materials,
+      cache: colors,
+    })
+    const byPart = Object.fromEntries(object.children.map((child) => [child.userData.partName, materialOf(child)]))
+    expect(byPart.tap.color.getHex()).toBe(0x0000ff)
+    expect(byPart.head).toBe(materials.body)
+    expect(byPart.thread).toBe(materials.body)
+  })
+
+  it('reuses one material per colour across bodies and repaints, and disposes one no body uses any more', () => {
+    const materials = shared()
+    const colors = cache()
+    const a = createBodyObject(primitives.cuboid({ size: [10, 10, 10] }), materials.body, 'a')
+    const b = createBodyObject(primitives.cuboid({ size: [10, 10, 10] }), materials.body, 'b')
+
+    colors.beginPass()
+    paintBodyObject(a, { role: 'none', overrides: [{ color: 0xff0000 }], preview: null, shared: materials, cache: colors })
+    paintBodyObject(b, { role: 'none', overrides: [{ color: 0xff0000 }], preview: null, shared: materials, cache: colors })
+    colors.endPass()
+    const red = materialOf(a)
+    expect(materialOf(b)).toBe(red)
+    expect(colors.size).toBe(1)
+
+    // A repaint with nothing changed is not an allocation.
+    colors.beginPass()
+    paintBodyObject(a, { role: 'none', overrides: [{ color: 0xff0000 }], preview: null, shared: materials, cache: colors })
+    paintBodyObject(b, { role: 'none', overrides: [{ color: 0xff0000 }], preview: null, shared: materials, cache: colors })
+    colors.endPass()
+    expect(materialOf(a)).toBe(red)
+
+    let disposed = 0
+    red.addEventListener('dispose', () => {
+      disposed += 1
+    })
+    colors.beginPass()
+    paintBodyObject(a, { role: 'none', overrides: undefined, preview: null, shared: materials, cache: colors })
+    paintBodyObject(b, { role: 'none', overrides: [{ color: 0x00ff00 }], preview: null, shared: materials, cache: colors })
+    colors.endPass()
+    expect(disposed).toBe(1)
+    expect(colors.size).toBe(1)
+  })
+
+  it('a live preview repaints one reused material in place — no allocation per picker `input` event', () => {
+    const materials = shared()
+    const colors = cache()
+    const mesh = createBodyObject(primitives.cuboid({ size: [10, 10, 10] }), materials.body, 'a')
+
+    paintBodyObject(mesh, { role: 'base', overrides: undefined, preview: { color: 0x110000 }, shared: materials, cache: colors })
+    const first = materialOf(mesh)
+    expect(first.color.getHex()).toBe(0x110000)
+    for (const color of [0x440000, 0x880000, 0xff0000]) {
+      paintBodyObject(mesh, { role: 'base', overrides: undefined, preview: { color }, shared: materials, cache: colors })
+      expect(materialOf(mesh)).toBe(first)
+    }
+    expect(first.color.getHex()).toBe(0xff0000)
+    expect(first.emissive.getHex()).toBe(palette.selected)
+  })
+
+  it('a whole-body preview does not paint over a part that has its own override', () => {
+    const materials = shared()
+    const colors = cache()
+    const object = createBodyObject(boltGroup(), materials.body, 'bolt')
+    paintBodyObject(object, {
+      role: 'base',
+      overrides: [{ color: 0x0000ff, subPart: 'tap' }],
+      preview: { color: 0xff0000 },
+      shared: materials,
+      cache: colors,
+    })
+    const byPart = Object.fromEntries(object.children.map((child) => [child.userData.partName, materialOf(child)]))
+    expect(byPart.tap.color.getHex()).toBe(0x0000ff)
+    expect(byPart.head.color.getHex()).toBe(0xff0000)
+
+    // …and a sub-part preview paints only that part.
+    paintBodyObject(object, {
+      role: 'base',
+      overrides: undefined,
+      preview: { color: 0x00ff00, subPart: 'head' },
+      shared: materials,
+      cache: colors,
+    })
+    const again = Object.fromEntries(object.children.map((child) => [child.userData.partName, materialOf(child)]))
+    expect(again.head.color.getHex()).toBe(0x00ff00)
+    expect(again.thread).toBe(materials.selected)
+  })
+
+  it('a theme switch retints every highlight, and dispose releases everything', () => {
+    const materials = shared()
+    const colors = cache()
+    const mesh = createBodyObject(primitives.cuboid({ size: [10, 10, 10] }), materials.body, 'a')
+    paintBodyObject(mesh, { role: 'base', overrides: [{ color: 0xff0000 }], preview: null, shared: materials, cache: colors })
+    colors.setHighlights({ selected: BODY_COLORS.light.selected, secondary: BODY_COLORS.light.secondary })
+    expect(materialOf(mesh).emissive.getHex()).toBe(BODY_COLORS.light.selected)
+    expect(materialOf(mesh).color.getHex()).toBe(0xff0000)
+
+    let disposed = 0
+    materialOf(mesh).addEventListener('dispose', () => {
+      disposed += 1
+    })
+    colors.dispose()
+    expect(disposed).toBe(1)
+    expect(colors.size).toBe(0)
   })
 })

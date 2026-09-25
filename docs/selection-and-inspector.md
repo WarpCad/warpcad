@@ -84,6 +84,9 @@ same idea.
 
 ### What it shows
 
+**Color** — a colour swatch at the top of the panel. Click it to pick a new colour for
+the shape. See [Colouring a shape](#colouring-a-shape) below.
+
 **Parameters** — the shape's own settings, which differ per shape because they are read
 from the shape's own definition rather than from a fixed form. **These are editable**:
 type a new number and press **Enter** and the shape is rebuilt at that size, staying
@@ -159,6 +162,57 @@ Two cases, and the panel tells you which:
   so underneath them. You can still move and turn the shape; it is only its own
   dimensions that are fixed. If you need a different size, make the shape the size you
   want first, then round it.
+
+## Colouring a shape
+
+Every shape starts in the app's default colour. To change it, select the shape and use
+the **Color** row at the top of the Inspector:
+
+- **The swatch** (the coloured square) opens your browser's colour picker. While the
+  picker is open, the shape in the 3D view changes colour as you move around it, so you
+  can judge the colour on the actual shape. When you close the picker or confirm a
+  colour, that colour is kept.
+- **The readout** next to the swatch shows the colour as a code such as `#ff0000`, or
+  **Default** if the shape has never been given one.
+- **Reset** puts the shape back to the default colour. It is greyed out when there is
+  nothing to reset.
+
+While a coloured shape is selected it keeps its own colour and glows slightly warmer, so
+you can see the colour you are picking and still tell that the shape is selected. Shapes
+you haven't coloured still turn amber when selected, as before.
+
+Each colour you pick is one step in **History** (for example `Color #ff0000 on Cube 1`)
+and one press of **Undo**. Trying out colours while the picker is still open doesn't add
+steps. Only the colour you settle on counts. The colour is saved with the project like
+everything else.
+
+### Worked example: colour a cube red
+
+1. Drag a **Cube** and a **Cylinder** onto the grid, a little apart.
+2. Click the cube. At the top of the Inspector, the **Color** row reads **Default**.
+3. Click the swatch and choose a red. The cube turns red while you choose. Close the
+   picker, and the readout now says `#ff0000` (or whichever red you picked).
+4. Click an empty patch of the grid. The cube stays red and the cylinder keeps its
+   original colour.
+5. Click the cube again. The swatch and readout still show your red.
+6. Press **Undo** once and the cube goes back to the default colour. The Undo button's
+   tooltip read `Undo: Recolor Cube 1` before you pressed it.
+
+### Colouring one part of a group or ready-made part
+
+For a group, or a ready-made part like a bolt or a Raspberry Pi board, you can colour a
+single piece. Select the part, click the piece again to look inside it (the breadcrumb at
+the top of the Inspector changes to `Group ▸ Part`), and use the same **Color** row. Only
+that piece changes.
+
+A piece's own colour always wins over the whole part's colour. If you colour a board's
+USB-C socket blue and later colour the whole board red, the board turns red and the
+socket stays blue. To make the socket follow the board again, look inside, select the
+socket, and press **Reset**. That only clears the socket's own colour, so it takes on
+the board's red.
+
+Parameters and Transform are read-only while you are looking inside a part. Color is the
+one row you can still change there, because a colour can belong to a single piece.
 
 ## Moving and turning a shape
 
@@ -440,6 +494,13 @@ gives the identical hole.
 - **A shape I know is in the model is missing from the Objects list.** Its step is probably
   suppressed or rolled back — see the note at the bottom of the list, and the
   [History panel](timeline.md).
+- **I picked a colour but the shape looks slightly different from the swatch.** The 3D
+  view lights the shape, so faces turned away from the light are darker than the swatch.
+  A selected shape also glows a little warmer. Click empty space to deselect it and see
+  the plain colour.
+- **Reset is greyed out, but the part I'm looking at is coloured.** It is showing the
+  whole part's colour (the readout says `(whole body)`). Step back up with the breadcrumb
+  and reset it there.
 - **The Inspector sheet keeps covering the 3D view on my phone.** Swipe it down by its
   grab handle. The view's own navigation controls move up out of the way while the sheet
   is open, so they are never trapped underneath it.

@@ -34,6 +34,16 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### ui-037 — Inspector color control (2026-09-25 21:15)
+
+Scenario 13 was driven in full at laptop Chromium and phone WebKit with real taps, plus data-005's per-part questions (closed below). What headless drives can't reach is the **native colour picker itself**: the OS dialog was emulated as its `input`/`change` stream on the real element. Everything else here is a look-and-feel judgement or a known geometric limit.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | On a real iPhone and iPad (Safari): tap the Color swatch for a selected body. Does the native picker open, does the body change colour **live** while you move around the picker (the `input` preview), and does closing it keep the colour and add exactly one Undo step? Then open it, move to a different colour and **dismiss without choosing**. Does the body go back to its committed colour, or stay showing the abandoned one? The preview clears on `change`, on a selection change, or when another body/part is picked. It deliberately does not clear on `blur`, because some engines blur when the picker opens. | Open | |
+| 2 | Dark mode (OS set to dark): select a recoloured body. Is its own colour still recognisable under the selection tint (`OVERRIDE_HIGHLIGHT_INTENSITY` 0.2, lowered from 0.35 during the drive because red read orange), and is it still obvious that it is selected? The drives ran in the light scheme. | Open | |
+| 3 | Drop a **Bolt**, look inside it, and colour `head` or `thread`: nothing visibly changes, because the visible `tap` clearance solid (±9.25 mm, 0-27 mm) encloses both. Measured, not a colour bug, and the same interpenetration `ui-016`'s VERIFY row flagged. Decide whether that is acceptable, or whether `tap` should render hidden/translucent (a recipe or `render-003` question). | Open | |
+
 ### data-005 — Per-body / per-part colour override, document model only (2026-09-25 13:57)
 
 No UI exists to create an override yet (`ui-037`), so nothing here is hand-checkable
@@ -46,8 +56,8 @@ different questions this task has no control to ask with yet.
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | Once `ui-037` exists: override a whole body's colour, then override one of its named sub-parts to a different colour. Does the rendered result read as "that one part is different", not as two colours silently fighting or the whole-body override winning unexpectedly? | Open | |
-| 2 | Same setup: clear the sub-part override (once `ui-037` builds a clear affordance — this task deliberately did not). Does the whole-body override reassert itself on that part, or does the part stay stuck at its old sub-part colour? | Open | |
+| 1 | Once `ui-037` exists: override a whole body's colour, then override one of its named sub-parts to a different colour. Does the rendered result read as "that one part is different", not as two colours silently fighting or the whole-body override winning unexpectedly? | OK | Decided and driven in `ui-037` (2026-09-25): a sub-part override wins on its own part and the whole-body override paints the rest (`src/core/colorOverride.js`). Group of two cubes at laptop Chromium and phone WebKit (touch): whole group red, Cube 2 blue rendered 182/4/4 vs 5/5/171, so it reads as "that one part is different". One caveat moved to `ui-037`'s entry below: on a **bolt**, the visible `tap` clearance solid encloses `head` and `thread`, so colouring either of those can't show through at all. |
+| 2 | Same setup: clear the sub-part override (once `ui-037` builds a clear affordance — this task deliberately did not). Does the whole-body override reassert itself on that part, or does the part stay stuck at its old sub-part colour? | OK | `ui-037` built the affordance: the Inspector's **Reset** appends a `style.recolor` with `colorOverride: null` (`document.clearColorOverride`), which drops only its own key and is one Undo step. Driven on the same group: Reset on Cube 2 made it 169/5/5, so the whole-body red takes over again. The readout says `#ff0000 (whole body)`, Reset disables, and Undo brings the blue back. |
 
 ### ui-046 — Nav chrome folds to a ✥ toggle while a phone sheet is open (2026-09-24 21:16)
 

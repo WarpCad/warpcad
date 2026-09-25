@@ -526,6 +526,7 @@ export class ReplayRejection extends Error {
  * @property {(id: string, record: OpRecord, transaction: TransactionOptions) => { scene: Scene }} replaceRecord
  * @property {(id: string, suppressed: boolean, transaction: TransactionOptions) => { scene: Scene }} setSuppressed
  * @property {(id: string, override: { color: number, colorAlpha?: number, subPart?: string }, transaction: TransactionOptions) => { record: OpRecord, scene: Scene }} setColorOverride
+ * @property {(id: string, target: { subPart?: string }, transaction: TransactionOptions) => { record: OpRecord, scene: Scene }} clearColorOverride
  * @property {(id: string, delta: number) => MoveLegality} canMove
  * @property {(id: string, delta: number, transaction: TransactionOptions) => { scene: Scene }} moveStep
  * @property {(index: number, records: readonly OpRecord[], transaction: TransactionOptions) => { records: OpRecord[], scene: Scene }} insertAt
@@ -578,8 +579,10 @@ const RECOLOR_OP = 'style.recolor'
  * Walked **root to terminal**, keeping the newest `style.recolor` record per
  * `subPart` (or per "the whole body", the `undefined` key) — so overriding
  * `usbc` and, later, `ethernet` tracks both independently, and re-overriding
- * `usbc` again only replaces its own entry. A lineage with no such record
- * returns `undefined`, the default-unchanged case every existing body keeps.
+ * `usbc` again only replaces its own entry. A record whose `colorOverride` is
+ * `null` is a reset (`TODO/ui-037`) and drops its own key. A lineage with no such
+ * record — or whose every override has since been reset — returns `undefined`,
+ * the default-unchanged case every existing body keeps.
  *
  * @param {readonly OpRecord[]} lineage Root-first, as `lineageOf` returns.
  * @returns {ColorOverride[] | undefined}
@@ -589,6 +592,13 @@ function colorOverridesOf(lineage) {
   const bySubPart = new Map()
   for (const record of lineage) {
     if (record.op !== RECOLOR_OP || record.colorOverride === undefined) continue
+    // `null` is a **reset** (`TODO/ui-037`'s `clearColorOverride`): it removes only
+    // its own key, so clearing one part's colour leaves the whole-body one — and
+    // every other part's — exactly as they were.
+    if (record.colorOverride === null) {
+      bySubPart.delete(record.subPart)
+      continue
+    }
     bySubPart.set(record.subPart, {
       color: record.colorOverride,
       ...(record.colorAlpha !== undefined ? { colorAlpha: record.colorAlpha } : {}),
@@ -621,6 +631,7 @@ const STEP_VERBS = Object.freeze({
   'modify.enlarge': 'Resize',
   'modify.fit': 'Fit',
   'modify.bisect': 'Bisect',
+  'style.recolor': 'Recolor',
 })
 
 /**
@@ -1388,6 +1399,12 @@ export function createDocument(options = {}) {
       subjectName = resolved === subject ? undefined : resolved
     }
 
+    // A colour pick and a colour reset are the same op, told apart by the value
+    // (`TODO/ui-037`) — "Recolor Cube 1" on a reset would claim a colour change
+    // the step did not make.
+    if (record.op === RECOLOR_OP && record.colorOverride === null) {
+      return subjectName === undefined ? 'Reset color' : `Reset color of ${subjectName}`
+    }
     const verb = /** @type {Record<string, string>} */ (STEP_VERBS)[record.op]
     if (verb !== undefined) {
       if (record.consumes !== undefined) return verb
@@ -2048,8 +2065,7 @@ export function createDocument(options = {}) {
      * same generosity `document.currentIdOf` already gives every other lookup
      * here.
      *
-     * There is deliberately no way to *clear* an override in this task: that
-     * is a real, separate need only once `TODO/ui-037` exists to drive it.
+     * Clearing one is {@link WarpDocument.clearColorOverride} (`TODO/ui-037`).
      *
      * @param {string} id
      * @param {{ color: number, colorAlpha?: number, subPart?: string }} override
@@ -2100,6 +2116,46 @@ export function createDocument(options = {}) {
         ...(override.subPart !== undefined ? { subPart: override.subPart } : {}),
       }
       return document.append(record, transaction)
+    },
+
+    /**
+     * TODO/ui-037: put a body (or one named sub-part) back to its default
+     * colour. Appends a `style.recolor` record whose `colorOverride` is `null` —
+     * the same unnamed, supersedes-based shape as {@link setColorOverride}, so a
+     * reset is one visible, undoable History step rather than a record quietly
+     * deleted out of the log (which would make Undo of the reset impossible and
+     * rewrite history the user already saw). `colorOverridesOf` reads the `null`
+     * as "drop this key", and only this key.
+     *
+     * Not validated against whether an override is actually in force: whether a
+     * reset is *worth* appending is the caller's judgement (the Inspector's
+     * Reset button is disabled when there is nothing of this key's own to
+     * reset), and refusing here would make a harmless no-op a thrown error.
+     *
+     * @param {string} id
+     * @param {{ subPart?: string }} target
+     * @param {TransactionOptions} transaction
+     */
+    clearColorOverride(id, target, transaction) {
+      const subPart = target?.subPart
+      if (subPart !== undefined && (typeof subPart !== 'string' || subPart.length === 0)) {
+        throw new Error(
+          'document.clearColorOverride: `subPart` must be a non-empty string, got ' + JSON.stringify(subPart)
+        )
+      }
+      const currentId = document.currentIdOf(id)
+      if (currentId === undefined) {
+        throw new Error(`document.clearColorOverride: no such body "${id}" in this document`)
+      }
+      const record = {
+        id: document.nextId(`${id}-color`),
+        op: RECOLOR_OP,
+        target: currentId,
+        supersedes: currentId,
+        colorOverride: null,
+        ...(subPart !== undefined ? { subPart } : {}),
+      }
+      return document.append(/** @type {OpRecord} */ (record), transaction)
     },
 
     /**

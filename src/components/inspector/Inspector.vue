@@ -101,6 +101,15 @@ import { useSketchPreviewStore } from '../../stores/sketchPreview.js'
 import { useTransformCommands } from '../../composables/useTransformCommands.js'
 import { useParamCommands } from '../../composables/useParamCommands.js'
 import { useSketchCommands } from '../../composables/useSketchCommands.js'
+import { useColorCommands } from '../../composables/useColorCommands.js'
+import { useColorPreviewStore } from '../../stores/colorPreview.js'
+import {
+  colorIntToCssHex,
+  cssHexToColorInt,
+  effectiveOverrideOf,
+  ownOverrideOf,
+} from '../../core/colorOverride.js'
+import { BODY_COLORS } from '../../render/mesh.js'
 import { lengthOf } from '../../sketch/entity.js'
 import { formatDeg, formatMmValue } from '../../core/units.js'
 
@@ -541,6 +550,110 @@ function commitParamComponent(event, key, index) {
   if (parsed === null || !selectedBody || !paramsEditable.value) return
   runParamEdit(() => paramCommands.setParamComponent(selectedBody.id, key, index, parsed))
 }
+
+// --- the Color control (TODO/ui-037) --------------------------------------
+
+const colorCommands = useColorCommands()
+const colorPreview = useColorPreviewStore()
+
+/**
+ * The part the Color control addresses: the drilled-into part's name, or
+ * `undefined` for the whole body. Unlike Transform and Parameters, colour *is*
+ * editable while drilled in — `TODO/data-005` gave `style.recolor` a `subPart`,
+ * so there is a record that means "just this part", which is exactly what those
+ * two sections lack.
+ */
+const colorPart = computed(() => body.value?.subPart?.partName)
+
+/**
+ * The selected body's overrides, read off the store's plain-data summaries — the
+ * same reactive source the scene list uses, so the swatch and the render cannot
+ * disagree about a body's colour.
+ */
+const bodyColorOverrides = computed(() => {
+  const id = body.value?.id
+  if (!id) return undefined
+  return documentStore.bodies.find((candidate) => candidate.id === id)?.colorOverrides
+})
+
+/** This key's own override — what Reset would clear. */
+const ownColor = computed(() => ownOverrideOf(bodyColorOverrides.value, colorPart.value))
+
+/** The override actually painting this part (its own, else the whole body's). */
+const effectiveColor = computed(() => effectiveOverrideOf(bodyColorOverrides.value, colorPart.value))
+
+/**
+ * The theme's default body colour, for a swatch with no override to show. Read
+ * from the same palette the viewport draws with, so "Default" swatches the colour
+ * the body really is on screen rather than an arbitrary grey.
+ */
+function defaultBodyColor() {
+  const light =
+    typeof window !== 'undefined' && window.matchMedia?.('(prefers-color-scheme: light)').matches
+  return (light ? BODY_COLORS.light : BODY_COLORS.dark).body
+}
+
+/** The swatch's `#rrggbb`: the live pick while the picker is open, else the truth. */
+const colorSwatchHex = computed(() => {
+  const selected = body.value
+  if (
+    selected &&
+    colorPreview.isActive &&
+    colorPreview.bodyId === selected.id &&
+    colorPreview.subPart === (colorPart.value ?? '')
+  ) {
+    return colorIntToCssHex(colorPreview.color)
+  }
+  return colorIntToCssHex(effectiveColor.value?.color ?? defaultBodyColor())
+})
+
+/** What the readout beside the swatch says. */
+const colorReadout = computed(() => {
+  if (ownColor.value) return colorIntToCssHex(ownColor.value.color)
+  if (effectiveColor.value) return `${colorIntToCssHex(effectiveColor.value.color)} (whole body)`
+  return 'Default'
+})
+
+/**
+ * `input`: the picker is still open — preview only, nothing written.
+ *
+ * @param {Event} event
+ */
+function onColorInput(event) {
+  const selected = body.value
+  const color = cssHexToColorInt(/** @type {HTMLInputElement} */ (event.target).value)
+  if (!selected || color === null) return
+  colorCommands.preview(selected.id, color, colorPart.value)
+}
+
+/**
+ * `change`: the user settled on a colour — one record, one Undo step.
+ *
+ * @param {Event} event
+ */
+function onColorChange(event) {
+  const selected = body.value
+  const color = cssHexToColorInt(/** @type {HTMLInputElement} */ (event.target).value)
+  if (!selected || color === null) {
+    colorCommands.cancelPreview()
+    return
+  }
+  colorCommands.setColor(selected.id, color, colorPart.value)
+}
+
+function onColorReset() {
+  const selected = body.value
+  if (!selected) return
+  colorCommands.resetColor(selected.id, colorPart.value)
+}
+
+// A preview belongs to the body (and part) it was started on. If the selection
+// moves while a picker is still open — or the picker is dismissed without a
+// `change`, then something else is selected — the old body must fall back to its
+// committed colour rather than keep a colour nobody chose.
+watch([() => body.value?.id, colorPart], () => {
+  if (colorPreview.isActive) colorCommands.cancelPreview()
+})
 </script>
 
 <template>
@@ -684,6 +797,44 @@ function commitParamComponent(event, key, index) {
         <p class="inspector__op" data-testid="inspector-op" :data-op="body.op">
           {{ body.opLabel }}
         </p>
+
+        <!-- The Color control (TODO/ui-037). Its own small section, and the first
+             one, because it is a single row: at phone width it is on screen the
+             moment the sheet opens, without scrolling past Parameters. -->
+        <section
+          class="inspector__section"
+          data-testid="inspector-color"
+          :data-color="effectiveColor ? colorIntToCssHex(effectiveColor.color) : ''"
+          :data-own-color="ownColor ? colorIntToCssHex(ownColor.color) : ''"
+          :data-color-part="colorPart ?? ''"
+        >
+          <h3 class="inspector__section-title">Color</h3>
+          <div class="inspector__color-row">
+            <input
+              class="inspector__swatch"
+              type="color"
+              data-testid="inspector-color-input"
+              :aria-label="`Color of ${colorPart ?? body.name}`"
+              :value="colorSwatchHex"
+              @input="onColorInput"
+              @change="onColorChange"
+            />
+            <span class="inspector__color-value" data-testid="inspector-color-value">{{ colorReadout }}</span>
+            <button
+              type="button"
+              class="inspector__color-reset"
+              data-testid="inspector-color-reset"
+              :disabled="!ownColor"
+              @click="onColorReset"
+            >
+              Reset
+            </button>
+          </div>
+          <p v-if="colorPart" class="inspector__note" data-testid="inspector-color-note">
+            This colours only {{ colorPart }}. Step back up to {{ body.subPart?.groupName }} to
+            colour the whole part; a colour set here stays on {{ colorPart }} either way.
+          </p>
+        </section>
 
         <section
           class="inspector__section"
@@ -860,6 +1011,59 @@ function commitParamComponent(event, key, index) {
 </template>
 
 <style scoped>
+/* The Color control (TODO/ui-037). The swatch is the tap target, so it is sized
+   like one — 44px square at every width, not shrunk to fit beside the text. */
+.inspector__color-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.inspector__swatch {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  padding: 2px;
+  border: 1px solid var(--border-strong, var(--border));
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  cursor: pointer;
+}
+
+.inspector__swatch:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.inspector__color-value {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--font-mono);
+  color: var(--text-2);
+  overflow-wrap: anywhere;
+}
+
+.inspector__color-reset {
+  flex: none;
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1px solid var(--border-strong, var(--border));
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  color: var(--text-1);
+  font: inherit;
+  cursor: pointer;
+}
+
+.inspector__color-reset:disabled {
+  color: var(--text-3);
+  cursor: default;
+}
+
+.inspector__color-reset:focus-visible {
+  outline: 2px solid var(--accent);
+}
+
 .inspector {
   display: flex;
   flex-direction: column;

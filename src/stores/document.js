@@ -56,6 +56,9 @@ import { useSelectionStore } from './selection.js'
  *   **`null` while a composite body's volume is still being measured** by the
  *   evaluation worker (`TODO/core-029`): it needs a kernel union, which no longer
  *   runs on the main thread. Never a guess — absent until it is known.
+ * @property {import('../core/document.js').ColorOverride[]} [colorOverrides] The
+ *   body's user colour overrides (`TODO/ui-037`), as `Body.colorOverrides` reports
+ *   them — absent when it has none. Plain JSON, so it is safe in this summary.
  * @property {string[]} partNames The body's **visible** named parts in group order, or
  *   `[]` for a bare solid (`TODO/ui-042`). Non-empty exactly when the body is drawn
  *   part-by-part (`hasNamedParts` — the condition `createBodyObject` uses), which is what
@@ -169,6 +172,7 @@ export function summarizeBody(body) {
     ]),
     bounds: /** @type {[[number, number, number], [number, number, number]]} */ ([min, max]),
     volumeMm3,
+    ...(body.colorOverrides !== undefined ? { colorOverrides: body.colorOverrides } : {}),
     partNames: composite ? [...geometry.names] : [],
     hiddenPartNames: composite
       ? Object.keys(geometry.parts).filter((name) => !geometry.names.includes(name))
@@ -280,6 +284,48 @@ export const useDocumentStore = defineStore('document', () => {
    */
   function append(record, transaction = {}) {
     appendAll([record], transaction)
+    return record
+  }
+
+  /**
+   * The `meta` every local step parks on the undo stack — see `appendAll`.
+   *
+   * @param {string} origin
+   */
+  function localMeta(origin) {
+    return origin === 'local' ? { selectionBefore: [...useSelectionStore().ids] } : undefined
+  }
+
+  /**
+   * Recolour a body, or one named sub-part of it (`TODO/ui-037`) — core's
+   * `setColorOverride`, routed through here for the same two reasons every other
+   * mutation is: the selection-before `meta` Undo restores, and one `refresh()`.
+   *
+   * @param {string} id
+   * @param {{ color: number, colorAlpha?: number, subPart?: string }} override
+   * @param {{ origin?: string }} [transaction]
+   * @returns {OpRecord}
+   */
+  function setColorOverride(id, override, transaction = {}) {
+    const origin = transaction.origin ?? 'local'
+    const { record } = raw.setColorOverride(id, override, { origin, meta: localMeta(origin) })
+    refresh()
+    return record
+  }
+
+  /**
+   * Reset a body's (or one sub-part's) colour to the default — core's
+   * `clearColorOverride`, routed through here like {@link setColorOverride}.
+   *
+   * @param {string} id
+   * @param {{ subPart?: string }} target
+   * @param {{ origin?: string }} [transaction]
+   * @returns {OpRecord}
+   */
+  function clearColorOverride(id, target, transaction = {}) {
+    const origin = transaction.origin ?? 'local'
+    const { record } = raw.clearColorOverride(id, target, { origin, meta: localMeta(origin) })
+    refresh()
     return record
   }
 
@@ -456,6 +502,8 @@ export const useDocumentStore = defineStore('document', () => {
     append,
     appendAll,
     batch,
+    setColorOverride,
+    clearColorOverride,
     undo,
     redo,
     refresh,

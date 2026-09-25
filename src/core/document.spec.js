@@ -1359,3 +1359,70 @@ describe('setColorOverride — user colour overrides (TODO/data-005)', () => {
     })
   })
 })
+
+describe('clearColorOverride — resetting a colour back to the default (TODO/ui-037)', () => {
+  it('clears a whole-body override: the body reports no override at all, as if never set', () => {
+    const document = doc()
+    document.append({ id: 'a', op: 'fake.box', name: 'Box 1' }, { origin: 'local' })
+    document.setColorOverride('a', { color: 0xff0000 }, { origin: 'local' })
+
+    const { record } = document.clearColorOverride('a', {}, { origin: 'local' })
+
+    expect(record.op).toBe('style.recolor')
+    expect(record.colorOverride).toBeNull()
+    expect(record.supersedes).toBe('a-color-1')
+    expect(record.name).toBeUndefined()
+    expect(document.bodies()[0].colorOverrides).toBeUndefined()
+  })
+
+  it('clears only the addressed key: a sub-part reset keeps the whole-body colour, and vice versa', () => {
+    const document = doc()
+    document.append({ id: 'a', op: 'fake.box', name: 'Board' }, { origin: 'local' })
+    document.setColorOverride('a', { color: 0xff0000 }, { origin: 'local' })
+    document.setColorOverride('a', { color: 0x0000ff, subPart: 'usbc' }, { origin: 'local' })
+
+    document.clearColorOverride('a', { subPart: 'usbc' }, { origin: 'local' })
+    expect(document.bodies()[0].colorOverrides).toEqual([{ color: 0xff0000 }])
+
+    document.setColorOverride('a', { color: 0x0000ff, subPart: 'usbc' }, { origin: 'local' })
+    document.clearColorOverride('a', {}, { origin: 'local' })
+    expect(document.bodies()[0].colorOverrides).toEqual([{ color: 0x0000ff, subPart: 'usbc' }])
+  })
+
+  it('a colour set after a reset is in force again', () => {
+    const document = doc()
+    document.append({ id: 'a', op: 'fake.box' }, { origin: 'local' })
+    document.setColorOverride('a', { color: 0xff0000 }, { origin: 'local' })
+    document.clearColorOverride('a', {}, { origin: 'local' })
+    document.setColorOverride('a', { color: 0x00ff00 }, { origin: 'local' })
+    expect(document.bodies()[0].colorOverrides).toEqual([{ color: 0x00ff00 }])
+  })
+
+  it('is one undo step, and Undo brings the cleared colour back', () => {
+    const document = doc()
+    document.append({ id: 'a', op: 'fake.box', name: 'Box 1' }, { origin: 'local' })
+    document.setColorOverride('a', { color: 0xff0000 }, { origin: 'local' })
+    document.clearColorOverride('a', {}, { origin: 'local' })
+    expect(document.pendingUndo()?.label).toBe('Reset color of Box 1')
+    document.undo()
+    expect(document.bodies()[0].colorOverrides).toEqual([{ color: 0xff0000 }])
+  })
+
+  it('refuses a malformed subPart and an unknown body, appending nothing', () => {
+    const document = doc()
+    document.append({ id: 'a', op: 'fake.box' }, { origin: 'local' })
+    const before = document.records.length
+    expect(() => document.clearColorOverride('a', { subPart: '' }, { origin: 'local' })).toThrow(/subPart/)
+    expect(() => document.clearColorOverride('nope', {}, { origin: 'local' })).toThrow(/no such body/)
+    expect(document.records.length).toBe(before)
+  })
+})
+
+describe('a colour pick names itself in Undo (TODO/ui-037)', () => {
+  it('labels a recolour "Recolor <body>", not the generic "Edit <body>"', () => {
+    const document = doc()
+    document.append({ id: 'a', op: 'fake.box', name: 'Box 1' }, { origin: 'local' })
+    document.setColorOverride('a', { color: 0xff0000 }, { origin: 'local' })
+    expect(document.pendingUndo()?.label).toBe('Recolor Box 1')
+  })
+})

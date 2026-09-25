@@ -6,8 +6,78 @@ priority: medium
 model: opus
 milestone: M7
 depends: [data-005, ui-011]
-status: open
+status: done
 ---
+
+> **What shipped (2026-09-25).** The control as specified, plus the two design answers
+> `data-005` left open, plus one change made during the Step 6 drive.
+>
+> **Trigger (the Step 2 decision):** a separate **Color** section, the *first* one in the
+> Inspector, directly under the name/op line and above Parameters. It is one row: a
+> 44x44 native `<input type=color>` swatch, a `#rrggbb`/`Default` readout, and a 44px-tall
+> **Reset** button. It goes first because it is a single row, so at 390 px it is on screen
+> the moment the sheet opens, with no scrolling past Parameters. It is enabled for exactly
+> one body, **including a drilled-in sub-part**. Transform and Parameters are frozen in
+> that state because nothing can address "just this part", but `style.recolor`'s `subPart`
+> can.
+>
+> **Preview and commit, one Undo step per pick.** `input` goes to a new UI-only
+> `stores/colorPreview.js` (three scalar refs, the `transformPreview` pattern), which the
+> viewport paints onto one **reused** preview material mutated in place, so no record and
+> no allocation per event. `change` goes to `useColorCommands.setColor`, which writes one
+> `style.recolor` through a new store entry point (`documentStore.setColorOverride`,
+> carrying the same selection-before `meta` and `refresh()` as every other mutation). A
+> second pick on the same body **supersedes the first pick's record**, chaining on the
+> lineage terminal; the spec asserts `second.supersedes === first.id`, one record per pick,
+> and that one Undo returns exactly the previous pick. Re-picking the colour in force
+> is a no-op, and an existing `colorAlpha` survives a hue re-pick. A preview is dropped
+> when the selection (body or part) changes. `ui-044`'s `batch` was not needed: a colour
+> pick is one record, never three.
+>
+> **The two design questions `data-005` left in VERIFY.md, decided:** (1) precedence, in
+> the new framework-free `src/core/colorOverride.js`: a part's own override wins,
+> otherwise the whole-body one applies, otherwise the theme palette. So "whole board red,
+> USB-C blue" reads as that one part being different. (2) **Clearing**, which was cheap and
+> consistent, so it was built: `document.clearColorOverride(id, { subPart? }, tx)` appends
+> a `style.recolor` with `colorOverride: null`, and `colorOverridesOf` drops only that key.
+> That makes reset a visible, undoable History step rather than a deleted record. Both
+> were driven and the VERIFY rows are closed `OK`.
+>
+> **`src/render/mesh.js`, as recommended but keyed by colour rather than by body.**
+> `createColorMaterialCache` holds one `MeshStandardMaterial` per `colour x alpha x
+> selection role`, so bodies sharing a colour share a material, and a body with no
+> override allocates **nothing** and keeps the three shared palette materials (the
+> regression guard asserts the very same instances). Materials are created at commit or
+> selection-change rate, never per frame, and are disposed in `endPass()` once no body
+> uses them. `paintBodyObject` replaces `Viewport.vue`'s inline material loop and applies
+> the precedence per part mesh. **Selected recoloured bodies keep their colour** and add
+> the selection colour as emissive (`OVERRIDE_HIGHLIGHT_INTENSITY`). Swapping to amber
+> would hide the pick, and the control is only reachable *while* the body is selected.
+> The tint shipped at **0.2, not the first-cut 0.35**: the Step 6 drive showed a picked
+> pure red reading visibly orange at 0.35 (217/78/24).
+>
+> **Scope grew past Affected files, each for a stated reason:**
+> - `core/document.js`: `clearColorOverride`, the `null` reset in `colorOverridesOf`, and
+>   Undo labels `Recolor X` / `Reset color of X` (it previously said `Edit X`).
+> - `core/timelineLabel.js`: History rows `Color #ff0000 on Cube 1`, `Color usbc #0000ff
+>   on Board`, `Reset color on Cube 1` (it previously said `— edited`).
+> - `kernel/registry.js`: typedef only.
+> - `stores/document.js`: the two entry points, plus `colorOverrides` on `BodySummary`.
+> - `Viewport.vue`: the scene list's `data-body-color` / `data-body-part-colors`.
+>
+> **Deliberately not done, and filed:** rendering composite recipes' *own* baked-in
+> `Group.colors` (`core-026`). That is a separate precedence tier with its own
+> transparency question on the Pi boards, now `TODO/render-003`. Bodies still draw recipe
+> parts in the palette until a user overrides them.
+>
+> **Verified:** RED first for every new unit case, then GREEN. The new e2e was proven to
+> bite by sabotaging the render path, and that exposed a too-weak "selected cube is red"
+> assertion, which was tightened. Full non-Firefox matrix: 1269 passed, 202 skipped,
+> 0 failed. Scenario 13 (first drive) and scenario 1 were driven at laptop Chromium and
+> phone WebKit touch, both PASS. `core-020`'s repro, re-run on bolt and washer after
+> sub-part and whole-body recolours and a reset: part lists, bounds and the plate are
+> unchanged, and the subtract matches the batch path. Firefox is environment-blocked
+> (TROUBLESHOOTING.md 2026-09-17), as for every task since `ui-028`.
 
 ## Goal
 

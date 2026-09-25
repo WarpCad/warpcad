@@ -31,6 +31,7 @@ import {
   MeshStandardMaterial,
 } from 'three'
 
+import { effectiveOverrideOf } from '../core/colorOverride.js'
 import { hasNamedParts, toGeom3 } from '../core/kernel/group.js'
 
 /** @typedef {import('@jscad/modeling').geometries.geom3.Geom3} Geom3 */
@@ -267,6 +268,201 @@ export const BODY_COLORS = Object.freeze({
  */
 export function createBodyMaterial(color) {
   return new MeshStandardMaterial({ color, metalness: 0.08, roughness: 0.55, flatShading: false })
+}
+
+/**
+ * How strongly a **recoloured** body glows in its selection colour (`TODO/ui-037`).
+ *
+ * A body without an override shows selection by swapping to the amber/teal
+ * palette material, and that stays exactly as it was. A recoloured body cannot:
+ * painting it amber while selected would hide the very colour the user is picking
+ * — and the Inspector's Color control is only reachable *while* the body is
+ * selected, so the pick would never be visible until after a deselect. Instead it
+ * keeps its own colour and adds the selection colour as emissive light: red reads
+ * as a brighter, warmer red, which is still unmistakably "the red one, selected".
+ * Strong enough to read against the unselected copy of the same colour, weak
+ * enough not to wash the hue out. Judged on screen in `ui-037`'s Step 6 drive:
+ * 0.35 turned a picked pure red visibly orange (measured 217/78/24 against the
+ * unselected 182/4/4) — a user who just chose red would reasonably read that as
+ * the wrong colour — so it was lowered to 0.2. Selection is still unambiguous:
+ * the gizmo, its rings and the dimension lines all attach to the body too.
+ */
+export const OVERRIDE_HIGHLIGHT_INTENSITY = 0.2
+
+/** @typedef {'none' | 'base' | 'secondary'} SelectionRole */
+
+/**
+ * @typedef {object} ColorMaterialCache
+ * @property {() => void} beginPass Start a repaint: nothing is marked in use yet.
+ * @property {() => void} endPass End a repaint: dispose every cached material the
+ *   pass did not ask for — the only place an override material is ever freed, so a
+ *   body that is deleted, reset, or recoloured releases its old material here.
+ * @property {(color: number, colorAlpha: number | undefined, role: SelectionRole) => MeshStandardMaterial} materialFor
+ *   The one material for this colour/alpha/role, created on first use.
+ * @property {(color: number, role: SelectionRole) => MeshStandardMaterial} previewMaterial
+ *   The live picker preview's material, **reused and repainted in place** — a picker
+ *   fires `input` at pointer rate, and one material per colour it passes through
+ *   would allocate and dispose on every event.
+ * @property {(highlights: { selected: number, secondary: number }) => void} setHighlights
+ *   Retint every highlight (a colour-scheme switch).
+ * @property {() => void} dispose Release everything.
+ * @property {number} size How many override materials are cached (not counting
+ *   the preview ones) — for tests and for the curious.
+ */
+
+/**
+ * Per-colour materials for bodies carrying a user colour override (`TODO/ui-037`).
+ *
+ * ## Why keyed by colour rather than by body
+ *
+ * The TODO proposed one material per body. Keying by `colour × alpha × selection
+ * role` is that, minus the duplicates: every body the user painted the same red
+ * shares one material, and a body with no override allocates nothing at all — it
+ * keeps using the viewport's three shared palette materials, unchanged. Nothing
+ * here is created per frame: a material is made the first time a colour is
+ * painted (a commit, a selection change) and freed by {@link ColorMaterialCache.endPass}
+ * once no body uses it.
+ *
+ * @param {{ selected: number, secondary: number }} highlights Selection colours
+ *   of the current theme.
+ * @returns {ColorMaterialCache}
+ */
+export function createColorMaterialCache(highlights) {
+  /** @type {Map<string, { material: MeshStandardMaterial, role: SelectionRole }>} */
+  const materials = new Map()
+  /** @type {Set<string>} */
+  const used = new Set()
+  /** @type {Map<SelectionRole, MeshStandardMaterial>} */
+  const previews = new Map()
+  let selected = highlights.selected
+  let secondary = highlights.secondary
+
+  /**
+   * @param {MeshStandardMaterial} material
+   * @param {SelectionRole} role
+   */
+  function tint(material, role) {
+    if (role === 'none') {
+      material.emissive.setHex(0x000000)
+      material.emissiveIntensity = 1
+      return
+    }
+    material.emissive.setHex(role === 'base' ? selected : secondary)
+    material.emissiveIntensity = OVERRIDE_HIGHLIGHT_INTENSITY
+  }
+
+  return {
+    beginPass() {
+      used.clear()
+    },
+
+    endPass() {
+      for (const [key, entry] of materials) {
+        if (used.has(key)) continue
+        entry.material.dispose()
+        materials.delete(key)
+      }
+    },
+
+    materialFor(color, colorAlpha, role) {
+      const alpha = colorAlpha ?? 1
+      const key = `${color}:${alpha}:${role}`
+      used.add(key)
+      const existing = materials.get(key)
+      if (existing) return existing.material
+      const material = createBodyMaterial(color)
+      if (alpha < 1) {
+        material.transparent = true
+        material.opacity = alpha
+      }
+      tint(material, role)
+      materials.set(key, { material, role })
+      return material
+    },
+
+    previewMaterial(color, role) {
+      let material = previews.get(role)
+      if (!material) {
+        material = createBodyMaterial(color)
+        previews.set(role, material)
+      }
+      material.color.setHex(color)
+      tint(material, role)
+      return material
+    },
+
+    setHighlights(next) {
+      selected = next.selected
+      secondary = next.secondary
+      for (const { material, role } of materials.values()) tint(material, role)
+      for (const [role, material] of previews) tint(material, role)
+    },
+
+    dispose() {
+      for (const { material } of materials.values()) material.dispose()
+      for (const material of previews.values()) material.dispose()
+      materials.clear()
+      previews.clear()
+      used.clear()
+    },
+
+    get size() {
+      return materials.size
+    },
+  }
+}
+
+/**
+ * Paint one body object — a bare mesh, or {@link createBodyObject}'s container of
+ * part meshes — for its selection role and its colour overrides (`TODO/ui-037`).
+ *
+ * Per part, in order:
+ *
+ * 1. a live **preview** for this part (the picker is open) — its whole-body form
+ *    does not paint over a part that has its own override, because committing it
+ *    would not either (`src/core/colorOverride.js`'s precedence rule);
+ * 2. the part's **effective override** — its own, else the whole-body one;
+ * 3. otherwise the **shared palette material** for the role, the very instance the
+ *    viewport has always used, so a body nobody recoloured draws exactly as before.
+ *
+ * @param {Mesh | ThreeGroup} object
+ * @param {{
+ *   role: SelectionRole,
+ *   overrides: readonly import('../core/document.js').ColorOverride[] | undefined,
+ *   preview: { color: number, subPart?: string } | null,
+ *   shared: { body: MeshStandardMaterial, selected: MeshStandardMaterial, secondary: MeshStandardMaterial },
+ *   cache: ColorMaterialCache,
+ * }} options
+ * @returns {void}
+ */
+export function paintBodyObject(object, { role, overrides, preview, shared, cache }) {
+  const palette = role === 'base' ? shared.selected : role === 'secondary' ? shared.secondary : shared.body
+
+  /**
+   * @param {string | undefined} partName
+   * @returns {MeshStandardMaterial}
+   */
+  const materialForPart = (partName) => {
+    if (preview) {
+      const previewsThisPart =
+        preview.subPart === undefined || preview.subPart === ''
+          ? // A whole-body pick: every part except one with a colour of its own.
+            !(partName !== undefined && overrides?.some((entry) => entry.subPart === partName))
+          : preview.subPart === partName
+      if (previewsThisPart) return cache.previewMaterial(preview.color, role)
+    }
+    const override = effectiveOverrideOf(overrides, partName)
+    return override ? cache.materialFor(override.color, override.colorAlpha, role) : palette
+  }
+
+  if (object instanceof ThreeGroup) {
+    for (const child of object.children) {
+      const mesh = /** @type {Mesh} */ (child)
+      mesh.material = materialForPart(mesh.userData.partName)
+    }
+    return
+  }
+  /** @type {Mesh} */ (object).material = materialForPart(undefined)
 }
 
 /**
