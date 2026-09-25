@@ -32,6 +32,9 @@
  * `hardware.washer.js`'s own module doc gives for why no V1 base-at-zero placement
  * needs reproducing here either.
  *
+ * No colour either (checked for `TODO/core-026`): with no V1 factory there is no V1
+ * `.color(...)` call to port, and choosing one would be a design decision, not a port.
+ *
  * @module core/kernel/recipes/hardware.bearing
  */
 

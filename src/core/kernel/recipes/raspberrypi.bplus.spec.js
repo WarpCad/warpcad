@@ -553,3 +553,28 @@ describe('degenerate params are rejected at the recipe boundary', () => {
     expect(() => bplus({ model: 4, clearance: -2 })).toThrow(/raspberrypi\.bplus: clearance/)
   })
 })
+
+describe('raspberrypi.bplus: the alpha-channel colour V1 gave the board (TODO/core-026)', () => {
+  // V1, re-read for core-026 — `jscad-raspberrypi@62a8e3b` `src/bplus.js:620-622`:
+  //   var mb = RPiParts.BPlusMotherboard(3);
+  //   var group = Group('mb', mb);
+  // and `src/rpi-parts.js:11-13`:
+  //   return Parts.Board(85, 56, corner, 1.32).color('green', 0.75);
+  // Every other part's opaque `.color(...)` is not ported yet (TODO/core-033).
+  it('emits green at alpha 0.75 on the mb record', () => {
+    const records = expand('raspberrypi.bplus', { model: 4 })
+    const board = records.filter((record) => record.name === 'mb')
+    expect(board).toHaveLength(1)
+    expect(board[0]).toMatchObject({ color: 0x008000, colorAlpha: 0.75 })
+  })
+
+  it('the evaluated group carries it as the part colour', () => {
+    const group = evaluateOp('raspberrypi.bplus', { model: 4 })
+    expect(isGroup(group) && group.colors.mb).toEqual({ color: 0x008000, alpha: 0.75 })
+  })
+
+  it.each(BPLUS_MODELS.map((model) => [model]))('model %s: the same board colour', (model) => {
+    const mb = expand('raspberrypi.bplus', { model }).find((record) => record.name === 'mb')
+    expect(mb).toMatchObject({ color: 0x008000, colorAlpha: 0.75 })
+  })
+})

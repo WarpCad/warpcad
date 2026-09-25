@@ -172,3 +172,20 @@ describe('degenerate boards are rejected at the boundary, not silently built', (
     expect(() => evaluateOp('kit.board', { width: 40, height: 30, cornerRadius: 14.9 })).not.toThrow()
   })
 })
+
+describe("part colour: V1's Board never coloured itself (TODO/core-026)", () => {
+  // V1, re-read for core-026 — `jscad-utils@3.2.0` `jscad-utils-parts.jscad:147-157`
+  // and `jscad-utils@6.0.0` `src/parts.js:418-430` are the same body, and neither calls
+  // `.color(...)`:
+  //   var board = CAG.roundedRectangle({ center: [r[0], r[1], 0], radius: r,
+  //     roundradius: corner_radius }).extrude({ offset: [0, 0, thickness || 1.62] });
+  //   return board;
+  // The coloured boards in the real corpus colour them at the call site
+  // (e.g. `jscad-raspberrypi`'s `Parts.Board(...).color('green', 0.75)`).
+  it('emits no colour on any record — there is no V1 .color() here to port', () => {
+    for (const record of expand('kit.board', { width: 40, height: 30, cornerRadius: 3, thickness: 2 })) {
+      expect(record).not.toHaveProperty('color')
+      expect(record).not.toHaveProperty('colorAlpha')
+    }
+  })
+})

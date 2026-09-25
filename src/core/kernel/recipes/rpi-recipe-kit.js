@@ -88,6 +88,9 @@ export function degToRad(degrees) {
  *   emitted as a second translate on top of the rotation. See {@link move}.
  * @property {string} [name] Set by {@link place}.
  * @property {boolean} [hidden]
+ * @property {number} [color] Set by {@link place}: V1's `.color(...)` as `0xRRGGBB`
+ *   (TODO/core-026).
+ * @property {number} [colorAlpha] Set by {@link place}, only when not opaque.
  * @property {boolean} [finalized] Internal: {@link Builder} has emitted its records.
  * @property {OpRecord} [finalRecord] Internal: the record a label attaches to.
  */
@@ -627,11 +630,22 @@ export function boundsOfPart(part) {
  */
 
 /**
+ * How a part is labelled when placed. `color`/`colorAlpha` are the record fields
+ * `../colors.js`'s `v1ColorToRecord` returns, so a recipe writes
+ * `builder.place(mb, 'mb', v1ColorToRecord('green', 0.75))` (TODO/core-026).
+ *
+ * @typedef {object} PlaceOptions
+ * @property {boolean} [hidden]
+ * @property {number} [color]
+ * @property {number} [colorAlpha]
+ */
+
+/**
  * The expansion under construction: an ordered record list plus the parts named in it.
  *
  * @typedef {object} Builder
  * @property {(part: Part) => string} finalize
- * @property {(part: Part, name: string | null, options?: { hidden?: boolean }) => Part} place
+ * @property {(part: Part, name: string | null, options?: PlaceOptions) => Part} place
  *   `name: null` places a pure intermediate — a cutting tool, or the un-booleaned half
  *   of a part V1 only ever exposes through its boolean — that is built but not labelled.
  * @property {(name: string, parts: readonly Part[]) => void} placeUnion
@@ -704,12 +718,14 @@ export function createBuilder() {
   /**
    * @param {Part} part
    * @param {string | null} name
-   * @param {{ hidden?: boolean }} [options]
+   * @param {PlaceOptions} [options]
    * @returns {Part}
    */
   function place(part, name, options = {}) {
     if (name !== null) part.name = name
     if (options.hidden) part.hidden = true
+    if (options.color !== undefined) part.color = options.color
+    if (options.colorAlpha !== undefined) part.colorAlpha = options.colorAlpha
     placed.push({ kind: 'part', part })
     return part
   }
@@ -768,6 +784,8 @@ export function createBuilder() {
         const record = /** @type {OpRecord} */ (part.finalRecord)
         if (part.name) record.name = part.name
         if (part.hidden) record.hidden = true
+        if (part.color !== undefined) record.color = part.color
+        if (part.colorAlpha !== undefined) record.colorAlpha = part.colorAlpha
       }
       return records
     },

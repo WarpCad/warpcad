@@ -57,6 +57,9 @@
  * the frame's measured outer size is `40 ± 1e-4`, not `40`. The spec asserts with a
  * millimetre tolerance for that reason and not out of vagueness.
  *
+ * **No colour** (checked for `TODO/core-026`): V1's `BoardFrame`, quoted above, never
+ * calls `.color()`, so there was nothing to port.
+ *
  * @module core/kernel/recipes/kit.boardFrame
  */
 

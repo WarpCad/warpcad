@@ -85,6 +85,7 @@
  * @module core/kernel/recipes/raspberrypi.bplus
  */
 
+import { v1ColorToRecord } from '../colors.js'
 import { calcSnap } from '../group.js'
 import { BPLUS_BOARD, MOUNTING_HOLES_MM, rpiParts } from '../tables/rpi-parts.js'
 import {
@@ -590,7 +591,9 @@ export function bplus(params) {
   const builder = createBuilder()
 
   const mb = boardPart('mb', BPLUS_BOARD.bplusCornerRadiusMm)
-  builder.place(mb, 'mb')
+  // V1 `src/rpi-parts.js:12`: `Parts.Board(85, 56, corner, 1.32).color('green', 0.75)`
+  // (TODO/core-026). The other parts' opaque colours are TODO/core-033.
+  builder.place(mb, 'mb', v1ColorToRecord('green', 0.75))
 
   if (model < 4) addModelB(builder, { model, mb })
   else if (model === 4) addPi4(builder, { mb, clearanceMm })

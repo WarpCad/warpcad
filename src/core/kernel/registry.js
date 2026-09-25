@@ -132,6 +132,11 @@ import { touchScreen2 } from './recipes/raspberrypi.touchScreen2.js'
  *   independently selectable bodies.
  * @property {string} [name] Names the result as a part of the resulting group.
  * @property {boolean} [hidden] Named but excluded from the group's default combine.
+ * @property {number} [color] The named part's colour as a `0xRRGGBB` integer
+ *   (TODO/core-026). Composite recipes set it from V1's `.color(name)` through
+ *   `./colors.js`'s `v1ColorToRecord`. Absent means uncoloured, not a default colour.
+ * @property {number} [colorAlpha] Its alpha in `(0, 1]` — V1's `.color(name, alpha)`.
+ *   Omitted when 1, and never present without `color`.
  */
 
 /**

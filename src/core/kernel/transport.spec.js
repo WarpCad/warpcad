@@ -119,3 +119,28 @@ describe('packGeometry / unpackGeometry (perf-001)', () => {
     expect(vertexDump(back[0].solid)).toBe(vertexDump(solid))
   })
 })
+
+describe('part colours survive the worker boundary (TODO/core-026)', () => {
+  it("round-trips a Group's part colours through a real structuredClone", () => {
+    let group = createGroup('washer')
+    group = add(group, primitives.cuboid({ size: [4, 4, 1] }), 'washer', { color: 0x808080 })
+    group = add(group, primitives.cuboid({ size: [5, 5, 1] }), 'clearance', {
+      hidden: true,
+      color: 0xff0000,
+      colorAlpha: 0.5,
+    })
+    const back = /** @type {any} */ (unpackGeometry(roundTrip(packGeometry(group))))
+    expect(back.colors).toEqual(group.colors)
+    expect(back.colors).toEqual({
+      washer: { color: 0x808080, alpha: 1 },
+      clearance: { color: 0xff0000, alpha: 0.5 },
+    })
+  })
+
+  it('unpacks an older packed group with no colours as an uncoloured group', () => {
+    const back = /** @type {any} */ (
+      unpackGeometry({ kind: 'group', name: 'old', names: [], parts: {}, holes: [] })
+    )
+    expect(back.colors).toEqual({})
+  })
+})

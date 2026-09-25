@@ -5,6 +5,7 @@ import { isGroup } from '../group.js'
 import { evaluate, evaluateOp, expand } from '../index.js'
 import { FIT_CLEARANCE_MM } from '../tables/fit-clearances.js'
 import { MetricWashers, washerSpecs } from '../tables/washer-specs.js'
+import { hexToUnitRgb } from '../colors.js'
 import { washer } from './hardware.washer.js'
 
 import v1Reference from './__fixtures__/hardware.washer.v1-reference.json'
@@ -59,6 +60,7 @@ describe('the washer recipe expands into op records, it does not build a mesh', 
           height: washerSpecs['1/4'].thicknessMm,
         },
         name: 'washer',
+        color: 0x808080,
       },
     ])
   })
@@ -75,6 +77,7 @@ describe('the washer recipe expands into op records, it does not build a mesh', 
           height: washerSpecs['1/4'].thicknessMm,
         },
         name: 'washer',
+        color: 0x808080,
       },
       {
         id: 'clearance',
@@ -85,6 +88,7 @@ describe('the washer recipe expands into op records, it does not build a mesh', 
         },
         name: 'clearance',
         hidden: true,
+        color: 0xff0000,
       },
     ])
   })
@@ -232,6 +236,7 @@ describe('metric sizes exercised through the recipe itself (no V1 fixture; shape
           height: MetricWashers.m6.thicknessMm,
         },
         name: 'washer',
+        color: 0x808080,
       },
     ])
     const group = asGroup(evaluateOp('hardware.washer', { spec: 'm6' }))
@@ -250,6 +255,7 @@ describe('metric sizes exercised through the recipe itself (no V1 fixture; shape
           height: MetricWashers.m6.thicknessMm,
         },
         name: 'washer',
+        color: 0x808080,
       },
       {
         id: 'clearance',
@@ -260,10 +266,52 @@ describe('metric sizes exercised through the recipe itself (no V1 fixture; shape
         },
         name: 'clearance',
         hidden: true,
+        color: 0xff0000,
       },
     ])
     const group = asGroup(evaluateOp('hardware.washer', { spec: 'm6', fit: 'loose' }))
     expect(group.names).toEqual(['washer'])
     expect(Object.keys(group.parts).sort()).toEqual(['clearance', 'washer'])
+  })
+})
+
+describe('part colours, diffed against measured V1 output (TODO/core-026)', () => {
+  // V1, `jscad-hardware.jscad:57-76` (re-read for core-026):
+  //   w.add(Parts.Tube(washer.od, washer.id, washer.thickness).color('gray'), 'washer');
+  //   w.add(Parts.Cylinder(washer.od + Hardware.Clearances[fit], washer.thickness).color('red'),
+  //     'clearance');
+  // The fixture's `color` is what V1's real `.color()` left on every polygon, as
+  // `[r, g, b, a]` in 0-1; `hexToUnitRgb` is the same `/ 255` V1 did, so exact equality.
+
+  it('emits gray on washer and red on the hidden clearance', () => {
+    const records = washer({ spec: '1/4', fit: 'loose' }, tables)
+    expect(records.find((record) => record.name === 'washer')).toMatchObject({ color: 0x808080 })
+    expect(records.find((record) => record.name === 'clearance')).toMatchObject({
+      color: 0xff0000,
+      hidden: true,
+    })
+    for (const record of records) expect(record).not.toHaveProperty('colorAlpha')
+  })
+
+  it.each(v1Reference.cases.map((testCase) => [String(testCase.params.fit), testCase]))(
+    'fit %s: every record colour equals the colour V1 left on that part',
+    (_fit, testCase) => {
+      const { spec, fit } = testCase.params
+      const records = washer({ spec, ...(fit === null ? {} : { fit }) }, tables)
+      for (const [partName, expected] of Object.entries(testCase.parts)) {
+        const record = records.find((candidate) => candidate.name === partName)
+        expect(record?.color, partName).toBeTypeOf('number')
+        const actual = [...hexToUnitRgb(/** @type {number} */ (record?.color)), record?.colorAlpha ?? 1]
+        expect(actual, partName).toEqual(expected.color)
+      }
+    }
+  )
+
+  it('the evaluated group carries the same colours', () => {
+    const group = asGroup(evaluateOp('hardware.washer', { spec: '1/4', fit: 'loose' }))
+    expect(group.colors).toEqual({
+      washer: { color: 0x808080, alpha: 1 },
+      clearance: { color: 0xff0000, alpha: 1 },
+    })
   })
 })

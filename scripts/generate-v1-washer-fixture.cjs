@@ -25,8 +25,9 @@
  * `TODO/core-011` both ask for: none of this is app code, so a shared helper module
  * would be one more thing living outside `src/` for no runtime benefit.
  *
- * `.color()` is stubbed to identity, same as the bolt/nut generators: this fixture
- * only records dimensions.
+ * `.color()` is V1's real one (TODO/core-026), same as the bolt/nut generators, so
+ * each part's colour is recorded alongside its dimensions — `.color('gray')` on
+ * `washer`, `.color('red')` on `clearance`, as measured rather than as read.
  *
  * None of the above touches files on disk; every patch is applied to an in-memory
  * copy of the bundle source.
@@ -81,9 +82,11 @@ function setUpV1() {
   const scadApi = require(require.resolve('@jscad/scad-api', { paths: [utilsDir] }))
 
   jscadUtils.init.default(CSG)
-  CSG.prototype.color = function color() {
-    return this
-  }
+  // TODO/core-026: V1's real `.color()`, from its own `jscad-utils-color.jscad` loaded
+  // verbatim, not an identity stub, so the fixture records the colour V1 actually
+  // leaves on each part (`colorOf` below) alongside the dimensions.
+  const Colors = loadJscadScript('node_modules/jscad-utils/jscad-utils-color.jscad', 'Colors', {})
+  Colors.init(CSG)
 
   util.group = jscadUtils.group
   util.array = array
@@ -106,6 +109,21 @@ function setUpV1() {
   )
 
   return { Hardware, washerTables: { ...ImperialWashers } }
+}
+
+/**
+ * The colour V1 left on a solid, as `[r, g, b, a]` in 0-1, or `null` when V1 never
+ * coloured it — read off every polygon's `shared.color`, which is where V1's
+ * `setColor` puts it (TODO/core-026). Throws if the polygons disagree: one colour per
+ * part is what a V3 op record can carry, so a mixed part must fail loudly here rather
+ * than be summarised.
+ */
+function colorOf(csg) {
+  const seen = new Set(
+    csg.polygons.map((polygon) => JSON.stringify((polygon.shared && polygon.shared.color) || null))
+  )
+  if (seen.size !== 1) throw new Error(`solid carries ${seen.size} colours: ${[...seen].join(' ')}`)
+  return JSON.parse([...seen][0])
 }
 
 const round = (n) => Number(n.toFixed(9))
@@ -157,7 +175,11 @@ function main() {
 
     const parts = {}
     for (const key of Object.keys(group.parts)) {
-      parts[key] = { bounds: boundsOf(group.parts[key]), volume: volumeOf(group.parts[key]) }
+      parts[key] = {
+        bounds: boundsOf(group.parts[key]),
+        volume: volumeOf(group.parts[key]),
+        color: colorOf(group.parts[key]),
+      }
     }
 
     return {

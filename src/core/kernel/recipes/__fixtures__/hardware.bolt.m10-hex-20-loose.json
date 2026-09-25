@@ -1,5 +1,5 @@
 {
-  "$comment": "The full expansion of one `hardware.bolt` document line into the same op/params vocabulary the document itself uses (Initial design.md §3, §4). Hand-written from the measured behaviour of jscad-hardware V1 `Hardware.Bolt(20, MetricBolts['m10 hex'], 'loose')` — see hardware.bolt.v1-reference.json for the dimensions this is checked against. Millimetres, Z-up. `hardware.bolt.spec.js` asserts the recipe reproduces this exactly.",
+  "$comment": "The full expansion of one `hardware.bolt` document line into the same op/params vocabulary the document itself uses (Initial design.md §3, §4). Hand-written from the measured behaviour of jscad-hardware V1 `Hardware.Bolt(20, MetricBolts['m10 hex'], 'loose')` — see hardware.bolt.v1-reference.json for the dimensions this is checked against. Millimetres, Z-up. `hardware.bolt.spec.js` asserts the recipe reproduces this exactly. Each named record's `color` is V1's own `.color(...)` on that part as a 0xRRGGBB integer, written in decimal because JSON has no hex literal: 8421504 = 0x808080 gray (head), 12632256 = 0xc0c0c0 silver (thread), 16711680 = 0xff0000 red (tap and every tap-* part) — TODO/core-026.",
   "params": { "spec": "m10 hex", "length": 20, "fit": "loose" },
   "records": [
     {
@@ -12,7 +12,8 @@
       "op": "transform.translate",
       "params": { "vector": [0, 0, 3.25] },
       "target": "head.solid",
-      "name": "head"
+      "name": "head",
+      "color": 8421504
     },
     {
       "id": "thread.solid",
@@ -24,7 +25,8 @@
       "op": "transform.translate",
       "params": { "vector": [0, 0, 16.5] },
       "target": "thread.solid",
-      "name": "thread"
+      "name": "thread",
+      "color": 12632256
     },
     {
       "id": "tap-head.solid",
@@ -37,7 +39,8 @@
       "params": { "vector": [0, 0, 3.75] },
       "target": "tap-head.solid",
       "name": "tap-head",
-      "hidden": true
+      "hidden": true,
+      "color": 16711680
     },
     {
       "id": "tap-thread.solid",
@@ -50,7 +53,8 @@
       "params": { "vector": [0, 0, 17.5] },
       "target": "tap-thread.solid",
       "name": "tap-thread",
-      "hidden": true
+      "hidden": true,
+      "color": 16711680
     },
     {
       "id": "tap-headClearSpace.solid",
@@ -63,14 +67,16 @@
       "params": { "vector": [0, 0, -2.5] },
       "target": "tap-headClearSpace.solid",
       "name": "tap-headClearSpace",
-      "hidden": true
+      "hidden": true,
+      "color": 16711680
     },
     {
       "id": "tap",
       "op": "boolean.union",
       "params": {},
       "operands": ["tap-head", "tap-thread"],
-      "name": "tap"
+      "name": "tap",
+      "color": 16711680
     }
   ]
 }

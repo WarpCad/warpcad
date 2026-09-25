@@ -75,6 +75,7 @@
 
 import modeling from '@jscad/modeling'
 
+import { v1ColorToRecord } from '../colors.js'
 import { axisApply, enlarge } from '../group.js'
 import {
   addVectors,
@@ -108,6 +109,14 @@ export const CAMERA_MODULE_MODELS = Object.freeze(
 )
 
 /** @typedef {(typeof CAMERA_MODULE_MODELS)[number]} CameraModel */
+
+/**
+ * Every camera board's colour. All five V1 factories agree: `.color('green', 0.75)` on
+ * the `board` part (`camera-module-v1.js:33`, `camera-module-v2.js:18`,
+ * `camera-module-v3.js:32`, `hq_camera-module.js:47`, `arducam_hq_camera-module.js:46`;
+ * TODO/core-026). Every other part's opaque colour is TODO/core-033.
+ */
+const CAMERA_BOARD_COLOR = Object.freeze(v1ColorToRecord('green', 0.75))
 
 /**
  * V1 has no default — it ships five separate factories with no shared entry point — so
@@ -294,7 +303,7 @@ function addClassicFamily(builder, model) {
           spec.cornerRadiusMm,
           'centred'
         )
-  builder.place(board, 'board')
+  builder.place(board, 'board', CAMERA_BOARD_COLOR)
 
   /** @type {Part[]} */
   const holes = []
@@ -431,7 +440,7 @@ function addHqFamily(builder, model, flipTripodMount) {
         }
 
   const board = roundedCubePart('board', 38, 38, spec.thicknessMm, 1.4, 'centred')
-  builder.place(board, 'board')
+  builder.place(board, 'board', CAMERA_BOARD_COLOR)
 
   const hole1 = cylinderPart('hole1', 3.25, 10)
   chain(hole1).snap(board, 'xy', 'inside+', 1.25).translate([-4, -4, -5])

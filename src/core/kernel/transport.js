@@ -29,7 +29,9 @@
  *   geometry already in document millimetres and can never apply a move twice — the
  *   trap `src/core/kernel/watertight.js` calls out for the repair itself.
  * - **Anything the export path does not read.** A group travels as its parts, its
- *   visible `names` and its `holes`, because that is exactly what `combine()` uses.
+ *   visible `names` and its `holes`, because that is exactly what `combine()` uses —
+ *   plus its per-part `colors` (TODO/core-026), which cost a few bytes and are the one
+ *   piece of recipe intent that would otherwise be lost silently at this boundary.
  *
  * Framework-free and DOM-free: this module runs identically on the main thread and
  * inside the worker, which is what lets a unit test mock the boundary without a real
@@ -60,6 +62,8 @@ const { geometries } = modeling
  * @property {string[]} names Ordered visible part names.
  * @property {Record<string, PackedSolid>} parts
  * @property {PackedSolid[]} holes
+ * @property {Record<string, import('./group.js').PartColor>} [colors] Part colours
+ *   (TODO/core-026). Optional so a message packed before it existed still unpacks.
  */
 
 /**
@@ -125,6 +129,8 @@ export function packGeometry(geometry) {
       names: [...geometry.names],
       parts,
       holes: geometry.holes.map((hole) => packSolid(hole)),
+      // Plain `{ color, alpha }` objects clone as-is (TODO/core-026).
+      colors: { ...geometry.colors },
     }
   }
   return { kind: 'solid', polygons: packSolid(/** @type {Geom3} */ (geometry)) }
@@ -143,7 +149,14 @@ export function unpackGeometry(packed) {
     /** @type {Record<string, Geom3>} */
     const parts = {}
     for (const [partName, part] of Object.entries(packed.parts)) parts[partName] = unpackSolid(part)
-    return { name: packed.name, names: [...packed.names], parts, holes: packed.holes.map(unpackSolid) }
+    return {
+      name: packed.name,
+      names: [...packed.names],
+      parts,
+      holes: packed.holes.map(unpackSolid),
+      // A packed group from before TODO/core-026 has no colours; it comes back uncoloured.
+      colors: { ...(packed.colors ?? {}) },
+    }
   }
   return unpackSolid(packed.polygons)
 }

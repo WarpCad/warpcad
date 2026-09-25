@@ -41,6 +41,7 @@
  * @module core/kernel/recipes/raspberrypi.hyperPixel4Rectangular
  */
 
+import { v1ColorToRecord } from '../colors.js'
 import {
   booleanPart,
   centeredCuboidPart,
@@ -185,7 +186,9 @@ export function hyperPixel4Rectangular(params = {}) {
   const pivotMm = centreOf(board)
   for (const part of [board, lcd, ...pads]) turnAboutZ(part, pivotMm, TURN_DEG)
 
-  builder.place(board, 'mb')
+  // V1 `src/hyper-pixel-4-rectangular.js:27`:
+  // `group.add(board.subtract(notch).color('green', 0.75), 'mb')` (TODO/core-026).
+  builder.place(board, 'mb', v1ColorToRecord('green', 0.75))
   builder.place(lcd, 'lcd')
   pads.forEach((pad, index) => builder.place(pad, `pad${index + 1}`))
 

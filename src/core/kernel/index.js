@@ -98,6 +98,23 @@ function partOf(cached) {
 }
 
 /**
+ * What a named record passes to `add()` beyond its value: `hidden`, and the part colour
+ * that rides alongside it (TODO/core-026). One helper so the cached and fresh-build
+ * paths cannot drift apart — a colour that only survived one of them is exactly the
+ * silent-drop this task exists to stop.
+ *
+ * @param {OpRecord} record
+ * @returns {{ hidden: boolean, color?: number, colorAlpha?: number }}
+ */
+function partOptions(record) {
+  return {
+    hidden: record.hidden === true,
+    ...(record.color !== undefined ? { color: record.color } : {}),
+    ...(record.colorAlpha !== undefined ? { colorAlpha: record.colorAlpha } : {}),
+  }
+}
+
+/**
  * @param {CachedBuild | undefined} cached
  * @param {string} json
  * @param {readonly unknown[]} inputs
@@ -230,7 +247,7 @@ export function evaluate(records, options = {}) {
           }
           byId.set(record.id, cached.value)
         }
-        if (record.name) group = add(group, partOf(cached), record.name, { hidden: record.hidden === true })
+        if (record.name) group = add(group, partOf(cached), record.name, partOptions(record))
         continue
       }
     }
@@ -358,7 +375,7 @@ export function evaluate(records, options = {}) {
     }
 
     if (record.name) {
-      group = add(group, built === undefined ? value : partOf(built), record.name, { hidden: record.hidden === true })
+      group = add(group, built === undefined ? value : partOf(built), record.name, partOptions(record))
     }
   }
 

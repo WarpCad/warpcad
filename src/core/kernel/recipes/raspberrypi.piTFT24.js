@@ -69,7 +69,7 @@
 import modeling from '@jscad/modeling'
 
 import { calcSnap } from '../group.js'
-import { addHat, HAT_MM } from './raspberrypi.hat.js'
+import { addHat, HAT_BOARD_COLOR, HAT_MM } from './raspberrypi.hat.js'
 import {
   booleanPart,
   chain,
@@ -144,7 +144,7 @@ export function piTFT24(params = {}) {
   const builder = createBuilder()
 
   const { mb, gpio, holes } = addHat(builder)
-  builder.place(mb, 'mb')
+  builder.place(mb, 'mb', HAT_BOARD_COLOR)
   builder.place(gpio, 'gpio')
   holes.forEach((hole, index) => builder.place(hole, `hathole${index + 1}`, { hidden: true }))
   // `:64` — the Hat's own combined solid, kept as a hidden part. V1's `combine()`

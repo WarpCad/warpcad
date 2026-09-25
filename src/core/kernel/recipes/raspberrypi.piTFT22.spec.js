@@ -160,3 +160,21 @@ describe('raspberrypi.piTFT22', () => {
     })
   })
 })
+
+describe('raspberrypi.piTFT22: the alpha-channel colour V1 gave the board (TODO/core-026)', () => {
+  // V1, re-read for core-026 — `jscad-raspberrypi@62a8e3b` `src/hat.js:28`:
+  //   hat.add(Parts.Board(65.02, 56.39, 3.56, 1.62).color('darkgreen', 0.75), 'mb');
+  // and `src/pi-tft22.js:29-36` re-uses that very part:
+  //   var hat = Hat(piMotherBoard, options); var mb = hat.parts.mb; ... group.add(mb, 'mb');
+  it('emits darkgreen at alpha 0.75 on the mb record', () => {
+    const records = expand('raspberrypi.piTFT22')
+    const board = records.filter((record) => record.name === 'mb')
+    expect(board).toHaveLength(1)
+    expect(board[0]).toMatchObject({ color: 0x006400, colorAlpha: 0.75 })
+  })
+
+  it('the evaluated group carries it as the part colour', () => {
+    const group = evaluateOp('raspberrypi.piTFT22', {})
+    expect(isGroup(group) && group.colors.mb).toEqual({ color: 0x006400, alpha: 0.75 })
+  })
+})

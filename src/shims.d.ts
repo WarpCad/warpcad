@@ -20,3 +20,11 @@ declare module '@jscad/obj-serializer' {
   }
   export default serializer
 }
+
+// Vite's `?raw` suffix imports a file's text verbatim. Only specs use it: a spec that
+// diffs against V1 source reads that source through Vite, which already resolves it,
+// rather than needing Node's `fs` types (`TODO/core-026`, `colors.spec.js`).
+declare module '*?raw' {
+  const source: string
+  export default source
+}

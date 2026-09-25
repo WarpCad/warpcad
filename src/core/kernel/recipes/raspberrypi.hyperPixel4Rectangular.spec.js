@@ -169,3 +169,20 @@ describe('raspberrypi.hyperPixel4Rectangular', () => {
     })
   })
 })
+
+describe('raspberrypi.hyperPixel4Rectangular: the alpha-channel colour V1 gave the board (TODO/core-026)', () => {
+  // V1, re-read for core-026 — `jscad-raspberrypi@62a8e3b`
+  // `src/hyper-pixel-4-rectangular.js:27`:
+  //   group.add(board.subtract(notch).color('green', 0.75), 'mb');
+  it('emits green at alpha 0.75 on the mb record', () => {
+    const records = expand('raspberrypi.hyperPixel4Rectangular')
+    const board = records.filter((record) => record.name === 'mb')
+    expect(board).toHaveLength(1)
+    expect(board[0]).toMatchObject({ color: 0x008000, colorAlpha: 0.75 })
+  })
+
+  it('the evaluated group carries it as the part colour', () => {
+    const group = evaluateOp('raspberrypi.hyperPixel4Rectangular', {})
+    expect(isGroup(group) && group.colors.mb).toEqual({ color: 0x008000, alpha: 0.75 })
+  })
+})

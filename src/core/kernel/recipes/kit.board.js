@@ -47,6 +47,11 @@
  * still carries `name: 'board'`, because the fold's `add` is what puts a value in the
  * returned group at all — a nameless expansion would evaluate to an empty group.
  *
+ * **No colour** (checked for `TODO/core-026`): V1's `Board` never calls `.color()` in
+ * either `jscad-utils@3.2.0` or `6.0.0`. Real projects colour a board at the call site,
+ * e.g. `jscad-raspberrypi`'s `Parts.Board(...).color('green', 0.75)`, which
+ * `raspberrypi.*` carries on its own `mb` records.
+ *
  * @module core/kernel/recipes/kit.board
  */
 

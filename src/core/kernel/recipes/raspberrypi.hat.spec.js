@@ -93,3 +93,19 @@ describe('raspberrypi.hat', () => {
     })
   })
 })
+
+describe('raspberrypi.hat: the alpha-channel colour V1 gave the board (TODO/core-026)', () => {
+  // V1, re-read for core-026 — `jscad-raspberrypi@62a8e3b` `src/hat.js:28`:
+  //   hat.add(Parts.Board(65.02, 56.39, 3.56, 1.62).color('darkgreen', 0.75), 'mb');
+  it('emits darkgreen at alpha 0.75 on the mb record', () => {
+    const records = expand('raspberrypi.hat')
+    const board = records.filter((record) => record.name === 'mb')
+    expect(board).toHaveLength(1)
+    expect(board[0]).toMatchObject({ color: 0x006400, colorAlpha: 0.75 })
+  })
+
+  it('the evaluated group carries it as the part colour', () => {
+    const group = evaluateOp('raspberrypi.hat', {})
+    expect(isGroup(group) && group.colors.mb).toEqual({ color: 0x006400, alpha: 0.75 })
+  })
+})

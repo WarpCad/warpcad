@@ -185,3 +185,15 @@ describe('bearing spec table', () => {
     }
   })
 })
+
+describe('part colour: there is no V1 Bearing to take one from (TODO/core-026)', () => {
+  // Re-checked for core-026: `jscad-hardware@1.1.0` has no `Bearing` factory at all (its
+  // only factories are `Bolt`, `Washer` and `Nut`; this recipe's module doc), so no
+  // `.color(...)` call was dropped. Inventing one would be a new decision, not a port.
+  it('emits no colour on any record — there is no V1 .color() here to port', () => {
+    for (const record of expand('hardware.bearing', { spec: '608' })) {
+      expect(record).not.toHaveProperty('color')
+      expect(record).not.toHaveProperty('colorAlpha')
+    }
+  })
+})

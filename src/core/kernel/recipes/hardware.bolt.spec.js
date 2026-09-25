@@ -4,6 +4,7 @@ import modeling from '@jscad/modeling'
 import { calcSnap, combine, isGroup } from '../group.js'
 import { evaluate, evaluateOp, expand } from '../index.js'
 import { boltSpecs, FIT_CLASSES } from '../tables/bolt-specs.js'
+import { hexToUnitRgb } from '../colors.js'
 import { bolt } from './hardware.bolt.js'
 
 import expansionFixture from './__fixtures__/hardware.bolt.m10-hex-20-loose.json'
@@ -198,5 +199,57 @@ describe('bolt spec table', () => {
     // MetricBolts table only ever had 'm10 hex' and 'm12 hex'.
     expect(boltSpecs['m2.5 socket']).toBeUndefined()
     expect(Object.keys(boltSpecs)).toContain('m10 hex')
+  })
+})
+
+describe('part colours, diffed against measured V1 output (TODO/core-026)', () => {
+  // V1 (re-read for core-026). `jscad-utils@3.2.0`'s `Parts.Hardware.Screw`, which
+  // `HexHeadScrew`/`PanHeadScrew` both return through (`dist/index.js:1927-1946`):
+  //   head: head.color('gray'),
+  //   thread: thread.snap(head, 'z', orientation.head).color('silver')
+  //   ...headClearSpace ... .color('red')
+  // and `jscad-hardware.jscad:33-46` recolours the whole clearance screw:
+  //   b.add(Parts.Hardware[bolt.type](...).map(part => part.color('red')), 'tap', false, 'tap-');
+  // The fixture's per-part `color` is what V1's real `.color()` left on each part.
+
+  it('emits gray head, silver thread, and red tap parts', () => {
+    const records = bolt(expansionFixture.params, { boltSpecs })
+    /** @param {string} name */
+    const colorOf = (name) => records.find((record) => record.name === name)?.color
+    expect(colorOf('head')).toBe(0x808080)
+    expect(colorOf('thread')).toBe(0xc0c0c0)
+    for (const name of ['tap', 'tap-head', 'tap-thread', 'tap-headClearSpace']) {
+      expect(colorOf(name), name).toBe(0xff0000)
+    }
+    // Colour sits on the named record only, never on an intermediate.
+    for (const record of records) {
+      if (!record.name) expect(record).not.toHaveProperty('color')
+    }
+  })
+
+  it.each(v1Reference.cases.map((testCase) => [testCase.params.spec, testCase]))(
+    '%s: every record colour equals the colour V1 left on that part',
+    (_spec, testCase) => {
+      const { spec, length, fit, segments } = testCase.params
+      const records = bolt({ spec, length, fit, segments }, { boltSpecs })
+      for (const [partName, expected] of Object.entries(testCase.parts)) {
+        const record = records.find((candidate) => candidate.name === partName)
+        expect(record?.color, partName).toBeTypeOf('number')
+        const actual = [...hexToUnitRgb(/** @type {number} */ (record?.color)), record?.colorAlpha ?? 1]
+        expect(actual, partName).toEqual(expected.color)
+      }
+    }
+  )
+
+  it('the evaluated group carries the same colours', () => {
+    const group = asGroup(evaluateOp('hardware.bolt', expansionFixture.params))
+    expect(group.colors).toEqual({
+      head: { color: 0x808080, alpha: 1 },
+      thread: { color: 0xc0c0c0, alpha: 1 },
+      tap: { color: 0xff0000, alpha: 1 },
+      'tap-head': { color: 0xff0000, alpha: 1 },
+      'tap-thread': { color: 0xff0000, alpha: 1 },
+      'tap-headClearSpace': { color: 0xff0000, alpha: 1 },
+    })
   })
 })

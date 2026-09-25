@@ -31,6 +31,7 @@
  * @module core/kernel/recipes/raspberrypi.hat
  */
 
+import { v1ColorToRecord } from '../colors.js'
 import { chain, createBuilder, cuboidPart, cylinderPart, roundedCubePart } from './rpi-recipe-kit.js'
 
 /** @typedef {import('../registry.js').OpRecord} OpRecord */
@@ -127,6 +128,14 @@ export function addHat(_builder) {
 }
 
 /**
+ * The hat board's colour, V1's `src/hat.js:28`:
+ * `Parts.Board(65.02, 56.39, 3.56, 1.62).color('darkgreen', 0.75)` (TODO/core-026).
+ * Exported because `PiTFT22`/`PiTFT24` re-use that very part (`hat.parts.mb`), colour
+ * and all. Every other part's opaque colour is TODO/core-033.
+ */
+export const HAT_BOARD_COLOR = Object.freeze(v1ColorToRecord('darkgreen', 0.75))
+
+/**
  * Expand a `raspberrypi.hat` document line into the op records that define it.
  *
  * Takes no parameters. V1's `Hat(pi, options)` has two and this port keeps neither:
@@ -148,7 +157,7 @@ export function hat(params = {}) {
   const builder = createBuilder()
 
   const { mb, gpio, holes } = addHat(builder)
-  builder.place(mb, 'mb')
+  builder.place(mb, 'mb', HAT_BOARD_COLOR)
   builder.place(gpio, 'gpio')
   holes.forEach((hole, index) => builder.place(hole, `hole${index + 1}`, { hidden: true }))
 

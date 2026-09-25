@@ -6,8 +6,41 @@ priority: high
 model: opus
 milestone: M7
 depends: [core-001]
-status: open
+status: done
 ---
+
+> **What shipped (2026-09-25).** The field, as proposed: a numeric `0xRRGGBB` `color` plus
+> `colorAlpha` (in `(0, 1]`, omitted when 1) on `OpRecord`. V1 names are converted once at
+> the recipe boundary through `src/core/kernel/colors.js`'s `v1ColorToRecord`, backed by
+> `V1_CSS_COLOR_HEX`. That is all 147 of V1's own names, and `colors.spec.js` re-reads the
+> installed `jscad-utils-color.jscad` on every run to diff against it. `add()` takes
+> `color`/`colorAlpha` alongside `hidden`. The fold passes both through one
+> `partOptions(record)` on the fresh-build and cached paths. The evaluated `Group` carries a
+> `colors` map through every function that rebuilds a group (`addHole`, `pick`, `mapGeometry`,
+> `translate`/`snap`/`align`, `enlarge`/`fit`, and subpart flattening). **Two things went
+> beyond the listed files, both on purpose:** `transport.js` carries `colors` across the
+> worker boundary (otherwise the field would be dropped silently one hop later), and
+> `hardware.bolt` was ported too (gray head, silver thread, red tap and all `tap-*` parts).
+> Bolt was not listed, but it had dropped its calls exactly like the washer.
+>
+> **Premise corrections, from re-reading V1 source rather than memory:** `hardware.nut`,
+> `kit.board` and `kit.boardFrame` never called `.color()` in V1, and `hardware.bearing`
+> has no V1 factory at all. Nothing was dropped, so their records stay uncoloured, and a
+> spec plus a module-doc line pin that. The real drops were `washer` (gray/red), `bolt` and
+> `kit.anchor` (red hole, purple post). The washer/nut/bolt colours are **measured**: the
+> three `scripts/generate-v1-*-fixture.cjs` generators now load V1's real `.color()` instead
+> of an identity stub, and the regenerated fixtures differ from the old ones only in the
+> added `color` keys. Every dimension is byte-identical.
+>
+> **raspberrypi.\*: alpha case only.** All nine V1 alpha calls are ported: `mb`
+> green/darkgreen 0.75 on bplus, hat, piTFT22, piTFT24 and hyperPixel4, and `board` green
+> 0.75 on all five camera models. The ~150 opaque per-part calls are filed as
+> `TODO/core-033`.
+>
+> **Scope boundary, as the TODO asked:** record level only. There is **no render-path
+> change**, and bodies still draw in the theme palette. `data-005` (document model),
+> `ui-037` (Inspector) and a per-body material in `src/render/mesh.js` consume this
+> later.
 
 ## Problem
 

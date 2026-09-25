@@ -44,8 +44,21 @@
  * and `hardware.bolt.spec.js` asserts that the baked vector matches what
  * `group.calcSnap` computes from the real bounding boxes.
  *
+ * ## Colours (TODO/core-026)
+ *
+ * Every named part keeps the colour V1 gave it, which the first port dropped: V1's
+ * `Parts.Hardware.Screw` builds `head: head.color('gray')` and
+ * `thread: ....color('silver')` (`jscad-utils@3.2.0` `dist/index.js:1934-1937`), and
+ * `Hardware.Bolt` recolours the whole clearance screw with
+ * `.map(part => part.color('red'))` before adding it as `tap`/`tap-*`
+ * (`jscad-hardware.jscad:33-46`). So `head` is gray, `thread` silver, and `tap` and all
+ * three `tap-*` parts red — measured from V1's own output in
+ * `hardware.bolt.v1-reference.json`, not just read.
+ *
  * @module core/kernel/recipes/hardware.bolt
  */
+
+import { v1ColorToRecord } from '../colors.js'
 
 /** @typedef {import('../tables/bolt-specs.js').BoltSpec} BoltSpec */
 /** @typedef {import('../registry.js').OpRecord} OpRecord */
@@ -77,10 +90,11 @@ const HEAD_OP = Object.freeze({
  * @param {number} args.baseZMm Where the bottom face lands, in millimetres.
  * @param {string} args.name Part name in the resulting group.
  * @param {boolean} [args.hidden] Keep it out of the group's default combine.
+ * @param {string} args.v1Color V1's `.color(...)` name for the part.
  * @param {number} args.segments Segment count, ignored by `primitive.hexagon`.
  * @returns {OpRecord[]}
  */
-function prismRecords({ id, op, diameterMm, heightMm, baseZMm, name, hidden, segments }) {
+function prismRecords({ id, op, diameterMm, heightMm, baseZMm, name, hidden, v1Color, segments }) {
   const params =
     op === 'primitive.hexagon'
       ? { diameter: diameterMm, height: heightMm }
@@ -95,6 +109,7 @@ function prismRecords({ id, op, diameterMm, heightMm, baseZMm, name, hidden, seg
       target: `${id}.solid`,
       name,
       ...(hidden ? { hidden: true } : {}),
+      ...v1ColorToRecord(v1Color),
     },
   ]
 }
@@ -149,6 +164,7 @@ export function bolt(params, tables) {
       heightMm: entry.headHeightMm,
       baseZMm: 0,
       name: 'head',
+      v1Color: 'gray',
       segments,
     }),
     ...prismRecords({
@@ -159,6 +175,7 @@ export function bolt(params, tables) {
       // group.snap(thread, head, 'z', 'outside-') resolves to exactly this.
       baseZMm: entry.headHeightMm,
       name: 'thread',
+      v1Color: 'silver',
       segments,
     }),
     ...prismRecords({
@@ -169,6 +186,7 @@ export function bolt(params, tables) {
       baseZMm: 0,
       name: 'tap-head',
       hidden: true,
+      v1Color: 'red',
       segments,
     }),
     ...prismRecords({
@@ -179,6 +197,7 @@ export function bolt(params, tables) {
       baseZMm: tapHeadHeightMm,
       name: 'tap-thread',
       hidden: true,
+      v1Color: 'red',
       segments,
     }),
     ...prismRecords({
@@ -191,6 +210,7 @@ export function bolt(params, tables) {
       baseZMm: tapHeadHeightMm - length,
       name: 'tap-headClearSpace',
       hidden: true,
+      v1Color: 'red',
       segments,
     }),
     {
@@ -199,6 +219,7 @@ export function bolt(params, tables) {
       params: {},
       operands: ['tap-head', 'tap-thread'],
       name: 'tap',
+      ...v1ColorToRecord('red'),
     },
   ]
 }

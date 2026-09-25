@@ -832,3 +832,115 @@ describe('bisect, angled', () => {
     )
   })
 })
+
+describe('part colour, carried alongside hidden (TODO/core-026)', () => {
+  const GRAY = 0x808080
+  const RED = 0xff0000
+
+  it('starts with no colours', () => {
+    expect(createGroup().colors).toEqual({})
+  })
+
+  it("add() records a part's colour, defaulting its alpha to 1", () => {
+    const group = add(createGroup(), big(), 'washer', { color: GRAY })
+    expect(group.colors).toEqual({ washer: { color: GRAY, alpha: 1 } })
+  })
+
+  it('add() carries an explicit alpha', () => {
+    const group = add(createGroup(), big(), 'mb', { color: 0x008000, colorAlpha: 0.75 })
+    expect(group.colors.mb).toEqual({ color: 0x008000, alpha: 0.75 })
+  })
+
+  it('add() colours a hidden part too — hidden and colour are independent', () => {
+    const group = add(add(createGroup(), big(), 'washer', { color: GRAY }), small(), 'clearance', {
+      hidden: true,
+      color: RED,
+    })
+    expect(group.names).toEqual(['washer'])
+    expect(group.colors).toEqual({
+      washer: { color: GRAY, alpha: 1 },
+      clearance: { color: RED, alpha: 1 },
+    })
+  })
+
+  it('add() leaves an uncoloured part out of the map rather than inventing a colour', () => {
+    const group = add(add(createGroup(), big(), 'washer', { color: GRAY }), small(), 'plain')
+    expect(Object.keys(group.colors)).toEqual(['washer'])
+  })
+
+  it('re-adding a part under the same name without a colour drops its old colour', () => {
+    const group = add(add(createGroup(), big(), 'body', { color: GRAY }), small(), 'body')
+    expect(group.colors).toEqual({})
+  })
+
+  it('add() does not mutate the colours of the group passed in', () => {
+    const empty = createGroup()
+    add(empty, big(), 'washer', { color: GRAY })
+    expect(empty.colors).toEqual({})
+  })
+
+  it("flattening a group copies each subpart's colour under the prefix", () => {
+    const inner = add(add(createGroup(), big(), 'head', { color: RED }), small(), 'thread', {
+      color: RED,
+    })
+    const outer = add(createGroup(), inner, 'tap', { subpartPrefix: 'tap-', color: RED })
+    expect(outer.colors).toEqual({
+      tap: { color: RED, alpha: 1 },
+      'tap-head': { color: RED, alpha: 1 },
+      'tap-thread': { color: RED, alpha: 1 },
+    })
+  })
+
+  it('rejects a colour that is not a 24-bit integer, naming the part', () => {
+    expect(() => add(createGroup(), big(), 'washer', { color: -1 })).toThrow(/washer/)
+    expect(() => add(createGroup(), big(), 'washer', { color: 1.5 })).toThrow(/colour/)
+  })
+
+  it('rejects an alpha with no colour to apply it to', () => {
+    expect(() => add(createGroup(), big(), 'washer', { colorAlpha: 0.5 })).toThrow(
+      /colorAlpha.*without a color/
+    )
+  })
+
+  /** A two-part coloured group plus a hole, for the carry-through checks below. */
+  const coloured = () =>
+    addHole(
+      add(add(createGroup('w'), big(), 'washer', { color: GRAY }), small(), 'clearance', {
+        hidden: true,
+        color: RED,
+        colorAlpha: 0.5,
+      }),
+      primitives.cuboid({ size: [1, 1, 1] })
+    )
+  const expected = { washer: { color: GRAY, alpha: 1 }, clearance: { color: RED, alpha: 0.5 } }
+
+  it('addHole keeps the colours', () => {
+    expect(coloured().colors).toEqual(expected)
+  })
+
+  it('translate / snap / align keep the colours', () => {
+    expect(translate(coloured(), [1, 2, 3]).colors).toEqual(expected)
+    expect(snap(coloured(), 'washer', big(), 'z', 'outside-').colors).toEqual(expected)
+    expect(align(coloured(), 'washer', big(), 'xy').colors).toEqual(expected)
+  })
+
+  it('mapGeometry keeps the colours', () => {
+    const moved = mapGeometry(coloured(), (geometry) => transforms.translate([0, 0, 5], geometry))
+    expect(isGroup(moved) && moved.colors).toEqual(expected)
+  })
+
+  it('enlarge / fit keep the colours', () => {
+    const grown = enlarge(coloured(), [1, 1, 1])
+    const fitted = fit(coloured(), [20, 20, 20])
+    expect(isGroup(grown) && grown.colors).toEqual(expected)
+    expect(isGroup(fitted) && fitted.colors).toEqual(expected)
+  })
+
+  it('pick keeps only the picked parts’ colours', () => {
+    expect(pick(coloured(), 'clearance').colors).toEqual({ clearance: expected.clearance })
+  })
+
+  it('bisect starts a fresh, uncoloured group: its halves are new solids', () => {
+    expect(bisect(coloured(), 'z').colors).toEqual({})
+  })
+})

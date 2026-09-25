@@ -36,7 +36,7 @@
  * @module core/kernel/recipes/raspberrypi.piTFT22
  */
 
-import { addHat } from './raspberrypi.hat.js'
+import { addHat, HAT_BOARD_COLOR } from './raspberrypi.hat.js'
 import { booleanPart, chain, createBuilder, cuboidPart, cylinderPart } from './rpi-recipe-kit.js'
 
 /** @typedef {import('../registry.js').OpRecord} OpRecord */
@@ -80,7 +80,7 @@ export function piTFT22(params = {}) {
   const builder = createBuilder()
 
   const { mb, gpio, holes } = addHat(builder)
-  builder.place(mb, 'mb')
+  builder.place(mb, 'mb', HAT_BOARD_COLOR)
   builder.place(gpio, 'gpio')
   holes.forEach((hole, index) => builder.place(hole, `hole${index + 1}`, { hidden: true }))
 

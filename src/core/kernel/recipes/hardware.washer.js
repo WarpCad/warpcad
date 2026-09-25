@@ -39,6 +39,13 @@
  * Subtract, not its rendered metal. A washer's `clearance` part is the same kind of
  * geometry, so it is hidden here too.
  *
+ * **Both parts keep V1's colours**: `washer` is `gray` and the hidden `clearance` is
+ * `red`, exactly the `.color(...)` calls quoted above (`TODO/core-026`). The original
+ * port dropped them without saying so; nothing decided to. Hidden and colour are
+ * independent, as they were in V1, where the clearance was both red and visible.
+ * `hardware.washer.spec.js` diffs both against the colours V1's real `.color()`
+ * measurably left on each part (`scripts/generate-v1-washer-fixture.cjs`).
+ *
  * `washer` reuses the registry's existing, tested `primitive.tube` op directly
  * (outer/inner diameter, thickness) rather than reimplementing outer-minus-inner as a
  * raw boolean the way V1's own `Parts.Tube` helper did internally.
@@ -54,6 +61,8 @@
  *
  * @module core/kernel/recipes/hardware.washer
  */
+
+import { v1ColorToRecord } from '../colors.js'
 
 /** @typedef {import('../tables/washer-specs.js').WasherSpec} WasherSpec */
 /** @typedef {import('../registry.js').OpRecord} OpRecord */
@@ -101,6 +110,7 @@ export function washer(params, tables) {
         ...centerParams,
       },
       name: 'washer',
+      ...v1ColorToRecord('gray'),
     },
   ]
 
@@ -123,6 +133,7 @@ export function washer(params, tables) {
       },
       name: 'clearance',
       hidden: true,
+      ...v1ColorToRecord('red'),
     })
   }
 

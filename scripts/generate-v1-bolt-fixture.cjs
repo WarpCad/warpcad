@@ -33,9 +33,10 @@
  *   4. `src/group.js` calls a bare `union(...)` and `instanceof CSG`, both of which
  *      were ambient globals in the OpenJSCAD runtime. They are set on `globalThis`.
  *
- * `.color()` is stubbed to identity: it is a `jscad-utils-color.jscad` prototype
- * method that this project never loads, and it has no effect on geometry — this
- * fixture only records dimensions.
+ * `.color()` is V1's real one, loaded from `jscad-utils-color.jscad` (TODO/core-026).
+ * It has no effect on geometry, but it is what V1 draws each part in, so every part's
+ * colour is recorded alongside its dimensions. The `combined` solid gets none: it
+ * mixes the head's gray with the thread's silver and the tap's red.
  *
  * None of the above touches files on disk; every patch is applied to an in-memory
  * copy of the bundle source.
@@ -94,9 +95,11 @@ function setUpV1() {
   const scadApi = require(require.resolve('@jscad/scad-api', { paths: [utilsDir] }))
 
   jscadUtils.init.default(CSG)
-  CSG.prototype.color = function color() {
-    return this
-  }
+  // TODO/core-026: V1's real `.color()`, from its own `jscad-utils-color.jscad` loaded
+  // verbatim, not an identity stub, so the fixture records the colour V1 actually
+  // leaves on each part (`colorOf` below) alongside the dimensions.
+  const Colors = loadJscadScript('node_modules/jscad-utils/jscad-utils-color.jscad', 'Colors', {})
+  Colors.init(CSG)
 
   util.group = jscadUtils.group
   util.array = array
@@ -127,6 +130,21 @@ function setUpV1() {
   )
 
   return { Hardware, boltTables: { ...MetricBolts, ...ImperialBolts } }
+}
+
+/**
+ * The colour V1 left on a solid, as `[r, g, b, a]` in 0-1, or `null` when V1 never
+ * coloured it — read off every polygon's `shared.color`, which is where V1's
+ * `setColor` puts it (TODO/core-026). Throws if the polygons disagree: one colour per
+ * part is what a V3 op record can carry, so a mixed part must fail loudly here rather
+ * than be summarised.
+ */
+function colorOf(csg) {
+  const seen = new Set(
+    csg.polygons.map((polygon) => JSON.stringify((polygon.shared && polygon.shared.color) || null))
+  )
+  if (seen.size !== 1) throw new Error(`solid carries ${seen.size} colours: ${[...seen].join(' ')}`)
+  return JSON.parse([...seen][0])
 }
 
 const round = (n) => Number(n.toFixed(9))
@@ -186,7 +204,11 @@ function main() {
 
     const parts = {}
     for (const key of Object.keys(bolt.parts)) {
-      parts[key] = { bounds: boundsOf(bolt.parts[key]), volume: volumeOf(bolt.parts[key]) }
+      parts[key] = {
+        bounds: boundsOf(bolt.parts[key]),
+        volume: volumeOf(bolt.parts[key]),
+        color: colorOf(bolt.parts[key]),
+      }
     }
 
     const combined = bolt.combine()

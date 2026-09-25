@@ -171,3 +171,15 @@ describe('degenerate frames are rejected at the boundary', () => {
     )
   })
 })
+
+describe("part colour: V1's BoardFrame never coloured itself (TODO/core-026)", () => {
+  // V1, re-read for core-026 — `jscad-utils@6.0.0` `src/parts.js:445-472`: a
+  // `CAG.roundedRectangle(...).subtract(CAG.roundedRectangle(...))` extruded and
+  // returned through `assertValidCSG(..., 'BoardFrame')`, with no `.color(...)` call.
+  it('emits no colour on any record — there is no V1 .color() here to port', () => {
+    for (const record of expand('kit.boardFrame', { ...FRAME })) {
+      expect(record).not.toHaveProperty('color')
+      expect(record).not.toHaveProperty('colorAlpha')
+    }
+  })
+})

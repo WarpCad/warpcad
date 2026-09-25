@@ -181,3 +181,32 @@ describe('degenerate anchors are rejected at the boundary', () => {
     expect(() => anchor({ height: Number.NaN })).toThrow(/kit\.anchor: height/)
   })
 })
+
+describe('part colours, diffed against the V1 source (TODO/core-026)', () => {
+  // V1, re-read for core-026 — `jscad-utils@6.0.0` `src/parts.js:398-407`:
+  //   var hole = Cylinder(width, height).Center().color('red');
+  //   var post = Cylinder(height / 2, width * 0.66)
+  //     .rotateX(90).align(hole, 'xz').snap(hole, 'y', 'inside-')
+  //     .translate([0, 0, -height / 6]).color('purple');
+  //   return Group({ post, hole });
+  // 6.0.0 is not installed here, so this diffs against that quote rather than a
+  // measured fixture; `colors.spec.js` holds the name table to V1's own.
+
+  it('emits red on hole and purple on post, and nothing on the intermediates', () => {
+    const records = expand('kit.anchor', { width: WIDTH, height: HEIGHT })
+    expect(records.find((record) => record.name === 'hole')).toMatchObject({ color: 0xff0000 })
+    expect(records.find((record) => record.name === 'post')).toMatchObject({ color: 0x800080 })
+    for (const record of records) {
+      expect(record).not.toHaveProperty('colorAlpha')
+      if (!record.name) expect(record).not.toHaveProperty('color')
+    }
+  })
+
+  it('the evaluated group carries the same colours', () => {
+    const group = evaluateOp('kit.anchor', { width: WIDTH, height: HEIGHT })
+    expect(isGroup(group) && group.colors).toEqual({
+      hole: { color: 0xff0000, alpha: 1 },
+      post: { color: 0x800080, alpha: 1 },
+    })
+  })
+})

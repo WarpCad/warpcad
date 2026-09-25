@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { boundsOf, isGroup, sizeOf, volumeOf } from '../group.js'
-import { evaluateOp } from '../index.js'
+import { evaluateOp, expand } from '../index.js'
 import {
   cameraModule,
   CAMERA_MODULE_MODELS,
@@ -476,4 +476,27 @@ describe('every part, diffed against the real V1 library’s own output', () => 
       .sort()
     expect([...camera(model, flip).names].sort()).toEqual(expected)
   })
+})
+
+describe('raspberrypi.cameraModule: the alpha-channel colour V1 gave every board (TODO/core-026)', () => {
+  // V1, re-read for core-026 — `jscad-raspberrypi@62a8e3b`, all five factories:
+  //   camera-module-v1.js:33          g.add(Parts.Cube({ x: 24, y: 25, z: t }).Center().color('green', 0.75), 'board');
+  //   camera-module-v2.js:18          Parts.RoundedCube(23.862, 25, t, 2).Center().color('green', 0.75),
+  //   camera-module-v3.js:32          Parts.RoundedCube(23.862, 25, 1.12, 2).Center().color('green', 0.75),
+  //   hq_camera-module.js:47          Parts.RoundedCube(38, 38, t, 1.4).Center().color('green', 0.75),
+  //   arducam_hq_camera-module.js:46  Parts.RoundedCube(38, 38, t, 1.4).Center().color('green', 0.75),
+  // Every other part's opaque `.color(...)` is not ported yet (TODO/core-033).
+
+  it.each(CAMERA_MODULE_MODELS.map((model) => [model]))(
+    '%s: green at alpha 0.75 on the board record, and on the evaluated part',
+    (model) => {
+      const board = expand('raspberrypi.cameraModule', { model }).filter(
+        (record) => record.name === 'board'
+      )
+      expect(board).toHaveLength(1)
+      expect(board[0]).toMatchObject({ color: 0x008000, colorAlpha: 0.75 })
+      const group = evaluateOp('raspberrypi.cameraModule', { model })
+      expect(isGroup(group) && group.colors.board).toEqual({ color: 0x008000, alpha: 0.75 })
+    }
+  )
 })

@@ -31,8 +31,9 @@
  * and `depreciated()` paths the hardware recipes do. Every patch is applied to an
  * in-memory copy of the bundle source; nothing on disk is touched.
  *
- * `.color()` is stubbed to identity, same as the bolt/nut/washer generators: this
- * fixture only records dimensions.
+ * `.color()` is stubbed to identity: this fixture only records dimensions. (The
+ * bolt/nut/washer generators load V1's real `.color()` since TODO/core-026, because
+ * those recipes emit a colour; `modify.*` results carry none.)
  */
 
 'use strict'

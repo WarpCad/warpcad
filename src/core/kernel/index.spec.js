@@ -602,3 +602,58 @@ describe('evaluateOp — single-op convenience used by the acceptance checks', (
     expect(boundsOf(combine(bolt))[1][2]).toBeCloseTo(27.5, 6)
   })
 })
+
+describe('record colour threads through the fold alongside hidden (TODO/core-026)', () => {
+  it("carries a named record's color/colorAlpha onto the group's part colours", () => {
+    const { group } = evaluate([
+      { id: 'a', op: 'primitive.cuboid', params: { size: [2, 2, 2] }, name: 'a', color: 0x808080 },
+      {
+        id: 'b',
+        op: 'primitive.cuboid',
+        params: { size: [1, 1, 1] },
+        name: 'b',
+        hidden: true,
+        color: 0x008000,
+        colorAlpha: 0.75,
+      },
+      { id: 'c', op: 'primitive.cuboid', params: { size: [1, 1, 1] }, name: 'c' },
+    ])
+    expect(group.colors).toEqual({
+      a: { color: 0x808080, alpha: 1 },
+      b: { color: 0x008000, alpha: 0.75 },
+    })
+  })
+
+  it('carries it on the cached path too, not only on a fresh build (TODO/core-031)', () => {
+    const records = [
+      { id: 'a', op: 'primitive.cuboid', params: { size: [2, 2, 2] }, name: 'a', color: 0xff0000 },
+    ]
+    const cache = new WeakMap()
+    evaluate(records, { cache })
+    const { group } = evaluate(records, { cache })
+    expect(group.colors).toEqual({ a: { color: 0xff0000, alpha: 1 } })
+  })
+
+  it('a composite keeps the colours its own recipe gave its parts', () => {
+    const washer = evaluateOp('hardware.washer', { spec: '1/4', fit: 'loose' })
+    expect(isGroup(washer) && washer.colors).toEqual({
+      washer: { color: 0x808080, alpha: 1 },
+      clearance: { color: 0xff0000, alpha: 1 },
+    })
+  })
+
+  it('a composite moved by a transform is still coloured (TODO/core-024 shape)', () => {
+    const { byId } = evaluate([
+      { id: 'w', op: 'hardware.washer', params: { spec: '1/4' } },
+      { id: 'm', op: 'transform.translate', params: { vector: [0, 0, 10] }, target: 'w' },
+    ])
+    const moved = byId.get('m')
+    expect(isGroup(moved) && moved.colors).toEqual({ washer: { color: 0x808080, alpha: 1 } })
+  })
+
+  it('rejects a malformed colour loudly, naming the record', () => {
+    expect(() =>
+      evaluate([{ id: 'a', op: 'primitive.cuboid', params: { size: [2, 2, 2] }, name: 'a', color: -5 }])
+    ).toThrow(/"a".*colour/)
+  })
+})

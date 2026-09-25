@@ -49,6 +49,8 @@
 
 import modeling from '@jscad/modeling'
 
+import { assertRecordColor } from './colors.js'
+
 // `@jscad/modeling@2.x` is CommonJS. A bundler resolves its named exports, but raw
 // Node ESM does not — and `CLAUDE.md` requires `src/core/` to be testable in plain
 // Node. Destructuring the default export works under both.
@@ -71,7 +73,23 @@ const { booleans, measurements, primitives, transforms } = modeling
  * @property {readonly string[]} names Ordered visible part names.
  * @property {Readonly<Record<string, Geom3>>} parts All parts, visible and hidden.
  * @property {readonly Geom3[]} holes Solids subtracted by `combine` unless `noholes`.
+ * @property {Readonly<Record<string, PartColor>>} colors Colour per part name, for the
+ *   parts that have one (TODO/core-026). An uncoloured part is simply absent. Every
+ *   function here that rebuilds a group carries this map, so a moved or resized washer
+ *   is still gray.
  */
+
+/**
+ * One part's colour: `0xRRGGBB` and an alpha in `(0, 1]`, always materialised (1 when
+ * the record left it out) so a consumer never has to default it. See `./colors.js`.
+ *
+ * @typedef {object} PartColor
+ * @property {number} color
+ * @property {number} alpha
+ */
+
+/** @type {Readonly<Record<string, PartColor>>} */
+const NO_COLORS = Object.freeze({})
 
 /**
  * `[withObjectBoundIndex, moveObjectBoundIndex]` per snap orientation, ported
@@ -367,7 +385,13 @@ export function calcCenterWith(moving, axes, reference, delta) {
  * @returns {Group}
  */
 export function createGroup(name = '') {
-  return Object.freeze({ name, names: Object.freeze([]), parts: Object.freeze({}), holes: Object.freeze([]) })
+  return Object.freeze({
+    name,
+    names: Object.freeze([]),
+    parts: Object.freeze({}),
+    holes: Object.freeze([]),
+    colors: NO_COLORS,
+  })
 }
 
 /**
@@ -473,21 +497,34 @@ export function combine(group, pieces, options = {}) {
  *   its parts in under this prefix (V1's `subparts` argument).
  * @param {string} [options.pieces] When `object` is a group, which of its pieces the
  *   combined part is built from (V1's `parts` argument).
+ * @param {number} [options.color] The part's `0xRRGGBB` colour (TODO/core-026) — V1's
+ *   `.color(...)` on the object being added, carried the same way `hidden` is.
+ * @param {number} [options.colorAlpha] Its alpha in `(0, 1]`; defaults to 1.
  * @returns {Group}
  */
 export function add(group, object, partName, options = {}) {
   if (!partName) throw new Error('add: a part name is required')
+  assertRecordColor(options.color, options.colorAlpha, `add: part "${partName}"`)
   const parts = { ...group.parts }
+  const colors = { ...group.colors }
+  // Re-adding a name replaces the part, so it replaces (or clears) its colour too.
+  delete colors[partName]
 
   if (isGroup(object)) {
     parts[partName] = combine(object, options.pieces)
     if (options.subpartPrefix) {
       for (const key of Object.keys(object.parts)) {
         parts[options.subpartPrefix + key] = object.parts[key]
+        const subColor = object.colors?.[key]
+        if (subColor) colors[options.subpartPrefix + key] = subColor
+        else delete colors[options.subpartPrefix + key]
       }
     }
   } else {
     parts[partName] = object
+  }
+  if (options.color !== undefined) {
+    colors[partName] = Object.freeze({ color: options.color, alpha: options.colorAlpha ?? 1 })
   }
 
   const names = options.hidden ? group.names : [...group.names, partName]
@@ -496,6 +533,7 @@ export function add(group, object, partName, options = {}) {
     names: Object.freeze(names),
     parts: Object.freeze(parts),
     holes: group.holes,
+    colors: Object.freeze(colors),
   })
 }
 
@@ -513,6 +551,7 @@ export function addHole(group, geometry) {
     names: group.names,
     parts: group.parts,
     holes: Object.freeze([...group.holes, geometry]),
+    colors: group.colors,
   })
 }
 
@@ -528,12 +567,19 @@ export function pick(group, pieces) {
   const names = resolvePieces(group, pieces)
   /** @type {Record<string, Geom3>} */
   const parts = {}
-  for (const name of names) parts[name] = group.parts[name]
+  /** @type {Record<string, PartColor>} */
+  const colors = {}
+  for (const name of names) {
+    parts[name] = group.parts[name]
+    const color = group.colors?.[name]
+    if (color) colors[name] = color
+  }
   return Object.freeze({
     name: group.name,
     names: Object.freeze([...names]),
     parts: Object.freeze(parts),
     holes: group.holes,
+    colors: Object.freeze(colors),
   })
 }
 
@@ -570,6 +616,7 @@ export function mapGeometry(value, fn) {
       names: value.names,
       parts: Object.freeze(parts),
       holes: Object.freeze(value.holes.map(fn)),
+      colors: value.colors ?? NO_COLORS,
     })
   )
 }
@@ -592,6 +639,7 @@ export function translate(group, vectorMm) {
     names: group.names,
     parts: Object.freeze(parts),
     holes: Object.freeze(group.holes.map((hole) => transforms.translate(vectorMm, hole))),
+    colors: group.colors ?? NO_COLORS,
   })
 }
 
@@ -718,6 +766,7 @@ function scaleAboutCentroid(value, factors) {
     names: value.names,
     parts: Object.freeze(parts),
     holes: Object.freeze(value.holes.map(apply)),
+    colors: value.colors ?? NO_COLORS,
   })
 }
 

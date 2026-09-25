@@ -38,6 +38,11 @@
  * not raw bounding-box position, against the V1 reference fixture — V1 and V3
  * agree on how big the nut is and disagree, on purpose, about where its Z=0 sits.
  *
+ * **No colour, on purpose** (checked for `TODO/core-026`): V1's `Hardware.Nut`, quoted
+ * above, never calls `.color()`, and `scripts/generate-v1-nut-fixture.cjs`, which loads
+ * V1's real `.color()`, measures the nut as uncoloured (`color: null`). With no call to
+ * port, the record carries no `color` field, and `hardware.nut.spec.js` pins that.
+ *
  * @module core/kernel/recipes/hardware.nut
  */
 

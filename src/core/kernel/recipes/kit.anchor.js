@@ -25,8 +25,10 @@
  * `width * 0.66` — the two dimensions genuinely cross over in V1, which is worth
  * saying out loud because it reads like a transposition. The post is turned onto Y,
  * centred on the hole in X and Z, snapped so its −Y face is flush with the hole's −Y
- * extreme, and finally dropped `height / 6` in Z. Colours are V1 presentation and have
- * no equivalent here.
+ * extreme, and finally dropped `height / 6` in Z. The hole is `red` and the post
+ * `purple`, V1's own `.color(...)` calls above, carried on the two named records
+ * (`TODO/core-026`; this line used to say colours had no equivalent here, which stopped
+ * being true when the record gained a `color` field).
  *
  * `Cylinder(width, height).Center()` is a base-at-`z = 0` prism explicitly re-centred,
  * which is exactly where `primitive.cylinder` already sits — so the hole needs no
@@ -71,6 +73,7 @@
 
 import modeling from '@jscad/modeling'
 
+import { v1ColorToRecord } from '../colors.js'
 import { calcCenterWith, calcSnap } from '../group.js'
 
 // See group.js: default import, not named, so this runs under raw Node ESM too.
@@ -175,6 +178,7 @@ export function anchor(params) {
         ...(center === undefined || center === null ? {} : { center }),
       },
       name: 'hole',
+      ...v1ColorToRecord('red'),
     },
     {
       id: 'post.solid',
@@ -201,6 +205,7 @@ export function anchor(params) {
       },
       target: 'post.turned',
       name: 'post',
+      ...v1ColorToRecord('purple'),
     },
   ]
 }

@@ -157,3 +157,24 @@ describe('nut spec table', () => {
     expect(FIT_CLEARANCE_MM.loose).toBeGreaterThan(FIT_CLEARANCE_MM.close)
   })
 })
+
+describe('part colour: V1 never coloured a nut (TODO/core-026)', () => {
+  // V1, `jscad-hardware.jscad:81-83` (re-read for core-026):
+  //   Nut: function Nut(nut, fit) {
+  //     return Parts.Hexagon(nut[1] + Hardware.Clearances[fit], nut[2]);
+  //   }
+  // No `.color(...)` call, so nothing was dropped here. The fixture's `color: null` is
+  // measured, not assumed: V1's real `.color()` was loaded and the nut came back bare.
+
+  it.each(v1Reference.cases.map((testCase) => [`${testCase.params.spec} ${testCase.params.fit}`, testCase]))(
+    '%s: V1 left no colour and the record carries none',
+    (_label, testCase) => {
+      expect(testCase.color).toBeNull()
+      const { spec, fit } = testCase.params
+      for (const record of nut({ spec, fit }, tables)) {
+        expect(record).not.toHaveProperty('color')
+        expect(record).not.toHaveProperty('colorAlpha')
+      }
+    }
+  )
+})
