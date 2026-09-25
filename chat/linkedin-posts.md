@@ -1238,3 +1238,18 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** composite parts carry baked-in colour → TODO/done/core-026-composite-recipe-color-field.md, git log 7a31566; per-body/per-part override as a new history record → src/core/document.js diff, this session; undo/redo and timeline treat it like any other edit → document.spec.js's undo/redo case and paramEditability fix, this session's test output
 **To Add:** a screenshot once `ui-037` builds the actual colour picker — no control exists yet.
+
+## [2026-09-25T21:17:28Z] — Recolour a body from the Inspector, live, one Undo step per pick (TODO/ui-037)
+
+**Post:** WarpCad, my browser-based CAD app, can now recolour a placed body. Select it, tap the swatch at the top of the Inspector, and the mesh follows the colour picker live while it is open. Only the colour you settle on is saved, as one History step and one Undo.
+
+The rendering change underneath was the real work. Every body used to share three theme materials: normal, selected, and the rest of a multi-selection. Now a body with a colour gets a material keyed by that colour, bodies with the same colour share one, and a body nobody recoloured still uses the original shared material. You can also colour a single part of a group. That part keeps its colour when you recolour the whole group, and Reset hands it back to the group's colour.
+
+One detail came from driving the app by hand rather than from a test. The first version tinted a selected, recoloured body with the selection colour at 35%, and a pure red cube read orange while selected (217/78/24 sampled off the canvas). It ships at 20%.
+
+Built with Claude Code, reviewed by me.
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL #ThreeJS
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** three shared materials before → TODO/done/ui-037 Affected files (Viewport.vue created body/selected/secondary) and the Viewport.vue diff; colour-keyed cache, shared-instance regression guard → src/render/mesh.js + mesh.spec.js ("the very same instance"), this session; part keeps colour / Reset falls back → this session's group drive (182/4/4 vs 5/5/171, then 169/5/5 after Reset); 35% read orange at 217/78/24, ships at 0.2 → this session's laptop Chromium drive output and OVERRIDE_HIGHLIGHT_INTENSITY in the diff
+**To Add:** before/after of the selected red cube at 0.35 vs 0.2 (shots/s13-chromium-1440-4-picked-selected.png is the 0.2 frame; the 0.35 frame was overwritten by the re-drive, so it would need re-shooting)

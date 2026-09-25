@@ -937,3 +937,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** per-body/per-part override, history-visible via a new supersedes record → src/core/document.js/kernel/registry.js diff, this session; sub-part example (Pi board USB-C) → TODO/data-005-per-body-color-override.md's own Goal wording (a Pi board's `usbc` part)
 **To Add:** a screenshot once `ui-037` gives this a control to drive from — none exists yet.
+
+## [2026-09-25T21:17:28Z] — Recolour a body from the Inspector, live, one Undo step per pick (TODO/ui-037)
+
+**Post:** WarpCad has a colour picker. Select a body, tap the swatch, and the mesh changes live as you move around the picker. Settling on a colour is one Undo step, not one per mouse move. Colour one part of a group and it keeps that colour when you recolour the rest. Built with Claude Code, reviewed by me.
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** live preview with no history write, one record per pick → useColorCommands.spec.js ("previewing … writes nothing", "a second edit … supersedes the first") and e2e/inspector-color-control.e2e.js "the picker previews live …", 24/24 this session; part keeps its colour when the whole group is recoloured → src/core/colorOverride.js precedence + this session's group drive (Cube 1 182/4/4 red, Cube 2 5/5/171 blue, laptop Chromium and phone WebKit)
+**To Add:** screenshot pair from this session's drive: shots/grp-chromium-1440-1-whole-red-partB-blue.png and shots/s13-webkit-390-4-picked-selected.png
