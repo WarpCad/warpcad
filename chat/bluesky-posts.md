@@ -964,3 +964,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** freshly-dropped bolt reads gray/silver, not red → this session's screenshots at laptop Chromium + phone WebKit; `tap` hidden, same divergence as washer's `clearance` → `hardware.bolt.js`/`hardware.washer.js` diff, this session; whole-bolt subtract now differs from `tap` subtract for the first time → `ui-041`'s enclosed-bolt fixture re-driven live, 61 695.679 mm³ (metal) vs 61 108.343 mm³ (clearance); full regression check → 1717 unit tests (was 1715), typecheck clean, full non-Firefox Playwright matrix all green
 **To Add:** the before/after freshbolt screenshot pair from this session (render004-chromium-laptop-freshbolt.png vs render-003's red-cylinder shot)
+
+## [2026-09-26T13:19:52Z] — Hiding a bolt's clearance also hid it from the user (TODO/ui-047)
+
+**Post:** Last task hid a bolt's clearance envelope by default so a fresh drop reads as an actual bolt, not a red cylinder. Side effect: nothing on screen said the clearance still existed. WarpCad's Inspector now has a Hidden parts list — tap `tap`, see it as a translucent overlay, select just that piece for the correctly-sized cut. Built with Claude Code, reviewed by me.
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** discoverability gap after `tap` was hidden → `TODO/done/render-004-bolt-tap-clearance-visibility.md`'s own retirement note, and the user's own request quoted in this task's file ("the 'hidden' parts should have an option to show them"); Hidden parts list + translucent toggle (fixed 0.35 alpha, `depthWrite:false`), no document record or Undo step → `src/components/inspector/Inspector.vue`/`src/stores/hiddenPartVisibility.js`/`src/render/mesh.js` diff, this session; tap-to-drill route → `e2e/inspector-hidden-parts.e2e.js`'s breadcrumb assertion, 24/24 across 6 non-Firefox projects; correct clearance-sized cut via the new route → live drive this session, 61 108.343 mm³ against the whole-bolt route's 61 695.679 mm³ on the identical `ui-041` fixture; full regression check → 1734 unit tests (was 1717), typecheck clean, full non-Firefox Playwright matrix 1299 passed / 280 skipped / 0 failed, Firefox environment-blocked as every task since `ui-028`
+**To Add:** a screenshot of the translucent red clearance overlay around a bolt, toggle on vs off
