@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import { createDocument } from './document.js'
 import { recordForDrop } from './library.js'
-import { describeBody, describeSelection } from './inspector.js'
+import { describeBody, describeSelection, describeSubPart } from './inspector.js'
 import { rotateRecord, translateRecord } from './transform.js'
 import { formatDeg, formatMm } from './units.js'
 
@@ -418,6 +418,49 @@ describe('describeBody', () => {
     const spec = present(description.params.find((field) => field.key === 'spec'))
     expect(spec.kind).toBe('text')
     expect(spec.value).toBe('m10 hex')
+  })
+
+  it('reports a recipe s own recipe colour for a single-visible-part composite, whole-body (TODO/render-003)', () => {
+    // A washer has exactly one visible part (`washer`; `clearance` is hidden), so
+    // "the whole body" and "that one part" are the same thing on screen — the
+    // Inspector's whole-body swatch can show the recipe's own colour rather than
+    // the generic theme default.
+    const document = createDocument()
+    document.append(
+      { id: 'washer-1', op: 'hardware.washer', name: 'Washer 1', params: { spec: 'm6' } },
+      { origin: 'local' },
+    )
+    const description = describeBody(document.bodies()[0])
+    expect(description.recipeColor).toEqual({ color: 0x808080 })
+  })
+
+  it('reports no whole-body recipe colour for a multi-part composite: nothing to average (TODO/render-003)', () => {
+    const document = createDocument()
+    document.append(
+      { id: 'bolt-1', op: 'hardware.bolt', name: 'Bolt 1', params: { spec: 'm10 hex', length: 20 } },
+      { origin: 'local' },
+    )
+    const description = describeBody(document.bodies()[0])
+    expect(description.recipeColor).toBeUndefined()
+  })
+
+  it('a bare primitive has no recipe colour at all (TODO/render-003)', () => {
+    const { body } = placed('primitive.cuboid')
+    expect(describeBody(body).recipeColor).toBeUndefined()
+  })
+})
+
+describe('describeSubPart — a recipe s own colour for one named part (TODO/render-003)', () => {
+  it('reports the drilled-into part s own recipe colour', () => {
+    const document = createDocument()
+    document.append(
+      { id: 'bolt-1', op: 'hardware.bolt', name: 'Bolt 1', params: { spec: 'm10 hex', length: 20 } },
+      { origin: 'local' },
+    )
+    const body = document.bodies()[0]
+    expect(describeSubPart(body, 'head', document.records).recipeColor).toEqual({ color: 0x808080 })
+    expect(describeSubPart(body, 'thread', document.records).recipeColor).toEqual({ color: 0xc0c0c0 })
+    expect(describeSubPart(body, 'tap', document.records).recipeColor).toEqual({ color: 0xff0000 })
   })
 })
 

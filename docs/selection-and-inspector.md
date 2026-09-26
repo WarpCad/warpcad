@@ -165,17 +165,32 @@ Two cases, and the panel tells you which:
 
 ## Colouring a shape
 
-Every shape starts in the app's default colour. To change it, select the shape and use
-the **Color** row at the top of the Inspector:
+A shape you draw yourself (Cube, Cylinder, and the rest of the Primitives section)
+starts in the app's default colour. A **ready-made part** from the Library's Hardware
+or Kit Parts / Raspberry Pi sections — a Washer, a Bolt, a Pi board — instead arrives
+in **its own colour**, the same one it would be as a real part: a Washer is gray, a
+Raspberry Pi board's PCB is translucent green. That is not the app's default; it is
+that specific part's own colour, and it is what **Reset** puts a part back to.
+
+To change a shape's colour, select it and use the **Color** row at the top of the
+Inspector:
 
 - **The swatch** (the coloured square) opens your browser's colour picker. While the
   picker is open, the shape in the 3D view changes colour as you move around it, so you
   can judge the colour on the actual shape. When you close the picker or confirm a
-  colour, that colour is kept.
-- **The readout** next to the swatch shows the colour as a code such as `#ff0000`, or
-  **Default** if the shape has never been given one.
-- **Reset** puts the shape back to the default colour. It is greyed out when there is
-  nothing to reset.
+  colour, that colour is kept. For a ready-made part, the swatch starts on that part's
+  own colour rather than a plain default — pick a new one and it works exactly the
+  same way.
+- **The readout** next to the swatch shows the colour as a code such as `#ff0000`. For
+  a shape with no colour of its own and nothing picked yet, it reads **Default**; for
+  an un-touched ready-made part, it reads that part's own colour (e.g. `#808080` for a
+  Washer) — the readout always says what you'd actually see on screen, not a generic
+  word.
+- **Reset** clears a colour you picked. It puts the shape back to whatever it would be
+  without your pick: the app's default for a plain shape, or the ready-made part's own
+  colour for one of those. It is greyed out when there is nothing of yours to reset —
+  which is also true for a ready-made part you have never recoloured, since there is no
+  pick of yours sitting on top of its own colour yet.
 
 While a coloured shape is selected it keeps its own colour and glows slightly warmer, so
 you can see the colour you are picking and still tell that the shape is selected. Shapes
@@ -198,6 +213,17 @@ everything else.
 6. Press **Undo** once and the cube goes back to the default colour. The Undo button's
    tooltip read `Undo: Recolor Cube 1` before you pressed it.
 
+### Worked example: a ready-made part keeps its own colour
+
+1. From the Library's **Hardware** section, drag a **Washer** onto the grid. It is
+   gray — that is the Washer's own colour, not the app's default.
+2. Select it. The Color row's readout already reads `#808080`, and **Reset** is greyed
+   out: there is nothing of yours to reset yet.
+3. Click the swatch and choose red. The washer turns red, and the readout now says
+   `#ff0000`.
+4. Press **Reset**. The washer goes back to gray — its own colour — not to the app's
+   default blue. The readout reads `#808080` again and **Reset** greys out.
+
 ### Colouring one part of a group or ready-made part
 
 For a group, or a ready-made part like a bolt or a Raspberry Pi board, you can colour a
@@ -210,6 +236,13 @@ USB-C socket blue and later colour the whole board red, the board turns red and 
 socket stays blue. To make the socket follow the board again, look inside, select the
 socket, and press **Reset**. That only clears the socket's own colour, so it takes on
 the board's red.
+
+A ready-made composite like a Bolt or a Pi board can also arrive with **more than one
+piece already coloured differently** — a Bolt's head is gray and its thread is silver,
+straight out of the catalogue, with nothing picked yet. Colouring the whole Bolt red
+still beats those built-in piece colours, the same way your own whole-body pick always
+beats a piece's built-in one; Reset on a single piece returns just that piece to its
+own built-in colour, not to the app's default.
 
 Parameters and Transform are read-only while you are looking inside a part. Color is the
 one row you can still change there, because a colour can belong to a single piece.

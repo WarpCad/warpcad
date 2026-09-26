@@ -516,6 +516,78 @@ describe('per-body colour overrides (TODO/ui-037)', () => {
     expect(again.thread).toBe(materials.selected)
   })
 
+  it('a part with a recipe colour renders in that colour when nothing else applies (TODO/render-003)', () => {
+    const materials = shared()
+    const colors = cache()
+    const object = createBodyObject(boltGroup(), materials.body, 'bolt')
+    paintBodyObject(object, {
+      role: 'none',
+      overrides: undefined,
+      preview: null,
+      shared: materials,
+      cache: colors,
+      recipeColors: { head: { color: 0x808080, alpha: 1 }, thread: { color: 0xc0c0c0, alpha: 1 } },
+    })
+    const byPart = Object.fromEntries(object.children.map((child) => [child.userData.partName, materialOf(child)]))
+    expect(byPart.head.color.getHex()).toBe(0x808080)
+    expect(byPart.thread.color.getHex()).toBe(0xc0c0c0)
+    // No recipe colour for `tap`: it keeps the shared palette material, the same
+    // instance every uncoloured body uses — the regression guard this task's own
+    // Testing section names.
+    expect(byPart.tap).toBe(materials.body)
+  })
+
+  it('a user override beats a recipe colour on the same part', () => {
+    const materials = shared()
+    const colors = cache()
+    const object = createBodyObject(boltGroup(), materials.body, 'bolt')
+    paintBodyObject(object, {
+      role: 'none',
+      overrides: [{ color: 0x0000ff, subPart: 'head' }],
+      preview: null,
+      shared: materials,
+      cache: colors,
+      recipeColors: { head: { color: 0x808080, alpha: 1 } },
+    })
+    const byPart = Object.fromEntries(object.children.map((child) => [child.userData.partName, materialOf(child)]))
+    expect(byPart.head.color.getHex()).toBe(0x0000ff)
+  })
+
+  it('a body carrying no recipe colours at all keeps the shared palette material, unchanged', () => {
+    const materials = shared()
+    const colors = cache()
+    const mesh = createBodyObject(primitives.cuboid({ size: [10, 10, 10] }), materials.body, 'a')
+    colors.beginPass()
+    paintBodyObject(mesh, { role: 'none', overrides: undefined, preview: null, shared: materials, cache: colors, recipeColors: undefined })
+    colors.endPass()
+    expect(materialOf(mesh)).toBe(materials.body)
+    expect(colors.size).toBe(0)
+  })
+
+  it('a translucent recipe colour (alpha < 1) carries through as opacity and does not write depth', () => {
+    const materials = shared()
+    const colors = cache()
+    const object = createBodyObject(boltGroup(), materials.body, 'bolt')
+    paintBodyObject(object, {
+      role: 'none',
+      overrides: undefined,
+      preview: null,
+      shared: materials,
+      cache: colors,
+      recipeColors: { tap: { color: 0x008000, alpha: 0.75 } },
+    })
+    const byPart = Object.fromEntries(object.children.map((child) => [child.userData.partName, materialOf(child)]))
+    expect(byPart.tap.color.getHex()).toBe(0x008000)
+    expect(byPart.tap.transparent).toBe(true)
+    expect(byPart.tap.opacity).toBeCloseTo(0.75, 9)
+    // A translucent body material must not write depth, or an opaque part
+    // rendered afterward behind it (or another translucent part) can be
+    // incorrectly occluded/clipped — the same reason `createGhostMaterial` sets
+    // this. An opaque part is unaffected (default `depthWrite: true`).
+    expect(byPart.tap.depthWrite).toBe(false)
+    expect(byPart.head.depthWrite).toBe(true)
+  })
+
   it('a theme switch retints every highlight, and dispose releases everything', () => {
     const materials = shared()
     const colors = cache()

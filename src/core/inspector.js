@@ -25,6 +25,7 @@
  * @module core/inspector
  */
 
+import { recipeColorOf } from './colorOverride.js'
 import { boundsOf, isGroup, localBoundsOf } from './kernel/group.js'
 import { registry as defaultRegistry } from './kernel/registry.js'
 
@@ -87,6 +88,15 @@ import { registry as defaultRegistry } from './kernel/registry.js'
  * @property {[Vec3Mm, Vec3Mm]} localBoundsMm `[min, max]` in the body's local
  *   frame, anchored at {@link BodyDescription.positionMm}: a local point maps
  *   back to world as `positionMm + R(rotationDeg)·(local − positionMm)`.
+ * @property {{ color: number, colorAlpha?: number }} [recipeColor] The recipe's
+ *   own baked-in colour for whatever this description is *of* (`TODO/render-003`):
+ *   the drilled-into part's colour from `describeSubPart`, or, from `describeBody`,
+ *   the single visible part's colour when the body has exactly one — a group with
+ *   more than one differently-coloured visible part (a bolt's gray head and
+ *   silver thread) has no single "whole body" answer, so this is absent there.
+ *   Absent whenever the recipe never coloured the part, or the body is not a
+ *   composite recipe at all. This is what the Inspector's Color control shows as
+ *   the swatch's un-overridden default, in place of the theme palette.
  * @property {{ groupName: string, partName: string }} [subPart] Present only
  *   while the selection is drilled into one named part of a group
  *   (`TODO/ui-016`). Its presence is the signal that **everything here is
@@ -279,6 +289,14 @@ export function describeBody(body, ops = defaultRegistry) {
   // `positionMm` so the dimension lines can map a local corner straight back
   // into world space without needing a second pivot from anywhere else.
   const [localMin, localMax] = localBoundsOf(body.geometry, rotationDeg, positionMm)
+  // Whole-body recipe colour (`TODO/render-003`): only defensible when there is
+  // exactly one visible part, since that is the only case where "the whole
+  // body's colour" and "that one part's colour" are the same claim.
+  const geometry = body.geometry
+  const recipeColor =
+    isGroup(geometry) && geometry.names.length === 1
+      ? recipeColorOf(geometry.colors, geometry.names[0])
+      : undefined
 
   return {
     id: body.id,
@@ -303,6 +321,7 @@ export function describeBody(body, ops = defaultRegistry) {
       [localMin[0], localMin[1], localMin[2]],
       [localMax[0], localMax[1], localMax[2]],
     ],
+    ...(recipeColor ? { recipeColor } : {}),
   }
 }
 
@@ -415,6 +434,7 @@ export function describeSubPart(body, partName, records, ops = defaultRegistry) 
   // part's own local frame is the group's frame (`core-004`'s composed triple).
   const rotationDeg = rotationOf(body)
   const [localMin, localMax] = localBoundsOf(part, rotationDeg, positionMm)
+  const recipeColor = recipeColorOf(group.colors, partName)
 
   return {
     id: body.id,
@@ -445,6 +465,7 @@ export function describeSubPart(body, partName, records, ops = defaultRegistry) 
       [localMax[0], localMax[1], localMax[2]],
     ],
     subPart: { groupName: body.name, partName },
+    ...(recipeColor ? { recipeColor } : {}),
   }
 }
 

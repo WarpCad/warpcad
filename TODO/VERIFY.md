@@ -34,6 +34,22 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### render-003 — Recipe-baked part colours actually render (2026-09-26 11:50 UTC)
+
+Everything measurable is measured and standing: `mesh.spec.js`'s new cases (recipe tier,
+user-override-beats-recipe, palette regression guard, `depthWrite: false` on alpha < 1),
+the new `hardware-library-placement.e2e.js` washer-gray pixel sample (all three
+viewports and engines, WebGL material path — proven to bite by a `git stash` A/B of the
+`Viewport.vue` wiring alone), and `ACCEPTANCE.md` scenarios 13/3/2 re-driven by hand at
+laptop Chromium and phone WebKit with real taps, screenshots inspected by eye. What is
+left is the one thing this sandbox's headless/software rasteriser cannot settle —
+`core-024`'s own VERIFY entry made the same call for a different z-fighting question.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | On a real GPU (not this sandbox's headless renderer): drop a Raspberry Pi board and orbit close around where its translucent `mb`/`board` part overlaps an opaque part on top of it (a USB stack, the GPIO header). Does the translucent surface read cleanly through, with no flicker or wrong-order blending as the camera moves — the kind of artefact `depthWrite: false` exists to prevent but that a real driver's blend-sorting can still get subtly wrong in a way a still screenshot won't show? | Open | |
+| 2 | Same device: drop two Raspberry Pi boards close enough that their translucent parts overlap each other (not just an opaque part). This project has never needed two *overlapping* translucent surfaces before this task — confirm it still reads sensibly rather than double-darkening or z-fighting between the two translucent layers. | Open | |
+
 ### ui-037 — Inspector color control (2026-09-25 21:15)
 
 Scenario 13 was driven in full at laptop Chromium and phone WebKit with real taps, plus data-005's per-part questions (closed below). What headless drives can't reach is the **native colour picker itself**: the OS dialog was emulated as its `input`/`change` stream on the real element. Everything else here is a look-and-feel judgement or a known geometric limit.
@@ -42,7 +58,7 @@ Scenario 13 was driven in full at laptop Chromium and phone WebKit with real tap
 |---|---|---|---|
 | 1 | On a real iPhone and iPad (Safari): tap the Color swatch for a selected body. Does the native picker open, does the body change colour **live** while you move around the picker (the `input` preview), and does closing it keep the colour and add exactly one Undo step? Then open it, move to a different colour and **dismiss without choosing**. Does the body go back to its committed colour, or stay showing the abandoned one? The preview clears on `change`, on a selection change, or when another body/part is picked. It deliberately does not clear on `blur`, because some engines blur when the picker opens. | Open | |
 | 2 | Dark mode (OS set to dark): select a recoloured body. Is its own colour still recognisable under the selection tint (`OVERRIDE_HIGHLIGHT_INTENSITY` 0.2, lowered from 0.35 during the drive because red read orange), and is it still obvious that it is selected? The drives ran in the light scheme. | Open | |
-| 3 | Drop a **Bolt**, look inside it, and colour `head` or `thread`: nothing visibly changes, because the visible `tap` clearance solid (±9.25 mm, 0-27 mm) encloses both. Measured, not a colour bug, and the same interpenetration `ui-016`'s VERIFY row flagged. Decide whether that is acceptable, or whether `tap` should render hidden/translucent (a recipe or `render-003` question). | Open | |
+| 3 | Drop a **Bolt**, look inside it, and colour `head` or `thread`: nothing visibly changes, because the visible `tap` clearance solid (±9.25 mm, 0-27 mm) encloses both. Measured, not a colour bug, and the same interpenetration `ui-016`'s VERIFY row flagged. Decide whether that is acceptable, or whether `tap` should render hidden/translucent (a recipe or `render-003` question). | Issue | `render-003` (2026-09-26) confirmed `tap` is opaque red and unhidden **by V1's own design** (`hardware.bolt.js`'s own record has no `hidden` and colours `tap` `'red'`, matching `jscad-hardware.jscad` exactly) — so a freshly-dropped Bolt now visibly renders as a plain red cylinder once recipe colours draw at all, which was driven and confirmed on screen. Diverging from V1 here is a real product decision (per `core-021`/`core-022`'s precedent for exactly this kind of call), not a one-line render fix, so it is filed as its own finding rather than patched inline: `TODO/render-004-bolt-tap-clearance-visibility.md`. |
 
 ### data-005 — Per-body / per-part colour override, document model only (2026-09-25 13:57)
 

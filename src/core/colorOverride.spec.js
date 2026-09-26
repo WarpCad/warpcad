@@ -5,6 +5,8 @@ import {
   cssHexToColorInt,
   effectiveOverrideOf,
   ownOverrideOf,
+  paintColorOf,
+  recipeColorOf,
 } from './colorOverride.js'
 
 describe('colour conversions at the Inspector boundary (TODO/ui-037)', () => {
@@ -66,5 +68,50 @@ describe('which override paints which part (TODO/ui-037)', () => {
     expect(ownOverrideOf(overrides, 'ethernet')).toBeUndefined()
     expect(ownOverrideOf(overrides, undefined)).toEqual(whole)
     expect(ownOverrideOf([usbc], undefined)).toBeUndefined()
+  })
+})
+
+describe('a recipe s own baked-in colour, as a tier beneath a user override (TODO/render-003)', () => {
+  const recipeColors = {
+    washer: { color: 0x808080, alpha: 1 },
+    mb: { color: 0x008000, alpha: 0.75 },
+  }
+
+  it('reports a fully-opaque recipe colour with colorAlpha omitted, matching a user override s own convention', () => {
+    expect(recipeColorOf(recipeColors, 'washer')).toEqual({ color: 0x808080 })
+  })
+
+  it('carries a translucent recipe colour s alpha through as colorAlpha', () => {
+    expect(recipeColorOf(recipeColors, 'mb')).toEqual({ color: 0x008000, colorAlpha: 0.75 })
+  })
+
+  it('a part the recipe never coloured has no recipe colour', () => {
+    expect(recipeColorOf(recipeColors, 'shell')).toBeUndefined()
+    expect(recipeColorOf({}, 'washer')).toBeUndefined()
+    expect(recipeColorOf(undefined, 'washer')).toBeUndefined()
+  })
+
+  it('undefined for "the whole body" (no partName): a recipe colour is per-part, never averaged', () => {
+    expect(recipeColorOf(recipeColors, undefined)).toBeUndefined()
+  })
+
+  it('paintColorOf: with no user override at all, the recipe colour applies', () => {
+    expect(paintColorOf(undefined, recipeColors, 'washer')).toEqual({ color: 0x808080 })
+    expect(paintColorOf(undefined, recipeColors, 'mb')).toEqual({ color: 0x008000, colorAlpha: 0.75 })
+  })
+
+  it('paintColorOf: a whole-body user override beats the recipe colour', () => {
+    const overrides = [{ color: 0xff0000 }]
+    expect(paintColorOf(overrides, recipeColors, 'washer')).toEqual({ color: 0xff0000 })
+  })
+
+  it('paintColorOf: a sub-part user override beats both the whole-body override and the recipe colour', () => {
+    const overrides = [{ color: 0xff0000 }, { color: 0x0000ff, subPart: 'washer' }]
+    expect(paintColorOf(overrides, recipeColors, 'washer')).toEqual({ color: 0x0000ff })
+  })
+
+  it('paintColorOf: neither a user override nor a recipe colour falls through to undefined — draw the palette', () => {
+    expect(paintColorOf(undefined, recipeColors, 'shell')).toBeUndefined()
+    expect(paintColorOf(undefined, undefined, undefined)).toBeUndefined()
   })
 })

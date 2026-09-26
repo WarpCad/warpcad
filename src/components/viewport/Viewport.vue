@@ -83,7 +83,7 @@ import {
 import { colorIntToCssHex, ownOverrideOf } from '../../core/colorOverride.js'
 import { nearestOnPlane, ndcFromClient, projectToWorkingPlane } from '../../render/pick.js'
 import { evaluateOp, toGeom3 } from '../../core/kernel/index.js'
-import { boundsOf } from '../../core/kernel/group.js'
+import { boundsOf, isGroup } from '../../core/kernel/group.js'
 import {
   boxAtPoint,
   clearSnap,
@@ -916,6 +916,10 @@ function syncBodies() {
       // Read by `paintBodies`. Set before the early-out on purpose: a timeline
       // preview can hand back the same terminal with a different history.
       existing.userData.colorOverrides = body.colorOverrides
+      // A bare `Geom3` has no `.colors` at all, so this is `undefined` for every
+      // non-composite body — exactly the "no recipe colour" case `paintColorOf`
+      // already falls through on (`TODO/render-003`).
+      existing.userData.recipeColors = isGroup(body.geometry) ? body.geometry.colors : undefined
       if (existing.userData.recordId === body.recordId) continue
       // The body was transformed: swap in the new geometry and drop whatever
       // preview transform the drag left on the object, since the translation or
@@ -936,6 +940,7 @@ function syncBodies() {
     const object = createBodyObject(body.geometry, bodyMaterial, body.id)
     object.userData.recordId = body.recordId
     object.userData.colorOverrides = body.colorOverrides
+    object.userData.recipeColors = isGroup(body.geometry) ? body.geometry.colors : undefined
     bodyMeshes.set(body.id, object)
     bodiesGroup.add(object)
   }
@@ -1000,8 +1005,9 @@ function applySelectionMaterial() {
 }
 
 /**
- * Put the right material on every body: its selection role, and its colour
- * overrides (`TODO/ui-037`). Split out of {@link applySelectionMaterial} so a live
+ * Put the right material on every body: its selection role, its recipe's own
+ * baked-in part colours (`TODO/render-003`) and its user colour overrides
+ * (`TODO/ui-037`). Split out of {@link applySelectionMaterial} so a live
  * colour-picker preview can repaint **without** rebuilding the x-ray twins — the
  * picker fires `input` at pointer rate, and twins are a `new Mesh` apiece.
  *
@@ -1024,6 +1030,7 @@ function paintBodies() {
       preview: previewId === id ? { color: colorPreview.color, subPart: colorPreview.subPart } : null,
       shared,
       cache: colorMaterials,
+      recipeColors: object.userData.recipeColors,
     })
   }
   colorMaterials.endPass()

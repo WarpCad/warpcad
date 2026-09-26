@@ -339,3 +339,138 @@ test('a touch drag places a hardware part too', async ({ page, hasTouch }) => {
   const [x, y] = centerParts(bodies[0].center)
   expect(Math.hypot(x, y)).toBeGreaterThan(1)
 })
+
+/**
+ * The mean colour of a small patch of the rendered canvas, around a fraction of
+ * its size — what the renderer actually drew there. Mirrors
+ * `e2e/inspector-color-control.e2e.js`'s own helper of the same name.
+ *
+ * @param {import('@playwright/test').Page} page
+ * @param {number} fx
+ * @param {number} fy
+ * @returns {Promise<{ r: number, g: number, b: number }>}
+ */
+async function sampleCanvas(page, fx, fy) {
+  await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))))
+  return page.evaluate(
+    ({ fx, fy }) => {
+      const source = /** @type {HTMLCanvasElement} */ (document.querySelector('[data-testid="viewport-canvas"]'))
+      const off = document.createElement('canvas')
+      off.width = source.width
+      off.height = source.height
+      const ctx = off.getContext('2d')
+      if (!ctx) throw new Error('no 2d context')
+      ctx.drawImage(source, 0, 0)
+      const radius = 4
+      const cx = Math.round(source.width * fx)
+      const cy = Math.round(source.height * fy)
+      const { data } = ctx.getImageData(cx - radius, cy - radius, radius * 2 + 1, radius * 2 + 1)
+      let r = 0
+      let g = 0
+      let b = 0
+      const n = data.length / 4
+      for (let i = 0; i < data.length; i += 4) {
+        r += data[i]
+        g += data[i + 1]
+        b += data[i + 2]
+      }
+      return { r: r / n, g: g / n, b: b / n }
+    },
+    { fx, fy },
+  )
+}
+
+/**
+ * Grayscale-ish (channels close together) and dark enough not to be background —
+ * a washer's V1 `gray`, unlike the theme's blue-biased default body colour
+ * (`BODY_COLORS`, every entry has `b` well above `r`) or a bright background/grid
+ * pixel (measured well above 200 per channel in this light-theme run).
+ *
+ * @param {{ r: number, g: number, b: number }} c
+ */
+const isGrayish = (c) => {
+  const max = Math.max(c.r, c.g, c.b)
+  const min = Math.min(c.r, c.g, c.b)
+  return max - min < 25 && max < 200
+}
+
+test('a dropped Washer renders in V1 s gray, not the theme s default body colour (TODO/render-003)', async ({
+  page,
+}) => {
+  // Zoomed in well past the default, because a ~12mm washer next to a 40mm
+  // primitive's default camera framing renders as only a few pixels
+  // (`TODO/VERIFY.md`'s ui-030 entry) — too few to sample reliably. Dollying
+  // toward the fixed orbit target changes only how much world a screen fraction
+  // covers, not which screen fraction a given drop point lands at, so the drop
+  // point below is still where to sample afterward.
+  for (let i = 0; i < 10; i += 1) await page.getByTestId('nav-zoom-in').click()
+
+  await openLibrary(page)
+  // Upper area, not the screen centre: at phone width the Library sheet covers
+  // the lower half of this same viewport element (other specs' own convention).
+  const DROP = { fx: 0.5, fy: 0.28 }
+  await dragRowIntoViewport(page, { op: 'hardware.washer', ...DROP })
+  await closeLibrary(page)
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-body-count', '1')
+
+  // Deselect first: a freshly-dropped body is auto-selected, and a *selected*
+  // recoloured body keeps its own colour with a warm emissive tint on top
+  // (`TODO/ui-037`'s `OVERRIDE_HIGHLIGHT_INTENSITY`) — measured to shift a
+  // neutral gray materially warmer, which would make this assertion about the
+  // *unselected* recipe colour instead.
+  await clickViewportAt(page, 0.05, 0.05)
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-selected-count', '0')
+
+  // The washer is a torus: its exact centre is the hole, which shows whatever
+  // is behind it rather than the part's own material — sampling a small ring
+  // of offsets around the drop point and taking the darkest (the material,
+  // always measured well under the light-theme background here) is robust to
+  // exactly where the rim lands relative to the drop point, across
+  // viewports/engines, without hardcoding one fragile offset.
+  const offsets = [
+    [DROP.fx, DROP.fy - 0.04],
+    [DROP.fx, DROP.fy + 0.04],
+    [DROP.fx - 0.04, DROP.fy],
+    [DROP.fx + 0.04, DROP.fy],
+  ]
+  const samples = []
+  for (const [fx, fy] of offsets) samples.push(await sampleCanvas(page, fx, fy))
+  const darkest = samples.reduce((a, b) => (a.r + a.g + a.b < b.r + b.g + b.b ? a : b))
+
+  expect(isGrayish(darkest), `expected V1's gray, darkest sample: ${JSON.stringify(darkest)}, all: ${JSON.stringify(samples)}`).toBe(true)
+})
+
+/**
+ * Click the canvas at a fraction of its size, to deselect whatever is selected.
+ *
+ * @param {import('@playwright/test').Page} page
+ * @param {number} fx
+ * @param {number} fy
+ */
+async function clickViewportAt(page, fx, fy) {
+  await page.evaluate(
+    ({ fx, fy }) => {
+      const canvas = document.querySelector('[data-testid="viewport-canvas"]')
+      if (!canvas) throw new Error('no canvas')
+      const box = canvas.getBoundingClientRect()
+      const x = box.left + box.width * fx
+      const y = box.top + box.height * fy
+      for (const type of ['pointerdown', 'pointerup']) {
+        canvas.dispatchEvent(
+          new PointerEvent(type, {
+            pointerId: 5,
+            pointerType: 'mouse',
+            isPrimary: true,
+            button: 0,
+            clientX: x,
+            clientY: y,
+            bubbles: true,
+            cancelable: true,
+          }),
+        )
+      }
+    },
+    { fx, fy },
+  )
+  await page.waitForTimeout(90)
+}

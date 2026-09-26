@@ -31,7 +31,7 @@ import {
   MeshStandardMaterial,
 } from 'three'
 
-import { effectiveOverrideOf } from '../core/colorOverride.js'
+import { paintColorOf } from '../core/colorOverride.js'
 import { hasNamedParts, toGeom3 } from '../core/kernel/group.js'
 
 /** @typedef {import('@jscad/modeling').geometries.geom3.Geom3} Geom3 */
@@ -374,6 +374,14 @@ export function createColorMaterialCache(highlights) {
       if (alpha < 1) {
         material.transparent = true
         material.opacity = alpha
+        // Same reasoning as `createGhostMaterial`: a translucent body material
+        // that writes depth can incorrectly occlude or clip whatever draws after
+        // it in the transparent pass — another translucent part, or an opaque
+        // one whose fragments still have to blend underneath this one rather
+        // than being depth-tested against it (`TODO/render-003`, the Pi boards'
+        // alpha-0.75 `mb`/`board` parts). An opaque body keeps the default
+        // `depthWrite: true`, unchanged.
+        material.depthWrite = false
       }
       tint(material, role)
       materials.set(key, { material, role })
@@ -414,16 +422,24 @@ export function createColorMaterialCache(highlights) {
 
 /**
  * Paint one body object — a bare mesh, or {@link createBodyObject}'s container of
- * part meshes — for its selection role and its colour overrides (`TODO/ui-037`).
+ * part meshes — for its selection role, its recipe's own baked-in colours
+ * (`TODO/core-026`'s `Group.colors`, rendered starting `TODO/render-003`) and its
+ * user colour overrides (`TODO/ui-037`).
  *
  * Per part, in order:
  *
  * 1. a live **preview** for this part (the picker is open) — its whole-body form
- *    does not paint over a part that has its own override, because committing it
- *    would not either (`src/core/colorOverride.js`'s precedence rule);
- * 2. the part's **effective override** — its own, else the whole-body one;
+ *    does not paint over a part that has its own *user* override, because
+ *    committing it would not either (`src/core/colorOverride.js`'s precedence
+ *    rule) — a part with only a *recipe* colour and no user override is not
+ *    exempted, since a whole-body user pick does beat a recipe colour once
+ *    committed, so the preview has to show that too;
+ * 2. the part's **paint colour** — {@link paintColorOf}'s four-tier precedence:
+ *    a user sub-part override, else a user whole-body override, else the
+ *    recipe's own colour for this part, in that order;
  * 3. otherwise the **shared palette material** for the role, the very instance the
- *    viewport has always used, so a body nobody recoloured draws exactly as before.
+ *    viewport has always used, so a body with neither a recipe colour nor a user
+ *    override draws exactly as before.
  *
  * @param {Mesh | ThreeGroup} object
  * @param {{
@@ -432,10 +448,11 @@ export function createColorMaterialCache(highlights) {
  *   preview: { color: number, subPart?: string } | null,
  *   shared: { body: MeshStandardMaterial, selected: MeshStandardMaterial, secondary: MeshStandardMaterial },
  *   cache: ColorMaterialCache,
+ *   recipeColors?: Readonly<Record<string, import('../core/kernel/group.js').PartColor>>,
  * }} options
  * @returns {void}
  */
-export function paintBodyObject(object, { role, overrides, preview, shared, cache }) {
+export function paintBodyObject(object, { role, overrides, preview, shared, cache, recipeColors }) {
   const palette = role === 'base' ? shared.selected : role === 'secondary' ? shared.secondary : shared.body
 
   /**
@@ -451,8 +468,8 @@ export function paintBodyObject(object, { role, overrides, preview, shared, cach
           : preview.subPart === partName
       if (previewsThisPart) return cache.previewMaterial(preview.color, role)
     }
-    const override = effectiveOverrideOf(overrides, partName)
-    return override ? cache.materialFor(override.color, override.colorAlpha, role) : palette
+    const paint = paintColorOf(overrides, recipeColors, partName)
+    return paint ? cache.materialFor(paint.color, paint.colorAlpha, role) : palette
   }
 
   if (object instanceof ThreeGroup) {

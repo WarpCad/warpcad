@@ -583,9 +583,19 @@ const ownColor = computed(() => ownOverrideOf(bodyColorOverrides.value, colorPar
 const effectiveColor = computed(() => effectiveOverrideOf(bodyColorOverrides.value, colorPart.value))
 
 /**
- * The theme's default body colour, for a swatch with no override to show. Read
- * from the same palette the viewport draws with, so "Default" swatches the colour
- * the body really is on screen rather than an arbitrary grey.
+ * The recipe's own baked-in colour for this part (`TODO/render-003`), read off
+ * `describeBody`/`describeSubPart`'s own precomputed answer (`src/core/inspector.js`)
+ * rather than re-deriving it here — `core/colorOverride.js` is the one module that
+ * owns colour precedence, and this component should not need a second copy of its
+ * "which part has a single answer" rule.
+ */
+const recipeColor = computed(() => body.value?.recipeColor)
+
+/**
+ * The theme's default body colour, for a swatch with neither a user override nor
+ * a recipe colour to show. Read from the same palette the viewport draws with,
+ * so "Default" swatches the colour the body really is on screen rather than an
+ * arbitrary grey.
  */
 function defaultBodyColor() {
   const light =
@@ -604,13 +614,22 @@ const colorSwatchHex = computed(() => {
   ) {
     return colorIntToCssHex(colorPreview.color)
   }
-  return colorIntToCssHex(effectiveColor.value?.color ?? defaultBodyColor())
+  return colorIntToCssHex(effectiveColor.value?.color ?? recipeColor.value?.color ?? defaultBodyColor())
 })
 
-/** What the readout beside the swatch says. */
+/**
+ * What the readout beside the swatch says. A recipe colour with no user override
+ * reads as its plain `#rrggbb` — the same as a user's own pick — rather than the
+ * literal word `Default`: a freshly-dropped Washer *is* gray, not "using the
+ * default", and `docs/selection-and-inspector.md`'s worked example depends on
+ * that reading. `Reset` still disables correctly regardless (`:disabled="!ownColor"`
+ * below), since resetting is about clearing a *user* override, not about whether
+ * anything is currently showing a colour.
+ */
 const colorReadout = computed(() => {
   if (ownColor.value) return colorIntToCssHex(ownColor.value.color)
   if (effectiveColor.value) return `${colorIntToCssHex(effectiveColor.value.color)} (whole body)`
+  if (recipeColor.value) return colorIntToCssHex(recipeColor.value.color)
   return 'Default'
 })
 
@@ -804,9 +823,10 @@ watch([() => body.value?.id, colorPart], () => {
         <section
           class="inspector__section"
           data-testid="inspector-color"
-          :data-color="effectiveColor ? colorIntToCssHex(effectiveColor.color) : ''"
+          :data-color="colorIntToCssHex((effectiveColor ?? recipeColor)?.color ?? defaultBodyColor())"
           :data-own-color="ownColor ? colorIntToCssHex(ownColor.color) : ''"
           :data-color-part="colorPart ?? ''"
+          :data-recipe-color="recipeColor ? colorIntToCssHex(recipeColor.color) : ''"
         >
           <h3 class="inspector__section-title">Color</h3>
           <div class="inspector__color-row">

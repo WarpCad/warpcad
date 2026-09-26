@@ -946,3 +946,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** live preview with no history write, one record per pick → useColorCommands.spec.js ("previewing … writes nothing", "a second edit … supersedes the first") and e2e/inspector-color-control.e2e.js "the picker previews live …", 24/24 this session; part keeps its colour when the whole group is recoloured → src/core/colorOverride.js precedence + this session's group drive (Cube 1 182/4/4 red, Cube 2 5/5/171 blue, laptop Chromium and phone WebKit)
 **To Add:** screenshot pair from this session's drive: shots/grp-chromium-1440-1-whole-red-partB-blue.png and shots/s13-webkit-390-4-picked-selected.png
+
+## [2026-09-26T11:41:55Z] — Ready-made parts finally look like themselves (TODO/render-003)
+
+**Post:** WarpCad's bolts, washers and Raspberry Pi boards have carried their own colours in the document model for a while — nothing drew them. A dropped Washer rendered the app's default blue, not V1's gray. Now it does: Washer is gray, a Pi board's PCB is translucent green, and a user's own colour pick still wins over both. Built with Claude Code, reviewed by me.
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL #ThreeJS
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** washer gray, not theme blue → e2e/hardware-library-placement.e2e.js's new pixel-sample test (all 3 viewports × chromium/webkit), proven to bite via a `git stash` A/B of the `Viewport.vue` wiring (blue-biased sample r:80 g:105 b:139 without it); Reset returns to the recipe colour, not the app default → this session's laptop Chromium + phone WebKit drive (Inspector readout `#808080` → pick → Reset → `#808080` again); translucent Pi board reads cleanly, no z-fight → this session's screenshot, inspected by eye; one real finding surfaced and filed, not patched inline → TODO/render-004 (hardware.bolt's opaque V1-faithful `tap` now visibly encloses its own head/thread)
+**To Add:** a before/after screenshot of a dropped Washer (theme blue vs. its own gray)
