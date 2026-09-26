@@ -20,8 +20,21 @@
  *
  * `:30` adds a single `board` to the group. The plate, its two notches and the two
  * blocks are stages of one CSG expression, not named parts, and V1 exposes no way to
- * reach them — so this port names only the finished solid. Colours (`'orange'`,
- * `'blue'`, `'silver'`, `'black'`) are dropped as everywhere else in this catalogue.
+ * reach them — so this port names only the finished solid.
+ *
+ * ## Colour: genuinely left uncoloured (TODO/core-033)
+ *
+ * `:16,20` colour the two notch-cutting tools `'orange'`/`'blue'`, but they are
+ * subtraction operands — cut away, not left behind — so neither reaches the result
+ * either way. The part that matters is `:24`'s `.color('silver')`, which in
+ * `jscad-utils` (`color.js` → `CSG#setColor`) recolours *every* polygon of the solid it
+ * is called on, uniformly, overwriting anything unioned in earlier. It runs on the
+ * plate-plus-fins solid — this file's `withFins` — which is exactly right up to there.
+ * But `:25-29` then unions in a *fourth* solid, `'black'`, **after** that `.color()`
+ * call, and union does not recolour either side. So the real V1 `board` is a genuine
+ * two-tone solid: silver everywhere except the black housing block. A record here
+ * carries one colour, not a mix, so — the same rule `raspberrypi.bplus.js` applies to
+ * `avjack` — `board` stays uncoloured rather than picking one of the two arbitrarily.
  *
  * @module core/kernel/recipes/raspberrypi.activeCoolingFan
  */

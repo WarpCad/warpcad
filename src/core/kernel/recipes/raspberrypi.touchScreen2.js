@@ -65,6 +65,7 @@
  * @module core/kernel/recipes/raspberrypi.touchScreen2
  */
 
+import { v1ColorToRecord } from '../colors.js'
 import { boundsOf, centroidOf } from '../group.js'
 import { MOUNTING_HOLES_MM, rpiParts } from '../tables/rpi-parts.js'
 import {
@@ -226,26 +227,30 @@ export function touchScreen2(params = {}) {
     LENS_MM.thicknessMm,
     LENS_MM.cornerRadiusMm
   )
-  builder.place(lens, 'lens')
+  // V1 `:21` — `.color('black')` (TODO/core-033).
+  builder.place(lens, 'lens', v1ColorToRecord('black'))
 
   // `:45-48`. Note this plate is snapped `inside-` on *all three* axes and so shares
   // the lens's z minimum — the two interpenetrate, exactly as V1 leaves them.
   const backPlate = cuboidPart('backPlate', BACK_PLATE_MM)
   chain(backPlate).snap(lens, 'xyz', 'inside-').translate(BACK_PLATE_OFFSET_MM)
-  builder.place(backPlate, 'backPlate')
+  // V1 `:46` — `.color('gray')` (TODO/core-033).
+  builder.place(backPlate, 'backPlate', v1ColorToRecord('gray'))
 
   // `snap(..., 'x', 'outside-')` is SNAP_SIDES [1, 0]: the mover's minimum goes on the
   // reference's maximum, so `outside-` hangs this off the plate's +x face.
   const overHang = cuboidPart('overHang', OVER_HANG_MM)
   chain(overHang).snap(backPlate, 'x', 'outside-').align(backPlate, 'y')
-  builder.place(overHang, 'overHang')
+  // V1 `:52` — `.color('darkgray')` (TODO/core-033).
+  builder.place(overHang, 'overHang', v1ColorToRecord('darkgray'))
 
   const backPlateCover = cuboidPart('backPlateCover', BACK_PLATE_COVER_MM)
   chain(backPlateCover)
     .snap(backPlate, 'z', 'outside-')
     .snap(backPlate, 'x', 'inside+', BACK_PLATE_COVER_INSET_MM)
     .align(backPlate, 'y')
-  builder.place(backPlateCover, 'backPlateCover')
+  // V1 `:58` — `.color('silver')` (TODO/core-033).
+  builder.place(backPlateCover, 'backPlateCover', v1ColorToRecord('silver'))
 
   SCREEN_MOUNTING_PAD_OFFSETS_MM.forEach((cloneOffsetMm, index) => {
     const n = index + 1
@@ -266,8 +271,10 @@ export function touchScreen2(params = {}) {
     // reach pads 1 and 2. The turn is about the hole, so only the pad changes.
     if (TURNED_SCREEN_PADS[index]) turnAboutZ(pad, centreOf(hole), 90)
 
-    builder.place(pad, `screenMountingPad${n}`)
-    builder.place(hole, `screenMountingPad${n}hole`, { hidden: true })
+    // V1 `:74` — the pad is `.color('blue')`; `:78` — the hole is `.color('red')`,
+    // hidden either way (TODO/core-033).
+    builder.place(pad, `screenMountingPad${n}`, v1ColorToRecord('blue'))
+    builder.place(hole, `screenMountingPad${n}hole`, { hidden: true, ...v1ColorToRecord('red') })
   })
 
   /** @type {Part | undefined} */
@@ -290,8 +297,10 @@ export function touchScreen2(params = {}) {
     // `:151`'s translate lands on the original group, so every clone below inherits it.
     move([post, postHole], addVectors(PI_POST_ORIGIN_MM, cloneOffsetMm))
 
-    builder.place(post, `piMountingPost${n}`)
-    builder.place(postHole, `piMountingPost${n}postHole`, { hidden: true })
+    // V1 `:124` — the post is `.color('green')`; `:132` — the post hole is
+    // `.color('red')`, hidden either way (TODO/core-033).
+    builder.place(post, `piMountingPost${n}`, v1ColorToRecord('green'))
+    builder.place(postHole, `piMountingPost${n}postHole`, { hidden: true, ...v1ColorToRecord('red') })
     if (index === 0) post1 = post
   })
 
@@ -313,8 +322,9 @@ export function touchScreen2(params = {}) {
       0,
     ])
   )
-  // V1 adds this one hidden (`:191`'s `true`), unlike its 7-inch namesake.
-  builder.place(noGoPower, 'noGoPower', { hidden: true })
+  // V1 adds this one hidden (`:191`'s `true`), unlike its 7-inch namesake, and
+  // colours it `.color('red')` (`:186`) — TODO/core-033.
+  builder.place(noGoPower, 'noGoPower', { hidden: true, ...v1ColorToRecord('red') })
 
   return builder.build()
 }

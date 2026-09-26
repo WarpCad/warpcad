@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import modeling from '@jscad/modeling'
 
+import { v1ColorToRecord } from '../colors.js'
 import { boundsOf, calcSnap, isGroup, sizeOf } from '../group.js'
 import { evaluateOp, expand } from '../index.js'
 import { BPLUS_BOARD, MOUNTING_HOLES_MM, rpiParts } from '../tables/rpi-parts.js'
@@ -576,5 +577,215 @@ describe('raspberrypi.bplus: the alpha-channel colour V1 gave the board (TODO/co
   it.each(BPLUS_MODELS.map((model) => [model]))('model %s: the same board colour', (model) => {
     const mb = expand('raspberrypi.bplus', { model }).find((record) => record.name === 'mb')
     expect(mb).toMatchObject({ color: 0x008000, colorAlpha: 0.75 })
+  })
+})
+
+/**
+ * @param {number} model
+ * @param {string} name
+ * @returns {import('../registry.js').OpRecord | undefined}
+ */
+function recordFor(model, name) {
+  return expand('raspberrypi.bplus', { model }).find((record) => record.name === name)
+}
+
+describe('raspberrypi.bplus: the opaque colours V1 gave every other part (TODO/core-033)', () => {
+  describe('models 2/3 (bplus.js:627-745, via addModelB)', () => {
+    it.each([2, 3])('model %s: ethernet is orange (rpi-parts.js:28 EthernetJack)', (model) => {
+      expect(recordFor(model, 'ethernet')).toMatchObject(v1ColorToRecord('orange'))
+    })
+
+    it.each([2, 3])('model %s: usb1/usb2 are lightgray (rpi-parts.js:66,72 UsbJack)', (model) => {
+      expect(recordFor(model, 'usb1')).toMatchObject(v1ColorToRecord('lightgray'))
+      expect(recordFor(model, 'usb2')).toMatchObject(v1ColorToRecord('lightgray'))
+    })
+
+    it.each([2, 3])('model %s: microusb is lightgray (rpi-parts.js:84 MicroUsb)', (model) => {
+      expect(recordFor(model, 'microusb')).toMatchObject(v1ColorToRecord('lightgray'))
+    })
+
+    it.each([2, 3])('model %s: hdmi is lightgray (rpi-parts.js:92 Hdmi)', (model) => {
+      expect(recordFor(model, 'hdmi')).toMatchObject(v1ColorToRecord('lightgray'))
+    })
+
+    it.each([2, 3])(
+      'model %s: avjack is left uncoloured — block is lightgray but its barrel is ' +
+        'black (rpi-parts.js:100,105 AvJack)',
+      (model) => {
+        const avjack = recordFor(model, 'avjack')
+        expect(avjack).toBeDefined()
+        expect(avjack?.color).toBeUndefined()
+        expect(avjack?.colorAlpha).toBeUndefined()
+      }
+    )
+
+    it.each([2, 3])('model %s: camera/display are gray (rpi-parts.js:128 Ribbon)', (model) => {
+      expect(recordFor(model, 'camera')).toMatchObject(v1ColorToRecord('gray'))
+      expect(recordFor(model, 'display')).toMatchObject(v1ColorToRecord('gray'))
+    })
+
+    it.each([2, 3])('model %s: gpio is gray (rpi-parts.js:153 Gpio)', (model) => {
+      expect(recordFor(model, 'gpio')).toMatchObject(v1ColorToRecord('gray'))
+    })
+
+    it.each([2, 3])(
+      'model %s: activityled is lightgreen, powerled is red (bplus.js:719,727,735,742)',
+      (model) => {
+        expect(recordFor(model, 'activityled')).toMatchObject(v1ColorToRecord('lightgreen'))
+        expect(recordFor(model, 'powerled')).toMatchObject(v1ColorToRecord('red'))
+      }
+    )
+  })
+
+  describe('model 4 (bplus.js:33-326, via addPi4)', () => {
+    it('ethernet is lightgray (bplus.js:41)', () => {
+      expect(recordFor(4, 'ethernet')).toMatchObject(v1ColorToRecord('lightgray'))
+    })
+
+    it('clearance-ethernet is red and stays hidden (bplus.js:84)', () => {
+      expect(recordFor(4, 'clearance-ethernet')).toMatchObject({
+        ...v1ColorToRecord('red'),
+        hidden: true,
+      })
+    })
+
+    it('usb1/usb2 are lightgray (bplus.js:101,109)', () => {
+      expect(recordFor(4, 'usb1')).toMatchObject(v1ColorToRecord('lightgray'))
+      expect(recordFor(4, 'usb2')).toMatchObject(v1ColorToRecord('lightgray'))
+    })
+
+    it('their clearances are red and hidden (bplus.js:117)', () => {
+      expect(recordFor(4, 'clearance-usb1')).toMatchObject({ ...v1ColorToRecord('red'), hidden: true })
+      expect(recordFor(4, 'clearance-usb2')).toMatchObject({ ...v1ColorToRecord('red'), hidden: true })
+    })
+
+    it('usbc/hdmi1/hdmi2 are lightgray (bplus.js:196,214,232)', () => {
+      expect(recordFor(4, 'usbc')).toMatchObject(v1ColorToRecord('lightgray'))
+      expect(recordFor(4, 'hdmi1')).toMatchObject(v1ColorToRecord('lightgray'))
+      expect(recordFor(4, 'hdmi2')).toMatchObject(v1ColorToRecord('lightgray'))
+    })
+
+    it('their clearances are red and hidden (bplus.js:204,222,240)', () => {
+      expect(recordFor(4, 'clearance-usbc')).toMatchObject({ ...v1ColorToRecord('red'), hidden: true })
+      expect(recordFor(4, 'clearance-hdmi1')).toMatchObject({ ...v1ColorToRecord('red'), hidden: true })
+      expect(recordFor(4, 'clearance-hdmi2')).toMatchObject({ ...v1ColorToRecord('red'), hidden: true })
+    })
+
+    it('avjack is left uncoloured (rpi-parts.js:100,105 differ)', () => {
+      const avjack = recordFor(4, 'avjack')
+      expect(avjack).toBeDefined()
+      expect(avjack?.color).toBeUndefined()
+    })
+
+    it('clearance-avjack is red and hidden (bplus.js:259)', () => {
+      expect(recordFor(4, 'clearance-avjack')).toMatchObject({ ...v1ColorToRecord('red'), hidden: true })
+    })
+
+    it('camera/display/gpio are gray (rpi-parts.js:128,153 Ribbon/Gpio)', () => {
+      expect(recordFor(4, 'camera')).toMatchObject(v1ColorToRecord('gray'))
+      expect(recordFor(4, 'display')).toMatchObject(v1ColorToRecord('gray'))
+      expect(recordFor(4, 'gpio')).toMatchObject(v1ColorToRecord('gray'))
+    })
+
+    it('activityled is lightgreen, powerled is red (bplus.js:292,301)', () => {
+      expect(recordFor(4, 'activityled')).toMatchObject(v1ColorToRecord('lightgreen'))
+      expect(recordFor(4, 'powerled')).toMatchObject(v1ColorToRecord('red'))
+    })
+
+    it('their clearances are both red and hidden (bplus.js:301,311)', () => {
+      expect(recordFor(4, 'clearance-activityled')).toMatchObject({ ...v1ColorToRecord('red'), hidden: true })
+      expect(recordFor(4, 'clearance-powerled')).toMatchObject({ ...v1ColorToRecord('red'), hidden: true })
+    })
+  })
+
+  describe('model 5 (bplus.js:335-550, via addPi5)', () => {
+    it('cpu is lightgray, clearance-cpu is red and hidden (bplus.js:342,351)', () => {
+      expect(recordFor(5, 'cpu')).toMatchObject(v1ColorToRecord('lightgray'))
+      expect(recordFor(5, 'clearance-cpu')).toMatchObject({ ...v1ColorToRecord('red'), hidden: true })
+    })
+
+    it('ethernet is lightgray, clearance-ethernet is red and hidden (bplus.js:361,372)', () => {
+      expect(recordFor(5, 'ethernet')).toMatchObject(v1ColorToRecord('lightgray'))
+      expect(recordFor(5, 'clearance-ethernet')).toMatchObject({ ...v1ColorToRecord('red'), hidden: true })
+    })
+
+    it('usb1/usb2 are lightgray (bplus.js:383,391)', () => {
+      expect(recordFor(5, 'usb1')).toMatchObject(v1ColorToRecord('lightgray'))
+      expect(recordFor(5, 'usb2')).toMatchObject(v1ColorToRecord('lightgray'))
+    })
+
+    it('their clearances are red and hidden (bplus.js:410,429)', () => {
+      expect(recordFor(5, 'clearance-usb1')).toMatchObject({ ...v1ColorToRecord('red'), hidden: true })
+      expect(recordFor(5, 'clearance-usb2')).toMatchObject({ ...v1ColorToRecord('red'), hidden: true })
+    })
+
+    it('usbc/hdmi1/hdmi2 are lightgray (bplus.js:439,457,475)', () => {
+      expect(recordFor(5, 'usbc')).toMatchObject(v1ColorToRecord('lightgray'))
+      expect(recordFor(5, 'hdmi1')).toMatchObject(v1ColorToRecord('lightgray'))
+      expect(recordFor(5, 'hdmi2')).toMatchObject(v1ColorToRecord('lightgray'))
+    })
+
+    it('their clearances are red and hidden (bplus.js:447,465,483)', () => {
+      expect(recordFor(5, 'clearance-usbc')).toMatchObject({ ...v1ColorToRecord('red'), hidden: true })
+      expect(recordFor(5, 'clearance-hdmi1')).toMatchObject({ ...v1ColorToRecord('red'), hidden: true })
+      expect(recordFor(5, 'clearance-hdmi2')).toMatchObject({ ...v1ColorToRecord('red'), hidden: true })
+    })
+
+    it('camera0/camera1 are gray (rpi-parts.js:136 CamDisplay)', () => {
+      expect(recordFor(5, 'camera0')).toMatchObject(v1ColorToRecord('gray'))
+      expect(recordFor(5, 'camera1')).toMatchObject(v1ColorToRecord('gray'))
+    })
+
+    it('display is gray (rpi-parts.js:144 PCIe)', () => {
+      expect(recordFor(5, 'display')).toMatchObject(v1ColorToRecord('gray'))
+    })
+
+    it('gpio is gray (rpi-parts.js:153 Gpio)', () => {
+      expect(recordFor(5, 'gpio')).toMatchObject(v1ColorToRecord('gray'))
+    })
+
+    it('statusled is lightgreen, its clearance is red and hidden (bplus.js:519,528)', () => {
+      expect(recordFor(5, 'statusled')).toMatchObject(v1ColorToRecord('lightgreen'))
+      expect(recordFor(5, 'clearance-statusled')).toMatchObject({ ...v1ColorToRecord('red'), hidden: true })
+    })
+
+    it(
+      'powerswitch is left uncoloured — block is gray but its button is black ' +
+        '(rpi-parts.js:114,119 PSW)',
+      () => {
+        const powerswitch = recordFor(5, 'powerswitch')
+        expect(powerswitch).toBeDefined()
+        expect(powerswitch?.color).toBeUndefined()
+      }
+    )
+
+    it('clearance-powerswitch is red and hidden (bplus.js:546)', () => {
+      expect(recordFor(5, 'clearance-powerswitch')).toMatchObject({ ...v1ColorToRecord('red'), hidden: true })
+    })
+
+    it('fan1hole/fan2hole are orange (still hidden) (rpi-parts.js:28 MountingHole)', () => {
+      expect(recordFor(5, 'fan1hole')).toMatchObject({ ...v1ColorToRecord('orange'), hidden: true })
+      expect(recordFor(5, 'fan2hole')).toMatchObject({ ...v1ColorToRecord('orange'), hidden: true })
+    })
+
+    it('clearance-fan1/clearance-fan2 are red and hidden (bplus.js:757)', () => {
+      expect(recordFor(5, 'clearance-fan1')).toMatchObject({ ...v1ColorToRecord('red'), hidden: true })
+      expect(recordFor(5, 'clearance-fan2')).toMatchObject({ ...v1ColorToRecord('red'), hidden: true })
+    })
+  })
+
+  describe('every model', () => {
+    it.each(BPLUS_MODELS.map((model) => [model]))('model %s: microsd is silver (bplus.js:791)', (model) => {
+      expect(recordFor(model, 'microsd')).toMatchObject(v1ColorToRecord('silver'))
+    })
+
+    it.each(BPLUS_MODELS.map((model) => [model]))(
+      'model %s: hole1-4 are orange, still hidden (bplus-mounting.js:20 → rpi-parts.js:28)',
+      (model) => {
+        for (const name of ['hole1', 'hole2', 'hole3', 'hole4']) {
+          expect(recordFor(model, name)).toMatchObject({ ...v1ColorToRecord('orange'), hidden: true })
+        }
+      }
+    )
   })
 })

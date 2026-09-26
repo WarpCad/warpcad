@@ -98,3 +98,14 @@ describe('raspberrypi.activeCoolingFan', () => {
     }
   })
 })
+
+describe('raspberrypi.activeCoolingFan: colour (TODO/core-033)', () => {
+  // `active-cooling-fan.js:24` colours the plate-plus-fins solid silver, but `:25-29`
+  // then unions in a black housing block *after* that call — a genuine two-tone
+  // solid, so `board` stays uncoloured. See the module doc.
+  it('board carries no colour', () => {
+    const record = expand('raspberrypi.activeCoolingFan').find((r) => r.name === 'board')
+    expect(record).toBeDefined()
+    expect(record?.color).toBeUndefined()
+  })
+})

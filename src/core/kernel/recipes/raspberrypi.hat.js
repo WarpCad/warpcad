@@ -158,8 +158,13 @@ export function hat(params = {}) {
 
   const { mb, gpio, holes } = addHat(builder)
   builder.place(mb, 'mb', HAT_BOARD_COLOR)
-  builder.place(gpio, 'gpio')
-  holes.forEach((hole, index) => builder.place(hole, `hole${index + 1}`, { hidden: true }))
+  // V1 `rpi-parts.js:153` — `Gpio()` is `.color('gray')` (TODO/core-033).
+  builder.place(gpio, 'gpio', v1ColorToRecord('gray'))
+  // V1 `hat.js:30` → `rpi-parts.js:28` — `MountingHole()` is `.color('orange')`
+  // (TODO/core-033). Hidden either way.
+  holes.forEach((hole, index) =>
+    builder.place(hole, `hole${index + 1}`, { hidden: true, ...v1ColorToRecord('orange') })
+  )
 
   return builder.build()
 }

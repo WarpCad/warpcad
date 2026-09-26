@@ -31,11 +31,15 @@
  * `boolean.subtract`. Note these are *additions* to V1's own part dictionary, which
  * keeps them only in `holes`; emitting nothing would have lost them entirely.
  *
- * **Colours are dropped**, as everywhere else in this catalogue.
+ * **Opaque colours ported (TODO/core-033)**: `lcd` (`:40`, black), `lcdbevel` (`:50`,
+ * white). `button1`-`4` are left uncoloured: each is a union of a gray `buttonBase`
+ * (`:54`) and a black cap (`:58`) — differently coloured V1 solids, same rule as
+ * `raspberrypi.bplus.js`'s `avjack`.
  *
  * @module core/kernel/recipes/raspberrypi.piTFT22
  */
 
+import { v1ColorToRecord } from '../colors.js'
 import { addHat, HAT_BOARD_COLOR } from './raspberrypi.hat.js'
 import { booleanPart, chain, createBuilder, cuboidPart, cylinderPart } from './rpi-recipe-kit.js'
 
@@ -81,19 +85,26 @@ export function piTFT22(params = {}) {
 
   const { mb, gpio, holes } = addHat(builder)
   builder.place(mb, 'mb', HAT_BOARD_COLOR)
-  builder.place(gpio, 'gpio')
-  holes.forEach((hole, index) => builder.place(hole, `hole${index + 1}`, { hidden: true }))
+  // V1 `rpi-parts.js:153` — `Gpio()` is `.color('gray')` (TODO/core-033).
+  builder.place(gpio, 'gpio', v1ColorToRecord('gray'))
+  // V1 `hat.js:30` → `rpi-parts.js:28` — `MountingHole()` is `.color('orange')`
+  // (TODO/core-033). Hidden either way.
+  holes.forEach((hole, index) =>
+    builder.place(hole, `hole${index + 1}`, { hidden: true, ...v1ColorToRecord('orange') })
+  )
 
   const lcd = cuboidPart('lcd', LCD_MM)
   chain(lcd)
     .snap(mb, 'z', 'outside-')
     .midlineTo('x', LCD_MIDLINE_MM[0])
     .midlineTo('y', LCD_MIDLINE_MM[1])
-  builder.place(lcd, 'lcd')
+  // V1 `pi-tft22.js:40` — `.color('black')` (TODO/core-033).
+  builder.place(lcd, 'lcd', v1ColorToRecord('black'))
 
   const bevel = cuboidPart('lcdbevel', BEVEL_MM)
   chain(bevel).snap(mb, 'z', 'outside-').translate(BEVEL_OFFSET_MM)
-  builder.place(bevel, 'lcdbevel')
+  // V1 `pi-tft22.js:50` — `.color('white')` (TODO/core-033).
+  builder.place(bevel, 'lcdbevel', v1ColorToRecord('white'))
 
   // `:56-64` builds one button and `:67-72` walks four copies to their midlines. The
   // `midlineTo` is a relative translate (see the kit's `chain`), and V1 applies each
@@ -104,6 +115,8 @@ export function piTFT22(params = {}) {
     const base = cuboidPart(`button${n}.base`, BUTTON_BASE_MM)
     const cap = cylinderPart(`button${n}.cap`, BUTTON_CAP_DIAMETER_MM, BUTTON_CAP_HEIGHT_MM)
     chain(cap).snap(base, 'z', 'outside-').align(base, 'xy')
+    // `base` (`:54`) is gray, `cap` (`:58`) is black — differently coloured V1 solids
+    // feeding one union, so `buttonN` stays uncoloured (TODO/core-033).
     const button = booleanPart(builder, `button${n}`, 'union', [base, cap])
     chain(button).snap(mb, 'z', 'outside-').midlineTo('x', midlineXMm)
     builder.place(button, `button${n}`)

@@ -34,6 +34,33 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### core-033 — a pre-existing dimension mismatch found while porting colour, and real-device colour legibility (2026-09-26 16:53 UTC)
+
+Two things surfaced while walking `raspberrypi.touchDisplay7inch.js` and every other
+recipe part-by-part that are genuinely one-off, not covered by an `ACCEPTANCE.md`
+scenario, and out of this task's own scope to fix silently:
+
+1. `raspberrypi.touchDisplay7inch.js`'s `NO_GO_POWER_MM.sizeMm` records `[15, 10, 1]`,
+   but the V1 source it's quoting (`touch-display-7inch.js:139`) is
+   `Parts.Cube({ x: 15, y: 10, z: 7 })` — a `z` of 7, not 1. This predates `core-033`
+   (colour was the only thing this task touched) and was left alone rather than
+   silently "fixed" as a drive-by; it's noted in `TODO/render-005-visible-nogo-keepout-touchdisplay7inch.md`
+   because the block's real-world obtrusiveness (relevant to that finding's own
+   opaque-vs-hidden decision) is currently being judged against an undersized sliver,
+   not the true 7 mm block.
+2. Every `raspberrypi.*` recipe now renders with roughly 150 more real part colours
+   than before (measured: 237 record-level colour changes across a 22-variant sweep).
+   This was screenshotted and inspected by eye at laptop Chromium and phone WebKit
+   during this task's own Step 6 drive and read as sensible in both cases, but a
+   from-scratch look on real phone/tablet hardware — this project's own standing
+   ask, not just a headless screenshot — hasn't happened yet for this specific
+   change.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | Fix (or explicitly decide to keep) `touchDisplay7inch`'s `NO_GO_POWER_MM.sizeMm` z-dimension mismatch (1 mm vs V1's 7 mm) — ideally alongside whichever option `render-005` picks, since the two are related | Open | |
+| 2 | On a real phone and tablet (not headless), drop a `raspberrypi.bplus` (any model) and a `raspberrypi.cameraModule`, and confirm the newly-visible per-part colours (lightgray jacks, orange ethernet, gray GPIO, gold camera lensribbon, etc.) read as sensible board components rather than as visual noise, at both the translucent-board and opaque-part boundaries | Open | |
+
 ### ui-047 — Objects-row indicator for a shown hidden part, deliberately not built (2026-09-26 13:18 UTC)
 
 The task's own Interaction model section asked for "a small indicator (for example on

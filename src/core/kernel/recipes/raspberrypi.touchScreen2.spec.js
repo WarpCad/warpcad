@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
+import { v1ColorToRecord } from '../colors.js'
 import { boundsOf, isGroup, sizeOf } from '../group.js'
 import { evaluateOp, expand } from '../index.js'
 import {
@@ -272,5 +273,41 @@ describe('raspberrypi.touchScreen2', () => {
         )
       }
     })
+  })
+})
+
+describe('raspberrypi.touchScreen2: colour (TODO/core-033)', () => {
+  /** @param {string} name */
+  const recordFor = (name) => expand('raspberrypi.touchScreen2').find((r) => r.name === name)
+
+  it('lens is black, backPlate is gray, overHang is darkgray, backPlateCover is silver', () => {
+    expect(recordFor('lens')).toMatchObject(v1ColorToRecord('black'))
+    expect(recordFor('backPlate')).toMatchObject(v1ColorToRecord('gray'))
+    expect(recordFor('overHang')).toMatchObject(v1ColorToRecord('darkgray'))
+    expect(recordFor('backPlateCover')).toMatchObject(v1ColorToRecord('silver'))
+  })
+
+  it('each screenMountingPadN is blue, its hole is red and hidden', () => {
+    for (let n = 1; n <= 4; n += 1) {
+      expect(recordFor(`screenMountingPad${n}`)).toMatchObject(v1ColorToRecord('blue'))
+      expect(recordFor(`screenMountingPad${n}hole`)).toMatchObject({
+        ...v1ColorToRecord('red'),
+        hidden: true,
+      })
+    }
+  })
+
+  it('each piMountingPostN is green, its postHole is red and hidden', () => {
+    for (let n = 1; n <= 4; n += 1) {
+      expect(recordFor(`piMountingPost${n}`)).toMatchObject(v1ColorToRecord('green'))
+      expect(recordFor(`piMountingPost${n}postHole`)).toMatchObject({
+        ...v1ColorToRecord('red'),
+        hidden: true,
+      })
+    }
+  })
+
+  it('noGoPower is red and hidden (V1 adds it hidden, unlike touchDisplay7inch)', () => {
+    expect(recordFor('noGoPower')).toMatchObject({ ...v1ColorToRecord('red'), hidden: true })
   })
 })

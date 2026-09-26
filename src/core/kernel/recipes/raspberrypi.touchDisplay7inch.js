@@ -85,6 +85,7 @@
  * @module core/kernel/recipes/raspberrypi.touchDisplay7inch
  */
 
+import { v1ColorToRecord } from '../colors.js'
 import {
   centreOf,
   chain,
@@ -186,14 +187,16 @@ export function touchDisplay7inch(params = {}) {
     LENS_MM.thicknessMm,
     LENS_MM.cornerRadiusMm
   )
-  builder.place(lens, 'lens')
+  // V1 `:21` — `.color('black')` (TODO/core-033).
+  builder.place(lens, 'lens', v1ColorToRecord('black'))
 
   const backPlate = cuboidPart('backPlate', BACK_PLATE_MM)
   chain(backPlate)
     .snap(lens, 'xy', 'inside-')
     .snap(lens, 'z', 'outside-')
     .translate(BACK_PLATE_OFFSET_MM)
-  builder.place(backPlate, 'backPlate')
+  // V1 `:27` — `.color('gray')` (TODO/core-033).
+  builder.place(backPlate, 'backPlate', v1ColorToRecord('gray'))
 
   SCREEN_MOUNTING_PAD_OFFSETS_MM.forEach((cloneOffsetMm, index) => {
     const n = index + 1
@@ -214,8 +217,10 @@ export function touchDisplay7inch(params = {}) {
     // hole is the pivot, so it neither moves nor changes shape; only the pad does.
     turnAboutZ(pad, centreOf(hole), 90)
 
-    builder.place(pad, `screenMountingPad${n}`)
-    builder.place(hole, `screenMountingPad${n}hole`, { hidden: true })
+    // V1 `:42` — the pad is `.color('blue')`; `:46` — the hole is `.color('red')`,
+    // hidden either way (TODO/core-033).
+    builder.place(pad, `screenMountingPad${n}`, v1ColorToRecord('blue'))
+    builder.place(hole, `screenMountingPad${n}hole`, { hidden: true, ...v1ColorToRecord('red') })
   })
 
   PI_MOUNTING_PAD_OFFSETS_MM.forEach((cloneOffsetMm, index) => {
@@ -231,6 +236,11 @@ export function touchDisplay7inch(params = {}) {
     chain(post).align(pad, 'xy').snap(pad, 'z', 'outside-')
 
     move([pad, post], /** @type {Vec3Mm} */ ([...cloneOffsetMm]))
+    // `pad` (`:100`) is green, `post` (`:105`) is silver — placed on each hidden leaf
+    // before the union, same as `raspberrypi.bplus.js`'s clearance volumes. They
+    // differ, so the union itself (`piMountingPadN`) stays uncoloured (TODO/core-033).
+    pad.color = v1ColorToRecord('green').color
+    post.color = v1ColorToRecord('silver').color
     // The one assembly here whose combined solid is more than any single member, and
     // the one the dropped attachment step measures — so it is a real union, not a
     // renamed pad.
@@ -243,8 +253,12 @@ export function touchDisplay7inch(params = {}) {
     .snap(backPlate, 'y', 'inside-')
     .snap(backPlate, 'z', 'outside-')
     .translate(NO_GO_POWER_MM.offsetMm)
-  // V1 adds this one visible (`:147`'s `false`), unlike its TouchScreen2 namesake.
-  builder.place(noGoPower, 'noGoPower')
+  // V1 adds this one visible (`:147`'s `false`), unlike its TouchScreen2 namesake, and
+  // colours it `.color('red')` (`:140`). TODO/core-033 ports that colour as written —
+  // an opaque red keep-out block that is *visible by default*, enclosing the backPlate
+  // corner it's snapped to. This is the exact render-004 pattern (a visible opaque
+  // clearance solid), not silently hidden here: see TODO/render-005.
+  builder.place(noGoPower, 'noGoPower', v1ColorToRecord('red'))
 
   return builder.build()
 }

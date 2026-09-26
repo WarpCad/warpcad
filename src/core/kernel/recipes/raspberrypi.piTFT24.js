@@ -61,13 +61,17 @@
  * each, under the visible name — `core-016`'s precedent. `hathole1`-`4` have no alias
  * and are kept as V1 spells them.
  *
- * **Colours are dropped**, as everywhere else in this catalogue.
+ * **Opaque colours ported (TODO/core-033)**: see each `v1ColorToRecord` call site
+ * below for the V1 line it reproduces. Left deliberately uncoloured where two V1
+ * solids of different colours feed one union: `hat` (mb/gpio), `buttonN`
+ * (base/pip), and `buttonCapN` (base/top) — each site says why.
  *
  * @module core/kernel/recipes/raspberrypi.piTFT24
  */
 
 import modeling from '@jscad/modeling'
 
+import { v1ColorToRecord } from '../colors.js'
 import { calcSnap } from '../group.js'
 import { addHat, HAT_BOARD_COLOR, HAT_MM } from './raspberrypi.hat.js'
 import {
@@ -145,10 +149,17 @@ export function piTFT24(params = {}) {
 
   const { mb, gpio, holes } = addHat(builder)
   builder.place(mb, 'mb', HAT_BOARD_COLOR)
-  builder.place(gpio, 'gpio')
-  holes.forEach((hole, index) => builder.place(hole, `hathole${index + 1}`, { hidden: true }))
+  // V1 `rpi-parts.js:153` — `Gpio()` is `.color('gray')` (TODO/core-033).
+  builder.place(gpio, 'gpio', v1ColorToRecord('gray'))
+  // V1 `hat.js:30` → `rpi-parts.js:28` — `MountingHole()` is `.color('orange')`
+  // (TODO/core-033). Hidden either way.
+  holes.forEach((hole, index) =>
+    builder.place(hole, `hathole${index + 1}`, { hidden: true, ...v1ColorToRecord('orange') })
+  )
   // `:64` — the Hat's own combined solid, kept as a hidden part. V1's `combine()`
   // would also drill the holes out of it; see the module doc on `group.holes`.
+  // `mb` (darkgreen) and `gpio` (gray) differ, so `hat` stays uncoloured
+  // (TODO/core-033), same rule as `avjack` in `raspberrypi.bplus.js`.
   builder.place(booleanPart(builder, 'hat', 'union', [mb, gpio]), 'hat', { hidden: true })
 
   // `:72-79` and `:83-89`. V1 sums four independently-computed translate vectors and
@@ -160,11 +171,13 @@ export function piTFT24(params = {}) {
     .snap(mb, 'z', 'outside-')
     .translate(LCD_OFFSET_MM)
     .midlineTo('y', LCD_MIDLINE_Y_MM)
-  builder.place(lcd, 'lcd')
+  // V1 `pi-tft24.js:71` — `.color('black')` (TODO/core-033).
+  builder.place(lcd, 'lcd', v1ColorToRecord('black'))
 
   const bevel = cuboidPart('lcdbevel', BEVEL_MM)
   chain(bevel).snap(mb, 'xy', 'inside-').snap(mb, 'z', 'outside-').translate(BEVEL_OFFSET_MM)
-  builder.place(bevel, 'lcdbevel')
+  // V1 `pi-tft24.js:81` — `.color('white')` (TODO/core-033).
+  builder.place(bevel, 'lcdbevel', v1ColorToRecord('white'))
 
   // `:91-110`. Each button is a fresh copy of the same prototype walked to its own
   // midline — V1 maps over the unmoved `button`, so offsets never compound.
@@ -177,6 +190,8 @@ export function piTFT24(params = {}) {
       .midlineTo('y', BUTTON_MIDLINE_Y_MM)
     const pip = cuboidPart(`button${n}.pip`, BUTTON_PIP_MM)
     chain(pip).snap(base, 'z', 'outside-').align(base, 'xy')
+    // `base` (`:92`) is beige, `pip` (`:99`) is white — differently coloured V1
+    // solids feeding one union, so `buttonN` stays uncoloured (TODO/core-033).
     const button = booleanPart(builder, `button${n}`, 'union', [base, pip])
     chain(button).midlineTo('x', midlineXMm)
     // `:110` adds the five under one visible `buttons` entry with `button` as the
@@ -198,6 +213,8 @@ export function piTFT24(params = {}) {
       radius: CAP_FILLET_MM,
       orientation: 'z+',
     }, capTopRaw)
+    // `capBase` (`:113`) is blue, `capTop` (`:122`) is deepskyblue — differ, so
+    // `buttonCapN` stays uncoloured (TODO/core-033).
     const cap = booleanPart(builder, `buttonCap${n}`, 'union', [capBase, capTop])
     chain(cap).snap(button, 'z', 'outside-').align(button, 'xy')
     return cap
@@ -232,7 +249,8 @@ export function piTFT24(params = {}) {
 
   const gpio2 = cuboidPart('gpio2', GPIO2_MM)
   chain(gpio2).snap(mb, 'x', 'inside-').snap(mb, 'z', 'outside+').align(mb, 'y')
-  builder.place(gpio2, 'gpio2', { hidden: true })
+  // V1 `pi-tft24.js:231` — `.color('red')` (TODO/core-033). Already hidden.
+  builder.place(gpio2, 'gpio2', { hidden: true, ...v1ColorToRecord('red') })
 
   addSpacers(builder, options, { mb, holes })
 
@@ -282,17 +300,21 @@ function addButtonWire(builder, options, { mb, caps }) {
 
     const wire = clonePart('buttonWire', proto)
     chain(wire).snap(connector, 'y', 'inside-')
-    builder.place(wire, 'buttonWire', { hidden: true })
+    // V1 `pi-tft24.js:153-156` — `buttonWire` itself (this file's `proto`) is built
+    // `.color('blue')` (TODO/core-033).
+    builder.place(wire, 'buttonWire', { hidden: true, ...v1ColorToRecord('blue') })
 
     const connectors = caps.map((cap, index) => {
       const copy = clonePart(`buttonWire.connector${index + 1}`, connector)
       chain(copy).align(cap, 'x')
       return copy
     })
+    // Every copy is a clone of `connector`, itself `.color('blue')` (`:166-172`) —
+    // uniform, so the union stays blue (TODO/core-033).
     builder.place(
       booleanPart(builder, 'buttonWireConnector', 'union', connectors),
       'buttonWireConnector',
-      { hidden: true }
+      { hidden: true, ...v1ColorToRecord('blue') }
     )
 
     const grown = connectors.map((copy, index) =>
@@ -304,9 +326,11 @@ function addButtonWire(builder, options, { mb, caps }) {
         copy
       )
     )
+    // V1 `:185-202` — the *whole* clearance union is `.color('red')` at the end,
+    // uniformly, regardless of what its (blue) contributors were (TODO/core-033).
     const clearance = booleanPart(builder, 'buttonWireClearance', 'union', [...grown, protoGrown])
     chain(clearance).snap(proto, 'z', 'inside+')
-    builder.place(clearance, 'buttonWireClearance', { hidden: true })
+    builder.place(clearance, 'buttonWireClearance', { hidden: true, ...v1ColorToRecord('red') })
     return
   }
 
@@ -316,13 +340,15 @@ function addButtonWire(builder, options, { mb, caps }) {
   chain(wire)
     .snap(caps[0], 'y', 'inside-')
     .translate([0, -options.buttonWireYOffset, 0])
-  builder.place(wire, 'buttonWire', { hidden: true })
+  // V1 `pi-tft24.js:153-156` — `.color('blue')` (TODO/core-033).
+  builder.place(wire, 'buttonWire', { hidden: true, ...v1ColorToRecord('blue') })
 
   // `:212-220` — one enlarged copy of the prototype, no union: there are no
-  // connectors in this branch for it to be joined to.
+  // connectors in this branch for it to be joined to. `.color('red')` here too
+  // (TODO/core-033).
   const clearance = clonePart('buttonWireClearance', protoGrown)
   chain(clearance).align(wire, 'xy').snap(proto, 'z', 'inside+')
-  builder.place(clearance, 'buttonWireClearance', { hidden: true })
+  builder.place(clearance, 'buttonWireClearance', { hidden: true, ...v1ColorToRecord('red') })
 }
 
 /**
@@ -337,6 +363,9 @@ function addButtonWire(builder, options, { mb, caps }) {
 function addSpacers(builder, options, { mb, holes }) {
   const heightMm = options.hatHeight || HAT_MM.defaultHatHeightMm
 
+  // `:236-237` — `spacer` (the target) is `.color('yellow')`, `m25Bolt` (the bored-out
+  // operand) is `.color('red')`. A subtract keeps the target's own material and
+  // colour, so `spacersspacerN` reads as yellow (TODO/core-033).
   const spacers = holes.map((hole, index) => {
     const n = index + 1
     const body = cylinderPart(`spacersspacer${n}.body`, SPACER_DIAMETER_MM, heightMm)
@@ -367,14 +396,17 @@ function addSpacers(builder, options, { mb, holes }) {
   const yRod2 = clonePart('spacersspacerBar4', yRod)
   chain(yRod2).snap(spacers[3], 'x', 'inside+')
 
+  // `:291,303` — both connector rods are `.color('yellow')` too (TODO/core-033).
   const bars = [xRod, xRod2, yRod, yRod2]
   spacers.forEach((spacer, index) =>
-    builder.place(spacer, `spacersspacer${index + 1}`, { hidden: true })
+    builder.place(spacer, `spacersspacer${index + 1}`, { hidden: true, ...v1ColorToRecord('yellow') })
   )
   bars.forEach((bar, index) =>
-    builder.place(bar, `spacersspacerBar${index + 1}`, { hidden: true })
+    builder.place(bar, `spacersspacerBar${index + 1}`, { hidden: true, ...v1ColorToRecord('yellow') })
   )
+  // Every contributor above is yellow, so the final union stays yellow too.
   builder.place(booleanPart(builder, 'spacers', 'union', [...spacers, ...bars]), 'spacers', {
     hidden: true,
+    ...v1ColorToRecord('yellow'),
   })
 }

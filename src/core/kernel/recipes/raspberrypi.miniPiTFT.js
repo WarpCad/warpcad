@@ -94,12 +94,17 @@
  * than either leaf — so `button1`, `button1-base` and `button1-push` are all emitted,
  * as V1 has them. Same call `core-016` made.
  *
- * **Colours are dropped**, as everywhere else in this catalogue: the document has no
- * per-part colour field yet.
+ * **Opaque colours ported (TODO/core-033)**. This file is the TODO's own canonical
+ * example of the "differently coloured V1 solids feeding one part" case: `:59-60`
+ * colours `clearanceFlange`'s cut half `.color('green')` and `clearanceBody`
+ * `.color('yellow')` *before* unioning them with no recolour after, so each
+ * `buttonCapN-clearance` stays uncoloured here, same as `buttonN` (`base` is silver,
+ * `push` is black, `:16-29`).
  *
  * @module core/kernel/recipes/raspberrypi.miniPiTFT
  */
 
+import { v1ColorToRecord } from '../colors.js'
 import {
   booleanPart,
   chain,
@@ -193,9 +198,11 @@ function addBoardButton(builder, name, board, midlineYMm) {
 
   // V1 adds the group under `name` *and* both leaves under the `name-` prefix. The
   // union is genuinely more than either leaf, so all three are real parts here.
+  // `base` (`:17`) is silver, `push` (`:25`) is black — differ, so the union `name`
+  // stays uncoloured, but each leaf carries its own V1 colour (TODO/core-033).
   const button = booleanPart(builder, name, 'union', [base, push])
-  builder.place(base, `${name}-base`, { hidden: true })
-  builder.place(push, `${name}-push`, { hidden: true })
+  builder.place(base, `${name}-base`, { hidden: true, ...v1ColorToRecord('silver') })
+  builder.place(push, `${name}-push`, { hidden: true, ...v1ColorToRecord('black') })
   builder.place(button, name)
   return button
 }
@@ -226,6 +233,8 @@ function addButtonCap(builder, name, button) {
   )
   const flat = booleanPart(builder, `${name}.flat`, 'subtract', [flange, flangeCut])
 
+  // V1 `:43-52` calls `.color('blue')` on the *whole* `rounded.union(flat)` result,
+  // after the union — uniform, unlike the clearance below (TODO/core-033).
   const cap = booleanPart(builder, name, 'union', [rounded, flat])
   chain(cap).align(button, 'xy').snap(button, 'z', 'outside-')
 
@@ -258,7 +267,10 @@ function addButtonCap(builder, name, button) {
 
   // V1's `buttonCap1` and `buttonCap1-cap` are the same solid — the clearance is
   // hidden, so `combine()` returns the cap alone. One part, under the shorter name.
-  builder.place(cap, name, { hidden: true })
+  builder.place(cap, name, { hidden: true, ...v1ColorToRecord('blue') })
+  // `clearanceFlat` (from `clearanceFlange`, green) unioned with `clearanceBody`
+  // (yellow) with no recolour after — the module doc's canonical differently-coloured
+  // example — so `${name}-clearance` stays uncoloured (TODO/core-033).
   builder.place(clearance, `${name}-clearance`, { hidden: true })
   return cap
 }
@@ -299,21 +311,25 @@ export function miniPiTFT(params = {}) {
     'positive'
   )
   const board = booleanPart(builder, 'board', 'subtract', [trimmed, yCut])
-  builder.place(board, 'board')
+  // V1 `:93` — `.color('darkgreen')`, opaque (no alpha argument, unlike the
+  // `raspberrypi.hat`/`bplus` boards' `darkgreen`/`green` at 0.75) — TODO/core-033.
+  builder.place(board, 'board', v1ColorToRecord('darkgreen'))
 
   const screen = cuboidPart('screen', SCREEN_MM)
   chain(screen)
     .snap(board, 'x', 'inside+')
     .snap(board, 'y', 'inside-')
     .snap(board, 'z', 'outside-')
-  builder.place(screen, 'screen')
+  // V1 `:107` — `.color('white')` (TODO/core-033).
+  builder.place(screen, 'screen', v1ColorToRecord('white'))
 
   const display = cuboidPart('display', DISPLAY_MM)
   chain(display)
     .snap(board, 'x', 'inside-', DISPLAY_INSET_X_MM)
     .snap(board, 'y', 'inside+', DISPLAY_INSET_Y_MM)
     .snap(board, 'z', 'outside-')
-  builder.place(display, 'display')
+  // V1 `:116` — `.color('black')` (TODO/core-033).
+  builder.place(display, 'display', v1ColorToRecord('black'))
 
   // `display.stretch('z', 5)` baked as the already-stretched box, then V1's *outward*
   // chamfer. `.align(display, 'xy')` follows in V1; it is a no-op because both the
@@ -330,7 +346,8 @@ export function miniPiTFT(params = {}) {
     orientation: 'z+',
   }, stretched)
   chain(clearance).align(display, 'xy')
-  builder.place(clearance, 'display-clearance', { hidden: true })
+  // V1 `:128` — `.color('red')` (TODO/core-033).
+  builder.place(clearance, 'display-clearance', { hidden: true, ...v1ColorToRecord('red') })
 
   const buttons = BUTTON_MIDLINES_MM.map((midlineYMm, index) =>
     addBoardButton(builder, `button${index + 1}`, board, midlineYMm)
@@ -352,8 +369,15 @@ export function miniPiTFT(params = {}) {
     { deltaMm: [...CONNECTOR_CLEARANCE_MM] },
     connector
   )
-  builder.place(connector, 'button-connector', { hidden: true })
-  builder.place(connectorClearance, 'button-connector-clearance', { hidden: true })
+  // V1 `:162` — `.color('blue')` on `button-connector` (TODO/core-033).
+  builder.place(connector, 'button-connector', { hidden: true, ...v1ColorToRecord('blue') })
+  // V1 `:171` — `.enlarge(...).color('red')`: the recolour runs *after* the enlarge,
+  // uniformly, so the clearance is red regardless of the connector's own blue
+  // (TODO/core-033).
+  builder.place(connectorClearance, 'button-connector-clearance', {
+    hidden: true,
+    ...v1ColorToRecord('red'),
+  })
 
   const standoff = tubePart(
     'standoff',
@@ -365,7 +389,8 @@ export function miniPiTFT(params = {}) {
     .snap(board, 'x', 'inside-')
     .snap(board, 'y', 'inside+')
     .snap(board, 'z', 'outside+')
-  builder.place(standoff, 'standoff', { hidden: true })
+  // V1 `:181` — `.color('yellow')` (TODO/core-033).
+  builder.place(standoff, 'standoff', { hidden: true, ...v1ColorToRecord('yellow') })
 
   return builder.build()
 }

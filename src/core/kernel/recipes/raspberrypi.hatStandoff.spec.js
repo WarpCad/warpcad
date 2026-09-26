@@ -93,3 +93,15 @@ describe('raspberrypi.hatStandoff', () => {
     })
   })
 })
+
+describe('raspberrypi.hatStandoff: colour (TODO/core-033)', () => {
+  // `rpi-parts.js:44` colours the pad `Mountingpad` `.color('yellow')` and `:28`
+  // colours the peg `MountingHole` `.color('orange')` — a union of two differently
+  // coloured V1 solids, so `standoff` stays uncoloured. See the module doc.
+  it('standoff carries no colour', () => {
+    const record = expand('raspberrypi.hatStandoff').find((r) => r.name === 'standoff')
+    expect(record).toBeDefined()
+    expect(record?.color).toBeUndefined()
+    expect(record?.colorAlpha).toBeUndefined()
+  })
+})

@@ -3,6 +3,7 @@ import modeling from '@jscad/modeling'
 
 import { boundsOf, isGroup, sizeOf, volumeOf } from '../group.js'
 import { evaluateOp, expand } from '../index.js'
+import { v1ColorToRecord } from '../colors.js'
 import { HYPERPIXEL4_MM, PAD_OFFSETS_MM } from './raspberrypi.hyperPixel4Rectangular.js'
 import v1ReferenceJson from './__fixtures__/raspberrypi.smallDisplays.v1-reference.json'
 
@@ -184,5 +185,21 @@ describe('raspberrypi.hyperPixel4Rectangular: the alpha-channel colour V1 gave t
   it('the evaluated group carries it as the part colour', () => {
     const group = evaluateOp('raspberrypi.hyperPixel4Rectangular', {})
     expect(isGroup(group) && group.colors.mb).toEqual({ color: 0x008000, alpha: 0.75 })
+  })
+})
+
+describe('raspberrypi.hyperPixel4Rectangular: the opaque colours V1 gave the rest (TODO/core-033)', () => {
+  // V1 `hyper-pixel-4-rectangular.js:29`: `Parts.Cube({...}).color('black')`.
+  it('lcd is black', () => {
+    const lcd = expand('raspberrypi.hyperPixel4Rectangular').find((record) => record.name === 'lcd')
+    expect(lcd).toMatchObject(v1ColorToRecord('black'))
+  })
+
+  // V1 `rpi-parts.js:44`: `Mountingpad(...).color('yellow')`, used at `:38-41`.
+  it('pad1-4 are yellow', () => {
+    const records = expand('raspberrypi.hyperPixel4Rectangular')
+    for (const name of ['pad1', 'pad2', 'pad3', 'pad4']) {
+      expect(records.find((record) => record.name === name)).toMatchObject(v1ColorToRecord('yellow'))
+    }
   })
 })

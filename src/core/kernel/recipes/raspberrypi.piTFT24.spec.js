@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
+import { v1ColorToRecord } from '../colors.js'
 import { boundsOf, isGroup, sizeOf, volumeOf } from '../group.js'
 import { evaluateOp, expand } from '../index.js'
 import { HAT_MM } from './raspberrypi.hat.js'
@@ -254,5 +255,68 @@ describe('raspberrypi.piTFT24: the alpha-channel colour V1 gave the board (TODO/
   it('the evaluated group carries it as the part colour', () => {
     const group = evaluateOp('raspberrypi.piTFT24', {})
     expect(isGroup(group) && group.colors.mb).toEqual({ color: 0x006400, alpha: 0.75 })
+  })
+})
+
+describe('raspberrypi.piTFT24: the opaque colours V1 gave the rest (TODO/core-033)', () => {
+  /**
+   * @param {string} name
+   * @param {Record<string, any>} [params]
+   */
+  const recordFor = (name, params) => expand('raspberrypi.piTFT24', params).find((r) => r.name === name)
+
+  it('gpio is gray, hathole1-4 are orange and hidden', () => {
+    expect(recordFor('gpio')).toMatchObject(v1ColorToRecord('gray'))
+    for (const name of ['hathole1', 'hathole2', 'hathole3', 'hathole4']) {
+      expect(recordFor(name)).toMatchObject({ ...v1ColorToRecord('orange'), hidden: true })
+    }
+  })
+
+  it('hat is left uncoloured — darkgreen mb union gray gpio differ', () => {
+    const hat = recordFor('hat')
+    expect(hat).toBeDefined()
+    expect(hat?.color).toBeUndefined()
+  })
+
+  it('lcd is black, lcdbevel is white', () => {
+    expect(recordFor('lcd')).toMatchObject(v1ColorToRecord('black'))
+    expect(recordFor('lcdbevel')).toMatchObject(v1ColorToRecord('white'))
+  })
+
+  it('button1-5 are left uncoloured (differently coloured base/pip), and so is the collective buttonCaps', () => {
+    for (let n = 1; n <= 5; n += 1) {
+      expect(recordFor(`button${n}`)?.color).toBeUndefined()
+    }
+    expect(recordFor('buttonCaps')?.color).toBeUndefined()
+  })
+
+  it('buttonWire is blue, buttonWireConnector is blue, buttonWireClearance is red (buttonWireYOffset > 0)', () => {
+    expect(recordFor('buttonWire')).toMatchObject({ ...v1ColorToRecord('blue'), hidden: true })
+    expect(recordFor('buttonWireConnector')).toMatchObject({ ...v1ColorToRecord('blue'), hidden: true })
+    expect(recordFor('buttonWireClearance')).toMatchObject({ ...v1ColorToRecord('red'), hidden: true })
+  })
+
+  it('buttonWire is blue, buttonWireClearance is red (buttonWireYOffset <= 0 branch)', () => {
+    const params = { buttonWireYOffset: 0 }
+    expect(recordFor('buttonWire', params)).toMatchObject({ ...v1ColorToRecord('blue'), hidden: true })
+    expect(recordFor('buttonWireClearance', params)).toMatchObject({
+      ...v1ColorToRecord('red'),
+      hidden: true,
+    })
+  })
+
+  it('gpio2 is red and hidden', () => {
+    expect(recordFor('gpio2')).toMatchObject({ ...v1ColorToRecord('red'), hidden: true })
+  })
+
+  it('every spacer and bar is yellow, and so is the final spacers union', () => {
+    for (let n = 1; n <= 4; n += 1) {
+      expect(recordFor(`spacersspacer${n}`)).toMatchObject({ ...v1ColorToRecord('yellow'), hidden: true })
+      expect(recordFor(`spacersspacerBar${n}`)).toMatchObject({
+        ...v1ColorToRecord('yellow'),
+        hidden: true,
+      })
+    }
+    expect(recordFor('spacers')).toMatchObject({ ...v1ColorToRecord('yellow'), hidden: true })
   })
 })

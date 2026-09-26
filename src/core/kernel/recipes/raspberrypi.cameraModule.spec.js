@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
+import { v1ColorToRecord } from '../colors.js'
 import { boundsOf, isGroup, sizeOf, volumeOf } from '../group.js'
 import { evaluateOp, expand } from '../index.js'
 import {
@@ -499,4 +500,141 @@ describe('raspberrypi.cameraModule: the alpha-channel colour V1 gave every board
       expect(isGroup(group) && group.colors.board).toEqual({ color: 0x008000, alpha: 0.75 })
     }
   )
+})
+
+describe('raspberrypi.cameraModule: the opaque colours V1 gave every other part (TODO/core-033)', () => {
+  /**
+   * @param {string} model
+   * @param {string} name
+   * @param {boolean} [flipTripodMount]
+   * @returns {import('../registry.js').OpRecord | undefined}
+   */
+  const recordFor = (model, name, flipTripodMount) =>
+    expand('raspberrypi.cameraModule', { model, flipTripodMount }).find(
+      (record) => record.name === name
+    )
+
+  describe('classic family (v1/v2/v3)', () => {
+    it("v1/v2: only hole0 is yellow, hole1-3 stay uncoloured (V1's own asymmetry)", () => {
+      for (const model of ['v1', 'v2']) {
+        expect(recordFor(model, 'hole0')).toMatchObject({ ...v1ColorToRecord('yellow'), hidden: true })
+        for (const name of ['hole1', 'hole2', 'hole3']) {
+          const rec = recordFor(model, name)
+          expect(rec).toMatchObject({ hidden: true })
+          expect(rec?.color).toBeUndefined()
+        }
+      }
+    })
+
+    it('v3: every hole is red (camera-module-v3.js:17 Hole factory)', () => {
+      for (const name of ['hole0', 'hole1', 'hole2', 'hole3']) {
+        expect(recordFor('v3', name)).toMatchObject({ ...v1ColorToRecord('red'), hidden: true })
+      }
+    })
+
+    it('no mount* or pin* record carries a colour, in any of the three variants', () => {
+      for (const model of ['v1', 'v2', 'v3']) {
+        for (let index = 0; index < 4; index += 1) {
+          expect(recordFor(model, `mount${index}`)?.color).toBeUndefined()
+          expect(recordFor(model, `pin${index}`)?.color).toBeUndefined()
+        }
+      }
+    })
+
+    it('sensor is black in all three variants', () => {
+      for (const model of ['v1', 'v2', 'v3']) {
+        expect(recordFor(model, 'sensor')).toMatchObject(v1ColorToRecord('black'))
+      }
+    })
+
+    it('lens is gray in all three variants', () => {
+      for (const model of ['v1', 'v2', 'v3']) {
+        expect(recordFor(model, 'lens')).toMatchObject(v1ColorToRecord('gray'))
+      }
+    })
+
+    it('lensribbon is gray for v1/v2 but gold for v3 (camera-module-v3.js:86)', () => {
+      expect(recordFor('v1', 'lensribbon')).toMatchObject(v1ColorToRecord('gray'))
+      expect(recordFor('v2', 'lensribbon')).toMatchObject(v1ColorToRecord('gray'))
+      expect(recordFor('v3', 'lensribbon')).toMatchObject(v1ColorToRecord('gold'))
+    })
+
+    it('ribbon is uncoloured for v1/v2 but beige for v3 (camera-module-v3.js:96)', () => {
+      expect(recordFor('v1', 'ribbon')?.color).toBeUndefined()
+      expect(recordFor('v2', 'ribbon')?.color).toBeUndefined()
+      expect(recordFor('v3', 'ribbon')).toMatchObject(v1ColorToRecord('beige'))
+    })
+
+    it('bottom-nogo and ribbon-nogo are red and hidden, in all three variants', () => {
+      for (const model of ['v1', 'v2', 'v3']) {
+        expect(recordFor(model, 'bottom-nogo')).toMatchObject({ ...v1ColorToRecord('red'), hidden: true })
+        expect(recordFor(model, 'ribbon-nogo')).toMatchObject({ ...v1ColorToRecord('red'), hidden: true })
+      }
+    })
+  })
+
+  describe('HQ family (hq / arducam-hq)', () => {
+    it('hole1-4 are red and hidden, in both models', () => {
+      for (const model of ['hq', 'arducam-hq']) {
+        for (const name of ['hole1', 'hole2', 'hole3', 'hole4']) {
+          expect(recordFor(model, name)).toMatchObject({ ...v1ColorToRecord('red'), hidden: true })
+        }
+      }
+    })
+
+    it('sensor is white, in both models', () => {
+      for (const model of ['hq', 'arducam-hq']) {
+        expect(recordFor(model, 'sensor')).toMatchObject(v1ColorToRecord('white'))
+      }
+    })
+
+    it('mount is black in both models (both contributing cylinders are black)', () => {
+      for (const model of ['hq', 'arducam-hq']) {
+        expect(recordFor(model, 'mount')).toMatchObject(v1ColorToRecord('black'))
+      }
+    })
+
+    it(
+      'mount-clearance is black for hq (unrecoloured) but red for arducam-hq ' +
+        '(arducam_hq_camera-module.js:78 explicitly recolours it)',
+      () => {
+        expect(recordFor('hq', 'mount-clearance')).toMatchObject({
+          ...v1ColorToRecord('black'),
+          hidden: true,
+        })
+        expect(recordFor('arducam-hq', 'mount-clearance')).toMatchObject({
+          ...v1ColorToRecord('red'),
+          hidden: true,
+        })
+      }
+    )
+
+    it('hq only: tripodMount-base is darkgray, tripodMount-post is gray, both hidden', () => {
+      expect(recordFor('hq', 'tripodMount-base')).toMatchObject({
+        ...v1ColorToRecord('darkgray'),
+        hidden: true,
+      })
+      expect(recordFor('hq', 'tripodMount-post')).toMatchObject({
+        ...v1ColorToRecord('gray'),
+        hidden: true,
+      })
+    })
+
+    it(
+      'hq only: tripodMount itself is left uncoloured — darkgray base union gray post ' +
+        '(hq_camera-module.js:85,92 differ)',
+      () => {
+        const tripodMount = recordFor('hq', 'tripodMount')
+        expect(tripodMount).toBeDefined()
+        expect(tripodMount?.color).toBeUndefined()
+      }
+    )
+
+    it('ribbon is uncoloured, ribbon-nogo is red and hidden, in both models', () => {
+      for (const model of ['hq', 'arducam-hq']) {
+        expect(recordFor(model, 'ribbon')?.color).toBeUndefined()
+        expect(recordFor(model, 'ribbon-nogo')).toMatchObject({ ...v1ColorToRecord('red'), hidden: true })
+      }
+    })
+  })
 })

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
+import { v1ColorToRecord } from '../colors.js'
 import { boundsOf, isGroup, sizeOf } from '../group.js'
 import { evaluateOp, expand } from '../index.js'
 import { HAT_MM } from './raspberrypi.hat.js'
@@ -176,5 +177,33 @@ describe('raspberrypi.piTFT22: the alpha-channel colour V1 gave the board (TODO/
   it('the evaluated group carries it as the part colour', () => {
     const group = evaluateOp('raspberrypi.piTFT22', {})
     expect(isGroup(group) && group.colors.mb).toEqual({ color: 0x006400, alpha: 0.75 })
+  })
+})
+
+describe('raspberrypi.piTFT22: the opaque colours V1 gave the rest (TODO/core-033)', () => {
+  it('gpio is gray, hole1-4 are orange and hidden', () => {
+    const records = expand('raspberrypi.piTFT22')
+    expect(records.find((r) => r.name === 'gpio')).toMatchObject(v1ColorToRecord('gray'))
+    for (const name of ['hole1', 'hole2', 'hole3', 'hole4']) {
+      expect(records.find((r) => r.name === name)).toMatchObject({
+        ...v1ColorToRecord('orange'),
+        hidden: true,
+      })
+    }
+  })
+
+  it('lcd is black, lcdbevel is white (pi-tft22.js:40,50)', () => {
+    const records = expand('raspberrypi.piTFT22')
+    expect(records.find((r) => r.name === 'lcd')).toMatchObject(v1ColorToRecord('black'))
+    expect(records.find((r) => r.name === 'lcdbevel')).toMatchObject(v1ColorToRecord('white'))
+  })
+
+  it('button1-4 are left uncoloured — gray base union black cap (pi-tft22.js:54,58)', () => {
+    const records = expand('raspberrypi.piTFT22')
+    for (const name of ['button1', 'button2', 'button3', 'button4']) {
+      const record = records.find((r) => r.name === name)
+      expect(record).toBeDefined()
+      expect(record?.color).toBeUndefined()
+    }
   })
 })

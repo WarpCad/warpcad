@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import modeling from '@jscad/modeling'
 
 import { boundsOf, isGroup } from '../group.js'
+import { v1ColorToRecord } from '../colors.js'
 import { evaluateOp, expand } from '../index.js'
 import { MOUNTING_HOLES_MM } from '../tables/rpi-parts.js'
 import { SPACER_MM, solveDiagonal } from './raspberrypi.spacer.js'
@@ -272,5 +273,26 @@ describe('raspberrypi.spacer', () => {
         expectMatchesV1(g.parts[name], v1Reference.diagnostics.pads[name], name, { exact: true })
       }
     })
+  })
+})
+
+describe('raspberrypi.spacer: the opaque colour V1 gave the whole result (TODO/core-033)', () => {
+  // `spacer.js:74` — `if (options.postOnly) return spacers.color('yellow');` and
+  // `:111` — `return assembly.color('yellow');`: both exit paths are yellow. The
+  // cross-brace's own `.color('red')` (`:89`) never reaches the final CSG — see the
+  // module doc.
+  it('spacer is yellow, with the gusset', () => {
+    const record = expand('raspberrypi.spacer').find((r) => r.name === 'spacer')
+    expect(record).toMatchObject(v1ColorToRecord('yellow'))
+  })
+
+  it('spacer is yellow, postOnly', () => {
+    const record = expand('raspberrypi.spacer', { postOnly: true }).find((r) => r.name === 'spacer')
+    expect(record).toMatchObject(v1ColorToRecord('yellow'))
+  })
+
+  it('spacer is yellow, hollow (no cross-brace built at all)', () => {
+    const record = expand('raspberrypi.spacer', { hollow: true }).find((r) => r.name === 'spacer')
+    expect(record).toMatchObject(v1ColorToRecord('yellow'))
   })
 })

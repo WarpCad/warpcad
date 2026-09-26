@@ -34,6 +34,14 @@
  * `HatStandoff` hands back a bare CSG, not a `Group` — there is no part dictionary to
  * reproduce. The union is named `standoff`.
  *
+ * ## Colour: left uncoloured, on purpose (TODO/core-033)
+ *
+ * `rpi-parts.js`'s `Mountingpad` factory (the `pad`) is `.color('yellow')`
+ * (`:44`) and its `MountingHole` factory (the `peg`) is `.color('orange')`
+ * (`:28`). The two differently-coloured V1 solids feed one union here, so — the
+ * same rule `raspberrypi.bplus.js` applies to `avjack`/`powerswitch` — `standoff`
+ * stays uncoloured rather than picking one of the two arbitrarily.
+ *
  * @module core/kernel/recipes/raspberrypi.hatStandoff
  */
 

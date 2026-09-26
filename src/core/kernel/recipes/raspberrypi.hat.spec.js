@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
+import { v1ColorToRecord } from '../colors.js'
 import { boundsOf, isGroup, sizeOf } from '../group.js'
 import { evaluateOp, expand } from '../index.js'
 import { HAT_MM } from './raspberrypi.hat.js'
@@ -107,5 +108,22 @@ describe('raspberrypi.hat: the alpha-channel colour V1 gave the board (TODO/core
   it('the evaluated group carries it as the part colour', () => {
     const group = evaluateOp('raspberrypi.hat', {})
     expect(isGroup(group) && group.colors.mb).toEqual({ color: 0x006400, alpha: 0.75 })
+  })
+})
+
+describe('raspberrypi.hat: the opaque colours V1 gave the rest (TODO/core-033)', () => {
+  it('gpio is gray (rpi-parts.js:153 Gpio)', () => {
+    const record = expand('raspberrypi.hat').find((r) => r.name === 'gpio')
+    expect(record).toMatchObject(v1ColorToRecord('gray'))
+  })
+
+  it('hole1-4 are orange, still hidden (hat.js:30 → rpi-parts.js:28 MountingHole)', () => {
+    const records = expand('raspberrypi.hat')
+    for (const name of ['hole1', 'hole2', 'hole3', 'hole4']) {
+      expect(records.find((r) => r.name === name)).toMatchObject({
+        ...v1ColorToRecord('orange'),
+        hidden: true,
+      })
+    }
   })
 })

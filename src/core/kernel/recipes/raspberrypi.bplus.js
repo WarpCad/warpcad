@@ -209,7 +209,9 @@ function addUsbJack(builder, id, mb, yMidlineMm) {
   )
 
   chain([body, flange], body).translate(translationMm).midlineTo('y', yMidlineMm)
-  builder.placeUnion(id, [body, flange])
+  // V1 `rpi-parts.js:66,72` — `UsbJack()`'s `body` and `flange` are both
+  // `.color('lightgray')` (TODO/core-033).
+  builder.placeUnion(id, [body, flange], v1ColorToRecord('lightgray'))
 }
 
 /**
@@ -223,34 +225,43 @@ function addUsbJack(builder, id, mb, yMidlineMm) {
 function addModelB(builder, { model, mb }) {
   const ethernet = rightSide(specPart('ethernet', rpiParts.ethernetJack), mb, [2, 0, 0])
   chain(ethernet).midlineTo('y', 10.25)
-  builder.place(ethernet, 'ethernet')
+  // V1 `rpi-parts.js:28` — `EthernetJack()` is `.color('orange')` (TODO/core-033).
+  builder.place(ethernet, 'ethernet', v1ColorToRecord('orange'))
 
   addUsbJack(builder, 'usb1', mb, 29)
   addUsbJack(builder, 'usb2', mb, 47)
 
   const microusb = specPart('microusb', rpiParts.microUsb)
   chain(microusb).snap(mb, 'z', 'outside-').midlineTo('x', 10.6).translate([0, -2, 0])
-  builder.place(microusb, 'microusb')
+  // V1 `rpi-parts.js:84` — `MicroUsb()` is `.color('lightgray')` (TODO/core-033).
+  builder.place(microusb, 'microusb', v1ColorToRecord('lightgray'))
 
   const hdmi = specPart('hdmi', rpiParts.hdmi)
   chain(hdmi).snap(mb, 'z', 'outside-').midlineTo('x', 32).translate([0, -2, 0])
-  builder.place(hdmi, 'hdmi')
+  // V1 `rpi-parts.js:92` — `Hdmi()` is `.color('lightgray')` (TODO/core-033).
+  builder.place(hdmi, 'hdmi', v1ColorToRecord('lightgray'))
 
   const av = avJack('avjack')
   chain(av.parts, av.block).snap(mb, 'z', 'outside-').midlineTo('x', 53.5)
+  // V1 `rpi-parts.js:100,105` — `AvJack()`'s `block` is `.color('lightgray')` but its
+  // `cyl` (barrel) is `.color('black')`: differently coloured V1 solids feeding one V3
+  // name, so `avjack` is left uncoloured per TODO/core-033's own rule rather than
+  // picking one of the two arbitrarily.
   builder.placeUnion('avjack', av.parts)
 
   const camera = specPart('camera', rpiParts.ribbon)
   chain(camera).snap(mb, 'z', 'outside-').midlineTo('x', 45)
-  builder.place(camera, 'camera')
+  // V1 `rpi-parts.js:128` — `Ribbon()` is `.color('gray')` (TODO/core-033).
+  builder.place(camera, 'camera', v1ColorToRecord('gray'))
 
   const display = specPart('display', rpiParts.ribbon)
   chain(display).snap(mb, 'z', 'outside-').midlineTo('x', 3.5).midlineTo('y', 28)
-  builder.place(display, 'display')
+  builder.place(display, 'display', v1ColorToRecord('gray'))
 
   const gpio = specPart('gpio', rpiParts.gpio)
   chain(gpio).snap(mb, 'z', 'outside-').midlineTo('x', 32.5).midlineTo('y', 52.5)
-  builder.place(gpio, 'gpio')
+  // V1 `rpi-parts.js:153` — `Gpio()` is `.color('gray')` (TODO/core-033).
+  builder.place(gpio, 'gpio', v1ColorToRecord('gray'))
 
   const activityled = specPart('activityled', rpiParts.boardLed)
   const powerled = specPart('powerled', rpiParts.boardLed)
@@ -261,8 +272,12 @@ function addModelB(builder, { model, mb }) {
     chain(activityled).snap(mb, 'z', 'outside-').translate([1, 43.5, 0])
     chain(powerled).snap(mb, 'z', 'outside-').translate([1, 46, 0])
   }
-  builder.place(activityled, 'activityled')
-  builder.place(powerled, 'powerled')
+  // V1 `bplus.js:719,735` — both branches colour `activityled` `.color('lightgreen')`
+  // (TODO/core-033).
+  builder.place(activityled, 'activityled', v1ColorToRecord('lightgreen'))
+  // V1 `bplus.js:727,742` — both branches colour `powerled` `.color('red')`
+  // (TODO/core-033).
+  builder.place(powerled, 'powerled', v1ColorToRecord('red'))
 }
 
 /**
@@ -297,11 +312,14 @@ function addPi4UsbJack(builder, id, { mb, clearanceMm, yMidlineMm }) {
     chain([body, flange, clearance], body).snap(mb, 'y', 'inside-').midlineTo('y', yMidlineMm)
   }
 
-  builder.placeUnion(id, [body, flange])
+  // V1 `bplus.js:101,109` — Pi 4's `usb.body`/`usb.flange` are both
+  // `.color('lightgray')` (TODO/core-033).
+  builder.placeUnion(id, [body, flange], v1ColorToRecord('lightgray'))
   // V1 carried this as a `clearance` subpart of the jack's own group; naming it
   // `clearance-<jack>` matches every other clearance volume in this recipe, and the
   // Pi 5 branch, where V1 itself spells them that way.
-  builder.place(clearance, `clearance-${id}`, { hidden: true })
+  // V1 `bplus.js:117` — `.color('red')` (TODO/core-033).
+  builder.place(clearance, `clearance-${id}`, { hidden: true, ...v1ColorToRecord('red') })
 }
 
 /**
@@ -315,7 +333,8 @@ function addPi4UsbJack(builder, id, { mb, clearanceMm, yMidlineMm }) {
 function addPi4(builder, { mb, clearanceMm }) {
   const ethernet = rightSide(cuboidPart('ethernet', [21.38, 16.12, 13.83], 'corner'), mb, [3, 0, 0])
   chain(ethernet).midlineTo('y', 45.75)
-  builder.place(ethernet, 'ethernet')
+  // V1 `bplus.js:41` — `.color('lightgray')` (TODO/core-033).
+  builder.place(ethernet, 'ethernet', v1ColorToRecord('lightgray'))
 
   const smallClearanceMm = 0.5
   const ethernetClearance = cuboidPart(
@@ -324,14 +343,17 @@ function addPi4(builder, { mb, clearanceMm }) {
     'corner'
   )
   chain(ethernetClearance).align(ethernet, 'yz').snap(ethernet, 'x', 'outside-')
-  builder.place(ethernetClearance, 'clearance-ethernet', { hidden: true })
+  // V1 `bplus.js:84` — `.color('red')` (TODO/core-033).
+  builder.place(ethernetClearance, 'clearance-ethernet', { hidden: true, ...v1ColorToRecord('red') })
 
   addPi4UsbJack(builder, 'usb1', { mb, clearanceMm })
   addPi4UsbJack(builder, 'usb2', { mb, clearanceMm, yMidlineMm: 27 })
 
   /**
    * The three front-edge connectors share a shape: a block overhanging the board's
-   * `-y` edge by 1 mm, and a clearance slab in front of it.
+   * `-y` edge by 1 mm, and a clearance slab in front of it. V1 colours every one of
+   * `usbc`/`hdmi1`/`hdmi2` `.color('lightgray')` and every one of their clearances
+   * `.color('red')` (`bplus.js:196,214,232` and `:204,222,240`) — TODO/core-033.
    *
    * @param {string} name
    * @param {readonly number[]} sizeMm
@@ -344,7 +366,7 @@ function addPi4(builder, { mb, clearanceMm }) {
       .snap(mb, 'y', 'inside-', -1)
       .snap(mb, 'z', 'outside-')
       .midlineTo('x', xMidlineMm)
-    builder.place(part, name)
+    builder.place(part, name, v1ColorToRecord('lightgray'))
 
     const clearance = cuboidPart(
       `clearance-${name}`,
@@ -352,7 +374,7 @@ function addPi4(builder, { mb, clearanceMm }) {
       'corner'
     )
     chain(clearance).align(part, 'xz').snap(part, 'y', 'outside+')
-    builder.place(clearance, `clearance-${name}`, { hidden: true })
+    builder.place(clearance, `clearance-${name}`, { hidden: true, ...v1ColorToRecord('red') })
   }
 
   frontConnector('usbc', [10, 7.5, 3.2], [10.5, 3.7], 3.5 + 7.7)
@@ -363,39 +385,46 @@ function addPi4(builder, { mb, clearanceMm }) {
   chain(av.parts, av.block)
     .snap(mb, 'z', 'outside-')
     .midlineTo('x', 3.5 + 7.7 + 14.8 + 13.5 + 7 + 7.5)
+  // Same differently-coloured-operands case as Model 2/3's `avjack` above: left
+  // uncoloured (TODO/core-033).
   builder.placeUnion('avjack', av.parts)
 
   const avClearance = cylinderPart('clearance-avjack', 6.5, clearanceMm + 1, { frame: 'base', rotationDeg: [90, 0, 0] })
   chain(avClearance).align(av.parts, 'xz').snap(av.parts, 'y', 'outside+', 1)
-  builder.place(avClearance, 'clearance-avjack', { hidden: true })
+  // V1 `bplus.js:259` — `.color('red')` (TODO/core-033).
+  builder.place(avClearance, 'clearance-avjack', { hidden: true, ...v1ColorToRecord('red') })
 
   const camera = specPart('camera', rpiParts.ribbon)
   chain(camera).snap(mb, 'z', 'outside-').midlineTo('x', 3.5 + 7.7 + 14.8 + 13.5 + 7)
-  builder.place(camera, 'camera')
+  builder.place(camera, 'camera', v1ColorToRecord('gray'))
 
   const display = specPart('display', rpiParts.ribbon)
   chain(display).snap(mb, 'z', 'outside-').midlineTo('x', 4).midlineTo('y', 24.5 + 3.5)
-  builder.place(display, 'display')
+  builder.place(display, 'display', v1ColorToRecord('gray'))
 
   const gpio = specPart('gpio', rpiParts.gpio)
   chain(gpio)
     .snap(mb, 'z', 'outside-')
     .midlineTo('x', 29 + 3.5)
     .midlineTo('y', 56 - 3.5)
-  builder.place(gpio, 'gpio')
+  builder.place(gpio, 'gpio', v1ColorToRecord('gray'))
 
   /**
+   * V1 `bplus.js:292,301` — `activityled` is `.color('lightgreen')`, `powerled` is
+   * `.color('red')` (TODO/core-033).
+   *
    * @param {string} name
    * @param {number} yMidlineMm
    */
   const led = (name, yMidlineMm) => {
     const part = specPart(name, rpiParts.boardLed)
     chain(part).snap(mb, 'z', 'outside-').midlineTo('x', 1.1).midlineTo('y', yMidlineMm)
-    builder.place(part, name)
+    builder.place(part, name, v1ColorToRecord(name === 'activityled' ? 'lightgreen' : 'red'))
 
     const clearance = cylinderPart(`clearance-${name}`, 2, clearanceMm, { frame: 'base', rotationDeg: [0, 90, 0] })
     chain(clearance).align(part, 'yz').snap(mb, 'x', 'outside+')
-    builder.place(clearance, `clearance-${name}`, { hidden: true })
+    // V1 `bplus.js:301,311` — `.color('red')` (TODO/core-033).
+    builder.place(clearance, `clearance-${name}`, { hidden: true, ...v1ColorToRecord('red') })
   }
 
   led('activityled', 8)
@@ -416,21 +445,28 @@ function addPi5(builder, { mb, clearanceMm }) {
     .translate([0, 15, 0])
     .midlineTo('x', 29 + 3.5)
     .snap(mb, 'z', 'outside-')
-  builder.place(cpu, 'cpu')
+  // V1 `bplus.js:342` — `.color('lightgray')` (TODO/core-033).
+  builder.place(cpu, 'cpu', v1ColorToRecord('lightgray'))
 
   const cpuClearance = cuboidPart('clearance-cpu', [17, 17, clearanceMm], 'corner')
   chain(cpuClearance).align(cpu, 'xy').snap(cpu, 'z', 'outside-')
-  builder.place(cpuClearance, 'clearance-cpu', { hidden: true })
+  // V1 `bplus.js:351` — `.color('red')` (TODO/core-033).
+  builder.place(cpuClearance, 'clearance-cpu', { hidden: true, ...v1ColorToRecord('red') })
 
   const ethernet = rightSide(cuboidPart('ethernet', [21.5, 16.5, 13.5], 'corner'), mb, [3, 0, 0])
   chain(ethernet).midlineTo('y', 10.2)
-  builder.place(ethernet, 'ethernet')
+  // V1 `bplus.js:361` — `.color('lightgray')` (TODO/core-033).
+  builder.place(ethernet, 'ethernet', v1ColorToRecord('lightgray'))
 
   const ethernetClearance = cuboidPart('clearance-ethernet', [clearanceMm, 16.5, 13.5], 'corner')
   chain(ethernetClearance).align(ethernet, 'yz').snap(ethernet, 'x', 'outside-')
-  builder.place(ethernetClearance, 'clearance-ethernet', { hidden: true })
+  // V1 `bplus.js:372` — `.color('red')` (TODO/core-033).
+  builder.place(ethernetClearance, 'clearance-ethernet', { hidden: true, ...v1ColorToRecord('red') })
 
   /**
+   * V1 `bplus.js:383,391` — `body`/`flange` are both `.color('lightgray')`; their
+   * clearance (`:410,429`) is `.color('red')` — TODO/core-033.
+   *
    * @param {string} id
    * @param {number} yMidlineMm
    * @param {number} clearanceHeightMm V1 spells usb1's 16.5 and usb2's 16 — kept.
@@ -443,17 +479,20 @@ function addPi5(builder, { mb, clearanceMm }) {
     chain(flange).snap(body, 'x', 'outside-').align(body, 'yz')
 
     chain([body, flange], body).midlineTo('y', yMidlineMm)
-    builder.placeUnion(id, [body, flange])
+    builder.placeUnion(id, [body, flange], v1ColorToRecord('lightgray'))
 
     const clearance = cuboidPart(`clearance-${id}`, [clearanceMm, 15, clearanceHeightMm], 'corner')
     chain(clearance).align([body, flange], 'yz').snap([body, flange], 'x', 'outside-')
-    builder.place(clearance, `clearance-${id}`, { hidden: true })
+    builder.place(clearance, `clearance-${id}`, { hidden: true, ...v1ColorToRecord('red') })
   }
 
   usbJack('usb1', 29.1, 16.5)
   usbJack('usb2', 47, 16)
 
   /**
+   * V1 `bplus.js:439,457,475` — `usbc`/`hdmi1`/`hdmi2` are all `.color('lightgray')`;
+   * their clearances (`:447,465,483`) are all `.color('red')` — TODO/core-033.
+   *
    * @param {string} name
    * @param {readonly number[]} sizeMm
    * @param {readonly number[]} clearanceSizeMm
@@ -465,7 +504,7 @@ function addPi5(builder, { mb, clearanceMm }) {
       .snap(mb, 'y', 'inside-', -1)
       .snap(mb, 'z', 'outside-')
       .midlineTo('x', xMidlineMm)
-    builder.place(part, name)
+    builder.place(part, name, v1ColorToRecord('lightgray'))
 
     const clearance = cuboidPart(
       `clearance-${name}`,
@@ -473,7 +512,7 @@ function addPi5(builder, { mb, clearanceMm }) {
       'corner'
     )
     chain(clearance).align(part, 'xz').snap(part, 'y', 'outside+')
-    builder.place(clearance, `clearance-${name}`, { hidden: true })
+    builder.place(clearance, `clearance-${name}`, { hidden: true, ...v1ColorToRecord('red') })
   }
 
   frontConnector('usbc', [10, 7.5, 3.2], [10.5, 3.7], 11.2)
@@ -482,44 +521,52 @@ function addPi5(builder, { mb, clearanceMm }) {
 
   const camera0 = specPart('camera0', rpiParts.camDisplay)
   chain(camera0).snap(mb, 'z', 'outside-').midlineTo('x', 55)
-  builder.place(camera0, 'camera0')
+  // V1 `rpi-parts.js:136` — `CamDisplay()` is `.color('gray')` (TODO/core-033).
+  builder.place(camera0, 'camera0', v1ColorToRecord('gray'))
 
   const camera1 = specPart('camera1', rpiParts.camDisplay)
   chain(camera1).snap(mb, 'z', 'outside-').midlineTo('x', 50)
-  builder.place(camera1, 'camera1')
+  builder.place(camera1, 'camera1', v1ColorToRecord('gray'))
 
   // V1 names the PCIe connector `display`, which is what a Pi 5's FPC socket in this
   // position actually drives. Kept, so a downstream part can address it by the name
   // every other model uses.
   const display = specPart('display', rpiParts.pcie)
   chain(display).snap(mb, 'z', 'outside-').midlineTo('x', 3.5).midlineTo('y', 30)
-  builder.place(display, 'display')
+  // V1 `rpi-parts.js:144` — `PCIe()` is `.color('gray')` (TODO/core-033).
+  builder.place(display, 'display', v1ColorToRecord('gray'))
 
   const gpio = specPart('gpio', rpiParts.gpio)
   chain(gpio)
     .snap(mb, 'z', 'outside-')
     .midlineTo('x', 29 + 3.5)
     .midlineTo('y', 56 - 3.5)
-  builder.place(gpio, 'gpio')
+  builder.place(gpio, 'gpio', v1ColorToRecord('gray'))
 
   const statusled = specPart('statusled', rpiParts.boardLed)
   chain(statusled).snap(mb, 'z', 'outside-').midlineTo('x', 1.1).midlineTo('y', 13.3)
-  builder.place(statusled, 'statusled')
+  // V1 `bplus.js:519` — `.color('lightgreen')` (TODO/core-033).
+  builder.place(statusled, 'statusled', v1ColorToRecord('lightgreen'))
 
   const statusledClearance = cylinderPart('clearance-statusled', 2, clearanceMm, { frame: 'base', rotationDeg: [0, 90, 0] })
   chain(statusledClearance).align(statusled, 'yz').snap(mb, 'x', 'outside+')
-  builder.place(statusledClearance, 'clearance-statusled', { hidden: true })
+  // V1 `bplus.js:528` — `.color('red')` (TODO/core-033).
+  builder.place(statusledClearance, 'clearance-statusled', { hidden: true, ...v1ColorToRecord('red') })
 
   const pswBlock = specPart('powerswitch-block', rpiParts.pswBlock)
   const pswButton = specPart('powerswitch-button', rpiParts.pswButton)
   chain(pswButton).align(pswBlock, 'yz').snap(pswBlock, 'x', 'outside+')
   const psw = [pswBlock, pswButton]
   chain(psw, pswBlock).snap(mb, 'z', 'outside-').snap(mb, 'x', 'inside-').midlineTo('y', 18.4)
+  // V1 `rpi-parts.js:114,119` — `PSW()`'s `block` is `.color('gray')` but its `cyl`
+  // (button) is `.color('black')`: differently coloured V1 solids, so `powerswitch` is
+  // left uncoloured, same rule as `avjack` above (TODO/core-033).
   builder.placeUnion('powerswitch', psw)
 
   const pswClearance = cylinderPart('clearance-powerswitch', 3, clearanceMm, { frame: 'base', rotationDeg: [0, 90, 0] })
   chain(pswClearance).align(psw, 'yz').snap(psw, 'x', 'outside+')
-  builder.place(pswClearance, 'clearance-powerswitch', { hidden: true })
+  // V1 `bplus.js:546` — `.color('red')` (TODO/core-033).
+  builder.place(pswClearance, 'clearance-powerswitch', { hidden: true, ...v1ColorToRecord('red') })
 }
 
 /**
@@ -542,11 +589,14 @@ function addFanHoles(builder, mb) {
       { frame: /** @type {'center'} */ (rpiParts.mountingHole.frame) }
     )
     chain(hole).snap(mb, 'xy', 'inside-').align(mb, 'z').midlineTo('x', xMm).midlineTo('y', yMm)
-    builder.place(hole, name, { hidden: true })
+    // V1 `rpi-parts.js:28` — `MountingHole(...)` is `.color('orange')` (TODO/core-033).
+    // Hidden either way, but ported for the record's own sake — see the module doc.
+    builder.place(hole, name, { hidden: true, ...v1ColorToRecord('orange') })
 
     const clearance = cylinderPart(`clearance-${name.replace('hole', '')}`, 4.5, 4, { frame: 'base' })
     chain(clearance).align(hole, 'xy').snap(mb, 'z', 'outside+')
-    builder.place(clearance, `clearance-${name.replace('hole', '')}`, { hidden: true })
+    // V1 `bplus.js:757` — `fanClearance` is `.color('red')` (TODO/core-033).
+    builder.place(clearance, `clearance-${name.replace('hole', '')}`, { hidden: true, ...v1ColorToRecord('red') })
   }
 
   fanHole('fan1hole', 3.5, 6 + 3.5)
@@ -601,7 +651,8 @@ export function bplus(params) {
 
   const microsd = cuboidPart('microsd', [15.2, 12, 1.5], 'corner')
   chain(microsd).snap(mb, 'z', 'outside+').midlineTo('y', 28).translate([-2.5, 0, 0])
-  builder.place(microsd, 'microsd')
+  // V1 `bplus.js:791` — `.color('silver')` (TODO/core-033).
+  builder.place(microsd, 'microsd', v1ColorToRecord('silver'))
 
   MOUNTING_HOLES_MM.positions.forEach(([xMm, yMm], index) => {
     const hole = cylinderPart(
@@ -611,7 +662,9 @@ export function bplus(params) {
       { frame: /** @type {'center'} */ (rpiParts.mountingHole.frame) }
     )
     chain(hole).snap(mb, 'xy', 'inside-').align(mb, 'z').midlineTo('x', xMm).midlineTo('y', yMm)
-    builder.place(hole, `hole${index + 1}`, { hidden: true })
+    // V1 `bplus-mounting.js:20` → `rpi-parts.js:28` — `MountingHole(...)` is
+    // `.color('orange')` (TODO/core-033). Hidden either way — see the module doc.
+    builder.place(hole, `hole${index + 1}`, { hidden: true, ...v1ColorToRecord('orange') })
   })
 
   if (model >= 5) addFanHoles(builder, mb)

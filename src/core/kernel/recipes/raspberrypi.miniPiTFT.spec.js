@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
+import { v1ColorToRecord } from '../colors.js'
 import { boundsOf, isGroup, sizeOf, volumeOf } from '../group.js'
 import { evaluateOp, expand } from '../index.js'
 import { MINI_BOARD_MM } from './raspberrypi.miniPiTFT.js'
@@ -266,5 +267,51 @@ describe('raspberrypi.miniPiTFT', () => {
       }
       expect(checked).toBeGreaterThanOrEqual(18)
     })
+  })
+})
+
+describe('raspberrypi.miniPiTFT: colour (TODO/core-033)', () => {
+  /** @param {string} name */
+  const recordFor = (name) => expand('raspberrypi.miniPiTFT').find((r) => r.name === name)
+
+  it('board is opaque darkgreen (:93 — no alpha, unlike hat/bplus)', () => {
+    const board = recordFor('board')
+    expect(board).toMatchObject(v1ColorToRecord('darkgreen'))
+    expect(board?.colorAlpha).toBeUndefined()
+  })
+
+  it('screen is white, display is black, display-clearance is red', () => {
+    expect(recordFor('screen')).toMatchObject(v1ColorToRecord('white'))
+    expect(recordFor('display')).toMatchObject(v1ColorToRecord('black'))
+    expect(recordFor('display-clearance')).toMatchObject({ ...v1ColorToRecord('red'), hidden: true })
+  })
+
+  it('button1/button2 are uncoloured, but their base/push leaves carry V1’s own colours', () => {
+    for (const name of ['button1', 'button2']) {
+      expect(recordFor(name)?.color).toBeUndefined()
+      expect(recordFor(`${name}-base`)).toMatchObject({ ...v1ColorToRecord('silver'), hidden: true })
+      expect(recordFor(`${name}-push`)).toMatchObject({ ...v1ColorToRecord('black'), hidden: true })
+    }
+  })
+
+  it('buttonCap1/2 are blue; their -clearance is left uncoloured (the module’s own canonical example)', () => {
+    for (const name of ['buttonCap1', 'buttonCap2']) {
+      expect(recordFor(name)).toMatchObject({ ...v1ColorToRecord('blue'), hidden: true })
+      const clearance = recordFor(`${name}-clearance`)
+      expect(clearance).toBeDefined()
+      expect(clearance?.color).toBeUndefined()
+    }
+  })
+
+  it('button-connector is blue, button-connector-clearance is red', () => {
+    expect(recordFor('button-connector')).toMatchObject({ ...v1ColorToRecord('blue'), hidden: true })
+    expect(recordFor('button-connector-clearance')).toMatchObject({
+      ...v1ColorToRecord('red'),
+      hidden: true,
+    })
+  })
+
+  it('standoff is yellow', () => {
+    expect(recordFor('standoff')).toMatchObject({ ...v1ColorToRecord('yellow'), hidden: true })
   })
 })

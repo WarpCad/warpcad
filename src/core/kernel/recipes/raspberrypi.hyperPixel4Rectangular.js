@@ -36,7 +36,8 @@
  * is not reproduced. Both calls are on the same axis, which is what makes that safe to
  * say rather than guess.
  *
- * **Colours are dropped**, as everywhere else in this catalogue.
+ * **Opaque colours ported (TODO/core-033)**: `lcd` is V1's `:29` `.color('black')`.
+ * `pad1`-`pad4` are `rpi-parts.js`'s `Mountingpad`, which is `.color('yellow')`.
  *
  * @module core/kernel/recipes/raspberrypi.hyperPixel4Rectangular
  */
@@ -189,8 +190,10 @@ export function hyperPixel4Rectangular(params = {}) {
   // V1 `src/hyper-pixel-4-rectangular.js:27`:
   // `group.add(board.subtract(notch).color('green', 0.75), 'mb')` (TODO/core-026).
   builder.place(board, 'mb', v1ColorToRecord('green', 0.75))
-  builder.place(lcd, 'lcd')
-  pads.forEach((pad, index) => builder.place(pad, `pad${index + 1}`))
+  // V1 `:29`: `Parts.Cube({...}).color('black')` (TODO/core-033).
+  builder.place(lcd, 'lcd', v1ColorToRecord('black'))
+  // V1 `rpi-parts.js:44`: `Mountingpad(...).color('yellow')` (TODO/core-033).
+  pads.forEach((pad, index) => builder.place(pad, `pad${index + 1}`, v1ColorToRecord('yellow')))
 
   return builder.build()
 }

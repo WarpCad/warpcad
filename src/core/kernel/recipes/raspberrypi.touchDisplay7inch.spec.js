@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
+import { v1ColorToRecord } from '../colors.js'
 import { boundsOf, isGroup, sizeOf } from '../group.js'
 import { evaluateOp, expand } from '../index.js'
 import { PI_MOUNTING_PAD_OFFSETS_MM, SCREEN_MOUNTING_PAD_OFFSETS_MM } from './raspberrypi.touchDisplay7inch.js'
@@ -261,5 +262,49 @@ describe('raspberrypi.touchDisplay7inch', () => {
         )
       }
     })
+  })
+})
+
+describe('raspberrypi.touchDisplay7inch: colour (TODO/core-033)', () => {
+  /** @param {string} name */
+  const recordFor = (name) => expand('raspberrypi.touchDisplay7inch').find((r) => r.name === name)
+
+  it('lens is black, backPlate is gray', () => {
+    expect(recordFor('lens')).toMatchObject(v1ColorToRecord('black'))
+    expect(recordFor('backPlate')).toMatchObject(v1ColorToRecord('gray'))
+  })
+
+  it('each screenMountingPadN is blue, its hole is red and hidden', () => {
+    for (let n = 1; n <= 4; n += 1) {
+      expect(recordFor(`screenMountingPad${n}`)).toMatchObject(v1ColorToRecord('blue'))
+      expect(recordFor(`screenMountingPad${n}hole`)).toMatchObject({
+        ...v1ColorToRecord('red'),
+        hidden: true,
+      })
+    }
+  })
+
+  it('each piMountingPadN is left uncoloured, but its pad/post leaves carry V1’s own colours', () => {
+    for (let n = 1; n <= 4; n += 1) {
+      expect(recordFor(`piMountingPad${n}`)?.color).toBeUndefined()
+      expect(recordFor(`piMountingPad${n}pad`)).toMatchObject({
+        ...v1ColorToRecord('green'),
+        hidden: true,
+      })
+      expect(recordFor(`piMountingPad${n}post`)).toMatchObject({
+        ...v1ColorToRecord('silver'),
+        hidden: true,
+      })
+    }
+  })
+
+  // TODO/core-033's correction: unlike every `clearance-*`/`*-nogo` volume in this
+  // catalogue, V1 adds `noGoPower` *visible* (`:147`'s `false`), so it is ported
+  // visible too, per the module doc — filed as TODO/render-005 rather than silently
+  // hidden.
+  it('noGoPower is red and visible (V1 adds it unhidden)', () => {
+    const record = recordFor('noGoPower')
+    expect(record).toMatchObject(v1ColorToRecord('red'))
+    expect(record?.hidden).toBeUndefined()
   })
 })

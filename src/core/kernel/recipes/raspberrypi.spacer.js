@@ -63,6 +63,7 @@
  * @module core/kernel/recipes/raspberrypi.spacer
  */
 
+import { v1ColorToRecord } from '../colors.js'
 import { BPLUS_BOARD, MOUNTING_HOLES_MM, rpiParts } from '../tables/rpi-parts.js'
 import { boardFrame } from './kit.boardFrame.js'
 import {
@@ -236,9 +237,10 @@ export function spacer(params = {}) {
   const posts = booleanPart(builder, 'spacer.posts', 'union', pads)
   pads.forEach((pad, index) => builder.place(pad, `pad${index + 1}`, { hidden: true }))
 
-  // `:74` — an early return, before the gusset is built at all.
+  // `:74` — an early return, before the gusset is built at all. `.color('yellow')`
+  // either way — TODO/core-033.
   if (postOnly) {
-    builder.place(posts, 'spacer')
+    builder.place(posts, 'spacer', v1ColorToRecord('yellow'))
     return builder.build()
   }
 
@@ -263,6 +265,13 @@ export function spacer(params = {}) {
       thickness,
       SPACER_MM.braceCornerRadiusMm
     )
+    // `:89` colours this union (V1's `cross`) `.color('red')` — but `:111`'s
+    // `assembly.color('yellow')` runs on the *whole* result afterwards and, in
+    // `jscad-utils`, a `.color()` call overwrites every polygon's colour uniformly
+    // rather than leaving already-tagged ones alone. So `cross`'s red never survives
+    // to the final CSG in the branch that reaches `:111` at all — it is only visible
+    // if V1 is asked to stop short of that line, which it has no option to do. Nothing
+    // to port here beyond `spacer`'s own yellow (TODO/core-033).
     turnAboutZ(bar1, [0, 0, 0], tri.b)
     chain(bar1)
       .translate([dxMm, dyMm, 0])
@@ -341,6 +350,7 @@ export function spacer(params = {}) {
     assembly = booleanPart(builder, 'spacer.cut', 'subtract', [assembly, clearance])
   }
 
-  builder.place(assembly, 'spacer')
+  // `:111` — `assembly.color('yellow')` (TODO/core-033).
+  builder.place(assembly, 'spacer', v1ColorToRecord('yellow'))
   return builder.build()
 }

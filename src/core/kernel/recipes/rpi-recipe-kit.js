@@ -627,6 +627,9 @@ export function boundsOfPart(part) {
  * @property {readonly string[]} operands
  * @property {string} name
  * @property {boolean} [hidden]
+ * @property {number} [color] Only valid when every operand shares one V1 colour — see
+ *   `placeBoolean`'s own note (TODO/core-033).
+ * @property {number} [colorAlpha]
  */
 
 /**
@@ -648,7 +651,10 @@ export function boundsOfPart(part) {
  * @property {(part: Part, name: string | null, options?: PlaceOptions) => Part} place
  *   `name: null` places a pure intermediate — a cutting tool, or the un-booleaned half
  *   of a part V1 only ever exposes through its boolean — that is built but not labelled.
- * @property {(name: string, parts: readonly Part[]) => void} placeUnion
+ * @property {(name: string, parts: readonly Part[], options?: PlaceOptions) => void} placeUnion
+ *   `options.color`/`colorAlpha` colour the *union result*, for the case (`TODO/core-033`)
+ *   where V1 coloured every member of the union the same way — never call this with a
+ *   colour when the V1 members disagreed; leave the union uncoloured instead.
  * @property {(item: PlacedBoolean) => void} placeBoolean
  * @property {() => OpRecord[]} build
  */
@@ -742,8 +748,9 @@ export function createBuilder() {
      *
      * @param {string} name
      * @param {readonly Part[]} parts
+     * @param {PlaceOptions} [options]
      */
-    placeUnion(name, parts) {
+    placeUnion(name, parts, options = {}) {
       for (const part of parts) place(part, part.id, { hidden: true })
       placed.push({
         kind: 'record',
@@ -753,6 +760,8 @@ export function createBuilder() {
           params: {},
           operands: parts.map((part) => part.id),
           name,
+          ...(options.color !== undefined ? { color: options.color } : {}),
+          ...(options.colorAlpha !== undefined ? { colorAlpha: options.colorAlpha } : {}),
         },
       })
     },
@@ -769,6 +778,8 @@ export function createBuilder() {
           operands: [...item.operands],
           ...(item.name ? { name: item.name } : {}),
           ...(item.hidden ? { hidden: true } : {}),
+          ...(item.color !== undefined ? { color: item.color } : {}),
+          ...(item.colorAlpha !== undefined ? { colorAlpha: item.colorAlpha } : {}),
         },
       })
     },

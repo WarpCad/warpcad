@@ -307,10 +307,19 @@ function addClassicFamily(builder, model) {
 
   /** @type {Part[]} */
   const holes = []
+  // Holes' colour is *not* uniform across the family (TODO/core-033): v3's `Hole()`
+  // factory colours every hole `.color('red')` (`camera-module-v3.js:17`), while v1/v2's
+  // plain `Hole()` colours only the first — `Hole(2, 2, ...).color('yellow')`
+  // (`camera-module-v1.js:38`, `camera-module-v2.js:35`) — hole1-3 are built the same
+  // way with no `.color()` call at all, so they stay uncoloured. Neither `mount*` nor
+  // `pin*` gets a `.color()` call anywhere in any of the three files.
   CLASSIC_HOLE_CENTRES_MM.forEach(([xMm, yMm], index) => {
     const hole = cylinderPart(`hole${index}`, 2.2, spec.holeDepthMm)
     chain(hole).snap(board, 'xy', 'inside-').midlineTo('x', xMm).midlineTo('y', yMm)
-    builder.place(hole, `hole${index}`, { hidden: true })
+    let holeColor = {}
+    if (model === 'v3') holeColor = v1ColorToRecord('red')
+    else if (index === 0) holeColor = v1ColorToRecord('yellow')
+    builder.place(hole, `hole${index}`, { hidden: true, ...holeColor })
     holes.push(hole)
 
     const mount = cylinderPart(`mount${index}`, 4, spec.mountHeightMm)
@@ -328,24 +337,29 @@ function addClassicFamily(builder, model) {
     .snap(board, 'z', 'outside-')
     .midlineTo('x', 14.5)
     .midlineTo('y', 12.5)
-  builder.place(sensor, 'sensor')
+  // V1 `.color('black')` on `sensor` in all three files (`camera-module-v1.js:69`,
+  // `-v2.js:66`, `-v3.js:68`) — TODO/core-033.
+  builder.place(sensor, 'sensor', v1ColorToRecord('black'))
 
   if (model === 'v1') {
     // A square block, not a barrel — the one variant whose lens is a cuboid.
     const lens = cuboidPart('lens', [8.5, 8.5, 5.9 - tMm - 2])
     chain(lens).align(sensor, 'xy').snap(sensor, 'z', 'outside-')
-    builder.place(lens, 'lens')
+    // V1 `camera-module-v1.js:77` — `.color('gray')` (TODO/core-033).
+    builder.place(lens, 'lens', v1ColorToRecord('gray'))
 
     const lensribbon = cuboidPart('lensribbon', [7.56, 10, 2.65 - tMm])
     chain(lensribbon)
       .snap(board, 'z', 'outside-')
       .align(lens, 'y')
       .snap(lens, 'x', 'outside+', -1)
-    builder.place(lensribbon, 'lensribbon')
+    // V1 `camera-module-v1.js:86` — `.color('gray')` (TODO/core-033).
+    builder.place(lensribbon, 'lensribbon', v1ColorToRecord('gray'))
   } else if (model === 'v2') {
     const lens = cylinderPart('lens', 7.3, 1.6)
     chain(lens).align(sensor, 'xy').snap(sensor, 'z', 'outside-')
-    builder.place(lens, 'lens')
+    // V1 `camera-module-v2.js:74` — `.color('gray')` (TODO/core-033).
+    builder.place(lens, 'lens', v1ColorToRecord('gray'))
 
     const lensribbon = cuboidPart('lensribbon', [4, 9, 2.65 - tMm])
     chain(lensribbon)
@@ -354,11 +368,13 @@ function addClassicFamily(builder, model) {
       .midlineTo('x', 4.7)
       .midlineTo('y', 13.8)
     stretchCuboid(lensribbon, 'x', 4)
-    builder.place(lensribbon, 'lensribbon')
+    // V1 `camera-module-v2.js:85` — `.color('gray')` (TODO/core-033).
+    builder.place(lensribbon, 'lensribbon', v1ColorToRecord('gray'))
   } else {
     const lens = cylinderPart('lens', 8.1, 6.98 - 3.875)
     chain(lens).align(sensor, 'xy').snap(sensor, 'z', 'outside-')
-    builder.place(lens, 'lens')
+    // V1 `camera-module-v3.js:76` — `.color('gray')` (TODO/core-033).
+    builder.place(lens, 'lens', v1ColorToRecord('gray'))
 
     const lensribbon = cuboidPart('lensribbon', [7.3, 8.9, 2.65 - tMm])
     chain(lensribbon)
@@ -366,7 +382,9 @@ function addClassicFamily(builder, model) {
       .align(sensor, 'y')
       .translate([0, -1.5, 0])
       .snap(board, 'z', 'outside-')
-    builder.place(lensribbon, 'lensribbon')
+    // V1 `camera-module-v3.js:86` — `.color('gold')`, unlike v1/v2's gray
+    // (TODO/core-033).
+    builder.place(lensribbon, 'lensribbon', v1ColorToRecord('gold'))
   }
 
   const ribbon = cuboidPart('ribbon', spec.ribbonMm)
@@ -375,7 +393,10 @@ function addClassicFamily(builder, model) {
     .snap(board, 'y', 'inside-')
     .snap(board, 'z', 'outside+')
     .midlineTo('y', 12.5)
-  builder.place(ribbon, 'ribbon')
+  // V1 leaves `ribbon` uncoloured in v1/v2 (`camera-module-v1.js:90-97`,
+  // `-v2.js:89-96`); only v3 colours it `.color('beige')` (`-v3.js:96`) —
+  // TODO/core-033.
+  builder.place(ribbon, 'ribbon', model === 'v3' ? v1ColorToRecord('beige') : {})
 
   // The underside keep-out: a slab as wide as the board less the ribbon's own strip,
   // with a generously enlarged copy of each mounting hole cut out of it.
@@ -396,6 +417,8 @@ function addClassicFamily(builder, model) {
     // volumes themselves, which are hidden but addressable.
     return builder.place(cut, null)
   })
+  // V1 `.color('red')` on `bottom-nogo` in all three files (`camera-module-v1.js:104`,
+  // `-v2.js:103`, `-v3.js:105`) — TODO/core-033. Already hidden (see module doc).
   builder.placeBoolean({
     id: 'bottom-nogo',
     op: 'boolean.subtract',
@@ -403,11 +426,14 @@ function addClassicFamily(builder, model) {
     operands: cuts.map((cut) => cut.id),
     name: 'bottom-nogo',
     hidden: true,
+    ...v1ColorToRecord('red'),
   })
 
   const ribbonNogo = enlargedPart('ribbon-nogo', ribbon, [2, -1, -1])
   chain(ribbonNogo).snap(ribbon, 'x', 'outside-')
-  builder.place(ribbonNogo, 'ribbon-nogo', { hidden: true })
+  // V1 `.color('red')` on `ribbon-nogo` in all three files (`camera-module-v1.js:112`,
+  // `-v2.js:111`, `-v3.js:114`) — TODO/core-033. Already hidden.
+  builder.place(ribbonNogo, 'ribbon-nogo', { hidden: true, ...v1ColorToRecord('red') })
 }
 
 /**
@@ -444,7 +470,9 @@ function addHqFamily(builder, model, flipTripodMount) {
 
   const hole1 = cylinderPart('hole1', 3.25, 10)
   chain(hole1).snap(board, 'xy', 'inside+', 1.25).translate([-4, -4, -5])
-  builder.place(hole1, 'hole1', { hidden: true })
+  // V1 `.color('red')` on the shared `hole` in both files
+  // (`hq_camera-module.js:55`, `arducam_hq_camera-module.js:54`) — TODO/core-033.
+  builder.place(hole1, 'hole1', { hidden: true, ...v1ColorToRecord('red') })
 
   // `hq_camera-module.js:57-59` turns the *same* hole by 90/180/-90 rather than
   // positioning four holes. `transforms.rotate` — and this project's `transform.rotate`
@@ -459,19 +487,31 @@ function addHqFamily(builder, model, flipTripodMount) {
       source: hole1,
       base: transforms.rotate([0, 0, degToRad(angleDeg)], hole1.geom),
     })
-    builder.place(turned, `hole${index + 2}`, { hidden: true })
+    builder.place(turned, `hole${index + 2}`, { hidden: true, ...v1ColorToRecord('red') })
   })
 
   const sensor = cuboidPart('sensor', [8.5, 8.5, 1])
   chain(sensor).snap(board, 'z', 'outside-').align(board, 'xy')
-  builder.place(sensor, 'sensor')
+  // V1 `.color('white')` in both files (`hq_camera-module.js:65`,
+  // `arducam_hq_camera-module.js:64`) — TODO/core-033.
+  builder.place(sensor, 'sensor', v1ColorToRecord('white'))
 
   // V1 keeps the un-subtracted cylinder as `mount-clearance` and adds the ring as
   // `mount`, so both names describe the same solid at two stages. Emitted the same way:
   // the clearance record *is* the subtraction's base.
+  //
+  // Colour (TODO/core-033): V1's `mount` and `mountInside` cylinders are both
+  // `.color('black')` (`:68-71,73-76` in both files), so the `mount` subtraction result
+  // — cutting black material out of a black ring — stays black in both models. HQ then
+  // adds the pre-subtraction `mount` cylinder unchanged as `mount-clearance`
+  // (`hq_camera-module.js:79`), so it stays black too; Arducam explicitly recolours its
+  // own copy `.color('red')` before adding it (`arducam_hq_camera-module.js:78`).
   const mountClearance = cylinderPart('mount-clearance', spec.mountDiameterMm, spec.mountHeightMm)
   chain(mountClearance).snap(board, 'z', 'outside-').align(board, 'xy')
-  builder.place(mountClearance, 'mount-clearance', { hidden: true })
+  builder.place(mountClearance, 'mount-clearance', {
+    hidden: true,
+    ...v1ColorToRecord(model === 'arducam-hq' ? 'red' : 'black'),
+  })
 
   const mountInside = cylinderPart(
     'mount-inside',
@@ -487,6 +527,7 @@ function addHqFamily(builder, model, flipTripodMount) {
     target: mountClearance.id,
     operands: [mountInside.id],
     name: 'mount',
+    ...v1ColorToRecord('black'),
   })
 
   if (spec.tripodMount) {
@@ -500,6 +541,9 @@ function addHqFamily(builder, model, flipTripodMount) {
     // The base is carved by the same bore the ring is, so the tripod block follows the
     // lens mount's curve. The carve does not move its bounding box — the block is wider
     // than the bore's chord at that y — so the post below can still snap against it.
+    // V1 `.color('darkgray')` on the base *before* the subtract (`:85-86`) —
+    // TODO/core-033. Cutting the (uncoloured) bore out of it leaves darkgray material,
+    // so the result keeps it.
     builder.placeBoolean({
       id: 'tripodMount-base',
       op: 'boolean.subtract',
@@ -507,6 +551,7 @@ function addHqFamily(builder, model, flipTripodMount) {
       operands: [mountInside.id],
       name: 'tripodMount-base',
       hidden: true,
+      ...v1ColorToRecord('darkgray'),
     })
 
     const post = cuboidPart('tripodMount-post', [14, 11.5, 11.5])
@@ -514,8 +559,12 @@ function addHqFamily(builder, model, flipTripodMount) {
       .snap(baseSolid, 'z', flipTripodMount ? 'inside-' : 'inside+')
       .snap(baseSolid, 'y', 'outside+')
       .align(mountClearance, 'x')
-    builder.place(post, 'tripodMount-post', { hidden: true })
+    // V1 `hq_camera-module.js:92` — `.color('gray')` (TODO/core-033).
+    builder.place(post, 'tripodMount-post', { hidden: true, ...v1ColorToRecord('gray') })
 
+    // `tripodMount-base` is darkgray but `tripodMount-post` is gray: differently
+    // coloured V1 solids feeding one union, so `tripodMount` is left uncoloured, same
+    // rule as `avjack` in `raspberrypi.bplus.js` (TODO/core-033).
     builder.placeBoolean({
       id: 'tripodMount',
       op: 'boolean.union',
@@ -527,11 +576,13 @@ function addHqFamily(builder, model, flipTripodMount) {
 
   const ribbon = cuboidPart('ribbon', [20.8, 5.5, spec.ribbonThicknessMm])
   chain(ribbon).snap(board, 'y', 'inside-').snap(board, 'z', 'outside+').align(board, 'x')
+  // V1 leaves `ribbon` uncoloured in both files (`:96-102`, `:80-86`) — TODO/core-033.
   builder.place(ribbon, 'ribbon')
 
   const ribbonNogo = enlargedPart('ribbon-nogo', ribbon, [2, 4, -1])
   chain(ribbonNogo).snap(ribbon, 'y', 'outside+')
-  builder.place(ribbonNogo, 'ribbon-nogo', { hidden: true })
+  // V1 `.color('red')` on `ribbon-nogo` in both files (`:108`, `:92`) — TODO/core-033.
+  builder.place(ribbonNogo, 'ribbon-nogo', { hidden: true, ...v1ColorToRecord('red') })
 }
 
 /**
