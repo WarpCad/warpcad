@@ -955,3 +955,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** washer gray, not theme blue → e2e/hardware-library-placement.e2e.js's new pixel-sample test (all 3 viewports × chromium/webkit), proven to bite via a `git stash` A/B of the `Viewport.vue` wiring (blue-biased sample r:80 g:105 b:139 without it); Reset returns to the recipe colour, not the app default → this session's laptop Chromium + phone WebKit drive (Inspector readout `#808080` → pick → Reset → `#808080` again); translucent Pi board reads cleanly, no z-fight → this session's screenshot, inspected by eye; one real finding surfaced and filed, not patched inline → TODO/render-004 (hardware.bolt's opaque V1-faithful `tap` now visibly encloses its own head/thread)
 **To Add:** a before/after screenshot of a dropped Washer (theme blue vs. its own gray)
+
+## [2026-09-26T12:33:56Z] — A bolt finally looks like a bolt (TODO/render-004)
+
+**Post:** WarpCad's bolts render as themselves now: gray head, silver thread. The red clearance envelope that used to enclose both — V1-faithful, but not a great first look — is a hidden part instead, same as a washer's clearance already was. Still there, still addressable for a proper clearance-fit hole; just not drawn by default. Built with Claude Code, reviewed by me.
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** freshly-dropped bolt reads gray/silver, not red → this session's screenshots at laptop Chromium + phone WebKit; `tap` hidden, same divergence as washer's `clearance` → `hardware.bolt.js`/`hardware.washer.js` diff, this session; whole-bolt subtract now differs from `tap` subtract for the first time → `ui-041`'s enclosed-bolt fixture re-driven live, 61 695.679 mm³ (metal) vs 61 108.343 mm³ (clearance); full regression check → 1717 unit tests (was 1715), typecheck clean, full non-Firefox Playwright matrix all green
+**To Add:** the before/after freshbolt screenshot pair from this session (render004-chromium-laptop-freshbolt.png vs render-003's red-cylinder shot)
