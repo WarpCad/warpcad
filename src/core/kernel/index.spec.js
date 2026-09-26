@@ -73,7 +73,8 @@ describe('evaluate — the fold every op class replays through', () => {
     const { byId } = evaluate([
       { id: 'bolt1', op: 'hardware.bolt', params: { spec: 'm10 hex', length: 20, fit: 'loose' } },
     ])
-    expect(asGroup(byId.get('bolt1')).names).toEqual(['head', 'thread', 'tap'])
+    // `tap` is hidden by default as of TODO/render-004 (2026-09-26).
+    expect(asGroup(byId.get('bolt1')).names).toEqual(['head', 'thread'])
   })
 
   it('coerces a composite result to geometry when a boolean consumes it', () => {
@@ -109,8 +110,9 @@ describe('evaluate — the fold every op class replays through', () => {
       { initial: { byId: before.byId, group: before.group } }
     )
     const bolt = asGroup(byId.get('bolt1'))
-    expect(bolt.names).toEqual(['head', 'thread', 'tap'])
-    // the recipe's own hidden `tap-*` sub-parts belong here; the scene's body does not
+    // `tap` is hidden by default as of TODO/render-004 (2026-09-26).
+    expect(bolt.names).toEqual(['head', 'thread'])
+    // the recipe's own hidden `tap`/`tap-*` sub-parts belong here; the scene's body does not
     expect(Object.keys(bolt.parts)).not.toContain('Shell 1')
     // and it measures like a bolt, not like a 40 mm plate
     const [min, max] = boundsOf(combine(bolt))
@@ -131,7 +133,8 @@ describe('evaluate — the fold every op class replays through', () => {
       { initial: { byId: before.byId, group: before.group } }
     )
     const bolt = asGroup(byId.get('bolt1'))
-    expect(bolt.names).toEqual(['head', 'thread', 'tap'])
+    // `tap` is hidden by default as of TODO/render-004 (2026-09-26).
+    expect(bolt.names).toEqual(['head', 'thread'])
     expect(boundsOf(combine(bolt))[1][0]).toBeLessThan(15)
   })
 
@@ -288,7 +291,8 @@ describe('operand resolution — bare ids, sub-part addresses, and who sees a ra
     )
     const { seen } = /** @type {any} */ (byId.get('probe'))
     expect(isGroup(seen[0].value)).toBe(true)
-    expect(seen[0].value.names).toEqual(['head', 'thread', 'tap'])
+    // `tap` is hidden by default as of TODO/render-004 (2026-09-26).
+    expect(seen[0].value.names).toEqual(['head', 'thread'])
     expect(seen[0].pieces).toBe('head')
     // target first, then operands — the same ordering every other op relies on
     expect(isGroup(seen[1].value)).toBe(false)
@@ -418,11 +422,16 @@ describe('sub-part-addressed boolean operands (TODO/core-024)', () => {
     const metalHole = BLOCK_VOLUME_MM3 - cutVolume({ id: 'bolt1', pieces: 'head,thread' })
     expect(metalHole).toBeCloseTo(volumeOf(combine(bolt(), 'head,thread')), 6)
 
-    // And it is genuinely *less* than the whole bolt removes — the assertion that
-    // fails if `pieces` is quietly dropped, which is the failure mode this whole
-    // guard-and-resolve path exists to rule out.
-    const wholeHole = BLOCK_VOLUME_MM3 - cutVolume('bolt1')
-    expect(metalHole).toBeLessThan(wholeHole)
+    // Since TODO/render-004 (2026-09-26) hides `tap` by default, the bare-id
+    // default combine() *is* head+thread — so the "does `pieces` get dropped"
+    // contrast that used to compare against a bare `'bolt1'` now compares against
+    // the explicit, still-addressable `tap` clearance envelope instead, which is
+    // genuinely larger (grown by the fit clearance in both diameter and height).
+    const tapHole = BLOCK_VOLUME_MM3 - cutVolume({ id: 'bolt1', pieces: 'tap' })
+    expect(metalHole).toBeLessThan(tapHole)
+    // And the bare-id default now agrees with the explicit metal address — proof
+    // the default combine() genuinely excludes `tap` rather than silently keeping it.
+    expect(cutVolume('bolt1')).toBeCloseTo(cutVolume({ id: 'bolt1', pieces: 'head,thread' }), 9)
 
     // One hard analytic number, so the two measurements above cannot agree by both
     // being wrong: the head is a hexagonal prism, 18 mm across corners, 6.5 mm tall.
@@ -434,26 +443,35 @@ describe('sub-part-addressed boolean operands (TODO/core-024)', () => {
     // The degenerate case TODO/core-024 asks to settle explicitly rather than leave
     // undefined. Answer: **any named part, hidden or visible**. A rule keyed on
     // `hidden` would not even reach this scenario's own target — `hardware.bolt`
-    // adds `tap` with `hidden: false`, exactly as V1 did.
+    // now adds `tap` with `hidden: true` (TODO/render-004, user decision,
+    // 2026-09-26; V1 itself left it `hidden: false`, and so did this recipe until
+    // render-004), so `tap` itself, not just its `tap-*` children, exercises the
+    // "hidden part" half of this test's own claim.
     const boltGroup = bolt()
-    expect(boltGroup.names).toEqual(['head', 'thread', 'tap'])
+    expect(boltGroup.names).toEqual(['head', 'thread'])
     expect(Object.keys(boltGroup.parts)).toContain('tap-thread')
     expect(boltGroup.names).not.toContain('tap-thread')
+    expect(boltGroup.names).not.toContain('tap')
 
     const hiddenHole = BLOCK_VOLUME_MM3 - cutVolume({ id: 'bolt1', pieces: 'tap-thread' })
     expect(hiddenHole).toBeCloseTo(volumeOf(boltGroup.parts['tap-thread']), 6)
+
+    const hiddenTapHole = BLOCK_VOLUME_MM3 - cutVolume({ id: 'bolt1', pieces: 'tap' })
+    expect(hiddenTapHole).toBeCloseTo(volumeOf(boltGroup.parts.tap), 6)
   })
 
-  it('measures a bolt’s `tap` as exactly its whole silhouette — this recipe, stated', () => {
-    // Worth pinning because ACCEPTANCE.md scenario 5 is written as though the two
-    // differ ("the hidden tap-clearance diameter, not the visible head/thread mesh
-    // diameter"). For `hardware.bolt` they are the same solid: `tap` is a *visible*
-    // part and it contains both the head and the thread, so `combine()` of the
-    // whole bolt is the tap envelope. Addressing `tap` is therefore correct and
-    // explicit, not a geometry change — the address that does change the result is
-    // `head,thread` above.
-    expect(volumeOf(combine(bolt(), 'tap'))).toBeCloseTo(volumeOf(combine(bolt())), 9)
-    expect(cutVolume({ id: 'bolt1', pieces: 'tap' })).toBeCloseTo(cutVolume('bolt1'), 9)
+  it("measures the bolt's `tap` as its full clearance envelope, now genuinely bigger than the default combine() (TODO/render-004)", () => {
+    // Before render-004, `tap` was V1-faithfully *visible*, so it sat in the
+    // group's default `names` and `combine(bolt())` (no pieces) already *was* the
+    // tap envelope — addressing `tap` explicitly changed nothing. render-004 hides
+    // `tap` by default instead (user decision, 2026-09-26), so the two now
+    // genuinely differ: `tap` is still every bit the same solid (head and thread
+    // grown by the fit clearance, unioned) but the default combine() is the bare
+    // metal, strictly smaller.
+    expect(volumeOf(combine(bolt(), 'tap'))).toBeGreaterThan(volumeOf(combine(bolt())))
+    // `cutVolume` is the *remaining* block volume after the cut, so the bigger
+    // `tap` hole leaves *less* material behind than the metal-only default does.
+    expect(cutVolume({ id: 'bolt1', pieces: 'tap' })).toBeLessThan(cutVolume('bolt1'))
   })
 
   it('accepts a sub-part address on all three booleans, and on either side', () => {
@@ -509,7 +527,8 @@ describe('a composite keeps its parts through a transform (TODO/core-024)', () =
       { id: 'moved', op: 'transform.translate', params: { vector: [60, 0, 0] }, target: 'bolt1' },
     ])
     const moved = asGroup(byId.get('moved'))
-    expect(moved.names).toEqual(['head', 'thread', 'tap'])
+    // `tap` is hidden by default as of TODO/render-004 (2026-09-26).
+    expect(moved.names).toEqual(['head', 'thread'])
     expect(Object.keys(moved.parts)).toEqual(Object.keys(asGroup(byId.get('bolt1')).parts))
 
     const [before] = boundsOf(combine(asGroup(byId.get('bolt1')), 'head'))
@@ -529,7 +548,8 @@ describe('a composite keeps its parts through a transform (TODO/core-024)', () =
       },
     ])
     const turned = asGroup(byId.get('turned'))
-    expect(turned.names).toEqual(['head', 'thread', 'tap'])
+    // `tap` is hidden by default as of TODO/render-004 (2026-09-26).
+    expect(turned.names).toEqual(['head', 'thread'])
     // A quarter turn about X takes the thread's +Z run onto −Y.
     const [min, max] = boundsOf(combine(turned, 'thread'))
     expect(min[1]).toBeCloseTo(-26.5, 6)
@@ -598,8 +618,11 @@ describe('evaluateOp — single-op convenience used by the acceptance checks', (
 
   it('builds one composite op straight to a group', () => {
     const bolt = asGroup(evaluateOp('hardware.bolt', { spec: 'm10 hex', length: 20, fit: 'loose' }))
-    expect(bolt.names).toEqual(['head', 'thread', 'tap'])
-    expect(boundsOf(combine(bolt))[1][2]).toBeCloseTo(27.5, 6)
+    // `tap` is hidden by default as of TODO/render-004 (2026-09-26), so the default
+    // combine() is head+thread only: max z is headHeightMm 6.5 + length 20 = 26.5,
+    // not the old tap-inclusive 27.5 (fit no longer affects this number).
+    expect(bolt.names).toEqual(['head', 'thread'])
+    expect(boundsOf(combine(bolt))[1][2]).toBeCloseTo(26.5, 6)
   })
 })
 

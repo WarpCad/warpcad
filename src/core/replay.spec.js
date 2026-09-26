@@ -243,9 +243,11 @@ describe('wired against the real core-001 kernel registry', () => {
     expect(scene.errors).toEqual([])
 
     const bolt = /** @type {import('./kernel/group.js').Group} */ (scene.byId.get('bolt1'))
-    expect(bolt.names).toEqual(['head', 'thread', 'tap'])
-    // `parts` legitimately also holds the recipe's hidden `tap-*` sub-parts, so
-    // what is asserted is that nothing from the surrounding scene got in.
+    // `tap` is hidden by default as of TODO/render-004 (2026-09-26); it's still in
+    // `parts` (checked below alongside `tap-*`), just not in visible `names`.
+    expect(bolt.names).toEqual(['head', 'thread'])
+    // `parts` legitimately also holds the recipe's hidden `tap`/`tap-*` sub-parts,
+    // so what is asserted is that nothing from the surrounding scene got in.
     expect(Object.keys(bolt.parts)).not.toContain('Shell 1')
     expect(Object.keys(bolt.parts)).not.toContain('Lug 1')
     // the scene group still holds all three bodies, each under its own name
@@ -256,7 +258,10 @@ describe('wired against the real core-001 kernel registry', () => {
     const [min, max] = measurements.measureBoundingBox(combine(bolt))
     expect(min[0]).toBeGreaterThan(-15)
     expect(max[0]).toBeLessThan(15)
-    expect(max[2]).toBeCloseTo(27, 6)
+    // Default combine() is head+thread only now (TODO/render-004): 26.5, not the
+    // old tap-inclusive 27 — see `hardware.bolt.spec.js`'s own V1-diff test for
+    // the derivation (headHeightMm 6.5 + length 20, independent of `fit`).
+    expect(max[2]).toBeCloseTo(26.5, 6)
   })
 
   it('a document round-tripped through NDJSON still replays cleanly against the real kernel', () => {

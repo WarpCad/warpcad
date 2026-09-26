@@ -18,9 +18,19 @@
  * - `thread` — a cylinder of the shank diameter, snapped `outside-` onto the head, so
  *   it runs *up* from the top of the head rather than down from `z = 0`.
  * - `tap` — the clearance solid: the same head and thread grown by
- *   `fitDiameter - bodyDiameter`, unioned. V1 adds this with `hidden = false`, so it
- *   is part of the default `combine()` — a fact worth stating out loud, because it
- *   means a bolt's rendered bounding box is the *clearance* envelope, not the metal.
+ *   `fitDiameter - bodyDiameter`, unioned. **V1 adds this with `hidden = false`,
+ *   putting it in the default `combine()`; V3 marks it `hidden: true` instead**
+ *   (TODO/render-004, user decision 2026-09-26) — the same deliberate divergence
+ *   `hardware.washer.js`'s module doc records for its own `clearance` part, and for
+ *   the same reason: once `render-003` made recipe colours actually render, an
+ *   unhidden `tap` — opaque red, and by construction larger than and fully enclosing
+ *   both `head` and `thread` — made every freshly-dropped bolt look like a plain red
+ *   cylinder instead of a gray-headed, silver-threaded bolt. `tap` stays addressable
+ *   by name for a boolean subtract (ACCEPTANCE.md scenario 5) exactly as it always
+ *   was; only its default visibility changed. This *does* change a bolt's default
+ *   `combine()` bounding box from the clearance envelope to the metal envelope —
+ *   see `hardware.bolt.spec.js`'s V1-diff describe block and this recipe's own
+ *   retirement note in `TODO/done/render-004-*.md` for the affected numbers.
  *
  * plus three hidden parts V1 carried as `tap-` prefixed subparts, including
  * `tap-headClearSpace` — the socket a driver needs above the head, positioned by
@@ -219,6 +229,7 @@ export function bolt(params, tables) {
       params: {},
       operands: ['tap-head', 'tap-thread'],
       name: 'tap',
+      hidden: true,
       ...v1ColorToRecord('red'),
     },
   ]

@@ -496,9 +496,11 @@ before *Shell 1*, the Pi becomes the base and the shell becomes the thing subtra
 *from* it — the badge reads **Raspberry Pi B+ › ethernet then Shell 1**, the wrong way
 round. Read the badge before pressing Subtract; it always names which shape is the base.
 
-A hardware bolt's `tap` piece is the one case where addressing a piece changes nothing:
-`tap` is the bolt's full clearance envelope, so cutting with it or with the whole bolt
-gives the identical hole.
+A hardware bolt's `tap` piece is worth calling out for the opposite reason from most
+pieces: cutting with the **whole** bolt (no piece selected) now cuts with its metal
+only, because `tap` — the full clearance envelope — is a hidden part and not part of
+that default. For a hole the bolt actually slides through rather than jams in, address
+`tap` explicitly via its ▸ disclosure row.
 
 ## Troubleshooting
 

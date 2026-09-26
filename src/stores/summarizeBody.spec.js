@@ -32,9 +32,14 @@ describe('summarizeBody parts (TODO/ui-042)', () => {
     const doc = useDocumentStore()
     doc.append({ id: 'b', op: 'hardware.bolt', name: 'Bolt 1', params: { spec: 'm10 hex', length: 12 } })
     const [bolt] = doc.bodies
-    expect(bolt.partNames).toEqual(['head', 'thread', 'tap'])
+    // `tap` itself is hidden by default as of TODO/render-004 (2026-09-26), on top
+    // of its already-hidden `tap-*` children (TODO/core-026) — so it now falls on
+    // the `hiddenPartNames` side of this list, not `partNames`.
+    expect(bolt.partNames).toEqual(['head', 'thread'])
     // A tap-clearance solid is hidden from the picture but is exactly what a boolean addresses.
-    expect(bolt.hiddenPartNames).toEqual(expect.arrayContaining(['tap-head', 'tap-thread', 'tap-headClearSpace']))
+    expect(bolt.hiddenPartNames).toEqual(
+      expect.arrayContaining(['tap', 'tap-head', 'tap-thread', 'tap-headClearSpace'])
+    )
     // Visible and hidden never overlap.
     expect(bolt.hiddenPartNames.some((name) => bolt.partNames.includes(name))).toBe(false)
   })

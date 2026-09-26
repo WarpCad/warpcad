@@ -80,7 +80,8 @@ cubes; with **Intersect** you get only the small block where the two cubes overl
 
 Most Library parts are a single solid, but the hardware and Raspberry Pi parts are
 **made of named parts** — a Raspberry Pi has a board, an Ethernet jack, two USB stacks
-and more; a bolt has a head, a thread and a tap-clearance envelope. See
+and more; a bolt has a head, a thread and a `tap` clearance envelope (hidden by
+default — see the callout below). See
 [Selecting a part inside a group](groups.md) for how to select one.
 
 A boolean can use **one named part instead of the whole shape**. That is how you cut a
@@ -147,12 +148,16 @@ the numbers: the Ethernet jack removes **1 208 mm³**, the whole board removes
   the Pi as a separate object, exactly like any other Subtract. If you want to keep the
   board, place a second one, or undo and use [Snap](snap-align.md) to position a copy.
 
-A word about bolts specifically, because it is a natural thing to try: a bolt's `tap`
-part is its clearance envelope and it *contains* the head and thread, so cutting with
-`tap` gives you exactly the same hole as cutting with the whole bolt. That is not a bug
-— for a bolt, selecting the part buys you clarity about what you meant, not different
-geometry. The parts that genuinely change the result are the ones that are a *portion*
-of the shape, like a single jack on a board.
+A word about bolts specifically, because it changes what you get, not just how clear
+the intent is. A bolt's rendered outline is its **metal** — head and thread only, so
+cutting with the whole bolt (no part selected) cuts a hole that size: snug enough to
+jam. The bolt's actual clearance envelope is a hidden part named `tap` — it contains
+the head and thread grown by the fastener's fit class — and it is what gives you a hole
+the bolt really slides through. `tap` has no surface to click in the 3D view, because a
+hidden part is never drawn; reach it from the Objects list's ▸ disclosure arrow on the
+bolt's row instead (see
+[Picking one piece of a hidden shape](selection-and-inspector.md#picking-one-piece-of-a-hidden-shape)),
+the same way you would reach any other hidden piece.
 
 ## What happens to the original shapes
 

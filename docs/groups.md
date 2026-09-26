@@ -104,9 +104,13 @@ A built-in multi-part shape — a **Bolt** from the Hardware section, a **Raspbe
 board**, anything with named parts inside it — keeps those parts after you drag it in
 and after you move or turn it with the gizmo. Drag a Bolt into the view, move it
 somewhere with the gizmo, then click it twice: the breadcrumb reads `Bolt 1 ▸ head`,
-and clicking its thread or its clearance body takes you straight there. Earlier
-versions lost the breakdown the moment the shape was placed, so clicking a Bolt twice
-did nothing at all.
+and clicking its thread takes you straight there too. Earlier versions lost the
+breakdown the moment the shape was placed, so clicking a Bolt twice did nothing at all.
+
+A bolt's `tap` clearance body is a **hidden** part, so it has no surface to click on —
+the second click above can only ever land on `head` or `thread`. Reach `tap` from the
+[Objects list](selection-and-inspector.md#picking-one-piece-of-a-hidden-shape) instead,
+the same way you would reach any other hidden piece.
 
 ## Notes and gotchas
 

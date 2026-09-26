@@ -66,12 +66,57 @@ describe('the bolt recipe expands into op records, it does not build a mesh', ()
     }
   })
 
-  it('names the same three visible parts jscad-utils Group did', () => {
+  it('names the same parts jscad-utils Group did, minus `tap` (TODO/render-004 divergence)', () => {
+    // V1's own `Hardware.Bolt` leaves `tap` visible (`hidden: false`), which is what
+    // `v1Reference.cases[0].names` records — see this file's colour describe block's
+    // header comment for the re-read source line. TODO/render-004 (user decision,
+    // 2026-09-26) hides `tap` in V3 instead, the same explicit override
+    // `hardware.washer.js`'s module doc applies to its own `clearance` part, so the
+    // comparison here is deliberately *not* a straight `toEqual` against the V1
+    // fixture's `names` — that would either lie about V1 or fail forever.
     const group = asGroup(evaluateOp('hardware.bolt', expansionFixture.params))
-    expect(group.names).toEqual(v1Reference.cases[0].names)
+    expect(v1Reference.cases[0].names).toEqual(['head', 'thread', 'tap']) // V1 truth, unchanged
+    expect(group.names).toEqual(['head', 'thread']) // V3's deliberate divergence
     expect(Object.keys(group.parts).sort()).toEqual(
       Object.keys(v1Reference.cases[0].parts).sort()
     )
+  })
+
+  it('marks the `tap` record hidden, like `hardware.washer`\'s `clearance` (TODO/render-004)', () => {
+    const records = bolt(expansionFixture.params, { boltSpecs })
+    const tapRecord = records.find((record) => record.name === 'tap')
+    expect(tapRecord).toBeDefined()
+    expect(tapRecord?.hidden).toBe(true)
+    // the tap-* children were already hidden before this task (TODO/core-026)
+    for (const name of ['tap-head', 'tap-thread', 'tap-headClearSpace']) {
+      expect(records.find((record) => record.name === name)?.hidden).toBe(true)
+    }
+  })
+
+  it("the evaluated group's visible names exclude tap, but tap stays addressable as a boolean operand", () => {
+    const group = asGroup(evaluateOp('hardware.bolt', expansionFixture.params))
+    expect(group.names).toEqual(['head', 'thread'])
+    expect(Object.keys(group.parts)).toContain('tap')
+
+    // A subtract using the hidden `tap` piece as the operand still works, and still
+    // cuts the clearance envelope, not the visible head/thread metal — exactly what
+    // ACCEPTANCE.md scenario 5 depends on, the same as washer's hidden `clearance`.
+    const block = { id: 'block', op: 'primitive.cuboid', params: { size: [40, 40, 30], center: [0, 0, 15] } }
+    const { group: cutGroup } = evaluate([
+      block,
+      { id: 'bolt1', op: 'hardware.bolt', params: expansionFixture.params },
+      {
+        id: 'r',
+        op: 'boolean.subtract',
+        target: 'block',
+        operands: [{ id: 'bolt1', pieces: 'tap' }],
+        name: 'r',
+      },
+    ])
+    const cutVolume = measurements.measureVolume(cutGroup.parts.r)
+    const blockVolume = 40 * 40 * 30
+    expect(cutVolume).toBeLessThan(blockVolume)
+    expect(cutVolume).toBeGreaterThan(0)
   })
 
   it('bakes the same z offset group.calcSnap would compute for the thread', () => {
@@ -118,23 +163,38 @@ describe('dimensional diff against real jscad-hardware V1 output', () => {
   )
 
   it.each(v1Reference.cases.map((testCase) => [testCase.params.spec, testCase]))(
-    '%s reproduces the V1 default combine()',
+    "%s: V3's default combine() is head+thread only, diverging from V1's tap-inclusive one (TODO/render-004)",
     (_spec, testCase) => {
+      // V1's own `Hardware.Bolt` leaves `tap` visible, so `testCase.combined` (measured
+      // from V1's real `.combine()`, above in `describe('dimensional diff...')`'s first
+      // `it.each`) is the head+thread+tap envelope — left untouched here, so this
+      // fixture keeps telling the truth about what V1 actually does. V3 hides `tap` by
+      // default instead (this recipe's own module doc; user decision 2026-09-26), so
+      // its default `combine()` is head+thread only — checked here against the union
+      // of V1's own measured per-part head/thread bounds and volumes (`testCase.parts`,
+      // still real V1 numbers) rather than against `testCase.combined`, which is the one
+      // fixture field this task deliberately no longer reproduces. Head and thread don't
+      // overlap (thread is snapped `outside-` onto the head), so an AABB union and a
+      // volume sum are both exact, not approximations.
       const { spec, length, fit, segments } = testCase.params
       const combined = combine(
         asGroup(evaluateOp('hardware.bolt', { spec, length, fit, segments }))
       )
       const bounds = boundsOf(combined)
-      for (let corner = 0; corner < 2; corner++) {
-        for (let axis = 0; axis < 3; axis++) {
-          expect(bounds[corner][axis]).toBeCloseTo(
-            testCase.combined.bounds[corner][axis],
-            MM_TOLERANCE
-          )
-        }
+      const headBounds = testCase.parts.head.bounds
+      const threadBounds = testCase.parts.thread.bounds
+      for (let axis = 0; axis < 3; axis++) {
+        expect(bounds[0][axis]).toBeCloseTo(
+          Math.min(headBounds[0][axis], threadBounds[0][axis]),
+          MM_TOLERANCE
+        )
+        expect(bounds[1][axis]).toBeCloseTo(
+          Math.max(headBounds[1][axis], threadBounds[1][axis]),
+          MM_TOLERANCE
+        )
       }
       expect(measurements.measureVolume(combined)).toBeCloseTo(
-        testCase.combined.volume,
+        testCase.parts.head.volume + testCase.parts.thread.volume,
         MM3_TOLERANCE
       )
     }

@@ -1,5 +1,5 @@
 {
-  "$comment": "The full expansion of one `hardware.bolt` document line into the same op/params vocabulary the document itself uses (Initial design.md §3, §4). Hand-written from the measured behaviour of jscad-hardware V1 `Hardware.Bolt(20, MetricBolts['m10 hex'], 'loose')` — see hardware.bolt.v1-reference.json for the dimensions this is checked against. Millimetres, Z-up. `hardware.bolt.spec.js` asserts the recipe reproduces this exactly. Each named record's `color` is V1's own `.color(...)` on that part as a 0xRRGGBB integer, written in decimal because JSON has no hex literal: 8421504 = 0x808080 gray (head), 12632256 = 0xc0c0c0 silver (thread), 16711680 = 0xff0000 red (tap and every tap-* part) — TODO/core-026.",
+  "$comment": "The full expansion of one `hardware.bolt` document line into the same op/params vocabulary the document itself uses (Initial design.md §3, §4). Hand-written from the measured behaviour of jscad-hardware V1 `Hardware.Bolt(20, MetricBolts['m10 hex'], 'loose')` — see hardware.bolt.v1-reference.json for the dimensions this is checked against. Millimetres, Z-up. `hardware.bolt.spec.js` asserts the recipe reproduces this exactly. Each named record's `color` is V1's own `.color(...)` on that part as a 0xRRGGBB integer, written in decimal because JSON has no hex literal: 8421504 = 0x808080 gray (head), 12632256 = 0xc0c0c0 silver (thread), 16711680 = 0xff0000 red (tap and every tap-* part) — TODO/core-026. `tap`'s own `hidden: true` is a deliberate V3-only divergence from V1 (which left it visible) — TODO/render-004, user decision 2026-09-26 — not part of the measured V1 behaviour this fixture otherwise pins.",
   "params": { "spec": "m10 hex", "length": 20, "fit": "loose" },
   "records": [
     {
@@ -76,6 +76,7 @@
       "params": {},
       "operands": ["tap-head", "tap-thread"],
       "name": "tap",
+      "hidden": true,
       "color": 16711680
     }
   ]

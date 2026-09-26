@@ -941,7 +941,8 @@ describe('group.snap — TODO/core-013', () => {
     // The group survives the op — this is what lets V1's `.snap(...).snap(...)` chain
     // work at all, and what keeps the hidden `tap` reachable for a later subtract.
     expect(isGroup(placed)).toBe(true)
-    expect(placed.names).toEqual(['head', 'thread', 'tap'])
+    // `tap` is hidden by default as of TODO/render-004 (2026-09-26).
+    expect(placed.names).toEqual(['head', 'thread'])
 
     // head 0..6.5 → its max lands on the case's min (-15), so the offset is -21.5.
     expect(boundsOf(placed.parts.head)[1][2]).toBeCloseTo(-15, 9)
@@ -949,13 +950,17 @@ describe('group.snap — TODO/core-013', () => {
     expect(boundsOf(placed.parts.thread)[0][2]).toBeCloseTo(6.5 - 21.5, 9)
     expect(boundsOf(placed.parts.tap)[1][2]).toBeCloseTo(27.5 - 21.5, 9)
 
-    // Naming no piece measures the whole bolt (max z 27.5) and lands somewhere else
-    // entirely — which is what makes the assertion above about `pieces`, not luck.
+    // Naming no piece measures the whole bolt via its default combine() — head+
+    // thread only now that `tap` is hidden by default (TODO/render-004, max z
+    // 26.5, not the old tap-inclusive 27.5) — and lands somewhere else entirely,
+    // which is what makes the assertion above about `pieces`, not luck. The
+    // resulting offset (41.5, not the old 42.5) is exactly 1 mm less, the 'loose'
+    // fit's clearance that used to widen the default envelope via `tap`.
     const whole = valueOf(
       [...records.slice(0, 2), { ...records[2], target: 'bolt1' }],
       'placed'
     )
-    expect(boundsOf(whole.parts.head)[1][2]).toBeCloseTo(6.5 - 42.5, 9)
+    expect(boundsOf(whole.parts.head)[1][2]).toBeCloseTo(6.5 - 41.5, 9)
   })
 
   it('reaches a named piece of a *different* placed item as the reference (pvc-joints2.jscad:302-303)', () => {
@@ -988,9 +993,15 @@ describe('group.snap — TODO/core-013', () => {
         valueOf([...records.slice(0, 2), { ...records[2], target, operands: [operand] }], 'placed')
           .parts.post
       )[0][0] + 2.5
-    expect(offsetFor({ id: 'anchor1', pieces: 'post' }, 'hinge')).toBeCloseTo(12, 9)
+    // A bare 'hinge' operand resolves through the group's default combine(), which
+    // is head+thread only now that `tap` is hidden by default (TODO/render-004,
+    // 2026-09-26) — 0.5 mm less reach on this axis than the old tap-inclusive
+    // envelope (half the 'loose' fit's 1 mm diameter clearance growth), so both
+    // bare-'hinge' numbers below shift by exactly that amount from their old
+    // 12 / 14.5. The explicit `{ pieces: 'thread' }` case is unaffected.
+    expect(offsetFor({ id: 'anchor1', pieces: 'post' }, 'hinge')).toBeCloseTo(11.5, 9)
     expect(offsetFor('anchor1', { id: 'hinge', pieces: 'thread' })).toBeCloseTo(10, 9)
-    expect(offsetFor('anchor1', 'hinge')).toBeCloseTo(14.5, 9)
+    expect(offsetFor('anchor1', 'hinge')).toBeCloseTo(14, 9)
   })
 
   it('keeps a negative delta negative (solar-panel-bracket.jscad:110,113)', () => {
@@ -1052,7 +1063,8 @@ describe('group.snap — TODO/core-013', () => {
       ],
       'second'
     )
-    expect(placed.names).toEqual(['head', 'thread', 'tap'])
+    // `tap` is hidden by default as of TODO/render-004 (2026-09-26).
+    expect(placed.names).toEqual(['head', 'thread'])
     // the second snap moved x only; the first snap's z result is still standing
     expect(boundsOf(placed.parts.head)[1][2]).toBeCloseTo(-15, 9)
     expect(boundsOf(placed.parts.head)[1][0]).toBeCloseTo(35, 9)

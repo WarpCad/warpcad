@@ -590,13 +590,16 @@ export function createMesh(geometry, material) {
  * Two shipped composites **do** interpenetrate, measured rather than assumed
  * (`TODO/ui-016`'s regression-surface check): `hardware.bolt`'s `tap` overlaps
  * both `head` and `thread`, and `kit.anchor`'s `hole` overlaps `post` and shares
- * a coplanar face with it. Neither is reachable from the Library yet — the
- * Hardware and Kit sections are M2 — so nothing a user can place today is
- * affected, but **look at those two on screen when those rows land**; see
- * `TODO/VERIFY.md`. If either reads badly, the fix is to fall back to the
- * combined mesh for that body (the `holes` branch below is the pattern),
- * trading its pick depth for a clean surface, rather than to re-union
- * everything and lose pick depth for groups that never needed it.
+ * a coplanar face with it. **`hardware.bolt`'s case is now moot**: `tap` is
+ * hidden by default (`TODO/render-004`, user decision 2026-09-26), and a hidden
+ * part is skipped entirely by the per-part mesh path below — it is never drawn,
+ * so it cannot visibly interpenetrate anything. `kit.anchor`'s `hole`/`post`
+ * overlap is still live and still worth a look once the Kit section is
+ * reachable from the Library (M2); see `TODO/VERIFY.md`. If it reads badly, the
+ * fix is to fall back to the combined mesh for that body (the `holes` branch
+ * below is the pattern), trading its pick depth for a clean surface, rather
+ * than to re-union everything and lose pick depth for groups that never needed
+ * it.
  *
  * Two cases deliberately keep the old single-mesh shape, because neither can be
  * drawn faithfully part-by-part:

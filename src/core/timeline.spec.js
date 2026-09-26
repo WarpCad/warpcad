@@ -660,7 +660,8 @@ describe('against the real kernel — geometry, tolerances and core-020', () => 
     document.replaceRecord('shell', /** @type {any} */ (edited), { origin: 'local' })
 
     const bolt = /** @type {import('./kernel/group.js').Group} */ (document.scene.byId.get('bolt1'))
-    expect(bolt.names).toEqual(['head', 'thread', 'tap'])
+    // `tap` is hidden by default as of TODO/render-004 (2026-09-26).
+    expect(bolt.names).toEqual(['head', 'thread'])
     expect(Object.keys(bolt.parts)).not.toContain('Shell 1')
     expect(Object.keys(bolt.parts)).not.toContain('Lug 1')
     expect(document.bodies().map((body) => body.name)).toEqual(['Shell 1', 'Lug 1', 'Bolt 1'])

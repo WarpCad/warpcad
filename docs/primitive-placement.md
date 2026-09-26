@@ -71,7 +71,7 @@ What you get by default:
 
 | Row | What you get | Default |
 | --- | --- | --- |
-| Bolt | A hex-head bolt, with its clearance envelope | M10 hex, 20 mm thread |
+| Bolt | A hex-head bolt (metal only — its clearance envelope is a hidden part) | M10 hex, 20 mm thread |
 | Nut | A hex nut | M4 |
 | Washer | A flat washer | M6 |
 | Bearing | A deep-groove ball bearing | 608 (⌀22 × ⌀8 × 7 mm) |
@@ -82,9 +82,12 @@ choices (a size out of a table, a clearance class), not numbers to type over, so
 changing them needs a size picker that does not exist yet. Position and rotation are
 editable as usual. See [Selecting a shape](selection-and-inspector.md).
 
-> **Note:** a bolt's outline includes its **clearance** envelope — slightly larger than
-> the metal — which is what makes subtracting a bolt from a plate leave a hole the bolt
-> actually fits through, rather than one it jams in.
+> **Note:** a bolt's outline is its **metal** — head and thread, gray and silver. Its
+> clearance envelope is a hidden part named `tap`: still there, still the size that lets
+> a bolt actually fit through a hole rather than jam in one, but not part of what you
+> see or what a plain Subtract uses by default. See
+> [Cutting with just one part of a multi-part shape](booleans.md#cutting-with-just-one-part-of-a-multi-part-shape)
+> for how to address it.
 
 ## Placing a kit part
 

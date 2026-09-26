@@ -648,10 +648,13 @@ describe('consumption — several bodies retired into one (TODO/ui-014)', () => 
     // produce names ['Shell 1', 'Lug 1', 'head', 'thread', 'tap'] here, with
     // bounds spanning the whole plate.
     const bolt = /** @type {import('./kernel/group.js').Group} */ (document.scene.byId.get('bolt1'))
-    expect(bolt.names).toEqual(['head', 'thread', 'tap'])
-    // `parts` also holds the recipe's own hidden `tap-*` sub-parts (V1 parity),
-    // so the claim here is not a fixed key list — it is that nothing belonging to
-    // the surrounding document is in there at all.
+    // `tap` is hidden by default as of TODO/render-004 (user decision, 2026-09-26),
+    // so it no longer appears in `names` — it is still in `parts` (checked below).
+    expect(bolt.names).toEqual(['head', 'thread'])
+    // `parts` also holds the recipe's own hidden `tap`/`tap-*` sub-parts (V1 parity
+    // for `tap-*`; render-004's own deliberate divergence for `tap` itself), so the
+    // claim here is not a fixed key list — it is that nothing belonging to the
+    // surrounding document is in there at all.
     expect(Object.keys(bolt.parts)).not.toContain('Shell 1')
     expect(Object.keys(bolt.parts)).not.toContain('Lug 1')
 
@@ -659,7 +662,11 @@ describe('consumption — several bodies retired into one (TODO/ui-014)', () => 
     const [min, max] = boundsOf(document.bodies()[2].geometry)
     expect(min[0]).toBeGreaterThan(-15)
     expect(max[0]).toBeLessThan(15)
-    expect(max[2]).toBeCloseTo(27, 6)
+    // Default combine() is now head+thread only (TODO/render-004): max z is the
+    // thread's own top (headHeightMm 6.5 + length 20 = 26.5), not the old
+    // tap-inclusive 27 — `fit` no longer affects this number, since head+thread
+    // never depended on it.
+    expect(max[2]).toBeCloseTo(26.5, 6)
   })
 
   it('subtracting a composite from a plate cuts a hole, it does not erase the plate (TODO/core-020)', () => {
@@ -1308,7 +1315,9 @@ describe('setColorOverride — user colour overrides (TODO/data-005)', () => {
       const boltTerminalId = document.currentIdOf('bolt1')
       if (boltTerminalId === undefined) throw new Error('expected a live "bolt1" lineage')
       const bolt = /** @type {import('./kernel/group.js').Group} */ (document.scene.byId.get(boltTerminalId))
-      expect(bolt.names).toEqual(['head', 'thread', 'tap'])
+      // `tap` is hidden by default as of TODO/render-004 — still addressable
+      // (the colour override above targets it directly), just not visible.
+      expect(bolt.names).toEqual(['head', 'thread'])
       expect(Object.keys(bolt.parts)).not.toContain('Shell 1')
       expect(Object.keys(bolt.parts)).not.toContain('Lug 1')
 
@@ -1320,7 +1329,9 @@ describe('setColorOverride — user colour overrides (TODO/data-005)', () => {
       const [min, max] = boundsOf(boltBody.geometry)
       expect(min[0]).toBeGreaterThan(-15)
       expect(max[0]).toBeLessThan(15)
-      expect(max[2]).toBeCloseTo(27, 6)
+      // Default combine() is head+thread only now (TODO/render-004): max z 26.5,
+      // not the old tap-inclusive 27 — see the sibling test above for the maths.
+      expect(max[2]).toBeCloseTo(26.5, 6)
 
       // The earlier bodies are untouched — still their own bounds, no override.
       expect(document.bodies()[0].colorOverrides).toBeUndefined()

@@ -394,9 +394,10 @@ describe('recordsForDrop — placing a composite, which has no position param (T
 
     document.append(created, { origin: 'local' })
     const asBuilt = /** @type {any} */ (document.bodies()[1].geometry)
-    // Its own three visible parts, and not "Cube 1" among them — the exact
-    // assertion core-020 turned on.
-    expect(asBuilt.names).toEqual(['head', 'thread', 'tap'])
+    // Its own visible parts, and not "Cube 1" among them — the exact
+    // assertion core-020 turned on. `tap` is hidden by default as of
+    // TODO/render-004 (2026-09-26), so it no longer counts as "visible".
+    expect(asBuilt.names).toEqual(['head', 'thread'])
     const [boltMin, boltMax] = boundsOf(asBuilt)
     expect(boltMax[0] - boltMin[0]).toBeLessThan(25)
 
@@ -428,7 +429,9 @@ describe('recordsForDrop — placing a composite, which has no position param (T
     const [cube, bolt] = document.bodies()
     const placed = /** @type {any} */ (bolt.geometry)
     // Only the bolt's own parts, after the drop translate as well as before it.
-    expect(placed.names).toEqual(['head', 'thread', 'tap'])
+    // `tap` is addressable below via `pieces: 'tap'` even though it is hidden by
+    // default (TODO/render-004), the same as it was when visible.
+    expect(placed.names).toEqual(['head', 'thread'])
     expect(Object.keys(placed.parts)).not.toContain('Cube 1')
 
     // And the severe consequence that finding turned on, now through a *sub-part*
@@ -472,7 +475,9 @@ describe('recordsForDrop — placing a composite, which has no position param (T
       document.append(record, { origin: 'local' })
     }
     const placed = /** @type {any} */ (document.bodies()[0].geometry)
-    expect(placed.names).toEqual(['head', 'thread', 'tap'])
+    // `tap` is hidden by default (TODO/render-004) but still a named part.
+    expect(placed.names).toEqual(['head', 'thread'])
+    expect(Object.keys(placed.parts)).toContain('tap')
     expect(Object.keys(placed.parts)).toContain('tap-thread')
   })
 
