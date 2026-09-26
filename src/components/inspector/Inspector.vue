@@ -96,6 +96,7 @@ import { computed, ref, watch } from 'vue'
 
 import { useSelectedBody } from '../../composables/useSelectedBody.js'
 import { useSelectionStore } from '../../stores/selection.js'
+import { useHiddenPartVisibilityStore } from '../../stores/hiddenPartVisibility.js'
 import { useDocumentStore } from '../../stores/document.js'
 import { useSketchPreviewStore } from '../../stores/sketchPreview.js'
 import { useTransformCommands } from '../../composables/useTransformCommands.js'
@@ -137,6 +138,7 @@ const SWIPE_DISMISS_PX = 36
 const selection = useSelectionStore()
 const described = useSelectedBody()
 const documentStore = useDocumentStore()
+const hiddenPartVisibility = useHiddenPartVisibilityStore()
 const sketchPreview = useSketchPreviewStore()
 const sketchCommands = useSketchCommands()
 
@@ -551,6 +553,49 @@ function commitParamComponent(event, key, index) {
   runParamEdit(() => paramCommands.setParamComponent(selectedBody.id, key, index, parsed))
 }
 
+// --- the Hidden parts section (TODO/ui-047) -------------------------------
+
+/**
+ * The selected body's hidden part names — `src/core/inspector.js`'s
+ * `describeBody`, already the exact set the Objects list's ▸ disclosure shows.
+ * `[]` while drilled into a sub-part: that state has no record of its own to
+ * target, the same reason Transform and Parameters are frozen there, and a part
+ * has no parts of its own to hide.
+ */
+const hiddenParts = computed(() => body.value?.hiddenParts ?? [])
+
+/** Whether the *section* has anything to show — absent, not disabled, when not. */
+const hasHiddenParts = computed(() => !isSubPart.value && hiddenParts.value.length > 0)
+
+/**
+ * Whether the selected body's hidden parts are currently drawn translucent —
+ * UI-only view state (`src/stores/hiddenPartVisibility.js`), per body and
+ * session-persistent, with no document record and no Undo step.
+ */
+const hiddenPartsShown = computed(() => {
+  const id = body.value?.id
+  return Boolean(id) && hiddenPartVisibility.isShown(/** @type {string} */ (id))
+})
+
+function onToggleHiddenParts() {
+  const id = body.value?.id
+  if (!id) return
+  hiddenPartVisibility.toggle(id)
+}
+
+/**
+ * Tap a listed hidden part name: drill straight to it, ready to use as an
+ * operation operand (`ui-016`'s single-part selection contract, the same route
+ * a second viewport click or an Objects-list piece row already uses).
+ *
+ * @param {string} partName
+ */
+function onHiddenPartClick(partName) {
+  const id = body.value?.id
+  if (!id) return
+  selection.selectPart(id, partName)
+}
+
 // --- the Color control (TODO/ui-037) --------------------------------------
 
 const colorCommands = useColorCommands()
@@ -856,6 +901,43 @@ watch([() => body.value?.id, colorPart], () => {
           </p>
         </section>
 
+        <!-- The Hidden parts section (TODO/ui-047). Absent, not disabled, for a
+             body with no hidden parts — a Cube or a Pi board, per this task's own
+             precondition — so it adds no noise to every Inspector. -->
+        <section
+          v-if="hasHiddenParts"
+          class="inspector__section"
+          data-testid="inspector-hidden-parts"
+        >
+          <h3 class="inspector__section-title">Hidden parts</h3>
+          <label class="inspector__hidden-toggle" data-testid="inspector-hidden-parts-toggle-row">
+            <input
+              type="checkbox"
+              data-testid="inspector-hidden-parts-toggle"
+              :checked="hiddenPartsShown"
+              @change="onToggleHiddenParts"
+            />
+            Show hidden parts
+          </label>
+          <ul class="inspector__hidden-list" data-testid="inspector-hidden-parts-list">
+            <li v-for="partName in hiddenParts" :key="partName">
+              <button
+                type="button"
+                class="inspector__hidden-part"
+                :data-testid="`inspector-hidden-part-${partName}`"
+                @click="onHiddenPartClick(partName)"
+              >
+                {{ partName }}
+              </button>
+            </li>
+          </ul>
+          <p class="inspector__note" data-testid="inspector-hidden-parts-note">
+            These parts drive a boolean but are not drawn by default. Turn on
+            <strong>Show hidden parts</strong> to see them as a translucent overlay in their
+            own colour, or tap a name to select just that part.
+          </p>
+        </section>
+
         <section
           class="inspector__section"
           data-testid="inspector-params"
@@ -1082,6 +1164,57 @@ watch([() => body.value?.id, colorPart], () => {
 
 .inspector__color-reset:focus-visible {
   outline: 2px solid var(--accent);
+}
+
+/* The Hidden parts section (TODO/ui-047). The toggle's whole label is the tap
+   target, not the bare checkbox square — a native checkbox alone is nowhere
+   near 44px, and CLAUDE.md's tap-target rule is about the thing a finger has
+   to hit, not the box that happens to render inside it. */
+.inspector__hidden-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  font-size: 12px;
+  color: var(--text-1);
+  cursor: pointer;
+}
+
+.inspector__hidden-toggle input {
+  width: 20px;
+  height: 20px;
+  flex: none;
+  accent-color: var(--accent);
+}
+
+.inspector__hidden-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.inspector__hidden-part {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: 40px;
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  color: var(--text-1);
+  font: inherit;
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.inspector__hidden-part:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
 }
 
 .inspector {

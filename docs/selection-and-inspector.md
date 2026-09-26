@@ -247,6 +247,50 @@ own built-in colour, not to the app's default.
 Parameters and Transform are read-only while you are looking inside a part. Color is the
 one row you can still change there, because a colour can belong to a single piece.
 
+## Hidden parts
+
+Some ready-made parts include a piece that is real, addressable geometry but is **not
+drawn** by default — a bolt's `tap` (the clearance envelope its thread actually needs)
+or a washer's `clearance`. Nothing about the shape on screen says one of these exists,
+unless you already know to open the Objects list's ▸ disclosure — so when exactly one
+shape with a hidden piece is selected, the Inspector adds a **Hidden parts** section
+of its own, right below Color.
+
+The section is only there when it has something to say: a Cube, a Sphere, or any other
+shape with nothing hidden shows no such section at all — it is not there and greyed
+out, it simply is not there.
+
+- **The list** names every hidden piece, in the same order the Objects list's ▸
+  disclosure already uses. **Tap a name** to select just that piece, exactly like
+  tapping a piece row in the Objects list or clicking a shape a second time in the 3D
+  view — the breadcrumb changes to `Bolt 1 ▸ tap`, ready to use as an operand for
+  Union, Subtract or Intersect.
+- **Show hidden parts** is a toggle (a checkbox, sized as a full tap target). Turn it
+  on and every hidden piece of that shape appears in the 3D view as a **translucent
+  overlay in its own colour** — a bolt's `tap` reads as a soft red envelope around its
+  gray head and silver thread. Turn it off and the overlay disappears; the shape
+  itself is completely unaffected either way.
+- **This is a view setting, not a document change.** Turning the toggle on or off
+  writes nothing to the project and adds no step to **History** — there is nothing to
+  Undo. It stays on for that one shape until you turn it off again, even if you select
+  something else and come back later in the same session; reloading the page starts
+  every shape hidden again, the same as the camera position does.
+
+### Worked example: see and use a bolt's hidden clearance
+
+1. Drag a **Bolt** from the Library's **Hardware** section onto the grid and select
+   it. Under **Hidden parts** the Inspector lists **tap** — the bolt's clearance.
+2. Turn on **Show hidden parts**. A translucent red cylinder appears around the bolt:
+   that is the hole size it actually needs to slide through, not the size of its
+   visible metal.
+3. Tap **tap** in the list. The breadcrumb reads `Bolt 1 ▸ tap`, and the bolt is now
+   addressed at just that piece.
+4. Drag a **Cube** in to stand in for a case wall, select the cube first, then
+   Shift-click (or check, from the Objects list) the bolt back in so it lands second.
+   Press **Subtract** for a clearance-fit hole — see
+   [Combining shapes](booleans.md#cutting-with-just-one-part-of-a-multi-part-shape)
+   for the full mechanics of cutting with one named piece.
+
 ## Moving and turning a shape
 
 There are two ways to move a selected shape, and they always agree with each other —
@@ -500,7 +544,9 @@ A hardware bolt's `tap` piece is worth calling out for the opposite reason from 
 pieces: cutting with the **whole** bolt (no piece selected) now cuts with its metal
 only, because `tap` — the full clearance envelope — is a hidden part and not part of
 that default. For a hole the bolt actually slides through rather than jams in, address
-`tap` explicitly via its ▸ disclosure row.
+`tap` explicitly — either via its ▸ disclosure row here, or from the Inspector's own
+[**Hidden parts**](#hidden-parts) section while the bolt is selected, which also lets
+you preview the clearance as a translucent overlay before you cut with it.
 
 ## Troubleshooting
 

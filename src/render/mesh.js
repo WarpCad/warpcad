@@ -31,7 +31,7 @@ import {
   MeshStandardMaterial,
 } from 'three'
 
-import { paintColorOf } from '../core/colorOverride.js'
+import { paintColorOf, recipeColorOf } from '../core/colorOverride.js'
 import { hasNamedParts, toGeom3 } from '../core/kernel/group.js'
 
 /** @typedef {import('@jscad/modeling').geometries.geom3.Geom3} Geom3 */
@@ -289,6 +289,18 @@ export function createBodyMaterial(color) {
  */
 export const OVERRIDE_HIGHLIGHT_INTENSITY = 0.2
 
+/**
+ * Alpha a shown hidden part draws at (`TODO/ui-047`), regardless of the recipe's
+ * own baked-in alpha — a bolt's `tap` and a washer's `clearance` both carry alpha
+ * `1` (they were opaque before `render-004` hid them), and drawing them at full
+ * opacity again would recreate exactly the "looks like a plain red cylinder"
+ * problem `render-004` fixed by hiding them, just gated behind a toggle instead of
+ * removed outright. `render-003`'s own translucent parts (a Pi board's `mb`) picked
+ * their alpha per recipe; this one is fixed, because the point here is "show me
+ * where the clearance is", not "render this part's true material".
+ */
+export const HIDDEN_PART_ALPHA = 0.35
+
 /** @typedef {'none' | 'base' | 'secondary'} SelectionRole */
 
 /**
@@ -472,10 +484,27 @@ export function paintBodyObject(object, { role, overrides, preview, shared, cach
     return paint ? cache.materialFor(paint.color, paint.colorAlpha, role) : palette
   }
 
+  /**
+   * A shown hidden part (`TODO/ui-047`) always draws in its own recipe colour at a
+   * fixed translucent alpha, never the shared palette and never a preview — the
+   * colour picker only ever targets a *visible* part or the whole body, so there is
+   * nothing for a hidden part's own preview branch to check.
+   *
+   * @param {string | undefined} partName
+   * @returns {MeshStandardMaterial}
+   */
+  const hiddenPartMaterial = (partName) => {
+    const paint = recipeColorOf(recipeColors, partName)
+    const color = paint?.color ?? palette.color.getHex()
+    return cache.materialFor(color, HIDDEN_PART_ALPHA, 'none')
+  }
+
   if (object instanceof ThreeGroup) {
     for (const child of object.children) {
       const mesh = /** @type {Mesh} */ (child)
-      mesh.material = materialForPart(mesh.userData.partName)
+      mesh.material = mesh.userData.hiddenPart
+        ? hiddenPartMaterial(mesh.userData.partName)
+        : materialForPart(mesh.userData.partName)
     }
     return
   }
@@ -621,12 +650,23 @@ export function createMesh(geometry, material) {
  * @param {MeshStandardMaterial} material Shared body material; not owned here.
  * @param {string} bodyId The body's lineage-root id, used for identification by
  *   the viewport's raycast on both the container and every part mesh.
+ * @param {readonly string[]} [shownHiddenNames] Hidden part names to *also* build
+ *   a mesh for, translucent (`TODO/ui-047`'s **Show hidden parts** toggle) — `[]`
+ *   (the default) reproduces today's behaviour exactly: no hidden-part mesh is
+ *   ever built for a body nobody asked to see into. Ignored on a bare solid and
+ *   on a group with no visible parts (the two cases that keep the old
+ *   single-combined-mesh shape below); a name absent from `geometry.parts` is
+ *   silently skipped rather than thrown, since a stale toggle left over from a
+ *   different body's id must not crash the scene.
  * @returns {Mesh | ThreeGroup} Named `bodyId` either way. A part mesh carries
  *   `userData.bodyId` and `userData.partName`; a bare solid's mesh carries
  *   neither, which is what makes "is this pickable to a deeper level?" a
- *   property of the hit object rather than a second lookup.
+ *   property of the hit object rather than a second lookup. A hidden-part mesh
+ *   additionally carries `userData.hiddenPart = true`, which is what
+ *   {@link paintBodyObject} reads to paint it translucent instead of through the
+ *   ordinary override/recipe/palette precedence.
  */
-export function createBodyObject(geometry, material, bodyId) {
+export function createBodyObject(geometry, material, bodyId, shownHiddenNames = []) {
   if (hasNamedParts(geometry)) {
     const container = new ThreeGroup()
     container.name = bodyId
@@ -635,6 +675,16 @@ export function createBodyObject(geometry, material, bodyId) {
       mesh.name = bodyId
       mesh.userData.bodyId = bodyId
       mesh.userData.partName = partName
+      container.add(mesh)
+    }
+    for (const partName of shownHiddenNames) {
+      const part = geometry.parts[partName]
+      if (!part || geometry.names.includes(partName)) continue
+      const mesh = new Mesh(geom3ToBufferGeometry(part), material)
+      mesh.name = bodyId
+      mesh.userData.bodyId = bodyId
+      mesh.userData.partName = partName
+      mesh.userData.hiddenPart = true
       container.add(mesh)
     }
     return container

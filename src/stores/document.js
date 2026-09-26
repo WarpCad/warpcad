@@ -19,7 +19,7 @@ import { computed, ref, shallowRef } from 'vue'
 
 import { createDocument } from '../core/document.js'
 import { createEvaluationChannel, evaluationWorkerAvailable } from '../core/kernel/evaluationClient.js'
-import { boundsOf, hasNamedParts, isGroup } from '../core/kernel/group.js'
+import { boundsOf, hasNamedParts, hiddenNamesOf, isGroup } from '../core/kernel/group.js'
 import { cachedMeasurementOf, measureGeometry, rememberMeasurement } from '../core/kernel/measure.js'
 import { packGeometry } from '../core/kernel/transport.js'
 import { lengthOf, lineFromParams } from '../sketch/entity.js'
@@ -174,9 +174,7 @@ export function summarizeBody(body) {
     volumeMm3,
     ...(body.colorOverrides !== undefined ? { colorOverrides: body.colorOverrides } : {}),
     partNames: composite ? [...geometry.names] : [],
-    hiddenPartNames: composite
-      ? Object.keys(geometry.parts).filter((name) => !geometry.names.includes(name))
-      : [],
+    hiddenPartNames: composite ? [...hiddenNamesOf(geometry)] : [],
   }
 }
 

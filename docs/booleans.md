@@ -157,7 +157,10 @@ the bolt really slides through. `tap` has no surface to click in the 3D view, be
 hidden part is never drawn; reach it from the Objects list's ▸ disclosure arrow on the
 bolt's row instead (see
 [Picking one piece of a hidden shape](selection-and-inspector.md#picking-one-piece-of-a-hidden-shape)),
-the same way you would reach any other hidden piece.
+the same way you would reach any other hidden piece — or, while the bolt is selected,
+from the Inspector's own [**Hidden parts**](selection-and-inspector.md#hidden-parts)
+section, which lists `tap` directly and can also show it as a translucent overlay so
+you can see the clearance before you cut with it.
 
 ## What happens to the original shapes
 

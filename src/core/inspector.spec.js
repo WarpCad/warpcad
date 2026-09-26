@@ -464,6 +464,53 @@ describe('describeSubPart — a recipe s own colour for one named part (TODO/ren
   })
 })
 
+describe('describeBody — hiddenParts (TODO/ui-047)', () => {
+  it('lists a bolt s hidden parts in group order, none of them in the visible params', () => {
+    const document = createDocument()
+    document.append(
+      { id: 'bolt-1', op: 'hardware.bolt', name: 'Bolt 1', params: { spec: 'm10 hex', length: 20 } },
+      { origin: 'local' },
+    )
+    const description = describeBody(document.bodies()[0])
+    expect(description.hiddenParts).toEqual(['tap-head', 'tap-thread', 'tap-headClearSpace', 'tap'])
+  })
+
+  it('lists a washer s hidden clearance', () => {
+    const document = createDocument()
+    document.append(
+      { id: 'washer-1', op: 'hardware.washer', name: 'Washer 1', params: { spec: 'm6', fit: 'loose' } },
+      { origin: 'local' },
+    )
+    const description = describeBody(document.bodies()[0])
+    expect(description.hiddenParts).toEqual(['clearance'])
+  })
+
+  it('is empty for a Cube — a bare solid has no parts to hide', () => {
+    const { body } = placed('primitive.cuboid')
+    expect(describeBody(body).hiddenParts).toEqual([])
+  })
+
+  it('is empty for a washer with no fit — nothing hidden was ever added', () => {
+    const document = createDocument()
+    document.append(
+      { id: 'washer-1', op: 'hardware.washer', name: 'Washer 1', params: { spec: 'm6' } },
+      { origin: 'local' },
+    )
+    const description = describeBody(document.bodies()[0])
+    expect(description.hiddenParts).toEqual([])
+  })
+
+  it('describeSubPart never reports hiddenParts — a part has no parts of its own to hide', () => {
+    const document = createDocument()
+    document.append(
+      { id: 'bolt-1', op: 'hardware.bolt', name: 'Bolt 1', params: { spec: 'm10 hex', length: 20 } },
+      { origin: 'local' },
+    )
+    const body = document.bodies()[0]
+    expect(describeSubPart(body, 'head', document.records).hiddenParts).toEqual([])
+  })
+})
+
 describe('describeSelection', () => {
   it('is empty when nothing is selected', () => {
     const { document } = placed('primitive.cuboid')

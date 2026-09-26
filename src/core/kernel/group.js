@@ -410,6 +410,24 @@ export function isGroup(value) {
 }
 
 /**
+ * Part names present in the group but absent from its visible `names` — every
+ * "hidden" part (a bolt's `tap`/`tap-*`, a washer's `clearance`), in the group's own
+ * `parts` insertion order (`TODO/ui-047`).
+ *
+ * The one definition of "hidden" for a UI to read: `src/stores/document.js`'s
+ * `summarizeBody` (the Objects list's `hiddenPartNames`) and `src/core/inspector.js`'s
+ * `describeBody` (the Inspector's **Hidden parts** section) both call this rather than
+ * each re-deriving the same `parts` name filter, so the two surfaces can never disagree
+ * about which parts of a body are hidden.
+ *
+ * @param {Group} group
+ * @returns {readonly string[]}
+ */
+export function hiddenNamesOf(group) {
+  return Object.keys(group.parts).filter((name) => !group.names.includes(name))
+}
+
+/**
  * Whether a body's geometry can be addressed part-by-part: a {@link Group} with at least
  * one **named** (visible) part and no holes.
  *

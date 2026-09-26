@@ -15,6 +15,7 @@ import {
   createXrayMaterial,
   disposeMesh,
   geom3ToBufferGeometry,
+  HIDDEN_PART_ALPHA,
   OVERRIDE_HIGHLIGHT_INTENSITY,
   paintBodyObject,
 } from './mesh.js'
@@ -253,6 +254,140 @@ describe('createBodyObject (TODO/ui-016)', () => {
     group = add(group, primitives.cuboid({ size: [4, 4, 4] }), 'tap', { hidden: true })
     const object = createBodyObject(group, material, 'group-2')
     expect(object.children.map((child) => child.userData.partName)).toEqual(['shell'])
+  })
+})
+
+describe('Hidden parts (TODO/ui-047)', () => {
+  const palette = BODY_COLORS.dark
+
+  function shared() {
+    return {
+      body: createBodyMaterial(palette.body),
+      selected: createBodyMaterial(palette.selected),
+      secondary: createBodyMaterial(palette.secondary),
+    }
+  }
+
+  function cache() {
+    return createColorMaterialCache({ selected: palette.selected, secondary: palette.secondary })
+  }
+
+  /** A shell with one hidden, red-recipe-coloured clearance part, larger than the shell. */
+  function shellWithHiddenTap() {
+    let group = createGroup('bolt')
+    group = add(group, primitives.cuboid({ size: [10, 10, 10] }), 'shell')
+    group = add(group, primitives.cuboid({ size: [16, 16, 16] }), 'tap', { hidden: true, color: 0xff0000 })
+    return group
+  }
+
+  it('a body not in the shown set builds no hidden-part mesh — identical mesh count to today', () => {
+    const material = createBodyMaterial(palette.body)
+    const group = shellWithHiddenTap()
+    // No 4th argument at all, the exact call every existing call site still makes.
+    const object = createBodyObject(group, material, 'bolt-1')
+    expect(object.children).toHaveLength(1)
+    expect(object.children[0].userData.partName).toBe('shell')
+  })
+
+  it('an explicitly-empty shown set is identical to omitting the argument', () => {
+    const material = createBodyMaterial(palette.body)
+    const group = shellWithHiddenTap()
+    const object = createBodyObject(group, material, 'bolt-1', [])
+    expect(object.children).toHaveLength(1)
+  })
+
+  it('a shown body also builds a mesh for its hidden part, flagged and geometrically the part s own solid', () => {
+    const material = createBodyMaterial(palette.body)
+    const group = shellWithHiddenTap()
+    const object = createBodyObject(group, material, 'bolt-1', ['tap'])
+    expect(object.children).toHaveLength(2)
+    const hidden = /** @type {any} */ (object.children.find((child) => child.userData.partName === 'tap'))
+    expect(hidden).toBeTruthy()
+    expect(hidden.userData.hiddenPart).toBe(true)
+    expect(hidden.userData.bodyId).toBe('bolt-1')
+    const direct = geom3ToBufferGeometry(group.parts.tap)
+    expect(Array.from(hidden.geometry.getAttribute('position').array)).toEqual(
+      Array.from(direct.getAttribute('position').array),
+    )
+    // The visible part is unaffected — same mesh, no `hiddenPart` flag.
+    const visible = /** @type {any} */ (object.children.find((child) => child.userData.partName === 'shell'))
+    expect(visible.userData.hiddenPart).toBeUndefined()
+  })
+
+  it('a name that is not actually hidden, or does not exist, is ignored rather than duplicated or thrown', () => {
+    const material = createBodyMaterial(palette.body)
+    const group = shellWithHiddenTap()
+    const object = createBodyObject(group, material, 'bolt-1', ['shell', 'nonexistent'])
+    expect(object.children).toHaveLength(1)
+  })
+
+  it('paints a shown hidden part translucent in its own recipe colour, depth-write off, at the fixed hidden alpha', () => {
+    const materials = shared()
+    const colors = cache()
+    const group = shellWithHiddenTap()
+    const object = createBodyObject(group, materials.body, 'bolt-1', ['tap'])
+    colors.beginPass()
+    paintBodyObject(object, {
+      role: 'none',
+      overrides: undefined,
+      preview: null,
+      shared: materials,
+      cache: colors,
+      recipeColors: group.colors,
+    })
+    colors.endPass()
+    const hidden = /** @type {any} */ (object.children.find((child) => child.userData.partName === 'tap'))
+    const material = hidden.material
+    expect(material.color.getHex()).toBe(0xff0000)
+    expect(material.transparent).toBe(true)
+    expect(material.opacity).toBeCloseTo(HIDDEN_PART_ALPHA, 9)
+    expect(material.depthWrite).toBe(false)
+    // The visible part keeps the ordinary shared palette material, unaffected.
+    const visible = /** @type {any} */ (object.children.find((child) => child.userData.partName === 'shell'))
+    expect(visible.material).toBe(materials.body)
+  })
+
+  it('a shown hidden part with no recipe colour of its own falls back to the palette, not to a materialless mesh', () => {
+    const materials = shared()
+    const colors = cache()
+    let group = createGroup('assembly')
+    group = add(group, primitives.cuboid({ size: [10, 10, 10] }), 'shell')
+    group = add(group, primitives.cuboid({ size: [16, 16, 16] }), 'clearance', { hidden: true })
+    const object = createBodyObject(group, materials.body, 'a', ['clearance'])
+    paintBodyObject(object, {
+      role: 'none',
+      overrides: undefined,
+      preview: null,
+      shared: materials,
+      cache: colors,
+      recipeColors: group.colors,
+    })
+    const hidden = /** @type {any} */ (object.children.find((child) => child.userData.partName === 'clearance'))
+    expect(hidden.material.color.getHex()).toBe(palette.body)
+    expect(hidden.material.opacity).toBeCloseTo(HIDDEN_PART_ALPHA, 9)
+  })
+
+  it('a user colour override on the hidden part itself is not consulted — the toggle is a view, not a colour pick', () => {
+    // Nobody can currently colour-pick a hidden part (the Inspector's Color
+    // control only ever addresses a visible part or the whole body), but the
+    // material function is defensive anyway: an override naming the hidden part
+    // must not leak through and repaint what is meant to read as "this is the
+    // clearance, not a real colour choice".
+    const materials = shared()
+    const colors = cache()
+    const group = shellWithHiddenTap()
+    const object = createBodyObject(group, materials.body, 'bolt-1', ['tap'])
+    paintBodyObject(object, {
+      role: 'none',
+      overrides: [{ color: 0x00ff00, subPart: 'tap' }],
+      preview: null,
+      shared: materials,
+      cache: colors,
+      recipeColors: group.colors,
+    })
+    const hidden = /** @type {any} */ (object.children.find((child) => child.userData.partName === 'tap'))
+    expect(hidden.material.color.getHex()).toBe(0xff0000)
+    expect(hidden.material.opacity).toBeCloseTo(HIDDEN_PART_ALPHA, 9)
   })
 })
 

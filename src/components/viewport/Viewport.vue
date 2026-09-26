@@ -83,7 +83,7 @@ import {
 import { colorIntToCssHex, ownOverrideOf } from '../../core/colorOverride.js'
 import { nearestOnPlane, ndcFromClient, projectToWorkingPlane } from '../../render/pick.js'
 import { evaluateOp, toGeom3 } from '../../core/kernel/index.js'
-import { boundsOf, isGroup } from '../../core/kernel/group.js'
+import { boundsOf, hiddenNamesOf, isGroup } from '../../core/kernel/group.js'
 import {
   boxAtPoint,
   clearSnap,
@@ -98,6 +98,7 @@ import {
   variantKey,
 } from '../../core/library.js'
 import { useDocumentStore } from '../../stores/document.js'
+import { useHiddenPartVisibilityStore } from '../../stores/hiddenPartVisibility.js'
 import { usePlacementStore } from '../../stores/placement.js'
 import { useSelectionStore } from '../../stores/selection.js'
 import { useTimelineStore } from '../../stores/timeline.js'
@@ -192,6 +193,7 @@ const selection = useSelectionStore()
 const settings = useSettingsStore()
 const preview = useTransformPreviewStore()
 const colorPreview = useColorPreviewStore()
+const hiddenPartVisibility = useHiddenPartVisibilityStore()
 const transformCommands = useTransformCommands()
 const sketchPreview = useSketchPreviewStore()
 const sketchCommands = useSketchCommands()
@@ -911,6 +913,19 @@ function syncBodies() {
   const live = new Set()
   for (const body of bodies) {
     live.add(body.id)
+    // Hidden parts to also build a mesh for (`TODO/ui-047`'s **Show hidden parts**
+    // toggle) — `[]` whenever the body is not in the shown set, which reproduces
+    // today's mesh count exactly. Computed every pass (cheap: a `Set.has` and an
+    // array filter, not a kernel call) so a toggle click is picked up the next
+    // time this function runs, without its own separate diffing path.
+    const shownHiddenNames =
+      isGroup(body.geometry) && hiddenPartVisibility.isShown(body.id)
+        ? hiddenNamesOf(body.geometry)
+        : []
+    // A stable key for "does the set of hidden-part meshes this body needs match
+    // what it already has", so toggling forces a rebuild and leaving it alone
+    // never does — joined with a separator no part name can contain.
+    const hiddenShownKey = shownHiddenNames.join('\u0000')
     const existing = bodyMeshes.get(body.id)
     if (existing) {
       // Read by `paintBodies`. Set before the early-out on purpose: a timeline
@@ -920,14 +935,19 @@ function syncBodies() {
       // non-composite body — exactly the "no recipe colour" case `paintColorOf`
       // already falls through on (`TODO/render-003`).
       existing.userData.recipeColors = isGroup(body.geometry) ? body.geometry.colors : undefined
-      if (existing.userData.recordId === body.recordId) continue
+      const sameRecord = existing.userData.recordId === body.recordId
+      const sameHiddenShown = existing.userData.hiddenShownKey === hiddenShownKey
+      if (sameRecord && sameHiddenShown) continue
       // The body was transformed: swap in the new geometry and drop whatever
       // preview transform the drag left on the object, since the translation or
       // rotation is now baked into the vertices themselves. `updateBodyObject`
       // refuses when the object's *shape* changed — a bare body that became a
       // group, or a group whose part list differs — and the rebuild below picks
       // that up rather than patching one body's geometry into another's slots.
-      if (updateBodyObject(existing, body.geometry)) {
+      // Only attempted when the hidden-shown set is unchanged: `updateBodyObject`
+      // knows nothing about hidden-part meshes, so a toggle always falls through
+      // to the full rebuild below, which bakes the new set in from the start.
+      if (sameHiddenShown && updateBodyObject(existing, body.geometry)) {
         existing.position.set(0, 0, 0)
         existing.quaternion.identity()
         existing.userData.recordId = body.recordId
@@ -937,8 +957,9 @@ function syncBodies() {
       disposeBodyObject(existing)
       bodyMeshes.delete(body.id)
     }
-    const object = createBodyObject(body.geometry, bodyMaterial, body.id)
+    const object = createBodyObject(body.geometry, bodyMaterial, body.id, shownHiddenNames)
     object.userData.recordId = body.recordId
+    object.userData.hiddenShownKey = hiddenShownKey
     object.userData.colorOverrides = body.colorOverrides
     object.userData.recipeColors = isGroup(body.geometry) ? body.geometry.colors : undefined
     bodyMeshes.set(body.id, object)
@@ -2104,6 +2125,11 @@ onMounted(() => {
     // Entering, leaving or moving a preview changes what is on screen without
     // changing the document, so it needs its own trigger.
     watch(() => timeline.previewStep, syncBodies),
+    // The Show hidden parts toggle (`TODO/ui-047`) changes what is on screen with
+    // no document mutation at all — spreading the reactive Set into a fresh array
+    // is what makes this getter re-run on every add/delete, since two different
+    // arrays are never `===` even when their contents happen to match.
+    watch(() => [...hiddenPartVisibility.shown], syncBodies),
     // A loaded document (restore / Open), as opposed to an edit: frame it. Declared
     // after the `syncBodies` watcher so the meshes exist before the camera moves.
     watch(() => documentStore.loadRevision, frameLoadedContent),

@@ -34,6 +34,24 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### ui-047 — Objects-row indicator for a shown hidden part, deliberately not built (2026-09-26 13:18 UTC)
+
+The task's own Interaction model section asked for "a small indicator (for example on
+its Objects row) so a clearance left on isn't mistaken for real geometry" once **Show
+hidden parts** is on for a body. This was not built: it sits outside the file's own
+Affected files list (`ObjectsPanel.vue`/`objectsPanel.js` are not named there), and the
+Inspector's own toggle state — checked, and the body still selected while its
+translucent clearance is on screen — is the feedback that shipped instead. Not
+covered by an `ACCEPTANCE.md` scenario, because none of the 13 named scenarios exercise
+"deselect a body while its hidden parts are still shown" specifically. Worth a real
+judgment call on real hardware: does a translucent clearance left on an unselected,
+now-decoy-covered body read as confusing without a list-row cue, in practice rather
+than in theory?
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | Show a Bolt's `tap`, then deselect it (click empty space) and select a different body. Does the still-visible translucent clearance on the deselected bolt read as confusing without any Objects-row cue that it's still "on"? | Open | |
+
 ### render-003 — Recipe-baked part colours actually render (2026-09-26 11:50 UTC)
 
 Everything measurable is measured and standing: `mesh.spec.js`'s new cases (recipe tier,

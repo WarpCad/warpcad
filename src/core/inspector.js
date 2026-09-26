@@ -26,7 +26,7 @@
  */
 
 import { recipeColorOf } from './colorOverride.js'
-import { boundsOf, isGroup, localBoundsOf } from './kernel/group.js'
+import { boundsOf, hiddenNamesOf, isGroup, localBoundsOf } from './kernel/group.js'
 import { registry as defaultRegistry } from './kernel/registry.js'
 
 /** @typedef {import('./document.js').Body} Body */
@@ -88,6 +88,16 @@ import { registry as defaultRegistry } from './kernel/registry.js'
  * @property {[Vec3Mm, Vec3Mm]} localBoundsMm `[min, max]` in the body's local
  *   frame, anchored at {@link BodyDescription.positionMm}: a local point maps
  *   back to world as `positionMm + R(rotationDeg)·(local − positionMm)`.
+ * @property {string[]} hiddenParts Names of parts that exist in the body's group
+ *   but are not drawn by default (`TODO/ui-047`) — a bolt's `tap`/`tap-*`, a
+ *   washer's `clearance` — in the group's own `parts` insertion order, the exact
+ *   same set `src/stores/document.js`'s `hiddenPartNames` already lists for the
+ *   Objects list's ▸ disclosure. `[]` for a bare solid or a group with nothing
+ *   hidden — the Inspector's **Hidden parts** section is absent, not disabled,
+ *   whenever this is empty. Always `[]` on a description built by
+ *   {@link describeSubPart}: drilling into one part already froze Transform and
+ *   Parameters for the same reason (no record to target), and a part has no
+ *   parts of its own to hide.
  * @property {{ color: number, colorAlpha?: number }} [recipeColor] The recipe's
  *   own baked-in colour for whatever this description is *of* (`TODO/render-003`):
  *   the drilled-into part's colour from `describeSubPart`, or, from `describeBody`,
@@ -297,6 +307,7 @@ export function describeBody(body, ops = defaultRegistry) {
     isGroup(geometry) && geometry.names.length === 1
       ? recipeColorOf(geometry.colors, geometry.names[0])
       : undefined
+  const hiddenParts = isGroup(geometry) ? [...hiddenNamesOf(geometry)] : []
 
   return {
     id: body.id,
@@ -307,6 +318,7 @@ export function describeBody(body, ops = defaultRegistry) {
     params: fieldsFor(body.params ?? {}, entry),
     positionMm,
     rotationDeg,
+    hiddenParts,
     sizeMm: [max[0] - min[0], max[1] - min[1], max[2] - min[2]],
     boundsMm: [
       [min[0], min[1], min[2]],
@@ -450,6 +462,7 @@ export function describeSubPart(body, partName, records, ops = defaultRegistry) 
     params: record ? fieldsFor(record.params ?? {}, entry) : [],
     positionMm,
     rotationDeg,
+    hiddenParts: [],
     sizeMm: [max[0] - min[0], max[1] - min[1], max[2] - min[2]],
     boundsMm: [
       [min[0], min[1], min[2]],

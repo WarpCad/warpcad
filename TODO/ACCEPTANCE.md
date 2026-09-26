@@ -960,6 +960,16 @@ menu was opened over the Inspector sheet at phone). Console clean.
 
 **Re-checked**: 2026-09-26 12:20 UTC — **PASS, light spot-check** (`render-004`: `hardware.bolt`'s `tap` clearance record marked `hidden: true`; touches only that one recipe and four `docs/` pages, no code in the placement/selection path this scenario exercises). Driven at laptop 1440x900 Chromium: a Cube then a Cylinder dragged in on wandering pointer paths to different points. Both stayed visible, and the cube's `data-body-bounds` string was byte-identical before and after the second drop (`-130.78,-34.25,0.00,-90.78,5.75,40.00`). Console clean. Not re-driven at phone/WebKit or with real touch taps — this task's change has no code path in common with what those variants exist to catch (touch input, layout), so the laptop/Chromium spot-check is the proportionate re-drive.
 
+**Re-checked**: 2026-09-26 13:15 UTC — **PASS, light spot-check** (`ui-047`: adds a new
+Inspector section and a hidden-part render path that only activates for a body that has
+a hidden part and only once a user turns its toggle on — a Cube and a Cylinder have
+neither, so nothing this task added is reachable from this scenario's own steps at all).
+Driven against the real dev server, laptop 1440x900 Chromium: a Cube and a Cylinder
+dropped apart, both stayed visible (`data-body-count` 2), and clicking each individually
+selected only that one, with no Hidden parts section appearing for either (as expected —
+see this task's own new e2e spec, `e2e/inspector-hidden-parts.e2e.js`, for the explicit
+"a Cube shows no Hidden parts section" check). Console clean.
+
 ### 2. Hardware property edit
 
 **Steps**:
@@ -1766,18 +1776,38 @@ selected, toolbar disabled again. Console clean.
 
 ### 5. Hidden-part boolean (bolt tap-clearance)
 
+**Amended 2026-09-26** (`ui-047`, following the user's decision recorded in
+`TODO/BUDGET.md` 2026-09-26 — "Amend scenario 5", not "whole-body Subtract uses
+clearance", "revert `render-004`" or "hold"): `render-004` hid `hardware.bolt`'s `tap`
+by default, so a plain whole-bolt Subtract (this scenario's original literal Steps)
+now cuts the bolt's **metal** envelope, not its clearance — it no longer demonstrates
+this scenario's own claim at all. Rather than relax the Expect to match what
+`render-004` made the default do, the Steps below route through `ui-047`'s new
+Inspector **Hidden parts** section — the same discoverability mechanism `render-004`'s
+own retirement note promised as a follow-up — to explicitly address `tap`. The
+**Expect** is unchanged: a clearance-sized hole, not a metal-sized one.
+
 **Steps**:
 1. Drag a case-shell solid into the viewport.
-2. Drag a "Bolt" into the viewport, positioned so its hidden `tap` clearance geometry
-   overlaps the shell (visually, the bolt's head/thread mesh will appear to just touch
-   or slightly penetrate the shell wall).
-3. Select both the shell and the bolt (per scenario 4's multi-select gesture).
-4. Click "Subtract" (shell selected first/as base, per scenario 4's ordering).
+2. Drag a "Bolt" into the viewport, positioned so it overlaps the shell (visually, the
+   bolt's head/thread mesh will appear to just touch or slightly penetrate the shell
+   wall).
+3. Select the bolt (click it, or its Objects-list row). Under the Inspector's **Hidden
+   parts** section, tap `tap` to drill into the bolt's hidden clearance envelope — the
+   breadcrumb reads `Bolt 1 ▸ tap`.
+4. Reorder the selection so the shell is the base and the bolt's `tap` piece is the
+   second operand: Shift-click (or, from the Objects list, uncheck/recheck) the bolt
+   out and back in, with the shell added first, so the toolbar reads "Shell 1 then
+   Bolt 1 › tap" (per scenario 4's base-first ordering).
+5. Click "Subtract".
 
 **Expect**: A hole appears in the shell sized to match the bolt's hidden tap-clearance
 diameter (the fastener's thread-clearance geometry), not the bolt's visible
 head/thread mesh diameter — confirming the hidden geometry, not just the rendered
-mesh, drives the boolean result.
+mesh, drives the boolean result. For the `ui-041`/`ui-042` enclosed-bolt fixture (a 40
+mm cube minus an m10 hex bolt, length 12, wholly inside it) this is a measured
+**61 108.343 mm³** remaining, not the metal-only **61 695.679 mm³** a whole-bolt
+Subtract now leaves.
 
 **Last run**: 2026-09-10 17:52 — **NOT DRIVEABLE, and deliberately not claimed**
 (`ui-014`). The boolean half this scenario needs now exists and is proven by scenario 4;
@@ -2066,6 +2096,52 @@ off `data-body-volume`/`data-body-bounds` in the running app.
 - **Undo, then Objects → Shell 1 row tapped, Bolt 1's ▸ disclosure opened, its `tap` piece's check ticked, Subtract**: **61 108.343 mm³** — a **2 891.657 mm³** hole, matching `ui-041`/`ui-042`'s own historically-recorded number for this exact fixture's tap-clearance hole. **The two numbers now genuinely differ** (61 695.679 vs 61 108.343), for the first time since the 2026-09-18 correction — addressing `tap` explicitly once again buys a different, larger, correctly-clearanced hole, exactly as this scenario's own **Expect** always asked for.
 - Both engines matched to the same three decimal places at both viewports. Inspector's Size fields on the selected Bolt read **18 × 15.59 × 26.5 mm** (metal only), confirming the app's own reported size tracks the new default combine(). Console clean in every drive.
 - **Closed-finding re-run, `core-020` (composite absorbs earlier bodies)**: a `Shell 1` cuboid, a `Lug 1` cuboid, then a Bolt appended through the incremental `document.append` path (the finding's own reproduction shape). The bolt reports `names: ["head","thread"]` (not `["Shell 1","Lug 1","head","thread","tap"]`) with `Object.keys(parts)` still including `tap`/`tap-*` and excluding both other bodies, and `document.bodies()` still lists exactly `["Shell 1","Lug 1","Bolt 1"]` — the absorption bug stays fixed. The bolt's own bounds are now `-9.00,-7.79,0.00,9.00,7.79,26.50` (metal only, down from the tap-inclusive `-9.25,-8.01,0,9.25,8.01,27` this repro recorded under `fit: 'close'` before this task) — a deliberate, expected change, not a regression: see `TODO/done/render-004-bolt-tap-clearance-visibility.md`'s retirement note for the full accounting of every hard-coded bolt bound this task updated.
+
+**Re-checked**: 2026-09-26 13:15 UTC — **PASS, driven through the amended Steps for the
+first time** (`ui-047`). This is the re-drive the amendment above exists for: the
+literal Steps as amended, not the old whole-bolt Subtract. Driven against the real dev
+server with a throwaway Playwright driver (seeded through the document store with
+`ui-041`'s own enclosed fixture — a drag-drop snaps flush, so the overlap has to be
+seeded, exactly as every prior drive of this fixture has done), laptop 1440x900
+Chromium:
+
+- Selected **Bolt 1** (Objects list row). The Inspector's **Hidden parts** section
+  (`ui-047`) listed `tap`. Tapped it: breadcrumb read `Bolt 1 ▸ tap`.
+- Reordered via the additive toggle-out-and-back-in dance (`ui-040`'s own established
+  route, the same one `docs/selection-and-inspector.md`'s Ethernet-port example
+  teaches): toggled the bolt out, toggled **Shell 1** in first, toggled the bolt back
+  in second — depth survived the whole dance. The operand line read **"Shell 1" /
+  "Bolt 1 › tap"**.
+- Pressed **Subtract**. Result: **1 body, 61 108.343 mm³** — byte-identical to
+  `ui-041`/`ui-042`'s own historically recorded number for this exact fixture, and to
+  the Expect's stated figure above. **Confirmed this is not what a plain reorder
+  without the drill would give**: the whole-bolt route (no `tap` addressed) measures
+  **61 695.679 mm³** on the same fixture — the two numbers genuinely differ, exactly
+  the distinction this scenario exists to prove, and precisely why the amendment
+  routes through the drill rather than accepting the whole-bolt default.
+- **A scripting mistake caught and corrected while driving, worth recording**: a first
+  attempt reordered the selection with plain (replacing) row clicks rather than the
+  checkbox's additive toggle. A plain click on the shell's row silently drops the
+  bolt's pick depth (`selection.js`'s `select()` prunes it), so the Subtract landed on
+  the whole bolt (61 695.679, not 61 108.343) with no error at all — a real trap a
+  human could fall into just as easily, which is exactly why this file's "driven, not
+  scripted" discipline exists: a fixed script would have encoded the same mistake and
+  called it a pass. Corrected to the additive dance above.
+- **Closed-finding re-run, `ui-041` (x-ray twin, selection inside an enclosing shell)**:
+  with the same enclosed fixture, a snapshot before selecting the bolt was compared
+  against one right after — the canvas visibly changed (the x-ray twin's translucent
+  amber silhouette through the shell), exactly as `ui-041` shipped it. Turning on
+  **Show hidden parts** on top of that selection changed the canvas *again* (the
+  translucent red clearance drawn alongside the twin) — the two features compose
+  without either breaking the other, which is exactly what needed checking once a
+  second translucent overlay could land on the same enclosed body.
+- **Closed-finding re-run, `core-020` (composite absorbs earlier bodies)**: a `Shell 1`
+  appended, then a Bolt, through the incremental `document.append` path (the finding's
+  own reproduction shape). The bolt's group reports
+  `parts: ["head","thread","tap-head","tap-thread","tap-headClearSpace","tap"]` and
+  `names: ["head","thread"]`, with `Shell 1` absent from both — `document.bodies()`
+  lists exactly `["Shell 1","Bolt 1"]`. The absorption bug stays fixed.
+- Console clean throughout.
 
 ### 6. Group vs. sub-part selection
 
@@ -2984,3 +3060,14 @@ third body being placed afterward, without a page reload.
 **Re-checked**: 2026-09-26 11:50 UTC — **PASS, and the recipe tier this scenario's own name half-implies is real for the first time** (`render-003`). Every prior drive above recoloured plain primitives with no built-in colour of their own; this task made a ready-made part's *own* baked-in colour actually render, which changes what "Default" means for one. Driven at laptop 1440x900 Chromium and phone 390x844 WebKit (real `.tap()` for the Library tab and Reset). A **Washer** was dropped: the Inspector's Color row read `#808080` (not the literal word `Default`) with **Reset already disabled** — there is nothing of the user's to reset yet, even though a colour is showing. Picking a colour (red at laptop, green at phone) changed the readout and the swatch to that pick, and pressing **Reset** returned the readout to `#808080` and disabled Reset again — the washer's own recipe colour, not the app's theme blue, exactly per this file's own worked-example wording ("it goes back to gray, not to the app's blue"). Screenshots inspected by eye at both form factors. **Also re-driven**: a **Bolt**, whose `head`/`thread`/`tap` are three different recipe colours — undrilled, the Inspector correctly falls back to the theme's `Default` swatch (there is no single "whole body" colour to show), while the rendered mesh itself shows its real per-part colours. **A real, unscoped finding surfaced by this drive**, not a regression in this scenario: the Bolt's `tap` part is opaque red and fully encloses `head`/`thread` (V1's own design, confirmed), so a freshly-dropped Bolt visibly renders as a plain red/orange cylinder rather than a recognisable bolt — filed as `TODO/render-004-bolt-tap-clearance-visibility.md` rather than fixed here, since diverging from V1 is a real product decision outside this task's scope. Console clean in both drives.
 
 **Re-checked**: 2026-09-26 12:15 UTC — **PASS, the unscoped finding above is now closed** (`render-004`, user decision 2026-09-26: hide `tap` by default). Driven at laptop 1440x900 Chromium and phone 390x844 WebKit against the real dev server (a throwaway Playwright driver, same "driven, not scripted" discipline as every entry above). A fresh **Bolt** was dropped alone and selected: the Inspector's Color row still reads the theme's `Default` swatch, unchanged from `render-003`'s drive — `tap` being hidden now doesn't remove it from `Group.colors` (that map is keyed by name regardless of visibility), so the undrilled multi-colour fallback logic this scenario's own name half-implies is exercised exactly as before. What *did* change, confirmed by eye in a screenshot at both engines: the bolt itself now reads as a gray head and silver thread — a recognisable bolt — where `render-003`'s own drive found a plain red/orange cylinder. The Inspector's Size fields also now read the metal-only envelope (18 × 15.59 × 26.5 mm, not the old tap-inclusive numbers), consistent with `tap` no longer being part of the default combine() this scenario's Size readout is drawn from. Console clean in both drives.
+
+**Re-checked**: 2026-09-26 13:15 UTC — **PASS, unaffected by `ui-047`** (a new Inspector
+section sitting below Color, not a change to Color itself). Driven against the real dev
+server, laptop 1440x900 Chromium: a Cube and a Cylinder placed apart, the cube selected
+and recoloured `#ff0000` via the swatch — `data-body-color` read `#ff0000` on the cube
+and `''` (unchanged) on the cylinder, exactly as every prior drive of this scenario
+found. The automated spec this scenario's own trigger owns
+(`e2e/inspector-color-control.e2e.js`) was also re-run in full as part of this task's
+Step 5 verification — 4/4 passed, all three engines' non-Firefox projects — so this
+entry is a targeted hand confirmation on top of that, not a replacement for it.
+
