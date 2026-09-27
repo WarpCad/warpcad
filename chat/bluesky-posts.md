@@ -982,3 +982,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** 113 colour call sites ported across 12 recipe files → `src/core/kernel/recipes/raspberrypi.*.js` diff, this session; 237 records gained/changed a colour field with zero non-colour differences → a 22-variant expansion sweep, before/after, this session; a Pi sub-part recolours and Resets to its own recipe colour → this session's live drive at laptop Chromium + phone WebKit (`#ffa500` → pick blue → Reset → `#ffa500`); full regression check → 1832 unit tests (was 1734), typecheck clean, full non-Firefox Playwright matrix 1299 passed / 280 skipped / 0 failed; one real finding surfaced and filed, not patched inline → TODO/render-005 (`touchDisplay7inch`'s `noGoPower` keep-out is V1-faithful opaque red and visible by default)
 **To Add:** a screenshot of a Pi 5 + Camera Module V3 showing the newly-coloured parts through the translucent board
+
+## [2026-09-27T17:17:47Z] — The gizmo's move arrows were signposts, not handles (TODO/ui-048)
+
+**Post:** Select a Raspberry Pi in WarpCad and the move arrowheads used to grow to ~57px, big enough to hide the board. Now they're 13-16px cones that end just past their rings. Also found the old shading drew nothing at all on a perfectly vertical shaft. Built with Claude Code, reviewed by me.
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #SVG #WebGL
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** old head ~57px at the 220px arm cap → TODO/ui-048's own Problem section (0.26 × 220) and the removed `armPx * 0.26` line in the diff; 13-16px heads → `gizmoHeadPx` clamp in the diff, and 13.5 px (floor) / 16.5 px (cap) measured in this session's live drive; tips end 18px past their ring → `ringPx + 18` in the diff, and arm − ring = 18 px measured in the drive; vertical shaft drew nothing → this session's pixel probe scored 5 (background) against the pre-change code in Chromium and WebKit, versus > 30 after
+**To Add:** before/after screenshot of a selected Pi at laptop width
