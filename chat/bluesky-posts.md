@@ -991,3 +991,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** old head ~57px at the 220px arm cap → TODO/ui-048's own Problem section (0.26 × 220) and the removed `armPx * 0.26` line in the diff; 13-16px heads → `gizmoHeadPx` clamp in the diff, and 13.5 px (floor) / 16.5 px (cap) measured in this session's live drive; tips end 18px past their ring → `ringPx + 18` in the diff, and arm − ring = 18 px measured in the drive; vertical shaft drew nothing → this session's pixel probe scored 5 (background) against the pre-change code in Chromium and WebKit, versus > 30 after
 **To Add:** before/after screenshot of a selected Pi at laptop width
+
+## [2026-09-27T20:20:13Z] — Aligning a shape to the grid without doing the math by hand (TODO/ui-050)
+
+**Post:** WarpCad's Inspector just got an Align to origin row: pick a reference part, tap min/center/max per axis, or one shortcut to centre-and-drop on the grid. Built because a Pi's micro-SD card hangs 1.5mm below the board, so "flush" has to measure the board alone. Built with Claude Code, reviewed by me.
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL #Vue
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** typed Position only ever set the bounding-box centre, and Snap/Align needs exactly two bodies with neither being the origin → `src/core/transform.js`/`docs/snap-align.md`, existing code; user request 2026-09-27, worked example is the Pi/micro-SD case → `TODO/done/ui-050-align-to-origin.md`'s own Goal section, quoted; micro-SD hangs 1.5mm below the board (`mb` min Z 0, whole body min Z -1.5) → measured this session via `boundsOf()` on a real `raspberrypi.bplus` body, and pinned by a new `transform.spec.js` test; one tap commits one record, reusing the existing `transform.translate` shape (gizmo/field sync, Undo, replay all unchanged) → diff, this session; full regression check → 1864 unit tests (was 1840, +24), typecheck clean, 0 Chromium failures across the full 27-file/3-viewport e2e matrix, Firefox environment-blocked as every task since `ui-028`
+**To Add:** a screenshot of the Align to origin row with a Raspberry Pi selected and Reference set to `mb`

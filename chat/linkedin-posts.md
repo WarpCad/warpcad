@@ -1334,3 +1334,18 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** gizmo sizes to the selection → ui-017 code comments in `annotate.js`; ~57px head and "X covers the USB/Ethernet end" → TODO/ui-048's own Problem section; 13-16px heads and `ringPx + 18` → diff, confirmed by the 13.5 / 16.5 px and 18 px measurements in this session's live drive; foreshortened cone base → diff (`coneRy = coneRx × |axis · view|`) plus unit tests; zero-bbox paint-server rule → TODO/ui-048's own text citing the SVG spec; old Z shaft drew nothing → this session's pixel probe (score 5 vs > 30 threshold) against the pre-change code in Chromium and WebKit; the new probe passed on all 6 non-Firefox projects this session (Firefox environment-blocked), so "every engine the suite runs" means the engines that ran here
 **To Add:** side-by-side of the old ~57px head and the new cone on the same Pi; a close-up of one cone showing the lit flank and base disc
+
+## [2026-09-27T20:20:13Z] — Why "align to origin" needed a Reference field, not just a bounding box (TODO/ui-050)
+
+**Post:** Shipped an Align to origin control for WarpCad's Inspector: with one shape selected, min/center/max buttons per axis snap it to the grid's origin, plus a one-tap shortcut for the common case of centring in X/Y and dropping onto the floor in Z.
+
+The reason it needed more than "move the bounding box to zero" showed up on the first real test case. A Raspberry Pi's micro-SD card is modeled snapped underneath the board, hanging about 1.5mm below it — correct for the card, but it means the whole assembly's own bounding box bottom is the card's underside, not the board's. "Put the board on the grid" and "put the whole part's box on the grid" are different requests. The fix was a Reference field that measures from one named part of a group instead of always the outer box, falling back silently to the whole body if that part doesn't exist.
+
+Under the hood it's one translate record, the same shape a gizmo drag or a typed Position field already produces, so undo, save/reload and the existing gizmo-to-field sync needed no special-casing for the new control. Full test suite green: 1864 unit tests, zero engine failures across the automated matrix.
+
+Built with Claude Code, reviewed by me.
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL #Vue #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** min/center/max per axis plus a one-tap shortcut → `src/components/inspector/AlignToOrigin.vue` diff, this session; micro-SD modeled ~1.5mm below the board (`mb` min Z 0, whole body min Z -1.5) → measured this session via `boundsOf()` on a real `raspberrypi.bplus` body, pinned by a new `transform.spec.js` test case; Reference falls back to the whole body on an unknown part name rather than throwing → `alignToOriginRecord`'s own fallback branch, diff, this session; one translate record reusing the existing gizmo/field-sync shape → `src/core/transform.js`'s `alignToOriginRecord`, diff; 1864 unit tests (was 1840, +24), typecheck clean → this session's test run; zero Chromium failures across the full 27-file/3-viewport e2e matrix, Firefox environment-blocked (pre-existing, `TROUBLESHOOTING.md` 2026-09-17) → this session's full matrix run plus an isolated re-run confirming 7 apparent WebKit failures were resource-contention flakes, not regressions
+**To Add:** a before/after screenshot of a freshly-dropped Raspberry Pi, then aligned with Reference set to `mb`
