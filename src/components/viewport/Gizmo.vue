@@ -12,7 +12,7 @@
  *
  * ## Hit targets are not the drawn shapes
  *
- * A 2.5 px arm and a 1.5 px ring are aimable with a mouse and hopeless with a
+ * A 3 px arm and a 3 px ring are aimable with a mouse and hopeless with a
  * fingertip, so every handle carries an invisible companion with a fat stroke —
  * fatter still at phone width, per `docs/decisions/interaction-model-qa.md`
  * control 4 Q16 ("a larger invisible hit-test radius than their rendered size, to
@@ -47,6 +47,7 @@ import { computed } from 'vue'
 
 import {
   AXIS_LABELS,
+  GIZMO_SHAFT_WIDTH_PX,
   createRingArrowheads,
   createRingPoints,
   ringArrowheads,
@@ -81,10 +82,10 @@ const AXIS_STROKE = Object.freeze({
 })
 
 /**
- * Ids of the per-axis `<linearGradient>`s declared in this component's `<defs>`
- * (`TODO/ui-021`) — a lighter tint of the axis colour fading to the axis colour
- * itself, so the arm/head/ring read as lit from one side rather than as a flat
- * colour fill. Kept as ids rather than inlining the gradient markup at each use
+ * Ids of the per-axis shaft `<linearGradient>`s declared in this component's
+ * `<defs>` (`TODO/ui-021`, reworked by `TODO/ui-048`) — lit flank, axis colour,
+ * shaded flank, running *across* the shaft so it reads as a rod rather than a
+ * flat line. Kept as ids rather than inlining the gradient markup at each use
  * site, the same way `AXIS_STROKE` is one lookup table rather than three
  * `arrow.axis === 'X' ? ... : ...` chains everywhere it's read.
  *
@@ -95,6 +96,44 @@ const AXIS_GRADIENT_ID = Object.freeze({
   Y: 'gizmo-shade-y',
   Z: 'gizmo-shade-z',
 })
+
+/**
+ * Same idea for each arrowhead: one gradient per cone, across its base.
+ *
+ * @type {Readonly<Record<string, string>>}
+ */
+const AXIS_CONE_GRADIENT_ID = Object.freeze({
+  X: 'gizmo-cone-shade-x',
+  Y: 'gizmo-cone-shade-y',
+  Z: 'gizmo-cone-shade-z',
+})
+
+/**
+ * Colour stops shared by the shaft and cone gradients: a highlight just in from
+ * the lit flank, the axis colour through the middle, and a darker shade on the
+ * far flank — how a lit cylinder or cone actually looks, and still obviously
+ * red/green/blue.
+ *
+ * @param {string} axis
+ * @returns {{ offset: string, color: string }[]}
+ */
+function rodStops(axis) {
+  const colour = AXIS_STROKE[axis]
+  return [
+    { offset: '0%', color: `color-mix(in srgb, ${colour} 70%, white 30%)` },
+    { offset: '30%', color: `color-mix(in srgb, ${colour} 55%, white 45%)` },
+    { offset: '65%', color: colour },
+    { offset: '100%', color: `color-mix(in srgb, ${colour} 65%, black 35%)` },
+  ]
+}
+
+/** Precomputed once — the stops never change, only the gradient lines do. */
+const ROD_STOPS = Object.freeze(Object.fromEntries(AXIS_LABELS.map((axis) => [axis, rodStops(axis)])))
+
+/** The cone's base disc: the axis colour in shade, the back of the cone. */
+const CONE_BASE_FILL = Object.freeze(
+  Object.fromEntries(AXIS_LABELS.map((axis) => [axis, `color-mix(in srgb, ${AXIS_STROKE[axis]} 60%, black 40%)`])),
+)
 
 /**
  * Same idea as {@link AXIS_GRADIENT_ID}, a subtler variant for the rings.
@@ -261,25 +300,48 @@ function onHandleUp(event) {
     :data-origin="`${gizmo.originX.toFixed(1)},${gizmo.originY.toFixed(1)}`"
     aria-hidden="true"
   >
-    <!-- Per-axis shading gradients (TODO/ui-021): a lighter tint fading to the
-         axis colour, so the arm/head/ring read as lit from one side instead of
-         as a flat colour fill. `objectBoundingBox` (the default, so no
-         coordinates below) means each shape shades against its *own* bounds —
-         cheap, and it needs no per-frame recomputation as the camera moves,
-         unlike the geometry these shapes are drawn from. -->
+    <!-- Shading gradients. The rings' (TODO/ui-021) use the default
+         `objectBoundingBox` units: each ring shades against its own bounds and
+         needs no per-frame update. The arms' and cones' cannot (TODO/ui-048):
+         a light direction fixed to the shape's bbox cuts a cone at an arbitrary
+         diagonal, and a shaft that is exactly vertical or horizontal on screen
+         has a zero-extent bbox, which the SVG spec says gets no paint server at
+         all. So they are `userSpaceOnUse`, with lines across each arm that
+         `annotate.js` recomputes per frame. Only the attributes update; the
+         gradient elements themselves are never rebuilt. -->
     <defs>
-      <linearGradient
-        v-for="axis in AXIS_LABELS"
-        :key="`shade-${axis}`"
-        :id="AXIS_GRADIENT_ID[axis]"
-        x1="0%"
-        y1="0%"
-        x2="100%"
-        y2="100%"
-      >
-        <stop offset="0%" :stop-color="`color-mix(in srgb, ${AXIS_STROKE[axis]} 50%, white 50%)`" />
-        <stop offset="100%" :stop-color="AXIS_STROKE[axis]" />
-      </linearGradient>
+      <template v-for="arrow in gizmo.arrows" :key="`shade-${arrow.axis}`">
+        <linearGradient
+          :id="AXIS_GRADIENT_ID[arrow.axis]"
+          gradientUnits="userSpaceOnUse"
+          :x1="arrow.s1x"
+          :y1="arrow.s1y"
+          :x2="arrow.s2x"
+          :y2="arrow.s2y"
+        >
+          <stop
+            v-for="stop in ROD_STOPS[arrow.axis]"
+            :key="stop.offset"
+            :offset="stop.offset"
+            :stop-color="stop.color"
+          />
+        </linearGradient>
+        <linearGradient
+          :id="AXIS_CONE_GRADIENT_ID[arrow.axis]"
+          gradientUnits="userSpaceOnUse"
+          :x1="arrow.h1x"
+          :y1="arrow.h1y"
+          :x2="arrow.h2x"
+          :y2="arrow.h2y"
+        >
+          <stop
+            v-for="stop in ROD_STOPS[arrow.axis]"
+            :key="stop.offset"
+            :offset="stop.offset"
+            :stop-color="stop.color"
+          />
+        </linearGradient>
+      </template>
       <linearGradient
         v-for="axis in AXIS_LABELS"
         :key="`ring-shade-${axis}`"
@@ -334,10 +396,13 @@ function onHandleUp(event) {
       />
     </template>
 
-    <!-- Arms and heads shaded the same way as the rings (TODO/ui-021): the
-         gradient reads as a highlight along one side of a cylindrical rod
-         (arm) or cone (head), rather than the flat colour fill both drew
-         before. -->
+    <!-- Arms: a shaded rod with a cone tip (TODO/ui-048). The cone is a
+         triangle plus its base disc, foreshortened by how far the arm points
+         along the view. An arm pointing toward the camera hides that disc
+         behind the cone, so the disc draws first and only its far rim shows.
+         An arm pointing away shows the disc face-on, so it draws on top.
+         The disc is `gizmo-cone-base-*`, never `gizmo-head-*`/`gizmo-arm-*`:
+         e2e specs count matches on those prefixes. -->
     <g v-for="arrow in gizmo.arrows" :key="`arm-${arrow.axis}`">
       <template v-if="arrow.visible">
         <line
@@ -345,15 +410,38 @@ function onHandleUp(event) {
           :data-testid="`gizmo-arm-${arrow.axis.toLowerCase()}`"
           :x1="gizmo.originX"
           :y1="gizmo.originY"
-          :x2="arrow.tipX"
-          :y2="arrow.tipY"
+          :x2="arrow.baseX"
+          :y2="arrow.baseY"
           :stroke="paintUrl(AXIS_GRADIENT_ID[arrow.axis])"
+          :stroke-width="GIZMO_SHAFT_WIDTH_PX"
+        />
+        <ellipse
+          v-if="arrow.facing > 0"
+          class="tgizmo__cone-base"
+          :data-testid="`gizmo-cone-base-${arrow.axis.toLowerCase()}`"
+          :cx="arrow.baseX"
+          :cy="arrow.baseY"
+          :rx="arrow.coneRx"
+          :ry="arrow.coneRy"
+          :transform="`rotate(${arrow.coneAngleDeg} ${arrow.baseX} ${arrow.baseY})`"
+          :fill="CONE_BASE_FILL[arrow.axis]"
         />
         <polygon
           class="tgizmo__head"
           :data-testid="`gizmo-head-${arrow.axis.toLowerCase()}`"
           :points="`${arrow.tipX},${arrow.tipY} ${arrow.h1x},${arrow.h1y} ${arrow.h2x},${arrow.h2y}`"
-          :fill="paintUrl(AXIS_GRADIENT_ID[arrow.axis])"
+          :fill="paintUrl(AXIS_CONE_GRADIENT_ID[arrow.axis])"
+        />
+        <ellipse
+          v-if="arrow.facing < 0"
+          class="tgizmo__cone-base"
+          :data-testid="`gizmo-cone-base-${arrow.axis.toLowerCase()}`"
+          :cx="arrow.baseX"
+          :cy="arrow.baseY"
+          :rx="arrow.coneRx"
+          :ry="arrow.coneRy"
+          :transform="`rotate(${arrow.coneAngleDeg} ${arrow.baseX} ${arrow.baseY})`"
+          :fill="CONE_BASE_FILL[arrow.axis]"
         />
       </template>
     </g>
@@ -416,7 +504,7 @@ function onHandleUp(event) {
   /* `stroke`, not `all`: a ring's hit area is its band, never the disc inside
      it, which is exactly where the body the user still needs to click sits. */
   pointer-events: stroke;
-  /* 22px against a 2.5px arm — aimable with a mouse without being a wall. */
+  /* 22px against a 3px arm — aimable with a mouse without being a wall. */
   stroke-width: 22;
   cursor: grab;
 }
@@ -480,13 +568,17 @@ function onHandleUp(event) {
 }
 
 .tgizmo__arm {
-  stroke-width: 2.5;
-  stroke-linecap: round;
-  filter: drop-shadow(0 1px 1.5px rgba(0, 0, 0, 0.32));
+  /* Width comes from `GIZMO_SHAFT_WIDTH_PX`, bound on the element, because the
+     shaft's gradient line has to span exactly that width (TODO/ui-048). */
+  stroke-linecap: butt;
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.3));
 }
 
-.tgizmo__head {
-  filter: drop-shadow(0 1px 1.5px rgba(0, 0, 0, 0.32));
+/* Smaller heads (TODO/ui-048) get a tighter shadow than ui-021's 1.5px blur,
+   which smudged a 15px cone into a blob. */
+.tgizmo__head,
+.tgizmo__cone-base {
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.3));
 }
 
 .tgizmo__hub {

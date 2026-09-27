@@ -9,10 +9,14 @@ come from the same gesture: click it.
 Click — or tap — directly on a shape in the 3D view. Three things happen at once:
 
 1. **A gizmo appears at the middle of the shape.** Three coloured arrows point along the
-   part's X, Y and Z directions, and three faint rings circle it. The arms, their
-   arrowheads and the rings are shaded with a subtle highlight and a soft drop shadow,
-   so the handles read as small 3D objects sitting on top of the scene rather than as
-   flat 2D lines — the colour-coding itself is unchanged. The arrows are the
+   part's X, Y and Z directions, and three faint rings circle it. Each arrow is a thin
+   rod with a small **cone** at its tip, and it ends just past the ring of the same
+   colour. The rods and cones are lit from the upper left, so one side of each is
+   brighter than the other. When an arrow points toward you, you can see the rim of
+   the cone's base behind the tip. When it points away, you see the cone's flat base
+   face-on. The cones stay the same small size whatever you select, so they never
+   cover the part you are working on. The rings get the same highlight and a soft
+   drop shadow. The colour-coding is unchanged. The arrows are the
    move handles and the rings are the rotate handles — both draggable, see
    [Moving and turning a shape](#moving-and-turning-a-shape). **The rotate rings carry
    small arrow markers along their circumference**, so they read as "drag along me to
@@ -317,6 +321,17 @@ The handles have a generous invisible catchment around them, wider than they loo
 they are reachable with a fingertip on a phone as well as with a mouse pointer — you do
 not have to hit the thin line exactly. If you press a handle and change your mind
 without moving, nothing happens except that you select whatever is underneath.
+
+### Worked example: slide a Raspberry Pi along X
+
+1. Drag a **Raspberry Pi** from the Library into the 3D view and let go. It is selected
+   straight away.
+2. The three arrows end just past the three coloured rings, each with a small cone at
+   its tip.
+3. Drag the **red cone** to the right. The Pi slides along X, and **Position X** in the
+   Inspector counts up in millimetres as you drag.
+4. Now select a small part, such as a **Nut**. Its gizmo is smaller overall, but the
+   cones are the same small size they were on the Pi.
 
 ### Worked example: move and turn a cube
 

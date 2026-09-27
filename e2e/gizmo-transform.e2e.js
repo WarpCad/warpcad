@@ -426,17 +426,23 @@ test('the arm, head, ring and hub carry 3D shading rather than flat colour (TODO
   expect(armStroke).toMatch(/^url\(#/)
   const headFill = await page.locator('[data-testid="gizmo-head-x"]').getAttribute('fill')
   expect(headFill).toMatch(/^url\(#/)
+  // TODO/ui-048: the cone has its own gradient, running across its base, and a
+  // base disc in a darker shade of the same axis colour.
+  expect(headFill).not.toBe(armStroke)
+  await expect(page.locator('[data-testid="gizmo-cone-base-x"]')).toHaveCount(1)
 
   // Each referenced gradient must actually exist in the SVG's `<defs>`, with
-  // two real stops — a gradient id that resolves to nothing draws as a flat
-  // black shape, which would be a worse regression than the flat colour it
-  // replaced.
-  const gradientId = /** @type {string} */ (armStroke).match(/^url\(#([^)]+)\)$/)?.[1]
-  expect(gradientId).toBeTruthy()
-  const stopCount = await page
-    .locator(`[data-testid="transform-gizmo"] defs #${gradientId} stop`)
-    .count()
-  expect(stopCount).toBe(2)
+  // real stops — a gradient id that resolves to nothing draws as a flat black
+  // shape, which would be a worse regression than the flat colour it replaced.
+  // Since TODO/ui-048 the arm and cone gradients carry lit/axis/shade stops.
+  for (const paint of [armStroke, headFill]) {
+    const gradientId = /** @type {string} */ (paint).match(/^url\(#([^)]+)\)$/)?.[1]
+    expect(gradientId).toBeTruthy()
+    const stopCount = await page
+      .locator(`[data-testid="transform-gizmo"] defs #${gradientId} stop`)
+      .count()
+    expect(stopCount).toBeGreaterThanOrEqual(3)
+  }
 
   // A ring's visible stroke is now the same gradient treatment, plus a thin
   // brighter core drawn on top of it (the "tube, not a wire" cue) — the ring
@@ -898,13 +904,14 @@ test('the page never scrolls sideways with the gizmo handles mounted', async ({ 
 function gizmoXGeometry(page) {
   return page.evaluate(() => {
     const gizmo = document.querySelector('[data-testid="transform-gizmo"]')
-    const arm = document.querySelector('[data-testid="gizmo-arm-x"]')
+    const head = document.querySelector('[data-testid="gizmo-head-x"]')
     const grabArm = document.querySelector('[data-testid="gizmo-grab-arm-x"]')
     const ring = document.querySelector('[data-testid="gizmo-ring-x"]')
-    if (!gizmo || !arm || !grabArm || !ring) return null
+    if (!gizmo || !head || !grabArm || !ring) return null
     const [originX, originY] = (gizmo.getAttribute('data-origin') ?? '0,0').split(',').map(Number)
-    const armTipX = Number(arm.getAttribute('x2'))
-    const armTipY = Number(arm.getAttribute('y2'))
+    // The arrow's tip is the head polygon's first point. The drawn shaft stops
+    // at the cone's base since TODO/ui-048, so its `x2` is no longer the tip.
+    const [armTipX, armTipY] = (head.getAttribute('points') ?? '0,0').trim().split(' ')[0].split(',').map(Number)
     const armPx = Math.hypot(armTipX - originX, armTipY - originY)
     const points = (ring.getAttribute('points') ?? '')
       .trim()
@@ -995,4 +1002,138 @@ test('the gizmo grows past its floor size as the selected body reads larger on s
   expect(zoomedOut?.armPx ?? Infinity).toBeLessThan(zoomedIn?.armPx ?? -Infinity)
   expect(zoomedOut?.armPx ?? 0).toBeGreaterThanOrEqual(58 - 0.5)
   expect(zoomedOut?.ringPx ?? 0).toBeGreaterThanOrEqual(40 - 0.5)
+})
+
+/**
+ * Every visible arrow's head size and tip reach against its own ring
+ * (TODO/ui-048), read from the rendered SVG.
+ *
+ * @param {import('@playwright/test').Page} page
+ * @returns {Promise<{ axis: string, headLongestPx: number, armPx: number, ringPx: number }[]>}
+ */
+function arrowReach(page) {
+  return page.evaluate(() => {
+    const gizmo = document.querySelector('[data-testid="transform-gizmo"]')
+    if (!gizmo) return []
+    const [originX, originY] = (gizmo.getAttribute('data-origin') ?? '0,0').split(',').map(Number)
+    return ['x', 'y', 'z'].flatMap((axis) => {
+      const head = document.querySelector(`[data-testid="gizmo-head-${axis}"]`)
+      const ring = document.querySelector(`[data-testid="gizmo-ring-${axis}"]`)
+      if (!head || !ring) return []
+      const box = head.getBoundingClientRect()
+      const [tipX, tipY] = (head.getAttribute('points') ?? '0,0').trim().split(' ')[0].split(',').map(Number)
+      const ringPx = (ring.getAttribute('points') ?? '')
+        .trim()
+        .split(' ')
+        .map((pair) => pair.split(',').map(Number))
+        .reduce((max, [x, y]) => Math.max(max, Math.hypot(x - originX, y - originY)), 0)
+      return [
+        {
+          axis,
+          headLongestPx: Math.max(box.width, box.height),
+          armPx: Math.hypot(tipX - originX, tipY - originY),
+          ringPx,
+        },
+      ]
+    })
+  })
+}
+
+test('the move arrows stay small cones just outside their rings, on a small cube and a large Pi (TODO/ui-048)', async ({
+  page,
+}, testInfo) => {
+  // Full engine × viewport matrix: the sizes come off a WebGL-projected camera,
+  // and ui-012/ui-017 needed every viewport for the same touch-target sizing.
+  const check = async (label) => {
+    const arrows = await arrowReach(page)
+    expect(arrows.length, label).toBeGreaterThanOrEqual(2)
+    for (const arrow of arrows) {
+      // The finding's screenshot had a ~57px head; this would have failed it.
+      expect(arrow.headLongestPx, `${label} ${arrow.axis} head`).toBeLessThanOrEqual(20)
+      // Each tip lies outside its own ring, but only just.
+      expect(arrow.armPx, `${label} ${arrow.axis} tip outside ring`).toBeGreaterThan(arrow.ringPx)
+      expect(arrow.armPx - arrow.ringPx, `${label} ${arrow.axis} tip near ring`).toBeLessThanOrEqual(30)
+    }
+    return arrows
+  }
+
+  await placeCube(page)
+  await openNavChrome(page)
+  await page.getByTestId('nav-reset').click()
+  await page.waitForTimeout(80)
+  await check('cube')
+
+  // A Raspberry Pi board: large enough at the default zoom to push the gizmo
+  // toward its cap, which is where the old head grew to ~57px.
+  const rows = page.getByTestId('library-rows')
+  if (!(await rows.isVisible())) await page.getByTestId('library-tab').click()
+  await page.getByTestId('library-rows-raspberrypi').scrollIntoViewIfNeeded()
+  await dragRowIntoViewport(page, { op: 'raspberrypi.bplus', fx: 0.5, fy: 0.5 })
+  await closeLibrary(page)
+  await expect(page.getByTestId('transform-gizmo')).toHaveCount(1)
+  // Wait for the evaluated board: the gizmo grows once its real bounds arrive.
+  await expect
+    .poll(async () => (await arrowReach(page)).reduce((max, arrow) => Math.max(max, arrow.ringPx), 0), {
+      timeout: 15000,
+    })
+    .toBeGreaterThan(40.5)
+  await check('pi')
+
+  // The smaller head is still the handle: dragging it moves the Pi along X.
+  const before = await fieldNumber(page, 'inspector-position-x')
+  await dragHandle(page, 'gizmo-grab-arm-x', { distancePx: 40 })
+  await expect.poll(() => fieldNumber(page, 'inspector-position-x')).not.toBeCloseTo(before, 0)
+
+  mkdirSync(SNAPSHOT_DIR, { recursive: true })
+  await page.screenshot({ path: join(SNAPSHOT_DIR, `cone-arrows-pi-${testInfo.project.name}.png`) })
+})
+
+test('the vertical Z shaft actually paints its shading in every engine (TODO/ui-048)', async ({ page }) => {
+  // An `objectBoundingBox` gradient on a perfectly vertical line has a
+  // zero-width box, and the SVG spec says it is then not applied at all. The
+  // shaft now uses `userSpaceOnUse`; this samples real pixels to prove every
+  // engine draws it blue rather than nothing or black.
+  await placeCube(page)
+  await page.waitForTimeout(120)
+
+  const mid = await page.evaluate(() => {
+    const arm = document.querySelector('[data-testid="gizmo-arm-z"]')
+    if (!arm) return null
+    const svg = /** @type {SVGSVGElement} */ (arm.ownerSVGElement)
+    const rect = svg.getBoundingClientRect()
+    const x1 = Number(arm.getAttribute('x1'))
+    const x2 = Number(arm.getAttribute('x2'))
+    const x = (x1 + x2) / 2
+    const y = (Number(arm.getAttribute('y1')) + Number(arm.getAttribute('y2'))) / 2
+    return { x: rect.left + x, y: rect.top + y, dx: Math.abs(x2 - x1) }
+  })
+  expect(mid).not.toBeNull()
+  // The default camera keeps Z upright on screen: this *is* the zero-width
+  // bounding-box case, not a slanted shaft that would pass regardless.
+  expect(mid?.dx ?? Infinity).toBeLessThan(0.5)
+  // Sample the shaft alone. At phone and tablet width the navigation chrome and
+  // bottom sheets can sit over the gizmo, which says nothing about its paint.
+  await page.addStyleTag({
+    content:
+      'body * { visibility: hidden !important; } [data-testid="transform-gizmo"], [data-testid="transform-gizmo"] * { visibility: visible !important; }',
+  })
+  const png = await page.screenshot({ clip: { x: (mid?.x ?? 0) - 4, y: (mid?.y ?? 0) - 4, width: 9, height: 9 } })
+  const bluest = await page.evaluate(async (base64) => {
+    const image = new Image()
+    image.src = `data:image/png;base64,${base64}`
+    await image.decode()
+    const canvas = document.createElement('canvas')
+    canvas.width = image.naturalWidth
+    canvas.height = image.naturalHeight
+    const context = /** @type {CanvasRenderingContext2D} */ (canvas.getContext('2d'))
+    context.drawImage(image, 0, 0)
+    // The shaft is ~3 CSS px wide in a 9px clip: scan the middle row for its
+    // most blue-dominant pixel.
+    const row = Math.floor(canvas.height / 2)
+    const data = context.getImageData(0, row, canvas.width, 1).data
+    let best = -Infinity
+    for (let i = 0; i < data.length; i += 4) best = Math.max(best, data[i + 2] - Math.max(data[i], data[i + 1]))
+    return best
+  }, png.toString('base64'))
+  expect(bluest).toBeGreaterThan(30)
 })

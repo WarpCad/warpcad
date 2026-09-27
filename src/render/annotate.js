@@ -201,6 +201,24 @@ export function screenDirection(azimuthDeg, elevationDeg, axisX, axisY, axisZ, o
  * @property {number} h1y
  * @property {number} h2x Opposite base corner.
  * @property {number} h2y
+ *   `h1` is always the lit (up-left) flank and `h2` the shaded one, so the
+ *   pair doubles as the cone's shading line (`TODO/ui-048`).
+ * @property {number} baseX Centre of the cone's base, `headPx` behind the tip.
+ * @property {number} baseY
+ * @property {number} coneRx Half-width of the cone's base disc, across the arm.
+ * @property {number} coneRy The same disc's half-depth after foreshortening:
+ *   `coneRx × |axis · view|` — a full disc end-on, a line side-on.
+ * @property {number} coneAngleDeg Screen angle of the disc's `coneRx` axis,
+ *   degrees, for an SVG `rotate()`.
+ * @property {1 | -1} facing Whether the axis points toward the camera (`+1`,
+ *   base disc hidden behind the cone) or away from it (`-1`, base disc facing
+ *   the viewer).
+ * @property {number} s1x The shaft's shading line, across the arm at the hub:
+ *   `s1` is the lit flank, `s2` the shaded one. A `userSpaceOnUse` gradient
+ *   line, so it never depends on the shaft's own (possibly zero-width) bounds.
+ * @property {number} s1y
+ * @property {number} s2x
+ * @property {number} s2y
  */
 
 /**
@@ -242,6 +260,16 @@ export function createGizmoAnnotation() {
       h1y: 0,
       h2x: 0,
       h2y: 0,
+      baseX: 0,
+      baseY: 0,
+      coneRx: 0,
+      coneRy: 0,
+      coneAngleDeg: 0,
+      facing: /** @type {1 | -1} */ (1),
+      s1x: 0,
+      s1y: 0,
+      s2x: 0,
+      s2y: 0,
     })),
     rings: AXIS_LABELS.map((axis) => ({ axis, visible: false, ux: 0, uy: 0, vx: 0, vy: 0 })),
   }
@@ -250,7 +278,9 @@ export function createGizmoAnnotation() {
 /**
  * Floor for the translate arm's screen length, in pixels — `TODO/ui-012`'s own
  * tuned value for a comfortably grabbable handle. A tiny object's gizmo never
- * shrinks below this, even though it grows past it for a large one.
+ * shrinks below this, even though it grows past it for a large one. Since
+ * `TODO/ui-048` it is not applied on its own: it is the ring floor plus
+ * `GIZMO_ARM_PAST_RING_PX`, and a unit test holds the two to it.
  */
 export const GIZMO_ARM_FLOOR_PX = 58
 
@@ -258,21 +288,58 @@ export const GIZMO_ARM_FLOOR_PX = 58
 export const GIZMO_RING_FLOOR_PX = 40
 
 /**
- * How far clear of the body's own on-screen half-diagonal the arm/ring extend,
+ * How far clear of the body's own on-screen half-diagonal the ring extends,
  * once the body is big enough that the floor stops being the binding
- * constraint. Kept smaller for the ring than the arm so the ring — attached at
- * the same origin — stays inside the translate arms rather than poking past
- * them, matching today's `58 > 40` ordering at every size.
+ * constraint.
  */
-const GIZMO_ARM_CLEARANCE_PX = 16
 const GIZMO_RING_CLEARANCE_PX = 8
 
 /**
- * Ceiling on both, so an enormous body's gizmo doesn't grow enough to run off
- * screen.
+ * How far past its rotate ring each translate arm reaches (`TODO/ui-048`). The
+ * arm is *derived* from the ring rather than sized independently of it: the
+ * ring already clears the body's silhouette (`ui-017`'s requirement), so an arm
+ * a fixed step longer clears it too, and `armPx > ringPx` holds by construction
+ * rather than by two constants happening to agree. 18 keeps the floor exactly
+ * where `ui-012` tuned it: 40 + 18 = 58.
  */
-const GIZMO_ARM_MAX_PX = 220
+const GIZMO_ARM_PAST_RING_PX = 18
+
+/**
+ * Ceiling on the ring, so an enormous body's gizmo doesn't grow enough to run
+ * off screen. The arm's own ceiling follows from it.
+ */
 const GIZMO_RING_MAX_PX = 180
+
+/**
+ * The translate arrowhead's length, as a slight function of the arm
+ * (`TODO/ui-048`). It used to be `armPx * 0.26`, a ratio inherited from
+ * `ui-011`'s fixed 58px arm that turned into a ~57px triangle once `ui-017`
+ * let the arm grow — a sign, not a handle. Now it grows a little with the arm,
+ * but only between these bounds: the cap-sized head is no bigger than the old
+ * floor-sized one (0.26 × 58 ≈ 15px).
+ */
+const GIZMO_HEAD_RATIO = 0.08
+const GIZMO_HEAD_MIN_PX = 13
+export const GIZMO_HEAD_MAX_PX = 16
+
+/** Half-width of the cone's base, as a fraction of the head's length. */
+const GIZMO_HEAD_HALF_WIDTH_RATIO = 0.35
+
+/**
+ * Drawn width of a translate arm's shaft, in pixels. Owned here rather than in
+ * CSS because the shaft's shading line has to span exactly this width.
+ */
+export const GIZMO_SHAFT_WIDTH_PX = 3
+
+/**
+ * The translate arrowhead's screen length for an arm of `armPx` (`TODO/ui-048`).
+ *
+ * @param {number} armPx
+ * @returns {number} Pixels, between the head's own floor and ceiling.
+ */
+export function gizmoHeadPx(armPx) {
+  return clamp(armPx * GIZMO_HEAD_RATIO, GIZMO_HEAD_MIN_PX, GIZMO_HEAD_MAX_PX)
+}
 
 /**
  * Size the transform gizmo's translate arms and rotate rings to clear the
@@ -282,10 +349,11 @@ const GIZMO_RING_MAX_PX = 180
  * The body's bounding-box half-diagonal — the same `[minMm, maxMm]` pair
  * `Viewport.vue`'s `syncAnnotations()` already destructures for the dimension
  * lines — is converted to screen pixels via `mmPerPixel` (the same conversion
- * `DimensionLines` uses), then clamped between a floor (today's original
- * 58px/40px, so a tiny object's handles stay exactly as grabbable as
+ * `DimensionLines` uses), then the ring is clamped between a floor (the
+ * original 40px, so a tiny object's handles stay exactly as grabbable as
  * `ui-012` tuned them) and a cap (so an enormous body's gizmo can't run off
- * screen).
+ * screen). The arm is the ring plus a short fixed reach (`TODO/ui-048`), which
+ * puts its floor back at `ui-012`'s 58px.
  *
  * Deliberately not perspective-projected or angle-dependent: like
  * {@link updateGizmoAnnotation} itself, this only needs a single screen-space
@@ -300,7 +368,7 @@ const GIZMO_RING_MAX_PX = 180
  */
 export function gizmoSizeForBounds(minMm, maxMm, mmPerPixel) {
   if (!(mmPerPixel > 0)) {
-    return { armPx: GIZMO_ARM_FLOOR_PX, ringPx: GIZMO_RING_FLOOR_PX }
+    return { armPx: GIZMO_RING_FLOOR_PX + GIZMO_ARM_PAST_RING_PX, ringPx: GIZMO_RING_FLOOR_PX }
   }
   const spanX = maxMm[0] - minMm[0]
   const spanY = maxMm[1] - minMm[1]
@@ -308,17 +376,14 @@ export function gizmoSizeForBounds(minMm, maxMm, mmPerPixel) {
   const halfDiagonalMm = 0.5 * Math.hypot(spanX, spanY, spanZ)
   const halfDiagonalPx = halfDiagonalMm / mmPerPixel
 
-  const armPx = clamp(
-    Math.max(GIZMO_ARM_FLOOR_PX, halfDiagonalPx + GIZMO_ARM_CLEARANCE_PX),
-    GIZMO_ARM_FLOOR_PX,
-    GIZMO_ARM_MAX_PX
-  )
+  // `clamp` alone would pass a NaN straight through (a non-finite extent), so
+  // the floor is applied with `Math.max` first, which does not.
   const ringPx = clamp(
-    Math.max(GIZMO_RING_FLOOR_PX, halfDiagonalPx + GIZMO_RING_CLEARANCE_PX),
+    Math.max(GIZMO_RING_FLOOR_PX, halfDiagonalPx + GIZMO_RING_CLEARANCE_PX) || GIZMO_RING_FLOOR_PX,
     GIZMO_RING_FLOOR_PX,
     GIZMO_RING_MAX_PX
   )
-  return { armPx, ringPx }
+  return { armPx: ringPx + GIZMO_ARM_PAST_RING_PX, ringPx }
 }
 
 /**
@@ -376,34 +441,58 @@ export function updateGizmoAnnotation(
   }
 
   const { azimuthDeg, elevationDeg } = orbit.state
-  const headPx = armPx * 0.26
+  const headPx = gizmoHeadPx(armPx)
+  const coneRx = headPx * GIZMO_HEAD_HALF_WIDTH_RATIO
+  const shaftHalfPx = GIZMO_SHAFT_WIDTH_PX / 2
 
   for (let axis = 0; axis < 3; axis += 1) {
     const arrow = out.arrows[axis]
     screenDirection(azimuthDeg, elevationDeg, axis === 0 ? 1 : 0, axis === 1 ? 1 : 0, axis === 2 ? 1 : 0, scratchDir)
     const length = Math.hypot(scratchDir.x, scratchDir.y)
+    const toward = axisToward(azimuthDeg, elevationDeg, axis)
+    arrow.facing = toward >= 0 ? 1 : -1
     if (!(length > EPSILON_PX)) {
       // The axis points straight at (or away from) the camera: it has no screen
       // direction at all, so it is hidden rather than drawn as a stub that would
-      // read as a fourth, shorter handle.
+      // read as a fourth, shorter handle. Every point collapses onto the hub, so
+      // nothing downstream reads a stale or NaN coordinate.
       arrow.visible = false
-      arrow.tipX = out.originX
-      arrow.tipY = out.originY
-      arrow.h1x = out.originX
-      arrow.h1y = out.originY
-      arrow.h2x = out.originX
-      arrow.h2y = out.originY
+      arrow.tipX = arrow.h1x = arrow.h2x = arrow.baseX = arrow.s1x = arrow.s2x = out.originX
+      arrow.tipY = arrow.h1y = arrow.h2y = arrow.baseY = arrow.s1y = arrow.s2y = out.originY
+      arrow.coneRx = 0
+      arrow.coneRy = 0
+      arrow.coneAngleDeg = 0
     } else {
       const dx = scratchDir.x / length
       const dy = scratchDir.y / length
+      // The perpendicular pointing at the lit flank: light comes from the upper
+      // left of the screen, so pick whichever of the two normals leans that way
+      // (`TODO/ui-048` — the highlight runs *along* the rod, on one side of it).
+      let px = -dy
+      let py = dx
+      if (px + py > 0) {
+        px = -px
+        py = -py
+      }
       arrow.visible = true
       arrow.tipX = out.originX + dx * armPx
       arrow.tipY = out.originY + dy * armPx
-      // Base corners sit behind the tip, offset either side of the arm.
-      arrow.h1x = arrow.tipX - dx * headPx - dy * headPx * 0.45
-      arrow.h1y = arrow.tipY - dy * headPx + dx * headPx * 0.45
-      arrow.h2x = arrow.tipX - dx * headPx + dy * headPx * 0.45
-      arrow.h2y = arrow.tipY - dy * headPx - dx * headPx * 0.45
+      arrow.baseX = arrow.tipX - dx * headPx
+      arrow.baseY = arrow.tipY - dy * headPx
+      // Base corners either side of the base centre: h1 lit, h2 shaded.
+      arrow.h1x = arrow.baseX + px * coneRx
+      arrow.h1y = arrow.baseY + py * coneRx
+      arrow.h2x = arrow.baseX - px * coneRx
+      arrow.h2y = arrow.baseY - py * coneRx
+      // The cone's base disc, foreshortened by how far the axis points along
+      // the view direction — the strongest single "this is 3D" cue.
+      arrow.coneRx = coneRx
+      arrow.coneRy = coneRx * Math.abs(toward)
+      arrow.coneAngleDeg = (Math.atan2(py, px) * 180) / Math.PI
+      arrow.s1x = out.originX + px * shaftHalfPx
+      arrow.s1y = out.originY + py * shaftHalfPx
+      arrow.s2x = out.originX - px * shaftHalfPx
+      arrow.s2y = out.originY - py * shaftHalfPx
     }
 
     const ring = out.rings[axis]
@@ -489,8 +578,10 @@ const RING_ARROW_T = Object.freeze([Math.PI / 2, (3 * Math.PI) / 2])
  * How large each ring arrowhead is drawn, relative to the ring's own screen
  * size. Small on purpose (`TODO/ui-022`'s "keep them small relative to
  * `ringPx` so they don't compete with the translate arms' own arrowheads for
- * visual weight" — the arms' own heads are `armPx * 0.26`, and rings are
- * already drawn smaller than arms per `ui-017`'s `58 > 40` ordering).
+ * visual weight"). Since `TODO/ui-048` the arms' heads are a near-fixed
+ * {@link gizmoHeadPx} rather than a share of the arm, so at a large ring these
+ * chevrons can out-measure an arm head; they stay secondary by being thin,
+ * open and semi-transparent rather than by being shorter.
  */
 const RING_ARROW_SIZE_RATIO = 0.16
 
@@ -636,6 +727,27 @@ export function rotateDeltaDeg(originX, originY, fromXPx, fromYPx, toXPx, toYPx,
 }
 
 /**
+ * The signed component of a world axis along the direction toward the camera:
+ * `+1` pointing straight at it, `0` lying flat across the screen, `-1` pointing
+ * straight away (`TODO/ui-048` — the cone base's foreshortening).
+ *
+ * @param {number} azimuthDeg
+ * @param {number} elevationDeg
+ * @param {number} axisIndex 0 | 1 | 2.
+ * @returns {number} In [-1, 1].
+ */
+export function axisToward(azimuthDeg, elevationDeg, axisIndex) {
+  const az = azimuthDeg * DEG
+  const el = elevationDeg * DEG
+  const cosEl = Math.cos(el)
+  // The unit vector from the camera target toward the camera — the same one
+  // `worldToScreen` builds its view ray from.
+  if (axisIndex === 0) return cosEl * Math.cos(az)
+  if (axisIndex === 1) return cosEl * Math.sin(az)
+  return Math.sin(el)
+}
+
+/**
  * Whether an axis points toward the camera (`+1`) or away from it (`-1`).
  *
  * @param {number} azimuthDeg
@@ -644,15 +756,7 @@ export function rotateDeltaDeg(originX, originY, fromXPx, fromYPx, toXPx, toYPx,
  * @returns {1 | -1}
  */
 export function axisFacing(azimuthDeg, elevationDeg, axisIndex) {
-  const az = azimuthDeg * DEG
-  const el = elevationDeg * DEG
-  const cosEl = Math.cos(el)
-  // The unit vector from the camera target toward the camera — the same one
-  // `worldToScreen` builds its view ray from.
-  let toward = Math.sin(el)
-  if (axisIndex === 0) toward = cosEl * Math.cos(az)
-  else if (axisIndex === 1) toward = cosEl * Math.sin(az)
-  return toward >= 0 ? 1 : -1
+  return axisToward(azimuthDeg, elevationDeg, axisIndex) >= 0 ? 1 : -1
 }
 
 // --- dimension lines -------------------------------------------------------

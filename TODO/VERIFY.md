@@ -34,6 +34,17 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### ui-048 — smaller cone-tipped move arrows (2026-09-27 17:16 UTC)
+
+The sizes and positions are asserted by e2e on 6 of 9 matrix cells, and scenarios 1 and 6 were driven at all three form factors. What is left is judgment by eye and on real hardware, plus the one engine this sandbox cannot launch.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | On a Raspberry Pi at laptop width (gizmo near its cap), do the ring chevrons (~22-29 px) read as secondary to the new 13-16 px arrow cones, or do they now compete with them? The TODO said to leave the chevrons unchanged; if they compete, file a finding to size them off `gizmoHeadPx` instead of `ringPx`. | Open | |
+| 2 | On a real iPad, select a Pi near the middle of the view. At tablet width the viewport column is ~390 px, so a capped gizmo (arm 198 px) can put the X/Y cones under the Inspector column. Is that a real usability problem? The old, larger arms were worse, but the cap may want to scale with viewport width. | Open | |
+| 3 | On a real iPhone, grab the small red cone with a fingertip and drag. It should feel as grabbable as before: the 34 px invisible catchment is unchanged, only the drawn head shrank. | Open | |
+| 4 | Firefox (desktop): the arrows show a lit flank and a darker flank, the vertical Z shaft is visibly blue (not missing), and X/Y/Z stay red/green/blue in both themes. Environment-blocked here (`TROUBLESHOOTING.md` 2026-09-17). | Open | |
+
 ### core-033 — a pre-existing dimension mismatch found while porting colour, and real-device colour legibility (2026-09-26 16:53 UTC)
 
 Two things surfaced while walking `raspberrypi.touchDisplay7inch.js` and every other

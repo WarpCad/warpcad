@@ -3,8 +3,11 @@ import { describe, expect, it } from 'vitest'
 import { createOrbitCamera } from './camera.js'
 import { projectToWorkingPlane } from './pick.js'
 import {
+  GIZMO_ARM_FLOOR_PX,
+  GIZMO_HEAD_MAX_PX,
   RING_SEGMENTS,
   axisFacing,
+  axisToward,
   createDimensionAnnotation,
   createGizmoAnnotation,
   createRingArrowheads,
@@ -13,6 +16,7 @@ import {
   createSketchStroke,
   createSnapGuideAnnotations,
   distanceToSegmentPx,
+  gizmoHeadPx,
   gizmoSizeForBounds,
   ringArrowheads,
   ringPoints,
@@ -260,6 +264,134 @@ describe('updateGizmoAnnotation', () => {
   })
 })
 
+describe('translate arrowheads and cone bases (TODO/ui-048)', () => {
+  /**
+   * @param {{ tipX: number, tipY: number, baseX: number, baseY: number }} arrow
+   * @returns {number}
+   */
+  function headLength(arrow) {
+    return Math.hypot(arrow.tipX - arrow.baseX, arrow.tipY - arrow.baseY)
+  }
+
+  it('keeps the head a small, near-fixed size instead of 0.26 of the arm', () => {
+    // At ui-017's old 220px cap the head used to be 0.26 * 220 ≈ 57px long: a
+    // sign, not a handle. The cap-sized head must now be no bigger than the
+    // floor-sized head was (0.26 * 58 ≈ 15px), give or take the small growth.
+    expect(gizmoHeadPx(220)).toBeLessThanOrEqual(GIZMO_HEAD_MAX_PX + 1e-6)
+    expect(GIZMO_HEAD_MAX_PX).toBeLessThanOrEqual(16)
+    expect(gizmoHeadPx(220)).not.toBeCloseTo(220 * 0.26, 1)
+    expect(gizmoHeadPx(GIZMO_ARM_FLOOR_PX)).toBeGreaterThanOrEqual(12)
+    // Monotonic, never shrinking as the arm grows.
+    expect(gizmoHeadPx(220)).toBeGreaterThanOrEqual(gizmoHeadPx(GIZMO_ARM_FLOOR_PX))
+  })
+
+  it('draws the head at gizmoHeadPx from its tip, whatever the arm length', () => {
+    const orbit = cameraAt()
+    for (const armPx of [58, 120, 198]) {
+      const out = createGizmoAnnotation()
+      updateGizmoAnnotation(orbit, 0, 0, 0, WIDTH_PX, HEIGHT_PX, armPx, armPx - 18, out)
+      for (const arrow of out.arrows) {
+        if (!arrow.visible) continue
+        expect(headLength(arrow)).toBeCloseTo(gizmoHeadPx(armPx), 6)
+        // The two base corners sit either side of the base centre, a cone's
+        // width apart.
+        expect(Math.hypot(arrow.h1x - arrow.baseX, arrow.h1y - arrow.baseY)).toBeCloseTo(arrow.coneRx, 6)
+        expect(Math.hypot(arrow.h2x - arrow.baseX, arrow.h2y - arrow.baseY)).toBeCloseTo(arrow.coneRx, 6)
+        expect(2 * arrow.coneRx).toBeLessThanOrEqual(12)
+      }
+    }
+  })
+
+  it('gives axisToward the signed component of each axis along the view direction', () => {
+    expect(axisToward(-90, 90, 2)).toBeCloseTo(1, 6)
+    expect(axisToward(-90, 0, 2)).toBeCloseTo(0, 6)
+    expect(axisToward(-90, 0, 1)).toBeCloseTo(-1, 6)
+    expect(axisToward(0, 45, 0)).toBeCloseTo(Math.SQRT1_2, 6)
+    // axisFacing is the sign of the same number.
+    expect(axisFacing(0, 45, 0)).toBe(1)
+    expect(axisFacing(-90, 0, 1)).toBe(-1)
+  })
+
+  it('foreshortens the cone base by how far the axis points toward the camera', () => {
+    // Front view, elevation 0: Z lies flat across the screen, so its base disc
+    // is seen exactly edge-on — a line, no depth at all.
+    const flat = createGizmoAnnotation()
+    updateGizmoAnnotation(cameraAt({ azimuthDeg: -90, elevationDeg: 0 }), 0, 0, 0, WIDTH_PX, HEIGHT_PX, 60, 42, flat)
+    const zFlat = flat.arrows[2]
+    expect(zFlat.visible).toBe(true)
+    expect(zFlat.coneRy).toBeCloseTo(0, 6)
+
+    // 45° elevation: Z is half toward the camera, so the disc is squashed by
+    // exactly cos 45°.
+    const tilted = createGizmoAnnotation()
+    updateGizmoAnnotation(cameraAt({ azimuthDeg: -90, elevationDeg: 45 }), 0, 0, 0, WIDTH_PX, HEIGHT_PX, 60, 42, tilted)
+    const zTilted = tilted.arrows[2]
+    expect(zTilted.coneRy).toBeCloseTo(zTilted.coneRx * Math.SQRT1_2, 6)
+    expect(zTilted.facing).toBe(1)
+
+    // Almost straight down on Z: the arm is still (barely) visible, and its base
+    // is almost a full disc.
+    const nearlyTop = createGizmoAnnotation()
+    updateGizmoAnnotation(cameraAt({ azimuthDeg: -90, elevationDeg: 89.9 }), 0, 0, 0, WIDTH_PX, HEIGHT_PX, 60, 42, nearlyTop)
+    const zTop = nearlyTop.arrows[2]
+    expect(zTop.visible).toBe(true)
+    expect(zTop.coneRy).toBeCloseTo(zTop.coneRx, 4)
+
+    // The disc's major axis lies across the arm: its angle is the arm's
+    // perpendicular, so for the vertical Z arm it is horizontal.
+    const angle = ((zTilted.coneAngleDeg % 180) + 180) % 180
+    expect(Math.min(angle, 180 - angle)).toBeCloseTo(0, 6)
+  })
+
+  it('reports an arm pointing away from the camera as facing -1', () => {
+    // From the front (azimuth -90), +Y points straight away; nudge the camera
+    // up so Y has a screen direction but still points away.
+    const out = createGizmoAnnotation()
+    updateGizmoAnnotation(cameraAt({ azimuthDeg: -80, elevationDeg: 20 }), 0, 0, 0, WIDTH_PX, HEIGHT_PX, 60, 42, out)
+    expect(out.arrows[1].visible).toBe(true)
+    expect(out.arrows[1].facing).toBe(-1)
+    expect(out.arrows[0].facing).toBe(1)
+  })
+
+  it('runs each shaft and cone shading line across its arm, bright side up-left', () => {
+    for (const [azimuthDeg, elevationDeg] of [[-90, 0], [-60, 30], [30, 60], [150, -20]]) {
+      const out = createGizmoAnnotation()
+      updateGizmoAnnotation(cameraAt({ azimuthDeg, elevationDeg }), 0, 0, 0, WIDTH_PX, HEIGHT_PX, 80, 60, out)
+      for (const arrow of out.arrows) {
+        if (!arrow.visible) continue
+        const armX = arrow.tipX - out.originX
+        const armY = arrow.tipY - out.originY
+        const shadeX = arrow.s2x - arrow.s1x
+        const shadeY = arrow.s2y - arrow.s1y
+        // Across the arm, never along it: this is what makes the highlight run
+        // down one flank of the rod instead of cutting it at a fixed diagonal.
+        expect(armX * shadeX + armY * shadeY).toBeCloseTo(0, 6)
+        expect(Math.hypot(shadeX, shadeY)).toBeGreaterThan(0)
+        // Never a zero-extent paint box: even a perfectly vertical shaft gets a
+        // real horizontal gradient line (the objectBoundingBox trap).
+        // Bright end (s1) is the up-left flank: moving s1 → s2 goes down-right.
+        expect(shadeX + shadeY).toBeGreaterThanOrEqual(-1e-9)
+        // Cone line h1 → h2 is across the arm too, and on the same bright side.
+        const coneX = arrow.h2x - arrow.h1x
+        const coneY = arrow.h2y - arrow.h1y
+        expect(armX * coneX + armY * coneY).toBeCloseTo(0, 6)
+        expect(coneX * shadeX + coneY * shadeY).toBeGreaterThan(0)
+      }
+    }
+  })
+
+  it('hides an end-on arm without a NaN anywhere in its fields', () => {
+    // Top view: Z points straight at the camera and has no screen direction.
+    const out = createGizmoAnnotation()
+    updateGizmoAnnotation(cameraAt({ azimuthDeg: -90, elevationDeg: 90 }), 0, 0, 0, WIDTH_PX, HEIGHT_PX, 60, 42, out)
+    const z = out.arrows[2]
+    expect(z.visible).toBe(false)
+    for (const [key, value] of Object.entries(z)) {
+      if (typeof value === 'number') expect(Number.isFinite(value), key).toBe(true)
+    }
+  })
+})
+
 describe('gizmoSizeForBounds (TODO/ui-017)', () => {
   it('gives a zero-size bounding box the floor size, not NaN or zero', () => {
     const { armPx, ringPx } = gizmoSizeForBounds([0, 0, 0], [0, 0, 0], 1)
@@ -311,6 +443,24 @@ describe('gizmoSizeForBounds (TODO/ui-017)', () => {
     expect(zoomedOut.armPx).toBeLessThan(zoomedIn.armPx)
     expect(zoomedOut.armPx).toBeCloseTo(58, 6)
     expect(zoomedOut.ringPx).toBeCloseTo(40, 6)
+  })
+
+  it('keeps the arm just outside the ring at every size — floor, mid-range and cap (TODO/ui-048)', () => {
+    const cases = [
+      gizmoSizeForBounds([0, 0, 0], [0, 0, 0], 1),
+      gizmoSizeForBounds([0, 0, 0], [10, 10, 10], 1),
+      gizmoSizeForBounds([0, 0, 0], [120, 120, 120], 1),
+      gizmoSizeForBounds([0, 0, 0], [1e6, 1e6, 1e6], 1),
+      gizmoSizeForBounds([0, 0, 0], [300, 300, 300], 0),
+      gizmoSizeForBounds([0, 0, 0], [300, 300, 300], Number.NaN),
+    ]
+    for (const { armPx, ringPx } of cases) {
+      expect(Number.isFinite(armPx)).toBe(true)
+      expect(armPx).toBeGreaterThan(ringPx)
+      // Derived from the ring, not sized independently of it: the arrow tip
+      // sits a short fixed reach past its ring, never ~40px plus a head beyond.
+      expect(armPx - ringPx).toBeCloseTo(18, 6)
+    }
   })
 
   it('caps the growth so an enormous body does not run the gizmo off screen', () => {
