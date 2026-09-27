@@ -608,4 +608,4 @@ Independently re-verified by this loop:
 
 Acceptance (agent-reported): scenarios 1, 6, 10 and 12 PASS. The `ui-012` repro (drag, type, align, drag) PASS. The `core-004` repro (Z90 then X90, then align Z-min, with Rotation still reading `90/0/90`) PASS. `VERIFY.md` has one entry with four rows: the iOS native picker, label legibility, crowding at the 820 px tablet width, and desktop Firefox. The attribution "Claude Sonnet 5" is correct.
 
-| 2026-09-27 18:36 | | `ui-050` | | no: M7 in progress |
+| 2026-09-27 18:36 | 2026-09-27 20:25 | `ui-050` | stopped by the user at 1 of 3 ("Stop here" at the post-`ui-050` check-in) | no: M7 in progress |
