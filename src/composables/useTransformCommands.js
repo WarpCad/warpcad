@@ -14,6 +14,7 @@
  */
 
 import {
+  alignToOriginRecord,
   moveToRecord,
   positionOf,
   rotateRecord,
@@ -25,6 +26,7 @@ import {
 import { useDocumentStore } from '../stores/document.js'
 
 /** @typedef {[number, number, number]} Vec3 */
+/** @typedef {import('../core/transform.js').AlignSpec} AlignSpec */
 
 /**
  * @returns {{
@@ -32,6 +34,7 @@ import { useDocumentStore } from '../stores/document.js'
  *   rotateBy: (bodyId: string, deltaDeg: Vec3) => void,
  *   setPositionAxis: (bodyId: string, axisIndex: number, valueMm: number) => void,
  *   setRotationAxis: (bodyId: string, axisIndex: number, valueDeg: number) => void,
+ *   alignToOrigin: (bodyId: string, spec: AlignSpec) => void,
  * }}
  */
 export function useTransformCommands() {
@@ -80,6 +83,21 @@ export function useTransformCommands() {
       const current = rotationOf(documentStore.raw, bodyId)
       if (current[axisIndex] === valueDeg) return
       commit(rotateToRecord(documentStore.raw, bodyId, withAxis(current, axisIndex, valueDeg)))
+    },
+
+    /**
+     * Commit the Inspector's Align-to-origin row: one axis-button tap, or the
+     * "Center on origin, sit on grid" shortcut (`TODO/ui-050`).
+     *
+     * `alignToOriginRecord` itself decides whether anything actually moves —
+     * a no-op tap (already aligned within 1e-6 mm) returns `null`, and this
+     * appends nothing for it, the same "don't fill Undo with invisible steps"
+     * contract {@link translateBy}/{@link rotateBy} already keep for a drag
+     * that ends where it started.
+     */
+    alignToOrigin(bodyId, spec) {
+      const record = alignToOriginRecord(documentStore.raw, bodyId, spec)
+      if (record) commit(record)
     },
   }
 }

@@ -208,6 +208,17 @@ export function describeRow(record, names) {
     return subject === undefined ? `${verb} ${size}` : `${verb} ${size} on ${subject}`
   }
 
+  // A baked `transform.translate` built by `src/core/transform.js`'s
+  // `alignToOriginRecord` (`TODO/ui-050`) is, on the wire, indistinguishable
+  // from an ordinary drag or typed Position — deliberately, so gizmo/field
+  // sync and Undo scoping are automatic. `params.alignedTo` is the one flag
+  // that lets this row read "Align to origin" instead of the plain "Move" a
+  // user would otherwise have no way to tell apart from a drag they didn't
+  // make.
+  if (record.op === 'transform.translate' && params.alignedTo === true) {
+    return subject === undefined ? 'Align to origin' : `Align to origin on ${subject}`
+  }
+
   if (verb !== undefined) return subject === undefined ? verb : `${verb} ${subject}`
 
   // No verb: this is a *creation* op. Either it created the body, or — since

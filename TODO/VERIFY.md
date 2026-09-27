@@ -34,6 +34,24 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### ui-050 — Align to origin: real-device feel of the small grid and the native select (2026-09-27 20:15 UTC)
+
+The precondition gating, the arithmetic, gizmo/field sync, the closed-finding
+regressions (`ui-012`, `core-004`), and the 390px layout (no horizontal scroll,
+44×44px targets, scrollWidth checked) are all covered by `transform.spec.js`,
+`AlignToOrigin.spec.js`, the new `e2e/align-to-origin.e2e.js` (all 3 viewports, 2
+non-Firefox engines), and a live hand-drive with screenshots. What is left is judgment
+by eye and on real hardware — a native `<select>`'s own platform chrome and a
+fingertip's real contact area are exactly the things a headless WebKit emulation
+cannot stand in for.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | On a real iPhone, open the Reference `<select>` for a dropped Raspberry Pi. iOS renders this as its own native picker wheel, not an inline dropdown — confirm it's reachable one-handed and that picking `mb` reads back correctly in the row once dismissed. | Open | |
+| 2 | On a real iPhone or Android phone, tap through all nine grid buttons (`⊢ min`/`◇ ctr`/`⊣ max` × X/Y/Z) in quick succession on a Cube. Each label is small (0.72rem) inside a 44px target — confirm the text itself is legible without squinting, not just that the tap target measures 44px in a bounding box. | Open | |
+| 3 | On a real tablet (iPad), with the Inspector as a persistent side column rather than a sheet, confirm the Align to origin row doesn't visually crowd Position/Rotation/Size above it — the column is narrower than laptop width but the row was only checked at exactly 390px and 1440px in the automated matrix, not at the 820px tablet column width by eye. | Open | |
+| 4 | Firefox (desktop): the row, its select, and all ten buttons render and commit correctly. Environment-blocked here (`TROUBLESHOOTING.md` 2026-09-17), so this is untested on this engine at all so far. | Open | |
+
 ### ui-048 — smaller cone-tipped move arrows (2026-09-27 17:16 UTC)
 
 The sizes and positions are asserted by e2e on 6 of 9 matrix cells, and scenarios 1 and 6 were driven at all three form factors. What is left is judgment by eye and on real hardware, plus the one engine this sandbox cannot launch.

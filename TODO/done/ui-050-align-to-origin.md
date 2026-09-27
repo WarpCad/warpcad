@@ -6,8 +6,20 @@ priority: high
 model: sonnet
 milestone: M7
 depends: []
-status: open
+status: done
 ---
+
+**What actually shipped (retirement note, 2026-09-27):** landed close to scoped — a
+baked `transform.translate` record (`alignToOriginRecord` in `src/core/transform.js`),
+a new `AlignToOrigin.vue` mounted in the Inspector's Transform section, `describeBody`/
+`describeSubPart`'s new `visibleParts`, a UI-only `src/stores/alignReference.js`, and
+`timelineLabel.js`'s `params.alignedTo` → "Align to origin" label. **One correction to
+this file's own worked example below**: the Raspberry Pi's board part is named `mb`,
+not `board` — every real reference (the recipe source, `docs/snap-align.md`,
+`docs/selection-and-inspector.md`) already used `mb`; this file's prose was the one
+place `board` appeared, and every test/doc/e2e spec that follows landed against the
+real name, `mb`. See `TODO/ROADMAP.md`'s Completion Log entry for full test counts and
+the acceptance/regression re-drive.
 
 ## Goal
 

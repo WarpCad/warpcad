@@ -97,6 +97,8 @@ import { computed, ref, watch } from 'vue'
 import { useSelectedBody } from '../../composables/useSelectedBody.js'
 import { useSelectionStore } from '../../stores/selection.js'
 import { useHiddenPartVisibilityStore } from '../../stores/hiddenPartVisibility.js'
+import { useAlignReferenceStore } from '../../stores/alignReference.js'
+import AlignToOrigin from './AlignToOrigin.vue'
 import { useDocumentStore } from '../../stores/document.js'
 import { useSketchPreviewStore } from '../../stores/sketchPreview.js'
 import { useTransformCommands } from '../../composables/useTransformCommands.js'
@@ -139,8 +141,28 @@ const selection = useSelectionStore()
 const described = useSelectedBody()
 const documentStore = useDocumentStore()
 const hiddenPartVisibility = useHiddenPartVisibilityStore()
+const alignReference = useAlignReferenceStore()
 const sketchPreview = useSketchPreviewStore()
 const sketchCommands = useSketchCommands()
+
+// --- Align-to-origin's Reference hand-off (TODO/ui-050) -------------------
+
+/**
+ * When the user drills into a named part (`TODO/ui-016`) and then steps back
+ * up, the Align-to-origin row's Reference preselects that part — "I tapped
+ * `mb`, now align from it" with no dropdown re-pick.
+ *
+ * This has to live here, in the always-mounted-while-single-selected parent,
+ * rather than inside `AlignToOrigin.vue` itself: that component is unmounted
+ * for exactly the state this watches (sub-part depth is where its own
+ * `showRow` is false), so it can never observe its own step-up transition.
+ */
+watch(
+  () => selection.subPart,
+  (next, previous) => {
+    if (!next && previous) alignReference.set(previous.bodyId, previous.partName)
+  },
+)
 
 // --- the sketch-entity branch (TODO/ui-020) -------------------------------
 
@@ -1095,6 +1117,15 @@ watch([() => body.value?.id, colorPart], () => {
               </label>
             </dd>
           </dl>
+
+          <!-- Align to origin (`TODO/ui-050`) — self-gated, "absent, not
+               disabled" the same way the Hidden-parts section above is: it
+               renders nothing at 2+ selected or at sub-part depth, both of
+               which are already impossible here (this whole branch is
+               `v-else-if="body"`, and `isSubPart` freezes everything else in
+               this section), and nothing for a bare solid's own Reference
+               dropdown, so it needs no extra guard from this file. -->
+          <AlignToOrigin />
         </section>
 
         <p v-if="isSubPart" class="inspector__note" data-testid="inspector-transform-note">

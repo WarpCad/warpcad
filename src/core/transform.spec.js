@@ -2,8 +2,9 @@ import modeling from '@jscad/modeling'
 import { describe, expect, it } from 'vitest'
 
 import { createDocument } from './document.js'
-import { boundsOf } from './kernel/group.js'
+import { boundsOf, isGroup } from './kernel/group.js'
 import {
+  alignToOriginRecord,
   moveToRecord,
   positionOf,
   rotateToRecord,
@@ -140,6 +141,20 @@ function expectSameAxes(actual, expected) {
       expect(actual[axis][component]).toBeCloseTo(expected[axis][component], 9)
     }
   }
+}
+
+/**
+ * Narrow an `OpRecord | null` to a real record, and assert it is one — every
+ * `alignToOriginRecord` case that expects a real (non-no-op) result needs
+ * this before it can `document.append` it, since the function's own return
+ * type is nullable for the no-op case (`TODO/ui-050`).
+ *
+ * @param {import('./kernel/registry.js').OpRecord | null} record
+ * @returns {import('./kernel/registry.js').OpRecord}
+ */
+function requireRecord(record) {
+  expect(record).not.toBeNull()
+  return /** @type {import('./kernel/registry.js').OpRecord} */ (record)
 }
 
 /**
@@ -367,5 +382,151 @@ describe('moveToRecord / rotateToRecord — the typed-field path', () => {
   it('rejects a typed value that is not a finite number', () => {
     const document = docWithCube()
     expect(() => moveToRecord(document, 'cube-1', [Number.NaN, 0, 20])).toThrow(/finite/)
+  })
+})
+
+describe('alignToOriginRecord (TODO/ui-050)', () => {
+  it('centres X/Y and puts the min face at 0 on Z, for a cube at an arbitrary position', () => {
+    const document = docWithCube({ centerMm: [12, -7, 33] }) // size 40, so bounds: x[-8,32] y[-27,13] z[13,53]
+    const record = alignToOriginRecord(document, 'cube-1', { x: 'center', y: 'center', z: 'min' })
+    document.append(requireRecord(record), { origin: 'local' })
+
+    const [min, max] = boundsOf(document.bodies()[0].geometry)
+    expect((min[0] + max[0]) / 2).toBeCloseTo(0, 6)
+    expect((min[1] + max[1]) / 2).toBeCloseTo(0, 6)
+    expect(min[2]).toBeCloseTo(0, 6)
+  })
+
+  it('"max" puts the max face at 0 on every requested axis', () => {
+    const document = docWithCube({ centerMm: [12, -7, 33] })
+    const record = alignToOriginRecord(document, 'cube-1', { x: 'max', y: 'max', z: 'max' })
+    document.append(requireRecord(record), { origin: 'local' })
+
+    const [, max] = boundsOf(document.bodies()[0].geometry)
+    expect(max[0]).toBeCloseTo(0, 6)
+    expect(max[1]).toBeCloseTo(0, 6)
+    expect(max[2]).toBeCloseTo(0, 6)
+  })
+
+  it('only touches the requested axes — X and Y are exactly unchanged when only Z is requested', () => {
+    const document = docWithCube({ centerMm: [12, -7, 33] })
+    const before = centreOf(document)
+    const record = alignToOriginRecord(document, 'cube-1', { z: 'min' })
+    document.append(requireRecord(record), { origin: 'local' })
+    const after = centreOf(document)
+
+    expect(after[0]).toBeCloseTo(before[0], 6)
+    expect(after[1]).toBeCloseTo(before[1], 6)
+    expect(after[2]).not.toBeCloseTo(before[2], 3)
+  })
+
+  /**
+   * The Pi case — the reason the Reference picker exists at all. In
+   * `raspberrypi.bplus.js`, `microsd` is snapped `outside+` under `mb`
+   * (`group.js`'s `SNAP_SIDES['outside+']`: reference's min face, moving
+   * part's max face), so the whole body's own min Z is 1.5 mm (the card's
+   * thickness) *below* the board's. "Snap the bottom of the motherboard to
+   * Z=0" has to measure from `mb` alone while moving the whole Pi.
+   */
+  it('the Pi case: aligning by the "mb" part alone leaves the whole body 1.5 mm below the board (the microsd)', () => {
+    const document = createDocument()
+    document.append(
+      { id: 'pi-1', op: 'raspberrypi.bplus', name: 'Raspberry Pi B+', params: { model: 4 } },
+      { origin: 'local' },
+    )
+    // The recipe's own coordinate convention already sits `mb`'s min Z at 0
+    // (its module doc: "board underside at the origin") — moving the Pi
+    // somewhere else first is what makes this the real "drop it anywhere,
+    // then align" scenario `TODO/ui-050` was requested for, rather than a
+    // no-op that happens to look right.
+    document.append(translateRecord(document, 'pi-1', [50, -30, 25]), { origin: 'local' })
+
+    const record = requireRecord(alignToOriginRecord(document, 'pi-1', { z: 'min', partName: 'mb' }))
+    document.append(record, { origin: 'local' })
+
+    const body = document.bodies()[0]
+    const geometry = body.geometry
+    if (!isGroup(geometry)) throw new Error('expected the Pi body to be a Group')
+    const [mbMin] = boundsOf(geometry.parts.mb)
+    const [wholeMin] = boundsOf(body.geometry)
+    expect(mbMin[2]).toBeCloseTo(0, 6)
+    expect(wholeMin[2]).toBeCloseTo(-1.5, 6)
+  })
+
+  it('a rotated body (45° about X) aligns its evaluated world bounds, not its local ones', () => {
+    const document = docWithCube()
+    document.append(rotateRecord(document, 'cube-1', [45, 0, 0]), { origin: 'local' })
+    const record = alignToOriginRecord(document, 'cube-1', { z: 'min' })
+    document.append(requireRecord(record), { origin: 'local' })
+
+    const [min] = boundsOf(document.bodies()[0].geometry)
+    expect(min[2]).toBeCloseTo(0, 6)
+  })
+
+  it('is a no-op — returns null and appends nothing — when every requested axis is already aligned', () => {
+    const document = docWithCube({ centerMm: [0, 0, 33] }) // bounds z: [13, 53] — not aligned yet
+    const first = alignToOriginRecord(document, 'cube-1', { z: 'min' })
+    document.append(requireRecord(first), { origin: 'local' })
+    const recordCountAfterFirst = document.records.length
+
+    // Now min Z really is 0 — a second identical tap must change nothing.
+    const second = alignToOriginRecord(document, 'cube-1', { z: 'min' })
+    expect(second).toBeNull()
+    expect(document.records.length).toBe(recordCountAfterFirst)
+  })
+
+  it('an unknown partName falls back to the whole body rather than throwing', () => {
+    const document = createDocument()
+    document.append(
+      { id: 'pi-1', op: 'raspberrypi.bplus', name: 'Raspberry Pi B+', params: { model: 4 } },
+      { origin: 'local' },
+    )
+    document.append(translateRecord(document, 'pi-1', [50, -30, 25]), { origin: 'local' })
+
+    const whole = alignToOriginRecord(document, 'pi-1', { z: 'min' })
+    const unknown = alignToOriginRecord(document, 'pi-1', { z: 'min', partName: 'not-a-real-part' })
+    expect(unknown).not.toBeNull()
+    expect(unknown?.params?.vector).toEqual(whole?.params?.vector)
+  })
+
+  it('a near-zero-thickness reference measures a finite delta — never NaN', () => {
+    const document = createDocument()
+    document.append(
+      {
+        id: 'flat-1',
+        op: 'primitive.cuboid',
+        name: 'Flat 1',
+        params: { size: [40, 40, 1e-6], center: [0, 0, 10] },
+      },
+      { origin: 'local' },
+    )
+    const record = alignToOriginRecord(document, 'flat-1', { x: 'center', y: 'center', z: 'min' })
+    expect(record).not.toBeNull()
+    for (const component of /** @type {number[]} */ (record?.params?.vector)) {
+      expect(Number.isFinite(component)).toBe(true)
+    }
+    expect(record?.params?.vector[2]).toBeCloseTo(-10, 3)
+  })
+
+  it('never lets a signed zero leak into the translation vector', () => {
+    // A cube whose max Z is exactly 0 before the align: `-refMax[2]` computes
+    // as `-0` before normalisation. X is also requested and does move, so the
+    // record is real and its vector is inspectable.
+    const document = docWithCube({ centerMm: [10, 0, -20] }) // bounds x:[-10,30] z:[-40,0]
+    const record = alignToOriginRecord(document, 'cube-1', { x: 'center', z: 'max' })
+    expect(record).not.toBeNull()
+    expect(record?.params?.vector[2]).toBe(0)
+    expect(Object.is(record?.params?.vector[2], -0)).toBe(false)
+  })
+
+  it('marks the record so timelineLabel can tell it apart from an ordinary move', () => {
+    const document = docWithCube({ centerMm: [12, -7, 33] })
+    const record = alignToOriginRecord(document, 'cube-1', { z: 'min' })
+    expect(record?.op).toBe('transform.translate')
+    expect(record?.params?.alignedTo).toBe(true)
+    // Still carries everything an ordinary translate record must, so gizmo/
+    // field sync and replay cannot tell the two apart structurally.
+    expect(record?.params?.rotation).toEqual([0, 0, 0])
+    expect(record?.supersedes).toBe('cube-1')
   })
 })

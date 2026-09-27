@@ -511,6 +511,43 @@ describe('describeBody — hiddenParts (TODO/ui-047)', () => {
   })
 })
 
+describe('describeBody — visibleParts (TODO/ui-050)', () => {
+  it('lists a Raspberry Pi B+’s visible parts in group order, and never the hidden clearance', () => {
+    const document = createDocument()
+    document.append(
+      { id: 'pi-1', op: 'raspberrypi.bplus', name: 'Raspberry Pi B+', params: { model: 4 } },
+      { origin: 'local' },
+    )
+    const description = describeBody(document.bodies()[0])
+
+    // `mb` (the board) is real, visible, and in the Reference dropdown.
+    expect(description.visibleParts).toContain('mb')
+    expect(description.visibleParts).toContain('microsd')
+    // A hidden clearance part is never offered — the whole reason a Reference
+    // picker exists is to measure from a *visible* part's own bounds.
+    expect(description.visibleParts).not.toContain('clearance-ethernet')
+    // The exact mirror image of hiddenParts, and disjoint from it.
+    for (const name of description.hiddenParts) {
+      expect(description.visibleParts).not.toContain(name)
+    }
+  })
+
+  it('is empty for a Cube — a bare solid has no parts to offer as a Reference', () => {
+    const { body } = placed('primitive.cuboid')
+    expect(describeBody(body).visibleParts).toEqual([])
+  })
+
+  it('describeSubPart never reports visibleParts — a part has no parts of its own', () => {
+    const document = createDocument()
+    document.append(
+      { id: 'bolt-1', op: 'hardware.bolt', name: 'Bolt 1', params: { spec: 'm10 hex', length: 20 } },
+      { origin: 'local' },
+    )
+    const body = document.bodies()[0]
+    expect(describeSubPart(body, 'head', document.records).visibleParts).toEqual([])
+  })
+})
+
 describe('describeSelection', () => {
   it('is empty when nothing is selected', () => {
     const { document } = placed('primitive.cuboid')

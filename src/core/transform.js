@@ -55,7 +55,7 @@
  * @module core/transform
  */
 
-import { boundsOf } from './kernel/group.js'
+import { boundsOf, isGroup } from './kernel/group.js'
 import { composeDeg, relativeDeg } from './rotation.js'
 
 /** @typedef {import('./document.js').WarpDocument} WarpDocument */
@@ -232,6 +232,96 @@ export function rotateToRecord(document, bodyId, targetDeg) {
   const target = requireVec3(targetDeg, 'a rotation')
   const current = rotationOf(document, bodyId)
   return rotateRecord(document, bodyId, relativeDeg(target, current))
+}
+
+/**
+ * @typedef {object} AlignSpec
+ * @property {'min' | 'center' | 'max'} [x] Where the reference's X face/centre
+ *   should land on world X = 0. Omitted axes are left alone.
+ * @property {'min' | 'center' | 'max'} [y]
+ * @property {'min' | 'center' | 'max'} [z]
+ * @property {string} [partName] Which named part of the body's group to
+ *   measure from. Omitted, or naming a part the body's *current* evaluated
+ *   group does not have, means "Whole object" — the body's own
+ *   {@link boundsOf}, exactly what {@link positionOf} measures. Never throws
+ *   on an unknown name: `AlignToOrigin.vue` is a single-tap control with no
+ *   confirm step (`TODO/ui-050`), so a stale part name left over from an undo
+ *   or a param edit has to degrade quietly to the whole body rather than take
+ *   the tap down.
+ */
+
+/**
+ * Move a body so that one reference — the whole body, or one named part of
+ * its group — lands its minimum face, centre, or maximum face at world 0 on
+ * each requested axis (`TODO/ui-050`, the Inspector's **Align to origin** row).
+ *
+ * This is the same kind of record {@link moveToRecord} builds, not a new op:
+ * a baked `transform.translate` delta, so the gizmo, the typed Position
+ * fields and this control can never drift apart (CLAUDE.md, "Gizmo drag and
+ * numeric-field edits must drive the same underlying transform"), and Undo,
+ * save/reload and replay all already work for it. `params.alignedTo` is set
+ * so `src/core/timelineLabel.js` can print "Align to origin" instead of the
+ * plain "Move" a caller cannot otherwise tell this apart from.
+ *
+ * The reference's bounds are measured on the body's **current evaluated**
+ * geometry — already rotated, if it has been — never
+ * {@link import('./kernel/group.js').localBoundsOf}: "sit on Z = 0" is a
+ * world-axis claim, and a tilted part's world-axis box is exactly what a flat
+ * grid means by "sitting on it".
+ *
+ * @param {WarpDocument} document
+ * @param {string} bodyId Lineage root id.
+ * @param {AlignSpec} spec
+ * @returns {OpRecord | null} `null` when every requested axis is already
+ *   aligned to within 1e-6 mm — the Inspector must append nothing for a tap
+ *   that would be a no-op, so Undo does not fill with invisible steps.
+ */
+export function alignToOriginRecord(document, bodyId, spec) {
+  const body = bodyOf(document, bodyId)
+  const geometry = body.geometry
+  const partName = typeof spec.partName === 'string' ? spec.partName : undefined
+  // Unknown or absent partName falls back to the whole body, silently — see
+  // AlignSpec's own doc on why this never throws.
+  const referenceGeometry =
+    partName !== undefined && isGroup(geometry) && geometry.parts[partName]
+      ? geometry.parts[partName]
+      : geometry
+  const [refMin, refMax] = boundsOf(referenceGeometry)
+
+  const AXES = /** @type {const} */ (['x', 'y', 'z'])
+  // "No-op tap within 1e-6 appends nothing" (TODO/ui-050's Interaction model).
+  const EPSILON_MM = 1e-6
+  /** @type {Vec3Mm} */
+  const delta = [0, 0, 0]
+  let changed = false
+
+  for (let axisIndex = 0; axisIndex < 3; axisIndex += 1) {
+    const mode = spec[AXES[axisIndex]]
+    if (mode === undefined) continue
+
+    let value
+    if (mode === 'min') value = -refMin[axisIndex]
+    else if (mode === 'center') value = -(refMin[axisIndex] + refMax[axisIndex]) / 2
+    else if (mode === 'max') value = -refMax[axisIndex]
+    else {
+      throw new Error(
+        `alignToOriginRecord: unknown mode "${mode}" for axis "${AXES[axisIndex]}", ` +
+          `expected "min", "center" or "max"`
+      )
+    }
+
+    if (!Number.isFinite(value)) continue // a degenerate/empty reference measures nothing here
+    if (Math.abs(value) > EPSILON_MM) changed = true
+    // `+ 0` turns a `-0` into `0` — the same normalisation `boundsOf` itself
+    // applies, for the same reason: a signed zero must never leak into a
+    // vector a document record bakes in.
+    delta[axisIndex] = value + 0
+  }
+
+  if (!changed) return null
+
+  const record = translateRecord(document, bodyId, delta)
+  return { ...record, params: { ...record.params, alignedTo: true } }
 }
 
 /**

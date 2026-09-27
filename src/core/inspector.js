@@ -98,6 +98,18 @@ import { registry as defaultRegistry } from './kernel/registry.js'
  *   {@link describeSubPart}: drilling into one part already froze Transform and
  *   Parameters for the same reason (no record to target), and a part has no
  *   parts of its own to hide.
+ * @property {string[]} visibleParts The mirror image of
+ *   {@link BodyDescription.hiddenParts}: names of parts the group **does**
+ *   draw by default, in the same group-order — literally the group's own
+ *   `names` list (`TODO/ui-050`), not a re-derived one, so it can never drift
+ *   from what `combine()`/`boundsOf()` actually union. Feeds the Inspector's
+ *   Align-to-origin **Reference** dropdown, which offers one option per entry
+ *   here plus "Whole object" — a hidden part is never offered, because
+ *   `boundsOf()` already ignores it and nobody means "put the invisible
+ *   clearance on the floor". `[]` for a bare solid (the select is hidden
+ *   rather than showing a one-option dropdown) and always `[]` on a
+ *   description built by {@link describeSubPart}, for the same reason
+ *   {@link BodyDescription.hiddenParts} is.
  * @property {{ color: number, colorAlpha?: number }} [recipeColor] The recipe's
  *   own baked-in colour for whatever this description is *of* (`TODO/render-003`):
  *   the drilled-into part's colour from `describeSubPart`, or, from `describeBody`,
@@ -308,6 +320,10 @@ export function describeBody(body, ops = defaultRegistry) {
       ? recipeColorOf(geometry.colors, geometry.names[0])
       : undefined
   const hiddenParts = isGroup(geometry) ? [...hiddenNamesOf(geometry)] : []
+  // The exact list `boundsOf()`/`combine()` union by default — see this
+  // field's own doc comment on why it is that list itself, not a re-derived
+  // one (`TODO/ui-050`).
+  const visibleParts = isGroup(geometry) ? [...geometry.names] : []
 
   return {
     id: body.id,
@@ -319,6 +335,7 @@ export function describeBody(body, ops = defaultRegistry) {
     positionMm,
     rotationDeg,
     hiddenParts,
+    visibleParts,
     sizeMm: [max[0] - min[0], max[1] - min[1], max[2] - min[2]],
     boundsMm: [
       [min[0], min[1], min[2]],
@@ -463,6 +480,7 @@ export function describeSubPart(body, partName, records, ops = defaultRegistry) 
     positionMm,
     rotationDeg,
     hiddenParts: [],
+    visibleParts: [],
     sizeMm: [max[0] - min[0], max[1] - min[1], max[2] - min[2]],
     boundsMm: [
       [min[0], min[1], min[2]],

@@ -77,6 +77,35 @@ describe('timeline row labels (TODO/ui-032)', () => {
     expect(describeRow(move2, index)).toBe('Move Cube 1')
   })
 
+  it('reads a baked align-to-origin translate as "Align to origin", not "Move" (TODO/ui-050)', () => {
+    // `src/core/transform.js`'s `alignToOriginRecord` builds the exact same
+    // shape of record a drag or a typed Position would — deliberately, so
+    // gizmo/field sync and Undo scoping are automatic — and sets
+    // `params.alignedTo` as the one flag that lets this row read differently
+    // from an ordinary move a user didn't make.
+    const align = {
+      id: 'move-9',
+      op: 'transform.translate',
+      supersedes: 'cuboid-1',
+      target: 'cuboid-1',
+      params: { vector: [0, 0, 13], rotation: [0, 0, 0], alignedTo: true },
+    }
+    const index = buildNameIndex([cube, align])
+    expect(describeRow(align, index)).toBe('Align to origin on Cube 1')
+  })
+
+  it('an ordinary move with no alignedTo flag still reads "Move", not "Align to origin"', () => {
+    const move = {
+      id: 'move-9',
+      op: 'transform.translate',
+      supersedes: 'cuboid-1',
+      target: 'cuboid-1',
+      params: { vector: [0, 0, 13], rotation: [0, 0, 0] },
+    }
+    const index = buildNameIndex([cube, move])
+    expect(describeRow(move, index)).toBe('Move Cube 1')
+  })
+
   it('calls a creation record that supersedes another an edit, not a second placement', () => {
     // `ui-029`'s in-place param edit reuses the *creation* op over the lineage's
     // terminal. Labelling it `Cylinder 1 — placed` would put two "placed" rows

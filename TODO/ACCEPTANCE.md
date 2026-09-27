@@ -985,6 +985,20 @@ depends on (`selectOption` + drag, twice) and passed 8/8, including its own
 sequential-touch-drag case — the mechanism this scenario needs is intact on that engine.
 Console clean.
 
+**Re-checked**: 2026-09-27 20:15 UTC (`ui-050`) — PASS. Re-driven because this task adds
+a **third writer** to the transform path (alongside the gizmo and the typed Position
+fields) that this scenario's Cube/Cylinder pair could plausibly collide through, and
+because the new Inspector row mounts inside the same panel this scenario's selection
+check reads. Hand-driven live against the real dev server (a throwaway Playwright
+driver, not the checked-in suite): dropped a Cube and a Cylinder on wandering paths,
+clicked empty space, then each in turn — **both stayed visible**, selecting one at a
+time retargeted the Inspector and gizmo, never both at once. Separately, with the Cube
+alone selected: dragged its gizmo's X arm, typed a Position Y value, tapped
+**Align to origin**'s Z-min button, then dragged the gizmo again — the Position X field
+and the mesh's own centre agreed at every step (`-2.21` both, before and after the
+second drag), the load-bearing claim this scenario's own Expect makes about the gizmo
+and fields never disagreeing. Console clean throughout.
+
 ### 2. Hardware property edit
 
 **Steps**:
@@ -2342,6 +2356,21 @@ depends on a body still being a group.
 
 **Re-checked**: 2026-09-27 17:15 UTC (`ui-048`): PASS for the group/drill-in half at laptop 1440x900 Chromium, phone 390x844 WebKit and tablet 820x1180 WebKit. A Raspberry Pi dropped in selected straight away. Its gizmo grew to arm 158.8 / ring 140.2 px at laptop and hit the cap (198 / 179.3) at tablet, with arrowheads still only 13.5-16.5 px. The first tap on the deselected board selected the **whole** group. The second tap narrowed it to the part `mb`, with the breadcrumb shown. The **Group** crumb stepped back up and the gizmo returned. The TODO's own premise that the gizmo "shrinks to that part alone" is stale: since `ui-016` a drilled-in sub-part deliberately shows dimension lines and **no** gizmo (`Viewport.vue`, the `body.subPart` branch). The floor size was checked on the cube instead, zoomed out: arm 58.0, ring 39.9, and the same 13.5 px head as at the cap. Console clean.
 
+**Re-checked**: 2026-09-27 20:15 UTC (`ui-050`) — PASS, drill-in/step-up hand-off half.
+Re-driven because this task's own Selection response hangs a brand-new behaviour off
+exactly the transition this scenario's steps 5-7 exercise: stepping back up from a
+drilled-in part now has to preselect that part as the Inspector's new Align-to-origin
+Reference. Drove a real Raspberry Pi (`raspberrypi.bplus`) live against the dev
+server: dropped it, clicked once (whole group selected, no breadcrumb, Align row shows
+**Whole object**), clicked the Objects list's `usb1` part row (breadcrumb
+`Raspberry Pi 1 ▸ usb1`, and — per this scenario's own Expect — the Align row is
+**absent**, not disabled, at that depth), then clicked the breadcrumb's group segment
+to step back up. The Align row reappeared with **Reference already set to `usb1`**,
+with no re-pick needed. Every clause of this scenario's own Expect held alongside the
+new behaviour: the first click never jumped to a sub-part, the second click narrowed
+correctly, and the breadcrumb's group segment stepped all the way back up. Console
+clean.
+
 ### 7. Touch-only viewport navigation
 
 **Steps**:
@@ -2786,6 +2815,18 @@ at `!`; **`ui-032`** — header cluster order Undo, Redo, History, File, chip pr
 open closes **only** the menu (the preview stays), the next Esc leaves the preview; while previewing, undo/redo
 are disabled, Save stays enabled and the menu says Save writes the current project.
 
+**Re-checked**: 2026-09-27 20:15 UTC (`ui-050`) — PASS, focused re-drive. Re-run because
+this task's baked `transform.translate` record is new document content this
+scenario's own reload/replay contract has to hold for, same as any other transform
+record. Dropped a Raspberry Pi live, used **Align to origin**'s shortcut (Reference
+`mb`) to move it, confirmed the History panel read exactly one new step labelled
+**"Align to origin on Raspberry Pi 1"**, then Undo restored the exact pre-align
+position (millimetre-identical `data-body-center` string). The record round-trips
+like any other `transform.translate`: it carries nothing `document.js`'s existing
+save/load path doesn't already know how to serialise (`params.vector` and the
+`alignedTo` flag are both plain JSON), so no new persistence code was needed and none
+was written. Console clean.
+
 ### 11. Export a solid and confirm it opens elsewhere
 
 Added 2026-09-17 alongside `TODO/ROADMAP.md`'s M6, same rule as scenario 10. Steps
@@ -3049,6 +3090,27 @@ the Library tab over the nav chrome.
 **Re-checked**: 2026-09-24 17:50 UTC: **PASS, all twelve steps** (`core-031`: every History row action, the Undo fallback and the row-click preview now reuse each unchanged record's build from a per-document fold cache instead of rebuilding the whole log). Production build, a fresh context each, wandering and overshooting drag paths. **Laptop 1440x900 Chromium (18/18 checks), laptop WebKit (18/18) and phone 390x844 WebKit with touch taps (18/18)**, console clean in all three. Rows in order (4). `Previewing step 2 of 3 — read-only` with the chamfered cube alone at exactly its live volume and Undo disabled (5). The edit to 3 mm raises the cube 62166.624 → 63315.973 (phone 62166.667 → 63315.999) with the Sphere's volume and bounds byte-identical (7). Undo/Redo and Cmd+Z 5↔3 mm (8). Suppress → 64000.000 with the chip, Unsuppress back to the 3 mm volume exactly (9). Roll back → 1 body, `Rolled back to step 2 of 3`; a Cone inserted at the marker (`step 3 of 4`); roll forward → all three, the Sphere untouched (10). Move up, then Undo restores the order (11). **Step 12** in its documented equivalent shape (the literal setup cannot arm; see the `ui-032` run above): Cube 2, a 4 mm top fillet, then Cube 2's row shrunk to 2×2 → `Step 6 (Fillet Top (+Z) 4 mm on Cube 2) can't be built: … radius 4mm is wider than the cross-section can absorb`, with the `broken` chip. It was refused **twice, identically** (a failure is never cached), and the live document was unchanged both times. (While the refused edit is open the viewport shows the read-only preview of step 5. That is by design, and it is why the check reads the document after **Back to latest**.) Then a valid edit (30×30) rebuilt the fillet. **Added for this task:** the warm-cache document was compared against a reload, which is a cold autosave-restore fold with an empty cache. Every body's volume and bounds were byte-identical in all three drives. Observed and not caused by this task: in headless Chromium the canvas is blank for the frame right after the preview or rollback strip is dismissed, because the viewport resize clears it. It renders by 500 ms, and pressing Back to latest alone, with no fold, does the same. This is logged in `TODO/VERIFY.md` for real hardware.
 
 **Re-checked**: 2026-09-25 13:56 UTC — **PASS, targeted (not a fresh 12-step drive)** (`data-005`: `paramEdit.js`'s `paramEditability` guard — the one this scenario's step 6/12 Edit action depends on — was extended to tolerate the new `style.recolor` record kind, since a colour override, unlike a fillet, never touches geometry and so cannot be lost by a rebuild). Re-run because that guard is exactly the mechanism steps 6 and 12 exercise, and this task changed its logic, not just added an unreachable record kind beside it. Hand-driven at laptop 1440x900 Chromium: a Cube and a Cylinder dropped (both visible, `data-body-count` 2), Cylinder selected, its Diameter edited `40 → 20` via the Inspector's Parameters field — the mesh visibly narrowed, the Transform section's Size field read back `20`, the gizmo and dimension lines resized to match, console clean (screenshot on file). This is the ordinary case, with no colour override present, confirming the guard's existing behaviour for every body that has never had one is unchanged. The full non-Firefox Playwright matrix (`guards` + `chromium`/`webkit` × laptop/tablet/phone) was re-run in full — **1245 passed, 202 skipped, 0 failed**, including `timeline-panel.e2e.js`, `undo-redo.e2e.js` and `inspector-param-edit.e2e.js`, which between them exercise this scenario's steps 4-12 as scripted specs. A fresh, full manual 12-step hand-drive was **not** repeated here — this task adds no reachable control and the guard's own new-versus-old behaviour is what a document-level unit test (`document.spec.js`, `paramEdit.spec.js`) proves directly, with a hand-built lineage carrying the new record kind through `modify.filletRim`'s exact freeze case this guard exists for.
+
+**Re-checked**: 2026-09-27 20:15 UTC (`ui-050`) — PASS, targeted re-drive plus the
+`core-004` closed-finding repro with an align step inserted. This scenario's own
+premise — a mid-history edit has to replay correctly downstream — is exactly what a
+baked `alignToOriginRecord` sits on top of: it is a plain `transform.translate` with
+no special fold-time behaviour, so it was checked against both halves live. **Replay
+half**: dropped a Cube, chamfered its top 5 mm, dropped a Sphere, then tapped
+**Align to origin**'s Z-min on the Sphere — History showed the new step appended
+after the Sphere's placement, in order, with no disturbance to the Chamfer row above
+it or its own volume. **`core-004` regression, with an align step inserted** (this
+task's own required check, since Align is a third writer onto the same
+`rotationDeg`-composition path `core-004` fixed): dropped a Cylinder, typed
+**Rotation Z = 90**, then **Rotation X = 90** — the out-of-order history `core-004`'s
+own worked example uses — and confirmed the Size row still read **40 / 40 / 50** (not
+the garbled 46.82/51.05/59.42 the original defect produced) with Rotation reading
+**90 / 0 / 90**. Then tapped **Align to origin**'s Z-min button: the Rotation fields
+read **exactly the same 90 / 0 / 90** afterward, and the Size row was still **40 / 40
+/ 50** — the align moved the body without touching its composed orientation, and the
+composition itself survived a third writer landing on top of it. Console clean; both
+checks driven live against the real dev server (a throwaway Playwright driver, not
+the checked-in suite).
 
 ### 13. Recolor a placed body
 

@@ -396,6 +396,68 @@ the numbers behave in a way that surprises people the first time.
 > the same way past half a turn, the number wraps round to the negative side rather than
 > counting on to 200° or 350°. It is the same orientation either way.
 
+### Align to origin
+
+Dragging or typing gets a shape *close* to the grid's origin. This row gets it there
+exactly — centred, or sitting flush on a face — in one tap, without doing the
+arithmetic yourself.
+
+With exactly one shape selected, the Transform section has a small **Align to
+origin** row underneath Position and Rotation. It has:
+
+- A **Reference** dropdown, only shown when the selected shape has more than one
+  named part (a Raspberry Pi, a Bolt). It defaults to **Whole object** — the shape's
+  own outer box — and offers one entry per part the shape actually draws. A part
+  that only exists to be subtracted (a bolt's `tap`, a washer's `clearance`) is
+  never in the list: measuring "flush on the grid" from an invisible clearance hole
+  would not mean what a user means by it.
+- Nine small buttons, three per axis (**X**, **Y**, **Z**), each labelled **min**,
+  **ctr** (centre) or **max**. **min** moves the shape so the Reference's
+  smaller-coordinate face lands on 0 for that axis; **max** does the same for its
+  larger-coordinate face; **ctr** centres it on 0 instead.
+- A shortcut button, **Center on origin, sit on grid**, above the grid of nine. It
+  does the single most common combination — X centre, Y centre, Z min — in one tap.
+
+Every button commits immediately: there is no extra confirm step, and pressing
+**Undo** afterwards is the way back. Tapping a button that would not actually move
+anything (the shape is already sitting exactly there) does nothing at all — it does
+not add an empty step to Undo. The Reference you pick is remembered for that shape for
+as long as the page stays open, so aligning the same shape on X and then separately on
+Z does not mean re-picking the part in between; stepping into one of the shape's own
+parts (see [Hidden parts](#hidden-parts) and the Objects list below) and then back out
+also sets Reference to whichever part you were just looking at.
+
+**Convention**: positions here are millimetres, Z is up, and **min** always means the
+face with the smaller coordinate — the underside on Z, the left face on X.
+
+Aligning several selected shapes at once, as one combined unit, is not supported —
+select one shape at a time, or first combine them into a group and align the group.
+
+> To align one shape *against another shape* instead of against the grid's origin,
+> that is Snap and Align, a different pair of buttons — see
+> [Snap and Align](snap-align.md).
+
+#### Worked example: sit a Raspberry Pi's board flush on the grid, centred
+
+The Raspberry Pi is the reason this row measures from a *part*, not just the whole
+shape's outer box: its micro-SD card is drawn hanging a little below the board, so the
+shape's own outer box is not the same as "where the board itself sits."
+
+1. Drag a **Raspberry Pi** from the Library and drop it anywhere.
+2. Click it so the Inspector shows **Raspberry Pi 1**.
+3. Under **Transform ▸ Align to origin**, set **Reference** to `mb` (the board itself —
+   every part of the Pi keeps the short name its own recipe gave it, the same names
+   the Objects list and Snap/Align show).
+4. Tap **X ctr**, then **Y ctr**, then **Z min**.
+
+The board's own footprint is now centred on the grid's origin in X and Y, and its
+underside sits exactly on Z = 0. **Position Z** in the Inspector will not read `0` —
+it reads the whole Pi's own box centre, and the micro-SD card hangs about 1.5 mm below
+the board, so the whole shape's box starts a little below the grid even though the
+board itself is flush with it. Press **Undo** three times to put the Pi back where it
+started — or next time, with Reference already remembered as `mb`, tap **Center on
+origin, sit on grid** once instead: it does all three in a single step.
+
 ## Worked example
 
 1. Drag a **Cylinder** out of the Library and drop it on the grid.

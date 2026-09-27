@@ -170,3 +170,6 @@ still selects only that one.
   is the after-the-fact counterpart to.
 - [Selecting a shape, and reading its size](selection-and-inspector.md) — what
   selection does, and reading a shape's new position after a move.
+- To align one shape to the **grid's origin** rather than to another shape, that
+  is a different control — the Inspector's own **Align to origin** row, see
+  [Selecting a shape, and reading its size § Align to origin](selection-and-inspector.md#align-to-origin).
