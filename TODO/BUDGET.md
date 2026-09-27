@@ -594,3 +594,18 @@ Independently re-verified by this loop:
 Acceptance (agent-reported): scenario 3 PASS at laptop Chromium and phone WebKit. The screenshots were inspected: the board is translucent with coloured jacks and headers read through it. Scenario 13 PASS, its first drive on a Pi sub-part (`hole1` `#ffa500` → blue → Reset → `#ffa500`). Scenario 1 PASS. The `core-020` repro on `bplus` PASS (33 parts, no leak). The attribution "Claude Sonnet 5" is correct.
 
 | 2026-09-26 12:52 | 2026-09-26 16:58 | `ui-047`, `core-033` | wall-clock reached (~3.5h of it was the session-limit wait during `core-033`); closed at 2 of 3 | no: M7 still has `core-027`, `core-028`, `ui-038`, `ui-039`, `render-002`, and the new `render-005` open |
+
+Note: at the start of this batch (2026-09-27 ~18:40 UTC) the loop asked instead of taking the mechanical pick. Roadmap order gave `core-027` (low), while the user had six uncommitted, high-priority TODOs, two of them (`ui-049`, `ui-050`) with no ROADMAP row. The user chose **`ui-050`** and **"commit them first"**, both recorded here rather than assumed. The loop added ROADMAP rows for `ui-049`/`ui-050` and committed the planning files as `93362bc` before spawning.
+
+Note on `ui-050`: commits `be5f423` (feat) and `c0736e7` (social drafts, separate). A fresh sonnet agent ran it from 19:01 to 20:15 UTC (**1h14m**). It adds the Inspector's **Align to origin** row: a Reference select over visible parts, a 3×3 min/center/max grid, and a **Center on origin, sit on grid** shortcut. Each tap is one baked `transform.translate` record with `params.alignedTo`, labelled "Align to origin" in History. The Reference is remembered per body in a UI-only store, and it hands off from a drilled-into part. The spec's `board` part name was wrong. The Pi's board part is `mb` (confirmed in the recipes), and the agent built against `mb` and noted it in the retired spec.
+
+Independently re-verified by this loop:
+- `git show --stat be5f423`: 18 intended files, with the user's untracked files excluded.
+- Typecheck is clean, and the unit suite passes 1864/1864, matching the agent.
+- `e2e/align-to-origin.e2e.js` passes 42/42 on the six chromium/webkit projects. The agent's full matrix was 1347 passed, 279 skipped and 706 failed. 699 of the failures are the known Firefox launch defect. The other 7 were `webkit-phone` timeouts under the agent's own concurrent driver load, and a clean isolated re-run of that project gave 209/50/0.
+- Read the `transform.js` and `Inspector.vue` diffs. The fix bakes a delta from world `boundsOf`, and an unknown part falls back to the whole body without throwing.
+- Caveat: the agent's "RED" failures were fixture mistakes it then corrected, not failures of a missing implementation. Coverage is still real, but the RED step was weaker than the process asks.
+
+Acceptance (agent-reported): scenarios 1, 6, 10 and 12 PASS. The `ui-012` repro (drag, type, align, drag) PASS. The `core-004` repro (Z90 then X90, then align Z-min, with Rotation still reading `90/0/90`) PASS. `VERIFY.md` has one entry with four rows: the iOS native picker, label legibility, crowding at the 820 px tablet width, and desktop Firefox. The attribution "Claude Sonnet 5" is correct.
+
+| 2026-09-27 18:36 | | `ui-050` | | no: M7 in progress |
