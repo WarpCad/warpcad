@@ -1000,3 +1000,16 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** typed Position only ever set the bounding-box centre, and Snap/Align needs exactly two bodies with neither being the origin → `src/core/transform.js`/`docs/snap-align.md`, existing code; user request 2026-09-27, worked example is the Pi/micro-SD case → `TODO/done/ui-050-align-to-origin.md`'s own Goal section, quoted; micro-SD hangs 1.5mm below the board (`mb` min Z 0, whole body min Z -1.5) → measured this session via `boundsOf()` on a real `raspberrypi.bplus` body, and pinned by a new `transform.spec.js` test; one tap commits one record, reusing the existing `transform.translate` shape (gizmo/field sync, Undo, replay all unchanged) → diff, this session; full regression check → 1864 unit tests (was 1840, +24), typecheck clean, 0 Chromium failures across the full 27-file/3-viewport e2e matrix, Firefox environment-blocked as every task since `ui-028`
 **To Add:** a screenshot of the Align to origin row with a Raspberry Pi selected and Reference set to `mb`
+
+## [2026-09-27T22:36:43Z] — The Inspector lists the scene, and a tap that pretended to be a mouse
+
+**Post:** WarpCad's Inspector now lists the whole scene. Point at a row and that body, or one part of it, lights up in the 3D view, even inside a case.
+
+Driving it at phone size, taps lit rows up too: after a tap the browser keeps a phantom mouse. Fixed.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** one list, pointing lights body or part → diff (`ObjectList.vue`, `stores/hoverHighlight.js`, `Viewport.vue`) and `e2e/inspector-object-list.e2e.js`; two panels answering one question → `TODO/done/ui-049` Goal; phantom mouse after a tap → pointer-event logs captured this session at 390x844 in Playwright WebKit and Chromium (mouse-typed pointerover/pointerenter, and a WebKit pointermove, at the tap point after the reflow); name squeezed to nothing → drive screenshot this session plus the new e2e failing at all three widths on the old CSS; ~90 ms on enter/leave of the Pi's translucent board → `bench/hover-sweep.mjs` 1× run this session (p99 90.0, worst 105.7 ms) and a frame/hover log; recompile is inferred, not CPU-profiled; p99 19.6 vs 18.5 ms → `bench/results/2026-09-27-ui-049.md` (Apple M4 Pro, headless Chromium, production build, 5 runs)
+**To Add:** a short clip of pointing down a Raspberry Pi's part list with each part lighting up; repo/docs URLs once public

@@ -1349,3 +1349,18 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** min/center/max per axis plus a one-tap shortcut → `src/components/inspector/AlignToOrigin.vue` diff, this session; micro-SD modeled ~1.5mm below the board (`mb` min Z 0, whole body min Z -1.5) → measured this session via `boundsOf()` on a real `raspberrypi.bplus` body, pinned by a new `transform.spec.js` test case; Reference falls back to the whole body on an unknown part name rather than throwing → `alignToOriginRecord`'s own fallback branch, diff, this session; one translate record reusing the existing gizmo/field-sync shape → `src/core/transform.js`'s `alignToOriginRecord`, diff; 1864 unit tests (was 1840, +24), typecheck clean → this session's test run; zero Chromium failures across the full 27-file/3-viewport e2e matrix, Firefox environment-blocked (pre-existing, `TROUBLESHOOTING.md` 2026-09-17) → this session's full matrix run plus an isolated re-run confirming 7 apparent WebKit failures were resource-contention flakes, not regressions
 **To Add:** a before/after screenshot of a freshly-dropped Raspberry Pi, then aligned with Reference set to `mb`
+
+## [2026-09-27T22:36:43Z] — One list instead of two, and three bugs the green suite missed
+
+**Post:** WarpCad had two panels answering one question. The Objects panel listed every body and its parts, and the Inspector listed only a selected body's hidden parts. They are one list now, inside the Inspector. Pointing at a row lights that body, or just that part, in the 3D view. That includes a body sitting completely inside another one, where tinting its front faces alone would change nothing on screen.
+
+The test suite was green before the hand-drive. Driving the app and one benchmark still found three things it had missed. At phone size, a tap lit up the row below the one tapped: after a tap the browser keeps a phantom mouse at that point and fires mouse events at whatever slides under it when the panel reflows. In the narrow Inspector column, a group's size squeezed its name to nothing. And hovering the Raspberry Pi's translucent board cost about 90 ms on the way in and again on the way out, which looks like a shader program being thrown away and rebuilt each time.
+
+All three are fixed and have regression tests. On the production build the hover sweep's 99th-percentile frame is 19.6 ms, against 18.5 ms for the same pointer path with no hover at all.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL #Vue #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** one list, pointing lights body or part → diff (`ObjectList.vue`, `stores/hoverHighlight.js`, `Viewport.vue`) and `e2e/inspector-object-list.e2e.js`; two panels answering one question → `TODO/done/ui-049` Goal; phantom mouse after a tap → pointer-event logs captured this session at 390x844 in Playwright WebKit and Chromium (mouse-typed pointerover/pointerenter, and a WebKit pointermove, at the tap point after the reflow); name squeezed to nothing → drive screenshot this session plus the new e2e failing at all three widths on the old CSS; ~90 ms on enter/leave of the Pi's translucent board → `bench/hover-sweep.mjs` 1× run this session (p99 90.0, worst 105.7 ms) and a frame/hover log; recompile is inferred, not CPU-profiled; p99 19.6 vs 18.5 ms → `bench/results/2026-09-27-ui-049.md` (Apple M4 Pro, headless Chromium, production build, 5 runs)
+**To Add:** screenshot of the Inspector listing a Pi's parts with one row hovered and that part lit in the 3D view; repo/docs URLs once public
