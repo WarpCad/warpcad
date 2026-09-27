@@ -20,14 +20,11 @@ import FileMenu from '../components/storage/FileMenu.vue'
 import { bootStorage } from '../composables/useStorageBoot.js'
 import HistoryControls from '../components/layout/HistoryControls.vue'
 import LibraryPanel from '../components/layout/LibraryPanel.vue'
-import ObjectsPanel from '../components/layout/ObjectsPanel.vue'
-import ObjectsToggle from '../components/layout/ObjectsToggle.vue'
 import TimelinePanel from '../components/timeline/TimelinePanel.vue'
 import TimelineStrips from '../components/timeline/TimelineStrips.vue'
 import TimelineToggle from '../components/timeline/TimelineToggle.vue'
 import Viewport from '../components/viewport/Viewport.vue'
 import { useHostedStore } from '../stores/hosted.js'
-import { useObjectsPanelStore } from '../stores/objectsPanel.js'
 import { usePersistenceStore } from '../stores/persistence.js'
 import { useTimelineStore } from '../stores/timeline.js'
 
@@ -97,19 +94,12 @@ const libraryCollapse = ref(0)
 const timeline = useTimelineStore()
 
 /**
- * The Objects list is the fourth panel and does **not** get a fourth slot
- * (`TODO/ui-041`).
- *
- * It shares History's: the one bottom dock at ≥641px and the one bottom sheet at phone
- * width, with History's offsets, so the Library and Inspector tabs and the nav chrome
- * clear it exactly as they clear History. Both are things the user *asked* for, so
- * they are mutually exclusive rather than stacked — opening either closes the other
- * (which also ends a History preview, the same as closing History always does), and
- * everything else in the arbitration below treats "either is open" as "the slot is
- * claimed". `flush: 'sync'` so a toggle never renders a frame with both open.
+ * Three claimants for the one phone sheet slot — Library, History, Inspector. There
+ * used to be a fourth, the Objects panel (`TODO/ui-041`); `TODO/ui-049` folded its list
+ * into the Inspector, so the list now rides the Inspector's own sheet and needs no slot
+ * of its own.
  */
-const objects = useObjectsPanelStore()
-const sheetSlotClaimed = computed(() => libraryOpen.value || timeline.open || objects.open)
+const sheetSlotClaimed = computed(() => libraryOpen.value || timeline.open)
 
 /**
  * Whether an open sheet is pushing the viewport's nav chrome up off the bottom edge
@@ -122,28 +112,12 @@ const sheetSlotClaimed = computed(() => libraryOpen.value || timeline.open || ob
  * `≤640px` media query, so this flag being true at laptop width (the History dock is
  * "open" there too) changes nothing.
  */
-const navRaised = computed(
-  () => inspectorSheet.value === 'open' || timeline.open || objects.open,
-)
+const navRaised = computed(() => inspectorSheet.value === 'open' || timeline.open)
 
 watch(
   () => timeline.open,
   (open) => {
-    if (open) {
-      libraryCollapse.value += 1
-      objects.setOpen(false)
-    }
-  },
-  { flush: 'sync' }
-)
-
-watch(
-  () => objects.open,
-  (open) => {
-    if (open) {
-      libraryCollapse.value += 1
-      timeline.setOpen(false)
-    }
+    if (open) libraryCollapse.value += 1
   },
   { flush: 'sync' }
 )
@@ -151,28 +125,24 @@ watch(
 /**
  * Opening the phone Library sheet is the same deliberate claim, in the other direction.
  *
- * Found by hand-driving at 390px while building the Objects list: with History (or
- * Objects) open, tapping the Library tab put its sheet *behind* the panel — the tab and
- * half a list of shapes showing through the top of it. The hole was already there for
- * History (`ui-032` arbitrated three of the four directions); a fourth panel made it
- * worth closing, and it is the same three lines for both. Only ever fires at phone
- * width: at ≥641px the Library is a column and `libraryOpen` never turns on.
+ * Found by hand-driving at 390px while building the Objects list (`ui-041`): with
+ * History open, tapping the Library tab put its sheet *behind* the panel — the tab and
+ * half a list of shapes showing through the top of it. Only ever fires at phone width:
+ * at ≥641px the Library is a column and `libraryOpen` never turns on.
  */
 watch(
   libraryOpen,
   (open) => {
     if (!open) return
     timeline.setOpen(false)
-    objects.setOpen(false)
   },
   { flush: 'sync' }
 )
 
-/** Tapping the Inspector's tab is a deliberate claim on the slot — History and Objects yield. */
+/** Tapping the Inspector's tab is a deliberate claim on the slot — the Library and History yield. */
 function onInspectorClaim() {
   libraryCollapse.value += 1
   timeline.setOpen(false)
-  objects.setOpen(false)
 }
 </script>
 
@@ -191,7 +161,6 @@ function onInspectorClaim() {
            `ui-034`'s Export… joins) sit in between without moving either. -->
       <div class="app__document-bar" data-testid="document-bar">
         <HistoryControls />
-        <ObjectsToggle />
         <TimelineToggle />
         <FileMenu />
         <SaveStatus />
@@ -206,7 +175,6 @@ function onInspectorClaim() {
       class="app__body"
       :data-inspector-sheet="inspectorSheet"
       :data-timeline-sheet="timeline.open ? 'open' : 'none'"
-      :data-objects-sheet="objects.open ? 'open' : 'none'"
     >
       <LibraryPanel
         :collapse-signal="libraryCollapse"
@@ -217,7 +185,6 @@ function onInspectorClaim() {
       <div class="app__stage">
         <Viewport :nav-raised="navRaised" />
         <TimelinePanel />
-        <ObjectsPanel />
       </div>
       <Inspector
         :sheet-slot-claimed="sheetSlotClaimed"
@@ -385,8 +352,7 @@ function onInspectorClaim() {
     --bottom-panel-bottom: calc(var(--library-tab-height) + var(--inspector-tab-height));
   }
 
-  .app__body[data-timeline-sheet='open'],
-  .app__body[data-objects-sheet='open'] {
+  .app__body[data-timeline-sheet='open'] {
     --viewport-bottom-inset: calc(
       var(--bottom-panel-bottom) + var(--bottom-panel-height) + 12px
     );
@@ -413,15 +379,6 @@ function onInspectorClaim() {
      rather than shrunk, per the cross-cutting phone budget: title ~60px + Undo
      44 + Redo 44 + the controls still to come + gaps ≈ 320px at 390px wide. */
   .app__hint {
-    display: none;
-  }
-}
-
-@media (max-width: 359px) {
-  /* Below the 390px narrowest reference target, and only because `ui-041`'s Objects toggle
-     added a 44px control to a header that had 3px to spare at 320px (measured: 26px of
-     horizontal overflow with it). The brand yields; the controls do not. */
-  .app__title {
     display: none;
   }
 }

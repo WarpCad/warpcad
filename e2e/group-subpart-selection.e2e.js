@@ -184,8 +184,10 @@ test('a first click on an unselected group selects the whole group, never a sub-
 
   await clickViewportAt(page, CUBE_A.click.fx, CUBE_A.click.fy)
   await expect(page.getByTestId('viewport')).toHaveAttribute('data-selected-id', groupId)
-  // No breadcrumb: this is the whole-group contract, unchanged from `ui-015`.
-  await expect(page.getByTestId('inspector-breadcrumb')).toHaveCount(0)
+  // No part depth: this is the whole-group contract, unchanged from `ui-015`. (Since
+  // `ui-049` the breadcrumb itself is always there with its root `Objects` crumb; what
+  // must be absent is the part segment.)
+  await expect(page.getByTestId('inspector-breadcrumb-part')).toHaveCount(0)
   await expect(page.getByTestId('transform-gizmo')).toHaveCount(1)
 
   const lengths = await dimensionLengths(page)
@@ -255,9 +257,9 @@ test('the breadcrumb group segment steps back up, and empty space clears everyth
 
   await page.getByTestId('inspector-breadcrumb-group').click()
 
-  // Back to the whole-group contract: breadcrumb gone, gizmo reattached, and
+  // Back to the whole-group contract: the part segment gone, gizmo reattached, and
   // the dimension lines sized to the combined bounding box again.
-  await expect(page.getByTestId('inspector-breadcrumb')).toHaveCount(0)
+  await expect(page.getByTestId('inspector-breadcrumb-part')).toHaveCount(0)
   await expect(page.getByTestId('viewport')).toHaveAttribute('data-selected-id', groupId)
   await expect(page.getByTestId('transform-gizmo')).toHaveCount(1)
   expect(Math.max(...(await dimensionLengths(page)))).toBeGreaterThan(80)

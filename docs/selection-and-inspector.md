@@ -251,47 +251,61 @@ own built-in colour, not to the app's default.
 Parameters and Transform are read-only while you are looking inside a part. Color is the
 one row you can still change there, because a colour can belong to a single piece.
 
-## Hidden parts
+## Parts
 
-Some ready-made parts include a piece that is real, addressable geometry but is **not
-drawn** by default — a bolt's `tap` (the clearance envelope its thread actually needs)
-or a washer's `clearance`. Nothing about the shape on screen says one of these exists,
-unless you already know to open the Objects list's ▸ disclosure — so when exactly one
-shape with a hidden piece is selected, the Inspector adds a **Hidden parts** section
-of its own, right below Color.
+A ready-made shape built from named pieces, like a bolt (`head`, `thread`, `tap`) or a
+Raspberry Pi (`mb`, `ethernet`, `usb1`, `hdmi` and so on), gets a **Parts** section in
+the Inspector, right below Color, whenever exactly that one shape is selected. It lists
+**every** piece in the shape's own order: the ones you can see first, then any that are
+real geometry but are **not drawn** by default. Those carry a small **hidden** label. A
+bolt's `tap` (the clearance envelope its thread actually needs) and a washer's
+`clearance` are hidden pieces.
 
-The section is only there when it has something to say: a Cube, a Sphere, or any other
-shape with nothing hidden shows no such section at all — it is not there and greyed
-out, it simply is not there.
+A plain Cube, Sphere or any other one-piece shape has no Parts section at all. It is not
+there and greyed out. It simply is not there.
 
-- **The list** names every hidden piece, in the same order the Objects list's ▸
-  disclosure already uses. **Tap a name** to select just that piece, exactly like
-  tapping a piece row in the Objects list or clicking a shape a second time in the 3D
-  view — the breadcrumb changes to `Bolt 1 ▸ tap`, ready to use as an operand for
-  Union, Subtract or Intersect.
-- **Show hidden parts** is a toggle (a checkbox, sized as a full tap target). Turn it
-  on and every hidden piece of that shape appears in the 3D view as a **translucent
-  overlay in its own colour** — a bolt's `tap` reads as a soft red envelope around its
-  gray head and silver thread. Turn it off and the overlay disappears; the shape
-  itself is completely unaffected either way.
-- **This is a view setting, not a document change.** Turning the toggle on or off
-  writes nothing to the project and adds no step to **History** — there is nothing to
-  Undo. It stays on for that one shape until you turn it off again, even if you select
-  something else and come back later in the same session; reloading the page starts
-  every shape hidden again, the same as the camera position does.
+- **Tap a piece** to select just that piece. The breadcrumb changes to
+  `Objects ▸ Bolt 1 ▸ tap`, and the piece is ready to use as an operand for Union,
+  Subtract or Intersect. It is the same as clicking the shape a second time in the 3D
+  view, but it also reaches the pieces you cannot click, like the hidden ones.
+- **Tap the small box on the left of a piece** to add the shape to the selection
+  addressed at that piece, which is how a piece becomes the *second* operand of a
+  boolean. See [The Inspector's object list](#the-inspectors-object-list) for the order
+  rules.
+- **Point at a piece** with a mouse (or reach it with the keyboard's Tab key) and that
+  piece lights up in the 3D view in a violet tint, and only that piece. Pointing at a
+  hidden piece shows it as a translucent overlay for as long as you point at it, even
+  with **Show hidden parts** off, so you can see where a clearance is before you cut
+  with it. Touch screens have no pointing, so on a phone or tablet the tap itself is
+  the feedback.
+- **Show hidden parts** is a toggle above the list (a checkbox, sized as a full tap
+  target). It is only there when the shape has hidden pieces. Turn it on and every
+  hidden piece of that shape stays visible in the 3D view as a **translucent overlay in
+  its own colour**. A bolt's `tap` reads as a soft red envelope around its gray head and
+  silver thread. Turn it off and the overlay disappears; the shape itself is completely
+  unaffected either way.
+- **None of this changes your project.** Pointing at a piece, the toggle, and opening or
+  closing any list write nothing to the project and add no step to **History**, so there
+  is nothing to Undo. The toggle stays on for that one shape until you turn it off
+  again, even if you select something else and come back later in the same session.
+  Reloading the page starts every shape hidden again, the same as the camera position
+  does.
 
 ### Worked example: see and use a bolt's hidden clearance
 
-1. Drag a **Bolt** from the Library's **Hardware** section onto the grid and select
-   it. Under **Hidden parts** the Inspector lists **tap** — the bolt's clearance.
-2. Turn on **Show hidden parts**. A translucent red cylinder appears around the bolt:
-   that is the hole size it actually needs to slide through, not the size of its
-   visible metal.
-3. Tap **tap** in the list. The breadcrumb reads `Bolt 1 ▸ tap`, and the bolt is now
-   addressed at just that piece.
-4. Drag a **Cube** in to stand in for a case wall, select the cube first, then
-   Shift-click (or check, from the Objects list) the bolt back in so it lands second.
-   Press **Subtract** for a clearance-fit hole — see
+1. Drag a **Bolt** from the Library's **Hardware** section onto the grid. It arrives
+   selected, and under **Parts** the Inspector lists `head`, `thread`, and then four
+   pieces labelled *hidden*: `tap-head`, `tap-thread`, `tap-headClearSpace` and `tap`.
+2. With a mouse, point at the **tap** row. A translucent red cylinder, tinted violet
+   while you point at it, appears around the bolt: that is the hole size it actually
+   needs to slide through, not the size of its visible metal. Move the pointer away and it disappears again. To keep it on screen,
+   turn on **Show hidden parts** instead.
+3. Tap **tap** in the list. The breadcrumb reads `Objects ▸ Bolt 1 ▸ tap`, and the bolt
+   is now addressed at just that piece.
+4. Drag a **Cube** in to stand in for a case wall and select it. Tap **Objects** in the
+   breadcrumb (or the **Objects** bar at the top of the Inspector) to open the list, tap
+   ▸ on *Bolt 1*, and tap the small box on its **tap** row so it lands second. Press
+   **Subtract** for a clearance-fit hole. See
    [Combining shapes](booleans.md#cutting-with-just-one-part-of-a-multi-part-shape)
    for the full mechanics of cutting with one named piece.
 
@@ -424,7 +438,7 @@ anything (the shape is already sitting exactly there) does nothing at all — it
 not add an empty step to Undo. The Reference you pick is remembered for that shape for
 as long as the page stays open, so aligning the same shape on X and then separately on
 Z does not mean re-picking the part in between; stepping into one of the shape's own
-parts (see [Hidden parts](#hidden-parts) and the Objects list below) and then back out
+parts (see [Parts](#parts) and the object list below) and then back out
 also sets Reference to whichever part you were just looking at.
 
 **Convention**: positions here are millimetres, Z is up, and **min** always means the
@@ -447,7 +461,7 @@ shape's own outer box is not the same as "where the board itself sits."
 2. Click it so the Inspector shows **Raspberry Pi 1**.
 3. Under **Transform ▸ Align to origin**, set **Reference** to `mb` (the board itself —
    every part of the Pi keeps the short name its own recipe gave it, the same names
-   the Objects list and Snap/Align show).
+   the Inspector's Parts list and Snap/Align show).
 4. Tap **X ctr**, then **Y ctr**, then **Z min**.
 
 The board's own footprint is now centred on the grid's origin in X and Y, and its
@@ -513,28 +527,48 @@ current selection rather than adding to it.
 
 Dragging a box over nothing clears the selection, the same as clicking empty space.
 
-## Selecting a shape you cannot click: the Objects list
+## The Inspector's object list
 
-A shape that sits **completely inside** another one cannot be clicked, from any angle —
+The Inspector is also where you find **every shape in your model**, listed by name. It
+answers "what is in here?", and it is the way to select a shape you cannot click.
+
+A shape that sits **completely inside** another one cannot be clicked, from any angle:
 your click always lands on the outer shape first. A bolt standing inside a case shell is
 the usual example, and it is exactly the shape you most want to select, to cut it out of
-the shell. The **Objects** list is the way in: it names every shape in your model, and
-tapping a name selects that shape, with no clicking in the 3D view at all.
+the shell. The object list names it, and tapping the name selects it with no clicking in
+the 3D view at all.
 
-Open it with the **Objects** button in the top bar (the cube icon, between Undo/Redo and
-History). On a laptop or tablet it opens as a strip along the bottom of the 3D view; on a
-phone it opens as a sheet from the bottom. Close it with the button again, or its **✕**.
-It starts closed each time you open the app.
+**Where it is:**
+
+- **With nothing selected**, the list *is* the Inspector. On a laptop or tablet it is the
+  right-hand column. On a phone, the Inspector's tab at the bottom of the screen reads
+  **Objects (3)** (with your own count). Tap it to open the list as a sheet. An empty
+  model has no tab, because there is nothing to list yet. Start from the Library.
+- **With one shape selected**, the Inspector shows that shape's details, and the list
+  folds into an **Objects** bar at the top of the Inspector. Tap the bar, or tap
+  **Objects** at the start of the breadcrumb above the shape's name, to open the list
+  again. Your selection stays as it is.
+- **With two or more selected**, the list is open under the Objects bar, because that is
+  where you can see which shape is first.
+
+**What you can do with a row:**
 
 - **Tap a row** to select that shape and *only* that shape. Everything you get from
-  clicking a shape happens: the Inspector fills in, the gizmo and dimension lines appear,
-  and the shape is highlighted.
-- **Tap the small box on the left of a row** to add that shape to the selection (or take it
-  out again). This is the way to select two shapes on a phone, where there is no Shift key
-  — and it works on a laptop too. On a laptop you can also Shift-, Ctrl- or Cmd-click the
-  row. The box shows a number: **1** is the shape that comes first (the one Subtract cuts
-  *from*), **2** and up are the rest — the same two colours the Operations toolbar uses.
-- You can mix the two routes freely: click one shape in the 3D view, then add a hidden one
+  clicking a shape happens: the Inspector switches to it, the gizmo and dimension lines
+  appear, and the shape is highlighted. The list then folds away so the shape's details
+  are in front of you.
+- **Tap the small box on the left of a row** to add that shape to the selection (or take
+  it out again). This is the way to select two shapes on a phone, where there is no Shift
+  key, and it works on a laptop too. On a laptop you can also Shift-, Ctrl- or Cmd-click
+  the row. Ticking a box keeps the list open, so the next box is one more tap. The box
+  shows a number: **1** is the shape that comes first (the one Subtract cuts *from*),
+  **2** and up are the rest, in the same two colours the Operations toolbar uses.
+- **Point at a row** with a mouse, or reach it with the Tab key, and that shape lights up
+  in the 3D view in a violet tint, even when it is hidden inside another shape. Point at
+  a piece row (see below) and only that piece lights up. Nothing is selected by pointing;
+  move away and the tint goes. Touch screens have no pointing, so on a phone the tap
+  itself is the feedback.
+- You can mix the routes freely: click one shape in the 3D view, then add a hidden one
   from the list, or the other way round.
 - Each row shows the shape's name and its size (width × depth × height, in millimetres),
   so you can tell a 40 mm shell from the small bolt inside it.
@@ -545,42 +579,59 @@ colour. A shape that is not hidden looks exactly as it always did.
 
 The list only shows shapes that are in your model *right now*. If you have suppressed a
 step, or rolled History back past it, that shape is not in the scene, so it is not in the
-list — a note at the bottom says how many steps are missing for that reason. The Objects
-list and the [History panel](timeline.md) share the same spot, so opening one closes the
-other. They are different lists: History is numbered *steps* you have taken; Objects is
-the *shapes* that result. Picking a History step never selects a shape, and picking a
-shape never selects a step.
+list, and a note at the bottom says how many steps are missing for that reason. The list
+and the [History panel](timeline.md) are different lists: History is numbered *steps* you
+have taken; the object list is the *shapes* that result. Picking a History step never
+selects a shape, and picking a shape never selects a step.
+
+### Worked example: find, point at and combine two shapes
+
+1. Drop a **Raspberry Pi** and a **Bolt** from the Library, then tap empty space in the 3D
+   view so nothing is selected. The Inspector lists both: *Raspberry Pi 1* and *Bolt 1*.
+   (On a phone, tap the **Objects (2)** tab first.)
+2. Move the pointer over **Bolt 1**. The bolt lights up violet in the 3D view.
+3. Tap **▸** on **Raspberry Pi 1** to list its pieces, then point at `ethernet`. Only the
+   Ethernet jack lights up, not the whole board.
+4. Tap `ethernet` to select just that piece. The Inspector shows
+   `Objects ▸ Raspberry Pi 1 ▸ ethernet`.
+5. Tap **Objects** in that breadcrumb to get back to the list, and tick **Bolt 1**'s box.
+   The box shows **2**, the Pi's shows **1**, and the Operations toolbar says
+   *2 selected*: the Ethernet jack is the base, the bolt the second operand.
 
 ### Worked example: cut a hidden bolt out of a shell
 
 You need a Cube (the shell) and a Bolt (the hardware) with the bolt entirely inside it. A
 drag always places a new shape flush against its neighbour, so build the overlap by hand:
 place a Cube and a Bolt, then use **Align** and **Snap** from the Operations toolbar (see
-[Precise placement: Snap and Align](snap-align.md)) to move the bolt inside the cube — or open a
-project that already has one inside the other.
+[Precise placement: Snap and Align](snap-align.md)) to move the bolt inside the cube, or
+open a project that already has one inside the other.
 
-1. Click the top bar's **Objects** button. Two rows appear: *Cube 1* and *Bolt 1*.
-2. Try clicking the bolt in the 3D view. You get the cube every time — the bolt is inside
-   it. That is the problem the list solves.
-3. **Tap the *Cube 1* row.** The cube is selected. The Operations toolbar says *1 selected*.
+1. Tap empty space so nothing is selected. The Inspector lists two rows: *Cube 1* and
+   *Bolt 1*.
+2. Try clicking the bolt in the 3D view. You get the cube every time, because the bolt is
+   inside it. That is the problem the list solves.
+3. **Tap the little box on the *Cube 1* row.** The cube is selected (*1 selected* in the
+   Operations toolbar) and the list stays open.
 4. **Tap the little box on the *Bolt 1* row.** The box turns teal and shows **2**; the
    *Cube 1* box shows **1**. The Operations toolbar now says *2 selected — first is the
-   base*, and **Subtract** lights up. In the 3D view the hidden bolt shows through the cube
-   as a teal tint.
+   base*, and **Subtract** lights up. In the 3D view the hidden bolt shows through the
+   cube as a teal tint.
 5. Press **Subtract**. The cube now has a bolt-shaped cavity, the *Bolt 1* row disappears
-   from the list (that shape has been used up), and the cube's volume has dropped by exactly
-   the bolt's volume. Press **Undo** to bring the bolt back.
+   from the list (that shape has been used up), and the cube's volume has dropped by
+   exactly the bolt's volume. Press **Undo** to bring the bolt back.
 
-If you only tap the *Bolt 1* row (step 3 on the bolt instead), the bolt alone is selected:
-its Inspector and gizmo appear, and you can move or rotate it — even though the cube is
-in front of it — by dragging the gizmo's arrows or typing into the Position boxes.
+If you tap the *Bolt 1* row itself instead of its box, the bolt alone is selected: its
+Inspector and gizmo appear, and you can move or rotate it, even though the cube is in
+front of it, by dragging the gizmo's arrows or typing into the Position boxes. On a phone,
+tap the Inspector's tab to lower the sheet first so the gizmo is in view; that keeps the
+selection.
 
 ### Picking one piece of a hidden shape
 
 A shape built from named pieces — a bolt's head/thread/`tap`, a Raspberry Pi's jacks and
 ports — normally opens those pieces by clicking it a *second* time in the 3D view (see
 [Combining shapes](booleans.md)). A shape that is completely hidden inside another one
-cannot be clicked even once, let alone twice, so the Objects list gives every row that
+cannot be clicked even once, let alone twice, so the object list gives every row that
 has pieces a small **▸** disclosure arrow at its right edge. Tap it to show the shape's
 pieces as indented rows underneath — including pieces that are themselves invisible
 (like a bolt's `tap` clearance), because those are exactly what you would want to
@@ -590,11 +641,12 @@ subtract with.
 Raspberry Pi B+ built entirely inside a case shell — the whole board, not just resting
 against a wall of it.
 
-1. Open **Objects**. Two rows appear: *Shell 1* and *Raspberry Pi B+*. Trying to click
-   the Pi in the 3D view gets you the shell every time.
-2. **Tap the *Shell 1* row first.** The shell is selected — *1 selected*. This step has
-   to come first: Subtract always cuts from whatever you selected *first*, and you want
-   the case to be what gets cut, not the board.
+1. With nothing selected, the Inspector lists two rows: *Shell 1* and *Raspberry Pi B+*.
+   Trying to click the Pi in the 3D view gets you the shell every time.
+2. **Tap the little box on the *Shell 1* row first.** The shell is selected
+   (*1 selected*) and the list stays open. This step has to come first: Subtract always
+   cuts from whatever you selected *first*, and you want the case to be what gets cut,
+   not the board.
 3. **Tap the ▸ next to *Raspberry Pi B+*.** Its pieces list opens underneath — `mb`,
    `ethernet`, `usb1`, `hdmi`, and so on, with a handful of invisible mounting pieces
    at the bottom (each labelled *hidden*).
@@ -606,8 +658,10 @@ against a wall of it.
    disappears from the list, used up like any Subtract operand.
 
 **Tap a piece row itself** (not its box) to select *only* that piece of that shape,
-replacing whatever was selected before — the same as tapping a plain row does for a
-whole shape. Tapping the parent's own row afterward steps back up to the whole shape.
+replacing whatever was selected before, the same as tapping a plain row does for a
+whole shape. The Inspector then shows that piece, and **Objects** in the breadcrumb
+takes you back to the list. Tapping the parent's own row there steps back up to the
+whole shape.
 A piece you have addressed stays named on its parent row (`› ethernet`) even while the
 pieces list is collapsed, so you can always see what a Subtract is about to cut with
 before you press it.
@@ -621,9 +675,9 @@ A hardware bolt's `tap` piece is worth calling out for the opposite reason from 
 pieces: cutting with the **whole** bolt (no piece selected) now cuts with its metal
 only, because `tap` — the full clearance envelope — is a hidden part and not part of
 that default. For a hole the bolt actually slides through rather than jams in, address
-`tap` explicitly — either via its ▸ disclosure row here, or from the Inspector's own
-[**Hidden parts**](#hidden-parts) section while the bolt is selected, which also lets
-you preview the clearance as a translucent overlay before you cut with it.
+`tap` explicitly: either via its ▸ disclosure row here, or from the Inspector's own
+[**Parts**](#parts) section while the bolt is selected. Pointing at the `tap` row in
+either place previews the clearance as a translucent overlay before you cut with it.
 
 ## Troubleshooting
 
@@ -644,13 +698,18 @@ you preview the clearance as a translucent overlay before you cut with it.
   aim at the outer half of the arrow, nearer its head.
 - **I typed a position and the shape did not move.** Press **Enter**, or click somewhere
   else, to commit it — the shape moves when you finish editing, not on every keystroke.
-- **I can't click the shape I want — something else is in front of it.** Open the
-  [Objects list](#selecting-a-shape-you-cannot-click-the-objects-list) and tap its name.
-- **The Objects list is greyed out and says it is read-only.** It does that while you are
+- **I can't click the shape I want — something else is in front of it.** Tap empty space
+  so nothing is selected, and tap its name in the Inspector's
+  [object list](#the-inspectors-object-list). On a phone, open the list from the
+  **Objects** tab at the bottom first.
+- **Where did the Objects button go?** The separate Objects panel and its button in the
+  top bar were folded into the Inspector. The list is the Inspector's content when
+  nothing is selected, and the **Objects** bar at the top of the Inspector otherwise.
+- **The object list is greyed out and says it is read-only.** It does that while you are
   previewing a past step in History (or in sketch mode). Come back to the latest step, or
   leave sketch mode, and it works again.
-- **A shape I know is in the model is missing from the Objects list.** Its step is probably
-  suppressed or rolled back — see the note at the bottom of the list, and the
+- **A shape I know is in the model is missing from the object list.** Its step is
+  probably suppressed or rolled back. See the note at the bottom of the list, and the
   [History panel](timeline.md).
 - **I picked a colour but the shape looks slightly different from the swatch.** The 3D
   view lights the shape, so faces turned away from the light are darker than the swatch.

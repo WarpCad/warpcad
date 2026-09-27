@@ -23,11 +23,12 @@ Press **History** in the top bar, to the right of Undo and Redo. Press it again 
 
 History starts closed every time you open WarpCad, on every device.
 
-History shares its spot with the **Objects** list (the cube button just left of History),
-which lists the *shapes* in your model rather than the *steps* — see
-[Selecting a shape you cannot click](selection-and-inspector.md#selecting-a-shape-you-cannot-click-the-objects-list).
-Opening one closes the other, and a step selected here never selects a shape there. On a
-phone, opening the Library also closes History.
+History is not the same list as the Inspector's **object list**, which names the
+*shapes* in your model rather than the *steps*: with nothing selected it is the
+Inspector's content (on a phone, tap the Inspector's **Objects** tab at the bottom) — see
+[The Inspector's object list](selection-and-inspector.md#the-inspectors-object-list).
+A step selected here never selects a shape there. On a phone, opening the Library also
+closes History, and tapping the Inspector's tab closes it too.
 
 ## Reading the list
 

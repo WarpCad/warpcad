@@ -34,6 +34,25 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### ui-049 — Objects list folded into the Inspector, hover-to-highlight (2026-09-27 22:34 UTC)
+
+Everything measurable is measured and standing. `e2e/inspector-object-list.e2e.js` covers
+every viewport, including hover pixels, the enclosed-body x-ray, the no-touch-hover
+regression and the row-name fit. `ACCEPTANCE.md` scenarios 1, 4, 5, 6, 7, 10 and 13 were
+re-driven, and `bench/results/2026-09-27-ui-049.md` has the hover sweep. What is left is
+judgement a headless drive cannot make: how the new violet hover tint reads on a real
+screen, and whether real touch hardware behaves like Playwright's WebKit, whose phantom
+mouse after a tap is what the no-touch-hover fix was built against. `ui-047`'s open row and
+`ui-041`/`ui-042`'s real-phone rows below were reworded to the new surface, not duplicated
+here.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | On a real monitor, in both dark and light themes, hover a row for an unselected light-blue body, a selected (amber) body and a red-recoloured body. Does the violet hover tint read clearly as "this one" without looking like a selection or a rendering glitch? (Headless: light blue went lavender, amber went pale peach, red went magenta-red.) | Open | |
+| 2 | On a real iPhone and iPad (Safari), tap rows and checks in the Inspector's list, including one that changes the selection count so the sheet reflows. No row and no body should ever light up violet from a tap. Then on an iPad with a trackpad, or a touch laptop: after tapping, move the pointer onto a row. It should highlight on the first real movement. | Open | |
+| 3 | At phone width, select an enclosed body from the list, then fold the Inspector sheet with its tab to reach the gizmo (the sheet stays up after a list selection, as after any selection). Is that one extra tap workable, or does selecting from the list want the sheet to fold on its own? | Open | |
+| 4 | Feel of the Objects section: ticking checks keeps the list open, a plain row tap folds it to the body's detail, and the breadcrumb's **Objects** crumb or the bar reopens it. Does that read naturally on a phone, or does the list folding after a plain tap surprise you? | Open | |
+
 ### ui-050 — Align to origin: real-device feel of the small grid and the native select (2026-09-27 20:15 UTC)
 
 The precondition gating, the arithmetic, gizmo/field sync, the closed-finding
@@ -106,7 +125,7 @@ than in theory?
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | Show a Bolt's `tap`, then deselect it (click empty space) and select a different body. Does the still-visible translucent clearance on the deselected bolt read as confusing without any Objects-row cue that it's still "on"? | Open | |
+| 1 | Show a Bolt's `tap`, then deselect it (click empty space) and select a different body. Does the still-visible translucent clearance on the deselected bolt read as confusing without any cue in the Inspector's object list that it's still "on"? *(Reworded by `ui-049`: the Objects panel is now the Inspector's object list, and the toggle lives in the bolt's **Parts** section; still no row cue for a shown-hidden body.)* | Open | |
 
 ### render-003 — Recipe-baked part colours actually render (2026-09-26 11:50 UTC)
 
@@ -203,7 +222,7 @@ the headless software rasteriser, which says nothing about a real GPU.
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | On a real iPhone (Safari), drop a Raspberry Pi and then a Bolt. Open the Objects list: both rows show a size, and the scene responds while they land (no visible hitch on the second drop). If a remote Web Inspector is attached, confirm an `evaluation.worker-*.js` worker exists and the console is clean. | Open | |
+| 1 | On a real iPhone (Safari), drop a Raspberry Pi and then a Bolt. Tap empty space and open the Inspector's **Objects (2)** tab (the Objects list, since `ui-049`): both rows show a size, and the scene responds while they land (no visible hitch on the second drop). If a remote Web Inspector is attached, confirm an `evaluation.worker-*.js` worker exists and the console is clean. | Open | |
 | 2 | On a real iPad, with ~10 Raspberry Pi boards placed (drag them in), drag one more Cube in and then press Undo. The drag-place should feel instant; Undo will still pause briefly (that is `core-030`, expected). Note roughly how long Undo hangs. | Open | |
 | 3 | Install the PWA, go offline, reload, and drop a Bolt: its measurement must still land (the worker chunk is in the service-worker precache — 9 entries, up from 8 — but offline was not driven here). | Open | |
 
@@ -232,7 +251,7 @@ hand-drive surfaced but did not introduce or fix.
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | On a real phone, expand a composite with many parts (a Raspberry Pi), scroll the part list, and tap a hidden part's row and its check: does the indent read clearly as "inside this body" at a glance, does the chevron's rotate-on-open animation feel responsive, and does scrolling the parts ever fight scrolling the outer panel? | Open | |
+| 1 | On a real phone, with nothing selected, open the Inspector's **Objects (n)** tab, expand a composite with many parts (a Raspberry Pi), scroll the part list, and tap a hidden part's row and its check: does the indent read clearly as "inside this body" at a glance, does the chevron's rotate-on-open animation feel responsive, and does scrolling the parts ever fight scrolling the Inspector sheet or the page? *(Reworded by `ui-049`: the list moved from the Objects panel into the Inspector sheet.)* | Open | |
 | 2 | Addressing a part on the body that ends up as Subtract's *target* (the wrong-order case: e.g. drilling a small part first, then adding a much larger enclosing body second) can make the kernel return a **zero-volume result with no error** — a small solid entirely swallowed by what it's being subtracted with leaves nothing. This is existing kernel/boolean behaviour, not something this task changed, and it committed cleanly in the drive rather than crashing. Does a silently-empty result (one body left in the scene, at zero size) read as confusing or alarming to a real user, and is a "this result is empty" affordance worth a future finding? | Open | |
 
 Everything measurable here is measured and standing (`e2e/objects-panel.e2e.js` at three viewports,
@@ -242,7 +261,7 @@ legible on a real screen in sunlight rather than a 1440px monitor.
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | On a real iPhone, open **Objects**, tap a row, tap a check, tap **Subtract**: are the 44px rows and checks comfortable, does the sheet scroll without fighting the page, and does a row tap ever land on the check by mistake (or the reverse)? | Open | |
+| 1 | On a real iPhone, with nothing selected, tap the Inspector's **Objects (n)** tab, tick one row's check, then a second row's check, then **Subtract**: are the 44px rows and checks comfortable, does the sheet scroll without fighting the page, and does a row tap ever land on the check by mistake (or the reverse)? *(Reworded by `ui-049`: the Objects panel and its header button are gone; the list is the Inspector's.)* | Open | |
 | 2 | With a body enclosed in another (open a project that has one), select the enclosed body from the list: is the **teal/amber x-ray tint** legible at phone size in both the dark and light themes, and does it read as "hidden body, selected" rather than as a rendering glitch? At 390px the selected body's gizmo can sit partly under the nav chrome (the phone framing is not adjusted for the sheet) — is that workable, or does it want the camera to re-frame? | Open | |
 
 ### perf-001 — export moved into a worker, and the slow-export pending state (2026-09-21 19:32 UTC)

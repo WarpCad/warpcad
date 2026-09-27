@@ -59,11 +59,11 @@ function storeApi(page) {
 
 /**
  * A cube and a translated-away hardware bolt (a composite with named parts, so the
- * Objects list's disclosure chevron has something to expand — `TODO/ui-042`).
+ * object list's disclosure chevron has something to expand — `TODO/ui-042`).
  * Neither overlaps the other; nothing here runs a boolean, so overlap is irrelevant.
  *
  * The translate record deliberately carries `consumes`, not `supersedes` — the same
- * shortcut `objects-panel.e2e.js`'s own `seedEnclosed` uses — so this fixture never
+ * shortcut `inspector-object-list.e2e.js`'s own `seedEnclosed` uses — so this fixture never
  * assumes which id (the created record's or the translate's) ends up naming the
  * lineage; {@link bodyIdByName} below reads it back rather than hardcoding it,
  * exactly as that file's own `bodyNamed` does.
@@ -118,7 +118,7 @@ async function bodyIdByName(page, name) {
 /**
  * Select exactly `count` bodies (0, 1 or 2) through the selection store directly —
  * this spec's whole claim is about layout, not about how a selection is reached, so
- * seeding it this way (the same technique `objects-panel.e2e.js`/`ui-041` uses) keeps
+ * seeding it this way (the same technique `inspector-object-list.e2e.js`/`ui-041` uses) keeps
  * every state cheap and exact rather than depending on click geometry.
  *
  * @param {import('@playwright/test').Page} page
@@ -191,12 +191,23 @@ const TOOLBAR_BUTTONS = [
 
 const CHROME_BUTTONS = ['nav-mode-orbit', 'nav-mode-pan', 'nav-mode-select']
 
-/** @param {import('@playwright/test').Page} page */
+/**
+ * Put the object list on screen. Since `TODO/ui-049` it lives in the Inspector, so
+ * "the Objects sheet" is the Inspector's own sheet showing the list: tap the tab if the
+ * sheet is down (it reads `Objects (n)` with nothing selected — the new state this task
+ * adds, and so the one most worth measuring), then the section header if it is folded.
+ *
+ * @param {import('@playwright/test').Page} page
+ */
 async function openObjects(page) {
-  const panel = page.getByTestId('objects-panel')
-  if (await panel.isVisible()) return
-  await page.getByTestId('objects-toggle').click()
-  await expect(panel).toBeVisible()
+  const list = page.getByTestId('object-list')
+  if (await list.isVisible()) return
+  const inspector = page.getByTestId('inspector')
+  if ((await inspector.getAttribute('data-open')) !== 'true' && (await page.getByTestId('inspector-tab').isVisible())) {
+    await page.getByTestId('inspector-tab').click()
+  }
+  if (!(await list.isVisible())) await page.getByTestId('inspector-objects-header').click()
+  await expect(list).toBeVisible()
 }
 
 /** @param {import('@playwright/test').Page} page */
@@ -209,10 +220,17 @@ async function openHistory(page) {
 
 /** @param {import('@playwright/test').Page} page */
 async function closeSheets(page) {
-  const objects = page.getByTestId('objects-panel')
-  if (await objects.isVisible()) {
-    await page.getByTestId('objects-toggle').click()
-    await expect(objects).toBeHidden()
+  // With nothing selected an open Inspector sheet is the list the user opened from its
+  // tab: tap the tab to put it down again. With a selection the sheet is the Inspector's
+  // own auto-open, which is the `inspector-auto` state this spec measures on purpose.
+  const inspector = page.getByTestId('inspector')
+  if (
+    (await inspector.getAttribute('data-state')) === 'empty' &&
+    (await inspector.getAttribute('data-open')) === 'true' &&
+    (await page.getByTestId('inspector-tab').isVisible())
+  ) {
+    await page.getByTestId('inspector-tab').click()
+    await expect(inspector).toHaveAttribute('data-open', 'false')
   }
   const history = page.getByTestId('timeline-panel')
   if (await history.isVisible()) {
@@ -281,7 +299,8 @@ test('Operations toolbar and navigation chrome never intersect, every control st
     await selectCount(page, count, [cubeId, boltId])
     await assertNoOverlapAndReachable(page, `count=${count} sheet=inspector-auto`)
 
-    // --- Objects sheet open (ui-041/ui-042's own regression surface). ------------------
+    // --- The object list open in the Inspector (ui-041/ui-042's regression surface,
+    // moved by ui-049; at 0 selected this is the sheet opened from its `Objects (n)` tab). -
     await openObjects(page)
     await assertNoOverlapAndReachable(page, `count=${count} sheet=objects`)
     await closeSheets(page)
@@ -293,7 +312,7 @@ test('Operations toolbar and navigation chrome never intersect, every control st
   }
 })
 
-test('a taller Objects sheet (a composite expanded, TODO/ui-042) does not reintroduce the overlap (TODO/ui-043)', async ({
+test('a taller object list (a composite expanded, TODO/ui-042, in the Inspector since ui-049) does not reintroduce the overlap (TODO/ui-043)', async ({
   page,
 }) => {
   await seedScene(page)

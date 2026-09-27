@@ -37,6 +37,12 @@
      step with `BODY_COLORS.*.secondary` in `src/render/mesh.js`, which paints
      the solids themselves. */
   --accent-secondary: #66d9c0;
+  /* The Inspector object list's hover highlight (`TODO/ui-049`): the hovered row's marker
+     and the tint on the matching geometry, one colour so the two read as one thing. A
+     third role colour, never `--accent` or `--accent-secondary` — hovering a row whose body
+     is already selected has to read as something different. Kept in step with
+     `BODY_COLORS.*.hover` in `src/render/mesh.js`. */
+  --hover-highlight: #b69cff;
   /* Committed sketch geometry (`TODO/ui-020`). Its own token for the same
      reason `--snap-guide` has one: a sketch line is a *different kind of thing*
      from every solid and overlay around it, and the whole point of its styling
@@ -90,6 +96,8 @@
     /* Darkened for the same reason as the guide colour above: the dark theme's
        teal has no contrast against a near-white panel. */
     --accent-secondary: #0f8a72;
+    /* Darkened for the same reason: a pale lilac marker is invisible on a white panel. */
+    --hover-highlight: #6d3fd6;
     /* Darkened for the same reason as the two above: the dark theme's sky blue
        washes out against a near-white grid, and a sketch line a user cannot see
        is the exact failure this token exists to prevent. */

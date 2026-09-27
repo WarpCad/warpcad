@@ -56,8 +56,8 @@ never ends up in a state you can only reach one way.
 
 ### On a phone: the pad folds away while a panel is open
 
-On a phone, opening a bottom panel (the Inspector, History, or the Objects
-list) pushes the navigation pad up so it sits above the panel. Up there it would
+On a phone, opening a bottom panel (the Inspector, including its object list, or
+History) pushes the navigation pad up so it sits above the panel. Up there it would
 cover the middle of the 3D view, where your objects usually are. So instead the
 whole pad folds down to a single **✥** button in the corner. That way a tap on an
 object in that area selects the object, and can't nudge the camera by accident.

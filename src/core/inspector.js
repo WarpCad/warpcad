@@ -26,7 +26,7 @@
  */
 
 import { recipeColorOf } from './colorOverride.js'
-import { boundsOf, hiddenNamesOf, isGroup, localBoundsOf } from './kernel/group.js'
+import { boundsOf, hasNamedParts, hiddenNamesOf, isGroup, localBoundsOf } from './kernel/group.js'
 import { registry as defaultRegistry } from './kernel/registry.js'
 
 /** @typedef {import('./document.js').Body} Body */
@@ -62,6 +62,14 @@ import { registry as defaultRegistry } from './kernel/registry.js'
  */
 
 /**
+ * One part of a composite body (`TODO/ui-049`).
+ *
+ * @typedef {object} PartEntry
+ * @property {string} name The part's name, exactly as `pieces` takes it.
+ * @property {boolean} hidden In the group but not drawn by default.
+ */
+
+/**
  * @typedef {object} BodyDescription
  * @property {string} id The body's own id — the **group's** id even when this
  *   describes one part inside it, because that is still the only thing the
@@ -88,18 +96,17 @@ import { registry as defaultRegistry } from './kernel/registry.js'
  * @property {[Vec3Mm, Vec3Mm]} localBoundsMm `[min, max]` in the body's local
  *   frame, anchored at {@link BodyDescription.positionMm}: a local point maps
  *   back to world as `positionMm + R(rotationDeg)·(local − positionMm)`.
- * @property {string[]} hiddenParts Names of parts that exist in the body's group
- *   but are not drawn by default (`TODO/ui-047`) — a bolt's `tap`/`tap-*`, a
- *   washer's `clearance` — in the group's own `parts` insertion order, the exact
- *   same set `src/stores/document.js`'s `hiddenPartNames` already lists for the
- *   Objects list's ▸ disclosure. `[]` for a bare solid or a group with nothing
- *   hidden — the Inspector's **Hidden parts** section is absent, not disabled,
- *   whenever this is empty. Always `[]` on a description built by
- *   {@link describeSubPart}: drilling into one part already froze Transform and
- *   Parameters for the same reason (no record to target), and a part has no
- *   parts of its own to hide.
+ * @property {PartEntry[]} parts Every part of the body's group, in the group's own
+ *   order — the visible parts (the group's `names` list), then the hidden ones
+ *   (`hiddenNamesOf()`: a bolt's `tap`/`tap-*`, a washer's `clearance`), each flagged
+ *   (`TODO/ui-049`). The exact tree the Inspector's object list shows under a
+ *   composite's ▸, so the **Parts** section and the list can never name different
+ *   parts. Supersedes `ui-047`'s hidden-only `hiddenParts: string[]`. `[]` for a bare
+ *   solid — the **Parts** section is absent, not disabled, whenever this is empty — and
+ *   always `[]` on a description built by {@link describeSubPart}: a part has no parts
+ *   of its own.
  * @property {string[]} visibleParts The mirror image of
- *   {@link BodyDescription.hiddenParts}: names of parts the group **does**
+ *   the hidden entries of {@link BodyDescription.parts}: names of parts the group **does**
  *   draw by default, in the same group-order — literally the group's own
  *   `names` list (`TODO/ui-050`), not a re-derived one, so it can never drift
  *   from what `combine()`/`boundsOf()` actually union. Feeds the Inspector's
@@ -109,7 +116,7 @@ import { registry as defaultRegistry } from './kernel/registry.js'
  *   clearance on the floor". `[]` for a bare solid (the select is hidden
  *   rather than showing a one-option dropdown) and always `[]` on a
  *   description built by {@link describeSubPart}, for the same reason
- *   {@link BodyDescription.hiddenParts} is.
+ *   {@link BodyDescription.parts} is.
  * @property {{ color: number, colorAlpha?: number }} [recipeColor] The recipe's
  *   own baked-in colour for whatever this description is *of* (`TODO/render-003`):
  *   the drilled-into part's colour from `describeSubPart`, or, from `describeBody`,
@@ -319,11 +326,20 @@ export function describeBody(body, ops = defaultRegistry) {
     isGroup(geometry) && geometry.names.length === 1
       ? recipeColorOf(geometry.colors, geometry.names[0])
       : undefined
-  const hiddenParts = isGroup(geometry) ? [...hiddenNamesOf(geometry)] : []
   // The exact list `boundsOf()`/`combine()` union by default — see this
   // field's own doc comment on why it is that list itself, not a re-derived
   // one (`TODO/ui-050`).
   const visibleParts = isGroup(geometry) ? [...geometry.names] : []
+  // `hasNamedParts`, not `isGroup`: the same condition the renderer, the object
+  // list and `choosePart` use for "this body can be addressed part by part", so the
+  // Parts section never offers a row that selecting would refuse.
+  /** @type {PartEntry[]} */
+  const parts = hasNamedParts(geometry)
+    ? [
+        ...visibleParts.map((name) => ({ name, hidden: false })),
+        ...hiddenNamesOf(geometry).map((name) => ({ name, hidden: true })),
+      ]
+    : []
 
   return {
     id: body.id,
@@ -334,7 +350,7 @@ export function describeBody(body, ops = defaultRegistry) {
     params: fieldsFor(body.params ?? {}, entry),
     positionMm,
     rotationDeg,
-    hiddenParts,
+    parts,
     visibleParts,
     sizeMm: [max[0] - min[0], max[1] - min[1], max[2] - min[2]],
     boundsMm: [
@@ -479,7 +495,7 @@ export function describeSubPart(body, partName, records, ops = defaultRegistry) 
     params: record ? fieldsFor(record.params ?? {}, entry) : [],
     positionMm,
     rotationDeg,
-    hiddenParts: [],
+    parts: [],
     visibleParts: [],
     sizeMm: [max[0] - min[0], max[1] - min[1], max[2] - min[2]],
     boundsMm: [

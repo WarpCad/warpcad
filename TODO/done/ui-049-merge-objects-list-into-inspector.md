@@ -6,8 +6,57 @@ priority: high
 model: opus
 milestone: M7
 depends: [ui-041, ui-042, ui-047]
-status: open
+status: done
 ---
+
+> **What shipped (2026-09-27, `/fix-todo` via `/run-todos`).** The Objects panel, its header
+> toggle and the fourth sheet-slot claimant are gone. The list lives in the Inspector
+> (`src/components/inspector/ObjectList.vue`, the store renamed to `stores/objectList.js`),
+> composites get a **Parts** section, and list rows hover-highlight in the viewport
+> (`stores/hoverHighlight.js`, a third `BODY_COLORS.*.hover` tint plus its own x-ray twin and
+> a transient hidden-part mesh).
+>
+> **"The list must not vanish on the first tap": the file's Recommendation, adopted.** The
+> list is the whole Inspector at 0 selected, and a collapsible **Objects** section at the top
+> of every other state: collapsed by default at 1, expanded at 2+, remembered for the session.
+> The breadcrumb gains a root **Objects** crumb. One refinement, found while driving: a
+> **check** keeps the section open for the next operand for as long as the selection keeps
+> changing through the list, and a **plain** row tap folds it. At first "open" was stored as
+> the session preference, so after a check sequence every later viewport click opened with
+> the list above the body's detail. The section sits *above* the breadcrumb, so the first
+> check does not move the rows under the finger.
+>
+> **Deviations, each for a measured reason.**
+> - *Hover is keyed on a moving mouse, not `pointerenter`.* Driving at 390px WebKit found
+>   touch taps inventing a hover. After a tap the browser keeps a phantom mouse at the tap
+>   point. When the Inspector reflows it fires mouse-typed `pointerover`/`pointerenter`, and
+>   in WebKit a `pointermove` too, at whatever row slid under that point. Hover now needs a
+>   mouse `pointermove` that is not at the last touch/pen press point. Keyboard focus counts
+>   only if no pointer press just preceded it. Both have unit specs and a touch e2e.
+> - *No phone tab in an empty document.* The spec says the list shows "including in an empty
+>   document". It does at tablet/laptop, where the column is always there. At phone width,
+>   with nothing to list, the tab stays hidden rather than spend 44px of viewport on
+>   `Objects (0)`. The Library tab is the way in. With 1+ bodies the tab reads `Objects (n)`.
+> - *The Parts section is absent at sub-part depth*, as `ui-047`'s section was (`describeSubPart`
+>   reports `parts: []`). Re-targeting a sibling part goes through the root crumb's list.
+> - *`describeBody.parts` uses `hasNamedParts`, not `isGroup`*, the same condition as the
+>   renderer, the list and `choosePart`, so the Parts section never lists a row that
+>   selecting would refuse.
+> - *The 359px title-hiding rule in `AppView.vue` was removed.* It existed only because the
+>   Objects toggle added 44px. Re-measured at 320px: the title ends at x=75, Undo starts at
+>   88, and nothing overflows.
+>
+> **Found and fixed while driving, beyond the spec.** (1) A row's name was squeezed to zero
+> width by its size in the narrow Inspector column: a Group read as a check and a size only.
+> Name and size now stack, with an e2e at every viewport. (2) `bench/hover-sweep.mjs` found
+> ~90 ms frames entering and leaving the Pi's translucent `mb`. Disposing its plain material,
+> the only user of the transparent shader program, is consistent with a program
+> delete-and-recompile each time (inferred, not CPU-profiled). The fix keeps a colour's
+> plain and hovered materials alive as a pair (`bench/results/2026-09-27-ui-049.md`).
+>
+> **`ACCEPTANCE.md` scope, stated.** Only scenario 5's Steps named the Objects list. The
+> other six scenarios the file lists (1, 4, 6, 7, 10, 13) mention it only in historical run
+> logs, which are records and were left alone. All seven were re-driven.
 
 ## Goal
 

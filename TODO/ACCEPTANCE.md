@@ -999,6 +999,8 @@ and the mesh's own centre agreed at every step (`-2.21` both, before and after t
 second drag), the load-bearing claim this scenario's own Expect makes about the gizmo
 and fields never disagreeing. Console clean throughout.
 
+**Re-checked**: 2026-09-27 22:34 UTC (`ui-049`) — PASS. Re-driven because the Objects panel moved into the Inspector and the Inspector's empty state is now the scene list. Laptop 1440x900 Chromium, real mouse: Cube and Cylinder dragged in from their Library rows (wandering pointer paths), both stayed visible, and clicking each selected only that one (gizmo and dimension lines on the clicked body, `data-selected-count` 1). Nothing selected, the Inspector listed both rows (`Cube 1`, `Cylinder 1`) in place of `(nothing selected)`. At 1 selected the list folded to an **OBJECTS (2)** bar above `Objects ▸ Cylinder 1`, and the body's detail was the focus. Hovering the unselected Cube's row tinted it lavender (the new third highlight) while the Cylinder stayed selected amber, and parking the pointer cleared it (`data-hover` back to empty, 0 hover twins). One driver mistake, not an app fault: an "empty space" click landed on the Operations toolbar and did not deselect. Console clean.
+
 ### 2. Hardware property edit
 
 **Steps**:
@@ -1805,6 +1807,8 @@ selected, toolbar disabled again. Console clean.
 
 **Re-checked**: 2026-09-24 19:45 UTC — **PASS, selection steps only** (`ui-045`'s Step 6 re-drive; steps 5-6's boolean commit were not re-driven, this task touched no operation-execution code). Phone WebKit, real touch throughout, dev server launched and driven directly. Two Cubes dropped clear of every overlay band. A trusted tap selected the first alone — `data-selected-count` 1, Union genuinely `disabled` (verified via the real DOM property, not just an attribute). A trusted tap on empty space cleared it, then a real one-finger **marquee drag** (the Select-mode chrome toggle, this app's touch-only route to multi-select) enclosing both Cubes took the count to 2 and enabled Union. **One real driver mistake caught and corrected, not an app defect**: an earlier marquee attempt started its drag on top of the Operations toolbar (a live DOM-target check confirmed the press literally landed on toolbar chrome, not canvas) and silently did nothing — exactly the `TODO/ui-046`-class hazard, tripped organically while driving rather than by a script. Re-driven from a canvas-confirmed start point, clean. Console clean.
 
+**Re-checked**: 2026-09-27 22:34 UTC (`ui-049`) — PASS, gating from the Inspector's list checks. Laptop 1440x900 Chromium, real mouse: at 1 selected (Cylinder) Union/Subtract were disabled with "select 2 or more solids". Ticking the Cube's check in the list gave `2 selected`, "first is the base", with Union and Subtract enabled, the checks reading Cylinder `1`, Cube `2`, and the list staying open (multi state). Unticking the base (Cylinder) dropped to 1 selected with the buttons disabled again. Re-ticking made the Cube the base (`1`) and the Cylinder `2`, so the order visibly follows the taps. Subtract left one selected result with the toolbar disabled again. The bodies in this drive did not overlap, so the step-6 volume claim stands on the earlier runs and on `e2e/inspector-object-list.e2e.js`'s volume-measured Subtract (64000 − bolt volume). Console clean.
+
 ### 5. Hidden-part boolean (bolt tap-clearance)
 
 **Amended 2026-09-26** (`ui-047`, following the user's decision recorded in
@@ -1814,7 +1818,7 @@ by default, so a plain whole-bolt Subtract (this scenario's original literal Ste
 now cuts the bolt's **metal** envelope, not its clearance — it no longer demonstrates
 this scenario's own claim at all. Rather than relax the Expect to match what
 `render-004` made the default do, the Steps below route through `ui-047`'s new
-Inspector **Hidden parts** section — the same discoverability mechanism `render-004`'s
+Inspector **Hidden parts** section (now its **Parts** section, `ui-049`) — the same discoverability mechanism `render-004`'s
 own retirement note promised as a follow-up — to explicitly address `tap`. The
 **Expect** is unchanged: a clearance-sized hole, not a metal-sized one.
 
@@ -1823,13 +1827,21 @@ own retirement note promised as a follow-up — to explicitly address `tap`. The
 2. Drag a "Bolt" into the viewport, positioned so it overlaps the shell (visually, the
    bolt's head/thread mesh will appear to just touch or slightly penetrate the shell
    wall).
-3. Select the bolt (click it, or its Objects-list row). Under the Inspector's **Hidden
-   parts** section, tap `tap` to drill into the bolt's hidden clearance envelope — the
-   breadcrumb reads `Bolt 1 ▸ tap`.
-4. Reorder the selection so the shell is the base and the bolt's `tap` piece is the
-   second operand: Shift-click (or, from the Objects list, uncheck/recheck) the bolt
-   out and back in, with the shell added first, so the toolbar reads "Shell 1 then
-   Bolt 1 › tap" (per scenario 4's base-first ordering).
+3. Select the bolt (click it, or — with nothing selected — its row in the Inspector's
+   object list). Under the Inspector's **Parts** section, point at `tap` (with a mouse:
+   the clearance shows as a translucent overlay while you do) and tap it to drill into
+   the bolt's hidden clearance envelope — the breadcrumb reads
+   `Objects ▸ Bolt 1 ▸ tap`.
+4. Make the shell the base and the bolt's `tap` piece the second operand, with no
+   keyboard: select the shell (click it, or tap **Objects** in the breadcrumb and its
+   row's check), then in the Inspector's object list tap ▸ on *Bolt 1* and the check on
+   its `tap` row — so the checks read `1`/`2` and the toolbar reads "Shell 1 then
+   Bolt 1 › tap" (per scenario 4's base-first ordering). Shift-click in the viewport is
+   the keyboard equivalent. For the enclosed-bolt fixture (bolt wholly inside the
+   shell, unclickable), the whole route is the list: the shell's check, then ▸ and the
+   `tap` check, with the hover tint confirming which body each row is before tapping.
+   **Amended 2026-09-27** (`ui-049`): the separate Objects panel was folded into the
+   Inspector, so these steps name the Inspector's list and Parts section instead.
 5. Click "Subtract".
 
 **Expect**: A hole appears in the shell sized to match the bolt's hidden tap-clearance
@@ -2174,6 +2186,8 @@ Chromium:
   lists exactly `["Shell 1","Bolt 1"]`. The absorption bug stays fixed.
 - Console clean throughout.
 
+**Re-checked**: 2026-09-27 22:34 UTC (`ui-049`) — PASS, driven through the **amended Steps** above (Parts section, then the Inspector's list), **touch only** at phone 390x844 WebKit (`page.touchscreen.tap` at off-centre points for every action). *As written:* Cube then Bolt dragged in. The just-dropped Bolt's Inspector showed **Parts** (`head`, `thread`, then `tap-head`/`tap-thread`/`tap-headClearSpace`/`tap` labelled *hidden*). Tapping `tap` gave `Objects ▸ Bolt 1 ▸ tap`. A human-order mistake on purpose: the **Objects** crumb, then the Cube's check, gave the *wrong* order, and the Subtract title said so ("Bolt 1 › tap then Cube 1"). Corrected with the Cube's row, the Objects bar, ▸ on Bolt 1 and the `tap` check: "Cube 1 then Bolt 1 › tap". Subtract removed 31.664 mm³ where the clearance overlapped the touching cube. *Enclosed fixture* (40 mm shell with the m10 bolt wholly inside it, seeded; every action a real tap): the tab read **Objects (2)** and opened the sheet on the list. The shell's check kept the list open (the first tap did not make it vanish). ▸ on Bolt 1 and the `tap` check gave "Shell 1 then Bolt 1 › tap", and Subtract left **61 108.343 mm³**, exactly the Expect's clearance number, not the metal-only 61 695.679. **Found and fixed during this drive:** a touch tap that changed the selection count reflowed the sheet, and WebKit's phantom mouse at the tap point then *hovered* the row that slid under it (`tap-head` lit, with a transient mesh). Hover now needs a real mouse moving away from the last touch point. Re-driven after the fix: no hover from any tap. Screenshots inspected; console clean.
+
 ### 6. Group vs. sub-part selection
 
 **Steps**:
@@ -2371,6 +2385,8 @@ new behaviour: the first click never jumped to a sub-part, the second click narr
 correctly, and the breadcrumb's group segment stepped all the way back up. Console
 clean.
 
+**Re-checked**: 2026-09-27 22:34 UTC (`ui-049`) — PASS. Laptop 1440x900 Chromium, real mouse. Steps 1-2 via the new route: a Raspberry Pi, a Camera Module and a Touchscreen 2 dragged from their Library rows, then all three ticked in the Inspector's list (checks read `1`/`2`/`3`), then **Group**. Steps 3-4: bare grid cleared the selection (the Inspector showed `Objects (1)`), and the first click on the assembly selected **Group 1** whole, with the breadcrumb `Objects ▸ Group 1` and a **Parts** section listing its three members. Steps 5-6: a second click on the camera module drilled to it: `Objects ▸ Group 1 ▸ Camera Module 1`, with `data-sub-part` set. Step 7: the **Group 1** crumb stepped back up. Beyond the steps: the root **Objects** crumb opened the list with the group still selected, ▸ listed its three members, and hovering `Camera Module 1` lit only that member (`group-7/Camera Module 1`, 1 hover twin). **Found and fixed during this drive:** the group's list row showed a check and its size (`228.16 × 250.25 × 18.55 mm`) but **no name**, because the size squeezed the name to zero width in the 280px column. Name and size now stack, with an e2e at every viewport. Console clean.
+
 ### 7. Touch-only viewport navigation
 
 **Steps**:
@@ -2491,6 +2507,8 @@ than only checking that *a* number changed. Screenshots at each step show a norm
 fully-rendered scene. Console clean.
 
 **Re-checked**: 2026-09-24 21:15 UTC — **PASS at tablet and phone, WebKit and Chromium** (`ui-046`, touch taps only). Tablet 820×1180: no **✥** toggle, and orbit, pan, zoom and the `−Y`/`Z` gizmo snaps all worked from the chrome. Phone 390×844 with the Inspector sheet open: the chrome starts folded, one tap on **✥** opens it at `y 207-407` (the Operations toolbar ends at `bottom 201`, so `ui-043`'s 6px gap is intact). Orbit right/up, Pan mode + pan left, zoom in/out, the `Z` gizmo cap and `⌂` all changed the camera readouts as expected, and **✥** stayed open across all of them. Another tap folded it. Clearing the selection dropped the chrome back to the bottom edge in full. Reselecting reopened it folded, not expanded, and the Objects sheet folds it the same way.
+
+**Re-checked**: 2026-09-27 22:34 UTC (`ui-049`) — PASS, touch only at iPad 820x1180 WebKit. No `objects-toggle` anywhere in the DOM. Chrome by tap: `nav-step-right` orbited azimuth −45°→−30°, `nav-step-up` raised elevation 35.26°→50.26°, Pan mode plus `nav-step-left` moved the target to (−9.26, −16.04, 0), `nav-zoom-in` 420→336 mm, `nav-zoom-out` back to 420. The orientation gizmo's **Top** snapped to elevation 90° and **Front** to 0°. Phone header after the toggle's removal: at 390px, Undo/Redo/History/File/chip sit at x=158–380 with the title ending at 75. At 320px the title is shown again (the 359px hide rule existed only for the toggle and was removed): title ends at 75, Undo starts at 88, zero horizontal overflow. Console clean.
 
 ### 8. Remote-load safety
 
@@ -2827,6 +2845,8 @@ save/load path doesn't already know how to serialise (`params.vector` and the
 `alignedTo` flag are both plain JSON), so no new persistence code was needed and none
 was written. Console clean.
 
+**Re-checked**: 2026-09-27 22:34 UTC (`ui-049`) — PASS for steps 1-7; the hosted half was not driven (no scratch repo or token). Laptop 1440x900 Chromium. Cube plus an overlapping Cylinder, both ticked in the Inspector's list, then **Union**: `Union 1`, 126 428.903 mm³, position (7.09, −13.16, 25). The chip read `Saved · 16:51`. After a browser reload the body was identical (volume and bounds, compared as JSON), and the Inspector's list was rebuilt: `Objects (1)`, row `Union 1`. File ▾ → Download copy: chip `Download started: warpcad-project-20260927-1651.ndjson`, a 4-line file. A Sphere dragged in, then **Open… → Replace** with that file: back to `Union 1` alone, the Sphere gone, the list rebuilt again. (The first attempt's download timed out because the driver disabled the native picker after mount; redone with an init script, as `save-load-ui.e2e.js` does.) Console clean.
+
 ### 11. Export a solid and confirm it opens elsewhere
 
 Added 2026-09-17 alongside `TODO/ROADMAP.md`'s M6, same rule as scenario 10. Steps
@@ -3153,4 +3173,6 @@ Step 5 verification — 4/4 passed, all three engines' non-Firefox projects — 
 entry is a targeted hand confirmation on top of that, not a replacement for it.
 
 **Re-checked**: 2026-09-26 16:52 UTC — **PASS, first drive on a `raspberrypi.*` sub-part** (`core-033`). Every prior drive above recoloured a primitive or a Kit/Hardware part; this task ported opaque colours onto ~150 more `raspberrypi.*` part records, so this is the first time this scenario's "recipe colour, then Reset" contract (`render-003`) has been exercised on one of them. Driven live against the real dev server, fresh isolated browser contexts at laptop 1440x900 Chromium and phone 390x844 WebKit (real touch): a single **Raspberry Pi 4** dropped alone. The whole-body Color row read the theme's `Default` swatch, as expected — a Pi 4 has dozens of differently-coloured parts, the same multi-colour fallback `render-003` documented for an undrilled Bolt. Turning on **Show hidden parts** and tapping **hole1** drilled into that sub-part: the Color row read **`#ffa500`** (this task's own `v1ColorToRecord('orange')`, `rpi-parts.js`'s `MountingHole` factory) with Reset already disabled, at both engines. Picking blue changed the readout to `#0000ff` (screenshot). Pressing **Reset** returned the readout to **`#ffa500`** and disabled Reset again — the mounting hole's own recipe colour, not the app's theme blue, matching this scenario's own worked-example wording exactly. Screenshots inspected by eye at both form factors. Console clean in both drives.
+
+**Re-checked**: 2026-09-27 22:34 UTC (`ui-049`) — PASS at laptop 1440x900 **WebKit**, real mouse, canvas pixels sampled. The Cube recoloured red through a wandering picker (`input` ×3, then `change`). Selected it sampled **213/94/49**. Deselected it sampled **182/4/4**, byte-for-byte the value this scenario has recorded since `ui-037`. The Cylinder sampled **115/141/174** throughout, and selecting it showed `Default`. Reselecting the Cube still showed `#ff0000`, and a Sphere placed afterwards left `Cube 1=#ff0000, Cylinder 1=default, Sphere 1=default`. **Hover over an override** (this task's precedence rule): hovering the selected red Cube's row gave **218/109/136**, still red, still selected, visibly different. Hovering it unselected gave **196/71/115**. Parking the pointer returned exactly 213/94/49 and 182/4/4, with no stale tint. Console clean.
 

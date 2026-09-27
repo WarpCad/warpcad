@@ -1,5 +1,8 @@
 /**
- * The Objects list's state and its one action — **UI only** (`TODO/ui-041`).
+ * The object list's state and its actions — **UI only** (`TODO/ui-041`; moved into the
+ * Inspector by `TODO/ui-049`, which retired the separate Objects panel, its header toggle
+ * and its `open` state, and renamed this store from `objectsPanel` since nothing here is a
+ * panel any more).
  *
  * The list exists because a body can be entirely inside another, and every other
  * selection route in the app is a raycast that hits the enclosing solid first. Its rows
@@ -11,9 +14,19 @@
  *
  * A History row is a *timeline step*; an Objects row is a *body*. This store touches
  * `useSelectionStore` and never `useTimelineStore.selectRow`, and the timeline store
- * never touches this one — the same separation §13 confirmed. The only thing the two
- * panels share is the one bottom dock/sheet slot, which `AppView.vue` arbitrates so at
- * most one of them is open at a time.
+ * never touches this one — the same separation §13 confirmed.
+ *
+ * ## Where the list lives (`TODO/ui-049`)
+ *
+ * In the Inspector: its whole content with nothing selected, and a collapsible **Objects**
+ * section at the top of every other state — collapsed by default at 1 selected (the body's
+ * own detail is the focus), expanded by default at 2+ (where operand order matters). The
+ * section's open/closed state per state is held here, UI-only and remembered for the
+ * session. One more rule makes the two-operand route work with no keyboard: a **check**
+ * (an additive gesture) leaves the section open for the next operand — for as long as the
+ * selection keeps changing through the list — and a **plain** row tap folds it, because a
+ * plain tap names one body — "the list must not vanish on the
+ * first tap" of a multi-selection, and does not linger over a body the user asked to see.
  *
  * ## What the rows show
  *
@@ -23,7 +36,7 @@
  * scene does not contain: a body past a rollback marker, or one whose step is
  * suppressed, has no summary at all and therefore no row.
  *
- * @module stores/objectsPanel
+ * @module stores/objectList
  */
 
 import { defineStore } from 'pinia'
@@ -67,17 +80,44 @@ import { useTimelineStore } from './timeline.js'
  * @property {'base' | 'secondary' | 'none'} role As {@link ObjectRow.role}, for this part.
  */
 
-export const useObjectsPanelStore = defineStore('objectsPanel', () => {
+export const useObjectListStore = defineStore('objectList', () => {
   const documentStore = useDocumentStore()
   const selection = useSelectionStore()
   const timeline = useTimelineStore()
   const sketchMode = useSketchModeStore()
 
-  /** Default closed on every device, every load, like History (§13). Not persisted. */
-  const open = ref(false)
+  /**
+   * Whether the Inspector's **Objects** section is open at exactly 1 selected — collapsed
+   * by default, so the selected body's detail is the focus (`TODO/ui-049`). Not persisted:
+   * session UI state, like every other panel layout choice.
+   */
+  const singleSectionOpen = ref(false)
+
+  /** The same, at 2+ selected — expanded by default: the list is where operand order shows. */
+  const multiSectionOpen = ref(true)
 
   /**
-   * Why the rows cannot select right now, or `''`. Printed in the panel rather than
+   * Set by a list **check** (an additive gesture): the user is building a multi-selection
+   * from the list, so the section stays open for the next operand even at 1 selected —
+   * "the list must not vanish on the first tap". Transient on purpose: it is cleared by a
+   * plain row tap and by any selection change that did not come from the list (a viewport
+   * click), which then falls back to {@link singleSectionOpen}, the remembered preference.
+   */
+  const keepOpenForOperands = ref(false)
+
+  /** True while this store is itself changing the selection, so its own change is not "elsewhere". */
+  let choosing = false
+
+  watch(
+    () => [...selection.ids, selection.subPart?.bodyId, selection.subPart?.partName],
+    () => {
+      if (!choosing) keepOpenForOperands.value = false
+    },
+    { flush: 'sync' },
+  )
+
+  /**
+   * Why the rows cannot select right now, or `''`. Printed in the list rather than
    * left as a silently dead list — the "looks live but isn't" class.
    */
   const disabledReason = computed(() => {
@@ -157,13 +197,37 @@ export const useObjectsPanelStore = defineStore('objectsPanel', () => {
     })
   )
 
-  /** @param {boolean} next */
-  function setOpen(next) {
-    open.value = next
+  /**
+   * Whether the Inspector's Objects section is open for a selection of `count` bodies. At 0
+   * the list is the Inspector's whole content and is always open.
+   *
+   * @param {number} count
+   * @returns {boolean}
+   */
+  function isSectionOpen(count) {
+    if (count <= 0) return true
+    return count === 1 ? singleSectionOpen.value || keepOpenForOperands.value : multiSectionOpen.value
   }
 
-  function toggle() {
-    setOpen(!open.value)
+  /**
+   * @param {number} count
+   * @param {boolean} next
+   * @returns {void}
+   */
+  function setSectionOpen(count, next) {
+    if (count <= 0) return
+    if (count === 1) {
+      singleSectionOpen.value = next
+      if (!next) keepOpenForOperands.value = false
+    } else multiSectionOpen.value = next
+  }
+
+  /**
+   * @param {number} count
+   * @returns {void}
+   */
+  function toggleSection(count) {
+    setSectionOpen(count, !isSectionOpen(count))
   }
 
   /**
@@ -187,13 +251,31 @@ export const useObjectsPanelStore = defineStore('objectsPanel', () => {
   function choose(id, additive = false) {
     if (disabledReason.value) return false
     if (!bodies.value.some((body) => body.id === id)) return false
-    if (additive) {
-      selection.toggle(id)
-    } else {
-      selection.select(id)
-      selection.stepUp()
+    choosing = true
+    try {
+      if (additive) {
+        selection.toggle(id)
+      } else {
+        selection.select(id)
+        selection.stepUp()
+      }
+    } finally {
+      choosing = false
     }
+    settleSection(additive)
     return true
+  }
+
+  /**
+   * After a row gesture: a check keeps the list open for the next operand; a plain tap names
+   * one body and hands the Inspector over to it, folding the list (`TODO/ui-049`).
+   *
+   * @param {boolean} additive
+   * @returns {void}
+   */
+  function settleSection(additive) {
+    keepOpenForOperands.value = additive
+    if (!additive) singleSectionOpen.value = false
   }
 
   /**
@@ -260,17 +342,26 @@ export const useObjectsPanelStore = defineStore('objectsPanel', () => {
     if (!body) return false
     const known = [...(body.partNames ?? []), ...(body.hiddenPartNames ?? [])]
     if (!known.includes(partName)) return false
-    selection.selectPart(bodyId, partName, additive)
+    choosing = true
+    try {
+      selection.selectPart(bodyId, partName, additive)
+    } finally {
+      choosing = false
+    }
+    settleSection(additive)
     return true
   }
 
   return {
-    open,
     bodies,
     rows,
     disabledReason,
-    setOpen,
-    toggle,
+    singleSectionOpen,
+    multiSectionOpen,
+    keepOpenForOperands,
+    isSectionOpen,
+    setSectionOpen,
+    toggleSection,
     choose,
     choosePart,
     toggleExpanded,

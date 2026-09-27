@@ -109,8 +109,10 @@ breakdown the moment the shape was placed, so clicking a Bolt twice did nothing 
 
 A bolt's `tap` clearance body is a **hidden** part, so it has no surface to click on —
 the second click above can only ever land on `head` or `thread`. Reach `tap` from the
-[Objects list](selection-and-inspector.md#picking-one-piece-of-a-hidden-shape) instead,
-the same way you would reach any other hidden piece.
+Inspector's [**Parts**](selection-and-inspector.md#parts) section while the bolt is
+selected, or from its row in the Inspector's
+[object list](selection-and-inspector.md#picking-one-piece-of-a-hidden-shape), the same
+way you would reach any other hidden piece.
 
 ## Notes and gotchas
 

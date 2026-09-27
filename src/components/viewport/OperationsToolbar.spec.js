@@ -17,7 +17,7 @@ enableAutoUnmount(afterEach)
 import OperationsToolbar from './OperationsToolbar.vue'
 import { useDocumentStore } from '../../stores/document.js'
 import { useSelectionStore } from '../../stores/selection.js'
-import { useObjectsPanelStore } from '../../stores/objectsPanel.js'
+import { useObjectListStore } from '../../stores/objectList.js'
 
 /**
  * Fillet and Chamfer (`TODO/ui-027`) — the toolbar's first **exactly-1**-gated
@@ -818,7 +818,7 @@ describe('OperationsToolbar — operands chosen from the Objects list (TODO/ui-0
 
   it('shell row then the part check: the line reads "Shell 1 then Raspberry Pi B+ › ethernet", and Subtract cuts with the jack only', async () => {
     const documentStore = useDocumentStore()
-    const objects = useObjectsPanelStore()
+    const objects = useObjectListStore()
     objects.choose('shell')
     objects.choosePart('pi', 'ethernet', true)
 
@@ -841,7 +841,7 @@ describe('OperationsToolbar — operands chosen from the Objects list (TODO/ui-0
   })
 
   it('the wrong order is on the line before commit: part first makes the Pi the base', () => {
-    const objects = useObjectsPanelStore()
+    const objects = useObjectListStore()
     objects.choosePart('pi', 'ethernet')
     objects.choose('shell', true)
     const wrapper = mount(OperationsToolbar)
@@ -850,7 +850,7 @@ describe('OperationsToolbar — operands chosen from the Objects list (TODO/ui-0
   })
 
   it('a depth changes no count gate: two bodies enable Subtract with or without a part addressed', () => {
-    const objects = useObjectsPanelStore()
+    const objects = useObjectListStore()
     objects.choose('shell')
     objects.choose('pi', true)
     const whole = mount(OperationsToolbar)

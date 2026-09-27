@@ -8,19 +8,22 @@ import { nextTick } from 'vue'
 enableAutoUnmount(afterEach)
 
 import { useDocumentStore } from '../../stores/document.js'
-import { useObjectsPanelStore } from '../../stores/objectsPanel.js'
+import { useHoverHighlightStore } from '../../stores/hoverHighlight.js'
+import { useObjectListStore } from '../../stores/objectList.js'
 import { useSelectionStore } from '../../stores/selection.js'
 import { useSketchModeStore } from '../../stores/sketchMode.js'
 import { useTimelineStore } from '../../stores/timeline.js'
-import ObjectsPanel from './ObjectsPanel.vue'
-import ObjectsToggle from './ObjectsToggle.vue'
+import ObjectList from './ObjectList.vue'
 
 /**
- * `TODO/ui-041` — the Objects list at component level: what a row says, what each of its
- * two buttons does, and what the panel prints when it cannot select. The reachability half
- * (mounted in the real root view, at three viewports) is `e2e/objects-panel.e2e.js`.
+ * `TODO/ui-041` — the object list at component level: what a row says, what each of its
+ * two buttons does, and what the list prints when it cannot select. Ported from
+ * `ObjectsPanel.spec.js` when `TODO/ui-049` moved the list into the Inspector: the panel
+ * chrome (its open state, its header toggle) is gone, and every case about the rows
+ * themselves is kept. The reachability half (mounted in the real root view, at three
+ * viewports) is `e2e/inspector-object-list.e2e.js`.
  */
-describe('ObjectsPanel + ObjectsToggle (TODO/ui-041)', () => {
+describe('ObjectList (TODO/ui-041, moved into the Inspector by ui-049)', () => {
   let pinia
   beforeEach(() => {
     pinia = createPinia()
@@ -30,19 +33,16 @@ describe('ObjectsPanel + ObjectsToggle (TODO/ui-041)', () => {
     doc.append({ id: 'b', op: 'primitive.sphere', name: 'Sphere 1', params: { diameter: 20, center: [80, 0, 10] } })
   })
 
-  const mountPanel = () => mount(ObjectsPanel, { global: { plugins: [pinia] } })
+  const mountPanel = () => mount(ObjectList, { global: { plugins: [pinia] } })
 
-  it('renders nothing until it is opened — closed by default', async () => {
+  it('renders its rows as soon as it is mounted — it has no open state of its own', () => {
     const wrapper = mountPanel()
-    expect(wrapper.find('[data-testid="objects-panel"]').exists()).toBe(false)
-    useObjectsPanelStore().setOpen(true)
-    await nextTick()
-    expect(wrapper.find('[data-testid="objects-panel"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="object-list"]').exists()).toBe(true)
+    expect(wrapper.findAll('[data-testid="objects-row-name"]')).toHaveLength(2)
+    expect(wrapper.find('[data-testid="objects-close"]').exists()).toBe(false)
   })
 
   it('shows a row per body with its name and size, and the selection count in the header', async () => {
-    const objects = useObjectsPanelStore()
-    objects.setOpen(true)
     const wrapper = mountPanel()
     expect(wrapper.findAll('[data-testid="objects-row-name"]').map((n) => n.text())).toEqual(['Cube 1', 'Sphere 1'])
     expect(wrapper.get('[data-testid="objects-row-a"]').text()).toContain('40 × 40 × 40 mm')
@@ -54,7 +54,6 @@ describe('ObjectsPanel + ObjectsToggle (TODO/ui-041)', () => {
   })
 
   it('a row click selects that body only; the check adds and removes — with the order on it', async () => {
-    useObjectsPanelStore().setOpen(true)
     const selection = useSelectionStore()
     const wrapper = mountPanel()
 
@@ -79,7 +78,6 @@ describe('ObjectsPanel + ObjectsToggle (TODO/ui-041)', () => {
   })
 
   it('Shift, Ctrl and Cmd on a row are additive, the same as Shift-click in the viewport', async () => {
-    useObjectsPanelStore().setOpen(true)
     const selection = useSelectionStore()
     const wrapper = mountPanel()
     await wrapper.get('[data-testid="objects-row-a"]').trigger('click')
@@ -92,7 +90,6 @@ describe('ObjectsPanel + ObjectsToggle (TODO/ui-041)', () => {
   })
 
   it('the check buttons are real buttons, not inputs — Ctrl+Z is not swallowed as text entry', () => {
-    useObjectsPanelStore().setOpen(true)
     const wrapper = mountPanel()
     const check = wrapper.get('[data-testid="objects-check-a"]')
     // HistoryControls treats INPUT/TEXTAREA/SELECT as text entry and ignores undo there.
@@ -101,7 +98,6 @@ describe('ObjectsPanel + ObjectsToggle (TODO/ui-041)', () => {
   })
 
   it('says why it cannot select while History previews, and disables every row', async () => {
-    useObjectsPanelStore().setOpen(true)
     const timeline = useTimelineStore()
     const wrapper = mountPanel()
     timeline.selectRow('a')
@@ -114,7 +110,6 @@ describe('ObjectsPanel + ObjectsToggle (TODO/ui-041)', () => {
   })
 
   it('explains an absent body: suppressed steps are not in the scene, so they are not listed', async () => {
-    useObjectsPanelStore().setOpen(true)
     const wrapper = mountPanel()
     expect(wrapper.find('[data-testid="objects-absent-note"]').exists()).toBe(false)
     useDocumentStore().raw.setSuppressed('b', true, { origin: 'local' })
@@ -126,29 +121,17 @@ describe('ObjectsPanel + ObjectsToggle (TODO/ui-041)', () => {
 
   it('the empty state names the way out', () => {
     setActivePinia((pinia = createPinia()))
-    useObjectsPanelStore().setOpen(true)
     const wrapper = mountPanel()
     expect(wrapper.get('[data-testid="objects-empty"]').text()).toMatch(/drag a shape in from the Library/)
-  })
-
-  it('the toggle reflects and flips the open state, with an accessible name', async () => {
-    const wrapper = mount(ObjectsToggle, { global: { plugins: [pinia] } })
-    const button = wrapper.get('[data-testid="objects-toggle"]')
-    expect(button.attributes('aria-pressed')).toBe('false')
-    expect(button.attributes('aria-label')).toBe('Open Objects')
-    await button.trigger('click')
-    expect(useObjectsPanelStore().open).toBe(true)
-    expect(button.attributes('aria-pressed')).toBe('true')
-    expect(button.attributes('aria-label')).toBe('Close Objects')
   })
 })
 
 /**
  * `TODO/ui-042` — expandable part rows, at component level: what a chevron and a child row
  * say and do. The reachability half (mounted in the real root view, at three viewports,
- * with a real Subtract measured against the kernel) is `e2e/objects-panel.e2e.js`.
+ * with a real Subtract measured against the kernel) is `e2e/inspector-object-list.e2e.js`.
  */
-describe('ObjectsPanel — part rows (TODO/ui-042)', () => {
+describe('ObjectList — part rows (TODO/ui-042)', () => {
   let pinia
   beforeEach(() => {
     pinia = createPinia()
@@ -156,10 +139,9 @@ describe('ObjectsPanel — part rows (TODO/ui-042)', () => {
     const doc = useDocumentStore()
     doc.append({ id: 'shell', op: 'primitive.cuboid', name: 'Shell 1', params: { size: [100, 70, 40], center: [42, 27, 10] } })
     doc.append({ id: 'pi', op: 'raspberrypi.bplus', name: 'Raspberry Pi B+', params: {} })
-    useObjectsPanelStore().setOpen(true)
   })
 
-  const mountPanel = () => mount(ObjectsPanel, { global: { plugins: [pinia] } })
+  const mountPanel = () => mount(ObjectList, { global: { plugins: [pinia] } })
   const part = (name) => `[data-testid="objects-part-pi-${name}"]`
   const partCheck = (name) => `[data-testid="objects-part-check-pi-${name}"]`
 
@@ -293,5 +275,215 @@ describe('ObjectsPanel — part rows (TODO/ui-042)', () => {
     await nextTick()
     expect(wrapper.find('[data-testid="objects-expand-pi"]').exists()).toBe(false)
     expect(wrapper.find(part('ethernet')).exists()).toBe(false)
+  })
+})
+
+/**
+ * `TODO/ui-049` — hover-to-highlight. The list is the hover store's only writer. A mouse
+ * pointer entering a row, or keyboard focus landing on it, names that body (or that one
+ * part); touch never does, because touch has no hover and this task invents none.
+ */
+describe('ObjectList — hover (TODO/ui-049)', () => {
+  let pinia
+  beforeEach(() => {
+    pinia = createPinia()
+    setActivePinia(pinia)
+    const doc = useDocumentStore()
+    doc.append({ id: 'shell', op: 'primitive.cuboid', name: 'Shell 1', params: { size: [100, 70, 40], center: [42, 27, 10] } })
+    doc.append({ id: 'pi', op: 'raspberrypi.bplus', name: 'Raspberry Pi B+', params: {} })
+  })
+
+  const mountList = (props = {}) => mount(ObjectList, { props, global: { plugins: [pinia] } })
+  const mouse = { pointerType: 'mouse' }
+
+  it('a mouse entering a body row highlights that body; leaving clears it', async () => {
+    const wrapper = mountList()
+    const hover = useHoverHighlightStore()
+    await wrapper.get('[data-testid="objects-line-shell"]').trigger('pointermove', mouse)
+    expect(hover.target).toEqual({ bodyId: 'shell', partName: null })
+    await wrapper.get('[data-testid="objects-line-shell"]').trigger('pointerleave', mouse)
+    expect(hover.target).toBeNull()
+  })
+
+  it('a part row highlights only that part, not its whole body', async () => {
+    const wrapper = mountList()
+    const hover = useHoverHighlightStore()
+    await wrapper.get('[data-testid="objects-expand-pi"]').trigger('click')
+    await wrapper.get('[data-testid="objects-part-item-pi-ethernet"]').trigger('pointermove', mouse)
+    expect(hover.target).toEqual({ bodyId: 'pi', partName: 'ethernet' })
+    // Moving from the part back onto its parent row re-targets to the whole body.
+    await wrapper.get('[data-testid="objects-part-item-pi-ethernet"]').trigger('pointerleave', mouse)
+    await wrapper.get('[data-testid="objects-line-pi"]').trigger('pointermove', mouse)
+    expect(hover.target).toEqual({ bodyId: 'pi', partName: null })
+  })
+
+  it('touch and pen never hover — a tap selects, and the selection highlight is the feedback', async () => {
+    const wrapper = mountList()
+    const hover = useHoverHighlightStore()
+    await wrapper.get('[data-testid="objects-line-shell"]').trigger('pointermove', { pointerType: 'touch' })
+    await wrapper.get('[data-testid="objects-line-shell"]').trigger('pointermove', { pointerType: 'pen' })
+    expect(hover.target).toBeNull()
+  })
+
+  it('a mouse-typed pointerenter with no mouse movement (a reflow after a tap) is not a hover', async () => {
+    // Found hand-driving at 390px WebKit: after a touch tap, the browser keeps a phantom
+    // "mouse" at the tap point, and when the Inspector reflows it fires mouse-typed
+    // pointerover/pointerenter at whatever row slid under it — with no pointermove at all.
+    const wrapper = mountList()
+    const hover = useHoverHighlightStore()
+    await wrapper.get('[data-testid="objects-line-shell"]').trigger('pointerenter', mouse)
+    expect(hover.target).toBeNull()
+    // A real mouse moves, and that is what counts.
+    await wrapper.get('[data-testid="objects-line-shell"]').trigger('pointermove', mouse)
+    expect(hover.target).toEqual({ bodyId: 'shell', partName: null })
+  })
+
+  it('WebKit\'s phantom mouse: a mouse-typed pointermove at the exact point of the last tap is not a hover', async () => {
+    // WebKit follows the reflow with a real-looking `pointermove` of type `mouse` — at the
+    // very coordinates the finger lifted from. A mouse that moves anywhere else is real.
+    const wrapper = mountList()
+    const hover = useHoverHighlightStore()
+    // jsdom's MouseEvent has read-only coordinates, so build the events by hand.
+    const pointer = (type, pointerType, clientX, clientY) => {
+      const event = new Event(type, { bubbles: true })
+      Object.defineProperties(event, {
+        pointerType: { value: pointerType },
+        clientX: { value: clientX },
+        clientY: { value: clientY },
+      })
+      return event
+    }
+    const line = wrapper.get('[data-testid="objects-line-shell"]').element
+    window.dispatchEvent(pointer('pointerdown', 'touch', 120, 300))
+    line.dispatchEvent(pointer('pointermove', 'mouse', 120, 300))
+    await nextTick()
+    expect(hover.target).toBeNull()
+    line.dispatchEvent(pointer('pointermove', 'mouse', 140, 310))
+    await nextTick()
+    expect(hover.target).toEqual({ bodyId: 'shell', partName: null })
+  })
+
+  it('moving within the hovered row writes nothing more', async () => {
+    const wrapper = mountList()
+    const hover = useHoverHighlightStore()
+    await wrapper.get('[data-testid="objects-line-shell"]').trigger('pointermove', mouse)
+    const first = hover.target
+    let changes = 0
+    hover.$subscribe(() => { changes += 1 }, { flush: 'sync' })
+    for (let i = 0; i < 20; i += 1) await wrapper.get('[data-testid="objects-line-shell"]').trigger('pointermove', mouse)
+    expect(hover.target).toBe(first)
+    expect(changes).toBe(0)
+  })
+
+  it('a tap that focuses a button is not keyboard focus — touch still invents no hover', async () => {
+    const wrapper = mountList()
+    const hover = useHoverHighlightStore()
+    // A real tap: pointerdown on the row, then the browser focuses the button it landed on.
+    await wrapper.get('[data-testid="objects-line-shell"]').trigger('pointerdown', { pointerType: 'touch' })
+    await wrapper.get('[data-testid="objects-check-shell"]').trigger('focusin')
+    expect(hover.target).toBeNull()
+  })
+
+  it('keyboard focus on a row counts as hover, and blur clears it', async () => {
+    const wrapper = mountList()
+    const hover = useHoverHighlightStore()
+    await wrapper.get('[data-testid="objects-row-shell"]').trigger('focusin')
+    expect(hover.target).toEqual({ bodyId: 'shell', partName: null })
+    await wrapper.get('[data-testid="objects-row-shell"]').trigger('focusout')
+    expect(hover.target).toBeNull()
+    await wrapper.get('[data-testid="objects-check-pi"]').trigger('focusin')
+    expect(hover.target).toEqual({ bodyId: 'pi', partName: null })
+  })
+
+  it('unmounting the list (a selection change swaps the Inspector content) clears the hover', async () => {
+    const wrapper = mountList()
+    const hover = useHoverHighlightStore()
+    await wrapper.get('[data-testid="objects-line-shell"]').trigger('pointermove', mouse)
+    wrapper.unmount()
+    expect(hover.target).toBeNull()
+  })
+
+  it('unmounting a list that did not set the hover leaves someone else\'s hover alone', async () => {
+    const a = mountList()
+    const b = mountList({ mode: 'parts', bodyId: 'pi' })
+    const hover = useHoverHighlightStore()
+    await b.get('[data-testid="inspector-part-item-ethernet"]').trigger('pointermove', mouse)
+    a.unmount()
+    expect(hover.target).toEqual({ bodyId: 'pi', partName: 'ethernet' })
+  })
+
+  it('hovering is view state: it selects nothing', async () => {
+    const wrapper = mountList()
+    await wrapper.get('[data-testid="objects-line-shell"]').trigger('pointermove', mouse)
+    expect(useSelectionStore().ids).toEqual([])
+  })
+
+  it('a selecting gesture announces itself first, so the Inspector can tell a list tap from a viewport click', async () => {
+    const wrapper = mountList()
+    await wrapper.get('[data-testid="objects-check-shell"]').trigger('click')
+    await wrapper.get('[data-testid="objects-row-pi"]').trigger('click')
+    expect(wrapper.emitted('select-intent')).toHaveLength(2)
+    // Expanding selects nothing, so it announces nothing.
+    await wrapper.get('[data-testid="objects-expand-pi"]').trigger('click')
+    expect(wrapper.emitted('select-intent')).toHaveLength(2)
+  })
+})
+
+/**
+ * `TODO/ui-049` — the Inspector's **Parts** section is the same part-row rendering, for one
+ * body: every part in group order, hidden ones labelled, the same two gestures, and the same
+ * hover. It replaces `ui-047`'s hidden-only list.
+ */
+describe('ObjectList — parts mode, the Inspector\'s Parts section (TODO/ui-049)', () => {
+  let pinia
+  beforeEach(() => {
+    pinia = createPinia()
+    setActivePinia(pinia)
+    const doc = useDocumentStore()
+    doc.append({ id: 'shell', op: 'primitive.cuboid', name: 'Shell 1', params: { size: [40, 40, 40], center: [0, 0, 20] } })
+    doc.append({ id: 'bolt', op: 'hardware.bolt', name: 'Bolt 1', params: { spec: 'm10 hex', length: 12 } })
+    useSelectionStore().select('bolt')
+  })
+
+  const mountParts = () => mount(ObjectList, { props: { mode: 'parts', bodyId: 'bolt' }, global: { plugins: [pinia] } })
+
+  it('lists every part, visible then hidden, with hidden ones labelled — and no body rows', () => {
+    const wrapper = mountParts()
+    const items = wrapper.findAll('[data-testid^="inspector-part-item-"]')
+    expect(items.map((item) => item.attributes('data-testid').replace('inspector-part-item-', ''))).toEqual([
+      'head',
+      'thread',
+      'tap-head',
+      'tap-thread',
+      'tap-headClearSpace',
+      'tap',
+    ])
+    expect(items.map((item) => item.attributes('data-hidden'))).toEqual(['false', 'false', 'true', 'true', 'true', 'true'])
+    expect(wrapper.get('[data-testid="inspector-part-hidden-tap"]').text()).toBe('hidden')
+    expect(wrapper.find('[data-testid="inspector-part-hidden-head"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid^="objects-row-"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="objects-count"]').exists()).toBe(false)
+  })
+
+  it('a tap drills to that part, a check toggles its address — the same gestures as the list', async () => {
+    const wrapper = mountParts()
+    const selection = useSelectionStore()
+    await wrapper.get('[data-testid="inspector-part-tap"]').trigger('click')
+    expect(selection.ids).toEqual(['bolt'])
+    expect(selection.subPart).toEqual({ bodyId: 'bolt', partName: 'tap' })
+    await wrapper.get('[data-testid="inspector-part-check-tap"]').trigger('click')
+    expect(selection.subPart).toBeNull()
+    expect(selection.ids).toEqual(['bolt'])
+  })
+
+  it('hovering a part row names that part of this body', async () => {
+    const wrapper = mountParts()
+    await wrapper.get('[data-testid="inspector-part-item-tap"]').trigger('pointermove', { pointerType: 'mouse' })
+    expect(useHoverHighlightStore().target).toEqual({ bodyId: 'bolt', partName: 'tap' })
+  })
+
+  it('renders nothing for a bare solid — absent, not disabled', () => {
+    const wrapper = mount(ObjectList, { props: { mode: 'parts', bodyId: 'shell' }, global: { plugins: [pinia] } })
+    expect(wrapper.find('[data-testid^="inspector-part-item-"]').exists()).toBe(false)
   })
 })

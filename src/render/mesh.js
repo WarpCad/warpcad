@@ -242,6 +242,14 @@ function nonDegenerateFan(polygons) {
  * same reason `--snap-guide` is magenta: the gizmo's rings and the Z dimension
  * line are already accent-blue, and a second highlight in a hue something else
  * owns reads as part of that overlay rather than as its own signal.
+ *
+ * `hover` is the Inspector object list's hover highlight (`TODO/ui-049`) — a **third**
+ * highlight, never either selection colour, so hovering a row whose body is already
+ * selected still reads as something different happening. Violet, because every other hue
+ * nearby is taken: amber and teal are the selection, blue the gizmo and `--accent`,
+ * magenta the snap guides, sky blue a sketch line. Kept in step with `--hover-highlight`
+ * in `src/styles/tokens.css`, which marks the hovered row in the list with the same colour
+ * so the row and the geometry read as one thing.
  */
 export const BODY_COLORS = Object.freeze({
   dark: Object.freeze({
@@ -249,12 +257,14 @@ export const BODY_COLORS = Object.freeze({
     selected: 0xffc46b,
     secondary: 0x66d9c0,
     ghost: 0xffc46b,
+    hover: 0xb69cff,
   }),
   light: Object.freeze({
     body: 0x6f8fb8,
     selected: 0xd4802a,
     secondary: 0x0f8a72,
     ghost: 0xd4802a,
+    hover: 0x6d3fd6,
   }),
 })
 
@@ -301,6 +311,17 @@ export const OVERRIDE_HIGHLIGHT_INTENSITY = 0.2
  */
 export const HIDDEN_PART_ALPHA = 0.35
 
+/**
+ * How strongly a hovered body (or part) glows in the hover colour (`TODO/ui-049`).
+ *
+ * Emissive, on top of whatever the body already shows — its palette or override colour
+ * and, for a recoloured selected body, its selection glow — which is the precedence the
+ * task asks for: selection role and colour first, hover on top. Stronger than
+ * {@link OVERRIDE_HIGHLIGHT_INTENSITY} on purpose: a hover is a transient "this one", and it
+ * has to read against a body that is already lit up as selected.
+ */
+export const HOVER_HIGHLIGHT_INTENSITY = 0.45
+
 /** @typedef {'none' | 'base' | 'secondary'} SelectionRole */
 
 /**
@@ -309,18 +330,38 @@ export const HIDDEN_PART_ALPHA = 0.35
  * @property {() => void} endPass End a repaint: dispose every cached material the
  *   pass did not ask for — the only place an override material is ever freed, so a
  *   body that is deleted, reset, or recoloured releases its old material here.
- * @property {(color: number, colorAlpha: number | undefined, role: SelectionRole) => MeshStandardMaterial} materialFor
- *   The one material for this colour/alpha/role, created on first use.
+ * @property {(color: number, colorAlpha: number | undefined, role: SelectionRole, hovered?: boolean) => MeshStandardMaterial} materialFor
+ *   The one material for this colour/alpha/role/hover, created on first use.
  * @property {(color: number, role: SelectionRole) => MeshStandardMaterial} previewMaterial
  *   The live picker preview's material, **reused and repainted in place** — a picker
  *   fires `input` at pointer rate, and one material per colour it passes through
  *   would allocate and dispose on every event.
- * @property {(highlights: { selected: number, secondary: number }) => void} setHighlights
- *   Retint every highlight (a colour-scheme switch).
+ * @property {(highlights: { selected: number, secondary: number, hover?: number }) => void} setHighlights
+ *   Retint every highlight (a colour-scheme switch). `hover` left out keeps the current one.
  * @property {() => void} dispose Release everything.
  * @property {number} size How many override materials are cached (not counting
  *   the preview ones) — for tests and for the curious.
  */
+
+/**
+ * Sum `[colour, intensity]` light contributions per channel, clamped to white — what
+ * several emissive glows on one surface add up to.
+ *
+ * @param {ReadonlyArray<[number, number]>} terms
+ * @returns {number} `0xrrggbb`.
+ */
+function summedLight(terms) {
+  let red = 0
+  let green = 0
+  let blue = 0
+  for (const [color, intensity] of terms) {
+    red += ((color >> 16) & 0xff) * intensity
+    green += ((color >> 8) & 0xff) * intensity
+    blue += (color & 0xff) * intensity
+  }
+  const clamp = (/** @type {number} */ value) => Math.min(255, Math.round(value))
+  return (clamp(red) << 16) | (clamp(green) << 8) | clamp(blue)
+}
 
 /**
  * Per-colour materials for bodies carrying a user colour override (`TODO/ui-037`).
@@ -335,12 +376,19 @@ export const HIDDEN_PART_ALPHA = 0.35
  * painted (a commit, a selection change) and freed by {@link ColorMaterialCache.endPass}
  * once no body uses it.
  *
- * @param {{ selected: number, secondary: number }} highlights Selection colours
- *   of the current theme.
+ * ## Hover (`TODO/ui-049`)
+ *
+ * A hovered part needs a material of its own even when it has no colour override — tinting
+ * the viewport's shared palette material would light up every body that shares it. So the
+ * hover is one more key component: `colour × alpha × role × hovered`, created when a row is
+ * first hovered and freed by the first pass after the pointer leaves it.
+ *
+ * @param {{ selected: number, secondary: number, hover?: number }} highlights Highlight
+ *   colours of the current theme. `hover` defaults to the dark scheme's.
  * @returns {ColorMaterialCache}
  */
 export function createColorMaterialCache(highlights) {
-  /** @type {Map<string, { material: MeshStandardMaterial, role: SelectionRole }>} */
+  /** @type {Map<string, { material: MeshStandardMaterial, role: SelectionRole, hovered: boolean }>} */
   const materials = new Map()
   /** @type {Set<string>} */
   const used = new Set()
@@ -348,19 +396,31 @@ export function createColorMaterialCache(highlights) {
   const previews = new Map()
   let selected = highlights.selected
   let secondary = highlights.secondary
+  let hover = highlights.hover ?? BODY_COLORS.dark.hover
 
   /**
    * @param {MeshStandardMaterial} material
    * @param {SelectionRole} role
+   * @param {boolean} [hovered]
    */
-  function tint(material, role) {
-    if (role === 'none') {
-      material.emissive.setHex(0x000000)
-      material.emissiveIntensity = 1
+  function tint(material, role, hovered = false) {
+    if (!hovered) {
+      if (role === 'none') {
+        material.emissive.setHex(0x000000)
+        material.emissiveIntensity = 1
+        return
+      }
+      material.emissive.setHex(role === 'base' ? selected : secondary)
+      material.emissiveIntensity = OVERRIDE_HIGHLIGHT_INTENSITY
       return
     }
-    material.emissive.setHex(role === 'base' ? selected : secondary)
-    material.emissiveIntensity = OVERRIDE_HIGHLIGHT_INTENSITY
+    // Hovered: both glows at once, summed per channel — emissive is additive light, so the
+    // selection's contribution survives underneath the hover's rather than being replaced.
+    /** @type {Array<[number, number]>} */
+    const terms = [[hover, HOVER_HIGHLIGHT_INTENSITY]]
+    if (role !== 'none') terms.push([role === 'base' ? selected : secondary, OVERRIDE_HIGHLIGHT_INTENSITY])
+    material.emissive.setHex(summedLight(terms))
+    material.emissiveIntensity = 1
   }
 
   return {
@@ -371,14 +431,22 @@ export function createColorMaterialCache(highlights) {
     endPass() {
       for (const [key, entry] of materials) {
         if (used.has(key)) continue
+        // A colour's plain and hovered materials live and die as a pair (`TODO/ui-049`):
+        // disposing the plain one while its hovered copy is on screen can take the last
+        // user of a shader program with it (a translucent part's, say). Measured by
+        // `bench/hover-sweep.mjs`: ~90 ms frames on every hover enter and leave of a Pi's
+        // alpha-0.75 board, gone once the pair is kept — consistent with three.js deleting
+        // and recompiling that program each time (inferred, not CPU-profiled).
+        const base = key.endsWith(':hover') ? key.slice(0, -':hover'.length) : key
+        if (used.has(base) || used.has(`${base}:hover`)) continue
         entry.material.dispose()
         materials.delete(key)
       }
     },
 
-    materialFor(color, colorAlpha, role) {
+    materialFor(color, colorAlpha, role, hovered = false) {
       const alpha = colorAlpha ?? 1
-      const key = `${color}:${alpha}:${role}`
+      const key = `${color}:${alpha}:${role}${hovered ? ':hover' : ''}`
       used.add(key)
       const existing = materials.get(key)
       if (existing) return existing.material
@@ -395,8 +463,8 @@ export function createColorMaterialCache(highlights) {
         // `depthWrite: true`, unchanged.
         material.depthWrite = false
       }
-      tint(material, role)
-      materials.set(key, { material, role })
+      tint(material, role, hovered)
+      materials.set(key, { material, role, hovered })
       return material
     },
 
@@ -414,7 +482,8 @@ export function createColorMaterialCache(highlights) {
     setHighlights(next) {
       selected = next.selected
       secondary = next.secondary
-      for (const { material, role } of materials.values()) tint(material, role)
+      if (next.hover !== undefined) hover = next.hover
+      for (const { material, role, hovered } of materials.values()) tint(material, role, hovered)
       for (const [role, material] of previews) tint(material, role)
     },
 
@@ -461,11 +530,22 @@ export function createColorMaterialCache(highlights) {
  *   shared: { body: MeshStandardMaterial, selected: MeshStandardMaterial, secondary: MeshStandardMaterial },
  *   cache: ColorMaterialCache,
  *   recipeColors?: Readonly<Record<string, import('../core/kernel/group.js').PartColor>>,
- * }} options
+ *   hover?: { partName: string | null } | null,
+ * }} options `hover` is set when this body is the object list's hover target
+ *   (`TODO/ui-049`): `partName: null` tints every part, a name tints only that part. It is
+ *   applied **last**, on top of role and colour, as emissive — a live colour-picker preview
+ *   is the one thing it does not tint, since the picker is open and the user is looking at
+ *   the colour itself.
  * @returns {void}
  */
-export function paintBodyObject(object, { role, overrides, preview, shared, cache, recipeColors }) {
+export function paintBodyObject(object, { role, overrides, preview, shared, cache, recipeColors, hover = null }) {
   const palette = role === 'base' ? shared.selected : role === 'secondary' ? shared.secondary : shared.body
+
+  /**
+   * @param {string | undefined} partName
+   * @returns {boolean}
+   */
+  const isHovered = (partName) => hover !== null && (hover.partName === null || hover.partName === partName)
 
   /**
    * @param {string | undefined} partName
@@ -481,7 +561,11 @@ export function paintBodyObject(object, { role, overrides, preview, shared, cach
       if (previewsThisPart) return cache.previewMaterial(preview.color, role)
     }
     const paint = paintColorOf(overrides, recipeColors, partName)
-    return paint ? cache.materialFor(paint.color, paint.colorAlpha, role) : palette
+    const hovered = isHovered(partName)
+    if (paint) return cache.materialFor(paint.color, paint.colorAlpha, role, hovered)
+    // The palette colour already *is* the selection colour, so the hovered copy of it
+    // carries no second selection glow — just the hover on top.
+    return hovered ? cache.materialFor(palette.color.getHex(), undefined, 'none', true) : palette
   }
 
   /**
@@ -496,7 +580,7 @@ export function paintBodyObject(object, { role, overrides, preview, shared, cach
   const hiddenPartMaterial = (partName) => {
     const paint = recipeColorOf(recipeColors, partName)
     const color = paint?.color ?? palette.color.getHex()
-    return cache.materialFor(color, HIDDEN_PART_ALPHA, 'none')
+    return cache.materialFor(color, HIDDEN_PART_ALPHA, 'none', isHovered(partName))
   }
 
   if (object instanceof ThreeGroup) {
@@ -579,6 +663,40 @@ export function addXrayTwin(mesh, material) {
   twin.name = 'xray-twin'
   mesh.add(twin)
   return twin
+}
+
+/**
+ * Build the **transient** mesh for one hidden part (`TODO/ui-049`): hovering a hidden part
+ * row (a bolt's `tap`) while **Show hidden parts** is off would otherwise change nothing on
+ * the canvas, and hidden parts are exactly the rows a user needs to *see* before using one
+ * as a Subtract operand.
+ *
+ * The same geometry path `ui-047`'s toggle builds (see {@link createBodyObject}'s
+ * `shownHiddenNames`), and flagged `hiddenPart` so {@link paintBodyObject} paints it the same
+ * translucent way when the caller adds it to the body's container. It is additionally flagged
+ * `hoverTransient` and **never pickable** — it exists for the length of a hover, and a ray
+ * through it must reach whatever is really there. The caller owns it: remove it and
+ * {@link disposeMesh} it when the hover ends.
+ *
+ * @param {Geom3 | KernelGroup} geometry The body's geometry.
+ * @param {string} partName
+ * @param {MeshStandardMaterial} material Initial material; repainted by the caller.
+ * @param {string} bodyId
+ * @returns {Mesh | null} `null` unless `partName` is a hidden part of a group that is drawn
+ *   part by part — a visible part already has a mesh, and a bare solid has no parts.
+ */
+export function createHoverPartMesh(geometry, partName, material, bodyId) {
+  if (!hasNamedParts(geometry)) return null
+  const part = geometry.parts[partName]
+  if (!part || geometry.names.includes(partName)) return null
+  const mesh = new Mesh(geom3ToBufferGeometry(part), material)
+  mesh.name = bodyId
+  mesh.userData.bodyId = bodyId
+  mesh.userData.partName = partName
+  mesh.userData.hiddenPart = true
+  mesh.userData.hoverTransient = true
+  mesh.raycast = () => {}
+  return mesh
 }
 
 /**

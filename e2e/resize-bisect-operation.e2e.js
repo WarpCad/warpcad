@@ -417,7 +417,10 @@ test('Bisect: commit stays disabled until an offset is typed, then cuts the cube
   // task's supersedes-produced group specifically, since ui-016's own
   // original repro only ever exercised a consumes-produced one.
   await page.getByTestId('inspector-breadcrumb-group').click()
-  await expect(breadcrumb).toHaveCount(0)
+  // Back at whole-group depth: the part segment goes (since `ui-049` the breadcrumb itself
+  // stays, carrying its root `Objects` crumb).
+  await expect(page.getByTestId('inspector-breadcrumb-part')).toHaveCount(0)
+  await expect(breadcrumb).toBeVisible()
   await expect(viewport).toHaveAttribute('data-selected-id', before.id)
   await expect(page.getByTestId('transform-gizmo')).toHaveCount(1)
   const backToWholeYMm = await dimensionLengthOf(page, 'y')
@@ -501,7 +504,10 @@ test('Bisect: a real Angle tilts the cut plane, producing an asymmetric split ra
   // breadcrumb reattaches the gizmo and restores the full-group reading.
   await expect(page.getByTestId('transform-gizmo')).toHaveCount(0)
   await page.getByTestId('inspector-breadcrumb-group').click()
-  await expect(breadcrumb).toHaveCount(0)
+  // Back at whole-group depth: the part segment goes (since `ui-049` the breadcrumb itself
+  // stays, carrying its root `Objects` crumb).
+  await expect(page.getByTestId('inspector-breadcrumb-part')).toHaveCount(0)
+  await expect(breadcrumb).toBeVisible()
   await expect(viewport).toHaveAttribute('data-selected-id', before.id)
   await expect(page.getByTestId('transform-gizmo')).toHaveCount(1)
 })

@@ -154,13 +154,13 @@ cutting with the whole bolt (no part selected) cuts a hole that size: snug enoug
 jam. The bolt's actual clearance envelope is a hidden part named `tap` — it contains
 the head and thread grown by the fastener's fit class — and it is what gives you a hole
 the bolt really slides through. `tap` has no surface to click in the 3D view, because a
-hidden part is never drawn; reach it from the Objects list's ▸ disclosure arrow on the
-bolt's row instead (see
+hidden part is never drawn; while the bolt is selected, reach it from the Inspector's
+own [**Parts**](selection-and-inspector.md#parts) section, which lists `tap` (labelled
+*hidden*) and shows it as a translucent overlay while you point at it, so you can see
+the clearance before you cut with it. As a second operand, reach it from the ▸ arrow on
+the bolt's row in the Inspector's object list (see
 [Picking one piece of a hidden shape](selection-and-inspector.md#picking-one-piece-of-a-hidden-shape)),
-the same way you would reach any other hidden piece — or, while the bolt is selected,
-from the Inspector's own [**Hidden parts**](selection-and-inspector.md#hidden-parts)
-section, which lists `tap` directly and can also show it as a translucent overlay so
-you can see the clearance before you cut with it.
+the same way you would reach any other hidden piece.
 
 ## What happens to the original shapes
 

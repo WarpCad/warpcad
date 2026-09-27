@@ -464,50 +464,82 @@ describe('describeSubPart — a recipe s own colour for one named part (TODO/ren
   })
 })
 
-describe('describeBody — hiddenParts (TODO/ui-047)', () => {
-  it('lists a bolt s hidden parts in group order, none of them in the visible params', () => {
+describe('describeBody — parts (TODO/ui-049, superseding ui-047 hiddenParts)', () => {
+  /** @param {{ name: string, hidden: boolean }[]} parts */
+  const hiddenNames = (parts) => parts.filter((part) => part.hidden).map((part) => part.name)
+
+  it('lists every part of a Raspberry Pi in group order — visible first, then hidden — each flagged', () => {
+    const document = createDocument()
+    document.append({ id: 'pi-1', op: 'raspberrypi.bplus', name: 'Raspberry Pi 1', params: {} }, { origin: 'local' })
+    const description = describeBody(document.bodies()[0])
+    expect(description.parts).toEqual([
+      ...['mb', 'ethernet', 'usb1', 'usb2', 'microusb', 'hdmi', 'avjack', 'camera', 'display', 'gpio', 'activityled', 'powerled', 'microsd'].map(
+        (name) => ({ name, hidden: false }),
+      ),
+      ...['usb1-body', 'usb1-flange', 'usb2-body', 'usb2-flange', 'avjack-block', 'avjack-barrel', 'hole1', 'hole2', 'hole3', 'hole4'].map(
+        (name) => ({ name, hidden: true }),
+      ),
+    ])
+    // The same 23 rows the Objects list's ▸ shows (ui-042), 10 of them hidden.
+    expect(description.parts).toHaveLength(23)
+    expect(hiddenNames(description.parts)).toHaveLength(10)
+  })
+
+  it('lists a bolt s visible head and thread, then its four hidden tap parts in group order', () => {
     const document = createDocument()
     document.append(
       { id: 'bolt-1', op: 'hardware.bolt', name: 'Bolt 1', params: { spec: 'm10 hex', length: 20 } },
       { origin: 'local' },
     )
     const description = describeBody(document.bodies()[0])
-    expect(description.hiddenParts).toEqual(['tap-head', 'tap-thread', 'tap-headClearSpace', 'tap'])
+    expect(description.parts).toEqual([
+      { name: 'head', hidden: false },
+      { name: 'thread', hidden: false },
+      { name: 'tap-head', hidden: true },
+      { name: 'tap-thread', hidden: true },
+      { name: 'tap-headClearSpace', hidden: true },
+      { name: 'tap', hidden: true },
+    ])
   })
 
-  it('lists a washer s hidden clearance', () => {
+  it('flags a washer s clearance as its one hidden part', () => {
     const document = createDocument()
     document.append(
       { id: 'washer-1', op: 'hardware.washer', name: 'Washer 1', params: { spec: 'm6', fit: 'loose' } },
       { origin: 'local' },
     )
-    const description = describeBody(document.bodies()[0])
-    expect(description.hiddenParts).toEqual(['clearance'])
+    expect(hiddenNames(describeBody(document.bodies()[0]).parts)).toEqual(['clearance'])
   })
 
-  it('is empty for a Cube — a bare solid has no parts to hide', () => {
+  it('is empty for a Cube — a bare solid has no parts, so the Inspector has no Parts section', () => {
     const { body } = placed('primitive.cuboid')
-    expect(describeBody(body).hiddenParts).toEqual([])
+    expect(describeBody(body).parts).toEqual([])
   })
 
-  it('is empty for a washer with no fit — nothing hidden was ever added', () => {
+  it('a washer with no fit has parts but none hidden', () => {
     const document = createDocument()
     document.append(
       { id: 'washer-1', op: 'hardware.washer', name: 'Washer 1', params: { spec: 'm6' } },
       { origin: 'local' },
     )
-    const description = describeBody(document.bodies()[0])
-    expect(description.hiddenParts).toEqual([])
+    const parts = describeBody(document.bodies()[0]).parts
+    expect(parts.length).toBeGreaterThan(0)
+    expect(hiddenNames(parts)).toEqual([])
   })
 
-  it('describeSubPart never reports hiddenParts — a part has no parts of its own to hide', () => {
+  it('no longer reports the hidden-only list it supersedes', () => {
+    const { body } = placed('primitive.cuboid')
+    expect('hiddenParts' in describeBody(body)).toBe(false)
+  })
+
+  it('describeSubPart reports no parts — a part has no parts of its own', () => {
     const document = createDocument()
     document.append(
       { id: 'bolt-1', op: 'hardware.bolt', name: 'Bolt 1', params: { spec: 'm10 hex', length: 20 } },
       { origin: 'local' },
     )
     const body = document.bodies()[0]
-    expect(describeSubPart(body, 'head', document.records).hiddenParts).toEqual([])
+    expect(describeSubPart(body, 'head', document.records).parts).toEqual([])
   })
 })
 
@@ -526,8 +558,8 @@ describe('describeBody — visibleParts (TODO/ui-050)', () => {
     // A hidden clearance part is never offered — the whole reason a Reference
     // picker exists is to measure from a *visible* part's own bounds.
     expect(description.visibleParts).not.toContain('clearance-ethernet')
-    // The exact mirror image of hiddenParts, and disjoint from it.
-    for (const name of description.hiddenParts) {
+    // The exact mirror image of the hidden parts, and disjoint from them.
+    for (const name of description.parts.filter((part) => part.hidden).map((part) => part.name)) {
       expect(description.visibleParts).not.toContain(name)
     }
   })

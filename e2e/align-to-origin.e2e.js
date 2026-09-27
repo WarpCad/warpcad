@@ -241,8 +241,8 @@ test('drop a Pi, align by "mb" with the shortcut: centred X/Y, the board flush o
   await expect(page.getByTestId('viewport')).toHaveAttribute('data-body-count', '1')
 
   // Read the History step count *before* touching selection at all — the
-  // Timeline panel is one of three overlays (`AppView.vue`'s own
-  // `sheetSlotClaimed = libraryOpen || timeline.open || objects.open`) that
+  // Timeline panel is one of the overlays (`AppView.vue`'s own
+  // `sheetSlotClaimed = libraryOpen || timeline.open`) that
   // shares the Inspector's single phone-width sheet slot, and opening it
   // collapses the Inspector to its tab. Reading the count here, then closing
   // Timeline again straight away, keeps that contention from firing while
@@ -320,17 +320,11 @@ test('drilling into the Pi’s "usb1" part and stepping back up preselects it as
   await closeLibrary(page)
   const [pi] = await sceneBodies(page)
 
-  // Drill in through the Objects panel — deterministic regardless of camera
-  // projection, unlike guessing a screen point over one small connector.
-  const objectsToggle = page.getByTestId('objects-toggle')
-  await objectsToggle.click()
-  await expect(page.getByTestId('objects-rows')).toBeVisible()
-  await page.getByTestId(`objects-expand-${pi.id}`).click()
-  await page.getByTestId(`objects-part-${pi.id}-usb1`).click()
-  // Close the Objects panel again: at phone width it shares the Inspector's
-  // one sheet slot (`AppView.vue`'s `sheetSlotClaimed`), so leaving it open
-  // would keep the Inspector collapsed to its tab for every check below.
-  await objectsToggle.click()
+  // Drill in through the Inspector's Parts section (`TODO/ui-049`) — deterministic
+  // regardless of camera projection, unlike guessing a screen point over one small
+  // connector. A just-dropped body is already the selection, so its parts are listed.
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-selected-id', pi.id)
+  await page.getByTestId('inspector-part-usb1').click()
   await expect(page.getByTestId('inspector-breadcrumb-part')).toHaveText('usb1')
   // Sub-part depth: the row is absent, per its own precondition.
   await expect(page.getByTestId('align-origin-row')).toHaveCount(0)

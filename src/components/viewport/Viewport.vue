@@ -74,8 +74,10 @@ import {
   createBodyObject,
   createColorMaterialCache,
   createGhostMaterial,
+  createHoverPartMesh,
   createXrayMaterial,
   disposeBodyObject,
+  disposeMesh,
   geom3ToBufferGeometry,
   paintBodyObject,
   updateBodyObject,
@@ -99,6 +101,7 @@ import {
 } from '../../core/library.js'
 import { useDocumentStore } from '../../stores/document.js'
 import { useHiddenPartVisibilityStore } from '../../stores/hiddenPartVisibility.js'
+import { useHoverHighlightStore } from '../../stores/hoverHighlight.js'
 import { usePlacementStore } from '../../stores/placement.js'
 import { useSelectionStore } from '../../stores/selection.js'
 import { useTimelineStore } from '../../stores/timeline.js'
@@ -194,6 +197,7 @@ const settings = useSettingsStore()
 const preview = useTransformPreviewStore()
 const colorPreview = useColorPreviewStore()
 const hiddenPartVisibility = useHiddenPartVisibilityStore()
+const hoverHighlight = useHoverHighlightStore()
 const transformCommands = useTransformCommands()
 const sketchPreview = useSketchPreviewStore()
 const sketchCommands = useSketchCommands()
@@ -427,6 +431,23 @@ let colorMaterials = null
 /** The twins currently attached, so a selection change can take them all off again. */
 /** @type {Mesh[]} */
 const xrayTwins = []
+/** How many selection twins are attached — announced for specs as `data-xray-twins`. */
+const xrayTwinCount = ref(0)
+
+/**
+ * The object list's hover highlight (`TODO/ui-049`), kept **apart** from the selection's
+ * twins above so a hover change adds and removes only its own meshes and never rebuilds
+ * every selection twin: its own x-ray material in the hover colour, the twins it put on the
+ * hovered meshes, and the one transient mesh a hovered *hidden* part gets while **Show
+ * hidden parts** is off. All plain, non-reactive — the counts below are the only refs.
+ */
+let xrayHoverMaterial = /** @type {any} */ (null)
+/** @type {Mesh[]} */
+const hoverTwins = []
+/** @type {Mesh | null} */
+let hoverTransient = null
+const hoverTwinCount = ref(0)
+const hoverTransientName = ref('')
 
 // Pointer bookkeeping. Entries are allocated on pointerdown and mutated in
 // place on move, so pointermove itself allocates nothing.
@@ -905,6 +926,10 @@ function measure() {
  */
 function syncBodies() {
   if (!bodyMaterial) return
+  // The hover's twins share their meshes' geometry and its transient mesh sits inside a
+  // body's container: take them off before any geometry is swapped or disposed, and put
+  // them back at the end against whatever the scene now holds.
+  removeHoverArtifacts()
   // Preview bodies carry the *same* lineage-root ids as live ones — they come
   // from the same records — so entering and leaving a preview adds and removes
   // exactly the meshes that differ, through the same additive path a normal
@@ -935,6 +960,9 @@ function syncBodies() {
       // non-composite body — exactly the "no recipe colour" case `paintColorOf`
       // already falls through on (`TODO/render-003`).
       existing.userData.recipeColors = isGroup(body.geometry) ? body.geometry.colors : undefined
+      // What a hovered hidden part's transient mesh is built from (`TODO/ui-049`). A
+      // reference to the evaluated result, never a copy, and never reactive.
+      existing.userData.geometry = body.geometry
       const sameRecord = existing.userData.recordId === body.recordId
       const sameHiddenShown = existing.userData.hiddenShownKey === hiddenShownKey
       if (sameRecord && sameHiddenShown) continue
@@ -962,6 +990,7 @@ function syncBodies() {
     object.userData.hiddenShownKey = hiddenShownKey
     object.userData.colorOverrides = body.colorOverrides
     object.userData.recipeColors = isGroup(body.geometry) ? body.geometry.colors : undefined
+    object.userData.geometry = body.geometry
     bodyMeshes.set(body.id, object)
     bodiesGroup.add(object)
   }
@@ -972,6 +1001,7 @@ function syncBodies() {
     bodyMeshes.delete(id)
   }
   applySelectionMaterial()
+  applyHover()
   scheduleRender()
 }
 
@@ -1016,12 +1046,70 @@ function applySelectionMaterial() {
     if (role !== 'none') {
       const tint = role === 'base' ? xrayMaterial : xraySecondaryMaterial
       if (object instanceof ThreeGroup) {
-        for (const child of object.children) xrayTwins.push(addXrayTwin(/** @type {Mesh} */ (child), tint))
+        for (const child of object.children) {
+          // A hover's transient hidden part is not part of the selection's picture.
+          if (child.userData.hoverTransient) continue
+          xrayTwins.push(addXrayTwin(/** @type {Mesh} */ (child), tint))
+        }
       } else {
         xrayTwins.push(addXrayTwin(/** @type {Mesh} */ (object), tint))
       }
     }
   }
+  xrayTwinCount.value = xrayTwins.length
+  paintBodies()
+}
+
+// --- the object list's hover highlight (TODO/ui-049) -----------------------
+
+/** Take the hover's twins and transient mesh off the scene and free the transient. */
+function removeHoverArtifacts() {
+  for (const twin of hoverTwins) twin.removeFromParent()
+  hoverTwins.length = 0
+  if (hoverTransient) {
+    hoverTransient.removeFromParent()
+    disposeMesh(hoverTransient)
+    hoverTransient = null
+  }
+  hoverTwinCount.value = 0
+  hoverTransientName.value = ''
+}
+
+/**
+ * Show the current hover target, at hover-change rate (the store refuses a repeat write):
+ * the hover tint is painted by {@link paintBodies}, and the target also gets x-ray twins in
+ * the hover colour, because a tint that only paints front faces changes nothing on the
+ * canvas for a body inside a case — exactly the body the list exists for.
+ *
+ * A hovered **hidden** part that is not already drawn (Show hidden parts off) gets a
+ * transient translucent mesh for the length of the hover, built by the same path `ui-047`'s
+ * toggle uses and disposed as soon as the hover moves on.
+ */
+function applyHover() {
+  removeHoverArtifacts()
+  const target = hoverHighlight.target
+  const object = target ? bodyMeshes.get(target.bodyId) : undefined
+  if (target && object && xrayHoverMaterial && bodyMaterial) {
+    /** @type {Mesh[]} */
+    let meshes = []
+    if (object instanceof ThreeGroup) {
+      const parts = /** @type {Mesh[]} */ (object.children)
+      meshes = target.partName === null ? parts : parts.filter((child) => child.userData.partName === target.partName)
+      if (target.partName !== null && meshes.length === 0) {
+        const transient = createHoverPartMesh(object.userData.geometry, target.partName, bodyMaterial, target.bodyId)
+        if (transient) {
+          object.add(transient)
+          hoverTransient = transient
+          hoverTransientName.value = target.partName
+          meshes = [transient]
+        }
+      }
+    } else if (target.partName === null) {
+      meshes = [/** @type {Mesh} */ (object)]
+    }
+    for (const mesh of meshes) hoverTwins.push(addXrayTwin(mesh, xrayHoverMaterial))
+  }
+  hoverTwinCount.value = hoverTwins.length
   paintBodies()
 }
 
@@ -1043,6 +1131,7 @@ function paintBodies() {
   if (!bodyMaterial || !colorMaterials) return
   const shared = { body: bodyMaterial, selected: selectedMaterial, secondary: secondaryMaterial }
   const previewId = colorPreview.bodyId
+  const hoverTarget = hoverHighlight.target
   colorMaterials.beginPass()
   for (const [id, object] of bodyMeshes) {
     paintBodyObject(object, {
@@ -1052,6 +1141,7 @@ function paintBodies() {
       shared,
       cache: colorMaterials,
       recipeColors: object.userData.recipeColors,
+      hover: hoverTarget?.bodyId === id ? { partName: hoverTarget.partName } : null,
     })
   }
   colorMaterials.endPass()
@@ -1092,7 +1182,11 @@ function applyMaterialTheme() {
   ghostMaterial?.color.setHex(palette.ghost)
   xrayMaterial?.color.setHex(palette.selected)
   xraySecondaryMaterial?.color.setHex(palette.secondary)
-  colorMaterials?.setHighlights({ selected: palette.selected, secondary: palette.secondary })
+  xrayHoverMaterial?.color.setHex(palette.hover)
+  colorMaterials?.setHighlights({ selected: palette.selected, secondary: palette.secondary, hover: palette.hover })
+  // A hovered body with no colour of its own wears a copy of the palette colour, keyed by
+  // that colour: a scheme switch needs a repaint to pick up the new one.
+  if (hoverHighlight.target) paintBodies()
 }
 
 // --- gizmo drag (TODO/ui-012) ---------------------------------------------
@@ -2102,7 +2196,8 @@ onMounted(() => {
   ghostMaterial = createGhostMaterial(palette.ghost)
   xrayMaterial = createXrayMaterial(palette.selected)
   xraySecondaryMaterial = createXrayMaterial(palette.secondary)
-  colorMaterials = createColorMaterialCache({ selected: palette.selected, secondary: palette.secondary })
+  xrayHoverMaterial = createXrayMaterial(palette.hover)
+  colorMaterials = createColorMaterialCache({ selected: palette.selected, secondary: palette.secondary, hover: palette.hover })
 
   try {
     viewport = createViewport(canvas, { fovDeg: orbit.fovDeg, theme: theme.value })
@@ -2142,6 +2237,9 @@ onMounted(() => {
       scheduleRender()
     }),
     watch(() => selection.ids, applySelectionMaterial, { deep: true }),
+    // The object list's hover (`TODO/ui-049`). The store hands out a fresh object only on
+    // a real change, so this fires at hover-change rate, never pointer rate.
+    watch(() => hoverHighlight.target, applyHover),
     // The Inspector's colour picker, while it is open (`TODO/ui-037`): the mesh
     // follows every `input` event with no document write. Repaint only — the
     // selection has not changed, so the twins stay as they are.
@@ -2191,6 +2289,7 @@ onBeforeUnmount(() => {
   themeQuery?.removeEventListener('change', onThemeChange)
   themeQuery = null
   canvasEl.value?.removeEventListener('webglcontextlost', onContextLost)
+  removeHoverArtifacts()
   for (const object of bodyMeshes.values()) disposeBodyObject(object)
   bodyMeshes.clear()
   bodiesGroup.clear()
@@ -2207,6 +2306,8 @@ onBeforeUnmount(() => {
   ghostMaterial?.dispose()
   xrayMaterial?.dispose()
   xraySecondaryMaterial?.dispose()
+  xrayHoverMaterial?.dispose()
+  xrayHoverMaterial = null
   colorMaterials?.dispose()
   colorMaterials = null
   xrayTwins.length = 0
@@ -2238,6 +2339,10 @@ onBeforeUnmount(() => {
     :data-body-count="announcedBodies.length"
     :data-selected-id="selection.onlyId ?? ''"
     :data-selected-count="selection.count"
+    :data-xray-twins="xrayTwinCount"
+    :data-hover="hoverHighlight.target ? (hoverHighlight.target.partName === null ? hoverHighlight.target.bodyId : `${hoverHighlight.target.bodyId}/${hoverHighlight.target.partName}`) : ''"
+    :data-hover-twins="hoverTwinCount"
+    :data-hover-transient="hoverTransientName"
     :data-placing="placement.isDragging ? 'true' : 'false'"
     :data-ghost="ghostVisible ? 'visible' : 'hidden'"
     :data-snapped="snapped ? 'true' : 'false'"

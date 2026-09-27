@@ -4,7 +4,8 @@ import { join } from 'node:path'
 import { test, expect } from '@playwright/test'
 
 /**
- * The Inspector's **Hidden parts** section (`TODO/ui-047`), driven against `/` — the
+ * The Inspector's **Show hidden parts** toggle (`TODO/ui-047`), now inside the **Parts**
+ * section that `TODO/ui-049` made of `ui-047`'s hidden-only list, driven against `/` — the
  * running app, not a Storybook iframe. Requested by the user right after `render-004`
  * hid `hardware.bolt`'s `tap` clearance by default: with nothing on screen saying it
  * exists any more, this section is the discoverability route back to it.
@@ -193,10 +194,15 @@ test.beforeEach(async ({ page }) => {
   await expect(page.getByTestId('viewport')).toHaveAttribute('data-webgl', 'ready')
 })
 
-test('a selected Bolt lists tap under Hidden parts; a selected Cube has no such section', async ({ page }) => {
+test('a selected Bolt lists every part under Parts, tap labelled hidden; a selected Cube has no Parts section', async ({ page }) => {
   await placeAndSelectBolt(page)
-  await expect(page.getByTestId('inspector-hidden-parts')).toBeVisible()
-  await expect(page.getByTestId('inspector-hidden-part-tap')).toBeVisible()
+  await expect(page.getByTestId('inspector-parts')).toBeVisible()
+  // All the parts, visible ones first — not only the hidden ones (ui-049).
+  await expect(page.getByTestId('inspector-parts').locator('[data-testid^="inspector-part-item-"]')).toHaveCount(6)
+  await expect(page.getByTestId('inspector-part-head')).toBeVisible()
+  await expect(page.getByTestId('inspector-part-hidden-head')).toHaveCount(0)
+  await expect(page.getByTestId('inspector-part-tap')).toBeVisible()
+  await expect(page.getByTestId('inspector-part-hidden-tap')).toHaveText('hidden')
   await expect(page.getByTestId('inspector-hidden-parts-toggle')).not.toBeChecked()
 
   // A plain Cube has nothing hidden — the section is absent, not disabled. A
@@ -210,7 +216,7 @@ test('a selected Bolt lists tap under Hidden parts; a selected Cube has no such 
   await expect(page.getByTestId('viewport')).toHaveAttribute('data-selected-id', cube.id)
   await showInspector(page)
   await expect(page.getByTestId('inspector-name')).toBeVisible()
-  await expect(page.getByTestId('inspector-hidden-parts')).toHaveCount(0)
+  await expect(page.getByTestId('inspector-parts')).toHaveCount(0)
 })
 
 test('toggling Show hidden parts draws a translucent overlay, and toggling off reverts it', async ({ page }) => {
@@ -237,26 +243,29 @@ test('toggling Show hidden parts draws a translucent overlay, and toggling off r
   expect(revertedDiff, 'toggling off reverts the canvas to how it looked before').toBeLessThan(40)
 })
 
-test('tapping a listed hidden part drills in, reading the breadcrumb "Bolt 1 ▸ tap"', async ({ page }) => {
+test('tapping a listed hidden part drills in, reading the breadcrumb "Objects ▸ Bolt 1 ▸ tap"', async ({ page }) => {
   await placeAndSelectBolt(page)
-  await page.getByTestId('inspector-hidden-part-tap').click()
+  await page.getByTestId('inspector-part-tap').click()
   await expect(page.getByTestId('inspector-breadcrumb')).toBeVisible()
   await expect(page.getByTestId('inspector-breadcrumb-group')).toHaveText('Bolt 1')
   await expect(page.getByTestId('inspector-breadcrumb-part')).toHaveText('tap')
-  // Drilled in: Hidden parts is gone (no record to target once inside one part),
-  // exactly like Transform and Parameters freezing for the same reason.
-  await expect(page.getByTestId('inspector-hidden-parts')).toHaveCount(0)
+  await expect(page.getByTestId('inspector-breadcrumb-root')).toHaveText('Objects')
+  // Drilled in: the Parts section is gone (a part has no parts of its own), exactly
+  // like Transform and Parameters freezing at that depth.
+  await expect(page.getByTestId('inspector-parts')).toHaveCount(0)
 })
 
-test('the toggle row and each hidden-part row are full-size tap targets, and nothing overflows the page', async ({
+test('the toggle row and each part row are full-size tap targets, and nothing overflows the page', async ({
   page,
 }) => {
   await placeAndSelectBolt(page)
   const toggleRow = await page.getByTestId('inspector-hidden-parts-toggle-row').boundingBox()
   expect(toggleRow?.height ?? 0, 'toggle row height').toBeGreaterThanOrEqual(44)
 
-  const partRow = await page.getByTestId('inspector-hidden-part-tap').boundingBox()
-  expect(partRow?.height ?? 0, 'tap row height').toBeGreaterThanOrEqual(40)
+  const partRow = await page.getByTestId('inspector-part-tap').boundingBox()
+  expect(partRow?.height ?? 0, 'tap row height').toBeGreaterThanOrEqual(44)
+  const partCheck = await page.getByTestId('inspector-part-check-tap').boundingBox()
+  expect(partCheck?.height ?? 0, 'tap check height').toBeGreaterThanOrEqual(44)
 
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)
   expect(overflow).toBeLessThanOrEqual(0)

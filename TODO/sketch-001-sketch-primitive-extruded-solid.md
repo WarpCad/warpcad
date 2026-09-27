@@ -185,7 +185,7 @@ and have not been confirmed by the user yet.
   the editor is editor-local state (see `sketchEditor` below), not a second document
   selection that has to be kept mutually exclusive with body selection.
 - `src/stores/sketchMode.js`: replace with `src/stores/sketchEditor.js` (see New).
-  Update its readers to use `sketchEditor.active`: `src/stores/objectsPanel.js:35,74,85`
+  Update its readers to use `sketchEditor.active`: `src/stores/objectList.js:47,86,104` (renamed from `objectsPanel.js` by `ui-049`)
   and `OrientationGizmo.vue`'s camera lock.
 - `src/stores/sketchPreview.js`, `src/composables/useSketchCommands.js`: replace. They
   appended `sketch.line` records one at a time. The editor instead edits a draft and
@@ -202,8 +202,9 @@ and have not been confirmed by the user yet.
 - `e2e/phone-toolbar-chrome-fit.e2e.js`: update its Sketch-toggle steps.
 - Specs that assert the old model: `src/core/document.spec.js`,
   `src/core/historyRestore.spec.js`, `src/core/timelineLabel.spec.js`,
-  `src/stores/selection.spec.js`, `src/stores/objectsPanel.spec.js`,
-  `src/components/layout/ObjectsPanel.spec.js`, `src/render/annotate.spec.js`.
+  `src/stores/selection.spec.js`, `src/stores/objectList.spec.js`,
+  `src/components/inspector/ObjectList.spec.js` (both moved/renamed by `ui-049`),
+  `src/render/annotate.spec.js`.
 
 **New**
 

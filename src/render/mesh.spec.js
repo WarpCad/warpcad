@@ -15,7 +15,9 @@ import {
   createXrayMaterial,
   disposeMesh,
   geom3ToBufferGeometry,
+  createHoverPartMesh,
   HIDDEN_PART_ALPHA,
+  HOVER_HIGHLIGHT_INTENSITY,
   OVERRIDE_HIGHLIGHT_INTENSITY,
   paintBodyObject,
 } from './mesh.js'
@@ -739,5 +741,280 @@ describe('per-body colour overrides (TODO/ui-037)', () => {
     colors.dispose()
     expect(disposed).toBe(1)
     expect(colors.size).toBe(0)
+  })
+})
+
+describe('the hover highlight (TODO/ui-049)', () => {
+  const palette = BODY_COLORS.dark
+
+  function shared() {
+    return {
+      body: createBodyMaterial(palette.body),
+      selected: createBodyMaterial(palette.selected),
+      secondary: createBodyMaterial(palette.secondary),
+    }
+  }
+
+  function cache() {
+    return createColorMaterialCache({ selected: palette.selected, secondary: palette.secondary, hover: palette.hover })
+  }
+
+  /** @param {any} object */
+  const materialOf = (object) => /** @type {any} */ (object).material
+
+  /**
+   * The emissive a material should carry: each highlight contributes its colour at its own
+   * intensity, summed per channel and clamped — the same additive light the renderer adds.
+   *
+   * @param {Array<[number, number]>} terms `[colour, intensity]` pairs.
+   */
+  function summedEmissive(terms) {
+    const channel = (/** @type {number} */ shift) =>
+      Math.min(255, Math.round(terms.reduce((sum, [color, k]) => sum + ((color >> shift) & 0xff) * k, 0)))
+    return (channel(16) << 16) | (channel(8) << 8) | channel(0)
+  }
+
+  function twoPartGroup() {
+    let group = createGroup('pi')
+    group = add(group, primitives.cuboid({ size: [10, 10, 2], center: [0, 0, 1] }), 'mb')
+    group = add(group, primitives.cuboid({ size: [4, 4, 4], center: [3, 3, 4] }), 'ethernet')
+    group = add(group, primitives.cuboid({ size: [6, 6, 6], center: [-3, -3, 4] }), 'tap', { hidden: true, color: 0xff0000 })
+    return group
+  }
+
+  it('is its own third colour in both schemes — never either selection colour, nor the body colour', () => {
+    for (const scheme of /** @type {const} */ (['dark', 'light'])) {
+      const colors = BODY_COLORS[scheme]
+      expect(typeof colors.hover).toBe('number')
+      expect(colors.hover).not.toBe(colors.selected)
+      expect(colors.hover).not.toBe(colors.secondary)
+      expect(colors.hover).not.toBe(colors.body)
+    }
+    expect(HOVER_HIGHLIGHT_INTENSITY).toBeGreaterThan(OVERRIDE_HIGHLIGHT_INTENSITY)
+    expect(HOVER_HIGHLIGHT_INTENSITY).toBeLessThanOrEqual(1)
+  })
+
+  it('nothing hovered paints exactly as today: the shared palette instance, nothing allocated, no extra mesh', () => {
+    const materials = shared()
+    const colors = cache()
+    const object = createBodyObject(twoPartGroup(), materials.body, 'pi')
+    const before = object.children.length
+    colors.beginPass()
+    paintBodyObject(object, { role: 'none', overrides: undefined, preview: null, shared: materials, cache: colors, hover: null })
+    colors.endPass()
+    for (const child of object.children) expect(materialOf(child)).toBe(materials.body)
+    expect(colors.size).toBe(0)
+    expect(object.children).toHaveLength(before)
+  })
+
+  it('a hovered unselected body keeps its colour and gains the hover tint as emissive', () => {
+    const materials = shared()
+    const colors = cache()
+    const mesh = createBodyObject(primitives.cuboid({ size: [10, 10, 10] }), materials.body, 'a')
+    paintBodyObject(mesh, { role: 'none', overrides: undefined, preview: null, shared: materials, cache: colors, hover: { partName: null } })
+    const material = materialOf(mesh)
+    // Its own material — tinting the shared palette instance would light up every body.
+    expect(material).not.toBe(materials.body)
+    expect(material.color.getHex()).toBe(palette.body)
+    expect(material.emissive.getHex()).toBe(summedEmissive([[palette.hover, HOVER_HIGHLIGHT_INTENSITY]]))
+    expect(material.emissiveIntensity).toBe(1)
+  })
+
+  it('hovering an already-selected body still reads as different from merely selected', () => {
+    const materials = shared()
+    const colors = cache()
+    const mesh = createBodyObject(primitives.cuboid({ size: [10, 10, 10] }), materials.body, 'a')
+    paintBodyObject(mesh, { role: 'base', overrides: undefined, preview: null, shared: materials, cache: colors, hover: { partName: null } })
+    const material = materialOf(mesh)
+    expect(material).not.toBe(materials.selected)
+    // The selection colour is still the base colour: selected first, hover on top.
+    expect(material.color.getHex()).toBe(palette.selected)
+    expect(material.emissive.getHex()).not.toBe(0x000000)
+  })
+
+  it('precedence: a hovered, selected, red-overridden body is still red, still selected, and hovered', () => {
+    const materials = shared()
+    const colors = cache()
+    const mesh = createBodyObject(primitives.cuboid({ size: [10, 10, 10] }), materials.body, 'a')
+    const red = [{ color: 0xff0000 }]
+    paintBodyObject(mesh, { role: 'base', overrides: red, preview: null, shared: materials, cache: colors, hover: null })
+    const selectedOnly = materialOf(mesh)
+    paintBodyObject(mesh, { role: 'base', overrides: red, preview: null, shared: materials, cache: colors, hover: { partName: null } })
+    const hovered = materialOf(mesh)
+    expect(hovered).not.toBe(selectedOnly)
+    expect(hovered.color.getHex()).toBe(0xff0000)
+    expect(hovered.emissive.getHex()).toBe(
+      summedEmissive([
+        [palette.selected, OVERRIDE_HIGHLIGHT_INTENSITY],
+        [palette.hover, HOVER_HIGHLIGHT_INTENSITY],
+      ]),
+    )
+    // The un-hovered selected material is untouched by the hover existing alongside it.
+    expect(selectedOnly.emissive.getHex()).toBe(palette.selected)
+    expect(selectedOnly.emissiveIntensity).toBeCloseTo(OVERRIDE_HIGHLIGHT_INTENSITY, 9)
+  })
+
+  it('a part hover lights only that part — its siblings keep the plain palette', () => {
+    const materials = shared()
+    const colors = cache()
+    const object = createBodyObject(twoPartGroup(), materials.body, 'pi')
+    paintBodyObject(object, { role: 'none', overrides: undefined, preview: null, shared: materials, cache: colors, hover: { partName: 'ethernet' } })
+    const byName = Object.fromEntries(object.children.map((child) => [child.userData.partName, materialOf(child)]))
+    expect(byName.ethernet).not.toBe(materials.body)
+    expect(byName.ethernet.emissive.getHex()).not.toBe(0x000000)
+    expect(byName.mb).toBe(materials.body)
+  })
+
+  it('a whole-body hover lights every part of a composite', () => {
+    const materials = shared()
+    const colors = cache()
+    const object = createBodyObject(twoPartGroup(), materials.body, 'pi')
+    paintBodyObject(object, { role: 'none', overrides: undefined, preview: null, shared: materials, cache: colors, hover: { partName: null } })
+    for (const child of object.children) expect(materialOf(child).emissive.getHex()).not.toBe(0x000000)
+  })
+
+  it('setHighlights retints the hover tint too — a colour-scheme switch', () => {
+    const materials = shared()
+    const colors = cache()
+    const mesh = createBodyObject(primitives.cuboid({ size: [10, 10, 10] }), materials.body, 'a')
+    paintBodyObject(mesh, { role: 'none', overrides: [{ color: 0x00ff00 }], preview: null, shared: materials, cache: colors, hover: { partName: null } })
+    const material = materialOf(mesh)
+    const light = BODY_COLORS.light
+    colors.setHighlights({ selected: light.selected, secondary: light.secondary, hover: light.hover })
+    expect(material.emissive.getHex()).toBe(summedEmissive([[light.hover, HOVER_HIGHLIGHT_INTENSITY]]))
+    // A caller that only knows the selection colours leaves the hover colour where it was.
+    colors.setHighlights({ selected: palette.selected, secondary: palette.secondary })
+    expect(material.emissive.getHex()).toBe(summedEmissive([[light.hover, HOVER_HIGHLIGHT_INTENSITY]]))
+  })
+
+  it('a stale hover material is freed by the next pass that does not use it', () => {
+    const materials = shared()
+    const colors = cache()
+    const mesh = createBodyObject(primitives.cuboid({ size: [10, 10, 10] }), materials.body, 'a')
+    colors.beginPass()
+    paintBodyObject(mesh, { role: 'none', overrides: undefined, preview: null, shared: materials, cache: colors, hover: { partName: null } })
+    colors.endPass()
+    const hovered = materialOf(mesh)
+    let disposed = false
+    hovered.addEventListener('dispose', () => {
+      disposed = true
+    })
+    colors.beginPass()
+    paintBodyObject(mesh, { role: 'none', overrides: undefined, preview: null, shared: materials, cache: colors, hover: null })
+    colors.endPass()
+    expect(disposed).toBe(true)
+    expect(materialOf(mesh)).toBe(materials.body)
+    expect(colors.size).toBe(0)
+  })
+
+  it('a colour\'s plain and hovered materials live as a pair while either is used — no shader recompile per hover', () => {
+    // Found by the hover-sweep benchmark: hovering a Pi's translucent `mb` board disposed its
+    // plain material, the only user of that transparent shader program, so three.js deleted
+    // the program and the next frame recompiled it (~90 ms, both on enter and on leave).
+    const materials = shared()
+    const colors = cache()
+    const mesh = createBodyObject(primitives.cuboid({ size: [10, 10, 10] }), materials.body, 'a')
+    const translucent = [{ color: 0x2e8b57, colorAlpha: 0.75 }]
+    /** @param {{ partName: string | null } | null} hover */
+    const paint = (hover) => {
+      colors.beginPass()
+      paintBodyObject(mesh, { role: 'none', overrides: translucent, preview: null, shared: materials, cache: colors, hover })
+      colors.endPass()
+      return materialOf(mesh)
+    }
+    const plain = paint(null)
+    let plainDisposed = false
+    plain.addEventListener('dispose', () => {
+      plainDisposed = true
+    })
+    const hovered = paint({ partName: null })
+    expect(hovered).not.toBe(plain)
+    expect(plainDisposed).toBe(false)
+    let hoveredDisposed = false
+    hovered.addEventListener('dispose', () => {
+      hoveredDisposed = true
+    })
+    expect(paint(null)).toBe(plain)
+    expect(hoveredDisposed).toBe(false)
+    // Neither in use any more (the override is gone): both are freed.
+    colors.beginPass()
+    paintBodyObject(mesh, { role: 'none', overrides: undefined, preview: null, shared: materials, cache: colors, hover: null })
+    colors.endPass()
+    expect(plainDisposed).toBe(true)
+    expect(hoveredDisposed).toBe(true)
+    expect(colors.size).toBe(0)
+  })
+
+  it('a shown hidden part (the Show hidden parts toggle) takes the hover tint and stays translucent', () => {
+    const materials = shared()
+    const colors = cache()
+    const group = twoPartGroup()
+    const object = createBodyObject(group, materials.body, 'pi', ['tap'])
+    paintBodyObject(object, {
+      role: 'none',
+      overrides: undefined,
+      preview: null,
+      shared: materials,
+      cache: colors,
+      recipeColors: group.colors,
+      hover: { partName: 'tap' },
+    })
+    const tap = materialOf(object.children.find((child) => child.userData.partName === 'tap'))
+    expect(tap.color.getHex()).toBe(0xff0000)
+    expect(tap.opacity).toBeCloseTo(HIDDEN_PART_ALPHA, 9)
+    expect(tap.emissive.getHex()).not.toBe(0x000000)
+  })
+})
+
+describe('the transient hovered hidden part (TODO/ui-049)', () => {
+  const palette = BODY_COLORS.dark
+
+  function group() {
+    let g = createGroup('bolt')
+    g = add(g, primitives.cuboid({ size: [10, 10, 10] }), 'shell')
+    g = add(g, primitives.cuboid({ size: [16, 16, 16] }), 'tap', { hidden: true, color: 0xff0000 })
+    return g
+  }
+
+  it('builds one translucent-path mesh for a hidden part: flagged, the part s own solid, never pickable', () => {
+    const g = group()
+    const mesh = /** @type {any} */ (createHoverPartMesh(g, 'tap', createBodyMaterial(palette.body), 'bolt-1'))
+    expect(mesh).not.toBeNull()
+    expect(mesh.userData.hiddenPart).toBe(true)
+    expect(mesh.userData.hoverTransient).toBe(true)
+    expect(mesh.userData.partName).toBe('tap')
+    expect(mesh.userData.bodyId).toBe('bolt-1')
+    expect(Array.from(mesh.geometry.getAttribute('position').array)).toEqual(
+      Array.from(geom3ToBufferGeometry(g.parts.tap).getAttribute('position').array),
+    )
+    // Hover-only: a ray through it reaches whatever is really there.
+    const hits = /** @type {any[]} */ ([])
+    mesh.raycast(new Raycaster(new Vector3(0, 0, 50), new Vector3(0, 0, -1)), hits)
+    expect(hits).toHaveLength(0)
+  })
+
+  it('builds nothing for a visible part, an unknown name or a bare solid — those have a mesh already', () => {
+    const material = createBodyMaterial(palette.body)
+    expect(createHoverPartMesh(group(), 'shell', material, 'bolt-1')).toBeNull()
+    expect(createHoverPartMesh(group(), 'nope', material, 'bolt-1')).toBeNull()
+    expect(createHoverPartMesh(primitives.cuboid({ size: [4, 4, 4] }), 'tap', material, 'c')).toBeNull()
+  })
+
+  it('is disposed on clear: its geometry is released, and the body keeps exactly its own mesh count', () => {
+    const material = createBodyMaterial(palette.body)
+    const g = group()
+    const object = createBodyObject(g, material, 'bolt-1')
+    const before = object.children.length
+    const mesh = /** @type {any} */ (createHoverPartMesh(g, 'tap', material, 'bolt-1'))
+    object.add(mesh)
+    expect(object.children).toHaveLength(before + 1)
+    let released = false
+    mesh.geometry.addEventListener('dispose', () => {
+      released = true
+    })
+    mesh.removeFromParent()
+    disposeMesh(mesh)
+    expect(released).toBe(true)
+    expect(object.children).toHaveLength(before)
   })
 })

@@ -14,12 +14,31 @@
  * CLAUDE.md gates tools on selection count rather than presence, and control 3's
  * Q15 spells this panel's version out:
  *
- * - **0** → the empty state, "(nothing selected)".
+ * - **0** → the scene's **object list** (`TODO/ui-049`), in place of the old
+ *   "(nothing selected)": every body, with the rows, checks and ▸ disclosures the
+ *   retired Objects panel had (`ui-041`/`ui-042`).
  * - **exactly 1** → the full contract: the op's own params plus Transform.
  * - **2+** → *no per-item fields*. There is no single object to describe. The
  *   count is shown and nothing else; critically, the previous single selection's
  *   fields must not linger, which is why `describeSelection` returns a null body
  *   rather than the panel hiding a stale one behind a `v-if`.
+ *
+ * ## The list stays reachable in every state (`TODO/ui-049`)
+ *
+ * This panel is the one place that lists the scene, and `ui-041`'s two-operand route
+ * — the only no-keyboard, no-raycast way to Subtract an enclosed body — needs the list
+ * to survive the first tap. So it is not only the empty state: it is a collapsible
+ * **Objects** section at the top of every body state, collapsed by default at 1
+ * selected (the body's detail is the focus) and expanded at 2+ (where the `1`/`2`
+ * operand order is most useful), and a check leaves it open for the next operand
+ * (`stores/objectList.js`). The breadcrumb gains a root **Objects** crumb that opens
+ * it — "back to the list" as a named control rather than "deselect everything". The
+ * section sits *above* the breadcrumb so the list does not move when the first check
+ * turns the empty state into a one-body state.
+ *
+ * A composite's own parts get a **Parts** section — every part in group order, hidden
+ * ones labelled — which replaces `ui-047`'s hidden-only list and carries its **Show
+ * hidden parts** toggle unchanged.
  *
  * ## Registry-driven fields, not one form per primitive
  *
@@ -30,6 +49,13 @@
  * Inspector with no change to this file.
  *
  * ## Phone width
+ *
+ * With nothing selected (and something in the scene) the collapsed tab reads
+ * **Objects (n)** and opens the sheet on the list (`TODO/ui-049`); an empty document
+ * has no tab, since there is nothing to list and the Library tab is the way in.
+ * Selecting from a row inside the open sheet keeps it open, and so does unchecking
+ * the last row — the sheet only closes on a deselect the user made elsewhere
+ * (swipe, empty viewport space).
  *
  * The sheet **auto-opens on selection, with no extra tap** (control 3, Q16).
  * Requiring a second tap to see the feedback would make selection behave
@@ -92,13 +118,15 @@
  * "not only after release". A field the user is actively typing into is left
  * alone, so a live re-render cannot overwrite half-typed input.
  */
-import { computed, ref, watch } from 'vue'
+import { computed, nextTick, ref, watch } from 'vue'
 
 import { useSelectedBody } from '../../composables/useSelectedBody.js'
 import { useSelectionStore } from '../../stores/selection.js'
 import { useHiddenPartVisibilityStore } from '../../stores/hiddenPartVisibility.js'
 import { useAlignReferenceStore } from '../../stores/alignReference.js'
 import AlignToOrigin from './AlignToOrigin.vue'
+import ObjectList from './ObjectList.vue'
+import { useObjectListStore } from '../../stores/objectList.js'
 import { useDocumentStore } from '../../stores/document.js'
 import { useSketchPreviewStore } from '../../stores/sketchPreview.js'
 import { useTransformCommands } from '../../composables/useTransformCommands.js'
@@ -142,6 +170,7 @@ const described = useSelectedBody()
 const documentStore = useDocumentStore()
 const hiddenPartVisibility = useHiddenPartVisibilityStore()
 const alignReference = useAlignReferenceStore()
+const objectList = useObjectListStore()
 const sketchPreview = useSketchPreviewStore()
 const sketchCommands = useSketchCommands()
 
@@ -246,6 +275,54 @@ const isSubPart = computed(() => Boolean(body.value?.subPart))
 
 const isOpen = ref(false)
 
+// --- the object list (TODO/ui-049) -----------------------------------------
+
+/** How many bodies are selected — what the Objects section's default depends on. */
+const selectedCount = computed(() => described.value.count)
+
+/**
+ * Whether the Objects section is showing its rows: always at 0 selected (the list *is*
+ * the panel then), otherwise the section's own remembered state for 1 or 2+.
+ */
+const objectsOpen = computed(() => objectList.isSectionOpen(selectedCount.value))
+
+/** The sheet's own scroller, so the root crumb can bring the section into view. */
+const sheetEl = ref(/** @type {HTMLElement | null} */ (null))
+
+/**
+ * The phone tab's label: the selection's name, or — with nothing selected — the list it
+ * opens onto, with its count, so the tab says what tapping it will show.
+ */
+const tabLabel = computed(() => {
+  if (sketchEntity.value) return sketchEntity.value.name
+  if (body.value) return body.value.name
+  if (panelState.value === 'empty') return `Objects (${objectList.rows.length})`
+  return 'Inspector'
+})
+
+/**
+ * Set by a row gesture in the object list just before it selects (`select-intent`), and
+ * read by the auto-open watcher below: a selection made from *inside* the open sheet must
+ * not close it — unchecking the last row empties the selection, but the user is still
+ * working in the list. Cleared on the next macrotask, after the watcher has run.
+ */
+let listIntent = false
+
+function onListIntent() {
+  listIntent = true
+  setTimeout(() => {
+    listIntent = false
+  }, 0)
+}
+
+/** The root breadcrumb crumb: open the Objects section and bring it into view. */
+async function onObjectsCrumb() {
+  objectList.setSectionOpen(selectedCount.value, true)
+  await nextTick()
+  const section = sheetEl.value?.querySelector('[data-testid="inspector-objects"]')
+  if (section && typeof section.scrollIntoView === 'function') section.scrollIntoView({ block: 'nearest' })
+}
+
 /**
  * How much of the viewport's bottom edge this panel currently covers at phone
  * width — `'none'`, just its `'tab'`, or the whole `'open'` sheet.
@@ -261,7 +338,10 @@ const isOpen = ref(false)
  */
 function sheetState() {
   if (isOpen.value) return 'open'
-  return panelState.value === 'empty' ? 'none' : 'tab'
+  if (panelState.value !== 'empty') return 'tab'
+  // Nothing selected: the tab is still there, now labelled `Objects (n)`, as long as there
+  // is something to list (`TODO/ui-049`).
+  return objectList.rows.length > 0 ? 'tab' : 'none'
 }
 
 function reportSheet() {
@@ -279,10 +359,34 @@ function setOpen(value) {
 // sheet open at phone width.
 watch(
   [() => panelState.value, () => props.sheetSlotClaimed],
-  ([state, libraryOpen]) => {
-    setOpen(state !== 'empty' && !libraryOpen)
+  ([state, libraryOpen], previous) => {
+    const [previousState, previousClaimed] = previous ?? []
+    if (state !== 'empty') {
+      setOpen(!libraryOpen)
+      return
+    }
+    // Nothing selected (`TODO/ui-049`): the sheet is open only because the user opened
+    // it from its `Objects (n)` tab, so it closes on a *transition* that means "get out
+    // of the way" — the selection emptying from outside the list (a swipe, a tap on
+    // empty viewport space), or another sheet taking the slot — and never merely
+    // because the Library it just displaced has finished collapsing. A deselect made
+    // from a row inside the open sheet leaves it open on the list.
+    // (On the immediate first run Vue passes `[]` as the previous values.)
+    const initial = previousState === undefined
+    const selectionEmptied = !initial && previousState !== 'empty'
+    const slotTaken = libraryOpen && !previousClaimed
+    if (initial || slotTaken || (selectionEmptied && !(listIntent && isOpen.value))) {
+      setOpen(false)
+    }
   },
   { immediate: true },
+)
+
+// The collapsed tab appears and disappears with the scene's first and last body, so the
+// viewport's overlays have to hear about it the same way they hear about a selection.
+watch(
+  () => objectList.rows.length > 0,
+  () => reportSheet(),
 )
 
 // --- swipe-to-dismiss (phone width) --------------------------------------
@@ -575,19 +679,21 @@ function commitParamComponent(event, key, index) {
   runParamEdit(() => paramCommands.setParamComponent(selectedBody.id, key, index, parsed))
 }
 
-// --- the Hidden parts section (TODO/ui-047) -------------------------------
+// --- the Parts section (TODO/ui-049, superseding ui-047's Hidden parts) -----
 
 /**
- * The selected body's hidden part names — `src/core/inspector.js`'s
- * `describeBody`, already the exact set the Objects list's ▸ disclosure shows.
- * `[]` while drilled into a sub-part: that state has no record of its own to
- * target, the same reason Transform and Parameters are frozen there, and a part
- * has no parts of its own to hide.
+ * The selected body's parts, visible then hidden, each flagged — `src/core/inspector.js`'s
+ * `describeBody`, the same tree the object list shows under the body's ▸. `[]` while
+ * drilled into a sub-part (`describeSubPart` reports none: a part has no parts of its
+ * own, the same reason Transform and Parameters are frozen there).
  */
-const hiddenParts = computed(() => body.value?.hiddenParts ?? [])
+const parts = computed(() => body.value?.parts ?? [])
 
 /** Whether the *section* has anything to show — absent, not disabled, when not. */
-const hasHiddenParts = computed(() => !isSubPart.value && hiddenParts.value.length > 0)
+const hasParts = computed(() => !isSubPart.value && parts.value.length > 0)
+
+/** Whether the Show hidden parts toggle has anything to show (`ui-047`, unchanged). */
+const hasHiddenParts = computed(() => parts.value.some((part) => part.hidden))
 
 /**
  * Whether the selected body's hidden parts are currently drawn translucent —
@@ -603,19 +709,6 @@ function onToggleHiddenParts() {
   const id = body.value?.id
   if (!id) return
   hiddenPartVisibility.toggle(id)
-}
-
-/**
- * Tap a listed hidden part name: drill straight to it, ready to use as an
- * operation operand (`ui-016`'s single-part selection contract, the same route
- * a second viewport click or an Objects-list piece row already uses).
- *
- * @param {string} partName
- */
-function onHiddenPartClick(partName) {
-  const id = body.value?.id
-  if (!id) return
-  selection.selectPart(id, partName)
 }
 
 // --- the Color control (TODO/ui-037) --------------------------------------
@@ -750,6 +843,7 @@ watch([() => body.value?.id, colorPart], () => {
     :data-open="isOpen ? 'true' : 'false'"
     :data-selected-id="sketchEntity?.id ?? body?.id ?? ''"
     :data-sub-part="body?.subPart?.partName ?? ''"
+    :data-has-objects="objectList.rows.length > 0 ? 'true' : 'false'"
     aria-label="Inspector"
   >
     <button
@@ -763,22 +857,50 @@ watch([() => body.value?.id, colorPart], () => {
       @pointerup="onGripUp"
     >
       <span class="inspector__grip" aria-hidden="true" />
-      {{ sketchEntity?.name ?? (body ? body.name : 'Inspector') }}
+      {{ tabLabel }}
     </button>
 
-    <div id="inspector-sheet" class="inspector__sheet">
+    <div id="inspector-sheet" ref="sheetEl" class="inspector__sheet" data-testid="inspector-sheet">
       <h2 class="inspector__heading">Inspector</h2>
 
-      <p v-if="panelState === 'empty'" class="inspector__empty" data-testid="inspector-empty">
-        (nothing selected)
-      </p>
+      <!-- The object list (TODO/ui-049): the whole content at 0 selected, a collapsible
+           section at the top of every body state. One mount point, above the state
+           branches, so the list does not move when the first check turns "nothing" into
+           "one body". Not shown for a sketch entity — sketch mode cannot select solids. -->
+      <section
+        v-if="panelState !== 'sketch'"
+        class="inspector__objects"
+        data-testid="inspector-objects"
+        :data-collapsible="panelState === 'empty' ? 'false' : 'true'"
+        :data-open="objectsOpen ? 'true' : 'false'"
+      >
+        <h3 v-if="panelState === 'empty'" class="inspector__objects-bar">Objects</h3>
+        <button
+          v-else
+          type="button"
+          class="inspector__objects-bar inspector__objects-bar--button"
+          data-testid="inspector-objects-header"
+          :aria-expanded="objectsOpen"
+          aria-controls="inspector-objects-list"
+          @click="objectList.toggleSection(selectedCount)"
+        >
+          <span>Objects</span>
+          <span class="inspector__objects-count">({{ objectList.rows.length }})</span>
+          <span class="inspector__objects-chevron" :class="{ 'inspector__objects-chevron--open': objectsOpen }" aria-hidden="true"
+            >▸</span
+          >
+        </button>
+        <div v-if="objectsOpen" id="inspector-objects-list">
+          <ObjectList @select-intent="onListIntent" />
+        </div>
+      </section>
 
       <!-- A sketch entity (TODO/ui-020). Its own branch, not a variation on the
            body one: there is no registry `ui.defaults` schema to read, no
            Transform section (a line is not moved or turned as a whole here) and
            no gizmo — the two draggable endpoint handles in the viewport are the
            2D equivalent, per section 7's Q14. -->
-      <template v-else-if="sketchEntity">
+      <template v-if="sketchEntity">
         <p class="inspector__name" data-testid="inspector-name">{{ sketchEntity.name }}</p>
         <p class="inspector__op" data-testid="inspector-op" :data-op="sketchEntity.op">
           Sketch line
@@ -860,23 +982,33 @@ watch([() => body.value?.id, colorPart], () => {
              inside a group is the selection, and the whole reason control 6
              asks for it: without it, narrowing from the assembly to one member
              is a silent field swap, indistinguishable on screen from a bug. -->
-        <nav
-          v-if="body.subPart"
-          class="inspector__breadcrumb"
-          data-testid="inspector-breadcrumb"
-          aria-label="Selection depth"
-        >
+        <nav class="inspector__breadcrumb" data-testid="inspector-breadcrumb" aria-label="Selection depth">
+          <!-- The root crumb (TODO/ui-049): back to the list, selection intact. -->
           <button
             type="button"
             class="inspector__crumb inspector__crumb--link"
-            data-testid="inspector-breadcrumb-group"
-            @click="selection.stepUp()"
+            data-testid="inspector-breadcrumb-root"
+            @click="onObjectsCrumb"
           >
-            {{ body.subPart.groupName }}
+            Objects
           </button>
           <span class="inspector__crumb-sep" aria-hidden="true">▸</span>
-          <span class="inspector__crumb" data-testid="inspector-breadcrumb-part" aria-current="true">
-            {{ body.subPart.partName }}
+          <template v-if="body.subPart">
+            <button
+              type="button"
+              class="inspector__crumb inspector__crumb--link"
+              data-testid="inspector-breadcrumb-group"
+              @click="selection.stepUp()"
+            >
+              {{ body.subPart.groupName }}
+            </button>
+            <span class="inspector__crumb-sep" aria-hidden="true">▸</span>
+            <span class="inspector__crumb" data-testid="inspector-breadcrumb-part" aria-current="true">
+              {{ body.subPart.partName }}
+            </span>
+          </template>
+          <span v-else class="inspector__crumb" data-testid="inspector-breadcrumb-body" aria-current="true">
+            {{ body.name }}
           </span>
         </nav>
         <p class="inspector__name" data-testid="inspector-name">{{ body.name }}</p>
@@ -923,16 +1055,18 @@ watch([() => body.value?.id, colorPart], () => {
           </p>
         </section>
 
-        <!-- The Hidden parts section (TODO/ui-047). Absent, not disabled, for a
-             body with no hidden parts — a Cube or a Pi board, per this task's own
-             precondition — so it adds no noise to every Inspector. -->
-        <section
-          v-if="hasHiddenParts"
-          class="inspector__section"
-          data-testid="inspector-hidden-parts"
-        >
-          <h3 class="inspector__section-title">Hidden parts</h3>
-          <label class="inspector__hidden-toggle" data-testid="inspector-hidden-parts-toggle-row">
+        <!-- The Parts section (TODO/ui-049, superseding ui-047's Hidden parts): every
+             part of a composite in group order, hidden ones labelled, in the object
+             list's own row style and gestures — tap a part to drill to it, its check to
+             add it as an operand, hover to find it in the view. Absent, not disabled,
+             for a bare solid. -->
+        <section v-if="hasParts" class="inspector__section" data-testid="inspector-parts">
+          <h3 class="inspector__section-title">Parts</h3>
+          <label
+            v-if="hasHiddenParts"
+            class="inspector__hidden-toggle"
+            data-testid="inspector-hidden-parts-toggle-row"
+          >
             <input
               type="checkbox"
               data-testid="inspector-hidden-parts-toggle"
@@ -941,22 +1075,13 @@ watch([() => body.value?.id, colorPart], () => {
             />
             Show hidden parts
           </label>
-          <ul class="inspector__hidden-list" data-testid="inspector-hidden-parts-list">
-            <li v-for="partName in hiddenParts" :key="partName">
-              <button
-                type="button"
-                class="inspector__hidden-part"
-                :data-testid="`inspector-hidden-part-${partName}`"
-                @click="onHiddenPartClick(partName)"
-              >
-                {{ partName }}
-              </button>
-            </li>
-          </ul>
-          <p class="inspector__note" data-testid="inspector-hidden-parts-note">
-            These parts drive a boolean but are not drawn by default. Turn on
-            <strong>Show hidden parts</strong> to see them as a translucent overlay in their
-            own colour, or tap a name to select just that part.
+          <ObjectList mode="parts" :body-id="body.id" @select-intent="onListIntent" />
+          <p class="inspector__note" data-testid="inspector-parts-note">
+            Tap a part to select just that part, or its check to add it as an operand.
+            <template v-if="hasHiddenParts">
+              Parts marked <strong>hidden</strong> drive a boolean but are not drawn — turn on
+              <strong>Show hidden parts</strong> to see them as a translucent overlay.
+            </template>
           </p>
         </section>
 
@@ -1119,7 +1244,7 @@ watch([() => body.value?.id, colorPart], () => {
           </dl>
 
           <!-- Align to origin (`TODO/ui-050`) — self-gated, "absent, not
-               disabled" the same way the Hidden-parts section above is: it
+               disabled" the same way the Parts section above is: it
                renders nothing at 2+ selected or at sub-part depth, both of
                which are already impossible here (this whole branch is
                `v-else-if="body"`, and `isSubPart` freezes everything else in
@@ -1218,34 +1343,63 @@ watch([() => body.value?.id, colorPart], () => {
   accent-color: var(--accent);
 }
 
-.inspector__hidden-list {
+/* The object list's section (TODO/ui-049). The bar is the same 44px at every state —
+   a plain title at 0 selected, the collapse button otherwise — so the rows below it do
+   not move when the first check turns "nothing" into "one body". */
+.inspector__objects {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  margin: 4px 0 0;
-  padding: 0;
-  list-style: none;
+  min-width: 0;
 }
 
-.inspector__hidden-part {
+.inspector__objects-bar {
   display: flex;
   align-items: center;
-  width: 100%;
-  min-height: 40px;
-  padding: 4px 10px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  background: var(--surface-2);
-  color: var(--text-1);
-  font: inherit;
-  font-size: 12px;
-  text-align: left;
-  cursor: pointer;
+  gap: 6px;
+  min-height: 44px;
+  margin: 0;
+  padding: 0;
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-3);
 }
 
-.inspector__hidden-part:focus-visible {
+.inspector__objects-bar--button {
+  width: 100%;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  background: transparent;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.inspector__objects-bar--button:hover {
+  color: var(--text-1);
+}
+
+.inspector__objects-bar--button:focus-visible {
   outline: 2px solid var(--accent);
-  outline-offset: 1px;
+  outline-offset: -2px;
+}
+
+.inspector__objects-count {
+  font-weight: 500;
+  letter-spacing: 0;
+}
+
+.inspector__objects-chevron {
+  margin-left: auto;
+  padding-right: 8px;
+  font-size: 13px;
+  transition: transform 0.12s ease;
+}
+
+.inspector__objects-chevron--open {
+  transform: rotate(90deg);
 }
 
 .inspector {
@@ -1279,7 +1433,6 @@ watch([() => body.value?.id, colorPart], () => {
   color: var(--text-3);
 }
 
-.inspector__empty,
 .inspector__count {
   margin: 6px 0;
   font-size: 13px;
@@ -1519,9 +1672,10 @@ watch([() => body.value?.id, colorPart], () => {
     display: flex;
   }
 
-  /* Nothing selected and nothing to show: the sheet's own tab would just be a
-     bar of dead chrome over the 3D view. */
-  .inspector[data-state='empty'][data-open='false'] {
+  /* Nothing selected and nothing in the scene to list: the sheet's own tab would
+     just be a bar of dead chrome over the 3D view. With bodies in the scene the tab
+     stays, labelled `Objects (n)` (TODO/ui-049). */
+  .inspector[data-state='empty'][data-open='false'][data-has-objects='false'] {
     display: none;
   }
 }

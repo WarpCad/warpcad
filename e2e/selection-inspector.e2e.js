@@ -316,7 +316,9 @@ test('the root view mounts the Inspector, and it starts empty', async ({ page })
   const inspector = page.getByTestId('inspector')
   await expect(inspector).toBeAttached()
   await expect(inspector).toHaveAttribute('data-state', 'empty')
-  await expect(page.getByTestId('inspector-empty')).toHaveText('(nothing selected)')
+  // Since `TODO/ui-049` the empty state is the scene's object list — in an empty
+  // document, its own empty copy naming the way out.
+  await expect(page.getByTestId('objects-empty')).toHaveText('No objects yet — drag a shape in from the Library')
 
   // Nothing selected means nothing annotated: no gizmo at all, and no dimension
   // lines quoting numbers about a body the user has not picked.
@@ -732,7 +734,7 @@ test('at tablet and laptop width the Inspector is a persistent column', async ({
 
   // Always there, with nothing selected — the empty state is the panel telling
   // the user what to do, not an absence.
-  await expect(page.getByTestId('inspector-empty')).toBeVisible()
+  await expect(page.getByTestId('objects-empty')).toBeVisible()
   const viewportBox = await page.getByTestId('viewport').boundingBox()
   const inspectorBox = await page.getByTestId('inspector').boundingBox()
   // Beside the viewport, not on top of it: at these widths the 3D view keeps

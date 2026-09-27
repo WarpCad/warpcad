@@ -3,7 +3,7 @@ import { createPinia, setActivePinia } from 'pinia'
 
 import { useTimelineCommands } from '../composables/useTimelineCommands.js'
 import { useDocumentStore } from './document.js'
-import { useObjectsPanelStore } from './objectsPanel.js'
+import { useObjectListStore } from './objectList.js'
 import { useSelectionStore } from './selection.js'
 import { useSketchModeStore } from './sketchMode.js'
 import { useTimelineStore } from './timeline.js'
@@ -17,7 +17,7 @@ import { useTimelineStore } from './timeline.js'
  * History panel's row selection (`data-002` §13), and it can never select a body the
  * scene does not contain.
  */
-describe('objects panel store (TODO/ui-041)', () => {
+describe('object list store (TODO/ui-041, moved into the Inspector by ui-049)', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
   })
@@ -44,18 +44,70 @@ describe('objects panel store (TODO/ui-041)', () => {
     return doc
   }
 
-  it('is closed by default, and toggles', () => {
-    const objects = useObjectsPanelStore()
-    expect(objects.open).toBe(false)
-    objects.toggle()
-    expect(objects.open).toBe(true)
-    objects.toggle()
-    expect(objects.open).toBe(false)
+  it('has no open/close state of its own any more — it is not a panel (ui-049)', () => {
+    const objects = useObjectListStore()
+    expect('open' in objects).toBe(false)
+    expect('setOpen' in objects).toBe(false)
+    expect('toggle' in objects).toBe(false)
+  })
+
+  it('the Inspector section: collapsed by default at 1 selected, expanded at 2+, each remembered', () => {
+    const objects = useObjectListStore()
+    expect(objects.isSectionOpen(1)).toBe(false)
+    expect(objects.isSectionOpen(2)).toBe(true)
+    expect(objects.isSectionOpen(5)).toBe(true)
+    objects.toggleSection(1)
+    expect(objects.isSectionOpen(1)).toBe(true)
+    expect(objects.isSectionOpen(2)).toBe(true)
+    objects.toggleSection(3)
+    expect(objects.isSectionOpen(2)).toBe(false)
+    expect(objects.isSectionOpen(1)).toBe(true)
+    objects.setSectionOpen(1, false)
+    expect(objects.isSectionOpen(1)).toBe(false)
+  })
+
+  it('a check keeps the list open for the next operand; a plain row tap hands the focus to the body (ui-049)', () => {
+    seedEnclosed()
+    const objects = useObjectListStore()
+    // "The list must not vanish on the first tap": ticking a check at 0 selected is building
+    // a multi-selection, so the section it lands in at 1 selected stays open.
+    objects.choose('shell', true)
+    expect(objects.isSectionOpen(1)).toBe(true)
+    // A plain tap names one body: its detail is the focus, the list folds away.
+    objects.choose('bolt-1t')
+    expect(objects.isSectionOpen(1)).toBe(false)
+    objects.choosePart('bolt-1t', 'tap', true)
+    expect(objects.isSectionOpen(1)).toBe(true)
+    objects.choosePart('bolt-1t', 'tap')
+    expect(objects.isSectionOpen(1)).toBe(false)
+  })
+
+  it('the check\'s "stay open" lasts only for the check sequence: a viewport selection falls back to the preference', () => {
+    seedEnclosed()
+    const objects = useObjectListStore()
+    const selection = useSelectionStore()
+    objects.choose('shell', true)
+    expect(objects.isSectionOpen(1)).toBe(true)
+    // A later selection made anywhere else (a viewport click) is about a body's detail.
+    selection.select('sphere')
+    expect(objects.isSectionOpen(1)).toBe(false)
+    // An explicit header choice is the remembered preference, and survives other routes.
+    objects.setSectionOpen(1, true)
+    selection.select('shell')
+    expect(objects.isSectionOpen(1)).toBe(true)
+  })
+
+  it('a refused choose leaves the section state alone', () => {
+    seedEnclosed()
+    const objects = useObjectListStore()
+    objects.setSectionOpen(1, true)
+    expect(objects.choose('nope')).toBe(false)
+    expect(objects.isSectionOpen(1)).toBe(true)
   })
 
   it('lists one row per body, named and sized, with nothing selected', () => {
     seedEnclosed()
-    const objects = useObjectsPanelStore()
+    const objects = useObjectListStore()
     expect(objects.rows.map((row) => row.name)).toEqual(['Shell 1', 'Bolt 1', 'Sphere 1'])
     expect(objects.rows[0].size).toBe('40 × 40 × 40 mm')
     expect(objects.rows.every((row) => !row.selected && row.order === 0 && row.role === 'none')).toBe(true)
@@ -63,7 +115,7 @@ describe('objects panel store (TODO/ui-041)', () => {
 
   it('updates live as bodies are added, undone and redone — nothing calls refresh', () => {
     const doc = seedEnclosed()
-    const objects = useObjectsPanelStore()
+    const objects = useObjectListStore()
     expect(objects.rows).toHaveLength(3)
     doc.append({ id: 'cone', op: 'primitive.cone', name: 'Cone 1', params: { diameter: 20, height: 30 } })
     expect(objects.rows).toHaveLength(4)
@@ -75,7 +127,7 @@ describe('objects panel store (TODO/ui-041)', () => {
 
   it('selects the body a row names — a fully enclosed one, which no click can reach', () => {
     seedEnclosed()
-    const objects = useObjectsPanelStore()
+    const objects = useObjectListStore()
     const selection = useSelectionStore()
     expect(objects.choose('bolt-1t')).toBe(true)
     // The ordinary selection contract: the same store a raycast click writes.
@@ -86,7 +138,7 @@ describe('objects panel store (TODO/ui-041)', () => {
 
   it('reaches "2 selected" purely from the list, in click order — base first', () => {
     seedEnclosed()
-    const objects = useObjectsPanelStore()
+    const objects = useObjectListStore()
     const selection = useSelectionStore()
     objects.choose('shell')
     objects.choose('bolt-1t', true)
@@ -99,7 +151,7 @@ describe('objects panel store (TODO/ui-041)', () => {
 
   it('an additive choose on a selected row takes it back out', () => {
     seedEnclosed()
-    const objects = useObjectsPanelStore()
+    const objects = useObjectListStore()
     const selection = useSelectionStore()
     objects.choose('shell')
     objects.choose('sphere', true)
@@ -109,7 +161,7 @@ describe('objects panel store (TODO/ui-041)', () => {
 
   it('a plain choose replaces the selection, and drops a pick depth: a row names a body', () => {
     seedEnclosed()
-    const objects = useObjectsPanelStore()
+    const objects = useObjectListStore()
     const selection = useSelectionStore()
     selection.select('bolt-1t')
     selection.drillInto('tap')
@@ -122,7 +174,7 @@ describe('objects panel store (TODO/ui-041)', () => {
 
   it('an additive choose leaves a pick depth alone — ui-040 sub-part operands still compose', () => {
     seedEnclosed()
-    const objects = useObjectsPanelStore()
+    const objects = useObjectListStore()
     const selection = useSelectionStore()
     // ui-040's own dance: bolt drilled, shift it out, add the shell, add the bolt back.
     selection.select('bolt-1t')
@@ -136,7 +188,7 @@ describe('objects panel store (TODO/ui-041)', () => {
 
   it('ignores an id the scene does not contain, rather than selecting a ghost', () => {
     seedEnclosed()
-    const objects = useObjectsPanelStore()
+    const objects = useObjectListStore()
     const selection = useSelectionStore()
     expect(objects.choose('nope')).toBe(false)
     expect(objects.choose('nope', true)).toBe(false)
@@ -145,7 +197,7 @@ describe('objects panel store (TODO/ui-041)', () => {
 
   it('a History row selection and a body selection never trigger each other (§13)', () => {
     seedEnclosed()
-    const objects = useObjectsPanelStore()
+    const objects = useObjectListStore()
     const selection = useSelectionStore()
     const timeline = useTimelineStore()
 
@@ -165,7 +217,7 @@ describe('objects panel store (TODO/ui-041)', () => {
 
   it('omits a body whose step is rolled back, and a body whose step is suppressed', () => {
     seedEnclosed()
-    const objects = useObjectsPanelStore()
+    const objects = useObjectListStore()
     const commands = useTimelineCommands()
     expect(objects.rows.map((row) => row.name)).toEqual(['Shell 1', 'Bolt 1', 'Sphere 1'])
 
@@ -183,7 +235,7 @@ describe('objects panel store (TODO/ui-041)', () => {
 
   it('disables itself, with a printed reason, while History previews a past state', () => {
     seedEnclosed()
-    const objects = useObjectsPanelStore()
+    const objects = useObjectListStore()
     const selection = useSelectionStore()
     const timeline = useTimelineStore()
     expect(objects.disabledReason).toBe('')
@@ -207,7 +259,7 @@ describe('objects panel store (TODO/ui-041)', () => {
 
   it('disables itself in sketch mode: a solid is not selectable there, by any route', () => {
     seedEnclosed()
-    const objects = useObjectsPanelStore()
+    const objects = useObjectListStore()
     const selection = useSelectionStore()
     useSketchModeStore().active = true
     expect(objects.disabledReason).toMatch(/Sketch mode/)
@@ -228,7 +280,7 @@ describe('objects panel store (TODO/ui-041)', () => {
  * once. These specs pin the rows' tree, the expansion state, and — the part that is easy
  * to get wrong — the **operand order** that comes out of the two gestures.
  */
-describe('objects panel store — part rows (TODO/ui-042)', () => {
+describe('object list store — part rows (TODO/ui-042)', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
   })
@@ -248,7 +300,7 @@ describe('objects panel store — part rows (TODO/ui-042)', () => {
 
   it('only a composite row is expandable; a bare solid has no parts to show', () => {
     seedEnclosedPi()
-    const objects = useObjectsPanelStore()
+    const objects = useObjectListStore()
     const [shell, pi, ball] = objects.rows
     expect([shell.expandable, pi.expandable, ball.expandable]).toEqual([false, true, false])
     expect(shell.parts).toEqual([])
@@ -258,7 +310,7 @@ describe('objects panel store — part rows (TODO/ui-042)', () => {
 
   it('lists the visible parts first, then the hidden ones, each flagged', () => {
     seedEnclosedPi()
-    const objects = useObjectsPanelStore()
+    const objects = useObjectListStore()
     const pi = objects.rows[1]
     const firstHidden = pi.parts.findIndex((part) => part.hidden)
     expect(firstHidden).toBeGreaterThan(0)
@@ -271,7 +323,7 @@ describe('objects panel store — part rows (TODO/ui-042)', () => {
 
   it('every row starts collapsed; toggling expands and collapses it, and the row reports it', () => {
     seedEnclosedPi()
-    const objects = useObjectsPanelStore()
+    const objects = useObjectListStore()
     expect(objects.rows[1].expanded).toBe(false)
     objects.toggleExpanded('pi')
     expect(objects.rows[1].expanded).toBe(true)
@@ -282,7 +334,7 @@ describe('objects panel store — part rows (TODO/ui-042)', () => {
 
   it('refuses to expand a body with no parts — there is nothing to show', () => {
     seedEnclosedPi()
-    const objects = useObjectsPanelStore()
+    const objects = useObjectListStore()
     objects.toggleExpanded('shell')
     expect(objects.rows[0].expanded).toBe(false)
     expect(objects.isExpanded('shell')).toBe(false)
@@ -290,7 +342,7 @@ describe('objects panel store — part rows (TODO/ui-042)', () => {
 
   it('expansion is UI-only: it neither selects anything nor touches the document', () => {
     const doc = seedEnclosedPi()
-    const objects = useObjectsPanelStore()
+    const objects = useObjectListStore()
     const selection = useSelectionStore()
     const version = doc.version
     objects.toggleExpanded('pi')
@@ -301,7 +353,7 @@ describe('objects panel store — part rows (TODO/ui-042)', () => {
 
   it('a body that leaves the scene forgets its expansion; a body renamed or moved keeps it', () => {
     const doc = seedEnclosedPi()
-    const objects = useObjectsPanelStore()
+    const objects = useObjectListStore()
     objects.toggleExpanded('pi')
 
     // Moving the Pi supersedes its record but keeps its lineage-root id — still expanded.
@@ -323,7 +375,7 @@ describe('objects panel store — part rows (TODO/ui-042)', () => {
 
   it('a rolled-back body drops out of the list, and comes back collapsed', () => {
     seedEnclosedPi()
-    const objects = useObjectsPanelStore()
+    const objects = useObjectListStore()
     const commands = useTimelineCommands()
     objects.toggleExpanded('pi')
     commands.rollBackTo('shell')
@@ -336,7 +388,7 @@ describe('objects panel store — part rows (TODO/ui-042)', () => {
 
   it('choosePart (plain) selects the body and its part — the shell already selected is REPLACED, like a plain row tap', () => {
     seedEnclosedPi()
-    const objects = useObjectsPanelStore()
+    const objects = useObjectListStore()
     const selection = useSelectionStore()
     objects.choose('shell')
     expect(objects.choosePart('pi', 'ethernet')).toBe(true)
@@ -352,7 +404,7 @@ describe('objects panel store — part rows (TODO/ui-042)', () => {
 
   it('THE ORDER TRAP: shell first, then the Pi part\'s check — the shell is the boolean base, the part the operand', () => {
     seedEnclosedPi()
-    const objects = useObjectsPanelStore()
+    const objects = useObjectListStore()
     const selection = useSelectionStore()
     objects.choose('shell') // tap the shell's row
     objects.choosePart('pi', 'ethernet', true) // tap ethernet's check
@@ -366,7 +418,7 @@ describe('objects panel store — part rows (TODO/ui-042)', () => {
 
   it('the wrong order is expressible but visible: part first, shell second makes the Pi the base', () => {
     seedEnclosedPi()
-    const objects = useObjectsPanelStore()
+    const objects = useObjectListStore()
     const selection = useSelectionStore()
     objects.choosePart('pi', 'ethernet')
     objects.choose('shell', true)
@@ -378,7 +430,7 @@ describe('objects panel store — part rows (TODO/ui-042)', () => {
 
   it('a second plain tap on the same part leaves it drilled — the list and a repeat viewport click agree', () => {
     seedEnclosedPi()
-    const objects = useObjectsPanelStore()
+    const objects = useObjectListStore()
     const selection = useSelectionStore()
     objects.choosePart('pi', 'ethernet')
     objects.choosePart('pi', 'ethernet')
@@ -387,7 +439,7 @@ describe('objects panel store — part rows (TODO/ui-042)', () => {
 
   it('a plain tap on a sibling re-targets; the parent row\'s plain tap steps back up to the whole body', () => {
     seedEnclosedPi()
-    const objects = useObjectsPanelStore()
+    const objects = useObjectListStore()
     const selection = useSelectionStore()
     objects.choosePart('pi', 'ethernet')
     objects.choosePart('pi', 'hdmi')
@@ -401,7 +453,7 @@ describe('objects panel store — part rows (TODO/ui-042)', () => {
 
   it('an additive tap on the addressed part un-addresses it; the body stays selected, in place', () => {
     seedEnclosedPi()
-    const objects = useObjectsPanelStore()
+    const objects = useObjectListStore()
     const selection = useSelectionStore()
     objects.choose('shell')
     objects.choosePart('pi', 'ethernet', true)
@@ -412,7 +464,7 @@ describe('objects panel store — part rows (TODO/ui-042)', () => {
 
   it('the parent row\'s check adds and removes the WHOLE body and leaves a depth alone (ui-040 dance)', () => {
     seedEnclosedPi()
-    const objects = useObjectsPanelStore()
+    const objects = useObjectListStore()
     const selection = useSelectionStore()
     objects.choosePart('pi', 'ethernet')
     objects.choose('pi', true) // check: out
@@ -424,7 +476,7 @@ describe('objects panel store — part rows (TODO/ui-042)', () => {
 
   it('a depth left on a body that is no longer selected does not light up its child row', () => {
     seedEnclosedPi()
-    const objects = useObjectsPanelStore()
+    const objects = useObjectListStore()
     objects.choosePart('pi', 'ethernet')
     objects.choose('pi', true) // out of the selection, depth inert
     expect(objects.rows[1].selected).toBe(false)
@@ -434,7 +486,7 @@ describe('objects panel store — part rows (TODO/ui-042)', () => {
 
   it('refuses a part the body does not have, an unknown body, and a bare solid', () => {
     seedEnclosedPi()
-    const objects = useObjectsPanelStore()
+    const objects = useObjectListStore()
     const selection = useSelectionStore()
     expect(objects.choosePart('pi', 'no-such-part')).toBe(false)
     expect(objects.choosePart('nope', 'ethernet')).toBe(false)
@@ -445,7 +497,7 @@ describe('objects panel store — part rows (TODO/ui-042)', () => {
 
   it('a hidden part can be addressed too — it is exactly what a boolean wants', () => {
     seedEnclosedPi()
-    const objects = useObjectsPanelStore()
+    const objects = useObjectListStore()
     const selection = useSelectionStore()
     expect(objects.choosePart('pi', 'usb1-body')).toBe(true)
     expect(selection.subPart).toEqual({ bodyId: 'pi', partName: 'usb1-body' })
@@ -453,7 +505,7 @@ describe('objects panel store — part rows (TODO/ui-042)', () => {
 
   it('part rows follow the same disabled rules as body rows; expanding is read-only and stays live', () => {
     seedEnclosedPi()
-    const objects = useObjectsPanelStore()
+    const objects = useObjectListStore()
     const selection = useSelectionStore()
     useSketchModeStore().active = true
     expect(objects.choosePart('pi', 'ethernet')).toBe(false)
