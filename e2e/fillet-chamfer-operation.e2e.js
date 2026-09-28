@@ -327,3 +327,75 @@ test('the popover stays on-screen and reachable at every reference viewport — 
     expect(controlBox).not.toBeNull()
   }
 })
+
+/**
+ * `TODO/ui-053`: dismissing the Fillet popover with Escape left it — and its
+ * full-viewport `.ops__popover-backdrop` — mounted, because nothing in
+ * `OperationsToolbar.vue` ever listened for Escape at all. The next
+ * `pointerdown` anywhere, including on a Library row, hit that backdrop
+ * instead of its real target, and the resulting click ran `closePopover`
+ * instead of starting a placement — so the *first* drag after an Escape
+ * dismissal silently did nothing, and only the second, identical drag worked.
+ * This is the four-step repro from the finding, asserting the second body
+ * lands on the first drag, not the second — at every reference viewport and
+ * both a real-input (Chromium) and WebKit engine, per the finding's own
+ * Testing section.
+ */
+test('the first Library drag after dismissing the Fillet popover with Escape still places a body', async ({
+  page,
+  browserName,
+}) => {
+  test.skip(browserName === 'firefox', 'Chromium and WebKit only, per this task\'s own Testing section')
+
+  await placeAndSelectCube(page)
+  await page.getByTestId('operation-fillet').click()
+  const popover = page.getByTestId('fillet-chamfer-popover')
+  await expect(popover).toBeVisible()
+  await page.getByTestId('fillet-chamfer-radius').fill('4')
+
+  await page.keyboard.press('Escape')
+  await expect(popover).toHaveCount(0)
+
+  // The regression itself: without the fix, this drag is swallowed by the
+  // still-present backdrop and `data-body-count` stays at 1.
+  await openLibrary(page)
+  await dragRowIntoViewport(page, { op: 'primitive.cuboid', ...CUBE_B.drop })
+  await closeLibrary(page)
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-body-count', '2')
+})
+
+/**
+ * The backdrop-tap dismissal path (`@click="closePopover"` on
+ * `.ops__popover-backdrop`) already worked before this fix — the finding's own
+ * table shows "Cancel" and "never opened" both leaving the next drag intact,
+ * only Escape didn't. Covered here anyway, alongside the Escape case above,
+ * because it is this task's named alternative dismissal for a touch device
+ * with no physical Escape key (see the finding's Testing section) and because
+ * a shared regression here — the backdrop fix changing tap behaviour too —
+ * would be exactly the kind of silent side effect this file exists to catch.
+ */
+test('the first Library drag after dismissing the Fillet popover by tapping the backdrop still places a body', async ({
+  page,
+  browserName,
+}) => {
+  test.skip(browserName === 'firefox', 'Chromium and WebKit only, per this task\'s own Testing section')
+
+  await placeAndSelectCube(page)
+  await page.getByTestId('operation-fillet').click()
+  const popover = page.getByTestId('fillet-chamfer-popover')
+  await expect(popover).toBeVisible()
+  await page.getByTestId('fillet-chamfer-radius').fill('4')
+
+  // Tap/click the backdrop itself, not the popover — a point outside the
+  // popover's own bounding box but still inside the viewport.
+  const popoverBox = await popover.boundingBox()
+  const tapX = Math.max(4, popoverBox.x - 20)
+  const tapY = Math.max(4, popoverBox.y - 20)
+  await page.mouse.click(tapX, tapY)
+  await expect(popover).toHaveCount(0)
+
+  await openLibrary(page)
+  await dragRowIntoViewport(page, { op: 'primitive.cuboid', ...CUBE_B.drop })
+  await closeLibrary(page)
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-body-count', '2')
+})

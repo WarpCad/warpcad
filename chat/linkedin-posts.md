@@ -1392,3 +1392,16 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** Ø50 at 32 sides 0.24 mm under, Ø3 fine → TODO/done/core-035 Goal table, recomputed this session (0.241 / 0.014); old projects fold byte-identically → golden digests captured from `git archive HEAD` (2233c53), 41 cases in `resolution.spec.js`, and 61 108.343 mm³ reproduced in the real app from a legacy file this session (laptop Chromium, phone WebKit); 24-body Print export ~172 ms in the worker → `bench/resolution-benchmark.mjs`, 171.9 ms median, Apple M4 Pro, Node v24.14.1 (`bench/results/2026-09-28-core-035.md`); no frame over 17 ms during it → drive this session, worst rAF gap 16.7 ms Chromium / 17.0 ms WebKit; export finer for one file, design unchanged → diff (`exportJob.js` refold) and `e2e/resolution.e2e.js` + scenario 11 drive
 **To Add:** the docs/resolution.md fit table as an image; a caliper photo from TODO/VERIFY.md's core-035 row 1 once someone prints it
+
+## [2026-09-28T19:07:18Z] — Escape wasn't actually closing the Operations popovers (TODO/ui-053)
+
+**Post:** WarpCad had a strange bug: close a Fillet or Chamfer dialog with Escape, then drag a new part in from the library, and nothing happens. Try the exact same drag a second time and it works fine.
+
+The cause: nothing in the app was actually listening for Escape on that dialog. It looked dismissed, but its invisible click-catcher stayed mounted and absorbed the very next pointer press anywhere on screen, including the drag that was supposed to place a part.
+
+Root-caused with a live repro against the running app rather than guessing from the code, then fixed with one listener shared across all three of the toolbar's popovers, so the same bug can't resurface under a different button. Re-verified by hand on a mouse-driven layout and a touch one. Built with Claude Code, reviewed by me.
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** nothing was listening for Escape on the popover before this fix → diff (`OperationsToolbar.vue`), confirmed by a `grep -rn "'Escape'" src/` sweep this session finding no match there; the backdrop absorbed the next click, not the popover code closing it → this session's live Playwright repro against the running dev server, `document.elementFromPoint` at the Library row returning the backdrop element; one listener shared across all three popovers → diff (`openPopover`/`closePopover` are shared state, one new capture-phase handler) plus a new e2e test proving it for Snap/Align specifically, not just Fillet/Chamfer; re-verified on a mouse layout and a touch one → this session's manual drive at laptop 1440x900 Chromium (mouse, Escape) and phone 390x844 WebKit (touch, backdrop tap), both PASS
+**To Add:** none

@@ -1005,6 +1005,20 @@ and fields never disagreeing. Console clean throughout.
 
 **Re-checked**: 2026-09-28 06:04 UTC (`core-035`): **PASS** at laptop 1440x900 Chromium (dark, real mouse) and phone 390x844 WebKit (light, touch taps). Re-driven because new documents now fold at **Normal** resolution rather than a fixed 32 segments, so every curved body placed here changed tessellation. Cube then Cylinder, dropped on wandering paths into the visible band. **Both stayed visible**, and the cube's bounds were identical before and after the second drop at both sizes. Tapping empty grid cleared the selection, and the cube and the cylinder each selected alone. The cylinder's Inspector Size reads exactly **40 × 40 × 50** at Normal: every segment count is a multiple of 4, so bounding boxes stay nominal. On top of the scenario, File ▾ → Resolution… was explored the way a person would: re-picking the current value did nothing, and Draft → Print → Fine (tapped twice) were three Undo steps, each re-facetting the cylinder (62 428.9 → 62 790.5 mm³). The chip read `Resolution → Fine`. Esc closed the popover. Three Undos (Cmd+Z in the viewport at laptop, the Undo button at phone) returned both volumes exactly, and Redo went to Draft. Console clean. Driver note, not an app defect: at phone width the Library and Inspector sheets cover the lower half, so drops and "empty" taps have to be aimed in the visible band.
 
+**Re-checked**: 2026-09-28 19:02 UTC (`ui-053`) — **PASS** at laptop 1440x900 Chromium
+(real mouse) and phone 390x844 WebKit (real touch taps), fixing and re-verifying the
+exact gap `core-035`'s own re-check of scenario 12 surfaced and filed as `ui-053`: the
+first Library drag right after closing an Operations popover was silently swallowed.
+Both drives inserted that exact gesture between the two drops rather than only the
+scenario's literal four steps: Cube dropped and selected, the Fillet popover opened,
+a radius typed, then dismissed — **Escape** at laptop, a **tap on the popover's own
+backdrop** at phone (touch has no physical Escape key) — and only then was the
+Cylinder dragged to a different point. **Both bodies landed on the very first drag in
+both drives** (`data-body-count` 1 → 2, not a second attempt), both stayed visible,
+and clicking each in turn selected only that one with its own gizmo. Console clean in
+both drives. This re-verifies the finding's own regression surface inside the
+scenario itself, not a re-run of the checked-in e2e spec.
+
 ### 2. Hardware property edit
 
 **Steps**:
@@ -3179,6 +3193,26 @@ the checked-in suite).
 - **Found on the way and pre-existing** (reproduced on HEAD 2233c53): the first Library drag after closing the Fillet popover with **Esc** places nothing. Filed as `ui-053`.
 
 Console clean.
+
+**Re-checked**: 2026-09-28 19:02 UTC (`ui-053`) — **PASS**, targeted re-drive of steps
+1-3 and step 12 at laptop 1440x900 Chromium (Escape) and phone 390x844 WebKit
+(backdrop tap), closing the loop on the exact defect `core-035`'s own re-check of this
+scenario found and filed as `ui-053` (quoted immediately above): "the first Library
+drag after closing the Fillet popover with Esc places nothing." At both sizes: step
+2's Chamfer popover was opened, Top (+Z) chosen, a radius typed, and **dismissed**
+(Escape at laptop; a tap on the popover's own backdrop at phone, since a touch device
+has no physical Escape key) *before* being reopened and actually committed at 5 mm;
+step 3's Sphere then landed on the **very first drag** in both drives, not a second
+attempt. Step 12's equivalent shape (the scenario's own literal fillet-after-chamfer
+setup still cannot arm, as recorded above) was re-driven at **both** sizes this time —
+the laptop-only note in `core-035`'s own re-check above says the phone half wasn't
+reached before this fix: cube selected alone, the Fillet popover opened, a radius
+typed, dismissed the same way (Escape / backdrop tap), and the very next Library drag
+(a Hexagon, standing in for the scenario's own further steps) landed on the first try
+in both drives — laptop went 3→4 bodies, phone went 2→3. Console clean in both. Steps
+4-11 were not re-driven this pass: this task's fix is confined to Operations-popover
+Escape/backdrop dismissal, not the History replay/suppress/rollback mechanism those
+steps exercise, and that mechanism is unchanged by this diff.
 
 ### 13. Recolor a placed body
 

@@ -1031,3 +1031,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** Ø50 at 32 sides 0.24 mm under, Ø3 fine → TODO/done/core-035 Goal table, recomputed this session (0.241 / 0.014); old projects fold byte-identically → golden digests captured from `git archive HEAD` (2233c53), 41 cases in `resolution.spec.js`, and 61 108.343 mm³ reproduced in the real app from a legacy file this session (laptop Chromium, phone WebKit); 24-body Print export ~172 ms in the worker → `bench/resolution-benchmark.mjs`, 171.9 ms median, Apple M4 Pro, Node v24.14.1 (`bench/results/2026-09-28-core-035.md`); no frame over 17 ms during it → drive this session, worst rAF gap 16.7 ms Chromium / 17.0 ms WebKit; export finer for one file, design unchanged → diff (`exportJob.js` refold) and `e2e/resolution.e2e.js` + scenario 11 drive
 **To Add:** a side-by-side screenshot of one cylinder at Draft and at Print (File ▾ → Resolution…)
+
+## [2026-09-28T19:07:18Z] — Escape wasn't actually closing the Operations popovers (TODO/ui-053)
+
+**Post:** Fixed a WarpCad bug: Escape on the Fillet/Chamfer popover looked like it closed, but its backdrop stayed and ate the next click. A Library drag right after silently failed; a second try worked. Root-caused with a live repro, fixed at one shared spot. Built with Claude Code, reviewed by me. #CAD
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** no Escape handler existed for any of the three Operations popovers before this fix → diff (`OperationsToolbar.vue`) and a `grep -rn "'Escape'" src/` sweep this session finding no match there; the backdrop absorbed the next pointerdown → this session's live Playwright repro (`document.elementFromPoint` at the Library row returned the backdrop div, not the row); first drag failed, second worked → RED confirmed this session by `git stash`-ing the fix and re-running the repro (`data-body-count` stuck at 1), GREEN confirmed after restoring it (reached 2 on the first drag); filed by `core-035`'s scenario 12 re-drive, pre-existing on HEAD `2233c53` → `TODO/done/ui-053-first-library-drag-after-escape-ignored.md`'s own Problem section
+**To Add:** none

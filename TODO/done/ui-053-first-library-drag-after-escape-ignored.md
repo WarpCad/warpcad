@@ -5,8 +5,19 @@ kind: finding
 priority: medium
 model: sonnet
 depends: []
-status: open
+status: done
 ---
+
+> **Resolved 2026-09-28.** Root cause: no code anywhere handled Escape for the
+> Operations toolbar's three popovers (Snap/Align, Fillet/Chamfer,
+> Enlarge/Fit/Bisect — one shared `openPopover` ref and backdrop). Escape did
+> nothing, so the popover's full-viewport backdrop stayed mounted and
+> intercepted the next `pointerdown`, closing itself instead of letting the
+> drag through. Fixed with a single capture-phase `window` keydown listener in
+> `OperationsToolbar.vue` that closes `openPopover` on Escape, covering all
+> three popover types at the one shared point. See
+> `TODO/done/ui-053-first-library-drag-after-escape-ignored.md`'s
+> `TODO/ROADMAP.md` Completion Log entry for the full writeup.
 
 ## Problem
 

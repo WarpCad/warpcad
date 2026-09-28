@@ -661,3 +661,31 @@ test('the popover stays on-screen and reachable at 390px width — no horizontal
     expect(controlBox).not.toBeNull()
   }
 })
+
+/**
+ * `TODO/ui-053`: the Esc bug fixed on the Fillet/Chamfer popover was never
+ * specific to that pair — `openPopover`, `closePopover` and the one
+ * `.ops__popover-backdrop` in `OperationsToolbar.vue` are shared by all three
+ * popovers this toolbar owns, Snap/Align included, and none of them had an
+ * Escape handler before the fix. Confirmed here, on the structurally
+ * different exactly-2-operand popover, that the same fix covers it: Escape
+ * actually removes the popover (and its backdrop), and the very first Library
+ * drag afterward still places a body rather than being swallowed by a
+ * still-mounted backdrop.
+ */
+test('the first Library drag after dismissing the Snap popover with Escape still places a body', async ({ page }) => {
+  await placeCubeAndCylinder(page)
+  await selectCubeThenCylinder(page)
+
+  await page.getByTestId('operation-snap').click()
+  const popover = page.getByTestId('snap-align-popover')
+  await expect(popover).toBeVisible()
+
+  await page.keyboard.press('Escape')
+  await expect(popover).toHaveCount(0)
+
+  await openLibrary(page)
+  await dragRowIntoViewport(page, { op: 'primitive.cuboid', fx: 0.5, fy: 0.36 })
+  await closeLibrary(page)
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-body-count', '3')
+})

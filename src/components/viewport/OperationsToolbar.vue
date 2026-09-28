@@ -297,7 +297,7 @@
  *    literal `0` (the minimum face), the identical distinction the straight
  *    Offset field already has to make.
  */
-import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 
 import { DEFAULT_ROTATE_AXIS } from '../../core/kernel/group.js'
 import { useDocumentStore } from '../../stores/document.js'
@@ -665,6 +665,37 @@ const openPopover = ref(
 const overlays = useOverlaysStore()
 watch(openPopover, (open) => overlays.setOpen('ops-popover', open !== null))
 onBeforeUnmount(() => overlays.setOpen('ops-popover', false))
+
+/**
+ * `TODO/ui-053`: Escape never had a handler here at all, for any of the three
+ * popovers this toolbar owns (Snap/Align, Fillet/Chamfer, Enlarge/Fit/Bisect —
+ * they all share `openPopover` and the one backdrop below). Pressing it did
+ * nothing, so the popover — and its full-viewport `.ops__popover-backdrop`,
+ * teleported to `<body>` with `pointer-events: auto` — stayed mounted. The next
+ * pointerdown anywhere, including on a Library row, hit that backdrop instead
+ * of its real target; the resulting click landed on the backdrop too (mousedown
+ * and mouseup both resolve to the topmost element at their own coordinates, and
+ * the backdrop covers the whole screen), which ran `closePopover` instead of
+ * starting a placement. To the person doing it, that reads as "the popover
+ * closed, then the next drag did nothing" — it is really one event doing both.
+ * A second, identical drag then lands normally because the backdrop is gone.
+ *
+ * Registered on the **capture** phase so it always runs before any other
+ * `window` keydown listener regardless of mount order — `TimelineStrips.vue`'s
+ * own Escape handler already depends on exactly this priority (it checks
+ * `event.defaultPrevented` and backs off), matching the "close the open
+ * popover/dialog/menu, else leave preview" order its module doc names.
+ *
+ * @param {KeyboardEvent} event
+ */
+function onWindowKeydown(event) {
+  if (event.key !== 'Escape' || openPopover.value === null) return
+  event.preventDefault()
+  closePopover()
+}
+
+onMounted(() => window.addEventListener('keydown', onWindowKeydown, true))
+onBeforeUnmount(() => window.removeEventListener('keydown', onWindowKeydown, true))
 
 // --- Enlarge / Fit / Bisect (TODO/ui-028) -----------------------------------
 
