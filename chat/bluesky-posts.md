@@ -1013,3 +1013,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** one list, pointing lights body or part → diff (`ObjectList.vue`, `stores/hoverHighlight.js`, `Viewport.vue`) and `e2e/inspector-object-list.e2e.js`; two panels answering one question → `TODO/done/ui-049` Goal; phantom mouse after a tap → pointer-event logs captured this session at 390x844 in Playwright WebKit and Chromium (mouse-typed pointerover/pointerenter, and a WebKit pointermove, at the tap point after the reflow); name squeezed to nothing → drive screenshot this session plus the new e2e failing at all three widths on the old CSS; ~90 ms on enter/leave of the Pi's translucent board → `bench/hover-sweep.mjs` 1× run this session (p99 90.0, worst 105.7 ms) and a frame/hover log; recompile is inferred, not CPU-profiled; p99 19.6 vs 18.5 ms → `bench/results/2026-09-27-ui-049.md` (Apple M4 Pro, headless Chromium, production build, 5 runs)
 **To Add:** a short clip of pointing down a Raspberry Pi's part list with each part lighting up; repo/docs URLs once public
+
+## [2026-09-28T03:14:49Z] — Deleting a shape, as one more step in the history (TODO/ui-051)
+
+**Post:** WarpCad can delete things now. Select a shape and press Delete, or tap the red button pinned to the bottom of the Inspector on a phone. Undo puts it back exactly where it was. A delete is one more step added to the history, never an erased one. Built with Claude Code, reviewed by me.
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** no way to delete a placed object before this → the user's own request quoted in `TODO/done/ui-051`'s Goal (2026-09-27); Delete key and a pinned Inspector button → diff (`useDeleteShortcut.js`, `DeleteButton.vue`) and `e2e/delete-body.e2e.js`; Undo restores it exactly where it was → this session's drives (byte-identical bounds before/after, laptop Chromium and phone WebKit) and `document.spec.js`'s undo cases; appended, never erased → the `body.delete` tombstone in `src/core/document.js`'s diff
+**To Add:** a short phone clip: tap a cube, tap Delete, tap Undo

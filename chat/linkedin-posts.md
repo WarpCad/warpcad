@@ -1364,3 +1364,18 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** one list, pointing lights body or part → diff (`ObjectList.vue`, `stores/hoverHighlight.js`, `Viewport.vue`) and `e2e/inspector-object-list.e2e.js`; two panels answering one question → `TODO/done/ui-049` Goal; phantom mouse after a tap → pointer-event logs captured this session at 390x844 in Playwright WebKit and Chromium (mouse-typed pointerover/pointerenter, and a WebKit pointermove, at the tap point after the reflow); name squeezed to nothing → drive screenshot this session plus the new e2e failing at all three widths on the old CSS; ~90 ms on enter/leave of the Pi's translucent board → `bench/hover-sweep.mjs` 1× run this session (p99 90.0, worst 105.7 ms) and a frame/hover log; recompile is inferred, not CPU-profiled; p99 19.6 vs 18.5 ms → `bench/results/2026-09-27-ui-049.md` (Apple M4 Pro, headless Chromium, production build, 5 runs)
 **To Add:** screenshot of the Inspector listing a Pi's parts with one row hovered and that part lit in the 3D view; repo/docs URLs once public
+
+## [2026-09-28T03:14:49Z] — Deleting a shape without rewriting history (TODO/ui-051)
+
+**Post:** Until this change, anything placed in WarpCad stayed placed. The only way out was Undo, which also takes back everything done after it. Now Delete (the key, or a button in the Inspector) removes the selected shapes, and Remove part takes one piece out of a group, such as one USB port off a Raspberry Pi, leaving the rest as one body.
+
+The design choice was to make a delete one more step appended to the model's history, never an erased entry. Because of that, Undo, save and reload, and switching a step off in the History panel all work with no new special cases. Switching off a Delete step brings the shape back. Removing a part is a real geometry step too, so size readouts and later cuts see the part gone rather than merely hidden.
+
+The phone layout needed measuring. The Inspector sheet shows 321 pixels of a panel that runs to 958 pixels for a cube and 2,686 for a Raspberry Pi, so a Delete button at the bottom sat far out of reach. It is pinned to the sheet's bottom edge instead. The final automated run was 1,461 passing browser tests with no failures.
+
+Built with Claude Code, reviewed by me.
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL #Vue #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** nothing could be removed and Undo takes later steps with it → `TODO/done/ui-051` Goal ("escape hatches"); Delete key/button and Remove part leaving one body → diff and `e2e/delete-body.e2e.js`, plus this session's scenario 6 drive (`Group 1` kept as one body with two parts); appended tombstone, Undo/save/reload/suppress unchanged → `src/core/document.js` diff and `document.spec.js` (suppress-the-Delete-row case), and this session's scenario 10/12 drives; part removal is real geometry → `group.removePart` kernel op diff and `registry.spec.js` (group bounds equal the union of the remaining parts); 321 / 958 / 2,686 px → measured this session at 390x844 WebKit (`inspector-sheet` clientHeight and scrollHeight); 1,461 passed, 0 failed → this session's final Playwright run (chromium and webkit, 3 viewports each; Firefox cannot launch in this sandbox)
+**To Add:** phone screenshot of the pinned Delete button over a selected Raspberry Pi
