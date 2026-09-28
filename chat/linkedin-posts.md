@@ -1379,3 +1379,16 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** nothing could be removed and Undo takes later steps with it → `TODO/done/ui-051` Goal ("escape hatches"); Delete key/button and Remove part leaving one body → diff and `e2e/delete-body.e2e.js`, plus this session's scenario 6 drive (`Group 1` kept as one body with two parts); appended tombstone, Undo/save/reload/suppress unchanged → `src/core/document.js` diff and `document.spec.js` (suppress-the-Delete-row case), and this session's scenario 10/12 drives; part removal is real geometry → `group.removePart` kernel op diff and `registry.spec.js` (group bounds equal the union of the remaining parts); 321 / 958 / 2,686 px → measured this session at 390x844 WebKit (`inspector-sheet` clientHeight and scrollHeight); 1,461 passed, 0 failed → this session's final Playwright run (chromium and webkit, 3 viewports each; Firefox cannot launch in this sandbox)
 **To Add:** phone screenshot of the pinned Delete button over a selected Raspberry Pi
+
+## [2026-09-28T06:07:01Z] — Why a printed hole comes out smaller than you drew it (TODO/core-035)
+
+**Post:** A 3D-printed hole comes out smaller than it was drawn. Circles in a mesh are made of flat sides, and those sides sit inside the true circle. At WarpCad's old fixed 32 sides, a Ø50 bore was 0.24 mm undersize across the flats, which is enough to stop a bearing seating. A Ø3 screw hole at the same count was fine. The error grows with the diameter.
+
+The new Resolution setting (Draft, Normal, Fine, Print) caps how far a flat may sit inside the circle, in millimetres, and works out the number of sides for each radius. The Export panel can rebuild one file at Print while the design and the 3D view stay at Normal. That rebuild runs in a background worker: a 24-body scene exported at Print in about 172 ms, and the view never dropped a frame longer than 17 ms while it ran. Projects saved before the change open exactly as they were. A saved fixture reproduced its recorded 61 108.343 mm³ to the last digit.
+
+Built with Claude Code, reviewed by me.
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #3DPrinting #WebDev #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** Ø50 at 32 sides 0.24 mm under, Ø3 fine → TODO/done/core-035 Goal table, recomputed this session (0.241 / 0.014); old projects fold byte-identically → golden digests captured from `git archive HEAD` (2233c53), 41 cases in `resolution.spec.js`, and 61 108.343 mm³ reproduced in the real app from a legacy file this session (laptop Chromium, phone WebKit); 24-body Print export ~172 ms in the worker → `bench/resolution-benchmark.mjs`, 171.9 ms median, Apple M4 Pro, Node v24.14.1 (`bench/results/2026-09-28-core-035.md`); no frame over 17 ms during it → drive this session, worst rAF gap 16.7 ms Chromium / 17.0 ms WebKit; export finer for one file, design unchanged → diff (`exportJob.js` refold) and `e2e/resolution.e2e.js` + scenario 11 drive
+**To Add:** the docs/resolution.md fit table as an image; a caliper photo from TODO/VERIFY.md's core-035 row 1 once someone prints it

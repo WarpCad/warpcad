@@ -1022,3 +1022,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** no way to delete a placed object before this → the user's own request quoted in `TODO/done/ui-051`'s Goal (2026-09-27); Delete key and a pinned Inspector button → diff (`useDeleteShortcut.js`, `DeleteButton.vue`) and `e2e/delete-body.e2e.js`; Undo restores it exactly where it was → this session's drives (byte-identical bounds before/after, laptop Chromium and phone WebKit) and `document.spec.js`'s undo cases; appended, never erased → the `body.delete` tombstone in `src/core/document.js`'s diff
 **To Add:** a short phone clip: tap a cube, tap Delete, tap Undo
+
+## [2026-09-28T06:07:01Z] — Curve resolution: why printed holes come out small (TODO/core-035)
+
+**Post:** WarpCad has a Resolution setting now. Faceted holes print small, and at a fixed 32 sides a Ø50 bore is 0.24 mm under across the flats. Draft/Normal/Fine/Print cap that error in mm, and Export can go finer for one file. Old projects keep their exact shape. Built with Claude Code, reviewed by me.
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #3DPrinting #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** Ø50 at 32 sides 0.24 mm under, Ø3 fine → TODO/done/core-035 Goal table, recomputed this session (0.241 / 0.014); old projects fold byte-identically → golden digests captured from `git archive HEAD` (2233c53), 41 cases in `resolution.spec.js`, and 61 108.343 mm³ reproduced in the real app from a legacy file this session (laptop Chromium, phone WebKit); 24-body Print export ~172 ms in the worker → `bench/resolution-benchmark.mjs`, 171.9 ms median, Apple M4 Pro, Node v24.14.1 (`bench/results/2026-09-28-core-035.md`); no frame over 17 ms during it → drive this session, worst rAF gap 16.7 ms Chromium / 17.0 ms WebKit; export finer for one file, design unchanged → diff (`exportJob.js` refold) and `e2e/resolution.e2e.js` + scenario 11 drive
+**To Add:** a side-by-side screenshot of one cylinder at Draft and at Print (File ▾ → Resolution…)
