@@ -602,6 +602,54 @@ export function pick(group, pieces) {
 }
 
 /**
+ * A new group without one named part — visible or hidden — and without its colour
+ * (`TODO/ui-051`'s **Remove part**). The kernel half of `group.removePart`: the fold's
+ * output really lacks the part, so bounds, export, booleans and the parts list all agree
+ * without each of them learning to skip it (the "every consumer must remember" trap a
+ * render-only filter like `hidden` would have set).
+ *
+ * Refuses, by name: a bare solid (it has no parts), an unknown part, and removing the
+ * **last visible** part — a group with nothing visible cannot be drawn or combined, and
+ * what the user wants then is to delete the whole body.
+ *
+ * @param {Geom3 | Group} value
+ * @param {unknown} partName
+ * @returns {Group}
+ */
+export function removePart(value, partName) {
+  const op = 'group.removePart'
+  if (!isGroup(value)) {
+    throw new Error(`${op}: this body is a single solid and has no parts to remove — delete it instead`)
+  }
+  if (typeof partName !== 'string' || partName.length === 0) {
+    throw new Error(`${op}: a part name is required, got ${JSON.stringify(partName)}`)
+  }
+  if (!Object.hasOwn(value.parts, partName)) {
+    throw new Error(
+      `${op}: no part named "${partName}" in group "${value.name || '(unnamed)'}" ` +
+        `(parts: ${Object.keys(value.parts).join(',') || 'none'})`
+    )
+  }
+  const names = value.names.filter((name) => name !== partName)
+  if (value.names.includes(partName) && names.length === 0) {
+    throw new Error(`${op}: "${partName}" is the last visible part — delete the whole body instead`)
+  }
+  /** @type {Record<string, Geom3>} */
+  const parts = {}
+  for (const [name, part] of Object.entries(value.parts)) if (name !== partName) parts[name] = part
+  /** @type {Record<string, PartColor>} */
+  const colors = {}
+  for (const [name, color] of Object.entries(value.colors ?? {})) if (name !== partName) colors[name] = color
+  return Object.freeze({
+    name: value.name,
+    names: Object.freeze(names),
+    parts: Object.freeze(parts),
+    holes: value.holes,
+    colors: Object.freeze(colors),
+  })
+}
+
+/**
  * Apply one geometry function to a solid, or to **every part and hole** of a group,
  * returning the same kind of value it was given.
  *

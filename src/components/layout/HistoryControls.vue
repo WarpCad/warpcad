@@ -29,6 +29,7 @@
  */
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 
+import { isTextEntry } from '../../composables/textEntry.js'
 import { useDocumentStore } from '../../stores/document.js'
 import { useTimelineStore } from '../../stores/timeline.js'
 
@@ -64,21 +65,8 @@ function run(action) {
   refusal.value = result.ok ? '' : (result.message ?? '')
 }
 
-/**
- * Whether a keystroke landed in something that does its own undo.
- *
- * The Inspector is full of numeric fields, and a global Ctrl+Z that ate the
- * browser's own field-level undo would make typing a dimension worse to fix than
- * it is to get wrong — the cross-cutting shortcut table calls this out by name.
- *
- * @param {EventTarget | null} target
- */
-function isTextEntry(target) {
-  if (!(target instanceof HTMLElement)) return false
-  if (target.isContentEditable) return true
-  const tag = target.tagName
-  return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT'
-}
+// `isTextEntry` lives in `composables/textEntry.js`, shared with the Delete shortcut
+// (`TODO/ui-051`) so the two can never disagree about what a text field is.
 
 /**
  * Ctrl/Cmd+Z, Ctrl/Cmd+Shift+Z and Ctrl+Y — additive to the buttons, never

@@ -1285,3 +1285,134 @@ describe('group.align — TODO/core-013', () => {
     ).toThrow(/unknown axis q/)
   })
 })
+
+describe('group.removePart — a body minus one named part (TODO/ui-051)', () => {
+  /** @param {any} value */
+  const groupBounds = (value) => measurements.measureBoundingBox(combine(value))
+
+  function placedPi() {
+    const records = [
+      { id: 'pi', op: 'raspberrypi.bplus', name: 'Raspberry Pi 1', params: { model: 4 } },
+      { id: 'pi-move', op: 'transform.translate', target: 'pi', params: { vector: [10, 20, 0] } },
+    ]
+    const { byId } = evaluate(records)
+    return { records, pi: /** @type {any} */ (byId.get('pi-move')) }
+  }
+
+  it('a real Pi minus usb1: usb1 is gone, every other part keeps its exact bounds', () => {
+    const { records, pi } = placedPi()
+    expect(isGroup(pi)).toBe(true)
+    expect(pi.names).toContain('usb1')
+
+    const { byId } = evaluate([
+      ...records,
+      { id: 'pi-rm', op: 'group.removePart', target: 'pi-move', params: { part: 'usb1' } },
+    ])
+    const without = /** @type {any} */ (byId.get('pi-rm'))
+
+    expect(isGroup(without)).toBe(true)
+    expect(without.names).not.toContain('usb1')
+    expect(Object.keys(without.parts)).not.toContain('usb1')
+    expect(without.names).toEqual(pi.names.filter((/** @type {string} */ name) => name !== 'usb1'))
+    expect(Object.keys(without.parts)).toEqual(Object.keys(pi.parts).filter((name) => name !== 'usb1'))
+    for (const name of Object.keys(without.parts)) {
+      const [min, max] = measurements.measureBoundingBox(without.parts[name])
+      const [wasMin, wasMax] = measurements.measureBoundingBox(pi.parts[name])
+      for (let axis = 0; axis < 3; axis += 1) {
+        expect(min[axis]).toBeCloseTo(wasMin[axis], 6)
+        expect(max[axis]).toBeCloseTo(wasMax[axis], 6)
+      }
+    }
+    // Whole-body bounds are exactly the union of what is left: they shrink only
+    // where usb1 was on the envelope, and nowhere else.
+    const [min, max] = groupBounds(without)
+    const [expectMin, expectMax] = measurements.measureBoundingBox(
+      combine(pick(pi, without.names.join(',')))
+    )
+    const [wasMin, wasMax] = groupBounds(pi)
+    for (let axis = 0; axis < 3; axis += 1) {
+      expect(min[axis]).toBeCloseTo(expectMin[axis], 6)
+      expect(max[axis]).toBeCloseTo(expectMax[axis], 6)
+      expect(min[axis]).toBeGreaterThanOrEqual(wasMin[axis] - 1e-6)
+      expect(max[axis]).toBeLessThanOrEqual(wasMax[axis] + 1e-6)
+    }
+    // The input group is untouched (geometry is immutable).
+    expect(pi.names).toContain('usb1')
+  })
+
+  it('a hidden part can be removed too, leaving every visible part alone', () => {
+    const { records, pi } = placedPi()
+    const hidden = Object.keys(pi.parts).find((name) => !pi.names.includes(name))
+    expect(hidden).toBeDefined()
+    const { byId } = evaluate([
+      ...records,
+      { id: 'pi-rm', op: 'group.removePart', target: 'pi-move', params: { part: hidden } },
+    ])
+    const without = /** @type {any} */ (byId.get('pi-rm'))
+    expect(without.names).toEqual(pi.names)
+    expect(Object.keys(without.parts)).not.toContain(hidden)
+  })
+
+  it('a group.assemble of two Cubes minus Cube 2 is still a Group, with Cube 1 as its one part', () => {
+    const { byId } = evaluate([
+      { id: 'c1', op: 'primitive.cuboid', params: { size: [10, 10, 10], center: [0, 0, 5] } },
+      { id: 'c2', op: 'primitive.cuboid', params: { size: [10, 10, 10], center: [30, 0, 5] } },
+      { id: 'g', op: 'group.assemble', target: 'c1', operands: ['c2'], params: { names: ['Cube 1', 'Cube 2'] } },
+      { id: 'g-rm', op: 'group.removePart', target: 'g', params: { part: 'Cube 2' } },
+    ])
+    const without = /** @type {any} */ (byId.get('g-rm'))
+    expect(isGroup(without)).toBe(true)
+    expect(without.names).toEqual(['Cube 1'])
+    expect(Object.keys(without.parts)).toEqual(['Cube 1'])
+    const [min, max] = groupBounds(without)
+    expect(min[0]).toBeCloseTo(-5, 6)
+    expect(max[0]).toBeCloseTo(5, 6)
+  })
+
+  it('refuses an unknown part by name', () => {
+    const { records } = placedPi()
+    expect(() =>
+      evaluate([...records, { id: 'x', op: 'group.removePart', target: 'pi-move', params: { part: 'nope' } }])
+    ).toThrow(/no part named "nope"/)
+  })
+
+  it('refuses to remove the last visible part — delete the whole body instead', () => {
+    expect(() =>
+      evaluate([
+        { id: 'c1', op: 'primitive.cuboid', params: { size: [10, 10, 10] } },
+        { id: 'c2', op: 'primitive.cuboid', params: { size: [10, 10, 10] } },
+        { id: 'g', op: 'group.assemble', target: 'c1', operands: ['c2'], params: { names: ['Cube 1', 'Cube 2'] } },
+        { id: 'g1', op: 'group.removePart', target: 'g', params: { part: 'Cube 2' } },
+        { id: 'g2', op: 'group.removePart', target: 'g1', params: { part: 'Cube 1' } },
+      ])
+    ).toThrow(/last visible part/)
+  })
+
+  it('refuses a bare solid, which has no parts to remove', () => {
+    expect(() =>
+      evaluate([
+        { id: 'c1', op: 'primitive.cuboid', params: { size: [10, 10, 10] } },
+        { id: 'x', op: 'group.removePart', target: 'c1', params: { part: 'Cube 1' } },
+      ])
+    ).toThrow(/no parts/)
+  })
+
+  it('a later Subtract naming the removed part is refused by name', () => {
+    const { records } = placedPi()
+    expect(() =>
+      evaluate([
+        ...records,
+        { id: 'pi-rm', op: 'group.removePart', target: 'pi-move', params: { part: 'usb1' } },
+        { id: 'box', op: 'primitive.cuboid', params: { size: [200, 200, 5] } },
+        { id: 'cut', op: 'boolean.subtract', target: 'box', operands: [{ id: 'pi-rm', pieces: 'usb1' }] },
+      ])
+    ).toThrow(/no part named "usb1"/)
+  })
+
+  it('is a whole-group, one-operand op that refuses a sub-part address', () => {
+    const entry = getEntry('group.removePart')
+    expect(entry.operandCount).toBe(1)
+    expect(entry.rawOperands).toBe(true)
+    expect(entry.subPartOperands).toBeFalsy()
+  })
+})

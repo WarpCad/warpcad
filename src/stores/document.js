@@ -387,6 +387,67 @@ export const useDocumentStore = defineStore('document', () => {
   }
 
   /**
+   * The undo meta a delete parks: the selection *and* the drilled-in sub-part, so Undo
+   * lands the user exactly where they were (`TODO/ui-051` — Delete then Undo is a
+   * no-op from the user's side, including `Raspberry Pi 1 ▸ usb1`).
+   */
+  function selectionMeta() {
+    const selection = useSelectionStore()
+    const subPart = selection.subPart
+    return {
+      selectionBefore: [...selection.ids],
+      ...(subPart ? { subPartBefore: { bodyId: subPart.bodyId, partName: subPart.partName } } : {}),
+    }
+  }
+
+  /**
+   * Delete bodies as one undoable step (`TODO/ui-051`) — core's `deleteBodies`.
+   *
+   * The selection is cleared **before** the refresh that drops the meshes, so no frame
+   * ever renders a gizmo or dimension lines on a body that is gone. A refusal puts the
+   * selection back and rethrows; nothing else changed.
+   *
+   * @param {readonly string[]} ids
+   * @returns {readonly OpRecord[]}
+   */
+  function deleteBodies(ids) {
+    const selection = useSelectionStore()
+    const meta = selectionMeta()
+    selection.clear()
+    try {
+      const { records } = raw.deleteBodies(ids, { origin: 'local', meta })
+      refresh()
+      return records
+    } catch (error) {
+      restoreSelection(meta.selectionBefore, meta.subPartBefore)
+      throw error
+    }
+  }
+
+  /**
+   * Remove one named part from a group-valued body (`TODO/ui-051`) — core's
+   * `removePart`. The selection steps back up to the parent body first, which is
+   * still there, now without the part.
+   *
+   * @param {string} bodyId
+   * @param {string} partName
+   * @returns {OpRecord}
+   */
+  function removePart(bodyId, partName) {
+    const selection = useSelectionStore()
+    const meta = selectionMeta()
+    selection.stepUp()
+    try {
+      const { record } = raw.removePart(bodyId, partName, { origin: 'local', meta })
+      refresh()
+      return record
+    } catch (error) {
+      restoreSelection(meta.selectionBefore, meta.subPartBefore)
+      throw error
+    }
+  }
+
+  /**
    * Replace the whole document with a parsed project (`TODO/io-001`) — the one
    * entry point for autosave restore and Open.
    *
@@ -417,14 +478,23 @@ export const useDocumentStore = defineStore('document', () => {
    * selection pointing at a record the document no longer has, and the gizmo and
    * Inspector would both be attached to nothing.
    *
+   * A remembered sub-part depth (`TODO/ui-051`'s Remove part) comes back too, but
+   * only when its body is the one survivor and it really has that part again.
+   *
    * @param {readonly string[]} ids
+   * @param {{ bodyId: string, partName: string }} [subPart]
    */
-  function restoreSelection(ids) {
+  function restoreSelection(ids, subPart) {
     const live = new Set(bodies.value.map((body) => body.id))
     const survivors = ids.filter((id) => live.has(id))
     const selection = useSelectionStore()
     if (survivors.length === 0) selection.clear()
     else selection.selectMany(survivors)
+    if (subPart && survivors.length === 1 && survivors[0] === subPart.bodyId) {
+      const body = bodies.value.find((candidate) => candidate.id === subPart.bodyId)
+      const known = [...(body?.partNames ?? []), ...(body?.hiddenPartNames ?? [])]
+      if (known.includes(subPart.partName)) selection.selectPart(subPart.bodyId, subPart.partName)
+    }
   }
 
   /**
@@ -449,7 +519,7 @@ export const useDocumentStore = defineStore('document', () => {
       return { ok: false, message: error instanceof Error ? error.message : String(error) }
     }
     refresh()
-    restoreSelection(step.meta?.selectionBefore ?? [])
+    restoreSelection(step.meta?.selectionBefore ?? [], step.meta?.subPartBefore)
     return { ok: true, label: step.label }
   }
 
@@ -502,6 +572,8 @@ export const useDocumentStore = defineStore('document', () => {
     batch,
     setColorOverride,
     clearColorOverride,
+    deleteBodies,
+    removePart,
     undo,
     redo,
     refresh,

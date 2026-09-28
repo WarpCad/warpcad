@@ -122,6 +122,12 @@ If a later step depends on the one you're switching off — suppressing a cube t
 later swallowed — it's refused with a message naming the step, like `Step 3 (Union) needs
 Cube 1`, and nothing changes.
 
+
+Deleting a shape ([Deleting objects and parts](selection-and-inspector.md#deleting-objects-and-parts))
+adds a `Delete Cube 1` step to the end of the list. It does not remove the rows that
+placed or changed the shape. So **Suppress** on that `Delete` row is another way to bring
+the shape back, even after Undo can no longer reach it.
+
 ## Changing the order (Move up / Move down)
 
 Select a row and press **Move up** or **Move down** to shift it one place. The model

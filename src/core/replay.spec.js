@@ -291,3 +291,35 @@ describe('wired against the real core-001 kernel registry', () => {
     expect(scene.errors[0].id).toBe('b')
   })
 })
+
+describe('a delete and a part removal survive Save → NDJSON → Open (TODO/ui-051)', () => {
+  it('the deleted body stays deleted and the removed part stays removed after reload', async () => {
+    const { createDocument } = await import('./document.js')
+    const { serializeProject, parseProject } = await import('./project.js')
+
+    const original = createDocument()
+    original.append(
+      { id: 'c1', op: 'primitive.cuboid', name: 'Cube 1', params: { size: [20, 20, 20], center: [0, 0, 10] } },
+      { origin: 'local' }
+    )
+    original.append(
+      { id: 'c2', op: 'primitive.cuboid', name: 'Cube 2', params: { size: [20, 20, 20], center: [60, 0, 10] } },
+      { origin: 'local' }
+    )
+    original.append({ id: 'pi', op: 'raspberrypi.bplus', name: 'Raspberry Pi 1', params: { model: 4 } }, { origin: 'local' })
+    original.deleteBodies(['c2'], { origin: 'local' })
+    original.removePart('pi', 'usb1', { origin: 'local' })
+
+    const text = serializeProject(original)
+    expect(text).toContain('"op":"body.delete"')
+    const reopened = createDocument()
+    reopened.loadEntries(parseProject(text).entries)
+
+    const bodies = reopened.bodies()
+    expect(bodies.map((body) => body.name)).toEqual(['Cube 1', 'Raspberry Pi 1'])
+    const pi = /** @type {any} */ (bodies[1].geometry)
+    expect(pi.names).not.toContain('usb1')
+    expect(Object.keys(pi.parts)).not.toContain('usb1')
+    expect(reopened.records).toEqual(original.records)
+  })
+})

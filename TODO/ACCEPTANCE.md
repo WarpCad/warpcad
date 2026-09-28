@@ -1001,6 +1001,8 @@ and fields never disagreeing. Console clean throughout.
 
 **Re-checked**: 2026-09-27 22:34 UTC (`ui-049`) — PASS. Re-driven because the Objects panel moved into the Inspector and the Inspector's empty state is now the scene list. Laptop 1440x900 Chromium, real mouse: Cube and Cylinder dragged in from their Library rows (wandering pointer paths), both stayed visible, and clicking each selected only that one (gizmo and dimension lines on the clicked body, `data-selected-count` 1). Nothing selected, the Inspector listed both rows (`Cube 1`, `Cylinder 1`) in place of `(nothing selected)`. At 1 selected the list folded to an **OBJECTS (2)** bar above `Objects ▸ Cylinder 1`, and the body's detail was the focus. Hovering the unselected Cube's row tinted it lavender (the new third highlight) while the Cylinder stayed selected amber, and parking the pointer cleared it (`data-hover` back to empty, 0 hover twins). One driver mistake, not an app fault: an "empty space" click landed on the Operations toolbar and did not deselect. Console clean.
 
+**Re-checked**: 2026-09-28 03:08 UTC (`ui-051`) — **PASS**, as written and as its own inverse. Laptop 1440x900 Chromium, real mouse: Cube and Cylinder dropped from the Library, both stayed; empty click cleared; clicking each selected only that one. Then **Delete** on the cube (the key pressed twice in quick succession — one step, `Undo: Delete Cube 1`): the cube went, and the cylinder's pixel (113/138/169) and bounds were byte-identical before and after — deleting one body neither hid nor moved the other, the mirror of this scenario's original defect. Undo by the ↶ button put the cube back with identical bounds, reselected. Phone 390x844 WebKit, real `touchscreen.tap` throughout after the drops: tapping the cube selected it after a tap on empty canvas, the Inspector's **Delete** was on screen without scrolling (pinned, y 734-778 in a 471-792 sheet), tapping it removed the cube, kept the cylinder identical and closed the sheet; Undo by tap restored and reselected it. Console clean in both drives.
+
 ### 2. Hardware property edit
 
 **Steps**:
@@ -1809,6 +1811,8 @@ selected, toolbar disabled again. Console clean.
 
 **Re-checked**: 2026-09-27 22:34 UTC (`ui-049`) — PASS, gating from the Inspector's list checks. Laptop 1440x900 Chromium, real mouse: at 1 selected (Cylinder) Union/Subtract were disabled with "select 2 or more solids". Ticking the Cube's check in the list gave `2 selected`, "first is the base", with Union and Subtract enabled, the checks reading Cylinder `1`, Cube `2`, and the list staying open (multi state). Unticking the base (Cylinder) dropped to 1 selected with the buttons disabled again. Re-ticking made the Cube the base (`1`) and the Cylinder `2`, so the order visibly follows the taps. Subtract left one selected result with the toolbar disabled again. The bodies in this drive did not overlap, so the step-6 volume claim stands on the earlier runs and on `e2e/inspector-object-list.e2e.js`'s volume-measured Subtract (64000 − bolt volume). Console clean.
 
+**Re-checked**: 2026-09-28 03:08 UTC (`ui-051`) — **PASS** for steps 1-6's gating and indicator, at laptop 1440x900 **WebKit**, real mouse and Shift-click. 1 selected: Union/Subtract disabled, tooltip `Select 2 or more solids`. Shift-click the Cylinder: `2 selected · first is the base`, both enabled, the cube in the amber highlight and the cylinder in the teal secondary, `Cube 1 then Cylinder 1` (checked by eye). New for this task: **Delete** with both selected removed both as one step (`Undo: Delete 2 objects`), and the toolbar re-gated to `0 selected`, all disabled; Undo brought both back **still 2-selected in the same base order**, and Union/Subtract re-enabled. Subtract then left one selected result with the toolbar disabled; deleting that result and undoing restored it, reselected. Not re-observed this time: the "material removed where they overlap" half. A first attempt dropped the second Cube close enough that it snapped exactly onto the first, which is placement behaviour this task does not touch, so the operands were re-dropped apart. Console clean.
+
 ### 5. Hidden-part boolean (bolt tap-clearance)
 
 **Amended 2026-09-26** (`ui-047`, following the user's decision recorded in
@@ -2387,6 +2391,8 @@ clean.
 
 **Re-checked**: 2026-09-27 22:34 UTC (`ui-049`) — PASS. Laptop 1440x900 Chromium, real mouse. Steps 1-2 via the new route: a Raspberry Pi, a Camera Module and a Touchscreen 2 dragged from their Library rows, then all three ticked in the Inspector's list (checks read `1`/`2`/`3`), then **Group**. Steps 3-4: bare grid cleared the selection (the Inspector showed `Objects (1)`), and the first click on the assembly selected **Group 1** whole, with the breadcrumb `Objects ▸ Group 1` and a **Parts** section listing its three members. Steps 5-6: a second click on the camera module drilled to it: `Objects ▸ Group 1 ▸ Camera Module 1`, with `data-sub-part` set. Step 7: the **Group 1** crumb stepped back up. Beyond the steps: the root **Objects** crumb opened the list with the group still selected, ▸ listed its three members, and hovering `Camera Module 1` lit only that member (`group-7/Camera Module 1`, 1 hover twin). **Found and fixed during this drive:** the group's list row showed a check and its size (`228.16 × 250.25 × 18.55 mm`) but **no name**, because the size squeezed the name to zero width in the 280px column. Name and size now stack, with an e2e at every viewport. Console clean.
 
+**Re-checked**: 2026-09-28 03:08 UTC (`ui-051`) — **PASS**, with the new **Remove part** path. Laptop 1440x900 Chromium, real mouse: Raspberry Pi, Camera Module and Touch Screen dropped, checked in the Inspector's list and grouped. The first click selected the whole `Group 1` (Inspector: its three parts and a **Delete** button, no Remove part). The second click narrowed to `Group 1 ▸ Camera Module 1`, and the button became **Remove part** (`Remove Camera Module 1 from Group 1`). Pressing it kept `Group 1` as one body with parts `Raspberry Pi 1, Touchscreen 2 1`; its max-X bound shrank from 63.17 to 39.31 mm (the camera was on the envelope); the selection stepped up to the group; Undo read `Remove Camera Module 1 from Group 1` and restored the part with byte-identical bounds, **drilled back in**. The `Group 1` crumb stepped up. After removing two parts in turn, the last part's button was disabled with `Last visible part: delete Group 1 instead`. Phone 390x844 WebKit, all by touch: Pi selected, `usb1` tapped in the Parts list, **Remove part** tapped with no scrolling (y 734), the Pi stayed with 13 parts, and Undo restored `usb1`, drilled in. Console clean.
+
 ### 7. Touch-only viewport navigation
 
 **Steps**:
@@ -2847,6 +2853,8 @@ was written. Console clean.
 
 **Re-checked**: 2026-09-27 22:34 UTC (`ui-049`) — PASS for steps 1-7; the hosted half was not driven (no scratch repo or token). Laptop 1440x900 Chromium. Cube plus an overlapping Cylinder, both ticked in the Inspector's list, then **Union**: `Union 1`, 126 428.903 mm³, position (7.09, −13.16, 25). The chip read `Saved · 16:51`. After a browser reload the body was identical (volume and bounds, compared as JSON), and the Inspector's list was rebuilt: `Objects (1)`, row `Union 1`. File ▾ → Download copy: chip `Download started: warpcad-project-20260927-1651.ndjson`, a 4-line file. A Sphere dragged in, then **Open… → Replace** with that file: back to `Union 1` alone, the Sphere gone, the list rebuilt again. (The first attempt's download timed out because the driver disabled the native picker after mount; redone with an init script, as `save-load-ui.e2e.js` does.) Console clean.
 
+**Re-checked**: 2026-09-28 03:08 UTC (`ui-051`) — **PASS for steps 1-7 with a Delete in the history**; hosted half not driven (no scratch repo/token). Laptop 1440x900 Chromium: Cube and Cylinder unioned through the list checks, then a Sphere dropped and removed with the **Delete** key. After a real reload the Union body was byte-identical, the chip read `Restored your last session`, and History's five rows (`Cube 1 — placed`, `Cylinder 1 — placed`, `Union Cylinder 1`, `Sphere 1 — placed`, `Delete Sphere 1`) were identical before and after. **Download copy** wrote a 5-line file carrying the `body.delete` line; after a Cone was added, **Open…** of that file removed the Cone and brought back the Union-only project (`Opened s10.ndjson · 5 steps`, matching the rows). The Sphere stayed deleted throughout. Found along the way, pre-existing and filed as `TODO/core-036`: the Union row names only the second operand (`Union Cylinder 1`, not `Union Cube 1 + Cylinder 1`). Console clean.
+
 ### 11. Export a solid and confirm it opens elsewhere
 
 Added 2026-09-17 alongside `TODO/ROADMAP.md`'s M6, same rule as scenario 10. Steps
@@ -3132,6 +3140,8 @@ composition itself survived a third writer landing on top of it. Console clean; 
 checks driven live against the real dev server (a throwaway Playwright driver, not
 the checked-in suite).
 
+**Re-checked**: 2026-09-28 03:08 UTC (`ui-051`) — **PASS for steps 1-10, with a Delete in the middle of the history**; 11-12 not re-driven (untouched, covered by `timeline-panel.e2e.js`). Laptop 1440x900 Chromium, real mouse and keyboard. Cube, Chamfer Top 5 mm, Sphere, then a Cone dropped and **deleted**: rows `Cube 1 — placed`, `Chamfer Top (+Z) 5 mm on Cube 1`, `Sphere 1 — placed`, `Cone 1 — placed`, `Delete Cone 1`. **Edit** 5 → 3 mm replayed past the tombstone: cube volume 62166.62 → 63315.97 mm³ with the same bounds, the Sphere byte-identical, the Cone still deleted, the row reading `3 mm`. Undo/Redo (cursor in the viewport) went exactly to 5 mm and back. Suppress/Unsuppress of the Chamfer gave a plain 64000 mm³ cube and then exactly the edited state. **Suppress on the `Delete Cone 1` row brought the Cone back**, and Undo of that suppress deleted it again (documented behaviour). **Roll back** to step 2 hid the Sphere (`Rolled back to step 2 of 5`); a Cylinder dropped there inserted at the marker; **deleting that Cylinder while rolled back also inserted at the marker** (`Delete Cylinder 1` at row 4, above the inactive tail); Roll forward brought the Sphere back byte-identical, with rows in order Cube, Chamfer, Cylinder, Delete Cylinder, Sphere, Cone, Delete Cone. Console clean.
+
 ### 13. Recolor a placed body
 
 Added 2026-09-17 alongside `TODO/ROADMAP.md`'s new M7, scoped from a real-usage survey
@@ -3176,3 +3186,44 @@ entry is a targeted hand confirmation on top of that, not a replacement for it.
 
 **Re-checked**: 2026-09-27 22:34 UTC (`ui-049`) — PASS at laptop 1440x900 **WebKit**, real mouse, canvas pixels sampled. The Cube recoloured red through a wandering picker (`input` ×3, then `change`). Selected it sampled **213/94/49**. Deselected it sampled **182/4/4**, byte-for-byte the value this scenario has recorded since `ui-037`. The Cylinder sampled **115/141/174** throughout, and selecting it showed `Default`. Reselecting the Cube still showed `#ff0000`, and a Sphere placed afterwards left `Cube 1=#ff0000, Cylinder 1=default, Sphere 1=default`. **Hover over an override** (this task's precedence rule): hovering the selected red Cube's row gave **218/109/136**, still red, still selected, visibly different. Hovering it unselected gave **196/71/115**. Parking the pointer returned exactly 213/94/49 and 182/4/4, with no stale tint. Console clean.
 
+### 14. Delete a body, bring it back, reload
+
+Added 2026-09-28 with `TODO/ui-051`, per this file's rule that a whole new capability class
+earns a scenario: until then nothing placed could ever be removed. Control names: the
+Inspector's **Delete** button (`inspector-delete`, pinned to the bottom of the Inspector),
+**Remove part** (`inspector-remove-part`) at sub-part depth, the **Delete**/**Backspace**
+keys, and the header's **Undo**.
+
+**Steps**:
+1. Open the app to an empty scene. Drag a Cube and then a Cylinder in, apart.
+2. Select the Cube. Delete it: the **Delete** key on a keyboard, or the Inspector's
+   **Delete** button (the only route on a phone or tablet).
+3. Press **Undo**.
+4. Delete the Cube again.
+5. Reload the page.
+6. *Part of a group.* Drag a Raspberry Pi in, select it, then select its `usb1` part (so
+   the breadcrumb reads `Raspberry Pi 1 ▸ usb1`) and press **Remove part**. Press **Undo**.
+
+**Expect**:
+- Step 2: the Cube disappears and the Cylinder stays exactly where it was. Nothing is
+  selected and, on a phone, the Inspector sheet closes. Undo's tooltip reads
+  `Undo: Delete Cube 1`. There is no confirm dialog.
+- Step 3: the Cube is back exactly where it was, and selected.
+- Step 5: **exactly one body** (the Cylinder) comes back after the reload.
+- Step 6: the Pi stays as one body without the USB block, with the selection on the Pi;
+  Undo puts the block back and returns to `Raspberry Pi 1 ▸ usb1`.
+- Never: the other body moving or vanishing, a gizmo left attached to nothing, an
+  Inspector sheet describing a body that is gone, or Backspace in a text field deleting
+  a body.
+
+**Last run**: 2026-09-28 03:08 UTC (`ui-051`, **first drive**) — **PASS**. Laptop 1440x900 Chromium,
+real mouse and keyboard: **Delete** pressed twice in quick succession removed the Cube once
+(one step, `Undo: Delete Cube 1`); the Cylinder's pixel and bounds did not change; Undo
+restored the Cube with byte-identical bounds, selected; **Backspace** deleted it again;
+after a reload exactly one body, the Cylinder, came back with Undo empty. Deliberate
+mistakes: Delete with nothing selected did nothing (no record); Backspace inside a
+Position field only edited the field. A hover on the deleted body's own list row cleared
+with it and stayed clear after Undo. Phone 390x844 WebKit, real `touchscreen.tap`: the
+pinned **Delete** was on screen with no scrolling, tapping it closed the sheet, and Undo
+by tap restored and reselected. Step 6 was driven at phone WebKit by touch (see scenario
+6's `ui-051` note). Console clean throughout.

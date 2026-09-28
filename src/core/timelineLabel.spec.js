@@ -171,3 +171,24 @@ describe('colour rows in History (TODO/ui-037)', () => {
     expect(describeRow(reset, buildNameIndex([cube, reset]))).toBe('Reset color on Cube 1')
   })
 })
+
+describe('delete and remove-part rows (TODO/ui-051)', () => {
+  const cube = { id: 'cuboid-1', op: 'primitive.cuboid', name: 'Cube 1' }
+  const move = { id: 'cuboid-1-move-2', op: 'transform.translate', target: 'cuboid-1', supersedes: 'cuboid-1' }
+  const pi = { id: 'pi-1', op: 'raspberrypi.bplus', name: 'Raspberry Pi 1' }
+
+  it('a tombstone reads "Delete <body>", even over a moved body', () => {
+    const tombstone = { id: 'd-1', op: 'body.delete', target: move.id, supersedes: move.id }
+    const names = buildNameIndex([cube, move, tombstone])
+    expect(describeRow(tombstone, names)).toBe('Delete Cube 1')
+  })
+
+  it('a part removal reads "Remove <part> from <body>"', () => {
+    const removal = { id: 'r-1', op: 'group.removePart', target: 'pi-1', supersedes: 'pi-1', params: { part: 'usb1' } }
+    expect(describeRow(removal, buildNameIndex([pi, removal]))).toBe('Remove usb1 from Raspberry Pi 1')
+  })
+
+  it('a part removal with no resolvable subject or part still says something', () => {
+    expect(describeRow({ op: 'group.removePart', params: {} }, new Map())).toBe('Remove part')
+  })
+})

@@ -18,6 +18,7 @@ import Inspector from '../components/inspector/Inspector.vue'
 import SaveStatus from '../components/display/SaveStatus.vue'
 import FileMenu from '../components/storage/FileMenu.vue'
 import { bootStorage } from '../composables/useStorageBoot.js'
+import { useDeleteShortcut } from '../composables/useDeleteShortcut.js'
 import HistoryControls from '../components/layout/HistoryControls.vue'
 import LibraryPanel from '../components/layout/LibraryPanel.vue'
 import TimelinePanel from '../components/timeline/TimelinePanel.vue'
@@ -38,6 +39,10 @@ import { useTimelineStore } from '../stores/timeline.js'
 // order is load-bearing.
 const persistence = usePersistenceStore()
 const hosted = useHostedStore()
+
+// Delete / Backspace delete the selection (`TODO/ui-051`). Mounted here, not in the
+// Inspector, so it works with the Inspector sheet collapsed.
+useDeleteShortcut()
 onMounted(() => {
   void bootStorage({ persistence, hosted })
 })

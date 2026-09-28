@@ -34,6 +34,20 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### ui-051 — Delete the selected body, or remove one part of a group (2026-09-28 03:09 UTC)
+
+Delete, Undo, Remove part and reload were driven in Playwright at 1440x900 Chromium/WebKit
+and 390x844 WebKit with real touch (`ACCEPTANCE.md` scenario 14). What a sandbox can't
+settle is how the **pinned Delete footer** feels on real hardware, and whether a **real
+iPad keyboard's** Delete/Backspace reaches the window listener the way desktop WebKit's
+does.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | On a real iPhone: select a body, the Inspector sheet opens with **Delete** pinned just above the Library tab. Is it easy to hit on purpose and hard to hit by accident when reaching for the Library tab below it? | Open | |
+| 2 | On a real iPhone or iPad: does the pinned footer covering the bottom ~67 px of the sheet ever hide something you needed (for example the Pi's **Show hidden parts** toggle before you scroll)? | Open | |
+| 3 | On an iPad with a hardware keyboard: select a body with the Inspector sheet collapsed and press Delete, then Backspace. Each removes the selection, and Backspace inside a Position field only edits the digit. | Open | |
+
 ### ui-049 — Objects list folded into the Inspector, hover-to-highlight (2026-09-27 22:34 UTC)
 
 Everything measurable is measured and standing. `e2e/inspector-object-list.e2e.js` covers

@@ -126,6 +126,7 @@ import { useHiddenPartVisibilityStore } from '../../stores/hiddenPartVisibility.
 import { useAlignReferenceStore } from '../../stores/alignReference.js'
 import AlignToOrigin from './AlignToOrigin.vue'
 import ObjectList from './ObjectList.vue'
+import DeleteButton from './DeleteButton.vue'
 import { useObjectListStore } from '../../stores/objectList.js'
 import { useDocumentStore } from '../../stores/document.js'
 import { useSketchPreviewStore } from '../../stores/sketchPreview.js'
@@ -975,6 +976,8 @@ watch([() => body.value?.id, colorPart], () => {
           Select a single object to see its parameters. Operations that work on several
           objects at once arrive with the boolean tools.
         </p>
+        <!-- Delete every selected object as one step (TODO/ui-051). -->
+        <DeleteButton />
       </template>
 
       <template v-else-if="body">
@@ -1263,6 +1266,10 @@ watch([() => body.value?.id, colorPart], () => {
           gizmo's arrows and rings in the 3D view. Size is read-only: it is a measurement
           of the shape, not a setting — change the parameters above to resize it.
         </p>
+
+        <!-- Delete / Remove part (TODO/ui-051): last in the section, below ui-050's
+             Align row, so a stray tap near the top fields cannot reach it. -->
+        <DeleteButton />
       </template>
     </div>
   </aside>

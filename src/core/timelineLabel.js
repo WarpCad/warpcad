@@ -87,6 +87,7 @@ const VERBS = Object.freeze({
   'modify.enlarge': 'Resize',
   'modify.fit': 'Fit',
   'modify.bisect': 'Bisect',
+  'body.delete': 'Delete',
 })
 
 /** Ops whose row reads `<Verb> <face> <radius> mm on <subject>`. */
@@ -200,6 +201,12 @@ export function describeRow(record, names) {
     const part = typeof record.subPart === 'string' ? `${record.subPart} ` : ''
     const value = typeof record.colorOverride === 'number' ? colorIntToCssHex(record.colorOverride) : '?'
     return `Color ${part}${value}${on}`
+  }
+
+  // Removing one part of a group (`TODO/ui-051`): the part is the interesting half.
+  if (record.op === 'group.removePart') {
+    const part = typeof params.part === 'string' && params.part.length > 0 ? params.part : 'part'
+    return subject === undefined ? `Remove ${part}` : `Remove ${part} from ${subject}`
   }
 
   if (RIM_OPS.has(record.op)) {

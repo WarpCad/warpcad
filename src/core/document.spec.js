@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import modeling from '@jscad/modeling'
 
-import { createDocument } from './document.js'
+import { createDocument, ReplayRejection } from './document.js'
 import { boundsOf, isGroup } from './kernel/group.js'
 
 const { measurements } = modeling
@@ -1435,5 +1435,325 @@ describe('a colour pick names itself in Undo (TODO/ui-037)', () => {
     document.append({ id: 'a', op: 'fake.box', name: 'Box 1' }, { origin: 'local' })
     document.setColorOverride('a', { color: 0xff0000 }, { origin: 'local' })
     expect(document.pendingUndo()?.label).toBe('Recolor Box 1')
+  })
+})
+
+describe('deleteBodies — a delete is an appended tombstone, not a removed entry (TODO/ui-051)', () => {
+  /** Two boxes, the first moved and recoloured, so a restore has something to get wrong. */
+  function twoBoxes(options = {}) {
+    const document = doc(options)
+    document.append({ id: 'a', op: 'fake.box', name: 'Box 1', params: { size: 3 } }, { origin: 'local' })
+    document.append({ id: 'b', op: 'fake.box', name: 'Box 2', params: { size: 4 } }, { origin: 'local' })
+    return document
+  }
+
+  it('deleting one of two bodies leaves only the other, untouched', () => {
+    const document = twoBoxes()
+    const [, keptBefore] = document.bodies()
+
+    const { records } = document.deleteBodies(['a'], { origin: 'local' })
+
+    expect(records).toHaveLength(1)
+    expect(records[0].op).toBe('body.delete')
+    expect(records[0].supersedes).toBe('a')
+    const bodies = document.bodies()
+    expect(bodies.map((body) => body.id)).toEqual(['b'])
+    expect(bodies[0].geometry).toBe(keptBefore.geometry)
+    expect(bodies[0]).toEqual(keptBefore)
+    // Nothing was taken out of the log: the tombstone is one more line in it.
+    expect(document.records.map((record) => record.id)).toEqual(['a', 'b', records[0].id])
+    expect(document.pendingUndo()?.label).toBe('Delete Box 1')
+  })
+
+  it('never reaches the kernel — a tombstone builds no geometry', () => {
+    let builds = 0
+    const counting = Object.freeze({
+      ...fakeRegistry,
+      'fake.box': Object.freeze({
+        kind: 'native',
+        operandCount: 0,
+        build: () => {
+          builds += 1
+          return { tag: 'box' }
+        },
+      }),
+    })
+    const document = createDocument({ registry: counting })
+    document.append({ id: 'a', op: 'fake.box', name: 'Box 1' }, { origin: 'local' })
+    const before = builds
+    const { records } = document.deleteBodies(['a'], { origin: 'local' })
+    expect(builds).toBe(before)
+    expect(document.scene.byId.has(/** @type {string} */ (records[0].id))).toBe(false)
+  })
+
+  it('undo brings the body back exactly: same id, terminal record, rotation and colour', () => {
+    const document = twoBoxes()
+    const { record: recolor } = document.setColorOverride('a', { color: 0xff0000 }, { origin: 'local' })
+    document.append(
+      {
+        id: 'a-move',
+        op: 'fake.move',
+        target: recolor.id,
+        supersedes: recolor.id,
+        params: { by: 2, rotation: [0, 0, 30] },
+      },
+      { origin: 'local' }
+    )
+    const before = document.bodies().find((body) => body.id === 'a')
+
+    document.deleteBodies(['a'], { origin: 'local' })
+    expect(document.bodies().some((body) => body.id === 'a')).toBe(false)
+    document.undo()
+
+    const after = document.bodies().find((body) => body.id === 'a')
+    expect(after).toEqual(before)
+    expect(after?.recordId).toBe(before?.recordId)
+    expect(after?.rotationDeg).toEqual([0, 0, 30])
+    expect(after?.colorOverrides).toEqual([{ color: 0xff0000 }])
+    // Redo deletes it again, and the undo is also exact by the fold path.
+    document.redo()
+    expect(document.bodies().map((body) => body.id)).toEqual(['b'])
+  })
+
+  it('undo is exact on the re-fold path too (restoring turned off)', () => {
+    const document = twoBoxes({ restorableSteps: 0 })
+    const before = document.bodies()
+    document.deleteBodies(['a'], { origin: 'local' })
+    document.undo()
+    expect(document.bodies()).toEqual(before)
+  })
+
+  it('deleting 3 bodies in one call is one undo step, labelled with the count', () => {
+    const document = twoBoxes()
+    document.append({ id: 'c', op: 'fake.box', name: 'Box 3' }, { origin: 'local' })
+    const stepsBefore = document.records.length
+
+    const { records } = document.deleteBodies(['a', 'b', 'c'], { origin: 'local' })
+
+    expect(records).toHaveLength(3)
+    expect(document.records.length).toBe(stepsBefore + 3)
+    expect(document.bodies()).toEqual([])
+    expect(document.pendingUndo()?.label).toBe('Delete 3 objects')
+    document.undo()
+    expect(document.bodies().map((body) => body.id)).toEqual(['a', 'b', 'c'])
+    expect(document.canUndo()).toBe(true) // the three placements are still there to undo
+    expect(document.pendingUndo()?.label).toBe('Place Box 3')
+  })
+
+  it('accepts any id in the lineage, not only the root', () => {
+    const document = twoBoxes()
+    document.append({ id: 'a-move', op: 'fake.move', target: 'a', supersedes: 'a' }, { origin: 'local' })
+    const { records } = document.deleteBodies(['a-move'], { origin: 'local' })
+    expect(records[0].supersedes).toBe('a-move')
+    expect(document.bodies().map((body) => body.id)).toEqual(['b'])
+  })
+
+  it('superseding a deleted body is refused by name', () => {
+    const document = twoBoxes()
+    const { records } = document.deleteBodies(['a'], { origin: 'local' })
+    const tombstone = /** @type {string} */ (records[0].id)
+    expect(() =>
+      document.append({ id: 'x', op: 'fake.move', target: tombstone, supersedes: tombstone }, { origin: 'local' })
+    ).toThrow(/Box 1.*deleted/)
+    expect(() =>
+      document.append({ id: 'y', op: 'fake.move', target: 'a', supersedes: 'a' }, { origin: 'local' })
+    ).toThrow(/Box 1.*deleted/)
+  })
+
+  it('consuming a deleted body is refused by name', () => {
+    const document = twoBoxes()
+    document.deleteBodies(['a'], { origin: 'local' })
+    expect(() =>
+      document.append(
+        { id: 'm', op: 'fake.merge', target: 'a', operands: ['b'], consumes: ['a', 'b'] },
+        { origin: 'local' }
+      )
+    ).toThrow(/Box 1.*deleted/)
+    expect(document.bodies().map((body) => body.id)).toEqual(['b'])
+  })
+
+  it('naming a deleted body as a plain operand is refused by name too', () => {
+    const document = twoBoxes()
+    document.deleteBodies(['a'], { origin: 'local' })
+    expect(() =>
+      document.append({ id: 'm', op: 'fake.move', target: 'a' }, { origin: 'local' })
+    ).toThrow(/Box 1.*deleted/)
+  })
+
+  it('suppressing the Delete row un-deletes the body; unsuppressing deletes it again (data-004)', () => {
+    const document = twoBoxes()
+    const { records } = document.deleteBodies(['a'], { origin: 'local' })
+    const tombstone = /** @type {string} */ (records[0].id)
+
+    document.setSuppressed(tombstone, true, { origin: 'local' })
+    expect(document.bodies().map((body) => body.id)).toEqual(['a', 'b'])
+    document.setSuppressed(tombstone, false, { origin: 'local' })
+    expect(document.bodies().map((body) => body.id)).toEqual(['b'])
+  })
+
+  it('moving a Move of Box 1 to after its Delete is refused atomically (data-004)', () => {
+    const document = twoBoxes()
+    document.append({ id: 'a-move', op: 'fake.move', target: 'a', supersedes: 'a' }, { origin: 'local' })
+    const { records } = document.deleteBodies(['a'], { origin: 'local' })
+    const before = document.records.slice()
+
+    // The static check already sees it: the Delete names the Move's result.
+    expect(document.canMove('a-move', 1).allowed).toBe(false)
+    expect(() => document.moveStep('a-move', 1, { origin: 'local' })).toThrow(/uses step 3's result/)
+    expect(document.records).toEqual(before)
+
+    // And the replay itself, handed that order directly, names the body.
+    const reordered = [before[0], before[1], records[0], before[2]].map((record) => ({ record, origin: 'local' }))
+    let rejection
+    try {
+      document.loadEntries(reordered)
+    } catch (error) {
+      rejection = error
+    }
+    expect(rejection).toBeInstanceOf(ReplayRejection)
+    expect(/** @type {ReplayRejection} */ (rejection).step.reason).toBe('needs Box 1')
+    expect(document.records).toEqual(before)
+    expect(document.bodies().map((body) => body.id)).toEqual(['b'])
+  })
+
+  it('a later edit before the Delete still replays, and the body stays deleted', () => {
+    const document = twoBoxes()
+    document.deleteBodies(['a'], { origin: 'local' })
+    // Edit Box 2's creation step in place (section 15); the fold re-runs past the tombstone.
+    document.replaceRecord(
+      'b',
+      { id: 'b', op: 'fake.box', name: 'Box 2', params: { size: 9 } },
+      { origin: 'local' }
+    )
+    expect(document.bodies().map((body) => [body.id, body.params.size])).toEqual([['b', 9]])
+  })
+
+  it('a delete while rolled back inserts at the marker, like every other mutation (section 18)', () => {
+    const document = twoBoxes()
+    document.append({ id: 'c', op: 'fake.box', name: 'Box 3' }, { origin: 'local' })
+    document.rollBackTo('b', { origin: 'local' })
+    document.deleteBodies(['a'], { origin: 'local' })
+    expect(document.bodies().map((body) => body.id)).toEqual(['b'])
+    document.rollForward({ origin: 'local' })
+    expect(document.bodies().map((body) => body.id)).toEqual(['b', 'c'])
+  })
+
+  it('round-trips through loadEntries: a reloaded document keeps the body deleted', () => {
+    const document = twoBoxes()
+    document.deleteBodies(['a'], { origin: 'local' })
+    const reloaded = doc()
+    reloaded.loadEntries(document.entries)
+    expect(reloaded.bodies().map((body) => body.id)).toEqual(['b'])
+    // …and the reloaded tombstone still guards the lineage.
+    expect(() =>
+      reloaded.append({ id: 'y', op: 'fake.move', target: 'a', supersedes: 'a' }, { origin: 'local' })
+    ).toThrow(/deleted/)
+  })
+
+  describe('degenerate cases', () => {
+    it('an empty id list is a no-op that appends nothing and pushes no step', () => {
+      const document = twoBoxes()
+      const before = document.records.length
+      const label = document.pendingUndo()?.label
+      const { records } = document.deleteBodies([], { origin: 'local' })
+      expect(records).toEqual([])
+      expect(document.records.length).toBe(before)
+      expect(document.pendingUndo()?.label).toBe(label)
+    })
+
+    it('deleting an already-deleted body is refused', () => {
+      const document = twoBoxes()
+      document.deleteBodies(['a'], { origin: 'local' })
+      const before = document.records.length
+      expect(() => document.deleteBodies(['a'], { origin: 'local' })).toThrow(/Box 1.*deleted/)
+      expect(document.records.length).toBe(before)
+    })
+
+    it('deleting an unknown id is refused, appending nothing — even alongside a good one', () => {
+      const document = twoBoxes()
+      const before = document.records.length
+      expect(() => document.deleteBodies(['b', 'nope'], { origin: 'local' })).toThrow(/no such body "nope"/)
+      expect(document.records.length).toBe(before)
+      expect(document.bodies().map((body) => body.id)).toEqual(['a', 'b'])
+    })
+
+    it('naming one body twice (root and a later record of it) is refused', () => {
+      const document = twoBoxes()
+      document.append({ id: 'a-move', op: 'fake.move', target: 'a', supersedes: 'a' }, { origin: 'local' })
+      expect(() => document.deleteBodies(['a', 'a-move'], { origin: 'local' })).toThrow(/twice/)
+    })
+
+    it('a body already consumed into another is refused — delete the result instead', () => {
+      const document = twoBoxes()
+      document.append(
+        { id: 'm', op: 'fake.merge', name: 'Merged 1', target: 'a', operands: ['b'], consumes: ['a', 'b'] },
+        { origin: 'local' }
+      )
+      expect(() => document.deleteBodies(['a'], { origin: 'local' })).toThrow(/consumed/)
+      document.deleteBodies(['m'], { origin: 'local' })
+      expect(document.bodies()).toEqual([])
+    })
+
+    it('a sketch entity is not a body and is refused', () => {
+      const document = doc()
+      document.append(
+        { id: 'l', op: 'sketch.line', name: 'Line 1', params: { start: [0, 0], end: [1, 1] } },
+        { origin: 'local' }
+      )
+      expect(() => document.deleteBodies(['l'], { origin: 'local' })).toThrow(/not a body/)
+    })
+
+    it('a hand-written tombstone must supersede something', () => {
+      const document = twoBoxes()
+      expect(() => document.append({ id: 'd', op: 'body.delete' }, { origin: 'local' })).toThrow(/supersede/)
+    })
+  })
+})
+
+describe('removePart — removing one part is a supersession, not a tombstone (TODO/ui-051)', () => {
+  it('appends a group.removePart record over the terminal and labels it by part and body', () => {
+    /** @type {string[]} */
+    const removals = []
+    const withRemove = Object.freeze({
+      ...fakeRegistry,
+      'group.removePart': Object.freeze({
+        kind: 'native',
+        operandCount: 1,
+        build: (/** @type {any} */ { params, inputs }) => {
+          removals.push(params.part)
+          return { tag: 'without', part: params.part, from: inputs[0] }
+        },
+      }),
+    })
+    const document = createDocument({ registry: withRemove })
+    document.append({ id: 'pi', op: 'fake.box', name: 'Raspberry Pi 1' }, { origin: 'local' })
+
+    const { record } = document.removePart('pi', 'usb1', { origin: 'local' })
+
+    expect(record).toMatchObject({ op: 'group.removePart', target: 'pi', supersedes: 'pi', params: { part: 'usb1' } })
+    expect(record.name).toBeUndefined()
+    expect(removals).toEqual(['usb1'])
+    const [body] = document.bodies()
+    expect(body.id).toBe('pi') // the body survives: same lineage, same identity
+    expect(body.recordId).toBe(record.id)
+    expect(document.pendingUndo()?.label).toBe('Remove usb1 from Raspberry Pi 1')
+    document.undo()
+    expect(document.bodies()[0].recordId).toBe('pi')
+  })
+
+  it('refuses an empty part name and an unknown body, appending nothing', () => {
+    const document = doc()
+    document.append({ id: 'a', op: 'fake.box' }, { origin: 'local' })
+    const before = document.records.length
+    expect(() => document.removePart('a', '', { origin: 'local' })).toThrow(/part name/)
+    expect(() => document.removePart('nope', 'usb1', { origin: 'local' })).toThrow(/no such body/)
+    expect(document.records.length).toBe(before)
+  })
+
+  it('refuses a part of a deleted body', () => {
+    const document = doc()
+    document.append({ id: 'a', op: 'fake.box', name: 'Box 1' }, { origin: 'local' })
+    document.deleteBodies(['a'], { origin: 'local' })
+    expect(() => document.removePart('a', 'usb1', { origin: 'local' })).toThrow(/deleted/)
   })
 })

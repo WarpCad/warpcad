@@ -114,10 +114,19 @@ function sceneBodies(page) {
   )
 }
 
-/** Photograph the WebGL canvas alone (every overlay hidden) into page memory under `key`. */
+/**
+ * Photograph the WebGL canvas alone (every overlay hidden) into page memory under `key`.
+ *
+ * The Inspector is hidden too: at phone width its bottom sheet is drawn over the canvas's
+ * box, so an element screenshot of the canvas would otherwise photograph the sheet — and
+ * `.check()` on the toggle scrolls that sheet when `ui-051`'s pinned Delete row covers the
+ * toggle, which read as thousands of "canvas" pixels changing when the 3D view had not.
+ * `visibility`, not `display`, so nothing reflows between snapshots.
+ */
 async function snapshotCanvas(page, key) {
   const handle = await page.addStyleTag({
-    content: '[data-testid=viewport] > :not(canvas){visibility:hidden !important}',
+    content:
+      '[data-testid=viewport] > :not(canvas),[data-testid=inspector]{visibility:hidden !important}',
   })
   try {
     const png = await page.getByTestId('viewport-canvas').screenshot()

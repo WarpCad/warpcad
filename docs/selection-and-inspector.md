@@ -679,6 +679,65 @@ that default. For a hole the bolt actually slides through rather than jams in, a
 [**Parts**](#parts) section while the bolt is selected. Pointing at the `tap` row in
 either place previews the clearance as a translucent overlay before you cut with it.
 
+## Deleting objects and parts
+
+To remove a shape, select it and press **Delete** (or **Backspace**) on the keyboard, or
+tap the red **Delete** button at the bottom of the Inspector. The button stays pinned to
+the bottom of the Inspector as you scroll, so on a phone it is always in reach without
+scrolling past the fields. Phones and tablets have no Delete key, so on those the button
+is the way to do it.
+
+- With **several shapes selected**, Delete removes all of them at once. That counts as
+  **one** step: Undo reads `Undo: Delete 3 objects` and one press brings all three back.
+- There is **no "are you sure?" box**. Undo is the safety net, as it is for everything
+  else. **Undo** (Ctrl+Z / ⌘Z, or the ↶ button) puts the shape back exactly where it was,
+  with the same size, rotation and colour, and selects it again.
+- The keys do nothing while you are typing in a field. Backspace in a Position box only
+  deletes a digit, never the shape.
+- Delete is not available mid-drag, in sketch mode, or while History is previewing an
+  earlier step. The greyed-out button says which one applies.
+
+### Worked example: delete a cube, then bring it back
+
+1. Place two Cubes. Tap the second one so the Inspector shows **Cube 2**.
+2. Press **Delete** on the keyboard, or scroll to the bottom of the Inspector and tap
+   **Delete**. Cube 2 disappears and Cube 1 stays exactly where it was. On a phone the
+   Inspector sheet closes, as it does when you deselect.
+3. Press **Undo** (Ctrl+Z / ⌘Z, or the ↶ button). Cube 2 is back where it was, and
+   selected.
+
+### Removing one part of a group
+
+To remove just one piece of a group or a ready-made part, select the part so the
+breadcrumb shows it (see [Parts](#parts)). The button then reads **Remove part**. The rest
+of the body stays, as one body, and the selection steps back up to it with the part gone
+from its **Parts** list. History reads `Remove usb1 from Raspberry Pi 1`, and Undo puts
+the part back and selects it again.
+
+1. Tap a Raspberry Pi. Then tap its **usb1** block, in the 3D view or in the Inspector's
+   **Parts** list, so the breadcrumb reads **Raspberry Pi 1 ▸ usb1**.
+2. Tap **Remove part**. The USB block goes and the rest of the Pi stays.
+
+You cannot remove the **last visible** part of a group. The button is greyed out and
+says `Last visible part: delete Raspberry Pi 1 instead`, because a group with nothing
+left to show is really a group you want to delete. Hidden parts, such as a bolt's `tap`
+clearance, can be removed like any other part once **Show hidden parts** lets you select
+them.
+
+### Is it safe?
+
+Deleting a shape that no later step depends on is always safe. Delete adds a new step to
+the end of your [History](timeline.md). It never removes an earlier one, so nothing that
+came before is affected. When something does depend on the deleted shape, WarpCad refuses
+by name instead of guessing:
+
+- Moving an older step (a Move of Cube 1, say) to *after* the step that deleted Cube 1 is
+  refused: `Step 3 uses step 2's result`.
+- A later step that uses a removed part, such as a Subtract of the Pi's `usb1` clearance,
+  says it `can't be built: no part named "usb1"`.
+- **Suppress** on a `Delete` row in History brings the shape back, because the step that
+  deleted it is switched off. **Unsuppress** deletes it again.
+
 ## Troubleshooting
 
 - **I clicked a shape and nothing happened.** Check that you clicked the shape itself and
@@ -698,6 +757,12 @@ either place previews the clearance as a translucent overlay before you cut with
   aim at the outer half of the arrow, nearer its head.
 - **I typed a position and the shape did not move.** Press **Enter**, or click somewhere
   else, to commit it — the shape moves when you finish editing, not on every keystroke.
+- **I deleted the wrong thing.** Press **Undo** straight away. It comes back exactly as it
+  was, selected. If you have done other things since, open History and **Suppress** its
+  `Delete` row.
+- **The Delete button is greyed out.** Its message says why: nothing is selected, a drag
+  is in progress, you are in sketch mode, History is previewing an earlier step, or you
+  are trying to remove a group's last visible part.
 - **I can't click the shape I want — something else is in front of it.** Tap empty space
   so nothing is selected, and tap its name in the Inspector's
   [object list](#the-inspectors-object-list). On a phone, open the list from the

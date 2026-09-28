@@ -93,7 +93,15 @@ export const useHoverHighlightStore = defineStore('hoverHighlight', () => {
     () => documentStore.bodies,
     (live) => {
       const current = target.value
-      if (current && !live.some((body) => body.id === current.bodyId)) target.value = null
+      if (!current) return
+      const body = live.find((candidate) => candidate.id === current.bodyId)
+      // The body left the scene (a delete, an undo of its placement), or — since
+      // `TODO/ui-051`'s Remove part — the body stayed but the hovered part did not.
+      const partGone =
+        body !== undefined &&
+        current.partName !== null &&
+        ![...(body.partNames ?? []), ...(body.hiddenPartNames ?? [])].includes(current.partName)
+      if (body === undefined || partGone) target.value = null
     },
     { flush: 'sync' },
   )

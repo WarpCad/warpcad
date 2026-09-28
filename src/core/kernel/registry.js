@@ -49,6 +49,7 @@ import {
   isGroup,
   mapGeometry,
   pick,
+  removePart,
   snap,
 } from './group.js'
 import { bolt } from './recipes/hardware.bolt.js'
@@ -776,6 +777,21 @@ export const registry = Object.freeze({
   // arrives and leaves whole, byte-identical — the override lives entirely on the
   // record, for `document.js`'s `bodies()` to read back, not on the geometry.
   'style.recolor': wholeGroupNative(1, ({ inputs }) => soleOperand(inputs).value),
+
+  // ## Removing one part from a placed group (TODO/ui-051)
+  //
+  // `src/core/document.js`'s `removePart` appends this over the body's current
+  // terminal (`target`/`supersedes`, unnamed — the body survives, its lineage just
+  // continues), exactly as a recolour or a transform does. Unlike those it really
+  // changes the geometry: the group comes back without `params.part`, so every
+  // consumer (bounds, export, a later boolean, the parts list) sees the same thing
+  // with no special case. `wholeGroupNative` for the reason `style.recolor` above
+  // gives — a plain `native` entry would flatten the group before it arrived, and
+  // there would be no part left to take out. Validation lives in `group.js`'s
+  // `removePart`.
+  'group.removePart': wholeGroupNative(1, ({ params, inputs }) =>
+    removePart(soleOperand(inputs).value, params.part)
+  ),
 
   // ## The three booleans, and why they may name a composite's parts
   //

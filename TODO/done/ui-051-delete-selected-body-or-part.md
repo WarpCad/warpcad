@@ -6,8 +6,46 @@ priority: high
 model: opus
 milestone: M7
 depends: []
-status: open
+status: done
 ---
+
+
+> **Shipped (2026-09-28), with these Step 2 decisions and deviations:**
+>
+> - **Multi-record transactions already existed** (`document.appendAll` is one undo step
+>   for N records), so part removal stayed in this task rather than being split out.
+> - **Tombstone:** `op: 'body.delete'`, `supersedes` and `target` both set to the lineage's
+>   terminal, routed **past the kernel** like `sketch.*` (no registry entry, never in
+>   `scene.byId`). `bodies()` skips a lineage whose terminal is one. A later record that
+>   supersedes, consumes, *or names as a plain operand* a deleted body is refused by name
+>   (`… names Cube 1, which has been deleted`). The plain-operand check is an addition: a
+>   `target` could otherwise still read a deleted body's last geometry out of `scene.byId`.
+> - **Part removal: the kernel route** (`group.removePart`, `wholeGroupNative`, in
+>   `kernel/group.js`'s `removePart`), not a render filter. **Hidden parts may be removed**:
+>   `ui-049`'s Parts list makes every hidden part selectable, so drill-in reaches them, and a
+>   hidden part can never be the last visible one.
+> - **Phone placement, measured at 390x844 WebKit:** the sheet shows 321 px, the Cube
+>   description is 958 px and the Pi's 2,686 px, so a plain bottom button sat 580-2,300 px below
+>   the fold. Rather than the proposed sticky header, the one bottom mount is a **sticky
+>   footer** (`position: sticky; bottom`) at every width: still at the bottom and away from
+>   the top fields, and on screen at scrollTop 0 (y 734-778). One DOM node, one testid.
+>   Side effect: it covers the sheet's bottom ~67 px, which made `inspector-hidden-parts.e2e.js`'s
+>   canvas snapshot photograph a scrolled sheet; its helper now hides the Inspector too (no
+>   assertion changed).
+> - **"One step" means one Undo step:** N tombstones are N History rows (`Delete Cube 1`,
+>   `Delete Cube 2`, …); the Undo step is labelled `Delete 3 objects`. That label is
+>   asserted in `document.spec.js`, not `timelineLabel.spec.js`, since no single row carries it.
+> - **Reorder refusal:** `moveStep` refuses statically first (`Step 3 uses step 2's result`,
+>   the Delete names the Move's result); the replay's `needs Box 1` is what the same order
+>   gets when loaded. Both are tested.
+> - **e2e "delete one of two selected":** Delete removes the *whole* selection, so the case
+>   deletes both and asserts Subtract disables (and re-enables on Undo, still 2-selected).
+> - The Pi 4's USB parts are `usb1`/`usb2`; `usb` in this file was illustrative.
+> - **Also changed:** `isTextEntry` moved to `src/composables/textEntry.js`, shared by
+>   Ctrl+Z and Delete; Undo restores a drilled-in sub-part (`subPartBefore` on the step's
+>   meta); the hover store also clears a hover on a part that has been removed.
+> - **Filed, not fixed:** `TODO/core-036`, found re-driving scenario 10. A boolean's History
+>   row names only the second operand (pre-existing).
 
 ## Goal
 

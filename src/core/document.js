@@ -295,6 +295,35 @@
  * record points at is a different claim from replaying it, and guessing it wrong
  * is how a replay silently produces the wrong solid.
  *
+ * ## Deleting a body: an appended tombstone (`TODO/ui-051`)
+ *
+ * "Nothing is deleted" above is about the **log**, and deleting an object keeps it
+ * true. Removing a body from the scene appends one more record, `op: 'body.delete'`,
+ * that `supersedes` the body's current terminal — so the tombstone *is* the lineage's
+ * terminal, and `bodies()` skips any lineage whose terminal is one. Everything else
+ * falls out of machinery that already exists:
+ *
+ * - **Identity.** A later record that supersedes, consumes, or names the deleted body
+ *   as an operand is refused by name (`resolveLiveRoot` and the operand check in
+ *   `ingest`), rather than resurrecting something the user can no longer see.
+ * - **Undo** is remove-and-rebuild like every other step: take the tombstone out and
+ *   the previous terminal — position, rotation, colour overrides, params — is live
+ *   again, exactly. Deleting N bodies is N tombstones in **one** `appendAll`, so one
+ *   press of Undo.
+ * - **Save/reload** is just another NDJSON line. **Suppressing** a Delete row un-deletes
+ *   the body (section 16's fold simply skips it) — a legitimate consequence, documented.
+ *
+ * Like a sketch record, a tombstone is routed **past the kernel**: it builds no
+ * geometry, needs no registry entry, and is never in `scene.byId`.
+ *
+ * Removing one **part** of a group is different: the body survives, so it is an
+ * ordinary supersession by a `group.removePart` record the kernel really evaluates
+ * (`kernel/group.js`'s `removePart`), not a tombstone.
+ *
+ * Rejected: a `consumes` record that produces nothing. `consumes` means "retired *into*
+ * this new body"; `mergedInto` would point at a body that never renders, and
+ * `currentIdOf` walking forward through it would resolve a stale reference to nothing.
+ *
  * ## Loud locally, lenient remotely
  *
  * `replay.js` skips and reports a bad record because a document can arrive from an
@@ -527,6 +556,8 @@ export class ReplayRejection extends Error {
  * @property {(id: string, suppressed: boolean, transaction: TransactionOptions) => { scene: Scene }} setSuppressed
  * @property {(id: string, override: { color: number, colorAlpha?: number, subPart?: string }, transaction: TransactionOptions) => { record: OpRecord, scene: Scene }} setColorOverride
  * @property {(id: string, target: { subPart?: string }, transaction: TransactionOptions) => { record: OpRecord, scene: Scene }} clearColorOverride
+ * @property {(ids: readonly string[], transaction: TransactionOptions) => { records: OpRecord[], scene: Scene }} deleteBodies
+ * @property {(id: string, partName: string, transaction: TransactionOptions) => { record: OpRecord, scene: Scene }} removePart
  * @property {(id: string, delta: number) => MoveLegality} canMove
  * @property {(id: string, delta: number, transaction: TransactionOptions) => { scene: Scene }} moveStep
  * @property {(index: number, records: readonly OpRecord[], transaction: TransactionOptions) => { records: OpRecord[], scene: Scene }} insertAt
@@ -568,6 +599,15 @@ const SKETCH_OP_PREFIX = 'sketch.'
  * `src/core/kernel/registry.js` for why the kernel fold does not interpret it.
  */
 const RECOLOR_OP = 'style.recolor'
+
+/**
+ * The tombstone `deleteBodies` appends (`TODO/ui-051`) — see the module note. Routed
+ * past the kernel, like `sketch.*`.
+ */
+const DELETE_OP = 'body.delete'
+
+/** The op `removePart` appends; a real kernel op (`kernel/registry.js`). */
+const REMOVE_PART_OP = 'group.removePart'
 
 /**
  * The colour override currently in force for a body, read back off its lineage
@@ -632,6 +672,7 @@ const STEP_VERBS = Object.freeze({
   'modify.fit': 'Fit',
   'modify.bisect': 'Bisect',
   'style.recolor': 'Recolor',
+  'body.delete': 'Delete',
 })
 
 /**
@@ -931,6 +972,32 @@ export function createDocument(options = {}) {
   }
 
   /**
+   * Whether a lineage has been deleted — its terminal is a tombstone (`TODO/ui-051`).
+   *
+   * @param {string} root
+   * @returns {boolean}
+   */
+  function isDeletedRoot(root) {
+    return recordById.get(terminalByRoot.get(root) ?? root)?.op === DELETE_OP
+  }
+
+  /**
+   * Refuse, by the body's name, a reference into a deleted lineage.
+   *
+   * @param {string} root
+   * @param {string} id The id the record named.
+   * @param {string} field Named in the error.
+   */
+  function assertNotDeleted(root, id, field) {
+    if (!isDeletedRoot(root)) return
+    const name = recordById.get(root)?.name ?? root
+    throw new Error(
+      `document.append: ${field} "${id}" names ${name}, which has been deleted — ` +
+        'undo the delete (or suppress its step) to bring it back first'
+    )
+  }
+
+  /**
    * Resolve `id` to the lineage root it currently, *live*, represents — or throw
    * saying why it cannot.
    *
@@ -949,6 +1016,7 @@ export function createDocument(options = {}) {
     if (root === undefined) {
       throw new Error(`document.append: ${field} "${id}" — no such record in this document`)
     }
+    assertNotDeleted(root, id, field)
     if (terminalByRoot.get(root) !== id) {
       throw new Error(
         `document.append: ${field} "${id}", which has itself already been superseded by ` +
@@ -1011,6 +1079,22 @@ export function createDocument(options = {}) {
     // below, which is the whole of the boundary-preserving claim in this
     // module's sketch-records note.
     const isSketch = record.op.startsWith(SKETCH_OP_PREFIX)
+    // A tombstone (`TODO/ui-051`) builds nothing either, and must retire exactly
+    // one existing body — so it has to name what it supersedes.
+    const isTombstone = record.op === DELETE_OP
+    if (isTombstone && (record.supersedes === undefined || record.consumes !== undefined)) {
+      throw new Error(
+        `document.append: ${DELETE_OP} must supersede the body it deletes, and may not consume anything`
+      )
+    }
+    // A plain operand reference (`target`/`operands`) into a deleted body is refused
+    // the same way a `supersedes`/`consumes` one is below. Without this a record
+    // could still *read* a deleted body's last geometry out of `scene.byId`.
+    for (const ref of [record.target, ...(record.operands ?? [])]) {
+      const refId = typeof ref === 'string' ? ref : /** @type {any} */ (ref)?.id
+      const refRoot = typeof refId === 'string' ? rootById.get(refId) : undefined
+      if (refRoot !== undefined) assertNotDeleted(refRoot, refId, 'target')
+    }
     if (isSketch && record.consumes !== undefined) {
       throw new Error(
         `document.append: ${record.op} may not set \`consumes\` — retiring bodies into a ` +
@@ -1024,6 +1108,9 @@ export function createDocument(options = {}) {
         throw new Error('document.append: a record that supersedes another needs its own `id`')
       }
       supersededRoot = resolveLiveRoot(record.supersedes, 'supersedes')
+      if (isTombstone && sketchRootOrder.includes(supersededRoot)) {
+        throw new Error(`document.append: ${DELETE_OP} "${record.supersedes}" is a sketch entity, not a body`)
+      }
     }
 
     /** @type {string[]} */
@@ -1065,7 +1152,7 @@ export function createDocument(options = {}) {
     // rejected rather than committed. Skipped outright for a sketch record:
     // there is no geometry to evaluate and no registry entry to look up.
     const errorsBefore = scene.errors.length
-    const candidate = isSketch ? scene : applyAction(scene, record, ops, foldCache)
+    const candidate = isSketch || isTombstone ? scene : applyAction(scene, record, ops, foldCache)
     if (candidate.errors.length > errorsBefore) {
       const failure = candidate.errors[candidate.errors.length - 1]
       throw new Error(`document.append: ${failure.op} could not be applied — ${failure.message}`)
@@ -1404,6 +1491,10 @@ export function createDocument(options = {}) {
     // the step did not make.
     if (record.op === RECOLOR_OP && record.colorOverride === null) {
       return subjectName === undefined ? 'Reset color' : `Reset color of ${subjectName}`
+    }
+    if (record.op === REMOVE_PART_OP) {
+      const part = typeof record.params?.part === 'string' ? record.params.part : 'part'
+      return subjectName === undefined ? `Remove ${part}` : `Remove ${part} from ${subjectName}`
     }
     const verb = /** @type {Record<string, string>} */ (STEP_VERBS)[record.op]
     if (verb !== undefined) {
@@ -2159,6 +2250,87 @@ export function createDocument(options = {}) {
     },
 
     /**
+     * TODO/ui-051: delete one or more bodies as **one undoable step** — one
+     * `body.delete` tombstone per body, superseding its current terminal, appended
+     * together through {@link WarpDocument.appendAll} (so while rolled back they
+     * insert at the marker, like every other mutation). See the module note.
+     *
+     * `ids` may be any record in each body's lineage. Validated up front and
+     * all-or-nothing: an unknown id, a sketch entity, a body already deleted or
+     * already consumed into another, or one body named twice throws before anything
+     * is appended. An empty list is a no-op that appends nothing.
+     *
+     * @param {readonly string[]} ids
+     * @param {TransactionOptions} transaction
+     */
+    deleteBodies(ids, transaction) {
+      if (!Array.isArray(ids)) throw new Error('document.deleteBodies: an array of body ids is required')
+      if (ids.length === 0) return { records: [], scene }
+      /** @type {Set<string>} */
+      const roots = new Set()
+      /** @type {string[]} */
+      const terminals = []
+      for (const id of ids) {
+        const root = typeof id === 'string' ? rootById.get(id) : undefined
+        if (root === undefined) throw new Error(`document.deleteBodies: no such body "${id}" in this document`)
+        const name = recordById.get(root)?.name ?? root
+        if (sketchRootOrder.includes(root)) {
+          throw new Error(`document.deleteBodies: "${name}" is a sketch entity, not a body`)
+        }
+        if (isDeletedRoot(root)) throw new Error(`document.deleteBodies: ${name} has already been deleted`)
+        if (mergedInto.has(root)) {
+          throw new Error(
+            `document.deleteBodies: ${name} has been consumed into another body — delete that one instead`
+          )
+        }
+        if (roots.has(root)) throw new Error(`document.deleteBodies: ${name} is named twice`)
+        roots.add(root)
+        terminals.push(terminalByRoot.get(root) ?? root)
+      }
+      const records = terminals.map((terminal) => ({
+        id: document.nextId(`${rootById.get(terminal)}-delete`),
+        op: DELETE_OP,
+        target: terminal,
+        supersedes: terminal,
+      }))
+      const label =
+        transaction?.label ?? (records.length === 1 ? labelFor(records) : `Delete ${records.length} objects`)
+      return document.appendAll(records, { ...transaction, label })
+    },
+
+    /**
+     * TODO/ui-051: remove one named part from a group-valued body. The body
+     * survives, so this is a supersession — a `group.removePart` record over its
+     * current terminal, evaluated by the kernel (`kernel/group.js`'s `removePart`,
+     * which refuses an unknown part and the last visible one).
+     *
+     * @param {string} id Any record in the body's lineage.
+     * @param {string} partName
+     * @param {TransactionOptions} transaction
+     */
+    removePart(id, partName, transaction) {
+      if (typeof partName !== 'string' || partName.length === 0) {
+        throw new Error(`document.removePart: a part name is required, got ${JSON.stringify(partName)}`)
+      }
+      const root = rootById.get(id)
+      if (root === undefined) throw new Error(`document.removePart: no such body "${id}" in this document`)
+      if (isDeletedRoot(root)) {
+        throw new Error(`document.removePart: ${recordById.get(root)?.name ?? root} has been deleted`)
+      }
+      const currentId = /** @type {string} */ (document.currentIdOf(id))
+      return document.append(
+        {
+          id: document.nextId(`${root}-remove`),
+          op: REMOVE_PART_OP,
+          target: currentId,
+          supersedes: currentId,
+          params: { part: partName },
+        },
+        transaction
+      )
+    },
+
+    /**
      * Section 17's static legality check, so `Move up` / `Move down` are honestly
      * disabled *before* the press rather than throwing after it.
      *
@@ -2324,6 +2496,9 @@ export function createDocument(options = {}) {
         // ate stop being independently selectable bodies. This one line is the
         // whole of that behaviour on the read side.
         if (mergedInto.has(rootId)) continue
+        // Deleted (`TODO/ui-051`): the lineage ends in a tombstone. Same one-line
+        // shape as the consumption skip above.
+        if (isDeletedRoot(rootId)) continue
         const terminalId = terminalByRoot.get(rootId) ?? rootId
         const geometry = scene.byId.get(terminalId)
         if (geometry === undefined) continue
