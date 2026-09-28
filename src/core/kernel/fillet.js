@@ -46,9 +46,12 @@ const { booleans, expansions, extrusions, geometries, maths, measurements, primi
 export const RIM_ORIENTATIONS = Object.freeze(['x+', 'x-', 'y+', 'y-', 'z+', 'z-'])
 
 /**
- * Default slice count across the quarter-circle profile. 32 matches
- * {@link module:core/kernel/registry.DEFAULT_SEGMENTS}; the profile converges from
- * below, so more slices means slightly more material removed, never less.
+ * Slice count across the quarter-circle profile when a caller passes none — the
+ * `legacy` count. The `modify.filletRim` op never relies on it: the registry always
+ * passes the design resolution's count (`tessellation.js`'s `rimSlicesFor`,
+ * `TODO/core-035`), which under `legacy` is this same 32. Direct callers (a recipe's
+ * probe geometry) still get it. The profile converges from below, so more slices means
+ * slightly more material removed, never less.
  */
 export const DEFAULT_RIM_SEGMENTS = 32
 

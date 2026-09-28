@@ -6,8 +6,56 @@ priority: high
 model: opus
 milestone: M7
 depends: []
-status: open
+status: done
 ---
+
+## What actually shipped (2026-09-28)
+
+Both surfaces, in this task — **no `io-006` split.** Step 2 found the export-worker re-fold
+was reuse, not a sub-project: `createDocument` is framework-free, so `exportJob.js` folds the
+document's plain records itself (`refoldRequestOf` → `runExportJob({ refold })`) and then
+runs the unchanged `solidsForExport` → `makeWatertight` → serialize path, entirely in the
+export worker. `exportClient.cancelExport()` terminates the worker mid-job when the popover
+closes, so a Print re-fold really stops.
+
+What differs from the file, and why:
+
+- **Segment counts are rounded up to a multiple of 4** (Step 2 tuning). The spec's own
+  formula gives a Ø40 cylinder 45 sides at Normal, an odd count whose bounding box is
+  39.95 mm wide — so dimension lines, Snap/Align and the Inspector's size fields would read
+  under nominal. A multiple of 4 keeps a vertex on each axis at every preset; it only ever
+  adds sides, so every tolerance still holds. The table becomes Draft 12/24/36,
+  Normal 16/32/52, Fine 24/52/80, Print 32/72/112 at Ø3/Ø20/Ø50 (raw counts match the
+  file's exactly), and the docs example's Ø22 at Fine is 56 sides, not 55.
+- **`hardware.bolt` and `kit.anchor` stopped baking `segments` too**, not only the four
+  files named. The bolt's tap clearance is exactly the round hole scenario 5's fit case is
+  about; left baked, it would have escaped the setting. Recipe *probe* geometry (used only to
+  measure placement offsets) stays at a fixed 32, a multiple of 4, so offsets are nominal at
+  every preset. A golden-digest oracle captured from HEAD's own sources pins all 41
+  library/composite cases byte-identical under `legacy`.
+- **No History row for a resolution change.** The file asks for one *and* says the setting
+  "is not a timeline record"; History rows are log entries, so those conflict. The explicit
+  design decision won: the change is one Undo step labelled `Resolution → Fine` (the Undo
+  button's label), the status chip announces it, and the File menu row reads the value.
+- **Core `createDocument()` still defaults to `legacy`**, so every pre-existing caller and
+  fixture folds byte-identically; the app's store creates new documents at
+  `DEFAULT_RESOLUTION` (Normal). An **empty** file reads as Normal, not Legacy (Legacy exists
+  to protect old geometry, and an empty file has none), and an empty Normal document still
+  serializes to `''`.
+- **The File-menu row lives in its own "Design" group** rather than in "This device", whose
+  last item stays Export… (`ui-034`'s tested contract).
+- **Two defects found on the way, both fixed here.** (1) The drag ghost was folded at legacy
+  while the drop commits at the design resolution — now keyed on and folded at it.
+  (2) A real `e2e/selection-inspector` failure: at Normal a tap exactly on a shared triangle
+  edge of the finer cylinder fell through three.js's non-watertight ray–triangle test, so
+  `Viewport.vue`'s pick now retries a miss at ±0.25 px (`render/pick.js`
+  `PICK_OFFSETS_PX`); logged in `TROUBLESHOOTING.md`. (3, WebKit-only, found by the new
+  e2e) Safari ignores `min-height` on a native `<select>`, so the Export popover's Resolution
+  select uses `appearance: none` with an explicit 44 px height.
+- **Changing the design resolution re-folds on the main thread**, like every row action and
+  Open (76 ms median on the 24-body scene at Print, `bench/results/2026-09-28-core-035.md`);
+  there is no separate pending indicator because the fold is synchronous. `core-032` owns cold
+  folds off the main thread; the export override is the off-thread path.
 
 ## Goal
 

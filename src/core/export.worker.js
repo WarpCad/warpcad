@@ -8,7 +8,7 @@
  *
  * ## Protocol
  *
- * In:  `{ id, format, bodies }` — see `runExportJob`.
+ * In:  `{ id, format, bodies, refold? }` — see `runExportJob`.
  * Out: `{ id, ok: true, result }` or `{ id, ok: false, error }`.
  *
  * `id` is echoed so a client that has moved on (the user closed the popover, or pressed
@@ -36,9 +36,10 @@ import { packError, runExportJob } from './exportJob.js'
 const scope = /** @type {any} */ (self)
 
 scope.addEventListener('message', (/** @type {MessageEvent} */ event) => {
-  const { id, format, bodies } = event.data ?? {}
+  const { id, format, bodies, refold } = event.data ?? {}
   try {
-    const result = runExportJob({ format, bodies })
+    // `refold` (TODO/core-035): export at another resolution — the job folds the records.
+    const result = runExportJob({ format, bodies, refold })
     // The finished file is a `Uint8Array`, which IS transferable — so the bytes move
     // rather than being copied, and only the (much smaller) glTF solid lists are cloned.
     const transfer = result.kind === 'bytes' && result.bytes ? [result.bytes.buffer] : []

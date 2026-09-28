@@ -51,7 +51,14 @@ const { booleans, extrusions, primitives, transforms } = modeling
 /** @typedef {import('../registry.js').OpRecord} OpRecord */
 /** @typedef {[number, number, number]} Vec3Mm */
 
-/** `@jscad/csg`'s `defaultResolution2D`, which every V1 call site here inherited. */
+/**
+ * `@jscad/csg`'s `defaultResolution2D`, which every V1 call site here inherited — now used
+ * **only for probe geometry** (`TODO/core-035`). A probe is built here to measure a
+ * placement offset (bounding boxes, centroids), and a multiple of 4 keeps a vertex on
+ * each axis, so what it measures is the nominal shape at any resolution. The records this
+ * kit emits carry no segment count, so the design resolution decides how the real parts
+ * are faceted — under `legacy`, still this same 32, byte-identical to before.
+ */
 export const SEGMENTS = 32
 
 /**
@@ -194,7 +201,7 @@ export function cylinderPart(id, diameterMm, heightMm, options = {}) {
     {
       id: `${id}.solid`,
       op: 'primitive.cylinder',
-      params: { diameter: diameterMm, height: heightMm, segments: SEGMENTS },
+      params: { diameter: diameterMm, height: heightMm },
     },
   ]
 
@@ -260,7 +267,6 @@ export function tubePart(id, outerDiameterMm, innerDiameterMm, heightMm) {
           diameter: outerDiameterMm,
           innerDiameter: innerDiameterMm,
           height: heightMm,
-          segments: SEGMENTS,
         },
       },
     ],
@@ -334,7 +340,7 @@ export function roundedCubePart(id, widthMm, heightMm, thicknessMm, cornerRadius
       {
         id: `${id}.profile`,
         op: 'profile.roundedRectangle',
-        params: { size: [widthMm, heightMm], roundRadius, segments: SEGMENTS },
+        params: { size: [widthMm, heightMm], roundRadius },
       },
       {
         id: `${id}.prism`,
@@ -415,7 +421,6 @@ export function boardFramePart(
           innerHeight: innerHeightMm,
           cornerRadius: roundRadius,
           thickness: thicknessMm,
-          segments: SEGMENTS,
         },
       },
     ],

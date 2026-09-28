@@ -83,8 +83,8 @@ import {
   updateBodyObject,
 } from '../../render/mesh.js'
 import { colorIntToCssHex, ownOverrideOf } from '../../core/colorOverride.js'
-import { nearestOnPlane, ndcFromClient, projectToWorkingPlane } from '../../render/pick.js'
-import { evaluateOp, toGeom3 } from '../../core/kernel/index.js'
+import { PICK_OFFSETS_PX, nearestOnPlane, ndcFromClient, projectToWorkingPlane } from '../../render/pick.js'
+import { evaluateOp, policyFor, toGeom3 } from '../../core/kernel/index.js'
 import { boundsOf, hiddenNamesOf, isGroup } from '../../core/kernel/group.js'
 import {
   boxAtPoint,
@@ -1360,12 +1360,17 @@ function projectPointer(clientXPx, clientYPx) {
  * @param {Record<string, any>} overrides
  */
 function ghostGeometryFor(key, op, overrides) {
-  let geometry = ghostGeometry.get(key)
+  // At the design resolution (TODO/core-035) — otherwise the ghost of a cylinder would have
+  // the old 32 sides and the body that lands a different count. Part of the cache key, so
+  // changing the setting never serves a ghost faceted at the old one.
+  const resolution = documentStore.resolution
+  const cacheKey = `${key}@${resolution}`
+  let geometry = ghostGeometry.get(cacheKey)
   if (!geometry) {
     geometry = geom3ToBufferGeometry(
-      toGeom3(evaluateOp(op, paramsForDrop(op, GHOST_ORIGIN, overrides))),
+      toGeom3(evaluateOp(op, paramsForDrop(op, GHOST_ORIGIN, overrides), { policy: policyFor(resolution) })),
     )
-    ghostGeometry.set(key, geometry)
+    ghostGeometry.set(cacheKey, geometry)
   }
   return geometry
 }
@@ -1965,13 +1970,19 @@ function hitsBodyAt(clientXPx, clientYPx) {
  */
 function raycastHit(clientXPx, clientYPx) {
   if (!viewport || bodyMeshes.size === 0) return null
-  ndcFromClient(clientXPx, clientYPx, viewportRect, scratchNdc)
-  pickNdc.set(scratchNdc.x, scratchNdc.y)
-  raycaster.setFromCamera(pickNdc, viewport.graph.camera)
-  const hits = raycaster.intersectObjects(bodiesGroup.children, true)
-  if (hits.length === 0) return null
-  const object = hits[0].object
-  return { bodyId: object.name, partName: object.userData.partName }
+  // The exact point first; only a miss tries the quarter-pixel neighbours, so a ray that
+  // fell through the zero-width crack on a shared triangle edge still finds the body
+  // (`PICK_OFFSETS_PX`, found by `TODO/core-035`). Click-time only, never per frame.
+  for (const [dxPx, dyPx] of PICK_OFFSETS_PX) {
+    ndcFromClient(clientXPx + dxPx, clientYPx + dyPx, viewportRect, scratchNdc)
+    pickNdc.set(scratchNdc.x, scratchNdc.y)
+    raycaster.setFromCamera(pickNdc, viewport.graph.camera)
+    const hits = raycaster.intersectObjects(bodiesGroup.children, true)
+    if (hits.length === 0) continue
+    const object = hits[0].object
+    return { bodyId: object.name, partName: object.userData.partName }
+  }
+  return null
 }
 
 /**

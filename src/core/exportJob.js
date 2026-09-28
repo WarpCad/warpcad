@@ -22,10 +22,24 @@
  * `makeWatertight` run**, here as on the main thread. There is no second
  * implementation to drift, which is the failure `io-004` and `io-005` were both about.
  *
+ * ## Exporting at another resolution (`TODO/core-035`)
+ *
+ * The Export popover can ask for a finer (or coarser) resolution than the design's, for
+ * this file only. Packed bodies are already faceted at the design resolution, so such a
+ * job carries the document's **records** instead ({@link refoldRequestOf}): the log, the
+ * rollback marker, suppression and the scope's body ids. The job folds them itself, with
+ * the same framework-free `createDocument` the app uses, at the export resolution — and
+ * then runs the unchanged `solidsForExport` → `makeWatertight` → serialize path. So the
+ * Print-resolution re-fold, the most expensive fold a user can ask for, happens here, in
+ * the export worker, never on the main thread; and the design itself is never touched,
+ * because the worker has only a copy of its records.
+ *
  * @module core/exportJob
  */
 
-import { EXPORT_FORMATS, ExportError, exportBodies, exportFilename, solidsForExport } from './export.js'
+import { createDocument } from './document.js'
+import { EXPORT_FORMATS, ExportError, exportBodies, exportFilename, resolveExportScope, solidsForExport } from './export.js'
+import { resolutionLabel } from './kernel/tessellation.js'
 import { makeWatertight } from './kernel/watertight.js'
 import { packSolids, unpackBodies } from './kernel/transport.js'
 
@@ -33,10 +47,75 @@ import { packSolids, unpackBodies } from './kernel/transport.js'
 /** @typedef {import('./export.js').ExportFormat} ExportFormat */
 
 /**
+ * Everything a job needs to fold the document again at another resolution — plain,
+ * structured-cloneable data, never geometry.
+ *
+ * @typedef {object} RefoldRequest
+ * @property {{ record: import('./kernel/registry.js').OpRecord, origin: string, suppressed?: boolean }[]} entries
+ * @property {number | null} rollbackAt
+ * @property {string} resolution The export resolution.
+ * @property {string[]} ids The selected body ids, or `[]` for the whole scene — resolved
+ *   against the re-folded bodies by the same `resolveExportScope` the dialog uses.
+ */
+
+/**
  * @typedef {object} ExportJobRequest
  * @property {ExportFormat} format
- * @property {PackedBody[]} bodies
+ * @property {PackedBody[]} bodies The design's evaluated bodies. Ignored when `refold`
+ *   is given.
+ * @property {RefoldRequest} [refold] Export at another resolution: fold these records
+ *   here instead (`TODO/core-035`).
  */
+
+/**
+ * The records an export at `resolution` needs, copied out of `document` — so nothing the
+ * job does can reach back into it.
+ *
+ * @param {Pick<import('./document.js').WarpDocument, 'entries' | 'rollbackAt'>} document
+ * @param {string} resolution
+ * @param {readonly string[]} ids Selected body ids, `[]` for the whole scene.
+ * @returns {RefoldRequest}
+ */
+export function refoldRequestOf(document, resolution, ids) {
+  return {
+    // A JSON round trip rather than a reference: the records may be reactive proxies on
+    // the main thread, and the request must be plain data to cross `postMessage`.
+    entries: JSON.parse(
+      JSON.stringify(
+        document.entries.map((entry) => ({
+          record: entry.record,
+          origin: entry.origin,
+          ...(entry.suppressed === true ? { suppressed: true } : {}),
+        }))
+      )
+    ),
+    rollbackAt: document.rollbackAt(),
+    resolution,
+    ids: [...ids],
+  }
+}
+
+/**
+ * Fold a {@link RefoldRequest} and pick the scope's bodies out of it.
+ *
+ * @param {RefoldRequest} refold
+ * @returns {import('./export.js').ExportBody[]}
+ * @throws {ExportError} `evaluation-failed` if the log does not fold at that resolution
+ *   (a fillet that fitted a coarse rim may not fit a fine one), or `stale-selection`.
+ */
+function bodiesAtResolution(refold) {
+  const document = createDocument({ resolution: refold.resolution, foldCache: null, restorableSteps: 0 })
+  try {
+    document.loadEntries(refold.entries, refold.rollbackAt, refold.resolution)
+  } catch (error) {
+    throw new ExportError(
+      'evaluation-failed',
+      `The design could not be re-evaluated at ${resolutionLabel(refold.resolution)} resolution: ` +
+        `${error instanceof Error ? error.message : String(error)}`
+    )
+  }
+  return resolveExportScope(document.bodies(), refold.ids).bodies
+}
 
 /**
  * Either a finished file (STL, OBJ) or the prepared solids a `.glb` still needs meshing
@@ -60,8 +139,8 @@ import { packSolids, unpackBodies } from './kernel/transport.js'
  * @throws {ExportError} Exactly what the synchronous path throws — `nothing-to-export`,
  *   `evaluation-failed`, `empty-geometry`.
  */
-export function runExportJob({ format, bodies: packed }) {
-  const bodies = unpackBodies(packed)
+export function runExportJob({ format, bodies: packed, refold }) {
+  const bodies = refold ? bodiesAtResolution(refold) : unpackBodies(packed)
   if (format === 'glb') {
     // Validate and prepare here; `src/render/export.js` meshes and serializes.
     const prepared = solidsForExport(bodies).map(({ name, solid }) => ({ name, solid: makeWatertight(solid) }))

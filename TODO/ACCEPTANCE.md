@@ -1003,6 +1003,8 @@ and fields never disagreeing. Console clean throughout.
 
 **Re-checked**: 2026-09-28 03:08 UTC (`ui-051`) — **PASS**, as written and as its own inverse. Laptop 1440x900 Chromium, real mouse: Cube and Cylinder dropped from the Library, both stayed; empty click cleared; clicking each selected only that one. Then **Delete** on the cube (the key pressed twice in quick succession — one step, `Undo: Delete Cube 1`): the cube went, and the cylinder's pixel (113/138/169) and bounds were byte-identical before and after — deleting one body neither hid nor moved the other, the mirror of this scenario's original defect. Undo by the ↶ button put the cube back with identical bounds, reselected. Phone 390x844 WebKit, real `touchscreen.tap` throughout after the drops: tapping the cube selected it after a tap on empty canvas, the Inspector's **Delete** was on screen without scrolling (pinned, y 734-778 in a 471-792 sheet), tapping it removed the cube, kept the cylinder identical and closed the sheet; Undo by tap restored and reselected it. Console clean in both drives.
 
+**Re-checked**: 2026-09-28 06:04 UTC (`core-035`): **PASS** at laptop 1440x900 Chromium (dark, real mouse) and phone 390x844 WebKit (light, touch taps). Re-driven because new documents now fold at **Normal** resolution rather than a fixed 32 segments, so every curved body placed here changed tessellation. Cube then Cylinder, dropped on wandering paths into the visible band. **Both stayed visible**, and the cube's bounds were identical before and after the second drop at both sizes. Tapping empty grid cleared the selection, and the cube and the cylinder each selected alone. The cylinder's Inspector Size reads exactly **40 × 40 × 50** at Normal: every segment count is a multiple of 4, so bounding boxes stay nominal. On top of the scenario, File ▾ → Resolution… was explored the way a person would: re-picking the current value did nothing, and Draft → Print → Fine (tapped twice) were three Undo steps, each re-facetting the cylinder (62 428.9 → 62 790.5 mm³). The chip read `Resolution → Fine`. Esc closed the popover. Three Undos (Cmd+Z in the viewport at laptop, the Undo button at phone) returned both volumes exactly, and Redo went to Draft. Console clean. Driver note, not an app defect: at phone width the Library and Inspector sheets cover the lower half, so drops and "empty" taps have to be aimed in the visible band.
+
 ### 2. Hardware property edit
 
 **Steps**:
@@ -2192,6 +2194,8 @@ Chromium:
 
 **Re-checked**: 2026-09-27 22:34 UTC (`ui-049`) — PASS, driven through the **amended Steps** above (Parts section, then the Inspector's list), **touch only** at phone 390x844 WebKit (`page.touchscreen.tap` at off-centre points for every action). *As written:* Cube then Bolt dragged in. The just-dropped Bolt's Inspector showed **Parts** (`head`, `thread`, then `tap-head`/`tap-thread`/`tap-headClearSpace`/`tap` labelled *hidden*). Tapping `tap` gave `Objects ▸ Bolt 1 ▸ tap`. A human-order mistake on purpose: the **Objects** crumb, then the Cube's check, gave the *wrong* order, and the Subtract title said so ("Bolt 1 › tap then Cube 1"). Corrected with the Cube's row, the Objects bar, ▸ on Bolt 1 and the `tap` check: "Cube 1 then Bolt 1 › tap". Subtract removed 31.664 mm³ where the clearance overlapped the touching cube. *Enclosed fixture* (40 mm shell with the m10 bolt wholly inside it, seeded; every action a real tap): the tab read **Objects (2)** and opened the sheet on the list. The shell's check kept the list open (the first tap did not make it vanish). ▸ on Bolt 1 and the `tap` check gave "Shell 1 then Bolt 1 › tap", and Subtract left **61 108.343 mm³**, exactly the Expect's clearance number, not the metal-only 61 695.679. **Found and fixed during this drive:** a touch tap that changed the selection count reflowed the sheet, and WebKit's phantom mouse at the tap point then *hovered* the row that slid under it (`tap-head` lit, with a transient mesh). Hover now needs a real mouse moving away from the last touch point. Re-driven after the fix: no hover from any tap. Screenshots inspected; console clean.
 
+**Re-checked**: 2026-09-28 06:04 UTC (`core-035`): **PASS** at laptop 1440x900 Chromium (mouse) and phone 390x844 WebKit (touch, list-only route). This is the fit case the resolution setting exists for. **A.** The `ui-041`/`ui-042` enclosed fixture (40 mm shell + m10 hex bolt, length 12) was written to a file with **no** resolution field and opened through File ▾ → Open…. It opened as **Legacy (32 segments)**, and the menu row said so. Shell 1's check, then ▸ and `tap`'s check (`1`/`2`), then Subtract, gave **61 108.343 mm³: byte-identical to its recorded number**, which is the in-app proof that old files fold exactly as before. The same cut at Fine gives 61 105.713 and at Print 61 103.420: the clearance hole grows toward the true circle. Two Undos returned exactly 61 108.343, and Legacy was listed again. **B.** A brand-new (Normal) document, Cube + Bolt dragged in overlapping. A whole-bolt Subtract removes exactly the bolt's 2 920.801 mm³ of metal (61 079.199 left), while the `tap` Subtract removes 3 602.687 mm³ (60 397.313 left), a clearance-sized hole, as Expect asks. Identical numbers at both sizes. Console clean.
+
 ### 6. Group vs. sub-part selection
 
 **Steps**:
@@ -2855,6 +2859,15 @@ was written. Console clean.
 
 **Re-checked**: 2026-09-28 03:08 UTC (`ui-051`) — **PASS for steps 1-7 with a Delete in the history**; hosted half not driven (no scratch repo/token). Laptop 1440x900 Chromium: Cube and Cylinder unioned through the list checks, then a Sphere dropped and removed with the **Delete** key. After a real reload the Union body was byte-identical, the chip read `Restored your last session`, and History's five rows (`Cube 1 — placed`, `Cylinder 1 — placed`, `Union Cylinder 1`, `Sphere 1 — placed`, `Delete Sphere 1`) were identical before and after. **Download copy** wrote a 5-line file carrying the `body.delete` line; after a Cone was added, **Open…** of that file removed the Cone and brought back the Union-only project (`Opened s10.ndjson · 5 steps`, matching the rows). The Sphere stayed deleted throughout. Found along the way, pre-existing and filed as `TODO/core-036`: the Union row names only the second operand (`Union Cylinder 1`, not `Union Cube 1 + Cylinder 1`). Console clean.
 
+**Re-checked**: 2026-09-28 06:04 UTC (`core-035`): **PASS**, now including the setting, at laptop 1440x900 Chromium (mouse) and phone 390x844 WebKit (touch).
+- Cube ∪ Cylinder, then File ▾ → Resolution… → **Fine**. The chip reached `Saved`.
+- **Reload**: identical bodies (name, volume 126 752.135, bounds), the setting still **Fine** (menu row `Resolution: Fine…`), and Undo empty.
+- **Download copy**: the file's last line is `{"warpcad":"project-state","version":1,"resolution":"fine"}`.
+- A Sphere dragged in and the setting switched to **Draft**, then File ▾ → Open… → Replace of that file: the scene was back byte-identical at **Fine**.
+- A project saved before this task (no resolution field) opened as **Legacy**.
+
+Hosted half not driven (no scratch repo/token in this session). Console clean.
+
 ### 11. Export a solid and confirm it opens elsewhere
 
 Added 2026-09-17 alongside `TODO/ROADMAP.md`'s M6, same rule as scenario 10. Steps
@@ -2961,6 +2974,18 @@ container parser (header, JSON and BIN chunks, world bounds through the node tra
 external glTF viewer. **Still owed when `ui-034` lands:** the whole of Expect — the dimmed empty-scene Export…,
 Scope/Format defaults, the `union-1.stl` download and chip, and above all opening the real downloaded files in
 a slicer / mesh viewer and comparing them to the viewport, which no byte-level check replaces.
+
+**Re-checked**: 2026-09-28 06:04 UTC (`core-035`): **PASS for steps 1-4, 6 and 7, at the design resolution and at a Print override; step 5 (a real slicer) still not driven**, at laptop 1440x900 Chromium (mouse) and phone 390x844 WebKit (touch).
+- **Steps 1-4.** Export is dimmed with `Nothing to export`. Union selected; the popover reads Selection — Union 1, STL, and a new **Resolution: Same as design (Normal)** with no note.
+- **The design file.** `union-1.stl`, 204 triangles, **0 open edges**, volume within 1e-5 of the kernel's. The chip reads `Exported union-1.stl — 204 triangles`.
+- **Print override.** The note reads *Re-evaluating at Print resolution — the design itself is unchanged.* The file has 412 triangles and **0 open edges** (this union is `io-004` repro 1's off-origin shape). The design stayed at Normal with its body volume unchanged, and nothing about it went on the Undo stack.
+- **Step 6.** Nothing selected gives Whole scene — 1 body. The Print choice was remembered for the session. OBJ at Print: **0 open edges**.
+- **Step 7.** `.glb` at Print (`io-005`'s path): **0 open edges**.
+- **`io-004` repro 2 at Print.** An m10 bolt exports to STL with 348 triangles and **0 open edges**, and its `.glb` also has 0.
+- **Cancel.** A 24-body scene (12 Pi + 12 bolts, opened from a file) exported at Print showed **Exporting…**. The worst frame gap while it ran was 16.7 ms in Chromium and 17.0 ms in WebKit, so the re-fold is off the main thread. Esc about 30 ms after pressing Export gave **no download**; the next export worked on a fresh worker and still remembered Print.
+- **Step 5** (a real slicer or viewer) still **NOT DRIVEN**, as before. Every file was read by independent parsers instead.
+
+Console clean.
 
 ### 12. Edit a step in the middle of the history and confirm it replays
 
@@ -3141,6 +3166,19 @@ checks driven live against the real dev server (a throwaway Playwright driver, n
 the checked-in suite).
 
 **Re-checked**: 2026-09-28 03:08 UTC (`ui-051`) — **PASS for steps 1-10, with a Delete in the middle of the history**; 11-12 not re-driven (untouched, covered by `timeline-panel.e2e.js`). Laptop 1440x900 Chromium, real mouse and keyboard. Cube, Chamfer Top 5 mm, Sphere, then a Cone dropped and **deleted**: rows `Cube 1 — placed`, `Chamfer Top (+Z) 5 mm on Cube 1`, `Sphere 1 — placed`, `Cone 1 — placed`, `Delete Cone 1`. **Edit** 5 → 3 mm replayed past the tombstone: cube volume 62166.62 → 63315.97 mm³ with the same bounds, the Sphere byte-identical, the Cone still deleted, the row reading `3 mm`. Undo/Redo (cursor in the viewport) went exactly to 5 mm and back. Suppress/Unsuppress of the Chamfer gave a plain 64000 mm³ cube and then exactly the edited state. **Suppress on the `Delete Cone 1` row brought the Cone back**, and Undo of that suppress deleted it again (documented behaviour). **Roll back** to step 2 hid the Sphere (`Rolled back to step 2 of 5`); a Cylinder dropped there inserted at the marker; **deleting that Cylinder while rolled back also inserted at the marker** (`Delete Cylinder 1` at row 4, above the inactive tail); Roll forward brought the Sphere back byte-identical, with rows in order Cube, Chamfer, Cylinder, Delete Cylinder, Sphere, Cone, Delete Cone. Console clean.
+
+**Re-checked**: 2026-09-28 06:04 UTC (`core-035`, which adds a new `resolution` undo kind to this surface): **PASS**, laptop 1440x900 Chromium (mouse, Cmd+Z in the viewport) and phone 390x844 WebKit (touch, Undo/Redo buttons).
+- **Steps 1-4.** Rows in order.
+- **Step 5.** Previewing step 2 also **refuses a resolution change**: the popover reads *Return to the latest step to change resolution*, the radios are disabled, and tapping Print changed nothing.
+- **Step 7.** The edit to 3 mm raises the cube 62 166.62 → 63 315.97 (phone 62 166.67 → 63 316.00), with the Sphere untouched.
+- **Interleaved.** Resolution → Print (the Sphere re-facets 33 271.8 → 33 455.2; the chamfered cube, all flats, does not move). Undo #1 returned exactly the edited state at Normal, Undo #2 exactly the 5 mm state, and both Redos returned byte-identical.
+- **Step 9.** Suppress/unsuppress, both at Print.
+- **Step 10.** Roll back, then a **resolution change while rolled back** (to Draft, allowed, marker kept), then a Cone inserted at the marker (`step 3 of 4`, Sphere inactive). Roll forward returned the Sphere at Draft.
+- **Step 11.** Move up, then Undo restores the order.
+- **Step 12.** The literal fillet-after-chamfer setup is refused by name in the popover, as documented before. The documented equivalent, driven at laptop at Draft: Cube 2 with a 4 mm top fillet, then its row shrunk to 2×2, gave *Step 6 (Fillet Top (+Z) 4 mm on Cube 2) can't be built: … radius 4mm is wider than the cross-section can absorb …*, and the live document stayed byte-identical. Switching to Print then re-folds the fillet (63 391.279 → 63 468.877), and Undo returns exactly. The equivalent shape was **not** re-driven at phone, because my driver could not reach the Library's Cube row after the popover there.
+- **Found on the way and pre-existing** (reproduced on HEAD 2233c53): the first Library drag after closing the Fillet popover with **Esc** places nothing. Filed as `ui-053`.
+
+Console clean.
 
 ### 13. Recolor a placed body
 

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { createOrbitCamera, STANDARD_VIEWS } from './camera.js'
-import { nearestOnPlane, ndcFromClient, projectToWorkingPlane } from './pick.js'
+import { PICK_OFFSETS_PX, nearestOnPlane, ndcFromClient, projectToWorkingPlane } from './pick.js'
 
 /** @param {Record<string, any>} [options] */
 function camera(options = {}) {
@@ -169,5 +169,18 @@ describe('nearestOnPlane — which existing item a placement drag snaps against'
       [-10, 0, 20],
     ])
     expect(nearestOnPlane(scene, 0, 0)).toBe(0)
+  })
+})
+
+describe('PICK_OFFSETS_PX (a ray that falls through a shared triangle edge, TODO/core-035)', () => {
+  it('tries the exact point first, so every hit that already worked is unchanged', () => {
+    expect(PICK_OFFSETS_PX[0]).toEqual([0, 0])
+  })
+
+  it('then a quarter pixel each way — never far enough to pick something a user did not tap', () => {
+    const rest = PICK_OFFSETS_PX.slice(1)
+    expect(rest).toHaveLength(4)
+    for (const [dx, dy] of rest) expect(Math.hypot(dx, dy)).toBeCloseTo(0.25, 12)
+    expect(new Set(rest.map((offset) => offset.join(','))).size).toBe(4)
   })
 })

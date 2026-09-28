@@ -183,8 +183,8 @@ export const usePersistenceStore = defineStore('persistence', () => {
    */
   function loadText(text) {
     try {
-      const { entries, rollbackAt } = parseProject(text)
-      documentStore.load(entries, rollbackAt)
+      const { entries, rollbackAt, resolution } = parseProject(text)
+      documentStore.load(entries, rollbackAt, resolution)
       return { ok: true, steps: entries.length }
     } catch (error) {
       return { ok: false, message: reasonOf(error) }

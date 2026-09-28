@@ -198,7 +198,9 @@ export const useTimelineStore = defineStore('timeline', () => {
     // The live document's fold cache (TODO/core-031): a prefix of the log is records
     // the live fold already built against the same operands, so the preview reuses
     // every one of them instead of folding the prefix from scratch on each row click.
-    const scratch = createDocument({ foldCache: live.foldCache })
+    // …and at the live document's resolution (TODO/core-035): the cache is keyed on it, and
+    // a preview at any other setting would show the past faceted differently from now.
+    const scratch = createDocument({ foldCache: live.foldCache, resolution: live.resolution() })
     try {
       // Any prefix of a log that folds must itself fold — every reference in a
       // record points backwards. Guarded anyway: a preview is a read, and a

@@ -4,8 +4,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { ExportError, exportBodies } from './export.js'
-import { runExport, setExportWorkerFactory, workerAvailable, disposeExportWorker } from './exportClient.js'
-import { packError, runExportJob } from './exportJob.js'
+import { EXPORT_CANCELLED, cancelExport, runExport, setExportWorkerFactory, workerAvailable, disposeExportWorker } from './exportClient.js'
+import { packError, refoldRequestOf, runExportJob } from './exportJob.js'
+import { createDocument } from './document.js'
 import { evaluate } from './kernel/index.js'
 
 /**
@@ -62,7 +63,7 @@ class FakeWorker {
         return
       }
       try {
-        const result = runExportJob({ format: message.format, bodies: message.bodies })
+        const result = runExportJob({ format: message.format, bodies: message.bodies, refold: message.refold })
         this.emit('message', { data: { id: message.id, ok: true, result } })
       } catch (error) {
         this.emit('message', { data: { id: message.id, ok: false, error: packError(error) } })
@@ -241,5 +242,49 @@ describe('runExport falls back to the main thread (perf-001)', () => {
     await expect(
       runExport([{ id: 'e', name: 'Ghost', geometry: { polygons: [] } }], 'stl', fakeGltf())
     ).rejects.toBeInstanceOf(ExportError)
+  })
+})
+
+describe('runExport at another resolution (TODO/core-035)', () => {
+  function design() {
+    const document = createDocument({ resolution: 'normal' })
+    document.append({ id: 'cyl-1', op: 'primitive.cylinder', name: 'Cylinder 1', params: { diameter: 50, height: 20 } }, { origin: 'local' })
+    return document
+  }
+
+  it('sends records, not packed geometry, and the worker folds them at the override', async () => {
+    const workers = useFakeWorker()
+    const document = design()
+    const bodies = document.bodies()
+    const atDesign = await runExport(bodies, 'stl', fakeGltf())
+    const atPrint = await runExport(bodies, 'stl', { ...fakeGltf(), refold: refoldRequestOf(document, 'print', []) })
+    const posted = workers[0].posted.at(-1)
+    expect(posted.bodies).toEqual([])
+    expect(posted.refold.resolution).toBe('print')
+    expect(atPrint.triangleCount).toBeGreaterThan(atDesign.triangleCount)
+    expect(atPrint.filename).toBe('cylinder-1.stl')
+    expect(workerAvailable()).toBe(true)
+  })
+
+  it('cancelExport stops an in-flight re-fold: the worker is terminated, the export rejects as cancelled', async () => {
+    const workers = useFakeWorker({ fail: 'silent' })
+    const document = design()
+    const pending = runExport(document.bodies(), 'stl', { ...fakeGltf(), refold: refoldRequestOf(document, 'print', []) })
+    await Promise.resolve()
+    expect(cancelExport()).toBe(true)
+    await expect(pending).rejects.toMatchObject({ name: EXPORT_CANCELLED })
+    expect(workers[0].terminated).toBe(true)
+    // A cancel is not a broken worker: the next export still goes to a (fresh) worker.
+    expect(workerAvailable()).toBe(true)
+    expect(cancelExport()).toBe(false)
+  })
+
+  it('without any worker, the same job runs as the fallback and still honours the override', async () => {
+    useFakeWorker({ fail: 'construct' })
+    const document = design()
+    const atPrint = await runExport(document.bodies(), 'stl', { ...fakeGltf(), refold: refoldRequestOf(document, 'print', []) })
+    const atDesign = exportBodies(document.bodies(), 'stl')
+    expect(atPrint.triangleCount).toBeGreaterThan(atDesign.triangleCount)
+    expect(workerAvailable()).toBe(false)
   })
 })

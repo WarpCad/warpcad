@@ -73,14 +73,15 @@ import { v1ColorToRecord } from '../colors.js'
 /** @typedef {import('../tables/bolt-specs.js').BoltSpec} BoltSpec */
 /** @typedef {import('../registry.js').OpRecord} OpRecord */
 
-/**
- * Segment count for cylindrical surfaces. Matches `@jscad/modeling`'s own cylinder
- * default, which happens to equal what `@jscad/csg` used (`defaultResolution2D`, 32)
- * — so a V1 and a V3 bolt of the same spec tessellate identically. Emitted into the
- * record explicitly rather than left to a library default, so a future default change
- * cannot silently move geometry.
+/*
+ * Cylinder segment counts are **not** emitted unless the caller asks for one
+ * (`TODO/core-035`). A baked count would be read by the fold as an explicit choice and
+ * escape the design resolution — and the tap clearance is exactly the round hole whose
+ * fit that setting exists for. Left out, `primitive.cylinder` takes its count from the
+ * resolution policy; under `legacy` that is still 32, `@jscad/csg`'s
+ * `defaultResolution2D`, so a V1 and a V3 bolt of the same spec still tessellate
+ * identically and every existing bolt is byte-identical.
  */
-export const DEFAULT_CYLINDER_SEGMENTS = 32
 
 /** V1's `Parts.Hardware[type]` branch, as an op name for the head solid. */
 const HEAD_OP = Object.freeze({
@@ -101,12 +102,13 @@ const HEAD_OP = Object.freeze({
  * @param {string} args.name Part name in the resulting group.
  * @param {boolean} [args.hidden] Keep it out of the group's default combine.
  * @param {string} args.v1Color V1's `.color(...)` name for the part.
- * @param {number} args.segments Segment count, ignored by `primitive.hexagon`.
+ * @param {number} [args.segments] Explicit segment count, ignored by `primitive.hexagon`;
+ *   omitted, the design resolution decides.
  * @returns {OpRecord[]}
  */
 function prismRecords({ id, op, diameterMm, heightMm, baseZMm, name, hidden, v1Color, segments }) {
   const params =
-    op === 'primitive.hexagon'
+    op === 'primitive.hexagon' || segments === undefined
       ? { diameter: diameterMm, height: heightMm }
       : { diameter: diameterMm, height: heightMm, segments }
 
@@ -133,12 +135,13 @@ function prismRecords({ id, op, diameterMm, heightMm, baseZMm, name, hidden, v1C
  * @param {string} [params.fit] Clearance class — `'tap'`, `'close'` or `'loose'`,
  *   default `'loose'` (V1's `Hardware.Bolt` default). Typed as a plain string because
  *   it arrives from untrusted document JSON and is validated below, not by the type.
- * @param {number} [params.segments] Cylinder segment count.
+ * @param {number} [params.segments] Cylinder segment count. Omitted: the design
+ *   resolution decides (`TODO/core-035`).
  * @param {{ boltSpecs: Readonly<Record<string, BoltSpec>> }} tables Size tables.
  * @returns {OpRecord[]} Op records in the same schema the document stores.
  */
 export function bolt(params, tables) {
-  const { spec, length, fit = 'loose', segments = DEFAULT_CYLINDER_SEGMENTS } = params
+  const { spec, length, fit = 'loose', segments } = params
 
   const entry = tables.boltSpecs[spec]
   if (!entry) {

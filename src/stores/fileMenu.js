@@ -38,6 +38,7 @@ import { useDocumentStore } from './document.js'
 import { useExportDialogStore } from './exportDialog.js'
 import { useHostedStore } from './hosted.js'
 import { usePersistenceStore } from './persistence.js'
+import { useResolutionDialogStore } from './resolutionDialog.js'
 
 /** @typedef {'open' | 'load'} ConfirmKind */
 
@@ -46,6 +47,7 @@ export const useFileMenuStore = defineStore('fileMenu', () => {
   const persistence = usePersistenceStore()
   const hosted = useHostedStore()
   const exportDialog = useExportDialogStore()
+  const resolutionDialog = useResolutionDialogStore()
 
   const menuOpen = ref(false)
   const connectOpen = ref(false)
@@ -54,7 +56,12 @@ export const useFileMenuStore = defineStore('fileMenu', () => {
 
   /** Anything of this menu's own that is open — what defers a background conflict dialog. */
   const anyOpen = computed(
-    () => menuOpen.value || connectOpen.value || confirm.value !== null || exportDialog.isOpen
+    () =>
+      menuOpen.value ||
+      connectOpen.value ||
+      confirm.value !== null ||
+      exportDialog.isOpen ||
+      resolutionDialog.isOpen
   )
 
   /** @returns {boolean} Whether replacing the project would discard anything. */
@@ -93,7 +100,19 @@ export const useFileMenuStore = defineStore('fileMenu', () => {
   function requestExport() {
     if (exportDialog.unavailableReason !== '') return
     menuOpen.value = false
+    resolutionDialog.close()
     exportDialog.open()
+  }
+
+  /**
+   * `Resolution: Normal` (`TODO/core-035`): swap the menu for the resolution popover, the
+   * same way `Export…` does. Always available — while History previews, the popover itself
+   * says why its choices are disabled, so the current value can still be read.
+   */
+  function requestResolution() {
+    menuOpen.value = false
+    exportDialog.close()
+    resolutionDialog.open()
   }
 
   /** `Open…` (and Ctrl/Cmd+O): confirm first when there is anything to lose. */
@@ -150,6 +169,10 @@ export const useFileMenuStore = defineStore('fileMenu', () => {
       exportDialog.close()
       return true
     }
+    if (resolutionDialog.isOpen) {
+      resolutionDialog.close()
+      return true
+    }
     if (confirm.value !== null) {
       confirm.value = null
       return true
@@ -176,6 +199,7 @@ export const useFileMenuStore = defineStore('fileMenu', () => {
     toggleMenu,
     saveLocal,
     requestExport,
+    requestResolution,
     requestOpen,
     requestLoad,
     confirmReplace,

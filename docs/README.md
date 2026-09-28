@@ -59,7 +59,13 @@ themselves won't have to move.
   choosing the whole scene or just your selection, picking STL, OBJ or glTF, what
   each format contains, how files are named, why the menu item is sometimes
   greyed out (nothing to export; History is showing a past step), what a rolled-back
-  export holds, and what it says when an export is refused.
+  export holds, exporting at a finer resolution than the design, and what it says when an
+  export is refused.
+- [Resolution: how smooth curves are, and why it matters for fit](resolution.md) —
+  **File ▾ → Resolution…**: Draft, Normal, Fine or Print for the whole design, why a
+  faceted hole prints small (and a big one more so), what Legacy means on an older
+  project, and exporting at a higher resolution than the design with
+  **File ▾ → Export… → Resolution**.
 - [Moving around the 3D view](viewport-navigation.md) — orbit, pan, zoom, the
   orientation triad, touch gestures, and reading size off the grid.
 - [Sketch mode: drawing a line on the working plane](sketch-mode.md) — the

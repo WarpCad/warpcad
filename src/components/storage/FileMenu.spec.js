@@ -357,3 +357,46 @@ describe('FileMenu — Export… (TODO/ui-034, data-002 §12)', () => {
     expect(downloads).toEqual([])
   })
 })
+
+describe('FileMenu — Resolution (TODO/core-035)', () => {
+  it('has its own Design group whose one row reads the current setting', async () => {
+    const { wrapper } = setup('fallback')
+    await openMenu(wrapper)
+    const group = document.body.querySelector('[role="group"][aria-label="Design"]')
+    expect(group).not.toBeNull()
+    expect(body().q('file-resolution').textContent.trim()).toBe('Resolution: Normal…')
+  })
+
+  it('opens the popover in place of the menu; choosing Fine commits it, relabels the row, and is one Undo', async () => {
+    const { wrapper } = setup('fallback')
+    const documentStore = useDocumentStore()
+    documentStore.append({ id: 'c', op: 'primitive.cylinder', name: 'Cylinder 1', params: { diameter: 20, height: 10 } })
+    await openMenu(wrapper)
+    body().q('file-resolution').click()
+    await nextTick()
+    expect(body().q('file-menu')).toBeNull()
+    expect(body().q('resolution-popover')).not.toBeNull()
+    expect(body().q('resolution-option-legacy')).toBeNull()
+    const fine = body().q('resolution-option-fine')
+    fine.checked = true
+    fine.dispatchEvent(new Event('change'))
+    await nextTick()
+    expect(documentStore.resolution).toBe('fine')
+    expect(documentStore.undoLabel).toBe('Resolution → Fine')
+    body().q('resolution-close').click()
+    await nextTick()
+    expect(body().q('resolution-popover')).toBeNull()
+    await openMenu(wrapper)
+    expect(body().q('file-resolution').textContent.trim()).toBe('Resolution: Fine…')
+  })
+
+  it('Escape closes the popover', async () => {
+    const { wrapper } = setup('fallback')
+    await openMenu(wrapper)
+    body().q('file-resolution').click()
+    await nextTick()
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))
+    await nextTick()
+    expect(body().q('resolution-popover')).toBeNull()
+  })
+})

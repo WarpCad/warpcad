@@ -49,12 +49,12 @@ describe('the boardFrame recipe subtracts in 2D, then extrudes', () => {
       {
         id: 'frame.outer',
         op: 'profile.roundedRectangle',
-        params: { size: [40, 30], roundRadius: 3, segments: 32 },
+        params: { size: [40, 30], roundRadius: 3 },
       },
       {
         id: 'frame.inner',
         op: 'profile.roundedRectangle',
-        params: { size: [30, 20], roundRadius: 3, segments: 32 },
+        params: { size: [30, 20], roundRadius: 3 },
       },
       {
         id: 'frame.profile',

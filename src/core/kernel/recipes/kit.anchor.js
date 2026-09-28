@@ -86,8 +86,15 @@ const OP = 'kit.anchor'
 /** V1 `Anchor`'s own `width = 10, height = 10` default, in millimetres. */
 export const DEFAULT_ANCHOR_MM = 10
 
-/** Matches `registry.js`'s `DEFAULT_SEGMENTS`; emitted explicitly into every record. */
-export const DEFAULT_ANCHOR_SEGMENTS = 32
+/**
+ * The segment count the **probe** geometry below is measured with. The probe exists only
+ * to compute the post's placement offset from bounding boxes, and a multiple of 4 puts a
+ * vertex on each axis, so the box is the nominal cylinder's at any count — the offset
+ * does not depend on the design resolution. The emitted records carry no count unless
+ * the caller gave one (`TODO/core-035`), so the resolution policy decides how the real
+ * parts are faceted; under `legacy` that is this same 32, byte-identical to before.
+ */
+export const PROBE_SEGMENTS = 32
 
 /** V1: `Cylinder(height / 2, width * 0.66)` — the post's length is 0.66 × width. */
 const POST_LENGTH_FRACTION = 0.66
@@ -113,7 +120,8 @@ function requirePositiveMm(value, label) {
  * @param {object} params
  * @param {number} [params.width] Hole diameter in millimetres; V1 default 10.
  * @param {number} [params.height] Hole height in millimetres; V1 default 10.
- * @param {number} [params.segments] Cylinder segment count for both parts.
+ * @param {number} [params.segments] Cylinder segment count for both parts. Omitted: the
+ *   design resolution decides (`TODO/core-035`).
  * @param {[number, number, number]} [params.center] Where the *hole's* centre lands;
  *   the post travels with it. Defaults to the origin.
  * @returns {OpRecord[]} Four records: the hole, and the post's primitive, rotate and
@@ -123,7 +131,7 @@ export function anchor(params) {
   const {
     width = DEFAULT_ANCHOR_MM,
     height = DEFAULT_ANCHOR_MM,
-    segments = DEFAULT_ANCHOR_SEGMENTS,
+    segments,
     center,
   } = params
 
@@ -146,14 +154,15 @@ export function anchor(params) {
   // `calcCenterWith` are translation-equivariant — they return a difference of
   // bounding-box coordinates — so measuring at the origin and adding `center`
   // afterwards is exact, not an approximation.
+  const probeSegments = segments ?? PROBE_SEGMENTS
   const holeProbe = primitives.cylinder({
     radius: holeDiameterMm / 2,
     height: holeHeightMm,
-    segments,
+    segments: probeSegments,
   })
   const postProbe = transforms.rotate(
     [Math.PI / 2, 0, 0],
-    primitives.cylinder({ radius: postDiameterMm / 2, height: postLengthMm, segments })
+    primitives.cylinder({ radius: postDiameterMm / 2, height: postLengthMm, segments: probeSegments })
   )
 
   // V1's order exactly: align on x/z first, then snap on y against the *aligned*
@@ -174,7 +183,7 @@ export function anchor(params) {
       params: {
         diameter: holeDiameterMm,
         height: holeHeightMm,
-        segments,
+        ...(segments === undefined ? {} : { segments }),
         ...(center === undefined || center === null ? {} : { center }),
       },
       name: 'hole',
@@ -183,7 +192,7 @@ export function anchor(params) {
     {
       id: 'post.solid',
       op: 'primitive.cylinder',
-      params: { diameter: postDiameterMm, height: postLengthMm, segments },
+      params: { diameter: postDiameterMm, height: postLengthMm, ...(segments === undefined ? {} : { segments }) },
     },
     {
       // 90° about X, turning the post's axis off Z and onto Y. Degrees, because the

@@ -16,10 +16,15 @@ shape to something else.
      `Whole scene — 3 bodies, in one file`. You can switch between the two.
    - **Format** is **STL** unless you picked something else last time — WarpCad remembers your
      last choice on this device.
+   - **Resolution** is **Same as design (Normal)**: the file's curves have exactly as many
+     sides as the 3D view shows. Pick **Fine** or **Print** to export smoother curves for this
+     file only. The design itself is not changed, and a note says so. See
+     [Resolution](resolution.md) for what each setting means for how holes and pegs fit.
    - The line underneath spells out exactly what you will get, name included:
      `Exports Union 1 as union-1.stl`.
 4. Press **Export**. The panel closes, your browser downloads the file, and the status light at
-   the right of the top bar says `Exported union-1.stl`. Open the file in your slicer or a
+   the right of the top bar says `Exported union-1.stl — 1,234 triangles` (the count is how you
+   can tell a higher **Resolution** really made a finer file). Open the file in your slicer or a
    mesh viewer: it should look exactly like what you had on screen.
 
 ### A big export tells you it is working
@@ -94,6 +99,11 @@ are not solids and are not exported.
 | **OBJ** | `.obj` | Mesh viewers and other modelling tools | Triangles, with shared corner points. Closed, exactly like the STL — it is written from the same solid. |
 | **glTF** | `.glb` (one binary file) | Web viewers, game engines, AR | A single self-contained file — there is no separate `.bin` to lose. Closed, like the other two. |
 
+How smooth the curves in any of the three are is the **Resolution** choice above, which
+defaults to the design's own setting. Round holes in a mesh always print slightly small,
+by an amount that depends on the number of sides; [Resolution](resolution.md) has the
+table and how to choose.
+
 STL and OBJ carry no unit of their own; they are written in **millimetres**, with **Z up**,
 which is what slicers assume — your 40 mm cube is a 40-unit cube.
 
@@ -152,6 +162,8 @@ you built.
 
 ## Related
 
+- [Resolution](resolution.md) — how many sides curves get, in the design and per export,
+  and why it matters for fit.
 - [Saving and reopening your work](save-load.md) — saving your *model* (which you can
   edit again) is separate from exporting a *mesh* (a finished shape other tools read).
 - Why STL is written from the modelling kernel rather than from what is drawn on screen,

@@ -18,6 +18,7 @@ import { defineStore } from 'pinia'
 import { computed, ref, shallowRef } from 'vue'
 
 import { createDocument } from '../core/document.js'
+import { DEFAULT_RESOLUTION } from '../core/kernel/tessellation.js'
 import { createEvaluationChannel, evaluationWorkerAvailable } from '../core/kernel/evaluationClient.js'
 import { boundsOf, hasNamedParts, hiddenNamesOf, isGroup } from '../core/kernel/group.js'
 import { cachedMeasurementOf, measureGeometry, rememberMeasurement } from '../core/kernel/measure.js'
@@ -179,8 +180,10 @@ export function summarizeBody(body) {
 }
 
 export const useDocumentStore = defineStore('document', () => {
-  // Plain and non-reactive on purpose — see the module comment.
-  const raw = createDocument()
+  // Plain and non-reactive on purpose — see the module comment. A brand-new document
+  // starts at the default design resolution (Normal, `TODO/core-035`); a loaded one takes
+  // whatever its file says, which is Legacy for a file saved before the setting existed.
+  const raw = createDocument({ resolution: DEFAULT_RESOLUTION })
 
   const version = ref(0)
   /** @type {import('vue').ShallowRef<BodySummary[]>} */
@@ -210,6 +213,11 @@ export const useDocumentStore = defineStore('document', () => {
   const canRedo = ref(false)
   const undoLabel = ref('')
   const redoLabel = ref('')
+  /**
+   * The design resolution (`TODO/core-035`), mirrored off `raw` in {@link refresh} for the
+   * same reason as the refs above: `raw` is deliberately non-reactive.
+   */
+  const resolution = ref(raw.resolution())
   /**
    * Bumped each time a whole document is *loaded* (autosave restore, Open) as
    * opposed to edited. The viewport frames the camera on it: a loaded project
@@ -250,6 +258,7 @@ export const useDocumentStore = defineStore('document', () => {
     canRedo.value = raw.canRedo()
     undoLabel.value = raw.pendingUndo()?.label ?? ''
     redoLabel.value = raw.pendingRedo()?.label ?? ''
+    resolution.value = raw.resolution()
     sketchEntities.value = raw.sketchEntities().flatMap((entity) => {
       const line = lineFromParams(entity.id, entity.params)
       if (!line) return []
@@ -309,6 +318,18 @@ export const useDocumentStore = defineStore('document', () => {
     const { record } = raw.setColorOverride(id, override, { origin, meta: localMeta(origin) })
     refresh()
     return record
+  }
+
+  /**
+   * Change the design resolution (`TODO/core-035`) — core's `setResolution`, one local
+   * undoable step that re-folds every body. Routed through here like every other
+   * mutation, for the selection-before `meta` Undo restores and one `refresh()`.
+   *
+   * @param {string} next One of the resolution ids.
+   */
+  function setResolution(next) {
+    raw.setResolution(next, { origin: 'local', meta: localMeta('local') })
+    refresh()
   }
 
   /**
@@ -462,9 +483,11 @@ export const useDocumentStore = defineStore('document', () => {
    *
    * @param {readonly import('../core/document.js').DocumentEntry[]} entries
    * @param {number | null} [rollbackAt]
+   * @param {string} [nextResolution] The loaded design's resolution (`TODO/core-035`);
+   *   `parseProject` supplies it. Omitted: the current one.
    */
-  function load(entries, rollbackAt = null) {
-    raw.loadEntries(entries, rollbackAt)
+  function load(entries, rollbackAt = null, nextResolution = raw.resolution()) {
+    raw.loadEntries(entries, rollbackAt, nextResolution)
     useSelectionStore().clear()
     loadRevision.value += 1
     refresh()
@@ -563,6 +586,7 @@ export const useDocumentStore = defineStore('document', () => {
     canRedo,
     undoLabel,
     redoLabel,
+    resolution,
     loadRevision,
     measureRevision,
     measurePreview,
@@ -572,6 +596,7 @@ export const useDocumentStore = defineStore('document', () => {
     batch,
     setColorOverride,
     clearColorOverride,
+    setResolution,
     deleteBodies,
     removePart,
     undo,

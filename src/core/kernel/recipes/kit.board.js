@@ -66,13 +66,12 @@ const OP = 'kit.board'
 export const DEFAULT_BOARD_THICKNESS_MM = 1.62
 
 /**
- * Segment count for the corner arcs. Matches `@jscad/modeling`'s own
- * `roundedRectangle` default and `@jscad/csg`'s `defaultResolution2D`, which V1 passed
- * explicitly — so a V1 and a V3 board of the same size tessellate the same way.
- * Emitted into the record rather than left to a library default, so a future upstream
- * change cannot silently move geometry.
+ * Corner-arc segments are **not** emitted unless the caller asks for a count
+ * (`TODO/core-035`). A baked count would be read by the fold as the user's explicit
+ * choice and escape the design resolution; left out, `profile.roundedRectangle` takes it
+ * from the resolution policy — and under `legacy` that is still V1's
+ * `defaultResolution2D`, 32, so an existing board is byte-identical.
  */
-export const DEFAULT_PROFILE_SEGMENTS = 32
 
 /**
  * `@jscad/modeling`'s own `EPS`, which its `roundedRectangle` subtracts before
@@ -144,6 +143,18 @@ export function centringVector(center, thicknessMm, op) {
 }
 
 /**
+ * `{ segments }` when the caller gave an explicit count, `{}` otherwise — so the emitted
+ * record only pins a count the user actually chose (`TODO/core-035`). Shared with
+ * `kit.boardFrame`.
+ *
+ * @param {number | undefined} segments
+ * @returns {{ segments?: number }}
+ */
+export function segmentsParam(segments) {
+  return segments === undefined || segments === null ? {} : { segments }
+}
+
+/**
  * Expand a `kit.board` document line into the op records that define it.
  *
  * @param {object} params
@@ -155,7 +166,8 @@ export function centringVector(center, thicknessMm, op) {
  *   `hardware.nut.js`'s `fit` is: the runtime check is the real gate, and a spec has
  *   to be able to call this with it missing to prove that check fires.
  * @param {number} [params.thickness] Defaults to {@link DEFAULT_BOARD_THICKNESS_MM}.
- * @param {number} [params.segments] Corner-arc segment count.
+ * @param {number} [params.segments] Corner-arc segment count. Omitted: the design
+ *   resolution decides (`TODO/core-035`), and nothing is baked into the records.
  * @param {[number, number, number]} [params.center] Where the slab's bounding-box
  *   centre lands; defaults to the origin.
  * @returns {OpRecord[]} Three records, in the schema the document stores.
@@ -166,7 +178,7 @@ export function board(params) {
     height,
     cornerRadius,
     thickness = DEFAULT_BOARD_THICKNESS_MM,
-    segments = DEFAULT_PROFILE_SEGMENTS,
+    segments,
     center,
   } = params
 
@@ -179,7 +191,7 @@ export function board(params) {
     {
       id: 'board.profile',
       op: 'profile.roundedRectangle',
-      params: { size: [width, height], roundRadius: cornerRadius, segments },
+      params: { size: [width, height], roundRadius: cornerRadius, ...segmentsParam(segments) },
     },
     {
       id: 'board.prism',

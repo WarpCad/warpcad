@@ -56,6 +56,33 @@ export function ndcFromClient(clientXPx, clientYPx, rect, out) {
 }
 
 /**
+ * Where a click is raycast again when the exact point finds nothing, in CSS pixels from
+ * that point — the exact point first, then a quarter-pixel each way.
+ *
+ * A ray that lands **exactly** on the edge two triangles share can pass between them:
+ * three.js's ray–triangle test is not watertight on a shared edge, so the crack is zero
+ * pixels wide but real. Found driving `TODO/core-035`: at Normal resolution a Ø40
+ * cylinder's side wall put one of its edges precisely under the canvas's centre ray, and
+ * a tap at (195, 205.66) px on a 390 px phone selected nothing, while 0.3 px either side
+ * hit it. Finer tessellation means more edges, so more such points. A quarter pixel is
+ * far below anything a user can aim at, so a miss that is a miss by a whole pixel is
+ * still empty space.
+ *
+ * @type {readonly (readonly [number, number])[]}
+ */
+export const PICK_OFFSETS_PX = /** @type {readonly (readonly [number, number])[]} */ (
+  Object.freeze(
+    [
+      [0, 0],
+      [0.25, 0],
+      [-0.25, 0],
+      [0, 0.25],
+      [0, -0.25],
+    ].map((offset) => Object.freeze(offset))
+  )
+)
+
+/**
  * True when an NDC point is inside the viewport rather than out over the panels.
  *
  * @param {Vec2} ndc

@@ -44,16 +44,15 @@ describe('the anchor recipe expands into op records, it does not build a mesh', 
       ['post.turned', 'transform.rotate'],
       ['post', 'transform.translate'],
     ])
-    expect(records[0]).toMatchObject({
-      params: { diameter: WIDTH, height: HEIGHT, segments: 32 },
-      name: 'hole',
-    })
+    // No baked segment count (TODO/core-035): the design resolution decides, and under
+    // `legacy` that is still 32 — `resolution.spec.js` pins the geometry byte-for-byte.
+    expect(records[0]).toMatchObject({ name: 'hole' })
+    expect(records[0].params).toEqual({ diameter: WIDTH, height: HEIGHT })
     // V1: `Cylinder(height / 2, width * 0.66)` — diameter from the *height*,
     // length from the width. Deliberately not a typo.
     expect(records[1].params).toEqual({
       diameter: HEIGHT / 2,
       height: WIDTH * 0.66,
-      segments: 32,
     })
     expect(records[2]).toMatchObject({ params: { angles: [90, 0, 0] }, target: 'post.solid' })
     expect(records[3]).toMatchObject({ target: 'post.turned', name: 'post' })

@@ -259,3 +259,28 @@ describe('the pending state for a slow export (perf-001)', () => {
     expect(q('export-pending')).toBeNull()
   })
 })
+
+describe('ExportPopover — Resolution (TODO/core-035)', () => {
+  it('a select under Format, defaulting to Same as design, with a note only when it differs', async () => {
+    const { dialog } = setup()
+    dialog.open()
+    await nextTick()
+    const select = /** @type {HTMLSelectElement} */ (q('export-resolution'))
+    expect(select).not.toBeNull()
+    expect(Array.from(select.options).map((option) => option.textContent.trim())).toEqual([
+      'Same as design (Normal)',
+      'Draft',
+      'Normal',
+      'Fine',
+      'Print',
+    ])
+    expect(select.value).toBe('design')
+    expect(q('export-resolution-note')).toBeNull()
+    select.value = 'print'
+    select.dispatchEvent(new Event('change'))
+    await nextTick()
+    expect(q('export-resolution-note').textContent.trim()).toBe(
+      'Re-evaluating at Print resolution — the design itself is unchanged.'
+    )
+  })
+})

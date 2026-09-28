@@ -140,8 +140,8 @@ describe('parseProject → loadEntries round trip', () => {
   })
 
   it('accepts an empty file as an empty project', () => {
-    expect(parseProject('')).toEqual({ entries: [], rollbackAt: null })
-    expect(parseProject('\n\n')).toEqual({ entries: [], rollbackAt: null })
+    expect(parseProject('')).toEqual({ entries: [], rollbackAt: null, resolution: 'normal' })
+    expect(parseProject('\n\n')).toEqual({ entries: [], rollbackAt: null, resolution: 'normal' })
   })
 
   it('accepts a plain action log with no state line, as written by every earlier reader', () => {
@@ -268,5 +268,85 @@ describe('createDocument.loadEntries — atomic, and it clears history like the 
     )
     expect(document.records.map((record) => record.id)).toEqual(['solo'])
     expect(document.bodies()).toHaveLength(1)
+  })
+})
+
+describe('the design resolution on the state line (TODO/core-035)', () => {
+  /** @param {string} resolution */
+  function cylinderDocument(resolution) {
+    const document = createDocument({ resolution })
+    document.append(
+      { id: 'cyl-1', op: 'primitive.cylinder', name: 'Cylinder 1', params: { diameter: 50, height: 10 } },
+      local,
+    )
+    return document
+  }
+
+  it('an old file with no resolution field loads as legacy', () => {
+    const text = serializeNdjson([{ id: 'cyl-1', op: 'primitive.cylinder', name: 'Cylinder 1', params: { diameter: 50, height: 10 } }])
+    expect(parseProject(text).resolution).toBe('legacy')
+    const loaded = createDocument({ resolution: 'normal' })
+    const parsed = parseProject(text)
+    loaded.loadEntries(parsed.entries, parsed.rollbackAt, parsed.resolution)
+    expect(loaded.resolution()).toBe('legacy')
+  })
+
+  it('a legacy document writes no resolution — its bytes are exactly what they were before', () => {
+    const document = cylinderDocument('legacy')
+    expect(serializeProject(document)).toBe(serializeNdjson(document.records))
+  })
+
+  it('round-trips a non-legacy resolution, and the reloaded geometry is the same', () => {
+    const document = cylinderDocument('fine')
+    const text = serializeProject(document)
+    expect(text).toContain('"resolution":"fine"')
+    const parsed = parseProject(text)
+    expect(parsed.resolution).toBe('fine')
+    const reloaded = createDocument()
+    reloaded.loadEntries(parsed.entries, parsed.rollbackAt, parsed.resolution)
+    expect(reloaded.resolution()).toBe('fine')
+    expect(serializeProject(reloaded)).toBe(text)
+    expect(bodySummary(reloaded)).toEqual(bodySummary(document))
+  })
+
+  it('round-trips alongside the other state-line fields', () => {
+    const document = cylinderDocument('print')
+    document.append({ id: 'cube-1', op: 'primitive.cuboid', name: 'Cube 1', params: { size: [5, 5, 5] } }, local)
+    document.setSuppressed('cube-1', true, local)
+    const parsed = parseProject(serializeProject(document))
+    expect(parsed.resolution).toBe('print')
+    expect(parsed.entries[1].suppressed).toBe(true)
+  })
+
+  it('an empty document at the new-document default writes nothing, as an empty document always has', () => {
+    expect(serializeProject(createDocument({ resolution: 'normal' }))).toBe('')
+  })
+
+  it('an empty file is a new document, so it reads as the new-document default, not legacy', () => {
+    // `legacy` exists to keep old geometry unchanged; an empty file has none to keep. Without
+    // this, an emptied project autosaved as '' would come back from a reload as Legacy.
+    expect(parseProject('').resolution).toBe('normal')
+  })
+
+  it('an empty document at a chosen non-default resolution keeps it', () => {
+    const text = serializeProject(createDocument({ resolution: 'fine' }))
+    expect(parseProject(text).resolution).toBe('fine')
+  })
+
+  it('refuses an unknown preset by name, with a ProjectFormatError', () => {
+    const text = serializeNdjson([
+      { id: 'a', op: 'primitive.cuboid', params: { size: [1, 1, 1] } },
+      { warpcad: 'project-state', version: 1, resolution: 'ultra' },
+    ])
+    expect(() => parseProject(text)).toThrow(ProjectFormatError)
+    expect(() => parseProject(text)).toThrow(/resolution.*ultra/)
+  })
+
+  it('refuses a non-string resolution', () => {
+    const text = serializeNdjson([
+      { id: 'a', op: 'primitive.cuboid', params: { size: [1, 1, 1] } },
+      { warpcad: 'project-state', version: 1, resolution: 32 },
+    ])
+    expect(() => parseProject(text)).toThrow(ProjectFormatError)
   })
 })

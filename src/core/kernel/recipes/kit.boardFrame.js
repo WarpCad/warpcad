@@ -66,9 +66,9 @@
 import {
   centringVector,
   DEFAULT_BOARD_THICKNESS_MM,
-  DEFAULT_PROFILE_SEGMENTS,
   requireCornerRadiusMm,
   requirePositiveMm,
+  segmentsParam,
 } from './kit.board.js'
 
 /** @typedef {import('../registry.js').OpRecord} OpRecord */
@@ -86,7 +86,8 @@ const OP = 'kit.boardFrame'
  * @param {number} params.cornerRadius Corner-arc radius, applied to **both**
  *   rectangles as V1 does; must fit the shortest side of the *inner* one.
  * @param {number} [params.thickness] Defaults to {@link DEFAULT_BOARD_THICKNESS_MM}.
- * @param {number} [params.segments] Corner-arc segment count.
+ * @param {number} [params.segments] Corner-arc segment count. Omitted: the design
+ *   resolution decides (`TODO/core-035`), and nothing is baked into the records.
  * @param {[number, number, number]} [params.center] Where the frame's bounding-box
  *   centre lands; defaults to the origin.
  * @returns {OpRecord[]} Five records, in the schema the document stores.
@@ -99,7 +100,7 @@ export function boardFrame(params) {
     innerHeight,
     cornerRadius,
     thickness = DEFAULT_BOARD_THICKNESS_MM,
-    segments = DEFAULT_PROFILE_SEGMENTS,
+    segments,
     center,
   } = params
 
@@ -132,12 +133,12 @@ export function boardFrame(params) {
     {
       id: 'frame.outer',
       op: 'profile.roundedRectangle',
-      params: { size: [outerWidth, outerHeight], roundRadius: cornerRadius, segments },
+      params: { size: [outerWidth, outerHeight], roundRadius: cornerRadius, ...segmentsParam(segments) },
     },
     {
       id: 'frame.inner',
       op: 'profile.roundedRectangle',
-      params: { size: [innerWidth, innerHeight], roundRadius: cornerRadius, segments },
+      params: { size: [innerWidth, innerHeight], roundRadius: cornerRadius, ...segmentsParam(segments) },
     },
     {
       id: 'frame.profile',

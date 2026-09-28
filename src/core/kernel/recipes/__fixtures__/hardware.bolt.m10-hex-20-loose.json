@@ -18,7 +18,7 @@
     {
       "id": "thread.solid",
       "op": "primitive.cylinder",
-      "params": { "diameter": 10, "height": 20, "segments": 32 }
+      "params": { "diameter": 10, "height": 20 }
     },
     {
       "id": "thread",
@@ -45,7 +45,7 @@
     {
       "id": "tap-thread.solid",
       "op": "primitive.cylinder",
-      "params": { "diameter": 11, "height": 20, "segments": 32 }
+      "params": { "diameter": 11, "height": 20 }
     },
     {
       "id": "tap-thread",

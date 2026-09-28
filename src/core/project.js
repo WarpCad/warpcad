@@ -15,7 +15,11 @@
  * - **suppressed** rows (`data-004`, section 16) — in the log, out of the fold;
  * - the **rollback marker** (section 18: "a rollback point *is* document state
  *   and is persisted");
- * - each entry's **origin** (`local`, `mcp`, …), which the History chip reads.
+ * - each entry's **origin** (`local`, `mcp`, …), which the History chip reads;
+ * - the design **resolution** (`TODO/core-035`) — how finely curves are faceted.
+ *   Absent means `legacy` (the old fixed 32), so a file saved before the setting
+ *   existed reopens byte-identical; a `legacy` document therefore never writes it. An
+ *   empty file has no geometry to keep, so it reads as a new document's default.
  *
  * A restore that dropped them would be silently unfaithful in the worst way — a
  * rolled-back document reopening fully rolled *forward* shows the user geometry
@@ -46,6 +50,7 @@
  * @module core/project
  */
 
+import { DEFAULT_RESOLUTION, RESOLUTION_IDS, isResolution } from './kernel/tessellation.js'
 import { parseNdjson, serializeNdjson } from './ndjson.js'
 
 /** @typedef {import('./document.js').DocumentEntry} DocumentEntry */
@@ -69,12 +74,19 @@ export class ProjectFormatError extends Error {
 /**
  * Serialise a document to project text.
  *
- * @param {Pick<WarpDocument, 'entries' | 'rollbackAt'>} document
- * @returns {string} `''` for an empty document; otherwise newline-terminated NDJSON.
+ * @param {Pick<WarpDocument, 'entries' | 'rollbackAt'> & Partial<Pick<WarpDocument, 'resolution'>>} document
+ * @returns {string} `''` for an empty document at the new-document default; otherwise
+ *   newline-terminated NDJSON.
  */
 export function serializeProject(document) {
   const entries = document.entries
   const rollbackAt = document.rollbackAt()
+  const resolution = document.resolution?.() ?? 'legacy'
+  // `legacy` is what an absent field means, so it is never written — an old document's
+  // bytes do not change. Nor is the new-document default on an empty document: an
+  // empty file already reads as that, and an empty document has always been `''`.
+  const writesResolution =
+    resolution !== 'legacy' && !(entries.length === 0 && resolution === DEFAULT_RESOLUTION)
 
   /** @type {string[]} */
   const suppressed = []
@@ -90,13 +102,14 @@ export function serializeProject(document) {
   /** @type {object[]} */
   const lines = entries.map((entry) => entry.record)
   const hasOrigins = Object.keys(origins).length > 0
-  if (suppressed.length > 0 || rollbackAt !== null || hasOrigins) {
+  if (suppressed.length > 0 || rollbackAt !== null || hasOrigins || writesResolution) {
     lines.push({
       warpcad: STATE_KIND,
       version: STATE_VERSION,
       ...(suppressed.length > 0 ? { suppressed } : {}),
       ...(rollbackAt !== null ? { rollbackAt } : {}),
       ...(hasOrigins ? { origins } : {}),
+      ...(writesResolution ? { resolution } : {}),
     })
   }
   return serializeNdjson(lines)
@@ -112,7 +125,7 @@ export function serializeProject(document) {
  * `WarpDocument.loadEntries` throws a `ReplayRejection` naming the step.
  *
  * @param {string} text
- * @returns {{ entries: DocumentEntry[], rollbackAt: number | null }}
+ * @returns {{ entries: DocumentEntry[], rollbackAt: number | null, resolution: string }}
  * @throws {ProjectFormatError} naming the line, or the offending field.
  */
 export function parseProject(text) {
@@ -215,6 +228,15 @@ export function parseProject(text) {
     )
   }
 
+  const declared = state?.resolution
+  if (declared !== undefined && !isResolution(declared)) {
+    throw new ProjectFormatError(
+      `project-state: resolution ${JSON.stringify(declared)} is not one this version of WarpCad ` +
+        `knows (${RESOLUTION_IDS.join(', ')})`,
+    )
+  }
+  const resolution = declared ?? (entries.length === 0 ? DEFAULT_RESOLUTION : 'legacy')
+
   const suppressedIds = new Set(suppressed ?? [])
   for (const entry of entries) {
     const id = entry.record.id
@@ -224,7 +246,7 @@ export function parseProject(text) {
     if (origin !== undefined) entry.origin = origin
   }
 
-  return { entries, rollbackAt }
+  return { entries, rollbackAt, resolution }
 }
 
 /**

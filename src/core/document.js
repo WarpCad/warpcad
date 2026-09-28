@@ -340,6 +340,7 @@
  */
 
 import { registry as defaultRegistry } from './kernel/registry.js'
+import { isResolution, policyFor, resolutionLabel } from './kernel/tessellation.js'
 import { currentParamsRecordOf } from './paramEdit.js'
 import { applyAction, emptyScene } from './replay.js'
 
@@ -421,13 +422,17 @@ import { applyAction, emptyScene } from './replay.js'
  * inverse is position-independent and survives that.
  *
  * @typedef {object} LogRevision
- * @property {'replace' | 'suppress' | 'reorder' | 'rollback'} kind
+ * @property {'replace' | 'suppress' | 'reorder' | 'rollback' | 'resolution'} kind
+ *   `resolution` (`TODO/core-035`) revises no entry at all — only the design
+ *   resolution the whole log is folded at.
  * @property {string} [id] The row acted on.
  * @property {OpRecord} [from] `replace`: the record as it was.
  * @property {OpRecord} [to] `replace`: the record it became.
  * @property {boolean} [fromSuppressed]
  * @property {boolean} [toSuppressed]
  * @property {number} [delta] `reorder`: `-1` up, `+1` down.
+ * @property {string} [fromResolution] `resolution`: the setting before.
+ * @property {string} [toResolution] `resolution`: the setting after.
  */
 
 /**
@@ -572,7 +577,11 @@ export class ReplayRejection extends Error {
  * @property {() => HistoryStep | undefined} undo
  * @property {() => HistoryStep | undefined} redo
  * @property {() => void} clearHistory
- * @property {(entries: readonly DocumentEntry[], rollbackAt?: number | null) => void} loadEntries
+ * @property {(entries: readonly DocumentEntry[], rollbackAt?: number | null, resolution?: string) => void} loadEntries
+ * @property {() => string} resolution The design resolution (`TODO/core-035`) every
+ *   curve without an explicit `segments` is faceted at — `legacy` for a document from
+ *   before the setting existed.
+ * @property {(resolution: string, transaction: TransactionOptions) => { scene: Scene }} setResolution
  * @property {(prefix?: string) => string} nextId
  * @property {(label: string) => string} nextName
  */
@@ -811,10 +820,22 @@ function reasonOf(error) {
  *   document already built; only share between documents on the **same registry**
  *   (the cache also checks). `null`: no reuse, every fold builds every record — the
  *   uncached reference the equivalence specs compare against.
+ * @param {string} [options.resolution] The design resolution to start at
+ *   (`TODO/core-035`). Omitted: `legacy`, the old fixed 32 — so every caller that
+ *   predates the setting folds exactly as before. The app's own new document passes
+ *   `DEFAULT_RESOLUTION` (Normal) explicitly (`src/stores/document.js`).
  * @returns {WarpDocument}
  */
 export function createDocument(options = {}) {
   const ops = options.registry ?? defaultRegistry
+  /**
+   * The design resolution (`TODO/core-035`), on the document's state rather than in the
+   * log: it is a property of the whole design, not a step in its history. Every fold —
+   * the append fast path, {@link rebuildFrom}, the tail shadow check — reads it.
+   * @type {string}
+   */
+  let resolution = options.resolution ?? 'legacy'
+  policyFor(resolution) // refuse an unknown preset by name, before anything else
   /** @type {import('./kernel/index.js').FoldCache | null} */
   const foldCache = options.foldCache === undefined ? new WeakMap() : options.foldCache
   const restorableSteps = Math.max(0, Math.floor(options.restorableSteps ?? DEFAULT_RESTORABLE_STEPS))
@@ -878,6 +899,9 @@ export function createDocument(options = {}) {
    */
   let tokenCounter = 0
   let stateToken = 0
+  // (`resolution` is part of that whole state, and so of every restorable snapshot:
+  // `TODO/core-035`. A snapshot restored across a resolution change would otherwise put
+  // back geometry faceted at the old setting under the new one's label.)
   /**
    * How many recent steps keep a restorable state. `0` while the seed loop at the
    * bottom runs (its history is cleared anyway, and capturing per seed record would
@@ -890,6 +914,7 @@ export function createDocument(options = {}) {
    * @property {ReturnType<typeof captureDerived>} derived
    * @property {DocumentEntry[]} entries
    * @property {number | null} rollbackAt
+   * @property {string} resolution `TODO/core-035`.
    * @property {Map<string, string>} brokenById
    * @property {number} token
    */
@@ -920,6 +945,7 @@ export function createDocument(options = {}) {
       derived: captureDerived(),
       entries: entries.slice(),
       rollbackAt,
+      resolution,
       brokenById,
       token: stateToken,
     }
@@ -938,6 +964,7 @@ export function createDocument(options = {}) {
     entries.length = 0
     entries.push(...state.entries)
     rollbackAt = state.rollbackAt
+    resolution = state.resolution
     brokenById = state.brokenById
     stateToken = state.token
   }
@@ -1152,7 +1179,8 @@ export function createDocument(options = {}) {
     // rejected rather than committed. Skipped outright for a sketch record:
     // there is no geometry to evaluate and no registry entry to look up.
     const errorsBefore = scene.errors.length
-    const candidate = isSketch || isTombstone ? scene : applyAction(scene, record, ops, foldCache)
+    const candidate =
+      isSketch || isTombstone ? scene : applyAction(scene, record, ops, foldCache, policyFor(resolution))
     if (candidate.errors.length > errorsBefore) {
       const failure = candidate.errors[candidate.errors.length - 1]
       throw new Error(`document.append: ${failure.op} could not be applied — ${failure.message}`)
@@ -1274,7 +1302,10 @@ export function createDocument(options = {}) {
     const broken = new Map()
     if (activeCount >= nextEntries.length) return broken
 
-    const scratch = createDocument({ registry: ops, foldCache })
+    // Same resolution as the fold it shadows (`TODO/core-035`): the cache is keyed on it,
+    // so a mismatch here would rebuild every row and could flag a row "broken" at a
+    // tessellation the document is not actually using.
+    const scratch = createDocument({ registry: ops, foldCache, resolution })
     /** @type {Set<string>} */
     const built = new Set()
     /** @param {DocumentEntry} entry */
@@ -1332,16 +1363,20 @@ export function createDocument(options = {}) {
    * @param {DocumentEntry[]} nextEntries
    * @param {number | null} [nextRollbackAt] Active-entry count; defaults to the
    *   current marker, so an operation that does not move it need not say so.
+   * @param {string} [nextResolution] The design resolution to fold at
+   *   (`TODO/core-035`); defaults to the current one. Put back with everything else if
+   *   the fold is refused.
    * @returns {DocumentState} The state **before** the rebuild, so the caller can
    *   record it on the step it pushes and a later Undo can put it back without
    *   this fold running again (`TODO/core-030`).
    */
-  function rebuildFrom(nextEntries, nextRollbackAt = rollbackAt) {
+  function rebuildFrom(nextEntries, nextRollbackAt = rollbackAt, nextResolution = resolution) {
     const prior = captureState()
     const snapshot = prior.derived
     const activeCount = nextRollbackAt ?? nextEntries.length
     const byId = recordMapOf(nextEntries)
     resetDerived(null)
+    resolution = nextResolution
     try {
       for (let index = 0; index < activeCount && index < nextEntries.length; index += 1) {
         const entry = nextEntries[index]
@@ -1351,6 +1386,7 @@ export function createDocument(options = {}) {
       }
     } catch (error) {
       resetDerived(snapshot)
+      resolution = prior.resolution
       throw error
     }
     entries.length = 0
@@ -1381,6 +1417,10 @@ export function createDocument(options = {}) {
    */
   function applyRevision(revision, targetRollbackAt) {
     const next = entries.slice()
+    if (revision.kind === 'resolution') {
+      // Revises no entry — only what the whole log is folded at (`TODO/core-035`).
+      return rebuildFrom(next, targetRollbackAt, /** @type {string} */ (revision.toResolution))
+    }
     const index = indexOfRecord(revision.id)
     if (revision.kind !== 'rollback' && index < 0) {
       throw new Error(
@@ -1419,6 +1459,9 @@ export function createDocument(options = {}) {
       }
     }
     if (revision.kind === 'reorder') return { ...revision, delta: -(revision.delta ?? 0) }
+    if (revision.kind === 'resolution') {
+      return { ...revision, fromResolution: revision.toResolution, toResolution: revision.fromResolution }
+    }
     return revision
   }
 
@@ -1905,8 +1948,14 @@ export function createDocument(options = {}) {
      * @param {number | null} [nextRollbackAt] Count of active entries, as
      *   {@link WarpDocument.rollbackAt} reports it; `null` for a whole-log-active
      *   document. Must leave at least one active row and one inactive one.
+     * @param {string} [nextResolution] The loaded design's resolution
+     *   (`TODO/core-035`) — `parseProject` reads `legacy` for a file with no setting.
+     *   Omitted: the current one, which is what a History preview's prefix wants.
      */
-    loadEntries(nextEntries, nextRollbackAt = null) {
+    loadEntries(nextEntries, nextRollbackAt = null, nextResolution = resolution) {
+      if (!isResolution(nextResolution)) {
+        throw new Error(`document.loadEntries: unknown resolution "${String(nextResolution)}"`)
+      }
       if (
         nextRollbackAt !== null &&
         !(Number.isInteger(nextRollbackAt) && nextRollbackAt >= 1 && nextRollbackAt < nextEntries.length)
@@ -1922,7 +1971,8 @@ export function createDocument(options = {}) {
           origin: entry.origin,
           ...(entry.suppressed === true ? { suppressed: true } : {}),
         })),
-        nextRollbackAt
+        nextRollbackAt,
+        nextResolution
       )
       undoStack.length = 0
       redoStack.length = 0
@@ -1986,6 +2036,42 @@ export function createDocument(options = {}) {
     /** Section 18's marker, as an active-entry count. `null` when not rolled back. */
     rollbackAt() {
       return rollbackAt
+    },
+
+    resolution() {
+      return resolution
+    },
+
+    /**
+     * `TODO/core-035`: change the design resolution — how finely every curve without an
+     * explicit `segments` is faceted — and re-fold the whole log at it.
+     *
+     * Modelled directly on {@link WarpDocument.setSuppressed}: a {@link LogRevision}
+     * (`kind: 'resolution'`) rather than a record, because the setting is a property of
+     * the whole design and not a step in its history, and one {@link rebuildFrom} — so
+     * it is atomic, origin-scoped (only a `local` change is one Undo) and restorable
+     * like every other row action. The fold cache and the undo snapshots both carry the
+     * resolution, so neither can hand back a body faceted at the old setting.
+     *
+     * Choosing the value already set is a no-op with no undo step; an unknown preset is
+     * refused by name with the document untouched.
+     */
+    setResolution(next, transaction) {
+      if (!isResolution(next)) {
+        throw new Error(`document.setResolution: unknown resolution "${String(next)}"`)
+      }
+      if (next === resolution) return { scene }
+      const from = resolution
+      const rollbackBefore = rollbackAt
+      const prior = rebuildFrom(entries.slice(), rollbackAt, next)
+      pushRevision(
+        transaction,
+        `Resolution → ${resolutionLabel(next)}`,
+        { kind: 'resolution', fromResolution: from, toResolution: next },
+        rollbackBefore,
+        prior
+      )
+      return { scene }
     },
 
     /**

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import modeling from '@jscad/modeling'
 
 import { evaluate } from './kernel/index.js'
+import { policyFor } from './kernel/tessellation.js'
 import { add, boundsOf, createGroup, volumeOf } from './kernel/group.js'
 import {
   EXPORT_FORMATS,
@@ -441,17 +442,17 @@ describe('exportBodies — every exported surface is watertight (io-004)', () =>
   // origin (6 open edges) and a placed bolt (40, all on the hex head's rim). The table
   // below is the general claim instead of the two-shape one, and it is asserted on the
   // BYTES, through the parsers above, in both kernel-side formats.
-  /** @type {[string, () => any, number][]} Name, geometry, kernel volume tolerance (relative). */
+  /** @type {[string, (options?: any) => any, number][]} Name, geometry at a fold's options, kernel volume tolerance (relative). */
   const shapes = [
     [
       // io-004 reproduction 1: what ACCEPTANCE scenario 11 step 2 builds by hand.
       'a Union placed away from the origin',
-      () => {
+      (options) => {
         const { byId } = evaluate([
           { id: 'cyl', op: 'primitive.cylinder', params: { diameter: 40, height: 50, center: [-100.89, 66.93, 25] } },
           { id: 'cube', op: 'primitive.cuboid', params: { size: [40, 40, 40], center: [-95, 75, 20] } },
           { id: 'u', op: 'boolean.union', target: 'cyl', operands: ['cube'] },
-        ])
+        ], options)
         return byId.get('u')
       },
       1e-4,
@@ -459,30 +460,30 @@ describe('exportBodies — every exported surface is watertight (io-004)', () =>
     [
       // io-004 reproduction 2: a Group body, exported as its combine()d solid.
       'a placed hardware.bolt (m10 hex, 30 long)',
-      () => {
-        const { byId } = evaluate([{ id: 'b', op: 'hardware.bolt', params: { spec: 'm10 hex', length: 30 } }])
+      (options) => {
+        const { byId } = evaluate([{ id: 'b', op: 'hardware.bolt', params: { spec: 'm10 hex', length: 30 } }], options)
         return byId.get('b')
       },
       1e-4,
     ],
     [
       'a hardware.nut',
-      () => {
-        const { byId } = evaluate([{ id: 'n', op: 'hardware.nut', params: { spec: 'm4', fit: 'loose' } }])
+      (options) => {
+        const { byId } = evaluate([{ id: 'n', op: 'hardware.nut', params: { spec: 'm4', fit: 'loose' } }], options)
         return byId.get('n')
       },
       1e-4,
     ],
     [
       'a kit.boardFrame',
-      () => {
+      (options) => {
         const { byId } = evaluate([
           {
             id: 'f',
             op: 'kit.boardFrame',
             params: { outerWidth: 40, outerHeight: 30, innerWidth: 30, innerHeight: 20, cornerRadius: 3 },
           },
-        ])
+        ], options)
         return byId.get('f')
       },
       1e-4,
@@ -491,24 +492,24 @@ describe('exportBodies — every exported surface is watertight (io-004)', () =>
       // io-003's own two measured shapes, which must STAY at 0 — this is the closed
       // finding whose subsystem this task extends (CLAUDE.md, Verification).
       "io-003's union (a 20 mm cube and a Ø12 cylinder)",
-      () => {
+      (options) => {
         const { byId } = evaluate([
           { id: 'cube', op: 'primitive.cuboid', params: { size: [20, 20, 20] } },
           { id: 'cyl', op: 'primitive.cylinder', params: { diameter: 12, height: 40, center: [10, 0, 0] } },
           { id: 'u', op: 'boolean.union', target: 'cube', operands: ['cyl'] },
-        ])
+        ], options)
         return byId.get('u')
       },
       1e-4,
     ],
     [
       "io-003's bored cube (10 mm cube minus a Ø6 bore)",
-      () => {
+      (options) => {
         const { byId } = evaluate([
           { id: 'cube', op: 'primitive.cuboid', params: { size: [10, 10, 10] } },
           { id: 'bore', op: 'primitive.cylinder', params: { diameter: 6, height: 20, segments: 32 } },
           { id: 'd', op: 'boolean.subtract', target: 'cube', operands: ['bore'] },
-        ])
+        ], options)
         return byId.get('d')
       },
       1e-4,
@@ -520,24 +521,28 @@ describe('exportBodies — every exported surface is watertight (io-004)', () =>
       // onto the rebuilt solid, apply the move twice. Both show up here as a volume or
       // a bounding box that does not match the kernel's.
       'a union that has then been translated and rotated',
-      () => {
+      (options) => {
         const { byId } = evaluate([
           { id: 'cube', op: 'primitive.cuboid', params: { size: [20, 20, 20] } },
           { id: 'cyl', op: 'primitive.cylinder', params: { diameter: 12, height: 40, center: [10, 0, 0] } },
           { id: 'u', op: 'boolean.union', target: 'cube', operands: ['cyl'] },
           { id: 'r', op: 'transform.rotate', target: 'u', params: { angles: [0, 0, 37] } },
           { id: 't', op: 'transform.translate', target: 'r', params: { vector: [-100.89, 66.93, 25] } },
-        ])
+        ], options)
         return byId.get('t')
       },
       1e-4,
     ],
   ]
 
+  // `TODO/core-035`: every shape again at **Print** resolution. Far more segments means far
+  // more near-collinear vertices for `makeWatertight` to handle, so the closed finding this
+  // table guards is re-checked at the finest preset a user can pick, not only at the old 32.
+  for (const preset of ['legacy', 'print']) {
   for (const [label, make, tolerance] of shapes) {
     for (const format of /** @type {const} */ (['stl', 'obj'])) {
-      it(`writes ${label} as a closed manifold ${format.toUpperCase()}`, () => {
-        const geometry = make()
+      it(`writes ${label} as a closed manifold ${format.toUpperCase()} (${preset} resolution)`, () => {
+        const geometry = make(preset === 'legacy' ? {} : { policy: policyFor(preset) })
         const result = exportBodies([body('Part 1', geometry)], format)
         const mesh = format === 'stl' ? parseBinaryStl(result.bytes) : parseObj(result.bytes)
 
@@ -559,6 +564,7 @@ describe('exportBodies — every exported surface is watertight (io-004)', () =>
         }
       })
     }
+  }
   }
 
   it('keeps several bodies in one file watertight, each of them', () => {

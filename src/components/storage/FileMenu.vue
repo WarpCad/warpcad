@@ -49,6 +49,13 @@
  * description (`aria-describedby`), and on a phone — where a `title` tooltip never shows — the
  * reason is simply printed under the label. Pressing a dimmed item does nothing.
  *
+ * ## `Resolution: Normal` (`TODO/core-035`)
+ *
+ * The one row of its own **Design** group, after `Export…`'s group. Its label **is** the current design resolution, so the setting
+ * can be read without opening anything; pressing it swaps this menu for
+ * `ResolutionPopover.vue` (`stores/resolutionDialog.js`), exactly as `Export…` does for
+ * its popover.
+ *
  * Every real action is a call into `stores/fileMenu.js` (when to ask), `stores/persistence.js`
  * (the local file) or `stores/hosted.js` (the repository): no persistence logic lives here.
  */
@@ -69,9 +76,12 @@ import ConflictDialog from './ConflictDialog.vue'
 import ConnectDialog from './ConnectDialog.vue'
 import ExportPopover from './ExportPopover.vue'
 import ReplaceConfirmDialog from './ReplaceConfirmDialog.vue'
+import ResolutionPopover from './ResolutionPopover.vue'
+import { useResolutionDialogStore } from '../../stores/resolutionDialog.js'
 
 const menu = useFileMenuStore()
 const exportDialog = useExportDialogStore()
+const resolutionDialog = useResolutionDialogStore()
 const hosted = useHostedStore()
 const persistence = usePersistenceStore()
 const timeline = useTimelineStore()
@@ -321,6 +331,24 @@ onBeforeUnmount(() => {
             </button>
           </div>
 
+          <!-- TODO/core-035: a property of the design itself, not of where it is stored, so it
+               is its own group rather than a row of "This device" (whose last item stays
+               Export…, ui-034's contract). -->
+          <div class="file-menu__divider" role="separator">
+            <span>Design</span>
+          </div>
+          <div role="group" aria-label="Design">
+            <button
+              type="button"
+              role="menuitem"
+              class="file-menu__item"
+              data-testid="file-resolution"
+              @click="menu.requestResolution()"
+            >
+              {{ resolutionDialog.menuLabel }}…
+            </button>
+          </div>
+
           <div class="file-menu__divider" role="separator">
             <span>Hosted storage</span>
           </div>
@@ -391,6 +419,7 @@ onBeforeUnmount(() => {
     </Teleport>
 
     <ExportPopover :anchor="buttonRef" />
+    <ResolutionPopover :anchor="buttonRef" />
     <ReplaceConfirmDialog />
     <ConnectDialog />
     <ConflictDialog />

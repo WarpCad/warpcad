@@ -67,7 +67,9 @@ import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 
 import { EXPORT_FORMATS, ExportError, exportFilename, resolveExportScope } from '../core/export.js'
-import { pendingFilename, runExport } from '../core/exportClient.js'
+import { EXPORT_CANCELLED, cancelExport, pendingFilename, runExport } from '../core/exportClient.js'
+import { refoldRequestOf } from '../core/exportJob.js'
+import { CHOOSABLE_RESOLUTIONS, resolutionLabel } from '../core/kernel/tessellation.js'
 import { downloadBytes } from '../storage/download.js'
 import { useDocumentStore } from './document.js'
 import { usePersistenceStore } from './persistence.js'
@@ -180,6 +182,34 @@ export const useExportDialogStore = defineStore('exportDialog', () => {
 
   const format = computed(() => settings.exportFormat)
 
+  /**
+   * The Resolution select (`TODO/core-035`, surface B): `'design'` — "Same as design" — or
+   * a preset id to export at instead, for this file only. Remembered for the session (it
+   * survives {@link close}), never written to the document or to settings.
+   */
+  const exportResolution = ref('design')
+
+  /** The resolution the file will actually be faceted at. */
+  const effectiveResolution = computed(() =>
+    exportResolution.value === 'design' ? documentStore.resolution : exportResolution.value
+  )
+
+  /** Whether this export re-folds the design at another resolution. */
+  const overridesDesign = computed(() => effectiveResolution.value !== documentStore.resolution)
+
+  /** `Same as design (Normal)`, then the four presets. */
+  const resolutionOptions = computed(() => [
+    { value: 'design', label: `Same as design (${resolutionLabel(documentStore.resolution)})` },
+    ...CHOOSABLE_RESOLUTIONS.map((value) => ({ value, label: resolutionLabel(value) })),
+  ])
+
+  /** Shown only when the file will differ from what the viewport shows. */
+  const resolutionNote = computed(() =>
+    overridesDesign.value
+      ? `Re-evaluating at ${resolutionLabel(effectiveResolution.value)} resolution — the design itself is unchanged.`
+      : ''
+  )
+
   /** @returns {ExportBody[]} Summaries structurally satisfy what labels and filenames read. */
   const sceneSummaries = computed(() => /** @type {ExportBody[]} */ (/** @type {unknown} */ (documentStore.bodies)))
 
@@ -267,8 +297,13 @@ export const useExportDialogStore = defineStore('exportDialog', () => {
     return true
   }
 
-  /** Close, and abandon any export still in flight. */
+  /**
+   * Close, and abandon any export still in flight — really stopping it when it is running
+   * in the worker (`TODO/core-035`: a Print re-fold can take seconds, and the user who
+   * closed the popover is not waiting for it).
+   */
   function close() {
+    if (exporting.value) cancelExport()
     attempt += 1
     isOpen.value = false
     exporting.value = false
@@ -286,6 +321,13 @@ export const useExportDialogStore = defineStore('exportDialog', () => {
     if (scope === 'selection' && !selectionAvailable.value) return
     if (scope !== 'selection' && scope !== 'scene') return
     chosenScope.value = scope
+    error.value = ''
+  }
+
+  /** @param {string} next `'design'` or a choosable preset id; anything else is ignored. */
+  function chooseResolution(next) {
+    if (next !== 'design' && !CHOOSABLE_RESOLUTIONS.includes(next)) return
+    exportResolution.value = next
     error.value = ''
   }
 
@@ -322,13 +364,23 @@ export const useExportDialogStore = defineStore('exportDialog', () => {
       pendingTimer = setTimeout(() => {
         if (mine === attempt) pending.value = true
       }, PENDING_AFTER_MS)
-      const result = await runExport(bodies, wanted, { loadGltfExporter: deps.loadGltfExporter })
+      // TODO/core-035: at another resolution the worker re-folds the records itself; the
+      // bodies above still name the file and the pending line.
+      const refold = overridesDesign.value
+        ? refoldRequestOf(documentStore.raw, effectiveResolution.value, ids)
+        : undefined
+      const result = await runExport(bodies, wanted, {
+        loadGltfExporter: deps.loadGltfExporter,
+        ...(refold === undefined ? {} : { refold }),
+      })
       if (mine !== attempt) return // closed while it was preparing: nobody is waiting for this file
       deps.download(result)
-      persistence.announce(`Exported ${result.filename}`)
+      // The triangle count is how a user can see the Resolution setting did something.
+      persistence.announce(`Exported ${result.filename} — ${result.triangleCount.toLocaleString('en-US')} triangles`)
       close()
     } catch (failure) {
       if (mine !== attempt) return
+      if (failure instanceof Error && failure.name === EXPORT_CANCELLED) return
       error.value =
         failure instanceof ExportError
           ? failure.message
@@ -351,6 +403,9 @@ export const useExportDialogStore = defineStore('exportDialog', () => {
     pending,
     pendingFile,
     format,
+    exportResolution,
+    resolutionOptions,
+    resolutionNote,
     unavailableReason,
     selectionAvailable,
     effectiveScope,
@@ -365,6 +420,7 @@ export const useExportDialogStore = defineStore('exportDialog', () => {
     close,
     chooseScope,
     chooseFormat,
+    chooseResolution,
     commit,
   }
 })

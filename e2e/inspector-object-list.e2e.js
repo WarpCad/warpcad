@@ -6,6 +6,7 @@ import { test, expect } from '@playwright/test'
 
 import { createDocument } from '../src/core/document.js'
 import { combine, volumeOf } from '../src/core/kernel/group.js'
+import { DEFAULT_RESOLUTION } from '../src/core/kernel/tessellation.js'
 
 const { booleans } = jscad
 
@@ -1005,7 +1006,9 @@ test('phone: the Library sheet, the Inspector sheet and History never stack — 
  * entry or the toolbar. A 100 x 70 x 40 case with a Raspberry Pi B+ wholly inside it.
  */
 function enclosedPiKernel() {
-  const doc = createDocument()
+  // At the resolution the app's own new document folds at (TODO/core-035) — the app is not
+  // the oracle, but the oracle has to be asked about the same shape.
+  const doc = createDocument({ resolution: DEFAULT_RESOLUTION })
   doc.append(
     { id: 'shell', op: 'primitive.cuboid', name: 'Shell 1', params: { size: [100, 70, 40], center: [42, 27, 10] } },
     { origin: 'local' },

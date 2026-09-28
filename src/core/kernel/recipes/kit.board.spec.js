@@ -42,7 +42,7 @@ describe('the board recipe expands into op records, it does not build a mesh', (
       {
         id: 'board.profile',
         op: 'profile.roundedRectangle',
-        params: { size: [40, 30], roundRadius: 3, segments: 32 },
+        params: { size: [40, 30], roundRadius: 3 },
       },
       {
         id: 'board.prism',

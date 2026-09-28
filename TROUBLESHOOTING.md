@@ -282,6 +282,46 @@ Fix/Prevention.
    above), since it is real and reproducible but is a layout question, not this
    finding's pointer-handling one.
 
+### 2026-09-28 — A click can fall through a body along a shared triangle edge: three.js's raycast is not watertight on edges
+
+**What happened:**
+
+`e2e/selection-inspector.e2e.js` "at phone width one bottom sheet at a time" started
+failing on chromium-phone and webkit-phone after `TODO/core-035` made new documents fold
+at Normal resolution: a click on a freshly dropped Ø40 cylinder at canvas fraction
+(0.5, 0.26) — (195, 205.66) px on a 390 px phone — selected nothing. It was
+deterministic, not timing (waiting 1.5 s changed nothing), and not the mesh: a hit grid
+over the cylinder was identical at Normal and Legacy, and **±0.3 px** either side of that
+exact point hit at Normal too. At Legacy the same point hit.
+
+**Why it happened:**
+
+`Raycaster.intersectObjects` tests each triangle separately, and its ray–triangle test is
+not watertight: a ray that lands **exactly** on the edge two triangles share can be
+rejected by both through rounding. The crack is zero pixels wide, but a click lands on
+exact CSS-pixel coordinates, and the canvas centre column is the camera's own axis, so a
+symmetric body can put an edge precisely under it. Normal gives a Ø40 cylinder 48 sides
+instead of 32; one of the new side-wall edges happened to project onto that column.
+Finer resolutions mean more edges and so more such points — a class of miss that existed
+before, made likelier.
+
+**Fix / Prevention:**
+
+`Viewport.vue`'s `raycastHit` raycasts the exact point first and, **only on a miss**,
+retries at a quarter pixel each way (`src/render/pick.js`'s `PICK_OFFSETS_PX`) before
+treating the click as empty space. Hits are unchanged; a miss by a whole pixel is still a
+miss. If a pick "sometimes" misses at one exact coordinate, probe ±0.3 px before
+suspecting the pointer path, the selection store or the mesh.
+
+**Steps taken to resolve:**
+
+1. Replayed the spec's exact synthetic clicks in a standalone Playwright script at
+   Normal and at Legacy (the document switched to Legacy before the drop) — miss vs hit.
+2. Ruled out placement (identical record params and bounds at both), timing (150 ms vs
+   1.5 s wait), and the mesh (an 11 × 10 hit grid over the cylinder, identical).
+3. Probed ±0.3 px and ±1 px around the miss: every neighbour hit. Zero-width crack.
+4. Added the retry offsets; the spec passes unchanged at the same coordinates.
+
 <!-- Template for new entries:
 
 ### YYYY-MM-DD — [Short title describing the discovery]

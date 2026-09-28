@@ -30,6 +30,7 @@ import { washerSpecs } from './tables/washer-specs.js'
 import { bearingSpecs } from './tables/bearing-specs.js'
 import { FIT_CLEARANCE_MM } from './tables/fit-clearances.js'
 import { assertOperandCount, getEntry, registry } from './registry.js'
+import { LEGACY_POLICY } from './tessellation.js'
 
 /** @typedef {import('@jscad/modeling').geometries.geom3.Geom3} Geom3 */
 /** @typedef {import('./group.js').Group} Group */
@@ -52,6 +53,11 @@ import { assertOperandCount, getEntry, registry } from './registry.js'
  * @property {FoldCache | null} [cache] Reuse a record's value when it is folded again
  *   against the very same inputs (TODO/core-031) — see {@link FoldCache}. Omitted or
  *   `null`: every record builds, as it always did.
+ * @property {import('./tessellation.js').TessellationPolicy} [policy] The design
+ *   resolution every curve without an explicit `segments` is faceted at
+ *   (TODO/core-035), handed to each native build and carried into every composite's
+ *   expansion. Omitted: `legacy`, the old fixed 32 — so every caller that predates it
+ *   folds byte-identically.
  */
 
 /**
@@ -62,6 +68,9 @@ import { assertOperandCount, getEntry, registry } from './registry.js'
  * @property {readonly (string | undefined)[]} pieces Each operand's `pieces` address.
  * @property {Readonly<Record<string, RegistryEntry>>} registry
  * @property {Record<string, any>} tables
+ * @property {import('./tessellation.js').TessellationPolicy} policy The resolution it
+ *   was built at (TODO/core-035). Part of the key: the same record at another
+ *   resolution is different geometry, so a hit under one must never serve the other.
  * @property {Geom3 | Group} value
  * @property {Geom3} [part] A Group value's `combine()`d solid — what adding it to the
  *   fold's group under its `name` stores — kept once computed, because that union
@@ -75,7 +84,8 @@ import { assertOperandCount, getEntry, registry } from './registry.js'
  * registry/tables it runs against; geometry values are immutable (`applyAction` and
  * this fold only ever make new ones). So when a re-fold meets the same record object,
  * with identical JSON, resolving to the **identical** operand objects, under the same
- * registry and tables, the cached value is exactly what building again would return —
+ * registry, tables and resolution policy (TODO/core-035), the cached value is exactly
+ * what building again would return —
  * and a record downstream of a changed one sees a new operand object and rebuilds. A
  * build that throws is never cached. A `WeakMap`, so a record nothing holds any more
  * takes its value with it.
@@ -121,11 +131,14 @@ function partOptions(record) {
  * @param {readonly (string | undefined)[]} pieces
  * @param {Readonly<Record<string, RegistryEntry>>} ops
  * @param {Record<string, any>} tables
+ * @param {import('./tessellation.js').TessellationPolicy} policy
  * @returns {cached is CachedBuild}
  */
-function cacheHit(cached, json, inputs, pieces, ops, tables) {
+function cacheHit(cached, json, inputs, pieces, ops, tables, policy) {
   if (cached === undefined) return false
   if (cached.registry !== ops || cached.tables !== tables || cached.json !== json) return false
+  // TODO/core-035: policies are one frozen object per resolution, so identity is equality.
+  if (cached.policy !== policy) return false
   if (cached.inputs.length !== inputs.length) return false
   for (let index = 0; index < inputs.length; index += 1) {
     if (cached.inputs[index] !== inputs[index] || cached.pieces[index] !== pieces[index]) return false
@@ -217,6 +230,7 @@ export function evaluate(records, options = {}) {
   const byId = new Map(options.initial?.byId ?? [])
   let group = options.initial?.group ?? createGroup(options.name ?? '')
   const cache = options.cache ?? null
+  const policy = options.policy ?? LEGACY_POLICY
 
   for (const record of records) {
     const entry = ops[record.op]
@@ -240,7 +254,7 @@ export function evaluate(records, options = {}) {
       resolvedInputs = inputRefs.map((ref) => byId.get(ref.id))
       const pieces = inputRefs.map((ref) => ref.pieces)
       const cached = cache.get(record)
-      if (!resolvedInputs.includes(undefined) && cacheHit(cached, json, resolvedInputs, pieces, ops, tables)) {
+      if (!resolvedInputs.includes(undefined) && cacheHit(cached, json, resolvedInputs, pieces, ops, tables, policy)) {
         if (record.id !== undefined) {
           if (byId.has(record.id)) {
             throw new Error(`duplicate record id "${record.id}" — ids must be unique within a fold`)
@@ -325,7 +339,7 @@ export function evaluate(records, options = {}) {
     let value
     if (entry.kind === 'composite') {
       if (!entry.recipe) throw new Error(`${record.op}: composite entry has no recipe`)
-      // Only `registry` and `tables` cross into the expansion — deliberately *not*
+      // Only `registry`, `tables` and `policy` cross into the expansion — deliberately *not*
       // `options.initial`, and so deliberately not `...options` (TODO/core-020).
       // A recipe is a closed definition: its records address its own ids and
       // assemble into its own group. Spreading the caller's options carried
@@ -335,10 +349,13 @@ export function evaluate(records, options = {}) {
       // and spanning them. That never showed in a batch `evaluate([...])`, where
       // no caller passes `initial`; it appeared only on the incremental path
       // every document append takes (`src/core/replay.js`'s applyAction).
+      // `policy` does cross (TODO/core-035): a bolt's clearance hole is a curve like any
+      // other, and a recipe expansion is the same fold, one level down.
       value = evaluate(entry.recipe(record.params ?? {}, tables), {
         registry: ops,
         tables,
         name: record.op,
+        policy,
       }).group
     } else {
       if (!entry.build) throw new Error(`${record.op}: native entry has no build function`)
@@ -350,7 +367,7 @@ export function evaluate(records, options = {}) {
       // this is the one place the wider possibility is acknowledged.
       // A `group.*` op hands back the `Group` it was given, parts intact — that is
       // what lets V1's `.snap(...).snap(...)` chain survive the fold as two records.
-      value = /** @type {Geom3 | Group} */ (entry.build({ params: record.params ?? {}, inputs }))
+      value = /** @type {Geom3 | Group} */ (entry.build({ params: record.params ?? {}, inputs, policy }))
     }
 
     /** @type {CachedBuild | undefined} */
@@ -362,6 +379,7 @@ export function evaluate(records, options = {}) {
         pieces: inputRefs.map((ref) => ref.pieces),
         registry: ops,
         tables,
+        policy,
         value,
       }
       cache.set(record, built)
@@ -451,3 +469,17 @@ export { nutSpecs } from './tables/nut-specs.js'
 export { washerSpecs } from './tables/washer-specs.js'
 export { bearingSpecs } from './tables/bearing-specs.js'
 export { FIT_CLEARANCE_MM } from './tables/fit-clearances.js'
+export {
+  CHOOSABLE_RESOLUTIONS,
+  DEFAULT_RESOLUTION,
+  LEGACY_POLICY,
+  LEGACY_SEGMENTS,
+  RESOLUTION_IDS,
+  RESOLUTION_PRESETS,
+  chordDeviationMm,
+  isResolution,
+  policyFor,
+  resolutionHint,
+  resolutionLabel,
+  segmentsFor,
+} from './tessellation.js'

@@ -80,15 +80,20 @@ export function emptyScene() {
  * @param {Scene} scene
  * @param {OpRecord} action
  * @param {Readonly<Record<string, RegistryEntry>>} registry
+ * `policy` (`TODO/core-035`) is the design resolution the record's curves are faceted
+ * at; omitted, `legacy` — the old fixed 32.
+ *
  * @param {import('./kernel/index.js').FoldCache | null} [cache]
+ * @param {import('./kernel/tessellation.js').TessellationPolicy} [policy]
  * @returns {Scene}
  */
-export function applyAction(scene, action, registry, cache = null) {
+export function applyAction(scene, action, registry, cache = null, policy = undefined) {
   try {
     const { byId, group } = evaluate([action], {
       registry,
       initial: { byId: scene.byId, group: scene.group },
       cache,
+      ...(policy === undefined ? {} : { policy }),
     })
     return { byId, group, errors: scene.errors }
   } catch (error) {

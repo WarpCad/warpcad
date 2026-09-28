@@ -52,6 +52,7 @@ import {
   removePart,
   snap,
 } from './group.js'
+import { LEGACY_SEGMENTS, rimSlicesFor, segmentsFor } from './tessellation.js'
 import { bolt } from './recipes/hardware.bolt.js'
 import { nut } from './recipes/hardware.nut.js'
 import { washer } from './recipes/hardware.washer.js'
@@ -162,6 +163,9 @@ import { touchScreen2 } from './recipes/raspberrypi.touchScreen2.js'
  *   flavour of geometry an id holds (see {@link KernelGeometry}).
  *   `profile.extrudeLinear` is handed a `geom2`; an entry declaring `rawOperands` is
  *   handed {@link ResolvedOperand}s instead of geometry at all.
+ * @property {import('./tessellation.js').TessellationPolicy} [policy] The design's
+ *   resolution (`TODO/core-035`). A curve whose record carries no explicit `segments`
+ *   takes its count from this; absent means `legacy`, the old fixed 32.
  */
 
 /** @typedef {(params: any, tables: any) => OpRecord[]} Recipe */
@@ -478,11 +482,12 @@ function describeGeometry(value) {
 }
 
 /**
- * Default segment count for cylindrical surfaces — `@jscad/modeling`'s own cylinder
- * default, kept explicit here so the value is one constant rather than a library
- * default that could move underneath the fixtures.
+ * The segment count every curve used before `TODO/core-035` — `@jscad/modeling`'s own
+ * cylinder default. Now the `legacy` resolution's fixed count: a record with no explicit
+ * `segments` takes its count from the design resolution via {@link segmentsFor}, and
+ * only a `legacy` document still gets this.
  */
-export const DEFAULT_SEGMENTS = 32
+export const DEFAULT_SEGMENTS = LEGACY_SEGMENTS
 
 /**
  * Degrees to radians. V1 rotations were in degrees and the UI stays in degrees; the
@@ -517,13 +522,15 @@ export const registry = Object.freeze({
 
   'primitive.cylinder': native(
     0,
-    ({ params }) =>
-      primitives.cylinder({
-        radius: requirePositive(params.diameter, 'diameter', 'primitive.cylinder') / 2,
+    ({ params, policy }) => {
+      const radius = requirePositive(params.diameter, 'diameter', 'primitive.cylinder') / 2
+      return primitives.cylinder({
+        radius,
         height: requirePositive(params.height, 'height', 'primitive.cylinder'),
-        segments: params.segments ?? DEFAULT_SEGMENTS,
+        segments: params.segments ?? segmentsFor(radius, policy),
         center: params.center ?? [0, 0, 0],
-      }),
+      })
+    },
     { label: 'Cylinder', defaults: { diameter: 40, height: 50 } }
   ),
 
@@ -539,7 +546,7 @@ export const registry = Object.freeze({
   // rather than two near-identical registry entries.
   'primitive.cone': native(
     0,
-    ({ params }) => {
+    ({ params, policy }) => {
       const baseRadius = requirePositive(params.diameter, 'diameter', 'primitive.cone') / 2
       const topRadius =
         params.topDiameter === undefined || params.topDiameter === null
@@ -549,7 +556,7 @@ export const registry = Object.freeze({
         height: requirePositive(params.height, 'height', 'primitive.cone'),
         startRadius: [baseRadius, baseRadius],
         endRadius: [topRadius, topRadius],
-        segments: params.segments ?? DEFAULT_SEGMENTS,
+        segments: params.segments ?? segmentsFor(Math.max(baseRadius, topRadius), policy),
         center: params.center ?? [0, 0, 0],
       })
     },
@@ -620,7 +627,7 @@ export const registry = Object.freeze({
   // volume to an epsilon-lengthened bore), so no fudge factor is introduced.
   'primitive.tube': native(
     0,
-    ({ params }) => {
+    ({ params, policy }) => {
       const op = 'primitive.tube'
       const outerRadius = requirePositive(params.diameter, 'diameter', op) / 2
       const innerRadius = requirePositive(params.innerDiameter, 'innerDiameter', op) / 2
@@ -631,7 +638,9 @@ export const registry = Object.freeze({
         )
       }
       const height = requirePositive(params.height, 'height', op)
-      const segments = params.segments ?? DEFAULT_SEGMENTS
+      // One count for both walls, taken from the outer: the bore and the outside keep
+      // matching vertices, as they always have.
+      const segments = params.segments ?? segmentsFor(outerRadius, policy)
       const center = params.center ?? [0, 0, 0]
       return booleans.subtract(
         primitives.cylinder({ radius: outerRadius, height, segments, center }),
@@ -643,12 +652,14 @@ export const registry = Object.freeze({
 
   'primitive.sphere': native(
     0,
-    ({ params }) =>
-      primitives.sphere({
-        radius: requirePositive(params.diameter, 'diameter', 'primitive.sphere') / 2,
-        segments: params.segments ?? DEFAULT_SEGMENTS,
+    ({ params, policy }) => {
+      const radius = requirePositive(params.diameter, 'diameter', 'primitive.sphere') / 2
+      return primitives.sphere({
+        radius,
+        segments: params.segments ?? segmentsFor(radius, policy),
         center: params.center ?? [0, 0, 0],
-      }),
+      })
+    },
     { label: 'Sphere', defaults: { diameter: 40 } }
   ),
 
@@ -670,7 +681,7 @@ export const registry = Object.freeze({
   // metadata on every match, so a `primitive.roundedRectangle` would either break
   // that build or offer a flat `geom2` as a draggable body. A `profile.*` op is an
   // intermediate value, never a placeable one.
-  'profile.roundedRectangle': native(0, ({ params }) => {
+  'profile.roundedRectangle': native(0, ({ params, policy }) => {
     const op = 'profile.roundedRectangle'
     const size = params.size ?? []
     const width = requirePositive(size[0], 'size[0]', op)
@@ -680,7 +691,9 @@ export const registry = Object.freeze({
     return primitives.roundedRectangle({
       size: [width, length],
       roundRadius,
-      segments: params.segments ?? DEFAULT_SEGMENTS,
+      // A full circle's count at the corner radius; `roundedRectangle` spends a quarter
+      // of it on each corner, which is why every count is a multiple of 4.
+      segments: params.segments ?? segmentsFor(roundRadius, policy),
       center: params.center ?? [0, 0],
     })
   }),
@@ -938,12 +951,12 @@ export const registry = Object.freeze({
   // modeling` can support. See fillet.js and the TODO/core-003 addendum in
   // docs/decisions/geometry-kernel.md. `orientation` is a face name, not an axis
   // vector, so no angle conversion happens here.
-  'modify.filletRim': native(1, ({ params, inputs }) =>
+  'modify.filletRim': native(1, ({ params, inputs, policy }) =>
     filletRim(
       {
         radius: params.radius,
         orientation: params.orientation ?? 'z+',
-        segments: params.segments ?? DEFAULT_SEGMENTS,
+        segments: params.segments ?? rimSlicesFor(Number(params.radius) || 0, policy),
       },
       inputs[0]
     )

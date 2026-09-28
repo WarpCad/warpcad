@@ -24,6 +24,12 @@
  *   at 6× CPU throttling, against 5/5 on a 24-body one. The state is worth showing only
  *   because `src/core/exportClient.js` put the work in a worker: while the main thread was
  *   doing the serializing itself, nothing could have painted it.
+ * - **Resolution** (`TODO/core-035`), a select under Format: *Same as design (Normal)* by
+ *   default, then Draft / Normal / Fine / Print — how finely curves are faceted **in this
+ *   file only**, remembered for the session. When it differs from the design a note says
+ *   so (*Re-evaluating at Print resolution — the design itself is unchanged.*), and the
+ *   worker re-folds the records at that setting; the status line after the download
+ *   reports the triangle count, which is how the setting shows it did something.
  * - Notes only when they apply: the rolled-back label, the whole-body note for a drilled-in
  *   selection, and the reason when Export became unavailable while the popover was open.
  *
@@ -174,6 +180,24 @@ onBeforeUnmount(() => window.removeEventListener('resize', measure))
           </label>
         </div>
 
+        <label class="export__heading export__heading--label" for="export-resolution">Resolution</label>
+        <div class="export__select-wrap">
+          <select
+            id="export-resolution"
+            class="export__select"
+            data-testid="export-resolution"
+            :value="dialog.exportResolution"
+            @change="dialog.chooseResolution(/** @type {HTMLSelectElement} */ ($event.target).value)"
+          >
+            <option v-for="option in dialog.resolutionOptions" :key="option.value" :value="option.value">
+              {{ option.label }}
+            </option>
+          </select>
+        </div>
+        <p v-if="dialog.resolutionNote" class="export__note" data-testid="export-resolution-note">
+          {{ dialog.resolutionNote }}
+        </p>
+
         <p v-if="dialog.summary" class="export__summary" data-testid="export-summary">{{ dialog.summary }}</p>
         <p v-if="dialog.wholeBodyNote" class="export__note" data-testid="export-whole-body-note">
           {{ dialog.wholeBodyNote }}
@@ -236,6 +260,50 @@ onBeforeUnmount(() => window.removeEventListener('resize', measure))
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--text-3);
+}
+
+.export__heading--label {
+  display: block;
+  margin-top: 10px;
+}
+
+/* A native select: the phone's own picker, and no custom listbox to get wrong. Its own
+   rendering is switched off (`appearance: none`) because WebKit — every iPhone and iPad —
+   ignores `min-height` on a native select and draws it well under the 44px tap target;
+   the caret is drawn by the wrapper instead. */
+.export__select-wrap {
+  position: relative;
+}
+
+.export__select-wrap::after {
+  content: '▾';
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 12px;
+  color: var(--text-2);
+  pointer-events: none;
+}
+
+.export__select {
+  -webkit-appearance: none;
+  appearance: none;
+  box-sizing: border-box;
+  width: 100%;
+  height: var(--tap);
+  padding: 0 28px 0 8px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  color: var(--text-1);
+  font-family: inherit;
+  font-size: 14px;
+}
+
+.export__select:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 .export__group {

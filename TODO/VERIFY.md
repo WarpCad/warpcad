@@ -34,6 +34,17 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### core-035 — Design resolution and export resolution (2026-09-28 06:05)
+
+Scenarios 1, 5, 10, 11 and 12 were driven live at laptop Chromium and phone WebKit, and every exported file was checked by independent parsers (0 open edges at Print). What no drive can judge: whether the finer facets actually fix fit in plastic, how the presets look on real GPUs, and how the synchronous main-thread re-fold feels on a real phone.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | Print a Ø22 bore (or a bearing seat) exported at **Normal** and again with **Export → Resolution: Print**, and measure both across the flats with calipers. Print should be measurably closer to nominal (docs/resolution.md's table: 0.084 vs 0.019 mm undersize). Open both STLs in a real slicer first; it should report no repairs | Open | |
+| 2 | On a real iPhone and iPad, open **File ▾ → Resolution…**, step Draft → Normal → Fine → Print on a scene with a large cylinder and a sphere. The re-facet should be visibly different at each step, and Draft should not look broken. The native **Resolution** select in the Export popover should open the iOS picker at a comfortable tap size | Open | |
+| 3 | On a real phone, with a busy scene (a few Pi boards and bolts), change the design resolution to **Print**. It re-folds on the main thread (76 ms median on 24 bodies on an M4 Pro; a phone is several times slower). Judge whether the pause feels acceptable or needs the pending indicator the TODO asked for (`core-032` owns moving cold folds off the main thread) | Open | |
+
+
 ### ui-051 — Delete the selected body, or remove one part of a group (2026-09-28 03:09 UTC)
 
 Delete, Undo, Remove part and reload were driven in Playwright at 1440x900 Chromium/WebKit

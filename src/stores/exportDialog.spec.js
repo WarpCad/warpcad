@@ -264,7 +264,7 @@ describe('commit (the format and scope reach the export functions correctly)', (
     // Two 10 mm cubes, 12 triangles each.
     expect(stlTriangles(downloads[0].bytes)).toBe(24)
     expect(dialog.isOpen).toBe(false)
-    expect(persistence.chipText).toBe('Exported warpcad-scene.stl')
+    expect(persistence.chipText).toBe('Exported warpcad-scene.stl — 24 triangles')
   })
 
   it('exports just the selected body, named after it', async () => {
@@ -585,5 +585,72 @@ describe('the pending state for a slow export (perf-001)', () => {
     } finally {
       vi.useRealTimers()
     }
+  })
+})
+
+describe('the Resolution override (TODO/core-035)', () => {
+  const cylinder = { id: 'cyl', op: 'primitive.cylinder', name: 'Cylinder 1', params: { diameter: 50, height: 20 } }
+
+  it('defaults to "Same as design", naming the design setting', () => {
+    const { dialog } = setup({ seed: 'one' })
+    expect(dialog.exportResolution).toBe('design')
+    expect(dialog.resolutionOptions.map((option) => option.label)).toEqual([
+      'Same as design (Normal)',
+      'Draft',
+      'Normal',
+      'Fine',
+      'Print',
+    ])
+    expect(dialog.resolutionNote).toBe('')
+  })
+
+  it('names Legacy when the design is a pre-resolution file', () => {
+    const { dialog, documentStore } = setup({ seed: 'one' })
+    documentStore.load(documentStore.raw.entries, null, 'legacy')
+    expect(dialog.resolutionOptions[0].label).toBe('Same as design (Legacy (32 segments))')
+  })
+
+  it('says the design is unchanged when the choice differs from it, and only then', () => {
+    const { dialog } = setup({ seed: 'one' })
+    dialog.chooseResolution('print')
+    expect(dialog.resolutionNote).toBe('Re-evaluating at Print resolution — the design itself is unchanged.')
+    dialog.chooseResolution('normal')
+    expect(dialog.resolutionNote).toBe('')
+    dialog.chooseResolution('design')
+    expect(dialog.resolutionNote).toBe('')
+  })
+
+  it('ignores a value that is not a choice', () => {
+    const { dialog } = setup({ seed: 'one' })
+    dialog.chooseResolution('ultra')
+    expect(dialog.exportResolution).toBe('design')
+  })
+
+  it('is remembered for the session across close and open, and never written to the document', () => {
+    const { dialog, documentStore } = setup({ seed: 'one' })
+    const version = documentStore.raw.version
+    dialog.open()
+    dialog.chooseResolution('fine')
+    dialog.close()
+    dialog.open()
+    expect(dialog.exportResolution).toBe('fine')
+    expect(documentStore.raw.resolution()).toBe('normal')
+    expect(documentStore.raw.version).toBe(version)
+  })
+
+  it('a Print export writes a higher triangle count, reported on the status line, and leaves the design alone', async () => {
+    const { dialog, documentStore, downloads, persistence } = setup({ seed: 'none' })
+    documentStore.append(cylinder)
+    dialog.open()
+    await dialog.commit()
+    const atDesign = downloads[0].triangleCount
+    dialog.open()
+    dialog.chooseResolution('print')
+    await dialog.commit()
+    const atPrint = downloads[1].triangleCount
+    expect(atPrint).toBeGreaterThan(atDesign)
+    expect(downloads[1].filename).toBe('cylinder-1.stl')
+    expect(persistence.notice).toContain(`${atPrint.toLocaleString('en-US')} triangles`)
+    expect(documentStore.raw.resolution()).toBe('normal')
   })
 })

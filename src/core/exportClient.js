@@ -29,6 +29,15 @@
  * a test can assert the worker really was used rather than silently passing on the
  * fallback.
  *
+ * ## Another resolution, and cancelling (`TODO/core-035`)
+ *
+ * An export at a resolution other than the design's sends the document's records rather
+ * than its bodies (`exportJob.js`'s `refoldRequestOf`), and the worker folds them. That
+ * fold can be the most expensive thing a user asks for — a Print-resolution re-fold of
+ * a whole scene — so it is the one export that is worth really stopping: {@link cancelExport}
+ * terminates the worker mid-job (a worker cannot be interrupted any other way) and the
+ * next export starts a fresh one. A cancel is never mistaken for a broken worker.
+ *
  * ## The boundary, for tests
  *
  * {@link setExportWorkerFactory} replaces `new Worker(…)` — this module is the seam
@@ -40,7 +49,7 @@
  */
 
 import { EXPORT_FORMATS, exportBodies, exportFilename } from './export.js'
-import { unpackError } from './exportJob.js'
+import { runExportJob, unpackError } from './exportJob.js'
 import { packBodies, unpackSolids } from './kernel/transport.js'
 
 /** @typedef {import('./export.js').ExportBody} ExportBody */
@@ -52,7 +61,21 @@ import { packBodies, unpackSolids } from './kernel/transport.js'
  * @property {() => Promise<(bodies: readonly ExportBody[], options?: { prepared?: { name: string, solid: any }[] }) => Promise<ExportResult>>} loadGltfExporter
  *   Resolves `exportGltf` from `src/render/export.js`. A function because it is a
  *   dynamic import, and injected because `src/core/` must not import three.js.
+ * @property {import('./exportJob.js').RefoldRequest} [refold] Export at another
+ *   resolution than the design's (`TODO/core-035`): the worker folds these records and
+ *   `bodies` are used only for naming (they are the same bodies, at the design setting).
  */
+
+/** The name of the error an export rejects with when {@link cancelExport} stopped it. */
+export const EXPORT_CANCELLED = 'ExportCancelled'
+
+/**
+ * The job in flight, if any — so {@link cancelExport} can reject it after terminating
+ * the worker that would have answered.
+ *
+ * @type {{ reject: (error: Error) => void } | null}
+ */
+let inFlight = null
 
 /** @type {(() => Worker) | null} */
 let factory = null
@@ -116,9 +139,10 @@ function resolveWorker() {
  * @param {Worker} active
  * @param {ExportFormat} format
  * @param {readonly ExportBody[]} bodies
+ * @param {import('./exportJob.js').RefoldRequest} [refold]
  * @returns {Promise<import('./exportJob.js').ExportJobResult>}
  */
-function ask(active, format, bodies) {
+function ask(active, format, bodies, refold) {
   const id = (nextId += 1)
   return new Promise((resolve, reject) => {
     /** @param {MessageEvent} event */
@@ -135,11 +159,42 @@ function ask(active, format, bodies) {
     function cleanup() {
       active.removeEventListener('message', onMessage)
       active.removeEventListener('error', onError)
+      if (inFlight === entry) inFlight = null
     }
+    const entry = {
+      /** @param {Error} error */
+      reject(error) {
+        cleanup()
+        reject(error)
+      },
+    }
+    inFlight = entry
     active.addEventListener('message', onMessage)
     active.addEventListener('error', onError)
-    active.postMessage({ id, format, bodies: packBodies(bodies) })
+    // A re-fold sends records, not geometry: packing the design-resolution bodies would
+    // be work (and a copy) the worker throws away.
+    active.postMessage(
+      refold === undefined ? { id, format, bodies: packBodies(bodies) } : { id, format, bodies: [], refold }
+    )
   })
+}
+
+/**
+ * Stop the export in flight, if any: terminate the worker (the only way to interrupt a
+ * job it has started — a Print re-fold can run for seconds) and reject the pending
+ * export with an `ExportCancelled` error. The next export constructs a fresh worker.
+ *
+ * @returns {boolean} Whether anything was in flight.
+ */
+export function cancelExport() {
+  if (inFlight === null) return false
+  const pending = inFlight
+  inFlight = null
+  disposeExportWorker()
+  const error = new Error('export cancelled')
+  error.name = EXPORT_CANCELLED
+  pending.reject(error)
+  return true
 }
 
 /**
@@ -154,13 +209,15 @@ function ask(active, format, bodies) {
  * @param {ExportRunOptions} options
  * @returns {Promise<ExportResult>}
  * @throws {import('./export.js').ExportError} Exactly as the synchronous path does,
- *   whichever side of the boundary refused it.
+ *   whichever side of the boundary refused it. An error named `ExportCancelled` when
+ *   {@link cancelExport} stopped it.
  */
 export async function runExport(bodies, format, options) {
+  const refold = options.refold
   const active = resolveWorker()
   if (active) {
     try {
-      const job = await ask(active, format, bodies)
+      const job = await ask(active, format, bodies, refold)
       if (job.kind === 'bytes') {
         return {
           bytes: /** @type {Uint8Array} */ (job.bytes),
@@ -174,10 +231,31 @@ export async function runExport(bodies, format, options) {
     } catch (failure) {
       // A refusal is an answer, not a worker problem: it must reach the popover by
       // name, not be retried on the main thread where it would refuse identically.
-      if (failure instanceof Error && failure.name === 'ExportError') throw failure
+      // Nor is a cancel — retrying it on the main thread would do exactly the work the
+      // user just asked to stop.
+      if (failure instanceof Error && (failure.name === 'ExportError' || failure.name === EXPORT_CANCELLED)) {
+        throw failure
+      }
       workerUnavailable = true
       disposeExportWorker()
     }
+  }
+
+  // Fallback with no worker at all. A re-fold runs the very job the worker would have —
+  // on the main thread, which is what "no worker" means; it is the fallback, never the
+  // path a browser with module workers takes.
+  if (refold !== undefined) {
+    const job = runExportJob({ format, bodies: [], refold })
+    if (job.kind === 'bytes') {
+      return {
+        bytes: /** @type {Uint8Array} */ (job.bytes),
+        filename: job.filename,
+        mimeType: job.mimeType,
+        triangleCount: /** @type {number} */ (job.triangleCount),
+      }
+    }
+    const exporter = await options.loadGltfExporter()
+    return await exporter(bodies, { prepared: unpackSolids(job.solids ?? []) })
   }
 
   // Fallback: the pre-`perf-001` main-thread path, unchanged.
