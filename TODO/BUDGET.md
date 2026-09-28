@@ -623,3 +623,13 @@ Independently re-verified by this loop: typecheck is clean, the unit suite passe
 The batch passed its 3 h wall-clock cap (21:04 to 03:16). About 4 h of that was the rate-limit pause, and working time was ~2h35m. `ui-051` was already in progress, so it was finished rather than abandoned, and no third task was started.
 
 | 2026-09-27 21:04 | 2026-09-28 03:20 | `ui-049`, `ui-051` | wall-clock cap reached (a ~4 h rate-limit pause inflated it) | no: M7 in progress (11 of 21 rows) |
+
+Note: at the start of this batch (2026-09-28 03:49 UTC) the loop asked again. The mechanical pick was `data-006` (low), and `sketch-001` was excluded while its spec is being edited in the working tree. The user chose **`core-035`**.
+
+| 2026-09-28 03:49 | 2026-09-28 17:54 | `core-035` | wall-clock cap reached: `core-035` committed ~06:05 UTC (2h16m in), then the session sat idle until the next tick at 17:54, past the 3 h cap; closed at 1 of 3 | no: M7 in progress (12 of 22 rows) |
+
+Note on the row above: the tick that finished `core-035` didn't close the row or schedule the next tick. The next tick (17:54 UTC) found the batch 14 h old and closed it without starting a task. `core-035`'s ROADMAP row, its elapsed-time log row and commits `64060be`/`1712893` were already in place. The uncommitted `sketch-001` spec edit (photo tracing) is still in the working tree and was left alone.
+
+Note: at the start of this batch (2026-09-28 18:26 UTC) the loop asked again. The mechanical pick was `data-006`, then `core-032`, both parked holds, and `sketch-001` still has uncommitted spec edits in the working tree. The user chose **`ui-053`**.
+
+| 2026-09-28 18:26 | | `ui-053` (in progress) | | |
