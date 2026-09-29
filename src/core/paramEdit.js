@@ -84,7 +84,7 @@
  * @module core/paramEdit
  */
 
-import { registry } from './kernel/registry.js'
+import { hasEditableParams, paramOptions, registry } from './kernel/registry.js'
 
 /** @typedef {import('./document.js').WarpDocument} WarpDocument */
 /** @typedef {import('./kernel/registry.js').OpRecord} OpRecord */
@@ -95,6 +95,9 @@ import { registry } from './kernel/registry.js'
  * @property {string | null} blockedBy The op of the record that makes a rebuild
  *   unsafe, for a note the user can actually act on. `null` when the lineage is
  *   editable, and also when there is simply no such body.
+ * @property {'replace'} [path] Present, as `'replace'`, only for an editable
+ *   **composite** (`TODO/ui-052`): its edit swaps the creation record in place and
+ *   re-folds, rather than appending a rebuilt one. Absent means `ui-029`'s append path.
  */
 
 /**
@@ -166,8 +169,19 @@ export function paramEditability(lineage) {
   // again — say so on screen rather than offer an edit that cannot work. This is
   // `ACCEPTANCE.md` scenario 2's remaining blocker, named here rather than left
   // as an empty field a user discovers by typing into it.
+  //
+  // `TODO/ui-052` lifts that — but only for a recipe whose params the registry now
+  // describes (`paramOptions`), and only on the **replace** path. Swapping the creation
+  // record in place re-folds every later record against the new variant, so a snap onto
+  // a part follows it (or is reported broken), a fillet above a bolt re-runs (or is
+  // reported by name), and the pose survives because the transforms are still in the
+  // log. Nothing is discarded, so the rest of the lineage is not a reason to freeze —
+  // which is why this returns before the loop below. A composite nobody has described
+  // stays frozen: the fail-safe default.
   if (registry[root.op]?.kind === 'composite') {
-    return { editable: false, blockedBy: root.op }
+    return hasEditableParams(root.op)
+      ? { editable: true, blockedBy: null, path: 'replace' }
+      : { editable: false, blockedBy: root.op }
   }
 
   for (const record of rest) {
@@ -407,8 +421,14 @@ export function stepParamEditability(record) {
   // A boolean or a group: its geometry *is* its operands, and the params a user
   // would be editing do not exist. Section 15: "This step has no parameters".
   if (record.consumes !== undefined) return { editable: false, blockedBy: record.op }
-  // A catalogue choice, not a dimension — see the module note.
-  if (registry[record.op]?.kind === 'composite') return { editable: false, blockedBy: record.op }
+  // A catalogue choice, not a dimension — editable only where the registry says which
+  // values each param may take (`TODO/ui-052`'s `paramOptions`), and validated against
+  // that schema in `stepParamEditRecord`.
+  if (registry[record.op]?.kind === 'composite') {
+    return hasEditableParams(record.op)
+      ? { editable: true, blockedBy: null }
+      : { editable: false, blockedBy: record.op }
+  }
   const editable = Object.keys(record.params ?? {}).filter(
     (key) => !RESERVED_STEP_PARAMS.has(key)
   )
@@ -499,5 +519,106 @@ export function stepParamEditRecord(document, recordId, changes) {
   }
   if (!changed) return null
 
+  // A composite row is a catalogue choice: every value has to be one the recipe
+  // accepts, or the replay throws inside the recipe instead of saying which field is
+  // wrong (`TODO/ui-052`).
+  if (registry[record.op]?.kind === 'composite') requireSchemaParams(record.op, params, Object.keys(changes))
+
   return { ...record, params }
+}
+
+/**
+ * Check every changed param — and every enum the change could have invalidated — against
+ * the op's registry schema (`TODO/ui-052`), naming the field and the values it accepts.
+ *
+ * Checked against the params **after** the change, so a bolt's `fit` is judged against the
+ * new `spec`'s fits; and every enum present is re-checked, not just the edited ones, so a
+ * `spec` change that strands the old `fit` is caught here rather than inside the recipe.
+ *
+ * @param {string} op
+ * @param {Record<string, any>} params The complete params after the change.
+ * @param {readonly string[]} changedKeys
+ * @returns {void}
+ */
+function requireSchemaParams(op, params, changedKeys) {
+  const schema = paramOptions(op, params)
+  for (const key of changedKeys) {
+    if (RESERVED_PARAMS.has(key)) {
+      throw new Error(
+        `paramEdit: "${key}" is a reserved param and is not editable here — position and ` +
+          "rotation are the Transform section's, and segments is a tessellation detail"
+      )
+    }
+    if (schema[key] === undefined) {
+      throw new Error(
+        `paramEdit: ${op} has no editable param "${key}" — editable: ${Object.keys(schema).join(', ') || 'none'}`
+      )
+    }
+  }
+  for (const [key, field] of Object.entries(schema)) {
+    const value = params[key]
+    if (field.kind === 'enum') {
+      if (value === undefined && !changedKeys.includes(key)) continue
+      if (!field.options.some((option) => Object.is(option.value, value))) {
+        throw new Error(
+          `paramEdit: ${key} ${JSON.stringify(value)} is not one of ${op}'s choices — expected one of ` +
+            field.options.map((option) => JSON.stringify(option.value)).join(', ')
+        )
+      }
+    } else if (changedKeys.includes(key)) {
+      const min = field.exclusiveMin
+      if (typeof value !== 'number' || !Number.isFinite(value) || (min !== undefined && !(value > min))) {
+        throw new Error(
+          `paramEdit: ${key} must be a number${min !== undefined ? ` greater than ${min}` : ''}` +
+            `${field.unit ? ` ${field.unit}` : ''}, got ${JSON.stringify(value)}`
+        )
+      }
+    }
+  }
+}
+
+/**
+ * Build the replacement **creation record** for a composite whose params the registry
+ * describes — `TODO/ui-052`'s replace path, the composite counterpart of
+ * {@link paramEditRecord}.
+ *
+ * Same id, same op, same everything but `params`: the caller swaps it in with
+ * `document.reviseRecords`, and every later record — the drop translate, a snap onto one
+ * of its parts, a sub-part Subtract — re-folds against the new variant. See
+ * {@link paramEditability}'s note on why that makes the pose re-apply `useParamCommands`
+ * does on the append path unnecessary here.
+ *
+ * Every value is checked against `paramOptions` (see `requireSchemaParams`), so the MCP
+ * surface and any other caller that skips the Inspector's dropdown still cannot write a
+ * model the recipe does not have.
+ *
+ * @param {WarpDocument} document
+ * @param {string} bodyId Lineage root id — the composite's own creation record.
+ * @param {Record<string, unknown>} changes
+ * @returns {OpRecord | null} `null` when nothing actually changes.
+ * @throws {Error} When the body is unknown, is not a described composite, or a change is
+ *   outside the schema — naming the param and what it accepts.
+ */
+export function compositeParamEditRecord(document, bodyId, changes) {
+  const lineage = document.lineageOf(bodyId)
+  const root = lineage[0]
+  if (root === undefined) throw new Error(`paramEdit: no body "${bodyId}" in this document`)
+  if (registry[root.op]?.kind !== 'composite' || !hasEditableParams(root.op)) {
+    throw new Error(
+      `paramEdit: "${bodyId}" is a ${root.op}, which has no editable-param schema — ` +
+        'only a described composite is edited in place'
+    )
+  }
+  const current = root.params ?? {}
+  /** @type {Record<string, any>} */
+  const params = { ...current }
+  let changed = false
+  for (const [key, value] of Object.entries(changes)) {
+    if (sameValue(current[key], value)) continue
+    params[key] = Array.isArray(value) ? value.slice() : value
+    changed = true
+  }
+  requireSchemaParams(root.op, params, Object.keys(changes))
+  if (!changed) return null
+  return { ...root, params }
 }

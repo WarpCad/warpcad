@@ -1416,3 +1416,89 @@ describe('group.removePart — a body minus one named part (TODO/ui-051)', () =>
     expect(entry.subPartOperands).toBeFalsy()
   })
 })
+
+describe('paramOptions — editable composite params (TODO/ui-052)', () => {
+  it('raspberrypi.bplus: model lists exactly BPLUS_MODELS, labelled as the Library picker labels them', async () => {
+    const { BPLUS_MODELS } = await import('./recipes/raspberrypi.bplus.js')
+    const { paramOptions } = await import('./registry.js')
+    const schema = paramOptions('raspberrypi.bplus', { model: 4 })
+    expect(schema.model.kind).toBe('enum')
+    const model = /** @type {any} */ (schema.model)
+    expect(model.options.map((/** @type {any} */ option) => option.value)).toEqual([...BPLUS_MODELS])
+    // The same option objects the Library's pre-drag choice offers — one label per model.
+    expect(model.options).toBe(registry['raspberrypi.bplus'].ui?.choice?.options)
+    expect(model.options.find((/** @type {any} */ option) => option.value === 5).label).toBe('Pi 5')
+  })
+
+  it('raspberrypi.bplus: clearance is a positive millimetre number with the recipe default', async () => {
+    const { paramOptions } = await import('./registry.js')
+    const clearance = /** @type {any} */ (paramOptions('raspberrypi.bplus', {}).clearance)
+    expect(clearance).toMatchObject({ kind: 'number', unit: 'mm', exclusiveMin: 0, default: 5 })
+  })
+
+  it('raspberrypi.cameraModule: model lists exactly CAMERA_MODULE_MODELS', async () => {
+    const { CAMERA_MODULE_MODELS } = await import('./recipes/raspberrypi.cameraModule.js')
+    const { paramOptions } = await import('./registry.js')
+    const model = /** @type {any} */ (paramOptions('raspberrypi.cameraModule', { model: 'v3' }).model)
+    expect(model.options.map((/** @type {any} */ option) => option.value)).toEqual([...CAMERA_MODULE_MODELS])
+  })
+
+  it('hardware.bolt: fit options follow the chosen spec, read off that spec\'s own table row', async () => {
+    const { paramOptions } = await import('./registry.js')
+    // A fake table (CLAUDE.md: mock at the boundary) — the real three specs happen to
+    // share one fit list, so only a table where they differ can prove the dependency.
+    const tables = /** @type {any} */ ({
+      boltSpecs: {
+        'm3 socket': { fitDiameterMm: { tap: 2.5, close: 3.2 } },
+        'm10 hex': { fitDiameterMm: { tap: 8.5, close: 10.5, loose: 11 } },
+      },
+      nutSpecs: {},
+      washerSpecs: {},
+      bearingSpecs: {},
+      FIT_CLEARANCE_MM: {},
+    })
+    const fitsOf = (/** @type {string} */ spec) =>
+      /** @type {any} */ (paramOptions('hardware.bolt', { spec }, tables).fit).options.map(
+        (/** @type {any} */ option) => option.value,
+      )
+    expect(fitsOf('m3 socket')).toEqual(['tap', 'close'])
+    expect(fitsOf('m10 hex')).toEqual(['tap', 'close', 'loose'])
+    const spec = /** @type {any} */ (paramOptions('hardware.bolt', { spec: 'm3 socket' }, tables).spec)
+    expect(spec.options.map((/** @type {any} */ option) => option.value)).toEqual(['m3 socket', 'm10 hex'])
+  })
+
+  it('hardware.bolt against the real tables: spec is every boltSpecs key, length a positive mm number', async () => {
+    const { paramOptions } = await import('./registry.js')
+    const { boltSpecs } = await import('./tables/bolt-specs.js')
+    const schema = /** @type {any} */ (paramOptions('hardware.bolt', { spec: 'm10 hex' }))
+    expect(schema.spec.options.map((/** @type {any} */ option) => option.value)).toEqual(Object.keys(boltSpecs))
+    expect(schema.length).toMatchObject({ kind: 'number', unit: 'mm', exclusiveMin: 0 })
+    expect(schema.fit.options.map((/** @type {any} */ option) => option.value)).toEqual(
+      Object.keys(boltSpecs['m10 hex'].fitDiameterMm),
+    )
+  })
+
+  it('nut, washer and bearing expose their spec (and fit) lists', async () => {
+    const { paramOptions } = await import('./registry.js')
+    expect(Object.keys(paramOptions('hardware.nut', { spec: 'm4' }))).toEqual(['spec', 'fit'])
+    expect(Object.keys(paramOptions('hardware.washer', { spec: 'm6' }))).toEqual(['spec', 'fit'])
+    expect(Object.keys(paramOptions('hardware.bearing', { spec: '608' }))).toEqual(['spec'])
+  })
+
+  it('a composite with no schema, and a native op, return none — so they stay read-only', async () => {
+    const { paramOptions, hasEditableParams } = await import('./registry.js')
+    expect(paramOptions('raspberrypi.hat', {})).toEqual({})
+    expect(paramOptions('kit.board', { width: 40 })).toEqual({})
+    expect(paramOptions('primitive.cuboid', { size: [1, 1, 1] })).toEqual({})
+    expect(hasEditableParams('raspberrypi.hat')).toBe(false)
+    expect(hasEditableParams('raspberrypi.bplus')).toBe(true)
+  })
+
+  it('partAliasesOf: the Pi declares its real renames, and nothing for the AV jack', async () => {
+    const { partAliasesOf } = await import('./registry.js')
+    const aliases = partAliasesOf('raspberrypi.bplus')
+    expect(aliases.camera).toBe('camera0')
+    expect(aliases.avjack).toBeUndefined()
+    expect(partAliasesOf('hardware.bolt')).toEqual({})
+  })
+})

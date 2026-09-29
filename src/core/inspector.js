@@ -26,8 +26,9 @@
  */
 
 import { recipeColorOf } from './colorOverride.js'
+import { brokenDependentsOf, brokenReferencesOf } from './dependents.js'
 import { boundsOf, hasNamedParts, hiddenNamesOf, isGroup, localBoundsOf } from './kernel/group.js'
-import { registry as defaultRegistry } from './kernel/registry.js'
+import { paramOptions, registry as defaultRegistry } from './kernel/registry.js'
 
 /** @typedef {import('./document.js').Body} Body */
 /** @typedef {import('./kernel/registry.js').OpRecord} OpRecord */
@@ -55,10 +56,15 @@ import { registry as defaultRegistry } from './kernel/registry.js'
  * @typedef {object} ParamField
  * @property {string} key Param name as the record stores it, e.g. `"innerDiameter"`.
  * @property {string} label Human label, e.g. `"Inner diameter"`.
- * @property {'number' | 'vector' | 'text'} kind
+ * @property {'number' | 'vector' | 'text' | 'enum'} kind `enum` (`TODO/ui-052`) is a
+ *   composite's catalogue choice — a Pi's model, a bolt's spec — with the values the
+ *   registry says it may take; the Inspector renders it as a native `<select>`.
  * @property {string} unit `"mm"` for lengths, `""` for anything unitless.
- * @property {number | string} [value] Present on `number` and `text` fields.
+ * @property {any} [value] Present on `number`, `text` and `enum` fields — an enum's
+ *   value keeps its own type (a Pi's model is the number `4`, not `"4"`).
  * @property {FieldComponent[]} [components] Present on `vector` fields.
+ * @property {ReadonlyArray<{ value: any, label: string }>} [options] Present on `enum`
+ *   fields: every value the recipe accepts, given the other params.
  */
 
 /**
@@ -126,6 +132,15 @@ import { registry as defaultRegistry } from './kernel/registry.js'
  *   Absent whenever the recipe never coloured the part, or the body is not a
  *   composite recipe at all. This is what the Inspector's Color control shows as
  *   the swatch's un-overridden default, in place of the theme palette.
+ * @property {import('./dependents.js').Breakage[]} [brokenDependents] `TODO/ui-052`: rows
+ *   elsewhere left broken against this body's parts — the Pi's warning banner ("2 items
+ *   refer to parts this Pi 5 doesn't have"). Present only when `describeSelection` was
+ *   given the document.
+ * @property {import('./dependents.js').BrokenReference[]} [brokenReferences] The other
+ *   side: this body's own rows left broken against another body's parts — the cube's
+ *   banner ("Snapped to Raspberry Pi 1 ▸ avjack, which no longer exists").
+ * @property {import('./document.js').RowCondition | null} [condition] The condition on
+ *   this body's creation record, if any — the Inspector's Condition row.
  * @property {{ groupName: string, partName: string }} [subPart] Present only
  *   while the selection is drilled into one named part of a group
  *   (`TODO/ui-016`). Its presence is the signal that **everything here is
@@ -139,9 +154,13 @@ import { registry as defaultRegistry } from './kernel/registry.js'
 
 /**
  * @typedef {object} SelectionDescription
- * @property {'empty' | 'single' | 'multi'} state
+ * @property {'empty' | 'single' | 'multi' | 'inactive'} state `inactive` (`TODO/ui-052`):
+ *   the one selected id is a body a condition is keeping out of the fold — selectable
+ *   from the object list so its condition can be edited, but not drawn, so there is no
+ *   geometry to describe and `body` stays `null` (no gizmo, no dimension lines).
  * @property {number} count
  * @property {BodyDescription | null} body Only ever set in the `single` state.
+ * @property {import('./document.js').InactiveBody} [inactive] Only in the `inactive` state.
  */
 
 /**
@@ -229,6 +248,38 @@ function fieldFor(key, value) {
     return { key, label, kind: 'text', unit: '', value: String(value) }
   }
   return null
+}
+
+/**
+ * Turn a composite's fields into what its editable-param schema says they are
+ * (`TODO/ui-052`): a catalogue choice becomes an `enum` with its options, and a schema
+ * param the record does not carry (a Pi placed with no `clearance`) is shown at the
+ * recipe's own default rather than hidden.
+ *
+ * @param {ParamField[]} fields
+ * @param {string} op
+ * @param {Record<string, any>} params
+ * @returns {ParamField[]}
+ */
+function withSchema(fields, op, params) {
+  const schema = paramOptions(op, params)
+  const keys = Object.keys(schema)
+  if (keys.length === 0) return fields
+  const next = fields.map((field) => {
+    const option = schema[field.key]
+    if (option?.kind !== 'enum') return field
+    return { key: field.key, label: option.label, kind: /** @type {const} */ ('enum'), unit: '', value: params[field.key], options: option.options }
+  })
+  for (const key of keys) {
+    if (next.some((field) => field.key === key)) continue
+    const option = schema[key]
+    if (option.kind === 'number' && option.default !== undefined) {
+      next.push({ key, label: option.label, kind: 'number', unit: option.unit, value: option.default })
+    } else if (option.kind === 'enum' && params[key] !== undefined) {
+      next.push({ key, label: option.label, kind: 'enum', unit: '', value: params[key], options: option.options })
+    }
+  }
+  return next
 }
 
 /**
@@ -347,7 +398,10 @@ export function describeBody(body, ops = defaultRegistry) {
     op: body.op,
     opLabel: entry?.ui?.label ?? body.op,
     isRecipe: entry?.kind === 'composite',
-    params: fieldsFor(body.params ?? {}, entry),
+    params:
+      entry?.kind === 'composite'
+        ? withSchema(fieldsFor(body.params ?? {}, entry), body.op, body.params ?? {})
+        : fieldsFor(body.params ?? {}, entry),
     positionMm,
     rotationDeg,
     parts,
@@ -547,10 +601,15 @@ export function describeSubPart(body, partName, records, ops = defaultRegistry) 
  *   sub-part is still described, by name and measurement alone.
  * @param {Readonly<Record<string, RegistryEntry>>} [options.ops] Catalogue; the
  *   real one by default. A test passes a fake (CLAUDE.md: "mock at the boundary").
+ * @param {import('./document.js').WarpDocument} [options.document] The live document,
+ *   for what only the log knows (`TODO/ui-052`): broken dependents, conditions, and
+ *   whether a selected id is a body a condition has switched off. Without it those are
+ *   simply not reported.
  * @returns {SelectionDescription}
  */
 export function describeSelection(bodies, selectedIds, options = {}) {
   const ops = options.ops ?? defaultRegistry
+  const document = options.document
   if (selectedIds.length >= 2) {
     return { state: 'multi', count: selectedIds.length, body: null }
   }
@@ -565,8 +624,21 @@ export function describeSelection(bodies, selectedIds, options = {}) {
           body: describeSubPart(body, subPart.partName, options.records ?? [], ops),
         }
       }
-      return { state: 'single', count: 1, body: describeBody(body, ops) }
+      const description = describeBody(body, ops)
+      if (document === undefined) return { state: 'single', count: 1, body: description }
+      return {
+        state: 'single',
+        count: 1,
+        body: {
+          ...description,
+          brokenDependents: brokenDependentsOf(document, body.id),
+          brokenReferences: brokenReferencesOf(document, body.id),
+          condition: document.conditionOf(body.id),
+        },
+      }
     }
+    const inactive = document?.inactiveBodies().find((candidate) => candidate.id === selectedIds[0])
+    if (inactive) return { state: 'inactive', count: 1, body: null, inactive }
   }
   return { state: 'empty', count: 0, body: null }
 }

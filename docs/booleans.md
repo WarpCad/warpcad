@@ -136,6 +136,15 @@ footprint cut out of it, which is not a port opening, it is a missing wall. Driv
 the numbers: the Ethernet jack removes **1 208 mm³**, the whole board removes
 **5 661 mm³**.
 
+**If the part later goes away.** A cut made with one part is re-worked whenever that
+shape changes — change the Pi from a Pi 4 to a Pi 5 (in History, since the Subtract used
+the Pi up) and the cut follows. If the new model has no such part (a Pi 5 has no
+`clearance-avjack`), the same repair dialog as for a snapped part opens before anything
+changes: **Remap** the cut to a part the new board has, make it **Only when** the Pi is a
+Pi 4 (the case stays, just without that cut-out, on a Pi 5), or **Leave broken**.
+**Detach** isn't offered for a cut — there is no "keep it where it is" for a hole. See
+[When the part you snapped to goes away](snap-align.md#when-the-part-you-snapped-to-goes-away).
+
 ### Three things to know
 
 - **One part at a time.** The selection carries a single part, so you cut with the

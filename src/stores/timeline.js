@@ -42,7 +42,7 @@
 import { defineStore } from 'pinia'
 import { computed, ref, shallowRef, toRaw, watch } from 'vue'
 
-import { createDocument } from '../core/document.js'
+import { createDocument, foldableEntry } from '../core/document.js'
 import { buildNameIndex, describeRow } from '../core/timelineLabel.js'
 import { summarizeBody, useDocumentStore } from './document.js'
 import { useSelectionStore } from './selection.js'
@@ -58,7 +58,11 @@ import { useSelectionStore } from './selection.js'
  * @property {string} origin §19's origin chip source; `local` for the user's own.
  * @property {boolean} suppressed
  * @property {boolean} active `false` past the rollback marker.
- * @property {string | null} broken The shadow check's reason, or `null`.
+ * @property {string | null} broken Why the row does not build, or `null`.
+ * @property {import('../core/document.js').InactiveBy | null} inactiveBy `TODO/ui-052`:
+ *   the condition currently keeping this row out of the fold.
+ * @property {import('../core/document.js').RowCondition | null} condition The condition
+ *   the row carries or inherits, true or not — the chip's source.
  * @property {import('../core/kernel/registry.js').OpRecord} record
  */
 
@@ -103,6 +107,8 @@ export const useTimelineStore = defineStore('timeline', () => {
       suppressed: row.suppressed,
       active: row.active,
       broken: row.broken,
+      inactiveBy: row.inactiveBy,
+      condition: row.condition,
       record: row.record,
     }))
   })
@@ -190,11 +196,9 @@ export const useTimelineStore = defineStore('timeline', () => {
     // by the *raw* record objects and holds raw geometry — a proxied record would miss
     // it, and a proxied cache would hand back proxied geometry (CLAUDE.md, Performance).
     const live = toRaw(documentStore.raw)
-    const prefix = live.entries.slice(0, step).map((entry) => ({
-      record: entry.record,
-      origin: entry.origin,
-      ...(entry.suppressed === true ? { suppressed: true } : {}),
-    }))
+    // `foldableEntry`: record, origin and both fold flags — a row left broken
+    // (`TODO/ui-052`) has to stay tolerated in the preview exactly as it is live.
+    const prefix = live.entries.slice(0, step).map(foldableEntry)
     // The live document's fold cache (TODO/core-031): a prefix of the log is records
     // the live fold already built against the same operands, so the preview reuses
     // every one of them instead of folding the prefix from scratch on each row click.

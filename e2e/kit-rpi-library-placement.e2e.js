@@ -227,8 +227,11 @@ test('the Raspberry Pi row places the model its own dropdown is set to', async (
   const model = page.getByTestId('inspector-param-model')
   await expect(model).toBeVisible()
   await expect(model).toHaveValue('5')
-  // Recipe params stay read-only, exactly as a Bolt's do (`ui-030`/`ui-029`).
-  await expect(model).toHaveAttribute('readonly', '')
+  // Since `TODO/ui-052` the Model is an editable dropdown after placement too, offering
+  // the same options as the Library's pre-drag picker (`e2e/composite-param-edit.e2e.js`
+  // covers changing it).
+  await expect(model).toHaveJSProperty('tagName', 'SELECT')
+  await expect(model).toBeEnabled()
 
   mkdirSync(SNAPSHOT_DIR, { recursive: true })
   await page.screenshot({ path: join(SNAPSHOT_DIR, `pi5-${testInfo.project.name}.png`) })

@@ -162,12 +162,14 @@ function cancel() {
         'row--selected': selected,
         'row--suppressed': row.suppressed,
         'row--inactive': !row.active,
+        'row--conditioned-off': row.inactiveBy !== null,
         'row--related': related && !selected,
       }"
       :data-testid="`timeline-row-${row.step}`"
       :data-step-id="row.id"
       :data-active="row.active"
       :data-suppressed="row.suppressed"
+      :data-conditioned-off="row.inactiveBy !== null"
       :aria-current="selected ? 'true' : undefined"
       @click="emit('select', row.id)"
     >
@@ -178,6 +180,19 @@ function cancel() {
           suppressed
         </span>
         <span v-if="!row.active" class="chip chip--muted" data-testid="chip-inactive">inactive</span>
+        <!-- A condition (TODO/ui-052): shown whether or not it currently holds, so a row
+             that only exists on a Pi 4 says so on a Pi 4 too. While it does not hold the
+             row greys like a suppressed one, but carries this chip instead of the
+             "suppressed" label, so the two can be told apart. -->
+        <span
+          v-if="row.condition"
+          class="chip chip--condition"
+          data-testid="timeline-condition-chip"
+          :data-holds="row.inactiveBy === null ? 'true' : 'false'"
+          :title="row.condition.sentence"
+        >
+          {{ row.condition.chip }}
+        </span>
         <span
           v-if="brokenReason"
           class="chip chip--broken"
@@ -374,6 +389,16 @@ function cancel() {
   opacity: 0.55;
 }
 
+/* Greyed like a suppressed row, without the strike-through: nothing was switched off by
+   hand, the condition simply does not hold right now (TODO/ui-052). */
+.row--conditioned-off .row__text {
+  color: var(--text-3);
+}
+
+.row--conditioned-off {
+  opacity: 0.7;
+}
+
 .row__step {
   min-width: 18px;
   color: var(--text-3);
@@ -403,6 +428,14 @@ function cancel() {
 
 .chip--muted {
   color: var(--text-3);
+}
+
+.chip--condition {
+  border-style: dashed;
+  color: var(--text-2);
+  max-width: 14em;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .chip--broken {

@@ -257,7 +257,7 @@ test('every hardware row places its own kind of part', async ({ page }) => {
   expect(centers.size).toBe(ops.length)
 })
 
-test('selecting a placed bolt shows its recipe parameters, read-only', async ({ page }) => {
+test('selecting a placed bolt shows its recipe parameters, editable (TODO/ui-052)', async ({ page }) => {
   await openLibrary(page)
   await dragRowIntoViewport(page, { op: 'hardware.bolt', fx: 0.4, fy: 0.3 })
   // At phone width the Inspector is behind the same bottom-sheet slot the
@@ -266,17 +266,20 @@ test('selecting a placed bolt shows its recipe parameters, read-only', async ({ 
 
   const params = page.getByTestId('inspector-params')
   await expect(params).toBeVisible()
-  for (const key of ['spec', 'length', 'fit']) {
+  // Read-only until `ui-052`, which gave `spec`/`fit` the dropdown `ui-029` scoped out and
+  // made `length` an ordinary editable number (`composite-param-edit.e2e.js` drives them).
+  for (const key of ['spec', 'fit']) {
     const field = page.getByTestId(`inspector-param-${key}`)
     await expect(field).toBeVisible()
-    // Read-only, per ui-030's Interaction model: `spec`/`fit` are enums needing a
-    // dropdown (ui-029's scope cut), and rebuilding a recipe from a half-typed
-    // spec string throws inside the recipe.
-    await expect(field).toHaveAttribute('readonly', '')
+    await expect(field).toHaveJSProperty('tagName', 'SELECT')
+    await expect(field).toBeEnabled()
   }
-  await expect(params).toHaveAttribute('data-editable', 'false')
+  const length = page.getByTestId('inspector-param-length')
+  await expect(length).toBeVisible()
+  await expect(length).not.toHaveAttribute('readonly', '')
+  await expect(params).toHaveAttribute('data-editable', 'true')
   await expect(page.getByTestId('inspector-param-spec')).toHaveValue('m10 hex')
-  await expect(page.getByTestId('inspector-param-length')).toHaveValue('20')
+  await expect(length).toHaveValue('20')
 })
 
 test('the ghost preview shows the real part before the drop commits anything', async ({ page }) => {

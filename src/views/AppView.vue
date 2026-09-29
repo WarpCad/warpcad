@@ -15,6 +15,7 @@
 import { computed, onMounted, ref, watch } from 'vue'
 
 import Inspector from '../components/inspector/Inspector.vue'
+import DependentRepairDialog from '../components/inspector/DependentRepairDialog.vue'
 import SaveStatus from '../components/display/SaveStatus.vue'
 import FileMenu from '../components/storage/FileMenu.vue'
 import { bootStorage } from '../composables/useStorageBoot.js'
@@ -197,6 +198,9 @@ function onInspectorClaim() {
         @claim-sheet="onInspectorClaim()"
       />
     </main>
+    <!-- The repair dialog (TODO/ui-052): over everything, opened by an Inspector
+         dropdown, a History row's Edit, or a Resolve… button. -->
+    <DependentRepairDialog />
   </div>
 </template>
 

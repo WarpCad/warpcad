@@ -415,8 +415,9 @@ describe('describeBody', () => {
     // The registry schema's key order, which is the order the row's defaults
     // name them in, rather than whatever order the record happens to carry.
     expect(description.params.map((field) => field.key)).toEqual(['spec', 'length', 'fit'])
+    // `ui-052`: a catalogue choice is an enum with its own options, not read-only text.
     const spec = present(description.params.find((field) => field.key === 'spec'))
-    expect(spec.kind).toBe('text')
+    expect(spec.kind).toBe('enum')
     expect(spec.value).toBe('m10 hex')
   })
 
@@ -778,5 +779,89 @@ describe('describeSelection — drilled into a group s sub-part (TODO/ui-016)', 
     })
     expect(withEmpty).toEqual(without)
     expect(present(without.body).subPart).toBeUndefined()
+  })
+})
+
+
+describe('describeBody — editable composite params (TODO/ui-052)', () => {
+  const LOCAL = { origin: 'local' }
+
+  it('a Pi\'s Model is an enum field with the Library\'s own labelled options, and its clearance a number', () => {
+    const document = createDocument()
+    document.append({ id: 'pi-1', op: 'raspberrypi.bplus', name: 'Raspberry Pi 1', params: { model: 4 } }, LOCAL)
+    const description = describeBody(document.bodies()[0])
+    expect(description.params.map((field) => field.key)).toEqual(['model', 'clearance'])
+    const model = present(description.params.find((field) => field.key === 'model'))
+    expect(model).toMatchObject({ kind: 'enum', label: 'Model', value: 4 })
+    expect(present(model.options).map((option) => option.label)).toEqual(['Pi 2 / B+', 'Pi 3', 'Pi 4', 'Pi 5'])
+    // Not on the record — the Library never writes it — but the recipe used 5, so say so.
+    expect(present(description.params.find((field) => field.key === 'clearance'))).toMatchObject({
+      kind: 'number',
+      unit: 'mm',
+      value: 5,
+    })
+  })
+
+  it('a bolt\'s spec and fit are enums and its length a number', () => {
+    const document = createDocument()
+    document.append({ id: 'bolt-1', op: 'hardware.bolt', name: 'Bolt 1', params: { spec: 'm10 hex', length: 20, fit: 'loose' } }, LOCAL)
+    const kinds = describeBody(document.bodies()[0]).params.map((field) => [field.key, field.kind])
+    expect(kinds).toEqual([
+      ['spec', 'enum'],
+      ['length', 'number'],
+      ['fit', 'enum'],
+    ])
+  })
+
+  it('a composite with no schema keeps its read-only text fields', () => {
+    const document = createDocument()
+    document.append({ id: 'b-1', op: 'kit.board', name: 'Board 1', params: { width: 40, height: 30, cornerRadius: 3 } }, LOCAL)
+    expect(describeBody(document.bodies()[0]).params.every((field) => field.kind !== 'enum')).toBe(true)
+  })
+
+  it('describeSelection reports brokenDependents on the Pi and brokenReferences on the snapped cube', async () => {
+    const { piAndCube, piWith, snapCubeTo } = await import('./__fixtures__/piScenes.js')
+    const document = snapCubeTo(piAndCube({ model: 4 }), 'avjack')
+    document.reviseRecords(
+      [
+        { id: 'pi-1', record: piWith(document, { model: 5 }) },
+        { id: 'snap-1', leftBroken: true },
+      ],
+      LOCAL,
+    )
+    const pi = present(describeSelection(document.bodies(), ['pi-1'], { document }).body)
+    expect(present(pi.brokenDependents).map((entry) => entry.dependentName)).toEqual(['Cube 1'])
+    const cube = present(describeSelection(document.bodies(), ['cube-1'], { document }).body)
+    expect(present(cube.brokenReferences)[0]).toMatchObject({ refBodyName: 'Raspberry Pi 1', pieces: ['avjack'] })
+    // A clean body carries empty lists, never undefined, once a document is given.
+    const clean = present(describeSelection(document.bodies(), ['cube-1'], {}).body)
+    expect(clean.brokenDependents).toBeUndefined()
+  })
+
+  it('describeSelection describes a selected inactive body in its own state, with its condition', async () => {
+    const { piAndCube, piWith, snapCubeTo } = await import('./__fixtures__/piScenes.js')
+    const document = snapCubeTo(piAndCube({ model: 4 }), 'avjack')
+    const cube = /** @type {any} */ (document.recordOf('cube-1'))
+    document.reviseRecords(
+      [
+        { id: 'pi-1', record: piWith(document, { model: 5 }) },
+        { id: 'cube-1', record: { ...cube, when: { ref: 'pi-1', param: 'model', in: [4] } } },
+      ],
+      LOCAL,
+    )
+    const described = describeSelection(document.bodies(), ['cube-1'], { document })
+    expect(described.state).toBe('inactive')
+    expect(described.body).toBeNull()
+    expect(present(described.inactive)).toMatchObject({ id: 'cube-1', name: 'Cube 1', state: 'inactive' })
+    expect(present(described.inactive).condition.sentence).toBe("Only when Raspberry Pi 1's Model is Pi 4")
+  })
+
+  it('an active conditioned body carries its condition, so the Inspector can show and edit it', async () => {
+    const { piAndCube, snapCubeTo } = await import('./__fixtures__/piScenes.js')
+    const document = snapCubeTo(piAndCube({ model: 4 }), 'avjack')
+    const cube = /** @type {any} */ (document.recordOf('cube-1'))
+    document.reviseRecords([{ id: 'cube-1', record: { ...cube, when: { ref: 'pi-1', param: 'model', in: [4] } } }], LOCAL)
+    const body = present(describeSelection(document.bodies(), ['cube-1'], { document }).body)
+    expect(present(body.condition).chip).toBe('if Raspberry Pi 1 = Pi 4')
   })
 })

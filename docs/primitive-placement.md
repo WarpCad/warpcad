@@ -77,10 +77,9 @@ What you get by default:
 | Bearing | A deep-groove ball bearing | 608 (⌀22 × ⌀8 × 7 mm) |
 
 Select a placed bolt and the Inspector shows what it is made from — `spec`, `length`,
-`fit` — but these are **read-only for now**, and the panel says so. They are catalogue
-choices (a size out of a table, a clearance class), not numbers to type over, so
-changing them needs a size picker that does not exist yet. Position and rotation are
-editable as usual. See [Selecting a shape](selection-and-inspector.md).
+`fit` — and you can change them there: `spec` and `fit` are dropdowns of the sizes and
+clearance classes the size table has, and `length` is a number box. The bolt is rebuilt in
+place. See [Changing a part's model or size](selection-and-inspector.md#changing-a-parts-model-or-size).
 
 > **Note:** a bolt's outline is its **metal** — head and thread, gray and silver. Its
 > clearance envelope is a hidden part named `tap`: still there, still the size that lets
@@ -138,9 +137,10 @@ Cooling Fan**, and the screens — **7-inch Touch Display**, **Touchscreen 2**,
 > step, so you can see and undo it. Place both parts, select them, and use **Snap** or
 > **Align** to bring them together — see [Snapping and aligning](snap-align.md).
 
-Like a hardware part, a placed Raspberry Pi part's Inspector parameters (including
-`model`) are **read-only** — they are catalogue choices, not numbers to type over. To
-place a different model, pick it on the row and drag in a new one.
+A placed Raspberry Pi board's **Model** can be changed afterwards too, from the
+Inspector's dropdown — the board is rebuilt in place, and anything that depends on a part
+the new model lacks is caught before it breaks. See
+[Changing a part's model or size](selection-and-inspector.md#changing-a-parts-model-or-size).
 
 ## Lining a shape up with one you already placed
 

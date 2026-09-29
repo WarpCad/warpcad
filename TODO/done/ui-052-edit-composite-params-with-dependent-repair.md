@@ -6,8 +6,53 @@ priority: high
 model: opus
 milestone: M7
 depends: [ui-029, ui-044, data-004, core-024, ui-035]
-status: open
+status: done
 ---
+
+
+> **Retired 2026-09-29 (`/fix-todo`, via `/run-todos`).** Shipped in full in one pass, **not
+> split at the condition boundary**. The core (the registry schema, lifting both guards,
+> `dependents.js`, `repair.js`, `condition.js`, `when` in the fold, `leftBroken`,
+> `reviseRecords`) was written by an earlier, interrupted run of this task (13:48-14:47 UTC).
+> This run verified it, finished the UI (`ParamFields.vue` mounted, `DependentRepairDialog.vue`,
+> `DependentsBanner.vue`, `ConditionRow.vue`, the History chip, inactive rows in the object
+> list), wrote `e2e/composite-param-edit.e2e.js`, the docs and the acceptance scenarios, and
+> fixed four defects found only by hand-driving (below).
+>
+> **Step 2 decisions.** (a) Snap/Align records are live under a re-fold, and (b) a sub-part
+> Subtract resolves the replaced creation record: both proven as unit tests
+> (`documentConditions.spec.js`). A broken placement record folds as **identity**, so a
+> left-broken snapped body renders at its pre-snap pose, visible and selectable. Primitives
+> keep `ui-029`'s append path; their snapped dependents not following a resize is filed as
+> `TODO/data-007`. The project format version is **not** bumped: `when` is an optional
+> record field (an older build ignores it and folds everything), and `leftBroken` is an
+> optional state-line field (an older build refuses the file, naming the broken row).
+>
+> **Deviations from this spec.**
+> - The impact check runs **synchronously on the main thread**, not as a worker job: the
+>   fold never moved to the worker (`core-031` chose a per-record fold cache instead), and a
+>   Pi builds in well under the 300 ms spinner threshold. `setParam` returns
+>   `{ committed } | { needsRepair }` synchronously rather than as a promise.
+> - **No "ref must be earlier in the log" rule.** A condition reads its ref's params from
+>   the log, so a user who dropped the enclosure before the Pi can still condition it;
+>   reading a param rules out cycles on its own. Reordering a conditioned row above its ref
+>   is therefore allowed, and evaluates the same.
+> - **Bolt `fit` never visibly changes with `spec` today**: the real `boltSpecs` table has
+>   three specs (`m10 hex`, `m12 hex`, `1/4 socket`, with no `m3 socket`), all with the same
+>   `tap`/`close`/`loose` fits. The list is still read from the chosen spec's own row, as
+>   proven with a fake table in `registry.spec.js`. The docs example uses `1/4 socket`.
+>
+> **Found and fixed by hand-driving (Step 6), each with a regression test:**
+> 1. The viewport's mesh cache was keyed on the terminal record id alone, so a row revised
+>    in place (a snap left broken) kept drawing its old mesh while its bounds and gizmo
+>    moved (`render/mesh.js` `bodyObjectIsCurrent`; `TROUBLESHOOTING.md` 2026-09-29).
+> 2. Undo from a Pi 5 drilled into `camera0` back to a Pi 4 left the selection on a missing
+>    part and the Inspector threw; the document store now falls back to the whole body.
+> 3. A Pi snapped *by its own* part: Only when (whole body) would have conditioned the Pi
+>    on itself, and Leave broken gave it no banner. Now only "this operation" is offered,
+>    and the banner appears.
+> 4. An inactive body selected from the object list left Fillet/Chamfer/Enlarge/Fit/Bisect
+>    enabled; they are now disabled, with a note.
 
 ## Goal
 

@@ -111,3 +111,97 @@ describe('useParamCommands (TODO/ui-044)', () => {
     expect(doc.raw.pendingUndo()?.label).toBe('Move Cylinder 1')
   })
 })
+
+describe('useParamCommands — composite params and the repair dialog (TODO/ui-052)', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+  })
+
+  const LOCAL = { origin: 'local' }
+
+  /** A Pi 4 and a cube snapped to one of its parts, through the store. */
+  function piWithSnap(pieces = 'avjack') {
+    const doc = useDocumentStore()
+    doc.append({ id: 'pi-1', op: 'raspberrypi.bplus', name: 'Raspberry Pi 1', params: { model: 4 } }, LOCAL)
+    doc.append({ id: 'cube-1', op: 'primitive.cuboid', name: 'Cube 1', params: { size: [6, 6, 6], center: [120, 20, 3] } }, LOCAL)
+    doc.append(
+      {
+        id: 'snap-1',
+        op: 'group.snap',
+        target: 'cube-1',
+        operands: [{ id: 'pi-1', pieces }],
+        supersedes: 'cube-1',
+        params: { axes: 'xy', orientation: 'inside+', deltaMm: 0 },
+      },
+      LOCAL,
+    )
+    return doc
+  }
+
+  it('a change that breaks nothing commits at once, as one Undo step named for the body', () => {
+    const doc = piWithSnap('ethernet')
+    const result = useParamCommands().setParam('pi-1', 'model', 5)
+    expect(result).toEqual({ committed: true })
+    expect(doc.raw.recordOf('pi-1')?.params?.model).toBe(5)
+    expect(doc.raw.pendingUndo()?.label).toBe('Edit Raspberry Pi 1')
+    doc.undo()
+    expect(doc.raw.recordOf('pi-1')?.params?.model).toBe(4)
+  })
+
+  it('a change that would break a dependent is held — nothing commits — and the breakages come back', () => {
+    const doc = piWithSnap('avjack')
+    const version = doc.raw.version
+    const result = useParamCommands().setParam('pi-1', 'model', 5)
+    expect('needsRepair' in result && result.needsRepair).toBe(true)
+    if (!('needsRepair' in result)) return
+    expect(result.breakages.map((breakage) => breakage.dependentRecordId)).toEqual(['snap-1'])
+    expect(result.edit).toMatchObject({ rootId: 'pi-1', param: 'model', oldValue: 4 })
+    expect(doc.raw.recordOf('pi-1')?.params?.model).toBe(4)
+    expect(doc.raw.version).toBe(version)
+  })
+
+  it('applyRepair commits the edit and every fix as one Undo step', () => {
+    const doc = piWithSnap('avjack')
+    const commands = useParamCommands()
+    const result = commands.setParam('pi-1', 'model', 5)
+    if (!('needsRepair' in result)) throw new Error('expected a repair')
+    commands.applyRepair(result.edit, result.breakages, { 'snap-1': { kind: 'detach' } })
+    expect(doc.raw.recordOf('pi-1')?.params?.model).toBe(5)
+    expect(doc.raw.recordOf('snap-1')?.op).toBe('transform.translate')
+    expect(doc.raw.pendingUndo()?.label).toBe('Edit Raspberry Pi 1')
+    doc.undo()
+    expect(doc.raw.recordOf('pi-1')?.params?.model).toBe(4)
+    expect(doc.raw.recordOf('snap-1')?.op).toBe('group.snap')
+  })
+
+  it('a value outside the schema throws and commits nothing', () => {
+    const doc = piWithSnap('ethernet')
+    expect(() => useParamCommands().setParam('pi-1', 'model', 9)).toThrow(/9/)
+    expect(doc.raw.recordOf('pi-1')?.params?.model).toBe(4)
+  })
+
+  it('removing a condition while it is false brings the dependent back as broken, not hidden', () => {
+    const doc = piWithSnap('avjack')
+    const commands = useParamCommands()
+    const held = commands.setParam('pi-1', 'model', 5)
+    if (!('needsRepair' in held)) throw new Error('expected a repair')
+    commands.applyRepair(held.edit, held.breakages, { 'snap-1': { kind: 'condition', scope: 'body' } })
+    expect(doc.bodies.map((body) => body.id)).toEqual(['pi-1'])
+
+    commands.setCondition('cube-1', null)
+    expect(doc.bodies.map((body) => body.id)).toEqual(['pi-1', 'cube-1'])
+    expect(doc.raw.brokenSteps().map((step) => step.id)).toEqual(['snap-1'])
+    expect(doc.raw.pendingUndo()?.label).toBe('Remove condition from Cube 1')
+  })
+
+  it('editing a condition to include the current value makes the body active again', () => {
+    const doc = piWithSnap('ethernet')
+    const commands = useParamCommands()
+    const cube = /** @type {any} */ (doc.raw.recordOf('cube-1'))
+    doc.revise([{ id: 'cube-1', record: { ...cube, when: { ref: 'pi-1', param: 'model', in: [5] } } }])
+    expect(doc.bodies.map((body) => body.id)).toEqual(['pi-1'])
+    commands.setCondition('cube-1', { ref: 'pi-1', param: 'model', in: [4, 5] })
+    expect(doc.bodies.map((body) => body.id)).toEqual(['pi-1', 'cube-1'])
+    expect(doc.raw.pendingUndo()?.label).toBe('Edit condition on Cube 1')
+  })
+})

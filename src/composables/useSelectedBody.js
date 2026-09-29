@@ -16,7 +16,7 @@
  * @module composables/useSelectedBody
  */
 
-import { computed } from 'vue'
+import { computed, toRaw } from 'vue'
 
 import { describeSelection } from '../core/inspector.js'
 import { composeDeg } from '../core/rotation.js'
@@ -56,6 +56,11 @@ export function useSelectedBody() {
       // purpose, since it only ever changes when `version` does.
       subPart: selection.subPart,
       records: documentStore.raw.records,
+      // `TODO/ui-052`: what only the log knows — rows left broken against this body or
+      // by it (the Inspector's warning banners), its condition, and whether the one
+      // selected id is a body a condition has switched off. Raw, not the store's proxy:
+      // the fold's maps are read directly and must not be walked by Vue.
+      document: toRaw(documentStore.raw),
     })
   })
 

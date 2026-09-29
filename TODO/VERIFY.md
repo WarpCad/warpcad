@@ -34,6 +34,16 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### ui-052 — Edit a composite part's parameters and repair what the change breaks (2026-09-29 21:40)
+
+Scenario 15 and scenarios 2, 3, 5, 6, 10, 12 and 13 were hand-driven at laptop Chromium and phone WebKit (see `TODO/ACCEPTANCE.md`). What is left can only be judged on real hardware or by eye: headless WebKit cannot open iOS's native picker or show the home indicator, and "would a person notice" is not something a drive can measure.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | On a real iPhone and iPad, tap a selected Raspberry Pi's **Model** (and a Bolt's **Spec**): it should open as the system wheel picker, and choosing Pi 5 should commit on its own, with no Apply. | Open | |
+| 2 | On a real iPhone, open the repair dialog (Pi 4 with a cube snapped to its AV jack → Pi 5): it should be a full-height sheet whose **Apply**/**Cancel** sit clear of the home indicator, with the Fix dropdowns full width and easy to hit. | Open | |
+| 3 | At laptop width, after **Leave broken**, the Pi's warning banner sits at the top of the Inspector's detail view, and it is scrolled out of sight if you were down at Parameters when you changed the Model. Does a person notice the problem anyway (the cube stays visible; History badges the row), or should the banner also appear near Parameters? | Open | |
+
 ### core-035 — Design resolution and export resolution (2026-09-28 06:05)
 
 Scenarios 1, 5, 10, 11 and 12 were driven live at laptop Chromium and phone WebKit, and every exported file was checked by independent parsers (0 open edges at Print). What no drive can judge: whether the finer facets actually fix fit in plastic, how the presets look on real GPUs, and how the synchronous main-thread re-fold feels on a real phone.

@@ -34,12 +34,14 @@
  */
 
 import { ReplayRejection } from '../core/document.js'
-import { registry } from '../core/kernel/registry.js'
+import { hasEditableParams, paramOptions, registry } from '../core/kernel/registry.js'
 import { stepParamEditRecord, stepParamEditability } from '../core/paramEdit.js'
 import { RIM_FACE_OPTIONS, buildNameIndex, describeRow } from '../core/timelineLabel.js'
 import { useDocumentStore } from '../stores/document.js'
+import { useRepairDialogStore } from '../stores/repairDialog.js'
 import { useSelectionStore } from '../stores/selection.js'
 import { useTimelineStore } from '../stores/timeline.js'
+import { useParamCommands } from './useParamCommands.js'
 
 /** @typedef {import('../core/document.js').BrokenStep} BrokenStep */
 
@@ -57,7 +59,7 @@ import { useTimelineStore } from '../stores/timeline.js'
  * @property {string} label What the form calls it.
  * @property {'number' | 'vector' | 'choice' | 'text' | 'boolean'} kind
  * @property {any} value
- * @property {ReadonlyArray<{ value: string, label: string }>} [choices]
+ * @property {ReadonlyArray<{ value: any, label: string }>} [choices]
  * @property {ReadonlyArray<string>} [axes] `vector` only: per-component labels.
  */
 
@@ -136,6 +138,8 @@ export function useTimelineCommands() {
   const documentStore = useDocumentStore()
   const timelineStore = useTimelineStore()
   const selection = useSelectionStore()
+  const repairDialog = useRepairDialogStore()
+  const paramCommands = useParamCommands()
 
   /** The transaction envelope every row action shares (§19's selection restore). */
   function transaction() {
@@ -216,7 +220,7 @@ export function useTimelineCommands() {
     if (registry[record.op]?.kind === 'composite') {
       return {
         editable: false,
-        reason: "A library part's options can't be edited here yet",
+        reason: "This library part's options aren't described yet, so they can't be edited",
       }
     }
     const keys = Object.keys(record.params ?? {})
@@ -248,6 +252,27 @@ export function useTimelineCommands() {
     const record = documentStore.raw.recordOf(id)
     if (record === undefined) return []
     const isRim = record.op === 'modify.filletRim' || record.op === 'modify.chamferRim'
+
+    // A composite's params come from its registry schema (`TODO/ui-052`): a catalogue
+    // choice is a dropdown of the values the recipe accepts, in the schema's own order
+    // and labels — the same control the Inspector offers, for a Pi a Subtract consumed
+    // and that only History can reach any more.
+    if (registry[record.op]?.kind === 'composite' && hasEditableParams(record.op)) {
+      const params = record.params ?? {}
+      /** @type {StepField[]} */
+      const schemaFields = []
+      for (const [key, field] of Object.entries(paramOptions(record.op, params))) {
+        if (field.kind === 'enum') {
+          if (params[key] !== undefined) {
+            schemaFields.push({ key, label: field.label, kind: 'choice', value: params[key], choices: field.options })
+          }
+          continue
+        }
+        const value = params[key] ?? field.default
+        if (value !== undefined) schemaFields.push({ key, label: field.label, kind: 'number', value })
+      }
+      return schemaFields
+    }
 
     /** @type {StepField[]} */
     const fields = []
@@ -288,6 +313,34 @@ export function useTimelineCommands() {
    * @returns {RowActionResult}
    */
   function applyEdit(id, changes) {
+    const current = documentStore.raw.recordOf(id)
+    // A composite's creation row: the same impact check as the Inspector's dropdown, and
+    // the same repair dialog when the change would break something (`TODO/ui-052`).
+    if (current !== undefined && registry[current.op]?.kind === 'composite' && hasEditableParams(current.op)) {
+      // Only what the user changed: the form also shows a schema param the record does
+      // not carry at the recipe's default (a Pi's clearance), and writing that back would
+      // put a value in the log nobody chose.
+      const shown = new Map(fieldsFor(id).map((field) => [field.key, field.value]))
+      /** @type {Record<string, unknown>} */
+      const changed = {}
+      for (const [key, value] of Object.entries(changes)) {
+        if (!Object.is(shown.get(key), value)) changed[key] = value
+      }
+      if (Object.keys(changed).length === 0) {
+        return report({ ok: false, message: 'Nothing to apply — the values are unchanged.', broken: null })
+      }
+      try {
+        const result = paramCommands.setCompositeParams(id, changed)
+        if ('needsRepair' in result) {
+          repairDialog.show({ edit: result.edit, breakages: result.breakages })
+          return { ok: true }
+        }
+        settle()
+        return { ok: true }
+      } catch (error) {
+        return report(refusal(error, richLabel))
+      }
+    }
     try {
       const record = stepParamEditRecord(documentStore.raw, id, changes)
       if (record === null) {

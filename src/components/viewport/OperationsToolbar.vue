@@ -353,7 +353,16 @@ const MINIMUM_OPERANDS = 2
  */
 const timeline = useTimelineStore()
 
-const disabled = computed(() => selection.count < MINIMUM_OPERANDS || timeline.previewing)
+/**
+ * `TODO/ui-052`: a selected body that a condition has switched off (picked from the object
+ * list, the only place it can be picked) is in `selection.count` but has no geometry, so
+ * no operation can use it. Folded into all three gates, the same way preview is.
+ */
+const inactiveSelected = computed(() =>
+  selection.ids.some((id) => documentStore.inactiveBodies.some((body) => body.id === id)),
+)
+
+const disabled = computed(() => selection.count < MINIMUM_OPERANDS || timeline.previewing || inactiveSelected.value)
 
 /** What a disabled button says when hovered or long-pressed. */
 const DISABLED_HINT = `Select ${MINIMUM_OPERANDS} or more solids`
@@ -530,7 +539,9 @@ const SNAP_ORIENTATIONS = Object.freeze([
 /** Snap/Align's own precondition: exactly 2, not "2 or more" (see module doc). */
 const EXACT_OPERANDS = 2
 
-const snapAlignDisabled = computed(() => selection.count !== EXACT_OPERANDS || timeline.previewing)
+const snapAlignDisabled = computed(
+  () => selection.count !== EXACT_OPERANDS || timeline.previewing || inactiveSelected.value,
+)
 
 /** What a disabled Snap/Align button says when hovered or long-pressed. */
 const SNAP_ALIGN_DISABLED_HINT = `Select exactly ${EXACT_OPERANDS} solids`
@@ -591,7 +602,7 @@ const FACE_OPTIONS = RIM_FACE_OPTIONS
  */
 const EXACT_ONE = 1
 
-const exactOneDisabled = computed(() => selection.count !== EXACT_ONE || timeline.previewing)
+const exactOneDisabled = computed(() => selection.count !== EXACT_ONE || timeline.previewing || inactiveSelected.value)
 
 /** What a disabled exactly-1-gated button says when hovered or long-pressed. */
 const EXACT_ONE_DISABLED_HINT = `Select exactly ${EXACT_ONE} solid`
@@ -1329,6 +1340,9 @@ function commitResize() {
            sentence above 640px, a short one at/below it so the legend never
            wraps to a second line there — see `DISABLED_HINT_SHORT`'s own
            comment for the measured overlap this closes. -->
+      <span v-else-if="inactiveSelected" class="ops__legend" data-testid="operations-inactive-note">
+        not built — its condition doesn't hold
+      </span>
       <span v-else class="ops__legend">
         <span class="ops__legend-full">{{ DISABLED_HINT.toLowerCase() }}</span>
         <span class="ops__legend-short">{{ DISABLED_HINT_SHORT.toLowerCase() }}</span>

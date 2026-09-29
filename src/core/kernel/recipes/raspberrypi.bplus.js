@@ -117,6 +117,36 @@ export const DEFAULT_MODEL = 2
 export const DEFAULT_CLEARANCE_MM = 5
 
 /**
+ * Parts that are **the same connector under a different name** from one model to
+ * another (`TODO/ui-052`) — what the repair dialog offers as a Remap suggestion when a
+ * model change leaves something snapped to a part the new board does not have.
+ *
+ * Deliberately short, and every entry is a real rename of one physical role rather
+ * than "the nearest similar-looking part":
+ *
+ * - `camera` ↔ `camera0` — the ribbon connector; the Pi 5 has two and names the
+ *   primary one `camera0`.
+ * - `microusb` ↔ `usbc` — the power input (Pi 2/3 micro-USB, Pi 4/5 USB-C).
+ * - `hdmi` ↔ `hdmi1` — the primary display output (one full-size port on the Pi 2/3,
+ *   two micro-HDMI on the Pi 4/5).
+ *
+ * `avjack` has **no** alias on purpose: the Pi 5 has no analogue AV jack at all, and
+ * remapping a snap onto "the nearest jack" is exactly the silent wrong geometry the
+ * repair dialog exists to prevent. An alias is only ever *suggested* when the target
+ * name exists on the new model and the old one does not — see `src/core/dependents.js`.
+ *
+ * @type {Readonly<Record<string, string>>}
+ */
+export const BPLUS_PART_ALIASES = Object.freeze({
+  camera: 'camera0',
+  camera0: 'camera',
+  microusb: 'usbc',
+  usbc: 'microusb',
+  hdmi: 'hdmi1',
+  hdmi1: 'hdmi',
+})
+
+/**
  * The motherboard: a rounded rectangle extruded to thickness, the same
  * `profile.roundedRectangle` → `profile.extrudeLinear` pair `kit.board` emits. V1's
  * `Board` leaves it in the positive quadrant with its underside on `z = 0`, which is

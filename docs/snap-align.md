@@ -107,6 +107,64 @@ into is the side that gets measured by its part; the other is measured whole.
 (the item's own name) in the Inspector, or click empty space and start the
 selection again. The popover's top line always tells you which you are on.
 
+## When the part you snapped to goes away
+
+A Snap or Align against a named part is **live**: it is worked out again whenever the
+thing it points at changes. So if you
+[change the board's model](selection-and-inspector.md#changing-a-parts-model-or-size), a
+cube snapped to a Pi 4's Ethernet jack moves to where the Pi 5's Ethernet jack is, with
+no questions asked.
+
+If the new model **doesn't have that part at all** — a Pi 5 has no AV jack — nothing is
+changed yet. A dialog opens instead: *"This change affects 1 item"*. Each row names the
+item (point at it to find it in the 3D view), what it is attached to (`Snap → avjack`),
+and why that no longer works (*"Pi 5 has no part named `avjack`"*). Pick a **Fix** for
+each row:
+
+| Fix | What happens |
+|---|---|
+| **Only when Raspberry Pi 1's Model is Pi 4** | Keep the item, but only on a Pi 4. On a Pi 5 it simply isn't there (not broken, not drawn); switch back to a Pi 4 and it returns, still snapped. One design can then hold parts for several board revisions. |
+| **Remap to another part…** | Point the snap at a part the new board *does* have. Pre-filled only when the part really was renamed (a Pi 4's `camera` is a Pi 5's `camera0`); otherwise you choose. |
+| **Detach — keep it where it is** | The item stays exactly where it is now and forgets the link. Offered for Snap and Align only. |
+| **Leave broken** | Make the change anyway and fix it later. |
+
+**Apply** makes the model change and every fix as **one** step — a single **Undo** puts
+the old model *and* the original snap back. **Cancel** (or **Escape**) changes nothing and
+puts the dropdown back. Apply stays greyed until every row has a fix; the default is
+Remap when there is a real rename to suggest, and Leave broken otherwise. **Only when…**
+is never picked for you, because it changes what the design means.
+
+On a phone the dialog is a full-height sheet: each Fix dropdown sits full width under its
+row, and Apply/Cancel stay pinned to the bottom.
+
+**Leave broken, then Resolve….** An item left broken still shows where it last was, so you
+can find it. The Pi's Inspector says *"1 item refers to parts this Pi 5 doesn't have."*,
+the item's own Inspector says *"Snapped to Raspberry Pi 1 ▸ avjack, which no longer
+exists."*, and its History row carries the `broken` label. Both banners have a
+**Resolve…** button that reopens the same dialog, where you can Remap, Detach or make it
+conditional now.
+
+### Worked example: detach a cube from a jack that went away
+
+1. Drag a Raspberry Pi into the viewport and choose **Pi 4** in the Library before
+   dropping it. Drop a Cube next to it.
+2. Select the Cube, then Shift-click the Pi's AV jack (or, in the Inspector's object list,
+   tick the Cube and then tick `avjack` under the Pi's ▸) so both are selected, and use
+   **Snap** to sit the cube against the jack.
+3. Now select the whole Pi and change **Model** to **Pi 5**. A dialog explains that the
+   Pi 5 has no AV jack.
+4. For the Cube's row choose **Detach** and press **Apply**. The Pi becomes a Pi 5 and the
+   cube stays exactly where it was.
+5. Press **Undo** once and you're back to a Pi 4 with the cube snapped to its jack.
+
+### Worked example: keep a part for one board revision only
+
+Do the same again, but in step 4 choose **Only when Raspberry Pi 1's Model is Pi 4** for
+the Cube and press **Apply**. The Cube disappears, and its History rows show
+`if Raspberry Pi 1 = Pi 4`. Change the Model back to **Pi 4** and the Cube reappears,
+still snapped to the AV jack. Use this to keep parts for several board revisions in one
+design.
+
 ## The popover's fields
 
 - **What's being positioned** — the top line, naming the moving item first and

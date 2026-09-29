@@ -127,11 +127,14 @@ import { useAlignReferenceStore } from '../../stores/alignReference.js'
 import AlignToOrigin from './AlignToOrigin.vue'
 import ObjectList from './ObjectList.vue'
 import DeleteButton from './DeleteButton.vue'
+import ParamFields from './ParamFields.vue'
+import DependentsBanner from './DependentsBanner.vue'
+import ConditionRow from './ConditionRow.vue'
 import { useObjectListStore } from '../../stores/objectList.js'
 import { useDocumentStore } from '../../stores/document.js'
 import { useSketchPreviewStore } from '../../stores/sketchPreview.js'
 import { useTransformCommands } from '../../composables/useTransformCommands.js'
-import { useParamCommands } from '../../composables/useParamCommands.js'
+import { parseNumeric } from '../../composables/numericEntry.js'
 import { useSketchCommands } from '../../composables/useSketchCommands.js'
 import { useColorCommands } from '../../composables/useColorCommands.js'
 import { useColorPreviewStore } from '../../stores/colorPreview.js'
@@ -297,6 +300,7 @@ const sheetEl = ref(/** @type {HTMLElement | null} */ (null))
 const tabLabel = computed(() => {
   if (sketchEntity.value) return sketchEntity.value.name
   if (body.value) return body.value.name
+  if (described.value.inactive) return described.value.inactive.name
   if (panelState.value === 'empty') return `Objects (${objectList.rows.length})`
   return 'Inspector'
 })
@@ -422,20 +426,6 @@ function onTabClick() {
   setOpen(next)
 }
 
-/**
- * One field value, formatted for display. Millimetres go through the shared
- * `src/core/units.js` formatter so the panel and the viewport's dimension
- * labels can never round the same number two different ways.
- *
- * @param {number | string | undefined} value
- * @param {string} unit
- * @returns {string}
- */
-function displayValue(value, unit) {
-  if (typeof value !== 'number') return String(value ?? '')
-  return unit === 'mm' ? formatMmValue(value) : String(value)
-}
-
 // --- editable Transform fields (TODO/ui-012) ------------------------------
 
 const transformCommands = useTransformCommands()
@@ -473,24 +463,6 @@ function fieldValue(key, display) {
   return editingField.value === key ? editingSnapshot.value : display
 }
 
-/**
- * Parse what a user typed into a numeric field.
- *
- * Tolerant of the unit suffix the field itself displays — `"12.5 mm"` and `"45°"`
- * round-trip, because a user who selects-all and retypes will often keep it —
- * and of a comma decimal separator. Anything that is not a number is rejected by
- * returning `null`, which restores the field rather than committing a `NaN`
- * transform the kernel would reject anyway.
- *
- * @param {string} text
- * @returns {number | null}
- */
-function parseNumeric(text) {
-  const cleaned = text.replace(/[°\s]/g, '').replace(/mm$/i, '').replace(',', '.')
-  if (cleaned === '' || cleaned === '-') return null
-  const value = Number(cleaned)
-  return Number.isFinite(value) ? value : null
-}
 
 /**
  * @param {Event} event
@@ -536,148 +508,6 @@ function commitTransformField(event, which, axisIndex) {
  */
 function onFieldEnter(event) {
   /** @type {HTMLInputElement} */ (event.target).blur()
-}
-
-// --- editable Parameters fields (TODO/ui-029) -----------------------------
-
-const paramCommands = useParamCommands()
-
-/**
- * Plain-language names for the ops that can freeze this section, for the note
- * below. Only the ops that can actually get into a primitive's lineage today
- * need an entry; anything else falls back to its own registry key, which is
- * still more useful than "an operation".
- *
- * @type {Readonly<Record<string, string>>}
- */
-const BLOCKING_OP_LABELS = Object.freeze({
-  'modify.filletRim': 'Fillet',
-  'modify.chamferRim': 'Chamfer',
-})
-
-/**
- * Whether this body's own params may be edited, and what stands in the way when
- * they may not.
- *
- * Reads the document imperatively — `documentStore.version` is the reactive
- * trigger, the same pattern `useSelectedBody` uses, because the lineage lives
- * outside Vue's reactivity on purpose (CLAUDE.md's Performance section).
- *
- * @returns {import('../../core/paramEdit.js').ParamEditability}
- */
-const paramEditability = computed(() => {
-  void documentStore.version
-  const selected = body.value
-  // A drilled-into sub-part has no record of its own to target — the identical
-  // reason the Transform section is already frozen in that state (`ui-016`),
-  // extended here rather than re-derived.
-  if (!selected || isSubPart.value) return { editable: false, blockedBy: null }
-  return paramCommands.canEdit(selected.id)
-})
-
-const paramsEditable = computed(() => paramEditability.value.editable)
-
-/**
- * Is the thing standing in the way of an edit the body's **own recipe**, rather
- * than an operation stacked on top of it (`TODO/ui-030`)?
- *
- * A bolt's `spec` is a key into a size table and its `fit` is a clearance class:
- * neither is a millimetre, and the dropdown they need is `ui-029`'s explicit
- * scope cut. The distinction matters on screen, not just in the model — telling
- * someone their bolt is frozen "because an operation is applied on top of it"
- * would be a lie about a part they have only just dropped.
- *
- * @returns {boolean}
- */
-const isRecipePart = computed(() => Boolean(body.value?.isRecipe) && !paramsEditable.value)
-
-/** The blocking op's plain-language name, or `''` when nothing is blocking. */
-const blockingOpLabel = computed(() => {
-  const op = paramEditability.value.blockedBy
-  if (!op) return ''
-  return BLOCKING_OP_LABELS[op] ?? op
-})
-
-/**
- * The last kernel validation error a param edit produced, or `null`.
- *
- * The same user-facing runtime kernel-error contract `ui-027` established for
- * the Fillet/Chamfer popover (`OperationsToolbar.vue`'s `opError`), reused here
- * rather than invented a second time — a diameter of `0` or a negative height
- * hits `requirePositive`'s throw in the registry, and a user who typed it needs
- * to see why nothing happened rather than have it vanish into the console.
- *
- * @type {import('vue').Ref<string | null>}
- */
-const paramError = ref(/** @type {string | null} */ (null))
-
-// A message about a value on *this* body must not linger onto the next one.
-watch(() => body.value?.id, () => { paramError.value = null })
-
-/**
- * Is this particular field editable? `text`-kind params (a bolt's `spec`/`fit`)
- * stay read-only even on an otherwise editable body: they are enums needing a
- * dropdown, not a numeric parser — `TODO/ui-029`'s explicit scope cut.
- *
- * @param {import('../../core/inspector.js').ParamField} field
- * @returns {boolean}
- */
-function fieldEditable(field) {
-  return paramsEditable.value && (field.kind === 'number' || field.kind === 'vector')
-}
-
-/**
- * Run one param edit, surfacing a kernel rejection in the panel.
- *
- * @param {() => void} edit
- * @returns {void}
- */
-function runParamEdit(edit) {
-  paramError.value = null
-  try {
-    edit()
-  } catch (error) {
-    paramError.value = error instanceof Error ? error.message : String(error)
-  }
-}
-
-/**
- * Commit a typed scalar param field — a Diameter, a Height.
- *
- * @param {Event} event
- * @param {string} key
- * @returns {void}
- */
-function commitParamField(event, key) {
-  const input = /** @type {HTMLInputElement} */ (event.target)
-  const parsed = parseNumeric(input.value)
-  const selectedBody = body.value
-  // Released first, so the re-render repaints the field with the document's own
-  // formatting — which is also how a rejected value is undone, exactly as the
-  // Transform fields already do it.
-  editingField.value = ''
-  // The fields are `readonly` when this is false, so this should be unreachable
-  // — the guard is here rather than assumed, because the failure mode it stands
-  // in front of is silent data loss, not a visible error.
-  if (parsed === null || !selectedBody || !paramsEditable.value) return
-  runParamEdit(() => paramCommands.setParam(selectedBody.id, key, parsed))
-}
-
-/**
- * Commit one typed component of a vector param — Size X, Side B.
- *
- * @param {Event} event
- * @param {string} key
- * @param {number} index
- * @returns {void}
- */
-function commitParamComponent(event, key, index) {
-  const input = /** @type {HTMLInputElement} */ (event.target)
-  const parsed = parseNumeric(input.value)
-  const selectedBody = body.value
-  editingField.value = ''
-  if (parsed === null || !selectedBody || !paramsEditable.value) return
-  runParamEdit(() => paramCommands.setParamComponent(selectedBody.id, key, index, parsed))
 }
 
 // --- the Parts section (TODO/ui-049, superseding ui-047's Hidden parts) -----
@@ -980,6 +810,35 @@ watch([() => body.value?.id, colorPart], () => {
         <DeleteButton />
       </template>
 
+      <!-- A body a condition is keeping out of the fold (TODO/ui-052): not drawn, so only
+           the object list can select it — and this is where its condition is edited. -->
+      <template v-else-if="described.state === 'inactive' && described.inactive">
+        <nav class="inspector__breadcrumb" data-testid="inspector-breadcrumb" aria-label="Selection depth">
+          <button
+            type="button"
+            class="inspector__crumb inspector__crumb--link"
+            data-testid="inspector-breadcrumb-root"
+            @click="onObjectsCrumb"
+          >
+            Objects
+          </button>
+          <span class="inspector__crumb-sep" aria-hidden="true">▸</span>
+          <span class="inspector__crumb" aria-current="true">{{ described.inactive.name }}</span>
+        </nav>
+        <p class="inspector__name" data-testid="inspector-name">{{ described.inactive.name }}</p>
+        <p class="inspector__note" data-testid="inspector-inactive-note">
+          <template v-if="described.inactive.state === 'inactive'">
+            Not built right now: it only exists while its condition holds, so it isn't drawn and
+            can't be picked in the 3D view. Edit or remove the condition to change that.
+          </template>
+          <template v-else>
+            Its condition can't be evaluated any more, so it isn't built. Edit or remove the
+            condition to fix it.
+          </template>
+        </p>
+        <ConditionRow :record-id="described.inactive.id" :condition="described.inactive.condition" />
+      </template>
+
       <template v-else-if="body">
         <!-- The pick-depth breadcrumb (TODO/ui-016). Present only while a part
              inside a group is the selection, and the whole reason control 6
@@ -1018,6 +877,9 @@ watch([() => body.value?.id, colorPart], () => {
         <p class="inspector__op" data-testid="inspector-op" :data-op="body.op">
           {{ body.opLabel }}
         </p>
+        <!-- A breakage committed with Leave broken (TODO/ui-052): on the body whose parts
+             went missing and on the dependent, each with Resolve…. -->
+        <DependentsBanner v-if="!body.subPart" :body="body" />
 
         <!-- The Color control (TODO/ui-037). Its own small section, and the first
              one, because it is a single row: at phone width it is on screen the
@@ -1088,100 +950,11 @@ watch([() => body.value?.id, colorPart], () => {
           </p>
         </section>
 
-        <section
-          class="inspector__section"
-          data-testid="inspector-params"
-          :data-editable="paramsEditable ? 'true' : 'false'"
-          :data-blocked-by="paramEditability.blockedBy ?? ''"
-        >
-          <h3 class="inspector__section-title">Parameters</h3>
-          <dl class="inspector__fields">
-            <template v-for="field in body.params" :key="field.key">
-              <template v-if="field.kind === 'vector'">
-                <dt class="inspector__label">
-                  {{ field.label }}<span v-if="field.unit" class="inspector__unit"> ({{ field.unit }})</span>
-                </dt>
-                <dd class="inspector__value inspector__value--vector">
-                  <label
-                    v-for="(component, index) in field.components"
-                    :key="component.label"
-                    class="inspector__component"
-                  >
-                    <span class="inspector__component-label">{{ component.label }}</span>
-                    <input
-                      class="inspector__input"
-                      :class="{ 'inspector__input--editable': fieldEditable(field) }"
-                      type="text"
-                      inputmode="decimal"
-                      :readonly="!fieldEditable(field)"
-                      :data-testid="`inspector-param-${field.key}-${component.label.toLowerCase()}`"
-                      :aria-label="`${field.label} ${component.label}${field.unit === 'mm' ? ' in millimetres' : ''}`"
-                      :value="
-                        fieldValue(
-                          `param-${field.key}-${index}`,
-                          displayValue(component.value, field.unit),
-                        )
-                      "
-                      @focus="onFieldFocus($event, `param-${field.key}-${index}`)"
-                      @blur="commitParamComponent($event, field.key, index)"
-                      @keydown.enter.prevent="onFieldEnter"
-                    />
-                  </label>
-                </dd>
-              </template>
-              <template v-else>
-                <dt class="inspector__label">{{ field.label }}</dt>
-                <dd class="inspector__value">
-                  <input
-                    class="inspector__input"
-                    :class="{ 'inspector__input--editable': fieldEditable(field) }"
-                    type="text"
-                    inputmode="decimal"
-                    :readonly="!fieldEditable(field)"
-                    :data-testid="`inspector-param-${field.key}`"
-                    :aria-label="`${field.label}${field.unit === 'mm' ? ' in millimetres' : ''}`"
-                    :value="fieldValue(`param-${field.key}`, displayValue(field.value, field.unit))"
-                    @focus="onFieldFocus($event, `param-${field.key}`)"
-                    @blur="commitParamField($event, field.key)"
-                    @keydown.enter.prevent="onFieldEnter"
-                  />
-                  <span v-if="field.unit" class="inspector__unit">{{ field.unit }}</span>
-                </dd>
-              </template>
-            </template>
-          </dl>
-
-          <!-- The same user-facing kernel-error surface `ui-027` established in
-               the Fillet/Chamfer popover, reused rather than reinvented: a
-               diameter of 0 throws inside the registry, and the user who typed
-               it has to see why nothing moved. -->
-          <p v-if="paramError" class="inspector__error" data-testid="inspector-param-error">
-            {{ paramError }}
-          </p>
-
-          <!-- Freeze rather than silently do the wrong thing (`ui-016`'s
-               precedent, applied to this section). Rebuilding the creation
-               record cannot carry a rounded rim with it, so the fields stay
-               read-only and say which op is in the way. -->
-          <p
-            v-if="!paramsEditable && !isSubPart"
-            class="inspector__note"
-            data-testid="inspector-params-note"
-          >
-            <template v-if="isRecipePart">
-              These are catalogue values for a ready-made part, not dimensions you can
-              type over: {{ body.opLabel }} is built from a size table, so changing it
-              means picking another size rather than entering a number. Move, rotate and
-              delete all work as usual.
-            </template>
-            <template v-else>
-              These parameters are read-only because this shape has
-              {{ blockingOpLabel ? `a ${blockingOpLabel}` : 'another operation' }} applied on
-              top of it. Changing a parameter rebuilds the shape from these numbers, which
-              would throw that away — so it is frozen rather than done quietly.
-            </template>
-          </p>
-        </section>
+        <!-- Parameters (TODO/ui-029, extracted by TODO/ui-052): a primitive's numbers, a
+             composite's catalogue choices as native selects, and a drilled-into part's
+             parent choices read-only with a way back up. -->
+        <ParamFields :body="body" />
+        <ConditionRow v-if="body.condition && !body.subPart" :record-id="body.id" :condition="body.condition" />
 
         <section class="inspector__section" data-testid="inspector-transform">
           <h3 class="inspector__section-title">Transform</h3>

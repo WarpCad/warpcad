@@ -830,6 +830,31 @@ export function disposeBodyObject(object) {
 }
 
 /**
+ * May an existing body object be kept as it is? Only when it was built for the **same
+ * terminal record** *and* the **same evaluated geometry**, with the same hidden parts shown.
+ *
+ * The record id alone is not enough since `TODO/ui-052`: a row revised in place keeps its
+ * id while its result changes — a composite whose model changed under the same terminal, a
+ * snap left broken that now folds as identity. Keyed on the id alone, the viewport kept
+ * drawing the old mesh while the bounds, the gizmo and the Inspector had all moved on. The
+ * fold cache (`TODO/core-031`) hands back the very same geometry object for a record whose
+ * inputs did not change, so the identity check costs nothing for an untouched body.
+ *
+ * @param {{ recordId?: string, geometry?: unknown, hiddenShownKey?: string }} userData The
+ *   existing object's `userData`, read **before** it is refreshed for this pass.
+ * @param {{ recordId: string, geometry: unknown }} body The body as the document now has it.
+ * @param {string} hiddenShownKey
+ * @returns {boolean}
+ */
+export function bodyObjectIsCurrent(userData, body, hiddenShownKey) {
+  return (
+    userData.recordId === body.recordId &&
+    userData.geometry === body.geometry &&
+    userData.hiddenShownKey === hiddenShownKey
+  )
+}
+
+/**
  * Swap in freshly evaluated geometry for a body whose record changed, reusing
  * the object already in the scene when its **shape** — bare solid, or a group
  * with exactly these named parts — is unchanged.

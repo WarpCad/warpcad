@@ -52,24 +52,133 @@
  * so a rejected edit leaves the document and the undo stack exactly as they were,
  * whichever of the three records refused.
  *
+ * ## A composite is a different path (`TODO/ui-052`)
+ *
+ * A Pi's model or a bolt's spec is edited on `data-004`'s **replace** path instead: the
+ * creation record is swapped in place (`compositeParamEditRecord`) and the whole log
+ * re-folds, so the pose survives without any re-apply and a snap onto one of its parts
+ * follows the change. Because a variant change can remove a part something else depends
+ * on, {@link setParam} runs the impact check (`src/core/dependents.js`) **before**
+ * committing: nothing breaks → it commits at once, one Undo step; something would break
+ * → nothing is committed and the breakages come back for the repair dialog, whose choices
+ * {@link applyRepair} then commits together with the edit, again as one Undo step.
+ *
+ * Synchronous, not the `async` the task sketched: that was for a worker round-trip, and
+ * the fold (and so the check) runs on the main thread by `core-031`'s decision. A Pi
+ * builds in under 10 ms, and a synchronous result keeps `ui-029`'s "a rejected value
+ * throws" contract for every caller.
+ *
  * @module composables/useParamCommands
  */
 
-import { canEditParams, paramEditRecord, currentParamsOf, withComponent } from '../core/paramEdit.js'
+import { toRaw } from 'vue'
+
+import { brokenDependentsOf, impactOf } from '../core/dependents.js'
+import { evaluate } from '../core/kernel/index.js'
+import { isGroup } from '../core/kernel/group.js'
+import { paramOptions, registry } from '../core/kernel/registry.js'
+import { canEditParams, compositeParamEditRecord, paramEditRecord, currentParamsOf, withComponent } from '../core/paramEdit.js'
+import { repairChanges } from '../core/repair.js'
 import { moveToRecord, positionOf, rotateToRecord, rotationOf } from '../core/transform.js'
 import { useDocumentStore } from '../stores/document.js'
 
 /** @typedef {import('../core/paramEdit.js').ParamEditability} ParamEditability */
+/** @typedef {import('../core/dependents.js').Breakage} Breakage */
+/** @typedef {import('../core/repair.js').RepairEdit} RepairEdit */
+/** @typedef {import('../core/repair.js').Fix} Fix */
+
+/**
+ * What {@link setParam} did.
+ *
+ * @typedef {{ committed: true }
+ *   | { needsRepair: true, breakages: Breakage[], edit: RepairEdit }} ParamResult
+ */
 
 /**
  * @returns {{
  *   canEdit: (bodyId: string) => ParamEditability,
- *   setParam: (bodyId: string, key: string, value: number) => void,
+ *   setParam: (bodyId: string, key: string, value: unknown) => ParamResult,
+ *   setCompositeParams: (bodyId: string, values: Record<string, unknown>) => ParamResult,
  *   setParamComponent: (bodyId: string, key: string, index: number, value: number) => void,
+ *   applyRepair: (edit: RepairEdit, breakages: readonly Breakage[], fixes: Record<string, Fix>) => void,
+ *   resolveTargets: (bodyId: string) => { edit: RepairEdit, breakages: Breakage[] },
+ *   setCondition: (recordId: string, when: { ref: string, param: string, in: any[] } | null) => void,
  * }}
  */
 export function useParamCommands() {
   const documentStore = useDocumentStore()
+
+  /**
+   * The live document without Pinia's proxy: the fold cache is keyed by the *raw*
+   * record objects, and a proxied record would miss it (the History preview's reason).
+   */
+  function live() {
+    return toRaw(documentStore.raw)
+  }
+
+  /** @param {string} id */
+  function nameOf(id) {
+    return live().recordOf(id)?.name ?? id
+  }
+
+  /**
+   * A composite param edit: impact-check, then commit or hand back the breakages.
+   *
+   * @param {string} bodyId
+   * @param {Record<string, unknown>} values Params to change — one from the Inspector, the
+   *   whole form from a History row's Edit.
+   * @returns {ParamResult}
+   */
+  function setCompositeParams(bodyId, values) {
+    const raw = live()
+    const before = raw.recordOf(bodyId)?.params ?? {}
+    const record = compositeParamEditRecord(raw, bodyId, values)
+    if (record === null) return { committed: true }
+    const changes = [{ id: bodyId, record }]
+    const { breakages } = impactOf(raw, changes, { editedRootId: bodyId })
+    // The enum that actually changed is what Only when… keeps a dependent for.
+    const schema = paramOptions(record.op, record.params ?? {})
+    const key = Object.keys(values).find(
+      (candidate) => schema[candidate]?.kind === 'enum' && !Object.is(before[candidate], record.params?.[candidate])
+    )
+    /** @type {RepairEdit} */
+    const edit = {
+      rootId: bodyId,
+      record,
+      param: key ?? null,
+      oldValue: key === undefined ? undefined : before[key],
+    }
+    if (breakages.length > 0) return { needsRepair: true, breakages, edit }
+    documentStore.revise(changes, { label: `Edit ${nameOf(bodyId)}` })
+    return { committed: true }
+  }
+
+  /**
+   * The values of an enum param for which a composite **has** every one of `pieces` —
+   * what **Only when…** offers on Resolve…, where the value the part existed at is
+   * no longer known. Measured by building each variant, not guessed from names.
+   *
+   * @param {import('../core/kernel/registry.js').OpRecord} root
+   * @param {string} key
+   * @param {readonly string[]} pieces
+   * @returns {any[]}
+   */
+  function valuesWithParts(root, key, pieces) {
+    const field = paramOptions(root.op, root.params ?? {})[key]
+    if (field?.kind !== 'enum') return []
+    return field.options
+      .map((option) => option.value)
+      .filter((value) => {
+        try {
+          const probe = evaluate([{ id: 'probe', op: root.op, params: { ...root.params, [key]: value } }], {
+            registry,
+          }).byId.get('probe')
+          return probe !== undefined && isGroup(probe) && pieces.every((piece) => piece in probe.parts)
+        } catch {
+          return false
+        }
+      })
+  }
 
   /**
    * Rebuild one body's creation record with new params, then put it back where
@@ -127,9 +236,79 @@ export function useParamCommands() {
       return canEditParams(documentStore.raw, bodyId)
     },
 
-    /** Commit one typed scalar param: a diameter, a height. */
+    /**
+     * Commit one param. A primitive's typed scalar (a diameter, a height) goes through
+     * `ui-029`'s append path, unchanged; a composite's (a Pi's model, a bolt's spec or
+     * length) through the replace path with its impact check — see the module doc.
+     */
     setParam(bodyId, key, value) {
-      applyChanges(bodyId, { [key]: value })
+      const verdict = canEditParams(live(), bodyId)
+      if (verdict.path === 'replace') return setCompositeParams(bodyId, { [key]: value })
+      applyChanges(bodyId, { [key]: /** @type {number} */ (value) })
+      return { committed: true }
+    },
+
+    /** Several params of one composite at once — a History row's whole Edit form. */
+    setCompositeParams,
+
+    /**
+     * Commit a held edit together with the fix chosen for every breakage — one
+     * revision, one Undo step labelled `Edit <body>`.
+     */
+    applyRepair(edit, breakages, fixes) {
+      const changes = repairChanges(live(), edit, breakages, fixes)
+      documentStore.revise(changes, {
+        label: edit.record === null ? `Repair ${nameOf(edit.rootId)}` : `Edit ${nameOf(edit.rootId)}`,
+      })
+    },
+
+    /**
+     * What **Resolve…** reopens the dialog with for a body's committed breakages: the
+     * rows left broken against it, and an edit with no record (nothing new to commit)
+     * whose Only-when values are the variants that really have the missing parts.
+     */
+    resolveTargets(bodyId) {
+      const raw = live()
+      const root = raw.recordOf(bodyId)
+      const breakages = brokenDependentsOf(raw, bodyId)
+      const enumKey = root
+        ? Object.entries(paramOptions(root.op, root.params ?? {})).find(([, field]) => field.kind === 'enum')?.[0]
+        : undefined
+      const missing = [...new Set(breakages.flatMap((breakage) => breakage.missingPieces))]
+      const values = root && enumKey ? valuesWithParts(root, enumKey, missing) : []
+      return {
+        edit: {
+          rootId: bodyId,
+          record: null,
+          param: enumKey !== undefined && values.length > 0 ? enumKey : null,
+          oldValue: undefined,
+          conditionValues: values,
+        },
+        breakages,
+      }
+    },
+
+    /**
+     * Set, change or remove the condition on a record (the Inspector's Condition row).
+     *
+     * A condition that stops holding may bring back a body whose snap cannot build —
+     * removing "only when Pi 4" on a Pi 5 brings back a cube snapped to a jack the Pi 5
+     * does not have. That is the original problem, restored rather than hidden, so
+     * those rows come back **left broken** (flagged, with Resolve…) in the same step.
+     */
+    setCondition(recordId, when) {
+      const raw = live()
+      const record = raw.recordOf(recordId)
+      if (record === undefined) throw new Error(`No step "${recordId}" in this document`)
+      const { when: _previous, ...rest } = record
+      const next = when === null ? rest : { ...rest, when }
+      const change = { id: recordId, record: next }
+      const { breakages } = impactOf(raw, [change], { editedRootId: when?.ref ?? _previous?.ref ?? recordId })
+      const bodyName = nameOf(raw.rootOf(recordId) ?? recordId)
+      documentStore.revise(
+        [change, ...breakages.map((breakage) => ({ id: breakage.dependentRecordId, leftBroken: true }))],
+        { label: when === null ? `Remove condition from ${bodyName}` : `Edit condition on ${bodyName}` },
+      )
     },
 
     /** Commit one typed component of a vector param: Size X, Side B. */

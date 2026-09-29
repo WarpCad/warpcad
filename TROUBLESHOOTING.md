@@ -322,6 +322,49 @@ suspecting the pointer path, the selection store or the mesh.
 3. Probed ±0.3 px and ±1 px around the miss: every neighbour hit. Zero-width crack.
 4. Added the retry offsets; the spec passes unchanged at the same coordinates.
 
+### 2026-09-29 — A row revised in place keeps its id, so the viewport kept drawing the old mesh
+
+**What happened:**
+
+Hand-driving `TODO/ui-052` (a Pi 4 changed to a Pi 5 with a cube snapped to its AV jack,
+committed with **Leave broken**): the cube's Inspector, gizmo and dimension lines all
+moved back to the cube's pre-snap position, but the cube's **mesh** stayed drawn at the
+snapped position. Clicking where the gizmo said the cube was picked nothing. Every test
+passed — they all read `data-body-center`/`data-body-volume`, which come from the
+document, not from the three.js scene.
+
+**Why it happened:**
+
+`Viewport.vue`'s mesh sync skipped a body whenever `existing.userData.recordId ===
+body.recordId` — "same terminal record, nothing to rebuild". That held while every edit
+appended a record. `data-004`'s replace path, and `ui-052`'s `reviseRecords`, change a
+row **in place**: the terminal record keeps its id while its evaluated geometry changes (a
+snap left broken folds as identity; a revised row re-folds). Same id, different solid, so
+the mesh was never swapped.
+
+**Why this matters for every future task in this environment:**
+
+Any feature that revises a record in place (mid-history edit, suppress, a condition
+toggled, a composite param edit) can leave the rendered mesh out of step with the
+document while every DOM-reported number is right. A spec that only reads
+`scene-bodies` attributes cannot see it; it takes a pixel check or a pick.
+
+**Fix / Prevention:**
+
+`src/render/mesh.js`'s `bodyObjectIsCurrent(userData, body, hiddenShownKey)`: keep a mesh
+only when the record id **and the evaluated geometry object** are both unchanged. The
+fold cache (`core-031`) returns the same geometry object for an untouched record, so this
+costs nothing at rest. Guarded by `mesh.spec.js` and by a pick in
+`e2e/composite-param-edit.e2e.js` (click the gizmo hub's spot with nothing selected and
+the cube must be picked), which fails against the old id-only check.
+
+**Steps taken to resolve:**
+
+1. Compared the cube's `data-body-center` (pre-snap) with a screenshot (mesh at the snap).
+2. Found the id-only early-out in the mesh sync loop.
+3. Added the geometry-identity check, wrote the unit test RED first, then proved the e2e
+   pick fails with the old check and passes with the new one.
+
 <!-- Template for new entries:
 
 ### YYYY-MM-DD — [Short title describing the discovery]

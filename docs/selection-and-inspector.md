@@ -167,6 +167,64 @@ Two cases, and the panel tells you which:
   dimensions that are fixed. If you need a different size, make the shape the size you
   want first, then round it.
 
+## Changing a part's model or size
+
+A ready-made part from the Library — a **Raspberry Pi**, a **Bolt**, a **Nut**, a
+**Washer**, a **Bearing**, the Pi **Camera Module** — can be changed after you have placed
+it, not just before. Select it and look at its **Parameters**:
+
+- A **choice** is a dropdown: a Pi's **Model** (Pi 2 / 3 / 4 / 5, the same list the
+  Library row offers before you drag), a bolt's **Spec** and **Fit**, a nut or washer's
+  **Spec** and **Fit**, a bearing's **Spec**. Pick a different option and the part is
+  rebuilt straight away. On an iPhone or iPad the dropdown opens as the system's own wheel
+  picker.
+- A **size** is an ordinary number box, the same as a cube's: a bolt's **Length**, a Pi's
+  **Clearance**. Type a number and press **Enter**.
+
+The part is rebuilt **in place**: it keeps its position, its rotation and any colours you
+gave it, and it stays selected. A bolt's **Fit** list is always the fits the chosen
+**Spec** actually has, because they come from that spec's own row in the size table.
+
+Anything positioned against the part **follows the change** when it can. A plug you
+[snapped](snap-align.md) to a Pi 4's Ethernet jack moves to where the Pi 5's Ethernet
+jack is, because both boards have one. When the new option is missing a part that
+something depends on — a Pi 5 has no AV jack — the change is held and a dialog asks what
+to do first. See [When the part you snapped to goes away](snap-align.md#when-the-part-you-snapped-to-goes-away).
+
+**Why a part's own parameters are greyed out.** If you have drilled into one part of the
+Pi (the breadcrumb reads `Raspberry Pi 1 ▸ ethernet`), the Parameters section shows the
+whole Pi's Model read-only, with *"Select the whole Raspberry Pi 1 to change its model"*
+and a link that does it. A part has no model of its own: the Ethernet jack is whatever the
+board's model says it is. Kit parts (boards, standoffs, fans and the like) don't have
+their options described yet, so theirs stay read-only and the panel says so.
+
+### Worked example: turn a Pi 4 into a Pi 5
+
+1. From the Library's **Raspberry Pi** section, leave the row's Model on **Pi 4** and
+   drag it into the 3D view. It is selected, and its Inspector shows **Model: Pi 4**.
+2. Open the **Model** dropdown and choose **Pi 5**.
+3. The board is rebuilt as a Pi 5 on the same spot, still selected, gizmo attached. No
+   dialog appears, because nothing depended on it.
+4. Press **Undo** once. It is a Pi 4 again.
+
+### Worked example: change a bolt's spec
+
+1. Drag a **Bolt** in from the Library's Hardware section and select it. **Spec** reads
+   `m10 hex`, and **Fit** lists `tap`, `close` and `loose`.
+2. Change **Spec** to `1/4 socket`. The bolt is rebuilt with a socket head, and the
+   **Fit** list now shows only the fits a 1/4 socket has.
+3. Type `20` into **Length** and press **Enter**. The bolt is now 20 mm long.
+
+### A part that only exists on one model
+
+The repair dialog can make something **conditional**: *"Only when Raspberry Pi 1's Model
+is Pi 4"*. The Inspector then shows a **Condition** row for it, with **Edit** (tick more
+than one option, e.g. Pi 3 **or** Pi 4) and **Remove**. While the condition does not hold
+the part isn't drawn, so you can't click it in the 3D view — find it at the bottom of the
+Inspector's object list, greyed, with its condition beside it, and tap it there to edit
+or remove the condition. Removing it on a Pi 5 brings the part back as a *broken*
+dependent with its warning, rather than quietly hiding the problem.
+
 ## Colouring a shape
 
 A shape you draw yourself (Cube, Cylinder, and the rest of the Primitives section)

@@ -200,6 +200,14 @@ export const useDocumentStore = defineStore('document', () => {
    * @type {import('vue').ShallowRef<SketchEntitySummary[]>}
    */
   const sketchEntities = shallowRef(/** @type {SketchEntitySummary[]} */ ([]))
+  /**
+   * `TODO/ui-052`: bodies a condition is keeping out of the fold. Plain data (ids, names
+   * and the condition's words — no geometry), refreshed with everything else, so the
+   * object list can show them greyed and selectable.
+   *
+   * @type {import('vue').ShallowRef<import('../core/document.js').InactiveBody[]>}
+   */
+  const inactiveBodies = shallowRef(/** @type {import('../core/document.js').InactiveBody[]} */ ([]))
 
   /**
    * Whether each control is enabled, and what it says it will do — the two
@@ -276,6 +284,18 @@ export const useDocumentStore = defineStore('document', () => {
     })
     const list = raw.bodies()
     bodies.value = list.map(summarizeBody)
+    // `TODO/ui-052`: a change (a model swap, or its Undo) can take away the part the
+    // selection is drilled into — a Pi 5's `camera0` on the way back to a Pi 4. Fall back
+    // to the whole body, the same "is the part still there?" check `restoreSelection`
+    // makes, before anything renders a description of a part that no longer exists.
+    const selection = useSelectionStore()
+    const drilled = selection.subPart
+    if (drilled) {
+      const summary = bodies.value.find((candidate) => candidate.id === drilled.bodyId)
+      const known = [...(summary?.partNames ?? []), ...(summary?.hiddenPartNames ?? [])]
+      if (summary && !known.includes(drilled.partName)) selection.stepUp()
+    }
+    inactiveBodies.value = raw.inactiveBodies()
     version.value = raw.version
     requestMeasurements(list, sceneChannel, resummarize)
   }
@@ -405,6 +425,24 @@ export const useDocumentStore = defineStore('document', () => {
     )
     refresh()
     return result
+  }
+
+  /**
+   * Revise several existing rows in place as **one undoable step** (`TODO/ui-052`,
+   * core's `document.reviseRecords`): a composite param edit together with every fix
+   * the repair dialog chose, or a condition edited or removed. Throws the core's
+   * refusal unchanged — atomic, so a refused revision leaves everything as it was.
+   *
+   * @param {readonly import('../core/document.js').RecordRevision[]} changes
+   * @param {{ label?: string }} [transaction]
+   */
+  function revise(changes, transaction = {}) {
+    raw.reviseRecords(changes, {
+      origin: 'local',
+      label: transaction.label,
+      meta: { selectionBefore: [...useSelectionStore().ids] },
+    })
+    refresh()
   }
 
   /**
@@ -565,6 +603,13 @@ export const useDocumentStore = defineStore('document', () => {
       return { ok: false, message: error instanceof Error ? error.message : String(error) }
     }
     refresh()
+    // A row action revises records rather than adding any (`TODO/ui-052`'s revise among
+    // them), so it has no records of its own to select: put back the selection it was
+    // made from instead of clearing it.
+    if (step.revision !== undefined) {
+      restoreSelection(step.meta?.selectionBefore ?? [])
+      return { ok: true, label: step.label }
+    }
     /** @type {Set<string>} */
     const roots = new Set()
     for (const record of step.records) {
@@ -580,6 +625,7 @@ export const useDocumentStore = defineStore('document', () => {
     version,
     bodies,
     sketchEntities,
+    inactiveBodies,
     count: computed(() => bodies.value.length),
     sketchCount: computed(() => sketchEntities.value.length),
     canUndo,
@@ -594,6 +640,7 @@ export const useDocumentStore = defineStore('document', () => {
     append,
     appendAll,
     batch,
+    revise,
     setColorOverride,
     clearColorOverride,
     setResolution,

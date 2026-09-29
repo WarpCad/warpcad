@@ -81,6 +81,7 @@ import {
   geom3ToBufferGeometry,
   paintBodyObject,
   updateBodyObject,
+  bodyObjectIsCurrent,
 } from '../../render/mesh.js'
 import { colorIntToCssHex, ownOverrideOf } from '../../core/colorOverride.js'
 import { PICK_OFFSETS_PX, nearestOnPlane, ndcFromClient, projectToWorkingPlane } from '../../render/pick.js'
@@ -953,6 +954,9 @@ function syncBodies() {
     const hiddenShownKey = shownHiddenNames.join('\u0000')
     const existing = bodyMeshes.get(body.id)
     if (existing) {
+      // Decided before `userData.geometry` is refreshed below (`TODO/ui-052`): same record
+      // *and* same evaluated geometry, or the mesh is stale.
+      const current = bodyObjectIsCurrent(existing.userData, body, hiddenShownKey)
       // Read by `paintBodies`. Set before the early-out on purpose: a timeline
       // preview can hand back the same terminal with a different history.
       existing.userData.colorOverrides = body.colorOverrides
@@ -963,9 +967,8 @@ function syncBodies() {
       // What a hovered hidden part's transient mesh is built from (`TODO/ui-049`). A
       // reference to the evaluated result, never a copy, and never reactive.
       existing.userData.geometry = body.geometry
-      const sameRecord = existing.userData.recordId === body.recordId
       const sameHiddenShown = existing.userData.hiddenShownKey === hiddenShownKey
-      if (sameRecord && sameHiddenShown) continue
+      if (current) continue
       // The body was transformed: swap in the new geometry and drop whatever
       // preview transform the drag left on the object, since the translation or
       // rotation is now baked into the vertices themselves. `updateBodyObject`

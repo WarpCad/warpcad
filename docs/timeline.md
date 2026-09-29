@@ -48,9 +48,16 @@ A row can also carry a small label on the right:
 | `inactive` | the step is after the rollback point, so it isn't being built at all right now |
 | `broken` | this step can't be built as things currently stand; hover or tap it for the reason |
 | `via …` | somebody or something other than you added this step |
+| `if … = …` | the step only happens while another part has that option, e.g. `if Raspberry Pi 1 = Pi 4` (dashed; see below) |
 
 Tap a row to select it. The buttons for that row appear underneath it — deliberately
 only on the selected row, so there aren't five small buttons crowding every line.
+
+**Conditional rows.** A row can carry a dashed chip such as `if Raspberry Pi 1 = Pi 4`,
+set by the repair dialog's **Only when…** choice. While the condition does not hold, the
+row is greyed like a suppressed one but keeps the chip instead of the word "suppressed",
+so you can tell "switched off by me" from "only exists on a Pi 4". See
+[A part that only exists on one model](selection-and-inspector.md#a-part-that-only-exists-on-one-model).
 
 ## Looking at an earlier point (preview)
 
@@ -101,8 +108,12 @@ The button tells you why when you hover or long-press it:
 - **"This step has no parameters"** — a Union, Subtract, Intersect or Group step has no
   numbers of its own; it's made entirely from the shapes that went into it. Change those
   instead.
-- **"A library part's options can't be edited here yet"** — Hardware, Kit and Raspberry
-  Pi parts are chosen from a catalogue rather than typed as dimensions.
+- **"This library part's options aren't described yet, so they can't be edited"** — a Kit
+  part or Raspberry Pi accessory whose options the app doesn't list yet. A Raspberry Pi
+  board, a Bolt, Nut, Washer or Bearing, and the Camera Module *can* be edited here: their
+  choices appear as dropdowns, and a change that would break something opens the same
+  repair dialog the Inspector does — the only way to change a Pi that a Subtract has
+  already used up.
 - **"Rotation is carried as an absolute value on every later step, so it can't be edited
   here"** — turn the shape with the gizmo in the 3D view, or type an angle in the
   Inspector, instead.

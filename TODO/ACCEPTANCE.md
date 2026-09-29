@@ -1027,9 +1027,11 @@ scenario itself, not a re-run of the checked-in e2e spec.
 2. Click the bolt to select it. Confirm the Inspector panel opens showing the bolt's
    `spec`, `length`, `fit`, and `color` fields alongside the Transform section
    (position X/Y/Z, rotation X/Y/Z).
-3. In the Inspector, change `spec` from its default to `M2.5 Socket` and change `fit`
-   to `loose`.
-4. Confirm the 3D mesh updates to match (visibly different length/diameter).
+3. In the Inspector, change **Spec** (a dropdown) from its default `m10 hex` to
+   `1/4 socket`, then change **Fit** (a dropdown whose options are the chosen spec's own
+   fits) to `loose`, then type `20` into **Length** and press Enter.
+4. Confirm the 3D mesh updates to match after each change (a socket head instead of a hex
+   head; a longer thread), with the bolt still selected and still where it was.
 5. Drag the gizmo's translate handle in the viewport a short distance.
 6. While dragging, watch the Inspector's Transform section position fields — confirm
    they update live, in step with the drag, not only after release.
@@ -1045,6 +1047,12 @@ numeric-field edits stay in sync in both directions.
 *(Note: steps 5-8 are the gizmo-drag refinement `docs/decisions/interaction-model-qa.md`
 control 4 flagged for this scenario — the original §9 draft only checked the
 inspector-field-edit direction.)*
+
+*(Rewritten 2026-09-29 by `TODO/ui-052`, which made composite params editable: step 3
+named `M2.5 Socket`, which is not in `boltSpecs` — the real table has `m10 hex`, `m12 hex`
+and `1/4 socket` — so the step now uses real values and can be driven as written. Every
+current spec has the same three fits (`tap`, `close`, `loose`); the Fit list is still read
+from the chosen spec's own row, so a spec with different fits changes it.)*
 
 **Last run**: 2026-09-06 01:15 — **PARTIAL PASS** (`ui-011`. Only the
 *Inspector-opens-and-shows-fields* half of this scenario is drivable, and it is
@@ -1362,6 +1370,8 @@ person can actually perform. It was hand-driven at laptop 1440x900/Chromium and 
 
 **Re-checked**: 2026-09-26 11:50 UTC — **PARTIAL PASS, unchanged in kind, plus the Color row `ui-037` added now shows the Bolt's recipe colour state** (`render-003`). Step 2's own text names `color` alongside `spec`/`length`/`fit` as fields the Inspector should show. Driven at laptop 1440x900 Chromium: a dropped Bolt's Inspector shows the standing Color row reading **`Default`** with a theme-blue swatch, not any of the recipe's own `head`/`thread`/`tap` colours — correct and by design, since a Bolt has three differently-coloured parts and there is no single "whole body" colour to show (only a single-visible-part composite, like a Washer, gets a recipe colour in that row). The rendered mesh itself still shows its real per-part colours regardless of what the whole-body swatch reads. Steps 1 and 3-4 remain not driveable/not claimed for the same reason as every prior entry (no `spec`/`fit` enum editor yet). Console clean.
 
+**Re-checked**: 2026-09-29 21:18 UTC (`ui-052`) — **PASS, driven as written for the first time** (steps rewritten by this task: the old step 3 named `M2.5 Socket`, which is not in `boltSpecs`). Laptop 1440x900 Chromium (real mouse) and phone 390x844 WebKit (real taps). A Library Bolt showed `spec`/`fit` as native `<select>`s and `length` as a number box alongside Color and Transform. Spec `m10 hex` → `1/4 socket` rebuilt it in place (volume 2920.801 → 1070.340 mm³, still selected, same X/Y); the Fit list read `tap, close, loose` (every current spec has the same three); Length 30 grew it to 3697.259 mm³ with the head fixed and the thread longer. **Laptop only:** dragging the gizmo's X arrow updated Position X every frame (-22.63 → -17.84 … 25.27) and committed 25.27 on release, spec still `m12 hex`. Typing X=30 moved the mesh to 30.00 at both form factors. The touch gizmo drag was not re-driven by hand (untouched by this task; `gizmo-transform.e2e.js` covers it). Console clean.
+
 ### 3. Snap-placement of a kit assembly
 
 **Steps**:
@@ -1650,6 +1660,8 @@ while the reference stayed put. Console clean.
 **Re-checked**: 2026-09-26 11:50 UTC — **PASS, "renders complete" now means its own colours too** (`render-003`). This task's own Testing section names this scenario for exactly one reason: a kit assembly has to render *complete*, and a translucent recipe part (alpha < 1) is a real way for "complete" to silently fail (hidden behind, or z-fighting with, an opaque part it should show through). Laptop 1440x900 Chromium: dropped a real `raspberrypi.bplus`. It rendered as a recognisable board — translucent green PCB with its components (USB/ethernet stack, GPIO header) visibly drawn on and through it, not a blank silhouette, not hidden by the parts sitting on it, and no visible z-fighting where the translucent board and its opaque parts share a boundary. Screenshot inspected by eye. This is the transparency check this task's own Proposed fix section asked for (`depthWrite: false` on the alpha < 1 material), confirmed on screen rather than only by the unit test's material-property assertion. Console clean.
 
 **Re-checked**: 2026-09-26 16:52 UTC — **PASS, now with ~150 more opaque part colours to check** (`core-033`). This task ported every opaque `.color(...)` call the eleven-turned-twelve `raspberrypi.*` recipes had been dropping since `core-014`-`018` — the jacks, headers, fan parts and camera lenses `render-003` itself flagged as still uncoloured — so "renders complete" now has far more to fail at than the board's own translucency alone. Driven live against the real dev server (a throwaway Playwright driver, same discipline as `render-003`/`render-004`'s own drives, not the checked-in e2e suite), fresh isolated browser contexts at laptop 1440x900 Chromium and phone 390x844 WebKit (real touch): a **Raspberry Pi 5** dropped, then a **Camera Module V3** dragged onto it — `scene-bodies` confirmed exactly two bodies at both engines (`raspberrypi.bplus`, `raspberrypi.cameraModule`), no leftover state, no absorption. Screenshots inspected by eye at both: the translucent green board still reads clearly *underneath* the newly-coloured lightgray USB/HDMI stack, orange ethernet jack and gray GPIO header — the colours read as sensible board components, not as noise competing with the translucency `render-003` verified. The Camera Module itself showed its own gold lensribbon, gray lens and black sensor against its green board, legible at both viewports. **One real, unscoped finding surfaced by this drive**, not a regression in this scenario: `raspberrypi.touchDisplay7inch`'s `noGoPower` keep-out is V1-faithful opaque red and — unlike every other clearance volume in this catalogue — V1 itself adds it *visible*, the same shape of finding `render-003` filed as `render-004` for the Bolt's `tap`; filed as `TODO/render-005-visible-nogo-keepout-touchdisplay7inch.md` rather than fixed here, since diverging from V1 is a product decision outside this task's scope. Console clean in both drives.
+
+**Re-checked**: 2026-09-29 21:18 UTC (`ui-052`) — **PASS**. Laptop 1440x900 Chromium and phone 390x844 WebKit (touch drag). A Pi 5 dropped; a Camera Module dragged slowly toward it showed 2 guide lines and `data-snapped=true` over the last part of the drag, and dropped aligned to the board (same X as the Pi, just off its edge). New with this task: the placed Camera Module's **Model** is a dropdown (Camera v1/v2/v3, HQ, Arducam HQ); v3 → v1 rebuilt it in place (1894.791 → 1404.480 mm³), same X/Y, still selected. Console clean.
 
 ### 4. Boolean gating
 
@@ -2210,6 +2222,8 @@ Chromium:
 
 **Re-checked**: 2026-09-28 06:04 UTC (`core-035`): **PASS** at laptop 1440x900 Chromium (mouse) and phone 390x844 WebKit (touch, list-only route). This is the fit case the resolution setting exists for. **A.** The `ui-041`/`ui-042` enclosed fixture (40 mm shell + m10 hex bolt, length 12) was written to a file with **no** resolution field and opened through File ▾ → Open…. It opened as **Legacy (32 segments)**, and the menu row said so. Shell 1's check, then ▸ and `tap`'s check (`1`/`2`), then Subtract, gave **61 108.343 mm³: byte-identical to its recorded number**, which is the in-app proof that old files fold exactly as before. The same cut at Fine gives 61 105.713 and at Print 61 103.420: the clearance hole grows toward the true circle. Two Undos returned exactly 61 108.343, and Legacy was listed again. **B.** A brand-new (Normal) document, Cube + Bolt dragged in overlapping. A whole-bolt Subtract removes exactly the bolt's 2 920.801 mm³ of metal (61 079.199 left), while the `tap` Subtract removes 3 602.687 mm³ (60 397.313 left), a clearance-sized hole, as Expect asks. Identical numbers at both sizes. Console clean.
 
+**Re-checked**: 2026-09-29 21:18 UTC (`ui-052`) — **PASS**, laptop 1440x900 Chromium and phone 390x844 WebKit, on the enclosed-bolt fixture. Drilled into `tap` from the Parts section (breadcrumb `Objects ▸ Bolt 1 ▸ tap`); shell check then Bolt ▸ `tap` check (`Shell 1 then Bolt 1 › tap`); Subtract left **61 114.011 mm³**, a clearance hole, not the metal-only 61 695.679. (5.7 mm³ off the 61 108.343 recorded here before; probably `core-035`'s design resolution, which landed since. Not re-investigated, since this task does not touch tessellation.) New with this task: the consumed bolt's History Edit shows **Spec** as a dropdown; `m10 hex` → `m12 hex` opened no dialog (`tap` exists on every spec), the hole grew to 59 831.871 mm³, and one Undo put back 61 114.011. Console clean.
+
 ### 6. Group vs. sub-part selection
 
 **Steps**:
@@ -2410,6 +2424,8 @@ clean.
 **Re-checked**: 2026-09-27 22:34 UTC (`ui-049`) — PASS. Laptop 1440x900 Chromium, real mouse. Steps 1-2 via the new route: a Raspberry Pi, a Camera Module and a Touchscreen 2 dragged from their Library rows, then all three ticked in the Inspector's list (checks read `1`/`2`/`3`), then **Group**. Steps 3-4: bare grid cleared the selection (the Inspector showed `Objects (1)`), and the first click on the assembly selected **Group 1** whole, with the breadcrumb `Objects ▸ Group 1` and a **Parts** section listing its three members. Steps 5-6: a second click on the camera module drilled to it: `Objects ▸ Group 1 ▸ Camera Module 1`, with `data-sub-part` set. Step 7: the **Group 1** crumb stepped back up. Beyond the steps: the root **Objects** crumb opened the list with the group still selected, ▸ listed its three members, and hovering `Camera Module 1` lit only that member (`group-7/Camera Module 1`, 1 hover twin). **Found and fixed during this drive:** the group's list row showed a check and its size (`228.16 × 250.25 × 18.55 mm`) but **no name**, because the size squeezed the name to zero width in the 280px column. Name and size now stack, with an e2e at every viewport. Console clean.
 
 **Re-checked**: 2026-09-28 03:08 UTC (`ui-051`) — **PASS**, with the new **Remove part** path. Laptop 1440x900 Chromium, real mouse: Raspberry Pi, Camera Module and Touch Screen dropped, checked in the Inspector's list and grouped. The first click selected the whole `Group 1` (Inspector: its three parts and a **Delete** button, no Remove part). The second click narrowed to `Group 1 ▸ Camera Module 1`, and the button became **Remove part** (`Remove Camera Module 1 from Group 1`). Pressing it kept `Group 1` as one body with parts `Raspberry Pi 1, Touchscreen 2 1`; its max-X bound shrank from 63.17 to 39.31 mm (the camera was on the envelope); the selection stepped up to the group; Undo read `Remove Camera Module 1 from Group 1` and restored the part with byte-identical bounds, **drilled back in**. The `Group 1` crumb stepped up. After removing two parts in turn, the last part's button was disabled with `Last visible part: delete Group 1 instead`. Phone 390x844 WebKit, all by touch: Pi selected, `usb1` tapped in the Parts list, **Remove part** tapped with no scrolling (y 734), the Pi stayed with 13 parts, and Undo restored `usb1`, drilled in. Console clean.
+
+**Re-checked**: 2026-09-29 21:18 UTC (`ui-052`) — **PASS**, laptop 1440x900 Chromium and phone 390x844 WebKit, selection by the Inspector's list and Parts section. Pi 5 + Camera Module + Touchscreen 2 grouped; the whole group selected first (`Objects ▸ Group 1`); tapping Camera Module 1 in Parts narrowed to it (`Objects ▸ Group 1 ▸ Camera Module 1`, no gizmo at part depth); the Group crumb stepped back up. **Found and fixed during this drive:** a Pi 5 drilled into `camera0`, then **Undo** back to the Pi 4 (which has no `camera0`), left the selection drilled into a missing part, and the Inspector threw during render. The document store now falls back to the whole body (`Objects ▸ Raspberry Pi 1`), per this task's Interaction model. Re-driven clean at both form factors.
 
 ### 7. Touch-only viewport navigation
 
@@ -2882,6 +2898,8 @@ was written. Console clean.
 
 Hosted half not driven (no scratch repo/token in this session). Console clean.
 
+**Re-checked**: 2026-09-29 21:18 UTC (`ui-052`) — **steps 1-5 PASS at both form factors; step 6-7 file round-trip PASS at phone WebKit (Download copy), not driven at laptop Chromium (Save needs the OS picker headless); hosted half (8-9) not driven.** Union of Cube+Cylinder autosaved (`Saved · 16:15`) and came back alone after reload (76 530.514 mm³, `Nothing to undo`, History rows intact). Download copy → Sphere added → Open… → Replace gave back exactly the saved Union. New with this task: a document with a row **left broken** (Pi 4 → Pi 5 under a cube snapped to `avjack`) reloaded still a Pi 5 with its banner "1 item refers to parts this Pi 5 doesn't have"; **Resolve…** reopened the dialog ("1 item needs repair"), and Detach cleared the banner and the History `broken` chip. A conditioned (Only when) cube reloaded inactive and chipped (scenario 15). Console clean.
+
 ### 11. Export a solid and confirm it opens elsewhere
 
 Added 2026-09-17 alongside `TODO/ROADMAP.md`'s M6, same rule as scenario 10. Steps
@@ -3214,6 +3232,8 @@ in both drives — laptop went 3→4 bodies, phone went 2→3. Console clean in 
 Escape/backdrop dismissal, not the History replay/suppress/rollback mechanism those
 steps exercise, and that mechanism is unchanged by this diff.
 
+**Re-checked**: 2026-09-29 21:18 UTC (`ui-052`) — **PASS for steps 1-11 as written and step 12 via a variant**, laptop 1440x900 Chromium (mouse) and phone 390x844 WebKit (taps). Chamfer 5 → Edit 3 replayed (62 166.62 → 63 315.97 mm³, Sphere identical); Undo/Redo one step each; Suppress/Unsuppress; Roll back → Cone inserted at the marker → Roll forward; Sphere Move up then Undo. **Step 12 as written is no longer drivable, and that predates this task:** Fillet Top r4 on a cube whose top is already chamfered is refused at commit by `core-003`'s prismatic-rim check ("not prismatic over the rim band"), so there is no fillet to break. The same claim was driven the canonical `data-004` way instead: a second cube filleted r15, then its size edited to 20 mm in History, refused atomically as "Step 6 (Fillet Top (+Z) 15 mm on Cube 2) can't be built: … radius 15mm is wider than the cross-section can absorb", with the row chipped `broken` and no repair dialog (a primitive edit, not a composite one). A filleted cube's Parameters stayed frozen (`ui-029`). Console clean.
+
 ### 13. Recolor a placed body
 
 Added 2026-09-17 alongside `TODO/ROADMAP.md`'s new M7, scoped from a real-usage survey
@@ -3258,6 +3278,8 @@ entry is a targeted hand confirmation on top of that, not a replacement for it.
 
 **Re-checked**: 2026-09-27 22:34 UTC (`ui-049`) — PASS at laptop 1440x900 **WebKit**, real mouse, canvas pixels sampled. The Cube recoloured red through a wandering picker (`input` ×3, then `change`). Selected it sampled **213/94/49**. Deselected it sampled **182/4/4**, byte-for-byte the value this scenario has recorded since `ui-037`. The Cylinder sampled **115/141/174** throughout, and selecting it showed `Default`. Reselecting the Cube still showed `#ff0000`, and a Sphere placed afterwards left `Cube 1=#ff0000, Cylinder 1=default, Sphere 1=default`. **Hover over an override** (this task's precedence rule): hovering the selected red Cube's row gave **218/109/136**, still red, still selected, visibly different. Hovering it unselected gave **196/71/115**. Parking the pointer returned exactly 213/94/49 and 182/4/4, with no stale tint. Console clean.
 
+**Re-checked**: 2026-09-29 21:18 UTC (`ui-052`) — **PASS**, laptop 1440x900 Chromium and phone 390x844 WebKit. Cube recoloured `#ff0000` through a wandering picker; the Cylinder stayed Default across deselect/reselect; the Cube kept `#ff0000` after a Sphere was placed. New with this task: a Raspberry Pi's whole-body override `#0000ff` survived model changes Pi 5 → Pi 3 (readout and `data-body-color` unchanged), and a Pi 4 swapped to a Pi 5 carries exactly the per-part recipe colours of a freshly dropped Pi 5 (`core-033`/`render-003`). Console clean.
+
 ### 14. Delete a body, bring it back, reload
 
 Added 2026-09-28 with `TODO/ui-051`, per this file's rule that a whole new capability class
@@ -3299,3 +3321,47 @@ with it and stayed clear after Undo. Phone 390x844 WebKit, real `touchscreen.tap
 pinned **Delete** was on screen with no scrolling, tapping it closed the sheet, and Undo
 by tap restored and reselected. Step 6 was driven at phone WebKit by touch (see scenario
 6's `ui-051` note). Console clean throughout.
+
+### 15. Change a part's model under a dependent
+
+Added 2026-09-29 with `TODO/ui-052`, per this file's rule that a whole new capability class
+earns a scenario: a composite's params (a Pi's Model, a bolt's spec) became editable after
+placement, and a change can now remove a part something else depends on. Control names:
+the Inspector's **Model** dropdown (`inspector-param-model`), the repair dialog
+(`repair-dialog`, its per-row **Fix** `repair-fix`, **Apply**/**Cancel**), the warning
+banners' **Resolve…** (`dependents-resolve`), the Inspector's **Condition** row, History's
+condition chip (`timeline-condition-chip`), and the header's **Undo**.
+
+**Steps**:
+1. Drag a Raspberry Pi in with **Pi 4** chosen on its Library row. Drop a Cube beside it.
+2. Select the Cube, add the Pi's `avjack` part as the second operand (Shift-click it, or
+   tick it under the Pi's ▸ in the object list), and **Snap** the cube against the jack.
+3. Select the whole Pi and change **Model** to **Pi 5**. In the dialog, press **Cancel**.
+4. Change it to **Pi 5** again; choose **Detach** for the Cube and **Apply**. Then **Undo**
+   once.
+5. *Leave broken.* Change to **Pi 5** again, keep **Leave broken**, **Apply**. Select the
+   Cube, press **Resolve…**, choose **Remap** → `ethernet`, **Apply**.
+6. *Only when.* Undo back to the Pi 4 with the cube on the AV jack. Change to **Pi 5**,
+   choose **Only when Raspberry Pi 1's Model is Pi 4**, **Apply**. Change the Model back to
+   **Pi 4**, then to **Pi 5** again, and reload the page.
+
+**Expect**:
+- Step 2: the cube sits against the AV jack.
+- Step 3: the dialog reads "This change affects 1 item" and names `Cube 1`,
+  `Snap → avjack`, and "Pi 5 has no part named `avjack`". Cancel leaves a Pi 4 with the
+  cube where it was, and the dropdown reads Pi 4 again.
+- Step 4: after Apply the Pi is a Pi 5 and the cube has not moved at all; one Undo gives
+  back the Pi 4 *and* the snap (its History row is back, not broken).
+- Step 5: after Apply the Pi's Inspector warns "1 item refers to parts this Pi 5 doesn't
+  have", the Cube's warns "Snapped to Raspberry Pi 1 ▸ avjack, which no longer exists", its
+  History row is `broken`, and the cube is still visible. Remapping clears both warnings
+  and moves the cube to the Ethernet jack.
+- Step 6: on the Pi 5 the cube is gone from the view (not broken, no warning) and its
+  History rows show `if Raspberry Pi 1 = Pi 4`; back on the Pi 4 it reappears on the AV
+  jack with no dialog; after the reload on the Pi 5 it is still absent, still chipped, and
+  listed greyed in the object list, where tapping it opens its Condition row.
+- Never: a change that commits before the dialog is answered, a cube left floating at the
+  Pi 4's jack position beside a Pi 5 with no warning, or more than one Undo needed to
+  reverse one Apply.
+
+**Last run**: 2026-09-29 21:18 UTC (`ui-052`), **first drive** — **PASS**, at laptop 1440x900 Chromium (real mouse, wobbly drags) and phone 390x844 WebKit (real taps, touch drags), every step as written, plus mistakes on purpose. Snap by the object list (Cube check, Pi ▸ `avjack` check, Snap on X/Y/Z): the popover read "Snapping Cube 1 to Raspberry Pi 1 › avjack". Model → Pi 5 held the change: "This change affects 1 item · Cube 1 · Snap → avjack · Pi 5 has no part named `avjack`", Fix options Only when… / Remap / Detach / Leave broken (default Leave broken), and the select dashed as pending. **Escape** (laptop) and **Cancel** both left a Pi 4 with the cube exactly where it was. Detach kept the cube at exactly -76.10, -16.36, -17.38 on the Pi 5; one Undo gave back the Pi 4 and the snap. Leave broken showed both banners, and the cube stayed visible. Resolve… → Remap `ethernet` moved the cube onto the jack and cleared both banners. Only when (scope defaulted to "The whole Cube 1"): the cube left the view with no warning; back to Pi 4 it returned to exactly the snapped position with no dialog; after a reload on a Pi 5 it was still absent, History showed `if Raspberry Pi 1 = Pi 4` twice with no `broken` chip, the object list listed it greyed, and tapping it opened "Only when Raspberry Pi 1's Model is Pi 4". At phone width the dialog is a full-height sheet with full-width selects and Apply/Cancel pinned at the bottom, with no horizontal scroll. **Found and fixed during these drives:** (1) with the Pi selected *first*, it snapped *by* its own AV jack onto the cube, and Only when (whole body) would have conditioned the Pi on itself (a Pi 5 deleting itself) while Leave broken gave it no banner; now only "This operation only" is offered for its own row, and the banner appears. (2) After Leave broken the cube's mesh stayed at the snapped pose while its bounds, gizmo and Inspector moved back (the viewport's mesh cache was keyed on the record id alone; see `TROUBLESHOOTING.md` 2026-09-29). (3) An inactive cube selected from the list left Fillet/Chamfer/Enlarge/Fit/Bisect enabled; they are now disabled with "not built — its condition doesn't hold". Console clean in every drive.

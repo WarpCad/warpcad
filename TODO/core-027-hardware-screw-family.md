@@ -49,6 +49,10 @@ n/a — no control exists yet, per Interaction model above.
 - `src/core/kernel/tables/screw-specs.js` (new) — the size table, mirroring
   `tables/bolt-specs.js`'s existing shape.
 - New `hardware.screw.spec.js`.
+- `registry.js`'s `PARAM_SCHEMAS` (added by `TODO/ui-052`): give `hardware.screw` an entry
+  whose spec/length option lists are read from the recipe's own exported lists and
+  `tables/screw-specs.js`, so a placed screw's type and size are Inspector dropdowns like
+  a bolt's. Without an entry it stays read-only (the fail-safe default).
 
 ## Proposed fix
 

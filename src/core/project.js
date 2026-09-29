@@ -13,6 +13,11 @@
  * {@link import('./document.js').DocumentEntry} / the marker, not on the records:
  *
  * - **suppressed** rows (`data-004`, section 16) — in the log, out of the fold;
+ * - rows **left broken** (`TODO/ui-052`) — the user committed a change that broke them
+ *   and chose to fix it later, so the fold tolerates them and the History badges them.
+ *   Written as `leftBroken: [ids]` beside `suppressed`, and only when there is one. A
+ *   build from before this field ignores it and refuses the file by naming the broken
+ *   row, which is the honest outcome — it cannot fold that row either;
  * - the **rollback marker** (section 18: "a rollback point *is* document state
  *   and is persisted");
  * - each entry's **origin** (`local`, `mcp`, …), which the History chip reads;
@@ -90,23 +95,27 @@ export function serializeProject(document) {
 
   /** @type {string[]} */
   const suppressed = []
+  /** @type {string[]} */
+  const leftBroken = []
   /** @type {Record<string, string>} */
   const origins = {}
   for (const entry of entries) {
     const id = entry.record.id
     if (id === undefined) continue
     if (entry.suppressed === true) suppressed.push(id)
+    if (entry.leftBroken === true) leftBroken.push(id)
     if (entry.origin !== 'local') origins[id] = entry.origin
   }
 
   /** @type {object[]} */
   const lines = entries.map((entry) => entry.record)
   const hasOrigins = Object.keys(origins).length > 0
-  if (suppressed.length > 0 || rollbackAt !== null || hasOrigins || writesResolution) {
+  if (suppressed.length > 0 || leftBroken.length > 0 || rollbackAt !== null || hasOrigins || writesResolution) {
     lines.push({
       warpcad: STATE_KIND,
       version: STATE_VERSION,
       ...(suppressed.length > 0 ? { suppressed } : {}),
+      ...(leftBroken.length > 0 ? { leftBroken } : {}),
       ...(rollbackAt !== null ? { rollbackAt } : {}),
       ...(hasOrigins ? { origins } : {}),
       ...(writesResolution ? { resolution } : {}),
@@ -205,6 +214,17 @@ export function parseProject(text) {
       }
     }
   }
+  const leftBroken = state?.leftBroken
+  if (leftBroken !== undefined) {
+    if (!Array.isArray(leftBroken) || !leftBroken.every((id) => typeof id === 'string')) {
+      throw new ProjectFormatError('project-state: `leftBroken` must be a list of record ids')
+    }
+    for (const id of leftBroken) {
+      if (!ids.has(id)) {
+        throw new ProjectFormatError(`project-state: left-broken step "${id}" is not in the file`)
+      }
+    }
+  }
   const origins = state?.origins
   if (origins !== undefined) {
     if (origins === null || typeof origins !== 'object' || Array.isArray(origins)) {
@@ -238,10 +258,12 @@ export function parseProject(text) {
   const resolution = declared ?? (entries.length === 0 ? DEFAULT_RESOLUTION : 'legacy')
 
   const suppressedIds = new Set(suppressed ?? [])
+  const leftBrokenIds = new Set(leftBroken ?? [])
   for (const entry of entries) {
     const id = entry.record.id
     if (id === undefined) continue
     if (suppressedIds.has(id)) entry.suppressed = true
+    if (leftBrokenIds.has(id)) entry.leftBroken = true
     const origin = origins?.[id]
     if (origin !== undefined) entry.origin = origin
   }

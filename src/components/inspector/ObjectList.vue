@@ -137,6 +137,20 @@ function onPartCheck(id, partName) {
   objects.choosePart(id, partName, true)
 }
 
+/**
+ * Select a body a condition has switched off (`TODO/ui-052`) — a plain selection, so the
+ * Inspector opens on it and its Condition row can be edited.
+ *
+ * @param {string} id
+ */
+function onInactiveClick(id) {
+  emit('select-intent')
+  selection.select(id)
+}
+
+/** Bodies a condition is keeping out of the fold, from the live document. */
+const inactiveBodies = computed(() => (timeline.previewing ? [] : documentStore.inactiveBodies))
+
 /** @param {string} id */
 function onToggleExpanded(id) {
   // Collapsing takes the part rows out from under a resting pointer without a leave event.
@@ -423,6 +437,31 @@ watch(
       </li>
     </ul>
 
+    <!-- Bodies a condition is keeping out of the fold (TODO/ui-052): not drawn, so they
+         cannot be picked in the viewport — listed here, greyed with their condition, so one
+         can still be selected and its condition edited in the Inspector. -->
+    <ul v-if="inactiveBodies.length > 0" class="list__rows list__rows--inactive" data-testid="objects-inactive">
+      <li v-for="inactive in inactiveBodies" :key="inactive.id" class="item item--inactive">
+        <button
+          type="button"
+          class="row row__body row--inactive"
+          :class="{ 'row--selected': selection.ids.length === 1 && selection.ids[0] === inactive.id }"
+          :data-testid="`objects-inactive-${inactive.id}`"
+          :data-state="inactive.state"
+          :aria-label="`${inactive.name}, not built: ${inactive.condition.sentence}`"
+          :disabled="disabled"
+          @click="onInactiveClick(inactive.id)"
+        >
+          <span class="row__label">
+            <span class="row__name">{{ inactive.name }}</span>
+            <span class="row__condition" :title="inactive.condition.sentence">{{
+              inactive.state === 'invalid' ? 'condition can\'t be evaluated' : inactive.condition.chip
+            }}</span>
+          </span>
+        </button>
+      </li>
+    </ul>
+
     <p v-if="absentSteps > 0" class="list__note" data-testid="objects-absent-note">
       {{ absentSteps }} suppressed or rolled-back step{{ absentSteps === 1 ? '' : 's' }} — their bodies are not in
       the scene, so they are not listed.
@@ -652,6 +691,26 @@ watch(
   text-overflow: ellipsis;
   white-space: nowrap;
   font-weight: 600;
+}
+
+/* A body a condition has switched off (TODO/ui-052): greyed, with its condition. */
+.list__rows--inactive {
+  margin-top: 6px;
+  border-top-style: dashed;
+}
+
+.row--inactive {
+  width: 100%;
+  padding: 4px 10px 4px var(--tap);
+  opacity: 0.7;
+}
+
+.row__condition {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+  color: var(--text-3);
 }
 
 .row__size {

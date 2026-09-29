@@ -584,12 +584,21 @@ describe('what may be edited on a past step (paramEdit, revisiting ui-029’s gu
     })
   })
 
-  it('refuses a composite recipe row, whose params are a catalogue choice', () => {
-    const record = { id: 'b', op: 'hardware.bolt', params: { spec: 'm10 hex', length: 20 } }
+  it('refuses a composite recipe row that has no editable-param schema (TODO/ui-052)', () => {
+    const record = { id: 'h', op: 'raspberrypi.hat', params: {} }
     expect(stepParamEditability(/** @type {any} */ (record))).toEqual({
       editable: false,
-      blockedBy: 'hardware.bolt',
+      blockedBy: 'raspberrypi.hat',
     })
+  })
+
+  it('allows a composite row whose params the registry describes, and validates it against the schema (TODO/ui-052)', () => {
+    const record = { id: 'b', op: 'hardware.bolt', params: { spec: 'm10 hex', length: 20, fit: 'loose' } }
+    expect(stepParamEditability(/** @type {any} */ (record))).toEqual({ editable: true, blockedBy: null })
+    const document = createDocument()
+    document.append(/** @type {any} */ (record), { origin: 'local' })
+    expect(() => stepParamEditRecord(document, 'b', { spec: 'm2.5 socket' })).toThrow(/m2\.5 socket/)
+    expect(stepParamEditRecord(document, 'b', { spec: '1/4 socket' })?.params?.spec).toBe('1/4 socket')
   })
 
   it('refuses a rotate row, whose only param is the carried absolute pose', () => {

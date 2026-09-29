@@ -61,7 +61,12 @@ import { anchor } from './recipes/kit.anchor.js'
 import { board } from './recipes/kit.board.js'
 import { boardFrame } from './recipes/kit.boardFrame.js'
 import { activeCoolingFan } from './recipes/raspberrypi.activeCoolingFan.js'
-import { BPLUS_MODELS, bplus } from './recipes/raspberrypi.bplus.js'
+import { BPLUS_MODELS, BPLUS_PART_ALIASES, DEFAULT_CLEARANCE_MM, bplus } from './recipes/raspberrypi.bplus.js'
+import { boltSpecs } from './tables/bolt-specs.js'
+import { nutSpecs } from './tables/nut-specs.js'
+import { washerSpecs } from './tables/washer-specs.js'
+import { bearingSpecs } from './tables/bearing-specs.js'
+import { FIT_CLEARANCE_MM } from './tables/fit-clearances.js'
 import { CAMERA_MODULE_MODELS, cameraModule } from './recipes/raspberrypi.cameraModule.js'
 import { hat } from './recipes/raspberrypi.hat.js'
 import { hatStandoff } from './recipes/raspberrypi.hatStandoff.js'
@@ -152,6 +157,13 @@ import { touchScreen2 } from './recipes/raspberrypi.touchScreen2.js'
  *   `ui-016`'s single-part selection address rather than `pieces`'s comma-list
  *   operand addressing (TODO/core-024) — a colour override always targets exactly
  *   one part, never a set. Absent means the override applies to the whole body.
+ * @property {{ ref: string, param: string, in: any[] }} [when] A **condition**
+ *   (`TODO/ui-052`): the record takes part in the fold only while the body `ref` names
+ *   has its `param` set to one of the values in `in` — "this cut-out only exists on a
+ *   Pi 4". One enum param, membership only, plain JSON; `src/core/condition.js`
+ *   evaluates it and `src/core/document.js`'s fold honours it. The kernel fold itself
+ *   never reads it — by the time a record reaches `evaluate`, the document has already
+ *   decided whether it takes part.
  */
 
 /**
@@ -1289,4 +1301,190 @@ export function assertOperandCount(op, count, ops = registry) {
       `${op}: expected ${operandCount === '2+' ? '2 or more' : operandCount} operand(s), got ${count}`
     )
   }
+}
+
+// ## Editable composite params (TODO/ui-052)
+//
+// `OpUiChoice` above answers "which variant do you want **before** dragging?" for two
+// recipes. This answers the same question **after** placement, for every param of every
+// composite that has a real catalogue behind it — a Pi's `model`, a bolt's `spec`/`fit`/
+// `length` — so the Inspector can render a dropdown instead of a read-only text field.
+//
+// The same "derived, not hand-copied" rule `modelChoice` follows: every option list is
+// read off the recipe's own exported list or the size table the recipe itself looks the
+// value up in, so a new bolt spec appears in the dropdown the moment it is in the table,
+// and a dropdown can never offer a value the recipe then throws on.
+//
+// **A composite with no entry here stays read-only** — the fail-safe default. A recipe
+// whose params nobody has described is not guessed at: `kit.*` (plain sizes) and the
+// fixed-shape `raspberrypi.*` accessories are absent on purpose until someone asks.
+
+/**
+ * @typedef {object} EnumParamSchema
+ * @property {'enum'} kind
+ * @property {string} label What the Inspector calls the field, e.g. `"Model"`.
+ * @property {readonly OpUiOption[]} options Every value the recipe accepts **given the
+ *   other params** — a bolt's `fit` list is read from the chosen `spec`'s own table row.
+ */
+
+/**
+ * @typedef {object} NumberParamSchema
+ * @property {'number'} kind
+ * @property {string} label
+ * @property {'mm' | ''} unit
+ * @property {number} [exclusiveMin] Values must be strictly greater than this — every
+ *   composite length here is a positive size.
+ * @property {number} [default] The recipe's own default, for a param the record does not
+ *   carry — a Pi placed from the Library has no `clearance` field, yet the recipe used 5.
+ */
+
+/** @typedef {EnumParamSchema | NumberParamSchema} ParamSchema */
+
+/**
+ * The size tables a schema reads its option lists from — the same objects
+ * `index.js`'s `DEFAULT_TABLES` hands a recipe, so a dropdown and the recipe that will
+ * receive its value always agree. A test passes a fake (CLAUDE.md: mock at the boundary).
+ *
+ * @typedef {object} ParamTables
+ * @property {Readonly<Record<string, { fitDiameterMm: Readonly<Record<string, number>> }>>} boltSpecs
+ * @property {Readonly<Record<string, unknown>>} nutSpecs
+ * @property {Readonly<Record<string, unknown>>} washerSpecs
+ * @property {Readonly<Record<string, unknown>>} bearingSpecs
+ * @property {Readonly<Record<string, number>>} FIT_CLEARANCE_MM
+ */
+
+/** @type {ParamTables} */
+const PARAM_TABLES = Object.freeze({ boltSpecs, nutSpecs, washerSpecs, bearingSpecs, FIT_CLEARANCE_MM })
+
+/**
+ * One option per key of a table, labelled by the key itself — a spec name like
+ * `m10 hex` is already what a user reads on the part.
+ *
+ * @param {Readonly<Record<string, unknown>> | undefined} table
+ * @returns {readonly OpUiOption[]}
+ */
+function keyOptions(table) {
+  return Object.freeze(Object.keys(table ?? {}).map((key) => Object.freeze({ value: key, label: key })))
+}
+
+/**
+ * @param {string} label
+ * @param {readonly OpUiOption[]} options
+ * @returns {EnumParamSchema}
+ */
+function enumParam(label, options) {
+  return Object.freeze({ kind: 'enum', label, options })
+}
+
+/**
+ * @param {string} label
+ * @param {number} [fallback] The recipe's own default, when it has one.
+ * @returns {NumberParamSchema}
+ */
+function mmParam(label, fallback) {
+  return Object.freeze({
+    kind: 'number',
+    label,
+    unit: 'mm',
+    exclusiveMin: 0,
+    ...(fallback === undefined ? {} : { default: fallback }),
+  })
+}
+
+/**
+ * The Library's own labelled choice for `op` — reused rather than re-labelled, so the
+ * pre-drag picker and the Inspector's dropdown can never name one model two ways.
+ *
+ * @param {string} op
+ * @returns {readonly OpUiOption[]}
+ */
+function choiceOptionsOf(op) {
+  const options = registry[op]?.ui?.choice?.options
+  if (!options) throw new Error(`paramOptions: ${op} has no Library choice to read its options from`)
+  return options
+}
+
+/**
+ * @typedef {object} ParamSchemaEntry
+ * @property {(params: Record<string, any>, tables: ParamTables) => Record<string, ParamSchema>} params
+ * @property {Readonly<Record<string, string>>} [partAliases] Real part renames between
+ *   variants — see `BPLUS_PART_ALIASES` for what qualifies.
+ */
+
+/** @type {Readonly<Record<string, ParamSchemaEntry>>} */
+const PARAM_SCHEMAS = Object.freeze({
+  'raspberrypi.bplus': {
+    params: () => ({
+      model: enumParam('Model', choiceOptionsOf('raspberrypi.bplus')),
+      clearance: mmParam('Clearance', DEFAULT_CLEARANCE_MM),
+    }),
+    partAliases: BPLUS_PART_ALIASES,
+  },
+  'raspberrypi.cameraModule': {
+    params: () => ({ model: enumParam('Model', choiceOptionsOf('raspberrypi.cameraModule')) }),
+  },
+  'hardware.bolt': {
+    // `fit` follows `spec`: `tables.boltSpecs[spec].fitDiameterMm` is what the recipe
+    // looks the fit up in, so that row's keys *are* the valid fits for that spec.
+    params: (params, tables) => ({
+      spec: enumParam('Spec', keyOptions(tables.boltSpecs)),
+      length: mmParam('Length'),
+      fit: enumParam('Fit', keyOptions(tables.boltSpecs[params.spec]?.fitDiameterMm)),
+    }),
+  },
+  'hardware.nut': {
+    params: (_params, tables) => ({
+      spec: enumParam('Spec', keyOptions(tables.nutSpecs)),
+      fit: enumParam('Fit', keyOptions(tables.FIT_CLEARANCE_MM)),
+    }),
+  },
+  'hardware.washer': {
+    params: (_params, tables) => ({
+      spec: enumParam('Spec', keyOptions(tables.washerSpecs)),
+      fit: enumParam('Fit', keyOptions(tables.FIT_CLEARANCE_MM)),
+    }),
+  },
+  'hardware.bearing': {
+    params: (_params, tables) => ({ spec: enumParam('Spec', keyOptions(tables.bearingSpecs)) }),
+  },
+})
+
+/**
+ * Which of a composite's params may be edited after placement, and how — the
+ * registry-driven schema the Inspector's dropdowns and `src/core/paramEdit.js`'s
+ * validation both read (`TODO/ui-052`).
+ *
+ * @param {string} op
+ * @param {Record<string, any>} [params] The params as they will be **after** the edit,
+ *   so a dependent option list (a bolt's `fit`) is the one for the new `spec`.
+ * @param {ParamTables} [tables] Size tables; the real ones by default.
+ * @returns {Readonly<Record<string, ParamSchema>>} Empty for a native op and for a
+ *   composite nobody has described — which is what keeps it read-only.
+ */
+export function paramOptions(op, params = {}, tables = PARAM_TABLES) {
+  const entry = PARAM_SCHEMAS[op]
+  if (!entry) return Object.freeze({})
+  return Object.freeze(entry.params(params ?? {}, tables))
+}
+
+/**
+ * Whether a composite has any editable param at all — the Inspector's and the History
+ * row's single yes/no.
+ *
+ * @param {string} op
+ * @returns {boolean}
+ */
+export function hasEditableParams(op) {
+  return PARAM_SCHEMAS[op] !== undefined
+}
+
+/**
+ * The recipe's real part renames between variants, for a Remap suggestion. Empty when
+ * the recipe declares none — the dialog then suggests nothing rather than guessing.
+ *
+ * @param {string} op
+ * @returns {Readonly<Record<string, string>>}
+ */
+export function partAliasesOf(op) {
+  return PARAM_SCHEMAS[op]?.partAliases ?? Object.freeze({})
 }

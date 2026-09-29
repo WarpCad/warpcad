@@ -19,6 +19,7 @@ import {
   HIDDEN_PART_ALPHA,
   HOVER_HIGHLIGHT_INTENSITY,
   OVERRIDE_HIGHLIGHT_INTENSITY,
+  bodyObjectIsCurrent,
   paintBodyObject,
 } from './mesh.js'
 
@@ -1016,5 +1017,26 @@ describe('the transient hovered hidden part (TODO/ui-049)', () => {
     disposeMesh(mesh)
     expect(released).toBe(true)
     expect(object.children).toHaveLength(before)
+  })
+})
+
+describe('bodyObjectIsCurrent — when an existing body mesh may be kept (TODO/ui-052)', () => {
+  const cube = modeling.primitives.cuboid({ size: [2, 2, 2] })
+  const moved = modeling.transforms.translate([10, 0, 0], cube)
+
+  it('keeps a mesh whose record and geometry are both unchanged', () => {
+    expect(bodyObjectIsCurrent({ recordId: 'snap-1', geometry: cube, hiddenShownKey: '' }, { recordId: 'snap-1', geometry: cube }, '')).toBe(true)
+  })
+
+  it('rebuilds when the terminal record is the same but its geometry changed — a row revised in place', () => {
+    // A snap left broken folds as identity: same record id, different solid (the body
+    // goes back to where it was before the snap). Keyed on the id alone, the viewport
+    // kept drawing the snapped mesh while the bounds, gizmo and Inspector moved.
+    expect(bodyObjectIsCurrent({ recordId: 'snap-1', geometry: moved, hiddenShownKey: '' }, { recordId: 'snap-1', geometry: cube }, '')).toBe(false)
+  })
+
+  it('rebuilds when the record changed, or the shown hidden parts did', () => {
+    expect(bodyObjectIsCurrent({ recordId: 'a', geometry: cube, hiddenShownKey: '' }, { recordId: 'b', geometry: cube }, '')).toBe(false)
+    expect(bodyObjectIsCurrent({ recordId: 'a', geometry: cube, hiddenShownKey: '' }, { recordId: 'a', geometry: cube }, 'tap')).toBe(false)
   })
 })

@@ -220,19 +220,27 @@ describe('the read-only guard — never silently discard a downstream op (TODO/u
     ).toEqual({ editable: false, blockedBy: 'boolean.union' })
   })
 
-  it('refuses a composite recipe root — its params are a catalogue choice, not dimensions (TODO/ui-030)', () => {
-    // A bolt's `spec` is an enum keyed into a size table and its `fit` is a
-    // clearance class; neither is a millimetre a numeric field can parse, and a
-    // rebuild from a half-typed spec string throws inside the recipe. So the
-    // whole section stays read-only until the dropdown `ui-029` scoped out
-    // exists — reported as blocked by the recipe's own op, which is the honest
-    // answer to "why can't I type here".
+  it('refuses a composite recipe root with no editable-param schema — the fail-safe default (TODO/ui-052)', () => {
+    // `ui-030` froze every composite; `ui-052` lifts that only where the registry says
+    // which values a param may take (`paramOptions`). A recipe nobody has described stays
+    // frozen, reported as blocked by its own op.
+    expect(
+      paramEditability([
+        { id: 'hat-1', op: 'raspberrypi.hat', params: {} },
+        { id: 'hat-1-drop-2', op: 'transform.translate', supersedes: 'hat-1', params: {} },
+      ])
+    ).toEqual({ editable: false, blockedBy: 'raspberrypi.hat' })
+  })
+
+  it('a composite WITH a schema is editable on the replace path, whatever sits above it (TODO/ui-052)', () => {
+    // The replace path re-folds every later record, so a fillet above a bolt is re-run
+    // and reported if it no longer fits — nothing is discarded, so nothing freezes.
     expect(
       paramEditability([
         { id: 'bolt-1', op: 'hardware.bolt', params: { spec: 'm10 hex', length: 20 } },
-        { id: 'bolt-1-drop-2', op: 'transform.translate', supersedes: 'bolt-1', params: {} },
+        { id: 'bolt-1-rim', op: 'modify.filletRim', supersedes: 'bolt-1', target: 'bolt-1', params: { radius: 2 } },
       ])
-    ).toEqual({ editable: false, blockedBy: 'hardware.bolt' })
+    ).toEqual({ editable: true, blockedBy: null, path: 'replace' })
   })
 
   it('refuses an empty lineage rather than reporting it editable', () => {
@@ -366,5 +374,81 @@ describe('chained edits — the second one builds on the first (TODO/ui-029)', (
       { origin: 'local' }
     )
     expect(canEditParams(document, 'cyl-1')).toEqual({ editable: true, blockedBy: null })
+  })
+})
+
+
+describe('compositeParamEditRecord — the replace-path edit of a composite (TODO/ui-052)', () => {
+  const LOCAL = { origin: 'local' }
+
+  /** @param {Record<string, any>} params */
+  async function boltDocument(params = { spec: 'm10 hex', length: 20, fit: 'loose' }) {
+    const { createDocument } = await import('./document.js')
+    const document = createDocument()
+    document.append({ id: 'bolt-1', op: 'hardware.bolt', name: 'Bolt 1', params }, LOCAL)
+    document.append(
+      { id: 'bolt-1-move', op: 'transform.translate', target: 'bolt-1', supersedes: 'bolt-1', params: { vector: [5, 0, 0], rotation: [0, 0, 0] } },
+      LOCAL,
+    )
+    return document
+  }
+
+  it('builds the creation record with new params, same id — a replacement, not an append', async () => {
+    const { compositeParamEditRecord } = await import('./paramEdit.js')
+    const document = await boltDocument()
+    const record = compositeParamEditRecord(document, 'bolt-1', { spec: '1/4 socket', length: 12 })
+    expect(record).toEqual({
+      id: 'bolt-1',
+      op: 'hardware.bolt',
+      name: 'Bolt 1',
+      params: { spec: '1/4 socket', length: 12, fit: 'loose' },
+    })
+  })
+
+  it('rejects an enum value outside the schema by name — the MCP surface cannot write an invalid model', async () => {
+    const { compositeParamEditRecord } = await import('./paramEdit.js')
+    const document = await boltDocument()
+    expect(() => compositeParamEditRecord(document, 'bolt-1', { spec: 'm2.5 socket' })).toThrow(/m2\.5 socket/)
+    expect(() => compositeParamEditRecord(document, 'bolt-1', { spec: 'm2.5 socket' })).toThrow(/m10 hex/)
+    expect(() => compositeParamEditRecord(document, 'bolt-1', { fit: 'snug' })).toThrow(/fit.*snug/)
+  })
+
+  it('rejects a number that is not a positive size, and a key the schema does not name', async () => {
+    const { compositeParamEditRecord } = await import('./paramEdit.js')
+    const document = await boltDocument()
+    expect(() => compositeParamEditRecord(document, 'bolt-1', { length: 0 })).toThrow(/length/)
+    expect(() => compositeParamEditRecord(document, 'bolt-1', { length: Number.NaN })).toThrow(/length/)
+    expect(() => compositeParamEditRecord(document, 'bolt-1', { head: 3 })).toThrow(/head/)
+  })
+
+  it('still refuses center and rotation on a composite', async () => {
+    const { compositeParamEditRecord } = await import('./paramEdit.js')
+    const document = await boltDocument()
+    expect(() => compositeParamEditRecord(document, 'bolt-1', { center: [0, 0, 0] })).toThrow(/center/)
+    expect(() => compositeParamEditRecord(document, 'bolt-1', { rotation: [0, 0, 90] })).toThrow(/rotation/)
+  })
+
+  it('returns null for an edit that changes nothing', async () => {
+    const { compositeParamEditRecord } = await import('./paramEdit.js')
+    const document = await boltDocument()
+    expect(compositeParamEditRecord(document, 'bolt-1', { spec: 'm10 hex' })).toBeNull()
+  })
+
+  it('refuses a composite with no schema, and a primitive (which keeps the append path)', async () => {
+    const { compositeParamEditRecord } = await import('./paramEdit.js')
+    const { createDocument } = await import('./document.js')
+    const document = createDocument()
+    document.append({ id: 'hat-1', op: 'raspberrypi.hat', name: 'HAT 1', params: {} }, LOCAL)
+    document.append({ id: 'cube-1', op: 'primitive.cuboid', name: 'Cube 1', params: { size: [4, 4, 4] } }, LOCAL)
+    expect(() => compositeParamEditRecord(document, 'hat-1', { anything: 1 })).toThrow(/raspberrypi\.hat/)
+    expect(() => compositeParamEditRecord(document, 'cube-1', { size: [5, 5, 5] })).toThrow(/primitive\.cuboid/)
+  })
+
+  it('a primitive\'s resize is still the append path', async () => {
+    const { canEditParams } = await import('./paramEdit.js')
+    const { createDocument } = await import('./document.js')
+    const document = createDocument()
+    document.append({ id: 'cube-1', op: 'primitive.cuboid', name: 'Cube 1', params: { size: [4, 4, 4] } }, LOCAL)
+    expect(canEditParams(document, 'cube-1')).toEqual({ editable: true, blockedBy: null })
   })
 })

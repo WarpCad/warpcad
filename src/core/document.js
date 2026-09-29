@@ -295,6 +295,36 @@
  * record points at is a different claim from replaying it, and guessing it wrong
  * is how a replay silently produces the wrong solid.
  *
+ * ## Rows left broken, and conditional rows (`TODO/ui-052`)
+ *
+ * The broken-step contract above says a failure in the **active** document is always
+ * an atomic rejection. `ui-052` keeps that as the default and adds exactly two
+ * exceptions, both of which the user has to choose:
+ *
+ * - **Left broken.** Changing a Pi 4 to a Pi 5 under a cube snapped to its AV jack
+ *   breaks the snap; the repair dialog can commit the change anyway and *flag* the row.
+ *   That is a per-entry flag, `leftBroken`, recorded next to `suppressed` and persisted
+ *   the same way (`project.js`). A flagged row that fails is **tolerated**: reported in
+ *   {@link WarpDocument.brokenSteps} and on `TimelineRow.broken`, and folded as
+ *   **identity** — its id is bound to the geometry it would have changed, with its
+ *   lineage bookkeeping done exactly as `ingest` does it. So a broken snap leaves its
+ *   body where it was before the snap (visible, selectable, fixable) rather than making
+ *   it vanish, and a later move of that body still builds on it. Every *un*flagged row is
+ *   judged exactly as before, so a new breakage anywhere is still refused.
+ * - **Conditional.** A record may carry `when: { ref, param, in }` (`./condition.js`).
+ *   While false, a **creation** record takes its whole lineage out of the fold, silently
+ *   — "this body only exists on a Pi 4" is the intended state, not an error, so nothing
+ *   is reported broken and the rows carry `TimelineRow.inactiveBy` instead. Any other
+ *   record (a snap, a sub-part Subtract) is folded as identity, the same way a left-broken
+ *   row is: "this operation only happens on a Pi 4". A record elsewhere that *uses* an
+ *   inactive body is broken, with the condition in its reason — conditions never spread
+ *   without the user choosing them. A condition that cannot be evaluated is broken, and
+ *   tolerated: it is a flag, never a guess.
+ *
+ * Both are revised in place through {@link WarpDocument.reviseRecords}, the multi-row
+ * sibling of {@link WarpDocument.replaceRecord} that `ui-052`'s dialog commits as one
+ * Undo step.
+ *
  * ## Deleting a body: an appended tombstone (`TODO/ui-051`)
  *
  * "Nothing is deleted" above is about the **log**, and deleting an object keeps it
@@ -341,6 +371,7 @@
 
 import { registry as defaultRegistry } from './kernel/registry.js'
 import { isResolution, policyFor, resolutionLabel } from './kernel/tessellation.js'
+import { conditionContextOf, conditionShapeError, describeCondition, evaluateCondition } from './condition.js'
 import { currentParamsRecordOf } from './paramEdit.js'
 import { applyAction, emptyScene } from './replay.js'
 
@@ -357,6 +388,10 @@ import { applyAction, emptyScene } from './replay.js'
  * @property {boolean} [suppressed] Section 16: the row is still in the log and
  *   still in `ui-032`'s list, but the fold skips it and the document evaluates
  *   as if it never happened. Absent means active; nothing is ever deleted.
+ * @property {boolean} [leftBroken] `TODO/ui-052`: the user chose **Leave broken** for
+ *   this row. If it fails to build it is tolerated — reported, and folded as identity —
+ *   rather than refusing the whole document. Absent means an ordinary row, whose failure
+ *   is an atomic rejection. See the module note.
  */
 
 /**
@@ -396,7 +431,55 @@ import { applyAction, emptyScene } from './replay.js'
  * @property {boolean} suppressed Section 16: greyed, struck through, chipped.
  * @property {boolean} active `false` for a row past the rollback marker —
  *   dimmed, chipped `inactive`, and simply not evaluated (section 18).
- * @property {string | null} broken The shadow check's reason, or `null`.
+ * @property {string | null} broken Why the row does not build — the tail shadow check's
+ *   reason, a left-broken row's, or a condition that cannot be evaluated — or `null`.
+ * @property {InactiveBy | null} inactiveBy `TODO/ui-052`: the condition that is currently
+ *   keeping this row out of the fold, or `null`. Not the same as `suppressed` (the user
+ *   switched it off) or `active: false` (past the rollback marker).
+ * @property {RowCondition | null} condition The condition this row carries or inherits
+ *   from its body's creation record, whether or not it is currently true — so the chip
+ *   stays visible on a Pi 4 as well as a Pi 5.
+ */
+
+/**
+ * @typedef {object} InactiveBy
+ * @property {string} refId The body the condition reads.
+ * @property {string} param
+ * @property {any[]} values
+ */
+
+/**
+ * @typedef {object} RowCondition
+ * @property {string} refId
+ * @property {string} param
+ * @property {any[]} values
+ * @property {'self' | 'lineage'} scope `self` when the row carries `when` itself;
+ *   `lineage` when it belongs to a body whose creation record does.
+ * @property {string} sentence `Only when Raspberry Pi 1's Model is Pi 4`.
+ * @property {string} chip `if Raspberry Pi 1 = Pi 4`.
+ */
+
+/**
+ * A body the fold is leaving out because of a condition on its creation record — what
+ * the object list shows greyed, so it can still be selected and its condition edited
+ * even though it cannot be picked in the viewport.
+ *
+ * @typedef {object} InactiveBody
+ * @property {string} id
+ * @property {string} name
+ * @property {string} op
+ * @property {'inactive' | 'invalid'} state `invalid` when the condition cannot be
+ *   evaluated (and the row is reported broken).
+ * @property {RowCondition} condition
+ */
+
+/**
+ * One row of a {@link WarpDocument.reviseRecords} call.
+ *
+ * @typedef {object} RecordRevision
+ * @property {string} id The row to revise.
+ * @property {OpRecord} [record] Its replacement; omitted to change only the flag.
+ * @property {boolean} [leftBroken] Set or clear the row's Leave-broken flag.
  */
 
 /**
@@ -422,9 +505,10 @@ import { applyAction, emptyScene } from './replay.js'
  * inverse is position-independent and survives that.
  *
  * @typedef {object} LogRevision
- * @property {'replace' | 'suppress' | 'reorder' | 'rollback' | 'resolution'} kind
+ * @property {'replace' | 'suppress' | 'reorder' | 'rollback' | 'resolution' | 'revise'} kind
  *   `resolution` (`TODO/core-035`) revises no entry at all — only the design
- *   resolution the whole log is folded at.
+ *   resolution the whole log is folded at. `revise` (`TODO/ui-052`) swaps several
+ *   entries' records and Leave-broken flags at once — see `items`.
  * @property {string} [id] The row acted on.
  * @property {OpRecord} [from] `replace`: the record as it was.
  * @property {OpRecord} [to] `replace`: the record it became.
@@ -433,6 +517,8 @@ import { applyAction, emptyScene } from './replay.js'
  * @property {number} [delta] `reorder`: `-1` up, `+1` down.
  * @property {string} [fromResolution] `resolution`: the setting before.
  * @property {string} [toResolution] `resolution`: the setting after.
+ * @property {Array<{ id: string, from: OpRecord, to: OpRecord, fromLeftBroken: boolean, toLeftBroken: boolean }>} [items]
+ *   `revise`: every row changed, before and after.
  */
 
 /**
@@ -559,6 +645,9 @@ export class ReplayRejection extends Error {
  * @property {() => number | null} rollbackAt
  * @property {(id: string, record: OpRecord, transaction: TransactionOptions) => { scene: Scene }} replaceRecord
  * @property {(id: string, suppressed: boolean, transaction: TransactionOptions) => { scene: Scene }} setSuppressed
+ * @property {(changes: readonly RecordRevision[], transaction: TransactionOptions) => { scene: Scene }} reviseRecords
+ * @property {() => InactiveBody[]} inactiveBodies
+ * @property {(id: string) => RowCondition | null} conditionOf
  * @property {(id: string, override: { color: number, colorAlpha?: number, subPart?: string }, transaction: TransactionOptions) => { record: OpRecord, scene: Scene }} setColorOverride
  * @property {(id: string, target: { subPart?: string }, transaction: TransactionOptions) => { record: OpRecord, scene: Scene }} clearColorOverride
  * @property {(ids: readonly string[], transaction: TransactionOptions) => { records: OpRecord[], scene: Scene }} deleteBodies
@@ -577,7 +666,7 @@ export class ReplayRejection extends Error {
  * @property {() => HistoryStep | undefined} undo
  * @property {() => HistoryStep | undefined} redo
  * @property {() => void} clearHistory
- * @property {(entries: readonly DocumentEntry[], rollbackAt?: number | null, resolution?: string) => void} loadEntries
+ * @property {(entries: readonly DocumentEntry[], rollbackAt?: number | null, resolution?: string, options?: { tolerateAll?: boolean }) => void} loadEntries
  * @property {() => string} resolution The design resolution (`TODO/core-035`) every
  *   curve without an explicit `segments` is faceted at — `legacy` for a document from
  *   before the setting existed.
@@ -725,7 +814,56 @@ function referencedIdsOf(record) {
  * legality check reads it. Changing one of these under the name "edit" would be
  * a reorder or a re-parent wearing an edit's clothes.
  */
-const SHAPE_FIELDS = Object.freeze(['op', 'supersedes', 'consumes', 'target', 'operands'])
+const SHAPE_FIELDS = Object.freeze(['op', 'supersedes', 'consumes', 'target', 'operands', 'when'])
+
+/**
+ * The one op change a revision may make: a Snap or Align **detached** into the plain
+ * translate it amounted to (`TODO/ui-052`'s Detach). Anything else would be a different
+ * operation wearing the old one's id.
+ */
+const DETACHABLE_OPS = Object.freeze(new Set(['group.snap', 'group.align']))
+
+/**
+ * The id a `target`/`operands` entry names, bare or sub-part addressed.
+ *
+ * @param {unknown} ref
+ * @returns {string | undefined}
+ */
+function refIdOf(ref) {
+  if (typeof ref === 'string') return ref
+  const id = ref && typeof ref === 'object' ? /** @type {any} */ (ref).id : undefined
+  return typeof id === 'string' ? id : undefined
+}
+
+/**
+ * An entry with its Leave-broken flag set or cleared — cleared by *omitting* the key,
+ * so an ordinary entry stays byte-identical to what it was before this task.
+ *
+ * @param {DocumentEntry} entry
+ * @param {boolean} leftBroken
+ * @returns {DocumentEntry}
+ */
+function withLeftBroken(entry, leftBroken) {
+  const { leftBroken: _previous, ...rest } = entry
+  return leftBroken ? { ...rest, leftBroken: true } : rest
+}
+
+/**
+ * The copy of an entry a fold of *another* document takes: record, origin and the two
+ * flags that change how it folds. Used by the load path and by every throwaway document
+ * (the History preview, the tail shadow check, the impact check).
+ *
+ * @param {DocumentEntry} entry
+ * @returns {DocumentEntry}
+ */
+export function foldableEntry(entry) {
+  return {
+    record: entry.record,
+    origin: entry.origin,
+    ...(entry.suppressed === true ? { suppressed: true } : {}),
+    ...(entry.leftBroken === true ? { leftBroken: true } : {}),
+  }
+}
 
 /**
  * How many recent steps can be undone/redone by restoring rather than re-folding,
@@ -882,11 +1020,18 @@ export function createDocument(options = {}) {
    */
   let rollbackAt = null
   /**
-   * Inactive-tail rows the shadow check could not build, id → reason. Recomputed
-   * on every successful re-fold, and empty whenever nothing is rolled back.
+   * Rows that do not build, id → reason: inactive-tail rows the shadow check could not
+   * build, plus (`TODO/ui-052`) active rows the user left broken and rows whose condition
+   * cannot be evaluated. Recomputed on every successful re-fold.
    * @type {Map<string, string>}
    */
   let brokenById = new Map()
+  /**
+   * `TODO/ui-052`: rows a condition is currently keeping out of the fold, id → the
+   * condition. Recomputed on every re-fold, with {@link brokenById}.
+   * @type {Map<string, InactiveBy>}
+   */
+  let inactiveById = new Map()
 
   /**
    * Identity of the document's **whole** current state — entries, marker and
@@ -916,6 +1061,7 @@ export function createDocument(options = {}) {
    * @property {number | null} rollbackAt
    * @property {string} resolution `TODO/core-035`.
    * @property {Map<string, string>} brokenById
+   * @property {Map<string, InactiveBy>} inactiveById
    * @property {number} token
    */
 
@@ -947,6 +1093,7 @@ export function createDocument(options = {}) {
       rollbackAt,
       resolution,
       brokenById,
+      inactiveById,
       token: stateToken,
     }
   }
@@ -966,6 +1113,7 @@ export function createDocument(options = {}) {
     rollbackAt = state.rollbackAt
     resolution = state.resolution
     brokenById = state.brokenById
+    inactiveById = state.inactiveById
     stateToken = state.token
   }
 
@@ -1075,8 +1223,12 @@ export function createDocument(options = {}) {
    *
    * @param {OpRecord} record
    * @param {string} origin
+   * @param {boolean} [passThrough] `TODO/ui-052`: fold the record as **identity** — every
+   *   lineage check and all the bookkeeping below exactly as usual, but its id bound to
+   *   the geometry it would have changed instead of running its op. How a row the user
+   *   left broken, or one a condition switches off, keeps its body on screen.
    */
-  function ingest(record, origin) {
+  function ingest(record, origin, passThrough = false) {
     if (typeof origin !== 'string' || origin.length === 0) {
       throw new Error(
         'document.append: a transaction origin is required — ' +
@@ -1179,8 +1331,23 @@ export function createDocument(options = {}) {
     // rejected rather than committed. Skipped outright for a sketch record:
     // there is no geometry to evaluate and no registry entry to look up.
     const errorsBefore = scene.errors.length
-    const candidate =
-      isSketch || isTombstone ? scene : applyAction(scene, record, ops, foldCache, policyFor(resolution))
+    let candidate
+    if (isSketch || isTombstone) {
+      candidate = scene
+    } else if (passThrough) {
+      // The body it would have changed: what it supersedes, else its first operand (a
+      // boolean with its operation switched off leaves its base un-cut).
+      const sourceId = record.supersedes ?? refIdOf(record.target) ?? record.consumes?.[0]
+      const value = sourceId === undefined ? undefined : scene.byId.get(sourceId)
+      if (record.id === undefined || value === undefined) {
+        throw new Error(`document.append: ${record.op} has no body to pass through`)
+      }
+      const byIdNext = new Map(scene.byId)
+      byIdNext.set(record.id, value)
+      candidate = { ...scene, byId: byIdNext }
+    } else {
+      candidate = applyAction(scene, record, ops, foldCache, policyFor(resolution))
+    }
     if (candidate.errors.length > errorsBefore) {
       const failure = candidate.errors[candidate.errors.length - 1]
       throw new Error(`document.append: ${failure.op} could not be applied — ${failure.message}`)
@@ -1314,16 +1481,18 @@ export function createDocument(options = {}) {
       if (entry.record.id !== undefined) built.add(entry.record.id)
     }
 
-    for (let index = 0; index < activeCount; index += 1) {
-      const entry = nextEntries[index]
-      if (entry.suppressed === true) continue
-      // Cannot throw: this prefix is the fold that just succeeded. Guarded
-      // anyway so a shadow check can never be the thing that breaks a document.
-      try {
-        feed(entry)
-      } catch {
-        /* ignored — see above */
+    // The active prefix in one load, flags and conditions included (`TODO/ui-052`), so a
+    // row left broken there is tolerated the same way the live fold tolerates it. Cannot
+    // throw: this prefix is the fold that just succeeded. Guarded anyway so a shadow
+    // check can never be the thing that breaks a document.
+    try {
+      scratch.loadEntries(nextEntries.slice(0, activeCount).map(foldableEntry), null, resolution)
+      for (const entry of nextEntries.slice(0, activeCount)) {
+        const id = entry.record.id
+        if (id !== undefined && scratch.currentIdOf(id) !== undefined) built.add(id)
       }
+    } catch {
+      /* ignored — see above */
     }
 
     for (let index = activeCount; index < nextEntries.length; index += 1) {
@@ -1366,24 +1535,22 @@ export function createDocument(options = {}) {
    * @param {string} [nextResolution] The design resolution to fold at
    *   (`TODO/core-035`); defaults to the current one. Put back with everything else if
    *   the fold is refused.
+   * @param {{ tolerateAll?: boolean }} [options] `tolerateAll`: see {@link foldActive}.
    * @returns {DocumentState} The state **before** the rebuild, so the caller can
    *   record it on the step it pushes and a later Undo can put it back without
    *   this fold running again (`TODO/core-030`).
    */
-  function rebuildFrom(nextEntries, nextRollbackAt = rollbackAt, nextResolution = resolution) {
+  function rebuildFrom(nextEntries, nextRollbackAt = rollbackAt, nextResolution = resolution, options = {}) {
     const prior = captureState()
     const snapshot = prior.derived
     const activeCount = nextRollbackAt ?? nextEntries.length
     const byId = recordMapOf(nextEntries)
     resetDerived(null)
     resolution = nextResolution
+    /** @type {{ broken: Map<string, string>, inactive: Map<string, InactiveBy> }} */
+    let outcome
     try {
-      for (let index = 0; index < activeCount && index < nextEntries.length; index += 1) {
-        const entry = nextEntries[index]
-        // Suppressed: in the log, in the list, out of the fold (section 16).
-        if (entry.suppressed === true) continue
-        ingestRow(entry, index, byId)
-      }
+      outcome = foldActive(nextEntries, activeCount, byId, options.tolerateAll === true)
     } catch (error) {
       resetDerived(snapshot)
       resolution = prior.resolution
@@ -1392,9 +1559,124 @@ export function createDocument(options = {}) {
     entries.length = 0
     entries.push(...nextEntries)
     rollbackAt = nextRollbackAt
-    brokenById = shadowCheckTail(nextEntries, activeCount, byId)
+    brokenById = new Map([...outcome.broken, ...shadowCheckTail(nextEntries, activeCount, byId)])
+    inactiveById = outcome.inactive
     bumpState()
     return prior
+  }
+
+  /**
+   * The active part of a re-fold: every row before the marker, in order, with
+   * `TODO/ui-052`'s two exceptions to "any failure is an atomic rejection" — see the
+   * module note. Throws a {@link ReplayRejection} for any failure that is not one of them.
+   *
+   * @param {readonly DocumentEntry[]} nextEntries
+   * @param {number} activeCount
+   * @param {Map<string, OpRecord>} byId Every record in the list being folded.
+   * @param {boolean} tolerateAll Tolerate *every* failing row as if the user had left it
+   *   broken — only for a throwaway document asking "what would break?" (`dependents.js`).
+   * @returns {{ broken: Map<string, string>, inactive: Map<string, InactiveBy> }}
+   */
+  function foldActive(nextEntries, activeCount, byId, tolerateAll) {
+    /** @type {Map<string, string>} */
+    const broken = new Map()
+    /** @type {Map<string, InactiveBy>} */
+    const inactive = new Map()
+    /**
+     * Record id → the key of the row that took its whole lineage out of the fold: a
+     * creation record switched off by its condition (or one whose condition cannot be
+     * evaluated), or a row that could not even be passed through.
+     * @type {Map<string, string>}
+     */
+    const skipped = new Map()
+    const context = nextEntries.some((entry) => entry.record.when !== undefined)
+      ? conditionContextOf(nextEntries, activeCount)
+      : null
+
+    /**
+     * @param {DocumentEntry} entry
+     * @param {string} key
+     */
+    const passThroughOrSkip = (entry, key) => {
+      try {
+        ingest(entry.record, entry.origin, true)
+      } catch {
+        // Nothing to stand in for (its own input is missing too): out of the fold,
+        // and whatever builds on it is judged as building on a skipped body.
+        if (entry.record.id !== undefined) skipped.set(entry.record.id, key)
+      }
+    }
+
+    for (let index = 0; index < activeCount && index < nextEntries.length; index += 1) {
+      const entry = nextEntries[index]
+      // Suppressed: in the log, in the list, out of the fold (section 16).
+      if (entry.suppressed === true) continue
+      const { record } = entry
+      const key = record.id ?? `#${index + 1}`
+
+      // 1. A later record of a lineage the fold has already left out goes with it,
+      //    silently: "this body does not exist on a Pi 5" covers its moves too.
+      if (typeof record.supersedes === 'string' && skipped.has(record.supersedes)) {
+        const owner = /** @type {string} */ (skipped.get(record.supersedes))
+        if (record.id !== undefined) skipped.set(record.id, owner)
+        const info = inactive.get(owner)
+        if (info !== undefined) inactive.set(key, info)
+        else broken.set(key, broken.get(owner) ?? `needs ${displayNameOf(owner, byId)}`)
+        continue
+      }
+
+      // 2. Its own condition.
+      if (record.when !== undefined && context !== null) {
+        const verdict = evaluateCondition(record.when, context)
+        if (verdict.state !== 'active') {
+          if (verdict.state === 'invalid') {
+            broken.set(key, `condition can't be evaluated: ${verdict.reason}`)
+          } else {
+            const when = /** @type {import('./condition.js').Condition} */ (record.when)
+            inactive.set(key, { refId: when.ref, param: when.param, values: [...when.in] })
+          }
+          const creates = record.supersedes === undefined && record.consumes === undefined
+          if (creates) {
+            if (record.id !== undefined) skipped.set(record.id, key)
+          } else {
+            passThroughOrSkip(entry, key)
+          }
+          continue
+        }
+      }
+
+      // 3. A record that uses a body the fold left out: broken, with the reason named —
+      //    conditions never spread to other bodies without the user choosing it.
+      const skippedRef = referencedIdsOf(record).find((id) => skipped.has(id))
+      if (skippedRef !== undefined) {
+        const owner = /** @type {string} */ (skipped.get(skippedRef))
+        const ownerRecord = byId.get(owner)
+        const name = displayNameOf(owner, byId)
+        const reason =
+          inactive.has(owner) && ownerRecord?.when !== undefined && context !== null
+            ? `needs ${name}, which only exists when ${describeCondition(
+                /** @type {import('./condition.js').Condition} */ (ownerRecord.when),
+                context
+              ).sentence.replace(/^Only when /, '')}`
+            : `needs ${name}, which is not being built`
+        if (!(tolerateAll || entry.leftBroken === true)) {
+          throw new ReplayRejection({ id: record.id ?? '', step: index + 1, label: labelFor([record], byId), reason })
+        }
+        broken.set(key, reason)
+        passThroughOrSkip(entry, key)
+        continue
+      }
+
+      // 4. An ordinary row — refused atomically unless the user left it broken.
+      try {
+        ingestRow(entry, index, byId)
+      } catch (error) {
+        if (!(error instanceof ReplayRejection) || !(tolerateAll || entry.leftBroken === true)) throw error
+        broken.set(key, error.step.reason)
+        passThroughOrSkip(entry, key)
+      }
+    }
+    return { broken, inactive }
   }
 
   /**
@@ -1420,6 +1702,19 @@ export function createDocument(options = {}) {
     if (revision.kind === 'resolution') {
       // Revises no entry — only what the whole log is folded at (`TODO/core-035`).
       return rebuildFrom(next, targetRollbackAt, /** @type {string} */ (revision.toResolution))
+    }
+    if (revision.kind === 'revise') {
+      for (const item of revision.items ?? []) {
+        const at = indexOfRecord(item.id)
+        if (at < 0) {
+          throw new Error(
+            `document.undo: step "${item.id}" is no longer in this document, so the ` +
+              'action that changed it cannot be reversed'
+          )
+        }
+        next[at] = withLeftBroken({ ...next[at], record: item.to }, item.toLeftBroken)
+      }
+      return rebuildFrom(next, targetRollbackAt)
     }
     const index = indexOfRecord(revision.id)
     if (revision.kind !== 'rollback' && index < 0) {
@@ -1459,6 +1754,18 @@ export function createDocument(options = {}) {
       }
     }
     if (revision.kind === 'reorder') return { ...revision, delta: -(revision.delta ?? 0) }
+    if (revision.kind === 'revise') {
+      return {
+        ...revision,
+        items: (revision.items ?? []).map((item) => ({
+          id: item.id,
+          from: item.to,
+          to: item.from,
+          fromLeftBroken: item.toLeftBroken,
+          toLeftBroken: item.fromLeftBroken,
+        })),
+      }
+    }
     if (revision.kind === 'resolution') {
       return { ...revision, fromResolution: revision.toResolution, toResolution: revision.fromResolution }
     }
@@ -1555,6 +1862,94 @@ export function createDocument(options = {}) {
     return record.op.startsWith(SKETCH_OP_PREFIX) ? `Draw ${noun}` : `Place ${noun}`
   }
 
+  /**
+   * Refuse a revision that is not an edit of `current` — see
+   * {@link WarpDocument.reviseRecords} for the three widenings over `replaceRecord`.
+   *
+   * @param {OpRecord} current
+   * @param {OpRecord} record
+   */
+  function assertRevisable(current, record) {
+    const id = current.id
+    if (!record || typeof record !== 'object' || record.id !== id) {
+      throw new Error(
+        `document.reviseRecords: the replacement for "${id}" must keep its id — every later ` +
+          'record refers to it by that id'
+      )
+    }
+    for (const field of /** @type {const} */ (['supersedes', 'consumes'])) {
+      if (JSON.stringify(record[field] ?? null) === JSON.stringify(current[field] ?? null)) continue
+      throw new Error(
+        `document.reviseRecords: the replacement for "${id}" changes \`${field}\` — that is the ` +
+          'lineage itself, and a revision edits a step, never what it continues or retires'
+      )
+    }
+    if (record.op !== current.op && !(DETACHABLE_OPS.has(current.op) && record.op === 'transform.translate')) {
+      throw new Error(
+        `document.reviseRecords: "${id}" may not change from ${current.op} to ${record.op} — ` +
+          'only a Snap or Align may be detached into a plain move'
+      )
+    }
+    const allowed = new Set([current.target, ...(current.operands ?? [])].map(refIdOf))
+    for (const ref of [record.target, ...(record.operands ?? [])]) {
+      if (ref === undefined) continue
+      const refId = refIdOf(ref)
+      if (refId === undefined || !allowed.has(refId)) {
+        throw new Error(
+          `document.reviseRecords: "${id}" may not start using "${String(refId ?? JSON.stringify(ref))}" — ` +
+            'a revision may rename a piece or drop an operand, never reach a new record'
+        )
+      }
+    }
+    if (record.when !== undefined) {
+      const problem = conditionShapeError(record.when)
+      if (problem !== null) throw new Error(`document.reviseRecords: "${id}": ${problem}`)
+    }
+  }
+
+  /**
+   * A reader for the condition each row carries or inherits (`TODO/ui-052`), with its
+   * words already built — for {@link WarpDocument.timeline} and
+   * {@link WarpDocument.inactiveBodies}.
+   *
+   * @param {Map<string, OpRecord>} byId Every record in the log.
+   * @param {number} activeCount
+   * @returns {(record: OpRecord) => RowCondition | null}
+   */
+  function conditionReader(byId, activeCount) {
+    if (!entries.some((entry) => entry.record.when !== undefined)) return () => null
+    const context = conditionContextOf(entries, activeCount)
+    return (record) => {
+      /** @type {'self' | 'lineage'} */
+      let scope = 'self'
+      let carrier = record
+      if (carrier.when === undefined) {
+        scope = 'lineage'
+        const seen = new Set()
+        while (carrier.when === undefined && typeof carrier.supersedes === 'string' && !seen.has(carrier.supersedes)) {
+          seen.add(carrier.supersedes)
+          const previous = byId.get(carrier.supersedes)
+          if (previous === undefined) break
+          carrier = previous
+        }
+        // Only a *creation* record's condition covers its whole lineage; one on a snap
+        // covers that snap alone.
+        if (carrier.supersedes !== undefined || carrier.consumes !== undefined) return null
+      }
+      if (carrier.when === undefined || conditionShapeError(carrier.when) !== null) return null
+      const when = /** @type {import('./condition.js').Condition} */ (carrier.when)
+      const words = describeCondition(when, context)
+      return {
+        refId: when.ref,
+        param: when.param,
+        values: [...when.in],
+        scope,
+        sentence: words.sentence,
+        chip: words.chip,
+      }
+    }
+  }
+
   /** @type {WarpDocument} */
   const document = {
     get entries() {
@@ -1609,6 +2004,12 @@ export function createDocument(options = {}) {
     appendAll(records, transaction) {
       const origin = transaction?.origin
       if (rollbackAt !== null) return document.insertAt(rollbackAt, records, transaction)
+      // `TODO/ui-052`: a condition reads its ref from the whole log, so once the document
+      // has one, an append (a delete of the Pi a condition reads, a new conditioned
+      // record) has to re-fold to re-judge it. Rare, and the fold cache makes it cheap.
+      if (records.some((record) => record.when !== undefined) || entries.some((entry) => entry.record.when !== undefined)) {
+        return document.insertAt(entries.length, records, transaction)
+      }
 
       // Only a local step is ever undone, so only a local step needs the state
       // before it kept (`TODO/core-030`) — a remote or seed append pays nothing.
@@ -1951,8 +2352,11 @@ export function createDocument(options = {}) {
      * @param {string} [nextResolution] The loaded design's resolution
      *   (`TODO/core-035`) — `parseProject` reads `legacy` for a file with no setting.
      *   Omitted: the current one, which is what a History preview's prefix wants.
+     * @param {{ tolerateAll?: boolean }} [options] `tolerateAll` folds every failing row
+     *   as if the user had left it broken, instead of refusing the load — only for a
+     *   throwaway document asking "what would break?" (`TODO/ui-052`'s impact check).
      */
-    loadEntries(nextEntries, nextRollbackAt = null, nextResolution = resolution) {
+    loadEntries(nextEntries, nextRollbackAt = null, nextResolution = resolution, options = {}) {
       if (!isResolution(nextResolution)) {
         throw new Error(`document.loadEntries: unknown resolution "${String(nextResolution)}"`)
       }
@@ -1965,15 +2369,9 @@ export function createDocument(options = {}) {
             `between 1 and ${nextEntries.length - 1} for a log of ${nextEntries.length} steps`
         )
       }
-      rebuildFrom(
-        nextEntries.map((entry) => ({
-          record: entry.record,
-          origin: entry.origin,
-          ...(entry.suppressed === true ? { suppressed: true } : {}),
-        })),
-        nextRollbackAt,
-        nextResolution
-      )
+      rebuildFrom(nextEntries.map(foldableEntry), nextRollbackAt, nextResolution, {
+        tolerateAll: options.tolerateAll === true,
+      })
       undoStack.length = 0
       redoStack.length = 0
       document.version += 1
@@ -2083,25 +2481,78 @@ export function createDocument(options = {}) {
     timeline() {
       const activeCount = rollbackAt ?? entries.length
       const byId = recordMapOf(entries)
-      return entries.map((entry, index) => ({
-        step: index + 1,
-        id: entry.record.id ?? '',
-        record: entry.record,
-        origin: entry.origin,
-        label: labelFor([entry.record], byId),
-        suppressed: entry.suppressed === true,
-        active: index < activeCount,
-        broken: brokenById.get(entry.record.id ?? `#${index + 1}`) ?? null,
-      }))
+      const conditionOf = conditionReader(byId, activeCount)
+      return entries.map((entry, index) => {
+        const key = entry.record.id ?? `#${index + 1}`
+        return {
+          step: index + 1,
+          id: entry.record.id ?? '',
+          record: entry.record,
+          origin: entry.origin,
+          label: labelFor([entry.record], byId),
+          suppressed: entry.suppressed === true,
+          active: index < activeCount,
+          broken: brokenById.get(key) ?? null,
+          inactiveBy: inactiveById.get(key) ?? null,
+          condition: conditionOf(entry.record),
+        }
+      })
     },
 
     /**
-     * The inactive tail rows the shadow check could not build — section 18's
-     * `broken` chips, as {@link BrokenStep}s rather than a flag, so the panel
-     * can show the reason on hover without asking again.
+     * `TODO/ui-052`: the condition a row carries or inherits from its body's creation
+     * record — the Inspector's Condition row for a selected body. `null` for none.
      *
-     * Always empty when nothing is rolled back: a failure in the **active**
-     * document is an atomic rejection, never a flag.
+     * @param {string} id Any record id; a body's lineage root id for the whole body.
+     * @returns {RowCondition | null}
+     */
+    conditionOf(id) {
+      const record = document.recordOf(id)
+      if (record === undefined) return null
+      return conditionReader(recordMapOf(entries), rollbackAt ?? entries.length)(record)
+    },
+
+    /**
+     * `TODO/ui-052`: the bodies a condition on their creation record is leaving out of
+     * the fold — or whose condition cannot be evaluated — in log order. Not in
+     * {@link WarpDocument.bodies} (they are not drawn and cannot be picked), but the
+     * object list shows them greyed so a user can still select one and edit or remove
+     * its condition.
+     */
+    inactiveBodies() {
+      const activeCount = rollbackAt ?? entries.length
+      const byId = recordMapOf(entries)
+      const conditionOf = conditionReader(byId, activeCount)
+      /** @type {InactiveBody[]} */
+      const list = []
+      entries.forEach((entry, index) => {
+        const { record } = entry
+        if (index >= activeCount || entry.suppressed === true) return
+        if (record.when === undefined || record.id === undefined) return
+        if (record.supersedes !== undefined || record.consumes !== undefined) return
+        if (rootById.has(record.id)) return
+        const condition = conditionOf(record)
+        if (condition === null) return
+        list.push({
+          id: record.id,
+          name: record.name ?? record.id,
+          op: record.op,
+          state: inactiveById.has(record.id) ? 'inactive' : 'invalid',
+          condition,
+        })
+      })
+      return list
+    },
+
+    /**
+     * Every row that does not build, as {@link BrokenStep}s rather than a flag, so
+     * the panel can show the reason on hover without asking again: section 18's
+     * inactive-tail rows the shadow check could not build, and (`TODO/ui-052`) active
+     * rows the user chose to leave broken or whose condition cannot be evaluated.
+     *
+     * An ordinary failure in the **active** document is still an atomic rejection,
+     * never a flag — only a row the user flagged `leftBroken` gets here from the
+     * active fold.
      */
     brokenSteps() {
       if (brokenById.size === 0) return []
@@ -2211,6 +2662,67 @@ export function createDocument(options = {}) {
         transaction,
         `${wanted ? 'Suppress' : 'Unsuppress'} step ${index + 1}`,
         { kind: 'suppress', id, fromSuppressed: was, toSuppressed: wanted },
+        rollbackBefore,
+        prior
+      )
+      return { scene }
+    },
+
+    /**
+     * `TODO/ui-052`: revise several rows **in place**, as one undoable step — the
+     * composite param edit and every fix the repair dialog chose (Remap, Detach, Only
+     * when…, Leave broken), or a condition edited or removed from the Inspector.
+     *
+     * The multi-row sibling of {@link WarpDocument.replaceRecord}, with the same
+     * correctness argument — every row keeps its id, so every later reference still
+     * names a record that is still there — and a rule that is wider in exactly the
+     * three ways the repair dialog needs and no others:
+     *
+     * - `target`/`operands` may **rename a piece** or **drop an operand**, but may not
+     *   reach any record the row did not already reference (a Remap; a Detach);
+     * - `op` may change from `group.snap`/`group.align` to `transform.translate` only
+     *   (a Detach);
+     * - `when` may be set, changed or removed (Only when…, Edit, Remove).
+     *
+     * `supersedes` and `consumes` never change: they are the lineage itself.
+     *
+     * Atomic, through {@link rebuildFrom}: a row that no longer builds and is not
+     * flagged `leftBroken` refuses the whole revision by name, and nothing changes.
+     */
+    reviseRecords(changes, transaction) {
+      if (!Array.isArray(changes) || changes.length === 0) {
+        throw new Error('document.reviseRecords: at least one revision is required')
+      }
+      const next = entries.slice()
+      /** @type {NonNullable<LogRevision['items']>} */
+      const items = []
+      /** @type {Set<string>} */
+      const seen = new Set()
+      for (const change of changes) {
+        const index = indexOfRecord(change?.id)
+        if (index < 0) throw new Error(`document.reviseRecords: no step "${change?.id}" in this document`)
+        if (seen.has(change.id)) throw new Error(`document.reviseRecords: step "${change.id}" is revised twice`)
+        seen.add(change.id)
+        const current = next[index]
+        const record = change.record ?? current.record
+        assertRevisable(current.record, record)
+        const fromLeftBroken = current.leftBroken === true
+        const toLeftBroken = change.leftBroken ?? fromLeftBroken
+        next[index] = withLeftBroken({ ...current, record }, toLeftBroken)
+        items.push({ id: change.id, from: current.record, to: record, fromLeftBroken, toLeftBroken })
+      }
+      const changed = items.some(
+        (item) =>
+          JSON.stringify(item.from) !== JSON.stringify(item.to) || item.fromLeftBroken !== item.toLeftBroken
+      )
+      if (!changed) return { scene }
+
+      const rollbackBefore = rollbackAt
+      const prior = rebuildFrom(next)
+      pushRevision(
+        transaction,
+        items.length === 1 ? `Edit step ${indexOfRecord(items[0].id) + 1}` : `Edit ${items.length} steps`,
+        { kind: 'revise', items },
         rollbackBefore,
         prior
       )
