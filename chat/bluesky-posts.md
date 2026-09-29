@@ -1040,3 +1040,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** no Escape handler existed for any of the three Operations popovers before this fix → diff (`OperationsToolbar.vue`) and a `grep -rn "'Escape'" src/` sweep this session finding no match there; the backdrop absorbed the next pointerdown → this session's live Playwright repro (`document.elementFromPoint` at the Library row returned the backdrop div, not the row); first drag failed, second worked → RED confirmed this session by `git stash`-ing the fix and re-running the repro (`data-body-count` stuck at 1), GREEN confirmed after restoring it (reached 2 on the first drag); filed by `core-035`'s scenario 12 re-drive, pre-existing on HEAD `2233c53` → `TODO/done/ui-053-first-library-drag-after-escape-ignored.md`'s own Problem section
 **To Add:** none
+
+## [2026-09-29T21:26:01Z] — Change a placed part's model, and repair what the change breaks (TODO/ui-052)
+
+**Post:** WarpCad: a placed Raspberry Pi's Model is now a dropdown. Swap a Pi 4 for a Pi 5 with something snapped to its AV jack and a dialog asks first: remap it, detach it, leave it flagged, or keep it "only when Pi 4", so one design can hold both boards. Built with Claude Code, reviewed by me. #CAD
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** Model was read-only before → `TODO/done/ui-052` Goal ("Today every composite recipe's Parameters section is read-only"), and the two e2e assertions this commit changes (`kit-rpi-library-placement`, `hardware-library-placement`); the Pi 5 has no AV jack and the dialog appears before anything commits → `e2e/composite-param-edit.e2e.js` (60/60 on Chromium+WebKit, this session) and scenario 15 hand-driven this session at laptop Chromium and phone WebKit; the four fixes and "only when Pi 4" → diff (`DependentRepairDialog.vue`, `repair.js`, `condition.js`); one design holding both boards → the same drive: back on a Pi 4 the cube returned to exactly -76.10, -16.36, -17.38, its snapped position
+**To Add:** a short phone clip: Model → Pi 5, the dialog, "Only when", then back to Pi 4
