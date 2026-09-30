@@ -1455,6 +1455,7 @@ describe('paramOptions — editable composite params (TODO/ui-052)', () => {
       nutSpecs: {},
       washerSpecs: {},
       bearingSpecs: {},
+      screwSpecs: {},
       FIT_CLEARANCE_MM: {},
     })
     const fitsOf = (/** @type {string} */ spec) =>
@@ -1483,6 +1484,16 @@ describe('paramOptions — editable composite params (TODO/ui-052)', () => {
     expect(Object.keys(paramOptions('hardware.nut', { spec: 'm4' }))).toEqual(['spec', 'fit'])
     expect(Object.keys(paramOptions('hardware.washer', { spec: 'm6' }))).toEqual(['spec', 'fit'])
     expect(Object.keys(paramOptions('hardware.bearing', { spec: '608' }))).toEqual(['spec'])
+  })
+
+  it('hardware.screw: spec and head are dropdowns read off the recipe\'s own lists, length a positive mm number', async () => {
+    const { paramOptions } = await import('./registry.js')
+    const { screwSpecs } = await import('./tables/screw-specs.js')
+    const schema = /** @type {any} */ (paramOptions('hardware.screw', { spec: 'm4' }))
+    expect(Object.keys(schema)).toEqual(['spec', 'head', 'length'])
+    expect(schema.spec.options.map((/** @type {any} */ option) => option.value)).toEqual(Object.keys(screwSpecs))
+    expect(schema.head.options.map((/** @type {any} */ option) => option.value)).toEqual(['PanHead', 'FlatHead'])
+    expect(schema.length).toMatchObject({ kind: 'number', unit: 'mm', exclusiveMin: 0 })
   })
 
   it('a composite with no schema, and a native op, return none — so they stay read-only', async () => {

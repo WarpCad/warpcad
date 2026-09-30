@@ -1418,3 +1418,16 @@ Driving it by hand on a laptop and a phone layout turned up four bugs the automa
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** Model dropdown (Pi 2 to Pi 5) and bolt spec/fit/length editable → diff (`registry.js` `paramOptions`, `ParamFields.vue`) and `e2e/composite-param-edit.e2e.js`; rebuilds in place keeping position/rotation/colours → e2e + this session's drive (whole-body `#0000ff` survived Pi 5 → Pi 3; the Pi stayed selected); snapped part follows a shared connector → e2e "snapped to ethernet" case and the unit test in `dependents.spec.js`; dialog before anything commits, four fixes → diff (`DependentRepairDialog.vue`, `repair.js`) and scenario 15 drive this session; condition stored with the design and survives reload → `project.js`/`document.js` diff and the e2e reload case; four bugs found by hand-driving, each with a test → this session: stale mesh (`mesh.spec.js`, e2e pick that fails against the old check), missing drilled-in part after Undo (`documentSubPart.spec.js`), self-condition on the Pi's own snap (`dependents.spec.js`/`repair.spec.js`), operations enabled on an inactive body (e2e reload case)
 **To Add:** screenshots of the repair dialog at laptop and as the phone bottom sheet (`test-results/composite-param-edit-snapshots/`)
+
+## [2026-09-30T14:40:00Z] — hardware.screw recipe, checked against real V1 output (TODO/core-027)
+
+**Post:** Added a screw recipe to WarpCad's geometry kernel: pan head and flat head, in one metric and five imperial wood-screw sizes. Like the bolt, nut and washer before it, it is checked against the output of the original JSCAD V1 library, not against my reading of its source.
+
+That check changed the plan. The task expected a flat-head screw to need a countersink boolean cut. Running V1 showed it builds a cone-shaped head and never reads the countersink field at all, so no new kernel step was needed. The task also expected a "Pan Head Screw" bill-of-materials key; V1's screws have none, only its bolts do. Both corrections are recorded in the recipe's module doc so the future BOM panel doesn't go looking.
+
+Head, thread and the optional hidden clearance solid match V1's bounds, volumes and colours to 1e-6 mm and mm³. There is no Library row yet, so nothing in the app can place one; that is a separate task. Built with Claude Code, reviewed by me.
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #JSCAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** cone head, countersink field unread, no screw BOM key → `jscad-hardware.jscad` source read this session and `scripts/generate-v1-screw-fixture.cjs` output; one metric + five imperial sizes → `screw-specs.js`; matches to 1e-6 → `hardware.screw.spec.js` tolerances (`toBeCloseTo(..., 6)`), 23 passing this session; no Library row → registry entry has no `ui` block (diff)
+**To Add:** none

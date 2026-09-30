@@ -57,6 +57,7 @@ import { bolt } from './recipes/hardware.bolt.js'
 import { nut } from './recipes/hardware.nut.js'
 import { washer } from './recipes/hardware.washer.js'
 import { bearing } from './recipes/hardware.bearing.js'
+import { screw, SCREW_HEADS } from './recipes/hardware.screw.js'
 import { anchor } from './recipes/kit.anchor.js'
 import { board } from './recipes/kit.board.js'
 import { boardFrame } from './recipes/kit.boardFrame.js'
@@ -64,6 +65,7 @@ import { activeCoolingFan } from './recipes/raspberrypi.activeCoolingFan.js'
 import { BPLUS_MODELS, BPLUS_PART_ALIASES, DEFAULT_CLEARANCE_MM, bplus } from './recipes/raspberrypi.bplus.js'
 import { boltSpecs } from './tables/bolt-specs.js'
 import { nutSpecs } from './tables/nut-specs.js'
+import { screwSpecs } from './tables/screw-specs.js'
 import { washerSpecs } from './tables/washer-specs.js'
 import { bearingSpecs } from './tables/bearing-specs.js'
 import { FIT_CLEARANCE_MM } from './tables/fit-clearances.js'
@@ -1065,6 +1067,19 @@ export const registry = Object.freeze({
   // recipes/hardware.bearing.js's module doc.
   'hardware.bearing': composite(0, bearing, { label: 'Bearing', defaults: { spec: '608' } }),
 
+  // TODO/core-027: `Hardware.Screw.PanHead`/`.FlatHead` — a Group of head + thread
+  // (+ a hidden headClearSpace when `clearLength` is given). Not a bolt variant: no
+  // fit/tap solids, and FlatHead's head is a cone, not a countersink cut. See
+  // recipes/hardware.screw.js's module doc.
+  //
+  // Deliberately **no `ui` block**: `library.js` builds a Library row from any 0-operand
+  // entry that has one, and a row is a new user-visible control — which needs its own
+  // e2e spec and docs page, neither of which this kernel-only task owns. Same as
+  // hardware.nut/washer/bearing sat until `ui-030`. The follow-up adds `ui: { label:
+  // 'Screw', defaults: { spec: 'm4', length: 12, head: 'PanHead' } }` and a ROW_ORDER
+  // slot. Its Inspector dropdowns (PARAM_SCHEMAS below) don't depend on `ui`.
+  'hardware.screw': composite(0, screw),
+
   // TODO/core-012: §6's three Kit-part rows. All three expand through the
   // `profile.*` pair above rather than building geometry themselves; `kit.anchor` is
   // the one recipe in the project that touches `@jscad/modeling` at all, and only to
@@ -1350,11 +1365,19 @@ export function assertOperandCount(op, count, ops = registry) {
  * @property {Readonly<Record<string, unknown>>} nutSpecs
  * @property {Readonly<Record<string, unknown>>} washerSpecs
  * @property {Readonly<Record<string, unknown>>} bearingSpecs
+ * @property {Readonly<Record<string, unknown>>} screwSpecs
  * @property {Readonly<Record<string, number>>} FIT_CLEARANCE_MM
  */
 
 /** @type {ParamTables} */
-const PARAM_TABLES = Object.freeze({ boltSpecs, nutSpecs, washerSpecs, bearingSpecs, FIT_CLEARANCE_MM })
+const PARAM_TABLES = Object.freeze({
+  boltSpecs,
+  nutSpecs,
+  washerSpecs,
+  bearingSpecs,
+  screwSpecs,
+  FIT_CLEARANCE_MM,
+})
 
 /**
  * One option per key of a table, labelled by the key itself — a spec name like
@@ -1446,6 +1469,15 @@ const PARAM_SCHEMAS = Object.freeze({
   },
   'hardware.bearing': {
     params: (_params, tables) => ({ spec: enumParam('Spec', keyOptions(tables.bearingSpecs)) }),
+  },
+  // `clearLength` is optional and absent by default, so it stays out of the schema: a
+  // schema param with no value would be an editable field the recipe never asked for.
+  'hardware.screw': {
+    params: (_params, tables) => ({
+      spec: enumParam('Spec', keyOptions(tables.screwSpecs)),
+      head: enumParam('Head', Object.freeze(SCREW_HEADS.map((head) => Object.freeze({ value: head, label: head })))),
+      length: mmParam('Length'),
+    }),
   },
 })
 

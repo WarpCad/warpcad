@@ -34,6 +34,15 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### core-027 — hardware.screw family (2026-09-30 14:35)
+
+Kernel-only; nothing in the app reaches it yet. One judgement call the V1 diff can't settle.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | V1's `FlatHead` puts the *wide* end of the cone on z=0 and the thread above the narrow end, so a "flat head" sits upside-down relative to a real countersunk screw (matches V1 and `hardware.bolt`'s head-at-z=0 convention). When the Library row lands, check that a placed FlatHead reads correctly and whether orientation `down` (not ported) is wanted. | Open | |
+
+
 ### ui-052 — Edit a composite part's parameters and repair what the change breaks (2026-09-29 21:40)
 
 Scenario 15 and scenarios 2, 3, 5, 6, 10, 12 and 13 were hand-driven at laptop Chromium and phone WebKit (see `TODO/ACCEPTANCE.md`). What is left can only be judged on real hardware or by eye: headless WebKit cannot open iOS's native picker or show the home indicator, and "would a person notice" is not something a drive can measure.

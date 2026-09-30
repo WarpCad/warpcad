@@ -26,6 +26,7 @@
 import { add, combine, createGroup, isGroup, toGeom3 } from './group.js'
 import { boltSpecs } from './tables/bolt-specs.js'
 import { nutSpecs } from './tables/nut-specs.js'
+import { screwSpecs } from './tables/screw-specs.js'
 import { washerSpecs } from './tables/washer-specs.js'
 import { bearingSpecs } from './tables/bearing-specs.js'
 import { FIT_CLEARANCE_MM } from './tables/fit-clearances.js'
@@ -158,6 +159,7 @@ const DEFAULT_TABLES = Object.freeze({
   nutSpecs,
   washerSpecs,
   bearingSpecs,
+  screwSpecs,
   FIT_CLEARANCE_MM,
 })
 
@@ -466,6 +468,7 @@ export {
 } from './group.js'
 export { boltSpecs, FIT_CLASSES, inchToMm } from './tables/bolt-specs.js'
 export { nutSpecs } from './tables/nut-specs.js'
+export { screwSpecs } from './tables/screw-specs.js'
 export { washerSpecs } from './tables/washer-specs.js'
 export { bearingSpecs } from './tables/bearing-specs.js'
 export { FIT_CLEARANCE_MM } from './tables/fit-clearances.js'

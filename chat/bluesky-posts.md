@@ -1049,3 +1049,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** Model was read-only before → `TODO/done/ui-052` Goal ("Today every composite recipe's Parameters section is read-only"), and the two e2e assertions this commit changes (`kit-rpi-library-placement`, `hardware-library-placement`); the Pi 5 has no AV jack and the dialog appears before anything commits → `e2e/composite-param-edit.e2e.js` (60/60 on Chromium+WebKit, this session) and scenario 15 hand-driven this session at laptop Chromium and phone WebKit; the four fixes and "only when Pi 4" → diff (`DependentRepairDialog.vue`, `repair.js`, `condition.js`); one design holding both boards → the same drive: back on a Pi 4 the cube returned to exactly -76.10, -16.36, -17.38, its snapped position
 **To Add:** a short phone clip: Model → Pi 5, the dialog, "Only when", then back to Pi 4
+
+## [2026-09-30T14:40:00Z] — hardware.screw recipe, checked against real V1 output (TODO/core-027)
+
+**Post:** WarpCad's kernel now has a screw recipe (pan head and flat head) that I diffed against the real JSCAD V1 library's output. Reading the V1 source said "countersink cut". Running it said it's just a cone-shaped head. Built with Claude Code, reviewed by me. #CAD
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** FlatHead is a cone, no countersink cut → `node_modules/jscad-hardware/jscad-hardware.jscad` `FlatHeadScrew` (`Parts.Cone(...)`, `countersink` never read) and the diff (`hardware.screw.js`); diffed against V1 output → `hardware.screw.v1-reference.json` generated this session, `hardware.screw.spec.js` 23 passing
+**To Add:** none

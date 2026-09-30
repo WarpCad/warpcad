@@ -21,8 +21,9 @@ count for each, updating live as bodies are placed, edited, or deleted.
 **Placement, not this panel, is the real prerequisite** — a body has to be both
 placeable (`ui-030`/`ui-031`) and identifiable by spec before it can be tallied. This
 task depends directly on `ui-030` (already in progress) and benefits from `ui-031`
-(more tallyable recipe kinds) and `core-027` (the Screw family, whose BOM-key
-convention this panel is the first real consumer of) without strictly blocking on them
+(more tallyable recipe kinds) and `core-027` (the Screw family; V1 gave screws no BOM
+key, so this panel derives one from `hardware.screw`'s `{ head, spec, length }` params —
+see `recipes/hardware.screw.js`'s module doc) without strictly blocking on them
 — it can ship against whatever hardware recipes are Library-reachable when it lands and
 pick up more automatically as later tasks add rows, since it reads the document's
 placed bodies generically rather than a fixed list.

@@ -6,8 +6,22 @@ priority: low
 model: sonnet
 milestone: M7
 depends: [core-001]
-status: open
+status: done
 ---
+
+> **What shipped (2026-09-30):** `hardware.screw` as specced, with three corrections from
+> reading and *running* the real V1 source. (1) **`FlatHead` has no countersink cut**: V1
+> builds `Parts.Cone(headDiameter, diameter, headLength)`, a tapered head, and never reads
+> the tuple's `countersink` slot, so it is a `primitive.cone` with `topDiameter` and needs
+> no new boolean; the host recess is what the hidden `headClearSpace` is for. (2) **There is
+> no `Pan Head Screw ${name}` BOM key** in `jscad-hardware@1.1.0`; only `Bolt` tracks a BOM
+> (`${name} - ${cm(length)}`). The recipe's module doc records that, and `ui-038` was
+> corrected to derive a screw key from params. (3) `Screw.*` ignore `fit`, so there is no
+> fit param and no tap solids. `head` (`PanHead`/`FlatHead`) is a param because V1 picks it
+> by call, not by table. Registered **without a `ui` block**, so no Library row exists
+> (a row is a user-visible control needing e2e + docs; the follow-up adds it).
+> `PARAM_SCHEMAS` has a `hardware.screw` entry (spec, head, length). Fixture:
+> `npm run fixtures:v1-screw`.
 
 ## Goal
 
