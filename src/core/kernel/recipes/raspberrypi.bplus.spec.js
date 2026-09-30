@@ -789,3 +789,79 @@ describe('raspberrypi.bplus: the opaque colours V1 gave every other part (TODO/c
     )
   })
 })
+
+describe('raspberrypi.bplus: the mounting holes are drilled through the board (TODO/core-034)', () => {
+  const { booleans } = modeling
+  const holeNames = (/** @type {number} */ model) =>
+    model >= 5 ? ['hole1', 'hole2', 'hole3', 'hole4', 'fan1hole', 'fan2hole'] : ['hole1', 'hole2', 'hole3', 'hole4']
+
+  /**
+   * Volume of the board inside a thin column at (x, y) — zero when that point is a hole.
+   *
+   * @param {Geom3} mb
+   * @param {number} xMm
+   * @param {number} yMm
+   * @param {number} halfMm
+   */
+  const columnVolume = (mb, xMm, yMm, halfMm) => {
+    const probe = transforms.translate(
+      [xMm, yMm, BOARD_TOP_Z_MM / 2],
+      primitives.cuboid({ size: [halfMm * 2, halfMm * 2, 10] })
+    )
+    const parts = booleans.intersect(mb, probe)
+    return measurements.measureVolume(parts)
+  }
+
+  it.each(BPLUS_MODELS.map((model) => [model]))('model %s: mb is a boolean.subtract over the hole parts', (model) => {
+    const records = expand('raspberrypi.bplus', { model })
+    const mb = records.find((record) => record.name === 'mb')
+    expect(mb).toMatchObject({ op: 'boolean.subtract' })
+    const holeIds = holeNames(model).map((name) => records.find((record) => record.name === name)?.id)
+    expect(holeIds.every(Boolean)).toBe(true)
+    expect(/** @type {{ operands: string[] }} */ (mb).operands).toEqual(holeIds)
+  })
+
+  it.each(BPLUS_MODELS.map((model) => [model]))('model %s: the hole parts stay hidden and named', (model) => {
+    const group = board(model)
+    for (const name of holeNames(model)) {
+      expect(group.parts[name]).toBeDefined()
+      expect(group.names).not.toContain(name)
+    }
+    const records = expand('raspberrypi.bplus', { model })
+    for (const name of holeNames(model)) {
+      expect(records.find((record) => record.name === name)).toMatchObject({ hidden: true })
+    }
+  })
+
+  it.each(BPLUS_MODELS.map((model) => [model]))('model %s: board volume is the plate minus n holes', (model) => {
+    const group = board(model)
+    const n = holeNames(model).length
+    const volume = measurements.measureVolume(group.parts.mb)
+    const r = MOUNTING_HOLES_MM.diameterMm / 2
+    const full = BPLUS_BOARD.widthMm * BPLUS_BOARD.heightMm * BPLUS_BOARD.thicknessMm
+    // Corner rounding removes a little from `full`; the holes remove n·π·r²·t (polygon
+    // approximation of the circle is slightly under π·r², hence the loose tolerance).
+    const cornerLoss = (4 - Math.PI) * BPLUS_BOARD.bplusCornerRadiusMm ** 2 * BPLUS_BOARD.thicknessMm
+    const expected = full - cornerLoss - n * Math.PI * r * r * BPLUS_BOARD.thicknessMm
+    expect(Math.abs(volume - expected) / expected).toBeLessThan(0.01)
+  })
+
+  it.each(BPLUS_MODELS.map((model) => [model]))('model %s: each hole centre is empty, just outside it is board', (model) => {
+    const group = board(model)
+    const mb = /** @type {Geom3} */ (group.parts.mb)
+    for (const name of holeNames(model)) {
+      const hole = /** @type {Geom3} */ (group.parts[name])
+      const cx = midline(hole, 0)
+      const cy = midline(hole, 1)
+      expect(columnVolume(mb, cx, cy, 0.5)).toBeCloseTo(0, 6)
+      expect(columnVolume(mb, cx + 3, cy, 0.25)).toBeGreaterThan(0.01)
+    }
+  })
+
+  it.each(BPLUS_MODELS.map((model) => [model]))('model %s: drilling leaves the board’s extent unchanged', (model) => {
+    // Every `chain(...).snap(mb, ...)` datum was measured against the undrilled plate;
+    // subtraction must not move any of them. (JSCAD's own `geom3.validate` is not used:
+    // it rejects the T-junctions every JSCAD boolean leaves behind.)
+    expectSize(board(model).parts.mb, [BPLUS_BOARD.widthMm, BPLUS_BOARD.heightMm, BPLUS_BOARD.thicknessMm])
+  })
+})

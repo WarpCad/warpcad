@@ -34,6 +34,16 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### core-034 — Drill the mounting holes through raspberrypi.* boards (2026-09-30 18:03)
+
+Volume, hole-centre and hole-rim checks are automated; what no test judges is how it reads. The translucent green board now has through-holes, and I only looked at it from the default camera, too small to see them.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | Zoom onto a dropped Pi 5 from above: do the four mounting holes and two fan holes read clearly through the translucent green board, without z-fighting at the rims? | Open | |
+| 2 | Same on a real iPad/iPhone (WebKit GPU): the coplanar camera-module v1/v2 holes (cutter exactly as tall as the board) render without speckle at the hole walls. | Open | |
+
+
 ### core-032 — Open announces itself before it folds (2026-09-30 15:55)
 
 The spinner on the File button is a compositor-driven CSS transform, so it should keep turning while a large file folds; that is unproven on real hardware, and the in-between state is too brief for a screenshot in the e2e spec.

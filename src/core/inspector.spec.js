@@ -477,7 +477,9 @@ describe('describeBody — parts (TODO/ui-049, superseding ui-047 hiddenParts)',
       ...['mb', 'ethernet', 'usb1', 'usb2', 'microusb', 'hdmi', 'avjack', 'camera', 'display', 'gpio', 'activityled', 'powerled', 'microsd'].map(
         (name) => ({ name, hidden: false }),
       ),
-      ...['usb1-body', 'usb1-flange', 'usb2-body', 'usb2-flange', 'avjack-block', 'avjack-barrel', 'hole1', 'hole2', 'hole3', 'hole4'].map(
+      // The holes lead the hidden parts since TODO/core-034: the drilled `mb` is a
+      // boolean over them, so they have to come before it in the expansion.
+      ...['hole1', 'hole2', 'hole3', 'hole4', 'usb1-body', 'usb1-flange', 'usb2-body', 'usb2-flange', 'avjack-block', 'avjack-barrel'].map(
         (name) => ({ name, hidden: true }),
       ),
     ])

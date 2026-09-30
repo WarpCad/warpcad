@@ -49,11 +49,11 @@
  *
  * ## Narrowings, stated rather than silent
  *
- * **`group.holes`** (`:67`) cannot be expressed — no `OpRecord` field reaches
- * `group.js`'s `addHole` — so the Hat's four mounting holes are hidden `hathole1`-`4`
- * parts and the board renders undrilled, as `raspberrypi.bplus` already decided
- * (`TODO/core-014`, deviation 2). They have to be addressable here anyway: the
- * spacers are positioned by aligning onto them.
+ * **`group.holes`** (`:67`, `TODO/core-034`): V1's `combine()` drills the Hat's four
+ * mounting holes out of the assembly. No `OpRecord` field reaches `group.js`'s
+ * `addHole`, so the holes are hidden `hathole1`-`4` parts (`TODO/core-014`, deviation
+ * 2) — and `mb` is now a `boolean.subtract` of the plate by them, so the board renders
+ * drilled. They stay addressable: the spacers are positioned by aligning onto them.
  *
  * **V1's duplicate leaf entries are collapsed.** `:64-66` stores the Hat's combined
  * solid under `hat` with an `hat` subpart prefix and then adds the same board and
@@ -78,6 +78,7 @@ import {
   booleanPart,
   chain,
   clonePart,
+  drillBoard,
   createBuilder,
   cuboidPart,
   cylinderPart,
@@ -148,7 +149,9 @@ export function piTFT24(params = {}) {
   const builder = createBuilder()
 
   const { mb, gpio, holes } = addHat(builder)
-  builder.place(mb, 'mb', HAT_BOARD_COLOR)
+  // The undrilled plate is an unnamed intermediate; `mb` is the plate minus the holes,
+  // placed once the holes exist (TODO/core-034).
+  builder.place(mb, null)
   // V1 `rpi-parts.js:153` — `Gpio()` is `.color('gray')` (TODO/core-033).
   builder.place(gpio, 'gpio', v1ColorToRecord('gray'))
   // V1 `hat.js:30` → `rpi-parts.js:28` — `MountingHole()` is `.color('orange')`
@@ -156,11 +159,13 @@ export function piTFT24(params = {}) {
   holes.forEach((hole, index) =>
     builder.place(hole, `hathole${index + 1}`, { hidden: true, ...v1ColorToRecord('orange') })
   )
+  const drilled = drillBoard(builder, 'mb', mb, holes)
+  builder.place(drilled, 'mb', HAT_BOARD_COLOR)
   // `:64` — the Hat's own combined solid, kept as a hidden part. V1's `combine()`
-  // would also drill the holes out of it; see the module doc on `group.holes`.
+  // drills the holes out of it, so it unions the *drilled* board (TODO/core-034).
   // `mb` (darkgreen) and `gpio` (gray) differ, so `hat` stays uncoloured
   // (TODO/core-033), same rule as `avjack` in `raspberrypi.bplus.js`.
-  builder.place(booleanPart(builder, 'hat', 'union', [mb, gpio]), 'hat', { hidden: true })
+  builder.place(booleanPart(builder, 'hat', 'union', [drilled, gpio]), 'hat', { hidden: true })
 
   // `:72-79` and `:83-89`. V1 sums four independently-computed translate vectors and
   // applies them once; chaining is equivalent here because the vectors act on

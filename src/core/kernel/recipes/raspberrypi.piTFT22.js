@@ -23,13 +23,13 @@
  *
  * ## Two things V1 does that this port states rather than reproduces
  *
- * **`group.holes`.** `:35` assigns the Hat's four mounting holes as the group's holes,
- * which makes V1's `combine()` drill them out of the assembled board. No `OpRecord`
- * field reaches `group.js`'s `addHole`, so — the same call `raspberrypi.bplus` made
- * (`TODO/core-014`, deviation 2) — they are emitted as hidden `hole1`-`hole4` parts
- * and the board renders undrilled. A consumer that wants them drilled emits its own
- * `boolean.subtract`. Note these are *additions* to V1's own part dictionary, which
- * keeps them only in `holes`; emitting nothing would have lost them entirely.
+ * **`group.holes` (`TODO/core-034`).** `:35` assigns the Hat's four mounting holes as
+ * the group's holes, which makes V1's `combine()` drill them out of the assembled
+ * board. The first port left the board undrilled (no `OpRecord` field reaches
+ * `group.js`'s `addHole` — `TODO/core-014`, deviation 2); now `mb` is a
+ * `boolean.subtract` of the plate by the holes, which stay hidden `hole1`-`hole4`
+ * parts. Note these are *additions* to V1's own part dictionary, which keeps them only
+ * in `holes`.
  *
  * **Opaque colours ported (TODO/core-033)**: `lcd` (`:40`, black), `lcdbevel` (`:50`,
  * white). `button1`-`4` are left uncoloured: each is a union of a gray `buttonBase`
@@ -41,7 +41,7 @@
 
 import { v1ColorToRecord } from '../colors.js'
 import { addHat, HAT_BOARD_COLOR } from './raspberrypi.hat.js'
-import { booleanPart, chain, createBuilder, cuboidPart, cylinderPart } from './rpi-recipe-kit.js'
+import { booleanPart, chain, createBuilder, cuboidPart, cylinderPart, drillBoard } from './rpi-recipe-kit.js'
 
 /** @typedef {import('../registry.js').OpRecord} OpRecord */
 
@@ -84,7 +84,9 @@ export function piTFT22(params = {}) {
   const builder = createBuilder()
 
   const { mb, gpio, holes } = addHat(builder)
-  builder.place(mb, 'mb', HAT_BOARD_COLOR)
+  // The undrilled plate is an unnamed intermediate; `mb` is the plate minus the holes,
+  // placed once the holes exist (TODO/core-034).
+  builder.place(mb, null)
   // V1 `rpi-parts.js:153` — `Gpio()` is `.color('gray')` (TODO/core-033).
   builder.place(gpio, 'gpio', v1ColorToRecord('gray'))
   // V1 `hat.js:30` → `rpi-parts.js:28` — `MountingHole()` is `.color('orange')`
@@ -92,6 +94,8 @@ export function piTFT22(params = {}) {
   holes.forEach((hole, index) =>
     builder.place(hole, `hole${index + 1}`, { hidden: true, ...v1ColorToRecord('orange') })
   )
+  const drilled = drillBoard(builder, 'mb', mb, holes)
+  builder.place(drilled, 'mb', HAT_BOARD_COLOR)
 
   const lcd = cuboidPart('lcd', LCD_MM)
   chain(lcd)

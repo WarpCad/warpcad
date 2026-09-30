@@ -18,21 +18,22 @@
  * `raspberrypi.hat`, `raspberrypi.piTFT22` and `raspberrypi.piTFT24` are all the same
  * geometry from the same call.
  *
- * ## The one thing this cannot reproduce
+ * ## Mounting holes: drilled through the board, and still parts (`TODO/core-034`)
  *
  * `hat.js:57` assigns `hat.holes`, which makes V1's `combine()` drill the four
  * mounting holes out of the assembled board. No `OpRecord` field reaches `group.js`'s
- * `addHole`, so — exactly as `raspberrypi.bplus` already decided (`TODO/core-014`,
- * deviation 2) — the holes are emitted as hidden named parts and the board renders
- * undrilled. A consumer that wants them drilled emits its own `boolean.subtract`
- * against `hole1`-`hole4`. `PiTFT24` needs them addressable anyway: its spacers are
- * positioned by aligning onto each hole in turn.
+ * `addHole`, so `TODO/core-014` (deviation 2) first left the holes as hidden named
+ * parts and the board rendered undrilled. That is now reversed for the board: `hat.mb`
+ * is the unnamed plate, and the named `mb` is a `boolean.subtract` of it by the holes
+ * (`drillBoard`). The holes are unchanged — hidden, named `hole1`-`hole4` — because
+ * `PiTFT24` positions its spacers by aligning onto each one and a user can still use
+ * them as Subtract operands. Only the board is drilled, not the GPIO header.
  *
  * @module core/kernel/recipes/raspberrypi.hat
  */
 
 import { v1ColorToRecord } from '../colors.js'
-import { chain, createBuilder, cuboidPart, cylinderPart, roundedCubePart } from './rpi-recipe-kit.js'
+import { chain, createBuilder, cuboidPart, cylinderPart, drillBoard, roundedCubePart } from './rpi-recipe-kit.js'
 
 /** @typedef {import('../registry.js').OpRecord} OpRecord */
 /** @typedef {import('./rpi-recipe-kit.js').Builder} Builder */
@@ -157,7 +158,9 @@ export function hat(params = {}) {
   const builder = createBuilder()
 
   const { mb, gpio, holes } = addHat(builder)
-  builder.place(mb, 'mb', HAT_BOARD_COLOR)
+  // The undrilled plate is an unnamed intermediate; `mb` is the plate minus the holes,
+  // placed once the holes exist (TODO/core-034).
+  builder.place(mb, null)
   // V1 `rpi-parts.js:153` — `Gpio()` is `.color('gray')` (TODO/core-033).
   builder.place(gpio, 'gpio', v1ColorToRecord('gray'))
   // V1 `hat.js:30` → `rpi-parts.js:28` — `MountingHole()` is `.color('orange')`
@@ -165,6 +168,8 @@ export function hat(params = {}) {
   holes.forEach((hole, index) =>
     builder.place(hole, `hole${index + 1}`, { hidden: true, ...v1ColorToRecord('orange') })
   )
+  const drilled = drillBoard(builder, 'mb', mb, holes)
+  builder.place(drilled, 'mb', HAT_BOARD_COLOR)
 
   return builder.build()
 }

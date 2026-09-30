@@ -137,6 +137,22 @@ Cooling Fan**, and the screens — **7-inch Touch Display**, **Touchscreen 2**,
 > step, so you can see and undo it. Place both parts, select them, and use **Snap** or
 > **Align** to bring them together — see [Snapping and aligning](snap-align.md).
 
+### Mounting holes
+
+Boards come with their mounting holes **drilled through**, so you can see the grid through
+them. A Raspberry Pi has four 3.25 mm holes (a Pi 5 also has two fan-mount holes), and the
+HAT, PiTFT and Camera Module boards carry theirs too.
+
+Each hole is also kept as a hidden part, so you can snap to it or cut with it:
+
+1. Drag **Raspberry Pi**, set to **Pi 5**, into the 3D view. The board shows four mounting
+   holes at its corners, plus two fan holes.
+2. To line a Camera Module up with a hole, drag **Camera Module** in as well, then select
+   both and use **Snap** or **Align** — the holes are among the parts you can pick (see
+   [Snapping and aligning](snap-align.md)).
+3. To cut matching holes into your own case, select the Pi, tick **Show hidden parts** in
+   the Inspector, tap `hole1`, and use it as a Subtract operand (see [Booleans](booleans.md)).
+
 A placed Raspberry Pi board's **Model** can be changed afterwards too, from the
 Inspector's dropdown — the board is rebuilt in place, and anything that depends on a part
 the new model lacks is caught before it breaks. See

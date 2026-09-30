@@ -77,10 +77,9 @@ describe('raspberrypi.piTFT22', () => {
 
   it('carries the Hat’s four mounting holes as hidden parts', () => {
     // `pi-tft22.js:35` assigns `group.holes = hat.holes`, which makes V1's `combine()`
-    // drill them. No `OpRecord` field reaches `group.js`'s `addHole`, so — exactly as
-    // `raspberrypi.bplus` already decided (TODO/core-014, deviation 2) — they are
-    // carried as hidden named parts and the board renders undrilled. A consumer that
-    // wants them drilled emits its own `boolean.subtract` against `hole1`-`hole4`.
+    // drill them. They stay hidden named parts (snap targets, Subtract operands) and,
+    // since TODO/core-034, `mb` is also a `boolean.subtract` of the plate by them — the
+    // drilling itself is asserted in `raspberrypi.drilled-boards.spec.js`.
     const g = hat()
     HAT_MM.holePositionsMm.forEach(([xMm, yMm], index) => {
       const hole = g.parts[`hole${index + 1}`]

@@ -6,8 +6,11 @@ priority: medium
 model: sonnet
 milestone: M7
 depends: [core-033]
-status: open
+status: done
 ---
+
+
+> **What shipped (2026-09-30).** One helper, `drillBoard(builder, id, plate, holes)` in `rpi-recipe-kit.js`, which emits a real `boolean.subtract` record (new `bound` Part flag so no translate sits on top). Used by `raspberrypi.bplus` (four holes, plus `fan1hole`/`fan2hole` on model 5: V1 `bplus.js:761-788` pushed them into `group.holes`, so they are drilled), `hat`, `piTFT22`, `piTFT24` (its `hat` union now uses the drilled board) and `cameraModule` (v1/v2/v3 and both HQ variants; V1 sets `holes` in all). The audit of the rest (`hyperPixel4Rectangular`, `miniPiTFT`, `touchScreen2`, `touchDisplay7inch`, `hatStandoff`, `spacer`, `activeCoolingFan`) found no V1 `group.holes` assignment, so they stay as they were. Plate ids are `mb.plate` / `hat.mb` / `board.plate`. Side effects, all expected: the 12 drilled recipes' geometry digests in `tessellation-legacy-golden.json` changed (and only those 12); hole parts now lead the hidden-parts order (`inspector.spec.js` updated). Deviation: no pixel-raycast hook exists in the app, so `e2e/rpi-mounting-holes.e2e.js` asserts the worker-measured `data-body-volume` lands on the drilled volume rather than the undrilled one (~66 mm³ apart); it fails on the old recipe. The docs example says 3.25 mm (the table value), not 2.75.
 
 ## Problem
 

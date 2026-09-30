@@ -98,6 +98,8 @@ export function degToRad(degrees) {
  * @property {number} [color] Set by {@link place}: V1's `.color(...)` as `0xRRGGBB`
  *   (TODO/core-026).
  * @property {number} [colorAlpha] Set by {@link place}, only when not opaque.
+ * @property {boolean} [bound] `baseRecords` already end in the record that defines `id`, so
+ *   {@link Builder.finalize} emits no translate on top — see {@link drillBoard}.
  * @property {boolean} [finalized] Internal: {@link Builder} has emitted its records.
  * @property {OpRecord} [finalRecord] Internal: the record a label attaches to.
  */
@@ -690,6 +692,10 @@ export function createBuilder() {
     if (part.finalized) return part.id
     part.finalized = true
     records.push(...part.baseRecords)
+    if (part.bound) {
+      part.finalRecord = part.baseRecords[part.baseRecords.length - 1]
+      return part.id
+    }
     const translateId = part.turn ? `${part.id}.placed` : part.id
     /** @type {OpRecord} */
     const translate = {
@@ -838,6 +844,37 @@ export function booleanPart(builder, id, kind, operands) {
     // The operands were already placed, so the result is too.
     offsetMm: [0, 0, 0],
     geom,
+  }
+}
+
+/**
+ * A board drilled by its mounting holes (`TODO/core-034`): V1 assigns `group.holes` and
+ * its `combine()` subtracts them from the assembly, which this fold's schema has no flag
+ * for — so the recipe subtracts them from **the board only**, here, and leaves the holes
+ * as the hidden named parts they already were (snap targets, Subtract operands).
+ *
+ * `plate` is the undrilled board: place it unnamed, measure against it (subtraction does
+ * not move its bounding box, so every V1 datum still reads the same), and pass it here.
+ * The returned part is a real `boolean.subtract` record under `id`, so the caller
+ * `place`s it with the name and colour V1 gave the board. Holes must already be placed
+ * at their final positions.
+ *
+ * @param {Builder} builder
+ * @param {string} id
+ * @param {Part} plate
+ * @param {readonly Part[]} holes
+ * @returns {Part}
+ */
+export function drillBoard(builder, id, plate, holes) {
+  const target = builder.finalize(plate)
+  const operands = holes.map((hole) => builder.finalize(hole))
+  return {
+    id,
+    baseRecords: [{ id, op: 'boolean.subtract', params: {}, target, operands }],
+    baseId: id,
+    offsetMm: [0, 0, 0],
+    geom: booleans.subtract(plate.geom, ...holes.map((hole) => hole.geom)),
+    bound: true,
   }
 }
 

@@ -1076,3 +1076,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** worker fold would leave ~80-150 ms at 4x and slow small docs → the subagent's estimate, recorded in docs/decisions/kernel-evaluation-worker.md slice 4 (an estimate, not a measured worker fold); frame gap unchanged → bench/results/2026-09-30-core-032.md
 **To Add:** none
+
+## [2026-09-30T18:05:00Z] — Raspberry Pi boards now have their mounting holes drilled (TODO/core-034)
+
+**Post:** Drag a Raspberry Pi into WarpCad and the board now has its mounting holes. Before, they existed only as hidden parts, so it rendered as a solid slab. Pi 5 gets the two fan holes too. Only the board is cut, and the holes stay snappable. Built with Claude Code, reviewed by me. #CAD #JSCAD
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #JSCAD
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** holes were hidden parts only → TODO/core-034 file text; fan holes drilled → V1 bplus.js:761-788 read this session; board-only cut and still snappable → diff + e2e/unit runs this session (2390 unit tests passing)
+**To Add:** close-up screenshot of the drilled Pi 5 from above

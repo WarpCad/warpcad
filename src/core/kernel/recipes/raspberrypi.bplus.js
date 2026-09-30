@@ -61,15 +61,17 @@
  * references it, it renders nothing by default, and there is no `pi5` or model-2/3
  * equivalent. It is development scaffolding, not geometry, so it is not ported.
  *
- * **Mounting holes are parts, not holes.** V1 also assigns `group.holes`, which makes
- * `combine()` subtract the four cylinders from the *whole* assembly. This fold's
- * record schema has no "add this as a hole" flag — `group.js` has `addHole`, but no
- * `OpRecord` field reaches it — so the holes here are hidden named parts only, exactly
- * as V1 *also* added them (`group.add(group.holes[0], 'hole1', true)`). The visible
- * difference is that this board renders undrilled. A consumer that wants them drilled
- * emits its own `boolean.subtract` against `hole1`-`hole4`, which is the same thing
- * V1's combine did and is arguably better behaved: V1's subtraction also carved the
- * micro-USB shell, which overlaps `hole1`.
+ * **Mounting holes drill the board only, not the whole assembly** (`TODO/core-034`).
+ * V1 assigns `group.holes` (the four mounting holes, plus `fan1hole`/`fan2hole` on a
+ * Pi 5 — `bplus.js:761-788`), which makes `combine()` subtract them from the *whole*
+ * assembly. This fold's record schema has no "add this as a hole" flag, so the first
+ * port left them as hidden named parts and the board rendered undrilled — which is the
+ * one thing a user dragging a Pi out of the Library is looking for. Now the plate is an
+ * unnamed intermediate (`mb.plate`), the holes stay hidden and named exactly as before
+ * (snap targets, Subtract operands), and the visible, named `mb` is a `boolean.subtract`
+ * of the plate by them, still translucent green. Only the board is drilled: V1's
+ * whole-assembly subtraction also carved the micro-USB shell, which overlaps `hole1`,
+ * and that divergence is kept on purpose.
  *
  * ## Rotation signs: measured, not assumed
  *
@@ -92,6 +94,7 @@ import {
   addVectors,
   chain,
   createBuilder,
+  drillBoard,
   cuboidPart,
   cylinderPart,
   move,
@@ -604,12 +607,14 @@ function addPi5(builder, { mb, clearanceMm }) {
  *
  * @param {Builder} builder
  * @param {Part} mb
+ * @returns {Part[]} The two hole cylinders, for the board to be drilled with.
  */
 function addFanHoles(builder, mb) {
   /**
    * @param {string} name
    * @param {number} xMm
    * @param {number} yMm
+   * @returns {Part}
    */
   const fanHole = (name, xMm, yMm) => {
     const hole = cylinderPart(
@@ -627,10 +632,10 @@ function addFanHoles(builder, mb) {
     chain(clearance).align(hole, 'xy').snap(mb, 'z', 'outside+')
     // V1 `bplus.js:757` — `fanClearance` is `.color('red')` (TODO/core-033).
     builder.place(clearance, `clearance-${name.replace('hole', '')}`, { hidden: true, ...v1ColorToRecord('red') })
+    return hole
   }
 
-  fanHole('fan1hole', 3.5, 6 + 3.5)
-  fanHole('fan2hole', 3.5 + 58, 52.5 - 6)
+  return [fanHole('fan1hole', 3.5, 6 + 3.5), fanHole('fan2hole', 3.5 + 58, 52.5 - 6)]
 }
 
 /**
@@ -670,10 +675,31 @@ export function bplus(params) {
 
   const builder = createBuilder()
 
-  const mb = boardPart('mb', BPLUS_BOARD.bplusCornerRadiusMm)
+  // The undrilled plate: an unnamed intermediate every datum below is measured against.
+  // Subtracting the holes does not change its bounding box, so those measurements are the
+  // same ones V1 took against its drilled board (TODO/core-034).
+  const mb = boardPart('mb.plate', BPLUS_BOARD.bplusCornerRadiusMm)
+  builder.place(mb, null)
+
+  // Holes first, so the drilled `mb` is the first named part in the expansion.
+  const holes = MOUNTING_HOLES_MM.positions.map(([xMm, yMm], index) => {
+    const hole = cylinderPart(
+      `hole${index + 1}`,
+      MOUNTING_HOLES_MM.diameterMm,
+      MOUNTING_HOLES_MM.heightMm,
+      { frame: /** @type {'center'} */ (rpiParts.mountingHole.frame) }
+    )
+    chain(hole).snap(mb, 'xy', 'inside-').align(mb, 'z').midlineTo('x', xMm).midlineTo('y', yMm)
+    // V1 `bplus-mounting.js:20` → `rpi-parts.js:28` — `MountingHole(...)` is
+    // `.color('orange')` (TODO/core-033). Hidden, but still addressable — see the module doc.
+    builder.place(hole, `hole${index + 1}`, { hidden: true, ...v1ColorToRecord('orange') })
+    return hole
+  })
+  if (model >= 5) holes.push(...addFanHoles(builder, mb))
+
   // V1 `src/rpi-parts.js:12`: `Parts.Board(85, 56, corner, 1.32).color('green', 0.75)`
   // (TODO/core-026). The other parts' opaque colours are TODO/core-033.
-  builder.place(mb, 'mb', v1ColorToRecord('green', 0.75))
+  builder.place(drillBoard(builder, 'mb', mb, holes), 'mb', v1ColorToRecord('green', 0.75))
 
   if (model < 4) addModelB(builder, { model, mb })
   else if (model === 4) addPi4(builder, { mb, clearanceMm })
@@ -683,21 +709,6 @@ export function bplus(params) {
   chain(microsd).snap(mb, 'z', 'outside+').midlineTo('y', 28).translate([-2.5, 0, 0])
   // V1 `bplus.js:791` — `.color('silver')` (TODO/core-033).
   builder.place(microsd, 'microsd', v1ColorToRecord('silver'))
-
-  MOUNTING_HOLES_MM.positions.forEach(([xMm, yMm], index) => {
-    const hole = cylinderPart(
-      `hole${index + 1}`,
-      MOUNTING_HOLES_MM.diameterMm,
-      MOUNTING_HOLES_MM.heightMm,
-      { frame: /** @type {'center'} */ (rpiParts.mountingHole.frame) }
-    )
-    chain(hole).snap(mb, 'xy', 'inside-').align(mb, 'z').midlineTo('x', xMm).midlineTo('y', yMm)
-    // V1 `bplus-mounting.js:20` → `rpi-parts.js:28` — `MountingHole(...)` is
-    // `.color('orange')` (TODO/core-033). Hidden either way — see the module doc.
-    builder.place(hole, `hole${index + 1}`, { hidden: true, ...v1ColorToRecord('orange') })
-  })
-
-  if (model >= 5) addFanHoles(builder, mb)
 
   return builder.build()
 }

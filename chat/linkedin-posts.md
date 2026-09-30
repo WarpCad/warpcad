@@ -1461,3 +1461,16 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** Node/browser figures, transport 10-32 ms, feedback 116-676 → 6-11 ms, lineage table → bench/results/2026-09-30-core-032.md (subagent's runs this session, M-series Mac per the results file); realistic docs 0.4-3.5 ms → same file
 **To Add:** none
+
+## [2026-09-30T18:05:00Z] — Raspberry Pi boards now have their mounting holes drilled (TODO/core-034)
+
+**Post:** A Raspberry Pi dragged out of the WarpCad Library used to arrive as a solid, undrilled board. The four mounting holes existed only as hidden named parts, a narrowing made when the original JSCAD library was ported, and the holes are exactly what you need when designing a case around the board.
+
+The fix subtracts the holes from the board part only. The original library cut the whole assembly; here the named `mb` is a boolean over an unnamed plate, and the holes stay hidden and addressable for snapping and Subtract. One helper covers the Pi (plus the Pi 5 fan holes), the HAT, both PiTFT screens and all five camera module variants.
+
+The browser test has no pixel-picking hook, so it checks the kernel-measured body volume lands on the drilled value rather than the undrilled one, about 66 mm³ apart on a Pi 5. It fails against the old recipe. Built with Claude Code, reviewed by me.
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #JSCAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** holes were hidden parts only, original cut whole assembly → TODO/core-034 file text; covered recipes → diff; ~66 mm³ gap and e2e fails on old recipe → e2e run with bplus.js stashed, this session
+**To Add:** close-up screenshot of the drilled Pi 5

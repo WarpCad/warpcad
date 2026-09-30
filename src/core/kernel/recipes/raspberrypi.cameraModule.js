@@ -59,10 +59,12 @@
  * is a clearance volume, structurally identical to `hardware.bolt`'s `tap-*`, so all of
  * them are `hidden: true` here.
  *
- * **Mounting holes are parts, not holes.** Same call `raspberrypi.bplus` made, for the
- * same reason: `group.js` has `addHole`, but no `OpRecord` field reaches it, so the
- * holes are hidden named parts and the board renders undrilled. A consumer that wants
- * them drilled emits its own `boolean.subtract` against `hole0`-`hole3`.
+ * **Mounting holes drill the board only** (`TODO/core-034`). V1's `g.holes` makes
+ * `combine()` subtract them from the whole assembly; `group.js` has `addHole` but no
+ * `OpRecord` field reaches it, so the first port left the board undrilled. Now `board`
+ * is a `boolean.subtract` of an unnamed `board.plate` by the hole cylinders, and the
+ * holes stay hidden named parts (`hole0`-`hole3`, `hole1`-`hole4` on the HQ family) for
+ * snapping. Only the board is drilled, never the mounts and pins seated in the holes.
  *
  * **V1's aggregate subassemblies are not reproduced.** `g.add(Group(mounts), 'mounts',
  * true, 'mounts')` stores both a combined `mounts` part and four `mountsmount0`-style
@@ -84,6 +86,7 @@ import {
   cuboidPart,
   cylinderPart,
   degToRad,
+  drillBoard,
   makePart,
   roundedCubePart,
 } from './rpi-recipe-kit.js'
@@ -286,24 +289,26 @@ function addClassicFamily(builder, model) {
   const [boardWidthMm, boardHeightMm, boardThicknessMm] = spec.boardMm
   const board =
     spec.cornerRadiusMm === null
-      ? makePart('board', {
+      ? makePart('board.plate', {
           baseRecords: [
-            { id: 'board.solid', op: 'primitive.cuboid', params: { size: [...spec.boardMm] } },
+            { id: 'board.plate.solid', op: 'primitive.cuboid', params: { size: [...spec.boardMm] } },
           ],
-          baseId: 'board.solid',
+          baseId: 'board.plate.solid',
           base: primitives.cuboid({ size: spec.boardMm }),
           // `.Center()` on xy only — z keeps its 0..t span.
           naturalOffsetMm: [0, 0, boardThicknessMm / 2],
         })
       : roundedCubePart(
-          'board',
+          'board.plate',
           boardWidthMm,
           boardHeightMm,
           boardThicknessMm,
           spec.cornerRadiusMm,
           'centred'
         )
-  builder.place(board, 'board', CAMERA_BOARD_COLOR)
+  // The undrilled plate: unnamed, measured against; `board` is placed below once the
+  // holes exist (TODO/core-034).
+  builder.place(board, null)
 
   /** @type {Part[]} */
   const holes = []
@@ -330,6 +335,7 @@ function addClassicFamily(builder, model) {
     chain(pin).align(hole, 'xy').align(board, 'z')
     builder.place(pin, `pin${index}`, { hidden: true })
   })
+  builder.place(drillBoard(builder, 'board', board, holes), 'board', CAMERA_BOARD_COLOR)
 
   const sensor = cuboidPart('sensor', spec.sensorMm)
   chain(sensor)
@@ -465,8 +471,8 @@ function addHqFamily(builder, model, flipTripodMount) {
           tripodMount: false,
         }
 
-  const board = roundedCubePart('board', 38, 38, spec.thicknessMm, 1.4, 'centred')
-  builder.place(board, 'board', CAMERA_BOARD_COLOR)
+  const board = roundedCubePart('board.plate', 38, 38, spec.thicknessMm, 1.4, 'centred')
+  builder.place(board, null)
 
   const hole1 = cylinderPart('hole1', 3.25, 10)
   chain(hole1).snap(board, 'xy', 'inside+', 1.25).translate([-4, -4, -5])
@@ -480,6 +486,7 @@ function addHqFamily(builder, model, flipTripodMount) {
   // the board's own centre in V1's frame, so the copies land on the other three
   // corners. Emitted as three `transform.rotate` records against `hole1` so the
   // document says what V1 said; the spec measures where they actually land.
+  const hqHoles = [hole1]
   ;[90, 180, -90].forEach((angleDeg, index) => {
     const turned = derivedPart(`hole${index + 2}`, {
       op: 'transform.rotate',
@@ -488,7 +495,9 @@ function addHqFamily(builder, model, flipTripodMount) {
       base: transforms.rotate([0, 0, degToRad(angleDeg)], hole1.geom),
     })
     builder.place(turned, `hole${index + 2}`, { hidden: true, ...v1ColorToRecord('red') })
+    hqHoles.push(turned)
   })
+  builder.place(drillBoard(builder, 'board', board, hqHoles), 'board', CAMERA_BOARD_COLOR)
 
   const sensor = cuboidPart('sensor', [8.5, 8.5, 1])
   chain(sensor).snap(board, 'z', 'outside-').align(board, 'xy')
