@@ -13,7 +13,8 @@ next time you open WarpCad on the same device and browser your model is right th
    **Saving…**, and about half a second later **Saved · 14:02** (with the current time).
 4. Reload the page (**F5**, **Ctrl/Cmd+R**, or the browser's reload button).
 5. Your unioned shape is back, exactly where it was, and the view has moved to show all
-   of it. The top bar says **Restored your last session** for a few seconds.
+   of it. While it is being rebuilt the top bar says **Restoring your last session…**
+   (usually too briefly to notice), then **Restored your last session** for a few seconds.
 
 There is no "Do you want to restore?" question — reopening WarpCad means reopening your
 model. Reloading right after a change is fine too: WarpCad saves the moment the page is
@@ -29,6 +30,8 @@ bar is crowded, it shows just the light (screen readers still read out the words
 |---|---|---|
 | Grey | **Autosave on** | Nothing to save yet — you haven't changed anything |
 | Amber ring | **Saving…** | A change was just made and is about to be stored |
+| Amber ring | **Opening warpcad-project.ndjson…** | A file (or a repository copy) is being opened — see [While a file is opening](#while-a-file-is-opening) |
+| Amber ring | **Restoring your last session…** | Your model is being rebuilt as the page opens |
 | Green dot | **Saved · 14:02** | Your latest change is stored, at that time |
 | Green dot | **Restored your last session** | Your model was just reopened from where you left off |
 | Red square | **Not saved — browser storage unavailable** | See below |
@@ -125,12 +128,45 @@ says nothing.
    project, or that needs a newer version of WarpCad, is refused **by name**, with the line
    where it goes wrong, and your current model is left exactly as it was. The message stays
    until you do something else.
-4. If it is good, the model appears, the view moves to show all of it, nothing is selected,
+4. While WarpCad rebuilds the model from the file, the **File** button shows a small
+   spinning ring and **Opening…**, and the status line says **Opening
+   warpcad-project.ndjson…** — see [While a file is opening](#while-a-file-is-opening).
+5. If it is good, the model appears, the view moves to show all of it, nothing is selected,
    any history preview is ended, and the status line says **Opened warpcad-project.ndjson · 5
    steps**.
 
 Opening a file can't be undone — undo and redo both start empty, like a reload — which is
 exactly why the question comes first.
+
+### While a file is opening
+
+WarpCad rebuilds every shape in a file from its steps when you open it. A small model takes
+a few thousandths of a second. A large one (hundreds of steps, or dozens of library parts)
+can take a noticeable moment, around half a second on a phone. So as soon as you have
+picked the file, before any rebuilding starts:
+
+- the **File** button shows a spinning ring and the word **Opening…** (on a phone, just the
+  ring — the button is narrow there),
+- the status light turns to the amber ring, and its text reads **Opening** and the file's name,
+- **Open…** and **Load from owner/repo** are greyed out in the File menu until it finishes, so
+  a second open can't start on top of the first.
+
+Your current model stays on screen during that moment. The screen may not respond to
+clicks until the rebuild is done. When it is, the ring goes away and the status line says
+**Opened … · N steps**, or, if the file was refused, **Couldn't open …** with the step that
+failed. In both cases nothing about your current model changed until the file was fully
+checked. **Load from owner/repo** shows the same ring, with the repository's name.
+
+#### Try it: watch a large file open
+
+1. Save or download a project with plenty in it. Twenty or more Raspberry Pi boards and bolts
+   from the Library works well.
+2. Drag a single **Cube** into the 3D view so there is something to replace.
+3. **File ▾ → Open…**, press **Replace**, and pick the file from step 1.
+4. Look at the **File** button straight away: the ring and **Opening…** appear first, while
+   the cube is still on screen.
+5. A moment later the cube is replaced by the saved model, the ring disappears, and the status
+   line says **Opened … · N steps**.
 
 ### Try it: save a copy, change your mind, and get it back
 

@@ -19,10 +19,18 @@
  *    part's options are not editable from History), **Suppress** pressed. Measured until
  *    the edit form closes / the row reads suppressed, the preview ends and every body's
  *    volume has landed.
+ * 7. **open** (`TODO/core-032`) — **File ▾ → Open…** itself, from the file being handed
+ *    to the chooser until every body is on screen with its volume: a cold fold of records
+ *    never built in this page. Also the only interaction run on `chain-40`, the single
+ *    41-subtract lineage (no two bodies to union, no editable mid-log row). Open also
+ *    reports **feedback**: trigger → the first change to the header's save-status chip or
+ *    File button — before `core-032` that was the "Opened …" notice after the fold, after it
+ *    the painted "Opening …" pending state.
  *
  * The scene is loaded through **File ▾ → Open…** with a generated `.ndjson`, not through
  * the store: this has to run against the production build (`perf-benchmark.md` rule 2),
- * where there is no `/src/stores/…` module to import.
+ * where there is no `/src/stores/…` module to import. That load is itself the measured
+ * `open` interaction.
  *
  * The measured window for each interaction runs from the trigger until the change is
  * visible in the DOM **and** every body's `data-body-volume` has landed — so work a
@@ -36,6 +44,7 @@
  *   npm run build && npx vite preview --port 4173 &
  *   node bench/evaluation-mainthread.mjs --url http://localhost:4173 --runs 5
  *   node bench/evaluation-mainthread.mjs --scene 24-bodies --rates 1,4 --runs 3
+ *   node bench/evaluation-mainthread.mjs --only open --rates 1,4     # Open alone, every scene
  *
  * @module bench/evaluation-mainthread
  */
@@ -54,6 +63,8 @@ const RUNS = Number(option('--runs', '5'))
 const RATES = (option('--rates', '1,4,6') ?? '1,4,6').split(',').map(Number)
 const ONLY = option('--scene')
 const JSON_OUT = option('--json')
+/** `--only open`: measure Open alone and skip the interactions after it. */
+const ONLY_OPEN = option('--only') === 'open'
 
 /** `data-004`'s fixture: 50 cubes, each moved, rim-filleted and moved again (200 records). */
 function filletScene() {
@@ -64,6 +75,18 @@ function filletScene() {
     records.push({ id: `t${index}`, op: 'transform.translate', target: `c${index}`, supersedes: `c${index}`, params: { vector: at } })
     records.push({ id: `f${index}`, op: 'modify.filletRim', target: `t${index}`, supersedes: `t${index}`, params: { face: 'top', radius: 4 } })
     records.push({ id: `u${index}`, op: 'transform.translate', target: `f${index}`, supersedes: `f${index}`, params: { vector: [0, 0, 5] } })
+  }
+  return records
+}
+
+/** `core-031`'s single lineage: one plate with 40 cylinders subtracted in turn (81 records, one body). */
+function chainScene() {
+  const records = [{ id: 'plate', op: 'primitive.cuboid', name: 'Plate', params: { size: [400, 40, 10], center: [0, 0, 5] } }]
+  let current = 'plate'
+  for (let index = 0; index < 40; index += 1) {
+    records.push({ id: `h${index}`, op: 'primitive.cylinder', name: `Hole ${index + 1}`, params: { diameter: 5, height: 20, center: [-190 + index * 9.5, 0, 5] } })
+    records.push({ id: `s${index}`, op: 'boolean.subtract', name: 'Plate', target: current, operands: [`h${index}`], consumes: [current, `h${index}`] })
+    current = `s${index}`
   }
   return records
 }
@@ -85,7 +108,9 @@ function twentyFourScene() {
  * `row`: the History row the row-select/row-action interactions use — mid-log, so the
  * preview folds a real prefix — and the field its edit changes, or none for Suppress.
  *
- * @type {Record<string, { records: any[], bodies: number, row: { step: number, field?: string, value?: string } }>}
+ * `openOnly`: the scene is measured for Open alone (`TODO/core-032`).
+ *
+ * @type {Record<string, { records: any[], bodies: number, openOnly?: boolean, row?: { step: number, field?: string, value?: string } }>}
  */
 const SCENES = {
   // Step 100 is `u24`, body 25's last move: edit its Z.
@@ -93,6 +118,7 @@ const SCENES = {
   // Step 24 is `boltt5`, "Move Bolt 6". No 24-bodies row is editable from History, so
   // the row action is Suppress (the bolt stays, un-moved: the body count is unchanged).
   '24-bodies': { records: twentyFourScene(), bodies: 24, row: { step: 24 } },
+  'chain-40': { records: chainScene(), bodies: 1, openOnly: true },
 }
 
 /** @param {number[]} samples */
@@ -186,9 +212,12 @@ for (const sceneName of ONLY ? [ONLY] : Object.keys(SCENES)) {
 
   for (const rate of RATES) {
     /** @type {Record<string, number[]>} */
-    const gaps = { 'drag-place': [], undo: [], boolean: [], inspector: [], 'row-select': [], 'row-action': [] }
+    const gaps = { open: [], 'drag-place': [], undo: [], boolean: [], inspector: [], 'row-select': [], 'row-action': [] }
+    /** Open only (`TODO/core-032`): trigger → first visible change in the chip or File button. */
+    /** @type {number[]} */
+    const feedback = []
     /** @type {Record<string, number[]>} */
-    const spans = { 'drag-place': [], undo: [], boolean: [], inspector: [], 'row-select': [], 'row-action': [] }
+    const spans = { open: [], 'drag-place': [], undo: [], boolean: [], inspector: [], 'row-select': [], 'row-action': [] }
 
     for (let run = 0; run < RUNS; run += 1) {
       // A fresh context every run: autosave restores the last document from IndexedDB.
@@ -204,14 +233,6 @@ for (const sceneName of ONLY ? [ONLY] : Object.keys(SCENES)) {
       await page.goto(URL_BASE)
       await page.waitForSelector('[data-testid="viewport"]')
 
-      // Seed through the real Open… path.
-      await page.getByTestId('file-menu-button').click()
-      const chooserEvent = page.waitForEvent('filechooser')
-      await page.getByTestId('file-open').click()
-      const chooser = await chooserEvent
-      await chooser.setFiles({ name: `${sceneName}.ndjson`, mimeType: 'text/plain', buffer: Buffer.from(text) })
-      await settled(page, scene.bodies)
-
       await page.evaluate(() => {
         const watch = { worst: 0, last: performance.now(), on: false, startedAt: 0 }
         Object.assign(window, { __gapWatch: watch })
@@ -223,7 +244,7 @@ for (const sceneName of ONLY ? [ONLY] : Object.keys(SCENES)) {
         }
         requestAnimationFrame(tick)
       })
-      // Let the load's own work (meshes, framing, autosave) drain before measuring.
+      // Let the empty app's own start-up work (autosave restore, first render) drain.
       await page.waitForTimeout(1500)
       if (rate > 1) await session.send('Emulation.setCPUThrottlingRate', { rate })
 
@@ -245,6 +266,35 @@ for (const sceneName of ONLY ? [ONLY] : Object.keys(SCENES)) {
         gaps[name].push(worst)
         spans[name].push(elapsed)
       }
+
+      // TODO/core-032: Open itself. The menu click and the chooser are not measured; the
+      // window starts when the file is handed over, which is when the app starts reading.
+      await page.getByTestId('file-menu-button').click()
+      const chooserEvent = page.waitForEvent('filechooser')
+      await page.getByTestId('file-open').click()
+      const chooser = await chooserEvent
+      await page.evaluate(() => {
+        const watched = [document.querySelector('[data-testid="save-status"]'), document.querySelector('[data-testid="file-menu-button"]')]
+        const state = { at: 0 }
+        Object.assign(window, { __feedback: state })
+        const observer = new MutationObserver(() => {
+          if (state.at === 0) state.at = performance.now()
+          observer.disconnect()
+        })
+        for (const node of watched) if (node) observer.observe(node, { subtree: true, childList: true, characterData: true, attributes: true })
+      })
+      await measure('open', () => chooser.setFiles({ name: `${sceneName}.ndjson`, mimeType: 'text/plain', buffer: Buffer.from(text) }), scene.bodies)
+      feedback.push(await page.evaluate(() => {
+        const { __feedback: state, __gapWatch: watch } = /** @type {any} */ (window)
+        return state.at === 0 ? Number.NaN : state.at - watch.startedAt
+      }))
+      if (ONLY_OPEN || scene.openOnly || !scene.row) {
+        if (rate > 1) await session.send('Emulation.setCPUThrottlingRate', { rate: 1 })
+        await context.close()
+        continue
+      }
+      // Let the load's own work (meshes, framing, autosave) drain before measuring.
+      await page.waitForTimeout(1500)
 
       const before = await bodyCount(page)
       await measure('drag-place', () => dragRowIntoViewport(page, 'primitive.cuboid'), before + 1)
@@ -293,11 +343,14 @@ for (const sceneName of ONLY ? [ONLY] : Object.keys(SCENES)) {
     }
 
     for (const name of Object.keys(gaps)) {
+      if (gaps[name].length === 0) continue
       const gap = stats(gaps[name])
       const span = stats(spans[name])
-      rows.push({ scene: sceneName, rate, interaction: name, gap, span })
+      const feedbackStats = name === 'open' ? stats(feedback) : undefined
+      rows.push({ scene: sceneName, rate, interaction: name, gap, span, ...(feedbackStats ? { feedback: feedbackStats } : {}) })
       console.log(
-        `${sceneName.padEnd(10)} cpu ${String(rate).padStart(2)}x ${name.padEnd(10)} | worst frame gap median ${gap.median.toFixed(1).padStart(7)} ms (min ${gap.min.toFixed(1)}, worst ${gap.worst.toFixed(1)}) | trigger→settled median ${span.median.toFixed(0)} ms`,
+        `${sceneName.padEnd(10)} cpu ${String(rate).padStart(2)}x ${name.padEnd(10)} | worst frame gap median ${gap.median.toFixed(1).padStart(7)} ms (min ${gap.min.toFixed(1)}, worst ${gap.worst.toFixed(1)}) | trigger→settled median ${span.median.toFixed(0)} ms` +
+          (feedbackStats ? ` | trigger→first feedback median ${feedbackStats.median.toFixed(0)} ms` : ''),
       )
     }
   }

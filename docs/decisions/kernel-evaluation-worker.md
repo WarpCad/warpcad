@@ -4,8 +4,9 @@ Status: **Decided** (`TODO/core-029`, 2026-09-24). Slice 1 shipped with this rec
 Slice 2 (`TODO/core-030`, 2026-09-24) measured its two candidates and shipped **restore,
 don't re-fold** for Undo/Redo (see "Slice 2"). Slice 3 (`TODO/core-031`, 2026-09-24)
 measured the asynchronous fold for what was left and landed a **fold cache** instead
-(see "Slice 3" at the end). What is still genuinely new work on the main thread, a cold
-Open and an edit at the root of a long dependent lineage, is `TODO/core-032`.
+(see "Slice 3"). Slice 4 (`TODO/core-032`, 2026-09-30) measured what was left: a cold
+Open and an edit at the root of a long dependent lineage. It **announces** the Open instead
+of moving it, and leaves the lineage edit alone (see "Slice 4" at the end).
 
 `CLAUDE.md`'s Architecture section: *"All kernel work happens off the main thread (a Web
 Worker, regardless of which geometry library ends up inside it). The main thread must
@@ -260,3 +261,89 @@ the row first, which previews it by folding the prefix, cost another 168 / 232 m
 | Caching by record JSON alone (content-addressed) | It would also hit for a freshly parsed Open of the same document. But it needs a strongly held, bounded map, and a new object with equal JSON is exactly the case where "is this the same record" deserves a second look. Identity plus a JSON check is cheaper and cannot leak. |
 | Caching only builds, not the scene-group part | The profile showed the 24-body re-fold was ~95 % `combine()` in `add`, so a build-only cache moved it from 150 to 125 ms. Keeping the combined part took it to 0.1-6.5 ms. |
 | A module-global cache | The differential spec's "fresh fold" twin must share nothing, and documents on different registries must never share entries. So the cache is per document, and shared only on purpose. |
+
+## Slice 4 (`TODO/core-032`): cold Open announced, not moved; the lineage-root edit left alone
+
+`core-031` left two folds on the main thread, because what they fold is new work no cache
+holds. The first is **Open**, which also covers autosave restore and hosted Load: records
+this page has never built, 70 / 120 / 214 ms on fillet-50 / 24-bodies / chain-40 in Node,
+about 3-4× that on a phone. The second is **an edit at the root of one long dependent
+lineage**: 248 ms on chain-40's 40-subtract plate. `core-032`'s instruction was to measure
+first. Full numbers: `bench/results/2026-09-30-core-032.md`.
+
+### Measured first
+
+1. **How long a lineage does a real session build?** The new section in
+   `bench/fold-benchmark.mjs` edits the root of one lineage of N subtracts. At 1, 2, 3 and 5
+   subtracts the edit costs 0.2, 0.9, 1.6 and 3.5 ms. It is 14.7 ms at 10, 47.7 ms at 20
+   and 282 ms at 40. The growth is super-linear, since each result carries more polygons.
+   The acceptance scenarios build at most one or two dependent steps on a body (scenario
+   12's cube → chamfer is the longest). A scenario-12-shaped document measured 0.5 ms for its
+   root edit. The expensive case is synthetic.
+2. **How much of Open's freeze is the fold?** In the browser, in-page, one synchronous
+   `store.load` (fold + refresh) is 56-98 % of Open's worst frame gap at 1×, and **88-97 %
+   at 4×**. So option 1 would move most of it.
+3. **What option 1 would still cost.** It would return the whole `scene.byId`, measured at
+   10.5 / 19.2 / 32.4 ms in Node, roughly 40-130 ms at 4×. The estimated worst gap at 4×
+   would go from 301 / 431 / 660 ms to about 80 / 110 / 150 ms. And a realistic document
+   (0.4-3.5 ms to fold) would open **slower** with option 1 than without it.
+
+### Options compared
+
+| | 1. Open as a worker fold | 2. **Announced, then the same fold** (landed) | 3. Lineage-root edit in the worker |
+|---|---|---|---|
+| Worst frame gap at 4×, large fixtures | ≈ 80-150 ms (estimated) | 376 / 523 / 731 ms (unchanged) | n/a (row action) |
+| Time to first feedback | a pending state, ~1 frame | **6-11 ms** (was 116-676 ms) | — |
+| Realistic document (0.4-3.5 ms fold) | slower: round trip + 10-30 ms transport | a frame later, otherwise identical | — |
+| Refusal contract | late `ReplayRejection` rebuilt from the worker; the fold cache seeded from transported values (identity-keyed, so every `CachedBuild` entry, `part` included, must be rebuilt consistently) | **unchanged**: the same synchronous, atomic `loadEntries`, one frame later | changes the synchronous row-action contract `core-031` deliberately kept |
+| New states | a pending Open, plus a rule for edits made while it is pending (they would be discarded) | a pending Open, which blocks a second Open or Load | a pending state on every History row action |
+| Effort | M | S | L |
+
+### Decision: option 2 for Open, restore and hosted Load; nothing for the lineage edit
+
+- **Mechanism** (`src/stores/persistence.js`, "A load is announced before it folds").
+  - `persistence.loading` is set: `Opening <name>…`, or `Restoring your last session…` at
+    start-up.
+  - One frame is painted with it. `afterNextPaint` is a `requestAnimationFrame` whose
+    callback queues a task. It is raced with a 100 ms timeout, so a restore in a hidden
+    tab, which never paints, still runs.
+  - Then the unchanged `loadText` → `documentStore.load` → `loadEntries` runs. `loading`
+    clears however it ends.
+  - `openText` became `async`. Its result shape is unchanged. `hosted.loadFromRemote` now
+    awaits it.
+  - While a load is pending, `openText`/`openFile` refuse (`Another file is still
+    opening`), and `requestOpen`/`requestLoad`/`confirmReplace` are no-ops.
+  - An edit made during the announced frame at start-up still wins over the stored session,
+    as an edit made during the read always did.
+- **What the user sees** (`FileMenu.vue`). The File button goes `aria-busy`, and its label
+  names the file. The caret becomes `file-open-pending`: a spinner plus `Opening…` (the
+  spinner alone at phone width). The spinner is a CSS `transform` animation, so it keeps
+  turning on the compositor while the fold holds the main thread. The chip, via
+  `useStatusSurface`, gives a load in progress top precedence with the in-progress tone.
+  `Open…` and `Load from` are disabled until the load lands.
+- **Exact by construction.** It is the same fold, called later. `stores/openPending.spec.js`
+  checks it with `historyRestore.spec.js`'s comparison, now shared as
+  `core/__fixtures__/documentObservation.js`. The comparison covers a real-kernel file
+  with a lineage, a boolean, a composite, a suppressed row and a rollback marker. What the
+  announced Open leaves is compared field by field with an uncached synchronous
+  `loadEntries` of the same file. A refused file must name the same step with the same
+  message, change nothing, keep the user's Undo, and reach the same chip text, only after
+  the pending state.
+- **Measured after** (production build, Chromium). The worst frame gap is unchanged within
+  noise. The time from handing the file over to the first visible feedback went from
+  **116-207 ms at 1× and 379-676 ms at 4×** to **6-11 ms** in every cell.
+- **Verified in the app.** `e2e/open-pending.e2e.js` runs against `/` on chromium and webkit
+  at phone, tablet and laptop, on the dev server and on the production build. A
+  `MutationObserver` records the moment the indicator appears and the next animation frame,
+  and the spec asserts the old document was still on screen in both. Firefox cannot launch
+  in this sandbox (`TROUBLESHOOTING.md`).
+
+### Rejection table (slice 4)
+
+| Rejected | Specific reason |
+|---|---|
+| Option 1, Open as a worker fold | On the large fixtures it would take the 4× freeze from 301-660 ms to about 80-150 ms. But an Open replaces the document on screen, so the only thing a free main thread buys is painting, and option 2 gets the feedback on screen in 6-11 ms without it. Option 1 would make every realistic Open slower (the round trip plus 10-30 ms of transport, against a 0.4-3.5 ms fold). It would also make the refusal late and add a second copy of state across the boundary, including seeding an identity-keyed fold cache from transported values, which is the correctness risk `core-031` avoided. Reopen it if real documents grow to where Open's fold is regularly several hundred ms on a laptop. |
+| Option 3, the lineage-root edit in the worker | Not needed on the evidence. A root edit fits a 16 ms frame up to about 10 dependent subtracts, and no scenario or fixture builds more than a couple. Taking it on is the L-sized change to the synchronous row-action refusal contract that `core-031` kept on purpose. **Not implemented.** Filed as a follow-up to re-measure if long single lineages appear in real use (a pattern feature, repeated holes), rather than built speculatively. |
+| A pending indicator without a painted frame | Setting `loading` and folding in the same task would never paint it: the fold holds the thread before the next frame. The wait for one painted frame is the mechanism, not a detail. |
+| A worker fold only above a size threshold | Two load paths chosen by a threshold is the two-implementations drift this record already rejected once (slice 1's option 2). The announced fold covers every size with one path. |
+

@@ -1067,3 +1067,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** two bodies afterward, no registry flag → document.spec.js mirror tests, this session (2330 unit tests passing); cableTie2 example → TODO/core-028 file text
 **To Add:** none
+
+## [2026-09-30T15:55:00Z] — Open says "Opening…" before it blocks (TODO/core-032)
+
+**Post:** Opening a big file in WarpCad still freezes the page for a bit, because the fold runs on the main thread. I measured a worker fold first and passed on it: it would still cost ~80-150 ms at 4x throttle and slow small files down. So the freeze stays, but a frame with "Opening…" paints first. Built with Claude Code, reviewed by me. #CAD #WebGL
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** worker fold would leave ~80-150 ms at 4x and slow small docs → the subagent's estimate, recorded in docs/decisions/kernel-evaluation-worker.md slice 4 (an estimate, not a measured worker fold); frame gap unchanged → bench/results/2026-09-30-core-032.md
+**To Add:** none

@@ -117,20 +117,20 @@ describe('File ▾ → Resolution…', () => {
 })
 
 describe('persistence', () => {
-  it('a saved project keeps its resolution, and reopening it restores it', () => {
+  it('a saved project keeps its resolution, and reopening it restores it', async () => {
     const { documentStore, dialog, persistence } = setup()
     documentStore.append(cylinder)
     dialog.choose('print')
     const text = serializeProject(documentStore.raw)
     documentStore.load([], null, 'normal')
-    expect(persistence.openText(text, 'saved.ndjson').ok).toBe(true)
+    expect((await persistence.openText(text, 'saved.ndjson')).ok).toBe(true)
     expect(documentStore.resolution).toBe('print')
     expect(sides(documentStore.raw.bodies()[0].geometry)).toBe(112)
   })
 
-  it('an old file with no resolution reopens as Legacy, with exactly its old 32-sided geometry', () => {
+  it('an old file with no resolution reopens as Legacy, with exactly its old 32-sided geometry', async () => {
     const { documentStore, persistence } = setup()
-    expect(persistence.openText(serializeNdjson([cylinder]), 'old.ndjson').ok).toBe(true)
+    expect((await persistence.openText(serializeNdjson([cylinder]), 'old.ndjson')).ok).toBe(true)
     expect(documentStore.resolution).toBe('legacy')
     expect(sides(documentStore.raw.bodies()[0].geometry)).toBe(32)
   })

@@ -1446,3 +1446,18 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** no registry marker, two bodies, original untouched, one undo removes only the copy → document.spec.js and registry.spec.js tests, this session; symmetric body mirrors onto itself at default point → group.spec.js test documenting it; enlarge/bisect replace their body → TODO/core-028 file text
 **To Add:** none
+
+## [2026-09-30T15:55:00Z] — Open announces itself before it folds (TODO/core-032)
+
+**Post:** Open, hosted Load and autosave restore in WarpCad fold records the page has never built, on the main thread. On the large fixtures I measured that at 70 to 214 ms in Node (fillet-50 to chain-40), and 135 to 205 ms of worst frame gap in the browser, roughly three times worse at 4x CPU throttle.
+
+The obvious fix was a worker fold. I measured its cost floor first: shipping the scene back is 10 to 32 ms, and realistic documents fold in under 4 ms, so a worker would make the common case slower to fix the rare one. Instead the app now sets a loading state, paints one frame, then runs the same synchronous, atomic fold. Time from clicking Open to any visible feedback dropped from 116-676 ms to 6-11 ms. The freeze itself is unchanged.
+
+A long dependent chain (one root edit under many subtracts) fits in a frame up to about 10 subtracts and only gets expensive around 40, so that case is deliberately left alone. Numbers are in bench/results/2026-09-30-core-032.md.
+
+Built with Claude Code, reviewed by me.
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL #Vue
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** Node/browser figures, transport 10-32 ms, feedback 116-676 → 6-11 ms, lineage table → bench/results/2026-09-30-core-032.md (subagent's runs this session, M-series Mac per the results file); realistic docs 0.4-3.5 ms → same file
+**To Add:** none

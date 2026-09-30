@@ -400,3 +400,48 @@ describe('FileMenu — Resolution (TODO/core-035)', () => {
     expect(body().q('resolution-popover')).toBeNull()
   })
 })
+
+describe('FileMenu — an Open in progress (TODO/core-032)', () => {
+  it('the File button reads busy with a visible "Opening…" indicator, and Open… is disabled until it lands', async () => {
+    setActivePinia(createPinia())
+    const files = fakeFiles('fallback')
+    /** @type {() => void} */
+    let release = () => {}
+    setPersistenceDependencies({
+      backend: { async load() { return null }, async save() {}, async keepUnreadable() {} },
+      files,
+      nextPaint: () => new Promise((resolve) => (release = () => resolve(undefined))),
+    })
+    setHostedDependencies({
+      client: okClient,
+      credentials: { async read() { return null }, async write() {}, async clear() {}, close() {} },
+    })
+    const wrapper = mount(FileMenu, { attachTo: document.body })
+    const persistence = usePersistenceStore()
+
+    expect(wrapper.find('[data-testid="file-open-pending"]').exists()).toBe(false)
+    expect(wrapper.get('[data-testid="file-menu-button"]').attributes('aria-busy')).toBeUndefined()
+
+    const text = JSON.stringify(cube('theirs')) + '\n'
+    const opening = persistence.openText(text, 'theirs.ndjson')
+    await nextTick()
+
+    const button = wrapper.get('[data-testid="file-menu-button"]')
+    expect(button.attributes('aria-busy')).toBe('true')
+    expect(button.attributes('aria-label')).toContain('Opening theirs.ndjson…')
+    expect(wrapper.get('[data-testid="file-open-pending"]').text()).toContain('Opening')
+
+    await openMenu(wrapper)
+    expect(body().q('file-menu-status')?.textContent).toContain('Opening theirs.ndjson…')
+    expect(body().q('file-open')?.disabled).toBe(true)
+    body().q('file-open').click()
+    expect(files.opens).toBe(0)
+
+    release()
+    await opening
+    await nextTick()
+    expect(wrapper.find('[data-testid="file-open-pending"]').exists()).toBe(false)
+    expect(button.attributes('aria-busy')).toBeUndefined()
+    expect(body().q('file-open')?.disabled).toBe(false)
+  })
+})

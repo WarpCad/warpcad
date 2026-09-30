@@ -9,6 +9,8 @@
  *
  * ## Precedence, most urgent first
  *
+ * 0. a **load in progress** (`Opening <name>…`, `Restoring your last session…`,
+ *    `TODO/core-032`) — what is happening right now, painted before the fold blocks;
  * 1. a **local persistent error** (`Not saved — browser storage unavailable`, a refused file);
  * 2. a **hosted persistent error** (token rejected, no network, a bad remote file);
  * 3. a hosted state that needs the user or is happening now — `paused`/diverged, `pushing`,
@@ -68,6 +70,7 @@ export function useStatusSurface() {
    * @returns {{ text: string, tone: StatusTone }}
    */
   function resolve() {
+    if (persistence.loading) return { text: persistence.loading, tone: 'saving' }
     if (persistence.errorMessage) return { text: persistence.errorMessage, tone: 'error' }
     if (hosted.connected) {
       if (hosted.errorMessage) return { text: hosted.errorMessage, tone: 'error' }

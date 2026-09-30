@@ -442,7 +442,7 @@ export const useHostedStore = defineStore('hosted', () => {
         return { ok: false, message }
       }
       suppressNextMutation = true
-      const opened = persistence.openText(remote.text ?? '', repoLabel.value)
+      const opened = await persistence.openText(remote.text ?? '', repoLabel.value)
       if (!opened.ok) {
         suppressNextMutation = false
         errorMessage.value = `Couldn't load ${repoLabel.value}: ${opened.message}`

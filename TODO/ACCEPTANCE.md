@@ -2900,6 +2900,8 @@ Hosted half not driven (no scratch repo/token in this session). Console clean.
 
 **Re-checked**: 2026-09-29 21:18 UTC (`ui-052`) — **steps 1-5 PASS at both form factors; step 6-7 file round-trip PASS at phone WebKit (Download copy), not driven at laptop Chromium (Save needs the OS picker headless); hosted half (8-9) not driven.** Union of Cube+Cylinder autosaved (`Saved · 16:15`) and came back alone after reload (76 530.514 mm³, `Nothing to undo`, History rows intact). Download copy → Sphere added → Open… → Replace gave back exactly the saved Union. New with this task: a document with a row **left broken** (Pi 4 → Pi 5 under a cube snapped to `avjack`) reloaded still a Pi 5 with its banner "1 item refers to parts this Pi 5 doesn't have"; **Resolve…** reopened the dialog ("1 item needs repair"), and Detach cleared the banner and the History `broken` chip. A conditioned (Only when) cube reloaded inactive and chipped (scenario 15). Console clean.
 
+**Re-checked**: 2026-09-30 15:50 UTC (`core-032`) — **steps 1-7 PASS at laptop 1440x900 Chromium only** (real mouse; hosted half not driven; phone WebKit not hand-driven, `e2e/open-pending.e2e.js` covers it by script). Cube + Cylinder unioned, reload restored one body with `Restored your last session`; Download copy, then a Sphere dragged in, then File ▾ → Open… of the saved file: Sphere gone, union back, chip `Opened <file> · 3 steps`, no lingering `file-open-pending`, console clean. The `Opening…` state was too brief on this tiny document for a 60 ms poll to see; it is asserted in-page by the new spec.
+
 ### 11. Export a solid and confirm it opens elsewhere
 
 Added 2026-09-17 alongside `TODO/ROADMAP.md`'s M6, same rule as scenario 10. Steps

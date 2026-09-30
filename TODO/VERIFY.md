@@ -34,6 +34,15 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### core-032 — Open announces itself before it folds (2026-09-30 15:55)
+
+The spinner on the File button is a compositor-driven CSS transform, so it should keep turning while a large file folds; that is unproven on real hardware, and the in-between state is too brief for a screenshot in the e2e spec.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | On a real iPhone/iPad, open a large project (200-record fillet fixture): the File button's spinner keeps turning and the chip reads `Opening <name>…` before the pause | Open | |
+
+
 ### core-028 — transform.mirror (2026-09-30 15:25)
 
 Kernel-only; no control yet. One judgment call deferred to `ui-039` because it can only be judged on screen.

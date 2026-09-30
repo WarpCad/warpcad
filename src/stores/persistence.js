@@ -26,6 +26,18 @@
  * - `openText(text, name)` — the same, minus the picker, for a caller that already
  *   has the text.
  * - `chipText` / `chipTone` / `errorMessage` / `dismissError()` — what the chip shows.
+ * - `loading` — `Opening <name>…` / `Restoring your last session…` while a load is announced
+ *   and folding, `''` otherwise. The File button reads busy from it (`TODO/core-032`).
+ *
+ * ## A load is announced before it folds (`TODO/core-032`)
+ *
+ * Open, hosted Load and autosave restore fold records this page has never built, on the
+ * main thread: 70-200 ms on the large measured fixtures, three to four times that on a
+ * phone (`docs/decisions/kernel-evaluation-worker.md`, slice 4). That block is kept — a
+ * worker fold was measured and rejected there — but it is never *silent*: `loading` is set,
+ * one frame is painted with it (`nextPaint`), and only then does the same synchronous,
+ * atomic `loadEntries` run. A refusal is unchanged, just after the pending state, which it
+ * clears. While one load is pending no other Open or Load can start.
  *
  * ## Restore goes through the same seeding as everything else
  *
@@ -58,7 +70,48 @@ const DOWNLOAD_NOTICE_MS = 6000
  * @property {import('../storage/fileSystem.js').FileStorage} files
  * @property {import('../storage/localMirror.js').SyncMirror} [mirror] The synchronous
  *   safety copy a dying page can still write; omitted in tests that do not care.
+ * @property {() => Promise<void>} [nextPaint] Resolves once a frame showing the current
+ *   state has been painted (`TODO/core-032`) — the UI boundary a load waits on before it
+ *   folds. The real one is {@link afterNextPaint}; omitted (a test that does not care), the
+ *   load folds on the next microtask.
  */
+
+/** A hidden tab paints nothing, so a load never waits on a frame for longer than this. */
+const PAINT_WAIT_LIMIT_MS = 100
+
+/**
+ * Resolve after the browser has painted the current DOM: a `requestAnimationFrame` callback
+ * runs just *before* a paint, and a task queued from it runs after that paint. Raced with a
+ * short timeout, because a background tab never runs the frame at all — an autosave
+ * restore in a tab opened behind another must still load.
+ *
+ * @returns {Promise<void>}
+ */
+export function afterNextPaint() {
+  return new Promise((resolve) => {
+    let done = false
+    const finish = () => {
+      if (done) return
+      done = true
+      resolve()
+    }
+    const limit = setTimeout(finish, PAINT_WAIT_LIMIT_MS)
+    if (typeof requestAnimationFrame !== 'function') {
+      clearTimeout(limit)
+      finish()
+      return
+    }
+    requestAnimationFrame(() => {
+      setTimeout(() => {
+        clearTimeout(limit)
+        finish()
+      }, 0)
+    })
+  })
+}
+
+/** What a load that has no painted frame to wait for waits on: the next microtask. */
+const noPaint = () => Promise.resolve()
 
 /** @type {PersistenceDependencies | null} */
 let dependencies = null
@@ -79,6 +132,7 @@ function resolveDependencies() {
     backend: createIndexedDbBackend(),
     files: createFileStorage(),
     mirror: createLocalStorageMirror(),
+    nextPaint: afterNextPaint,
   }
   return dependencies
 }
@@ -114,6 +168,12 @@ export const usePersistenceStore = defineStore('persistence', () => {
   const notice = ref('')
   /** Persistent, until the next success or a dismissal. */
   const errorMessage = ref('')
+  /**
+   * The load being announced and folded (`TODO/core-032`), or `''`. Outranks everything on
+   * the chip: it is what is happening right now.
+   */
+  const loading = ref('')
+  const nextPaint = deps.nextPaint ?? noPaint
 
   /** @type {ReturnType<typeof setTimeout> | null} */
   let noticeTimer = null
@@ -160,6 +220,7 @@ export const usePersistenceStore = defineStore('persistence', () => {
   })
 
   const chipTone = computed(() => {
+    if (loading.value) return 'saving'
     if (errorMessage.value) return 'error'
     if (autosaveState.value === 'saving') return 'saving'
     if (autosaveState.value === 'saved') return 'saved'
@@ -167,6 +228,7 @@ export const usePersistenceStore = defineStore('persistence', () => {
   })
 
   const chipText = computed(() => {
+    if (loading.value) return loading.value
     if (errorMessage.value) return errorMessage.value
     if (notice.value) return notice.value
     if (autosaveState.value === 'saving') return 'Saving…'
@@ -191,11 +253,30 @@ export const usePersistenceStore = defineStore('persistence', () => {
     }
   }
 
+  /**
+   * Announce `label`, let a frame paint it, then run `fold` — the one order every load
+   * takes (`TODO/core-032`). `loading` is cleared however `fold` ends.
+   *
+   * @template T
+   * @param {string} label
+   * @param {() => T} fold
+   * @returns {Promise<T>}
+   */
+  async function announced(label, fold) {
+    loading.value = label
+    try {
+      await nextPaint()
+      return fold()
+    } finally {
+      loading.value = ''
+    }
+  }
+
   /** Restore the last autosave, then start listening for edits. */
   async function run() {
     const versionAtStart = documentStore.raw.version
     const restored = await autosaver.restore()
-    const editedDuringRestore = documentStore.raw.version !== versionAtStart
+    let editedDuringRestore = documentStore.raw.version !== versionAtStart
     let needsWrite = false
 
     if (restored.kind === 'failed') {
@@ -206,13 +287,17 @@ export const usePersistenceStore = defineStore('persistence', () => {
         // newer truth; replacing it with the older stored session would destroy
         // work in front of them. Their edit is autosaved below instead.
       } else {
-        const loaded = loadText(restored.text)
-        if (loaded.ok && restored.fromMirror) {
+        // An edit made during the announced frame is still the user getting there first.
+        const loaded = await announced('Restoring your last session…', () =>
+          documentStore.raw.version !== versionAtStart ? null : loadText(restored.text),
+        )
+        if (loaded === null) {
+          // As above: their edit is the newer truth, and is autosaved below instead.
+          editedDuringRestore = true
+        } else if (loaded.ok) {
           // The page died before IndexedDB committed; the synchronous copy is the newer
           // truth. Push it into IndexedDB now (the mirror is cleared once that lands).
-          needsWrite = true
-        }
-        if (loaded.ok) {
+          if (restored.fromMirror) needsWrite = true
           savedAt.value = restored.savedAt
           autosaveState.value = 'saved'
           showNotice('Restored your last session', RESTORED_NOTICE_MS)
@@ -324,14 +409,17 @@ export const usePersistenceStore = defineStore('persistence', () => {
   }
 
   /**
-   * Replace the document with a project's text.
+   * Replace the document with a project's text: announced as `Opening <name>…`, a frame
+   * painted, then folded (`TODO/core-032`). Refused without touching anything while another
+   * load is still pending.
    *
    * @param {string} text
    * @param {string} name File name, for the chip and for a refusal.
-   * @returns {{ ok: true, name: string, steps: number } | { ok: false, message: string }}
+   * @returns {Promise<{ ok: true, name: string, steps: number } | { ok: false, message: string }>}
    */
-  function openText(text, name) {
-    const loaded = loadText(text)
+  async function openText(text, name) {
+    if (loading.value) return { ok: false, message: 'Another file is still opening' }
+    const loaded = await announced(`Opening ${name}…`, () => loadText(text))
     if (!loaded.ok) {
       clearNotice()
       errorMessage.value = `Couldn't open ${name}: ${loaded.message}`
@@ -349,6 +437,7 @@ export const usePersistenceStore = defineStore('persistence', () => {
    * @returns {Promise<{ ok: true, name: string, steps: number } | { ok: false, cancelled: true } | { ok: false, message: string }>}
    */
   async function openFile() {
+    if (loading.value) return { ok: false, message: 'Another file is still opening' }
     const picked = await deps.files.open()
     if (!picked.ok) {
       if ('cancelled' in picked) return { ok: false, cancelled: true }
@@ -356,7 +445,7 @@ export const usePersistenceStore = defineStore('persistence', () => {
       errorMessage.value = `Couldn't open ${picked.name ?? 'the file'}: ${picked.error}`
       return { ok: false, message: picked.error }
     }
-    const opened = openText(picked.text, picked.name)
+    const opened = await openText(picked.text, picked.name)
     // Only a file that actually loaded may become the Save target — adopting a
     // refused one would let the next Save overwrite it with the current document.
     if (opened.ok) deps.files.adopt(picked)
@@ -383,6 +472,7 @@ export const usePersistenceStore = defineStore('persistence', () => {
     savedAt,
     notice,
     errorMessage,
+    loading,
     chipText,
     chipTone,
     fileCapabilities: deps.files.capabilities,

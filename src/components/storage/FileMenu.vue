@@ -56,6 +56,15 @@
  * `ResolutionPopover.vue` (`stores/resolutionDialog.js`), exactly as `Export…` does for
  * its popover.
  *
+ * ## An Open in progress (`TODO/core-032`)
+ *
+ * Open, `Load from owner/repo` and the start-up restore fold on the main thread, which can
+ * block for a few hundred milliseconds on a phone. They are announced first: while
+ * `persistence.loading` is set the button reads **busy** (`aria-busy`, its label names the
+ * file) and shows `file-open-pending` — a spinner and `Opening…`/`Restoring…` in place of the
+ * caret; the spinner is a CSS `transform` animation, so it keeps turning on the compositor
+ * while the fold holds the main thread. `Open…` and `Load from` are disabled until it lands.
+ *
  * Every real action is a call into `stores/fileMenu.js` (when to ask), `stores/persistence.js`
  * (the local file) or `stores/hosted.js` (the repository): no persistence logic lives here.
  */
@@ -149,7 +158,11 @@ const busy = computed(
 )
 watch(busy, (value) => hosted.setUiBusy(value), { immediate: true })
 
+/** `Opening…` / `Restoring…` — the short form of `persistence.loading` the button can fit. */
+const pendingLabel = computed(() => (persistence.loading === '' ? '' : `${persistence.loading.split(' ')[0]}…`))
+
 const buttonLabel = computed(() => {
+  if (persistence.loading) return `File menu — ${persistence.loading}`
   if (!hosted.connected) return 'File menu'
   return `File menu — ${hosted.repoLabel}: ${hosted.statusText}`
 })
@@ -231,11 +244,16 @@ onBeforeUnmount(() => {
       aria-haspopup="menu"
       :aria-expanded="menu.menuOpen"
       :aria-label="buttonLabel"
-      :title="hosted.connected ? buttonLabel : 'File menu'"
+      :aria-busy="persistence.loading ? 'true' : undefined"
+      :title="hosted.connected || persistence.loading ? buttonLabel : 'File menu'"
       @click="menu.toggleMenu()"
     >
       <span class="file-button__label">File</span>
-      <span class="file-button__caret" aria-hidden="true">▾</span>
+      <span v-if="persistence.loading" class="file-button__pending" data-testid="file-open-pending">
+        <span class="file-button__spinner" aria-hidden="true" />
+        <span class="file-button__pending-text">{{ pendingLabel }}</span>
+      </span>
+      <span v-else class="file-button__caret" aria-hidden="true">▾</span>
       <HostedDot :state="hosted.dotState" />
     </button>
 
@@ -305,6 +323,7 @@ onBeforeUnmount(() => {
               role="menuitem"
               class="file-menu__item"
               data-testid="file-open"
+              :disabled="persistence.loading !== ''"
               @click="menu.requestOpen()"
             >
               {{ capabilities.openLabel }}
@@ -379,6 +398,7 @@ onBeforeUnmount(() => {
                 role="menuitem"
                 class="file-menu__item"
                 data-testid="hosted-load"
+                :disabled="persistence.loading !== ''"
                 @click="menu.requestLoad()"
               >
                 Load from {{ hosted.repoLabel }}
@@ -460,6 +480,39 @@ onBeforeUnmount(() => {
 
 .file-button__caret {
   font-size: 11px;
+}
+
+/* TODO/core-032: an Open in progress. */
+.file-button__pending {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--accent);
+  font-size: 12px;
+}
+
+/* A transform animation runs on the compositor, so it keeps turning while the fold holds the
+   main thread — which is exactly when it is showing. */
+.file-button__spinner {
+  width: 10px;
+  height: 10px;
+  box-sizing: border-box;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: file-button-spin 0.8s linear infinite;
+}
+
+@keyframes file-button-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .file-button__spinner {
+    animation: none;
+  }
 }
 
 /* The click-catcher: transparent, so the scene stays legible under the menu, and above the
@@ -609,6 +662,16 @@ onBeforeUnmount(() => {
 @media (max-width: 640px) {
   .file-button {
     padding: 0 8px;
+  }
+
+  /* The header is tight at phone width: the spinner stays, the word moves to the label. */
+  .file-button__pending-text {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
   }
 }
 </style>

@@ -23,6 +23,8 @@
  *   would cost (pack + structuredClone + unpack), i.e. the price of option 1.
  *
  * And, for option 2's "measured threshold", the cost of each op kind evaluated alone.
+ * `TODO/core-032` adds how a root edit and a cold Open scale with the length of one
+ * dependent lineage.
  *
  * Usage:
  *   node bench/fold-benchmark.mjs                 # all scenes, 11 runs each
@@ -332,6 +334,33 @@ rows.push({ scene: chainName, ...measureInteraction(
   optionOneRows.push({ scene: chainName, values: document.scene.byId.size, ...stats(samples) })
 }
 
+// ---------------------------------------------------------------------------
+// `TODO/core-032`: does a real session build lineages long enough for a root edit to matter?
+//
+// The same single-lineage plate as chain-40, at every length from one subtract to forty:
+// an edit at its root (every later row depends on it) and a cold Open. A lineage a user
+// builds by hand — scenario 12's cube, chamfer, move — is at the short end.
+// ---------------------------------------------------------------------------
+
+const lineageRows = []
+for (const holes of [1, 2, 3, 5, 10, 20, 40]) {
+  const records = chainScene(holes)
+  const rootEdit = []
+  const open = []
+  for (let run = 0; run < RUNS; run += 1) {
+    const document = seeded(records)
+    let started = performance.now()
+    document.replaceRecord('plate', { ...records[0], params: { ...records[0].params } }, { origin: 'local' })
+    rootEdit.push(performance.now() - started)
+    const fresh = createDocument()
+    const entries = records.map((record) => ({ record, origin: 'local' }))
+    started = performance.now()
+    fresh.loadEntries(entries)
+    open.push(performance.now() - started)
+  }
+  lineageRows.push({ holes, records: records.length, rootEdit: stats(rootEdit), open: stats(open) })
+}
+
 const fixed = (/** @type {number} */ value) => value.toFixed(1).padStart(7)
 console.log(`fold-benchmark · node ${process.version} · ${RUNS} runs per cell · medians (p95) in ms\n`)
 console.log('scene                              | interaction                                          |    fold (p95)      |  summary (p95)     | worker, off-thread | transport (p95)')
@@ -339,6 +368,11 @@ for (const row of rows) {
   console.log(
     `${row.scene.padEnd(34)} | ${row.label.padEnd(52)} | ${fixed(row.fold.median)} (${fixed(row.fold.p95)}) | ${fixed(row.summary.median)} (${fixed(row.summary.p95)}) | ${fixed(row.worker.median)} (${fixed(row.worker.p95)}) | ${fixed(row.transport.median)} (${fixed(row.transport.p95)})`,
   )
+}
+
+console.log('\ncore-032 — one lineage of N subtracts: root edit / cold Open, median (p95) ms')
+for (const row of lineageRows) {
+  console.log(`${String(row.holes).padStart(3)} subtracts (${String(row.records).padStart(2)} records)  root edit ${fixed(row.rootEdit.median)} (${fixed(row.rootEdit.p95)})  Open ${fixed(row.open.median)} (${fixed(row.open.p95)})`)
 }
 
 console.log('\ncore-031 — option 1 return cost: pack + structuredClone + unpack of the WHOLE scene.byId, median (p95) ms')
@@ -468,4 +502,4 @@ for (const [name, script] of Object.entries(SESSIONS)) {
   console.log(`${name.padEnd(78)} restored ${String(restored).padStart(2)} · re-folded ${folded}`)
 }
 
-if (JSON_OUT) writeFileSync(JSON_OUT, JSON.stringify({ runs: RUNS, node: process.version, rows, opRows, coverage, optionOneRows }, null, 2))
+if (JSON_OUT) writeFileSync(JSON_OUT, JSON.stringify({ runs: RUNS, node: process.version, rows, opRows, coverage, optionOneRows, lineageRows }, null, 2))

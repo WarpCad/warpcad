@@ -5,8 +5,11 @@ kind: feature
 priority: low
 model: opus
 depends: [core-031]
-status: open
+status: done
 ---
+
+> **What shipped (2026-09-30):** measured first, then option 2. Open, hosted Load and autosave restore set a `loading` state, paint one frame (`afterNextPaint`, capped at 100 ms for hidden tabs) and then run the same synchronous, atomic `loadEntries`; the File button goes busy with an "Opening…" spinner. A worker fold (option 1) would have left ~80-150 ms at 4x and slowed realistic documents; the lineage-root edit is under one frame up to ~10 dependent subtracts, so option 3 is not taken. Trigger-to-first-feedback fell from 116-676 ms to 6-11 ms; the worst frame gap is unchanged by design. Re-measure the root edit (`bench/fold-benchmark.mjs` lineage section) if repeated-feature ops make long lineages common. See `docs/decisions/kernel-evaluation-worker.md` slice 4 and `bench/results/2026-09-30-core-032.md`.
+
 
 ## Goal
 

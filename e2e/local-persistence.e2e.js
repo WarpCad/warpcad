@@ -478,7 +478,7 @@ test.describe('the file mechanism (functions ui-033 will call, real browser down
       const storage = createFileStorage({ document, Blob, URL, setTimeout })
       const picked = await storage.open()
       if (!picked.ok) return { picked }
-      return { picked: { ok: true, name: picked.name }, opened: persistence.openText(picked.text, picked.name) }
+      return { picked: { ok: true, name: picked.name }, opened: await persistence.openText(picked.text, picked.name) }
     })
     const chooser = await chooserEvent
     await chooser.setFiles({ name: 'theirs.ndjson', mimeType: 'text/plain', buffer: Buffer.from(text) })

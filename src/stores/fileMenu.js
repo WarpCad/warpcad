@@ -115,9 +115,13 @@ export const useFileMenuStore = defineStore('fileMenu', () => {
     resolutionDialog.open()
   }
 
-  /** `Open…` (and Ctrl/Cmd+O): confirm first when there is anything to lose. */
+  /**
+   * `Open…` (and Ctrl/Cmd+O): confirm first when there is anything to lose. A no-op while a
+   * load is still being announced and folded (`TODO/core-032`) — the item is disabled then.
+   */
   function requestOpen() {
     menuOpen.value = false
+    if (persistence.loading) return
     // A replace-confirm about to land over an open export popover would leave it half-hidden.
     exportDialog.close()
     if (hasContent()) {
@@ -130,6 +134,7 @@ export const useFileMenuStore = defineStore('fileMenu', () => {
   /** `Load from owner/repo`: the same replace question, then a read of the repository. */
   function requestLoad() {
     menuOpen.value = false
+    if (persistence.loading) return
     if (hasContent()) {
       confirm.value = 'load'
       return
@@ -141,6 +146,7 @@ export const useFileMenuStore = defineStore('fileMenu', () => {
   function confirmReplace() {
     const kind = confirm.value
     confirm.value = null
+    if (persistence.loading) return
     if (kind === 'open') void persistence.openFile()
     else if (kind === 'load') void hosted.loadFromRemote()
   }
