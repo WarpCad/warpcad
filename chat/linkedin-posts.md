@@ -1431,3 +1431,18 @@ Head, thread and the optional hidden clearance solid match V1's bounds, volumes 
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** cone head, countersink field unread, no screw BOM key → `jscad-hardware.jscad` source read this session and `scripts/generate-v1-screw-fixture.cjs` output; one metric + five imperial sizes → `screw-specs.js`; matches to 1e-6 → `hardware.screw.spec.js` tolerances (`toBeCloseTo(..., 6)`), 23 passing this session; no Library row → registry entry has no `ui` block (diff)
 **To Add:** none
+
+## [2026-09-30T15:30:00Z] — transform.mirror: a mirror makes a second body (TODO/core-028)
+
+**Post:** Added a mirror operation to WarpCad's geometry kernel. The reflection itself is a single call into the JSCAD modeling library. The part worth writing down was what mirror means for the document.
+
+Nearby operations like enlarge and bisect replace the body they act on. Mirror does not: the surveyed real usage keeps the original and adds a reflected copy, so the result is two independent bodies. That turned out to need no new registry marker. A mirror record points at its source and simply omits the fields that would continue the source's history, and the document already treats such a record as a new body. Tests confirm the original is untouched and one undo removes only the copy.
+
+One thing found on the way: the default reflection plane goes through the body's own centre, so a symmetric body mirrors onto itself and looks unchanged. The UI task that follows will commit an explicit point instead.
+
+Built with Claude Code, reviewed by me.
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #JSCAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** no registry marker, two bodies, original untouched, one undo removes only the copy → document.spec.js and registry.spec.js tests, this session; symmetric body mirrors onto itself at default point → group.spec.js test documenting it; enlarge/bisect replace their body → TODO/core-028 file text
+**To Add:** none

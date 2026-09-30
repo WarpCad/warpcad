@@ -76,10 +76,12 @@ describe('registry shape', () => {
       expect(registry[op].subPartOperands, op).toBe(true)
       expect(registry[op].rawOperands, op).toBe(true)
     }
-    for (const op of ['transform.translate', 'transform.rotate']) {
+    for (const op of ['transform.translate', 'transform.rotate', 'transform.mirror']) {
       // A transform edits one body in place: it must see a group to keep it whole,
       // and must refuse a sub-part address, since honouring one would silently
-      // delete the parts it did not name.
+      // delete the parts it did not name. `transform.mirror` (TODO/core-028) makes a
+      // new body rather than editing one, but the same argument holds for the copy:
+      // a mirrored bolt must still be a whole bolt.
       expect(registry[op].rawOperands, op).toBe(true)
       expect(registry[op].subPartOperands, op).toBeUndefined()
     }
@@ -357,6 +359,80 @@ describe('native builders', () => {
     expect(acceptsOperandCount('transform.rotate', 0)).toBe(false)
     expect(acceptsOperandCount('transform.rotate', 1)).toBe(true)
     expect(acceptsOperandCount('transform.rotate', 2)).toBe(false)
+  })
+
+  describe('transform.mirror — TODO/core-028', () => {
+    it('is a single-operand op, whole-group, never sub-part addressed', () => {
+      expect(registry['transform.mirror']).toMatchObject({
+        kind: 'native',
+        operandCount: 1,
+        rawOperands: true,
+      })
+      expect(registry['transform.mirror'].subPartOperands).toBeUndefined()
+      expect(acceptsOperandCount('transform.mirror', 0)).toBe(false)
+      expect(acceptsOperandCount('transform.mirror', 1)).toBe(true)
+      expect(acceptsOperandCount('transform.mirror', 2)).toBe(false)
+    })
+
+    it('carries no lineage marker: nothing about the entry says "supersede your operand"', () => {
+      // The decision, pinned as data: a mirror is creation-shaped, and the registry
+      // has no field that would make a caller treat it like `modify.*`. The document
+      // layer's own default — a record with no `supersedes`/`consumes` is a new
+      // lineage root — is the whole mechanism. See the entry's comment.
+      const entry = /** @type {Record<string, unknown>} */ (registry['transform.mirror'])
+      expect(Object.keys(entry).sort()).toEqual(['build', 'kind', 'operandCount', 'rawOperands'])
+      expect(entry.ui).toBeUndefined()
+    })
+
+    it('reflects about an explicit point in millimetres', () => {
+      const cube = build('primitive.cuboid', { params: { size: [4, 4, 4], center: [0, 20, 0] } })
+      const reflected = build('transform.mirror', {
+        params: { axis: 'y', pointMm: [0, 0, 0] },
+        inputs: [cube],
+      })
+      const [min, max] = boundsOf(reflected)
+      expect(min[1]).toBeCloseTo(-22, 9)
+      expect(max[1]).toBeCloseTo(-18, 9)
+      expect(min[0]).toBeCloseTo(-2, 9)
+    })
+
+    it('defaults the point to the body’s own centre, as group.js does', () => {
+      const cube = build('primitive.cuboid', { params: { size: [4, 4, 4], center: [0, 20, 0] } })
+      const reflected = build('transform.mirror', { params: { axis: 'y' }, inputs: [cube] })
+      const [min, max] = boundsOf(reflected)
+      expect(min[1]).toBeCloseTo(18, 9)
+      expect(max[1]).toBeCloseTo(22, 9)
+    })
+
+    it('rejects a missing or unknown axis rather than defaulting to one', () => {
+      const cube = build('primitive.cuboid', { params: { size: [2, 2, 2] } })
+      expect(() => build('transform.mirror', { params: {}, inputs: [cube] })).toThrow(/axis/)
+      expect(() => build('transform.mirror', { params: { axis: 'xy' }, inputs: [cube] })).toThrow(/axis/)
+    })
+
+    it('in a fold, leaves the source record’s value untouched and adds a second one', () => {
+      const { byId } = evaluate([
+        { id: 'cube', op: 'primitive.cuboid', params: { size: [4, 4, 4], center: [20, 0, 0] } },
+        { id: 'cube-mirror', op: 'transform.mirror', target: 'cube', params: { axis: 'x', pointMm: [0, 0, 0] } },
+      ])
+      const source = /** @type {Geom3} */ (byId.get('cube'))
+      const copy = /** @type {Geom3} */ (byId.get('cube-mirror'))
+      expect(boundsOf(source)[0][0]).toBeCloseTo(18, 9)
+      expect(boundsOf(copy)[0][0]).toBeCloseTo(-22, 9)
+    })
+
+    it('keeps a composite whole: a mirrored bolt still has its head, thread and tap', () => {
+      const defaults = registry['hardware.bolt'].ui?.defaults
+      const { byId } = evaluate([
+        { id: 'bolt', op: 'hardware.bolt', params: defaults },
+        { id: 'bolt-mirror', op: 'transform.mirror', target: 'bolt', params: { axis: 'z', pointMm: [0, 0, 0] } },
+      ])
+      const source = byId.get('bolt')
+      const copy = byId.get('bolt-mirror')
+      if (!isGroup(source) || !isGroup(copy)) throw new Error('a bolt is a group, and so is its mirror')
+      expect(copy.names).toEqual(source.names)
+      expect(Object.keys(copy.parts).sort()).toEqual(Object.keys(source.parts).sort())
+    })
   })
 
   it('boolean.union merges every input', () => {

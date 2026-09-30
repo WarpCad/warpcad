@@ -6,8 +6,22 @@ priority: medium
 model: opus
 milestone: M7
 depends: [core-001]
-status: open
+status: done
 ---
+
+> **What shipped (2026-09-30):** as scoped, no expansion. `mirror(value, axis, pointMm?)` and
+> `mirrorRotationDeg` in `kernel/group.js` (generic `transforms.mirror({origin, normal})`, since
+> `mirrorX/Y/Z` are fixed to the world origin); `transform.mirror` = `wholeGroupNative(1, …)`.
+> **Semantics decision: `operandCount: 1` suffices, no registry marker.** The caller appends
+> `{ op: 'transform.mirror', target: currentIdOf(source), params: { axis, pointMm?, rotation? } }`
+> with neither `supersedes` nor `consumes`; `document.js` already makes such a record its own
+> lineage root, so two bodies result and the source is untouched. `target` (not a `sourceId`
+> param) so the fold, delete guard and `dependents.js` all see the reference. The copy is a snapshot.
+> **For `ui-039`:** the new mirrored body becomes **selected**, original stays visible but
+> deselected (matches library drop and boolean result). Default point = body centre means a
+> symmetric body mirrors onto itself invisibly — commit an explicit point (e.g. world origin).
+> Set `params.rotation = mirrorRotationDeg(source.rotationDeg, axis)`. Add `'transform.mirror':
+> 'Mirror'` to `STEP_VERBS`, `timelineLabel.js`, `dependents.js` `RELATIONSHIP_VERBS`.
 
 ## Goal
 

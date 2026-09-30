@@ -15,7 +15,10 @@ import {
   enlarge,
   fit,
   isGroup,
+  localBoundsOf,
   mapGeometry,
+  mirror,
+  mirrorRotationDeg,
   pick,
   sizeOf,
   snap,
@@ -942,5 +945,234 @@ describe('part colour, carried alongside hidden (TODO/core-026)', () => {
 
   it('bisect starts a fresh, uncoloured group: its halves are new solids', () => {
     expect(bisect(coloured(), 'z').colors).toEqual({})
+  })
+
+  it('mirror keeps the colours: a reflected washer is still grey', () => {
+    const reflected = mirror(coloured(), 'x')
+    expect(isGroup(reflected) && reflected.colors).toEqual(expected)
+  })
+})
+
+describe('mirror (TODO/core-028)', () => {
+  /** @type {readonly ('x' | 'y' | 'z')[]} */
+  const AXES = ['x', 'y', 'z']
+  const INDEX = { x: 0, y: 1, z: 2 }
+
+  /**
+   * An asymmetric solid: a 10 mm cube at `centre` with a 2 mm nub stuck to its `+axis`
+   * face. Asymmetric on purpose — mirroring anything about its own bounding-box centre
+   * leaves that bounding box exactly where it was *by construction*, so a symmetric
+   * body (or a bounds-only assertion) could not tell a reflection from a no-op. The
+   * centre of mass can: the nub leaves it off the box's centre plane, and a real
+   * reflection moves it to the other side of that plane.
+   *
+   * @param {'x' | 'y' | 'z'} axis
+   * @param {[number, number, number]} [centre]
+   */
+  const nubbed = (axis, centre = [20, 30, 40]) => {
+    /** @type {[number, number, number]} */
+    const nubCentre = [centre[0], centre[1], centre[2]]
+    nubCentre[INDEX[axis]] += 6
+    return modeling.booleans.union(
+      primitives.cuboid({ size: [10, 10, 10], center: centre }),
+      primitives.cuboid({ size: [2, 2, 2], center: nubCentre })
+    )
+  }
+
+  /** @param {Geom3} geometry */
+  const comOf = (geometry) => measurements.measureCenterOfMass(geometry)
+
+  for (const axis of AXES) {
+    it(`reflects across the ${axis} plane through the body's own centre by default`, () => {
+      const i = INDEX[axis]
+      const body = nubbed(axis)
+      const reflected = /** @type {Geom3} */ (mirror(body, axis))
+      const centre = centroidOf(body)
+
+      // About its own centre, the bounding box cannot move — only what is inside it.
+      const before = boundsOf(body)
+      const after = boundsOf(reflected)
+      for (let k = 0; k < 3; k += 1) {
+        expect(after[0][k]).toBeCloseTo(before[0][k], 9)
+        expect(after[1][k]).toBeCloseTo(before[1][k], 9)
+      }
+      // The nub side flips: the centre of mass is reflected across the plane
+      // `axis = centre[i]`, and the two other coordinates are untouched.
+      const comBefore = comOf(body)
+      const comAfter = comOf(reflected)
+      // Off the plane (the nub widens the box more than it shifts the mass), so a
+      // reflection is observable at all.
+      expect(Math.abs(comBefore[i] - centre[i])).toBeGreaterThan(0.5)
+      expect(comAfter[i]).toBeCloseTo(2 * centre[i] - comBefore[i], 6)
+      for (let k = 0; k < 3; k += 1) {
+        if (k !== i) expect(comAfter[k]).toBeCloseTo(comBefore[k], 6)
+      }
+    })
+  }
+
+  it('produces a real solid, not an inside-out one: volume is preserved and positive', () => {
+    // A reflection reverses orientation; if polygon winding were not flipped with it,
+    // the result would measure a *negative* volume and render inside out.
+    for (const axis of AXES) {
+      const body = nubbed(axis)
+      const reflected = /** @type {Geom3} */ (mirror(body, axis))
+      expect(volumeOf(reflected)).toBeGreaterThan(0)
+      expect(volumeOf(reflected)).toBeCloseTo(volumeOf(body), 6)
+    }
+  })
+
+  it('reflects about an explicit off-centre point: a body 20 mm out lands 20 mm out the other way', () => {
+    const body = primitives.cuboid({ size: [4, 4, 4], center: [20, 0, 0] })
+    const reflected = /** @type {Geom3} */ (mirror(body, 'x', [0, 0, 0]))
+    const [min, max] = boundsOf(reflected)
+    expect(min[0]).toBeCloseTo(-22, 9)
+    expect(max[0]).toBeCloseTo(-18, 9)
+    expect(min[1]).toBeCloseTo(-2, 9)
+    expect(max[2]).toBeCloseTo(2, 9)
+
+    // And about a point that is neither the origin nor the body's centre: x = 5.
+    const [min5, max5] = boundsOf(/** @type {Geom3} */ (mirror(body, 'x', [5, 99, -99])))
+    expect(min5[0]).toBeCloseTo(-12, 9)
+    expect(max5[0]).toBeCloseTo(-8, 9)
+    // Only the mirrored axis's coordinate of the point matters.
+    expect(min5[1]).toBeCloseTo(-2, 9)
+    expect(min5[2]).toBeCloseTo(-2, 9)
+  })
+
+  it("matches @jscad/modeling's own mirrorX/Y/Z — and so V1's mirroredX/Y/Z — about the origin", () => {
+    // V1's `CSG.mirroredY()` (`@jscad/csg`'s mutators.js) and V3's `mirrorY` both
+    // reflect across the world plane *through the origin*; `pointMm = [0,0,0]` is
+    // that exact call, so the polygons must agree vertex for vertex.
+    const library = { x: transforms.mirrorX, y: transforms.mirrorY, z: transforms.mirrorZ }
+    for (const axis of AXES) {
+      const body = nubbed(axis, [7, -3, 11])
+      const ours = modeling.geometries.geom3.toPolygons(
+        /** @type {Geom3} */ (mirror(body, axis, [0, 0, 0]))
+      )
+      const theirs = modeling.geometries.geom3.toPolygons(library[axis](body))
+      expect(ours.length).toBe(theirs.length)
+      ours.forEach((polygon, p) => {
+        polygon.vertices.forEach((vertex, v) => {
+          for (let k = 0; k < 3; k += 1) expect(vertex[k]).toBeCloseTo(theirs[p].vertices[v][k], 9)
+        })
+      })
+    }
+  })
+
+  it('is its own inverse: mirroring twice about the same plane gives the original back', () => {
+    const body = nubbed('y')
+    const twice = /** @type {Geom3} */ (mirror(mirror(body, 'y', [0, 13, 0]), 'y', [0, 13, 0]))
+    const a = comOf(body)
+    const b = comOf(twice)
+    for (let k = 0; k < 3; k += 1) expect(b[k]).toBeCloseTo(a[k], 6)
+  })
+
+  it('is pure: the solid passed in is not changed, and a new value comes back', () => {
+    // The kernel-level half of this task's whole point: mirror *adds* a body, so the
+    // original must survive the call bit for bit.
+    const body = nubbed('z')
+    const snapshot = JSON.stringify(modeling.geometries.geom3.toPolygons(body))
+    const reflected = mirror(body, 'z', [0, 0, 0])
+    expect(reflected).not.toBe(body)
+    expect(JSON.stringify(modeling.geometries.geom3.toPolygons(body))).toBe(snapshot)
+  })
+
+  it('reflects a group as one body about the group centre, keeping every named part and hole', () => {
+    // Head at +x, thread at -x: about the group's centre (x = 0) the two swap sides.
+    // Each part reflecting about its *own* centre would leave both where they were.
+    const group = addHole(
+      add(
+        add(
+          createGroup('bolt'),
+          primitives.cuboid({ size: [2, 2, 2], center: [10, 0, 0] }),
+          'head'
+        ),
+        primitives.cuboid({ size: [2, 2, 2], center: [-10, 0, 0] }),
+        'thread'
+      ),
+      primitives.cuboid({ size: [1, 1, 1], center: [4, 0, 0] })
+    )
+    const partsBefore = { ...group.parts }
+    const reflected = mirror(group, 'x')
+    if (!isGroup(reflected)) throw new Error('a group in must be a group out')
+    expect(reflected.names).toEqual(['head', 'thread'])
+    expect(boundsOf(reflected.parts.head)[0][0]).toBeCloseTo(-11, 9)
+    expect(boundsOf(reflected.parts.thread)[0][0]).toBeCloseTo(9, 9)
+    expect(boundsOf(reflected.holes[0])[0][0]).toBeCloseTo(-4.5, 9)
+    // The group handed in is untouched.
+    expect(group.parts).toEqual(partsBefore)
+    expect(boundsOf(group.parts.head)[0][0]).toBeCloseTo(9, 9)
+  })
+
+  it('keeps a hidden part hidden', () => {
+    const group = add(add(createGroup('w'), big(), 'washer'), small(), 'clearance', { hidden: true })
+    const reflected = mirror(group, 'z', [0, 0, 100])
+    if (!isGroup(reflected)) throw new Error('a group in must be a group out')
+    expect(reflected.names).toEqual(['washer'])
+    expect(Object.keys(reflected.parts).sort()).toEqual(['clearance', 'washer'])
+  })
+
+  it('degenerate: an empty group comes back as an empty group rather than throwing', () => {
+    const reflected = mirror(createGroup('nothing'), 'y')
+    expect(isGroup(reflected)).toBe(true)
+    if (!isGroup(reflected)) return
+    expect(reflected.names).toEqual([])
+    expect(reflected.parts).toEqual({})
+    expect(reflected.holes).toEqual([])
+  })
+
+  it('degenerate: an empty solid comes back empty', () => {
+    const reflected = /** @type {Geom3} */ (mirror(modeling.geometries.geom3.create(), 'x'))
+    expect(modeling.geometries.geom3.toPolygons(reflected)).toHaveLength(0)
+  })
+
+  it('rejects an axis it does not know, naming it, rather than silently reflecting across z', () => {
+    // `@jscad/modeling`'s own default normal is z — the silent failure to avoid.
+    expect(() => mirror(big(), /** @type {any} */ ('w'))).toThrow(/mirror: axis.*"w"/)
+    expect(() => mirror(big(), /** @type {any} */ (undefined))).toThrow(/mirror: axis/)
+  })
+
+  it('rejects a point that is not three finite millimetre values', () => {
+    expect(() => mirror(big(), 'x', /** @type {any} */ ([0, Number.NaN, 0]))).toThrow(/mirror/)
+    expect(() => mirror(big(), 'x', /** @type {any} */ ([0, 0]))).toThrow(/mirror/)
+  })
+})
+
+describe('mirrorRotationDeg (TODO/core-028)', () => {
+  it('negates the two angles about the axes that are not the mirror normal', () => {
+    expect(mirrorRotationDeg([10, 20, 30], 'x')).toEqual([10, -20, -30])
+    expect(mirrorRotationDeg([10, 20, 30], 'y')).toEqual([-10, 20, -30])
+    expect(mirrorRotationDeg([10, 20, 30], 'z')).toEqual([-10, -20, 30])
+  })
+
+  it('turns an unrotated body into an unrotated body, with no negative zero', () => {
+    for (const axis of /** @type {const} */ (['x', 'y', 'z'])) {
+      const result = mirrorRotationDeg([0, 0, 0], axis)
+      expect(result).toEqual([0, 0, 0])
+      for (const angle of result) expect(Object.is(angle, -0)).toBe(false)
+    }
+  })
+
+  it('is the rotation a mirrored rotated body is really in: its local box is the part’s real size', () => {
+    // A 20×6×4 bar turned by a mixed rotation, then mirrored. `localBoundsOf` un-turns
+    // by whatever rotation it is handed; only the *right* one recovers 20×6×4 exactly.
+    const rotationDeg = /** @type {[number, number, number]} */ ([30, -25, 50])
+    const DEG = Math.PI / 180
+    const bar = transforms.rotate(
+      [rotationDeg[0] * DEG, rotationDeg[1] * DEG, rotationDeg[2] * DEG],
+      primitives.cuboid({ size: [20, 6, 4] })
+    )
+    for (const axis of /** @type {const} */ (['x', 'y', 'z'])) {
+      const reflected = mirror(bar, axis, [3, -4, 5])
+      const [min, max] = localBoundsOf(reflected, mirrorRotationDeg(rotationDeg, axis))
+      expect(max[0] - min[0]).toBeCloseTo(20, 6)
+      expect(max[1] - min[1]).toBeCloseTo(6, 6)
+      expect(max[2] - min[2]).toBeCloseTo(4, 6)
+    }
+  })
+
+  it('rejects an unknown axis and a malformed rotation', () => {
+    expect(() => mirrorRotationDeg([0, 0, 0], /** @type {any} */ ('q'))).toThrow(/axis/)
+    expect(() => mirrorRotationDeg(/** @type {any} */ ([0, 0]), 'x')).toThrow(/rotation/)
   })
 })

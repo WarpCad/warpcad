@@ -34,6 +34,15 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### core-028 — transform.mirror (2026-09-30 15:25)
+
+Kernel-only; no control yet. One judgment call deferred to `ui-039` because it can only be judged on screen.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | Once `ui-039` lands: mirroring a symmetric body with the default (own-centre) point looks like "nothing happened" — confirm the popover's committed point makes the copy visibly appear | Open | |
+
+
 ### core-027 — hardware.screw family (2026-09-30 14:35)
 
 Kernel-only; nothing in the app reaches it yet. One judgement call the V1 diff can't settle.

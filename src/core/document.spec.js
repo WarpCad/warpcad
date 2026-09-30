@@ -3,6 +3,7 @@ import modeling from '@jscad/modeling'
 
 import { createDocument, ReplayRejection } from './document.js'
 import { boundsOf, isGroup } from './kernel/group.js'
+import { registry as realRegistry } from './kernel/registry.js'
 
 const { measurements } = modeling
 
@@ -1755,5 +1756,159 @@ describe('removePart — removing one part is a supersession, not a tombstone (T
     document.append({ id: 'a', op: 'fake.box', name: 'Box 1' }, { origin: 'local' })
     document.deleteBodies(['a'], { origin: 'local' })
     expect(() => document.removePart('a', 'usb1', { origin: 'local' })).toThrow(/deleted/)
+  })
+})
+
+describe('transform.mirror — creation-shaped: a second body, the original untouched (TODO/core-028)', () => {
+  /**
+   * The record shape `core-028` settled on, and the one `ui-039`'s commit appends:
+   * `target` names the source body's **current terminal** (so a moved cube is
+   * mirrored where it now is), and there is **no `supersedes` and no `consumes`** —
+   * which is all it takes for `append` to make it its own new lineage root. Real
+   * registry throughout: the claim is about real geometry landing where it should.
+   *
+   * @param {ReturnType<typeof createDocument>} document
+   * @param {string} sourceId Any id in the source body's lineage.
+   * @param {Record<string, any>} params
+   */
+  const mirrorOf = (document, sourceId, params) => {
+    const id = document.nextId(`${sourceId}-mirror`)
+    document.append(
+      {
+        id,
+        op: 'transform.mirror',
+        name: `${sourceId} mirror`,
+        target: document.currentIdOf(sourceId),
+        params,
+      },
+      { origin: 'local' }
+    )
+    return id
+  }
+
+  /** A 4 mm cube, placed then moved to x = 20 the way a real drop + drag leaves one. */
+  const placedCube = () => {
+    const document = createDocument()
+    document.append(
+      { id: 'cube', op: 'primitive.cuboid', name: 'Cube 1', params: { size: [4, 4, 4] } },
+      { origin: 'local' }
+    )
+    document.append(
+      { id: 'cube-move', op: 'transform.translate', target: 'cube', supersedes: 'cube', params: { vector: [20, 0, 0] } },
+      { origin: 'local' }
+    )
+    return document
+  }
+
+  it('reports two bodies afterwards, not one', () => {
+    const document = placedCube()
+    expect(document.bodies()).toHaveLength(1)
+    const mirrorId = mirrorOf(document, 'cube', { axis: 'x', pointMm: [0, 0, 0] })
+    const bodies = document.bodies()
+    expect(bodies.map((body) => body.id)).toEqual(['cube', mirrorId])
+    // Its own body — own identity, own op, own name — not a continuation of the cube.
+    expect(bodies[1]).toMatchObject({ id: mirrorId, recordId: mirrorId, op: 'transform.mirror' })
+  })
+
+  it("leaves the original body's records, geometry and position exactly as they were", () => {
+    const document = placedCube()
+    const [before] = document.bodies()
+    const lineageBefore = document.lineageOf('cube').map((record) => record.id)
+    const recordsBefore = document.records.slice()
+
+    mirrorOf(document, 'cube', { axis: 'x', pointMm: [0, 0, 0] })
+
+    const original = document.bodies().find((body) => body.id === 'cube')
+    // Same terminal, same geometry object — not re-derived, not superseded.
+    expect(original?.recordId).toBe(before.recordId)
+    expect(original?.geometry).toBe(before.geometry)
+    expect(document.lineageOf('cube').map((record) => record.id)).toEqual(lineageBefore)
+    expect(document.currentIdOf('cube')).toBe('cube-move')
+    // Every earlier record is still there, byte for byte; the mirror only appended.
+    expect(document.records.slice(0, recordsBefore.length)).toEqual(recordsBefore)
+    const [min, max] = boundsOf(/** @type {any} */ (original?.geometry))
+    expect(min[0]).toBeCloseTo(18, 9)
+    expect(max[0]).toBeCloseTo(22, 9)
+  })
+
+  it('puts the new body where the reflection says, reading the source where it now is', () => {
+    const document = placedCube()
+    const mirrorId = mirrorOf(document, 'cube', { axis: 'x', pointMm: [0, 0, 0] })
+    const copy = document.bodies().find((body) => body.id === mirrorId)
+    const [min, max] = boundsOf(/** @type {any} */ (copy?.geometry))
+    expect(min[0]).toBeCloseTo(-22, 9)
+    expect(max[0]).toBeCloseTo(-18, 9)
+  })
+
+  it('the two bodies are independent: moving either one afterwards leaves the other alone', () => {
+    const document = placedCube()
+    const mirrorId = mirrorOf(document, 'cube', { axis: 'x', pointMm: [0, 0, 0] })
+    const xMinOf = (/** @type {string} */ id) =>
+      boundsOf(/** @type {any} */ (document.bodies().find((body) => body.id === id)?.geometry))[0][0]
+
+    // Move the original on: the copy is a snapshot, like V1's `cableTie.mirrorY()`,
+    // not a live reflection that follows it around.
+    document.append(
+      { id: 'cube-move-2', op: 'transform.translate', target: 'cube-move', supersedes: 'cube-move', params: { vector: [0, 0, 7] } },
+      { origin: 'local' }
+    )
+    expect(xMinOf(mirrorId)).toBeCloseTo(-22, 9)
+    expect(document.bodies()).toHaveLength(2)
+
+    // Move the copy: it supersedes its own lineage, never the cube's.
+    document.append(
+      { id: `${mirrorId}-move`, op: 'transform.translate', target: mirrorId, supersedes: mirrorId, params: { vector: [-5, 0, 0] } },
+      { origin: 'local' }
+    )
+    expect(xMinOf(mirrorId)).toBeCloseTo(-27, 9)
+    expect(xMinOf('cube')).toBeCloseTo(18, 9)
+    expect(document.bodies()).toHaveLength(2)
+  })
+
+  it('one undo takes the copy away and leaves the original where it was', () => {
+    const document = placedCube()
+    mirrorOf(document, 'cube', { axis: 'x', pointMm: [0, 0, 0] })
+    document.undo()
+    const bodies = document.bodies()
+    expect(bodies.map((body) => body.id)).toEqual(['cube'])
+    expect(bodies[0].recordId).toBe('cube-move')
+  })
+
+  it('defaults the plane to the source body’s own centre when the record names no point', () => {
+    const document = placedCube()
+    const mirrorId = mirrorOf(document, 'cube', { axis: 'x' })
+    const copy = document.bodies().find((body) => body.id === mirrorId)
+    // A symmetric cube reflected about its own centre lands exactly on itself — worth
+    // pinning, since it is what a user sees if the UI commits without a point.
+    const [min, max] = boundsOf(/** @type {any} */ (copy?.geometry))
+    expect(min[0]).toBeCloseTo(18, 9)
+    expect(max[0]).toBeCloseTo(22, 9)
+  })
+
+  it('core-020 regression: a mirrored composite holds only its own parts, never an earlier body', () => {
+    // `core-020`'s bug was a composite appended incrementally absorbing every earlier
+    // *named* body into its group. A mirror record is a new kind of named, creation-
+    // shaped record reading another body's geometry, so re-run that repro against it:
+    // a plate, then a bolt, then a mirror of the bolt.
+    const document = createDocument()
+    document.append(
+      { id: 'plate', op: 'primitive.cuboid', name: 'Plate 1', params: { size: [40, 40, 4] } },
+      { origin: 'local' }
+    )
+    document.append(
+      { id: 'bolt', op: 'hardware.bolt', name: 'Bolt 1', params: realRegistry['hardware.bolt'].ui?.defaults },
+      { origin: 'local' }
+    )
+    const mirrorId = mirrorOf(document, 'bolt', { axis: 'z', pointMm: [0, 0, 0] })
+
+    const bodies = document.bodies()
+    expect(bodies.map((body) => body.id)).toEqual(['plate', 'bolt', mirrorId])
+    const bolt = bodies[1].geometry
+    const copy = bodies[2].geometry
+    if (!isGroup(bolt) || !isGroup(copy)) throw new Error('a bolt and its mirror are both groups')
+    expect(copy.names).toEqual(bolt.names)
+    expect(Object.keys(copy.parts).sort()).toEqual(Object.keys(bolt.parts).sort())
+    expect(Object.keys(copy.parts)).not.toContain('Plate 1')
+    expect(Object.keys(copy.parts)).not.toContain('Bolt 1')
   })
 })

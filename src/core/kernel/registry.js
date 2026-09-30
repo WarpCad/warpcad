@@ -48,6 +48,7 @@ import {
   fit,
   isGroup,
   mapGeometry,
+  mirror,
   pick,
   removePart,
   snap,
@@ -246,7 +247,7 @@ function modelChoice(values, labels) {
  *   and wrong for the `group.*` pair — snapping a bolt by its head needs the head,
  *   and the result has to keep the thread and tap so the next record can name them.
  *   Setting this asks the fold for {@link ResolvedOperand}s instead. The `group.*`
- *   pair and the two `transform.*` ops use it; anything else consuming a composite
+ *   pair and the `transform.*` ops use it; anything else consuming a composite
  *   still gets the combined solid.
  * @property {boolean} [subPartOperands] May an operand be addressed as
  *   `{ id, pieces }` — a named subset of a composite's parts (TODO/core-024)?
@@ -299,7 +300,9 @@ function rawNative(operandCount, build) {
  * A native entry that receives its operand **un-combined but whole** — a group in,
  * a group out — and refuses a sub-part address (TODO/core-024).
  *
- * The two `transform.*` ops, and deliberately nothing else. A transform edits one
+ * The `transform.*` ops (plus `style.recolor`/`group.removePart`, for the reasons
+ * their own entries give; `transform.mirror` builds a new body rather than editing
+ * one, but must keep its copy whole for the same reason). A transform edits one
  * body *in place*: honouring a `pieces` address would have to throw away the parts
  * it did not name, so a record saying "move the bolt's head" would silently delete
  * the thread. Refusing is the same reasoning the fold has always applied, now
@@ -788,6 +791,51 @@ export const registry = Object.freeze({
       return transforms.translate(/** @type {Vec3Mm} */ (center), turned)
     })
   }),
+
+  // ## Mirror makes a second body; it does not edit the first (TODO/core-028)
+  //
+  // The geometry is `group.js`'s `mirror` — a reflection across the axis-aligned
+  // plane through `params.pointMm` (default: the body's own bounding-box centre),
+  // whose normal is `params.axis`. `wholeGroupNative` for the reason the two
+  // transforms above give: a mirrored bolt must still be a bolt, and honouring a
+  // `pieces` address would silently drop the parts it did not name.
+  //
+  // **The document semantics are the real decision, and they need nothing from
+  // this entry.** Every surveyed real use (`cableTie2 = cableTie.mirrorY()`) keeps
+  // the original and gains a reflected copy — creation-shaped, two independent
+  // bodies afterwards. `modify.*`/`transform.*` are the nearest precedent and the
+  // *wrong* one: their callers append with `supersedes`, which continues the
+  // operand's lineage so the original stops being reported. A mirror record is
+  // appended with **`target` and neither `supersedes` nor `consumes`**:
+  //
+  //   { id, op: 'transform.mirror', name, target: document.currentIdOf(source),
+  //     params: { axis, pointMm?, rotation? } }
+  //
+  // and `document.js`'s `append` already makes any record without those two fields
+  // its own new lineage root — the same default every primitive and a `consumes`-
+  // bearing boolean rely on. So `operandCount: 1` alone suffices and **no registry
+  // marker was added**, deliberately:
+  //
+  // - `target` *is* the "read another body's current geometry" reference. It goes
+  //   through the fold's own operand resolution, the deleted-body guard in
+  //   `append`, `dependents.js`'s impact check and `referencedIdsOf` — a
+  //   `params.sourceId` would bypass all four and hand `build` nothing to reflect.
+  // - Lineage is chosen by whoever *writes* the record (`supersedes`/`consumes` are
+  //   record fields the kernel fold never reads), so a marker here would be read by
+  //   nothing that decides it. `operandCount` already answers the one question the
+  //   registry is asked about operands — is the tool enabled for this selection —
+  //   and the answer for Mirror is "exactly one", same as Enlarge.
+  // - The copy is a **snapshot**: `target` names the source's terminal *at commit
+  //   time*, so moving the original afterwards does not drag the copy with it —
+  //   V1's `mirrorY()` returned a new, unlinked solid too.
+  //
+  // `params.rotation`, if present, is not read here — like a transform record's, it
+  // is state carried for `document.js`'s `Body.rotationDeg`. A command that mirrors
+  // a turned body should set it to `group.js`'s `mirrorRotationDeg(source's
+  // rotationDeg, axis)`, or the copy's dimension lines measure its shadow.
+  'transform.mirror': wholeGroupNative(1, ({ params, inputs }) =>
+    mirror(soleOperand(inputs).value, params.axis, params.pointMm)
+  ),
 
   // ## A colour override changes nothing about the geometry (TODO/data-005)
   //

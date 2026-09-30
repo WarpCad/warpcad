@@ -1058,3 +1058,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** FlatHead is a cone, no countersink cut → `node_modules/jscad-hardware/jscad-hardware.jscad` `FlatHeadScrew` (`Parts.Cone(...)`, `countersink` never read) and the diff (`hardware.screw.js`); diffed against V1 output → `hardware.screw.v1-reference.json` generated this session, `hardware.screw.spec.js` 23 passing
 **To Add:** none
+
+## [2026-09-30T15:30:00Z] — transform.mirror: a mirror makes a second body (TODO/core-028)
+
+**Post:** WarpCad's kernel can now mirror a body across an axis plane. The geometry was one library call. The real question was the document: a mirror keeps the original and adds a copy, like V1's cableTie2 = cableTie.mirrorY(). Needed no new registry flag. Built with Claude Code, reviewed by me. #CAD #JSCAD
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #JSCAD
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** two bodies afterward, no registry flag → document.spec.js mirror tests, this session (2330 unit tests passing); cableTie2 example → TODO/core-028 file text
+**To Add:** none

@@ -1234,3 +1234,113 @@ export function bisect(value, axis, offsetMm, angleDeg, rotateAxis, rotateOffset
   const { lower, upper } = cutHalfSpaces(turn(geometry, -radians), index, cutMm)
   return asGroup({ lower: turn(lower, radians), upper: turn(upper, radians) })
 }
+
+/* ─────────────────────────────────────────────────────────────────────────────
+ * Mirroring (TODO/core-028)
+ *
+ * The geometry is the easy half: `@jscad/modeling`'s `transforms.mirror` takes a
+ * plane as `{ origin, normal }` and reflects about it, and `geom3.toPolygons` flips
+ * the polygon winding whenever the accumulated matrix is a mirroring one, so the
+ * result is a real, outward-facing solid rather than an inside-out one. The generic
+ * form is used rather than `mirrorX`/`mirrorY`/`mirrorZ` because those three are
+ * hardwired to a plane through the **world origin** — exactly V1's `CSG.mirroredY()`
+ * (`@jscad/csg`'s `mutators.js`), confirmed by reading both sources — and this
+ * function reflects about a caller-chosen point.
+ *
+ * The hard half is not here at all: a mirror **makes a second body** rather than
+ * editing the first. That is a document-layer claim, and `registry.js`'s
+ * `transform.mirror` entry says how it is kept. This module's share of it is only
+ * that `mirror` is pure — the value handed in comes back untouched.
+ * ──────────────────────────────────────────────────────────────────────────── */
+
+/**
+ * Validate a mirror axis letter.
+ *
+ * @param {unknown} axis
+ * @param {string} label Function name, for the error.
+ * @returns {0 | 1 | 2}
+ */
+function requireMirrorAxis(axis, label) {
+  const index = typeof axis === 'string' && Object.hasOwn(AXIS_INDEX, axis) ? AXIS_INDEX[axis] : undefined
+  if (index === undefined) {
+    throw new Error(
+      `${label}: axis must be one of "x", "y", "z" (the normal of the mirror plane), got ${JSON.stringify(axis)}`
+    )
+  }
+  return index
+}
+
+/**
+ * Reflect a solid or group across the axis-aligned plane through `pointMm` whose
+ * normal is `axis` — `mirror(o, 'x')` flips left for right about the body's own
+ * centre. The V3 counterpart of V1's `mirroredX/Y/Z`, generalised to any point:
+ * `mirror(o, 'y', [0, 0, 0])` *is* V1's `o.mirroredY()`, vertex for vertex.
+ *
+ * - **Pure.** A new value comes back; the one passed in is not changed. A mirror
+ *   adds a body alongside the original (`TODO/core-028`), so this is load-bearing,
+ *   not tidiness.
+ * - **A group is reflected as one body** about the *group's* plane, parts, hidden
+ *   parts, holes and colours intact — the same one-transform-for-every-part
+ *   discipline {@link mapGeometry} documents. A reflected bolt is still a bolt.
+ * - **The default point is the body's own bounding-box centre** ({@link centroidOf}),
+ *   so the reflection stays inside the body's own box. Note what that means for a
+ *   symmetric solid: a cube mirrored about its own centre lands exactly on itself.
+ *   Pass `pointMm` (only its `axis` coordinate matters) to put the copy elsewhere.
+ * - **Degenerate input passes through**: an empty group comes back an empty group
+ *   and an empty solid an empty solid; no plane is measured from either.
+ *
+ * @template {Geom3 | Group} T
+ * @param {T} value
+ * @param {'x' | 'y' | 'z'} axis Normal of the mirror plane.
+ * @param {Vec3Mm} [pointMm] A point on the plane, millimetres. Defaults to the
+ *   body's own bounding-box centre.
+ * @returns {T} A group in, a group out; a solid in, a solid out.
+ */
+export function mirror(value, axis, pointMm) {
+  const index = requireMirrorAxis(axis, 'mirror')
+  if (pointMm !== undefined) requireVec3Mm(pointMm, 'mirror: pointMm')
+  // An empty group has no box to take a centre from (and nothing to reflect); do not
+  // ask `centroidOf` to measure one.
+  if (isGroup(value) && value.holes.length === 0 && Object.keys(value.parts).length === 0) {
+    return mapGeometry(value, (geometry) => geometry)
+  }
+  const point = pointMm ?? centroidOf(value)
+  /** @type {Vec3Mm} */
+  const normal = [0, 0, 0]
+  normal[index] = 1
+  /** @type {Vec3Mm} */
+  const origin = [point[0], point[1], point[2]]
+  return mapGeometry(value, (geometry) => transforms.mirror({ origin, normal }, geometry))
+}
+
+/**
+ * The absolute rotation a body is in **after** being mirrored, given the one it was
+ * in before — so a mirror record can carry `params.rotation` for `document.js`'s
+ * `Body.rotationDeg`, exactly as a `transform.*` record does (`src/core/transform.js`).
+ *
+ * Why this is needed at all: a mirror record is its own new lineage root, and
+ * `bodies()` reads `rotationDeg` off it; left out, a mirrored copy of a turned part
+ * reports `[0, 0, 0]` and {@link localBoundsOf} measures its shadow instead of its
+ * size. Why this is the answer: with `R = Rz(c)·Ry(b)·Rx(a)` (the z-y-x convention
+ * `transform.rotate` applies) and `M` the reflection whose normal is axis `i`,
+ * `M·R = (M·R·M)·M`, and conjugating by `M` negates every rotation about an axis
+ * *other* than `i` while leaving the one about `i` alone. `M` itself only flips the
+ * part within its own axis-aligned box, which does not change the box — so the
+ * mirrored body is the same part, turned by `R'`. The pivot does not enter into it.
+ *
+ * @param {readonly number[]} rotationDeg `[x, y, z]` degrees, the source's rotation.
+ * @param {'x' | 'y' | 'z'} axis The mirror plane's normal.
+ * @returns {Vec3Mm} The mirrored body's rotation, degrees. Never a `-0`.
+ */
+export function mirrorRotationDeg(rotationDeg, axis) {
+  const index = requireMirrorAxis(axis, 'mirrorRotationDeg')
+  if (!Array.isArray(rotationDeg) || rotationDeg.length !== 3 || !rotationDeg.every(Number.isFinite)) {
+    throw new Error(
+      `mirrorRotationDeg: rotation must be three finite degree values, got ${JSON.stringify(rotationDeg)}`
+    )
+  }
+  // `0 - angle`, not `-angle`: an unturned axis stays `0`, not `-0`.
+  return /** @type {Vec3Mm} */ (
+    rotationDeg.map((angle, k) => (k === index ? angle + 0 : 0 - angle))
+  )
+}
