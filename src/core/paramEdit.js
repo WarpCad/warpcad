@@ -1,70 +1,34 @@
 /**
  * Editing a body's **own** parameters — a cylinder's diameter, a cube's size.
  *
- * ## Why this is a rebuild, not a rewrite
+ * ## A resize swaps the creation record in place (`TODO/data-007`)
  *
- * The log is append-only and its entries are immutable (`document.js`), so
- * "change this cylinder's diameter to 10" cannot mean reaching back into the
- * record that created it. `ui-012` already solved the analogous problem for
- * *moving* a body — append a new record that `supersedes` the lineage's current
- * terminal — and `document.js`'s supersession rule is deliberately generic over
- * what op either record carries. So a param edit is the same mechanism with a
- * different record on top: a **fresh creation record**, same `op` as the root,
- * the root's params with the edited key(s) overridden.
+ * `TODO/ui-029` first did this by **appending**: a fresh creation record that
+ * `supersedes` the terminal, then a rotate-back and a move-back to restore the pose. A
+ * `primitive.*` op builds from its params alone, so that rebuild ignored every record
+ * before it, which forced a read-only guard (a fillet under it would silently vanish) and
+ * left anything *snapped* to the body evaluated against the old size: a cube snapped onto
+ * a 40 mm cube's top stayed 20 mm inside it after the big one grew to 60.
  *
- * Two consequences fall straight out of that and are the whole of this module:
+ * `data-004`'s replace path (`document.reviseRecords`) has neither problem, and
+ * `TODO/ui-052` already moved composites onto it. The creation record is swapped in
+ * place and the whole log re-folds, so a transform, a Snap, an Align and a fillet all
+ * re-evaluate against the new solid. Nothing is discarded, so there is nothing to freeze
+ * and no pose to re-apply: a later `transform.translate` is a relative vector, and the
+ * absolute rotation each transform carries replays against the new solid. A rim op that
+ * no longer fits is *reported by name* by `core/dependents.js`'s impact check, which
+ * `useParamCommands.js` runs before committing, instead of being dropped.
  *
- * 1. **A rebuilt creation record ignores every prior record.** `primitive.*` ops
- *    are `operandCount: 0` (`kernel/registry.js`) — they build from params and
- *    nothing else. That is exactly what makes the rebuild possible, and exactly
- *    what makes it dangerous: anything the lineage had *done* to that geometry
- *    since is simply not in the new solid. Hence {@link paramEditability}.
- * 2. **The pose has to be re-applied on top.** The rebuilt record puts the solid
- *    back where its creation params say, un-turned. Restoring the body's actual
- *    position and rotation is two more appends through `transform.js`'s existing
- *    `rotateToRecord`/`moveToRecord` — see `src/composables/useParamCommands.js`,
- *    which owns that sequencing. Deliberately *not* folded in here: those two
- *    builders are already proven, and a third path that composed its own pose
- *    would be a second implementation of the same mutation, which is the trap
- *    `transform.js`'s own module doc exists to avoid.
+ * What {@link paramEditability} still refuses is a root that has no params of its own: a
+ * boolean or a group, whose geometry *is* its operands, and a composite nobody has
+ * described. Both are checked twice on purpose, once by the UI to decide whether to offer
+ * an edit and once inside {@link paramEditRecord}, so a caller that skips the first check
+ * cannot build a record that would not build.
  *
- * ## The read-only guard is the point of this module
+ * ## Editing a *past* step (`TODO/data-004`)
  *
- * `TODO/ui-029`'s named failure mode is **silent data loss**: rebuild the
- * creation record under a `modify.filletRim` and the rounded rim vanishes with
- * no error anywhere, because every individual record involved is perfectly
- * valid. So the guard fails *safe* — it reports a lineage un-editable and the
- * Inspector keeps those fields read-only with a note saying why — rather than
- * failing loud after the fact. It is checked twice on purpose: once by the UI to
- * decide whether to offer an edit at all, and once inside
- * {@link paramEditRecord}, so a caller that skips the first check cannot build
- * a destructive record anyway.
- *
- * Replaying a fillet/chamfer/boolean on top of a rebuilt creation record is
- * explicitly **not** attempted here (`TODO/ui-029`'s own Proposed fix says so):
- * a rim op's params are meaningful only against the exact solid they were
- * measured for, so re-running one against a resized body could easily throw
- * `assertRadiusFits` — or, worse, succeed and produce a rim nobody asked for.
- * Freezing is the honest answer until someone asks for the other one.
- *
- * ## Editing a *past* step, which is a different question (`TODO/data-004`)
- *
- * `data-004` asked for the guard above to be **revisited**, since "replaying
- * past such an op is exactly this task's whole point rather than something to
- * refuse". Revisited, and the answer is that it was never the same question:
- *
- * - {@link paramEditability} guards the **append** path. It is right, and
- *   unchanged. Appending a rebuilt creation record over a lineage's terminal
- *   *discards* whatever the lineage did in between, because a `primitive.*` op
- *   builds from params and nothing else. The fillet really would vanish.
- * - {@link stepParamEditability} guards the **replace** path. `data-004` swaps
- *   one row's record in place and re-folds the whole log, so the fillet record
- *   is still sitting there, still after the row being edited, and still runs.
- *   Nothing is discarded, so there is nothing to freeze — and a rim op that no
- *   longer fits is *reported by name*, not silently dropped.
- *
- * So the two guards differ exactly where the mechanisms differ. What the
- * replace path refuses instead is narrower and is about the row itself:
+ * {@link stepParamEditability} guards the same replace path for any History row, and
+ * what it refuses is about the row itself:
  *
  * - a row that **has no params of its own** — a boolean or a group, whose
  *   geometry *is* its operands (section 15: "Boolean/Group rows have no params:
@@ -95,30 +59,10 @@ import { hasEditableParams, paramOptions, registry } from './kernel/registry.js'
  * @property {string | null} blockedBy The op of the record that makes a rebuild
  *   unsafe, for a note the user can actually act on. `null` when the lineage is
  *   editable, and also when there is simply no such body.
- * @property {'replace'} [path] Present, as `'replace'`, only for an editable
- *   **composite** (`TODO/ui-052`): its edit swaps the creation record in place and
- *   re-folds, rather than appending a rebuilt one. Absent means `ui-029`'s append path.
+ * @property {'replace'} [path] `'replace'` for every editable body (`TODO/ui-052` for a
+ *   composite, `TODO/data-007` for a primitive): the edit swaps the creation record in
+ *   place and re-folds, so later records follow. Absent only on a verdict that is not editable.
  */
-
-/**
- * Ops that may sit above a creation record without invalidating a rebuild: a
- * move or a turn is re-applied afterwards from the body's own measured pose, so
- * nothing it did is lost. A **prefix**, not a fixed list, matching how
- * `document.js` routes `sketch.` ops — a later `transform.*` needs no change
- * here, and anything that is not a transform is refused by default rather than
- * by omission.
- */
-const TRANSFORM_OP_PREFIX = 'transform.'
-
-/**
- * `TODO/data-005`'s colour-override record. Safe to rebuild past for a stronger
- * reason than a transform is: it is identity-passthrough geometry (its own
- * `style.recolor` registry entry hands its operand straight back, unread), and
- * `document.js`'s `colorOverridesOf` reads it off *every* record in the walked
- * lineage, not just the terminal's own build — so, unlike a transform's pose, a
- * rebuild does not even need to *reapply* it. It just keeps being there.
- */
-const RECOLOR_OP = 'style.recolor'
 
 /**
  * Params this path will not write, whatever a caller asks for.
@@ -149,7 +93,7 @@ const RESERVED_PARAMS = Object.freeze(new Set(['center', 'segments', 'rotation']
  * @returns {ParamEditability}
  */
 export function paramEditability(lineage) {
-  const [root, ...rest] = lineage
+  const [root] = lineage
   if (root === undefined) return { editable: false, blockedBy: null }
 
   // The root has to be a record that builds from its own params alone. A Union
@@ -184,27 +128,13 @@ export function paramEditability(lineage) {
       : { editable: false, blockedBy: root.op }
   }
 
-  for (const record of rest) {
-    // A move or a turn: re-applied from the body's measured pose afterwards, so
-    // nothing it did is lost. A colour override: never applied to geometry at
-    // all, so there is nothing a rebuild could lose in the first place.
-    if (record.op.startsWith(TRANSFORM_OP_PREFIX) || record.op === RECOLOR_OP) continue
-    // An **earlier param edit** — the root's own op, built from its own params
-    // alone. Editing a parameter is not one-shot per body, and a rebuild that
-    // refused to allow a second rebuild would freeze the field the instant it
-    // was first used. Only a record that is itself a standalone creation record
-    // qualifies; anything taking operands is a real operation, checked below.
-    if (
-      record.op === root.op &&
-      record.consumes === undefined &&
-      record.operands === undefined &&
-      record.target === undefined
-    ) {
-      continue
-    }
-    return { editable: false, blockedBy: record.op }
-  }
-  return { editable: true, blockedBy: null }
+  // A primitive (or any standalone creation record): the **replace** path, exactly as for
+  // a composite above (`TODO/data-007`). Swapping the creation record in place and
+  // re-folding keeps every later record in the log, so a transform, a colour override, a
+  // fillet and a Snap onto the body all re-evaluate against the new solid — nothing is
+  // discarded, so nothing has to freeze. A rim op that no longer fits is reported by name
+  // by the impact check rather than dropped.
+  return { editable: true, blockedBy: null, path: 'replace' }
 }
 
 /**
@@ -323,22 +253,27 @@ function requireFiniteParam(key, value) {
 }
 
 /**
- * Build the record that gives a body new creation params.
+ * Build the replacement for the record that gives a body its creation params —
+ * `TODO/data-007`'s replace path for a primitive, the counterpart of
+ * {@link compositeParamEditRecord}.
+ *
+ * Same id, same op, same `supersedes`, new `params`: the caller swaps it in with
+ * `document.reviseRecords` and every later record re-folds against the new solid. The
+ * record replaced is the newest one carrying the root's own op
+ * ({@link currentParamsRecordOf}), which is the root itself unless a document written
+ * before `data-007` holds an appended rebuild, so the panel and the next edit always
+ * agree about which numbers are current.
  *
  * @param {WarpDocument} document
  * @param {string} bodyId Lineage root id.
  * @param {Record<string, number | readonly number[]>} changes Param keys to
  *   override, with their complete new values (use {@link withComponent} to
  *   change one component of a vector).
- * @returns {OpRecord | null} `null` when nothing actually changes — the same
- *   "a no-op delta appends nothing" convention `useTransformCommands.js`'s
- *   `translateBy` already follows, so brushing a field and tabbing away does not
- *   put a do-nothing line in the document (and, later, a do-nothing step in the
- *   undo stack).
- * @throws {Error} When the body is unknown, when its lineage is not safe to
- *   rebuild (see {@link paramEditability}), or when a change is malformed.
- *   Nothing is appended here either way — the caller hands the result to the
- *   command layer.
+ * @returns {OpRecord | null} `null` when nothing actually changes, so brushing a field
+ *   and tabbing away does not put a do-nothing step in the undo stack.
+ * @throws {Error} When the body is unknown, when it is not built from its own params
+ *   (see {@link paramEditability}), or when a change is malformed. Nothing is written
+ *   here either way.
  */
 export function paramEditRecord(document, bodyId, changes) {
   const lineage = document.lineageOf(bodyId)
@@ -347,17 +282,14 @@ export function paramEditRecord(document, bodyId, changes) {
   const { editable, blockedBy } = paramEditability(lineage)
   if (!editable) {
     throw new Error(
-      `paramEdit: "${bodyId}" cannot be rebuilt from its parameters — its history carries ` +
-        `a ${blockedBy}, and rebuilding the creation record would silently discard it`
+      `paramEdit: "${bodyId}" cannot be rebuilt from its parameters — it is a ${blockedBy}, ` +
+        'which is built from its operands or from a catalogue choice, not from numbers'
     )
   }
 
-  const root = lineage[0]
-  const terminal = lineage[lineage.length - 1]
-  // Spread from the body's *current* params, not the root's: after one edit the
-  // root still says `diameter: 40` while the body is 10 across, and a second
-  // edit built on the root would silently undo the first.
-  const current = currentParamsRecordOf(lineage)?.params ?? {}
+  const target = currentParamsRecordOf(lineage)
+  if (target === undefined) throw new Error(`paramEdit: no body "${bodyId}" in this document`)
+  const current = target.params ?? {}
 
   /** @type {Record<string, any>} */
   const params = { ...current }
@@ -376,20 +308,7 @@ export function paramEditRecord(document, bodyId, changes) {
     changed = true
   }
   if (!changed) return null
-
-  return {
-    // Prefixed with the body's own id, matching `transform.js`'s `-move`/`-turn`
-    // ids: an NDJSON document stays readable by a human and by the AI partner.
-    id: document.nextId(`${bodyId}-param`),
-    op: root.op,
-    // Unnamed on purpose, and *against* this task's own Affected files note.
-    // `src/core/transform.js`'s "Why transform records are unnamed" section gives
-    // the checked reason: `Body.name` is read from a lineage's **root** record,
-    // so a name here is inert at best, and a duplicate `group.js` does not
-    // deduplicate at worst. `ui-027` made the same call one task earlier.
-    params,
-    supersedes: terminal.id,
-  }
+  return { ...target, params }
 }
 
 /**

@@ -1056,6 +1056,8 @@ and `1/4 socket` — so the step now uses real values and can be driven as writt
 current spec has the same three fits (`tap`, `close`, `loose`); the Fit list is still read
 from the chosen spec's own row, so a spec with different fits changes it.)*
 
+**Last run**: 2026-10-01 15:00 UTC (`data-007`) — PASS for steps 1-4, 7-8, laptop 1440x900 Chromium, real mouse drags with wobbly paths and Objects-list selection: dropped a Bolt, changed Spec to `1/4 socket` (bounds and volume changed, centre kept within 0.07 mm in Z), Fit and Length set, typed Position X 40 and the mesh followed. Gizmo-drag steps 5-6 not re-driven (this change does not touch them). Console clean. Phone not driven.
+
 **Last run**: 2026-09-06 01:15 — **PARTIAL PASS** (`ui-011`. Only the
 *Inspector-opens-and-shows-fields* half of this scenario is drivable, and it is
 deliberately reported as a partial rather than a PASS.
@@ -1391,6 +1393,8 @@ person can actually perform. It was hand-driven at laptop 1440x900/Chromium and 
 **Expect**: Alignment guides appear on the board during the drag (step 3), the ghost
 snaps into place once within tolerance (step 4), and on release the camera module sits
 aligned to the board's mounting holes, not at an arbitrary offset position.
+
+**Last run**: 2026-10-01 15:00 UTC (`data-007`) — PASS at laptop 1440x900 Chromium, with the same named stand-in as below (Pi 5 board `raspberrypi.bplus` model 5 and the Camera Module, both real Library rows). Dragged the camera in along a wobbly path: `data-snapped` false while far, true from about 0.48,0.43 inward, stayed true through a small retreat-and-return, and on release the camera sat at the Pi's X/Y with Z 6.34 (same Z as the earlier drives). Console clean. Phone not driven.
 
 **Last run**: 2026-09-09 13:06 — **PASS, with a named stand-in for the two parts**
 (`ui-013`). Hand-driven at laptop 1440×900 in Chromium, phone 390×844 in WebKit and
@@ -3100,6 +3104,8 @@ preview strip and the rollback strip (with **Roll forward**), and the header's *
   row is marked `broken` while the message is up. **Not acceptable**: the cube vanishes or
   turns wrong-shaped, the sphere moves or disappears, or nothing at all is said — the exact
   failure class `SECOND-ATTEMPT.md` and this file both exist to catch.
+
+**Last run**: 2026-10-01 15:00 UTC (`data-007`) — PASS for steps 1-8 at laptop 1440x900 Chromium (real mouse drags): chamfer 5 on a Cube, Sphere dropped, History rows `Cube 1 — placed` / `Chamfer Top (+Z) 5 mm on Cube 1` / `Sphere 1 — placed`, Edit radius to 3 raised the cube's volume 62166.67 to 63316.00 with the Sphere's centre and volume byte-identical, Undo restored 62166.67, Redo 63316.00. Steps 9-12 (suppress, rollback, move, break-on-purpose) not re-driven; `data-007` does not touch the History edit path, and the fillet-no-longer-fits refusal is covered by its own e2e. Console clean. Phone not driven.
 
 **Last run**: 2026-09-19 03:52 — **PARTIAL PASS: the undo/redo steps only (`data-003`), and the rest deliberately not claimed.** Steps 4-7 and 9-11 need `ui-032`'s History panel and `data-004`'s mid-history edit, neither of which exists yet, so there is no History toggle, no row, no Edit/Suppress/Move/Roll back — those steps were not driveable and are **not** reported as passing. What was driven is step 8's half, "nothing silently reverts", against the mutations that do exist today (laptop 1440x900 Chromium; phone 390x844 WebKit for the touch-only path): after a gizmo move, an Inspector param edit and a Subtract, **Undo returned the document to exactly its prior state and left every unrelated body untouched** — the independently placed Sphere's centre and volume were byte-identical strings before and after each undo and redo, and Redo reapplied each change exactly. Undo/Redo name what they will do (`Undo: Move Cube 1`, `Redo: Edit Cylinder 1`), disable when their stack empties, and restore the selection the undone step started with. On the phone the two 44px buttons were tapped with no keyboard involved at all. Console clean in both drives. The scenario's own rollback/insert/broken-tail steps remain unrun until `data-004` and `ui-032` land.
 

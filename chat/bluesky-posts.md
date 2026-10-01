@@ -1094,3 +1094,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** old row "Union Cylinder 1" and new row "Union Cylinder 1 + Cube 1" → hand drive this session at laptop Chromium and phone WebKit; base missing because the toolbar writes it as target → TODO/core-036 file text and diff
 **To Add:** screenshot of the History panel
+
+## [2026-10-01T15:10:00Z] — Resizing a shape now moves what's snapped to it (TODO/data-007)
+
+**Post:** In WarpCad you could snap a small cube onto the top of a 40 mm cube, grow the big one to 60, and watch the small one stay floating inside it. Resizes now re-run the whole history, so snapped parts follow, fillets re-apply, and one Undo takes it all back. Built with Claude Code, reviewed by me. #CAD #OpenSource
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** old behaviour (snapped cube stays at the old height) → TODO/data-007 Problem text; follows after resize, one Undo restores → unit tests and e2e run this session, hand drive at laptop Chromium (cube moved -55..-15 after cylinder height 80)
+**To Add:** short screen recording of the resize

@@ -7,57 +7,33 @@
  * does not, and it is the whole reason this module exists rather than being two
  * lines in `Inspector.vue`:
  *
- * ## Three appends, in one order, as one undo step
+ * ## One replace, one undo step (`TODO/data-007`)
  *
- * A rebuilt creation record ignores every record before it (`paramEdit.js`'s own
- * module doc), so a body that had been moved and turned comes back at its
- * creation params' own spot, un-turned. Restoring the pose is two more appends:
- *
- * 1. the rebuilt creation record,
- * 2. `rotateToRecord(...)` back to the pre-edit absolute rotation, then
- * 3. `moveToRecord(...)` back to the pre-edit absolute position.
- *
- * **Rotate before move, never the other way round.** `rotateRecord` turns a body
- * about its own *bounding-box centre*, and for anything that is not symmetric
- * about that point the box's centre moves when the solid turns. Restoring the
- * position last is what makes the final measured centre land exactly on the
- * pre-edit one instead of near it — and "near it" is the silent-drift failure
- * `TODO/ui-029` names ("editing a param must not silently snap the body back to
- * the origin"), just smaller.
- *
- * Both are `transform.js`'s own absolute-target builders, the same two a typed
- * Position or Rotation field already calls. Nothing here composes a pose itself;
- * a second implementation of that arithmetic is exactly what `transform.js`'s
- * module doc exists to prevent.
- *
- * All three go through one `documentStore.batch` (`TODO/ui-044`), so they are one
- * Undo step labelled `Edit <body>`. Committed separately they were two or three,
- * and one press of Undo left the body at its creation spot with the new params, a
- * state the user never made. `appendAll` cannot do this: the rotate-back and
- * move-back are measured against the rebuilt body, so each record can only be
- * built once the one before it has folded, which `batch` allows.
+ * A Parameters edit swaps the body's creation record in place through
+ * `documentStore.revise` (`data-004`'s replace path) and the whole log re-folds, so
+ * anything snapped or aligned to the body follows the new size, and the pose survives
+ * because the later transforms are still in the log. `TODO/ui-029`'s original path
+ * appended a rebuilt record and then re-applied the pose with `rotateToRecord` and
+ * `moveToRecord`; that left a Snap evaluated against the old solid and needed a freeze on
+ * any body with a fillet. One revision is one Undo step labelled `Edit <body>` (`ui-044`).
  *
  * ## Failing safe
  *
  * The guard is re-checked here before anything is built, even though the panel
- * has already greyed the fields out: `TODO/ui-029`'s named failure mode is
- * silent loss of a downstream op's effect, and a guard that lives only in a
- * component is one `v-if` away from not being a guard. `paramEditRecord` checks
- * it a third time, inside `core/`, for the same reason.
+ * has already greyed the fields out: a guard that lives only in a component is one
+ * `v-if` away from not being a guard. `paramEditRecord` checks it again inside `core/`.
  *
  * A kernel validation error (a diameter of `0` hitting `requirePositive`) is
  * *thrown to the caller* rather than swallowed, so the Inspector can show it —
  * the same user-facing kernel-error contract `ui-027` established for the
- * Fillet/Chamfer popover, reused here rather than reinvented. `batch` is atomic,
- * so a rejected edit leaves the document and the undo stack exactly as they were,
- * whichever of the three records refused.
+ * Fillet/Chamfer popover. So is a later rim op that would no longer fit the new size,
+ * with the step named. `revise` is atomic, so a rejected edit leaves the document and the
+ * undo stack exactly as they were.
  *
- * ## A composite is a different path (`TODO/ui-052`)
+ * ## A composite also gets a repair dialog (`TODO/ui-052`)
  *
- * A Pi's model or a bolt's spec is edited on `data-004`'s **replace** path instead: the
- * creation record is swapped in place (`compositeParamEditRecord`) and the whole log
- * re-folds, so the pose survives without any re-apply and a snap onto one of its parts
- * follows the change. Because a variant change can remove a part something else depends
+ * A Pi's model or a bolt's spec is edited on the same replace path
+ * (`compositeParamEditRecord`). Because a variant change can remove a part something else depends
  * on, {@link setParam} runs the impact check (`src/core/dependents.js`) **before**
  * committing: nothing breaks → it commits at once, one Undo step; something would break
  * → nothing is committed and the breakages come back for the repair dialog, whose choices
@@ -79,7 +55,6 @@ import { isGroup } from '../core/kernel/group.js'
 import { paramOptions, registry } from '../core/kernel/registry.js'
 import { canEditParams, compositeParamEditRecord, paramEditRecord, currentParamsOf, withComponent } from '../core/paramEdit.js'
 import { repairChanges } from '../core/repair.js'
-import { moveToRecord, positionOf, rotateToRecord, rotationOf } from '../core/transform.js'
 import { useDocumentStore } from '../stores/document.js'
 
 /** @typedef {import('../core/paramEdit.js').ParamEditability} ParamEditability */
@@ -181,49 +156,39 @@ export function useParamCommands() {
   }
 
   /**
-   * Rebuild one body's creation record with new params, then put it back where
-   * it was. See the module doc for why the order is rotate-then-move.
+   * A primitive's resize: swap the creation record in place and re-fold (`TODO/data-007`).
+   *
+   * Same mechanism as {@link setCompositeParams}, with one difference in what a breakage
+   * means. A composite's variant change can remove a part, which a repair dialog can
+   * remap or detach. A resize removes nothing; the only thing that can stop building is a
+   * later rim op that no longer fits (a 5 mm fillet on a cylinder shrunk to 4 mm across).
+   * There is nothing for a dialog to repair, so the edit is **refused with the step named**
+   * and nothing is committed: the user shrinks the fillet first, or picks a size it fits.
    *
    * @param {string} bodyId
    * @param {Record<string, number | readonly number[]>} changes
    * @returns {void}
    */
   function applyChanges(bodyId, changes) {
-    const raw = documentStore.raw
-    // Fail safe, not loud-after-the-fact: a lineage carrying a fillet, a chamfer
-    // or anything else non-transform is left exactly as it was.
+    const raw = live()
+    // Fail safe: a root with no params of its own is left exactly as it was.
     if (!canEditParams(raw, bodyId).editable) return
 
     const record = paramEditRecord(raw, bodyId, changes)
     if (record === null) return
 
-    // Measured *before* the rebuild, off the evaluated geometry — the same two
-    // numbers the Transform fields are showing, so a param edit and a typed
-    // Position can never disagree about where the body is.
-    const positionMm = positionOf(raw, bodyId)
-    const rotationDeg = rotationOf(raw, bodyId)
-
-    // Every mutation goes through the command layer inside an origin-tagged
-    // transaction (CLAUDE.md Architecture); `'local'` because the trigger is this
-    // user's own typing. May throw (a diameter of 0, a kernel range check); the
-    // batch then leaves everything as it was and the caller shows the message.
-    documentStore.batch(
-      (commit) => {
-        commit(record)
-
-        if (rotationDeg.some((deg) => deg !== 0)) {
-          commit(rotateToRecord(raw, bodyId, rotationDeg))
-        }
-        // Re-measured rather than assumed: the rebuilt solid is a different size,
-        // and the rotation above may have shifted its bounding-box centre, so this
-        // asks where the body *is now* before deciding how far it has to go back.
-        const rebuiltMm = positionOf(raw, bodyId)
-        if (rebuiltMm.some((mm, index) => mm !== positionMm[index])) {
-          commit(moveToRecord(raw, bodyId, positionMm))
-        }
-      },
-      { origin: 'local' }
-    )
+    const revision = [{ id: /** @type {string} */ (record.id), record }]
+    const { breakages } = impactOf(raw, revision, { editedRootId: bodyId })
+    if (breakages.length > 0) {
+      const first = breakages[0]
+      throw new Error(
+        `${first.relationship} on ${first.dependentName} (step ${first.step}) would no longer ` +
+          `build at this size: ${first.reason}`
+      )
+    }
+    // May throw (a diameter of 0, a kernel range check); `reviseRecords` then leaves the
+    // document and the undo stack exactly as they were, and the caller shows the message.
+    documentStore.revise(revision, { label: `Edit ${nameOf(bodyId)}` })
   }
 
   return {
@@ -237,13 +202,15 @@ export function useParamCommands() {
     },
 
     /**
-     * Commit one param. A primitive's typed scalar (a diameter, a height) goes through
-     * `ui-029`'s append path, unchanged; a composite's (a Pi's model, a bolt's spec or
-     * length) through the replace path with its impact check — see the module doc.
+     * Commit one param, on the replace path either way. A primitive's typed scalar (a
+     * diameter, a height) is refused if a later rim op would stop building; a composite's
+     * (a Pi's model, a bolt's spec or length) opens the repair dialog — see the module doc.
      */
     setParam(bodyId, key, value) {
-      const verdict = canEditParams(live(), bodyId)
-      if (verdict.path === 'replace') return setCompositeParams(bodyId, { [key]: value })
+      const root = live().recordOf(bodyId)
+      if (root !== undefined && registry[root.op]?.kind === 'composite') {
+        return setCompositeParams(bodyId, { [key]: value })
+      }
       applyChanges(bodyId, { [key]: /** @type {number} */ (value) })
       return { committed: true }
     },
@@ -313,8 +280,7 @@ export function useParamCommands() {
 
     /** Commit one typed component of a vector param: Size X, Side B. */
     setParamComponent(bodyId, key, index, value) {
-      const raw = documentStore.raw
-      const current = currentParamsOf(raw, bodyId)[key]
+      const current = currentParamsOf(live(), bodyId)[key]
       applyChanges(bodyId, { [key]: withComponent(current, index, value) })
     },
   }

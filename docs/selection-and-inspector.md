@@ -122,7 +122,8 @@ is. Click into one, type a number, and press **Enter** (or click away). The shap
 rebuilt at the new size straight away, and **it stays centred where it already was** —
 resizing is not a move, so nothing jumps back to the origin or to where you first
 dropped it. The gizmo and the dimension lines resize to match, because they measure the
-shape rather than remembering it.
+shape rather than remembering it. Anything [snapped or aligned](snap-align.md) to the
+shape follows the resize, and a Fillet or Chamfer on it is re-applied at the new size.
 
 Parameters are in millimetres, the same as Position, and you can leave the `mm` in place
 when you retype a value. Each box sets **that one parameter** and leaves the others
@@ -149,9 +150,17 @@ state you have to clear.
    undoes a move.
 5. Press **Undo** once. The cylinder is 50 mm tall again, **still where you moved it**:
    one press takes back the whole edit, and the Undo button's tooltip now reads
-   `Undo: Move Cylinder 1`, the move you made in step 4. If you open **History**, the
-   edit shows as two rows, `Cylinder 1 — edited` and the `Move Cylinder 1` just below
-   it that keeps the resized shape in place. Undo and Redo treat those two rows as one step.
+   `Undo: Move Cylinder 1`, the move you made in step 4. In **History** the edit is a
+   change to the cylinder's own creation row rather than a new row at the bottom, and the
+   `Move Cylinder 1` row stays where it was.
+
+### Worked example: a cube snapped to the top of another
+
+1. Place two cubes, then [snap](snap-align.md) the small one onto the top of the large
+   one (Size Z `40`), so the small cube sits at Z = 40.
+2. Select the large cube, click into **Size Z**, type `60`, and press **Enter**.
+3. The large cube grows around its centre, to a top at Z = 50, and **the small cube moves
+   up with it** to sit on the new top. Press **Undo** once and both go back.
 
 ### When Parameters are greyed out
 
@@ -160,12 +169,13 @@ Two cases, and the panel tells you which:
 - **You are looking inside a group.** The breadcrumb at the top of the panel shows
   `Group ▸ Part`. A part inside a group is shown for measurement only — step back up to
   the group with the breadcrumb link to change anything.
-- **The shape has a Fillet or a Chamfer on it.** Changing a parameter rebuilds the shape
-  from its numbers, and a rebuilt shape cannot carry a rounded or bevelled rim with it —
-  so rather than quietly throwing your fillet away, the app freezes those boxes and says
-  so underneath them. You can still move and turn the shape; it is only its own
-  dimensions that are fixed. If you need a different size, make the shape the size you
-  want first, then round it.
+- **The shape was made by combining others.** A Union, Subtract or Group has no numbers of
+  its own: its shape *is* the shapes it was built from. Select one of those and change it.
+
+A shape with a **Fillet** or **Chamfer** on it is editable. The rim is re-applied at the
+new size; if the new size is too small for it (a 5 mm fillet on a cylinder you shrink to
+4 mm across), nothing changes and a message under the boxes names the Fillet step. Make
+the fillet smaller first, or pick a size it fits.
 
 ## Changing a part's model or size
 

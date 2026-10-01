@@ -34,6 +34,15 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### data-007 — Primitive resize: snapped dependents follow (2026-10-01 15:05)
+
+The scripted e2e covers the snap-follows and fillet-refusal cases at all three viewports; what it cannot judge is how the refusal reads on a phone.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | On a real phone, shrink a filleted cube's Size X below twice the fillet radius: is the "Fillet on Cube 1 (step 2) would no longer build at this size" line under the boxes readable without scrolling, and does the box repaint with the real value? | Open | |
+
+
 ### core-034 — Drill the mounting holes through raspberrypi.* boards (2026-09-30 18:03)
 
 Volume, hole-centre and hole-rim checks are automated; what no test judges is how it reads. The translucent green board now has through-holes, and I only looked at it from the default camera, too small to see them.

@@ -205,3 +205,82 @@ describe('useParamCommands — composite params and the repair dialog (TODO/ui-0
     expect(doc.raw.pendingUndo()?.label).toBe('Edit condition on Cube 1')
   })
 })
+
+describe('useParamCommands — a primitive resize is a replace, so dependents follow (TODO/data-007)', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+  })
+
+  const LOCAL = { origin: 'local' }
+
+  /** A 40 mm cube at the origin and a small cube snapped onto its top. */
+  function snappedPair() {
+    const doc = useDocumentStore()
+    doc.append({ id: 'big', op: 'primitive.cuboid', name: 'Big', params: { size: [40, 40, 40], center: [0, 0, 20] } }, LOCAL)
+    doc.append({ id: 'small', op: 'primitive.cuboid', name: 'Small', params: { size: [10, 10, 10], center: [60, 0, 5] } }, LOCAL)
+    doc.append(
+      {
+        id: 'snap-1',
+        op: 'group.snap',
+        target: 'small',
+        operands: [{ id: 'big' }],
+        supersedes: 'small',
+        params: { axes: 'z', orientation: 'above-outside', deltaMm: 0 },
+      },
+      LOCAL,
+    )
+    return doc
+  }
+
+  /** @param {ReturnType<typeof useDocumentStore>} doc @param {string} id */
+  function boundsById(doc, id) {
+    const body = doc.raw.bodies().find((candidate) => candidate.id === id)
+    if (body === undefined) throw new Error(`no body ${id}`)
+    return boundsOf(body.geometry)
+  }
+
+  it('offers the replace path for a primitive', () => {
+    snappedPair()
+    expect(useParamCommands().canEdit('big')).toMatchObject({ editable: true, path: 'replace' })
+  })
+
+  it('a snapped body follows a Size Z change, and one Undo restores both', () => {
+    const doc = snappedPair()
+    expect(boundsById(doc, 'small')[0][2]).toBeCloseTo(40, 6)
+
+    useParamCommands().setParamComponent('big', 'size', 2, 60)
+
+    expect(boundsById(doc, 'big')[1][2]).toBeCloseTo(50, 6)
+    expect(boundsById(doc, 'small')[0][2]).toBeCloseTo(50, 6)
+    expect(doc.raw.pendingUndo()?.label).toBe('Edit Big')
+
+    doc.undo()
+    expect(boundsById(doc, 'big')[1][2]).toBeCloseTo(40, 6)
+    expect(boundsById(doc, 'small')[0][2]).toBeCloseTo(40, 6)
+  })
+
+  it('a moved primitive keeps its position through a resize', () => {
+    const doc = snappedPair()
+    doc.append(moveToRecord(doc.raw, 'big', [10, 20, 20]), LOCAL)
+    useParamCommands().setParamComponent('big', 'size', 0, 20)
+    const [cx, cy, cz] = positionOf(doc.raw, 'big')
+    expect(cx).toBeCloseTo(10, 6)
+    expect(cy).toBeCloseTo(20, 6)
+    expect(cz).toBeCloseTo(20, 6)
+  })
+
+  it('a filleted primitive is editable, and a rim that no longer fits is reported by name', () => {
+    const doc = useDocumentStore()
+    doc.append({ id: 'cyl', op: 'primitive.cylinder', name: 'Cyl', params: { diameter: 40, height: 20, center: [0, 0, 10], segments: 32 } }, LOCAL)
+    doc.append({ id: 'cyl-rim', op: 'modify.filletRim', supersedes: 'cyl', target: 'cyl', params: { radius: 5, orientation: 'z+' } }, LOCAL)
+    const commands = useParamCommands()
+    expect(commands.canEdit('cyl')).toMatchObject({ editable: true, path: 'replace' })
+
+    commands.setParam('cyl', 'diameter', 50)
+    expect(doc.raw.recordOf('cyl')?.params?.diameter).toBe(50)
+    expect(doc.raw.recordOf('cyl-rim')?.op).toBe('modify.filletRim')
+
+    expect(() => commands.setParam('cyl', 'diameter', 4)).toThrow(/cyl-rim|Fillet/i)
+    expect(doc.raw.recordOf('cyl')?.params?.diameter).toBe(50)
+  })
+})

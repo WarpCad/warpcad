@@ -74,28 +74,23 @@ function withCylinder(history = []) {
   return document
 }
 
-describe('paramEditRecord — rebuilding a creation record with new params (TODO/ui-029)', () => {
-  it('copies the root\'s op, overrides only the edited key, and supersedes the terminal', () => {
+describe('paramEditRecord — the replacement creation record (TODO/data-007)', () => {
+  it('keeps the record\'s id, op and name, and overrides only the edited key', () => {
     const document = withCylinder()
     const record = paramEditRecord(document, 'cyl-1', { diameter: 10 })
 
+    // A replacement, not an append: same id, so `document.reviseRecords` swaps it in
+    // place and every later record re-folds against it.
     expect(record).not.toBeNull()
+    expect(record?.id).toBe('cyl-1')
     expect(record?.op).toBe('primitive.cylinder')
-    expect(record?.supersedes).toBe('cyl-1')
-    expect(record?.id).toBeDefined()
-    expect(record?.id).not.toBe('cyl-1')
+    expect(record?.name).toBe('Cylinder 1')
+    expect(record?.supersedes).toBeUndefined()
     // Every other param is carried across untouched — including the ones the
     // Inspector never shows (`center`, `segments`), which are what keep the
-    // rebuilt solid the same shape in every respect the edit did not name.
+    // resized solid the same shape and in the same place in every respect the edit
+    // did not name.
     expect(record?.params).toEqual({ diameter: 10, height: 50, center: [0, 0, 25], segments: 32 })
-  })
-
-  it('carries no `name`, following the established supersedes-record precedent', () => {
-    // `src/core/transform.js`'s "Why transform records are unnamed" section, and
-    // `ui-027`'s own retirement note: `Body.name` is read from a lineage's *root*
-    // record, so a name here is inert at best and a `combine()` duplicate at worst.
-    const record = paramEditRecord(withCylinder(), 'cyl-1', { diameter: 10 })
-    expect(record?.name).toBeUndefined()
   })
 
   it('appends nothing when the value is unchanged — translateBy\'s no-op convention', () => {
@@ -110,7 +105,7 @@ describe('paramEditRecord — rebuilding a creation record with new params (TODO
     expect(paramEditRecord(document, 'box-1', { size: [15, 40, 40] })).not.toBeNull()
   })
 
-  it('supersedes the newest transform, not the root, on a body that has been moved', () => {
+  it('does not touch the transforms stacked on top — they stay in the log and replay', () => {
     const document = withCylinder([
       {
         id: 'cyl-1-move-1',
@@ -119,26 +114,19 @@ describe('paramEditRecord — rebuilding a creation record with new params (TODO
         supersedes: 'cyl-1',
         params: { vector: [10, 0, 0], rotation: [0, 0, 0] },
       },
-    ])
-    expect(paramEditRecord(document, 'cyl-1', { height: 20 })?.supersedes).toBe('cyl-1-move-1')
-  })
-
-  it('supersedes the newest transform on a rotate-only history too', () => {
-    const document = withCylinder([
       {
         id: 'cyl-1-turn-1',
         op: 'transform.rotate',
         target: 'cyl-1',
-        supersedes: 'cyl-1',
+        supersedes: 'cyl-1-move-1',
         params: { angles: [0, 0, 30], center: [0, 0, 25], rotation: [0, 0, 30] },
       },
     ])
     const record = paramEditRecord(document, 'cyl-1', { height: 20 })
-    expect(record?.supersedes).toBe('cyl-1-turn-1')
-    // The rebuilt record describes the *shape* only. Re-applying the pose is the
-    // caller's second and third append (`useParamCommands.js`), deliberately not
-    // folded in here — those are `transform.js`'s already-proven builders.
+    expect(record?.id).toBe('cyl-1')
+    // The replacement describes the *shape* only; the pose is not folded in.
     expect(record?.params?.rotation).toBeUndefined()
+    expect(record?.params?.vector).toBeUndefined()
   })
 
   it('edits one component of a vector param, leaving the others alone', () => {
@@ -175,7 +163,7 @@ describe('paramEditRecord — rebuilding a creation record with new params (TODO
   })
 })
 
-describe('the read-only guard — never silently discard a downstream op (TODO/ui-029)', () => {
+describe('the editability guard — which roots have params of their own (TODO/ui-029, TODO/data-007)', () => {
   it('allows a lineage of nothing but transforms on a plain creation record', () => {
     expect(
       paramEditability([
@@ -183,30 +171,30 @@ describe('the read-only guard — never silently discard a downstream op (TODO/u
         { id: 'b', op: 'transform.translate', supersedes: 'a', params: {} },
         { id: 'c', op: 'transform.rotate', supersedes: 'b', params: {} },
       ])
-    ).toEqual({ editable: true, blockedBy: null })
+    ).toEqual({ editable: true, blockedBy: null, path: 'replace' })
   })
 
-  it('refuses a lineage carrying a fillet — rebuilding would throw the rim away', () => {
-    // The whole reason this task is `model: opus`: getting this backwards is
-    // silent data loss, not a visible error. Hand-built entries, per the
-    // Testing section, so nothing about the real kernel can mask it.
+  it('allows a lineage carrying a fillet — the replace path re-runs it (TODO/data-007)', () => {
+    // `ui-029` froze this: appending a rebuilt creation record would have thrown the
+    // rim away. The replace path keeps the fillet record in the log and re-folds it, so
+    // nothing is discarded; a rim that no longer fits is reported by the impact check.
     expect(
       paramEditability([
         { id: 'a', op: 'primitive.cuboid', params: { size: [40, 40, 40] } },
         { id: 'b', op: 'transform.translate', supersedes: 'a', params: {} },
         { id: 'c', op: 'modify.filletRim', supersedes: 'b', params: { radius: 5 } },
       ])
-    ).toEqual({ editable: false, blockedBy: 'modify.filletRim' })
+    ).toEqual({ editable: true, blockedBy: null, path: 'replace' })
   })
 
-  it('refuses a fillet even when a transform is stacked on top of it afterwards', () => {
+  it('allows a fillet or chamfer with a transform stacked on top of it afterwards', () => {
     expect(
       paramEditability([
         { id: 'a', op: 'primitive.cuboid', params: { size: [40, 40, 40] } },
         { id: 'b', op: 'modify.chamferRim', supersedes: 'a', params: { radius: 5 } },
         { id: 'c', op: 'transform.translate', supersedes: 'b', params: {} },
       ]).editable
-    ).toBe(false)
+    ).toBe(true)
   })
 
   it('refuses a root that was built from other bodies rather than from its own params', () => {
@@ -248,17 +236,16 @@ describe('the read-only guard — never silently discard a downstream op (TODO/u
   })
 
   it('allows a lineage carrying a colour override (TODO/data-005) — nothing is lost by rebuilding past it', () => {
-    // Unlike `modify.filletRim` above, `style.recolor` never touches geometry —
-    // `document.js`'s `colorOverridesOf` reads it off every record in the walked
-    // lineage, not just the terminal's own build — so a rebuilt creation record
-    // does not discard it the way a fillet's rounded rim would be discarded.
+    // `style.recolor` never touches geometry, and `document.js`'s `colorOverridesOf`
+    // reads it off every record in the walked lineage, so a replaced creation record
+    // keeps it.
     expect(
       paramEditability([
         { id: 'a', op: 'primitive.cylinder', params: { diameter: 40 } },
         { id: 'b', op: 'style.recolor', target: 'a', supersedes: 'a', colorOverride: 0xff0000 },
         { id: 'c', op: 'transform.translate', supersedes: 'b', params: {} },
       ])
-    ).toEqual({ editable: true, blockedBy: null })
+    ).toEqual({ editable: true, blockedBy: null, path: 'replace' })
   })
 
   it('reads the same verdict straight off a live document', () => {
@@ -271,7 +258,7 @@ describe('the read-only guard — never silently discard a downstream op (TODO/u
         params: { vector: [10, 0, 0], rotation: [0, 0, 0] },
       },
     ])
-    expect(canEditParams(editable, 'cyl-1')).toEqual({ editable: true, blockedBy: null })
+    expect(canEditParams(editable, 'cyl-1')).toEqual({ editable: true, blockedBy: null, path: 'replace' })
 
     const filleted = withCylinder([
       {
@@ -282,24 +269,19 @@ describe('the read-only guard — never silently discard a downstream op (TODO/u
         params: { radius: 5, orientation: 'z+' },
       },
     ])
-    expect(canEditParams(filleted, 'cyl-1')).toEqual({
-      editable: false,
-      blockedBy: 'modify.filletRim',
-    })
+    expect(canEditParams(filleted, 'cyl-1')).toEqual({ editable: true, blockedBy: null, path: 'replace' })
     expect(canEditParams(filleted, 'nope')).toEqual({ editable: false, blockedBy: null })
   })
 
-  it('refuses to build a record for a lineage the guard has blocked — fail safe, not fail loud-after-the-fact', () => {
-    const filleted = withCylinder([
-      {
-        id: 'cyl-1-fillet',
-        op: 'modify.filletRim',
-        target: 'cyl-1',
-        supersedes: 'cyl-1',
-        params: { radius: 5, orientation: 'z+' },
-      },
-    ])
-    expect(() => paramEditRecord(filleted, 'cyl-1', { diameter: 10 })).toThrow(/modify\.filletRim/)
+  it('refuses to build a record for a root the guard has blocked — fail safe', () => {
+    const document = doc()
+    document.append({ id: 'a', op: 'primitive.cuboid', name: 'A', params: { size: [1, 1, 1] } }, { origin: 'local' })
+    document.append({ id: 'b', op: 'primitive.cuboid', name: 'B', params: { size: [1, 1, 1] } }, { origin: 'local' })
+    document.append(
+      { id: 'u', op: 'boolean.union', target: 'a', operands: ['b'], consumes: ['a', 'b'], params: {} },
+      { origin: 'local' }
+    )
+    expect(() => paramEditRecord(document, 'u', { size: [2, 2, 2] })).toThrow(/boolean\.union/)
   })
 })
 
@@ -314,14 +296,11 @@ describe('withComponent', () => {
   })
 })
 
-describe('chained edits — the second one builds on the first (TODO/ui-029)', () => {
-  it('spreads from the body\'s current params, never back from the stale root', () => {
-    // The defect this pins was found by this task's own e2e run, not designed
-    // for up front: spreading from the *root* meant a second edit silently
-    // resurrected every value the first edit had changed.
+describe('chained edits — the second one builds on the first (TODO/ui-029, TODO/data-007)', () => {
+  it('a second edit spreads from the first\'s params, because the first replaced the record', () => {
     const document = withCylinder()
     const first = paramEditRecord(document, 'cyl-1', { diameter: 10 })
-    document.append(/** @type {any} */ (first), { origin: 'local' })
+    document.replaceRecord('cyl-1', /** @type {any} */ (first), { origin: 'local' })
 
     expect(currentParamsOf(document, 'cyl-1')).toEqual({
       diameter: 10,
@@ -331,52 +310,46 @@ describe('chained edits — the second one builds on the first (TODO/ui-029)', (
     })
 
     const second = paramEditRecord(document, 'cyl-1', { height: 20 })
-    expect(second?.params).toEqual({
-      // Still 10, not back to the root's 40.
-      diameter: 10,
-      height: 20,
-      center: [0, 0, 25],
-      segments: 32,
-    })
-    expect(second?.supersedes).toBe(first?.id)
+    // Still 10, not back to 40.
+    expect(second?.params).toEqual({ diameter: 10, height: 20, center: [0, 0, 25], segments: 32 })
     // A no-op is judged against the current value too, not the original one.
     expect(paramEditRecord(document, 'cyl-1', { diameter: 10 })).toBeNull()
     expect(paramEditRecord(document, 'cyl-1', { diameter: 40 })).not.toBeNull()
   })
 
-  it('reads through a transform stacked on top of an earlier edit', () => {
+  it('replaces the newest same-op record of a document written before data-007', () => {
+    // Older documents hold an *appended* rebuild (`supersedes` the terminal). The panel
+    // shows that record's numbers, so the next edit has to replace it, not the root.
     const document = withCylinder()
-    const first = paramEditRecord(document, 'cyl-1', { diameter: 10 })
-    document.append(/** @type {any} */ (first), { origin: 'local' })
+    document.append(
+      {
+        id: 'cyl-1-param-1',
+        op: 'primitive.cylinder',
+        supersedes: 'cyl-1',
+        params: { diameter: 10, height: 50, center: [0, 0, 25], segments: 32 },
+      },
+      { origin: 'local' }
+    )
     document.append(
       {
         id: 'cyl-1-move-1',
         op: 'transform.translate',
-        target: /** @type {string} */ (first?.id),
-        supersedes: /** @type {string} */ (first?.id),
+        target: 'cyl-1',
+        supersedes: 'cyl-1-param-1',
         params: { vector: [10, 0, 0], rotation: [0, 0, 0] },
       },
       { origin: 'local' }
     )
 
-    // The newest *creation* record's params, skipping the translate's `vector`.
     expect(currentParamsOf(document, 'cyl-1').diameter).toBe(10)
     expect(currentParamsOf(document, 'cyl-1').vector).toBeUndefined()
     const third = paramEditRecord(document, 'cyl-1', { height: 20 })
+    expect(third?.id).toBe('cyl-1-param-1')
+    expect(third?.supersedes).toBe('cyl-1')
     expect(third?.params?.diameter).toBe(10)
-    expect(third?.supersedes).toBe('cyl-1-move-1')
-  })
-
-  it('a rebuilt lineage is still editable — a param edit is not one-shot', () => {
-    const document = withCylinder()
-    document.append(
-      /** @type {any} */ (paramEditRecord(document, 'cyl-1', { diameter: 10 })),
-      { origin: 'local' }
-    )
-    expect(canEditParams(document, 'cyl-1')).toEqual({ editable: true, blockedBy: null })
+    expect(canEditParams(document, 'cyl-1').editable).toBe(true)
   })
 })
-
 
 describe('compositeParamEditRecord — the replace-path edit of a composite (TODO/ui-052)', () => {
   const LOCAL = { origin: 'local' }
@@ -434,7 +407,7 @@ describe('compositeParamEditRecord — the replace-path edit of a composite (TOD
     expect(compositeParamEditRecord(document, 'bolt-1', { spec: 'm10 hex' })).toBeNull()
   })
 
-  it('refuses a composite with no schema, and a primitive (which keeps the append path)', async () => {
+  it('refuses a composite with no schema, and a primitive (which has its own builder, paramEditRecord)', async () => {
     const { compositeParamEditRecord } = await import('./paramEdit.js')
     const { createDocument } = await import('./document.js')
     const document = createDocument()
@@ -444,11 +417,11 @@ describe('compositeParamEditRecord — the replace-path edit of a composite (TOD
     expect(() => compositeParamEditRecord(document, 'cube-1', { size: [5, 5, 5] })).toThrow(/primitive\.cuboid/)
   })
 
-  it('a primitive\'s resize is still the append path', async () => {
+  it('a primitive\'s resize is on the replace path too (TODO/data-007)', async () => {
     const { canEditParams } = await import('./paramEdit.js')
     const { createDocument } = await import('./document.js')
     const document = createDocument()
     document.append({ id: 'cube-1', op: 'primitive.cuboid', name: 'Cube 1', params: { size: [4, 4, 4] } }, LOCAL)
-    expect(canEditParams(document, 'cube-1')).toEqual({ editable: true, blockedBy: null })
+    expect(canEditParams(document, 'cube-1')).toEqual({ editable: true, blockedBy: null, path: 'replace' })
   })
 })

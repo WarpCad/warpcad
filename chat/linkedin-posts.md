@@ -1487,3 +1487,16 @@ Driven by hand in Chromium at laptop width and WebKit at phone width. Built with
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** old and new row text, survives reload → hand drive this session; cause (target vs operands) and fixture shape → TODO/core-036 file text and diff; unit and typecheck green → test output this session (2392 tests)
 **To Add:** screenshot of the History panel
+
+## [2026-10-01T15:10:00Z] — Resizing a shape now moves what's snapped to it (TODO/data-007)
+
+**Post:** In WarpCad, changing a shape's size in the Inspector used to append a rebuilt shape to the history. Anything snapped to it had been placed against the old size, so a cube snapped to the top of a 40 mm cube stayed put when the big one grew to 60.
+
+The resize now swaps the shape's creation step in place and replays the history after it. Snaps and aligns follow, a fillet is re-applied at the new size, and one Undo reverses the whole edit. If a fillet no longer fits, the edit is refused with the fillet step named rather than silently dropping the rim. That also removed the old rule that froze the size fields on any filleted shape.
+
+I hand-drove it at laptop width in Chromium: grow a cylinder from 50 to 80 mm tall and the cube snapped under it moved 15 mm to stay flush. Built with Claude Code, reviewed by me.
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** old append behaviour and 40→60 example → TODO/data-007 file text; fillet freeze removed → diff (paramEdit.js) and rewritten e2e; cylinder 50→80 moved cube from -40..0 to -55..-15 → hand drive this session
+**To Add:** screenshot of the error line for a fillet that no longer fits

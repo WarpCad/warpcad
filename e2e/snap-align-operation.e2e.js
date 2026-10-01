@@ -438,6 +438,45 @@ test('Snap moves the moving Cube flush outside the reference Cylinder on Z, with
   expect(cylinderAfter.center).toBe(cylinder.center)
 })
 
+test('a body snapped to a shape follows when that shape is resized in the Inspector, and one Undo restores both (TODO/data-007)', async ({
+  page,
+}) => {
+  const [cube, cylinder] = await placeCubeAndCylinder(page)
+  await selectCubeThenCylinder(page)
+  await page.getByTestId('operation-snap').click()
+  await page.getByTestId('snap-align-axis-z').check()
+  await page.getByTestId('snap-align-orientation').selectOption('outside+')
+  await page.getByTestId('snap-align-commit').click()
+  await expect(page.getByTestId('snap-align-popover')).toHaveCount(0)
+
+  const snapped = parseCenter((await sceneBodies(page)).find((body) => body.id === cube.id).center)
+
+  // Select the Cylinder alone and make it taller: its centre stays put, so its bottom
+  // (the face the Cube is flush against) drops by 10 mm.
+  await clickViewportAt(page, CYLINDER.click.fx, CYLINDER.click.fy)
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-selected-count', '1')
+  const height = page.getByTestId('inspector-param-height')
+  await expect(height).toBeVisible()
+  await height.click()
+  await height.fill('70')
+  await height.press('Enter')
+  await page.waitForTimeout(160)
+
+  const after = await sceneBodies(page)
+  const followed = parseCenter(after.find((body) => body.id === cube.id).center)
+  expect(followed[0]).toBeCloseTo(snapped[0], 2)
+  expect(followed[1]).toBeCloseTo(snapped[1], 2)
+  expect(followed[2]).toBeCloseTo(snapped[2] - 10, 2)
+  expect(parseCenter(after.find((body) => body.id === cylinder.id).center)[2]).toBeCloseTo(
+    parseCenter(cylinder.center)[2],
+    2,
+  )
+
+  await page.getByTestId('undo-button').click()
+  const undone = await sceneBodies(page)
+  expect(parseCenter(undone.find((body) => body.id === cube.id).center)[2]).toBeCloseTo(snapped[2], 2)
+})
+
 test('a third selected body disables both Snap and Align, same exact-2 gate as the gating test above', async ({
   page,
 }) => {

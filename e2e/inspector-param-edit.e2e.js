@@ -13,21 +13,17 @@ import { test, expect } from '@playwright/test'
  *
  * ## What each case is actually guarding
  *
- * The interesting failure mode here is **silent**, not loud. A param edit
- * appends a fresh creation record that supersedes the lineage's terminal, and a
- * creation record is built from its params alone — so anything the lineage had
- * done to that geometry since is simply not in the new solid unless something
- * puts it back. Two of the four cases below exist entirely for that:
+ * The interesting failure mode here is **silent**, not loud. A param edit swaps the body's
+ * creation record in place and the whole log re-folds (`TODO/data-007`), so anything the
+ * body has since been through must come out the other side without a word said:
  *
- * - **"a moved and turned body keeps its pose"** — the pose is re-applied by two
- *   further appends (`src/composables/useParamCommands.js`). Get that wrong and
- *   the body silently jumps back to where it was first dropped, un-turned, with
- *   no error anywhere.
- * - **"a filleted body's parameters are frozen"** — a rounded rim *cannot* be
- *   re-applied, so the fields stay read-only instead. Get that wrong and the
- *   fillet disappears on the next keystroke. This is the case `TODO/ui-029` is
- *   `model: opus` for, and it is only drivable at all because `ui-027` landed
- *   the Fillet control one task earlier.
+ * - **"a moved and turned body keeps its pose"** — the later transforms stay in the log and
+ *   replay against the resized solid. Get that wrong and the body silently jumps back to
+ *   where it was first dropped, un-turned, with no error anywhere.
+ * - **"a filleted body stays editable"** — the rim is re-applied at the new size, and a size
+ *   it no longer fits is refused with the Fillet named. Get that wrong and the fillet
+ *   disappears on the next keystroke. (`ui-029` froze the fields instead.)
+ * - Snapped dependents following a resize live in `snap-align-operation.e2e.js`.
  *
  * Measurements come off `data-body-bounds`/`data-body-center` (`Viewport.vue`),
  * the same DOM surface the boolean, snap/align and fillet specs already assert
@@ -292,10 +288,9 @@ test('editing one component of a vector parameter changes that extent alone', as
   expect(await fieldNumber(page, 'inspector-param-size-y')).toBeCloseTo(by, 1)
 })
 
-test('a filleted body\'s parameters go read-only rather than silently discarding the fillet', async ({
+test('a filleted body stays editable: the rim is re-applied, and a size it no longer fits is refused by name (TODO/data-007)', async ({
   page,
 }) => {
-  // Only drivable because `ui-027` landed the Fillet control one task earlier.
   const before = await placeAndSelect(page, 'primitive.cuboid')
   await expect(page.getByTestId('inspector-params')).toHaveAttribute('data-editable', 'true')
 
@@ -306,35 +301,35 @@ test('a filleted body\'s parameters go read-only rather than silently discarding
   await expect(page.getByTestId('fillet-chamfer-popover')).toHaveCount(0)
 
   const [filleted] = await sceneBodies(page)
-  // Real rim material removed — the same signal `ui-027`'s own spec checks, so
-  // the precondition of this case is established rather than assumed.
+  // Real rim material removed, so the precondition is established rather than assumed.
   expect(filleted.volumeMm3).toBeLessThan(before.volumeMm3)
 
-  // The whole point: the Parameters section freezes, and says which op froze it.
+  // `ui-029` froze this section. The replace path re-runs the fillet instead.
   const params = page.getByTestId('inspector-params')
-  await expect(params).toHaveAttribute('data-editable', 'false')
-  await expect(params).toHaveAttribute('data-blocked-by', 'modify.filletRim')
-  for (const axis of ['x', 'y', 'z']) {
-    await expect(page.getByTestId(`inspector-param-size-${axis}`)).toHaveJSProperty(
-      'readOnly',
-      true,
-    )
-  }
-  const note = page.getByTestId('inspector-params-note')
-  await expect(note).toBeVisible()
-  await expect(note).toContainText('Fillet')
+  await expect(params).toHaveAttribute('data-editable', 'true')
+  await typeIntoField(page, 'inspector-param-size-x', 60)
 
-  // And the fillet is still there afterwards — nothing about opening the panel
-  // on a frozen body disturbs it.
-  const [stillFilleted] = await sceneBodies(page)
-  expect(stillFilleted.volumeMm3).toBeCloseTo(filleted.volumeMm3, 3)
+  const [resized] = await sceneBodies(page)
+  expect(sizeOf(resized)[0]).toBeCloseTo(60, 1)
+  // Still rounded: a plain 60x40x40 box is bigger than the filleted one by more than the
+  // 20 mm of extra width alone would add if the rim had been thrown away.
+  const plainVolume = 60 * 40 * 40
+  expect(resized.volumeMm3).toBeLessThan(plainVolume)
 
-  // Transform stays editable in this state: the guard freezes the *parameters*,
-  // not the whole panel — a filleted body can still be moved.
+  // Narrower than the fillet's own radius allows: refused, nothing changes, the Fillet named.
+  await typeIntoField(page, 'inspector-param-size-x', 8)
+  const error = page.getByTestId('inspector-param-error')
+  await expect(error).toBeVisible()
+  await expect(error).toContainText(/Fillet/)
+  const [still] = await sceneBodies(page)
+  expect(sizeOf(still)[0]).toBeCloseTo(60, 1)
+  expect(still.volumeMm3).toBeCloseTo(resized.volumeMm3, 3)
+
+  // Transform is unaffected by any of this.
   await typeIntoField(page, 'inspector-position-x', 25)
   const [moved] = await sceneBodies(page)
   expect(moved.center[0]).toBeCloseTo(25, 1)
-  expect(moved.volumeMm3).toBeCloseTo(filleted.volumeMm3, 3)
+  expect(moved.volumeMm3).toBeCloseTo(resized.volumeMm3, 3)
 })
 
 test('a value the kernel rejects is shown in the panel and commits nothing', async ({ page }) => {

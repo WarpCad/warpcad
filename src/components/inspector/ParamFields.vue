@@ -38,10 +38,12 @@ const selection = useSelectionStore()
 const repairDialog = useRepairDialogStore()
 const paramCommands = useParamCommands()
 
-/** Plain-language names for the ops that can freeze a primitive's section. */
+/** Plain-language names for the ops whose result has no params of its own. */
 const BLOCKING_OP_LABELS = Object.freeze({
-  'modify.filletRim': 'Fillet',
-  'modify.chamferRim': 'Chamfer',
+  'boolean.union': 'Union',
+  'boolean.subtract': 'Subtract',
+  'boolean.intersect': 'Intersect',
+  'group.assemble': 'Group',
 })
 
 const isSubPart = computed(() => Boolean(props.body.subPart))
@@ -322,10 +324,8 @@ function onEnumChange(event, field) {
         they can't be changed here. Move, rotate and delete all work as usual.
       </template>
       <template v-else>
-        These parameters are read-only because this shape has
-        {{ blockingOpLabel ? `a ${blockingOpLabel}` : 'another operation' }} applied on top of it.
-        Changing a parameter rebuilds the shape from these numbers, which would throw that away —
-        so it is frozen rather than done quietly.
+        This shape is a {{ blockingOpLabel || 'combination' }} of other shapes, so it has no
+        parameters of its own. Select one of the shapes it was built from to change its size.
       </template>
     </p>
     <p v-else-if="editable && body.isRecipe" class="params__note" data-testid="inspector-params-recipe-note">

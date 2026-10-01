@@ -5,8 +5,10 @@ kind: finding
 priority: medium
 model: opus
 depends: [ui-052]
-status: open
+status: done
 ---
+
+> **What shipped (2026-10-01).** Decision confirmed with the user: lift `ui-029`'s fillet freeze. `paramEditability` now returns `path: 'replace'` for every standalone creation record; `paramEditRecord` builds a same-id replacement of the newest same-op record (so documents written before this task, which hold an appended rebuild, still edit correctly), and `useParamCommands` commits it through `documentStore.revise` after `impactOf`: one Undo step, no pose re-apply. A later rim op that no longer fits is **refused with the step named** (thrown into the Inspector's error line, nothing committed) rather than opening the repair dialog, since a resize removes no parts and a dialog has nothing to repair. `ParamFields.vue`'s read-only note now only covers Union/Subtract/Group roots. Docs: `docs/selection-and-inspector.md`. Tests: unit in `paramEdit.spec.js` and `useParamCommands.spec.js`; e2e in `inspector-param-edit.e2e.js` (fillet case rewritten) and `snap-align-operation.e2e.js` (snapped body follows).
 
 ## Problem
 
