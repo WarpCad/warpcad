@@ -53,6 +53,7 @@ import {
   removePart,
   snap,
 } from './group.js'
+import { label } from './text.js'
 import { LEGACY_SEGMENTS, rimSlicesFor, segmentsFor } from './tessellation.js'
 import { bolt } from './recipes/hardware.bolt.js'
 import { nut } from './recipes/hardware.nut.js'
@@ -735,6 +736,14 @@ export const registry = Object.freeze({
       { height: requirePositive(params.height, 'height', op) },
       profile
     )
+  }),
+
+  // TODO/render-002: `jscad-utils`' `label()` — a string as a thin extruded body.
+  // A native op taking `center` like a primitive, so the Library places it by the same
+  // `restingCenter` arithmetic. See text.js for why this is not `profile.extrudeLinear`.
+  'text.label': native(0, ({ params }) => label(params), {
+    label: 'Text',
+    defaults: { text: 'Label', size: 10, strokeWidth: 1.5, height: 2 },
   }),
 
   // ## A transform preserves what it is handed (TODO/core-024)

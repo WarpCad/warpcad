@@ -1500,3 +1500,16 @@ I hand-drove it at laptop width in Chromium: grow a cylinder from 50 to 80 mm ta
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** old append behaviour and 40→60 example → TODO/data-007 file text; fillet freeze removed → diff (paramEdit.js) and rewritten e2e; cylinder 50→80 moved cube from -40..0 to -55..-15 → hand drive this session
 **To Add:** screenshot of the error line for a fillet that no longer fits
+
+## [2026-10-01T17:55:00Z] — A Text row in the Library: drag a label in, retype it in the Inspector (TODO/render-002)
+
+**Post:** WarpCad now has a Text section in the Library. Drag the row into the 3D view and a raised label lands where you let go; then type your own wording in the Inspector and it rebuilds in place. Size, stroke width and height are editable too.
+
+The task file proposed reusing the existing profile-extrude op, on the assumption that JSCAD's text function returns a 2D shape. It doesn't. It returns open stroke polylines from a single-line font, which have no interior to extrude. So each stroke is thickened with a rectangular extrude and the pieces are unioned, which is what the V1 label helper did. The font's height parameter also isn't cap height (an "H" at 10 is 15 mm tall), so size is scaled to mean what the field says.
+
+An empty string is refused rather than producing an empty body, and the new row is covered by an end-to-end spec on Chromium and WebKit at phone, tablet and laptop widths. Built with Claude Code, reviewed by me.
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** vector_text open strokes, extrudeRectangular+union → src/core/kernel/text.js module doc and TODO/render-002 shipped note; "H" at 10 is 15 mm → node probe run this session; empty string refused → src/core/kernel/text.spec.js; Chromium+WebKit x 3 viewports → e2e run this session (28 passed, 2 skipped for no touch)
+**To Add:** screenshot of a placed label with the Inspector open

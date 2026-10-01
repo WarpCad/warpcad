@@ -109,6 +109,7 @@ const ROW_ORDER = Object.freeze([
   'raspberrypi.miniPiTFT',
   'raspberrypi.piTFT22',
   'raspberrypi.piTFT24',
+  'text.label',
 ])
 
 /**
@@ -130,6 +131,7 @@ const SECTION_DEFINITIONS = Object.freeze([
   Object.freeze({ id: 'hardware', title: 'Hardware' }),
   Object.freeze({ id: 'kit', title: 'Kit Parts' }),
   Object.freeze({ id: 'raspberrypi', title: 'Raspberry Pi' }),
+  Object.freeze({ id: 'text', title: 'Text' }),
 ])
 
 /**

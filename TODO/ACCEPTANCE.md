@@ -1021,6 +1021,8 @@ scenario itself, not a re-run of the checked-in e2e spec.
 
 **Last run**: 2026-09-30 17:58 UTC (`core-034`) — PASS at laptop 1440x900 Chromium: Cube and Cylinder dropped apart on wandering paths, both stayed, both listed. (Phone WebKit drive of this scenario was not valid: my script released the first drop over the bottom sheet; not a product finding, not claimed.)
 
+**Last run**: 2026-10-01 17:49 UTC (`render-002`) — PASS at laptop 1440x900 Chromium, real mouse with a jittery path: Cube then Text dropped apart, both stayed and were listed; the Text body was selected on drop and the Inspector showed its fields. (Selection-by-click of each body not re-driven; phone WebKit not hand-driven.)
+
 ### 2. Hardware property edit
 
 **Steps**:
@@ -1375,6 +1377,8 @@ person can actually perform. It was hand-driven at laptop 1440x900/Chromium and 
 **Re-checked**: 2026-09-26 11:50 UTC — **PARTIAL PASS, unchanged in kind, plus the Color row `ui-037` added now shows the Bolt's recipe colour state** (`render-003`). Step 2's own text names `color` alongside `spec`/`length`/`fit` as fields the Inspector should show. Driven at laptop 1440x900 Chromium: a dropped Bolt's Inspector shows the standing Color row reading **`Default`** with a theme-blue swatch, not any of the recipe's own `head`/`thread`/`tap` colours — correct and by design, since a Bolt has three differently-coloured parts and there is no single "whole body" colour to show (only a single-visible-part composite, like a Washer, gets a recipe colour in that row). The rendered mesh itself still shows its real per-part colours regardless of what the whole-body swatch reads. Steps 1 and 3-4 remain not driveable/not claimed for the same reason as every prior entry (no `spec`/`fit` enum editor yet). Console clean.
 
 **Re-checked**: 2026-09-29 21:18 UTC (`ui-052`) — **PASS, driven as written for the first time** (steps rewritten by this task: the old step 3 named `M2.5 Socket`, which is not in `boltSpecs`). Laptop 1440x900 Chromium (real mouse) and phone 390x844 WebKit (real taps). A Library Bolt showed `spec`/`fit` as native `<select>`s and `length` as a number box alongside Color and Transform. Spec `m10 hex` → `1/4 socket` rebuilt it in place (volume 2920.801 → 1070.340 mm³, still selected, same X/Y); the Fit list read `tap, close, loose` (every current spec has the same three); Length 30 grew it to 3697.259 mm³ with the head fixed and the thread longer. **Laptop only:** dragging the gizmo's X arrow updated Position X every frame (-22.63 → -17.84 … 25.27) and committed 25.27 on release, spec still `m12 hex`. Typing X=30 moved the mesh to 30.00 at both form factors. The touch gizmo drag was not re-driven by hand (untouched by this task; `gizmo-transform.e2e.js` covers it). Console clean.
+
+**Last run**: 2026-10-01 17:49 UTC (`render-002`) — PASS at laptop 1440x900 Chromium for the Inspector-edit half only: placed a Bolt and typed Length 30 + Enter, the field kept 30 and the body count stayed correct; two Undos then removed the bolt edit and the label retype in order. Steps 3 (Spec/Fit dropdowns) and 5-8 (gizmo) not re-driven.
 
 ### 3. Snap-placement of a kit assembly
 

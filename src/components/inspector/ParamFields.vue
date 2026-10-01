@@ -130,9 +130,23 @@ function displayValue(value, unit) {
   return unit === 'mm' ? formatMmValue(value) : String(value)
 }
 
+/**
+ * `text.label`'s string (TODO/render-002) — the only free-text param, so the only
+ * `text` field a user may edit; other text fields (a boolean shown as "true") stay
+ * read-only.
+ *
+ * @param {import('../../core/inspector.js').ParamField} field
+ */
+function isLabelText(field) {
+  return field.kind === 'text' && field.key === 'text'
+}
+
 /** @param {import('../../core/inspector.js').ParamField} field */
 function fieldEditable(field) {
-  return editable.value && (field.kind === 'number' || field.kind === 'vector' || field.kind === 'enum')
+  return (
+    editable.value &&
+    (field.kind === 'number' || field.kind === 'vector' || field.kind === 'enum' || isLabelText(field))
+  )
 }
 
 /**
@@ -161,7 +175,18 @@ function runEdit(edit, pending) {
  * @param {string} key
  */
 function commitParamField(event, key) {
-  const parsed = parseNumeric(/** @type {HTMLInputElement} */ (event.target).value)
+  const raw = /** @type {HTMLInputElement} */ (event.target).value
+  if (key === 'text') {
+    editingField.value = ''
+    if (!editable.value) return
+    // Unlike a number, an empty string is refused loudly rather than ignored, and the
+    // field is put back by hand since nothing the binding can see changed.
+    if (runEdit(() => paramCommands.setParam(props.body.id, key, raw), null)) {
+      /** @type {HTMLInputElement} */ (event.target).value = fieldValue(`param-${key}`, raw)
+    }
+    return
+  }
+  const parsed = parseNumeric(raw)
   editingField.value = ''
   if (parsed === null || !editable.value) return
   runEdit(() => paramCommands.setParam(props.body.id, key, parsed), null)
@@ -282,7 +307,7 @@ function onEnumChange(event, field) {
               class="params__input"
               :class="{ 'params__input--editable': fieldEditable(field) }"
               type="text"
-              inputmode="decimal"
+              :inputmode="field.kind === 'text' ? 'text' : 'decimal'"
               :readonly="!fieldEditable(field)"
               :data-testid="`inspector-param-${field.key}`"
               :aria-label="`${field.label}${field.unit === 'mm' ? ' in millimetres' : ''}`"

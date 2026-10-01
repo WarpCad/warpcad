@@ -149,18 +149,20 @@ describe('KIT_LIBRARY / RASPBERRYPI_LIBRARY — the rest of the catalogue (TODO/
     expect(RASPBERRYPI_LIBRARY).toHaveLength(12)
   })
 
-  it('groups the catalogue into four named sections rather than one long list', () => {
+  it('groups the catalogue into five named sections rather than one long list', () => {
     expect(LIBRARY_SECTIONS.map((section) => section.id)).toEqual([
       'primitive',
       'hardware',
       'kit',
       'raspberrypi',
+      'text',
     ])
     expect(LIBRARY_SECTIONS.map((section) => section.title)).toEqual([
       'Primitives',
       'Hardware',
       'Kit Parts',
       'Raspberry Pi',
+      'Text',
     ])
     expect(LIBRARY_SECTIONS[2].rows).toBe(KIT_LIBRARY)
     expect(LIBRARY_SECTIONS[3].rows).toBe(RASPBERRYPI_LIBRARY)

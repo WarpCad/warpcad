@@ -201,7 +201,7 @@ const PARAM_LABEL_OVERRIDES = Object.freeze({
 
 /** Params measured in millimetres. Anything else carries no unit. */
 const MM_PARAMS = Object.freeze(
-  new Set(['size', 'sides', 'diameter', 'innerDiameter', 'topDiameter', 'height', 'length'])
+  new Set(['size', 'sides', 'diameter', 'innerDiameter', 'topDiameter', 'height', 'length', 'strokeWidth'])
 )
 
 /**

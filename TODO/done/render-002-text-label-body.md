@@ -6,8 +6,21 @@ priority: low
 model: sonnet
 milestone: M7
 depends: [core-001]
-status: open
+status: done
 ---
+
+> **What actually shipped (2026-10-01).** Pulled forward at the user's request, scoped for
+> real. Two departures from the proposal below: (1) `vector_text()` returns **open stroke
+> polylines**, not a `geom2`, so `profile.extrudeLinear` could **not** be reused — `text.label`
+> thickens each stroke with `extrudeRectangular` and unions them (what V1's `label()` did with
+> `rectangular_extrude`), in a new `src/core/kernel/text.js`; (2) upstream's `height` is a
+> nominal font size (an "H" at 10 is 15 mm tall), so `size` is scaled to mean true cap height.
+> Params: `text`, `size`, `strokeWidth`, `height`. Empty/whitespace text **throws**. Interaction
+> model as scoped: 0 preconditions, drag from a new **Text** Library section, drop point =
+> centre, selected on drop; Inspector `Text` field is editable (`paramEdit` accepts a non-empty
+> string for `text`). Docs: `docs/primitive-placement.md` "Placing a text label". E2E:
+> `e2e/text-label-placement.e2e.js`. A `text.label` entry was added to the legacy tessellation
+> golden file (no existing hash changed; the op has no curves).
 
 ## Goal
 

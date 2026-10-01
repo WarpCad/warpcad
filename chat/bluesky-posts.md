@@ -1103,3 +1103,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** old behaviour (snapped cube stays at the old height) → TODO/data-007 Problem text; follows after resize, one Undo restores → unit tests and e2e run this session, hand drive at laptop Chromium (cube moved -55..-15 after cylinder height 80)
 **To Add:** short screen recording of the resize
+
+## [2026-10-01T17:55:00Z] — A Text row in the Library: drag a label in, retype it in the Inspector (TODO/render-002)
+
+**Post:** WarpCad's Library has a Text row now. Drag it in, type your own wording in the Inspector, and it rebuilds as a thin raised label. The JSCAD text function returns open strokes rather than shapes, so each stroke gets thickened and unioned. Built with Claude Code, reviewed by me. #CAD #OpenSource
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** vector_text returns open polylines, not geom2 → TODO/render-002 shipped note and src/core/kernel/text.js; retype rebuilds wider → e2e/text-label-placement.e2e.js run this session and hand drive at laptop Chromium ("Hi there" measured 59.67 mm wide)
+**To Add:** screenshot of a placed label with the Inspector open

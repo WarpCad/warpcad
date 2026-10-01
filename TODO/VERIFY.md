@@ -34,6 +34,15 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### render-002 — Text/label as a placed body (2026-10-01 17:49)
+
+Placed/retyped labels were driven on laptop Chromium and covered by the e2e matrix; what's left is feel and device behaviour that no scripted check judges.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | Is the default label (`Label`, size 10, stroke 1.5, height 2) legible and pleasant to click-select at default zoom — thin strokes are easy to miss with a click; does picking a label feel fiddly? | Open | |
+| 2 | Typing a label's wording on a real phone/iPad (software keyboard + the Inspector bottom sheet) — does the Text field commit on keyboard Done, not just Enter? | Open | |
+
 ### data-007 — Primitive resize: snapped dependents follow (2026-10-01 15:05)
 
 The scripted e2e covers the snap-follows and fillet-refusal cases at all three viewports; what it cannot judge is how the refusal reads on a phone.

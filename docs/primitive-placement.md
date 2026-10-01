@@ -3,7 +3,7 @@
 WarpCad builds parts out of solids. The quickest way to get your first solid into a
 project is to drag one out of the **Library** panel and drop it into the 3D view.
 
-The Library has four sections, and the gesture is identical in all of them:
+The Library has five sections, and the gesture is identical in all of them:
 
 - **Primitives** — the basic solids you shape a part out of: Cube, Cylinder, Cone,
   Hexagon, Triangle, Tube, Sphere.
@@ -12,6 +12,8 @@ The Library has four sections, and the gesture is identical in all of them:
 - **Kit Parts** — the general-purpose building blocks: Board, Board Frame, Anchor.
 - **Raspberry Pi** — real Raspberry Pi boards and accessories at their real
   dimensions: the board itself, cameras, HATs, the cooling fan and five screens.
+- **Text** — a word or label as a thin 3D solid, for naming a part or embossing a
+  mark.
 
 ## Where the Library panel is
 
@@ -157,6 +159,25 @@ A placed Raspberry Pi board's **Model** can be changed afterwards too, from the
 Inspector's dropdown — the board is rebuilt in place, and anything that depends on a part
 the new model lacks is caught before it breaks. See
 [Changing a part's model or size](selection-and-inspector.md#changing-a-parts-model-or-size).
+
+## Placing a text label
+
+The **Text** section, last in the Library, has one row: **Text**. It makes a flat,
+raised 3D label out of a string — handy for naming a part or marking a face.
+
+1. Scroll down to the **Text** section.
+2. Drag **Text** into the 3D view exactly the way you dragged a Cube and release.
+   A label reading **Label** lands where you let go, resting on the grid, selected.
+3. In the **Inspector**'s *Parameters* section, click the **Text** field, type your own
+   wording — say `Hello` — and press Enter. The label rebuilds in place at the new
+   width. (On a phone, close the Library sheet first so the Inspector is showing.)
+4. Adjust **Size** (the height of a capital letter), **Stroke width** (how thick each
+   line of a letter is) or **Height** (how far the label stands up), all in mm.
+
+Good to know: the lettering is a single-line stroke font, so letters are drawn with a
+constant-width stroke rather than outlined shapes. Only plain keyboard characters are
+supported — anything else shows as `?`. The Text field cannot be empty; an empty value
+is refused with a message and the label keeps its previous wording.
 
 ## Lining a shape up with one you already placed
 

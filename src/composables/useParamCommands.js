@@ -166,7 +166,7 @@ export function useParamCommands() {
    * and nothing is committed: the user shrinks the fillet first, or picks a size it fits.
    *
    * @param {string} bodyId
-   * @param {Record<string, number | readonly number[]>} changes
+   * @param {Record<string, number | string | readonly number[]>} changes
    * @returns {void}
    */
   function applyChanges(bodyId, changes) {
@@ -211,7 +211,7 @@ export function useParamCommands() {
       if (root !== undefined && registry[root.op]?.kind === 'composite') {
         return setCompositeParams(bodyId, { [key]: value })
       }
-      applyChanges(bodyId, { [key]: /** @type {number} */ (value) })
+      applyChanges(bodyId, { [key]: /** @type {number | string} */ (value) })
       return { committed: true }
     },
 

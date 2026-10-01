@@ -488,6 +488,11 @@ onBeforeUnmount(stopTracking)
     linear-gradient(140deg, var(--border-strong), var(--surface-1));
 }
 
+/* Text (TODO/render-002): a capital T in elevation, same clip-path technique. */
+.library__swatch[data-shape='text.label'] {
+  clip-path: polygon(0% 0%, 100% 0%, 100% 24%, 62% 24%, 62% 100%, 38% 100%, 38% 24%, 0% 24%);
+}
+
 /* Kit parts and Raspberry Pi (TODO/ui-031). Grouped by *silhouette* rather than
    one bespoke swatch per recipe: at 18px a board, a frame, a ring and a screen
    are the only shapes that actually read, and fifteen near-identical rounded

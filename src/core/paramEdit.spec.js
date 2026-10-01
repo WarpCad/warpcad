@@ -163,6 +163,28 @@ describe('paramEditRecord — the replacement creation record (TODO/data-007)', 
   })
 })
 
+describe('paramEditRecord — a string param (TODO/render-002)', () => {
+  /** @returns {ReturnType<typeof createDocument>} */
+  function withLabel() {
+    const document = createDocument({ registry: { ...fakeRegistry, 'text.label': fakeRegistry['primitive.cuboid'] } })
+    document.append(
+      { id: 'text-1', op: 'text.label', name: 'Text 1', params: { text: 'Label', size: 10, strokeWidth: 1.5, height: 2 } },
+      { origin: 'local' }
+    )
+    return document
+  }
+
+  it('accepts a new non-empty `text` and keeps every other param', () => {
+    const record = paramEditRecord(withLabel(), 'text-1', { text: 'Hello' })
+    expect(record?.params).toEqual({ text: 'Hello', size: 10, strokeWidth: 1.5, height: 2 })
+  })
+
+  it('refuses an empty `text`, and a string for a numeric key', () => {
+    expect(() => paramEditRecord(withLabel(), 'text-1', { text: '' })).toThrow(/text/)
+    expect(() => paramEditRecord(withLabel(), 'text-1', { size: 'big' })).toThrow(/finite number/)
+  })
+})
+
 describe('the editability guard — which roots have params of their own (TODO/ui-029, TODO/data-007)', () => {
   it('allows a lineage of nothing but transforms on a plain creation record', () => {
     expect(

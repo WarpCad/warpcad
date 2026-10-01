@@ -39,5 +39,6 @@
   "primitive.cylinder:d6": "10553:060c68fbbd7cbf1de3412c0979f6",
   "primitive.cylinder:d50": "10545:15703aea41c4270d47df2b9ad722",
   "modify.filletRim:cube": "30345:09e4aff332aa9e0be06c1e7253bd",
-  "boolean.subtract:cube-bore": "14517:1340e1d03e47b1011c8d21a791e6"
+  "boolean.subtract:cube-bore": "14517:1340e1d03e47b1011c8d21a791e6",
+  "text.label": "42668:0246215109cc5e1d5872eb1318fc"
 }

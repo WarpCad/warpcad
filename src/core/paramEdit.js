@@ -241,6 +241,13 @@ function sameValue(a, b) {
  * @returns {void}
  */
 function requireFiniteParam(key, value) {
+  // `text.label`'s string (TODO/render-002) is the one param that is not a number.
+  if (key === 'text') {
+    if (typeof value !== 'string' || value.trim() === '') {
+      throw new Error(`paramEdit: text must be a non-empty string, got ${JSON.stringify(value)}`)
+    }
+    return
+  }
   const values = Array.isArray(value) ? value : [value]
   for (const entry of values) {
     if (typeof entry !== 'number' || !Number.isFinite(entry)) {
@@ -266,7 +273,7 @@ function requireFiniteParam(key, value) {
  *
  * @param {WarpDocument} document
  * @param {string} bodyId Lineage root id.
- * @param {Record<string, number | readonly number[]>} changes Param keys to
+ * @param {Record<string, number | string | readonly number[]>} changes Param keys to
  *   override, with their complete new values (use {@link withComponent} to
  *   change one component of a vector).
  * @returns {OpRecord | null} `null` when nothing actually changes, so brushing a field
