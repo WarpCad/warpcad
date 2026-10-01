@@ -1474,3 +1474,16 @@ The browser test has no pixel-picking hook, so it checks the kernel-measured bod
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** holes were hidden parts only, original cut whole assembly → TODO/core-034 file text; covered recipes → diff; ~66 mm³ gap and e2e fails on old recipe → e2e run with bplus.js stashed, this session
 **To Add:** close-up screenshot of the drilled Pi 5
+
+## [2026-09-30T20:55:00Z] — A boolean's History row now names both operands (TODO/core-036)
+
+**Post:** A small one. In WarpCad, uniting a Cube and a Cylinder produced a History row that read "Union Cylinder 1". The Cube, the base, was missing. For Subtract it was worse: "Subtract Cylinder 1" reads as though the cylinder is being cut.
+
+The cause was a mismatch between writer and reader. The Operations toolbar stores the base as the record's target and only the remaining bodies as operands, but the label code printed operands alone. Its unit test passed because the fixture put every id in operands, a shape the app never writes. The new tests use the toolbar's real shape, and rows now read "Union Cylinder 1 + Cube 1", base first, including after a reload.
+
+Driven by hand in Chromium at laptop width and WebKit at phone width. Built with Claude Code, reviewed by me.
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** old and new row text, survives reload → hand drive this session; cause (target vs operands) and fixture shape → TODO/core-036 file text and diff; unit and typecheck green → test output this session (2392 tests)
+**To Add:** screenshot of the History panel

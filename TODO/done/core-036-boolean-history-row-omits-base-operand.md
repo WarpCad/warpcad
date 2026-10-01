@@ -5,8 +5,10 @@ kind: finding
 priority: medium
 model: sonnet
 depends: []
-status: open
+status: done
 ---
+
+> **Shipped as scoped.** `describeRow` now builds `[target, ...operands]` when `target` is set and falls back to `operands ?? consumes` otherwise. A hand drive showed the base is whichever body was selected first (a just-dropped body stays selected), so `Union Cylinder 1 + Cube 1` is correct for that order.
 
 ## Problem
 

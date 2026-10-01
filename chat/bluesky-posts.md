@@ -1085,3 +1085,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** holes were hidden parts only → TODO/core-034 file text; fan holes drilled → V1 bplus.js:761-788 read this session; board-only cut and still snappable → diff + e2e/unit runs this session (2390 unit tests passing)
 **To Add:** close-up screenshot of the drilled Pi 5 from above
+
+## [2026-09-30T20:55:00Z] — A boolean's History row now names both operands (TODO/core-036)
+
+**Post:** WarpCad's History row for a Union read "Union Cylinder 1". The base body was missing, and on Subtract that reads like the cylinder is the thing being cut. Rows now read "Union Cylinder 1 + Cube 1", base first. Built with Claude Code, reviewed by me. #CAD #OpenSource
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** old row "Union Cylinder 1" and new row "Union Cylinder 1 + Cube 1" → hand drive this session at laptop Chromium and phone WebKit; base missing because the toolbar writes it as target → TODO/core-036 file text and diff
+**To Add:** screenshot of the History panel

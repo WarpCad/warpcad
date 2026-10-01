@@ -67,6 +67,36 @@ describe('timeline row labels (TODO/ui-032)', () => {
     expect(describeRow(union, index)).toBe('Union Cube 1 + Cylinder 1')
   })
 
+  it('names the base first when the toolbar writes target + operands (core-036)', () => {
+    // The shape `OperationsToolbar.vue`'s `run()` really writes: the base is
+    // `target`, `operands` holds only the rest.
+    const union = {
+      id: 'union-3',
+      op: 'boolean.union',
+      target: 'cuboid-1',
+      operands: ['cylinder-2'],
+      consumes: ['cuboid-1', 'cylinder-2'],
+      name: 'Union 1',
+    }
+    const subtract = { ...union, id: 'sub-4', op: 'boolean.subtract' }
+    const index = buildNameIndex([cube, cylinder, union, subtract])
+    expect(describeRow(union, index)).toBe('Union Cube 1 + Cylinder 1')
+    expect(describeRow(subtract, index)).toBe('Subtract Cube 1 + Cylinder 1')
+  })
+
+  it('names every operand of a three-way group, base first, and accepts sub-part addresses', () => {
+    const group = {
+      id: 'group-5',
+      op: 'group.assemble',
+      target: 'cuboid-1',
+      operands: ['cylinder-2', { id: 'cuboid-1', pieces: 'usb1' }],
+      consumes: ['cuboid-1', 'cylinder-2'],
+    }
+    expect(describeRow(group, buildNameIndex([cube, cylinder, group]))).toBe(
+      'Group Cube 1 + Cylinder 1 + Cube 1'
+    )
+  })
+
   it('resolves a subject through a chain of supersessions back to the body name', () => {
     // A transform record carries no name of its own (`src/core/transform.js`
     // explains why), so a label that read the acting record would say

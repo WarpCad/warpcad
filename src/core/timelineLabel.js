@@ -186,7 +186,13 @@ export function describeRow(record, names) {
   // rather than pretending one of them is the subject — the same reasoning
   // `document.js`'s consumption note gives for not inheriting an operand's op.
   if (verb !== undefined && record.consumes !== undefined) {
-    const operands = (record.operands ?? record.consumes)
+    // `OperationsToolbar`'s `run()` writes the base as `target` and only the
+    // *rest* as `operands`, so the base leads; a record with no `target` (an
+    // MCP/older shape) falls back to `consumes`, which lists everything.
+    const refs = record.target !== undefined
+      ? [record.target, ...(record.operands ?? [])]
+      : (record.operands ?? record.consumes)
+    const operands = refs
       .map((ref) => nameOf(ref, index))
       .filter((name) => name !== undefined)
     return operands.length > 0 ? `${verb} ${operands.join(' + ')}` : verb

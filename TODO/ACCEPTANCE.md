@@ -2906,6 +2906,8 @@ Hosted half not driven (no scratch repo/token in this session). Console clean.
 
 **Re-checked**: 2026-09-30 15:50 UTC (`core-032`) — **steps 1-7 PASS at laptop 1440x900 Chromium only** (real mouse; hosted half not driven; phone WebKit not hand-driven, `e2e/open-pending.e2e.js` covers it by script). Cube + Cylinder unioned, reload restored one body with `Restored your last session`; Download copy, then a Sphere dragged in, then File ▾ → Open… of the saved file: Sphere gone, union back, chip `Opened <file> · 3 steps`, no lingering `file-open-pending`, console clean. The `Opening…` state was too brief on this tiny document for a 60 ms poll to see; it is asserted in-page by the new spec.
 
+**Last run**: 2026-09-30 18:50 UTC (`core-036`) — PASS for the History-row half, laptop 1440x900 Chromium and phone 390x844 WebKit (real mouse drags with a wobbly path; the Objects list for selection). Steps 1-5 only: Cube and Cylinder dropped overlapping, both selected (the just-dropped Cylinder stayed selected, so it was the base), Union pressed, History row read `Union Cylinder 1 + Cube 1` (was `Union Cylinder 1`, the base missing), and the identical three rows after a reload. File/hosted halves not driven. Console clean in both.
+
 ### 11. Export a solid and confirm it opens elsewhere
 
 Added 2026-09-17 alongside `TODO/ROADMAP.md`'s M6, same rule as scenario 10. Steps
@@ -3239,6 +3241,8 @@ Escape/backdrop dismissal, not the History replay/suppress/rollback mechanism th
 steps exercise, and that mechanism is unchanged by this diff.
 
 **Re-checked**: 2026-09-29 21:18 UTC (`ui-052`) — **PASS for steps 1-11 as written and step 12 via a variant**, laptop 1440x900 Chromium (mouse) and phone 390x844 WebKit (taps). Chamfer 5 → Edit 3 replayed (62 166.62 → 63 315.97 mm³, Sphere identical); Undo/Redo one step each; Suppress/Unsuppress; Roll back → Cone inserted at the marker → Roll forward; Sphere Move up then Undo. **Step 12 as written is no longer drivable, and that predates this task:** Fillet Top r4 on a cube whose top is already chamfered is refused at commit by `core-003`'s prismatic-rim check ("not prismatic over the rim band"), so there is no fillet to break. The same claim was driven the canonical `data-004` way instead: a second cube filleted r15, then its size edited to 20 mm in History, refused atomically as "Step 6 (Fillet Top (+Z) 15 mm on Cube 2) can't be built: … radius 15mm is wider than the cross-section can absorb", with the row chipped `broken` and no repair dialog (a primitive edit, not a composite one). A filleted cube's Parameters stayed frozen (`ui-029`). Console clean.
+
+**Last run**: 2026-09-30 18:50 UTC (`core-036`) — PASS for the History list read only (step 4's row text, via the Union row above), laptop Chromium and phone WebKit. Edit/Suppress/Roll back steps not re-driven: this change is a label string only.
 
 ### 13. Recolor a placed body
 
