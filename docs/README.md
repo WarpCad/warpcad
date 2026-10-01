@@ -24,6 +24,9 @@ themselves won't have to move.
   Transform section, on desktop and as a phone bottom sheet. Also the Inspector's
   **object list** and **Parts** section, for finding and selecting a shape (or one
   piece of it) you cannot click because it is inside another one.
+- [Bill of materials](bill-of-materials.md) — the Inspector's read-only tally of
+  the bolts, nuts, washers, bearings, kit parts and Raspberry Pi boards you've
+  placed, by size, updating as you add, change or delete them.
 - [Combining shapes: Union, Subtract and Intersect](booleans.md) — the
   Operations toolbar, why its buttons stay dimmed until two shapes are selected,
   and how to tell which shape Subtract is about to cut.

@@ -126,6 +126,7 @@ import { useHiddenPartVisibilityStore } from '../../stores/hiddenPartVisibility.
 import { useAlignReferenceStore } from '../../stores/alignReference.js'
 import AlignToOrigin from './AlignToOrigin.vue'
 import ObjectList from './ObjectList.vue'
+import BillOfMaterials from '../display/BillOfMaterials.vue'
 import DeleteButton from './DeleteButton.vue'
 import ParamFields from './ParamFields.vue'
 import DependentsBanner from './DependentsBanner.vue'
@@ -725,6 +726,10 @@ watch([() => body.value?.id, colorPart], () => {
           <ObjectList @select-intent="onListIntent" />
         </div>
       </section>
+
+      <!-- The Bill of Materials (TODO/ui-038): read-only, selection-independent, hidden
+           until a hardware / kit / Pi part is placed. -->
+      <BillOfMaterials v-if="panelState !== 'sketch'" />
 
       <!-- A sketch entity (TODO/ui-020). Its own branch, not a variation on the
            body one: there is no registry `ui.defaults` schema to read, no

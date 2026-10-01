@@ -6,8 +6,10 @@ priority: low
 model: sonnet
 milestone: M7
 depends: [ui-030]
-status: open
+status: done
 ---
+
+> **Shipped note.** Landed as scoped, with the panel folded into the Inspector as a section (`display/BillOfMaterials.vue`) rather than a standalone panel. The tally is a pure `src/core/bom.js` (a `useBillOfMaterials` composable is only the reactive seam); `BodySummary` gained a plain-JSON `params` field so the BOM never reaches into the raw document. Rows key on op + spec (+ length for bolts/screws, width × height for kit parts, model for Pis); `fit` is deliberately ignored. The e2e is Chromium-only at all three viewports. Clicking a row to select its bodies was considered and not built.
 
 ## Goal
 

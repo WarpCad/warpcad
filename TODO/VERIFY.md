@@ -34,6 +34,16 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### ui-038 — Bill-of-Materials panel (2026-10-01 20:48)
+
+The tally itself is covered by unit and e2e specs; these are the judgment calls they cannot make.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | At 390px with several part types placed, does the BOM section push the Inspector's selected-body detail too far down the sheet? (It sits above the breadcrumb and is open by default.) | Open | |
+| 2 | Is `Bolt M10 hex × 20 mm` the right wording for a shopping-list line, or should the fit or a Pi's model read differently? | Open | |
+
+
 ### render-002 — Text/label as a placed body (2026-10-01 17:49)
 
 Placed/retyped labels were driven on laptop Chromium and covered by the e2e matrix; what's left is feel and device behaviour that no scripted check judges.

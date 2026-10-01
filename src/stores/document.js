@@ -45,6 +45,9 @@ import { useSelectionStore } from './selection.js'
  * @property {string} id
  * @property {string} name
  * @property {string} op
+ * @property {Record<string, any>} params What the body *is* (`Body.params`) — plain JSON,
+ *   added by `TODO/ui-038` so the Bill of Materials can group bodies by spec without
+ *   reaching into the raw document.
  * @property {[number, number, number]} center Millimetres, Z-up.
  * @property {[[number, number, number], [number, number, number]]} bounds
  *   World-axis-aligned `[min, max]`, millimetres — added by `TODO/ui-027`,
@@ -166,6 +169,7 @@ export function summarizeBody(body) {
     id: body.id,
     name: body.name,
     op: body.op,
+    params: body.params,
     center: /** @type {[number, number, number]} */ ([
       (min[0] + max[0]) / 2,
       (min[1] + max[1]) / 2,

@@ -1023,6 +1023,8 @@ scenario itself, not a re-run of the checked-in e2e spec.
 
 **Last run**: 2026-10-01 17:49 UTC (`render-002`) — PASS at laptop 1440x900 Chromium, real mouse with a jittery path: Cube then Text dropped apart, both stayed and were listed; the Text body was selected on drop and the Inspector showed its fields. (Selection-by-click of each body not re-driven; phone WebKit not hand-driven.)
 
+**Last run**: 2026-10-01 20:45 UTC (`ui-038`) — PASS at laptop 1440x900 Chromium, real mouse with a wobbly path: Cube and Sphere dropped apart, both stayed (count 2); a Bolt then dropped, count 3, the Inspector showed Bolt 1 with the new Bill of materials section above it, console clean. (Phone not hand-driven; the new e2e covers phone Chromium.)
+
 ### 2. Hardware property edit
 
 **Steps**:
