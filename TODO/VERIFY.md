@@ -34,6 +34,15 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### ui-039 — Mirror (2026-10-01 21:12)
+
+Scenario 16 covers the reflect, original-untouched and selection behaviour. What it doesn't judge is how the control reads.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | The ⇋ glyph on the Mirror button reads as "mirror" next to ⤢ ⇱ ✂, and the toolbar still fits at 390px without wrapping badly | Open | |
+| 2 | Blank plane position on a symmetric shape adds an invisible copy sitting on the original — is the popover hint enough, or should it warn on commit? | Open | |
+
 ### ui-038 — Bill-of-Materials panel (2026-10-01 20:48)
 
 The tally itself is covered by unit and e2e specs; these are the judgment calls they cannot make.

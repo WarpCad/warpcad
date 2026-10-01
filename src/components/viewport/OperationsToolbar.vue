@@ -299,7 +299,7 @@
  */
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 
-import { DEFAULT_ROTATE_AXIS } from '../../core/kernel/group.js'
+import { DEFAULT_ROTATE_AXIS, mirrorRotationDeg } from '../../core/kernel/group.js'
 import { useDocumentStore } from '../../stores/document.js'
 import { useOverlaysStore } from '../../stores/overlays.js'
 import { useSelectionStore } from '../../stores/selection.js'
@@ -665,7 +665,7 @@ const canCommitFilletChamfer = computed(
 
 /** Which popover is open, or none. */
 const openPopover = ref(
-  /** @type {'group.snap' | 'group.align' | 'modify.filletRim' | 'modify.chamferRim' | 'modify.enlarge' | 'modify.fit' | 'modify.bisect' | null} */ (
+  /** @type {'group.snap' | 'group.align' | 'modify.filletRim' | 'modify.chamferRim' | 'modify.enlarge' | 'modify.fit' | 'modify.bisect' | 'transform.mirror' | null} */ (
     null
   ),
 )
@@ -975,7 +975,7 @@ watch(selectedOperands, () => {
  * @returns {boolean}
  */
 function isExactOneOp(op) {
-  return isFilletChamferOp(op) || isResizeOp(op)
+  return isFilletChamferOp(op) || isResizeOp(op) || op === 'transform.mirror'
 }
 
 // If the selection stops being exactly 2 while a popover is open — a third
@@ -1316,6 +1316,103 @@ function commitResize() {
   selection.select(onlyId)
   closePopover()
 }
+
+// --- Mirror (TODO/ui-039) ---------------------------------------------------
+
+/** The Mirror button (`TODO/ui-039`) — its own constant, not a row in a shared list. */
+const MIRROR_OPERATION = Object.freeze({
+  op: 'transform.mirror',
+  label: 'Mirror',
+  glyph: '⇋',
+  hint: 'Add a reflected copy across an axis plane',
+})
+
+
+/** Mirror's plane normal — defaults to the first axis on every open. */
+const mirrorAxis = ref(/** @type {'x' | 'y' | 'z'} */ (AXES[0]))
+
+/**
+ * Where the mirror plane sits along {@link mirrorAxis}, mm. Defaults to `0` (the
+ * world plane), not blank: a blank value falls back to the body's own centre in
+ * the kernel, and a symmetric body mirrored about its own centre lands exactly
+ * on itself, so a default of "centre" would make the first commit look like
+ * nothing happened (`core-028`'s retirement note). Blank stays reachable on
+ * purpose — it is how a user asks for the centre.
+ */
+const mirrorPlaneMm = ref(/** @type {number | null} */ (0))
+
+/**
+ * Open the Mirror popover, or close it if its own button is clicked again.
+ *
+ * @returns {void}
+ */
+function toggleMirrorPopover() {
+  if (exactOneDisabled.value) return
+  if (openPopover.value === 'transform.mirror') {
+    openPopover.value = null
+    return
+  }
+  opError.value = null
+  mirrorAxis.value = AXES[0]
+  mirrorPlaneMm.value = 0
+  openPopover.value = 'transform.mirror'
+}
+
+/**
+ * Commit Mirror.
+ *
+ * Deliberately **not** `supersedes`-based, unlike every other exactly-1 control
+ * on this toolbar (Fillet, Chamfer, Enlarge, Fit, Bisect): those edit one body
+ * in place, so the lineage root — and the selection — stay valid. Mirror
+ * appends a record with `target` and *neither* `supersedes` nor `consumes`,
+ * which `document.js` treats as a brand-new lineage root: the source body is
+ * untouched and a second one appears (`core-028`'s retirement note). The new
+ * body is then selected, matching a library drop and a boolean result.
+ *
+ * @returns {void}
+ */
+function commitMirror() {
+  if (openPopover.value !== 'transform.mirror' || exactOneDisabled.value) return
+  const onlyId = selection.onlyId
+  if (!onlyId) return
+
+  const axis = mirrorAxis.value
+  const targetId = documentStore.raw.currentIdOf(onlyId) ?? onlyId
+  const source = documentStore.raw.bodies().find((candidate) => candidate.id === onlyId)
+  const plane = mirrorPlaneMm.value
+  const hasPlane = typeof plane === 'number' && Number.isFinite(plane)
+  /** @type {[number, number, number]} */
+  const pointMm = [0, 0, 0]
+  pointMm[AXES.indexOf(axis)] = hasPlane ? plane : 0
+
+  const id = documentStore.raw.nextId('mirror')
+  /** @type {import('../../core/kernel/registry.js').OpRecord} */
+  const record = {
+    id,
+    op: 'transform.mirror',
+    name: documentStore.raw.nextName('Mirror'),
+    target: targetId,
+    params: {
+      axis,
+      // Omitted when blank, so the kernel's own default (the body's centre) applies.
+      ...(hasPlane ? { pointMm } : {}),
+      // Without this the copy of a turned part reports a zero rotation and its
+      // dimension lines measure the shadow of the box, not the part.
+      rotation: mirrorRotationDeg(source?.rotationDeg ?? [0, 0, 0], axis),
+    },
+  }
+
+  try {
+    documentStore.append(record, { origin: 'local' })
+  } catch (error) {
+    opError.value = error instanceof Error ? error.message : String(error)
+    return
+  }
+
+  // The new lineage root's id is the record's own id.
+  selection.select(id)
+  closePopover()
+}
 </script>
 
 <template>
@@ -1427,6 +1524,24 @@ function commitResize() {
       >
         <span class="ops__glyph" aria-hidden="true">{{ operation.glyph }}</span>
         <span class="ops__label">{{ operation.label }}</span>
+      </button>
+
+      <!-- Mirror (TODO/ui-039): exactly-1-gated like the buttons above, but its
+           commit adds a second body rather than editing this one — see
+           `commitMirror`. -->
+      <button
+        type="button"
+        class="ops__btn"
+        :disabled="exactOneDisabled"
+        data-testid="operation-mirror"
+        data-op="transform.mirror"
+        :aria-expanded="openPopover === 'transform.mirror'"
+        :title="exactOneTitleFor(MIRROR_OPERATION)"
+        :aria-label="exactOneTitleFor(MIRROR_OPERATION)"
+        @click="toggleMirrorPopover"
+      >
+        <span class="ops__glyph" aria-hidden="true">{{ MIRROR_OPERATION.glyph }}</span>
+        <span class="ops__label">{{ MIRROR_OPERATION.label }}</span>
       </button>
     </div>
 
@@ -1674,6 +1789,43 @@ function commitResize() {
             @click="commitResize"
           >
             {{ RESIZE_OPERATIONS.find((operation) => operation.op === openPopover)?.label }}
+          </button>
+        </div>
+      </div>
+
+      <div
+        v-else-if="openPopover === 'transform.mirror'"
+        class="ops__popover"
+        data-testid="mirror-popover"
+        data-op="transform.mirror"
+      >
+        <p class="ops__popover-note">
+          Adds a reflected <strong>copy</strong> on the other side of a plane.
+          The original stays exactly where it is; the copy becomes the selection.
+        </p>
+        <label class="ops__popover-field">
+          Mirror across
+          <select v-model="mirrorAxis" data-testid="mirror-axis">
+            <option v-for="axis in AXES" :key="axis" :value="axis">{{ axis.toUpperCase() }} plane</option>
+          </select>
+        </label>
+        <label class="ops__popover-field">
+          Plane position (mm)
+          <input type="number" v-model.number="mirrorPlaneMm" data-testid="mirror-plane" />
+        </label>
+        <p class="ops__popover-hint">
+          0 is the world plane. Clearing it mirrors about the shape's own
+          centre — a symmetric shape then lands exactly on itself.
+        </p>
+        <p v-if="opError" class="ops__popover-error" data-testid="mirror-error">
+          {{ opError }}
+        </p>
+        <div class="ops__popover-actions">
+          <button type="button" class="ops__popover-cancel" data-testid="mirror-cancel" @click="closePopover">
+            Cancel
+          </button>
+          <button type="button" class="ops__popover-commit" data-testid="mirror-commit" @click="commitMirror">
+            Mirror
           </button>
         </div>
       </div>

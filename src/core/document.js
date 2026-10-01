@@ -769,6 +769,7 @@ const STEP_VERBS = Object.freeze({
   'modify.enlarge': 'Resize',
   'modify.fit': 'Fit',
   'modify.bisect': 'Bisect',
+  'transform.mirror': 'Mirror',
   'style.recolor': 'Recolor',
   'body.delete': 'Delete',
 })

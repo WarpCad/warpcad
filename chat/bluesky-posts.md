@@ -1112,3 +1112,22 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** vector_text returns open polylines, not geom2 → TODO/render-002 shipped note and src/core/kernel/text.js; retype rebuilds wider → e2e/text-label-placement.e2e.js run this session and hand drive at laptop Chromium ("Hi there" measured 59.67 mm wide)
 **To Add:** screenshot of a placed label with the Inspector open
+
+## [2026-10-01T20:50:00Z] — Bill of materials in the Inspector (TODO/ui-038)
+
+**Post:** WarpCad now keeps a running bill of materials. Place three M4 bolts and a washer and the Inspector lists "Bolt M4 × 12 mm × 3" and "Washer M6 × 1", updating as you add or delete. Bolt fit is ignored on purpose: loose and tight are the same part you'd buy. Built with Claude Code, reviewed by me. #CAD #OpenSource
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** tally keys on spec and length, fit ignored → src/core/bom.js and src/core/bom.spec.js; updates live on add/delete → e2e/bill-of-materials.e2e.js run this session (9 passed at three viewports, Chromium)
+**To Add:** screenshot of the Inspector with a BOM section
+
+## [2026-10-01T21:15:00Z] — Mirror, a reflected copy across an axis plane (TODO/ui-039)
+
+**Post:** WarpCad has a Mirror button. Select one shape, pick X, Y or Z and a plane position, and a reflected copy appears on the far side while the original stays put and the copy becomes the selection. Plane defaults to the world origin, since mirroring a cube about its own centre just lands it on itself. Built with Claude Code, reviewed by me.
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** copy added, original untouched, copy selected → e2e/mirror-operation.e2e.js (9 passed at laptop, tablet, phone) and hand drive at laptop Chromium (sphere centre 35.99,81.26 → 35.99,-81.26); symmetric body lands on itself → TODO/done/core-028 shipped note
+**To Add:** screenshot of the popover with a copy placed
+

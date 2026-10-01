@@ -73,6 +73,7 @@ const RELATIONSHIP_VERBS = Object.freeze({
   'modify.bisect': 'Bisect',
   'transform.translate': 'Move',
   'transform.rotate': 'Rotate',
+  'transform.mirror': 'Mirror',
   'group.assemble': 'Group',
 })
 

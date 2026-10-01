@@ -1513,3 +1513,30 @@ An empty string is refused rather than producing an empty body, and the new row 
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** vector_text open strokes, extrudeRectangular+union → src/core/kernel/text.js module doc and TODO/render-002 shipped note; "H" at 10 is 15 mm → node probe run this session; empty string refused → src/core/kernel/text.spec.js; Chromium+WebKit x 3 viewports → e2e run this session (28 passed, 2 skipped for no touch)
 **To Add:** screenshot of a placed label with the Inspector open
+
+## [2026-10-01T20:50:00Z] — Bill of materials in the Inspector (TODO/ui-038)
+
+**Post:** WarpCad's Inspector now has a Bill of materials section. It tallies every placed hardware, kit and Raspberry Pi part by what it is, so three M4 x 12 mm bolts and a washer read as two lines with counts, and the list follows as you place, resize or delete parts.
+
+The tally is a pure function over the same body summaries the scene already announces, so it can't disagree with the picture and adds nothing to the saved document. Bolts and screws are keyed by size and length; fit (loose or tight) is ignored because it changes the clearance solid, not the part you would buy.
+
+Placing two bolts then a washer, deleting the washer, and folding the section are all covered by a new spec at phone, tablet and laptop widths. Built with Claude Code, reviewed by me.
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #Vue #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** pure tally, nothing saved → src/core/bom.js (diff); fit ignored → bom.spec.js test and docs/bill-of-materials.md; three-viewport spec → e2e/bill-of-materials.e2e.js, 9 passed this session
+**To Add:** screenshot of the Inspector with a BOM section
+
+## [2026-10-01T21:15:00Z] — Mirror, a reflected copy across an axis plane (TODO/ui-039)
+
+**Post:** WarpCad's Operations toolbar now has Mirror. Select a shape, choose X, Y or Z and where the plane sits, and a reflected copy is added. It is the first single-selection operation on that toolbar that creates a second body instead of editing the one you picked, so the original is untouched and the new copy is what ends up selected.
+
+The plane position defaults to the world origin rather than the shape's own centre. A symmetric part mirrored about its own centre lands exactly on itself, so a centre default would make the first click look like nothing happened. Clearing the field gets the centre behaviour back, and a mirrored Bolt copies only its own parts.
+
+Docs are in docs/mirror.md, and Undo removes only the copy. Built with Claude Code, reviewed by me.
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource #WebGL
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** first creation-shaped exactly-1 op → TODO/done/ui-039 and OperationsToolbar.vue diff; Bolt copy holds only its own parts (volume 2920.801 equal to the bolt's, cube not absorbed) → hand drive this session; Undo removes only the copy → e2e/mirror-operation.e2e.js
+**To Add:** screenshot of the popover with a copy placed
+

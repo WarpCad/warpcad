@@ -6,8 +6,19 @@ priority: medium
 model: sonnet
 milestone: M7
 depends: [core-028, render-001]
-status: open
+status: done
 ---
+
+> **What shipped (2026-10-01):** as scoped. Mirror is a button on the Operations toolbar (exactly-1
+> gate, shared with Fillet/Enlarge/Bisect) opening its own `mirror-popover` with an axis select and a
+> **Plane position (mm)** field rather than a free point override. **Divergence:** the plane defaults
+> to `0` (world plane), not the body centre, because `core-028` warned a symmetric body mirrored about
+> its own centre lands invisibly on itself; clearing the field omits `pointMm` and gets the centre.
+> Commit appends `{ op: 'transform.mirror', name, target, params: { axis, pointMm?, rotation } }`
+> with no `supersedes`/`consumes`, selects the copy, and sets `rotation` via `mirrorRotationDeg`.
+> `'transform.mirror': 'Mirror'` added to the three verb tables. Docs: new `docs/mirror.md`. New
+> acceptance scenario 16. The unit baseline was not run before the first edit; the full unit suite
+> was green afterwards.
 
 ## Goal
 

@@ -865,3 +865,127 @@ describe('OperationsToolbar — operands chosen from the Objects list (TODO/ui-0
     expect(enabledDrilled).toEqual(enabledWhole)
   })
 })
+
+/**
+ * Mirror (`TODO/ui-039`) — the toolbar's first exactly-1 control whose commit
+ * produces a **second** body instead of mutating one in place. Every assertion
+ * that distinguishes it from Fillet/Enlarge/Bisect is a body-count or
+ * selection-identity one, which is why those two are what these cases pin.
+ */
+describe('OperationsToolbar — Mirror (TODO/ui-039)', () => {
+  /** @type {ReturnType<typeof useDocumentStore>} */
+  let documentStore
+  /** @type {ReturnType<typeof useSelectionStore>} */
+  let selection
+
+  beforeEach(() => {
+    setActivePinia(createPinia())
+    documentStore = useDocumentStore()
+    selection = useSelectionStore()
+  })
+
+  /** A 10mm cube off-centre in Y, so a mirror about Y's world plane visibly moves it. */
+  function placeOffCentreCube(id = 'cube-1') {
+    documentStore.append(
+      { id, op: 'primitive.cuboid', name: 'Cube 1', params: { size: [10, 10, 10], center: [0, 20, 5] } },
+      { origin: 'local' },
+    )
+  }
+
+  function body() {
+    return new DOMWrapper(document.body)
+  }
+
+  it('is disabled at 0 and 2+ selected, enabled at exactly 1', async () => {
+    placeOffCentreCube('cube-1')
+    placeOffCentreCube('cube-2')
+    const wrapper = mount(OperationsToolbar)
+    const mirror = wrapper.get('[data-testid="operation-mirror"]')
+    expect(mirror.attributes('disabled')).toBeDefined()
+
+    selection.select('cube-1')
+    await wrapper.vm.$nextTick()
+    expect(mirror.attributes('disabled')).toBeUndefined()
+
+    selection.toggle('cube-2')
+    await wrapper.vm.$nextTick()
+    expect(mirror.attributes('disabled')).toBeDefined()
+  })
+
+  it('commits a creation-shaped record: target set, no supersedes/consumes, body count 1 -> 2', async () => {
+    placeOffCentreCube()
+    selection.select('cube-1')
+    const wrapper = mount(OperationsToolbar)
+    const appendSpy = vi.spyOn(documentStore, 'append')
+    const before = documentStore.bodies[0]
+
+    await wrapper.get('[data-testid="operation-mirror"]').trigger('click')
+    expect(body().find('[data-testid="mirror-popover"]').exists()).toBe(true)
+    await body().get('[data-testid="mirror-axis"]').setValue('y')
+    await body().get('[data-testid="mirror-commit"]').trigger('click')
+
+    const [record, transaction] = appendSpy.mock.calls[0]
+    expect(record.op).toBe('transform.mirror')
+    expect(record.target).toBe('cube-1')
+    expect(record).not.toHaveProperty('supersedes')
+    expect(record).not.toHaveProperty('consumes')
+    expect(record.name).toEqual(expect.any(String))
+    expect(record.params?.axis).toBe('y')
+    expect(record.params?.pointMm).toEqual([0, 0, 0])
+    expect(record.params?.rotation).toEqual([0, 0, 0])
+    expect(transaction).toEqual({ origin: 'local' })
+
+    expect(documentStore.bodies).toHaveLength(2)
+    const original = documentStore.bodies.find((b) => b.id === 'cube-1')
+    const copy = documentStore.bodies.find((b) => b.id !== 'cube-1')
+    // The original is exactly where it was; the copy is reflected across Y = 0.
+    expect(original?.bounds).toEqual(before.bounds)
+    expect(copy?.center[0]).toBeCloseTo(0, 6)
+    expect(copy?.center[1]).toBeCloseTo(-20, 6)
+    expect(copy?.center[2]).toBeCloseTo(5, 6)
+    // The new body is selected, the original deselected (core-028's note).
+    expect(selection.ids).toEqual([copy?.id])
+    expect(body().find('[data-testid="mirror-popover"]').exists()).toBe(false)
+  })
+
+  it('a blank plane position omits pointMm so the kernel defaults to the body centre', async () => {
+    placeOffCentreCube()
+    selection.select('cube-1')
+    const wrapper = mount(OperationsToolbar)
+    const appendSpy = vi.spyOn(documentStore, 'append')
+
+    await wrapper.get('[data-testid="operation-mirror"]').trigger('click')
+    await body().get('[data-testid="mirror-axis"]').setValue('x')
+    await body().get('[data-testid="mirror-plane"]').setValue('')
+    await body().get('[data-testid="mirror-commit"]').trigger('click')
+
+    expect(appendSpy.mock.calls[0][0].params ?? {}).not.toHaveProperty('pointMm')
+  })
+
+  it('a plane position lands on the chosen axis only', async () => {
+    placeOffCentreCube()
+    selection.select('cube-1')
+    const wrapper = mount(OperationsToolbar)
+    const appendSpy = vi.spyOn(documentStore, 'append')
+
+    await wrapper.get('[data-testid="operation-mirror"]').trigger('click')
+    await body().get('[data-testid="mirror-axis"]').setValue('z')
+    await body().get('[data-testid="mirror-plane"]').setValue(7)
+    await body().get('[data-testid="mirror-commit"]').trigger('click')
+
+    expect(appendSpy.mock.calls[0][0].params?.pointMm).toEqual([0, 0, 7])
+  })
+
+  it('closes itself if the selection stops being exactly one while open', async () => {
+    placeOffCentreCube('cube-1')
+    placeOffCentreCube('cube-2')
+    selection.select('cube-1')
+    const wrapper = mount(OperationsToolbar)
+    await wrapper.get('[data-testid="operation-mirror"]').trigger('click')
+    expect(body().find('[data-testid="mirror-popover"]').exists()).toBe(true)
+
+    selection.toggle('cube-2')
+    await wrapper.vm.$nextTick()
+    expect(body().find('[data-testid="mirror-popover"]').exists()).toBe(false)
+  })
+})

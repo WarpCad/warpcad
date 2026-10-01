@@ -87,6 +87,7 @@ const VERBS = Object.freeze({
   'modify.enlarge': 'Resize',
   'modify.fit': 'Fit',
   'modify.bisect': 'Bisect',
+  'transform.mirror': 'Mirror',
   'body.delete': 'Delete',
 })
 

@@ -1025,6 +1025,8 @@ scenario itself, not a re-run of the checked-in e2e spec.
 
 **Last run**: 2026-10-01 20:45 UTC (`ui-038`) — PASS at laptop 1440x900 Chromium, real mouse with a wobbly path: Cube and Sphere dropped apart, both stayed (count 2); a Bolt then dropped, count 3, the Inspector showed Bolt 1 with the new Bill of materials section above it, console clean. (Phone not hand-driven; the new e2e covers phone Chromium.)
 
+**Last run**: 2026-10-01 21:12 UTC (`ui-039`) — PASS at laptop 1440x900 Chromium and phone 390x844 WebKit, real mouse with a wobbly path: Cube and Sphere dropped apart, both stayed (centres and volumes unchanged by the Mirror that followed). Console clean.
+
 ### 2. Hardware property edit
 
 **Steps**:
@@ -3391,3 +3393,24 @@ condition chip (`timeline-condition-chip`), and the header's **Undo**.
   reverse one Apply.
 
 **Last run**: 2026-09-29 21:18 UTC (`ui-052`), **first drive** — **PASS**, at laptop 1440x900 Chromium (real mouse, wobbly drags) and phone 390x844 WebKit (real taps, touch drags), every step as written, plus mistakes on purpose. Snap by the object list (Cube check, Pi ▸ `avjack` check, Snap on X/Y/Z): the popover read "Snapping Cube 1 to Raspberry Pi 1 › avjack". Model → Pi 5 held the change: "This change affects 1 item · Cube 1 · Snap → avjack · Pi 5 has no part named `avjack`", Fix options Only when… / Remap / Detach / Leave broken (default Leave broken), and the select dashed as pending. **Escape** (laptop) and **Cancel** both left a Pi 4 with the cube exactly where it was. Detach kept the cube at exactly -76.10, -16.36, -17.38 on the Pi 5; one Undo gave back the Pi 4 and the snap. Leave broken showed both banners, and the cube stayed visible. Resolve… → Remap `ethernet` moved the cube onto the jack and cleared both banners. Only when (scope defaulted to "The whole Cube 1"): the cube left the view with no warning; back to Pi 4 it returned to exactly the snapped position with no dialog; after a reload on a Pi 5 it was still absent, History showed `if Raspberry Pi 1 = Pi 4` twice with no `broken` chip, the object list listed it greyed, and tapping it opened "Only when Raspberry Pi 1's Model is Pi 4". At phone width the dialog is a full-height sheet with full-width selects and Apply/Cancel pinned at the bottom, with no horizontal scroll. **Found and fixed during these drives:** (1) with the Pi selected *first*, it snapped *by* its own AV jack onto the cube, and Only when (whole body) would have conditioned the Pi on itself (a Pi 5 deleting itself) while Leave broken gave it no banner; now only "This operation only" is offered for its own row, and the banner appears. (2) After Leave broken the cube's mesh stayed at the snapped pose while its bounds, gizmo and Inspector moved back (the viewport's mesh cache was keyed on the record id alone; see `TROUBLESHOOTING.md` 2026-09-29). (3) An inactive cube selected from the list left Fillet/Chamfer/Enlarge/Fit/Bisect enabled; they are now disabled with "not built — its condition doesn't hold". Console clean in every drive.
+
+### 16. Mirror a body
+
+Added 2026-10-01 with `ui-039`, per this file's new-capability-class rule: Mirror is the
+first exactly-1 Operation whose result is a *second* body rather than an edit in place, so
+it earns its own scenario instead of folding into 1 or 13.
+
+**Steps**:
+1. Place a cube off to one side of the origin, and a sphere apart from it.
+2. Select the sphere. On the Operations toolbar click Mirror, choose Y, leave the plane at 0
+   and commit. Change the axis a couple of times before committing.
+3. Confirm the scene now holds three bodies: the cube and sphere exactly where they were, plus
+   a second sphere on the opposite side of the Y plane, and that the new one is the selection.
+4. Undo once: only the copy goes. Redo brings it back.
+5. Place a Bolt (Library, Hardware), select it and mirror it across X. The copy must be a whole
+   bolt and must not swallow the original or the cube.
+
+**Expect**: Body count goes up by exactly one per Mirror; no existing body moves; the copy is
+selected; History reads `Mirror <name>`; a mirrored composite keeps only its own parts.
+
+**Last run**: 2026-10-01 21:12 UTC (`ui-039`, **first drive**) — PASS at laptop 1440x900 Chromium (real mouse, wobbly drags; axis changed X then Y before committing). Steps 1-3: Cube and Sphere placed, Mirror about Y at 0 added `Mirror 1` at exactly the negated Y of the sphere (35.99,81.26 became 35.99,-81.26, same volume 33271.771), the originals' centres byte-identical, the copy selected. Step 5 (the `core-020` repro): Bolt mirrored across X gave a copy of volume 2920.801, equal to the bolt's own, and the Cube was not absorbed. Undo is covered by the new e2e at all three viewports; the History label (`Mirror Cube 1`) was checked directly rather than through the panel. **Mistake on purpose:** blank plane on a symmetric sphere still adds a body, sitting exactly on the original (invisible), which the popover's hint says. Phone WebKit: Mirror on a dropped sphere PASS; the Bolt drop in my throwaway drive script missed the Library sheet, so step 5 was driven at laptop only. Console clean.

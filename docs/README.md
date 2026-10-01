@@ -43,6 +43,9 @@ themselves won't have to move.
   the Operations toolbar's ninth, tenth and eleventh buttons, which grow or
   shrink a single selected shape, resize it to an exact size, or cut it into
   two independently selectable parts.
+- [Mirroring a shape: Mirror](mirror.md) — the Operations toolbar's Mirror button,
+  which adds a reflected copy of one shape across an X, Y or Z plane and leaves the
+  original untouched.
 - [The History panel: revisiting any step you've taken](timeline.md) — the
   **History** button in the top bar, the list of every step in your model, and the
   five things you can do to a past step: look at the model as it was then, change
