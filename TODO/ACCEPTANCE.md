@@ -1675,6 +1675,8 @@ while the reference stayed put. Console clean.
 
 **Last run**: 2026-09-30 17:58 UTC (`core-034`) — PASS, laptop 1440x900 Chromium and phone 390x844 WebKit. This change turned the Pi's `mb` into a `boolean.subtract` over the hole parts, the exact thing this scenario's camera-onto-Pi snap measures against. Drove Pi 5 then Camera Module with a wobbly nine-point approach sampling `data-snapped`: un-snapped far out, snapped from fx=0.50 (laptop) / 0.70 (phone) inward, stayed snapped through a retreat-and-return, committed. Placement numbers were compared against the same drive on the pre-change recipes: **byte-identical** (Pi -125.18,69.23,9.54 / Camera -125.18,69.23,6.34 laptop; -109.50,84.91 phone). Console clean.
 
+**Re-checked**: 2026-10-01 20:30 UTC (`render-005`) — PARTIAL PASS, not a full re-drive. Dropped a `raspberrypi.touchDisplay7inch` alone (the recipe this change touched) at laptop 1440x900 Chromium and phone 390x844 WebKit: it renders as a plain orange display with no red keep-out block, Show hidden parts toggles cleanly, console clean. Scenario steps themselves (camera snap / recolour) not re-driven on it.
+
 ### 4. Boolean gating
 
 **Steps**:
@@ -3299,6 +3301,8 @@ entry is a targeted hand confirmation on top of that, not a replacement for it.
 **Re-checked**: 2026-09-27 22:34 UTC (`ui-049`) — PASS at laptop 1440x900 **WebKit**, real mouse, canvas pixels sampled. The Cube recoloured red through a wandering picker (`input` ×3, then `change`). Selected it sampled **213/94/49**. Deselected it sampled **182/4/4**, byte-for-byte the value this scenario has recorded since `ui-037`. The Cylinder sampled **115/141/174** throughout, and selecting it showed `Default`. Reselecting the Cube still showed `#ff0000`, and a Sphere placed afterwards left `Cube 1=#ff0000, Cylinder 1=default, Sphere 1=default`. **Hover over an override** (this task's precedence rule): hovering the selected red Cube's row gave **218/109/136**, still red, still selected, visibly different. Hovering it unselected gave **196/71/115**. Parking the pointer returned exactly 213/94/49 and 182/4/4, with no stale tint. Console clean.
 
 **Re-checked**: 2026-09-29 21:18 UTC (`ui-052`) — **PASS**, laptop 1440x900 Chromium and phone 390x844 WebKit. Cube recoloured `#ff0000` through a wandering picker; the Cylinder stayed Default across deselect/reselect; the Cube kept `#ff0000` after a Sphere was placed. New with this task: a Raspberry Pi's whole-body override `#0000ff` survived model changes Pi 5 → Pi 3 (readout and `data-body-color` unchanged), and a Pi 4 swapped to a Pi 5 carries exactly the per-part recipe colours of a freshly dropped Pi 5 (`core-033`/`render-003`). Console clean.
+
+**Re-checked**: 2026-10-01 20:30 UTC (`render-005`) — PARTIAL PASS, not a full re-drive. Dropped a `raspberrypi.touchDisplay7inch` alone (the recipe this change touched) at laptop 1440x900 Chromium and phone 390x844 WebKit: it renders as a plain orange display with no red keep-out block, Show hidden parts toggles cleanly, console clean. Scenario steps themselves (camera snap / recolour) not re-driven on it.
 
 ### 14. Delete a body, bring it back, reload
 

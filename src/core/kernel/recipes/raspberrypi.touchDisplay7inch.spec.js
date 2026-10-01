@@ -57,8 +57,12 @@ describe('raspberrypi.touchDisplay7inch', () => {
   })
 
   it('renders V1’s visible part set, less the dropped dimCheck', () => {
+    // `noGoPower` is the one deliberate omission besides dimCheck: V1 shows it, this port
+    // hides it by default (TODO/render-005).
     expect([...screen().names].sort()).toEqual(
-      v1Reference.screens.touchDisplay7inch.names.filter((n) => n !== 'dimCheck').sort()
+      v1Reference.screens.touchDisplay7inch.names
+        .filter((n) => n !== 'dimCheck' && n !== 'noGoPower')
+        .sort()
     )
   })
 
@@ -298,13 +302,13 @@ describe('raspberrypi.touchDisplay7inch: colour (TODO/core-033)', () => {
     }
   })
 
-  // TODO/core-033's correction: unlike every `clearance-*`/`*-nogo` volume in this
-  // catalogue, V1 adds `noGoPower` *visible* (`:147`'s `false`), so it is ported
-  // visible too, per the module doc — filed as TODO/render-005 rather than silently
-  // hidden.
-  it('noGoPower is red and visible (V1 adds it unhidden)', () => {
-    const record = recordFor('noGoPower')
-    expect(record).toMatchObject(v1ColorToRecord('red'))
-    expect(record?.hidden).toBeUndefined()
+  // TODO/render-005: V1 adds `noGoPower` visible (`:147`'s `false`), but this port hides
+  // it by default, the same deliberate divergence TODO/render-004 made for
+  // `hardware.bolt`'s `tap` — a clearance volume is for a boolean subtract, not to look at.
+  it('noGoPower is red but hidden by default (render-005 divergence from V1)', () => {
+    const g = screen()
+    expect(recordFor('noGoPower')).toMatchObject({ ...v1ColorToRecord('red'), hidden: true })
+    expect(g.names).not.toContain('noGoPower')
+    expect(g.parts.noGoPower).toBeDefined()
   })
 })

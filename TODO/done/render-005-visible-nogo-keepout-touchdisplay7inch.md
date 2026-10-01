@@ -6,8 +6,15 @@ priority: low
 model: sonnet
 milestone: M7
 depends: [core-033, render-003, render-004]
-status: open
+status: done
 ---
+
+> **What actually shipped.** The user chose option 3 (2026-10-01): `noGoPower` now carries
+> `hidden: true` in `raspberrypi.touchDisplay7inch.js` (colour kept). The `z: 1` vs `z: 7`
+> "mismatch" was a misreading — V1's source at `touch-display-7inch.js:139` is
+> `{ x: 15, y: 10, z: 1 }`, and the real-V1 bounds spec confirms 1 mm, so the size is
+> unchanged. The default `names` list now omits `noGoPower`; the spec's V1 part-set check
+> excludes it as a named divergence. No UI control added, so no docs page.
 
 ## Problem
 

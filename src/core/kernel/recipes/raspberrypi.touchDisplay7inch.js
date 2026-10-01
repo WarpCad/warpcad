@@ -153,7 +153,8 @@ export const PI_MOUNTING_PAD_OFFSETS_MM = Object.freeze([
 ])
 
 /**
- * `:139,144` — the hidden power-jumper clearance marker. Unlike its TouchScreen2
+ * `:139,144` — the power-jumper clearance marker. 1 mm tall, matching V1's
+ * `{ x: 15, y: 10, z: 1 }` (TODO/render-005 once suspected 7 mm; it was misread). Unlike its TouchScreen2
  * namesake this one is the ordinary case: every reference is to this screen's own
  * `backPlate`, so nothing about it needs the dropped `rpi`.
  */
@@ -253,12 +254,12 @@ export function touchDisplay7inch(params = {}) {
     .snap(backPlate, 'y', 'inside-')
     .snap(backPlate, 'z', 'outside-')
     .translate(NO_GO_POWER_MM.offsetMm)
-  // V1 adds this one visible (`:147`'s `false`), unlike its TouchScreen2 namesake, and
-  // colours it `.color('red')` (`:140`). TODO/core-033 ports that colour as written —
-  // an opaque red keep-out block that is *visible by default*, enclosing the backPlate
-  // corner it's snapped to. This is the exact render-004 pattern (a visible opaque
-  // clearance solid), not silently hidden here: see TODO/render-005.
-  builder.place(noGoPower, 'noGoPower', v1ColorToRecord('red'))
+  // V1 adds this one visible (`:147`'s `false`) and `.color('red')` (`:140`). TODO/render-005
+  // hides it by default instead — the same deliberate divergence TODO/render-004 made for
+  // `hardware.bolt`'s `tap` and `hardware.washer`'s `clearance`: a clearance volume is for
+  // a boolean subtract, not to look at. The colour is kept, so it still reads as a keep-out
+  // when shown.
+  builder.place(noGoPower, 'noGoPower', { ...v1ColorToRecord('red'), hidden: true })
 
   return builder.build()
 }
