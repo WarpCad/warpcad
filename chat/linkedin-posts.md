@@ -1583,3 +1583,18 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** license split and what each covers → LICENSING.md in the diff; prompts are a large part of the work, share-alike intent → user's request this session; AGPL covers network use → AGPL-3.0 text in LICENSE (section 13); copyleft obliges sharing with recipients, not automatically back to the author → LICENSE sections 5, 6 and 13; MCP server planned → CLAUDE.md AI Partner section; markers + CI gate → scripts/spdx.mjs, ci.yml in the diff; 38 packages all MIT/ISC/BSD/Apache → `npm run licenses` summary this session (33 MIT, 2 ISC, 1 BSD-2, 1 BSD-3, 1 Apache-2.0)
 **To Add:** none
+
+## [2026-10-02T21:00:00Z] — Two Firefox-only e2e failures were the tests, not the app
+
+**Post:** The full e2e run had two Firefox failures. Neither was an app bug.
+
+The first drag helper grabbed a rotate ring at the centre of its bounding box. A ring is centred on the gizmo hub, which is the pivot, so a drag starting there has no defined direction. On Firefox phone both rings started at the same pixel and the part turned 2.26 degrees; Chromium's rounding happened to give a usable drag. The helper now grabs a real vertex on the ring.
+
+The second waited a fixed two animation frames after unchecking a toggle before comparing canvas pixels. It passed four times alone and failed under the full run's load with 119 changed pixels against a limit of 40. It now polls until the canvas matches the baseline.
+
+Built with Claude Code, reviewed by me.
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** same start pixel, 2.26° → debug log of the drag plan and the pasted failure; Chromium passed on the same spec → chromium-phone and webkit-phone runs this session; 4 passes alone, 119 vs 40 → repeat run and the pasted failure; suite clean → user's report this session
+**To Add:** none

@@ -185,6 +185,19 @@ async function dragHandle(
         const y2 = Number(el.getAttribute('y2'))
         startX = rect.left + x1 + (x2 - x1) * grabFraction
         startY = rect.top + y1 + (y2 - y1) * grabFraction
+      } else if (el.tagName.toLowerCase() === 'polygon' && el.hasAttribute('points')) {
+        // A rotate ring's bounding box is centred on the gizmo hub, which is the
+        // pivot, not a point on the ring: a drag that starts there has no defined
+        // direction, so the swept angle came down to sub-pixel noise (Firefox
+        // phone landed on 2°). Grab a real vertex a quarter of the way round.
+        const pairs = el
+          .getAttribute('points')
+          .trim()
+          .split(/\s+/)
+          .map((pair) => pair.split(',').map(Number))
+        const [px, py] = pairs[Math.floor(pairs.length / 4)]
+        startX = rect.left + px
+        startY = rect.top + py
       } else {
         // Grab the middle of the handle's own box, wherever the camera has put it.
         const box = el.getBoundingClientRect()

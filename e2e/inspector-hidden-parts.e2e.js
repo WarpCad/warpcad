@@ -244,13 +244,21 @@ test('toggling Show hidden parts draws a translucent overlay, and toggling off r
 
   await page.getByTestId('inspector-hidden-parts-toggle').uncheck()
   await expect(page.getByTestId('inspector-hidden-parts-toggle')).not.toBeChecked()
-  await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))))
-  await snapshotCanvas(page, 'hidden-again')
-
-  const revertedDiff = await changedPixels(page, 'before', 'hidden-again')
+  // Poll rather than wait a fixed two frames: the overlay's meshes are torn down
+  // asynchronously, and on a loaded Firefox worker the old pixels were still on
+  // screen for the first snapshot (119 changed pixels, passing alone).
   // 40 is this project's own precedent for "back to normal" (ACCEPTANCE.md scenario
   // 5's `ui-041` re-drive: "~1 186 changed pixels... back to <40 after deselecting").
-  expect(revertedDiff, 'toggling off reverts the canvas to how it looked before').toBeLessThan(40)
+  await expect
+    .poll(
+      async () => {
+        await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))))
+        await snapshotCanvas(page, 'hidden-again')
+        return changedPixels(page, 'before', 'hidden-again')
+      },
+      { message: 'toggling off reverts the canvas to how it looked before', timeout: 5000 },
+    )
+    .toBeLessThan(40)
 })
 
 test('tapping a listed hidden part drills in, reading the breadcrumb "Objects ▸ Bolt 1 ▸ tap"', async ({ page }) => {

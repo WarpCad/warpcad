@@ -1158,3 +1158,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** AGPL code / CC BY-SA prose split → LICENSING.md in the diff; CI fails on a missing marker or off-list dependency → .github/workflows/ci.yml, scripts/spdx.mjs and the package.json licenses script in the diff
 **To Add:** none
+
+## [2026-10-02T21:00:00Z] — Two Firefox-only e2e failures were the tests, not the app
+
+**Post:** Two e2e specs failed on Firefox only. One grabbed a rotate ring at its bounding-box centre, which is the gizmo's pivot, so the drag direction was sub-pixel noise. Chromium got lucky. The other waited a fixed two frames for a canvas to revert. Now it grabs a real ring vertex and polls. Built with Claude Code, reviewed by me. #CAD
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** both ring starts at (174.89, 324.675) on Firefox, 2.26° turn → debug log of the drag plan this session; hidden-parts passed 4/4 alone, 119 changed pixels in the full run → test output pasted by the user and repeat run this session; full suite clean after the fix → user's report this session
+**To Add:** none
