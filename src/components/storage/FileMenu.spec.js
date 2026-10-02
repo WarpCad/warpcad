@@ -262,12 +262,12 @@ describe('FileMenu — dismissing a persistent message (TODO/ui-033, data-002 "o
 })
 
 describe('FileMenu — Export… (TODO/ui-034, data-002 §12)', () => {
-  it('sits last in the "This device" group, after Open…, before the hosted divider', async () => {
+  it('sits last in the "This device" group, after Open…, before the hosted divider (New is first, TODO/ui-054)', async () => {
     const { wrapper } = setup('fallback')
     await openMenu(wrapper)
     const group = document.body.querySelector('[role="group"][aria-label="This device"]')
     const ids = Array.from(group.querySelectorAll('button')).map((b) => b.getAttribute('data-testid'))
-    expect(ids).toEqual(['file-save', 'file-open', 'file-export'])
+    expect(ids).toEqual(['file-new', 'file-save', 'file-open', 'file-export'])
   })
 
   it('an empty scene: dimmed, with the reason visible AND as the accessible description', async () => {

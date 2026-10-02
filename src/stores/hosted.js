@@ -63,6 +63,8 @@ import { usePersistenceStore } from './persistence.js'
 
 /** How long a success notice stays before the chip falls back to the resting text. */
 const NOTICE_MS = 4000
+/** The auto-pusher's pause note after File ▸ New (`TODO/ui-054`) — also how the menu label recognises it. */
+const NEW_PROJECT_PAUSE = 'New project — auto-push paused until you Save to or Load from the repository'
 
 /**
  * @typedef {object} HostedDependencies
@@ -308,6 +310,7 @@ export const useHostedStore = defineStore('hosted', () => {
     // repository diverged and auto-push paused, and §11 rule 5 says the item keeps reading
     // "repository changed" — "will retry" would promise a retry that is not going to happen.
     if (pushState.value === 'paused' && divergent.value) return 'Auto-push paused — repository changed'
+    if (pushState.value === 'paused' && pushMessage.value === NEW_PROJECT_PAUSE) return 'Auto-push paused — new project'
     if (pushState.value === 'paused') return 'Auto-push paused — will retry'
     if (pushState.value === 'failed') return 'Auto-push stopped — see the error'
     return 'Auto-push on'
@@ -394,6 +397,27 @@ export const useHostedStore = defineStore('hosted', () => {
     conflict.value = null
     errorMessage.value = ''
     await deps.credentials.clear(HOSTED_CREDENTIAL_KEY)
+  }
+
+  /**
+   * A new project was started (`TODO/ui-054`). The empty document must never be pushed over the
+   * repository file the old project came from, so: forget what this session knew of the remote
+   * (`lastSha`, the hash, `adopted` — an explicit Save is then refused down the same conflict
+   * path as a first Save into an existing file, never a silent overwrite) and pause auto-push
+   * with a visible note so the user opts back in. The connection and token are kept —
+   * disconnecting would be the bigger surprise. A no-op with no connection.
+   */
+  function detachForNewProject() {
+    if (!connected.value) return
+    lastSha.value = null
+    pushedHash.value = ''
+    adopted = false
+    divergent.value = false
+    conflict.value = null
+    errorMessage.value = ''
+    // The load that started the new project is not an edit to push, but it is not "adopted".
+    pusher.pause(NEW_PROJECT_PAUSE)
+    void persistConnection().catch(() => {})
   }
 
   /**
@@ -607,6 +631,7 @@ export const useHostedStore = defineStore('hosted', () => {
     stop,
     connect,
     disconnect,
+    detachForNewProject,
     saveToRemote,
     loadFromRemote,
     resolveConflict,

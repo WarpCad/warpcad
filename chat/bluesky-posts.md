@@ -1131,3 +1131,12 @@ Built with Claude Code, reviewed by me.
 **Evidence:** copy added, original untouched, copy selected → e2e/mirror-operation.e2e.js (9 passed at laptop, tablet, phone) and hand drive at laptop Chromium (sphere centre 35.99,81.26 → 35.99,-81.26); symmetric body lands on itself → TODO/done/core-028 shipped note
 **To Add:** screenshot of the popover with a copy placed
 
+
+## [2026-10-01T22:58:00Z] — File ▸ New starts an empty project (TODO/ui-054)
+
+**Post:** WarpCad's File menu has a New item. It asks before throwing work away, empties the scene and history, and makes the next Save ask where to save instead of overwriting the old file. Connected to a GitHub repo, it pauses auto-push so the empty project can't clobber yours. Ctrl/Cmd+Alt+N too. Built with Claude Code, reviewed by me.
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** next Save asks for a file → e2e/save-load-ui.e2e.js (fake native picker, pickerCalls 1 → 2), run this session; auto-push pauses and nothing is pushed → same spec, mocked host; shortcut → same spec laptop project
+**To Add:** screenshot of the New confirm dialog

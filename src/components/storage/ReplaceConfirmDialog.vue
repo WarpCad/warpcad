@@ -24,11 +24,16 @@ const hosted = useHostedStore()
 /** @type {import('vue').Ref<HTMLButtonElement | null>} */
 const cancelButton = ref(null)
 
-const sentence = computed(() =>
-  menu.confirm === 'load'
-    ? `Loading ${hosted.repoLabel} replaces the current project. Save or download it first if you want to keep it.`
-    : 'Open replaces the current project. Save or download it first if you want to keep it.',
-)
+const sentence = computed(() => {
+  if (menu.confirm === 'load') {
+    return `Loading ${hosted.repoLabel} replaces the current project. Save or download it first if you want to keep it.`
+  }
+  // New resets the browser's autosave copy too — so, like Open, it only promises what a Save does.
+  if (menu.confirm === 'new') {
+    return 'New replaces the current project with an empty one. Save or download it first if you want to keep it — the copy this browser keeps is replaced too.'
+  }
+  return 'Open replaces the current project. Save or download it first if you want to keep it.'
+})
 
 watch(
   () => menu.confirm,

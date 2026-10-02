@@ -34,6 +34,16 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### ui-054 — File ▸ New (2026-10-01 22:57)
+
+The native Save-picker and hosted auto-push halves were proven only against a fake picker and a mocked GitHub host.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | In desktop Chrome with a real saved file: File ▸ New, build something, File ▸ Save — the real OS picker appears and the old file is untouched | Open | |
+| 2 | On a phone, the New confirm dialog reads comfortably and Replace is easy to hit | Open | |
+
+
 ### ui-039 — Mirror (2026-10-01 21:12)
 
 Scenario 16 covers the reflect, original-untouched and selection behaviour. What it doesn't judge is how the control reads.

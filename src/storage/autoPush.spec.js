@@ -142,6 +142,32 @@ describe('the auto-push scheduler', () => {
     expect(pusher.status().state).toBe('in-sync')
   })
 
+  it('pause() holds a switched-on pusher in the paused state with a message, and only resume() leaves it', async () => {
+    const { pusher, pushes, state } = harness()
+    await pusher.enable()
+    expect(pushes).toHaveLength(1)
+
+    pusher.pause('New project — auto-push paused')
+    expect(state()).toBe('paused')
+    expect(pusher.enabled).toBe(true) // paused, not off
+    expect(pusher.status().message).toBe('New project — auto-push paused')
+    expect(pusher.status().conflict).toBe(false) // a note, not a dialog
+
+    pusher.notifyMutation()
+    await vi.advanceTimersByTimeAsync(10 * 60_000)
+    expect(pushes).toHaveLength(1)
+
+    await pusher.resume({ pushNow: true })
+    expect(pushes).toHaveLength(2)
+    expect(state()).toBe('in-sync')
+  })
+
+  it('pause() on a pusher that is off does nothing', () => {
+    const { pusher, state } = harness()
+    pusher.pause('x')
+    expect(state()).toBe('off')
+  })
+
   it('retries a network failure with backoff 10 s, 30 s, 2 min, capped at 5 min — and raises no dialog', async () => {
     const { pusher, pushes, statuses } = harness({
       outcomes: [null, offline(), offline(), offline(), offline(), null],

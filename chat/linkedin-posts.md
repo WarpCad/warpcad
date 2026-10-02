@@ -1540,3 +1540,16 @@ Docs are in docs/mirror.md, and Undo removes only the copy. Built with Claude Co
 **Evidence:** first creation-shaped exactly-1 op → TODO/done/ui-039 and OperationsToolbar.vue diff; Bolt copy holds only its own parts (volume 2920.801 equal to the bolt's, cube not absorbed) → hand drive this session; Undo removes only the copy → e2e/mirror-operation.e2e.js
 **To Add:** screenshot of the popover with a copy placed
 
+
+## [2026-10-01T22:58:00Z] — File ▸ New starts an empty project (TODO/ui-054)
+
+**Post:** WarpCad now has File ▸ New. Until today the only way to start fresh was to delete every body by hand, which left the old Save target, the undo history and any connected repository's file revision attached to the "new" work.
+
+New asks first when there is anything to lose, then does what Open does with an empty document: scene, selection and history are cleared and the resolution goes back to the default. The one decision that mattered was the Save target. The remembered file handle is dropped, so the next Save opens the picker instead of silently overwriting the previous project's file. With a GitHub repository connected, the connection stays but auto-push pauses and the remembered revision is forgotten, so an empty project can't be pushed over the saved one.
+
+The shortcut is Ctrl/Cmd+Alt+N because browsers reserve plain Ctrl/Cmd+N. The docs page, docs/save-load.md, has a worked example. Built with Claude Code, reviewed by me.
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource #WebGL
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** previous workaround of deleting bodies leaves Save target and history → TODO/done/ui-054 problem statement; Open-style reset, handle dropped, auto-push paused → diff (persistence.js, hosted.js, autoPush.js) and e2e/save-load-ui.e2e.js run this session; Ctrl/Cmd+N reserved by browsers → TODO/done/ui-054 text and docs/save-load.md
+**To Add:** screenshot of the New confirm dialog

@@ -34,13 +34,14 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 
+import { useAlignReferenceStore } from './alignReference.js'
 import { useDocumentStore } from './document.js'
 import { useExportDialogStore } from './exportDialog.js'
 import { useHostedStore } from './hosted.js'
 import { usePersistenceStore } from './persistence.js'
 import { useResolutionDialogStore } from './resolutionDialog.js'
 
-/** @typedef {'open' | 'load'} ConfirmKind */
+/** @typedef {'open' | 'load' | 'new'} ConfirmKind */
 
 export const useFileMenuStore = defineStore('fileMenu', () => {
   const documentStore = useDocumentStore()
@@ -48,6 +49,7 @@ export const useFileMenuStore = defineStore('fileMenu', () => {
   const hosted = useHostedStore()
   const exportDialog = useExportDialogStore()
   const resolutionDialog = useResolutionDialogStore()
+  const alignReference = useAlignReferenceStore()
 
   const menuOpen = ref(false)
   const connectOpen = ref(false)
@@ -131,6 +133,30 @@ export const useFileMenuStore = defineStore('fileMenu', () => {
     void persistence.openFile()
   }
 
+  /**
+   * `New` (and Ctrl/Cmd+Alt+N, `TODO/ui-054`): confirm first when there is anything to lose,
+   * then start an empty project. A no-op while a load is still being announced and folded.
+   * Nothing is picked, so — unlike Open — the whole thing can run synchronously.
+   */
+  function requestNew() {
+    menuOpen.value = false
+    if (persistence.loading) return
+    exportDialog.close()
+    resolutionDialog.close()
+    if (hasContent()) {
+      confirm.value = 'new'
+      return
+    }
+    startNewProject()
+  }
+
+  /** The part of New that destroys: persistence's reset, then the per-session UI memory. */
+  function startNewProject() {
+    if (!persistence.newProject()) return
+    alignReference.reset()
+    hosted.detachForNewProject()
+  }
+
   /** `Load from owner/repo`: the same replace question, then a read of the repository. */
   function requestLoad() {
     menuOpen.value = false
@@ -149,6 +175,7 @@ export const useFileMenuStore = defineStore('fileMenu', () => {
     if (persistence.loading) return
     if (kind === 'open') void persistence.openFile()
     else if (kind === 'load') void hosted.loadFromRemote()
+    else if (kind === 'new') startNewProject()
   }
 
   function cancelConfirm() {
@@ -207,6 +234,7 @@ export const useFileMenuStore = defineStore('fileMenu', () => {
     requestExport,
     requestResolution,
     requestOpen,
+    requestNew,
     requestLoad,
     confirmReplace,
     cancelConfirm,

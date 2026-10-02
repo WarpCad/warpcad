@@ -20,6 +20,37 @@ There is no "Do you want to restore?" question — reopening WarpCad means reope
 model. Reloading right after a change is fine too: WarpCad saves the moment the page is
 being closed, hidden or switched away from, so the last thing you did is not lost.
 
+## Starting a new project
+
+**File ▾ → New** (or **Ctrl+Alt+N**, **Cmd+Option+N** on a Mac) throws the current model away and
+gives you what a first-time visitor sees: an empty scene, an empty History strip, nothing
+selected, and the default resolution.
+
+1. Drag a **Cube** into the 3D view.
+2. Open **File ▾** and choose **New**.
+3. WarpCad asks: **New replaces the current project with an empty one. Save or download it first
+   if you want to keep it — the copy this browser keeps is replaced too.** Choose **Replace**
+   (**Cancel** leaves everything exactly as it was). An empty project skips the question.
+4. The view is empty and the status line says **New project · 14:02**.
+5. Choose **File ▾ → Save**. A file picker appears — **Save** does *not* quietly write over the
+   file the previous project came from. (Where the browser can only download, **Download copy**
+   makes a new, timestamped file as always.)
+
+Like **Open…**, New can't be undone: undo and redo both start empty, which is why the question
+comes first. And because autosave stores whatever is on screen, the copy your browser kept of
+the old project is replaced by the empty one a moment later — Save or download first.
+
+**Why not Ctrl+N?** Browsers reserve plain Ctrl/Cmd+N for "new window" and a web page can't
+reliably intercept it, so WarpCad doesn't pretend to; the shortcut adds **Alt**/**Option**.
+On a phone or tablet the menu item is the whole way in.
+
+**If you are connected to a GitHub repository,** New leaves the connection alone but forgets what
+it knew of the repository's file and **pauses auto-push** (the File button's dot shows the paused
+`!`, and the Auto-push item reads **Auto-push paused — new project**). That stops the empty
+project from being pushed over your saved one. To start using the repository again, choose
+**Save to owner/repo** (you'll be asked what to do about the file that is already there) or
+**Load from owner/repo**.
+
 ## The status light in the top bar
 
 At the right of the top bar, beside the undo and redo buttons, there is a small status

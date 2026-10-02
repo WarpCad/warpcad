@@ -173,7 +173,16 @@ function onKeydown(event) {
     if (menu.dismissTopmost()) event.preventDefault()
     return
   }
-  if (!(event.ctrlKey || event.metaKey) || event.altKey || event.repeat) return
+  if (!(event.ctrlKey || event.metaKey) || event.repeat) return
+  // Ctrl/Cmd+Alt+N → New (`TODO/ui-054`). Plain Ctrl/Cmd+N is the browser's own "new window" and
+  // cannot be intercepted reliably. Matched on `code`: Alt+N types `˜` on a Mac, so `key` lies.
+  if (event.altKey) {
+    if (event.code === 'KeyN' && !event.shiftKey) {
+      event.preventDefault()
+      if (menu.confirm === null && !menu.connectOpen && !hosted.conflictOpen) menu.requestNew()
+    }
+    return
+  }
   const key = event.key.toLowerCase()
   if (key === 's' && !event.shiftKey) {
     // Works from inside a field too: the browser's own "Save Page" is never what was meant.
@@ -299,6 +308,16 @@ onBeforeUnmount(() => {
           </p>
 
           <div role="group" aria-label="This device">
+            <button
+              type="button"
+              role="menuitem"
+              class="file-menu__item"
+              data-testid="file-new"
+              :disabled="persistence.loading !== ''"
+              @click="menu.requestNew()"
+            >
+              New
+            </button>
             <button
               type="button"
               role="menuitem"

@@ -73,7 +73,10 @@ function fakeFiles(mode = 'fallback') {
     adopt(result) {
       files.adopted.push(result)
     },
-    forgetHandle() {},
+    forgot: 0,
+    forgetHandle() {
+      files.forgot += 1
+    },
   }
   return files
 }
@@ -434,6 +437,38 @@ describe('usePersistenceStore', () => {
       expect(persistence.chipTone).toBe('error')
       expect(persistence.chipText).toMatch(/warpcad-project\.ndjson/)
       expect(persistence.chipText).toMatch(/permission revoked/)
+    })
+  })
+
+  describe('newProject (TODO/ui-054)', () => {
+    it('empties the document and selection, clears history, resets the resolution and forgets the Save target', async () => {
+      const files = fakeFiles('native')
+      setPersistenceDependencies({ backend: fakeBackend(), files })
+      const persistence = usePersistenceStore()
+      const documentStore = useDocumentStore()
+      await persistence.start()
+      documentStore.append(cube('mine', [0, 0, 5]))
+      useSelectionStore().select('mine')
+
+      persistence.newProject()
+
+      expect(documentStore.bodies).toEqual([])
+      expect(documentStore.raw.entries).toHaveLength(0)
+      expect(useSelectionStore().ids).toEqual([])
+      expect(documentStore.canUndo).toBe(false)
+      expect(documentStore.raw.resolution()).toBe('normal')
+      expect(files.forgot).toBe(1)
+      expect(persistence.chipText).toBe('New project · 14:02')
+    })
+
+    it('is refused while a load is still pending', async () => {
+      const files = fakeFiles('native')
+      setPersistenceDependencies({ backend: fakeBackend(), files })
+      const persistence = usePersistenceStore()
+      await persistence.start()
+      persistence.loading = 'Opening x…'
+      expect(persistence.newProject()).toBe(false)
+      expect(files.forgot).toBe(0)
     })
   })
 

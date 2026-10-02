@@ -560,6 +560,43 @@ describe('useHostedStore', () => {
       expect(reloaded.dotState).toBe('in-sync')
     })
 
+    it('New project drops lastSha, pauses auto-push and keeps the connection (TODO/ui-054)', async () => {
+      const hosted = useHostedStore()
+      const documentStore = useDocumentStore()
+      documentStore.append(cube('cube-1', [0, 0, 5]))
+      await hosted.connect({ token: TOKEN, ...REPO })
+      await hosted.saveToRemote()
+      await hosted.setAutoPush(true)
+      expect(hosted.lastSha).not.toBeNull()
+      client.writes.length = 0
+
+      hosted.detachForNewProject()
+
+      expect(hosted.connected).toBe(true) // never disconnects: losing the token is the bigger surprise
+      expect(hosted.lastSha).toBeNull()
+      expect(hosted.autoPushEnabled).toBe(true)
+      expect(hosted.dotState).toBe('paused')
+      expect(hosted.autoPushLabel).toBe('Auto-push paused — new project')
+
+      // Edits to the new project push nothing over the remote file...
+      documentStore.load([])
+      documentStore.append(cube('cube-2', [0, 0, 5]))
+      await nextTick()
+      await vi.advanceTimersByTimeAsync(10 * 60_000)
+      expect(client.writes).toHaveLength(0)
+
+      // ...and an explicit Save goes down the conflict path rather than overwriting.
+      const result = await hosted.saveToRemote()
+      expect(result).toMatchObject({ ok: false, conflict: true })
+      expect(client.writes).toHaveLength(0)
+    })
+
+    it('New project with no connection is a no-op', () => {
+      const hosted = useHostedStore()
+      hosted.detachForNewProject()
+      expect(hosted.dotState).toBe('none')
+    })
+
     it('Disconnect deletes the stored credential, forgets the token and turns auto-push off', async () => {
       const hosted = useHostedStore()
       await hosted.connect({ token: TOKEN, ...REPO })

@@ -63,5 +63,13 @@ export const useAlignReferenceStore = defineStore('alignReference', () => {
     reference.delete(bodyId)
   }
 
-  return { reference, get, set, clear }
+  /**
+   * Forget every body's remembered reference — a new project reuses ids like `pi-1`, and a
+   * stale entry must not apply to an unrelated body that happens to get the same id.
+   */
+  function reset() {
+    reference.clear()
+  }
+
+  return { reference, get, set, clear, reset }
 })

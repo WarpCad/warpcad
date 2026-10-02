@@ -67,6 +67,9 @@ export const BACKOFF_MS = [10_000, 30_000, 120_000, 300_000]
  * @property {() => void} disable Switch off; cancels everything pending.
  * @property {() => void} notifyMutation A committed document change happened.
  * @property {(options?: { pushNow?: boolean }) => Promise<void>} resume Leave the paused state.
+ * @property {(message: string) => void} pause Hold a switched-on pusher in the paused state with
+ *   a note (no dialog), without switching it off — only {@link AutoPusher.resume} leaves it. A
+ *   no-op while off.
  * @property {() => void} dismissConflict Cancel: drop the dialog, stay paused.
  * @property {() => AutoPushStatus} status
  * @property {() => void} dispose
@@ -287,6 +290,13 @@ export function createAutoPusher({
       } else {
         report('in-sync', '')
       }
+    },
+
+    pause(text) {
+      if (!enabled) return
+      cancelTimer()
+      conflict = false
+      report('paused', text)
     },
 
     dismissConflict() {

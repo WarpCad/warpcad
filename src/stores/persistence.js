@@ -51,6 +51,7 @@ import { defineStore } from 'pinia'
 import { computed, ref, watch } from 'vue'
 
 import { ReplayRejection } from '../core/document.js'
+import { DEFAULT_RESOLUTION } from '../core/kernel/tessellation.js'
 import { ProjectFormatError, parseProject, serializeProject } from '../core/project.js'
 import { createAutosaver } from '../storage/autosave.js'
 import { createFileStorage } from '../storage/fileSystem.js'
@@ -452,6 +453,25 @@ export const usePersistenceStore = defineStore('persistence', () => {
     return opened
   }
 
+  /**
+   * Start an empty project (`TODO/ui-054`): the same atomic `documentStore.load` Open uses —
+   * so selection is cleared and both undo stacks are emptied exactly as for Open — with an
+   * empty entry list at the default resolution, then the remembered Save target is dropped,
+   * so the next Save asks *where* instead of overwriting the file the old project came from.
+   * The caller confirms first (`fileMenu.requestNew`); the next autosave replaces the stored
+   * project with the empty one.
+   *
+   * @returns {boolean} `false`, touching nothing, while a load is still pending.
+   */
+  function newProject() {
+    if (loading.value) return false
+    documentStore.load([], null, DEFAULT_RESOLUTION)
+    deps.files.forgetHandle()
+    errorMessage.value = ''
+    showNotice(`New project · ${clock(Date.now())}`, SAVED_NOTICE_MS)
+    return true
+  }
+
   function dismissError() {
     errorMessage.value = ''
   }
@@ -483,6 +503,7 @@ export const usePersistenceStore = defineStore('persistence', () => {
     saveFile,
     openFile,
     openText,
+    newProject,
     dismissError,
     announce,
   }

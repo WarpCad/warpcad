@@ -528,6 +528,34 @@ test.describe('Download copy and Open… (the fallback path — real download an
     await expect(page.getByTestId('save-status')).toContainText('Opened p.ndjson · 1 step')
   })
 
+  test('New (TODO/ui-054) on an EMPTY scene starts at once with no confirm; on content it asks, and Replace empties the scene', async ({
+    page,
+  }) => {
+    await openFileMenu(page)
+    await expect(page.getByTestId('file-new')).toBeEnabled()
+    await page.getByTestId('file-new').click()
+    await expect(page.getByTestId('file-open-confirm')).toHaveCount(0)
+    await expect(page.getByTestId('save-status')).toContainText(/New project · \d\d:\d\d/)
+
+    await seedCubes(page, 2)
+    await openFileMenu(page)
+    await page.getByTestId('file-new').click()
+    await expect(page.getByTestId('file-open-confirm')).toBeVisible()
+    await expectBodyCount(page, 2) // nothing changes behind the dialog
+    await page.getByTestId('file-open-confirm-replace').click()
+    await expectBodyCount(page, 0)
+    await expectAutosaved(page) // the empty project is what autosave now holds
+  })
+
+  test('Ctrl/Cmd+Alt+N starts a new project (the browser keeps plain Ctrl/Cmd+N)', async ({ page }, info) => {
+    test.skip(isPhone(info) || info.project.name.includes('tablet'), 'a keyboard shortcut — laptop only (touch has the menu)')
+    await seedCubes(page, 1)
+    await page.keyboard.press(process.platform === 'darwin' ? 'Meta+Alt+N' : 'Control+Alt+N')
+    await expect(page.getByTestId('file-open-confirm')).toBeVisible()
+    await page.getByTestId('file-open-confirm-replace').click()
+    await expectBodyCount(page, 0)
+  })
+
   test('a garbage file is refused BY NAME, persistently, and the current project is untouched', async ({ page }) => {
     await seedCubes(page, 2)
     // Let the seed's own autosave land first: a *successful* autosave clears a persistent
@@ -687,6 +715,51 @@ test.describe('Save / Save As… (the native File System Access path, against a 
     await page.getByTestId('file-save-as').click()
     await expect.poll(() => page.evaluate(() => window.__fsa.pickerCalls)).toBe(3)
     await expect(page.getByTestId('save-status')).not.toHaveAttribute('data-tone', 'error')
+  })
+
+  test('New (TODO/ui-054): Cancel keeps the project; Replace empties it, then Save asks for a file instead of overwriting the old one, and placing still works', async ({
+    page,
+  }) => {
+    await seedCubes(page, 1)
+    await openFileMenu(page)
+    await page.getByTestId('file-save').click()
+    await expect(page.getByTestId('save-status')).toContainText(/Saved to warpcad-project\.ndjson/)
+    expect((await page.evaluate(() => ({ ...window.__fsa }))).pickerCalls).toBe(1)
+
+    // Cancel: nothing touched.
+    await openFileMenu(page)
+    await page.getByTestId('file-new').click()
+    await expect(page.getByTestId('file-open-confirm')).toBeVisible()
+    await expect(page.getByTestId('file-open-confirm')).toContainText('New replaces the current project')
+    await page.getByTestId('file-open-confirm-cancel').click()
+    await expect(page.getByTestId('file-open-confirm')).toHaveCount(0)
+    await expectBodyCount(page, 1)
+
+    // Replace: empty scene, no selection, fresh undo history, a status notice.
+    await openFileMenu(page)
+    await page.getByTestId('file-new').click()
+    await page.getByTestId('file-open-confirm-replace').click()
+    await expectBodyCount(page, 0)
+    await expect(page.getByTestId('viewport')).toHaveAttribute('data-selected-count', '0')
+    await expect(page.getByTestId('save-status')).toContainText(/New project · \d\d:\d\d/)
+    const state = await storeApi(page).run((api) => ({
+      steps: api.documentStore.raw.entries.length,
+      canUndo: api.documentStore.canUndo,
+    }))
+    expect(state).toEqual({ steps: 0, canUndo: false })
+
+    // The old file is not the Save target any more: Save opens the picker (call 2), and the
+    // previous file's bytes are replaced only by what that picker chose.
+    await seedCubes(page, 1)
+    await openFileMenu(page)
+    await page.getByTestId('file-save').click()
+    await expect.poll(() => page.evaluate(() => window.__fsa.pickerCalls)).toBe(2)
+
+    // The scene still accepts a real Library drag on the first try (ui-053, scenario 1).
+    await openLibrary(page)
+    await dragRowIntoViewport(page, { op: 'primitive.cuboid', fx: 0.3, fy: 0.4 })
+    await closeLibrary(page)
+    await expectBodyCount(page, 2)
   })
 
   test('Open… through the native picker loads the picked file', async ({ page }) => {
@@ -960,6 +1033,37 @@ test.describe('hosted storage through the File menu (host fully mocked)', () => 
     await expect.poll(() => repository.commits.length).toBe(2)
     expect(repository.commits[1]).toMatch(/^WarpCad: auto-push /)
     await expect(page.getByTestId('file-menu-dot')).toHaveAttribute('data-dot-state', 'in-sync')
+    assertNothingEscaped(repository)
+  })
+
+  test('New (TODO/ui-054) with auto-push ON pauses it and pushes nothing over the repository file; the connection survives', async ({
+    page,
+  }, info) => {
+    test.skip(isPhone(info) || info.project.name.includes('tablet'), 'timing behaviour, not layout — laptop only')
+    await page.clock.install()
+    await seedCubes(page, 1)
+    await connectThroughDialog(page)
+    await page.getByTestId('hosted-connect-done').click()
+    await openFileMenu(page)
+    await page.getByTestId('hosted-autopush').click()
+    await expect.poll(() => repository.commits.length).toBe(1)
+    const pushedText = repository.text
+
+    await openFileMenu(page)
+    await page.getByTestId('file-new').click()
+    await page.getByTestId('file-open-confirm-replace').click()
+    await expectBodyCount(page, 0)
+    await expect(page.getByTestId('file-menu-dot')).toHaveAttribute('data-dot-state', 'paused')
+
+    // Edits to the new project, and plenty of time: nothing reaches the remote.
+    await addCube(page, 'fresh-1')
+    await page.clock.runFor(5 * 60_000)
+    expect(repository.commits).toHaveLength(1)
+    expect(repository.text).toBe(pushedText)
+
+    await openFileMenu(page)
+    await expect(page.getByTestId('hosted-autopush')).toContainText('Auto-push paused — new project')
+    await expect(page.getByTestId('hosted-save')).toBeVisible() // still connected
     assertNothingEscaped(repository)
   })
 

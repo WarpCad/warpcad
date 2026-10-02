@@ -1027,6 +1027,8 @@ scenario itself, not a re-run of the checked-in e2e spec.
 
 **Last run**: 2026-10-01 21:12 UTC (`ui-039`) — PASS at laptop 1440x900 Chromium and phone 390x844 WebKit, real mouse with a wobbly path: Cube and Sphere dropped apart, both stayed (centres and volumes unchanged by the Mirror that followed). Console clean.
 
+**Last run**: 2026-10-01 22:55 UTC (`ui-054`) — PASS at laptop 1440x900 Chromium and phone 390x844 WebKit, real mouse with a wobbly path: Cube and Sphere dropped apart, both stayed (2). After File ▸ New ▸ Replace (and an Escape-cancelled attempt first, which changed nothing) the scene was empty and the first Library drag landed on the first try, then a second; both stayed. Console clean. (Phone: a Sphere drop in my throwaway script released over the Library sheet — script artifact, not claimed.)
+
 ### 2. Hardware property edit
 
 **Steps**:
@@ -2922,6 +2924,8 @@ Hosted half not driven (no scratch repo/token in this session). Console clean.
 
 **Last run**: 2026-09-30 18:50 UTC (`core-036`) — PASS for the History-row half, laptop 1440x900 Chromium and phone 390x844 WebKit (real mouse drags with a wobbly path; the Objects list for selection). Steps 1-5 only: Cube and Cylinder dropped overlapping, both selected (the just-dropped Cylinder stayed selected, so it was the base), Union pressed, History row read `Union Cylinder 1 + Cube 1` (was `Union Cylinder 1`, the base missing), and the identical three rows after a reload. File/hosted halves not driven. Console clean in both.
 
+**Last run**: 2026-10-01 22:55 UTC (`ui-054`) — PASS for the local autosave/reload half only, laptop Chromium: after New and one placed Sphere, a reload restored exactly that Sphere (not the old project) with `Restored your last session`. File/hosted halves covered by the new e2e (native Save asks the picker again after New; hosted auto-push pauses and pushes nothing), not hand-driven.
+
 ### 11. Export a solid and confirm it opens elsewhere
 
 Added 2026-09-17 alongside `TODO/ROADMAP.md`'s M6, same rule as scenario 10. Steps
@@ -3259,6 +3263,8 @@ steps exercise, and that mechanism is unchanged by this diff.
 **Re-checked**: 2026-09-29 21:18 UTC (`ui-052`) — **PASS for steps 1-11 as written and step 12 via a variant**, laptop 1440x900 Chromium (mouse) and phone 390x844 WebKit (taps). Chamfer 5 → Edit 3 replayed (62 166.62 → 63 315.97 mm³, Sphere identical); Undo/Redo one step each; Suppress/Unsuppress; Roll back → Cone inserted at the marker → Roll forward; Sphere Move up then Undo. **Step 12 as written is no longer drivable, and that predates this task:** Fillet Top r4 on a cube whose top is already chamfered is refused at commit by `core-003`'s prismatic-rim check ("not prismatic over the rim band"), so there is no fillet to break. The same claim was driven the canonical `data-004` way instead: a second cube filleted r15, then its size edited to 20 mm in History, refused atomically as "Step 6 (Fillet Top (+Z) 15 mm on Cube 2) can't be built: … radius 15mm is wider than the cross-section can absorb", with the row chipped `broken` and no repair dialog (a primitive edit, not a composite one). A filleted cube's Parameters stayed frozen (`ui-029`). Console clean.
 
 **Last run**: 2026-09-30 18:50 UTC (`core-036`) — PASS for the History list read only (step 4's row text, via the Union row above), laptop Chromium and phone WebKit. Edit/Suppress/Roll back steps not re-driven: this change is a label string only.
+
+**Last run**: 2026-10-01 22:55 UTC (`ui-054`) — PASS for the undo half only: after New, undoing every available step never resurrected the previous project (count 0); New itself is not an undo step, matching Open. Laptop Chromium and phone WebKit.
 
 ### 13. Recolor a placed body
 

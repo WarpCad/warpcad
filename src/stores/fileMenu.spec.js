@@ -40,7 +40,10 @@ function fakeFiles() {
       return { ok: false, cancelled: true }
     },
     adopt() {},
-    forgetHandle() {},
+    forgot: 0,
+    forgetHandle() {
+      this.forgot += 1
+    },
   }
 }
 
@@ -120,6 +123,83 @@ describe('useFileMenuStore', () => {
     const menu = useFileMenuStore()
     menu.requestOpen()
     expect(menu.confirm).toBe('open')
+  })
+
+  describe('New (TODO/ui-054)', () => {
+    it('on an EMPTY project starts a new one at once, with no confirm', () => {
+      const menu = useFileMenuStore()
+      menu.openMenu()
+      menu.requestNew()
+      expect(menu.confirm).toBeNull()
+      expect(menu.menuOpen).toBe(false)
+      expect(files.forgot).toBe(1)
+      expect(usePersistenceStore().chipText).toMatch(/^New project · \d\d:\d\d$/)
+    })
+
+    it('on a NON-EMPTY project raises the confirm and touches nothing until Replace', () => {
+      const document = useDocumentStore()
+      document.append(cube('cube-1'))
+      const menu = useFileMenuStore()
+      menu.requestNew()
+      expect(menu.confirm).toBe('new')
+      expect(document.raw.entries).toHaveLength(1)
+      expect(files.forgot).toBe(0)
+
+      menu.cancelConfirm()
+      expect(menu.confirm).toBeNull()
+      expect(document.raw.entries).toHaveLength(1)
+      expect(files.forgot).toBe(0)
+
+      menu.requestNew()
+      menu.confirmReplace()
+      expect(menu.confirm).toBeNull()
+      expect(document.raw.entries).toHaveLength(0)
+      expect(files.forgot).toBe(1)
+    })
+
+    it('a project whose only steps are suppressed still raises the confirm', () => {
+      const document = useDocumentStore()
+      document.append(cube('cube-1'))
+      document.raw.setSuppressed('cube-1', true)
+      const menu = useFileMenuStore()
+      menu.requestNew()
+      expect(menu.confirm).toBe('new')
+    })
+
+    it('does nothing while a load is pending', () => {
+      useDocumentStore().append(cube('cube-1'))
+      usePersistenceStore().loading = 'Opening x…'
+      const menu = useFileMenuStore()
+      menu.requestNew()
+      expect(menu.confirm).toBeNull()
+      expect(files.forgot).toBe(0)
+    })
+
+    it('clears the remembered align references and any open popover', async () => {
+      const { useAlignReferenceStore } = await import('./alignReference.js')
+      const { useExportDialogStore } = await import('./exportDialog.js')
+      const align = useAlignReferenceStore()
+      align.set('cube-1', 'mb')
+      const menu = useFileMenuStore()
+      menu.requestNew()
+      expect(align.get('cube-1')).toBeNull()
+      expect(align.reference.size).toBe(0)
+      expect(useExportDialogStore().isOpen).toBe(false)
+    })
+
+    it('with a hosted connection, drops lastSha and pauses auto-push', async () => {
+      useDocumentStore().append(cube('cube-1'))
+      const hosted = useHostedStore()
+      await hosted.connect({ token: 'ghp_SENTINEL', owner: 'octo', repo: 'parts' })
+      await hosted.saveToRemote()
+      await hosted.setAutoPush(true)
+      const menu = useFileMenuStore()
+      menu.requestNew()
+      menu.confirmReplace()
+      expect(hosted.lastSha).toBeNull()
+      expect(hosted.dotState).toBe('paused')
+      expect(hosted.connected).toBe(true)
+    })
   })
 
   it('Load from the repository asks the same replace question, and only then reads it', async () => {

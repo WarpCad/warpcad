@@ -302,6 +302,20 @@ describe('native Save / Open — File System Access (desktop Chromium only)', ()
     expect(result).toEqual({ ok: true, mode: 'native', name: 'chosen.ndjson' })
   })
 
+  it('forgetHandle makes the next plain Save a Save As — the previous file is never written again', async () => {
+    const { env, written, showSaveFilePicker } = nativeEnv()
+    const storage = createFileStorage(env)
+    await storage.save('first project')
+    expect(storage.currentName).toBe('chosen.ndjson')
+
+    storage.forgetHandle()
+    expect(storage.currentName).toBeNull()
+    await storage.save('second project')
+
+    expect(showSaveFilePicker).toHaveBeenCalledTimes(2)
+    expect(written.chunks).toEqual(['first project', 'second project'])
+  })
+
   it('a second Save rewrites the same file with no second prompt', async () => {
     const { env, written, showSaveFilePicker } = nativeEnv()
     const storage = createFileStorage(env)
