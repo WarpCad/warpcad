@@ -6,8 +6,10 @@ priority: high
 model: sonnet
 milestone: M10
 depends: []
-status: open
+status: done
 ---
+
+> **Shipped note:** landed as scoped. Decisions recorded: baselines pinned to the maintainer's Mac, `deviceScaleFactor: 2`, software GL via SwiftShader; File ▸ Open is driven headlessly by forcing the `<input type=file>` fallback (the native picker can't be scripted); no `e2e/support/` extraction (only `support.js` under `e2e/docs/`); the kernel-idle wait is a fixed 400ms settle because no idle attribute exists on the viewport.
 
 ## Goal
 

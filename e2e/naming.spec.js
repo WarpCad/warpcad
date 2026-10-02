@@ -12,7 +12,7 @@ function collectE2eFiles(dir) {
     const full = join(dir, entry)
     if (statSync(full).isDirectory()) {
       results.push(...collectE2eFiles(full))
-    } else if (entry.endsWith('.e2e.js')) {
+    } else if (entry.endsWith('.e2e.js') || entry.endsWith('.docs.js')) {
       results.push(full)
     }
   }
@@ -29,4 +29,15 @@ test('no *.e2e.js spec (excluding *.story.e2e.js) points at a Storybook iframe U
     offenders,
     `*.e2e.js spec(s) navigating to a Storybook iframe instead of the real app: ${offenders.join(', ')}`,
   ).toEqual([])
+})
+
+test('every *.docs.js spec navigates to the real app and never to Storybook', () => {
+  const e2eDir = fileURLToPath(new URL('.', import.meta.url))
+  const files = collectE2eFiles(e2eDir).filter((file) => file.endsWith('.docs.js'))
+  const bad = files.filter((file) => {
+    // A docs spec may delegate `goto('/')` to e2e/docs/support.js's `openApp`.
+    const source = readFileSync(file, 'utf-8')
+    return STORYBOOK_IFRAME_PATTERN.test(source) || !/openApp\(|goto\(['"`]\/['"`]/.test(source)
+  })
+  expect(bad, `*.docs.js spec(s) not driving "/": ${bad.join(', ')}`).toEqual([])
 })

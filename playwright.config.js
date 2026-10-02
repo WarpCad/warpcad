@@ -47,6 +47,27 @@ const browserProjects = ENGINES.flatMap((engine) =>
   })),
 )
 
+/**
+ * Docs-media projects (`TODO/docs-005`). Chromium only, on purpose: these are pictures
+ * for humans, not a cross-engine behaviour gate. Software GL keeps pixels independent of
+ * the contributor's GPU; `deviceScaleFactor: 2` is the one fixed choice for crisp images.
+ * Baselines are generated on one pinned platform (the maintainer's Mac) — see CONTRIBUTING.md.
+ */
+const docsProjects = VIEWPORTS.map((size) => ({
+  name: `docs-${size.name}`,
+  testMatch: /.*\.docs\.js/,
+  // Drops the default `-{projectName}-{platform}` suffix so the file name is exactly what
+  // the markdown links to: `docs/screenshots/<name>.png`.
+  snapshotPathTemplate: '{testDir}/../docs/screenshots/{arg}{ext}',
+  use: {
+    ...devices['Desktop Chrome'],
+    viewport: size.viewport,
+    hasTouch: size.touch,
+    deviceScaleFactor: 2,
+    launchOptions: { args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] },
+  },
+}))
+
 export default defineConfig({
   testDir: './e2e',
   fullyParallel: true,
@@ -63,5 +84,6 @@ export default defineConfig({
     // enough, so they stay out of the 9-way browser matrix.
     { name: 'guards', testMatch: /naming\.spec\.js/ },
     ...browserProjects,
+    ...docsProjects,
   ],
 })

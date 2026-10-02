@@ -1176,3 +1176,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** 16 todos → 16 TODO/docs-005..020 files plus ROADMAP.md in the diff; no pictures today → docs/screenshots and docs/media do not exist and docs/ has no image links, checked this session; baseline folder is docs/screenshots → docs-005 text (planned, not built); GIF conversion → docs-006 text (planned), ffmpeg found at /opt/homebrew/bin/ffmpeg this session
 **To Add:** none until the first pilot GIF exists
+
+## 2026-10-02T21:05:00Z — Docs screenshot harness: Playwright baselines are the documentation images
+
+**Post:** WarpCad's doc screenshots are now a side effect of a test. Playwright baselines live in docs/screenshots, so a UI change fails the check and --update-snapshots rewrites the image the docs link to. Two pilot stills so far. Built with Claude Code, reviewed by me. #CAD #OpenSource
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** baselines in docs/screenshots → snapshotPathTemplate in playwright.config.js diff; two stills → empty-scene.png and cube-selected.png in the diff; drift fails and update rewrites → this session's runs (changed --surface-1 failed both shots, :update changed the empty-scene md5)
+**To Add:** the cube-selected still

@@ -1613,3 +1613,16 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** 16 TODO specs → docs-005..020 in the diff; three build machinery (005-007), twelve per docs page (008-019 is twelve files), one blocked (020) → file list in the diff; nothing captured yet → no docs/screenshots or docs/media directory this session; AI chat panel not built → TODO/ai-006 status: open
 **To Add:** the pilot GIF once docs-006 lands
+
+## 2026-10-02T21:05:00Z — Docs screenshot harness: Playwright baselines are the documentation images
+
+**Post:** Documentation screenshots go stale because nothing fails when the UI changes. For WarpCad I pointed Playwright's snapshot directory at docs/screenshots, so the test baseline and the image the markdown links to are the same file.
+
+Running the check fails when the UI drifts from a documented picture, and the update command rewrites the image. I confirmed both by changing one theme colour token: both pilot stills failed, and the update run changed the PNG. Specs load a fixture project through File > Open instead of replaying drags, and use software WebGL so pixels don't depend on the GPU.
+
+Baselines come from one pinned machine, so for now this is a local and nightly check rather than a PR gate. Built with Claude Code, reviewed by me.
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL #Playwright
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** same file for baseline and docs image → snapshotPathTemplate in diff; drift fail then update pass → this session's runs; fixture via File > Open and software GL → e2e/docs/support.js and playwright.config.js in diff; pinned machine, local/nightly → CONTRIBUTING.md diff
+**To Add:** the cube-selected still
