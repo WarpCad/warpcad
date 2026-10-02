@@ -5,7 +5,7 @@ kind: feature
 priority: medium
 model: opus
 milestone: M8
-depends: [sketch-001]
+depends: [sketch-001, sketch-005]
 status: open
 ---
 
@@ -17,6 +17,8 @@ status: open
 > Read its "What actually shipped" note first: a few things the spec assumed changed while
 > steps 1-3 were built, and the ones that bear on this task are listed under "What changed
 > since this was written" below.
+
+> **Added 2026-10-02:** vertex handles attach to a *selected* outline, and `TODO/sketch-005` is where selection becomes findable (Select tool, feedback). A dragged vertex should also snap via `TODO/sketch-007` when that lands (a soft dependency; don't block on it).
 
 ## Goal
 
