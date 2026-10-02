@@ -1031,6 +1031,8 @@ scenario itself, not a re-run of the checked-in e2e spec.
 
 **Re-checked**: 2026-10-02 19:05 UTC — **PASS** (`sketch-001`). Laptop Chromium, real mouse: dropped a Cube, then a **Sketch** (Polygon tool, 6 sides, r 20 → Linear 20 mm, Done), then a Sphere. Three independent bodies, none moved or replaced: cube 64 000 mm³, the sketch hexagon exactly (3√3/2)·20²·20 = 20 784.614 mm³, sphere 33 271.771 mm³. Also at phone Chromium by touch only (cube, then a sketch tube beside it): both kept. A Sketch drop commits nothing until Done, and Cancel on a fresh sketch left the body count at 0.
 
+**Re-checked**: 2026-10-02 21:40 UTC — PASS (`docs-009`, laptop 1440x900 Chromium; real mouse, human-paced). Nothing in `src/` changed; re-driven because the task is a scripted movie of this scenario. A Cube then a Cylinder (and a Sphere) dropped at different points: **all stayed on screen**, `data-body-count` 1 → 2 → 3, `data-placing` back to `false` after each release. Also ran `ui-053`'s real repro (place a Cube, open Fillet, type a radius, Esc, drag again): the popover closed and the next drag placed. (The TODO paraphrased that repro as Esc mid-drag; that was not the finding. Pressing Esc mid-library-drag does not cancel it, the release still places — unchanged behavior, noted not filed.)
+
 ### 2. Hardware property edit
 
 **Steps**:

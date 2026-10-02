@@ -1212,3 +1212,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** 12 images and subjects → docs/montage/jscad1.json in diff; JSON plus ffmpeg script rebuilds it → docs/montage/jscad1.json and scripts/docs-montage.mjs in diff; same loop → user's own description this session
 **To Add:** the montage image (docs/images/jscad1-montage.jpg)
+
+## 2026-10-02T21:45:00Z — Placement docs: drag-to-place movies, every primitive, snap guides
+
+**Post:** WarpCad's "Placing a shape" page now shows the drag instead of describing it: a cube then a cylinder dropped in (both stay), the ghost preview mid-drag, and the dashed snap guides lighting up as a part nears another. Built with Claude Code, reviewed by me.
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #Playwright
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** two movies and six stills → e2e/docs/primitive-placement.docs.js in diff; each movie asserts data-body-count after release → same file; ghost frame taken with the button held → heldShot in same file
+**To Add:** primitive-drag-two.gif, placement-snap-guides.gif

@@ -46,7 +46,7 @@ export function findImageRefs(markdown) {
  */
 export function findClaimedStills(source) {
   const names = new Set()
-  for (const m of source.matchAll(/(?:shot|toHaveScreenshot)\([^)]*?['"`]([\w.-]+\.png)['"`]/g)) names.add(m[1])
+  for (const m of source.matchAll(/(?:[sS]hot|toHaveScreenshot)\([^)]*?['"`]([\w.-]+\.png)['"`]/g)) names.add(m[1])
   return names
 }
 

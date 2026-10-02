@@ -3,6 +3,8 @@
 WarpCad builds parts out of solids. The quickest way to get your first solid into a
 project is to drag one out of the **Library** panel and drop it into the 3D view.
 
+![The Library panel with the Primitives section expanded](./screenshots/library-panel.png)
+
 The Library has five sections, and the gesture is identical in all of them:
 
 - **Primitives** — the basic solids you shape a part out of: Cube, Cylinder, Cone,
@@ -43,6 +45,20 @@ The Library has five sections, and the gesture is identical in all of them:
 
 ![The cube once placed, selected and sitting on the grid](./screenshots/primitive-drag-cube-end.png)
 
+Mid-drag, before you let go, the preview is a translucent copy of the shape and the
+document has not changed yet:
+
+![A translucent sphere preview following the pointer over the grid, with seven solids already placed](./screenshots/primitive-ghost-preview.png)
+
+Every solid in the Primitives section, placed in a row:
+
+![One of each primitive — Cube, Cylinder, Cone, Hexagon, Triangle, Tube and Sphere — side by side on the grid](./screenshots/primitive-gallery.png)
+
+The **Sketch** row sits among the primitives but works differently: it opens the sketch
+editor instead of dropping a solid (see [Sketch mode](sketch-mode.md)).
+
+![The Sketch row in the Library](./screenshots/primitive-sketch-row.png)
+
 That is the whole gesture. It is the same one for every row in the panel — in both
 sections — so once you have placed a cube you already know how to place a sphere, or a
 bolt.
@@ -51,6 +67,8 @@ bolt.
 
 Repeat the drag with a different row — say **Sphere** — and drop it somewhere else on
 the grid.
+
+![Placing a cube, then a cylinder — both stay on the grid](./media/primitive-drag-two.gif)
 
 You will now have two separate objects. Dropping the sphere does not move, replace or
 hide the cube: **each drop adds a new, independent object, and everything you placed
@@ -180,6 +198,8 @@ raised 3D label out of a string — handy for naming a part or marking a face.
 4. Adjust **Size** (the height of a capital letter), **Stroke width** (how thick each
    line of a letter is) or **Height** (how far the label stands up), all in mm.
 
+![A Text label placed on the grid, with its Text field showing in the Inspector](./screenshots/text-label-placed.png)
+
 Good to know: the lettering is a single-line stroke font, so letters are drawn with a
 constant-width stroke rather than outlined shapes. Only plain keyboard characters are
 supported — anything else shows as `?`. The Text field cannot be empty; an empty value
@@ -204,6 +224,10 @@ Try it:
 4. Let go. The cylinder is placed lined up with the cube: sharing its centre line,
    sitting flush with one of its faces, or resting right up against it, depending on
    which line you were nearest.
+
+![Dragging a cylinder toward a cube: guide lines light up and the cylinder snaps flush](./media/placement-snap-guides.gif)
+
+![A dashed guide line on the cube while the cylinder preview hovers beside it](./screenshots/placement-snap-guides-still.png)
 
 Reading the lines:
 

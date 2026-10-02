@@ -6,8 +6,10 @@ priority: high
 model: sonnet
 milestone: M10
 depends: [docs-005, docs-006, docs-007]
-status: open
+status: done
 ---
+
+> **Shipped.** As scoped, one note: `primitive-drag-cube` already existed from `docs-006`, so it was embedded rather than re-recorded. Mid-drag stills bypass `shot()` (it parks the mouse, which would cancel the ghost) via a local held-pointer helper; `scripts/docs-media-check.mjs` was extended to match `*Shot(` wrappers.
 
 ## Goal
 

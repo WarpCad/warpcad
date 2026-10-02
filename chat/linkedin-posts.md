@@ -1665,3 +1665,16 @@ The output is one 357 KB JPEG. Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** 12 images and the listed subjects → docs/montage/jscad1.json in diff; "for years" → user's own words this session; picks approved by user, renders over photos → user messages this session; 357 KB → ls (365991 bytes); grid and missing-file checks → validateSpec and main in scripts/docs-montage.mjs, 8 passing unit tests this session; guard checks docs/images → e2e/docs-media.spec.js in diff
 **To Add:** the montage image (docs/images/jscad1-montage.jpg)
+
+## 2026-10-02T21:45:00Z — Placement docs: drag-to-place movies, every primitive, snap guides
+
+**Post:** Placing a shape in WarpCad is a drag, which a screenshot can't show. The placement docs page now has recordings of it: a cube and then a cylinder dropped in, with both remaining on the grid, and a part dragged toward another until dashed snap guides appear and it lands flush.
+
+The stills come from the same Playwright spec. The gallery enumerates the Library's primitive rows from the page, so a new primitive shows up without editing the spec. The mid-drag ghost frame is captured with the mouse button still held, because the usual screenshot helper parks the pointer first and that would cancel the preview.
+
+Every movie ends on an assertion about the document, so a drag that placed nothing fails the run instead of producing a GIF of an empty grid. Built with Claude Code, reviewed by me.
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #Playwright #WebGL
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** two movies, six stills → e2e/docs/primitive-placement.docs.js in diff; gallery enumerates rows from the DOM → same file; mid-drag still taken while held → heldShot in same file; movies assert body count → same file
+**To Add:** primitive-drag-two.gif, placement-snap-guides.gif

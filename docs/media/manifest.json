@@ -34,5 +34,17 @@
     "specHash": "25296c2b88f0d19e1913aa210048daf54b5fee28e26cf0ef2534cab7eb57d9c8",
     "bytes": 1342781,
     "seconds": 5.83
+  },
+  "placement-snap-guides.gif": {
+    "spec": "e2e/docs/primitive-placement.docs.js",
+    "specHash": "648960e25bb25776223cdf8689f9d30a1b17656e7307f9117adfa98b9bfc92f6",
+    "bytes": 524945,
+    "seconds": 5.91
+  },
+  "primitive-drag-two.gif": {
+    "spec": "e2e/docs/primitive-placement.docs.js",
+    "specHash": "648960e25bb25776223cdf8689f9d30a1b17656e7307f9117adfa98b9bfc92f6",
+    "bytes": 1101454,
+    "seconds": 10.25
   }
 }

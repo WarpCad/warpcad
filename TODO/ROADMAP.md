@@ -526,7 +526,7 @@ replace driving `TODO/ACCEPTANCE.md` by hand.
 | ✅ `docs-006` | movie recording + GIF pipeline (cursor overlay, budget, manifest) | 005 |
 | ✅ `docs-007` | embed convention, media guard, process-doc updates, README hero | 005, 006 |
 | ✅ `docs-008` | app overview, navigation, orientation gizmo, grid | 005-007 |
-| `docs-009` | Library panel and drag-to-place, snap guides, text label | 005-007 |
+| ✅ `docs-009` | Library panel and drag-to-place, snap guides, text label | 005-007 |
 | `docs-010` | selection, Inspector, gizmo, parameters, colour, delete | 005-007 |
 | `docs-011` | Union / Subtract / Intersect and the selection-count gate | 005-007 |
 | `docs-012` | Group, sub-part selection, Snap, Align, Mirror | 005-007 |
@@ -718,5 +718,6 @@ convention going forward.
 | `docs-006` | 2026-10-02 21:05 | ~13m (timing from 20:52 UTC; Step 3 skipped for docs category). Scoped **M**; landed as scoped. Pilot GIF 0.8 MB / 4.6 s, 800×500; final-frame still stable across 3 runs. 2515 unit (8 new), typecheck, spdx, guards, docs-laptop green. Acceptance: none (nothing in `src/` changed). |
 | `docs-007` | 2026-10-02 21:30 | ~18m (timing from 21:12 UTC; Step 3 skipped for docs category). Scoped **S**; landed as scoped. Guard logic extracted to `scripts/docs-media-check.mjs` (13 Vitest cases); `e2e/docs-media.spec.js` in `guards`. Embedded the 3 stills + GIF in `primitive-placement.md`/`selection-and-inspector.md`/README hero. Inline-code spans skipped by the parser after the guard flagged its own docs example. 2528 unit, typecheck, spdx, guards, docs-laptop green. Acceptance: none. |
 | `docs-008` | 2026-10-02 21:50 | ~30m (timing from 21:16 UTC; Step 3 skipped for docs category). Scoped **M**; landed as scoped. 5 stills + 5 GIFs, all under budget after adding per-movie fps/width; stills stable across 2 runs. 2528 unit, typecheck, guards, docs-laptop green. Acceptance: none (nothing in `src/` changed). |
+| `docs-009` | 2026-10-02 21:42 | ~12m (timing from 21:30 UTC; Step 3 skipped for docs category). Scoped **M**; landed as scoped. 6 stills + 2 GIFs (the cube drag GIF was already `docs-006`'s); stills stable across 2 runs. `docs-media-check` now also recognises `*Shot(` helper wrappers so mid-drag stills count as claimed. 2536 unit, typecheck, guards, docs-laptop green. Acceptance: scenario 1 and `ui-053` repro PASS. |
 
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->
