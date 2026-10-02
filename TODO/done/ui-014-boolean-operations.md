@@ -272,3 +272,5 @@ existing lineage/body-count assertion moved. This isn't a previously-closed
 `TODO/VERIFY.md` finding in the strict sense, but `document.js`'s centrality makes it
 the same kind of standing regression surface as `core-013`'s own re-check of
 `evaluate()` — treat it with the same explicit re-run, not skipped as "unrelated."
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

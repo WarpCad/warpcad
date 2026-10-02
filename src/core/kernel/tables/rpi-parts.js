@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 /**
  * Raspberry Pi part dimensions, ported from `jscad-raspberrypi@62a8e3b`'s
  * `src/rpi-parts.js` and `src/bplus-mounting.js`.

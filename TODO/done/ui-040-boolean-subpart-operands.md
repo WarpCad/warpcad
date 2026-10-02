@@ -197,3 +197,5 @@ without making every existing count-gated tool ambiguous.
 - **Closed-finding regression surface**: `core-020`'s repro through a boolean that
   resolves a sub-part operand — `core-024` added that check at the kernel level; this
   task is the first to reach it from the UI.
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

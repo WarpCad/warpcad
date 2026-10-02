@@ -146,3 +146,5 @@ in this codebase, not new architectural ground.
 - **Closed-finding regression surface**: none directly — this is the first task to
   write to a persistence layer at all, so there's no prior persistence-subsystem
   finding to re-check yet.
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

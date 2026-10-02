@@ -234,3 +234,5 @@ works at both the floor size and the cap size.
   - `ui-022`: the ring chevrons are unchanged, but their size comment refers to the arm
     head's ratio. Confirm they still look secondary to the (now smaller) arrow heads,
     not larger than them.
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

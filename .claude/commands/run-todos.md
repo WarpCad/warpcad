@@ -225,3 +225,5 @@ this loop) — echo it back verbatim each tick per `ScheduleWakeup`'s own instru
 **Never schedule a wakeup without first appending the Runner Log row** (Step 5) — the
 log is what makes a batch's history auditable later without replaying the whole
 transcript.
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

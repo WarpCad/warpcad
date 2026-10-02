@@ -210,3 +210,5 @@ now exercised by a `supersedes`-produced group rather than only a `consumes`-pro
 one) — re-run `ui-016`'s original repro (drilling into a grouped body, confirming the
 gizmo attaches/detaches correctly and the selection watcher fires) against Bisect's
 output specifically, not only against its own original boolean-union case.
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

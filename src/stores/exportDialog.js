@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 /**
  * The Export popover's state and rules (`TODO/ui-034`) — **UI state only**. The mechanism it
  * drives is `io-003`'s (`src/core/export.js`, `src/render/export.js`); its contract is

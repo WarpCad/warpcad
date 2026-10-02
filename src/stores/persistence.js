@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 /**
  * Local persistence, as the UI sees it (`TODO/io-001`): autosave and restore,
  * the save-status chip's state, and the file Save / Open API `ui-033` builds its

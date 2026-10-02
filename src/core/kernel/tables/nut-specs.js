@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 /**
  * Nut size table, ported from `jscad-hardware@1.1.0`'s `metric.jscad` and
  * `imperial.jscad` (confirmed by reading both files directly, not reconstructed

@@ -236,3 +236,5 @@ pass before the roadmap can state real dependencies for it.
 Also created at kickoff, alongside the roadmap — see `CLAUDE.md`'s Verification
 section and "Acceptance Scenarios and the token-paced backlog runner" section for what
 goes in each. Neither exists yet either.
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

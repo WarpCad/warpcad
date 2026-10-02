@@ -140,3 +140,5 @@ necessary rather than optional.
 - **Closed-finding regression surface**: `core-020`'s repro, re-run against at least one
   affected composite (e.g. `hardware.washer`) post-change, since this modifies the exact
   record-building code path that finding was filed against.
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

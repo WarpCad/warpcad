@@ -126,3 +126,5 @@ and after via `npm run build`'s own output, not just that tests pass).
 **`TODO/ACCEPTANCE.md` scenarios**: none directly — this is a decision with no code
 behavior. **Closed-finding regression surface**: none — no existing subsystem is
 touched, only `package.json`.
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

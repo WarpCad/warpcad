@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 /**
  * Rim fillet and chamfer — the *only* fillet semantics JSCAD V3 can actually support.
  *

@@ -99,3 +99,5 @@ positions it decorates are already covered by `ui-011`/`ui-012`/`ui-017`'s specs
 affordance addition on an already-passing control (scenario 2's gizmo-drag half). Worth
 a glance during that scenario's next re-drive, not a dedicated re-drive of its own. No
 closed finding exists yet against this subsystem.
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

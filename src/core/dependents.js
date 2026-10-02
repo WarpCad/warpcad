@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 /**
  * The pre-commit **impact check** for a composite param edit (`TODO/ui-052`): before a
  * Pi 4 becomes a Pi 5, which records elsewhere in the document would stop building

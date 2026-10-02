@@ -1,3 +1,4 @@
+<!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <script setup>
 /**
  * Orientation gizmo — a live axis triad in a fixed screen-space corner.

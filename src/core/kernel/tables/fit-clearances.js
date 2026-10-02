@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 /**
  * The shared fit-clearance table, ported from `jscad-hardware@1.1.0`'s
  * `Hardware.Clearances` (`jscad-hardware.jscad:112-116`):

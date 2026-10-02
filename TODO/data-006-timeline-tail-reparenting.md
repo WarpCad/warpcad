@@ -118,3 +118,5 @@ model.
 - **Closed-finding regression surface**: `core-020`'s repro after a re-parent, and
   `data-004`'s own atomicity repro (a refused edit changes nothing, including the derived
   indexes) — re-parenting writes to the same `rebuildFrom` path.
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

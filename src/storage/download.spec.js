@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 // @vitest-environment jsdom
 // @ts-nocheck — duck-typed fakes of the browser globals; download.js itself is typechecked.
 import { describe, expect, it, vi } from 'vitest'

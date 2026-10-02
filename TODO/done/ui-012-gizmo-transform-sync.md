@@ -178,3 +178,5 @@ bodies, confirm neither duplicates or vanishes when the other is transformed) si
 this task's document-layer change is exactly the kind of change `CLAUDE.md`'s
 Verification section calls out for re-checking a subsystem a scenario already covers.
 No closed findings exist yet against the document/command-layer subsystem to re-check.
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

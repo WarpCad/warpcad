@@ -186,3 +186,5 @@ L. sketch-001: "Steps 5-6 above are close to **XL** on their own."
 
     Scenario 8 is re-driven with the hostile fixture as its step 3's "malformed
     document".
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

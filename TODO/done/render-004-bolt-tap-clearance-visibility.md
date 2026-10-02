@@ -155,3 +155,5 @@ that adds a real trigger).
   the same part.
 - **Closed-finding regression surface**: `core-020`'s repro, since this is the same
   `hardware.bolt` composite that finding was filed against.
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

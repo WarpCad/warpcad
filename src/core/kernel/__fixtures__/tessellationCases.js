@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 /**
  * Test-only helper for `TODO/core-035`'s byte-identity oracle.
  *

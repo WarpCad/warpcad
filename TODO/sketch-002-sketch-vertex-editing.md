@@ -148,3 +148,5 @@ canvas swallowing the draw gesture.
   viewports; and a press on an outline's stroke **between** handles must still draw (ui-020
   finding #1).
 - **Acceptance**: re-drive scenario 9 (the sketch scenario) and scenario 1.
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

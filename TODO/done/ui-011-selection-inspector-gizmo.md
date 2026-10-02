@@ -149,3 +149,5 @@ single-item selection contract that scenario builds on, though the group/sub-par
 behavior itself is `ui-015`/`ui-016`'s job). Re-drive both by hand once this task's
 code exists, reporting explicitly which half of each scenario is and isn't drivable
 yet. No closed findings exist against this subsystem yet to re-check.
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

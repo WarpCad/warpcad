@@ -335,3 +335,5 @@ transient hidden-part mesh, and rewriting seven acceptance scenarios' steps.
   - **`ui-043`**: the phone header and chrome fit at 390px.
   - **`ui-047`**: the Show hidden parts toggle, and a shown hidden part still pickable as
     its sub-part.
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

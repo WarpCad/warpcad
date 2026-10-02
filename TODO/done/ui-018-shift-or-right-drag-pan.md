@@ -136,3 +136,5 @@ subsystem risk. Also re-check scenario 1's clicking/selection half (place two bo
 click each) since item 3 above touches the same click-vs-drag travel logic scenario 1's
 selection clicks depend on. No closed finding exists yet against the camera/pointer
 subsystem to re-check.
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

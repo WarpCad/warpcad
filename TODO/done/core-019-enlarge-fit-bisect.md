@@ -209,3 +209,5 @@ future UI task, which would in turn need its own acceptance-scenario mapping.
 operand-resolution path (`core-013`'s own change) — each is `operandCount: 1`,
 non-raw, following the same shape as `modify.filletRim`/`chamferRim` already do. No
 closed finding's subsystem is extended here.
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

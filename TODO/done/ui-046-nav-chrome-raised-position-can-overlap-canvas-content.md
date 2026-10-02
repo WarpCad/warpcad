@@ -115,3 +115,5 @@ dropped in the lower-left quadrant) once resolved.
   navigation, since this touches `NavigationChrome` directly).
 - Closed-finding re-run: `TODO/done/ui-043-phone-toolbar-chrome-overlap.md`'s own repro
   steps, since this task edits the same component `ui-043` fixed a different overlap in.
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

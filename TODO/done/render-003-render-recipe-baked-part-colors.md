@@ -130,3 +130,5 @@ check on the Pi boards and the Inspector's "Default" wording.
   property edit).
 - **Closed-finding regression surface**: `core-020`'s repro, since this reads
   `Group.colors` off composites placed through the command layer.
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

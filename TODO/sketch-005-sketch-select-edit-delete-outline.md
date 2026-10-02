@@ -104,3 +104,5 @@ hole, then tap **Delete** to remove it. Tap empty canvas to clear the selection.
 - **Acceptance**: re-drive scenario 9 and scenario 1; closed findings ui-020 #1/#3, ui-043,
   ui-046.
 - Repro-first: write the failing spec for whichever of Problem 1-4 the hand repro shows.
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

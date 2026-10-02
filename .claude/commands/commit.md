@@ -177,6 +177,10 @@ everything is green.
 
 **All tests must be green before proceeding.** Do not commit until every suite is clean.
 
+**Licensing gate:** `git add` any new files, then run `npm run spdx`. If it lists files, run
+`node scripts/spdx.mjs --fix` and stage the result. If you added or upgraded a dependency, run
+`npm run licenses` too. See `LICENSING.md`.
+
 **Snapshot tests:** When updating Playwright visual baselines, always use headless
 mode — `npm run test:e2e:headless -- --update-snapshots`. Never update snapshots in
 headed mode; canvas and WebGL render differently there, and the baselines won't match
@@ -203,11 +207,14 @@ will have of what got drafted and why.
 
 Use:
 ```
-git commit -m "$(cat <<'MSG'
+git commit -s -m "$(cat <<'MSG'
 <message here>
 MSG
 )"
 ```
+
+`-s` adds the DCO `Signed-off-by` line (see `CONTRIBUTING.md`); it is in addition to, not instead
+of, any attribution trailer the harness asks for.
 
 After committing, show the social posts again so the user can copy them.
 
@@ -231,3 +238,5 @@ post makes no checkable claim beyond what the diff shows, write
 `**Evidence:** diff only`.
 
 Fill in `<repo-url>` and `<docs-url>` here once the remote and docs site exist.
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

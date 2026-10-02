@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 /**
  * Where the main thread's kernel time goes on every document mutation (`TODO/core-029`).
  *

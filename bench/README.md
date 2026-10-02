@@ -70,3 +70,5 @@ which is a different question from how fast it is.
   emitted, loads, answers, and downloads a real file with no console errors; the Node
   benchmark corroborates the magnitudes independently. A production *timing* run on a
   seeded multi-body scene is not claimed and would need a seam the bundle does not have.
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

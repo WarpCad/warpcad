@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 /**
  * Export-path benchmark (`TODO/perf-001`), per `.claude/prompts/perf-benchmark.md`.
  *

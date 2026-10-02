@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 /**
  * Deep-groove ball bearing size table — no V1 source, transcribed from a published
  * standard, cross-checked against two independent sources (`TODO/core-023` Goal).

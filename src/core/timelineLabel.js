@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 /**
  * Human labels for a timeline row (`TODO/ui-032`).
  *

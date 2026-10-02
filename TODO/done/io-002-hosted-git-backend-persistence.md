@@ -151,3 +151,5 @@ guidance on real cross-layer ambiguity with no established pattern.
 - **`TODO/ACCEPTANCE.md` scenario 10** (remote path) by name — drive with a real (test)
   repo once `ui-033` also exists to provide the trigger.
 - **Closed-finding regression surface**: none new — first task in this subsystem.
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

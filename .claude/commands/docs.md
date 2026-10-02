@@ -80,3 +80,5 @@ housekeeping.
 
 List every file you changed and what was updated.
 Ask: "Does this documentation look accurate and complete?"
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

@@ -1149,3 +1149,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** five methods → registry.spec.js + exportJob.spec.js (0 open edges each), run this session; tube subtracted from a cube → hand drive phone Chromium touch-only, 47 527.035 mm³ = 64 000 − 16 472.965; export → loft STL 0 open edges, hand drive laptop Chromium
 **To Add:** screenshot of the tube preview in the editor (test-results/sketch-snapshots/chromium-laptop-editor.png)
+
+## [2026-10-02T19:49:00Z] — WarpCad is licensed: AGPL-3.0 code, CC BY-SA 4.0 prompts and specs
+
+**Post:** WarpCad now has a license: AGPL-3.0 for the code, CC BY-SA 4.0 for the TODO specs, prompts and slash commands that built it. Fork either and share your changes under the same terms. CI fails on a missing license marker or an off-list dependency. Built with Claude Code, reviewed by me. #OpenSource
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** AGPL code / CC BY-SA prose split → LICENSING.md in the diff; CI fails on a missing marker or off-list dependency → .github/workflows/ci.yml, scripts/spdx.mjs and the package.json licenses script in the diff
+**To Add:** none

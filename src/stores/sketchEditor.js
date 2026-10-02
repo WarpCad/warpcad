@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 /**
  * The open sketch editor — UI state, never document state (`TODO/sketch-001`).
  *

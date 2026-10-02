@@ -358,3 +358,5 @@ the browser the whole time.
   auto-push off. Your model stays exactly where it is — disconnecting is about the
   repository, not about your work.
 - Clearing site data for WarpCad removes the token too, along with the autosave.
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

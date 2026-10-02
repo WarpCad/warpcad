@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 /*
  * Dev-only fixture generator — NOT part of the app, NOT imported by src/.
  *

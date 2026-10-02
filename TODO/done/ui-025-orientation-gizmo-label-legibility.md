@@ -133,3 +133,5 @@ snaps the view (already covered by `ui-011`'s own tests, unchanged by this task)
 component `ui-011` shipped, but `ui-011` was a capability fix (build the control), not a
 legibility finding, so there's no prior closed *finding* on this file whose repro steps
 need re-running — noted explicitly per `CLAUDE.md`'s rule rather than left unstated.
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

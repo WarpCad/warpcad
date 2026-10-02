@@ -147,3 +147,5 @@ coverage for.
 behaviour) — re-drive its click-selects-only-that-item half to confirm marquee's new
 empty-space drag handling didn't regress a plain click into starting a marquee instead.
 No closed finding exists yet against the selection subsystem to re-check.
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

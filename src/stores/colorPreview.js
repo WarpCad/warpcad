@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 /**
  * The colour a picker is *proposing* — UI state, not document state (`TODO/ui-037`).
  *

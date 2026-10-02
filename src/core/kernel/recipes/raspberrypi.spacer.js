@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 /**
  * The `raspberrypi.spacer` composite recipe — the 3D-printable support that holds a
  * HAT off a Raspberry Pi B+, reproducing `jscad-raspberrypi@62a8e3b`'s

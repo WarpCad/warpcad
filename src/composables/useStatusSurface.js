@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 /**
  * The header chip's text and tone — **one status surface** for autosave, the last explicit
  * save/open, and hosted state (`docs/decisions/interaction-model-qa.md`, "The one status

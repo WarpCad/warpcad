@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 // @vitest-environment jsdom
 // @ts-nocheck — test doubles.
 import { mount, enableAutoUnmount } from '@vue/test-utils'

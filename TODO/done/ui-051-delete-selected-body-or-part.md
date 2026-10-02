@@ -315,3 +315,5 @@ exist yet, split part removal into its own follow-up task rather than let this g
     `/run-todos` batch.
   - `ui-050` also adds a row to the Inspector's single-body section. Keep Delete at the
     bottom, below it.
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

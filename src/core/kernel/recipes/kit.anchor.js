@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 /**
  * The `kit.anchor` composite recipe — §6's "Anchor" Kit-part row, which that catalogue
  * calls out as the "example of a multi-part `Group` as one draggable item".

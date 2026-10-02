@@ -1,3 +1,4 @@
+<!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <script setup>
 /**
  * One row of the History list, and — when it is the selected row — its action

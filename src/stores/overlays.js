@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 /**
  * Which popovers and dialogs the app has open right now — **UI state only**
  * (`TODO/ui-033`).

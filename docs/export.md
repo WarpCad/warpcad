@@ -169,3 +169,5 @@ you built.
 - Why STL is written from the modelling kernel rather than from what is drawn on screen,
   and why the glTF is closed too although a viewer does not need it to be:
   [`decisions/persistence-export.md`](decisions/persistence-export.md).
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

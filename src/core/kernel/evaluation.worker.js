@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 /**
  * The kernel evaluation worker (`TODO/core-029`) — the general RPC `CLAUDE.md`'s
  * Architecture section names: "all kernel work happens off the main thread".

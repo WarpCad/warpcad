@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 /**
  * The differential harness's comparison, shared (`TODO/core-030`, reused by `TODO/core-032`).
  *

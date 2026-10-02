@@ -1,3 +1,4 @@
+<!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <script setup>
 /**
  * The Export popover (`TODO/ui-034`) — opened by **File ▾ → Export…** and driven entirely by

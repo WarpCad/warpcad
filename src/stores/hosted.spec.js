@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 // @vitest-environment jsdom
 // @ts-nocheck — drives hand-written duck-typed fakes of the hosted client and the credential
 // store; the modules under test are fully typed and checked by `npm run typecheck`.

@@ -129,3 +129,5 @@ GitHub REST API (`/repos`, `/search/issues`, `/contributors`) and the npm regist
 figures measured locally against the installed `node_modules/three/build/*.min.js`
 with `gzip -c`. Prior-experience claims are quoted from `PREVIOUS-ATTEMPT.md` and
 `SECOND-ATTEMPT.md` in this repo.
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

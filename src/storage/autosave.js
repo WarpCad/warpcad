@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 /**
  * The autosave scheduler (`TODO/io-001`): when to write, never how.
  *

@@ -41,3 +41,5 @@ genuinely open seams from `fillet.js`'s ring walling (then fix the walling).
   polygon + fillet, and a chamfer on each, at `normal` and `print`.
 - Re-run io-004's and io-005's shapes (all still 0).
 - Acceptance: re-drive scenario 11 with a filleted hexagon.
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

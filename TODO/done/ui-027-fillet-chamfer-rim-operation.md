@@ -219,3 +219,5 @@ unchanged as a baseline check that adding a third commit path didn't disturb the
 second. Does not touch `document.js`'s `consumes`/`mergedInto` bookkeeping (uses
 `supersedes` only), so `core-020`'s fix is not at risk — state this explicitly per the
 same convention `ui-026`'s own file used.
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

@@ -168,3 +168,5 @@ about, and there is still no UI surface for the angled form. `TODO/VERIFY.md`'s
 `core-021` entry (row 1, "judge whether negative landing on the far side reads as a
 bug") is resolved by this task shipping, not by further hand-driving — the decision
 was already made explicitly by the user, this task just implements it.
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

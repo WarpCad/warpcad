@@ -193,3 +193,5 @@ new tests verify, what the Phase 5 acceptance-scenario check found, and what doc
 updated.
 
 Only commit when the user confirms, per `/commit` Step 9.
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

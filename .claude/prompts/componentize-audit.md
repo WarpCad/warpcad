@@ -67,3 +67,5 @@ extraction, component-workshop stories, and E2E coverage.
 
 Anything the report flagged under items 3 and 4 above goes to `/tdd` or `/fix-todo`
 instead: it's a logic move, not a component extraction.
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 /**
  * The export job's resolution override (`TODO/core-035`): when the export asks for a
  * different resolution than the design's, the job receives the document's **records**,

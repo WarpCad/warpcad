@@ -45,3 +45,13 @@ npm run storybook
 npm run build
 npm run preview   # serve the production build locally
 ```
+
+## License
+
+WarpCad is copyleft. The code is [AGPL-3.0-or-later](LICENSE); the prompts, TODO specs,
+slash commands and docs that were used to build it are [CC BY-SA 4.0](LICENSE-DOCS). If you
+modify or build on either and share the result, you share it under the same terms. See
+[LICENSING.md](LICENSING.md) for the path-by-path map and [CONTRIBUTING.md](CONTRIBUTING.md)
+for the sign-off every contribution needs.
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

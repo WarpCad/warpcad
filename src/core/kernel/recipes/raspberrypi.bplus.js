@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 /**
  * The `raspberrypi.bplus` composite recipe — one Raspberry Pi board, every connector,
  * with a single `model` param picking the revision.

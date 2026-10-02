@@ -216,3 +216,5 @@ multi-module orchestration owning real lifecycle/state.
   reorder specifically (the ordering-sensitive absorption bug that finding fixed is
   exactly the kind of thing a reorder feature could reintroduce if the replay doesn't
   re-run `evaluate()`'s composite-expansion branch identically to the original fold).
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

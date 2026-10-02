@@ -256,3 +256,5 @@ bookkeeping (case 1 above) but does not write to it, so `core-020`'s composite-f
 is not directly at risk — state this explicitly rather than silently skip re-running
 its repro, since this task does extend the same `consumes` surface `core-020`'s fix
 lives beside.
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

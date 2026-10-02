@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 /**
  * A re-fold reuses every record whose inputs did not change (`TODO/core-031`).
  *

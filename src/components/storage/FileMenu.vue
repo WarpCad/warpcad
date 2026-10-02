@@ -1,3 +1,4 @@
+<!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <script setup>
 /**
  * The header bar's **File ▾** menu (`TODO/ui-033`) — the one control surface for saving,

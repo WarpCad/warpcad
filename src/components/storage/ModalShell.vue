@@ -1,3 +1,4 @@
+<!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <script setup>
 /**
  * The shared frame of the three File-menu dialogs (`TODO/ui-033`): the replace-project

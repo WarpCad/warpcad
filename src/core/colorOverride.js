@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 /**
  * Reading a body's user colour overrides (`TODO/data-005`) the way the Inspector's
  * Color control and the viewport both need to (`TODO/ui-037`). Framework-free on

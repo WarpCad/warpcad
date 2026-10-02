@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 /**
  * The object list's state and its actions — **UI only** (`TODO/ui-041`; moved into the
  * Inspector by `TODO/ui-049`, which retired the separate Objects panel, its header toggle

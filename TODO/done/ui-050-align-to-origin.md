@@ -253,3 +253,5 @@ fit, the per-body Reference memory, and the three-engine e2e spec.
 - **Coordination**: `ui-049` rewrites `Inspector.vue`'s empty state and replaces
   `hiddenParts` with `parts`. Whichever lands second rebases onto the other. They're not
   a hard dependency, but don't run both in the same `/run-todos` batch.
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

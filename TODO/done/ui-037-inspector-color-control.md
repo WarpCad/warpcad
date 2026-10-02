@@ -183,3 +183,5 @@ algorithms and real architectural ambiguity with no existing pattern.
 - **Closed-finding regression surface**: `core-020`'s repro, re-run after a color edit
   on a composite body, confirming the override doesn't disturb the composite's own part
   list.
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

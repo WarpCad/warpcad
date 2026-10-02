@@ -159,3 +159,5 @@ No `*.e2e.js` — no UI surface exists yet.
 Acceptance scenarios: none directly pass/fail on this task alone — feeds scenario 3's
 eventual RPi-plus-camera pair alongside `core-014`. No closed finding's subsystem is
 extended here in a way that needs re-running.
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

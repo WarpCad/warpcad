@@ -125,3 +125,5 @@ cover the existing orbit/pan/zoom/orientation-gizmo controls scenario 7 already
 exercises at the iPad viewport. No closed finding exists yet against the camera/pointer
 or settings subsystem to re-check (this is the first task to touch `localStorage` at
 all in this project).
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

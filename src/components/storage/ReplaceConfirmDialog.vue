@@ -1,3 +1,4 @@
+<!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <script setup>
 /**
  * "Open replaces the current project" — the confirm that stands between a click on `Open…`

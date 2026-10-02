@@ -528,3 +528,5 @@ finishes steps 1-3, split steps 4-6 into their own TODO rather than stretching t
     sheet is open; Done/Cancel must stay visible).
   - `ui-029`'s silent-data-loss repro: fillet or boolean a sketch body, then confirm
     Edit sketch is disabled with the guard's reason.
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

@@ -177,3 +177,5 @@ there is nothing correct to turn it into.
 Coming in later updates: dragging, adding and removing an outline's individual points;
 loading a photo to trace over and setting its scale from a ruler; and automatic tracing of
 a photographed part.
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

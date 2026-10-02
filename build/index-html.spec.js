@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 // Guards against the white-flash-on-load (FOUC) defect: index.html's <head> must
 // paint the dark background and set color-scheme *before* any CSS/JS loads, since
 // the whole point of TODO/build-002 is to close the race window between first paint

@@ -264,3 +264,5 @@ cross-layer contracts with no existing pattern to mirror closely.
   body's name isn't absorbed. Also re-run `TODO/ACCEPTANCE.md` scenario 5's own logged
   `core-020` closed-finding re-check (2026-09-16 entry) one more time now that a real
   UI path exists to drive it through, not just the command layer directly.
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

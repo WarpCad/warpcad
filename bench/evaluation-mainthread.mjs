@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 /**
  * How long each document mutation blocks the main thread, in a real browser
  * (`TODO/core-029`).

@@ -231,3 +231,5 @@ still selects only that one.
 - To align one shape to the **grid's origin** rather than to another shape, that
   is a different control — the Inspector's own **Align to origin** row, see
   [Selecting a shape, and reading its size § Align to origin](selection-and-inspector.md#align-to-origin).
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

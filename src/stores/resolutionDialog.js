@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 /**
  * **File ▾ → Resolution…** (`TODO/core-035`, surface A) — the design resolution popover's
  * state. Every rule lives here; `ResolutionPopover.vue` is layout.

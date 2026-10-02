@@ -93,3 +93,5 @@ Acceptance scenarios: none can run yet (`TODO/ACCEPTANCE.md` doesn't exist until
 `docs-004`), but this task is the direct implementation underneath `Initial design.md`
 §9 scenario 8 ("Remote-load safety") — note that connection for `docs-004` rather than
 gating this task on it now. No closed findings exist yet to re-check.
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

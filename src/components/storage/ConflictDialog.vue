@@ -1,3 +1,4 @@
+<!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <script setup>
 /**
  * "The repository copy changed since you last loaded or saved it" — the hosted conflict

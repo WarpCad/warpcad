@@ -99,3 +99,5 @@ output really is `geom2`-shaped before relying on that guard to catch a mismatch
   existing fold path beyond registration, mirroring every other Library-row addition's
   own low regression profile (confirmed via `core-012`'s `profile.extrudeLinear` re-use,
   which is already exercised by `kit.boardFrame`'s own passing suite).
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

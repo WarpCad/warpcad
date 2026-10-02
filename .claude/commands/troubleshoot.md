@@ -79,3 +79,5 @@ Invoke this skill (without being asked) whenever you:
   device pixel ratio, GPU/software rasterizer differences, float precision between
   the main thread and a worker, headed vs. headless canvas output. These are the
   ones most expensive to rediscover, and the least likely to be obvious next time.
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

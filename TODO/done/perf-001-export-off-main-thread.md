@@ -209,3 +209,4 @@ One honest caveat: on this laptop at **1x**, a 24-body export lands right at the
 the line is either absent or a ~10 ms flash. That is the borderline every threshold has; the
 case that matters (phone-class CPU) is unambiguous.
 
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

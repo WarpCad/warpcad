@@ -203,3 +203,5 @@ with something else.
   result from another angle.
 - [Precise placement: Snap and Align](snap-align.md) — the same toolbar's other two
   buttons, which move a shape against another without combining or discarding either.
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

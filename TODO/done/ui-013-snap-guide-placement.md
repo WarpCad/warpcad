@@ -182,3 +182,5 @@ doesn't regress the first item's visibility.
 
 No closed finding's subsystem is extended here beyond scenario 1's own standing
 regression-surface status.
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

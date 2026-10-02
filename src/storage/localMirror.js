@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 /**
  * A synchronous safety copy of the autosave, in `localStorage` (`TODO/io-001`).
  *

@@ -194,3 +194,5 @@ version for later tasks, per the roadmap's own note — this task itself changes
 runtime behavior.
 
 **Regression surface**: none — no code touched.
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

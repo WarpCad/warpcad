@@ -1568,3 +1568,18 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** old lines could not be booleaned/exported → TODO/done/sketch-001 Goal text; five methods + preview in worker → registry.spec.js / evaluationJob.spec.js and the diff; Done greyed with reason → e2e/sketch-primitive.e2e.js (61 passed) and hand drive; Edit sketch one undo step → hand drive laptop ("Undo: Edit Sketch 1"); phone touch-only tube/subtract numbers → hand drive phone Chromium this session (16 472.965 / 47 527.035 mm³); old projects open with skipped lines named → e2e + hand drive scenario 8 ("skipped 1 step (sketch-1)")
 **To Add:** screenshot of the lofted wing and of the phone editor with the Extrude sheet open
+
+## [2026-10-02T19:49:00Z] — WarpCad is licensed: AGPL-3.0 code, CC BY-SA 4.0 prompts and specs
+
+**Post:** WarpCad has a license now, and it covers more than the code. The source is AGPL-3.0-or-later. The TODO specs, acceptance scenarios, slash commands and CLAUDE.md that were used to build it are CC BY-SA 4.0. In this project the prompts are a large part of the work, so they get the same share-alike protection as the code: reuse them, credit the original, and release your version on the same terms.
+
+AGPL rather than plain GPL because the app is served from a browser and an MCP server is planned. AGPL treats running it as a service as distribution. Copyleft only obliges a fork to share with the people it reaches; it does not send changes back to me automatically.
+
+Every source and Markdown file carries an SPDX license marker so the license travels when a single file is copied, and CI now fails on a missing marker or on a production dependency outside an allow-list. The runtime tree is 38 packages, all MIT, ISC, BSD or Apache.
+
+Built with Claude Code, reviewed by me.
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** license split and what each covers → LICENSING.md in the diff; prompts are a large part of the work, share-alike intent → user's request this session; AGPL covers network use → AGPL-3.0 text in LICENSE (section 13); copyleft obliges sharing with recipients, not automatically back to the author → LICENSE sections 5, 6 and 13; MCP server planned → CLAUDE.md AI Partner section; markers + CI gate → scripts/spdx.mjs, ci.yml in the diff; 38 packages all MIT/ISC/BSD/Apache → `npm run licenses` summary this session (33 MIT, 2 ISC, 1 BSD-2, 1 BSD-3, 1 Apache-2.0)
+**To Add:** none

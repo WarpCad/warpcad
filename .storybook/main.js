@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 /** @type {import('@storybook/vue3-vite').StorybookConfig} */
 const config = {
   stories: ['../src/**/*.stories.@(js|ts)'],

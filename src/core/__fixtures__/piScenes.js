@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 /**
  * Hand-built, real-kernel documents for `TODO/ui-052`'s specs: a Raspberry Pi with
  * something depending on one of its parts — the user's own example, "a Pi 4, something

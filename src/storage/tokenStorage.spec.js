@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 // @ts-nocheck — drives a hand-written duck-typed fake of `idb`'s `openDB`; the module under
 // test is fully typed and checked by `npm run typecheck`.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'

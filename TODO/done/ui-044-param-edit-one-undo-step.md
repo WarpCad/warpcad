@@ -89,3 +89,5 @@ fold.
   Re-run `data-003`'s repro (after a gizmo move, an Inspector param edit and a Subtract,
   Undo returns exactly the prior state), this time on a body that has been **moved first**,
   which is the case its original drive did not cover.
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

@@ -67,3 +67,5 @@ S (< 1hr)
 No code or UI surface — no `.spec.js`/`.e2e.js` needed. Acceptance scenarios: none
 (`TODO/ACCEPTANCE.md` doesn't exist yet, and this change touches no running-app
 surface). No prior closed findings exist in this project yet.
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

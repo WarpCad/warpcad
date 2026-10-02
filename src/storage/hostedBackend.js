@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 /**
  * The hosted git backend's client (`TODO/io-002`): read and write one project
  * file in a user-connected repository, over the GitHub Contents API.

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 /**
  * Orbit-camera model — the single source of truth for camera state.
  *

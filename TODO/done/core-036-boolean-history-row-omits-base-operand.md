@@ -59,3 +59,5 @@ S.
 - **`TODO/ACCEPTANCE.md` scenarios to re-drive**: 10 (the rows read after a reload) and 12
   (the History list).
 - **Closed-finding regression surface**: none (label only).
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

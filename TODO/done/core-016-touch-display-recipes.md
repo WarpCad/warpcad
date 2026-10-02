@@ -227,3 +227,5 @@ control will be asked to attach) — `ui-026`'s own closed acceptance re-drive (
 3, Cube/Cylinder stand-in) should be re-run once a real screen+board pair exists to
 confirm Snap/Align still resolves correctly against composite-recipe output with this
 many named parts, not just against the two-primitive case it originally proved.
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

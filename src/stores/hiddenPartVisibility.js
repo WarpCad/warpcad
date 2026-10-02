@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 /**
  * Which bodies currently show their hidden parts translucent (`TODO/ui-047`) —
  * **UI-only view state**, exactly the kind CLAUDE.md says Pinia is for (selection,

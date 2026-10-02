@@ -63,3 +63,5 @@ regardless of its merge-semantics quality.
 and §3 (the action/object array, replay-fold model); `CLAUDE.md`'s Architecture
 section (transaction-origin undo scoping) and AI Partner section (the MCP
 concurrent-editing case).
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

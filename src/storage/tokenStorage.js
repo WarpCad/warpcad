@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 /**
  * The credential boundary (`TODO/io-002`) — where a user-supplied secret lives.
  *

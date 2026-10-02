@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 // @ts-nocheck — this spec drives hand-written duck-typed fakes of browser globals (`window`,
 // `indexedDB` via `idb`, the File System Access handles). Typing each fake against the full DOM
 // / `idb` interfaces would be more code than the fakes; the *modules under test* are fully

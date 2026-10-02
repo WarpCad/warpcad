@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 /**
  * How finely curved geometry is faceted — the design's **resolution** (`TODO/core-035`).
  *

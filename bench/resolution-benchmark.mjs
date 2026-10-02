@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 /**
  * Design resolution / export resolution benchmark (`TODO/core-035`), per
  * `.claude/prompts/perf-benchmark.md`.

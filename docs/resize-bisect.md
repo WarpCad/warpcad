@@ -161,3 +161,5 @@ full click-once/click-again mechanism.
 - [Selecting a shape, and reading its size](selection-and-inspector.md) — what
   selection does, and how drilling into one part of a group (including a
   Bisect result) works.
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

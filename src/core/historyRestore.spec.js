@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 /**
  * Undo/Redo without a re-fold (`TODO/core-030`, option 2).
  *

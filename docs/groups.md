@@ -141,3 +141,5 @@ way you would reach any other hidden piece.
   first place.
 - [Selecting a shape, and reading its size](selection-and-inspector.md) — what
   selection does, and reading a group's combined size afterwards.
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

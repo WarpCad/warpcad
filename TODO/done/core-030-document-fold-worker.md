@@ -121,3 +121,5 @@ They may well combine: 2 for the tail undo, 1 for everything that genuinely re-f
   (preview/rollback), and `core-029`'s own `e2e/evaluation-worker.e2e.js`.
 - Cross-engine: Chromium **and** WebKit, production build. Firefox cannot launch in this
   sandbox (`TROUBLESHOOTING.md`).
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

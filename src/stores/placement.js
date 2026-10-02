@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 /**
  * The in-flight drag-placement gesture — the state the Library panel and the
  * viewport have to agree about while a row is being dragged across them.

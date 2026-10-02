@@ -358,3 +358,5 @@ finishes steps 1-3, split steps 4-6 into their own TODO rather than stretching t
 - **Acceptance** (verbatim):
     Scenario 8 is re-driven with the hostile fixture as its step 3's "malformed
     document".
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 /**
  * The `text.label` builder (TODO/render-002) — `jscad-utils`' `label()` ported to
  * `@jscad/modeling`.

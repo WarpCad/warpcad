@@ -137,3 +137,5 @@ confirm they're genuinely driveable as written, the same bar `ui-001`'s own scen
 **`TODO/ACCEPTANCE.md` scenarios**: this task directly rewrites 10, 11, 12 — not a
 regression risk, the deliverable itself. **Closed-finding regression surface**: none —
 no code changes.
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 import { describe, it, expect } from 'vitest'
 import { Color, Light, LineSegments } from 'three'
 import { createSceneGraph, VIEWPORT_COLORS, VIEWPORT_THEMES } from './scene.js'

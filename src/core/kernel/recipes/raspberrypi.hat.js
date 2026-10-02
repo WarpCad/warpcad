@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 /**
  * `jscad-raspberrypi@62a8e3b`'s `Hat(pi, options)` (`src/hat.js:25-69`), expanded
  * **standalone** — a blank Raspberry Pi HAT: a 65.02 x 56.39 x 1.62 board, four

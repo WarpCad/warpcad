@@ -134,3 +134,5 @@ the correct body and doesn't accidentally grab a neighboring body's overlapping 
 Scenario 1's "gizmo attaches" half is a visibility check, not a size check, but worth a
 quick glance during the re-drive since it's the same overlay code path. No closed
 finding exists yet against the gizmo/annotation subsystem to re-check.
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

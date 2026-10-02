@@ -192,3 +192,5 @@ architectural ambiguity and geometry/numerics-adjacent correctness risk.
 - **Closed-finding regression surface**: `core-020`'s repro, re-run after an undo/redo
   cycle specifically (undo a composite placement, confirm no earlier body was absorbed
   either before or after the undo).
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

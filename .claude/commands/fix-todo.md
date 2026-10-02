@@ -334,3 +334,5 @@ never batched. See the Notes section below.
   reuse a file listing, test result, or "next id" conclusion from earlier in
   this transcript. Repo state can have moved (another session, a manual
   commit) even when nothing in this conversation looks like it changed.
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

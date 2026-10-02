@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 /**
  * The `raspberrypi.hatStandoff` composite recipe — the pad-and-peg standoff that holds
  * a HAT off a Raspberry Pi, reproducing `jscad-raspberrypi@62a8e3b`'s

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 /**
  * The `raspberrypi.miniPiTFT` composite recipe — Adafruit's 135x240 Mini PiTFT,
  * expanded **standalone**.

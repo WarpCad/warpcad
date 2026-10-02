@@ -56,3 +56,5 @@ S (< 1hr)
 
 No code or UI surface — docs-only. Acceptance scenarios: none. No closed findings to
 re-check.
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

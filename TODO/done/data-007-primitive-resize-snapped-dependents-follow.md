@@ -66,3 +66,5 @@ M.
 - **`TODO/ACCEPTANCE.md` scenarios to re-drive**: 2, 3, 12.
 - **Closed-finding regression surface**: `ui-029` (resize keeps the body centred where it
   was; filleted body behaviour), `ui-044` (one Undo step), `data-004` (mid-history replay).
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

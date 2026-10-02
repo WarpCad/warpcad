@@ -704,3 +704,5 @@ starts at the first UI-touching task and never stops being a per-task gate:
   and general-mesh fillet/chamfer (already flagged above) are the two catalog entries
   most likely to actually need the native-op exception rather than qualifying as
   composite once someone tries the decomposition for real.
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

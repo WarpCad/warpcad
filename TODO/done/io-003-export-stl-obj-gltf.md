@@ -162,3 +162,5 @@ integration against a chosen dependency, not new architectural ground.
   WarpCad," which an automated spec's byte-level assertions can't fully replace; drive
   it by hand once `ui-034` exists, opening the real downloaded file in an external tool.
 - **Closed-finding regression surface**: none new — first task in this subsystem.
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

@@ -107,3 +107,5 @@ S.
   the pattern.
 - **`ACCEPTANCE.md` scenarios 4 and 7** re-driven at phone width. Extends the subsystem `ui-010`,
   `ui-035`, `ui-040` and `ui-032` each found a phone overlap in; re-run their original repros.
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

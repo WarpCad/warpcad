@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 /**
  * The transform a gizmo drag is *proposing* — UI state, not document state.
  *

@@ -269,3 +269,5 @@ that scenario's own already-established Cylinder substitution), confirm the seco
 body's group doesn't absorb the first — should be re-run once this task lands, since it
 is the next task to append a new record kind through the same shared path since that fix
 closed.
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

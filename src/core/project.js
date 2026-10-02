@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 /**
  * The on-storage / on-disk form of a whole document (`TODO/io-001`).
  *

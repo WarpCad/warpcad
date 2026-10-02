@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 /**
  * The Bill of Materials tally (`TODO/ui-038`) — placed hardware, kit and Raspberry Pi
  * bodies grouped by what they *are*, counted.

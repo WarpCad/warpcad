@@ -111,3 +111,5 @@ cross-engine differences.
 **`TODO/ACCEPTANCE.md` scenarios this could affect**: none — purely cosmetic, no
 scenario asserts on gizmo appearance beyond "it attaches to the right body," which this
 task doesn't touch. No closed finding exists yet against this subsystem.
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 // @ts-nocheck — FakeWorker below duck-types just the slice of the `Worker` interface
 // the client uses, and the bodies are built from `evaluate()`'s map, which is typed as
 // possibly-undefined. The client itself is typechecked; this file mocks its boundary.

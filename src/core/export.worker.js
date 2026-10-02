@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 /**
  * The export worker (`TODO/perf-001`) — the first worker in this repo.
  *

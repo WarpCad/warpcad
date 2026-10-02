@@ -144,3 +144,5 @@ specifically so there is no second implementation to drift, which is the failure
 - Cross-engine: Chromium **and** WebKit, in the production build, per `perf-001`'s
   finding that module workers are a real bundling-and-engine surface. Firefox cannot be
   launched in this sandbox (`TROUBLESHOOTING.md`).
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 /**
  * The one adapter between the sketch editor and the document (`TODO/sketch-001`).
  *

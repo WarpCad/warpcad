@@ -474,6 +474,29 @@ it. In short:
   (`.claude/prompts/project-audit.md`) and the backlog loop as if they're unrelated;
   `TODO/BUDGET.md` tracks both.
 
+## Licensing (applies to every file you create or edit)
+
+This project is copyleft on purpose, and the prompts and specs that build it are a major part
+of the work, not scaffolding. Full map in `LICENSING.md`; the rules you must follow:
+
+- **Code** (`src/`, `mcp/`, `e2e/`, `scripts/`, `bench/`, configs) is **AGPL-3.0-or-later**.
+  **Prose** — `TODO/`, `.claude/commands/`, `.claude/prompts/`, `docs/`, this file, and every
+  other `*.md` — is **CC BY-SA 4.0**. `chat/` is all rights reserved.
+- **Every new source or Markdown file carries its SPDX marker.** Run
+  `node scripts/spdx.mjs --fix` after `git add`ing new files; `npm run spdx` (CI) fails
+  without it. Markdown markers go at the *end* of the file, because many files open with
+  front matter. Never remove or alter a marker.
+- **New `TODO/<id>.md` files and new `.claude/` command/prompt files are licensed
+  CC BY-SA 4.0 like their siblings** — don't paste in text from a source with an
+  incompatible license.
+- **Don't add a dependency, asset or code snippet under an incompatible license**
+  (proprietary, "non-commercial", SSPL, and the like). `npm run licenses` holds the allow-list
+  for production dependencies; a new entry on it is a decision for the user, not for you.
+- **Commits carry a DCO sign-off** (`git commit -s`) in addition to the attribution trailer
+  the commit workflow already adds — see `CONTRIBUTING.md`.
+- Never relicense, drop attribution, or "clean up" a license notice, even when refactoring
+  or moving a file; carry its marker with it.
+
 ## Working Files
 
 - `TODO/ROADMAP.md` — the ordered build plan. **Does not exist yet.** Create it during
@@ -509,3 +532,5 @@ it. In short:
   the first — the Interaction Model and Verification sections above are both distilled
   directly from these two documents, and understanding *why* each rule exists is what
   lets you judge an edge case the rule's wording didn't anticipate.
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

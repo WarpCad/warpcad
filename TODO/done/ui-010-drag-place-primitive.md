@@ -213,3 +213,5 @@ is `ui-013`; booleans are `ui-014`).
 **No closed findings exist yet in this project against the document/command-layer or
 drag-placement subsystems** — this is the first task to touch either, so there is
 nothing to re-check.
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

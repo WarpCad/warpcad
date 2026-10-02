@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 /**
  * The `raspberrypi.activeCoolingFan` composite recipe — the official Raspberry Pi
  * Active Cooling Fan, reproducing `jscad-raspberrypi@62a8e3b`'s `activeCoolingFan()`

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 /**
  * Portable project files: Save and Open, with a first-class fallback
  * (`TODO/io-001`; `docs/decisions/persistence-export.md`, sub-decision 2).

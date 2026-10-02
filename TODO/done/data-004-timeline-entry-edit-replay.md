@@ -251,3 +251,5 @@ real architectural ambiguity with no existing pattern to mirror.
 - **Closed-finding regression surface**: `core-020`'s repro, re-run after a mid-history
   edit specifically (edit a step *before* a composite placement in the timeline, confirm
   the composite still holds only its own parts after the replay).
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

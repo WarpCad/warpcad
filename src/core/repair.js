@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 /**
  * Turn the fixes chosen in the repair dialog into one revision (`TODO/ui-052`).
  *

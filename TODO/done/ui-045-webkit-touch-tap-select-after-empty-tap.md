@@ -115,3 +115,5 @@ it there. Whatever the cause, keep the real-touch spec so this path is covered.
 - `TODO/ACCEPTANCE.md`: scenario 1 (step 4, by touch) and scenario 7 (touch-only
   navigation), plus scenario 4's selection steps by touch.
 - On a real iPhone and iPad: the `TODO/VERIFY.md` row from `core-031`.
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

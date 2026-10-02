@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 /**
  * `document.batch`: several appends, measured one after another, as **one** undo
  * step (`TODO/ui-044`).

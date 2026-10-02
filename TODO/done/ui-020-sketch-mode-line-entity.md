@@ -219,3 +219,5 @@ existing `document.spec.js` suite unchanged to confirm no existing `bodies()`/
 `currentIdOf()`/`consumes`/`supersedes` behavior moved for ordinary (non-`sketch.`)
 records, the same standing-regression-surface check every prior `document.js`-touching
 task (`ui-014`, `ui-015`, `ui-016`, `core-020`) has run.
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

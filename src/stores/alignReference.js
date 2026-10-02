@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 /**
  * Which reference — the whole object, or one named part — the Inspector's
  * **Align to origin** row last measured a given body from, remembered **per

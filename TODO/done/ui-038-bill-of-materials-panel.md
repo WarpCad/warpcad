@@ -102,3 +102,5 @@ Inspector's existing read-only param display.
 - **`TODO/ACCEPTANCE.md` scenarios**: none directly, per this task's own roadmap entry.
 - **Closed-finding regression surface**: none — a read-only feature with no document
   mutation path to regress.
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

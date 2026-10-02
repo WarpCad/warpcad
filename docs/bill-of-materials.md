@@ -42,3 +42,5 @@ undoing — and while you're previewing an earlier step in History it shows that
 3. The **Bill of materials** shows `Bolt M10 hex × 20 mm  × 2` and `Washer M6  × 1`, total `(3)`.
 4. With the washer still selected, press **Delete**. The washer line disappears and the total
    drops to `(2)`.
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

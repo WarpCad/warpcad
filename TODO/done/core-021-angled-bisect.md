@@ -373,3 +373,5 @@ infinite-plane type, no `cutByPlane`), so "needs a rotated cut-plane constructio
 holds. This file's own research narrows *how* that construction happens (a coordinate-
 transform composition of already-built pieces, not a new boolean technique) without
 contradicting what the row says.
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

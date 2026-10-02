@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 /**
  * Segment helpers the sketch editor's drawing gestures share (`TODO/ui-020`, kept by
  * `TODO/sketch-001`).

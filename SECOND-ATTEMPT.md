@@ -223,3 +223,5 @@ backlog the whole time. If the user is actively hand-testing on real devices whi
 AI works (as happened here), a same-day or next-day cross-engine smoke pass on
 whatever just landed is worth more than a dedicated coverage task scheduled for whenever
 the roadmap gets to it.
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

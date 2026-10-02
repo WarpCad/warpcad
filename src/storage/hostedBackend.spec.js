@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 // @ts-nocheck — this spec drives a hand-written fake of `fetch`/`Response`. Typing the fake
 // against the full DOM `Response` interface would be more code than the fake; the module under
 // test is fully typed and checked by `npm run typecheck`.

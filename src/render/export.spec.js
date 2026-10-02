@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 // @vitest-environment jsdom
 //
 // `GLTFExporter`'s binary path builds a Blob and reads it back with a FileReader,

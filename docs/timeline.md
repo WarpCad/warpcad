@@ -204,3 +204,5 @@ work away.
 - [Undoing and redoing a change](undo-redo.md)
 - [Rounding or bevelling an edge: Fillet and Chamfer](fillet-chamfer.md)
 - [Selecting a shape, and reading its size](selection-and-inspector.md)
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 /**
  * Hand a file to the browser as a download — the **one** implementation of it
  * (`TODO/ui-034`, decision (b)).

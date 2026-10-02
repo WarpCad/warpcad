@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 /**
  * Conditional records — the "only when the Pi is a Pi 4" fix (`TODO/ui-052`).
  *

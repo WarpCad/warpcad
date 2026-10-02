@@ -69,3 +69,5 @@ repro against `raspberrypi.touchDisplay7inch`, and re-drive `ACCEPTANCE.md` scen
 kernel/render pipeline core-033 and render-003/004 already touched) plus scenario 13 on
 a `raspberrypi.touchDisplay7inch` sub-part, screenshotted at laptop Chromium and phone
 WebKit, the same discipline `render-004`'s own retirement note used.
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 /**
  * The IndexedDB adapter behind autosave (`TODO/io-001`), on `idb` 8.0.3
  * (`docs/decisions/persistence-export.md`, sub-decision 1).

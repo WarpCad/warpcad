@@ -162,3 +162,5 @@ questions back — mostly stack and storage questions, which is where the prompt
 gave clear direction. The next attempt should specifically prompt for a walkthrough-style
 Q&A: "describe what happens on screen when a user does X" for each core capability,
 before any code is scaffolded.
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 /**
  * The `kit.boardFrame` composite recipe — §6's "BoardFrame" Kit-part row.
  *

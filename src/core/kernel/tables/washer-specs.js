@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 /**
  * Washer size table — two different provenances, both stated here rather than left
  * implicit (`TODO/core-011` Goal).

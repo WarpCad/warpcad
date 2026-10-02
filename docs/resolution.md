@@ -121,3 +121,5 @@ project file by hand) keeps it too. There is no control for that in the app.
 - [Exporting your model](export.md) — the rest of the Export panel.
 - [Undoing and redoing a change](undo-redo.md) — resolution changes are ordinary Undo steps.
 - [Saving and reopening your work](save-load.md) — the setting is saved with the project.
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

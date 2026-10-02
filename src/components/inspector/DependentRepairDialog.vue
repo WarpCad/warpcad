@@ -1,3 +1,4 @@
+<!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <script setup>
 /**
  * The **repair dialog** (`TODO/ui-052`): "This change affects 1 item".

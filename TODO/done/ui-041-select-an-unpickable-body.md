@@ -162,3 +162,5 @@ for the list route, a new panel to place at three viewports.
   and any new meaning for it has to leave that one intact.
 - Engines: all three (this touches the raycast/canvas path) if pick-cycling; Chromium
   across the three viewports is enough for a pure DOM list.
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

@@ -201,3 +201,5 @@ isolation), `src/core/kernel/recipes/kit.anchor.js:142-145` and `kit.anchor.spec
 (`group.snap`/`group.align`), and
 `src/core/kernel/recipes/__fixtures__/group-snap-align.real-usage.md` (`core-013`'s
 2,147-call-site survey and its four call shapes).
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

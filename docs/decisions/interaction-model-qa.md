@@ -1491,3 +1491,5 @@ project-name concept; `.glb` vs `.gltf`; exporting a drilled-in sub-part as its 
 parent body; a missing `New project` item; the always-visible suppress eye vs an action
 bar; repository branch; multi-tab autosave last-writer-wins; whether one gizmo drag
 collapses to one timeline row; and section 18's tail re-parenting.
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

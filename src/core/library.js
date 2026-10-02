@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 /**
  * The Library panel's catalogue, derived from the kernel registry.
  *

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 /**
  * The File ▾ menu's UI state and the two rules that live in it (`TODO/ui-033`) — **UI state
  * only**. Nothing here persists, serialises or talks to a network: it decides *when* to ask

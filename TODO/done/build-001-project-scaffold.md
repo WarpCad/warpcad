@@ -87,3 +87,5 @@ fails the build, then remove the fixture. Chromium only — no WebGL/canvas/pers
 surface exists in this task (that starts at `render-001`). No acceptance scenario
 touched yet (`TODO/ACCEPTANCE.md` scenarios need a real running app to drive against,
 which this task doesn't yet provide). No closed findings to re-check.
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

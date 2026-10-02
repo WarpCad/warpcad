@@ -156,3 +156,5 @@ dimension lines attach" half) and scenario 2 (its gizmo-drag/dimension-tracking 
 re-drive both after this lands, specifically checking a *rotated* body's dimension
 numbers, since neither scenario's prior drives ever rotated the selected body before
 reading its dimensions. No closed finding exists yet against this subsystem to re-check.
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

@@ -113,3 +113,5 @@ eventually exercise this registry is a separate, later roadmap task (seeded by
 Acceptance scenarios: none yet — `TODO/ACCEPTANCE.md` doesn't exist until `docs-004`,
 and this task touches no running app. No closed findings exist in this project yet to
 re-check.
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

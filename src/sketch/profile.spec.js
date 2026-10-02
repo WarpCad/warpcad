@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 // @ts-nocheck — fixture outlines are plain literals; the module under test types them.
 import { describe, expect, it } from 'vitest'
 

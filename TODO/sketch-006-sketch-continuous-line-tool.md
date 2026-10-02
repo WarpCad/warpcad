@@ -95,3 +95,5 @@ single function that task can wrap.
   Esc finishes; the closed triangle extrudes via Done. Three viewports; all three engines.
 - **Acceptance**: re-drive scenario 9 and 1; closed findings ui-020 #1 (a press on a
   drawn stroke must still draw — the live chain must not swallow it), #3, ui-043, ui-046.
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

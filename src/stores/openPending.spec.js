@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 // @ts-nocheck — duck-typed fakes of the storage boundary; the modules under test are fully
 // typed and checked by `npm run typecheck`.
 import { createPinia, setActivePinia } from 'pinia'

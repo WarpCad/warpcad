@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 /**
  * Measuring a body's geometry — the one implementation, on either side of the worker
  * (`TODO/core-029`).

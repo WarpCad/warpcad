@@ -69,3 +69,5 @@ Confirm: "All green. Done."
   instead of listing individual commands.
 - A single test can be run with: `npx vitest run --reporter=verbose <filename>`
 - Test files use `.spec.js` for unit/component tests, `.e2e.js` for E2E tests
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

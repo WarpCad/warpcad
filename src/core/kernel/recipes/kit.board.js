@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 /**
  * The `kit.board` composite recipe — §6's "Board (rounded PCB slab)" Kit-part row.
  *

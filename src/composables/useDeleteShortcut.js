@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 /**
  * Delete and Backspace delete the selection (`TODO/ui-051`) — a window-level listener,
  * mounted once from the root view rather than from the Inspector, because it has to

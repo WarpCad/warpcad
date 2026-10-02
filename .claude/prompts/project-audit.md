@@ -239,3 +239,5 @@ cleaner."
 When finished, do not modify any file outside `TODO/`. Reply with a short summary: how
 many findings per category, and which one you consider highest priority — a reachability
 finding (section 4) outranks a stylistic one even if there are more of the latter.
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

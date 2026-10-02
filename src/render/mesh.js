@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 /**
  * The mesh bridge: `@jscad/modeling` geometry → a three.js `BufferGeometry`.
  *

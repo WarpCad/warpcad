@@ -149,3 +149,5 @@ pattern to mirror.
 - **Closed-finding regression surface**: `ui-026`'s own e2e spec (18 cases, all three
   reference viewports) re-run unchanged as the regression baseline, the same precedent
   `ui-027` set when it added a third commit path to the same toolbar.
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

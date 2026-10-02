@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 /**
  * The `raspberrypi.cameraModule` composite recipe — one Raspberry Pi camera board, with
  * a single `model` param picking which of the five V1 camera factories to reproduce.

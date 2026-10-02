@@ -1,3 +1,4 @@
+<!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <script setup>
 /**
  * The Inspector's **Condition** row (`TODO/ui-052`): *"Only when Raspberry Pi 1's Model is

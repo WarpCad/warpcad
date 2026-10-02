@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 /**
  * Hosted storage, as the UI sees it (`TODO/io-002`): a connection to one file in
  * one git repository, explicit Save/Load against it, and the opt-in auto-push

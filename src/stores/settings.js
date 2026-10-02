@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 /**
  * User-facing app settings — UI state, but the *persisted* kind: unlike
  * `selection.js` or `transformPreview.js`, a setting here is meant to survive

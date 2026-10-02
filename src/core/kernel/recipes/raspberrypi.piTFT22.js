@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 /**
  * The `raspberrypi.piTFT22` composite recipe — Adafruit's PiTFT 2.2" display HAT,
  * expanded **standalone**.

@@ -93,3 +93,5 @@ missing vertex into the longer edge. Do **not** loosen the check to hide it — 
 - Re-drive `ACCEPTANCE.md` scenario 11 against the composite, and re-run `io-003`'s and
   `ui-034`'s closed-finding checks (the export bytes, scope, and the drilled-in parent).
 - `TODO/VERIFY.md`: open a bolt STL in a real slicer once this lands (nobody has yet).
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

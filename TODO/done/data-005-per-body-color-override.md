@@ -156,3 +156,5 @@ mirroring an established pattern stays sonnet even at effort M.
 - **Closed-finding regression surface**: `core-020`'s repro, re-run after appending a
   color-override record on a composite body, confirming the override doesn't disturb
   the composite's own part list or absorb an unrelated earlier body.
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

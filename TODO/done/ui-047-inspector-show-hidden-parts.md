@@ -141,3 +141,5 @@ M. The Inspector and store are small and follow `ui-037`. The real work is
 - **Closed-finding regression surface**: `ui-041`'s x-ray twin (selection inside an
   enclosing shell) must still work with a translucent clearance drawn, and `core-020`'s
   repro must pass.
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

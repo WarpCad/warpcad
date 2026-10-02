@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 /**
  * What the object list's hover highlight costs while a pointer sweeps down a fully
  * expanded Raspberry Pi's part rows (`TODO/ui-049`).

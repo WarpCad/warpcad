@@ -34,3 +34,5 @@ Afterwards there are two shapes in the scene, and the **new copy** is the one th
 - A turned shape keeps its turn mirrored, so its dimension lines still measure the part.
 - On a phone the popover opens the same way as the other toolbar popovers; press Escape or
   **Cancel** to close it without adding anything.
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

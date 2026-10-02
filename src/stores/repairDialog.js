@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 /**
  * The repair dialog's state (`TODO/ui-052`) — UI state only, per CLAUDE.md's Project
  * Structure: which held edit or committed breakage the dialog is showing, and the fix the

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 /**
  * Output-equivalence harness for `makeWatertight` (`TODO/perf-001`).
  *

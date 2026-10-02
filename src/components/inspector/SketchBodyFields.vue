@@ -1,3 +1,4 @@
+<!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <script setup>
 /**
  * A selected sketch body's own section (`TODO/sketch-001`), in place of the generic

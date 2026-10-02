@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 /**
  * How long an export blocks the main thread, in a real browser (`TODO/perf-001`).
  *

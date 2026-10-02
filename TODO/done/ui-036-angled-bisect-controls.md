@@ -119,3 +119,5 @@ wiring closely mirroring an established pattern stays sonnet even at effort M.
   re-run specifically against an **angled**-Bisect-produced group (previously only
   exercised against a straight-Bisect-produced one in `ui-028`'s own drive) — confirm
   drilling into the tilted `negative`/`positive` halves still shows correct dimensions.
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

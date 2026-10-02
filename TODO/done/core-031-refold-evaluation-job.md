@@ -122,3 +122,5 @@ recorded rather than assumed.
   with zero kernel lookups).
 - Cross-engine: Chromium **and** WebKit, production build. Firefox cannot launch in this
   sandbox (`TROUBLESHOOTING.md`).
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

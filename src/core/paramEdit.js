@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 /**
  * Editing a body's **own** parameters — a cylinder's diameter, a cube's size.
  *

@@ -21,3 +21,5 @@ is actually rejected"). Re-run this check if any of the four sit unused for a lo
 stretch before actually being exercised by real code, per the same rule's
 "re-run the health check when it's actually about to be pulled in" guidance for a
 gap between selection and use.
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

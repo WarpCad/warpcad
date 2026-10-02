@@ -123,3 +123,5 @@ with no existing pattern that fits.
   incrementally, since this is a new *creation-shaped* record kind referencing another
   body's geometry — a genuinely new shape for the exact fold that finding was filed
   against, worth checking rather than assuming the fix generalizes.
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

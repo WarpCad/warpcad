@@ -298,3 +298,5 @@ re-run of that finding's specific repro is needed, since a `native` entry never 
 the nested `evaluate()` `core-020`'s bug lived in. State this explicitly rather than
 silently skip it, since this task does extend the same `group.` op-name family
 `core-013` introduced.
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

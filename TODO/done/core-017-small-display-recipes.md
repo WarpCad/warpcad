@@ -374,3 +374,5 @@ expansion isolation) — re-run `core-020`'s original repro (an incrementally-ap
 composite must not absorb an earlier body into its own group) against the changed
 fold before calling this task done, per `CLAUDE.md`'s standing-regression-surface
 rule.
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

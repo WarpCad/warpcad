@@ -168,3 +168,5 @@ No `*.e2e.js` — no UI surface exists yet.
 Acceptance scenarios: none directly pass/fail on this task alone. `Spacer`'s reuse of
 `kit.boardFrame` extends a subsystem `core-012` built and no finding was ever filed
 against, so no closed-finding re-run applies.
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

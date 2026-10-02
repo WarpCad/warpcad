@@ -1,3 +1,4 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
 /*
  * Design tokens. Dark mode is primary, light comes from `prefers-color-scheme`,
  * and every colour is a custom property rather than a hardcoded literal

@@ -125,3 +125,5 @@ S (< 1hr) — a few lines in `index.html`; no architecture, no new module.
   in a manual note, not a new scenario.
 - No prior closed finding exists yet against `index.html` or the load shell, so there
   is no earlier repro to re-run — this is the first finding filed against this surface.
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

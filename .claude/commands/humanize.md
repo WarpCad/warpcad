@@ -76,3 +76,5 @@ Before signing off, verify:
 - The piece doesn't end on a reflexive "Thoughts?"-style question.
 - The first sentence of the article would make you keep reading.
 - The last sentence of the article doesn't try to summarize everything that came before it.
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

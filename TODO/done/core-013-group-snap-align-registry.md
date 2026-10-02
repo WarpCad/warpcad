@@ -252,3 +252,5 @@ clearance is driven through the UI rather than hand-authored records).
 No previously closed finding's subsystem is extended here in the `TODO/VERIFY.md`
 sense — see the Regression surface bullet above for the analogous check this task does
 need.
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

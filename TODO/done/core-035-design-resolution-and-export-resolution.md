@@ -288,3 +288,5 @@ core policy, and a new `io-006` owns B.
   T-junctions). Higher segment counts produce far more near-collinear vertices for
   `makeWatertight` to handle, so re-run both original repros at Print, not only
   Normal.
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

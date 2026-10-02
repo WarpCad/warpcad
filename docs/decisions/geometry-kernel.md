@@ -277,3 +277,5 @@ Bolt/Nut/Washer as a composite recipe once a spec table exists.
 | §5 Connectors/curves row | "V3: first-class `connectors`/`curves` (arc, NURBS)" | **Incorrect for 2.13.0.** No `connectors` module; `curves` is `bezier` only. V1's `CSG.Connector` was loft plumbing, replaced by `extrudeFromSlices`. |
 | §11 risk 1 | "may not have a clean V3 equivalent... needs a spike" | **Resolved.** Rim ops: yes, shipped. Edge fillet: no, and the kernel-fork question is now open and explicit above. |
 | §11 risk 6 (Bearing) | "most likely to actually need the native-op exception" | **Resolved.** Neither needs it as a *creation* op; Bearing is composite. |
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

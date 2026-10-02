@@ -103,3 +103,5 @@ selection tolerance; snap radius is its own constant.
   swallow the draw gesture), #2/#3, ui-043, ui-046.
 - Perf: confirm snap search adds no per-event allocation on a 400-point outline
   (`.claude/prompts/perf-benchmark.md`) — relevant once `sketch-004` produces such outlines.
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

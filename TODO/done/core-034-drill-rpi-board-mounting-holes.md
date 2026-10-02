@@ -175,3 +175,5 @@ recipes, each with its own spec and V1-diff fixtures to update.
   Also `core-024` (boolean sub-part operand addressing), because `mb` is now itself a
   boolean result that a user may pick as an operand. Re-run `core-033`'s colour checks
   on `mb` too.
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

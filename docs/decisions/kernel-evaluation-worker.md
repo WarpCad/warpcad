@@ -347,3 +347,4 @@ first. Full numbers: `bench/results/2026-09-30-core-032.md`.
 | A pending indicator without a painted frame | Setting `loading` and folding in the same task would never paint it: the fold holds the thread before the next frame. The wait for one painted frame is the mechanism, not a detail. |
 | A worker fold only above a size threshold | Two load paths chosen by a threshold is the two-implementations drift this record already rejected once (slice 1's option 2). The announced fold covers every size with one path. |
 
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

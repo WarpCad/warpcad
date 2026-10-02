@@ -113,3 +113,5 @@ creation parameters, not its current rounded-off silhouette.
 - [Selecting a shape, and reading its size](selection-and-inspector.md) — what
   selection does, and how the Inspector's Size fields relate to a shape's
   actual current geometry.
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 /**
  * three.js glue: the scene graph, and the WebGL renderer wrapper around it.
  *

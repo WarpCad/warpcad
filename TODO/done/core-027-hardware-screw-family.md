@@ -108,3 +108,5 @@ shaped despite each having one novel piece.
 - No `*.e2e.js` — no UI surface, stated explicitly.
 - **`TODO/ACCEPTANCE.md` scenarios**: none directly (kernel-only). **Regression surface**:
   none — a new, independent recipe touching no existing fold path beyond registration.
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 /**
  * The resolution policy inside the fold (`TODO/core-035`): which ops follow it, which
  * never do, and that `legacy` is byte-for-byte the pre-`core-035` geometry.

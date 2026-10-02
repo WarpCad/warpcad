@@ -89,3 +89,5 @@ Library and architecture decisions, with the data behind them, live in
 - [Document model / sync](decisions/document-sync.md) — no CRDT for v1
 - [Interaction-model Q&A](decisions/interaction-model-qa.md) — the six §7 controls
 - [Stack-defaults health check](decisions/stack-defaults-health-check.md)
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

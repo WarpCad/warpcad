@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 /**
  * The evaluation worker's job, as pure functions (`TODO/core-029`).
  *

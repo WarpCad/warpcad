@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 /**
  * What is currently selected — UI state, exactly the kind CLAUDE.md says Pinia is
  * for (selection, active tool, panel layout).

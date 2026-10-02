@@ -85,3 +85,5 @@ is far more useful later than one that says *which interaction was slow*.
 
 Reply with a short summary: which interactions are inside budget, which are not, the
 worst offender, and the single measurement you'd re-run first after any fix.
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

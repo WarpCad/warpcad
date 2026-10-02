@@ -109,3 +109,5 @@ scenario 7 ("Touch-only viewport navigation") — once `docs-004` has written
 `TODO/ACCEPTANCE.md`, that scenario should be re-driven against this task's code by
 hand on the iPad reference viewport (orbit/pan/zoom + orientation-gizmo snap, no
 keyboard or mouse). No closed findings exist yet in this project to re-check.
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

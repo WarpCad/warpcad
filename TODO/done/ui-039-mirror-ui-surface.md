@@ -116,3 +116,5 @@ pattern stays sonnet.
 - **Closed-finding regression surface**: `core-020`'s repro, re-run against a mirrored
   composite body specifically (mirror a `hardware.bolt`, confirm the new copy holds
   only its own parts and doesn't absorb the original or any unrelated body).
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

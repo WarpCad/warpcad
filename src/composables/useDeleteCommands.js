@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 /**
  * The one Delete command (`TODO/ui-051`) — what the Delete/Backspace keys and the
  * Inspector's **Delete** / **Remove part** button all call, so the three triggers can

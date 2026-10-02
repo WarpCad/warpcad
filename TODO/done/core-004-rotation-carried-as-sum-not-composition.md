@@ -182,3 +182,5 @@ scenario 1's "gizmo and dimension lines attach" half. This task extends the subs
 `TODO/ui-023` was filed against, so re-run that finding's original reproduction steps
 (tilt a cylinder and read its diameter and length off the lines) against the new code as
 well as any new spec.
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

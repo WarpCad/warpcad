@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 /**
  * Undo/redo, scoped by transaction origin (`TODO/data-003`).
  *

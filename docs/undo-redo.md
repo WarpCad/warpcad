@@ -87,3 +87,5 @@ shared storage — pressing Undo will never silently remove it. Those changes ar
 the model's history like any other, and if one depends on a change of yours, WarpCad tells
 you so by name instead of quietly leaving a hole:
 `"Step 7", added via programmatic, depends on "Move Cube 1" — suppress or edit it first`.
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

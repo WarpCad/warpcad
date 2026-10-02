@@ -889,3 +889,5 @@ by name instead of guessing:
 - **The Inspector sheet keeps covering the 3D view on my phone.** Swipe it down by its
   grab handle. The view's own navigation controls move up out of the way while the sheet
   is open, so they are never trapped underneath it.
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 /**
  * Loft numerics: make every slice's outline wall-able to the next (`TODO/sketch-001`).
  *

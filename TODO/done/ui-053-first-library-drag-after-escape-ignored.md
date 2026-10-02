@@ -83,3 +83,5 @@ S-M.
 - **`TODO/ACCEPTANCE.md` scenarios to re-drive**: 1 (placement), 12 (steps 2 and 12 open and
   dismiss these popovers).
 - **Closed-finding regression surface**: none known.
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

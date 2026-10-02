@@ -118,3 +118,5 @@ TDD, fix-todo, refactor-ui) proceeds.
   Configure these as E2E-tool `projects` (or the equivalent concept) in the test config
   so the headless e2e run covers all three consistently, rather than scattering manual
   viewport-size calls through individual specs.
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

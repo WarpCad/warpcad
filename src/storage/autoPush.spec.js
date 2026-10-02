@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 // @ts-nocheck — hand-written fakes for the push boundary; the module under test is fully
 // typed and checked by `npm run typecheck`.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'

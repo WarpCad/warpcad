@@ -214,3 +214,5 @@ finally use a real RPi-plus-camera pair instead of the Cube/Cylinder stand-in `u
 and `ui-026` both used and flagged. No closed finding's subsystem is extended here in a
 way that needs re-running (this is new recipe code, not a change to the fold, the
 registry's dispatch, or `document.js`).
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

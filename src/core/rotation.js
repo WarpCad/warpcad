@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 /**
  * Composing rotations, the one place the z-y-x Tait-Bryan arithmetic lives.
  *

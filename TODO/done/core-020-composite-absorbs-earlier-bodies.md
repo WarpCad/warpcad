@@ -128,3 +128,5 @@ record's `name`.
 M — the reproduction is exact and the suspected cause is one seeding decision, but
 it sits in the fold every record in the document goes through, so the regression
 surface is the whole of `replay.spec.js`, `index.spec.js` and `document.spec.js`.
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

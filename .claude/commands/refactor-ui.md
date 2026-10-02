@@ -189,3 +189,5 @@ spec covers it — a story-only spec never satisfies this line by itself.
 ```
 
 Only commit on confirmation, per `/commit` Step 9.
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

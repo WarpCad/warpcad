@@ -216,3 +216,5 @@ Acceptance scenarios: none directly pass/fail on this task alone — all three f
 `ui-013`'s Library panel once that task lands, same as `core-010`/`core-011`.
 
 No closed finding's subsystem is extended here in a way that needs re-running.
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

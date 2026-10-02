@@ -119,3 +119,5 @@ files' internals even though it adds no new registry keys.
 **Closed-finding regression surface**: `core-020`'s repro, re-run against at least one
 of the five affected composite kinds post-refactor, since this task modifies the code
 path that builds their records even though it shouldn't change their output.
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

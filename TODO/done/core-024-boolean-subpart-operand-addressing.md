@@ -212,3 +212,5 @@ clicking at all** — probing a grid of points over it never selected it. Until 
 timeline or scene list to select from (`ui-032`), scenario 5's "select both the shell and
 the bolt" step has no hand-driveable route once the two actually overlap, independent of
 either kernel question above.
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

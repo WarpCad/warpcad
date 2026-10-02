@@ -64,3 +64,5 @@ M (a few hours)
 n/a — planning document. No acceptance scenario is touched directly by writing the
 roadmap, though every milestone it defines should name which `TODO/ACCEPTANCE.md`
 scenarios (once `docs-004` writes them) it plausibly affects.
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

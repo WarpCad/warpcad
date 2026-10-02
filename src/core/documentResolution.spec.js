@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 /**
  * The design resolution as document state (`TODO/core-035`): `setResolution` is one
  * undoable, origin-scoped step, and neither the `core-031` fold cache nor the `core-030`

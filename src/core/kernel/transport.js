@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 /**
  * Kernel geometry across a worker boundary (`TODO/perf-001`).
  *

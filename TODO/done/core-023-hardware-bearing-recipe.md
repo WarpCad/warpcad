@@ -199,3 +199,5 @@ alone. If the table-injection wiring step above turns out to need a *new* mechan
 (rather than slotting into the existing one), reconsider this and re-run `ui-010`'s
 seven-row Library-panel repro the way `core-010` did, on the same "a new registry
 addition is a second chance to trip the panel filter" reasoning.
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

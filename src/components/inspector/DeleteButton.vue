@@ -1,3 +1,4 @@
+<!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <script setup>
 /**
  * The Inspector's **Delete** / **Remove part** button (`TODO/ui-051`).

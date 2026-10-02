@@ -146,3 +146,5 @@ triangulation detail.
   `geom3ToBufferGeometry` changes at all — that is every body the viewport draws.
 - Closed findings whose repro steps get re-run: `io-004` (all eight shapes still 0 in STL and
   OBJ), and `io-003`'s two originally-measured shapes.
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

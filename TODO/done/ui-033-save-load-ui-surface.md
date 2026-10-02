@@ -128,3 +128,5 @@ established pattern stays sonnet.
   control is the scenario's explicit trigger.
 - **Closed-finding regression surface**: none new beyond what `io-001`/`io-002` already
   name — this task adds no new document-mutation path.
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

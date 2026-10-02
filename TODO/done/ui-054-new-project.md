@@ -133,3 +133,5 @@ Open…; the new work is the Save-target and hosted-state resets, and the shortc
   UI), `io-001` (local persistence), `io-002` (hosted backend), `ui-012`/`ui-044` (undo
   coherence), and `ui-053` (Escape/popover dismissal before the next Library drag: after
   New, the first Library drag must start on the first try).
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

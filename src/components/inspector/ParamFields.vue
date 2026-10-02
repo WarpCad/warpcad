@@ -1,3 +1,4 @@
+<!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <script setup>
 /**
  * The Inspector's **Parameters** section, split out of `Inspector.vue` by `TODO/ui-052`

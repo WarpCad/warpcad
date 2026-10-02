@@ -133,3 +133,5 @@ naming a scenario this task can't itself move.
 No closed finding's subsystem is extended here in a way that needs re-running — this
 adds a new recipe file and one registry entry, it doesn't change `group.js` or any
 already-tested registry behavior.
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

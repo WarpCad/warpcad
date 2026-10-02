@@ -53,3 +53,5 @@ S (< 1hr)
 n/a — this task creates the scenarios, it doesn't run them. The first real PASS/FAIL
 run happens once `render-001` and the catalog tasks named in `docs-003`'s roadmap
 exist to drive against.
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

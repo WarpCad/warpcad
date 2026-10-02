@@ -567,3 +567,5 @@ so explicitly rather than shipping the dialog without the option the user asked 
     work when nothing is changed.
   - **`core-033`** / **`render-003`**: recipe part colours are right after a model swap.
     The Pi 5 has differently coloured parts than the Pi 4.
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

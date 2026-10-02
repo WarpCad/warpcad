@@ -205,3 +205,5 @@ existing pattern.
   each is a "new composite kind added to the expansion path" per `CLAUDE.md`'s standing-
   regression-surface rule, the same re-check every `core-01x` task already performed for
   its own recipes.
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

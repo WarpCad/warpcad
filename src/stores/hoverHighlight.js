@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 /**
  * What the pointer (or keyboard focus) is resting on in the Inspector's object list —
  * **UI only**, never the document (`TODO/ui-049`).

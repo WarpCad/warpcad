@@ -151,3 +151,5 @@ Acceptance scenarios: none directly pass/fail on this task alone — feeds scena
 `ui-013` exists.
 
 No closed finding's subsystem is extended here in a way that needs re-running.
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

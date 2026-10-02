@@ -230,3 +230,5 @@ alongside the existing `consumes`-based one didn't disturb either. Does not touc
 using `supersedes` instead), so `core-020`'s fix is not at risk — state this
 explicitly rather than silently skip it, since this task sits in the same
 `OperationsToolbar.vue` file `core-020`'s regression was originally found through.
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

@@ -92,3 +92,5 @@ geometry). If the finding is negative, no passing test is expected for that path
 deliverable is the documented finding itself, stated explicitly rather than left as a
 silent gap. No `*.e2e.js` spec (no UI surface). No acceptance scenario touched. No
 closed findings to re-check yet.
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

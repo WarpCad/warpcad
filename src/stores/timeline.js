@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 /**
  * The History panel's state — **UI only** (`TODO/ui-032`).
  *

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 // @ts-nocheck — FakeWorker duck-types only the slice of `Worker` the client uses. The
 // client itself is typechecked; this file mocks its boundary (CLAUDE.md, Conventions).
 import { afterEach, describe, expect, it } from 'vitest'

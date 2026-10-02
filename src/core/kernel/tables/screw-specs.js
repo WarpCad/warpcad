@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 /**
  * Screw size table, ported from `jscad-hardware@1.1.0`'s `metric.jscad`
  * (`MetricScrews`) and `imperial.jscad` (`ImperialWoodScrews`), read directly from

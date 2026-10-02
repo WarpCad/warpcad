@@ -121,3 +121,5 @@ mapped to a V3 part name by hand.
 - **Closed-finding regression surface**: re-run `core-020`'s repro against one rpi
   composite (e.g. `raspberrypi.bplus`), since this changes those recipes' records, and
   re-run `core-025`'s byte-identical-expansion check (only the colour fields should differ).
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

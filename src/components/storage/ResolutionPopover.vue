@@ -1,3 +1,4 @@
+<!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <script setup>
 /**
  * The design resolution popover (`TODO/core-035`, surface A) — opened by **File ▾ →

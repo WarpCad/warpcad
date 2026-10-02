@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 /**
  * Whether a keystroke landed in something that edits text itself — the one guard
  * every window-level shortcut shares (Ctrl/Cmd+Z in `HistoryControls.vue`, Delete and

@@ -535,3 +535,5 @@ it ever needs trimming.
   checked 2026-09-18.
 - **`generalize` call site** — read directly from
   `@jscad/stl-serializer@2.1.23/index.js:63`.
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 /**
  * The `raspberrypi.touchDisplay7inch` composite recipe — the official Raspberry Pi
  * 7-inch touch display, expanded **standalone**.

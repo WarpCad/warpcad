@@ -1,3 +1,4 @@
+<!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <script setup>
 /**
  * The 3D viewport: a WebGL canvas plus its screen-space overlays.

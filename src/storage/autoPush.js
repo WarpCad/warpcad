@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 /**
  * The auto-push scheduler (`TODO/io-002`): **when** to commit to the repository,
  * never how. The sibling of `autosave.js` one layer out — same shape (a policy

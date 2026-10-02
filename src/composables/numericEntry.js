@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 /**
  * Parse what a user typed into a numeric field — shared by the Inspector's Transform
  * fields and its Parameters section (`TODO/ui-052` split the latter into

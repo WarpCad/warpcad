@@ -265,3 +265,5 @@ later. (The Hardware rows' defaults are in the table further up.)
 Releasing outside the 3D view — back over the Library panel, over the header, or off
 the edge of the window — cancels the placement and nothing is added. The preview
 disappears and you can start again.
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

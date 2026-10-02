@@ -70,3 +70,5 @@ n/a — this task produces a planning document, not code. No `.spec.js`/`.e2e.js
 Acceptance scenarios: none run by this task directly, but its output is the direct
 input `docs-004` needs to write real (not provisional) scenario steps. No closed
 findings to re-check.
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

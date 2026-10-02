@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 /**
  * Part colour for composite-recipe op records (TODO/core-026): the representation, the
  * one conversion from V1's colour names into it, and its validation.

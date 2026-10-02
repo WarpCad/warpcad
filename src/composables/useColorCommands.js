@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 /**
  * The one adapter between the Inspector's Color control and the document
  * (`TODO/ui-037`).

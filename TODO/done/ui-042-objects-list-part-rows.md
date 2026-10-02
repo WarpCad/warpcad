@@ -108,3 +108,5 @@ row-tree keyboard/touch behaviour.
 - **`ACCEPTANCE.md` scenario 5** (the sub-part half for an enclosed operand), **4** (count gate
   unchanged by depth), **6** (a second viewport click still drills). Extends the subsystem
   `ui-016`, `ui-040` and `ui-041` were filed against: re-run each one's original repro.
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

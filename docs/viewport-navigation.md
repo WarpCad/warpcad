@@ -190,3 +190,5 @@ navigation pad changes:
   **✥** button sits just above it. Two fingers still pan and pinch-zoom.
 
 Everything comes back when you tap **Done** or **Cancel**.
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

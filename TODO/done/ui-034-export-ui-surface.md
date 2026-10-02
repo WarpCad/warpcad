@@ -148,3 +148,5 @@ than assume away. `model: sonnet`.
   `ui-015` found and `ui-027` re-confirmed the fix held for — re-run that same check
   (a button-count increase on this toolbar, driven by hand at tablet width in Firefox)
   since this task is the next one to add a button to the same toolbar.
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

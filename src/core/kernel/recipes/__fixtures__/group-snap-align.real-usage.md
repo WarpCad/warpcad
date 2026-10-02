@@ -134,3 +134,5 @@ piece name is dropped, not just if both are.
 `pieces` reads the same on both sides — *measure using only these named parts*. What
 differs is what the measurement then does, and that belongs to the op, not the
 address: the moving group travels as a whole, the reference never moves.
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

@@ -1,3 +1,4 @@
+<!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <script setup>
 /**
  * The header's save-status chip (`TODO/io-001`, extended by `TODO/ui-033`) — the app's one
