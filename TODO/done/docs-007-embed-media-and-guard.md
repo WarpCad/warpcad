@@ -6,8 +6,10 @@ priority: high
 model: sonnet
 milestone: M10
 depends: [docs-005, docs-006]
-status: open
+status: done
 ---
+
+> **Shipped as scoped.** Pure parsing/check logic lives in `scripts/docs-media-check.mjs` (Vitest-covered); the Playwright guard is a thin filesystem wrapper. Hero is the existing `cube-selected.png` still.
 
 ## Goal
 

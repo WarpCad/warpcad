@@ -6,6 +6,8 @@ come from the same gesture: click it.
 
 ## Selecting
 
+![A selected cube with its gizmo and the Inspector panel showing its size](./screenshots/cube-selected.png)
+
 Click — or tap — directly on a shape in the 3D view. Three things happen at once:
 
 1. **A gizmo appears at the middle of the shape.** Three coloured arrows point along the

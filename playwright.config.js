@@ -82,7 +82,7 @@ export default defineConfig({
   projects: [
     // Repo guards that assert on files rather than on a page — one run is
     // enough, so they stay out of the 9-way browser matrix.
-    { name: 'guards', testMatch: /naming\.spec\.js/ },
+    { name: 'guards', testMatch: /(naming|docs-media)\.spec\.js/ },
     ...browserProjects,
     ...docsProjects,
   ],

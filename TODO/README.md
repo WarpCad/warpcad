@@ -107,6 +107,10 @@ not a hypothetical. State:
   not a restatement of the Interaction model's trigger/feedback bullets in different
   words. Name the units/coordinate conventions if the example involves typing a number.
   Screenshots come from Playwright E2E snapshots (`.claude/commands/docs.md` Step 3).
+- **Media** — the `e2e/docs/*.docs.js` shot(s) and/or movie(s) this task adds or updates
+  (file names under `docs/screenshots/` and `docs/media/`), and the page that embeds each.
+  Same per-task gate as the example; `e2e/docs-media.spec.js` fails on an unembedded or
+  unclaimed picture.
 
 If this doesn't apply (a pure `core`/`data`/`io` change with no UI surface), state that
 explicitly rather than omitting the section silently — same rule as Interaction model.

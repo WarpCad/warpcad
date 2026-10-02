@@ -10,6 +10,11 @@ yet), so pages are plain Markdown and this file is the table of contents. When a
 docs-site generator is chosen, its sidebar config replaces this list — the pages
 themselves won't have to move.
 
+Pictures and GIFs are never captured by hand: they come from `e2e/docs/*.docs.js` via
+`npm run docs:media`, are embedded as `![alt](./screenshots/<name>.png)` or
+`![alt](./media/<name>.gif)`, and the `guards` Playwright project fails on a dead link, an
+orphaned file, or a picture no spec produces.
+
 ## Using WarpCad
 
 - [Placing a shape](primitive-placement.md) — dragging an item out of the

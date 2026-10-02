@@ -27,6 +27,8 @@ The Library has five sections, and the gesture is identical in all of them:
 
 ## Placing your first shape
 
+![The empty scene: the Library panel on the left, an empty grid in the 3D view](./screenshots/empty-scene.png)
+
 1. Find the **Primitives** section at the top of the Library panel. It lists seven
    basic solids: Cube, Cylinder, Cone, Hexagon, Triangle, Tube and Sphere.
 2. Press and hold on the **Cube** row — a mouse press, or a finger, both work.
@@ -36,6 +38,10 @@ The Library has five sections, and the gesture is identical in all of them:
    preview of the actual cube**, sitting on the grid, following your pointer.
 5. Let go. The cube is placed at exactly the spot you released, sitting on top of the
    grid, and it is highlighted to show it is now the selected object.
+
+![Dragging a Cube out of the Library onto the grid and letting go](./media/primitive-drag-cube.gif)
+
+![The cube once placed, selected and sitting on the grid](./screenshots/primitive-drag-cube-end.png)
 
 That is the whole gesture. It is the same one for every row in the panel — in both
 sections — so once you have placed a cube you already know how to place a sphere, or a

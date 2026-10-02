@@ -155,6 +155,13 @@ elsewhere: run the `test` skill (`/test`).
 All stages must be green before moving on. Fix any regression before continuing —
 don't hand back a partially-passing state.
 
+**If the change touches UI that a docs page pictures**, also run
+`npm run docs:screenshots`. A drift failure means one of two things — either the UI
+change was intended (run `npm run docs:screenshots:update`, look at the new image, commit
+it) or it is a regression (fix it). Never ignore it or delete the spec to make it pass.
+If this task's Documentation section lists new shots or movies, run `npm run docs:media`
+so they exist before `e2e/docs-media.spec.js` checks they are embedded.
+
 ---
 
 ## Step 6 — Drive the acceptance scenarios and check the regression surface

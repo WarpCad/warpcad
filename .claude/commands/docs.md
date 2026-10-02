@@ -40,8 +40,14 @@ Documentation rules:
 - **Do document keyboard shortcuts, modifier keys, and snap/constraint behavior** —
   in a CAD tool these are the interface, and they're invisible from the screenshot
 - **Name the units and coordinate conventions** anywhere the user types a number
-- Include the relevant screenshot: `![Alt](./screenshots/<name>.png)`
-- Screenshots come from Playwright E2E snapshots — keep them in step with the UI
+- Include the relevant picture, with real alt text (it is all a screen-reader user or a
+  broken-image fallback gets): `![Alt](./screenshots/<name>.png)` for a still,
+  `![Alt](./media/<name>.gif)` for a movie (from the repo-root `README.md`, use
+  `docs/screenshots/…` and `docs/media/…`)
+- **Pictures never come from a manual capture.** Stills and GIFs are produced by
+  `e2e/docs/*.docs.js` specs (`npm run docs:media`; `npm run docs:screenshots:update` for
+  stills only). Add or extend a spec, regenerate, then embed. The `guards` project's
+  `e2e/docs-media.spec.js` fails on a dead link, an orphaned file, or a picture no spec claims
 
 **If a new page was added:** create the `.md` file under `docs/` and add its entry to
 the docs site's navigation config.
