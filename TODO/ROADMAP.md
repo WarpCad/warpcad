@@ -28,6 +28,7 @@ edit that closes a milestone or adds/reserves a row below, not as a separate pas
 | M8 — Sketch primitives | 🔶 **In progress** — `sketch-001` ✅ done (2026-10-02): a sketch is now a Library primitive that always extrudes to a solid (five methods, slices, Solid/Hole, Edit sketch), and the free-standing Sketch mode is gone; `sketch-002` (vertex editing), `sketch-003` (reference image + sanitization), `sketch-004` (auto-trace) and the finding `io-006` are open. Interaction-model section 7 awaits the user's confirmation |
 | M9 — AI partner | ⬜ **Not started** — 15 rows scoped (14 with files, 1 reserved) on 2026-10-02 from the user's two target prompts (airfoil wing to print; drawing of a board to a library group). `ai-001` is the blocking decision; `ai-012` (live MCP bridge) is reserved. Nothing AI-shaped exists in `src/ai/` or `mcp/` yet. |
 | M10 — Docs media: Playwright screenshots + GIF movies in the documentation | ⬜ **Not started** — 16 rows scoped (`docs-005`…`docs-020`) on 2026-10-02. Infrastructure (`docs-005`/`006`/`007`) first, then one capture task per docs page. Independent of M9; `docs-020` is blocked on M9's open features. |
+| M11 — Gears: spur, helical, ring, rack, bevel, worm, planetary, and meshing | ⬜ **Not started** — 14 rows scoped (`core-039`…`core-049`, `ui-057`, `ui-058`, `testing-002`, `docs-021`) on 2026-10-02 from the user's four jscad1 gear projects (`window-motor`, `drive-wheel`, `bf-gear`, `guide-mount`) and `jscad-gears` itself. `core-039` is the blocking decision. Independent of M9 and M10 except `docs-021`. |
 
 Every M0-M4 milestone closed with its own human free-form pass per `CLAUDE.md`'s
 Verification section (see each milestone's last row below). M5, M6 and M7 have not had
@@ -541,6 +542,61 @@ replace driving `TODO/ACCEPTANCE.md` by hand.
 **Suggested order**: `docs-005` → `docs-006` (stop and look at the pilot GIF yourself — does it
 read as a drag to a stranger?) → `docs-007` → `docs-011` (booleans: the highest-value movie)
 → the rest in any order → `docs-019` → `docs-018`. `docs-020` waits on M9.
+
+---
+
+## M11 — Gears: the `jscad-gears` library, ported and extended
+
+The user's jscad1 projects lean on `@jwc/jscad-gears` (an MIT port of Hessmer's involute
+builder) and WarpCad's Library has no gear at all. Reading the four projects that use it
+(`window-motor`, `drive-wheel`, `bf-gear`, `guide-mount`) found what they need and what V1
+never provided — the evidence table is in `core-039`:
+
+- **Ported**: external spur gears with `circularPitch` / `pressureAngle` (14.5°, 20°, **35°**
+  all in use) / `clearance` / `backlash` / `profileShift` / `centerHoleDiameter`; meshed pairs
+  (`GearSet`); internal ring gears; racks; the old `twist` option (helical).
+- **Missing**, so *new*: a **real bevel gear** (`drive-wheel` fakes one with an `enlarge()`
+  loft and hand-tuned `snap` offsets), **bevel-pair placement**, a **worm and worm wheel**
+  (`drive-mount`'s worm is a cylinder placeholder), **herringbone**, **planetary sets**, and
+  **hub/bore/D-flat/keyway/set-screw** options every V1 project bolted on by hand.
+- **Defects not to carry over**: `GearSet.gearRatio` is `n/n` (always 1), the rack is
+  hard-coded to 41 teeth, a ring gear cannot be built without its pinion, gear type is
+  encoded in the sign of `toothCount`.
+
+**The shape**: one framework-free module family in `src/core/gear/` (profile maths, mesh maths,
+bevel, worm, planetary) behind one native op (`gear.profile`) and a handful of **composite
+recipes**, so helical, herringbone and bevel reuse `profile.extrudeLinear` (twist) and the
+existing loft rather than adding native ops. Meshing is a *pure function of two gears'
+params* (`core-044`), used by both a ready-made pair and the interactive **Mesh** operation
+(`ui-058`) — creation (drag a gear into the view) and operation (select exactly two gears,
+Mesh) stay separate lists, per `CLAUDE.md`. Every meshing claim is proven by a
+boolean-intersect volume ≈ 0 test with a wrong-phase negative control, not by looking at it.
+
+| id | Task | Kind | Depends | Acceptance |
+|---|---|---|---|---|
+| `core-039` | **Decision:** gear generation (analytic involute vs. porting the cutter sweep), parameter vocabulary (`module` vs `circularPitch`), V1 defects not to port, licence of a port | Decision, M | — | — (reviewed by the user before `core-040`) |
+| `core-040` | Involute spur profile generator `src/core/gear/` + V1 parity fixtures from `jscad-gears` | Creation | `core-039` | unit only |
+| `core-041` | `gear.profile` native op and `gear.spur` composite (bore, named parts, V1 alias table) | Creation | `core-040` | 1, 3, 10; `core-020/024` repros |
+| `core-042` | Helical and herringbone (helix angle → extrude twist, hand, normal vs transverse module) | Creation | `core-041` | 1, 3, 10 |
+| `core-043` | Internal (ring) gear without a `connectedGear`, and a true-length rack | Creation | `core-041` | 1, 3, 10 |
+| `core-044` | Mesh maths (centre distance, phase, signed ratio, compatibility) and `gear.pair` | Creation | `core-041` | 1, 3, 10 |
+| `core-045` | Straight bevel gear — pitch cone, Tredgold teeth, replaces V1's faked bevel | Creation | `core-041` | 1, 3, 10 |
+| `core-046` | Bevel-pair and crossed-axis placement; the `drive-wheel` four-gear train without fudge offsets | Creation | `core-044`, `core-045` | 1, 3, 10 |
+| `core-047` | Worm and worm wheel (reuses `extrudeHelical`), self-locking readout | Creation | `core-042`, `core-044` | 1, 3, 9, 10 |
+| `core-048` | Hub, bore, D-flat, keyway, nut trap, set screw, lightening holes — named parts | Creation | `core-041` | 3, 6 |
+| `core-049` | Planetary set (`R = S + 2P`, equal-spacing constraint, ratios, carrier) | Creation | `core-043`, `core-044` | 1, 3, 10 |
+| `ui-057` | **Gears** Library section, drag-to-place, parametric Inspector with derived readouts, `docs/gears.md` | Creation | `core-041`, `core-048`, `ui-052` | 1, 3, 6, 7, 10; `ui-053` repro |
+| `ui-058` | **Mesh** operation — exactly two gears selected, centre distance + phase, compatibility messages | Operation | `ui-057`, `core-044` | 1, 3, 6, 7, 10, 16, 19; `ui-035/036/053` repros |
+| `testing-002` | Acceptance scenario **19** (place two gears, mesh, union, save, export), driven live once | Testing | `ui-057`, `ui-058` | creates 19 |
+| `docs-021` | Gear media and a "porting a jscad-gears script" page | Docs | `ui-057`, `ui-058`, `docs-006/007`, `testing-002` | — |
+
+**Suggested order** (the user can hand-use something after each step): `core-039` →
+`core-040` → `core-041` → `core-044` → `ui-057` → `ui-058` (**two meshed spur gears, the
+`window-motor` and `bf-gear` cases, are now reachable — stop and do the five-minute
+free-form pass here, and run scenario 19's steps 1-4 by hand**) → `core-048` → `core-043` →
+`core-042` → `core-045` → `core-046` (the `drive-wheel` case) → `core-047` → `core-049` →
+`testing-002` → `docs-021`. `core-048` can land any time after `core-041` and should before
+anyone prints a gear.
 
 ---
 
