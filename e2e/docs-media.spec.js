@@ -33,6 +33,8 @@ test('docs media: no dead links, no orphans, every picture regenerable', () => {
   const files = [
     ...walk(join(root, 'docs/screenshots'), (n) => /\.(png|gif)$/.test(n)),
     ...walk(join(root, 'docs/media'), (n) => /\.(gif|png|webm|mp4)$/.test(n)),
+    // Curated, not spec-generated (npm run docs:montage): still checked for dead links and orphans.
+    ...walk(join(root, 'docs/images'), (n) => /\.jpe?g$/.test(n)),
   ]
 
   const specs = walk(join(root, 'e2e/docs'), (n) => n.endsWith('.docs.js'))

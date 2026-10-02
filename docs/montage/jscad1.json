@@ -1,0 +1,63 @@
+{
+  "output": "docs/images/jscad1-montage.jpg",
+  "sourceRoot": "~/src/jscad",
+  "sourceRootEnv": "JSCAD1_ROOT",
+  "columns": 4,
+  "tile": {
+    "width": 480,
+    "height": 360
+  },
+  "gap": 6,
+  "background": "0x141414",
+  "quality": 4,
+  "items": [
+    {
+      "src": "jscad-raspberrypi/docs/images/montage.png",
+      "title": "jscad-raspberrypi: parts library"
+    },
+    {
+      "src": "jscad-utils/jsdoc2md/rabett-tb.png",
+      "title": "jscad-utils: rabbet box"
+    },
+    {
+      "src": "jscad-utils/jsdoc2md/fit.png",
+      "title": "jscad-utils: label / fit"
+    },
+    {
+      "src": "jscad-gears/docs/images/jscad-gears.png",
+      "title": "jscad-gears"
+    },
+    {
+      "src": "jscad-hardware/docs/images/jscad-hardware.png",
+      "title": "jscad-hardware: bolts and washers"
+    },
+    {
+      "src": "jscad-raspberrypi/docs/images/bplus.png",
+      "title": "jscad-raspberrypi: Pi B+"
+    },
+    {
+      "src": "picase/picase.png",
+      "title": "picase"
+    },
+    {
+      "src": "pitablet/images/jscad-picase.jpg",
+      "title": "pitablet: case"
+    },
+    {
+      "src": "light-clamp/docs/assembled.png",
+      "title": "light-clamp: assembled"
+    },
+    {
+      "src": "light-clamp/docs/exploded.png",
+      "title": "light-clamp: exploded"
+    },
+    {
+      "src": "kcup/hero.png",
+      "title": "kcup dispenser"
+    },
+    {
+      "src": "bahtinov-old/images/bahtanov.jpg",
+      "title": "bahtinov mask"
+    }
+  ]
+}

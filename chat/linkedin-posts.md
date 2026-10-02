@@ -1652,3 +1652,16 @@ The orbit and pan GIFs were over the 1.5 MB budget at first, so the recorder now
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** five GIFs and six stills → docs/media and docs/screenshots in diff; assertion caught the zoom run → this session's failing docs:movies output (distance unchanged); over budget at first → docs:gifs output this session (3.46 MB and 3.45 MB vs 1.5 MB); per-movie fps/width → support.js and docs-gifs.mjs in diff
 **To Add:** the GIFs
+
+## 2026-10-02T21:30:00Z — Where WarpCad came from: a montage of JSCAD v1 work and the script that rebuilds it
+
+**Post:** WarpCad's README now opens with where it came from: a 12-image montage of things I've modeled in JSCAD v1, including a Raspberry Pi parts library, a rabbet box, a gear, bolts and washers, Pi cases, a light clamp, a K-cup dispenser and a Bahtinov mask. The point is that WarpCad is the same workflow I've been using for years (describe the part in code, look at the render, change a parameter), moved into the browser.
+
+The picks were mine to approve, and I wanted renders, not photos of prints. So the montage isn't a one-off export. A JSON file lists the source images and a small ffmpeg script lays them out, so when I find a better example I swap one line and rerun `npm run docs:montage`. The script refuses a grid that doesn't divide evenly and names any missing source file. The media guard now checks the new image folder for dead links and orphans too.
+
+The output is one 357 KB JPEG. Built with Claude Code, reviewed by me.
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource #JSCAD
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** 12 images and the listed subjects → docs/montage/jscad1.json in diff; "for years" → user's own words this session; picks approved by user, renders over photos → user messages this session; 357 KB → ls (365991 bytes); grid and missing-file checks → validateSpec and main in scripts/docs-montage.mjs, 8 passing unit tests this session; guard checks docs/images → e2e/docs-media.spec.js in diff
+**To Add:** the montage image (docs/images/jscad1-montage.jpg)

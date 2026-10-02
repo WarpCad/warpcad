@@ -1203,3 +1203,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** five movies (orbit, pan, zoom, pad buttons, view snaps) → e2e/docs/viewport-navigation.docs.js in diff; each asserts a camera attribute changed → same file; GIFs under the 1.5 MB budget → ls this session (largest nav-pan 1.34 MB)
 **To Add:** the nav-orbit GIF
+
+## 2026-10-02T21:30:00Z — Where WarpCad came from: a montage of JSCAD v1 work and the script that rebuilds it
+
+**Post:** WarpCad's README now has a montage of 12 things I've modeled in JSCAD v1: Pi cases, gears, hardware, a Bahtinov mask. Same code-render-tweak loop, now in the browser. One JSON file lists the images and a small ffmpeg script rebuilds it. Built with Claude Code, reviewed by me. #CAD #OpenSource
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** 12 images and subjects → docs/montage/jscad1.json in diff; JSON plus ffmpeg script rebuilds it → docs/montage/jscad1.json and scripts/docs-montage.mjs in diff; same loop → user's own description this session
+**To Add:** the montage image (docs/images/jscad1-montage.jpg)

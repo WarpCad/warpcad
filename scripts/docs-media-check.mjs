@@ -60,7 +60,7 @@ export function findClaimedStills(source) {
  *   ci?: boolean,
  * }} input
  *   `refs` have `target` already resolved to a repo-relative path; `files` are repo-relative
- *   paths under `docs/screenshots/` and `docs/media/`; `hashes` maps a spec path to its
+ *   paths under `docs/screenshots/`, `docs/media/` and `docs/images/`; `hashes` maps a spec path to its
  *   current content hash.
  * @returns {{ errors: string[], warnings: string[] }}
  */
