@@ -37,4 +37,22 @@ Pictures in `docs/` and `README.md` are test by-products, so they cannot go stal
   GL via SwiftShader, `deviceScaleFactor: 2`). Font hinting differs on Linux, so the check is a
   local/nightly gate, not a blocking PR check, until a Linux generation path exists.
 
+### Movies (GIFs)
+
+Dynamic actions (a drag, a gizmo pull) are recorded as video and converted to a looping GIF.
+
+- **Add a movie:** write a `*.docs.js` test tagged `{ tag: '@movie' }` (see
+  `e2e/docs/primitive-drag-cube.docs.js`). Call `openApp`, then `startMovie(page, '<name>')`, drive
+  with `humanDrag` (real mouse, eased, with a visible cursor dot), assert the end state, then
+  `endMovie(page, '<name>')` and take a final-frame `shot`. The GIF lands at `docs/media/<name>.gif`.
+- **Record and convert:** `npm run docs:movies` records to `.docs-movies/` (git-ignored),
+  `npm run docs:gifs` converts with ffmpeg, and `npm run docs:media` does stills, movies and GIFs.
+  Refresh the final-frame still with `npm run docs:movies -- --update-snapshots`.
+- **Budget:** each GIF is at most 12 s and 1.5 MB; the converter fails and says which knob to turn.
+  `docs/media/manifest.json` records the source spec's hash so a stale GIF can be detected.
+- **Repo size:** GIFs are committed as plain files, not Git LFS. At roughly 1 MB each, 30 of them
+  is about 30 MB. Revisit LFS if `docs/media/` passes about 25 MB.
+- **A movie is not an acceptance check.** It replays the sequence its author scripted.
+  `TODO/ACCEPTANCE.md` scenarios still have to be driven by hand.
+
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

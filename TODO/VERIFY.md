@@ -34,6 +34,15 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### docs-006 — Docs movie pipeline (2026-10-02 21:05)
+
+The pilot GIF passed its budget and frame checks; whether it reads well to a person is a judgment call.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | Open `docs/media/primitive-drag-cube.gif`: is the yellow cursor dot easy to follow, and is the drag pace and 1.5 s end hold comfortable? | Open | |
+
+
 ### sketch-001 — Sketch primitive: draw outlines, extrude to a solid (2026-10-02 19:20)
 
 The run was unattended, so the interaction-model answers this task was told to confirm with

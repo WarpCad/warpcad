@@ -6,8 +6,10 @@ priority: high
 model: sonnet
 milestone: M10
 depends: [docs-005]
-status: open
+status: done
 ---
+
+> **Shipped note:** landed as scoped, using `page.screencast.start({path})` (present in Playwright 1.63), so there is no blank lead-in and no `playwright.config.js` change. Recordings go to git-ignored `.docs-movies/` (not `test-results/`, which Playwright wipes) with a sidecar JSON; movie specs carry the `@movie` tag so `docs:screenshots` skips them. A real `page.mouse` drag works on the Library row, so no synthetic-event fallback or TROUBLESHOOTING entry was needed. Git LFS: not used; revisit past ~25 MB of GIFs (written in CONTRIBUTING.md).
 
 ## Goal
 

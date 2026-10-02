@@ -10,3 +10,4 @@ storybook-static/
 *.local
 HANDOFF-NAME.md
 NAME-ACCOUNTS.md
+.docs-movies/

@@ -1626,3 +1626,16 @@ Baselines come from one pinned machine, so for now this is a local and nightly c
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** same file for baseline and docs image → snapshotPathTemplate in diff; drift fail then update pass → this session's runs; fixture via File > Open and software GL → e2e/docs/support.js and playwright.config.js in diff; pinned machine, local/nightly → CONTRIBUTING.md diff
 **To Add:** the cube-selected still
+
+## 2026-10-02T21:10:00Z — Docs movie pipeline: Playwright records, ffmpeg makes the GIF
+
+**Post:** A still can't show a drag. For WarpCad's docs I added a second kind of Playwright spec that records the run with the page.screencast API and hands the video to a script that converts it to a looping GIF with ffmpeg.
+
+Two details mattered. Headless video never draws the OS pointer, so the spec injects a dot that follows pointer events; without it the cube appears to move by itself. And the converter enforces a budget of 12 seconds and 1.5 MB per GIF, failing with the setting to change instead of letting an oversized file into the repo. A manifest stores a hash of each source spec so a stale GIF can be detected later.
+
+The pilot drags a cube from the Library into the 3D view: 4.6 seconds, 0.8 MB. The GIF is not pixel-compared; the spec asserts the end state and checks a final-frame still. Built with Claude Code, reviewed by me.
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #Playwright #WebGL
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** page.screencast API → types.d.ts in installed Playwright 1.63 this session; cursor dot, budget, manifest hash → diff; 4.6 s / 0.8 MB → ffprobe and ls this session; final-frame still stable → three consecutive docs:movies runs passed
+**To Add:** the GIF

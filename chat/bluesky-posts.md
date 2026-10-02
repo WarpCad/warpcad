@@ -1185,3 +1185,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** baselines in docs/screenshots → snapshotPathTemplate in playwright.config.js diff; two stills → empty-scene.png and cube-selected.png in the diff; drift fails and update rewrites → this session's runs (changed --surface-1 failed both shots, :update changed the empty-scene md5)
 **To Add:** the cube-selected still
+
+## 2026-10-02T21:10:00Z — Docs movie pipeline: Playwright records, ffmpeg makes the GIF
+
+**Post:** WarpCad docs can now show motion. A Playwright spec drags a cube out of the Library, records the run, and ffmpeg turns it into a looping GIF. The cursor is drawn in by hand since headless video has none. First GIF: 4.6 s, 0.8 MB. Built with Claude Code, reviewed by me. #CAD #Playwright
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #Playwright
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** spec records and ffmpeg converts → scripts/docs-gifs.mjs and e2e/docs/primitive-drag-cube.docs.js in diff; cursor drawn in → installCursor in e2e/docs/support.js; 4.6 s, 0.8 MB → ffprobe output and ls this session (duration 4.6, 812182 bytes)
+**To Add:** the GIF itself (docs/media/primitive-drag-cube.gif)

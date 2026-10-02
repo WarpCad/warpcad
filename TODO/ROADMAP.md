@@ -522,7 +522,7 @@ replace driving `TODO/ACCEPTANCE.md` by hand.
 | id | what | depends |
 |---|---|---|
 | ✅ `docs-005` | screenshot harness, determinism, `docs-*` projects | — |
-| `docs-006` | movie recording + GIF pipeline (cursor overlay, budget, manifest) | 005 |
+| ✅ `docs-006` | movie recording + GIF pipeline (cursor overlay, budget, manifest) | 005 |
 | `docs-007` | embed convention, media guard, process-doc updates, README hero | 005, 006 |
 | `docs-008` | app overview, navigation, orientation gizmo, grid | 005-007 |
 | `docs-009` | Library panel and drag-to-place, snap guides, text label | 005-007 |
@@ -659,5 +659,6 @@ convention going forward.
 | `ui-054` | 2026-10-01 22:57 | ~11m (Step 3 preflight 22:46 UTC). Scoped **M**; landed as scoped, plus `alignReference.reset()` and an auto-pusher `pause()`. Tests: 2431 unit, typecheck clean; Playwright 1646 passed / 0 failed on chromium + webkit across phone/tablet/laptop (Firefox disabled in config). Acceptance: scenarios 1, 10 (local half), 12 (undo half) hand-driven, PASS. |
 | `sketch-001` | 2026-10-02 19:07 | **~16h02m wall clock** from the Step 3 preflight at 2026-10-02 03:05 UTC — **most of it a weekly rate-limit pause mid-Step 6**; active work was roughly 03:05-03:58 and 19:01-19:07 UTC (~1h30m). Scoped **L/XL**; landed steps 1-3 and split 4-6 into `sketch-002/003/004` as the file's own Effort asked. Tests: 2507 unit (was 2431), typecheck clean; Playwright 1647 passed / 250 skipped / 0 failed on chromium + webkit × phone/tablet/laptop (Firefox commented out in the working-copy config and launch-blocked in this sandbox, confirmed). Acceptance: 9 (rewritten) PASS laptop mouse + phone touch-only; 1, 4, 7, 8, 10 (local), 11, 12 PASS; ui-020 ×3, ui-043, ui-046, ui-029 repros clean. Filed `io-006` (fillet-on-hexagon export, pre-existing). |
 | `docs-005` | 2026-10-02 20:58 | ~14m (Step 3 skipped for docs category; timing from 20:44 UTC). Scoped **M**; landed as scoped. Pilot stills deterministic across repeated runs; deliberate `--surface-1` change failed the check and `:update` rewrote the PNG (md5 changed). 2507 unit, typecheck, spdx, guards green. Acceptance: none (nothing in `src/` changed). |
+| `docs-006` | 2026-10-02 21:05 | ~13m (timing from 20:52 UTC; Step 3 skipped for docs category). Scoped **M**; landed as scoped. Pilot GIF 0.8 MB / 4.6 s, 800×500; final-frame still stable across 3 runs. 2515 unit (8 new), typecheck, spdx, guards, docs-laptop green. Acceptance: none (nothing in `src/` changed). |
 
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->
