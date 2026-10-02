@@ -1598,3 +1598,18 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** same start pixel, 2.26° → debug log of the drag plan and the pasted failure; Chromium passed on the same spec → chromium-phone and webkit-phone runs this session; 4 passes alone, 119 vs 40 → repeat run and the pasted failure; suite clean → user's report this session
 **To Add:** none
+
+## [2026-10-02T22:00:00Z] — Scope docs media: Playwright screenshots and GIFs for every documented feature
+
+**Post:** WarpCad's README and docs pages have no screenshots. I wrote the plan for fixing that as 16 TODO specs rather than a one-off capture session, because a one-off goes stale the first time the UI changes.
+
+The idea: Playwright specs drive the running app and take the screenshots, and the baseline folder is the docs image folder. Update a test baseline and the documentation picture updates with it. Drags out of the Library and boolean operations get recorded as video and converted to GIFs with ffmpeg. A guard check flags dead image links, orphaned images and GIFs whose spec changed.
+
+Three specs build the machinery, twelve cover one docs page each (booleans, sketch mode, hardware library, phone layouts and so on), and one waits on the AI chat panel, which isn't built yet. Nothing is captured yet; the first pilot GIF is the next step.
+
+Built with Claude Code, reviewed by me.
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** none
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** 16 TODO specs → docs-005..020 in the diff; three build machinery (005-007), twelve per docs page (008-019 is twelve files), one blocked (020) → file list in the diff; nothing captured yet → no docs/screenshots or docs/media directory this session; AI chat panel not built → TODO/ai-006 status: open
+**To Add:** the pilot GIF once docs-006 lands

@@ -1167,3 +1167,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** both ring starts at (174.89, 324.675) on Firefox, 2.26° turn → debug log of the drag plan this session; hidden-parts passed 4/4 alone, 119 changed pixels in the full run → test output pasted by the user and repeat run this session; full suite clean after the fix → user's report this session
 **To Add:** none
+
+## [2026-10-02T22:00:00Z] — Scope docs media: Playwright screenshots and GIFs for every documented feature
+
+**Post:** WarpCad's docs have no pictures. I scoped 16 todos to add them: Playwright specs write screenshots straight into docs/screenshots, so updating a test baseline updates the docs. Drags and booleans get recorded, then converted to GIFs. Built with Claude Code, reviewed by me. #CAD
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** 16 todos → 16 TODO/docs-005..020 files plus ROADMAP.md in the diff; no pictures today → docs/screenshots and docs/media do not exist and docs/ has no image links, checked this session; baseline folder is docs/screenshots → docs-005 text (planned, not built); GIF conversion → docs-006 text (planned), ffmpeg found at /opt/homebrew/bin/ffmpeg this session
+**To Add:** none until the first pilot GIF exists
