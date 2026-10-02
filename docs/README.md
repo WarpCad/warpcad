@@ -17,6 +17,8 @@ orphaned file, or a picture no spec produces.
 
 ## Using WarpCad
 
+![The WarpCad window with no model yet: the Library on the left, the 3D view with its grid, navigation pad and orientation triad, and the Operations toolbar.](./screenshots/app-overview.png)
+
 - [Placing a shape](primitive-placement.md) — dragging an item out of the
   Library panel into the 3D view, on desktop and on a phone: the basic solids in
   **Primitives**, the ready-made fasteners in **Hardware** (Bolt, Nut, Washer,

@@ -6,8 +6,12 @@ priority: high
 model: sonnet
 milestone: M10
 depends: [docs-005, docs-006, docs-007]
-status: open
+status: done
 ---
+
+---
+
+> **What shipped:** all 11 inventory items, Chromium/laptop. Differences from the spec: the fixture is `two-solids.ndjson` (the File ▸ Open loader reads NDJSON, not `.json`); `endMovie` and `scripts/docs-gifs.mjs` gained optional per-movie `fps`/`width` so the orbit and pan movies fit the 1.5 MB GIF budget (640 px, 12 fps). Each movie asserts a real camera attribute changed. `ui-018` repro (Shift-drag and right-drag pan) is exercised and asserted in `nav-pan`; `ui-046` is a phone-width overlap, so it is not reachable at laptop and is left to `docs-018`. No `src/` change, so no acceptance scenario could be affected and none was driven.
 
 ## Goal
 

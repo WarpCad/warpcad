@@ -1194,3 +1194,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** spec records and ffmpeg converts → scripts/docs-gifs.mjs and e2e/docs/primitive-drag-cube.docs.js in diff; cursor drawn in → installCursor in e2e/docs/support.js; 4.6 s, 0.8 MB → ffprobe output and ls this session (duration 4.6, 812182 bytes)
 **To Add:** the GIF itself (docs/media/primitive-drag-cube.gif)
+
+## 2026-10-02T21:50:00Z — Viewport navigation docs: orbit, pan, zoom and view snaps as GIFs
+
+**Post:** WarpCad's navigation page now shows orbit, pan, zoom, the on-screen pad and the view-cube snaps as GIFs. Each recording ends by asserting the camera actually moved, so a drag that does nothing fails instead of shipping a GIF of a still scene. Built with Claude Code, reviewed by me. #CAD #Playwright
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #Playwright
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** five movies (orbit, pan, zoom, pad buttons, view snaps) → e2e/docs/viewport-navigation.docs.js in diff; each asserts a camera attribute changed → same file; GIFs under the 1.5 MB budget → ls this session (largest nav-pan 1.34 MB)
+**To Add:** the nav-orbit GIF

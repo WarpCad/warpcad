@@ -156,13 +156,14 @@ export async function startMovie(page, name) {
  *
  * @param {import('@playwright/test').Page} page
  * @param {string} name must match the `startMovie` name
+ * @param {{ fps?: number, width?: number }} [gif] per-movie GIF overrides for motion-heavy scenes that blow the size budget
  */
-export async function endMovie(page, name) {
+export async function endMovie(page, name, gif = {}) {
   await page.waitForTimeout(300)
   await page.screencast.stop()
   await page.evaluate(() => document.getElementById('docs-cursor')?.remove())
   const spec = test.info().file.replace(`${process.cwd()}/`, '')
-  writeFileSync(join(MOVIES_DIR, `${name}.json`), JSON.stringify({ name, spec, trim: 0 }))
+  writeFileSync(join(MOVIES_DIR, `${name}.json`), JSON.stringify({ name, spec, trim: 0, ...gif }))
 }
 
 /**

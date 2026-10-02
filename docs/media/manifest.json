@@ -2,7 +2,37 @@
   "primitive-drag-cube.gif": {
     "spec": "e2e/docs/primitive-drag-cube.docs.js",
     "specHash": "dfeabd4fe13cd395b591be71bf3cf56341c8d74acfd51e44af12c563bb243264",
-    "bytes": 812182,
-    "seconds": 4.6
+    "bytes": 856749,
+    "seconds": 5.6
+  },
+  "nav-chrome-buttons.gif": {
+    "spec": "e2e/docs/viewport-navigation.docs.js",
+    "specHash": "25296c2b88f0d19e1913aa210048daf54b5fee28e26cf0ef2534cab7eb57d9c8",
+    "bytes": 787039,
+    "seconds": 5.07
+  },
+  "nav-zoom.gif": {
+    "spec": "e2e/docs/viewport-navigation.docs.js",
+    "specHash": "25296c2b88f0d19e1913aa210048daf54b5fee28e26cf0ef2534cab7eb57d9c8",
+    "bytes": 1240946,
+    "seconds": 5.74
+  },
+  "orientation-gizmo-snap.gif": {
+    "spec": "e2e/docs/viewport-navigation.docs.js",
+    "specHash": "25296c2b88f0d19e1913aa210048daf54b5fee28e26cf0ef2534cab7eb57d9c8",
+    "bytes": 860843,
+    "seconds": 6.47
+  },
+  "nav-orbit.gif": {
+    "spec": "e2e/docs/viewport-navigation.docs.js",
+    "specHash": "25296c2b88f0d19e1913aa210048daf54b5fee28e26cf0ef2534cab7eb57d9c8",
+    "bytes": 1185878,
+    "seconds": 5.08
+  },
+  "nav-pan.gif": {
+    "spec": "e2e/docs/viewport-navigation.docs.js",
+    "specHash": "25296c2b88f0d19e1913aa210048daf54b5fee28e26cf0ef2534cab7eb57d9c8",
+    "bytes": 1342781,
+    "seconds": 5.83
   }
 }

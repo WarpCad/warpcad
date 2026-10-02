@@ -6,6 +6,8 @@ bottom-left, and the **scale readout** in the bottom-right. Everything on this
 page works with a mouse, with a finger, or with on-screen buttons alone — you
 never need a keyboard to move the camera.
 
+![The whole WarpCad window with two shapes placed and one selected: Library on the left, navigation pad bottom-left, orientation triad top-right, scale readout bottom-right, Inspector on the right.](./screenshots/app-overview-with-model.png)
+
 ---
 
 ## A first walkthrough
@@ -16,6 +18,8 @@ Try these in order, with the app open:
    scene. Drag right and the view swings around to the left of where you were;
    drag down and you tip up to look at the scene from above. On a phone or
    tablet, drag with one finger — same result.
+
+   ![A left-button drag swinging the camera around a cube and a cylinder.](./media/nav-orbit.gif)
 2. **Tap `Pan`** in the bottom-left pad. The pad's arrows relabel themselves
    ("Pan camera up" instead of "Orbit camera up"), and dragging in the 3D view
    now slides the view sideways instead of rotating it. Tap `Orbit` to switch
@@ -27,12 +31,18 @@ Try these in order, with the app open:
      again, following whatever the toggle is currently set to. This is purely a
      desktop shortcut — it doesn't change what the toggle does for touch or for
      the direction pad.
+
+   ![A Shift-drag, then a right-button drag, sliding the scene sideways without rotating it.](./media/nav-pan.gif)
 3. **Use the `+` and `−` buttons** to the right of the direction pad to zoom in
    and out. With a mouse you can also scroll the wheel over the view; on a touch
    screen, pinch with two fingers.
+
+   ![Scrolling the mouse wheel to zoom in, then back out.](./media/nav-zoom.gif)
 4. **Tap `Z` on the orientation triad** in the top-right corner to snap the
    camera to the top view — looking straight down the Z axis, with Y running up
    the screen. Try `−Y` for the front view and `X` for the right view.
+
+   ![Clicking the triad's Z, −Y and X caps in turn, the camera snapping to top, front and right views, then Home.](./media/orientation-gizmo-snap.gif)
 5. **Tap `Home`** under the triad to return to the standard three-quarter
    (isometric) view.
 6. **Read the scale off the bottom-right readout.** Each minor grid line is
@@ -40,9 +50,17 @@ Try these in order, with the app open:
    the legend shows how long a round real-world distance — 100 mm, 200 mm, and
    so on — is at your current zoom, and it relabels itself as you zoom.
 
+   ![The grid with fine 10 mm lines and brighter 50 mm lines, and the scale readout at the bottom right.](./screenshots/grid-major-minor.png)
+
 ---
 
 ## The navigation pad (bottom-left)
+
+![The navigation pad: Orbit, Pan and Select, the gear, four arrows, Home, and the plus and minus zoom buttons.](./screenshots/nav-chrome.png)
+
+Pressing the pad's buttons does the same as the gestures above — no mouse drag needed:
+
+![Tapping Pan, then the left and up arrows, then the plus button three times.](./media/nav-chrome-buttons.gif)
 
 | Control | What it does |
 |---|---|
@@ -119,7 +137,11 @@ direction pad, and every touch gesture on this page work exactly the same
 regardless of which preset is chosen, since there is no Shift key or right
 mouse button on a touchscreen to remap.
 
+![The gear's list open above the navigation pad, with "Shift+Left or Right-drag pans" marked as the current choice.](./screenshots/nav-mouse-mapping.png)
+
 ## The orientation triad (top-right)
+
+![The orientation triad: coloured X, Y and Z spokes with a labelled cap on each, and a Home button below.](./screenshots/orientation-gizmo.png)
 
 The triad shows which way the camera is currently pointing: the red spoke is the
 X axis, green is Y, and blue is Z. Solid spokes point toward you; dashed ones

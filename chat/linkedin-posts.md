@@ -1639,3 +1639,16 @@ The pilot drags a cube from the Library into the 3D view: 4.6 seconds, 0.8 MB. T
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** page.screencast API → types.d.ts in installed Playwright 1.63 this session; cursor dot, budget, manifest hash → diff; 4.6 s / 0.8 MB → ffprobe and ls this session; final-frame still stable → three consecutive docs:movies runs passed
 **To Add:** the GIF
+
+## 2026-10-02T21:50:00Z — Viewport navigation docs: orbit, pan, zoom and view snaps as GIFs
+
+**Post:** The WarpCad navigation page now has five recorded GIFs: orbit, pan (Shift-drag and right-drag), wheel zoom, the on-screen pad buttons, and the orientation triad snapping to top, front and right. Six stills sit alongside them.
+
+The part I care about is that every movie finishes by reading a camera attribute off the viewport and asserting it changed. My first zoom recording scrolled with the pointer parked outside the canvas; the assertion caught it, where a script that only checked "no error" would have published a GIF of nothing happening.
+
+The orbit and pan GIFs were over the 1.5 MB budget at first, so the recorder now takes a per-movie frame rate and width instead of the global default being loosened. Built with Claude Code, reviewed by me.
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #Playwright #WebGL
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** five GIFs and six stills → docs/media and docs/screenshots in diff; assertion caught the zoom run → this session's failing docs:movies output (distance unchanged); over budget at first → docs:gifs output this session (3.46 MB and 3.45 MB vs 1.5 MB); per-movie fps/width → support.js and docs-gifs.mjs in diff
+**To Add:** the GIFs

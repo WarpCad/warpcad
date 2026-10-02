@@ -107,7 +107,7 @@ export function convertMovies({ moviesDir, outDir, root, run = defaultRun }) {
     const gifPath = join(outDir, gifName)
     const meta = JSON.parse(readFileSync(join(moviesDir, `${base}.json`), 'utf8'))
 
-    const converted = run('ffmpeg', buildFfmpegArgs({ input: join(moviesDir, file), output: gifPath, trim: meta.trim ?? 0 }))
+    const converted = run('ffmpeg', buildFfmpegArgs({ input: join(moviesDir, file), output: gifPath, trim: meta.trim ?? 0, fps: meta.fps, width: meta.width }))
     if (converted.status !== 0) {
       return { name: gifName, ok: false, problems: [`ffmpeg failed (exit ${converted.status})`] }
     }
