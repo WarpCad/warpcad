@@ -11,7 +11,7 @@ import { useDocumentStore } from '../../stores/document.js'
 import { useHoverHighlightStore } from '../../stores/hoverHighlight.js'
 import { useObjectListStore } from '../../stores/objectList.js'
 import { useSelectionStore } from '../../stores/selection.js'
-import { useSketchModeStore } from '../../stores/sketchMode.js'
+import { useSketchEditorStore } from '../../stores/sketchEditor.js'
 import { useTimelineStore } from '../../stores/timeline.js'
 import ObjectList from './ObjectList.vue'
 
@@ -254,15 +254,15 @@ describe('ObjectList — part rows (TODO/ui-042)', () => {
     expect(wrapper.findAll('input')).toHaveLength(0)
   })
 
-  it('in sketch mode the part rows are disabled with the printed reason, but the chevron still reads', async () => {
+  it('while a sketch is being edited the part rows are disabled with the printed reason, but the chevron still reads', async () => {
     const wrapper = mountPanel()
-    useSketchModeStore().active = true
+    useSketchEditorStore().active = true
     await nextTick()
     await wrapper.get('[data-testid="objects-expand-pi"]').trigger('click')
     expect(wrapper.get(part('ethernet')).attributes('disabled')).toBeDefined()
     expect(wrapper.get(partCheck('ethernet')).attributes('disabled')).toBeDefined()
     expect(wrapper.get('[data-testid="objects-expand-pi"]').attributes('disabled')).toBeUndefined()
-    expect(wrapper.get('[data-testid="objects-disabled-reason"]').text()).toMatch(/Sketch mode/)
+    expect(wrapper.get('[data-testid="objects-disabled-reason"]').text()).toMatch(/Editing a sketch/)
     await wrapper.get(part('ethernet')).trigger('click')
     expect(useSelectionStore().ids).toEqual([])
   })

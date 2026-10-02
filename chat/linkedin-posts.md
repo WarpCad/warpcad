@@ -1553,3 +1553,18 @@ The shortcut is Ctrl/Cmd+Alt+N because browsers reserve plain Ctrl/Cmd+N. The do
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** previous workaround of deleting bodies leaves Save target and history → TODO/done/ui-054 problem statement; Open-style reset, handle dropped, auto-push paused → diff (persistence.js, hosted.js, autoPush.js) and e2e/save-load-ui.e2e.js run this session; Ctrl/Cmd+N reserved by browsers → TODO/done/ui-054 text and docs/save-load.md
 **To Add:** screenshot of the New confirm dialog
+
+## [2026-10-02T19:10:00Z] — A sketch is now a primitive that always becomes a solid (TODO/sketch-001)
+
+**Post:** WarpCad used to have a sketch mode that drew loose 2D lines next to your model. They looked like geometry but could not be booleaned, exported or moved, and nothing ever turned them into a part. That mode is gone.
+
+A Sketch is now a shape in the Library, like a cube. You drop it where you want it, draw outlines on its plane (line, rectangle, circle, regular polygon), mark any outline as a hole, and choose how it becomes a solid: straight up, spun around an axis, wound into a helix, thickened into a wall, or lofted through several outlines stacked at different heights. A preview builds off the main thread while you draw, and Done is greyed out with the reason shown until the drawing can actually become a solid. Afterwards it is an ordinary body: the gizmo moves it, Subtract cuts with it, Edit sketch reopens the outlines as one undoable step.
+
+On a phone, driven by touch alone, a tube drawn this way and subtracted from a 40 mm cube left exactly 64 000 minus the tube's 16 473 mm³. Projects saved with the old loose lines still open, with each skipped line named on screen.
+
+Built with Claude Code, reviewed by me.
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** old lines could not be booleaned/exported → TODO/done/sketch-001 Goal text; five methods + preview in worker → registry.spec.js / evaluationJob.spec.js and the diff; Done greyed with reason → e2e/sketch-primitive.e2e.js (61 passed) and hand drive; Edit sketch one undo step → hand drive laptop ("Undo: Edit Sketch 1"); phone touch-only tube/subtract numbers → hand drive phone Chromium this session (16 472.965 / 47 527.035 mm³); old projects open with skipped lines named → e2e + hand drive scenario 8 ("skipped 1 step (sketch-1)")
+**To Add:** screenshot of the lofted wing and of the phone editor with the Extrude sheet open

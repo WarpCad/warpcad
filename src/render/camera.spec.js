@@ -307,3 +307,26 @@ describe('frameBounds — frame loaded content (TODO/io-001)', () => {
     expect(camera.version).toBe(1)
   })
 })
+
+describe('snapToPlane — look straight at a sketch slice in its body’s frame (TODO/sketch-001)', () => {
+  /** @param {number} x @param {number} y @param {number} z */
+  const at = (x, y, z) => [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, x, y, z, 1]
+
+  it('for an unrotated body is today’s top view, aimed at the slice', () => {
+    const camera = createOrbitCamera()
+    const top = createOrbitCamera()
+    top.snapTo('top')
+    camera.snapToPlane(at(30, -20, 0), 50)
+    expect(camera.state.elevationDeg).toBeCloseTo(top.state.elevationDeg, 9)
+    expect(camera.state.azimuthDeg).toBeCloseTo(top.state.azimuthDeg, 9)
+    expect(camera.state.target).toEqual({ x: 30, y: -20, z: 50 })
+  })
+
+  it('for a body turned 90° about X looks along the turned normal', () => {
+    const camera = createOrbitCamera()
+    // Local +Z → world −Y: the plane faces −Y, so the camera sits on −Y looking +Y.
+    camera.snapToPlane([1, 0, 0, 0, 0, 0, 1, 0, 0, -1, 0, 0, 0, 0, 0, 1], 0)
+    expect(camera.state.elevationDeg).toBeCloseTo(0, 9)
+    expect(camera.state.azimuthDeg).toBeCloseTo(-90, 9)
+  })
+})

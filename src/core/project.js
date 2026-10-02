@@ -125,6 +125,44 @@ export function serializeProject(document) {
 }
 
 /**
+ * Ops this build no longer has, and what to tell the user about a file that still holds
+ * them (`TODO/sketch-001`).
+ *
+ * ui-020's loose `sketch.line` records were replaced by the `primitive.sketch` body. A
+ * file or autosave written in between must still open: refusing it — the loader's
+ * answer to any op it does not know — would throw away every *other* body in it, which
+ * is the silent-data-loss failure ui-029 exists to prevent. So these records are dropped
+ * here, each one named in a warning, and nothing tries to migrate them: a loose line has
+ * no role and no extrusion, so there is nothing correct to turn it into.
+ *
+ * Matched by prefix, so ui-020's endpoint edits (`sketch.line` records that supersede
+ * another) go with the line they edited.
+ *
+ * @type {readonly { prefix: string, message: string }[]}
+ */
+const RETIRED_OPS = Object.freeze([
+  Object.freeze({
+    prefix: 'sketch.',
+    message: 'sketch lines are no longer supported — redraw them in a Sketch primitive',
+  }),
+])
+
+/**
+ * @typedef {object} LoadWarning
+ * @property {string} [id] The skipped record's id, when it had one.
+ * @property {string} op
+ * @property {string} message
+ */
+
+/**
+ * @param {string} op
+ * @returns {string | null} Why `op` is retired, or `null` when it is not.
+ */
+function retiredReason(op) {
+  return RETIRED_OPS.find((retired) => op.startsWith(retired.prefix))?.message ?? null
+}
+
+/**
  * Parse and statically validate project text, without touching any document.
  *
  * Checks everything that can be checked from the text alone — JSON, record
@@ -133,8 +171,12 @@ export function serializeProject(document) {
  * know, an operand that is missing) is the loader's job and is atomic there:
  * `WarpDocument.loadEntries` throws a `ReplayRejection` naming the step.
  *
+ * A record whose op is **retired** ({@link RETIRED_OPS}) is the one exception to "the
+ * loader judges every op": it is dropped here, with a {@link LoadWarning}, and the state
+ * line is adjusted so it never names a record that is no longer there.
+ *
  * @param {string} text
- * @returns {{ entries: DocumentEntry[], rollbackAt: number | null, resolution: string }}
+ * @returns {{ entries: DocumentEntry[], rollbackAt: number | null, resolution: string, warnings: LoadWarning[] }}
  * @throws {ProjectFormatError} naming the line, or the offending field.
  */
 export function parseProject(text) {
@@ -158,6 +200,15 @@ export function parseProject(text) {
   let state
   /** @type {Set<string>} */
   const ids = new Set()
+  /** @type {LoadWarning[]} */
+  const warnings = []
+  /** Ids of dropped retired records — a state line may still name them. */
+  /** @type {Set<string>} */
+  const retiredIds = new Set()
+  /** For each dropped record, how many records (kept or not) preceded it. */
+  /** @type {number[]} */
+  const retiredPositions = []
+  let recordCount = 0
 
   records.forEach((raw, index) => {
     const line = lineNumbers[index]
@@ -200,6 +251,14 @@ export function parseProject(text) {
       }
       ids.add(record.id)
     }
+    const retired = retiredReason(record.op)
+    recordCount += 1
+    if (retired !== null) {
+      warnings.push({ ...(record.id !== undefined ? { id: record.id } : {}), op: record.op, message: retired })
+      if (record.id !== undefined) retiredIds.add(record.id)
+      retiredPositions.push(recordCount - 1)
+      return
+    }
     entries.push({ record: /** @type {any} */ (record), origin: 'local' })
   })
 
@@ -237,15 +296,25 @@ export function parseProject(text) {
     }
   }
 
-  const rollbackAt = state?.rollbackAt ?? null
+  const declaredRollbackAt = state?.rollbackAt ?? null
   if (
-    rollbackAt !== null &&
-    !(Number.isInteger(rollbackAt) && rollbackAt >= 1 && rollbackAt < entries.length)
+    declaredRollbackAt !== null &&
+    !(Number.isInteger(declaredRollbackAt) && declaredRollbackAt >= 1 && declaredRollbackAt < recordCount)
   ) {
     throw new ProjectFormatError(
-      `project-state: rollback marker ${JSON.stringify(rollbackAt)} does not fit a file of ` +
-        `${entries.length} steps`,
+      `project-state: rollback marker ${JSON.stringify(declaredRollbackAt)} does not fit a file of ` +
+        `${recordCount} steps`,
     )
+  }
+  // Dropping a retired record ahead of the marker moves the marker back by one. A marker
+  // left with nothing active before it, or nothing inactive after, no longer marks a
+  // rollback, so it is dropped rather than refusing a file that only failed to fit
+  // because of records this build removed on the user's behalf.
+  let rollbackAt = declaredRollbackAt
+  if (rollbackAt !== null && retiredPositions.length > 0) {
+    const before = retiredPositions.filter((position) => position < /** @type {number} */ (declaredRollbackAt)).length
+    rollbackAt -= before
+    if (!(rollbackAt >= 1 && rollbackAt < entries.length)) rollbackAt = null
   }
 
   const declared = state?.resolution
@@ -255,10 +324,10 @@ export function parseProject(text) {
         `knows (${RESOLUTION_IDS.join(', ')})`,
     )
   }
-  const resolution = declared ?? (entries.length === 0 ? DEFAULT_RESOLUTION : 'legacy')
+  const resolution = declared ?? (recordCount === 0 ? DEFAULT_RESOLUTION : 'legacy')
 
-  const suppressedIds = new Set(suppressed ?? [])
-  const leftBrokenIds = new Set(leftBroken ?? [])
+  const suppressedIds = new Set((suppressed ?? []).filter((/** @type {string} */ id) => !retiredIds.has(id)))
+  const leftBrokenIds = new Set((leftBroken ?? []).filter((/** @type {string} */ id) => !retiredIds.has(id)))
   for (const entry of entries) {
     const id = entry.record.id
     if (id === undefined) continue
@@ -268,7 +337,7 @@ export function parseProject(text) {
     if (origin !== undefined) entry.origin = origin
   }
 
-  return { entries, rollbackAt, resolution }
+  return { entries, rollbackAt, resolution, warnings }
 }
 
 /**

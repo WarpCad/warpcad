@@ -33,25 +33,6 @@ export const useSelectionStore = defineStore('selection', () => {
   const subPart = ref(null)
 
   /**
-   * The selected **sketch entity**, or `null` (`TODO/ui-020`).
-   *
-   * A separate ref rather than another id in {@link ids}, deliberately. Every
-   * count-gated tool in this app reads `count` — the Operations toolbar's
-   * Union/Subtract, the gizmo's "exactly one body" precondition — and CLAUDE.md
-   * gates those on the number of *applicable* operands. A sketch line is not a
-   * solid: putting its id into `ids` would light up Union with a line as an
-   * operand, which is the creation-vs-operation failure that rule exists to
-   * prevent, discovered at the point the kernel was handed something it cannot
-   * boolean.
-   *
-   * The two are mutually exclusive, which is why every path that sets one
-   * clears the other: a click selects one thing.
-   *
-   * @type {import('vue').Ref<string | null>}
-   */
-  const sketchId = ref(null)
-
-  /**
    * Drop a pick depth that no longer names the single selected body.
    *
    * Called from the paths that *replace* a selection. Deliberately not from
@@ -73,22 +54,7 @@ export const useSelectionStore = defineStore('selection', () => {
    */
   function select(id) {
     ids.value = id ? [id] : []
-    sketchId.value = null
     pruneSubPart()
-  }
-
-  /**
-   * Select one sketch entity, replacing whatever was selected before — bodies
-   * included. See {@link sketchId} for why this is not just another id in
-   * {@link ids}.
-   *
-   * @param {string | null | undefined} id
-   * @returns {void}
-   */
-  function selectSketch(id) {
-    ids.value = []
-    subPart.value = null
-    sketchId.value = id || null
   }
 
   /**
@@ -141,7 +107,6 @@ export const useSelectionStore = defineStore('selection', () => {
    */
   function selectPart(bodyId, partName, additive = false) {
     if (!bodyId || !partName) return
-    sketchId.value = null
     if (!additive) {
       ids.value = [bodyId]
       subPart.value = { bodyId, partName }
@@ -188,9 +153,6 @@ export const useSelectionStore = defineStore('selection', () => {
    */
   function toggle(id) {
     if (!id) return
-    // Additive body selection and sketch selection are still exclusive: adding
-    // a body to the selection is a statement about solids.
-    sketchId.value = null
     ids.value = ids.value.includes(id)
       ? ids.value.filter((candidate) => candidate !== id)
       : [...ids.value, id]
@@ -198,7 +160,6 @@ export const useSelectionStore = defineStore('selection', () => {
 
   function clear() {
     ids.value = []
-    sketchId.value = null
     pruneSubPart()
   }
 
@@ -221,8 +182,7 @@ export const useSelectionStore = defineStore('selection', () => {
   function selectMany(selectedIds, additive = false) {
     if (!additive) {
       ids.value = [...selectedIds]
-      sketchId.value = null
-      pruneSubPart()
+        pruneSubPart()
       return
     }
     if (selectedIds.length === 0) return
@@ -242,11 +202,9 @@ export const useSelectionStore = defineStore('selection', () => {
   return {
     ids,
     subPart,
-    sketchId,
     count: computed(() => ids.value.length),
     onlyId: computed(() => (ids.value.length === 1 ? ids.value[0] : null)),
     select,
-    selectSketch,
     toggle,
     selectMany,
     drillInto,

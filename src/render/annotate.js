@@ -1407,72 +1407,93 @@ export function updateSnapGuideAnnotations(orbit, guides, widthPx, heightPx, out
   return out
 }
 
-// --- sketch strokes (TODO/ui-020) -----------------------------------------
+// --- sketch paths (TODO/sketch-001) ----------------------------------------
 
-/** Scratch for a sketch stroke's two projected endpoints. */
-const scratchStrokeA = createScreenPoint()
-const scratchStrokeB = createScreenPoint()
-
-/**
- * @typedef {object} SketchStrokeAnnotation
- * @property {string} id The entity's lineage-root id, or `''` for the live draft.
- * @property {boolean} visible False when either endpoint is behind the camera.
- * @property {number} x1 CSS pixels from the viewport's left edge.
- * @property {number} y1
- * @property {number} x2
- * @property {number} y2
- * @property {number} lengthMm The segment's real length — what the Inspector
- *   quotes, carried here so the overlay and the panel cannot round it two
- *   different ways.
- */
+/** Scratch for one projected sketch point. */
+const scratchSketchPoint = createScreenPoint()
 
 /**
- * One sketch stroke's screen geometry, allocated once and mutated thereafter.
- *
- * @returns {SketchStrokeAnnotation}
+ * @typedef {object} SketchPathAnnotation
+ * @property {boolean} visible False when any point falls behind the camera.
+ * @property {string} d An SVG path: `M x y L x y … [Z]`, in CSS pixels.
+ * @property {number} firstXPx The first point, for anchoring a badge.
+ * @property {number} firstYPx
+ * @property {number} minXPx Screen bounds of the outline.
+ * @property {number} minYPx
+ * @property {number} maxXPx
+ * @property {number} maxYPx
  */
-export function createSketchStroke() {
-  return { id: '', visible: false, x1: 0, y1: 0, x2: 0, y2: 0, lengthMm: 0 }
+
+/** @returns {SketchPathAnnotation} */
+export function createSketchPath() {
+  return { visible: false, d: '', firstXPx: 0, firstYPx: 0, minXPx: 0, minYPx: 0, maxXPx: 0, maxYPx: 0 }
 }
 
 /**
- * Project one sketch segment from the working plane onto the screen.
+ * Project one sketch outline — in its body's local plane, at a slice offset — onto the
+ * screen, as an SVG path.
  *
- * A sketch entity lives at Z=0 — the same working plane `pick.js` projects a
- * pointer *onto* — so this is exactly that projection run backwards, through
- * the same camera state the frame was rendered with. That is what keeps a drawn
- * line glued to the grid as the camera moves, rather than drifting the way a
- * second, parallel projection would (`render-001`'s one-camera rule).
+ * The same one-camera rule as every other overlay here: projected through the orbit state
+ * the WebGL frame was drawn with, so an outline stays glued to its plane as the camera
+ * moves. The path string is the one allocation, and it is made only while the sketch
+ * editor is open and only when the camera or the draft actually changed — the editor
+ * suspends orbit, so in practice that is a pan, a zoom or an edit, never a continuous
+ * per-frame cost on the ordinary scene.
  *
  * @param {OrbitCamera} orbit
- * @param {readonly number[]} startMm `[x, y]` on the working plane.
- * @param {readonly number[]} endMm
+ * @param {readonly number[]} frame Column-major 4×4, sketch-local mm → world mm.
+ * @param {readonly (readonly number[])[]} pointsMm `[x, y]` in the sketch plane.
+ * @param {number} zMm The slice's offset along the sketch's local Z.
+ * @param {boolean} closed Close the path back to its first point.
  * @param {number} widthPx
  * @param {number} heightPx
- * @param {SketchStrokeAnnotation} out Mutated in place — no per-frame allocation.
- * @returns {SketchStrokeAnnotation} `out`
+ * @param {SketchPathAnnotation} out Mutated in place.
+ * @returns {SketchPathAnnotation} `out`
  */
-export function updateSketchStroke(orbit, startMm, endMm, widthPx, heightPx, out) {
-  worldToScreen(orbit, startMm[0], startMm[1], 0, widthPx, heightPx, scratchStrokeA)
-  worldToScreen(orbit, endMm[0], endMm[1], 0, widthPx, heightPx, scratchStrokeB)
-  out.visible = scratchStrokeA.visible && scratchStrokeB.visible
-  out.x1 = scratchStrokeA.x
-  out.y1 = scratchStrokeA.y
-  out.x2 = scratchStrokeB.x
-  out.y2 = scratchStrokeB.y
-  out.lengthMm = Math.hypot(endMm[0] - startMm[0], endMm[1] - startMm[1])
+export function updateSketchPath(orbit, frame, pointsMm, zMm, closed, widthPx, heightPx, out) {
+  let d = ''
+  let visible = pointsMm.length > 0
+  let minX = Infinity
+  let minY = Infinity
+  let maxX = -Infinity
+  let maxY = -Infinity
+  for (let index = 0; index < pointsMm.length; index += 1) {
+    const x = pointsMm[index][0]
+    const y = pointsMm[index][1]
+    const worldX = frame[0] * x + frame[4] * y + frame[8] * zMm + frame[12]
+    const worldY = frame[1] * x + frame[5] * y + frame[9] * zMm + frame[13]
+    const worldZ = frame[2] * x + frame[6] * y + frame[10] * zMm + frame[14]
+    worldToScreen(orbit, worldX, worldY, worldZ, widthPx, heightPx, scratchSketchPoint)
+    if (!scratchSketchPoint.visible) visible = false
+    const px = scratchSketchPoint.x
+    const py = scratchSketchPoint.y
+    if (index === 0) {
+      out.firstXPx = px
+      out.firstYPx = py
+    }
+    d += `${index === 0 ? 'M' : ' L'}${px.toFixed(2)} ${py.toFixed(2)}`
+    if (px < minX) minX = px
+    if (py < minY) minY = py
+    if (px > maxX) maxX = px
+    if (py > maxY) maxY = py
+  }
+  if (closed && pointsMm.length > 2) d += ' Z'
+  out.d = d
+  out.visible = visible
+  out.minXPx = minX
+  out.minYPx = minY
+  out.maxXPx = maxX
+  out.maxYPx = maxY
   return out
 }
 
 /**
  * Shortest distance, in pixels, from a point to a **segment** (not the infinite
- * line through it) — how a click picks a drawn sketch entity.
+ * line through it).
  *
- * Screen-space rather than a WebGL raycast, because a sketch stroke is drawn as
- * an SVG overlay: a raycast would need a `Line` in the scene plus a threshold
- * fudge, while this is exact, allocation-free, and gives the same answer at
- * every zoom level because the tolerance it is compared against is itself in
- * pixels (the same reasoning as `library.js`'s `SNAP_TOLERANCE_PX`).
+ * Screen-space, allocation-free, and the same answer at every zoom level because the
+ * tolerance it is compared against is itself in pixels (the same reasoning as
+ * `library.js`'s `SNAP_TOLERANCE_PX`).
  *
  * Degenerate case covered on purpose (CLAUDE.md's numerical convention): a
  * zero-length segment measures the distance to its single point rather than

@@ -185,6 +185,45 @@ describe('paramEditRecord — a string param (TODO/render-002)', () => {
   })
 })
 
+describe('paramEditRecord — a sketch body’s structured params (TODO/sketch-001)', () => {
+  // Edit sketch → Done is one in-place revision of `slices` and `extrusion` together. They
+  // are plain JSON objects, not numbers, so the finite-number check walks them instead.
+  const SLICES = [{ id: 's1', zMm: 0, profiles: [{ id: 'p1', kind: 'circle', role: 'solid', centerMm: [0, 0], radiusMm: 20 }] }]
+  /** @returns {ReturnType<typeof createDocument>} */
+  function withSketch() {
+    const document = createDocument({ registry: { ...fakeRegistry, 'primitive.sketch': fakeRegistry['primitive.cuboid'] } })
+    document.append(
+      {
+        id: 'sketch-1',
+        op: 'primitive.sketch',
+        name: 'Sketch 1',
+        params: { center: [0, 0, 0], slices: SLICES, extrusion: { method: 'linear', heightMm: 30, twistDeg: 0, twistSteps: 1 } },
+      },
+      { origin: 'local' }
+    )
+    return document
+  }
+
+  it('replaces slices and extrusion in one record, keeping centre', () => {
+    const extrusion = { method: 'linear', heightMm: 45, twistDeg: 0, twistSteps: 1 }
+    const record = paramEditRecord(withSketch(), 'sketch-1', /** @type {any} */ ({ slices: SLICES, extrusion }))
+    expect(record?.params).toEqual({ center: [0, 0, 0], slices: SLICES, extrusion })
+  })
+
+  it('is a no-op when the structured params are deep-equal', () => {
+    const record = paramEditRecord(withSketch(), 'sketch-1', /** @type {any} */ ({
+      slices: JSON.parse(JSON.stringify(SLICES)),
+      extrusion: { method: 'linear', heightMm: 30, twistDeg: 0, twistSteps: 1 },
+    }))
+    expect(record).toBeNull()
+  })
+
+  it('refuses a NaN buried anywhere in the structure', () => {
+    const bad = [{ ...SLICES[0], profiles: [{ ...SLICES[0].profiles[0], radiusMm: Number.NaN }] }]
+    expect(() => paramEditRecord(withSketch(), 'sketch-1', /** @type {any} */ ({ slices: bad }))).toThrow(/finite number/)
+  })
+})
+
 describe('the editability guard — which roots have params of their own (TODO/ui-029, TODO/data-007)', () => {
   it('allows a lineage of nothing but transforms on a plain creation record', () => {
     expect(

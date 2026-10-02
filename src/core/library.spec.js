@@ -56,9 +56,10 @@ describe('PRIMITIVE_LIBRARY — the Library panel rows, derived from the registr
       'primitive.hexagon',
       'primitive.triangle',
       'primitive.tube',
+      'primitive.sketch',
       'primitive.sphere',
     ])
-    expect(PRIMITIVE_LIBRARY).toHaveLength(7)
+    expect(PRIMITIVE_LIBRARY).toHaveLength(8)
   })
 
   it('gives every row a human label and buildable defaults', () => {
@@ -74,8 +75,17 @@ describe('PRIMITIVE_LIBRARY — the Library panel rows, derived from the registr
       'Hexagon',
       'Triangle',
       'Tube',
+      'Sketch',
       'Sphere',
     ])
+  })
+
+  // TODO/sketch-001: a Sketch row is placed like every primitive, but its drop opens the
+  // sketch editor instead of committing a record — the registry says so, so the viewport
+  // reads a flag rather than naming the op.
+  it('marks only the Sketch row as opening an editor on drop', () => {
+    const editors = PRIMITIVE_LIBRARY.filter((row) => row.editor !== null).map((row) => [row.op, row.editor])
+    expect(editors).toEqual([['primitive.sketch', 'sketch']])
   })
 })
 
@@ -120,8 +130,8 @@ describe('HARDWARE_LIBRARY — the catalogue rows a composite recipe earns (TODO
     ])
     expect(LIBRARY_SECTIONS[0].rows).toBe(PRIMITIVE_LIBRARY)
     expect(LIBRARY_SECTIONS[1].rows).toBe(HARDWARE_LIBRARY)
-    // The primitives section is untouched by this: seven rows, same order.
-    expect(PRIMITIVE_LIBRARY).toHaveLength(7)
+    // The primitives section is untouched by this: eight rows, same order.
+    expect(PRIMITIVE_LIBRARY).toHaveLength(8)
   })
 })
 
@@ -167,7 +177,7 @@ describe('KIT_LIBRARY / RASPBERRYPI_LIBRARY — the rest of the catalogue (TODO/
     expect(LIBRARY_SECTIONS[2].rows).toBe(KIT_LIBRARY)
     expect(LIBRARY_SECTIONS[3].rows).toBe(RASPBERRYPI_LIBRARY)
     // The two sections that already existed are untouched by this.
-    expect(PRIMITIVE_LIBRARY).toHaveLength(7)
+    expect(PRIMITIVE_LIBRARY).toHaveLength(8)
     expect(HARDWARE_LIBRARY).toHaveLength(4)
   })
 
@@ -521,7 +531,7 @@ describe('recordsForDrop — placing a composite, which has no position param (T
 })
 
 describe('recordForDrop — one generic drop, parameterised by which op the row names', () => {
-  it('builds a record for any of the seven rows without a per-primitive branch', () => {
+  it('builds a record for any of the eight rows without a per-primitive branch', () => {
     const document = createDocument()
     for (const row of PRIMITIVE_LIBRARY) {
       const record = recordForDrop(row.op, { x: 0, y: 0 }, document)
@@ -530,7 +540,7 @@ describe('recordForDrop — one generic drop, parameterised by which op the row 
       expect(record.name).toBe(`${row.label} 1`)
       expect(() => document.append(record, { origin: 'local' })).not.toThrow()
     }
-    expect(document.bodies()).toHaveLength(7)
+    expect(document.bodies()).toHaveLength(8)
   })
 
   it('places the drop point in X/Y — not a fixed-origin spawn', () => {

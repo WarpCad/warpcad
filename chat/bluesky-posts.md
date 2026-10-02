@@ -1140,3 +1140,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** next Save asks for a file → e2e/save-load-ui.e2e.js (fake native picker, pickerCalls 1 → 2), run this session; auto-push pauses and nothing is pushed → same spec, mocked host; shortcut → same spec laptop project
 **To Add:** screenshot of the New confirm dialog
+
+## [2026-10-02T19:10:00Z] — A sketch is now a primitive that always becomes a solid (TODO/sketch-001)
+
+**Post:** WarpCad's Sketch is now a Library shape: drag it in, draw circles, rectangles, polygons or a line outline, mark the inner one Hole, pick Linear/Revolve/Helical/Outline/Loft, tap Done. Out comes a solid you can subtract or export. Built with Claude Code, reviewed by me.
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** five methods → registry.spec.js + exportJob.spec.js (0 open edges each), run this session; tube subtracted from a cube → hand drive phone Chromium touch-only, 47 527.035 mm³ = 64 000 − 16 472.965; export → loft STL 0 open edges, hand drive laptop Chromium
+**To Add:** screenshot of the tube preview in the editor (test-results/sketch-snapshots/chromium-laptop-editor.png)

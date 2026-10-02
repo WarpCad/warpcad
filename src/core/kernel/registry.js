@@ -54,6 +54,13 @@ import {
   snap,
 } from './group.js'
 import { label } from './text.js'
+import {
+  EXTRUSION_DEFAULTS as SKETCH_EXTRUSION_DEFAULTS,
+  regionOf as sketchRegionOf,
+  sketchProblem,
+  validateSketchParams,
+} from '../../sketch/profile.js'
+import { loftRings } from '../../sketch/resample.js'
 import { LEGACY_SEGMENTS, rimSlicesFor, segmentsFor } from './tessellation.js'
 import { bolt } from './recipes/hardware.bolt.js'
 import { nut } from './recipes/hardware.nut.js'
@@ -210,6 +217,10 @@ import { touchScreen2 } from './recipes/raspberrypi.touchScreen2.js'
  *   on nothing else: a row with no choice is a fixed shape the way a Bolt is. The
  *   panel renders whatever is here and names no recipe of its own, so a third
  *   variant-bearing recipe is a change in this file alone.
+ * @property {'sketch'} [editor] Dropping this row opens an editor instead of committing a
+ *   record (`TODO/sketch-001`): a Sketch has no geometry until the user draws it, so the
+ *   drop places the editor's plane and Done appends the one record. `defaults` is then
+ *   only what the placement ghost previews.
  */
 
 /**
@@ -518,6 +529,144 @@ export function degToRad(degrees) {
   return (degrees * Math.PI) / 180
 }
 
+
+// ## The Sketch primitive (TODO/sketch-001)
+//
+// A sketch is a way of *defining* a primitive, the way a hexagon is a 6-sided profile
+// extruded to a height: a stack of 2D slices whose closed outlines are Solid or Hole, and
+// one extrusion method. `src/sketch/profile.js` owns the data model and every static
+// check; this is the only place it becomes `@jscad/modeling` geometry.
+//
+// `center` is the body's **origin** — where the sketch plane sits — not a bounding-box
+// centre as for the other primitives: a sketch drawn off-centre must stay where it was
+// drawn. Angles arrive in degrees and are converted by `degToRad`, here and nowhere else.
+
+const SKETCH_OP = 'primitive.sketch'
+
+/**
+ * What the placement ghost previews while a Sketch row is dragged: a thin 40 mm square,
+ * which reads as "a flat plane goes here". Never committed by a drop — see `OpUi.editor`.
+ */
+const SKETCH_GHOST_DEFAULTS = Object.freeze({
+  slices: [{ id: 's1', zMm: 0, profiles: [{ id: 'ghost', kind: 'rect', role: 'solid', centerMm: [0, 0], widthMm: 40, heightMm: 40 }] }],
+  extrusion: { method: 'linear', heightMm: 0.5, twistDeg: 0, twistSteps: 1 },
+})
+
+/**
+ * One slice's region as a `geom2`: closed outlines applied largest first — a solid
+ * unioned in, a hole subtracted — so a solid drawn inside a hole survives as an island.
+ *
+ * @param {import('../../sketch/profile.js').Slice} slice
+ * @param {import('./tessellation.js').TessellationPolicy | undefined} policy
+ * @returns {Geom2}
+ */
+function sketchSliceGeom2(slice, policy) {
+  const region = sketchRegionOf(slice, (profile) =>
+    profile.kind === 'circle' ? segmentsFor(profile.radiusMm, policy) : 64
+  )
+  /** @type {Geom2 | null} */
+  let shape = null
+  for (const step of region.steps) {
+    const outline = primitives.polygon({ points: step.pointsMm })
+    if (step.role === 'solid') shape = shape === null ? outline : booleans.union(shape, outline)
+    else if (shape !== null) shape = booleans.subtract(shape, outline)
+  }
+  if (shape === null || geometries.geom2.toSides(shape).length === 0) {
+    throw new Error(`${SKETCH_OP}: the holes cover every solid outline, so there is nothing left to extrude`)
+  }
+  return shape
+}
+
+/**
+ * Build a sketch body.
+ *
+ * @param {Record<string, any>} params
+ * @param {import('./tessellation.js').TessellationPolicy | undefined} policy
+ * @returns {Geom3}
+ */
+function buildSketch(params, policy) {
+  // Untrusted input first (a document can arrive from a URL): a malformed shape is named,
+  // never handed to the kernel. Then the static Done gate, so the kernel and the editor
+  // refuse a sketch for the same reason in the same words.
+  const shape = validateSketchParams(params)
+  if (shape !== null) throw new Error(`${SKETCH_OP}: ${shape}`)
+  const problem = sketchProblem(/** @type {any} */ (params))
+  if (problem !== null) throw new Error(`${SKETCH_OP}: ${problem}`)
+
+  /** @type {'linear' | 'revolve' | 'helical' | 'outline' | 'loft'} */
+  const method = params.extrusion.method
+  const options = { ...SKETCH_EXTRUSION_DEFAULTS[method], ...params.extrusion }
+  const [first] = params.slices
+
+  /** @type {Geom3} */
+  let solid
+  if (method === 'linear') {
+    solid = extrusions.extrudeLinear(
+      { height: options.heightMm, twistAngle: degToRad(options.twistDeg), twistSteps: options.twistSteps },
+      sketchSliceGeom2(first, policy)
+    )
+  } else if (method === 'revolve') {
+    // Sketch X is the radius and sketch Y the height; the axis is local Z.
+    // `sketchProblem` has already refused an outline crossing x = 0, so upstream's
+    // silent `overflow: 'cap'` never runs.
+    solid = extrusions.extrudeRotate(
+      { angle: degToRad(options.angleDeg), startAngle: degToRad(options.startAngleDeg), segments: options.segments },
+      sketchSliceGeom2(first, policy)
+    )
+  } else if (method === 'helical') {
+    solid = extrusions.extrudeHelical(
+      {
+        angle: degToRad(options.turns * 360),
+        startAngle: 0,
+        pitch: options.pitchMm,
+        endOffset: options.endOffsetMm,
+        segmentsPerRotation: options.segmentsPerTurn,
+      },
+      sketchSliceGeom2(first, policy)
+    )
+  } else if (method === 'outline') {
+    // Each closed outline becomes a wall; Solid/Hole is deliberately ignored here — the
+    // Extrude panel says so.
+    const walls = sketchRegionOf(first, (profile) =>
+      profile.kind === 'circle' ? segmentsFor(profile.radiusMm, policy) : 64
+    ).steps.map((step) =>
+      extrusions.extrudeRectangular(
+        // `extrudeRectangular` expands the outline by `size` on *each* side, so the wall
+        // it makes is twice `size` thick (read from extrudeRectangularGeom2.js, and
+        // measured: 2 mm in gave a 4 mm wall). `wallMm` is the wall a user means.
+        { size: options.wallMm / 2, height: options.heightMm },
+        primitives.polygon({ points: step.pointsMm })
+      )
+    )
+    solid = walls.length === 1 ? walls[0] : booleans.union(walls)
+  } else {
+    // Loft: one Solid outline per slice (sketchProblem enforced it), resampled so
+    // `extrudeFromSlices` can wall them by vertex index.
+    const rings = loftRings(
+      params.slices.map((/** @type {import('../../sketch/profile.js').Slice} */ slice) => ({
+        zMm: slice.zMm,
+        pointsMm: sketchRegionOf(slice, (profile) =>
+          profile.kind === 'circle' ? segmentsFor(profile.radiusMm, policy) : 64
+        ).solids[0],
+      })),
+      options.resolution
+    )
+    const sections = rings.map((ring) =>
+      extrusions.slice.fromPoints(ring.pointsMm.map((point) => [point[0], point[1], ring.zMm]))
+    )
+    solid = extrusions.extrudeFromSlices(
+      { numberOfSlices: sections.length, capStart: true, capEnd: true, callback: (_t, index) => sections[index] },
+      sections[0]
+    )
+  }
+
+  // Linear/Revolve/Helical/Outline build from z = 0; the slice's own offset lifts them.
+  // Loft's rings already sit at their own Z.
+  const lift = method === 'loft' ? 0 : first.zMm
+  const center = params.center ?? [0, 0, 0]
+  return transforms.translate([center[0], center[1], center[2] + lift], solid)
+}
+
 /**
  * The op catalogue.
  *
@@ -667,6 +816,12 @@ export const registry = Object.freeze({
     },
     { label: 'Tube', defaults: { diameter: 40, innerDiameter: 26, height: 50 } }
   ),
+
+  'primitive.sketch': native(0, ({ params, policy }) => buildSketch(params, policy), {
+    label: 'Sketch',
+    defaults: SKETCH_GHOST_DEFAULTS,
+    editor: 'sketch',
+  }),
 
   'primitive.sphere': native(
     0,

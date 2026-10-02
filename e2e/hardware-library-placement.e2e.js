@@ -164,7 +164,7 @@ test('the Library panel shows a Hardware section with all four fastener rows', a
   const primitives = await page.$$eval('[data-testid="library-rows"] [data-op]', (nodes) =>
     nodes.map((node) => node.getAttribute('data-label')),
   )
-  expect(primitives).toEqual(['Cube', 'Cylinder', 'Cone', 'Hexagon', 'Triangle', 'Tube', 'Sphere'])
+  expect(primitives).toEqual(['Cube', 'Cylinder', 'Cone', 'Hexagon', 'Triangle', 'Tube', 'Sketch', 'Sphere'])
 })
 
 test('dragging Bolt into the viewport places it at the drop point, not at the origin', async ({

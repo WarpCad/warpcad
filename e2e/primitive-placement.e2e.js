@@ -195,7 +195,7 @@ test.beforeEach(async ({ page }) => {
   await expect(page.getByTestId('viewport')).toBeVisible()
 })
 
-test('the root view mounts the Library panel with all seven primitive rows', async ({ page }) => {
+test('the root view mounts the Library panel with all eight primitive rows', async ({ page }) => {
   // Reachability, per CLAUDE.md: a control that isn't in the app's real render
   // tree isn't shipped, whatever its own component tests say.
   await expect(page.getByTestId('library-panel')).toBeAttached()
@@ -203,7 +203,8 @@ test('the root view mounts the Library panel with all seven primitive rows', asy
   const labels = await page.$$eval('[data-testid="library-rows"] [data-op]', (nodes) =>
     nodes.map((node) => node.getAttribute('data-label')),
   )
-  expect(labels).toEqual(['Cube', 'Cylinder', 'Cone', 'Hexagon', 'Triangle', 'Tube', 'Sphere'])
+  // Sketch (TODO/sketch-001) is a primitive you draw rather than size, after Tube.
+  expect(labels).toEqual(['Cube', 'Cylinder', 'Cone', 'Hexagon', 'Triangle', 'Tube', 'Sketch', 'Sphere'])
 })
 
 test('dragging a row into the viewport places and renders a primitive', async ({ page }, testInfo) => {
@@ -268,13 +269,16 @@ test('a dropped primitive becomes the selection, and only it', async ({ page }) 
   await expect(page.getByTestId('viewport')).toHaveAttribute('data-selected-id', bodies[1].id)
 })
 
-test('every one of the seven rows places its own kind of solid', async ({ page }) => {
+test('every one of the sized rows places its own kind of solid', async ({ page }) => {
   // The generic-mechanism claim, checked rather than asserted in prose: one drag
-  // implementation parameterised by the row's op, exercised across all seven.
+  // implementation parameterised by the row's op, exercised across every row that
+  // places a solid on release. The Sketch row opens its editor instead (its own spec,
+  // e2e/sketch-primitive.e2e.js), and says so with `data-editor`.
   await openLibrary(page)
-  const ops = await page.$$eval('[data-testid="library-rows"] [data-op]', (nodes) =>
+  const ops = await page.$$eval('[data-testid="library-rows"] [data-op]:not([data-editor="sketch"])', (nodes) =>
     nodes.map((node) => node.getAttribute('data-op') ?? ''),
   )
+  expect(ops).toHaveLength(7)
   let column = 0
   for (const op of ops) {
     column += 1

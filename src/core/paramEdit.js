@@ -228,9 +228,51 @@ export function withComponent(vector, index, value) {
  */
 function sameValue(a, b) {
   if (Array.isArray(a) && Array.isArray(b)) {
-    return a.length === b.length && a.every((entry, index) => Object.is(entry, b[index]))
+    return a.length === b.length && a.every((entry, index) => sameValue(entry, b[index]))
+  }
+  // A sketch's `slices` and `extrusion` (`TODO/sketch-001`) are plain-JSON objects:
+  // compared field by field, so an Edit sketch → Done that changed nothing appends nothing.
+  if (isPlainObject(a) && isPlainObject(b)) {
+    const keys = Object.keys(a)
+    return keys.length === Object.keys(b).length && keys.every((key) => sameValue(a[key], b[key]))
   }
   return Object.is(a, b)
+}
+
+/**
+ * @param {unknown} value
+ * @returns {value is Record<string, unknown>}
+ */
+function isPlainObject(value) {
+  return value !== null && typeof value === 'object' && !Array.isArray(value)
+}
+
+/**
+ * Every number anywhere inside a structured param value is finite; strings and booleans
+ * are allowed as leaves (a profile's `kind`, a polyline's `closed`). Names the path of the
+ * first bad leaf. Shape and meaning are the registry's to judge — this only stops a NaN
+ * reaching the kernel as a silently malformed solid.
+ *
+ * @param {string} path
+ * @param {unknown} value
+ * @returns {void}
+ */
+function requireFiniteDeep(path, value) {
+  if (Array.isArray(value)) {
+    value.forEach((entry, index) => requireFiniteDeep(`${path}[${index}]`, entry))
+    return
+  }
+  if (isPlainObject(value)) {
+    for (const [key, entry] of Object.entries(value)) requireFiniteDeep(`${path}.${key}`, entry)
+    return
+  }
+  if (typeof value === 'string' || typeof value === 'boolean') return
+  if (typeof value !== 'number' || !Number.isFinite(value)) {
+    throw new Error(
+      `paramEdit: ${path} must be a finite number, got ${JSON.stringify(value)} — ` +
+        'a NaN would reach the kernel as a silently malformed solid'
+    )
+  }
 }
 
 /**
@@ -246,6 +288,11 @@ function requireFiniteParam(key, value) {
     if (typeof value !== 'string' || value.trim() === '') {
       throw new Error(`paramEdit: text must be a non-empty string, got ${JSON.stringify(value)}`)
     }
+    return
+  }
+  // A structured param — a sketch's slices or extrusion — is walked rather than refused.
+  if (isPlainObject(value) || (Array.isArray(value) && value.some((entry) => isPlainObject(entry)))) {
+    requireFiniteDeep(key, value)
     return
   }
   const values = Array.isArray(value) ? value : [value]
@@ -311,7 +358,9 @@ export function paramEditRecord(document, bodyId, changes) {
     }
     requireFiniteParam(key, value)
     if (sameValue(current[key], value)) continue
-    params[key] = Array.isArray(value) ? value.slice() : value
+    // A JSON round-trip, not `structuredClone`: params are plain JSON by contract, and the
+    // sketch editor's draft may arrive as a Vue proxy, which `structuredClone` refuses.
+    params[key] = Array.isArray(value) || isPlainObject(value) ? JSON.parse(JSON.stringify(value)) : value
     changed = true
   }
   if (!changed) return null

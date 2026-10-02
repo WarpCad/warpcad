@@ -198,6 +198,8 @@ export function chooseScaleBar(mmPerPx, maxPx) {
  * @property {(rightMm: number, upMm: number) => void} pan
  * @property {(factor: number) => void} dolly
  * @property {(view: string) => boolean} snapTo
+ * @property {(frame: readonly number[], zMm?: number) => void} snapToPlane Look straight
+ *   down at a sketch slice in its body's frame (`TODO/sketch-001`).
  * @property {() => void} reset
  * @property {(min: readonly number[], max: readonly number[], aspect?: number) => void} frameBounds
  * @property {(out: Vec3) => Vec3} getPosition
@@ -293,6 +295,25 @@ export function createOrbitCamera(options = {}) {
       state.elevationDeg = preset.elevationDeg
       camera.version += 1
       return true
+    },
+
+    snapToPlane(frame, zMm = 0) {
+      // The plane's normal is the frame's local Z column; the camera sits along it, looking
+      // back. Column-major, so the Z axis is entries 8-10 and the origin 12-14.
+      const nx = frame[8]
+      const ny = frame[9]
+      const nz = frame[10]
+      const length = Math.hypot(nx, ny, nz) || 1
+      const elevation = (Math.asin(clamp(nz / length, -1, 1)) * 180) / Math.PI
+      // Straight up or down, the azimuth is free: keep `top`'s, so an unrotated body
+      // gets exactly the view `camera.snapTo('top')` always gave sketch mode.
+      const straight = Math.abs(Math.abs(nz / length) - 1) < 1e-9
+      state.azimuthDeg = straight ? STANDARD_VIEWS.top.azimuthDeg : wrapDegrees((Math.atan2(ny, nx) * 180) / Math.PI)
+      state.elevationDeg = clamp(elevation, MIN_ELEVATION_DEG, MAX_ELEVATION_DEG)
+      state.target.x = frame[12] + (nx / length) * zMm
+      state.target.y = frame[13] + (ny / length) * zMm
+      state.target.z = frame[14] + (nz / length) * zMm
+      camera.version += 1
     },
 
     frameBounds(min, max, aspect = 1) {

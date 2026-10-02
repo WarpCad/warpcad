@@ -31,10 +31,12 @@ import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 
 import { isTextEntry } from '../../composables/textEntry.js'
 import { useDocumentStore } from '../../stores/document.js'
+import { useSketchEditorStore } from '../../stores/sketchEditor.js'
 import { useTimelineStore } from '../../stores/timeline.js'
 
 const documentStore = useDocumentStore()
 const timeline = useTimelineStore()
+const sketchEditor = useSketchEditorStore()
 
 /**
  * §14, point 3: while previewing, "Undo/Redo" are disabled along with
@@ -43,8 +45,11 @@ const timeline = useTimelineStore()
  * pointing at a past state would be the looks-live-but-isn't defect this whole
  * milestone is built against.
  */
-const undoDisabled = computed(() => !documentStore.canUndo || timeline.previewing)
-const redoDisabled = computed(() => !documentStore.canRedo || timeline.previewing)
+// And while the sketch editor is open (`TODO/sketch-001`): its draft is not in the
+// document yet, so Undo would step back *behind* it — at worst removing the very body
+// being edited. Done or Cancel first; that session is then one step to undo.
+const undoDisabled = computed(() => !documentStore.canUndo || timeline.previewing || sketchEditor.active)
+const redoDisabled = computed(() => !documentStore.canRedo || timeline.previewing || sketchEditor.active)
 
 /**
  * The refusal from the last attempt, if it was refused.

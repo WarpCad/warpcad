@@ -816,193 +816,60 @@ describe('consumption — several bodies retired into one (TODO/ui-014)', () => 
   })
 })
 
-describe('sketch records — a non-geometry op that never reaches the kernel (TODO/ui-020)', () => {
-  /**
-   * A registry that *does* carry an entry for `sketch.line`, whose `build` counts
-   * its own calls.
-   *
-   * Deliberately present rather than absent: "the kernel was never consulted" is
-   * only a real claim if consulting it would have worked. An entry that exists
-   * and is still never built is the evidence; an absent entry would only prove
-   * the registry lookup failed.
-   */
-  function countingRegistry() {
-    const calls = { sketchLine: 0, box: 0 }
-    /** @type {any} */
-    const registry = Object.freeze({
-      ...fakeRegistry,
-      'sketch.line': Object.freeze({
-        kind: 'native',
-        operandCount: 0,
-        build: () => {
-          calls.sketchLine += 1
-          return { tag: 'should-never-be-built' }
-        },
-      }),
-      'fake.counted': Object.freeze({
-        kind: 'native',
-        operandCount: 0,
-        build: () => {
-          calls.box += 1
-          return { tag: 'box' }
-        },
-      }),
-    })
-    return { registry, calls }
-  }
-
-  const LINE_PARAMS = { start: [0, 0], end: [30, 40] }
-
-  it('routes a sketch.line into sketchEntities(), not bodies()', () => {
-    const document = doc()
-    document.append(
-      { id: 'sketch-1', op: 'sketch.line', name: 'Line 1', params: LINE_PARAMS },
-      { origin: 'local' }
-    )
-
-    const entities = document.sketchEntities()
-    expect(entities).toHaveLength(1)
-    expect(entities[0]).toMatchObject({
-      id: 'sketch-1',
-      recordId: 'sketch-1',
-      op: 'sketch.line',
-      name: 'Line 1',
-      params: LINE_PARAMS,
-    })
-    // A sketch line is 2D vector data, not a solid: it is not a body, it has no
-    // entry in the evaluated scene, and nothing downstream should try to
-    // tessellate it.
-    expect(document.bodies()).toEqual([])
-    expect(document.scene.byId.has('sketch-1')).toBe(false)
-    expect(document.scene.errors).toEqual([])
-    expect(document.version).toBe(1)
-  })
-
-  it('never calls the kernel for a sketch.* op, even when the registry has one', () => {
-    const { registry, calls } = countingRegistry()
-    const document = createDocument({ registry })
-    document.append({ id: 'a', op: 'fake.counted' }, { origin: 'local' })
-    document.append(
-      { id: 'sketch-1', op: 'sketch.line', params: LINE_PARAMS },
-      { origin: 'local' }
-    )
-    document.append(
-      { id: 'sketch-2', op: 'sketch.line', params: { start: [1, 1], end: [2, 2] } },
-      { origin: 'local' }
-    )
-
-    // The claim this whole branch exists to make, asserted as a call count
-    // rather than inferred from the output: the `src/core/kernel/` boundary is
-    // never crossed by a sketch record at all.
-    expect(calls.sketchLine).toBe(0)
-    // …and the ordinary path is untouched — one record, one build.
-    expect(calls.box).toBe(1)
-    expect(document.sketchEntities()).toHaveLength(2)
-    expect(document.bodies()).toHaveLength(1)
-  })
-
-  it('accepts a sketch record for an op the registry does not know at all', () => {
-    // The strongest form of the same claim: there is no registry lookup on this
-    // path, so an op the kernel has never heard of still commits. (An unknown
-    // *non*-sketch op is still rejected — asserted below.)
-    const document = doc()
+describe('no sketch.* fold branch remains (TODO/sketch-001)', () => {
+  // ui-020 routed `sketch.line` records *around* the kernel into a parallel
+  // `sketchEntities` map. sketch-001 replaced that with `primitive.sketch`, an ordinary
+  // primitive, so the parallel path is gone and nothing in the fold treats a `sketch.`
+  // prefix specially any more. An old file's lines are dropped at parse time with a
+  // warning (`project.js`); a *new* append of one is simply an op nobody knows.
+  it('rejects a sketch.line append as an unknown op, like any other', () => {
+    const document = createDocument({ registry: realRegistry })
     expect(() =>
       document.append(
-        { id: 'sketch-1', op: 'sketch.line', params: LINE_PARAMS },
+        { id: 'sketch-1', op: 'sketch.line', name: 'Line 1', params: { start: [0, 0], end: [1, 1] } },
         { origin: 'local' }
       )
-    ).not.toThrow()
-    expect(document.sketchEntities()).toHaveLength(1)
-    expect(() => document.append({ id: 'nope', op: 'fake.unknown' }, { origin: 'local' })).toThrow()
+    ).toThrow(/unknown op "sketch\.line"/)
+    expect(document.records).toEqual([])
   })
 
-  it('still demands an origin and an id, like every other mutation', () => {
-    // Forward-looking, per this task's Testing section: undo/redo does not exist
-    // yet, but when it does a `sketch.line` append must be scopeable exactly like
-    // any other record — which is only possible if it was origin-tagged at the
-    // door. Skipping the kernel must not also mean skipping the command layer's
-    // own contract.
-    const document = doc()
-    expect(() =>
-      document.append({ id: 'sketch-1', op: 'sketch.line', params: LINE_PARAMS }, { origin: '' })
-    ).toThrow(/origin/)
-    expect(() =>
-      document.append({ op: 'sketch.line', params: LINE_PARAMS }, { origin: 'local' })
-    ).toThrow(/id/)
-    expect(document.sketchEntities()).toEqual([])
-
-    document.append(
-      { id: 'sketch-1', op: 'sketch.line', params: LINE_PARAMS },
-      { origin: 'remote' }
-    )
-    expect(document.originOf('sketch-1')).toBe('remote')
-    expect(document.entries.map((entry) => entry.origin)).toEqual(['remote'])
-    expect(document.records.map((record) => record.id)).toEqual(['sketch-1'])
+  it('has no sketchEntities accessor', () => {
+    expect(/** @type {any} */ (doc()).sketchEntities).toBeUndefined()
   })
 
-  it('supersedes a sketch entity in place — the endpoint edit, one entity still', () => {
-    const document = doc()
-    document.append(
-      { id: 'sketch-1', op: 'sketch.line', name: 'Line 1', params: LINE_PARAMS },
-      { origin: 'local' }
-    )
+  it('folds a primitive.sketch through the kernel like any primitive: a body, labelled Place', () => {
+    const document = createDocument({ registry: realRegistry })
     document.append(
       {
-        id: 'sketch-2',
-        op: 'sketch.line',
-        supersedes: 'sketch-1',
-        params: { start: [0, 0], end: [60, 80] },
+        id: 'sketch-1',
+        op: 'primitive.sketch',
+        name: 'Sketch 1',
+        params: {
+          center: [0, 0, 0],
+          slices: [{ id: 's1', zMm: 0, profiles: [{ id: 'p1', kind: 'rect', role: 'solid', centerMm: [0, 0], widthMm: 10, heightMm: 10 }] }],
+          extrusion: { method: 'linear', heightMm: 5, twistDeg: 0, twistSteps: 1 },
+        },
       },
       { origin: 'local' }
     )
-
-    const entities = document.sketchEntities()
-    expect(entities).toHaveLength(1)
-    // Stable identity from the lineage root, current geometry from the terminal
-    // record — the same split `bodies()` already makes, so a selection survives
-    // an endpoint drag exactly as it survives a body being moved.
-    expect(entities[0].id).toBe('sketch-1')
-    expect(entities[0].recordId).toBe('sketch-2')
-    expect(entities[0].name).toBe('Line 1')
-    expect(entities[0].params).toEqual({ start: [0, 0], end: [60, 80] })
-    expect(document.currentIdOf('sketch-1')).toBe('sketch-2')
+    expect(document.bodies().map((body) => body.id)).toEqual(['sketch-1'])
+    expect(document.pendingUndo()).toMatchObject({ label: 'Place Sketch 1' })
   })
 
-  it('reports entities in creation order, alongside untouched bodies', () => {
-    const document = doc()
-    document.append({ id: 'a', op: 'fake.box', name: 'Box 1' }, { origin: 'local' })
-    document.append(
-      { id: 'sketch-1', op: 'sketch.line', name: 'Line 1', params: LINE_PARAMS },
-      { origin: 'local' }
-    )
-    document.append({ id: 'b', op: 'fake.box', name: 'Box 2' }, { origin: 'local' })
-    document.append(
-      { id: 'sketch-2', op: 'sketch.line', name: 'Line 2', params: LINE_PARAMS },
-      { origin: 'local' }
-    )
-
-    expect(document.sketchEntities().map((entity) => entity.id)).toEqual(['sketch-1', 'sketch-2'])
-    // The standing regression surface this branch sits in front of: ordinary
-    // records still fold, in order, unaffected by sketch records interleaved
-    // between them.
-    expect(document.bodies().map((body) => body.id)).toEqual(['a', 'b'])
-    expect(document.scene.byId.size).toBe(2)
-  })
-
-  it('refuses a sketch record that tries to consume bodies', () => {
-    // `consumes` retires a body into a new one. A sketch line is not a body and
-    // eats nothing, so a record claiming both has no meaning — rejected out loud
-    // rather than silently ignored.
-    const document = doc()
-    document.append({ id: 'a', op: 'fake.box' }, { origin: 'local' })
+  it('refuses a primitive.sketch the kernel cannot build — the document never holds one', () => {
+    const document = createDocument({ registry: realRegistry })
     expect(() =>
       document.append(
-        { id: 'sketch-1', op: 'sketch.line', params: LINE_PARAMS, consumes: ['a'] },
+        {
+          id: 'sketch-1',
+          op: 'primitive.sketch',
+          name: 'Sketch 1',
+          params: { center: [0, 0, 0], slices: [{ id: 's1', zMm: 0, profiles: [] }], extrusion: { method: 'linear', heightMm: 5 } },
+        },
         { origin: 'local' }
       )
-    ).toThrow(/sketch/)
-    expect(document.bodies()).toHaveLength(1)
-    expect(document.sketchEntities()).toEqual([])
+    ).toThrow(/closed solid outline/)
+    expect(document.bodies()).toEqual([])
   })
 })
 
@@ -1693,15 +1560,6 @@ describe('deleteBodies — a delete is an appended tombstone, not a removed entr
       expect(() => document.deleteBodies(['a'], { origin: 'local' })).toThrow(/consumed/)
       document.deleteBodies(['m'], { origin: 'local' })
       expect(document.bodies()).toEqual([])
-    })
-
-    it('a sketch entity is not a body and is refused', () => {
-      const document = doc()
-      document.append(
-        { id: 'l', op: 'sketch.line', name: 'Line 1', params: { start: [0, 0], end: [1, 1] } },
-        { origin: 'local' }
-      )
-      expect(() => document.deleteBodies(['l'], { origin: 'local' })).toThrow(/not a body/)
     })
 
     it('a hand-written tombstone must supersede something', () => {

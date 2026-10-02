@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { createOrbitCamera } from './camera.js'
-import { projectToWorkingPlane } from './pick.js'
+import { projectToSketchPlane, projectToWorkingPlane } from './pick.js'
 import {
   GIZMO_ARM_FLOOR_PX,
   GIZMO_HEAD_MAX_PX,
@@ -13,7 +13,7 @@ import {
   createRingArrowheads,
   createRingPoints,
   createScreenPoint,
-  createSketchStroke,
+  createSketchPath,
   createSnapGuideAnnotations,
   distanceToSegmentPx,
   gizmoHeadPx,
@@ -25,7 +25,7 @@ import {
   translateDeltaMm,
   updateDimensionAnnotation,
   updateGizmoAnnotation,
-  updateSketchStroke,
+  updateSketchPath,
   updateSnapGuideAnnotations,
   worldToScreen,
 } from './annotate.js'
@@ -1149,45 +1149,50 @@ describe('updateSnapGuideAnnotations — the dashed placement guides (TODO/ui-01
   })
 })
 
-describe('sketch strokes (TODO/ui-020)', () => {
-  it('projects a working-plane segment through the same camera the frame used', () => {
+describe('sketch paths (TODO/sketch-001)', () => {
+  /** @param {number} x @param {number} y @param {number} z */
+  const IDENTITY_AT = (x, y, z) => [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, x, y, z, 1]
+
+  it('projects a closed outline in the body frame through the same camera the frame used', () => {
     const orbit = createOrbitCamera()
     orbit.snapTo('top')
-    const stroke = createSketchStroke()
-    updateSketchStroke(orbit, [-20, 0], [20, 0], 800, 600, stroke)
-
-    expect(stroke.visible).toBe(true)
-    expect(stroke.lengthMm).toBeCloseTo(40, 9)
-    // Looking straight down at a segment centred on the origin: the two ends
-    // land either side of the viewport centre, at the same height.
-    expect(stroke.y1).toBeCloseTo(stroke.y2, 6)
-    expect((stroke.x1 + stroke.x2) / 2).toBeCloseTo(400, 6)
-    expect(stroke.x1).not.toBeCloseTo(stroke.x2, 1)
+    const out = createSketchPath()
+    updateSketchPath(orbit, IDENTITY_AT(0, 0, 0), [[-20, -10], [20, -10], [20, 10], [-20, 10]], 0, true, 800, 600, out)
+    expect(out.visible).toBe(true)
+    expect(out.d.startsWith('M')).toBe(true)
+    expect(out.d.trim().endsWith('Z')).toBe(true)
+    expect(out.d.match(/[ML]/g)).toHaveLength(4)
+    // Centred on the origin, so the outline's box is centred on the viewport.
+    expect((out.minXPx + out.maxXPx) / 2).toBeCloseTo(400, 6)
   })
 
-  it('round-trips against pick.js — what a drag drew is where it is drawn', () => {
-    // The contract that actually matters: `pick.js` turns a pointer into
-    // millimetres and this turns those millimetres back into pixels. If the two
-    // disagreed, a line would commit somewhere other than where it was dragged.
+  it('round-trips against pick.js’s projectToSketchPlane — what a drag drew is where it is drawn', () => {
     const orbit = createOrbitCamera()
+    const frame = IDENTITY_AT(30, -12, 0)
     const aspect = 800 / 600
-    const a = projectToWorkingPlane(orbit, -0.4, 0.25, aspect, { x: 0, y: 0, z: 0 })
-    const b = projectToWorkingPlane(orbit, 0.3, -0.15, aspect, { x: 0, y: 0, z: 0 })
-    if (!a || !b) throw new Error('the default camera must see the working plane')
-
-    const stroke = createSketchStroke()
-    updateSketchStroke(orbit, [a.x, a.y], [b.x, b.y], 800, 600, stroke)
-    expect(stroke.x1).toBeCloseTo(((-0.4 + 1) / 2) * 800, 6)
-    expect(stroke.y1).toBeCloseTo(((1 - 0.25) / 2) * 600, 6)
-    expect(stroke.x2).toBeCloseTo(((0.3 + 1) / 2) * 800, 6)
-    expect(stroke.y2).toBeCloseTo(((1 - -0.15) / 2) * 600, 6)
+    const local = projectToSketchPlane(orbit, -0.4, 0.25, aspect, frame, 0, [0, 0])
+    if (!local) throw new Error('the default camera must see the sketch plane')
+    const out = createSketchPath()
+    updateSketchPath(orbit, frame, [local, [local[0] + 1, local[1]]], 0, false, 800, 600, out)
+    expect(out.firstXPx).toBeCloseTo(((-0.4 + 1) / 2) * 800, 6)
+    expect(out.firstYPx).toBeCloseTo(((1 - 0.25) / 2) * 600, 6)
   })
 
-  it('hides a stroke whose endpoints fall behind the camera', () => {
+  it('projects onto a slice above the base plane, in the body frame', () => {
+    const orbit = createOrbitCamera()
+    orbit.snapTo('top')
+    const local = projectToSketchPlane(orbit, 0, 0, 800 / 600, IDENTITY_AT(5, 7, 0), 100, [0, 0])
+    // Straight down through the camera target (the origin) onto a plane whose own origin
+    // is at (5, 7): the hit is (-5, -7) in the plane's frame.
+    expect(local?.[0]).toBeCloseTo(-5, 6)
+    expect(local?.[1]).toBeCloseTo(-7, 6)
+  })
+
+  it('hides an outline any of whose points fall behind the camera', () => {
     const orbit = createOrbitCamera({ distanceMm: 100, target: { x: 0, y: 0, z: 0 } })
-    const stroke = createSketchStroke()
-    updateSketchStroke(orbit, [0, 0], [100000, 0], 800, 600, stroke)
-    expect(stroke.visible).toBe(false)
+    const out = createSketchPath()
+    updateSketchPath(orbit, IDENTITY_AT(0, 0, 0), [[0, 0], [100000, 0], [0, 10]], 0, true, 800, 600, out)
+    expect(out.visible).toBe(false)
   })
 
   it('measures distance to a segment, not to the infinite line through it', () => {

@@ -551,6 +551,44 @@ describe('usePersistenceStore', () => {
       expect(persistence.chipText).toMatch(/future\.warp/)
     })
 
+    it('opens a file still holding retired sketch.line records, skipping each one and saying so (TODO/sketch-001)', async () => {
+      const files = fakeFiles('fallback')
+      files.nextOpen = {
+        ok: true,
+        name: 'old-sketch.ndjson',
+        text:
+          '{"id":"a","op":"primitive.cuboid","name":"Cube 1","params":{"size":[10,10,10],"center":[0,0,5]}}\n' +
+          '{"id":"sketch-1","op":"sketch.line","name":"Line 1","params":{"start":[0,0],"end":[10,0]}}\n',
+      }
+      setPersistenceDependencies({ backend: fakeBackend(), files })
+      const persistence = usePersistenceStore()
+      const documentStore = useDocumentStore()
+      await persistence.start()
+
+      const result = await persistence.openFile()
+
+      expect(result.ok).toBe(true)
+      expect(documentStore.bodies.map((body) => body.id)).toEqual(['a'])
+      expect(persistence.chipText).toMatch(/old-sketch\.ndjson/)
+      expect(persistence.chipText).toMatch(/skipped 1 step \(sketch-1\)/)
+      expect(persistence.chipText).toMatch(/redraw them in a Sketch primitive/)
+    })
+
+    it('restores an autosave holding retired sketch.line records instead of refusing it (TODO/sketch-001)', async () => {
+      const backend = fakeBackend()
+      backend.stored = {
+        text:
+          '{"id":"a","op":"primitive.cuboid","name":"Cube 1","params":{"size":[10,10,10],"center":[0,0,5]}}\n' +
+          '{"id":"sketch-1","op":"sketch.line","name":"Line 1","params":{"start":[0,0],"end":[10,0]}}\n',
+        savedAt: 1,
+      }
+      setPersistenceDependencies({ backend, files: fakeFiles('fallback') })
+      const persistence = usePersistenceStore()
+      await persistence.start()
+      expect(useDocumentStore().bodies.map((body) => body.id)).toEqual(['a'])
+      expect(persistence.chipText).toMatch(/Restored your last session, but skipped 1 step \(sketch-1\)/)
+    })
+
     it('a cancelled picker changes nothing', async () => {
       const files = fakeFiles('fallback')
       files.nextOpen = { ok: false, cancelled: true }

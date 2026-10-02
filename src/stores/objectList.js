@@ -45,7 +45,7 @@ import { computed, ref, watch } from 'vue'
 import { formatMmValue } from '../core/units.js'
 import { useDocumentStore } from './document.js'
 import { useSelectionStore } from './selection.js'
-import { useSketchModeStore } from './sketchMode.js'
+import { useSketchEditorStore } from './sketchEditor.js'
 import { useTimelineStore } from './timeline.js'
 
 /**
@@ -84,7 +84,7 @@ export const useObjectListStore = defineStore('objectList', () => {
   const documentStore = useDocumentStore()
   const selection = useSelectionStore()
   const timeline = useTimelineStore()
-  const sketchMode = useSketchModeStore()
+  const sketchEditor = useSketchEditorStore()
 
   /**
    * Whether the Inspector's **Objects** section is open at exactly 1 selected — collapsed
@@ -122,7 +122,7 @@ export const useObjectListStore = defineStore('objectList', () => {
    */
   const disabledReason = computed(() => {
     if (timeline.previewing) return 'Previewing history — read-only. Go back to the latest state to select.'
-    if (sketchMode.active) return 'Sketch mode — leave it to select solids.'
+    if (sketchEditor.active) return 'Editing a sketch — tap Done or Cancel to select solids.'
     return ''
   })
 

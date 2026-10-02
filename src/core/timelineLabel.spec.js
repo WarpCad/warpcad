@@ -151,9 +151,9 @@ describe('timeline row labels (TODO/ui-032)', () => {
     expect(describeRow(edited, index)).toBe('Cylinder 1 — edited')
   })
 
-  it('names a sketch entity as drawn rather than placed', () => {
-    const line = { id: 'line-1', op: 'sketch.line', name: 'Line 1', params: { start: [0, 0], end: [10, 0] } }
-    expect(describeRow(line, buildNameIndex([line]))).toBe('Line 1 — drawn')
+  it('names a sketch body as placed, like any primitive (TODO/sketch-001)', () => {
+    const sketch = { id: 'sketch-1', op: 'primitive.sketch', name: 'Sketch 1', params: {} }
+    expect(describeRow(sketch, buildNameIndex([sketch]))).toBe('Sketch 1 — placed')
   })
 
   it('falls back to the bare verb rather than inventing a subject it cannot resolve', () => {

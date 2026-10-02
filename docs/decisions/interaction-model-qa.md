@@ -355,90 +355,103 @@ selects it), matching most CAD/DCC tools' rubber-band convention — stated in
 
 ---
 
-## 7. Open sketch mode and draw one entity (new — `src/sketch/`'s first control, `TODO/ui-020`)
+## 7. The Sketch primitive — draw outlines, extrude to a solid (`TODO/sketch-001`, superseding `TODO/ui-020`)
 
-Scoped narrowly on purpose: `Initial design.md` gives this no mockup at all, and
-`src/sketch/`'s eventual full job (snapping, dimensions, constraint solving, profile
-detection) is not this control's job — this answers only "open sketch mode, and draw
-one entity," the minimum bar `TODO/ACCEPTANCE.md`'s own template header names, with a
-straight line segment as that one entity. Every later sketch tool (rectangle, circle,
-arc, constraints) is a follow-up task extending this control, not something this pass
-has to anticipate.
+> **Status: rewritten by `TODO/sketch-001` (2026-10-02) from the answers in that task
+> file, NOT yet confirmed by the user.** The task asked for this rewrite to be confirmed
+> with the user first; it was run unattended (`/run-todos`), so that confirmation has not
+> happened. Every item marked **UNCONFIRMED** below was filled in by the scoping session
+> (or by the implementing run) rather than taken from the user's own description, and is
+> listed in `TODO/VERIFY.md` for a yes/no. Everything else is quoted or closely paraphrased
+> from the user's description of 2026-09-27.
+>
+> **What this replaces.** ui-020's answer was a **Sketch toggle** in the nav chrome that
+> drew loose `sketch.line` records a parallel document map held *around* the kernel. They
+> were never solids. That whole model is retired: a sketch is a way of **defining a
+> primitive**, the way a hexagon is a 6-sided profile extruded to a height, and it always
+> ends up as a 3D solid. Old `sketch.line` records load with a per-record warning and are
+> dropped (no migration — a loose line has no role or extrusion).
 
-- **Q10 (flow)** — Precondition: **nothing selected**, and no operand requirement —
-  this is a mode entry, not an operand-gated operation, the same shape as the existing
-  Orbit/Pan/Select nav-chrome toggle (`ui-018`/`ui-024`), not the shape of a
-  boolean/Snap/Align button. Trigger: a **Sketch** toggle button in the main viewport
-  chrome, alongside the existing nav-chrome controls (not the Library or Operations
-  toolbar — this isn't a creation or an operation on a body, it's a mode). Clicking it
-  enters sketch mode: the camera snaps to look straight down the working plane's normal
-  (reusing `render-001`'s existing orientation-gizmo snap-to-view mechanism, aimed at
-  the plane rather than a named axis face) and locks there — orbit is suspended while
-  sketch mode is active, replaced entirely by the drawing gesture below, per Q13. A
-  **Sketch toolbar** appears (currently one tool: **Line**) and an **Exit Sketch**
-  control appears alongside it. Drawing: with Line active (the only tool, so active by
-  default on entry), pointer-down on the working plane starts a live preview segment
-  from that point to the current pointer position; pointer-up commits it as one sketch
-  entity. Feedback: the committed line renders as a persistent 2D stroke on the working
-  plane, distinct in style (a thin, bright, single-color stroke — not a 3D solid's
-  shaded material) from any 3D geometry already in the scene, so a user can tell at a
-  glance that what they just drew is sketch geometry, not a body. Exiting sketch mode
-  (the Exit control, or re-clicking the Sketch toggle) returns the camera to free orbit
-  and hides the Sketch toolbar; the drawn entity persists in the scene as sketch data,
-  it does not disappear on exit.
-- **Q11 (operand count)** — n/a; this is a creation flow (drawing new geometry), not an
-  operation on existing geometry, per Q11's own carve-out for creation controls.
-- **Q12 (control location)** — Needs one genuinely new control surface: the Sketch
-  toggle lives in the main viewport chrome (the same chrome row `ui-018`/`ui-019`'s nav
-  controls and the orientation gizmo already occupy), and the Sketch toolbar (Line tool
-  + Exit) is a new, mode-gated toolbar that only mounts while sketch mode is active —
-  distinct from the always-present Operations toolbar the same way the Library sheet is
-  distinct from the Inspector sheet: a third mode-specific surface, not a repurposing of
-  an existing one. "Register a tool type and let a generic list render it" is
-  explicitly not the answer here either, mirroring the Creation-vs-Operation rule's own
-  reasoning: a sketch tool (Line, later Rectangle/Circle/Arc) is drawing-specific chrome,
-  not a row that belongs beside Cube/Cylinder in the 3D-primitive Library.
-- **Q13 (drag-to-place)** — Yes, and this is the one place this control most directly
-  extends the existing rule rather than restating it: drawing a line is itself a drag
-  gesture, pointer-down at the start point, a live preview segment following the
-  pointer exactly like `ui-010`'s drag-to-place ghost, commit on release — the 2D
-  analogue of `CLAUDE.md`'s "geometry is created by placing it in the 3D view, not
-  spawning it at a fixed transform" rule, applied to a sketch entity instead of a
-  primitive body. A zero-length release (pointer-down and pointer-up at the same
-  point, no drag at all) commits **nothing** — CLAUDE.md's own numerical-code
-  convention of covering degenerate cases (zero-length segments) applied at the
-  interaction layer, not just in a kernel unit test.
-- **Q14 (inspector/gizmo contract)** — Once committed, a line entity behaves as a
-  selectable object: clicking it shows its own fields in the Inspector (start point,
-  end point, length — plain numeric fields, no registry `ui.defaults` lookup, since
-  sketch entities live in `src/sketch/`'s own model, not the kernel registry
-  `describeBody` reads from). **No 3D transform gizmo attaches** — translate/rotate
-  handles are a 3D-body affordance and a sketch entity lives flat on the working plane —
-  instead, each endpoint gets its own small draggable handle directly on the entity
-  (the 2D-sketch equivalent of a gizmo, dragging one point rather than the whole
-  entity), and editing a handle updates the same Inspector numeric fields live, the
-  same "gizmo drag and numeric fields must drive the same underlying value and stay in
-  sync" contract control 4 already established for 3D transforms, applied to endpoint
-  coordinates instead of a translate/rotate triple.
-- **Q15 (selection count)** — n/a for this task: drawing is the only capability this
-  control adds. Selecting and editing an already-drawn entity (Q14 above) works at the
-  ordinary single-selection count; a future multi-entity sketch tool (a rectangle made
-  of four lines, a constraint spanning two entities) is not this task's concern and
-  should answer its own Q15 when scoped.
-- **Q16 (phone width)** — The Sketch toolbar (Line + Exit) is a bottom chrome row at
-  phone width, matching the existing nav-chrome's own collapse pattern
-  (`ui-018`/`ui-019`) rather than a new layout idiom. Drawing itself needs no
-  modifier key at all on any pointer type (unlike the marquee's Ctrl/Cmd-or-`'select'`-
-  mode split in section 6's addendum) — sketch mode's own orbit-suspension (Q10) means
-  a plain one-finger drag is unambiguously "draw," on mouse and touch alike, with no
-  gesture collision to resolve. This is a genuine simplification worth stating
-  explicitly rather than assuming touch needs its own special case here.
-- **Q17 (acceptance scenario)** — Not one of `Initial design.md` §9's original 8
-  (drawn from `picam-touch`'s toggle matrix, which has no 2D sketching), but
-  `TODO/ACCEPTANCE.md`'s own template header separately names "drawing one entity" as
-  a cover-at-minimum case. Add it as **scenario 9** when `ui-020` is scoped (this Q&A
-  pass's own job, done alongside this section — see `TODO/ACCEPTANCE.md`) rather than
-  skip it for lack of a §9 number, per that file's own instruction.
+- **Q10 (flow)** — Precondition: *creating* a sketch needs nothing (a creation row, like
+  Cube); *editing* one needs exactly one `primitive.sketch` body selected. Trigger: a
+  **Sketch** row in the Library's *Primitives* section, after Tube. Dragging it places the
+  new body's origin and sketch plane at the drop point with the ordinary placement ghost
+  (a thin square plane), and **releasing opens the sketch editor** on that plane — nothing
+  is in the document yet. To re-open later: **Edit sketch** in the Inspector
+  (`inspector-edit-sketch`). Double-click / double-tap the body as a shortcut —
+  **UNCONFIRMED, and not built in this run**. Inside the editor, a **Sketch toolbar** in
+  the viewport's top-left toolbar slot (the Operations toolbar yields it, ui-020's
+  arrangement): **Line** (a chained polyline that closes when a drag finishes on its start
+  point), **Rectangle**, **Circle**, **Polygon** (regular N-gon); a **Solid / Hole** toggle
+  for the selected outline; **Slices** (each slice's name and Z offset, **＋ Slice**,
+  **Delete slice**, pick the active slice); **Extrude ▾** (the method and its fields);
+  **Done** and **Cancel**. Feedback: outlines are the thin bright stroke; **Hole** outlines
+  are dashed with a "hole" badge on selection (never colour alone); an open chain is drawn
+  in the warning colour with "Open outline — not part of the solid"; inactive slices are
+  ghosted; Revolve/Helical draw the axis (sketch Y, x = 0) dashed; a translucent
+  **extrusion preview** is built in the worker, superseded rather than queued. **Done**
+  commits one record and closes the editor, the body becoming the selection; **Cancel**
+  discards the session — for a new sketch, no body at all. Done is disabled with the
+  reason printed whenever the draft can't be built (no closed Solid outline, a
+  self-crossing outline, a Revolve outline across the axis, holes cancelling every solid):
+  the document never holds a body the kernel can't build.
+- **Q11 (operand count)** — Creation: n/a. Edit sketch: exactly 1 sketch body. The
+  finished body is an **ordinary operand** for Union / Subtract / Intersect / Mirror —
+  the capability ui-020's separate `selection.sketchId` deliberately withheld; that id is
+  gone. Method gating by slice count: **Loft** needs ≥ 2 slices, each with exactly one
+  Solid outline and no Holes (**v1 scope limit, UNCONFIRMED** — lofting holes is a
+  follow-up if asked for); every other method needs exactly 1 slice. A disabled method
+  prints its reason ("Loft needs two or more slices" / "Linear uses one slice — remove the
+  others or pick Loft").
+- **Q12 (control location)** — The Library row (creation, beside Cube — a sketch *is* a
+  primitive, so this is the opposite of ui-020's "a sketch tool doesn't belong beside
+  Cube": the *tools* still don't, the *primitive* does). The Sketch toolbar takes the
+  top-left slot while editing. The Slices and Extrude panels open as a **bottom sheet** on
+  a narrow viewport and as a card docked bottom-right on a wide one. Edit sketch and the
+  extrusion numbers live in the Inspector's **Sketch** section of a selected sketch body,
+  in place of the generic Parameters list. The nav-chrome Sketch toggle is **removed**.
+- **Q13 (drag-to-place)** — Yes, twice over. The body is placed by the ordinary
+  drag-to-place gesture (the drop point becomes its origin; the sketch is drawn in the
+  body's **local** XY plane, so moving or turning the body later moves every slice with
+  it). Each outline is itself a drag: pointer-down, drag, pointer-up, with no modifier key
+  on any pointer type and orbit suspended while editing. A drag that barely moves commits
+  nothing. The camera snaps straight on to the active slice **in the body's frame** —
+  `camera.snapTo('top')` for an unturned body at Z = 0, `snapToPlane(frame)` otherwise.
+- **Q14 (inspector/gizmo contract)** — Outside the editor a sketch body behaves exactly
+  like a Cube: gizmo, Transform fields, then the extrusion method and its numbers (editable
+  in place on the replace path, one undo step), then **Edit sketch**. Inside the editor a
+  tap selects an outline (the smallest closed outline under the tap wins, so the inner of
+  two concentric circles is tappable): its kind, Solid/Hole, and its numbers (circle
+  centre/radius, rectangle centre/width/height, polygon centre/radius/sides/rotation), with
+  **no** 3D gizmo. A freshly drawn outline is **not** auto-selected (ui-020's finding #3).
+  On-canvas point handles for outlines are **not in this run** — free vertex editing is
+  `TODO/sketch-002`.
+- **Q15 (selection count)** — Edit sketch: exactly 1. Inside the editor: single-outline
+  selection only. Booleans etc.: the finished body counts like any operand.
+- **Q16 (phone width)** — The toolbar shows the tool icons, Hole, Slices, Extrude ▾, Done
+  and Cancel, wrapping to two rows (three at the tablet reference, whose viewport column is
+  also 390 px but whose orientation gizmo is full size). Slices and Extrude open as a bottom
+  sheet capped at 24 % of the viewport. While the editor is open on a narrow viewport the
+  nav chrome folds to its **✥** toggle (ui-046's fold — **UNCONFIRMED extension**: ui-046
+  folds only while a sheet is open; this run also folds it while editing at rest, because
+  that is what keeps the resting editor's reachable canvas ≥ 69 % at 390 px — measured
+  67 % → 76 %), and lifts above the sheet when one is open. The Inspector sheet does **not**
+  auto-open while editing (ui-020 finding #3). **Measured, and not meeting the letter of
+  the task's "≥ 69 % with a sheet open"**: with the Extrude sheet open the phone's
+  reachable canvas is 47 % (Slices 57 %), tablet 64 % / 74 %. What is guaranteed (and
+  asserted) is that the drawing area around the sketch origin stays 100 % reachable with
+  either sheet open. **UNCONFIRMED** whether that interpretation is acceptable.
+- **Q17 (acceptance scenario)** — `TODO/ACCEPTANCE.md` scenario 9 is rewritten as "Place a
+  Sketch primitive, draw a solid and a hole, extrude it, and use it". The photo-tracing
+  scenario the task file also proposed (as scenario 14 — that number is already taken by
+  "Delete a body, bring it back, reload") moves with the photo work to
+  `TODO/sketch-003`/`sketch-004`.
+
+**Reference image, scale calibration, vertex editing and auto-trace** — the remainder of
+`TODO/sketch-001`'s interaction model — were split out unchanged into `TODO/sketch-002`
+(vertex editing), `TODO/sketch-003` (reference image, scale, sanitization) and
+`TODO/sketch-004` (auto-trace). Their answers are recorded there, still marked
+*(default — confirm)*, and get folded into this section when each ships.
 
 ---
 

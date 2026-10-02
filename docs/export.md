@@ -59,7 +59,7 @@ The menu item is never hidden; when it can't be used it says why, right under it
 
 | You see under **Export…** | Why | What to do |
 |---|---|---|
-| **Nothing to export** | The scene has no solid bodies yet. Sketch lines are not solids and are not exported. | Place a shape first. |
+| **Nothing to export** | The scene has no solid bodies yet. A sketch still open in the editor is not a body until you tap **Done**. | Place a shape first, or finish the sketch. |
 | **Return to the latest step to export** | The History panel is showing you a *past* step (it says **Previewing step 2 of 5**). Exporting what you see there would hand you a file that isn't your model. | Press **Back to latest** in the strip under the top bar (or **Esc**). |
 
 If you have **rolled back** in History (the strip says **Rolled back to step 2 of 5**), Export
@@ -88,8 +88,8 @@ slicer plate or a mesh viewer expects, and the suggested name says so.
 
 A body made of several named parts (a bolt, a nut, a library item) exports as the **one
 combined solid** you would actually print: its visible parts fused together, with any
-holes cut out. A part that is hidden stays out, exactly as it is on screen. Sketch lines
-are not solids and are not exported.
+holes cut out. A part that is hidden stays out, exactly as it is on screen. A finished
+[sketch shape](sketch-mode.md) exports like any other solid.
 
 ## The three formats
 

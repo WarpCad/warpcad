@@ -60,7 +60,6 @@ export function observe(document, options = {}) {
     })),
     rollbackAt: document.rollbackAt(),
     bodies: canonical(document.bodies()),
-    sketchEntities: document.sketchEntities(),
     timeline: document.timeline(),
     brokenSteps: document.brokenSteps(),
     byIdKeys: [...document.scene.byId.keys()],

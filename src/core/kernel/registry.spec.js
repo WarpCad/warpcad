@@ -843,7 +843,7 @@ describe('hardware.bearing (TODO/core-023) — composite, registered once a spec
     // claim that matters now is the *section*: creation rows are grouped by what
     // they are, and a composite recipe must not leak into the primitives list.
     expect(PRIMITIVE_LIBRARY.map((row) => row.op)).not.toContain('hardware.bearing')
-    expect(PRIMITIVE_LIBRARY).toHaveLength(7)
+    expect(PRIMITIVE_LIBRARY).toHaveLength(8)
     expect(HARDWARE_LIBRARY.map((row) => row.op)).toContain('hardware.bearing')
   })
 })
@@ -1587,5 +1587,166 @@ describe('paramOptions — editable composite params (TODO/ui-052)', () => {
     expect(aliases.camera).toBe('camera0')
     expect(aliases.avjack).toBeUndefined()
     expect(partAliasesOf('hardware.bolt')).toEqual({})
+  })
+})
+
+describe('primitive.sketch — a sketch is a primitive that always extrudes to a solid (TODO/sketch-001)', () => {
+  /** @param {string} id @param {string} role @param {number} radiusMm @param {number[]} [centerMm] */
+  const circle = (id, role, radiusMm, centerMm = [0, 0]) => ({ id, kind: 'circle', role, centerMm, radiusMm })
+  /** @param {string} id @param {string} role @param {number[]} centerMm @param {number} widthMm @param {number} heightMm */
+  const rect = (id, role, centerMm, widthMm, heightMm) => ({ id, kind: 'rect', role, centerMm, widthMm, heightMm })
+  /** @param {any[]} profiles @param {number} [zMm] */
+  const slices = (profiles, zMm = 0) => [{ id: 's1', zMm, profiles }]
+
+  /** @param {Record<string, any>} params */
+  const sketch = (params) => /** @type {Geom3} */ (build('primitive.sketch', { params: { center: [0, 0, 0], ...params } }))
+
+  it('is a 0-operand creation row labelled Sketch, ordered straight after Tube', () => {
+    const entry = getEntry('primitive.sketch')
+    expect(entry.operandCount).toBe(0)
+    expect(entry.ui?.label).toBe('Sketch')
+    const ops = PRIMITIVE_LIBRARY.map((row) => row.op)
+    expect(ops.indexOf('primitive.sketch')).toBe(ops.indexOf('primitive.tube') + 1)
+  })
+
+  it('Linear: a r20/r15 × 30 tube has volume π(20² − 15²)·30 within 1% (circle segmentation)', () => {
+    const tube = sketch({
+      slices: slices([circle('p1', 'solid', 20), circle('p2', 'hole', 15)]),
+      extrusion: { method: 'linear', heightMm: 30, twistDeg: 0, twistSteps: 1 },
+    })
+    const expected = Math.PI * (20 ** 2 - 15 ** 2) * 30
+    expect(Math.abs(measurements.measureVolume(tube) - expected) / expected).toBeLessThan(0.01)
+    const [min, max] = measurements.measureBoundingBox(tube)
+    expect(min[2]).toBeCloseTo(0, 6)
+    expect(max[2]).toBeCloseTo(30, 6)
+  })
+
+  it('Linear starts at the slice’s own Z and moves with center', () => {
+    const body = sketch({
+      center: [100, -50, 10],
+      slices: slices([rect('p', 'solid', [0, 0], 10, 10)], 5),
+      extrusion: { method: 'linear', heightMm: 20, twistDeg: 0, twistSteps: 1 },
+    })
+    const [min, max] = measurements.measureBoundingBox(body)
+    expect(min).toEqual([95, -55, 15])
+    expect(max).toEqual([105, -45, 35])
+  })
+
+  it('Revolve: 360° of a 10×10 square at x = 10..20 is π(20² − 10²)·10', () => {
+    const ring = sketch({
+      slices: slices([rect('p', 'solid', [15, 5], 10, 10)]),
+      extrusion: { method: 'revolve', angleDeg: 360, startAngleDeg: 0, segments: 256 },
+    })
+    const expected = Math.PI * (20 ** 2 - 10 ** 2) * 10
+    expect(Math.abs(measurements.measureVolume(ring) - expected) / expected).toBeLessThan(0.001)
+  })
+
+  it('Revolve across the axis throws, naming the axis, rather than silently capping', () => {
+    expect(() =>
+      sketch({
+        slices: slices([rect('p', 'solid', [0, 5], 10, 10)]),
+        extrusion: { method: 'revolve', angleDeg: 360, startAngleDeg: 0, segments: 32 },
+      })
+    ).toThrow(/axis/)
+  })
+
+  it('Helical makes a coil whose height follows pitch × turns', () => {
+    const coil = sketch({
+      slices: slices([circle('p', 'solid', 2, [10, 0])]),
+      extrusion: { method: 'helical', pitchMm: 8, turns: 3, endOffsetMm: 0, segmentsPerTurn: 32 },
+    })
+    const [min, max] = measurements.measureBoundingBox(coil)
+    expect(max[2] - min[2]).toBeCloseTo(3 * 8 + 4, 0)
+    expect(measurements.measureVolume(coil)).toBeGreaterThan(0)
+  })
+
+  it('Outline thickens each outline into a wall — hollow, roles ignored', () => {
+    const shell = sketch({
+      slices: slices([rect('p', 'hole', [0, 0], 40, 40)]),
+      extrusion: { method: 'outline', wallMm: 2, heightMm: 10 },
+    })
+    const volume = measurements.measureVolume(shell)
+    // A 2 mm wall centred on a 40 mm square: between the inner and outer square rings.
+    expect(volume).toBeGreaterThan((42 * 42 - 38 * 38) * 10 * 0.95)
+    expect(volume).toBeLessThan(42 * 42 * 10 - 38 * 38 * 10 + 1)
+  })
+
+  it('Loft of two identical squares equals a Linear of the same height', () => {
+    const square = (/** @type {string} */ id) => rect(id, 'solid', [0, 0], 30, 20)
+    const lofted = sketch({
+      slices: [
+        { id: 's1', zMm: 0, profiles: [square('a')] },
+        { id: 's2', zMm: 25, profiles: [square('b')] },
+      ],
+      extrusion: { method: 'loft', resolution: 0 },
+    })
+    const linear = sketch({ slices: slices([square('a')]), extrusion: { method: 'linear', heightMm: 25, twistDeg: 0, twistSteps: 1 } })
+    expect(measurements.measureVolume(lofted)).toBeCloseTo(measurements.measureVolume(linear), 6)
+  })
+
+  it('Loft skins three differently sized ribs into one solid spanning all of them', () => {
+    const wing = sketch({
+      slices: [
+        { id: 's1', zMm: 0, profiles: [circle('a', 'solid', 30)] },
+        { id: 's2', zMm: 100, profiles: [circle('b', 'solid', 20)] },
+        { id: 's3', zMm: 200, profiles: [circle('c', 'solid', 10)] },
+      ],
+      extrusion: { method: 'loft', resolution: 64 },
+    })
+    const [min, max] = measurements.measureBoundingBox(wing)
+    expect(min[2]).toBeCloseTo(0, 6)
+    expect(max[2]).toBeCloseTo(200, 6)
+    // Between a cone frustum of the end radii and a cylinder of the largest one.
+    expect(measurements.measureVolume(wing)).toBeLessThan(Math.PI * 900 * 200)
+    expect(measurements.measureVolume(wing)).toBeGreaterThan(0)
+  })
+
+  it('Loft with holes throws with the v1 scope limit, stated', () => {
+    expect(() =>
+      sketch({
+        slices: [
+          { id: 's1', zMm: 0, profiles: [circle('a', 'solid', 30), circle('h', 'hole', 5)] },
+          { id: 's2', zMm: 100, profiles: [circle('b', 'solid', 20)] },
+        ],
+        extrusion: { method: 'loft', resolution: 0 },
+      })
+    ).toThrow(/one Solid outline and no Holes/)
+  })
+
+  it('refuses a sketch with nothing to extrude, and a hole that cancels its solid', () => {
+    expect(() => sketch({ slices: slices([]), extrusion: { method: 'linear', heightMm: 10 } })).toThrow(/closed solid outline/)
+    expect(() =>
+      sketch({
+        slices: slices([rect('a', 'solid', [0, 0], 10, 10), rect('b', 'hole', [0, 0], 10, 10)]),
+        extrusion: { method: 'linear', heightMm: 10 },
+      })
+    ).toThrow(/nothing left/)
+  })
+
+  it('refuses malformed params with a reason rather than building garbage', () => {
+    expect(() => sketch({ slices: 'nope', extrusion: { method: 'linear', heightMm: 10 } })).toThrow(/primitive\.sketch/)
+    expect(() =>
+      sketch({ slices: slices([circle('p', 'solid', 10)]), extrusion: { method: 'linear', heightMm: -1 } })
+    ).toThrow(/heightMm/)
+  })
+
+  it('keeps a solid drawn inside a hole as an island', () => {
+    const nested = sketch({
+      slices: slices([rect('o', 'solid', [0, 0], 40, 40), rect('h', 'hole', [0, 0], 30, 30), rect('i', 'solid', [0, 0], 10, 10)]),
+      extrusion: { method: 'linear', heightMm: 1 },
+    })
+    // jscad's 2D booleans snap to their own epsilon grid, so the exact 800 mm³ lands a few
+    // hundredths off; 0.01% is far tighter than "the island vanished" (which is −100 mm³).
+    const expected = 40 * 40 - 30 * 30 + 10 * 10
+    expect(Math.abs(measurements.measureVolume(nested) - expected) / expected).toBeLessThan(1e-4)
+  })
+
+  it('ignores slice.image entirely — a reference photo is never geometry', () => {
+    const plain = sketch({ slices: slices([circle('p', 'solid', 10)]), extrusion: { method: 'linear', heightMm: 5 } })
+    const withImage = sketch({
+      slices: [{ id: 's1', zMm: 0, profiles: [circle('p', 'solid', 10)], image: { assetId: 'img-1', offsetMm: [0, 0], rotationDeg: 0, opacity: 0.5, mmPerPx: 0.1 } }],
+      extrusion: { method: 'linear', heightMm: 5 },
+    })
+    expect(measurements.measureVolume(withImage)).toBeCloseTo(measurements.measureVolume(plain), 9)
   })
 })

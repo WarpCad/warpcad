@@ -97,58 +97,15 @@ describe('selection store — sub-part pick depth (TODO/ui-016)', () => {
   })
 })
 
-describe('sketch selection (TODO/ui-020)', () => {
+describe('no second sketch selection (TODO/sketch-001)', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
   })
 
-  it('selecting a sketch entity leaves the body count at zero', () => {
-    // The whole reason `sketchId` is a separate ref: every count-gated tool in
-    // the app reads `count`, and a line must never present itself as a boolean
-    // operand. This is the assertion that would fail if a later refactor folded
-    // sketch ids back into `ids`.
-    const selection = useSelectionStore()
-    selection.select('body-1')
-    selection.selectSketch('sketch-1')
-    expect(selection.sketchId).toBe('sketch-1')
-    expect(selection.ids).toEqual([])
-    expect(selection.count).toBe(0)
-    expect(selection.onlyId).toBeNull()
-  })
-
-  it('is mutually exclusive with body selection, in both directions', () => {
-    const selection = useSelectionStore()
-    selection.selectSketch('sketch-1')
-    selection.select('body-1')
-    expect(selection.sketchId).toBeNull()
-    expect(selection.ids).toEqual(['body-1'])
-
-    selection.selectSketch('sketch-1')
-    selection.toggle('body-2')
-    expect(selection.sketchId).toBeNull()
-
-    selection.selectSketch('sketch-1')
-    selection.selectMany(['body-3'])
-    expect(selection.sketchId).toBeNull()
-  })
-
-  it('clears with everything else, and drops a stale sub-part depth', () => {
-    const selection = useSelectionStore()
-    selection.select('group-1')
-    selection.drillInto('Part A')
-    selection.selectSketch('sketch-1')
-    expect(selection.subPart).toBeNull()
-
-    selection.clear()
-    expect(selection.sketchId).toBeNull()
-    expect(selection.ids).toEqual([])
-  })
-
-  it('treats an empty id as clearing the sketch selection', () => {
-    const selection = useSelectionStore()
-    selection.selectSketch('sketch-1')
-    selection.selectSketch('')
-    expect(selection.sketchId).toBeNull()
+  it('has no sketchId — a finished sketch body is an ordinary body, and the editor keeps its own profile selection', () => {
+    const selection = /** @type {any} */ (useSelectionStore())
+    expect(selection.sketchId).toBeUndefined()
+    expect(selection.selectSketch).toBeUndefined()
   })
 })
 
@@ -243,7 +200,7 @@ describe('selection store — selectPart (TODO/ui-042)', () => {
     expect(selection.subPart).toEqual({ bodyId: 'bolt', partName: 'tap' })
   })
 
-  it('ignores an empty id or part name, and drops a sketch selection like every body route', () => {
+  it('ignores an empty id or part name', () => {
     const selection = useSelectionStore()
     selection.select('shell')
     selection.selectPart('', 'x')
@@ -251,10 +208,6 @@ describe('selection store — selectPart (TODO/ui-042)', () => {
     selection.selectPart(null, null)
     expect(selection.ids).toEqual(['shell'])
     expect(selection.subPart).toBeNull()
-
-    selection.selectSketch('line-1')
-    selection.selectPart('pi', 'ethernet', true)
-    expect(selection.sketchId).toBeNull()
   })
 
   it('drillInto is unchanged: still a no-op unless exactly one body is selected (ui-016)', () => {

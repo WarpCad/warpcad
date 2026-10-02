@@ -172,7 +172,7 @@ test('the Library panel shows Kit Parts and Raspberry Pi sections with every rec
   const primitives = await page.$$eval('[data-testid="library-rows"] [data-op]', (nodes) =>
     nodes.map((node) => node.getAttribute('data-label')),
   )
-  expect(primitives).toEqual(['Cube', 'Cylinder', 'Cone', 'Hexagon', 'Triangle', 'Tube', 'Sphere'])
+  expect(primitives).toEqual(['Cube', 'Cylinder', 'Cone', 'Hexagon', 'Triangle', 'Tube', 'Sketch', 'Sphere'])
   const hardware = await page.$$eval('[data-testid="library-rows-hardware"] [data-op]', (nodes) =>
     nodes.map((node) => node.getAttribute('data-label')),
   )

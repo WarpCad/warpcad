@@ -1,130 +1,179 @@
-# Sketch mode: drawing a line on the working plane
+# Sketch primitives
 
-Everything else in WarpCad so far is 3D: you drag a solid out of the Library,
-move it, combine it with another one. **Sketch mode** is different. It flattens
-the camera onto the grid and lets you draw flat, 2D geometry directly on it —
-the construction lines that, in a parametric CAD tool, eventually get extruded
-or revolved into solids.
+A **Sketch** is a shape you draw instead of size. You drop it into the 3D view like a
+Cube, draw outlines on its flat plane, and choose how those outlines become a solid.
+When you tap **Done** it is a solid like any other shape: you can select it, move and
+turn it with the gizmo, combine it with Union / Subtract / Intersect, mirror it, export
+it, and come back later to change the drawing.
 
-> **What exists today: one tool, Line.** That is deliberately the whole of it.
-> Rectangle, circle and arc tools, snapping to existing geometry, dimensions and
-> constraints are all planned and none of them are built yet — so if you open
-> sketch mode looking for a circle tool and can't find it, you aren't missing
-> anything, it genuinely isn't there. Turning a sketch into a solid (extrude,
-> revolve) isn't built yet either. This page will grow as those land.
+A sketch is always a solid. There are no loose lines left in the scene. An outline
+that is not closed is shown in amber and is not part of the solid until you close it.
 
----
+## Placing a sketch
 
-## A first walkthrough
+1. Open the **Library** (the left column on a computer or tablet, the **Library** tab at
+   the bottom on a phone).
+2. Drag **Sketch** from **Primitives** into the 3D view. While you drag, a thin square
+   shows where the sketch's plane will go.
+3. Let go. That spot becomes the sketch's **origin**. The view turns to look straight
+   down at it, the grid lies flat in front of you, and the **Sketch toolbar** appears
+   in the top-left corner where the Operations toolbar normally is.
 
-Try this with the app open, on an empty scene:
+Nothing is added to your model yet. The sketch only becomes a shape when you tap
+**Done**. **Cancel** throws the whole thing away and leaves no shape behind.
 
-1. **Click `Sketch`** in the navigation controls at the bottom-left of the 3D
-   view. Three things happen at once:
-   - the camera swings to look **straight down** at the grid, so you're looking
-     at the working plane face-on rather than at an angle;
-   - a small **Sketch** toolbar appears at the top of the 3D view, with a `Line`
-     button (already active — it's the only tool) and an `Exit Sketch` button;
-   - the `Orbit` / `Pan` / `Select` buttons and the orientation triad go dim.
-     They're unavailable on purpose — see [While you're
-     sketching](#while-youre-sketching) below.
-2. **Drag once across the grid.** Press anywhere in the 3D view, drag to a
-   second point, and release. While you're dragging, a dashed preview line
-   follows your pointer so you can see exactly what you're about to draw. When
-   you let go, the line commits: a thin, bright, solid stroke, drawn right where
-   you dragged.
-   - It looks deliberately unlike a 3D shape — no shading, no surface, just a
-     line. That's how you tell at a glance that something is sketch geometry and
-     not a solid.
-   - A drag works the same way with a mouse, a finger or a stylus. You don't
-     need to hold any key.
-3. **Click somewhere empty**, then **click the line you just drew.** The line
-   highlights, and the Inspector panel fills in with the line's own numbers:
-   **Start** (X and Y), **End** (X and Y), and **Length**, all in millimetres.
-   You'll also see two small round **handles**, one at each end of the line.
-   - There's no move/rotate gizmo here, unlike a selected 3D shape. A flat line
-     on the working plane is edited by dragging its ends, so that's what you
-     get: two endpoint handles instead of arrows and rings.
-4. **Drag one of the handles.** The line follows, and the Inspector's Start (or
-   End) and Length update *as you drag*, not just when you let go.
-   - Typing does the same thing: click into `Start X`, type a number, press
-     Enter, and the endpoint jumps there. Dragging a handle and typing a
-     coordinate are the same edit — use whichever suits the moment.
-   - **Length is read-only.** It's a measurement of the line, not a setting: if
-     you could type a length, WarpCad would have to guess which end you wanted
-     to move.
-5. **Click `Exit Sketch`** (either in the Sketch toolbar or the `Exit Sketch`
-   button the `Sketch` toggle turns into). The camera is free to orbit again,
-   the Sketch toolbar disappears, and the drag gesture goes back to moving the
-   camera.
-   - **Your line stays.** Exiting sketch mode doesn't delete anything. Orbit
-     around and you'll see the line sitting flat on the grid where you drew it,
-     from any angle.
+While the sketch editor is open:
 
----
+- a drag on the grid **draws** with the current tool. On a touch screen, one finger
+  draws; two fingers still pan and pinch-zoom;
+- the camera stays square-on to the sketch: the orientation triad's view buttons are
+  off, and the navigation arrows **pan** rather than orbit;
+- **Undo**, **Redo** and **Delete** are off until you tap **Done** or **Cancel**, because
+  nothing you've drawn is in the model yet. The whole editing session then becomes one
+  step you can undo;
+- on a phone, the navigation pad folds to a single **✥** button so the drawing area
+  stays clear. Tap it to get the arrows and zoom back.
 
-## While you're sketching
+## The four drawing tools
 
-Sketch mode reclaims the plain drag gesture — in the 3D view, dragging draws a
-line instead of orbiting the camera. A few controls change to match:
+All four are a single press, drag and release. No modifier key is needed, with a mouse
+or a finger.
 
-| Control | While sketching |
-|---|---|
-| Drag in the 3D view | Draws a line (one finger, or left mouse button) |
-| `Orbit` / `Pan` / `Select` toggle | Dimmed — drag already has a job |
-| Direction pad (▲ ◀ ▶ ▼) | **Pans** the camera, whatever the toggle says |
-| `+` / `−` zoom buttons | Zoom, unchanged |
-| Two-finger pinch and drag | Zoom and pan, unchanged |
-| Orientation triad (`X`, `Y`, `Z`, `Home`) | Dimmed |
+| Tool | Button | Drag | You get |
+|---|---|---|---|
+| **Line** | ╱ | From one point to the next | A segment. Start the next drag on the end of the last one to continue the outline. Finish a drag on the very first point to close it. |
+| **Rectangle** | ▭ | Corner to opposite corner | A closed rectangle |
+| **Circle** | ◯ | Centre out to the rim | A closed circle |
+| **Polygon** | ⬡ | Centre out to a corner | A regular polygon. Set how many sides in the box that appears next to the tool. 6 gives you a hexagon. |
 
-The triad is dimmed for a specific reason rather than to keep things tidy: it
-snaps the camera to side-on views like Front and Right, and from a side-on view
-the working plane is edge-on — a line you tried to draw would have nowhere to
-land. The triad keeps *showing* you which way the camera is pointing, it just
-won't move it while you're drawing. Pan and zoom stay available throughout,
-because you still need to get around the plane you're working on.
+A drag that hardly moves draws nothing. A tap without dragging **selects** the outline
+under your finger or pointer. Inside two outlines, the smaller one wins, which is how
+you pick the inner of two circles. Tap empty grid to deselect.
 
-Leave sketch mode and everything comes straight back, exactly as it was.
+## Solid and Hole
 
----
+Every closed outline is either **Solid** (material) or **Hole** (a cut-out). New
+outlines are Solid. To make one a hole, select it and tap **Hole** in the toolbar. Its
+outline turns **dashed** and a small "hole" label appears next to it. Tap **Hole**
+again to make it solid again. The Inspector shows the same choice as **Solid** /
+**Hole** buttons.
 
-## Things worth knowing
+The outlines are combined from largest to smallest: a solid adds material, and a hole
+cuts it away. So a hole inside a solid makes a bore, and a solid drawn inside a hole
+stays as an island.
 
-- **A tap draws nothing.** Press and release without moving and no line is
-  created — you get a clean grid rather than a zero-length line you can't see
-  and can't click. Same for a drag of a pixel or two.
-- **Exiting doesn't restore your previous camera angle.** You're returned to
-  free orbit from wherever the camera is, looking down at the plane. Drag to
-  orbit back to where you were, or press the `⌂` home button in the direction
-  pad for the standard isometric view.
-- **Sketch lines draw on top of solids**, not hidden behind them. A sketch is a
-  construction layer, so it stays visible even when a shape sits between it and
-  the camera.
-- **Sketch lines aren't shapes.** They don't appear in the Inspector's
-  multi-select count, and Union, Subtract, Intersect and Group ignore them
-  completely — those tools work on solids. Selecting a line clears any shape
-  selection you had, and vice versa.
-- **On a phone**, the Sketch toolbar is a compact bar across the top of the 3D
-  view, and the Inspector's line fields open in the usual bottom sheet. Drawing
-  needs no modifier key on any device. While that sheet (or any other bottom
-  panel) is open, the navigation controls fold down to a single **✥** button.
-  Tap it to get `Sketch` back, or use `Exit Sketch` on the Sketch toolbar,
-  which is always visible (see `docs/viewport-navigation.md`).
+## Changing an outline's size
 
----
+Select an outline, then look in the **Inspector**. On a phone, tap the **Sketch** tab at
+the bottom. It shows the outline's kind, Solid or Hole, and its numbers: a circle's centre
+and radius, a rectangle's centre, width and height, a polygon's centre, radius, sides
+and rotation. Type a value and press Enter. **Delete outline** removes it. Dragging
+individual points of an outline is not available yet.
 
-## Coming later
+## Slices
 
-These are planned but not built. Listed so you know they're missing rather than
-hidden somewhere:
+A sketch can have more than one **slice**: a set of outlines at its own height above the
+sketch's origin. One slice is the usual case. Several slices are what **Loft** skins a
+solid through, like the ribs of a wing.
 
-- more sketch tools: rectangle, circle, arc, polyline;
-- snapping a sketch point to the grid, to an existing line's end, or to a
-  solid's edge;
-- dimensions and constraints (fixing a line's length or angle, making two lines
-  parallel or perpendicular);
-- turning a closed sketch profile into a solid with extrude or revolve;
-- deleting a sketch entity (today, a drawn line stays for the session).
+Tap **Slices** in the toolbar. On a phone and tablet it opens as a panel at the bottom
+of the view. On a computer it's a small card at the bottom right. Each row is one slice:
 
-See [`TODO/ROADMAP.md`](../TODO/ROADMAP.md) for where these sit in the build
-order.
+- tap a slice's name to make it the **active** slice. New outlines go onto it, and the
+  view turns to look straight at it. The other slices stay visible, drawn faint;
+- type its **Z** height (in mm) and press Enter;
+- **＋ Slice** adds a new slice 50 mm above the highest one and makes it active;
+- **Delete slice** removes the active slice and everything drawn on it. The last slice
+  can't be deleted.
+
+## Extrusion methods
+
+Tap **Extrude ▾** (it shows the current method's name) to choose how the outlines become
+a solid, and to set that method's numbers. A see-through preview of the result appears
+behind your outlines and updates as you change things.
+
+| Method | What it makes | Its numbers |
+|---|---|---|
+| **Linear** | Straight up, like a cookie cutter | Height (mm), Twist (°), Twist steps |
+| **Revolve** | Spun around the sketch's Y axis, like a lathe: a ring, a bowl, a knob | Angle (°), Start angle (°), Segments |
+| **Helical** | Spun and lifted at the same time: a spring or a coil | Pitch (mm per turn), Turns, End offset (mm), Segments per turn |
+| **Outline** | Each closed outline becomes a wall of the given thickness, making a hollow shell. Solid and Hole are ignored. | Wall (mm), Height (mm) |
+| **Loft** | One solid skinned through every slice in height order | Points per slice (0 = automatic) |
+
+A method you can't use right now is greyed out, and its reason shows when you point at it:
+
+- **Loft** needs two or more slices. Each slice needs exactly one Solid outline and no
+  Holes. Cut holes afterwards with **Subtract**.
+- Every other method uses exactly **one** slice. Remove the others, or pick Loft.
+- **Revolve** and **Helical** spin around the dashed line (the sketch's Y axis), so every
+  outline must stay to the right of it.
+
+## Done, and why it is sometimes greyed out
+
+**Done** builds the solid and closes the editor. The new shape becomes the selection,
+with the gizmo and Inspector, like a freshly dropped Cube. **Done** stays greyed out, with
+the reason written under the toolbar, whenever the drawing can't become a solid yet. For
+example: no closed Solid outline, an outline that crosses itself, holes that cover every
+solid, or a method that doesn't suit the slices. The model never holds a sketch that
+can't be built.
+
+## Editing a finished sketch
+
+Select the sketch shape. The Inspector's **Sketch** section shows its extrusion method,
+how many slices it has, and that method's numbers. Type a new Height (for example) and
+press Enter to change it right there. Tap **Edit sketch** to reopen the outlines. The
+view turns square-on to the sketch's plane, even if you have moved or turned the shape
+since. Make your changes, then:
+
+- **Done** applies them as **one** step. Undo takes the whole edit back at once. Anything
+  you did to the shape afterwards, like a move, a turn or a fillet, is kept and re-applied
+  to the new outline;
+- **Cancel** leaves the shape exactly as it was.
+
+## Worked example: a tube
+
+Open the Library and drag **Sketch** from Primitives into the viewport, then release.
+The view turns to look straight down at a flat grid and the Sketch toolbar appears. Pick
+**Circle**, press at the grid's centre and drag out to 20 mm. Draw a second circle from
+the same centre out to 15 mm. Tap the smaller circle, then tap **Hole**: its outline turns
+dashed. Open **Extrude ▾**, choose **Linear** and type 30 in Height (millimetres). A
+see-through preview of a tube appears. Tap **Done**. You now have a 30 mm tall tube with
+a 30 mm bore, which you can move with the gizmo or subtract from another solid.
+
+To hit 20 mm and 15 mm exactly, select each circle afterwards and type the radius into
+the Inspector.
+
+## Worked example: a lofted wing
+
+With a sketch open, tap **＋ Slice** twice and set the new slices' Z offsets to 100 and
+200 mm. On each slice, draw one closed outline with **Line**, finishing on the first point
+to close it. Open **Extrude ▾** and choose **Loft**. Tap **Done**, and the solid is skinned
+through all three outlines in order.
+
+Step by step:
+
+1. Drag **Sketch** into the view. On slice 1, draw the root rib. With **Line**, drag from
+   point to point around the shape, starting each drag where the last one ended, and
+   finish the last drag on the first point. The outline turns from amber to blue when it
+   closes.
+2. Tap **Slices**, then **＋ Slice**. Type **100** into the new row's **Z** and press Enter.
+   The view moves up to that slice, with the first rib shown faintly below.
+3. Draw the middle rib the same way. Tap **＋ Slice**, type **200**, and draw the tip rib.
+4. Tap **Extrude ▾** and choose **Loft**. **Linear** is greyed out now, because it uses
+   one slice. Tap **Done**.
+
+## Older projects with sketch lines
+
+Before sketch primitives, WarpCad had a **Sketch** button in the navigation pad that drew
+loose lines. Those lines are gone. If you open a project, or reload a session, that still
+contains them, everything else loads normally. Each old line is skipped, and the status
+in the top bar says so, for example **Opened plan.ndjson, but skipped 2 steps (sketch-1,
+sketch-2): sketch lines are no longer supported — redraw them in a Sketch primitive**.
+They are not converted, because a loose line has no Solid/Hole role and no height, so
+there is nothing correct to turn it into.
+
+## Not available yet
+
+Coming in later updates: dragging, adding and removing an outline's individual points;
+loading a photo to trace over and setting its scale from a ruler; and automatic tracing of
+a photographed part.

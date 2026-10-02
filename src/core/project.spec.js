@@ -140,8 +140,8 @@ describe('parseProject → loadEntries round trip', () => {
   })
 
   it('accepts an empty file as an empty project', () => {
-    expect(parseProject('')).toEqual({ entries: [], rollbackAt: null, resolution: 'normal' })
-    expect(parseProject('\n\n')).toEqual({ entries: [], rollbackAt: null, resolution: 'normal' })
+    expect(parseProject('')).toEqual({ entries: [], rollbackAt: null, resolution: 'normal', warnings: [] })
+    expect(parseProject('\n\n')).toEqual({ entries: [], rollbackAt: null, resolution: 'normal', warnings: [] })
   })
 
   it('accepts a plain action log with no state line, as written by every earlier reader', () => {
@@ -348,5 +348,51 @@ describe('the design resolution on the state line (TODO/core-035)', () => {
       { warpcad: 'project-state', version: 1, resolution: 32 },
     ])
     expect(() => parseProject(text)).toThrow(ProjectFormatError)
+  })
+})
+
+describe('retired sketch.line records (TODO/sketch-001) — skipped with a warning, never a refused load', () => {
+  // ui-020 shipped loose `sketch.line` records. sketch-001 removed that op: a sketch is now
+  // a `primitive.sketch` body. A file or autosave written in between must still open —
+  // refusing it would throw away every *other* body in it — so the retired records are
+  // dropped at parse time, each named in a warning, and no migration is attempted.
+  /** @param {string} id @param {Record<string, unknown>} [extra] */
+  const line = (id, extra = {}) =>
+    JSON.stringify({ id, op: 'sketch.line', name: 'Line 1', params: { start: [0, 0], end: [10, 0] }, ...extra })
+  /** @param {string} id @param {number} x */
+  const cube = (id, x) =>
+    JSON.stringify({ id, op: 'primitive.cuboid', name: id, params: { size: [10, 10, 10], center: [x, 0, 5] } })
+
+  it('drops every sketch.* record, warns once per record by id and op, and loads the rest', () => {
+    const text = [cube('cube-1', 0), line('sketch-1'), line('sketch-2', { supersedes: 'sketch-1' }), cube('cube-2', 30)].join('\n')
+    const parsed = parseProject(text)
+    expect(parsed.entries.map((entry) => entry.record.id)).toEqual(['cube-1', 'cube-2'])
+    expect(parsed.warnings).toEqual([
+      { id: 'sketch-1', op: 'sketch.line', message: expect.stringMatching(/no longer supported — redraw them in a Sketch primitive/) },
+      { id: 'sketch-2', op: 'sketch.line', message: expect.stringMatching(/no longer supported/) },
+    ])
+    const document = createDocument()
+    document.loadEntries(parsed.entries, parsed.rollbackAt, parsed.resolution)
+    expect(document.bodies().map((body) => body.id)).toEqual(['cube-1', 'cube-2'])
+  })
+
+  it('reports no warnings for a file with nothing retired', () => {
+    expect(parseProject(cube('cube-1', 0)).warnings).toEqual([])
+  })
+
+  it('keeps the state line consistent: a suppressed retired id is forgotten, and the rollback marker shifts', () => {
+    const state = JSON.stringify({ warpcad: 'project-state', version: 1, suppressed: ['sketch-1'], rollbackAt: 2 })
+    const text = [line('sketch-1'), cube('cube-1', 0), cube('cube-2', 30), state].join('\n')
+    const parsed = parseProject(text)
+    expect(parsed.entries.map((entry) => entry.record.id)).toEqual(['cube-1', 'cube-2'])
+    expect(parsed.entries.some((entry) => entry.suppressed)).toBe(false)
+    // Two active steps before the marker became one: the dropped line was one of them.
+    expect(parsed.rollbackAt).toBe(1)
+  })
+
+  it('drops a marker that would no longer fit rather than refusing the file', () => {
+    const state = JSON.stringify({ warpcad: 'project-state', version: 1, rollbackAt: 1 })
+    const text = [line('sketch-1'), cube('cube-1', 0), state].join('\n')
+    expect(parseProject(text).rollbackAt).toBeNull()
   })
 })

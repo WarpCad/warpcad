@@ -28,6 +28,7 @@ import TimelineToggle from '../components/timeline/TimelineToggle.vue'
 import Viewport from '../components/viewport/Viewport.vue'
 import { useHostedStore } from '../stores/hosted.js'
 import { usePersistenceStore } from '../stores/persistence.js'
+import { useSketchEditorStore } from '../stores/sketchEditor.js'
 import { useTimelineStore } from '../stores/timeline.js'
 
 // Restore the last autosaved session and start autosaving (`TODO/io-001`). Started on
@@ -141,6 +142,24 @@ watch(
   (open) => {
     if (!open) return
     timeline.setOpen(false)
+  },
+  { flush: 'sync' }
+)
+
+/**
+ * Opening the sketch editor gives it the viewport (`TODO/sketch-001`): a Sketch dragged
+ * out of the phone Library sheet would otherwise open its editor *under* that sheet, and
+ * the open History sheet would sit over the drawing plane the same way.
+ */
+const sketchEditor = useSketchEditorStore()
+watch(
+  () => sketchEditor.active,
+  (active) => {
+    if (!active) return
+    libraryCollapse.value += 1
+    // Only the phone *sheet* covers the plane; at wider widths History is a dock beside
+    // the viewport, and closing it would just lose the user's place.
+    if (typeof window !== 'undefined' && window.matchMedia?.('(max-width: 640px)').matches) timeline.setOpen(false)
   },
   { flush: 'sync' }
 )

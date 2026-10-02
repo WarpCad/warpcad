@@ -24,7 +24,6 @@
  * Rendering is on demand: a frame is scheduled when something actually changes,
  * rather than a permanently-spinning rAF loop burning battery on a static scene.
  */
-import { storeToRefs } from 'pinia'
 import { computed, onBeforeUnmount, onMounted, reactive, ref, shallowRef, watch } from 'vue'
 import { Euler, Group as ThreeGroup, Mesh, Raycaster, Vector2, Vector3 } from 'three'
 import Grid from './Grid.vue'
@@ -36,6 +35,7 @@ import MarqueeSelect from './MarqueeSelect.vue'
 import OperationsToolbar from './OperationsToolbar.vue'
 import SketchStrokes from './SketchStrokes.vue'
 import SketchToolbar from './SketchToolbar.vue'
+import SketchPanelSheet from '../sketch/SketchPanelSheet.vue'
 import SnapGuides from './SnapGuides.vue'
 import { useSelectedBody } from '../../composables/useSelectedBody.js'
 import {
@@ -45,9 +45,8 @@ import {
   createGizmoAnnotation,
   createMarqueeRect,
   createBoxScreenBounds,
-  createSketchStroke,
-  distanceToSegmentPx,
-  updateSketchStroke,
+  createSketchPath,
+  updateSketchPath,
   gizmoSizeForBounds,
   marqueeIntersectsBox,
   rotateDeltaDeg,
@@ -60,11 +59,13 @@ import {
   updateSnapGuideAnnotations,
 } from '../../render/annotate.js'
 import { useTransformCommands } from '../../composables/useTransformCommands.js'
-import { useSketchCommands } from '../../composables/useSketchCommands.js'
+import { useSketchEditorCommands } from '../../composables/useSketchEditorCommands.js'
 import { useTransformPreviewStore } from '../../stores/transformPreview.js'
 import { useColorPreviewStore } from '../../stores/colorPreview.js'
-import { useSketchPreviewStore } from '../../stores/sketchPreview.js'
 import { isDegenerate } from '../../sketch/entity.js'
+import { circleFromDrag, isClosed, polygonFromDrag, profileAtPoint, rectFromDrag, toPointsMm } from '../../sketch/profile.js'
+import { createEvaluationChannel } from '../../core/kernel/evaluationClient.js'
+import { unpackGeometry } from '../../core/kernel/transport.js'
 import { createOrbitCamera } from '../../render/camera.js'
 import { createViewport } from '../../render/scene.js'
 import {
@@ -84,7 +85,7 @@ import {
   bodyObjectIsCurrent,
 } from '../../render/mesh.js'
 import { colorIntToCssHex, ownOverrideOf } from '../../core/colorOverride.js'
-import { PICK_OFFSETS_PX, nearestOnPlane, ndcFromClient, projectToWorkingPlane } from '../../render/pick.js'
+import { PICK_OFFSETS_PX, nearestOnPlane, ndcFromClient, projectToSketchPlane, projectToWorkingPlane } from '../../render/pick.js'
 import { evaluateOp, policyFor, toGeom3 } from '../../core/kernel/index.js'
 import { boundsOf, hiddenNamesOf, isGroup } from '../../core/kernel/group.js'
 import {
@@ -94,6 +95,7 @@ import {
   createSnapState,
   ghostBoxAtOrigin,
   ghostOffsetMm,
+  libraryRow,
   paramsForDrop,
   recordsForDrop,
   snapToleranceMm,
@@ -107,7 +109,7 @@ import { usePlacementStore } from '../../stores/placement.js'
 import { useSelectionStore } from '../../stores/selection.js'
 import { useTimelineStore } from '../../stores/timeline.js'
 import { useSettingsStore } from '../../stores/settings.js'
-import { useSketchModeStore } from '../../stores/sketchMode.js'
+import { useSketchEditorStore } from '../../stores/sketchEditor.js'
 
 /** Degrees of orbit per pixel of drag. */
 const ORBIT_DEG_PER_PX = 0.4
@@ -126,11 +128,10 @@ const CLICK_SLOP_PX = 5
 const GHOST_ORIGIN = Object.freeze({ x: 0, y: 0 })
 
 /**
- * How close, in pixels, a click has to land to a drawn sketch line to pick it
- * (`TODO/ui-020`). A pixel radius rather than a millimetre one, for the same
- * reason `library.js`'s `SNAP_TOLERANCE_PX` is: "close enough to hit" is a
- * judgement the user makes with their eyes, so it must not change character
- * with the zoom level.
+ * How close, in pixels, a tap has to land to an outline's stroke to pick it — and how
+ * close a Line drag has to start to its chain's end, or finish on its first point, to
+ * continue or close it (`TODO/sketch-001`). Pixels, converted to millimetres at the
+ * moment of use, so "close enough" means the same thing to the hand at every zoom level.
  */
 const SKETCH_PICK_TOLERANCE_PX = 14
 /**
@@ -200,8 +201,8 @@ const colorPreview = useColorPreviewStore()
 const hiddenPartVisibility = useHiddenPartVisibilityStore()
 const hoverHighlight = useHoverHighlightStore()
 const transformCommands = useTransformCommands()
-const sketchPreview = useSketchPreviewStore()
-const sketchCommands = useSketchCommands()
+const sketchEditor = useSketchEditorStore()
+const sketchCommands = useSketchEditorCommands()
 /**
  * What is selected, described in plain numbers. Recomputed when the selection or
  * the document changes — **not** per frame; the render callback below only
@@ -310,32 +311,22 @@ const snapGuides = reactive(createSnapGuideAnnotations())
 const snapped = ref(false)
 
 /**
- * Whether sketch mode is active (`TODO/ui-020`).
- *
- * The viewport is still the only thing that switches it. It lives in a store
- * since `TODO/ui-041` because the Objects list is the first thing outside the
- * viewport that needs to *read* it: a click on a solid selects nothing in sketch
- * mode, so a list row that did would be a second, unguarded route to the state
- * that guard exists to prevent. Cleared on unmount, so the mode still cannot be
- * left on by something with no way to turn it off.
+ * Whether the sketch editor is open (`TODO/sketch-001`). Read everywhere the old sketch
+ * mode was: orbit is suspended, a plain drag draws, the Operations toolbar yields the
+ * top-left slot, and a click picks outlines instead of bodies.
  */
-const { active: sketchMode } = storeToRefs(useSketchModeStore())
-/** The active sketch tool. One value today; see `SketchToolbar.vue`. */
-const sketchTool = ref('line')
+const sketchMode = computed(() => sketchEditor.active)
 
 /**
- * The screen geometry of every committed sketch entity, plus the live draft.
+ * The draft's outlines as screen paths, the live drag preview, and the revolve axis.
  *
- * Reactive for the same reason `gizmoAnnotation` is — `SketchStrokes.vue` draws
- * straight from it — and grown in place rather than rebuilt: {@link
- * syncSketchStrokes} reuses the existing objects and only allocates when the
- * document gains an entity, so a camera move writes numbers into structures
- * that already exist. That is the same discipline as every other overlay here,
- * and nothing like the multi-megabyte `Float32Array` CLAUDE.md's Performance
- * rule is actually about.
+ * Rebuilt only while the editor is open and only when the draft, the camera or the
+ * viewport size actually changed (`syncSketchPaths`), never per frame on the ordinary
+ * scene — see `annotate.js`'s `updateSketchPath` for the one string it allocates.
  */
-const sketchStrokes = reactive(/** @type {any[]} */ ([]))
-const sketchDraft = reactive(createSketchStroke())
+const sketchPaths = reactive(/** @type {any[]} */ ([]))
+const sketchDraftPath = reactive(createSketchPath())
+const sketchAxis = reactive({ visible: false, d: '' })
 
 // --- non-reactive render state -------------------------------------------
 
@@ -516,12 +507,11 @@ const gizmoDrag = {
 }
 
 /**
- * The line being drawn right now (`TODO/ui-020`).
+ * The outline being dragged out right now, in sketch millimetres (`TODO/sketch-001`).
  *
- * Non-reactive and allocated once, like every other pointer structure here: the
- * reactive half a component draws from is `sketchDraft` above, written once per
- * `pointermove` rather than per frame — the same cadence, and the same
- * reasoning, as the placement guides.
+ * Non-reactive and allocated once, like every other pointer structure here: the reactive
+ * half a component draws from is `sketchDraftPath` above, written once per `pointermove`.
+ * `continuesChain` is set when a Line drag started on the open chain's last point.
  */
 const sketchDrag = {
   active: false,
@@ -529,15 +519,10 @@ const sketchDrag = {
   startYMm: 0,
   endXMm: 0,
   endYMm: 0,
+  continuesChain: false,
 }
-
-/** The endpoint-handle drag in progress — the 2D counterpart of `gizmoDrag`. */
-const sketchHandleDrag = {
-  active: false,
-  entityId: '',
-  /** @type {'start' | 'end'} */
-  which: 'start',
-}
+/** Scratch for one projected pointer, sketch-local `[x, y]` mm. */
+const scratchSketchMm = [0, 0]
 
 /** Scratch for a marquee release's body-vs-rectangle test (`TODO/ui-024`). */
 const boxScreenBounds = createBoxScreenBounds()
@@ -576,7 +561,7 @@ function syncOverlay() {
   overlay.target = `${t.x.toFixed(2)},${t.y.toFixed(2)},${t.z.toFixed(2)}`
   overlay.mmPerPixel = orbit.getMmPerPixel(heightPx)
   syncAnnotations()
-  syncSketchStrokes()
+  syncSketchPaths()
 }
 
 /**
@@ -651,110 +636,180 @@ function syncAnnotations() {
   }
 }
 
-// --- sketch mode (TODO/ui-020) --------------------------------------------
+// --- the sketch editor (TODO/sketch-001) ---------------------------------
 
-/**
- * Re-project every sketch entity for the frame just drawn.
- *
- * Called from the render callback, exactly like {@link syncAnnotations} and for
- * the same reason: a stroke lives on the working plane in world millimetres, so
- * it has to be re-projected whenever the camera moves or it would visibly peel
- * away from the grid it was drawn on.
- *
- * The endpoint being dragged reads from `sketchPreview` rather than the
- * document, which is what makes a handle drag show up live without appending a
- * record per frame.
- */
-function syncSketchStrokes() {
-  const entities = documentStore.sketchEntities
-  // Grow to fit, never shrink-and-reallocate: the array is reused across frames.
-  while (sketchStrokes.length < entities.length) sketchStrokes.push(createSketchStroke())
-  for (let index = 0; index < sketchStrokes.length; index += 1) {
-    const stroke = sketchStrokes[index]
-    const entity = entities[index]
-    if (!entity) {
-      stroke.visible = false
-      stroke.id = ''
-      continue
-    }
-    stroke.id = entity.id
-    let startMm = entity.startMm
-    let endMm = entity.endMm
-    if (sketchPreview.isActive && sketchPreview.entityId === entity.id) {
-      const point = [sketchPreview.xMm, sketchPreview.yMm]
-      if (sketchPreview.which === 'start') startMm = /** @type {any} */ (point)
-      else endMm = /** @type {any} */ (point)
-    }
-    updateSketchStroke(orbit, startMm, endMm, widthPx, heightPx, stroke)
-  }
-  if (sketchDrag.active) {
-    updateSketchStroke(
-      orbit,
-      [sketchDrag.startXMm, sketchDrag.startYMm],
-      [sketchDrag.endXMm, sketchDrag.endYMm],
-      widthPx,
-      heightPx,
-      sketchDraft,
-    )
-  } else if (sketchDraft.visible) {
-    sketchDraft.visible = false
-  }
+/** What the last `syncSketchPaths` drew from, so an unchanged frame redraws nothing. */
+let sketchSyncedDraft = /** @type {object | null} */ (null)
+let sketchSyncedCamera = -1
+let sketchSyncedSize = ''
+let sketchSyncedSelection = ''
+let sketchSyncedSlice = -1
+
+/** The active slice's offset along the sketch's own Z. */
+function activeSliceZ() {
+  return sketchEditor.slice?.zMm ?? 0
 }
 
 /**
- * Enter or leave sketch mode.
+ * Re-project the draft's outlines, if anything they depend on changed.
  *
- * Entering snaps the camera to `top` — the existing `STANDARD_VIEWS.top`
- * preset, which looks straight down at the **same** Z=0 working plane
- * `pick.js` already projects onto, so this needs no new view and no second
- * camera-orientation mechanism (section 7's Q10: "reusing `render-001`'s
- * existing orientation-gizmo snap-to-view mechanism").
+ * Called from the render callback (camera moves) and from the draft watcher (edits).
  *
- * Leaving deliberately does **not** restore the previous orientation: "exiting
- * returns free orbit" is what the scenario asks for, and a camera that jumped
- * somewhere else on exit would be a second surprise on top of the first.
- *
- * @param {boolean} active
+ * @param {boolean} [force]
  */
-function setSketchMode(active) {
-  if (sketchMode.value === active) return
-  sketchMode.value = active
-  if (active) {
-    // A sketch gesture and a body selection are different modes of attention;
-    // entering with a body still selected would leave a gizmo floating over a
-    // drawing surface.
-    selection.clear()
-    orbit.snapTo('top')
-    scheduleRender()
+function syncSketchPaths(force = false) {
+  if (!sketchEditor.active) {
+    if (sketchPaths.length > 0) sketchPaths.splice(0)
+    sketchAxis.visible = false
+    sketchDraftPath.visible = false
+    sketchSyncedDraft = null
+    return
+  }
+  const size = `${widthPx}x${heightPx}`
+  const draft = sketchEditor.draft
+  if (
+    !force &&
+    sketchSyncedDraft === draft &&
+    sketchSyncedCamera === orbit.version &&
+    sketchSyncedSize === size &&
+    sketchSyncedSelection === sketchEditor.selectedProfileId &&
+    sketchSyncedSlice === sketchEditor.activeSlice
+  ) {
+    return
+  }
+  sketchSyncedDraft = draft
+  sketchSyncedCamera = orbit.version
+  sketchSyncedSize = size
+  sketchSyncedSelection = sketchEditor.selectedProfileId
+  sketchSyncedSlice = sketchEditor.activeSlice
+  const frame = sketchEditor.frame
+  /** @type {any[]} */
+  const next = []
+  draft.slices.forEach((slice, sliceIndex) => {
+    const active = sliceIndex === sketchEditor.activeSlice
+    for (const profile of slice.profiles) {
+      const closed = isClosed(profile)
+      const points = profile.kind === 'polyline' ? profile.pointsMm : toPointsMm(profile, 64)
+      const path = updateSketchPath(orbit, frame, points, slice.zMm, closed || (profile.kind === 'polyline' && profile.closed), widthPx, heightPx, createSketchPath())
+      next.push({
+        key: `${slice.id}/${profile.id}`,
+        id: profile.id,
+        sliceIndex,
+        role: profile.role,
+        closed,
+        open: profile.kind === 'polyline' && !profile.closed,
+        active,
+        selected: active && profile.id === sketchEditor.selectedProfileId,
+        visible: path.visible,
+        d: path.d,
+        badgeX: path.maxXPx + 4,
+        badgeY: path.minYPx - 4,
+      })
+    }
+  })
+  sketchPaths.splice(0, sketchPaths.length, ...next)
+
+  // Revolve and Helical spin around the sketch's Y axis (x = 0): draw it, dashed, long
+  // enough to read at any zoom.
+  const method = draft.extrusion.method
+  if (method === 'revolve' || method === 'helical') {
+    const reachMm = Math.max(200, (orbit.getMmPerPixel(heightPx) || 1) * heightPx)
+    const axis = updateSketchPath(orbit, frame, [[0, -reachMm], [0, reachMm]], activeSliceZ(), false, widthPx, heightPx, createSketchPath())
+    sketchAxis.visible = axis.visible
+    sketchAxis.d = axis.d
   } else {
-    // Abandon anything half-drawn rather than committing it on the way out.
-    endSketchDrag(true)
+    sketchAxis.visible = false
   }
 }
 
-function toggleSketchMode() {
-  setSketchMode(!sketchMode.value)
+/**
+ * Project a client point onto the active slice's plane, in sketch millimetres.
+ *
+ * @param {number} clientXPx
+ * @param {number} clientYPx
+ * @returns {number[] | null} `scratchSketchMm`, or `null` if the plane is not under it.
+ */
+function projectToSketch(clientXPx, clientYPx) {
+  ndcFromClient(clientXPx, clientYPx, viewportRect, scratchNdc)
+  const aspect = viewportRect.height > 0 ? viewportRect.width / viewportRect.height : 1
+  return projectToSketchPlane(orbit, scratchNdc.x, scratchNdc.y, aspect, sketchEditor.frame, activeSliceZ(), scratchSketchMm)
+}
+
+/** The pick/snap tolerance in sketch millimetres at the current zoom. */
+function sketchToleranceMm() {
+  return SKETCH_PICK_TOLERANCE_PX * (orbit.getMmPerPixel(heightPx) || 1)
+}
+
+/** The open Line chain being extended, if it is still in the active slice. */
+function openChain() {
+  const id = sketchEditor.chainId
+  if (!id) return null
+  const profile = sketchEditor.slice?.profiles.find((candidate) => candidate.id === id)
+  return profile && profile.kind === 'polyline' && !profile.closed ? profile : null
 }
 
 /**
- * Begin drawing, from the point the press started at.
+ * Look straight at the active slice in the sketch's own frame.
  *
- * The *press* point, not the point travel first crossed the slop threshold at:
- * a user expects the line to start where they put the pointer down, not a few
- * pixels into the drag.
+ * For an unrotated body at Z = 0 this is exactly the old `camera.snapTo('top')`; a
+ * turned body gets its own plane's normal (`camera.snapToPlane`).
+ */
+function aimAtSketch() {
+  orbit.snapToPlane(sketchEditor.frame, activeSliceZ())
+  scheduleRender()
+}
+
+/**
+ * Begin drawing, from the point the press started at — the *press* point, not where
+ * travel first crossed the slop threshold.
  *
- * @returns {boolean} False when the press point does not meet the working plane
- *   at all (a grazing camera), in which case there is no line to draw.
+ * @returns {boolean} False when the press point does not meet the sketch plane.
  */
 function beginSketchDrag() {
-  const point = projectPointer(pressStartClientX, pressStartClientY)
+  const point = projectToSketch(pressStartClientX, pressStartClientY)
   if (!point) return false
   sketchDrag.active = true
-  sketchDrag.startXMm = point.x
-  sketchDrag.startYMm = point.y
-  sketchDrag.endXMm = point.x
-  sketchDrag.endYMm = point.y
+  sketchDrag.continuesChain = false
+  let startX = point[0]
+  let startY = point[1]
+  // Line: a drag that starts on the open chain's last point continues the chain from
+  // exactly that point, so consecutive segments share a vertex.
+  const chain = sketchEditor.tool === 'line' ? openChain() : null
+  if (chain) {
+    const last = chain.pointsMm[chain.pointsMm.length - 1]
+    if (Math.hypot(last[0] - startX, last[1] - startY) <= sketchToleranceMm()) {
+      startX = last[0]
+      startY = last[1]
+      sketchDrag.continuesChain = true
+    }
+  }
+  sketchDrag.startXMm = startX
+  sketchDrag.startYMm = startY
+  sketchDrag.endXMm = startX
+  sketchDrag.endYMm = startY
   return true
+}
+
+/** The profile the drag in progress would commit, or `null` for the Line tool. */
+function draggedProfile() {
+  const start = /** @type {[number, number]} */ ([sketchDrag.startXMm, sketchDrag.startYMm])
+  const end = /** @type {[number, number]} */ ([sketchDrag.endXMm, sketchDrag.endYMm])
+  if (sketchEditor.tool === 'circle') return circleFromDrag('draft', start, end)
+  if (sketchEditor.tool === 'rect') return rectFromDrag('draft', start, end)
+  if (sketchEditor.tool === 'polygon') return polygonFromDrag('draft', start, end, sketchEditor.polygonSides)
+  return null
+}
+
+/** Redraw the live preview of the drag in progress. */
+function drawSketchDraft() {
+  const profile = draggedProfile()
+  const points = profile
+    ? toPointsMm(profile, 64)
+    : [
+        [sketchDrag.startXMm, sketchDrag.startYMm],
+        [sketchDrag.endXMm, sketchDrag.endYMm],
+      ]
+  updateSketchPath(orbit, sketchEditor.frame, points, activeSliceZ(), profile !== null, widthPx, heightPx, sketchDraftPath)
 }
 
 /**
@@ -763,133 +818,151 @@ function beginSketchDrag() {
  */
 function updateSketchDrag(clientXPx, clientYPx) {
   if (!sketchDrag.active) return
-  const point = projectPointer(clientXPx, clientYPx)
+  const point = projectToSketch(clientXPx, clientYPx)
   if (!point) return
-  sketchDrag.endXMm = point.x
-  sketchDrag.endYMm = point.y
-  // Written straight from the pointer path, like the placement guides: during a
-  // draw the camera does not move, so the draft only needs re-projecting when
-  // the pointer does.
-  updateSketchStroke(
-    orbit,
-    [sketchDrag.startXMm, sketchDrag.startYMm],
-    [sketchDrag.endXMm, sketchDrag.endYMm],
-    widthPx,
-    heightPx,
-    sketchDraft,
-  )
+  sketchDrag.endXMm = point[0]
+  sketchDrag.endYMm = point[1]
+  drawSketchDraft()
   scheduleRender()
 }
 
 /**
- * Finish a draw gesture: commit one line, unless it was cancelled or never
- * really moved.
+ * Finish a draw gesture: add one outline to the draft, unless it was cancelled or never
+ * really moved. Nothing reaches the document — that waits for Done.
  *
  * @param {boolean} cancelled
  */
 function endSketchDrag(cancelled) {
   if (!sketchDrag.active) return
-  const startMm = /** @type {[number, number]} */ ([sketchDrag.startXMm, sketchDrag.startYMm])
-  const endMm = /** @type {[number, number]} */ ([sketchDrag.endXMm, sketchDrag.endYMm])
+  const start = /** @type {[number, number]} */ ([sketchDrag.startXMm, sketchDrag.startYMm])
+  const end = /** @type {[number, number]} */ ([sketchDrag.endXMm, sketchDrag.endYMm])
   sketchDrag.active = false
-  sketchDraft.visible = false
-  if (cancelled) {
-    scheduleRender()
-    return
-  }
-  // The degenerate case, stated out loud: a release that never really moved
-  // commits nothing at all — no record, no entity, no undo step.
-  const toleranceMm = SKETCH_MIN_LENGTH_PX * (orbit.getMmPerPixel(heightPx) || 1)
-  if (isDegenerate(startMm, endMm, toleranceMm)) {
-    scheduleRender()
-    return
-  }
-  // Deliberately **not** auto-selected, unlike a dropped primitive (`ui-010`).
-  // Two reasons, both found by `ui-020`'s acceptance drive at the 390px phone
-  // reference:
-  //
-  // - Selecting auto-opens the Inspector's bottom sheet, which covers the
-  //   bottom half of the viewport — so committing a line immediately hid the
-  //   line that had just been drawn. Canvas reachable before: 69% of the view;
-  //   after: 29%.
-  // - Drawing several lines in a row is the whole point of sketch mode, and a
-  //   sheet popping open on every commit fights that. It is the same reasoning
-  //   `AppView.vue` already applies to the Library: "a drop never closes the
-  //   Library, because placing several shapes in a row is exactly what
-  //   ACCEPTANCE.md scenario 1 does."
-  //
-  // The committed stroke appearing under the pointer is itself the feedback the
-  // Interaction model asks for; selecting is a separate, deliberate click —
-  // which is exactly how scenario 9's own steps describe it.
-  sketchCommands.drawLine(startMm, endMm)
+  sketchDraftPath.visible = false
   scheduleRender()
+  if (cancelled) return
+  // The degenerate case: a release that never really moved adds nothing at all.
+  if (isDegenerate(start, end, SKETCH_MIN_LENGTH_PX * (orbit.getMmPerPixel(heightPx) || 1))) return
+
+  const profile = draggedProfile()
+  if (profile) {
+    // Deliberately **not** auto-selected (ui-020's finding #3): drawing several outlines
+    // in a row is the point of the editor, and a selection would only get in the way.
+    sketchEditor.addToActiveSlice({ ...profile, id: sketchEditor.nextProfileId() })
+    return
+  }
+
+  // Line: extend the open chain, or start a new one; finishing on the chain's first point
+  // closes it into an outline.
+  const chain = sketchDrag.continuesChain ? openChain() : null
+  if (chain) {
+    const first = chain.pointsMm[0]
+    const closes = chain.pointsMm.length >= 2 && Math.hypot(first[0] - end[0], first[1] - end[1]) <= sketchToleranceMm()
+    sketchEditor.replaceInActiveSlice({
+      ...chain,
+      pointsMm: closes ? chain.pointsMm : [...chain.pointsMm, end],
+      closed: closes,
+    })
+    if (closes) sketchEditor.chainId = ''
+    return
+  }
+  const id = sketchEditor.nextProfileId()
+  sketchEditor.addToActiveSlice({ id, kind: 'polyline', role: 'solid', closed: false, pointsMm: [start, end] })
+  sketchEditor.chainId = id
 }
 
 /**
- * Which sketch entity a screen point lands on, if any — the 2D counterpart of
- * {@link raycastBodyId}.
- *
- * Screen-space rather than a raycast, because the strokes are an SVG overlay;
- * see `SketchStrokes.vue`'s own note. Nearest wins, so two crossing lines
- * resolve to the one actually under the pointer.
+ * A tap in the editor: pick the outline under it in the active slice, or clear.
  *
  * @param {number} clientXPx
  * @param {number} clientYPx
- * @returns {string | null}
  */
-function sketchEntityAt(clientXPx, clientYPx) {
-  const x = clientXPx - viewportRect.left
-  const y = clientYPx - viewportRect.top
-  let bestId = null
-  let bestPx = SKETCH_PICK_TOLERANCE_PX
-  for (const stroke of sketchStrokes) {
-    if (!stroke.visible || !stroke.id) continue
-    const distance = distanceToSegmentPx(x, y, stroke.x1, stroke.y1, stroke.x2, stroke.y2)
-    if (distance > bestPx) continue
-    bestPx = distance
-    bestId = stroke.id
+function pickSketchProfile(clientXPx, clientYPx) {
+  const point = projectToSketch(clientXPx, clientYPx)
+  if (!point) {
+    sketchEditor.selectProfile('')
+    return
   }
-  return bestId
+  const profiles = sketchEditor.slice?.profiles ?? []
+  sketchEditor.selectProfile(profileAtPoint(profiles, [point[0], point[1]], sketchToleranceMm()) ?? '')
 }
 
-// --- endpoint handles (the 2D answer to the transform gizmo) ---------------
+// --- the extrusion preview: built in the worker, superseded, never appended -----------
 
-/** @param {{ which: 'start' | 'end', clientX: number, clientY: number }} event */
-function onSketchHandleDown(event) {
-  const entity = documentStore.sketchEntities.find(
-    (candidate) => candidate.id === selection.sketchId,
-  )
-  if (!entity) return
-  sketchHandleDrag.active = true
-  sketchHandleDrag.entityId = entity.id
-  sketchHandleDrag.which = event.which
-  const current = event.which === 'start' ? entity.startMm : entity.endMm
-  sketchPreview.begin(entity.id, event.which, current[0], current[1])
+const sketchPreviewChannel = createEvaluationChannel('sketch-preview')
+/** @type {import('three').Mesh | null} */
+let sketchPreviewMesh = null
+/** @type {any} */
+let sketchPreviewMaterial = null
+
+function clearSketchPreview() {
+  if (sketchPreviewMesh) {
+    viewport?.graph.scene.remove(sketchPreviewMesh)
+    sketchPreviewMesh.geometry.dispose()
+    sketchPreviewMesh = null
+  }
 }
 
-/** @param {{ clientX: number, clientY: number }} event */
-function onSketchHandleMove(event) {
-  if (!sketchHandleDrag.active) return
-  const point = projectPointer(event.clientX, event.clientY)
-  if (!point) return
-  sketchPreview.setPoint(point.x, point.y)
-  syncSketchStrokes()
-  scheduleRender()
+/**
+ * Ask the worker to build the draft. A newer request on this channel supersedes an older
+ * one rather than queueing behind it (CLAUDE.md's Performance rule), so a burst of edits
+ * costs one build, and an old answer never paints over a newer one.
+ */
+function requestSketchPreview() {
+  if (!sketchEditor.active) return
+  const draft = sketchEditor.draft
+  if (sketchEditor.doneProblem && sketchEditor.previewStatus !== 'error') {
+    // Statically unbuildable (nothing closed yet, an outline crossing the axis…): nothing
+    // to preview, and the toolbar already says why.
+    clearSketchPreview()
+    sketchEditor.previewStatus = 'idle'
+    scheduleRender()
+    return
+  }
+  sketchEditor.previewStatus = 'building'
+  const params = JSON.parse(JSON.stringify({ center: [0, 0, 0], slices: draft.slices, extrusion: draft.extrusion }))
+  sketchPreviewChannel
+    .request({ kind: 'build', op: 'primitive.sketch', params, resolution: documentStore.resolution })
+    .then((outcome) => {
+      if (outcome.superseded || !sketchEditor.active || sketchEditor.draft !== draft) return
+      const result = /** @type {import('../../core/kernel/evaluationJob.js').BuildResult} */ (outcome.result)
+      if (result.error || !result.geometry) {
+        sketchEditor.previewStatus = 'error'
+        sketchEditor.previewError = result.error ?? 'This sketch could not be built'
+        clearSketchPreview()
+        scheduleRender()
+        return
+      }
+      sketchEditor.previewStatus = 'ok'
+      sketchEditor.previewError = ''
+      const buffer = geom3ToBufferGeometry(toGeom3(/** @type {any} */ (unpackGeometry(result.geometry))))
+      if (!viewport || !sketchPreviewMaterial) {
+        buffer.dispose()
+        return
+      }
+      if (!sketchPreviewMesh) {
+        sketchPreviewMesh = new Mesh(buffer, sketchPreviewMaterial)
+        sketchPreviewMesh.name = 'sketch-preview'
+        sketchPreviewMesh.renderOrder = 1
+        sketchPreviewMesh.matrixAutoUpdate = false
+        viewport.graph.scene.add(sketchPreviewMesh)
+      } else {
+        sketchPreviewMesh.geometry.dispose()
+        sketchPreviewMesh.geometry = buffer
+      }
+      sketchPreviewMesh.matrix.fromArray(/** @type {number[]} */ ([...sketchEditor.frame]))
+      sketchPreviewMesh.matrixWorldNeedsUpdate = true
+      scheduleRender()
+    })
+    .catch(() => {
+      sketchEditor.previewStatus = 'idle'
+    })
 }
 
-/** @param {{ cancelled: boolean }} event */
-function onSketchHandleUp(event) {
-  if (!sketchHandleDrag.active) return
-  const { entityId, which } = sketchHandleDrag
-  const pointMm = /** @type {[number, number]} */ ([sketchPreview.xMm, sketchPreview.yMm])
-  sketchHandleDrag.active = false
-  sketchHandleDrag.entityId = ''
-  // Drop the preview *before* committing, so the record's new coordinates and
-  // the preview's are never both in play for a frame — the same ordering
-  // `onGizmoHandleUp` uses, for the same reason.
-  sketchPreview.clear()
-  if (!event.cancelled) sketchCommands.moveEndpointTo(entityId, which, pointMm)
-  syncSketchStrokes()
+/** While an existing sketch is open, its committed mesh hides behind the live preview. */
+function applySketchBodyVisibility() {
+  for (const [id, object] of bodyMeshes) {
+    object.visible = !(sketchEditor.active && sketchEditor.bodyId === id)
+  }
   scheduleRender()
 }
 
@@ -1183,6 +1256,7 @@ function applyMaterialTheme() {
   selectedMaterial?.color.setHex(palette.selected)
   secondaryMaterial?.color.setHex(palette.secondary)
   ghostMaterial?.color.setHex(palette.ghost)
+  sketchPreviewMaterial?.color.setHex(palette.ghost)
   xrayMaterial?.color.setHex(palette.selected)
   xraySecondaryMaterial?.color.setHex(palette.secondary)
   xrayHoverMaterial?.color.setHex(palette.hover)
@@ -1610,6 +1684,14 @@ const dropTarget = {
     // actually mutates the log, and a drop that slipped through during a
     // preview would append to the latest document, out of the user's sight.
     if (timeline.previewing) return null
+    // A Sketch row (`TODO/sketch-001`) has no geometry until it is drawn, so its drop
+    // commits nothing: it opens the editor with the sketch's origin at the drop point,
+    // and Done appends the one record. Cancel leaves no body at all.
+    if (libraryRow(op).editor === 'sketch') {
+      if (sketchMode.value) return null
+      sketchCommands.openNew([point.x, point.y, 0])
+      return null
+    }
     const records = recordsForDrop(op, { x: point.x, y: point.y }, documentStore.raw, overrides)
     // `appendAll`, not a loop of `append` (`TODO/data-003`): a composite's two
     // records are one *drag*, and undo's granularity is one user-meaningful
@@ -1939,6 +2021,10 @@ function onPointerUp(event) {
   // selected" Inspector state. A touch-only equivalent gesture belongs with the
   // Operations toolbar that actually consumes multi-selection (`ui-014`), not
   // here, where there would be nothing to do with it yet.
+  if (isClick && sketchMode.value) {
+    pickSketchProfile(event.clientX, event.clientY)
+    return
+  }
   if (isClick) pickAt(event.clientX, event.clientY, event.shiftKey || event.metaKey || event.ctrlKey)
 }
 
@@ -2031,24 +2117,10 @@ function pickAt(clientXPx, clientYPx, additive = false) {
   // *previewed* body would put the Inspector and a disabled gizmo on an object
   // that is not in the document — the looks-live-but-isn't case again.
   if (timeline.previewing) return
-  // Sketch geometry is drawn *over* the solids, so it is tested first — the
-  // click resolves to what the user can actually see under the pointer. Never
-  // additively: a sketch entity is not a boolean operand (see the selection
-  // store's `sketchId`), so Shift-clicking one selects it outright rather than
-  // adding a line to a set of solids.
-  const sketchId = sketchEntityAt(clientXPx, clientYPx)
-  if (sketchId) {
-    selection.selectSketch(sketchId)
-    return
-  }
-  if (sketchMode.value) {
-    // While sketching, only sketch geometry is selectable. Letting a click fall
-    // through to a solid would put a body in the selection — and therefore a
-    // live Union button — in a mode where the user is drawing 2D lines and
-    // cannot see that toolbar at all.
-    selection.clear()
-    return
-  }
+  // While the sketch editor is open a tap picks outlines (`pickSketchProfile`), never
+  // a solid: a body in the selection would light a Union button in a mode where that
+  // toolbar is not even on screen.
+  if (sketchMode.value) return
   if (!viewport || bodyMeshes.size === 0) {
     selection.clear()
     return
@@ -2208,6 +2280,7 @@ onMounted(() => {
   selectedMaterial = createBodyMaterial(palette.selected)
   secondaryMaterial = createBodyMaterial(palette.secondary)
   ghostMaterial = createGhostMaterial(palette.ghost)
+  sketchPreviewMaterial = createGhostMaterial(palette.ghost)
   xrayMaterial = createXrayMaterial(palette.selected)
   xraySecondaryMaterial = createXrayMaterial(palette.secondary)
   xrayHoverMaterial = createXrayMaterial(palette.hover)
@@ -2242,14 +2315,40 @@ onMounted(() => {
     // A loaded document (restore / Open), as opposed to an edit: frame it. Declared
     // after the `syncBodies` watcher so the meshes exist before the camera moves.
     watch(() => documentStore.loadRevision, frameLoadedContent),
-    // Sketch entities never reach `syncBodies` — they are not meshes — so the
-    // overlay gets its own watcher. `syncSketchStrokes` runs from the render
-    // callback for camera moves; this covers the case where the *document*
-    // changed while the camera did not, which is every commit.
-    watch(() => documentStore.version, () => {
-      syncSketchStrokes()
-      scheduleRender()
-    }),
+    // The sketch editor (`TODO/sketch-001`). Opening it aims the camera straight at the
+    // active slice and hides the edited body's own mesh behind the live preview; every
+    // draft edit re-projects the outlines and asks the worker for a new preview.
+    watch(
+      () => sketchEditor.active,
+      (active) => {
+        if (active) {
+          endSketchDrag(true)
+          aimAtSketch()
+        } else {
+          endSketchDrag(true)
+          clearSketchPreview()
+        }
+        applySketchBodyVisibility()
+        syncSketchPaths(true)
+        requestSketchPreview()
+      },
+    ),
+    watch(
+      () => sketchEditor.draft,
+      () => {
+        syncSketchPaths(true)
+        requestSketchPreview()
+        scheduleRender()
+      },
+    ),
+    watch(
+      () => [sketchEditor.activeSlice, sketchEditor.selectedProfileId],
+      () => {
+        syncSketchPaths(true)
+        scheduleRender()
+      },
+    ),
+    watch(() => documentStore.version, applySketchBodyVisibility),
     watch(() => selection.ids, applySelectionMaterial, { deep: true }),
     // The object list's hover (`TODO/ui-049`). The store hands out a fresh object only on
     // a real change, so this fires at hover-change rate, never pointer rate.
@@ -2290,7 +2389,12 @@ onMounted(() => {
 })
 
 onBeforeUnmount(() => {
-  sketchMode.value = false
+  // The viewport is the only thing that can draw or close the editor, so it must not
+  // outlive it — a draft left open with no surface to finish it on is a stuck mode.
+  sketchEditor.close()
+  clearSketchPreview()
+  sketchPreviewMaterial?.dispose()
+  sketchPreviewMaterial = null
   if (rafId) cancelAnimationFrame(rafId)
   rafId = 0
   unregisterTarget?.()
@@ -2363,8 +2467,11 @@ onBeforeUnmount(() => {
     :data-transforming="preview.isActive ? 'true' : 'false'"
     :data-previewing="timeline.previewing ? 'true' : 'false'"
     :data-sketch-mode="sketchMode ? 'true' : 'false'"
-    :data-sketch-count="documentStore.sketchCount"
-    :data-selected-sketch-id="selection.sketchId ?? ''"
+    :data-sketch-body="sketchEditor.bodyId ?? ''"
+    :data-sketch-slice="sketchEditor.activeSlice"
+    :data-sketch-selected="sketchEditor.selectedProfileId"
+    :data-sketch-preview="sketchEditor.previewStatus"
+    :data-sketch-panel="sketchEditor.panel"
   >
     <canvas
       ref="canvasEl"
@@ -2434,18 +2541,10 @@ onBeforeUnmount(() => {
          being held in line with an existing item, above the selection overlays
          so the alignment being offered is never occluded mid-drag. -->
     <SnapGuides :guides="snapGuides" />
-    <!-- Sketch geometry (TODO/ui-020): committed strokes, the live draft
-         segment, and the selected entity's endpoint handles. Above the
-         selection overlays because it is drawn *on* the working plane and must
-         never be occluded by a body's dimension lines mid-draw. -->
-    <SketchStrokes
-      :strokes="sketchStrokes"
-      :draft="sketchDraft"
-      :selected-id="selection.sketchId ?? ''"
-      @handle-down="onSketchHandleDown"
-      @handle-move="onSketchHandleMove"
-      @handle-up="onSketchHandleUp"
-    />
+    <!-- The sketch editor's outlines (TODO/sketch-001): the draft's profiles, the
+         live drag, and the revolve axis. Pointer-transparent, so the canvas keeps every
+         gesture (ui-020 finding #1). -->
+    <SketchStrokes v-if="sketchMode" :paths="sketchPaths" :draft="sketchDraftPath" :axis="sketchAxis" />
 
     <Grid
       :mm-per-pixel="overlay.mmPerPixel"
@@ -2458,29 +2557,30 @@ onBeforeUnmount(() => {
       :disabled="sketchMode"
       @snap="onSnap"
     />
-    <!-- The Sketch toolbar (TODO/ui-020): a third, mode-gated chrome surface,
-         mounted only while sketch mode is active — not a repurposing of the
-         Operations toolbar or the Library. -->
-    <SketchToolbar v-if="sketchMode" :tool="sketchTool" @exit="setSketchMode(false)" />
+    <!-- The Sketch toolbar (TODO/sketch-001): mounted only while the editor is open,
+         in the top-left slot the Operations toolbar yields. Its Slices / Extrude panels
+         open in the sheet below — a bottom sheet on a narrow viewport. -->
+    <SketchToolbar v-if="sketchMode" />
+    <SketchPanelSheet v-if="sketchMode" @activate-slice="aimAtSketch" />
     <!-- The Operations toolbar (TODO/ui-014): viewport chrome, in the same
          band as the navigation controls below and deliberately *not* a row in
          the Library panel beside Cube and Cylinder. CLAUDE.md: creation and
          operation are never the same list, and an operation control stays
          disabled until its operands are actually selected. -->
-    <!-- Hidden while sketching: its buttons operate on selected *solids*, and
-         sketch mode selects only sketch entities (see `pickAt`), so every one
-         of them would be permanently disabled — dead chrome sitting in the one
+    <!-- Hidden while the sketch editor is open: its buttons operate on selected
+         *solids*, and the editor selects only outlines (see `pickSketchProfile`), so
+         every one of them would be permanently disabled — dead chrome sitting in the one
          top-left toolbar slot the Sketch toolbar needs. -->
     <OperationsToolbar v-if="!sketchMode" />
     <NavigationChrome
       :drag-mode="dragMode"
-      :sketch-mode="sketchMode"
+      :sketching="sketchMode"
       :raised="navRaised"
+      :sketch-sheet="sketchMode && sketchEditor.panel !== ''"
       @step="onStep"
       @zoom="onZoom"
       @mode="onMode"
       @reset="onReset"
-      @sketch="toggleSketchMode"
     />
   </div>
 </template>
@@ -2492,6 +2592,10 @@ onBeforeUnmount(() => {
   height: 100%;
   overflow: hidden;
   background: var(--surface-0);
+  /* A size container (`TODO/sketch-001`): the sketch editor's toolbar, sheet and the nav
+     chrome's fold respond to the *viewport's* width, not the window's — at the 820px
+     tablet reference the viewport column is 390px wide, the same as a phone. */
+  container: viewport / inline-size;
 }
 
 /* §14, point 2: "the viewport gets an amber inset outline." An `outline` rather

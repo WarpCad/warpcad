@@ -97,32 +97,13 @@
  *
  * The two fields are mutually exclusive; a record setting both is rejected.
  *
- * ## Sketch records: in the log, past the kernel (`TODO/ui-020`)
+ * ## A sketch is an ordinary primitive (`TODO/sketch-001`)
  *
- * A sketch entity — today a straight line on the working plane — is 2D vector
- * data, not a `Geom3` or a `Group`. It still belongs in *this* log: it is a
- * document mutation, it needs an origin, and a future undo/redo has to be able
- * to scope it exactly like any other record. What it does **not** belong in is
- * the geometry kernel. So `append` recognises a `sketch.`-prefixed op and routes
- * it to a parallel {@link WarpDocument.sketchEntities} map, skipping the trial
- * fold entirely.
- *
- * The alternative — registering `sketch.line` in the kernel registry — would
- * mean either inventing a third `RegistryEntry.kind` that `evaluate()` has to
- * branch on, or teaching the kernel adapter about records that produce no
- * geometry. Both cross the `src/core/kernel/` boundary CLAUDE.md's Project
- * Structure draws on purpose ("everything else in `core/` talks to the kernel
- * through this interface"). Skipping the round-trip keeps the boundary intact,
- * and `document.spec.js` asserts it as a **call count** on a registry entry that
- * deliberately exists — "never built" is only evidence if building would have
- * worked.
- *
- * Everything else about a sketch record is ordinary: same id rules, same origin
- * requirement, same `supersedes` lineage bookkeeping (so an endpoint edit
- * replaces an entity in place rather than doubling it — the same defect
- * supersession already prevents for a moved body). `consumes` is refused: it
- * retires bodies into a new one, and a sketch line is not a body and eats
- * nothing.
+ * `TODO/ui-020` once routed loose `sketch.line` records past the kernel into a parallel
+ * entity map. `sketch-001` replaced that with `primitive.sketch`, a body like any other
+ * that folds through the kernel, so this module no longer treats any op prefix
+ * specially. A file still holding the retired records is cleaned up at parse time
+ * (`src/core/project.js`), with a warning per record.
  *
  * ## Undo/redo: remove-and-rebuild, not inverse-append (`TODO/data-003`)
  *
@@ -343,7 +324,7 @@
  * - **Save/reload** is just another NDJSON line. **Suppressing** a Delete row un-deletes
  *   the body (section 16's fold simply skips it) — a legitimate consequence, documented.
  *
- * Like a sketch record, a tombstone is routed **past the kernel**: it builds no
+ * A tombstone is routed **past the kernel**: it builds no
  * geometry, needs no registry entry, and is never in `scene.byId`.
  *
  * Removing one **part** of a group is different: the body survives, so it is an
@@ -577,20 +558,6 @@ export class ReplayRejection extends Error {
  */
 
 /**
- * @typedef {object} SketchEntityRecord
- * @property {string} id The **lineage root's** id — stable across endpoint edits,
- *   so a selection and an overlay element keep pointing at the same entity.
- * @property {string} recordId The **terminal** record's id.
- * @property {string} name Display name, e.g. `"Line 1"`. From the root record.
- * @property {string} op The `sketch.*` op, from the root record.
- * @property {Record<string, any>} params The **terminal** record's params, plain
- *   JSON. Note this differs from `Body.params`, which come from the *root*: a
- *   body's params say what it *is* and a transform record carries the movement
- *   separately, whereas a sketch endpoint edit rewrites the entity's own
- *   coordinates, so the newest record is the entity's current geometry.
- */
-
-/**
  * One thing the user did, which may have taken more than one record.
  *
  * Section 19's granularity rule is "one user-meaningful action = one step": a
@@ -658,7 +625,6 @@ export class ReplayRejection extends Error {
  * @property {(id: string, transaction: TransactionOptions) => { scene: Scene }} rollBackTo
  * @property {(transaction: TransactionOptions) => { scene: Scene }} rollForward
  * @property {() => Body[]} bodies
- * @property {() => SketchEntityRecord[]} sketchEntities
  * @property {() => boolean} canUndo
  * @property {() => boolean} canRedo
  * @property {() => HistoryStep | undefined} pendingUndo
@@ -686,13 +652,6 @@ function isVec3(value) {
 }
 
 /**
- * Ops routed past the kernel into {@link WarpDocument.sketchEntities} — see the
- * sketch-records note above. A **prefix**, not a fixed list, so the later
- * rectangle/circle/arc tools need no change here.
- */
-const SKETCH_OP_PREFIX = 'sketch.'
-
-/**
  * The op `setColorOverride` appends (TODO/data-005) — see its own doc comment in
  * `src/core/kernel/registry.js` for why the kernel fold does not interpret it.
  */
@@ -700,7 +659,7 @@ const RECOLOR_OP = 'style.recolor'
 
 /**
  * The tombstone `deleteBodies` appends (`TODO/ui-051`) — see the module note. Routed
- * past the kernel, like `sketch.*`.
+ * past the kernel.
  */
 const DELETE_OP = 'body.delete'
 
@@ -993,13 +952,6 @@ export function createDocument(options = {}) {
   /** @type {string[]} */
   const rootOrder = []
   /**
-   * The same, for sketch lineages (`sketch.*` ops) — a **parallel** list rather
-   * than a flag on `rootOrder`, so `bodies()` cannot accidentally report an
-   * entity that has no geometry and `sketchEntities()` cannot report a solid.
-   * @type {string[]}
-   */
-  const sketchRootOrder = []
-  /**
    * Lineage root id → the id of the record that **absorbed** it (`consumes`).
    * A root with an entry here has stopped being an independently selectable
    * body; see the consumption note above.
@@ -1253,12 +1205,6 @@ export function createDocument(options = {}) {
       )
     }
 
-    // A sketch record is a document mutation like any other — origin-tagged,
-    // id-checked, lineage-tracked — but it produces no geometry, so it is
-    // routed past the kernel entirely. Checked **before** the trial fold
-    // below, which is the whole of the boundary-preserving claim in this
-    // module's sketch-records note.
-    const isSketch = record.op.startsWith(SKETCH_OP_PREFIX)
     // A tombstone (`TODO/ui-051`) builds nothing either, and must retire exactly
     // one existing body — so it has to name what it supersedes.
     const isTombstone = record.op === DELETE_OP
@@ -1275,22 +1221,12 @@ export function createDocument(options = {}) {
       const refRoot = typeof refId === 'string' ? rootById.get(refId) : undefined
       if (refRoot !== undefined) assertNotDeleted(refRoot, refId, 'target')
     }
-    if (isSketch && record.consumes !== undefined) {
-      throw new Error(
-        `document.append: ${record.op} may not set \`consumes\` — retiring bodies into a ` +
-          'new one is a solid-geometry claim, and a sketch entity is not a body'
-      )
-    }
-
     let supersededRoot
     if (record.supersedes !== undefined) {
       if (record.id === undefined) {
         throw new Error('document.append: a record that supersedes another needs its own `id`')
       }
       supersededRoot = resolveLiveRoot(record.supersedes, 'supersedes')
-      if (isTombstone && sketchRootOrder.includes(supersededRoot)) {
-        throw new Error(`document.append: ${DELETE_OP} "${record.supersedes}" is a sketch entity, not a body`)
-      }
     }
 
     /** @type {string[]} */
@@ -1320,20 +1256,13 @@ export function createDocument(options = {}) {
       }
     }
 
-    if (isSketch && record.id === undefined) {
-      throw new Error(
-        'document.append: a sketch record needs its own `id` — an entity has to be ' +
-          'selectable, and a later endpoint edit has to name what it supersedes'
-      )
-    }
-
     // Trial fold. `applyAction` never throws — it reports — so a failure shows up
     // as a *new* entry in the candidate scene's error list, and the record is
-    // rejected rather than committed. Skipped outright for a sketch record:
-    // there is no geometry to evaluate and no registry entry to look up.
+    // rejected rather than committed. Skipped outright for a tombstone: there is
+    // no geometry to evaluate and no registry entry to look up.
     const errorsBefore = scene.errors.length
     let candidate
-    if (isSketch || isTombstone) {
+    if (isTombstone) {
       candidate = scene
     } else if (passThrough) {
       // The body it would have changed: what it supersedes, else its first operand (a
@@ -1360,7 +1289,7 @@ export function createDocument(options = {}) {
       const root = supersededRoot ?? record.id
       rootById.set(record.id, root)
       terminalByRoot.set(root, record.id)
-      if (root === record.id) (isSketch ? sketchRootOrder : rootOrder).push(record.id)
+      if (root === record.id) rootOrder.push(record.id)
       // A consuming record is its own new lineage root (the line above already
       // made it one, since it carries no `supersedes`); what is left is to
       // retire the lineages it absorbed, so `bodies()` stops reporting them and
@@ -1381,7 +1310,6 @@ export function createDocument(options = {}) {
       rootById: new Map(rootById),
       terminalByRoot: new Map(terminalByRoot),
       rootOrder: rootOrder.slice(),
-      sketchRootOrder: sketchRootOrder.slice(),
       mergedInto: new Map(mergedInto),
       recordById: new Map(recordById),
       scene,
@@ -1394,7 +1322,6 @@ export function createDocument(options = {}) {
     rootById.clear()
     terminalByRoot.clear()
     rootOrder.length = 0
-    sketchRootOrder.length = 0
     mergedInto.clear()
     recordById.clear()
     scene = emptyScene()
@@ -1403,7 +1330,6 @@ export function createDocument(options = {}) {
     for (const [key, value] of snapshot.rootById) rootById.set(key, value)
     for (const [key, value] of snapshot.terminalByRoot) terminalByRoot.set(key, value)
     rootOrder.push(...snapshot.rootOrder)
-    sketchRootOrder.push(...snapshot.sketchRootOrder)
     for (const [key, value] of snapshot.mergedInto) mergedInto.set(key, value)
     for (const [key, value] of snapshot.recordById) recordById.set(key, value)
     scene = snapshot.scene
@@ -1853,14 +1779,13 @@ export function createDocument(options = {}) {
       return subjectName === undefined ? verb : `${verb} ${subjectName}`
     }
     // No verb, but it supersedes something: this is an in-place edit rebuilding
-    // a body from changed params (`ui-029`) or a sketch endpoint move
-    // (`ui-020`), both of which reuse the *creation* op and so would otherwise
-    // be labelled as placing a brand-new body with a generated id.
+    // a body from changed params (`ui-029`), which reuses the *creation* op and so
+    // would otherwise be labelled as placing a brand-new body with a generated id.
     if (record.supersedes !== undefined) {
       return subjectName === undefined ? 'Edit' : `Edit ${subjectName}`
     }
     const noun = record.name ?? record.id ?? record.op
-    return record.op.startsWith(SKETCH_OP_PREFIX) ? `Draw ${noun}` : `Place ${noun}`
+    return `Place ${noun}`
   }
 
   /**
@@ -2855,7 +2780,7 @@ export function createDocument(options = {}) {
      * insert at the marker, like every other mutation). See the module note.
      *
      * `ids` may be any record in each body's lineage. Validated up front and
-     * all-or-nothing: an unknown id, a sketch entity, a body already deleted or
+     * all-or-nothing: an unknown id, a body already deleted or
      * already consumed into another, or one body named twice throws before anything
      * is appended. An empty list is a no-op that appends nothing.
      *
@@ -2873,9 +2798,6 @@ export function createDocument(options = {}) {
         const root = typeof id === 'string' ? rootById.get(id) : undefined
         if (root === undefined) throw new Error(`document.deleteBodies: no such body "${id}" in this document`)
         const name = recordById.get(root)?.name ?? root
-        if (sketchRootOrder.includes(root)) {
-          throw new Error(`document.deleteBodies: "${name}" is a sketch entity, not a body`)
-        }
         if (isDeletedRoot(root)) throw new Error(`document.deleteBodies: ${name} has already been deleted`)
         if (mergedInto.has(root)) {
           throw new Error(
@@ -3127,35 +3049,6 @@ export function createDocument(options = {}) {
         })
       }
       return bodies
-    },
-
-    /**
-     * The document's sketch entities, one per lineage — `bodies()`'s shape, for
-     * the half of the document the kernel never sees.
-     *
-     * Op-agnostic on purpose: it hands back `params` verbatim and never
-     * interprets them, so a later `sketch.circle` needs no change here.
-     * `src/sketch/entity.js` is what reads a line's params back out, and it
-     * validates rather than trusting them.
-     */
-    sketchEntities() {
-      /** @type {SketchEntityRecord[]} */
-      const entities = []
-      for (const rootId of sketchRootOrder) {
-        const terminalId = terminalByRoot.get(rootId) ?? rootId
-        const rootRecord = recordById.get(rootId)
-        if (rootRecord === undefined) continue
-        const terminalRecord = recordById.get(terminalId) ?? rootRecord
-        entities.push({
-          id: rootId,
-          recordId: terminalId,
-          name: rootRecord.name ?? rootId,
-          op: rootRecord.op,
-          // The terminal record's, not the root's — see `SketchEntityRecord`.
-          params: terminalRecord.params ?? {},
-        })
-      }
-      return entities
     },
 
     nextId(prefix = 'op') {

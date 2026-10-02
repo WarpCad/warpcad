@@ -5,7 +5,7 @@ import { useTimelineCommands } from '../composables/useTimelineCommands.js'
 import { useDocumentStore } from './document.js'
 import { useObjectListStore } from './objectList.js'
 import { useSelectionStore } from './selection.js'
-import { useSketchModeStore } from './sketchMode.js'
+import { useSketchEditorStore } from './sketchEditor.js'
 import { useTimelineStore } from './timeline.js'
 
 /**
@@ -257,15 +257,15 @@ describe('object list store (TODO/ui-041, moved into the Inspector by ui-049)', 
     expect(objects.rows).toHaveLength(3)
   })
 
-  it('disables itself in sketch mode: a solid is not selectable there, by any route', () => {
+  it('disables itself while a sketch is being edited: a solid is not selectable there, by any route', () => {
     seedEnclosed()
     const objects = useObjectListStore()
     const selection = useSelectionStore()
-    useSketchModeStore().active = true
-    expect(objects.disabledReason).toMatch(/Sketch mode/)
+    useSketchEditorStore().active = true
+    expect(objects.disabledReason).toMatch(/Editing a sketch/)
     expect(objects.choose('shell')).toBe(false)
     expect(selection.ids).toEqual([])
-    useSketchModeStore().active = false
+    useSketchEditorStore().active = false
     expect(objects.choose('shell')).toBe(true)
   })
 })
@@ -507,13 +507,13 @@ describe('object list store — part rows (TODO/ui-042)', () => {
     seedEnclosedPi()
     const objects = useObjectListStore()
     const selection = useSelectionStore()
-    useSketchModeStore().active = true
+    useSketchEditorStore().active = true
     expect(objects.choosePart('pi', 'ethernet')).toBe(false)
     expect(selection.ids).toEqual([])
     // Reading the part names is not a selection, so it stays available.
     objects.toggleExpanded('pi')
     expect(objects.rows[1].expanded).toBe(true)
-    useSketchModeStore().active = false
+    useSketchEditorStore().active = false
 
     const timeline = useTimelineStore()
     timeline.selectRow('shell')

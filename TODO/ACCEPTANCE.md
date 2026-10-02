@@ -1029,6 +1029,8 @@ scenario itself, not a re-run of the checked-in e2e spec.
 
 **Last run**: 2026-10-01 22:55 UTC (`ui-054`) — PASS at laptop 1440x900 Chromium and phone 390x844 WebKit, real mouse with a wobbly path: Cube and Sphere dropped apart, both stayed (2). After File ▸ New ▸ Replace (and an Escape-cancelled attempt first, which changed nothing) the scene was empty and the first Library drag landed on the first try, then a second; both stayed. Console clean. (Phone: a Sphere drop in my throwaway script released over the Library sheet — script artifact, not claimed.)
 
+**Re-checked**: 2026-10-02 19:05 UTC — **PASS** (`sketch-001`). Laptop Chromium, real mouse: dropped a Cube, then a **Sketch** (Polygon tool, 6 sides, r 20 → Linear 20 mm, Done), then a Sphere. Three independent bodies, none moved or replaced: cube 64 000 mm³, the sketch hexagon exactly (3√3/2)·20²·20 = 20 784.614 mm³, sphere 33 271.771 mm³. Also at phone Chromium by touch only (cube, then a sketch tube beside it): both kept. A Sketch drop commits nothing until Done, and Cancel on a fresh sketch left the body count at 0.
+
 ### 2. Hardware property edit
 
 **Steps**:
@@ -1861,6 +1863,8 @@ selected, toolbar disabled again. Console clean.
 
 **Re-checked**: 2026-09-28 03:08 UTC (`ui-051`) — **PASS** for steps 1-6's gating and indicator, at laptop 1440x900 **WebKit**, real mouse and Shift-click. 1 selected: Union/Subtract disabled, tooltip `Select 2 or more solids`. Shift-click the Cylinder: `2 selected · first is the base`, both enabled, the cube in the amber highlight and the cylinder in the teal secondary, `Cube 1 then Cylinder 1` (checked by eye). New for this task: **Delete** with both selected removed both as one step (`Undo: Delete 2 objects`), and the toolbar re-gated to `0 selected`, all disabled; Undo brought both back **still 2-selected in the same base order**, and Union/Subtract re-enabled. Subtract then left one selected result with the toolbar disabled; deleting that result and undoing restored it, reselected. Not re-observed this time: the "material removed where they overlap" half. A first attempt dropped the second Cube close enough that it snapped exactly onto the first, which is placement behaviour this task does not touch, so the operands were re-dropped apart. Console clean.
 
+**Re-checked**: 2026-10-02 19:05 UTC — **PASS** (`sketch-001`). A finished sketch body is now an ordinary operand (ui-020's separate `selection.sketchId` is gone). Laptop Chromium: with only the cube selected Subtract was disabled; adding the sketch body from the Objects list enabled it, base = cube (`data-selection-role` base/secondary), result one `boolean.subtract` body. Phone Chromium, touch only: tube moved onto the cube by typed Position, then Subtract → 47 527.035 mm³ = 64 000 − 16 472.965 (the tube), surviving a reload. While the sketch editor is open the Operations toolbar is not shown at all (the editor selects outlines, never solids). Edit sketch is absent on the boolean result, as it should be.
+
 ### 5. Hidden-part boolean (bolt tap-clearance)
 
 **Amended 2026-09-26** (`ui-047`, following the user's decision recorded in
@@ -2570,6 +2574,8 @@ fully-rendered scene. Console clean.
 
 **Re-checked**: 2026-09-27 22:34 UTC (`ui-049`) — PASS, touch only at iPad 820x1180 WebKit. No `objects-toggle` anywhere in the DOM. Chrome by tap: `nav-step-right` orbited azimuth −45°→−30°, `nav-step-up` raised elevation 35.26°→50.26°, Pan mode plus `nav-step-left` moved the target to (−9.26, −16.04, 0), `nav-zoom-in` 420→336 mm, `nav-zoom-out` back to 420. The orientation gizmo's **Top** snapped to elevation 90° and **Front** to 0°. Phone header after the toggle's removal: at 390px, Undo/Redo/History/File/chip sit at x=158–380 with the title ending at 75. At 320px the title is shown again (the 359px hide rule existed only for the toggle and was removed): title ends at 75, Undo starts at 88, zero horizontal overflow. Console clean.
 
+**Re-checked**: 2026-10-02 19:05 UTC — **PASS** (`sketch-001`), phone Chromium with trusted CDP touch only: the nav chrome has **no Sketch button** any more; one-finger orbit (az −45 → −69, el 35.26 → 51.26) and pinch zoom (420 → 140 mm) unchanged outside the editor. Inside the sketch editor: one finger draws (rectangle added, elevation stays 90°), two fingers pan (target moved, no outline added), the pad folds to **✥**, ✥ expands it, an arrow **pans** rather than orbits, and Cancel brings the Orbit/Pan/Select row back.
+
 ### 8. Remote-load safety
 
 **Steps**:
@@ -2604,30 +2610,53 @@ one. **Both bad records were skipped and surfaced as warnings naming the record 
 the reason**, neither was executed, and the 1st and 4th records still replayed into the scene
 (`parts: a, c`). So the new throw paths behave as loadable-document warnings, not as a halt.
 
-### 9. Open sketch mode and draw one entity
+**Re-checked**: 2026-10-02 19:05 UTC — **PASS for what `sketch-001` changed**, laptop Chromium through **File ▾ → Open…** (real file chooser): (a) a file with a deliberately bogus `evil.exec` record is refused **by name** ("Couldn't open bad.ndjson: Step 2 (Place x) can't be built: unknown op \"evil.exec\"…"), nothing executed, no dialog, the current project untouched — note this is the app's existing *atomic refuse* behaviour (`data-002`), not the skip-and-continue `replay.js` gives, and it is unchanged by this task; (b) a ui-020-era file holding a `sketch.line` record (even one its state line marks suppressed) **opens**: the line is skipped with "Opened old.ndjson, but skipped 1 step (sketch-1): sketch lines are no longer supported — redraw them in a Sketch primitive" and the cube loads. Without (b) every autosave containing an old line would have failed to restore entirely.
 
-Added per `TODO/ROADMAP.md`'s own instruction: not one of `Initial design.md` §9's
-original 8 (drawn from `picam-touch`'s toggle matrix, which has no 2D sketching), but
-this file's own template header names "drawing one entity" as a cover-at-minimum case.
-Written now, alongside `TODO/ui-020-sketch-mode-line-entity.md`'s scoping, from
-`docs/decisions/interaction-model-qa.md`'s new section 7 Q&A rather than invented here.
+### 9. Place a Sketch primitive, draw a solid and a hole, extrude it, and use it
+
+**Rewritten by `TODO/sketch-001` (2026-10-02).** The capability the old scenario 9
+described — a nav-chrome **Sketch** toggle drawing loose lines — no longer exists: a
+sketch is now a Library primitive that always ends up as a solid
+(`docs/decisions/interaction-model-qa.md` section 7, rewritten the same day). The old
+scenario's runs, including the three defects ui-020's drive found, are kept below as
+history; those three are now this scenario's standing regression surface.
 
 **Steps**:
 1. Open the app to an empty scene.
-2. Click the **Sketch** toggle in the viewport chrome.
-3. Confirm the camera snaps to a straight-on view of the working plane and a Sketch
-   toolbar (Line tool, Exit Sketch) appears.
-4. Pointer-down at one point on the grid, drag to a second point, release.
-5. Click empty space, then click the drawn line.
-6. Click **Exit Sketch**.
+2. Drag **Sketch** from the Library's Primitives into the viewport and release.
+3. Confirm the view turns straight down at a flat grid and the Sketch toolbar appears
+   (Line / Rectangle / Circle / Polygon, Hole, Slices, Extrude ▾, Done, Cancel), with
+   Done disabled and its reason printed.
+4. Pick **Circle**, drag from the grid's centre out to about 20 mm. Draw a second circle
+   from the same centre out to about 15 mm.
+5. Tap the smaller circle, then tap **Hole**.
+6. Open **Extrude ▾**, choose **Linear**, type 30 in Height.
+7. Tap **Done**.
+8. Place a **Cube** so it overlaps the tube, select the cube then add the tube, and tap
+   **Subtract**.
+9. Reload the page.
+10. Repeat steps 2-7 at the phone viewport using touch only.
 
-**Expect**: Sketch mode's own chrome (camera lock, Sketch toolbar) appears on step 2-3,
-distinct from ordinary orbit/pan/zoom mode. The drag in step 4 shows a live preview
-segment following the pointer and commits one visible line entity on release, rendered
-in a style distinct from 3D solid geometry. Step 5's click selects the line and shows
-its own fields (start/end/length) in the Inspector, with no 3D transform gizmo attached
-(per section 7's Q14). Exiting in step 6 returns free orbit and hides the Sketch
-toolbar; the drawn line remains in the scene, not deleted by exiting.
+**Expect**: Step 3 shows the editor's own chrome (camera square-on, Sketch toolbar in the
+top-left slot, the Operations toolbar and the nav-chrome mode row gone) and nothing in the
+document yet. Each drag in step 4 shows a live preview and adds one thin bright outline; a
+press on an existing outline's stroke still draws (ui-020 finding #1). Step 5 turns the
+inner outline dashed with a "hole" badge. Step 6 shows a translucent preview of a tube.
+Step 7 commits **one** body — a tube 30 mm tall with a bore — which becomes the selection
+with the gizmo, dimension lines and an Inspector **Sketch** section (Linear, Height 30,
+**Edit sketch**). Step 8 counts the tube as an ordinary operand and leaves one body. Step 9
+reopens with the result intact, and **Edit sketch** on a fresh tube still opens its
+outlines after a reload. Step 10 works with no modifier key; at 390 px the toolbar clears
+the orientation gizmo (finding #2) and nothing pops up over the drawing plane (finding #3).
+
+**Last run**: 2026-10-02 19:05 UTC — **PASS** (`sketch-001`, the task that rewrote this scenario). Driven with real input, not the e2e spec's script, at **laptop Chromium** (mouse) and **phone Chromium touch-only** (trusted CDP touch for every gesture, including the Library drag), plus mouse at phone/tablet WebKit during development:
+
+- Laptop, deliberately different from the e2e: the outer outline drawn with **Line** as an 8-segment chain (it closed when the last drag finished on its first point, Done enabled); the hole drawn sloppily and then set to exactly centre (0, 0), radius 15 in the Inspector; Height typed 0 → Done disabled with the reason, then 30 → preview ok → Done: one body 30 mm tall, 31 913.97 mm³ (octagon r 25 minus the r 15 bore). Undo label "Undo: Place Sketch 1". The camera snapped to el 90° on drop; the Operations toolbar and the Orbit/Pan/Select row were gone while editing.
+- Phone touch-only: Library sheet collapsed when the editor opened; the Inspector did **not** auto-open while drawing (**ui-020 #3**); nav chrome folded to ✥ at rest and lifted above the Extrude sheet with Done/Cancel visible (**ui-046**); toolbar clear of the orientation gizmo (**ui-020 #2**); a rectangle drag **started on the circle's stroke** drew (**ui-020 #1**), then was deleted from the Inspector; tube 16 472.97 mm³ (π(20²−15²)·30 = 16 493.4 within segmentation); after Done, Operations toolbar and nav chrome measured clear (**ui-043**); subtract from a cube and reload kept it.
+- Measured reachable canvas (10×10 grid) with the editor at rest: phone 76 %, tablet 84 %, laptop 86 % (≥ 69 %). With the Extrude sheet open: phone 47 %, tablet 64 % — the drawing area round the sketch origin stays 100 % reachable, but the whole-canvas figure is below 69 % (**UNCONFIRMED interpretation**, see `TODO/VERIFY.md`).
+- Console clean in every drive.
+
+#### History: the old scenario 9 ("Open sketch mode and draw one entity"), retired by sketch-001
 
 **Last run**: 2026-09-12 17:28 — PASS (`ui-020`, the task that implements this scenario).
 Hand-driven against the running app at the laptop reference (1440×900, Chromium) with
@@ -2926,6 +2955,8 @@ Hosted half not driven (no scratch repo/token in this session). Console clean.
 
 **Last run**: 2026-10-01 22:55 UTC (`ui-054`) — PASS for the local autosave/reload half only, laptop Chromium: after New and one placed Sphere, a reload restored exactly that Sphere (not the old project) with `Restored your last session`. File/hosted halves covered by the new e2e (native Save asks the picker again after New; hosted auto-push pauses and pushes nothing), not hand-driven.
 
+**Re-checked**: 2026-10-02 19:05 UTC — **PASS (local half)** (`sketch-001`), laptop Chromium with the fallback file path forced: a three-slice lofted sketch → **Download copy** → **New** → **Open…** the downloaded file → bodies byte-identical (op, bounds, volume); **Edit sketch** after reopening shows all 3 slices, method Loft, 2 ghosted ribs. Autosave reload at phone Chromium kept a subtract-of-a-sketch result (47 527.035 mm³). The hosted half was not driven.
+
 ### 11. Export a solid and confirm it opens elsewhere
 
 Added 2026-09-17 alongside `TODO/ROADMAP.md`'s M6, same rule as scenario 10. Steps
@@ -3044,6 +3075,8 @@ a slicer / mesh viewer and comparing them to the viewport, which no byte-level c
 - **Step 5** (a real slicer or viewer) still **NOT DRIVEN**, as before. Every file was read by independent parsers instead.
 
 Console clean.
+
+**Re-checked**: 2026-10-02 19:05 UTC — **PASS for sketch bodies** (`sketch-001`): a lofted sketch exported as STL at laptop Chromium reads 20 triangles, **0 open edges**; unit-level, every extrusion method (Linear tube, Revolve, Helical, Outline, Loft) exports at Print with 0 open edges (`exportJob.spec.js`). **Found and filed, not caused by this task:** a sketch hexagon **with a 2 mm top fillet** exported 8 open edges at the design resolution; isolated in Node it is 12 open edges for `primitive.hexagon` + fillet too (0 without the fillet), so it is a fillet-on-a-non-axis-aligned-rim / T-junction-repair gap → `TODO/io-006`. No real slicer opened the files.
 
 ### 12. Edit a step in the middle of the history and confirm it replays
 
@@ -3265,6 +3298,8 @@ steps exercise, and that mechanism is unchanged by this diff.
 **Last run**: 2026-09-30 18:50 UTC (`core-036`) — PASS for the History list read only (step 4's row text, via the Union row above), laptop Chromium and phone WebKit. Edit/Suppress/Roll back steps not re-driven: this change is a label string only.
 
 **Last run**: 2026-10-01 22:55 UTC (`ui-054`) — PASS for the undo half only: after New, undoing every available step never resurrected the previous project (count 0); New itself is not an undo step, matching Open. Laptop Chromium and phone WebKit.
+
+**Re-checked**: 2026-10-02 19:05 UTC — **PASS** (`sketch-001`), laptop Chromium: Sketch hexagon (r 20, Linear 20) → typed move to X 100 → 2 mm top Fillet → **Edit sketch** (still enabled — the replace path, not ui-029's old freeze) → the editor aimed at the *moved* plane (target 100, 37.29) → radius 25 → Done: the body kept its X = 100 position and the fillet was re-applied (32 329.351 mm³, below the 32 476.0 of an unfilleted r 25 hexagon) — **ui-029's silent-data-loss repro: nothing silently dropped**. One Undo step ("Undo: Edit Sketch 1") put it back (20 667.991), Redo re-applied. History lists "Sketch 1 — placed", "Move Sketch 1", "Fillet Top (+Z) 2 mm on Sketch 1". Also WebKit tablet: Edit sketch on a body **turned 90° about X** looked square-on at the turned plane (az −90°, el 0°), a hole drawn there previewed and committed, pose kept.
 
 ### 13. Recolor a placed body
 

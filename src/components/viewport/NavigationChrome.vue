@@ -26,25 +26,25 @@ const props = defineProps({
     required: true,
   },
   /**
-   * Whether sketch mode is active (`TODO/ui-020`).
+   * Whether the sketch editor is open (`TODO/sketch-001`).
    *
-   * While it is, a plain drag *draws* rather than orbits or pans, so the
-   * drag-mode row below is selecting between three things none of which are
-   * happening — and the mouse-nav preset beside it configures the very gesture
-   * that has been reclaimed. The whole row is hidden for the duration rather
-   * than disabled.
+   * While it is, a plain drag *draws* rather than orbits or pans, so the drag-mode row
+   * below would be selecting between three things none of which are happening — and the
+   * mouse-nav preset beside it configures the very gesture that has been reclaimed. The
+   * whole row is hidden for the duration rather than disabled, and the pad below pans.
    *
-   * That is a deliberate departure from this project's usual
-   * disabled-not-hidden rule, and the reason is a finding from `ui-020`'s own
-   * acceptance drive: at the 390px phone reference the chrome cluster, the
-   * Sketch toolbar and the auto-opened Inspector sheet between them left the
-   * drawn line almost entirely occluded. That rule exists for *operation*
-   * buttons, where "this exists but needs operands" is information the user
-   * needs; a mode selector for a mode you are not in is not that — the Sketch
-   * button immediately below stays visible and says exactly where the gesture
-   * went, and the row comes straight back on exit.
+   * That is a deliberate departure from this project's usual disabled-not-hidden rule,
+   * found by `ui-020`'s acceptance drive: at the 390px phone reference the chrome
+   * cluster, the Sketch toolbar and an open sheet between them left the drawing area
+   * almost entirely occluded. That rule exists for *operation* buttons, where "this
+   * exists but needs operands" is information the user needs; a mode selector for a mode
+   * you are not in is not that — the Sketch toolbar's Done and Cancel say exactly where
+   * the gesture went, and the row comes straight back when the editor closes.
+   *
+   * There is no Sketch toggle here any more: a sketch is a primitive, entered from the
+   * Library or from the Inspector's **Edit sketch**, never from navigation chrome.
    */
-  sketchMode: { type: Boolean, default: false },
+  sketching: { type: Boolean, default: false },
   /**
    * Whether an open phone-width sheet has pushed this cluster up off the bottom edge
    * (`TODO/ui-046`).
@@ -58,13 +58,21 @@ const props = defineProps({
    * so collapsing costs discoverability for one tap, not the ability to navigate.
    */
   raised: { type: Boolean, default: false },
+  /**
+   * Whether the sketch editor's Slices/Extrude sheet is open (`TODO/sketch-001`). On a
+   * narrow *viewport* (phone, and the tablet's 390px column) the cluster lifts above the
+   * sheet — applied by a container query so it holds at tablet too. Separate from `raised`
+   * on purpose: that one is gated on the window width, and widening it would change what
+   * an open History dock does at tablet.
+   */
+  sketchSheet: { type: Boolean, default: false },
 })
 
-const emit = defineEmits(['step', 'zoom', 'mode', 'reset', 'sketch'])
+const emit = defineEmits(['step', 'zoom', 'mode', 'reset'])
 
 // While sketching, a plain drag draws and the direction pad pans — orbit is
-// suspended (section 7's Q10), so the pad must not claim to orbit either.
-const verb = computed(() => (props.sketchMode || props.dragMode === 'pan' ? 'Pan' : 'Orbit'))
+// suspended, so the pad must not claim to orbit either.
+const verb = computed(() => (props.sketching || props.dragMode === 'pan' ? 'Pan' : 'Orbit'))
 
 // TODO/ui-019: the mouse-navigation preset is read straight from the settings
 // store — this control both shows and changes it, with no need to round-trip
@@ -93,7 +101,7 @@ function choosePreset(id) {
 const expanded = ref(false)
 
 watch(
-  () => props.raised,
+  () => [props.raised, props.sketching, props.sketchSheet],
   () => {
     expanded.value = false
   },
@@ -117,7 +125,12 @@ const STEPS = Object.freeze([
 <template>
   <div
     class="chrome"
-    :class="{ 'chrome--raised': raised, 'chrome--expanded': expanded }"
+    :class="{
+      'chrome--raised': raised,
+      'chrome--sketching': sketching,
+      'chrome--sketch-sheet': sketchSheet,
+      'chrome--expanded': expanded,
+    }"
     data-testid="navigation-chrome"
     :data-drag-mode="dragMode"
   >
@@ -127,7 +140,7 @@ const STEPS = Object.freeze([
          layout. The pad and zoom are hidden individually below, because the
          expand toggle shares their row. -->
     <div class="chrome__body">
-      <div v-if="!sketchMode" class="chrome__modes" role="group" aria-label="Viewport drag mode">
+      <div v-if="!sketching" class="chrome__modes" role="group" aria-label="Viewport drag mode">
         <button
           type="button"
           class="chrome__mode"
@@ -174,27 +187,6 @@ const STEPS = Object.freeze([
           ⚙
         </button>
       </div>
-
-      <!-- The Sketch mode toggle (TODO/ui-020). Its own row rather than a fourth
-           chip in the drag-mode group above: this enters a *mode*, it does not
-           choose what a drag already does — and a fourth chip would not leave a
-           real tap target at 390px width. -->
-      <button
-        type="button"
-        class="chrome__sketch"
-        :class="{ 'chrome__sketch--on': sketchMode }"
-        :aria-pressed="sketchMode"
-        data-testid="nav-sketch-toggle"
-        :title="sketchMode ? 'Leave sketch mode' : 'Draw 2D sketch geometry on the working plane'"
-        @click="emit('sketch')"
-      >
-        <!-- Always "Sketch", never relabelled to "Exit Sketch": the Sketch
-             toolbar already carries an `Exit Sketch` button, and two identically
-             labelled controls on screen at once read as a bug. This is a toggle
-             and shows its state the way the Orbit/Pan/Select chips above do —
-             pressed, and painted in the accent colour. -->
-        Sketch
-      </button>
 
       <div
         v-if="settingsOpen"
@@ -357,25 +349,6 @@ const STEPS = Object.freeze([
   font-weight: 600;
 }
 
-.chrome__sketch {
-  min-height: 32px;
-  padding: 0 10px;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-sm);
-  background: var(--surface-1);
-  color: var(--text-2);
-  font-size: 12px;
-  cursor: pointer;
-  touch-action: manipulation;
-}
-
-.chrome__sketch--on {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: var(--accent-contrast);
-  font-weight: 600;
-}
-
 .chrome__gear {
   flex: 0 0 auto;
   width: 30px;
@@ -505,8 +478,7 @@ const STEPS = Object.freeze([
     height: var(--tap-compact);
   }
 
-  .chrome__mode,
-  .chrome__sketch {
+  .chrome__mode {
     min-height: 30px;
     font-size: 11px;
   }
@@ -531,6 +503,27 @@ const STEPS = Object.freeze([
    `--viewport-bottom-inset` breakpoint, which is where the raise itself happens.
    Collapsed, the cluster is one 38px toggle plus its padding (~48px square)
    instead of ~194×200px sitting over whatever body the user placed there. */
+/* TODO/sketch-001: while the sketch editor is open on a narrow viewport the cluster folds
+   to its one toggle — ui-046's fold, for the same reason: the drawing plane needs the room
+   (it keeps the resting editor's reachable canvas above ui-020's 69% at the 390px phone),
+   and two-finger pan/pinch and the expanded toggle still navigate. With a Slices/Extrude
+   sheet open it also lifts above that sheet (capped at 24% by `SketchPanelSheet.vue`). */
+@container viewport (max-width: 520px) {
+  .chrome--sketching .chrome__expand {
+    display: grid;
+  }
+
+  .chrome--sketching:not(.chrome--expanded) .chrome__body,
+  .chrome--sketching:not(.chrome--expanded) .chrome__pad,
+  .chrome--sketching:not(.chrome--expanded) .chrome__zoom {
+    display: none;
+  }
+
+  .chrome--sketch-sheet {
+    bottom: calc(8px + var(--viewport-bottom-inset, 0px) + 24%);
+  }
+}
+
 @media (max-width: 640px) {
   .chrome--raised .chrome__expand {
     display: grid;

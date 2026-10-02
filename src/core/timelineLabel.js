@@ -94,8 +94,6 @@ const VERBS = Object.freeze({
 /** Ops whose row reads `<Verb> <face> <radius> mm on <subject>`. */
 const RIM_OPS = new Set(['modify.filletRim', 'modify.chamferRim'])
 
-const SKETCH_OP_PREFIX = 'sketch.'
-
 /**
  * A millimetre value as a user would write it: `5`, not `5.0`; `2.5`, not
  * `2.50000001`.
@@ -240,10 +238,9 @@ export function describeRow(record, names) {
   // the lineage's terminal. Calling the second one "placed" would put two
   // placement rows in the list for one body, which is the confusion §13's row
   // text exists to prevent.
-  const drawn = record.op.startsWith(SKETCH_OP_PREFIX)
   if (record.supersedes !== undefined) {
     return subject === undefined ? 'Edited' : `${subject} — edited`
   }
   const noun = record.name ?? record.id ?? record.op
-  return `${noun} — ${drawn ? 'drawn' : 'placed'}`
+  return `${noun} — placed`
 }

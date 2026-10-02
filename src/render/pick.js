@@ -153,6 +153,67 @@ export function projectToWorkingPlane(orbit, ndcX, ndcY, aspect, out, planeZMm =
 }
 
 /**
+ * Project a screen point onto a **sketch slice's plane**, in that sketch's own local
+ * millimetres (`TODO/sketch-001`).
+ *
+ * The generalisation of {@link projectToWorkingPlane} a sketch editor needs: a sketch
+ * body may have been moved or turned since it was drawn, so its plane is wherever its
+ * frame (`src/core/kernel/sketchFrame.js`) puts it — not necessarily the grid. Same ray,
+ * same no-matrix construction; the plane is the frame's local XY at offset `zMm` along
+ * its local Z. The frame is rigid, so world → local is a dot product with each axis
+ * rather than a matrix inverse.
+ *
+ * @param {OrbitCamera} orbit
+ * @param {number} ndcX
+ * @param {number} ndcY
+ * @param {number} aspect
+ * @param {readonly number[]} frame Column-major 4×4, sketch-local → world.
+ * @param {number} zMm The slice's offset along the sketch's local Z.
+ * @param {number[]} out `[x, y]`, mutated in place.
+ * @returns {number[] | null} `out`, or `null` when the ray never meets the plane in front
+ *   of the camera.
+ */
+export function projectToSketchPlane(orbit, ndcX, ndcY, aspect, frame, zMm, out) {
+  const { azimuthDeg, elevationDeg, distanceMm, target } = orbit.state
+  const az = azimuthDeg * DEG
+  const el = elevationDeg * DEG
+  const dirX = Math.cos(el) * Math.cos(az)
+  const dirY = Math.cos(el) * Math.sin(az)
+  const dirZ = Math.sin(el)
+  const originX = target.x + distanceMm * dirX
+  const originY = target.y + distanceMm * dirY
+  const originZ = target.z + distanceMm * dirZ
+
+  rightFromSpherical(azimuthDeg, elevationDeg, scratchRight)
+  upFromSpherical(azimuthDeg, elevationDeg, scratchUp)
+  const tanHalfFov = Math.tan((orbit.fovDeg * DEG) / 2)
+  const rightScale = ndcX * tanHalfFov * (aspect > 0 ? aspect : 1)
+  const upScale = ndcY * tanHalfFov
+  const rayX = -dirX + scratchRight.x * rightScale + scratchUp.x * upScale
+  const rayY = -dirY + scratchRight.y * rightScale + scratchUp.y * upScale
+  const rayZ = -dirZ + scratchRight.z * rightScale + scratchUp.z * upScale
+
+  // The plane: through origin + n·zMm, normal n (the frame's local Z column).
+  const nx = frame[8]
+  const ny = frame[9]
+  const nz = frame[10]
+  const planeX = frame[12] + nx * zMm
+  const planeY = frame[13] + ny * zMm
+  const planeZ = frame[14] + nz * zMm
+  const denominator = rayX * nx + rayY * ny + rayZ * nz
+  if (Math.abs(denominator) < 1e-9) return null
+  const t = ((planeX - originX) * nx + (planeY - originY) * ny + (planeZ - originZ) * nz) / denominator
+  if (!(t > 0) || !Number.isFinite(t)) return null
+
+  const relX = originX + rayX * t - frame[12]
+  const relY = originY + rayY * t - frame[13]
+  const relZ = originZ + rayZ * t - frame[14]
+  out[0] = relX * frame[0] + relY * frame[1] + relZ * frame[2]
+  out[1] = relX * frame[4] + relY * frame[5] + relZ * frame[6]
+  return out
+}
+
+/**
  * @typedef {object} PlacementNeighbour
  * @property {readonly number[]} centroidMm The body's bounding-box centre, in
  *   document millimetres (`centroidOf` in `src/core/kernel/group.js`).

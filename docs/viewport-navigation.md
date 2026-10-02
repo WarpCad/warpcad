@@ -69,7 +69,7 @@ somewhere else.
    pad is now just the **✥** button, sitting above the panel.
 2. Tap the cube. It becomes the selected object and the camera stays where it
    was.
-3. Tap **✥** to open the full pad (`Orbit`/`Pan`/`Select`, `Sketch`, the arrows,
+3. Tap **✥** to open the full pad (`Orbit`/`Pan`/`Select`, the arrows,
    `⌂` and zoom). The **✥** button turns highlighted and stays in the same
    corner.
 4. Use the arrows as usual, then tap **✥** again to fold the pad back down.
@@ -170,3 +170,23 @@ If your browser can't start WebGL, the 3D area shows a short message explaining
 that instead of a blank rectangle. The navigation pad and triad keep working —
 they drive the camera, not the renderer — so the app stays usable while you fix
 the browser setting or move to another device.
+
+## While you are drawing a sketch
+
+There used to be a **Sketch** button on the navigation pad. It is gone: a sketch is now a
+shape you drag in from the Library, and the pad never starts one. See
+[Sketch primitives](sketch-mode.md).
+
+While the sketch editor is open, the camera stays square-on to the sketch, so the
+navigation pad changes:
+
+- the `Orbit` / `Pan` / `Select` row and the ⚙ settings are hidden, because a drag
+  **draws** instead;
+- the arrows **pan** across the sketch, and zoom works as usual;
+- the orientation triad still shows where you are looking, but its view buttons are off.
+  Snapping to Front mid-sketch would turn the sketch edge-on;
+- on a phone, and on a tablet whose view is just as narrow, the pad folds to the **✥**
+  button so the drawing area stays clear. When the Slices or Extrude panel is open, the
+  **✥** button sits just above it. Two fingers still pan and pinch-zoom.
+
+Everything comes back when you tap **Done** or **Cancel**.

@@ -259,6 +259,7 @@ onBeforeUnmount(stopTracking)
               :data-testid="`library-row-${row.op}`"
               :data-op="row.op"
               :data-label="row.label"
+              :data-editor="row.editor ?? ''"
               :disabled="timeline.previewing"
               :title="timeline.previewing ? 'Leave the preview to place a shape' : undefined"
               @pointerdown="onRowPointerDown($event, row)"

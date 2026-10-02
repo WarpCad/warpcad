@@ -92,7 +92,8 @@ followed by the reason — and keeps the unreadable copy aside rather than writi
 
 ## What is and isn't kept
 
-- **Kept:** every shape you placed, moved, rotated, combined or edited, any sketch lines,
+- **Kept:** every shape you placed, moved, rotated, combined or edited (sketch shapes
+  included, with their outlines, so **Edit sketch** still works after a reload),
   steps you have suppressed, and a rollback point in the history, if you set one.
 - **Not kept:** the **undo history** (after a reload both undo and redo start greyed out —
   see [Undoing and redoing a change](undo-redo.md)), what is **selected**, and where the

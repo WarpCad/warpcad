@@ -75,6 +75,7 @@ import { useDocumentStore } from '../stores/document.js'
  *   setParam: (bodyId: string, key: string, value: unknown) => ParamResult,
  *   setCompositeParams: (bodyId: string, values: Record<string, unknown>) => ParamResult,
  *   setParamComponent: (bodyId: string, key: string, index: number, value: number) => void,
+ *   setParams: (bodyId: string, changes: Record<string, unknown>) => void,
  *   applyRepair: (edit: RepairEdit, breakages: readonly Breakage[], fixes: Record<string, Fix>) => void,
  *   resolveTargets: (bodyId: string) => { edit: RepairEdit, breakages: Breakage[] },
  *   setCondition: (recordId: string, when: { ref: string, param: string, in: any[] } | null) => void,
@@ -276,6 +277,15 @@ export function useParamCommands() {
         [change, ...breakages.map((breakage) => ({ id: breakage.dependentRecordId, leftBroken: true }))],
         { label: when === null ? `Remove condition from ${bodyName}` : `Edit condition on ${bodyName}` },
       )
+    },
+
+    /**
+     * Commit several params of one primitive as **one** revision — one Undo step. The
+     * sketch editor's Done (`TODO/sketch-001`) changes `slices` and `extrusion` together;
+     * two `setParam` calls would be two steps for one editing session.
+     */
+    setParams(bodyId, changes) {
+      applyChanges(bodyId, /** @type {any} */ (changes))
     },
 
     /** Commit one typed component of a vector param: Size X, Side B. */

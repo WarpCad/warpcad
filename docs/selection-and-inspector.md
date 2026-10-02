@@ -177,6 +177,41 @@ new size; if the new size is too small for it (a 5 mm fillet on a cylinder you s
 4 mm across), nothing changes and a message under the boxes names the Fillet step. Make
 the fillet smaller first, or pick a size it fits.
 
+## A sketch shape
+
+A shape made from a [Sketch](sketch-mode.md) selects, moves, turns and combines like any
+other shape. In place of the **Parameters** list, its Inspector has a **Sketch** section:
+
+- **Extrusion**: how its outlines become a solid (Linear, Revolve, Helical, Outline or
+  Loft), and **Slices**: how many outline layers it has;
+- that method's numbers, such as **Height** and **Twist** for Linear. Type a value and press
+  Enter to change it in place, exactly like a Parameters box. It is one step to undo, and a
+  move or a fillet you added afterwards is kept;
+- **Edit sketch**, which reopens the outlines on the shape's own plane, wherever you have
+  moved or turned it since. **Done** applies your changes as one step; **Cancel** leaves the
+  shape as it was.
+
+**Edit sketch** is greyed out, with the reason underneath, when the selected shape can't be
+rebuilt from its outlines. Once a sketch has been combined into a Union or Subtract, the
+selected shape is the combination, which has no outlines of its own. Its Inspector shows the
+combination instead.
+
+While the sketch editor is open, the Inspector shows the **selected outline** instead of a
+shape: its kind, **Solid** / **Hole**, its numbers (centre, radius, width, height, sides)
+and **Delete outline**. On a phone, tap the **Sketch** tab to see it. It does not pop up by
+itself while you draw, so it never covers the drawing.
+
+### Worked example: make a tube taller
+
+1. Draw the tube from [Sketch primitives](sketch-mode.md#worked-example-a-tube) and tap
+   **Done**. It is selected, and the Inspector's **Sketch** section reads **Linear**, Height
+   **30**.
+2. Type **45** into Height and press Enter. The tube grows to 45 mm.
+3. Tap **Edit sketch**, select the inner circle, and type **12** into its Radius in the
+   Inspector. The preview's bore narrows. Tap **Done**.
+4. Press **Undo** once: the bore goes back to 15 mm and the height stays at 45, because
+   each was its own step.
+
 ## Changing a part's model or size
 
 A ready-made part from the Library — a **Raspberry Pi**, a **Bolt**, a **Nut**, a
@@ -762,7 +797,7 @@ is the way to do it.
   with the same size, rotation and colour, and selects it again.
 - The keys do nothing while you are typing in a field. Backspace in a Position box only
   deletes a digit, never the shape.
-- Delete is not available mid-drag, in sketch mode, or while History is previewing an
+- Delete is not available mid-drag, while a sketch is being edited, or while History is previewing an
   earlier step. The greyed-out button says which one applies.
 
 ### Worked example: delete a cube, then bring it back
@@ -829,7 +864,7 @@ by name instead of guessing:
   was, selected. If you have done other things since, open History and **Suppress** its
   `Delete` row.
 - **The Delete button is greyed out.** Its message says why: nothing is selected, a drag
-  is in progress, you are in sketch mode, History is previewing an earlier step, or you
+  is in progress, a sketch is being edited, History is previewing an earlier step, or you
   are trying to remove a group's last visible part.
 - **I can't click the shape I want — something else is in front of it.** Tap empty space
   so nothing is selected, and tap its name in the Inspector's
@@ -839,8 +874,8 @@ by name instead of guessing:
   top bar were folded into the Inspector. The list is the Inspector's content when
   nothing is selected, and the **Objects** bar at the top of the Inspector otherwise.
 - **The object list is greyed out and says it is read-only.** It does that while you are
-  previewing a past step in History (or in sketch mode). Come back to the latest step, or
-  leave sketch mode, and it works again.
+  previewing a past step in History (or while a sketch is being edited). Come back to the
+  latest step, or tap the sketch's **Done** or **Cancel**, and it works again.
 - **A shape I know is in the model is missing from the object list.** Its step is
   probably suppressed or rolled back. See the note at the bottom of the list, and the
   [History panel](timeline.md).

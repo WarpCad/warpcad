@@ -23,22 +23,10 @@ import { createEvaluationChannel, evaluationWorkerAvailable } from '../core/kern
 import { boundsOf, hasNamedParts, hiddenNamesOf, isGroup } from '../core/kernel/group.js'
 import { cachedMeasurementOf, measureGeometry, rememberMeasurement } from '../core/kernel/measure.js'
 import { packGeometry } from '../core/kernel/transport.js'
-import { lengthOf, lineFromParams } from '../sketch/entity.js'
 import { useSelectionStore } from './selection.js'
 
 /** @typedef {import('../core/document.js').Body} Body */
 /** @typedef {import('../core/kernel/registry.js').OpRecord} OpRecord */
-
-/**
- * @typedef {object} SketchEntitySummary
- * @property {string} id Lineage-root id — stable across endpoint edits.
- * @property {string} recordId
- * @property {string} name
- * @property {string} op
- * @property {[number, number]} startMm Millimetres on the Z=0 working plane.
- * @property {[number, number]} endMm
- * @property {number} lengthMm
- */
 
 /**
  * @typedef {object} BodySummary
@@ -121,7 +109,7 @@ function requestMeasurements(list, channel, onLanded) {
   if (waiting.length === 0 || !evaluationWorkerAvailable()) return
   channel.request({ kind: 'measure', bodies: waiting.map((geometry) => packGeometry(geometry)) }).then(
     (outcome) => {
-      if (outcome.superseded) return
+      if (outcome.superseded || outcome.result.kind !== 'measure') return
       outcome.result.measurements.forEach((measured, index) => {
         const geometry = waiting[index]
         rememberMeasurement(
@@ -193,18 +181,6 @@ export const useDocumentStore = defineStore('document', () => {
   /** @type {import('vue').ShallowRef<BodySummary[]>} */
   const bodies = shallowRef(/** @type {BodySummary[]} */ ([]))
   /**
-   * The document's sketch entities (`TODO/ui-020`), already parsed into the
-   * shape the overlay and the Inspector read.
-   *
-   * Unlike `bodies` above, this genuinely *is* plain data all the way down —
-   * four numbers per entity, no kernel geometry anywhere near it — so there is
-   * no imperative-read caveat here. A malformed record (a document from an
-   * untrusted URL) is dropped rather than rendered, per `lineFromParams`.
-   *
-   * @type {import('vue').ShallowRef<SketchEntitySummary[]>}
-   */
-  const sketchEntities = shallowRef(/** @type {SketchEntitySummary[]} */ ([]))
-  /**
    * `TODO/ui-052`: bodies a condition is keeping out of the fold. Plain data (ids, names
    * and the condition's words — no geometry), refreshed with everything else, so the
    * object list can show them greyed and selectable.
@@ -271,21 +247,6 @@ export const useDocumentStore = defineStore('document', () => {
     undoLabel.value = raw.pendingUndo()?.label ?? ''
     redoLabel.value = raw.pendingRedo()?.label ?? ''
     resolution.value = raw.resolution()
-    sketchEntities.value = raw.sketchEntities().flatMap((entity) => {
-      const line = lineFromParams(entity.id, entity.params)
-      if (!line) return []
-      return [
-        {
-          id: entity.id,
-          recordId: entity.recordId,
-          name: entity.name,
-          op: entity.op,
-          startMm: line.startMm,
-          endMm: line.endMm,
-          lengthMm: lengthOf(line.startMm, line.endMm),
-        },
-      ]
-    })
     const list = raw.bodies()
     bodies.value = list.map(summarizeBody)
     // `TODO/ui-052`: a change (a model swap, or its Undo) can take away the part the
@@ -628,10 +589,8 @@ export const useDocumentStore = defineStore('document', () => {
     raw,
     version,
     bodies,
-    sketchEntities,
     inactiveBodies,
     count: computed(() => bodies.value.length),
-    sketchCount: computed(() => sketchEntities.value.length),
     canUndo,
     canRedo,
     undoLabel,

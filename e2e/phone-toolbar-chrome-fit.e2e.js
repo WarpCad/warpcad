@@ -138,7 +138,7 @@ async function selectCount(page, count, ids) {
 
 /**
  * Bounding rectangle of a test id, or `null` when it is not rendered (a sheet that
- * is closed, a toolbar hidden in sketch mode — neither happens in this spec, but the
+ * is closed, a toolbar hidden while the sketch editor is open — neither happens in this spec, but the
  * null case is checked explicitly rather than assumed away).
  *
  * @param {import('@playwright/test').Page} page

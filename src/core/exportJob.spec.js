@@ -225,4 +225,20 @@ describe('runExportJob — watertight at Print (io-004 / io-005 re-run at the fi
       )
     expect(openEdges(triangles)).toBe(0)
   })
+
+  // TODO/sketch-001: a sketch body is a primitive like any other, so it must export as a
+  // closed solid by every extrusion method — ACCEPTANCE scenario 11 at the unit level.
+  it.each([
+    ['linear', [{ id: 's1', zMm: 0, profiles: [{ id: 'a', kind: 'circle', role: 'solid', centerMm: [0, 0], radiusMm: 20 }, { id: 'b', kind: 'circle', role: 'hole', centerMm: [0, 0], radiusMm: 15 }] }], { method: 'linear', heightMm: 30, twistDeg: 0, twistSteps: 1 }],
+    ['revolve', [{ id: 's1', zMm: 0, profiles: [{ id: 'a', kind: 'rect', role: 'solid', centerMm: [15, 5], widthMm: 10, heightMm: 10 }] }], { method: 'revolve', angleDeg: 360, startAngleDeg: 0, segments: 48 }],
+    ['helical', [{ id: 's1', zMm: 0, profiles: [{ id: 'a', kind: 'circle', role: 'solid', centerMm: [10, 0], radiusMm: 2 }] }], { method: 'helical', pitchMm: 8, turns: 2, endOffsetMm: 0, segmentsPerTurn: 24 }],
+    ['outline', [{ id: 's1', zMm: 0, profiles: [{ id: 'a', kind: 'rect', role: 'solid', centerMm: [0, 0], widthMm: 40, heightMm: 30 }] }], { method: 'outline', wallMm: 2, heightMm: 10 }],
+    ['loft', [{ id: 's1', zMm: 0, profiles: [{ id: 'a', kind: 'circle', role: 'solid', centerMm: [0, 0], radiusMm: 30 }] }, { id: 's2', zMm: 60, profiles: [{ id: 'b', kind: 'rect', role: 'solid', centerMm: [0, 0], widthMm: 30, heightMm: 20 }] }, { id: 's3', zMm: 120, profiles: [{ id: 'c', kind: 'circle', role: 'solid', centerMm: [0, 0], radiusMm: 8 }] }], { method: 'loft', resolution: 0 }],
+  ])('a %s sketch body has 0 open edges', (_method, slices, extrusion) => {
+    const triangles = printStl((document) => {
+      document.append({ id: 'sketch-1', op: 'primitive.sketch', name: 'Sketch 1', params: { center: [12.5, -3, 0], slices, extrusion } }, local)
+    })
+    expect(triangles.length).toBeGreaterThan(0)
+    expect(openEdges(triangles)).toBe(0)
+  })
 })

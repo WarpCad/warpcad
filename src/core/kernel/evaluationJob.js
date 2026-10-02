@@ -26,8 +26,9 @@
  * @module core/kernel/evaluationJob
  */
 
+import { evaluateOp, policyFor } from './index.js'
 import { measureGeometry } from './measure.js'
-import { unpackGeometry } from './transport.js'
+import { packGeometry, unpackGeometry } from './transport.js'
 
 /** @typedef {import('./transport.js').PackedGeometry} PackedGeometry */
 /** @typedef {import('./group.js').BoundsMm} BoundsMm */
@@ -54,8 +55,27 @@ import { unpackGeometry } from './transport.js'
  * @property {MeasureOutcome[]} measurements Index-aligned with the job's `bodies`.
  */
 
-/** @typedef {MeasureJob} EvaluationJob */
-/** @typedef {MeasureResult} EvaluationResult */
+/**
+ * Build one op from params, off the main thread (`TODO/sketch-001`): the sketch editor's
+ * live extrusion preview. Nothing is appended — the answer is drawn and thrown away, and a
+ * newer request on the same channel supersedes an older one rather than queueing behind it.
+ *
+ * @typedef {object} BuildJob
+ * @property {'build'} kind
+ * @property {string} op
+ * @property {Record<string, any>} params Plain JSON.
+ * @property {string} resolution The design resolution to facet curves at.
+ */
+
+/**
+ * @typedef {object} BuildResult
+ * @property {'build'} kind
+ * @property {PackedGeometry} [geometry] Present when the op built.
+ * @property {string} [error] The kernel's reason when it did not.
+ */
+
+/** @typedef {MeasureJob | BuildJob} EvaluationJob */
+/** @typedef {MeasureResult | BuildResult} EvaluationResult */
 
 /**
  * Run one evaluation job.
@@ -75,6 +95,14 @@ export function runEvaluationJob(job) {
           return { error: error instanceof Error ? error.message : String(error) }
         }
       }),
+    }
+  }
+  if (job?.kind === 'build') {
+    try {
+      const geometry = evaluateOp(job.op, job.params, { policy: policyFor(job.resolution) })
+      return { kind: 'build', geometry: packGeometry(/** @type {any} */ (geometry)) }
+    } catch (error) {
+      return { kind: 'build', error: error instanceof Error ? error.message : String(error) }
     }
   }
   throw new Error(`evaluation job: unknown kind "${/** @type {any} */ (job)?.kind}"`)

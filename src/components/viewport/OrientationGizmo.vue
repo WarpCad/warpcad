@@ -24,13 +24,13 @@ const props = defineProps({
   azimuthDeg: { type: Number, required: true },
   elevationDeg: { type: Number, required: true },
   /**
-   * Whether snapping is currently unavailable (`TODO/ui-020`: sketch mode owns
-   * the camera orientation while it is active).
+   * Whether snapping is currently unavailable (`TODO/ui-020`, kept by `TODO/sketch-001`:
+   * the sketch editor owns the camera orientation while it is open).
    *
    * The triad keeps drawing — it is still the honest readout of where the
    * camera is looking, and that reassurance is exactly what a user wants while
    * locked to the working plane. Only its *snap* buttons go dead, because
-   * snapping to Front mid-sketch would turn the working plane edge-on and make
+   * snapping to Front mid-sketch would turn the sketch plane edge-on and make
    * drawing silently impossible: a screen-point ray parallel to the plane has
    * no intersection, so every drag would land nowhere with no explanation.
    */

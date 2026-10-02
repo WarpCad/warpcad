@@ -60,6 +60,9 @@ import { registry } from './kernel/registry.js'
  *   renders a control without naming a recipe and this module does not branch on it
  *   at all — a chosen value simply arrives as the `overrides` argument every
  *   function here already took.
+ * @property {'sketch' | null} editor Whether dropping the row opens an editor instead
+ *   of committing a record (`TODO/sketch-001`'s Sketch row), copied off the registry
+ *   like `choice`, so the viewport reads a flag rather than naming an op.
  */
 
 /**
@@ -85,6 +88,9 @@ const ROW_ORDER = Object.freeze([
   'primitive.hexagon',
   'primitive.triangle',
   'primitive.tube',
+  // A sketch is a primitive you draw rather than size (`TODO/sketch-001`), so it sits
+  // with the other primitives, after Tube — the last of the extruded-profile shapes.
+  'primitive.sketch',
   'primitive.sphere',
   'hardware.bolt',
   'hardware.nut',
@@ -173,6 +179,7 @@ function buildRows(ops, namespace) {
       operandCount: entry.operandCount,
       kind: entry.kind,
       choice: ui.choice ?? null,
+      editor: ui.editor ?? null,
     })
   })
 }

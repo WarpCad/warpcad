@@ -77,7 +77,7 @@ import { useHostedStore } from '../../stores/hosted.js'
 import { useOverlaysStore } from '../../stores/overlays.js'
 import { usePersistenceStore } from '../../stores/persistence.js'
 import { usePlacementStore } from '../../stores/placement.js'
-import { useSketchPreviewStore } from '../../stores/sketchPreview.js'
+import { useSketchEditorStore } from '../../stores/sketchEditor.js'
 import { useTimelineStore } from '../../stores/timeline.js'
 import { useTransformPreviewStore } from '../../stores/transformPreview.js'
 import HostedDot from '../display/HostedDot.vue'
@@ -97,7 +97,7 @@ const timeline = useTimelineStore()
 const overlays = useOverlaysStore()
 const placement = usePlacementStore()
 const transformPreview = useTransformPreviewStore()
-const sketchPreview = useSketchPreviewStore()
+const sketchEditor = useSketchEditorStore()
 const surface = useStatusSurface()
 
 const capabilities = persistence.fileCapabilities
@@ -154,7 +154,7 @@ const busy = computed(
     overlays.anyOpen ||
     placement.isDragging ||
     transformPreview.bodyId !== '' ||
-    sketchPreview.entityId !== '',
+    sketchEditor.active,
 )
 watch(busy, (value) => hosted.setUiBusy(value), { immediate: true })
 

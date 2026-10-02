@@ -34,6 +34,29 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### sketch-001 — Sketch primitive: draw outlines, extrude to a solid (2026-10-02 19:20)
+
+The run was unattended, so the interaction-model answers this task was told to confirm with
+the user first were **not** confirmed: rows 1-7 are those decisions, each a yes/no for the
+user (status `Open` until answered; say `Issue` and file a TODO to change one). Rows 8-11 are
+the device/feel checks no headless drive can settle. Scenario 9's hand drive (laptop mouse,
+phone touch-only via CDP) and the re-drives of 1, 4, 7, 8, 10, 11, 12 already cover the flows.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | **UNCONFIRMED default:** a Sketch row sits in Primitives **after Tube**, and its drop opens the editor (nothing in the document until Done; Cancel leaves no body). | Open | |
+| 2 | **UNCONFIRMED default:** double-click / double-tap a sketch body as an Edit sketch shortcut — **not built**; only the Inspector's Edit sketch exists. Wanted? | Open | |
+| 3 | **UNCONFIRMED default:** Loft v1 needs exactly one Solid outline and no Holes per slice (cut holes afterwards with Subtract). | Open | |
+| 4 | **UNCONFIRMED default (implementer's):** while editing on a narrow viewport the nav chrome folds to ✥ even with no sheet open (extends ui-046; it is what keeps the resting editor's reachable canvas ≥ 69 %, 67 % → 76 % at 390 px). | Open | |
+| 5 | **UNCONFIRMED interpretation:** with the Slices/Extrude sheet open the phone's whole-canvas reachability is 47-57 % (tablet 64-74 %), below the task's literal ≥ 69 %; the drawing area round the origin stays 100 % reachable and that is what is asserted. Acceptable, or should the sheet get smaller / collapsible? | Open | |
+| 6 | **UNCONFIRMED defaults (implementer's):** Polygon starts at 6 sides; a new slice is placed 50 mm above the highest; a new sketch starts as Linear 10 mm; Revolve 360° / 32 segments; Helical pitch 10 mm × 2 turns; Outline wall 2 mm × 10 mm. | Open | |
+| 7 | **UNCONFIRMED (implementer's):** Undo/Redo and Delete are off while the editor is open (the draft isn't in the document yet), and old `sketch.line` records are dropped on load with a chip warning rather than migrated (the spec's own "no migration"). | Open | |
+| 8 | On a real iPhone and iPad: drag Sketch out of the Library, draw two circles with a finger, tap the inner one, Hole, Extrude ▾ → Linear 30, Done. No accidental orbit, no sheet popping over the drawing, Done/Cancel always reachable. | Open | |
+| 9 | On a real phone: two-finger pan/pinch inside the editor while one finger draws — does a two-finger gesture ever leave a stray outline behind? | Open | |
+| 10 | Feel: the translucent extrusion preview behind the strokes — readable in both light and dark mode? Is the dashed Hole / amber open outline distinction obvious at a glance? | Open | |
+| 11 | Firefox (any real machine with a working Firefox): `npx playwright test e2e/sketch-primitive.e2e.js` with the firefox projects enabled — not runnable in this sandbox (TROUBLESHOOTING 2026-09-17). | Open | |
+
+
 ### ui-054 — File ▸ New (2026-10-01 22:57)
 
 The native Save-picker and hosted auto-push halves were proven only against a fake picker and a mocked GitHub host.

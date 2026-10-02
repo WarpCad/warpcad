@@ -158,6 +158,27 @@ function reasonOf(error) {
   return String(error)
 }
 
+/**
+ * One sentence naming every record a load skipped (`TODO/sketch-001`'s retired
+ * `sketch.line` records), grouped by reason: "skipped 2 steps (sketch-1, sketch-2): sketch
+ * lines are no longer supported — redraw them in a Sketch primitive".
+ *
+ * @param {readonly import('../core/project.js').LoadWarning[]} warnings
+ * @returns {string}
+ */
+function describeSkipped(warnings) {
+  /** @type {Map<string, string[]>} */
+  const byReason = new Map()
+  for (const warning of warnings) {
+    const ids = byReason.get(warning.message) ?? []
+    ids.push(warning.id ?? warning.op)
+    byReason.set(warning.message, ids)
+  }
+  return [...byReason]
+    .map(([message, ids]) => `skipped ${ids.length} step${ids.length === 1 ? '' : 's'} (${ids.join(', ')}): ${message}`)
+    .join('; ')
+}
+
 export const usePersistenceStore = defineStore('persistence', () => {
   const documentStore = useDocumentStore()
   const deps = resolveDependencies()
@@ -241,14 +262,17 @@ export const usePersistenceStore = defineStore('persistence', () => {
    * Parse, then load — the two-stage "fully validated before anything is
    * replaced" of section 10. Nothing is changed unless both stages pass.
    *
+   * A record this build has retired is skipped rather than refusing the file
+   * (`TODO/sketch-001`), and comes back as a `skipped` sentence the caller must show.
+   *
    * @param {string} text
-   * @returns {{ ok: true, steps: number } | { ok: false, message: string }}
+   * @returns {{ ok: true, steps: number, skipped: string } | { ok: false, message: string }}
    */
   function loadText(text) {
     try {
-      const { entries, rollbackAt, resolution } = parseProject(text)
+      const { entries, rollbackAt, resolution, warnings } = parseProject(text)
       documentStore.load(entries, rollbackAt, resolution)
-      return { ok: true, steps: entries.length }
+      return { ok: true, steps: entries.length, skipped: warnings.length > 0 ? describeSkipped(warnings) : '' }
     } catch (error) {
       return { ok: false, message: reasonOf(error) }
     }
@@ -301,7 +325,10 @@ export const usePersistenceStore = defineStore('persistence', () => {
           if (restored.fromMirror) needsWrite = true
           savedAt.value = restored.savedAt
           autosaveState.value = 'saved'
-          showNotice('Restored your last session', RESTORED_NOTICE_MS)
+          // Persistent, not a passing notice: the session lost records on the way in, and
+          // the user has to be able to read which before the next autosave makes it final.
+          if (loaded.skipped) errorMessage.value = `Restored your last session, but ${loaded.skipped}`
+          else showNotice('Restored your last session', RESTORED_NOTICE_MS)
         } else {
           // Keep the unreadable copy where the next autosave cannot overwrite it,
           // and say so: silently starting empty and then autosaving over a
@@ -427,7 +454,12 @@ export const usePersistenceStore = defineStore('persistence', () => {
       return { ok: false, message: loaded.message }
     }
     errorMessage.value = ''
-    showNotice(`Opened ${name} · ${loaded.steps} step${loaded.steps === 1 ? '' : 's'}`, SAVED_NOTICE_MS)
+    if (loaded.skipped) {
+      clearNotice()
+      errorMessage.value = `Opened ${name}, but ${loaded.skipped}`
+    } else {
+      showNotice(`Opened ${name} · ${loaded.steps} step${loaded.steps === 1 ? '' : 's'}`, SAVED_NOTICE_MS)
+    }
     return { ok: true, name, steps: loaded.steps }
   }
 

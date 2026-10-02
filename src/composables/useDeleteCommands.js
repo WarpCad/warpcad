@@ -30,7 +30,7 @@ import { computed, ref } from 'vue'
 import { useDocumentStore } from '../stores/document.js'
 import { usePlacementStore } from '../stores/placement.js'
 import { useSelectionStore } from '../stores/selection.js'
-import { useSketchModeStore } from '../stores/sketchMode.js'
+import { useSketchEditorStore } from '../stores/sketchEditor.js'
 import { useTimelineStore } from '../stores/timeline.js'
 import { useTransformPreviewStore } from '../stores/transformPreview.js'
 
@@ -47,7 +47,7 @@ export function useDeleteCommands() {
   const selection = useSelectionStore()
   const placement = usePlacementStore()
   const transformPreview = useTransformPreviewStore()
-  const sketchMode = useSketchModeStore()
+  const sketchEditor = useSketchEditorStore()
   const timeline = useTimelineStore()
 
   /** The last refusal the document layer gave, shown under the button. */
@@ -68,7 +68,7 @@ export function useDeleteCommands() {
 
   /** Why the control is disabled, or `''` when it is enabled. */
   const reason = computed(() => {
-    if (sketchMode.active) return 'Not available in sketch mode'
+    if (sketchEditor.active) return 'Not available while editing a sketch'
     if (placement.isDragging) return 'Finish placing first'
     if (transformPreview.isActive) return 'Finish the drag first'
     if (timeline.previewing) return 'Previewing history — read-only'

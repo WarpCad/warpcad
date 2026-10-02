@@ -32,10 +32,10 @@ function realBodies() {
 describe('runEvaluationJob — measure', () => {
   it('answers exactly what measureGeometry answers on the main thread, body for body', () => {
     const bodies = realBodies()
-    const result = runEvaluationJob({
+    const result = /** @type {any} */ (runEvaluationJob({
       kind: 'measure',
       bodies: structuredClone(bodies.map((geometry) => packGeometry(geometry))),
-    })
+    }))
     expect(result.kind).toBe('measure')
     expect(result.measurements).toHaveLength(bodies.length)
     bodies.forEach((geometry, index) => {
@@ -49,11 +49,11 @@ describe('runEvaluationJob — measure', () => {
 
   it('reports a body it cannot measure by index, and still measures the rest', () => {
     const cube = /** @type {any} */ (evaluateOp('primitive.cuboid', { size: [2, 2, 2] }))
-    const result = runEvaluationJob({
+    const result = /** @type {any} */ (runEvaluationJob({
       kind: 'measure',
       // A group with no visible parts: combine() refuses it, on either thread.
       bodies: [{ kind: 'group', name: 'empty', names: [], parts: {}, holes: [] }, packGeometry(cube)],
-    })
+    }))
     expect(result.measurements[0].error).toMatch(/no pieces to combine/)
     expect(result.measurements[1].volumeMm3).toBeCloseTo(8, 9)
   })
@@ -87,5 +87,37 @@ describe('createLatestOnlyQueue — what the worker does with work that was supe
     expect(queue.enqueue({ id: 2, channel: 'preview', generation: 1 })).toBeNull()
     const taken = [queue.take()?.id, queue.take()?.id]
     expect(taken.sort()).toEqual([1, 2])
+  })
+})
+
+describe('runEvaluationJob — build (TODO/sketch-001: the sketch editor’s preview)', () => {
+  const params = {
+    center: [0, 0, 0],
+    slices: [{ id: 's1', zMm: 0, profiles: [{ id: 'p', kind: 'circle', role: 'solid', centerMm: [0, 0], radiusMm: 10 }] }],
+    extrusion: { method: 'linear', heightMm: 5, twistDeg: 0, twistSteps: 1 },
+  }
+
+  it('builds one op off the main thread and hands back packed geometry the main thread can read', async () => {
+    const { unpackGeometry } = await import('./transport.js')
+    const result = /** @type {any} */ (runEvaluationJob({ kind: 'build', op: 'primitive.sketch', params: structuredClone(params), resolution: 'normal' }))
+    expect(result.kind).toBe('build')
+    expect(result.error).toBeUndefined()
+    const geometry = unpackGeometry(/** @type {any} */ (result.geometry))
+    const expected = evaluateOp('primitive.sketch', params, { policy: (await import('./index.js')).policyFor('normal') })
+    expect(measureGeometry(/** @type {any} */ (geometry)).volumeMm3).toBeCloseTo(
+      measureGeometry(/** @type {any} */ (expected)).volumeMm3,
+      9,
+    )
+  })
+
+  it('answers a build the kernel refuses with its reason instead of throwing', () => {
+    const result = /** @type {any} */ (runEvaluationJob({
+      kind: 'build',
+      op: 'primitive.sketch',
+      params: { ...params, slices: [{ id: 's1', zMm: 0, profiles: [] }] },
+      resolution: 'normal',
+    }))
+    expect(result.geometry).toBeUndefined()
+    expect(result.error).toMatch(/closed solid outline/)
   })
 })
