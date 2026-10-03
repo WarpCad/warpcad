@@ -22,6 +22,11 @@
  * narrow viewport); **Done** and **Cancel**. Done is disabled with its reason printed
  * underneath whenever the draft can't be built — the document never holds a body the
  * kernel can't build.
+ *
+ * **Snap** (`TODO/sketch-007`) sits right after the tools: on by default, it makes every point
+ * a draw gesture fixes jump onto a corner, centre, midpoint or edge of the outlines already on
+ * the slice. Holding Shift turns it off for one gesture, but a phone has no Shift key — this
+ * toggle is the only way to place a point freely there, so it keeps the full 44 px target.
  */
 import { computed } from 'vue'
 
@@ -123,6 +128,26 @@ function onSides(event) {
           @change="onSides"
         />
       </div>
+
+      <button
+        type="button"
+        class="sketch-toolbar__btn sketch-toolbar__btn--snap"
+        :class="{ 'sketch-toolbar__btn--snap-on': editor.snapEnabled }"
+        :aria-pressed="editor.snapEnabled"
+        :title="
+          editor.snapEnabled
+            ? 'Snapping is on: new points jump to corners, centres, midpoints and edges nearby. Tap to turn it off (or hold Shift while drawing)'
+            : 'Snapping is off: points go exactly where you point. Tap to turn it back on'
+        "
+        data-testid="sketch-snap-toggle"
+        :data-snap="editor.snapEnabled ? 'on' : 'off'"
+        @click="editor.toggleSnap()"
+      >
+        <svg class="sketch-toolbar__icon" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M5 4 V12 A7 7 0 0 0 19 12 V4 M5 8 H9 M15 8 H19 M9 4 V12 A3 3 0 0 0 15 12 V4" />
+        </svg>
+        Snap
+      </button>
 
       <button
         type="button"
@@ -310,6 +335,23 @@ function onSides(event) {
   font-weight: 600;
 }
 
+/* Snap on reads as "engaged" without claiming the solid fill the armed tool uses. */
+.sketch-toolbar__btn--snap {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.sketch-toolbar__btn--snap-on {
+  border-color: var(--accent);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.sketch-toolbar__btn--snap:not(.sketch-toolbar__btn--snap-on) .sketch-toolbar__icon {
+  opacity: 0.5;
+}
+
 .sketch-toolbar__btn--open {
   border-color: var(--accent);
   color: var(--accent);
@@ -398,10 +440,12 @@ function onSides(event) {
     font-size: 16px;
   }
 
-  /* Select and Delete are the two controls a finger needs most and a keyboard cannot
-     stand in for, so they keep the full 44 px target the rest of the row gives up. */
+  /* Select, Delete and Snap are the controls a finger needs most and a keyboard cannot
+     stand in for (Snap is the phone's only way to turn snapping off — no Shift key), so they
+     keep the full 44 px target the rest of the row gives up. */
   .sketch-toolbar__btn[data-testid='sketch-tool-select'],
   .sketch-toolbar__btn[data-testid='sketch-delete'],
+  .sketch-toolbar__btn[data-testid='sketch-snap-toggle'],
   .sketch-toolbar__btn--chain {
     min-height: var(--tap);
     min-width: var(--tap);

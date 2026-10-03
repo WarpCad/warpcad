@@ -147,7 +147,12 @@ async function extrude(page, method, fields = {}) {
  */
 async function drawTube(page) {
   await drawCircle(page, 20)
+  // The inner rim is 5 mm (~11 px at the editor's opening zoom) inside the outer one — within
+  // snapping range, so it would land *on* the outer circle (TODO/sketch-007). Placing a point
+  // freely near another outline is what Shift is for, as docs/sketch-mode.md's tube says.
+  await page.keyboard.down('Shift')
   await drawCircle(page, 15)
+  await page.keyboard.up('Shift')
   await expect(page.getByTestId('sketch-strokes')).toHaveAttribute('data-path-count', '2')
   // Tap inside the smaller circle — the smallest closed outline under a tap wins.
   const { cx, cy, pxPerMm } = await sketchScreen(page)
@@ -1087,4 +1092,234 @@ test('touch only: tap-tap-tap-tap draws a triangle with no hover and no keyboard
   await page.getByTestId('sketch-line-finish').tap()
   await expect(page.getByTestId('viewport')).toHaveAttribute('data-sketch-chain-points', '0')
   await expect(page.getByTestId('sketch-strokes')).toHaveAttribute('data-path-count', '2')
+})
+
+// --- snapping (TODO/sketch-007) ---------------------------------------------------------
+
+/**
+ * A 40 × 20 mm rectangle about the origin, dragged by hand and then typed exact in the
+ * Inspector, so its top-right corner is exactly (20, 10) mm. Leaves Select armed and the
+ * rectangle picked.
+ *
+ * @param {import('@playwright/test').Page} page
+ */
+async function exactRectangle(page) {
+  await page.getByTestId('sketch-tool-rect').click()
+  const { cx, cy, pxPerMm } = await sketchScreen(page)
+  await mouseDrag(page, cx - 20 * pxPerMm, cy + 10 * pxPerMm, cx + 20 * pxPerMm, cy - 10 * pxPerMm)
+  await expect(page.getByTestId('sketch-strokes')).toHaveAttribute('data-path-count', '1')
+  await page.getByTestId('sketch-tool-select').click()
+  await page.mouse.click(cx + 5 * pxPerMm, cy + 10 * pxPerMm)
+  await expect(page.getByTestId('sketch-selection-status')).toContainText('Rectangle, Solid')
+  await inInspector(page, async () => {
+    for (const [field, value] of [['centerMm-0', '0'], ['centerMm-1', '0'], ['widthMm', '40'], ['heightMm', '20']]) {
+      const input = page.getByTestId(`inspector-sketch-field-${field}`)
+      await input.fill(value)
+      await input.press('Enter')
+    }
+  })
+  await expect(page.getByTestId('sketch-selection-status')).toHaveText('Rectangle, Solid — 40 × 20 mm')
+  // The top-right corner, in client pixels.
+  return { cx, cy, pxPerMm, corner: { x: cx + 20 * pxPerMm, y: cy - 10 * pxPerMm } }
+}
+
+/**
+ * Pick the circle whose rim passes through a client point with Select, and read its centre
+ * from the Inspector's fields, exactly as shown.
+ *
+ * @param {import('@playwright/test').Page} page
+ * @param {{ x: number, y: number }} rim
+ */
+async function circleCentreAt(page, rim) {
+  await page.getByTestId('sketch-tool-select').click()
+  await page.mouse.click(rim.x, rim.y)
+  await expect(page.getByTestId('sketch-selection-status')).toContainText('Circle, Solid')
+  /** @type {string[]} */
+  const centre = []
+  await inInspector(page, async () => {
+    centre.push(await page.getByTestId('inspector-sketch-field-centerMm-0').inputValue())
+    centre.push(await page.getByTestId('inspector-sketch-field-centerMm-1').inputValue())
+  })
+  return centre
+}
+
+test('snapping: a circle pressed 6 px from a rectangle corner is centred exactly on it; Shift and the Snap toggle turn it off (TODO/sketch-007)', async ({ page }, info) => {
+  await openNewSketch(page)
+  const { pxPerMm, corner } = await exactRectangle(page)
+  const toggle = page.getByTestId('sketch-snap-toggle')
+  await expect(toggle).toHaveAttribute('aria-pressed', 'true')
+  await expect(toggle).toHaveAttribute('data-snap', 'on')
+
+  // ~6 px up and right of the corner; release ~15 mm out, clear of every other target.
+  const press = { x: corner.x + 4, y: corner.y - 4 }
+  const release = { x: corner.x + 15 * pxPerMm, y: corner.y - 4 }
+  await page.getByTestId('sketch-tool-circle').click()
+
+  // Hovering shows where the press will land, before it is pressed: a square and "Corner".
+  await page.mouse.move(press.x - 20, press.y + 20)
+  await page.mouse.move(press.x, press.y, { steps: 4 })
+  const marker = page.getByTestId('sketch-snap-marker')
+  await expect(marker).toHaveAttribute('data-kind', 'vertex')
+  await expect(page.getByTestId('sketch-snap-label')).toHaveText('Corner')
+  expect(Math.abs(Number(await marker.getAttribute('data-x-px')) - (corner.x - (await page.getByTestId('viewport').boundingBox())?.x))).toBeLessThan(1.5)
+  mkdirSync(SNAPSHOT_DIR, { recursive: true })
+  await page.screenshot({ path: join(SNAPSHOT_DIR, `${info.project.name}-snap-corner.png`) })
+
+  // The press lands *on* the marker — which must never swallow it (ui-020 finding #1).
+  await mouseDrag(page, press.x, press.y, release.x, release.y)
+  await expect(page.getByTestId('sketch-strokes')).toHaveAttribute('data-path-count', '2')
+  await expect(marker).toHaveCount(0)
+  expect(await circleCentreAt(page, release)).toEqual(['20', '10'])
+
+  // Shift held: the centre goes exactly where it was pressed instead.
+  await page.getByTestId('sketch-delete').click()
+  await expect(page.getByTestId('sketch-strokes')).toHaveAttribute('data-path-count', '1')
+  await page.getByTestId('sketch-tool-circle').click()
+  await page.keyboard.down('Shift')
+  await page.mouse.move(press.x, press.y, { steps: 2 })
+  await expect(marker).toHaveCount(0)
+  await mouseDrag(page, press.x, press.y, release.x, release.y)
+  await page.keyboard.up('Shift')
+  await expect(page.getByTestId('sketch-strokes')).toHaveAttribute('data-path-count', '2')
+  const shifted = (await circleCentreAt(page, release)).map(Number)
+  expect(shifted).not.toEqual([20, 10])
+  expect(Math.abs(shifted[0] - (20 + 4 / pxPerMm))).toBeLessThan(1.5 / pxPerMm)
+  expect(Math.abs(shifted[1] - (10 + 4 / pxPerMm))).toBeLessThan(1.5 / pxPerMm)
+
+  // The Snap toggle off: the same, with no key held — and it stays off.
+  await page.getByTestId('sketch-delete').click()
+  await toggle.click()
+  await expect(toggle).toHaveAttribute('aria-pressed', 'false')
+  await expect(toggle).toHaveAttribute('data-snap', 'off')
+  await page.getByTestId('sketch-tool-circle').click()
+  await page.mouse.move(press.x, press.y, { steps: 2 })
+  await expect(marker).toHaveCount(0)
+  await mouseDrag(page, press.x, press.y, release.x, release.y)
+  const unsnapped = (await circleCentreAt(page, release)).map(Number)
+  expect(unsnapped).not.toEqual([20, 10])
+  expect(Math.abs(unsnapped[0] - (20 + 4 / pxPerMm))).toBeLessThan(1.5 / pxPerMm)
+  await expect(toggle).toHaveAttribute('aria-pressed', 'false')
+})
+
+test('snapping: a Line ends exactly on another outline’s edge, and its first point on a corner (TODO/sketch-007)', async ({ page }) => {
+  await openNewSketch(page)
+  const { cx, cy, pxPerMm } = await exactRectangle(page)
+  await armLine(page)
+  // Start 5 px off the bottom-left corner (−20, −10); end 5 px below the top edge at x = 10 mm,
+  // 10 mm from both its midpoint and its corner, so only the edge itself is in range.
+  await page.mouse.move(cx - 20 * pxPerMm - 3, cy + 10 * pxPerMm + 4, { steps: 4 })
+  await expect(page.getByTestId('sketch-snap-label')).toHaveText('Corner')
+  await page.mouse.down()
+  await page.mouse.up()
+  await page.mouse.move(cx + 10 * pxPerMm, cy - 10 * pxPerMm + 5, { steps: 4 })
+  await expect(page.getByTestId('sketch-snap-marker')).toHaveAttribute('data-kind', 'edge')
+  await expect(page.getByTestId('sketch-snap-label')).toHaveText('On edge')
+  await page.mouse.down()
+  await page.mouse.up()
+  await page.getByTestId('sketch-line-finish').click()
+  // Pick the line and read its two points off the point handles.
+  await page.getByTestId('sketch-tool-select').click()
+  // The line runs (−20, −10) → (10, 10), crossing y = 0 at x = −5.
+  await page.mouse.click(cx - 5 * pxPerMm, cy)
+  await expect(page.getByTestId('sketch-selection-status')).toContainText('Open outline')
+  expect((await vertexMm(page, 0))[0]).toBeCloseTo(-20, 6)
+  expect((await vertexMm(page, 0))[1]).toBeCloseTo(-10, 6)
+  const end = await vertexMm(page, 1)
+  expect(end[1]).toBeCloseTo(10, 6)
+  expect(Math.abs(end[0] - 10)).toBeLessThan(1.5 / pxPerMm)
+})
+
+test('snapping: a dragged point snaps onto a circle’s centre (TODO/sketch-002 + sketch-007)', async ({ page }) => {
+  await openNewSketch(page)
+  // Above where the rectangle will be: inside the 390 px viewport column of every reference size.
+  await drawCircle(page, 6, 0, 45)
+  // Typed exact, so "on its centre" means exactly (0, 45), not wherever the mouse quantised it.
+  const screen = await sketchScreen(page)
+  await page.getByTestId('sketch-tool-select').click()
+  await page.mouse.click(screen.cx + 6 * screen.pxPerMm, screen.cy - 45 * screen.pxPerMm)
+  await expect(page.getByTestId('sketch-selection-status')).toContainText('Circle, Solid')
+  await inInspector(page, async () => {
+    for (const [field, value] of [['centerMm-0', '0'], ['centerMm-1', '45']]) {
+      const input = page.getByTestId(`inspector-sketch-field-${field}`)
+      await input.fill(value)
+      await input.press('Enter')
+    }
+  })
+  const { cx, cy, pxPerMm } = await convertedRectangle(page)
+  // Drag the top-right point (40, 25) to 4 px off the circle's centre (0, 45).
+  const corner = await centreOf(page, 'sketch-vertex-2')
+  const target = { x: cx + 3, y: cy - 45 * pxPerMm - 3 }
+  await page.mouse.move(corner.x, corner.y)
+  await page.mouse.down()
+  await page.mouse.move(target.x, target.y, { steps: 10 })
+  await expect(page.getByTestId('sketch-snap-marker')).toHaveAttribute('data-kind', 'centre')
+  await expect(page.getByTestId('sketch-snap-label')).toHaveText('Centre')
+  await page.mouse.up()
+  await expect(page.getByTestId('sketch-snap-marker')).toHaveCount(0)
+  const moved = await vertexMm(page, 2)
+  expect(moved[0]).toBeCloseTo(0, 6)
+  expect(moved[1]).toBeCloseTo(45, 6)
+})
+
+test('touch only: snapping follows a finger, with the marker lifted clear of it; the Snap toggle is the no-Shift way off (TODO/sketch-007)', async ({ page, browserName }, info) => {
+  test.skip(!isPhone(info), 'the touch pass runs at the phone reference')
+  test.skip(browserName !== 'chromium', 'a trusted touch *drag* needs CDP Input.dispatchTouchEvent, which only Chromium exposes')
+  const cdp = await page.context().newCDPSession(page)
+  await openNewSketch(page)
+  const { pxPerMm, corner } = await exactRectangle(page)
+  const toggle = page.getByTestId('sketch-snap-toggle')
+  // A real 44 px target, and still clear of the orientation gizmo (ui-043).
+  const box = await toggle.boundingBox()
+  expect(Math.min(box?.width ?? 0, box?.height ?? 0)).toBeGreaterThanOrEqual(43.5)
+  const toolbar = await page.getByTestId('sketch-toolbar').boundingBox()
+  const gizmo = await page.getByTestId('orientation-gizmo').boundingBox()
+  if (toolbar && gizmo) {
+    const overlap = toolbar.x < gizmo.x + gizmo.width && toolbar.x + toolbar.width > gizmo.x && toolbar.y < gizmo.y + gizmo.height && toolbar.y + toolbar.height > gizmo.y
+    expect(overlap).toBe(false)
+  }
+
+  const press = { x: corner.x + 4, y: corner.y - 4 }
+  const release = { x: corner.x + 15 * pxPerMm, y: corner.y - 4 }
+  /** Drag a finger from the press to the release; `during` runs with the finger still down. */
+  const fingerDrag = async (/** @type {() => Promise<void>} */ during) => {
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [press] })
+    for (let i = 1; i <= 10; i += 1) {
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: press.x + ((release.x - press.x) * i) / 10, y: press.y }] })
+    }
+    await during()
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] })
+  }
+
+  await page.getByTestId('sketch-tool-circle').tap()
+  await fingerDrag(async () => {
+    // The centre snapped at the press: the preview is drawn from it, and nothing hides under the finger.
+    await expect(page.getByTestId('sketch-draft')).toBeVisible()
+  })
+  await expect(page.getByTestId('sketch-strokes')).toHaveAttribute('data-path-count', '2')
+  expect(await circleCentreAt(page, release)).toEqual(['20', '10'])
+
+  // The phone has no Shift: tap Snap off, and the same finger drag places the centre freely.
+  await page.getByTestId('sketch-delete').tap()
+  await toggle.tap()
+  await expect(toggle).toHaveAttribute('aria-pressed', 'false')
+  await page.getByTestId('sketch-tool-circle').tap()
+  await fingerDrag(async () => {
+    await expect(page.getByTestId('sketch-snap-marker')).toHaveCount(0)
+  })
+  const free = (await circleCentreAt(page, release)).map(Number)
+  expect(free).not.toEqual([20, 10])
+
+  // Back on: a finger dragging a corner of a new rectangle onto the circle's rim shows a lifted marker.
+  await toggle.tap()
+  await page.getByTestId('sketch-tool-rect').tap()
+  const rimStart = { x: release.x + 3, y: release.y + 2 }
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: rimStart.x + 40, y: rimStart.y + 80 }] })
+  for (let i = 1; i <= 10; i += 1) {
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: rimStart.x + 40 - (40 * i) / 10, y: rimStart.y + 80 - (80 * i) / 10 }] })
+  }
+  const marker = page.getByTestId('sketch-snap-marker')
+  await expect(marker).toBeVisible()
+  await expect(marker).toHaveAttribute('data-lifted', 'true')
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] })
+  await expect(marker).toHaveCount(0)
 })

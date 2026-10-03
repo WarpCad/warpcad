@@ -20,6 +20,15 @@
  * done in sketch millimetres by `Viewport.vue` (`profileAtPoint`), so the canvas keeps
  * every gesture.
  *
+ * ## The snap marker (`TODO/sketch-007`)
+ *
+ * While a point being placed has snapped onto another outline, a small marker sits on it whose
+ * **shape** names what it hit — a square for a corner, a ring for a centre (or a circle's
+ * quadrant), a triangle for a midpoint, a cross for a point on an edge, a diamond for the
+ * origin — with the word beside it, so the tier never rests on shape alone. On touch it is
+ * lifted above the finger with a leader line down to the real point. Like everything here it
+ * is `pointer-events: none` (ui-020 finding #1): a press on the marker is a press on the canvas.
+ *
  * ## No maths here
  *
  * Every number comes from `Viewport.vue` via `annotate.js`; this file lays out pixels.
@@ -41,6 +50,11 @@ const props = defineProps({
    * firstXPx, firstYPx, showFirst, closeNear, labelXPx, labelYPx, label }`.
    */
   chain: { type: Object, required: true },
+  /**
+   * The snap marker (`TODO/sketch-007`): `{ visible, xPx, yPx, markerXPx, markerYPx, lifted,
+   * kind, label }`. Optional so a story can leave it out.
+   */
+  snap: { type: Object, default: () => ({ visible: false }) },
 })
 
 /** @type {import('vue').ComputedRef<any[]>} */
@@ -97,6 +111,25 @@ const list = computed(() => /** @type {any[]} */ (props.paths))
         {{ chain.label }}
       </text>
     </template>
+    <g
+      v-if="snap.visible && snap.kind"
+      class="sketch__snap"
+      data-testid="sketch-snap-marker"
+      :data-kind="snap.kind"
+      :data-lifted="snap.lifted ? 'true' : 'false'"
+      :data-x-px="snap.xPx.toFixed(1)"
+      :data-y-px="snap.yPx.toFixed(1)"
+    >
+      <line v-if="snap.lifted" class="sketch__snap-leader" :x1="snap.xPx" :y1="snap.yPx" :x2="snap.markerXPx" :y2="snap.markerYPx + 7" />
+      <g :transform="`translate(${snap.markerXPx} ${snap.markerYPx})`">
+        <rect v-if="snap.kind === 'vertex'" class="sketch__snap-shape" x="-5" y="-5" width="10" height="10" />
+        <circle v-else-if="snap.kind === 'centre' || snap.kind === 'quadrant'" class="sketch__snap-shape" r="6" />
+        <path v-else-if="snap.kind === 'midpoint'" class="sketch__snap-shape" d="M0 -6 L6 5 L-6 5 Z" />
+        <path v-else-if="snap.kind === 'edge'" class="sketch__snap-shape" d="M-5 -5 L5 5 M5 -5 L-5 5" />
+        <path v-else class="sketch__snap-shape" d="M0 -7 L7 0 L0 7 L-7 0 Z" />
+        <text class="sketch__badge sketch__snap-label" data-testid="sketch-snap-label" x="10" y="-8">{{ snap.label }}</text>
+      </g>
+    </g>
   </svg>
 </template>
 
@@ -185,6 +218,20 @@ const list = computed(() => /** @type {any[]} */ (props.paths))
   .sketch__first--near {
     animation: none;
   }
+}
+
+.sketch__snap-shape {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2;
+  stroke-linejoin: round;
+  paint-order: stroke;
+}
+
+.sketch__snap-leader {
+  stroke: var(--accent);
+  stroke-width: 1.25;
+  stroke-dasharray: 2 3;
 }
 
 .sketch__length {

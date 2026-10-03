@@ -34,6 +34,16 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### sketch-007 — Snap new outlines to existing ones (2026-10-03 21:54)
+
+Scenarios 9 and 1 and the closed repros passed by hand on all three engines and with trusted touch. The snapped geometry is exact (unit tests to 1e-9; e2e reads the Inspector numbers). What a script cannot judge is whether the pull feels right, so these are left for a person, the first one on a real phone.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | **Is 12 px the right pull?** At the editor's opening zoom that is ~5 mm. Draw the docs' tube on a real phone without Shift (an r20 circle, then an r15 one from the same centre): the second circle's rim jumps onto the first (*Quadrant* / *On edge*) until you release ~1 mm further in, or tap **Snap** off. Decide: keep 12 px; go smaller (8-10 px); or stop a Circle's rim snapping to a circle it shares a centre with | Open | |
+| 2 | On a real phone, draw a circle with its centre on a rectangle's corner. The marker (lifted 56 px above the finger, with a leader line) shows only while the finger is within ~12 px of the corner. Once the drag carries it further, only the dashed preview, centred on the corner, says the centre snapped. Is that enough confirmation, or should the centre keep a marker for the whole drag? | Open | |
+| 3 | On a laptop, hold Shift mid-drag and release it: the point jumps between free and snapped with no pointer movement. Does that read as intended or as jitter? | Open | |
+
 ### sketch-006 — Continuous Line tool (2026-10-03 20:50)
 
 The scenarios and the closed repros passed by hand (laptop mouse, phone and tablet trusted touch). What a scripted drive cannot judge is timing and feel on a real finger, so these three are left for a person on a real phone or iPad.

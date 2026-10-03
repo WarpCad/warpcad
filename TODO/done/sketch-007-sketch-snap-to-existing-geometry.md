@@ -6,8 +6,49 @@ priority: high
 model: opus
 milestone: M8
 depends: [sketch-001]
-status: open
+status: done
 ---
+
+> ## What actually shipped
+>
+> **As specified, through the seam `sketch-006` left for it.** `src/sketch/snap.js` (pure:
+> `snapTargets(profiles, excludeId, { keepFirstVertex })` and `snapPoint(pointMm, targets,
+> radiusMm, out?)`), a `snapEnabled` flag + `toggleSnap()` in the editor store, a **Snap**
+> toggle in the Sketch toolbar (on by default, a full 44 px target at phone width), a
+> marker + word in `SketchStrokes.vue` (`pointer-events: none` like the rest of the overlay),
+> and one `snapSketchPoint` step in `Viewport.vue` that every point a gesture fixes passes
+> through: the press and live end of a Rectangle / Circle / Polygon drag, every Line point
+> (click, tap, or drag), the rubber band's live end, and a dragged point handle. Shift is
+> read per event, and pressing or releasing it with the pointer still re-snaps on the spot.
+> Snap radius is its own constant, `SKETCH_SNAP_RADIUS_PX = 12`.
+>
+> **Decisions where the spec was loose:**
+> - **Quadrant** is a separate kind in the centre tier (ring marker, word *Quadrant*), and the
+>   origin (tier 5) is a diamond with *Origin*. The spec named four labels; these two kinds
+>   needed words of their own.
+> - **"The outline being drawn"** for a Line chain is the live chain (its first point stays a
+>   target once it has 3 points, so closing is the vertex tier hitting it). For a point drag,
+>   it is the whole outline being edited, because its own adjacent edges always pass through
+>   the dragged point.
+> - **The origin is a target only when another outline is on the slice**, so an empty slice
+>   really has nothing to snap to, as the precondition says.
+> - **"Remembered per session"** = Pinia state that survives Cancel/Done and reopening the
+>   editor, but not a reload. No storage was added.
+> - **Touch lift**: the marker and its word are drawn 56 px above the snapped point with a
+>   dashed leader line down to it.
+> - **The marker follows the point being placed *now***. During a Circle drag, that is the rim
+>   point once the finger or pointer has moved off the centre's target. The dashed preview
+>   keeps showing the snapped centre.
+>
+> **Found during the work:** `Math.hypot` allocated on every call in V8. `snap.js` uses
+> `Math.sqrt(dx*dx + dy*dy)`: 0 bytes per search and 5x faster (p50 10.4 to 1.9 µs on a
+> 400-point outline). See `bench/snap-search.mjs` and `bench/results/2026-10-03-sketch-007.md`.
+>
+> **Found by the acceptance drive, left for the user (VERIFY.md):** at the editor's opening
+> zoom (~2.3-2.45 px/mm) 12 px is ~5 mm. So the docs' own tube (an r15 hole in an r20 disc)
+> pulls the inner rim onto the outer circle unless you hold Shift, turn Snap off, zoom in, or
+> release a little further in. The drive's human-style hand saw the Quadrant / On edge marker
+> and pulled in to ~14 mm. `drawTube` in the e2e holds Shift, and the docs' tube example says to.
 
 ## Goal
 

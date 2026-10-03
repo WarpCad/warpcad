@@ -139,10 +139,11 @@ storage. See [Saving and reopening your work](save-load.md) and [Exporting](expo
 ## Sketching
 
 Drag **Sketch** out of the Library like any other shape. The sketch editor opens with a
-toolbar at the top-left (Select, Line, Rectangle, Circle, Polygon, Hole, Slices, the
+toolbar at the top-left (Select, Line, Rectangle, Circle, Polygon, Snap, Hole, Slices, the
 extrude method, Done and Cancel), and the navigation pad folds to **✥**. The **Extrude** and
 **Slices** panels open as a short sheet along the bottom, so most of the screen stays on the
-drawing. See [Sketch primitives](sketch-mode.md).
+drawing. New points snap to the corners, centres and edges of outlines already drawn; with no
+Shift key on a phone, tap **Snap** to turn that off. See [Sketch primitives](sketch-mode.md#snapping-to-other-outlines).
 
 ![A phone in the sketch editor with the Extrude sheet open at the bottom and the drawing toolbar at the top-left.](./screenshots/sketch-sheet-phone.png)
 

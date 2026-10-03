@@ -1352,3 +1352,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** continuous chain, live length, close on first point, Esc/Finish/Undo point -> diff (src/stores/sketchEditor.js, Viewport.vue, SketchToolbar.vue); 44 px buttons -> e2e/sketch-primitive.e2e.js touch spec and this session's phone drive (45x44 and 69x44 px)
 **To Add:** docs/media/sketch-draw-line.gif
+
+## 2026-10-03T21:58:00Z — Sketch snapping: new points land on existing corners, centres and edges
+
+**Post:** WarpCad's sketch tools now snap. Press near a rectangle's corner with Circle and the centre lands exactly on it, with a small marker saying Corner. Centre, Midpoint and On edge too. Hold Shift, or tap Snap off on a phone, to place freely. Built with Claude Code, reviewed by me. #CAD #WebGL
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** snap tiers, labels and markers -> src/sketch/snap.js, SketchStrokes.vue diff; circle centre exactly on the corner -> e2e "pressed 6 px from a rectangle corner" reads Centre X/Y "20"/"10" on 9 projects, and this session's drive read 40, 25; Shift and the Snap toggle -> same e2e spec and the touch spec on chromium-phone
+**To Add:** docs/media/sketch-snap.gif, docs/screenshots/sketch-snap-corner.png

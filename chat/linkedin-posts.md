@@ -1862,3 +1862,18 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** old behaviour (press near last point to continue) -> removed code in Viewport.vue diff; live dashed segment with mm length, pulse near first vertex, close at >=3 vertices -> diff and unit tests; Finish/Undo point sizes -> phone drive this session; single vertex-fix function -> fixChainVertex in sketchEditor.js
 **To Add:** docs/media/sketch-draw-line.gif, docs/screenshots/sketch-line-chain.png
+
+## 2026-10-03T21:58:00Z — Sketch snapping: new points land on existing corners, centres and edges
+
+**Post:** Lining up a new circle with a rectangle's corner in WarpCad's sketch editor used to be done by eye. Now every point a drawing tool places snaps to the outlines already on the slice: corners, centres (and a circle's quadrants), edge midpoints, the nearest point on an edge, and the origin, in that order of priority. A small marker sits on the point. Its shape and a word beside it (Corner, Centre, Midpoint, On edge) say what it found, and on a touch screen it is drawn above your finger.
+
+Shift turns snapping off for one gesture. A phone has no Shift key, so the toolbar has a Snap toggle, a full 44 px target. Snapping also applies when you drag an existing point with Select. Driving the editor the way a person would turned up one tuning question, now queued for a human check: at the opening zoom the 12 px pull is about 5 mm, enough to grab a 15 mm hole drawn inside a 20 mm disc.
+
+The search runs on every pointer move. A first version used Math.hypot, and on a 400-point outline it allocated on every call. With Math.sqrt it allocates nothing and runs in 1.9 µs at the median, down from 10.4.
+
+Built with Claude Code, reviewed by me.
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL #JavaScript #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** tiers and order -> src/sketch/snap.js + snap.spec.js; marker shapes and labels -> SketchStrokes.vue + snap.js SNAP_LABELS; lifted on touch -> Viewport.vue SKETCH_SNAP_TOUCH_LIFT_PX and this session's touch drive (lift 56 px); Snap toggle 44 px -> touch e2e (>= 43.5) and drive (66x44); point drag snaps -> e2e "a dragged point snaps onto a circle's centre"; 12 px ~ 5 mm and the 15-in-20 tube pull -> this session's drive (inner circle released at ~15 mm showed Quadrant/On edge on all three engines) and TODO/VERIFY.md sketch-007 row 1; hypot allocation and 10.4 -> 1.9 µs p50 -> bench/snap-search.mjs runs this session, Apple M4 Pro, Node v24.14.1 (bench/results/2026-10-03-sketch-007.md)
+**To Add:** docs/media/sketch-snap.gif, docs/screenshots/sketch-snap-corner.png

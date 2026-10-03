@@ -95,6 +95,13 @@ export const useSketchEditorStore = defineStore('sketchEditor', () => {
   const hoverVertex = ref(-1)
   const tool = ref(/** @type {SketchTool} */ ('circle'))
   const polygonSides = ref(6)
+  /**
+   * Whether a draw gesture snaps to the outlines already on the slice (`TODO/sketch-007`). On by
+   * default; the toolbar's **Snap** toggle turns it off, and it stays off for the rest of the
+   * session — `open`/`close` deliberately leave it alone. Shift held while drawing turns it
+   * off for that one gesture without touching this.
+   */
+  const snapEnabled = ref(true)
   /** Which of the Slices / Extrude panels is open — one at a time. */
   const panel = ref(/** @type {SketchPanel} */ (''))
   /** The open Line chain being extended, or `''` (it has at least one segment). */
@@ -527,6 +534,11 @@ export const useSketchEditorStore = defineStore('sketchEditor', () => {
     setDraft(withExtrusionParam(draft.value, key, value))
   }
 
+  /** The toolbar's **Snap** toggle. */
+  function toggleSnap() {
+    snapEnabled.value = !snapEnabled.value
+  }
+
   /** @param {SketchPanel} next */
   function togglePanel(next) {
     panel.value = panel.value === next ? '' : next
@@ -545,6 +557,7 @@ export const useSketchEditorStore = defineStore('sketchEditor', () => {
     hoverVertex,
     tool,
     polygonSides,
+    snapEnabled,
     panel,
     chainId,
     chainStartMm,
@@ -591,5 +604,6 @@ export const useSketchEditorStore = defineStore('sketchEditor', () => {
     setMethod,
     setExtrusionParam,
     togglePanel,
+    toggleSnap,
   }
 })

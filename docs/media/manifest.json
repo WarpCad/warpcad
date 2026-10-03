@@ -329,5 +329,11 @@
     "bytes": 1309436,
     "seconds": 17,
     "maxSeconds": 20
+  },
+  "sketch-snap.gif": {
+    "spec": "e2e/docs/sketch-snap.docs.js",
+    "specHash": "3add15e9b455d019cf3c76ee87579d8ae422e09bcb846ebb5f101968e1dc4506",
+    "bytes": 1080897,
+    "seconds": 9
   }
 }

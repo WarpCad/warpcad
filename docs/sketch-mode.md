@@ -42,11 +42,11 @@ While the sketch editor is open:
 
 ## The four drawing tools
 
-![The Sketch toolbar: Select, Line, Rectangle, Circle and Polygon, then Hole, Delete, Slices, Extrude, Done and Cancel. Done is greyed out, with the reason written underneath](./screenshots/sketch-toolbar.png)
+![The Sketch toolbar: Select, Line, Rectangle, Circle and Polygon, then Snap, Hole, Delete, Slices, Extrude, Done and Cancel. Done is greyed out, with the reason written underneath](./screenshots/sketch-toolbar.png)
 
 Left to right the toolbar has **Select** (the arrow, see the next section), the four
-drawing tools below, **Hole**, **Delete**, **Slices**, **Extrude ▾**, **Done** and
-**Cancel**. **Hole** and **Delete** are greyed out until you pick an outline, and **Done**
+drawing tools below, **Snap** (see **Snapping to other outlines**, below), **Hole**,
+**Delete**, **Slices**, **Extrude ▾**, **Done** and **Cancel**. **Hole** and **Delete** are greyed out until you pick an outline, and **Done**
 is greyed out until there is a closed Solid outline to build.
 
 Rectangle, Circle and Polygon are a single press, drag and release. **Line** is different:
@@ -101,6 +101,46 @@ it closes, a Line chain stays amber, shows no preview, and is not part of the so
 
 ![A closed Line outline, 60 by 40 mm, drawn in blue with the tan preview of the solid filling it and Done switched on](./screenshots/sketch-profile-closed.png)
 
+## Snapping to other outlines
+
+While you draw, every point you place jumps onto the nearest useful spot of the outlines
+already on the slice, when your pointer or finger comes within about 12 pixels of it.
+A small marker shows where the point will land, and a word beside it says what it found:
+
+| Marker | Word | What it snaps to |
+|---|---|---|
+| Square | **Corner** | A rectangle's corner, a polygon's corner, or a point of a Line outline |
+| Ring | **Centre** / **Quadrant** | The centre of a circle, rectangle or polygon; or the top, bottom, left or right of a circle |
+| Triangle | **Midpoint** | The middle of an edge |
+| Cross | **On edge** | The nearest point on an edge or on a circle's rim |
+| Diamond | **Origin** | The sketch's origin |
+
+When two of these are in reach, the one higher in the table wins, so a corner beats the edge
+right next to it. Snapping works for every point a drawing tool places: each Line point, a
+Rectangle's two corners, a Circle's or Polygon's centre and its rim, and a point you drag
+with **Select** (see **Editing an outline's points**). It only uses the slice you are
+drawing on, never the faint ones, and never the outline you are drawing or dragging. On an
+empty slice nothing snaps. On a computer the marker shows as soon as you hover, before you
+press. On a touch screen it shows while your finger is down, drawn a little above your
+finger with a short line down to the real point, so your finger does not hide it.
+
+To place a point exactly where you point instead:
+
+- **Hold Shift** while you press or drag, for that one shape;
+- or tap **Snap** in the toolbar to turn snapping off until you tap it again. It stays off
+  until you reload the page, even if you close and reopen the editor. This is the only way
+  on a phone or tablet, which has no Shift key. **Snap** is highlighted while it is on.
+
+![The Circle tool hovering just off a rectangle's top-right corner: a small square marker sits exactly on the corner, labelled Corner](./screenshots/sketch-snap-corner.png)
+
+**Example.** Draw a rectangle. Pick **Circle**, press near the rectangle's top-right corner:
+a square marker and the label *Corner* appear and the circle's centre lands exactly on it.
+Hold **Shift** while you press (or tap **Snap** off) to place the centre wherever you point
+instead. To check, pick the circle with **Select**: the Inspector's Centre X and Y are the
+corner's exact numbers.
+
+![Drawing a circle whose centre snaps onto a rectangle's corner, then tapping Snap off and drawing a second circle near the other corner with no marker](./media/sketch-snap.gif)
+
 ## Selecting, editing and deleting an outline
 
 The first button in the tool group, an arrow, is **Select**. It never draws.
@@ -149,7 +189,8 @@ stays as an island.
 
 **Example.** With **Rectangle**, drag out an 80 by 50 mm rectangle (read the size off the
 grid, or type it into the Inspector afterwards). With **Circle**, drag from the same centre
-out to 15 mm. Tap **Select**, tap the circle's rim, then tap **Hole**: the circle turns
+out to 15 mm. Its centre snaps onto the rectangle's centre (the ring marker says *Centre*), so
+the hole is exactly in the middle. Tap **Select**, tap the circle's rim, then tap **Hole**: the circle turns
 dashed and a "hole" label appears. Set Height to 10 (mm) in **Extrude ▾** and tap **Done**:
 you get a 10 mm thick plate with a round hole straight through it.
 
@@ -298,7 +339,9 @@ combine.
 Open the Library and drag **Sketch** from Primitives into the viewport, then release.
 The view turns to look straight down at a flat grid and the Sketch toolbar appears. Pick
 **Circle**, press at the grid's centre and drag out to 20 mm. Draw a second circle from
-the same centre out to 15 mm. Tap the smaller circle, then tap **Hole**: its outline turns
+the same centre out to 15 mm, holding **Shift** (or with **Snap** off): its rim is only 5 mm
+inside the first one, close enough at the editor's starting zoom that it would otherwise snap
+onto the first circle. Tap the smaller circle, then tap **Hole**: its outline turns
 dashed. Open **Extrude ▾**, choose **Linear** and type 30 in Height (millimetres). A
 see-through preview of a tube appears. Tap **Done**. You now have a 30 mm tall tube with
 a 30 mm bore, which you can move with the gizmo or subtract from another solid.
@@ -338,6 +381,7 @@ there is nothing correct to turn it into.
 ## Not available yet
 
 Coming in later updates: loading a photo to trace over and setting its scale from a ruler;
-automatic tracing of a photographed part; and snapping a dragged point to other outlines.
+automatic tracing of a photographed part; and alignment guides (lining a point up with
+another outline's corner without touching it).
 
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

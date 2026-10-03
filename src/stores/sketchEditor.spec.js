@@ -285,3 +285,21 @@ describe('sketch editor store — continuous Line chain (TODO/sketch-006)', () =
     expect(editor.slice.profiles).toHaveLength(0)
   })
 })
+
+describe('sketch editor store — snapping toggle (TODO/sketch-007)', () => {
+  beforeEach(() => setActivePinia(createPinia()))
+  const frame = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]
+
+  it('is on by default and survives closing and reopening the editor in the same session', () => {
+    const editor = useSketchEditorStore()
+    expect(editor.snapEnabled).toBe(true)
+    editor.open({ bodyId: null, params: emptySketchParams(), frame })
+    editor.toggleSnap()
+    expect(editor.snapEnabled).toBe(false)
+    editor.close()
+    editor.open({ bodyId: null, params: emptySketchParams(), frame })
+    expect(editor.snapEnabled).toBe(false)
+    editor.toggleSnap()
+    expect(editor.snapEnabled).toBe(true)
+  })
+})
