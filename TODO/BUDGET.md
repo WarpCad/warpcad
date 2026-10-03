@@ -659,4 +659,6 @@ Note on `docs-011`: committed as `7ba9210` (sonnet agent, ~37m). Independently r
 
 Note on `docs-012`: committed as `2d98a0e` (sonnet agent, ~40m). Independently re-verified by this loop: typecheck clean; unit 114 files / 2581 passed; spdx and guards green; diff stat read (6 GIFs, 4 stills, three docs pages, nothing in `src/`). Agent's Step 6: scenarios 3, 6, 16 PASS by hand; ui-041 and core-013 repros PASS. Caveats the agent stated: scenario 3's dashed guide lines were not looked at in that drive; two spec deviations (group-vs-union compares what you can open because Group drops a body's own recolour; snap-subpart-operand uses Align, not Snap) and the page example now says "Outside −" because the popover's sign names the moving shape's touching side. VERIFY rows: Group dropping user recolours (decide bug vs intended), Snap sign wording, snap-subpart-operand reading. Still-open GIF budget problems: `primitive-drag-two` 12.1 s, `boolean-subtract-order` 14.1 s on re-encode, `sketch-vertex-edit` 1.69 MB.
 
+| 2026-10-03 14:53 | | `docs-013` | (in progress, 0 of 3 done) | no |
+
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->
