@@ -6,6 +6,14 @@ come from the same gesture: click it.
 
 ## Selecting
 
+![Clicking empty space selects nothing, then clicking the cube fills the Inspector](./media/select-click.gif)
+
+![The cube selected: outline, gizmo handles, the Inspector open and the dimension lines](./screenshots/select-body.png)
+
+**Worked example.** Click the cube. The Inspector shows its size and position and handles
+appear on it. Drag the red arrow, and the X field changes as you drag. Type `25` into X and
+press Enter, and the cube moves to X = 25 mm.
+
 ![A selected cube with its gizmo and the Inspector panel showing its size](./screenshots/cube-selected.png)
 
 Click — or tap — directly on a shape in the 3D view. Three things happen at once:
@@ -119,6 +127,8 @@ exactly where it is. See [Resizing a shape](#resizing-a-shape) below.
 
 ## Resizing a shape
 
+![Changing a cylinder's diameter in the Inspector, then undoing it in one step](./media/inspector-param-edit.gif)
+
 The **Parameters** boxes at the top of the Inspector are how you change how big a shape
 is. Click into one, type a number, and press **Enter** (or click away). The shape is
 rebuilt at the new size straight away, and **it stays centred where it already was** —
@@ -216,6 +226,8 @@ itself while you draw, so it never covers the drawing.
 
 ## Changing a part's model or size
 
+![A bolt's Spec, Fit and Length controls in the Inspector](./screenshots/inspector-composite-param-edit.png)
+
 A ready-made part from the Library — a **Raspberry Pi**, a **Bolt**, a **Nut**, a
 **Washer**, a **Bearing**, the Pi **Camera Module** — can be changed after you have placed
 it, not just before. Select it and look at its **Parameters**:
@@ -273,6 +285,8 @@ or remove the condition. Removing it on a Pi 5 brings the part back as a *broken
 dependent with its warning, rather than quietly hiding the problem.
 
 ## Colouring a shape
+
+![Setting a cube's colour to red from the Inspector](./media/inspector-colour.gif)
 
 A shape you draw yourself (Cube, Cylinder, and the rest of the Primitives section)
 starts in the app's default colour. A **ready-made part** from the Library's Hardware
@@ -398,6 +412,8 @@ there and greyed out. It simply is not there.
 
 ### Worked example: see and use a bolt's hidden clearance
 
+![A selected bolt with Show hidden parts on, showing its clearance as a translucent overlay](./screenshots/inspector-hidden-parts.png)
+
 1. Drag a **Bolt** from the Library's **Hardware** section onto the grid. It arrives
    selected, and under **Parts** the Inspector lists `head`, `thread`, and then four
    pieces labelled *hidden*: `tap-head`, `tap-thread`, `tap-headClearSpace` and `tap`.
@@ -415,6 +431,22 @@ there and greyed out. It simply is not there.
    for the full mechanics of cutting with one named piece.
 
 ## Moving and turning a shape
+
+The handles, close up: three arrows to move, three rings to turn.
+
+![The translate arrows and rotate rings of the gizmo, with direction arrows on the rings](./screenshots/gizmo-handles.png)
+
+Drag a coloured arrow and the Position field follows your hand, live, not only when you let go.
+
+![Dragging the translate arrow while the Position X field changes](./media/gizmo-translate.gif)
+
+Drag a ring and the Rotation field follows the same way.
+
+![Dragging a rotate ring while the Rotation X field changes](./media/gizmo-rotate.gif)
+
+Typing a number does the same job from the other side. The two always agree.
+
+![Typing 25 into the Position X field and the cube jumping to match](./media/inspector-numeric-edit.gif)
 
 There are two ways to move a selected shape, and they always agree with each other —
 they are the same change made from two places, not two separate features.
@@ -517,6 +549,8 @@ the numbers behave in a way that surprises people the first time.
 
 ### Align to origin
 
+![Pressing "Center on origin, sit on grid" and the cube jumping to the origin](./media/align-to-origin.gif)
+
 Dragging or typing gets a shape *close* to the grid's origin. This row gets it there
 exactly — centred, or sitting flush on a face — in one tap, without doing the
 arithmetic yourself.
@@ -606,6 +640,8 @@ arrive with the boolean operations.
 
 ### Dragging a selection box (marquee)
 
+![Switching to Select mode and dragging a box over two bodies selects both](./media/select-marquee.gif)
+
 To select several objects at once, press and drag from empty space in the viewport — a
 selection box follows your pointer; release it, and every object inside the box is
 selected, showing *"<n> selected"* in the Inspector. It's the fastest way to grab
@@ -633,6 +669,8 @@ current selection rather than adding to it.
 Dragging a box over nothing clears the selection, the same as clicking empty space.
 
 ## The Inspector's object list
+
+![The object list with a Raspberry Pi's parts expanded](./screenshots/inspector-object-list.png)
 
 The Inspector is also where you find **every shape in your model**, listed by name. It
 answers "what is in here?", and it is the way to select a shape you cannot click.
@@ -785,6 +823,8 @@ that default. For a hole the bolt actually slides through rather than jams in, a
 either place previews the clearance as a translucent overlay before you cut with it.
 
 ## Deleting objects and parts
+
+![Selecting a cube and pressing Delete in the Inspector](./media/delete-body.gif)
 
 To remove a shape, select it and press **Delete** (or **Backspace**) on the keyboard, or
 tap the red **Delete** button at the bottom of the Inspector. The button stays pinned to

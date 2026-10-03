@@ -52,5 +52,59 @@
     "specHash": "1a3482e8b4c693201dd561b667b833c46a1e9cec572855037ac1cc9511e6855c",
     "bytes": 1404087,
     "seconds": 8
+  },
+  "align-to-origin.gif": {
+    "spec": "e2e/docs/selection-inspector.docs.js",
+    "specHash": "cf3cd63929982760d9ef1ad652948ce38c6e14a4413a10505a71f76d30139cf1",
+    "bytes": 198031,
+    "seconds": 5.58
+  },
+  "delete-body.gif": {
+    "spec": "e2e/docs/selection-inspector.docs.js",
+    "specHash": "cf3cd63929982760d9ef1ad652948ce38c6e14a4413a10505a71f76d30139cf1",
+    "bytes": 225736,
+    "seconds": 5.16
+  },
+  "gizmo-rotate.gif": {
+    "spec": "e2e/docs/selection-inspector.docs.js",
+    "specHash": "cf3cd63929982760d9ef1ad652948ce38c6e14a4413a10505a71f76d30139cf1",
+    "bytes": 1140486,
+    "seconds": 10.25
+  },
+  "gizmo-translate.gif": {
+    "spec": "e2e/docs/selection-inspector.docs.js",
+    "specHash": "cf3cd63929982760d9ef1ad652948ce38c6e14a4413a10505a71f76d30139cf1",
+    "bytes": 1306287,
+    "seconds": 10.16
+  },
+  "inspector-colour.gif": {
+    "spec": "e2e/docs/selection-inspector.docs.js",
+    "specHash": "cf3cd63929982760d9ef1ad652948ce38c6e14a4413a10505a71f76d30139cf1",
+    "bytes": 185266,
+    "seconds": 5.33
+  },
+  "inspector-numeric-edit.gif": {
+    "spec": "e2e/docs/selection-inspector.docs.js",
+    "specHash": "cf3cd63929982760d9ef1ad652948ce38c6e14a4413a10505a71f76d30139cf1",
+    "bytes": 228058,
+    "seconds": 5.75
+  },
+  "inspector-param-edit.gif": {
+    "spec": "e2e/docs/selection-inspector.docs.js",
+    "specHash": "cf3cd63929982760d9ef1ad652948ce38c6e14a4413a10505a71f76d30139cf1",
+    "bytes": 618766,
+    "seconds": 7.5
+  },
+  "select-click.gif": {
+    "spec": "e2e/docs/selection-inspector.docs.js",
+    "specHash": "cf3cd63929982760d9ef1ad652948ce38c6e14a4413a10505a71f76d30139cf1",
+    "bytes": 516589,
+    "seconds": 7.16
+  },
+  "select-marquee.gif": {
+    "spec": "e2e/docs/selection-inspector.docs.js",
+    "specHash": "cf3cd63929982760d9ef1ad652948ce38c6e14a4413a10505a71f76d30139cf1",
+    "bytes": 656806,
+    "seconds": 7.5
   }
 }

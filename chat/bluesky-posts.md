@@ -1249,3 +1249,13 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** move/add/delete, Convert to outline, Select-only dots → diff (profile.js, VertexHandles.vue, Viewport.vue, SketchProfileFields.vue); dots swallowed a drawing drag → first acceptance drive this session (Rectangle drag from a converted circle's stroke left paths at 2, expected 3)
 **To Add:** docs/media/sketch-vertex-edit.gif
+
+
+## 2026-10-03T13:23:00Z — Docs: select, move, edit and delete, with pictures
+
+**Post:** WarpCad's docs now show selecting and editing as short animations. Drag a gizmo arrow and the Inspector's X field changes as you drag; type 25 into it and the cube jumps there. Nine animations, five stills, each recorded by a test that fails if the drag did nothing. Built with Claude Code, reviewed by me. #CAD
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** 9 GIFs, 5 stills, end-state assertions → diff (e2e/docs/selection-inspector.docs.js, docs/media/manifest.json); live field during drag → hand drive this session (X read 29.8, 39.6, 49.3, 59.1 mid-drag)
+**To Add:** docs/media/gizmo-translate.gif

@@ -1072,7 +1072,7 @@ and `1/4 socket` — so the step now uses real values and can be driven as writt
 current spec has the same three fits (`tap`, `close`, `loose`); the Fit list is still read
 from the chosen spec's own row, so a spec with different fits changes it.)*
 
-**Last run**: 2026-10-01 15:00 UTC (`data-007`) — PASS for steps 1-4, 7-8, laptop 1440x900 Chromium, real mouse drags with wobbly paths and Objects-list selection: dropped a Bolt, changed Spec to `1/4 socket` (bounds and volume changed, centre kept within 0.07 mm in Z), Fit and Length set, typed Position X 40 and the mesh followed. Gizmo-drag steps 5-6 not re-driven (this change does not touch them). Console clean. Phone not driven.
+**Last run**: 2026-10-03 13:20 UTC (`docs-010`) — PASS, laptop 1440x900 Chromium, real mouse with wobbly paths: dropped a Bolt (selected on drop), changed Spec to `1/4 socket` (volume 2921 to 1070 mm3, centre Z kept within 0.07 mm; Fit `loose` and Length `20` are the defaults so those two edits were no-ops), dragged the X arrow from a point on the handle (Position X read 29.8, 39.6, 49.3, 59.1 during the drag, one body throughout), typed `25` into Position X and the mesh centre went to 25.00. Gizmo handles stayed proportionate to the small bolt. Console clean. Observation, not a failure: step 2's "click the bolt" lands on a *part* (head) when the click hits a bolt that is already selected, and Spec/Fit/Length then read "Select the whole Bolt 1" (ui-016 pick depth, by design). Phone not driven.
 
 **Last run**: 2026-09-06 01:15 — **PARTIAL PASS** (`ui-011`. Only the
 *Inspector-opens-and-shows-fields* half of this scenario is drivable, and it is

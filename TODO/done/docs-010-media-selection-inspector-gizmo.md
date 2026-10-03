@@ -6,8 +6,10 @@ priority: high
 model: sonnet
 milestone: M10
 depends: [docs-005, docs-006, docs-007]
-status: open
+status: done
 ---
+
+> **Shipped 2026-10-03.** 5 stills and 9 movies as listed, in `e2e/docs/selection-inspector.docs.js`. Not shipped: `inspector-rename` (`ui-056` open), the dependent-repair dialog in `inspector-composite-param-edit` (shows the bolt's Spec/Fit/Length controls instead) and the dependents banner in `delete-body`; both need a snapped-assembly fixture.
 
 ## Goal
 

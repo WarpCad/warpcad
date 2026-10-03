@@ -1,0 +1,2 @@
+{"id":"pi-1","op":"raspberrypi.bplus","name":"Raspberry Pi 1","params":{"model":4}}
+{"id":"cube-1","op":"primitive.cuboid","name":"Cube 1","params":{"size":[30,30,30],"center":[-90,0,15]}}

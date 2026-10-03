@@ -1718,3 +1718,17 @@ The sketch page in the docs has a step-by-step example and an animation of it. B
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** features → diff; 32 points → OUTLINE_CIRCLE_POINTS in profile.js; ~10 px apart → drive this session (2.43 px/mm × 2π·20 mm / 32 ≈ 9.5 px); 44 px targets → SKETCH_HANDLE_TARGET_PX in Viewport.vue; Rectangle drag grabbed a point → first acceptance drive this session; earlier dead strip → TODO/done/sketch-002 Effort section (ui-020 finding #1); docs example + animation → docs/sketch-mode.md, docs/media/sketch-vertex-edit.gif in diff
 **To Add:** docs/media/sketch-vertex-edit.gif, docs/screenshots/sketch-vertex-edit.png
+
+
+## 2026-10-03T13:23:00Z — Docs: select, move, edit and delete, with pictures
+
+**Post:** The WarpCad page on selecting a shape and reading its size now has pictures that move. Click a cube and the Inspector fills in. Drag the red arrow and the X field changes as you drag, not when you let go. Type 25 into X and press Enter and the cube goes to 25 mm. Rotating, editing a cylinder's diameter and undoing it in one step, recolouring, aligning to the origin, a selection box and delete each have their own short animation.
+
+None of these are screen recordings I made by hand. Each is produced by a test that starts from a saved scene, uses a real mouse at human speed, and asserts how it ends: a new position value, a body count, a colour. A drag that silently did nothing fails the build instead of publishing a clip of a still scene. One catch while writing them: the fixed spot I first chose on a rotate ring turned out to sit under the z arrow, so the test now asks the page which handle is on top at that point before pressing.
+
+I also drove the hardware-edit scenario by hand afterwards, and the handles stayed in proportion to a small bolt. Built with Claude Code, reviewed by me.
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** 9 animations and 5 stills → diff (docs/media/, docs/screenshots/); end-state assertions → e2e/docs/selection-inspector.docs.js; z arrow covered the ring vertex → debug run this session (elementFromPoint returned gizmo-grab-arm-z); hand drive → TODO/ACCEPTANCE.md scenario 2 Last run
+**To Add:** docs/media/gizmo-translate.gif, docs/media/select-click.gif
