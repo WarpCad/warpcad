@@ -16,6 +16,10 @@ next time you open WarpCad on the same device and browser your model is right th
    of it. While it is being rebuilt the top bar says **Restoring your last session…**
    (usually too briefly to notice), then **Restored your last session** for a few seconds.
 
+![Dragging a cube and a cylinder into the 3D view, the top bar changing from Autosave on to Saved, then the page reloading and both shapes coming straight back with Restored your last session](./media/save-reload-roundtrip.gif)
+
+*The animation places a cube and a cylinder and skips the Union step; the reload works the same either way.*
+
 There is no "Do you want to restore?" question — reopening WarpCad means reopening your
 model. Reloading right after a change is fine too: WarpCad saves the moment the page is
 being closed, hidden or switched away from, so the last thing you did is not lost.
@@ -31,6 +35,7 @@ selected, and the default resolution.
 3. WarpCad asks: **New replaces the current project with an empty one. Save or download it first
    if you want to keep it — the copy this browser keeps is replaced too.** Choose **Replace**
    (**Cancel** leaves everything exactly as it was). An empty project skips the question.
+   ![The Replace the project? question that File, New asks when the model has something in it, with Cancel and Replace buttons](./screenshots/new-project-confirm.png)
 4. The view is empty and the status line says **New project · 14:02**.
 5. Choose **File ▾ → Save**. A file picker appears — **Save** does *not* quietly write over the
    file the previous project came from. (Where the browser can only download, **Download copy**
@@ -66,6 +71,12 @@ bar is crowded, it shows just the light (screen readers still read out the words
 | Green dot | **Saved · 14:02** | Your latest change is stored, at that time |
 | Green dot | **Restored your last session** | Your model was just reopened from where you left off |
 | Red square | **Not saved — browser storage unavailable** | See below |
+
+Three of those states, as they look in the bar:
+
+| Saving | Saved | Not saved |
+|---|---|---|
+| ![The status light as an amber ring with the words Saving…](./screenshots/save-status-saving.png) | ![The status light as a green dot with the words Saved · 14:02](./screenshots/save-status-saved.png) | ![The status light as a red square with the words Not saved — browser storage unavailable](./screenshots/save-status-unsaved.png) |
 
 The light differs in *shape* as well as colour (ring, disc, square), so it doesn't rely on
 telling red from green.
@@ -111,9 +122,13 @@ followed by the reason — and keeps the unreadable copy aside rather than writi
 
 Everything on this page beyond autosave starts at **File ▾**, in the top bar, between
 **History** and the status light. It works the same on a laptop, a tablet and a phone: tap
-it and a menu opens under it, with two groups — **this device** at the top, and **Hosted
-storage** below the divider. The first line of the menu repeats the status message in full,
-which is how you read it on a phone, where the status light in the bar is only a dot.
+it and a menu opens under it, with three groups: the items for **this device** at the top
+(**New**, the save item, **Open…**, **Export…**), a **Design** group holding the **Resolution**
+setting, and **Hosted storage** below the last divider. The first line of the menu repeats the
+status message in full, which is how you read it on a phone, where the status light in the bar
+is only a dot.
+
+![The File menu open: a status line, then New, Download copy, Open… and Export…, a Design group with Resolution: Normal…, and a Hosted storage group with Connect repository…](./screenshots/file-menu.png)
 
 Opening the menu never changes what is selected, and nothing in it is greyed out because of
 what is selected.
@@ -167,8 +182,12 @@ says nothing.
    any history preview is ended, and the status line says **Opened warpcad-project.ndjson · 5
    steps**.
 
+![The Replace the project? question that File, Open asks before the file picker, with Cancel and Replace buttons](./screenshots/replace-confirm-dialog.png)
+
 Opening a file can't be undone — undo and redo both start empty, like a reload — which is
 exactly why the question comes first.
+
+![Choosing File, Open on an empty scene, picking a project file, and the saved cube and cylinder appearing with the status line reading Opened warpcad-project.ndjson · 2 steps](./media/open-project.gif)
 
 ### While a file is opening
 
@@ -251,9 +270,12 @@ A **fine-grained personal access token**, created at
    again in N minutes*.
 4. If the repository has no project file yet, that is not an error: you will see *No
    project file yet — the first Save to owner/repo will create it*.
+   ![The Connect repository dialog with the token field filled in (shown as dots), the repository janecoder/enclosure-parts and the default path warpcad-project.ndjson](./screenshots/hosted-connect-dialog.png)
 5. The dialog now says **Token saved in this browser** and offers **Done** and **Replace
    token**. It never shows the token again. A small dot appears on the **File** button to show
-   the connection.
+   the connection, and the menu now offers the rest of the hosted group:
+
+   ![The File menu once connected: Save to janecoder/enclosure-parts, Load from janecoder/enclosure-parts, Auto-push, Replace token… and Disconnect under Hosted storage](./screenshots/file-menu-connected.png)
 
 WarpCad writes to the repository's **default branch** (usually `main`), and to the one file
 you named. It does not create branches, open pull requests, or touch any other file.
@@ -320,6 +342,8 @@ refuses to write over it** and asks:
 
 > **The repository copy changed since you last loaded or saved it.**
 > **Overwrite remote** · **Load remote (replaces this project)** · **Cancel**
+
+![The repository copy changed dialog with three buttons: Overwrite remote, Load remote (replaces this project) and Cancel, and a note that nothing is merged](./screenshots/hosted-conflict-dialog.png)
 
 - **Overwrite remote** — your version wins. Theirs stays in the repository's history, so it
   is recoverable from GitHub, but it is no longer the current file.

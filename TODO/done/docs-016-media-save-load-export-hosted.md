@@ -6,8 +6,38 @@ priority: medium
 model: sonnet
 milestone: M10
 depends: [docs-005, docs-006, docs-007]
-status: open
+status: done
 ---
+
+## What actually shipped (2026-10-03)
+
+All ten inventory rows landed, plus one extra still, `file-menu-connected` (the File menu once
+a repository is connected, because the unconnected menu cannot show Save to / Load from /
+Auto-push / Replace token / Disconnect, so "every entry visible" needs both). Two specs,
+`e2e/docs/save-load.docs.js` and `e2e/docs/export.docs.js`, one new fixture
+(`cube-cylinder-union.ndjson`, carrying a `normal` resolution record: a file with no resolution
+opens as Legacy, which would have put "Legacy (32 segments)" in the pictures). Both pages embed
+their media.
+
+Deviations from the spec text, all found by checking the page against the real UI:
+
+- **The example's `model.stl` is `union-1.stl`**: a body is named after itself, lowercased
+  (`docs/export.md` already said so further down). The new "Try it" section says `union-1.stl`
+  and notes a cube would be `cube-1.stl`.
+- **The File menu has three groups, not two**: a Design group (Resolution) sits between this
+  device and Hosted storage. The page now says so.
+- **`save-status` "unsaved" is the red "Not saved" state**, produced by making IndexedDB refuse
+  transactions (docs-only init hook); "Saving..." is produced by holding the autosave debounce.
+  Both hooks live in the spec, nothing in `src/` changed. The clock digits are rewritten in
+  place instead of masking the chip.
+- **The hosted token field is a password input**, so the Connect picture shows dots; the spec
+  asserts the DOM value is only `ghp_EXAMPLE`, that no `github_pat_`/`gh?_` token-shaped string is
+  in the HTML, visible text or inputs, that every request carried that header, and that nothing
+  left for a non-mocked origin.
+- **The conflict dialog carries a second sentence** ("Nothing is merged. Load remote also
+  replaces any edits you have not pushed...") that the page's quotation of it omitted; the
+  picture now sits above the three-button list.
+- The reload movie places a cube and a cylinder (no Union) to stay under 12 s; the page says so.
 
 ## Goal
 

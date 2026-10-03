@@ -1306,3 +1306,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** 4 GIFs, 5 stills, row-count and body-count assertions at each beat → diff (e2e/docs/timeline.docs.js, undo-redo.docs.js, docs/media/manifest.json); edit to 30 mm replays the Subtract (volume 27000 minus the cylinder's share) → assertion in the timeline-edit-step movie; scenario 12 hand drive → TODO/ACCEPTANCE.md
 **To Add:** docs/media/timeline-edit-step.gif
+
+## 2026-10-03T17:50:00Z — Docs: saving, opening, exporting and the GitHub connection, with pictures
+
+**Post:** WarpCad's save, open and export docs now have pictures: the File menu, the Saving / Saved / Not saved light, both confirm dialogs and the GitHub connect and conflict prompts. Two clips show a reload bringing your model back and an STL export. Built with Claude Code, reviewed by me. #CAD #WebGL
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** 3 GIFs, 8 stills -> diff (docs/media/, docs/screenshots/); body count after reload and a real .stl download -> e2e/docs/save-load.docs.js and export.docs.js; scenarios 1, 8, 10, 11, 14 -> hand drive this session, TODO/ACCEPTANCE.md
+**To Add:** docs/media/save-reload-roundtrip.gif

@@ -1043,6 +1043,8 @@ scenario itself, not a re-run of the checked-in e2e spec.
 
 **Re-checked**: 2026-10-02 21:40 UTC — PASS (`docs-009`, laptop 1440x900 Chromium; real mouse, human-paced). Nothing in `src/` changed; re-driven because the task is a scripted movie of this scenario. A Cube then a Cylinder (and a Sphere) dropped at different points: **all stayed on screen**, `data-body-count` 1 → 2 → 3, `data-placing` back to `false` after each release. Also ran `ui-053`'s real repro (place a Cube, open Fillet, type a radius, Esc, drag again): the popover closed and the next drag placed. (The TODO paraphrased that repro as Esc mid-drag; that was not the finding. Pressing Esc mid-library-drag does not cancel it, the release still places — unchanged behavior, noted not filed.)
 
+**Last run**: 2026-10-03 17:40 UTC (`docs-016`) — PASS at laptop 1440x900 Chromium, real mouse with jittery, variable-speed paths (a docs-media task; nothing in `src/` changed, so this is a smoke check). Cube and Cylinder dropped apart, count 2; a click on empty grid left 0 selected, a click on the cube selected only `cuboid-1`, a click on the cylinder only `cylinder-2`. Console clean apart from SwiftShader's ReadPixels performance warnings. Phone not driven.
+
 ### 2. Hardware property edit
 
 **Steps**:
@@ -2638,6 +2640,8 @@ the reason**, neither was executed, and the 1st and 4th records still replayed i
 
 **Re-checked**: 2026-10-02 19:05 UTC — **PASS for what `sketch-001` changed**, laptop Chromium through **File ▾ → Open…** (real file chooser): (a) a file with a deliberately bogus `evil.exec` record is refused **by name** ("Couldn't open bad.ndjson: Step 2 (Place x) can't be built: unknown op \"evil.exec\"…"), nothing executed, no dialog, the current project untouched — note this is the app's existing *atomic refuse* behaviour (`data-002`), not the skip-and-continue `replay.js` gives, and it is unchanged by this task; (b) a ui-020-era file holding a `sketch.line` record (even one its state line marks suppressed) **opens**: the line is skipped with "Opened old.ndjson, but skipped 1 step (sketch-1): sketch lines are no longer supported — redraw them in a Sketch primitive" and the cube loads. Without (b) every autosave containing an old line would have failed to restore entirely.
 
+**Re-checked**: 2026-10-03 17:40 UTC (`docs-016`) — PASS through File ▾ → Open… (real file chooser) and, new this run, through **File ▾ → Load from owner/repo** against a fully mocked host (`page.route`, nothing left the machine, fake token `ghp_EXAMPLE`), laptop Chromium. A file of plain text, and a valid file with a bogus `evil.exec` record, were each refused **by name** (`Couldn't open bogus.ndjson: Step 2 (Place Evil) can't be built: unknown op "evil.exec"`), nothing executed (no dialog, console clean), and the one-body project on screen was untouched — same for the remote copy (`Couldn't open janecoder/enclosure-parts: line 1 is not valid JSON`). As before, this is the app's atomic refuse rather than `replay.js`'s skip-and-continue.
+
 ### 9. Place a Sketch primitive, draw a solid and a hole, extrude it, and use it
 
 **Rewritten by `TODO/sketch-001` (2026-10-02).** The capability the old scenario 9
@@ -2996,6 +3000,8 @@ Hosted half not driven (no scratch repo/token in this session). Console clean.
 
 **Re-checked**: 2026-10-02 19:05 UTC — **PASS (local half)** (`sketch-001`), laptop Chromium with the fallback file path forced: a three-slice lofted sketch → **Download copy** → **New** → **Open…** the downloaded file → bodies byte-identical (op, bounds, volume); **Edit sketch** after reopening shows all 3 slices, method Loft, 2 ghosted ribs. Autosave reload at phone Chromium kept a subtract-of-a-sketch result (47 527.035 mm³). The hosted half was not driven.
 
+**Last run**: 2026-10-03 17:40 UTC (`docs-016`) — PASS for steps 1-7 (the local half) at laptop 1440x900 Chromium (fallback file picker; the Save item read **Download copy**), real mouse with jittery paths; the hosted/auto-push steps 8-10 not driven (mocked host only, in the docs spec and the Scenario 8 note). Cube and Cylinder dropped overlapping, both selected (count 2, selected by clicking one then Shift-clicking the other), Union gave one body `bool-3`, chip `Saved · 12:39`. Reload with nothing in between: 1 body back, chip `Restored your last session`, History rows `Cube 1 — placed`, `Cylinder 1 — placed`, `Union Cube 1 + Cylinder 1`. **Download copy** produced `warpcad-project-20261003-1239.ndjson` and the chip `Download started: …`; a Sphere dropped (2 bodies); File ▸ Open… showed the Replace question, and after choosing the file the scene was back to the 1 union with chip `Opened drive-saved.ndjson · 3 steps` (3 matches the History rows). A text file renamed `.ndjson` was refused by name and the project untouched. Console clean.
+
 ### 11. Export a solid and confirm it opens elsewhere
 
 Added 2026-09-17 alongside `TODO/ROADMAP.md`'s M6, same rule as scenario 10. Steps
@@ -3116,6 +3122,8 @@ a slicer / mesh viewer and comparing them to the viewport, which no byte-level c
 Console clean.
 
 **Re-checked**: 2026-10-02 19:05 UTC — **PASS for sketch bodies** (`sketch-001`): a lofted sketch exported as STL at laptop Chromium reads 20 triangles, **0 open edges**; unit-level, every extrusion method (Linear tube, Revolve, Helical, Outline, Loft) exports at Print with 0 open edges (`exportJob.spec.js`). **Found and filed, not caused by this task:** a sketch hexagon **with a 2 mm top fillet** exported 8 open edges at the design resolution; isolated in Node it is 12 open edges for `primitive.hexagon` + fillet too (0 without the fillet), so it is a fillet-on-a-non-axis-aligned-rim / T-junction-repair gap → `TODO/io-006`. No real slicer opened the files.
+
+**Last run**: 2026-10-03 17:40 UTC (`docs-016`) — PASS for steps 1-4 and 6-7 at laptop 1440x900 Chromium; step 5 (a real slicer / mesh viewer) still NOT DRIVEN and not claimed. Empty scene: **Export…** dimmed, reason `Nothing to export`. Union of an overlapping Cube and Cylinder selected (the selection survived opening the File menu): the popover read `Selection — Union 1` with STL chosen and the summary `Exports Union 1 as union-1.stl`; Export downloaded `union-1.stl` and the chip said `Exported union-1.stl — 204 triangles`. With the selection cleared, the Scope line named the one body (`union-1.obj`); OBJ and `.glb` downloaded too. **Closed-surface repro of `io-004`/`io-005`** against these very files, with a parser sharing no code with the serializers: STL 612 directed edges, **0 unmatched**; OBJ 612 edges, **0 unmatched**; GLB 600 edges, **0 unmatched** (the docs movie's own STL, from a cube-cylinder union loaded from a fixture, is asserted closed in `e2e/docs/export.docs.js` too). Console clean.
 
 ### 12. Edit a step in the middle of the history and confirm it replays
 
@@ -3431,6 +3439,8 @@ with it and stayed clear after Undo. Phone 390x844 WebKit, real `touchscreen.tap
 pinned **Delete** was on screen with no scrolling, tapping it closed the sheet, and Undo
 by tap restored and reselected. Step 6 was driven at phone WebKit by touch (see scenario
 6's `ui-051` note). Console clean throughout.
+
+**Last run**: 2026-10-03 17:40 UTC (`docs-016`) — PASS at laptop 1440x900 Chromium, real mouse and keyboard, jittery paths: Cube and Cylinder dropped apart; clicking the cube selected `cuboid-1`; **Delete** removed it (count 1, `Undo: Delete Cube 1`); Undo brought it back and selected (count 2, `cuboid-1`); Delete again (1); after the chip reached Saved and a reload, exactly one body came back with `Restored your last session` and Undo disabled. Console clean. Step 6 (Pi sub-part) and phone not driven.
 
 ### 15. Change a part's model under a dependent
 

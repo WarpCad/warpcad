@@ -262,5 +262,23 @@
     "specHash": "ff62a16aac91e58cb850990269462d79e333c0ffe83bf04861ed3cac8f5cffa5",
     "bytes": 997287,
     "seconds": 11.63
+  },
+  "export-download.gif": {
+    "spec": "e2e/docs/export.docs.js",
+    "specHash": "7926c3da4b109dd4ede16682430a04d416fb316df2c96f1b4aab7c0361ce2cba",
+    "bytes": 511010,
+    "seconds": 10.01
+  },
+  "open-project.gif": {
+    "spec": "e2e/docs/save-load.docs.js",
+    "specHash": "95d20bb573e66d395ab8c3f65b80782b05a22e23facbecb938a51dcf497f09a4",
+    "bytes": 423588,
+    "seconds": 5.88
+  },
+  "save-reload-roundtrip.gif": {
+    "spec": "e2e/docs/save-load.docs.js",
+    "specHash": "95d20bb573e66d395ab8c3f65b80782b05a22e23facbecb938a51dcf497f09a4",
+    "bytes": 1018614,
+    "seconds": 9.63
   }
 }

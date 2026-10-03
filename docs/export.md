@@ -5,12 +5,27 @@ a mesh viewer, a glTF for a web viewer or game engine. It is separate from
 [saving](save-load.md): saving keeps your model editable in WarpCad; exporting hands a finished
 shape to something else.
 
+## Try it: export an STL
+
+1. Drag a **Cylinder** and a **Cube** into the 3D view so they overlap, select both and press
+   **Union** (the exports below show what that makes: one solid, `Union 1`).
+2. Click the union in the 3D view to select it.
+3. Open **File ▾**, choose **Export…**, leave the format on **STL**, and press **Export**.
+4. The panel closes, your browser downloads **`union-1.stl`** (a body is named after itself,
+   lowercased — a cube you never renamed would be `cube-1.stl`), and the status light at the
+   right of the top bar reads `Exported union-1.stl — 668 triangles`.
+
+![Selecting a Union, opening File, Export, seeing Exports Union 1 as union-1.stl, pressing Export, and the status line reading Exported union-1.stl](./media/export-download.gif)
+
 ## Exporting a file, step by step
 
 1. Select the body you want — click it in the 3D view. (Select nothing to export
    **everything**; select several to export just those, together in one file.)
 2. Open **File ▾** in the top bar and choose **Export…**. A small panel opens under the button.
 3. Read the panel before you touch anything:
+
+   ![The Export panel: Scope set to Selection — Union 1, Format STL, OBJ and glTF (.glb) with STL chosen, Resolution Same as design (Normal), the line Exports Union 1 as union-1.stl, and Cancel and Export buttons](./screenshots/export-popover.png)
+
    - **Scope** says what is going to be written. With something selected it is already set to
      `Selection — Union 1` (or `Selection — 2 bodies, in one file`); with nothing selected it is
      `Whole scene — 3 bodies, in one file`. You can switch between the two.

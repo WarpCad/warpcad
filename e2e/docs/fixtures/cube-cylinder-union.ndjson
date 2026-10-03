@@ -1,0 +1,4 @@
+{"id":"cube-1","op":"primitive.cuboid","name":"Cube 1","params":{"size":[40,40,40],"center":[0,0,20]}}
+{"id":"cyl-1","op":"primitive.cylinder","name":"Cylinder 1","params":{"diameter":24,"height":60,"center":[0,0,25]}}
+{"id":"union-1","op":"boolean.union","name":"Union 1","target":"cube-1","operands":["cyl-1"],"consumes":["cube-1","cyl-1"]}
+{"warpcad":"project-state","version":1,"resolution":"normal"}

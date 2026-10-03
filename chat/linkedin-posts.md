@@ -1795,3 +1795,16 @@ Recording it also showed a small rough edge: the header buttons shift about 27 p
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** 4 animations and 5 stills → diff (docs/media/, docs/screenshots/); per-beat assertions → e2e/docs/timeline.docs.js and undo-redo.docs.js; 27 px shift (undo button x 1108 to 1081 when the chip went from Saving to Saved) → probe output this session; scenario 12, data-003 and ui-044 repros → hand drive this session
 **To Add:** docs/media/timeline-edit-step.gif, docs/media/undo-redo-roundtrip.gif
+
+## 2026-10-03T17:50:00Z — Docs: saving, opening, exporting and the GitHub connection, with pictures
+
+**Post:** The WarpCad pages on saving and exporting are mostly menus and dialogs, so they get stills, plus two short clips. One places a cube and a cylinder, waits for the Saved light, reloads the page and shows both shapes coming straight back. The other exports a union as an STL and checks that a real download starts with the right name.
+
+The hosted-storage pictures never touch GitHub. The docs run answers every request itself and the Connect dialog holds a fake token, ghp_EXAMPLE; the spec fails if anything token-shaped appears in the page or a request. The Saving and Not saved lights are normally gone in half a second or need a broken browser, so the run holds the autosave timer and makes storage refuse on purpose to photograph them.
+
+Writing the example against the real screen corrected the page in two places. An export is named after the body, so the file is union-1.stl, not model.stl, and the File menu has a Design group between this device and Hosted storage.
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** 3 animations and 8 stills -> diff (docs/media/, docs/screenshots/); fake token and no outside request -> assertOnlyTheFakeToken in e2e/docs/save-load.docs.js; union-1.stl -> the export movie's download assertion; File menu groups -> docs/screenshots/file-menu.png; scenarios 1, 8, 10, 11, 14 -> hand drive this session
+**To Add:** docs/media/save-reload-roundtrip.gif, docs/media/export-download.gif
