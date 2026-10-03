@@ -1746,3 +1746,17 @@ While recording I found that once a shape is selected, its move and rotate handl
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** 6 animations and 4 stills → diff (docs/media/, docs/screenshots/); order movie asserts differing results → e2e/docs/booleans.docs.js; gizmo swallowed a Shift-click → hand drive this session (first candidate pixel gave 1 selected, the next gave 2); History row lists both operands → hand drive (`Subtract Cube 1 + Cube 2`)
 **To Add:** docs/media/boolean-subtract-order.gif, docs/media/boolean-subtract.gif
+
+
+## 2026-10-03T14:55:00Z — Docs: Group, Snap, Align and Mirror, with pictures
+
+**Post:** The WarpCad pages for Group, Snap, Align and Mirror now show each one working. Select a lug and a plate, press Snap, and the lug slides against the plate's side without merging into it. Align centres it on one axis, Mirror adds a reflected copy on the far side of a plane, and a short clip drops a screw onto a Raspberry Pi mounting hole by ticking the hole in the Objects list.
+
+Each clip ends by checking its result against the kernel's own numbers: the snapped lug's face sits in the plate's face plane within 0.01 mm, the screw's axis lies on the hole's, and the mirrored copy's centre is the original's with X negated. A clip of the wrong thing fails the test instead of becoming a picture.
+
+Recording turned up two things worth writing down. Snap's orientation sign names the side of the moving shape that touches, so "Outside +" put my lug on the plate's minus-X side, the reverse of what I expected, and the page now says so. And Group drops a shape's own recolour, so the group-versus-union comparison shows what you can open rather than colour. Built with Claude Code, reviewed by me.
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** 6 animations and 4 stills → diff (docs/media/, docs/screenshots/); end-state assertions → e2e/docs/*.docs.js; "Outside +" landed the lug on the minus side → failing assertion during this session (lug face 92 mm from the plate's high face, matching calcSnap's table in src/core/kernel/group.js); Group lost the recolour → hand probe this session (empty data-body-color on the group); scenarios 3, 6, 16 → TODO/ACCEPTANCE.md Last run entries
+**To Add:** docs/media/snap-operation.gif, docs/media/snap-subpart-operand.gif

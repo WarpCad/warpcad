@@ -1,0 +1,2 @@
+{"id":"plate-1","op":"primitive.cuboid","name":"Plate 1","params":{"size":[80,50,8],"center":[0,0,4]}}
+{"id":"lug-1","op":"primitive.cuboid","name":"Lug 1","params":{"size":[12,20,20],"center":[75,30,10]}}

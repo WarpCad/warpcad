@@ -6,8 +6,25 @@ priority: medium
 model: sonnet
 milestone: M10
 depends: [docs-005, docs-006, docs-007]
-status: open
+status: done
 ---
+
+> **Shipped (2026-10-03):** all 10 inventory rows, in `e2e/docs/groups.docs.js` (3 tests),
+> `snap-align.docs.js` (4) and `mirror.docs.js` (3), embedded in the three pages, plus six new NDJSON
+> fixtures (`two-cubes`, `cubes-overlap`, `plate-and-lug`, `pi-and-screw`). Every movie asserts its
+> end state: the group is one `group.assemble` body and its gizmo drag moves both cubes by the same
+> amount; snapped bodies share a face plane within 0.01 mm with the reference unmoved; align centres
+> on the chosen axis only; the screw lands on the hole's axis as the Inspector itself reads it; the
+> mirror copy's centre X is the negation of the original's.
+>
+> **Deviations.** (1) `group-vs-union` compares what you can *open*, not colour: a Group drops a
+> body's own recolour (logged in `TODO/VERIFY.md`), so the two scenes would have looked identical.
+> It is composed in a small HTML harness inside the same Playwright run, as proposed. (2)
+> `snap-subpart-operand` uses **Align** on X and Y against the Pi's `hole1`: no Snap orientation
+> centres a screw on a smaller hole, and the hole is hidden, so it is ticked in the Objects list. (3)
+> The page's example uses *Outside −*, not "flush against +X": the popover's sign names the moving
+> shape's touching side (`Outside +` puts the lug on the plate's -X side), so `docs/snap-align.md`
+> now explains that and the Orientation bullet was rewritten. Nothing in `src/` changed.
 
 ## Goal
 

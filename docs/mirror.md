@@ -11,12 +11,21 @@ Afterwards there are two shapes in the scene, and the **new copy** is the one th
 
 1. Drag a **Cube** out of the Library into the 3D view, off to one side of the origin.
 2. With the cube selected, click **⇋ Mirror** on the Operations toolbar. A popover opens.
+
+![The Mirror popover: Mirror across set to X plane, Plane position 0 and Cancel and Mirror buttons](./screenshots/mirror-popover.png)
 3. Leave **Mirror across** on **X plane**. **Plane position** starts at `0`, the world plane
    through the origin — so the copy lands at the same height and depth, on the opposite
    side of the origin along X.
 4. Click **Mirror**. A second cube appears on the far side and is selected (its dimension
    lines and gizmo moved to it). The first cube hasn't moved.
 5. Changed your mind? **Undo** removes only the copy.
+
+![Clicking a lug, pressing Mirror, trying the Y plane and choosing X again, pressing Mirror: a second lug appears on the opposite side of the plate, selected](./media/mirror-operation.gif)
+
+Looked at from above, the copy lands exactly as far from the middle as the original, on
+the other side:
+
+![The plate with the lug on one side and its mirrored copy on the other, seen from above](./screenshots/mirror-result.png)
 
 ## The two fields
 

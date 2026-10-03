@@ -42,10 +42,25 @@ group, so the badge under the toolbar just shows the selected count, with no
    only one thing is selected again, the toolbar dims until you select another
    two.
 
+![Clicking one cube, Shift-clicking the other, pressing Group: the two cubes become one selected body, and dragging its gizmo arrow moves both cubes together](./media/group-combine.gif)
+
 Look closely at the two cubes after grouping: **neither one changed shape.**
 Nothing was unioned, cut, or intersected away — this is the difference from
 running Union on the same pair, which would replace both cubes with a single
 merged volume.
+
+### Group or Union?
+
+The same two overlapping cubes, grouped on the left and unioned on the right. Each result
+is one thing in the scene, but only the group still has two cubes inside it: click a
+grouped cube twice and the Inspector reads `Group 1 ▸ Cube 1`. Click a union twice and you
+are still on `Union 1`, because there is no longer a cube in it to open.
+
+![Two overlapping cubes shown twice. Left: grouped, with one cube selected inside the group and the Inspector reading Group 1, Cube 1. Right: unioned, with the whole merged solid selected and the Inspector reading Union 1](./screenshots/group-vs-union.png)
+
+Pick Group when you want to move a set of parts together but keep them separate shapes
+(a screw and the board it sits on). Pick [Union](booleans.md) when you want one solid you
+can cut or export as a single piece.
 
 ## What happens to the original shapes
 
@@ -79,6 +94,8 @@ Continuing from the worked example above:
 4. Click the **`Group 1`** part of the breadcrumb to step back up to the whole
    group. The gizmo returns, sized to both cubes again.
 5. Click empty grid to deselect everything.
+
+![Clicking a grouped cube selects the whole group; clicking it again narrows to Cube 1, clicking the other cube goes straight to Cube 2, and the Group 1 crumb in the Inspector steps back up to the whole group](./media/group-subpart-select.gif)
 
 ### Looking inside a group is read-only
 

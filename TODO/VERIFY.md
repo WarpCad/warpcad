@@ -34,6 +34,16 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### docs-012 — Docs media for Group, Snap, Align and Mirror (2026-10-03 14:52)
+
+The movies and stills are asserted and scenarios 3, 6 and 16 were driven by hand, so what is left is judgment and one product question the capture turned up. The two Snap/Align GIFs sit at about 10.5 to 11 s, close to the 12 s budget.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | Group drops a body's own colour: two cubes recoloured red and blue lose both colours when grouped (`data-body-color` and `data-body-part-colors` empty on the group, rendered default blue), while a composite's recipe colours survive. `docs/groups.md` therefore compares Group and Union by what you can open, not by colour. Decide whether a user recolour should carry into the group (a bug to file) or is intended. | Open | |
+| 2 | Read `snap-operation.gif` and the new "Outside +/−" wording in `docs/snap-align.md` cold: the popover's sign names the moving shape's touching side, so `Outside −` puts the lug on the plate's +X side, which reads backwards at first. Is the explanation clear, or should the popover labels change? | Open | |
+| 3 | `snap-subpart-operand.gif` uses Align on X and Y against the Pi's `hole1` (a Snap orientation cannot centre a 5.7 mm screw on a 3.25 mm hole). Does a viewer still read it as "the sub-part is the operand"? | Open | |
+
 ### docs-011 — Docs media for the booleans page (2026-10-03 14:12)
 
 The movies and stills are asserted, and scenarios 4 and 5 were driven by hand, so what is left is a judgment call on how they read. Three of the GIFs (`boolean-subtract-order`, `boolean-union`, `boolean-subtract`) sit at 10 to 11.5 s, close to the 12 s budget.

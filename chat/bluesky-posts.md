@@ -1269,3 +1269,13 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** 6 GIFs, 4 stills, end-state and volume assertions → diff (e2e/docs/booleans.docs.js, docs/media/manifest.json); order movie compares the two results' bounds and volumes → e2e/docs/booleans.docs.js; scenario 4 subtract left 48 006 of 64 000 mm³ → hand drive this session
 **To Add:** docs/media/boolean-subtract.gif
+
+
+## 2026-10-03T14:55:00Z — Docs: Group, Snap, Align and Mirror, with pictures
+
+**Post:** WarpCad's docs now show Group, Snap, Align and Mirror working. Snap slides a lug flush against a plate without merging them, Align centres it, and Mirror drops a reflected copy on the far side. Built with Claude Code, reviewed by me. #CAD #WebGL
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** 6 GIFs, 4 stills, end-state assertions → diff (e2e/docs/groups.docs.js, snap-align.docs.js, mirror.docs.js, docs/media/manifest.json); snap face plane within 0.01 mm, mirror copy at the negated X → assertions in those specs; full run 2560 e2e passed → test output this session
+**To Add:** docs/media/snap-operation.gif

@@ -1,0 +1,2 @@
+{"id":"cube-1","op":"primitive.cuboid","name":"Cube 1","params":{"size":[40,40,40],"center":[-35,-10,20]}}
+{"id":"cube-2","op":"primitive.cuboid","name":"Cube 2","params":{"size":[40,40,40],"center":[40,15,20]}}

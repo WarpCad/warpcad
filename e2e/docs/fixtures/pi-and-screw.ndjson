@@ -1,0 +1,4 @@
+{"id":"pi-1","op":"raspberrypi.bplus","name":"Raspberry Pi 1","params":{"model":5}}
+{"id":"pi-1-move-1","op":"transform.translate","target":"pi-1","supersedes":"pi-1","params":{"vector":[-43,-28,0],"rotation":[0,0,0]}}
+{"id":"screw-1","op":"hardware.screw","name":"Screw 1","params":{"spec":"#4","length":12}}
+{"id":"screw-1-move-1","op":"transform.translate","target":"screw-1","supersedes":"screw-1","params":{"vector":[-10,-45,0],"rotation":[0,0,0]}}

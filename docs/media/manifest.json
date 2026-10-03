@@ -142,5 +142,41 @@
     "specHash": "1b2ee039d334460d9981c4ad1eaff85226f0407c12d9d6ac52baabf4b27a9def",
     "bytes": 850224,
     "seconds": 11.5
+  },
+  "group-combine.gif": {
+    "spec": "e2e/docs/groups.docs.js",
+    "specHash": "747ca1864691d7537ec47dbc1b6cb4aa0808572e4dc5eb29e3af83abcfaa2662",
+    "bytes": 1186195,
+    "seconds": 10.3
+  },
+  "group-subpart-select.gif": {
+    "spec": "e2e/docs/groups.docs.js",
+    "specHash": "747ca1864691d7537ec47dbc1b6cb4aa0808572e4dc5eb29e3af83abcfaa2662",
+    "bytes": 723518,
+    "seconds": 8.4
+  },
+  "snap-operation.gif": {
+    "spec": "e2e/docs/snap-align.docs.js",
+    "specHash": "d652b8ad064a20cb3b21e60ff67a6f9f040be939b6c084619b164b2af167a754",
+    "bytes": 856279,
+    "seconds": 10.9
+  },
+  "align-operation.gif": {
+    "spec": "e2e/docs/snap-align.docs.js",
+    "specHash": "d652b8ad064a20cb3b21e60ff67a6f9f040be939b6c084619b164b2af167a754",
+    "bytes": 763294,
+    "seconds": 10.5
+  },
+  "snap-subpart-operand.gif": {
+    "spec": "e2e/docs/snap-align.docs.js",
+    "specHash": "d652b8ad064a20cb3b21e60ff67a6f9f040be939b6c084619b164b2af167a754",
+    "bytes": 711425,
+    "seconds": 10.76
+  },
+  "mirror-operation.gif": {
+    "spec": "e2e/docs/mirror.docs.js",
+    "specHash": "caedadee1fa6ca0f12241dc1cd135a602dcecb00d7e1669916705920048a8fa6",
+    "bytes": 719477,
+    "seconds": 9.3
   }
 }

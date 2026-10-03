@@ -43,6 +43,20 @@ distinction [Subtract](booleans.md#which-shape-gets-cut-the-first-one-you-picked
 already uses, painted onto the shapes in the scene the same way (amber for the
 first pick, teal for the second) before you open either popover.
 
+## A quick example: a lug against a plate
+
+Select a plate and a lug (the lug first), press **⇥ Snap**, choose *Outside −* on the
+**X** axis and press **Snap** in the popover. The lug slides against the plate's +X side
+and stops flush with it, without merging: the plate has not moved, and both are still two
+separate shapes you can select on their own.
+
+![Clicking the lug, Shift-clicking the plate, pressing Snap, ticking X, choosing Outside minus and pressing Snap: the lug slides across until its face meets the plate's side](./media/snap-operation.gif)
+
+To flush the lug against the plate's *−X* side instead, choose *Outside +*. The sign names
+the side of the **moving** shape that touches: *Outside −* puts the moving shape's low
+side against the reference's high side, so the moving shape ends up on the reference's +X
+side. See [the popover's fields](#the-popovers-fields).
+
 ## A worked example
 
 1. Drag a **Cube** and a **Cylinder** into the 3D view so they don't overlap.
@@ -58,6 +72,8 @@ first pick, teal for the second) before you open either popover.
 
 Both solids remain separately selectable afterward — click the Cylinder, and
 it opens its own Inspector entry exactly as before. Nothing was combined.
+
+![Selecting a lug and a plate, pressing Align, ticking Y and pressing Align in the popover: the lug moves along Y until it is centred on the plate, and does not move on X or Z](./media/align-operation.gif)
 
 ## A second example: positioning against one named part
 
@@ -86,6 +102,15 @@ To do it, [drill into the part](selection-and-inspector.md) first:
    **Aligning Raspberry Pi 1 › ethernet to Cube 1**. That `›` is the
    confirmation you drilled to the depth you meant.
 6. Check the **X** and **Y** axes and click **Align**.
+
+![Clicking a screw, then ticking the Raspberry Pi's hole1 part in the Objects list, pressing Align and ticking X and Y: the screw moves until it sits on the mounting hole's axis](./media/snap-subpart-operand.gif)
+
+The picture above does the same with a **mounting hole**: the screw is the moving shape,
+and the board's `hole1` part is the reference. A hole passes through the board and can't be
+clicked in the 3D view, so the second operand is ticked in the Inspector's
+[Objects list](selection-and-inspector.md#picking-one-piece-of-a-hidden-shape) instead.
+The popover's top line reads `Aligning Screw 1 to Raspberry Pi 1 › hole1`, and afterwards
+the screw's axis lies on the hole's axis.
 
 The board moves so that **the Ethernet jack** — not the board's centre — lines
 up with the Cube. The rest of the board comes along with it: addressing a part
@@ -167,6 +192,8 @@ design.
 
 ## The popover's fields
 
+![The Snap popover for a lug and a plate: Axes with X ticked, Orientation set to Outside minus, Offset 0 and Cancel and Snap buttons, with "Snapping Lug 1 to Plate 1" beneath](./screenshots/snap-popover.png)
+
 - **What's being positioned** — the top line, naming the moving item first and
   the reference item second, each with its `›` part name if you drilled into it.
   Read this before committing: a part-addressed move and a whole-item move look
@@ -174,10 +201,14 @@ design.
   difference is visible beforehand.
 - **Axes** — one or more of X/Y/Z, any combination. Only the checked axes are
   affected; an unchecked axis is left exactly where it was.
-- **Orientation** (Snap only) — which side of the reference shape to sit flush
-  against: `Outside +`, `Outside −`, `Inside +`, `Inside −`, `Center +`, or
-  `Center −`. Align has no orientation control — it always centres, on
-  whichever axes you check.
+- **Orientation** (Snap only) — how the moving shape meets the reference shape:
+  `Outside +`, `Outside −`, `Inside +`, `Inside −`, `Center +`, or `Center −`. The
+  sign names the side of the **moving** shape that does the touching, so
+  `Outside −` puts the moving shape's low face against the reference's high face (the
+  moving shape ends up on the reference's + side), and `Outside +` does the opposite.
+  `Inside` lines up like faces (high with high, or low with low), and `Center` puts the
+  moving shape's high or low face on the reference's middle. Align has no orientation
+  control — it always centres, on whichever axes you check.
 - **Offset (mm)** — an extra millimetre nudge, applied uniformly to every
   checked axis. Defaults to `0`.
 - **Cancel** closes the popover without changing anything. **Snap**/**Align**
