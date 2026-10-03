@@ -6,8 +6,27 @@ priority: medium
 model: sonnet
 milestone: M10
 depends: [docs-005, docs-006, docs-007]
-status: open
+status: done
 ---
+
+> **What shipped (2026-10-03, unattended `/run-todos`).** All 9 inventory rows landed in
+> `e2e/docs/sketch-mode.docs.js` (4 movies, 5 stills, laptop Chromium) and are embedded in
+> `docs/sketch-mode.md`; nothing under `src/` changed. Deviations from the spec's wording:
+> - **There is no "sketch mode" to enter.** A sketch is a Library primitive (sketch-001), so
+>   `sketch-place` drags the Sketch row in and the page calls it the *sketch editor*.
+> - **The Line tool is a drag, not click-click.** Each side is one press-drag-release starting
+>   where the last ended; the movie's first side asserts `data-drafting` mid-drag (the live stroke follows
+>   the pointer). The spec's example ("click four corners") was corrected on the page to the
+>   real gesture, and Done is part of it (the Extrude panel only shows a see-through preview).
+> - **A closed outline is not "filled"**; it turns blue and the tan region is the Extrude preview. The page
+>   says so. A new "Worked example: a block" carries the spec's example (60 x 40 mm, Height 10 mm).
+> - **Through-cavity check** (hole movie): the app exposes no vertex count, so it compares the body's
+>   measured volume with block minus a full-depth 15 mm radius bore (within 8 %), and requires it to sit
+>   below block minus 85 % of the bore, so a blind pocket or no hole fails.
+> - The extrude movie asserts one `primitive.sketch` body, 10 mm tall (to 0.1 mm), resting on the plane.
+>   The slice still shows the real card (two rows, Z in mm, **＋ Slice**, **Delete slice**); the extrude
+>   GIF needed `fps: 8, width: 600` to fit the 1.5 MB budget (10.4 s).
+> - `docs/README.md`'s Sketch entry now lists the block example.
 
 ## Goal
 

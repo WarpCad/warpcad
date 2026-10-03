@@ -99,7 +99,7 @@ The Library's Raspberry Pi and Hardware items descend from the `jscad-raspberryp
 - [Sketch primitives](sketch-mode.md) — drag **Sketch** from the Library, draw
   outlines with Line, Rectangle, Circle and Polygon, mark outlines Solid or Hole, stack
   slices, and turn them into a solid with Linear, Revolve, Helical, Outline or Loft; then
-  **Edit sketch** to change it later. Worked examples: a tube, and a lofted wing.
+  **Edit sketch** to change it later. Worked examples: a block, a tube, and a lofted wing.
 
 ## Decisions
 

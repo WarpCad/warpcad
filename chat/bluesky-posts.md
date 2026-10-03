@@ -1315,3 +1315,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** 3 GIFs, 8 stills -> diff (docs/media/, docs/screenshots/); body count after reload and a real .stl download -> e2e/docs/save-load.docs.js and export.docs.js; scenarios 1, 8, 10, 11, 14 -> hand drive this session, TODO/ACCEPTANCE.md
 **To Add:** docs/media/save-reload-roundtrip.gif
+
+## 2026-10-03T18:40:00Z — Docs: sketching a part, with pictures
+
+**Post:** WarpCad's sketch page now shows the whole flow: drag Sketch in, draw a closed outline, mark an inner circle as a hole, type 10 mm and get a solid. Four short clips, five stills. Built with Claude Code, reviewed by me. #CAD #WebGL
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** 4 GIFs, 5 stills -> diff (docs/media/, docs/screenshots/); solid 10 mm tall and a bore by measured volume -> e2e/docs/sketch-mode.docs.js; scenario 9 and 1 hand drive -> TODO/ACCEPTANCE.md
+**To Add:** docs/media/sketch-extrude.gif

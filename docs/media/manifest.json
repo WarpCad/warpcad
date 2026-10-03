@@ -280,5 +280,29 @@
     "specHash": "95d20bb573e66d395ab8c3f65b80782b05a22e23facbecb938a51dcf497f09a4",
     "bytes": 1018614,
     "seconds": 9.63
+  },
+  "sketch-draw-line.gif": {
+    "spec": "e2e/docs/sketch-mode.docs.js",
+    "specHash": "a7bb64ab00c0e24d32e01b939d26562a3cfd9071b793c4d17b67448c3fc74d3b",
+    "bytes": 854903,
+    "seconds": 7.74
+  },
+  "sketch-extrude.gif": {
+    "spec": "e2e/docs/sketch-mode.docs.js",
+    "specHash": "a7bb64ab00c0e24d32e01b939d26562a3cfd9071b793c4d17b67448c3fc74d3b",
+    "bytes": 1273460,
+    "seconds": 10.38
+  },
+  "sketch-hole.gif": {
+    "spec": "e2e/docs/sketch-mode.docs.js",
+    "specHash": "a7bb64ab00c0e24d32e01b939d26562a3cfd9071b793c4d17b67448c3fc74d3b",
+    "bytes": 1052957,
+    "seconds": 9.27
+  },
+  "sketch-place.gif": {
+    "spec": "e2e/docs/sketch-mode.docs.js",
+    "specHash": "a7bb64ab00c0e24d32e01b939d26562a3cfd9071b793c4d17b67448c3fc74d3b",
+    "bytes": 801853,
+    "seconds": 5.8
   }
 }

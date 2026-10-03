@@ -1808,3 +1808,14 @@ Writing the example against the real screen corrected the page in two places. An
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** 3 animations and 8 stills -> diff (docs/media/, docs/screenshots/); fake token and no outside request -> assertOnlyTheFakeToken in e2e/docs/save-load.docs.js; union-1.stl -> the export movie's download assertion; File menu groups -> docs/screenshots/file-menu.png; scenarios 1, 8, 10, 11, 14 -> hand drive this session
 **To Add:** docs/media/save-reload-roundtrip.gif, docs/media/export-download.gif
+
+## 2026-10-03T18:40:00Z — Docs: sketching a part, with pictures
+
+**Post:** The WarpCad sketch page is a multi-step flow, which is hard to follow in prose, so it now has four short clips and five stills: placing the Sketch, drawing a closed outline, turning an inner circle into a hole, and typing a height to get a solid.
+
+Writing the example against the real screen corrected the page in three places. The Line tool is a drag from point to point, not click-click. A closed outline turns blue and the tan region is the extrusion preview, not a fill. And nothing is solid until Done. The hole clip checks its work by volume, since the app exposes no vertex count: the body has to match a block minus a full-depth bore, so a blind pocket would fail.
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** 4 animations and 5 stills -> diff (docs/media/, docs/screenshots/); bore by volume, 10 mm height -> e2e/docs/sketch-mode.docs.js; scenario 9 (plus phone touch) and scenario 1 -> hand drive this session; sketch-001, 002 and 005 repros -> same drive
+**To Add:** docs/media/sketch-hole.gif, docs/media/sketch-extrude.gif

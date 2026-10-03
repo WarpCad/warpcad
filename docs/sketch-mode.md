@@ -22,6 +22,8 @@ that is not closed is shown in amber and is not part of the solid until you clos
 Nothing is added to your model yet. The sketch only becomes a shape when you tap
 **Done**. **Cancel** throws the whole thing away and leaves no shape behind.
 
+![Dragging Sketch from the Library into the 3D view: a thin square follows the pointer, and on release the view turns straight down at a flat grid with the Sketch toolbar in the top-left corner](./media/sketch-place.gif)
+
 While the sketch editor is open:
 
 - a drag on the grid **draws** with the current tool. On a touch screen, one finger
@@ -38,8 +40,15 @@ While the sketch editor is open:
 
 ## The four drawing tools
 
-All four are a single press, drag and release. No modifier key is needed, with a mouse
-or a finger.
+![The Sketch toolbar: Select, Line, Rectangle, Circle and Polygon, then Hole, Delete, Slices, Extrude, Done and Cancel. Done is greyed out, with the reason written underneath](./screenshots/sketch-toolbar.png)
+
+Left to right the toolbar has **Select** (the arrow, see the next section), the four
+drawing tools below, **Hole**, **Delete**, **Slices**, **Extrude ▾**, **Done** and
+**Cancel**. **Hole** and **Delete** are greyed out until you pick an outline, and **Done**
+is greyed out until there is a closed Solid outline to build.
+
+All four drawing tools are a single press, drag and release. No modifier key is needed,
+with a mouse or a finger.
 
 | Tool | Button | Drag | You get |
 |---|---|---|---|
@@ -48,10 +57,20 @@ or a finger.
 | **Circle** | ◯ | Centre out to the rim | A closed circle |
 | **Polygon** | ⬡ | Centre out to a corner | A regular polygon. Set how many sides in the box that appears next to the tool. 6 gives you a hexagon. |
 
+![Drawing a closed outline with Line: one drag per side, each starting where the last ended; the live stroke follows the pointer, and finishing the fourth drag on the first corner closes the outline](./media/sketch-draw-line.gif)
+
 A drag that hardly moves draws nothing. With one of these tools armed, a tap without
 dragging **selects** the outline under your finger or pointer, and a drag draws, even
 when it starts on an existing outline. To pick an outline without any risk of drawing,
 use the **Select** tool (next section).
+
+### A closed outline
+
+An outline that is closed is drawn in blue. The moment a closed Solid outline exists, a
+see-through tan preview of the solid appears inside it, and **Done** switches on. Until
+it closes, a Line chain stays amber, shows no preview, and is not part of the solid.
+
+![A closed Line outline, 60 by 40 mm, drawn in blue with the tan preview of the solid filling it and Done switched on](./screenshots/sketch-profile-closed.png)
 
 ## Selecting, editing and deleting an outline
 
@@ -98,6 +117,14 @@ again to make it solid again. The Inspector shows the same choice as **Solid** /
 The outlines are combined from largest to smallest: a solid adds material, and a hole
 cuts it away. So a hole inside a solid makes a bore, and a solid drawn inside a hole
 stays as an island.
+
+**Example.** With **Rectangle**, drag out an 80 by 50 mm rectangle (read the size off the
+grid, or type it into the Inspector afterwards). With **Circle**, drag from the same centre
+out to 15 mm. Tap **Select**, tap the circle's rim, then tap **Hole**: the circle turns
+dashed and a "hole" label appears. Set Height to 10 (mm) in **Extrude ▾** and tap **Done**:
+you get a 10 mm thick plate with a round hole straight through it.
+
+![Drawing a rectangle and a circle inside it, picking the circle with Select and tapping Hole: the circle turns dashed, and after Done the plate has a round hole right through it](./media/sketch-hole.gif)
 
 ## Changing an outline's size
 
@@ -176,6 +203,8 @@ of the view. On a computer it's a small card at the bottom right. Each row is on
 - **Delete slice** removes the active slice and everything drawn on it. The last slice
   can't be deleted.
 
+![The Slices card with two rows: Slice 1 (1 outline, Z 0 mm) and the new Slice 2 (0 outlines, Z 50 mm) active, and the **＋ Slice** and **Delete slice** buttons underneath](./screenshots/sketch-slice-panel.png)
+
 ## Extrusion methods
 
 Tap **Extrude ▾** (it shows the current method's name) to choose how the outlines become
@@ -189,6 +218,8 @@ behind your outlines and updates as you change things.
 | **Helical** | Spun and lifted at the same time: a spring or a coil | Pitch (mm per turn), Turns, End offset (mm), Segments per turn |
 | **Outline** | Each closed outline becomes a wall of the given thickness, making a hollow shell. Solid and Hole are ignored. | Wall (mm), Height (mm) |
 | **Loft** | One solid skinned through every slice in height order | Points per slice (0 = automatic) |
+
+![The Extrude panel on Linear: the method buttons across the top (Revolve, Helical and Loft greyed out, with a reason when you point at them), a one-line picture of the method, and the Height (mm), Twist (°) and Twist steps fields](./screenshots/sketch-extrude-panel.png)
 
 A method you can't use right now is greyed out, and its reason shows when you point at it:
 
@@ -207,6 +238,8 @@ example: no closed Solid outline, an outline that crosses itself, holes that cov
 solid, or a method that doesn't suit the slices. The model never holds a sketch that
 can't be built.
 
+![The finished sketch solid, turned to look at from the side: it is selected, with the gizmo around it, and the Inspector shows its Sketch section: Extrusion Linear, Slices 1, Height 10 mm, Twist 0°, and the Edit sketch button](./screenshots/sketch-result-in-3d.png)
+
 ## Editing a finished sketch
 
 Select the sketch shape. The Inspector's **Sketch** section shows its extrusion method,
@@ -219,6 +252,17 @@ since. Make your changes, then:
   you did to the shape afterwards, like a move, a turn or a fillet, is kept and re-applied
   to the new outline;
 - **Cancel** leaves the shape exactly as it was.
+
+## Worked example: a block
+
+Drag **Sketch** into the view and release. Click the **Line** tool. Drag along each side
+of a rectangle, starting each drag where the last one ended, and finish the fourth drag on
+the first corner: the outline turns blue and the tan preview appears. Tap **Extrude ▾**, choose **Linear**
+and type 10 in Height (millimetres), then press Enter. A see-through block appears behind
+the outline. Tap **Done**: it is now a solid 10 mm tall, selected and ready to move or
+combine.
+
+![The whole flow: draw a closed outline with Line, open Extrude, type 10 (mm) for the Height, tap Done, and turn the view to see the solid block](./media/sketch-extrude.gif)
 
 ## Worked example: a tube
 
