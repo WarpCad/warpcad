@@ -5,11 +5,16 @@
  * outline's own fields — what it is, Solid or Hole, and its dimensions — with a Delete.
  *
  * Every edit replaces the outline in the editor's **draft**, never the document; Done
- * commits the whole session at once. Free vertex editing (dragging points, adding and
- * removing them) is `TODO/sketch-002`; here a rectangle has a width and height, a circle
- * a centre and radius.
+ * commits the whole session at once. A rectangle has a width and height, a circle a centre
+ * and radius.
+ *
+ * Point editing (`TODO/sketch-002`) lives here too, not in the toolbar — the phone toolbar
+ * is already at the ui-020 #3 reachable-canvas floor. A shape with no free points offers
+ * **Convert to outline**; an outline offers its picked point's X/Y, **Delete vertex** (with
+ * its refusal reason printed, since a phone has no tooltips) and **Simplify**. Dragging the
+ * points themselves happens on the canvas (`Viewport.vue`, `VertexHandles.vue`).
  */
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 
 import { parseNumeric } from '../../composables/numericEntry.js'
 import { formatMmValue } from '../../core/units.js'
@@ -70,6 +75,37 @@ function setRole(role) {
   editor.setSelectedRole(role === 'hole' ? 'hole' : 'solid')
 }
 
+const vertexMm = computed(() => editor.selectedVertexMm)
+
+/** @param {0 | 1} axis @param {Event} event */
+function commitVertex(axis, event) {
+  const input = /** @type {HTMLInputElement} */ (event.target)
+  const current = vertexMm.value
+  const parsed = parseNumeric(input.value)
+  if (!current || parsed === null) {
+    input.value = current ? formatMmValue(current[axis]) : ''
+    return
+  }
+  const next = [current[0], current[1]]
+  next[axis] = parsed
+  editor.moveVertex(editor.selectedVertex, next)
+}
+
+/** Simplify's tolerance, as typed, in mm. */
+const toleranceText = ref('0.5')
+const simplifyError = ref('')
+watch(
+  () => editor.selectedProfileId,
+  () => {
+    simplifyError.value = ''
+  },
+)
+
+function applySimplify() {
+  const parsed = parseNumeric(toleranceText.value)
+  simplifyError.value = parsed === null ? 'Type a tolerance in millimetres, 0 or more' : editor.simplifySelected(parsed)
+}
+
 /** @param {Event} event */
 function blurTarget(event) {
   /** @type {HTMLInputElement} */ (event.target).blur()
@@ -119,6 +155,74 @@ function blurTarget(event) {
       <p v-else class="profile__note" data-testid="inspector-sketch-outline-note">
         {{ profile.kind === 'polyline' ? `${profile.pointsMm.length} points · ${isClosed(profile) ? 'closed' : 'open — not part of the solid'}` : '' }}
       </p>
+
+      <!-- Points (TODO/sketch-002). -->
+      <template v-if="profile.kind !== 'polyline'">
+        <button type="button" class="profile__action" data-testid="inspector-sketch-convert" @click="editor.convertSelectedToOutline()">
+          Convert to outline
+        </button>
+        <p class="profile__note">Turns this shape into an outline whose points you can drag, add and delete.</p>
+      </template>
+      <template v-else>
+        <p class="profile__note" data-testid="inspector-sketch-points-hint">
+          Drag a dot to move a point. Drag a small hollow dot on an edge to add one. Tap a dot to pick it.
+        </p>
+        <dl v-if="vertexMm" class="profile__fields" data-testid="inspector-sketch-vertex">
+          <dt>Point {{ editor.selectedVertex + 1 }} X <span class="profile__unit">(mm)</span></dt>
+          <dd>
+            <input
+              class="profile__input"
+              type="text"
+              inputmode="decimal"
+              data-testid="inspector-sketch-vertex-x"
+              :value="formatMmValue(vertexMm[0])"
+              @change="commitVertex(0, $event)"
+              @keydown.enter.prevent="blurTarget"
+            />
+          </dd>
+          <dt>Point {{ editor.selectedVertex + 1 }} Y <span class="profile__unit">(mm)</span></dt>
+          <dd>
+            <input
+              class="profile__input"
+              type="text"
+              inputmode="decimal"
+              data-testid="inspector-sketch-vertex-y"
+              :value="formatMmValue(vertexMm[1])"
+              @change="commitVertex(1, $event)"
+              @keydown.enter.prevent="blurTarget"
+            />
+          </dd>
+        </dl>
+        <template v-if="vertexMm">
+          <button
+            type="button"
+            class="profile__action"
+            data-testid="inspector-sketch-delete-vertex"
+            :disabled="Boolean(editor.deleteProblem)"
+            :title="editor.deleteProblem || 'Delete the picked point'"
+            @click="editor.deleteSelectedVertex()"
+          >
+            Delete vertex
+          </button>
+          <p v-if="editor.deleteProblem" class="profile__note" data-testid="inspector-sketch-delete-vertex-reason">{{ editor.deleteProblem }}</p>
+        </template>
+        <div class="profile__simplify">
+          <label class="profile__simplify-label" for="sketch-simplify-tolerance">Simplify, tolerance <span class="profile__unit">(mm)</span></label>
+          <input
+            id="sketch-simplify-tolerance"
+            v-model="toleranceText"
+            class="profile__input profile__input--narrow"
+            type="text"
+            inputmode="decimal"
+            data-testid="inspector-sketch-simplify-tolerance"
+            @keydown.enter.prevent="applySimplify"
+          />
+          <button type="button" class="profile__action" data-testid="inspector-sketch-simplify" @click="applySimplify">Apply</button>
+        </div>
+        <p v-if="simplifyError" class="profile__note profile__note--warn" data-testid="inspector-sketch-simplify-error" role="status">
+          {{ simplifyError }}
+        </p>
+      </template>
       <button type="button" class="profile__delete" data-testid="inspector-sketch-delete" @click="editor.deleteSelected()">
         Delete outline
       </button>
@@ -158,6 +262,7 @@ function blurTarget(event) {
 }
 
 .profile__role,
+.profile__action,
 .profile__delete {
   min-height: var(--tap-compact);
   padding: 0 12px;
@@ -215,7 +320,34 @@ function blurTarget(event) {
   color: var(--text-3);
 }
 
-.profile__delete {
+.profile__delete,
+.profile__action {
   align-self: flex-start;
+}
+
+.profile__action {
+  min-height: var(--tap);
+}
+
+.profile__action:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.profile__simplify {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-2);
+}
+
+.profile__input--narrow {
+  width: 5em;
+}
+
+.profile__note--warn {
+  color: var(--warn);
 }
 </style>

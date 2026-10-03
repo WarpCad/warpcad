@@ -1705,3 +1705,16 @@ The pick-and-delete flow is covered by real-mouse specs on all three browser eng
 **Evidence:** couldn't pick an outline to edit/delete → TODO/done/sketch-005 Problem text; draw tool armed, ~8 px press drew a stray third circle, Delete key did nothing → hand repro this session; Select tool, trash button, status line, hover, Delete/Backspace yielding to the editor → diff; real-mouse specs on three engines, trusted touch at phone → e2e/sketch-primitive.e2e.js in diff, full e2e 2484 passed this session; phone toolbar third row and 69% reachable (was 76%) → hand-drive measurement this session and the sketch-001 figure in TODO/ACCEPTANCE.md
 **To Add:** docs/screenshots/sketch-select-outline.png
 
+
+## 2026-10-03T02:34:00Z — Sketch editor: drag, add and delete an outline's points
+
+**Post:** WarpCad's sketch editor can now edit the points of an outline. Pick an outline with Select and its points show as dots: drag one to move it, drag the small hollow dot in the middle of an edge to add a point there, or tap a point and press Delete. A rectangle, circle or polygon converts to an editable outline with one tap, and Simplify thins a dense outline to a tolerance in millimetres.
+
+The useful lesson came from driving the app by hand, not from the test suite. A converted circle has 32 points, and at normal zoom they sat about 10 pixels apart, each with a 44 pixel touch target. Together the targets covered the whole line, so with the Rectangle tool armed a drag that began on the outline grabbed a point instead of drawing. That is the "dead strip" an earlier version of this editor already shipped once. Now the dots exist only while Select is armed, and a drawing tool's press always draws.
+
+The sketch page in the docs has a step-by-step example and an animation of it. Built with Claude Code, reviewed by me.
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** features → diff; 32 points → OUTLINE_CIRCLE_POINTS in profile.js; ~10 px apart → drive this session (2.43 px/mm × 2π·20 mm / 32 ≈ 9.5 px); 44 px targets → SKETCH_HANDLE_TARGET_PX in Viewport.vue; Rectangle drag grabbed a point → first acceptance drive this session; earlier dead strip → TODO/done/sketch-002 Effort section (ui-020 finding #1); docs example + animation → docs/sketch-mode.md, docs/media/sketch-vertex-edit.gif in diff
+**To Add:** docs/media/sketch-vertex-edit.gif, docs/screenshots/sketch-vertex-edit.png

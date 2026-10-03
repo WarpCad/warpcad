@@ -6,8 +6,28 @@ priority: medium
 model: opus
 milestone: M8
 depends: [sketch-001, sketch-005]
-status: open
+status: done
 ---
+
+> **What shipped (2026-10-03).** As specified, with one rule the acceptance drive forced. Pure
+> edits in `src/sketch/profile.js` (`moveVertex`, `insertVertex`, `deleteVertex` /
+> `deleteVertexProblem`, `convertToOutline` — a circle becomes 32 rim points, area within 0.7 %;
+> a rectangle/polygon keeps its exact corners), Ramer–Douglas–Peucker in the new
+> `src/sketch/simplify.js` (tolerance 0 is the identity; a ring that would drop under 3 points is
+> refused), a picked point in `src/stores/sketchEditor.js`, dots drawn by the new
+> `src/components/sketch/VertexHandles.vue` and hit-tested in `Viewport.vue` (pointer-transparent
+> overlay, 22 px-radius targets, midpoint dots only on segments ≥ 88 px on screen), and the
+> Inspector's **Convert to outline**, point X/Y, **Delete vertex** (with its refusal printed) and
+> **Simplify**. Delete is contextual, reconciling sketch-005: the toolbar trash and Delete/Backspace
+> remove the picked *point* when there is one (relabelled *Delete vertex*), else the outline; a
+> refused point delete never falls through to the outline. **Changed from the spec:** the first
+> acceptance drive found that on a dense outline (a converted circle, dots ~10 px apart) the 44 px
+> targets covered the whole stroke, so with Rectangle armed a drag from the stroke grabbed a point
+> instead of drawing — ui-020 #1's dead strip again. The dots are therefore **Select-only**: a
+> drawing tool's press always draws, and arming one clears the picked point. A dragged point does
+> not snap yet (`TODO/sketch-007`, soft dependency). An open Line chain keeps at least 2 points
+> ("A line needs at least 2 points"), a closed outline 3.
+
 
 > **Split out of `TODO/sketch-001` (2026-10-02).** sketch-001's own Effort section said
 > "If the first run finishes steps 1-3, split steps 4-6 into their own TODO rather than

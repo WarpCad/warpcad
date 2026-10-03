@@ -70,7 +70,9 @@ The first button in the tool group, an arrow, is **Select**. It never draws.
 - **Change** it: **Hole** in the toolbar switches Solid and Hole, and the Inspector has
   the outline's numbers (see below).
 - **Delete** it: tap the trash button **Delete** in the toolbar, or press Delete or
-  Backspace on a keyboard. Both are greyed out until exactly one outline is picked. It
+  Backspace on a keyboard. Both are greyed out until exactly one outline is picked. (If
+  you have picked one of the outline's *points*, they delete that point instead; see
+  **Editing an outline's points** below.) It
   removes that outline from the drawing only, and it is part of the editor's one undo
   step, so **Cancel** brings it back and **Done** commits the result.
 - **Clear** the selection: tap empty grid.
@@ -103,8 +105,60 @@ Pick an outline with **Select**, then look in the **Inspector**. On a phone, tap
 the bottom. It shows the outline's kind, Solid or Hole, and its numbers: a circle's centre
 and radius, a rectangle's centre, width and height, a polygon's centre, radius, sides
 and rotation. Type a value and press Enter. **Delete outline** removes it, the same as the
-toolbar's **Delete**. Dragging
-individual points of an outline is not available yet.
+toolbar's **Delete**. To drag, add or remove an outline's individual points, see the next
+section.
+
+## Editing an outline's points
+
+An outline drawn with **Line**, or any shape you have converted (below), has points you can
+move, add and remove. Pick the outline with **Select** (see above); its points then show as
+dots. The dots are there only while **Select** is armed: with a drawing tool armed they go
+away, so a drag that starts on the outline always draws.
+
+- **Convert to outline.** A rectangle, circle or polygon has no free points: it is kept as
+  its numbers (a centre and a radius, say). To edit its points, pick it, open the
+  Inspector (on a phone, tap **Sketch** at the bottom) and tap **Convert to outline**. It
+  becomes a closed outline with the same shape, Solid or Hole unchanged: a rectangle gets
+  its 4 corners, a polygon its corners, a circle 32 points round its rim. You can't turn it
+  back into a rectangle afterwards, except with **Cancel**.
+- **Move a point**: drag its dot. Each dot has a finger-sized target (44 px across) even
+  though it is drawn small, so you don't have to land exactly on it. On a computer the
+  dot under the mouse fills in before you press.
+- **Add a point**: every edge long enough to hold one has a smaller, hollow dot in its
+  middle. Drag that dot: a new point appears there and follows your finger or mouse. No
+  key needs holding. On a short edge (less than about two finger-widths on screen) the
+  middle dot is hidden; zoom in to get it back.
+- **Pick a point**: tap its dot without dragging. It fills in, the line under the toolbar
+  adds *point 3 selected*, and the Inspector shows its **X** and **Y** in millimetres, which
+  you can type into.
+- **Remove a point**: pick it, then tap **Delete vertex** in the Inspector, or the toolbar's
+  trash **Delete**, or press Delete or Backspace. While a point is picked, those delete the
+  **point**, not the outline. To delete the whole outline, tap its edge between two dots
+  (this clears the point) and then Delete. An outline can't go below 3 points (a Line's
+  open chain, 2): the button is greyed out and says *An outline needs at least 3 points*.
+- **Simplify**: an outline with many points (a traced shape, a converted circle) can be
+  thinned. In the Inspector, type a **Tolerance** in millimetres and tap **Apply**: every
+  point that lies closer than that to the line through its neighbours is removed. 0
+  changes nothing. If the result would have fewer than 3 points, nothing changes and the
+  Inspector says to use a smaller tolerance.
+
+On an outline with many points close together (a converted circle, say) the dots' targets
+overlap and cover the whole line, so a tap on the line picks the nearest point. Zoom in, or
+**Simplify**, to spread them out. Every one of these changes is part of the
+editor's one undo step: **Cancel** throws them all away, and **Done** commits the result.
+
+![A converted rectangle with a peak added on its top edge: dots on each point, the picked point filled in, the line under the toolbar naming it](./screenshots/sketch-vertex-edit.png)
+
+**Example.** Draw a rectangle with **Rectangle**. Tap **Select** and tap the rectangle's
+edge, then tap **Convert to outline** in the Inspector: four dots appear on its corners
+and a smaller hollow dot in the middle of each edge. Drag the top-right corner's dot up
+about 10 mm; the top edge now slopes. Drag the hollow dot in the middle of the top edge
+up to add a peak. Tap the bottom-left corner's dot (it fills in, and the line under the
+toolbar reads *point 1 selected*) and tap **Delete vertex**; the outline becomes a
+four-sided shape again. With **Extrude ▾** set to Linear, the translucent preview follows
+each change.
+
+![Converting a rectangle, dragging a corner, adding a peak and deleting a corner](./media/sketch-vertex-edit.gif)
 
 ## Slices
 
@@ -210,8 +264,7 @@ there is nothing correct to turn it into.
 
 ## Not available yet
 
-Coming in later updates: dragging, adding and removing an outline's individual points;
-loading a photo to trace over and setting its scale from a ruler; and automatic tracing of
-a photographed part.
+Coming in later updates: loading a photo to trace over and setting its scale from a ruler;
+automatic tracing of a photographed part; and snapping a dragged point to other outlines.
 
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

@@ -17,7 +17,8 @@
  *
  * Contents, in order: **Select** (an arrow — it never draws) and the four drawing tools;
  * the **Hole** toggle and **Delete** (a trash can) for the selected outline, both disabled
- * until exactly one outline is picked (`TODO/sketch-005`); **Slices** and **Extrude ▾**, which open their panels (a bottom sheet on a
+ * until exactly one outline is picked (`TODO/sketch-005`) — Delete removes the picked
+ * *point* instead when one is picked (`TODO/sketch-002`); **Slices** and **Extrude ▾**, which open their panels (a bottom sheet on a
  * narrow viewport); **Done** and **Cancel**. Done is disabled with its reason printed
  * underneath whenever the draft can't be built — the document never holds a body the
  * kernel can't build.
@@ -55,6 +56,17 @@ const status = computed(() => {
   if (openCount.value > 0) return { tone: 'warn', text: 'Open outline — not part of the solid' }
   if (editor.previewStatus === 'building') return { tone: 'info', text: 'Building preview…' }
   return { tone: 'info', text: '' }
+})
+
+/**
+ * The Delete button's tooltip. With a point picked it deletes the **point** (`TODO/sketch-002`),
+ * and when that is refused the reason is the whole tooltip, word for word.
+ */
+const deleteTitle = computed(() => {
+  if (!selected.value) return 'Pick an outline with Select first, then delete it'
+  if (editor.deleteProblem) return editor.deleteProblem
+  if (editor.deleteTarget === 'vertex') return 'Delete the picked point (Delete or Backspace)'
+  return 'Delete the selected outline (Delete or Backspace)'
 })
 
 function toggleHole() {
@@ -129,11 +141,12 @@ function onSides(event) {
       <button
         type="button"
         class="sketch-toolbar__btn sketch-toolbar__btn--icon"
-        :disabled="!selected"
-        aria-label="Delete outline"
-        :title="selected ? 'Delete the selected outline (Delete or Backspace)' : 'Pick an outline with Select first, then delete it'"
+        :disabled="!selected || Boolean(editor.deleteProblem)"
+        :aria-label="editor.deleteTarget === 'vertex' ? 'Delete vertex' : 'Delete outline'"
+        :title="deleteTitle"
         data-testid="sketch-delete"
-        @click="editor.deleteSelected()"
+        :data-target="editor.deleteTarget"
+        @click="editor.deleteSelection()"
       >
         <svg class="sketch-toolbar__icon" viewBox="0 0 24 24" aria-hidden="true">
           <path d="M4 7 H20 M9 7 V4.5 H15 V7 M6.5 7 L7.5 20 H16.5 L17.5 7 M10 10.5 V16.5 M14 10.5 V16.5" />

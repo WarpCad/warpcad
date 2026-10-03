@@ -37,6 +37,7 @@ import OperationsToolbar from './OperationsToolbar.vue'
 import SketchStrokes from './SketchStrokes.vue'
 import SketchToolbar from './SketchToolbar.vue'
 import SketchPanelSheet from '../sketch/SketchPanelSheet.vue'
+import VertexHandles from '../sketch/VertexHandles.vue'
 import SnapGuides from './SnapGuides.vue'
 import { useSelectedBody } from '../../composables/useSelectedBody.js'
 import {
@@ -46,7 +47,9 @@ import {
   createGizmoAnnotation,
   createMarqueeRect,
   createBoxScreenBounds,
+  createScreenPoint,
   createSketchPath,
+  sketchPointToScreen,
   updateSketchPath,
   gizmoSizeForBounds,
   marqueeIntersectsBox,
@@ -64,7 +67,7 @@ import { useSketchEditorCommands } from '../../composables/useSketchEditorComman
 import { useTransformPreviewStore } from '../../stores/transformPreview.js'
 import { useColorPreviewStore } from '../../stores/colorPreview.js'
 import { isDegenerate } from '../../sketch/entity.js'
-import { circleFromDrag, isClosed, polygonFromDrag, profileAtPoint, rectFromDrag, toPointsMm } from '../../sketch/profile.js'
+import { circleFromDrag, isClosed, polygonFromDrag, profileAtPoint, rectFromDrag, segmentCountOf, toPointsMm } from '../../sketch/profile.js'
 import { createEvaluationChannel } from '../../core/kernel/evaluationClient.js'
 import { unpackGeometry } from '../../core/kernel/transport.js'
 import { createOrbitCamera } from '../../render/camera.js'
@@ -143,6 +146,13 @@ const SKETCH_PICK_TOLERANCE_PX = 14
  * becoming a draw at all; this covers the drag that moved a hair further.
  */
 const SKETCH_MIN_LENGTH_PX = 3
+/**
+ * A point handle's touch target, across (`TODO/sketch-002`): the 44 px minimum tap target,
+ * drawn as a much smaller dot. A press within half of this of a dot grabs it.
+ */
+const SKETCH_HANDLE_TARGET_PX = 44
+/** Midpoint dots show only on segments at least this long on screen — two targets. */
+const SKETCH_MIDPOINT_MIN_SEGMENT_PX = 2 * SKETCH_HANDLE_TARGET_PX
 
 /** How far clear of the solid a dimension line is drawn. */
 const DIMENSION_OFFSET_PX = 28
@@ -328,6 +338,15 @@ const sketchMode = computed(() => sketchEditor.active)
 const sketchPaths = reactive(/** @type {any[]} */ ([]))
 const sketchDraftPath = reactive(createSketchPath())
 const sketchAxis = reactive({ visible: false, d: '' })
+/**
+ * The selected outline's point and midpoint handles, in viewport pixels (`TODO/sketch-002`),
+ * for `VertexHandles.vue` to draw. Rebuilt only when `syncSketchPaths` redraws, never per
+ * frame. `sketchHandleHits` is the same positions as plain numbers — `[x, y, index, …]` —
+ * for the press-time hit test, so that never walks a reactive array.
+ */
+const sketchHandles = reactive({ vertices: /** @type {any[]} */ ([]), midpoints: /** @type {any[]} */ ([]) })
+const sketchHandleHits = { vertices: /** @type {number[]} */ ([]), midpoints: /** @type {number[]} */ ([]) }
+const scratchHandlePoint = createScreenPoint()
 
 // --- non-reactive render state -------------------------------------------
 
@@ -476,9 +495,19 @@ let pressStartClientY = 0
  * discipline as `effectiveDragMode()`'s own note on `pressShiftKey`.
  * `'sketch-idle'` is a drag under the sketch editor's Select tool: it never draws and never
  * moves the camera (`TODO/sketch-005`).
- * @type {'' | 'orbit' | 'pan' | 'select' | 'marquee' | 'sketch' | 'sketch-idle'}
+ * `'sketch-vertex'` is a drag that began on a point handle of the selected outline: it moves
+ * that point (or, from a midpoint dot, a newly inserted one) and never draws (`TODO/sketch-002`).
+ * @type {'' | 'orbit' | 'pan' | 'select' | 'marquee' | 'sketch' | 'sketch-idle' | 'sketch-vertex'}
  */
 let gestureKind = ''
+/**
+ * The point handle a sketch press landed on (`TODO/sketch-002`), decided at `pointerdown`:
+ * `'vertex'` or `'midpoint'` with its index, or `''`. A press that becomes a drag turns into
+ * a `'sketch-vertex'` gesture; one that stays a tap picks the point.
+ * @type {'' | 'vertex' | 'midpoint'}
+ */
+let pressHandleKind = ''
+let pressHandleIndex = -1
 /** Whether the in-progress marquee adds to the selection rather than replacing it. */
 let marqueeAdditive = false
 
@@ -526,6 +555,23 @@ const sketchDrag = {
 }
 /** Scratch for one projected pointer, sketch-local `[x, y]` mm. */
 const scratchSketchMm = [0, 0]
+
+/**
+ * The point drag in progress (`TODO/sketch-002`). `offset*Mm` keeps the grab where it was on
+ * the dot — a press 12 px off a point's centre doesn't make the point jump under the finger.
+ * `before*` is what a `pointercancel` puts back.
+ */
+const vertexDrag = {
+  active: false,
+  index: -1,
+  offsetXMm: 0,
+  offsetYMm: 0,
+  /** @type {import('../../sketch/profile.js').SketchParams | null} */
+  beforeDraft: null,
+  beforeVertex: -1,
+}
+/** Scratch for the dragged point's new position, mm. */
+const scratchVertexMm = [0, 0]
 
 /** Scratch for a marquee release's body-vs-rectangle test (`TODO/ui-024`). */
 const boxScreenBounds = createBoxScreenBounds()
@@ -648,6 +694,9 @@ let sketchSyncedSize = ''
 let sketchSyncedSelection = ''
 let sketchSyncedHover = ''
 let sketchSyncedSlice = -1
+let sketchSyncedVertex = -2
+let sketchSyncedHoverVertex = -2
+let sketchSyncedTool = ''
 
 /** The active slice's offset along the sketch's own Z. */
 function activeSliceZ() {
@@ -664,6 +713,7 @@ function activeSliceZ() {
 function syncSketchPaths(force = false) {
   if (!sketchEditor.active) {
     if (sketchPaths.length > 0) sketchPaths.splice(0)
+    clearSketchHandles()
     sketchAxis.visible = false
     sketchDraftPath.visible = false
     sketchSyncedDraft = null
@@ -678,7 +728,10 @@ function syncSketchPaths(force = false) {
     sketchSyncedSize === size &&
     sketchSyncedSelection === sketchEditor.selectedProfileId &&
     sketchSyncedHover === sketchEditor.hoverProfileId &&
-    sketchSyncedSlice === sketchEditor.activeSlice
+    sketchSyncedSlice === sketchEditor.activeSlice &&
+    sketchSyncedVertex === sketchEditor.selectedVertex &&
+    sketchSyncedHoverVertex === sketchEditor.hoverVertex &&
+    sketchSyncedTool === sketchEditor.tool
   ) {
     return
   }
@@ -688,6 +741,9 @@ function syncSketchPaths(force = false) {
   sketchSyncedSelection = sketchEditor.selectedProfileId
   sketchSyncedHover = sketchEditor.hoverProfileId
   sketchSyncedSlice = sketchEditor.activeSlice
+  sketchSyncedVertex = sketchEditor.selectedVertex
+  sketchSyncedHoverVertex = sketchEditor.hoverVertex
+  sketchSyncedTool = sketchEditor.tool
   const frame = sketchEditor.frame
   /** @type {any[]} */
   const next = []
@@ -715,6 +771,7 @@ function syncSketchPaths(force = false) {
     }
   })
   sketchPaths.splice(0, sketchPaths.length, ...next)
+  syncSketchHandles()
 
   // Revolve and Helical spin around the sketch's Y axis (x = 0): draw it, dashed, long
   // enough to read at any zoom.
@@ -740,6 +797,192 @@ function projectToSketch(clientXPx, clientYPx) {
   ndcFromClient(clientXPx, clientYPx, viewportRect, scratchNdc)
   const aspect = viewportRect.height > 0 ? viewportRect.width / viewportRect.height : 1
   return projectToSketchPlane(orbit, scratchNdc.x, scratchNdc.y, aspect, sketchEditor.frame, activeSliceZ(), scratchSketchMm)
+}
+
+function clearSketchHandles() {
+  if (sketchHandles.vertices.length > 0) sketchHandles.vertices = []
+  if (sketchHandles.midpoints.length > 0) sketchHandles.midpoints = []
+  sketchHandleHits.vertices.length = 0
+  sketchHandleHits.midpoints.length = 0
+}
+
+/**
+ * Lay out the selected polyline's point handles (`TODO/sketch-002`): a dot on every point,
+ * and a midpoint dot on every segment at least {@link SKETCH_MIDPOINT_MIN_SEGMENT_PX} long on
+ * screen. Called from `syncSketchPaths`, so it runs when the camera, the draft, the selection
+ * or the tool changed — never per frame.
+ *
+ * **Only while Select is armed.** Found by this task's acceptance drive: on a dense outline
+ * (a converted circle at normal zoom has dots ~10 px apart) the 44 px targets cover the whole
+ * stroke, so with Rectangle armed a drag that began on the stroke grabbed a point instead of
+ * drawing — ui-020 finding #1's dead strip again. A drawing tool's press therefore always
+ * draws; under Select a press on a stroke never draws anyway, so dense targets cost nothing.
+ */
+function syncSketchHandles() {
+  const profile = sketchEditor.selectedProfile
+  if (sketchEditor.tool !== 'select' || !profile || profile.kind !== 'polyline' || profile.pointsMm.length === 0) {
+    clearSketchHandles()
+    return
+  }
+  const zMm = activeSliceZ()
+  const frame = sketchEditor.frame
+  /** @type {any[]} */
+  const vertices = []
+  /** @type {any[]} */
+  const midpoints = []
+  const vertexHits = sketchHandleHits.vertices
+  const midpointHits = sketchHandleHits.midpoints
+  vertexHits.length = 0
+  midpointHits.length = 0
+  const points = profile.pointsMm
+  for (let index = 0; index < points.length; index += 1) {
+    const point = sketchPointToScreen(orbit, frame, points[index][0], points[index][1], zMm, widthPx, heightPx, scratchHandlePoint)
+    if (!point.visible) continue
+    vertexHits.push(point.x, point.y, index)
+    vertices.push({
+      index,
+      x: point.x,
+      y: point.y,
+      xMm: points[index][0],
+      yMm: points[index][1],
+      selected: index === sketchEditor.selectedVertex,
+      hover: index === sketchEditor.hoverVertex,
+    })
+  }
+  const segments = segmentCountOf(profile)
+  for (let segment = 0; segment < segments; segment += 1) {
+    const a = points[segment]
+    const b = points[(segment + 1) % points.length]
+    const start = sketchPointToScreen(orbit, frame, a[0], a[1], zMm, widthPx, heightPx, scratchHandlePoint)
+    const startX = start.x
+    const startY = start.y
+    const startVisible = start.visible
+    const end = sketchPointToScreen(orbit, frame, b[0], b[1], zMm, widthPx, heightPx, scratchHandlePoint)
+    if (!startVisible || !end.visible) continue
+    // A dense outline doesn't become a wall of handles: the fix there is zoom or Simplify.
+    if (Math.hypot(end.x - startX, end.y - startY) < SKETCH_MIDPOINT_MIN_SEGMENT_PX) continue
+    const x = (startX + end.x) / 2
+    const y = (startY + end.y) / 2
+    midpointHits.push(x, y, segment)
+    midpoints.push({ segment, x, y })
+  }
+  sketchHandles.vertices = vertices
+  sketchHandles.midpoints = midpoints
+}
+
+/**
+ * Which handle a client point lands on: the nearest point dot within half a target, else the
+ * nearest midpoint dot within half a target. Points win over midpoints, which they never
+ * overlap anyway (a midpoint dot needs a segment of two whole targets).
+ *
+ * @param {number} clientXPx
+ * @param {number} clientYPx
+ * @returns {boolean} Whether a handle was hit; the result is in `pressHandleKind`/`pressHandleIndex`.
+ */
+function sketchHandleAt(clientXPx, clientYPx) {
+  pressHandleKind = ''
+  pressHandleIndex = -1
+  const x = clientXPx - viewportRect.left
+  const y = clientYPx - viewportRect.top
+  const reach = SKETCH_HANDLE_TARGET_PX / 2
+  let best = reach
+  const vertexHits = sketchHandleHits.vertices
+  for (let at = 0; at < vertexHits.length; at += 3) {
+    const distance = Math.hypot(vertexHits[at] - x, vertexHits[at + 1] - y)
+    if (distance <= best) {
+      best = distance
+      pressHandleKind = 'vertex'
+      pressHandleIndex = vertexHits[at + 2]
+    }
+  }
+  if (pressHandleKind) return true
+  const midpointHits = sketchHandleHits.midpoints
+  for (let at = 0; at < midpointHits.length; at += 3) {
+    const distance = Math.hypot(midpointHits[at] - x, midpointHits[at + 1] - y)
+    if (distance <= best) {
+      best = distance
+      pressHandleKind = 'midpoint'
+      pressHandleIndex = midpointHits[at + 2]
+    }
+  }
+  return pressHandleKind !== ''
+}
+
+/**
+ * Start dragging a point: the pressed one, or — from a midpoint dot — a new one inserted on
+ * that segment. Either way it becomes the picked point.
+ *
+ * @returns {boolean} False when the press point does not meet the sketch plane.
+ */
+function beginVertexDrag() {
+  const press = projectToSketch(pressStartClientX, pressStartClientY)
+  if (!press) return false
+  const pressXMm = press[0]
+  const pressYMm = press[1]
+  vertexDrag.beforeDraft = sketchEditor.draft
+  vertexDrag.beforeVertex = sketchEditor.selectedVertex
+  let index = pressHandleIndex
+  if (pressHandleKind === 'midpoint') index = sketchEditor.insertVertexOn(pressHandleIndex)
+  else sketchEditor.selectVertex(index)
+  const point = sketchEditor.selectedVertexMm
+  if (index < 0 || !point) return false
+  vertexDrag.active = true
+  vertexDrag.index = index
+  vertexDrag.offsetXMm = point[0] - pressXMm
+  vertexDrag.offsetYMm = point[1] - pressYMm
+  return true
+}
+
+/** @param {number} clientXPx @param {number} clientYPx */
+function updateVertexDrag(clientXPx, clientYPx) {
+  if (!vertexDrag.active) return
+  const point = projectToSketch(clientXPx, clientYPx)
+  if (!point) return
+  scratchVertexMm[0] = point[0] + vertexDrag.offsetXMm
+  scratchVertexMm[1] = point[1] + vertexDrag.offsetYMm
+  sketchEditor.moveVertex(vertexDrag.index, scratchVertexMm)
+}
+
+/**
+ * Finish a point drag. A `pointercancel` puts the draft (and the picked point) back exactly
+ * as they were; a release keeps the move and builds the preview once.
+ *
+ * @param {boolean} cancelled
+ */
+function endVertexDrag(cancelled) {
+  if (!vertexDrag.active) return
+  vertexDrag.active = false
+  if (cancelled && vertexDrag.beforeDraft) {
+    sketchEditor.setDraft(vertexDrag.beforeDraft)
+    sketchEditor.selectVertex(vertexDrag.beforeVertex)
+  }
+  vertexDrag.beforeDraft = null
+  requestSketchPreview()
+}
+
+/** Where the last point hover was resolved, so a mouse that barely moved resolves nothing. */
+let vertexHoverX = -1e9
+let vertexHoverY = -1e9
+
+/**
+ * Highlight the point dot under a mouse with nothing pressed — the dots are there whenever
+ * Select is armed and an outline with points is picked (`TODO/sketch-002`).
+ *
+ * @param {number} clientXPx
+ * @param {number} clientYPx
+ */
+function hoverSketchVertex(clientXPx, clientYPx) {
+  if (sketchHandleHits.vertices.length === 0) {
+    if (sketchEditor.hoverVertex !== -1) sketchEditor.hoverVertex = -1
+    return
+  }
+  if (Math.abs(clientXPx - vertexHoverX) < 2 && Math.abs(clientYPx - vertexHoverY) < 2) return
+  vertexHoverX = clientXPx
+  vertexHoverY = clientYPx
+  const index = sketchHandleAt(clientXPx, clientYPx) && pressHandleKind === 'vertex' ? pressHandleIndex : -1
+  pressHandleKind = ''
+  pressHandleIndex = -1
+  if (index !== sketchEditor.hoverVertex) sketchEditor.hoverVertex = index
 }
 
 /** The pick/snap tolerance in sketch millimetres at the current zoom. */
@@ -921,7 +1164,10 @@ function hoverSketchProfile(clientXPx, clientYPx) {
 function clearSketchHover() {
   sketchHoverX = -1e9
   sketchHoverY = -1e9
+  vertexHoverX = -1e9
+  vertexHoverY = -1e9
   if (sketchEditor.hoverProfileId) sketchEditor.hoverProfileId = ''
+  if (sketchEditor.hoverVertex !== -1) sketchEditor.hoverVertex = -1
 }
 
 // --- the extrusion preview: built in the worker, superseded, never appended -----------
@@ -1878,10 +2124,17 @@ function applyDrag(dx, dy) {
  * two-finger pan are untouched (they never reach this function), because you
  * still have to be able to get around the plane you are drawing on.
  *
- * @returns {'orbit' | 'pan' | 'select' | 'marquee' | 'sketch' | 'sketch-idle'}
+ * Inside the editor, with Select armed, a press that landed on a point handle of the selected
+ * outline drags that point (`TODO/sketch-002`) — the handles exist only under Select; a press anywhere else — including on the
+ * outline's stroke *between* dots — draws (or, under Select, does nothing), exactly as before.
+ *
+ * @returns {'orbit' | 'pan' | 'select' | 'marquee' | 'sketch' | 'sketch-idle' | 'sketch-vertex'}
  */
 function decideGestureKind() {
-  if (sketchMode.value) return sketchEditor.tool === 'select' ? 'sketch-idle' : 'sketch'
+  if (sketchMode.value) {
+    if (pressHandleKind) return 'sketch-vertex'
+    return sketchEditor.tool === 'select' ? 'sketch-idle' : 'sketch'
+  }
   const marqueeModifier = pressPointerType === 'mouse' && (pressCtrlKey || pressMetaKey)
   const marqueeToggle = dragMode.value === 'select'
   if ((marqueeModifier || marqueeToggle) && !hitsBodyAt(pressStartClientX, pressStartClientY)) {
@@ -1933,6 +2186,9 @@ function onPointerDown(event) {
     pressStartClientY = event.clientY
     gestureKind = ''
     marqueeAdditive = false
+    pressHandleKind = ''
+    pressHandleIndex = -1
+    if (sketchMode.value) sketchHandleAt(event.clientX, event.clientY)
     // Defensive: a marquee only ever ends (release or cancel) with this
     // cleared already, but a fresh press is the right place to guarantee it
     // regardless of how the previous gesture ended.
@@ -1945,7 +2201,10 @@ function onPointerDown(event) {
     pressButton = -1
     pressPointerType = ''
     if (gestureKind === 'marquee') marqueeRect.visible = false
+    // A second finger turns a point drag into a pinch: put the point back.
+    if (gestureKind === 'sketch-vertex') endVertexDrag(true)
     gestureKind = ''
+    pressHandleKind = ''
   }
   isDragging.value = true
 }
@@ -1962,7 +2221,10 @@ function onPointerMove(event) {
   const previous = pointers.get(event.pointerId)
   if (!previous) {
     // A mouse moving over the canvas with nothing pressed: the sketch Select tool's hover.
-    if (sketchMode.value && event.pointerType === 'mouse') hoverSketchProfile(event.clientX, event.clientY)
+    if (sketchMode.value && event.pointerType === 'mouse') {
+      hoverSketchProfile(event.clientX, event.clientY)
+      hoverSketchVertex(event.clientX, event.clientY)
+    }
     return
   }
   const dx = event.clientX - previous.x
@@ -1996,6 +2258,11 @@ function onPointerMove(event) {
       // gesture falls back to doing nothing rather than orbiting the locked
       // camera out from under the user.
       if (gestureKind === 'sketch' && !beginSketchDrag()) gestureKind = ''
+      if (gestureKind === 'sketch-vertex' && !beginVertexDrag()) gestureKind = ''
+    }
+    if (gestureKind === 'sketch-vertex') {
+      updateVertexDrag(event.clientX, event.clientY)
+      return
     }
     if (gestureKind === 'sketch') {
       updateSketchDrag(event.clientX, event.clientY)
@@ -2042,10 +2309,19 @@ function onPointerUp(event) {
   const wasMarquee = wasPressPointer && gestureKind === 'marquee'
   const wasSketch = wasPressPointer && gestureKind === 'sketch'
   const wasSketchIdle = wasPressPointer && gestureKind === 'sketch-idle'
+  const wasVertexDrag = wasPressPointer && gestureKind === 'sketch-vertex'
+  const tappedVertex = isClick && pressHandleKind === 'vertex' ? pressHandleIndex : -1
+  pressHandleKind = ''
+  pressHandleIndex = -1
   const pressX = pressStartClientX
   const pressY = pressStartClientY
   pressId = -1
   gestureKind = ''
+
+  if (wasVertexDrag) {
+    endVertexDrag(event.type === 'pointercancel')
+    return
+  }
 
   if (wasSketch) {
     // `pointercancel` (bound to this same handler) abandons the line rather
@@ -2076,7 +2352,9 @@ function onPointerUp(event) {
   // Operations toolbar that actually consumes multi-selection (`ui-014`), not
   // here, where there would be nothing to do with it yet.
   if (isClick && sketchMode.value) {
-    pickSketchProfile(event.clientX, event.clientY)
+    // A tap on a point dot picks the point (`TODO/sketch-002`); anywhere else picks an outline.
+    if (tappedVertex >= 0 && event.type !== 'pointercancel') sketchEditor.selectVertex(tappedVertex)
+    else pickSketchProfile(event.clientX, event.clientY)
     return
   }
   if (isClick) pickAt(event.clientX, event.clientY, event.shiftKey || event.metaKey || event.ctrlKey)
@@ -2377,9 +2655,12 @@ onMounted(() => {
       (active) => {
         if (active) {
           endSketchDrag(true)
+          endVertexDrag(true)
           aimAtSketch()
         } else {
           endSketchDrag(true)
+          vertexDrag.active = false
+          vertexDrag.beforeDraft = null
           clearSketchPreview()
         }
         applySketchBodyVisibility()
@@ -2391,12 +2672,21 @@ onMounted(() => {
       () => sketchEditor.draft,
       () => {
         syncSketchPaths(true)
-        requestSketchPreview()
+        // A point drag replaces the draft on every move; the worker builds the preview once,
+        // on release (`endVertexDrag`), rather than once per pointer event.
+        if (!vertexDrag.active) requestSketchPreview()
         scheduleRender()
       },
     ),
     watch(
-      () => [sketchEditor.activeSlice, sketchEditor.selectedProfileId, sketchEditor.hoverProfileId],
+      () => [
+        sketchEditor.activeSlice,
+        sketchEditor.selectedProfileId,
+        sketchEditor.hoverProfileId,
+        sketchEditor.selectedVertex,
+        sketchEditor.hoverVertex,
+        sketchEditor.tool,
+      ],
       () => {
         syncSketchPaths(true)
         scheduleRender()
@@ -2524,6 +2814,7 @@ onBeforeUnmount(() => {
     :data-sketch-body="sketchEditor.bodyId ?? ''"
     :data-sketch-slice="sketchEditor.activeSlice"
     :data-sketch-selected="sketchEditor.selectedProfileId"
+    :data-sketch-vertex="sketchEditor.selectedVertex"
     :data-sketch-tool="sketchMode ? sketchEditor.tool : ''"
     :data-sketch-preview="sketchEditor.previewStatus"
     :data-sketch-panel="sketchEditor.panel"
@@ -2602,6 +2893,7 @@ onBeforeUnmount(() => {
          live drag, and the revolve axis. Pointer-transparent, so the canvas keeps every
          gesture (ui-020 finding #1). -->
     <SketchStrokes v-if="sketchMode" :paths="sketchPaths" :draft="sketchDraftPath" :axis="sketchAxis" />
+    <VertexHandles v-if="sketchMode && sketchHandles.vertices.length > 0" :handles="sketchHandles" />
 
     <Grid
       :mm-per-pixel="overlay.mmPerPixel"

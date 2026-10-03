@@ -654,6 +654,138 @@ export function withExtrusionParam(params, key, value) {
   return { ...params, extrusion: { ...params.extrusion, [key]: value } }
 }
 
+// --- vertex edits (TODO/sketch-002) -----------------------------------------
+
+/**
+ * How many points a circle becomes on **Convert to outline**: enough that the ring's area is
+ * within 1 % of the circle's (a 32-gon is 0.64 % short), few enough to edit by hand.
+ */
+export const OUTLINE_CIRCLE_POINTS = 32
+
+/**
+ * The polyline a vertex edit acts on, or a thrown reason naming the fix.
+ *
+ * @param {Profile} profile
+ * @returns {PolylineProfile}
+ */
+function editablePolyline(profile) {
+  if (profile.kind !== 'polyline') {
+    throw new Error(`sketch: a ${profile.kind === 'rect' ? 'rectangle' : profile.kind} has no free points — Convert to outline first`)
+  }
+  return profile
+}
+
+/** @param {PolylineProfile} profile @param {number} index */
+function checkVertexIndex(profile, index) {
+  if (!Number.isInteger(index) || index < 0 || index >= profile.pointsMm.length) {
+    throw new Error(`sketch: this outline has no point ${index + 1}`)
+  }
+}
+
+/**
+ * Move one point of a polyline.
+ *
+ * @param {Profile} profile
+ * @param {number} index
+ * @param {readonly number[]} pointMm
+ * @returns {PolylineProfile}
+ */
+export function moveVertex(profile, index, pointMm) {
+  const polyline = editablePolyline(profile)
+  checkVertexIndex(polyline, index)
+  if (!isVec2([pointMm[0], pointMm[1]])) throw new Error('sketch: a point must be two finite millimetre values')
+  const pointsMm = polyline.pointsMm.map((point, at) => /** @type {Vec2Mm} */ (at === index ? [pointMm[0], pointMm[1]] : point))
+  return { ...polyline, pointsMm }
+}
+
+/**
+ * How many segments a polyline has: one per point when closed (the last joins the first),
+ * one fewer when open.
+ *
+ * @param {PolylineProfile} profile
+ */
+export function segmentCountOf(profile) {
+  const count = profile.pointsMm.length
+  return profile.closed ? count : Math.max(0, count - 1)
+}
+
+/**
+ * Insert a point on segment `segmentIndex` (from point `segmentIndex` to the next, wrapping
+ * on a closed outline) — at its midpoint unless `pointMm` says where. The new point's index
+ * is `segmentIndex + 1`.
+ *
+ * @param {Profile} profile
+ * @param {number} segmentIndex
+ * @param {readonly number[]} [pointMm]
+ * @returns {PolylineProfile}
+ */
+export function insertVertex(profile, segmentIndex, pointMm) {
+  const polyline = editablePolyline(profile)
+  if (polyline.pointsMm.length >= MAX_POLYLINE_POINTS) throw new Error(`sketch: an outline holds at most ${MAX_POLYLINE_POINTS} points`)
+  if (!Number.isInteger(segmentIndex) || segmentIndex < 0 || segmentIndex >= segmentCountOf(polyline)) {
+    throw new Error(`sketch: this outline has no segment ${segmentIndex + 1}`)
+  }
+  const a = polyline.pointsMm[segmentIndex]
+  const b = polyline.pointsMm[(segmentIndex + 1) % polyline.pointsMm.length]
+  /** @type {Vec2Mm} */
+  const point = pointMm ? [pointMm[0], pointMm[1]] : [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2]
+  if (!isVec2(point)) throw new Error('sketch: a point must be two finite millimetre values')
+  const pointsMm = [...polyline.pointsMm.slice(0, segmentIndex + 1), point, ...polyline.pointsMm.slice(segmentIndex + 1)]
+  return { ...polyline, pointsMm }
+}
+
+/**
+ * Why a point cannot be deleted from this outline, or `null` when one can. The reason is
+ * the disabled **Delete point** button's tooltip, word for word.
+ *
+ * @param {Profile} profile
+ * @returns {string | null}
+ */
+export function deleteVertexProblem(profile) {
+  if (profile.kind !== 'polyline') return 'This shape has no free points — tap Convert to outline first'
+  if (profile.closed && profile.pointsMm.length <= 3) return 'An outline needs at least 3 points'
+  if (!profile.closed && profile.pointsMm.length <= 2) return 'A line needs at least 2 points'
+  return null
+}
+
+/**
+ * Remove one point of a polyline. Refuses (throws the {@link deleteVertexProblem} reason)
+ * rather than leave a closed outline with fewer than 3 points or a line with fewer than 2.
+ *
+ * @param {Profile} profile
+ * @param {number} index
+ * @returns {PolylineProfile}
+ */
+export function deleteVertex(profile, index) {
+  const problem = deleteVertexProblem(profile)
+  if (problem) throw new Error(problem)
+  const polyline = /** @type {PolylineProfile} */ (profile)
+  checkVertexIndex(polyline, index)
+  return { ...polyline, pointsMm: polyline.pointsMm.filter((_, at) => at !== index) }
+}
+
+/**
+ * **Convert to outline**: the same shape as a closed polyline, so its points can be edited.
+ * Keeps the id and role, so the selection, the Hole flag and the draft's order all survive.
+ * A rectangle gives its 4 corners, a polygon its corners exactly, a circle
+ * {@link OUTLINE_CIRCLE_POINTS} points on its rim — counter-clockwise, like
+ * {@link toPointsMm}. A polyline is returned unchanged.
+ *
+ * @param {Profile} profile
+ * @returns {PolylineProfile}
+ */
+export function convertToOutline(profile) {
+  if (profile.kind === 'polyline') return profile
+  if (!isClosed(profile)) throw new Error('sketch: this outline encloses nothing — there is nothing to convert')
+  return {
+    id: profile.id,
+    kind: 'polyline',
+    role: profile.role,
+    closed: true,
+    pointsMm: toPointsMm(profile, OUTLINE_CIRCLE_POINTS),
+  }
+}
+
 // --- drag → profile ----------------------------------------------------------
 
 /**

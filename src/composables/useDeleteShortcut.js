@@ -4,7 +4,8 @@
  * mounted once from the root view rather than from the Inspector, because it has to
  * work while the Inspector sheet is collapsed (a tablet with a keyboard).
  *
- * Inside the sketch editor they delete the selected outline instead (`TODO/sketch-005`).
+ * Inside the sketch editor they delete the selected outline instead (`TODO/sketch-005`),
+ * or its picked point when one is picked (`TODO/sketch-002`).
  *
  * Ignored when focus is in a text field (the shared `isTextEntry` guard Ctrl/Cmd+Z
  * uses): without it, Backspace while correcting a Position digit would delete the
@@ -38,7 +39,9 @@ export function useDeleteShortcut() {
     if (sketchEditor.active) {
       if (!sketchEditor.selectedProfileId) return
       event.preventDefault()
-      sketchEditor.deleteSelected()
+      // A picked point goes first; one refused ("needs at least 3 points") does nothing, and
+      // never falls through to the whole outline.
+      sketchEditor.deleteSelection()
       return
     }
     if (!commands.enabled.value) return

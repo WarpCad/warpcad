@@ -7,7 +7,12 @@ import {
   addProfile,
   addSlice,
   circleFromDrag,
+  convertToOutline,
+  deleteVertex,
+  deleteVertexProblem,
   emptySketchParams,
+  insertVertex,
+  moveVertex,
   isClosed,
   methodProblem,
   polygonFromDrag,
@@ -349,5 +354,108 @@ describe('validateSketchParams — untrusted input never throws past a reason', 
     ['a string for slices', { slices: 'lots', extrusion: { method: 'linear', heightMm: 1 } }],
   ])('rejects %s with a reason', (_label, params) => {
     expect(validateSketchParams(params)).toEqual(expect.any(String))
+  })
+})
+
+describe('vertex editing (TODO/sketch-002) — pure, never mutating', () => {
+  const outline = (pointsMm, closed = true) => ({ id: 'p1', kind: 'polyline', role: 'solid', closed, pointsMm })
+  const square = () => outline([[0, 0], [10, 0], [10, 10], [0, 10]])
+
+  it('moves one vertex and leaves the others, and the original, alone', () => {
+    const start = square()
+    const moved = moveVertex(start, 2, [12, 14])
+    expect(moved.pointsMm).toEqual([[0, 0], [10, 0], [12, 14], [0, 10]])
+    expect(start.pointsMm[2]).toEqual([10, 10])
+    expect(moved.id).toBe('p1')
+    expect(moved.role).toBe('solid')
+  })
+
+  it('refuses a move with a bad index or a non-finite point', () => {
+    expect(() => moveVertex(square(), 4, [0, 0])).toThrow(/point/)
+    expect(() => moveVertex(square(), -1, [0, 0])).toThrow(/point/)
+    expect(() => moveVertex(square(), 0, [Number.NaN, 0])).toThrow(/finite/)
+  })
+
+  it('inserts at a segment midpoint, right after the segment start', () => {
+    const inserted = insertVertex(square(), 0)
+    expect(inserted.pointsMm).toEqual([[0, 0], [5, 0], [10, 0], [10, 10], [0, 10]])
+    expect(square().pointsMm).toHaveLength(4)
+  })
+
+  it('inserts on the closing segment of a closed outline (last point back to the first)', () => {
+    const inserted = insertVertex(square(), 3)
+    expect(inserted.pointsMm).toEqual([[0, 0], [10, 0], [10, 10], [0, 10], [0, 5]])
+    // The area is unchanged: the new point is on the edge.
+    expect(Math.abs(signedAreaMm2(inserted.pointsMm))).toBeCloseTo(100, 9)
+  })
+
+  it('inserts at a given point instead of the midpoint', () => {
+    expect(insertVertex(square(), 0, [3, -2]).pointsMm[1]).toEqual([3, -2])
+  })
+
+  it('an open chain has no closing segment to insert on', () => {
+    const chain = outline([[0, 0], [10, 0], [10, 10]], false)
+    expect(insertVertex(chain, 1).pointsMm).toEqual([[0, 0], [10, 0], [10, 5], [10, 10]])
+    expect(() => insertVertex(chain, 2)).toThrow(/segment/)
+  })
+
+  it('deletes down to 3 points: the 4th → 3rd delete succeeds and 3 → 2 is refused', () => {
+    const four = square()
+    expect(deleteVertexProblem(four)).toBeNull()
+    const three = deleteVertex(four, 0)
+    expect(three.pointsMm).toEqual([[10, 0], [10, 10], [0, 10]])
+    expect(isClosed(three)).toBe(true)
+    expect(deleteVertexProblem(three)).toBe('An outline needs at least 3 points')
+    expect(() => deleteVertex(three, 1)).toThrow('An outline needs at least 3 points')
+  })
+
+  it('an open line keeps at least 2 points', () => {
+    const chain = outline([[0, 0], [10, 0], [10, 10]], false)
+    const two = deleteVertex(chain, 1)
+    expect(two.pointsMm).toEqual([[0, 0], [10, 10]])
+    expect(deleteVertexProblem(two)).toBe('A line needs at least 2 points')
+  })
+
+  it('vertex edits refuse a shape with no free points', () => {
+    const circle = { id: 'c', kind: 'circle', role: 'solid', centerMm: [0, 0], radiusMm: 5 }
+    expect(() => moveVertex(circle, 0, [0, 0])).toThrow(/Convert to outline/)
+    expect(() => insertVertex(circle, 0)).toThrow(/Convert to outline/)
+    expect(deleteVertexProblem(circle)).toMatch(/Convert to outline/)
+  })
+
+  describe('convertToOutline — same shape, free points', () => {
+    it('a rectangle becomes its four corners, counter-clockwise, with the same area, id and role', () => {
+      const rect = { id: 'r', kind: 'rect', role: 'hole', centerMm: [5, 5], widthMm: 20, heightMm: 10 }
+      const out = convertToOutline(rect)
+      expect(out).toMatchObject({ id: 'r', kind: 'polyline', role: 'hole', closed: true })
+      expect(out.pointsMm).toHaveLength(4)
+      expect(signedAreaMm2(out.pointsMm)).toBeCloseTo(200, 9)
+      expect(out.pointsMm).toContainEqual([15, 10])
+    })
+
+    it('a circle becomes a ring whose area is within 1 % of the circle', () => {
+      const circle = { id: 'c', kind: 'circle', role: 'solid', centerMm: [3, -4], radiusMm: 25 }
+      const out = convertToOutline(circle)
+      expect(out.pointsMm.length).toBeGreaterThanOrEqual(24)
+      const area = signedAreaMm2(out.pointsMm)
+      expect(area).toBeGreaterThan(0)
+      expect(Math.abs(area - Math.PI * 625) / (Math.PI * 625)).toBeLessThan(0.01)
+      for (const [x, y] of out.pointsMm) expect(Math.hypot(x - 3, y + 4)).toBeCloseTo(25, 9)
+    })
+
+    it('a polygon keeps every corner exactly where it was, so its area is unchanged', () => {
+      const polygon = { id: 'g', kind: 'polygon', role: 'solid', centerMm: [0, 0], radiusMm: 10, sides: 6, rotationDeg: 15 }
+      const out = convertToOutline(polygon)
+      expect(out.pointsMm).toHaveLength(6)
+      expect(signedAreaMm2(out.pointsMm)).toBeCloseTo(signedAreaMm2(toPointsMm(polygon)), 9)
+      expect(signedAreaMm2(out.pointsMm)).toBeCloseTo((3 * Math.sqrt(3) / 2) * 100, 9)
+    })
+
+    it('a polyline is returned as it is; a degenerate shape is refused', () => {
+      const poly = square()
+      expect(convertToOutline(poly)).toBe(poly)
+      expect(() => convertToOutline({ id: 'z', kind: 'circle', role: 'solid', centerMm: [0, 0], radiusMm: 0 })).toThrow(/nothing to convert/)
+      expect(() => convertToOutline({ id: 'z', kind: 'rect', role: 'solid', centerMm: [0, 0], widthMm: 0, heightMm: 5 })).toThrow(/nothing to convert/)
+    })
   })
 })

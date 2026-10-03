@@ -1240,3 +1240,12 @@ Built with Claude Code, reviewed by me.
 **Evidence:** couldn't select and delete an outline → TODO/done/sketch-005 Problem text (user's hand-use finding); 8 px press drew a stray third circle → hand repro this session, count 2 to 3; Select tool, trash button, status line → diff (SketchToolbar.vue, sketchEditor.js)
 **To Add:** docs/screenshots/sketch-select-outline.png
 
+
+## 2026-10-03T02:34:00Z — Sketch editor: drag, add and delete an outline's points
+
+**Post:** WarpCad's sketch editor now edits an outline's points: drag a dot to move one, drag the hollow mid-edge dot to add one, tap one and Delete. Circles and rectangles convert to outlines. Dots show only under Select; in testing they swallowed a drawing drag. Built with Claude Code, reviewed by me. #CAD
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** move/add/delete, Convert to outline, Select-only dots → diff (profile.js, VertexHandles.vue, Viewport.vue, SketchProfileFields.vue); dots swallowed a drawing drag → first acceptance drive this session (Rectangle drag from a converted circle's stroke left paths at 2, expected 3)
+**To Add:** docs/media/sketch-vertex-edit.gif

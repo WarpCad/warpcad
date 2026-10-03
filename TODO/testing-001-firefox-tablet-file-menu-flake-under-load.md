@@ -2,7 +2,7 @@
 title: export-ui "History previews a past state" failed once on firefox-tablet — File menu never appeared (not reproduced)
 category: testing
 kind: finding
-priority: low
+priority: medium
 model: sonnet
 milestone: M8
 depends: []
@@ -34,6 +34,23 @@ History preview, a click on `file-menu-button` was followed by
   Playwright's actionability check and the click, so the click lands on something other than
   the button. An uncommitted edit to `e2e/inspector-hidden-parts.e2e.js` describes the same
   class of Firefox-under-load timing problem in a different test.
+
+## Seen again (2026-10-03, during `TODO/sketch-002`) — priority raised to medium
+
+Two more full-suite runs, **one failure each, same signature, two different specs** — so it is
+not specific to `export-ui.e2e.js` or to the History strip:
+
+- Baseline run (before any change): `[firefox-tablet] e2e/export-ui.e2e.js:626` again — 2,483
+  passed / 501 skipped / 1 failed. Passed alone right after (1/1).
+- Post-change run: `[firefox-laptop] e2e/save-load-ui.e2e.js:1101` (*hosted storage through the
+  File menu › Disconnect deletes the credential…*) — `openFileMenu` at `save-load-ui.e2e.js:228`:
+  `file-menu-button` clicked, `file-menu` "element(s) not found" for 5 s. 2,525 passed / 519
+  skipped / 1 failed. Passed alone 3/3.
+
+Both are Firefox, both under the full 7-worker matrix, both at the first `file-menu` open in the
+test, and neither touches the History preview in the second case — which weakens the
+History-strip reflow hypothesis above and points at the File menu's own open path (or the
+header) under load. `sketch-002` touched neither.
 
 ## Done when
 

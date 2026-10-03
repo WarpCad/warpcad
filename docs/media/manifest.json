@@ -46,5 +46,11 @@
     "specHash": "648960e25bb25776223cdf8689f9d30a1b17656e7307f9117adfa98b9bfc92f6",
     "bytes": 1101454,
     "seconds": 10.25
+  },
+  "sketch-vertex-edit.gif": {
+    "spec": "e2e/docs/sketch-vertex.docs.js",
+    "specHash": "1a3482e8b4c693201dd561b667b833c46a1e9cec572855037ac1cc9511e6855c",
+    "bytes": 1404087,
+    "seconds": 8
   }
 }

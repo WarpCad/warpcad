@@ -662,3 +662,256 @@ test('an old project holding ui-020 sketch.line records opens, skipping each one
   await expect(page.getByTestId('save-status')).toContainText('skipped 2 steps (sketch-1, sketch-2)')
   await expect(page.getByTestId('save-status')).toContainText('redraw them in a Sketch primitive')
 })
+
+// --- vertex editing (TODO/sketch-002) ----------------------------------------------------
+
+/**
+ * Open the Inspector sheet if it is a closed bottom sheet (phone), run `body`, and close it
+ * again so it never sits over the drawing plane for the next gesture.
+ *
+ * @param {import('@playwright/test').Page} page
+ * @param {() => Promise<void>} body
+ */
+async function inInspector(page, body) {
+  const inspector = page.getByTestId('inspector')
+  const opened = (await inspector.getAttribute('data-open')) === 'false' && (await page.getByTestId('inspector-sketch-profile').isHidden())
+  if (opened) await page.getByTestId('inspector-tab').click()
+  await body()
+  if (opened) await page.getByTestId('inspector-tab').click()
+}
+
+/**
+ * An 80 × 50 mm rectangle about the origin, picked with Select and converted to an outline.
+ * Big enough that every edge holds a midpoint dot (≥ 88 px) at the phone's ~2 px/mm.
+ *
+ * @param {import('@playwright/test').Page} page
+ */
+async function convertedRectangle(page) {
+  await page.getByTestId('sketch-tool-rect').click()
+  const { cx, cy, pxPerMm } = await sketchScreen(page)
+  await mouseDrag(page, cx - 40 * pxPerMm, cy + 25 * pxPerMm, cx + 40 * pxPerMm, cy - 25 * pxPerMm)
+  await page.getByTestId('sketch-tool-select').click()
+  await page.mouse.click(cx + 10 * pxPerMm, cy + 25 * pxPerMm)
+  await expect(page.getByTestId('sketch-selection-status')).toContainText('Rectangle, Solid')
+  // No handles on a rectangle: it has no free points until it is converted.
+  await expect(page.getByTestId('sketch-vertex-handles')).toHaveCount(0)
+  await inInspector(page, async () => {
+    await page.getByTestId('inspector-sketch-convert').click()
+  })
+  await expect(page.getByTestId('sketch-selection-status')).toHaveText('Closed outline, Solid — 4 points')
+  await expect(page.getByTestId('sketch-vertex-handles')).toHaveAttribute('data-vertex-count', '4')
+  await expect(page.getByTestId('sketch-vertex-handles')).toHaveAttribute('data-midpoint-count', '4')
+  return { cx, cy, pxPerMm }
+}
+
+/** @param {import('@playwright/test').Page} page @param {string} testId */
+async function centreOf(page, testId) {
+  const box = await page.getByTestId(testId).boundingBox()
+  if (!box) throw new Error(`no ${testId}`)
+  return { x: box.x + box.width / 2, y: box.y + box.height / 2 }
+}
+
+/** A point handle's position in sketch millimetres, read off the dot. @param {import('@playwright/test').Page} page @param {number} index */
+async function vertexMm(page, index) {
+  const handle = page.getByTestId(`sketch-vertex-${index}`)
+  return [Number(await handle.getAttribute('data-x-mm')), Number(await handle.getAttribute('data-y-mm'))]
+}
+
+/**
+ * A wobbly human drag with the real mouse — not a straight line, and not starting on the
+ * exact centre of what it grabs.
+ *
+ * @param {import('@playwright/test').Page} page
+ * @param {{ x: number, y: number }} from @param {{ x: number, y: number }} to
+ */
+async function wobblyDrag(page, from, to) {
+  await page.mouse.move(from.x, from.y)
+  await page.mouse.down()
+  for (let i = 1; i <= 12; i += 1) {
+    const t = i / 12
+    const wobble = i < 12 ? Math.sin(i * 1.7) * 4 : 0
+    await page.mouse.move(from.x + (to.x - from.x) * t + wobble, from.y + (to.y - from.y) * t - wobble)
+  }
+  await page.mouse.up()
+}
+
+test('vertex editing: Convert to outline, drag a corner, drag a midpoint to add a point — real mouse (TODO/sketch-002)', async ({ page }, info) => {
+  await openNewSketch(page)
+  const { pxPerMm } = await convertedRectangle(page)
+  // toPointsMm's order: bottom-left, bottom-right, top-right, top-left.
+  expect((await vertexMm(page, 2))[0]).toBeCloseTo(40, 0)
+
+  // Move: grab the top-right dot 12 px off its centre (inside its 44 px target) and drag up 10 mm.
+  const corner = await centreOf(page, 'sketch-vertex-2')
+  await wobblyDrag(page, { x: corner.x - 12, y: corner.y + 8 }, { x: corner.x - 12, y: corner.y + 8 - 10 * pxPerMm })
+  const moved = await vertexMm(page, 2)
+  expect(Math.abs(moved[0] - 40)).toBeLessThan(1.5)
+  expect(Math.abs(moved[1] - 35)).toBeLessThan(1.5)
+  await expect(page.getByTestId('sketch-vertex-2')).toHaveAttribute('data-selected', 'true')
+  await expect(page.getByTestId('sketch-selection-status')).toHaveText('Closed outline, Solid — 4 points · point 3 selected')
+  // Still one outline: the press grabbed the point, it did not start a drawing.
+  await expect(page.getByTestId('sketch-strokes')).toHaveAttribute('data-path-count', '1')
+
+  // Add: drag the top edge's midpoint dot up. A new point appears there and follows.
+  const mid = await centreOf(page, 'sketch-midpoint-2')
+  await wobblyDrag(page, mid, { x: mid.x, y: mid.y - 15 * pxPerMm })
+  await expect(page.getByTestId('sketch-vertex-handles')).toHaveAttribute('data-vertex-count', '5')
+  await expect(page.getByTestId('sketch-selection-status')).toHaveText('Closed outline, Solid — 5 points · point 4 selected')
+  const peak = await vertexMm(page, 3)
+  expect(Math.abs(peak[0])).toBeLessThan(2)
+  expect(Math.abs(peak[1] - 45)).toBeLessThan(2)
+
+  // The Extrude preview follows the edit, and the Inspector shows the point's X/Y.
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-sketch-preview', 'ok')
+  await expect(page.getByTestId('inspector-sketch-vertex-y')).toHaveValue(/^4[3-7](\.\d+)?$/)
+  mkdirSync(SNAPSHOT_DIR, { recursive: true })
+  await page.screenshot({ path: join(SNAPSHOT_DIR, `${info.project.name}-vertex-edit.png`) })
+})
+
+test('Delete vertex: a tapped point goes, down to 3 points, then it is refused with the reason (TODO/sketch-002)', async ({ page }, info) => {
+  await openNewSketch(page)
+  await convertedRectangle(page)
+  // Add a fifth point so there is a 5 → 4 → 3 run.
+  const mid = await centreOf(page, 'sketch-midpoint-0')
+  await wobblyDrag(page, mid, { x: mid.x, y: mid.y + 30 })
+  await expect(page.getByTestId('sketch-vertex-handles')).toHaveAttribute('data-vertex-count', '5')
+
+  // Tap a point: it is picked; the toolbar Delete now deletes the point, and says so.
+  const tapPoint = async (/** @type {number} */ index) => {
+    const centre = await centreOf(page, `sketch-vertex-${index}`)
+    await page.mouse.click(centre.x + 6, centre.y - 5)
+    await expect(page.getByTestId(`sketch-vertex-${index}`)).toHaveAttribute('data-selected', 'true')
+  }
+  await tapPoint(0)
+  await expect(page.getByTestId('sketch-delete')).toHaveAttribute('aria-label', 'Delete vertex')
+  if (isPhone(info)) {
+    // Touch has no Delete key, and the Inspector stays closed: the toolbar is the route.
+    await page.getByTestId('sketch-delete').click()
+  } else {
+    await inInspector(page, async () => {
+      await expect(page.getByTestId('inspector-sketch-vertex-x')).toBeVisible()
+      await page.getByTestId('inspector-sketch-delete-vertex').click()
+    })
+  }
+  await expect(page.getByTestId('sketch-vertex-handles')).toHaveAttribute('data-vertex-count', '4')
+  // The outline is still there and still picked; only the point went.
+  await expect(page.getByTestId('sketch-strokes')).toHaveAttribute('data-path-count', '1')
+  await expect(page.getByTestId('sketch-selection-status')).toHaveText('Closed outline, Solid — 4 points')
+
+  await tapPoint(1)
+  if (isPhone(info)) await page.getByTestId('sketch-delete').click()
+  else await page.keyboard.press('Delete')
+  await expect(page.getByTestId('sketch-vertex-handles')).toHaveAttribute('data-vertex-count', '3')
+
+  await tapPoint(0)
+  await expect(page.getByTestId('sketch-delete')).toBeDisabled()
+  await expect(page.getByTestId('sketch-delete')).toHaveAttribute('title', 'An outline needs at least 3 points')
+  await inInspector(page, async () => {
+    await expect(page.getByTestId('inspector-sketch-delete-vertex')).toBeDisabled()
+    await expect(page.getByTestId('inspector-sketch-delete-vertex-reason')).toHaveText('An outline needs at least 3 points')
+  })
+  if (!isPhone(info)) {
+    // The keys are refused too — and never fall through to deleting the whole outline.
+    await page.keyboard.press('Backspace')
+    await expect(page.getByTestId('sketch-strokes')).toHaveAttribute('data-path-count', '1')
+    await expect(page.getByTestId('sketch-vertex-handles')).toHaveAttribute('data-vertex-count', '3')
+  }
+})
+
+test('a press on a picked outline’s edge BETWEEN its dots still draws (ui-020 finding #1, with handles showing)', async ({ page }) => {
+  await openNewSketch(page)
+  const { cx, cy, pxPerMm } = await convertedRectangle(page)
+  const corner = await centreOf(page, 'sketch-vertex-0')
+  await page.getByTestId('sketch-tool-rect').click()
+  // The dots are a Select-tool affordance: with a drawing tool armed they go, so even a press
+  // right on a corner draws (the acceptance drive found dense dots covering a whole stroke).
+  await expect(page.getByTestId('sketch-vertex-handles')).toHaveCount(0)
+  await expect(page.getByTestId('sketch-selection-status')).toHaveText('Closed outline, Solid — 4 points')
+  await mouseDrag(page, corner.x, corner.y, corner.x - 12 * pxPerMm, corner.y + 10 * pxPerMm)
+  await expect(page.getByTestId('sketch-strokes')).toHaveAttribute('data-path-count', '2')
+  // Tap inside the stray rectangle (a draw tool's tap picks), delete it, re-pick the outline.
+  await page.mouse.click(corner.x - 6 * pxPerMm, corner.y + 5 * pxPerMm)
+  await expect(page.getByTestId('sketch-selection-status')).toContainText('Rectangle, Solid')
+  await page.getByTestId('sketch-delete').click()
+  await expect(page.getByTestId('sketch-strokes')).toHaveAttribute('data-path-count', '1')
+  await page.mouse.click(cx + 10 * pxPerMm, cy - 25 * pxPerMm)
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-sketch-selected', 'p1')
+  // A quarter of the way along the bottom edge: 20 mm from the corner and from the midpoint
+  // dot — clear of both 44 px targets at every viewport.
+  const x = cx - 20 * pxPerMm
+  const y = cy + 25 * pxPerMm
+  await mouseDrag(page, x, y, x + 15 * pxPerMm, y + 12 * pxPerMm)
+  await expect(page.getByTestId('sketch-strokes')).toHaveAttribute('data-path-count', '2')
+  // The converted outline's points did not move.
+  await expect(page.getByTestId('sketch-profile-p1')).toBeVisible()
+  // And a press between dots under Select draws nothing (sketch-005), and moves no point. The
+  // other quarter of the bottom edge: the first spot is now also the new rectangle's corner.
+  await page.getByTestId('sketch-tool-select').click()
+  await page.mouse.click(cx + 10 * pxPerMm, cy - 25 * pxPerMm)
+  const before = await vertexMm(page, 0)
+  const x2 = cx + 20 * pxPerMm
+  await mouseDrag(page, x2, y, x2 + 15 * pxPerMm, y + 12 * pxPerMm)
+  await expect(page.getByTestId('sketch-strokes')).toHaveAttribute('data-path-count', '2')
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-sketch-selected', 'p1')
+  expect(await vertexMm(page, 0)).toEqual(before)
+})
+
+test('Simplify thins a converted circle, and Cancel throws every point edit away (TODO/sketch-002)', async ({ page }) => {
+  await openNewSketch(page)
+  await drawCircle(page, 40)
+  await page.getByTestId('sketch-tool-select').click()
+  const { cx, cy, pxPerMm } = await sketchScreen(page)
+  await page.mouse.click(cx + 40 * pxPerMm, cy)
+  await inInspector(page, async () => {
+    await page.getByTestId('inspector-sketch-convert').click()
+    await expect(page.getByTestId('sketch-vertex-handles')).toHaveAttribute('data-vertex-count', '32')
+    const tolerance = page.getByTestId('inspector-sketch-simplify-tolerance')
+    await tolerance.fill('2')
+    await page.getByTestId('inspector-sketch-simplify').click()
+    await expect(page.getByTestId('sketch-selection-status')).toHaveText(/^Closed outline, Solid — ([6-9]|1[0-6]) points$/)
+    await tolerance.fill('500')
+    await page.getByTestId('inspector-sketch-simplify').click()
+    await expect(page.getByTestId('inspector-sketch-simplify-error')).toContainText('fewer than 3 points')
+  })
+  await page.getByTestId('sketch-cancel').click()
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-body-count', '0')
+})
+
+test('desktop only: the point under the mouse highlights before it is pressed (TODO/sketch-002)', async ({ page }, info) => {
+  test.skip(info.project.name.endsWith('-phone') || info.project.name.endsWith('-tablet'), 'hover is a mouse affordance; the laptop project drives it')
+  await openNewSketch(page)
+  await convertedRectangle(page)
+  const corner = await centreOf(page, 'sketch-vertex-1')
+  await page.mouse.move(corner.x - 80, corner.y - 60)
+  await page.mouse.move(corner.x + 9, corner.y - 7, { steps: 6 })
+  await expect(page.getByTestId('sketch-vertex-1')).toHaveAttribute('data-hover', 'true')
+  await expect(page.getByTestId('sketch-vertex-0')).toHaveAttribute('data-hover', 'false')
+  await expect(page.getByTestId('sketch-vertex-1')).toHaveAttribute('data-selected', 'false')
+})
+
+test('touch only: a finger drags a point and a midpoint dot, no modifier (TODO/sketch-002)', async ({ page, browserName }, info) => {
+  test.skip(!isPhone(info), 'the touch pass runs at the phone reference')
+  test.skip(browserName !== 'chromium', 'a trusted touch *drag* needs CDP Input.dispatchTouchEvent, which only Chromium exposes')
+  await openNewSketch(page)
+  const { pxPerMm } = await convertedRectangle(page)
+  const cdp = await page.context().newCDPSession(page)
+  /** @param {{ x: number, y: number }} from @param {{ x: number, y: number }} to */
+  const fingerDrag = async (from, to) => {
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: from.x, y: from.y }] })
+    for (let i = 1; i <= 10; i += 1) {
+      const t = i / 10
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: from.x + (to.x - from.x) * t + (i % 2) * 2, y: from.y + (to.y - from.y) * t }] })
+    }
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] })
+  }
+  const corner = await centreOf(page, 'sketch-vertex-3')
+  // A fingertip lands off-centre: 15 px away, still inside the 44 px target.
+  await fingerDrag({ x: corner.x + 10, y: corner.y + 11 }, { x: corner.x + 10, y: corner.y + 11 - 10 * pxPerMm })
+  const moved = await vertexMm(page, 3)
+  expect(Math.abs(moved[1] - 35)).toBeLessThan(2)
+  const mid = await centreOf(page, 'sketch-midpoint-0')
+  await fingerDrag(mid, { x: mid.x, y: mid.y + 10 * pxPerMm })
+  await expect(page.getByTestId('sketch-vertex-handles')).toHaveAttribute('data-vertex-count', '5')
+  await expect(page.getByTestId('sketch-strokes')).toHaveAttribute('data-path-count', '1')
+  await expect(page.getByTestId('inspector')).toHaveAttribute('data-open', 'false')
+})

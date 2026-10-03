@@ -34,6 +34,16 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### sketch-002 — Sketch vertex editing: move, add, delete points, Simplify, Convert to outline (2026-10-03 02:35)
+
+Every functional path (Convert, point drag, midpoint-dot insert, tap-to-pick, Delete vertex and its 3-point refusal, Delete/Backspace, Simplify, Cancel/Done/Undo) was driven by hand on Chromium/WebKit/Firefox laptop and phone Chromium touch, and is in the 9-way e2e. What is left is feel on real hardware, one design judgment the drive surfaced, and the same zero-slack margin sketch-005 logged.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | On a real iPhone and iPad (Safari): drag a corner dot and an edge's hollow midpoint dot with a finger. Does the 44 px target feel right, and can you still see the point you are moving under your fingertip? (WebKit trusted touch *drags* can't be automated here; only Chromium touch was driven.) | Open | |
+| 2 | Dense outline under Select: convert a ~20 mm circle at normal zoom (32 dots ~10 px apart). A press anywhere near the line grabs the nearest dot, so a near-miss *inside* the ring pulled a neighbouring point inward and briefly made the outline cross itself (WebKit drive; the status said so and Simplify fixed it). Judge whether that is acceptable or whether the targets should shrink on dense outlines. | Open | |
+| 3 | Phone 390 px: with a point picked the status line wraps to two lines (*… 3 points · point 1 selected*), the toolbar is 178 px tall, and reachable canvas still measured exactly 69 % (the ui-020 #3 floor, no slack). Decide whether to shorten the text (e.g. *· pt 1*) before the next toolbar addition. | Open | |
+
 ### sketch-005 — Sketch editor: select, edit, delete an outline (2026-10-03 01:38)
 
 The functional paths (pick, hover, status, Hole, toolbar Delete, Delete/Backspace, Cancel/Done) were driven by hand and in the 9-way e2e. What is left is feel and one measured margin.

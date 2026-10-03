@@ -1489,6 +1489,28 @@ export function updateSketchPath(orbit, frame, pointsMm, zMm, closed, widthPx, h
 }
 
 /**
+ * Project one point of a sketch plane — sketch-local mm at a slice offset — to screen
+ * pixels (`TODO/sketch-002`'s point handles). The same transform {@link updateSketchPath}
+ * applies to every point of an outline, so a handle sits exactly on its stroke.
+ *
+ * @param {OrbitCamera} orbit
+ * @param {readonly number[]} frame Column-major 4×4, sketch-local mm → world mm.
+ * @param {number} xMm
+ * @param {number} yMm
+ * @param {number} zMm The slice's offset along the sketch's local Z.
+ * @param {number} widthPx
+ * @param {number} heightPx
+ * @param {ScreenPoint} out Mutated in place.
+ * @returns {ScreenPoint} `out`
+ */
+export function sketchPointToScreen(orbit, frame, xMm, yMm, zMm, widthPx, heightPx, out) {
+  const worldX = frame[0] * xMm + frame[4] * yMm + frame[8] * zMm + frame[12]
+  const worldY = frame[1] * xMm + frame[5] * yMm + frame[9] * zMm + frame[13]
+  const worldZ = frame[2] * xMm + frame[6] * yMm + frame[10] * zMm + frame[14]
+  return worldToScreen(orbit, worldX, worldY, worldZ, widthPx, heightPx, out)
+}
+
+/**
  * Shortest distance, in pixels, from a point to a **segment** (not the infinite
  * line through it).
  *

@@ -14,7 +14,8 @@
  * and return a new params object, and `shallowRef` means Vue never walks it — a sketch
  * can hold thousands of polyline points.
  *
- * Selection *inside* the editor (which outline is picked) is held here too, deliberately
+ * Selection *inside* the editor (which outline is picked, and which of its points —
+ * `TODO/sketch-002`) is held here too, deliberately
  * not in `src/stores/selection.js`: that store selects bodies, and ui-020's second
  * `sketchId` there had to be kept mutually exclusive with body selection by every path
  * that touched either. An editor-local selection needs no such rule.
@@ -27,9 +28,15 @@ import { computed, ref, shallowRef } from 'vue'
 
 import { formatMmValue } from '../core/units.js'
 
+import { simplifyPoints } from '../sketch/simplify.js'
 import {
   EXTRUSION_METHODS,
   addProfile,
+  convertToOutline,
+  deleteVertex as deleteVertexOf,
+  deleteVertexProblem,
+  insertVertex as insertVertexOf,
+  moveVertex as moveVertexOf,
   isClosed,
   addSlice,
   emptySketchParams,
@@ -76,6 +83,14 @@ export const useSketchEditorStore = defineStore('sketchEditor', () => {
   const selectedProfileId = ref('')
   /** The outline under the mouse while Select is armed — a highlight only, never a selection. */
   const hoverProfileId = ref('')
+  /**
+   * The picked point of the selected outline, by index into its `pointsMm`, or `-1`
+   * (`TODO/sketch-002`). Only a polyline has points to pick; every change of outline,
+   * slice or session clears it.
+   */
+  const selectedVertex = ref(-1)
+  /** The point under the mouse — a highlight only, never a selection. */
+  const hoverVertex = ref(-1)
   const tool = ref(/** @type {SketchTool} */ ('circle'))
   const polygonSides = ref(6)
   /** Which of the Slices / Extrude panels is open — one at a time. */
@@ -95,6 +110,26 @@ export const useSketchEditorStore = defineStore('sketchEditor', () => {
     () => slice.value?.profiles.find((profile) => profile.id === selectedProfileId.value) ?? null,
   )
 
+  /** The picked point's `[x, y]` mm, or `null`. */
+  const selectedVertexMm = computed(() => {
+    const profile = selectedProfile.value
+    if (!profile || profile.kind !== 'polyline') return null
+    return profile.pointsMm[selectedVertex.value] ?? null
+  })
+
+  /**
+   * What Delete (the toolbar's trash, Delete/Backspace) acts on: the picked **point** when
+   * there is one, else the picked outline, else nothing (`TODO/sketch-002` reconciling
+   * `TODO/sketch-005`). A refused point delete never falls through to the outline.
+   */
+  const deleteTarget = computed(() => (!selectedProfile.value ? '' : selectedVertexMm.value ? 'vertex' : 'outline'))
+
+  /** Why Delete is refused right now, or `''` — "An outline needs at least 3 points". */
+  const deleteProblem = computed(() => {
+    if (deleteTarget.value !== 'vertex' || !selectedProfile.value) return ''
+    return deleteVertexProblem(selectedProfile.value) ?? ''
+  })
+
   /**
    * One line naming the selected outline — `Circle, Hole — 15 mm radius` — or `''` with
    * none selected. The feedback a person gets when the Inspector sheet is closed, which
@@ -109,7 +144,8 @@ export const useSketchEditorStore = defineStore('sketchEditor', () => {
     if (profile.kind === 'rect') return `Rectangle, ${role} — ${mm(profile.widthMm)} × ${mm(profile.heightMm)} mm`
     if (profile.kind === 'polygon') return `Polygon, ${role} — ${profile.sides} sides, ${mm(profile.radiusMm)} mm radius`
     const count = profile.pointsMm.length
-    return `${isClosed(profile) ? 'Closed' : 'Open'} outline, ${role} — ${count} point${count === 1 ? '' : 's'}`
+    const point = selectedVertexMm.value ? ` · point ${selectedVertex.value + 1} selected` : ''
+    return `${isClosed(profile) ? 'Closed' : 'Open'} outline, ${role} — ${count} point${count === 1 ? '' : 's'}${point}`
   })
 
   /** Why Done is disabled, or `''`. Static checks first, then the kernel's own answer. */
@@ -144,6 +180,8 @@ export const useSketchEditorStore = defineStore('sketchEditor', () => {
     activeSlice.value = 0
     selectedProfileId.value = ''
     hoverProfileId.value = ''
+    selectedVertex.value = -1
+    hoverVertex.value = -1
     panel.value = ''
     chainId.value = ''
     previewStatus.value = 'idle'
@@ -159,6 +197,8 @@ export const useSketchEditorStore = defineStore('sketchEditor', () => {
     bodyId.value = null
     selectedProfileId.value = ''
     hoverProfileId.value = ''
+    selectedVertex.value = -1
+    hoverVertex.value = -1
     panel.value = ''
     chainId.value = ''
     previewStatus.value = 'idle'
@@ -199,17 +239,115 @@ export const useSketchEditorStore = defineStore('sketchEditor', () => {
     if (chainId.value === selectedProfileId.value) chainId.value = ''
     setDraft(removeProfile(draft.value, activeSlice.value, selectedProfileId.value))
     selectedProfileId.value = ''
+    selectedVertex.value = -1
+    hoverVertex.value = -1
   }
 
   /** @param {string} id */
   function selectProfile(id) {
     selectedProfileId.value = id
+    selectedVertex.value = -1
+    hoverVertex.value = -1
+  }
+
+  // --- points of the selected outline (TODO/sketch-002) ----------------------
+
+  /** The selected outline if it is a polyline — the only kind with points to edit. */
+  function selectedPolyline() {
+    const profile = selectedProfile.value
+    return profile && profile.kind === 'polyline' ? profile : null
+  }
+
+  /**
+   * Pick a point of the selected outline, or clear with `-1`. Ignored (cleared) without a
+   * selected polyline or for an index it does not have.
+   *
+   * @param {number} index
+   */
+  function selectVertex(index) {
+    const profile = selectedPolyline()
+    selectedVertex.value = profile && Number.isInteger(index) && index >= 0 && index < profile.pointsMm.length ? index : -1
+  }
+
+  /** @param {number} index @param {readonly number[]} pointMm */
+  function moveVertex(index, pointMm) {
+    const profile = selectedPolyline()
+    if (!profile) return
+    replaceInActiveSlice(moveVertexOf(profile, index, pointMm))
+  }
+
+  /**
+   * Insert a point on one segment of the selected outline (its midpoint, unless `pointMm`
+   * says where) and pick it.
+   *
+   * @param {number} segmentIndex
+   * @param {readonly number[]} [pointMm]
+   * @returns {number} The new point's index, or `-1` when nothing was inserted.
+   */
+  function insertVertexOn(segmentIndex, pointMm) {
+    const profile = selectedPolyline()
+    if (!profile) return -1
+    replaceInActiveSlice(insertVertexOf(profile, segmentIndex, pointMm))
+    selectedVertex.value = segmentIndex + 1
+    return segmentIndex + 1
+  }
+
+  /** Remove the picked point — refused, doing nothing, below 3 points (2 for a line). */
+  function deleteSelectedVertex() {
+    const profile = selectedPolyline()
+    if (!profile || !selectedVertexMm.value || deleteProblem.value) return
+    replaceInActiveSlice(deleteVertexOf(profile, selectedVertex.value))
+    selectedVertex.value = -1
+    hoverVertex.value = -1
+  }
+
+  /**
+   * The one Delete: the toolbar's trash and Delete/Backspace both call this. A picked point
+   * goes first; with no point picked, the outline goes.
+   */
+  function deleteSelection() {
+    if (deleteTarget.value === 'vertex') deleteSelectedVertex()
+    else if (deleteTarget.value === 'outline') deleteSelected()
+  }
+
+  /** **Convert to outline**: the selected rectangle, circle or polygon becomes a polyline. */
+  function convertSelectedToOutline() {
+    const profile = selectedProfile.value
+    if (!profile || profile.kind === 'polyline') return
+    replaceInActiveSlice(convertToOutline(profile))
+    selectedVertex.value = -1
+    if (chainId.value === profile.id) chainId.value = ''
+  }
+
+  /**
+   * **Simplify** the selected outline at a tolerance in mm.
+   *
+   * @param {number} toleranceMm
+   * @returns {string} Why nothing changed, or `''` when it was applied.
+   */
+  function simplifySelected(toleranceMm) {
+    const profile = selectedPolyline()
+    if (!profile) return 'Pick an outline with points first'
+    if (!Number.isFinite(toleranceMm) || toleranceMm < 0) return 'The tolerance must be 0 mm or more'
+    const pointsMm = simplifyPoints(profile.pointsMm, toleranceMm, profile.closed)
+    if (!pointsMm) return `That would leave fewer than ${profile.closed ? 3 : 2} points — try a smaller tolerance`
+    replaceInActiveSlice({ ...profile, pointsMm })
+    selectedVertex.value = -1
+    hoverVertex.value = -1
+    return ''
   }
 
   /** @param {SketchTool} next */
   function setTool(next) {
     tool.value = next
     chainId.value = ''
+    // Point dots are a Select-tool affordance (`TODO/sketch-002`): a drawing tool's press always
+    // draws, so a point picked under Select would otherwise be invisible and still be what
+    // Delete removes.
+    if (next !== 'select') {
+      selectedVertex.value = -1
+      hoverVertex.value = -1
+    }
   }
 
   function addSliceAbove() {
@@ -217,6 +355,7 @@ export const useSketchEditorStore = defineStore('sketchEditor', () => {
     setDraft(addSlice(draft.value, `s${sliceCounter}`))
     activeSlice.value = draft.value.slices.length - 1
     selectedProfileId.value = ''
+    selectedVertex.value = -1
     chainId.value = ''
   }
 
@@ -225,6 +364,7 @@ export const useSketchEditorStore = defineStore('sketchEditor', () => {
     setDraft(removeSlice(draft.value, activeSlice.value))
     activeSlice.value = Math.max(0, activeSlice.value - 1)
     selectedProfileId.value = ''
+    selectedVertex.value = -1
     chainId.value = ''
   }
 
@@ -233,6 +373,7 @@ export const useSketchEditorStore = defineStore('sketchEditor', () => {
     if (index < 0 || index >= draft.value.slices.length) return
     activeSlice.value = index
     selectedProfileId.value = ''
+    selectedVertex.value = -1
     chainId.value = ''
   }
 
@@ -265,6 +406,8 @@ export const useSketchEditorStore = defineStore('sketchEditor', () => {
     activeSlice,
     selectedProfileId,
     hoverProfileId,
+    selectedVertex,
+    hoverVertex,
     tool,
     polygonSides,
     panel,
@@ -274,6 +417,9 @@ export const useSketchEditorStore = defineStore('sketchEditor', () => {
     commitError,
     slice,
     selectedProfile,
+    selectedVertexMm,
+    deleteTarget,
+    deleteProblem,
     selectionStatus,
     doneProblem,
     methodProblems,
@@ -287,6 +433,13 @@ export const useSketchEditorStore = defineStore('sketchEditor', () => {
     setSelectedRole,
     deleteSelected,
     selectProfile,
+    selectVertex,
+    moveVertex,
+    insertVertexOn,
+    deleteSelectedVertex,
+    deleteSelection,
+    convertSelectedToOutline,
+    simplifySelected,
     setTool,
     addSliceAbove,
     deleteActiveSlice,
