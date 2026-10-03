@@ -33,6 +33,16 @@ live count: `0 selected`, `1 selected`, `2 selected`, and so on. Hover the mouse
 dimmed button (or press and hold it on a touch screen) and it says **"Select 2 or more
 solids"**.
 
+![The Operations toolbar with nothing selected: Union, Subtract and Intersect dimmed, the count reading 0 selected](./screenshots/operations-toolbar-disabled.png)
+
+With one shape selected the buttons are still dimmed, and the count says why — one is not enough:
+
+![The same toolbar with one solid selected: still dimmed, reading 1 selected](./screenshots/operations-toolbar-one.png)
+
+Select a second shape and all three light up, with the base and the rest named underneath:
+
+![The toolbar with two solids selected: Union, Subtract and Intersect enabled, "Cube 1 then Cylinder 1" beneath, and a two-colour chip reading first is the base](./screenshots/operations-toolbar-enabled.png)
+
 To select more than one shape: click the first, then hold **Shift** and click the next.
 On a touch screen with no keyboard, switch the navigation controls (bottom-left) to
 **Select** and drag a box around the shapes you want — everything the box encloses is
@@ -60,6 +70,18 @@ colour chips matching the two highlight colours.
 
 ## A worked example
 
+**The short version.** Place a cube and a cylinder overlapping. Click the cube, then
+Shift-click the cylinder. Press **− Subtract**: the cylinder is removed from the cube,
+leaving a round hole.
+
+![Clicking a cube, Shift-clicking the cylinder through it, pressing Subtract: the cube is left with a round hole, and History gains a Subtract row naming both shapes](./media/boolean-subtract.gif)
+
+The cube with the hole, seen from above:
+
+![A cube with a round hole cut through it, viewed from above](./screenshots/boolean-result.png)
+
+The same walk-through with two cubes, step by step:
+
 1. Open the Library panel and drag a **Cube** into the 3D view. Drag a **second Cube** in
    so that it overlaps the first one.
 2. Click the first cube. The Operations toolbar still reads `1 selected` and all three
@@ -75,6 +97,25 @@ colour chips matching the two highlight colours.
 
 Try step 4 again with **Union** instead and you get one merged shape spanning both
 cubes; with **Intersect** you get only the small block where the two cubes overlapped.
+
+**Union** — the same pair, merged into one solid. The History panel gains a *Union* row
+that names both shapes:
+
+![Selecting a cube and a cylinder and pressing Union: one merged solid, and a Union row in History](./media/boolean-union.gif)
+
+**Intersect** — a cube and a sphere, keeping only what they share:
+
+![Selecting a cube and a sphere and pressing Intersect: the rounded common volume remains](./media/boolean-intersect.gif)
+
+**A mounting hole** — the classic use. Subtract a cylinder from a plate:
+
+![Selecting a plate and a cylinder through it, pressing Subtract: the plate has a hole](./media/boolean-bolt-hole.gif)
+
+**Order matters for Subtract.** Here the same cube and cylinder are subtracted twice, picked in
+opposite orders. Cube first leaves the cube with a hole; cylinder first leaves what is left of
+the cylinder, with the cube bitten out of it:
+
+![The same cube and cylinder subtracted in both orders, giving two different results](./media/boolean-subtract-order.gif)
 
 ## Cutting with just one part of a multi-part shape
 
@@ -110,6 +151,12 @@ Subtract or Intersect and the tooltip reads
 *"Subtract — Remove every later-selected solid from the first (Cube 1 then Raspberry Pi
 1 › ethernet — booleans use that part; Group uses the whole body)"*. Same information,
 same moment, no covered controls.
+
+The same idea with a bolt: click the bolt twice to reach its shaft (the `thread` part), take
+the bolt out of the selection, add the cube, then add the bolt back. The toolbar names
+`Bolt 1 › thread`, and Subtract cuts a groove the size of the shaft only:
+
+![Drilling into a bolt's shaft, making it the second operand and subtracting it from a cube](./media/boolean-subpart-operand.gif)
 
 ### A worked example: an Ethernet port opening
 
@@ -189,7 +236,7 @@ with something else.
   all; Subtract removes all of them from the first one.
 - **Intersect on shapes that do not overlap leaves nothing behind.** There is no shared
   volume, so the result is an empty shape — it will vanish from view even though the
-  scene still lists one item. Undo is not built yet, so reload the page to start over.
+  scene still lists one item. Press **Undo** to get the two shapes back.
 - **Subtracting something that does not touch the base** leaves the base unchanged. That
   is correct, not a failure — nothing overlapped, so nothing was removed.
 

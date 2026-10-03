@@ -6,8 +6,17 @@ priority: high
 model: sonnet
 milestone: M10
 depends: [docs-005, docs-006, docs-007]
-status: open
+status: done
 ---
+
+> **Shipped (2026-10-03):** all 10 inventory rows, in `e2e/docs/booleans.docs.js` (10 tests),
+> embedded in `docs/booleans.md` with the cube-and-cylinder example. Four new NDJSON fixtures
+> (`cube-and-cylinder`, `cube-and-sphere`, `plate-and-cylinder`, `cube-and-bolt`). Sub-part movie
+> uses the bolt's `thread` (the shaft). Every movie asserts body count, the result's op and
+> volume; the union/subtract movies also open History and assert the row names both operands
+> (`core-036`); the order movie asserts the two results' bounds and volumes differ. Gizmo handles
+> sit over some bodies once one is selected, so click points were chosen clear of them (probed with
+> `elementFromPoint`). Also fixed a stale "Undo is not built yet" line in the page.
 
 ## Goal
 

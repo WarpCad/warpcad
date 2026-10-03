@@ -1732,3 +1732,17 @@ I also drove the hardware-edit scenario by hand afterwards, and the handles stay
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** 9 animations and 5 stills → diff (docs/media/, docs/screenshots/); end-state assertions → e2e/docs/selection-inspector.docs.js; z arrow covered the ring vertex → debug run this session (elementFromPoint returned gizmo-grab-arm-z); hand drive → TODO/ACCEPTANCE.md scenario 2 Last run
 **To Add:** docs/media/gizmo-translate.gif, docs/media/select-click.gif
+
+
+## 2026-10-03T14:12:00Z — Docs: Union, Subtract and Intersect, with pictures
+
+**Post:** The WarpCad page on combining shapes now shows each operation working. Click a cube, Shift-click a cylinder through it, press Subtract, and the cube is left with a round hole. Union merges them, Intersect keeps only the shared part, and a plate minus a cylinder is the mounting hole most people want first.
+
+The one that matters is order. Subtract cuts the second shape out of the first, so the same two shapes picked the other way round give a different result. That clip records both and the test behind it compares the two results' bounding boxes and volumes, so it cannot pass by recording the same result twice. Another clip drills into a bolt's shaft and uses only that part as the cutter.
+
+While recording I found that once a shape is selected, its move and rotate handles can sit on top of another shape, so a Shift-click there does nothing. The tests now pick click points clear of the handles. Built with Claude Code, reviewed by me.
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** 6 animations and 4 stills → diff (docs/media/, docs/screenshots/); order movie asserts differing results → e2e/docs/booleans.docs.js; gizmo swallowed a Shift-click → hand drive this session (first candidate pixel gave 1 selected, the next gave 2); History row lists both operands → hand drive (`Subtract Cube 1 + Cube 2`)
+**To Add:** docs/media/boolean-subtract-order.gif, docs/media/boolean-subtract.gif

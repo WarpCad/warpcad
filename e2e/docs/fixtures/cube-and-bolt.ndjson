@@ -1,0 +1,3 @@
+{"id":"cube-1","op":"primitive.cuboid","name":"Cube 1","params":{"size":[40,40,40],"center":[-10,0,20]}}
+{"id":"bolt-1","op":"hardware.bolt","name":"Bolt 1","params":{"spec":"m10 hex","length":40,"fit":"close"}}
+{"id":"bolt-1-move-1","op":"transform.translate","target":"bolt-1","supersedes":"bolt-1","params":{"vector":[10,0,0],"rotation":[0,0,0]}}

@@ -1,0 +1,2 @@
+{"id":"plate-1","op":"primitive.cuboid","name":"Plate 1","params":{"size":[80,50,8],"center":[0,0,4]}}
+{"id":"cyl-1","op":"primitive.cylinder","name":"Cylinder 1","params":{"diameter":10,"height":30,"center":[20,0,10]}}

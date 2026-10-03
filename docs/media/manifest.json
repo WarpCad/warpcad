@@ -106,5 +106,41 @@
     "specHash": "cf3cd63929982760d9ef1ad652948ce38c6e14a4413a10505a71f76d30139cf1",
     "bytes": 656806,
     "seconds": 7.5
+  },
+  "boolean-bolt-hole.gif": {
+    "spec": "e2e/docs/booleans.docs.js",
+    "specHash": "1b2ee039d334460d9981c4ad1eaff85226f0407c12d9d6ac52baabf4b27a9def",
+    "bytes": 588682,
+    "seconds": 7.2
+  },
+  "boolean-intersect.gif": {
+    "spec": "e2e/docs/booleans.docs.js",
+    "specHash": "1b2ee039d334460d9981c4ad1eaff85226f0407c12d9d6ac52baabf4b27a9def",
+    "bytes": 570029,
+    "seconds": 8.4
+  },
+  "boolean-subpart-operand.gif": {
+    "spec": "e2e/docs/booleans.docs.js",
+    "specHash": "1b2ee039d334460d9981c4ad1eaff85226f0407c12d9d6ac52baabf4b27a9def",
+    "bytes": 674498,
+    "seconds": 9.4
+  },
+  "boolean-subtract.gif": {
+    "spec": "e2e/docs/booleans.docs.js",
+    "specHash": "1b2ee039d334460d9981c4ad1eaff85226f0407c12d9d6ac52baabf4b27a9def",
+    "bytes": 685006,
+    "seconds": 9.9
+  },
+  "boolean-union.gif": {
+    "spec": "e2e/docs/booleans.docs.js",
+    "specHash": "1b2ee039d334460d9981c4ad1eaff85226f0407c12d9d6ac52baabf4b27a9def",
+    "bytes": 694229,
+    "seconds": 9.9
+  },
+  "boolean-subtract-order.gif": {
+    "spec": "e2e/docs/booleans.docs.js",
+    "specHash": "1b2ee039d334460d9981c4ad1eaff85226f0407c12d9d6ac52baabf4b27a9def",
+    "bytes": 850224,
+    "seconds": 11.5
   }
 }

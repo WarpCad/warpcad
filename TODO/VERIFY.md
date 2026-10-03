@@ -34,6 +34,15 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### docs-011 — Docs media for the booleans page (2026-10-03 14:12)
+
+The movies and stills are asserted, and scenarios 4 and 5 were driven by hand, so what is left is a judgment call on how they read. Three of the GIFs (`boolean-subtract-order`, `boolean-union`, `boolean-subtract`) sit at 10 to 11.5 s, close to the 12 s budget.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | Watch `docs/media/boolean-subtract-order.gif` and `boolean-subpart-operand.gif` once as a stranger: is it clear which solid is the base, and that the two orders give different results? | Open | |
+
+
 ### sketch-002 — Sketch vertex editing: move, add, delete points, Simplify, Convert to outline (2026-10-03 02:35)
 
 Every functional path (Convert, point drag, midpoint-dot insert, tap-to-pick, Delete vertex and its 3-point refusal, Delete/Backspace, Simplify, Cancel/Done/Undo) was driven by hand on Chromium/WebKit/Firefox laptop and phone Chromium touch, and is in the 9-way e2e. What is left is feel on real hardware, one design judgment the drive surfaced, and the same zero-slack margin sketch-005 logged.

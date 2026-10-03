@@ -1259,3 +1259,13 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** 9 GIFs, 5 stills, end-state assertions → diff (e2e/docs/selection-inspector.docs.js, docs/media/manifest.json); live field during drag → hand drive this session (X read 29.8, 39.6, 49.3, 59.1 mid-drag)
 **To Add:** docs/media/gizmo-translate.gif
+
+
+## 2026-10-03T14:12:00Z — Docs: Union, Subtract and Intersect, with pictures
+
+**Post:** WarpCad's boolean docs now show each operation as it happens. Click a cube, Shift-click a cylinder, press Subtract and a round hole appears. Picking them in the other order gives a different shape, and there's a clip of that too. Built with Claude Code, reviewed by me. #CAD #WebGL
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** 6 GIFs, 4 stills, end-state and volume assertions → diff (e2e/docs/booleans.docs.js, docs/media/manifest.json); order movie compares the two results' bounds and volumes → e2e/docs/booleans.docs.js; scenario 4 subtract left 48 006 of 64 000 mm³ → hand drive this session
+**To Add:** docs/media/boolean-subtract.gif

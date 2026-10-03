@@ -1,0 +1,2 @@
+{"id":"cube-1","op":"primitive.cuboid","name":"Cube 1","params":{"size":[40,40,40],"center":[0,0,20]}}
+{"id":"sphere-1","op":"primitive.sphere","name":"Sphere 1","params":{"diameter":50,"center":[20,0,40]}}
