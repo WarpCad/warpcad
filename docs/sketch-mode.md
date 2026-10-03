@@ -49,21 +49,48 @@ drawing tools below, **Hole**, **Delete**, **Slices**, **Extrude ▾**, **Done**
 **Cancel**. **Hole** and **Delete** are greyed out until you pick an outline, and **Done**
 is greyed out until there is a closed Solid outline to build.
 
-All four drawing tools are a single press, drag and release. No modifier key is needed,
-with a mouse or a finger.
+Rectangle, Circle and Polygon are a single press, drag and release. **Line** is different:
+it keeps going until you stop it (see **Drawing a continuous line**, below). No modifier key
+is needed for any of them, with a mouse or a finger.
 
 | Tool | Button | Drag | You get |
 |---|---|---|---|
-| **Line** | ╱ | From one point to the next | A segment. Start the next drag on the end of the last one to continue the outline. Finish a drag on the very first point to close it. |
+| **Line** | ╱ | Click or tap one point after another | A continuous outline: every point you add starts the next segment from it. Click the first point again to close it. |
 | **Rectangle** | ▭ | Corner to opposite corner | A closed rectangle |
 | **Circle** | ◯ | Centre out to the rim | A closed circle |
 | **Polygon** | ⬡ | Centre out to a corner | A regular polygon. Set how many sides in the box that appears next to the tool. 6 gives you a hexagon. |
 
-![Drawing a closed outline with Line: one drag per side, each starting where the last ended; the live stroke follows the pointer, and finishing the fourth drag on the first corner closes the outline](./media/sketch-draw-line.gif)
+![Drawing a closed outline with Line: four clicks, each starting the next side from the last point; the dashed live side follows the pointer, and clicking the pulsing first corner closes the outline](./media/sketch-draw-line.gif)
 
-A drag that hardly moves draws nothing. With one of these tools armed, a tap without
+### Drawing a continuous line
+
+The Line tool draws a whole outline in one go. After the first point, the next segment is
+already started: a dashed line runs from the last point to your pointer, with its length in
+millimetres beside it.
+
+1. Tap **Line**.
+2. Click (or tap) at about (0, 0), then (40, 0), then (40, 20). Each click fixes a point and
+   starts the next segment from it. On a computer the dashed segment follows the mouse;
+   on a touch screen it shows while your finger is down, and the next tap or drag-release
+   fixes the next point. You can also press and drag: the first drag fixes the first two
+   points, and any later drag fixes the point where you let go.
+3. Click the **first** point again to close the triangle. The first point pulses when you are
+   close enough. The outline turns blue and is part of the solid.
+4. Or leave it open instead: press **Esc** or **Enter**, tap **Finish**, double-click the last
+   point, or pick another tool. An open outline is drawn in amber and is not part of the
+   solid.
+
+![A Line outline in progress: three points fixed, the dashed live side and its length following the pointer, and the Finish and Undo point buttons in the toolbar](./screenshots/sketch-line-chain.png)
+
+**Finish** and **Undo point** appear in the toolbar while a line is in progress, and are the
+only way to do either on a phone. **Undo point** (or **Backspace**) removes the last point
+and keeps going; removing the only segment discards the line. Press **Esc** twice in a
+row to throw the whole line away. A line you finished is not selected: use **Select** to pick
+it.
+
+A drag that hardly moves draws nothing. With Rectangle, Circle or Polygon armed, a tap without
 dragging **selects** the outline under your finger or pointer, and a drag draws, even
-when it starts on an existing outline. To pick an outline without any risk of drawing,
+when it starts on an existing outline. With Line armed a tap adds a point instead. To pick an outline without any risk of drawing,
 use the **Select** tool (next section).
 
 ### A closed outline

@@ -34,6 +34,16 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### sketch-006 — Continuous Line tool (2026-10-03 20:50)
+
+The scenarios and the closed repros passed by hand (laptop mouse, phone and tablet trusted touch). What a scripted drive cannot judge is timing and feel on a real finger, so these three are left for a person on a real phone or iPad.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | On a real phone, draw a triangle with four slow taps (the fourth on the first point). A tap within about half a second of a closing tap is swallowed (so a double-tap close does not start a new line): confirm a normal-speed next tap is never eaten, and that a tap on the first point closes it without needing to be pixel-exact (14 px tolerance) | Open | |
+| 2 | Double-tap the last point to finish the line, on a real touch screen: does it feel natural, or do you reach for **Finish**? (A double-tap adds the point on the first tap, then finishes on the second.) | Open | |
+| 3 | Esc-twice to cancel a line (a second Esc within 0.9 s of the one that finished it) has no on-screen cue. Decide whether it needs a toast ("Line discarded") or whether **Undo point** is enough | Open | |
+
 ### docs-015 — Docs media for the History panel, rollback, step editing, undo and redo (2026-10-03 16:35)
 
 Scenario 12 and 1, and the `data-003` and `ui-044` repros, were driven by hand and passed. Driving them turned up three product questions that are not covered by an acceptance scenario and that this docs task deliberately did not touch (nothing under `src/` changed).

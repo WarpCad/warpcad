@@ -36,6 +36,11 @@ const props = defineProps({
   draft: { type: Object, required: true },
   /** The revolve axis for Revolve/Helical: `{ visible, d }`. */
   axis: { type: Object, required: true },
+  /**
+   * The live Line chain's furniture (`TODO/sketch-006`): `{ visible, lastXPx, lastYPx,
+   * firstXPx, firstYPx, showFirst, closeNear, labelXPx, labelYPx, label }`.
+   */
+  chain: { type: Object, required: true },
 })
 
 /** @type {import('vue').ComputedRef<any[]>} */
@@ -76,6 +81,22 @@ const list = computed(() => /** @type {any[]} */ (props.paths))
       </text>
     </template>
     <path v-show="draft.visible" class="sketch__path sketch__path--draft" data-testid="sketch-draft" :d="draft.d" />
+    <template v-if="chain.visible">
+      <circle
+        v-if="chain.showFirst"
+        class="sketch__first"
+        :class="{ 'sketch__first--near': chain.closeNear }"
+        data-testid="sketch-chain-first"
+        :data-close-near="chain.closeNear ? 'true' : 'false'"
+        :cx="chain.firstXPx"
+        :cy="chain.firstYPx"
+        r="6"
+      />
+      <circle class="sketch__last" data-testid="sketch-chain-last" :cx="chain.lastXPx" :cy="chain.lastYPx" r="4.5" />
+      <text v-if="chain.label" class="sketch__badge sketch__length" data-testid="sketch-chain-length" text-anchor="middle" :x="chain.labelXPx" :y="chain.labelYPx">
+        {{ chain.label }}
+      </text>
+    </template>
   </svg>
 </template>
 
@@ -127,6 +148,47 @@ const list = computed(() => /** @type {any[]} */ (props.paths))
 .sketch__path--draft {
   stroke-dasharray: 4 4;
   stroke-opacity: 0.9;
+}
+
+/* The last fixed vertex: a solid dot, so a person can see where the live segment starts. */
+.sketch__last {
+  fill: var(--accent);
+  stroke: var(--surface-0);
+  stroke-width: 1.5;
+}
+
+/* The first vertex is a quiet ring until the pointer is close enough to close on it. */
+.sketch__first {
+  fill: none;
+  stroke: var(--accent);
+  stroke-opacity: 0.55;
+  stroke-width: 1.5;
+}
+
+.sketch__first--near {
+  stroke-opacity: 1;
+  stroke-width: 2.5;
+  fill: var(--accent);
+  fill-opacity: 0.25;
+  animation: sketch-first-pulse 0.9s ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+@keyframes sketch-first-pulse {
+  50% {
+    transform: scale(1.5);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sketch__first--near {
+    animation: none;
+  }
+}
+
+.sketch__length {
+  font-variant-numeric: tabular-nums;
 }
 
 .sketch__axis {

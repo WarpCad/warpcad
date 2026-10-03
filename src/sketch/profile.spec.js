@@ -5,6 +5,8 @@ import { describe, expect, it } from 'vitest'
 import {
   EXTRUSION_DEFAULTS,
   addProfile,
+  appendVertex,
+  popVertex,
   addSlice,
   circleFromDrag,
   convertToOutline,
@@ -457,5 +459,50 @@ describe('vertex editing (TODO/sketch-002) — pure, never mutating', () => {
       expect(() => convertToOutline({ id: 'z', kind: 'circle', role: 'solid', centerMm: [0, 0], radiusMm: 0 })).toThrow(/nothing to convert/)
       expect(() => convertToOutline({ id: 'z', kind: 'rect', role: 'solid', centerMm: [0, 0], widthMm: 0, heightMm: 5 })).toThrow(/nothing to convert/)
     })
+  })
+})
+
+// --- continuous Line chain (TODO/sketch-006) -------------------------------------
+
+describe('continuous Line chain helpers (TODO/sketch-006)', () => {
+  const open = (points) => ({ id: 'c', kind: 'polyline', role: 'solid', closed: false, pointsMm: points })
+  const opts = { closeToleranceMm: 2, minLengthMm: 0.5 }
+
+  it('appends a vertex to an open chain', () => {
+    const out = appendVertex(open([[0, 0], [10, 0]]), [10, 10], opts)
+    expect(out.outcome).toBe('added')
+    expect(out.profile.pointsMm).toEqual([[0, 0], [10, 0], [10, 10]])
+    expect(out.profile.closed).toBe(false)
+  })
+
+  it('closes when the point lands on the first vertex and there are at least 3 vertices', () => {
+    const out = appendVertex(open([[0, 0], [10, 0], [10, 10]]), [0.5, -0.5], opts)
+    expect(out.outcome).toBe('closed')
+    expect(out.profile.closed).toBe(true)
+    expect(out.profile.pointsMm).toEqual([[0, 0], [10, 0], [10, 10]])
+  })
+
+  it('refuses to close a 2-vertex chain — a point on the first vertex is ignored', () => {
+    const chain = open([[0, 0], [10, 0]])
+    const out = appendVertex(chain, [0.5, 0.5], opts)
+    expect(out.outcome).toBe('ignored')
+    expect(out.profile).toBe(chain)
+  })
+
+  it('ignores a degenerate (zero-length) segment from the last vertex', () => {
+    const chain = open([[0, 0], [10, 0]])
+    expect(appendVertex(chain, [10, 0], opts).outcome).toBe('ignored')
+    expect(appendVertex(chain, [10.2, 0.1], opts).outcome).toBe('ignored')
+  })
+
+  it('pops the last vertex and keeps the chain; one segment left means the chain is discarded', () => {
+    expect(popVertex(open([[0, 0], [10, 0], [10, 10]])).pointsMm).toEqual([[0, 0], [10, 0]])
+    expect(popVertex(open([[0, 0], [10, 0]]))).toBeNull()
+  })
+
+  it('a one-segment chain is a valid open outline as it stands', () => {
+    const one = open([[0, 0], [10, 0]])
+    expect(isClosed(one)).toBe(false)
+    expect(one.pointsMm).toHaveLength(2)
   })
 })

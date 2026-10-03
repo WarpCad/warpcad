@@ -1847,3 +1847,18 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** README embeds the tour and the page has five steps -> README.md and docs/getting-started.md diff; 17 s tour -> docs/media/manifest.json; 12 s default, 20 s ceiling, allowance recorded in the manifest, size limit never relaxed -> scripts/docs-gifs.mjs and docs-gifs.spec.js diff; volume comparison and download event -> header and assertions of e2e/docs/getting-started.docs.js
 **To Add:** docs/media/tour.gif
+
+## 2026-10-03T20:55:00Z — Sketch Line tool is now continuous
+
+**Post:** WarpCad's sketch Line tool used to draw one segment per drag, and the next one only joined up if your press landed within a finger's width of the last point. On a phone that made a simple outline a precision game. It is now a polyline tool: after the first point, the next segment is already live from the last vertex to the pointer, dashed, with its length in millimetres beside it.
+
+Click or tap to fix each vertex. Click the first point (it pulses when you are close enough) to close the outline into a polygon, or finish it open with Esc, Enter, a double-click, or a Finish button. Undo point and Backspace remove the last vertex. Every vertex goes through one function, so snapping can wrap it later without touching the gestures.
+
+Both buttons are at least 44 px and the toolbar still clears the orientation gizmo at 390 px wide, since touch has no Esc key. The docs page, a new screenshot and a re-recorded GIF are in the same commit.
+
+Built with Claude Code, reviewed by me.
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** old behaviour (press near last point to continue) -> removed code in Viewport.vue diff; live dashed segment with mm length, pulse near first vertex, close at >=3 vertices -> diff and unit tests; Finish/Undo point sizes -> phone drive this session; single vertex-fix function -> fixChainVertex in sketchEditor.js
+**To Add:** docs/media/sketch-draw-line.gif, docs/screenshots/sketch-line-chain.png

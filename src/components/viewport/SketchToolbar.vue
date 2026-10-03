@@ -35,7 +35,7 @@ const commands = useSketchEditorCommands()
 /** @type {Record<string, { glyph: string, label: string, hint: string }>} */
 const TOOL_INFO = Object.freeze({
   select: { glyph: '', label: 'Select', hint: 'Tap an outline to pick it, then change or delete it; tap empty canvas to clear. Never draws' },
-  line: { glyph: '╱', label: 'Line', hint: 'Drag to draw a segment; drag from its end to continue; finish on the first point to close it' },
+  line: { glyph: '╱', label: 'Line', hint: 'Click or tap to add points — each one starts the next segment; click the first point to close; Finish or Esc leaves it open' },
   rect: { glyph: '▭', label: 'Rectangle', hint: 'Drag from one corner to the opposite corner' },
   circle: { glyph: '◯', label: 'Circle', hint: 'Drag from the centre out to the rim' },
   polygon: { glyph: '⬡', label: 'Polygon', hint: 'Drag from the centre out to a corner' },
@@ -196,6 +196,29 @@ function onSides(event) {
         Cancel
       </button>
     </div>
+    <div v-if="editor.chainLive" class="sketch-toolbar__row sketch-toolbar__row--chain" data-testid="sketch-chain-row">
+      <button
+        type="button"
+        class="sketch-toolbar__btn sketch-toolbar__btn--chain"
+        title="Finish the line and leave it open (Esc or Enter)"
+        data-testid="sketch-line-finish"
+        @click="editor.finishChain()"
+      >
+        Finish
+      </button>
+      <button
+        type="button"
+        class="sketch-toolbar__btn sketch-toolbar__btn--chain"
+        title="Remove the last point (Backspace)"
+        data-testid="sketch-line-undo"
+        @click="editor.undoPoint()"
+      >
+        Undo point
+      </button>
+    </div>
+    <p v-if="editor.chainLive && editor.tool === 'line'" class="sketch-toolbar__status sketch-toolbar__status--info" data-testid="sketch-chain-hint" role="status">
+      Click to add a point · Esc to finish · click the first point to close
+    </p>
     <p v-if="editor.selectionStatus" class="sketch-toolbar__selection" data-testid="sketch-selection-status" role="status">
       {{ editor.selectionStatus }}
     </p>
@@ -378,7 +401,8 @@ function onSides(event) {
   /* Select and Delete are the two controls a finger needs most and a keyboard cannot
      stand in for, so they keep the full 44 px target the rest of the row gives up. */
   .sketch-toolbar__btn[data-testid='sketch-tool-select'],
-  .sketch-toolbar__btn[data-testid='sketch-delete'] {
+  .sketch-toolbar__btn[data-testid='sketch-delete'],
+  .sketch-toolbar__btn--chain {
     min-height: var(--tap);
     min-width: var(--tap);
   }

@@ -6,8 +6,22 @@ priority: high
 model: sonnet
 milestone: M8
 depends: [sketch-001]
-status: open
+status: done
 ---
+
+> **What shipped (2026-10-03).** Everything in the spec, with these choices where it was loose:
+> a lone first tap is held in the editor store as `chainStartMm` (a polyline needs two points,
+> so it is not in the draft until the second vertex); a one-drag first segment still draws one
+> segment (press = first vertex, release = second); the single vertex-fix function is
+> `fixChainVertex` in `src/stores/sketchEditor.js` (pure half: `appendVertex` / `popVertex` in
+> `src/sketch/profile.js`), with `fixSketchVertex` as the viewport-side wrapper `sketch-007`
+> snaps through. "Esc twice" is: Esc finishes, a second Esc within 900 ms cancels the chain it
+> just finished (there is no separate chain-Cancel button — the toolbar's own Cancel still
+> discards the whole sketch). A click within 450 ms of a closing click is swallowed so the
+> double-click that closes an outline does not start another. While a chain is live, Backspace
+> is claimed by the chain; with none live it still deletes the picked point/outline. The Line
+> tool no longer picks on a tap (a tap adds a point): Select is how to pick a Line outline.
+
 
 ## Goal
 

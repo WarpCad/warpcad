@@ -32,7 +32,9 @@ import { simplifyPoints } from '../sketch/simplify.js'
 import {
   EXTRUSION_METHODS,
   addProfile,
+  appendVertex,
   convertToOutline,
+  popVertex,
   deleteVertex as deleteVertexOf,
   deleteVertexProblem,
   insertVertex as insertVertexOf,
@@ -95,8 +97,15 @@ export const useSketchEditorStore = defineStore('sketchEditor', () => {
   const polygonSides = ref(6)
   /** Which of the Slices / Extrude panels is open — one at a time. */
   const panel = ref(/** @type {SketchPanel} */ (''))
-  /** The open Line chain being extended, or `''`. */
+  /** The open Line chain being extended, or `''` (it has at least one segment). */
   const chainId = ref('')
+  /**
+   * The Line chain's first vertex while it has no segment yet (`TODO/sketch-006`), or `null`.
+   * A polyline needs two points, so a lone start point lives here, not in the draft.
+   */
+  const chainStartMm = ref(/** @type {[number, number] | null} */ (null))
+  /** The chain just ended by Esc/Finish, so a second Esc right after can cancel it. */
+  let finishedChain = { id: '', at: 0 }
   /** The worker preview's state: what the Done gate reads besides the static checks. */
   const previewStatus = ref(/** @type {'idle' | 'building' | 'ok' | 'error'} */ ('idle'))
   const previewError = ref('')
@@ -105,7 +114,17 @@ export const useSketchEditorStore = defineStore('sketchEditor', () => {
   let profileCounter = 0
   let sliceCounter = 0
 
+  /** Whether a Line chain is live — a start point is fixed or a segment is being extended. */
+  const chainLive = computed(() => chainStartMm.value !== null || chainId.value !== '')
+
   const slice = computed(() => draft.value.slices[activeSlice.value] ?? draft.value.slices[0])
+  /** How many vertices the live Line chain has fixed so far — `0` with no chain. */
+  const chainPointCount = computed(() => {
+    if (chainStartMm.value) return 1
+    if (!chainId.value) return 0
+    const profile = slice.value?.profiles.find((candidate) => candidate.id === chainId.value)
+    return profile && profile.kind === 'polyline' && !profile.closed ? profile.pointsMm.length : 0
+  })
   const selectedProfile = computed(
     () => slice.value?.profiles.find((profile) => profile.id === selectedProfileId.value) ?? null,
   )
@@ -184,6 +203,7 @@ export const useSketchEditorStore = defineStore('sketchEditor', () => {
     hoverVertex.value = -1
     panel.value = ''
     chainId.value = ''
+    chainStartMm.value = null
     previewStatus.value = 'idle'
     previewError.value = ''
     commitError.value = ''
@@ -201,6 +221,7 @@ export const useSketchEditorStore = defineStore('sketchEditor', () => {
     hoverVertex.value = -1
     panel.value = ''
     chainId.value = ''
+    chainStartMm.value = null
     previewStatus.value = 'idle'
     previewError.value = ''
     commitError.value = ''
@@ -236,7 +257,7 @@ export const useSketchEditorStore = defineStore('sketchEditor', () => {
 
   function deleteSelected() {
     if (!selectedProfileId.value) return
-    if (chainId.value === selectedProfileId.value) chainId.value = ''
+    if (chainId.value === selectedProfileId.value) endChain()
     setDraft(removeProfile(draft.value, activeSlice.value, selectedProfileId.value))
     selectedProfileId.value = ''
     selectedVertex.value = -1
@@ -316,7 +337,7 @@ export const useSketchEditorStore = defineStore('sketchEditor', () => {
     if (!profile || profile.kind === 'polyline') return
     replaceInActiveSlice(convertToOutline(profile))
     selectedVertex.value = -1
-    if (chainId.value === profile.id) chainId.value = ''
+    if (chainId.value === profile.id) endChain()
   }
 
   /**
@@ -337,10 +358,124 @@ export const useSketchEditorStore = defineStore('sketchEditor', () => {
     return ''
   }
 
+  // --- the continuous Line chain (TODO/sketch-006) ---------------------------
+
+  /** Forget the live chain without touching the draft. */
+  function endChain() {
+    chainId.value = ''
+    chainStartMm.value = null
+  }
+
+  /** The live chain's polyline, or `null` (it may have been deleted or its slice left). */
+  function liveChain() {
+    if (!chainId.value) return null
+    const profile = slice.value?.profiles.find((candidate) => candidate.id === chainId.value)
+    return profile && profile.kind === 'polyline' && !profile.closed ? profile : null
+  }
+
+  /**
+   * **The** vertex-fix step of the Line tool: every click, tap and drag-release funnels the
+   * point it fixes through here — one function, so `TODO/sketch-007`'s snapping wraps it by
+   * adjusting `pointMm` first and nothing else changes.
+   *
+   * - No chain yet: the point becomes its first vertex (`'started'`).
+   * - Only a start point: a segment to it makes the outline (`'added'`).
+   * - A live chain: the point is appended, closes the outline on the first vertex with 3 or
+   *   more vertices (`'closed'`, which ends the chain), or is ignored when degenerate.
+   *
+   * A finished chain is never selected (ui-020 finding #3).
+   *
+   * @param {readonly number[]} pointMm Sketch-local millimetres.
+   * @param {{ closeToleranceMm: number, minLengthMm: number }} options
+   * @returns {'started' | 'added' | 'closed' | 'ignored'}
+   */
+  function fixChainVertex(pointMm, options) {
+    if (!Number.isFinite(pointMm[0]) || !Number.isFinite(pointMm[1])) return 'ignored'
+    finishedChain = { id: '', at: 0 }
+    const chain = liveChain()
+    if (chain) {
+      const { profile, outcome } = appendVertex(chain, pointMm, options)
+      if (outcome === 'ignored') return 'ignored'
+      replaceInActiveSlice(profile)
+      if (outcome === 'closed') endChain()
+      return outcome
+    }
+    if (chainId.value) chainId.value = ''
+    const start = chainStartMm.value
+    if (!start) {
+      chainStartMm.value = [pointMm[0], pointMm[1]]
+      return 'started'
+    }
+    if (Math.hypot(pointMm[0] - start[0], pointMm[1] - start[1]) <= options.minLengthMm) return 'ignored'
+    const id = nextProfileId()
+    addToActiveSlice({ id, kind: 'polyline', role: 'solid', closed: false, pointsMm: [start, [pointMm[0], pointMm[1]]] })
+    chainStartMm.value = null
+    chainId.value = id
+    return 'added'
+  }
+
+  /**
+   * End the chain, leaving it in the draft as an open outline (a lone start point is simply
+   * dropped). **Finish**, Esc, Enter, a double-tap and switching tool all land here.
+   *
+   * @param {number} [now] Clock for the Esc-twice window; a spec passes its own.
+   */
+  function finishChain(now = Date.now()) {
+    if (chainId.value) finishedChain = { id: chainId.value, at: now }
+    endChain()
+  }
+
+  /** Remove the last vertex and keep the chain live; the only segment discards the chain. */
+  function undoPoint() {
+    const chain = liveChain()
+    if (!chain) {
+      endChain()
+      return
+    }
+    const shorter = popVertex(chain)
+    if (shorter) replaceInActiveSlice(shorter)
+    else {
+      setDraft(removeProfile(draft.value, activeSlice.value, chain.id))
+      endChain()
+    }
+  }
+
+  /** Remove the whole unfinished chain from the draft (a lone start point just goes). */
+  function cancelChain() {
+    const id = chainId.value
+    endChain()
+    if (id) setDraft(removeProfile(draft.value, activeSlice.value, id))
+  }
+
+  /**
+   * Esc: finish a live chain; pressed again within `windowMs` of that, cancel the chain it
+   * just finished (the "Esc twice" of the Interaction model).
+   *
+   * @param {number} [now]
+   * @param {number} [windowMs]
+   * @returns {'finished' | 'cancelled' | 'none'}
+   */
+  function escapeChain(now = Date.now(), windowMs = 900) {
+    if (chainLive.value) {
+      finishChain(now)
+      return 'finished'
+    }
+    if (finishedChain.id && now - finishedChain.at <= windowMs) {
+      const id = finishedChain.id
+      finishedChain = { id: '', at: 0 }
+      if (slice.value?.profiles.some((profile) => profile.id === id)) {
+        setDraft(removeProfile(draft.value, activeSlice.value, id))
+        return 'cancelled'
+      }
+    }
+    return 'none'
+  }
+
   /** @param {SketchTool} next */
   function setTool(next) {
+    // Leaving Line ends its chain: an open one stays in the draft, a lone start point goes.
+    endChain()
     tool.value = next
-    chainId.value = ''
     // Point dots are a Select-tool affordance (`TODO/sketch-002`): a drawing tool's press always
     // draws, so a point picked under Select would otherwise be invisible and still be what
     // Delete removes.
@@ -356,7 +491,7 @@ export const useSketchEditorStore = defineStore('sketchEditor', () => {
     activeSlice.value = draft.value.slices.length - 1
     selectedProfileId.value = ''
     selectedVertex.value = -1
-    chainId.value = ''
+    endChain()
   }
 
   function deleteActiveSlice() {
@@ -365,7 +500,7 @@ export const useSketchEditorStore = defineStore('sketchEditor', () => {
     activeSlice.value = Math.max(0, activeSlice.value - 1)
     selectedProfileId.value = ''
     selectedVertex.value = -1
-    chainId.value = ''
+    endChain()
   }
 
   /** @param {number} index */
@@ -374,7 +509,7 @@ export const useSketchEditorStore = defineStore('sketchEditor', () => {
     activeSlice.value = index
     selectedProfileId.value = ''
     selectedVertex.value = -1
-    chainId.value = ''
+    endChain()
   }
 
   /** @param {number} index @param {number} zMm */
@@ -412,6 +547,9 @@ export const useSketchEditorStore = defineStore('sketchEditor', () => {
     polygonSides,
     panel,
     chainId,
+    chainStartMm,
+    chainLive,
+    chainPointCount,
     previewStatus,
     previewError,
     commitError,
@@ -440,6 +578,11 @@ export const useSketchEditorStore = defineStore('sketchEditor', () => {
     deleteSelection,
     convertSelectedToOutline,
     simplifySelected,
+    fixChainVertex,
+    finishChain,
+    undoPoint,
+    cancelChain,
+    escapeChain,
     setTool,
     addSliceAbove,
     deleteActiveSlice,

@@ -915,3 +915,176 @@ test('touch only: a finger drags a point and a midpoint dot, no modifier (TODO/s
   await expect(page.getByTestId('sketch-strokes')).toHaveAttribute('data-path-count', '1')
   await expect(page.getByTestId('inspector')).toHaveAttribute('data-open', 'false')
 })
+
+// --- the continuous Line tool (TODO/sketch-006) -----------------------------------------
+
+/**
+ * Click the sketch-local mm points with the real mouse, hover first so the rubber band is
+ * driven the way a person would: move there, then press.
+ *
+ * @param {import('@playwright/test').Page} page
+ * @param {[number, number][]} pointsMm
+ */
+async function clickPoints(page, pointsMm) {
+  const { cx, cy, pxPerMm } = await sketchScreen(page)
+  for (const [x, y] of pointsMm) {
+    await page.mouse.move(cx + x * pxPerMm, cy - y * pxPerMm, { steps: 4 })
+    await page.mouse.down()
+    await page.mouse.up()
+  }
+}
+
+/** @param {import('@playwright/test').Page} page */
+async function armLine(page) {
+  await page.getByTestId('sketch-tool-line').click()
+}
+
+test('Line is continuous: click three points and click the first again — a closed triangle that extrudes via Done (TODO/sketch-006)', async ({ page }, info) => {
+  await openNewSketch(page)
+  await armLine(page)
+  await expect(page.getByTestId('sketch-chain-hint')).toBeHidden()
+  await clickPoints(page, [[-30, -20], [30, -20], [0, 25]])
+  // The next segment is already live from the last vertex: the hint, Finish and Undo show.
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-sketch-chain-points', '3')
+  await expect(page.getByTestId('sketch-chain-hint')).toContainText('Click to add a point')
+  await expect(page.getByTestId('sketch-line-finish')).toBeVisible()
+  await expect(page.getByTestId('sketch-line-undo')).toBeVisible()
+  // The rubber band follows the pointer while it hovers (mouse only; touch has no hover).
+  if (!isPhone(info) && !info.project.name.endsWith('-tablet')) {
+    const { cx, cy, pxPerMm } = await sketchScreen(page)
+    await page.mouse.move(cx + 40 * pxPerMm, cy + 10 * pxPerMm, { steps: 4 })
+    await expect(page.getByTestId('sketch-draft')).toBeVisible()
+    await expect(page.getByTestId('sketch-chain-length')).toContainText('mm')
+    // Near the first vertex it pulses: that click will close the outline.
+    await page.mouse.move(cx - 30 * pxPerMm + 3, cy + 20 * pxPerMm - 2, { steps: 4 })
+    await expect(page.getByTestId('sketch-chain-first')).toHaveAttribute('data-close-near', 'true')
+  }
+  await expect(page.getByTestId('sketch-done')).toBeDisabled()
+  await clickPoints(page, [[-30, -20]])
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-sketch-chain-points', '0')
+  await expect(page.getByTestId('sketch-line-finish')).toBeHidden()
+  await expect(page.getByTestId('sketch-strokes')).toHaveAttribute('data-path-count', '1')
+  await expect(page.locator('[data-testid^="sketch-profile-"][data-closed="true"]')).toHaveCount(1)
+  // A finished chain is not auto-selected (ui-020 finding #3).
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-sketch-selected', '')
+  await extrude(page, 'linear', { heightMm: '10' })
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-sketch-preview', 'ok')
+  await page.getByTestId('sketch-done').click()
+  const bodies = await sceneBodies(page)
+  expect(bodies).toHaveLength(1)
+  // The triangle is 60 x 45 mm: 1350 mm2 x 10 mm.
+  expect(bodies[0].volume).toBeGreaterThan(1350 * 10 * 0.95)
+  expect(bodies[0].volume).toBeLessThan(1350 * 10 * 1.05)
+})
+
+test('Line: the Finish button leaves an open chain, which is flagged as not part of the solid (TODO/sketch-006)', async ({ page }) => {
+  await openNewSketch(page)
+  await armLine(page)
+  await clickPoints(page, [[-20, 0], [20, 0], [20, 25]])
+  await page.getByTestId('sketch-line-finish').click()
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-sketch-chain-points', '0')
+  await expect(page.getByTestId('sketch-line-finish')).toBeHidden()
+  await expect(page.getByTestId('sketch-strokes')).toHaveAttribute('data-path-count', '1')
+  await expect(page.locator('[data-testid^="sketch-profile-"][data-closed="false"]')).toHaveCount(1)
+  // Amber, like every open outline: not part of the solid, so Done stays off.
+  await expect(page.locator('[data-testid^="sketch-profile-"]').first()).toHaveClass(/sketch__path--open/)
+  await expect(page.getByTestId('sketch-done')).toBeDisabled()
+  // The next click starts a new chain, not an extension of the finished one.
+  await clickPoints(page, [[-20, -20], [20, -20]])
+  await expect(page.getByTestId('sketch-strokes')).toHaveAttribute('data-path-count', '2')
+})
+
+test('Line: Backspace removes the last point, and the only segment discards the chain (TODO/sketch-006)', async ({ page }) => {
+  await openNewSketch(page)
+  await armLine(page)
+  await clickPoints(page, [[-20, 0], [20, 0], [20, 25]])
+  await page.keyboard.press('Backspace')
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-sketch-chain-points', '2')
+  await expect(page.getByTestId('sketch-strokes')).toHaveAttribute('data-path-count', '1')
+  await page.getByTestId('sketch-line-undo').click()
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-sketch-chain-points', '0')
+  await expect(page.getByTestId('sketch-strokes')).toHaveAttribute('data-path-count', '0')
+})
+
+test('Line: Esc finishes the chain, and Esc again straight after cancels it (TODO/sketch-006)', async ({ page }) => {
+  await openNewSketch(page)
+  await armLine(page)
+  await clickPoints(page, [[-20, 0], [20, 0], [20, 25]])
+  await page.keyboard.press('Escape')
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-sketch-chain-points', '0')
+  await expect(page.getByTestId('sketch-strokes')).toHaveAttribute('data-path-count', '1')
+  await page.keyboard.press('Escape')
+  await expect(page.getByTestId('sketch-strokes')).toHaveAttribute('data-path-count', '0')
+  // Enter finishes too.
+  await clickPoints(page, [[-20, 0], [20, 0]])
+  await page.keyboard.press('Enter')
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-sketch-chain-points', '0')
+  await expect(page.getByTestId('sketch-strokes')).toHaveAttribute('data-path-count', '1')
+})
+
+test('Line: a double-click on the last point finishes, and switching tool ends the chain (TODO/sketch-006)', async ({ page }) => {
+  await openNewSketch(page)
+  await armLine(page)
+  const { cx, cy, pxPerMm } = await sketchScreen(page)
+  await clickPoints(page, [[-20, 0], [20, 0]])
+  await page.mouse.dblclick(cx + 20 * pxPerMm, cy - 25 * pxPerMm)
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-sketch-chain-points', '0')
+  await expect(page.locator('[data-testid^="sketch-profile-"]')).toHaveCount(1)
+  await expect(page.locator('[data-testid^="sketch-profile-"]').first()).toHaveAttribute('data-closed', 'false')
+  await clickPoints(page, [[-20, -20], [20, -20]])
+  await page.getByTestId('sketch-tool-rect').click()
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-sketch-chain-points', '0')
+  await expect(page.getByTestId('sketch-strokes')).toHaveAttribute('data-path-count', '2')
+})
+
+test('Line: one drag still draws one segment and starts the chain (TODO/sketch-006)', async ({ page }) => {
+  await openNewSketch(page)
+  await armLine(page)
+  const { cx, cy, pxPerMm } = await sketchScreen(page)
+  await mouseDrag(page, cx - 30 * pxPerMm, cy, cx + 30 * pxPerMm, cy)
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-sketch-chain-points', '2')
+  await mouseDrag(page, cx + 30 * pxPerMm, cy, cx + 30 * pxPerMm, cy - 40 * pxPerMm)
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-sketch-chain-points', '3')
+  // A press on the live chain's own stroke still draws, not selects (ui-020 finding #1).
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-sketch-selected', '')
+})
+
+test('touch only: tap-tap-tap-tap draws a triangle with no hover and no keyboard; Finish is a 44 px button (TODO/sketch-006)', async ({ page, browserName }, info) => {
+  test.skip(!isPhone(info), 'the touch pass runs at the phone reference')
+  test.skip(browserName !== 'chromium', 'a trusted touch needs CDP Input.dispatchTouchEvent, which only Chromium exposes')
+  const cdp = await page.context().newCDPSession(page)
+  /** @param {number} x @param {number} y */
+  const tap = async (x, y) => {
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x, y }] })
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] })
+  }
+  await openNewSketch(page)
+  await page.getByTestId('sketch-tool-line').tap()
+  const { cx, cy, pxPerMm } = await sketchScreen(page)
+  await tap(cx - 30 * pxPerMm, cy + 20 * pxPerMm)
+  await tap(cx + 30 * pxPerMm, cy + 20 * pxPerMm)
+  await tap(cx, cy - 25 * pxPerMm)
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-sketch-chain-points', '3')
+  const finish = await page.getByTestId('sketch-line-finish').boundingBox()
+  const undo = await page.getByTestId('sketch-line-undo').boundingBox()
+  expect(finish && finish.height).toBeGreaterThanOrEqual(44)
+  expect(finish && finish.width).toBeGreaterThanOrEqual(44)
+  expect(undo && undo.height).toBeGreaterThanOrEqual(44)
+  // The toolbar still clears the orientation gizmo (ui-043).
+  const toolbar = await page.getByTestId('sketch-toolbar').boundingBox()
+  const gizmo = await page.getByTestId('orientation-gizmo').boundingBox()
+  if (toolbar && gizmo) {
+    const overlap = toolbar.x < gizmo.x + gizmo.width && toolbar.x + toolbar.width > gizmo.x && toolbar.y < gizmo.y + gizmo.height && toolbar.y + toolbar.height > gizmo.y
+    expect(overlap).toBe(false)
+  }
+  await tap(cx - 30 * pxPerMm, cy + 20 * pxPerMm)
+  await expect(page.locator('[data-testid^="sketch-profile-"][data-closed="true"]')).toHaveCount(1)
+  // Open chain + Finish with a finger (a human's pause: a tap right after a close is the
+  // tail of a double-tap and is swallowed).
+  await page.waitForTimeout(600)
+  await tap(cx - 30 * pxPerMm, cy - 40 * pxPerMm)
+  await tap(cx + 30 * pxPerMm, cy - 40 * pxPerMm)
+  await page.getByTestId('sketch-line-finish').tap()
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-sketch-chain-points', '0')
+  await expect(page.getByTestId('sketch-strokes')).toHaveAttribute('data-path-count', '2')
+})

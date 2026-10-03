@@ -193,3 +193,95 @@ describe('sketch editor store — vertex editing (TODO/sketch-002)', () => {
     expect(editor.selectedVertex).toBe(-1)
   })
 })
+
+describe('sketch editor store — continuous Line chain (TODO/sketch-006)', () => {
+  /** @type {ReturnType<typeof useSketchEditorStore>} */
+  let editor
+  const opts = { closeToleranceMm: 2, minLengthMm: 0.5 }
+  beforeEach(() => {
+    setActivePinia(createPinia())
+    editor = useSketchEditorStore()
+    editor.open({ bodyId: null, params: emptySketchParams(), frame: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1] })
+    editor.setTool('line')
+  })
+  const points = () => editor.slice.profiles[0]?.pointsMm
+
+  it('the first fixed vertex only starts a chain; the second makes the outline', () => {
+    expect(editor.fixChainVertex([0, 0], opts)).toBe('started')
+    expect(editor.chainLive).toBe(true)
+    expect(editor.slice.profiles).toHaveLength(0)
+    expect(editor.fixChainVertex([10, 0], opts)).toBe('added')
+    expect(points()).toEqual([[0, 0], [10, 0]])
+    expect(editor.chainId).toBe('p1')
+  })
+
+  it('draws a triangle and closes it on the first vertex; the chain then ends, unselected', () => {
+    for (const p of [[0, 0], [10, 0], [10, 10]]) editor.fixChainVertex(p, opts)
+    expect(editor.fixChainVertex([0.4, 0.2], opts)).toBe('closed')
+    expect(editor.slice.profiles[0].closed).toBe(true)
+    expect(editor.chainLive).toBe(false)
+    expect(editor.selectedProfileId).toBe('')
+  })
+
+  it('ignores a degenerate vertex and a close at 2 vertices', () => {
+    editor.fixChainVertex([0, 0], opts)
+    expect(editor.fixChainVertex([0.1, 0], opts)).toBe('ignored')
+    editor.fixChainVertex([10, 0], opts)
+    expect(editor.fixChainVertex([0.2, 0.2], opts)).toBe('ignored')
+    expect(points()).toHaveLength(2)
+  })
+
+  it('finishChain keeps a one-segment chain as an open outline and ends the chain', () => {
+    editor.fixChainVertex([0, 0], opts)
+    editor.fixChainVertex([10, 0], opts)
+    editor.finishChain()
+    expect(editor.chainLive).toBe(false)
+    expect(editor.slice.profiles).toHaveLength(1)
+    expect(editor.slice.profiles[0].closed).toBe(false)
+  })
+
+  it('finishChain with only a start point leaves nothing behind', () => {
+    editor.fixChainVertex([0, 0], opts)
+    editor.finishChain()
+    expect(editor.chainLive).toBe(false)
+    expect(editor.slice.profiles).toHaveLength(0)
+  })
+
+  it('undoPoint pops the last vertex and keeps the chain live; the only segment discards it', () => {
+    for (const p of [[0, 0], [10, 0], [10, 10]]) editor.fixChainVertex(p, opts)
+    editor.undoPoint()
+    expect(points()).toEqual([[0, 0], [10, 0]])
+    expect(editor.chainLive).toBe(true)
+    editor.undoPoint()
+    expect(editor.slice.profiles).toHaveLength(0)
+    expect(editor.chainLive).toBe(false)
+  })
+
+  it('undoPoint with only the start point clears it', () => {
+    editor.fixChainVertex([0, 0], opts)
+    editor.undoPoint()
+    expect(editor.chainLive).toBe(false)
+  })
+
+  it('cancelChain removes the whole unfinished chain', () => {
+    for (const p of [[0, 0], [10, 0], [10, 10]]) editor.fixChainVertex(p, opts)
+    editor.cancelChain()
+    expect(editor.slice.profiles).toHaveLength(0)
+    expect(editor.chainLive).toBe(false)
+  })
+
+  it('switching tool finishes the chain and keeps it open', () => {
+    editor.fixChainVertex([0, 0], opts)
+    editor.fixChainVertex([10, 0], opts)
+    editor.setTool('rect')
+    expect(editor.chainLive).toBe(false)
+    expect(editor.slice.profiles).toHaveLength(1)
+  })
+
+  it('switching tool with only a start point discards it', () => {
+    editor.fixChainVertex([0, 0], opts)
+    editor.setTool('circle')
+    expect(editor.chainLive).toBe(false)
+    expect(editor.slice.profiles).toHaveLength(0)
+  })
+})

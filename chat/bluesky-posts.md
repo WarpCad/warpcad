@@ -1343,3 +1343,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** five steps (place Cube and Cylinder, select, Subtract, nudge with the gizmo, export STL) -> docs/getting-started.md; tour is 17 s and 1,309,436 bytes (1.25 MiB) -> docs/media/manifest.json; default 12 s limit, 20 s ceiling for a movie that asks, size limit unchanged -> scripts/docs-gifs.mjs diff
 **To Add:** docs/media/tour.gif
+
+## 2026-10-03T20:55:00Z — Sketch Line tool is now continuous
+
+**Post:** WarpCad's Line tool now keeps going: click a point and the next segment is already running from it to your pointer, with its length in mm. Click the first point to close, or Esc / Finish to leave it open. Finish and Undo point are 44 px buttons, so a phone can do it all. Built with Claude Code, reviewed by me. #CAD #WebGL
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** continuous chain, live length, close on first point, Esc/Finish/Undo point -> diff (src/stores/sketchEditor.js, Viewport.vue, SketchToolbar.vue); 44 px buttons -> e2e/sketch-primitive.e2e.js touch spec and this session's phone drive (45x44 and 69x44 px)
+**To Add:** docs/media/sketch-draw-line.gif

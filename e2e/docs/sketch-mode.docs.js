@@ -133,22 +133,45 @@ test.describe('docs media: sketch mode', () => {
     await startMovie(page, 'sketch-draw-line')
     const { at } = await plane(page)
     await page.getByTestId('sketch-tool-line').click()
-    const corners = [at(-30, -20), at(30, -20), at(30, 20), at(-30, 20), at(-30, -20)]
-    // First side by hand, so the live stroke can be asserted mid-drag: the preview follows the pointer.
-    await page.mouse.move(corners[0].x, corners[0].y)
+    const corners = [at(-30, -20), at(30, -20), at(30, 20), at(-30, 20)]
+    // Click a corner, then glide to the next: the dashed live segment follows the pointer, and
+    // each click starts the next side from where the last one ended.
+    for (let i = 0; i < corners.length; i++) {
+      await page.mouse.move(corners[i].x, corners[i].y, { steps: 12 })
+      if (i === 1) await expect(page.getByTestId('sketch-strokes')).toHaveAttribute('data-drafting', 'true')
+      await page.waitForTimeout(300)
+      await page.mouse.down()
+      await page.mouse.up()
+      await page.waitForTimeout(250)
+    }
+    // Back at the first corner the ring pulses: the next click closes the outline.
+    await page.mouse.move(corners[0].x + 4, corners[0].y - 3, { steps: 14 })
+    await expect(page.getByTestId('sketch-chain-first')).toHaveAttribute('data-close-near', 'true')
+    await page.waitForTimeout(700)
     await page.mouse.down()
-    await page.mouse.move((corners[0].x + corners[1].x) / 2, corners[0].y, { steps: 10 })
-    await expect(page.getByTestId('sketch-strokes')).toHaveAttribute('data-drafting', 'true')
-    await page.waitForTimeout(500)
-    await page.mouse.move(corners[1].x, corners[1].y, { steps: 10 })
-    await page.waitForTimeout(250)
     await page.mouse.up()
-    for (let i = 1; i < 4; i++) await humanDrag(page, corners[i], corners[i + 1], { steps: 12, ms: 380 })
     await expect(page.getByTestId('sketch-strokes')).toHaveAttribute('data-path-count', '1')
     await expect(page.getByTestId('sketch-profile-p1')).toHaveAttribute('data-closed', 'true')
     await page.mouse.move(at(0, 0).x + 250, at(0, 0).y + 150, { steps: 8 })
-    await page.waitForTimeout(1200)
+    await page.waitForTimeout(1000)
     await endMovie(page, 'sketch-draw-line')
+  })
+
+  test('line chain still', async ({ page }) => {
+    await openApp(page)
+    await dropSketch(page)
+    const { at } = await plane(page)
+    await page.getByTestId('sketch-tool-line').click()
+    for (const { x, y } of [at(-30, -20), at(30, -20), at(30, 20)]) {
+      await page.mouse.move(x, y, { steps: 6 })
+      await page.mouse.down()
+      await page.mouse.up()
+    }
+    const live = at(-10, 25)
+    await page.mouse.move(live.x, live.y, { steps: 8 })
+    await expect(page.getByTestId('sketch-line-finish')).toBeVisible()
+    await expect(page.getByTestId('sketch-chain-length')).toBeVisible()
+    await shot(page, 'sketch-line-chain.png', { locator: viewport(page) })
   })
 
   test('closed profile still', async ({ page }) => {

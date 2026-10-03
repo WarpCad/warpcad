@@ -64,8 +64,10 @@ import {
 } from '../../render/annotate.js'
 import { useTransformCommands } from '../../composables/useTransformCommands.js'
 import { useSketchEditorCommands } from '../../composables/useSketchEditorCommands.js'
+import { isTextEntry } from '../../composables/textEntry.js'
 import { useTransformPreviewStore } from '../../stores/transformPreview.js'
 import { useColorPreviewStore } from '../../stores/colorPreview.js'
+import { formatMmValue } from '../../core/units.js'
 import { isDegenerate } from '../../sketch/entity.js'
 import { circleFromDrag, isClosed, polygonFromDrag, profileAtPoint, rectFromDrag, segmentCountOf, toPointsMm } from '../../sketch/profile.js'
 import { createEvaluationChannel } from '../../core/kernel/evaluationClient.js'
@@ -146,6 +148,8 @@ const SKETCH_PICK_TOLERANCE_PX = 14
  * becoming a draw at all; this covers the drag that moved a hair further.
  */
 const SKETCH_MIN_LENGTH_PX = 3
+/** A second Line click within this of a fix, on the same spot, finishes the chain (ms). */
+const SKETCH_DOUBLE_TAP_MS = 450
 /**
  * A point handle's touch target, across (`TODO/sketch-002`): the 44 px minimum tap target,
  * drawn as a much smaller dot. A press within half of this of a dot grabs it.
@@ -338,6 +342,23 @@ const sketchMode = computed(() => sketchEditor.active)
 const sketchPaths = reactive(/** @type {any[]} */ ([]))
 const sketchDraftPath = reactive(createSketchPath())
 const sketchAxis = reactive({ visible: false, d: '' })
+/**
+ * The live Line chain's on-screen furniture (`TODO/sketch-006`), in viewport pixels: a dot at
+ * the last vertex, the first vertex (which pulses when the pointer is within the close
+ * tolerance), and the live segment's length in mm. Written by `drawChainLive`, never per frame.
+ */
+const sketchChain = reactive({
+  visible: false,
+  lastXPx: 0,
+  lastYPx: 0,
+  firstXPx: 0,
+  firstYPx: 0,
+  showFirst: false,
+  closeNear: false,
+  labelXPx: 0,
+  labelYPx: 0,
+  label: '',
+})
 /**
  * The selected outline's point and midpoint handles, in viewport pixels (`TODO/sketch-002`),
  * for `VertexHandles.vue` to draw. Rebuilt only when `syncSketchPaths` redraws, never per
@@ -543,7 +564,6 @@ const gizmoDrag = {
  *
  * Non-reactive and allocated once, like every other pointer structure here: the reactive
  * half a component draws from is `sketchDraftPath` above, written once per `pointermove`.
- * `continuesChain` is set when a Line drag started on the open chain's last point.
  */
 const sketchDrag = {
   active: false,
@@ -551,10 +571,18 @@ const sketchDrag = {
   startYMm: 0,
   endXMm: 0,
   endYMm: 0,
-  continuesChain: false,
 }
 /** Scratch for one projected pointer, sketch-local `[x, y]` mm. */
 const scratchSketchMm = [0, 0]
+/**
+ * Where the pointer is on the sketch plane while a Line chain is live — the end of the live
+ * segment (`TODO/sketch-006`). Mouse hover and a touch drag both write it; a tap leaves it at
+ * the vertex it just fixed.
+ */
+const sketchLive = { has: false, xMm: 0, yMm: 0 }
+/** `performance.now()` of the last vertex fix and what it did — double-click detection. */
+let sketchLastFixAt = -1e9
+let sketchLastFixResult = ''
 
 /**
  * The point drag in progress (`TODO/sketch-002`). `offset*Mm` keeps the grab where it was on
@@ -716,6 +744,8 @@ function syncSketchPaths(force = false) {
     clearSketchHandles()
     sketchAxis.visible = false
     sketchDraftPath.visible = false
+    sketchChain.visible = false
+    sketchLive.has = false
     sketchSyncedDraft = null
     return
   }
@@ -784,6 +814,7 @@ function syncSketchPaths(force = false) {
   } else {
     sketchAxis.visible = false
   }
+  drawChainLive()
 }
 
 /**
@@ -990,14 +1021,6 @@ function sketchToleranceMm() {
   return SKETCH_PICK_TOLERANCE_PX * (orbit.getMmPerPixel(heightPx) || 1)
 }
 
-/** The open Line chain being extended, if it is still in the active slice. */
-function openChain() {
-  const id = sketchEditor.chainId
-  if (!id) return null
-  const profile = sketchEditor.slice?.profiles.find((candidate) => candidate.id === id)
-  return profile && profile.kind === 'polyline' && !profile.closed ? profile : null
-}
-
 /**
  * Look straight at the active slice in the sketch's own frame.
  *
@@ -1019,24 +1042,10 @@ function beginSketchDrag() {
   const point = projectToSketch(pressStartClientX, pressStartClientY)
   if (!point) return false
   sketchDrag.active = true
-  sketchDrag.continuesChain = false
-  let startX = point[0]
-  let startY = point[1]
-  // Line: a drag that starts on the open chain's last point continues the chain from
-  // exactly that point, so consecutive segments share a vertex.
-  const chain = sketchEditor.tool === 'line' ? openChain() : null
-  if (chain) {
-    const last = chain.pointsMm[chain.pointsMm.length - 1]
-    if (Math.hypot(last[0] - startX, last[1] - startY) <= sketchToleranceMm()) {
-      startX = last[0]
-      startY = last[1]
-      sketchDrag.continuesChain = true
-    }
-  }
-  sketchDrag.startXMm = startX
-  sketchDrag.startYMm = startY
-  sketchDrag.endXMm = startX
-  sketchDrag.endYMm = startY
+  sketchDrag.startXMm = point[0]
+  sketchDrag.startYMm = point[1]
+  sketchDrag.endXMm = point[0]
+  sketchDrag.endYMm = point[1]
   return true
 }
 
@@ -1052,14 +1061,138 @@ function draggedProfile() {
 
 /** Redraw the live preview of the drag in progress. */
 function drawSketchDraft() {
+  if (sketchEditor.tool === 'line') {
+    drawChainLive()
+    return
+  }
   const profile = draggedProfile()
-  const points = profile
-    ? toPointsMm(profile, 64)
-    : [
-        [sketchDrag.startXMm, sketchDrag.startYMm],
-        [sketchDrag.endXMm, sketchDrag.endYMm],
-      ]
+  const points = profile ? toPointsMm(profile, 64) : []
   updateSketchPath(orbit, sketchEditor.frame, points, activeSliceZ(), profile !== null, widthPx, heightPx, sketchDraftPath)
+}
+
+/**
+ * The vertex the live segment starts from: the chain's last fixed vertex, or — on the very
+ * first drag, before any vertex is fixed — where the press began.
+ *
+ * @returns {readonly number[] | null}
+ */
+function chainAnchorMm() {
+  const start = sketchEditor.chainStartMm
+  if (start) return start
+  const profile = sketchEditor.chainId ? sketchEditor.slice?.profiles.find((candidate) => candidate.id === sketchEditor.chainId) : null
+  if (profile && profile.kind === 'polyline' && !profile.closed) return profile.pointsMm[profile.pointsMm.length - 1]
+  if (sketchDrag.active) return [sketchDrag.startXMm, sketchDrag.startYMm]
+  return null
+}
+
+/**
+ * Draw the Line tool's live furniture (`TODO/sketch-006`): the dashed segment from the last
+ * vertex to the pointer with its length in mm, the last-vertex dot, and the first vertex —
+ * pulsing when the pointer is within the close tolerance. Runs on every pointer move while a
+ * chain is live and whenever the camera or draft re-projects.
+ */
+function drawChainLive() {
+  const anchor = sketchEditor.active && sketchEditor.tool === 'line' ? chainAnchorMm() : null
+  if (!anchor) {
+    sketchChain.visible = false
+    if (!sketchDrag.active || sketchEditor.tool === 'line') sketchDraftPath.visible = false
+    return
+  }
+  const zMm = activeSliceZ()
+  const frame = sketchEditor.frame
+  const last = sketchPointToScreen(orbit, frame, anchor[0], anchor[1], zMm, widthPx, heightPx, scratchHandlePoint)
+  sketchChain.lastXPx = last.x
+  sketchChain.lastYPx = last.y
+  sketchChain.visible = last.visible
+  const profile = sketchEditor.chainId ? sketchEditor.slice?.profiles.find((candidate) => candidate.id === sketchEditor.chainId) : null
+  const chainPoints = profile && profile.kind === 'polyline' ? profile.pointsMm : null
+  sketchChain.showFirst = chainPoints !== null && chainPoints.length >= 3
+  if (chainPoints) {
+    const first = sketchPointToScreen(orbit, frame, chainPoints[0][0], chainPoints[0][1], zMm, widthPx, heightPx, scratchHandlePoint)
+    sketchChain.firstXPx = first.x
+    sketchChain.firstYPx = first.y
+  }
+  if (!sketchLive.has) {
+    sketchDraftPath.visible = false
+    sketchChain.label = ''
+    sketchChain.closeNear = false
+    return
+  }
+  const end = [sketchLive.xMm, sketchLive.yMm]
+  updateSketchPath(orbit, frame, [anchor, end], zMm, false, widthPx, heightPx, sketchDraftPath)
+  const lengthMm = Math.hypot(end[0] - anchor[0], end[1] - anchor[1])
+  const toleranceMm = sketchToleranceMm()
+  sketchChain.closeNear =
+    sketchChain.showFirst && chainPoints !== null && Math.hypot(end[0] - chainPoints[0][0], end[1] - chainPoints[0][1]) <= toleranceMm
+  if (lengthMm > toleranceMm * 0.5) {
+    const tip = sketchPointToScreen(orbit, frame, end[0], end[1], zMm, widthPx, heightPx, scratchHandlePoint)
+    sketchChain.labelXPx = (sketchChain.lastXPx + tip.x) / 2
+    sketchChain.labelYPx = (sketchChain.lastYPx + tip.y) / 2 - 8
+    sketchChain.label = `${formatMmValue(lengthMm)} mm`
+  } else {
+    sketchChain.label = ''
+  }
+}
+
+/**
+ * Track the pointer as the live end of the Line chain (mouse hover, or a finger that is down).
+ *
+ * @param {number} clientXPx
+ * @param {number} clientYPx
+ */
+function trackChainPointer(clientXPx, clientYPx) {
+  if (sketchEditor.tool !== 'line' || !sketchEditor.chainLive) return
+  const point = projectToSketch(clientXPx, clientYPx)
+  if (!point) return
+  sketchLive.has = true
+  sketchLive.xMm = point[0]
+  sketchLive.yMm = point[1]
+  drawChainLive()
+  scheduleRender()
+}
+
+/**
+ * The Line tool's one vertex-fix step as the viewport sees it: every click, tap and
+ * drag-release lands here with the sketch-local point it fixes. `TODO/sketch-007`'s snapping
+ * wraps this — adjust `pointMm`, then call through — and nothing else about the tool changes.
+ *
+ * @param {readonly number[]} pointMm Sketch-local millimetres.
+ * @returns {'started' | 'added' | 'closed' | 'ignored'}
+ */
+function fixSketchVertex(pointMm) {
+  const mmPerPx = orbit.getMmPerPixel(heightPx) || 1
+  const result = sketchEditor.fixChainVertex(pointMm, {
+    closeToleranceMm: sketchToleranceMm(),
+    minLengthMm: SKETCH_MIN_LENGTH_PX * mmPerPx,
+  })
+  if (result !== 'ignored') {
+    sketchLastFixAt = performance.now()
+    sketchLastFixResult = result
+  }
+  return result
+}
+
+/**
+ * A click or tap with the Line armed: fix a vertex there. A second click right on the vertex
+ * just fixed (a double-click / double-tap) finishes the chain instead, and a click straight
+ * after a close is swallowed so the double-click that closed an outline does not also start
+ * the next one.
+ *
+ * @param {number} clientXPx
+ * @param {number} clientYPx
+ */
+function lineTap(clientXPx, clientYPx) {
+  const point = projectToSketch(clientXPx, clientYPx)
+  if (!point) return
+  const sincePrevious = performance.now() - sketchLastFixAt
+  if (sincePrevious < SKETCH_DOUBLE_TAP_MS && sketchLastFixResult === 'closed') return
+  const result = fixSketchVertex([point[0], point[1]])
+  if (result === 'ignored' && sketchEditor.chainLive && sincePrevious < SKETCH_DOUBLE_TAP_MS) sketchEditor.finishChain()
+  sketchLive.has = true
+  sketchLive.xMm = point[0]
+  sketchLive.yMm = point[1]
+  drawChainLive()
+  scheduleRender()
 }
 
 /**
@@ -1072,6 +1205,11 @@ function updateSketchDrag(clientXPx, clientYPx) {
   if (!point) return
   sketchDrag.endXMm = point[0]
   sketchDrag.endYMm = point[1]
+  if (sketchEditor.tool === 'line') {
+    sketchLive.has = true
+    sketchLive.xMm = point[0]
+    sketchLive.yMm = point[1]
+  }
   drawSketchDraft()
   scheduleRender()
 }
@@ -1079,6 +1217,11 @@ function updateSketchDrag(clientXPx, clientYPx) {
 /**
  * Finish a draw gesture: add one outline to the draft, unless it was cancelled or never
  * really moved. Nothing reaches the document — that waits for Done.
+ *
+ * For the Line tool a drag does not draw "a segment" any more: it fixes vertices. With no
+ * chain yet, the press point is the first vertex and the release the second (so one drag still
+ * draws one segment); with a chain live, only the release point matters — the segment already
+ * runs from the last vertex.
  *
  * @param {boolean} cancelled
  */
@@ -1089,6 +1232,14 @@ function endSketchDrag(cancelled) {
   sketchDrag.active = false
   sketchDraftPath.visible = false
   scheduleRender()
+  if (sketchEditor.tool === 'line') {
+    if (!cancelled) {
+      if (!sketchEditor.chainLive) fixSketchVertex(start)
+      fixSketchVertex(end)
+    }
+    drawChainLive()
+    return
+  }
   if (cancelled) return
   // The degenerate case: a release that never really moved adds nothing at all.
   if (isDegenerate(start, end, SKETCH_MIN_LENGTH_PX * (orbit.getMmPerPixel(heightPx) || 1))) return
@@ -1098,26 +1249,7 @@ function endSketchDrag(cancelled) {
     // Deliberately **not** auto-selected (ui-020's finding #3): drawing several outlines
     // in a row is the point of the editor, and a selection would only get in the way.
     sketchEditor.addToActiveSlice({ ...profile, id: sketchEditor.nextProfileId() })
-    return
   }
-
-  // Line: extend the open chain, or start a new one; finishing on the chain's first point
-  // closes it into an outline.
-  const chain = sketchDrag.continuesChain ? openChain() : null
-  if (chain) {
-    const first = chain.pointsMm[0]
-    const closes = chain.pointsMm.length >= 2 && Math.hypot(first[0] - end[0], first[1] - end[1]) <= sketchToleranceMm()
-    sketchEditor.replaceInActiveSlice({
-      ...chain,
-      pointsMm: closes ? chain.pointsMm : [...chain.pointsMm, end],
-      closed: closes,
-    })
-    if (closes) sketchEditor.chainId = ''
-    return
-  }
-  const id = sketchEditor.nextProfileId()
-  sketchEditor.addToActiveSlice({ id, kind: 'polyline', role: 'solid', closed: false, pointsMm: [start, end] })
-  sketchEditor.chainId = id
 }
 
 /**
@@ -1162,6 +1294,11 @@ function hoverSketchProfile(clientXPx, clientYPx) {
 }
 
 function clearSketchHover() {
+  if (sketchLive.has && !sketchDrag.active) {
+    sketchLive.has = false
+    drawChainLive()
+    scheduleRender()
+  }
   sketchHoverX = -1e9
   sketchHoverY = -1e9
   vertexHoverX = -1e9
@@ -2224,6 +2361,8 @@ function onPointerMove(event) {
     if (sketchMode.value && event.pointerType === 'mouse') {
       hoverSketchProfile(event.clientX, event.clientY)
       hoverSketchVertex(event.clientX, event.clientY)
+      // The Line chain's rubber band follows the cursor (`TODO/sketch-006`).
+      trackChainPointer(event.clientX, event.clientY)
     }
     return
   }
@@ -2351,6 +2490,12 @@ function onPointerUp(event) {
   // selected" Inspector state. A touch-only equivalent gesture belongs with the
   // Operations toolbar that actually consumes multi-selection (`ui-014`), not
   // here, where there would be nothing to do with it yet.
+  if (isClick && sketchMode.value && sketchEditor.tool === 'line') {
+    // Line: a tap or click fixes the next vertex — no hover, no modifier, any pointer type
+    // (`TODO/sketch-006`). Picking an outline is Select's job; a cancelled press does nothing.
+    if (event.type !== 'pointercancel') lineTap(event.clientX, event.clientY)
+    return
+  }
   if (isClick && sketchMode.value) {
     // A tap on a point dot picks the point (`TODO/sketch-002`); anywhere else picks an outline.
     if (tappedVertex >= 0 && event.type !== 'pointercancel') sketchEditor.selectVertex(tappedVertex)
@@ -2599,6 +2744,38 @@ function onThemeChange() {
   if (viewport?.graph.setTheme(theme.value)) scheduleRender()
 }
 
+/**
+ * The Line chain's keys (`TODO/sketch-006`): Esc finishes (twice in a row cancels), Enter
+ * finishes, Backspace removes the last point. They act only while the Line is armed with a
+ * chain live (Esc also for the "twice" window), never in a text field, and mark the event
+ * handled so the app-wide Backspace-deletes-the-selection shortcut stands down.
+ *
+ * @param {KeyboardEvent} event
+ */
+function onSketchChainKey(event) {
+  if (!sketchMode.value || sketchEditor.tool !== 'line') return
+  if (event.ctrlKey || event.metaKey || event.altKey || event.defaultPrevented) return
+  if (isTextEntry(event.target)) return
+  if (event.key === 'Escape') {
+    if (event.repeat) return
+    if (sketchEditor.escapeChain() !== 'none') event.preventDefault()
+  } else if (event.key === 'Enter') {
+    // Enter on a focused button is that button's click, not "finish".
+    if (event.target instanceof HTMLElement && event.target.closest('button, a, [role="button"]')) return
+    if (!sketchEditor.chainLive) return
+    event.preventDefault()
+    sketchEditor.finishChain()
+  } else if (event.key === 'Backspace' && !event.shiftKey) {
+    if (!sketchEditor.chainLive) return
+    event.preventDefault()
+    sketchEditor.undoPoint()
+  }
+  if (event.defaultPrevented) {
+    drawChainLive()
+    scheduleRender()
+  }
+}
+
 /** @type {(() => void) | null} */
 let unregisterTarget = null
 /** @type {(() => void)[]} */
@@ -2686,6 +2863,7 @@ onMounted(() => {
         sketchEditor.selectedVertex,
         sketchEditor.hoverVertex,
         sketchEditor.tool,
+        sketchEditor.chainPointCount,
       ],
       () => {
         syncSketchPaths(true)
@@ -2715,6 +2893,7 @@ onMounted(() => {
     resizeObserver = new ResizeObserver(measure)
     resizeObserver.observe(rootEl.value)
   }
+  window.addEventListener('keydown', onSketchChainKey)
   window.addEventListener('resize', measure)
   window.addEventListener('scroll', measure, { passive: true })
 
@@ -2746,6 +2925,7 @@ onBeforeUnmount(() => {
   for (const stop of stopWatchers.splice(0)) stop()
   resizeObserver?.disconnect()
   resizeObserver = null
+  window.removeEventListener('keydown', onSketchChainKey)
   window.removeEventListener('resize', measure)
   window.removeEventListener('scroll', measure)
   themeQuery?.removeEventListener('change', onThemeChange)
@@ -2816,6 +2996,7 @@ onBeforeUnmount(() => {
     :data-sketch-selected="sketchEditor.selectedProfileId"
     :data-sketch-vertex="sketchEditor.selectedVertex"
     :data-sketch-tool="sketchMode ? sketchEditor.tool : ''"
+    :data-sketch-chain-points="sketchMode ? sketchEditor.chainPointCount : 0"
     :data-sketch-preview="sketchEditor.previewStatus"
     :data-sketch-panel="sketchEditor.panel"
   >
@@ -2892,7 +3073,7 @@ onBeforeUnmount(() => {
     <!-- The sketch editor's outlines (TODO/sketch-001): the draft's profiles, the
          live drag, and the revolve axis. Pointer-transparent, so the canvas keeps every
          gesture (ui-020 finding #1). -->
-    <SketchStrokes v-if="sketchMode" :paths="sketchPaths" :draft="sketchDraftPath" :axis="sketchAxis" />
+    <SketchStrokes v-if="sketchMode" :paths="sketchPaths" :draft="sketchDraftPath" :axis="sketchAxis" :chain="sketchChain" />
     <VertexHandles v-if="sketchMode && sketchHandles.vertices.length > 0" :handles="sketchHandles" />
 
     <Grid

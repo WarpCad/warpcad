@@ -786,6 +786,50 @@ export function convertToOutline(profile) {
   }
 }
 
+// --- continuous Line chain (TODO/sketch-006) --------------------------------
+
+/**
+ * Fix the next vertex of an open Line chain: the pure half of the Line tool's one
+ * vertex-fix step (`fixChainVertex` in the editor store, which `TODO/sketch-007`'s snapping
+ * wraps by adjusting `pointMm` first).
+ *
+ * - A point within `minLengthMm` of the last vertex is **ignored** (a zero-length segment).
+ * - A point within `closeToleranceMm` of the **first** vertex closes the outline when the
+ *   chain already has 3 or more vertices; with only 2 it is ignored — a two-vertex "polygon"
+ *   encloses nothing.
+ * - Anything else is appended.
+ *
+ * @param {PolylineProfile} chain An open polyline of at least 2 points.
+ * @param {readonly number[]} pointMm
+ * @param {{ closeToleranceMm: number, minLengthMm: number }} options
+ * @returns {{ profile: PolylineProfile, outcome: 'added' | 'closed' | 'ignored' }}
+ */
+export function appendVertex(chain, pointMm, options) {
+  const points = chain.pointsMm
+  if (!isVec2([pointMm[0], pointMm[1]])) return { profile: chain, outcome: 'ignored' }
+  const last = points[points.length - 1]
+  if (Math.hypot(pointMm[0] - last[0], pointMm[1] - last[1]) <= options.minLengthMm) return { profile: chain, outcome: 'ignored' }
+  const first = points[0]
+  if (Math.hypot(pointMm[0] - first[0], pointMm[1] - first[1]) <= options.closeToleranceMm) {
+    if (points.length < 3) return { profile: chain, outcome: 'ignored' }
+    return { profile: { ...chain, closed: true }, outcome: 'closed' }
+  }
+  if (points.length >= MAX_POLYLINE_POINTS) return { profile: chain, outcome: 'ignored' }
+  return { profile: { ...chain, pointsMm: [...points, /** @type {Vec2Mm} */ ([pointMm[0], pointMm[1]])] }, outcome: 'added' }
+}
+
+/**
+ * Remove the last vertex of an open Line chain (**Undo point**).
+ *
+ * @param {PolylineProfile} chain
+ * @returns {PolylineProfile | null} The shorter chain, or `null` when only one segment was
+ *   left — the chain is then discarded, not left as a single point.
+ */
+export function popVertex(chain) {
+  if (chain.pointsMm.length <= 2) return null
+  return { ...chain, pointsMm: chain.pointsMm.slice(0, -1) }
+}
+
 // --- drag → profile ----------------------------------------------------------
 
 /**
