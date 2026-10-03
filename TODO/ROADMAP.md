@@ -29,6 +29,7 @@ edit that closes a milestone or adds/reserves a row below, not as a separate pas
 | M9 — AI partner | ⬜ **Not started** — 15 rows scoped (14 with files, 1 reserved) on 2026-10-02 from the user's two target prompts (airfoil wing to print; drawing of a board to a library group). `ai-001` is the blocking decision; `ai-012` (live MCP bridge) is reserved. Nothing AI-shaped exists in `src/ai/` or `mcp/` yet. |
 | M10 — Docs media: Playwright screenshots + GIF movies in the documentation | ⬜ **Not started** — 16 rows scoped (`docs-005`…`docs-020`) on 2026-10-02. Infrastructure (`docs-005`/`006`/`007`) first, then one capture task per docs page. Independent of M9; `docs-020` is blocked on M9's open features. |
 | M11 — Gears: spur, helical, ring, rack, bevel, worm, planetary, and meshing | ⬜ **Not started** — 14 rows scoped (`core-039`…`core-049`, `ui-057`, `ui-058`, `testing-002`, `docs-021`) on 2026-10-02 from the user's four jscad1 gear projects (`window-motor`, `drive-wheel`, `bf-gear`, `guide-mount`) and `jscad-gears` itself. `core-039` is the blocking decision. Independent of M9 and M10 except `docs-021`. |
+| M12 — Project variables: one named value drives any parameter of any part | ⬜ **Not started** — 2 rows scoped (`core-050`, `ui-059`) on 2026-10-03 from the user's jscad1 habit of a top-level `const piVersion = 4` that every part reads. `core-050` is the model; `ui-059` is the panel and per-field bind control. Independent of M9, M10 and M11. |
 
 Every M0-M4 milestone closed with its own human free-form pass per `CLAUDE.md`'s
 Verification section (see each milestone's last row below). M5, M6 and M7 have not had
@@ -597,6 +598,35 @@ free-form pass here, and run scenario 19's steps 1-4 by hand**) → `core-048` �
 `core-042` → `core-045` → `core-046` (the `drive-wheel` case) → `core-047` → `core-049` →
 `testing-002` → `docs-021`. `core-048` can land any time after `core-041` and should before
 anyone prints a gear.
+
+---
+
+## M12 — Project variables: one named value drives any parameter of any part
+
+The jscad1 projects open with a top-level `const piVersion = 4` and every part reads it; to
+move a case from a Pi 4 to a Pi 5 you change one line. WarpCad can only do that by finding the
+Pi body and editing its `model` param, then repairing whatever assumed the old one. The only
+cross-record link today is `condition.js`'s `when: { ref, param, in }`, which *reads* one
+body's param and cannot *drive* anything.
+
+**The shape**: variables are **log records** (`var.define`), so undo, the transaction origin,
+NDJSON, gist sync and the AI all work with no new mechanism. A param is bound with plain JSON,
+`{ "$var": "piModel" }`, in its own slot (or one element of a vector param), and a single
+resolution point in the fold substitutes it — so **no op knows variables exist and every op
+gets them**, including composites and `core-037` user parts. Type compatibility and limits come
+from the registry's own param schemas. `when` gains a `{ var, in }` form so one switch can also
+turn cut-outs on and off. **Deliberately not in this milestone**: derived variables and
+arithmetic (`outer = inner + 2 * wall`) — the likely next request, but it needs a safe
+evaluator and cycle detection, and the `$var` format does not change if it is added later.
+
+| id | Task | Kind | Depends | Acceptance |
+|---|---|---|---|---|
+| `core-050` | Project variables: `var.define`, `$var` binding in any param, single resolution point, `when: { var }`, impact check over all consumers, rename/delete rewrites, hostile-input caps | Creation, L | `data-004`, `ui-052` | 1, 2, 3, 4, 10, 12, 14, 15; `data-007`, `ui-052`, `ui-044` repros |
+| `ui-059` | **Variables** panel, a bind control on every bindable Inspector field ("New variable from this value…"), chips for bound fields, variable choice in `ConditionRow`, `docs/variables.md` | Creation | `core-050` | 1, 2, 7, 10, 12, 14, 15 + new; `ui-043/044/046/049/052` repros |
+
+**Suggested order**: `core-050` → `ui-059` (the Pi 4 → Pi 5 switch is then reachable by hand —
+stop and do the five-minute free-form pass here). Variable tools for the AI are appended to
+`ai-002`'s list by `core-050`, so M9 needs no separate row.
 
 ---
 
