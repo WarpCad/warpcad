@@ -1246,4 +1246,14 @@ where a real finger has contact area and a real wrist has momentum.
 | 1 | **Orbit sensitivity on a real touchscreen.** Drag speed is a fixed 0.4° of orbit per pixel, slightly faster than three.js's own OrbitControls default at this viewport height. In the driven pass a single 260px diagonal swipe rotated ~104° and parked the camera flat against the top-down pole — correct clamping, but possibly too twitchy in the hand. Try a few casual swipes on an iPhone and an iPad and say whether it wants lowering (the constant is `ORBIT_DEG_PER_PX` in `src/components/viewport/Viewport.vue`). | Open | |
 | 2 | **Orientation-triad cap tap targets.** The six axis caps are 32px (30px at phone width) rather than the 44px used for the navigation chrome — six 44px targets will not fit a 116px dial without overlapping. The e2e matrix proves they are hittable at their centres; what it can't tell us is whether a thumb reliably picks the intended cap when two are visually adjacent. If it doesn't, the fix is a bigger dial at touch widths, not bigger caps in the same space. | Open | |
 
+### docs-018 — Phone and tablet media (2026-10-03 19:08)
+
+Two device-specific questions that Chromium captures cannot answer and no acceptance scenario
+covers.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | **Inspector sheet after a tap, on a real phone (Safari and Chrome).** In a trusted-touch Chromium drive at 390x844, tapping a body at a spot that ends up under the raised sheet's top edge (y about 426) selected it, opened the Inspector, and closed it again 7 ms later: the browser's synthesized click lands on the sheet's tab, which toggles it. The docs pictures avoid it by panning the scene up first. On a real phone, tap a body low in the view (below the middle) with the Inspector closed and see whether the sheet stays up. If it flickers shut, file a `ui-` finding. | open | Seen only in Chromium emulation. `ui-045`'s WebKit tap path is the neighbouring known issue. |
+| 2 | **`docs/mobile.md` against the real thing.** Read the page on a phone and a tablet and follow its "Try it" steps: tap Library, drag Cube up, two-finger pan, pinch, tap the triad. The pictures are Chromium at 390 and 820 px, not Safari. | open | Also try a pinch that starts with a finger on a selected shape's gizmo arrow: the gizmo claims it and nothing zooms. Probably intended, but worth a feel check. |
+
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

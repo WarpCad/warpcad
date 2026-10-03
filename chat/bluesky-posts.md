@@ -1324,3 +1324,13 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** 4 GIFs, 5 stills -> diff (docs/media/, docs/screenshots/); solid 10 mm tall and a bore by measured volume -> e2e/docs/sketch-mode.docs.js; scenario 9 and 1 hand drive -> TODO/ACCEPTANCE.md
 **To Add:** docs/media/sketch-extrude.gif
+
+## 2026-10-03T19:08:00Z — Docs: using WarpCad on a phone or tablet
+
+**Post:** WarpCad has a phone and tablet page now: where the Library and Inspector sheets live, why the nav pad folds to one button, and three short clips of real touch input: drag a cube in, two-finger pan and pinch, select two and Subtract. Built with Claude Code, reviewed by me. #CAD #WebGL
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** 12 stills, 3 GIFs -> diff (docs/media/, docs/screenshots/); camera target and distance changed, Subtract 2 to 1 bodies -> e2e/docs/mobile.docs.js assertions; scenario 7 and 1 hand drive -> TODO/ACCEPTANCE.md
+**To Add:** docs/media/mobile-pinch-pan.gif
+

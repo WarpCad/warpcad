@@ -304,5 +304,23 @@
     "specHash": "a7bb64ab00c0e24d32e01b939d26562a3cfd9071b793c4d17b67448c3fc74d3b",
     "bytes": 801853,
     "seconds": 5.8
+  },
+  "mobile-drag-cube.gif": {
+    "spec": "e2e/docs/mobile.docs.js",
+    "specHash": "f5a67bfafa51f7476dba2ba765f000af665a7fb8cf9b0b72b0820e49a6f90a1c",
+    "bytes": 240822,
+    "seconds": 5.8
+  },
+  "mobile-subtract.gif": {
+    "spec": "e2e/docs/mobile.docs.js",
+    "specHash": "f5a67bfafa51f7476dba2ba765f000af665a7fb8cf9b0b72b0820e49a6f90a1c",
+    "bytes": 306226,
+    "seconds": 5.1
+  },
+  "mobile-pinch-pan.gif": {
+    "spec": "e2e/docs/mobile.docs.js",
+    "specHash": "f5a67bfafa51f7476dba2ba765f000af665a7fb8cf9b0b72b0820e49a6f90a1c",
+    "bytes": 1374517,
+    "seconds": 8.26
   }
 }

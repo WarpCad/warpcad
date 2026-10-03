@@ -1,5 +1,7 @@
 # Saving and reopening your work
 
+On a phone, the File menu drops down from the top bar; see [Using WarpCad on a phone or tablet](mobile.md#the-file-menu).
+
 WarpCad keeps your work for you. You don't press Save to keep a model safe: every change
 you make is stored in your browser automatically, a moment after you make it, and the
 next time you open WarpCad on the same device and browser your model is right there.

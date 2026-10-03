@@ -1819,3 +1819,16 @@ Writing the example against the real screen corrected the page in three places. 
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** 4 animations and 5 stills -> diff (docs/media/, docs/screenshots/); bore by volume, 10 mm height -> e2e/docs/sketch-mode.docs.js; scenario 9 (plus phone touch) and scenario 1 -> hand drive this session; sketch-001, 002 and 005 repros -> same drive
 **To Add:** docs/media/sketch-hole.gif, docs/media/sketch-extrude.gif
+
+## 2026-10-03T19:08:00Z — Docs: using WarpCad on a phone or tablet
+
+**Post:** Every WarpCad docs page so far showed the laptop layout, which would tell a phone user that half the controls do not exist. There is now a page for 390 px and 820 px screens: the Library and Inspector as bottom sheets, the navigation pad that folds behind a single button while a sheet is open, the toolbar, the File menu and the sketch sheet.
+
+The pictures are driven with real touch events sent through the Chrome DevTools protocol, including a two-finger pinch built from two touch points, and each clip ends on an assertion: a body placed, the camera target and distance changed, Subtract taking two bodies to one. Writing the example against the real screen corrected it: a Library row drags as soon as a finger moves, so there is no press-and-hold, and a tap replaces the selection, so selecting two shapes on a phone means Select mode and a drawn box.
+
+These are Chromium captures. They are not a check on a real phone or on Safari's touch handling, and the page says so.
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** 12 stills, 3 GIFs -> diff (docs/media/, docs/screenshots/); trusted CDP touch and end-state assertions -> e2e/docs/mobile.docs.js; no press-and-hold, tap replaces selection -> TODO/done/docs-018 shipped note; Chromium-only caveat -> docs/mobile.md; scenarios 7 and 1 -> hand drive this session
+**To Add:** docs/media/mobile-pinch-pan.gif

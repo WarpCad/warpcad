@@ -1,5 +1,7 @@
 # Selecting a shape, and reading its size
 
+On a phone, the Inspector is a sheet that rises when you select a shape; see [Using WarpCad on a phone or tablet](mobile.md#the-inspector).
+
 Once you have placed something (see [Placing a shape](primitive-placement.md)), the next
 thing you will want to know is **how big it is** and **what it is made of**. Both answers
 come from the same gesture: click it.

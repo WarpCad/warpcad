@@ -1,5 +1,7 @@
 # The History panel: revisiting any step you've taken
 
+On a phone, History is the three-line button in the top bar and opens as a bottom sheet; see [Using WarpCad on a phone or tablet](mobile.md).
+
 Every change you make in WarpCad is kept as a **step** in an ordered list — placing a
 shape, moving it, chamfering an edge, combining two shapes. The History panel shows that
 list and lets you go back to any point in it: look at what the model was like earlier,

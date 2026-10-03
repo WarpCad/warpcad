@@ -96,6 +96,10 @@ The Library's Raspberry Pi and Hardware items descend from the `jscad-raspberryp
   **File ▾ → Export… → Resolution**.
 - [Moving around the 3D view](viewport-navigation.md) — orbit, pan, zoom, the
   orientation triad, touch gestures, and reading size off the grid.
+- [Using WarpCad on a phone or tablet](mobile.md) — where every control lives at phone and
+  tablet width: the Library and Inspector as bottom sheets, the navigation pad that folds behind
+  **✥**, the Operations toolbar, the File menu and the sketch sheet; plus the touch gestures
+  (drag a shape in, two-finger pan, pinch, tap the triad).
 - [Sketch primitives](sketch-mode.md) — drag **Sketch** from the Library, draw
   outlines with Line, Rectangle, Circle and Polygon, mark outlines Solid or Hole, stack
   slices, and turn them into a solid with Linear, Revolve, Helical, Outline or Loft; then

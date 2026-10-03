@@ -6,8 +6,40 @@ priority: medium
 model: sonnet
 milestone: M10
 depends: [docs-005, docs-006, docs-007, docs-008, docs-009]
-status: open
+status: done
 ---
+
+
+> **What shipped (2026-10-03, unattended `/run-todos`).** Everything in the inventory except the
+> deferred `mobile-ai-chat-overlay-*` row: a new `docs/mobile.md`, linked from `docs/README.md`
+> and with a one-sentence "On a phone, ..." line at the top of `primitive-placement`,
+> `selection-and-inspector`, `booleans`, `viewport-navigation`, `sketch-mode`, `save-load`,
+> `export` and `timeline`; `e2e/docs/mobile.docs.js` (12 stills, 3 movies, run in `docs-phone`
+> and `docs-tablet`, skipped at laptop width); `startMovie` gained an optional recording size so
+> a portrait phone is not squashed into 960x600; and the `docs:screenshots`, `:update` and
+> `docs:movies` scripts now include the tablet and phone projects. Nothing under `src/` changed.
+> Every gesture is a trusted CDP `Input.dispatchTouchEvent` (one finger, two fingers, and a
+> two-point pinch), with end-state assertions: a body placed, the camera target and distance
+> changed, the triad's Top cap snapping elevation to 90, and Subtract taking two bodies to one.
+> **Chromium captures are not a substitute for checking on real phone and tablet hardware, or for
+> the WebKit touch path** (`TODO/VERIFY.md`, `ui-045`). Deviations from the spec, all recorded
+> on the page:
+>
+> - **No "press and hold".** A Library row drags the moment a finger moves on it (the row has
+>   `touch-action: none`); the example now says to press the row and drag.
+> - **Tablet has no sheets.** The Library and Inspector are persistent columns at 820 px, so
+>   `library-sheet-tablet` and `inspector-sheet-tablet` show columns, and the page says so.
+> - **A tap does not add to a selection.** `mobile-subtract` selects two bodies with Select mode
+>   and a finger-drawn box (the documented touch route) rather than "tap two bodies"; the
+>   Objects-list tick boxes are the other route and are described on the page.
+> - **Inspector auto-open vs a synthesized click.** Driving a trusted tap on a body whose spot
+>   ends up under the raised sheet's top edge (y 426 at 390x844) opened the sheet and closed it
+>   again 7 ms later (the browser's follow-up click lands on the tab, which toggles). Stills and
+>   movies therefore pan the scene up first and tap above the sheet edge. Logged in `TODO/VERIFY.md`
+>   as something to try on a real phone, not fixed here.
+> - A finger that lands on a selected body's gizmo arrow claims the gesture, so a pinch starting
+>   there does not zoom. Driver note, consistent with grabbing an arrow.
+> - `mobile-pinch-pan.gif` is 1.37 MB (8 fps, 260 px wide) and the other two are under 0.31 MB.
 
 ## Goal
 

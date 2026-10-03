@@ -1,5 +1,7 @@
 # Exporting your model: STL, OBJ and glTF
 
+On a phone, **Export...** is in the File menu in the top bar; see [Using WarpCad on a phone or tablet](mobile.md#the-file-menu).
+
 Export turns your model into a **mesh file** other tools read — an STL for a slicer, an OBJ for
 a mesh viewer, a glTF for a web viewer or game engine. It is separate from
 [saving](save-load.md): saving keeps your model editable in WarpCad; exporting hands a finished

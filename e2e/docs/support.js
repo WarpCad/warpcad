@@ -141,12 +141,13 @@ export async function installCursor(page) {
  *
  * @param {import('@playwright/test').Page} page
  * @param {string} name movie name; the GIF becomes `docs/media/<name>.gif`
+ * @param {{ width: number, height: number }} [size] recording size; a portrait phone passes its own aspect
  */
-export async function startMovie(page, name) {
+export async function startMovie(page, name, size = { width: 960, height: 600 }) {
   mkdirSync(MOVIES_DIR, { recursive: true })
   await installCursor(page)
   await page.mouse.move(40, 40)
-  await page.screencast.start({ path: join(MOVIES_DIR, `${name}.webm`), size: { width: 960, height: 600 } })
+  await page.screencast.start({ path: join(MOVIES_DIR, `${name}.webm`), size })
   await page.waitForTimeout(500)
 }
 

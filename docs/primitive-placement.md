@@ -1,5 +1,7 @@
 # Placing a shape
 
+On a phone, the Library lives in a bottom sheet behind the **Library** tab; see [Using WarpCad on a phone or tablet](mobile.md#the-library).
+
 WarpCad builds parts out of solids. The quickest way to get your first solid into a
 project is to drag one out of the **Library** panel and drop it into the 3D view.
 

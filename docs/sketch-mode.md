@@ -1,5 +1,7 @@
 # Sketch primitives
 
+On a phone, the Extrude and Slices panels are a short bottom sheet; see [Using WarpCad on a phone or tablet](mobile.md#sketching).
+
 A **Sketch** is a shape you draw instead of size. You drop it into the 3D view like a
 Cube, draw outlines on its flat plane, and choose how those outlines become a solid.
 When you tap **Done** it is a solid like any other shape: you can select it, move and

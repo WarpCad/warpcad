@@ -1,5 +1,7 @@
 # Combining shapes: Union, Subtract and Intersect
 
+On a phone, the Operations toolbar is at the top-left of the 3D view and two shapes are selected with Select mode or the Objects list; see [Using WarpCad on a phone or tablet](mobile.md#selecting-two-shapes-and-the-operations-toolbar).
+
 Placing shapes gets you a pile of separate solids. **Boolean operations** turn several
 of them into one — merging them, cutting one out of another, or keeping only the part
 they have in common. They are how a plain box becomes a case with a bolt hole in it.

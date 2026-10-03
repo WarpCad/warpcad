@@ -1,5 +1,7 @@
 # Moving around the 3D view
 
+On a phone, the navigation pad folds behind a **✥** button while a sheet is open; see [Using WarpCad on a phone or tablet](mobile.md#the-navigation-pad-folds-behind-a-button).
+
 WarpCad opens on a single screen: a dark 3D view with a millimetre grid, the
 **orientation triad** in the top-right corner, the **navigation pad** in the
 bottom-left, and the **scale readout** in the bottom-right. Everything on this
