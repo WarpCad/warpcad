@@ -34,6 +34,15 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### sketch-005 — Sketch editor: select, edit, delete an outline (2026-10-03 01:38)
+
+The functional paths (pick, hover, status, Hole, toolbar Delete, Delete/Backspace, Cancel/Done) were driven by hand and in the 9-way e2e. What is left is feel and one measured margin.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | On a real iPhone, with the Select tool armed, is the picked outline's thicker accent-colour stroke easy to tell from the others in daylight, and is the "Circle, Solid — 15 mm radius" line readable without opening the Inspector? (The stroke is only ~1 px thicker than an unpicked one.) | Open | |
+| 2 | On a real phone, does the three-row Sketch toolbar (Select, tools / Hole, Delete, Slices, Extrude / Done, Cancel) leave enough canvas to draw comfortably? The resting reachable canvas measured exactly 69 % (the ui-020 #3 floor), down from 76 %. If it feels cramped, consider moving Slices/Extrude into a menu. | Open | |
+
 ### docs-006 — Docs movie pipeline (2026-10-02 21:05)
 
 The pilot GIF passed its budget and frame checks; whether it reads well to a person is a judgment call.

@@ -474,7 +474,9 @@ let pressStartClientY = 0
  * `CLICK_SLOP_PX`, and left `''` for the rest of a press that never becomes a
  * drag at all (an ordinary click). Sticky for the life of the gesture, same
  * discipline as `effectiveDragMode()`'s own note on `pressShiftKey`.
- * @type {'' | 'orbit' | 'pan' | 'select' | 'marquee' | 'sketch'}
+ * `'sketch-idle'` is a drag under the sketch editor's Select tool: it never draws and never
+ * moves the camera (`TODO/sketch-005`).
+ * @type {'' | 'orbit' | 'pan' | 'select' | 'marquee' | 'sketch' | 'sketch-idle'}
  */
 let gestureKind = ''
 /** Whether the in-progress marquee adds to the selection rather than replacing it. */
@@ -644,6 +646,7 @@ let sketchSyncedDraft = /** @type {object | null} */ (null)
 let sketchSyncedCamera = -1
 let sketchSyncedSize = ''
 let sketchSyncedSelection = ''
+let sketchSyncedHover = ''
 let sketchSyncedSlice = -1
 
 /** The active slice's offset along the sketch's own Z. */
@@ -674,6 +677,7 @@ function syncSketchPaths(force = false) {
     sketchSyncedCamera === orbit.version &&
     sketchSyncedSize === size &&
     sketchSyncedSelection === sketchEditor.selectedProfileId &&
+    sketchSyncedHover === sketchEditor.hoverProfileId &&
     sketchSyncedSlice === sketchEditor.activeSlice
   ) {
     return
@@ -682,6 +686,7 @@ function syncSketchPaths(force = false) {
   sketchSyncedCamera = orbit.version
   sketchSyncedSize = size
   sketchSyncedSelection = sketchEditor.selectedProfileId
+  sketchSyncedHover = sketchEditor.hoverProfileId
   sketchSyncedSlice = sketchEditor.activeSlice
   const frame = sketchEditor.frame
   /** @type {any[]} */
@@ -701,6 +706,7 @@ function syncSketchPaths(force = false) {
         open: profile.kind === 'polyline' && !profile.closed,
         active,
         selected: active && profile.id === sketchEditor.selectedProfileId,
+        hover: active && profile.id === sketchEditor.hoverProfileId,
         visible: path.visible,
         d: path.d,
         badgeX: path.maxXPx + 4,
@@ -885,6 +891,37 @@ function pickSketchProfile(clientXPx, clientYPx) {
   }
   const profiles = sketchEditor.slice?.profiles ?? []
   sketchEditor.selectProfile(profileAtPoint(profiles, [point[0], point[1]], sketchToleranceMm()) ?? '')
+}
+
+/** Where the last hover was resolved, so a mouse that barely moved resolves nothing. */
+let sketchHoverX = -1e9
+let sketchHoverY = -1e9
+
+/**
+ * Highlight the outline under a mouse that has nothing pressed — only while Select is armed,
+ * since that is the tool whose whole job is picking. Hover is a highlight, never a selection
+ * (`TODO/sketch-005`). Skipped for sub-2 px moves: `profileAtPoint` samples every outline.
+ *
+ * @param {number} clientXPx
+ * @param {number} clientYPx
+ */
+function hoverSketchProfile(clientXPx, clientYPx) {
+  if (sketchEditor.tool !== 'select') {
+    if (sketchEditor.hoverProfileId) sketchEditor.hoverProfileId = ''
+    return
+  }
+  if (Math.abs(clientXPx - sketchHoverX) < 2 && Math.abs(clientYPx - sketchHoverY) < 2) return
+  sketchHoverX = clientXPx
+  sketchHoverY = clientYPx
+  const point = projectToSketch(clientXPx, clientYPx)
+  const id = point ? profileAtPoint(sketchEditor.slice?.profiles ?? [], [point[0], point[1]], sketchToleranceMm()) ?? '' : ''
+  if (id !== sketchEditor.hoverProfileId) sketchEditor.hoverProfileId = id
+}
+
+function clearSketchHover() {
+  sketchHoverX = -1e9
+  sketchHoverY = -1e9
+  if (sketchEditor.hoverProfileId) sketchEditor.hoverProfileId = ''
 }
 
 // --- the extrusion preview: built in the worker, superseded, never appended -----------
@@ -1841,10 +1878,10 @@ function applyDrag(dx, dy) {
  * two-finger pan are untouched (they never reach this function), because you
  * still have to be able to get around the plane you are drawing on.
  *
- * @returns {'orbit' | 'pan' | 'select' | 'marquee' | 'sketch'}
+ * @returns {'orbit' | 'pan' | 'select' | 'marquee' | 'sketch' | 'sketch-idle'}
  */
 function decideGestureKind() {
-  if (sketchMode.value) return 'sketch'
+  if (sketchMode.value) return sketchEditor.tool === 'select' ? 'sketch-idle' : 'sketch'
   const marqueeModifier = pressPointerType === 'mouse' && (pressCtrlKey || pressMetaKey)
   const marqueeToggle = dragMode.value === 'select'
   if ((marqueeModifier || marqueeToggle) && !hitsBodyAt(pressStartClientX, pressStartClientY)) {
@@ -1923,7 +1960,11 @@ function pointerSeparation() {
 /** @param {PointerEvent} event */
 function onPointerMove(event) {
   const previous = pointers.get(event.pointerId)
-  if (!previous) return
+  if (!previous) {
+    // A mouse moving over the canvas with nothing pressed: the sketch Select tool's hover.
+    if (sketchMode.value && event.pointerType === 'mouse') hoverSketchProfile(event.clientX, event.clientY)
+    return
+  }
   const dx = event.clientX - previous.x
   const dy = event.clientY - previous.y
   previous.x = event.clientX
@@ -1960,6 +2001,8 @@ function onPointerMove(event) {
       updateSketchDrag(event.clientX, event.clientY)
       return
     }
+    // Select never draws, and the locked camera stays put (`TODO/sketch-005`).
+    if (gestureKind === 'sketch-idle') return
     if (gestureKind === 'marquee') {
       updateMarqueeRect(
         pressStartClientX - viewportRect.left,
@@ -1998,6 +2041,9 @@ function onPointerUp(event) {
   const isClick = wasPressPointer && pressTravelPx <= CLICK_SLOP_PX
   const wasMarquee = wasPressPointer && gestureKind === 'marquee'
   const wasSketch = wasPressPointer && gestureKind === 'sketch'
+  const wasSketchIdle = wasPressPointer && gestureKind === 'sketch-idle'
+  const pressX = pressStartClientX
+  const pressY = pressStartClientY
   pressId = -1
   gestureKind = ''
 
@@ -2006,6 +2052,13 @@ function onPointerUp(event) {
     // than committing a gesture the user never finished — the same rule the
     // marquee and the gizmo drag already follow.
     endSketchDrag(event.type === 'pointercancel')
+    return
+  }
+
+  if (wasSketchIdle) {
+    // A drag under Select drew nothing; the *press* still picks whatever it landed on, so a
+    // finger that wobbled past the tap slop selects instead of doing nothing at all.
+    if (event.type !== 'pointercancel') pickSketchProfile(pressX, pressY)
     return
   }
 
@@ -2343,7 +2396,7 @@ onMounted(() => {
       },
     ),
     watch(
-      () => [sketchEditor.activeSlice, sketchEditor.selectedProfileId],
+      () => [sketchEditor.activeSlice, sketchEditor.selectedProfileId, sketchEditor.hoverProfileId],
       () => {
         syncSketchPaths(true)
         scheduleRender()
@@ -2471,17 +2524,20 @@ onBeforeUnmount(() => {
     :data-sketch-body="sketchEditor.bodyId ?? ''"
     :data-sketch-slice="sketchEditor.activeSlice"
     :data-sketch-selected="sketchEditor.selectedProfileId"
+    :data-sketch-tool="sketchMode ? sketchEditor.tool : ''"
     :data-sketch-preview="sketchEditor.previewStatus"
     :data-sketch-panel="sketchEditor.panel"
   >
     <canvas
       ref="canvasEl"
       class="viewport__canvas"
+      :class="{ 'viewport__canvas--sketch-select': sketchMode && sketchEditor.tool === 'select', 'viewport__canvas--sketch-draw': sketchMode && sketchEditor.tool !== 'select' }"
       data-testid="viewport-canvas"
       @pointerdown="onPointerDown"
       @pointermove="onPointerMove"
       @pointerup="onPointerUp"
       @pointercancel="onPointerUp"
+      @pointerleave="clearSketchHover"
       @wheel="onWheel"
       @contextmenu.prevent
     />
@@ -2626,6 +2682,18 @@ onBeforeUnmount(() => {
 
 .viewport__canvas:active {
   cursor: grabbing;
+}
+
+/* Sketch editor: an arrow to pick with, a crosshair to draw with — never the orbit hand,
+   since a plain drag does not orbit in the editor. */
+.viewport__canvas--sketch-select,
+.viewport__canvas--sketch-select:active {
+  cursor: default;
+}
+
+.viewport__canvas--sketch-draw,
+.viewport__canvas--sketch-draw:active {
+  cursor: crosshair;
 }
 
 /* Present for assistive tech and for tests, drawn by WebGL for everyone else. */

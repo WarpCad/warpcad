@@ -25,9 +25,12 @@
 import { defineStore } from 'pinia'
 import { computed, ref, shallowRef } from 'vue'
 
+import { formatMmValue } from '../core/units.js'
+
 import {
   EXTRUSION_METHODS,
   addProfile,
+  isClosed,
   addSlice,
   emptySketchParams,
   methodProblem,
@@ -43,11 +46,16 @@ import {
 
 /** @typedef {import('../sketch/profile.js').SketchParams} SketchParams */
 /** @typedef {import('../sketch/profile.js').Profile} Profile */
-/** @typedef {'line' | 'rect' | 'circle' | 'polygon'} SketchTool */
+/** @typedef {'select' | 'line' | 'rect' | 'circle' | 'polygon'} SketchTool */
 /** @typedef {'' | 'slices' | 'extrude'} SketchPanel */
 
-/** The tools, in toolbar order. Hardcoded on purpose — see `SketchToolbar.vue`. */
-export const SKETCH_TOOLS = /** @type {readonly SketchTool[]} */ (Object.freeze(['line', 'rect', 'circle', 'polygon']))
+/**
+ * The tools, in toolbar order. Hardcoded on purpose — see `SketchToolbar.vue`.
+ *
+ * `select` is the one that never draws (`TODO/sketch-005`): a press on an outline picks it,
+ * a press on empty canvas clears, and a drag does nothing. The other four draw.
+ */
+export const SKETCH_TOOLS = /** @type {readonly SketchTool[]} */ (Object.freeze(['select', 'line', 'rect', 'circle', 'polygon']))
 
 const IDENTITY_FRAME = Object.freeze([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1])
 
@@ -66,6 +74,8 @@ export const useSketchEditorStore = defineStore('sketchEditor', () => {
   const baseline = shallowRef(/** @type {SketchParams} */ (emptySketchParams()))
   const activeSlice = ref(0)
   const selectedProfileId = ref('')
+  /** The outline under the mouse while Select is armed — a highlight only, never a selection. */
+  const hoverProfileId = ref('')
   const tool = ref(/** @type {SketchTool} */ ('circle'))
   const polygonSides = ref(6)
   /** Which of the Slices / Extrude panels is open — one at a time. */
@@ -84,6 +94,23 @@ export const useSketchEditorStore = defineStore('sketchEditor', () => {
   const selectedProfile = computed(
     () => slice.value?.profiles.find((profile) => profile.id === selectedProfileId.value) ?? null,
   )
+
+  /**
+   * One line naming the selected outline — `Circle, Hole — 15 mm radius` — or `''` with
+   * none selected. The feedback a person gets when the Inspector sheet is closed, which
+   * is always at phone width (`TODO/sketch-005`).
+   */
+  const selectionStatus = computed(() => {
+    const profile = selectedProfile.value
+    if (!profile) return ''
+    const role = profile.role === 'hole' ? 'Hole' : 'Solid'
+    const mm = formatMmValue
+    if (profile.kind === 'circle') return `Circle, ${role} — ${mm(profile.radiusMm)} mm radius`
+    if (profile.kind === 'rect') return `Rectangle, ${role} — ${mm(profile.widthMm)} × ${mm(profile.heightMm)} mm`
+    if (profile.kind === 'polygon') return `Polygon, ${role} — ${profile.sides} sides, ${mm(profile.radiusMm)} mm radius`
+    const count = profile.pointsMm.length
+    return `${isClosed(profile) ? 'Closed' : 'Open'} outline, ${role} — ${count} point${count === 1 ? '' : 's'}`
+  })
 
   /** Why Done is disabled, or `''`. Static checks first, then the kernel's own answer. */
   const doneProblem = computed(() => {
@@ -116,6 +143,7 @@ export const useSketchEditorStore = defineStore('sketchEditor', () => {
     baseline.value = params
     activeSlice.value = 0
     selectedProfileId.value = ''
+    hoverProfileId.value = ''
     panel.value = ''
     chainId.value = ''
     previewStatus.value = 'idle'
@@ -130,6 +158,7 @@ export const useSketchEditorStore = defineStore('sketchEditor', () => {
     active.value = false
     bodyId.value = null
     selectedProfileId.value = ''
+    hoverProfileId.value = ''
     panel.value = ''
     chainId.value = ''
     previewStatus.value = 'idle'
@@ -235,6 +264,7 @@ export const useSketchEditorStore = defineStore('sketchEditor', () => {
     draft,
     activeSlice,
     selectedProfileId,
+    hoverProfileId,
     tool,
     polygonSides,
     panel,
@@ -244,6 +274,7 @@ export const useSketchEditorStore = defineStore('sketchEditor', () => {
     commitError,
     slice,
     selectedProfile,
+    selectionStatus,
     doneProblem,
     methodProblems,
     changed,

@@ -6,8 +6,24 @@ priority: high
 model: sonnet
 milestone: M8
 depends: [sketch-001]
-status: open
+status: done
 ---
+
+> **What shipped (2026-10-03).** Hand repro on the running app (laptop Chromium, real mouse) showed
+> **Problem 1** and **Problem 3**: with the Circle tool armed, an 8 px press on a circle's edge drew a
+> stray third circle (only a press that never moved selected), and there was no toolbar Delete while
+> Delete/Backspace did nothing to the picked outline. **Problem 2** was partial (the picked stroke
+> already drew thicker, but nothing named it and the Inspector sheet is closed at phone width).
+> **Problem 4 did not reproduce**: `profileAtPoint` already picked open chains by stroke and let a stroke
+> beat an interior, so it needed no code change, only regression specs. Shipped as specified: a **Select**
+> tool (first in the tool group, an arrow; a press picks, a drag neither draws nor orbits and still picks
+> the press point), a toolbar **Delete** (trash, 44 px, `sketch-delete`), Delete/Backspace acting on the
+> selected outline while the editor is open (`useDeleteShortcut` yields to the editor), a selection status
+> line (`Circle, Hole — 15 mm radius`), desktop hover highlight under Select, a crosshair/arrow cursor, and
+> the `docs/sketch-mode.md` section with a new `sketch-select-outline.png` shot. One cost to know about:
+> the phone toolbar now wraps to a third row, taking the resting reachable canvas from 76 % to 69 %, the
+> ui-020 #3 floor exactly (logged in `TODO/VERIFY.md`).
+
 
 ## Problem
 

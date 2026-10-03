@@ -29,7 +29,7 @@ import { computed } from 'vue'
 const props = defineProps({
   /**
    * One entry per outline in the draft: `{ key, id, sliceIndex, role, closed, open,
-   * active, selected, visible, d, badgeX, badgeY }`.
+   * active, selected, hover, visible, d, badgeX, badgeY }`.
    */
   paths: { type: Array, required: true },
   /** The outline being dragged out right now: `{ visible, d, closed }`. */
@@ -54,12 +54,14 @@ const list = computed(() => /** @type {any[]} */ (props.paths))
           'sketch__path--open': path.open,
           'sketch__path--ghost': !path.active,
           'sketch__path--selected': path.selected,
+          'sketch__path--hover': path.hover && !path.selected,
         }"
         :data-testid="path.active ? `sketch-profile-${path.id}` : `sketch-ghost-${path.sliceIndex}-${path.id}`"
         :data-profile-id="path.id"
         :data-role="path.role"
         :data-closed="path.closed ? 'true' : 'false'"
         :data-selected="path.selected ? 'true' : 'false'"
+        :data-hover="path.hover ? 'true' : 'false'"
         :data-slice="path.sliceIndex"
         :d="path.d"
       />
@@ -114,6 +116,12 @@ const list = computed(() => /** @type {any[]} */ (props.paths))
 .sketch__path--selected {
   stroke: var(--accent);
   stroke-width: 2.75;
+}
+
+.sketch__path--hover {
+  stroke: var(--accent);
+  stroke-opacity: 0.7;
+  stroke-width: 2.25;
 }
 
 .sketch__path--draft {

@@ -15,8 +15,9 @@
  * menu that dumped every registered feature into one dropdown. Each tool here is named,
  * deliberately.
  *
- * Contents, in order: the four drawing tools; the **Hole** toggle for the selected
- * outline; **Slices** and **Extrude ▾**, which open their panels (a bottom sheet on a
+ * Contents, in order: **Select** (an arrow — it never draws) and the four drawing tools;
+ * the **Hole** toggle and **Delete** (a trash can) for the selected outline, both disabled
+ * until exactly one outline is picked (`TODO/sketch-005`); **Slices** and **Extrude ▾**, which open their panels (a bottom sheet on a
  * narrow viewport); **Done** and **Cancel**. Done is disabled with its reason printed
  * underneath whenever the draft can't be built — the document never holds a body the
  * kernel can't build.
@@ -32,6 +33,7 @@ const commands = useSketchEditorCommands()
 
 /** @type {Record<string, { glyph: string, label: string, hint: string }>} */
 const TOOL_INFO = Object.freeze({
+  select: { glyph: '', label: 'Select', hint: 'Tap an outline to pick it, then change or delete it; tap empty canvas to clear. Never draws' },
   line: { glyph: '╱', label: 'Line', hint: 'Drag to draw a segment; drag from its end to continue; finish on the first point to close it' },
   rect: { glyph: '▭', label: 'Rectangle', hint: 'Drag from one corner to the opposite corner' },
   circle: { glyph: '◯', label: 'Circle', hint: 'Drag from the centre out to the rim' },
@@ -89,7 +91,10 @@ function onSides(event) {
           :data-testid="`sketch-tool-${tool}`"
           @click="editor.setTool(tool)"
         >
-          {{ TOOL_INFO[tool].glyph }}
+          <svg v-if="tool === 'select'" class="sketch-toolbar__icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M5 3 L5 19 L9.2 15 L12 21.5 L14.6 20.3 L11.8 14 L17.5 14 Z" />
+          </svg>
+          <template v-else>{{ TOOL_INFO[tool].glyph }}</template>
         </button>
         <input
           v-if="editor.tool === 'polygon'"
@@ -119,6 +124,20 @@ function onSides(event) {
         @click="toggleHole"
       >
         Hole
+      </button>
+
+      <button
+        type="button"
+        class="sketch-toolbar__btn sketch-toolbar__btn--icon"
+        :disabled="!selected"
+        aria-label="Delete outline"
+        :title="selected ? 'Delete the selected outline (Delete or Backspace)' : 'Pick an outline with Select first, then delete it'"
+        data-testid="sketch-delete"
+        @click="editor.deleteSelected()"
+      >
+        <svg class="sketch-toolbar__icon" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M4 7 H20 M9 7 V4.5 H15 V7 M6.5 7 L7.5 20 H16.5 L17.5 7 M10 10.5 V16.5 M14 10.5 V16.5" />
+        </svg>
       </button>
 
       <button
@@ -164,6 +183,9 @@ function onSides(event) {
         Cancel
       </button>
     </div>
+    <p v-if="editor.selectionStatus" class="sketch-toolbar__selection" data-testid="sketch-selection-status" role="status">
+      {{ editor.selectionStatus }}
+    </p>
     <p
       v-if="status.text"
       class="sketch-toolbar__status"
@@ -229,6 +251,22 @@ function onSides(event) {
   line-height: 1;
 }
 
+.sketch-toolbar__icon {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vertical-align: middle;
+}
+
+/* The arrow is a solid shape, not a line drawing. */
+.sketch-toolbar__btn--tool .sketch-toolbar__icon {
+  fill: currentColor;
+}
+
 .sketch-toolbar__btn--on {
   background: var(--accent);
   border-color: var(--accent);
@@ -277,6 +315,15 @@ function onSides(event) {
   color: var(--text-3);
 }
 
+.sketch-toolbar__selection {
+  margin: 0;
+  padding: 0 2px;
+  font-size: 12px;
+  line-height: 1.35;
+  font-weight: 600;
+  color: var(--accent);
+}
+
 .sketch-toolbar__status--warn {
   color: var(--warn);
 }
@@ -313,6 +360,14 @@ function onSides(event) {
   .sketch-toolbar__btn--tool {
     padding: 0;
     font-size: 16px;
+  }
+
+  /* Select and Delete are the two controls a finger needs most and a keyboard cannot
+     stand in for, so they keep the full 44 px target the rest of the row gives up. */
+  .sketch-toolbar__btn[data-testid='sketch-tool-select'],
+  .sketch-toolbar__btn[data-testid='sketch-delete'] {
+    min-height: var(--tap);
+    min-width: var(--tap);
   }
 
   .sketch-toolbar__sides {

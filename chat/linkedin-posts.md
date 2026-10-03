@@ -1691,3 +1691,17 @@ The diagrams use fixed fills with white text, so they stay readable in GitHub's 
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** launch slot is a placeholder → README.md in diff (no git remote this session); 6 GIFs and 3 screenshots → grep of README.md this session; jscad-utils February 2016 → git log first commit 2016-02-27; second attempt 231 commits → git rev-list in ~/src/WarpCad1 this session; PiPiece, Pro plan difficult, learning goal → user's own words this session; fixed fills readable in both modes → intent of the change, not yet viewed on GitHub (wording is about design, not a measured result)
 **To Add:** the cube-selected screenshot, the rendered timeline
+
+## 2026-10-03T01:40:00Z — Sketch editor: select, edit and delete an existing outline
+
+**Post:** My own hand-testing of WarpCad's sketch editor turned up a gap the tests had missed: I could draw outlines but not pick one afterwards to edit or delete it. Reproducing it on the running app showed why. A draw tool was always armed, so pressing on a circle's edge and moving about eight pixels drew a stray third circle instead of picking anything, and the Delete key did nothing to the picked outline.
+
+The fix is an arrow Select tool that never draws, a trash button in the toolbar for touch screens that have no Delete key, and a one-line status under the toolbar ("Circle, Hole — 15 mm radius") so a phone user gets feedback with the Inspector closed. Delete and Backspace now act on the selected outline while the editor is open, not on the body underneath. The desktop mouse also highlights the outline it is over.
+
+The pick-and-delete flow is covered by real-mouse specs on all three browser engines and by a trusted-touch run on the phone viewport. One cost showed up in the hand-drive: the phone toolbar now wraps to a third row, and the drawing area left at rest dropped to exactly the 69% floor I set earlier. Built with Claude Code, reviewed by me.
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL #Playwright
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** couldn't pick an outline to edit/delete → TODO/done/sketch-005 Problem text; draw tool armed, ~8 px press drew a stray third circle, Delete key did nothing → hand repro this session; Select tool, trash button, status line, hover, Delete/Backspace yielding to the editor → diff; real-mouse specs on three engines, trusted touch at phone → e2e/sketch-primitive.e2e.js in diff, full e2e 2484 passed this session; phone toolbar third row and 69% reachable (was 76%) → hand-drive measurement this session and the sketch-001 figure in TODO/ACCEPTANCE.md
+**To Add:** docs/screenshots/sketch-select-outline.png
+

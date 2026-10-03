@@ -4,6 +4,8 @@
  * mounted once from the root view rather than from the Inspector, because it has to
  * work while the Inspector sheet is collapsed (a tablet with a keyboard).
  *
+ * Inside the sketch editor they delete the selected outline instead (`TODO/sketch-005`).
+ *
  * Ignored when focus is in a text field (the shared `isTextEntry` guard Ctrl/Cmd+Z
  * uses): without it, Backspace while correcting a Position digit would delete the
  * body. Ignored with any modifier held, and on key auto-repeat, so holding the key
@@ -15,11 +17,13 @@
 
 import { onBeforeUnmount, onMounted } from 'vue'
 
+import { useSketchEditorStore } from '../stores/sketchEditor.js'
 import { isTextEntry } from './textEntry.js'
 import { useDeleteCommands } from './useDeleteCommands.js'
 
 export function useDeleteShortcut() {
   const commands = useDeleteCommands()
+  const sketchEditor = useSketchEditorStore()
 
   /** @param {KeyboardEvent} event */
   function onKeydown(event) {
@@ -27,6 +31,16 @@ export function useDeleteShortcut() {
     if (event.ctrlKey || event.metaKey || event.altKey || event.shiftKey) return
     if (event.repeat || event.defaultPrevented) return
     if (isTextEntry(event.target)) return
+    // While the sketch editor is open the keys belong to it (`TODO/sketch-005`): they remove
+    // the selected *outline* from the draft, and never fall through to the body underneath —
+    // `useDeleteCommands` is disabled in the editor, but a future reader should not have to
+    // rely on that to know a stray Backspace cannot delete a part.
+    if (sketchEditor.active) {
+      if (!sketchEditor.selectedProfileId) return
+      event.preventDefault()
+      sketchEditor.deleteSelected()
+      return
+    }
     if (!commands.enabled.value) return
     event.preventDefault()
     commands.run()

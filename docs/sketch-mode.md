@@ -28,9 +28,11 @@ While the sketch editor is open:
   draws; two fingers still pan and pinch-zoom;
 - the camera stays square-on to the sketch: the orientation triad's view buttons are
   off, and the navigation arrows **pan** rather than orbit;
-- **Undo**, **Redo** and **Delete** are off until you tap **Done** or **Cancel**, because
-  nothing you've drawn is in the model yet. The whole editing session then becomes one
-  step you can undo;
+- **Undo**, **Redo** and the shape-level **Delete** are off until you tap **Done** or
+  **Cancel**, because nothing you've drawn is in the model yet. The whole editing session
+  then becomes one step you can undo. Inside the editor the toolbar's own **Delete** (and
+  the Delete / Backspace keys) remove the selected *outline*, never the shape underneath
+  (see Selecting, editing and deleting an outline, below);
 - on a phone, the navigation pad folds to a single **✥** button so the drawing area
   stays clear. Tap it to get the arrows and zoom back.
 
@@ -46,9 +48,42 @@ or a finger.
 | **Circle** | ◯ | Centre out to the rim | A closed circle |
 | **Polygon** | ⬡ | Centre out to a corner | A regular polygon. Set how many sides in the box that appears next to the tool. 6 gives you a hexagon. |
 
-A drag that hardly moves draws nothing. A tap without dragging **selects** the outline
-under your finger or pointer. Inside two outlines, the smaller one wins, which is how
-you pick the inner of two circles. Tap empty grid to deselect.
+A drag that hardly moves draws nothing. With one of these tools armed, a tap without
+dragging **selects** the outline under your finger or pointer, and a drag draws, even
+when it starts on an existing outline. To pick an outline without any risk of drawing,
+use the **Select** tool (next section).
+
+## Selecting, editing and deleting an outline
+
+The first button in the tool group, an arrow, is **Select**. It never draws.
+
+- **Pick** an outline: tap or click its edge (within about a finger's width), or tap
+  anywhere inside a closed outline. Where a tap could mean two outlines, the edge you are
+  nearest to wins; inside two outlines the **smaller** one wins, which is how you pick the
+  inner of two circles. An open Line outline is picked by its line.
+- **See** what you picked: it draws thicker and in the accent colour, a Hole also shows a
+  small "hole" label, and a line under the toolbar names it, for example *Circle, Hole —
+  15 mm radius*. On a computer the outline under the mouse is lightly highlighted before
+  you click. On a phone the Inspector stays closed so the drawing area is not covered, and
+  the line under the toolbar is your confirmation. Tap **Sketch** at the bottom to open the
+  Inspector.
+- **Change** it: **Hole** in the toolbar switches Solid and Hole, and the Inspector has
+  the outline's numbers (see below).
+- **Delete** it: tap the trash button **Delete** in the toolbar, or press Delete or
+  Backspace on a keyboard. Both are greyed out until exactly one outline is picked. It
+  removes that outline from the drawing only, and it is part of the editor's one undo
+  step, so **Cancel** brings it back and **Done** commits the result.
+- **Clear** the selection: tap empty grid.
+
+A drag that starts on an outline while Select is armed does not draw, and does not turn the
+camera either; the press still picks whatever it landed on.
+
+![The Sketch toolbar with Select armed and a circle picked: the circle is thick, and the line under the toolbar reads Circle, Solid](./screenshots/sketch-select-outline.png)
+
+**Example.** Draw two circles with **Circle**. Tap **Select**, then tap the larger
+circle's edge: it turns thick and the status line reads *Circle, Solid — 20 mm radius*.
+Tap **Hole** to make it a hole (its outline turns dashed and the status says *Hole*),
+then tap **Delete** to remove it. Tap empty grid to clear the selection.
 
 ## Solid and Hole
 
@@ -64,10 +99,11 @@ stays as an island.
 
 ## Changing an outline's size
 
-Select an outline, then look in the **Inspector**. On a phone, tap the **Sketch** tab at
+Pick an outline with **Select**, then look in the **Inspector**. On a phone, tap the **Sketch** tab at
 the bottom. It shows the outline's kind, Solid or Hole, and its numbers: a circle's centre
 and radius, a rectangle's centre, width and height, a polygon's centre, radius, sides
-and rotation. Type a value and press Enter. **Delete outline** removes it. Dragging
+and rotation. Type a value and press Enter. **Delete outline** removes it, the same as the
+toolbar's **Delete**. Dragging
 individual points of an outline is not available yet.
 
 ## Slices

@@ -1230,3 +1230,13 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** README covers purpose, JSCAD v1 roots, PiPiece, two shelved attempts → README.md in diff; Pro plan and PiPiece as a second purpose → user's own words this session
 **To Add:** the cube-selected screenshot
+
+## 2026-10-03T01:40:00Z — Sketch editor: a Select tool, and a Delete that deletes the outline
+
+**Post:** Hand-testing WarpCad's sketch editor, I couldn't pick a drawn outline and delete it. With a draw tool armed, pressing on a circle's edge and moving a few pixels drew a stray new circle. Now there's an arrow Select tool, a trash button, and a line naming what's picked. Built with Claude Code, reviewed by me. #CAD #WebGL
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** couldn't select and delete an outline → TODO/done/sketch-005 Problem text (user's hand-use finding); 8 px press drew a stray third circle → hand repro this session, count 2 to 3; Select tool, trash button, status line → diff (SketchToolbar.vue, sketchEditor.js)
+**To Add:** docs/screenshots/sketch-select-outline.png
+

@@ -330,6 +330,201 @@ test('a press on a drawn outline still draws — the overlay never swallows the 
   await expect(page.getByTestId('sketch-strokes')).toHaveAttribute('data-path-count', '2')
 })
 
+const BIG_SOLID = /^Circle, Solid — (19|20|21)(\.\d+)? mm radius$/
+
+/**
+ * Two circles to pick between: r20 at the origin, r12 centred 45 mm above it (stacked, not
+ * side by side: the tablet reference's viewport column is only 390 px wide). Returns a point
+ * on each stroke in client pixels.
+ *
+ * @param {import('@playwright/test').Page} page
+ */
+async function drawTwoCircles(page) {
+  await drawCircle(page, 20)
+  await drawCircle(page, 12, 0, 45)
+  await expect(page.getByTestId('sketch-strokes')).toHaveAttribute('data-path-count', '2')
+  const { cx, cy, pxPerMm } = await sketchScreen(page)
+  return {
+    big: { x: cx + 20 * pxPerMm, y: cy },
+    small: { x: cx, y: cy - 57 * pxPerMm },
+    empty: { x: cx + 40 * pxPerMm, y: cy + 30 * pxPerMm },
+    pxPerMm,
+    cx,
+    cy,
+  }
+}
+
+test('Select tool: a real click on an outline picks it, shows it and names it; a click on empty canvas clears (TODO/sketch-005)', async ({ page }, info) => {
+  await openNewSketch(page)
+  const pts = await drawTwoCircles(page)
+  const bar = page.getByTestId('sketch-toolbar')
+  // Select is the first tool in the group, an arrow, at least 44 px square.
+  const tools = bar.getByRole('group', { name: 'Sketch tools' }).locator('button')
+  await expect(tools.first()).toHaveAttribute('data-testid', 'sketch-tool-select')
+  const box = await page.getByTestId('sketch-tool-select').boundingBox()
+  expect(Math.min(box?.width ?? 0, box?.height ?? 0)).toBeGreaterThanOrEqual(43.5)
+  await expect(page.getByTestId('sketch-delete')).toBeDisabled()
+
+  await page.getByTestId('sketch-tool-select').click()
+  await expect(bar).toHaveAttribute('data-tool', 'select')
+
+  await page.mouse.click(pts.big.x, pts.big.y)
+  await expect(page.getByTestId('sketch-profile-p1')).toHaveAttribute('data-selected', 'true')
+  // The radius was dragged by hand, so it carries ±1 px of pointer quantisation.
+  await expect(page.getByTestId('sketch-selection-status')).toHaveText(BIG_SOLID)
+  await expect(page.getByTestId('sketch-delete')).toBeEnabled()
+  // Selecting never opens the Inspector sheet by itself (ui-020 #3).
+  if (isPhone(info)) await expect(page.getByTestId('inspector')).toHaveAttribute('data-open', 'false')
+
+  await page.mouse.click(pts.small.x, pts.small.y)
+  await expect(page.getByTestId('sketch-profile-p2')).toHaveAttribute('data-selected', 'true')
+  await expect(page.getByTestId('sketch-profile-p1')).toHaveAttribute('data-selected', 'false')
+  await expect(page.getByTestId('sketch-selection-status')).toHaveText(/^Circle, Solid — (11|12|13)(\.\d+)? mm radius$/)
+
+  await page.mouse.click(pts.empty.x, pts.empty.y)
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-sketch-selected', '')
+  await expect(page.getByTestId('sketch-selection-status')).toHaveCount(0)
+  await expect(page.getByTestId('sketch-delete')).toBeDisabled()
+  mkdirSync(SNAPSHOT_DIR, { recursive: true })
+  await page.mouse.click(pts.big.x, pts.big.y)
+  await page.screenshot({ path: join(SNAPSHOT_DIR, `${info.project.name}-select.png`) })
+})
+
+test('Select tool never draws: a press-and-drag that starts on a stroke adds no outline (TODO/sketch-005)', async ({ page }) => {
+  await openNewSketch(page)
+  const pts = await drawTwoCircles(page)
+  await page.getByTestId('sketch-tool-select').click()
+  // The very drag that, with the Circle tool armed, drew a stray third circle in the hand repro.
+  await mouseDrag(page, pts.big.x, pts.big.y, pts.big.x + 6, pts.big.y + 6)
+  await mouseDrag(page, pts.big.x, pts.big.y, pts.big.x + 15 * pts.pxPerMm, pts.big.y - 10 * pts.pxPerMm)
+  await expect(page.getByTestId('sketch-strokes')).toHaveAttribute('data-path-count', '2')
+  await expect(page.getByTestId('sketch-draft')).toBeHidden()
+  // The press itself picked what it landed on.
+  await expect(page.getByTestId('sketch-profile-p1')).toHaveAttribute('data-selected', 'true')
+  // And the camera did not move under the drag: orbit stays suspended in the editor.
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-camera-elevation', '90.00')
+})
+
+test('a draw tool still picks on a tap and still draws on a drag that starts on a stroke (TODO/sketch-005)', async ({ page }) => {
+  await openNewSketch(page)
+  const pts = await drawTwoCircles(page)
+  await page.getByTestId('sketch-tool-rect').click()
+  await page.mouse.click(pts.small.x, pts.small.y)
+  await expect(page.getByTestId('sketch-profile-p2')).toHaveAttribute('data-selected', 'true')
+  await expect(page.getByTestId('sketch-selection-status')).toContainText('Circle, Solid')
+  await expect(page.getByTestId('sketch-strokes')).toHaveAttribute('data-path-count', '2')
+  await mouseDrag(page, pts.big.x, pts.big.y, pts.big.x + 15 * pts.pxPerMm, pts.big.y - 10 * pts.pxPerMm)
+  await expect(page.getByTestId('sketch-strokes')).toHaveAttribute('data-path-count', '3')
+})
+
+test('an open Line chain is pickable by its stroke, and deletable (TODO/sketch-005)', async ({ page }) => {
+  await openNewSketch(page)
+  await page.getByTestId('sketch-tool-line').click()
+  const { cx, cy, pxPerMm } = await sketchScreen(page)
+  await mouseDrag(page, cx, cy, cx + 40 * pxPerMm, cy)
+  await mouseDrag(page, cx + 40 * pxPerMm, cy, cx + 40 * pxPerMm, cy - 30 * pxPerMm)
+  await page.getByTestId('sketch-tool-select').click()
+  await page.mouse.click(cx + 20 * pxPerMm, cy + 2)
+  await expect(page.getByTestId('sketch-selection-status')).toContainText('Open outline, Solid — 3 points')
+  await page.getByTestId('sketch-delete').click()
+  await expect(page.getByTestId('sketch-strokes')).toHaveAttribute('data-path-count', '0')
+})
+
+test('Hole then Delete: the toolbar Delete removes only the selected outline, and the keys do the same (TODO/sketch-005)', async ({ page }) => {
+  await openNewSketch(page)
+  const pts = await drawTwoCircles(page)
+  await page.getByTestId('sketch-tool-select').click()
+  await page.mouse.click(pts.big.x, pts.big.y)
+  await page.getByTestId('sketch-role-toggle').click()
+  await expect(page.getByTestId('sketch-selection-status')).toHaveText(/^Circle, Hole — (19|20|21)(\.\d+)? mm radius$/)
+  await expect(page.getByTestId('sketch-hole-badge')).toBeVisible()
+  await page.getByTestId('sketch-delete').click()
+  await expect(page.getByTestId('sketch-strokes')).toHaveAttribute('data-path-count', '1')
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-sketch-selected', '')
+  await expect(page.getByTestId('sketch-delete')).toBeDisabled()
+
+  // The keyboard path, on a pointer that has a keyboard: Delete, and Backspace.
+  await page.mouse.click(pts.small.x, pts.small.y)
+  await expect(page.getByTestId('sketch-delete')).toBeEnabled()
+  await page.keyboard.press('Delete')
+  await expect(page.getByTestId('sketch-strokes')).toHaveAttribute('data-path-count', '0')
+  await drawCircle(page, 10)
+  await page.getByTestId('sketch-tool-select').click()
+  await page.mouse.click(pts.cx + 10 * pts.pxPerMm, pts.cy)
+  await page.keyboard.press('Backspace')
+  await expect(page.getByTestId('sketch-strokes')).toHaveAttribute('data-path-count', '0')
+})
+
+test('Delete in the editor never touches the body underneath (TODO/sketch-005)', async ({ page }, info) => {
+  await dropRow(page, 'primitive.cuboid', 0.3, 0.4)
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-body-count', '1')
+  await openNewSketch(page, 0.7, 0.4)
+  await drawCircle(page, 15)
+  await page.getByTestId('sketch-tool-select').click()
+  const { cx, cy, pxPerMm } = await sketchScreen(page)
+  await page.mouse.click(cx + 15 * pxPerMm, cy)
+  await page.keyboard.press('Delete')
+  await expect(page.getByTestId('sketch-strokes')).toHaveAttribute('data-path-count', '0')
+  // Pressing it again with nothing selected is a no-op, not a body delete.
+  await page.keyboard.press('Delete')
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-body-count', '1')
+  void info
+})
+
+test('Edit sketch → Select, Delete → Cancel restores the body; → Done is exactly one undo step (TODO/sketch-005)', async ({ page }, info) => {
+  await openNewSketch(page)
+  await drawTube(page)
+  await page.getByTestId('sketch-done').click()
+  const [before] = await sceneBodies(page)
+  const undoTitle = await page.getByTestId('undo-button').getAttribute('title')
+
+  const reopen = async () => {
+    if (isPhone(info) && (await page.getByTestId('inspector-edit-sketch').isHidden())) await page.getByTestId('inspector-tab').click()
+    await page.getByTestId('inspector-edit-sketch').click()
+    await expect(page.getByTestId('viewport')).toHaveAttribute('data-sketch-mode', 'true')
+  }
+  const deleteTheHole = async () => {
+    await page.getByTestId('sketch-tool-select').click()
+    const { cx, cy, pxPerMm } = await sketchScreen(page)
+    // The bore's rim at +X, 15 mm out — nearer than the 20 mm outer rim by more than the tolerance.
+    await page.mouse.click(cx + 15 * pxPerMm, cy)
+    await expect(page.getByTestId('sketch-selection-status')).toContainText('Hole')
+    await page.getByTestId('sketch-delete').click()
+    await expect(page.getByTestId('sketch-strokes')).toHaveAttribute('data-path-count', '1')
+  }
+
+  await reopen()
+  await deleteTheHole()
+  await page.getByTestId('sketch-cancel').click()
+  const [cancelled] = await sceneBodies(page)
+  expect(cancelled.volume).toBeCloseTo(before.volume, 3)
+  await expect(page.getByTestId('undo-button')).toHaveAttribute('title', undoTitle ?? '')
+
+  await reopen()
+  await deleteTheHole()
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-sketch-preview', 'ok')
+  await page.getByTestId('sketch-done').click()
+  // No bore any more: a solid disc, so the volume grew.
+  await expect.poll(async () => (await sceneBodies(page))[0].volume).toBeGreaterThan(before.volume * 1.5)
+  await page.getByTestId('undo-button').click()
+  await expect.poll(async () => (await sceneBodies(page))[0].volume).toBeCloseTo(before.volume, 3)
+})
+
+test('desktop only: the outline under the mouse highlights before it is clicked (TODO/sketch-005)', async ({ page }, info) => {
+  test.skip(info.project.name.endsWith('-phone') || info.project.name.endsWith('-tablet'), 'hover is a mouse affordance; the laptop project drives it')
+  await openNewSketch(page)
+  const pts = await drawTwoCircles(page)
+  await page.getByTestId('sketch-tool-select').click()
+  await page.mouse.move(pts.small.x - 40, pts.small.y - 40)
+  await page.mouse.move(pts.small.x, pts.small.y + 2, { steps: 5 })
+  await expect(page.getByTestId('sketch-profile-p2')).toHaveAttribute('data-hover', 'true')
+  await expect(page.getByTestId('sketch-profile-p1')).toHaveAttribute('data-hover', 'false')
+  // Hover is not selection.
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-sketch-selected', '')
+  await page.mouse.move(pts.empty.x, pts.empty.y, { steps: 5 })
+  await expect(page.getByTestId('sketch-profile-p2')).toHaveAttribute('data-hover', 'false')
+})
+
 test('the Sketch toolbar never meets the orientation gizmo, at any width (ui-020 finding #2)', async ({ page }) => {
   await openNewSketch(page)
   const bar = await page.getByTestId('sketch-toolbar').boundingBox()
@@ -398,6 +593,48 @@ test('touch only: a finger draws a circle and taps it, at the phone viewport', a
   await expect(page.getByTestId('viewport')).not.toHaveAttribute('data-sketch-selected', '')
   await page.getByTestId('sketch-role-toggle').tap()
   await expect(page.locator('[data-testid^="sketch-profile-"][data-role="hole"]')).toHaveCount(1)
+})
+
+test('touch only: Select tool picks with a finger, and the toolbar Delete removes it — no keyboard (TODO/sketch-005)', async ({ page, browserName }, info) => {
+  test.skip(!isPhone(info), 'the touch pass runs at the phone reference')
+  test.skip(browserName !== 'chromium', 'a trusted touch *drag* needs CDP Input.dispatchTouchEvent, which only Chromium exposes')
+  const cdp = await page.context().newCDPSession(page)
+  /** @param {[number, number][]} points */
+  const touchDrag = async (points) => {
+    const [first, ...rest] = points
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: first[0], y: first[1] }] })
+    for (const [x, y] of rest) await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x, y }] })
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] })
+  }
+  await openLibrary(page)
+  const row = await page.getByTestId('library-row-primitive.sketch').boundingBox()
+  const view = await page.getByTestId('viewport').boundingBox()
+  if (!row || !view) throw new Error('no row or viewport')
+  const to = [view.x + view.width / 2, view.y + view.height * 0.35]
+  const from = [row.x + row.width / 2, row.y + row.height / 2]
+  await touchDrag(Array.from({ length: 12 }, (_, i) => /** @type {[number, number]} */ ([from[0] + ((to[0] - from[0]) * i) / 11, from[1] + ((to[1] - from[1]) * i) / 11])))
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-sketch-mode', 'true')
+  await page.getByTestId('sketch-tool-circle').tap()
+  const { cx, cy, pxPerMm } = await sketchScreen(page)
+  await touchDrag(Array.from({ length: 10 }, (_, i) => /** @type {[number, number]} */ ([cx + (20 * pxPerMm * i) / 9, cy])))
+  await touchDrag(Array.from({ length: 10 }, (_, i) => /** @type {[number, number]} */ ([cx - 60 * pxPerMm, cy + (12 * pxPerMm * i) / 9])))
+  await expect(page.getByTestId('sketch-strokes')).toHaveAttribute('data-path-count', '2')
+
+  await page.getByTestId('sketch-tool-select').tap()
+  // A finger's press travels a pixel or three: land it on the first circle's rim.
+  await page.touchscreen.tap(cx + 20 * pxPerMm + 2, cy + 3)
+  await expect(page.getByTestId('sketch-profile-p1')).toHaveAttribute('data-selected', 'true')
+  await expect(page.getByTestId('sketch-selection-status')).toHaveText(BIG_SOLID)
+  await expect(page.getByTestId('inspector')).toHaveAttribute('data-open', 'false')
+  // A finger drag that starts on the rim, under Select, draws nothing.
+  await touchDrag([[cx + 20 * pxPerMm, cy], [cx + 20 * pxPerMm + 10, cy + 8], [cx + 20 * pxPerMm + 40, cy + 30]])
+  await expect(page.getByTestId('sketch-strokes')).toHaveAttribute('data-path-count', '2')
+  await page.getByTestId('sketch-delete').tap()
+  await expect(page.getByTestId('sketch-strokes')).toHaveAttribute('data-path-count', '1')
+  await expect(page.getByTestId('sketch-delete')).toBeDisabled()
+  // The Delete button is a full-size tap target and clear of the gizmo, the whole time.
+  const del = await page.getByTestId('sketch-delete').boundingBox()
+  expect(Math.min(del?.width ?? 0, del?.height ?? 0)).toBeGreaterThanOrEqual(43.5)
 })
 
 test('an old project holding ui-020 sketch.line records opens, skipping each one with a warning (no migration)', async ({ page }) => {

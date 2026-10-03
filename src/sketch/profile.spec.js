@@ -291,6 +291,32 @@ describe('profileAtPoint — editor picking', () => {
     expect(profileAtPoint([open], [5, 0.2], 0.5)).toBe('open')
     expect(profileAtPoint([open], [5, 3], 0.5)).toBeNull()
   })
+
+  it('an open chain is selectable along every segment, and never by "inside" it', () => {
+    const chain = { id: 'chain', kind: 'polyline', role: 'solid', closed: false, pointsMm: [[0, 0], [10, 0], [10, 10], [0, 10]] }
+    expect(profileAtPoint([chain], [10, 5], 0.5)).toBe('chain')
+    expect(profileAtPoint([chain], [5, 10.2], 0.5)).toBe('chain')
+    // The open "C" encloses (5, 5) visually but is not a closed outline: no interior to hit.
+    expect(profileAtPoint([chain], [5, 5], 0.5)).toBeNull()
+  })
+
+  it('a stroke beats an interior: a tap on a small circle\'s edge picks it, not the big circle around it', () => {
+    const profiles = [circle('big', 'solid', 50), circle('small', 'solid', 10)]
+    expect(profileAtPoint(profiles, [10, 0], 0.5)).toBe('small')
+    // And on the big circle's stroke, away from the small one, the big one.
+    expect(profileAtPoint(profiles, [50, 0], 0.5)).toBe('big')
+  })
+
+  it('of two strokes both within tolerance, the nearer wins', () => {
+    const profiles = [circle('a', 'solid', 20), circle('b', 'solid', 20.4)]
+    expect(profileAtPoint(profiles, [20.35, 0], 0.5)).toBe('b')
+    expect(profileAtPoint(profiles, [20.05, 0], 0.5)).toBe('a')
+  })
+
+  it('nothing to pick: no profiles, or every one out of reach', () => {
+    expect(profileAtPoint([], [0, 0], 0.5)).toBeNull()
+    expect(profileAtPoint([circle('a', 'solid', 5)], [30, 30], 0.5)).toBeNull()
+  })
 })
 
 describe('validateSketchParams — untrusted input never throws past a reason', () => {
