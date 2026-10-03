@@ -1771,3 +1771,14 @@ Every clip ends by checking its result against the kernel's own numbers. Enlarge
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** 7 animations and 4 stills → diff (docs/media/, docs/screenshots/); end-state assertions → e2e/docs/fillet-chamfer.docs.js and resize-bisect.docs.js; lug stayed at Z 8 after Enlarge and Fit → probe output this session (plate top 16, lug bounds unchanged); angled cut centres 15.77 and 24.23 → hand drive this session, TODO/ACCEPTANCE.md
 **To Add:** docs/media/fillet-operation.gif, docs/media/bisect-angled.gif
+
+## 2026-10-03T15:55:00Z — Docs: the parts catalogue (hardware, kit parts, Raspberry Pi), the bill of materials and resolution, with pictures
+
+**Post:** WarpCad has a new docs page for its real-parts Library: bolts, nuts, washers and bearings at the sizes you would buy, kit blocks, and Raspberry Pi boards and accessories. Drag a Bolt in, switch it to M12 and 30 mm in the Inspector, and the bill of materials reads one M12 hex bolt, 30 mm. Another clip selects a plate and a Pi's hidden mounting-hole part, presses Subtract, and the plate gets a 3.25 mm hole exactly where the board's hole is.
+
+Writing it turned up two gaps worth being honest about. The Library has no Screw row yet, so the screw family is only reachable from a saved project. And Subtract uses up both parts, so four holes means four Pis. Both are on my list. Each clip ends by checking its result against the kernel's numbers (the plate's volume drops by about 25 mm3, its outline does not change). Built with Claude Code, reviewed by me.
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL #RaspberryPi
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** 13 pictures and clips plus a new page → diff (docs/hardware-library.md, docs/media/, docs/screenshots/); plate volume drop and outline → e2e/docs/hardware-library.docs.js; no Screw row → src/core/kernel/registry.js (no ui block on hardware.screw); scenarios 2, 3 and 5 → hand drive this session, TODO/ACCEPTANCE.md
+**To Add:** docs/media/rpi-mounting-holes.gif, docs/media/hardware-drag-bolt.gif

@@ -27,6 +27,11 @@ stays about the same at any size.
 
 ## The four settings
 
+The same 60 mm cylinder seen from above at **Draft** (left) and **Print** (right): the flat
+sides you can count on the left have all but disappeared on the right.
+
+![One cylinder at Draft, with visible straight sides, and at Print, nearly round.](./screenshots/resolution-low-vs-high.png)
+
 Each setting promises that no flat sits more than a fixed distance inside the true
 circle. Across a whole hole that gap counts twice, which is why the table above shows
 numbers about double these.
@@ -48,6 +53,8 @@ changes its shape. It only appears in the list while it is the active setting. P
 other setting to move off it.
 
 ## Changing the design's resolution
+
+![The Resolution panel under the File menu: Draft, Normal (selected), Fine and Print, each with its Ø20 hole side count.](./screenshots/resolution-popover.png)
 
 1. Open **File ▾** in the top bar. Near the bottom, under **Design**, the row reads
    **Resolution: Normal…**, which is your current setting.

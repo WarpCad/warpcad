@@ -220,5 +220,23 @@
     "specHash": "5a1a2ed3073ea0830edaa27227ecab7f1e916992a75d6b0f0088fe1d9bd48183",
     "bytes": 680320,
     "seconds": 8.9
+  },
+  "bom-updates.gif": {
+    "spec": "e2e/docs/bill-of-materials.docs.js",
+    "specHash": "3689ca84d12860213a52ffe0b013ecae3e67991a43d12e0742374b44be867f1b",
+    "bytes": 1234230,
+    "seconds": 10.9
+  },
+  "hardware-drag-bolt.gif": {
+    "spec": "e2e/docs/hardware-library.docs.js",
+    "specHash": "9e0d23f4ba90a3fe59ae8b4933dd45870ba5262d9ef0509391632f84c06f01db",
+    "bytes": 1148914,
+    "seconds": 10.7
+  },
+  "rpi-mounting-holes.gif": {
+    "spec": "e2e/docs/hardware-library.docs.js",
+    "specHash": "9e0d23f4ba90a3fe59ae8b4933dd45870ba5262d9ef0509391632f84c06f01db",
+    "bytes": 610888,
+    "seconds": 9.01
   }
 }

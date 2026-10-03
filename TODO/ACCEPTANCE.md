@@ -97,6 +97,8 @@ tab — and re-driven with a screenshot confirming the whole nav pad and readout
 Gizmo and dimension lines are not part of this pass: they are `ui-011`'s contract, so the
 "gizmo and dimension lines attach" half of Expect is deferred, not claimed.)
 
+**Re-checked**: 2026-10-03 15:50 UTC (`docs-014`): PASS at laptop 1440x900 Chromium (real mouse), as a smoke check only: this task adds docs media and changes nothing under `src/`. Cube, then Cylinder, dropped on wandering, jittery paths. **Both stayed visible** (`data-body-count=2`) and the cube's bounds were unchanged after the second drop (`-31.26,-107.55,0.00,8.74,-67.55,40.00`). An empty-grid click cleared the selection. Console clean.
+
 **Re-checked**: 2026-10-03 15:20 UTC (`docs-013`): PASS at laptop 1440x900 Chromium (real mouse), as a smoke check only: this task adds docs media and changes nothing under `src/`, and no fixed scenario is a fillet/resize one, but the movies are recorded against the live app. Cube, then Cylinder, dropped on wandering, jittery paths. **Both stayed visible** (`data-body-count=2`), and the cube's bounds string was byte-identical before and after the second drop (`-43.72,-66.62,0.00,-3.72,-26.62,40.00`). Clicking empty grid cleared the selection, the cube selected alone (`data-selected-count` 1), the cylinder retargeted it. Console clean. Closed findings re-run by hand with real mouse clicks on a freshly dropped cube: **core-022** (negative is always the min-side piece) held for X, Y and Z cuts at offset 20 (the negative part's centre below the positive's on the cut axis for X and Z; on Y only `negative` could be reached and its centre was 10 mm below the group's), and **core-021** (angled bisect) gave the predicted halves for a 30 degree Z cut, centres 15.77 and 24.23 against the 20 + 11.55 mm tilt arithmetic, `positive` on top, no popover error.
 
 **Re-checked**: 2026-10-03 01:38 UTC (`sketch-005`): PASS at laptop 1440x900 Chromium (real mouse), phone 390x844 Chromium (trusted touch) and WebKit (390x844 and 820x1180). Re-driven because this task edits `Viewport.vue`'s pointer path (`onPointerMove`, `onPointerUp`, a new hover handler and an extra gesture kind) — the code every body click and drop runs through. Cube, then Cylinder, dropped on wandering, jittery paths. **Both stayed visible** at every size, and the cube's bounds were byte-identical strings before and after the second drop (`-97.86,-3.58,0.00,-57.86,36.42,40.00` at phone). Clicking empty grid cleared the selection, the cube selected alone, the cylinder retargeted it (`data-selected-count` 1 each time). **ui-046's repro** (a trusted tap on the cube while the cylinder is selected, once with the Inspector sheet closed and once open) selected the cube and left the camera azimuth unchanged, and the phone nav chrome (`y 359-407`) stayed clear of the Operations toolbar (`y 61-201`) with the sheet open (**ui-043**). Console clean in every drive. Driver notes, not app defects: at laptop width the Operations toolbar spans the top of the viewport, so "empty space" there has to be below it; on a phone the Library sheet covers the lower part of the canvas, and a body's base sits at the drop point with the body rising above it, so a click aimed at the drop point itself grazes the base edge.
@@ -1120,6 +1122,8 @@ in full (no gizmo *drag*, no live field sync, no field-edit-moves-the-mesh — `
 
 A third, smaller thing was found and logged rather than fixed — see `TODO/VERIFY.md`.)
 
+**Re-checked**: 2026-10-03 15:50 UTC (`docs-014`): PASS at laptop 1440x900 Chromium (real mouse, jittery, human pace). Re-driven because the new docs page documents this flow and the docs movie edits the same Inspector fields. Dropped a Bolt (selected, `bolt-1`; Inspector showed `m10 hex`, `20`, `loose`, position X 38.66). Changed Spec to `1/4 socket` (a different mesh, bounds 9.53 wide, still selected and in place), Fit `loose`, Length 20. Dragged the gizmo X arm: Position X read 38.66 before, 50.03 mid-drag and 61.48 after, so it tracks live. Typed -30 into Position X and the mesh moved to x -34.76..-25.24. Console clean. Note for drivers: after a drop the bolt is already selected, so a click on it drills into a part; clear the selection first. The Length edit was a no-op here because `1/4 socket` also defaults to 20 mm; the docs movie covers 20 to 30 mm on `m12 hex`.
+
 **Re-checked**: 2026-09-06 13:12 — **PARTIAL PASS, and the whole gizmo/field half of
 Expect is now met** (`ui-012`). Still a partial, and deliberately reported as one: the
 `spec`/`fit` property edit this scenario is *named* after is still not drivable. What
@@ -1475,6 +1479,8 @@ distance 420, 70.0 mm at 215, and only ~7 mm at 110 — so zooming in does buy f
 control rather than the snap staying equally grabby. The exact conversion
 (`SNAP_TOLERANCE_PX × mmPerPixel`) is pinned by unit tests; how the 48 px radius *feels*
 on real hardware is logged in `TODO/VERIFY.md` rather than claimed here.
+
+**Re-checked**: 2026-10-03 15:50 UTC (`docs-014`): PASS at laptop 1440x900 Chromium (real mouse). A Pi 5 dropped, then a Camera Module dragged toward it: the snap guides lit (`data-guide-count` 2) and the ghost reported snapped mid-drag, and on release the camera landed flush against the Pi (camera max Y -66.64 equals the Pi's min Y -66.64). Console clean.
 
 **Re-checked**: 2026-09-11 20:19 — **PASS, with the same named stand-in `ui-013` used**
 (`ui-026`). `core-013`'s own retirement note states this task "feeds §9 scenario 3 (kit
@@ -1952,6 +1958,8 @@ measurements:
   `ui-014`'s changes** — pre-existing, currently unreachable because no composite has a
   Library row. Measured reproduction in `TODO/core-020-composite-absorbs-earlier-bodies.md`.
   This must be fixed before this scenario can pass even once a Bolt row exists.
+
+**Re-checked**: 2026-10-03 15:50 UTC (`docs-014`): PASS at laptop 1440x900 Chromium (real mouse). Cube (40 mm), then a Bolt (m10 hex, 20 mm, loose) moved by the Inspector's Position fields to the cube's centre XY. Show hidden parts on, hovering `tap` showed the translucent overlay, tapping it gave the breadcrumb `tap`. Cube first, then `tap` ticked in the Objects list: the toolbar read `Cube 1 then Bolt 1 > tap`. Subtract left one body of 60362.4 mm3 from 64000, a removal of 3637.6 mm3, more than the bolt's metal envelope (about 3395 mm3 for the 18 mm hex head plus the 10 mm shank). Console clean. This also re-runs the `render-004` and `ui-047` repros.
 
 **Re-checked**: 2026-09-10 22:19 — **STILL NOT DRIVEABLE, but one of its three blockers
 is now gone** (`core-020`). This is the task filed *from* this scenario's last check, so

@@ -1,0 +1,1 @@
+{"id":"cyl-1","op":"primitive.cylinder","name":"Cylinder 1","params":{"diameter":60,"height":30,"center":[0,0,15]}}

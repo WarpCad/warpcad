@@ -1,0 +1,3 @@
+{"id":"plate-1","op":"primitive.cuboid","name":"Plate 1","params":{"size":[100,70,3],"center":[0,0,-1.5]}}
+{"id":"pi-1","op":"raspberrypi.bplus","name":"Raspberry Pi 1","params":{"model":5}}
+{"id":"pi-1-move-1","op":"transform.translate","target":"pi-1","supersedes":"pi-1","params":{"vector":[-42.5,-28,0],"rotation":[0,0,0]}}

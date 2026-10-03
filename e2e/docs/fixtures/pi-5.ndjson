@@ -1,0 +1,2 @@
+{"id":"pi-1","op":"raspberrypi.bplus","name":"Raspberry Pi 1","params":{"model":5}}
+{"id":"pi-1-move-1","op":"transform.translate","target":"pi-1","supersedes":"pi-1","params":{"vector":[-43,-28,0],"rotation":[0,0,0]}}

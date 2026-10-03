@@ -34,6 +34,18 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### docs-014 — Docs media for Hardware, kit and Pi library parts, BOM and Resolution (2026-10-03 15:50)
+
+The stills and movies are asserted, and scenarios 1, 2, 3 and 5 were driven by hand. What is left is two product questions the capture turned up and three readability checks. The Bolt and BOM GIFs run 10.7 to 10.9 s against the 12 s budget.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | The Library has no Screw row (`hardware.screw` has no `ui` block), so a user cannot place a screw at all; `docs/hardware-library.md` says so. Decide whether to file the row (`registry.js` already names the defaults `m4`, 12, `PanHead`). | Open | |
+| 2 | Subtract with a Pi's `hole1` consumes the Pi along with the plate (one result body), so each extra hole needs another Pi. Is that what a user drilling four holes expects, or should the tool part survive? | Open | |
+| 3 | Read `rpi-keepout.png` cold: the keep-out is a small 15 x 10 x 1 mm block by the display's power connector. Does the page make that clear, or does it read as a stray red box? | Open | |
+| 4 | Look at `resolution-low-vs-high.png`: is the Draft facet edge visible at the size it appears on the page? | Open | |
+| 5 | Read the new page's M12 example as someone who wants "an M3 screw": does it say clearly that the smallest metric bolt or screw is M4? | Open | |
+
 ### docs-013 — Docs media for Fillet, Chamfer, Enlarge, Fit and Bisect (2026-10-03 15:22)
 
 The movies and stills are asserted, and scenario 1 plus the `core-021`/`core-022` repros were driven by hand. What is left is one product question the capture turned up and two readability checks. The fillet, chamfer and Fit GIFs run 10.5 to 11.1 s against the 12 s budget.

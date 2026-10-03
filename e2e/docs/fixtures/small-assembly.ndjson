@@ -1,0 +1,14 @@
+{"id":"bolt-1","op":"hardware.bolt","name":"Bolt 1","params":{"spec":"m10 hex","length":20,"fit":"loose"}}
+{"id":"bolt-1-move-1","op":"transform.translate","target":"bolt-1","supersedes":"bolt-1","params":{"vector":[-45,0,0],"rotation":[0,0,0]}}
+{"id":"bolt-2","op":"hardware.bolt","name":"Bolt 2","params":{"spec":"m10 hex","length":20,"fit":"loose"}}
+{"id":"bolt-2-move-1","op":"transform.translate","target":"bolt-2","supersedes":"bolt-2","params":{"vector":[-20,0,0],"rotation":[0,0,0]}}
+{"id":"bolt-3","op":"hardware.bolt","name":"Bolt 3","params":{"spec":"m12 hex","length":30,"fit":"loose"}}
+{"id":"bolt-3-move-1","op":"transform.translate","target":"bolt-3","supersedes":"bolt-3","params":{"vector":[5,0,0],"rotation":[0,0,0]}}
+{"id":"nut-1","op":"hardware.nut","name":"Nut 1","params":{"spec":"m4","fit":"loose"}}
+{"id":"nut-1-move-1","op":"transform.translate","target":"nut-1","supersedes":"nut-1","params":{"vector":[30,0,0],"rotation":[0,0,0]}}
+{"id":"nut-2","op":"hardware.nut","name":"Nut 2","params":{"spec":"m4","fit":"loose"}}
+{"id":"nut-2-move-1","op":"transform.translate","target":"nut-2","supersedes":"nut-2","params":{"vector":[50,0,0],"rotation":[0,0,0]}}
+{"id":"washer-1","op":"hardware.washer","name":"Washer 1","params":{"spec":"m6","fit":"loose"}}
+{"id":"washer-1-move-1","op":"transform.translate","target":"washer-1","supersedes":"washer-1","params":{"vector":[-30,-30,0],"rotation":[0,0,0]}}
+{"id":"bearing-1","op":"hardware.bearing","name":"Bearing 1","params":{"spec":"608"}}
+{"id":"bearing-1-move-1","op":"transform.translate","target":"bearing-1","supersedes":"bearing-1","params":{"vector":[0,-35,0],"rotation":[0,0,0]}}

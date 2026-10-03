@@ -114,6 +114,9 @@ place. See [Changing a part's model or size](selection-and-inspector.md#changing
 > [Cutting with just one part of a multi-part shape](booleans.md#cutting-with-just-one-part-of-a-multi-part-shape)
 > for how to address it.
 
+For the sizes each Hardware row offers, the hidden `tap` clearance and the screw family, see
+[Hardware, kit parts and Raspberry Pi parts](hardware-library.md).
+
 ## Placing a kit part
 
 Below Hardware is **Kit Parts** — three general-purpose blocks you build enclosures and

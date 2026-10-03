@@ -1,0 +1,8 @@
+{"id":"screw-1","op":"hardware.screw","name":"Screw 1","params":{"spec":"m4","length":16,"head":"PanHead"}}
+{"id":"screw-1-move-1","op":"transform.translate","target":"screw-1","supersedes":"screw-1","params":{"vector":[-36,0,0],"rotation":[0,0,0]}}
+{"id":"screw-2","op":"hardware.screw","name":"Screw 2","params":{"spec":"m4","length":16,"head":"FlatHead"}}
+{"id":"screw-2-move-1","op":"transform.translate","target":"screw-2","supersedes":"screw-2","params":{"vector":[-12,0,0],"rotation":[0,0,0]}}
+{"id":"screw-3","op":"hardware.screw","name":"Screw 3","params":{"spec":"#8","length":16,"head":"PanHead"}}
+{"id":"screw-3-move-1","op":"transform.translate","target":"screw-3","supersedes":"screw-3","params":{"vector":[12,0,0],"rotation":[0,0,0]}}
+{"id":"screw-4","op":"hardware.screw","name":"Screw 4","params":{"spec":"#8","length":16,"head":"FlatHead"}}
+{"id":"screw-4-move-1","op":"transform.translate","target":"screw-4","supersedes":"screw-4","params":{"vector":[36,0,0],"rotation":[0,0,0]}}

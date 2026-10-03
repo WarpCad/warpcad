@@ -36,6 +36,11 @@ The Library's Raspberry Pi and Hardware items descend from the `jscad-raspberryp
   the real boards and accessories in **Raspberry Pi**, and a 3D **Text** label — including picking which
   board revision or camera a row places. Also: lining a new shape up with one
   already placed, and selecting what you placed.
+- [Hardware, kit parts and Raspberry Pi parts](hardware-library.md) — what the
+  Library's three real-parts sections give you: bolts, nuts, washers, bearings and
+  screws at real sizes, the Board, Board Frame and Anchor blocks, and Raspberry Pi
+  boards and accessories. Picking a size, the hidden clearance (`tap`) and keep-out
+  parts, and drilling a Pi's mounting holes into your own plate.
 - [Selecting a shape, and reading its size](selection-and-inspector.md) — the
   gizmo, the three dimension lines, and the Inspector panel's parameters and
   Transform section, on desktop and as a phone bottom sheet. Also the Inspector's

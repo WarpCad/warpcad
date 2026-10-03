@@ -1288,3 +1288,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** 7 GIFs, 4 stills, end-state assertions → diff (e2e/docs/fillet-chamfer.docs.js, resize-bisect.docs.js, docs/media/manifest.json); Enlarge left the snapped lug at Z 8 while the plate's top moved to 16 → measured in the snapped-dependents spec run; full run 2571 e2e passed → test output this session
 **To Add:** docs/media/fillet-operation.gif
+
+## 2026-10-03T15:55:00Z — Docs: the parts catalogue, BOM and resolution, with pictures
+
+**Post:** The WarpCad docs now cover the real-parts Library: drag a Bolt in, set it to M12 and 30 mm, and the bill of materials lists it. Another clip drills a Raspberry Pi's mounting hole into a plate with Subtract. Writing it showed the Library has no Screw row yet. Built with Claude Code, reviewed by me. #CAD #WebGL
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** 3 GIFs, 10 stills, new page docs/hardware-library.md → diff; plate volume and outline asserted → e2e/docs/hardware-library.docs.js; no Screw row → registry.js (no ui block)
+**To Add:** docs/media/rpi-mounting-holes.gif

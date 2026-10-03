@@ -6,8 +6,35 @@ priority: medium
 model: sonnet
 milestone: M10
 depends: [docs-005, docs-006, docs-007]
-status: open
+status: done
 ---
+
+> **Shipped (2026-10-03):** all 13 inventory rows, in `e2e/docs/hardware-library.docs.js` (9 tests: 7
+> stills, 2 movies), `bill-of-materials.docs.js` (2 tests: 1 still, 1 movie) and `resolution.docs.js`
+> (2 tests, both stills), plus six fixtures (`pi-5`, `touch-display`, `screw-family`,
+> `small-assembly`, `plate-and-pi`, `one-cylinder`). New page `docs/hardware-library.md` (entry in
+> `docs/README.md`, a link from `primitive-placement.md`), and `bill-of-materials.md` and
+> `resolution.md` gained their pictures. `src/` is untouched. The Pi shots wait for every body to be
+> measured plus 1.5 s, and use `maxDiffPixelRatio` 0.03 (the spec header says why).
+>
+> **Deviations from this spec, all measured.**
+> 1. **There is no Screw row in the Library.** `hardware.screw` has no `ui` block (`registry.js` says
+>    so), so the Hardware section is Bolt, Nut, Washer and Bearing. `hardware-screw-family` loads a
+>    fixture through File > Open, and the page says screws cannot be dragged in yet.
+> 2. **The example's `m10 hex` is already the Bolt's default**, so switching to it changes nothing. The
+>    page and the movie use `m12 hex` and 30 mm, and the BOM reads `Bolt M12 hex x 30 mm`. There is no
+>    M3 bolt or screw either: the smallest is M4.
+> 3. **Subtract with a Pi hole consumes both operands.** The result is one body (the plate, same
+>    outline) and the Pi is gone, so the movie asserts body count 1, bounds equal to the plate's and a
+>    volume drop of 15 to 35 mm3 (one 3.25 mm hole through 3 mm). The app exposes no vertex count.
+>    The page says to place another Pi for each further hole.
+> 4. **`rpi-keepout`** is the display's `noGoPower` part (15 x 10 x 1 mm), visible only with Show
+>    hidden parts on; the whole display is not a keep-out volume.
+> 5. **`resolution-low-vs-high`** is one PNG composed on a throwaway page from two live crops (Draft
+>    and Print, each set through the real popover), because the app cannot show two resolutions at
+>    once. It is a still, not an orbit.
+> 6. The library-section stills spell their names as literals in separate tests, because
+>    `docs-media.spec.js` finds pictures by scanning for `shot(..., 'x.png')`.
 
 ## Goal
 
