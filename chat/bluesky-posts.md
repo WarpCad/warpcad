@@ -1221,3 +1221,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** two movies and six stills → e2e/docs/primitive-placement.docs.js in diff; each movie asserts data-body-count after release → same file; ghost frame taken with the button held → heldShot in same file
 **To Add:** primitive-drag-two.gif, placement-snap-guides.gif
+
+## 2026-10-02T22:30:00Z — README rewrite: what WarpCad is, why, and how it got here
+
+**Post:** WarpCad's README now says what it is and why: a browser CAD that came out of years of JSCAD v1 scripts and out of my PiPiece project, a test of building a whole app with Claude on the Pro plan. Two earlier attempts were shelved, and the README says why. Built with Claude Code, reviewed by me. #CAD #OpenSource
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** README covers purpose, JSCAD v1 roots, PiPiece, two shelved attempts → README.md in diff; Pro plan and PiPiece as a second purpose → user's own words this session
+**To Add:** the cube-selected screenshot

@@ -1678,3 +1678,16 @@ Every movie ends on an assertion about the document, so a drag that placed nothi
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** two movies, six stills → e2e/docs/primitive-placement.docs.js in diff; gallery enumerates rows from the DOM → same file; mid-drag still taken while held → heldShot in same file; movies assert body count → same file
 **To Add:** primitive-drag-two.gif, placement-snap-guides.gif
+
+## 2026-10-02T22:30:00Z — README rewrite: what WarpCad is, why, and how it got here
+
+**Post:** I rewrote WarpCad's README so it explains the project before anyone has to dig through the repo. It now has a launch slot for GitHub Pages (empty until hosting is on), six GIFs and three screenshots from the docs, a table of what works today with a link to each docs page, and a milestone chart of what's still to come, including the AI partner and gears.
+
+The story section covers two reasons the project exists. One is ten years of designing parts in JSCAD v1, starting with jscad-utils in February 2016. The other is that I wanted to learn how to build whole applications with AI tools, as a follow-on to PiPiece, and doing that on the Claude Pro plan has been difficult. The second attempt alone ran to 231 commits before I shelved it, and the README says what went wrong in both.
+
+The diagrams use fixed fills with white text, so they stay readable in GitHub's light and dark modes. Built with Claude Code, reviewed by me.
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource #AIassisted
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** launch slot is a placeholder → README.md in diff (no git remote this session); 6 GIFs and 3 screenshots → grep of README.md this session; jscad-utils February 2016 → git log first commit 2016-02-27; second attempt 231 commits → git rev-list in ~/src/WarpCad1 this session; PiPiece, Pro plan difficult, learning goal → user's own words this session; fixed fills readable in both modes → intent of the change, not yet viewed on GitHub (wording is about design, not a measured result)
+**To Add:** the cube-selected screenshot, the rendered timeline
