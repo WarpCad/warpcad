@@ -34,6 +34,16 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### docs-015 — Docs media for the History panel, rollback, step editing, undo and redo (2026-10-03 16:35)
+
+Scenario 12 and 1, and the `data-003` and `ui-044` repros, were driven by hand and passed. Driving them turned up three product questions that are not covered by an acceptance scenario and that this docs task deliberately did not touch (nothing under `src/` changed).
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | The header's Undo / Redo / History cluster is right-aligned, so it shifts about 27 px left when the save chip changes from `Saving…` to `Saved · hh:mm` (about 1 s after every edit). Clicking Undo during that second can land on the neighbouring button or the gap, and nothing happens. Judge whether a fixed-width save chip is wanted. | Open | |
+| 2 | Scenario 12 step 12 cannot be driven as written: Fillet Top (+Z) 4 on a cube that already has a 5 mm top chamfer is refused in the Fillet popover with an engineering message (`modify.filletRim: the solid is not prismatic over the rim band ... see the core-003 addendum in docs/decisions/geometry-kernel.md`). Decide whether that refusal text should be user-facing wording, and rewrite step 12 against a dependency that can exist (editing the cube smaller than the chamfer does produce the named `broken` refusal). | Open | |
+| 3 | The History dock is a fixed ~220 px at laptop width, so a five-step model needs scrolling and an open Edit form is cramped. Judge whether it should be taller or resizable. | Open | |
+
 ### docs-014 — Docs media for Hardware, kit and Pi library parts, BOM and Resolution (2026-10-03 15:50)
 
 The stills and movies are asserted, and scenarios 1, 2, 3 and 5 were driven by hand. What is left is two product questions the capture turned up and three readability checks. The Bolt and BOM GIFs run 10.7 to 10.9 s against the 12 s budget.

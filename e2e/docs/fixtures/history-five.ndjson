@@ -1,0 +1,5 @@
+{"id":"cube-1","op":"primitive.cuboid","name":"Cube 1","params":{"size":[40,40,40],"center":[0,0,20]}}
+{"id":"cyl-1","op":"primitive.cylinder","name":"Cylinder 1","params":{"diameter":24,"height":60,"center":[0,0,25]}}
+{"id":"sub-1","op":"boolean.subtract","name":"Subtract 1","target":"cube-1","operands":["cyl-1"],"consumes":["cube-1","cyl-1"]}
+{"id":"sub-1-mirror-1","op":"transform.mirror","name":"Subtract 1 mirror","target":"sub-1","params":{"axis":"x","pointMm":[40,0,0]}}
+{"id":"sub-1-mirror-1-color-1","op":"style.recolor","target":"sub-1-mirror-1","supersedes":"sub-1-mirror-1","colorOverride":16729088}

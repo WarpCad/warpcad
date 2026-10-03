@@ -1782,3 +1782,16 @@ Writing it turned up two gaps worth being honest about. The Library has no Screw
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** 13 pictures and clips plus a new page → diff (docs/hardware-library.md, docs/media/, docs/screenshots/); plate volume drop and outline → e2e/docs/hardware-library.docs.js; no Screw row → src/core/kernel/registry.js (no ui block on hardware.screw); scenarios 2, 3 and 5 → hand drive this session, TODO/ACCEPTANCE.md
 **To Add:** docs/media/rpi-mounting-holes.gif, docs/media/hardware-drag-bolt.gif
+
+## 2026-10-03T16:37:00Z — Docs: the History panel, step editing, undo and redo, with pictures
+
+**Post:** WarpCad's History panel is the one control that is hard to explain in words, so its docs page now shows it. Place a cube, a cylinder, then Subtract. Click the Cube 1 row and the model rewinds to just the cube. Set its size to 30 mm and the cylinder and the Subtract replay on the new cube.
+
+The undo and redo page gets a clip of its own: place, move, undo with the button, undo with Ctrl+Z, redo once. A second clip shows that typing a new diameter is a single Undo, however many keystrokes it took. Each clip checks the History row count and the body count after every beat, so a click that did nothing fails the run.
+
+Recording it also showed a small rough edge: the header buttons shift about 27 px when the save indicator updates, so an early click on Undo can miss. It is logged for follow-up.
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** 4 animations and 5 stills → diff (docs/media/, docs/screenshots/); per-beat assertions → e2e/docs/timeline.docs.js and undo-redo.docs.js; 27 px shift (undo button x 1108 to 1081 when the chip went from Saving to Saved) → probe output this session; scenario 12, data-003 and ui-044 repros → hand drive this session
+**To Add:** docs/media/timeline-edit-step.gif, docs/media/undo-redo-roundtrip.gif

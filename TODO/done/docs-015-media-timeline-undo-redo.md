@@ -6,8 +6,32 @@ priority: medium
 model: sonnet
 milestone: M10
 depends: [docs-005, docs-006, docs-007]
-status: open
+status: done
 ---
+
+> **What shipped (2026-10-03):** all nine inventory rows, in `e2e/docs/timeline.docs.js` and
+> `e2e/docs/undo-redo.docs.js`, embedded in `docs/timeline.md` and `docs/undo-redo.md`, plus one new
+> fixture (`e2e/docs/fixtures/history-five.ndjson`: place, place, Subtract, Mirror, recolour).
+> Laptop, Chromium only; every movie asserts the History row count (the toggle's
+> `data-step-count`, and the rendered rows where the panel is open) and the viewport body count at
+> each beat. Deviations from the spec as written, all checked against the real UI:
+> (1) the Proposed fix says suppress, reorder and reparent are not built; Suppress and Move up/down
+> **are** built (and Roll back), and the existing page already documents them, so nothing was
+> removed. Only reparenting (`data-006`) is absent, and nothing here claims it.
+> (2) "Click an earlier row: the model rewinds" is a read-only **preview** in this UI (amber strip,
+> `Back to latest`), not a rollback; the page text says preview, and Edit applies from inside that
+> preview, which is what the worked example does. (3) `timeline-panel` is a ~220 px bottom dock, not
+> "beside the viewport", and holds four rows: the still scrolls the list to its end, so it shows
+> steps 2 to 5 (placed, Subtract, Mirror, colour) rather than all five; the page says so.
+> (4) `timeline-strips` shows the preview and rollback strips stacked (roll back to step 2, then
+> preview step 1). (5) `undo-param-edit`: a param edit on an unmoved body rewrites its own step and
+> adds no History row, so the movie asserts the step count stays at 1 and Undo then goes disabled
+> (exactly one step); on a moved body History shows a `Move` row too (`ui-044`), which the page now
+> says. (6) The page's new example wording was checked against the UI: Size has three boxes (X, Y,
+> Z) in the Edit form, so the example types `30` into each. Findings logged in `TODO/VERIFY.md`
+> rather than fixed (docs task, nothing under `src/` changed): the header cluster shifts about 27 px
+> when the save chip changes; scenario 12 step 12's fillet setup is refused by the kernel; the dock
+> height.
 
 ## Goal
 

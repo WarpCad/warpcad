@@ -238,5 +238,29 @@
     "specHash": "9e0d23f4ba90a3fe59ae8b4933dd45870ba5262d9ef0509391632f84c06f01db",
     "bytes": 610888,
     "seconds": 9.01
+  },
+  "timeline-edit-step.gif": {
+    "spec": "e2e/docs/timeline.docs.js",
+    "specHash": "83df77413f582c740af185871555ea3786bc7aa4cb2ffd2ca17ac43862827403",
+    "bytes": 818420,
+    "seconds": 11.3
+  },
+  "timeline-rewind.gif": {
+    "spec": "e2e/docs/timeline.docs.js",
+    "specHash": "83df77413f582c740af185871555ea3786bc7aa4cb2ffd2ca17ac43862827403",
+    "bytes": 984474,
+    "seconds": 11.1
+  },
+  "undo-param-edit.gif": {
+    "spec": "e2e/docs/undo-redo.docs.js",
+    "specHash": "ff62a16aac91e58cb850990269462d79e333c0ffe83bf04861ed3cac8f5cffa5",
+    "bytes": 280276,
+    "seconds": 6.41
+  },
+  "undo-redo-roundtrip.gif": {
+    "spec": "e2e/docs/undo-redo.docs.js",
+    "specHash": "ff62a16aac91e58cb850990269462d79e333c0ffe83bf04861ed3cac8f5cffa5",
+    "bytes": 997287,
+    "seconds": 11.63
   }
 }

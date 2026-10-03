@@ -18,6 +18,8 @@ They sit in the top bar rather than in the toolbar over the 3D view because they
 about whatever you happen to have selected. They act on the model's history, so they
 work with nothing selected at all.
 
+![The Undo and Redo buttons after one change: Undo is live, Redo is greyed out](./screenshots/undo-redo-buttons.png)
+
 The buttons are **greyed out when there is nothing to undo or redo** — on a freshly
 opened, empty model, both are grey. Hover over either one (or long-press it on a phone)
 and it tells you exactly which change it will affect: `Undo: Move Cube 1`,
@@ -33,6 +35,8 @@ and it tells you exactly which change it will affect: `Undo: Move Cube 1`,
    the gizmo and the Inspector are still pointing at it.
 4. Press **Ctrl+Shift+Z** (**Cmd+Shift+Z** on a Mac), or tap the **↷** button.
    The move comes back and the cube returns to where you had dragged it.
+
+![Dragging a cube in, moving it with the gizmo, pressing Undo, pressing Ctrl+Z so the cube disappears, then pressing Redo to bring the placed cube back](./media/undo-redo-roundtrip.gif)
 
 Press **↶** once more and the cube itself disappears — that undoes the drop that placed
 it. **↷** brings it back.
@@ -62,7 +66,12 @@ changes:
 - A whole gizmo drag is **one** step, not one step per pixel of movement.
 - Dropping a part that is made of several pieces — a bolt, a Raspberry Pi board — is
   **one** step, not one for the part and another for putting it where you dropped it.
-- Committing a value in an Inspector field is one step, when you commit it.
+- Committing a value in an Inspector field is one step, when you commit it — however many
+  digits you typed to get there. (On a cylinder you have not moved, changing its diameter
+  rewrites its own step in [History](timeline.md) instead of adding a row. On one you have
+  moved, History shows an extra `Move` row for the same edit, but it is still one press of Undo.)
+
+  ![Typing a new diameter into the Inspector and pressing Enter, then one press of Undo restoring the original diameter](./media/undo-param-edit.gif)
 - A Union, Subtract or Intersect is one step. Undoing it brings **both** original shapes
   back, separately selectable again, exactly as they were.
 

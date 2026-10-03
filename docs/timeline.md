@@ -23,6 +23,13 @@ Press **History** in the top bar, to the right of Undo and Redo. Press it again 
 
 History starts closed every time you open WarpCad, on every device.
 
+![The History button in the top bar, to the right of Undo and Redo](./screenshots/timeline-toggle.png)
+
+![The History panel open along the bottom of the 3D view, listing steps 2 to 5 of a five-step model: Cylinder 1 placed, Subtract Cube 1 + Cylinder 1, Mirror Subtract 1, and a colour change](./screenshots/timeline-panel.png)
+
+The laptop strip is about four rows tall; when a model has more steps than that, scroll the
+list (the picture above is scrolled to the end of a five-step model).
+
 History is not the same list as the Inspector's **object list**, which names the
 *shapes* in your model rather than the *steps*: with nothing selected it is the
 Inspector's content (on a phone, tap the Inspector's **Objects** tab at the bottom) — see
@@ -39,6 +46,11 @@ Each row is one step, numbered from 1, in the order it happened:
 2  Chamfer Top (+Z) 5 mm on Cube 1
 3  Sphere 1 — placed
 ```
+
+A boolean row names **both** shapes that went into it, so you can tell at a glance what a
+Subtract cut from what:
+
+![A History row reading "Subtract Cube 1 + Cylinder 1"](./screenshots/timeline-boolean-row.png)
 
 A row can also carry a small label on the right:
 
@@ -71,8 +83,18 @@ change the model is switched off: the Library, the Operations toolbar, the move/
 gizmo, and Undo and Redo. This is deliberate — you're looking at the past, and a button
 that quietly changed the present instead would be worse than no button at all.
 
-Press **Back to latest** on the strip (or the `Esc` key) to return. Previewing changes
-nothing and is forgotten as soon as you leave it or close the panel.
+Press **Back to latest** on the strip (or the `Esc` key) to return — or simply tap the
+last row, which is the live model. Previewing changes nothing and is forgotten as soon as
+you leave it or close the panel.
+
+![Clicking History rows 1, 2 and 3 of a five-step model in turn: the 3D view shows just the cube, then the cube and cylinder, then the drilled cube; clicking row 5 brings the whole model back](./media/timeline-rewind.gif)
+
+The strips under the top bar are the two ways the panel tells you the 3D view is not
+simply "the latest model". The amber one is a preview; the blue one, further down this
+page under *Roll back*, says part of the history is switched off. They can show together,
+the preview on top:
+
+![Two strips under the top bar: "Previewing step 1 of 5 — read-only" with a Back to latest button, above "Rolled back to step 2 of 5 / New steps insert here · 3 later steps inactive" with a Roll forward button](./screenshots/timeline-strips.png)
 
 ## Changing a step (Edit)
 
@@ -90,6 +112,20 @@ top of the change** — so the sphere you placed afterwards is still exactly whe
 the same size. The row's text updates to `Chamfer Top (+Z) 3 mm on Cube 1`.
 
 All numbers are in **millimetres**.
+
+### Example: rewind to the cube and resize it
+
+1. Drag a **Cube** and then a **Cylinder** into the 3D view, so the cylinder pokes through
+   the cube. Select both and press **Subtract**. History now has three rows:
+   `Cube 1 — placed`, `Cylinder 1 — placed` and `Subtract Cube 1 + Cylinder 1`.
+2. Press **History** and click the **Cube 1** row. The 3D view rewinds to just the cube,
+   with the amber `Previewing step 1 of 3 — read-only` strip above it.
+3. Press **Edit**. The row shows a **Size** with three boxes (X, Y, Z). Type `30` into
+   each and press **Apply**.
+4. The preview ends and the model comes back: the cylinder and the Subtract are replayed
+   on the new 30 mm cube, so the hole is cut again through the smaller cube.
+
+![Subtracting a cylinder from a cube, then rewinding to the Cube 1 row, editing its size to 30 mm and applying: the preview ends and the drilled cube is rebuilt smaller](./media/timeline-edit-step.gif)
 
 **If the change can't work**, nothing happens at all — you'll get a message naming the
 step that broke, such as:

@@ -1297,3 +1297,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** 3 GIFs, 10 stills, new page docs/hardware-library.md → diff; plate volume and outline asserted → e2e/docs/hardware-library.docs.js; no Screw row → registry.js (no ui block)
 **To Add:** docs/media/rpi-mounting-holes.gif
+
+## 2026-10-03T16:37:00Z — Docs: History, step editing, undo and redo, with pictures
+
+**Post:** The WarpCad docs now show History working. Click the Cube row to rewind to just the cube, change its size to 30 mm, and the cylinder and Subtract replay on the new size. Another clip shows undo and redo, and that one param edit is one Undo. Built with Claude Code, reviewed by me. #CAD #WebGL
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** 4 GIFs, 5 stills, row-count and body-count assertions at each beat → diff (e2e/docs/timeline.docs.js, undo-redo.docs.js, docs/media/manifest.json); edit to 30 mm replays the Subtract (volume 27000 minus the cylinder's share) → assertion in the timeline-edit-step movie; scenario 12 hand drive → TODO/ACCEPTANCE.md
+**To Add:** docs/media/timeline-edit-step.gif
