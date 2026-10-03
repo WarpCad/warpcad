@@ -322,5 +322,12 @@
     "specHash": "f5a67bfafa51f7476dba2ba765f000af665a7fb8cf9b0b72b0820e49a6f90a1c",
     "bytes": 1374517,
     "seconds": 8.26
+  },
+  "tour.gif": {
+    "spec": "e2e/docs/getting-started.docs.js",
+    "specHash": "cb161d34ccac381c3acc26492351cb070b95cf0893d81ac8b3aeabf1ceb0e707",
+    "bytes": 1309436,
+    "seconds": 17,
+    "maxSeconds": 20
   }
 }

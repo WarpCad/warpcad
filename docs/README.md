@@ -29,6 +29,9 @@ The Library's Raspberry Pi and Hardware items descend from the `jscad-raspberryp
 
 ![The WarpCad window with no model yet: the Library on the left, the 3D view with its grid, navigation pad and orientation triad, and the Operations toolbar.](./screenshots/app-overview.png)
 
+- [Getting started in five minutes](getting-started.md) — start here: place a Cube and a
+  Cylinder, subtract one from the other, nudge the result with the gizmo and export an STL,
+  one numbered step at a time, with a clip of the whole tour.
 - [Placing a shape](primitive-placement.md) — dragging an item out of the
   Library panel into the 3D view, on desktop and on a phone: the basic solids in
   **Primitives**, the ready-made fasteners in **Hardware** (Bolt, Nut, Washer,

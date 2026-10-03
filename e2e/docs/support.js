@@ -157,7 +157,7 @@ export async function startMovie(page, name, size = { width: 960, height: 600 })
  *
  * @param {import('@playwright/test').Page} page
  * @param {string} name must match the `startMovie` name
- * @param {{ fps?: number, width?: number }} [gif] per-movie GIF overrides for motion-heavy scenes that blow the size budget
+ * @param {{ fps?: number, width?: number, maxSeconds?: number }} [gif] per-movie GIF overrides for motion-heavy scenes that blow the size budget; `maxSeconds` (clamped to 20, recorded in the manifest) is the one recorded duration exception, for the README tour
  */
 export async function endMovie(page, name, gif = {}) {
   await page.waitForTimeout(300)

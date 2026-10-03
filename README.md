@@ -11,6 +11,10 @@ it rebuild.
 
 ![WarpCad with a cube selected: the Library on the left, the 3D view with gizmo and dimension lines, the Operations toolbar, and the Inspector on the right](docs/screenshots/cube-selected.png)
 
+![A 17 second tour: drag a Cube and a Cylinder in, press Subtract, nudge the result with the gizmo, and export an STL](docs/media/tour.gif)
+
+New here? [Getting started in five minutes](docs/getting-started.md) walks through that tour step by step.
+
 ## Launch WarpCad
 
 > **Not hosted yet.** The app will be published on GitHub Pages and linked from here. Until

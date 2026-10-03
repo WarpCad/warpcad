@@ -18,6 +18,14 @@ import { fileURLToPath } from 'node:url'
 /** Per-GIF limits. Over budget is a failure, not a silent oversize commit. */
 export const BUDGET = { maxSeconds: 12, maxBytes: 1.5 * 1024 * 1024 }
 
+/**
+ * The one recorded relaxation of the duration limit (`TODO/docs-019`: the README tour). A movie
+ * may ask for more time by setting `maxSeconds` in its sidecar (`endMovie(..., { maxSeconds })`);
+ * the request is honoured only up to this ceiling, and the size limit is never relaxed. An
+ * allowance is written into the manifest so it stays visible in review.
+ */
+export const EXCEPTION_MAX_SECONDS = 20
+
 /** The two knobs the conversion exposes; the defaults are what the budget was sized for. */
 export const DEFAULTS = { fps: 15, width: 800, holdSeconds: 1.5 }
 
@@ -40,19 +48,31 @@ export function buildFfmpegArgs({ input, output, trim = 0, fps = DEFAULTS.fps, w
 }
 
 /**
- * @param {{ bytes: number, seconds: number }} measured
+ * @param {number | undefined} requested a movie's own `maxSeconds`
+ * @returns {number} the duration limit that applies: the default, or the request clamped to the ceiling
+ */
+export function allowedSeconds(requested) {
+  if (typeof requested !== 'number' || !(requested > BUDGET.maxSeconds)) return BUDGET.maxSeconds
+  return Math.min(requested, EXCEPTION_MAX_SECONDS)
+}
+
+/**
+ * @param {{ bytes: number, seconds: number, maxSeconds?: number }} measured `maxSeconds` is the
+ *   movie's own requested allowance; it can lengthen the duration limit up to
+ *   {@link EXCEPTION_MAX_SECONDS}, never shorten it
  * @returns {string[]} one actionable message per limit exceeded; empty when within budget
  */
-export function checkBudget({ bytes, seconds }) {
+export function checkBudget({ bytes, seconds, maxSeconds }) {
+  const limit = allowedSeconds(maxSeconds)
   const problems = []
   if (bytes > BUDGET.maxBytes) {
     problems.push(
       `over budget: ${(bytes / 1024 / 1024).toFixed(2)} MB > ${(BUDGET.maxBytes / 1024 / 1024).toFixed(1)} MB — lower fps or width in DEFAULTS, or record a shorter movie`,
     )
   }
-  if (seconds > BUDGET.maxSeconds) {
+  if (seconds > limit) {
     problems.push(
-      `over budget: ${seconds.toFixed(1)} s > ${BUDGET.maxSeconds} s — record a shorter duration (fewer drag steps or less dwell time)`,
+      `over budget: ${seconds.toFixed(1)} s > ${limit} s — record a shorter duration (fewer drag steps or less dwell time)`,
     )
   }
   return problems
@@ -115,7 +135,7 @@ export function convertMovies({ moviesDir, outDir, root, run = defaultRun }) {
     const seconds = Number.parseFloat(
       run('ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', gifPath]).stdout ?? '',
     )
-    const problems = checkBudget({ bytes, seconds })
+    const problems = checkBudget({ bytes, seconds, maxSeconds: meta.maxSeconds })
     if (problems.length > 0) {
       rmSync(gifPath, { force: true })
       return { name: gifName, ok: false, problems }
@@ -125,6 +145,8 @@ export function convertMovies({ moviesDir, outDir, root, run = defaultRun }) {
       specHash: hashFile(resolve(root, meta.spec)),
       bytes,
       seconds,
+      // Recorded only for the rare movie allowed past the default duration limit.
+      ...(allowedSeconds(meta.maxSeconds) > BUDGET.maxSeconds ? { maxSeconds: allowedSeconds(meta.maxSeconds) } : {}),
     })
     manifestDirty = true
     return { name: gifName, ok: true, problems: [] }

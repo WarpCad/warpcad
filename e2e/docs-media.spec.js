@@ -53,3 +53,10 @@ test('docs media: no dead links, no orphans, every picture regenerable', () => {
   for (const w of warnings) console.warn(`docs-media warning: ${w}`)
   expect(errors, errors.join('\n')).toEqual([])
 })
+
+test('docs media: the README and the getting-started page both embed the tour GIF', () => {
+  for (const page of ['README.md', 'docs/getting-started.md']) {
+    const targets = findImageRefs(readFileSync(join(root, page), 'utf-8')).map((r) => posix.normalize(posix.join(dirname(page), r.target)))
+    expect(targets, `${page} must embed docs/media/tour.gif (TODO/docs-019)`).toContain('docs/media/tour.gif')
+  }
+})

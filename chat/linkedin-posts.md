@@ -1832,3 +1832,18 @@ These are Chromium captures. They are not a check on a real phone or on Safari's
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** 12 stills, 3 GIFs -> diff (docs/media/, docs/screenshots/); trusted CDP touch and end-state assertions -> e2e/docs/mobile.docs.js; no press-and-hold, tap replaces selection -> TODO/done/docs-018 shipped note; Chromium-only caveat -> docs/mobile.md; scenarios 7 and 1 -> hand drive this session
 **To Add:** docs/media/mobile-pinch-pan.gif
+
+## 2026-10-03T20:22:00Z — Docs: getting started in five minutes, and a README tour
+
+**Post:** WarpCad's README now opens with a tour: drag a cube and a cylinder into the 3D view, set the cylinder to 20 mm across, press Subtract, nudge the result along X with the gizmo, and export an STL. A new Getting started page walks the same five steps one at a time, each with a still and the numbers to type in millimetres.
+
+The tour is a Playwright recording converted to a GIF, and it runs 17 seconds, longer than the 12 second limit docs clips otherwise have to meet. Rather than raise the limit for everyone, a movie can now ask for more time in its own sidecar file, up to a hard ceiling of 20 seconds. The size limit does not move, and the allowance is written into the manifest so it shows up in review.
+
+The recording checks its own work. The app exposes no vertex count, so the spec compares the result's volume to a 40 mm cube minus the cylinder's overlap, and waits for a real .stl download event before it stops.
+
+Built with Claude Code, reviewed by me.
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** README embeds the tour and the page has five steps -> README.md and docs/getting-started.md diff; 17 s tour -> docs/media/manifest.json; 12 s default, 20 s ceiling, allowance recorded in the manifest, size limit never relaxed -> scripts/docs-gifs.mjs and docs-gifs.spec.js diff; volume comparison and download event -> header and assertions of e2e/docs/getting-started.docs.js
+**To Add:** docs/media/tour.gif

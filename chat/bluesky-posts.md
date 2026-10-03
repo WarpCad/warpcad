@@ -1334,3 +1334,12 @@ Built with Claude Code, reviewed by me.
 **Evidence:** 12 stills, 3 GIFs -> diff (docs/media/, docs/screenshots/); camera target and distance changed, Subtract 2 to 1 bodies -> e2e/docs/mobile.docs.js assertions; scenario 7 and 1 hand drive -> TODO/ACCEPTANCE.md
 **To Add:** docs/media/mobile-pinch-pan.gif
 
+
+## 2026-10-03T20:22:00Z — Docs: getting started in five minutes, and a README tour
+
+**Post:** WarpCad now has a five-minute getting-started page: drag in a cube and a cylinder, Subtract, nudge the result with the gizmo, export an STL. The README opens with a 17 s clip of the whole run, a one-off exception to the 12 s GIF limit. Built with Claude Code, reviewed by me. #CAD #WebGL
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** five steps (place Cube and Cylinder, select, Subtract, nudge with the gizmo, export STL) -> docs/getting-started.md; tour is 17 s and 1,309,436 bytes (1.25 MiB) -> docs/media/manifest.json; default 12 s limit, 20 s ceiling for a movie that asks, size limit unchanged -> scripts/docs-gifs.mjs diff
+**To Add:** docs/media/tour.gif
