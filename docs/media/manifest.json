@@ -178,5 +178,47 @@
     "specHash": "caedadee1fa6ca0f12241dc1cd135a602dcecb00d7e1669916705920048a8fa6",
     "bytes": 719477,
     "seconds": 9.3
+  },
+  "resize-snapped-dependents.gif": {
+    "spec": "e2e/docs/resize-bisect.docs.js",
+    "specHash": "5a1a2ed3073ea0830edaa27227ecab7f1e916992a75d6b0f0088fe1d9bd48183",
+    "bytes": 285253,
+    "seconds": 6.1
+  },
+  "resize-enlarge.gif": {
+    "spec": "e2e/docs/resize-bisect.docs.js",
+    "specHash": "5a1a2ed3073ea0830edaa27227ecab7f1e916992a75d6b0f0088fe1d9bd48183",
+    "bytes": 684251,
+    "seconds": 9.6
+  },
+  "resize-fit.gif": {
+    "spec": "e2e/docs/resize-bisect.docs.js",
+    "specHash": "5a1a2ed3073ea0830edaa27227ecab7f1e916992a75d6b0f0088fe1d9bd48183",
+    "bytes": 764412,
+    "seconds": 10.5
+  },
+  "fillet-operation.gif": {
+    "spec": "e2e/docs/fillet-chamfer.docs.js",
+    "specHash": "7ea6a7a0d32872f7c58535d00c3a8ae094b12e06e08b34b8511db1cdc666d764",
+    "bytes": 689600,
+    "seconds": 11.1
+  },
+  "chamfer-operation.gif": {
+    "spec": "e2e/docs/fillet-chamfer.docs.js",
+    "specHash": "7ea6a7a0d32872f7c58535d00c3a8ae094b12e06e08b34b8511db1cdc666d764",
+    "bytes": 634875,
+    "seconds": 10.5
+  },
+  "bisect-axis.gif": {
+    "spec": "e2e/docs/resize-bisect.docs.js",
+    "specHash": "5a1a2ed3073ea0830edaa27227ecab7f1e916992a75d6b0f0088fe1d9bd48183",
+    "bytes": 613445,
+    "seconds": 8.1
+  },
+  "bisect-angled.gif": {
+    "spec": "e2e/docs/resize-bisect.docs.js",
+    "specHash": "5a1a2ed3073ea0830edaa27227ecab7f1e916992a75d6b0f0088fe1d9bd48183",
+    "bytes": 680320,
+    "seconds": 8.9
   }
 }

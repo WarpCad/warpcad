@@ -1279,3 +1279,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** 6 GIFs, 4 stills, end-state assertions → diff (e2e/docs/groups.docs.js, snap-align.docs.js, mirror.docs.js, docs/media/manifest.json); snap face plane within 0.01 mm, mirror copy at the negated X → assertions in those specs; full run 2560 e2e passed → test output this session
 **To Add:** docs/media/snap-operation.gif
+
+## 2026-10-03T15:25:00Z — Docs: Fillet, Chamfer, Enlarge, Fit and Bisect, with pictures
+
+**Post:** The WarpCad docs now show Fillet, Chamfer, Enlarge, Fit and Bisect working. Pick a face, type a radius, and the rim rounds or bevels; Bisect cuts a cube at an offset, or tilts the cut 30 degrees. Recording them found that a part snapped to a plate stays put when you Enlarge the plate. Built with Claude Code, reviewed by me. #CAD #WebGL
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** 7 GIFs, 4 stills, end-state assertions → diff (e2e/docs/fillet-chamfer.docs.js, resize-bisect.docs.js, docs/media/manifest.json); Enlarge left the snapped lug at Z 8 while the plate's top moved to 16 → measured in the snapped-dependents spec run; full run 2571 e2e passed → test output this session
+**To Add:** docs/media/fillet-operation.gif

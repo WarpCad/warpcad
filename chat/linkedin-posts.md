@@ -1760,3 +1760,14 @@ Recording turned up two things worth writing down. Snap's orientation sign names
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** 6 animations and 4 stills → diff (docs/media/, docs/screenshots/); end-state assertions → e2e/docs/*.docs.js; "Outside +" landed the lug on the minus side → failing assertion during this session (lug face 92 mm from the plate's high face, matching calcSnap's table in src/core/kernel/group.js); Group lost the recolour → hand probe this session (empty data-body-color on the group); scenarios 3, 6, 16 → TODO/ACCEPTANCE.md Last run entries
 **To Add:** docs/media/snap-operation.gif, docs/media/snap-subpart-operand.gif
+
+## 2026-10-03T15:25:00Z — Docs: Fillet, Chamfer, Enlarge, Fit and Bisect, with pictures
+
+**Post:** The WarpCad pages for Fillet, Chamfer, Enlarge, Fit and Bisect now show each one working. Select a cube, press Fillet, choose the top face and type a radius of 3: the top edges round off, and Chamfer does the same with a bevel. Enlarge grows a shape by the millimetres you type, Fit sets a finished size (with or without keeping proportions), and Bisect cuts a cube at an offset or tilts the cut plane 30 degrees.
+
+Every clip ends by checking its result against the kernel's own numbers. Enlarge changes the bounding box by exactly the typed delta, the angled cut leaves a 31.55 mm upper half that matches the tilt arithmetic, and the fillet clip waits for the worker to re-measure the body's volume rather than a timer, so a GIF never stops on the sharp-cornered frame. Making them turned up one surprise worth writing down: a lug snapped to a plate rides up when you resize the plate in the Inspector, but stays put, buried, when you use Enlarge or Fit. The page now says so, and whether they should follow is on my list. Built with Claude Code, reviewed by me.
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** 7 animations and 4 stills → diff (docs/media/, docs/screenshots/); end-state assertions → e2e/docs/fillet-chamfer.docs.js and resize-bisect.docs.js; lug stayed at Z 8 after Enlarge and Fit → probe output this session (plate top 16, lug bounds unchanged); angled cut centres 15.77 and 24.23 → hand drive this session, TODO/ACCEPTANCE.md
+**To Add:** docs/media/fillet-operation.gif, docs/media/bisect-angled.gif

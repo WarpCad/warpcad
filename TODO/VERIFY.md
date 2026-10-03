@@ -34,6 +34,16 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### docs-013 — Docs media for Fillet, Chamfer, Enlarge, Fit and Bisect (2026-10-03 15:22)
+
+The movies and stills are asserted, and scenario 1 plus the `core-021`/`core-022` repros were driven by hand. What is left is one product question the capture turned up and two readability checks. The fillet, chamfer and Fit GIFs run 10.5 to 11.1 s against the 12 s budget.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | Enlarge and Fit do not carry snapped parts with them: with a lug snapped to a plate's top, Enlarge Z +16 (and Fit Z 24) moved the plate's top to 16 and left the lug at Z 8, buried in the plate; typing the same size in the Inspector's Size field moves the lug up with it (`data-007`). `docs/resize-bisect.md` now says so and points to the Inspector. Decide whether Enlarge/Fit should follow too (a finding to file) or the page note is enough. | Open | |
+| 2 | Read `resize-fit.gif` and the Fit example cold: Keep aspect ratio applies the smallest ratio to all three axes, so X 60 to 30 takes Y and Z from 40 to 20. Does the second step read as "keeps its proportions", or does it look like Fit ignored the box? | Open | |
+| 3 | `fillet-vs-chamfer.png` is orbited to about 71 degrees elevation so both rims show. Is the rounded rim on the left readable as a fillet at the size it appears on the page? | Open | |
+
 ### docs-012 — Docs media for Group, Snap, Align and Mirror (2026-10-03 14:52)
 
 The movies and stills are asserted and scenarios 3, 6 and 16 were driven by hand, so what is left is judgment and one product question the capture turned up. The two Snap/Align GIFs sit at about 10.5 to 11 s, close to the 12 s budget.

@@ -1,0 +1,3 @@
+{"id":"plate-1","op":"primitive.cuboid","name":"Plate 1","params":{"size":[80,50,8],"center":[0,0,4]}}
+{"id":"lug-1","op":"primitive.cuboid","name":"Lug 1","params":{"size":[12,20,20],"center":[20,0,30]}}
+{"id":"lug-1-snap","op":"group.snap","target":"lug-1","operands":["plate-1"],"supersedes":"lug-1","params":{"axes":"z","orientation":"outside-","deltaMm":0}}

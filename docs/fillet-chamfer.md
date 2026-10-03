@@ -33,6 +33,13 @@ this toolbar. They stay dimmed and unclickable unless **exactly one** shape is
 selected — not zero, and not two or more. Click one shape to select it, and
 both buttons light up.
 
+## The short version
+
+Select the cube, press **Fillet**, choose **Top (+Z)** in the **Face** dropdown, type `3`
+(mm) into **Radius (mm)**, and press **Fillet** in the popover: the top edges round off.
+
+![Fillet on a cube: choose Top, type 3, press Fillet, and the top rim rounds off](./media/fillet-operation.gif)
+
 ## A worked example
 
 1. Drag a **Cube** into the 3D view and click it to select it.
@@ -44,6 +51,17 @@ both buttons light up.
    stays sharp-edged. The popover closes, and the cube stays selected.
 5. Click **Chamfer**, choose **Bottom (−Z)**, and set Radius to `2`. Click
    **Chamfer** inside the popover — the bottom rim now bevels at 45°.
+
+![The Fillet popover with Face set to Top (+Z) and a radius of 3](./screenshots/fillet-popover.png)
+
+Chamfer works the same way and bevels the rim instead of rounding it:
+
+![Chamfer on a cube: the top rim is cut at 45 degrees](./media/chamfer-operation.gif)
+
+Here are the two results side by side, a Fillet on the left cube and a Chamfer on the
+right one, both with the top face chosen and a radius of 4:
+
+![Two cubes seen from above, the left with a rounded top rim and the right with a bevelled one](./screenshots/fillet-vs-chamfer.png)
 
 Both faces are now rounded or bevelled independently on the same cube — Fillet
 and Chamfer can be used more than once on the same shape, on different faces,
@@ -65,6 +83,10 @@ sharp shape.
 - **Cancel** closes the popover without changing anything. **Fillet**/
   **Chamfer** (the popover's own commit button, labelled to match whichever one
   you opened) applies the rounding or bevelling.
+
+A radius of 45 on a 40 mm cube is refused like this, and the cube is left as it was:
+
+![The Fillet popover showing the message for a radius of 45 on a 40 mm cube](./screenshots/fillet-error.png)
 
 ## What happens to the shape's size, in the Inspector
 

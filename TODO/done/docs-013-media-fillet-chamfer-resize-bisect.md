@@ -6,8 +6,30 @@ priority: medium
 model: sonnet
 milestone: M10
 depends: [docs-005, docs-006, docs-007]
-status: open
+status: done
 ---
+
+> **Shipped (2026-10-03):** all 11 inventory rows, in `e2e/docs/fillet-chamfer.docs.js` (5 tests: 3
+> stills, 2 movies) and `resize-bisect.docs.js` (6 tests: 1 still, 5 movies), embedded in
+> `docs/fillet-chamfer.md` and `docs/resize-bisect.md`, plus one new fixture
+> (`plate-and-snapped-lug.ndjson`). `src/` is untouched. No hexagon is used anywhere (`io-006`; the
+> fillet spec's header says so).
+>
+> **How the post-state is asserted.** The fillet and chamfer movies wait for the body's re-measured
+> `data-body-volume` to drop (the worker publishes it from the real geometry), never a fixed
+> timeout, so no GIF ends on the pre-fillet frame. The app exposes no mesh vertex count, so "the mesh's
+> vertex count changes" is checked against the same `filletRim`/`chamferRim` call in Node (8 vertices on a
+> 40 mm cube, more after). Enlarge and Fit assert the bounding-box size delta equals the typed delta
+> (`toBeCloseTo(.., 1)`, the attribute prints two decimals); the Bisect movies assert the kept half's
+> size, centre and `positive`/`negative` name.
+>
+> **Deviations.** (1) `resize-snapped-dependents` resizes the plate through the Inspector's Size field.
+> Enlarge and Fit append a step and a snapped lug does **not** follow them (measured: the lug stayed at
+> Z 8 while the plate's top moved to 16). `data-007` only covers the Inspector path. The page now says so;
+> whether Enlarge/Fit should follow is logged in `TODO/VERIFY.md`. (2) Fit's Keep aspect ratio is the
+> kernel's smallest-ratio fit-inside rule, so the movie shows X 60 to 30 with the other axes following
+> (40 to 20), not a plain scale. (3) The page's example already matched the popover (Face dropdown,
+> Radius (mm), Fillet); the spec's wording "pick the top rim" became "choose Top (+Z)".
 
 ## Goal
 

@@ -29,6 +29,18 @@ and all three buttons light up.
    the top rises by 5mm each, rather than the whole shape growing up from one
    face. The popover closes, and the cube stays selected.
 
+![Enlarge: type X, Y and Z deltas and the cube grows by exactly those millimetres](./media/resize-enlarge.gif)
+
+## A worked example: Fit
+
+Fit asks for the finished size instead of a change. With a cube selected, click
+**Fit** and set **X size** to `60`; the box grows to 60 mm along X and the other
+two axes stay as they were. Open Fit again, set **X size** to `30`, tick **Keep
+aspect ratio** and press **Fit**: this time all three axes shrink by the same
+factor, so the shape keeps its proportions.
+
+![Fit twice: first X alone to 60 mm, then X to 30 mm with Keep aspect ratio ticked](./media/resize-fit.gif)
+
 ## A worked example: Bisect
 
 1. Select a cylinder already placed in the scene.
@@ -43,6 +55,11 @@ and all three buttons light up.
    [Selecting a shape, and reading its size](selection-and-inspector.md). Step
    back out the same way that page describes — via the breadcrumb — to return
    to the whole pair.
+
+Here is a straight cut on a cube at Z = 20, then a click into the upper half
+(`positive`): it is 20 mm tall and its centre sits at Z = 30.
+
+![Bisect a cube along Z at 20 mm, then click into the upper half](./media/bisect-axis.gif)
 
 ## A worked example: an angled Bisect
 
@@ -59,6 +76,12 @@ asymmetric split.
    X axis — the two resulting halves are asymmetric, not mirror images of each
    other, and the same click-once/click-again/breadcrumb behaviour described
    above still applies to each one.
+
+![An angled bisect: the cut tilts 30 degrees, and the upper half is 31.55 mm tall](./media/bisect-angled.gif)
+
+The Bisect popover with those values filled in:
+
+![The Bisect popover with Axis Z, Offset 20, Angle 30, Rotate-axis X and Rotate-offset blank](./screenshots/bisect-popover.png)
 
 ## The popovers' fields
 
@@ -112,6 +135,18 @@ asymmetric split.
 - **Cancel** closes any of the three popovers without changing anything.
 
 ## What happens to the shape afterward
+
+### Anything snapped to the shape
+
+![Resizing a plate in the Inspector: the lug snapped to its top rides up with it](./media/resize-snapped-dependents.gif)
+
+If another shape was [snapped](snap-align.md) to the one you resize, how you
+resize decides what happens. Typing a new **Size** in the Inspector's
+**Parameters** (the movie above, Z from 8 to 24) rebuilds the shape and every
+Snap against it, so the lug keeps standing on the plate's new top. **Enlarge**
+and **Fit** are different: they add a step on top of the shape, and a part
+snapped to it stays where it was, so it can end up buried or floating. To keep a
+snapped part attached, resize in the Inspector.
 
 **Enlarge and Fit** replace the selected shape's size in place — it's still the
 same shape, same id, same position in the scene list, just a new size. Nothing
