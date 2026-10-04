@@ -12,6 +12,10 @@
  *   later record — a move, a turn, a fillet — re-folds against the new solid and the pose
  *   survives. One editing session, one Undo step, either way.
  *
+ * A reference photo added during the session (`TODO/sketch-003`) is an `asset.image` record
+ * the slices name by id. Done appends it **in the same step** — before the new sketch, or
+ * inside the edit's revision — so Undo takes both back together.
+ *
  * **Cancel** changes nothing at all: for a new sketch that means no body is ever created.
  *
  * @module composables/useSketchEditorCommands
@@ -88,13 +92,18 @@ export function useSketchEditorCommands() {
             params: { center: [...editor.originMm], slices: draft.slices, extrusion: draft.extrusion },
           }
           // May throw: the document's trial fold refuses a sketch the kernel can't build.
-          documentStore.append(record, { origin: 'local' })
+          // The session's photos go in first, in the same step (`TODO/sketch-003`): one
+          // editing session stays one Undo, and the sketch never names a photo the log lacks.
+          const assets = editor.assetsToCommit()
+          documentStore.appendAll([...assets, record], { origin: 'local', label: `Place ${record.name}` })
           editor.close()
           selection.select(record.id)
           return true
         }
         const id = editor.bodyId
-        if (editor.changed) paramCommands.setParams(id, { slices: draft.slices, extrusion: draft.extrusion })
+        if (editor.changed) {
+          paramCommands.setParams(id, { slices: draft.slices, extrusion: draft.extrusion }, { append: editor.assetsToCommit() })
+        }
         editor.close()
         selection.select(id)
         return true

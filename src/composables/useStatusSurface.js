@@ -73,6 +73,8 @@ export function useStatusSurface() {
   function resolve() {
     if (persistence.loading) return { text: persistence.loading, tone: 'saving' }
     if (persistence.errorMessage) return { text: persistence.errorMessage, tone: 'error' }
+    // What the last load left out (`TODO/sketch-003`): outlives the autosave that follows it.
+    if (persistence.loadWarning) return { text: persistence.loadWarning, tone: 'error' }
     if (hosted.connected) {
       if (hosted.errorMessage) return { text: hosted.errorMessage, tone: 'error' }
       const dot = hosted.dotState

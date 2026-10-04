@@ -6,8 +6,55 @@ priority: high
 model: opus
 milestone: M8
 depends: [sketch-001]
-status: open
+status: done
 ---
+
+> **What actually shipped (2026-10-04, `/run-todos` isolated agent).** The reference photo on a
+> slice, its sanitization and Set scale — everything this file assigns to step 5 — with the
+> hostile-input specs in the same commit as the first image load. Auto-trace (`sketch-004`)
+> is **not** offered at all (no disabled button); vertex editing had already shipped
+> (`sketch-002`). Where reality differed from the spec below:
+>
+> - **Record shape:** `{ id: "img-<24 hex of SHA-256>", op: "asset.image", params: { mime,
+>   widthPx, heightPx, dataBase64 } }` — the id is the record's own top-level `id` (every
+>   record has one; the document's duplicate/undo bookkeeping keys on it), not `params.id`.
+>   Any other field, on the record or in `params`, is a refusal.
+> - **Validator** `src/sketch/imageAsset.js` (never throws; header dims read without
+>   decoding; PNG / JPEG SOFn / WebP VP8, VP8L, VP8X; 8192 px side, 40 MP, 1.5 MB caps).
+>   Import re-encode, decode and hashing are in `src/sketch/imageJob.js` + `image.worker.js` +
+>   `imageClient.js` (supersede-not-queue, a per-asset bitmap cache freed when the editor
+>   closes, main-thread fallback). Calibration math is `calibration.js`; the pure draft edits
+>   (set/remove image, apply calibration, rescale outlines about the first mark) are a new
+>   `referenceImage.js`.
+> - **Load-time degrade** is a second deliberate exception in `src/core/project.js`
+>   (`unsafeImageReason`, beside `RETIRED_OPS`): a bad `asset.image` is dropped with a
+>   `LoadWarning` naming its id and reason and the file still opens. `replay.js` skips and
+>   reports one; `document.js` refuses one loudly on a local append and never folds or
+>   lineage-indexes an asset; `assets()` lists the folded ones.
+> - **One undo step on Edit sketch** needed a core change: `reviseRecords(changes, tx,
+>   { append })` puts the new photo into the log in the same revision (inserted at the
+>   rollback marker), and its inverse takes it back out. A new sketch uses `appendAll([asset,
+>   sketch])`.
+> - **History:** an asset row reads *Reference image W × H px* and is **not** editable
+>   (`stepParamEditability` refuses it — the form would have offered raw base64). A photo
+>   whose row is suppressed or rolled back reads *switched off in History*, not "unsafe".
+> - **Set scale's length entry** is in the top banner at every size (the spec put it "next to
+>   the line on desktop"); the banner takes the Sketch toolbar's slot while armed. The
+>   corner badge sits **under the photo's bottom-left** corner (the top edge runs under the
+>   toolbar once a photo is rescaled). On a narrow viewport the Slices sheet **steps aside
+>   entirely** while Set scale is armed rather than folding to its header — the header alone
+>   cost the phone 10 points of the reachability grid (67 % measured, 77 % without it).
+> - **Found and fixed (not caused here):** the persistence chip's "Opened X, but skipped N
+>   steps" report was cleared by the open's own autosave ~1 s later, so a dropped hostile
+>   image — or a retired `sketch.line` — was reported for about a second. It is now a separate
+>   `loadWarning` that lasts until the next load, File ▸ New or Dismiss.
+> - **hostedBackend:** already followed the git blob for files over 1 MB (`io-002`); a spec
+>   now round-trips a ~1.9 MB project with a photo through that path. No code change.
+> - **Acceptance:** new **scenario 20** (17-19 are reserved by `ai-010` and `testing-002`).
+> - **Firefox now launches in this sandbox** (the TROUBLESHOOTING 2026-09-17 entry no longer
+>   reproduces); the new e2e ran on all 9 engine × viewport projects.
+> - Not checked here: a real iPhone's HEIC → JPEG hand-off and the HEIC refusal wording
+>   (`TODO/VERIFY.md`).
 
 > **Split out of `TODO/sketch-001` (2026-10-02).** sketch-001's own Effort section said
 > "If the first run finishes steps 1-3, split steps 4-6 into their own TODO rather than

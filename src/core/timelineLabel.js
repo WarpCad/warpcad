@@ -209,6 +209,13 @@ export function describeRow(record, names) {
     return `Color ${part}${value}${on}`
   }
 
+  // A reference photo (`TODO/sketch-003`): a data row, not a body — named by its size.
+  if (record.op === 'asset.image') {
+    const width = Number.isInteger(params.widthPx) ? params.widthPx : '?'
+    const height = Number.isInteger(params.heightPx) ? params.heightPx : '?'
+    return `Reference image ${width} × ${height} px`
+  }
+
   // Removing one part of a group (`TODO/ui-051`): the part is the interesting half.
   if (record.op === 'group.removePart') {
     const part = typeof params.part === 'string' && params.part.length > 0 ? params.part : 'part'

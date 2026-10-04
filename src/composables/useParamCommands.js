@@ -76,7 +76,7 @@ import { useDocumentStore } from '../stores/document.js'
  *   setParam: (bodyId: string, key: string, value: unknown) => ParamResult,
  *   setCompositeParams: (bodyId: string, values: Record<string, unknown>) => ParamResult,
  *   setParamComponent: (bodyId: string, key: string, index: number, value: number) => void,
- *   setParams: (bodyId: string, changes: Record<string, unknown>) => void,
+ *   setParams: (bodyId: string, changes: Record<string, unknown>, options?: { append?: readonly import('../core/kernel/registry.js').OpRecord[] }) => void,
  *   applyRepair: (edit: RepairEdit, breakages: readonly Breakage[], fixes: Record<string, Fix>) => void,
  *   resolveTargets: (bodyId: string) => { edit: RepairEdit, breakages: Breakage[] },
  *   setCondition: (recordId: string, when: { ref: string, param: string, in: any[] } | null) => void,
@@ -169,9 +169,11 @@ export function useParamCommands() {
    *
    * @param {string} bodyId
    * @param {Record<string, number | string | readonly number[]>} changes
+   * @param {readonly import('../core/kernel/registry.js').OpRecord[]} [append] Records that
+   *   go into the log in the same undo step (`TODO/sketch-003`'s photo).
    * @returns {void}
    */
-  function applyChanges(bodyId, changes) {
+  function applyChanges(bodyId, changes, append = []) {
     const raw = live()
     // Fail safe: a root with no params of its own is left exactly as it was.
     if (!canEditParams(raw, bodyId).editable) return
@@ -190,7 +192,7 @@ export function useParamCommands() {
     }
     // May throw (a diameter of 0, a kernel range check); `reviseRecords` then leaves the
     // document and the undo stack exactly as they were, and the caller shows the message.
-    documentStore.revise(revision, { label: `Edit ${nameOf(bodyId)}` })
+    documentStore.revise(revision, { label: `Edit ${nameOf(bodyId)}`, append })
   }
 
   return {
@@ -285,8 +287,8 @@ export function useParamCommands() {
      * sketch editor's Done (`TODO/sketch-001`) changes `slices` and `extrusion` together;
      * two `setParam` calls would be two steps for one editing session.
      */
-    setParams(bodyId, changes) {
-      applyChanges(bodyId, /** @type {any} */ (changes))
+    setParams(bodyId, changes, options = {}) {
+      applyChanges(bodyId, /** @type {any} */ (changes), options.append ?? [])
     },
 
     /** Commit one typed component of a vector param: Size X, Side B. */

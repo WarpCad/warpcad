@@ -58,6 +58,7 @@
 
 import { DEFAULT_RESOLUTION, RESOLUTION_IDS, isResolution } from './kernel/tessellation.js'
 import { parseNdjson, serializeNdjson } from './ndjson.js'
+import { ASSET_OP, validateImageAsset } from '../sketch/imageAsset.js'
 
 /** @typedef {import('./document.js').DocumentEntry} DocumentEntry */
 /** @typedef {import('./document.js').WarpDocument} WarpDocument */
@@ -164,6 +165,29 @@ function retiredReason(op) {
 }
 
 /**
+ * Why a reference photo is dropped on load, or `null` (`TODO/sketch-003`).
+ *
+ * The second deliberate exception to "an unknown or bad record refuses the whole file".
+ * An `asset.image` holds untrusted bytes, and one that fails {@link validateImageAsset}
+ * (an SVG, a remote URL, a MIME that lies about its bytes, a 50 000 px header) must
+ * neither reach a decoder nor cost the user every *other* record in the file — the
+ * sketches that reference it are fine without it. So it is dropped here with a warning
+ * naming it and why, and any slice that names it loads without an image (its Slices panel
+ * row says the image was removed).
+ *
+ * @param {Record<string, any>} record
+ * @returns {string | null}
+ */
+function unsafeImageReason(record) {
+  if (record.op !== ASSET_OP) return null
+  const verdict = validateImageAsset(record)
+  return verdict.ok ? null : `${IMAGE_REMOVED} (${verdict.reason})`
+}
+
+/** The start of every dropped-image warning — the same words the Slices panel row uses. */
+export const IMAGE_REMOVED = "reference image removed — it couldn't be verified as a safe image"
+
+/**
  * Parse and statically validate project text, without touching any document.
  *
  * Checks everything that can be checked from the text alone — JSON, record
@@ -252,7 +276,7 @@ export function parseProject(text) {
       }
       ids.add(record.id)
     }
-    const retired = retiredReason(record.op)
+    const retired = retiredReason(record.op) ?? unsafeImageReason(record)
     recordCount += 1
     if (retired !== null) {
       warnings.push({ ...(record.id !== undefined ? { id: record.id } : {}), op: record.op, message: retired })

@@ -1361,3 +1361,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** snap tiers, labels and markers -> src/sketch/snap.js, SketchStrokes.vue diff; circle centre exactly on the corner -> e2e "pressed 6 px from a rectangle corner" reads Centre X/Y "20"/"10" on 9 projects, and this session's drive read 40, 25; Shift and the Snap toggle -> same e2e spec and the touch spec on chromium-phone
 **To Add:** docs/media/sketch-snap.gif, docs/screenshots/sketch-snap-corner.png
+
+## 2026-10-04T20:45:00Z — Sketch reference photo: load it, set its scale from a ruler, trace at real size
+
+**Post:** WarpCad sketches can now hold a photo. Load a picture of a broken part beside a ruler, drag along the ruler, type 10 cm, then trace it at real size. The photo is redrawn from its pixels on the way in, so its GPS tag stays out of the project. Built with Claude Code, reviewed by me. #CAD
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** load / Set scale / units -> diff (ReferenceImagePanel.vue, ScaleTool.vue, calibration.js); traced at real size -> this session's hand drive (fixture L-bracket traced to 120.00 x 100.00 mm Chromium, 120.67 x 100.13 mm WebKit/Firefox against 120 x 100); redrawn from pixels, metadata incl. GPS dropped -> src/sketch/imageJob.js importImage (decode, draw to canvas, re-encode JPEG/PNG)
+**To Add:** docs/media/sketch-trace-scale.gif, docs/screenshots/sketch-trace-scaled.png

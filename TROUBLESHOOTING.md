@@ -144,6 +144,11 @@ sandbox until its cache is confirmed healthy.
    green and the 9th fails identically on code that shipped and passed review days
    earlier.
 
+**Update 2026-10-04 (`TODO/sketch-003`):** no longer reproduces. All three `firefox-*` projects
+launched and passed `e2e/sketch-reference-image.e2e.js` (and the full matrix run) in this
+sandbox with no reinstall; the cache was evidently repaired in between. Run Firefox again
+rather than assuming this entry still holds.
+
 ### 2026-09-24 — `TODO/ui-045`'s "trusted touch stops selecting" could not be reproduced as a pointer/raycast bug; it reproduces as viewport-chrome occlusion instead
 
 **What happened:**

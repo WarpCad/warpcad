@@ -335,5 +335,11 @@
     "specHash": "3add15e9b455d019cf3c76ee87579d8ae422e09bcb846ebb5f101968e1dc4506",
     "bytes": 1080897,
     "seconds": 9
+  },
+  "sketch-trace-scale.gif": {
+    "spec": "e2e/docs/sketch-tracing.docs.js",
+    "specHash": "a7af60ddf8f17723cdb90965b3486d97f3e2f3a7059a569fdfc8f8577cc079b5",
+    "bytes": 1179563,
+    "seconds": 11.2
   }
 }

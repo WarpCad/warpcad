@@ -218,6 +218,9 @@ export function useTimelineCommands() {
     if (record.consumes !== undefined) {
       return { editable: false, reason: 'This step has no parameters' }
     }
+    if (record.op === 'asset.image') {
+      return { editable: false, reason: 'A reference photo is changed from its sketch’s Slices panel (Edit sketch)' }
+    }
     if (registry[record.op]?.kind === 'composite') {
       return {
         editable: false,

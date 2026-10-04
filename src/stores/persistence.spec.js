@@ -575,6 +575,30 @@ describe('usePersistenceStore', () => {
       expect(persistence.chipText).toMatch(/redraw them in a Sketch primitive/)
     })
 
+    it('the skipped-records warning outlives the autosave that follows the open, until dismissed (TODO/sketch-003)', async () => {
+      // A dropped hostile image (or a retired record) must stay reported: the open's own
+      // autosave lands ~1 s later, and used to wipe the warning off the chip with "Saved".
+      const files = fakeFiles('fallback')
+      files.nextOpen = {
+        ok: true,
+        name: 'stranger.ndjson',
+        text:
+          '{"id":"a","op":"primitive.cuboid","name":"Cube 1","params":{"size":[10,10,10],"center":[0,0,5]}}\n' +
+          '{"id":"img-111111111111111111111111","op":"asset.image","params":{"mime":"image/svg+xml","widthPx":1,"heightPx":1,"dataBase64":"PHN2Zz4="}}\n',
+      }
+      setPersistenceDependencies({ backend: fakeBackend(), files })
+      const persistence = usePersistenceStore()
+      await persistence.start()
+      await persistence.openFile()
+      expect(persistence.chipText).toMatch(/skipped 1 step \(img-111111111111111111111111\): reference image removed/)
+      await vi.advanceTimersByTimeAsync(6100)
+      expect(persistence.autosaveState).toBe('saved')
+      expect(persistence.chipText).toMatch(/Opened stranger\.ndjson, but skipped 1 step/)
+      expect(persistence.chipTone).toBe('error')
+      persistence.dismissError()
+      expect(persistence.chipText).not.toMatch(/skipped/)
+    })
+
     it('restores an autosave holding retired sketch.line records instead of refusing it (TODO/sketch-001)', async () => {
       const backend = fakeBackend()
       backend.stored = {

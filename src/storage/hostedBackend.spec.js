@@ -190,6 +190,28 @@ describe('read', () => {
     // commit the truncated log over the real one.
     await expect(client.read(CONNECTION)).resolves.toEqual({ exists: true, sha: 'big1', text: big })
   })
+
+  it('a project carrying a reference photo (well over 1 MB) comes back whole and parses, photo intact (TODO/sketch-003)', async () => {
+    // The first document likely to cross the Contents API's 1 MB line: a sketch with a
+    // photo in it. The photo's base64 is ~1.9 MB of text on its own.
+    const { validAssetRecord } = await import('../sketch/__fixtures__/images.js')
+    const { parseProject } = await import('../core/project.js')
+    const asset = validAssetRecord()
+    const photo = { ...asset, params: { ...asset.params, dataBase64: asset.params.dataBase64 + 'A'.repeat(1_900_000 - (asset.params.dataBase64.length % 4)) } }
+    // Pad inside the PNG's trailing bytes is still valid base64 and a valid header.
+    while (photo.params.dataBase64.length % 4 !== 0) photo.params.dataBase64 += 'A'
+    const text = `${JSON.stringify(photo)}\n`
+    expect(text.length).toBeGreaterThan(1_000_000)
+    const fetchImpl = fakeFetch([
+      { match: '/contents/', answer: response({ body: { type: 'file', encoding: 'none', content: '', sha: 'photo1', size: text.length } }) },
+      { match: '/git/blobs/photo1', answer: response({ body: { encoding: 'base64', content: encodeBase64(text), sha: 'photo1' } }) },
+    ])
+    const read = await createHostedClient({ fetch: fetchImpl }).read(CONNECTION)
+    expect(read.text).toBe(text)
+    const { entries, warnings } = parseProject(read.text)
+    expect(warnings).toEqual([])
+    expect(entries[0].record.params.dataBase64).toBe(photo.params.dataBase64)
+  })
 })
 
 describe('write', () => {

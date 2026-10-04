@@ -31,6 +31,7 @@
 
 import { evaluate } from './kernel/index.js'
 import { createGroup } from './kernel/group.js'
+import { ASSET_OP, validateImageAsset } from '../sketch/imageAsset.js'
 
 /** @typedef {import('@jscad/modeling').geometries.geom3.Geom3} Geom3 */
 /** @typedef {import('./kernel/group.js').Group} Group */
@@ -89,6 +90,17 @@ export function emptyScene() {
  * @returns {Scene}
  */
 export function applyAction(scene, action, registry, cache = null, policy = undefined) {
+  // A reference photo (`TODO/sketch-003`) is data, not geometry: it never reaches the
+  // kernel. A valid one leaves the scene as it was; one that fails validation is skipped
+  // and reported like any other bad record — "a load warning, as scenario 8 requires".
+  if (action?.op === ASSET_OP) {
+    const verdict = validateImageAsset(action)
+    if (verdict.ok) return scene
+    /** @type {ReplayError} */
+    const reported = { op: ASSET_OP, message: verdict.reason }
+    if (action.id !== undefined) reported.id = action.id
+    return { ...scene, errors: [...scene.errors, reported] }
+  }
   try {
     const { byId, group } = evaluate([action], {
       registry,

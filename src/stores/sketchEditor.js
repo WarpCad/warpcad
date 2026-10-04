@@ -24,9 +24,12 @@
  */
 
 import { defineStore } from 'pinia'
-import { computed, ref, shallowRef } from 'vue'
+import { computed, ref, shallowRef, toRaw } from 'vue'
 
 import { formatMmValue } from '../core/units.js'
+import { defaultPlacement, formatScale } from '../sketch/calibration.js'
+import { applyCalibration, sliceImageOf, withSliceImage } from '../sketch/referenceImage.js'
+import { useDocumentStore } from './document.js'
 
 import { simplifyPoints } from '../sketch/simplify.js'
 import {
@@ -57,6 +60,26 @@ import {
 /** @typedef {import('../sketch/profile.js').Profile} Profile */
 /** @typedef {'select' | 'line' | 'rect' | 'circle' | 'polygon'} SketchTool */
 /** @typedef {'' | 'slices' | 'extrude'} SketchPanel */
+/** @typedef {import('../sketch/imageAsset.js').ImageAssetRecord} ImageAssetRecord */
+/** @typedef {import('../sketch/calibration.js').ImagePlacement} ImagePlacement */
+/** @typedef {import('../sketch/calibration.js').LengthUnit} LengthUnit */
+
+/**
+ * What a slice's reference image is, for the Slices panel and the viewport
+ * (`TODO/sketch-003`): none; shown (with or without a calibrated scale); or **removed** —
+ * the slice names a photo the document does not hold, because a load dropped it as unsafe.
+ *
+ * @typedef {object} SliceImageView
+ * @property {'none' | 'ok' | 'removed'} state
+ * @property {ImagePlacement | null} placement
+ * @property {ImageAssetRecord | null} asset
+ * @property {string} badge `Not to scale`, `1 px = 0.199 mm`, or `''`.
+ * @property {'' | 'unsafe' | 'off'} [removedBecause] Why a `removed` photo is missing: a load
+ *   dropped it as unsafe, or its History row is suppressed or past the rollback marker.
+ */
+
+/** @type {SliceImageView} */
+const NO_IMAGE = Object.freeze({ state: 'none', placement: null, asset: null, badge: '' })
 
 /**
  * The tools, in toolbar order. Hardcoded on purpose — see `SketchToolbar.vue`.
@@ -120,6 +143,26 @@ export const useSketchEditorStore = defineStore('sketchEditor', () => {
   const commitError = ref('')
   let profileCounter = 0
   let sliceCounter = 0
+
+  // --- the reference image (TODO/sketch-003) ---------------------------------
+  //
+  // A photo added in this session is an `asset.image` record the document does not hold
+  // yet: it waits here, with the draft, and Done appends it in the same undo step as the
+  // sketch. Not reactive — a record holds up to 1.5 MB of base64, and Vue must never walk
+  // it; `assetsVersion` is what views track instead.
+  /** @type {Map<string, ImageAssetRecord>} */
+  const pendingAssets = new Map()
+  const assetsVersion = ref(0)
+  /** Add/Replace image is re-encoding a photo in the worker. */
+  const imageImporting = ref(false)
+  /** Why the last Add image was refused, shown in the Reference image group until the next try. */
+  const imageError = ref('')
+  /** The armed image tool: `'scale'` while Set scale is waiting for its line, else `''`. */
+  const imageTool = ref(/** @type {'' | 'scale'} */ (''))
+  /** Set scale's two points, in image px, as they are fixed. */
+  const scaleAPx = shallowRef(/** @type {[number, number] | null} */ (null))
+  const scaleBPx = shallowRef(/** @type {[number, number] | null} */ (null))
+  const documentStore = useDocumentStore()
 
   /** Whether a Line chain is live — a start point is fixed or a segment is being extended. */
   const chainLive = computed(() => chainStartMm.value !== null || chainId.value !== '')
@@ -187,6 +230,51 @@ export const useSketchEditorStore = defineStore('sketchEditor', () => {
     Object.fromEntries(EXTRUSION_METHODS.map((method) => [method, methodProblem(draft.value, method) ?? ''])),
   )
 
+  /**
+   * An `asset.image` record by id: one added in this session, else the document's own.
+   *
+   * @param {string} id
+   * @returns {ImageAssetRecord | null}
+   */
+  function assetOf(id) {
+    return pendingAssets.get(id) ?? /** @type {any} */ (toRaw(documentStore.raw).assets().get(id)) ?? null
+  }
+
+  /**
+   * @param {import('../sketch/profile.js').Slice | undefined} entry
+   * @returns {SliceImageView}
+   */
+  function imageViewOf(entry) {
+    if (!entry || entry.image === undefined) return NO_IMAGE
+    const placement = sliceImageOf(entry)
+    const asset = placement ? assetOf(placement.assetId) : null
+    if (!placement || !asset) {
+      // Still in the log, just not folded (suppressed, or past the rollback marker): that is
+      // the user's own History choice, not an unsafe image, and the message must say so.
+      const inLog = placement !== null && toRaw(documentStore.raw).entries.some((entry) => entry.record.id === placement.assetId)
+      return { state: 'removed', placement, asset: null, badge: '', removedBecause: inLog ? 'off' : 'unsafe' }
+    }
+    return { state: 'ok', placement, asset, badge: placement.calibration ? formatScale(placement.mmPerPx) : 'Not to scale' }
+  }
+
+  /** Every slice's image, index-aligned with the draft's slices. */
+  const sliceImages = computed(() => {
+    void assetsVersion.value
+    void documentStore.version
+    return draft.value.slices.map(imageViewOf)
+  })
+
+  /** The active slice's image. */
+  const activeImage = computed(() => sliceImages.value[activeSlice.value] ?? NO_IMAGE)
+
+  /** Which Set scale step is next: the first point, the second, or the length. `''` when not armed. */
+  const scaleStep = computed(() => {
+    if (imageTool.value !== 'scale') return ''
+    if (!scaleAPx.value) return 'first'
+    if (!scaleBPx.value) return 'second'
+    return 'length'
+  })
+
   /** Whether the draft differs from what the session started with. */
   const changed = computed(() => JSON.stringify(draft.value) !== JSON.stringify(baseline.value))
 
@@ -214,12 +302,14 @@ export const useSketchEditorStore = defineStore('sketchEditor', () => {
     previewStatus.value = 'idle'
     previewError.value = ''
     commitError.value = ''
+    resetImageSession()
     profileCounter = Math.max(0, ...params.slices.flatMap((entry) => entry.profiles.map((profile) => Number(/^p(\d+)$/.exec(profile.id)?.[1] ?? 0))))
     sliceCounter = Math.max(0, ...params.slices.map((entry) => Number(/^s(\d+)$/.exec(entry.id)?.[1] ?? 0)))
     active.value = true
   }
 
   function close() {
+    resetImageSession()
     active.value = false
     bodyId.value = null
     selectedProfileId.value = ''
@@ -232,6 +322,122 @@ export const useSketchEditorStore = defineStore('sketchEditor', () => {
     previewStatus.value = 'idle'
     previewError.value = ''
     commitError.value = ''
+  }
+
+  function resetImageSession() {
+    pendingAssets.clear()
+    assetsVersion.value += 1
+    imageImporting.value = false
+    imageError.value = ''
+    cancelScale()
+  }
+
+  // --- the reference image (TODO/sketch-003) ---------------------------------
+
+  /**
+   * **Add image…** / **Replace image…** finished: the active slice now shows this photo,
+   * centred on the origin at the provisional scale. A replaced photo's opacity carries over;
+   * its scale does not — a new photo is a new measurement.
+   *
+   * @param {ImageAssetRecord} record Already sanitized by the import.
+   */
+  function addImageAsset(record) {
+    pendingAssets.set(record.id, record)
+    assetsVersion.value += 1
+    const previous = sliceImageOf(slice.value)
+    setDraft(withSliceImage(draft.value, activeSlice.value, { ...defaultPlacement(record.id), opacity: previous?.opacity ?? 0.5 }))
+    imageError.value = ''
+    cancelScale()
+  }
+
+  /**
+   * Change the active slice's image placement: opacity, X/Y offset, rotation.
+   *
+   * @param {Partial<Pick<ImagePlacement, 'opacity' | 'offsetMm' | 'rotationDeg'>>} change
+   */
+  function updateImage(change) {
+    const placement = sliceImageOf(slice.value)
+    if (!placement) return
+    setDraft(withSliceImage(draft.value, activeSlice.value, { ...placement, ...change }))
+  }
+
+  /** **Remove image** — also what clears a slice whose photo a load removed as unsafe. */
+  function removeImage() {
+    if (!slice.value || slice.value.image === undefined) return
+    setDraft(withSliceImage(draft.value, activeSlice.value, null))
+    cancelScale()
+  }
+
+  /** **Set scale**: arm the two-point tool. Needs a shown image on the active slice. */
+  function armScale() {
+    if (activeImage.value.state !== 'ok') return
+    endChain()
+    imageTool.value = 'scale'
+    scaleAPx.value = null
+    scaleBPx.value = null
+  }
+
+  function cancelScale() {
+    imageTool.value = ''
+    scaleAPx.value = null
+    scaleBPx.value = null
+  }
+
+  /**
+   * Fix the next Set scale point (a tap): the first, then the second.
+   *
+   * @param {readonly number[]} px Image px.
+   */
+  function addScalePoint(px) {
+    if (imageTool.value !== 'scale' || !Number.isFinite(px[0]) || !Number.isFinite(px[1])) return
+    if (!scaleAPx.value) scaleAPx.value = [px[0], px[1]]
+    else if (!scaleBPx.value) scaleBPx.value = [px[0], px[1]]
+  }
+
+  /**
+   * Set both points at once (a press-and-drag along the ruler).
+   *
+   * @param {readonly number[]} aPx
+   * @param {readonly number[]} bPx
+   */
+  function setScaleLine(aPx, bPx) {
+    if (imageTool.value !== 'scale') return
+    scaleAPx.value = [aPx[0], aPx[1]]
+    scaleBPx.value = [bPx[0], bPx[1]]
+  }
+
+  /**
+   * **Apply**: the photo takes the scale the line measures. With `rescaleOutlines`, the
+   * slice's outlines scale with it (the confirm's Yes).
+   *
+   * @param {number} length
+   * @param {LengthUnit} unit
+   * @param {boolean} rescaleOutlines
+   * @returns {string} Why it was refused, or `''` when applied.
+   */
+  function applyScale(length, unit, rescaleOutlines) {
+    const view = activeImage.value
+    if (view.state !== 'ok' || !view.asset || !scaleAPx.value || !scaleBPx.value) return 'Draw the line along the ruler first'
+    try {
+      const size = { widthPx: view.asset.params.widthPx, heightPx: view.asset.params.heightPx }
+      setDraft(applyCalibration(draft.value, activeSlice.value, size, { aPx: scaleAPx.value, bPx: scaleBPx.value, length, unit }, rescaleOutlines))
+    } catch (error) {
+      return error instanceof Error ? error.message : String(error)
+    }
+    cancelScale()
+    return ''
+  }
+
+  /**
+   * The photos Done must append: added this session, still named by a slice, and not
+   * already in the document (the id is a content hash, so re-adding a photo reuses it).
+   *
+   * @returns {ImageAssetRecord[]}
+   */
+  function assetsToCommit() {
+    const named = new Set(draft.value.slices.map((entry) => sliceImageOf(entry)?.assetId).filter(Boolean))
+    const held = toRaw(documentStore.raw).assets()
+    return [...pendingAssets.values()].filter((record) => named.has(record.id) && !held.has(record.id))
   }
 
   /** @param {SketchParams} next */
@@ -482,6 +688,8 @@ export const useSketchEditorStore = defineStore('sketchEditor', () => {
   function setTool(next) {
     // Leaving Line ends its chain: an open one stays in the draft, a lone start point goes.
     endChain()
+    // Picking a tool means drawing, not measuring: an armed Set scale stands down.
+    cancelScale()
     tool.value = next
     // Point dots are a Select-tool affordance (`TODO/sketch-002`): a drawing tool's press always
     // draws, so a point picked under Select would otherwise be invisible and still be what
@@ -493,6 +701,7 @@ export const useSketchEditorStore = defineStore('sketchEditor', () => {
   }
 
   function addSliceAbove() {
+    cancelScale()
     sliceCounter += 1
     setDraft(addSlice(draft.value, `s${sliceCounter}`))
     activeSlice.value = draft.value.slices.length - 1
@@ -503,6 +712,7 @@ export const useSketchEditorStore = defineStore('sketchEditor', () => {
 
   function deleteActiveSlice() {
     if (draft.value.slices.length <= 1) return
+    cancelScale()
     setDraft(removeSlice(draft.value, activeSlice.value))
     activeSlice.value = Math.max(0, activeSlice.value - 1)
     selectedProfileId.value = ''
@@ -513,6 +723,7 @@ export const useSketchEditorStore = defineStore('sketchEditor', () => {
   /** @param {number} index */
   function setActiveSlice(index) {
     if (index < 0 || index >= draft.value.slices.length) return
+    if (index !== activeSlice.value) cancelScale()
     activeSlice.value = index
     selectedProfileId.value = ''
     selectedVertex.value = -1
@@ -605,5 +816,25 @@ export const useSketchEditorStore = defineStore('sketchEditor', () => {
     setExtrusionParam,
     togglePanel,
     toggleSnap,
+    // TODO/sketch-003
+    assetsVersion,
+    imageImporting,
+    imageError,
+    imageTool,
+    scaleAPx,
+    scaleBPx,
+    scaleStep,
+    sliceImages,
+    activeImage,
+    assetOf,
+    addImageAsset,
+    updateImage,
+    removeImage,
+    armScale,
+    cancelScale,
+    addScalePoint,
+    setScaleLine,
+    applyScale,
+    assetsToCommit,
   }
 })

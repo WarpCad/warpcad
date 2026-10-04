@@ -37,6 +37,9 @@ import OperationsToolbar from './OperationsToolbar.vue'
 import SketchStrokes from './SketchStrokes.vue'
 import SketchToolbar from './SketchToolbar.vue'
 import SketchPanelSheet from '../sketch/SketchPanelSheet.vue'
+import ReferenceImageOverlay from '../sketch/ReferenceImageOverlay.vue'
+import ScaleTool from '../sketch/ScaleTool.vue'
+import { useReferenceImageView } from '../../composables/useReferenceImageView.js'
 import VertexHandles from '../sketch/VertexHandles.vue'
 import SnapGuides from './SnapGuides.vue'
 import { useSelectedBody } from '../../composables/useSelectedBody.js'
@@ -539,7 +542,8 @@ let pressStartClientY = 0
  * moves the camera (`TODO/sketch-005`).
  * `'sketch-vertex'` is a drag that began on a point handle of the selected outline: it moves
  * that point (or, from a midpoint dot, a newly inserted one) and never draws (`TODO/sketch-002`).
- * @type {'' | 'orbit' | 'pan' | 'select' | 'marquee' | 'sketch' | 'sketch-idle' | 'sketch-vertex'}
+ * `'sketch-scale'` is Set scale's press-and-drag along a ruler (`TODO/sketch-003`).
+ * @type {'' | 'orbit' | 'pan' | 'select' | 'marquee' | 'sketch' | 'sketch-idle' | 'sketch-vertex' | 'sketch-scale'}
  */
 let gestureKind = ''
 /**
@@ -775,6 +779,81 @@ function activeSliceZ() {
   return sketchEditor.slice?.zMm ?? 0
 }
 
+// --- the reference photo (TODO/sketch-003) ----------------------------------------------
+//
+// Drawn in WebGL under the grid (never a DOM <img> over the canvas — ui-020 finding #1), and
+// never a pick target. This component only routes Set scale's pointer gestures to it.
+const referenceImage = useReferenceImageView({
+  orbit: () => orbit,
+  size: () => ({ widthPx, heightPx }),
+  sliceZ: activeSliceZ,
+  projectToSketch: (clientX, clientY) => projectToSketch(clientX, clientY),
+  scheduleRender: () => scheduleRender(),
+})
+const { state: referenceImageState, overlay: referenceOverlay } = referenceImage
+
+/** A Set scale press-and-drag along the ruler: its first point, in image px. */
+const scaleDrag = { active: false, aPx: /** @type {[number, number] | null} */ (null) }
+
+/** @returns {boolean} False when the press is not on the photo's plane. */
+function beginScaleDrag() {
+  const px = referenceImage.clientToImagePx(pressStartClientX, pressStartClientY)
+  if (!px) return false
+  scaleDrag.active = true
+  scaleDrag.aPx = px
+  // A drag defines both points; a tapped first point it replaces is simply forgotten.
+  sketchEditor.scaleAPx = null
+  sketchEditor.scaleBPx = null
+  sketchEditor.addScalePoint(px)
+  return true
+}
+
+/**
+ * @param {number} clientXPx
+ * @param {number} clientYPx
+ */
+function updateScaleDrag(clientXPx, clientYPx) {
+  if (!scaleDrag.active) return
+  referenceImage.trackLiveEnd(clientXPx, clientYPx)
+  scheduleRender()
+}
+
+/**
+ * @param {boolean} cancelled
+ * @param {number} clientXPx
+ * @param {number} clientYPx
+ */
+function endScaleDrag(cancelled, clientXPx, clientYPx) {
+  if (!scaleDrag.active) return
+  scaleDrag.active = false
+  referenceImage.clearLiveEnd()
+  const end = cancelled ? null : referenceImage.clientToImagePx(clientXPx, clientYPx)
+  if (!end || !scaleDrag.aPx) {
+    sketchEditor.scaleAPx = null
+    sketchEditor.scaleBPx = null
+  } else {
+    sketchEditor.setScaleLine(scaleDrag.aPx, end)
+  }
+  scaleDrag.aPx = null
+  referenceImage.syncOverlay()
+  scheduleRender()
+}
+
+/**
+ * A tap while Set scale is armed fixes the next point — the first, then the second.
+ *
+ * @param {number} clientXPx
+ * @param {number} clientYPx
+ */
+function scaleTap(clientXPx, clientYPx) {
+  const px = referenceImage.clientToImagePx(clientXPx, clientYPx)
+  if (!px) return
+  sketchEditor.addScalePoint(px)
+  referenceImage.clearLiveEnd()
+  referenceImage.syncOverlay()
+  scheduleRender()
+}
+
 /**
  * Re-project the draft's outlines, if anything they depend on changed.
  *
@@ -861,6 +940,7 @@ function syncSketchPaths(force = false) {
   }
   drawChainLive()
   drawSnapMarker()
+  referenceImage.syncOverlay()
 }
 
 /**
@@ -2481,10 +2561,12 @@ function applyDrag(dx, dy) {
  * outline drags that point (`TODO/sketch-002`) — the handles exist only under Select; a press anywhere else — including on the
  * outline's stroke *between* dots — draws (or, under Select, does nothing), exactly as before.
  *
- * @returns {'orbit' | 'pan' | 'select' | 'marquee' | 'sketch' | 'sketch-idle' | 'sketch-vertex'}
+ * @returns {'orbit' | 'pan' | 'select' | 'marquee' | 'sketch' | 'sketch-idle' | 'sketch-vertex' | 'sketch-scale'}
  */
 function decideGestureKind() {
   if (sketchMode.value) {
+    // Set scale armed (`TODO/sketch-003`): a drag draws the calibration line, nothing else.
+    if (sketchEditor.imageTool === 'scale') return 'sketch-scale'
     if (pressHandleKind) return 'sketch-vertex'
     return sketchEditor.tool === 'select' ? 'sketch-idle' : 'sketch'
   }
@@ -2556,6 +2638,8 @@ function onPointerDown(event) {
     if (gestureKind === 'marquee') marqueeRect.visible = false
     // A second finger turns a point drag into a pinch: put the point back.
     if (gestureKind === 'sketch-vertex') endVertexDrag(true)
+    // …and a Set scale drag into a pan: the line is abandoned, the tool stays armed.
+    if (gestureKind === 'sketch-scale') endScaleDrag(true, 0, 0)
     gestureKind = ''
     pressHandleKind = ''
   }
@@ -2574,6 +2658,12 @@ function onPointerMove(event) {
   const previous = pointers.get(event.pointerId)
   if (!previous) {
     // A mouse moving over the canvas with nothing pressed: the sketch Select tool's hover.
+    if (sketchMode.value && event.pointerType === 'mouse' && sketchEditor.imageTool === 'scale') {
+      // Set scale: the line's free end follows the mouse once the first mark is fixed.
+      referenceImage.trackLiveEnd(event.clientX, event.clientY)
+      scheduleRender()
+      return
+    }
     if (sketchMode.value && event.pointerType === 'mouse') {
       snapPointer.has = true
       snapPointer.xPx = event.clientX
@@ -2619,6 +2709,11 @@ function onPointerMove(event) {
       // camera out from under the user.
       if (gestureKind === 'sketch' && !beginSketchDrag()) gestureKind = ''
       if (gestureKind === 'sketch-vertex' && !beginVertexDrag()) gestureKind = ''
+      if (gestureKind === 'sketch-scale' && !beginScaleDrag()) gestureKind = ''
+    }
+    if (gestureKind === 'sketch-scale') {
+      updateScaleDrag(event.clientX, event.clientY)
+      return
     }
     if (gestureKind === 'sketch-vertex' || gestureKind === 'sketch') {
       snapPointer.has = true
@@ -2675,6 +2770,7 @@ function onPointerUp(event) {
   const wasSketch = wasPressPointer && gestureKind === 'sketch'
   const wasSketchIdle = wasPressPointer && gestureKind === 'sketch-idle'
   const wasVertexDrag = wasPressPointer && gestureKind === 'sketch-vertex'
+  const wasScaleDrag = wasPressPointer && gestureKind === 'sketch-scale'
   const tappedVertex = isClick && pressHandleKind === 'vertex' ? pressHandleIndex : -1
   pressHandleKind = ''
   pressHandleIndex = -1
@@ -2685,6 +2781,11 @@ function onPointerUp(event) {
 
   if (wasVertexDrag) {
     endVertexDrag(event.type === 'pointercancel')
+    return
+  }
+
+  if (wasScaleDrag) {
+    endScaleDrag(event.type === 'pointercancel', event.clientX, event.clientY)
     return
   }
 
@@ -2716,6 +2817,11 @@ function onPointerUp(event) {
   // selected" Inspector state. A touch-only equivalent gesture belongs with the
   // Operations toolbar that actually consumes multi-selection (`ui-014`), not
   // here, where there would be nothing to do with it yet.
+  if (isClick && sketchMode.value && sketchEditor.imageTool === 'scale') {
+    // Set scale (`TODO/sketch-003`): a tap fixes a ruler mark. Mouse and touch alike, no modifier.
+    if (event.type !== 'pointercancel') scaleTap(event.clientX, event.clientY)
+    return
+  }
   if (isClick && sketchMode.value && sketchEditor.tool === 'line') {
     // Line: a tap or click fixes the next vertex — no hover, no modifier, any pointer type
     // (`TODO/sketch-006`). Picking an outline is Select's job; a cancelled press does nothing.
@@ -2979,6 +3085,12 @@ function onThemeChange() {
  * @param {KeyboardEvent} event
  */
 function onSketchChainKey(event) {
+  // Esc stands an armed Set scale down (`TODO/sketch-003`) — from the length field too.
+  if (sketchMode.value && sketchEditor.imageTool === 'scale' && event.key === 'Escape' && !event.repeat) {
+    event.preventDefault()
+    sketchEditor.cancelScale()
+    return
+  }
   if (!sketchMode.value || sketchEditor.tool !== 'line') return
   if (event.ctrlKey || event.metaKey || event.altKey || event.defaultPrevented) return
   if (isTextEntry(event.target)) return
@@ -3024,6 +3136,7 @@ onMounted(() => {
   try {
     viewport = createViewport(canvas, { fovDeg: orbit.fovDeg, theme: theme.value })
     viewport.graph.scene.add(bodiesGroup)
+    referenceImage.attach(viewport.graph.scene)
     // Label the readout from the grid that actually got built, rather than
     // repeating the spacing constant in a second place.
     overlay.minorMm = viewport.graph.gridLines.minorMm
@@ -3065,6 +3178,9 @@ onMounted(() => {
           vertexDrag.active = false
           vertexDrag.beforeDraft = null
           clearSketchPreview()
+          // The photo is a tracing aid: it leaves the scene, and its memory, with the editor.
+          scaleDrag.active = false
+          referenceImage.release()
         }
         applySketchBodyVisibility()
         syncSketchPaths(true)
@@ -3099,6 +3215,19 @@ onMounted(() => {
     // A marker left over from the last tool, slice or snap state would point at nothing.
     watch(() => [sketchEditor.tool, sketchEditor.activeSlice, sketchEditor.snapEnabled], hideSnapMarker),
     watch(() => documentStore.version, applySketchBodyVisibility),
+    // The reference photo (`TODO/sketch-003`): which one, where, and how opaque all live in the
+    // draft; a photo added this session lives in the editor until Done.
+    watch(
+      () => [sketchEditor.active, sketchEditor.draft, sketchEditor.activeSlice, sketchEditor.assetsVersion, sketchEditor.frame, documentStore.version],
+      () => referenceImage.sync(),
+    ),
+    watch(
+      () => [sketchEditor.imageTool, sketchEditor.scaleAPx, sketchEditor.scaleBPx],
+      () => {
+        referenceImage.syncOverlay()
+        scheduleRender()
+      },
+    ),
     watch(() => selection.ids, applySelectionMaterial, { deep: true }),
     // The object list's hover (`TODO/ui-049`). The store hands out a fresh object only on
     // a real change, so this fires at hover-change rate, never pointer rate.
@@ -3148,6 +3277,7 @@ onBeforeUnmount(() => {
   clearSketchPreview()
   sketchPreviewMaterial?.dispose()
   sketchPreviewMaterial = null
+  referenceImage.dispose()
   if (rafId) cancelAnimationFrame(rafId)
   rafId = 0
   unregisterTarget?.()
@@ -3231,11 +3361,16 @@ onBeforeUnmount(() => {
     :data-sketch-chain-points="sketchMode ? sketchEditor.chainPointCount : 0"
     :data-sketch-preview="sketchEditor.previewStatus"
     :data-sketch-panel="sketchEditor.panel"
+    :data-reference-image="referenceImageState"
+    :data-scale-step="sketchMode ? sketchEditor.scaleStep : ''"
   >
     <canvas
       ref="canvasEl"
       class="viewport__canvas"
-      :class="{ 'viewport__canvas--sketch-select': sketchMode && sketchEditor.tool === 'select', 'viewport__canvas--sketch-draw': sketchMode && sketchEditor.tool !== 'select' }"
+      :class="{
+        'viewport__canvas--sketch-select': sketchMode && sketchEditor.tool === 'select' && sketchEditor.imageTool === '',
+        'viewport__canvas--sketch-draw': sketchMode && (sketchEditor.tool !== 'select' || sketchEditor.imageTool !== ''),
+      }"
       data-testid="viewport-canvas"
       @pointerdown="onPointerDown"
       @pointermove="onPointerMove"
@@ -3305,6 +3440,9 @@ onBeforeUnmount(() => {
     <!-- The sketch editor's outlines (TODO/sketch-001): the draft's profiles, the
          live drag, and the revolve axis. Pointer-transparent, so the canvas keeps every
          gesture (ui-020 finding #1). -->
+    <!-- The reference photo's Set scale line and corner badge (TODO/sketch-003). The photo
+         itself is in WebGL; this is pointer-transparent furniture over it. -->
+    <ReferenceImageOverlay v-if="sketchMode" :overlay="referenceOverlay" />
     <SketchStrokes v-if="sketchMode" :paths="sketchPaths" :draft="sketchDraftPath" :axis="sketchAxis" :chain="sketchChain" :snap="sketchSnap" />
     <VertexHandles v-if="sketchMode && sketchHandles.vertices.length > 0" :handles="sketchHandles" />
 
@@ -3322,7 +3460,9 @@ onBeforeUnmount(() => {
     <!-- The Sketch toolbar (TODO/sketch-001): mounted only while the editor is open,
          in the top-left slot the Operations toolbar yields. Its Slices / Extrude panels
          open in the sheet below — a bottom sheet on a narrow viewport. -->
-    <SketchToolbar v-if="sketchMode" />
+    <!-- Set scale's banner takes the toolbar's slot while it is armed (TODO/sketch-003). -->
+    <SketchToolbar v-if="sketchMode && sketchEditor.imageTool === ''" />
+    <ScaleTool v-if="sketchMode" />
     <SketchPanelSheet v-if="sketchMode" @activate-slice="aimAtSketch" />
     <!-- The Operations toolbar (TODO/ui-014): viewport chrome, in the same
          band as the navigation controls below and deliberately *not* a row in

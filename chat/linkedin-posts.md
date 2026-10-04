@@ -1877,3 +1877,18 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** tiers and order -> src/sketch/snap.js + snap.spec.js; marker shapes and labels -> SketchStrokes.vue + snap.js SNAP_LABELS; lifted on touch -> Viewport.vue SKETCH_SNAP_TOUCH_LIFT_PX and this session's touch drive (lift 56 px); Snap toggle 44 px -> touch e2e (>= 43.5) and drive (66x44); point drag snaps -> e2e "a dragged point snaps onto a circle's centre"; 12 px ~ 5 mm and the 15-in-20 tube pull -> this session's drive (inner circle released at ~15 mm showed Quadrant/On edge on all three engines) and TODO/VERIFY.md sketch-007 row 1; hypot allocation and 10.4 -> 1.9 µs p50 -> bench/snap-search.mjs runs this session, Apple M4 Pro, Node v24.14.1 (bench/results/2026-10-03-sketch-007.md)
 **To Add:** docs/media/sketch-snap.gif, docs/screenshots/sketch-snap-corner.png
+
+## 2026-10-04T20:45:00Z — Sketch reference photo: load it, set its scale from a ruler, trace at real size
+
+**Post:** WarpCad's sketch editor can now put a photo under a slice and set its real scale from a ruler in the picture. Load the photo, tap Set scale, drag from one ruler mark to another and type the length in mm, cm or inches; the photo resizes about the first mark so the ruler stays where you were looking. In a hand-driven run on Chromium, WebKit and Firefox, an L-bracket traced from the test photo came out within 0.7 mm of its true 120 by 100 mm.
+
+A project file can come from anyone, so the photo inside it is treated as untrusted. Only PNG, JPEG and WebP get through. The image size is read from the file header before anything is decoded, so a small file claiming 50,000 by 50,000 pixels never reaches a decoder. There is no URL field, and a test checks that opening a hostile project sends no request off the app's own origin. On import the photo is redrawn from its pixels, which leaves behind its EXIF location and anything else hidden in the file. An image that fails these checks is removed when the project opens, with a warning naming it, and the sketch still loads.
+
+Driving it by hand also turned up an older bug: the "skipped N steps" warning on the status chip was erased about a second later by the autosave that follows every open. It now stays until dismissed.
+
+Built with Claude Code, reviewed by me.
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL #JavaScript #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** Set scale flow, units, rescale about the first mark -> diff (ScaleTool.vue, calibration.js rescaleAbout + calibration.spec.js); 0.7 mm -> this session's drive (120.67 x 100.13 mm on WebKit/Firefox, 120.00 x 100.00 on Chromium); allowlist, header-before-decode, 50 000 px refusal, no URL field -> src/sketch/imageAsset.js + imageAsset.spec.js; zero off-origin requests -> e2e/sketch-reference-image.e2e.js hostile test, passed on all 9 projects this session; re-encode drops metadata -> src/sketch/imageJob.js; removed on load with a warning, sketch still loads -> src/core/project.js unsafeImageReason + documentAsset.spec.js + scenario 8 drive; autosave erasing the warning -> persistence.spec.js test RED ("Saved · 14:02") then GREEN, and the first full e2e run's "Saved" failures
+**To Add:** docs/media/sketch-trace-scale.gif, docs/screenshots/sketch-trace-photo.png, docs/screenshots/sketch-trace-scaled.png

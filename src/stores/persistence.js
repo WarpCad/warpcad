@@ -26,7 +26,7 @@
  *   Replace, so a cancelled picker after a confirmed replace can never lose work.
  * - `openText(text, name)` — the same, minus the picker, for a caller that already
  *   has the text.
- * - `chipText` / `chipTone` / `errorMessage` / `dismissError()` — what the chip shows.
+ * - `chipText` / `chipTone` / `errorMessage` / `loadWarning` / `dismissError()` — what the chip shows.
  * - `loading` — `Opening <name>…` / `Restoring your last session…` while a load is announced
  *   and folding, `''` otherwise. The File button reads busy from it (`TODO/core-032`).
  *
@@ -192,6 +192,14 @@ export const usePersistenceStore = defineStore('persistence', () => {
   /** Persistent, until the next success or a dismissal. */
   const errorMessage = ref('')
   /**
+   * What the last load had to leave out — retired records, an image dropped as unsafe
+   * (`TODO/sketch-003`). Persistent until the next load, File ▸ New or a dismissal — and,
+   * unlike {@link errorMessage}, **not** cleared by the autosave that every load triggers:
+   * that save lands about a second later, and used to wipe the report off the chip before
+   * anyone could read which records were dropped.
+   */
+  const loadWarning = ref('')
+  /**
    * The load being announced and folded (`TODO/core-032`), or `''`. Outranks everything on
    * the chip: it is what is happening right now.
    */
@@ -245,6 +253,7 @@ export const usePersistenceStore = defineStore('persistence', () => {
   const chipTone = computed(() => {
     if (loading.value) return 'saving'
     if (errorMessage.value) return 'error'
+    if (loadWarning.value) return 'error'
     if (autosaveState.value === 'saving') return 'saving'
     if (autosaveState.value === 'saved') return 'saved'
     return 'idle'
@@ -253,6 +262,7 @@ export const usePersistenceStore = defineStore('persistence', () => {
   const chipText = computed(() => {
     if (loading.value) return loading.value
     if (errorMessage.value) return errorMessage.value
+    if (loadWarning.value) return loadWarning.value
     if (notice.value) return notice.value
     if (autosaveState.value === 'saving') return 'Saving…'
     if (autosaveState.value === 'saved') return `Saved · ${clock(savedAt.value)}`
@@ -328,7 +338,7 @@ export const usePersistenceStore = defineStore('persistence', () => {
           autosaveState.value = 'saved'
           // Persistent, not a passing notice: the session lost records on the way in, and
           // the user has to be able to read which before the next autosave makes it final.
-          if (loaded.skipped) errorMessage.value = `Restored your last session, but ${loaded.skipped}`
+          if (loaded.skipped) loadWarning.value = `Restored your last session, but ${loaded.skipped}`
           else showNotice('Restored your last session', RESTORED_NOTICE_MS)
         } else {
           // Keep the unreadable copy where the next autosave cannot overwrite it,
@@ -455,9 +465,10 @@ export const usePersistenceStore = defineStore('persistence', () => {
       return { ok: false, message: loaded.message }
     }
     errorMessage.value = ''
+    loadWarning.value = ''
     if (loaded.skipped) {
       clearNotice()
-      errorMessage.value = `Opened ${name}, but ${loaded.skipped}`
+      loadWarning.value = `Opened ${name}, but ${loaded.skipped}`
     } else {
       showNotice(`Opened ${name} · ${loaded.steps} step${loaded.steps === 1 ? '' : 's'}`, SAVED_NOTICE_MS)
     }
@@ -501,12 +512,14 @@ export const usePersistenceStore = defineStore('persistence', () => {
     documentStore.load([], null, DEFAULT_RESOLUTION)
     deps.files.forgetHandle()
     errorMessage.value = ''
+    loadWarning.value = ''
     showNotice(`New project · ${clock(Date.now())}`, SAVED_NOTICE_MS)
     return true
   }
 
   function dismissError() {
     errorMessage.value = ''
+    loadWarning.value = ''
   }
 
   /**
@@ -525,6 +538,7 @@ export const usePersistenceStore = defineStore('persistence', () => {
     savedAt,
     notice,
     errorMessage,
+    loadWarning,
     loading,
     chipText,
     chipTone,

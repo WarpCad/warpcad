@@ -34,6 +34,18 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### sketch-003 — Sketch reference image: load a photo, set its scale, sanitize it (2026-10-04 16:40)
+
+Scenario 20 (new), 8 (with the hostile fixture), 9, 10 and 1 were driven by hand on laptop Chromium, WebKit and Firefox, with a phone pass using trusted touch, and the traced fixture came out within 0.7 mm of its true 120 × 100 mm. What no headless drive can settle is a real iPhone's camera and photo handling, plus three defaults this unattended run chose without asking.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | **Real iPhone, Safari:** Slices → **Add image…** offers both camera and library. A photo from each (iOS default format) arrives as a JPEG and appears under the grid. If iOS hands over HEIC, the message must read *Choose a JPEG or PNG — iPhone HEIC photos can be exported as JPEG*. Also try a 48 MP shot (iPhone 14 Pro and later): it is refused as over 40 MP. Is that acceptable, or should import downscale anything up to 8192 px instead? | Open | |
+| 2 | **UNCONFIRMED default:** on a phone and tablet, the Slices sheet **disappears completely** while Set scale is armed (the spec said "collapses to its header"; the header alone measured 67 % reachable canvas against the 69 % floor, 77 % without it), and the length field sits in the top banner at every size (the spec said "next to the line on desktop"). On a real phone, is it clear where the panel went, and is the banner's length entry comfortable with the keyboard up? | Open | |
+| 3 | **UNCONFIRMED default:** the photo is its own row in History (*Reference image 1400 × 1000 px*), cannot be edited there, and suppressing it hides the photo (its slice says *switched off in History*). Is a separate row acceptable, or should photo rows be hidden from History? | Open | |
+| 4 | Pre-existing, found by the drive: at laptop size, once a Line chain is live the Sketch toolbar grows a Finish / Undo-point row that covers the top ~50 px of the canvas, so a photo's top edge (or anything drawn there) cannot be clicked until you zoom or pan. Decide whether the toolbar should grow sideways, or the editor should open with the origin lower in the view. | Open | |
+| 5 | Feel, light and dark mode: is the photo readable under the grid at the default 50 % opacity, and is the *Not to scale* / *1 px = 0.2 mm* badge under its bottom-left corner noticeable without hiding the photo? | Open | |
+
 ### docs-019 — Getting-started page and README tour GIF (2026-10-04 15:25)
 
 The tour spec asserts every step's end state, the guard confirms the README and page embed `tour.gif` (1.31 MB, 17 s, 640 px), and scenarios 1, 4 and 11 were driven by hand. What no assertion can judge is whether the clip reads well to someone who has never seen the app.

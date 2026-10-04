@@ -273,7 +273,11 @@ of the view. On a computer it's a small card at the bottom right. Each row is on
 - **Delete slice** removes the active slice and everything drawn on it. The last slice
   can't be deleted.
 
-![The Slices card with two rows: Slice 1 (1 outline, Z 0 mm) and the new Slice 2 (0 outlines, Z 50 mm) active, and the **＋ Slice** and **Delete slice** buttons underneath](./screenshots/sketch-slice-panel.png)
+![The Slices card with two rows: Slice 1 (1 outline, Z 0 mm) and the new Slice 2 (0 outlines, Z 50 mm) active, the **＋ Slice** and **Delete slice** buttons underneath, and below them the Reference image group with its **Add image…** button](./screenshots/sketch-slice-panel.png)
+
+Under the rows, the **Reference image** group puts a photo on the active slice to trace
+over, and sets its real scale from a ruler in the photo. See
+[Tracing a photo](sketch-tracing.md).
 
 ## Extrusion methods
 
@@ -380,8 +384,8 @@ there is nothing correct to turn it into.
 
 ## Not available yet
 
-Coming in later updates: loading a photo to trace over and setting its scale from a ruler;
-automatic tracing of a photographed part; and alignment guides (lining a point up with
-another outline's corner without touching it).
+Coming in later updates: automatic tracing of a photographed part (loading the photo and
+setting its scale are already here — see [Tracing a photo](sketch-tracing.md)); and
+alignment guides (lining a point up with another outline's corner without touching it).
 
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

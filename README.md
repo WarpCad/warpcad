@@ -93,6 +93,7 @@ link for the page that explains it, with a step-by-step example.
 | **Precise placement** | Snap and Align move one shape to an exact position against another | [Snap and Align](docs/snap-align.md) |
 | **Shaping** | Fillet and Chamfer a face's rim, Enlarge, Fit to an exact size, Bisect into two parts (including at an angle), Mirror across a plane | [Fillet and Chamfer](docs/fillet-chamfer.md), [Resize and Bisect](docs/resize-bisect.md), [Mirror](docs/mirror.md) |
 | **Sketches** | A Sketch is a Library item. Draw lines, rectangles, circles and polygons, mark each Solid or Hole, stack slices, and turn the result into a solid by Linear, Revolve, Helical, Outline or Loft | [Sketch primitives](docs/sketch-mode.md) |
+| **Tracing a photo** | Load a photo onto a sketch's slice, set its real scale from a ruler in the photo, and trace over it. The photo is re-saved from its pixels alone, so its location data never travels with the project | [Tracing a photo](docs/sketch-tracing.md) |
 | **History** | A step list for the whole model: look at any past step, change its numbers, switch it off, reorder, or branch from it | [History](docs/timeline.md) |
 | **Undo and redo** | Ctrl/Cmd+Z that never undoes someone else's change | [Undo and redo](docs/undo-redo.md) |
 | **Saving** | Autosave, save or open a file, or keep a copy in a GitHub repository | [Save and load](docs/save-load.md) |

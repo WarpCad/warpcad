@@ -399,15 +399,22 @@ export const useDocumentStore = defineStore('document', () => {
    * the repair dialog chose, or a condition edited or removed. Throws the core's
    * refusal unchanged — atomic, so a refused revision leaves everything as it was.
    *
+   * `transaction.append` (`TODO/sketch-003`): records to put into the log in the **same**
+   * undo step — the photo an Edit sketch session added alongside the sketch's revision.
+   *
    * @param {readonly import('../core/document.js').RecordRevision[]} changes
-   * @param {{ label?: string }} [transaction]
+   * @param {{ label?: string, append?: readonly OpRecord[] }} [transaction]
    */
   function revise(changes, transaction = {}) {
-    raw.reviseRecords(changes, {
-      origin: 'local',
-      label: transaction.label,
-      meta: { selectionBefore: [...useSelectionStore().ids] },
-    })
+    raw.reviseRecords(
+      changes,
+      {
+        origin: 'local',
+        label: transaction.label,
+        meta: { selectionBefore: [...useSelectionStore().ids] },
+      },
+      { append: transaction.append ?? [] },
+    )
     refresh()
   }
 

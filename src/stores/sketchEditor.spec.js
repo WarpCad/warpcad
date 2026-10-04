@@ -303,3 +303,113 @@ describe('sketch editor store — snapping toggle (TODO/sketch-007)', () => {
     expect(editor.snapEnabled).toBe(true)
   })
 })
+
+describe('sketch editor store — reference image and Set scale (TODO/sketch-003)', () => {
+  /** @type {ReturnType<typeof useSketchEditorStore>} */
+  let editor
+  const record = (id = 'img-0123456789abcdef01234567') => ({
+    id,
+    op: 'asset.image',
+    params: { mime: 'image/png', widthPx: 1400, heightPx: 1000, dataBase64: 'AAAA' },
+  })
+  beforeEach(() => {
+    setActivePinia(createPinia())
+    editor = useSketchEditorStore()
+    editor.open({ bodyId: null, params: emptySketchParams(), frame: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1] })
+  })
+
+  it('Add image puts the photo on the active slice, centred, at 1 px = 0.1 mm, "Not to scale"', () => {
+    expect(editor.activeImage.state).toBe('none')
+    editor.addImageAsset(record())
+    expect(editor.activeImage.state).toBe('ok')
+    expect(editor.activeImage.badge).toBe('Not to scale')
+    expect(editor.draft.slices[0].image).toEqual({ assetId: record().id, offsetMm: [0, 0], rotationDeg: 0, opacity: 0.5, mmPerPx: 0.1 })
+    expect(editor.changed).toBe(true)
+  })
+
+  it('opacity, offset and rotation edit the draft; Remove image clears it', () => {
+    editor.addImageAsset(record())
+    editor.updateImage({ opacity: 0.8, offsetMm: [5, -3], rotationDeg: 12 })
+    expect(editor.draft.slices[0].image).toMatchObject({ opacity: 0.8, offsetMm: [5, -3], rotationDeg: 12 })
+    editor.removeImage()
+    expect(editor.draft.slices[0].image).toBeUndefined()
+    expect(editor.activeImage.state).toBe('none')
+  })
+
+  it('Replace keeps the opacity but not the old scale', () => {
+    editor.addImageAsset(record())
+    editor.updateImage({ opacity: 0.3 })
+    editor.armScale()
+    editor.setScaleLine([200, 900], [700, 900])
+    expect(editor.applyScale(100, 'mm', false)).toBe('')
+    editor.addImageAsset(record('img-aaaaaaaaaaaaaaaaaaaaaaaa'))
+    expect(editor.draft.slices[0].image).toMatchObject({ assetId: 'img-aaaaaaaaaaaaaaaaaaaaaaaa', opacity: 0.3, mmPerPx: 0.1 })
+    expect(editor.draft.slices[0].image.calibration).toBeUndefined()
+  })
+
+  it('Set scale: two taps then a length; the badge reads the scale and the tool stands down', () => {
+    editor.addImageAsset(record())
+    editor.armScale()
+    expect(editor.scaleStep).toBe('first')
+    editor.addScalePoint([200, 900])
+    expect(editor.scaleStep).toBe('second')
+    editor.addScalePoint([700, 900])
+    expect(editor.scaleStep).toBe('length')
+    expect(editor.applyScale(0, 'mm', false)).toMatch(/greater than 0/)
+    expect(editor.scaleStep).toBe('length') // still waiting for a usable length
+    expect(editor.applyScale(100, 'mm', false)).toBe('')
+    expect(editor.scaleStep).toBe('')
+    expect(editor.activeImage.badge).toBe('1 px = 0.2 mm')
+    expect(editor.draft.slices[0].image.calibration).toEqual({ aPx: [200, 900], bPx: [700, 900], length: 100, unit: 'mm' })
+  })
+
+  it('Set scale needs a shown image, and stands down when the slice or tool changes', () => {
+    editor.armScale()
+    expect(editor.imageTool).toBe('')
+    editor.addImageAsset(record())
+    editor.armScale()
+    editor.setTool('rect')
+    expect(editor.imageTool).toBe('')
+    editor.armScale()
+    editor.addSliceAbove()
+    expect(editor.imageTool).toBe('')
+  })
+
+  it('a slice naming a photo the document does not hold reads as removed, and Remove image clears it', () => {
+    const params = emptySketchParams()
+    params.slices[0].image = { assetId: 'img-ffffffffffffffffffffffff', offsetMm: [0, 0], rotationDeg: 0, opacity: 0.5, mmPerPx: 0.1 }
+    editor.open({ bodyId: null, params, frame: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1] })
+    expect(editor.activeImage.state).toBe('removed')
+    editor.armScale()
+    expect(editor.imageTool).toBe('')
+    editor.removeImage()
+    expect(editor.activeImage.state).toBe('none')
+  })
+
+  it('Done commits only the photos still named by a slice; Cancel forgets them', () => {
+    editor.addImageAsset(record())
+    editor.addImageAsset(record('img-aaaaaaaaaaaaaaaaaaaaaaaa')) // replaced: the first is no longer named
+    expect(editor.assetsToCommit().map((entry) => entry.id)).toEqual(['img-aaaaaaaaaaaaaaaaaaaaaaaa'])
+    editor.close()
+    expect(editor.assetsToCommit()).toEqual([])
+  })
+})
+
+describe('sketch editor store — a photo switched off in History is not called unsafe (TODO/sketch-003)', () => {
+  it('reads as removed because "off" when its record is in the log but not folded', async () => {
+    setActivePinia(createPinia())
+    const { useDocumentStore } = await import('./document.js')
+    const { validAssetRecord } = await import('../sketch/__fixtures__/images.js')
+    const documentStore = useDocumentStore()
+    const asset = validAssetRecord()
+    documentStore.append(asset, { origin: 'local' })
+    documentStore.raw.setSuppressed(asset.id, true, { origin: 'local' })
+    documentStore.refresh?.()
+    const editor = useSketchEditorStore()
+    const params = emptySketchParams()
+    params.slices[0].image = { assetId: asset.id, offsetMm: [0, 0], rotationDeg: 0, opacity: 0.5, mmPerPx: 0.1 }
+    editor.open({ bodyId: null, params, frame: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1] })
+    expect(documentStore.raw.assets().has(asset.id)).toBe(false)
+    expect(editor.activeImage).toMatchObject({ state: 'removed', removedBecause: 'off' })
+  })
+})

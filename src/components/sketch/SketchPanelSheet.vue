@@ -10,7 +10,8 @@
  * (ui-046) while the toolbar's Done and Cancel stay visible at the top. On a wide
  * viewport it is a card docked bottom-right, clear of the nav chrome bottom-left.
  *
- * One panel at a time, chosen by the toolbar.
+ * One panel at a time, chosen by the toolbar. While Set scale is armed the sheet folds to
+ * its header — and on a narrow viewport steps aside entirely (`TODO/sketch-003`).
  */
 import ExtrudePanel from './ExtrudePanel.vue'
 import SlicePanel from './SlicePanel.vue'
@@ -26,6 +27,7 @@ const emit = defineEmits(['activate-slice'])
     class="sketch-sheet"
     data-testid="sketch-panel-sheet"
     :data-panel="editor.panel"
+    :data-collapsed="editor.imageTool !== '' ? 'true' : 'false'"
     :aria-label="editor.panel === 'slices' ? 'Slices' : 'Extrude'"
   >
     <header class="sketch-sheet__head">
@@ -40,7 +42,9 @@ const emit = defineEmits(['activate-slice'])
         ×
       </button>
     </header>
-    <div class="sketch-sheet__body">
+    <!-- While Set scale is armed the sheet collapses to its header (`TODO/sketch-003`), so the
+         photo under it stays tappable — the reachable-canvas rule on a phone. -->
+    <div v-show="editor.imageTool === ''" class="sketch-sheet__body">
       <SlicePanel v-if="editor.panel === 'slices'" @activate="emit('activate-slice', $event)" />
       <ExtrudePanel v-else />
     </div>
@@ -113,6 +117,13 @@ const emit = defineEmits(['activate-slice'])
     border-left: none;
     border-right: none;
     border-bottom: none;
+  }
+
+  /* Set scale armed (`TODO/sketch-003`): on a narrow viewport even the folded header is a row
+     of the 10×10 reachability grid the photo needs (67 % measured with it, against the 69 %
+     floor), so the sheet steps aside entirely; the banner's Cancel brings it back. */
+  .sketch-sheet[data-collapsed='true'] {
+    display: none;
   }
 }
 </style>

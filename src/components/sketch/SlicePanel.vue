@@ -8,7 +8,12 @@
  * Each row is a slice: its name, its Z offset (mm, along the body's own Z), and a radio
  * to make it the active slice — the one new strokes go onto and the one the camera looks
  * at. Inactive slices draw ghosted in the viewport so the stack stays visible.
+ *
+ * Under the list, the active slice's **Reference image** group (`TODO/sketch-003`); each
+ * row carries its photo's badge — *Not to scale* until Set scale is applied — or says the
+ * photo was removed because a load could not verify it as a safe image.
  */
+import ReferenceImagePanel from './ReferenceImagePanel.vue'
 import { parseNumeric } from '../../composables/numericEntry.js'
 import { useSketchEditorStore } from '../../stores/sketchEditor.js'
 import { formatMmValue } from '../../core/units.js'
@@ -70,6 +75,18 @@ function remove() {
         >
           Slice {{ index + 1 }}
           <span class="slices__count">{{ slice.profiles.length }} outline{{ slice.profiles.length === 1 ? '' : 's' }}</span>
+          <span
+            v-if="editor.sliceImages[index]?.state === 'ok'"
+            class="slices__badge"
+            :class="{ 'slices__badge--warn': !editor.sliceImages[index].placement?.calibration }"
+            :data-testid="`sketch-slice-image-badge-${index}`"
+          >{{ editor.sliceImages[index].badge }}</span>
+          <span
+            v-else-if="editor.sliceImages[index]?.state === 'removed'"
+            class="slices__badge slices__badge--warn"
+            :data-testid="`sketch-slice-image-removed-${index}`"
+            :title="editor.sliceImages[index].removedBecause === 'off' ? 'Reference image is switched off in History' : 'Reference image removed — it couldn\'t be verified as a safe image'"
+          >{{ editor.sliceImages[index].removedBecause === 'off' ? 'Reference image is switched off in History' : "Reference image removed — it couldn't be verified as a safe image" }}</span>
         </button>
         <label class="slices__z">
           <span>Z</span>
@@ -99,6 +116,7 @@ function remove() {
         Delete slice
       </button>
     </div>
+    <ReferenceImagePanel />
   </div>
 </template>
 
@@ -143,6 +161,8 @@ function remove() {
   color: var(--text-1);
   font-size: 12px;
   text-align: left;
+  white-space: nowrap;
+  min-width: 0;
   cursor: pointer;
 }
 
@@ -153,6 +173,24 @@ function remove() {
 .slices__count {
   color: var(--text-3);
   font-size: 11px;
+  white-space: nowrap;
+}
+
+.slices__badge {
+  min-width: 0;
+  margin-left: auto;
+  overflow: hidden;
+  padding: 0 5px;
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+  color: var(--text-2);
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.slices__badge--warn {
+  background: color-mix(in srgb, var(--warn) 22%, transparent);
 }
 
 .slices__z {

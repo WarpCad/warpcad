@@ -356,6 +356,7 @@ import { isResolution, policyFor, resolutionLabel } from './kernel/tessellation.
 import { conditionContextOf, conditionShapeError, describeCondition, evaluateCondition } from './condition.js'
 import { currentParamsRecordOf } from './paramEdit.js'
 import { applyAction, emptyScene } from './replay.js'
+import { ASSET_OP, validateImageAsset } from '../sketch/imageAsset.js'
 
 /** @typedef {import('./kernel/registry.js').OpRecord} OpRecord */
 /** @typedef {import('./kernel/registry.js').RegistryEntry} RegistryEntry */
@@ -501,6 +502,10 @@ import { applyAction, emptyScene } from './replay.js'
  * @property {string} [toResolution] `resolution`: the setting after.
  * @property {Array<{ id: string, from: OpRecord, to: OpRecord, fromLeftBroken: boolean, toLeftBroken: boolean }>} [items]
  *   `revise`: every row changed, before and after.
+ * @property {{ at: number, records: OpRecord[] }} [add] `revise` (`TODO/sketch-003`): records
+ *   this step put into the log at `at` — the photo an Edit sketch session added. Its
+ *   inverse is `remove`, so Undo takes them back out in the same step.
+ * @property {{ at: number, records: OpRecord[] }} [remove] The inverse of `add`.
  */
 
 /**
@@ -613,7 +618,9 @@ export class ReplayRejection extends Error {
  * @property {() => number | null} rollbackAt
  * @property {(id: string, record: OpRecord, transaction: TransactionOptions) => { scene: Scene }} replaceRecord
  * @property {(id: string, suppressed: boolean, transaction: TransactionOptions) => { scene: Scene }} setSuppressed
- * @property {(changes: readonly RecordRevision[], transaction: TransactionOptions) => { scene: Scene }} reviseRecords
+ * @property {(changes: readonly RecordRevision[], transaction: TransactionOptions, options?: { append?: readonly OpRecord[] }) => { scene: Scene }} reviseRecords
+ * @property {() => Map<string, OpRecord>} assets Every folded `asset.image` record, by id
+ *   (`TODO/sketch-003`) — the reference photos sketch slices name. Never bodies.
  * @property {() => InactiveBody[]} inactiveBodies
  * @property {(id: string) => RowCondition | null} conditionOf
  * @property {(id: string, override: { color: number, colorAlpha?: number, subPart?: string }, transaction: TransactionOptions) => { record: OpRecord, scene: Scene }} setColorOverride
@@ -1206,6 +1213,18 @@ export function createDocument(options = {}) {
       )
     }
 
+    // A reference photo (`TODO/sketch-003`) is a data record: validated here — loudly,
+    // since a local append is this project's own code — and then never folded, never a
+    // lineage, never a body. `validateImageAsset` refuses every field it does not know,
+    // so it cannot carry `supersedes`, `consumes`, `target` or `operands` either.
+    if (record.op === ASSET_OP) {
+      const verdict = validateImageAsset(record)
+      if (!verdict.ok) throw new Error(`document.append: ${ASSET_OP} ${String(record.id)} refused — ${verdict.reason}`)
+      originById.set(/** @type {string} */ (record.id), origin)
+      recordById.set(/** @type {string} */ (record.id), record)
+      return
+    }
+
     // A tombstone (`TODO/ui-051`) builds nothing either, and must retire exactly
     // one existing body — so it has to name what it supersedes.
     const isTombstone = record.op === DELETE_OP
@@ -1632,6 +1651,13 @@ export function createDocument(options = {}) {
       return rebuildFrom(next, targetRollbackAt, /** @type {string} */ (revision.toResolution))
     }
     if (revision.kind === 'revise') {
+      // Records the step put into the log (`TODO/sketch-003`): out first on Undo, in last on Redo.
+      if (revision.remove) {
+        const gone = new Set(revision.remove.records)
+        const kept = next.filter((entry) => !gone.has(entry.record))
+        next.length = 0
+        next.push(...kept)
+      }
       for (const item of revision.items ?? []) {
         const at = indexOfRecord(item.id)
         if (at < 0) {
@@ -1641,6 +1667,10 @@ export function createDocument(options = {}) {
           )
         }
         next[at] = withLeftBroken({ ...next[at], record: item.to }, item.toLeftBroken)
+      }
+      if (revision.add) {
+        const at = Math.min(revision.add.at, next.length)
+        next.splice(at, 0, ...revision.add.records.map((record) => ({ record, origin: 'local' })))
       }
       return rebuildFrom(next, targetRollbackAt)
     }
@@ -1683,8 +1713,11 @@ export function createDocument(options = {}) {
     }
     if (revision.kind === 'reorder') return { ...revision, delta: -(revision.delta ?? 0) }
     if (revision.kind === 'revise') {
+      const { add, remove, ...rest } = revision
       return {
-        ...revision,
+        ...rest,
+        ...(add ? { remove: add } : {}),
+        ...(remove ? { add: remove } : {}),
         items: (revision.items ?? []).map((item) => ({
           id: item.id,
           from: item.to,
@@ -2616,7 +2649,7 @@ export function createDocument(options = {}) {
      * Atomic, through {@link rebuildFrom}: a row that no longer builds and is not
      * flagged `leftBroken` refuses the whole revision by name, and nothing changes.
      */
-    reviseRecords(changes, transaction) {
+    reviseRecords(changes, transaction, options = {}) {
       if (!Array.isArray(changes) || changes.length === 0) {
         throw new Error('document.reviseRecords: at least one revision is required')
       }
@@ -2638,18 +2671,26 @@ export function createDocument(options = {}) {
         next[index] = withLeftBroken({ ...current, record }, toLeftBroken)
         items.push({ id: change.id, from: current.record, to: record, fromLeftBroken, toLeftBroken })
       }
+      // `TODO/sketch-003`: records that arrive *with* the revision — the photo an Edit
+      // sketch session added — go into the log in the same step, at the rollback marker
+      // (the end of the active part), so a rolled-back document still folds them.
+      const appended = [...(options.append ?? [])]
       const changed = items.some(
         (item) =>
           JSON.stringify(item.from) !== JSON.stringify(item.to) || item.fromLeftBroken !== item.toLeftBroken
       )
-      if (!changed) return { scene }
+      if (!changed && appended.length === 0) return { scene }
 
       const rollbackBefore = rollbackAt
-      const prior = rebuildFrom(next)
+      const addAt = rollbackAt ?? next.length
+      if (appended.length > 0) {
+        next.splice(addAt, 0, ...appended.map((record) => ({ record, origin: transaction?.origin ?? 'local' })))
+      }
+      const prior = rebuildFrom(next, rollbackAt === null ? null : rollbackAt + appended.length)
       pushRevision(
         transaction,
         items.length === 1 ? `Edit step ${indexOfRecord(items[0].id) + 1}` : `Edit ${items.length} steps`,
-        { kind: 'revise', items },
+        { kind: 'revise', items, ...(appended.length > 0 ? { add: { at: addAt, records: appended } } : {}) },
         rollbackBefore,
         prior
       )
@@ -3005,6 +3046,18 @@ export function createDocument(options = {}) {
         cursor = record.supersedes
       }
       return chain.reverse()
+    },
+
+    assets() {
+      // Folded ones only, in log order: a suppressed or rolled-back photo is out of play
+      // the same way a suppressed body is. A handful of entries; no index is needed.
+      /** @type {Map<string, OpRecord>} */
+      const found = new Map()
+      for (const { record } of entries) {
+        if (record.op !== ASSET_OP || record.id === undefined) continue
+        if (recordById.get(record.id) === record) found.set(record.id, record)
+      }
+      return found
     },
 
     bodies() {

@@ -394,6 +394,9 @@ const RESERVED_STEP_PARAMS = Object.freeze(new Set(['rotation', 'segments']))
  */
 export function stepParamEditability(record) {
   if (!record || typeof record.op !== 'string') return { editable: false, blockedBy: null }
+  // A reference photo (`TODO/sketch-003`) is bytes, not dimensions: its "params" are a MIME
+  // type, a pixel size and base64 data, none of which a form should offer to retype.
+  if (record.op === 'asset.image') return { editable: false, blockedBy: record.op }
   // A boolean or a group: its geometry *is* its operands, and the params a user
   // would be editing do not exist. Section 15: "This step has no parameters".
   if (record.consumes !== undefined) return { editable: false, blockedBy: record.op }
