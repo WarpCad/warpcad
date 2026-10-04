@@ -6,8 +6,21 @@ priority: medium
 model: sonnet
 milestone: M10
 depends: [docs-008, docs-009, docs-010, docs-011, docs-016]
-status: open
+status: done
 ---
+
+> ## What actually shipped
+>
+> **As specified, in commit `c6ae0e3`; this file was retired afterwards.** `docs/getting-started.md`
+> (five numbered steps, each with a `tour-step-*` still and the mm values to type),
+> `docs/media/tour.gif` (17 s, 1.31 MB, under the 1.5 MB cap), the README tour embed under the hero,
+> and `docs/README.md` linking the page first. The tour spec is `e2e/docs/getting-started.docs.js`
+> (it asserts the body count, a hole by volume, the gizmo drag moving Position X and a real `.stl`
+> download). The 12 s budget is relaxed per movie through a `maxSeconds` field in the sidecar
+> (honoured up to a 20 s ceiling and recorded in the manifest; the size limit is never relaxed), and
+> a guard in `e2e/docs-media.spec.js` fails if the README or the page stops embedding `tour.gif`.
+> No MP4/WebM was needed: the GIF came in under budget at 640 px. Acceptance scenarios 1, 4 and 11
+> were re-driven by hand on 2026-10-04 (all PASS; see their Last run lines).
 
 ## Goal
 

@@ -34,6 +34,14 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### docs-019 — Getting-started page and README tour GIF (2026-10-04 15:25)
+
+The tour spec asserts every step's end state, the guard confirms the README and page embed `tour.gif` (1.31 MB, 17 s, 640 px), and scenarios 1, 4 and 11 were driven by hand. What no assertion can judge is whether the clip reads well to someone who has never seen the app.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | Watch `docs/media/tour.gif` at the size GitHub shows it in `README.md`: is each step (drop, select, Subtract, nudge, export) on screen long enough to follow, and is the hole readable at 640 px wide? | Open | |
+
 ### sketch-007 — Snap new outlines to existing ones (2026-10-03 21:54)
 
 Scenarios 9 and 1 and the closed repros passed by hand on all three engines and with trusted touch. The snapped geometry is exact (unit tests to 1e-9; e2e reads the Inspector numbers). What a script cannot judge is whether the pull feels right, so these are left for a person, the first one on a real phone.
