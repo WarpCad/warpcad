@@ -30,6 +30,7 @@ edit that closes a milestone or adds/reserves a row below, not as a separate pas
 | M10 — Docs media: Playwright screenshots + GIF movies in the documentation | ⬜ **Not started** — 16 rows scoped (`docs-005`…`docs-020`) on 2026-10-02. Infrastructure (`docs-005`/`006`/`007`) first, then one capture task per docs page. Independent of M9; `docs-020` is blocked on M9's open features. |
 | M11 — Gears: spur, helical, ring, rack, bevel, worm, planetary, and meshing | ⬜ **Not started** — 14 rows scoped (`core-039`…`core-049`, `ui-057`, `ui-058`, `testing-002`, `docs-021`) on 2026-10-02 from the user's four jscad1 gear projects (`window-motor`, `drive-wheel`, `bf-gear`, `guide-mount`) and `jscad-gears` itself. `core-039` is the blocking decision. Independent of M9 and M10 except `docs-021`. |
 | M12 — Project variables: one named value drives any parameter of any part | ⬜ **Not started** — 2 rows scoped (`core-050`, `ui-059`) on 2026-10-03 from the user's jscad1 habit of a top-level `const piVersion = 4` that every part reads. `core-050` is the model; `ui-059` is the panel and per-field bind control. Independent of M9, M10 and M11. |
+| M13 — One Align tool | ⬜ **Not started** — 1 row scoped (`ui-060`) on 2026-10-04 from the user's preference for the Inspector's Align-to-origin UI over the Snap/Align popover. Independent of M9-M12. |
 
 Every M0-M4 milestone closed with its own human free-form pass per `CLAUDE.md`'s
 Verification section (see each milestone's last row below). M5, M6 and M7 have not had
@@ -627,6 +628,19 @@ evaluator and cycle detection, and the `$var` format does not change if it is ad
 **Suggested order**: `core-050` → `ui-059` (the Pi 4 → Pi 5 switch is then reachable by hand —
 stop and do the five-minute free-form pass here). Variable tools for the AI are appended to
 `ai-002`'s list by `core-050`, so M9 needs no separate row.
+
+---
+
+## M13 — One Align tool
+
+The Inspector's Align-to-origin row (`ui-050`) turned out to have a better UI than the Snap and
+Align popovers (`ui-026`): per-axis `min | ctr | max` buttons that commit on tap, instead of
+checkboxes plus a commit step. This milestone folds all three into one **Align** tool with a
+Target dropdown (`World origin` / second selected body) and removes the Inspector row.
+
+| id | Task | Kind | Depends | Acceptance |
+|---|---|---|---|---|
+| `ui-060` | One **Align** tool: Target dropdown, per-axis button grid, Snap row, drop shortcut; remove Inspector Align to origin; docs and media rewritten | Operation, M/L | none | place-then-snap/align and Pi placement scenarios; `ui-026/035/050`, `data-007` repros |
 
 ---
 

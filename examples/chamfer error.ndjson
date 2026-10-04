@@ -1,0 +1,3 @@
+{"id":"sketch-1","op":"primitive.sketch","name":"Sketch 1","params":{"center":[10.936861073501916,-14.143328926604454,0],"slices":[{"id":"s1","zMm":0,"profiles":[{"id":"p1","kind":"rect","role":"solid","centerMm":[19.22191076961854,17.79359446532877],"widthMm":215.1488869761107,"heightMm":127.53646128422534},{"id":"p2","kind":"rect","role":"hole","centerMm":[15.780300274961377,20.95089555344484],"widthMm":120.42308506104439,"heightMm":65.81988403812446}]}],"extrusion":{"method":"linear","heightMm":10,"twistDeg":0,"twistSteps":1}}}
+{"id":"chamfer-2","op":"modify.chamferRim","target":"sketch-1","supersedes":"sketch-1","params":{"radius":5,"orientation":"z+"}}
+{"warpcad":"project-state","version":1,"resolution":"normal"}
