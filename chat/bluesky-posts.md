@@ -1388,3 +1388,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** tap inside, outline + holes, at the photo's scale -> src/sketch/trace.js, src/sketch/referenceImage.js tracedProfiles, TODO/done/sketch-004; 120.11 x 100.19 mm vs 120 x 100 -> this session's hand drive, laptop Chromium, on e2e/fixtures/trace-bracket.jpg (true size stated in e2e/sketch-auto-trace.e2e.js's header); no new dependency -> package.json not in the diff
 **To Add:** docs/media/sketch-trace-auto.gif
+
+## 2026-10-06T02:53:00Z — Fillet and chamfer on hexagon and cylinder rims now export closed STL/OBJ/glTF
+
+**Post:** A 2 mm fillet on a hexagon exported an STL with 12 open edges: the section the rim sweep lofts from came back ~0.0001 mm off the solid's corners. Snapped back, it's 0, and a filleted cylinder at Print resolution went from 119 open edges to 0. Built with Claude Code, reviewed by me. #CAD
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** 12 open edges on a hexagon + 2 mm fillet -> TODO/done/io-006 Problem table, reproduced this session (Node, runExportJob, Normal: 88 triangles, 12 open); section ~1e-4 mm off the solid's corners -> this session's coordinate dump ((12.5, 21.650635) solid vs (12.500032, 21.650543) projected); sliver holes not T-junctions -> unmatched-edge dump this session (three edges per corner, two corners ~1e-4 mm apart); 0 after -> src/core/exportJob.spec.js new cases (11 passing) and the hand drive on Chromium/WebKit/Firefox (STL 60 / OBJ 60 / GLB 56 triangles, 0 open); filleted cylinder 119 -> 0 at Print (32 -> 0 at Normal) -> before/after Node run this session (git stash of fillet.js); fillet kept ~0.013 mm3 too much on a 20 mm cube -> fillet.spec convergence run this session (old converged 7855.854, exact 7855.841); holes still open -> TODO/core-051 status open, 160 -> 118 measured this session
+**To Add:** a slicer screenshot of the filleted hexagon STL (nobody has opened one in a real slicer yet)

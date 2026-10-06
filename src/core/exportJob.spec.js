@@ -243,3 +243,66 @@ describe('runExportJob — watertight at Print (io-004 / io-005 re-run at the fi
     expect(openEdges(triangles)).toBe(0)
   })
 })
+
+// TODO/io-006: a rim op on a rim whose edges are *not* axis-aligned. io-004/io-005 only
+// measured square rims; a hexagon's four off-axis corners came out of the fillet and the
+// chamfer as four sliver holes (12 open edges), because the section the loft starts from
+// drifted ~1e-4 mm off the solid's own corners there.
+describe('runExportJob — a rim op on a hexagon is watertight (io-006)', () => {
+  /** @param {any} document */
+  const hexagon = (document) =>
+    document.append({ id: 'hex', op: 'primitive.hexagon', name: 'Hexagon 1', params: { diameter: 50, height: 20 } }, local)
+  /** @param {any} document */
+  const sketchHexagon = (document) =>
+    document.append(
+      {
+        id: 'hex',
+        op: 'primitive.sketch',
+        name: 'Sketch 1',
+        params: {
+          center: [0, 0, 0],
+          slices: [{ id: 's1', zMm: 0, profiles: [{ id: 'p', kind: 'polygon', role: 'solid', centerMm: [0, 0], radiusMm: 25, sides: 6, rotationDeg: 0 }] }],
+          extrusion: { method: 'linear', heightMm: 20, twistDeg: 0, twistSteps: 1 },
+        },
+      },
+      local
+    )
+
+  /** @param {any} document */
+  const cylinder = (document) =>
+    document.append({ id: 'hex', op: 'primitive.cylinder', name: 'Cylinder 1', params: { diameter: 40, height: 20, center: [-100.89, 66.93, 25] } }, local)
+
+  /**
+   * @param {(document: any) => void} base
+   * @param {'modify.filletRim' | 'modify.chamferRim'} op
+   * @param {'normal' | 'print'} resolution
+   */
+  function stl(base, op, resolution) {
+    const document = createDocument({ resolution: 'normal' })
+    base(document)
+    document.append({ id: 'rim', op, target: 'hex', supersedes: 'hex', params: { radius: 2, orientation: 'z+' } }, local)
+    const result =
+      resolution === 'normal' ? runExportJob({ format: 'stl', bodies: packBodies(document.bodies()) }) : refoldJob(document, 'stl', resolution)
+    return stlTriangles(/** @type {Uint8Array} */ (result.bytes))
+  }
+
+  it.each([
+    ['primitive.hexagon', 'modify.filletRim', 'normal', hexagon],
+    ['primitive.hexagon', 'modify.filletRim', 'print', hexagon],
+    ['primitive.hexagon', 'modify.chamferRim', 'normal', hexagon],
+    ['primitive.hexagon', 'modify.chamferRim', 'print', hexagon],
+    ['a sketch polygon', 'modify.filletRim', 'normal', sketchHexagon],
+    ['a sketch polygon', 'modify.filletRim', 'print', sketchHexagon],
+    ['a sketch polygon', 'modify.chamferRim', 'normal', sketchHexagon],
+    ['a sketch polygon', 'modify.chamferRim', 'print', sketchHexagon],
+    // Same drift on every off-axis corner, so a cylinder's rim leaked too (32 open edges
+    // at normal, 119 at print, before the fix) — measured while fixing io-006.
+    ['an off-origin primitive.cylinder', 'modify.filletRim', 'normal', cylinder],
+    ['an off-origin primitive.cylinder', 'modify.filletRim', 'print', cylinder],
+    ['an off-origin primitive.cylinder', 'modify.chamferRim', 'print', cylinder],
+  ])('%s + %s has 0 open edges at %s', (_name, op, resolution, base) => {
+    const triangles = stl(base, /** @type {any} */ (op), /** @type {any} */ (resolution))
+    expect(triangles.length).toBeGreaterThan(20)
+    expect(openEdges(triangles)).toBe(0)
+  })
+})

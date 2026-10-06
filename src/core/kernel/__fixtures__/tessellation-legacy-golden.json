@@ -25,9 +25,9 @@
   "raspberrypi.cameraModule:arducam-hq": "161746:1ed331509e7b1710ff0787eb24ad",
   "raspberrypi.touchDisplay7inch": "165476:1c07687e867f6d03e04fdb1f7a39",
   "raspberrypi.touchScreen2": "218466:0e46a126f970050537e41057180c",
-  "raspberrypi.miniPiTFT": "618417:193d4d6fbe01bf0e9cb74a073017",
+  "raspberrypi.miniPiTFT": "617635:13048b27577c801a0485448962ca",
   "raspberrypi.piTFT22": "155610:0fc2c00fcc81b607d28de82e9bc3",
-  "raspberrypi.piTFT24": "567626:1d0d26ae2d2d5b036bc169f770ae",
+  "raspberrypi.piTFT24": "564951:0f34fb27fa50f8009a661df36df5",
   "raspberrypi.hyperPixel4Rectangular": "62410:1857847b8824fa111616e3c7bd37",
   "raspberrypi.activeCoolingFan": "1453:06e4f5593a4e0c1640f6ce3cad60",
   "raspberrypi.hat": "103224:09c330631b655117d50d3481326e",
@@ -39,7 +39,7 @@
   "profile.roundedRectangle": "2495:0dafe24e745143054a78d55672ad",
   "primitive.cylinder:d6": "10553:060c68fbbd7cbf1de3412c0979f6",
   "primitive.cylinder:d50": "10545:15703aea41c4270d47df2b9ad722",
-  "modify.filletRim:cube": "30345:09e4aff332aa9e0be06c1e7253bd",
+  "modify.filletRim:cube": "29214:056ef99113cbe41de690acfa42e7",
   "boolean.subtract:cube-bore": "14517:1340e1d03e47b1011c8d21a791e6",
   "text.label": "42668:0246215109cc5e1d5872eb1318fc"
 }

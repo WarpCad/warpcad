@@ -1924,3 +1924,19 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** flow (photo, Set scale, Auto-trace, tap, Solid + Holes at scale) -> docs/sketch-tracing.md, TraceTool.vue, sketchEditor.js traceAt; ~570 lines, no dependency -> wc -l src/sketch/trace.js = 567, package.json not in the diff; pipeline steps -> trace.js module comment and code; edge refusal sentence -> trace.js TRACE_REASONS.edge, seen in this session's drives; 120.11 x 100.19 (Chromium), 119.61 x 99.76 (WebKit), 119.62 x 99.77 (Firefox) -> this session's hand drives on e2e/fixtures/trace-bracket.jpg; microtask-yield bug and fix -> src/sketch/image.worker.js diff, TODO/done/sketch-004 close-out note
 **To Add:** docs/media/sketch-trace-auto.gif, docs/screenshots/sketch-trace-auto.png
+
+## 2026-10-06T02:53:00Z — Fillet and chamfer on hexagon and cylinder rims now export closed STL/OBJ/glTF
+
+**Post:** A 2 mm fillet on the top of a hexagon in WarpCad exported an STL with 12 open edges, the kind of leak a slicer complains about. The obvious suspect was the T-junction repair that already runs before every export. It wasn't that. Dumping the unmatched edges showed four tiny triangular holes, one at each corner of the hexagon that doesn't sit on an axis.
+
+The fillet is built by reading the solid's cross-section just below the face and lofting it up to an inset copy. The kernel's projection call, which is how that section gets read, hands corners back about 0.0001 mm away from where the solid really has them. The part below the cut kept the true corner and the loft started from the shifted one, so two corners sat a hair apart and nothing welded them. Snapping the section back onto the solid's own corners closes it. That fixed more than the hexagon: a filleted cylinder exported at Print resolution went from 119 open edges to 0, and on a 20 mm cube every fillet had been keeping about 0.013 mm³ of material it should have removed.
+
+Rims on shapes with holes are still wrong, and that is a separate fix.
+
+Built with Claude Code, reviewed by me.
+
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #3DPrinting #ComputationalGeometry #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** 12 open edges on a hexagon + 2 mm fillet -> TODO/done/io-006 Problem table, reproduced this session (Node, runExportJob, Normal: 88 triangles, 12 open); section ~1e-4 mm off the solid's corners -> this session's coordinate dump ((12.5, 21.650635) solid vs (12.500032, 21.650543) projected); sliver holes not T-junctions -> unmatched-edge dump this session (three edges per corner, two corners ~1e-4 mm apart); 0 after -> src/core/exportJob.spec.js new cases (11 passing) and the hand drive on Chromium/WebKit/Firefox (STL 60 / OBJ 60 / GLB 56 triangles, 0 open); filleted cylinder 119 -> 0 at Print (32 -> 0 at Normal) -> before/after Node run this session (git stash of fillet.js); fillet kept ~0.013 mm3 too much on a 20 mm cube -> fillet.spec convergence run this session (old converged 7855.854, exact 7855.841); holes still open -> TODO/core-051 status open, 160 -> 118 measured this session; T-junction repair runs before every export -> src/core/kernel/watertight.js module comment (io-004)
+**To Add:** before/after mesh view of one hexagon corner; a slicer screenshot

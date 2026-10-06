@@ -51,8 +51,10 @@ export const RIM_ORIENTATIONS = Object.freeze(['x+', 'x-', 'y+', 'y-', 'z+', 'z-
  * `legacy` count. The `modify.filletRim` op never relies on it: the registry always
  * passes the design resolution's count (`tessellation.js`'s `rimSlicesFor`,
  * `TODO/core-035`), which under `legacy` is this same 32. Direct callers (a recipe's
- * probe geometry) still get it. The profile converges from below, so more slices means
- * slightly more material removed, never less.
+ * probe geometry) still get it. The chorded profile cuts inside the true arc, so the
+ * volume converges from below: more slices removes slightly *less* material, never more
+ * (a 20 mm cube, r 3: 32 slices −0.22 mm³, 512 −0.0008 mm³ off the exact value —
+ * measured for `TODO/io-006`).
  */
 export const DEFAULT_RIM_SEGMENTS = 32
 
@@ -127,6 +129,63 @@ function slabOver(bounds, zLow, zHigh) {
 function sectionAt(solid, bounds, z) {
   const slab = slabOver(bounds, z - SECTION_EPSILON_MM, z)
   return extrusions.project({ axis: [0, 0, 1] }, booleans.intersect(solid, slab))
+}
+
+/**
+ * Put a projected section's corners back exactly where the solid has them (`TODO/io-006`).
+ *
+ * `extrusions.project` does not hand back the solid's own coordinates: on a hexagon
+ * (Ø50) it returned the corner `(12.5, 21.650635)` as `(12.500032, 21.650543)`, about
+ * 1e-4 mm off, while a corner on an axis comes back exact. The loft starts from this
+ * section but the remainder it is unioned onto keeps the true corner, so every
+ * off-axis corner of the cut plane became two corners 1e-4 mm apart: a sliver hole
+ * (three open edges each — 12 on a hexagon) that no weld closes, because the
+ * serializer's snap grid (~4e-4 mm) can straddle the pair, and `watertight.js` only
+ * inserts vertices into edges — by design it never moves one. Every rim
+ * `io-004`/`io-005` measured was square, so its corners never drifted.
+ *
+ * So each section vertex within {@link SECTION_EPSILON_MM} of one of the remainder's
+ * corners on the cut plane takes that corner's exact coordinates. The drift is an
+ * order of magnitude inside that radius and any genuine feature is far outside it.
+ * Works side by side, so an outline with holes keeps its topology.
+ *
+ * @param {Geom2} section Projected cross-section at `cutZ`.
+ * @param {Geom3} remainder The solid below the cut plane, whose top cap is at `cutZ`.
+ * @param {number} cutZ Millimetres.
+ * @returns {Geom2}
+ */
+function snapSectionToSolid(section, remainder, cutZ) {
+  /** @type {[number, number][]} */
+  const corners = []
+  for (const polygon of geometries.geom3.toPolygons(remainder)) {
+    for (const vertex of polygon.vertices) {
+      if (Math.abs(vertex[2] - cutZ) <= SECTION_EPSILON_MM) corners.push([vertex[0], vertex[1]])
+    }
+  }
+  if (corners.length === 0) return section
+  const limit = SECTION_EPSILON_MM * SECTION_EPSILON_MM
+  /** @type {Map<string, [number, number]>} */
+  const snapped = new Map()
+  /** @param {[number, number]} point @returns {[number, number]} */
+  const snap = (point) => {
+    const key = `${point[0]},${point[1]}`
+    const known = snapped.get(key)
+    if (known) return known
+    let best = point
+    let bestDistance = limit
+    for (const corner of corners) {
+      const distance = (corner[0] - point[0]) ** 2 + (corner[1] - point[1]) ** 2
+      if (distance <= bestDistance) {
+        bestDistance = distance
+        best = corner
+      }
+    }
+    snapped.set(key, best)
+    return best
+  }
+  return geometries.geom2.create(
+    geometries.geom2.toSides(section).map(([from, to]) => /** @type {any} */ ([snap(from), snap(to)]))
+  )
 }
 
 /**
@@ -331,7 +390,8 @@ function sweepRim({ solid, radius, orientation, slices, profile, op }) {
   const r = requireRadius(radius, bounds[1][2] - bounds[0][2], op)
   const cutZ = faceZ - bandOf(r)
 
-  const base = sectionAt(canonical, bounds, cutZ)
+  const remainder = booleans.intersect(canonical, slabOver(bounds, bounds[0][2] - 1, cutZ))
+  const base = snapSectionToSolid(sectionAt(canonical, bounds, cutZ), remainder, cutZ)
   assertPrismaticBand(base, sectionAt(canonical, bounds, faceZ), op)
 
   // Every slice is built and checked before any of it is lofted, rather than inside
@@ -365,7 +425,6 @@ function sweepRim({ solid, radius, orientation, slices, profile, op }) {
     base
   )
 
-  const remainder = booleans.intersect(canonical, slabOver(bounds, bounds[0][2] - 1, cutZ))
   return fromZ(booleans.union(remainder, loft))
 }
 

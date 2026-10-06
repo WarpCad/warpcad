@@ -86,7 +86,12 @@ const volumeOf = (geometry) => measurements.measureVolume(geometry)
 
 describe('filletRim', () => {
   it('removes the hand-computed volume from a cube rim', () => {
-    const filleted = filletRim({ radius: 3, segments: 128 }, cube20())
+    // 512 slices, not 128 (TODO/io-006): 128 only ever matched to 2 places because the
+    // projected section was ~6e-5 mm too wide on every side, which kept back ~0.013 mm³
+    // and happened to cancel the chorded profile's own error. With the section snapped
+    // onto the solid's real corners the sweep converges onto the hand value from below
+    // (128: −0.013, 512: −0.0008, 1024: −0.0002 mm³), so it needs the finer profile.
+    const filleted = filletRim({ radius: 3, segments: 512 }, cube20())
     // 8000 − 144.159 = 7855.841mm³
     expect(volumeOf(filleted)).toBeCloseTo(8000 - filletRemoved(80, 4, 3), 2)
   })
@@ -102,7 +107,8 @@ describe('filletRim', () => {
   })
 
   it('works on a boolean-union result, not just a primitive edge', () => {
-    const filleted = filletRim({ radius: 3, segments: 128 }, unionBar())
+    // 512 slices for the same reason as the cube above (TODO/io-006).
+    const filleted = filletRim({ radius: 3, segments: 512 }, unionBar())
     // 14000 − 202.102 = 13797.898mm³
     expect(volumeOf(filleted)).toBeCloseTo(14000 - filletRemoved(110, 4, 3), 2)
   })
