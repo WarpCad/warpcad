@@ -1954,3 +1954,18 @@ The Spec list has 45 bolts, from m1.6 socket to 1" hex, in numeric order, and th
 **Evidence:** three entries before -> diff of bolt-specs.js; version mismatch -> TODO/done/core-052 Problem; two V1 lookup bugs -> comment block in scripts/generate-hardware-tables.mjs, confirmed by reading src/imperial.js this session; 45 bolts, m1.6 to 1" -> generator output this session; nut-per-bolt test -> src/core/kernel/tables/hardware-tables.spec.js
 **To Add:** screenshot of the Spec dropdown
 
+
+## 2026-10-06T15:44:00Z — AI partner architecture decided: raw fetch, MCP SDK v2, a branch per AI turn, no CRDT
+
+**Post:** WarpCad is getting an AI partner: a chat in the browser and an MCP server for Claude Code, both driving the same parametric history a person edits by hand. Before writing any of it, I settled nine questions in one decision record, with the health data for every library measured on the day rather than remembered.
+
+Two answers came out differently than I expected. The official Anthropic SDK fails the project's own licence gate, through an Unlicense package used for webhook verification, and it would add 52.8 KB gzip (14.3% of the app) for a single endpoint. So the client is plain fetch behind a one-method interface. The MCP TypeScript SDK has split into v2 packages, and the server package installs 3 packages where v1 installs 94.
+
+The undo answer needed no new mechanism. Each AI turn builds on a throwaway copy of the document, the same kind the History preview already uses. It lands as one atomic step, and one "Undo AI turn" takes it back without touching the user's own undo stack. That also answered the CRDT question: with one writer at a time, there is nothing to merge.
+
+Built with Claude Code, reviewed by me.
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #AI #MCP #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** licence gate failure via Unlicense webhook dep -> license-checker this session (fast-sha256@1.3.0 via standardwebhooks); 52.8 KB gzip, 14.3% -> esbuild+gzip -9 this session (52,778 B) vs vite build main chunk 369.39 KB gzip at 8d31e37; MCP v2 3 packages vs v1 94 -> npm ls --all in scratch installs this session (4 and 95 lines including root); throwaway copy = History preview pattern -> src/core/document.js createDocument foldCache option and foldableEntry comments; nine questions -> TODO/done/ai-001 "Decisions this file must settle"; no CRDT -> docs/decisions/ai-partner.md CRDT section
+**To Add:** —

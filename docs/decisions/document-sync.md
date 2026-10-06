@@ -47,6 +47,38 @@ this document exists specifically so that isn't a silent gap when it eventually 
 No other candidate trigger is identified at this time. If one turns up before the MCP
 live-editing bridge is built, add it here rather than treating this list as closed.
 
+### Update, 2026-10-06 (`TODO/ai-001`, `docs/decisions/ai-partner.md`)
+
+The AI partner's design was settled with this condition in view, and **none of what M9
+ships triggers it**. This row stays **Deferred**, and the reasoning above still holds:
+
+- **The in-browser assistant is not a second concurrent writer.** It writes through the
+  same command layer, in the same tab, with origin `ai`. Each turn builds on a forked
+  throwaway document while the human's edits are paused (the existing History-preview
+  mode), then lands as **one atomic `appendAll`**. At every moment exactly one thing
+  writes the log. **Undo AI turn** removes a turn through the same remove-and-rebuild
+  `data-003` built, so origin scoping is unchanged.
+- **The MCP server (`ai-009`) edits a closed project file only in v1.** The file is
+  written atomically (temp file plus rename, with a lock file). If the app has the same
+  file open, the app detects the change on focus and offers Reload with the hosted path's
+  Overwrite / Load / Cancel semantics. That's a **file-level** conflict, with no merge,
+  the same answer `io-002` gave for a stale `sha`.
+- **The live bridge is the reserved `ai-012`**, and the condition above is now scoped to
+  it. Its planned answer is **one writer, the AI as its client**: Claude Code's MCP
+  server forwards tool calls over a localhost link to the open tab, which runs them
+  through the same tool registry and the same branch-per-turn. Built that way, `ai-012`
+  **resolves this condition without a merge algorithm**.
+- `docs/decisions/ai-partner.md`'s CRDT section asked whether a CRDT would help the AI
+  co-editor and answered **no**, with a rejection table (Yjs, Automerge, Loro). A CRDT
+  guarantees the merged *array* converges, not that the merged parametric log still
+  replays, so `ReplayRejection` handling would be needed anyway. The timeline's reorder
+  and shared rollback marker also fit CRDT types poorly.
+
+**The remaining revival condition** is therefore **multi-person real-time editing**: a
+second *human*, in a second browser, editing the same open project live. That's the one
+scenario where "one writer" can't be kept by design. If it becomes a goal, reopen this
+row then. Until then, an AI writer alone is not a reason to.
+
 ## Requirement to carry forward regardless of what eventually fills this row
 
 Whatever backs this row when it's finally resolved — CRDT, OT, or something else —

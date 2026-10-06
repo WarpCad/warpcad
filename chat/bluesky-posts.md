@@ -1407,3 +1407,12 @@ Built with Claude Code, reviewed by me.
 **Evidence:** 3 entries before -> diff of bolt-specs.js; 45 sizes -> generator output "bolts: 45" this session; m2/m2.5 are the author's usual sizes -> TODO/done/core-052 Problem (user report); wrong version ported -> TODO/done/core-052 Problem (package.json pinned 1.1.0)
 **To Add:** screenshot of the open Spec dropdown
 
+
+## 2026-10-06T15:44:00Z — AI partner architecture decided: raw fetch, MCP SDK v2, a branch per AI turn, no CRDT
+
+**Post:** Before WarpCad gets an AI assistant, I wrote down how it should work. One surprise: the official Anthropic SDK fails my own licence check, via an Unlicense dependency in webhook code a browser never runs. So the client is plain fetch. Built with Claude Code, reviewed by me. #CAD
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** SDK fails the licence check via Unlicense -> license-checker@25.0.1 --production over a scratch install of @anthropic-ai/sdk@0.131.0 this session (fast-sha256@1.3.0 Unlicense, via standardwebhooks), against the allow-list in package.json's "licenses" script; plain fetch -> docs/decisions/ai-partner.md decision 2
+**To Add:** —

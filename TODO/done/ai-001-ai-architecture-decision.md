@@ -6,8 +6,37 @@ priority: high
 model: opus
 milestone: M9
 depends: []
-status: open
+status: done
 ---
+
+> **Retired 2026-10-06. What shipped:** `docs/decisions/ai-partner.md`, which settles all
+> nine decisions plus the CRDT section. It's **pending the user's review before
+> `ai-002`**; six items for their call are listed at the end of that document. Follow-ons
+> shipped in the same change: the revival section in `docs/decisions/document-sync.md`,
+> two `CLAUDE.md` Stack rows (LLM client, MCP SDK) and its AI Partner wording, and
+> `TODO/ROADMAP.md` (this row resolved, and `io-002`'s stale "AI chat key already exists"
+> premise corrected).
+>
+> Two answers differ from what this file implied, both found by measuring:
+>
+> - **The LLM client is raw `fetch`, not the official SDK.** `@anthropic-ai/sdk` fails
+>   `npm run licenses` as-is, because `standardwebhooks` brings in Unlicense
+>   `fast-sha256`. It's also 14.3% of the app's main chunk for one endpoint, and its
+>   error messages carry server body text, which `io-002`'s credential rule forbids
+>   echoing. The SDK remains the documented fallback if the user adds the licence entry.
+> - **"`@modelcontextprotocol/sdk`" is now the v1 package.** The SDK has split into v2
+>   packages. The pick is `@modelcontextprotocol/server` 2.3.1 (Apache-2.0, a 3-package
+>   tree against v1's 94).
+>
+> Decision 5 took the branch evaluation further than the file asked. The per-turn branch
+> **is** the History preview's existing pattern: a throwaway document seeded from
+> `foldableEntry` copies and sharing the live `foldCache`. It lands automatically as one
+> atomic `ai` batch, and **Undo AI turn** removes it with the existing remove-and-rebuild.
+> An explicit Accept per turn is left as a later setting, flagged for the user.
+>
+> No code, so there's no RED test. `TODO/ACCEPTANCE.md` exists, but this change touches
+> no source, so Step 6's re-drive does not apply (as with `core-014a`). Typecheck, unit
+> tests and spdx were re-run to show nothing regressed.
 
 ## Goal
 
