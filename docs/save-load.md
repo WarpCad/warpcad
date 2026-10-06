@@ -126,11 +126,12 @@ Everything on this page beyond autosave starts at **File ▾**, in the top bar, 
 **History** and the status light. It works the same on a laptop, a tablet and a phone: tap
 it and a menu opens under it, with three groups: the items for **this device** at the top
 (**New**, the save item, **Open…**, **Export…**), a **Design** group holding the **Resolution**
-setting, and **Hosted storage** below the last divider. The first line of the menu repeats the
+setting and **Project settings…** (see [Design intent](design-intent.md)), and **Hosted storage**
+below the last divider. The first line of the menu repeats the
 status message in full, which is how you read it on a phone, where the status light in the bar
 is only a dot.
 
-![The File menu open: a status line, then New, Download copy, Open… and Export…, a Design group with Resolution: Normal…, and a Hosted storage group with Connect repository…](./screenshots/file-menu.png)
+![The File menu open: a status line, then New, Download copy, Open… and Export…, a Design group with Resolution: Normal… and Project settings…, and a Hosted storage group with Connect repository…](./screenshots/file-menu.png)
 
 Opening the menu never changes what is selected, and nothing in it is greyed out because of
 what is selected.

@@ -24,6 +24,13 @@
  * heuristic. CLAUDE.md's Interaction Model is explicit that a control is
  * disabled until its preconditions are actually met, and an honest *reason* is
  * what makes a disabled control teach instead of frustrate.
+ *
+ * **Design intent (`TODO/ai-003`).** A row whose step carries intent (why an AI or MCP
+ * client made it) shows a small note icon — a separate 44px button beside the row, so
+ * expanding never selects. Expanding shows the intent and the origin chip under the row; it
+ * is not always-visible text, which keeps the phone sheet short. The intent is untrusted
+ * (it comes from whatever file was opened), so it is rendered with `{{ }}` text
+ * interpolation only, never `v-html`.
  */
 import { computed, nextTick, ref, watch } from 'vue'
 
@@ -52,6 +59,10 @@ const timeline = useTimelineStore()
 const commands = useTimelineCommands()
 
 const editing = ref(false)
+/** `TODO/ai-003`: whether this row's intent is expanded. Per row, not persisted. */
+const intentOpen = ref(false)
+const intentId = computed(() => `timeline-intent-${props.row.step}`)
+const originLabel = computed(() => (props.row.origin === 'local' ? 'by you' : `via ${props.row.origin}`))
 /** @type {import('vue').Ref<Record<string, any>>} */
 const draft = ref({})
 
@@ -156,61 +167,84 @@ function cancel() {
 
 <template>
   <li class="row-wrap">
-    <button
-      type="button"
-      class="row"
-      :class="{
-        'row--selected': selected,
-        'row--suppressed': row.suppressed,
-        'row--inactive': !row.active,
-        'row--conditioned-off': row.inactiveBy !== null,
-        'row--related': related && !selected,
-      }"
-      :data-testid="`timeline-row-${row.step}`"
-      :data-step-id="row.id"
-      :data-active="row.active"
-      :data-suppressed="row.suppressed"
-      :data-conditioned-off="row.inactiveBy !== null"
-      :aria-current="selected ? 'true' : undefined"
-      @click="emit('select', row.id)"
-    >
-      <span class="row__step" aria-hidden="true">{{ row.step }}</span>
-      <span class="row__text">{{ row.text }}</span>
-      <span class="row__chips">
-        <span v-if="row.suppressed" class="chip chip--muted" data-testid="chip-suppressed">
-          suppressed
+    <div class="row-line">
+      <button
+        type="button"
+        class="row"
+        :class="{
+          'row--selected': selected,
+          'row--suppressed': row.suppressed,
+          'row--inactive': !row.active,
+          'row--conditioned-off': row.inactiveBy !== null,
+          'row--related': related && !selected,
+        }"
+        :data-testid="`timeline-row-${row.step}`"
+        :data-step-id="row.id"
+        :data-active="row.active"
+        :data-suppressed="row.suppressed"
+        :data-conditioned-off="row.inactiveBy !== null"
+        :aria-current="selected ? 'true' : undefined"
+        @click="emit('select', row.id)"
+      >
+        <span class="row__step" aria-hidden="true">{{ row.step }}</span>
+        <span class="row__text">{{ row.text }}</span>
+        <span class="row__chips">
+          <span v-if="row.suppressed" class="chip chip--muted" data-testid="chip-suppressed">
+            suppressed
+          </span>
+          <span v-if="!row.active" class="chip chip--muted" data-testid="chip-inactive">inactive</span>
+          <!-- A condition (TODO/ui-052): shown whether or not it currently holds, so a row
+               that only exists on a Pi 4 says so on a Pi 4 too. While it does not hold the
+               row greys like a suppressed one, but carries this chip instead of the
+               "suppressed" label, so the two can be told apart. -->
+          <span
+            v-if="row.condition"
+            class="chip chip--condition"
+            data-testid="timeline-condition-chip"
+            :data-holds="row.inactiveBy === null ? 'true' : 'false'"
+            :title="row.condition.sentence"
+          >
+            {{ row.condition.chip }}
+          </span>
+          <span
+            v-if="brokenReason"
+            class="chip chip--broken"
+            data-testid="chip-broken"
+            :title="brokenReason"
+          >
+            broken
+          </span>
+          <!-- §19 point 2: a step someone else added is never hidden — it is in
+               History with an origin chip, so the user can see it and can
+               Suppress or Edit it like any other step. Absent for local edits,
+               which is almost all of them today. -->
+          <span v-if="row.origin !== 'local'" class="chip" data-testid="chip-origin">
+            via {{ row.origin }}
+          </span>
         </span>
-        <span v-if="!row.active" class="chip chip--muted" data-testid="chip-inactive">inactive</span>
-        <!-- A condition (TODO/ui-052): shown whether or not it currently holds, so a row
-             that only exists on a Pi 4 says so on a Pi 4 too. While it does not hold the
-             row greys like a suppressed one, but carries this chip instead of the
-             "suppressed" label, so the two can be told apart. -->
-        <span
-          v-if="row.condition"
-          class="chip chip--condition"
-          data-testid="timeline-condition-chip"
-          :data-holds="row.inactiveBy === null ? 'true' : 'false'"
-          :title="row.condition.sentence"
-        >
-          {{ row.condition.chip }}
-        </span>
-        <span
-          v-if="brokenReason"
-          class="chip chip--broken"
-          data-testid="chip-broken"
-          :title="brokenReason"
-        >
-          broken
-        </span>
-        <!-- §19 point 2: a step someone else added is never hidden — it is in
-             History with an origin chip, so the user can see it and can
-             Suppress or Edit it like any other step. Absent for local edits,
-             which is almost all of them today. -->
-        <span v-if="row.origin !== 'local'" class="chip" data-testid="chip-origin">
-          via {{ row.origin }}
-        </span>
-      </span>
-    </button>
+      </button>
+      <button
+        v-if="row.intent !== null"
+        type="button"
+        class="row__intent-toggle"
+        data-testid="timeline-intent-toggle"
+        :aria-expanded="intentOpen ? 'true' : 'false'"
+        :aria-controls="intentId"
+        aria-label="Why this step exists"
+        title="Why this step exists"
+        @click="intentOpen = !intentOpen"
+      >
+        <svg class="row__intent-icon" viewBox="0 0 16 16" aria-hidden="true">
+          <path d="M3 1.5h7l3 3v10H3z" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round" />
+          <path d="M5.5 7h5M5.5 9.5h5M5.5 12h3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" />
+        </svg>
+      </button>
+    </div>
+
+    <div v-if="row.intent !== null && intentOpen" :id="intentId" class="intent" data-testid="timeline-intent">
+      <span class="chip intent__origin" data-testid="timeline-intent-origin">{{ originLabel }}</span>
+      <p class="intent__text">{{ row.intent }}</p>
+    </div>
 
     <div v-if="selected" class="actions" data-testid="timeline-actions">
       <button
@@ -343,8 +377,14 @@ function cancel() {
   border-bottom: 1px solid var(--border);
 }
 
+.row-line {
+  display: flex;
+  align-items: stretch;
+}
+
 .row {
-  width: 100%;
+  flex: 1;
+  min-width: 0;
   /* §13: rows are ≥44px tall — a list you scroll with a thumb is a list whose
      rows are tap targets. */
   min-height: var(--tap);
@@ -442,6 +482,49 @@ function cancel() {
 .chip--broken {
   border-color: var(--danger);
   color: var(--danger);
+}
+
+.row__intent-toggle {
+  flex: 0 0 auto;
+  width: var(--tap);
+  min-height: var(--tap);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text-2);
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.row__intent-toggle:hover,
+.row__intent-toggle[aria-expanded='true'] {
+  color: var(--accent);
+}
+
+.row__intent-icon {
+  width: 16px;
+  height: 16px;
+}
+
+.intent {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 0 10px 8px 13px;
+}
+
+.intent__text {
+  margin: 0;
+  color: var(--text-2);
+  font-size: 12px;
+  line-height: 1.45;
+  /* Untrusted text: keep its own line breaks, and never let a long token widen the sheet. */
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 
 .actions {

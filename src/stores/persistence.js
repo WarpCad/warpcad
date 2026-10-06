@@ -281,8 +281,8 @@ export const usePersistenceStore = defineStore('persistence', () => {
    */
   function loadText(text) {
     try {
-      const { entries, rollbackAt, resolution, warnings } = parseProject(text)
-      documentStore.load(entries, rollbackAt, resolution)
+      const { entries, rollbackAt, resolution, standingInstructions, warnings } = parseProject(text)
+      documentStore.load(entries, rollbackAt, resolution, { standingInstructions })
       return { ok: true, steps: entries.length, skipped: warnings.length > 0 ? describeSkipped(warnings) : '' }
     } catch (error) {
       return { ok: false, message: reasonOf(error) }

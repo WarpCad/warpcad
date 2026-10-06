@@ -32,7 +32,7 @@
 import { evaluateOp } from '../../core/kernel/index.js'
 import { boundsOf } from '../../core/kernel/group.js'
 import { registry as kernelRegistry } from '../../core/kernel/registry.js'
-import { checkInput, objectSchema, paramsSchemaFor, vectorSchema } from './schema.js'
+import { checkInput, objectSchema, paramsSchemaFor, splitRationale, vectorSchema, withRationale } from './schema.js'
 
 /** @typedef {import('../../core/document.js').WarpDocument} WarpDocument */
 /** @typedef {import('../../core/kernel/registry.js').OpRecord} OpRecord */
@@ -199,19 +199,28 @@ export function validateCreateInput(ops, schema, input, path = 'input') {
 
 /**
  * @param {Registry} ops
- * @param {(ctx: import('./index.js').ToolContext, steps: any[]) => Record<string, any>} applySteps
+ * @param {(ctx: import('./index.js').ToolContext, steps: any[], rationale?: string) => Record<string, any>} applySteps
  * @returns {import('./index.js').Tool}
  */
 export function createCreateTool(ops, applySteps) {
-  const inputSchema = createInputSchema(ops)
+  const stepSchema = createInputSchema(ops)
+  // The tool's own input adds `rationale` (TODO/ai-003); an `apply_records` step does not —
+  // there the rationale is the call's, once.
+  const inputSchema = withRationale(stepSchema)
   return {
     name: 'create',
     description:
       'Place one new body in the scene — the equivalent of dragging a Library item into the viewport. Creates only: to change, combine, ' +
       'move or turn existing bodies use operate. Millimetres, Z up, degrees. Returns the new body’s id and the scene afterwards.',
     inputSchema,
-    validate: (input) => validateCreateInput(ops, inputSchema, input),
+    validate: (input) => {
+      const { rest, errors } = splitRationale(input)
+      return errors.length > 0 ? errors : validateCreateInput(ops, stepSchema, rest)
+    },
     transports: ['ai', 'mcp'],
-    run: (ctx, input) => applySteps(ctx, [{ create: input }]),
+    run: (ctx, input) => {
+      const { rationale, ...step } = input
+      return applySteps(ctx, [{ create: step }], rationale)
+    },
   }
 }

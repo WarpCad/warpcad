@@ -208,6 +208,12 @@ export const useDocumentStore = defineStore('document', () => {
    */
   const resolution = ref(raw.resolution())
   /**
+   * The project's standing instructions (`TODO/ai-003`), mirrored off `raw` in
+   * {@link refresh} like {@link resolution}. Untrusted text when it came with a file: render
+   * it as text only, never markup.
+   */
+  const standingInstructions = ref(raw.standingInstructions())
+  /**
    * Bumped each time a whole document is *loaded* (autosave restore, Open) as
    * opposed to edited. The viewport frames the camera on it: a loaded project
    * whose geometry sits outside the default view would otherwise read as an empty
@@ -248,6 +254,7 @@ export const useDocumentStore = defineStore('document', () => {
     undoLabel.value = raw.pendingUndo()?.label ?? ''
     redoLabel.value = raw.pendingRedo()?.label ?? ''
     resolution.value = raw.resolution()
+    standingInstructions.value = raw.standingInstructions()
     const list = raw.bodies()
     bodies.value = list.map(summarizeBody)
     // `TODO/ui-052`: a change (a model swap, or its Undo) can take away the part the
@@ -315,6 +322,18 @@ export const useDocumentStore = defineStore('document', () => {
    */
   function setResolution(next) {
     raw.setResolution(next, { origin: 'local', meta: localMeta('local') })
+    refresh()
+  }
+
+  /**
+   * Replace the project's standing instructions (`TODO/ai-003`) — core's
+   * `setStandingInstructions`, a `local` document change that bumps the version (so autosave,
+   * auto-push and the save-status chip follow it) but is not an undo step.
+   *
+   * @param {string} text
+   */
+  function setStandingInstructions(text) {
+    raw.setStandingInstructions(text, { origin: 'local' })
     refresh()
   }
 
@@ -496,9 +515,11 @@ export const useDocumentStore = defineStore('document', () => {
    * @param {number | null} [rollbackAt]
    * @param {string} [nextResolution] The loaded design's resolution (`TODO/core-035`);
    *   `parseProject` supplies it. Omitted: the current one.
+   * @param {{ standingInstructions?: string }} [options] `TODO/ai-003`: the loaded project's
+   *   standing instructions; omitted, the loaded project has none.
    */
-  function load(entries, rollbackAt = null, nextResolution = raw.resolution()) {
-    raw.loadEntries(entries, rollbackAt, nextResolution)
+  function load(entries, rollbackAt = null, nextResolution = raw.resolution(), options = {}) {
+    raw.loadEntries(entries, rollbackAt, nextResolution, { standingInstructions: options.standingInstructions ?? '' })
     useSelectionStore().clear()
     loadRevision.value += 1
     refresh()
@@ -615,6 +636,8 @@ export const useDocumentStore = defineStore('document', () => {
     setColorOverride,
     clearColorOverride,
     setResolution,
+    standingInstructions,
+    setStandingInstructions,
     deleteBodies,
     removePart,
     undo,

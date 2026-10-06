@@ -97,6 +97,11 @@ The Library's Raspberry Pi and Hardware items descend from the `jscad-raspberryp
   faceted hole prints small (and a big one more so), what Legacy means on an older
   project, and exporting at a higher resolution than the design with
   **File ▾ → Export… → Resolution**.
+- [Design intent: why each step exists, and your project's standing rules](design-intent.md) —
+  **File ▾ → Project settings…**: standing instructions the AI assistant applies to every
+  request (bed size, nozzle, minimum wall); the note icon on a History row that shows why an
+  AI-made step exists; the **Why** line in the Inspector; and confirming instructions that
+  came with someone else's file.
 - [Moving around the 3D view](viewport-navigation.md) — orbit, pan, zoom, the
   orientation triad, touch gestures, and reading size off the grid.
 - [Using WarpCad on a phone or tablet](mobile.md) — where every control lives at phone and

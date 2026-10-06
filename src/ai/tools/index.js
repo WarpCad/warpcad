@@ -27,6 +27,10 @@
  * | `operate` | yes | One operation: `{ op, operands: [{ id, pieces? }], params? }`. Refused by name on a wrong operand count or an id that is not a body on screen. |
  * | `apply_records` | yes | `{ steps: [{ create } \| { operate }] }` as one atomic change; a step names an earlier step's body as `@n`. |
  *
+ * Every write tool also takes an optional `rationale`: one line saying why. With the turn's
+ * request (`ctx.request`) it is saved as each new record's design intent (`TODO/ai-003`),
+ * which `get_timeline`, `describe_scene` and `describe_body` return as `intent`.
+ *
  * A write returns `{ applied: [{ batchStep, tool, bodyId, recordIds }], scene }`, the
  * new state rather than a bare "ok". A refused write returns `{ error, step, reason,
  * batchStep }`, where `error` is the document's own `ReplayRejection` sentence when the
@@ -83,6 +87,10 @@ export { toStrictWire } from './schema.js'
  * @property {string} origin `ai` or `mcp`; every write carries it.
  * @property {import('./limits.js').Turn} turn This turn's budget.
  * @property {ToolSelection} [selection] Browser only.
+ * @property {string} [request] `TODO/ai-003`: the user's message that started this turn. With
+ *   each write's own `rationale` it becomes the design intent every appended record carries.
+ *   The agent (`ai-005`) or the MCP server (`ai-009`) sets it; absent, only the rationale is
+ *   recorded.
  */
 
 /**
@@ -159,8 +167,8 @@ function createListOpsTool(ops) {
  */
 export function createToolRegistry(options = {}) {
   const ops = options.registry ?? kernelRegistry
-  /** @param {ToolContext} ctx @param {any[]} steps */
-  const apply = (ctx, steps) => applySteps(ctx, steps, ops)
+  /** @param {ToolContext} ctx @param {any[]} steps @param {string} [rationale] */
+  const apply = (ctx, steps, rationale) => applySteps(ctx, steps, ops, rationale)
   const tools = Object.freeze(
     [
       ...createReadTools(),

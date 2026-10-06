@@ -57,6 +57,12 @@
  * `ResolutionPopover.vue` (`stores/resolutionDialog.js`), exactly as `Export…` does for
  * its popover.
  *
+ * ## `Project settings…` (`TODO/ai-003`)
+ *
+ * The Design group's second row: opens `ProjectSettingsDialog.vue`, where the project's
+ * standing instructions for the AI assistant are edited. Always enabled — it changes no
+ * geometry, so neither a History preview nor an empty scene gates it.
+ *
  * ## An Open in progress (`TODO/core-032`)
  *
  * Open, `Load from owner/repo` and the start-up restore fold on the main thread, which can
@@ -85,6 +91,7 @@ import HostedDot from '../display/HostedDot.vue'
 import ConflictDialog from './ConflictDialog.vue'
 import ConnectDialog from './ConnectDialog.vue'
 import ExportPopover from './ExportPopover.vue'
+import ProjectSettingsDialog from './ProjectSettingsDialog.vue'
 import ReplaceConfirmDialog from './ReplaceConfirmDialog.vue'
 import ResolutionPopover from './ResolutionPopover.vue'
 import { useResolutionDialogStore } from '../../stores/resolutionDialog.js'
@@ -386,6 +393,15 @@ onBeforeUnmount(() => {
             >
               {{ resolutionDialog.menuLabel }}…
             </button>
+            <button
+              type="button"
+              role="menuitem"
+              class="file-menu__item"
+              data-testid="project-settings"
+              @click="menu.requestProjectSettings()"
+            >
+              Project settings…
+            </button>
           </div>
 
           <div class="file-menu__divider" role="separator">
@@ -460,6 +476,7 @@ onBeforeUnmount(() => {
 
     <ExportPopover :anchor="buttonRef" />
     <ResolutionPopover :anchor="buttonRef" />
+    <ProjectSettingsDialog />
     <ReplaceConfirmDialog />
     <ConnectDialog />
     <ConflictDialog />

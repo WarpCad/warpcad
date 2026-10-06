@@ -26,6 +26,8 @@
  *   Absent means `legacy` (the old fixed 32), so a file saved before the setting
  *   existed reopens byte-identical; a `legacy` document therefore never writes it. An
  *   empty file has no geometry to keep, so it reads as a new document's default.
+ * - each entry's design **intent** (`TODO/ai-003`), as `intents: { id: text }`, and the
+ *   project's **standingInstructions** — see "Design intent" below.
  *
  * A restore that dropped them would be silently unfaithful in the worst way — a
  * rolled-back document reopening fully rolled *forward* shows the user geometry
@@ -42,6 +44,19 @@
  * document is byte-identical to the plain NDJSON action log every earlier reader
  * (and `mcp/`) understands. Every field is optional.
  *
+ * ## Design intent (`TODO/ai-003`)
+ *
+ * Both fields are untrusted text from whoever wrote the file. They go in the state line, so
+ * every record line stays byte-identical (what `mcp/` and older readers rely on), and the
+ * line's **version stays 1**: a build that predates them ignores a state-line field it has
+ * no reader for (`project.spec.js` pins that), so it still opens the file — it just does not
+ * show or keep the intent. A version bump would have made every older build refuse the file.
+ *
+ * The strictness rule applied to them: a wrong *type* (an intent that is not text, an
+ * `intents` that is not a map, an intent naming no record, non-text instructions) is refused
+ * like any other malformed state line; text that is merely too **long** is cut to its cap
+ * (`src/core/intent.js`) rather than costing the user the whole file over an advisory note.
+ *
  * ## Refusal, not repair
  *
  * {@link parseProject} is strict where `parseNdjson` is lenient. The lenient
@@ -56,6 +71,7 @@
  * @module core/project
  */
 
+import { INSTRUCTIONS_MAX_LENGTH, INTENT_MAX_LENGTH, cleanText } from './intent.js'
 import { DEFAULT_RESOLUTION, RESOLUTION_IDS, isResolution } from './kernel/tessellation.js'
 import { parseNdjson, serializeNdjson } from './ndjson.js'
 import { ASSET_OP, validateImageAsset } from '../sketch/imageAsset.js'
@@ -81,7 +97,7 @@ export class ProjectFormatError extends Error {
 /**
  * Serialise a document to project text.
  *
- * @param {Pick<WarpDocument, 'entries' | 'rollbackAt'> & Partial<Pick<WarpDocument, 'resolution'>>} document
+ * @param {Pick<WarpDocument, 'entries' | 'rollbackAt'> & Partial<Pick<WarpDocument, 'resolution' | 'standingInstructions'>>} document
  * @returns {string} `''` for an empty document at the new-document default; otherwise
  *   newline-terminated NDJSON.
  */
@@ -101,18 +117,31 @@ export function serializeProject(document) {
   const leftBroken = []
   /** @type {Record<string, string>} */
   const origins = {}
+  /** @type {Record<string, string>} */
+  const intents = {}
   for (const entry of entries) {
     const id = entry.record.id
     if (id === undefined) continue
     if (entry.suppressed === true) suppressed.push(id)
     if (entry.leftBroken === true) leftBroken.push(id)
     if (entry.origin !== 'local') origins[id] = entry.origin
+    if (typeof entry.intent === 'string' && entry.intent !== '') intents[id] = entry.intent
   }
+  const standingInstructions = document.standingInstructions?.() ?? ''
 
   /** @type {object[]} */
   const lines = entries.map((entry) => entry.record)
   const hasOrigins = Object.keys(origins).length > 0
-  if (suppressed.length > 0 || leftBroken.length > 0 || rollbackAt !== null || hasOrigins || writesResolution) {
+  const hasIntents = Object.keys(intents).length > 0
+  if (
+    suppressed.length > 0 ||
+    leftBroken.length > 0 ||
+    rollbackAt !== null ||
+    hasOrigins ||
+    writesResolution ||
+    hasIntents ||
+    standingInstructions !== ''
+  ) {
     lines.push({
       warpcad: STATE_KIND,
       version: STATE_VERSION,
@@ -121,6 +150,8 @@ export function serializeProject(document) {
       ...(rollbackAt !== null ? { rollbackAt } : {}),
       ...(hasOrigins ? { origins } : {}),
       ...(writesResolution ? { resolution } : {}),
+      ...(hasIntents ? { intents } : {}),
+      ...(standingInstructions !== '' ? { standingInstructions } : {}),
     })
   }
   return serializeNdjson(lines)
@@ -201,7 +232,8 @@ export const IMAGE_REMOVED = "reference image removed — it couldn't be verifie
  * line is adjusted so it never names a record that is no longer there.
  *
  * @param {string} text
- * @returns {{ entries: DocumentEntry[], rollbackAt: number | null, resolution: string, warnings: LoadWarning[] }}
+ * @returns {{ entries: DocumentEntry[], rollbackAt: number | null, resolution: string, standingInstructions: string, warnings: LoadWarning[] }}
+ *   `standingInstructions` is `''` when the file has none (`TODO/ai-003`).
  * @throws {ProjectFormatError} naming the line, or the offending field.
  */
 export function parseProject(text) {
@@ -321,6 +353,23 @@ export function parseProject(text) {
     }
   }
 
+  const intents = state?.intents
+  if (intents !== undefined) {
+    if (intents === null || typeof intents !== 'object' || Array.isArray(intents)) {
+      throw new ProjectFormatError('project-state: `intents` must map record ids to text')
+    }
+    for (const [id, intent] of Object.entries(intents)) {
+      if (!ids.has(id) || typeof intent !== 'string') {
+        throw new ProjectFormatError(`project-state: intent for "${id}" names no record or is not text`)
+      }
+    }
+  }
+  const declaredInstructions = state?.standingInstructions
+  if (declaredInstructions !== undefined && typeof declaredInstructions !== 'string') {
+    throw new ProjectFormatError('project-state: `standingInstructions` must be text')
+  }
+  const standingInstructions = cleanText(declaredInstructions, INSTRUCTIONS_MAX_LENGTH)
+
   const declaredRollbackAt = state?.rollbackAt ?? null
   if (
     declaredRollbackAt !== null &&
@@ -360,9 +409,11 @@ export function parseProject(text) {
     if (leftBrokenIds.has(id)) entry.leftBroken = true
     const origin = origins?.[id]
     if (origin !== undefined) entry.origin = origin
+    const intent = cleanText(intents?.[id], INTENT_MAX_LENGTH)
+    if (intent !== '') entry.intent = intent
   }
 
-  return { entries, rollbackAt, resolution, warnings }
+  return { entries, rollbackAt, resolution, standingInstructions, warnings }
 }
 
 /**

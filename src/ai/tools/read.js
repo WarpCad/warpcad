@@ -26,6 +26,7 @@
 
 import { recipeColorOf } from '../../core/colorOverride.js'
 import { boundsOf, hiddenNamesOf, isGroup } from '../../core/kernel/group.js'
+import { latestIntentOf } from '../../core/intent.js'
 import { objectSchema } from './schema.js'
 
 /** @typedef {import('../../core/document.js').WarpDocument} WarpDocument */
@@ -157,6 +158,19 @@ export function sceneSummary(document) {
 }
 
 /**
+ * `value` with `intent` added when there is one (`TODO/ai-003`), unchanged otherwise, so a
+ * body or row without intent carries no empty field.
+ *
+ * @template {object} T
+ * @param {T} value
+ * @param {string | undefined} intent
+ * @returns {T & { intent?: string }}
+ */
+function withIntent(value, intent) {
+  return intent === undefined ? value : { ...value, intent }
+}
+
+/**
  * Find a body the model named, or say exactly why it cannot be used.
  *
  * Only an id the document issued, for a body that is on screen now, is accepted
@@ -194,11 +208,16 @@ export function createReadTools() {
     {
       name: 'describe_scene',
       description:
-        'List every body in the scene: id, name, the op that made it, world bounds and size in millimetres, colour, and its named parts. ' +
+        'List every body in the scene: id, name, the op that made it, world bounds and size in millimetres, colour, its named parts, and why it was made (intent, when recorded). ' +
         'Never returns geometry. Call this first, and whenever you need ids.',
       inputSchema: objectSchema({}),
       transports: ['ai', 'mcp'],
-      run: (ctx) => sceneSummary(ctx.document),
+      run: (ctx) => {
+        // TODO/ai-003: here, and not in the summary every write returns (which would repeat
+        // every intent back on every call), each body says why it exists.
+        const scene = sceneSummary(ctx.document)
+        return { ...scene, bodies: scene.bodies.map((body) => withIntent(body, latestIntentOf(ctx.document, body.id))) }
+      },
     },
     {
       name: 'describe_body',
@@ -213,7 +232,7 @@ export function createReadTools() {
         const summary = bodySummary(body)
         const [min, max] = summary.boundsMm
         return {
-          ...summary,
+          ...withIntent(summary, latestIntentOf(ctx.document, body.id)),
           recordId: body.recordId,
           params: body.params,
           positionMm: round3([(min[0] + max[0]) / 2, (min[1] + max[1]) / 2, (min[2] + max[2]) / 2]),
@@ -224,7 +243,7 @@ export function createReadTools() {
     {
       name: 'get_timeline',
       description:
-        'List the History: one row per step, in order, with its op, a short label, who wrote it (origin), and whether it is suppressed, active (before the rollback marker) or broken.',
+        'List the History: one row per step, in order, with its op, a short label, who wrote it (origin), why it was made (intent, when recorded), and whether it is suppressed, active (before the rollback marker) or broken.',
       inputSchema: objectSchema({}),
       transports: ['ai', 'mcp'],
       run: (ctx) => ({
@@ -235,6 +254,7 @@ export function createReadTools() {
           op: row.record.op,
           label: row.label,
           origin: row.origin,
+          ...(row.intent === null ? {} : { intent: row.intent }),
           suppressed: row.suppressed,
           active: row.active,
           broken: row.broken,

@@ -40,6 +40,7 @@ import { useDocumentStore } from './document.js'
 import { useExportDialogStore } from './exportDialog.js'
 import { useHostedStore } from './hosted.js'
 import { usePersistenceStore } from './persistence.js'
+import { useProjectSettingsStore } from './projectSettings.js'
 import { useResolutionDialogStore } from './resolutionDialog.js'
 
 /** @typedef {'open' | 'load' | 'new'} ConfirmKind */
@@ -50,6 +51,7 @@ export const useFileMenuStore = defineStore('fileMenu', () => {
   const hosted = useHostedStore()
   const exportDialog = useExportDialogStore()
   const resolutionDialog = useResolutionDialogStore()
+  const projectSettings = useProjectSettingsStore()
   const alignReference = useAlignReferenceStore()
 
   const menuOpen = ref(false)
@@ -64,7 +66,8 @@ export const useFileMenuStore = defineStore('fileMenu', () => {
       connectOpen.value ||
       confirm.value !== null ||
       exportDialog.isOpen ||
-      resolutionDialog.isOpen
+      resolutionDialog.isOpen ||
+      projectSettings.isOpen
   )
 
   /** @returns {boolean} Whether replacing the project would discard anything. */
@@ -116,6 +119,17 @@ export const useFileMenuStore = defineStore('fileMenu', () => {
     menuOpen.value = false
     exportDialog.close()
     resolutionDialog.open()
+  }
+
+  /**
+   * `Project settings…` (`TODO/ai-003`): swap the menu for the dialog that edits the
+   * project's standing instructions. Always available — it changes no geometry.
+   */
+  function requestProjectSettings() {
+    menuOpen.value = false
+    exportDialog.close()
+    resolutionDialog.close()
+    projectSettings.open()
   }
 
   /**
@@ -207,6 +221,10 @@ export const useFileMenuStore = defineStore('fileMenu', () => {
       resolutionDialog.close()
       return true
     }
+    if (projectSettings.isOpen) {
+      projectSettings.close()
+      return true
+    }
     if (confirm.value !== null) {
       confirm.value = null
       return true
@@ -234,6 +252,7 @@ export const useFileMenuStore = defineStore('fileMenu', () => {
     saveLocal,
     requestExport,
     requestResolution,
+    requestProjectSettings,
     requestOpen,
     requestNew,
     requestLoad,

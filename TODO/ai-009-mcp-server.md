@@ -36,6 +36,12 @@ their `mcp` origin chip and their intent.
 - Hosted references (`#/gist/<id>`) are read-only for v1 unless the token path from
   `io-002` is supplied through an env var the server never logs.
 
+### Note from `ai-003` (2026-10-06)
+
+Set `ctx.request` from the MCP client's request text where one is available, so `mcp`-origin
+records carry design intent; `project.js` already round-trips `intents` and
+`standingInstructions` in the state line.
+
 ## Interaction model
 
 - **Precondition**: Claude Code (or any MCP client) configured with the command above.

@@ -1425,3 +1425,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** same record as a drag -> create.spec.js "matches recordsForDrop for every Library row" (passed this session); same record as a toolbar click -> operate.spec.js record-shape tests (passed); cube/sphere/subtract in plain Node, log equals the human one -> index.spec.js session test, expect(document.records).toEqual(human.records), both origins (passed, unit run 2949/2949 this session)
 **To Add:** —
+
+## 2026-10-06T21:35:00Z — Design intent: every AI-made step keeps why it exists
+
+**Post:** Each step an AI adds to a WarpCad project now keeps why it exists: what you asked for, plus a one-line reason, readable in History. Projects carry standing rules too (bed size, min wall). Text from a file shows as plain text, never markup. Built with Claude Code, reviewed by me. #CAD
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** steps keep request + one-line reason -> src/ai/tools/batch.js composeIntent(ctx.request, rationale), src/ai/tools/intent.spec.js (passed this session); readable in History -> TimelineRow.vue note-icon expand, e2e/design-intent.e2e.js (36/36 then full matrix 2674 passed this session); standing rules -> ProjectSettingsDialog.vue + project.js standingInstructions; plain text never markup -> no v-html, hostile fixture drive this session (no <img> created, window.__pwned undefined)
+**To Add:** docs/screenshots/history-intent.png

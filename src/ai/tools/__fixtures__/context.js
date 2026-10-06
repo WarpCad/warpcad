@@ -35,13 +35,15 @@ export function fakeSelection(initial = []) {
  * @param {string} [options.origin]
  * @param {import('../index.js').ToolSelection} [options.selection]
  * @param {import('../limits.js').Turn} [options.turn]
+ * @param {string} [options.request] The user's message that started the turn (`TODO/ai-003`).
  * @returns {import('../index.js').ToolContext}
  */
-export function makeContext({ document, origin = 'ai', selection, turn }) {
+export function makeContext({ document, origin = 'ai', selection, turn, request }) {
   return {
     document,
     origin,
     turn: turn ?? createTurn(),
     ...(selection === undefined ? {} : { selection }),
+    ...(request === undefined ? {} : { request }),
   }
 }

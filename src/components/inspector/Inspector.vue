@@ -129,6 +129,7 @@ import AlignToOrigin from './AlignToOrigin.vue'
 import ObjectList from './ObjectList.vue'
 import BillOfMaterials from '../display/BillOfMaterials.vue'
 import DeleteButton from './DeleteButton.vue'
+import IntentLine from './IntentLine.vue'
 import ParamFields from './ParamFields.vue'
 import SketchBodyFields from './SketchBodyFields.vue'
 import SketchProfileFields from '../sketch/SketchProfileFields.vue'
@@ -779,6 +780,8 @@ watch([() => body.value?.id, colorPart], () => {
         <p class="inspector__op" data-testid="inspector-op" :data-op="body.op">
           {{ body.opLabel }}
         </p>
+        <!-- TODO/ai-003: why this body exists, when a step in its history recorded it. -->
+        <IntentLine v-if="!body.subPart" :body-id="body.id" />
         <!-- A breakage committed with Leave broken (TODO/ui-052): on the body whose parts
              went missing and on the dependent, each with Resolve…. -->
         <DependentsBanner v-if="!body.subPart" :body="body" />

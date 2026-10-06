@@ -26,6 +26,13 @@
  * undo stacks exactly as they were. No new public hook in `src/core/document.js` was
  * needed.
  *
+ * ## Design intent (`TODO/ai-003`)
+ *
+ * Every record a call appends carries the same intent: the turn's request (`ctx.request`) and
+ * the call's optional one-line `rationale`, composed and capped by `src/core/intent.js`. It is
+ * passed to `insertAt` on the transaction and lands on the entry beside `origin`, so the
+ * records themselves are exactly what the UI would have appended.
+ *
  * ## Origin
  *
  * Every record is appended with `ctx.origin`, `ai` or `mcp`, never `local`, so none of it
@@ -37,11 +44,12 @@
  */
 
 import { ReplayRejection } from '../../core/document.js'
+import { composeIntent } from '../../core/intent.js'
 import { buildCreateRecords, createInputSchema, validateCreateInput } from './create.js'
 import { buildOperateRecords, operateInputSchema, validateOperateInput } from './operate.js'
 import { assertWriteOrigin } from './limits.js'
 import { sceneSummary } from './read.js'
-import { checkInput, objectSchema } from './schema.js'
+import { RATIONALE_PROPERTY, checkInput, objectSchema, splitRationale } from './schema.js'
 
 /** @typedef {import('./index.js').ToolContext} ToolContext */
 /** @typedef {import('../../core/kernel/registry.js').RegistryEntry} RegistryEntry */
@@ -109,12 +117,15 @@ function resolveBatchRef(id, applied, batchStep) {
  * @param {ToolContext} ctx
  * @param {Step[]} steps
  * @param {Registry} ops
+ * @param {string} [rationale] The model's one-line reason for this call (`TODO/ai-003`).
  * @returns {Record<string, any>} `{ applied, scene }` on success; `{ error, step, reason,
  *   batchStep }` for a step that would not build; a {@link import('./limits.js').LimitHit}
  *   for a cap.
  */
-export function applySteps(ctx, steps, ops) {
+export function applySteps(ctx, steps, ops, rationale) {
   const { document, origin, turn } = ctx
+  const intent = composeIntent(ctx.request, rationale)
+  const transaction = intent === undefined ? { origin } : { origin, intent }
   assertWriteOrigin(origin)
   if (steps.length === 0) return { error: 'There are no steps to apply.' }
   // Every step appends at least one record, so this refuses an oversized call before
@@ -143,7 +154,7 @@ export function applySteps(ctx, steps, ops) {
         const hit = turn.canAppend(total + built.records.length)
         if (hit) throw new LimitFailure(hit)
         try {
-          document.insertAt(at, built.records, { origin })
+          document.insertAt(at, built.records, transaction)
         } catch (error) {
           throw new StepFailure(batchStep, at + 1, error)
         }
@@ -183,6 +194,7 @@ export function createApplyRecordsTool(ops) {
           anyOf: [objectSchema({ create: createSchema }, ['create']), objectSchema({ operate: operateSchema }, ['operate'])],
         },
       },
+      rationale: RATIONALE_PROPERTY,
     },
     ['steps']
   )
@@ -197,7 +209,9 @@ export function createApplyRecordsTool(ops) {
       if (typeof input !== 'object' || input === null || !Array.isArray(/** @type {any} */ (input).steps)) {
         return checkInput(inputSchema, input)
       }
-      const extra = Object.keys(input).filter((key) => key !== 'steps')
+      const { errors: rationaleErrors } = splitRationale(input)
+      if (rationaleErrors.length > 0) return rationaleErrors
+      const extra = Object.keys(input).filter((key) => key !== 'steps' && key !== 'rationale')
       if (extra.length > 0) return [`input has unknown field ${JSON.stringify(extra[0])}`]
       /** @type {any[]} */
       const steps = /** @type {any} */ (input).steps
@@ -217,6 +231,6 @@ export function createApplyRecordsTool(ops) {
       return errors.slice(0, 5)
     },
     transports: ['ai', 'mcp'],
-    run: (ctx, input) => applySteps(ctx, input.steps, ops),
+    run: (ctx, input) => applySteps(ctx, input.steps, ops, input.rationale),
   }
 }

@@ -354,6 +354,7 @@
 import { registry as defaultRegistry } from './kernel/registry.js'
 import { isResolution, policyFor, resolutionLabel } from './kernel/tessellation.js'
 import { conditionContextOf, conditionShapeError, describeCondition, evaluateCondition } from './condition.js'
+import { INSTRUCTIONS_MAX_LENGTH, INTENT_MAX_LENGTH, cleanText } from './intent.js'
 import { currentParamsRecordOf } from './paramEdit.js'
 import { applyAction, emptyScene } from './replay.js'
 import { ASSET_OP, validateImageAsset } from '../sketch/imageAsset.js'
@@ -375,6 +376,10 @@ import { ASSET_OP, validateImageAsset } from '../sketch/imageAsset.js'
  *   this row. If it fails to build it is tolerated — reported, and folded as identity —
  *   rather than refusing the whole document. Absent means an ordinary row, whose failure
  *   is an atomic rejection. See the module note.
+ * @property {string} [intent] `TODO/ai-003`: the design intent behind the row — for an AI
+ *   write, the user's request plus the model's one-line rationale. Beside the record, like
+ *   `origin`, never inside it, so every record line stays byte-identical. Untrusted text,
+ *   cleaned and capped by `src/core/intent.js`. Absent when there is none (never `''`).
  */
 
 /**
@@ -410,6 +415,7 @@ import { ASSET_OP, validateImageAsset } from '../sketch/imageAsset.js'
  * @property {OpRecord} record The record itself, for the panel's own labelling
  *   and for the op's param editor.
  * @property {string} origin Section 19's origin chip (`local`, `mcp`, …).
+ * @property {string | null} intent `TODO/ai-003`: the row's design intent, or `null`.
  * @property {string} label Shallow label — `Place Cube 1`, `Chamfer Cube 1`.
  * @property {boolean} suppressed Section 16: greyed, struck through, chipped.
  * @property {boolean} active `false` for a row past the rollback marker —
@@ -594,6 +600,10 @@ export class ReplayRejection extends Error {
  * @property {string} origin Who is writing — `'local'` for this user's own edits.
  * @property {string} [label] Overrides the derived step label.
  * @property {any} [meta] Carried on the step, opaque here.
+ * @property {string | Readonly<Record<string, string>>} [intent] `TODO/ai-003`: the design
+ *   intent each new entry carries. A string applies to every record of the write; a map by
+ *   record id lets one insert land a whole forked AI turn with each call's own intent
+ *   (`ai-005`). Honoured by `append`, `appendAll` and `insertAt`.
  */
 
 /**
@@ -609,6 +619,11 @@ export class ReplayRejection extends Error {
  * @property {(records: readonly OpRecord[], transaction: TransactionOptions) => { records: OpRecord[], scene: Scene }} appendAll
  * @property {<T>(build: (document: WarpDocument) => T, options?: { label?: string }) => T} batch
  * @property {(id: string) => string | undefined} originOf
+ * @property {(id: string) => string | undefined} intentOf `TODO/ai-003`: a record's design
+ *   intent, `undefined` when it has none.
+ * @property {() => string} standingInstructions `TODO/ai-003`: the project's standing
+ *   instructions, `''` when there are none.
+ * @property {(text: string, transaction: TransactionOptions) => void} setStandingInstructions
  * @property {(id: string) => string | undefined} currentIdOf
  * @property {(id: string) => string | undefined} rootOf
  * @property {(id: string) => OpRecord[]} lineageOf
@@ -640,7 +655,7 @@ export class ReplayRejection extends Error {
  * @property {() => HistoryStep | undefined} undo
  * @property {() => HistoryStep | undefined} redo
  * @property {() => void} clearHistory
- * @property {(entries: readonly DocumentEntry[], rollbackAt?: number | null, resolution?: string, options?: { tolerateAll?: boolean }) => void} loadEntries
+ * @property {(entries: readonly DocumentEntry[], rollbackAt?: number | null, resolution?: string, options?: { tolerateAll?: boolean, standingInstructions?: string }) => void} loadEntries
  * @property {() => string} resolution The design resolution (`TODO/core-035`) every
  *   curve without an explicit `segments` is faceted at — `legacy` for a document from
  *   before the setting existed.
@@ -817,9 +832,10 @@ function withLeftBroken(entry, leftBroken) {
 }
 
 /**
- * The copy of an entry a fold of *another* document takes: record, origin and the two
- * flags that change how it folds. Used by the load path and by every throwaway document
- * (the History preview, the tail shadow check, the impact check).
+ * The copy of an entry a fold of *another* document takes: record, origin, the two
+ * flags that change how it folds, and (`TODO/ai-003`) its design intent, which does not
+ * change the fold but must survive the load path. Used by the load path and by every
+ * throwaway document (the History preview, the tail shadow check, the impact check).
  *
  * @param {DocumentEntry} entry
  * @returns {DocumentEntry}
@@ -830,7 +846,34 @@ export function foldableEntry(entry) {
     origin: entry.origin,
     ...(entry.suppressed === true ? { suppressed: true } : {}),
     ...(entry.leftBroken === true ? { leftBroken: true } : {}),
+    ...withIntent(entry.intent),
   }
+}
+
+/**
+ * `{ intent }` when there is one (cleaned and capped), `{}` otherwise — so an entry never
+ * carries an empty intent and a plain document's entries are exactly what they were.
+ *
+ * @param {unknown} intent
+ * @returns {{ intent?: string }}
+ */
+function withIntent(intent) {
+  const text = cleanText(intent, INTENT_MAX_LENGTH)
+  return text === '' ? {} : { intent: text }
+}
+
+/**
+ * The intent a transaction gives one record (`TODO/ai-003`).
+ *
+ * @param {TransactionOptions | undefined} transaction
+ * @param {OpRecord} record
+ * @returns {{ intent?: string }}
+ */
+function intentFor(transaction, record) {
+  const intent = transaction?.intent
+  if (intent === undefined) return {}
+  if (typeof intent === 'string') return withIntent(intent)
+  return record.id === undefined ? {} : withIntent(intent[record.id])
 }
 
 /**
@@ -980,6 +1023,16 @@ export function createDocument(options = {}) {
    * @type {number | null}
    */
   let rollbackAt = null
+  /**
+   * `TODO/ai-003`: the project's standing instructions — free text a person types in File ▾
+   * → Project settings…, injected into every agent turn (`ai-005`). Document **metadata**,
+   * like the resolution, but unlike it outside the fold and outside both undo stacks: it
+   * builds nothing, so changing it re-folds nothing, and Undo — which takes back geometry
+   * steps — neither reaches it nor is disturbed by it. Not part of a captured
+   * {@link DocumentState}, so an undo restore or a failed batch cannot roll it back either.
+   * @type {string}
+   */
+  let standingInstructions = ''
   /**
    * Rows that do not build, id → reason: inactive-tail rows the shadow check could not
    * build, plus (`TODO/ui-052`) active rows the user left broken and rows whose condition
@@ -1979,7 +2032,7 @@ export function createDocument(options = {}) {
       const appended = []
       for (const record of records) {
         ingest(record, origin)
-        entries.push({ record, origin })
+        entries.push({ record, origin, ...intentFor(transaction, record) })
         appended.push(record)
         // Per committed record, not once at the end: a batch that throws part-way
         // has still changed the document, and no step's restore data may match it.
@@ -2099,7 +2152,7 @@ export function createDocument(options = {}) {
       const at = Math.max(0, Math.min(index, entries.length))
       const rollbackBefore = rollbackAt
       const next = entries.slice()
-      next.splice(at, 0, ...records.map((record) => ({ record, origin })))
+      next.splice(at, 0, ...records.map((record) => ({ record, origin, ...intentFor(transaction, record) })))
       const prior = rebuildFrom(
         next,
         rollbackAt === null || at > rollbackAt ? rollbackAt : rollbackAt + records.length
@@ -2312,9 +2365,11 @@ export function createDocument(options = {}) {
      * @param {string} [nextResolution] The loaded design's resolution
      *   (`TODO/core-035`) — `parseProject` reads `legacy` for a file with no setting.
      *   Omitted: the current one, which is what a History preview's prefix wants.
-     * @param {{ tolerateAll?: boolean }} [options] `tolerateAll` folds every failing row
-     *   as if the user had left it broken, instead of refusing the load — only for a
-     *   throwaway document asking "what would break?" (`TODO/ui-052`'s impact check).
+     * @param {{ tolerateAll?: boolean, standingInstructions?: string }} [options] `tolerateAll`
+     *   folds every failing row as if the user had left it broken, instead of refusing the
+     *   load — only for a throwaway document asking "what would break?" (`TODO/ui-052`'s
+     *   impact check). `standingInstructions` (`TODO/ai-003`) is the loaded project's; omitted,
+     *   it has none. Set only once the fold has succeeded.
      */
     loadEntries(nextEntries, nextRollbackAt = null, nextResolution = resolution, options = {}) {
       if (!isResolution(nextResolution)) {
@@ -2332,8 +2387,42 @@ export function createDocument(options = {}) {
       rebuildFrom(nextEntries.map(foldableEntry), nextRollbackAt, nextResolution, {
         tolerateAll: options.tolerateAll === true,
       })
+      // After the fold, so a refused load leaves the current project's instructions alone.
+      standingInstructions = cleanText(options.standingInstructions, INSTRUCTIONS_MAX_LENGTH)
       undoStack.length = 0
       redoStack.length = 0
+      document.version += 1
+    },
+
+    /**
+     * `TODO/ai-003`: a record's design intent — the entry's, since intent lives beside the
+     * record and never in it.
+     */
+    intentOf(id) {
+      return entries.find((entry) => entry.record.id === id)?.intent
+    },
+
+    standingInstructions() {
+      return standingInstructions
+    },
+
+    /**
+     * `TODO/ai-003`: replace the project's standing instructions. Origin-tagged like every
+     * mutation (it is a change a reader of the file can see), cleaned and capped, and a
+     * version bump so autosave and the save-status chip follow it. Deliberately **not** an
+     * undo step — see {@link standingInstructions}'s note. Setting the same text is a no-op.
+     */
+    setStandingInstructions(text, transaction) {
+      const origin = transaction?.origin
+      if (typeof origin !== 'string' || origin.length === 0) {
+        throw new Error(
+          'document.setStandingInstructions: a transaction origin is required — ' +
+            "every mutation is origin-tagged so undo/redo can be scoped to the local user's own edits"
+        )
+      }
+      const next = cleanText(text, INSTRUCTIONS_MAX_LENGTH)
+      if (next === standingInstructions) return
+      standingInstructions = next
       document.version += 1
     },
 
@@ -2449,6 +2538,7 @@ export function createDocument(options = {}) {
           id: entry.record.id ?? '',
           record: entry.record,
           origin: entry.origin,
+          intent: entry.intent ?? null,
           label: labelFor([entry.record], byId),
           suppressed: entry.suppressed === true,
           active: index < activeCount,

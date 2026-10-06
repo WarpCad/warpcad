@@ -64,6 +64,20 @@ found it.
   values. Wrapping and escaping them as `document_data` (decision 7) is this loop's job, done
   once for every result.
 
+### Notes from `ai-003` (2026-10-06), read before building
+
+- **Delimiting is built:** `src/ai/documentData.js`'s `documentDataBlock(label, value)` wraps any
+  document-derived value (tool results, names, intents) as `<document_data source="project"
+  label="…">JSON</document_data>` with every `<` written `\u003c`; use it for every tool result.
+- **Standing instructions:** `standingInstructionsBlock({ text, trusted })` gives the per-turn
+  block (in `messages`, never `system`). `text` is `documentStore.standingInstructions`;
+  `trusted` is `useProjectSettingsStore().trusted` (decision 7: typed or confirmed in this
+  browser).
+- **Intent:** set `ctx.request` to the turn's user message; each write tool's optional
+  `rationale` is combined with it. Landing a fork: pass `intent` as a **map by record id** on the
+  one `insertAt` (`TransactionOptions.intent` accepts a string or a map) so each call keeps its
+  own intent; copy the fork's `entry.intent` values into that map.
+
 ## Interaction model
 
 n/a here — the loop has no UI of its own. Stop, Undo AI turn and the transcript are `ai-006`.

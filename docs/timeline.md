@@ -67,6 +67,10 @@ A row can also carry a small label on the right:
 Tap a row to select it. The buttons for that row appear underneath it — deliberately
 only on the selected row, so there aren't five small buttons crowding every line.
 
+**Why a step exists.** A row with a small note icon at its right end carries a note saying
+why it was made, usually recorded by the AI assistant. Tap the icon to read it; see
+[Design intent](design-intent.md).
+
 **Conditional rows.** A row can carry a dashed chip such as `if Raspberry Pi 1 = Pi 4`,
 set by the repair dialog's **Only when…** choice. While the condition does not hold, the
 row is greyed like a suppressed one but keeps the chip instead of the word "suppressed",

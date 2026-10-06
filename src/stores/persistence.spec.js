@@ -509,6 +509,55 @@ describe('usePersistenceStore', () => {
       expect(backend.saves[backend.saves.length - 1].text).toBe(text)
     })
 
+    it('TODO/ai-003: an opened file brings its intents and standing instructions in, and autosave writes them back byte for byte', async () => {
+      // Built through a throwaway store, so the one state line is the real writer's.
+      setActivePinia(createPinia())
+      const source = useDocumentStore()
+      source.append(cube('cube-1', [0, 0, 5]))
+      source.raw.append(cube('cube-2', [40, 0, 5]), { origin: 'ai', intent: 'Make a second block' })
+      source.setStandingInstructions('Walls at least 1.6 mm')
+      const text = serializeProject(source.raw)
+      expect(text).toContain('"intents":{"cube-2":"Make a second block"}')
+      setActivePinia(createPinia())
+      const backend = fakeBackend()
+      const files = fakeFiles('fallback')
+      files.nextOpen = { ok: true, name: 'theirs.ndjson', text }
+      setPersistenceDependencies({ backend, files })
+      const persistence = usePersistenceStore()
+      const documentStore = useDocumentStore()
+      await persistence.start()
+      const result = await persistence.openFile()
+      expect(result).toEqual({ ok: true, name: 'theirs.ndjson', steps: 2 })
+      expect(documentStore.standingInstructions).toBe('Walls at least 1.6 mm')
+      expect(documentStore.raw.intentOf('cube-2')).toBe('Make a second block')
+      await nextTick()
+      await vi.advanceTimersByTimeAsync(600)
+      expect(backend.saves[backend.saves.length - 1].text).toBe(text)
+    })
+
+    it('TODO/ai-003: editing the standing instructions is a document change that autosaves', async () => {
+      const backend = fakeBackend()
+      setPersistenceDependencies({ backend, files: fakeFiles() })
+      const persistence = usePersistenceStore()
+      const documentStore = useDocumentStore()
+      await persistence.start()
+      documentStore.setStandingInstructions('Print on a 220×220 mm bed')
+      await nextTick()
+      expect(persistence.chipText).toBe('Saving…')
+      await vi.advanceTimersByTimeAsync(600)
+      expect(backend.saves.at(-1).text).toContain('"standingInstructions":"Print on a 220×220 mm bed"')
+    })
+
+    it('TODO/ai-003: New clears the standing instructions', async () => {
+      setPersistenceDependencies({ backend: fakeBackend(), files: fakeFiles() })
+      const persistence = usePersistenceStore()
+      const documentStore = useDocumentStore()
+      await persistence.start()
+      documentStore.setStandingInstructions('old rules')
+      persistence.newProject()
+      expect(documentStore.standingInstructions).toBe('')
+    })
+
     it('refuses a bad file by name and leaves the current project untouched — and does not adopt it', async () => {
       const files = fakeFiles('native')
       files.nextOpen = { ok: true, name: 'broken.ndjson', text: '{"id":"a","op":"primitive.cuboid"}\nnot json\n', handle: {} }

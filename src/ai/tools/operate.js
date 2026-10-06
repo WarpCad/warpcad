@@ -35,7 +35,7 @@ import { acceptsOperandCount, registry as kernelRegistry } from '../../core/kern
 import { rotateRecord, translateRecord } from '../../core/transform.js'
 import { uniqueBranches } from './create.js'
 import { findBody } from './read.js'
-import { checkInput, objectSchema, vectorSchema } from './schema.js'
+import { checkInput, objectSchema, splitRationale, vectorSchema, withRationale } from './schema.js'
 
 /** @typedef {import('../../core/document.js').WarpDocument} WarpDocument */
 /** @typedef {import('../../core/kernel/registry.js').OpRecord} OpRecord */
@@ -452,19 +452,26 @@ export function validateOperateInput(schema, input, path = 'input') {
 
 /**
  * @param {Registry} ops
- * @param {(ctx: import('./index.js').ToolContext, steps: any[]) => Record<string, any>} applySteps
+ * @param {(ctx: import('./index.js').ToolContext, steps: any[], rationale?: string) => Record<string, any>} applySteps
  * @returns {import('./index.js').Tool}
  */
 export function createOperateTool(ops, applySteps) {
-  const inputSchema = operateInputSchema(ops)
+  const stepSchema = operateInputSchema(ops)
+  const inputSchema = withRationale(stepSchema) // TODO/ai-003, as in create.js
   return {
     name: 'operate',
     description:
       'Run one operation on existing bodies, named by id: booleans, group, snap/align, rim fillet/chamfer, resize, fit, bisect, move, rotate, mirror. ' +
       'Refused with a reason if an id is not a body on screen or the operand count is wrong. Returns the resulting body’s id and the scene afterwards.',
     inputSchema,
-    validate: (input) => validateOperateInput(inputSchema, input),
+    validate: (input) => {
+      const { rest, errors } = splitRationale(input)
+      return errors.length > 0 ? errors : validateOperateInput(stepSchema, rest)
+    },
     transports: ['ai', 'mcp'],
-    run: (ctx, input) => applySteps(ctx, [{ operate: input }]),
+    run: (ctx, input) => {
+      const { rationale, ...step } = input
+      return applySteps(ctx, [{ operate: step }], rationale)
+    },
   }
 }

@@ -1,0 +1,4 @@
+{"id":"cuboid-1","op":"primitive.cuboid","name":"Base plate","params":{"size":[60,40,4],"center":[0,0,2]}}
+{"id":"cuboid-2","op":"primitive.cuboid","name":"Upright","params":{"size":[60,4,36],"center":[0,18,22]}}
+{"id":"cylinder-3","op":"primitive.cylinder","name":"Tube clearance","params":{"diameter":21,"height":40,"center":[0,0,24]}}
+{"warpcad":"project-state","version":1,"origins":{"cuboid-1":"ai","cuboid-2":"ai","cylinder-3":"ai"},"intents":{"cuboid-1":"Make a wall bracket for a 20 mm tube\n— Base plate that screws to the wall","cuboid-2":"Make a wall bracket for a 20 mm tube\n— Upright that carries the tube","cylinder-3":"Make a wall bracket for a 20 mm tube\n— Clearance for the 20 mm tube, 0.5 mm each side"},"standingInstructions":"Print on a 220×220 mm bed with a 0.4 mm nozzle; walls at least 1.6 mm."}

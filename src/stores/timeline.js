@@ -57,6 +57,8 @@ import { useSelectionStore } from './selection.js'
  * @property {string} id The record's id.
  * @property {string} text The rich label (`Chamfer Top (+Z) 5 mm on Cube 1`).
  * @property {string} origin §19's origin chip source; `local` for the user's own.
+ * @property {string | null} intent `TODO/ai-003`: the row's design intent, or `null`.
+ *   Untrusted text — rendered as text, never markup.
  * @property {boolean} suppressed
  * @property {boolean} active `false` past the rollback marker.
  * @property {string | null} broken Why the row does not build, or `null`.
@@ -105,6 +107,7 @@ export const useTimelineStore = defineStore('timeline', () => {
       id: row.id,
       text: describeRow(row.record, names),
       origin: row.origin,
+      intent: row.intent,
       suppressed: row.suppressed,
       active: row.active,
       broken: row.broken,

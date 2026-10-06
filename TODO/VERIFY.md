@@ -34,6 +34,16 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### ai-003 — Project settings and design intent on real phone and tablet hardware (2026-10-06 17:11)
+
+Headless WebKit at 390x844 and 820x1180 drove the dialog, the History note icon and the Inspector **Why** line (scenarios 8, 10, 12), but it has no on-screen keyboard and none of iOS Safari's storage eviction. These three need a real device.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | iPhone (Safari): **File ▾ → Project settings…**. The field takes focus on open; does the keyboard come up, and do the field, the character count and **Save** stay visible above it while typing several lines? | Open | |
+| 2 | iPhone or iPad (Safari): open a file with standing instructions, press **Use this project's instructions**, then come back after more than 7 days without using the site. Safari may clear `localStorage`, so the "came with this project" note can reappear. Confirm that's the only effect (the instructions themselves are kept). | Open | |
+| 3 | Any device: in History, is the small note icon at the end of a row recognisable as "why this step exists" without its tooltip (touch has no hover)? A feel judgement. | Open | |
+
 ### ai-002 — AI tool registry schemas against the live Messages API (2026-10-06 16:14)
 
 The registry's schemas were checked only locally: closed subset, every object closed with a `required` list, no strict-unsupported keyword after `toStrictWire`. Nothing here sent them to the API, because there is no key and no network in the tool path. Strict mode has schema-complexity limits, and `create`/`operate` carry large `anyOf`s. Measured locally, the `ai` tool list serialises to 37,750 bytes (about 11k tokens by a chars/3.5 estimate), and `apply_records` is 17,914 of those because it embeds the `create` and `operate` schemas again. Do this the first time a key is available: during `ai-004`/`ai-005`, or at the latest in `ai-010`'s live run.

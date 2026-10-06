@@ -176,6 +176,46 @@ export function checkInput(schema, value, path = 'input') {
 }
 
 /**
+ * The optional `rationale` every write tool takes (`TODO/ai-003`): the model's one-line reason
+ * for the call, recorded with the user's request as the design intent of every record the call
+ * appends. Optional so a call without one still works; capped by `src/core/intent.js`.
+ *
+ * @type {JsonSchema}
+ */
+export const RATIONALE_PROPERTY = Object.freeze({
+  type: 'string',
+  description:
+    'One line, in plain words, saying why this change is being made (e.g. "Base plate the clamp bolts to"). ' +
+    'It is saved with the change as its design intent, shown in History, and read back by a future model.',
+})
+
+/**
+ * A top-level write-tool schema with the optional `rationale` added.
+ *
+ * @param {JsonSchema} schema An `objectSchema` result.
+ * @returns {JsonSchema}
+ */
+export function withRationale(schema) {
+  return { ...schema, properties: { ...schema.properties, rationale: RATIONALE_PROPERTY } }
+}
+
+/**
+ * Split `rationale` off a write tool's input, so the rest can be judged by the tool's own
+ * checker exactly as before.
+ *
+ * @param {unknown} input
+ * @returns {{ rest: unknown, rationale: string | undefined, errors: string[] }}
+ */
+export function splitRationale(input) {
+  if (typeof input !== 'object' || input === null || Array.isArray(input) || !('rationale' in input)) {
+    return { rest: input, rationale: undefined, errors: [] }
+  }
+  const { rationale, ...rest } = /** @type {Record<string, unknown>} */ (input)
+  if (typeof rationale !== 'string') return { rest, rationale: undefined, errors: ['input.rationale must be a string'] }
+  return { rest, rationale, errors: [] }
+}
+
+/**
  * @param {unknown} value
  * @returns {value is Record<string, unknown>}
  */
