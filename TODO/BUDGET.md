@@ -693,4 +693,6 @@ Note on `sketch-003`: committed as `1e92648` (opus agent, interrupted by a sessi
 
 Note on `sketch-004`: committed as `958db50` (opus agent, ~28m close-out; the implementation itself predates this batch). Independently re-verified by this loop: typecheck clean; unit tests ran; diff stat read (26 files, +2604/-41); tree clean apart from BUDGET.md and the held-out LinkedIn draft. The agent fixed one real gap (worker yielded a microtask, so stale taps were never superseded; now yields a task). Agent-reported full e2e 2759 passed / 0 failed; Step 6 PASS by hand on scenarios 20, 1, 8, 9, 11 and the ui-020/043/046, sketch-002/005/006/007 repros. Not driven: gist round-trip, real phone photo, tablet by hand. Trailer says Opus 5.5 rather than the Sonnet line in the brief. VERIFY rows 3-4 (phone Cancel discards a traced draft in one tap; Inspector sheet cuts canvas to 56%) are open product calls.
 
+| 2026-10-06 02:30 | *(in progress)* | | | |
+
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->
