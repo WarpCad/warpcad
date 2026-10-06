@@ -1,6 +1,6 @@
 # AI partner: one tool registry, two transports, a branch per turn, raw `fetch`, MCP SDK v2
 
-Status: **Proposed — awaiting the user's review before `ai-002` starts** (`TODO/ai-001`).
+Status: **Accepted as written by the user, 2026-10-06** (`TODO/ai-001`). All six open calls resolved to the picks recorded here.
 Settles the nine questions M9 is blocked on, plus the CRDT question asked on 2026-10-02,
 so `ai-002`…`ai-011` can name real modules.
 

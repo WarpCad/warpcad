@@ -278,8 +278,8 @@ previous choice is rejected, not merely unconfirmed, and the question underneath
 | Hosting | Default — reconsider | GitHub Pages (static, no backend), previous attempt |
 | Geometry kernel | **Committed** | `@jscad/modeling` (JSCAD V3), see `docs/decisions/geometry-kernel.md` |
 | Document model / sync | **Open** | previous pick (Yjs/CRDT) explicitly not carried forward — first decide whether multi-writer merge is even a goal this attempt; no-CRDT-for-v1 deferral recorded in `docs/decisions/document-sync.md` (the AI partner does not trigger it — see `docs/decisions/ai-partner.md`) |
-| LLM client | **Proposed** (user review before `ai-002`) | raw `fetch` to the Messages API behind a one-method provider interface, Anthropic-only v1, no dependency; `@anthropic-ai/sdk` rejected for now (fails the licence allow-list via a transitive Unlicense dep, 14% of the bundle) — see `docs/decisions/ai-partner.md` |
-| MCP SDK | **Proposed** (user review before `ai-002`) | `@modelcontextprotocol/server` 2.3.1 (v2 split package, Apache-2.0), in its own `mcp/package.json` — see `docs/decisions/ai-partner.md` |
+| LLM client | **Committed** (accepted 2026-10-06) | raw `fetch` to the Messages API behind a one-method provider interface, Anthropic-only v1, no dependency; `@anthropic-ai/sdk` rejected for now (fails the licence allow-list via a transitive Unlicense dep, 14% of the bundle) — see `docs/decisions/ai-partner.md` |
+| MCP SDK | **Committed** (accepted 2026-10-06) | `@modelcontextprotocol/server` 2.3.1 (v2 split package, Apache-2.0), in its own `mcp/package.json` — see `docs/decisions/ai-partner.md` |
 
 ## Architecture
 

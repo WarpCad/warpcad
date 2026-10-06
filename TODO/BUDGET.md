@@ -703,4 +703,8 @@ Note on the row below: this batch opened after the M8 boundary. The user confirm
 
 Note on `ai-001`: committed as `6bf89f1` (opus agent, ~20m). Independently re-verified by this loop: typecheck clean; unit 124 files / 2808 passed; spdx clean; diff stat read (7 files, docs/CLAUDE.md/ROADMAP only, nothing in `src/`); the CLAUDE.md diff read in full. Step 6 not applicable (no source change), stated by the agent. Agent did not run the full e2e (no source changed); guards project 4 passed; no VERIFY entry. The decision doc is `docs/decisions/ai-partner.md`. Picks: raw `fetch` Anthropic-only client (`@anthropic-ai/sdk` fails `npm run licenses` via a transitive Unlicense dep), `@modelcontextprotocol/server` 2.3.1 in its own `mcp/package.json`, forked-document turn plus Undo AI turn, no CRDT. Open calls for the user: (1) raw fetch vs adding Unlicense to the allow-list, (2) `mcp/` own package.json, (3) auto-land vs explicit Accept per turn, (4) loaded-file standing instructions as data until confirmed, (5) the beta refusal-fallback header, (6) default model Opus 5.5 at effort `high`. The agent's commit trailer says Opus 5.5 rather than the Sonnet line in the brief.
 
+Note on the row below: the user accepted `docs/decisions/ai-partner.md` as written ("accept", 2026-10-06), so all six open calls resolved to its picks; the doc's status line and `CLAUDE.md`'s two Stack rows now read Accepted/Committed. This batch starts at `ai-002`, the first M9 row whose dependency is now met.
+
+| 2026-10-06 15:52 | | `ai-002` *(in progress)* | | |
+
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->
