@@ -34,6 +34,15 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### ai-002 — AI tool registry schemas against the live Messages API (2026-10-06 16:14)
+
+The registry's schemas were checked only locally: closed subset, every object closed with a `required` list, no strict-unsupported keyword after `toStrictWire`. Nothing here sent them to the API, because there is no key and no network in the tool path. Strict mode has schema-complexity limits, and `create`/`operate` carry large `anyOf`s. Measured locally, the `ai` tool list serialises to 37,750 bytes (about 11k tokens by a chars/3.5 estimate), and `apply_records` is 17,914 of those because it embeds the `create` and `operate` schemas again. Do this the first time a key is available: during `ai-004`/`ai-005`, or at the latest in `ai-010`'s live run.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | Send `createToolRegistry().definitions('ai')` as `tools`, each `{ name, description, input_schema: toStrictWire(inputSchema), strict: true }`, to `claude-opus-5-5`. The request is accepted (no 400 on schema size or complexity), and a "place a 20 mm cube at the origin" prompt produces a schema-valid `create` call. | Open | |
+| 2 | Measure the real tool-list size with `count_tokens`. If `apply_records`' duplicated schemas cost too much, decide (with `ai-011`) whether to drop it or slim its step schema. | Open | |
+
 ### core-052 — bolt/nut/washer tables (2026-10-06 14:59)
 
 Metric nut rows have no V1 source (ISO 4032 from memory of the standard, not a fetched table), and the Spec list is now one flat 45-item `<select>`.

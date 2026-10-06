@@ -43,6 +43,27 @@ found it.
   printer bed?" *or* state its assumptions in the transcript and proceed; the prompt picks
   one behaviour and a test pins it.
 
+### Notes from `ai-002` (2026-10-06), read before building
+
+- **Landing the fork is not a bare `appendAll`.** `document.appendAll`'s fast path (not
+  rolled back, no conditions) commits record by record: a later failure leaves the earlier
+  records in and throws a plain `Error`, not a `ReplayRejection`. Decision 5's "one atomic
+  `appendAll`" needs what `src/ai/tools/batch.js`'s `applySteps` does: `document.batch(() =>
+  document.insertAt(document.rollbackAt() ?? document.entries.length, records, { origin: 'ai' }))`.
+  `insertAt` re-folds atomically with a row-named `ReplayRejection`, and `batch` restores the
+  captured state if anything throws.
+- **The caps already exist.** `createToolRegistry().run(ctx, name, input)` enforces every
+  decision-7 cap through `ctx.turn` (`createTurn()` from `src/ai/tools/limits.js`): steps,
+  records per call and per turn, three consecutive failures, ten minutes. A cap result
+  carries `stop: true`. The loop creates one `Turn` per turn and ends when a result says
+  `stop`; it does not count anything itself.
+- **Strict mode drops some keywords.** Send `toStrictWire(definition.inputSchema)` (exported
+  from `src/ai/tools/index.js`) as `input_schema`. Strict mode rejects `minimum`/`maximum`/
+  `minItems`/`maxItems`, and the registry's own checker still enforces them locally.
+- **Tool results carry document text raw.** Body and part names come back as plain JSON
+  values. Wrapping and escaping them as `document_data` (decision 7) is this loop's job, done
+  once for every result.
+
 ## Interaction model
 
 n/a here — the loop has no UI of its own. Stop, Undo AI turn and the transcript are `ai-006`.

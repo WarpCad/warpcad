@@ -6,8 +6,47 @@ priority: high
 model: opus
 milestone: M9
 depends: [ai-001]
-status: open
+status: done
 ---
+
+> **Retired 2026-10-06 (`/run-todos` batch, `/fix-todo ai-002`).** Shipped as specified in
+> `src/ai/tools/` (`index.js`, `read.js`, `create.js`, `operate.js`, `batch.js`, `limits.js`,
+> `schema.js`, each with a spec; 7 files, 141 tests), with no change to `src/core/document.js`.
+> The headline spec, `index.spec.js`, drives a whole cube-sphere-subtract session through the
+> registry in plain Node over both origins, and checks that the log equals the one a human's
+> two drags plus a Subtract click would have written. Differences from this spec, each one
+> deliberate:
+>
+> 1. **`apply_records` takes steps, not raw records.** Its input is `{ steps: [{ create } |
+>    { operate }] }`, and a later step names an earlier step's body as `@n`. Raw records would
+>    have been the `add_feature(op, params)` catch-all the Design section forbids: any op, no
+>    placement, a missing `consumes`, invented ids.
+> 2. **Param names are the registry's own** (`diameter`, `size`, `radius`), not renamed to
+>    `diameterMm`. Each property's description states its unit instead. Renaming would have
+>    made the AI's records differ from the UI's. The inputs this module authors do carry units
+>    (`positionMm`, `deltaMm`, `deltaDeg`, `planeMm`).
+> 3. **The JSON-Schema subset is wider than decision 4's list.** It adds `anyOf`, `const`,
+>    `minItems`/`maxItems` and `description`. Strict mode needs every object closed, so per-op
+>    `params` are `anyOf` branches. The Messages API requires an object at the top level, so
+>    `create`/`operate` take `{ op, …, params: anyOf }`, and each tool's `validate` judges
+>    `params` against the chosen op's own branch. Strict mode also **rejects
+>    `minimum`/`maximum`/`minItems`/`maxItems`**, which decision 4 lists. `toStrictWire()`
+>    drops them for the wire, and the local checker keeps enforcing them.
+> 4. **Not every operation is offered.** `operate` covers 14 ops. `profile.extrudeLinear`,
+>    `style.recolor` and `group.removePart` are in `NOT_OFFERED` with a reason each, and a spec
+>    fails on any registry operation that is in neither list. `create` covers exactly the
+>    Library rows, so `hardware.screw` (no Library row yet) is not offered.
+> 5. **Sketch-point caps stay in the sketch model.** They are not copied into `limits.js`; a
+>    spec proves a 4,097-point outline is refused in the sketch model's own words.
+>
+> **Finding for `ai-005`** (written into its TODO): decision 5's "one atomic `appendAll`" is
+> not true of `appendAll`'s fast path. It commits record by record and throws a plain
+> `Error`. The landing must be `document.batch` around `insertAt`, which is what `batch.js`
+> does.
+>
+> Step 6: no acceptance scenario is reachable, because nothing the running app loads imports
+> `src/ai/tools/` (checked by grep), so there was nothing to drive, as with `core-014a`.
+> Scenario 17 (`ai-010`) is the first end-to-end use.
 
 ## Goal
 

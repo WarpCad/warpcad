@@ -1416,3 +1416,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** SDK fails the licence check via Unlicense -> license-checker@25.0.1 --production over a scratch install of @anthropic-ai/sdk@0.131.0 this session (fast-sha256@1.3.0 Unlicense, via standardwebhooks), against the allow-list in package.json's "licenses" script; plain fetch -> docs/decisions/ai-partner.md decision 2
 **To Add:** —
+
+## 2026-10-06T16:16:00Z — AI tool registry: the AI writes the same records a person does
+
+**Post:** WarpCad's AI assistant has its tools now: read the scene, place a part, run an operation. Each writes the same record a human's drag or toolbar click would. A test builds cube, sphere, subtract in plain Node and checks the log matches the human one. Built with Claude Code, reviewed by me. #CAD
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** same record as a drag -> create.spec.js "matches recordsForDrop for every Library row" (passed this session); same record as a toolbar click -> operate.spec.js record-shape tests (passed); cube/sphere/subtract in plain Node, log equals the human one -> index.spec.js session test, expect(document.records).toEqual(human.records), both origins (passed, unit run 2949/2949 this session)
+**To Add:** —

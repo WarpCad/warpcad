@@ -1969,3 +1969,18 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** licence gate failure via Unlicense webhook dep -> license-checker this session (fast-sha256@1.3.0 via standardwebhooks); 52.8 KB gzip, 14.3% -> esbuild+gzip -9 this session (52,778 B) vs vite build main chunk 369.39 KB gzip at 8d31e37; MCP v2 3 packages vs v1 94 -> npm ls --all in scratch installs this session (4 and 95 lines including root); throwaway copy = History preview pattern -> src/core/document.js createDocument foldCache option and foldableEntry comments; nine questions -> TODO/done/ai-001 "Decisions this file must settle"; no CRDT -> docs/decisions/ai-partner.md CRDT section
 **To Add:** —
+
+## 2026-10-06T16:16:00Z — AI tool registry: creation and operation stay separate for the model too
+
+**Post:** WarpCad's AI assistant can't do anything until it has tools, so this change builds them: one framework-free registry that the in-browser chat and the MCP server for Claude Code will both use. It can read the scene, place a part, run an operation on existing parts, or apply several steps as one all-or-nothing change.
+
+The rule the UI already follows applies to the model as well. Creating and operating are separate tools, never one "add anything" call. An operation is refused by name when it gets the wrong number of bodies, or an id that isn't on screen. Every write produces the same record a person's drag or toolbar click would, under its own "ai" origin, so the user's Undo never reaches it. The headline test builds a cube, a sphere and a subtraction through the registry in plain Node, then checks that the resulting history equals the one a person's two drags and a Subtract click would have written.
+
+One finding went to the next task. The document's multi-record append is not atomic on its fast path, so landing an AI turn has to go through the atomic insert path that the registry's own batch tool already uses.
+
+Built with Claude Code, reviewed by me.
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #AI #MCP #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** one registry for chat and MCP -> docs/decisions/ai-partner.md decision 1, src/ai/tools/index.js; refused by name on count/off-screen id -> operate.spec.js refusal tests (passed this session); same record as drag/toolbar -> create.spec.js recordsForDrop parity + operate.spec.js record shapes (passed); "ai" origin, never on the user's undo -> batch.spec.js "a local undo removes the human's step and leaves the AI's record" (passed); history equals the human one -> index.spec.js toEqual(human.records) (passed); appendAll fast path not atomic -> src/core/document.js appendAll doc comment ("Not atomic across the batch by design"), and the mutation run this session (removing document.batch failed 4 batch specs)
+**To Add:** —
