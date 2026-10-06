@@ -39,6 +39,7 @@ import SketchToolbar from './SketchToolbar.vue'
 import SketchPanelSheet from '../sketch/SketchPanelSheet.vue'
 import ReferenceImageOverlay from '../sketch/ReferenceImageOverlay.vue'
 import ScaleTool from '../sketch/ScaleTool.vue'
+import TraceTool from '../sketch/TraceTool.vue'
 import { useReferenceImageView } from '../../composables/useReferenceImageView.js'
 import VertexHandles from '../sketch/VertexHandles.vue'
 import SnapGuides from './SnapGuides.vue'
@@ -543,7 +544,9 @@ let pressStartClientY = 0
  * `'sketch-vertex'` is a drag that began on a point handle of the selected outline: it moves
  * that point (or, from a midpoint dot, a newly inserted one) and never draws (`TODO/sketch-002`).
  * `'sketch-scale'` is Set scale's press-and-drag along a ruler (`TODO/sketch-003`).
- * @type {'' | 'orbit' | 'pan' | 'select' | 'marquee' | 'sketch' | 'sketch-idle' | 'sketch-vertex' | 'sketch-scale'}
+ * `'sketch-trace'` is a press that wobbled past the tap slop while Auto-trace is armed
+ * (`TODO/sketch-004`): it moves nothing, and its press point still traces on release.
+ * @type {'' | 'orbit' | 'pan' | 'select' | 'marquee' | 'sketch' | 'sketch-idle' | 'sketch-vertex' | 'sketch-scale' | 'sketch-trace'}
  */
 let gestureKind = ''
 /**
@@ -852,6 +855,19 @@ function scaleTap(clientXPx, clientYPx) {
   referenceImage.clearLiveEnd()
   referenceImage.syncOverlay()
   scheduleRender()
+}
+
+/**
+ * A tap while Auto-trace is armed (`TODO/sketch-004`): trace the region under it, in the
+ * worker. The answer lands in the draft (or the banner says why it did not).
+ *
+ * @param {number} clientXPx
+ * @param {number} clientYPx
+ */
+function traceTap(clientXPx, clientYPx) {
+  const px = referenceImage.clientToImagePx(clientXPx, clientYPx)
+  // Off the slice's plane altogether: the trace itself reports "Tap on the photo".
+  sketchEditor.traceAt(px ?? [Number.NaN, Number.NaN])
 }
 
 /**
@@ -2561,12 +2577,14 @@ function applyDrag(dx, dy) {
  * outline drags that point (`TODO/sketch-002`) — the handles exist only under Select; a press anywhere else — including on the
  * outline's stroke *between* dots — draws (or, under Select, does nothing), exactly as before.
  *
- * @returns {'orbit' | 'pan' | 'select' | 'marquee' | 'sketch' | 'sketch-idle' | 'sketch-vertex' | 'sketch-scale'}
+ * @returns {'orbit' | 'pan' | 'select' | 'marquee' | 'sketch' | 'sketch-idle' | 'sketch-vertex' | 'sketch-scale' | 'sketch-trace'}
  */
 function decideGestureKind() {
   if (sketchMode.value) {
     // Set scale armed (`TODO/sketch-003`): a drag draws the calibration line, nothing else.
     if (sketchEditor.imageTool === 'scale') return 'sketch-scale'
+    // Auto-trace armed (`TODO/sketch-004`): a drag does nothing; two fingers still pan/zoom.
+    if (sketchEditor.imageTool === 'trace') return 'sketch-trace'
     if (pressHandleKind) return 'sketch-vertex'
     return sketchEditor.tool === 'select' ? 'sketch-idle' : 'sketch'
   }
@@ -2728,8 +2746,9 @@ function onPointerMove(event) {
       updateSketchDrag(event.clientX, event.clientY, event.shiftKey)
       return
     }
-    // Select never draws, and the locked camera stays put (`TODO/sketch-005`).
-    if (gestureKind === 'sketch-idle') return
+    // Select never draws, and the locked camera stays put (`TODO/sketch-005`) — nor does an
+    // Auto-trace press that wobbled (`TODO/sketch-004`).
+    if (gestureKind === 'sketch-idle' || gestureKind === 'sketch-trace') return
     if (gestureKind === 'marquee') {
       updateMarqueeRect(
         pressStartClientX - viewportRect.left,
@@ -2771,6 +2790,7 @@ function onPointerUp(event) {
   const wasSketchIdle = wasPressPointer && gestureKind === 'sketch-idle'
   const wasVertexDrag = wasPressPointer && gestureKind === 'sketch-vertex'
   const wasScaleDrag = wasPressPointer && gestureKind === 'sketch-scale'
+  const wasTraceWobble = wasPressPointer && gestureKind === 'sketch-trace'
   const tappedVertex = isClick && pressHandleKind === 'vertex' ? pressHandleIndex : -1
   pressHandleKind = ''
   pressHandleIndex = -1
@@ -2786,6 +2806,12 @@ function onPointerUp(event) {
 
   if (wasScaleDrag) {
     endScaleDrag(event.type === 'pointercancel', event.clientX, event.clientY)
+    return
+  }
+
+  if (wasTraceWobble) {
+    // A finger that wobbled past the tap slop still means "here": trace at the press point.
+    if (event.type !== 'pointercancel') traceTap(pressX, pressY)
     return
   }
 
@@ -2820,6 +2846,11 @@ function onPointerUp(event) {
   if (isClick && sketchMode.value && sketchEditor.imageTool === 'scale') {
     // Set scale (`TODO/sketch-003`): a tap fixes a ruler mark. Mouse and touch alike, no modifier.
     if (event.type !== 'pointercancel') scaleTap(event.clientX, event.clientY)
+    return
+  }
+  if (isClick && sketchMode.value && sketchEditor.imageTool === 'trace') {
+    // Auto-trace (`TODO/sketch-004`): a tap traces the part under it. Mouse and touch alike.
+    if (event.type !== 'pointercancel') traceTap(event.clientX, event.clientY)
     return
   }
   if (isClick && sketchMode.value && sketchEditor.tool === 'line') {
@@ -3089,6 +3120,12 @@ function onSketchChainKey(event) {
   if (sketchMode.value && sketchEditor.imageTool === 'scale' && event.key === 'Escape' && !event.repeat) {
     event.preventDefault()
     sketchEditor.cancelScale()
+    return
+  }
+  // …and an armed Auto-trace (`TODO/sketch-004`), keeping what it traced.
+  if (sketchMode.value && sketchEditor.imageTool === 'trace' && event.key === 'Escape' && !event.repeat) {
+    event.preventDefault()
+    sketchEditor.finishTrace()
     return
   }
   if (!sketchMode.value || sketchEditor.tool !== 'line') return
@@ -3363,6 +3400,7 @@ onBeforeUnmount(() => {
     :data-sketch-panel="sketchEditor.panel"
     :data-reference-image="referenceImageState"
     :data-scale-step="sketchMode ? sketchEditor.scaleStep : ''"
+    :data-image-tool="sketchMode ? sketchEditor.imageTool : ''"
   >
     <canvas
       ref="canvasEl"
@@ -3463,6 +3501,8 @@ onBeforeUnmount(() => {
     <!-- Set scale's banner takes the toolbar's slot while it is armed (TODO/sketch-003). -->
     <SketchToolbar v-if="sketchMode && sketchEditor.imageTool === ''" />
     <ScaleTool v-if="sketchMode" />
+    <!-- …and so does Auto-trace's (TODO/sketch-004). -->
+    <TraceTool v-if="sketchMode" />
     <SketchPanelSheet v-if="sketchMode" @activate-slice="aimAtSketch" />
     <!-- The Operations toolbar (TODO/ui-014): viewport chrome, in the same
          band as the navigation controls below and deliberately *not* a row in

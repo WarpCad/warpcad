@@ -26,6 +26,12 @@
  * nowhere else: never `innerHTML`, a CSS `url()`, an `<img src>` or a `data:` URL built by
  * string concatenation.
  *
+ * ## Trace: one grayscale per photo (`TODO/sketch-004`)
+ *
+ * {@link traceAsset} decodes a stored photo once, keeps its grayscale and Otsu threshold for
+ * the next tap, and runs `./trace.js` on it. Only the most recent photo is kept: tracing
+ * happens on one slice's photo at a time.
+ *
  * @module sketch/imageJob
  */
 
@@ -41,6 +47,7 @@ import {
   readImageHeader,
   validateImageAsset,
 } from './imageAsset.js'
+import { grayscaleOf, otsuThreshold, traceGray } from './trace.js'
 
 /** @typedef {import('./imageAsset.js').ImageAssetRecord} ImageAssetRecord */
 
@@ -196,4 +203,52 @@ export async function decodeAsset(record) {
   const params = /** @type {ImageAssetRecord} */ (record).params
   // `Uint8Array` → `Blob` with the allowlisted MIME → `createImageBitmap`. Nothing else.
   return createImageBitmap(new Blob([/** @type {any} */ (bytesFromBase64(params.dataBase64))], { type: verdict.mime }))
+}
+
+/** @typedef {{ width: number, height: number, gray: Uint8Array }} GrayImage */
+
+/**
+ * Decode a stored photo and read its pixels as grayscale. Never on the render path: the
+ * worker calls it once per photo.
+ *
+ * @param {ImageAssetRecord} record
+ * @returns {Promise<GrayImage>}
+ */
+export async function loadGray(record) {
+  const bitmap = await decodeAsset(record)
+  try {
+    const canvas = makeCanvas(bitmap.width, bitmap.height)
+    const context = /** @type {CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D} */ (
+      canvas.getContext('2d', { willReadFrequently: true })
+    )
+    if (!context) throw new Error('this browser could not read the image')
+    context.drawImage(bitmap, 0, 0)
+    const pixels = context.getImageData(0, 0, bitmap.width, bitmap.height)
+    return { width: bitmap.width, height: bitmap.height, gray: grayscaleOf(pixels) }
+  } finally {
+    bitmap.close()
+  }
+}
+
+/** @type {{ id: string, image: GrayImage, otsu: number } | null} */
+let traced = null
+
+/**
+ * **Auto-trace** a tap on a stored photo. The grayscale and Otsu threshold are computed on
+ * the first tap and reused for the next ones on the same photo.
+ *
+ * @param {ImageAssetRecord} record
+ * @param {readonly number[]} seedPx
+ * @param {{ tolerancePx?: number, threshold?: number | null }} options
+ * @param {(record: ImageAssetRecord) => Promise<GrayImage>} [load] Test seam.
+ * @returns {Promise<import('./trace.js').TraceResult>}
+ * @throws {Error} when the photo cannot be decoded.
+ */
+export async function traceAsset(record, seedPx, options, load = loadGray) {
+  if (traced?.id !== record.id) {
+    const image = await load(record)
+    traced = { id: record.id, image, otsu: otsuThreshold(image.gray) }
+  }
+  const { image, otsu } = traced
+  return traceGray(image.gray, image.width, image.height, seedPx, { ...options, otsu })
 }

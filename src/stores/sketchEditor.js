@@ -28,7 +28,8 @@ import { computed, ref, shallowRef, toRaw } from 'vue'
 
 import { formatMmValue } from '../core/units.js'
 import { defaultPlacement, formatScale } from '../sketch/calibration.js'
-import { applyCalibration, sliceImageOf, withSliceImage } from '../sketch/referenceImage.js'
+import { addTracedOutlines, applyCalibration, sliceImageOf, tracedProfiles, withSliceImage } from '../sketch/referenceImage.js'
+import { traceImage } from '../sketch/imageClient.js'
 import { useDocumentStore } from './document.js'
 
 import { simplifyPoints } from '../sketch/simplify.js'
@@ -157,12 +158,34 @@ export const useSketchEditorStore = defineStore('sketchEditor', () => {
   const imageImporting = ref(false)
   /** Why the last Add image was refused, shown in the Reference image group until the next try. */
   const imageError = ref('')
-  /** The armed image tool: `'scale'` while Set scale is waiting for its line, else `''`. */
-  const imageTool = ref(/** @type {'' | 'scale'} */ (''))
+  /**
+   * The armed image tool: `'scale'` while Set scale is waiting for its line, `'trace'` while
+   * Auto-trace is waiting for a tap (`TODO/sketch-004`), else `''`.
+   */
+  const imageTool = ref(/** @type {'' | 'scale' | 'trace'} */ (''))
   /** Set scale's two points, in image px, as they are fixed. */
   const scaleAPx = shallowRef(/** @type {[number, number] | null} */ (null))
   const scaleBPx = shallowRef(/** @type {[number, number] | null} */ (null))
   const documentStore = useDocumentStore()
+
+  // --- Auto-trace (TODO/sketch-004) ------------------------------------------
+  /** How closely a traced outline follows the pixels, in mm. Kept for the session. */
+  const traceToleranceMm = ref(0.5)
+  /** A manual threshold (0..255), or `null` for automatic (Otsu). Kept for the session. */
+  const traceThreshold = ref(/** @type {number | null} */ (null))
+  /** The threshold the last trace actually used — what the slider shows while on Auto. */
+  const traceThresholdUsed = ref(/** @type {number | null} */ (null))
+  /** A trace is running in the worker. */
+  const traceRunning = ref(false)
+  /** What the last tap made, or why it made nothing. */
+  const traceMessage = ref('')
+  const traceMessageKind = ref(/** @type {'' | 'ok' | 'warn' | 'error'} */ (''))
+  /** How many taps traced something since Auto-trace was armed — Cancel vs Finish. */
+  const tracedThisArming = ref(0)
+  /** The last successful tap and the outlines it made, so a slider change can re-trace it. */
+  let lastTrace = /** @type {{ seedPx: [number, number], ids: string[] } | null} */ (null)
+  /** Bumped by every tap and every stand-down: only the newest tap's answer may land. */
+  let traceToken = 0
 
   /** Whether a Line chain is live — a start point is fixed or a segment is being extended. */
   const chainLive = computed(() => chainStartMm.value !== null || chainId.value !== '')
@@ -372,15 +395,141 @@ export const useSketchEditorStore = defineStore('sketchEditor', () => {
   function armScale() {
     if (activeImage.value.state !== 'ok') return
     endChain()
+    cancelScale()
     imageTool.value = 'scale'
     scaleAPx.value = null
     scaleBPx.value = null
   }
 
+  /**
+   * Stand the armed image tool down — Set scale or Auto-trace (the name predates the second).
+   * Every path that changes tool, slice, photo or session comes through here, so a trace
+   * still running in the worker can never land on a slice the user has left.
+   */
   function cancelScale() {
     imageTool.value = ''
     scaleAPx.value = null
     scaleBPx.value = null
+    traceToken += 1
+    traceRunning.value = false
+    lastTrace = null
+  }
+
+  // --- Auto-trace (TODO/sketch-004) ------------------------------------------
+
+  /** **Auto-trace**: arm the tap tool. Needs a shown image on the active slice. */
+  function armTrace() {
+    if (activeImage.value.state !== 'ok') return
+    endChain()
+    cancelScale()
+    imageTool.value = 'trace'
+    traceMessage.value = ''
+    traceMessageKind.value = ''
+    tracedThisArming.value = 0
+  }
+
+  /**
+   * One tap while Auto-trace is armed: trace the region under it in the worker, then add the
+   * outline (Solid) and its enclosed holes (Hole) to the active slice at the photo's scale.
+   * A newer tap supersedes this one. With `replace`, the outlines a previous trace of the
+   * same tap made are swapped for the new ones (a slider changed).
+   *
+   * @param {readonly number[]} px Image px.
+   * @param {readonly string[]} [replace]
+   * @returns {Promise<void>}
+   */
+  async function traceAt(px, replace = []) {
+    if (imageTool.value !== 'trace') return
+    const view = activeImage.value
+    if (view.state !== 'ok' || !view.placement || !view.asset) return
+    const token = (traceToken += 1)
+    const placement = view.placement
+    const asset = view.asset
+    const sliceIndex = activeSlice.value
+    /** @type {[number, number]} */
+    const seedPx = [px[0], px[1]]
+    traceRunning.value = true
+    const outcome = await traceImage(asset, seedPx, {
+      tolerancePx: traceToleranceMm.value / placement.mmPerPx,
+      threshold: traceThreshold.value,
+    })
+    if (token !== traceToken) return
+    traceRunning.value = false
+    if (outcome.superseded || imageTool.value !== 'trace') return
+    const result = outcome.result
+    if (typeof result.threshold === 'number') traceThresholdUsed.value = result.threshold
+    if (!result.ok) {
+      traceMessage.value = result.reason
+      traceMessageKind.value = 'error'
+      return
+    }
+    const size = { widthPx: asset.params.widthPx, heightPx: asset.params.heightPx }
+    const profiles = tracedProfiles(result.outlines, placement, size, nextProfileId)
+    try {
+      setDraft(addTracedOutlines(draft.value, sliceIndex, profiles, replace))
+    } catch (error) {
+      traceMessage.value = error instanceof Error ? error.message : String(error)
+      traceMessageKind.value = 'error'
+      return
+    }
+    lastTrace = { seedPx, ids: profiles.map((profile) => profile.id) }
+    tracedThisArming.value += 1
+    selectProfile(profiles[0].id)
+    const holes = profiles.length - 1
+    const made = `Traced 1 outline${holes > 0 ? ` and ${holes} hole${holes === 1 ? '' : 's'}` : ''} — ${result.pointCount} points`
+    if (placement.calibration) {
+      traceMessage.value = made
+      traceMessageKind.value = 'ok'
+    } else {
+      // Never pass the provisional 1 px = 0.1 mm off as a real size.
+      traceMessage.value = `${made}. Not to scale yet — Set scale, then answer Yes to resize them`
+      traceMessageKind.value = 'warn'
+    }
+  }
+
+  /** Re-trace the last tap with the current Tolerance and Threshold, replacing its outlines. */
+  function retrace() {
+    if (imageTool.value !== 'trace' || !lastTrace) return
+    const present = new Set(slice.value?.profiles.map((profile) => profile.id) ?? [])
+    if (!lastTrace.ids.every((id) => present.has(id))) return
+    traceAt(lastTrace.seedPx, lastTrace.ids)
+  }
+
+  /**
+   * The **Tolerance** slider, in mm: re-traces the last tap.
+   *
+   * @param {number} mm
+   */
+  function setTraceTolerance(mm) {
+    if (!(Number.isFinite(mm) && mm > 0)) return
+    traceToleranceMm.value = mm
+    retrace()
+  }
+
+  /**
+   * The **Threshold**: a gray level 0..255, or `null` for automatic. Re-traces the last tap.
+   *
+   * @param {number | null} value
+   */
+  function setTraceThreshold(value) {
+    if (value !== null && !Number.isFinite(value)) return
+    traceThreshold.value = value === null ? null : Math.min(255, Math.max(0, Math.round(value)))
+    retrace()
+  }
+
+  /**
+   * **Finish** (or **Cancel**, before anything was traced; or Esc): stand Auto-trace down.
+   * If it traced something, Select is armed with the traced outline picked, so its points
+   * show and can be dragged, added and deleted straight away.
+   */
+  function finishTrace() {
+    const traced = tracedThisArming.value > 0
+    const picked = selectedProfileId.value
+    cancelScale()
+    tracedThisArming.value = 0
+    if (!traced) return
+    setTool('select')
+    if (picked) selectProfile(picked)
   }
 
   /**
@@ -832,6 +981,19 @@ export const useSketchEditorStore = defineStore('sketchEditor', () => {
     removeImage,
     armScale,
     cancelScale,
+    // TODO/sketch-004
+    traceToleranceMm,
+    traceThreshold,
+    traceThresholdUsed,
+    traceRunning,
+    traceMessage,
+    traceMessageKind,
+    tracedThisArming,
+    armTrace,
+    traceAt,
+    setTraceTolerance,
+    setTraceThreshold,
+    finishTrace,
     addScalePoint,
     setScaleLine,
     applyScale,

@@ -6,8 +6,55 @@ priority: medium
 model: opus
 milestone: M8
 depends: [sketch-002, sketch-003]
-status: open
+status: done
 ---
+
+> **What actually shipped (2026-10-04, `/run-todos` isolated agent).** Auto-trace as specified,
+> hand-written with no new dependency (no `docs/decisions/image-trace.md` needed). Pure pipeline
+> `src/sketch/trace.js`: luma grayscale (transparency reads as table), Otsu (manual override
+> 0..255), a 4-connected flood fill from the tap that stops the moment it reaches the border
+> (refused: *That region runs off the edge of the photo — tap inside the part*), one 3 × 3
+> close + open on the region's bounding box (pinholes, cracks and specks under 3 px), marching
+> squares with saddles resolved for a 4-connected region / 8-connected background (so a
+> boundary never crosses itself), outer ring → **Solid**, rings round enclosed gaps wider than
+> twice the tolerance → **Hole**, then `simplify.js`'s RDP at Tolerance ÷ `mmPerPx` plus a
+> collinear pass (RDP keeps its anchors, often mid-edge). A ring is capped at 2000 points and a
+> simplification that would cross itself is retried finer. The worker (`image.worker.js`
+> `kind: 'trace'`, `imageJob.traceAsset`) decodes a photo once and keeps its grayscale and Otsu
+> for the next tap; `imageClient.traceImage` supersedes, never queues. Px → mm is
+> `referenceImage.tracedProfiles` through the slice's placement (rotation and offset included),
+> wound counter-clockwise; `addTracedOutlines` swaps a re-trace's outlines in place.
+> **Where reality differed from the spec:**
+>
+> - **No scale yet** is not refused and not guessed silently: the banner says *Not to scale
+>   yet — outlines will use 1 px = 0.1 mm until you Set scale* before the first tap, and the
+>   result line ends *Not to scale yet — Set scale, then answer Yes to resize them* (Set scale's
+>   existing rescale confirm then fixes them). Tracing first and measuring second is a flow
+>   sketch-003 already supports.
+> - **The spinner is in the banner**, not on the Auto-trace button: while an image tool is armed
+>   the sheet folds to its header at every size (and steps aside on a narrow viewport — the
+>   sketch-003 pattern, needed again for the ≥ 69 % reachable canvas), so the button is not on
+>   screen while a trace runs. The button carries `aria-busy`.
+> - **Tolerance and Threshold live in the banner** behind **Adjust** — open by default at
+>   ≥ 900 px, folded on a phone (open, they would cost the phone its reachable canvas). Moving
+>   either **re-traces the last tap in place**, replacing its outlines, rather than only
+>   affecting the next tap (otherwise the sliders had no visible feedback). Threshold is an
+>   **Auto** toggle plus a 1..254 slider; on Auto the readout shows the Otsu value used.
+> - **Cancel** reads **Finish** once a tap traced something; Finish (or Esc) arms **Select**
+>   with the traced Solid picked, so its points show for clean-up straight away.
+> - A press that wobbles past the tap slop while armed moves nothing and still traces at the
+>   press point; two fingers still pan and zoom.
+> - **Acceptance:** no new scenario — scenario **20** (added by sketch-003 and reserved for this
+>   task's extension) gained Auto-trace, clean-up, the saved photo's EXIF/GPS check and the gist
+>   round-trip. The gist round-trip and a real phone photo were not driven here (`TODO/VERIFY.md`).
+>
+> **Close-out review (2026-10-06, `/fix-todo` isolated agent).** One gap fixed against the spec's
+> *supersede, not queue*: the worker yielded with `await Promise.resolve()` before checking whether
+> a newer tap had arrived, but queued `message` events are tasks, so a microtask yield never let
+> them in — every queued tap still ran in full and only the client discarded the stale answers.
+> It now yields a whole task (`setTimeout(…, 0)`). Everything else matched the spec as written
+> above; acceptance was re-driven by hand (scenario 20 on three engines and phone touch, with the
+> saved photo's EXIF/GPS checked; 1, 8, 9 and the closed-finding repros), all PASS.
 
 > **Split out of `TODO/sketch-001` (2026-10-02).** sketch-001's own Effort section said
 > "If the first run finishes steps 1-3, split steps 4-6 into their own TODO rather than

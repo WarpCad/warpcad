@@ -1362,6 +1362,15 @@ Built with Claude Code, reviewed by me.
 **Evidence:** snap tiers, labels and markers -> src/sketch/snap.js, SketchStrokes.vue diff; circle centre exactly on the corner -> e2e "pressed 6 px from a rectangle corner" reads Centre X/Y "20"/"10" on 9 projects, and this session's drive read 40, 25; Shift and the Snap toggle -> same e2e spec and the touch spec on chromium-phone
 **To Add:** docs/media/sketch-snap.gif, docs/screenshots/sketch-snap-corner.png
 
+## 2026-10-04T16:54:00Z — Chamfer on a shape with a hole is wrong (found, written up)
+
+**Post:** A 2 mm chamfer on a plate with a hole made WarpCad's solid bigger: 687 mm³ added where about 2,100 should come off. The rim sweep pairs corners by index, and the kernel interleaves outer and hole outlines. Plain plates are fine. Not fixed yet. Built with Claude Code, reviewed by me. #CAD #WebGL
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** 687 mm³ added by a 2 mm chamfer, about 2,100 expected (r²/2 x perimeter) -> Node run this session on the user's saved project plate (examples/chamfer error.ndjson), recorded in TODO/core-051; index-paired loft and interleaved contours -> src/core/kernel/fillet.js alignVertices/sweepRim and the contour dump from the same run; "not fixed yet" -> TODO/core-051 status: open
+**To Add:** a before/after render of the chamfered plate once core-051 lands
+
 ## 2026-10-04T20:45:00Z — Sketch reference photo: load it, set its scale from a ruler, trace at real size
 
 **Post:** WarpCad sketches can now hold a photo. Load a picture of a broken part beside a ruler, drag along the ruler, type 10 cm, then trace it at real size. The photo is redrawn from its pixels on the way in, so its GPS tag stays out of the project. Built with Claude Code, reviewed by me. #CAD
@@ -1370,3 +1379,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** load / Set scale / units -> diff (ReferenceImagePanel.vue, ScaleTool.vue, calibration.js); traced at real size -> this session's hand drive (fixture L-bracket traced to 120.00 x 100.00 mm Chromium, 120.67 x 100.13 mm WebKit/Firefox against 120 x 100); redrawn from pixels, metadata incl. GPS dropped -> src/sketch/imageJob.js importImage (decode, draw to canvas, re-encode JPEG/PNG)
 **To Add:** docs/media/sketch-trace-scale.gif, docs/screenshots/sketch-trace-scaled.png
+
+## 2026-10-06T01:58:00Z — Sketch Auto-trace: tap inside a photographed part to get its outline and holes to scale
+
+**Post:** WarpCad sketches can now auto-trace a photo: tap inside the part and its outline, holes included, lands at the photo's real scale. A test bracket came out 120.11 x 100.19 mm against a true 120 x 100. Hand-written tracer, no new dependency. Built with Claude Code, reviewed by me. #CAD
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** tap inside, outline + holes, at the photo's scale -> src/sketch/trace.js, src/sketch/referenceImage.js tracedProfiles, TODO/done/sketch-004; 120.11 x 100.19 mm vs 120 x 100 -> this session's hand drive, laptop Chromium, on e2e/fixtures/trace-bracket.jpg (true size stated in e2e/sketch-auto-trace.e2e.js's header); no new dependency -> package.json not in the diff
+**To Add:** docs/media/sketch-trace-auto.gif

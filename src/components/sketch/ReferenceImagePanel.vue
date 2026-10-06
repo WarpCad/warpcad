@@ -14,9 +14,9 @@
  * - **Opacity**, **X / Y offset** and **Rotation** line the photo up with the sketch axes.
  * - **Set scale** arms the two-point tool (`ScaleTool.vue`): a line along the photo's ruler,
  *   then its real length.
+ * - **Auto-trace** arms the tap tool (`TraceTool.vue`, `TODO/sketch-004`): tap inside the part
+ *   in the photo and its outline — and any holes — are added to the slice.
  * - **Remove image** takes the photo off the slice (the outlines stay).
- *
- * Auto-trace is `TODO/sketch-004` and deliberately not offered here yet.
  *
  * Every change edits the editor's draft, so Cancel throws it away and Done commits it —
  * photo included — as one undo step.
@@ -223,6 +223,17 @@ function blurTarget(event) {
           @click="editor.imageTool === 'scale' ? editor.cancelScale() : editor.armScale()"
         >
           Set scale
+        </button>
+        <button
+          type="button"
+          class="ref-image__btn ref-image__btn--primary"
+          data-testid="sketch-image-trace"
+          :aria-pressed="editor.imageTool === 'trace'"
+          :aria-busy="editor.traceRunning"
+          title="Tap inside a part in the photo to get its outline, holes included"
+          @click="editor.imageTool === 'trace' ? editor.finishTrace() : editor.armTrace()"
+        >
+          Auto-trace
         </button>
       </div>
     </template>

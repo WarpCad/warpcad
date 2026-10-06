@@ -128,7 +128,7 @@ const EXTRUSION_PARAM_RULES = Object.freeze({
 
 /** Hard caps on untrusted input, so a hostile document cannot ask for unbounded work. */
 const MAX_SLICES = 64
-const MAX_PROFILES_PER_SLICE = 256
+export const MAX_PROFILES_PER_SLICE = 256
 const MAX_POLYLINE_POINTS = 4096
 const MAX_POLYGON_SIDES = 256
 

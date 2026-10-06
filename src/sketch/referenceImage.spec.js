@@ -2,8 +2,8 @@
 import { describe, expect, it } from 'vitest'
 
 import { defaultPlacement, imagePxToSketchMm } from './calibration.js'
-import { emptySketchParams } from './profile.js'
-import { applyCalibration, scaleProfileAbout, sliceImageOf, withSliceImage } from './referenceImage.js'
+import { emptySketchParams, signedAreaMm2 } from './profile.js'
+import { addTracedOutlines, applyCalibration, scaleProfileAbout, sliceImageOf, tracedProfiles, withSliceImage } from './referenceImage.js'
 
 const SIZE = { widthPx: 1400, heightPx: 1000 }
 const ID = 'img-0123456789abcdef01234567'
@@ -85,5 +85,72 @@ describe('scaleProfileAbout', () => {
     expect(scaleProfileAbout(/** @type {any} */ ({ id: 'g', kind: 'polygon', role: 'solid', centerMm: [10, 0], radiusMm: 4, sides: 6, rotationDeg: 15 }), 0.5, anchor)).toEqual({
       id: 'g', kind: 'polygon', role: 'solid', centerMm: [10, 5], radiusMm: 2, sides: 6, rotationDeg: 15,
     })
+  })
+})
+
+describe('tracedProfiles / addTracedOutlines — Auto-trace output at real scale (TODO/sketch-004)', () => {
+  // A 100 × 60 px rectangle traced in image px (y down: a Solid ring has negative area there).
+  /** @type {[number, number][]} */
+  const solidPx = [[600, 470], [600, 530], [700, 530], [700, 470]]
+  /** @type {[number, number][]} */
+  const holePx = [[640, 490], [660, 490], [660, 510], [640, 510]]
+  /** @type {import('./trace.js').TracedOutline[]} */
+  const outlines = /** @type {any} */ ([
+    { role: 'solid', pointsPx: solidPx },
+    { role: 'hole', pointsPx: holePx },
+  ])
+  /** @param {any[]} profiles @returns {any[]} */
+  const polylines = (profiles) => profiles
+  let counter = 0
+  const nextId = () => `p${(counter += 1)}`
+
+  it('maps every vertex through the photo placement — at 0.2 mm per px, 100 px is 20 mm', () => {
+    const placement = { ...defaultPlacement(ID), mmPerPx: 0.2, offsetMm: /** @type {[number, number]} */ ([3, -4]), rotationDeg: 0 }
+    const [solid, hole] = polylines(tracedProfiles(outlines, placement, SIZE, nextId))
+    expect(solid).toMatchObject({ kind: 'polyline', role: 'solid', closed: true })
+    expect(hole).toMatchObject({ kind: 'polyline', role: 'hole', closed: true })
+    const xs = solid.pointsMm.map((/** @type {number[]} */ p) => p[0])
+    const ys = solid.pointsMm.map((/** @type {number[]} */ p) => p[1])
+    expect(Math.max(...xs) - Math.min(...xs)).toBeCloseTo(20, 9)
+    expect(Math.max(...ys) - Math.min(...ys)).toBeCloseTo(12, 9)
+    // Pixel (700, 500) is the photo centre, which sits at the offset.
+    expect(Math.max(...xs)).toBeCloseTo(3, 9)
+    expect((Math.max(...ys) + Math.min(...ys)) / 2).toBeCloseTo(-4, 9)
+    // Every vertex is exactly the calibration mapping of a traced pixel (order may be reversed).
+    const expected = solidPx.map((px) => imagePxToSketchMm(placement, SIZE, px))
+    expect(solid.pointsMm).toHaveLength(4)
+    for (const point of solid.pointsMm) {
+      expect(Math.min(...expected.map((e) => Math.hypot(e[0] - point[0], e[1] - point[1])))).toBeCloseTo(0, 9)
+    }
+  })
+
+  it('normalizes winding to counter-clockwise in sketch mm, for Solids and Holes alike', () => {
+    const [solid, hole] = polylines(tracedProfiles(outlines, defaultPlacement(ID), SIZE, nextId))
+    expect(signedAreaMm2(solid.pointsMm)).toBeGreaterThan(0)
+    expect(signedAreaMm2(hole.pointsMm)).toBeGreaterThan(0)
+  })
+
+  it('follows a rotated photo: the outline turns with it', () => {
+    const placement = { ...defaultPlacement(ID), mmPerPx: 0.2, rotationDeg: 90 }
+    const [solid] = polylines(tracedProfiles(outlines, placement, SIZE, nextId))
+    const xs = solid.pointsMm.map((/** @type {number[]} */ p) => p[0])
+    const ys = solid.pointsMm.map((/** @type {number[]} */ p) => p[1])
+    expect(Math.max(...xs) - Math.min(...xs)).toBeCloseTo(12, 9)
+    expect(Math.max(...ys) - Math.min(...ys)).toBeCloseTo(20, 9)
+  })
+
+  it('adds the outlines to the slice, replacing the ones a re-trace supersedes, and never mutates its input', () => {
+    const start = params([{ id: 'keep', kind: 'circle', role: 'solid', centerMm: [0, 0], radiusMm: 5 }, { id: 'old', kind: 'circle', role: 'solid', centerMm: [9, 9], radiusMm: 1 }])
+    const snapshot = JSON.stringify(start)
+    const profiles = tracedProfiles(outlines, defaultPlacement(ID), SIZE, nextId)
+    const next = addTracedOutlines(start, 0, profiles, ['old'])
+    expect(next.slices[0].profiles.map((p) => p.id)).toEqual(['keep', ...profiles.map((p) => p.id)])
+    expect(JSON.stringify(start)).toBe(snapshot)
+  })
+
+  it('refuses, in words, to push a slice past its 256-outline cap', () => {
+    const many = /** @type {any[]} */ (Array.from({ length: 255 }, (_, i) => ({ id: `c${i}`, kind: 'circle', role: 'solid', centerMm: [i, 0], radiusMm: 0.1 })))
+    const profiles = tracedProfiles(outlines, defaultPlacement(ID), SIZE, nextId)
+    expect(() => addTracedOutlines(params(many), 0, profiles, [])).toThrow(/at most 256 outlines/)
   })
 })

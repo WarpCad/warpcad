@@ -34,6 +34,17 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### sketch-004 — Auto-trace a photographed part to scale (2026-10-06 01:56)
+
+Scenario 20 (now with Auto-trace), 1, 8, 9 and 11 were driven by hand on laptop Chromium, plus scenario 20 on WebKit and Firefox and a phone pass with trusted touch only. All passed: the fixture bracket traced to within 0.4 mm on every engine, and the saved photo carried no EXIF/GPS. Everything here is a real photo, a real device, or a judgment call the fixture and the drive could not settle. The gist round-trip was not driven (no token), so it stays here rather than being claimed.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | **Real phone photo, start to finish (scenario 20 with a real object):** photograph a ~100 mm part beside a ruler from straight above, load it, Set scale, Auto-trace, clean up, Linear to its thickness, Done, then measure the body's width in the Inspector against the object (expect within 1 mm). Then **Share via gist and load it in a second browser**: the photo and its scale come back. The fixture is a flat-shaded JPEG; a real photo has shadows, glare and uneven light. | Open | |
+| 2 | **Trace quality on a real photo:** does a tap inside the part follow its edge, or does the shadow join the part (outline too big on one side) or a glare patch split it? Try **Adjust → Threshold** off Auto and nudge it: does the outline re-trace in place to something better, and is the *Auto (n)* readout useful as a starting point? Is the default **Tolerance 0.5 mm** a good balance between point count and fidelity for a printed replacement? | Open | |
+| 3 | **Phone, after Finish:** the Sketch toolbar's two rows come back over the top of the canvas (to y 223 at 390 × 844), and the traced Solid's top points can sit under them, next to **Cancel**. In the drive a finger aimed at a top point pressed Cancel and **discarded the whole traced draft in one tap**. Related to sketch-003 row 4 (the laptop's growing toolbar). Decide whether Finish should frame the traced outline clear of the toolbar, or whether Cancel should ask before discarding traced outlines. | Open | |
+| 4 | **Phone, Inspector sheet open while Auto-trace or Set scale is armed:** the Slices sheet steps aside (77 % reachable canvas), but an Inspector sheet that was already expanded stays up and cuts the reachable canvas to **56 %**, under the 69 % floor. The drive got there by a stray gesture, so judge on a real phone whether people actually land in this state and, if so, whether arming an image tool should fold the Inspector sheet as well. | Open | |
+
 ### sketch-003 — Sketch reference image: load a photo, set its scale, sanitize it (2026-10-04 16:40)
 
 Scenario 20 (new), 8 (with the hostile fixture), 9, 10 and 1 were driven by hand on laptop Chromium, WebKit and Firefox, with a phone pass using trusted touch, and the traced fixture came out within 0.7 mm of its true 120 × 100 mm. What no headless drive can settle is a real iPhone's camera and photo handling, plus three defaults this unattended run chose without asking.

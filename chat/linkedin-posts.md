@@ -1878,6 +1878,22 @@ Built with Claude Code, reviewed by me.
 **Evidence:** tiers and order -> src/sketch/snap.js + snap.spec.js; marker shapes and labels -> SketchStrokes.vue + snap.js SNAP_LABELS; lifted on touch -> Viewport.vue SKETCH_SNAP_TOUCH_LIFT_PX and this session's touch drive (lift 56 px); Snap toggle 44 px -> touch e2e (>= 43.5) and drive (66x44); point drag snaps -> e2e "a dragged point snaps onto a circle's centre"; 12 px ~ 5 mm and the 15-in-20 tube pull -> this session's drive (inner circle released at ~15 mm showed Quadrant/On edge on all three engines) and TODO/VERIFY.md sketch-007 row 1; hypot allocation and 10.4 -> 1.9 µs p50 -> bench/snap-search.mjs runs this session, Apple M4 Pro, Node v24.14.1 (bench/results/2026-10-03-sketch-007.md)
 **To Add:** docs/media/sketch-snap.gif, docs/screenshots/sketch-snap-corner.png
 
+## 2026-10-04T16:54:00Z — Chamfer on a shape with a hole is wrong (found, written up)
+
+**Post:** Chamfering the top of a plate with a hole in it produced a bigger solid than the one I started with. A user-saved project showed it: 215 x 128 mm plate, 120 x 66 mm hole, 10 mm thick. A 2 mm chamfer should take off roughly 2,100 mm³ and instead added about 690.
+
+The cause is in how WarpCad bevels a rim. It lofts the cross-section up to an inset copy of itself and joins the two by vertex index, then repairs mismatched start points by trying cyclic shifts of one list of corners. That works for one outline. With a hole there are two, and the geometry kernel returns their corners interleaved and in a different order for the inset copy, so no shift lines them up. A plate with no hole matched the expected volume within a few percent.
+
+It is written up as a finding with the reproduction table and two candidate fixes; the fix is not shipped yet. The same session also logged a save failure in the editor's built-in browser and a plan to merge Snap, Align and Align-to-origin into one tool.
+
+Built with Claude Code, reviewed by me.
+
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #Geometry #JavaScript #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** plate 215.1 x 127.5 mm, hole 120.4 x 65.8 mm, 10 mm thick, chamfer 2 mm -> examples/chamfer error.ndjson params; added about 690 mm³ (-687), expected about 2,100 -> Node run this session, recorded in TODO/core-051; no-hole plate within a few percent (309 vs 320 expected for a chamfer, 135 vs 137 for a fillet) -> same run; vertex-index loft and cyclic-shift alignment -> src/core/kernel/fillet.js; not shipped -> TODO/core-051 status open; save failure and Align plan -> TODO/io-008, TODO/ui-060
+**To Add:** before/after render of the chamfered plate
+
 ## 2026-10-04T20:45:00Z — Sketch reference photo: load it, set its scale from a ruler, trace at real size
 
 **Post:** WarpCad's sketch editor can now put a photo under a slice and set its real scale from a ruler in the picture. Load the photo, tap Set scale, drag from one ruler mark to another and type the length in mm, cm or inches; the photo resizes about the first mark so the ruler stays where you were looking. In a hand-driven run on Chromium, WebKit and Firefox, an L-bracket traced from the test photo came out within 0.7 mm of its true 120 by 100 mm.
@@ -1892,3 +1908,19 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** Set scale flow, units, rescale about the first mark -> diff (ScaleTool.vue, calibration.js rescaleAbout + calibration.spec.js); 0.7 mm -> this session's drive (120.67 x 100.13 mm on WebKit/Firefox, 120.00 x 100.00 on Chromium); allowlist, header-before-decode, 50 000 px refusal, no URL field -> src/sketch/imageAsset.js + imageAsset.spec.js; zero off-origin requests -> e2e/sketch-reference-image.e2e.js hostile test, passed on all 9 projects this session; re-encode drops metadata -> src/sketch/imageJob.js; removed on load with a warning, sketch still loads -> src/core/project.js unsafeImageReason + documentAsset.spec.js + scenario 8 drive; autosave erasing the warning -> persistence.spec.js test RED ("Saved · 14:02") then GREEN, and the first full e2e run's "Saved" failures
 **To Add:** docs/media/sketch-trace-scale.gif, docs/screenshots/sketch-trace-photo.png, docs/screenshots/sketch-trace-scaled.png
+
+## 2026-10-06T01:58:00Z — Sketch Auto-trace: tap inside a photographed part to get its outline and holes to scale
+
+**Post:** WarpCad's sketch editor can now trace a photo for you. Put a reference photo on a slice, set its scale from a ruler in the picture, tap Auto-trace, then tap inside the part. The outline comes back as a Solid and each enclosed hole as a Hole, already at the photo's real size, ready to clean up and extrude.
+
+The tracer is hand-written, about 570 lines with no new dependency: a luma grayscale, an Otsu threshold, a flood fill that starts from your tap so the ruler and the table stay out, a small morphological clean-up, marching squares, then Ramer-Douglas-Peucker at a tolerance in millimetres. A region that runs off the edge of the photo is refused with a sentence saying so. In a hand-driven run, the test photo's 120 by 100 mm L-bracket came out at 120.11 by 100.19 mm in Chromium and 119.6 by 99.8 mm in WebKit and Firefox.
+
+Closing it out turned up one real bug. The worker was meant to drop a stale tap when a newer one arrived, but it yielded with a resolved promise, and queued messages are tasks, so they never got in first and every stale tap was traced in full. It now yields a whole task.
+
+Built with Claude Code, reviewed by me.
+
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #JavaScript #ComputerVision #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** flow (photo, Set scale, Auto-trace, tap, Solid + Holes at scale) -> docs/sketch-tracing.md, TraceTool.vue, sketchEditor.js traceAt; ~570 lines, no dependency -> wc -l src/sketch/trace.js = 567, package.json not in the diff; pipeline steps -> trace.js module comment and code; edge refusal sentence -> trace.js TRACE_REASONS.edge, seen in this session's drives; 120.11 x 100.19 (Chromium), 119.61 x 99.76 (WebKit), 119.62 x 99.77 (Firefox) -> this session's hand drives on e2e/fixtures/trace-bracket.jpg; microtask-yield bug and fix -> src/sketch/image.worker.js diff, TODO/done/sketch-004 close-out note
+**To Add:** docs/media/sketch-trace-auto.gif, docs/screenshots/sketch-trace-auto.png

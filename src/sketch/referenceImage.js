@@ -8,6 +8,7 @@
  */
 
 import { calibrationProblem, imagePxToSketchMm, mmPerPxFrom, placementOf, rescaleAbout } from './calibration.js'
+import { MAX_PROFILES_PER_SLICE, signedAreaMm2 } from './profile.js'
 
 /** @typedef {import('./profile.js').SketchParams} SketchParams */
 /** @typedef {import('./profile.js').Slice} Slice */
@@ -98,5 +99,51 @@ export function applyCalibration(params, sliceIndex, size, calibration, rescaleO
     slices: withImage.slices.map((entry, index) =>
       index === sliceIndex ? { ...entry, profiles: entry.profiles.map((profile) => scaleProfileAbout(profile, factor, anchorMm)) } : entry,
     ),
+  }
+}
+
+/**
+ * **Auto-trace** output as sketch outlines (`TODO/sketch-004`): each traced ring, in image px,
+ * mapped through the slice's photo placement into sketch mm — so it is at the photo's real
+ * scale once Set scale has been applied, and at the provisional 1 px = 0.1 mm until then —
+ * as a closed polyline, wound counter-clockwise like every other outline the editor makes.
+ *
+ * @param {readonly import('./trace.js').TracedOutline[]} outlines
+ * @param {Pick<ImagePlacement, 'offsetMm' | 'rotationDeg' | 'mmPerPx'>} placement
+ * @param {ImageSize} size
+ * @param {() => string} nextId
+ * @returns {Profile[]}
+ */
+export function tracedProfiles(outlines, placement, size, nextId) {
+  return outlines.map((outline) => {
+    /** @type {[number, number][]} */
+    const pointsMm = outline.pointsPx.map((px) => /** @type {[number, number]} */ (imagePxToSketchMm(placement, size, px)))
+    if (signedAreaMm2(pointsMm) < 0) pointsMm.reverse()
+    return { id: nextId(), kind: 'polyline', role: outline.role, closed: true, pointsMm }
+  })
+}
+
+/**
+ * Add traced outlines to a slice, first removing the ones they replace (a re-trace of the
+ * same tap at a new tolerance or threshold).
+ *
+ * @param {SketchParams} params
+ * @param {number} sliceIndex
+ * @param {readonly Profile[]} profiles
+ * @param {readonly string[]} replaceIds
+ * @returns {SketchParams}
+ * @throws {Error} With the sentence to show, when the slice would hold too many outlines.
+ */
+export function addTracedOutlines(params, sliceIndex, profiles, replaceIds) {
+  const slice = params.slices[sliceIndex]
+  if (!slice) throw new Error(`sketch: there is no slice ${sliceIndex + 1}`)
+  const replaced = new Set(replaceIds)
+  const kept = slice.profiles.filter((profile) => !replaced.has(profile.id))
+  if (kept.length + profiles.length > MAX_PROFILES_PER_SLICE) {
+    throw new Error(`A slice holds at most ${MAX_PROFILES_PER_SLICE} outlines — delete some before tracing more`)
+  }
+  return {
+    ...params,
+    slices: params.slices.map((entry, index) => (index === sliceIndex ? { ...entry, profiles: [...kept, ...profiles.map((profile) => JSON.parse(JSON.stringify(profile)))] } : entry)),
   }
 }

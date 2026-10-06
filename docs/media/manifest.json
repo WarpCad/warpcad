@@ -341,5 +341,11 @@
     "specHash": "a7af60ddf8f17723cdb90965b3486d97f3e2f3a7059a569fdfc8f8577cc079b5",
     "bytes": 1179563,
     "seconds": 11.2
+  },
+  "sketch-trace-auto.gif": {
+    "spec": "e2e/docs/sketch-auto-trace.docs.js",
+    "specHash": "01412078f111307101e87d7bbb1fe4e3050280548a96a7c3984644467eea6bef",
+    "bytes": 1095843,
+    "seconds": 9.07
   }
 }

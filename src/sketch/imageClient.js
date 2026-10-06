@@ -5,6 +5,8 @@
  * - {@link importImageFile}: a newer import **supersedes** an older one rather than
  *   queueing behind it (CLAUDE.md's Performance rule) — choosing a second photo while the
  *   first is still being re-encoded answers the first `{ superseded: true }`.
+ * - {@link traceImage} (`TODO/sketch-004`): Auto-trace a tap. A newer tap supersedes an
+ *   older one the same way.
  * - {@link decodeAssetBitmap}: one decode per asset id, cached as a promise until
  *   {@link releaseAssetBitmaps} closes them all — the editor calls it when it closes, so a
  *   decoded photo's memory lives exactly as long as the editor that shows it.
@@ -16,9 +18,10 @@
  * @module sketch/imageClient
  */
 
-import { decodeAsset, importImage } from './imageJob.js'
+import { decodeAsset, importImage, traceAsset } from './imageJob.js'
 
 /** @typedef {import('./imageJob.js').ImportResult} ImportResult */
+/** @typedef {import('./trace.js').TraceResult} TraceResult */
 
 /** @type {(() => Worker) | null} */
 let factory = null
@@ -27,6 +30,7 @@ let worker = null
 let workerUnavailable = false
 let nextId = 0
 let importGeneration = 0
+let traceGeneration = 0
 /** @type {Map<string, Promise<ImageBitmap>>} */
 const decoded = new Map()
 
@@ -104,6 +108,32 @@ export async function importImageFile(file) {
     if (result.ok) result.bitmap.close?.()
     return { superseded: true }
   }
+  return { superseded: false, result }
+}
+
+/**
+ * **Auto-trace** a tap on a stored photo, off the main thread. A newer call supersedes an
+ * older one rather than queueing behind it: the older answers `{ superseded: true }`.
+ * Never throws — a photo that cannot be read is a refusal in words.
+ *
+ * @param {import('./imageAsset.js').ImageAssetRecord} record
+ * @param {readonly number[]} seedPx Where the user tapped, in image px.
+ * @param {{ tolerancePx?: number, threshold?: number | null }} options
+ * @returns {Promise<{ superseded: true } | { superseded: false, result: TraceResult }>}
+ */
+export async function traceImage(record, seedPx, options) {
+  const generation = (traceGeneration += 1)
+  /** @type {TraceResult | { superseded: true }} */
+  let result
+  const active = resolveWorker()
+  try {
+    result = active
+      ? await ask(active, { kind: 'trace', record, seedPx: [seedPx[0], seedPx[1]], options })
+      : await traceAsset(record, seedPx, options)
+  } catch (error) {
+    result = { ok: false, code: 'empty', reason: `The photo could not be read for tracing (${error instanceof Error ? error.message : String(error)})` }
+  }
+  if (generation !== traceGeneration || 'superseded' in result) return { superseded: true }
   return { superseded: false, result }
 }
 
