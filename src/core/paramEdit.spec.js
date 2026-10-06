@@ -443,8 +443,8 @@ describe('compositeParamEditRecord — the replace-path edit of a composite (TOD
   it('rejects an enum value outside the schema by name — the MCP surface cannot write an invalid model', async () => {
     const { compositeParamEditRecord } = await import('./paramEdit.js')
     const document = await boltDocument()
-    expect(() => compositeParamEditRecord(document, 'bolt-1', { spec: 'm2.5 socket' })).toThrow(/m2\.5 socket/)
-    expect(() => compositeParamEditRecord(document, 'bolt-1', { spec: 'm2.5 socket' })).toThrow(/m10 hex/)
+    expect(() => compositeParamEditRecord(document, 'bolt-1', { spec: 'm2.5 hex' })).toThrow(/m2\.5 hex/)
+    expect(() => compositeParamEditRecord(document, 'bolt-1', { spec: 'm2.5 hex' })).toThrow(/m10 hex/)
     expect(() => compositeParamEditRecord(document, 'bolt-1', { fit: 'snug' })).toThrow(/fit.*snug/)
   })
 

@@ -34,6 +34,16 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### core-052 — bolt/nut/washer tables (2026-10-06 14:59)
+
+Metric nut rows have no V1 source (ISO 4032 from memory of the standard, not a fetched table), and the Spec list is now one flat 45-item `<select>`.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | Spot-check the ISO 4032 nut rows in `nut-specs.js` (m1.6-m20: across flats, corners, height) against a published table | Open | |
+| 2 | Is the flat 45-entry Spec list usable on a phone, or does it want `<optgroup>`s? | Open | |
+
+
 ### sketch-004 — Auto-trace a photographed part to scale (2026-10-06 01:56)
 
 Scenario 20 (now with Auto-trace), 1, 8, 9 and 11 were driven by hand on laptop Chromium, plus scenario 20 on WebKit and Firefox and a phone pass with trusted touch only. All passed: the fixture bracket traced to within 0.4 mm on every engine, and the saved photo carried no EXIF/GPS. Everything here is a real photo, a real device, or a judgment call the fixture and the drive could not settle. The gist round-trip was not driven (no token), so it stays here rather than being claimed.

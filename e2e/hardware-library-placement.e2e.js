@@ -283,6 +283,24 @@ test('selecting a placed bolt shows its recipe parameters, editable (TODO/ui-052
   await expect(length).toHaveValue('20')
 })
 
+test('a placed bolt offers the small metric sizes, and picking one updates the BOM (TODO/core-052)', async ({ page }) => {
+  await openLibrary(page)
+  await dragRowIntoViewport(page, { op: 'hardware.bolt', fx: 0.4, fy: 0.3 })
+  await closeLibrary(page)
+
+  const spec = page.getByTestId('inspector-param-spec')
+  const values = await spec.locator('option').evaluateAll((options) => options.map((o) => /** @type {HTMLOptionElement} */ (o).value))
+  // Sizes that did not exist before core-052 (the table had m10 hex, m12 hex, 1/4 socket).
+  for (const size of ['m2 socket', 'm2.5 socket', 'm3 socket', '1/4 hex']) expect(values).toContain(size)
+  // Numeric order, not lexicographic: m2 comes before m10.
+  expect(values.indexOf('m2 socket')).toBeLessThan(values.indexOf('m10 socket'))
+
+  await spec.selectOption('m2.5 socket')
+  await expect(spec).toHaveValue('m2.5 socket')
+  await expect(page.getByTestId('bom-row')).toContainText('M2.5 socket')
+  await expect(page.getByTestId('bom-row')).toContainText('20 mm')
+})
+
 test('the ghost preview shows the real part before the drop commits anything', async ({ page }) => {
   await openLibrary(page)
   const viewport = page.getByTestId('viewport')

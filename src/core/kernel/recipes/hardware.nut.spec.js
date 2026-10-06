@@ -115,12 +115,12 @@ describe('degenerate params', () => {
     /** @type {Error | undefined} */
     let thrown
     try {
-      nut({ spec: 'm5', fit: 'loose' }, tables)
+      nut({ spec: 'm7', fit: 'loose' }, tables)
     } catch (error) {
       thrown = /** @type {Error} */ (error)
     }
     expect(thrown).toBeDefined()
-    expect(thrown?.message).toMatch(/m5/)
+    expect(thrown?.message).toMatch(/m7/)
     expect(thrown?.message).toMatch(/m4/)
   })
 
@@ -144,10 +144,13 @@ describe('nut spec table', () => {
     }
   })
 
-  it('does not pretend to have sizes jscad-hardware never shipped', () => {
-    // MetricNuts and ImperialNuts each ever held exactly one entry — see
-    // tables/nut-specs.js's own module doc for the citation.
-    expect(Object.keys(nutSpecs).sort()).toEqual(['1/4 hex', 'm4'])
+  it('keeps the two rows first ported from jscad-hardware 1.1.0 byte-for-byte', () => {
+    // core-052 grew the table (ISO 4032 metric, 5.0.0's ImperialNuts); these two are
+    // pinned so a saved document's nut does not change size under it.
+    expect(nutSpecs.m4).toEqual({ acrossFlatsMm: 7, acrossCornersMm: 8.1, heightMm: 3.2, threadDiameterMm: 4 })
+    expect(nutSpecs['1/4 hex']).toEqual({
+      acrossFlatsMm: 11.113, acrossCornersMm: 12.8, heightMm: 5.56, threadDiameterMm: 6.35,
+    })
   })
 
   it('carries the shared fit-clearance table with all three V1 fit classes', () => {

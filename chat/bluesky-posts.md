@@ -1397,3 +1397,13 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** 12 open edges on a hexagon + 2 mm fillet -> TODO/done/io-006 Problem table, reproduced this session (Node, runExportJob, Normal: 88 triangles, 12 open); section ~1e-4 mm off the solid's corners -> this session's coordinate dump ((12.5, 21.650635) solid vs (12.500032, 21.650543) projected); sliver holes not T-junctions -> unmatched-edge dump this session (three edges per corner, two corners ~1e-4 mm apart); 0 after -> src/core/exportJob.spec.js new cases (11 passing) and the hand drive on Chromium/WebKit/Firefox (STL 60 / OBJ 60 / GLB 56 triangles, 0 open); filleted cylinder 119 -> 0 at Print (32 -> 0 at Normal) -> before/after Node run this session (git stash of fillet.js); fillet kept ~0.013 mm3 too much on a 20 mm cube -> fillet.spec convergence run this session (old converged 7855.854, exact 7855.841); holes still open -> TODO/core-051 status open, 160 -> 118 measured this session
 **To Add:** a slicer screenshot of the filleted hexagon STL (nobody has opened one in a real slicer yet)
+
+## 2026-10-06T15:05:00Z — Bolt Spec list goes from 3 sizes to 45, m2 and m2.5 included
+
+**Post:** The Bolt's Spec list had three entries: m10 hex, m12 hex, 1/4 socket. My own Pi projects live on m2 and m2.5. The port had copied an old jscad-hardware release instead of the one I actually used. Now there are 45 sizes, generated from its source, plus matching nuts. Built with Claude Code, reviewed by me. #CAD
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** 3 entries before -> diff of bolt-specs.js; 45 sizes -> generator output "bolts: 45" this session; m2/m2.5 are the author's usual sizes -> TODO/done/core-052 Problem (user report); wrong version ported -> TODO/done/core-052 Problem (package.json pinned 1.1.0)
+**To Add:** screenshot of the open Spec dropdown
+

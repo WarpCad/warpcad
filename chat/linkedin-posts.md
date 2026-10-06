@@ -1940,3 +1940,17 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** 12 open edges on a hexagon + 2 mm fillet -> TODO/done/io-006 Problem table, reproduced this session (Node, runExportJob, Normal: 88 triangles, 12 open); section ~1e-4 mm off the solid's corners -> this session's coordinate dump ((12.5, 21.650635) solid vs (12.500032, 21.650543) projected); sliver holes not T-junctions -> unmatched-edge dump this session (three edges per corner, two corners ~1e-4 mm apart); 0 after -> src/core/exportJob.spec.js new cases (11 passing) and the hand drive on Chromium/WebKit/Firefox (STL 60 / OBJ 60 / GLB 56 triangles, 0 open); filleted cylinder 119 -> 0 at Print (32 -> 0 at Normal) -> before/after Node run this session (git stash of fillet.js); fillet kept ~0.013 mm3 too much on a 20 mm cube -> fillet.spec convergence run this session (old converged 7855.854, exact 7855.841); holes still open -> TODO/core-051 status open, 160 -> 118 measured this session; T-junction repair runs before every export -> src/core/kernel/watertight.js module comment (io-004)
 **To Add:** before/after mesh view of one hexagon corner; a slicer screenshot
+
+## 2026-10-06T15:05:00Z — Bolt, nut and washer tables: 3 bolt sizes to 45
+
+**Post:** Someone placed a bolt in WarpCad and asked where the other sizes were. The Spec dropdown had three: M10 hex, M12 hex and 1/4 socket, and the sizes I use for Raspberry Pi work, m2 and m2.5, weren't there. The cause was a version mismatch. The first port copied jscad-hardware 1.1.0, but the library's current source (5.0.0) builds its tables from published fastener standards.
+
+Instead of retyping rows, a small script now reads the 5.0.0 source and writes a static table, so the app never runs the old string parser. That turned up two bugs in the original: imperial #0-#10 socket screws looked up the wrong key and used the head diameter as their hole size. The new tables use the body diameter there. A consistency test now fails if any bolt lacks a nut.
+
+The Spec list has 45 bolts, from m1.6 socket to 1" hex, in numeric order, and the three original rows are unchanged. Built with Claude Code, reviewed by me.
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** three entries before -> diff of bolt-specs.js; version mismatch -> TODO/done/core-052 Problem; two V1 lookup bugs -> comment block in scripts/generate-hardware-tables.mjs, confirmed by reading src/imperial.js this session; 45 bolts, m1.6 to 1" -> generator output this session; nut-per-bolt test -> src/core/kernel/tables/hardware-tables.spec.js
+**To Add:** screenshot of the Spec dropdown
+

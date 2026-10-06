@@ -598,7 +598,7 @@ describe('what may be edited on a past step (paramEdit, revisiting ui-029’s gu
     expect(stepParamEditability(/** @type {any} */ (record))).toEqual({ editable: true, blockedBy: null })
     const document = createDocument()
     document.append(/** @type {any} */ (record), { origin: 'local' })
-    expect(() => stepParamEditRecord(document, 'b', { spec: 'm2.5 socket' })).toThrow(/m2\.5 socket/)
+    expect(() => stepParamEditRecord(document, 'b', { spec: 'm2.5 hex' })).toThrow(/m2\.5 hex/)
     expect(stepParamEditRecord(document, 'b', { spec: '1/4 socket' })?.params?.spec).toBe('1/4 socket')
   })
 

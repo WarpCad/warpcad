@@ -1096,6 +1096,8 @@ and `1/4 socket` — so the step now uses real values and can be driven as writt
 current spec has the same three fits (`tap`, `close`, `loose`); the Fit list is still read
 from the chosen spec's own row, so a spec with different fits changes it.)*
 
+**Last run**: 2026-10-06 14:55 UTC (`core-052`) — **PASS** at laptop 1440x900 Chromium (real mouse, jittered human-paced Library drag). Dropped a Bolt (selected on drop); the Spec list now offers 45 sizes in numeric order (`m1.6 socket`, `m2 socket`, `m2.5 socket`, ...); picked `m2.5 socket` (Fit list still `tap`/`close`/`loose`), set Fit close then loose, typed Length `8` + Enter: one body throughout, still selected, BOM read `Bolt M2.5 socket × 8 mm × 1`, volume 80.2 mm³ (was 2920.8 for `m10 hex`). Re-driven because this changes the Spec dropdown's contents. Gizmo drag (steps 5-8) not re-driven: no transform code changed. Console clean.
+
 **Last run**: 2026-10-03 13:20 UTC (`docs-010`) — PASS, laptop 1440x900 Chromium, real mouse with wobbly paths: dropped a Bolt (selected on drop), changed Spec to `1/4 socket` (volume 2921 to 1070 mm3, centre Z kept within 0.07 mm; Fit `loose` and Length `20` are the defaults so those two edits were no-ops), dragged the X arrow from a point on the handle (Position X read 29.8, 39.6, 49.3, 59.1 during the drag, one body throughout), typed `25` into Position X and the mesh centre went to 25.00. Gizmo handles stayed proportionate to the small bolt. Console clean. Observation, not a failure: step 2's "click the bolt" lands on a *part* (head) when the click hits a bolt that is already selected, and Spec/Fit/Length then read "Select the whole Bolt 1" (ui-016 pick depth, by design). Phone not driven.
 
 **Last run**: 2026-09-06 01:15 — **PARTIAL PASS** (`ui-011`. Only the
@@ -1947,6 +1949,8 @@ mesh, drives the boolean result. For the `ui-041`/`ui-042` enclosed-bolt fixture
 mm cube minus an m10 hex bolt, length 12, wholly inside it) this is a measured
 **61 108.343 mm³** remaining, not the metal-only **61 695.679 mm³** a whole-bolt
 Subtract now leaves.
+
+**Last run**: 2026-10-06 14:58 UTC (`core-052`) — **PASS** at laptop 1440x900 Chromium, from an emptied project, real mouse. Dropped a Cube (40 mm, 64000 mm³) and a Bolt, set the Bolt to the **new** size `m2.5 socket`, Length 8, and typed it to the cube's centre (wholly inside). With nothing selected: the cube's check, ▸ on Bolt 1, the check on its `tap` row; toolbar read "Cube 1 then Bolt 1 › tap". Subtract left **63902.539 mm³** — 97.46 mm³ removed, the clearance envelope, not the bolt's 80.18 mm³ of metal (a metal cut would leave 63919.82). Also re-ran `render-004`'s repro on the new size: `tap` is listed hidden under Parts and the toggle draws it. Console clean.
 
 **Last run**: 2026-09-10 17:52 — **NOT DRIVEABLE, and deliberately not claimed**
 (`ui-014`). The boolean half this scenario needs now exists and is proven by scenario 4;

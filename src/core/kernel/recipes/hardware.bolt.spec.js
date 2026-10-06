@@ -222,12 +222,12 @@ describe('degenerate params', () => {
     /** @type {Error | undefined} */
     let thrown
     try {
-      bolt({ spec: 'm2.5 socket', length: 20, fit: 'loose' }, { boltSpecs })
+      bolt({ spec: 'm2.5 hex', length: 20, fit: 'loose' }, { boltSpecs })
     } catch (error) {
       thrown = /** @type {Error} */ (error)
     }
     expect(thrown).toBeDefined()
-    expect(thrown?.message).toMatch(/m2\.5 socket/)
+    expect(thrown?.message).toMatch(/m2\.5 hex/)
     expect(thrown?.message).toMatch(/m10 hex/)
   })
 
@@ -255,11 +255,28 @@ describe('bolt spec table', () => {
     }
   })
 
-  it('does not pretend to have specs jscad-hardware never shipped', () => {
-    // `Initial design.md` uses "m2.5 socket" as its running example; the real V1
-    // MetricBolts table only ever had 'm10 hex' and 'm12 hex'.
-    expect(boltSpecs['m2.5 socket']).toBeUndefined()
-    expect(Object.keys(boltSpecs)).toContain('m10 hex')
+  it('offers the small metric socket sizes V1 5.0.0 has (TODO/core-052)', () => {
+    for (const key of ['m2 socket', 'm2.5 socket', 'm3 socket', '1/4 hex', '5/16 hex']) {
+      expect(boltSpecs[key], key).toBeDefined()
+    }
+    // ISO 4017 starts at m10 in V1's table, so there is no small metric hex head.
+    expect(boltSpecs['m2.5 hex']).toBeUndefined()
+  })
+
+  it('keeps the three originally-ported rows byte-for-byte', () => {
+    expect(boltSpecs['m10 hex']).toEqual({
+      type: 'HexHeadScrew', bodyDiameterMm: 10, headDiameterMm: 18, headHeightMm: 6.5,
+      fitDiameterMm: { tap: 8.5, close: 10.5, loose: 11 },
+    })
+    expect(boltSpecs['m12 hex'].fitDiameterMm).toEqual({ tap: 10.3, close: 12.6, loose: 13.2 })
+    expect(boltSpecs['1/4 socket'].bodyDiameterMm).toBeCloseTo(6.35, 6)
+  })
+
+  it('orders keys numerically, metric before imperial, not lexicographically', () => {
+    const keys = Object.keys(boltSpecs)
+    expect(keys.indexOf('m2 socket')).toBeLessThan(keys.indexOf('m10 socket'))
+    expect(keys.indexOf('m2 socket')).toBeLessThan(keys.indexOf('m2.5 socket'))
+    expect(keys.indexOf('m20 socket')).toBeLessThan(keys.indexOf('#0 socket'))
   })
 })
 

@@ -202,7 +202,10 @@ describe('washer spec table', () => {
 
   it('carries exactly the ImperialWashers and MetricWashers entries jscad-hardware/ISO 7089 define', () => {
     expect(Object.keys(washerSpecs).sort()).toEqual(
-      ['1/4', '1/4 fender', '5/16', 'm10', 'm12', 'm3', 'm4', 'm5', 'm6', 'm8'].sort()
+      [
+        '1/4', '1/4 fender', '5/16',
+        'm1.6', 'm2', 'm2.5', 'm3', 'm4', 'm5', 'm6', 'm8', 'm10', 'm12', 'm14', 'm16', 'm20',
+      ].sort()
     )
   })
 

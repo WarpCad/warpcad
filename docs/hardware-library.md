@@ -14,14 +14,16 @@ All sizes below are millimetres unless a part is named in inches (`1/4 socket`, 
 
 | Row | Sizes you can pick | Starts as |
 |---|---|---|
-| **Bolt** | `m10 hex`, `m12 hex`, `1/4 socket` | M10 hex, 20 mm long |
-| **Nut** | `m4`, `1/4hex` | M4 |
-| **Washer** | `m3` to `m12`, plus `1/4`, `5/16` and `1/4fender` | M6 |
+| **Bolt** | Metric socket cap `m1.6` to `m20` (`m2.5 socket`, `m3 socket`, ...), metric hex `m10` to `m20`, imperial socket `#0` to `1` and imperial hex `1/4` to `1` (`1/4 hex`, `5/16 hex`, ...) | M10 hex, 20 mm long |
+| **Nut** | A size for every bolt above: `m1.6` to `m20`, and imperial `#0 hex` to `1 hex` | M4 |
+| **Washer** | `m1.6` to `m20`, plus `1/4`, `5/16` and `1/4 fender` | M6 |
 | **Bearing** | Standard bearing numbers: `608`, `6000`-`6004`, `6200`-`6204`, `6300`-`6304` | 608 (22 mm outside, 8 mm bore, 7 mm wide) |
 
 A bolt is as long as you say, so it has a **Length** box (mm); the rest are fixed sizes you
-pick from a list. There is no M3 bolt: the smallest metric bolt or screw is M4 (see Screws
-below), and the smallest metric washer is M3.
+pick from a list. The Spec list runs metric first (smallest to largest), then imperial. There
+is no metric hex head below `m10`: small metric bolts are socket cap screws, which is how
+small-board projects use them. A bolt and its nut share a size, so for an `m2.5 socket` bolt
+pick `m2.5` on the nut and on the washer.
 
 ### Example: a 30 mm M12 bolt, and the bill of materials
 
@@ -35,6 +37,13 @@ below), and the smallest metric washer is M3.
    See [Bill of materials](bill-of-materials.md).
 
 ![Dragging a Bolt in, switching its Spec to m12 hex and its Length to 30 mm; the Bill of materials follows.](./media/hardware-drag-bolt.gif)
+
+### Example: a matching M2.5 bolt and nut
+
+1. Drag **Bolt** into the 3D view. In the Inspector set **Spec** to `m2.5 socket` and **Length**
+   to `8` (mm).
+2. Drag **Nut** into the 3D view and set its **Spec** to `m2.5`.
+3. **Bill of materials** shows `Bolt M2.5 socket × 8 mm × 1` and `Nut M2.5 × 1`.
 
 ### Fit: the part you can't see
 
