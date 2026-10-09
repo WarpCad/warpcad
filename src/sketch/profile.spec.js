@@ -25,7 +25,9 @@ import {
   removeSlice,
   selfIntersects,
   setRole,
+  setSliceTransform,
   signedAreaMm2,
+  sliceTransformMm,
   sketchProblem,
   sliceProblem,
   toPointsMm,
@@ -504,5 +506,100 @@ describe('continuous Line chain helpers (TODO/sketch-006)', () => {
     const one = open([[0, 0], [10, 0]])
     expect(isClosed(one)).toBe(false)
     expect(one.pointsMm).toHaveLength(2)
+  })
+})
+
+// --- curve provenance and per-slice offset/twist (TODO/sketch-008) ----------
+
+describe('curve provenance — a polyline may say which curve made it (TODO/sketch-008)', () => {
+  const airfoil = (source = { curve: 'naca4', params: { code: '2412', chordMm: 120, points: 80 }, atMm: [0, 0] }) => ({
+    id: 'p1',
+    kind: 'polyline',
+    role: 'solid',
+    closed: true,
+    pointsMm: [[0, 0], [10, 0], [10, 10], [0, 10]],
+    source,
+  })
+  const params = (profile) => ({ slices: [{ id: 's1', zMm: 0, profiles: [profile] }], extrusion: { method: 'linear', heightMm: 10 } })
+
+  it('accepts a polyline with a well-formed source, and one without', () => {
+    expect(validateSketchParams(params(airfoil()))).toBeNull()
+    const { source: _none, ...plain } = airfoil()
+    expect(validateSketchParams(params(plain))).toBeNull()
+  })
+
+  it.each([
+    ['an unknown curve', { curve: 'spiral', params: {}, atMm: [0, 0] }, /source\.curve/],
+    ['params that are not an object', { curve: 'naca4', params: 'big', atMm: [0, 0] }, /source\.params/],
+    ['a bad placement point', { curve: 'naca4', params: {}, atMm: [0, 'x'] }, /source\.atMm/],
+    ['a source that is not an object', 'naca 2412', /source/],
+  ])('rejects %s by name', (_label, source, reason) => {
+    expect(validateSketchParams(params(airfoil(source)))).toMatch(reason)
+  })
+
+  it('a source is only for polylines', () => {
+    const tagged = { ...circle('c', 'solid', 5), source: { curve: 'naca4', params: {}, atMm: [0, 0] } }
+    expect(validateSketchParams(params(tagged))).toMatch(/source/)
+  })
+
+  it('its points are not individually editable until Convert to outline, which drops the source', () => {
+    const profile = airfoil()
+    expect(() => moveVertex(profile, 1, [3, 3])).toThrow(/Convert to outline/)
+    expect(() => insertVertex(profile, 0)).toThrow(/Convert to outline/)
+    expect(deleteVertexProblem(profile)).toMatch(/Convert to outline/)
+    const converted = convertToOutline(profile)
+    expect(converted.source).toBeUndefined()
+    expect(converted.pointsMm).toEqual(profile.pointsMm)
+    expect(converted.id).toBe('p1')
+    expect(moveVertex(converted, 1, [3, 3]).pointsMm[1]).toEqual([3, 3])
+  })
+})
+
+describe('per-slice offset and twist (TODO/sketch-008)', () => {
+  const base = () => ({
+    slices: [
+      { id: 's1', zMm: 0, profiles: [square('a', 'solid', 10)] },
+      { id: 's2', zMm: 50, profiles: [square('b', 'solid', 10)] },
+    ],
+    extrusion: { method: 'loft', resolution: 0 },
+  })
+
+  it('validates offsetMm and rotateDeg when present', () => {
+    const ok = base()
+    ok.slices[1] = { ...ok.slices[1], offsetMm: [30, 0], rotateDeg: -2 }
+    expect(validateSketchParams(ok)).toBeNull()
+    const badOffset = base()
+    badOffset.slices[1] = { ...badOffset.slices[1], offsetMm: [30] }
+    expect(validateSketchParams(badOffset)).toMatch(/slices\[1\]\.offsetMm/)
+    const badTwist = base()
+    badTwist.slices[1] = { ...badTwist.slices[1], rotateDeg: Number.POSITIVE_INFINITY }
+    expect(validateSketchParams(badTwist)).toMatch(/slices\[1\]\.rotateDeg/)
+  })
+
+  it('setSliceTransform is a pure edit and refuses non-finite values', () => {
+    const before = base()
+    const after = setSliceTransform(before, 1, { offsetMm: [30, -4], rotateDeg: -2 })
+    expect(after.slices[1].offsetMm).toEqual([30, -4])
+    expect(after.slices[1].rotateDeg).toBe(-2)
+    expect(before.slices[1].offsetMm).toBeUndefined()
+    expect(after.slices[0]).toBe(before.slices[0])
+    // A partial change keeps the other half.
+    expect(setSliceTransform(after, 1, { rotateDeg: 3 }).slices[1].offsetMm).toEqual([30, -4])
+    expect(() => setSliceTransform(before, 1, { rotateDeg: Number.NaN })).toThrow(/twist/)
+    expect(() => setSliceTransform(before, 1, { offsetMm: [1, Number.NaN] })).toThrow(/offset/)
+  })
+
+  it('sliceTransformMm turns about the slice origin, then shifts — degrees in, millimetres out', () => {
+    const turned = sliceTransformMm({ id: 's', zMm: 0, profiles: [], offsetMm: [30, 0], rotateDeg: 90 }, [
+      [10, 0],
+      [0, 10],
+    ])
+    expect(turned[0][0]).toBeCloseTo(30, 9)
+    expect(turned[0][1]).toBeCloseTo(10, 9)
+    expect(turned[1][0]).toBeCloseTo(20, 9)
+    expect(turned[1][1]).toBeCloseTo(0, 9)
+    // No transform: the very same points.
+    const plain = [[1, 2]]
+    expect(sliceTransformMm({ id: 's', zMm: 0, profiles: [] }, plain)).toBe(plain)
   })
 })

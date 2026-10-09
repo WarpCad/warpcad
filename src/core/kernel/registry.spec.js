@@ -1751,3 +1751,75 @@ describe('primitive.sketch — a sketch is a primitive that always extrudes to a
     expect(measurements.measureVolume(withImage)).toBeCloseTo(measurements.measureVolume(plain), 9)
   })
 })
+
+describe('primitive.sketch — curve outlines, per-slice offset/twist, airfoil lofts (TODO/sketch-008)', () => {
+  /** @param {Record<string, any>} params */
+  const sketch = (params) => /** @type {Geom3} */ (build('primitive.sketch', { params: { center: [0, 0, 0], ...params } }))
+  /** @param {string} id @param {number[][]} pointsMm */
+  const outline = (id, pointsMm) => ({ id, kind: 'polyline', role: 'solid', closed: true, pointsMm })
+  /** @param {number[][]} ring */
+  const area = (ring) => {
+    let twice = 0
+    ring.forEach((a, index) => {
+      const b = ring[(index + 1) % ring.length]
+      twice += a[0] * b[1] - b[0] * a[1]
+    })
+    return Math.abs(twice / 2)
+  }
+
+  it('a slice’s offset shifts and its twist turns a Linear extrusion', () => {
+    const bar = { id: 'p', kind: 'rect', role: 'solid', centerMm: [0, 0], widthMm: 40, heightMm: 10 }
+    const turned = sketch({
+      slices: [{ id: 's1', zMm: 0, offsetMm: [100, 50], rotateDeg: 90, profiles: [bar] }],
+      extrusion: { method: 'linear', heightMm: 5, twistDeg: 0, twistSteps: 1 },
+    })
+    const [min, max] = measurements.measureBoundingBox(turned)
+    expect(max[0] - min[0]).toBeCloseTo(10, 6)
+    expect(max[1] - min[1]).toBeCloseTo(40, 6)
+    expect((min[0] + max[0]) / 2).toBeCloseTo(100, 6)
+    expect((min[1] + max[1]) / 2).toBeCloseTo(50, 6)
+  })
+
+  it('a tapered, swept, washed-out airfoil Loft is watertight, with the frustum’s volume', async () => {
+    const { naca4 } = await import('../../sketch/curves.js')
+    const { makeWatertight, openEdgesOf } = await import('./watertight.js')
+    const root = naca4('2412', 120, { points: 80 })
+    const tipRaw = naca4('2412', 70, { points: 61 })
+    // The tip's list starts half-way round — at the leading edge, 180° from the root's start.
+    const half = Math.floor(tipRaw.length / 2)
+    const tip = [...tipRaw.slice(half), ...tipRaw.slice(0, half)]
+    const wing = sketch({
+      slices: [
+        { id: 's1', zMm: 0, profiles: [outline('root', root)] },
+        { id: 's2', zMm: 200, offsetMm: [30, 0], rotateDeg: -2, profiles: [outline('tip', tip)] },
+      ],
+      extrusion: { method: 'loft', resolution: 0 },
+    })
+    const [min, max] = measurements.measureBoundingBox(wing)
+    expect(min[2]).toBeCloseTo(0, 6)
+    expect(max[2]).toBeCloseTo(200, 6)
+    expect(min[0]).toBeCloseTo(0, 3)
+    expect(max[0]).toBeCloseTo(120, 3)
+    expect(openEdgesOf(makeWatertight(wing)).openEdges).toBe(0)
+    // Similar sections: the frustum h/3·(A1 + A2 + √(A1·A2)). A sweep or 2° turn does not change it.
+    const a1 = area(root)
+    const a2 = area(tipRaw)
+    const frustum = (200 / 3) * (a1 + a2 + Math.sqrt(a1 * a2))
+    expect(Math.abs(measurements.measureVolume(wing) - frustum) / frustum).toBeLessThan(0.01)
+  })
+
+  it('a three-slice airfoil wing (root, mid, tip) is one watertight solid', async () => {
+    const { naca4 } = await import('../../sketch/curves.js')
+    const { makeWatertight, openEdgesOf } = await import('./watertight.js')
+    const wing = sketch({
+      slices: [
+        { id: 's1', zMm: 0, profiles: [outline('a', naca4('2412', 120, { points: 80 }))] },
+        { id: 's2', zMm: 100, offsetMm: [15, 0], rotateDeg: -1, profiles: [outline('b', naca4('2412', 95, { points: 70 }))] },
+        { id: 's3', zMm: 200, offsetMm: [30, 0], rotateDeg: -2, profiles: [outline('c', naca4('2412', 70, { points: 60 }))] },
+      ],
+      extrusion: { method: 'loft', resolution: 0 },
+    })
+    expect(openEdgesOf(makeWatertight(wing)).openEdges).toBe(0)
+    expect(measurements.measureVolume(wing)).toBeGreaterThan(0)
+  })
+})

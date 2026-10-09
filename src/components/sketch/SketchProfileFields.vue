@@ -19,6 +19,7 @@ import { computed, ref, watch } from 'vue'
 import { parseNumeric } from '../../composables/numericEntry.js'
 import { formatMmValue } from '../../core/units.js'
 import { isClosed } from '../../sketch/profile.js'
+import { describeCurve } from '../../sketch/curves.js'
 import { useSketchEditorStore } from '../../stores/sketchEditor.js'
 
 const editor = useSketchEditorStore()
@@ -68,6 +69,67 @@ function commit(field, event) {
     next[field.key][field.index] = parsed
   }
   editor.replaceInActiveSlice(next)
+}
+
+// --- Edit curve (TODO/sketch-008) --------------------------------------------
+
+/** The selected outline's curve, when it has one. */
+const curve = computed(() => {
+  const current = profile.value
+  return current && current.kind === 'polyline' && current.source ? current.source : null
+})
+
+/**
+ * The curve's editable numbers. An ellipse is shown by width and height; it stores radii.
+ *
+ * @type {import('vue').ComputedRef<{ key: string, label: string, unit: string, text?: boolean, scale?: number }[]>}
+ */
+const curveFields = computed(() => {
+  const source = curve.value
+  if (!source) return []
+  if (source.curve === 'naca4') {
+    return [
+      { key: 'code', label: 'NACA code', unit: '', text: true },
+      { key: 'chordMm', label: 'Chord', unit: 'mm' },
+      { key: 'points', label: 'Points', unit: '' },
+    ]
+  }
+  if (source.curve === 'ellipse') {
+    return [
+      { key: 'radiusXMm', label: 'Width', unit: 'mm', scale: 2 },
+      { key: 'radiusYMm', label: 'Height', unit: 'mm', scale: 2 },
+      { key: 'points', label: 'Points', unit: '' },
+    ]
+  }
+  return [{ key: 'samplesPerSegment', label: 'Smoothness', unit: 'points per span' }]
+})
+
+const curveError = ref('')
+watch(
+  () => editor.selectedProfileId,
+  () => {
+    curveError.value = ''
+  },
+)
+
+/** @param {{ key: string, text?: boolean, scale?: number }} field */
+function curveValueOf(field) {
+  const value = curve.value?.params?.[field.key]
+  if (field.text) return String(value ?? '')
+  return typeof value === 'number' ? formatMmValue(value * (field.scale ?? 1)) : ''
+}
+
+/** @param {{ key: string, text?: boolean, scale?: number }} field @param {Event} event */
+function commitCurve(field, event) {
+  const input = /** @type {HTMLInputElement} */ (event.target)
+  let value
+  if (field.text) value = input.value.trim()
+  else {
+    const parsed = parseNumeric(input.value)
+    value = parsed === null ? Number.NaN : parsed / (field.scale ?? 1)
+  }
+  curveError.value = editor.updateSelectedCurve({ [field.key]: value })
+  if (curveError.value) input.value = curveValueOf(field)
 }
 
 /** @param {string} role */
@@ -156,8 +218,33 @@ function blurTarget(event) {
         {{ profile.kind === 'polyline' ? `${profile.pointsMm.length} points · ${isClosed(profile) ? 'closed' : 'open — not part of the solid'}` : '' }}
       </p>
 
+      <!-- Edit curve (TODO/sketch-008): a curve outline's own numbers regenerate its points. -->
+      <template v-if="curve">
+        <p class="profile__note" data-testid="inspector-sketch-curve-name">{{ describeCurve(curve) }}</p>
+        <dl class="profile__fields" data-testid="inspector-sketch-curve">
+          <template v-for="field in curveFields" :key="field.key">
+            <dt>{{ field.label }}<span v-if="field.unit" class="profile__unit"> ({{ field.unit }})</span></dt>
+            <dd>
+              <input
+                class="profile__input"
+                type="text"
+                :inputmode="field.text ? 'numeric' : 'decimal'"
+                :data-testid="`inspector-sketch-curve-${field.key}`"
+                :value="curveValueOf(field)"
+                @change="commitCurve(field, $event)"
+                @keydown.enter.prevent="blurTarget"
+              />
+            </dd>
+          </template>
+        </dl>
+        <p v-if="curveError" class="profile__note profile__note--warn" data-testid="inspector-sketch-curve-error" role="alert">{{ curveError }}</p>
+        <button type="button" class="profile__action" data-testid="inspector-sketch-convert" @click="editor.convertSelectedToOutline()">
+          Convert to outline
+        </button>
+        <p class="profile__note">Its points follow the curve. Convert to outline to drag them one by one — the curve's numbers are then dropped.</p>
+      </template>
       <!-- Points (TODO/sketch-002). -->
-      <template v-if="profile.kind !== 'polyline'">
+      <template v-else-if="profile.kind !== 'polyline'">
         <button type="button" class="profile__action" data-testid="inspector-sketch-convert" @click="editor.convertSelectedToOutline()">
           Convert to outline
         </button>

@@ -171,3 +171,47 @@ describe('the create tool', () => {
     expect(result.scene.bodies.map((/** @type {any} */ body) => body.id)).toEqual(['cuboid-1', 'cone-3'])
   })
 })
+
+describe('create — a sketch from a curve spec (TODO/sketch-008)', () => {
+  it('samples a curve profile into a closed polyline that keeps its source, and builds a lofted wing', () => {
+    const document = createDocument()
+    const tools = createToolRegistry()
+    const wing = {
+      slices: [
+        { id: 's1', zMm: 0, profiles: [{ id: 'root', kind: 'curve', role: 'solid', curve: 'naca4', params: { code: '2412', chordMm: 120, points: 80 }, atMm: [0, 0] }] },
+        {
+          id: 's2',
+          zMm: 200,
+          offsetMm: [30, 0],
+          rotateDeg: -2,
+          profiles: [{ id: 'tip', kind: 'curve', role: 'solid', curve: 'naca4', params: { code: '2412', chordMm: 70, points: 60 }, atMm: [0, 0] }],
+        },
+      ],
+      extrusion: { method: 'loft', resolution: 0 },
+    }
+    const result = /** @type {any} */ (tools.run(makeContext({ document }), 'create', { op: 'primitive.sketch', positionMm: [0, 0, 0], params: wing }))
+    expect(result.error).toBeUndefined()
+    expect(result.reason).toBeUndefined()
+    const record = /** @type {any} */ (document.entries[0].record)
+    const root = record.params.slices[0].profiles[0]
+    expect(root.kind).toBe('polyline')
+    expect(root.closed).toBe(true)
+    expect(root.pointsMm).toHaveLength(80)
+    expect(root.source).toEqual({ curve: 'naca4', params: { code: '2412', chordMm: 120, points: 80 }, atMm: [0, 0] })
+    expect(record.params.slices[1].offsetMm).toEqual([30, 0])
+    expect(record.params.slices[1].rotateDeg).toBe(-2)
+  })
+
+  it('refuses a bad curve by naming the field, and writes nothing', () => {
+    const document = createDocument()
+    const tools = createToolRegistry()
+    const bad = {
+      slices: [{ id: 's1', zMm: 0, profiles: [{ id: 'p', kind: 'curve', role: 'solid', curve: 'naca4', params: { code: '2412', chordMm: 0 } }] }],
+      extrusion: { method: 'linear', heightMm: 5 },
+    }
+    const result = /** @type {any} */ (tools.run(makeContext({ document }), 'create', { op: 'primitive.sketch', positionMm: [0, 0, 0], params: bad }))
+    expect(result.reason ?? result.error).toMatch(/chordMm/)
+    expect(document.entries).toHaveLength(0)
+  })
+})
+

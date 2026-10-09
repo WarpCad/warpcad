@@ -16,6 +16,7 @@
  * deliberately.
  *
  * Contents, in order: **Select** (an arrow — it never draws) and the four drawing tools;
+ * **Curve ▾** (`TODO/sketch-008`), which opens the Curve sheet — its Place arms a placement drag;
  * the **Hole** toggle and **Delete** (a trash can) for the selected outline, both disabled
  * until exactly one outline is picked (`TODO/sketch-005`) — Delete removes the picked
  * *point* instead when one is picked (`TODO/sketch-002`); **Slices** and **Extrude ▾**, which open their panels (a bottom sheet on a
@@ -131,6 +132,19 @@ function onSides(event) {
 
       <button
         type="button"
+        class="sketch-toolbar__btn"
+        :class="{ 'sketch-toolbar__btn--open': editor.panel === 'curve', 'sketch-toolbar__btn--on': editor.tool === 'curve' }"
+        :aria-expanded="editor.panel === 'curve'"
+        aria-label="Curve"
+        title="Curve — an airfoil, an ellipse, or a smooth spline through an outline's points"
+        data-testid="sketch-tool-curve"
+        @click="editor.togglePanel('curve')"
+      >
+        Curve ▾
+      </button>
+
+      <button
+        type="button"
         class="sketch-toolbar__btn sketch-toolbar__btn--snap"
         :class="{ 'sketch-toolbar__btn--snap-on': editor.snapEnabled }"
         :aria-pressed="editor.snapEnabled"
@@ -243,6 +257,9 @@ function onSides(event) {
     </div>
     <p v-if="editor.chainLive && editor.tool === 'line'" class="sketch-toolbar__status sketch-toolbar__status--info" data-testid="sketch-chain-hint" role="status">
       Click to add a point · Esc to finish · click the first point to close
+    </p>
+    <p v-if="editor.tool === 'curve' && editor.pendingCurve" class="sketch-toolbar__status sketch-toolbar__status--info" data-testid="sketch-curve-hint" role="status">
+      Drag to place the {{ editor.pendingCurve.curve === 'naca4' ? 'airfoil — its leading edge follows the pointer' : 'ellipse — its centre follows the pointer' }}; release to drop it
     </p>
     <p v-if="editor.selectionStatus" class="sketch-toolbar__selection" data-testid="sketch-selection-status" role="status">
       {{ editor.selectionStatus }}

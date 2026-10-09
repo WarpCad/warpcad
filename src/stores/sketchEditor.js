@@ -33,6 +33,7 @@ import { traceImage } from '../sketch/imageClient.js'
 import { useDocumentStore } from './document.js'
 
 import { simplifyPoints } from '../sketch/simplify.js'
+import { CurveParamError, curvePoints, describeCurve } from '../sketch/curves.js'
 import {
   EXTRUSION_METHODS,
   addProfile,
@@ -52,6 +53,7 @@ import {
   replaceProfile,
   setRole,
   setSliceZ,
+  setSliceTransform,
   sketchProblem,
   withExtrusionParam,
   withMethod,
@@ -59,8 +61,15 @@ import {
 
 /** @typedef {import('../sketch/profile.js').SketchParams} SketchParams */
 /** @typedef {import('../sketch/profile.js').Profile} Profile */
-/** @typedef {'select' | 'line' | 'rect' | 'circle' | 'polygon'} SketchTool */
-/** @typedef {'' | 'slices' | 'extrude'} SketchPanel */
+/**
+ * `curve` is armed by the Curve sheet's **Place** (`TODO/sketch-008`), never by a toolbar
+ * button of its own, so it is not in {@link SKETCH_TOOLS}.
+ *
+ * @typedef {'select' | 'line' | 'rect' | 'circle' | 'polygon' | 'curve'} SketchTool
+ */
+/** @typedef {'' | 'slices' | 'extrude' | 'curve'} SketchPanel */
+/** @typedef {import('../sketch/curves.js').CurveSource} CurveSource */
+/** @typedef {Omit<CurveSource, 'atMm'>} CurveSpec A curve waiting to be placed. */
 /** @typedef {import('../sketch/imageAsset.js').ImageAssetRecord} ImageAssetRecord */
 /** @typedef {import('../sketch/calibration.js').ImagePlacement} ImagePlacement */
 /** @typedef {import('../sketch/calibration.js').LengthUnit} LengthUnit */
@@ -126,8 +135,13 @@ export const useSketchEditorStore = defineStore('sketchEditor', () => {
    * off for that one gesture without touching this.
    */
   const snapEnabled = ref(true)
-  /** Which of the Slices / Extrude panels is open — one at a time. */
+  /** Which of the Slices / Extrude / Curve panels is open — one at a time. */
   const panel = ref(/** @type {SketchPanel} */ (''))
+  /**
+   * The curve the Curve sheet armed, waiting for its placement drag (`TODO/sketch-008`), or
+   * `null`. Only meaningful while `tool` is `curve`.
+   */
+  const pendingCurve = shallowRef(/** @type {CurveSpec | null} */ (null))
   /** The open Line chain being extended, or `''` (it has at least one segment). */
   const chainId = ref('')
   /**
@@ -236,6 +250,7 @@ export const useSketchEditorStore = defineStore('sketchEditor', () => {
     if (profile.kind === 'rect') return `Rectangle, ${role} — ${mm(profile.widthMm)} × ${mm(profile.heightMm)} mm`
     if (profile.kind === 'polygon') return `Polygon, ${role} — ${profile.sides} sides, ${mm(profile.radiusMm)} mm radius`
     const count = profile.pointsMm.length
+    if (profile.source) return `${describeCurve(profile.source)}, ${role} — ${count} points`
     const point = selectedVertexMm.value ? ` · point ${selectedVertex.value + 1} selected` : ''
     return `${isClosed(profile) ? 'Closed' : 'Open'} outline, ${role} — ${count} point${count === 1 ? '' : 's'}${point}`
   })
@@ -320,6 +335,8 @@ export const useSketchEditorStore = defineStore('sketchEditor', () => {
     selectedVertex.value = -1
     hoverVertex.value = -1
     panel.value = ''
+    pendingCurve.value = null
+    if (tool.value === 'curve') tool.value = 'select'
     chainId.value = ''
     chainStartMm.value = null
     previewStatus.value = 'idle'
@@ -340,6 +357,8 @@ export const useSketchEditorStore = defineStore('sketchEditor', () => {
     selectedVertex.value = -1
     hoverVertex.value = -1
     panel.value = ''
+    pendingCurve.value = null
+    if (tool.value === 'curve') tool.value = 'select'
     chainId.value = ''
     chainStartMm.value = null
     previewStatus.value = 'idle'
@@ -635,10 +654,13 @@ export const useSketchEditorStore = defineStore('sketchEditor', () => {
 
   // --- points of the selected outline (TODO/sketch-002) ----------------------
 
-  /** The selected outline if it is a polyline — the only kind with points to edit. */
+  /**
+   * The selected outline if it is a polyline with free points — the only kind with points to
+   * edit. A curve's outline (`source` set) follows its curve until Convert to outline.
+   */
   function selectedPolyline() {
     const profile = selectedProfile.value
-    return profile && profile.kind === 'polyline' ? profile : null
+    return profile && profile.kind === 'polyline' && !profile.source ? profile : null
   }
 
   /**
@@ -696,7 +718,7 @@ export const useSketchEditorStore = defineStore('sketchEditor', () => {
   /** **Convert to outline**: the selected rectangle, circle or polygon becomes a polyline. */
   function convertSelectedToOutline() {
     const profile = selectedProfile.value
-    if (!profile || profile.kind === 'polyline') return
+    if (!profile || (profile.kind === 'polyline' && !profile.source)) return
     replaceInActiveSlice(convertToOutline(profile))
     selectedVertex.value = -1
     if (chainId.value === profile.id) endChain()
@@ -833,10 +855,112 @@ export const useSketchEditorStore = defineStore('sketchEditor', () => {
     return 'none'
   }
 
+  // --- curves (TODO/sketch-008) ----------------------------------------------
+
+  /** @param {unknown} error */
+  function curveErrorText(error) {
+    if (error instanceof CurveParamError) return error.message.replace(/^[a-zA-Z0-9]+: /, '')
+    return error instanceof Error ? error.message : String(error)
+  }
+
+  /**
+   * The Curve sheet's **Place**: check the curve, then arm its placement drag — the outline
+   * follows the pointer and lands where the drag is released (CLAUDE.md's placement rule).
+   *
+   * @param {CurveSpec} spec
+   * @returns {{ ok: true } | { ok: false, field: string, message: string }}
+   */
+  function armCurve(spec) {
+    try {
+      curvePoints({ ...spec, atMm: [0, 0] })
+    } catch (error) {
+      return { ok: false, field: error instanceof CurveParamError ? error.field : '', message: curveErrorText(error) }
+    }
+    setTool('curve')
+    pendingCurve.value = { curve: spec.curve, params: { ...spec.params } }
+    panel.value = ''
+    return { ok: true }
+  }
+
+  /**
+   * The armed curve's outline with its origin at `atMm` — the placement preview.
+   *
+   * @param {readonly number[]} atMm
+   * @returns {import('../sketch/profile.js').Vec2Mm[]}
+   */
+  function curvePreviewPoints(atMm) {
+    const spec = pendingCurve.value
+    if (!spec) return []
+    return curvePoints({ ...spec, atMm: [atMm[0], atMm[1]] })
+  }
+
+  /**
+   * Drop the armed curve with its origin at `atMm`: one closed Solid outline carrying its
+   * `source`, selected (so the status line names it and the Inspector offers its numbers), and
+   * the Select tool back.
+   *
+   * @param {readonly number[]} atMm
+   * @returns {string} The new outline's id, or `''` with no curve armed.
+   */
+  function placeCurve(atMm) {
+    const spec = pendingCurve.value
+    if (!spec || !Number.isFinite(atMm[0]) || !Number.isFinite(atMm[1])) return ''
+    /** @type {CurveSource} */
+    const source = { curve: spec.curve, params: { ...spec.params }, atMm: [atMm[0], atMm[1]] }
+    const id = nextProfileId()
+    addToActiveSlice({ id, kind: 'polyline', role: 'solid', closed: true, pointsMm: curvePoints(source), source })
+    pendingCurve.value = null
+    setTool('select')
+    selectProfile(id)
+    return id
+  }
+
+  /**
+   * **Edit curve**: change the selected curve outline's numbers and regenerate its points in
+   * place (same id, role and placement).
+   *
+   * @param {Record<string, any>} change Params to merge over the current ones.
+   * @returns {string} Why it was refused (naming the field), or `''`.
+   */
+  function updateSelectedCurve(change) {
+    const profile = selectedProfile.value
+    if (!profile || profile.kind !== 'polyline' || !profile.source) return 'Pick a curve outline first'
+    const source = { ...profile.source, params: { ...profile.source.params, ...change } }
+    try {
+      replaceInActiveSlice({ ...profile, pointsMm: curvePoints(source), source })
+      return ''
+    } catch (error) {
+      return curveErrorText(error)
+    }
+  }
+
+  /**
+   * **Spline through points**: the selected plain outline becomes a smooth closed spline
+   * through its own points (a curve outline whose source keeps those points).
+   *
+   * @param {number} [samplesPerSegment]
+   * @returns {string} Why it was refused, or `''`.
+   */
+  function splineSelected(samplesPerSegment = 8) {
+    const profile = selectedPolyline()
+    if (!profile || !profile.closed || profile.pointsMm.length < 3) return 'Pick a closed outline of 3 or more points with Select first'
+    /** @type {CurveSource} */
+    const source = { curve: 'spline', params: { controlPointsMm: profile.pointsMm.map((p) => [p[0], p[1]]), samplesPerSegment }, atMm: [0, 0] }
+    try {
+      replaceInActiveSlice({ ...profile, pointsMm: curvePoints(source), source })
+    } catch (error) {
+      return curveErrorText(error)
+    }
+    selectedVertex.value = -1
+    hoverVertex.value = -1
+    return ''
+  }
+
   /** @param {SketchTool} next */
   function setTool(next) {
     // Leaving Line ends its chain: an open one stays in the draft, a lone start point goes.
     endChain()
+    if (next !== 'curve') pendingCurve.value = null
     // Picking a tool means drawing, not measuring: an armed Set scale stands down.
     cancelScale()
     tool.value = next
@@ -882,6 +1006,16 @@ export const useSketchEditorStore = defineStore('sketchEditor', () => {
   /** @param {number} index @param {number} zMm */
   function setSliceOffset(index, zMm) {
     setDraft(setSliceZ(draft.value, index, zMm))
+  }
+
+  /**
+   * A slice's **Offset** and **Twist** (`TODO/sketch-008`).
+   *
+   * @param {number} index
+   * @param {{ offsetMm?: readonly number[], rotateDeg?: number }} change
+   */
+  function setSliceTransformOf(index, change) {
+    setDraft(setSliceTransform(draft.value, index, change))
   }
 
   /** @param {import('../sketch/profile.js').ExtrusionMethod} method */
@@ -961,10 +1095,18 @@ export const useSketchEditorStore = defineStore('sketchEditor', () => {
     deleteActiveSlice,
     setActiveSlice,
     setSliceOffset,
+    setSliceTransformOf,
     setMethod,
     setExtrusionParam,
     togglePanel,
     toggleSnap,
+    // TODO/sketch-008
+    pendingCurve,
+    armCurve,
+    curvePreviewPoints,
+    placeCurve,
+    updateSelectedCurve,
+    splineSelected,
     // TODO/sketch-003
     assetsVersion,
     imageImporting,

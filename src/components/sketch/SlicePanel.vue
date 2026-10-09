@@ -9,6 +9,10 @@
  * to make it the active slice — the one new strokes go onto and the one the camera looks
  * at. Inactive slices draw ghosted in the viewport so the stack stays visible.
  *
+ * Under each row, the slice's **Offset** (X, Y mm) and **Twist** (°) (`TODO/sketch-008`): the
+ * whole slice shifted and turned about its own origin in the built body — a wing tip swept back
+ * and washed out without redrawing it. The editor keeps drawing the slice untransformed.
+ *
  * Under the list, the active slice's **Reference image** group (`TODO/sketch-003`); each
  * row carries its photo's badge — *Not to scale* until Set scale is applied — or says the
  * photo was removed because a load could not verify it as a safe image.
@@ -31,6 +35,35 @@ function commitZ(index, event) {
   }
   editor.setSliceOffset(index, parsed)
   if (index === editor.activeSlice) emit('activate', index)
+}
+
+/**
+ * @param {number} index
+ * @param {'x' | 'y' | 'twist'} which
+ * @param {Event} event
+ */
+function commitTransform(index, which, event) {
+  const input = /** @type {HTMLInputElement} */ (event.target)
+  const slice = editor.draft.slices[index]
+  const parsed = parseNumeric(input.value)
+  if (parsed === null) {
+    input.value = transformValue(slice, which)
+    return
+  }
+  if (which === 'twist') editor.setSliceTransformOf(index, { rotateDeg: parsed })
+  else {
+    const [x, y] = slice.offsetMm ?? [0, 0]
+    editor.setSliceTransformOf(index, { offsetMm: which === 'x' ? [parsed, y] : [x, parsed] })
+  }
+}
+
+/**
+ * @param {import('../../sketch/profile.js').Slice} slice
+ * @param {'x' | 'y' | 'twist'} which
+ */
+function transformValue(slice, which) {
+  if (which === 'twist') return formatMmValue(slice.rotateDeg ?? 0)
+  return formatMmValue((slice.offsetMm ?? [0, 0])[which === 'x' ? 0 : 1])
 }
 
 /** @param {number} index */
@@ -101,6 +134,46 @@ function remove() {
           />
           <span class="slices__unit">mm</span>
         </label>
+        <div class="slices__transform">
+          <label class="slices__z">
+            <span>Offset X</span>
+            <input
+              type="text"
+              inputmode="decimal"
+              :aria-label="`Slice ${index + 1} offset X in millimetres`"
+              :data-testid="`sketch-slice-offset-x-${index}`"
+              :value="transformValue(slice, 'x')"
+              @change="commitTransform(index, 'x', $event)"
+              @keydown.enter.prevent="blurTarget"
+            />
+          </label>
+          <label class="slices__z">
+            <span>Y</span>
+            <input
+              type="text"
+              inputmode="decimal"
+              :aria-label="`Slice ${index + 1} offset Y in millimetres`"
+              :data-testid="`sketch-slice-offset-y-${index}`"
+              :value="transformValue(slice, 'y')"
+              @change="commitTransform(index, 'y', $event)"
+              @keydown.enter.prevent="blurTarget"
+            />
+            <span class="slices__unit">mm</span>
+          </label>
+          <label class="slices__z">
+            <span>Twist</span>
+            <input
+              type="text"
+              inputmode="decimal"
+              :aria-label="`Slice ${index + 1} twist in degrees`"
+              :data-testid="`sketch-slice-twist-${index}`"
+              :value="transformValue(slice, 'twist')"
+              @change="commitTransform(index, 'twist', $event)"
+              @keydown.enter.prevent="blurTarget"
+            />
+            <span class="slices__unit">°</span>
+          </label>
+        </div>
       </li>
     </ol>
     <div class="slices__actions">
@@ -138,6 +211,7 @@ function remove() {
 
 .slices__row {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 8px;
   padding: 2px;
@@ -210,6 +284,18 @@ function remove() {
   background: var(--surface-0);
   color: var(--text-1);
   font-size: 13px;
+}
+
+.slices__transform {
+  flex: 1 0 100%;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding-left: 8px;
+}
+
+.slices__transform input {
+  width: 52px;
 }
 
 .slices__unit {

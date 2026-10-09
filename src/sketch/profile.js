@@ -71,6 +71,10 @@
  * @property {Vec2Mm[]} pointsMm
  * @property {boolean} closed An open chain is kept (and drawn as a warning) but is
  *   never part of the solid.
+ * @property {import('./curves.js').CurveSource} [source] Which curve made these points
+ *   (`TODO/sketch-008`) — provenance, not geometry: the kernel reads `pointsMm` alone. While
+ *   it is set the points follow the curve and are not edited one by one; **Convert to
+ *   outline** drops it.
  */
 /** @typedef {CircleProfile | RectProfile | PolygonProfile | PolylineProfile} Profile */
 
@@ -81,6 +85,11 @@
  * @property {Profile[]} profiles
  * @property {Record<string, any>} [image] Reserved for a reference photo
  *   (`TODO/sketch-003`). Never geometry: the registry ignores it.
+ * @property {Vec2Mm} [offsetMm] Shift of the whole slice in its own plane, applied after
+ *   `rotateDeg` (`TODO/sketch-008`) — a wing tip swept back without redrawing it.
+ * @property {number} [rotateDeg] Turn of the whole slice about its own origin,
+ *   counter-clockwise seen from +Z (`TODO/sketch-008`) — a wing tip's washout. The editor
+ *   draws a slice's outlines untransformed; the body is built with them applied.
  */
 
 /** @typedef {'linear' | 'revolve' | 'helical' | 'outline' | 'loft'} ExtrusionMethod */
@@ -131,6 +140,13 @@ const MAX_SLICES = 64
 export const MAX_PROFILES_PER_SLICE = 256
 const MAX_POLYLINE_POINTS = 4096
 const MAX_POLYGON_SIDES = 256
+
+/**
+ * The curves a polyline's `source` may name — `src/sketch/curves.js`'s `CURVE_KINDS`, repeated
+ * here so this module stays importable without the curve maths; `profile.spec.js` would fail
+ * on a drift through the validation cases.
+ */
+const SOURCE_CURVES = Object.freeze(['naca4', 'ellipse', 'spline'])
 
 /** Tolerance, in mm², below which an outline encloses nothing. */
 const AREA_EPS_MM2 = 1e-9
@@ -400,8 +416,10 @@ export function methodProblem(params, method) {
   const label = method.charAt(0).toUpperCase() + method.slice(1)
   if (count !== 1) return `${label} uses one slice — remove the others or pick Loft`
   if (method === 'revolve' || method === 'helical') {
-    const region = regionOf(onlySlice(params), 32)
-    const crosses = region.steps.some((step) => step.pointsMm.some((point) => point[0] < -1e-9))
+    const slice = onlySlice(params)
+    const region = regionOf(slice, 32)
+    // Judged where the body is built: after the slice's own offset and twist (TODO/sketch-008).
+    const crosses = region.steps.some((step) => sliceTransformMm(slice, step.pointsMm).some((point) => point[0] < -1e-9))
     if (crosses) return `${label} spins around the sketch’s Y axis — keep every outline on the +X side of the axis`
   }
   return null
@@ -452,8 +470,10 @@ function profileShapeProblem(where, profile) {
     }
     if (!profile.pointsMm.every(isVec2)) return `${where}.pointsMm holds a point that is not two finite millimetre values`
     if (typeof profile.closed !== 'boolean') return `${where}.closed must be true or false`
+    if (profile.source !== undefined) return sourceProblem(`${where}.source`, profile.source)
     return null
   }
+  if (profile.source !== undefined) return `${where}.source is only for outlines (polylines)`
   if (!isVec2(profile.centerMm)) return `${where}.centerMm must be two finite millimetre values`
   const numbers = profile.kind === 'rect' ? ['widthMm', 'heightMm'] : profile.kind === 'polygon' ? ['radiusMm', 'sides', 'rotationDeg'] : ['radiusMm']
   for (const key of numbers) {
@@ -463,6 +483,24 @@ function profileShapeProblem(where, profile) {
   if (profile.kind === 'polygon' && !(Number.isInteger(profile.sides) && profile.sides >= 3 && profile.sides <= MAX_POLYGON_SIDES)) {
     return `${where}.sides must be a whole number from 3 to ${MAX_POLYGON_SIDES}`
   }
+  return null
+}
+
+/**
+ * Why a polyline's curve `source` is malformed, or `null`. Shape only: the points are what
+ * gets built, so a source whose numbers no longer match them is stale, not dangerous.
+ *
+ * @param {string} where
+ * @param {unknown} source
+ * @returns {string | null}
+ */
+function sourceProblem(where, source) {
+  if (source === null || typeof source !== 'object' || Array.isArray(source)) return `${where} must be an object`
+  const value = /** @type {Record<string, any>} */ (source)
+  if (!SOURCE_CURVES.includes(value.curve)) return `${where}.curve ${JSON.stringify(value.curve)} is not one of ${SOURCE_CURVES.join(', ')}`
+  if (value.params === null || typeof value.params !== 'object' || Array.isArray(value.params)) return `${where}.params must be an object`
+  if (JSON.stringify(value.params).length > 64 * 1024) return `${where}.params is too large`
+  if (!isVec2(value.atMm)) return `${where}.atMm must be two finite millimetre values`
   return null
 }
 
@@ -493,6 +531,8 @@ export function validateSketchParams(params) {
     if (slice === null || typeof slice !== 'object' || Array.isArray(slice)) return `${where} is not an object`
     if (typeof slice.id !== 'string' || slice.id === '') return `${where} has no id`
     if (!isFiniteNumber(slice.zMm)) return `${where}.zMm must be a finite number`
+    if (slice.offsetMm !== undefined && !isVec2(slice.offsetMm)) return `${where}.offsetMm must be two finite millimetre values`
+    if (slice.rotateDeg !== undefined && !isFiniteNumber(slice.rotateDeg)) return `${where}.rotateDeg must be a finite number of degrees`
     if (!Array.isArray(slice.profiles) || slice.profiles.length > MAX_PROFILES_PER_SLICE) {
       return `${where}.profiles must be a list of at most ${MAX_PROFILES_PER_SLICE} outlines`
     }
@@ -629,6 +669,54 @@ export function setSliceZ(params, sliceIndex, zMm) {
 }
 
 /**
+ * Set a slice's in-plane **Offset** and/or **Twist** (`TODO/sketch-008`). A key left out keeps
+ * its current value; a zero offset and zero twist are stored as absent, so an untouched slice
+ * stays byte-for-byte what sketch-001 wrote.
+ *
+ * @param {SketchParams} params
+ * @param {number} sliceIndex
+ * @param {{ offsetMm?: readonly number[], rotateDeg?: number }} change
+ * @returns {SketchParams}
+ */
+export function setSliceTransform(params, sliceIndex, change) {
+  if (change.offsetMm !== undefined && !isVec2([change.offsetMm[0], change.offsetMm[1]])) {
+    throw new Error('sketch: a slice offset must be two finite millimetre values')
+  }
+  if (change.rotateDeg !== undefined && !isFiniteNumber(change.rotateDeg)) {
+    throw new Error('sketch: a slice twist must be a finite number of degrees')
+  }
+  return mapSlice(params, sliceIndex, (slice) => {
+    const { offsetMm: oldOffset, rotateDeg: oldTwist, ...rest } = slice
+    const offset = change.offsetMm !== undefined ? [change.offsetMm[0], change.offsetMm[1]] : oldOffset
+    const twist = change.rotateDeg !== undefined ? change.rotateDeg : oldTwist
+    /** @type {Slice} */
+    const next = { ...rest }
+    if (offset && (offset[0] !== 0 || offset[1] !== 0)) next.offsetMm = /** @type {Vec2Mm} */ (offset)
+    if (twist) next.rotateDeg = twist
+    return next
+  })
+}
+
+/**
+ * A slice's points as the body is built from them: turned `rotateDeg` about the slice origin,
+ * then shifted by `offsetMm` — both in the slice's own plane, millimetres in and out. Returns
+ * the input array itself for a slice with neither, so the common case costs nothing.
+ *
+ * @param {Slice} slice
+ * @param {Vec2Mm[]} pointsMm
+ * @returns {Vec2Mm[]}
+ */
+export function sliceTransformMm(slice, pointsMm) {
+  const [dx, dy] = slice.offsetMm ?? [0, 0]
+  const turnDeg = slice.rotateDeg ?? 0
+  if (dx === 0 && dy === 0 && turnDeg === 0) return pointsMm
+  const turnRad = (turnDeg * Math.PI) / 180
+  const cos = Math.cos(turnRad)
+  const sin = Math.sin(turnRad)
+  return pointsMm.map((point) => /** @type {Vec2Mm} */ ([point[0] * cos - point[1] * sin + dx, point[0] * sin + point[1] * cos + dy]))
+}
+
+/**
  * Switch extrusion method, starting from that method's defaults.
  *
  * @param {SketchParams} params
@@ -672,6 +760,7 @@ function editablePolyline(profile) {
   if (profile.kind !== 'polyline') {
     throw new Error(`sketch: a ${profile.kind === 'rect' ? 'rectangle' : profile.kind} has no free points — Convert to outline first`)
   }
+  if (profile.source) throw new Error('sketch: this outline’s points follow its curve — Convert to outline first to edit them one by one')
   return profile
 }
 
@@ -743,6 +832,7 @@ export function insertVertex(profile, segmentIndex, pointMm) {
  */
 export function deleteVertexProblem(profile) {
   if (profile.kind !== 'polyline') return 'This shape has no free points — tap Convert to outline first'
+  if (profile.source) return 'This outline’s points follow its curve — tap Convert to outline first'
   if (profile.closed && profile.pointsMm.length <= 3) return 'An outline needs at least 3 points'
   if (!profile.closed && profile.pointsMm.length <= 2) return 'A line needs at least 2 points'
   return null
@@ -769,13 +859,19 @@ export function deleteVertex(profile, index) {
  * Keeps the id and role, so the selection, the Hole flag and the draft's order all survive.
  * A rectangle gives its 4 corners, a polygon its corners exactly, a circle
  * {@link OUTLINE_CIRCLE_POINTS} points on its rim — counter-clockwise, like
- * {@link toPointsMm}. A polyline is returned unchanged.
+ * {@link toPointsMm}. A curve's outline keeps its points and loses its `source`; any other
+ * polyline is returned unchanged.
  *
  * @param {Profile} profile
  * @returns {PolylineProfile}
  */
 export function convertToOutline(profile) {
-  if (profile.kind === 'polyline') return profile
+  if (profile.kind === 'polyline') {
+    if (!profile.source) return profile
+    // A curve's outline becomes a plain one: the same points, now free (TODO/sketch-008).
+    const { source: _source, ...plain } = profile
+    return plain
+  }
   if (!isClosed(profile)) throw new Error('sketch: this outline encloses nothing — there is nothing to convert')
   return {
     id: profile.id,

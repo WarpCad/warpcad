@@ -6,9 +6,37 @@ priority: high
 model: opus
 milestone: M9
 depends: [sketch-001]
-status: open
+status: done
 ---
 
+
+> **What actually shipped.** The design landed as written, with these differences and
+> additions:
+>
+> - **The spec's NACA thickness constant was wrong.** "0.12 × 0.594689 × chord" at 30 %
+>   chord is not the NACA 0012 half-thickness; the correct value is 0.12 × 1.00029 × chord.
+>   The unit test asserts the correct number, and the Testing bullet below is corrected.
+> - **Spline through points** is implemented as *Smooth selected outline*: it needs exactly
+>   one closed outline picked and smooths it into a closed Catmull-Rom curve, greyed out
+>   with a reason otherwise. It does not start a new point-by-point drawing mode.
+> - **Edit curve is the Inspector's numbers** (`inspector-sketch-curve-*`), regenerating the
+>   outline in place; **Convert to outline** drops the provenance and makes the points
+>   draggable (sketch-002).
+> - **Twist pivots about the slice origin** (an airfoil placed on the origin turns about its
+>   leading edge); positive is
+>   counter-clockwise seen from above.
+> - **Loft correspondence** (`resample.js`): every outline starts at the trailing edge and
+>   slices share arc-length stations, which is what keeps two airfoils from skinning into a
+>   twisted shape. A 180-degree start mismatch is covered by a unit spec.
+> - The `curve` outline kind is accepted by the AI `create` tool, validated by the same
+>   caps as raw points.
+> - **Side effect found by the drive**: the taller Slices card puts the Reference image
+>   buttons below the fold at 1440x900 (the card scrolls). Two docs movie specs now scroll
+>   them into view; four docs screenshots were re-taken (toolbar's Curve button, Offset and
+>   Twist rows). No UI change was made for it.
+> - Docs: `docs/sketch-mode.md` (*Curves and airfoils*, *Tapered and twisted lofts*) with
+>   `e2e/docs/sketch-airfoil.docs.js` producing `sketch-curve-sheet.png`,
+>   `sketch-airfoil-placed.png` and `sketch-slice-offset-twist.png`.
 ## Goal
 
 "Use the sketch tool to create an airfoil for a model plane wing" must be possible for a
@@ -79,7 +107,7 @@ L. The loft-vertex-correspondence part is where airfoils go wrong: budget for it
 
 ## Testing
 
-- **Unit**: NACA 0012 thickness at 30 % chord is 0.12 × 0.594689 × chord to `toBeCloseTo`;
+- **Unit**: NACA 0012 half-thickness at 30 % chord is 0.12 × 1.00029 × chord to `toBeCloseTo` (the original 0.594689 constant was wrong; see the note at the top);
   NACA 2412 max camber is 2 % at 40 %; point 0 is the trailing edge; winding is CCW; closed
   TE; `points: 3`, `chordMm: 0`, code `'abcd'`, negative chord → named errors. Loft: two
   airfoils with different point counts, a 180° start-vertex mismatch (must not self-intersect

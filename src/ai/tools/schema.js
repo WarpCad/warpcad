@@ -64,6 +64,7 @@
 import { labelForParam } from '../../core/inspector.js'
 import { paramOptions, registry as kernelRegistry } from '../../core/kernel/registry.js'
 import { EXTRUSION_DEFAULTS, EXTRUSION_METHODS, PROFILE_KINDS, PROFILE_ROLES } from '../../sketch/profile.js'
+import { CURVE_KINDS } from '../../sketch/curves.js'
 
 /**
  * A node of the closed subset.
@@ -548,6 +549,44 @@ const ROLE = /** @type {JsonSchema} */ ({
 })
 const ID = /** @type {JsonSchema} */ ({ type: 'string', description: 'An id unique within its slice, e.g. "p1".' })
 
+/**
+ * Each curve's own params (`src/sketch/curves.js`'s `curvePoints`), for a `curve` profile and
+ * for a polyline's `source` (`TODO/sketch-008`).
+ */
+const CURVE_PARAMS_SCHEMA = /** @type {JsonSchema} */ ({
+  anyOf: [
+    objectSchema(
+      {
+        code: { type: 'string', description: 'NACA 4-digit code, e.g. "2412": 2 % camber at 40 % chord, 12 % thick.' },
+        chordMm: { type: 'number', description: 'Chord, in millimetres. The leading edge sits at atMm and the chord runs along +X.' },
+        points: { type: 'integer', description: 'Outline point count, 8 or more (default 80; 256 at most for a Loft).' },
+        closedTrailingEdge: { type: 'boolean', description: 'Default true: a single sharp trailing-edge point.' },
+      },
+      ['code', 'chordMm'],
+      'naca4 params.'
+    ),
+    objectSchema(
+      {
+        radiusXMm: { type: 'number', description: 'Half-width along sketch X, in millimetres.' },
+        radiusYMm: { type: 'number', description: 'Half-height along sketch Y, in millimetres.' },
+        points: { type: 'integer', description: 'Outline point count, 3 or more (default 64).' },
+      },
+      ['radiusXMm', 'radiusYMm'],
+      'ellipse params; centred on atMm.'
+    ),
+    objectSchema(
+      {
+        controlPointsMm: { type: 'array', items: VEC2, description: 'Three or more points the closed spline passes through, relative to atMm.' },
+        samplesPerSegment: { type: 'integer', description: 'Points per span between control points (default 8).' },
+      },
+      ['controlPointsMm'],
+      'spline params: a smooth closed curve through the control points.'
+    ),
+  ],
+})
+const CURVE_NAME = /** @type {JsonSchema} */ ({ type: 'string', enum: [...CURVE_KINDS], description: 'naca4 (an airfoil), ellipse, or spline.' })
+const AT = vectorSchema(2, 'Where the curve’s own origin goes in the slice — an airfoil’s leading edge, an ellipse’s centre: [x, y] in millimetres.')
+
 /** @type {Record<string, JsonSchema>} */
 const PROFILE_SCHEMAS = {
   circle: objectSchema(
@@ -584,10 +623,26 @@ const PROFILE_SCHEMAS = {
       role: ROLE,
       pointsMm: { type: 'array', items: VEC2, description: 'The outline’s points in order; do not repeat the first point at the end.' },
       closed: { type: 'boolean', description: 'true for an outline that encloses area; an open chain is never part of the solid.' },
+      source: objectSchema(
+        { curve: CURVE_NAME, params: CURVE_PARAMS_SCHEMA, atMm: AT },
+        ['curve', 'params', 'atMm'],
+        'Which curve made these points, as a read returns it. To make a new curve, use a curve profile instead.'
+      ),
     },
     ['id', 'kind', 'role', 'pointsMm', 'closed']
   ),
 }
+
+/**
+ * A `curve` profile (`TODO/sketch-008`): shorthand the create tool samples into a closed
+ * polyline that keeps the curve as its `source`. Not a document kind — the sketch model never
+ * sees it.
+ */
+const CURVE_PROFILE_SCHEMA = objectSchema(
+  { id: ID, kind: { type: 'string', const: 'curve' }, role: ROLE, curve: CURVE_NAME, params: CURVE_PARAMS_SCHEMA, atMm: AT },
+  ['id', 'kind', 'role', 'curve', 'params'],
+  'A smooth closed outline from a formula — e.g. an airfoil: { kind: "curve", curve: "naca4", params: { code: "2412", chordMm: 120 } }. atMm defaults to [0, 0].'
+)
 
 /**
  * Extrusion params that are counts, not lengths or angles. Not exported by the sketch
@@ -624,7 +679,9 @@ export const SKETCH_PARAMS_SCHEMA = Object.freeze(
           {
             id: { type: 'string', description: 'A slice id, unique within the sketch, e.g. "s1".' },
             zMm: { type: 'number', description: 'Offset along the sketch’s local Z, in millimetres.' },
-            profiles: { type: 'array', items: { anyOf: PROFILE_KINDS.map((kind) => PROFILE_SCHEMAS[kind]) } },
+            offsetMm: vectorSchema(2, 'Optional: shift the whole slice in its plane, [x, y] in millimetres, after rotateDeg — a swept-back wing tip.'),
+            rotateDeg: { type: 'number', description: 'Optional: turn the whole slice about its origin, in degrees, counter-clockwise — a wing tip’s washout.' },
+            profiles: { type: 'array', items: { anyOf: [...PROFILE_KINDS.map((kind) => PROFILE_SCHEMAS[kind]), CURVE_PROFILE_SCHEMA] } },
           },
           ['id', 'zMm', 'profiles']
         ),

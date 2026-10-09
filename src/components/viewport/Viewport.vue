@@ -995,7 +995,8 @@ function clearSketchHandles() {
  */
 function syncSketchHandles() {
   const profile = sketchEditor.selectedProfile
-  if (sketchEditor.tool !== 'select' || !profile || profile.kind !== 'polyline' || profile.pointsMm.length === 0) {
+  // A curve's outline (`TODO/sketch-008`) has no free points until Convert to outline.
+  if (sketchEditor.tool !== 'select' || !profile || profile.kind !== 'polyline' || profile.source || profile.pointsMm.length === 0) {
     clearSketchHandles()
     return
   }
@@ -1354,6 +1355,11 @@ function draggedProfile() {
   if (sketchEditor.tool === 'circle') return circleFromDrag('draft', start, end)
   if (sketchEditor.tool === 'rect') return rectFromDrag('draft', start, end)
   if (sketchEditor.tool === 'polygon') return polygonFromDrag('draft', start, end, sketchEditor.polygonSides)
+  if (sketchEditor.tool === 'curve' && sketchEditor.pendingCurve) {
+    // The armed curve rides on the pointer: its origin (an airfoil's leading edge, an
+    // ellipse's centre) is wherever the drag is now — `TODO/sketch-008`'s placement rule.
+    return { id: 'draft', kind: /** @type {const} */ ('polyline'), role: /** @type {const} */ ('solid'), closed: true, pointsMm: sketchEditor.curvePreviewPoints(end) }
+  }
   return null
 }
 
@@ -1553,6 +1559,11 @@ function endSketchDrag(cancelled) {
     return
   }
   if (cancelled) return
+  if (sketchEditor.tool === 'curve') {
+    // A curve lands where the drag is released, wherever it started (`TODO/sketch-008`).
+    sketchEditor.placeCurve(end)
+    return
+  }
   // The degenerate case: a release that never really moved adds nothing at all.
   if (isDegenerate(start, end, SKETCH_MIN_LENGTH_PX * (orbit.getMmPerPixel(heightPx) || 1))) return
 

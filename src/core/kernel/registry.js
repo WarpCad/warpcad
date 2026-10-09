@@ -59,6 +59,7 @@ import {
   EXTRUSION_DEFAULTS as SKETCH_EXTRUSION_DEFAULTS,
   regionOf as sketchRegionOf,
   sketchProblem,
+  sliceTransformMm,
   validateSketchParams,
 } from '../../sketch/profile.js'
 import { loftRings } from '../../sketch/resample.js'
@@ -554,6 +555,29 @@ const SKETCH_GHOST_DEFAULTS = Object.freeze({
 })
 
 /**
+ * One slice's region as point lists, with the slice's own **Offset** and **Twist** applied
+ * (`TODO/sketch-008`) — the one place a slice transform reaches the kernel, so every
+ * extrusion method honours it the same way.
+ *
+ * @param {import('../../sketch/profile.js').Slice} slice
+ * @param {import('./tessellation.js').TessellationPolicy | undefined} policy
+ * @returns {import('../../sketch/profile.js').Region}
+ */
+function sketchSliceRegion(slice, policy) {
+  const region = sketchRegionOf(slice, (profile) =>
+    profile.kind === 'circle' ? segmentsFor(profile.radiusMm, policy) : 64
+  )
+  if (!slice.offsetMm && !slice.rotateDeg) return region
+  const steps = region.steps.map((step) => ({ ...step, pointsMm: sliceTransformMm(slice, step.pointsMm) }))
+  return {
+    ...region,
+    steps,
+    solids: steps.filter((step) => step.role === 'solid').map((step) => step.pointsMm),
+    holes: steps.filter((step) => step.role === 'hole').map((step) => step.pointsMm),
+  }
+}
+
+/**
  * One slice's region as a `geom2`: closed outlines applied largest first — a solid
  * unioned in, a hole subtracted — so a solid drawn inside a hole survives as an island.
  *
@@ -562,9 +586,7 @@ const SKETCH_GHOST_DEFAULTS = Object.freeze({
  * @returns {Geom2}
  */
 function sketchSliceGeom2(slice, policy) {
-  const region = sketchRegionOf(slice, (profile) =>
-    profile.kind === 'circle' ? segmentsFor(profile.radiusMm, policy) : 64
-  )
+  const region = sketchSliceRegion(slice, policy)
   /** @type {Geom2 | null} */
   let shape = null
   for (const step of region.steps) {
@@ -628,9 +650,7 @@ function buildSketch(params, policy) {
   } else if (method === 'outline') {
     // Each closed outline becomes a wall; Solid/Hole is deliberately ignored here — the
     // Extrude panel says so.
-    const walls = sketchRegionOf(first, (profile) =>
-      profile.kind === 'circle' ? segmentsFor(profile.radiusMm, policy) : 64
-    ).steps.map((step) =>
+    const walls = sketchSliceRegion(first, policy).steps.map((step) =>
       extrusions.extrudeRectangular(
         // `extrudeRectangular` expands the outline by `size` on *each* side, so the wall
         // it makes is twice `size` thick (read from extrudeRectangularGeom2.js, and
@@ -646,9 +666,7 @@ function buildSketch(params, policy) {
     const rings = loftRings(
       params.slices.map((/** @type {import('../../sketch/profile.js').Slice} */ slice) => ({
         zMm: slice.zMm,
-        pointsMm: sketchRegionOf(slice, (profile) =>
-          profile.kind === 'circle' ? segmentsFor(profile.radiusMm, policy) : 64
-        ).solids[0],
+        pointsMm: sketchSliceRegion(slice, policy).solids[0],
       })),
       options.resolution
     )

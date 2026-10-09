@@ -77,6 +77,8 @@ test.describe('docs media: tracing a photo', () => {
     await startMovie(page, 'sketch-trace-scale')
     await page.waitForTimeout(600)
     await page.mouse.move(atPx(900, 600).x, atPx(900, 600).y, { steps: 8 })
+    // The Slices card grew (Offset and Twist rows, TODO/sketch-008), so Set scale can sit below the fold.
+    await page.getByTestId('sketch-image-scale').scrollIntoViewIfNeeded()
     const scaleButton = await page.getByTestId('sketch-image-scale').boundingBox()
     await page.mouse.move(scaleButton.x + scaleButton.width / 2, scaleButton.y + scaleButton.height / 2, { steps: 14 })
     await page.waitForTimeout(300)

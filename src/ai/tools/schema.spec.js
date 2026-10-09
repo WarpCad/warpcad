@@ -219,7 +219,9 @@ describe('the hand-written sketch schema — and the spec that fails when the sk
   it('names exactly the sketch model’s profile kinds, roles and extrusion methods', () => {
     const profile = sliceProfileSchema()
     const kinds = (profile.anyOf ?? []).map((branch) => branch.properties?.kind?.const)
-    expect(kinds.sort()).toEqual([...PROFILE_KINDS].sort())
+    // Plus `curve` (TODO/sketch-008): an AI-only shorthand the create tool samples into a
+    // polyline carrying its `source`, so the document itself never holds that kind.
+    expect(kinds.sort()).toEqual([...PROFILE_KINDS, 'curve'].sort())
     for (const branch of profile.anyOf ?? []) expect(branch.properties?.role?.enum).toEqual([...PROFILE_ROLES])
     const extrusion = /** @type {JsonSchema} */ (SKETCH_PARAMS_SCHEMA.properties?.extrusion)
     const methods = (extrusion.anyOf ?? []).map((branch) => branch.properties?.method?.const)
@@ -257,3 +259,39 @@ function sliceProfileSchema() {
   const profiles = /** @type {JsonSchema} */ (slice.properties?.profiles)
   return /** @type {JsonSchema} */ (profiles.items)
 }
+
+describe('curves in the sketch schema (TODO/sketch-008)', () => {
+  it('accepts a curve profile, a polyline with its source, and a slice offset and twist', () => {
+    const params = {
+      slices: [
+        { id: 's1', zMm: 0, profiles: [{ id: 'p1', kind: 'curve', role: 'solid', curve: 'naca4', params: { code: '2412', chordMm: 120 }, atMm: [0, 0] }] },
+        {
+          id: 's2',
+          zMm: 200,
+          offsetMm: [30, 0],
+          rotateDeg: -2,
+          profiles: [
+            {
+              id: 'p2',
+              kind: 'polyline',
+              role: 'solid',
+              closed: true,
+              pointsMm: [[0, 0], [10, 0], [10, 10]],
+              source: { curve: 'ellipse', params: { radiusXMm: 5, radiusYMm: 3 }, atMm: [0, 0] },
+            },
+          ],
+        },
+      ],
+      extrusion: { method: 'loft' },
+    }
+    expect(checkInput(SKETCH_PARAMS_SCHEMA, params)).toEqual([])
+  })
+
+  it('refuses an unknown curve name', () => {
+    const params = {
+      slices: [{ id: 's1', zMm: 0, profiles: [{ id: 'p1', kind: 'curve', role: 'solid', curve: 'spiral', params: {} }] }],
+      extrusion: { method: 'linear' },
+    }
+    expect(checkInput(SKETCH_PARAMS_SCHEMA, params).length).toBeGreaterThan(0)
+  })
+})

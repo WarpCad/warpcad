@@ -1461,3 +1461,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** diff only (no cost numbers claimed; none measured this session)
 **To Add:** real token-cost comparison once a few batches have run under the new scheme
+
+## 2026-10-09T21:15:00Z — Curve tool: a NACA airfoil and a tapered, twisted wing from the sketch editor
+
+**Post:** WarpCad's sketch editor has a Curve tool now. Type NACA 2412 and a 120 mm chord, drag the airfoil into place, add a second slice with a 70 mm chord, 30 mm sweep and 2 degrees of washout, Loft. You get a 200 mm wing panel that exports as STL. Built with Claude Code, reviewed by me. #CAD #WebGL
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** Curve tool, Offset and Twist fields, 2412/120 recipe -> docs/sketch-mode.md and e2e/sketch-airfoil.e2e.js (loft volume within 2% of the frustum estimate, STL non-empty), e2e matrix 3083 passed / 0 failed this session; 200 mm span, 120 mm chord by finger at 390 px -> hand drive this session (bounds 0..200 in Z)
+**To Add:** the airfoil-placed and Slices-card screenshots from docs/screenshots

@@ -279,6 +279,69 @@ Under the rows, the **Reference image** group puts a photo on the active slice t
 over, and sets its real scale from a ruler in the photo. See
 [Tracing a photo](sketch-tracing.md).
 
+## Curves and airfoils
+
+Tap **Curve ▾** in the sketch toolbar to get a smooth outline from a formula instead of
+clicking hundreds of points. A small sheet opens (a bottom sheet on a phone) with three
+choices:
+
+- **Airfoil (NACA 4-digit)**: a wing section. Enter the four-digit **Code** (for example
+  `2412`), the **Chord** in mm (leading edge to trailing edge) and the number of **Points**.
+  The trailing edge is closed with a tiny flat so the solid is watertight.
+- **Ellipse**: **Width** and **Height** in mm, and the number of **Points**.
+- **Spline through points**: select a closed outline first. **Smooth selected outline**
+  rounds it into a smooth closed curve through its points. It stays greyed out, with the
+  reason underneath, until exactly one closed outline is selected.
+
+![The Curve sheet on Airfoil, filled in with code 2412, chord 120 and the Place button](./screenshots/sketch-curve-sheet.png)
+
+For an airfoil or an ellipse, tap **Place — then drag it into position**, then drag in the
+view. A preview follows your pointer and the outline lands when you let go. The line under
+the toolbar reads **Airfoil NACA 2412 · 120 mm chord**. An airfoil's leading edge sits at the
+spot you release on, and its chord runs along the sketch's X axis.
+
+![An airfoil placed on the origin, the status line under the toolbar naming it](./screenshots/sketch-airfoil-placed.png)
+
+A bad number is refused in the sheet, and the message names the field (for example
+`chordMm`). Nothing is armed until it is fixed.
+
+### Editing a curve
+
+Select the outline with **Select**. The Inspector shows its numbers (code and chord, or width
+and height). Type a new value and press Enter, and the outline is regenerated in place. A curve's
+points are not dragged one at a time. If you want that, tap **Convert to outline** in the
+Inspector. The points become an ordinary outline you can edit (see
+**Editing an outline's points**), and the curve's numbers are
+dropped.
+
+## Tapered and twisted lofts
+
+Each slice row in the **Slices** card has an **Offset X**, **Offset Y** (mm) and **Twist** (°)
+field under its **Z**. The slice's outlines are moved by the offset and turned by the twist
+before the Loft skins through them, so a wing tip can be swept back and washed out without
+redrawing it. Twist turns the outline about the slice's origin, which for an airfoil placed
+on the origin is its leading edge. A positive twist turns counter-clockwise as seen from
+above the sketch.
+
+![The Slices card with slice 2 at Z 200, Offset X 30 and Twist -2](./screenshots/sketch-slice-offset-twist.png)
+
+Step by step, a tapered and washed-out wing panel:
+
+1. Drag **Sketch** into the view. Tap **Curve ▾**, leave **Airfoil (NACA 4-digit)** chosen,
+   enter Code `2412` and Chord `120`, tap **Place**, and drag the airfoil onto the origin.
+2. Tap **Slices**, then **＋ Slice**. Set its **Z** to `200`, **Offset X** to `30` and
+   **Twist** to `-2`, pressing Enter after each.
+3. With the new slice active, tap **Curve ▾** again and place a `2412` airfoil with Chord
+   `70` on the origin.
+4. Tap **Extrude ▾**, choose **Loft**, and tap **Done**.
+
+You now have a 200 mm tall, tapered wing panel whose tip is swept back 30 mm and twisted
+2 degrees. The sketch's Z axis is the span, so turn the finished solid with the gizmo to lay
+it flat. Export it from **File ▾ → Export…** as usual.
+
+The assistant can do the same: its `create` tool takes a `curve` outline (an airfoil or an
+ellipse) in place of a list of points.
+
 ## Extrusion methods
 
 Tap **Extrude ▾** (it shows the current method's name) to choose how the outlines become

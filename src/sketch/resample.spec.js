@@ -123,3 +123,94 @@ describe('loftRings', () => {
     expect(rings[0].pointsMm).toHaveLength(256)
   })
 })
+
+describe('loftRings with airfoils (TODO/sketch-008) — trailing edge to trailing edge, never inside out', () => {
+  /** @param {number[][]} ring @param {number} by */
+  const roll = (ring, by) => [...ring.slice(by), ...ring.slice(0, by)]
+  /** The index of the ring's trailing edge: its point farthest along +X. */
+  const trailingEdgeOf = (ring) => ring.reduce((best, point, index) => (point[0] > ring[best][0] ? index : best), 0)
+  /** The index of the ring's leading edge: its point farthest along −X. */
+  const leadingEdgeOf = (ring) => ring.reduce((best, point, index) => (point[0] < ring[best][0] ? index : best), 0)
+  /** Every point in chord fractions about the leading edge, so different chords compare. */
+  const normalized = (ring) => {
+    const le = ring[leadingEdgeOf(ring)]
+    const te = ring[trailingEdgeOf(ring)]
+    const chord = Math.hypot(te[0] - le[0], te[1] - le[1])
+    return ring.map((point) => [(point[0] - le[0]) / chord, (point[1] - le[1]) / chord])
+  }
+
+  /** @param {number[][][]} rings */
+  const worstMismatch = (a, b) => {
+    const na = normalized(a)
+    const nb = normalized(b)
+    return Math.max(...na.map((point, index) => Math.hypot(point[0] - nb[index][0], point[1] - nb[index][1])))
+  }
+
+  it.each([
+    ['same count, same start', 80, 80, 0],
+    ['different counts', 80, 61, 0],
+    ['different counts and a 180° start mismatch', 80, 61, 30],
+    ['a start one vertex off', 80, 80, 1],
+    ['a start one vertex back', 80, 80, 79],
+  ])('%s: index i on the root is the same chord station on the tip', async (_label, rootPoints, tipPoints, rollBy) => {
+    const { naca4 } = await import('./curves.js')
+    const root = naca4('2412', 120, { points: rootPoints })
+    const tip = roll(
+      naca4('2412', 70, { points: tipPoints }).map(([x, y]) => [x + 30, y]),
+      rollBy,
+    )
+    const [a, b] = loftRings(
+      [
+        { zMm: 0, pointsMm: root },
+        { zMm: 200, pointsMm: tip },
+      ],
+      0,
+    )
+    expect(a.pointsMm).toHaveLength(b.pointsMm.length)
+    expect(trailingEdgeOf(b.pointsMm)).toBe(trailingEdgeOf(a.pointsMm))
+    expect(leadingEdgeOf(b.pointsMm)).toBe(leadingEdgeOf(a.pointsMm))
+    // No station is further than 3 % of chord from its partner: the skin runs straight back.
+    expect(worstMismatch(a.pointsMm, b.pointsMm)).toBeLessThan(0.03)
+  })
+
+  it('a 2° washout on the tip keeps the trailing edges paired', async () => {
+    const { naca4 } = await import('./curves.js')
+    const turn = (ring, deg) => {
+      const r = (deg * Math.PI) / 180
+      return ring.map(([x, y]) => [x * Math.cos(r) - y * Math.sin(r), x * Math.sin(r) + y * Math.cos(r)])
+    }
+    const [a, b] = loftRings(
+      [
+        { zMm: 0, pointsMm: naca4('4415', 120, { points: 80 }) },
+        { zMm: 200, pointsMm: turn(naca4('4415', 70, { points: 64 }), -2) },
+      ],
+      0,
+    )
+    // Turned 2°, the tip's farthest +X point is an upper-surface station, not its trailing
+    // edge — so find each trailing edge by where it is.
+    const nearest = (ring, target) =>
+      ring.reduce((best, point, index) => (Math.hypot(point[0] - target[0], point[1] - target[1]) < Math.hypot(ring[best][0] - target[0], ring[best][1] - target[1]) ? index : best), 0)
+    const r = (-2 * Math.PI) / 180
+    expect(nearest(b.pointsMm, [70 * Math.cos(r), 70 * Math.sin(r)])).toBe(nearest(a.pointsMm, [120, 0]))
+  })
+
+  it('still pairs squares corner to corner (the sketch-001 case is unchanged)', () => {
+    const square = (size) => [
+      [-size, -size],
+      [size, -size],
+      [size, size],
+      [-size, size],
+    ]
+    const [a, b] = loftRings(
+      [
+        { zMm: 0, pointsMm: square(10) },
+        { zMm: 50, pointsMm: roll(square(5), 2) },
+      ],
+      0,
+    )
+    a.pointsMm.forEach((point, index) => {
+      expect(b.pointsMm[index][0] * 2).toBeCloseTo(point[0], 9)
+      expect(b.pointsMm[index][1] * 2).toBeCloseTo(point[1], 9)
+    })
+  })
+})

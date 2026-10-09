@@ -2041,3 +2041,16 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** Haiku runs /test, escalation ladder, stamp, Opus/Sonnet split, progress script -> staged diff of test.md, fix-todo.md, run-todos.md, .gitignore; no savings figures claimed
 **To Add:** measured token cost before and after
+
+## 2026-10-09T21:15:00Z — Curve tool: a NACA airfoil and a tapered, twisted wing from the sketch editor
+
+**Post:** A smooth outline used to mean clicking hundreds of points. WarpCad's sketch editor now has a Curve tool: pick Airfoil, type a NACA four-digit code and a chord, and drag the outline into place. The outline remembers where it came from, so the Inspector lets you change the chord afterwards and the status line reads "Airfoil NACA 2412 · 120 mm chord". Ellipse is there too, and so is a smoothing option for an outline you already drew.
+
+The part that took the care was the loft. Two airfoils with different point counts only skin cleanly if both start at the trailing edge and share their arc-length stations, so I rewrote that correspondence and added Offset and Twist to each slice. The recipe in the docs is a 120 mm root, a 70 mm tip at 200 mm span, swept back 30 mm and twisted by 2 degrees; an end-to-end test checks the lofted volume against the analytic frustum estimate to within 2 percent and exports an STL. One correction on the way: the spec's NACA thickness constant was wrong, and the unit test now asserts the right one.
+
+The AI assistant gets the same thing through its create tool, which accepts a curve outline. Built with Claude Code, reviewed by me.
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** Curve tool, provenance, Inspector edit, status line -> src/components/sketch/CurveSheet.vue and e2e/sketch-airfoil.e2e.js; rewritten correspondence, Offset/Twist -> src/sketch/resample.js, SlicePanel.vue; recipe 120/70/200/30/2 -> docs/sketch-mode.md; volume within 2 percent of frustum and STL export -> e2e/sketch-airfoil.e2e.js, matrix 3083 passed / 0 failed this session; wrong constant -> retirement note in TODO/done/sketch-008-curve-helpers-and-airfoil-wing.md; AI create takes a curve -> src/ai/tools/create.js, create.spec.js
+**To Add:** the airfoil-placed and Slices-card screenshots from docs/screenshots

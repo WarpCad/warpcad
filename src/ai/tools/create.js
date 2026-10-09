@@ -33,6 +33,7 @@ import { evaluateOp } from '../../core/kernel/index.js'
 import { boundsOf } from '../../core/kernel/group.js'
 import { registry as kernelRegistry } from '../../core/kernel/registry.js'
 import { checkInput, objectSchema, paramsSchemaFor, splitRationale, vectorSchema, withRationale } from './schema.js'
+import { curvePoints } from '../../sketch/curves.js'
 
 /** @typedef {import('../../core/document.js').WarpDocument} WarpDocument */
 /** @typedef {import('../../core/kernel/registry.js').OpRecord} OpRecord */
@@ -94,7 +95,7 @@ export function buildCreateRecords(document, input, ops = kernelRegistry) {
   const params = { ...ui.defaults, ...(input.params ?? {}) }
 
   if (ui.editor === 'sketch') {
-    const { center: _ghost, ...shape } = params
+    const { center: _ghost, ...shape } = sampleCurveProfiles(params)
     /** @type {OpRecord} */
     const record = { id: document.nextId(idPrefixFor(op)), op, name: document.nextName(ui.label), params: { center: [x, y, z], ...shape } }
     return { records: [record], bodyId: /** @type {string} */ (record.id) }
@@ -132,6 +133,39 @@ export function buildCreateRecords(document, input, ops = kernelRegistry) {
     },
   }
   return { records: [created, drop], bodyId: id }
+}
+
+/**
+ * Replace every `curve` profile (`TODO/sketch-008`) with the closed polyline it samples to,
+ * keeping the curve as the polyline's `source` — exactly what the sketch editor's Curve sheet
+ * commits, so a model's airfoil and a person's are the same record. A bad curve throws,
+ * naming its field, before anything is appended.
+ *
+ * @param {Record<string, any>} params
+ * @returns {Record<string, any>}
+ */
+function sampleCurveProfiles(params) {
+  if (!Array.isArray(params.slices)) return params
+  return {
+    ...params,
+    slices: params.slices.map((/** @type {any} */ slice, /** @type {number} */ sliceIndex) => {
+      if (!slice || !Array.isArray(slice.profiles) || !slice.profiles.some((/** @type {any} */ p) => p?.kind === 'curve')) return slice
+      return {
+        ...slice,
+        profiles: slice.profiles.map((/** @type {any} */ profile, /** @type {number} */ profileIndex) => {
+          if (profile?.kind !== 'curve') return profile
+          const source = { curve: profile.curve, params: { ...profile.params }, atMm: profile.atMm ?? [0, 0] }
+          let pointsMm
+          try {
+            pointsMm = curvePoints(source)
+          } catch (error) {
+            throw new Error(`primitive.sketch: slices[${sliceIndex}].profiles[${profileIndex}] — ${error instanceof Error ? error.message : String(error)}`)
+          }
+          return { id: profile.id, kind: 'polyline', role: profile.role, closed: true, pointsMm, source }
+        }),
+      }
+    }),
+  }
 }
 
 /**

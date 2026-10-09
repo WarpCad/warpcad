@@ -10,15 +10,19 @@
  * (ui-046) while the toolbar's Done and Cancel stay visible at the top. On a wide
  * viewport it is a card docked bottom-right, clear of the nav chrome bottom-left.
  *
- * One panel at a time, chosen by the toolbar. While Set scale is armed the sheet folds to
+ * One panel at a time, chosen by the toolbar — Slices, Extrude, or Curve (`TODO/sketch-008`). While Set scale is armed the sheet folds to
  * its header — and on a narrow viewport steps aside entirely (`TODO/sketch-003`).
  */
+import CurveSheet from './CurveSheet.vue'
 import ExtrudePanel from './ExtrudePanel.vue'
 import SlicePanel from './SlicePanel.vue'
 import { useSketchEditorStore } from '../../stores/sketchEditor.js'
 
 const editor = useSketchEditorStore()
 const emit = defineEmits(['activate-slice'])
+
+/** @type {Record<string, string>} */
+const TITLES = Object.freeze({ slices: 'Slices', extrude: 'Extrude', curve: 'Curve' })
 </script>
 
 <template>
@@ -28,10 +32,10 @@ const emit = defineEmits(['activate-slice'])
     data-testid="sketch-panel-sheet"
     :data-panel="editor.panel"
     :data-collapsed="editor.imageTool !== '' ? 'true' : 'false'"
-    :aria-label="editor.panel === 'slices' ? 'Slices' : 'Extrude'"
+    :aria-label="TITLES[editor.panel]"
   >
     <header class="sketch-sheet__head">
-      <h3 class="sketch-sheet__title">{{ editor.panel === 'slices' ? 'Slices' : 'Extrude' }}</h3>
+      <h3 class="sketch-sheet__title">{{ TITLES[editor.panel] }}</h3>
       <button
         type="button"
         class="sketch-sheet__close"
@@ -46,6 +50,7 @@ const emit = defineEmits(['activate-slice'])
          photo under it stays tappable — the reachable-canvas rule on a phone. -->
     <div v-show="editor.imageTool === ''" class="sketch-sheet__body">
       <SlicePanel v-if="editor.panel === 'slices'" @activate="emit('activate-slice', $event)" />
+      <CurveSheet v-else-if="editor.panel === 'curve'" />
       <ExtrudePanel v-else />
     </div>
   </section>

@@ -34,6 +34,16 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### sketch-008 — Curve helpers and a lofted wing (2026-10-09 21:10)
+
+The drive covered function and layout; two things are judgment calls it cannot make.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | Print the docs' wing panel (2412, 120 mm to 70 mm, Offset X 30, Twist -2, 200 mm span) and judge whether the sweep and washout look right; also whether twisting about the leading edge (the slice origin) is the pivot a wing designer expects, or the quarter-chord would feel better | Open | |
+| 2 | On a real laptop (900 px tall) the Slices card is now taller, so **Add image…** and **Set scale** sit below its fold and need a scroll inside the card. Decide whether Offset X/Y and Twist should sit on one compact row | Open | |
+
+
 ### ai-007 — AI vision and measurement tools (2026-10-09 19:36)
 
 The capture and checks are covered by unit specs and `e2e/ai-capture.e2e.js` (non-blank PNG, no camera change, no flash, three viewports). What no assertion can judge is below.

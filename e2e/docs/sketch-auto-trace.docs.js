@@ -102,6 +102,8 @@ test.describe('docs media: auto-trace', () => {
     const scaled = await scaleAndCentre(page, atPx)
     await startMovie(page, 'sketch-trace-auto')
     await page.waitForTimeout(500)
+    // The Slices card grew (Offset and Twist rows, TODO/sketch-008), so Trace can sit below the fold.
+    await page.getByTestId('sketch-image-trace').scrollIntoViewIfNeeded()
     const traceButton = await page.getByTestId('sketch-image-trace').boundingBox()
     await page.mouse.move(traceButton.x + traceButton.width / 2, traceButton.y + traceButton.height / 2, { steps: 16 })
     await page.waitForTimeout(250)
