@@ -1434,3 +1434,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** steps keep request + one-line reason -> src/ai/tools/batch.js composeIntent(ctx.request, rationale), src/ai/tools/intent.spec.js (passed this session); readable in History -> TimelineRow.vue note-icon expand, e2e/design-intent.e2e.js (36/36 then full matrix 2674 passed this session); standing rules -> ProjectSettingsDialog.vue + project.js standingInstructions; plain text never markup -> no v-html, hostile fixture drive this session (no <img> created, window.__pwned undefined)
 **To Add:** docs/screenshots/history-intent.png
+
+## 2026-10-09T16:40:00Z — Assistant chat: a sheet on phones, a column on laptops, Undo AI turn
+
+**Post:** WarpCad's assistant has a chat now. On a phone it's a bottom sheet with three heights; on a laptop, a column. Each tool call is a row you can tap to select what it made. Undo AI turn takes a whole turn back. Built with Claude Code, reviewed by me. #CAD
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** chat is a sheet below 1100px with three heights, a column above -> ChatPanel.vue + AppView.vue styles; nav chrome inset above the sheet -> e2e/ai-chat.e2e.js layout test, 24/24 chromium laptop/phone/tablet this session; row labels and tap to select -> transcript.spec.js, ai-chat.e2e.js; Stop keeps nothing -> useAgent.spec.js + ai-chat.e2e.js; Undo AI turn off after a user edit -> useAgent.spec.js; tokens only, no price -> TokenReadout.vue, transcript.js formatUsage; Library then Inspector sheet showing through at phone width -> hand-drive screenshots this session, fixed in AppView.vue (visibility rule); full suite green -> typecheck clean, 3198 unit, 3034 e2e passed / 0 failed, this session
+**To Add:** docs/screenshots of the chat sheet at phone and laptop width (not yet generated)

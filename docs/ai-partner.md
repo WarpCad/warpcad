@@ -4,9 +4,9 @@ WarpCad's Assistant is an AI partner you talk to about your model. It uses **you
 Anthropic API key**: there is no WarpCad server in between, so the key, and what you say to
 the Assistant, go from your browser straight to Anthropic and nowhere else.
 
-> The chat itself is still being built. What works today is the part you need first:
-> **connecting a key**, checking it, and choosing a model. The **Assistant** button in the top
-> bar opens that sheet, and once a key is saved it shows your connection and model.
+The **Assistant** button in the top bar opens the key sheet until a key is saved, and the chat
+after that. This page covers [getting a key](#getting-a-key), then
+[asking for a part](#asking-for-a-part) and [stopping and undoing](#stopping-and-undoing).
 
 ## Getting a key
 
@@ -47,6 +47,45 @@ come back.
   session only*): the Assistant still works until you close the tab, and you paste the key again
   next time.
 
+## Asking for a part
+
+With a key saved, **Assistant** opens the chat. On a phone or tablet it is a sheet over the bottom
+of the screen, so the model stays visible above it; on a laptop it is a column beside the viewport.
+The sheet has three heights, **Fold**, **Half** and **Tall**. **Fold** shrinks it to one line of
+status (*Working… step 4*), so a long request stays in view while you look at the model.
+
+1. Type what you want in the box. Enter sends; Shift+Enter starts a new line; **Send** does the
+   same on a touch screen.
+2. Watch the chat. The Assistant's words stream in, and every change it makes to the model is one
+   **activity row**: *Created Cube 1*, *Subtract Cube 1 − Cylinder 2*. A row that failed has a ✕,
+   the reason, and a *Then:* line for what the Assistant did next.
+3. Tap an activity row to select the body it made. The viewport and the Inspector answer.
+4. **Attach image** (the paperclip) adds a photo or drawing to your message. On a phone the picker
+   offers the camera. Tap ✕ on the thumbnail to take it off again.
+5. With one body selected, **Ask about** *name* puts a reference to it in the box.
+
+The row under the transcript shows the tokens the turn has used so far. It does not show a price:
+Anthropic's rates change, and a number that drifts from your real bill is worse than none.
+
+**Example.** Tap **Assistant**, type *a 40 mm cube with a 10 mm hole through the middle*, and tap
+**Send**. A few activity rows appear (the cube, the hole, the cut), and the part shows in the
+viewport. Open **History** and its rows are marked as written by the Assistant.
+
+A turn lands all at once, when it is finished. Until then the Assistant works on a private copy, so
+a turn that is stopped, fails, or runs into a limit changes nothing in your project.
+
+## Stopping and undoing
+
+- **Stop** replaces **Send** while the Assistant is working. Tap it and the turn ends within a
+  step; the chat says *Nothing from this turn was kept*, and the project is exactly as it was.
+- **Undo AI turn** takes back everything the Assistant did in its last turn, in one tap. It is
+  available only while nothing newer has happened: the moment you edit the model yourself, drop in
+  a shape, or undo, it switches itself off, so it can never undo something of yours by accident.
+  It is separate from the **Undo** button in the top bar, which stays yours.
+
+**Example.** After the cube above, tap **Undo AI turn**. The cube and both History rows are gone and
+the button greys out.
+
 ## Test, replace and forget
 
 Open **Assistant** (then **Key and model…** if the connected panel opens) to get these:
@@ -82,7 +121,7 @@ again, or **Forget key** to start over. None of these messages ever contains you
    saved.
 4. Tap **Assistant**, then **Key and model…**, then **Test**. The ring fills in.
 
-That's all of it. When the chat arrives it opens from the same button.
+That's all of it. The chat opens from the same button; see [asking for a part](#asking-for-a-part).
 
 ## See also
 

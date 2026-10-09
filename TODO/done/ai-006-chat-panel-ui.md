@@ -6,8 +6,23 @@ priority: high
 model: sonnet
 milestone: M9
 depends: [ai-004, ai-005]
-status: open
+status: done
 ---
+
+> **What shipped (2026-10-09).** The chat as specced, plus the core hook `ai-005` handed over:
+> `document.removeRecords(ids, { origin })` in `src/core/document.js` (atomic re-fold, both undo stacks untouched,
+> refuses by name when a record outside the set depends on one inside it) is what **Undo AI turn** calls. Undo is
+> gated on the document `version` matching the one recorded when the turn landed (`stores/aiChat.js`), so any later
+> edit by the user switches it off. New: `src/ai/transcript.js` (pure event reducer, row labels, token readout),
+> `stores/aiChat.js` (UI state only), `composables/useAgent.js` (turn lifecycle), `ChatPanel.vue`, `Composer.vue`,
+> `ActivityRow.vue`, `TokenReadout.vue`; `AssistantPanel.vue` (ai-004's modal) is gone, its test ids moved into
+> `ChatPanel`. Differences from the file: the readout is **tokens only** (no price table exists, and a drifting price is
+> worse than none); the layout is a bottom sheet with Fold/Half/Tall below 1100px and a fourth grid column above it
+> (the persistent column at laptop is not a floating overlay). **The hand-drive found two defects no spec could**:
+> the Library, then the selection-driven Inspector sheet, showed through or poked above the chat sheet at 390px; fixed
+> by letting the chat own the phone's bottom slot (the other sheets are hidden, not unmounted). Not done: **sheet
+> drag-to-resize** (the three heights are buttons, not a drag handle), and the iOS keyboard lift
+> (`visualViewport`) has no real-device check yet (see `TODO/VERIFY.md`).
 
 ## Goal
 

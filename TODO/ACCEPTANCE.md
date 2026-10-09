@@ -78,6 +78,8 @@ drops (dropping the second body must not hide or replace the first). Clicking ea
 individually selects only that item (gizmo and dimension lines attach to whichever was
 just clicked, not both at once).
 
+**Last run**: 2026-10-09 16:18 UTC (`ai-006`) — **PASS** at laptop 1440x900 on **Chromium and WebKit** (real mouse via `page.mouse`, jittered human-paced Library drags), from a fresh profile, **with the Assistant chat column open**: Cube then Cylinder dropped, both remained (count 2); a click on open grid cleared the selection (0), the cube selected only `cuboid-1`, the cylinder only `cylinder-2`. A scripted AI turn then added a third body (count 3) and **Undo AI turn** took it back to the two I had placed, untouched. At phone 390x844 WebKit the two primitives stayed visible at every chat height (peek/half/tall leave 92%/62%/36% of the viewport clear). **The drive found two defects no assertion could see, both fixed in this task**: the open Library sheet showed through the translucent chat sheet, then the selection-driven Inspector sheet poked out above it; the chat now owns the phone's bottom slot and the other sheets are hidden (not unmounted) while it is up.
+
 **Last run**: 2026-10-09 08:57 UTC (`ai-004`) — **PASS** at laptop 1440x900 on **Chromium and WebKit** (real mouse via `page.mouse`, jittered human-paced Library drags), each from a fresh profile. Cube then Cylinder dropped: both remained (Inspector *2 objects*, Cube 1 and Cylinder 1, both restored after a reload); a click on open grid cleared the selection (0), the cube selected exactly one body, the cylinder exactly one. Re-driven because the header gained the Assistant button and a CSP meta tag. (The first cube click read 0: aimed at the face edge, re-aimed at its centre, a drive-script mistake.) Console clean.
 
 **Last run**: 2026-10-06 17:11 UTC (`ai-003`) — **PASS** at laptop 1440x900 on **Chromium, WebKit and Firefox** (real mouse via `page.mouse`, jittered human-paced Library drags), each from a fresh profile. Cube then Cylinder dropped: both remained (count 2); a click on open grid cleared the selection (0); the cube selected exactly one body (Inspector *Cube 1*), the cylinder exactly one (*Cylinder 1*), gizmo and dimension lines on the clicked body only (screenshot). Smoke check for a change to the Inspector header and History rows. (The first drive's "empty" click landed under the Operations toolbar, which overlays the top of the canvas — a drive-script aiming mistake, re-aimed at open grid.) Console clean apart from Firefox's Vite HMR websocket notice (dev server, not the app).
@@ -2520,6 +2522,8 @@ clean.
 **Expect**: Orbit, pan, and zoom are all reachable and functional via on-screen chrome
 alone, with no dependency on keyboard or mouse input. Tapping the orientation gizmo
 snaps the camera to the corresponding standard view.
+
+**Last run**: 2026-10-09 16:18 UTC (`ai-006`) — **PASS** at the iPad viewport 820x1180 in Chromium (touch only, `tap()`; WebKit touch is the known `ui-045` gap), with the chat sheet at each of peek / half / tall: orbit step moved the azimuth, Pan then step moved the target, zoom-in shrank the distance, and the gizmo's top cap snapped the camera to a straight-down view (elevation 90°). At every height the nav chrome stayed above the sheet (chrome bottom 1072/731/448 against sheet top 1119/755/472).
 
 **Last run**: 2026-09-05 21:08 — PASS (hand-driven against `render-001`'s viewport at
 820×1180 in WebKit — the engine an iPad actually runs — touch input only, in both light

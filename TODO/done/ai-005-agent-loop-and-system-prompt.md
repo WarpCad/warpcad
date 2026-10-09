@@ -6,8 +6,17 @@ priority: high
 model: opus
 milestone: M9
 depends: [ai-002, ai-003, ai-004]
-status: open
+status: done
 ---
+
+> **What shipped (2026-10-09).** `src/ai/agent.js`, `prompt.js`, `context.js` with specs (+53 tests), no change to
+> `src/core/` or the app. The turn builds on a fork and lands as one `batch`+`insertAt` (origin `ai`, intent map by
+> record id); every stop/cap/error discards the whole fork, so the live NDJSON is byte-identical. The prompt picks
+> **ask** for unknown scale (pinned by test). Standing instructions go in the user message, not `system`. **Handed
+> to `ai-006`:** landed turns are recorded on `ctx.aiTurns` (`turnId`, `recordIds`, `version`), but removing one
+> needs decision 5's "remove a set of record ids atomically" hook in `src/core/document.js`, which does not exist —
+> add it in `ai-006` or a small core task first. Pass the raw document (not a reactive proxy) and
+> `standingInstructions: () => ({ text, trusted })`.
 
 ## Goal
 

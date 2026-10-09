@@ -645,6 +645,7 @@ export class ReplayRejection extends Error {
  * @property {(id: string, delta: number) => MoveLegality} canMove
  * @property {(id: string, delta: number, transaction: TransactionOptions) => { scene: Scene }} moveStep
  * @property {(index: number, records: readonly OpRecord[], transaction: TransactionOptions) => { records: OpRecord[], scene: Scene }} insertAt
+ * @property {(ids: readonly string[], transaction: TransactionOptions) => { scene: Scene }} removeRecords `TODO/ai-006`: take a set of records back out atomically (Undo AI turn).
  * @property {(id: string, transaction: TransactionOptions) => { scene: Scene }} rollBackTo
  * @property {(transaction: TransactionOptions) => { scene: Scene }} rollForward
  * @property {() => Body[]} bodies
@@ -2176,6 +2177,54 @@ export function createDocument(options = {}) {
       }
       document.version += 1
       return { records: appended, scene }
+    },
+
+    /**
+     * Take a set of records back out in one atomic re-fold — the inverse of {@link insertAt}
+     * for writes that never reached the local undo stack (`ai`-origin; `TODO/ai-006`'s
+     * **Undo AI turn**). Both undo stacks are left alone.
+     *
+     * Refuses, by name and without changing anything, when a record outside the set still
+     * references one inside it (the same guard `undo` applies), and for an unknown id.
+     */
+    removeRecords(ids, transaction) {
+      const origin = transaction?.origin
+      if (typeof origin !== 'string' || origin.length === 0) {
+        throw new Error(
+          'document.removeRecords: a transaction origin is required — ' +
+            'every mutation is origin-tagged so undo/redo can be scoped to the local user\'s own edits'
+        )
+      }
+      if (!Array.isArray(ids) || ids.length === 0) {
+        throw new Error('document.removeRecords: at least one record id is required')
+      }
+      const doomed = new Set(ids)
+      for (const id of doomed) {
+        if (!entries.some((entry) => entry.record.id === id)) {
+          throw new Error(`document.removeRecords: no such record "${id}" in this document`)
+        }
+      }
+      for (const entry of entries) {
+        if (entry.record.id !== undefined && doomed.has(entry.record.id)) continue
+        for (const referenced of referencedIdsOf(entry.record)) {
+          if (!doomed.has(referenced)) continue
+          const blocker = entry.record.name ?? entry.record.id ?? entry.record.op
+          throw new Error(
+            `document.removeRecords: "${blocker}", added via ${entry.origin}, depends on "${referenced}" — edit or delete it first`
+          )
+        }
+      }
+      const next = entries.filter((entry) => entry.record.id === undefined || !doomed.has(entry.record.id))
+      // The marker is a count of active rows, so it falls by the removed rows that sat before it.
+      const nextRollback =
+        rollbackAt === null ? null : entries.slice(0, rollbackAt).filter((entry) => next.includes(entry)).length
+      rebuildFrom(next, nextRollback)
+      for (const id of doomed) {
+        originById.delete(id)
+        recordById.delete(id)
+      }
+      document.version += 1
+      return { scene }
     },
 
     canUndo() {

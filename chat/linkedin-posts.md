@@ -1998,3 +1998,18 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** request + one-line reason -> batch.js composeIntent, tools/intent.spec.js; note icon in History -> TimelineRow.vue; File > Project settings -> FileMenu.vue + ProjectSettingsDialog.vue; untrusted, text only, labelled data block -> src/ai/documentData.js documentDataBlock + documentData.spec.js, no v-html; flagged until confirmed -> src/ai/instructionTrust.js, project-settings-untrusted e2e; hostile file opens, renders, nothing runs -> e2e/fixtures/hostile-intent.ndjson, e2e/design-intent.e2e.js and Step 6 drives on Chromium/WebKit/Firefox this session; Inspector overflow bug found driving and fixed -> IntentLine.vue flex-shrink, e2e assertion failed without fix (height 44) and passed with it this session
 **To Add:** docs/screenshots/history-intent.png, docs/screenshots/project-settings-untrusted.png
+
+## 2026-10-09T16:40:00Z — Assistant chat: a sheet on phones, a column on laptops, Undo AI turn
+
+**Post:** WarpCad's assistant can now be talked to. Type a request and the reply streams in; every change it makes to the model shows as one row (Created Cube 2, Subtract Cube 1 − Cylinder 2), and tapping a row selects the body it made. Stop ends a turn and keeps nothing from it. Undo AI turn takes back the last landed turn in one tap, and switches itself off the moment you edit anything yourself, so it can't undo your own work.
+
+The layout was the part worth getting right. Below 1100px the chat is a bottom sheet with three heights (Fold, Half, Tall) and the viewport's nav chrome is inset above whichever one is up; at laptop width it is a column beside the viewport. The token readout shows tokens only, because the app has no price table and a stale price is worse than none.
+
+Driving it by hand found what the tests missed. At phone width the open Library sheet showed through the translucent chat sheet, and after that fix the Inspector sheet poked out above it. Both were invisible to assertions and obvious in a screenshot. The chat now owns the phone's bottom slot, and the other sheets are hidden while it is up.
+
+Built with Claude Code, reviewed by me.
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #AI #WebGL #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** chat is a sheet below 1100px with three heights, a column above -> ChatPanel.vue + AppView.vue styles; nav chrome inset above the sheet -> e2e/ai-chat.e2e.js layout test, 24/24 chromium laptop/phone/tablet this session; row labels and tap to select -> transcript.spec.js, ai-chat.e2e.js; Stop keeps nothing -> useAgent.spec.js + ai-chat.e2e.js; Undo AI turn off after a user edit -> useAgent.spec.js; tokens only, no price -> TokenReadout.vue, transcript.js formatUsage; Library then Inspector sheet showing through at phone width -> hand-drive screenshots this session, fixed in AppView.vue (visibility rule); full suite green -> typecheck clean, 3198 unit, 3034 e2e passed / 0 failed, this session
+**To Add:** docs/screenshots of the chat sheet at phone and laptop width (not yet generated)

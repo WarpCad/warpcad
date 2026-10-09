@@ -18,7 +18,7 @@ import { computed, onMounted, ref, watch } from 'vue'
 import Inspector from '../components/inspector/Inspector.vue'
 import DependentRepairDialog from '../components/inspector/DependentRepairDialog.vue'
 import AssistantButton from '../components/ai/AssistantButton.vue'
-import AssistantPanel from '../components/ai/AssistantPanel.vue'
+import ChatPanel from '../components/ai/ChatPanel.vue'
 import KeySheet from '../components/ai/KeySheet.vue'
 import SaveStatus from '../components/display/SaveStatus.vue'
 import FileMenu from '../components/storage/FileMenu.vue'
@@ -30,6 +30,7 @@ import TimelinePanel from '../components/timeline/TimelinePanel.vue'
 import TimelineStrips from '../components/timeline/TimelineStrips.vue'
 import TimelineToggle from '../components/timeline/TimelineToggle.vue'
 import Viewport from '../components/viewport/Viewport.vue'
+import { useAiChatStore } from '../stores/aiChat.js'
 import { useAssistantStore } from '../stores/assistant.js'
 import { useHostedStore } from '../stores/hosted.js'
 import { usePersistenceStore } from '../stores/persistence.js'
@@ -49,6 +50,9 @@ const hosted = useHostedStore()
 // The Assistant's stored key (`TODO/ai-004`): restored on mount so the header button's dot is
 // right with every sheet closed. A blocked store just means "no key", never a startup failure.
 const assistant = useAssistantStore()
+const aiChat = useAiChatStore()
+/** The chat sheet's state for CSS: its height name while open, `none` otherwise (`TODO/ai-006`). */
+const chatSheet = computed(() => (assistant.view === 'chat' ? aiChat.sheet : 'none'))
 
 // Delete / Backspace delete the selection (`TODO/ui-051`). Mounted here, not in the
 // Inspector, so it works with the Inspector sheet collapsed.
@@ -128,7 +132,7 @@ const sheetSlotClaimed = computed(() => libraryOpen.value || timeline.open)
  * `≤640px` media query, so this flag being true at laptop width (the History dock is
  * "open" there too) changes nothing.
  */
-const navRaised = computed(() => inspectorSheet.value === 'open' || timeline.open)
+const navRaised = computed(() => inspectorSheet.value === 'open' || timeline.open || chatSheet.value !== 'none')
 
 watch(
   () => timeline.open,
@@ -173,6 +177,24 @@ watch(
   { flush: 'sync' }
 )
 
+/**
+ * Opening the Assistant's chat is the same deliberate claim (`TODO/ai-006`): at phone width the
+ * Library sheet would otherwise sit *under* the translucent chat sheet and show through it (found
+ * by looking at the phone screenshot of the hand-drive — no assertion could see it). The chat
+ * sheet covers the whole slot, so the Library folds and the History sheet closes. Phone only:
+ * from 641px the Library is a column and History a dock, and nothing is underneath.
+ */
+watch(
+  chatSheet,
+  (sheet) => {
+    if (sheet === 'none') return
+    if (typeof window === 'undefined' || !window.matchMedia?.('(max-width: 640px)').matches) return
+    libraryCollapse.value += 1
+    timeline.setOpen(false)
+  },
+  { flush: 'sync' }
+)
+
 /** Tapping the Inspector's tab is a deliberate claim on the slot — the Library and History yield. */
 function onInspectorClaim() {
   libraryCollapse.value += 1
@@ -212,6 +234,7 @@ function onInspectorClaim() {
       class="app__body"
       :data-inspector-sheet="inspectorSheet"
       :data-timeline-sheet="timeline.open ? 'open' : 'none'"
+      :data-chat-sheet="chatSheet"
     >
       <LibraryPanel
         :collapse-signal="libraryCollapse"
@@ -228,14 +251,16 @@ function onInspectorClaim() {
         @sheet-change="inspectorSheet = $event"
         @claim-sheet="onInspectorClaim()"
       />
+      <!-- The Assistant's chat (TODO/ai-006): a bottom sheet over the viewport at phone and
+           tablet width, a column of this grid at laptop width. Never a modal. -->
+      <ChatPanel />
     </main>
     <!-- The repair dialog (TODO/ui-052): over everything, opened by an Inspector
          dropdown, a History row's Edit, or a Resolve… button. -->
     <DependentRepairDialog />
-    <!-- The Assistant's key sheet and minimal connected panel (TODO/ai-004), opened by the
-         header button; both teleport to <body> at the modal tier. -->
+    <!-- The Assistant's key sheet (TODO/ai-004), opened by the header button when there is no
+         key or from the chat's "Key and model…"; teleports to <body> at the modal tier. -->
     <KeySheet />
-    <AssistantPanel />
   </div>
 </template>
 
@@ -439,6 +464,44 @@ function onInspectorClaim() {
 
   .app__hint {
     font-size: 11px;
+  }
+}
+
+/* The Assistant's chat sheet (TODO/ai-006), phone and tablet: the viewport's overlays (nav chrome,
+   scale readout) sit above the sheet at whichever height it is, never behind it. Last in the file
+   so it wins over the Inspector/History insets above: the chat sheet is on top of both. */
+@media (max-width: 1099px) {
+  .app__body[data-chat-sheet='peek'] {
+    --viewport-bottom-inset: 96px;
+  }
+
+  .app__body[data-chat-sheet='half'] {
+    --viewport-bottom-inset: calc(36dvh + 12px);
+  }
+
+  .app__body[data-chat-sheet='full'] {
+    --viewport-bottom-inset: calc(60dvh + 12px);
+  }
+}
+
+/* Laptop: the chat is a persistent column, an explicit fourth grid cell. */
+@media (min-width: 1100px) {
+  .app__body:not([data-chat-sheet='none']) {
+    grid-template-columns: 210px 1fr 280px 340px;
+  }
+
+  .app__body > :deep(.chat) {
+    grid-column: 4;
+    grid-row: 1;
+  }
+}
+
+/* Phone: while the chat sheet is up it owns the whole bottom slot, so the other sheets (Library,
+   Inspector, History) are hidden — not unmounted, so nothing loses its state — instead of showing
+   through or poking out above it. They come back when the chat closes. */
+@media (max-width: 640px) {
+  .app__body:not([data-chat-sheet='none']) :is([data-testid='library-panel'], [data-testid='inspector'], [data-testid='timeline-panel']) {
+    visibility: hidden;
   }
 }
 </style>

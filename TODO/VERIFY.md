@@ -34,6 +34,15 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### ai-006 — Assistant chat panel (2026-10-09 16:40)
+
+The on-screen-keyboard lift uses `window.visualViewport`, which desktop browsers and Playwright emulation never shrink, so no script here can exercise it. Everything else about the chat is covered by `e2e/ai-chat.e2e.js` and acceptance scenarios 1 and 7.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | On a real iPhone and iPad (Safari), tap the chat box with the sheet at **Half**: the composer and **Send** stay visible above the keyboard, and the sheet is not pushed off the top of the screen | Open | |
+| 2 | On a phone, **Attach image** offers the camera as well as the photo library, and a photo taken there arrives as a thumbnail | Open | |
+
 ### ai-004 — The Assistant key sheet and CSP on real phone and tablet hardware (2026-10-09 08:57)
 
 Scenarios 1 and 10 were driven by hand and the three-viewport, two-engine e2e matrix passes, but none of it ran on a physical phone or on Firefox (it cannot launch in this sandbox). Only what a real device can show is listed.
