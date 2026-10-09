@@ -12,3 +12,6 @@ HANDOFF-NAME.md
 NAME-ACCOUNTS.md
 .docs-movies/
 test-report-for-coding-agents/
+
+# TODO-runner progress + green stamp (see scripts/todo-progress.mjs)
+.todo-progress/

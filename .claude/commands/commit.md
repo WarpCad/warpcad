@@ -173,7 +173,10 @@ something published publicly.
 ## Step 8 — Verify tests pass
 
 Before committing, run the `test` skill (`/test`) to run the full suite and confirm
-everything is green.
+everything is green. `/test` checks the green stamp first
+(`node scripts/todo-progress.mjs stamp check`), so a tree that `/fix-todo` Step 5 already
+proved green is not re-run. Do the licensing gate below *first* — if it edits files, the
+stamp is stale and the suite will legitimately re-run once.
 
 **All tests must be green before proceeding.** Do not commit until every suite is clean.
 

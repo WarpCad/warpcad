@@ -11,6 +11,27 @@ ui-007", or `/fix-todo core-013`. The user will give a category-number id
 
 ---
 
+## Progress reporting and token discipline (applies to every step below)
+
+**Progress.** A mod shows the user which TODO is on which step, by reading files this
+command writes. At the *start* of each step N below, run (one cheap Bash call):
+
+```
+node scripts/todo-progress.mjs step <id> <N> --model=<tier doing the work> [--note="short"]
+```
+
+`--model` is whoever is actually working right now (`sonnet`, `opus`, or `haiku` while
+tests run). On a stop-and-ask or an unrecoverable failure add `--state=failed --note="why"`.
+Step 9 ends with `node scripts/todo-progress.mjs done <id>`. This is bookkeeping, not
+narration — don't print anything about it.
+
+**Tokens.** Tests always run through `/test`, which hands them to Haiku and returns a
+compact report; never run `npm run test:*` yourself and read the raw output. Red tests
+follow `/test`'s escalation ladder (task tier x2, then Opus once, then stop). Don't
+re-read files you just wrote, and read only the part of a big file you need.
+
+---
+
 ## Step 1 — Locate the TODO
 
 Resolve the id to a file:
@@ -64,8 +85,14 @@ this field) — it determines who does Step 4, below.
 
 ## Step 3 — Preflight: confirm the baseline is green
 
-Before changing anything, run the test suite(s) that cover the TODO's
-`category` and the **Affected files**:
+Before changing anything, confirm the baseline is green — **fast stages only**
+(typecheck + unit, via `/test`, so Haiku runs them). The full e2e matrix is Step 5's job;
+paying for it twice per TODO buys nothing, since a baseline e2e failure unrelated to
+your change shows up in Step 5 either way and is cheaper to diagnose there.
+Skip this step entirely if `node scripts/todo-progress.mjs stamp check` exits 0 (the
+tree already passed everything — e.g. the previous tick of `/run-todos` just committed).
+The table below says which suites *cover* each category; for the preflight, run only the
+typecheck + unit part of it:
 
 | category | suite |
 |---|---|
@@ -105,7 +132,9 @@ Follow the TODO's **Testing** section as the spec for what to write first:
    pass. Stay inside the **Affected files** unless the fix genuinely requires
    touching more; if scope grows, tell the user what expanded and why before
    continuing.
-3. Re-run the suite(s) from Step 3. All new and existing tests must be green.
+3. Re-run only the **targeted** specs (the files you wrote or touched, via `/test` with a
+   file filter — Haiku runs them). The full suite is Step 5's job, once. All of those must
+   be green.
    For a `perf` finding, capture the **after** number with the same benchmark,
    on the same machine, and report both.
 4. **If this task adds or changes a user-visible control**, confirm it is
@@ -121,13 +150,12 @@ Follow the TODO's **Testing** section as the spec for what to write first:
    skipping the page silently.
 
 **If this invocation is itself running inside an agent spawned by `/run-todos`
-Step 5,** skip this whole sub-step and do Step 4 directly, regardless of the
-TODO's `model` field. `/run-todos` Step 5 already reads that field itself and
-spawns this entire `/fix-todo` run at the matching model tier before you ever
-reach this point — delegating again here would nest an agent inside an agent
-for no benefit, and just lose context. "Isolated context per task" is a
-`/run-todos` Step 5 concern now, applied once, up front, to the whole
-`/fix-todo` run; this sub-step's job is narrower and doesn't also need to fire.
+Step 4,** skip this whole sub-step and do Step 4 directly. `/run-todos` Step 4 already
+handles `model: opus` itself by splitting the run — an Opus agent for sub-steps (1)-(2)
+only, then a Sonnet agent for everything else — so you are either the Opus half (do
+(1)-(2), leave the changes uncommitted in the working tree, report, and stop) or the
+Sonnet half (resume at sub-step 3 against the diff already in the tree). Delegating again
+here would nest an agent inside an agent for no benefit.
 
 **Otherwise** (a user invoked `/fix-todo <id>` directly, not via
 `/run-todos`): **if the TODO's `model` field is `opus`** (geometry/numerics, a
@@ -150,9 +178,12 @@ benefit.
 ## Step 5 — Full verification
 
 Run the complete suite set (not just the targeted tests) to catch regressions
-elsewhere: run the `test` skill (`/test`).
+elsewhere: run the `test` skill (`/test`) — **once**. Haiku runs it, sets the green
+stamp on success, and everything downstream (the `/commit` gate) reuses that stamp
+instead of re-running an identical tree.
 
-All stages must be green before moving on. Fix any regression before continuing —
+All stages must be green before moving on. Fix any regression before continuing,
+following `/test`'s escalation ladder (this task's tier x2 → Opus once → stop) —
 don't hand back a partially-passing state.
 
 **If the change touches UI that a docs page pictures**, also run
@@ -248,8 +279,8 @@ This entry becomes part of Step 9's commit, not a separate one.
 ## Step 9 — Commit
 
 Hand off to the `/commit` skill for message formatting, the pre-commit test
-gate (already satisfied by Step 5, but `/commit` will re-verify), and the
-social-post drafts. Make sure the commit message body references the TODO id
+gate (already satisfied by Step 5 — `/commit` Step 8 checks the green stamp and does
+not re-run an identical tree), and the social-post drafts. Make sure the commit message body references the TODO id
 and mentions the file move, e.g.:
 
 ```
@@ -306,6 +337,8 @@ Add one row per thing worth checking, not one entry per thing — a task that su
 several related checks is one heading with a multi-row table, not several headings.
 Leave **Status** as `Open` and **Notes** blank when writing the entry; those columns
 are filled in later, by whoever actually drives the check by hand, not by this skill.
+
+After the commit lands: `node scripts/todo-progress.mjs done <id>`.
 
 Only commit once the user confirms, per `/commit` Step 9 — unless this
 invocation is running from a scheduled/unattended context that was set up with

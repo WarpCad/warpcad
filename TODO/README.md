@@ -201,8 +201,10 @@ well-established pattern in the codebase stays `sonnet` even at `Effort: M`.
 (sonnet vs. opus). Whether the task also runs in an *isolated context* is a
 different, unconditional choice: every `/run-todos` tick runs its chosen id
 inside a fresh isolated `Agent` call regardless of what this field says
-(`.claude/commands/run-todos.md` Step 5) — this field only decides which model
-that isolated run uses. A user invoking `/fix-todo <id>` directly (not via
+(`.claude/commands/run-todos.md` Step 4) — this field only decides which model
+that isolated run uses — and for `opus`, only for the code-writing half (RED test +
+implementation); Sonnet finishes the same task (test runs, docs, retirement, commit).
+A user invoking `/fix-todo <id>` directly (not via
 `/run-todos`) still uses this field for its older, narrower purpose too:
 whether `/fix-todo`'s own Step 4 delegates its RED/GREEN sub-steps to a
 same-conversation opus agent (see that step's note on why it skips this when

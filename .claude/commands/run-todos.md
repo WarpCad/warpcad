@@ -26,13 +26,29 @@ batch itself is bounded (see `TODO/BUDGET.md`'s Config) and **always stops for a
 explicit human go/no-go at the end of every batch** — this is not an unbounded
 autonomous loop the way the previous attempt's was. `/fix-todo` Step 9 still prints the
 full commit message, social-post drafts, and the `TODO/VERIFY.md` entry it wrote — but
-since Step 5 below runs `/fix-todo` inside a per-tick isolated agent, that printed
+since Step 4 below runs `/fix-todo` inside a per-tick isolated agent, that printed
 output lands in the agent's own transcript, which isn't otherwise visible to the user.
-Step 5 requires the agent to report the commit message, social drafts, verification
+Step 4 requires the agent to report the commit message, social drafts, verification
 notes, and the Step 6 acceptance-scenario PASS/FAIL report back, and requires this loop
 to print them itself before moving on — so the transcript stays the record, same
 guarantee as before, just relayed through one more hop. If you want to review before
 every commit, don't run this as a loop — invoke `/fix-todo <id>` by hand instead.
+
+---
+
+## Progress files (a mod reads these)
+
+A Claude Code mod shows live progress from `.todo-progress/*.json`, written by
+`scripts/todo-progress.mjs`. The loop owns two writes; the `/fix-todo` agent owns the
+per-step ones (its own "Progress reporting" section):
+
+- Whenever the batch count changes (Step 1, Step 5): `node scripts/todo-progress.mjs
+  batch <done>/<size>`.
+- Immediately before spawning an agent (Step 4): `node scripts/todo-progress.mjs step
+  <id> 1 --model=<tier> --note="starting"`, so the mod shows the TODO the moment it's
+  picked, not once the agent gets around to it.
+- If a tick stops on a failure: `node scripts/todo-progress.mjs step <id> <n>
+  --state=failed --note="<why>"` so the mod shows red instead of a stale "running".
 
 ---
 
@@ -103,7 +119,7 @@ rather than discovering it after the fact.
 
 ## Step 4 — Run exactly one TODO, in an isolated agent
 
-Every id runs in a fresh `Agent` tool call now, never inline in this loop's own
+Every id runs in fresh `Agent` tool call(s), never inline in this loop's own
 conversation — regardless of the TODO's `model` field. This is what keeps this
 conversation's context from accumulating tick over tick across a long `/loop
 /run-todos` run. It's a `/run-todos`-specific concern: `/fix-todo` invoked directly by
@@ -111,16 +127,32 @@ a user still runs in that user's own conversation, unchanged — see `/fix-todo`
 own note on why its opus-delegation sub-step doesn't also fire here.
 
 Before spawning, read the chosen TODO file's frontmatter `model` field (default
-`sonnet` if absent, same default `/fix-todo` Step 2 uses) — that's the tier the agent
-runs as. "Isolated context" and "model tier" are two independent choices: every tick
-is isolated now; the `model` field only picks which model that isolated run uses (see
-`TODO/README.md`'s Model field section).
+`sonnet` if absent, same default `/fix-todo` Step 2 uses). "Isolated context" and
+"model tier" are two independent choices: every tick is isolated; the `model` field
+says who writes the code (see `TODO/README.md`'s Model field section).
+
+- **`model: sonnet`** — one agent at `sonnet` runs all of `/fix-todo`.
+- **`model: opus`** — **split the run; Opus only writes code.** Everything else in
+  `/fix-todo` (preflight, test runs, docs page, retirement, roadmap, commit, social
+  drafts) is bookkeeping that Sonnet does as well for a fraction of the price, and an
+  Opus agent that does all of it pays Opus rates to read test logs.
+  1. **Opus half** — agent at `opus`, briefed to do `/fix-todo` Steps 1-2 and Step 4
+     sub-steps (1)-(2) *only*: write the failing tests, confirm they fail for the right
+     reason, implement the minimum fix. **Leave everything uncommitted in the working
+     tree**, run only the targeted specs, report files touched + the targeted test
+     output, and stop.
+  2. **Sonnet half** — a second agent at `sonnet`, briefed to resume at `/fix-todo`
+     Step 4 sub-step 3 (it can see the Opus half's work with `git diff`/`git status`),
+     through Step 9. Paste the TODO's sections into both briefs. If the Sonnet half
+     finds the implementation itself is wrong (not just a test needing a tweak), that's
+     the `/test` escalation ladder's Opus-once hop — spawn a fresh Opus agent for just
+     that fix rather than editing a geometry/numerics change at Sonnet.
 
 Spawn one `Agent` tool call, foreground (its result gates Step 5 — the Runner Log entry
 needs its outcome):
 
 - `subagent_type: "claude"`
-- `model`: the TODO's `model` field value (`"opus"` or `"sonnet"`)
+- `model`: per the split above (`"sonnet"`, or `"opus"` for the Opus half only)
 - prompt — brief it like a handoff, not a summary, matching how `/fix-todo`'s own
   Step 4 opus-delegation already briefs its agent:
   - Tell it to run `/fix-todo <id>` end to end, through its own Step 9 commit (per
@@ -137,8 +169,10 @@ needs its outcome):
     `TODO/ACCEPTANCE.md` scenarios via the `run` skill per `/fix-todo` Step 6.
   - Tell it explicitly that it *is* the `/run-todos` Step 4 isolated agent, so when it
     reaches `/fix-todo`'s own Step 4, it should skip that step's opus-delegation
-    sub-check entirely and just do the fix directly at this agent's own model tier —
-    that sub-check exists only for a user invoking `/fix-todo` directly.
+    sub-check entirely and just do its assigned half directly at this agent's own model
+    tier — that sub-check exists only for a user invoking `/fix-todo` directly.
+  - Tell it that all test runs go through `/test` (Haiku does the running; the agent only
+    reads the compact report), and to follow `/test`'s escalation ladder on red.
   - Tell it to report back: which files it touched, the final test output (all
     stages, not just the targeted tests), the Step 6 acceptance-scenario PASS/FAIL
     report in full, and — since Step 9's commit happens inside this agent and its own
@@ -148,11 +182,15 @@ needs its outcome):
 
 When it finishes (whether it completed normally, already turned out to be done, or hit
 a preflight failure and stopped per its own Step 3 rules), **verify independently
-before trusting its summary** — delegation doesn't relax this:
-- Run `git diff` (or `git log -p` if it already committed) yourself and read the
-  actual changes.
-- Re-run the test suite yourself (`/test`) — don't take the agent's reported output as
-  sufficient on its own.
+before trusting its summary** — delegation doesn't relax this, but verifying is cheap if
+done in the right order, because this loop's context is the one that accumulates:
+- `git show --stat HEAD`. Compare the touched files with the TODO's **Affected files**.
+  Read the actual diff (`git show HEAD -- <file>`) **only for files outside that list or
+  that look disproportionate** — not the whole commit every tick.
+- Re-run the suite through `/test` with `--force` in the brief (skips the green-stamp
+  shortcut — the stamp was written by the agent's own run, so it can't be the
+  independent check). Haiku runs it; you read the compact report. Don't take the agent's
+  reported output as sufficient on its own.
 - **Read its Step 6 acceptance-scenario report.** If it reports a FAIL, or if it skipped
   Step 6 entirely without a stated reason (e.g. `TODO/ACCEPTANCE.md` genuinely not
   existing yet), do not treat this task as complete — this is exactly the gate that
@@ -182,7 +220,7 @@ Append (or update, if continuing an in-progress batch) the current batch's Runne
 row in `TODO/BUDGET.md`: start time, the id just completed (append to the `ids`
 column), and leave `ended because` blank if the batch continues.
 
-Then loop back to Step 1 to check whether the batch has room for another task — don't
+Then run `node scripts/todo-progress.mjs batch <done>/<size>` and loop back to Step 1 to check whether the batch has room for another task — don't
 call `ScheduleWakeup` yet unless Step 1 or Step 2 already routed you to Step 6.
 
 ---

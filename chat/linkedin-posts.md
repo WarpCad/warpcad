@@ -2026,3 +2026,18 @@ Each capture shows up in the chat as a thumbnail you can tap to open, so you see
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** earlier attempts shipped claims without proof -> CLAUDE.md status and SECOND-ATTEMPT.md; named views and no camera move -> e2e/ai-capture.e2e.js (camera attributes unchanged), passed in the full matrix this session; 218.6 to 12.8 ms -> bench/results/2026-10-09-ai-007.md; main thread rather than worker -> src/ai/tools/index.js header; heuristic, never "printable" -> printability.spec.js; thumbnail tap to open -> ai-capture.e2e.js
 **To Add:** screenshot of the thumbnail row
+
+## 2026-10-09T20:30:00Z — Cheaper TODO runner: Haiku runs the tests, Opus only writes code
+
+**Post:** The biggest avoidable cost in my TODO workflow was a model reading test output. A Playwright run prints hundreds of lines, and the model that wrote the code was the one reading them.
+
+So the runner changed. `/test` now hands the suites to Haiku, which reports back a compact summary and never fixes anything. A red stage escalates in order: the task's own model twice, then Opus once, then it stops and tells me. A "green stamp" skips re-running a tree that already passed. For tasks marked `opus`, the run is split: Opus writes the failing tests and the minimum fix, and Sonnet finishes the rest, including docs, retirement and the commit.
+
+A small progress script also writes per-step state to `.todo-progress/` so a Claude Code mod can show which TODO is on which step. I haven't measured the savings yet; that comes after a few batches have run under the new rules.
+
+Built with Claude Code, reviewed by me.
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** none
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** Haiku runs /test, escalation ladder, stamp, Opus/Sonnet split, progress script -> staged diff of test.md, fix-todo.md, run-todos.md, .gitignore; no savings figures claimed
+**To Add:** measured token cost before and after

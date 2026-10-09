@@ -10,6 +10,47 @@ Any other skill or instruction that needs to "run the tests" should invoke this 
 
 ---
 
+## Who runs this — always the cheapest model, never the one that wrote the code
+
+Running tests is mechanical and its raw output is large (a Playwright run prints
+hundreds of lines). Reading that output at Sonnet/Opus prices is the single biggest
+avoidable token cost in the TODO workflow. So:
+
+- **If you are not already Haiku, do not run the stages yourself.** Spawn one `Agent`
+  call (`subagent_type: "claude"`, `model: "haiku"`, foreground) and brief it to: run
+  Steps 1-3 below, then reply with **only** the compact report in Step 4. Haiku absorbs
+  the raw output; your context only ever sees the summary.
+- **Haiku never fixes anything.** It runs, reads, and reports. A failure goes back to
+  the caller, which owns the fix (see the escalation ladder below).
+- **Stop at the first red stage.** Later stages can't be trusted on a tree that already
+  fails an earlier one, and running them just buys more output to read. Say which
+  stages were skipped.
+- **Green-stamp.** After a *full* green run, `node scripts/todo-progress.mjs stamp set`.
+  Before starting a full run, `node scripts/todo-progress.mjs stamp check` — exit 0
+  means the code is byte-identical to a tree that already passed everything, so report
+  "green (stamp match, not re-run)" instead of paying for the same run twice. Callers
+  that need an *independent* check (the `/run-todos` loop verifying an agent's claim)
+  pass `--force` in the brief, which skips the check. A *targeted* run (one spec file)
+  never sets the stamp.
+
+### Escalation ladder when a stage is red
+
+The cheap model finds the failure; a stronger one fixes it, and only as strong as needed.
+
+1. **Task tier first.** The caller (whoever is running the TODO at its `model` tier,
+   Sonnet by default) reads the compact report and fixes it, then re-runs through Haiku
+   again. Up to **2** fix attempts at this tier.
+2. **Opus once.** Still red after two attempts: spawn one `Agent` with `model: "opus"`,
+   briefed with the failing report, the diff, and what the two attempts tried and why they
+   didn't work. One attempt.
+3. **Stop.** Still red: stop and report to the user with all three attempts' notes. Do not
+   loop, do not loosen an assertion or a snapshot threshold to get green.
+
+Record each hop with `node scripts/todo-progress.mjs step <id> <n> --state=escalated
+--model=opus --note="<stage> red after 2 sonnet attempts"` so the progress mod shows it.
+
+---
+
 ## What this runs
 
 Once the test harness is scaffolded, the root `package.json` should chain the suites
@@ -98,9 +139,11 @@ loosening the threshold until it passes.
 
 ## Step 4 — Report results
 
-Show a compact summary per stage (files/tests passed, duration) and the full output of
-any failure. All stages must be green before the calling workflow (commit, feature,
-TDD, fix-todo, refactor-ui) proceeds.
+Keep it compact — this is what the caller pays to read. Per stage one line (`unit: 223
+passed, 1.1s`). For each failure: the test's full name, the file:line, and the **first
+~40 lines** of its error (assertion diff + stack top), not the whole log. Name any stage
+skipped because an earlier one was red. All stages must be green before the calling
+workflow (commit, feature, TDD, fix-todo, refactor-ui) proceeds.
 
 ---
 

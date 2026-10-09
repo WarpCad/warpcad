@@ -1452,3 +1452,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** four tools (capture_view, measure, check_printability, check_clearance) -> src/ai/tools/index.js; 218.6 ms to 12.8 ms on a 100-slice wing -> bench/results/2026-10-09-ai-007.md, Apple M4 Pro, Node 24, median of 9 (agent-run, this session); 0.3 mm fin flagged -> printability.spec.js and e2e/ai-capture.e2e.js, e2e matrix 3052 passed / 0 failed this session
 **To Add:** a capture thumbnail screenshot in the activity row
+
+## 2026-10-09T20:30:00Z — Cheaper TODO runner: Haiku runs the tests, Opus only writes code
+
+**Post:** Reworked how my TODO runner spends tokens. Haiku now runs the test suites and hands back a short report. Opus tasks are split so Opus only writes the failing test and the fix, and Sonnet does the rest. A green stamp skips re-running an unchanged tree. Built with Claude Code, reviewed by me. #OpenSource
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** diff only (no cost numbers claimed; none measured this session)
+**To Add:** real token-cost comparison once a few batches have run under the new scheme
