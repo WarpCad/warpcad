@@ -78,6 +78,7 @@ import { circleFromDrag, isClosed, polygonFromDrag, profileAtPoint, rectFromDrag
 import { createEvaluationChannel } from '../../core/kernel/evaluationClient.js'
 import { unpackGeometry } from '../../core/kernel/transport.js'
 import { createOrbitCamera } from '../../render/camera.js'
+import { createOffscreenCapture, setViewportCapture } from '../../render/offscreenCapture.js'
 import { createViewport } from '../../render/scene.js'
 import {
   addXrayTwin,
@@ -674,6 +675,7 @@ function renderFrame() {
     } catch (error) {
       webglError.value = `WebGL rendering stopped: ${String(error)}`
       viewport = null
+      setViewportCapture(null)
     }
   }
   frameCount += 1
@@ -3097,6 +3099,9 @@ function onMode(mode) {
 /** @param {Event} event */
 function onContextLost(event) {
   event.preventDefault()
+  // The assistant's capture_view renders through this context: with it gone, the agent stops
+  // offering the tool rather than offering one that fails (`TODO/ai-007`).
+  setViewportCapture(null)
   webglError.value =
     'The 3D context was lost (the browser released the GPU). Reload the page to restore the view.'
 }
@@ -3174,6 +3179,9 @@ onMounted(() => {
     viewport = createViewport(canvas, { fovDeg: orbit.fovDeg, theme: theme.value })
     viewport.graph.scene.add(bodiesGroup)
     referenceImage.attach(viewport.graph.scene)
+    // `TODO/ai-007`: the assistant's capture_view renders this scene offscreen, with its own
+    // camera and meshes, so the user's view is never moved (`src/render/offscreenCapture.js`).
+    setViewportCapture(createOffscreenCapture({ renderer: viewport.renderer, graph: viewport.graph }))
     // Label the readout from the grid that actually got built, rather than
     // repeating the spacing constant in a second place.
     overlay.minorMm = viewport.graph.gridLines.minorMm
@@ -3308,6 +3316,7 @@ onMounted(() => {
 })
 
 onBeforeUnmount(() => {
+  setViewportCapture(null)
   // The viewport is the only thing that can draw or close the editor, so it must not
   // outlive it — a draft left open with no surface to finish it on is a stuck mode.
   sketchEditor.close()

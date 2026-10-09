@@ -169,8 +169,10 @@ describe('runTurn — happy path', () => {
     const client = scriptedProvider([{ calls: [call('describe_scene')] }, { text: 'ok' }])
     const { ctx } = setup({ client })
     await runTurn({ userMessage: 'hi', ctx })
+    // No capture handed over in this setup, so capture_view (ai-007) is left out.
     const expected = createToolRegistry()
       .definitions('ai')
+      .filter((definition) => definition.name !== 'capture_view')
       .map((definition) => ({ ...definition, inputSchema: toStrictWire(definition.inputSchema) }))
     for (const request of client.requests) {
       expect(request.system).toBe(SYSTEM_PROMPT)
@@ -535,5 +537,76 @@ describe('runTurn — clarifying questions', () => {
     expect(outcome.recordIds).toEqual([])
     expect(ctx.aiTurns).toEqual([])
     expect(serializeProject(document)).toBe(before)
+  })
+})
+
+// --- TODO/ai-007: the model sees what it captured ---------------------------------------
+
+describe('runTurn — capture_view and the image part', () => {
+  /** A stand-in for the browser's offscreen capture (mock at the boundary: no GPU here). */
+  const capture = {
+    capture: (/** @type {any} */ request) => ({
+      mediaType: /** @type {'image/png'} */ ('image/png'),
+      data: 'iVBORw0KGgoAAAANSUhEUg==',
+      widthPx: request.widthPx,
+      heightPx: request.heightPx,
+      contentFraction: 0.2,
+    }),
+  }
+
+  it('lists capture_view only when the transport handed over a capture', async () => {
+    const without = scriptedProvider([{ text: 'Hi.' }])
+    await runTurn({ userMessage: 'hi', ctx: setup({ client: without }).ctx })
+    expect(without.requests[0].tools.map((/** @type {any} */ tool) => tool.name)).not.toContain('capture_view')
+    expect(without.requests[0].tools.map((/** @type {any} */ tool) => tool.name)).toContain('measure')
+
+    const withCapture = scriptedProvider([{ text: 'Hi.' }])
+    const { ctx } = setup({ client: withCapture })
+    ctx.capture = capture
+    await runTurn({ userMessage: 'hi', ctx })
+    expect(withCapture.requests[0].tools.map((/** @type {any} */ tool) => tool.name)).toContain('capture_view')
+  })
+
+  it('sends the PNG back as an image block inside the tool_result, and keeps it out of the JSON', async () => {
+    const client = scriptedProvider([
+      { calls: [call('create', CUBE)] },
+      { calls: [call('capture_view', { view: 'iso' })] },
+      { text: 'It is a cube.' },
+    ])
+    const { ctx, events } = setup({ client })
+    ctx.capture = capture
+    const outcome = await runTurn({ userMessage: 'a cube, then look', ctx })
+    expect(outcome.status).toBe('done')
+    const [result] = toolResultsOf(client.requests[2])
+    expect(Array.isArray(result.content)).toBe(true)
+    const [text, image] = result.content
+    expect(text.type).toBe('text')
+    expect(text.text).not.toContain('iVBORw0KGgo')
+    expect(unwrapDocumentData(text.text)).toMatchObject({ view: 'iso', widthPx: 768 })
+    expect(image).toEqual({ type: 'image', source: { type: 'base64', media_type: 'image/png', data: 'iVBORw0KGgoAAAANSUhEUg==' } })
+    // The transcript still gets the image, for the thumbnail the human sees.
+    const shown = events.find((event) => event.type === 'tool_result' && event.name === 'capture_view')
+    expect(shown.result.image.data).toBe('iVBORw0KGgoAAAANSUhEUg==')
+  })
+
+  it('a capture runs against the turn’s fork: the body the turn just made is in the picture', async () => {
+    /** @type {any[]} */
+    const seen = []
+    /** @type {number[]} */
+    const liveBodies = []
+    const client = scriptedProvider([{ calls: [call('create', CUBE)] }, { calls: [call('capture_view', { view: 'top' })] }, { text: 'Done.' }])
+    const { ctx, document } = setup({ client })
+    ctx.capture = {
+      capture: (/** @type {any} */ request) => {
+        seen.push(request)
+        liveBodies.push(document.bodies().length)
+        return capture.capture(request)
+      },
+    }
+    await runTurn({ userMessage: 'a cube', ctx })
+    expect(seen[0].bodies.map((/** @type {any} */ body) => body.id)).toEqual(['cuboid-1'])
+    // ...while the live document was still empty when the capture ran; it lands afterwards.
+    expect(liveBodies).toEqual([0])
+    expect(document.bodies().map((body) => body.id)).toEqual(['cuboid-1'])
   })
 })

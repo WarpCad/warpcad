@@ -145,3 +145,71 @@ describe('formatUsage', () => {
     expect(formatUsage({ input: 0, cacheRead: 0, cacheWrite: 0, output: 0 })).toBe('')
   })
 })
+
+// --- TODO/ai-007: what the assistant checked ----------------------------------------------
+
+describe('check rows', () => {
+  it('a capture row carries the image as a thumbnail the human can open', () => {
+    const items = run([
+      { type: 'tool_call', id: 't1', name: 'capture_view', input: { view: 'top' } },
+      {
+        type: 'tool_result',
+        id: 't1',
+        name: 'capture_view',
+        isError: false,
+        result: { view: 'top', widthPx: 768, heightPx: 576, image: { mediaType: 'image/png', data: 'AAAA' } },
+      },
+    ])
+    expect(items[0]).toMatchObject({ kind: 'tool', status: 'ok', label: 'Looked at the top view', thumbnail: 'data:image/png;base64,AAAA' })
+  })
+
+  it('a measure row says the numbers', () => {
+    const items = run([
+      { type: 'tool_call', id: 't1', name: 'measure', input: { ids: ['c'] } },
+      {
+        type: 'tool_result',
+        id: 't1',
+        name: 'measure',
+        isError: false,
+        result: { bodies: [{ id: 'c', name: 'Cube 1', sizeMm: [214, 52, 18], volumeMm3: 64000.4, surfaceAreaMm2: 1 }] },
+      },
+    ])
+    expect(items[0].label).toBe('Measured Cube 1')
+    expect(items[0].summary).toBe('214 × 52 × 18 mm · 64000 mm³')
+    expect(items[0].check).toBeUndefined()
+  })
+
+  it('a printability check with a problem is a failed check row, with the first problem', () => {
+    const items = run([
+      { type: 'tool_call', id: 't1', name: 'check_printability', input: { ids: ['w'] } },
+      {
+        type: 'tool_result',
+        id: 't1',
+        name: 'check_printability',
+        isError: false,
+        result: {
+          bodies: [{ id: 'w', sizeMm: [214, 52, 18], fits: { asPlaced: true } }],
+          issues: [
+            { severity: 'info', message: 'Fits the build volume as placed.' },
+            { severity: 'warning', message: 'Wall 1.2 mm at the trailing edge — below your 1.6 mm minimum.' },
+          ],
+        },
+      },
+    ])
+    expect(items[0]).toMatchObject({ status: 'ok', check: 'fail', label: 'Checked printability' })
+    expect(items[0].summary).toMatch(/1\.2 mm/)
+  })
+
+  it('a clean printability check passes, and a clearance overlap fails', () => {
+    const clean = run([
+      { type: 'tool_call', id: 't1', name: 'check_printability', input: { ids: ['w'] } },
+      { type: 'tool_result', id: 't1', name: 'check_printability', isError: false, result: { bodies: [], issues: [{ severity: 'info', message: 'Fits.' }] } },
+    ])
+    expect(clean[0].check).toBe('pass')
+    const overlap = run([
+      { type: 'tool_call', id: 't1', name: 'check_clearance', input: { a: 'a', b: 'b' } },
+      { type: 'tool_result', id: 't1', name: 'check_clearance', isError: false, result: { interpenetrating: true, message: 'They overlap by 12 mm³.' } },
+    ])
+    expect(overlap[0]).toMatchObject({ check: 'fail', summary: 'They overlap by 12 mm³.' })
+  })
+})

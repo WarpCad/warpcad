@@ -16,6 +16,26 @@
 /** The long-edge ceiling. The API downsizes anything larger itself; sending less saves the upload. */
 export const MAX_IMAGE_EDGE = 1568
 
+/** The narrowest capture `capture_view` renders (`TODO/ai-007`): below this the picture says nothing. */
+export const MIN_CAPTURE_EDGE = 128
+
+/** `capture_view`'s default width: enough to read a part, a fraction of the ceiling's tokens. */
+export const DEFAULT_CAPTURE_WIDTH = 768
+
+/**
+ * The pixel size of a viewport capture (`TODO/ai-007`): 4:3, `width` clamped to
+ * [{@link MIN_CAPTURE_EDGE}, {@link MAX_IMAGE_EDGE}], so a capture is already downscaled when it
+ * is rendered and never needs a second pass before it is sent.
+ *
+ * @param {number | undefined} width
+ * @returns {{ widthPx: number, heightPx: number }}
+ */
+export function captureSize(width) {
+  const wanted = Number.isFinite(width) ? Math.round(/** @type {number} */ (width)) : DEFAULT_CAPTURE_WIDTH
+  const widthPx = Math.min(MAX_IMAGE_EDGE, Math.max(MIN_CAPTURE_EDGE, wanted))
+  return { widthPx, heightPx: Math.round((widthPx * 3) / 4) }
+}
+
 const MEDIA_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp', 'image/gif'])
 
 /**

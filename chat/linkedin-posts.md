@@ -2013,3 +2013,16 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** chat is a sheet below 1100px with three heights, a column above -> ChatPanel.vue + AppView.vue styles; nav chrome inset above the sheet -> e2e/ai-chat.e2e.js layout test, 24/24 chromium laptop/phone/tablet this session; row labels and tap to select -> transcript.spec.js, ai-chat.e2e.js; Stop keeps nothing -> useAgent.spec.js + ai-chat.e2e.js; Undo AI turn off after a user edit -> useAgent.spec.js; tokens only, no price -> TokenReadout.vue, transcript.js formatUsage; Library then Inspector sheet showing through at phone width -> hand-drive screenshots this session, fixed in AppView.vue (visibility rule); full suite green -> typecheck clean, 3198 unit, 3034 e2e passed / 0 failed, this session
 **To Add:** docs/screenshots of the chat sheet at phone and laptop width (not yet generated)
+
+## 2026-10-09T19:45:00Z — The assistant can look at its own work and measure it
+
+**Post:** The earlier attempts at this project failed by claiming success without anything proving it. So the assistant in WarpCad now has to check its own work. It can render the current scene from a named view (iso, top, front and so on) without moving your camera, and it can call measure, check_printability and check_clearance to get numbers back: volume, bounds, thinnest wall, the gap between two bodies.
+
+The part I expected to be expensive was thin-wall sampling over a lofted wing. A bounding-volume hierarchy took it from 218.6 ms to 12.8 ms on a 100-slice wing (Apple M4 Pro, median of nine runs), which is why these checks stay on the main thread for now instead of going through the worker. The printability check is a heuristic and says so; it never claims a part is printable.
+
+Each capture shows up in the chat as a thumbnail you can tap to open, so you see what the model saw. Built with Claude Code, reviewed by me.
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** earlier attempts shipped claims without proof -> CLAUDE.md status and SECOND-ATTEMPT.md; named views and no camera move -> e2e/ai-capture.e2e.js (camera attributes unchanged), passed in the full matrix this session; 218.6 to 12.8 ms -> bench/results/2026-10-09-ai-007.md; main thread rather than worker -> src/ai/tools/index.js header; heuristic, never "printable" -> printability.spec.js; thumbnail tap to open -> ai-capture.e2e.js
+**To Add:** screenshot of the thumbnail row

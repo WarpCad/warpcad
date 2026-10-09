@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest'
 import modeling from '@jscad/modeling'
 
-import { makeWatertight } from './watertight.js'
+import { makeWatertight, openEdgesOf } from './watertight.js'
 
 const { primitives, geometries, transforms, measurements, booleans } = modeling
 
@@ -164,5 +164,31 @@ describe('makeWatertight', () => {
     const once = makeWatertight(union)
     const twice = makeWatertight(once)
     expect(twice).toBe(once) // same object: the second pass found nothing to do
+  })
+})
+
+// TODO/ai-007: the printability check reports open edges the way the exported file would have
+// them — after this repair — and says where they are.
+describe('openEdgesOf — what is still open after the repair', () => {
+  it('a closed cube has none', () => {
+    expect(openEdgesOf(primitives.cuboid({ size: [10, 10, 10] }))).toEqual({ openEdges: 0, where: [] })
+  })
+
+  it('a cube with one face missing has four open edges, located on that face', () => {
+    const polygons = geometries.geom3.toPolygons(primitives.cuboid({ size: [10, 10, 10] }))
+    // Drop the +Z face.
+    const open = geometries.geom3.create(polygons.filter((polygon) => !polygon.vertices.every((vertex) => vertex[2] > 4.999)))
+    const result = openEdgesOf(open)
+    expect(result.openEdges).toBe(4)
+    expect(result.where.length).toBeGreaterThan(0)
+    for (const point of result.where) expect(point[2]).toBeCloseTo(5, 6)
+  })
+
+  it('a T-junction alone is not reported: the repair closes it first', () => {
+    expect(openEdgesOf(makeWatertight(cubeWithSplitTop())).openEdges).toBe(0)
+  })
+
+  it('an empty solid has none', () => {
+    expect(openEdgesOf(geometries.geom3.create()).openEdges).toBe(0)
   })
 })

@@ -77,6 +77,19 @@ describe('system prompt — behaviour', () => {
     expect(SYSTEM_PROMPT).toMatch(/not in your tool list|if (they are|those are) (not|missing)/i)
   })
 
+  it('ai-007: names every check, requires one before "finished", and keeps the checks honest', () => {
+    for (const tool of ['capture_view', 'measure', 'check_printability', 'check_clearance']) expect(SYSTEM_PROMPT).toContain(tool)
+    // Checking is required, not suggested, before declaring a part done.
+    expect(SYSTEM_PROMPT).toMatch(/(must|always) (check|measure|inspect)[^.]*before[^.]*(finished|done)/i)
+    // The checks are heuristic: the model must never promise a print.
+    expect(SYSTEM_PROMPT).toMatch(/heuristic/i)
+    expect(SYSTEM_PROMPT).toMatch(/never (say|claim|promise)[^.]*print/i)
+    // A failed check is reported or fixed, never glossed over.
+    expect(SYSTEM_PROMPT).toMatch(/error|warning/i)
+    // capture_view is browser-only; over MCP it is absent and the prompt says what to do then.
+    expect(SYSTEM_PROMPT).toMatch(/capture_view[^.]*(absent|not (in|available))|(absent|not (in|available))[^.]*capture_view/i)
+  })
+
   it('reads tool errors and fixes the call rather than repeating it', () => {
     expect(SYSTEM_PROMPT).toMatch(/error/i)
     expect(SYSTEM_PROMPT).toMatch(/fix|correct/i)

@@ -6,8 +6,10 @@ priority: high
 model: opus
 milestone: M9
 depends: [ai-002]
-status: open
+status: done
 ---
+
+> **What shipped (2026-10-09):** all four tools, registered; `capture_view` is browser-only and offered per turn only while the viewport can render. The analysis tools run **synchronously on the main thread** under a fixed ray budget (a BVH in `src/core/kernel/meshQuery.js` takes thin-wall sampling on a 100-slice wing from 218.6 ms to 12.8 ms; `bench/results/2026-10-09-ai-007.md`) instead of in the kernel worker, because a worker hop would make every registry tool asynchronous for both transports. `primitive.sketch` allows at most 64 slices, so the 100-slice wing exists only in the benchmark. Not done: grid lines are faint in captures; per-part group colours are not drawn.
 
 ## Goal
 

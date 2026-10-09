@@ -1443,3 +1443,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** chat is a sheet below 1100px with three heights, a column above -> ChatPanel.vue + AppView.vue styles; nav chrome inset above the sheet -> e2e/ai-chat.e2e.js layout test, 24/24 chromium laptop/phone/tablet this session; row labels and tap to select -> transcript.spec.js, ai-chat.e2e.js; Stop keeps nothing -> useAgent.spec.js + ai-chat.e2e.js; Undo AI turn off after a user edit -> useAgent.spec.js; tokens only, no price -> TokenReadout.vue, transcript.js formatUsage; Library then Inspector sheet showing through at phone width -> hand-drive screenshots this session, fixed in AppView.vue (visibility rule); full suite green -> typecheck clean, 3198 unit, 3034 e2e passed / 0 failed, this session
 **To Add:** docs/screenshots of the chat sheet at phone and laptop width (not yet generated)
+
+## 2026-10-09T19:45:00Z — The assistant can look at its own work and measure it
+
+**Post:** WarpCad's assistant can now render the scene from a named view and read numbers back: volume, bounds, thinnest wall, gap between two parts. Thin-wall sampling on a 100-slice wing went from 219 ms to 13 ms with a BVH. A 0.3 mm fin gets flagged. Built with Claude Code, reviewed by me. #CAD #WebGL
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** four tools (capture_view, measure, check_printability, check_clearance) -> src/ai/tools/index.js; 218.6 ms to 12.8 ms on a 100-slice wing -> bench/results/2026-10-09-ai-007.md, Apple M4 Pro, Node 24, median of 9 (agent-run, this session); 0.3 mm fin flagged -> printability.spec.js and e2e/ai-capture.e2e.js, e2e matrix 3052 passed / 0 failed this session
+**To Add:** a capture thumbnail screenshot in the activity row

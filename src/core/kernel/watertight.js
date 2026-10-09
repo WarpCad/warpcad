@@ -240,6 +240,64 @@ export function makeWatertight(solid) {
 }
 
 /**
+ * What is still open about a solid's surface (`TODO/ai-007`, the assistant's printability
+ * check): undirected edges not walked exactly once each way, located by their midpoints.
+ *
+ * Corners are welded by the same snap-grid identity {@link makeWatertight} uses — the radius
+ * the STL serializer is about to fuse over — so "open" here means open in the written file.
+ * Run it on `makeWatertight(solid)` to ask about the export rather than about the kernel's
+ * raw T-junctions, which the export repairs.
+ *
+ * @param {Geom3} solid
+ * @param {{ limit?: number }} [options] `limit`: how many locations to return (default 5).
+ * @returns {{ openEdges: number, where: Vec3[] }}
+ */
+export function openEdgesOf(solid, options = {}) {
+  const limit = options.limit ?? 5
+  const polygons = geometries.geom3.toPolygons(solid)
+  if (polygons.length === 0) return { openEdges: 0, where: [] }
+  const epsilon = measurements.measureEpsilon(solid)
+  if (!(epsilon > 0)) return { openEdges: 0, where: [] }
+  const identity = new CornerIdentity(epsilon)
+  const ids = polygons.map((polygon) => polygon.vertices.map((vertex) => identity.idOf(vertex)))
+  const cornerCount = identity.size
+  /** @type {(Vec3 | undefined)[]} */
+  const representative = new Array(cornerCount)
+  /** @type {Map<number, { uses: number, net: number, from: number, to: number }>} */
+  const edges = new Map()
+  for (let index = 0; index < polygons.length; index += 1) {
+    const { vertices } = polygons[index]
+    const polygonIds = ids[index]
+    for (let corner = 0; corner < vertices.length; corner += 1) {
+      const from = polygonIds[corner]
+      const to = polygonIds[(corner + 1) % vertices.length]
+      if (representative[from] === undefined) representative[from] = vertices[corner]
+      // A side the weld collapses to a point is not an edge of the written file.
+      if (from === to) continue
+      const lo = Math.min(from, to)
+      const hi = Math.max(from, to)
+      const key = lo * cornerCount + hi
+      const entry = edges.get(key) ?? { uses: 0, net: 0, from: lo, to: hi }
+      entry.uses += 1
+      entry.net += from < to ? 1 : -1
+      edges.set(key, entry)
+    }
+  }
+  let openEdges = 0
+  /** @type {Vec3[]} */
+  const where = []
+  for (const entry of edges.values()) {
+    if (entry.uses === 2 && entry.net === 0) continue
+    openEdges += 1
+    if (where.length >= limit) continue
+    const a = /** @type {Vec3} */ (representative[entry.from])
+    const b = /** @type {Vec3} */ (representative[entry.to])
+    where.push([(a[0] + b[0]) / 2, (a[1] + b[1]) / 2, (a[2] + b[2]) / 2])
+  }
+  return { openEdges, where }
+}
+
+/**
  * A vertex's welded identity as a small integer: which cell of the serializer's own
  * snap grid it lands in. Coordinates are never modified — this is an identity, not a
  * rounding of the geometry, exactly as the string key it replaces was.

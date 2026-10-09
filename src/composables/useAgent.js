@@ -20,6 +20,7 @@
 
 import { createAgentContext, runTurn } from '../ai/agent.js'
 import { downscaleToImagePart } from '../ai/image.js'
+import { viewportCapture } from '../render/offscreenCapture.js'
 import { useAiChatStore } from '../stores/aiChat.js'
 import { useAssistantStore } from '../stores/assistant.js'
 import { useDocumentStore } from '../stores/document.js'
@@ -106,6 +107,10 @@ export function useAgent() {
 
   async function send() {
     if (!chat.canSend) return
+    // `TODO/ai-007`: capture_view is offered only while the viewport can render. Read per turn —
+    // the viewport mounts after this context may have been built, and a lost context clears it.
+    const ctx = agentContext()
+    ctx.capture = viewportCapture() ?? undefined
     const userMessage = chat.draft.trim()
     const attached = chat.attachments
     chat.draft = ''
@@ -119,7 +124,7 @@ export function useAgent() {
       const outcome = await runTurn({
         userMessage: userMessage === '' ? 'Please look at the attached image.' : userMessage,
         images: attached.map((a) => a.part),
-        ctx: agentContext(),
+        ctx,
         signal: controller.signal,
       })
       // The agent wrote to the raw document; the store's mirrors (bodies, History, the viewport's

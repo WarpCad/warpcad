@@ -86,11 +86,30 @@ describe('createToolRegistry', () => {
     }
   })
 
-  it('offers the spec’s tools, and the browser gets the two selection tools on top of MCP’s', () => {
+  it('offers the spec’s tools, and the browser gets the selection tools and capture_view on top of MCP’s', () => {
     const tools = createToolRegistry()
     const mcp = tools.toolsFor('mcp').map((tool) => tool.name)
-    expect(mcp).toEqual(['apply_records', 'create', 'describe_body', 'describe_scene', 'get_timeline', 'list_ops', 'operate'])
-    expect(tools.toolsFor('ai').map((tool) => tool.name)).toEqual([...mcp, 'get_selection', 'select'].sort())
+    expect(mcp).toEqual([
+      'apply_records',
+      'check_clearance',
+      'check_printability',
+      'create',
+      'describe_body',
+      'describe_scene',
+      'get_timeline',
+      'list_ops',
+      'measure',
+      'operate',
+    ])
+    expect(tools.toolsFor('ai').map((tool) => tool.name)).toEqual([...mcp, 'capture_view', 'get_selection', 'select'].sort())
+  })
+
+  it('never lists capture_view over MCP (no GPU there), and refuses it by name if called anyway', () => {
+    const tools = createToolRegistry()
+    expect(tools.definitions('mcp').map((definition) => definition.name)).not.toContain('capture_view')
+    const result = tools.run(makeContext({ document: createDocument(), origin: 'mcp' }), 'capture_view', { view: 'iso' })
+    expect(result.error).toMatch(/capture_view/)
+    expect(result.error).toMatch(/viewport/)
   })
 
   it('never offers a catch-all tool that takes any op — creation and operation stay separate', () => {

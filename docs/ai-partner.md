@@ -6,7 +6,8 @@ the Assistant, go from your browser straight to Anthropic and nowhere else.
 
 The **Assistant** button in the top bar opens the key sheet until a key is saved, and the chat
 after that. This page covers [getting a key](#getting-a-key), then
-[asking for a part](#asking-for-a-part) and [stopping and undoing](#stopping-and-undoing).
+[asking for a part](#asking-for-a-part), [what the assistant checks](#what-the-assistant-checks)
+and [stopping and undoing](#stopping-and-undoing).
 
 ## Getting a key
 
@@ -73,6 +74,39 @@ viewport. Open **History** and its rows are marked as written by the Assistant.
 
 A turn lands all at once, when it is finished. Until then the Assistant works on a private copy, so
 a turn that is stopped, fails, or runs into a limit changes nothing in your project.
+
+## What the assistant checks
+
+Before the Assistant calls a part finished it has to check it. It can do four things, and none of
+them changes your project:
+
+- **Look at it** from a named view: iso (the Home view), top, front, right, back, bottom or left.
+  It can also cut the model open along a plane to see inside a hollow part. The picture is drawn
+  off screen, so your camera, your selection and your screen stay as they are.
+- **Measure** a body: its size and position in millimetres, its volume, surface area and centre of
+  mass. A group counts as one body.
+- **Check printability**: whether the surface is closed (watertight), whether the part fits the
+  printer's build volume and which way round, the thinnest wall it can find, and any wall thinner
+  than the nozzle. Unless you or your project's standing rules say otherwise, it assumes a
+  220 × 220 × 250 mm bed, a 0.4 mm nozzle and a 1.2 mm minimum wall.
+- **Check clearance** between two bodies: the smallest gap between them, or how much they
+  overlap. This is how it checks that a board fits its case or a joint can slide.
+
+Each check is an activity row like any other. A look shows the picture it took as a thumbnail:
+tap the thumbnail to open it full width, and tap again to fold it. That is exactly what the
+Assistant saw. A measurement or check shows its numbers on a second line. A check that found a
+problem has a ⚠ and a dashed red edge, so it stands out from the rows that passed.
+
+The checks are estimates, not guarantees. Walls are sampled, so a feature finer than the sampling
+can be missed. Fit is only tried square to the bed. Overhangs and supports are not checked. The
+Assistant says what it checked and never promises that a part will print. Slice the part before
+you trust it.
+
+**Example.** With a wing in the scene, type *check whether this fits a 220 mm bed, with walls of
+at least 1.6 mm* and tap **Send**. A *Looked at the top view* row shows a thumbnail of the wing.
+Below it, a *Checked printability* row with a ⚠ reads *Wall 1.2 mm thick at (98, 4, 2) — below
+the 1.6 mm minimum wall*. The Assistant's reply gives the size it measured (*Fits at 214 × 52 ×
+18 mm*) and asks whether to thicken the trailing edge or accept it.
 
 ## Stopping and undoing
 

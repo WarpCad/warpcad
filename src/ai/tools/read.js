@@ -68,7 +68,7 @@ import { objectSchema } from './schema.js'
  * @param {number} value
  * @returns {number}
  */
-function round(value) {
+export function round(value) {
   const rounded = Math.round(value * 1e6) / 1e6
   return rounded === 0 ? 0 : rounded
 }
@@ -77,7 +77,7 @@ function round(value) {
  * @param {readonly number[]} vector
  * @returns {Vec3}
  */
-function round3(vector) {
+export function round3(vector) {
   return [round(vector[0]), round(vector[1]), round(vector[2])]
 }
 
@@ -195,6 +195,27 @@ export function findBody(document, id) {
     }
   }
   return { reason: `The document has no body "${id}". Call describe_scene for the ids there are.` }
+}
+
+/**
+ * Resolve a list of body ids for a tool that reads geometry (`TODO/ai-007`): every id must be a
+ * body on screen, duplicates are dropped, and an empty list is refused with a sentence saying
+ * what to pass.
+ *
+ * @param {WarpDocument} document
+ * @param {readonly string[]} ids
+ * @returns {{ bodies: Body[], error?: undefined } | { bodies?: undefined, error: string }}
+ */
+export function resolveBodies(document, ids) {
+  if (ids.length === 0) return { error: 'Name at least one body id. Call describe_scene for the ids there are.' }
+  /** @type {Body[]} */
+  const bodies = []
+  for (const id of new Set(ids)) {
+    const found = findBody(document, id)
+    if (found.reason !== undefined) return { error: found.reason }
+    bodies.push(found.body)
+  }
+  return { bodies }
 }
 
 /**

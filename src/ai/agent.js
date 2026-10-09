@@ -21,7 +21,10 @@
  *    `tool_call` runs through `ToolRegistry.run` — the **only** place caps are counted
  *    (`createTurn()`, one per turn) — and the result goes back to the model wrapped by
  *    `documentDataBlock` (document text is data, decision 7), with `is_error` on a failure so
- *    the model reads the document's own `ReplayRejection` sentence and can fix its call.
+ *    the model reads the document's own `ReplayRejection` sentence and can fix its call. A
+ *    result carrying an `image` (`capture_view`, `ai-007`) goes back as two blocks — the JSON
+ *    without the image, then the PNG as an image block (`imagePart`) — so the model sees the
+ *    picture and the base64 never sits in the JSON it reads.
  * 3. **Stop.** A result carrying `stop: true` ends the turn (steps, records, three failures in
  *    a row, wall clock), and so does a reply cut off at the output limit — the outcome says
  *    which, never a silent truncation. The wall clock is also checked before each model
@@ -66,6 +69,7 @@
 import { ReplayRejection, createDocument, foldableEntry } from '../core/document.js'
 import { assembleMessages, compactToolResult, summariseScene } from './context.js'
 import { documentDataBlock, standingInstructionsBlock } from './documentData.js'
+import { imagePart } from './image.js'
 import { SYSTEM_PROMPT } from './prompt.js'
 import { LIMITS, createToolRegistry, createTurn, toStrictWire } from './tools/index.js'
 import { sceneSummary } from './tools/read.js'
@@ -126,6 +130,8 @@ const NOTHING_KEPT = 'Nothing from this turn was kept — the project is as it w
  * @property {Readonly<Record<string, import('../core/kernel/registry.js').RegistryEntry>> | undefined} registry
  *   The op registry the fork is built on; `undefined` for the real one.
  * @property {import('./tools/index.js').ToolSelection | undefined} selection Browser selection.
+ * @property {import('./tools/capture.js').ToolCapture | undefined} capture Browser only: the
+ *   viewport's offscreen capture (`ai-007`). Read per turn; absent, `capture_view` is not offered.
  * @property {() => { text: string, trusted: boolean }} standingInstructions Read per turn.
  * @property {(event: AgentEvent) => void} onEvent
  * @property {() => number} now
@@ -146,6 +152,7 @@ const NOTHING_KEPT = 'Nothing from this turn was kept — the project is as it w
  *   The op registry, when not the real one (a spec's fake).
  * @param {import('./tools/index.js').ToolRegistry} [options.tools] Built over `registry` by default.
  * @param {import('./tools/index.js').ToolSelection} [options.selection]
+ * @param {import('./tools/capture.js').ToolCapture} [options.capture]
  * @param {() => { text: string, trusted: boolean }} [options.standingInstructions] The app passes
  *   the document's text with `useProjectSettingsStore().trusted`. Default: the document's own
  *   text, **untrusted** — the safe reading when nobody has said otherwise.
@@ -162,6 +169,7 @@ export function createAgentContext(options) {
     registry,
     tools: options.tools ?? createToolRegistry(registry ? { registry } : {}),
     selection: options.selection,
+    capture: options.capture,
     standingInstructions: options.standingInstructions ?? (() => ({ text: document.standingInstructions(), trusted: false })),
     onEvent: options.onEvent ?? (() => {}),
     now: options.now ?? Date.now,
@@ -277,6 +285,23 @@ function userContentFor(ctx, fork, userMessage, images) {
 }
 
 /**
+ * A tool result as `tool_result` content: the JSON as `document_data`, and — for a result with
+ * an `image` (`capture_view`) — the picture as an image block after it.
+ *
+ * @param {string} name
+ * @param {Record<string, any>} result
+ * @returns {string | any[]}
+ */
+function toolResultContent(name, result) {
+  const image = result.image
+  if (!image || typeof image.data !== 'string' || typeof image.mediaType !== 'string') {
+    return documentDataBlock('tool_result', compactToolResult(name, result))
+  }
+  const { image: _image, ...rest } = result
+  return [{ type: 'text', text: documentDataBlock('tool_result', compactToolResult(name, rest)) }, imagePart(image.data, image.mediaType)]
+}
+
+/**
  * Run one turn. Never throws for anything the model, the provider or a tool does: every ending
  * is a {@link TurnOutcome}, also sent as the last event (`turn_end`).
  *
@@ -382,9 +407,12 @@ async function turnBody({ userMessage, images, ctx, signal }) {
     turn,
     request: userMessage,
     ...(ctx.selection ? { selection: ctx.selection } : {}),
+    ...(ctx.capture ? { capture: ctx.capture } : {}),
   }
   const tools = ctx.tools
     .definitions('ai')
+    // No viewport to render with (WebGL never started): never offer a tool that fails every time.
+    .filter((definition) => definition.name !== 'capture_view' || toolCtx.capture !== undefined)
     .map((definition) => ({ ...definition, inputSchema: toStrictWire(definition.inputSchema) }))
 
   try {
@@ -423,7 +451,7 @@ async function turnBody({ userMessage, images, ctx, signal }) {
         results.push({
           type: 'tool_result',
           tool_use_id: call.id,
-          content: documentDataBlock('tool_result', compactToolResult(call.name, result)),
+          content: toolResultContent(call.name, result),
           ...(isError ? { is_error: true } : {}),
         })
       }

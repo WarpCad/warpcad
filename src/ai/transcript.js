@@ -24,6 +24,11 @@
  * @property {string[]} bodyIds Bodies the call made or changed, for "tap to select".
  * @property {string} [error] The tool's own reason, for an `error` row.
  * @property {any} [input] Kept so the label can be rebuilt when the result arrives.
+ * @property {string} [thumbnail] `capture_view` (`TODO/ai-007`): the captured PNG as a `data:`
+ *   URL, so the human sees what the model saw.
+ * @property {string} [summary] A check's numbers in one line ("214 × 52 × 18 mm · 64000 mm³").
+ * @property {'pass' | 'fail'} [check] A check tool's verdict: `fail` when it found an error or
+ *   warning, or two bodies interpenetrate. The row looks different, not only coloured.
  * @typedef {{ kind: 'notice', level: 'stopped' | 'cancelled' | 'failed' | 'info', message: string }} NoticeItem
  * @typedef {UserItem | AssistantItem | ToolItem | NoticeItem} TranscriptItem
  */
@@ -71,6 +76,14 @@ function sceneNameOf(result, id) {
  */
 export function describeCall(name, input, result, nameOf) {
   if (name in READ_LABELS) return READ_LABELS[name]
+  if (name === 'capture_view') return `Looked at the ${typeof input?.view === 'string' ? input.view : 'iso'} view`
+  if (name === 'measure') {
+    const ids = Array.isArray(input?.ids) ? input.ids : []
+    const names = ids.map((/** @type {string} */ id) => result?.bodies?.find((/** @type {any} */ body) => body?.id === id)?.name ?? nameOf?.(id) ?? String(id))
+    return names.length === 0 ? 'Measured' : `Measured ${names.join(', ')}`
+  }
+  if (name === 'check_printability') return 'Checked printability'
+  if (name === 'check_clearance') return 'Checked clearance'
   if (name === 'apply_records') {
     const count = Array.isArray(input?.steps) ? input.steps.length : 0
     return `Applied ${count} ${count === 1 ? 'step' : 'steps'}`
@@ -92,6 +105,49 @@ export function describeCall(name, input, result, nameOf) {
     return names.length === 0 ? verbOf(op) : `${verbOf(op)} ${names.join(joiner)}`
   }
   return `Used ${name}`
+}
+
+/** @param {unknown} value @returns {string} */
+const plain = (value) => String(Number(Number(value).toFixed(2)))
+
+/**
+ * What a check tool's row adds (`TODO/ai-007`): its numbers, its verdict and, for a capture, the
+ * picture. Pure, like everything here; an unexpected result shape adds nothing.
+ *
+ * @param {string} name
+ * @param {any} result
+ * @returns {Pick<ToolItem, 'thumbnail' | 'summary' | 'check'>}
+ */
+function checkDetails(name, result) {
+  if (name === 'capture_view') {
+    const image = result?.image
+    if (typeof image?.data !== 'string' || typeof image?.mediaType !== 'string') return {}
+    return {
+      thumbnail: `data:${image.mediaType};base64,${image.data}`,
+      ...(typeof result.warning === 'string' ? { summary: result.warning, check: 'fail' } : {}),
+    }
+  }
+  if (name === 'measure') {
+    const body = result?.total ?? result?.bodies?.[0]
+    if (!Array.isArray(body?.sizeMm) || typeof body?.volumeMm3 !== 'number') return {}
+    return { summary: `${body.sizeMm.map(plain).join(' × ')} mm · ${Math.round(body.volumeMm3)} mm³` }
+  }
+  if (name === 'check_printability') {
+    const issues = Array.isArray(result?.issues) ? result.issues : []
+    const problem = issues.find((/** @type {any} */ issue) => issue?.severity === 'error' || issue?.severity === 'warning')
+    const first = problem ?? issues[0]
+    return {
+      check: problem ? 'fail' : 'pass',
+      ...(typeof first?.message === 'string' ? { summary: first.message } : {}),
+    }
+  }
+  if (name === 'check_clearance') {
+    return {
+      check: result?.interpenetrating === true ? 'fail' : 'pass',
+      ...(typeof result?.message === 'string' ? { summary: result.message } : {}),
+    }
+  }
+  return {}
 }
 
 /**
@@ -141,6 +197,7 @@ export function applyEvent(items, event, nameOf) {
         const applied = Array.isArray(event.result?.applied) ? event.result.applied : []
         return {
           ...item,
+          ...checkDetails(item.name, event.result),
           status: 'ok',
           label: describeCall(item.name, item.input, event.result, nameOf),
           bodyIds: applied.map((/** @type {any} */ step) => step?.bodyId).filter((/** @type {unknown} */ id) => typeof id === 'string'),

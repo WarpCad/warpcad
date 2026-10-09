@@ -34,6 +34,16 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### ai-007 — AI vision and measurement tools (2026-10-09 19:36)
+
+The capture and checks are covered by unit specs and `e2e/ai-capture.e2e.js` (non-blank PNG, no camera change, no flash, three viewports). What no assertion can judge is below.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | Grid lines nearly vanish in a `capture_view` PNG after the 2x downscale. Does a captured view still read well enough for a person to tell what the model saw? | Open | |
+| 2 | Per-part recipe colours inside a group (a Bolt's head and thread) are not drawn in captures, only the body colour. Judge whether the thumbnail is misleading on a composite. | Open | |
+| 3 | `check_clearance` over-reads slightly where two edges cross at the closest point (documented). Compare against a real Pi-and-case gap you can measure by hand. | Open | |
+
 ### ai-006 — Assistant chat panel (2026-10-09 16:40)
 
 The on-screen-keyboard lift uses `window.visualViewport`, which desktop browsers and Playwright emulation never shrink, so no script here can exercise it. Everything else about the chat is covered by `e2e/ai-chat.e2e.js` and acceptance scenarios 1 and 7.

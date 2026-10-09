@@ -8,8 +8,10 @@
  * `tools/list`, origin `mcp`). A tool sees which transport called it only through
  * `ctx.origin`, and the list differs by transport in exactly one way: the selection
  * tools are browser-only, because the MCP server edits a closed file with no human
- * looking at a selection. (`capture_view`, `ai-007`, will be the second browser-only
- * tool.)
+ * looking at a selection, and `capture_view` (`ai-007`) is too, because Node has no GPU to
+ * render with. The agent also drops `capture_view` from a turn when the browser has no working
+ * viewport to hand over (`ToolContext.capture`), so no list ever offers a tool that fails every
+ * time.
  *
  * ## Tool reference (reused by `docs/mcp.md`, `ai-009`)
  *
@@ -26,6 +28,10 @@
  * | `create` | yes | Place one body: `{ op, positionMm, params? }`. Zero-operand Library ops only. |
  * | `operate` | yes | One operation: `{ op, operands: [{ id, pieces? }], params? }`. Refused by name on a wrong operand count or an id that is not a body on screen. |
  * | `apply_records` | yes | `{ steps: [{ create } \| { operate }] }` as one atomic change; a step names an earlier step's body as `@n`. |
+ * | `measure` | no | `{ ids }`: bounds and size (mm), volume (mm³), surface area (mm²), centre of mass; a total for several, overlaps counted once. |
+ * | `check_printability` | no | `{ ids, buildVolumeMm?, minWallMm?, nozzleMm? }`: watertight, fits the build volume (and which way round), thinnest wall by sampling, walls under the nozzle — `issues: [{ severity, message, where }]`. Heuristic, and says so. |
+ * | `check_clearance` | no | `{ a, b }`: the smallest gap between two bodies and the closest points, or the volume they share when they interpenetrate. |
+ * | `capture_view` | no | Browser only. `{ view, ids?, highlight?, section?, width? }`: a PNG of the turn's scene from a named view, rendered offscreen; the image goes to the model as an image block. |
  *
  * Every write tool also takes an optional `rationale`: one line saying why. With the turn's
  * request (`ctx.request`) it is saved as each new record's design intent (`TODO/ai-003`),
@@ -50,14 +56,27 @@
  * Tools are synchronous: the document folds synchronously. The kernel worker is the
  * *app's* path for rendering and is not involved here.
  *
+ * That includes the analysis tools (`ai-007`), which do their kernel and ray work right here,
+ * on the main thread, during a turn — the same place the fork's folds already run. Their cost
+ * is bounded rather than moved: wall thickness casts at most 4,000 rays through a bounding
+ * volume hierarchy (`src/core/kernel/meshQuery.js`), measured at about 13 ms on a 100-slice
+ * wing (`bench/results/2026-10-09-ai-007.md`). A turn already blocks the user's edits
+ * (decision 5), and these never run in the pan/zoom/drag frame path the 16 ms budget is for.
+ * Moving them to the worker would make `run` asynchronous for every transport; that is worth
+ * doing when a measured case needs it, not before.
+ *
  * @module ai/tools
  */
 
 import { registry as kernelRegistry } from '../../core/kernel/registry.js'
 import { applySteps, createApplyRecordsTool } from './batch.js'
+import { createCaptureTool } from './capture.js'
+import { createClearanceTool } from './clearance.js'
 import { createCreateTool, creatableOps } from './create.js'
 import { assertWriteOrigin } from './limits.js'
+import { createMeasureTool } from './measure.js'
 import { OPERATIONS, createOperateTool, operableOps } from './operate.js'
+import { createPrintabilityTool } from './printability.js'
 import { createReadTools } from './read.js'
 import { checkInput, objectSchema, paramsSchemaFor } from './schema.js'
 
@@ -87,6 +106,8 @@ export { toStrictWire } from './schema.js'
  * @property {string} origin `ai` or `mcp`; every write carries it.
  * @property {import('./limits.js').Turn} turn This turn's budget.
  * @property {ToolSelection} [selection] Browser only.
+ * @property {import('./capture.js').ToolCapture} [capture] Browser only, and only with a working
+ *   viewport: what `capture_view` renders through (`src/render/offscreenCapture.js`).
  * @property {string} [request] `TODO/ai-003`: the user's message that started this turn. With
  *   each write's own `rationale` it becomes the design intent every appended record carries.
  *   The agent (`ai-005`) or the MCP server (`ai-009`) sets it; absent, only the rationale is
@@ -176,6 +197,10 @@ export function createToolRegistry(options = {}) {
       createCreateTool(ops, apply),
       createOperateTool(ops, apply),
       createApplyRecordsTool(ops),
+      createMeasureTool(),
+      createPrintabilityTool(),
+      createClearanceTool(),
+      createCaptureTool(),
     ].sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0))
   )
 
@@ -198,7 +223,9 @@ export function createToolRegistry(options = {}) {
       if (!tool) {
         result = { error: `There is no tool named ${JSON.stringify(name)}. The tools are: ${toolsFor(/** @type {Transport} */ (ctx.origin)).map((t) => t.name).join(', ')}.` }
       } else if (!tool.transports.includes(/** @type {Transport} */ (ctx.origin))) {
-        result = { error: `${name} is not available over ${ctx.origin === 'mcp' ? 'MCP' : ctx.origin}: there is no viewport selection there.` }
+        result = {
+          error: `${name} is not available over ${ctx.origin === 'mcp' ? 'MCP' : ctx.origin}: it needs the browser viewport (a selection to read, or a GPU to render with).`,
+        }
       } else {
         const errors = tool.validate ? tool.validate(input) : checkInput(tool.inputSchema, input)
         result = errors.length > 0 ? { error: 'invalid input', reason: errors.join('; ') } : tool.run(ctx, input)

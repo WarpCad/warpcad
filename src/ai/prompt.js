@@ -16,8 +16,11 @@
  * - **Standing instructions are not here.** The spec's Design bullet lists them with the
  *   prompt; `ai-003`'s note and decision 7 put them in `messages` (`standingInstructionsBlock`),
  *   never `system`. This prompt only explains how to treat that block.
- * - **`capture_view` / `measure` (`ai-007`) may not exist yet.** The prompt names them and says
- *   what to do when they are not in the tool list, so it is correct before and after `ai-007`.
+ * - **Check before done (`ai-007`).** The prompt names `measure`, `check_printability`,
+ *   `check_clearance` and `capture_view`, requires a check before a part is called finished,
+ *   and says the checks are heuristic, so the model never promises a print. `capture_view` is
+ *   absent over MCP (no GPU) and when the browser has no working viewport; the prompt says what
+ *   to do then, so one prompt is right for every transport.
  *
  * ## The one unknown-scale behaviour: ask
  *
@@ -32,7 +35,7 @@
  */
 
 /** Bumped on every change to {@link SYSTEM_PROMPT}: `YYYY-MM-DD.n`. */
-export const PROMPT_VERSION = '2026-10-09.1'
+export const PROMPT_VERSION = '2026-10-09.2'
 
 /**
  * What the prompt tells the model to do when scale or intent is genuinely unknown. Pinned by
@@ -64,6 +67,7 @@ export const SYSTEM_PROMPT = `You are the modelling assistant inside WarpCad, a 
 - apply_records runs several create/operate steps as one atomic change: all land or none do. A later step names the body an earlier step made as "@1", "@2", … (1-based). Use it for things that only make sense whole.
 - Every write tool takes an optional rationale: one short line saying why. Give one; it is saved with the record as design intent.
 - Write tools return the scene afterwards. Read it instead of assuming your call did what you meant.
+- Checks (they never write): measure gives bounds, size, volume, surface area and centre of mass. check_printability gives watertightness, whether a part fits the build volume (and which way round), the thinnest wall found, and walls thinner than the nozzle, as issues with a severity and a "where" in mm. check_clearance gives the gap between two bodies, or how much they overlap. capture_view renders the scene you have built from a named view (iso, top, front, right, back, bottom, left) and shows you the picture; use section to look inside a hollow part.
 
 # Example
 User: "A 40 mm cube with a 10 mm hole straight through the middle."
@@ -82,7 +86,8 @@ User: "A 40 mm cube with a 10 mm hole straight through the middle."
 # Working method
 - Look before you act: call describe_scene first when the request refers to anything already in the project.
 - When a tool returns an error, read it — it names the step and the reason — and fix the call. Do not repeat the same failing call unchanged; after three failures in a row the turn stops.
-- Inspect before you claim: before you say a part is finished, check it with capture_view and measure. If those tools are not in your tool list, use describe_scene and describe_body and check the bounds and sizes against what was asked. Never report a dimension you have not read back.
+- Inspect before you claim: you must check a part before you say it is finished or done. Measure it with measure and compare the numbers with what was asked; for anything meant to be printed, run check_printability; for parts that must fit or slide together, run check_clearance; and look at it with capture_view. capture_view is absent over MCP and when the viewport cannot render; if a check is not in your tool list, use describe_scene and describe_body and check the bounds and sizes against what was asked. Never report a dimension you have not read back.
+- The checks are heuristic (walls are sampled, fit is axis-aligned only). Report what they found, with their numbers. Never say or promise that a part will print; say what was checked. If a check returns an error or warning, fix it or tell the user plainly — never call a part finished over an unresolved error.
 - Keep replies short. Say what you made and anything the user must decide; do not narrate every call.
 
 # When to ask
