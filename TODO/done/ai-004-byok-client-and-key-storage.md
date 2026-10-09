@@ -6,8 +6,22 @@ priority: high
 model: sonnet
 milestone: M9
 depends: [ai-001]
-status: open
+status: done
 ---
+
+> **Retired 2026-10-09 (`/fix-todo ai-004`, close-out of an interrupted run).** Shipped as specified, plus
+> five things the file did not list. (1) A **Content-Security-Policy meta tag** in `index.html`
+> (`docs/decisions/ai-partner.md` decision 8): `connect-src` is `'self'`, `api.anthropic.com` and
+> `api.github.com`, `img-src` has no remote host, `script-src` has no inline; the dev server relaxes only
+> HMR (`vite.config.js`); `e2e/csp.e2e.js` fails on any `securitypolicyviolation` and proves the policy
+> is live. `E2E_PREVIEW=1` runs specs against the production build (`playwright.config.js`). (2)
+> **Save and test** uses the free `count_tokens` endpoint, so a Test costs nothing. (3) Prompt caching
+> is on the system prompt and the tool prefix. (4) The Assistant button opens a connected **panel stub**
+> (dot, model name) that `ai-006` replaces with the chat, and a `ConnectionDot` display component
+> carries the dot. (5) A model menu in the sheet (`ai.model`, default `claude-opus-5-5`). Deviation worth
+> knowing: on WebKit, against the production build, `page.route` cannot see requests the service worker
+> issues, so WebKit projects block the service worker when `E2E_PREVIEW=1` and `csp.e2e.js` routes on
+> the context. Firefox cannot launch in this sandbox (`TROUBLESHOOTING.md`); its cells were not run.
 
 ## Goal
 

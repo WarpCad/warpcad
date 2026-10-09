@@ -9,6 +9,9 @@ export default defineConfig({
   plugins: [vue()],
   test: {
     environment: 'node',
+    // 'agent' prints failures only (no per-file/per-test lines) to keep token use low.
+    // Override on the CLI with --reporter=default for the full human view.
+    reporter: ['agent'],
     // build/ holds static-markup checks (e.g. the index.html first-paint guard,
     // TODO/build-002) that aren't part of src/ but still need to run as real tests.
     include: ['src/**/*.spec.js', 'build/**/*.spec.js', 'scripts/**/*.spec.js'],

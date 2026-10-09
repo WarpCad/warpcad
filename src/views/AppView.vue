@@ -17,6 +17,9 @@ import { computed, onMounted, ref, watch } from 'vue'
 
 import Inspector from '../components/inspector/Inspector.vue'
 import DependentRepairDialog from '../components/inspector/DependentRepairDialog.vue'
+import AssistantButton from '../components/ai/AssistantButton.vue'
+import AssistantPanel from '../components/ai/AssistantPanel.vue'
+import KeySheet from '../components/ai/KeySheet.vue'
 import SaveStatus from '../components/display/SaveStatus.vue'
 import FileMenu from '../components/storage/FileMenu.vue'
 import { bootStorage } from '../composables/useStorageBoot.js'
@@ -27,6 +30,7 @@ import TimelinePanel from '../components/timeline/TimelinePanel.vue'
 import TimelineStrips from '../components/timeline/TimelineStrips.vue'
 import TimelineToggle from '../components/timeline/TimelineToggle.vue'
 import Viewport from '../components/viewport/Viewport.vue'
+import { useAssistantStore } from '../stores/assistant.js'
 import { useHostedStore } from '../stores/hosted.js'
 import { usePersistenceStore } from '../stores/persistence.js'
 import { useSketchEditorStore } from '../stores/sketchEditor.js'
@@ -42,12 +46,16 @@ import { useTimelineStore } from '../stores/timeline.js'
 // order is load-bearing.
 const persistence = usePersistenceStore()
 const hosted = useHostedStore()
+// The Assistant's stored key (`TODO/ai-004`): restored on mount so the header button's dot is
+// right with every sheet closed. A blocked store just means "no key", never a startup failure.
+const assistant = useAssistantStore()
 
 // Delete / Backspace delete the selection (`TODO/ui-051`). Mounted here, not in the
 // Inspector, so it works with the Inspector sheet collapsed.
 useDeleteShortcut()
 onMounted(() => {
   void bootStorage({ persistence, hosted })
+  void assistant.start()
 })
 
 /**
@@ -191,6 +199,9 @@ function onInspectorClaim() {
         <FileMenu />
         <SaveStatus />
       </div>
+      <!-- App-level, not document-level (`TODO/ai-004`): always present, never gated on a
+           selection or a key; with no key it opens the key sheet. -->
+      <AssistantButton />
     </header>
     <!-- Between the header and the main area, deliberately outside the viewport
          (§14): the viewport's own four corners are already spoken for, and
@@ -221,6 +232,10 @@ function onInspectorClaim() {
     <!-- The repair dialog (TODO/ui-052): over everything, opened by an Inspector
          dropdown, a History row's Edit, or a Resolve… button. -->
     <DependentRepairDialog />
+    <!-- The Assistant's key sheet and minimal connected panel (TODO/ai-004), opened by the
+         header button; both teleport to <body> at the modal tier. -->
+    <KeySheet />
+    <AssistantPanel />
   </div>
 </template>
 

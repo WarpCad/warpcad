@@ -43,6 +43,10 @@ const browserProjects = ENGINES.flatMap((engine) =>
       // phone/tablet projects there still prove layout and click behaviour,
       // and the touch-specific assertions skip themselves (see the spec).
       hasTouch: size.touch && engine.name !== 'firefox',
+      // WebKit's Playwright build cannot route requests a service worker issues, so against
+      // the production build (`E2E_PREVIEW=1`, which registers one) a stubbed API call would
+      // reach the real network. Block the worker there; Chromium routes through it fine.
+      ...(engine.name === 'webkit' && process.env.E2E_PREVIEW === '1' ? { serviceWorkers: 'block' } : {}),
     },
   })),
 )
@@ -68,16 +72,49 @@ const docsProjects = VIEWPORTS.map((size) => ({
   },
 }))
 
+/**
+ * `E2E_PREVIEW=1` runs the same specs against the **production build** served by
+ * `vite preview` instead of the dev server (`TODO/ai-004`). The dev server relaxes the
+ * Content-Security-Policy for its HMR websocket (`vite.config.js`), so only the built
+ * `index.html` carries the exact production policy; this is how that policy, and the
+ * production service worker, get exercised: `E2E_PREVIEW=1 npx playwright test e2e/csp.e2e.js`.
+ */
+const PREVIEW = process.env.E2E_PREVIEW === '1'
+const ORIGIN = PREVIEW ? 'http://localhost:5184' : 'http://localhost:5183'
+
 export default defineConfig({
   testDir: './e2e',
   fullyParallel: true,
+  // Agent-oriented reporter: terse console summary, failure detail in one markdown file
+  // (test-report-for-coding-agents/, gitignored). Lean options keep token use low; override
+  // with --reporter=list for the human view.
+  reporter: [
+    [
+      '@zenai/playwright-coding-agent-reporter',
+      {
+        outputDir: 'test-report-for-coding-agents',
+        silent: false,
+        singleReportFile: true,
+        verboseErrors: true,
+        maxInlineErrors: 5,
+        maxErrorLength: 1500,
+        capturePageState: false,
+        includeScreenshots: false,
+        includeConsoleErrors: false,
+        includeNetworkErrors: false,
+        includeVideo: false,
+        showCodeSnippet: true,
+      },
+    ],
+  ],
   webServer: {
-    command: 'npm run dev',
-    url: 'http://localhost:5183',
+    command: PREVIEW ? 'npm run build && npx vite preview --port 5184 --strictPort' : 'npm run dev',
+    url: ORIGIN,
     reuseExistingServer: !process.env.CI,
+    timeout: PREVIEW ? 180_000 : 60_000,
   },
   use: {
-    baseURL: 'http://localhost:5183',
+    baseURL: ORIGIN,
   },
   projects: [
     // Repo guards that assert on files rather than on a page — one run is

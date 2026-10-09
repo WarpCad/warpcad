@@ -34,6 +34,17 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### ai-004 — The Assistant key sheet and CSP on real phone and tablet hardware (2026-10-09 08:57)
+
+Scenarios 1 and 10 were driven by hand and the three-viewport, two-engine e2e matrix passes, but none of it ran on a physical phone or on Firefox (it cannot launch in this sandbox). Only what a real device can show is listed.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | On a real iPhone, press-and-hold in **API key** and choose **Paste** from the system menu; the Save and test button enables and the sheet does not scroll sideways | Open | |
+| 2 | On a real iPhone and iPad (Safari), save a key, close the tab, reopen the next day: still **Connected**, or it falls back to the key sheet rather than a broken panel (Safari can evict IndexedDB) | Open | |
+| 3 | With a **real** key (not a stub), **Save and test** reads *Connected*; a deliberately wrong key reads the "rejected" message and the CSP does not block `api.anthropic.com` in Firefox | Open | |
+| 4 | Product call: the Assistant button sits in the header at every width and the saved-key dot is a hollow ring until a test this visit. Is "saved, not yet checked" clear enough, or should the app test once on open? | Open | |
+
 ### ai-003 — Project settings and design intent on real phone and tablet hardware (2026-10-06 17:11)
 
 Headless WebKit at 390x844 and 820x1180 drove the dialog, the History note icon and the Inspector **Why** line (scenarios 8, 10, 12), but it has no on-screen keyboard and none of iOS Safari's storage eviction. These three need a real device.

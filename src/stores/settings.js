@@ -32,6 +32,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 
+import { DEFAULT_MODEL, isKnownModel } from '../ai/models.js'
 import { EXPORT_FORMATS } from '../core/export.js'
 
 /** @typedef {'shift-or-right-pans' | 'left-pans'} MouseNavPresetId */
@@ -41,6 +42,9 @@ const STORAGE_KEY = 'warpcad.mouseNav'
 
 /** The Export popover's last format (`TODO/ui-034`), same boundary rules as above. */
 const EXPORT_FORMAT_KEY = 'warpcad.exportFormat'
+
+/** The one `ai.model` setting (`TODO/ai-004`); the id list and default live in `ai/models.js`. */
+const AI_MODEL_KEY = 'warpcad.ai.model'
 
 /** STL is the v1 priority (`interaction-model-qa.md` §12): scenario 11's consumer is a slicer. */
 export const DEFAULT_EXPORT_FORMAT = /** @type {import('../core/export.js').ExportFormat} */ ('stl')
@@ -123,6 +127,25 @@ function writeStoredExportFormat(format) {
   }
 }
 
+/** @returns {string} The stored model id, or the default for anything missing, unknown or unreadable. */
+function readStoredAiModel() {
+  try {
+    const stored = localStorage.getItem(AI_MODEL_KEY)
+    return isKnownModel(stored) ? stored : DEFAULT_MODEL
+  } catch {
+    return DEFAULT_MODEL
+  }
+}
+
+/** @param {string} id */
+function writeStoredAiModel(id) {
+  try {
+    localStorage.setItem(AI_MODEL_KEY, id)
+  } catch {
+    // Remembered for this session in memory; just not across reloads.
+  }
+}
+
 export const useSettingsStore = defineStore('settings', () => {
   /** @type {import('vue').Ref<MouseNavPresetId>} */
   const mouseNavPreset = ref(readStoredMouseNavPreset())
@@ -157,7 +180,22 @@ export const useSettingsStore = defineStore('settings', () => {
     writeStoredExportFormat(format)
   }
 
+  /** The assistant's model id (`TODO/ai-004`). `ai/client.js` reads it per request. */
+  const aiModel = ref(readStoredAiModel())
+
+  /**
+   * @param {string} id One of `ai/models.js`' ids; anything else is ignored, not stored.
+   * @returns {void}
+   */
+  function setAiModel(id) {
+    if (!isKnownModel(id)) return
+    aiModel.value = id
+    writeStoredAiModel(id)
+  }
+
   return {
+    aiModel,
+    setAiModel,
     mouseNavPreset,
     setMouseNavPreset,
     exportFormat,

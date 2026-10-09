@@ -4,6 +4,19 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="color-scheme" content="dark light" />
+    <!-- Content-Security-Policy (TODO/ai-004, docs/decisions/ai-partner.md decision 8). A meta tag
+         because GitHub Pages cannot set response headers; a meta policy cannot express
+         `frame-ancestors` or reporting. The part that matters is `connect-src`: script injected
+         on this origin cannot post the stored API key anywhere but the two hosts the app already
+         talks to. `img-src` has no remote host, which closes the image-beacon exfiltration route.
+         `style-src` allows inline because Vue and Vite emit inline styles (CSS cannot run script);
+         `script-src` does not. The dev server relaxes `connect-src` for its HMR websocket only
+         (vite.config.js); this tag is the production policy. e2e/csp.e2e.js fails on any
+         `securitypolicyviolation` against the running app. -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self'; form-action 'self'; connect-src 'self' https://api.anthropic.com https://api.github.com; img-src 'self' blob: data:; font-src 'self' data:; manifest-src 'self'; worker-src 'self' blob:"
+    />
     <!-- Duplicates src/styles/tokens.css's --surface-0 on purpose (TODO/build-002):
          this value must paint correctly before any CSS file has loaded, since
          tokens.css only reaches the page as a JS-module side-effect import, which
