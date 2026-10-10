@@ -169,10 +169,11 @@ describe('runTurn — happy path', () => {
     const client = scriptedProvider([{ calls: [call('describe_scene')] }, { text: 'ok' }])
     const { ctx } = setup({ client })
     await runTurn({ userMessage: 'hi', ctx })
-    // No capture handed over in this setup, so capture_view (ai-007) is left out.
+    // No capture handed over in this setup, so capture_view (ai-007) is left out; nothing is
+    // attached and the project has no photo, so the image tools (ai-008) are too.
     const expected = createToolRegistry()
       .definitions('ai')
-      .filter((definition) => definition.name !== 'capture_view')
+      .filter((definition) => !['capture_view', 'get_reference_image', 'set_reference_scale', 'locate_in_image'].includes(definition.name))
       .map((definition) => ({ ...definition, inputSchema: toStrictWire(definition.inputSchema) }))
     for (const request of client.requests) {
       expect(request.system).toBe(SYSTEM_PROMPT)
@@ -608,5 +609,84 @@ describe('runTurn — capture_view and the image part', () => {
     // ...while the live document was still empty when the capture ran; it lands afterwards.
     expect(liveBodies).toEqual([0])
     expect(document.bodies().map((body) => body.id)).toEqual(['cuboid-1'])
+  })
+})
+
+// --- TODO/ai-008: drawings — attachments by id, and a Save that waits for Confirm -------------
+
+describe('runTurn — drawings and the save proposal', () => {
+  /** @param {number} value */
+  const u32be = (value) => [(value >>> 24) & 255, (value >>> 16) & 255, (value >>> 8) & 255, value & 255]
+  /** @param {string} text */
+  const ascii = (text) => [...text].map((char) => char.charCodeAt(0))
+  const pngBase64 = () => {
+    const bytes = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, ...u32be(13), ...ascii('IHDR'), ...u32be(1000), ...u32be(700), 8, 2, 0, 0, 0, ...u32be(0), ...u32be(0), ...ascii('IEND'), ...u32be(0)])
+    let binary = ''
+    for (const byte of bytes) binary += String.fromCharCode(byte)
+    return btoa(binary)
+  }
+
+  /** @param {any} client */
+  async function withAttachment(client) {
+    const { addAttachment, createReferences } = await import('./tools/image.js')
+    const references = createReferences()
+    const id = addAttachment(references, {
+      name: 'board.png',
+      record: /** @type {any} */ ({ id: 'img-0123456789abcdef01234567', op: 'asset.image', params: { mime: 'image/png', widthPx: 1000, heightPx: 700, dataBase64: pngBase64() } }),
+      sent: { mediaType: 'image/png', data: 'iVBORw0KGgo=', widthPx: 1000, heightPx: 700 },
+    })
+    const { ctx, events } = setup({ client })
+    ctx.references = references
+    return { ctx, events, id, references }
+  }
+
+  it('names each attached image by its id in the request, and offers the image tools', async () => {
+    const client = scriptedProvider([{ text: 'What is the board length?' }])
+    const { ctx, id } = await withAttachment(client)
+    await runTurn({ userMessage: 'make this board', images: [{ type: 'image', source: { type: 'base64', media_type: 'image/png', data: 'iVBORw0KGgo=' } }], attachmentIds: [id], ctx })
+    const content = client.requests[0].messages.at(-1).content
+    const imageAt = content.findIndex((/** @type {any} */ block) => block.type === 'image')
+    expect(content[imageAt - 1].text).toMatch(/attachment-1/)
+    expect(content[imageAt - 1].text).toMatch(/1000 × 700/)
+    expect(client.requests[0].tools.map((/** @type {any} */ tool) => tool.name)).toEqual(expect.arrayContaining(['get_reference_image', 'set_reference_scale', 'locate_in_image', 'save_to_library']))
+  })
+
+  it('a scale set in one turn holds in the next (the model may ask a question in between)', async () => {
+    const client = scriptedProvider([
+      { calls: [call('set_reference_scale', { sliceId: 'attachment-1', fromPx: [100, 30], toPx: [950, 30], distanceMm: 85, label: 'board length' })] },
+      { text: 'How tall is the USB-A connector? It is not printed.' },
+      { calls: [call('locate_in_image', { sliceId: 'attachment-1', query: 'board', boxesPx: [[100, 70, 950, 630]] })] },
+      { text: 'ok' },
+    ])
+    const { ctx, events } = await withAttachment(client)
+    await runTurn({ userMessage: 'make this', ctx })
+    await runTurn({ userMessage: '16 mm', ctx })
+    const located = events.filter((event) => event.type === 'tool_result' && event.name === 'locate_in_image')
+    expect(located[0].isError).toBe(false)
+    expect(located[0].result.boxes[0].sizeMm[0]).toBeCloseTo(85, 6)
+  })
+
+  it('hands back a save proposal with a landed turn, and writes nothing to any library', async () => {
+    const client = scriptedProvider([
+      { calls: [call('create', CUBE)] },
+      { calls: [call('save_to_library', { id: 'cuboid-1', name: 'Block' })] },
+      { text: 'Built it. Tap Confirm to save it to My parts.' },
+    ])
+    const { ctx } = setup({ client })
+    const outcome = await runTurn({ userMessage: 'make a block and save it to my library', ctx })
+    expect(outcome.status).toBe('done')
+    expect(outcome.saveProposal).toEqual({ bodyId: 'cuboid-1', name: 'Block', expose: [], labels: [] })
+  })
+
+  it('drops the proposal with a turn that did not land (its body was never kept)', async () => {
+    const client = scriptedProvider([
+      { calls: [call('create', CUBE)] },
+      { calls: [call('save_to_library', { id: 'cuboid-1', name: 'Block' })] },
+      { error: { kind: 'network', message: 'The connection dropped.' } },
+    ])
+    const { ctx } = setup({ client })
+    const outcome = await runTurn({ userMessage: 'make a block and save it', ctx })
+    expect(outcome.status).toBe('failed')
+    expect(outcome.saveProposal).toBeUndefined()
   })
 })

@@ -26,7 +26,8 @@
 
 import { boundsOf } from '../../core/kernel/group.js'
 import { captureSize } from '../image.js'
-import { bodySummary, findBody, round3 } from './read.js'
+import { OVERLAY_MODES, resolveOverlay } from './overlay.js'
+import { bodySummary, findBody, round, round3 } from './read.js'
 import { objectSchema } from './schema.js'
 
 /** @typedef {import('./index.js').Tool} Tool */
@@ -56,6 +57,8 @@ const NEARLY_EMPTY = 0.002
  * @property {[Vec3, Vec3] | null} boundsMm The box to frame; `null` for an empty scene.
  * @property {number} widthPx
  * @property {number} heightPx
+ * @property {import('./overlay.js').CaptureOverlay | null} [overlay] `TODO/ai-008`: a reference
+ *   image to draw under the model, which is then drawn semi-transparent from straight above.
  */
 
 /**
@@ -118,6 +121,12 @@ export function createCaptureTool() {
           'A section cut.'
         ),
         width: { type: 'integer', description: 'Image width in pixels, 128 to 1568; height is 3/4 of it.' },
+        overlay: {
+          type: 'string',
+          enum: OVERLAY_MODES,
+          description: 'reference: draw the model semi-transparent over the scaled reference image, from straight above (view must be top), to compare what you built with the drawing.',
+        },
+        sliceId: { type: 'string', description: 'With overlay: which reference ("attachment-1" or "sketch-1:1"); default the most recent scaled one.' },
       },
       ['view']
     ),
@@ -130,6 +139,9 @@ export function createCaptureTool() {
       }
       const wanted = input.ids && input.ids.length > 0 ? new Set(input.ids) : null
       const bodies = ctx.document.bodies().filter((body) => wanted === null || wanted.has(body.id))
+      const resolved = resolveOverlay(ctx, input)
+      if (resolved.error !== undefined) return { error: resolved.error }
+      const overlay = resolved.overlay
       const { widthPx, heightPx } = captureSize(input.width)
       const section = input.section ? { axis: input.section.axis, offsetMm: input.section.offsetMm } : null
       /** @type {CaptureRequest} */
@@ -138,9 +150,13 @@ export function createCaptureTool() {
         bodies: bodies.map((body) => ({ id: body.id, geometry: body.geometry, color: bodySummary(body).color })),
         highlightIds: [...new Set(input.highlight ?? [])],
         section,
-        boundsMm: unionBox(bodies.map((body) => /** @type {[Vec3, Vec3]} */ (boundsOf(body.geometry)))),
+        boundsMm: unionBox([
+          ...bodies.map((body) => /** @type {[Vec3, Vec3]} */ (boundsOf(body.geometry))),
+          ...(overlay ? [overlay.boundsMm] : []),
+        ]),
         widthPx,
         heightPx,
+        ...(overlay ? { overlay } : {}),
       }
       /** @type {CaptureResult} */
       let image
@@ -159,6 +175,18 @@ export function createCaptureTool() {
         ...(section ? { section } : {}),
         ...(framed ? { framedMm: [round3(framed[0]), round3(framed[1])] } : {}),
         contentFraction: Math.round(image.contentFraction * 1000) / 1000,
+        ...(overlay
+          ? {
+              overlay: {
+                sliceId: overlay.sliceId,
+                mmPerPx: round(overlay.placement.mmPerPx),
+                imageBoundsMm: [round3(overlay.boundsMm[0]), round3(overlay.boundsMm[1])],
+              },
+              note:
+                'The model is drawn semi-transparent over the reference at its scale, from straight above. Compare edges, holes and connectors with the drawing ' +
+                'and report the residual in mm (e.g. "the SD slot is 1.5 mm off"); never claim a match you cannot see.',
+            }
+          : {}),
         ...(bodies.length === 0 ? { note: 'There are no bodies to draw; the picture shows the empty grid.' } : {}),
         ...(image.contentFraction < NEARLY_EMPTY
           ? { warning: 'The image is almost blank: nothing differs from the background. Do not read anything from it; check the ids and the view.' }

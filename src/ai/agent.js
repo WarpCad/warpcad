@@ -80,6 +80,9 @@ import { sceneSummary } from './tools/read.js'
 /** @typedef {import('./client.js').TokenUsage} TokenUsage */
 /** @typedef {import('./context.js').TurnLog} TurnLog */
 
+/** The image tools (`ai-008`), offered only when there is an image to use them on. */
+const IMAGE_TOOLS = Object.freeze(['get_reference_image', 'set_reference_scale', 'locate_in_image'])
+
 /** The sentence every discarded turn ends with. */
 const NOTHING_KEPT = 'Nothing from this turn was kept — the project is as it was before you asked.'
 
@@ -117,6 +120,9 @@ const NOTHING_KEPT = 'Nothing from this turn was kept — the project is as it w
  * @property {string} [limit] Which cap stopped it: a `Limits` key, or `maxTokens`.
  * @property {TokenUsage} usage Summed over the turn's requests.
  * @property {number} steps Tool calls begun.
+ * @property {import('./tools/library.js').SaveProposal} [saveProposal] `TODO/ai-008`: a library Save
+ *   the model proposed in a turn that landed. Nothing has been saved: the chat shows it with a
+ *   Confirm button, and only that tap writes to My parts.
  */
 
 /**
@@ -132,6 +138,10 @@ const NOTHING_KEPT = 'Nothing from this turn was kept — the project is as it w
  * @property {import('./tools/index.js').ToolSelection | undefined} selection Browser selection.
  * @property {import('./tools/capture.js').ToolCapture | undefined} capture Browser only: the
  *   viewport's offscreen capture (`ai-007`). Read per turn; absent, `capture_view` is not offered.
+ * @property {import('./tools/image.js').ToolReferences | undefined} references Browser only
+ *   (`ai-008`): images attached in this chat (sanitised), the scales set on them and prepared
+ *   copies of project photos. Session-scoped, so a scale set in one turn holds in the next. With
+ *   nothing attached and no photo in the project, the image tools are not offered.
  * @property {() => { text: string, trusted: boolean }} standingInstructions Read per turn.
  * @property {(event: AgentEvent) => void} onEvent
  * @property {() => number} now
@@ -153,6 +163,7 @@ const NOTHING_KEPT = 'Nothing from this turn was kept — the project is as it w
  * @param {import('./tools/index.js').ToolRegistry} [options.tools] Built over `registry` by default.
  * @param {import('./tools/index.js').ToolSelection} [options.selection]
  * @param {import('./tools/capture.js').ToolCapture} [options.capture]
+ * @param {import('./tools/image.js').ToolReferences} [options.references]
  * @param {() => { text: string, trusted: boolean }} [options.standingInstructions] The app passes
  *   the document's text with `useProjectSettingsStore().trusted`. Default: the document's own
  *   text, **untrusted** — the safe reading when nobody has said otherwise.
@@ -170,6 +181,7 @@ export function createAgentContext(options) {
     tools: options.tools ?? createToolRegistry(registry ? { registry } : {}),
     selection: options.selection,
     capture: options.capture,
+    references: options.references,
     standingInstructions: options.standingInstructions ?? (() => ({ text: document.standingInstructions(), trusted: false })),
     onEvent: options.onEvent ?? (() => {}),
     now: options.now ?? Date.now,
@@ -267,9 +279,12 @@ async function readReply(stream, emit, usage) {
  * @param {WarpDocument} fork
  * @param {string} userMessage
  * @param {readonly any[]} images Image blocks from `src/ai/image.js`'s `imagePart`.
+ * @param {readonly string[]} attachmentIds `TODO/ai-008`: the reference id of each image, in the
+ *   same order (`attachment-N`), when it was attached as one; said in a line before the image so
+ *   the model can name it to the image tools.
  * @returns {any[]}
  */
-function userContentFor(ctx, fork, userMessage, images) {
+function userContentFor(ctx, fork, userMessage, images, attachmentIds) {
   /** @type {any[]} */
   const content = []
   const instructions = standingInstructionsBlock(ctx.standingInstructions())
@@ -287,8 +302,16 @@ function userContentFor(ctx, fork, userMessage, images) {
     type: 'text',
     text: `The scene at the start of this turn, read from the project:\n${documentDataBlock('scene', summariseScene(sceneSummary(fork)))}`,
   })
-  for (const image of images) {
+  for (const [index, image] of images.entries()) {
     if (image?.type !== 'image') throw new Error('runTurn: an attached image must be an image block (src/ai/image.js imagePart)')
+    const id = attachmentIds[index]
+    const attachment = id === undefined ? undefined : ctx.references?.attachments.find((candidate) => candidate.id === id)
+    if (attachment) {
+      content.push({
+        type: 'text',
+        text: `The next image is ${attachment.id} (${attachment.sent.widthPx} × ${attachment.sent.heightPx} px as you are sent it). Use "${attachment.id}" as sliceId with the image tools.`,
+      })
+    }
     content.push(image)
   }
   content.push({ type: 'text', text: userMessage })
@@ -319,11 +342,12 @@ function toolResultContent(name, result) {
  * @param {object} args
  * @param {string} args.userMessage
  * @param {readonly any[]} [args.images] Image blocks (`imagePart`).
+ * @param {readonly string[]} [args.attachmentIds] `TODO/ai-008`: each image's reference id, in order.
  * @param {AgentContext} args.ctx
  * @param {AbortSignal} [args.signal] Stop.
  * @returns {Promise<TurnOutcome>}
  */
-export async function runTurn({ userMessage, images = [], ctx, signal }) {
+export async function runTurn({ userMessage, images = [], attachmentIds = [], ctx, signal }) {
   if (ctx.running) {
     return {
       status: 'busy',
@@ -337,17 +361,17 @@ export async function runTurn({ userMessage, images = [], ctx, signal }) {
   }
   ctx.running = true
   try {
-    return await turnBody({ userMessage, images, ctx, signal })
+    return await turnBody({ userMessage, images, attachmentIds, ctx, signal })
   } finally {
     ctx.running = false
   }
 }
 
 /**
- * @param {{ userMessage: string, images: readonly any[], ctx: AgentContext, signal: AbortSignal | undefined }} args
+ * @param {{ userMessage: string, images: readonly any[], attachmentIds: readonly string[], ctx: AgentContext, signal: AbortSignal | undefined }} args
  * @returns {Promise<TurnOutcome>}
  */
-async function turnBody({ userMessage, images, ctx, signal }) {
+async function turnBody({ userMessage, images, attachmentIds, ctx, signal }) {
   ctx.turnCount += 1
   const turnId = `ai-turn-${ctx.turnCount}`
   const live = ctx.document
@@ -356,6 +380,8 @@ async function turnBody({ userMessage, images, ctx, signal }) {
   const usage = { input: 0, cacheRead: 0, cacheWrite: 0, output: 0 }
   const turn = createTurn({ now: ctx.now, limits: ctx.limits })
   let text = ''
+  /** @type {import('./tools/library.js').SaveProposal[]} */
+  const proposals = []
 
   /**
    * @param {TurnOutcome['status']} status
@@ -374,6 +400,8 @@ async function turnBody({ userMessage, images, ctx, signal }) {
       ...(extra.limit === undefined ? {} : { limit: extra.limit }),
       usage,
       steps: turn.stats.steps,
+      // Only a turn that landed has a body to save; a discarded turn's proposal goes with it.
+      ...(status === 'done' && proposals.length > 0 ? { saveProposal: proposals[0] } : {}),
     }
     ctx.turns.push({
       request: userMessage,
@@ -405,7 +433,7 @@ async function turnBody({ userMessage, images, ctx, signal }) {
   let userContent
   try {
     fork = forkOf(live, ctx.registry)
-    userContent = userContentFor(ctx, fork, userMessage, images)
+    userContent = userContentFor(ctx, fork, userMessage, images, attachmentIds)
     messages = assembleMessages(ctx.turns, userContent)
   } catch (error) {
     return failed(error instanceof Error && /^runTurn:/.test(error.message) ? error.message : 'The assistant could not read the project.')
@@ -419,11 +447,17 @@ async function turnBody({ userMessage, images, ctx, signal }) {
     request: userMessage,
     ...(ctx.selection ? { selection: ctx.selection } : {}),
     ...(ctx.capture ? { capture: ctx.capture } : {}),
+    ...(ctx.references ? { references: ctx.references } : {}),
+    proposals,
   }
+  // `TODO/ai-008`: with nothing attached and no photo in the project, the image tools would fail
+  // every time, so they are not offered.
+  const hasImages = (ctx.references?.attachments.length ?? 0) > 0 || fork.assets().size > 0
   const tools = ctx.tools
     .definitions('ai')
     // No viewport to render with (WebGL never started): never offer a tool that fails every time.
     .filter((definition) => definition.name !== 'capture_view' || toolCtx.capture !== undefined)
+    .filter((definition) => hasImages || !IMAGE_TOOLS.includes(definition.name))
     .map((definition) => ({ ...definition, inputSchema: toStrictWire(definition.inputSchema) }))
 
   try {

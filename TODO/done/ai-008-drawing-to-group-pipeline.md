@@ -6,8 +6,10 @@ priority: high
 model: opus
 milestone: M9
 depends: [ai-005, ai-007, sketch-003, core-037, ui-055]
-status: open
+status: done
 ---
+
+> **Retired 2026-10-10 (`/fix-todo ai-008`).** Shipped whole, Save-confirm included (the file allowed splitting it out; it was not needed). Differences from the file: (1) `locate_in_image` takes `{sliceId, query, boxesPx}`: nothing in code can find things in an image, so the model proposes boxes and the tool converts them to pixels and mm and refuses an unscaled image. (2) `set_reference_scale` scales only attachments; for a photo already in the project it points the user to the sketch editor's Set scale, because rewriting an existing sketch inside a turn would break how a turn lands. (3) `sketch-004`'s Auto-trace is **not** offered as a starting polyline: it runs asynchronously in a worker and tools are synchronous. (4) Added: `checks` on `set_reference_scale` (the code half of the dimension cross-check), a `referenceImage` field on a sketch slice in `create` (how a picture reaches a sketch at all), `params.names` on `group.assemble`, `src/ai/reference.js` (attach goes through `sketch-003`'s sanitiser; a spec drives SVG-with-script, an SVG renamed .png, a decompression bomb and a truncated PNG, plus a source guard that attach never downscales a file directly), and GIF dropped from Attach (the sanitiser takes PNG, JPEG and WebP). (5) A real send-before-attach race found on WebKit: Send is now held while an image is being prepared. (6) Scenario 18 is in `TODO/ACCEPTANCE.md`, numbered as `ai-010` reserved it.
 
 ## Goal
 

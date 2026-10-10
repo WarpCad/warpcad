@@ -34,6 +34,7 @@ import { boundsOf } from '../../core/kernel/group.js'
 import { registry as kernelRegistry } from '../../core/kernel/registry.js'
 import { checkInput, objectSchema, paramsSchemaFor, splitRationale, vectorSchema, withRationale } from './schema.js'
 import { curvePoints } from '../../sketch/curves.js'
+import { placeReferenceImages } from './image.js'
 
 /** @typedef {import('../../core/document.js').WarpDocument} WarpDocument */
 /** @typedef {import('../../core/kernel/registry.js').OpRecord} OpRecord */
@@ -84,9 +85,11 @@ function idPrefixFor(op) {
  * @param {WarpDocument} document Supplies ids and instance names.
  * @param {CreateInput} input
  * @param {Registry} [ops]
+ * @param {import('./image.js').ToolReferences} [references] Browser only: attached images a
+ *   sketch slice's `referenceImage` may name (`TODO/ai-008`).
  * @returns {BuiltStep}
  */
-export function buildCreateRecords(document, input, ops = kernelRegistry) {
+export function buildCreateRecords(document, input, ops = kernelRegistry, references) {
   const { op, positionMm } = input
   const entry = ops[op]
   if (!entry || entry.operandCount !== 0 || !entry.ui) throw new Error(`${op} is not something create can place`)
@@ -95,10 +98,13 @@ export function buildCreateRecords(document, input, ops = kernelRegistry) {
   const params = { ...ui.defaults, ...(input.params ?? {}) }
 
   if (ui.editor === 'sketch') {
-    const { center: _ghost, ...shape } = sampleCurveProfiles(params)
+    // `TODO/ai-008`: a slice's `referenceImage` becomes its calibrated reference photo, and the
+    // sanitised asset record is appended first (the sketch editor's `appendAll([asset, sketch])`).
+    const placed = placeReferenceImages(document, params, references)
+    const { center: _ghost, ...shape } = sampleCurveProfiles(placed.params)
     /** @type {OpRecord} */
     const record = { id: document.nextId(idPrefixFor(op)), op, name: document.nextName(ui.label), params: { center: [x, y, z], ...shape } }
-    return { records: [record], bodyId: /** @type {string} */ (record.id) }
+    return { records: [.../** @type {OpRecord[]} */ (placed.assets), record], bodyId: /** @type {string} */ (record.id) }
   }
 
   if (entry.kind !== 'composite') {

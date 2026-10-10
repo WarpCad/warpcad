@@ -41,6 +41,7 @@ import ReferenceImageOverlay from '../sketch/ReferenceImageOverlay.vue'
 import ScaleTool from '../sketch/ScaleTool.vue'
 import TraceTool from '../sketch/TraceTool.vue'
 import { useReferenceImageView } from '../../composables/useReferenceImageView.js'
+import { useImageDrop } from '../../composables/useImageDrop.js'
 import VertexHandles from '../sketch/VertexHandles.vue'
 import SnapGuides from './SnapGuides.vue'
 import CutPlaneOverlay from './CutPlaneOverlay.vue'
@@ -242,6 +243,8 @@ const hoverHighlight = useHoverHighlightStore()
 const transformCommands = useTransformCommands()
 const sketchEditor = useSketchEditorStore()
 const sketchCommands = useSketchEditorCommands()
+// `TODO/ai-008`: drop an image file here to attach it to the Assistant (desktop).
+const imageDrop = useImageDrop()
 /**
  * What is selected, described in plain numbers. Recomputed when the selection or
  * the document changes — **not** per frame; the render callback below only
@@ -3423,6 +3426,10 @@ onBeforeUnmount(() => {
     ref="rootEl"
     class="viewport"
     data-testid="viewport"
+    :data-image-drop="imageDrop.dropActive.value ? 'true' : 'false'"
+    @dragover="imageDrop.onDragOver"
+    @dragleave="imageDrop.onDragLeave"
+    @drop="imageDrop.onDrop"
     :data-drag-mode="dragMode"
     :data-dragging="isDragging ? 'true' : 'false'"
     :data-camera-azimuth="overlay.azimuthDeg.toFixed(2)"

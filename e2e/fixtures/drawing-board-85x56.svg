@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="900" viewBox="0 0 1200 900" font-family="Helvetica, Arial, sans-serif">
+  <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
+  <!--
+    TODO/ai-008 fixture: a mechanical drawing of a FICTIONAL board ("WC-85", not a real product).
+    Drawn at exactly 10 px per mm; the board's top-left corner is at (175, 170) px, so the board's
+    centre is the image centre (600, 450). Rendered to drawing-board-85x56.png by
+    scripts/render-drawing-fixture.mjs. Printed: overall 85 x 56, hole positions and spacing,
+    hole diameter, connector widths, board thickness. Deliberately NOT printed: connector heights
+    (the side view shows them but gives no number) - the case the assistant must ask about.
+  -->
+  <rect width="1200" height="900" fill="#ffffff"/>
+  <g stroke="#111" fill="none" stroke-width="2">
+    <!-- board outline, 85 x 56 mm -->
+    <rect x="175" y="170" width="850" height="560"/>
+    <!-- mounting holes, dia 2.7 at 3.5 / 61.5 x 3.5 / 52.5 from the top-left corner -->
+    <circle cx="210" cy="205" r="13.5"/>
+    <circle cx="790" cy="205" r="13.5"/>
+    <circle cx="210" cy="695" r="13.5"/>
+    <circle cx="790" cy="695" r="13.5"/>
+    <!-- connectors overhanging the right edge by 2 mm -->
+    <rect x="875" y="190" width="170" height="130" stroke-dasharray="8 4"/>
+    <rect x="875" y="370" width="170" height="130" stroke-dasharray="8 4"/>
+    <rect x="835" y="550" width="210" height="160" stroke-dasharray="8 4"/>
+  </g>
+  <g fill="#111" font-size="22">
+    <text x="960" y="262" text-anchor="middle">USB-A</text>
+    <text x="960" y="442" text-anchor="middle">USB-A</text>
+    <text x="940" y="637" text-anchor="middle">ETH</text>
+  </g>
+  <!-- dimensions -->
+  <g stroke="#1a4fd6" stroke-width="1.5" fill="none">
+    <!-- overall length 85 -->
+    <line x1="175" y1="160" x2="175" y2="100"/>
+    <line x1="1025" y1="160" x2="1025" y2="100"/>
+    <line x1="175" y1="110" x2="1025" y2="110"/>
+    <!-- overall width 56 -->
+    <line x1="1055" y1="170" x2="1100" y2="170"/>
+    <line x1="1055" y1="730" x2="1100" y2="730"/>
+    <line x1="1085" y1="170" x2="1085" y2="730"/>
+    <!-- hole spacing 58 -->
+    <line x1="210" y1="740" x2="210" y2="770"/>
+    <line x1="790" y1="740" x2="790" y2="770"/>
+    <line x1="210" y1="760" x2="790" y2="760"/>
+    <!-- hole spacing 49 -->
+    <line x1="165" y1="205" x2="130" y2="205"/>
+    <line x1="165" y1="695" x2="130" y2="695"/>
+    <line x1="140" y1="205" x2="140" y2="695"/>
+  </g>
+  <g fill="#1a4fd6" font-size="24" text-anchor="middle">
+    <text x="600" y="98">85</text>
+    <text x="1130" y="458">56</text>
+    <text x="500" y="752">58</text>
+    <text x="112" y="458">49</text>
+    <text x="300" y="232" text-anchor="start" font-size="20">4× Ø2.7 at 3.5 from edges</text>
+    <text x="960" y="345" font-size="18">13</text>
+    <text x="960" y="525" font-size="18">13</text>
+    <text x="940" y="545" font-size="18">16</text>
+  </g>
+  <!-- side view: thickness printed, connector heights not -->
+  <g stroke="#111" stroke-width="2" fill="none">
+    <rect x="175" y="820" width="850" height="16"/>
+    <rect x="875" y="790" width="170" height="30" stroke-dasharray="8 4"/>
+  </g>
+  <g fill="#1a4fd6" font-size="18">
+    <text x="150" y="834" text-anchor="end">1.6</text>
+    <text x="175" y="870">SIDE VIEW (connector heights not dimensioned)</text>
+  </g>
+  <g fill="#555" font-size="16">
+    <text x="20" y="30">WC-85 — FICTIONAL BOARD, NOT A REAL PRODUCT · ALL DIMENSIONS IN mm · WarpCad test fixture</text>
+  </g>
+</svg>

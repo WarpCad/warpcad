@@ -146,7 +146,7 @@ export function applySteps(ctx, steps, ops, rationale) {
         try {
           built =
             'create' in step
-              ? buildCreateRecords(document, step.create, ops)
+              ? buildCreateRecords(document, step.create, ops, ctx.references)
               : buildOperateRecords(document, step.operate, ops, (id) => resolveBatchRef(id, applied, batchStep))
         } catch (error) {
           throw new StepFailure(batchStep, at + 1, error)

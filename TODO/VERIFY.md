@@ -34,6 +34,19 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### ai-008 — Drawing to library group: what only a real model and a real phone can show (2026-10-10 19:46)
+
+Scale, build, overlay and Save-confirm are covered by unit specs, a scripted-provider e2e on two engines at three viewports, and a hand-drive; the model's judgement and the devices are not.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | Run scenario 18 with a **real key**: does the model read the callouts into a table, set scale before building, and **ask about or flag** the connector heights instead of stating them? Read the residual it reports against the overlay yourself | Open | |
+| 2 | Real iPhone: **Attach** opens the camera / photo picker, the phone half sheet shows the Confirm card without scrolling, the overlay thumbnail is legible | Open | |
+| 3 | Product call: the overlay draws the model at 0.55 opacity with the grid hidden. Is that the right look for judging a match? | Open | |
+| 4 | Product call: a **cancelled turn keeps the scale it set** for the rest of the session (the project itself is untouched). Acceptable, or should a cancel forget it? | Open | |
+| 5 | Product call: if you send a new message while a Save proposal is pinned, the proposal stays until Confirm or Not now. Should a new message dismiss it? | Open | |
+| 6 | Wording: *Image sent to Anthropic with your request, using your key. It is not sent anywhere else.* Right words? | Open | |
+
 ### core-054 — Saving a group as a user part drops its user colour overrides (2026-10-10 19:05)
 
 The whole-body colour was hand-driven end to end on Chromium and WebKit (it is in the `core-054` Step 6 record). A per-part colour with partial opacity is covered by a unit spec only and was not driven through the Inspector's drilled-in Color control.

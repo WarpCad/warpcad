@@ -241,6 +241,27 @@ export const useLibraryStore = defineStore('library', () => {
     saving.value = false
   }
 
+  /**
+   * Capture, store, and show — the one commit path, shared by the Save sheet and the assistant's
+   * confirmed proposal (`TODO/ai-008`). Throws with the reason.
+   *
+   * @param {string} id
+   * @param {string} name Trimmed.
+   * @param {readonly import('../core/userPartTools.js').ExposableParam[]} chosen
+   * @returns {Promise<string>} The saved part's op.
+   */
+  async function commitSave(id, name, chosen) {
+    const definition = definePartFromSelection(documentStore.raw, id, { name, exposeParams: exposedFrom(chosen) })
+    const geometry = documentStore.raw.bodies().find((body) => body.id === id)?.geometry
+    const thumbnail = geometry === undefined ? null : boundaries.thumbnailer(geometry)
+    await backendOf().save(definition, { thumbnail })
+    await reload()
+    expanded.value = true
+    revealOp.value = definition.op
+    showToast(`Saved ${name}`)
+    return definition.op
+  }
+
   /** @returns {Promise<boolean>} Whether the part was saved. */
   async function save() {
     if (!canSave.value || saveBodyId.value === null) return false
@@ -250,20 +271,37 @@ export const useLibraryStore = defineStore('library', () => {
     const name = saveName.value.trim()
     try {
       const chosen = saveCandidates.value.filter((candidate) => saveChosen.value.includes(candidate.key))
-      const definition = definePartFromSelection(documentStore.raw, id, { name, exposeParams: exposedFrom(chosen) })
-      const geometry = documentStore.raw.bodies().find((body) => body.id === id)?.geometry
-      const thumbnail = geometry === undefined ? null : boundaries.thumbnailer(geometry)
-      await backendOf().save(definition, { thumbnail })
-      await reload()
-      expanded.value = true
-      revealOp.value = definition.op
-      showToast(`Saved ${name}`)
+      await commitSave(id, name, chosen)
       closeSave()
       return true
     } catch (error) {
       saveError.value = error instanceof Error ? error.message : String(error)
       saving.value = false
       return false
+    }
+  }
+
+  /**
+   * Save what the assistant proposed (`TODO/ai-008`) — called only from the chat's **Confirm**
+   * tap. Everything is checked again against the live document now: the name may have been taken
+   * and the body changed since the proposal.
+   *
+   * @param {{ bodyId: string, name: string, expose: readonly string[] }} proposal
+   * @returns {Promise<{ ok: true, op: string } | { ok: false, reason: string }>}
+   */
+  async function saveProposed(proposal) {
+    const name = proposal.name.trim()
+    const problem = partNameProblem(name, takenParts())
+    if (problem) return { ok: false, reason: problem }
+    if (!documentStore.bodies.some((body) => body.id === proposal.bodyId)) {
+      return { ok: false, reason: 'That body is no longer in the project' }
+    }
+    const candidates = exposableParams(documentStore.raw, proposal.bodyId)
+    const chosen = candidates.filter((candidate) => proposal.expose.includes(candidate.key))
+    try {
+      return { ok: true, op: await commitSave(proposal.bodyId, name, chosen) }
+    } catch (error) {
+      return { ok: false, reason: error instanceof Error ? error.message : String(error) }
     }
   }
 
@@ -496,6 +534,7 @@ export const useLibraryStore = defineStore('library', () => {
     openSave,
     closeSave,
     save,
+    saveProposed,
     menuOp,
     openMenu,
     closeMenu,

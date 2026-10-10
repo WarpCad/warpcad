@@ -173,17 +173,32 @@ export const OPERATIONS = Object.freeze({
 
   'group.assemble': {
     label: 'Group',
-    description: 'Gather two or more bodies into one group whose parts keep the bodies’ names.',
-    params: objectSchema({}),
-    build: (document, operands, _params, op) => ({
-      id: document.nextId('group'),
-      op,
-      name: document.nextName('Group'),
-      target: operands[0].terminal,
-      operands: operands.slice(1).map((operand) => operand.terminal),
-      consumes: operands.map((operand) => operand.terminal),
-      params: { names: operands.map((operand) => operand.name) },
+    description:
+      'Gather two or more bodies into one group whose parts keep the bodies’ names — or the names you give, one per operand, in order ' +
+      '(e.g. "Board", "USB-A"), so the parts stay addressable by snap and align.',
+    params: objectSchema({
+      names: {
+        type: 'array',
+        items: { type: 'string' },
+        description: 'Optional (TODO/ai-008): one unique part name per operand, in operand order. Default: each body’s own name.',
+      },
     }),
+    build: (document, operands, params, op) => {
+      const names = params.names ?? operands.map((operand) => operand.name)
+      if (names.length !== operands.length) throw new Error(`${op}: give one name per operand — ${operands.length} operands, ${names.length} names`)
+      const trimmed = names.map((/** @type {string} */ name) => name.trim())
+      if (trimmed.some((/** @type {string} */ name) => name === '' || name.length > 80)) throw new Error(`${op}: each part name must be 1 to 80 characters`)
+      if (new Set(trimmed).size !== trimmed.length) throw new Error(`${op}: part names must be unique, got ${JSON.stringify(trimmed)}`)
+      return {
+        id: document.nextId('group'),
+        op,
+        name: document.nextName('Group'),
+        target: operands[0].terminal,
+        operands: operands.slice(1).map((operand) => operand.terminal),
+        consumes: operands.map((operand) => operand.terminal),
+        params: { names: trimmed },
+      }
+    },
   },
 
   'group.snap': positionSpec(

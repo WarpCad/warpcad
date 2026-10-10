@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 
 import { STANDARD_VIEWS } from './camera.js'
 import { captureSize } from '../ai/image.js'
-import { CAPTURE_VIEWS, flipRows, frameView, pixelStats } from './offscreenCapture.js'
+import { CAPTURE_VIEWS, flipRows, frameTopOrthographic, frameView, pixelStats } from './offscreenCapture.js'
 
 /**
  * `TODO/ai-007` — the pure half of the offscreen capture: framing, size, colour encoding and
@@ -81,5 +81,25 @@ describe('pixelStats', () => {
     const stats = pixelStats(rgba, [0, 0, 0])
     expect(stats.contentFraction).toBeCloseTo(0.25, 9)
     expect(stats.lumaStdDev).toBeGreaterThan(50)
+  })
+})
+
+describe('frameTopOrthographic (TODO/ai-008 overlay)', () => {
+  it('centres on the box and fits it inside the aspect, so mm are uniform across the picture', () => {
+    const top = frameTopOrthographic([[-50, -35, 0], [50, 35, 2]], 4 / 3)
+    expect(top.centerX).toBeCloseTo(0, 9)
+    expect(top.centerY).toBeCloseTo(0, 9)
+    expect(top.halfWidth / top.halfHeight).toBeCloseTo(4 / 3, 9)
+    // The 100 mm width is the binding side at 4:3 (70 mm height × 4/3 = 93 mm < 100 mm).
+    expect(top.halfWidth * 2).toBeGreaterThanOrEqual(100)
+    expect(top.halfHeight * 2).toBeGreaterThanOrEqual(70)
+    expect(top.eyeZ).toBeGreaterThan(2)
+    expect(top.depth).toBeGreaterThan(top.eyeZ)
+  })
+
+  it('a tall box binds on its height instead', () => {
+    const top = frameTopOrthographic([[0, 0, 0], [10, 100, 0]], 4 / 3)
+    expect(top.halfHeight * 2).toBeGreaterThanOrEqual(100)
+    expect(top.centerY).toBeCloseTo(50, 9)
   })
 })

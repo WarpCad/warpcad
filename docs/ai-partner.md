@@ -108,6 +108,50 @@ Below it, a *Checked printability* row with a ⚠ reads *Wall 1.2 mm thick at (9
 the 1.6 mm minimum wall*. The Assistant's reply gives the size it measured (*Fits at 214 × 52 ×
 18 mm*) and asks whether to thicken the trailing edge or accept it.
 
+## Making a part from a drawing or photo
+
+The Assistant can turn a dimensioned drawing, or a photo of a part next to a ruler, into a group
+for your **My parts** library: a board with its mounting holes, and each connector as its own named
+part.
+
+1. Tap **Assistant**, then **Attach** (the paperclip) and pick the drawing or photo. On a phone the
+   picker offers the camera. On a laptop you can also drag an image file onto the viewport, which
+   opens the chat with the image attached. PNG, JPEG and WebP work. An SVG, an image too large to
+   open safely, or a damaged file is refused with a line under the box, and nothing is sent.
+2. Say what it is and what you want, and tap **Send**.
+3. The Assistant first lists the dimensions it can read off the drawing in a table, with the view
+   each one came from. Then it sets the image's scale from one of them. The activity row reads
+   *Set scale 85.0 mm from "board length"*. It checks the other printed dimensions against that
+   scale, and one that disagrees is flagged on the same row with ⚠ and its two values. A chain of sizes
+   that doesn't add up to the overall length is pointed out in the reply.
+4. If a size it needs isn't printed (a connector's height is the usual one, since a top view can't
+   show it), the Assistant asks you rather than guessing. It has no memory of your board, so it
+   won't fill a gap with what a similar product "usually" measures. If you tell it to go ahead
+   anyway, it says which sizes it assumed.
+5. It builds the part where the drawing is: the outline and holes as one sketch with the image
+   under it at real size, and each connector as a separate body. It then groups them, names each
+   part, and selects the group, so the Inspector lists the parts.
+6. It checks its work against the picture. The *Compared the top view with the drawing* row has a
+   thumbnail of the part laid over the drawing; tap it to open it full width. The Assistant reports
+   how far off it is ("the SD slot is 1.5 mm off") rather than calling it a match.
+7. If you asked for a library part, a *Save … to My parts?* card appears above the box. Nothing is
+   saved yet. Tap **Confirm** to save it to **My parts**, or **Not now** to leave it out. The
+   Assistant can only propose a save; it can't write to your library on its own.
+
+![The Assistant's activity row "Compared the top view with the drawing", opened full width: the built board drawn semi-transparent over the drawing, its four holes and three connectors on top of the drawing's own.](./screenshots/assistant-drawing-overlay.png)
+
+![On a phone, the half-height Assistant sheet over the viewport: the built board is selected above it, and a card reads "Save WC-85 board to My parts?" with Confirm and Not now buttons and "Nothing is saved until you tap Confirm."](./screenshots/assistant-save-proposal.png)
+
+The image goes only to Anthropic, inside your own request, using your key. The first time you
+send one in a project, the chat says *Image sent*. Only the copy you build on is kept in the
+project, as the sketch's reference photo, and that copy is cleaned the same way as **Add image…**
+in a sketch: just the pixels, with no hidden data. The photo is not saved into the library part.
+
+**Example.** Tap **Assistant**, **Attach** a photo of the board next to a ruler, type *this is a
+Raspberry Pi 5-style board, make a library part*. When it asks, say the board is 85 mm long.
+Check the overlay thumbnail, then tap **Confirm** on the *Save … to My parts?* card. The part
+appears at the top of **My parts** in the Library, and you can drag it into any project.
+
 ## Stopping and undoing
 
 - **Stop** replaces **Send** while the Assistant is working. Tap it and the turn ends within a

@@ -31,7 +31,11 @@
  * | `measure` | no | `{ ids }`: bounds and size (mm), volume (mm³), surface area (mm²), centre of mass; a total for several, overlaps counted once. |
  * | `check_printability` | no | `{ ids, buildVolumeMm?, minWallMm?, nozzleMm? }`: watertight, fits the build volume (and which way round), thinnest wall by sampling, walls under the nozzle — `issues: [{ severity, message, where }]`. Heuristic, and says so. |
  * | `check_clearance` | no | `{ a, b }`: the smallest gap between two bodies and the closest points, or the volume they share when they interpenetrate. |
- * | `capture_view` | no | Browser only. `{ view, ids?, highlight?, section?, width? }`: a PNG of the turn's scene from a named view, rendered offscreen; the image goes to the model as an image block. |
+ * | `capture_view` | no | Browser only. `{ view, ids?, highlight?, section?, width?, overlay?, sliceId? }`: a PNG of the turn's scene from a named view, rendered offscreen; the image goes to the model as an image block. `overlay: 'reference'` (top view) lays the model over a scaled reference image (`ai-008`). |
+ * | `get_reference_image` | no | Browser only (`ai-008`). `{ sliceId? }`: list the reference images (attachments, sketch slices' photos) or return one, with its pixel size and scale. |
+ * | `set_reference_scale` | no document write | Browser only. `{ sliceId, fromPx, toPx, distanceMm, label?, checks? }`: an attached image's scale from a printed length; cross-checks other dimensions. |
+ * | `locate_in_image` | no | Browser only. `{ sliceId, query, boxesPx }`: boxes in image pixels and in sketch-plane mm; refused until the image is scaled. |
+ * | `save_to_library` | **never** | Browser only. `{ id, name, expose? }`: *proposes* a My parts save; the user's Confirm tap saves it. |
  *
  * Every write tool also takes an optional `rationale`: one line saying why. With the turn's
  * request (`ctx.request`) it is saved as each new record's design intent (`TODO/ai-003`),
@@ -73,6 +77,8 @@ import { applySteps, createApplyRecordsTool } from './batch.js'
 import { createCaptureTool } from './capture.js'
 import { createClearanceTool } from './clearance.js'
 import { createCreateTool, creatableOps } from './create.js'
+import { createImageTools } from './image.js'
+import { createSaveToLibraryTool } from './library.js'
 import { assertWriteOrigin } from './limits.js'
 import { createMeasureTool } from './measure.js'
 import { OPERATIONS, createOperateTool, operableOps } from './operate.js'
@@ -108,6 +114,11 @@ export { toStrictWire } from './schema.js'
  * @property {ToolSelection} [selection] Browser only.
  * @property {import('./capture.js').ToolCapture} [capture] Browser only, and only with a working
  *   viewport: what `capture_view` renders through (`src/render/offscreenCapture.js`).
+ * @property {import('./image.js').ToolReferences} [references] Browser only (`TODO/ai-008`):
+ *   images attached in the chat (already sanitised), the scales set on them, and the prepared
+ *   copies of project photos — what the image tools and a sketch's `referenceImage` read.
+ * @property {import('./library.js').SaveProposal[]} [proposals] Browser only (`TODO/ai-008`):
+ *   where `save_to_library` records its proposal for the agent to hand back. Never a library.
  * @property {string} [request] `TODO/ai-003`: the user's message that started this turn. With
  *   each write's own `rationale` it becomes the design intent every appended record carries.
  *   The agent (`ai-005`) or the MCP server (`ai-009`) sets it; absent, only the rationale is
@@ -201,6 +212,8 @@ export function createToolRegistry(options = {}) {
       createPrintabilityTool(),
       createClearanceTool(),
       createCaptureTool(),
+      ...createImageTools(),
+      createSaveToLibraryTool(),
     ].sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0))
   )
 

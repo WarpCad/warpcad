@@ -122,3 +122,45 @@ describe('system prompt — behaviour', () => {
     expect(SYSTEM_PROMPT).toMatch(/Undo AI turn/)
   })
 })
+
+describe('system prompt — drawings and photos (TODO/ai-008)', () => {
+  it('scale first: no building from an image before its scale is set from a printed dimension', () => {
+    expect(SYSTEM_PROMPT).toMatch(/set_reference_scale/)
+    expect(SYSTEM_PROMPT).toMatch(/before (you )?(build|create|draw) anything|scale first/i)
+    expect(SYSTEM_PROMPT).toMatch(/ruler|named standard/i)
+  })
+
+  it('no recall: every dimension comes from the drawing or the user, never from memory of a product', () => {
+    expect(SYSTEM_PROMPT).toMatch(/memory|recall|what .* looks like/i)
+    expect(SYSTEM_PROMPT).toMatch(/printed|callout/i)
+  })
+
+  it('reads the callouts into a dimension table first, with view and tolerance', () => {
+    expect(SYSTEM_PROMPT).toMatch(/table/i)
+    expect(SYSTEM_PROMPT).toMatch(/tolerance/i)
+    expect(SYSTEM_PROMPT).toMatch(/view/i)
+  })
+
+  it('cross-checks: a dimension chain that does not sum to the overall length is reported', () => {
+    expect(SYSTEM_PROMPT).toMatch(/chain/i)
+    expect(SYSTEM_PROMPT).toMatch(/sum|add up/i)
+  })
+
+  it('an unprinted dimension is asked about or flagged as assumed — never guessed', () => {
+    expect(SYSTEM_PROMPT).toMatch(/not printed|unprinted|isn.t printed/i)
+    expect(SYSTEM_PROMPT).toMatch(/assumed/i)
+    expect(SYSTEM_PROMPT).toMatch(/never guess/i)
+  })
+
+  it('checks the overlay and reports the residual rather than claiming a match', () => {
+    expect(SYSTEM_PROMPT).toMatch(/overlay/)
+    expect(SYSTEM_PROMPT).toMatch(/residual|off by/i)
+  })
+
+  it('names the parts, builds at the sketch origin, and only proposes a library save', () => {
+    expect(SYSTEM_PROMPT).toMatch(/group\.assemble/)
+    expect(SYSTEM_PROMPT).toMatch(/names/)
+    expect(SYSTEM_PROMPT).toMatch(/save_to_library/)
+    expect(SYSTEM_PROMPT).toMatch(/Confirm/)
+  })
+})

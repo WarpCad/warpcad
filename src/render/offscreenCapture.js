@@ -39,13 +39,18 @@
 
 import {
   BackSide,
+  DoubleSide,
   FrontSide,
   Group,
   Mesh,
+  MeshBasicMaterial,
   MeshStandardMaterial,
+  OrthographicCamera,
   PerspectiveCamera,
   Plane,
+  PlaneGeometry,
   SRGBColorSpace,
+  Texture,
   UnsignedByteType,
   Vector3,
   WebGLRenderTarget,
@@ -53,6 +58,7 @@ import {
 
 import { STANDARD_VIEWS, positionFromSpherical, upFromSpherical } from './camera.js'
 import { BODY_COLORS, createBodyMaterial, createBodyObject, disposeBodyObject } from './mesh.js'
+import { referenceImageMatrix } from './referenceImage.js'
 import { VIEWPORT_THEMES } from './scene.js'
 
 /** @typedef {import('../ai/tools/capture.js').CaptureRequest} CaptureRequest */
@@ -86,6 +92,12 @@ const MARGIN = 1.15
 /** Supersampling factor. */
 const SUPERSAMPLE = 2
 
+/** `TODO/ai-008`: how opaque the model is drawn over a reference image — enough to read the drawing through it. */
+export const OVERLAY_MODEL_OPACITY = 0.55
+
+/** Room left around an overlay's framed box. */
+const OVERLAY_MARGIN = 1.04
+
 /** The colour a section's cut faces show: the inside of the wall. */
 const SECTION_COLOR = 0xd9534f
 
@@ -108,6 +120,25 @@ export function frameView(view, boundsMm, fovDeg, aspect) {
   const horizontal = 2 * Math.atan(Math.tan(vertical / 2) * aspect)
   const half = Math.min(vertical, horizontal) / 2
   return { azimuthDeg: preset.azimuthDeg, elevationDeg: preset.elevationDeg, distanceMm: (radius * MARGIN) / Math.sin(half), target }
+}
+
+/**
+ * `TODO/ai-008`: an orthographic camera looking straight down at a box, +Y up the picture, so
+ * millimetres are uniform across the image — what a plan-view drawing is, and what an overlay is
+ * compared against. The box is fitted inside the aspect with a small margin.
+ *
+ * @param {[readonly number[], readonly number[]]} boundsMm
+ * @param {number} aspect Width over height.
+ * @returns {{ centerX: number, centerY: number, halfWidth: number, halfHeight: number, eyeZ: number, depth: number }}
+ */
+export function frameTopOrthographic(boundsMm, aspect) {
+  const [min, max] = boundsMm
+  const width = Math.max(1, max[0] - min[0]) * OVERLAY_MARGIN
+  const height = Math.max(1, max[1] - min[1]) * OVERLAY_MARGIN
+  const halfHeight = Math.max(height, width / aspect) / 2
+  const halfWidth = halfHeight * aspect
+  const eyeZ = max[2] + 100
+  return { centerX: (min[0] + max[0]) / 2, centerY: (min[1] + max[1]) / 2, halfWidth, halfHeight, eyeZ, depth: eyeZ - min[2] + 200 }
 }
 
 /**
@@ -231,6 +262,7 @@ export function createOffscreenCapture({ renderer, graph, makeCanvas }) {
           )
         : null
       const highlighted = new Set(request.highlightIds)
+      const overlay = request.overlay ?? null
       const group = new Group()
       group.name = 'ai-capture'
       /** @type {import('three').Object3D[]} */
@@ -238,6 +270,12 @@ export function createOffscreenCapture({ renderer, graph, makeCanvas }) {
       for (const body of request.bodies) {
         const color = highlighted.has(body.id) ? palette.selected : body.color ? Number.parseInt(body.color.slice(1), 16) : palette.body
         const front = material(color)
+        if (overlay) {
+          // Over a drawing: see-through, so the lines underneath read through the model.
+          front.transparent = true
+          front.opacity = OVERLAY_MODEL_OPACITY
+          front.depthWrite = false
+        }
         if (plane) {
           front.clippingPlanes = [plane]
           front.side = FrontSide
@@ -254,16 +292,52 @@ export function createOffscreenCapture({ renderer, graph, makeCanvas }) {
         }
       }
 
+      // `TODO/ai-008`: the reference image, as a textured plane under the model — the same
+      // matrix the sketch editor draws it with (`referenceImageMatrix`), so it is where Set scale
+      // put it. The bitmap is the sanitiser's decoded copy; nothing else reaches the GPU.
+      /** @type {{ geometry: PlaneGeometry, material: MeshBasicMaterial, texture: Texture } | null} */
+      let reference = null
+      if (overlay) {
+        const geometry = new PlaneGeometry(1, 1)
+        const uv = geometry.getAttribute('uv')
+        for (let index = 0; index < uv.count; index += 1) uv.setY(index, 1 - uv.getY(index))
+        uv.needsUpdate = true
+        const texture = new Texture(/** @type {any} */ (overlay.bitmap))
+        texture.flipY = false
+        texture.colorSpace = SRGBColorSpace
+        texture.needsUpdate = true
+        const imageMaterial = new MeshBasicMaterial({ map: texture, depthWrite: false, side: DoubleSide, toneMapped: false })
+        const mesh = new Mesh(geometry, imageMaterial)
+        mesh.renderOrder = -1
+        mesh.matrixAutoUpdate = false
+        mesh.matrix.fromArray(referenceImageMatrix(overlay.frame, overlay.zMm, overlay.placement, overlay.size))
+        mesh.matrixWorldNeedsUpdate = true
+        group.add(mesh)
+        reference = { geometry, material: imageMaterial, texture }
+      }
+
       const aspect = widthPx / heightPx
-      const framed = frameView(request.view, request.boundsMm ?? EMPTY_BOUNDS, graph.camera.fov, aspect)
-      const camera = new PerspectiveCamera(graph.camera.fov, aspect, Math.max(0.01, framed.distanceMm / 1000), framed.distanceMm * 20 + 2000)
-      const position = { x: 0, y: 0, z: 0 }
-      positionFromSpherical(framed.azimuthDeg, framed.elevationDeg, framed.distanceMm, framed.target, position)
-      const up = { x: 0, y: 0, z: 1 }
-      upFromSpherical(framed.azimuthDeg, framed.elevationDeg, up)
-      camera.position.set(position.x, position.y, position.z)
-      camera.up.set(up.x, up.y, up.z)
-      camera.lookAt(framed.target.x, framed.target.y, framed.target.z)
+      /** @type {import('three').Camera} */
+      let camera
+      if (overlay) {
+        const top = frameTopOrthographic(request.boundsMm ?? EMPTY_BOUNDS, aspect)
+        const ortho = new OrthographicCamera(-top.halfWidth, top.halfWidth, top.halfHeight, -top.halfHeight, 0.1, top.depth)
+        ortho.position.set(top.centerX, top.centerY, top.eyeZ)
+        ortho.up.set(0, 1, 0)
+        ortho.lookAt(top.centerX, top.centerY, 0)
+        camera = ortho
+      } else {
+        const framed = frameView(request.view, request.boundsMm ?? EMPTY_BOUNDS, graph.camera.fov, aspect)
+        const perspective = new PerspectiveCamera(graph.camera.fov, aspect, Math.max(0.01, framed.distanceMm / 1000), framed.distanceMm * 20 + 2000)
+        const position = { x: 0, y: 0, z: 0 }
+        positionFromSpherical(framed.azimuthDeg, framed.elevationDeg, framed.distanceMm, framed.target, position)
+        const up = { x: 0, y: 0, z: 1 }
+        upFromSpherical(framed.azimuthDeg, framed.elevationDeg, up)
+        perspective.position.set(position.x, position.y, position.z)
+        perspective.up.set(up.x, up.y, up.z)
+        perspective.lookAt(framed.target.x, framed.target.y, framed.target.z)
+        camera = perspective
+      }
       camera.updateMatrixWorld(true)
 
       const target = new WebGLRenderTarget(renderWidth, renderHeight, { type: UnsignedByteType, depthBuffer: true })
@@ -276,7 +350,8 @@ export function createOffscreenCapture({ renderer, graph, makeCanvas }) {
       /** @type {Array<[import('three').Object3D, boolean]>} */
       const hidden = []
       for (const child of scene.children) {
-        if (child === graph.grid || /** @type {any} */ (child).isLight) continue
+        // Over a drawing the grid would only be more lines to confuse with the drawing's own.
+        if ((child === graph.grid && !overlay) || /** @type {any} */ (child).isLight) continue
         hidden.push([child, child.visible])
         child.visible = false
       }
@@ -295,6 +370,11 @@ export function createOffscreenCapture({ renderer, graph, makeCanvas }) {
         for (const [child, visible] of hidden) child.visible = visible
         for (const object of built) disposeBodyObject(/** @type {any} */ (object))
         for (const made of materials) made.dispose()
+        if (reference) {
+          reference.geometry.dispose()
+          reference.material.dispose()
+          reference.texture.dispose()
+        }
         target.dispose()
       }
 

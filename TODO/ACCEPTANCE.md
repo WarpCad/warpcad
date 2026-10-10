@@ -78,6 +78,8 @@ drops (dropping the second body must not hide or replace the first). Clicking ea
 individually selects only that item (gizmo and dimension lines attach to whichever was
 just clicked, not both at once).
 
+**Last run**: 2026-10-10 19:46 UTC (`ai-008`) — **PASS** at laptop 1440x900 Chromium (real mouse, jittered Library drags). Cube then Cylinder dropped: both remained (*2 objects*); a click on open grid cleared the selection (0), the cube selected exactly one body, the cylinder exactly one. Re-driven because `Viewport.vue` gained an image-file drop route. Console clean.
+
 **Last run**: 2026-10-10 07:25 UTC (`ui-055`) — **PASS** at laptop 1440x900 on Chromium and WebKit (real jittered mouse), plus the new spec's trusted touch at 390x844 on Chromium. Cube then Cylinder dropped: both remained (2); a click on open grid cleared the selection (0); the cube selected only `cuboid-1`, the cylinder only `cylinder-2`; the first body's centre was byte-identical after the second drop. A saved Standoff dropped after a Cube did not replace it (2 bodies: `primitive.cuboid`, `user.standoff`).
 
 **Last run**: 2026-10-10 02:27 UTC (`io-007`) — **PASS for what this task can affect** at laptop 1440x900 on Chromium, WebKit and Firefox: two Cubes dragged in one after the other both remained (2 bodies, both drawn), the toolbar now carries **Split**, and the Inspector shows Bounds and a `fits` badge. Steps beyond placing two primitives were not re-driven (nothing in them changed).
@@ -3619,6 +3621,45 @@ selected; History reads `Mirror <name>`; a mirrored composite keeps only its own
 **Last run**: 2026-10-01 21:12 UTC (`ui-039`, **first drive**) — PASS at laptop 1440x900 Chromium (real mouse, wobbly drags; axis changed X then Y before committing). Steps 1-3: Cube and Sphere placed, Mirror about Y at 0 added `Mirror 1` at exactly the negated Y of the sphere (35.99,81.26 became 35.99,-81.26, same volume 33271.771), the originals' centres byte-identical, the copy selected. Step 5 (the `core-020` repro): Bolt mirrored across X gave a copy of volume 2920.801, equal to the bolt's own, and the Cube was not absorbed. Undo is covered by the new e2e at all three viewports; the History label (`Mirror Cube 1`) was checked directly rather than through the panel. **Mistake on purpose:** blank plane on a symmetric sphere still adds a body, sitting exactly on the original (invisible), which the popover's hint says. Phone WebKit: Mirror on a dropped sphere PASS; the Bolt drop in my throwaway drive script missed the Library sheet, so step 5 was driven at laptop only. Console clean.
 
 **Last run**: 2026-10-03 14:49 UTC (`docs-012`) — PASS at laptop 1440x900 Chromium, real mouse with a wobbly path. Cube and Sphere dropped apart (`-7.94,84.12,20` and `20.52,-90.16,20`); the Sphere selected through its Objects row, Mirror opened and the plane changed three times (X, Z, Y) before committing on Y: three bodies, the Cube and Sphere centres byte-identical, a `Mirror 1` at `20.52,90.16,20` with the Sphere's volume (33271.771), and it was the selection. Undo left 2 bodies, Redo 3. A Bolt dragged in and mirrored across X: the copy `Mirror 2` at `-126.45,-40.52,13.25` (the Bolt's X negated, Y and Z unchanged) with the Bolt's own volume (2920.801), five bodies in all, nothing swallowed. Console clean. Phone not driven.
+
+### 18. A drawing becomes a library part
+
+Added 2026-10-10 with `ai-008`, under the number `ai-010` reserved for it (17 stays reserved
+for `ai-010`'s airfoil scenario). It is the first scenario where the **model** reads an image and
+measures from it, and the first where the AI proposes a write to the user's **persistent
+library** instead of the project. Driven with a real key by `ai-010`; it is also played by a
+scripted provider in `e2e/ai-drawing.e2e.js`, which proves the plumbing, not the model's
+judgement.
+
+**Steps**:
+1. With a key saved, open **Assistant** and **Attach** `e2e/fixtures/drawing-board-85x56.png`: a
+   mechanical drawing of a fictional board (WC-85, 85 × 56 mm, four Ø2.7 holes, two USB-A and one
+   Ethernet connector; connector heights deliberately not dimensioned). On a laptop, also try
+   dragging the file onto the viewport instead.
+2. Type, verbatim: *Here is a drawing of a raspberry pi 7 create a group object to be added to
+   the library.* and Send.
+3. Answer what it asks (for example, connector heights: USB-A 16 mm, Ethernet 13.5 mm). If it does
+   not ask, note what it said it assumed.
+4. Open the *Compared the top view with the drawing* thumbnail full width and compare it with the
+   drawing yourself.
+5. Before tapping anything on the Save card, open the Library: **My parts** has not changed. Then
+   tap **Confirm**.
+6. **File ▸ New**, open the Library, drag the new part from **My parts** into the view.
+7. *Drive it differently on purpose:* attach an SVG, or a photo with no ruler and no printed
+   dimension, and ask the same thing.
+
+**Expect**: The reply opens with a dimension table read from the drawing (feature, value, view)
+and a *Set scale 85.0 mm from "board length"* row (or an honest question about scale). Nothing
+is built before the scale. Any dimension the drawing does not print — connector heights — is
+**asked about or flagged as assumed**, never stated as fact; it never cites a "real" Raspberry
+Pi. The result is **one group**, selected, whose Inspector lists named sub-parts (board,
+connectors), sitting on the drawing's origin; the overlay shows the part on the drawing and the
+reply gives a residual in mm instead of claiming a perfect match. **My parts does not change
+until Confirm**; after it, the part is there with a thumbnail, and after File ▸ New it drags in
+complete, with the same sub-parts. The chat said *Image sent* once. The SVG is refused under the
+box and nothing is sent; with no scale available, it asks rather than builds.
+
+**Last run**: 2026-10-10 19:46 UTC (`ai-008`, **scripted provider only; the live-model run is `ai-010`'s**) — **PASS** at laptop 1440x900 on **Chromium and WebKit** (real mouse, jittered Library drag; the PNG attached by a real file drop onto the viewport). An SVG carrying a script was refused under the box (*Choose a PNG, JPEG or WebP image.*) and nothing attached. The drawing attached; *Image sent* appeared once; the turn ended with a Save proposal, one selected group (Inspector: Board, USB-A 1, USB-A 2, Ethernet; bounds 87 x 56 x 17.6 mm), and the overlay thumbnail in the transcript (looked at by eye: the model sits on the drawing). **My parts read 0 until Confirm, then 1.** After File > New, dragging it from My parts placed one body with the same four named parts. The key was in no page text and no request body. Not driven: a real model, tablet/phone by hand, step 3's real clarifying question.
 
 ### 20. Trace a photographed part to scale
 

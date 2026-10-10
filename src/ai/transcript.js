@@ -30,7 +30,17 @@
  * @property {'pass' | 'fail'} [check] A check tool's verdict: `fail` when it found an error or
  *   warning, or two bodies interpenetrate. The row looks different, not only coloured.
  * @typedef {{ kind: 'notice', level: 'stopped' | 'cancelled' | 'failed' | 'info', message: string }} NoticeItem
- * @typedef {UserItem | AssistantItem | ToolItem | NoticeItem} TranscriptItem
+ * @typedef {object} SaveItem `TODO/ai-008`: a library Save the model proposed. Nothing is saved
+ *   until the user taps Confirm on it.
+ * @property {'save'} kind
+ * @property {string} bodyId
+ * @property {string} name
+ * @property {string[]} expose `exposableParams` keys.
+ * @property {string[]} labels What each exposed size is called.
+ * @property {'proposed' | 'saving' | 'saved' | 'cancelled' | 'failed'} status
+ * @property {string} [op] The saved part's op, once saved.
+ * @property {string} [error] Why the Save failed.
+ * @typedef {UserItem | AssistantItem | ToolItem | NoticeItem | SaveItem} TranscriptItem
  */
 
 /** @type {Readonly<Record<string, string>>} */
@@ -76,7 +86,20 @@ function sceneNameOf(result, id) {
  */
 export function describeCall(name, input, result, nameOf) {
   if (name in READ_LABELS) return READ_LABELS[name]
-  if (name === 'capture_view') return `Looked at the ${typeof input?.view === 'string' ? input.view : 'iso'} view`
+  if (name === 'capture_view') {
+    if (input?.overlay === 'reference') return 'Compared the top view with the drawing'
+    return `Looked at the ${typeof input?.view === 'string' ? input.view : 'iso'} view`
+  }
+  // `TODO/ai-008`: the drawing tools.
+  if (name === 'get_reference_image') return 'Looked at the drawing'
+  if (name === 'set_reference_scale') {
+    const length = Number(input?.distanceMm)
+    const amount = Number.isFinite(length) ? `${length.toFixed(1)} mm` : 'the scale'
+    const label = typeof input?.label === 'string' && input.label.trim() !== '' ? ` from “${input.label.trim()}”` : ''
+    return `Set scale ${amount}${label}`
+  }
+  if (name === 'locate_in_image') return `Located “${typeof input?.query === 'string' ? input.query : 'features'}” on the drawing`
+  if (name === 'save_to_library') return `Proposed saving “${typeof input?.name === 'string' ? input.name.trim() : 'a part'}” to My parts`
   if (name === 'measure') {
     const ids = Array.isArray(input?.ids) ? input.ids : []
     const names = ids.map((/** @type {string} */ id) => result?.bodies?.find((/** @type {any} */ body) => body?.id === id)?.name ?? nameOf?.(id) ?? String(id))
@@ -126,6 +149,10 @@ function checkDetails(name, result) {
       thumbnail: `data:${image.mediaType};base64,${image.data}`,
       ...(typeof result.warning === 'string' ? { summary: result.warning, check: 'fail' } : {}),
     }
+  }
+  if (name === 'set_reference_scale') {
+    // A printed dimension that disagrees with the scale is something the human should see.
+    return typeof result?.warning === 'string' ? { summary: result.warning, check: 'fail' } : {}
   }
   if (name === 'measure') {
     const body = result?.total ?? result?.bodies?.[0]

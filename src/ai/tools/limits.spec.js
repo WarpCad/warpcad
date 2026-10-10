@@ -2,6 +2,10 @@
 import { describe, expect, it } from 'vitest'
 
 import batchSource from './batch.js?raw'
+import captureSource from './capture.js?raw'
+import imageSource from './image.js?raw'
+import librarySource from './library.js?raw'
+import overlaySource from './overlay.js?raw'
 import createSource from './create.js?raw'
 import indexSource from './index.js?raw'
 import limitsSource from './limits.js?raw'
@@ -115,7 +119,11 @@ describe('what a tool module can never do (decision 7), checked statically', () 
   /** @type {Record<string, string>} */
   const modules = {
     'batch.js': batchSource,
+    'capture.js': captureSource,
     'create.js': createSource,
+    'image.js': imageSource,
+    'library.js': librarySource,
+    'overlay.js': overlaySource,
     'index.js': indexSource,
     'limits.js': limitsSource,
     'operate.js': operateSource,
@@ -125,7 +133,7 @@ describe('what a tool module can never do (decision 7), checked statically', () 
 
   it('guards every module the registry is built from', () => {
     for (const file of Object.keys(modules)) {
-      if (file !== 'index.js') expect(indexSource + batchSource, file).toContain(`./${file}`)
+      if (file !== 'index.js') expect(indexSource + batchSource + captureSource, file).toContain(`./${file}`)
     }
   })
 

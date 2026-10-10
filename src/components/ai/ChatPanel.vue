@@ -29,6 +29,7 @@ import { useSelectionStore } from '../../stores/selection.js'
 import ConnectionDot from '../display/ConnectionDot.vue'
 import ActivityRow from './ActivityRow.vue'
 import Composer from './Composer.vue'
+import SaveProposal from './SaveProposal.vue'
 import TokenReadout from './TokenReadout.vue'
 
 const assistant = useAssistantStore()
@@ -61,6 +62,23 @@ function askAboutSelection() {
   const reference = `About "${body.name}" (${body.id}): `
   chat.draft = chat.draft === '' ? reference : `${reference}${chat.draft}`
 }
+
+/**
+ * `TODO/ai-008`: the save proposal to pin — the latest one while it still waits for an answer,
+ * and once answered, until the next message moves the conversation on. Its tool row stays in the
+ * log either way ("Proposed saving … to My parts").
+ */
+const pinnedSave = computed(() => {
+  const items = chat.items
+  for (let index = items.length - 1; index >= 0; index -= 1) {
+    const item = items[index]
+    if (item.kind !== 'save') continue
+    const waiting = item.status === 'proposed' || item.status === 'saving' || item.status === 'failed'
+    const movedOn = items.slice(index + 1).some((later) => later.kind === 'user')
+    return waiting || !movedOn ? { item, index } : null
+  }
+  return null
+})
 
 /** @param {string} id */
 function isLive(id) {
@@ -112,6 +130,7 @@ const HEIGHTS = /** @type {const} */ ([
   <section
     v-if="open"
     class="chat"
+    :class="{ 'chat--deciding': pinnedSave !== null && pinnedSave.item.status !== 'saved' && pinnedSave.item.status !== 'cancelled' }"
     role="complementary"
     aria-label="Assistant"
     data-testid="assistant-panel"
@@ -172,9 +191,18 @@ const HEIGHTS = /** @type {const} */ ([
               @select="agent.selectBodies($event)"
             />
           </li>
-          <li v-else class="chat__notice" :data-level="item.level" data-testid="ai-notice">{{ item.message }}</li>
+          <li v-else-if="item.kind === 'notice'" class="chat__notice" :data-level="item.level" data-testid="ai-notice">{{ item.message }}</li>
         </template>
       </ol>
+
+      <!-- TODO/ai-008: a proposed Save is pinned outside the scrolling log, so it is readable at phone height. -->
+      <SaveProposal
+        v-if="pinnedSave"
+        :item="pinnedSave.item"
+        :busy="chat.running"
+        @confirm="agent.confirmSave(pinnedSave.index)"
+        @cancel="agent.cancelSave(pinnedSave.index)"
+      />
 
       <div class="chat__bar">
         <button
@@ -385,6 +413,17 @@ const HEIGHTS = /** @type {const} */ ([
 }
 
 /* Laptop: a persistent column beside the viewport (a grid cell of `.app__body`), not an overlay. */
+/*
+ * TODO/ai-008: while a Save proposal waits for an answer, the bottom sheet folds away the static
+ * connection lines (the header's dot still shows the state), so the proposal, the bar and the
+ * composer all fit the half-height sheet at phone size.
+ */
+@media (max-width: 1099px) {
+  .chat--deciding .chat__meta {
+    display: none;
+  }
+}
+
 @media (min-width: 1100px) {
   .chat {
     position: static;

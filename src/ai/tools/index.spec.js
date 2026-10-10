@@ -86,7 +86,7 @@ describe('createToolRegistry', () => {
     }
   })
 
-  it('offers the spec’s tools, and the browser gets the selection tools and capture_view on top of MCP’s', () => {
+  it('offers the spec’s tools, and the browser gets the selection, capture, image and save-proposal tools on top of MCP’s', () => {
     const tools = createToolRegistry()
     const mcp = tools.toolsFor('mcp').map((tool) => tool.name)
     expect(mcp).toEqual([
@@ -101,7 +101,11 @@ describe('createToolRegistry', () => {
       'measure',
       'operate',
     ])
-    expect(tools.toolsFor('ai').map((tool) => tool.name)).toEqual([...mcp, 'capture_view', 'get_selection', 'select'].sort())
+    // ai-008: the image tools and save_to_library are browser-only too (attachments live in the
+    // chat; a library save needs a person to tap Confirm).
+    expect(tools.toolsFor('ai').map((tool) => tool.name)).toEqual(
+      [...mcp, 'capture_view', 'get_reference_image', 'get_selection', 'locate_in_image', 'save_to_library', 'select', 'set_reference_scale'].sort()
+    )
   })
 
   it('never lists capture_view over MCP (no GPU there), and refuses it by name if called anyway', () => {

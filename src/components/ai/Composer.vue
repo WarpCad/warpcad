@@ -52,6 +52,7 @@ async function onPicked(event) {
         </button>
       </li>
     </ul>
+    <p v-if="chat.attaching > 0" class="composer__pending" role="status" data-testid="ai-attach-pending">Preparing image…</p>
     <p v-if="chat.attachError" class="composer__error" role="alert" data-testid="ai-attach-error">{{ chat.attachError }}</p>
     <div class="composer__row">
       <button
@@ -69,7 +70,7 @@ async function onPicked(event) {
         ref="picker"
         class="composer__file"
         type="file"
-        accept="image/png,image/jpeg,image/webp,image/gif"
+        accept="image/png,image/jpeg,image/webp"
         multiple
         tabindex="-1"
         data-testid="ai-attach-input"
@@ -111,6 +112,12 @@ async function onPicked(event) {
   display: flex;
   flex-direction: column;
   gap: 6px;
+}
+
+.composer__pending {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-2);
 }
 
 .composer__row {

@@ -681,6 +681,11 @@ export const SKETCH_PARAMS_SCHEMA = Object.freeze(
             zMm: { type: 'number', description: 'Offset along the sketch’s local Z, in millimetres.' },
             offsetMm: vectorSchema(2, 'Optional: shift the whole slice in its plane, [x, y] in millimetres, after rotateDeg — a swept-back wing tip.'),
             rotateDeg: { type: 'number', description: 'Optional: turn the whole slice about its origin, in degrees, counter-clockwise — a wing tip’s washout.' },
+            referenceImage: {
+              type: 'string',
+              description:
+                'Optional, browser only (TODO/ai-008): an attached image ("attachment-1") to keep on this slice as its reference photo, centred on the sketch origin at the scale set_reference_scale gave it. Refused until it has a scale.',
+            },
             profiles: { type: 'array', items: { anyOf: [...PROFILE_KINDS.map((kind) => PROFILE_SCHEMAS[kind]), CURVE_PROFILE_SCHEMA] } },
           },
           ['id', 'zMm', 'profiles']

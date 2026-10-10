@@ -213,3 +213,28 @@ describe('check rows', () => {
     expect(overlap[0]).toMatchObject({ check: 'fail', summary: 'They overlap by 12 mm³.' })
   })
 })
+
+describe('drawing rows (TODO/ai-008)', () => {
+  it('says the scale it set and where from', () => {
+    expect(describeCall('set_reference_scale', { distanceMm: 85, label: 'board length' }, { mmPerPx: 0.1 })).toBe('Set scale 85.0 mm from “board length”')
+    expect(describeCall('set_reference_scale', { distanceMm: 56 }, { mmPerPx: 0.1 })).toBe('Set scale 56.0 mm')
+  })
+
+  it('names what it located, and what it looked at', () => {
+    expect(describeCall('locate_in_image', { query: 'SD slot' })).toBe('Located “SD slot” on the drawing')
+    expect(describeCall('get_reference_image', {})).toBe('Looked at the drawing')
+    expect(describeCall('capture_view', { view: 'top', overlay: 'reference' })).toBe('Compared the top view with the drawing')
+  })
+
+  it('a save proposal is a proposal, not a save', () => {
+    expect(describeCall('save_to_library', { name: 'Pi 7 board' }, { saved: false })).toBe('Proposed saving “Pi 7 board” to My parts')
+  })
+
+  it('a cross-check that disagrees is a failed check row', () => {
+    const items = run([
+      { type: 'tool_call', id: 't1', name: 'set_reference_scale', input: { distanceMm: 85, label: 'board length' } },
+      { type: 'tool_result', id: 't1', name: 'set_reference_scale', isError: false, result: { mmPerPx: 0.1, warning: 'hole spacing is printed 49 mm but measures 58 mm' } },
+    ])
+    expect(items[0]).toMatchObject({ status: 'ok', check: 'fail', summary: 'hole spacing is printed 49 mm but measures 58 mm' })
+  })
+})
