@@ -113,6 +113,11 @@ The Library's Raspberry Pi and Hardware items descend from the `jscad-raspberryp
   creating an Anthropic key with a spend limit, pasting it, **Save and test**, where the key is
   kept (this browser only, never in a project file), **Forget key**, choosing a model, and what
   each failure message means.
+- [Driving WarpCad from Claude Code (the MCP server)](mcp.md) — `npm run mcp:install`, then
+  `claude mcp add warpcad -- node …/mcp/server.js ~/parts/bracket.ndjson`: Claude Code reads and
+  adds steps to a project file with the Assistant's tools, and the steps arrive in History marked
+  **via mcp** with your request. Also: the **File changed on disk — Reload** dialog (and which
+  browsers can show it), what the server will and won't do, and its error messages.
 - [Moving around the 3D view](viewport-navigation.md) — orbit, pan, zoom, the
   orientation triad, touch gestures, and reading size off the grid.
 - [Using WarpCad on a phone or tablet](mobile.md) — where every control lives at phone and

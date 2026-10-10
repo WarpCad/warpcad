@@ -87,7 +87,9 @@ const FAKE_NATIVE = () => {
       }
     },
     async getFile() {
-      return new File([disk.openText], name, { type: 'text/plain' })
+      // A real handle reads back what was last written to it (`TODO/ai-009`: Save re-reads the
+      // file first, to notice an outside change); until then, the file the test "picked".
+      return new File([disk.name === name && disk.text !== null ? disk.text : disk.openText], name, { type: 'text/plain' })
     },
   })
   Object.defineProperty(window, 'showSaveFilePicker', {

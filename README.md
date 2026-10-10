@@ -97,6 +97,7 @@ link for the page that explains it, with a step-by-step example.
 | **History** | A step list for the whole model: look at any past step, change its numbers, switch it off, reorder, or branch from it | [History](docs/timeline.md) |
 | **Undo and redo** | Ctrl/Cmd+Z that never undoes someone else's change | [Undo and redo](docs/undo-redo.md) |
 | **Saving** | Autosave, save or open a file, or keep a copy in a GitHub repository | [Save and load](docs/save-load.md) |
+| **Claude Code (MCP)** | Let Claude Code read a project file and add steps to it with the Assistant's tools; they arrive in History marked *via mcp*, with the request that made them | [Driving WarpCad from Claude Code](docs/mcp.md) |
 | **Exporting** | STL, OBJ and glTF for the whole scene or just your selection, at a resolution you choose | [Export](docs/export.md), [Resolution](docs/resolution.md) |
 | **Bill of materials** | A running tally of the bolts, nuts, boards and parts you've placed, by size | [Bill of materials](docs/bill-of-materials.md) |
 | **Navigation** | Orbit, pan, zoom, orientation triad, touch gestures | [Moving around the 3D view](docs/viewport-navigation.md) |

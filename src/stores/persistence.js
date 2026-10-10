@@ -40,6 +40,29 @@
  * atomic `loadEntries` run. A refusal is unchanged, just after the pending state, which it
  * clears. While one load is pending no other Open or Load can start.
  *
+ * ## The opened file changed on disk (`TODO/ai-009`)
+ *
+ * The MCP server (`mcp/server.js`) edits a **closed** project file; if the app has the same
+ * file open, the server cannot know (`docs/decisions/ai-partner.md` decision 6). So the app
+ * looks: on window focus, on the tab becoming visible, and before every in-place Save, it
+ * re-reads the file it opened or last saved (`FileStorage.readCurrent`) and compares the bytes
+ * with what it last read or wrote. A difference sets `diskChanged`, the chip reads
+ * {@link DISK_CHANGED_TEXT}, and the `disk-change` dialog asks — the hosted conflict dialog's
+ * rules for a local file: **Reload** (replace this project with the file), **Overwrite the
+ * file** (write this project over it), or **Cancel** (decide later; the chip keeps saying so,
+ * and tapping it asks again). **No merge, ever**, and nothing is overwritten without that
+ * explicit answer: an in-place Save while the file has changed raises the dialog instead of
+ * writing.
+ *
+ * What can be seen depends on the engine, and the UI never pretends otherwise
+ * (`diskCanWatch`): only a file opened or saved through **File System Access** (desktop
+ * Chromium) has a handle to read again. A file picked with `<input type=file>` — Firefox,
+ * Safari, every phone and tablet — is a one-time copy, so a change to it cannot be noticed;
+ * **File ▸ Open…** again is how its new rows come in (`docs/mcp.md`).
+ *
+ * The dialog waits while a drag or another dialog is open (`setUiBusy`, wired by the File
+ * menu exactly as for the hosted conflict), so it never lands under a finger.
+ *
  * ## Restore goes through the same seeding as everything else
  *
  * `documentStore.load` → `WarpDocument.loadEntries`, which clears both undo
@@ -49,7 +72,7 @@
  */
 
 import { defineStore } from 'pinia'
-import { computed, ref, watch } from 'vue'
+import { computed, ref, shallowRef, watch } from 'vue'
 
 import { ReplayRejection } from '../core/document.js'
 import { DEFAULT_RESOLUTION } from '../core/kernel/tessellation.js'
@@ -65,6 +88,9 @@ const RESTORED_NOTICE_MS = 6000
 /** Transient result notices (`section 9`: 4 s for a confirmed save, 6 s for a started download). */
 const SAVED_NOTICE_MS = 4000
 const DOWNLOAD_NOTICE_MS = 6000
+
+/** The chip's words while the opened file has changed on disk (`TODO/ai-009`). */
+export const DISK_CHANGED_TEXT = 'File changed on disk — Reload'
 
 /**
  * @typedef {object} PersistenceDependencies
@@ -206,6 +232,34 @@ export const usePersistenceStore = defineStore('persistence', () => {
   const loading = ref('')
   const nextPaint = deps.nextPaint ?? noPaint
 
+  /**
+   * `TODO/ai-009`: what this session last read from, or wrote to, the file it has a handle on —
+   * `null` when it has none (nothing opened or saved natively, the fallback path, File ▸ New).
+   * `lastModified` is `null` after a Save, where the new stamp is not known until the next read.
+   *
+   * @type {{ text: string, lastModified: number | null } | null}
+   */
+  let diskKnown = null
+  /**
+   * The file's newer bytes, while they differ from {@link diskKnown}. Not reactive-deep: the
+   * text can be large and is only ever replaced whole.
+   *
+   * @type {import('vue').ShallowRef<{ name: string, text: string, lastModified: number } | null>}
+   */
+  const diskChange = shallowRef(null)
+  /** Whether the user wants the dialog showing (false after Cancel, until asked again). */
+  const diskPromptWanted = ref(false)
+  /** A drag or another dialog is in the way; set by the File menu. */
+  const uiBusy = ref(false)
+  /** Whether a change to the open file can be noticed at all (a native handle is held). */
+  const diskCanWatch = ref(false)
+  /** @type {Promise<void> | null} */
+  let diskCheck = null
+
+  const diskChanged = computed(() => diskChange.value !== null)
+  const diskChangeName = computed(() => diskChange.value?.name ?? '')
+  const diskPromptOpen = computed(() => diskChange.value !== null && diskPromptWanted.value && !uiBusy.value)
+
   /** @type {ReturnType<typeof setTimeout> | null} */
   let noticeTimer = null
   let started = false
@@ -250,10 +304,12 @@ export const usePersistenceStore = defineStore('persistence', () => {
     },
   })
 
+  /** @type {import('vue').ComputedRef<import('../composables/useStatusSurface.js').StatusTone>} */
   const chipTone = computed(() => {
     if (loading.value) return 'saving'
     if (errorMessage.value) return 'error'
     if (loadWarning.value) return 'error'
+    if (diskChange.value !== null) return 'warn'
     if (autosaveState.value === 'saving') return 'saving'
     if (autosaveState.value === 'saved') return 'saved'
     return 'idle'
@@ -263,6 +319,7 @@ export const usePersistenceStore = defineStore('persistence', () => {
     if (loading.value) return loading.value
     if (errorMessage.value) return errorMessage.value
     if (loadWarning.value) return loadWarning.value
+    if (diskChange.value !== null) return DISK_CHANGED_TEXT
     if (notice.value) return notice.value
     if (autosaveState.value === 'saving') return 'Saving…'
     if (autosaveState.value === 'saved') return `Saved · ${clock(savedAt.value)}`
@@ -364,6 +421,7 @@ export const usePersistenceStore = defineStore('persistence', () => {
     if (editedDuringRestore || needsWrite) autosaver.notifyChange()
     if (typeof window !== 'undefined') {
       window.addEventListener('pagehide', onPageHide)
+      window.addEventListener('focus', onWindowFocus)
     }
     if (typeof document !== 'undefined') {
       document.addEventListener('visibilitychange', onDocumentVisibility)
@@ -401,6 +459,12 @@ export const usePersistenceStore = defineStore('persistence', () => {
    */
   function onVisibilityChange(visibility) {
     if (visibility === 'hidden') void flush()
+    // Coming back to the tab is the other "focus" a phone gives (no window focus event there).
+    else if (visibility === 'visible') void checkDiskFile()
+  }
+
+  function onWindowFocus() {
+    void checkDiskFile()
   }
 
   function onDocumentVisibility() {
@@ -416,7 +480,10 @@ export const usePersistenceStore = defineStore('persistence', () => {
     stopWatch?.()
     stopWatch = null
     autosaver.dispose()
-    if (typeof window !== 'undefined') window.removeEventListener('pagehide', onPageHide)
+    if (typeof window !== 'undefined') {
+      window.removeEventListener('pagehide', onPageHide)
+      window.removeEventListener('focus', onWindowFocus)
+    }
     if (typeof document !== 'undefined') {
       document.removeEventListener('visibilitychange', onDocumentVisibility)
     }
@@ -428,11 +495,41 @@ export const usePersistenceStore = defineStore('persistence', () => {
    * Save the project to a file: `Save`/`Save As…` where the browser can write a
    * file in place, otherwise a downloaded copy. Sets the chip either way.
    *
+   * An in-place Save first looks at the file (`TODO/ai-009`): if it changed on disk since this
+   * session read or wrote it, nothing is written and the disk-change dialog asks instead —
+   * `{ ok: false, conflict: true }`.
+   *
    * @param {{ saveAs?: boolean }} [options]
-   * @returns {Promise<import('../storage/fileSystem.js').SaveResult>}
+   * @returns {Promise<import('../storage/fileSystem.js').SaveResult | { ok: false, conflict: true }>}
    */
   async function saveFile({ saveAs = false } = {}) {
-    const result = await deps.files.save(serializeProject(documentStore.raw), { saveAs })
+    if (!saveAs && diskKnown !== null && deps.files.capabilities.mode === 'native') {
+      await checkDiskFile()
+      if (diskChange.value !== null) {
+        diskPromptWanted.value = true
+        return { ok: false, conflict: true }
+      }
+    }
+    return writeFile({ saveAs })
+  }
+
+  /**
+   * The write itself, with no disk check — what Save does after its check, and what the
+   * dialog's explicit **Overwrite the file** does.
+   *
+   * @param {{ saveAs: boolean }} options
+   * @returns {Promise<import('../storage/fileSystem.js').SaveResult>}
+   */
+  async function writeFile({ saveAs }) {
+    const text = serializeProject(documentStore.raw)
+    const result = await deps.files.save(text, { saveAs })
+    if (result.ok && result.mode === 'native') {
+      // Now in step with the file this handle points at (a Save As points it somewhere new).
+      diskKnown = { text, lastModified: null }
+      diskChange.value = null
+      diskPromptWanted.value = false
+      diskCanWatch.value = true
+    }
     if (result.ok) {
       errorMessage.value = ''
       if (result.mode === 'native') {
@@ -494,7 +591,14 @@ export const usePersistenceStore = defineStore('persistence', () => {
     const opened = await openText(picked.text, picked.name)
     // Only a file that actually loaded may become the Save target — adopting a
     // refused one would let the next Save overwrite it with the current document.
-    if (opened.ok) deps.files.adopt(picked)
+    if (opened.ok) {
+      deps.files.adopt(picked)
+      // `TODO/ai-009`: only a native pick can be read again, so only it can be watched.
+      diskKnown = picked.handle === undefined ? null : { text: picked.text, lastModified: picked.lastModified ?? null }
+      diskChange.value = null
+      diskPromptWanted.value = false
+      diskCanWatch.value = diskKnown !== null
+    }
     return opened
   }
 
@@ -512,10 +616,94 @@ export const usePersistenceStore = defineStore('persistence', () => {
     if (loading.value) return false
     documentStore.load([], null, DEFAULT_RESOLUTION)
     deps.files.forgetHandle()
+    forgetDisk()
     errorMessage.value = ''
     loadWarning.value = ''
     showNotice(`New project · ${clock(Date.now())}`, SAVED_NOTICE_MS)
     return true
+  }
+
+  /** The project no longer comes from the file this session was watching. */
+  function forgetDisk() {
+    diskKnown = null
+    diskChange.value = null
+    diskPromptWanted.value = false
+    diskCanWatch.value = false
+  }
+
+  /**
+   * Look at the opened file on disk and raise the disk-change dialog if it changed
+   * (`TODO/ai-009`). Never throws; a no-op when nothing can be watched. Concurrent calls share
+   * one read.
+   *
+   * @returns {Promise<void>}
+   */
+  function checkDiskFile() {
+    diskCheck ??= (async () => {
+      const known = diskKnown
+      if (known === null || typeof deps.files.readCurrent !== 'function') return
+      const read = await deps.files.readCurrent(known.lastModified === null ? undefined : { lastModified: known.lastModified })
+      // Unreadable now (moved, deleted, permission withdrawn): say nothing here — a Save will
+      // report it in its own words, and a focus is no time for an error.
+      if (read === null || !read.ok || diskKnown !== known) return
+      if (known.lastModified !== null && read.lastModified === known.lastModified) return
+      if (read.text === known.text) {
+        // Rewritten with the same bytes (a touch, our own Save), or changed back.
+        known.lastModified = read.lastModified
+        diskChange.value = null
+        return
+      }
+      const pending = diskChange.value
+      if (pending !== null && pending.text === read.text) {
+        diskChange.value = { ...pending, lastModified: read.lastModified }
+        return
+      }
+      diskChange.value = { name: read.name, text: read.text, lastModified: read.lastModified }
+      diskPromptWanted.value = true
+    })().finally(() => {
+      diskCheck = null
+    })
+    return diskCheck
+  }
+
+  /**
+   * The disk-change dialog's three answers. **No merge, ever.**
+   *
+   * - `reload` — replace this project with the file (the same atomic load as Open; a file this
+   *   build cannot read is refused by name and the project is untouched);
+   * - `overwrite` — write this project over the file, in place;
+   * - `cancel` — close the dialog; the chip still says the file changed, and tapping it asks again.
+   *
+   * @param {'reload' | 'overwrite' | 'cancel'} choice
+   * @returns {Promise<void>}
+   */
+  async function resolveDiskChange(choice) {
+    const pending = diskChange.value
+    diskPromptWanted.value = false
+    if (pending === null || choice === 'cancel') return
+    if (choice === 'reload') {
+      const opened = await openText(pending.text, pending.name)
+      if (opened.ok && diskChange.value === pending) {
+        diskKnown = { text: pending.text, lastModified: pending.lastModified }
+        diskChange.value = null
+      }
+      return
+    }
+    await writeFile({ saveAs: false })
+  }
+
+  /** Ask again after a Cancel — what tapping the chip does while the file differs. */
+  function showDiskPrompt() {
+    if (diskChange.value !== null) diskPromptWanted.value = true
+  }
+
+  /**
+   * A drag, popover or another dialog is open: hold the disk-change dialog back until it is not.
+   *
+   * @param {boolean} busy
+   */
+  function setUiBusy(busy) {
+    uiBusy.value = busy
   }
 
   function dismissError() {
@@ -544,6 +732,14 @@ export const usePersistenceStore = defineStore('persistence', () => {
     chipText,
     chipTone,
     fileCapabilities: deps.files.capabilities,
+    diskChanged,
+    diskChangeName,
+    diskPromptOpen,
+    diskCanWatch,
+    checkDiskFile,
+    resolveDiskChange,
+    showDiskPrompt,
+    setUiBusy,
     start,
     stop,
     flush,

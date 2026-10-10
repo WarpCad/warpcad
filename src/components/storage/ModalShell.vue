@@ -71,5 +71,7 @@ defineEmits(['backdrop'])
   font-weight: 650;
   line-height: 1.3;
   color: var(--text-1);
+  /* A file name in a title (the disk-change dialog) can be one long unbroken word. */
+  overflow-wrap: anywhere;
 }
 </style>

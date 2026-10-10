@@ -34,6 +34,20 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### ai-009 — MCP server and the disk-change prompt: what only a real client and real devices can show (2026-10-10 21:18)
+
+The server is covered by Node integration specs, a two-engine e2e at three viewports and a raw-protocol hand-drive; a real Claude Code session and the non-Chromium engines are not.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | In **Claude Code**, run `claude mcp add warpcad -- node mcp/server.js <file>` and say *add a 3 mm base plate under the bracket*: does it pick the right tools, fill `request`, and report the appended rows? | Open | |
+| 2 | Product call: **hosted references** (`github:owner/repo/path`, read-only, writes with `WARPCAD_GITHUB_TOKEN`) are deferred. Build them as a follow-up? | Open | |
+| 3 | Product call: Safari, Firefox and phones get **no** change prompt (no file handle). Is "re-Open the file" acceptable, or should the app say *this file may have changed* on focus? | Open | |
+| 4 | Product call: limits are per tool call over MCP, not per user turn. Acceptable, or add a session-level cap? | Open | |
+| 5 | Product call: the optional `request` field on write tools is how intent travels over MCP. Right design? | Open | |
+| 6 | Wording: an origin this build does not write reads *via another program*. Right words? | Open | |
+| 7 | Release note: Save in native mode now re-reads the file first, so an outside edit is never silently overwritten | Open | |
+
 ### ai-008 — Drawing to library group: what only a real model and a real phone can show (2026-10-10 19:46)
 
 Scale, build, overlay and Save-confirm are covered by unit specs, a scripted-provider e2e on two engines at three viewports, and a hand-drive; the model's judgement and the devices are not.

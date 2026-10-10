@@ -448,13 +448,19 @@ rather than guess at it.
 
 Two access paths, both planned, served by **one** framework-free tool registry
 (`src/ai/tools/`) — neither path adds tools of its own (`docs/decisions/ai-partner.md`):
-- **MCP server** (`mcp/`) — reads and writes the project file or a hosted project
-  reference, so Claude Code can drive modeling. **Stated explicitly, as this section
-  asks:** the document/sync layer does **not** support concurrent merge, so v1's MCP
-  server edits a **closed** project file only (atomic write, lock file; the app offers
-  Reload on focus if the file changed underneath it — no merge). The localhost
-  live-editing bridge is the reserved `ai-012`, planned as one writer (the open tab) with
-  the AI as its client, not as a merge.
+- **MCP server** (`mcp/server.js`, `docs/mcp.md`) — reads and writes one local project
+  file, so Claude Code can drive modeling (a hosted project reference is not built yet).
+  **Stated explicitly, as this section asks:** the document/sync layer does **not** support
+  concurrent merge, so v1's MCP server edits a **closed** project file only. Concretely:
+  every call re-reads the file (reloading if anything else changed it); a write takes
+  `<file>.lock` for that one read-modify-write (so two servers serialise, never interleave),
+  writes a temp file and renames it over the original, and a refused call writes nothing.
+  The app re-reads a file it holds a File System Access handle for (desktop Chromium only)
+  on window focus and before every in-place Save, and on a difference asks **Reload /
+  Overwrite the file / Cancel** — no merge, and Save never overwrites without that answer.
+  Engines without a handle (Safari, Firefox, every phone) cannot see the change; the user
+  re-Opens the file. The localhost live-editing bridge is the reserved `ai-012`, planned as
+  one writer (the open tab) with the AI as its client, not as a merge.
 - **BYOK chat** — the user's own API key in IndexedDB (the existing
   `src/storage/tokenStorage.js` credential store), called directly from the browser. An
   AI turn builds on a forked copy of the document and lands as one atomic `ai`-origin

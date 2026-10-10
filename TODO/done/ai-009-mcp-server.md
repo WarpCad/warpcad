@@ -6,8 +6,10 @@ priority: medium
 model: opus
 milestone: M9
 depends: [ai-001, ai-002, ai-003]
-status: open
+status: done
 ---
+
+> **Retired 2026-10-10 (`/fix-todo ai-009`).** Shipped for a **local project file**; **hosted references are deferred**. Differences from the file: (1) `#/gist/<id>` does not exist in the app: io-002's hosted backend is a GitHub repository file (owner/repo/path). The server refuses `#/`, `gist:`, `github:` and `http(s):` arguments with a plain message and never reads an env token; what remains is a read-only `github:owner/repo/path` through `createHostedClient`, plus writes with a sha-conflict check when `WARPCAD_GITHUB_TOKEN` is set, never logged. (2) The app saves `.ndjson`, not `.warpcad`, so the docs use `.ndjson`; the server accepts any name. (3) MCP gives a server no view of the user's message, so write tools take an optional `request` string, which becomes the intent. (4) Limits are per `tools/call` (`recordsPerCall`, the trial fold and the time cap); the step and failure-streak caps cannot span calls because the server cannot see a user turn. (5) The reload prompt: **desktop Chromium** (File System Access) detects an outside change on window focus, on the tab becoming visible, and before every in-place Save, and offers Reload / Overwrite the file / Cancel (Cancel focused, nothing merged). **Safari, Firefox and every phone or tablet** hold no handle, so the app shows no prompt (never a false one) and the user re-Opens the file. (6) The origin chip shows only origins this build writes; any other reads "via another program". (7) `typecheck` now also compiles `mcp/`, CI installs `mcp/` first, and `npm run mcp:licenses` checks its production tree. One existing test changed: `save-load-ui`'s fake native handle returned the *opened* text after a Save wrote new bytes, which no real file does; it now reads back what was last written.
 
 ## Goal
 

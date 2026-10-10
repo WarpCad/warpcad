@@ -72,6 +72,15 @@
  * caret; the spinner is a CSS `transform` animation, so it keeps turning on the compositor
  * while the fold holds the main thread. `Open…` and `Load from` are disabled until it lands.
  *
+ * ## The opened file changed on disk (`TODO/ai-009`)
+ *
+ * While `persistence.diskChanged` (the MCP server, or anything else, changed the file this
+ * session opened or saved natively), the "This device" group gains **`Reload <name> from
+ * disk…`** (`file-disk-reload`), which asks the disk-change question again after a Cancel — the
+ * phone-sized way in, where the chip is a 10px dot. The dialog itself (`DiskChangeDialog.vue`) is
+ * mounted here and deferred by the same `busy` rule as the hosted conflict, and it also waits
+ * for a hosted conflict that is already showing.
+ *
  * Every real action is a call into `stores/fileMenu.js` (when to ask), `stores/persistence.js`
  * (the local file) or `stores/hosted.js` (the repository): no persistence logic lives here.
  */
@@ -89,6 +98,7 @@ import { useTimelineStore } from '../../stores/timeline.js'
 import { useTransformPreviewStore } from '../../stores/transformPreview.js'
 import HostedDot from '../display/HostedDot.vue'
 import ConflictDialog from './ConflictDialog.vue'
+import DiskChangeDialog from './DiskChangeDialog.vue'
 import ConnectDialog from './ConnectDialog.vue'
 import ExportPopover from './ExportPopover.vue'
 import ProjectSettingsDialog from './ProjectSettingsDialog.vue'
@@ -165,6 +175,17 @@ const busy = computed(
     sketchEditor.active,
 )
 watch(busy, (value) => hosted.setUiBusy(value), { immediate: true })
+// One dialog at a time: the disk-change question also waits for a hosted conflict on screen.
+watch(
+  () => busy.value || hosted.conflictOpen,
+  (value) => persistence.setUiBusy(value),
+  { immediate: true },
+)
+
+function reloadFromDisk() {
+  menu.closeMenu()
+  persistence.showDiskPrompt()
+}
 
 /** `Opening…` / `Restoring…` — the short form of `persistence.loading` the button can fit. */
 const pendingLabel = computed(() => (persistence.loading === '' ? '' : `${persistence.loading.split(' ')[0]}…`))
@@ -199,7 +220,7 @@ function onKeydown(event) {
   } else if (key === 'o' && !event.shiftKey) {
     event.preventDefault()
     // A dialog already asking the question is not asked twice.
-    if (menu.confirm === null && !menu.connectOpen && !hosted.conflictOpen) menu.requestOpen()
+    if (menu.confirm === null && !menu.connectOpen && !hosted.conflictOpen && !persistence.diskPromptOpen) menu.requestOpen()
   }
 }
 
@@ -356,6 +377,17 @@ onBeforeUnmount(() => {
               {{ capabilities.openLabel }}
             </button>
             <button
+              v-if="persistence.diskChanged"
+              type="button"
+              role="menuitem"
+              class="file-menu__item"
+              data-testid="file-disk-reload"
+              :disabled="persistence.loading !== ''"
+              @click="reloadFromDisk()"
+            >
+              Reload {{ persistence.diskChangeName }} from disk…
+            </button>
+            <button
               type="button"
               role="menuitem"
               class="file-menu__item file-menu__item--stacked"
@@ -480,6 +512,7 @@ onBeforeUnmount(() => {
     <ReplaceConfirmDialog />
     <ConnectDialog />
     <ConflictDialog />
+    <DiskChangeDialog />
   </div>
 </template>
 

@@ -35,6 +35,7 @@
 import { computed, nextTick, ref, watch } from 'vue'
 
 import { useTimelineCommands } from '../../composables/useTimelineCommands.js'
+import { originChipText } from '../../core/origin.js'
 import { useTimelineStore } from '../../stores/timeline.js'
 
 const props = defineProps({
@@ -62,7 +63,8 @@ const editing = ref(false)
 /** `TODO/ai-003`: whether this row's intent is expanded. Per row, not persisted. */
 const intentOpen = ref(false)
 const intentId = computed(() => `timeline-intent-${props.row.step}`)
-const originLabel = computed(() => (props.row.origin === 'local' ? 'by you' : `via ${props.row.origin}`))
+// A closed list, never the file's own words (`src/core/origin.js`, `TODO/ai-009`).
+const originLabel = computed(() => originChipText(props.row.origin))
 /** @type {import('vue').Ref<Record<string, any>>} */
 const draft = ref({})
 
@@ -218,9 +220,7 @@ function cancel() {
                History with an origin chip, so the user can see it and can
                Suppress or Edit it like any other step. Absent for local edits,
                which is almost all of them today. -->
-          <span v-if="row.origin !== 'local'" class="chip" data-testid="chip-origin">
-            via {{ row.origin }}
-          </span>
+          <span v-if="row.origin !== 'local'" class="chip" data-testid="chip-origin">{{ originLabel }}</span>
         </span>
       </button>
       <button

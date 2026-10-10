@@ -15,8 +15,12 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
+      # The MCP server's own dependencies (docs/decisions/ai-partner.md decision 3): its specs
+      # run in the unit stage and its sources are typechecked.
+      - run: npm run mcp:install
       - run: npm run spdx
       - run: npm run licenses
+      - run: npm run mcp:licenses
       - run: npm run typecheck
       - run: npm run test:unit -- --run
       - run: npx playwright install --with-deps chromium

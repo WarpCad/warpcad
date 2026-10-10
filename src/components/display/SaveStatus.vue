@@ -21,6 +21,9 @@
  * dots apart for a colour-blind user, so the shapes differ too (ring / solid /
  * square — see the styles).
  *
+ * **While the opened file has changed on disk** (`TODO/ai-009`) it is a button too: tapping
+ * `File changed on disk — Reload` asks the disk-change question again after a Cancel.
+ *
  * **Errors are `role="alert"`, everything else `role="status"`** — a persistent
  * "Not saved" must interrupt, "Saved · 14:02" must not.
  */
@@ -28,26 +31,42 @@ import { computed } from 'vue'
 
 import { useStatusSurface } from '../../composables/useStatusSurface.js'
 import { useFileMenuStore } from '../../stores/fileMenu.js'
+import { usePersistenceStore } from '../../stores/persistence.js'
 
 const surface = useStatusSurface()
 const menu = useFileMenuStore()
+const persistence = usePersistenceStore()
 
 const isError = computed(() => surface.tone.value === 'error')
+/** The disk-change state is what the chip shows (not outranked by an error). */
+const isDiskChange = computed(() => !isError.value && persistence.diskChanged)
+const isButton = computed(() => isError.value || isDiskChange.value)
+
+function onClick() {
+  if (isError.value) menu.openMenu()
+  else if (isDiskChange.value) persistence.showDiskPrompt()
+}
+
+const title = computed(() => {
+  if (isError.value) return `${surface.text.value} — open the File menu`
+  if (isDiskChange.value) return `${persistence.diskChangeName} changed on disk — reload it, or keep this version`
+  return surface.text.value
+})
 </script>
 
 <template>
   <component
-    :is="isError ? 'button' : 'div'"
+    :is="isButton ? 'button' : 'div'"
     class="save-status"
-    :class="[`save-status--${surface.tone.value}`, { 'save-status--button': isError }]"
-    :type="isError ? 'button' : undefined"
-    :role="isError ? 'alert' : 'status'"
+    :class="[`save-status--${surface.tone.value}`, { 'save-status--button': isButton }]"
+    :type="isButton ? 'button' : undefined"
+    :role="isError ? 'alert' : isButton ? undefined : 'status'"
     :aria-live="isError ? 'assertive' : 'polite'"
     :aria-label="surface.text.value"
-    :title="isError ? `${surface.text.value} — open the File menu` : surface.text.value"
+    :title="title"
     :data-tone="surface.tone.value"
     data-testid="save-status"
-    @click="isError && menu.openMenu()"
+    @click="onClick()"
   >
     <span class="save-status__dot" aria-hidden="true" data-testid="save-status-dot" />
     <span class="save-status__text" data-testid="save-status-text">{{ surface.text.value }}</span>

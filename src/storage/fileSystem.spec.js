@@ -385,3 +385,68 @@ describe('native Save / Open — File System Access (desktop Chromium only)', ()
     await expect(createFileStorage(env).open()).resolves.toEqual({ ok: false, cancelled: true })
   })
 })
+
+describe('readCurrent — noticing the file changed on disk (TODO/ai-009)', () => {
+  /** A handle whose file can be changed under it, the way the MCP server changes one. */
+  function diskEnv() {
+    const disk = { text: 'v1\n', lastModified: 1000, reads: 0, fail: false }
+    const handle = {
+      name: 'bracket.ndjson',
+      async createWritable() {
+        return { async write(text) { disk.text = text; disk.lastModified += 1 }, async close() {} }
+      },
+      async getFile() {
+        if (disk.fail) throw new DOMException('gone', 'NotFoundError')
+        return {
+          name: 'bracket.ndjson',
+          lastModified: disk.lastModified,
+          text: async () => {
+            disk.reads += 1
+            return disk.text
+          },
+        }
+      },
+    }
+    const env = { showSaveFilePicker: vi.fn(async () => handle), showOpenFilePicker: vi.fn(async () => [handle]) }
+    return { env, disk }
+  }
+
+  it('is null with nothing to read: no file opened yet, and always on the fallback path', async () => {
+    expect(await createFileStorage(diskEnv().env).readCurrent()).toBeNull()
+    expect(await createFileStorage(fallbackEnv().env).readCurrent()).toBeNull()
+  })
+
+  it('Open reports the file’s lastModified, and readCurrent sees a later change', async () => {
+    const { env, disk } = diskEnv()
+    const storage = createFileStorage(env)
+    const opened = await storage.open()
+    expect(opened).toMatchObject({ ok: true, text: 'v1\n', lastModified: 1000 })
+    storage.adopt(opened)
+
+    disk.text = 'v1\nv2\n'
+    disk.lastModified = 2000
+    expect(await storage.readCurrent({ lastModified: 1000 })).toEqual({
+      ok: true,
+      name: 'bracket.ndjson',
+      text: 'v1\nv2\n',
+      lastModified: 2000,
+    })
+  })
+
+  it('does not read the text when lastModified has not moved — the cheap focus check', async () => {
+    const { env, disk } = diskEnv()
+    const storage = createFileStorage(env)
+    storage.adopt(await storage.open())
+    const readsAfterOpen = disk.reads
+    expect(await storage.readCurrent({ lastModified: 1000 })).toEqual({ ok: true, name: 'bracket.ndjson', text: '', lastModified: 1000 })
+    expect(disk.reads).toBe(readsAfterOpen)
+  })
+
+  it('reports a file that can no longer be read, by name, without throwing', async () => {
+    const { env, disk } = diskEnv()
+    const storage = createFileStorage(env)
+    storage.adopt(await storage.open())
+    disk.fail = true
+    expect(await storage.readCurrent()).toEqual({ ok: false, error: 'NotFoundError: gone', name: 'bracket.ndjson' })
+  })
+})

@@ -22,6 +22,8 @@
  * | Save over the same file | yes — the handle is retained | **no** — every save is a new download |
  * | Save As… | yes | (same as Save — one item only) |
  *
+ * | Notice the file changed on disk (`TODO/ai-009`) | yes — {@link FileStorage.readCurrent} re-reads the handle | **no** — the picked `File` is a one-time copy |
+ *
  * So the module answers "what can I honestly offer?" through
  * {@link getFileCapabilities}, and `ui-033` labels its controls from that —
  * `Save` / `Save As…` where in-place save exists, **`Download copy`** and no
@@ -136,9 +138,17 @@ export function projectFileName(mode, date = new Date()) {
  */
 
 /**
- * @typedef {{ ok: true, name: string, text: string, handle?: unknown }
+ * @typedef {{ ok: true, name: string, text: string, handle?: unknown, lastModified?: number }
  *   | { ok: false, cancelled: true }
  *   | { ok: false, error: string, name?: string }} OpenResult
+ *   `handle` and `lastModified` only on the native path.
+ */
+
+/**
+ * What the retained file holds on disk right now (`TODO/ai-009`).
+ *
+ * @typedef {{ ok: true, name: string, text: string, lastModified: number }
+ *   | { ok: false, error: string, name: string }} DiskRead
  */
 
 /**
@@ -170,6 +180,13 @@ function isCancel(error) {
  * @property {(result: OpenResult) => void} adopt Call after an opened file was
  *   accepted, so a later Save writes back to it. A refused file must *not* be adopted.
  * @property {() => void} forgetHandle
+ * @property {(known?: { lastModified: number }) => Promise<DiskRead | null>} readCurrent
+ *   `TODO/ai-009`: read the retained file as it is on disk now, so the app can notice a change
+ *   made outside it (the MCP server, another editor). `null` when there is nothing to read —
+ *   no retained handle, which is always the case on the fallback path: a file picked with
+ *   `<input type=file>` cannot be read again, so a change to it cannot be seen. When `known`'s
+ *   `lastModified` still matches, the text is not read and `text` is `''` with the same stamp
+ *   — the cheap path a window-focus check takes.
  */
 
 /**
@@ -252,6 +269,20 @@ export function createFileStorage(env = globalThis) {
     forgetHandle() {
       handle = null
     },
+
+    async readCurrent(known) {
+      if (handle === null || typeof handle.getFile !== 'function') return null
+      const target = handle
+      try {
+        const file = await target.getFile()
+        if (known !== undefined && file.lastModified === known.lastModified) {
+          return { ok: true, name: target.name, text: '', lastModified: file.lastModified }
+        }
+        return { ok: true, name: target.name, text: await file.text(), lastModified: file.lastModified }
+      } catch (error) {
+        return { ok: false, error: messageOf(error), name: target.name }
+      }
+    },
   }
 
   /** @returns {Promise<OpenResult>} */
@@ -265,7 +296,7 @@ export function createFileStorage(env = globalThis) {
     }
     try {
       const file = await picked.getFile()
-      return { ok: true, name: file.name, text: await file.text(), handle: picked }
+      return { ok: true, name: file.name, text: await file.text(), handle: picked, lastModified: file.lastModified }
     } catch (error) {
       return { ok: false, error: messageOf(error), name: picked?.name }
     }
