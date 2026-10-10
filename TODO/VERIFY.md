@@ -34,6 +34,18 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### ai-011 — The prompt eval harness has never run against a real model (2026-10-10 23:12)
+
+The scorer and runner are proved with the scripted provider (a good transcript scores PASS, a wrong one FAIL on the right check, the key never appears in output). No model has been scored, so no baseline exists and the thresholds are first guesses.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | Run `ANTHROPIC_API_KEY=… npm run eval:ai` once (about $1-3 at the default model; `--max-cost` caps it), look at `bench/results/ai/*.md`, and commit it as the **baseline** every later change is compared against | Open | |
+| 2 | Calibrate the case thresholds against that first run: the hole volume range (60500-63800), bracket fill (at most 0.85), wing length (100-1500 mm). Are any too tight or too loose to mean anything? | Open | |
+| 3 | Check the price table (`bench/ai/score.js`, dated 2026-09-25) against the current model prices before quoting a cost | Open | |
+| 4 | Product call: the browser-driven runner for scenario 18 (an image needs a canvas, `capture_view` a GPU) is not built. Worth building, or is the live scenario enough? | Open | |
+| 5 | Product call: `askedOrAssumed` is a crude text check (a question mark, or the word "assume"). Is it good enough for the ambiguous and under-specified cases, or does it need a stricter test? | Open | |
+
 ### ai-010 — Scenarios 17 and 18 have never been run with a real model (2026-10-10 22:14)
 
 The scripted provider proves the **plumbing** of both scenarios (Chromium and WebKit, three viewports, plus a hand-drive at laptop and phone width). It cannot say whether a model makes good choices, and no real key has been used.

@@ -1,0 +1,37 @@
+{
+  "id": "drawing-board",
+  "title": "Scenario 18: a drawing becomes a library group",
+  "needs": [
+    "browser"
+  ],
+  "prompt": "Here is a drawing of a raspberry pi 7 create a group object to be added to the library.",
+  "images": [
+    "e2e/fixtures/drawing-board-85x56.png"
+  ],
+  "checks": [
+    {
+      "type": "bodyCount",
+      "min": 1,
+      "max": 1
+    },
+    {
+      "type": "sizeWithin",
+      "body": "largest",
+      "sizeMm": [
+        85,
+        56,
+        null
+      ],
+      "tolMm": 2.6
+    },
+    {
+      "type": "namedParts",
+      "names": [
+        "Board"
+      ]
+    },
+    {
+      "type": "askedOrAssumed"
+    }
+  ]
+}

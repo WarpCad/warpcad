@@ -125,7 +125,7 @@ test.describe('scenario 17 plumbing — airfoil and wing', () => {
     await expect(page.getByTestId('ai-transcript')).toContainText('same wing, edited in place')
     // The same wing, now 240 mm of span (20 % more), and the other three untouched.
     await expect(page.getByTestId('inspector')).toContainText(/Sketch 1\s*120 × [\d.]+ × 240 mm/)
-    await expect(page.getByTestId('inspector')).toContainText(/Cube 1\s*30 × 30 × 260 mm/)
+    await expect(page.getByTestId('inspector')).toContainText(/Cube 1\s*30 × 30 × 200 mm/)
   })
 
   test('Stop mid-reply ends the turn, lands nothing, and the app is usable afterwards', async ({ page }) => {

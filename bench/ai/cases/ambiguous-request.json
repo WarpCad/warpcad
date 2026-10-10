@@ -1,0 +1,15 @@
+{
+  "id": "ambiguous-request",
+  "title": "Nothing to go on: ask, or say what you assumed",
+  "prompt": "make me something nice",
+  "checks": [
+    {
+      "type": "askedOrAssumed"
+    },
+    {
+      "type": "bodyCount",
+      "min": 0,
+      "max": 4
+    }
+  ]
+}

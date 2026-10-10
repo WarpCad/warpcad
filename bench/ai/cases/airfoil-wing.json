@@ -1,0 +1,30 @@
+{
+  "id": "airfoil-wing",
+  "title": "Scenario 17: airfoil and wing, ready to print",
+  "prompt": "Use the sketch tool to create an airfoil for a model plane wing, create the wing then the rest of the model so I can 3D print it.",
+  "checks": [
+    {
+      "type": "bodyCount",
+      "min": 3,
+      "max": 12
+    },
+    {
+      "type": "longestEdgeWithin",
+      "body": "any",
+      "min": 100,
+      "max": 1500
+    },
+    {
+      "type": "watertight"
+    },
+    {
+      "type": "fitsBed",
+      "bedMm": [
+        220,
+        220,
+        250
+      ],
+      "body": "all"
+    }
+  ]
+}

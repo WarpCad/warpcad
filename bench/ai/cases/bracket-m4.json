@@ -1,0 +1,24 @@
+{
+  "id": "bracket-m4",
+  "title": "Under-specified: a bracket for an M4 bolt",
+  "prompt": "A bracket for an M4 bolt",
+  "checks": [
+    {
+      "type": "askedOrAssumed"
+    },
+    {
+      "type": "longestEdgeWithin",
+      "body": "any",
+      "min": 10,
+      "max": 200
+    },
+    {
+      "type": "fillBelow",
+      "body": "largest",
+      "max": 0.85
+    },
+    {
+      "type": "watertight"
+    }
+  ]
+}

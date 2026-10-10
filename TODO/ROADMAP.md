@@ -501,7 +501,7 @@ a scripted transcript proves plumbing, never that the model's choices are good
 | ✅ `ai-008` | Drawing → group — scale first (ask, never invent), image tools, overlay verification, confirm-before-save | Creation | `ai-005`, `ai-007`, `sketch-003`, `core-037`, `ui-055` | 18 (new), 9, 3, 10 |
 | ✅ `ai-009` | MCP server in `mcp/` — same tools over stdio, closed project file, atomic append, `mcp` origin | Creation | `ai-001`, `ai-002`, `ai-003` | 10, 12; `io-001`, `data-004` |
 | ✅ `ai-010` | Scenarios **17** (airfoil wing, ready to print) and **18** (drawing → library part) in `ACCEPTANCE.md`, plus a scripted provider for CI | Testing | `ai-006` | creates 17 and 18 and runs them live, once |
-| `ai-011` | Prompt evals — `npm run eval:ai`, geometric (not LLM-judged) scoring, never in CI | Testing | `ai-007`, `ai-010` | — |
+| ✅ `ai-011` | Prompt evals — `npm run eval:ai`, geometric (not LLM-judged) scoring, never in CI | Testing | `ai-007`, `ai-010` | — |
 | `ai-012` | *(reserved, no file yet)* Live MCP bridge — a localhost link so Claude Code edits the project a human has open; resolves `docs/decisions/document-sync.md`'s revival condition | Creation | `ai-009` | 10, 12 |
 
 **Suggested order** (a person can hand-use something after every step): `ai-001` →
@@ -801,5 +801,6 @@ convention going forward.
 | `ai-008` | 2026-10-10 19:46 | ~40m wall clock from the Step 3 start (19:06 UTC), of which ~26m was the Opus implementation agent and the rest this session's independent verification (full Chromium and WebKit matrix, docs screenshots, hand-driving scenario 18 and a placement the e2e does not cover) and this retirement pass. |
 | `ai-009` | 2026-10-10 21:18 | ~36m wall clock from the Step 3 start (20:42 UTC), of which ~21m was the Opus implementation agent and the rest this session's independent verification (full Chromium and WebKit matrix, docs screenshots, a hand-drive with the real server over raw JSON-RPC) and this retirement pass. |
 | `ai-010` | 2026-10-10 22:14 | ~21m wall clock from the Step 3 start (21:52 UTC), done directly by the Sonnet session (the file's `model` is sonnet): the provider, the store hook and badge, two transcripts and their stamp script, unit and browser specs on chromium and webkit at three viewports, mutation checks of the specs, the full matrix, and this retirement pass. **The live run of scenarios 17 and 18 was not done** (it needs a real key). |
+| `ai-011` | 2026-10-10 23:12 | ~8m wall clock from the Step 3 start (23:04 UTC), done directly by the Sonnet session (the file's `model` is sonnet; no agent). **Never run against a real model** (needs a key); the harness is proved with the scripted provider. |
 
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

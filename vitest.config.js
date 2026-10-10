@@ -14,7 +14,7 @@ export default defineConfig({
     reporter: ['agent'],
     // build/ holds static-markup checks (e.g. the index.html first-paint guard,
     // TODO/build-002) that aren't part of src/ but still need to run as real tests.
-    include: ['src/**/*.spec.js', 'build/**/*.spec.js', 'scripts/**/*.spec.js', 'mcp/**/*.spec.js'],
+    include: ['src/**/*.spec.js', 'build/**/*.spec.js', 'scripts/**/*.spec.js', 'mcp/**/*.spec.js', 'bench/**/*.spec.js'],
     // mcp/ has its own package.json (`docs/decisions/ai-partner.md` decision 3); its
     // node_modules is never a test root.
     exclude: ['**/node_modules/**'],

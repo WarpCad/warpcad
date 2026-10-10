@@ -6,8 +6,10 @@ priority: low
 model: sonnet
 milestone: M9
 depends: [ai-007, ai-010]
-status: open
+status: done
 ---
+
+> **Retired 2026-10-10 (`/fix-todo ai-011`).** The harness shipped; **it has never been run against a real model**, and no baseline result file exists, because that needs the user's key (an agent must not enter one). Differences from the file: (1) The runner is **headless only**. A case marked `"needs": ["browser"]` (scenario 18: an attached image goes through the sketch sanitiser, which needs a canvas; `capture_view` needs a GPU) is **listed and skipped**, never faked. The Playwright-driven browser runner the file mentions is **not built**, so scenario 18 has no repeatable number yet. (2) Beyond the file: `--max-cost` (default $5) stops starting runs once the estimate passes it (exit 3), `--list` needs no key, results go to `bench/results/ai/<date>-<model>.{md,json}`, and the key is redacted from every output line and file. (3) Two checks the file did not list: `fillBelow` (a bracket must not be a plain block) and `preserved` (seed bodies still there and unchanged). (4) `fitsBed` uses the app's own `fitVerdict` (`src/core/buildVolume.js`), so "fits" means what the Fit badge and `check_printability` mean; my first version compared sorted edges and disagreed with the app. (5) The harness itself is proved end to end with `src/ai/providers/scripted.js` (a transcript that does the job scores PASS; one that builds a part too big for the bed scores FAIL on `fitsBed`), at no cost. (6) Running the real tools under the scripted provider found the scripted airfoil transcript making a **second false claim**: its 260 mm fuselage is "too large by 10 mm" on a 220 x 220 x 250 mm bed while its reply said everything fit. The fuselage is now 200 mm and the reply's claims match the tool's full result. (7) The numeric thresholds in the cases (hole volume 60500-63800, bracket fill at most 0.85, wing 100-1500 mm) are first guesses from the geometry, not calibrated against a model; the first live run should adjust them. The price table in `score.js` is dated 2026-09-25 (decision 9) and an id without a price costs `null`, never a guess.
 
 ## Goal
 

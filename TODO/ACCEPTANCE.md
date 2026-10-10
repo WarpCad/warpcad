@@ -3657,6 +3657,9 @@ step**, wing and the rest together. Export gives manifold STL(s). After **Stop**
 only what had landed (nothing from the half-finished turn), and the follow-up **edits the existing
 wing** (no new body, its span about 20 % longer) rather than building a second one.
 
+**Repeatable number** (`ai-011`): `ANTHROPIC_API_KEY=… npm run eval:ai -- --case airfoil-wing` runs this
+sentence several times and scores the geometry (`bench/ai/README.md`); it never runs in CI.
+
 **Last run**: — (not yet driven live: needs a real key; the plumbing is covered by
 `e2e/ai-scripted.e2e.js`, which is **not** this scenario)
 
@@ -3696,6 +3699,9 @@ reply gives a residual in mm instead of claiming a perfect match. **My parts doe
 until Confirm**; after it, the part is there with a thumbnail, and after File ▸ New it drags in
 complete, with the same sub-parts. The chat said *Image sent* once. The SVG is refused under the
 box and nothing is sent; with no scale available, it asks rather than builds.
+
+**Repeatable number** (`ai-011`): not built for this scenario. The `drawing-board` eval case is listed and
+*skipped*, because an attached image needs a browser (`bench/ai/README.md`, "What is not built yet").
 
 **Last run**: 2026-10-10 19:46 UTC (`ai-008`, **scripted provider only; the live-model run is `ai-010`'s**) — **PASS** at laptop 1440x900 on **Chromium and WebKit** (real mouse, jittered Library drag; the PNG attached by a real file drop onto the viewport). An SVG carrying a script was refused under the box (*Choose a PNG, JPEG or WebP image.*) and nothing attached. The drawing attached; *Image sent* appeared once; the turn ended with a Save proposal, one selected group (Inspector: Board, USB-A 1, USB-A 2, Ethernet; bounds 87 x 56 x 17.6 mm), and the overlay thumbnail in the transcript (looked at by eye: the model sits on the drawing). **My parts read 0 until Confirm, then 1.** After File > New, dragging it from My parts placed one body with the same four named parts. The key was in no page text and no request body. Not driven: a real model, tablet/phone by hand, step 3's real clarifying question.
 
