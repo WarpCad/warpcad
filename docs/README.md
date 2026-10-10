@@ -58,6 +58,9 @@ The Library's Raspberry Pi and Hardware items descend from the `jscad-raspberryp
 - [Combining shapes into a group](groups.md) — the Operations toolbar's fourth
   button, which combines shapes into one selectable body without merging or
   discarding any of their geometry.
+- [Saving your own parts: Save to library and My parts](user-library.md) — turning a
+  group into a part in the Library, naming it, choosing which sizes stay adjustable, and
+  placing it again in any project.
 - [Precise placement: Snap and Align](snap-align.md) — the Operations toolbar's
   fifth and sixth buttons, which move one shape to a computed position against
   another without combining or discarding either one.

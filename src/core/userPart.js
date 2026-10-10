@@ -673,15 +673,48 @@ let effective = new Map()
 const entryMemo = new Map()
 
 /**
+ * `cylinder-1-height` as the Inspector labels it: `Cylinder 1 height`.
+ *
+ * @param {string} name
+ * @returns {string}
+ */
+function humanizeParamName(name) {
+  const words = name.replace(/[-_]+/g, ' ').trim()
+  return words.charAt(0).toUpperCase() + words.slice(1)
+}
+
+/**
  * @param {UserPartDefinition} definition
  * @returns {RegistryEntry}
  */
 function compositeEntryFor(definition) {
+  // The exposed parameters, as the Inspector's and `paramEdit.js`'s number schema
+  // (`TODO/ui-055`): the same range the expansion itself enforces, so an edit is refused
+  // by name before it reaches the fold. None exposed means none editable.
+  const paramSchema =
+    definition.params.length === 0
+      ? undefined
+      : Object.freeze(
+          Object.fromEntries(
+            definition.params.map((param) => [
+              param.name,
+              Object.freeze({
+                kind: /** @type {'number'} */ ('number'),
+                label: humanizeParamName(param.name),
+                unit: param.unit,
+                min: param.min,
+                max: param.max,
+                default: param.default,
+              }),
+            ])
+          )
+        )
   return Object.freeze({
     kind: /** @type {'composite'} */ ('composite'),
     operandCount: /** @type {0} */ (0),
     recipe: (/** @type {any} */ params) => expandUserPart(definition, params),
     resultId: definition.result,
+    ...(paramSchema === undefined ? {} : { paramSchema }),
     ui: Object.freeze({ label: definition.name, defaults: Object.freeze(defaultParamsOf(definition)) }),
   })
 }

@@ -34,6 +34,16 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### ui-055 — Save to library and My parts (2026-10-10 07:30)
+
+Reachability, the example flow, three viewports and three engines are covered by `e2e/user-library.e2e.js` and the Step 6 drive; what is left is feel on real hardware.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | On a real iPhone, drag a My parts row (including a long press on the thumbnail) into the view; the page must not scroll or select the image, and the Inspector tab must not sit over the last Library row. | Open | |
+| 2 | Judge whether the 96 px thumbnail (flat-shaded, fixed three-quarter view) reads well enough at row size for a thin part such as a plate or a ring. | Open | |
+| 3 | On iPad, open the ⋯ menu on the bottom-most My parts row: popover position and tap size. | Open | |
+
 ### core-037 — User-defined library parts (2026-10-10 04:19)
 
 No control exists yet (`ui-055`), so the new capability was driven through the page's own modules, on Chromium and WebKit at laptop width only. Touch devices and Firefox were not driven.

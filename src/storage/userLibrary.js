@@ -10,8 +10,10 @@
  * and puts the autosave — the one thing that must never be at risk — behind a schema
  * migration for an unrelated feature.
  *
- * One record per part, keyed by its op: `{ definition, savedAt }`. Re-saving a part
- * replaces it (`ui-055` decides the version). Everything read back is **re-validated**
+ * One record per part, keyed by its op: `{ definition, savedAt, thumbnail? }`. Re-saving a
+ * part replaces it (the caller decides the version). The thumbnail (`TODO/ui-055`) is a small
+ * PNG data URL drawn from the part's geometry at save time; it is display-only, and treated as
+ * untrusted on the way back out like everything else read from here. Everything read back is **re-validated**
  * (`src/core/userPart.js`), because what is in IndexedDB was written by some earlier build
  * — or by anything else running on this origin — and is as untrusted as a file.
  *
@@ -23,6 +25,7 @@
 import { openDB } from 'idb'
 
 import { UserPartError, setLibraryParts, validateUserPart, validateUserPartSet } from '../core/userPart.js'
+import { isThumbnailUrl } from '../core/userPartFile.js'
 
 export const PARTS_DB_NAME = 'warpcad-parts'
 export const PARTS_DB_VERSION = 1
@@ -33,11 +36,15 @@ export const PARTS_STORE = 'parts'
 
 /**
  * @typedef {object} UserLibrary
- * @property {() => Promise<{ parts: UserPartDefinition[], problems: UserPartProblem[] }>} list
+ * @property {() => Promise<{ parts: UserPartDefinition[], problems: UserPartProblem[], thumbnails: Record<string, string>, savedAt: Record<string, number> }>} list
  *   Every stored part that still validates (as one set, so nesting is checked), and a
- *   named problem for each one that does not. Rejects only if storage cannot be read.
- * @property {(definition: unknown) => Promise<UserPartDefinition>} save Validate, then store.
- *   Rejects with a {@link UserPartError} for a bad part, or with the storage error.
+ *   named problem for each one that does not. `thumbnails` is op → PNG data URL for the
+ *   parts that have a valid one, and `savedAt` op → when it was last saved, ms since the
+ *   epoch (`TODO/ui-055`: My parts lists the newest first). Rejects only if storage cannot be read.
+ * @property {(definition: unknown, extras?: { thumbnail?: string | null }) => Promise<UserPartDefinition>} save
+ *   Validate, then store. A thumbnail that is not a small PNG data URL is ignored; with none,
+ *   the one already stored for that op is kept. Rejects with a {@link UserPartError} for a
+ *   bad part, or with the storage error.
  * @property {(op: string) => Promise<void>} remove
  * @property {() => void} close
  */
@@ -90,6 +97,10 @@ export function createUserLibrary({ open = openDB, name = PARTS_DB_NAME, now = (
       const problems = []
       /** @type {UserPartDefinition[]} */
       const valid = []
+      /** @type {Record<string, string>} */
+      const thumbnails = {}
+      /** @type {Record<string, number>} */
+      const savedAt = {}
       for (const { key, value } of await readAll()) {
         const definition =
           value !== null && typeof value === 'object' && !Array.isArray(value) ? /** @type {any} */ (value).definition : undefined
@@ -98,15 +109,22 @@ export function createUserLibrary({ open = openDB, name = PARTS_DB_NAME, now = (
           continue
         }
         const verdict = validateUserPart(definition)
-        if (verdict.ok) valid.push(verdict.definition)
-        else problems.push({ op: verdict.op ?? key, reason: verdict.reason })
+        if (verdict.ok) {
+          valid.push(verdict.definition)
+          const stamp = /** @type {any} */ (value).savedAt
+          if (typeof stamp === 'number' && Number.isFinite(stamp)) savedAt[verdict.definition.op] = stamp
+          const thumbnail = /** @type {any} */ (value).thumbnail
+          if (isThumbnailUrl(thumbnail)) thumbnails[verdict.definition.op] = thumbnail
+        } else {
+          problems.push({ op: verdict.op ?? key, reason: verdict.reason })
+        }
       }
       // Then as one set, so a part nesting a missing or broken one is reported too.
       const checked = validateUserPartSet(valid)
-      return { parts: checked.definitions, problems: [...problems, ...checked.problems] }
+      return { parts: checked.definitions, problems: [...problems, ...checked.problems], thumbnails, savedAt }
     },
 
-    async save(raw) {
+    async save(raw, extras = {}) {
       const verdict = validateUserPart(raw)
       if (!verdict.ok) throw new UserPartError(verdict.reason, verdict.op)
       const definition = verdict.definition
@@ -117,9 +135,19 @@ export function createUserLibrary({ open = openDB, name = PARTS_DB_NAME, now = (
       const own = problems.find((problem) => problem.op === definition.op)
       if (own !== undefined) throw new UserPartError(own.reason, definition.op)
       // Plain, finished data before the transaction opens (`indexeddb.js`, rule 1).
-      const record = { definition: JSON.parse(JSON.stringify(definition)), savedAt: now() }
+      const given = isThumbnailUrl(extras.thumbnail) ? extras.thumbnail : undefined
       const db = await database()
       const tx = db.transaction(PARTS_STORE, 'readwrite')
+      // Only IDB requests are awaited inside the transaction: read what is there (to keep its
+      // thumbnail when this save brings none), then write.
+      const prior = given === undefined ? await tx.store.get(definition.op) : undefined
+      const kept = prior !== null && typeof prior === 'object' && isThumbnailUrl(prior.thumbnail) ? prior.thumbnail : undefined
+      const thumbnail = given ?? kept
+      const record = {
+        definition: JSON.parse(JSON.stringify(definition)),
+        savedAt: now(),
+        ...(thumbnail === undefined ? {} : { thumbnail }),
+      }
       await Promise.all([tx.store.put(record, definition.op), tx.done])
       return definition
     },
@@ -144,7 +172,7 @@ export function createUserLibrary({ open = openDB, name = PARTS_DB_NAME, now = (
  * with the reason in `problems` for the caller to show.
  *
  * @param {UserLibrary} library
- * @returns {Promise<{ parts: UserPartDefinition[], problems: UserPartProblem[] }>}
+ * @returns {Promise<{ parts: UserPartDefinition[], problems: UserPartProblem[], thumbnails: Record<string, string>, savedAt: Record<string, number> }>}
  */
 export async function loadUserLibrary(library) {
   try {
@@ -153,6 +181,6 @@ export async function loadUserLibrary(library) {
     return result
   } catch (error) {
     setLibraryParts([])
-    return { parts: [], problems: [{ op: null, reason: error instanceof Error ? error.message : String(error) }] }
+    return { parts: [], thumbnails: {}, savedAt: {}, problems: [{ op: null, reason: error instanceof Error ? error.message : String(error) }] }
   }
 }

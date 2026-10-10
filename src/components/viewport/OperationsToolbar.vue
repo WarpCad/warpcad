@@ -302,6 +302,7 @@ import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 
 import { DEFAULT_ROTATE_AXIS, mirrorRotationDeg } from '../../core/kernel/group.js'
 import { useDocumentStore } from '../../stores/document.js'
+import { useLibraryStore } from '../../stores/library.js'
 import { useOverlaysStore } from '../../stores/overlays.js'
 import { useSelectionStore } from '../../stores/selection.js'
 import { useSplitSheetStore } from '../../stores/splitSheet.js'
@@ -1336,6 +1337,7 @@ const SPLIT_OPERATION = Object.freeze({
 })
 
 const splitSheet = useSplitSheetStore()
+const library = useLibraryStore()
 
 /** Open the Split sheet on the selected body, or close it if it is already open. */
 function toggleSplitSheet() {
@@ -1581,6 +1583,23 @@ function commitMirror() {
       >
         <span class="ops__glyph" aria-hidden="true">{{ SPLIT_OPERATION.glyph }}</span>
         <span class="ops__label">{{ SPLIT_OPERATION.label }}</span>
+      </button>
+
+      <!-- Save to library… (TODO/ui-055): the same exactly-1 gate, opening the Save sheet. Its
+           reason when disabled is `library.saveGate.reason` — the tooltip says to Combine into
+           group first, which is how several solids become the one thing a part is. -->
+      <button
+        type="button"
+        class="ops__btn"
+        :disabled="!library.saveGate.enabled"
+        data-testid="op-library-save"
+        data-op="library.save"
+        :title="library.saveGate.enabled ? 'Save to library… — save this group as a part' : library.saveGate.reason"
+        :aria-label="library.saveGate.enabled ? 'Save to library… — save this group as a part' : library.saveGate.reason"
+        @click="library.openSave()"
+      >
+        <span class="ops__glyph" aria-hidden="true">▤</span>
+        <span class="ops__label">To library</span>
       </button>
 
       <!-- Mirror (TODO/ui-039): exactly-1-gated like the buttons above, but its

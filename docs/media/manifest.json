@@ -353,5 +353,17 @@
     "specHash": "c803c4ad7d5a787f4ddc4fa1beebf5320778542a06bad21a9397480c6e056270",
     "bytes": 1153784,
     "seconds": 13.63
+  },
+  "user-library-place.gif": {
+    "spec": "e2e/docs/user-library.docs.js",
+    "specHash": "34d51cb5c4fde20f09affcee3dc076a2f8289ecab6f08b53f217856e7ce52195",
+    "bytes": 354134,
+    "seconds": 6
+  },
+  "user-library-save.gif": {
+    "spec": "e2e/docs/user-library.docs.js",
+    "specHash": "34d51cb5c4fde20f09affcee3dc076a2f8289ecab6f08b53f217856e7ce52195",
+    "bytes": 658405,
+    "seconds": 7.3
   }
 }

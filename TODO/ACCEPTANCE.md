@@ -78,6 +78,8 @@ drops (dropping the second body must not hide or replace the first). Clicking ea
 individually selects only that item (gizmo and dimension lines attach to whichever was
 just clicked, not both at once).
 
+**Last run**: 2026-10-10 07:25 UTC (`ui-055`) — **PASS** at laptop 1440x900 on Chromium and WebKit (real jittered mouse), plus the new spec's trusted touch at 390x844 on Chromium. Cube then Cylinder dropped: both remained (2); a click on open grid cleared the selection (0); the cube selected only `cuboid-1`, the cylinder only `cylinder-2`; the first body's centre was byte-identical after the second drop. A saved Standoff dropped after a Cube did not replace it (2 bodies: `primitive.cuboid`, `user.standoff`).
+
 **Last run**: 2026-10-10 02:27 UTC (`io-007`) — **PASS for what this task can affect** at laptop 1440x900 on Chromium, WebKit and Firefox: two Cubes dragged in one after the other both remained (2 bodies, both drawn), the toolbar now carries **Split**, and the Inspector shows Bounds and a `fits` badge. Steps beyond placing two primitives were not re-driven (nothing in them changed).
 
 **Last run**: 2026-10-09 21:00 UTC (`sketch-008`) — **PASS** at laptop 1440x900 on **Chromium and WebKit** (real mouse, jittered human-paced Library drags written for this drive), each from cleared storage. Cube then Cylinder dropped: both remained (count 2) and the cube's bounds string was byte-identical before and after the second drop (`-75.19,-75.19,0.00,-35.19,-35.19,40.00` on Chromium); a click on open grid cleared the selection (0), the cube then selected alone (Inspector *Cube 1*), the cylinder alone (*Cylinder 1*). Re-driven because the sketch editor gained the Curve tool and the loft pipeline changed. Console clean.
@@ -1452,6 +1454,8 @@ person can actually perform. It was hand-driven at laptop 1440x900/Chromium and 
 snaps into place once within tolerance (step 4), and on release the camera module sits
 aligned to the board's mounting holes, not at an arbitrary offset position.
 
+**Last run**: 2026-10-10 07:25 UTC (`ui-055`) — **PASS** on Chromium and WebKit at laptop (real jittered mouse). Pi (`raspberrypi.bplus`) dropped, a Camera Module dragged toward it: `data-snapped` became true during the drag with 3 snap guides drawn, and on release the camera sat at the Pi's X/Y (-27.59,-27.59 on Chromium; -27.87,-27.36 on WebKit). The dropped Standoff is a composite placed on the same path and rendered complete (both named parts, same size as the original).
+
 **Last run**: 2026-10-10 04:15 UTC (`core-037`) — **PASS** on Chromium and WebKit at laptop 1440x900 (real jittered mouse). Pi (default model 4, `raspberrypi.bplus`) dropped, then a Camera Module V3 dragged in from the lower right along a wobbly path: `data-snapped` false for the first 24 samples then true from sample 28 to release; on release the camera sat at the Pi's X/Y (-27.59,-27.59 on Chromium). Console clean. Re-driven because `core-037` changed the composite-placement path.
 
 **Last run**: 2026-10-01 15:00 UTC (`data-007`) — PASS at laptop 1440x900 Chromium, with the same named stand-in as below (Pi 5 board `raspberrypi.bplus` model 5 and the Camera Module, both real Library rows). Dragged the camera in along a wobbly path: `data-snapped` false while far, true from about 0.48,0.43 inward, stayed true through a small retreat-and-return, and on release the camera sat at the Pi's X/Y with Z 6.34 (same Z as the earlier drives). Console clean. Phone not driven.
@@ -2337,6 +2341,8 @@ first (step 4), never jumping straight to a sub-part. A second, distinct click o
 member mesh narrows to that sub-part (step 6), with the breadcrumb showing the pick
 depth. Clicking the breadcrumb's "Group" segment (step 7) steps back up to whole-group
 selection.
+
+**Last run**: 2026-10-10 07:25 UTC (`ui-055`) — **PASS** on Chromium and WebKit at laptop (real mouse). Pi, Camera Module and a Cube grouped (3 selected, count 3 to 1). First click picked `Group 1` with no part crumb; later clicks narrowed to `Raspberry Pi 1` and `Cube 1` (the click aimed at the camera landed on the Pi's mesh, so the camera-specific narrowing was not separately re-driven here); the `Group` crumb stepped back up to `Group 1`. A placed user part (Standoff) lists `Cube 1` and `Cylinder 1` as its parts in the Inspector.
 
 **Last run**: 2026-10-10 04:15 UTC (`core-037`) — **PASS** on Chromium and WebKit at laptop, with a real Pi, Camera Module V3 and a Cube. Group: count 3 to 1, selected 1. First click on the group picked `Group 1` with crumb `Objects ▸ Group 1`; a second click on the camera narrowed to `Objects ▸ Group 1 ▸ Camera Module 1`; the `Group 1` crumb stepped back up to the whole group. Console clean.
 

@@ -26,6 +26,7 @@ import { bootStorage } from '../composables/useStorageBoot.js'
 import { useDeleteShortcut } from '../composables/useDeleteShortcut.js'
 import HistoryControls from '../components/layout/HistoryControls.vue'
 import LibraryPanel from '../components/layout/LibraryPanel.vue'
+import SaveToLibrarySheet from '../components/layout/SaveToLibrarySheet.vue'
 import TimelinePanel from '../components/timeline/TimelinePanel.vue'
 import TimelineStrips from '../components/timeline/TimelineStrips.vue'
 import TimelineToggle from '../components/timeline/TimelineToggle.vue'
@@ -33,6 +34,7 @@ import Viewport from '../components/viewport/Viewport.vue'
 import { useAiChatStore } from '../stores/aiChat.js'
 import { useAssistantStore } from '../stores/assistant.js'
 import { useHostedStore } from '../stores/hosted.js'
+import { useLibraryStore } from '../stores/library.js'
 import { usePersistenceStore } from '../stores/persistence.js'
 import { useSketchEditorStore } from '../stores/sketchEditor.js'
 import { useTimelineStore } from '../stores/timeline.js'
@@ -51,6 +53,10 @@ const hosted = useHostedStore()
 // right with every sheet closed. A blocked store just means "no key", never a startup failure.
 const assistant = useAssistantStore()
 const aiChat = useAiChatStore()
+// The user's saved parts (`TODO/ui-055`): read from the local library into the registry's
+// library layer on mount, so My parts is populated in every new project and after a reload.
+// A blocked or empty store is an empty section, never a startup failure.
+const library = useLibraryStore()
 /** The chat sheet's state for CSS: its height name while open, `none` otherwise (`TODO/ai-006`). */
 const chatSheet = computed(() => (assistant.view === 'chat' ? aiChat.sheet : 'none'))
 
@@ -60,6 +66,7 @@ useDeleteShortcut()
 onMounted(() => {
   void bootStorage({ persistence, hosted })
   void assistant.start()
+  void library.start()
 })
 
 /**
@@ -261,6 +268,8 @@ function onInspectorClaim() {
     <!-- The Assistant's key sheet (TODO/ai-004), opened by the header button when there is no
          key or from the chat's "Key and model…"; teleports to <body> at the modal tier. -->
     <KeySheet />
+    <!-- The Save to library… sheet and its "Saved <name>" toast (TODO/ui-055). -->
+    <SaveToLibrarySheet />
   </div>
 </template>
 

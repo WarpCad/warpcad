@@ -49,7 +49,7 @@
  * @module core/paramEdit
  */
 
-import { hasEditableParams, paramOptions, registry } from './kernel/registry.js'
+import { hasEditableParams, lookupEntry, paramOptions } from './kernel/registry.js'
 
 /** @typedef {import('./document.js').WarpDocument} WarpDocument */
 /** @typedef {import('./kernel/registry.js').OpRecord} OpRecord */
@@ -123,7 +123,7 @@ export function paramEditability(lineage) {
   // log. Nothing is discarded, so the rest of the lineage is not a reason to freeze —
   // which is why this returns before the loop below. A composite nobody has described
   // stays frozen: the fail-safe default.
-  if (registry[root.op]?.kind === 'composite') {
+  if (lookupEntry(root.op)?.kind === 'composite') {
     return hasEditableParams(root.op)
       ? { editable: true, blockedBy: null, path: 'replace' }
       : { editable: false, blockedBy: root.op }
@@ -403,7 +403,7 @@ export function stepParamEditability(record) {
   // A catalogue choice, not a dimension — editable only where the registry says which
   // values each param may take (`TODO/ui-052`'s `paramOptions`), and validated against
   // that schema in `stepParamEditRecord`.
-  if (registry[record.op]?.kind === 'composite') {
+  if (lookupEntry(record.op)?.kind === 'composite') {
     return hasEditableParams(record.op)
       ? { editable: true, blockedBy: null }
       : { editable: false, blockedBy: record.op }
@@ -501,7 +501,7 @@ export function stepParamEditRecord(document, recordId, changes) {
   // A composite row is a catalogue choice: every value has to be one the recipe
   // accepts, or the replay throws inside the recipe instead of saying which field is
   // wrong (`TODO/ui-052`).
-  if (registry[record.op]?.kind === 'composite') requireSchemaParams(record.op, params, Object.keys(changes))
+  if (lookupEntry(record.op)?.kind === 'composite') requireSchemaParams(record.op, params, Object.keys(changes))
 
   return { ...record, params }
 }
@@ -552,6 +552,14 @@ function requireSchemaParams(op, params, changedKeys) {
             `${field.unit ? ` ${field.unit}` : ''}, got ${JSON.stringify(value)}`
         )
       }
+      // A user part's exposed range (`TODO/ui-055`), inclusive: refused here by name rather
+      // than as a fold error after the swap.
+      if ((field.min !== undefined && value < field.min) || (field.max !== undefined && value > field.max)) {
+        throw new Error(
+          `paramEdit: ${key} must be between ${field.min ?? '-∞'} and ${field.max ?? '∞'}` +
+            `${field.unit ? ` ${field.unit}` : ''}, got ${JSON.stringify(value)}`
+        )
+      }
     }
   }
 }
@@ -582,7 +590,7 @@ export function compositeParamEditRecord(document, bodyId, changes) {
   const lineage = document.lineageOf(bodyId)
   const root = lineage[0]
   if (root === undefined) throw new Error(`paramEdit: no body "${bodyId}" in this document`)
-  if (registry[root.op]?.kind !== 'composite' || !hasEditableParams(root.op)) {
+  if (lookupEntry(root.op)?.kind !== 'composite' || !hasEditableParams(root.op)) {
     throw new Error(
       `paramEdit: "${bodyId}" is a ${root.op}, which has no editable-param schema — ` +
         'only a described composite is edited in place'

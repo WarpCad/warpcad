@@ -126,6 +126,46 @@ describe('createUserLibrary', () => {
   })
 })
 
+describe('thumbnails (TODO/ui-055)', () => {
+  const PNG = 'data:image/png;base64,iVBORw0KGgo='
+
+  it('stores a small PNG data URL beside the definition and lists it back by op', async () => {
+    const fake = fakeOpen()
+    const library = createUserLibrary({ open: fake.open })
+    await library.save(part(), { thumbnail: PNG })
+    expect(fake.data.get('user.bracket').thumbnail).toBe(PNG)
+    const listed = await library.list()
+    expect(listed.thumbnails).toEqual({ 'user.bracket': PNG })
+  })
+
+  it('never stores or returns anything that is not a small PNG data URL (it is untrusted, like the rest)', async () => {
+    const fake = fakeOpen([['user.bracket', { definition: part(), savedAt: 1, thumbnail: 'javascript:alert(1)' }]])
+    const library = createUserLibrary({ open: fake.open })
+    expect((await library.list()).thumbnails).toEqual({})
+    await library.save(part(), { thumbnail: 'https://example.com/x.png' })
+    expect(fake.data.get('user.bracket').thumbnail).toBeUndefined()
+    await library.save(part(), { thumbnail: `data:image/png;base64,${'A'.repeat(70_000)}` })
+    expect(fake.data.get('user.bracket').thumbnail).toBeUndefined()
+  })
+
+  it('lists when each part was last saved, so My parts can put the newest first', async () => {
+    const fake = fakeOpen()
+    let clock = 100
+    const library = createUserLibrary({ open: fake.open, now: () => (clock += 1) })
+    await library.save(part())
+    await library.save(part({ op: 'user.other', name: 'Other' }))
+    expect((await library.list()).savedAt).toEqual({ 'user.bracket': 101, 'user.other': 102 })
+  })
+
+  it('re-saving without a thumbnail keeps the one already stored (a rename must not blank the row)', async () => {
+    const fake = fakeOpen()
+    const library = createUserLibrary({ open: fake.open })
+    await library.save(part(), { thumbnail: PNG })
+    await library.save(part({ name: 'Renamed' }))
+    expect(fake.data.get('user.bracket').thumbnail).toBe(PNG)
+  })
+})
+
 describe('loadUserLibrary', () => {
   it('registers every listed part as the library layer, so the registry can build it', async () => {
     const fake = fakeOpen([['user.bracket', { definition: part(), savedAt: 1 }]])

@@ -64,11 +64,13 @@
  * starts — the drag has to be able to end over the viewport, but auto-closing
  * mid-gesture would yank the row out from under the finger that is holding it.
  */
-import { onBeforeUnmount, reactive, ref, watch } from 'vue'
+import { nextTick, onBeforeUnmount, reactive, ref, watch } from 'vue'
 
 import { LIBRARY_SECTIONS } from '../../core/library.js'
+import { useLibraryStore } from '../../stores/library.js'
 import { usePlacementStore } from '../../stores/placement.js'
 import { useTimelineStore } from '../../stores/timeline.js'
+import UserPartMenu from './UserPartMenu.vue'
 
 const props = defineProps({
   /**
@@ -92,7 +94,38 @@ const placement = usePlacementStore()
 const timeline = useTimelineStore()
 
 const sections = LIBRARY_SECTIONS
+/**
+ * *My parts* (`TODO/ui-055`) is not in {@link LIBRARY_SECTIONS}: its rows are read live from
+ * the registry's user-part layers (`library.userRows`), so a saved part appears without a
+ * reload. It is rendered by the same row template, the same drag payload and the same
+ * `onRowPointerDown` as every other section — the only differences are the ⋯ menu, the
+ * thumbnail and the "in this project" dot.
+ */
+const library = useLibraryStore()
 const isOpen = ref(false)
+const importInput = ref(/** @type {HTMLInputElement | null} */ (null))
+const sheetEl = ref(/** @type {HTMLElement | null} */ (null))
+
+// A part just saved (or imported, or duplicated) is brought into view: My parts sits below the
+// whole catalogue, so without this the new row appears off-screen in the column or the sheet.
+watch(
+  () => library.revealOp,
+  async (op) => {
+    if (op === null) return
+    await nextTick()
+    const row = sheetEl.value?.querySelector(`[data-testid="library-row-${CSS.escape(op)}"]`)
+    row?.scrollIntoView?.({ block: 'nearest' })
+  },
+)
+
+/** Read the chosen part file and add its parts to the local library. */
+async function onImportFile(/** @type {Event} */ event) {
+  const input = /** @type {HTMLInputElement} */ (event.target)
+  const file = input.files?.[0]
+  input.value = ''
+  if (!file) return
+  await library.importText(await file.text())
+}
 
 watch(
   () => props.collapseSignal,
@@ -236,7 +269,7 @@ onBeforeUnmount(stopTracking)
       Library
     </button>
 
-    <div id="library-sheet" class="library__sheet">
+    <div id="library-sheet" ref="sheetEl" class="library__sheet">
       <p class="library__hint" data-testid="library-hint">
         Drag an item into the 3D view to place it.
       </p>
@@ -288,6 +321,99 @@ onBeforeUnmount(stopTracking)
           </li>
         </ul>
       </template>
+
+      <!-- My parts (TODO/ui-055): parts the person saved from a group. A collapsible section,
+           so the fixed catalogue is not pushed off a phone sheet by a long personal list.
+           Import part file… lives in the header, where the section is, so it is reachable
+           even before the first part exists. -->
+      <div class="library__user-head">
+        <h2 class="library__heading library__heading--toggle" data-testid="library-heading-user">
+          <button
+            type="button"
+            class="library__section-toggle"
+            data-testid="library-section-toggle-user"
+            :aria-expanded="library.expanded"
+            aria-controls="library-user-body"
+            @click="library.expanded = !library.expanded"
+          >
+            <span class="library__chevron" aria-hidden="true">{{ library.expanded ? '▾' : '▸' }}</span>
+            My parts
+            <span class="library__count" data-testid="library-user-count">{{ library.userRows.length }}</span>
+          </button>
+        </h2>
+        <button
+          type="button"
+          class="library__import"
+          data-testid="library-import"
+          title="Add the parts in a part file to My parts"
+          @click="importInput?.click()"
+        >
+          Import part file…
+        </button>
+        <input
+          ref="importInput"
+          type="file"
+          accept=".json,application/json"
+          class="library__file"
+          data-testid="library-import-input"
+          tabindex="-1"
+          aria-hidden="true"
+          @change="onImportFile"
+        />
+      </div>
+      <div v-show="library.expanded" id="library-user-body" data-testid="library-user-body">
+        <p v-if="library.importError" class="library__import-error" role="alert" data-testid="library-import-error">
+          {{ library.importError }}
+        </p>
+        <p v-if="library.loadProblem" class="library__import-error" role="status" data-testid="library-load-problem">
+          Your saved parts could not all be read: {{ library.loadProblem }}
+        </p>
+        <p v-if="library.userRows.length === 0" class="library__hint" data-testid="library-user-empty">
+          Nothing saved yet. Select a group, then choose Save to library… and it appears here.
+        </p>
+        <ul class="library__rows" data-testid="library-rows-user">
+          <li v-for="row in library.userRows" :key="row.op" class="library__item library__item--user" :data-in-library="row.inLibrary ? 'true' : 'false'">
+            <button
+              type="button"
+              class="library__row"
+              :class="{ 'library__row--active': placement.op === row.op }"
+              :data-testid="`library-row-${row.op}`"
+              :data-op="row.op"
+              :data-label="row.label"
+              data-editor=""
+              :disabled="timeline.previewing"
+              :title="
+                timeline.previewing
+                  ? 'Leave the preview to place a shape'
+                  : row.userPart?.newerVersionAvailable
+                    ? `${row.label} — a newer version is saved in My parts; this project keeps the version it has`
+                    : undefined
+              "
+              @pointerdown="onRowPointerDown($event, row)"
+            >
+              <img
+                v-if="row.thumbnail"
+                class="library__thumb"
+                :src="row.thumbnail"
+                alt=""
+                draggable="false"
+                :data-testid="`library-thumb-${row.op}`"
+              />
+              <span v-else class="library__swatch library__swatch--part" aria-hidden="true" />
+              <span class="library__row-label">{{ row.label }}</span>
+              <span
+                v-if="row.usage > 0"
+                class="library__in-project"
+                :data-testid="`library-in-project-${row.op}`"
+                :title="`In this project (${row.usage} placed)`"
+                role="img"
+                :aria-label="`In this project, ${row.usage} placed`"
+              />
+            </button>
+            <UserPartMenu :row="row" />
+          </li>
+        </ul>
+      </div>
     </div>
 
     <!-- Follows the pointer while the drag is over ordinary UI; the viewport's
@@ -319,6 +445,9 @@ onBeforeUnmount(stopTracking)
 }
 
 .library__sheet {
+  /* The containing block for the visually-hidden file input below; without it that input's
+     static position (the end of the list) escapes the scroller and grows the page. */
+  position: relative;
   display: flex;
   flex-direction: column;
   min-height: 0;
@@ -560,6 +689,124 @@ onBeforeUnmount(stopTracking)
     linear-gradient(140deg, var(--border-strong), var(--surface-1));
 }
 
+/* --- My parts (TODO/ui-055) ----------------------------------------------------------- */
+.library__user-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px 8px;
+  margin-top: 14px;
+}
+
+.library__user-head .library__heading {
+  margin: 0;
+  flex: 1 1 100%;
+  min-width: 0;
+}
+
+.library__section-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  min-height: 44px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.library__chevron {
+  width: 12px;
+  text-align: center;
+}
+
+.library__count {
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  font-size: 11px;
+  letter-spacing: 0;
+}
+
+.library__import {
+  /* Its own line in the 210 px column, so neither it nor the heading wraps. */
+  flex: 1 1 100%;
+  min-height: 44px;
+  padding: 0 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+  color: var(--text-1);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.library__import:hover {
+  border-color: var(--border-strong);
+}
+
+.library__file {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.library__import-error {
+  margin: 0 0 8px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--danger);
+  overflow-wrap: anywhere;
+}
+
+.library__item--user {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: stretch;
+  gap: 4px;
+}
+
+.library__row-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.library__thumb {
+  flex: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 3px;
+  background: var(--surface-1);
+  object-fit: contain;
+  /* The row, not the picture, is what receives the pointer that starts a placement. */
+  pointer-events: none;
+  -webkit-user-drag: none;
+}
+
+.library__swatch--part {
+  border-radius: 3px;
+  border-style: dashed;
+}
+
+.library__in-project {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
 .library__drag-icon {
   position: fixed;
   top: 0;
@@ -623,6 +870,19 @@ onBeforeUnmount(stopTracking)
 
   .library[data-open='true'] .library__sheet {
     display: flex;
+  }
+}
+</style>
+
+<!-- Unscoped on purpose: it reads the *parent's* state (`AppView`'s `data-inspector-sheet`), which
+     a scoped rule cannot select. At phone width the Inspector's collapsed tab (a body is selected)
+     stacks over the bottom of the open Library sheet, so the last rows — My parts, now — would
+     scroll to rest *under* it, unreachable. Leave room for it. Found hand-driving the phone: a
+     placed Standoff's own row sat under the tab. -->
+<style>
+@media (max-width: 640px) {
+  .app__body[data-inspector-sheet='tab'] .library__sheet {
+    padding-bottom: calc(14px + var(--library-tab-height, 52px) + var(--inspector-tab-height, 44px));
   }
 }
 </style>

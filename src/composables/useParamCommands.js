@@ -53,7 +53,7 @@ import { toRaw } from 'vue'
 import { brokenDependentsOf, impactOf } from '../core/dependents.js'
 import { evaluate } from '../core/kernel/index.js'
 import { isGroup } from '../core/kernel/group.js'
-import { paramOptions, registry } from '../core/kernel/registry.js'
+import { lookupEntry, paramOptions, registry } from '../core/kernel/registry.js'
 import { canEditParams, compositeParamEditRecord, paramEditRecord, currentParamsOf, withComponent } from '../core/paramEdit.js'
 import { repairChanges } from '../core/repair.js'
 import { useDocumentStore } from '../stores/document.js'
@@ -212,7 +212,7 @@ export function useParamCommands() {
      */
     setParam(bodyId, key, value) {
       const root = live().recordOf(bodyId)
-      if (root !== undefined && registry[root.op]?.kind === 'composite') {
+      if (root !== undefined && lookupEntry(root.op)?.kind === 'composite') {
         return setCompositeParams(bodyId, { [key]: value })
       }
       applyChanges(bodyId, { [key]: /** @type {number | string} */ (value) })

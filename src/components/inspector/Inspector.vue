@@ -131,6 +131,7 @@ import BillOfMaterials from '../display/BillOfMaterials.vue'
 import DeleteButton from './DeleteButton.vue'
 import IntentLine from './IntentLine.vue'
 import FitBadge from './FitBadge.vue'
+import SaveToLibraryButton from '../layout/SaveToLibraryButton.vue'
 import ParamFields from './ParamFields.vue'
 import SketchBodyFields from './SketchBodyFields.vue'
 import SketchProfileFields from '../sketch/SketchProfileFields.vue'
@@ -722,6 +723,9 @@ watch([() => body.value?.id, colorPart], () => {
           Select a single object to see its parameters. Operations that work on several
           objects at once arrive with the boolean tools.
         </p>
+        <!-- Save to library… is disabled here with its reason: several solids are first made
+             one with Combine into group (TODO/ui-055). -->
+        <SaveToLibraryButton />
         <!-- Delete every selected object as one step (TODO/ui-051). -->
         <DeleteButton />
       </template>
@@ -793,6 +797,8 @@ watch([() => body.value?.id, colorPart], () => {
         <p class="inspector__op" data-testid="inspector-op" :data-op="body.op">
           {{ body.opLabel }}
         </p>
+        <!-- Save this group as a part for the Library (TODO/ui-055): exactly one selected. -->
+        <SaveToLibraryButton v-if="!body.subPart" />
         <!-- TODO/ai-003: why this body exists, when a step in its history recorded it. -->
         <IntentLine v-if="!body.subPart" :body-id="body.id" />
         <!-- TODO/io-007: its size, and whether it fits the printer — per print piece. -->

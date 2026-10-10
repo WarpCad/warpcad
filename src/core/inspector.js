@@ -29,7 +29,7 @@
 import { recipeColorOf } from './colorOverride.js'
 import { brokenDependentsOf, brokenReferencesOf } from './dependents.js'
 import { boundsOf, hasNamedParts, hiddenNamesOf, isGroup, localBoundsOf } from './kernel/group.js'
-import { paramOptions, registry as defaultRegistry } from './kernel/registry.js'
+import { lookupEntry, paramOptions, registry as defaultRegistry } from './kernel/registry.js'
 
 /** @typedef {import('./document.js').Body} Body */
 /** @typedef {import('./kernel/registry.js').OpRecord} OpRecord */
@@ -268,6 +268,8 @@ function withSchema(fields, op, params) {
   if (keys.length === 0) return fields
   const next = fields.map((field) => {
     const option = schema[field.key]
+    // A user part's exposed number is labelled by what the person called it, not by its key.
+    if (option?.kind === 'number' && field.kind === 'number') return { ...field, label: option.label, unit: option.unit }
     if (option?.kind !== 'enum') return field
     return { key: field.key, label: option.label, kind: /** @type {const} */ ('enum'), unit: '', value: params[field.key], options: option.options }
   })
@@ -361,7 +363,9 @@ export function rotationOf(body) {
  * @returns {BodyDescription}
  */
 export function describeBody(body, ops = defaultRegistry) {
-  const entry = ops[body.op]
+  // `lookupEntry`, not `ops[body.op]`: a placed user part (`TODO/ui-055`) is a runtime entry
+  // under `user.*`, reachable only through the real catalogue.
+  const entry = lookupEntry(body.op, ops)
   const [min, max] = boundsOf(body.geometry)
   /** @type {Vec3Mm} */
   const positionMm = [(min[0] + max[0]) / 2, (min[1] + max[1]) / 2, (min[2] + max[2]) / 2]

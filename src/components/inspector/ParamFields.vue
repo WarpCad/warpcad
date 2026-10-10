@@ -58,6 +58,9 @@ const editability = computed(() => {
 
 const editable = computed(() => editability.value.editable)
 
+/** A part the person saved to the Library (`TODO/ui-055`), not a built-in recipe. */
+const isUserPart = computed(() => props.body.op.startsWith('user.'))
+
 /** A recipe nobody has described yet — the note says why, not "an operation". */
 const isRecipePart = computed(() => Boolean(props.body.isRecipe) && !editable.value)
 
@@ -353,6 +356,14 @@ function onEnumChange(event, field) {
         This shape is a {{ blockingOpLabel || 'combination' }} of other shapes, so it has no
         parameters of its own. Select one of the shapes it was built from to change its size.
       </template>
+    </p>
+    <p
+      v-else-if="editable && body.isRecipe && isUserPart"
+      class="params__note"
+      data-testid="inspector-params-recipe-note"
+    >
+      These sizes were exposed when the part was saved. Change one to rebuild this part in place — it
+      keeps its position, rotation and colours, and its parts keep their names.
     </p>
     <p v-else-if="editable && body.isRecipe" class="params__note" data-testid="inspector-params-recipe-note">
       Pick another option to rebuild this part in place — it keeps its position, rotation and

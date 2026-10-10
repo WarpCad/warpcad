@@ -278,6 +278,10 @@ function modelChoice(values, labels) {
  *   value is the expansion's record with this id — un-combined, parts intact — rather than
  *   the group of its *named* records. A user part is a captured body's lineage, whose
  *   answer is its terminal record's value; the built-in recipes leave this unset.
+ * @property {Readonly<Record<string, NumberParamSchema>>} [paramSchema] Runtime composites
+ *   only (`TODO/ui-055`): the numbers a user part exposes, which is what lets the Inspector
+ *   show them as fields and `paramEdit.js` validate an edit — the same path the built-in
+ *   composites' static table feeds. Absent (and so read-only) for a part exposing nothing.
  * @property {OpUi} [ui] Present on ops the UI offers as a catalogue row.
  */
 
@@ -1663,9 +1667,12 @@ export function assertOperandCount(op, count, ops = registry) {
  * @typedef {object} NumberParamSchema
  * @property {'number'} kind
  * @property {string} label
- * @property {'mm' | ''} unit
+ * @property {'mm' | 'deg' | ''} unit
  * @property {number} [exclusiveMin] Values must be strictly greater than this — every
  *   composite length here is a positive size.
+ * @property {number} [min] Values must be at least this (`TODO/ui-055`: a user part's
+ *   exposed range, inclusive at both ends).
+ * @property {number} [max] Values must be at most this.
  * @property {number} [default] The recipe's own default, for a param the record does not
  *   carry — a Pi placed from the Library has no `clearance` field, yet the recipe used 5.
  */
@@ -1812,8 +1819,21 @@ const PARAM_SCHEMAS = Object.freeze({
  */
 export function paramOptions(op, params = {}, tables = PARAM_TABLES) {
   const entry = PARAM_SCHEMAS[op]
-  if (!entry) return Object.freeze({})
+  if (!entry) return runtimeParamSchema(op)
   return Object.freeze(entry.params(params ?? {}, tables))
+}
+
+/**
+ * A user part's exposed numbers (`TODO/ui-055`), read off its runtime entry. Empty for
+ * anything else — a native op, an undescribed composite, a part that exposes nothing —
+ * which is what keeps those read-only.
+ *
+ * @param {string} op
+ * @returns {Readonly<Record<string, ParamSchema>>}
+ */
+function runtimeParamSchema(op) {
+  const schema = op.startsWith(RUNTIME_OP_PREFIX) ? runtimeEntries.get(op)?.paramSchema : undefined
+  return schema ?? Object.freeze({})
 }
 
 /**
@@ -1824,7 +1844,7 @@ export function paramOptions(op, params = {}, tables = PARAM_TABLES) {
  * @returns {boolean}
  */
 export function hasEditableParams(op) {
-  return PARAM_SCHEMAS[op] !== undefined
+  return PARAM_SCHEMAS[op] !== undefined || Object.keys(runtimeParamSchema(op)).length > 0
 }
 
 /**

@@ -6,8 +6,40 @@ priority: high
 model: sonnet
 milestone: M9
 depends: [core-037, ui-015]
-status: open
+status: done
 ---
+
+> **What actually shipped (2026-10-10).** As scoped, with these decisions and deviations:
+>
+> 1. **Toolbar item is a button, not a Group-menu entry.** The Operations toolbar has no Group menu (Group
+>    is one button), so **To library** (`op-library-save`, title "Save to library…") sits beside Mirror with
+>    the same exactly-1 gate; the Inspector has `library-save` for one body and a disabled copy with a
+>    visible reason for a multi-selection.
+> 2. **My parts is always rendered** (collapsed by default, expanded by a save), not hidden when empty, so
+>    *Import part file…* is reachable before the first part exists. Rows are newest first (by save time).
+> 3. **Exposed sizes are editable on a placed part.** `paramOptions`/`hasEditableParams` now fall back to a
+>    runtime entry's `paramSchema` (inclusive `min`/`max`), and the `registry[op]?.kind` lookups in
+>    `paramEdit.js`, `useParamCommands.js`, `useTimelineCommands.js` and `inspector.js` became
+>    `lookupEntry`, so a `user.*` instance edits in place through the existing composite path.
+> 4. **Thumbnails** are drawn once at save time from the body's own polygons (`render/partThumbnail.js`) and
+>    stored as a small PNG data URL beside the definition in `warpcad-parts` (display-only, validated on the
+>    way out). A part with none falls back to a dashed swatch. A part saved from an import carries its own.
+> 5. **Delete never touches placed geometry**: the project already holds its own copy of a placed part, so
+>    delete only removes the library copy; with instances the dialog's default is "Keep a copy in the
+>    project" and the row stays (from the project's copy, with Rename/Delete disabled) until File > New.
+> 6. **Part file** is `{ format: 'warpcad-parts', version: 1, parts, thumbnails? }`, validated with the same
+>    caps as a project's parts, 64 parts / 8 M characters; an existing name is skipped, never overwritten.
+> 7. The **local library is loaded at app start** (`library.start()` in `AppView`), which core-037 left unwired.
+>
+> **Found by hand-driving, fixed here:** the ⋯ popover opened below the window for a row at the bottom of the
+> Library column; at phone width the Inspector's collapsed tab covers the bottom of the open Library sheet, so
+> the last rows (My parts) could not be scrolled clear of it; and a visually-hidden file input in the sheet
+> grew the page in WebKit and Firefox and shifted every other spec's click points (caught by the full run).
+>
+> **Known gaps:** `style.recolor`'s `colorOverride` is still not carried into a saved part (core-037's gap,
+> unchanged; filed as `core-054`). Saving captures on the main thread (core-037's verify step), and a "newer
+> version available" row only shows a tooltip: there is no upgrade control. Rename does not change a
+> project's already-placed copy of the name. Open finding `core-053` is untouched.
 
 ## Goal
 

@@ -35,7 +35,7 @@
  */
 
 import { ReplayRejection } from '../core/document.js'
-import { hasEditableParams, paramOptions, registry } from '../core/kernel/registry.js'
+import { hasEditableParams, lookupEntry, paramOptions } from '../core/kernel/registry.js'
 import { stepParamEditRecord, stepParamEditability } from '../core/paramEdit.js'
 import { RIM_FACE_OPTIONS, buildNameIndex, describeRow } from '../core/timelineLabel.js'
 import { useDocumentStore } from '../stores/document.js'
@@ -221,7 +221,7 @@ export function useTimelineCommands() {
     if (record.op === 'asset.image') {
       return { editable: false, reason: 'A reference photo is changed from its sketch’s Slices panel (Edit sketch)' }
     }
-    if (registry[record.op]?.kind === 'composite') {
+    if (lookupEntry(record.op)?.kind === 'composite') {
       return {
         editable: false,
         reason: "This library part's options aren't described yet, so they can't be edited",
@@ -261,7 +261,7 @@ export function useTimelineCommands() {
     // choice is a dropdown of the values the recipe accepts, in the schema's own order
     // and labels — the same control the Inspector offers, for a Pi a Subtract consumed
     // and that only History can reach any more.
-    if (registry[record.op]?.kind === 'composite' && hasEditableParams(record.op)) {
+    if (lookupEntry(record.op)?.kind === 'composite' && hasEditableParams(record.op)) {
       const params = record.params ?? {}
       /** @type {StepField[]} */
       const schemaFields = []
@@ -320,7 +320,7 @@ export function useTimelineCommands() {
     const current = documentStore.raw.recordOf(id)
     // A composite's creation row: the same impact check as the Inspector's dropdown, and
     // the same repair dialog when the change would break something (`TODO/ui-052`).
-    if (current !== undefined && registry[current.op]?.kind === 'composite' && hasEditableParams(current.op)) {
+    if (current !== undefined && lookupEntry(current.op)?.kind === 'composite' && hasEditableParams(current.op)) {
       // Only what the user changed: the form also shows a schema param the record does
       // not carry at the recipe's default (a Pi's clearance), and writing that back would
       // put a value in the log nobody chose.
