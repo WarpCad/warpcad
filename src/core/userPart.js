@@ -49,6 +49,7 @@ import modeling from '@jscad/modeling'
 import { evaluate, isGroup } from './kernel/index.js'
 import { RUNTIME_OP_PREFIX, lookupEntry, registry, setRuntimeEntries } from './kernel/registry.js'
 import { policyFor } from './kernel/tessellation.js'
+import { foldColorOverrides } from './colorOverride.js'
 
 const { geom3 } = modeling.geometries
 
@@ -139,6 +140,9 @@ export const ALLOWED_OP_PREFIXES = Object.freeze([
 
 const DEFINITION_FIELDS = new Set(['op', 'name', 'version', 'result', 'records', 'params'])
 const RECORD_FIELDS = new Set(['id', 'op', 'params', 'target', 'operands'])
+/** The op a user colour override is, and the extra fields only it may carry (`TODO/core-054`). */
+const RECOLOR_OP = 'style.recolor'
+const RECOLOR_FIELDS = new Set(['colorOverride', 'colorAlpha', 'subPart'])
 const PARAM_FIELDS = new Set(['name', 'unit', 'default', 'min', 'max', 'binds'])
 const UNITS = new Set(['mm', 'deg', ''])
 const FORBIDDEN_SEGMENTS = new Set(['__proto__', 'prototype', 'constructor'])
@@ -317,8 +321,11 @@ function normalizeDefinition(raw) {
     const label = `record ${index + 1}`
     if (!isPlainObject(candidate)) throw fail(`${label} is not an object`)
     for (const key of Object.keys(candidate)) {
-      if (!RECORD_FIELDS.has(key)) {
-        throw fail(`${label}: unexpected field "${key}" — a part's records hold only id, op, params, target and operands`)
+      if (!RECORD_FIELDS.has(key) && !(candidate.op === RECOLOR_OP && RECOLOR_FIELDS.has(key))) {
+        throw fail(
+          `${label}: unexpected field "${key}" — a part's records hold only id, op, params, target and operands` +
+            ' (and a style.recolor its colour, colorAlpha and subPart)'
+        )
       }
     }
     const id = candidate.id
@@ -344,6 +351,22 @@ function normalizeDefinition(raw) {
     }
     /** @type {any} */
     const record = { id, op: recordOp, params: JSON.parse(JSON.stringify(candidate.params ?? {})) }
+    if (recordOp === RECOLOR_OP) {
+      const { colorOverride, colorAlpha, subPart } = candidate
+      const hex = Number.isInteger(colorOverride) && colorOverride >= 0 && colorOverride <= 0xffffff
+      if (colorOverride !== undefined && colorOverride !== null && !hex) {
+        throw fail(`record "${id}": colorOverride must be a 0xRRGGBB whole number, or null to reset`)
+      }
+      if (colorAlpha !== undefined && (typeof colorAlpha !== 'number' || !(colorAlpha > 0 && colorAlpha <= 1))) {
+        throw fail(`record "${id}": colorAlpha must be a number above 0 and at most 1`)
+      }
+      if (subPart !== undefined && (typeof subPart !== 'string' || subPart === '' || subPart.length > USER_PART_LIMITS.maxNameLength)) {
+        throw fail(`record "${id}": subPart must be a part name`)
+      }
+      if (colorOverride !== undefined) record.colorOverride = colorOverride
+      if (colorAlpha !== undefined) record.colorAlpha = colorAlpha
+      if (subPart !== undefined) record.subPart = subPart
+    }
     const checkRef = (/** @type {unknown} */ ref) => {
       const target = refId(ref)
       if (target === undefined) throw fail(`record "${id}": an operand must be an id or { id, pieces }`)
@@ -985,6 +1008,50 @@ export function resetUserParts() {
  */
 
 /**
+ * The `style.recolor` records a part carries on the chain that produces its result,
+ * root-first, with a nested part's own contributed ahead of the record that places it
+ * (`TODO/core-054`). A part's colour overrides are exactly these: the kernel fold
+ * ignores them (`style.recolor` is geometry-neutral), so a body reads them back off the
+ * definition — the same way, through {@link foldColorOverrides}, that it reads its own
+ * lineage.
+ *
+ * Follows `target` only, the chain a document lineage follows too (a boolean's or a
+ * group's operands are other bodies, whose own colours do not travel with the result).
+ *
+ * @param {UserPartDefinition} definition
+ * @param {(op: string) => UserPartDefinition | undefined} [partOf] Nested parts' definitions.
+ * @param {number} [depth] Guards a malformed cycle; validated sets cannot have one.
+ * @returns {OpRecord[]}
+ */
+export function bakedRecolorsOf(definition, partOf = effectiveUserPart, depth = 0) {
+  if (depth > USER_PART_LIMITS.maxNestingDepth) return []
+  const byId = new Map(definition.records.map((record) => [String(record.id), record]))
+  /** @type {OpRecord[]} */
+  const chain = []
+  const seen = new Set()
+  /** @type {string | undefined} */
+  let cursor = definition.result
+  while (cursor !== undefined && !seen.has(cursor)) {
+    seen.add(cursor)
+    const record = byId.get(cursor)
+    if (record === undefined) break
+    chain.push(record)
+    cursor = refId(record.target)
+  }
+  /** @type {OpRecord[]} */
+  const found = []
+  for (const record of chain.reverse()) {
+    if (isUserPartOp(record.op)) {
+      const nested = partOf(record.op)
+      if (nested !== undefined) found.push(...bakedRecolorsOf(nested, partOf, depth + 1))
+    } else if (record.op === RECOLOR_OP) {
+      found.push(record)
+    }
+  }
+  return found
+}
+
+/**
  * @typedef {object} CaptureOptions
  * @property {string} name The part's display name; its op is `user.<slug of it>`.
  * @property {readonly ExposedParam[]} [exposeParams]
@@ -1103,6 +1170,12 @@ export function capturePart(document, bodyId, options) {
     }
     /** @type {any} */
     const copy = { id: localIds.get(String(record.id)), op: record.op, params }
+    if (record.op === RECOLOR_OP) {
+      // A user colour override lives on the record, beside the lineage (`TODO/core-054`).
+      if (record.colorOverride !== undefined) copy.colorOverride = record.colorOverride
+      if (record.colorAlpha !== undefined) copy.colorAlpha = record.colorAlpha
+      if (record.subPart !== undefined) copy.subPart = record.subPart
+    }
     if (record.target !== undefined && record.target !== null) copy.target = local(record.target)
     if (record.operands !== undefined) copy.operands = record.operands.map(local)
     return copy
@@ -1144,6 +1217,14 @@ export function capturePart(document, bodyId, options) {
   const replayed = evaluate(expandUserPart(definition, {}), { policy: policyFor(document.resolution()) }).byId.get(definition.result)
   if (!sameGeometry(replayed, body.geometry)) {
     throw new UserPartError(`"${label}" can't be saved as a part: its history doesn't rebuild to exactly the same geometry`)
+  }
+  // The colours are not geometry, so `sameGeometry` cannot see them: read them back off the
+  // definition the way a placed copy will, and require the same answer as the body.
+  const knownParts = new Map(document.userParts().map((part) => [part.op, part]))
+  const partOf = (/** @type {string} */ op) => knownParts.get(op) ?? effectiveUserPart(op)
+  const carried = foldColorOverrides(bakedRecolorsOf(definition, partOf))
+  if (JSON.stringify(carried ?? null) !== JSON.stringify(body.colorOverrides ?? null)) {
+    throw new UserPartError(`"${label}" can't be saved as a part: its colour overrides don't carry over exactly`)
   }
   return definition
 }

@@ -50,6 +50,36 @@
  */
 
 /**
+ * Fold a root-to-terminal run of records into the user colour overrides in force
+ * (`TODO/data-005`): the newest `style.recolor` record per `subPart` (or per "the
+ * whole body", the `undefined` key) wins, and a `null` colour is a reset that drops
+ * only its own key. The one definition of that rule — `document.js`'s `bodies()` reads
+ * a body's lineage with it and `userPart.js` reads a saved part's records with it
+ * (`TODO/core-054`), so a placed copy cannot disagree with the body it came from.
+ *
+ * @param {Iterable<{ op: string, colorOverride?: number | null, colorAlpha?: number, subPart?: string }>} records
+ *   Root-first.
+ * @returns {ColorOverride[] | undefined} `undefined` when none is in force.
+ */
+export function foldColorOverrides(records) {
+  /** @type {Map<string | undefined, ColorOverride>} */
+  const bySubPart = new Map()
+  for (const record of records) {
+    if (record.op !== 'style.recolor' || record.colorOverride === undefined) continue
+    if (record.colorOverride === null) {
+      bySubPart.delete(record.subPart)
+      continue
+    }
+    bySubPart.set(record.subPart, {
+      color: record.colorOverride,
+      ...(record.colorAlpha !== undefined ? { colorAlpha: record.colorAlpha } : {}),
+      ...(record.subPart !== undefined ? { subPart: record.subPart } : {}),
+    })
+  }
+  return bySubPart.size === 0 ? undefined : [...bySubPart.values()]
+}
+
+/**
  * A `0xRRGGBB` integer as the `#rrggbb` string an `<input type="color">` takes.
  * Named for its boundary (CLAUDE.md: "name every conversion at its boundary"):
  * the document stores integers, the DOM speaks CSS hex, and this is the one

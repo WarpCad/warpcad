@@ -359,6 +359,7 @@ import { DEFAULT_BUILD_VOLUME, normalizeBuildVolume } from './buildVolume.js'
 import { currentParamsRecordOf } from './paramEdit.js'
 import { applyAction, emptyScene } from './replay.js'
 import {
+  bakedRecolorsOf,
   effectiveUserPart,
   ensureProjectParts,
   isUserPartOp,
@@ -367,6 +368,7 @@ import {
   restoreProjectParts,
   setProjectParts,
 } from './userPart.js'
+import { foldColorOverrides } from './colorOverride.js'
 import { ASSET_OP, validateImageAsset } from '../sketch/imageAsset.js'
 
 /** @typedef {import('./kernel/registry.js').OpRecord} OpRecord */
@@ -729,28 +731,28 @@ const REMOVE_PART_OP = 'group.removePart'
  * record — or whose every override has since been reset — returns `undefined`,
  * the default-unchanged case every existing body keeps.
  *
+ * A user part in the lineage contributes the colours it was saved with
+ * (`TODO/core-054`, `bakedRecolorsOf`) ahead of the lineage's own records.
+ *
  * @param {readonly OpRecord[]} lineage Root-first, as `lineageOf` returns.
+ * @param {(op: string) => import('./userPart.js').UserPartDefinition | undefined} [partOf]
+ *   Where a part's definition comes from; the registry's effective one by default.
  * @returns {ColorOverride[] | undefined}
  */
-function colorOverridesOf(lineage) {
-  /** @type {Map<string | undefined, ColorOverride>} */
-  const bySubPart = new Map()
+function colorOverridesOf(lineage, partOf = effectiveUserPart) {
+  /** @type {OpRecord[]} */
+  const stream = []
   for (const record of lineage) {
-    if (record.op !== RECOLOR_OP || record.colorOverride === undefined) continue
-    // `null` is a **reset** (`TODO/ui-037`'s `clearColorOverride`): it removes only
-    // its own key, so clearing one part's colour leaves the whole-body one — and
-    // every other part's — exactly as they were.
-    if (record.colorOverride === null) {
-      bySubPart.delete(record.subPart)
-      continue
+    // A placed user part carries the colours it was saved with (`TODO/core-054`) as
+    // `style.recolor` steps inside its definition; they come first, so anything the user
+    // does to the placed copy afterwards wins (a Reset clears the key, as on any body).
+    if (isUserPartOp(record.op)) {
+      const definition = partOf(record.op)
+      if (definition !== undefined) stream.push(...bakedRecolorsOf(definition, partOf))
     }
-    bySubPart.set(record.subPart, {
-      color: record.colorOverride,
-      ...(record.colorAlpha !== undefined ? { colorAlpha: record.colorAlpha } : {}),
-      ...(record.subPart !== undefined ? { subPart: record.subPart } : {}),
-    })
+    stream.push(record)
   }
-  return bySubPart.size === 0 ? undefined : [...bySubPart.values()]
+  return foldColorOverrides(stream)
 }
 
 /**
@@ -3357,7 +3359,7 @@ export function createDocument(options = {}) {
         // the same record, so the panel and the next mutation cannot disagree.
         const lineage = document.lineageOf(rootId)
         const paramsRecord = currentParamsRecordOf(lineage) ?? rootRecord
-        const colorOverrides = colorOverridesOf(lineage)
+        const colorOverrides = colorOverridesOf(lineage, (op) => userParts.get(op) ?? effectiveUserPart(op))
         bodies.push({
           id: rootId,
           recordId: terminalId,

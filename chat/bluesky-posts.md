@@ -1503,3 +1503,14 @@ Built with Claude Code, reviewed by me. #CAD
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** group saved and dropped complete with `Cube 1`/`Cylinder 1` intact → `e2e/user-library.e2e.js` (12 tests per engine, chromium/webkit/firefox, three viewports, all passed) and a hand drive; off-screen menu → a bottom-row My parts ⋯ popover measured at y=997 in a 900 px window, fixed by clamping to the window; tab over the last row → at 390 px the Inspector's collapsed tab sat over the open Library sheet's last row (`elementFromPoint` returned the tab), fixed with bottom padding; hidden input → a visually hidden file input in the sheet grew the page in WebKit/Firefox and moved other specs' click points (`e2e/align-to-origin.e2e.js` red in WebKit/Firefox until fixed); 293 characters → measured with `node`
 **To Add:** repo URL once public, docs site URL once it exists
+
+## [2026-10-10T19:15:00Z] — A saved part now keeps the colour you gave it
+
+**Post:** Fixed in WarpCad: colour a group by hand, save it to the library, and the copy you drag in later keeps that colour. Before, the part saved fine and came back in default colours, because the colour lived beside the build steps instead of in them.
+
+Built with Claude Code, reviewed by me. #CAD
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** copy came back in default colours before -> TODO/done/core-054 problem text and the failing unit tests (3 red before the fix, this session); colour lived beside the lineage -> document.js `colorOverridesOf` reads `style.recolor` off the lineage, kernel fold ignores it (registry.js comment); copy keeps `#cc3322` after File > New and after a reload -> hand drive this session, Chromium and WebKit
+**To Add:** before/after screenshot of the Standoff in red once a docs shot exists

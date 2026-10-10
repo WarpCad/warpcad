@@ -471,3 +471,96 @@ describe('capturePart — a body\'s lineage as a self-contained part', () => {
     expect(validateUserPart(JSON.parse(JSON.stringify(definition))).ok).toBe(true)
   })
 })
+
+describe('capturePart — user colour overrides (TODO/core-054)', () => {
+  /** A group recoloured by hand: whole body, plus one named part at partial opacity. */
+  function recolouredDocument() {
+    const doc = sceneDocument()
+    doc.setColorOverride('group-1', { color: 0xcc3322 }, LOCAL)
+    doc.setColorOverride('group-1', { color: 0x2255cc, colorAlpha: 0.5, subPart: 'Cylinder 1' }, LOCAL)
+    return doc
+  }
+
+  it('carries the overrides as style.recolor records, re-keyed to the part\'s own ids', () => {
+    const doc = recolouredDocument()
+    const definition = capturePart(doc, 'group-1', { name: 'Standoff' })
+    const recolors = definition.records.filter((record) => record.op === 'style.recolor')
+    expect(recolors).toHaveLength(2)
+    expect(recolors[0]).toMatchObject({ colorOverride: 0xcc3322 })
+    expect(recolors[1]).toMatchObject({ colorOverride: 0x2255cc, colorAlpha: 0.5, subPart: 'Cylinder 1' })
+    const json = JSON.stringify(definition.records)
+    expect(json).not.toContain('group-1')
+    // Geometry is untouched by a colour: the replay still equals the body exactly.
+    expect(canonical(foldDefinition(definition))).toEqual(canonical(bodyOf(doc, 'group-1').geometry))
+    expect(validateUserPart(JSON.parse(JSON.stringify(definition))).ok).toBe(true)
+  })
+
+  it('a placed copy reports the same colour overrides as the body it was saved from', () => {
+    const doc = recolouredDocument()
+    const original = bodyOf(doc, 'group-1')
+    expect(original.colorOverrides).toHaveLength(2)
+    const definition = capturePart(doc, 'group-1', { name: 'Standoff' })
+    setLibraryParts([definition])
+
+    const fresh = createDocument()
+    fresh.appendAll(recordsForDrop(definition.op, { x: 0, y: 0 }, fresh), LOCAL)
+    const [placed] = fresh.bodies()
+    expect(placed.colorOverrides).toEqual(original.colorOverrides)
+
+    // The user's own later pick on the copy still wins; Reset clears the whole-body key, as on any body.
+    fresh.setColorOverride(placed.id, { color: 0x00ff00 }, LOCAL)
+    expect(fresh.bodies()[0].colorOverrides?.find((entry) => entry.subPart === undefined)?.color).toBe(0x00ff00)
+    fresh.clearColorOverride(placed.id, {}, LOCAL)
+    expect(fresh.bodies()[0].colorOverrides).toEqual(original.colorOverrides?.filter((entry) => entry.subPart !== undefined))
+  })
+
+  it('a reset before saving leaves a part with no override at all', () => {
+    const doc = sceneDocument()
+    doc.setColorOverride('group-1', { color: 0xcc3322 }, LOCAL)
+    doc.clearColorOverride('group-1', {}, LOCAL)
+    const definition = capturePart(doc, 'group-1', { name: 'Plain' })
+    setLibraryParts([definition])
+    const fresh = createDocument()
+    fresh.appendAll(recordsForDrop(definition.op, { x: 0, y: 0 }, fresh), LOCAL)
+    expect(bodyOf(doc, 'group-1').colorOverrides).toBeUndefined()
+    expect(fresh.bodies()[0].colorOverrides).toBeUndefined()
+  })
+
+  it('a part saved from a recoloured placed part keeps the colour (nesting)', () => {
+    // No pre-translate on the group: re-capturing a placed part whose own definition ends in a
+    // translate is a separate, colour-independent limit (it refuses on the exact-geometry check).
+    const doc = createDocument()
+    doc.append({ id: 'cube-1', op: 'primitive.cuboid', name: 'Cube 1', params: { size: [10, 10, 10], center: [0, 0, 5] } }, LOCAL)
+    doc.append({ id: 'cyl-1', op: 'primitive.cylinder', name: 'Cylinder 1', params: { height: 20, diameter: 6, center: [8, 0, 10] } }, LOCAL)
+    doc.append(
+      { id: 'group-1', op: 'group.assemble', name: 'Group 1', target: 'cube-1', operands: ['cyl-1'], consumes: ['cube-1', 'cyl-1'], params: { names: ['Cube 1', 'Cylinder 1'] } },
+      LOCAL
+    )
+    doc.setColorOverride('group-1', { color: 0xcc3322 }, LOCAL)
+    doc.setColorOverride('group-1', { color: 0x2255cc, subPart: 'Cylinder 1' }, LOCAL)
+    const standoff = capturePart(doc, 'group-1', { name: 'Standoff' })
+    setLibraryParts([standoff])
+
+    const second = createDocument()
+    second.appendAll(recordsForDrop('user.standoff', { x: 0, y: 0 }, second), LOCAL)
+    const placed = second.bodies()[0]
+    expect(placed.colorOverrides).toEqual(bodyOf(doc, 'group-1').colorOverrides)
+    const again = capturePart(second, placed.id, { name: 'Standoff copy' })
+    setLibraryParts([standoff, again])
+
+    const third = createDocument()
+    third.appendAll(recordsForDrop('user.standoff-copy', { x: 0, y: 0 }, third), LOCAL)
+    expect(third.bodies()[0].colorOverrides).toEqual(placed.colorOverrides)
+  })
+
+  it('refuses a malformed colour on a style.recolor record, and a colour field on any other op', () => {
+    const doc = recolouredDocument()
+    const good = JSON.parse(JSON.stringify(capturePart(doc, 'group-1', { name: 'Standoff' })))
+    const bad = JSON.parse(JSON.stringify(good))
+    bad.records.find((/** @type {any} */ record) => record.op === 'style.recolor').colorOverride = 'red'
+    expect(validateUserPart(bad).ok).toBe(false)
+    const stray = JSON.parse(JSON.stringify(good))
+    stray.records[0].colorOverride = 0xff0000
+    expect(validateUserPart(stray).ok).toBe(false)
+  })
+})

@@ -1454,6 +1454,8 @@ person can actually perform. It was hand-driven at laptop 1440x900/Chromium and 
 snaps into place once within tolerance (step 4), and on release the camera module sits
 aligned to the board's mounting holes, not at an arbitrary offset position.
 
+**Last run**: 2026-10-10 14:00 UTC (`core-054`) — **PASS** on Chromium and WebKit at laptop 1440x900 (real jittered mouse, driven by hand-style script, not a spec). Pi (`raspberrypi.bplus`) dropped, then a Camera Module dragged onto it: `data-snapped` false for the first 18 samples, true for the last 6; both bodies remained. Re-driven because `core-054` changed how a placed user part reports its colours (`document.bodies()`). Console clean.
+
 **Last run**: 2026-10-10 07:25 UTC (`ui-055`) — **PASS** on Chromium and WebKit at laptop (real jittered mouse). Pi (`raspberrypi.bplus`) dropped, a Camera Module dragged toward it: `data-snapped` became true during the drag with 3 snap guides drawn, and on release the camera sat at the Pi's X/Y (-27.59,-27.59 on Chromium; -27.87,-27.36 on WebKit). The dropped Standoff is a composite placed on the same path and rendered complete (both named parts, same size as the original).
 
 **Last run**: 2026-10-10 04:15 UTC (`core-037`) — **PASS** on Chromium and WebKit at laptop 1440x900 (real jittered mouse). Pi (default model 4, `raspberrypi.bplus`) dropped, then a Camera Module V3 dragged in from the lower right along a wobbly path: `data-snapped` false for the first 24 samples then true from sample 28 to release; on release the camera sat at the Pi's X/Y (-27.59,-27.59 on Chromium). Console clean. Re-driven because `core-037` changed the composite-placement path.
@@ -1970,6 +1972,8 @@ mm cube minus an m10 hex bolt, length 12, wholly inside it) this is a measured
 **61 108.343 mm³** remaining, not the metal-only **61 695.679 mm³** a whole-bolt
 Subtract now leaves.
 
+**Last run**: 2026-10-10 14:00 UTC (`core-054`) — **PASS** on Chromium and WebKit at laptop (real jittered mouse). Cube (64000 mm³) then Bolt dropped overlapping, nothing selected; the cube's check, ▸ on the Bolt, check on its `tap` row (toolbar "Cube 1 then Bolt 1 › tap"); Subtract: one body (`boolean.subtract`), bounds unchanged (-20,-20,0,20,20,40), volume 60362.401 mm³ (cut made). Console clean. (A first run selected the bolt first because the drop left it selected, and gave an empty result: a drive-script mistake, re-run from a cleared selection.)
+
 **Last run**: 2026-10-10 04:15 UTC (`core-037`) — **PASS** on Chromium and WebKit at laptop. Cube then Bolt dropped overlapping; the cube's check, then ▸ on the Bolt and the check on its `tap` row (toolbar "2 selected, first is the base"), Subtract: one body left, the cube's bounds unchanged (-12.91,-53.16,0,27.09,-13.16,40) and a bolt-shaped cut visible in the screenshot. Console clean.
 
 **Last run**: 2026-10-06 14:58 UTC (`core-052`) — **PASS** at laptop 1440x900 Chromium, from an emptied project, real mouse. Dropped a Cube (40 mm, 64000 mm³) and a Bolt, set the Bolt to the **new** size `m2.5 socket`, Length 8, and typed it to the cube's centre (wholly inside). With nothing selected: the cube's check, ▸ on Bolt 1, the check on its `tap` row; toolbar read "Cube 1 then Bolt 1 › tap". Subtract left **63902.539 mm³** — 97.46 mm³ removed, the clearance envelope, not the bolt's 80.18 mm³ of metal (a metal cut would leave 63919.82). Also re-ran `render-004`'s repro on the new size: `tap` is listed hidden under Parts and the toggle draws it. Console clean.
@@ -2341,6 +2345,8 @@ first (step 4), never jumping straight to a sub-part. A second, distinct click o
 member mesh narrows to that sub-part (step 6), with the breadcrumb showing the pick
 depth. Clicking the breadcrumb's "Group" segment (step 7) steps back up to whole-group
 selection.
+
+**Last run**: 2026-10-10 14:00 UTC (`core-054`) — **PASS** on Chromium and WebKit at laptop (real mouse). Pi, Camera Module (snapped) and a Cube grouped (3 to 1). A click on open grid cleared the selection (0); the first click on the group selected `Group 1` with no part crumb; a second click on the same spot narrowed to `Raspberry Pi 1` with a part crumb; the `Group` crumb stepped back up. The camera-specific narrowing was not separately aimed (the click landed on the Pi's mesh). A placed, recoloured Standoff (a user part) kept its colour `#cc3322` and listed `Cylinder 1` and `Cube 1` as its parts. Console clean.
 
 **Last run**: 2026-10-10 07:25 UTC (`ui-055`) — **PASS** on Chromium and WebKit at laptop (real mouse). Pi, Camera Module and a Cube grouped (3 selected, count 3 to 1). First click picked `Group 1` with no part crumb; later clicks narrowed to `Raspberry Pi 1` and `Cube 1` (the click aimed at the camera landed on the Pi's mesh, so the camera-specific narrowing was not separately re-driven here); the `Group` crumb stepped back up to `Group 1`. A placed user part (Standoff) lists `Cube 1` and `Cylinder 1` as its parts in the Inspector.
 

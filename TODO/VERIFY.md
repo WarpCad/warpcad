@@ -34,6 +34,14 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### core-054 — Saving a group as a user part drops its user colour overrides (2026-10-10 19:05)
+
+The whole-body colour was hand-driven end to end on Chromium and WebKit (it is in the `core-054` Step 6 record). A per-part colour with partial opacity is covered by a unit spec only and was not driven through the Inspector's drilled-in Color control.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | Place a Cube and Cylinder, group them, drill into *Cylinder 1* and set a colour on that part alone, **Save to library…**, File > New and drag the part in. The Cylinder should draw in that colour and the Cube in the default one. | Open | |
+
 ### testing-003 — print-prep drag and hidden-parts overlay under full-suite load (2026-10-10 17:10)
 
 The cause was never reproduced, so the fix is two spec synchronization changes verified by two clean full runs, not by a proven root cause. What only more runs can settle:

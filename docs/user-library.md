@@ -7,8 +7,9 @@ there in every new project and after you reload the page.
 
 A saved part keeps everything inside it: the same shapes, the same **named sub-parts**
 (so you can still select, align or subtract *Cylinder 1* on its own), and the same
-colours. It does not keep a picture of the shape: it keeps the steps that built it, so it
-can be resized if you choose to expose a size (below).
+colours, including any colour you set yourself in the Inspector's **Color** control (on the
+whole group, or on one named part). It does not keep a picture of the shape: it keeps the
+steps that built it, so it can be resized if you choose to expose a size (below).
 
 ## A worked example: a standoff
 
@@ -17,13 +18,16 @@ can be resized if you choose to expose a size (below).
    the **Objects** list in the Inspector and tick both.
 3. Tap **Group** in the Operations toolbar. The two shapes are now one selected body,
    *Group 1*. (See [Combining shapes into a group](groups.md).)
-4. Tap **Save to library…** (in the Inspector, or **To library** in the Operations
+4. Optional: with the group still selected, pick a colour in the Inspector's **Color**
+   control. The saved part will keep it, and so will every copy you drop in later (you can
+   still recolour a copy, or **Reset** it to the default colour, on its own).
+5. Tap **Save to library…** (in the Inspector, or **To library** in the Operations
    toolbar). The Save sheet opens.
-5. Name it **Standoff**. Under **Adjustable sizes**, tick *Cylinder 1 height* if you want
+6. Name it **Standoff**. Under **Adjustable sizes**, tick *Cylinder 1 height* if you want
    to change the height after placing it. Tap **Save**.
-6. A toast says **Saved Standoff** and the new row is at the top of **My parts**. On a phone
+7. A toast says **Saved Standoff** and the new row is at the top of **My parts**. On a phone
    the Library is a sheet: tap **Library**, then **My parts** to open the section.
-7. Start a new project (**File ▾ → New**), open the Library, expand **My parts** and drag
+8. Start a new project (**File ▾ → New**), open the Library, expand **My parts** and drag
    **Standoff** into the view. It lands where you release, with both shapes, complete.
 
 ![The Save to library sheet: a name field reading Standoff, the category My parts, and the group's sizes with Cylinder 1 height ticked](./screenshots/user-library-save-sheet.png)

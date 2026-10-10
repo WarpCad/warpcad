@@ -103,10 +103,18 @@ part that builds something else.
 The part's value is its result record's value with its parts intact (registry `resultId`).
 That is what keeps sub-part names like `board`, `usb-a` and `mount-hole-1`.
 
+**User colour overrides travel as `style.recolor` records** (`TODO/core-054`). A
+`style.recolor` record in a part keeps its `colorOverride`, `colorAlpha` and `subPart`
+fields (the only record type allowed more than id, op, params, target and operands). The
+kernel fold ignores them, as it does in a document, so they cannot change geometry;
+`document.bodies()` reads them back off the placed part's definition, ahead of the
+lineage's own records, through the same `foldColorOverrides` it uses for a document
+lineage. A colour the user sets on the copy afterwards wins, and Reset on the copy returns it to the
+default colour, exactly as it does on the original body. Capture checks that the colours it would carry equal the body's and refuses
+otherwise, the same as for geometry.
+
 Known limits in v1:
 
-- Document-level user colour overrides (`style.recolor`'s `colorOverride`) are not carried
-  into a part.
 - A lineage with a conditional or left-broken step can't be captured; capture refuses it by
   name.
 

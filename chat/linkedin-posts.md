@@ -2097,3 +2097,18 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** round trip → `e2e/user-library.e2e.js`: dropped part's `inspector-fit-bounds` equals the original's and its parts equal the original's, after reload and File > New; 36 runs (4 tests x 3 viewports x 3 engines) passed; menu → popover top 997 in a 900 px window; tab → `elementFromPoint` at the row returned `inspector-tab` at 390 px; file input → `align-to-origin.e2e.js` failed on webkit-phone/webkit-laptop/firefox-laptop and passed after `position: relative` on the sheet; colour gap → `TODO/core-054`
 **To Add:** repo URL once public, docs site URL once it exists
+
+## [2026-10-10T19:15:00Z] — Saved library parts keep their user colour
+
+**Post:** A bug I had logged against WarpCad's Save to library button is closed: set a group's colour in the Inspector, save it as a part, and the copies you drag in later come out in that colour instead of the default.
+
+The cause was structural. A hand-picked colour is a `style.recolor` record stored beside a body's build steps, and capture only walked the steps' operands, so the colour record was copied as an empty recolour. The kernel ignores that record by design, and the app reads colours off the document's own history, so a placed part had nowhere to report one from. The fix carries the colour fields in the part's records and has the document read a placed part's saved colours ahead of its own history. A colour set on the copy afterwards still wins, and Capture now refuses to save a part whose colours would not round-trip, the same way it already does for geometry.
+
+I drove the repro by hand on Chromium and WebKit: a red cube-and-cylinder group, saved as Standoff, File then New, dragged back in, same red, still red after a reload.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** bug logged against Save to library -> TODO/done/core-054 ("ui-055 made it reachable from a button"); capture copied only id, op, params, target, operands -> src/core/userPart.js before this diff (`copy` built from those fields only); kernel ignores style.recolor -> src/core/kernel/registry.js `style.recolor` comment; colour set on the copy wins -> unit spec "a placed copy reports the same colour overrides" and hand drive (recolour #00aa00 won); refuses non-round-tripping colours -> capturePart check in this diff; hand drive Chromium and WebKit, same red after File > New and reload -> drive output this session (A7, A8, A14 PASS)
+**To Add:** before/after screenshot, repo URL once public

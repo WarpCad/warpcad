@@ -6,8 +6,21 @@ priority: low
 model: sonnet
 milestone: M9
 depends: [core-037, ui-055]
-status: open
+status: done
 ---
+
+> **What shipped.** As proposed, with one addition the file did not name. A `style.recolor` record in a
+> part keeps `colorOverride`, `colorAlpha` and `subPart` (validated; no other op may carry them), capture
+> copies them, and capture refuses a part whose carried colours differ from the body's. The kernel fold
+> ignores `style.recolor`, and `Body.colorOverrides` is read off the *document's* lineage, so carrying the
+> records alone left the placed copy uncoloured: `document.bodies()` now also reads a placed user part's
+> baked `style.recolor` steps (`bakedRecolorsOf`, nested parts included) ahead of the lineage's own records,
+> through the same `foldColorOverrides` (new, `src/core/colorOverride.js`). That is why `document.js` and
+> `colorOverride.js` are in the diff. The check lives in `capturePart` beside `sameGeometry` rather than
+> inside it, because `sameGeometry` compares kernel values and a colour override is not one. Reset on a
+> placed copy returns it to the default colour, as on any body. Separate limit found on the way and left
+> alone: re-capturing a placed part whose own definition ends in a translate refuses on the exact-geometry
+> check, with or without colour.
 
 ## Problem
 
