@@ -1470,3 +1470,16 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** Curve tool, Offset and Twist fields, 2412/120 recipe -> docs/sketch-mode.md and e2e/sketch-airfoil.e2e.js (loft volume within 2% of the frustum estimate, STL non-empty), e2e matrix 3083 passed / 0 failed this session; 200 mm span, 120 mm chord by finger at 390 px -> hand drive this session (bounds 0..200 in Z)
 **To Add:** the airfoil-placed and Slices-card screenshots from docs/screenshots
+
+## [2026-10-10T03:16:00Z] — A touch drag that passed every test and failed on a finger
+
+**Post:** WarpCad now splits a 300 mm part into pieces that fit a 220 mm bed, with a joint, and exports each as a flat STL in a zip.
+
+The drag handle passed its spec and failed under a real finger: a sheet covered it, and a cancelled touch reports (0, 0).
+
+Built with Claude Code, reviewed by me.
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL #3DPrinting
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** split, joint, zip of flat STLs, handle -> docs/print-prep.md, src/core/kernel/split.js, src/core/printPrep.js; 300 mm vs 220 mm default bed -> docs/print-prep.md and src/core/buildVolume.js default; sheet on top of the handle and cancel at (0, 0) -> TROUBLESHOOTING.md 2026-10-10 entry and the retirement note in TODO/done/io-007-print-prep-split-and-multi-part-export.md; found by hand -> CDP touch drive this session (offset jumped 157 to 0.5 at move 7)
+**To Add:** the split-sheet screenshot from docs/screenshots

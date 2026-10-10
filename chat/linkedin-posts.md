@@ -2054,3 +2054,16 @@ The AI assistant gets the same thing through its create tool, which accepts a cu
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** Curve tool, provenance, Inspector edit, status line -> src/components/sketch/CurveSheet.vue and e2e/sketch-airfoil.e2e.js; rewritten correspondence, Offset/Twist -> src/sketch/resample.js, SlicePanel.vue; recipe 120/70/200/30/2 -> docs/sketch-mode.md; volume within 2 percent of frustum and STL export -> e2e/sketch-airfoil.e2e.js, matrix 3083 passed / 0 failed this session; wrong constant -> retirement note in TODO/done/sketch-008-curve-helpers-and-airfoil-wing.md; AI create takes a curve -> src/ai/tools/create.js, create.spec.js
 **To Add:** the airfoil-placed and Slices-card screenshots from docs/screenshots
+
+## [2026-10-10T03:16:00Z] — Splitting a wing that is longer than the print bed
+
+WarpCad can now take a part longer than the printer's bed and cut it into pieces that fit. Select the part, press Split, drag a plane across it or type an offset, and choose pins and sockets or a tongue and groove. The result is two named parts in the same model, each with a fit badge in the Inspector, and Export gains a Print pieces action that writes a zip with one STL per piece, each turned onto its largest flat face. A 300 mm wing against the default 220 mm bed splits at 150 mm into two pieces that both read as fitting.
+
+Two details went differently from the spec. Its volume identity had the sign wrong: with a pin on one half and a socket in the other, the pieces sum to the original plus the pins minus the sockets, and the test asserts that. And the first version of the plane's drag handle passed its spec and failed with a real finger on a phone: the bottom sheet and the Inspector sheet sat over it, and a cancelled touch reports position zero, which the release handler turned into a move to the minimum offset. Both showed up only when the handle was driven with real touch events.
+
+Every exported piece is read back by a parser that shares nothing with the writer and checked for open edges; the full suite finished with 3131 end-to-end tests passed and none failed. The 0.2 mm joint clearance is a default, not a measurement, and the first print will say whether it is right. Built with Claude Code, reviewed by me.
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #3DPrinting
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** Split, fit badge, Print pieces, flat STLs -> docs/print-prep.md, src/core/printPrep.js; 300 mm wing at 150 mm, both fit -> e2e/print-prep.e2e.js and docs/screenshots/split-sheet.png; volume sign -> retirement note in TODO/done/io-007-print-prep-split-and-multi-part-export.md; handle failure -> TROUBLESHOOTING.md 2026-10-10 entry; open-edge parser -> e2e/print-prep.e2e.js stlStats and the by-hand drive this session (0 open edges on all Print pieces files, three engines); 3131 passed / 0 failed -> full e2e run this session; 0.2 mm default -> TODO/VERIFY.md io-007 row 1
+**To Add:** split-sheet and print-pieces screenshots from docs/screenshots
