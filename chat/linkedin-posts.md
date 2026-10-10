@@ -2067,3 +2067,16 @@ Every exported piece is read back by a parser that shares nothing with the write
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** Split, fit badge, Print pieces, flat STLs -> docs/print-prep.md, src/core/printPrep.js; 300 mm wing at 150 mm, both fit -> e2e/print-prep.e2e.js and docs/screenshots/split-sheet.png; volume sign -> retirement note in TODO/done/io-007-print-prep-split-and-multi-part-export.md; handle failure -> TROUBLESHOOTING.md 2026-10-10 entry; open-edge parser -> e2e/print-prep.e2e.js stlStats and the by-hand drive this session (0 open edges on all Print pieces files, three engines); 3131 passed / 0 failed -> full e2e run this session; 0.2 mm default -> TODO/VERIFY.md io-007 row 1
 **To Add:** split-sheet and print-pieces screenshots from docs/screenshots
+
+## [2026-10-10T04:20:00Z] — A library part that is data, not code
+
+**Post:** WarpCad's Library is a fixed list of recipe functions, and a person had no way to add to it. The first half of fixing that landed today, with no screen for it yet.
+
+A group can now be captured as a part: a plain list of the same op records the action log already uses, plus up to sixteen numeric parameters. It registers as a composite, so placing it goes through the code that places a bolt. The project file carries the definitions its records use, so a file opens on a machine that never had the part.
+
+Because a project file or gist is text from someone else, a part cannot run anything. A missing part, a cycle, a disallowed op or an oversize definition each load as a named warning and a broken row instead of a refused file. I drove all four by hand on Chromium and WebKit. The save control and the My parts section are the next task, `ui-055`. Built with Claude Code, reviewed by me.
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** fixed Library, op-record parts, 16 parameters, composite registration, definitions on the project -> docs/decisions/user-library.md; four hostile cases opened with a warning -> hand drive this session on Chromium and WebKit; save control is ui-055 -> TODO/ROADMAP.md
+**To Add:** none until ui-055 ships

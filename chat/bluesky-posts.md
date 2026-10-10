@@ -1483,3 +1483,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** split, joint, zip of flat STLs, handle -> docs/print-prep.md, src/core/kernel/split.js, src/core/printPrep.js; 300 mm vs 220 mm default bed -> docs/print-prep.md and src/core/buildVolume.js default; sheet on top of the handle and cancel at (0, 0) -> TROUBLESHOOTING.md 2026-10-10 entry and the retirement note in TODO/done/io-007-print-prep-split-and-multi-part-export.md; found by hand -> CDP touch drive this session (offset jumped 157 to 0.5 at move 7)
 **To Add:** the split-sheet screenshot from docs/screenshots
+
+## [2026-10-10T04:20:00Z] — Library parts as data: a group captured as op records, carried by the project file
+
+**Post:** Under the hood, WarpCad can now capture a group as a library part that is data, not code: op records plus parameters. The project file carries the parts it uses. A bad part loads as a broken row with a warning, not a refused file. Built with Claude Code, reviewed by me. #CAD
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** capture, op records plus parameters, state-line parts -> docs/decisions/user-library.md and src/core/userPart.js; broken row with a warning on a missing, disallowed-op, self-containing or oversize part -> hand drive this session (Chromium and WebKit, chip text named the part and the reason); core only, no UI yet -> TODO/done/core-037 retirement note
+**To Add:** a screenshot of the History rows with the broken badge once ui-055 gives the part a visible control
