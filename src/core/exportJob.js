@@ -43,6 +43,7 @@ import { EXPORT_FORMATS, ExportError, exportBodies, exportFilename, resolveExpor
 import { resolutionLabel } from './kernel/tessellation.js'
 import { makeWatertight } from './kernel/watertight.js'
 import { packSolids, unpackBodies } from './kernel/transport.js'
+import { exportPrintPieces } from './printPrep.js'
 
 /** @typedef {import('./kernel/transport.js').PackedBody} PackedBody */
 /** @typedef {import('./export.js').ExportFormat} ExportFormat */
@@ -160,6 +161,29 @@ export function runExportJob({ format, bodies: packed, refold }) {
     bytes: result.bytes,
     triangleCount: result.triangleCount,
   }
+}
+
+/**
+ * @typedef {object} PrintPiecesJobResult
+ * @property {'zip'} kind
+ * @property {string} filename
+ * @property {string} mimeType
+ * @property {Uint8Array} bytes
+ * @property {import('./printPrep.js').PrintPieceFile[]} files
+ * @property {string} heuristic
+ */
+
+/**
+ * Export → Print pieces (`TODO/io-007`) from packed geometry: one STL per top-level part,
+ * laid flat, zipped. The same `exportPrintPieces` the main-thread fallback runs.
+ *
+ * @param {{ bodies: PackedBody[] }} request
+ * @returns {PrintPiecesJobResult}
+ * @throws {ExportError} `nothing-to-export`, `empty-geometry` or `not-watertight`.
+ */
+export function runPrintPiecesJob({ bodies: packed }) {
+  const result = exportPrintPieces(unpackBodies(packed))
+  return { kind: 'zip', ...result }
 }
 
 /**

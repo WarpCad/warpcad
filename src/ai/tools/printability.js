@@ -19,6 +19,7 @@
  * @module ai/tools/printability
  */
 
+import { buildVolumeVector } from '../../core/buildVolume.js'
 import { toGeom3 } from '../../core/kernel/group.js'
 import { analyseGeometry, wallThickness } from '../../core/kernel/measure.js'
 import { makeWatertight, openEdgesOf } from '../../core/kernel/watertight.js'
@@ -103,7 +104,7 @@ export function createPrintabilityTool() {
     description:
       'Heuristic FDM print checks for bodies by id: watertight/manifold (open edges, with where), whether it fits the build volume and which way round, ' +
       'the thinnest wall found by sampling, and walls thinner than the nozzle. Returns issues as { severity: error|warning|info, message, where: [x, y, z] mm }. ' +
-      'Defaults: 220 × 220 × 250 mm build volume, 1.2 mm minimum wall, 0.4 mm nozzle. It never guarantees a part prints.',
+      'Defaults: the project’s build volume (220 × 220 × 250 mm unless Project settings say otherwise), 1.2 mm minimum wall, 0.4 mm nozzle. It never guarantees a part prints.',
     inputSchema: objectSchema(
       {
         ids: IDS_SCHEMA,
@@ -117,8 +118,12 @@ export function createPrintabilityTool() {
     run: (ctx, input) => {
       const resolved = resolveBodies(ctx.document, input.ids)
       if (resolved.error !== undefined) return { error: resolved.error }
+      // TODO/io-007: the project's own build volume (Project settings) when the call names none.
+      const projectVolume = ctx.document.buildVolume?.()
       const settings = {
-        buildVolumeMm: /** @type {Vec3} */ ([...(input.buildVolumeMm ?? PRINT_DEFAULTS.buildVolumeMm)]),
+        buildVolumeMm: /** @type {Vec3} */ ([
+          ...(input.buildVolumeMm ?? (projectVolume ? buildVolumeVector(projectVolume) : PRINT_DEFAULTS.buildVolumeMm)),
+        ]),
         minWallMm: input.minWallMm ?? PRINT_DEFAULTS.minWallMm,
         nozzleMm: input.nozzleMm ?? PRINT_DEFAULTS.nozzleMm,
       }

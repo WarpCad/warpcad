@@ -43,6 +43,10 @@ import TraceTool from '../sketch/TraceTool.vue'
 import { useReferenceImageView } from '../../composables/useReferenceImageView.js'
 import VertexHandles from '../sketch/VertexHandles.vue'
 import SnapGuides from './SnapGuides.vue'
+import CutPlaneOverlay from './CutPlaneOverlay.vue'
+import SplitSheet from '../features/SplitSheet.vue'
+import { createCutPlaneAnnotation, updateCutPlaneAnnotation } from '../../render/cutPlane.js'
+import { useSplitSheetStore } from '../../stores/splitSheet.js'
 import { useSelectedBody } from '../../composables/useSelectedBody.js'
 import {
   axisFacing,
@@ -301,6 +305,13 @@ const dimensionAnnotations = reactive([
   createDimensionAnnotation(),
   createDimensionAnnotation(),
 ])
+
+/**
+ * The Split sheet's cut plane (`TODO/io-007`), re-projected every frame like the gizmo so it
+ * stays on the body while the camera moves. Reactive for the same reason, and allocated once.
+ */
+const cutPlaneAnnotation = reactive(createCutPlaneAnnotation())
+const splitSheet = useSplitSheetStore()
 
 /**
  * The selected body's own box, in its own frame (`TODO/ui-023`).
@@ -691,8 +702,32 @@ function syncOverlay() {
   overlay.target = `${t.x.toFixed(2)},${t.y.toFixed(2)},${t.z.toFixed(2)}`
   overlay.mmPerPixel = orbit.getMmPerPixel(heightPx)
   syncAnnotations()
+  syncCutPlane()
   syncSketchPaths()
 }
+
+/** Project the Split sheet's cut plane for the frame just drawn, or hide it. */
+function syncCutPlane() {
+  if (!splitSheet.isOpen) {
+    cutPlaneAnnotation.visible = false
+    return
+  }
+  updateCutPlaneAnnotation(
+    orbit,
+    splitSheet.previewBounds,
+    splitSheet.axisIndex,
+    splitSheet.cutMm,
+    widthPx,
+    heightPx,
+    cutPlaneAnnotation,
+  )
+}
+
+// The plane moves when the sheet's numbers do, not only when the camera does.
+watch(
+  () => [splitSheet.isOpen, splitSheet.cutMm, splitSheet.axisIndex, splitSheet.previewBounds],
+  () => scheduleRender(),
+)
 
 /**
  * Re-project the selection overlays for the frame just drawn.
@@ -3495,6 +3530,8 @@ onBeforeUnmount(() => {
          being held in line with an existing item, above the selection overlays
          so the alignment being offered is never occluded mid-drag. -->
     <SnapGuides :guides="snapGuides" />
+    <CutPlaneOverlay :annotation="cutPlaneAnnotation" />
+    <SplitSheet />
     <!-- The sketch editor's outlines (TODO/sketch-001): the draft's profiles, the
          live drag, and the revolve axis. Pointer-transparent, so the canvas keeps every
          gesture (ui-020 finding #1). -->

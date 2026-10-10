@@ -55,6 +55,7 @@ import {
   snap,
 } from './group.js'
 import { label } from './text.js'
+import { splitWithJoint } from './split.js'
 import {
   EXTRUSION_DEFAULTS as SKETCH_EXTRUSION_DEFAULTS,
   regionOf as sketchRegionOf,
@@ -1258,6 +1259,21 @@ export const registry = Object.freeze({
       params.rotateOffsetMm
     )
   ),
+
+  // ## Splitting one body into printable pieces (TODO/io-007)
+  //
+  // `bisect` plus a joint: pins (or a tongue) unioned onto piece A, sockets (or a groove) cut
+  // out of piece B, returned as a two-part group so each piece stays addressable. The cut, the
+  // watertightness refusal, the joint search and the multi-split rule all live in `split.js`;
+  // this entry is dispatch only, like Bisect's. Same record shape as Bisect: unnamed,
+  // `supersedes` the body it cuts.
+  //
+  // `wholeGroupNative`, unlike Bisect's plain `native`: multi-split cuts only the part the
+  // plane crosses and keeps the others, so `build` must see an already-split body's group
+  // un-combined. A plain entry would be handed the flattened union and re-cut it as one solid,
+  // silently dropping every earlier piece's name (the spec that caught it:
+  // `stores/splitSheet.spec.js`, "a second split keeps the crossed part's name").
+  'modify.splitWithJoint': wholeGroupNative(1, ({ params, inputs }) => splitWithJoint(soleOperand(inputs).value, params)),
 
   // TODO/ui-030: the four entries below are the first composites to carry `ui`
   // metadata, which is the whole of what puts them in the Library panel's new

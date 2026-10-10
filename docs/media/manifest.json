@@ -347,5 +347,11 @@
     "specHash": "5232d03e0144e8425da56373a7e9bad2cabaa9db410733831e7df453d9e2585f",
     "bytes": 1119535,
     "seconds": 11.8
+  },
+  "print-prep-split.gif": {
+    "spec": "e2e/docs/print-prep.docs.js",
+    "specHash": "c803c4ad7d5a787f4ddc4fa1beebf5320778542a06bad21a9397480c6e056270",
+    "bytes": 1153784,
+    "seconds": 13.63
   }
 }

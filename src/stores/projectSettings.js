@@ -66,10 +66,14 @@ export const useProjectSettingsStore = defineStore('projectSettings', () => {
 
   /**
    * Save the edited instructions to the document and trust them — the user typed them here.
+   * `TODO/io-007`: and the build volume, when the dialog passes one (validated by the document,
+   * which throws naming the field; nothing is saved then).
    *
    * @param {string} text
+   * @param {import('../core/buildVolume.js').BuildVolume} [buildVolume]
    */
-  function save(text) {
+  function save(text, buildVolume) {
+    if (buildVolume !== undefined) documentStore.setBuildVolume(buildVolume)
     documentStore.setStandingInstructions(text)
     trustStore.trust(documentStore.standingInstructions)
     trustRevision.value += 1

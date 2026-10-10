@@ -304,6 +304,7 @@ import { DEFAULT_ROTATE_AXIS, mirrorRotationDeg } from '../../core/kernel/group.
 import { useDocumentStore } from '../../stores/document.js'
 import { useOverlaysStore } from '../../stores/overlays.js'
 import { useSelectionStore } from '../../stores/selection.js'
+import { useSplitSheetStore } from '../../stores/splitSheet.js'
 import { RIM_FACE_OPTIONS } from '../../core/timelineLabel.js'
 import { useTimelineStore } from '../../stores/timeline.js'
 
@@ -1318,6 +1319,45 @@ function commitResize() {
   closePopover()
 }
 
+// --- Split (TODO/io-007) ----------------------------------------------------
+
+/**
+ * Split… — cut one body into two printable pieces with a joint. Exactly-1-gated like
+ * Bisect beside it, but it opens the **Split sheet** (`SplitSheet.vue`, state in
+ * `stores/splitSheet.js`) instead of one of this toolbar's popovers: the sheet has no
+ * full-viewport backdrop, because its offset is also set by dragging the cut plane in the
+ * viewport, which a backdrop would swallow.
+ */
+const SPLIT_OPERATION = Object.freeze({
+  op: 'modify.splitWithJoint',
+  label: 'Split',
+  glyph: '⫽',
+  hint: 'Cut into two printable pieces with a joint',
+})
+
+const splitSheet = useSplitSheetStore()
+
+/** Open the Split sheet on the selected body, or close it if it is already open. */
+function toggleSplitSheet() {
+  if (exactOneDisabled.value) return
+  if (splitSheet.isOpen) {
+    splitSheet.close()
+    return
+  }
+  closePopover()
+  splitSheet.open()
+}
+
+// The sheet belongs to one body: a selection that no longer has exactly one in it closes it.
+watch(exactOneDisabled, (disabledNow) => {
+  if (disabledNow && splitSheet.isOpen) splitSheet.close()
+})
+
+// One operation surface at a time: opening any of this toolbar's popovers closes the sheet.
+watch(openPopover, (open) => {
+  if (open !== null && splitSheet.isOpen) splitSheet.close()
+})
+
 // --- Mirror (TODO/ui-039) ---------------------------------------------------
 
 /** The Mirror button (`TODO/ui-039`) — its own constant, not a row in a shared list. */
@@ -1525,6 +1565,22 @@ function commitMirror() {
       >
         <span class="ops__glyph" aria-hidden="true">{{ operation.glyph }}</span>
         <span class="ops__label">{{ operation.label }}</span>
+      </button>
+
+      <!-- Split (TODO/io-007): exactly-1-gated like Bisect, opening the Split sheet. -->
+      <button
+        type="button"
+        class="ops__btn"
+        :disabled="exactOneDisabled"
+        data-testid="op-split"
+        :data-op="SPLIT_OPERATION.op"
+        :aria-expanded="splitSheet.isOpen"
+        :title="exactOneTitleFor(SPLIT_OPERATION)"
+        :aria-label="exactOneTitleFor(SPLIT_OPERATION)"
+        @click="toggleSplitSheet"
+      >
+        <span class="ops__glyph" aria-hidden="true">{{ SPLIT_OPERATION.glyph }}</span>
+        <span class="ops__label">{{ SPLIT_OPERATION.label }}</span>
       </button>
 
       <!-- Mirror (TODO/ui-039): exactly-1-gated like the buttons above, but its

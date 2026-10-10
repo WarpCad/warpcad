@@ -92,6 +92,10 @@ The Library's Raspberry Pi and Hardware items descend from the `jscad-raspberryp
   greyed out (nothing to export; History is showing a past step), what a rolled-back
   export holds, exporting at a finer resolution than the design, and what it says when an
   export is refused.
+- [Printing a part that is bigger than your printer](print-prep.md) — the build volume in
+  **File ▾ → Project settings…**, the Inspector's fit badge, **Split…** (a cut plane you drag,
+  with pins or tongue-and-groove joints), and **Export… → Print pieces**, a zip of one flat STL
+  per piece.
 - [Resolution: how smooth curves are, and why it matters for fit](resolution.md) —
   **File ▾ → Resolution…**: Draft, Normal, Fine or Print for the whole design, why a
   faceted hole prints small (and a big one more so), what Legacy means on an older

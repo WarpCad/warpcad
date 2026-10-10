@@ -110,10 +110,11 @@ export const SCENE_FILENAME_STEM = 'warpcad-scene'
  * - `evaluation-failed` — a body's geometry could not be reduced to a solid.
  * - `unsupported-format` — a format this module does not serialize (`glb`).
  * - `stale-selection` — a selection that matches no body in the scene.
+ * - `not-watertight` — a print piece still has open edges after repair (`TODO/io-007`).
  */
 export class ExportError extends Error {
   /**
-   * @param {'nothing-to-export' | 'empty-geometry' | 'evaluation-failed' | 'unsupported-format' | 'stale-selection'} code
+   * @param {'nothing-to-export' | 'empty-geometry' | 'evaluation-failed' | 'unsupported-format' | 'stale-selection' | 'not-watertight'} code
    * @param {string} message
    * @param {string} [bodyName] The offending body, when there is one.
    */

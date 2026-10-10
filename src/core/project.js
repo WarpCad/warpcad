@@ -28,6 +28,9 @@
  *   empty file has no geometry to keep, so it reads as a new document's default.
  * - each entry's design **intent** (`TODO/ai-003`), as `intents: { id: text }`, and the
  *   project's **standingInstructions** — see "Design intent" below.
+ * - the printer's **buildVolume** (`TODO/io-007`), `{ widthMm, depthMm, heightMm }` — written
+ *   only when it differs from the 220 × 220 × 250 mm default, so a document that never touched
+ *   it keeps its bytes. Validated like any other field: a malformed volume refuses the file.
  *
  * A restore that dropped them would be silently unfaithful in the worst way — a
  * rolled-back document reopening fully rolled *forward* shows the user geometry
@@ -71,6 +74,7 @@
  * @module core/project
  */
 
+import { DEFAULT_BUILD_VOLUME, normalizeBuildVolume, sameBuildVolume } from './buildVolume.js'
 import { INSTRUCTIONS_MAX_LENGTH, INTENT_MAX_LENGTH, cleanText } from './intent.js'
 import { DEFAULT_RESOLUTION, RESOLUTION_IDS, isResolution } from './kernel/tessellation.js'
 import { parseNdjson, serializeNdjson } from './ndjson.js'
@@ -97,7 +101,7 @@ export class ProjectFormatError extends Error {
 /**
  * Serialise a document to project text.
  *
- * @param {Pick<WarpDocument, 'entries' | 'rollbackAt'> & Partial<Pick<WarpDocument, 'resolution' | 'standingInstructions'>>} document
+ * @param {Pick<WarpDocument, 'entries' | 'rollbackAt'> & Partial<Pick<WarpDocument, 'resolution' | 'standingInstructions' | 'buildVolume'>>} document
  * @returns {string} `''` for an empty document at the new-document default; otherwise
  *   newline-terminated NDJSON.
  */
@@ -128,6 +132,8 @@ export function serializeProject(document) {
     if (typeof entry.intent === 'string' && entry.intent !== '') intents[id] = entry.intent
   }
   const standingInstructions = document.standingInstructions?.() ?? ''
+  const buildVolume = document.buildVolume?.() ?? DEFAULT_BUILD_VOLUME
+  const writesBuildVolume = !sameBuildVolume(buildVolume, DEFAULT_BUILD_VOLUME)
 
   /** @type {object[]} */
   const lines = entries.map((entry) => entry.record)
@@ -140,7 +146,8 @@ export function serializeProject(document) {
     hasOrigins ||
     writesResolution ||
     hasIntents ||
-    standingInstructions !== ''
+    standingInstructions !== '' ||
+    writesBuildVolume
   ) {
     lines.push({
       warpcad: STATE_KIND,
@@ -152,6 +159,9 @@ export function serializeProject(document) {
       ...(writesResolution ? { resolution } : {}),
       ...(hasIntents ? { intents } : {}),
       ...(standingInstructions !== '' ? { standingInstructions } : {}),
+      ...(writesBuildVolume
+        ? { buildVolume: { widthMm: buildVolume.widthMm, depthMm: buildVolume.depthMm, heightMm: buildVolume.heightMm } }
+        : {}),
     })
   }
   return serializeNdjson(lines)
@@ -232,8 +242,9 @@ export const IMAGE_REMOVED = "reference image removed — it couldn't be verifie
  * line is adjusted so it never names a record that is no longer there.
  *
  * @param {string} text
- * @returns {{ entries: DocumentEntry[], rollbackAt: number | null, resolution: string, standingInstructions: string, warnings: LoadWarning[] }}
- *   `standingInstructions` is `''` when the file has none (`TODO/ai-003`).
+ * @returns {{ entries: DocumentEntry[], rollbackAt: number | null, resolution: string, standingInstructions: string, buildVolume: import('./buildVolume.js').BuildVolume, warnings: LoadWarning[] }}
+ *   `standingInstructions` is `''` when the file has none (`TODO/ai-003`); `buildVolume` is the
+ *   default when the file has none (`TODO/io-007`).
  * @throws {ProjectFormatError} naming the line, or the offending field.
  */
 export function parseProject(text) {
@@ -370,6 +381,16 @@ export function parseProject(text) {
   }
   const standingInstructions = cleanText(declaredInstructions, INSTRUCTIONS_MAX_LENGTH)
 
+  /** @type {import('./buildVolume.js').BuildVolume} */
+  let buildVolume = { ...DEFAULT_BUILD_VOLUME }
+  if (state?.buildVolume !== undefined) {
+    try {
+      buildVolume = normalizeBuildVolume(state.buildVolume)
+    } catch (error) {
+      throw new ProjectFormatError(`project-state: buildVolume — ${error instanceof Error ? error.message : String(error)}`)
+    }
+  }
+
   const declaredRollbackAt = state?.rollbackAt ?? null
   if (
     declaredRollbackAt !== null &&
@@ -413,7 +434,7 @@ export function parseProject(text) {
     if (intent !== '') entry.intent = intent
   }
 
-  return { entries, rollbackAt, resolution, standingInstructions, warnings }
+  return { entries, rollbackAt, resolution, standingInstructions, buildVolume, warnings }
 }
 
 /**

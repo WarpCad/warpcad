@@ -1,0 +1,336 @@
+<!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
+<script setup>
+/**
+ * The Split sheet (`TODO/io-007`) — **Split…** in the Operations toolbar opens it on the one
+ * selected body. Layout and fields only; every rule (defaults, what Apply writes, what is a
+ * problem, what is a warning, each piece's fit) is `stores/splitSheet.js`'s.
+ *
+ * - **Fields**: Axis (X/Y/Z), Offset from the minimum face (mm), Joint (pins and sockets /
+ *   tongue and groove / none), Clearance (mm, per side). The offset is also the cut plane in
+ *   the viewport (`CutPlaneOverlay.vue`) — drag its handle and this number follows.
+ * - **Feedback before Apply**: each piece's name and fit verdict against the project's build
+ *   volume; a problem that would make Apply fail (Apply disabled, the reason shown); a warning
+ *   that would not (zero clearance).
+ * - **After Apply**: the sheet closes, the body is still selected, and the Inspector lists the
+ *   two new parts and its fit badge. A kernel refusal (no room for a pin, not watertight)
+ *   stays here in a `role="alert"`, and nothing is written.
+ * - **No backdrop**, unlike the toolbar's popovers: the plane's handle in the viewport has to
+ *   stay draggable while the sheet is open. Escape closes it.
+ * - **Small screens**: a bottom sheet at phone width, every control a 44 px (`--tap`) target,
+ *   16 px inputs so iOS does not zoom on focus.
+ */
+import { onBeforeUnmount, onMounted, watch } from 'vue'
+
+import { useOverlaysStore } from '../../stores/overlays.js'
+import { JOINT_LABELS, SPLIT_AXES, useSplitSheetStore } from '../../stores/splitSheet.js'
+
+const sheet = useSplitSheetStore()
+const overlays = useOverlaysStore()
+
+watch(
+  () => sheet.isOpen,
+  (open) => overlays.setOpen('split-sheet', open),
+  { immediate: true },
+)
+onBeforeUnmount(() => overlays.setOpen('split-sheet', false))
+
+/** @param {KeyboardEvent} event */
+function onKeydown(event) {
+  if (event.key !== 'Escape' || !sheet.isOpen) return
+  event.preventDefault()
+  sheet.close()
+}
+onMounted(() => window.addEventListener('keydown', onKeydown, true))
+onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown, true))
+
+/** @param {readonly number[]} size */
+const sizeText = (size) => `${size.map((mm) => Number(mm.toFixed(1))).join(' × ')} mm`
+</script>
+
+<template>
+  <Teleport to="body">
+    <form
+      v-if="sheet.isOpen"
+      class="split"
+      role="dialog"
+      aria-label="Split into printable pieces"
+      data-testid="split-sheet"
+      novalidate
+      @submit.prevent="sheet.apply()"
+    >
+      <p class="split__title">Split into printable pieces</p>
+      <p class="split__note">
+        Cuts the body in two across a plane and adds a joint so the pieces fit back together. Drag the plane in
+        the view, or type where to cut.
+      </p>
+
+      <label class="split__field">
+        Axis
+        <select
+          class="split__input"
+          data-testid="split-axis"
+          :value="sheet.axis"
+          @change="sheet.chooseAxis(/** @type {HTMLSelectElement} */ ($event.target).value)"
+        >
+          <option v-for="axis in SPLIT_AXES" :key="axis" :value="axis">{{ axis.toUpperCase() }}</option>
+        </select>
+      </label>
+
+      <label class="split__field">
+        Offset from the minimum face (mm)
+        <input
+          v-model.number="sheet.offsetMm"
+          class="split__input"
+          type="number"
+          step="0.5"
+          inputmode="decimal"
+          data-testid="split-offset"
+        />
+      </label>
+
+      <label class="split__field">
+        Joint
+        <select v-model="sheet.joint" class="split__input" data-testid="split-joint">
+          <option v-for="type in sheet.jointTypes" :key="type" :value="type">{{ JOINT_LABELS[type] }}</option>
+        </select>
+      </label>
+
+      <label v-if="sheet.joint !== 'none'" class="split__field">
+        Clearance per side (mm)
+        <input
+          v-model.number="sheet.clearanceMm"
+          class="split__input"
+          type="number"
+          step="0.05"
+          min="0"
+          inputmode="decimal"
+          data-testid="split-clearance"
+        />
+      </label>
+
+      <ul class="split__pieces" aria-label="Pieces">
+        <li
+          v-for="piece in sheet.pieceFits"
+          :key="piece.name"
+          class="split__piece"
+          data-testid="split-piece-fit"
+          :data-fit="piece.verdict"
+        >
+          <span class="split__piece-name">{{ piece.name }}</span>
+          <span class="split__piece-size">{{ sizeText(piece.sizeMm) }}</span>
+          <span class="split__badge" :data-fit="piece.verdict">{{ piece.label }}</span>
+        </li>
+      </ul>
+
+      <p v-if="sheet.problem" class="split__problem" data-testid="split-problem">{{ sheet.problem }}</p>
+      <p v-for="warning in sheet.warnings" :key="warning" class="split__warning" data-testid="split-warning">
+        {{ warning }}
+      </p>
+      <p v-if="sheet.error" class="split__problem" role="alert" data-testid="split-error">{{ sheet.error }}</p>
+
+      <div class="split__actions">
+        <button type="button" class="split__button" data-testid="split-cancel" @click="sheet.close()">Cancel</button>
+        <button
+          type="submit"
+          class="split__button split__button--primary"
+          :disabled="!sheet.canApply"
+          data-testid="split-apply"
+        >
+          Apply
+        </button>
+      </div>
+    </form>
+  </Teleport>
+</template>
+
+<style scoped>
+.split {
+  position: fixed;
+  top: 64px;
+  right: 16px;
+  z-index: 31;
+  box-sizing: border-box;
+  width: min(300px, calc(100vw - 32px));
+  max-height: calc(100dvh - 96px);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface-glass);
+  backdrop-filter: blur(6px);
+  box-shadow: var(--shadow-overlay);
+  color: var(--text-1);
+  font-family: var(--font);
+}
+
+.split__title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.split__note {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--text-2);
+}
+
+.split__field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--text-2);
+}
+
+.split__input {
+  box-sizing: border-box;
+  min-height: var(--tap);
+  padding: 0 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface-0);
+  color: var(--text-1);
+  font-family: inherit;
+  /* 16px: iOS Safari zooms the page on focus of anything smaller. */
+  font-size: 16px;
+}
+
+.split__pieces {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.split__piece {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 2px 8px;
+  font-size: 12px;
+}
+
+.split__piece-name {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.split__piece-size {
+  grid-column: 1;
+  color: var(--text-2);
+  font-family: var(--font-mono);
+}
+
+.split__badge {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  align-self: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid currentColor;
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.split__badge[data-fit='fits'] {
+  color: var(--accent-secondary);
+}
+
+.split__badge[data-fit='fits-rotated'] {
+  color: var(--warn);
+}
+
+.split__badge[data-fit='too-large'] {
+  color: var(--danger);
+}
+
+.split__problem,
+.split__warning {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.split__problem {
+  color: var(--danger);
+}
+
+.split__warning {
+  color: var(--warn);
+}
+
+.split__actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.split__button {
+  min-width: 88px;
+  min-height: var(--tap);
+  padding: 0 14px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  color: var(--text-1);
+  font-family: inherit;
+  font-size: 14px;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.split__button--primary {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--accent-contrast);
+}
+
+.split__button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Phone: a bottom sheet, so the viewport — and the cut plane — stay visible above it. */
+@media (max-width: 640px) {
+  .split {
+    top: auto;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    max-height: 50dvh;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+    /* Two fields per row and no intro paragraph: the sheet stays under half the screen, so the
+       cut plane's handle (at the middle of the body) is not hidden behind it. */
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px 10px;
+  }
+
+  .split > .split__title,
+  .split > .split__pieces,
+  .split > .split__problem,
+  .split > .split__warning,
+  .split > .split__actions {
+    grid-column: 1 / -1;
+  }
+
+  .split__note {
+    display: none;
+  }
+
+  .split__field,
+  .split__input {
+    min-width: 0;
+    width: 100%;
+  }
+}
+</style>

@@ -119,6 +119,18 @@ watch(
 )
 
 onBeforeUnmount(() => window.removeEventListener('resize', measure))
+
+/**
+ * A file size for the Print pieces list: bytes under 1 KB, else KB or MB to one decimal.
+ *
+ * @param {number} bytes
+ * @returns {string}
+ */
+function sizeLabel(bytes) {
+  if (bytes < 1024) return `${bytes} bytes`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+}
 </script>
 
 <template>
@@ -213,6 +225,34 @@ onBeforeUnmount(() => window.removeEventListener('resize', measure))
         <p v-if="dialog.pending" class="export__note export__pending" role="status" data-testid="export-pending">
           Writing {{ dialog.pendingFile }}…
         </p>
+
+        <!-- Print pieces (TODO/io-007): every top-level part of the scope as its own STL, laid
+             flat, zipped. A second action over the same scope; the list below is its feedback. -->
+        <p class="export__heading" aria-hidden="true">Print pieces</p>
+        <p class="export__note">One STL per part, each laid flat on its largest face, in a zip.</p>
+        <button
+          type="button"
+          class="export__button export__button--wide"
+          data-testid="export-print-pieces"
+          :disabled="!dialog.canExport"
+          @click="dialog.printPieces()"
+        >
+          Print pieces (.zip)
+        </button>
+        <ul v-if="dialog.printPiecesFiles.length > 0" class="export__pieces" data-testid="export-print-pieces-list" :aria-label="dialog.printPiecesZip">
+          <li
+            v-for="file in dialog.printPiecesFiles"
+            :key="file.filename"
+            class="export__piece"
+            data-testid="export-print-piece"
+            :data-filename="file.filename"
+            :data-size-bytes="file.sizeBytes"
+          >
+            <span class="export__piece-name">{{ file.filename }}</span>
+            <span class="export__piece-size">{{ sizeLabel(file.sizeBytes) }}</span>
+            <span v-if="file.mayNeedSupports" class="export__piece-note" title="A heuristic: a face points down more than 45° from vertical, off the bed.">may need supports</span>
+          </li>
+        </ul>
 
         <div class="export__actions">
           <button type="button" class="export__button" data-testid="export-cancel" @click="dialog.close()">
@@ -430,6 +470,39 @@ onBeforeUnmount(() => window.removeEventListener('resize', measure))
   line-height: 1.35;
   color: var(--danger);
   overflow-wrap: anywhere;
+}
+
+.export__button--wide {
+  width: 100%;
+}
+
+.export__pieces {
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 12px;
+}
+
+.export__piece {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 8px;
+}
+
+.export__piece-name {
+  font-family: var(--font-mono);
+  overflow-wrap: anywhere;
+}
+
+.export__piece-size {
+  color: var(--text-2);
+}
+
+.export__piece-note {
+  color: var(--warn);
 }
 
 .export__actions {

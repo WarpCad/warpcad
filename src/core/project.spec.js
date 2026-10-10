@@ -141,8 +141,8 @@ describe('parseProject → loadEntries round trip', () => {
   })
 
   it('accepts an empty file as an empty project', () => {
-    expect(parseProject('')).toEqual({ entries: [], rollbackAt: null, resolution: 'normal', standingInstructions: '', warnings: [] })
-    expect(parseProject('\n\n')).toEqual({ entries: [], rollbackAt: null, resolution: 'normal', standingInstructions: '', warnings: [] })
+    expect(parseProject('')).toEqual({ entries: [], rollbackAt: null, resolution: 'normal', standingInstructions: '', buildVolume: { widthMm: 220, depthMm: 220, heightMm: 250 }, warnings: [] })
+    expect(parseProject('\n\n')).toEqual({ entries: [], rollbackAt: null, resolution: 'normal', standingInstructions: '', buildVolume: { widthMm: 220, depthMm: 220, heightMm: 250 }, warnings: [] })
   })
 
   it('accepts a plain action log with no state line, as written by every earlier reader', () => {

@@ -355,6 +355,7 @@ import { registry as defaultRegistry } from './kernel/registry.js'
 import { isResolution, policyFor, resolutionLabel } from './kernel/tessellation.js'
 import { conditionContextOf, conditionShapeError, describeCondition, evaluateCondition } from './condition.js'
 import { INSTRUCTIONS_MAX_LENGTH, INTENT_MAX_LENGTH, cleanText } from './intent.js'
+import { DEFAULT_BUILD_VOLUME, normalizeBuildVolume } from './buildVolume.js'
 import { currentParamsRecordOf } from './paramEdit.js'
 import { applyAction, emptyScene } from './replay.js'
 import { ASSET_OP, validateImageAsset } from '../sketch/imageAsset.js'
@@ -624,6 +625,9 @@ export class ReplayRejection extends Error {
  * @property {() => string} standingInstructions `TODO/ai-003`: the project's standing
  *   instructions, `''` when there are none.
  * @property {(text: string, transaction: TransactionOptions) => void} setStandingInstructions
+ * @property {() => import('./buildVolume.js').BuildVolume} buildVolume `TODO/io-007`: the
+ *   printer's build volume, a fresh copy — the default 220 × 220 × 250 mm until set.
+ * @property {(volume: import('./buildVolume.js').BuildVolume, transaction: TransactionOptions) => void} setBuildVolume
  * @property {(id: string) => string | undefined} currentIdOf
  * @property {(id: string) => string | undefined} rootOf
  * @property {(id: string) => OpRecord[]} lineageOf
@@ -656,7 +660,7 @@ export class ReplayRejection extends Error {
  * @property {() => HistoryStep | undefined} undo
  * @property {() => HistoryStep | undefined} redo
  * @property {() => void} clearHistory
- * @property {(entries: readonly DocumentEntry[], rollbackAt?: number | null, resolution?: string, options?: { tolerateAll?: boolean, standingInstructions?: string }) => void} loadEntries
+ * @property {(entries: readonly DocumentEntry[], rollbackAt?: number | null, resolution?: string, options?: { tolerateAll?: boolean, standingInstructions?: string, buildVolume?: import('./buildVolume.js').BuildVolume }) => void} loadEntries
  * @property {() => string} resolution The design resolution (`TODO/core-035`) every
  *   curve without an explicit `segments` is faceted at — `legacy` for a document from
  *   before the setting existed.
@@ -1034,6 +1038,13 @@ export function createDocument(options = {}) {
    * @type {string}
    */
   let standingInstructions = ''
+  /**
+   * `TODO/io-007`: the printer's build volume. Project metadata exactly like
+   * {@link standingInstructions} — outside the fold and both undo stacks, a version bump when
+   * it changes — because it builds nothing; it only changes what the fit verdict says.
+   * @type {import('./buildVolume.js').BuildVolume}
+   */
+  let buildVolume = { ...DEFAULT_BUILD_VOLUME }
   /**
    * Rows that do not build, id → reason: inactive-tail rows the shadow check could not
    * build, plus (`TODO/ui-052`) active rows the user left broken and rows whose condition
@@ -2414,7 +2425,7 @@ export function createDocument(options = {}) {
      * @param {string} [nextResolution] The loaded design's resolution
      *   (`TODO/core-035`) — `parseProject` reads `legacy` for a file with no setting.
      *   Omitted: the current one, which is what a History preview's prefix wants.
-     * @param {{ tolerateAll?: boolean, standingInstructions?: string }} [options] `tolerateAll`
+     * @param {{ tolerateAll?: boolean, standingInstructions?: string, buildVolume?: import('./buildVolume.js').BuildVolume }} [options] `tolerateAll`
      *   folds every failing row as if the user had left it broken, instead of refusing the
      *   load — only for a throwaway document asking "what would break?" (`TODO/ui-052`'s
      *   impact check). `standingInstructions` (`TODO/ai-003`) is the loaded project's; omitted,
@@ -2438,6 +2449,8 @@ export function createDocument(options = {}) {
       })
       // After the fold, so a refused load leaves the current project's instructions alone.
       standingInstructions = cleanText(options.standingInstructions, INSTRUCTIONS_MAX_LENGTH)
+      // `TODO/io-007`: likewise the build volume; omitted, the loaded project has the default.
+      buildVolume = options.buildVolume === undefined ? { ...DEFAULT_BUILD_VOLUME } : normalizeBuildVolume(options.buildVolume)
       undoStack.length = 0
       redoStack.length = 0
       document.version += 1
@@ -2472,6 +2485,31 @@ export function createDocument(options = {}) {
       const next = cleanText(text, INSTRUCTIONS_MAX_LENGTH)
       if (next === standingInstructions) return
       standingInstructions = next
+      document.version += 1
+    },
+
+    buildVolume() {
+      return { ...buildVolume }
+    },
+
+    /**
+     * `TODO/io-007`: replace the build volume. Origin-tagged and a version bump (autosave and
+     * the save-status chip follow it), validated, and — like the standing instructions — not
+     * an undo step. Setting the same volume is a no-op.
+     */
+    setBuildVolume(volume, transaction) {
+      const origin = transaction?.origin
+      if (typeof origin !== 'string' || origin.length === 0) {
+        throw new Error(
+          'document.setBuildVolume: a transaction origin is required — ' +
+            "every mutation is origin-tagged so undo/redo can be scoped to the local user's own edits"
+        )
+      }
+      const next = normalizeBuildVolume(volume)
+      if (next.widthMm === buildVolume.widthMm && next.depthMm === buildVolume.depthMm && next.heightMm === buildVolume.heightMm) {
+        return
+      }
+      buildVolume = next
       document.version += 1
     },
 

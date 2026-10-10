@@ -78,6 +78,8 @@ drops (dropping the second body must not hide or replace the first). Clicking ea
 individually selects only that item (gizmo and dimension lines attach to whichever was
 just clicked, not both at once).
 
+**Last run**: 2026-10-10 02:27 UTC (`io-007`) — **PASS for what this task can affect** at laptop 1440x900 on Chromium, WebKit and Firefox: two Cubes dragged in one after the other both remained (2 bodies, both drawn), the toolbar now carries **Split**, and the Inspector shows Bounds and a `fits` badge. Steps beyond placing two primitives were not re-driven (nothing in them changed).
+
 **Last run**: 2026-10-09 21:00 UTC (`sketch-008`) — **PASS** at laptop 1440x900 on **Chromium and WebKit** (real mouse, jittered human-paced Library drags written for this drive), each from cleared storage. Cube then Cylinder dropped: both remained (count 2) and the cube's bounds string was byte-identical before and after the second drop (`-75.19,-75.19,0.00,-35.19,-35.19,40.00` on Chromium); a click on open grid cleared the selection (0), the cube then selected alone (Inspector *Cube 1*), the cylinder alone (*Cylinder 1*). Re-driven because the sketch editor gained the Curve tool and the loft pipeline changed. Console clean.
 
 **Previous run**: 2026-10-09 19:30 UTC (`ai-007`) — **PASS** at laptop 1440x900 on **Chromium and WebKit** (real mouse via `page.mouse`, jittered human-paced Library drags), from a fresh profile. Cube then Cylinder dropped: both remained (count 2, cylinder selected on drop); a click on open grid cleared the selection (0); a click on the cube selected only `cuboid-1`, on the cylinder only `cylinder-2`. Re-driven because the viewport now registers an offscreen capture over its renderer and scene (`setViewportCapture`); the user's own view and picking are untouched. Console clean.
@@ -1761,6 +1763,8 @@ selected (step 6).
 `docs/decisions/interaction-model-qa.md` control 5 flagged for this scenario — the
 original §9 draft only checked count-gating, not the order indicator.)*
 
+**Last run**: 2026-10-10 02:27 UTC (`io-007`) — **PASS** at laptop 1440x900 on **Chromium, WebKit and Firefox** (real mouse, jittered Library drags, marquee select). **Split** (the new `op-split`, Modify group) joins the count rules: dimmed with `Select exactly 1 solid` at 0 selected, enabled at 1 (Union dimmed, `Select 2 or more solids`), dimmed again with the same reason at 2 (Union enabled). Checked at 0, 1 and 2, not only at the enabled end. Console clean.
+
 **Last run**: 2026-09-10 17:52 — **PASS** (`ui-014`, the task that makes this scenario
 driveable at all — first run of this scenario ever). Hand-driven at laptop 1440×900 in
 Chromium, and touch-only at phone 390×844 and tablet 820×1180 in WebKit (the engine an
@@ -3116,6 +3120,8 @@ Control names: header **File ▾ → Export…** (`file-export`), which opens th
   press Export. (This scenario originally said `warpcad-scene.obj` here; it only becomes that with
   two or more bodies in the scope — see the 2026-09-21 re-check.)
 - Step 7: a single `.glb` file downloads and shows the same shape.
+
+**Last run**: 2026-10-10 02:27 UTC (`io-007`) — **PASS for steps 1-4 plus OBJ and glTF** at laptop 1440x900 on **Chromium, WebKit and Firefox** (real mouse, jittered Library drags, a marquee to select both). **Export…** dimmed on an empty scene (`Nothing to export`); Cube and Cylinder overlapped, **Union** left one body; the popover read `Exports Union 1 as union-1.stl`. Every file re-read by a parser that shares no code with the serializers: STL (`union-1.stl`), OBJ and `.glb` each **0 open edges of 453 / 453 / 438**, and the new **Export… → Print pieces** zip held one closed `union-1.stl` (0 of 453). Identical on all three engines. Re-driven because this task adds a second action to the Export popover and reroutes the export worker. **No real slicer opened a file** (the standing gap). Console clean.
 
 **Last run**: 2026-10-09 19:33 UTC (`ai-007`) — **PASS for steps 1-4** at laptop 1440x900 on **Chromium and WebKit** (real mouse, jittered Library drags, plain click then Shift-click to select both): **Export…** dimmed on an empty scene; Cube and Cylinder overlapped, **Union** left one body (`bool-3`); the popover read *Selection — Union 1*, Format STL, and File ▾ did not clear the selection; `union-1.stl` downloaded (204 triangles) with the chip `Exported union-1.stl — 204 triangles`. Volume re-read from the file's triangles with an independent signed-tetrahedra sum: 126 651.6 mm³ (Chromium), 126 652.0 (WebKit). Re-driven because this task adds `measure`, whose volume must equal the exported mesh's; that equality is also a unit test (`src/ai/tools/measure.spec.js`). Steps 5-7 (a real mesh viewer, OBJ, glTF) not re-driven: nothing in them changed, and no real slicer opened a file (the standing gap). Console clean.
 

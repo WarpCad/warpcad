@@ -34,6 +34,17 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### io-007 — Print prep: split, joint and Print pieces (2026-10-10 03:16)
+
+Geometry, the fit verdicts, the zip and the closed-manifold checks are covered by unit specs and `e2e/print-prep.e2e.js`, and acceptance 4 and 11 were re-driven. What only a printer or a person's eye can settle is below.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | Print the tongue-and-groove wing halves (and a pins-and-sockets pair on a thicker bar) with the default 0.2 mm clearance and see whether they press together. There is no printer-tolerance setting, so 0.2 mm is a guess for a typical FDM printer. | Open | |
+| 2 | Both halves of a tongue-and-groove split are flagged "may need supports" in the Export popover (the tongue's underside is a downward face). Slice one and judge whether that flag is noise or real. | Open | |
+| 3 | On a real phone, drag the cut-plane handle with a finger while the Split sheet is open. A trusted-touch drive in emulation passed after two fixes (sheet no longer buries the handle, a cancelled touch no longer throws the plane away), but only hardware shows whether a thumb can reach the handle and the sheet's fields comfortably. | Open | |
+| 4 | The cut plane is the body's cross-section at the cut, so on a long thin bar it is a small slot behind the gizmo (docs `split-sheet.png`). Decide whether it needs a larger or brighter plane. | Open | |
+
 ### sketch-008 — Curve helpers and a lofted wing (2026-10-09 21:10)
 
 The drive covered function and layout; two things are judgment calls it cannot make.

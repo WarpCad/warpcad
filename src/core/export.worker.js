@@ -9,7 +9,8 @@
  *
  * ## Protocol
  *
- * In:  `{ id, format, bodies, refold? }` — see `runExportJob`.
+ * In:  `{ id, format, bodies, refold? }` — see `runExportJob`; or `{ id, mode: 'print-pieces',
+ *      bodies }` — see `runPrintPiecesJob` (`TODO/io-007`).
  * Out: `{ id, ok: true, result }` or `{ id, ok: false, error }`.
  *
  * `id` is echoed so a client that has moved on (the user closed the popover, or pressed
@@ -30,15 +31,20 @@
  * @module core/export.worker
  */
 
-import { packError, runExportJob } from './exportJob.js'
+import { packError, runExportJob, runPrintPiecesJob } from './exportJob.js'
 
 // `self` inside a worker is a `DedicatedWorkerGlobalScope`, whose `postMessage` takes a
 // transfer list; the project's DOM typings describe the window one, which does not.
 const scope = /** @type {any} */ (self)
 
 scope.addEventListener('message', (/** @type {MessageEvent} */ event) => {
-  const { id, format, bodies, refold } = event.data ?? {}
+  const { id, format, bodies, refold, mode } = event.data ?? {}
   try {
+    if (mode === 'print-pieces') {
+      const zip = runPrintPiecesJob({ bodies })
+      scope.postMessage({ id, ok: true, result: zip }, [zip.bytes.buffer])
+      return
+    }
     // `refold` (TODO/core-035): export at another resolution — the job folds the records.
     const result = runExportJob({ format, bodies, refold })
     // The finished file is a `Uint8Array`, which IS transferable — so the bytes move

@@ -32,6 +32,7 @@
 import { RIM_ORIENTATIONS } from '../../core/kernel/fillet.js'
 import { DEFAULT_ROTATE_AXIS, SNAP_SIDES, mirrorRotationDeg } from '../../core/kernel/group.js'
 import { acceptsOperandCount, registry as kernelRegistry } from '../../core/kernel/registry.js'
+import { DEFAULT_JOINT_CLEARANCE_MM, JOINT_TYPES } from '../../core/kernel/split.js'
 import { rotateRecord, translateRecord } from '../../core/transform.js'
 import { uniqueBranches } from './create.js'
 import { findBody } from './read.js'
@@ -266,6 +267,37 @@ export const OPERATIONS = Object.freeze({
         ...(params.rotateOffsetMm === undefined ? {} : { rotateOffsetMm: params.rotateOffsetMm }),
       }
     }
+  ),
+  // TODO/io-007: the Split sheet's record, by the same `inPlaceSpec` Bisect uses — same shape
+  // (`stores/splitSheet.js` writes it: unnamed, `supersedes` the body).
+  'modify.splitWithJoint': inPlaceSpec(
+    'Split',
+    'split',
+    'Split one body into two printable pieces across an axis plane, with a joint so they go back together: pins and sockets, or a tongue and groove for thin sections. ' +
+      'The body becomes a group of two named parts. On a body that is already split, only the part the plane crosses is cut. Refuses a body that is not watertight.',
+    objectSchema(
+      {
+        axis: { ...AXIS, description: 'The cut plane’s normal.' },
+        offsetMm: { type: 'number', description: 'Where the plane crosses the axis, in millimetres from the body’s minimum face; must be inside the body.' },
+        joint: { type: 'string', enum: [...JOINT_TYPES], description: 'pins (default), tongue (for thin sections), or none.' },
+        clearanceMm: { type: 'number', description: `Gap per side between pin and socket, in millimetres. Default ${DEFAULT_JOINT_CLEARANCE_MM}.` },
+        names: {
+          type: 'array',
+          items: { type: 'string' },
+          minItems: 2,
+          maxItems: 2,
+          description: 'The two pieces’ part names, A (minimum side) then B, e.g. ["Wing A", "Wing B"]. No commas.',
+        },
+      },
+      ['axis', 'offsetMm']
+    ),
+    (params) => ({
+      axis: params.axis,
+      offsetMm: params.offsetMm,
+      joint: params.joint ?? 'pins',
+      clearanceMm: params.clearanceMm ?? DEFAULT_JOINT_CLEARANCE_MM,
+      ...(params.names === undefined ? {} : { names: params.names }),
+    })
   ),
 
   'transform.translate': {

@@ -15,6 +15,10 @@
  * - **Small screens**: `ModalShell` makes it a top-anchored, full-width sheet at phone width
  *   (never bottom-anchored, so the on-screen keyboard cannot hide it); every button is a
  *   44px (`--tap`) target and the field is 16px text so iOS does not zoom on focus.
+ * - **Build volume** (`TODO/io-007`): width × depth × height of the printer, mm — what every
+ *   fit verdict (the Inspector's badge, the Split sheet, `check_printability`) judges against,
+ *   and what the assistant is told each turn. A value that is not a positive number keeps the
+ *   dialog open with the reason; nothing is saved.
  * - Not an undo step: the dialog's own Cancel is the way back from an edit.
  */
 import { computed, nextTick, ref, watch } from 'vue'
@@ -28,6 +32,13 @@ const settings = useProjectSettingsStore()
 const documentStore = useDocumentStore()
 
 const draft = ref('')
+/** The build volume being edited, mm. `null` while a field is blank. */
+const volume = ref(/** @type {{ widthMm: number | null, depthMm: number | null, heightMm: number | null }} */ ({
+  widthMm: 220,
+  depthMm: 220,
+  heightMm: 250,
+}))
+const volumeError = ref('')
 /** @type {import('vue').Ref<HTMLTextAreaElement | null>} */
 const field = ref(null)
 
@@ -39,6 +50,8 @@ watch(
   async (open) => {
     if (!open) return
     draft.value = documentStore.standingInstructions
+    volume.value = { ...documentStore.buildVolume }
+    volumeError.value = ''
     await nextTick()
     field.value?.focus()
   },
@@ -46,7 +59,11 @@ watch(
 )
 
 function save() {
-  settings.save(draft.value)
+  try {
+    settings.save(draft.value, /** @type {import('../../core/buildVolume.js').BuildVolume} */ ({ ...volume.value }))
+  } catch (error) {
+    volumeError.value = error instanceof Error ? error.message : String(error)
+  }
 }
 </script>
 
@@ -84,6 +101,29 @@ function save() {
       <p id="project-settings-count" class="settings__count" aria-live="polite" data-testid="project-settings-count">
         {{ count }} characters
       </p>
+
+      <fieldset class="settings__volume">
+        <legend class="settings__field">Build volume (mm)</legend>
+        <p class="settings__help">
+          Your printer's bed width, depth and height. The fit badge, Split and the assistant's print check judge
+          every part against it.
+        </p>
+        <div class="settings__volume-row">
+          <label class="settings__volume-field">
+            Width (X)
+            <input v-model.number="volume.widthMm" class="settings__number" type="number" min="1" inputmode="decimal" data-testid="project-settings-build-width" />
+          </label>
+          <label class="settings__volume-field">
+            Depth (Y)
+            <input v-model.number="volume.depthMm" class="settings__number" type="number" min="1" inputmode="decimal" data-testid="project-settings-build-depth" />
+          </label>
+          <label class="settings__volume-field">
+            Height (Z)
+            <input v-model.number="volume.heightMm" class="settings__number" type="number" min="1" inputmode="decimal" data-testid="project-settings-build-height" />
+          </label>
+        </div>
+        <p v-if="volumeError" class="settings__error" role="alert" data-testid="project-settings-build-error">{{ volumeError }}</p>
+      </fieldset>
 
       <div class="settings__actions">
         <button type="button" class="settings__button" data-testid="project-settings-cancel" @click="settings.close()">
@@ -156,6 +196,49 @@ function save() {
   resize: vertical;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
+}
+
+.settings__volume {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.settings__volume-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.settings__volume-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--text-2);
+}
+
+.settings__number {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: var(--tap);
+  padding: 0 8px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface-0);
+  color: var(--text-1);
+  font-family: inherit;
+  /* 16px for the same iOS focus-zoom reason as the instructions field. */
+  font-size: 16px;
+}
+
+.settings__error {
+  margin: 0;
+  font-size: 12px;
+  color: var(--danger);
 }
 
 .settings__actions {

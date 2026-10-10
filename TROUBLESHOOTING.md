@@ -370,6 +370,25 @@ the cube must be picked), which fails against the old id-only check.
 3. Added the geometry-identity check, wrote the unit test RED first, then proved the e2e
    pick fails with the old check and passes with the new one.
 
+### 2026-10-10 — A real touch drag on an SVG handle ends in `pointercancel` at (0, 0), and "compute the move on release" throws the thing to the corner
+
+**What happened:**
+
+`TODO/io-007`'s cut-plane handle (an SVG circle in an overlay over the canvas) passed a spec that drives it with synthetic `PointerEvent`s, and was unusable with a real finger at phone width: the offset crept up for six moves, then jumped to the minimum. Two separate causes hid behind the one spec.
+
+**Why it happened:**
+
+1. The Split bottom sheet and the auto-opened Inspector sheet sat on top of the handle. `dispatchEvent` goes straight to the element, so it never notices; `document.elementFromPoint(handleCentre)` returned the sheet's paragraph.
+2. The browser cancelled the touch after a few moves (an SVG child under an overlay did not carry `touch-action: none` on its ancestors). A `pointercancel` event has `clientX = clientY = 0`; the handler treated cancel like release, computed `(0 - startX)` of travel and clamped the offset to the minimum.
+
+**Fix / Prevention:**
+
+Ignore `pointercancel` position (keep the offset reached), put `touch-action: none` on the overlay `<svg>` as well as the handle, and assert in the e2e that `elementFromPoint` at the handle's centre is the handle. A trusted touch (`Input.dispatchTouchEvent` through a CDP session, `hasTouch` and `isMobile` context) is the only emulation that exercises both. The drag also converts each pointer step with the axis as projected at that moment, not one start-to-now conversion, because perspective changes pixels-per-mm as the plane moves and a synthetic burst under load otherwise drifts by a couple of millimetres.
+
+**Steps taken to resolve:**
+
+Hand-drove the Split sheet with CDP touch at 390x844, logged the offset per move, saw it jump at move 7, then read `onUp`.
+
 <!-- Template for new entries:
 
 ### YYYY-MM-DD — [Short title describing the discovery]

@@ -50,7 +50,7 @@
  */
 
 import { EXPORT_FORMATS, exportBodies, exportFilename } from './export.js'
-import { runExportJob, unpackError } from './exportJob.js'
+import { runExportJob, runPrintPiecesJob, unpackError } from './exportJob.js'
 import { packBodies, unpackSolids } from './kernel/transport.js'
 
 /** @typedef {import('./export.js').ExportBody} ExportBody */
@@ -144,6 +144,20 @@ function resolveWorker() {
  * @returns {Promise<import('./exportJob.js').ExportJobResult>}
  */
 function ask(active, format, bodies, refold) {
+  return post(
+    active,
+    refold === undefined ? { format, bodies: packBodies(bodies) } : { format, bodies: [], refold }
+  )
+}
+
+/**
+ * Send one job to the worker and wait for the answer with the same `id`.
+ *
+ * @param {Worker} active
+ * @param {Record<string, any>} message Everything but the `id`.
+ * @returns {Promise<any>}
+ */
+function post(active, message) {
   const id = (nextId += 1)
   return new Promise((resolve, reject) => {
     /** @param {MessageEvent} event */
@@ -173,10 +187,8 @@ function ask(active, format, bodies, refold) {
     active.addEventListener('message', onMessage)
     active.addEventListener('error', onError)
     // A re-fold sends records, not geometry: packing the design-resolution bodies would
-    // be work (and a copy) the worker throws away.
-    active.postMessage(
-      refold === undefined ? { id, format, bodies: packBodies(bodies) } : { id, format, bodies: [], refold }
-    )
+    // be work (and a copy) the worker throws away (see `ask`).
+    active.postMessage({ id, ...message })
   })
 }
 
@@ -265,6 +277,33 @@ export async function runExport(bodies, format, options) {
     return await exporter(bodies)
   }
   return exportBodies(bodies, format)
+}
+
+/**
+ * Export → Print pieces (`TODO/io-007`): one STL per top-level part, laid flat, in a zip —
+ * off the main thread when possible, exactly like {@link runExport}, with the same fallback
+ * (the very same `exportPrintPieces`, on the main thread) and the same refusal rule (an
+ * `ExportError` is an answer, not a broken worker).
+ *
+ * @param {readonly ExportBody[]} bodies Already scoped by `resolveExportScope`.
+ * @returns {Promise<import('./printPrep.js').PrintPiecesResult>}
+ */
+export async function runPrintPiecesExport(bodies) {
+  const active = resolveWorker()
+  if (active) {
+    try {
+      const job = await post(active, { mode: 'print-pieces', bodies: packBodies(bodies) })
+      return { bytes: job.bytes, filename: job.filename, mimeType: job.mimeType, files: job.files, heuristic: job.heuristic }
+    } catch (failure) {
+      if (failure instanceof Error && (failure.name === 'ExportError' || failure.name === EXPORT_CANCELLED)) {
+        throw failure
+      }
+      workerUnavailable = true
+      disposeExportWorker()
+    }
+  }
+  const { kind: _kind, ...result } = runPrintPiecesJob({ bodies: packBodies(bodies) })
+  return result
 }
 
 /**

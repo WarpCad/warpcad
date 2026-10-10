@@ -130,6 +130,7 @@ import ObjectList from './ObjectList.vue'
 import BillOfMaterials from '../display/BillOfMaterials.vue'
 import DeleteButton from './DeleteButton.vue'
 import IntentLine from './IntentLine.vue'
+import FitBadge from './FitBadge.vue'
 import ParamFields from './ParamFields.vue'
 import SketchBodyFields from './SketchBodyFields.vue'
 import SketchProfileFields from '../sketch/SketchProfileFields.vue'
@@ -150,6 +151,7 @@ import {
 } from '../../core/colorOverride.js'
 import { BODY_COLORS } from '../../render/mesh.js'
 import { formatDeg, formatMmValue } from '../../core/units.js'
+import { useSplitSheetStore } from '../../stores/splitSheet.js'
 
 const props = defineProps({
   /**
@@ -234,6 +236,7 @@ const body = computed(() => described.value.body)
 const isSubPart = computed(() => Boolean(body.value?.subPart))
 
 const isOpen = ref(false)
+const splitSheet = useSplitSheetStore()
 
 // --- the object list (TODO/ui-049) -----------------------------------------
 
@@ -349,6 +352,16 @@ watch(
     }
   },
   { immediate: true },
+)
+
+// The Split sheet (`TODO/io-007`) works on the part the cut plane is drawn across: an
+// Inspector sheet left open beneath it would cover the plane's handle at phone width, so it
+// folds to its tab while Split is open (the Fit badge is one tap away on the tab).
+watch(
+  () => splitSheet.isOpen,
+  (open) => {
+    if (open) setOpen(false)
+  },
 )
 
 // The collapsed tab appears and disappears with the scene's first and last body, so the
@@ -782,6 +795,8 @@ watch([() => body.value?.id, colorPart], () => {
         </p>
         <!-- TODO/ai-003: why this body exists, when a step in its history recorded it. -->
         <IntentLine v-if="!body.subPart" :body-id="body.id" />
+        <!-- TODO/io-007: its size, and whether it fits the printer — per print piece. -->
+        <FitBadge v-if="!body.subPart" :body-id="body.id" />
         <!-- A breakage committed with Leave broken (TODO/ui-052): on the body whose parts
              went missing and on the dependent, each with Resolve…. -->
         <DependentsBanner v-if="!body.subPart" :body="body" />

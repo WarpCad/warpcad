@@ -199,6 +199,8 @@ function forkOf(live, registry) {
   fork.loadEntries(live.entries.map(foldableEntry), live.rollbackAt(), live.resolution(), {
     tolerateAll: true,
     standingInstructions: live.standingInstructions(),
+    // `TODO/io-007`: so `check_printability` in the fork judges against the project's printer.
+    buildVolume: live.buildVolume(),
   })
   return fork
 }
@@ -272,6 +274,15 @@ function userContentFor(ctx, fork, userMessage, images) {
   const content = []
   const instructions = standingInstructionsBlock(ctx.standingInstructions())
   if (instructions !== '') content.push({ type: 'text', text: instructions })
+  // `TODO/io-007`: the printer's build volume is a project setting the user edits beside the
+  // standing instructions; it is mirrored into every turn so "split it to fit" means this printer.
+  const volume = fork.buildVolume?.()
+  if (volume) {
+    content.push({
+      type: 'text',
+      text: `The project's build volume (File ▸ Project settings): ${volume.widthMm} × ${volume.depthMm} × ${volume.heightMm} mm. Use it instead of the default printing build volume.`,
+    })
+  }
   content.push({
     type: 'text',
     text: `The scene at the start of this turn, read from the project:\n${documentDataBlock('scene', summariseScene(sceneSummary(fork)))}`,

@@ -1,0 +1,1 @@
+{"id":"wing","op":"primitive.cuboid","name":"Wing","params":{"size":[300,40,12],"center":[0,0,6]}}

@@ -214,6 +214,11 @@ export const useDocumentStore = defineStore('document', () => {
    */
   const standingInstructions = ref(raw.standingInstructions())
   /**
+   * The printer's build volume (`TODO/io-007`), mirrored off `raw` in {@link refresh} like
+   * {@link standingInstructions}. A fresh plain object each refresh — three numbers.
+   */
+  const buildVolume = ref(raw.buildVolume())
+  /**
    * Bumped each time a whole document is *loaded* (autosave restore, Open) as
    * opposed to edited. The viewport frames the camera on it: a loaded project
    * whose geometry sits outside the default view would otherwise read as an empty
@@ -255,6 +260,7 @@ export const useDocumentStore = defineStore('document', () => {
     redoLabel.value = raw.pendingRedo()?.label ?? ''
     resolution.value = raw.resolution()
     standingInstructions.value = raw.standingInstructions()
+    buildVolume.value = raw.buildVolume()
     const list = raw.bodies()
     bodies.value = list.map(summarizeBody)
     // `TODO/ui-052`: a change (a model swap, or its Undo) can take away the part the
@@ -334,6 +340,18 @@ export const useDocumentStore = defineStore('document', () => {
    */
   function setStandingInstructions(text) {
     raw.setStandingInstructions(text, { origin: 'local' })
+    refresh()
+  }
+
+  /**
+   * Replace the printer's build volume (`TODO/io-007`) — core's `setBuildVolume`, a `local`
+   * document change that bumps the version but is not an undo step, like the standing
+   * instructions. Throws, naming the field, on a volume that is not three positive mm values.
+   *
+   * @param {import('../core/buildVolume.js').BuildVolume} volume
+   */
+  function setBuildVolume(volume) {
+    raw.setBuildVolume(volume, { origin: 'local' })
     refresh()
   }
 
@@ -515,11 +533,15 @@ export const useDocumentStore = defineStore('document', () => {
    * @param {number | null} [rollbackAt]
    * @param {string} [nextResolution] The loaded design's resolution (`TODO/core-035`);
    *   `parseProject` supplies it. Omitted: the current one.
-   * @param {{ standingInstructions?: string }} [options] `TODO/ai-003`: the loaded project's
-   *   standing instructions; omitted, the loaded project has none.
+   * @param {{ standingInstructions?: string, buildVolume?: import('../core/buildVolume.js').BuildVolume }} [options]
+   *   `TODO/ai-003`: the loaded project's standing instructions; omitted, the loaded project has
+   *   none. `TODO/io-007`: its build volume; omitted, the default.
    */
   function load(entries, rollbackAt = null, nextResolution = raw.resolution(), options = {}) {
-    raw.loadEntries(entries, rollbackAt, nextResolution, { standingInstructions: options.standingInstructions ?? '' })
+    raw.loadEntries(entries, rollbackAt, nextResolution, {
+      standingInstructions: options.standingInstructions ?? '',
+      ...(options.buildVolume === undefined ? {} : { buildVolume: options.buildVolume }),
+    })
     useSelectionStore().clear()
     loadRevision.value += 1
     refresh()
@@ -638,6 +660,8 @@ export const useDocumentStore = defineStore('document', () => {
     setResolution,
     standingInstructions,
     setStandingInstructions,
+    buildVolume,
+    setBuildVolume,
     deleteBodies,
     removePart,
     undo,

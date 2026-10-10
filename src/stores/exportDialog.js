@@ -21,6 +21,10 @@
  *   parent body's id in the selection store, so it exports the whole parent body
  *   ({@link wholeBodyNote} says so). Several bodies are one combined file, and the labels say so.
  * - **Format**: STL default, remembered per viewer through `stores/settings.js`.
+ * - **Print pieces** (`TODO/io-007`, {@link printPieces}): a second action beside Export, over
+ *   the same scope — one STL per top-level part, each laid flat, in a zip, through the same
+ *   worker (`runPrintPiecesExport`). Unlike Export it leaves the popover open afterwards, listing
+ *   each file and its size ({@link printPiecesFiles}), because that list is the feedback.
  *
  * ## The document changing under an open popover (decision (a))
  *
@@ -68,7 +72,7 @@ import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 
 import { EXPORT_FORMATS, ExportError, exportFilename, resolveExportScope } from '../core/export.js'
-import { EXPORT_CANCELLED, cancelExport, pendingFilename, runExport } from '../core/exportClient.js'
+import { EXPORT_CANCELLED, cancelExport, pendingFilename, runExport, runPrintPiecesExport } from '../core/exportClient.js'
 import { refoldRequestOf } from '../core/exportJob.js'
 import { CHOOSABLE_RESOLUTIONS, resolutionLabel } from '../core/kernel/tessellation.js'
 import { downloadBytes } from '../storage/download.js'
@@ -169,6 +173,15 @@ export const useExportDialogStore = defineStore('exportDialog', () => {
   const pending = ref(false)
   /** The file the pending state names, so the user knows what is being written. */
   const pendingFile = ref('')
+  /**
+   * The files the last Print pieces zip held (`TODO/io-007`), in zip order — what the popover
+   * lists with sizes. Empty until Print pieces has run in this opening of the popover.
+   *
+   * @type {import('vue').Ref<import('../core/printPrep.js').PrintPieceFile[]>}
+   */
+  const printPiecesFiles = ref(/** @type {import('../core/printPrep.js').PrintPieceFile[]} */ ([]))
+  /** The zip's name, beside the list. */
+  const printPiecesZip = ref('')
   /** @type {ReturnType<typeof setTimeout> | null} */
   let pendingTimer = null
   /** Bumped by every commit and by close(); a continuation whose token is stale is discarded. */
@@ -294,6 +307,8 @@ export const useExportDialogStore = defineStore('exportDialog', () => {
     if (unavailableReason.value !== '') return false
     chosenScope.value = null
     error.value = ''
+    printPiecesFiles.value = []
+    printPiecesZip.value = ''
     isOpen.value = true
     return true
   }
@@ -312,6 +327,8 @@ export const useExportDialogStore = defineStore('exportDialog', () => {
     clearPending()
     error.value = ''
     chosenScope.value = null
+    printPiecesFiles.value = []
+    printPiecesZip.value = ''
   }
 
   /**
@@ -395,6 +412,45 @@ export const useExportDialogStore = defineStore('exportDialog', () => {
     }
   }
 
+  /**
+   * Export → **Print pieces** (`TODO/io-007`): the scope's bodies, one STL per top-level part,
+   * laid flat on its largest face, in one zip — downloaded through the same one download path,
+   * and listed in the popover with each file's size. A refusal (a piece that is not watertight)
+   * stays in the popover by name; nothing downloads.
+   */
+  async function printPieces() {
+    if (!canExport.value) return
+    error.value = ''
+    const mine = ++attempt
+    exporting.value = true
+    try {
+      const deps = resolveDependencies()
+      const live = /** @type {ExportBody[]} */ (/** @type {unknown} */ (documentStore.raw.bodies()))
+      const ids = effectiveScope.value === 'selection' ? [...selection.ids] : []
+      if (effectiveScope.value === 'selection' && ids.length === 0) {
+        throw new ExportError('stale-selection', 'The selection changed — choose what to export')
+      }
+      const { bodies } = resolveExportScope(live, ids)
+      const result = await runPrintPiecesExport(bodies)
+      if (mine !== attempt) return
+      deps.download({ bytes: result.bytes, filename: result.filename, mimeType: result.mimeType, triangleCount: 0 })
+      printPiecesFiles.value = result.files
+      printPiecesZip.value = result.filename
+      persistence.announce(
+        `Exported ${result.filename} — ${result.files.length} piece${result.files.length === 1 ? '' : 's'}`
+      )
+    } catch (failure) {
+      if (mine !== attempt) return
+      if (failure instanceof Error && failure.name === EXPORT_CANCELLED) return
+      error.value =
+        failure instanceof ExportError
+          ? failure.message
+          : `Export failed: ${failure instanceof Error ? failure.message : String(failure)}`
+    } finally {
+      if (mine === attempt) exporting.value = false
+    }
+  }
+
   return {
     isOpen,
     chosenScope,
@@ -423,5 +479,8 @@ export const useExportDialogStore = defineStore('exportDialog', () => {
     chooseFormat,
     chooseResolution,
     commit,
+    printPieces,
+    printPiecesFiles,
+    printPiecesZip,
   }
 })
