@@ -256,7 +256,10 @@ test('toggling Show hidden parts draws a translucent overlay, and toggling off r
         await snapshotCanvas(page, 'hidden-again')
         return changedPixels(page, 'before', 'hidden-again')
       },
-      { message: 'toggling off reverts the canvas to how it looked before', timeout: 5000 },
+      // Each poll turn costs two frames plus a canvas read-back, which is seconds on a worker
+      // sharing a machine with the full matrix, so the budget is wall-clock generous; the
+      // threshold above stays the project's own 40.
+      { message: 'toggling off reverts the canvas to how it looked before', timeout: 20000 },
     )
     .toBeLessThan(40)
 })

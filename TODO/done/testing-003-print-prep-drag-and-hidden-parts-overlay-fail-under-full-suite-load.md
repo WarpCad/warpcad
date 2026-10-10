@@ -6,8 +6,22 @@ priority: high
 model: sonnet
 milestone: M9
 depends: []
-status: open
+status: done
 ---
+
+> **What shipped (2026-10-10):** the cause was **not reproduced** — roughly 800 stress runs
+> (all 9 projects, up to 16 workers, `--repeat-each`) never failed, so neither hypothesis below
+> is confirmed by a measured repro. Both fixes remove a race or budget the code shows, and
+> neither loosens an assertion: `print-prep.e2e.js` now waits for the plane's axis attributes to
+> hold across 5 animation frames and then reads the scale, the handle's rect and fires the
+> whole drag in **one synchronous page call** (previously three separate awaits, so a frame
+> could re-project the plane between measuring and dragging); `inspector-hidden-parts.e2e.js`
+> raises the toggle-off poll budget from 5 s to 20 s (each turn is two frames plus a canvas
+> read-back, which is seconds on a worker sharing a machine with the full matrix; the
+> 40-pixel threshold is unchanged). Verified green: targeted specs 324/324, then two full
+> matrix runs on the final tree, both `3170/3985 passed, 815 skipped, 0 failed`. Two clean
+> runs do not prove a load-only flake gone (the drag had been green in four consecutive full
+> runs before failing again), so a row in `TODO/VERIFY.md` asks for a watch on the next few.
 
 ## Problem
 

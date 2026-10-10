@@ -180,39 +180,62 @@ test('the hand recipe: Split the wing with a tongue and groove, the fit badge tu
   // …and dragging the plane's handle changes the number.
   const handle = page.getByTestId('cut-plane-handle')
   await expect(handle).toBeVisible()
-  const box = await handle.boundingBox()
-  if (!box) throw new Error('no handle box')
-  const startX = box.x + box.width / 2
-  const startY = box.y + box.height / 2
-  const pxPerMm = Number(await plane.getAttribute('data-px-per-mm'))
-  const axisX = Number(await plane.getAttribute('data-axis-x'))
-  const axisY = Number(await plane.getAttribute('data-axis-y'))
-  expect(pxPerMm).toBeGreaterThan(0)
-  await page.evaluate(
-    ({ startX, startY, dx, dy }) => {
-      const target = document.querySelector('[data-testid="cut-plane-handle"]')
-      if (!target) throw new Error('no handle')
-      const fire = (el, type, x, y) =>
-        el.dispatchEvent(
-          new PointerEvent(type, {
-            pointerId: 11,
-            pointerType: 'touch',
-            isPrimary: true,
-            button: 0,
-            buttons: type === 'pointerup' ? 0 : 1,
-            clientX: x,
-            clientY: y,
-            bubbles: true,
-            cancelable: true,
-          })
-        )
-      fire(target, 'pointerdown', startX, startY)
-      for (const t of [0.25, 0.5, 0.75, 1]) fire(target, 'pointermove', startX + dx * t, startY + dy * t)
-      fire(target, 'pointerup', startX + dx, startY + dy)
-    },
-    // 20 mm along +X's own screen direction (`data-axis-x/y` are pixels per millimetre).
-    { startX, startY, dx: axisX * 20, dy: axisY * 20 }
+  // Wait for the projection to settle: the plane's axis attributes must read the same across
+  // several animation frames. Under load the camera and the viewport are still settling when
+  // the sheet has just opened, and a drag sized from a stale scale lands a few mm off.
+  await page.waitForFunction(
+    () =>
+      new Promise((resolve) => {
+        const read = () => {
+          const el = document.querySelector('[data-testid="cut-plane"]')
+          return el ? `${el.getAttribute('data-axis-x')}|${el.getAttribute('data-axis-y')}` : ''
+        }
+        let last = read()
+        let stable = 0
+        const tick = () => {
+          const now = read()
+          stable = now && now === last ? stable + 1 : 0
+          last = now
+          if (stable >= 5) resolve(true)
+          else requestAnimationFrame(tick)
+        }
+        requestAnimationFrame(tick)
+      }),
+    undefined,
+    { timeout: 10000 }
   )
+  await expect(handle).toBeVisible()
+  // Read the scale and the handle's position and fire the drag in ONE synchronous page
+  // call, so no frame can re-project the plane between measuring it and dragging it.
+  await page.evaluate(() => {
+    const plane = document.querySelector('[data-testid="cut-plane"]')
+    const target = document.querySelector('[data-testid="cut-plane-handle"]')
+    if (!plane || !target) throw new Error('no cut plane')
+    const rect = target.getBoundingClientRect()
+    const startX = rect.x + rect.width / 2
+    const startY = rect.y + rect.height / 2
+    // 20 mm along +X's own screen direction (`data-axis-x/y` are pixels per millimetre).
+    const dx = Number(plane.getAttribute('data-axis-x')) * 20
+    const dy = Number(plane.getAttribute('data-axis-y')) * 20
+    if (!(Math.hypot(dx, dy) > 0)) throw new Error('cut plane has no scale')
+    const fire = (el, type, x, y) =>
+      el.dispatchEvent(
+        new PointerEvent(type, {
+          pointerId: 11,
+          pointerType: 'touch',
+          isPrimary: true,
+          button: 0,
+          buttons: type === 'pointerup' ? 0 : 1,
+          clientX: x,
+          clientY: y,
+          bubbles: true,
+          cancelable: true,
+        })
+      )
+    fire(target, 'pointerdown', startX, startY)
+    for (const t of [0.25, 0.5, 0.75, 1]) fire(target, 'pointermove', startX + dx * t, startY + dy * t)
+    fire(target, 'pointerup', startX + dx, startY + dy)
+  })
   await expect
     .poll(async () => Number(await page.getByTestId('split-offset').inputValue()))
     .toBeCloseTo(120, 0)

@@ -34,6 +34,15 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### testing-003 — print-prep drag and hidden-parts overlay under full-suite load (2026-10-10 17:10)
+
+The cause was never reproduced, so the fix is two spec synchronization changes verified by two clean full runs, not by a proven root cause. What only more runs can settle:
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | Over the next several full e2e runs, watch `print-prep.e2e.js` ("the hand recipe", `toBeCloseTo(120, 0)`) and `inspector-hidden-parts.e2e.js` ("toggling Show hidden parts…"). A third red on either means the race is elsewhere (e.g. the camera settling in `Viewport.vue`, not the spec) and `testing-003` should be reopened with the failing project named. | Open | |
+
+
 ### ui-055 — Save to library and My parts (2026-10-10 07:30)
 
 Reachability, the example flow, three viewports and three engines are covered by `e2e/user-library.e2e.js` and the Step 6 drive; what is left is feel on real hardware.
