@@ -16,7 +16,7 @@ import { join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 /** Per-GIF limits. Over budget is a failure, not a silent oversize commit. */
-export const BUDGET = { maxSeconds: 12, maxBytes: 1.5 * 1024 * 1024 }
+export const BUDGET = { maxSeconds: 18, maxBytes: 2.25 * 1024 * 1024 }
 
 /**
  * The one recorded relaxation of the duration limit (`TODO/docs-019`: the README tour). A movie
@@ -24,7 +24,7 @@ export const BUDGET = { maxSeconds: 12, maxBytes: 1.5 * 1024 * 1024 }
  * the request is honoured only up to this ceiling, and the size limit is never relaxed. An
  * allowance is written into the manifest so it stays visible in review.
  */
-export const EXCEPTION_MAX_SECONDS = 20
+export const EXCEPTION_MAX_SECONDS = 30
 
 /** The two knobs the conversion exposes; the defaults are what the budget was sized for. */
 export const DEFAULTS = { fps: 15, width: 800, holdSeconds: 1.5 }

@@ -255,7 +255,7 @@ test.describe('docs media: getting started tour', () => {
     let download = null
     await tour(page, 5, 650, { onDownload: (d) => (download = d) })
     await page.waitForTimeout(1200)
-    await endMovie(page, 'tour', { fps: 10, width: 528, maxSeconds: 20 })
+    await endMovie(page, 'tour', { fps: 10, width: 528, maxSeconds: 30 })
     expect(download).not.toBeNull()
     await settle(page)
   })

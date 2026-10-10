@@ -2,350 +2,350 @@
   "primitive-drag-cube.gif": {
     "spec": "e2e/docs/primitive-drag-cube.docs.js",
     "specHash": "dfeabd4fe13cd395b591be71bf3cf56341c8d74acfd51e44af12c563bb243264",
-    "bytes": 856749,
-    "seconds": 5.6
+    "bytes": 1042966,
+    "seconds": 6
   },
   "nav-chrome-buttons.gif": {
     "spec": "e2e/docs/viewport-navigation.docs.js",
     "specHash": "25296c2b88f0d19e1913aa210048daf54b5fee28e26cf0ef2534cab7eb57d9c8",
-    "bytes": 787039,
-    "seconds": 5.07
+    "bytes": 821218,
+    "seconds": 5.14
   },
   "nav-zoom.gif": {
     "spec": "e2e/docs/viewport-navigation.docs.js",
     "specHash": "25296c2b88f0d19e1913aa210048daf54b5fee28e26cf0ef2534cab7eb57d9c8",
-    "bytes": 1240946,
-    "seconds": 5.74
+    "bytes": 1267451,
+    "seconds": 5.6
   },
   "orientation-gizmo-snap.gif": {
     "spec": "e2e/docs/viewport-navigation.docs.js",
     "specHash": "25296c2b88f0d19e1913aa210048daf54b5fee28e26cf0ef2534cab7eb57d9c8",
-    "bytes": 860843,
-    "seconds": 6.47
+    "bytes": 698844,
+    "seconds": 6.07
   },
   "nav-orbit.gif": {
     "spec": "e2e/docs/viewport-navigation.docs.js",
     "specHash": "25296c2b88f0d19e1913aa210048daf54b5fee28e26cf0ef2534cab7eb57d9c8",
-    "bytes": 1185878,
+    "bytes": 1195757,
     "seconds": 5.08
   },
   "nav-pan.gif": {
     "spec": "e2e/docs/viewport-navigation.docs.js",
     "specHash": "25296c2b88f0d19e1913aa210048daf54b5fee28e26cf0ef2534cab7eb57d9c8",
-    "bytes": 1342781,
-    "seconds": 5.83
+    "bytes": 1386850,
+    "seconds": 6
   },
   "placement-snap-guides.gif": {
     "spec": "e2e/docs/primitive-placement.docs.js",
     "specHash": "648960e25bb25776223cdf8689f9d30a1b17656e7307f9117adfa98b9bfc92f6",
-    "bytes": 524945,
-    "seconds": 5.91
+    "bytes": 964802,
+    "seconds": 7.5
   },
   "primitive-drag-two.gif": {
     "spec": "e2e/docs/primitive-placement.docs.js",
     "specHash": "648960e25bb25776223cdf8689f9d30a1b17656e7307f9117adfa98b9bfc92f6",
-    "bytes": 1101454,
-    "seconds": 10.25
+    "bytes": 1105774,
+    "seconds": 10.08
   },
   "sketch-vertex-edit.gif": {
     "spec": "e2e/docs/sketch-vertex.docs.js",
     "specHash": "1a3482e8b4c693201dd561b667b833c46a1e9cec572855037ac1cc9511e6855c",
-    "bytes": 1404087,
-    "seconds": 8
+    "bytes": 1783297,
+    "seconds": 10.67
   },
   "align-to-origin.gif": {
     "spec": "e2e/docs/selection-inspector.docs.js",
     "specHash": "cf3cd63929982760d9ef1ad652948ce38c6e14a4413a10505a71f76d30139cf1",
-    "bytes": 198031,
-    "seconds": 5.58
+    "bytes": 583555,
+    "seconds": 6.41
   },
   "delete-body.gif": {
     "spec": "e2e/docs/selection-inspector.docs.js",
     "specHash": "cf3cd63929982760d9ef1ad652948ce38c6e14a4413a10505a71f76d30139cf1",
-    "bytes": 225736,
-    "seconds": 5.16
+    "bytes": 238214,
+    "seconds": 5.33
   },
   "gizmo-rotate.gif": {
     "spec": "e2e/docs/selection-inspector.docs.js",
     "specHash": "cf3cd63929982760d9ef1ad652948ce38c6e14a4413a10505a71f76d30139cf1",
-    "bytes": 1140486,
-    "seconds": 10.25
+    "bytes": 1099728,
+    "seconds": 9.5
   },
   "gizmo-translate.gif": {
     "spec": "e2e/docs/selection-inspector.docs.js",
     "specHash": "cf3cd63929982760d9ef1ad652948ce38c6e14a4413a10505a71f76d30139cf1",
-    "bytes": 1306287,
-    "seconds": 10.16
+    "bytes": 1250553,
+    "seconds": 9.25
   },
   "inspector-colour.gif": {
     "spec": "e2e/docs/selection-inspector.docs.js",
     "specHash": "cf3cd63929982760d9ef1ad652948ce38c6e14a4413a10505a71f76d30139cf1",
-    "bytes": 185266,
-    "seconds": 5.33
+    "bytes": 217644,
+    "seconds": 5.25
   },
   "inspector-numeric-edit.gif": {
     "spec": "e2e/docs/selection-inspector.docs.js",
     "specHash": "cf3cd63929982760d9ef1ad652948ce38c6e14a4413a10505a71f76d30139cf1",
-    "bytes": 228058,
-    "seconds": 5.75
+    "bytes": 234816,
+    "seconds": 5.83
   },
   "inspector-param-edit.gif": {
     "spec": "e2e/docs/selection-inspector.docs.js",
     "specHash": "cf3cd63929982760d9ef1ad652948ce38c6e14a4413a10505a71f76d30139cf1",
-    "bytes": 618766,
-    "seconds": 7.5
+    "bytes": 601350,
+    "seconds": 7.58
   },
   "select-click.gif": {
     "spec": "e2e/docs/selection-inspector.docs.js",
     "specHash": "cf3cd63929982760d9ef1ad652948ce38c6e14a4413a10505a71f76d30139cf1",
-    "bytes": 516589,
-    "seconds": 7.16
+    "bytes": 491397,
+    "seconds": 6.75
   },
   "select-marquee.gif": {
     "spec": "e2e/docs/selection-inspector.docs.js",
     "specHash": "cf3cd63929982760d9ef1ad652948ce38c6e14a4413a10505a71f76d30139cf1",
-    "bytes": 656806,
-    "seconds": 7.5
+    "bytes": 464026,
+    "seconds": 6.5
   },
   "boolean-bolt-hole.gif": {
     "spec": "e2e/docs/booleans.docs.js",
     "specHash": "1b2ee039d334460d9981c4ad1eaff85226f0407c12d9d6ac52baabf4b27a9def",
-    "bytes": 588682,
-    "seconds": 7.2
+    "bytes": 574910,
+    "seconds": 9.2
   },
   "boolean-intersect.gif": {
     "spec": "e2e/docs/booleans.docs.js",
     "specHash": "1b2ee039d334460d9981c4ad1eaff85226f0407c12d9d6ac52baabf4b27a9def",
-    "bytes": 570029,
-    "seconds": 8.4
+    "bytes": 596877,
+    "seconds": 8.3
   },
   "boolean-subpart-operand.gif": {
     "spec": "e2e/docs/booleans.docs.js",
     "specHash": "1b2ee039d334460d9981c4ad1eaff85226f0407c12d9d6ac52baabf4b27a9def",
-    "bytes": 674498,
-    "seconds": 9.4
+    "bytes": 747034,
+    "seconds": 11.5
   },
   "boolean-subtract.gif": {
     "spec": "e2e/docs/booleans.docs.js",
     "specHash": "1b2ee039d334460d9981c4ad1eaff85226f0407c12d9d6ac52baabf4b27a9def",
-    "bytes": 685006,
-    "seconds": 9.9
+    "bytes": 653793,
+    "seconds": 9.7
   },
   "boolean-union.gif": {
     "spec": "e2e/docs/booleans.docs.js",
     "specHash": "1b2ee039d334460d9981c4ad1eaff85226f0407c12d9d6ac52baabf4b27a9def",
-    "bytes": 694229,
+    "bytes": 676800,
     "seconds": 9.9
   },
   "boolean-subtract-order.gif": {
     "spec": "e2e/docs/booleans.docs.js",
     "specHash": "1b2ee039d334460d9981c4ad1eaff85226f0407c12d9d6ac52baabf4b27a9def",
-    "bytes": 850224,
-    "seconds": 11.5
+    "bytes": 1051343,
+    "seconds": 13.5
   },
   "group-combine.gif": {
     "spec": "e2e/docs/groups.docs.js",
     "specHash": "747ca1864691d7537ec47dbc1b6cb4aa0808572e4dc5eb29e3af83abcfaa2662",
-    "bytes": 1186195,
-    "seconds": 10.3
+    "bytes": 1485962,
+    "seconds": 12.5
   },
   "group-subpart-select.gif": {
     "spec": "e2e/docs/groups.docs.js",
     "specHash": "747ca1864691d7537ec47dbc1b6cb4aa0808572e4dc5eb29e3af83abcfaa2662",
-    "bytes": 723518,
-    "seconds": 8.4
+    "bytes": 777066,
+    "seconds": 8.9
   },
   "snap-operation.gif": {
     "spec": "e2e/docs/snap-align.docs.js",
     "specHash": "d652b8ad064a20cb3b21e60ff67a6f9f040be939b6c084619b164b2af167a754",
-    "bytes": 856279,
-    "seconds": 10.9
+    "bytes": 789373,
+    "seconds": 10.1
   },
   "align-operation.gif": {
     "spec": "e2e/docs/snap-align.docs.js",
     "specHash": "d652b8ad064a20cb3b21e60ff67a6f9f040be939b6c084619b164b2af167a754",
-    "bytes": 763294,
-    "seconds": 10.5
+    "bytes": 773637,
+    "seconds": 9.8
   },
   "snap-subpart-operand.gif": {
     "spec": "e2e/docs/snap-align.docs.js",
     "specHash": "d652b8ad064a20cb3b21e60ff67a6f9f040be939b6c084619b164b2af167a754",
-    "bytes": 711425,
+    "bytes": 652042,
     "seconds": 10.76
   },
   "mirror-operation.gif": {
     "spec": "e2e/docs/mirror.docs.js",
     "specHash": "caedadee1fa6ca0f12241dc1cd135a602dcecb00d7e1669916705920048a8fa6",
-    "bytes": 719477,
-    "seconds": 9.3
+    "bytes": 709525,
+    "seconds": 8.7
   },
   "resize-snapped-dependents.gif": {
     "spec": "e2e/docs/resize-bisect.docs.js",
     "specHash": "5a1a2ed3073ea0830edaa27227ecab7f1e916992a75d6b0f0088fe1d9bd48183",
-    "bytes": 285253,
-    "seconds": 6.1
+    "bytes": 448272,
+    "seconds": 7.1
   },
   "resize-enlarge.gif": {
     "spec": "e2e/docs/resize-bisect.docs.js",
     "specHash": "5a1a2ed3073ea0830edaa27227ecab7f1e916992a75d6b0f0088fe1d9bd48183",
-    "bytes": 684251,
-    "seconds": 9.6
+    "bytes": 722791,
+    "seconds": 10.6
   },
   "resize-fit.gif": {
     "spec": "e2e/docs/resize-bisect.docs.js",
     "specHash": "5a1a2ed3073ea0830edaa27227ecab7f1e916992a75d6b0f0088fe1d9bd48183",
-    "bytes": 764412,
-    "seconds": 10.5
+    "bytes": 1003100,
+    "seconds": 12.9
   },
   "fillet-operation.gif": {
     "spec": "e2e/docs/fillet-chamfer.docs.js",
     "specHash": "7ea6a7a0d32872f7c58535d00c3a8ae094b12e06e08b34b8511db1cdc666d764",
-    "bytes": 689600,
-    "seconds": 11.1
+    "bytes": 674366,
+    "seconds": 10.3
   },
   "chamfer-operation.gif": {
     "spec": "e2e/docs/fillet-chamfer.docs.js",
     "specHash": "7ea6a7a0d32872f7c58535d00c3a8ae094b12e06e08b34b8511db1cdc666d764",
-    "bytes": 634875,
-    "seconds": 10.5
+    "bytes": 647392,
+    "seconds": 10.2
   },
   "bisect-axis.gif": {
     "spec": "e2e/docs/resize-bisect.docs.js",
     "specHash": "5a1a2ed3073ea0830edaa27227ecab7f1e916992a75d6b0f0088fe1d9bd48183",
-    "bytes": 613445,
-    "seconds": 8.1
+    "bytes": 686873,
+    "seconds": 9.8
   },
   "bisect-angled.gif": {
     "spec": "e2e/docs/resize-bisect.docs.js",
     "specHash": "5a1a2ed3073ea0830edaa27227ecab7f1e916992a75d6b0f0088fe1d9bd48183",
-    "bytes": 680320,
-    "seconds": 8.9
+    "bytes": 767562,
+    "seconds": 10.5
   },
   "bom-updates.gif": {
     "spec": "e2e/docs/bill-of-materials.docs.js",
     "specHash": "3689ca84d12860213a52ffe0b013ecae3e67991a43d12e0742374b44be867f1b",
-    "bytes": 1234230,
-    "seconds": 10.9
+    "bytes": 1168621,
+    "seconds": 11.1
   },
   "hardware-drag-bolt.gif": {
     "spec": "e2e/docs/hardware-library.docs.js",
     "specHash": "9e0d23f4ba90a3fe59ae8b4933dd45870ba5262d9ef0509391632f84c06f01db",
-    "bytes": 1148914,
-    "seconds": 10.7
+    "bytes": 1167075,
+    "seconds": 9.7
   },
   "rpi-mounting-holes.gif": {
     "spec": "e2e/docs/hardware-library.docs.js",
     "specHash": "9e0d23f4ba90a3fe59ae8b4933dd45870ba5262d9ef0509391632f84c06f01db",
-    "bytes": 610888,
-    "seconds": 9.01
+    "bytes": 654609,
+    "seconds": 9.51
   },
   "timeline-edit-step.gif": {
     "spec": "e2e/docs/timeline.docs.js",
     "specHash": "83df77413f582c740af185871555ea3786bc7aa4cb2ffd2ca17ac43862827403",
-    "bytes": 818420,
-    "seconds": 11.3
+    "bytes": 1119665,
+    "seconds": 12.5
   },
   "timeline-rewind.gif": {
     "spec": "e2e/docs/timeline.docs.js",
     "specHash": "83df77413f582c740af185871555ea3786bc7aa4cb2ffd2ca17ac43862827403",
-    "bytes": 984474,
-    "seconds": 11.1
+    "bytes": 1218438,
+    "seconds": 11.9
   },
   "undo-param-edit.gif": {
     "spec": "e2e/docs/undo-redo.docs.js",
     "specHash": "ff62a16aac91e58cb850990269462d79e333c0ffe83bf04861ed3cac8f5cffa5",
-    "bytes": 280276,
-    "seconds": 6.41
+    "bytes": 503225,
+    "seconds": 7.5
   },
   "undo-redo-roundtrip.gif": {
     "spec": "e2e/docs/undo-redo.docs.js",
     "specHash": "ff62a16aac91e58cb850990269462d79e333c0ffe83bf04861ed3cac8f5cffa5",
-    "bytes": 997287,
-    "seconds": 11.63
+    "bytes": 1280036,
+    "seconds": 12.63
   },
   "export-download.gif": {
     "spec": "e2e/docs/export.docs.js",
     "specHash": "7926c3da4b109dd4ede16682430a04d416fb316df2c96f1b4aab7c0361ce2cba",
-    "bytes": 511010,
-    "seconds": 10.01
+    "bytes": 563682,
+    "seconds": 10.51
   },
   "open-project.gif": {
     "spec": "e2e/docs/save-load.docs.js",
     "specHash": "95d20bb573e66d395ab8c3f65b80782b05a22e23facbecb938a51dcf497f09a4",
-    "bytes": 423588,
-    "seconds": 5.88
+    "bytes": 577088,
+    "seconds": 6.76
   },
   "save-reload-roundtrip.gif": {
     "spec": "e2e/docs/save-load.docs.js",
     "specHash": "95d20bb573e66d395ab8c3f65b80782b05a22e23facbecb938a51dcf497f09a4",
-    "bytes": 1018614,
-    "seconds": 9.63
+    "bytes": 1168443,
+    "seconds": 10.76
   },
   "sketch-draw-line.gif": {
     "spec": "e2e/docs/sketch-mode.docs.js",
     "specHash": "28e90ee5d5f52649382d41745c0a8c9245b820608605ad020e0608aac1499445",
-    "bytes": 873450,
-    "seconds": 8.54
+    "bytes": 1142761,
+    "seconds": 11.2
   },
   "sketch-extrude.gif": {
     "spec": "e2e/docs/sketch-mode.docs.js",
     "specHash": "28e90ee5d5f52649382d41745c0a8c9245b820608605ad020e0608aac1499445",
-    "bytes": 1332694,
-    "seconds": 10.38
+    "bytes": 1828694,
+    "seconds": 12.26
   },
   "sketch-hole.gif": {
     "spec": "e2e/docs/sketch-mode.docs.js",
     "specHash": "28e90ee5d5f52649382d41745c0a8c9245b820608605ad020e0608aac1499445",
-    "bytes": 1065543,
-    "seconds": 9.27
+    "bytes": 1250213,
+    "seconds": 9.74
   },
   "sketch-place.gif": {
     "spec": "e2e/docs/sketch-mode.docs.js",
     "specHash": "28e90ee5d5f52649382d41745c0a8c9245b820608605ad020e0608aac1499445",
-    "bytes": 797126,
-    "seconds": 5.67
+    "bytes": 988161,
+    "seconds": 6.2
   },
   "mobile-drag-cube.gif": {
     "spec": "e2e/docs/mobile.docs.js",
     "specHash": "f5a67bfafa51f7476dba2ba765f000af665a7fb8cf9b0b72b0820e49a6f90a1c",
-    "bytes": 240822,
+    "bytes": 263332,
     "seconds": 5.8
   },
   "mobile-subtract.gif": {
     "spec": "e2e/docs/mobile.docs.js",
     "specHash": "f5a67bfafa51f7476dba2ba765f000af665a7fb8cf9b0b72b0820e49a6f90a1c",
-    "bytes": 306226,
-    "seconds": 5.1
+    "bytes": 397767,
+    "seconds": 5.3
   },
   "mobile-pinch-pan.gif": {
     "spec": "e2e/docs/mobile.docs.js",
     "specHash": "f5a67bfafa51f7476dba2ba765f000af665a7fb8cf9b0b72b0820e49a6f90a1c",
-    "bytes": 1374517,
-    "seconds": 8.26
+    "bytes": 1519710,
+    "seconds": 9.01
   },
   "tour.gif": {
     "spec": "e2e/docs/getting-started.docs.js",
-    "specHash": "cb161d34ccac381c3acc26492351cb070b95cf0893d81ac8b3aeabf1ceb0e707",
-    "bytes": 1309436,
-    "seconds": 17,
-    "maxSeconds": 20
+    "specHash": "9f2665ace1bd53a9e8923698f38df7fbb0b23a71d50d59fa13f08d09cbde6a3b",
+    "bytes": 1691347,
+    "seconds": 23.6,
+    "maxSeconds": 30
   },
   "sketch-snap.gif": {
     "spec": "e2e/docs/sketch-snap.docs.js",
     "specHash": "3add15e9b455d019cf3c76ee87579d8ae422e09bcb846ebb5f101968e1dc4506",
-    "bytes": 1080897,
-    "seconds": 9
+    "bytes": 1256531,
+    "seconds": 10.94
   },
   "sketch-trace-scale.gif": {
     "spec": "e2e/docs/sketch-tracing.docs.js",
-    "specHash": "a7af60ddf8f17723cdb90965b3486d97f3e2f3a7059a569fdfc8f8577cc079b5",
-    "bytes": 1179563,
-    "seconds": 11.2
+    "specHash": "7f6659b72e540047a6b097837a8cc23cf728d7ac125a5a4f2bb8ec3e0ea4e08b",
+    "bytes": 1495724,
+    "seconds": 13.2
   },
   "sketch-trace-auto.gif": {
     "spec": "e2e/docs/sketch-auto-trace.docs.js",
-    "specHash": "01412078f111307101e87d7bbb1fe4e3050280548a96a7c3984644467eea6bef",
-    "bytes": 1095843,
-    "seconds": 9.07
+    "specHash": "5232d03e0144e8425da56373a7e9bad2cabaa9db410733831e7df453d9e2585f",
+    "bytes": 1119535,
+    "seconds": 11.8
   }
 }
