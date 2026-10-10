@@ -496,6 +496,7 @@ a scripted transcript proves plumbing, never that the model's choices are good
 | ✅ `core-037` | User-defined library parts — data-defined composite, parameters, project + local library, hostile-input caps | Creation | `core-013` | 3, 5, 6, 10; `core-020/024`, `ui-030` repros |
 | ✅ `core-054` | Saving a group as a user part drops its user colour overrides | Finding | `core-037`, `ui-055` | 3, 6 |
 | `core-053` | Export at another resolution drops the Leave-broken flag (`refoldRequestOf`) — a project with a left-broken row cannot export | Finding | `core-035`, `ui-052` | 11 (re-run `core-035` repro) |
+| `core-055` | Re-capturing a placed user part whose definition ends in a translate refuses on the exact-geometry check (found by `core-054`, reproduces at baseline) | Finding | `core-037`, `core-054` | 3, 6 |
 | ✅ `ui-055` | Save to library and **My parts** — sheet, ⋯ menu, drag-to-place, import/export a part file | Creation | `core-037`, `ui-015` | 3, 6, 1; `ui-030/031/053/054` |
 | `ai-008` | Drawing → group — scale first (ask, never invent), image tools, overlay verification, confirm-before-save | Creation | `ai-005`, `ai-007`, `sketch-003`, `core-037`, `ui-055` | 18 (new), 9, 3, 10 |
 | `ai-009` | MCP server in `mcp/` — same tools over stdio, closed project file, atomic append, `mcp` origin | Creation | `ai-001`, `ai-002`, `ai-003` | 10, 12; `io-001`, `data-004` |
