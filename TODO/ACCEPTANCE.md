@@ -78,6 +78,8 @@ drops (dropping the second body must not hide or replace the first). Clicking ea
 individually selects only that item (gizmo and dimension lines attach to whichever was
 just clicked, not both at once).
 
+**Last run**: 2026-10-10 22:14 UTC (`ai-010`) — **PASS** at laptop 1440x900 Chromium (real mouse, jittered Library drags). Cube then Cylinder dropped: both remained (*2 objects*); a click on open grid cleared the selection (0), the cube selected exactly one body, the cylinder exactly one. Re-driven because the assistant store and chat panel changed (a developer-only scripted mode). Console clean.
+
 **Last run**: 2026-10-10 19:46 UTC (`ai-008`) — **PASS** at laptop 1440x900 Chromium (real mouse, jittered Library drags). Cube then Cylinder dropped: both remained (*2 objects*); a click on open grid cleared the selection (0), the cube selected exactly one body, the cylinder exactly one. Re-driven because `Viewport.vue` gained an image-file drop route. Console clean.
 
 **Last run**: 2026-10-10 07:25 UTC (`ui-055`) — **PASS** at laptop 1440x900 on Chromium and WebKit (real jittered mouse), plus the new spec's trusted touch at 390x844 on Chromium. Cube then Cylinder dropped: both remained (2); a click on open grid cleared the selection (0); the cube selected only `cuboid-1`, the cylinder only `cylinder-2`; the first body's centre was byte-identical after the second drop. A saved Standoff dropped after a Cube did not replace it (2 bodies: `primitive.cuboid`, `user.standoff`).
@@ -3623,6 +3625,40 @@ selected; History reads `Mirror <name>`; a mirrored composite keeps only its own
 **Last run**: 2026-10-01 21:12 UTC (`ui-039`, **first drive**) — PASS at laptop 1440x900 Chromium (real mouse, wobbly drags; axis changed X then Y before committing). Steps 1-3: Cube and Sphere placed, Mirror about Y at 0 added `Mirror 1` at exactly the negated Y of the sphere (35.99,81.26 became 35.99,-81.26, same volume 33271.771), the originals' centres byte-identical, the copy selected. Step 5 (the `core-020` repro): Bolt mirrored across X gave a copy of volume 2920.801, equal to the bolt's own, and the Cube was not absorbed. Undo is covered by the new e2e at all three viewports; the History label (`Mirror Cube 1`) was checked directly rather than through the panel. **Mistake on purpose:** blank plane on a symmetric sphere still adds a body, sitting exactly on the original (invisible), which the popover's hint says. Phone WebKit: Mirror on a dropped sphere PASS; the Bolt drop in my throwaway drive script missed the Library sheet, so step 5 was driven at laptop only. Console clean.
 
 **Last run**: 2026-10-03 14:49 UTC (`docs-012`) — PASS at laptop 1440x900 Chromium, real mouse with a wobbly path. Cube and Sphere dropped apart (`-7.94,84.12,20` and `20.52,-90.16,20`); the Sphere selected through its Objects row, Mirror opened and the plane changed three times (X, Z, Y) before committing on Y: three bodies, the Cube and Sphere centres byte-identical, a `Mirror 1` at `20.52,90.16,20` with the Sphere's volume (33271.771), and it was the selection. Undo left 2 bodies, Redo 3. A Bolt dragged in and mirrored across X: the copy `Mirror 2` at `-126.45,-40.52,13.25` (the Bolt's X negated, Y and Z unchanged) with the Bolt's own volume (2920.801), five bodies in all, nothing swallowed. Console clean. Phone not driven.
+
+### 17. Airfoil and wing, ready to print
+
+Added 2026-10-10 with `ai-010`. 17 was reserved for it, and 18 (written with `ai-008`) follows. It is
+the first scenario where the **model** chooses the whole job from one sentence: which sketch, which
+parts, what to assume. A scripted provider plays its *plumbing* in `e2e/ai-scripted.e2e.js`
+(a recorded transcript of what a sensible model would call); that proves the path from chat to
+tools to viewport works, **not** that a model makes good choices. Only a live run with a real key
+does, driven by a person at laptop and at phone width (touch), with the transcript saved under
+`bench/results/ai/` and its cost logged, not hidden.
+
+**Steps**:
+1. With a key saved, open **Assistant** and type, verbatim: *Use the sketch tool to create an
+   airfoil for a model plane wing, create the wing then the rest of the model so I can 3D print
+   it.* and Send.
+2. If it asks a question, answer it. If it states assumptions instead, note them.
+3. Watch the viewport while it works. When it finishes, read the reply and click each body in the
+   **Objects** list.
+4. Press **Undo AI turn**. Look. Then **Redo** the work by sending the same sentence again.
+5. **Export** the result (**File ▾ → Export**) and open the STL(s) in a slicer or viewer.
+6. *Drive it differently on purpose:* send the sentence again and press **Stop** mid-turn, then
+   Send a follow-up: *make the wing 20 % longer*.
+
+**Expect**: The reply either asks a sensible question or **states its assumptions** (section, chord,
+span, printer size) instead of presenting guesses as facts. A **sketch with an airfoil outline** and a
+**lofted wing** appear, then further parts (fuselage, tail). Its reply reports **bed fit** from
+`check_printability`. **Every body is visible and none replaced another** (scenario 1's lesson),
+each listed in Objects with a believable size. **Undo AI turn removes the whole turn in one
+step**, wing and the rest together. Export gives manifold STL(s). After **Stop**, the document holds
+only what had landed (nothing from the half-finished turn), and the follow-up **edits the existing
+wing** (no new body, its span about 20 % longer) rather than building a second one.
+
+**Last run**: — (not yet driven live: needs a real key; the plumbing is covered by
+`e2e/ai-scripted.e2e.js`, which is **not** this scenario)
 
 ### 18. A drawing becomes a library part
 

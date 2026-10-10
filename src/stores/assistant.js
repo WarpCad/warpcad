@@ -15,6 +15,9 @@
  * - `forget()` — delete it, everywhere, and return to the empty key sheet.
  * - `client()` — the provider client for `ai-005`: it reads the key from this module's closure
  *   per call, so the agent never holds it.
+ * - `scripted` (`TODO/ai-010`) — a developer-only mode: when a dev build is started with a
+ *   transcript on `globalThis.__WARPCAD_SCRIPTED__`, `client()` is the scripted provider, the panel
+ *   wears a "Scripted" badge, and the real key store is never read, written or forgotten.
  * - Getters: `hasKey`, `persisted`, `storageNote` (the visible "this session only" note),
  *   `dotState` (`none` | `saved` | `ok` | `failed`, shape-coded like `HostedDot`), `statusText`.
  *
@@ -31,6 +34,7 @@ import { computed, ref } from 'vue'
 
 import { createAnthropicClient } from '../ai/client.js'
 import { modelLabel } from '../ai/models.js'
+import { createScriptedClient } from '../ai/providers/scripted.js'
 import { createAiKeyStore } from '../storage/aiKey.js'
 import { useSettingsStore } from './settings.js'
 
@@ -89,7 +93,13 @@ export const useAssistantStore = defineStore('assistant', () => {
   let startPromise = null
 
   const model = computed(() => settings.aiModel)
-  const modelName = computed(() => modelLabel(settings.aiModel))
+  /** A recorded transcript stands in for the model (dev builds only, `TODO/ai-010`). */
+  const scripted = ref(false)
+  const scriptedName = ref('')
+  /** @type {import('../ai/client.js').AiClient | null} */
+  let scriptedClient = null
+
+  const modelName = computed(() => (scripted.value ? 'Scripted' : modelLabel(settings.aiModel)))
   const storageNote = computed(() => (hasKey.value && !persisted.value ? SESSION_ONLY_NOTE : ''))
 
   const dotState = computed(() => {
@@ -100,6 +110,7 @@ export const useAssistantStore = defineStore('assistant', () => {
   })
 
   const statusText = computed(() => {
+    if (scripted.value) return `Scripted transcript “${scriptedName.value}” — no model, no key`
     if (!hasKey.value) return 'No key — paste one to connect'
     if (status.value === 'testing') return 'Testing the key…'
     if (status.value === 'ok') return `Connected — ${modelName.value}`
@@ -110,6 +121,18 @@ export const useAssistantStore = defineStore('assistant', () => {
   /** @returns {Promise<void>} */
   function start() {
     startPromise ??= (async () => {
+      // The transcript is read only in a dev build: a production page cannot be switched onto it.
+      const transcript = import.meta.env.DEV ? /** @type {any} */ (globalThis).__WARPCAD_SCRIPTED__ : undefined
+      if (transcript !== undefined && transcript !== null) {
+        scriptedClient = createScriptedClient(transcript)
+        scripted.value = true
+        scriptedName.value = String(transcript.name ?? 'unnamed')
+        hasKey.value = true
+        persisted.value = true
+        status.value = 'ok'
+        loaded.value = true
+        return
+      }
       const stored = await deps.keyStore.load()
       key = stored.key
       hasKey.value = key !== null
@@ -122,6 +145,7 @@ export const useAssistantStore = defineStore('assistant', () => {
 
   /** @returns {import('../ai/client.js').AiClient} */
   function client() {
+    if (scriptedClient !== null) return scriptedClient
     return createAnthropicClient({
       getKey: () => key,
       getModel: () => settings.aiModel,
@@ -132,6 +156,7 @@ export const useAssistantStore = defineStore('assistant', () => {
 
   /** @returns {Promise<{ ok: true } | { ok: false, kind: string, message: string }>} */
   async function test() {
+    if (scripted.value) return { ok: true }
     if (key === null) {
       return { ok: false, kind: 'no-key', message: 'No API key is stored. Paste one in the Assistant key sheet.' }
     }
@@ -153,6 +178,8 @@ export const useAssistantStore = defineStore('assistant', () => {
    * @param {string} pasted
    */
   async function saveKey(pasted) {
+    // Scripted mode never reaches the real key store, so a developer's own key is not touched.
+    if (scripted.value) return { ok: true }
     const saved = await deps.keyStore.save(pasted)
     key = (await deps.keyStore.load()).key
     hasKey.value = key !== null
@@ -161,6 +188,7 @@ export const useAssistantStore = defineStore('assistant', () => {
   }
 
   async function forget() {
+    if (scripted.value) return
     await deps.keyStore.forget()
     key = null
     hasKey.value = false
@@ -200,6 +228,8 @@ export const useAssistantStore = defineStore('assistant', () => {
     storageNote,
     dotState,
     statusText,
+    scripted,
+    scriptedName,
     start,
     client,
     test,

@@ -141,6 +141,7 @@ const HEIGHTS = /** @type {const} */ ([
     <header class="chat__head">
       <ConnectionDot :state="assistant.dotState" testid="assistant-panel-dot" />
       <strong class="chat__title">Assistant</strong>
+      <span v-if="assistant.scripted" class="chat__scripted" role="note" title="A recorded transcript is standing in for the model. Nothing here shows what the live model would do." data-testid="ai-scripted-badge">Scripted</span>
       <span class="chat__status" role="status" data-testid="ai-status">{{ statusLine }}</span>
       <div class="chat__heights" role="group" aria-label="Assistant height">
         <button
@@ -167,7 +168,7 @@ const HEIGHTS = /** @type {const} */ ([
         </p>
         <p class="chat__model">
           Model: <strong data-testid="assistant-model-name">{{ assistant.modelName }}</strong>
-          <button type="button" class="chat__link" data-testid="assistant-keys" @click="assistant.openKeySheet()">Key and model…</button>
+          <button v-if="!assistant.scripted" type="button" class="chat__link" data-testid="assistant-keys" @click="assistant.openKeySheet()">Key and model…</button>
         </p>
         <p v-if="assistant.storageNote" class="chat__warn" role="status" data-testid="assistant-storage-note">
           {{ assistant.storageNote }}
@@ -268,6 +269,18 @@ const HEIGHTS = /** @type {const} */ ([
   align-items: center;
   gap: 8px;
   min-height: var(--tap);
+}
+
+.chat__scripted {
+  flex: none;
+  padding: 2px 8px;
+  border: 1px dashed var(--warn, #b7791f);
+  border-radius: 999px;
+  color: var(--warn, #b7791f);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 .chat__title {

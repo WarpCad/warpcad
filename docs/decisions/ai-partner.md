@@ -586,6 +586,30 @@ ones.
 
 ---
 
+## What a scripted run proves (and what it cannot)
+
+`ai-010` adds a **scripted provider** (`src/ai/providers/scripted.js`): the `AiClient` replayed from
+a recorded or hand-written list of model replies, so a spec can drive the **real** agent loop,
+tool registry, document, kernel worker and viewport with no network and no key. It is a boundary
+mock in `CLAUDE.md`'s sense.
+
+- **It proves the plumbing.** A reply streams in chunks that split words; a tool call lands on the
+  real registry; the document changes and the viewport shows every body; Stop lands nothing; Undo
+  AI turn removes the whole turn; a follow-up edits instead of duplicating; a library save waits
+  for Confirm.
+- **It never proves the model's choices are good.** Which airfoil it picks, whether it asks about a
+  connector height, whether its overlay residual is honest: only the live runs of scenarios 17 and 18
+  in `TODO/ACCEPTANCE.md`, and `ai-011`'s eval, say anything about those. A green scripted run is
+  evidence about *our code*, never about the model.
+- **It cannot be mistaken for the model.** The chat panel wears a **Scripted** badge, the status
+  line says "no model, no key", and the mode exists only in a dev build: a transcript on
+  `window.__WARPCAD_SCRIPTED__` is read only when `import.meta.env.DEV` is true, and a spec runs the
+  production build to prove it is ignored there. It never reads, writes or forgets the real key.
+- **A stale transcript fails, it does not pass.** Each transcript carries a hash of the input
+  schema of every tool it calls. When a schema changes, the unit stage fails with "re-record" and
+  the scripted client refuses to play the stale call. The fix is to update the calls, run the
+  browser spec, and only then run `npm run ai:stamp`.
+
 ## CRDT, explicitly: would a CRDT help the AI co-editor?
 
 **No.** That was the starting position (user, 2026-10-02), and nothing in decisions 1-8

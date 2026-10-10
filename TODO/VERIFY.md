@@ -34,6 +34,17 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### ai-010 — Scenarios 17 and 18 have never been run with a real model (2026-10-10 22:14)
+
+The scripted provider proves the **plumbing** of both scenarios (Chromium and WebKit, three viewports, plus a hand-drive at laptop and phone width). It cannot say whether a model makes good choices, and no real key has been used.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | **Run scenario 17 live** with a real key at laptop and at phone (touch), exactly as `TODO/ACCEPTANCE.md` says, and save the transcript and cost under `bench/results/ai/`. A FAIL recorded as FAIL is a good result | Open | |
+| 2 | **Run scenario 18 live** with a real key (`e2e/fixtures/drawing-board-85x56.png`): does it read the callouts, set scale first, ask about or flag the connector heights, and give an honest overlay residual? (also `ai-008` VERIFY row 1) | Open | |
+| 3 | Real finding to watch in the live 17 run: the airfoil's default **knife-edge trailing edge is a 0 mm wall**, which `check_printability` flags as unprintable at a 0.4 mm nozzle. Does the real model notice the warning and fix it (blunt trailing edge), or report the wing as printable? Product call: should the airfoil default to a blunt trailing edge? | Open | |
+| 4 | Product call: transcripts are hand-written, not recorded. Is it worth adding a recorder (save a live run as a transcript) once a live run exists? | Open | |
+
 ### ai-009 — MCP server and the disk-change prompt: what only a real client and real devices can show (2026-10-10 21:18)
 
 The server is covered by Node integration specs, a two-engine e2e at three viewports and a raw-protocol hand-drive; a real Claude Code session and the non-Chromium engines are not.

@@ -6,8 +6,10 @@ priority: high
 model: sonnet
 milestone: M9
 depends: [ai-006]
-status: open
+status: done
 ---
+
+> **Retired 2026-10-10 (`/fix-todo ai-010`).** The scripted provider and scenario 17 shipped; **the live run did not happen**, and the file's own rule applies: *"a FAIL recorded as FAIL is a successful outcome"*, and a run that was not done is recorded as not done. Scenarios 17 and 18 are still **not driven with a real key**: that needs the user's key, which an agent must not enter. Differences from the file: (1) Scenario 18 was already in `ACCEPTANCE.md` (written with `ai-008`), so this task wrote only **17**; there is no status table to extend (the file has none, and a table would cut against its "fixed and small" rule). (2) `src/ai/providers/scripted.js` is wired into the assistant store, **dev builds only** (`window.__WARPCAD_SCRIPTED__`, honoured only when `import.meta.env.DEV`; a spec runs the production build to prove it is ignored there), shows a **Scripted** badge, and never reads, writes or forgets the real key. (3) The two transcripts in `e2e/fixtures/ai/` are **hand-written, not recorded** (no live model run exists to record from); each carries a hash of the input schema of every tool it calls, so a changed schema fails the unit stage with "re-record" and `npm run ai:stamp` restamps after the calls are checked. Transcripts also support `$last:<prefix>` and `$all:<prefixes>` placeholders because the app, not the script, issues body ids. (4) The fixture-reading specs live in `scripts/ai-fixtures.spec.js`, not `src/`, because `src/` is typechecked without Node types. (5) `src/shims.d.ts` now types `import.meta.env` (first use in `src/`). **Found by running the real tools under the script:** the airfoil's default knife-edge trailing edge is a **0 mm wall**, which `check_printability` flags (*thinner than the 0.4 mm nozzle*); my first transcript glossed over it, which was the kind of misleading green this task exists to prevent, so the reply now says so and a spec asserts it.
 
 ## Goal
 

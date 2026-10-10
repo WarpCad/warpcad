@@ -24,6 +24,7 @@
     "fixtures:v1-screw": "node scripts/generate-v1-screw-fixture.cjs",
     "test": "npm run typecheck && npm run test:unit -- --run && npm run test:e2e:headless",
     "spdx": "node scripts/spdx.mjs",
+    "ai:stamp": "node scripts/stamp-ai-fixtures.mjs",
     "mcp": "node mcp/server.js",
     "mcp:install": "npm --prefix mcp ci",
     "mcp:licenses": "npm --prefix mcp run licenses",

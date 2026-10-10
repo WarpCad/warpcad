@@ -1,0 +1,257 @@
+{
+  "name": "drawing-board",
+  "tools": {
+    "apply_records": "0f2a136d",
+    "capture_view": "c91b5e58",
+    "locate_in_image": "3d21e121",
+    "save_to_library": "662a2758",
+    "set_reference_scale": "2d1a0e51"
+  },
+  "turns": [
+    {
+      "text": "Dimensions read from the drawing (mm): board 85 × 56 (plan), thickness 1.6 (side view), holes 4× Ø2.7 at 3.5 from the edges, spacing 58 × 49, USB-A width 13, Ethernet width 16. The connector heights are not printed.",
+      "calls": [
+        {
+          "name": "set_reference_scale",
+          "input": {
+            "sliceId": "attachment-1",
+            "fromPx": [
+              175,
+              110
+            ],
+            "toPx": [
+              1025,
+              110
+            ],
+            "distanceMm": 85,
+            "label": "board length",
+            "checks": [
+              {
+                "label": "board width",
+                "fromPx": [
+                  1085,
+                  170
+                ],
+                "toPx": [
+                  1085,
+                  730
+                ],
+                "distanceMm": 56
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "calls": [
+        {
+          "name": "locate_in_image",
+          "input": {
+            "sliceId": "attachment-1",
+            "query": "board outline",
+            "boxesPx": [
+              [
+                175,
+                170,
+                1025,
+                730
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "calls": [
+        {
+          "name": "apply_records",
+          "input": {
+            "steps": [
+              {
+                "create": {
+                  "op": "primitive.sketch",
+                  "positionMm": [
+                    0,
+                    0,
+                    0
+                  ],
+                  "params": {
+                    "slices": [
+                      {
+                        "id": "s1",
+                        "zMm": 0,
+                        "referenceImage": "attachment-1",
+                        "profiles": [
+                          {
+                            "id": "outline",
+                            "kind": "rect",
+                            "role": "solid",
+                            "centerMm": [
+                              0,
+                              0
+                            ],
+                            "widthMm": 85,
+                            "heightMm": 56
+                          },
+                          {
+                            "id": "h1",
+                            "kind": "circle",
+                            "role": "hole",
+                            "centerMm": [
+                              -39,
+                              24.5
+                            ],
+                            "radiusMm": 1.35
+                          },
+                          {
+                            "id": "h2",
+                            "kind": "circle",
+                            "role": "hole",
+                            "centerMm": [
+                              19,
+                              24.5
+                            ],
+                            "radiusMm": 1.35
+                          },
+                          {
+                            "id": "h3",
+                            "kind": "circle",
+                            "role": "hole",
+                            "centerMm": [
+                              -39,
+                              -24.5
+                            ],
+                            "radiusMm": 1.35
+                          },
+                          {
+                            "id": "h4",
+                            "kind": "circle",
+                            "role": "hole",
+                            "centerMm": [
+                              19,
+                              -24.5
+                            ],
+                            "radiusMm": 1.35
+                          }
+                        ]
+                      }
+                    ],
+                    "extrusion": {
+                      "method": "linear",
+                      "heightMm": 1.6
+                    }
+                  }
+                }
+              },
+              {
+                "create": {
+                  "op": "primitive.cuboid",
+                  "positionMm": [
+                    36,
+                    19.5,
+                    1.6
+                  ],
+                  "params": {
+                    "size": [
+                      17,
+                      13,
+                      16
+                    ]
+                  }
+                }
+              },
+              {
+                "create": {
+                  "op": "primitive.cuboid",
+                  "positionMm": [
+                    36,
+                    1.5,
+                    1.6
+                  ],
+                  "params": {
+                    "size": [
+                      17,
+                      13,
+                      16
+                    ]
+                  }
+                }
+              },
+              {
+                "create": {
+                  "op": "primitive.cuboid",
+                  "positionMm": [
+                    34,
+                    -18,
+                    1.6
+                  ],
+                  "params": {
+                    "size": [
+                      21,
+                      16,
+                      13.5
+                    ]
+                  }
+                }
+              },
+              {
+                "operate": {
+                  "op": "group.assemble",
+                  "operands": [
+                    {
+                      "id": "@1"
+                    },
+                    {
+                      "id": "@2"
+                    },
+                    {
+                      "id": "@3"
+                    },
+                    {
+                      "id": "@4"
+                    }
+                  ],
+                  "params": {
+                    "names": [
+                      "Board",
+                      "USB-A 1",
+                      "USB-A 2",
+                      "Ethernet"
+                    ]
+                  }
+                }
+              }
+            ],
+            "rationale": "Board with its holes from the drawing, connectors as named parts (heights assumed: 16 and 13.5 mm)"
+          }
+        }
+      ]
+    },
+    {
+      "calls": [
+        {
+          "name": "capture_view",
+          "input": {
+            "view": "top",
+            "overlay": "reference"
+          }
+        }
+      ]
+    },
+    {
+      "calls": [
+        {
+          "name": "save_to_library",
+          "input": {
+            "id": "$last:group",
+            "name": "WC-85 board"
+          }
+        }
+      ]
+    },
+    {
+      "text": "Built the WC-85 board as a group: Board, USB-A 1, USB-A 2, Ethernet. Assumed (not printed): USB-A height 16 mm, Ethernet height 13.5 mm. The overlay matches to within about 0.5 mm. Tap Confirm to save it to My parts."
+    }
+  ]
+}

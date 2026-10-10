@@ -59,6 +59,59 @@ describe('the assistant store', () => {
     vi.unstubAllGlobals()
   })
 
+  describe('scripted mode (TODO/ai-010)', () => {
+    const transcript = { name: 'unit', tools: {}, turns: [{ text: 'Hello from the script.' }] }
+    afterEach(() => {
+      delete globalThis.__WARPCAD_SCRIPTED__
+    })
+
+    it('a transcript on the global puts the store in scripted mode: connected, labelled, and client() is the script', async () => {
+      globalThis.__WARPCAD_SCRIPTED__ = transcript
+      install()
+      const assistant = useAssistantStore()
+      await assistant.start()
+      expect(assistant.scripted).toBe(true)
+      expect(assistant.hasKey).toBe(true)
+      expect(assistant.dotState).toBe('ok')
+      expect(assistant.modelName).toBe('Scripted')
+      expect(assistant.statusText).toContain('no model, no key')
+      assistant.open()
+      expect(assistant.view).toBe('chat')
+      const events = []
+      for await (const event of assistant.client().stream({ system: '', messages: [] })) events.push(event)
+      expect(events.filter((event) => event.type === 'text').map((event) => event.text).join('')).toBe('Hello from the script.')
+      expect(await assistant.test()).toEqual({ ok: true })
+    })
+
+    it('never reads, writes or forgets the real key, and never touches the network', async () => {
+      globalThis.__WARPCAD_SCRIPTED__ = transcript
+      const { credentials, fetchImpl } = install()
+      await createAiKeyStore({ credentials }).save(KEY)
+      const read = vi.spyOn(credentials, 'read')
+      const write = vi.spyOn(credentials, 'write')
+      const clear = vi.spyOn(credentials, 'clear')
+      const assistant = useAssistantStore()
+      await assistant.start()
+      await assistant.saveKey('sk-ant-api03-another-0123456789')
+      await assistant.forget()
+      for await (const event of assistant.client().stream({ system: '', messages: [] })) void event
+      expect(read).not.toHaveBeenCalled()
+      expect(write).not.toHaveBeenCalled()
+      expect(clear).not.toHaveBeenCalled()
+      expect(fetchImpl).not.toHaveBeenCalled()
+      // The developer's real key is still there.
+      expect(JSON.stringify([...credentials.data.entries()])).toContain(KEY)
+    })
+
+    it('without a transcript the store is not scripted', async () => {
+      install()
+      const assistant = useAssistantStore()
+      await assistant.start()
+      expect(assistant.scripted).toBe(false)
+      expect(assistant.modelName).not.toBe('Scripted')
+    })
+  })
+
   it('starts with no key: the dot is none, and opening goes to the key sheet, not the chat', async () => {
     install()
     const assistant = useAssistantStore()

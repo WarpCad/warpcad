@@ -29,3 +29,10 @@ declare module '*?raw' {
   const source: string
   export default source
 }
+
+// `import.meta.env` is replaced by Vite at build time. Only the flags the app reads are
+// declared (`DEV` gates the developer-only scripted provider, `TODO/ai-010`), rather than
+// pulling in all of `vite/client`'s ambient types.
+interface ImportMeta {
+  readonly env: { readonly DEV: boolean; readonly PROD: boolean; readonly MODE: string }
+}
