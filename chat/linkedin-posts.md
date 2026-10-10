@@ -2080,3 +2080,20 @@ Because a project file or gist is text from someone else, a part cannot run anyt
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** fixed Library, op-record parts, 16 parameters, composite registration, definitions on the project -> docs/decisions/user-library.md; four hostile cases opened with a warning -> hand drive this session on Chromium and WebKit; save control is ui-055 -> TODO/ROADMAP.md
 **To Add:** none until ui-055 ships
+
+## [2026-10-10T07:40:00Z] — A saved part has to come back whole, and three bugs only a hand could find
+
+**Post:** You can now select a group in WarpCad, name it, and save it. It appears under My parts in the Library, in every new project and after a reload, and you drag it into the view like any built-in part.
+
+The test I cared about was not "a row appears". It was: build a Cube and a Cylinder into a group, save it, reload, start a new project, drag it back in, and check that what lands is the same thing: one body, the same two named sub-parts, the same overall size. That is a spec on all three browser engines at phone, tablet and laptop width. A group can also expose chosen sizes, so one saved Standoff can be placed tall in one spot and short in another; they appear as ordinary fields in the Inspector.
+
+What the spec could not tell me came from driving it with a real mouse and trusted touch at 390 px. The row's ⋯ menu opened below the bottom of the window for a row at the end of the column. At phone width the Inspector's collapsed tab sat over the last Library row, so the newest part could not be scrolled clear of it. And a visually hidden file input, added for importing a part file, quietly grew the page in WebKit and Firefox and shifted the click points of an unrelated spec, which is how the full run caught it.
+
+One gap I left open and filed: a colour you set by hand on a group is not carried into the saved part.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** round trip → `e2e/user-library.e2e.js`: dropped part's `inspector-fit-bounds` equals the original's and its parts equal the original's, after reload and File > New; 36 runs (4 tests x 3 viewports x 3 engines) passed; menu → popover top 997 in a 900 px window; tab → `elementFromPoint` at the row returned `inspector-tab` at 390 px; file input → `align-to-origin.e2e.js` failed on webkit-phone/webkit-laptop/firefox-laptop and passed after `position: relative` on the sheet; colour gap → `TODO/core-054`
+**To Add:** repo URL once public, docs site URL once it exists

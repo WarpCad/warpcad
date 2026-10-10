@@ -1492,3 +1492,14 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** capture, op records plus parameters, state-line parts -> docs/decisions/user-library.md and src/core/userPart.js; broken row with a warning on a missing, disallowed-op, self-containing or oversize part -> hand drive this session (Chromium and WebKit, chip text named the part and the reason); core only, no UI yet -> TODO/done/core-037 retirement note
 **To Add:** a screenshot of the History rows with the broken badge once ui-055 gives the part a visible control
+
+## [2026-10-10T07:40:00Z] — Save a group as a part, and the three bugs only a hand found
+
+**Post:** Shipped: select a group in WarpCad, name it, and it becomes a My parts row you drag into any project, sub-part names intact. Driving it on a phone caught what specs missed: an off-screen menu, a tab over the last row, a page-shifting hidden input.
+
+Built with Claude Code, reviewed by me. #CAD
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** group saved and dropped complete with `Cube 1`/`Cylinder 1` intact → `e2e/user-library.e2e.js` (12 tests per engine, chromium/webkit/firefox, three viewports, all passed) and a hand drive; off-screen menu → a bottom-row My parts ⋯ popover measured at y=997 in a 900 px window, fixed by clamping to the window; tab over the last row → at 390 px the Inspector's collapsed tab sat over the open Library sheet's last row (`elementFromPoint` returned the tab), fixed with bottom padding; hidden input → a visually hidden file input in the sheet grew the page in WebKit/Firefox and moved other specs' click points (`e2e/align-to-origin.e2e.js` red in WebKit/Firefox until fixed); 293 characters → measured with `node`
+**To Add:** repo URL once public, docs site URL once it exists
