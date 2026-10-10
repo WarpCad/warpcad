@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
 import modeling from '@jscad/modeling'
 
 import {
@@ -31,6 +31,8 @@ import { CAMERA_MODULE_MODELS } from './kernel/recipes/raspberrypi.cameraModule.
 import { boundsOf, calcCenterWith, calcSnap, volumeOf } from './kernel/group.js'
 import { evaluate, evaluateOp } from './kernel/index.js'
 import { createDocument } from './document.js'
+import * as libraryModule from './library.js'
+import { resetUserParts, setLibraryParts, setProjectParts } from './userPart.js'
 
 const { measurements } = modeling
 
@@ -807,5 +809,86 @@ describe('the guide overhang — found by driving the app, not by reading the ma
     updateSnap(cubeBox(0, 0), cubeBox(0, 0), 40, far)
     expect(Math.abs(near.guides[0].y2Mm - near.guides[0].y1Mm)).toBeCloseTo(60, 9)
     expect(Math.abs(far.guides[0].y2Mm - far.guides[0].y1Mm)).toBeCloseTo(120, 9)
+  })
+})
+
+describe('user parts in the Library (TODO/core-037)', () => {
+  afterEach(() => {
+    resetUserParts()
+  })
+
+  /** @param {Record<string, any>} [overrides] */
+  function bracket(overrides = {}) {
+    return {
+      op: 'user.bracket',
+      name: 'Bracket',
+      version: 1,
+      result: 'r1',
+      records: [{ id: 'r1', op: 'primitive.cuboid', params: { size: [10, 4, 2], center: [0, 0, 0] } }],
+      params: [{ name: 'length', unit: 'mm', default: 10, min: 5, max: 80, binds: [{ record: 'r1', path: 'size.0' }] }],
+      ...overrides,
+    }
+  }
+
+  it('lists a registered part as a 0-operand composite row, with its parameter defaults', () => {
+    setLibraryParts([bracket()])
+    const section = libraryModule.userLibrarySection()
+    expect(section.id).toBe('user')
+    expect(section.rows).toEqual([
+      expect.objectContaining({
+        op: 'user.bracket',
+        label: 'Bracket',
+        kind: 'composite',
+        operandCount: 0,
+        defaults: { length: 10 },
+        userPart: { version: 1, libraryVersion: 1, projectVersion: null, newerVersionAvailable: false },
+      }),
+    ])
+    expect(libraryModule.librarySections().map((s) => s.id)).toContain('user')
+    // The fixed catalogue is untouched.
+    expect(libraryModule.LIBRARY_SECTIONS.map((s) => s.id)).not.toContain('user')
+  })
+
+  it('has no My parts section when there are no parts', () => {
+    expect(libraryModule.userLibrarySection().rows).toEqual([])
+    expect(libraryModule.librarySections().map((s) => s.id)).not.toContain('user')
+  })
+
+  it('places through the one composite path: the part record plus a trailing translate', () => {
+    setLibraryParts([bracket()])
+    const document = createDocument()
+    const records = libraryModule.recordsForDrop('user.bracket', { x: 50, y: -20 }, document)
+    expect(records.map((record) => record.op)).toEqual(['user.bracket', 'transform.translate'])
+    expect(records[0]).toMatchObject({ id: 'bracket-1', name: 'Bracket 1', params: { length: 10 } })
+    expect(records[0].params).not.toHaveProperty('center')
+    document.appendAll(records, { origin: 'local' })
+    const [min, max] = boundsOf(document.bodies()[0].geometry)
+    expect((min[0] + max[0]) / 2).toBeCloseTo(50, 9)
+    expect((min[1] + max[1]) / 2).toBeCloseTo(-20, 9)
+    expect(min[2]).toBeCloseTo(0, 9)
+    // The ghost agrees with the drop.
+    const box = libraryModule.ghostBoxAtOrigin('user.bracket')
+    expect(box.minMm[2]).toBeCloseTo(0, 9)
+    expect(box.maxMm[0] - box.minMm[0]).toBeCloseTo(10, 9)
+  })
+
+  it('says a newer version is available when the library is ahead of the project', () => {
+    setLibraryParts([bracket({ version: 3 })])
+    setProjectParts([bracket({ version: 2 })])
+    const [row] = libraryModule.userLibrarySection().rows
+    expect(row.userPart).toEqual({ version: 2, libraryVersion: 3, projectVersion: 2, newerVersionAvailable: true })
+  })
+
+  it('keys a ghost by version, so a re-saved part never draws the old preview', () => {
+    setLibraryParts([bracket({ version: 4 })])
+    expect(libraryModule.variantKey('user.bracket')).toBe('user.bracket@4')
+    expect(libraryModule.variantKey('primitive.cuboid')).toBe('primitive.cuboid')
+  })
+
+  it('exports definePartFromSelection, which captures a body as a part definition', () => {
+    const document = createDocument()
+    document.append({ id: 'cube-1', op: 'primitive.cuboid', name: 'Cube 1', params: { size: [3, 3, 3] } }, { origin: 'local' })
+    const definition = libraryModule.definePartFromSelection(document, 'cube-1', { name: 'Little cube' })
+    expect(definition).toMatchObject({ op: 'user.little-cube', name: 'Little cube', version: 1, result: 'r1' })
   })
 })

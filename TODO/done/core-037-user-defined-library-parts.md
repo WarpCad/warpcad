@@ -6,8 +6,44 @@ priority: high
 model: opus
 milestone: M9
 depends: [core-013]
-status: open
+status: done
 ---
+
+> **What actually shipped (2026-10-10).** A user part is a plain-JSON definition (`src/core/userPart.js`)
+> that registers at runtime as a `user.<slug>` composite, so the fold, the Library row, the ghost and the
+> drop all use the existing composite path. Full reasoning and the cap table are in
+> `docs/decisions/user-library.md`. **Deviations from this file, all deliberate:**
+>
+> 1. **No `library.define` record.** Definitions live on the project state line as `parts: [definition]`
+>    (only those the records use, nested ones included). A record would have shown up as a History row, an
+>    Undo step and a geometry-less body. Record lines stay byte-identical and the state line stays
+>    version 1. An older build ignores the field, meets `user.*` as an unknown op and refuses the file by
+>    name, which is the narrow "fails like an unknown op" the Testing section asked for.
+> 2. **Registration is global but layered**: project layer beats library layer, and only
+>    `createDocument({ publishesUserParts: true })` (the store's live document) may replace the project
+>    layer. Placing copies the definition into the project inside `ingest`, so a later library edit never
+>    changes a placed instance; the Library row reports `newerVersionAvailable` instead.
+> 3. **"Error placeholder" is a left-broken row with a named LoadWarning** (`ui-052`'s machinery), not a
+>    stand-in shape. The file is not refused.
+> 4. **Capture** follows `target`/`operands` only, rewrites ids `r1..rn`, refuses conditional or
+>    left-broken lineage by name, and verifies itself with `sameGeometry` (exact polygons, part names,
+>    hidden parts, colours). The registry's new `resultId` entry field keeps sub-part names.
+> 5. The local library is its own IndexedDB database, `warpcad-parts`, so the autosave schema did not
+>    migrate. Allowed ops also include `modify.*` and `style.*`. Caps: 500 records/part, depth 4, 20,000 after
+>    expansion, 16 params/bindings, +-1e6 ranges, 64 parts/file, 1 MB per definition.
+>
+> **Known gaps, owned elsewhere:** nothing loads the local library at app start and no control saves a
+> part (`ui-055`); `style.recolor`'s `colorOverride` is not carried into a captured part; worker `build`
+> jobs (sketch preview) do not know `user.*` ops, and nothing sends them one today. Found and filed:
+> `core-053` (`refoldRequestOf` drops `leftBroken`, so a project with a left-broken row cannot export at
+> another resolution).
+>
+> **Step 6 (2026-10-10, hand-driven, real mouse, Chromium and WebKit at laptop):** scenarios 3, 5, 6, 10 PASS;
+> `core-020`, `core-024`, `ui-030` repros PASS (a Bolt dropped after a Cube lists only its own six parts, a
+> numeric move keeps all six, all four hardware rows land at the drop point); the new capability driven
+> end to end (capture from a group, place, autosave reload, file save, open in a fresh browser context with
+> no library) gave identical bounds and part names, and files with a missing, disallowed-op,
+> self-containing or oversize part each opened with a named warning and a broken row.
 
 ## Goal
 

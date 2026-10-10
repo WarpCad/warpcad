@@ -31,6 +31,8 @@
  * - the printer's **buildVolume** (`TODO/io-007`), `{ widthMm, depthMm, heightMm }` — written
  *   only when it differs from the 220 × 220 × 250 mm default, so a document that never touched
  *   it keeps its bytes. Validated like any other field: a malformed volume refuses the file.
+ * - the **user-part definitions** (`TODO/core-037`) the records use, as `parts: [definition]`
+ *   in op order — see "User parts" below.
  *
  * A restore that dropped them would be silently unfaithful in the worst way — a
  * rolled-back document reopening fully rolled *forward* shows the user geometry
@@ -60,6 +62,29 @@
  * like any other malformed state line; text that is merely too **long** is cut to its cap
  * (`src/core/intent.js`) rather than costing the user the whole file over an advisory note.
  *
+ * ## User parts (`TODO/core-037`)
+ *
+ * A record may name a user part (`user.<slug>`), whose definition is plain-JSON op records
+ * (`src/core/userPart.js`). The file carries every definition its records use — directly or
+ * nested in another part — so it rebuilds on a machine whose local library has never seen
+ * the part. Only those are written: a definition whose last instance was undone is dropped.
+ *
+ * A state-line section rather than a `library.define` record, decided by reading this file:
+ * a definition builds nothing, so as a record it would be a History row, an Undo step and a
+ * "body" with no geometry that every reader of the log (`document.js`'s lineage indexes,
+ * `ui-032`'s panel, `mcp/`) would have to learn to skip. Here, every record line stays
+ * byte-identical, and the state line's **version stays 1**: a build that predates parts
+ * ignores the field (as it does `intents`) and then meets `user.…` as an op it does not
+ * know — refusing the file by naming that step, the way every unknown op is refused.
+ *
+ * The strictness rule applied to it: `parts` that is not a list is refused like any other
+ * malformed field. An individual **bad definition** is not — it is untrusted data about one
+ * part, so it is skipped with a {@link LoadWarning} naming it and why, and every record that
+ * uses it (or builds on one that does) loads **left broken** (`TODO/ui-052`): badged in the
+ * History, out of the fold, fixable. The same goes for a part the records name but the file
+ * does not carry. The local library's copy is never substituted for a project's missing or
+ * bad one; that would change a placed instance without the user choosing it.
+ *
  * ## Refusal, not repair
  *
  * {@link parseProject} is strict where `parseNdjson` is lenient. The lenient
@@ -79,6 +104,7 @@ import { INSTRUCTIONS_MAX_LENGTH, INTENT_MAX_LENGTH, cleanText } from './intent.
 import { DEFAULT_RESOLUTION, RESOLUTION_IDS, isResolution } from './kernel/tessellation.js'
 import { parseNdjson, serializeNdjson } from './ndjson.js'
 import { ASSET_OP, validateImageAsset } from '../sketch/imageAsset.js'
+import { USER_PART_LIMITS, isUserPartOp, requiredUserParts, validateUserPartSet } from './userPart.js'
 
 /** @typedef {import('./document.js').DocumentEntry} DocumentEntry */
 /** @typedef {import('./document.js').WarpDocument} WarpDocument */
@@ -101,7 +127,7 @@ export class ProjectFormatError extends Error {
 /**
  * Serialise a document to project text.
  *
- * @param {Pick<WarpDocument, 'entries' | 'rollbackAt'> & Partial<Pick<WarpDocument, 'resolution' | 'standingInstructions' | 'buildVolume'>>} document
+ * @param {Pick<WarpDocument, 'entries' | 'rollbackAt'> & Partial<Pick<WarpDocument, 'resolution' | 'standingInstructions' | 'buildVolume' | 'userParts'>>} document
  * @returns {string} `''` for an empty document at the new-document default; otherwise
  *   newline-terminated NDJSON.
  */
@@ -134,6 +160,14 @@ export function serializeProject(document) {
   const standingInstructions = document.standingInstructions?.() ?? ''
   const buildVolume = document.buildVolume?.() ?? DEFAULT_BUILD_VOLUME
   const writesBuildVolume = !sameBuildVolume(buildVolume, DEFAULT_BUILD_VOLUME)
+  // `TODO/core-037`: the project's own copies only, never the registry's — a part the
+  // document does not carry (one that failed to load) is not written, so reopening reports
+  // it again instead of silently picking up whatever the library holds.
+  const carried = new Map((document.userParts?.() ?? []).map((definition) => [definition.op, definition]))
+  const parts = requiredUserParts(
+    entries.map((entry) => entry.record),
+    (op) => carried.get(op)
+  ).definitions
 
   /** @type {object[]} */
   const lines = entries.map((entry) => entry.record)
@@ -147,7 +181,8 @@ export function serializeProject(document) {
     writesResolution ||
     hasIntents ||
     standingInstructions !== '' ||
-    writesBuildVolume
+    writesBuildVolume ||
+    parts.length > 0
   ) {
     lines.push({
       warpcad: STATE_KIND,
@@ -162,6 +197,7 @@ export function serializeProject(document) {
       ...(writesBuildVolume
         ? { buildVolume: { widthMm: buildVolume.widthMm, depthMm: buildVolume.depthMm, heightMm: buildVolume.heightMm } }
         : {}),
+      ...(parts.length > 0 ? { parts } : {}),
     })
   }
   return serializeNdjson(lines)
@@ -242,9 +278,11 @@ export const IMAGE_REMOVED = "reference image removed — it couldn't be verifie
  * line is adjusted so it never names a record that is no longer there.
  *
  * @param {string} text
- * @returns {{ entries: DocumentEntry[], rollbackAt: number | null, resolution: string, standingInstructions: string, buildVolume: import('./buildVolume.js').BuildVolume, warnings: LoadWarning[] }}
+ * @returns {{ entries: DocumentEntry[], rollbackAt: number | null, resolution: string, standingInstructions: string, buildVolume: import('./buildVolume.js').BuildVolume, userParts: import('./userPart.js').UserPartDefinition[], unavailableParts: Record<string, string>, warnings: LoadWarning[] }}
  *   `standingInstructions` is `''` when the file has none (`TODO/ai-003`); `buildVolume` is the
- *   default when the file has none (`TODO/io-007`).
+ *   default when the file has none (`TODO/io-007`). `userParts` are the usable definitions the
+ *   file carries and `unavailableParts` (op → reason) the parts its records name that are
+ *   missing or bad (`TODO/core-037`) — hand both to `WarpDocument.loadEntries`.
  * @throws {ProjectFormatError} naming the line, or the offending field.
  */
 export function parseProject(text) {
@@ -434,7 +472,109 @@ export function parseProject(text) {
     if (intent !== '') entry.intent = intent
   }
 
-  return { entries, rollbackAt, resolution, standingInstructions, buildVolume, warnings }
+  const { userParts, unavailableParts } = readUserParts(state?.parts, entries, warnings)
+
+  return { entries, rollbackAt, resolution, standingInstructions, buildVolume, userParts, unavailableParts, warnings }
+}
+
+/**
+ * The state line's `parts` (`TODO/core-037`): validated as one set, with a warning per
+ * part that cannot be used and every record depending on one flagged left broken.
+ *
+ * @param {unknown} declared The raw field.
+ * @param {DocumentEntry[]} entries Mutated: dependents of a missing part get `leftBroken`.
+ * @param {LoadWarning[]} warnings Appended to.
+ * @returns {{ userParts: import('./userPart.js').UserPartDefinition[], unavailableParts: Record<string, string> }}
+ * @throws {ProjectFormatError} When `parts` is not a list.
+ */
+function readUserParts(declared, entries, warnings) {
+  if (declared !== undefined && !Array.isArray(declared)) {
+    throw new ProjectFormatError('project-state: `parts` must be a list of part definitions')
+  }
+  const all = /** @type {unknown[]} */ (declared ?? [])
+  const cap = USER_PART_LIMITS.maxPartsPerProject
+  /** @type {Map<string, string>} op → reason, for the parts that cannot be used. */
+  const problems = new Map()
+  /** @type {Map<string, string>} op → the name to show. */
+  const names = new Map()
+  for (const extra of all.slice(cap)) {
+    const op = isPlainRecord(extra) && typeof extra.op === 'string' ? extra.op : '(unnamed part)'
+    warnings.push({ op, message: `part ${op} skipped — a project carries no more than ${cap} parts (this one has more than ${cap} parts)` })
+  }
+  const considered = all.slice(0, cap)
+  for (const raw of considered) {
+    if (isPlainRecord(raw) && typeof raw.op === 'string' && typeof raw.name === 'string') {
+      names.set(raw.op, cleanText(raw.name, USER_PART_LIMITS.maxNameLength))
+    }
+  }
+  const { definitions, problems: found } = validateUserPartSet(considered)
+  const usable = new Set(definitions.map((definition) => definition.op))
+  for (const problem of found) {
+    const op = problem.op ?? '(unnamed part)'
+    // A duplicate's first copy is still usable; only its extra copies are worth a warning.
+    if (!usable.has(op) && !problems.has(op)) problems.set(op, problem.reason)
+    const name = names.get(op)
+    warnings.push({
+      op,
+      message: `part ${name === undefined ? op : `"${name}" (${op})`} can't be loaded: ${problem.reason}`,
+    })
+  }
+
+  /** @type {Record<string, string>} */
+  const unavailableParts = {}
+  for (const entry of entries) {
+    const op = entry.record.op
+    if (!isUserPartOp(op) || usable.has(op) || Object.hasOwn(unavailableParts, op)) continue
+    const reason = problems.get(op)
+    if (reason === undefined) {
+      warnings.push({ op, message: `part ${op} can't be loaded: its definition is not in the file` })
+      unavailableParts[op] = 'its definition is not in the file'
+    } else {
+      unavailableParts[op] = reason
+    }
+  }
+
+  // Flag every record that uses a part which cannot be built, or builds on one that does —
+  // so the load tolerates them as broken rows instead of refusing the whole file.
+  if (Object.keys(unavailableParts).length > 0) {
+    /** @type {Set<string>} */
+    const brokenIds = new Set()
+    for (const entry of entries) {
+      const { record } = entry
+      const dependsOnBroken =
+        Object.hasOwn(unavailableParts, record.op) || referencedIds(record).some((id) => brokenIds.has(id))
+      if (!dependsOnBroken) continue
+      entry.leftBroken = true
+      if (record.id !== undefined) brokenIds.add(record.id)
+    }
+  }
+  return { userParts: definitions, unavailableParts }
+}
+
+/**
+ * @param {unknown} value
+ * @returns {value is Record<string, any>}
+ */
+function isPlainRecord(value) {
+  return value !== null && typeof value === 'object' && !Array.isArray(value)
+}
+
+/**
+ * Every record id `record` points at: its operands, and the lineage it continues.
+ *
+ * @param {Record<string, any>} record
+ * @returns {string[]}
+ */
+function referencedIds(record) {
+  /** @type {string[]} */
+  const ids = []
+  for (const ref of [record.target, ...(Array.isArray(record.operands) ? record.operands : [])]) {
+    if (typeof ref === 'string') ids.push(ref)
+    else if (isPlainRecord(ref) && typeof ref.id === 'string') ids.push(ref.id)
+  }
+  if (typeof record.supersedes === 'string') ids.push(record.supersedes)
+  if (Array.isArray(record.consumes)) ids.push(...record.consumes.filter((id) => typeof id === 'string'))
+  return ids
 }
 
 /**

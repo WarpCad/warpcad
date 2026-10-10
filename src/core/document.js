@@ -358,6 +358,15 @@ import { INSTRUCTIONS_MAX_LENGTH, INTENT_MAX_LENGTH, cleanText } from './intent.
 import { DEFAULT_BUILD_VOLUME, normalizeBuildVolume } from './buildVolume.js'
 import { currentParamsRecordOf } from './paramEdit.js'
 import { applyAction, emptyScene } from './replay.js'
+import {
+  effectiveUserPart,
+  ensureProjectParts,
+  isUserPartOp,
+  projectPartsSnapshot,
+  requiredUserParts,
+  restoreProjectParts,
+  setProjectParts,
+} from './userPart.js'
 import { ASSET_OP, validateImageAsset } from '../sketch/imageAsset.js'
 
 /** @typedef {import('./kernel/registry.js').OpRecord} OpRecord */
@@ -608,6 +617,15 @@ export class ReplayRejection extends Error {
  */
 
 /**
+ * @typedef {object} LoadOptions
+ * @property {boolean} [tolerateAll]
+ * @property {string} [standingInstructions]
+ * @property {import('./buildVolume.js').BuildVolume} [buildVolume]
+ * @property {readonly import('./userPart.js').UserPartDefinition[]} [userParts] `TODO/core-037`.
+ * @property {Readonly<Record<string, string>>} [unavailableParts] `TODO/core-037`: op → why.
+ */
+
+/**
  * @typedef {object} WarpDocument
  * @property {readonly DocumentEntry[]} entries
  * @property {readonly OpRecord[]} records
@@ -628,6 +646,8 @@ export class ReplayRejection extends Error {
  * @property {() => import('./buildVolume.js').BuildVolume} buildVolume `TODO/io-007`: the
  *   printer's build volume, a fresh copy — the default 220 × 220 × 250 mm until set.
  * @property {(volume: import('./buildVolume.js').BuildVolume, transaction: TransactionOptions) => void} setBuildVolume
+ * @property {() => import('./userPart.js').UserPartDefinition[]} userParts `TODO/core-037`:
+ *   the user-part definitions the project carries, in op order.
  * @property {(id: string) => string | undefined} currentIdOf
  * @property {(id: string) => string | undefined} rootOf
  * @property {(id: string) => OpRecord[]} lineageOf
@@ -660,7 +680,7 @@ export class ReplayRejection extends Error {
  * @property {() => HistoryStep | undefined} undo
  * @property {() => HistoryStep | undefined} redo
  * @property {() => void} clearHistory
- * @property {(entries: readonly DocumentEntry[], rollbackAt?: number | null, resolution?: string, options?: { tolerateAll?: boolean, standingInstructions?: string, buildVolume?: import('./buildVolume.js').BuildVolume }) => void} loadEntries
+ * @property {(entries: readonly DocumentEntry[], rollbackAt?: number | null, resolution?: string, options?: LoadOptions) => void} loadEntries
  * @property {() => string} resolution The design resolution (`TODO/core-035`) every
  *   curve without an explicit `segments` is faceted at — `legacy` for a document from
  *   before the setting existed.
@@ -978,6 +998,12 @@ function reasonOf(error) {
  *   (`TODO/core-035`). Omitted: `legacy`, the old fixed 32 — so every caller that
  *   predates the setting folds exactly as before. The app's own new document passes
  *   `DEFAULT_RESOLUTION` (Normal) explicitly (`src/stores/document.js`).
+ * @param {boolean} [options.publishesUserParts] `TODO/core-037`: this is **the** open
+ *   project — the app's live document (`src/stores/document.js`) — so the user-part
+ *   definitions it carries are the registry's project layer (`src/core/userPart.js`):
+ *   loading it replaces that layer, and placing a part pins the placed version there. Every
+ *   other document (a History preview, a tail shadow check, an export re-fold, an AI fork)
+ *   only *reads* the registry, so it can never change which version the live project builds.
  * @returns {WarpDocument}
  */
 export function createDocument(options = {}) {
@@ -1045,6 +1071,16 @@ export function createDocument(options = {}) {
    * @type {import('./buildVolume.js').BuildVolume}
    */
   let buildVolume = { ...DEFAULT_BUILD_VOLUME }
+  /**
+   * `TODO/core-037`: the user-part definitions this project carries, by op. Project data
+   * that travels on the state line (`project.js`), outside the fold's own state and both
+   * undo stacks: a definition builds nothing by itself, and keeping one after its last
+   * instance is undone costs nothing — serialising writes only the ones still used.
+   * Filled by {@link loadEntries} and by placing a part ({@link adoptUserPart}).
+   * @type {Map<string, import('./userPart.js').UserPartDefinition>}
+   */
+  let userParts = new Map()
+  const publishesUserParts = options.publishesUserParts === true
   /**
    * Rows that do not build, id → reason: inactive-tail rows the shadow check could not
    * build, plus (`TODO/ui-052`) active rows the user left broken and rows whose condition
@@ -1382,6 +1418,34 @@ export function createDocument(options = {}) {
       for (const consumedRoot of consumedRoots) mergedInto.set(consumedRoot, record.id)
     }
     scene = candidate
+    if (!isTombstone && !passThrough && isUserPartOp(record.op)) adoptUserPart(record.op)
+  }
+
+  /**
+   * `TODO/core-037`: a record naming a user part has just folded, so the definition it was
+   * built from — and every part that one nests — becomes this project's own copy, if it
+   * was not already. That is "placing a part copies its definition into the project": done
+   * here, in the one path every record takes, so a drop, an AI tool call and an MCP write
+   * all carry it without each remembering to.
+   *
+   * The copy is what the registry built it from at that moment (the project's copy if it
+   * has one, else the library's), and for the live project it is pinned into the project
+   * layer — so a newer library version saved later never changes this instance underneath
+   * the user.
+   *
+   * @param {string} op
+   */
+  function adoptUserPart(op) {
+    if (userParts.has(op)) return
+    const { definitions } = requiredUserParts([{ op }], (candidate) => userParts.get(candidate) ?? effectiveUserPart(candidate))
+    /** @type {import('./userPart.js').UserPartDefinition[]} */
+    const adopted = []
+    for (const definition of definitions) {
+      if (userParts.has(definition.op)) continue
+      userParts.set(definition.op, definition)
+      adopted.push(definition)
+    }
+    if (publishesUserParts && adopted.length > 0) ensureProjectParts(adopted)
   }
 
   /**
@@ -2425,11 +2489,16 @@ export function createDocument(options = {}) {
      * @param {string} [nextResolution] The loaded design's resolution
      *   (`TODO/core-035`) — `parseProject` reads `legacy` for a file with no setting.
      *   Omitted: the current one, which is what a History preview's prefix wants.
-     * @param {{ tolerateAll?: boolean, standingInstructions?: string, buildVolume?: import('./buildVolume.js').BuildVolume }} [options] `tolerateAll`
+     * @param {LoadOptions} [options] `tolerateAll`
      *   folds every failing row as if the user had left it broken, instead of refusing the
      *   load — only for a throwaway document asking "what would break?" (`TODO/ui-052`'s
      *   impact check). `standingInstructions` (`TODO/ai-003`) is the loaded project's; omitted,
-     *   it has none. Set only once the fold has succeeded.
+     *   it has none. Set only once the fold has succeeded. `userParts` / `unavailableParts`
+     *   (`TODO/core-037`) are what `parseProject` returned: the definitions the file carries
+     *   and the parts it names that could not be loaded. For the live project they replace the
+     *   registry's project layer *before* the fold (which needs them) and are put back if the
+     *   fold refuses; omitted, the loaded project carries none. Any other document only makes
+     *   missing ones available (an export re-fold in a worker) and changes nothing else.
      */
     loadEntries(nextEntries, nextRollbackAt = null, nextResolution = resolution, options = {}) {
       if (!isResolution(nextResolution)) {
@@ -2444,9 +2513,22 @@ export function createDocument(options = {}) {
             `between 1 and ${nextEntries.length - 1} for a log of ${nextEntries.length} steps`
         )
       }
-      rebuildFrom(nextEntries.map(foldableEntry), nextRollbackAt, nextResolution, {
-        tolerateAll: options.tolerateAll === true,
-      })
+      const previousParts = userParts
+      const previousLayer = publishesUserParts ? projectPartsSnapshot() : null
+      const loadedParts = options.userParts ?? []
+      userParts = new Map(loadedParts.map((definition) => [definition.op, definition]))
+      if (publishesUserParts) setProjectParts(loadedParts, options.unavailableParts ?? {})
+      else if (loadedParts.length > 0) ensureProjectParts(loadedParts)
+      try {
+        rebuildFrom(nextEntries.map(foldableEntry), nextRollbackAt, nextResolution, {
+          tolerateAll: options.tolerateAll === true,
+        })
+      } catch (error) {
+        // Atomic, like the rest of a refused load: the current project's parts stay its own.
+        userParts = previousParts
+        if (previousLayer !== null) restoreProjectParts(previousLayer)
+        throw error
+      }
       // After the fold, so a refused load leaves the current project's instructions alone.
       standingInstructions = cleanText(options.standingInstructions, INSTRUCTIONS_MAX_LENGTH)
       // `TODO/io-007`: likewise the build volume; omitted, the loaded project has the default.
@@ -2490,6 +2572,14 @@ export function createDocument(options = {}) {
 
     buildVolume() {
       return { ...buildVolume }
+    },
+
+    /**
+     * `TODO/core-037`: the user-part definitions this project carries, in op order — what
+     * `serializeProject` writes, trimmed there to the ones still in use.
+     */
+    userParts() {
+      return [...userParts.values()].sort((a, b) => (a.op < b.op ? -1 : a.op > b.op ? 1 : 0))
     },
 
     /**

@@ -31,6 +31,14 @@
  * ({@link recordsForDrop}, {@link restingOffsetMm}). The gesture, the ghost and
  * the selection contract are identical either way; only the arithmetic differs.
  *
+ * ## User parts (`TODO/core-037`)
+ *
+ * A part the user saved (`src/core/userPart.js`) is registered at runtime as a `user.*`
+ * composite with `ui` metadata, so it gets a row, a ghost and a drop from exactly the code
+ * above — the rows are just read **live** ({@link userLibrarySection}), because unlike the
+ * built-in catalogue they come and go while the app runs. {@link definePartFromSelection}
+ * is the other direction: a body in the document captured as a part.
+ *
  * Framework-free (CLAUDE.md's Project Structure): the geometry maths that decides
  * where a dropped body sits lives here, not in a component.
  *
@@ -39,7 +47,8 @@
 
 import { evaluateOp } from './kernel/index.js'
 import { boundsOf } from './kernel/group.js'
-import { registry } from './kernel/registry.js'
+import { lookupEntry, registry } from './kernel/registry.js'
+import { capturePart, effectiveUserPart, effectiveUserParts, isUserPartOp, userPartStatus } from './userPart.js'
 
 /** @typedef {import('./kernel/registry.js').OpRecord} OpRecord */
 /** @typedef {import('./document.js').WarpDocument} WarpDocument */
@@ -64,6 +73,18 @@ import { registry } from './kernel/registry.js'
  * @property {'sketch' | null} editor Whether dropping the row opens an editor instead
  *   of committing a record (`TODO/sketch-001`'s Sketch row), copied off the registry
  *   like `choice`, so the viewport reads a flag rather than naming an op.
+ * @property {UserPartRowStatus} [userPart] Present on a user part's row only
+ *   (`TODO/core-037`): which version places, and whether the library is ahead of it.
+ */
+
+/**
+ * @typedef {object} UserPartRowStatus
+ * @property {number} version The version a drop builds — the open project's copy when it
+ *   carries one, else the library's.
+ * @property {number | null} projectVersion
+ * @property {number | null} libraryVersion
+ * @property {boolean} newerVersionAvailable The library has a newer version than the one
+ *   the project's instances are built from. Placing still builds the project's version.
  */
 
 /**
@@ -257,15 +278,80 @@ export const LIBRARY_SECTIONS = Object.freeze(
 const ALL_ROWS = Object.freeze(LIBRARY_SECTIONS.flatMap((section) => [...section.rows]))
 
 /**
+ * A user part's row, built from its live registry entry, or `null` when `op` is not a
+ * usable user part right now (`TODO/core-037`).
+ *
+ * @param {string} op
+ * @returns {LibraryRow | null}
+ */
+function userPartRow(op) {
+  const entry = isUserPartOp(op) ? lookupEntry(op) : undefined
+  const definition = effectiveUserPart(op)
+  if (entry === undefined || entry.ui === undefined || definition === undefined) return null
+  const status = userPartStatus(op)
+  return Object.freeze({
+    op,
+    label: entry.ui.label,
+    defaults: entry.ui.defaults,
+    operandCount: entry.operandCount,
+    kind: entry.kind,
+    choice: null,
+    editor: null,
+    userPart: Object.freeze({ version: definition.version, ...status }),
+  })
+}
+
+/**
+ * The *My parts* section (`TODO/core-037`): one row per usable user part, by label. Read
+ * live — call it again after the library or the open project changes. `ui-055` renders it.
+ *
+ * @returns {LibrarySection}
+ */
+export function userLibrarySection() {
+  const rows = effectiveUserParts()
+    .map((definition) => userPartRow(definition.op))
+    .filter((row) => row !== null)
+    .sort((a, b) => a.label.localeCompare(b.label))
+  return Object.freeze({ id: 'user', title: 'My parts', rows: Object.freeze(rows) })
+}
+
+/**
+ * Every section the panel renders right now: the fixed catalogue, then *My parts* when
+ * there is at least one.
+ *
+ * @returns {readonly LibrarySection[]}
+ */
+export function librarySections() {
+  const mine = userLibrarySection()
+  return mine.rows.length > 0 ? [...LIBRARY_SECTIONS, mine] : LIBRARY_SECTIONS
+}
+
+/**
  * Look a row up by op.
  *
  * @param {string} op
  * @returns {LibraryRow}
  */
 export function libraryRow(op) {
-  const row = ALL_ROWS.find((candidate) => candidate.op === op)
+  const row = ALL_ROWS.find((candidate) => candidate.op === op) ?? userPartRow(op)
   if (!row) throw new Error(`${op} is not a Library row — nothing can be dragged from it`)
   return row
+}
+
+/**
+ * Capture the selected body as a user part (`TODO/core-037`): its lineage rewritten as a
+ * self-contained, plain-JSON definition, verified to rebuild byte-identical geometry. The
+ * caller decides where it goes (`storage/userLibrary.js`'s `save`); nothing is registered
+ * or written here.
+ *
+ * @param {WarpDocument} document
+ * @param {string} id The selected body's id.
+ * @param {import('./userPart.js').CaptureOptions} options `{ name, exposeParams, version }`.
+ * @returns {import('./userPart.js').UserPartDefinition}
+ * @throws {import('./userPart.js').UserPartError} Naming what stopped it.
+ */
+export function definePartFromSelection(document, id, options) {
+  return capturePart(document, id, options)
 }
 
 /**
@@ -379,10 +465,14 @@ export function paramsForDrop(op, pointMm, overrides = {}) {
  *   unvaried row keys exactly as it did before this existed.
  */
 export function variantKey(op, overrides = {}) {
+  // TODO/core-037: a user part re-saved under the same op is a different solid, so its
+  // version is part of the key — a ghost cached for version 1 must not draw for version 2.
+  const version = isUserPartOp(op) ? effectiveUserPart(op)?.version : undefined
+  const base = version === undefined ? op : `${op}@${version}`
   const keys = Object.keys(overrides)
-  if (keys.length === 0) return op
+  if (keys.length === 0) return base
   keys.sort()
-  return `${op}?${keys.map((key) => `${key}=${JSON.stringify(overrides[key])}`).join('&')}`
+  return `${base}?${keys.map((key) => `${key}=${JSON.stringify(overrides[key])}`).join('&')}`
 }
 
 /**

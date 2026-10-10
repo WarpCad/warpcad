@@ -31,7 +31,7 @@ import { screwSpecs } from './tables/screw-specs.js'
 import { washerSpecs } from './tables/washer-specs.js'
 import { bearingSpecs } from './tables/bearing-specs.js'
 import { FIT_CLEARANCE_MM } from './tables/fit-clearances.js'
-import { assertOperandCount, getEntry, registry } from './registry.js'
+import { assertOperandCount, getEntry, lookupEntry, registry } from './registry.js'
 import { LEGACY_POLICY } from './tessellation.js'
 
 /** @typedef {import('@jscad/modeling').geometries.geom3.Geom3} Geom3 */
@@ -69,6 +69,10 @@ import { LEGACY_POLICY } from './tessellation.js'
  * @property {readonly unknown[]} inputs The operand values it resolved to, by identity.
  * @property {readonly (string | undefined)[]} pieces Each operand's `pieces` address.
  * @property {Readonly<Record<string, RegistryEntry>>} registry
+ * @property {RegistryEntry} entry The entry it was built by (`TODO/core-037`). Part of the
+ *   key because a runtime `user.*` entry can be re-registered under the same op with a
+ *   different definition while the registry object itself stays the same; `userPart.js`
+ *   hands out a new entry object exactly when the expansion would differ.
  * @property {Record<string, any>} tables
  * @property {import('./tessellation.js').TessellationPolicy} policy The resolution it
  *   was built at (TODO/core-035). Part of the key: the same record at another
@@ -132,13 +136,14 @@ function partOptions(record) {
  * @param {readonly unknown[]} inputs
  * @param {readonly (string | undefined)[]} pieces
  * @param {Readonly<Record<string, RegistryEntry>>} ops
+ * @param {RegistryEntry} entry
  * @param {Record<string, any>} tables
  * @param {import('./tessellation.js').TessellationPolicy} policy
  * @returns {cached is CachedBuild}
  */
-function cacheHit(cached, json, inputs, pieces, ops, tables, policy) {
+function cacheHit(cached, json, inputs, pieces, ops, entry, tables, policy) {
   if (cached === undefined) return false
-  if (cached.registry !== ops || cached.tables !== tables || cached.json !== json) return false
+  if (cached.registry !== ops || cached.entry !== entry || cached.tables !== tables || cached.json !== json) return false
   // TODO/core-035: policies are one frozen object per resolution, so identity is equality.
   if (cached.policy !== policy) return false
   if (cached.inputs.length !== inputs.length) return false
@@ -236,7 +241,7 @@ export function evaluate(records, options = {}) {
   const policy = options.policy ?? LEGACY_POLICY
 
   for (const record of records) {
-    const entry = ops[record.op]
+    const entry = lookupEntry(record.op, ops)
     if (!entry) throw new Error(`unknown op "${record.op}" — not in the kernel registry`)
 
     const inputRefs = [
@@ -257,7 +262,7 @@ export function evaluate(records, options = {}) {
       resolvedInputs = inputRefs.map((ref) => byId.get(ref.id))
       const pieces = inputRefs.map((ref) => ref.pieces)
       const cached = cache.get(record)
-      if (!resolvedInputs.includes(undefined) && cacheHit(cached, json, resolvedInputs, pieces, ops, tables, policy)) {
+      if (!resolvedInputs.includes(undefined) && cacheHit(cached, json, resolvedInputs, pieces, ops, entry, tables, policy)) {
         if (record.id !== undefined) {
           if (byId.has(record.id)) {
             throw new Error(`duplicate record id "${record.id}" — ids must be unique within a fold`)
@@ -354,12 +359,21 @@ export function evaluate(records, options = {}) {
       // every document append takes (`src/core/replay.js`'s applyAction).
       // `policy` does cross (TODO/core-035): a bolt's clearance hole is a curve like any
       // other, and a recipe expansion is the same fold, one level down.
-      value = evaluate(entry.recipe(record.params ?? {}, tables), {
+      const expansion = evaluate(entry.recipe(record.params ?? {}, tables), {
         registry: ops,
         tables,
         name: record.op,
         policy,
-      }).group
+      })
+      if (entry.resultId === undefined) {
+        value = expansion.group
+      } else {
+        // TODO/core-037: a user part's answer is one record's value, parts intact — the
+        // body it was captured from — not a group of whatever records happen to be named.
+        const result = expansion.byId.get(entry.resultId)
+        if (result === undefined) throw new Error(`${record.op}: its result "${entry.resultId}" produced no value`)
+        value = result
+      }
     } else {
       if (!entry.build) throw new Error(`${record.op}: native entry has no build function`)
       // A `profile.*` op returns a flat `geom2` rather than a solid (TODO/core-012).
@@ -381,6 +395,7 @@ export function evaluate(records, options = {}) {
         inputs: resolvedInputs,
         pieces: inputRefs.map((ref) => ref.pieces),
         registry: ops,
+        entry,
         tables,
         policy,
         value,

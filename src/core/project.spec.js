@@ -1,8 +1,13 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
 
 import { ReplayRejection, createDocument } from './document.js'
 import { boundsOf } from './kernel/group.js'
+import { registry } from './kernel/registry.js'
+import { recordsForDrop } from './library.js'
+import { USER_PART_LIMITS, effectiveUserPart, resetUserParts, setLibraryParts } from './userPart.js'
+import { createAutosaver } from '../storage/autosave.js'
+import { decodeBase64, encodeBase64 } from '../storage/hostedBackend.js'
 import { ProjectFormatError, parseProject, serializeProject } from './project.js'
 import { serializeNdjson } from './ndjson.js'
 
@@ -141,8 +146,8 @@ describe('parseProject → loadEntries round trip', () => {
   })
 
   it('accepts an empty file as an empty project', () => {
-    expect(parseProject('')).toEqual({ entries: [], rollbackAt: null, resolution: 'normal', standingInstructions: '', buildVolume: { widthMm: 220, depthMm: 220, heightMm: 250 }, warnings: [] })
-    expect(parseProject('\n\n')).toEqual({ entries: [], rollbackAt: null, resolution: 'normal', standingInstructions: '', buildVolume: { widthMm: 220, depthMm: 220, heightMm: 250 }, warnings: [] })
+    expect(parseProject('')).toEqual({ entries: [], rollbackAt: null, resolution: 'normal', standingInstructions: '', buildVolume: { widthMm: 220, depthMm: 220, heightMm: 250 }, userParts: [], unavailableParts: {}, warnings: [] })
+    expect(parseProject('\n\n')).toEqual({ entries: [], rollbackAt: null, resolution: 'normal', standingInstructions: '', buildVolume: { widthMm: 220, depthMm: 220, heightMm: 250 }, userParts: [], unavailableParts: {}, warnings: [] })
   })
 
   it('accepts a plain action log with no state line, as written by every earlier reader', () => {
@@ -508,5 +513,239 @@ describe('design intent and standing instructions on the state line (TODO/ai-003
     const state = JSON.stringify({ warpcad: 'project-state', version: 1, intents: { 'sketch-1': 'old', 'cube-1': 'kept' } })
     const parsed = parseProject([sketch, cube('cube-1', 0), state].join('\n'))
     expect(parsed.entries.map((entry) => [entry.record.id, entry.intent])).toEqual([['cube-1', 'kept']])
+  })
+})
+
+describe('user parts on the state line (TODO/core-037)', () => {
+  afterEach(() => {
+    resetUserParts()
+  })
+
+  /** @param {Record<string, any>} [overrides] */
+  function cubePart(overrides = {}) {
+    return {
+      op: 'user.test-cube',
+      name: 'Test cube',
+      version: 1,
+      result: 'r2',
+      records: [
+        { id: 'r1', op: 'primitive.cuboid', params: { size: [10, 20, 30], center: [0, 0, 15] } },
+        { id: 'r2', op: 'transform.translate', target: 'r1', params: { vector: [5, 0, 0] } },
+      ],
+      params: [{ name: 'width', unit: 'mm', default: 10, min: 2, max: 50, binds: [{ record: 'r1', path: 'size.0' }] }],
+      ...overrides,
+    }
+  }
+
+  /** A publishing document with one plain cube and one placed user part. */
+  function placedScene(part = cubePart()) {
+    setLibraryParts([part])
+    const document = createDocument({ publishesUserParts: true })
+    document.append({ id: 'cube-1', op: 'primitive.cuboid', name: 'Cube 1', params: { size: [4, 4, 4], center: [0, 0, 2] } }, local)
+    document.appendAll(recordsForDrop(part.op, { x: 40, y: 0 }, document, { width: 20 }), local)
+    return document
+  }
+
+  /** @param {string} text */
+  function stateLineOf(text) {
+    const lines = text.trim().split('\n')
+    const last = JSON.parse(lines[lines.length - 1])
+    return last.warpcad === 'project-state' ? last : null
+  }
+
+  /**
+   * What `src/stores/document.js`'s `load` does with a parsed file.
+   * @param {string} text
+   */
+  function reopen(text) {
+    const parsed = parseProject(text)
+    const document = createDocument({ publishesUserParts: true })
+    document.loadEntries(parsed.entries, parsed.rollbackAt, parsed.resolution, {
+      userParts: parsed.userParts,
+      unavailableParts: parsed.unavailableParts,
+    })
+    return { parsed, document }
+  }
+
+  it('writes every placed part\'s definition in the one state line, and every record line byte-identical', () => {
+    const document = placedScene()
+    const text = serializeProject(document)
+    expect(text.startsWith(serializeNdjson(document.records))).toBe(true)
+    const state = stateLineOf(text)
+    expect(state?.version).toBe(1)
+    expect(state?.parts).toEqual([JSON.parse(JSON.stringify(effectiveUserPart('user.test-cube')))])
+  })
+
+  it('round-trips through NDJSON into a build whose library has never seen the part', () => {
+    const document = placedScene()
+    const text = serializeProject(document)
+    const before = bodySummary(document)
+    resetUserParts()
+
+    const { parsed, document: reopened } = reopen(text)
+    expect(parsed.warnings).toEqual([])
+    expect(parsed.userParts.map((/** @type {any} */ part) => part.op)).toEqual(['user.test-cube'])
+    expect(bodySummary(reopened)).toEqual(before)
+    expect(serializeProject(reopened)).toBe(text)
+  })
+
+  it('round-trips through the autosave blob — the same bytes, stored and restored', async () => {
+    const document = placedScene()
+    const text = serializeProject(document)
+    /** @type {{ text: string, savedAt: number } | null} */
+    let stored = null
+    const autosaver = createAutosaver({
+      backend: {
+        load: async () => stored,
+        save: async (record) => {
+          stored = record
+        },
+        keepUnreadable: async () => {},
+      },
+      getText: () => serializeProject(document),
+      onStatus: () => {},
+      debounceMs: 0,
+    })
+    autosaver.notifyChange()
+    await autosaver.flush()
+    const restored = await autosaver.restore()
+    autosaver.dispose()
+    expect(restored.kind).toBe('found')
+    if (restored.kind !== 'found') return
+    expect(restored.text).toBe(text)
+    resetUserParts()
+    expect(bodySummary(reopen(restored.text).document)).toEqual(bodySummary(document))
+  })
+
+  it('round-trips through a hosted load (the base64 the git contents API carries)', () => {
+    const document = placedScene()
+    const text = serializeProject(document)
+    resetUserParts()
+    expect(bodySummary(reopen(decodeBase64(encodeBase64(text))).document)).toEqual(bodySummary(document))
+  })
+
+  it('carries a nested part the placed one uses', () => {
+    const inner = cubePart({ op: 'user.inner', name: 'Inner', params: [] })
+    const outer = {
+      op: 'user.outer',
+      name: 'Outer',
+      version: 3,
+      result: 'r2',
+      records: [
+        { id: 'r1', op: 'user.inner', params: {} },
+        { id: 'r2', op: 'transform.translate', target: 'r1', params: { vector: [0, 0, 10] } },
+      ],
+      params: [],
+    }
+    setLibraryParts([inner, outer])
+    const document = createDocument({ publishesUserParts: true })
+    document.appendAll(recordsForDrop('user.outer', { x: 0, y: 0 }, document), local)
+    const text = serializeProject(document)
+    expect(stateLineOf(text)?.parts.map((/** @type {any} */ part) => part.op)).toEqual(['user.inner', 'user.outer'])
+    resetUserParts()
+    expect(bodySummary(reopen(text).document)).toEqual(bodySummary(document))
+  })
+
+  it('does not write a definition nothing uses any more', () => {
+    const document = placedScene()
+    document.undo()
+    const text = serializeProject(document)
+    expect(stateLineOf(text)).toBeNull()
+  })
+
+  it('placing pins the version: a newer library copy never changes the placed instance', () => {
+    const document = placedScene()
+    const before = bodySummary(document)
+    setLibraryParts([cubePart({ version: 2, records: [{ id: 'r1', op: 'primitive.cuboid', params: { size: [10, 90, 30] } }, { id: 'r2', op: 'transform.translate', target: 'r1', params: { vector: [0, 0, 0] } }] })])
+    expect(effectiveUserPart('user.test-cube')?.version).toBe(1)
+    // A full re-fold (Undo then Redo), not just the cached scene.
+    document.undo()
+    document.redo()
+    expect(bodySummary(document)).toEqual(before)
+    expect(stateLineOf(serializeProject(document))?.parts[0].version).toBe(1)
+  })
+
+  it('a bad part is a named warning, and its instances load broken — the file is not refused', () => {
+    const document = placedScene()
+    const text = serializeProject(document)
+    const state = stateLineOf(text)
+    state.parts[0].records.push({ id: 'r3', op: 'library.define', params: {} })
+    const lines = text.trim().split('\n')
+    lines[lines.length - 1] = JSON.stringify(state)
+    resetUserParts()
+
+    const { parsed, document: reopened } = reopen(`${lines.join('\n')}\n`)
+    expect(parsed.warnings).toEqual([
+      expect.objectContaining({ op: 'user.test-cube', message: expect.stringMatching(/Test cube.*can't be loaded.*library\.define.*not allowed/) }),
+    ])
+    expect(parsed.userParts).toEqual([])
+    const placed = /** @type {any} */ (document.records.find((record) => record.op === 'user.test-cube'))
+    expect(parsed.entries.find((entry) => entry.record.id === placed.id)?.leftBroken).toBe(true)
+    expect(reopened.bodies().map((body) => body.id)).toEqual(['cube-1'])
+    expect(reopened.brokenSteps().map((step) => step.id)).toContain(placed.id)
+  })
+
+  it('a missing definition is a named warning too, and the library copy is not silently used', () => {
+    const document = placedScene()
+    const text = serializeProject(document)
+    const lines = text.trim().split('\n').slice(0, -1)
+    // The library still has the part — but the file does not carry it.
+    const { parsed, document: reopened } = reopen(`${lines.join('\n')}\n`)
+    expect(parsed.warnings).toEqual([
+      expect.objectContaining({ op: 'user.test-cube', message: expect.stringMatching(/user\.test-cube.*not in the file/) }),
+    ])
+    expect(reopened.bodies().map((body) => body.id)).toEqual(['cube-1'])
+  })
+
+  it('a record that uses a broken part as an operand loads broken as well', () => {
+    const document = placedScene()
+    const placed = /** @type {any} */ (document.bodies().find((body) => body.op === 'user.test-cube'))
+    document.append(
+      { id: 'bool-1', op: 'boolean.subtract', name: 'Subtract 1', target: 'cube-1', operands: [placed.recordId], consumes: ['cube-1', placed.recordId] },
+      local,
+    )
+    const lines = serializeProject(document).trim().split('\n').slice(0, -1)
+    const { parsed, document: reopened } = reopen(`${lines.join('\n')}\n`)
+    expect(parsed.entries.find((entry) => entry.record.id === 'bool-1')?.leftBroken).toBe(true)
+    expect(reopened.brokenSteps().map((step) => step.id)).toContain('bool-1')
+  })
+
+  it('refuses a `parts` field that is not a list, like any other malformed state line', () => {
+    const text = serializeNdjson([
+      { id: 'cube-1', op: 'primitive.cuboid', params: { size: [1, 1, 1] } },
+      { warpcad: 'project-state', version: 1, parts: { 'user.x': {} } },
+    ])
+    expect(() => parseProject(text)).toThrow(ProjectFormatError)
+    expect(() => parseProject(text)).toThrow(/parts/)
+  })
+
+  it('warns about, rather than loads, parts beyond the per-project cap', () => {
+    const many = Array.from({ length: USER_PART_LIMITS.maxPartsPerProject + 2 }, (_, index) =>
+      cubePart({ op: `user.p-${index}`, name: `P ${index}` }),
+    )
+    const text = serializeNdjson([
+      { id: 'cube-1', op: 'primitive.cuboid', params: { size: [1, 1, 1] } },
+      { warpcad: 'project-state', version: 1, parts: many },
+    ])
+    const parsed = parseProject(text)
+    expect(parsed.userParts).toHaveLength(USER_PART_LIMITS.maxPartsPerProject)
+    expect(parsed.warnings.filter((warning) => /more than \d+ parts/.test(warning.message))).toHaveLength(2)
+  })
+
+  it('a file saved by this build fails in a build with no user-part support the way an unknown op fails', () => {
+    const text = serializeProject(placedScene())
+    resetUserParts()
+    // What an older build sees: it ignores the unknown `parts` state-line field (pinned by
+    // the ai-003 test above) and folds against a registry that has never heard of `user.*`.
+    const parsed = parseProject(text)
+    const older = createDocument({ registry: { ...registry } })
+    let thrown
+    try {
+      older.loadEntries(parsed.entries, parsed.rollbackAt, parsed.resolution)
+    } catch (error) {
+      thrown = error
+    }
+    expect(thrown).toBeInstanceOf(ReplayRejection)
+    expect(/** @type {any} */ (thrown).step.reason).toMatch(/unknown op "user\.test-cube"/)
   })
 })

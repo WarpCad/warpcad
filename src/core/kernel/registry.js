@@ -274,6 +274,10 @@ function modelChoice(values, labels) {
  *   since dropping it would consume the whole bolt while the record plainly says
  *   `tap`.
  * @property {Recipe} [recipe] Composite ops only.
+ * @property {string} [resultId] Composite ops only (`TODO/core-037`). When set, the op's
+ *   value is the expansion's record with this id — un-combined, parts intact — rather than
+ *   the group of its *named* records. A user part is a captured body's lineage, whose
+ *   answer is its terminal record's value; the built-in recipes leave this unset.
  * @property {OpUi} [ui] Present on ops the UI offers as a catalogue row.
  */
 
@@ -1509,6 +1513,72 @@ export const registry = Object.freeze({
   // `hardware.bolt`/`nut`/`washer`.
 })
 
+// ## Runtime entries: user parts (TODO/core-037)
+//
+// Everything above is fixed at build time and frozen. A **user part** is not: it is a
+// plain-JSON definition (`src/core/userPart.js`) that arrives with a project file or from
+// the user's local library, and is registered here as a `composite` entry under the
+// `user.` namespace so the fold, `getEntry` and `src/core/library.js` treat it exactly as
+// they treat `hardware.bolt` — one mechanism, no per-part code anywhere.
+//
+// It lives in a side table rather than in `registry` itself, for two reasons: `registry`
+// is frozen and a lot of code (and every fold cache) relies on its identity, and a
+// runtime entry must only ever be reachable through the **real** catalogue — a test's
+// fake registry, or an older build's, never sees one (`lookupEntry`). Only `user.*` keys
+// are accepted, so a definition can never shadow a built-in op.
+//
+// `userPart.js` is the only writer; it rebuilds the whole table whenever a layer changes.
+
+/** The namespace every runtime entry lives under. */
+export const RUNTIME_OP_PREFIX = 'user.'
+
+/** @type {Map<string, RegistryEntry>} */
+let runtimeEntries = new Map()
+
+/**
+ * Replace every runtime entry at once.
+ *
+ * @param {ReadonlyMap<string, RegistryEntry>} entries Keyed by op; every key must start
+ *   with {@link RUNTIME_OP_PREFIX}.
+ * @returns {void}
+ * @throws {Error} For a key outside the namespace — a programming error, so loud.
+ */
+export function setRuntimeEntries(entries) {
+  for (const op of entries.keys()) {
+    if (!op.startsWith(RUNTIME_OP_PREFIX) || op.length === RUNTIME_OP_PREFIX.length) {
+      throw new Error(`runtime registry: "${op}" is outside the ${RUNTIME_OP_PREFIX}* namespace`)
+    }
+  }
+  runtimeEntries = new Map(entries)
+}
+
+/**
+ * Every runtime op currently registered, in registration order.
+ *
+ * @returns {string[]}
+ */
+export function runtimeOps() {
+  return [...runtimeEntries.keys()]
+}
+
+/**
+ * Look an op up without throwing: the catalogue's own entry, else — for the real
+ * catalogue only — a runtime `user.*` entry.
+ *
+ * An **own** property check, so a record naming `constructor` or `__proto__` finds
+ * nothing rather than something off `Object.prototype`.
+ *
+ * @param {string} op
+ * @param {Readonly<Record<string, RegistryEntry>>} [ops] See {@link getEntry}.
+ * @returns {RegistryEntry | undefined}
+ */
+export function lookupEntry(op, ops = registry) {
+  if (typeof op !== 'string') return undefined
+  if (Object.hasOwn(ops, op)) return ops[op]
+  if (ops === registry && op.startsWith(RUNTIME_OP_PREFIX)) return runtimeEntries.get(op)
+  return undefined
+}
+
 /**
  * Look up an op, failing by name rather than returning `undefined` — a mistyped or
  * malicious `op` in an NDJSON document must be a loud error, never a silent skip.
@@ -1523,7 +1593,7 @@ export const registry = Object.freeze({
  * @returns {RegistryEntry}
  */
 export function getEntry(op, ops = registry) {
-  const entry = ops[op]
+  const entry = lookupEntry(op, ops)
   if (!entry) {
     throw new Error(`unknown op "${op}" — not in the kernel registry`)
   }

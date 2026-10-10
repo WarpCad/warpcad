@@ -54,6 +54,9 @@ import { exportPrintPieces } from './printPrep.js'
  *
  * @typedef {object} RefoldRequest
  * @property {{ record: import('./kernel/registry.js').OpRecord, origin: string, suppressed?: boolean }[]} entries
+ * @property {import('./userPart.js').UserPartDefinition[]} [userParts] The project's user-part
+ *   definitions (`TODO/core-037`): the worker folds against its own registry, which has
+ *   never seen them, so they travel with the records.
  * @property {number | null} rollbackAt
  * @property {string} resolution The export resolution.
  * @property {string[]} ids The selected body ids, or `[]` for the whole scene — resolved
@@ -73,7 +76,7 @@ import { exportPrintPieces } from './printPrep.js'
  * The records an export at `resolution` needs, copied out of `document` — so nothing the
  * job does can reach back into it.
  *
- * @param {Pick<import('./document.js').WarpDocument, 'entries' | 'rollbackAt'>} document
+ * @param {Pick<import('./document.js').WarpDocument, 'entries' | 'rollbackAt'> & Partial<Pick<import('./document.js').WarpDocument, 'userParts'>>} document
  * @param {string} resolution
  * @param {readonly string[]} ids Selected body ids, `[]` for the whole scene.
  * @returns {RefoldRequest}
@@ -91,6 +94,8 @@ export function refoldRequestOf(document, resolution, ids) {
         }))
       )
     ),
+    // `TODO/core-037`: the worker's registry has never seen this project's user parts.
+    userParts: JSON.parse(JSON.stringify(document.userParts?.() ?? [])),
     rollbackAt: document.rollbackAt(),
     resolution,
     ids: [...ids],
@@ -108,7 +113,7 @@ export function refoldRequestOf(document, resolution, ids) {
 function bodiesAtResolution(refold) {
   const document = createDocument({ resolution: refold.resolution, foldCache: null, restorableSteps: 0 })
   try {
-    document.loadEntries(refold.entries, refold.rollbackAt, refold.resolution)
+    document.loadEntries(refold.entries, refold.rollbackAt, refold.resolution, { userParts: refold.userParts ?? [] })
   } catch (error) {
     throw new ExportError(
       'evaluation-failed',

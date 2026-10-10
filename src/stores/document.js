@@ -176,7 +176,9 @@ export const useDocumentStore = defineStore('document', () => {
   // Plain and non-reactive on purpose — see the module comment. A brand-new document
   // starts at the default design resolution (Normal, `TODO/core-035`); a loaded one takes
   // whatever its file says, which is Legacy for a file saved before the setting existed.
-  const raw = createDocument({ resolution: DEFAULT_RESOLUTION })
+  // `publishesUserParts` (`TODO/core-037`): this is *the* open project, so the user-part
+  // definitions it carries are the registry's project layer.
+  const raw = createDocument({ resolution: DEFAULT_RESOLUTION, publishesUserParts: true })
 
   const version = ref(0)
   /** @type {import('vue').ShallowRef<BodySummary[]>} */
@@ -533,14 +535,17 @@ export const useDocumentStore = defineStore('document', () => {
    * @param {number | null} [rollbackAt]
    * @param {string} [nextResolution] The loaded design's resolution (`TODO/core-035`);
    *   `parseProject` supplies it. Omitted: the current one.
-   * @param {{ standingInstructions?: string, buildVolume?: import('../core/buildVolume.js').BuildVolume }} [options]
+   * @param {{ standingInstructions?: string, buildVolume?: import('../core/buildVolume.js').BuildVolume, userParts?: readonly import('../core/userPart.js').UserPartDefinition[], unavailableParts?: Readonly<Record<string, string>> }} [options]
    *   `TODO/ai-003`: the loaded project's standing instructions; omitted, the loaded project has
-   *   none. `TODO/io-007`: its build volume; omitted, the default.
+   *   none. `TODO/io-007`: its build volume; omitted, the default. `TODO/core-037`: the user-part
+   *   definitions it carries and the parts it names that could not be loaded; omitted, none.
    */
   function load(entries, rollbackAt = null, nextResolution = raw.resolution(), options = {}) {
     raw.loadEntries(entries, rollbackAt, nextResolution, {
       standingInstructions: options.standingInstructions ?? '',
       ...(options.buildVolume === undefined ? {} : { buildVolume: options.buildVolume }),
+      userParts: options.userParts ?? [],
+      unavailableParts: options.unavailableParts ?? {},
     })
     useSelectionStore().clear()
     loadRevision.value += 1

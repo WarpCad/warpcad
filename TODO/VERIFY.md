@@ -34,6 +34,15 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### core-037 — User-defined library parts (2026-10-10 04:19)
+
+No control exists yet (`ui-055`), so the new capability was driven through the page's own modules, on Chromium and WebKit at laptop width only. Touch devices and Firefox were not driven.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | On a real iPhone or iPad (Safari): open a `.ndjson` saved with a user part (its state line carries `parts`; the part can be made on a laptop from the console) from Files. The part instance renders, survives a reload (autosave restore) and the console shows no error. | Open | |
+
+
 ### io-007 — Print prep: split, joint and Print pieces (2026-10-10 03:16)
 
 Geometry, the fit verdicts, the zip and the closed-manifold checks are covered by unit specs and `e2e/print-prep.e2e.js`, and acceptance 4 and 11 were re-driven. What only a printer or a person's eye can settle is below.

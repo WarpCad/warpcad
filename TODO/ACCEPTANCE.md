@@ -1452,6 +1452,8 @@ person can actually perform. It was hand-driven at laptop 1440x900/Chromium and 
 snaps into place once within tolerance (step 4), and on release the camera module sits
 aligned to the board's mounting holes, not at an arbitrary offset position.
 
+**Last run**: 2026-10-10 04:15 UTC (`core-037`) — **PASS** on Chromium and WebKit at laptop 1440x900 (real jittered mouse). Pi (default model 4, `raspberrypi.bplus`) dropped, then a Camera Module V3 dragged in from the lower right along a wobbly path: `data-snapped` false for the first 24 samples then true from sample 28 to release; on release the camera sat at the Pi's X/Y (-27.59,-27.59 on Chromium). Console clean. Re-driven because `core-037` changed the composite-placement path.
+
 **Last run**: 2026-10-01 15:00 UTC (`data-007`) — PASS at laptop 1440x900 Chromium, with the same named stand-in as below (Pi 5 board `raspberrypi.bplus` model 5 and the Camera Module, both real Library rows). Dragged the camera in along a wobbly path: `data-snapped` false while far, true from about 0.48,0.43 inward, stayed true through a small retreat-and-return, and on release the camera sat at the Pi's X/Y with Z 6.34 (same Z as the earlier drives). Console clean. Phone not driven.
 
 **Last run**: 2026-09-09 13:06 — **PASS, with a named stand-in for the two parts**
@@ -1964,6 +1966,8 @@ mm cube minus an m10 hex bolt, length 12, wholly inside it) this is a measured
 **61 108.343 mm³** remaining, not the metal-only **61 695.679 mm³** a whole-bolt
 Subtract now leaves.
 
+**Last run**: 2026-10-10 04:15 UTC (`core-037`) — **PASS** on Chromium and WebKit at laptop. Cube then Bolt dropped overlapping; the cube's check, then ▸ on the Bolt and the check on its `tap` row (toolbar "2 selected, first is the base"), Subtract: one body left, the cube's bounds unchanged (-12.91,-53.16,0,27.09,-13.16,40) and a bolt-shaped cut visible in the screenshot. Console clean.
+
 **Last run**: 2026-10-06 14:58 UTC (`core-052`) — **PASS** at laptop 1440x900 Chromium, from an emptied project, real mouse. Dropped a Cube (40 mm, 64000 mm³) and a Bolt, set the Bolt to the **new** size `m2.5 socket`, Length 8, and typed it to the cube's centre (wholly inside). With nothing selected: the cube's check, ▸ on Bolt 1, the check on its `tap` row; toolbar read "Cube 1 then Bolt 1 › tap". Subtract left **63902.539 mm³** — 97.46 mm³ removed, the clearance envelope, not the bolt's 80.18 mm³ of metal (a metal cut would leave 63919.82). Also re-ran `render-004`'s repro on the new size: `tap` is listed hidden under Parts and the toggle draws it. Console clean.
 
 **Last run**: 2026-09-10 17:52 — **NOT DRIVEABLE, and deliberately not claimed**
@@ -2333,6 +2337,8 @@ first (step 4), never jumping straight to a sub-part. A second, distinct click o
 member mesh narrows to that sub-part (step 6), with the breadcrumb showing the pick
 depth. Clicking the breadcrumb's "Group" segment (step 7) steps back up to whole-group
 selection.
+
+**Last run**: 2026-10-10 04:15 UTC (`core-037`) — **PASS** on Chromium and WebKit at laptop, with a real Pi, Camera Module V3 and a Cube. Group: count 3 to 1, selected 1. First click on the group picked `Group 1` with crumb `Objects ▸ Group 1`; a second click on the camera narrowed to `Objects ▸ Group 1 ▸ Camera Module 1`; the `Group 1` crumb stepped back up to the whole group. Console clean.
 
 **Last run**: 2026-09-06 01:18 — **PARTIAL PASS** (`ui-011`. Only the *single-item
 selection contract* this scenario is built on top of is drivable; the group/sub-part
@@ -2890,6 +2896,8 @@ shows **Download copy** instead — drive whichever your browser shows, and say 
   **once** and never over a drag in progress. Nothing on GitHub is overwritten. After
   **Cancel** the second local edit does **not** raise the dialog again and does not push;
   an explicit **Save to owner/repo** raises it again.
+
+**Last run**: 2026-10-10 04:16 UTC (`core-037`) — **PASS** on Chromium and WebKit at laptop, Download copy route (`showSaveFilePicker` disabled). Cube and Cylinder dropped and Unioned; chip reached `Saved`; reload restored an identical body list (`Restored your last session`); File ▾ Save downloaded a 4-line file; a Sphere was dropped, then File ▾ Open… (Replace) of that file gave the identical single body. Also with a user part present (see `core-037`'s retirement note): the autosave reload and a fresh-context open of the saved file both rebuilt the part instance with the same bounds and part names. Console clean.
 
 **Last run**: 2026-10-09 08:57 UTC (`ai-004`) — **PASS for the key-storage step** at laptop 1440x900 on **Chromium and WebKit** (native pickers forced off, so **Download copy**). Pasted a distinctive key through the header's Assistant sheet, Save and test against a stubbed API (*Connected — Claude Opus 5.5*), downloaded a project copy: the file (354/355 bytes) does **not** contain the key, nor does localStorage, nor the page HTML after a reload; after the reload the Assistant opened the connected panel, so the key survived in IndexedDB. Steps 8-10 (hosted half) not driven.
 

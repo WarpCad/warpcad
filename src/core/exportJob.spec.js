@@ -7,13 +7,15 @@
  *
  * Plain Node, no `Worker`: `runExportJob` is exactly what the worker runs.
  */
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
 import modeling from '@jscad/modeling'
 
 import { createDocument } from './document.js'
 import { ExportError } from './export.js'
 import { refoldRequestOf, runExportJob } from './exportJob.js'
 import { packBodies, unpackSolids } from './kernel/transport.js'
+import { recordsForDrop } from './library.js'
+import { resetUserParts, setLibraryParts } from './userPart.js'
 
 const { geometries } = modeling
 
@@ -304,5 +306,32 @@ describe('runExportJob — a rim op on a hexagon is watertight (io-006)', () => 
     const triangles = stl(base, /** @type {any} */ (op), /** @type {any} */ (resolution))
     expect(triangles.length).toBeGreaterThan(20)
     expect(openEdges(triangles)).toBe(0)
+  })
+})
+
+describe('a re-fold carries the project\'s user parts to the worker (TODO/core-037)', () => {
+  afterEach(() => {
+    resetUserParts()
+  })
+
+  it('exports a placed user part at another resolution from a registry that has never seen it', () => {
+    setLibraryParts([
+      {
+        op: 'user.peg',
+        name: 'Peg',
+        version: 1,
+        result: 'r1',
+        records: [{ id: 'r1', op: 'primitive.cylinder', params: { height: 10, diameter: 4 } }],
+        params: [],
+      },
+    ])
+    const document = createDocument({ publishesUserParts: true, resolution: 'normal' })
+    document.appendAll(recordsForDrop('user.peg', { x: 0, y: 0 }, document), { origin: 'local' })
+    const request = refoldRequestOf(document, 'fine', [])
+    expect(request.userParts?.map((part) => part.op)).toEqual(['user.peg'])
+    // What the export worker has: a fresh module instance, no layers registered at all.
+    resetUserParts()
+    const result = runExportJob({ format: 'stl', bodies: [], refold: request })
+    expect(result).not.toHaveProperty('error')
   })
 })
