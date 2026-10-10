@@ -1473,7 +1473,7 @@ Built with Claude Code, reviewed by me.
 
 ## [2026-10-10T03:16:00Z] — A touch drag that passed every test and failed on a finger
 
-**Post:** WarpCad now splits a 300 mm part into pieces that fit a 220 mm bed, with a joint, and exports each as a flat STL in a zip.
+**Post:** WarpCad now splits a 300 mm part into pieces that fit a 220 mm bed and exports each as a flat STL in a zip.
 
 The drag handle passed its spec and failed under a real finger: a sheet covered it, and a cancelled touch reports (0, 0).
 
