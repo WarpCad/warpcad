@@ -31,6 +31,7 @@ edit that closes a milestone or adds/reserves a row below, not as a separate pas
 | M11 — Gears: spur, helical, ring, rack, bevel, worm, planetary, and meshing | ⬜ **Not started** — 14 rows scoped (`core-039`…`core-049`, `ui-057`, `ui-058`, `testing-002`, `docs-021`) on 2026-10-02 from the user's four jscad1 gear projects (`window-motor`, `drive-wheel`, `bf-gear`, `guide-mount`) and `jscad-gears` itself. `core-039` is the blocking decision. Independent of M9 and M10 except `docs-021`. |
 | M12 — Project variables: one named value drives any parameter of any part | ⬜ **Not started** — 2 rows scoped (`core-050`, `ui-059`) on 2026-10-03 from the user's jscad1 habit of a top-level `const piVersion = 4` that every part reads. `core-050` is the model; `ui-059` is the panel and per-field bind control. Independent of M9, M10 and M11. |
 | M13 — One Align tool | ⬜ **Not started** — 1 row scoped (`ui-060`) on 2026-10-04 from the user's preference for the Inspector's Align-to-origin UI over the Snap/Align popover. Independent of M9-M12. |
+| M14 — Help inside the app | ⬜ **Not started** — 1 row scoped (`ui-061`) on 2026-10-10 from the user's request that the docs ship in the app bundle, be reachable from the main UI, and that every tool pop-up carry a help button. Independent of M9-M13; adopts `ui-060`'s headings if it lands first. |
 
 Every M0-M4 milestone closed with its own human free-form pass per `CLAUDE.md`'s
 Verification section (see each milestone's last row below). M5, M6 and M7 have not had
@@ -644,6 +645,17 @@ Target dropdown (`World origin` / second selected body) and removes the Inspecto
 | id | Task | Kind | Depends | Acceptance |
 |---|---|---|---|---|
 | `ui-060` | One **Align** tool: Target dropdown, per-axis button grid, Snap row, drop shortcut; remove Inspector Align to origin; docs and media rewritten | Operation, M/L | none | place-then-snap/align and Pi placement scenarios; `ui-026/035/050`, `data-007` repros |
+
+## M14 — Help inside the app
+
+The documentation (`docs/`) only exists in the repository today. This milestone bundles it into
+the build (precached, offline, always matching the running version), adds a Help entry to the
+main UI, and puts a **?** button in every tool pop-up header that opens the docs at that tool's
+section.
+
+| id | Task | Kind | Depends | Acceptance |
+|---|---|---|---|---|
+| `ui-061` | Bundle `docs/` into the app; Help sheet; `HelpButton` in every tool pop-up header via a tool-to-docs topic map | Control, M | none | pop-up scenarios (place-then-snap/align, boolean, Pi placement); `ui-026/035/050` repros |
 
 ---
 
