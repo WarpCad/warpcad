@@ -6,8 +6,15 @@ priority: low
 model: sonnet
 milestone: M9
 depends: [core-037, core-054]
-status: open
+status: done
 ---
+
+> **What shipped.** Smaller and different from the guess in Proposed fix: nothing is re-keyed or applied twice. A
+> placed part's body has had its pending translate baked into its polygons by an earlier measure, while the
+> replay composes the same two translates into one matrix first, so the same chain lands ~2e-15 mm apart and the
+> byte-exact `sameGeometry` refused it. `sameGeometry` gained an optional `toleranceMm` (default `0`, still exact)
+> and `capturePart` passes `1e-9` mm, the tolerance this module's tests already state. Structure (names, hidden
+> parts, colours, holes, polygon and vertex counts) stays exact; a real 0.001 mm shift is still refused.
 
 ## Problem
 

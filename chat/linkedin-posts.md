@@ -2125,3 +2125,16 @@ By hand in the running app I exported a union at the design resolution (204 tria
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** export failed with `evaluation-failed` on a left-broken row -> TODO/done/core-053 problem text and the two unit specs that went red before the fix (this session); one line -> diff to src/core/exportJob.js; 204 vs 412 triangles -> in-app export status line, Normal vs Print, this session
 **To Add:** repo URL once public
+
+## [2026-10-11T00:42:00Z] — Re-saving a placed part: a float-noise refusal, fixed with an explicit tolerance
+
+**Post:** Saving a part you had already placed from your own library was being refused in WarpCad whenever the part's own definition ended in a translate. The check that a captured definition rebuilds to the same geometry compared every coordinate byte for byte, and that is stricter than the kernel is.
+
+The body in the document had had its pending translate baked into its polygons by an earlier measurement; the replay composed the same two translates into one matrix first. Same chain, same maths, a last-bit difference of roughly 2e-15 mm on some cylinder vertices. Nothing was being applied twice, which was my first guess in the ticket.
+
+The fix gives the comparison an explicit tolerance of 1e-9 mm, used by capture only. Names, hidden parts, colours, holes and polygon counts stay exact, and a test confirms a real 0.001 mm shift is still refused. Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #Geometry #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** refusal on re-capture -> TODO/done/core-055 and the red unit test this session; cause is bake-order float noise -> debug run this session showing identical structure and last-digit coordinate differences; 1e-9 mm / structure exact / 0.001 mm still refused -> diff and the new spec
+**To Add:** none

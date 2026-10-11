@@ -1523,3 +1523,12 @@ Built with Claude Code, reviewed by me. #CAD
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** export failed with `evaluation-failed` on a left-broken row -> TODO/done/core-053 problem text and the two unit specs that went red before the fix (this session); one line -> diff to src/core/exportJob.js
 **To Add:** repo URL once public
+
+## [2026-10-11T00:42:00Z] — Saving a placed part again no longer gets refused
+
+**Post:** Fixed in WarpCad: drag a saved part in, select the copy, Save to library again, and it used to refuse on an exact-geometry check. The cause was last-bit float noise (about 2e-15 mm) between a baked translate and a composed one. Capture now allows 1e-9 mm; structure stays exact. Built with Claude Code, reviewed by me. #CAD
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** refused on the exact-geometry check -> TODO/done/core-055 problem text and the unit test that failed before the fix (this session); differed by ~2e-15 mm -> last-digit diff printed from the debug run this session (15.851949702904731 vs ...733); 1e-9 mm -> CAPTURE_TOLERANCE_MM in the diff
+**To Add:** repo URL once public

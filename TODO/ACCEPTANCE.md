@@ -1458,6 +1458,8 @@ person can actually perform. It was hand-driven at laptop 1440x900/Chromium and 
 snaps into place once within tolerance (step 4), and on release the camera module sits
 aligned to the board's mounting holes, not at an arbitrary offset position.
 
+**Last run**: 2026-10-11 00:38 UTC (`core-055`) — **PASS** on Chromium and WebKit at laptop 1440x900 (real jittered mouse, hand-style script, not a spec). Pi (`raspberrypi.bplus`) dropped, a Camera Module dragged in from the lower right: `data-snapped` false for the first sample and true for the last 10 of 28; on release both bodies remained. Re-driven because `core-055` changed the exact-geometry check `capturePart` runs. Console clean.
+
 **Last run**: 2026-10-10 14:00 UTC (`core-054`) — **PASS** on Chromium and WebKit at laptop 1440x900 (real jittered mouse, driven by hand-style script, not a spec). Pi (`raspberrypi.bplus`) dropped, then a Camera Module dragged onto it: `data-snapped` false for the first 18 samples, true for the last 6; both bodies remained. Re-driven because `core-054` changed how a placed user part reports its colours (`document.bodies()`). Console clean.
 
 **Last run**: 2026-10-10 07:25 UTC (`ui-055`) — **PASS** on Chromium and WebKit at laptop (real jittered mouse). Pi (`raspberrypi.bplus`) dropped, a Camera Module dragged toward it: `data-snapped` became true during the drag with 3 snap guides drawn, and on release the camera sat at the Pi's X/Y (-27.59,-27.59 on Chromium; -27.87,-27.36 on WebKit). The dropped Standoff is a composite placed on the same path and rendered complete (both named parts, same size as the original).
@@ -2349,6 +2351,8 @@ first (step 4), never jumping straight to a sub-part. A second, distinct click o
 member mesh narrows to that sub-part (step 6), with the breadcrumb showing the pick
 depth. Clicking the breadcrumb's "Group" segment (step 7) steps back up to whole-group
 selection.
+
+**Last run**: 2026-10-11 00:38 UTC (`core-055`) — **PASS** on Chromium and WebKit at laptop (real mouse). Pi, Camera Module (snapped) and a Cube grouped (3 to 1). A click on open grid cleared the selection (0); the first click on the group selected `Group 1` with no part crumb and unchanged bounds; a second click narrowed to `Camera Module 1` (crumb `Objects ▸ Group 1 ▸ Camera Module 1`); the `Group` crumb stepped back up.
 
 **Last run**: 2026-10-10 14:00 UTC (`core-054`) — **PASS** on Chromium and WebKit at laptop (real mouse). Pi, Camera Module (snapped) and a Cube grouped (3 to 1). A click on open grid cleared the selection (0); the first click on the group selected `Group 1` with no part crumb; a second click on the same spot narrowed to `Raspberry Pi 1` with a part crumb; the `Group` crumb stepped back up. The camera-specific narrowing was not separately aimed (the click landed on the Pi's mesh). A placed, recoloured Standoff (a user part) kept its colour `#cc3322` and listed `Cylinder 1` and `Cube 1` as its parts. Console clean.
 

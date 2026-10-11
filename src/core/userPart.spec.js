@@ -14,6 +14,7 @@ import {
   expandUserPart,
   isUserPartOp,
   resetUserParts,
+  sameGeometry,
   setLibraryParts,
   setProjectParts,
   slugify,
@@ -527,8 +528,8 @@ describe('capturePart — user colour overrides (TODO/core-054)', () => {
   })
 
   it('a part saved from a recoloured placed part keeps the colour (nesting)', () => {
-    // No pre-translate on the group: re-capturing a placed part whose own definition ends in a
-    // translate is a separate, colour-independent limit (it refuses on the exact-geometry check).
+    // No pre-translate on the group here; the translate-ending case has its own test below
+    // (TODO/core-055).
     const doc = createDocument()
     doc.append({ id: 'cube-1', op: 'primitive.cuboid', name: 'Cube 1', params: { size: [10, 10, 10], center: [0, 0, 5] } }, LOCAL)
     doc.append({ id: 'cyl-1', op: 'primitive.cylinder', name: 'Cylinder 1', params: { height: 20, diameter: 6, center: [8, 0, 10] } }, LOCAL)
@@ -551,6 +552,30 @@ describe('capturePart — user colour overrides (TODO/core-054)', () => {
     const third = createDocument()
     third.appendAll(recordsForDrop('user.standoff-copy', { x: 0, y: 0 }, third), LOCAL)
     expect(third.bodies()[0].colorOverrides).toEqual(placed.colorOverrides)
+  })
+
+  it('re-captures a placed part whose own definition ends in a translate (TODO/core-055)', () => {
+    const doc = sceneDocument()
+    const bracket = capturePart(doc, 'group-1', { name: 'Bracket' })
+    expect(bracket.records[bracket.records.length - 1].op).toBe('transform.translate')
+    setLibraryParts([bracket])
+
+    const second = createDocument()
+    second.appendAll(recordsForDrop('user.bracket', { x: 12, y: 7 }, second), LOCAL)
+    const placed = second.bodies()[0]
+    const again = capturePart(second, placed.id, { name: 'Bracket copy' })
+    setLibraryParts([bracket, again])
+
+    // The copy expands to the same body the placed part is: structure exact, coordinates to
+    // the capture tolerance (a baked translate and a composed one land ~1e-15 mm apart).
+    expect(sameGeometry(foldDefinition(again), placed.geometry, 1e-9)).toBe(true)
+    const third = createDocument()
+    third.appendAll(recordsForDrop('user.bracket-copy', { x: 12, y: 7 }, third), LOCAL)
+    expect(sameGeometry(third.bodies()[0].geometry, placed.geometry, 1e-9)).toBe(true)
+    // ...and the tolerance is not a loophole: a real 0.001 mm shift is still a different body.
+    const nudged = JSON.parse(JSON.stringify(again))
+    nudged.records[nudged.records.length - 1].params.vector[0] += 0.001
+    expect(sameGeometry(foldDefinition(nudged), placed.geometry, 1e-9)).toBe(false)
   })
 
   it('refuses a malformed colour on a style.recolor record, and a colour field on any other op', () => {

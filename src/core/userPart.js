@@ -1065,11 +1065,17 @@ export function bakedRecolorsOf(definition, partOf = effectiveUserPart, depth = 
  * way the renderer and every measurement do, so a value that has been measured and one
  * that has not still compare by what they are.
  *
+ * `toleranceMm` is for the one thing structure cannot explain: a measured value has its
+ * pending translate baked into its polygons, an unmeasured one composes it into a matrix
+ * first, so the same chain of translates lands a last-bit apart (~1e-15 mm). The default
+ * `0` stays exact; everything else (names, counts, colours, holes) is exact either way.
+ *
  * @param {any} a
  * @param {any} b
+ * @param {number} [toleranceMm] Largest per-coordinate difference still counted equal.
  * @returns {boolean}
  */
-export function sameGeometry(a, b) {
+export function sameGeometry(a, b, toleranceMm = 0) {
   if (isGroup(a) !== isGroup(b)) return false
   if (isGroup(a)) {
     const keys = Object.keys(a.parts)
@@ -1077,8 +1083,8 @@ export function sameGeometry(a, b) {
     if (JSON.stringify(keys) !== JSON.stringify(Object.keys(b.parts))) return false
     if (JSON.stringify(a.colors) !== JSON.stringify(b.colors)) return false
     if (a.holes.length !== b.holes.length) return false
-    if (!a.holes.every((/** @type {any} */ hole, /** @type {number} */ index) => sameGeometry(hole, b.holes[index]))) return false
-    return keys.every((key) => sameGeometry(a.parts[key], b.parts[key]))
+    if (!a.holes.every((/** @type {any} */ hole, /** @type {number} */ index) => sameGeometry(hole, b.holes[index], toleranceMm))) return false
+    return keys.every((key) => sameGeometry(a.parts[key], b.parts[key], toleranceMm))
   }
   if (a === b) return true
   if (a === null || b === null || typeof a !== 'object' || typeof b !== 'object') return false
@@ -1092,11 +1098,17 @@ export function sameGeometry(a, b) {
     const q = right[index].vertices
     if (p.length !== q.length) return false
     for (let vertex = 0; vertex < p.length; vertex += 1) {
-      if (p[vertex][0] !== q[vertex][0] || p[vertex][1] !== q[vertex][1] || p[vertex][2] !== q[vertex][2]) return false
+      for (let axis = 0; axis < 3; axis += 1) {
+        const delta = p[vertex][axis] - q[vertex][axis]
+        if (delta !== 0 && !(Math.abs(delta) <= toleranceMm)) return false
+      }
     }
   }
   return true
 }
+
+/** Coordinate tolerance of the capture check: the 1e-9 mm the module's tests state. */
+const CAPTURE_TOLERANCE_MM = 1e-9
 
 /**
  * Capture a body's lineage as a self-contained part definition (`TODO/core-037`).
@@ -1109,7 +1121,9 @@ export function sameGeometry(a, b) {
  * may hold; names, colours-on-the-scene and lineage fields stay with the document.
  *
  * The result is **verified**: the definition is expanded and folded at the document's
- * resolution and must be the same geometry as the body, exactly ({@link sameGeometry}) —
+ * resolution and must be the same geometry as the body ({@link sameGeometry}, structure
+ * exact, coordinates to {@link CAPTURE_TOLERANCE_MM} so a placed part ending in a translate
+ * can be saved again, `TODO/core-055`) —
  * otherwise this throws rather than hand back a part that would quietly build something
  * else. That is also what catches history this cannot carry faithfully.
  *
@@ -1215,7 +1229,7 @@ export function capturePart(document, bodyId, options) {
   const definition = verdict.definition
 
   const replayed = evaluate(expandUserPart(definition, {}), { policy: policyFor(document.resolution()) }).byId.get(definition.result)
-  if (!sameGeometry(replayed, body.geometry)) {
+  if (!sameGeometry(replayed, body.geometry, CAPTURE_TOLERANCE_MM)) {
     throw new UserPartError(`"${label}" can't be saved as a part: its history doesn't rebuild to exactly the same geometry`)
   }
   // The colours are not geometry, so `sameGeometry` cannot see them: read them back off the
