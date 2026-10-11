@@ -737,8 +737,10 @@ Note on `ui-055`: committed as `ddd9453` (+ `3154edd` chat drafts); one agent (s
 
 Note on `core-054`: committed as `f82b781` (sonnet agent, ~28m). Independently re-verified by this loop: typecheck clean; unit 169 files / 3484 passed; spdx clean; diff stat read (12 files; `document.js` and `colorOverride.js` are beyond the TODO's Affected files, disclosed by the agent and required because the kernel fold ignores `style.recolor` and colours are read off the document's own lineage). Agent-reported full e2e 3170 passed / 0 failed; this loop's re-run did not reproduce that under load (see row above). Step 6 PASS by hand on the repro, scenarios 3, 5, 6 (Chromium and WebKit laptop). VERIFY has 1 row (per-part colour with partial opacity, unit-covered only). Filed `core-055` (re-capturing a placed part ending in a translate refuses; baseline bug).
 
-| 2026-10-10 23:42 | | `core-053` | | |
+| 2026-10-10 23:42 | | `core-053`, `core-055` | | |
 
 Note on `core-053`: committed as `5ef2027` (sonnet agent, ~30m). Independently re-verified by this loop: typecheck clean; unit 181 files / 3655 passed; spdx clean; diff is `exportJob.js` + spec + docs/TODO bookkeeping only; `export-ui.e2e.js` 36/36 on chromium-laptop and webkit-laptop. The agent's full e2e had 1131 failures, all Firefox launch errors (the `TROUBLESHOOTING.md` 2026-09-17 sandbox defect). Step 6 PASS (scenario 1 portion, scenario 11 steps 1-4, core-035 Print re-fold). VERIFY has 1 row (real left-broken project, not hand-driven).
+
+Note on `core-055`: committed as `3a13677` (sonnet agent, ~28m; the agent's commit trailer said Haiku 5.5, amended to Sonnet 5.5 by this loop, unpushed). Root cause differed from the TODO's guess: a ~2e-15 mm baked-vs-composed translate difference tripping a byte-exact `sameGeometry`; fix is a 1e-9 mm tolerance for capture only. Independently re-verified by this loop: typecheck clean; unit 181 files / 3656 passed; spdx clean; diff is `userPart.js` + spec + bookkeeping only. Agent's non-Firefox e2e (guards + chromium/webkit x 3 viewports) 2139 passed / 0 failed; its full run's only failures were the Firefox launch defect. Step 6 PASS on scenarios 3 and 6 and the `core-055`/`ui-055`/`core-054` repros, Chromium and WebKit. No VERIFY entry.
 
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->
