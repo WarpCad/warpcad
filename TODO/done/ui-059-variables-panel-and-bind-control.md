@@ -6,8 +6,39 @@ priority: high
 model: sonnet
 milestone: M12
 depends: [core-050]
-status: open
+status: done
 ---
+
+> **What shipped** (2026-10-11, Sonnet). The surface as specified, with these deviations, each for a reason:
+>
+> - **Create-and-bind is core's `bindParamToNewVariable`, not `document.batch(define; bind)`.** The batch
+>   is two Undo steps (it only merges record steps); a test in `variables.spec.js` pins that, and the
+>   general gap is filed as `core-056`. The new command is one `reviseRecords` with the definition
+>   appended, so Undo takes the field and the variable back together.
+> - **The repair dialog took a variable edit** through three optional `RepairEdit` fields
+>   (`recordId`, `variable`, `label`/`announce`): *Only when…* writes `{ var, in }`, Remap resolves the
+>   body each row references. `dependents.variantLabelOf` reads a bound param at the variable's value
+>   (it printed `[object Object]`), and `timelineLabel` names a definition `Define <name>` (the History
+>   showed `var-3 — placed`; the handoff said otherwise).
+> - **New variable from this value… seeds no `label`**: a label replaces the name in core's condition
+>   sentence ("Only when Model is Pi 4"), and the name just typed is what every other surface shows.
+> - **A body with no condition gets *Only when a variable…*** in `ConditionRow` once a choice or
+>   yes/no variable exists; the spec's example needs it and nothing else created a condition by hand.
+> - **Phone**: the sheet gets an Inspector / Variables tab pair (`InspectorViewTabs.vue`); with an empty
+>   scene there is still no sheet tab, so the Variables section is unreachable there until a body exists.
+> - **Vector fields**: a bind row of per-component buttons sits under the three inputs (three 44 px
+>   buttons do not fit beside them at 390 px).
+> - **A closed finding's repro caught a regression.** The two-tab row cost the phone sheet ~50 px and
+>   `ui-049`'s "second operand reachable after the first check" (`inspector-object-list.e2e.js:547`) failed
+>   on chromium-phone and webkit-phone. The redundant "Inspector" heading is hidden at phone width
+>   (the tab pair names the view), which restores it. That left `:927`'s `scrollIntoViewIfNeeded`
+>   satisfied by a row sitting under the sticky Delete row, so that spec now scrolls each row to the
+>   sheet's centre (same assertions, same thresholds) and re-centres the header before measuring it.
+> - **Not done**: the vertical-scroll "Edit variable" highlight is a scroll only, and the number-kind
+>   variable is not offered in conditions (equality on a measured number is not a useful condition).
+>
+> Firefox cannot launch in this sandbox (`TROUBLESHOOTING.md` 2026-09-17), so the three-engine claim is
+> proved on Chromium and WebKit only.
 
 ## Goal
 

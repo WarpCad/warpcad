@@ -57,6 +57,7 @@ import { lookupEntry, paramOptions, registry } from '../core/kernel/registry.js'
 import { canEditParams, compositeParamEditRecord, paramEditRecord, currentParamsOf, withComponent } from '../core/paramEdit.js'
 import { repairChanges } from '../core/repair.js'
 import { useDocumentStore } from '../stores/document.js'
+import { useVariablesUiStore } from '../stores/variablesUi.js'
 
 /** @typedef {import('../core/paramEdit.js').ParamEditability} ParamEditability */
 /** @typedef {import('../core/dependents.js').Breakage} Breakage */
@@ -79,7 +80,7 @@ import { useDocumentStore } from '../stores/document.js'
  *   setParams: (bodyId: string, changes: Record<string, unknown>, options?: { append?: readonly import('../core/kernel/registry.js').OpRecord[] }) => void,
  *   applyRepair: (edit: RepairEdit, breakages: readonly Breakage[], fixes: Record<string, Fix>) => void,
  *   resolveTargets: (bodyId: string) => { edit: RepairEdit, breakages: Breakage[] },
- *   setCondition: (recordId: string, when: { ref: string, param: string, in: any[] } | null) => void,
+ *   setCondition: (recordId: string, when: { ref: string, param: string, in: any[] } | { var: string, in: any[] } | null) => void,
  * }}
  */
 export function useParamCommands() {
@@ -229,8 +230,10 @@ export function useParamCommands() {
     applyRepair(edit, breakages, fixes) {
       const changes = repairChanges(live(), edit, breakages, fixes)
       documentStore.revise(changes, {
-        label: edit.record === null ? `Repair ${nameOf(edit.rootId)}` : `Edit ${nameOf(edit.rootId)}`,
+        label:
+          edit.label ?? (edit.record === null ? `Repair ${nameOf(edit.rootId)}` : `Edit ${nameOf(edit.rootId)}`),
       })
+      if (edit.announce !== undefined) useVariablesUiStore().announce(edit.announce, documentStore.version)
     },
 
     /**
@@ -274,7 +277,9 @@ export function useParamCommands() {
       const { when: _previous, ...rest } = record
       const next = when === null ? rest : { ...rest, when }
       const change = { id: recordId, record: next }
-      const { breakages } = impactOf(raw, [change], { editedRootId: when?.ref ?? _previous?.ref ?? recordId })
+      const { breakages } = impactOf(raw, [change], {
+        editedRootId: (when && 'ref' in when ? when.ref : undefined) ?? _previous?.ref ?? recordId,
+      })
       const bodyName = nameOf(raw.rootOf(recordId) ?? recordId)
       documentStore.revise(
         [change, ...breakages.map((breakage) => ({ id: breakage.dependentRecordId, leftBroken: true }))],

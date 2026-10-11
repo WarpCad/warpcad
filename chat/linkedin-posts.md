@@ -2155,3 +2155,18 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** one value into three parameters, one Undo -> in-app probe this session (volumes 4000/6000/2000 -> 6000/9000/3000 -> back); no panel yet -> TODO/ui-059 open; derived values excluded -> docs/decisions/project-variables.md
 **To Add:** repo URL once public
+
+## [2026-10-11T03:11:00Z] — One number, bound to many fields
+
+**Post:** Shipped variables in WarpCad: a named, project-wide value that any Inspector field can be bound to. The jscad habit of a `const piVersion = 4` at the top of the file, reachable by hand. Tap the link button next to a Raspberry Pi's Model, choose "New variable from this value", and the dropdown becomes a chip; give a cube a condition that reads the same variable; flip it from 4 to 5 in one place and the board swaps, the cube goes, and a line says "piModel 4 → 5 — 2 parameters on 2 parts changed". One Undo puts everything back.
+
+The model for this had landed just before, so this was the surface, and it was mostly about what a person is shown. A bound field is a chip with its value read-only beside it, so there is nothing to type into by mistake. A change that would break a snapped part goes through the repair dialog the Pi model dropdown already uses, with "Only when" now able to say "only when piModel is Pi 4". Deleting a variable something reads lists its consumers and offers "keep current values", never a plain delete.
+
+The part that did not go to plan: the task said to make create-and-bind one step with `document.batch`. A test showed it is two, because the batch only merges steps that append records and the bind is a revision. Undo would have unbound the field and left a stray variable. I added a command that defines and binds in one revision, and filed the general gap as its own task. The History also labelled a variable "var-3 — placed" until a test of the real panel caught it.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #SoftwareEngineering #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** "The model had landed just before" → `git log` `6f06176` (core-050), 2026-10-10 21:08 local; chip, condition, announcement line, one Undo → `e2e/variables.e2e.js`; repair dialog "Only when piModel is Pi 4" → `src/core/repair.spec.js` and `src/composables/useVariableCommands.spec.js`; batch is two steps → `src/core/variables.spec.js`; `TODO/core-056-*.md`; "var-3 — placed" → seen in the e2e run, fixed in `src/core/timelineLabel.js` with a spec
+**To Add:** repo URL once public, docs site URL once it exists

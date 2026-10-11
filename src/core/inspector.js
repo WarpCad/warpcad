@@ -30,6 +30,8 @@ import { recipeColorOf } from './colorOverride.js'
 import { brokenDependentsOf, brokenReferencesOf } from './dependents.js'
 import { boundsOf, hasNamedParts, hiddenNamesOf, isGroup, localBoundsOf } from './kernel/group.js'
 import { lookupEntry, paramOptions, registry as defaultRegistry } from './kernel/registry.js'
+import { currentParamsRecordOf } from './paramEdit.js'
+import { bindabilityError, bindableParams, isBinding, resolveParams, variablesOf } from './variables.js'
 
 /** @typedef {import('./document.js').Body} Body */
 /** @typedef {import('./kernel/registry.js').OpRecord} OpRecord */
@@ -48,9 +50,20 @@ import { lookupEntry, paramOptions, registry as defaultRegistry } from './kernel
  */
 
 /**
+ * A param slot bound to a project variable (`TODO/ui-059`): what the Inspector shows as a
+ * chip in place of the editor.
+ *
+ * @typedef {object} FieldBinding
+ * @property {string} name The variable's name.
+ * @property {string} [problem] Why it cannot resolve (`"wall" is not defined in this
+ *   project`), when it cannot — the chip's error state. Core's own words.
+ */
+
+/**
  * @typedef {object} FieldComponent
  * @property {string} label Component name, e.g. `"X"` or `"A"`.
- * @property {number} value
+ * @property {number} value The **resolved** value when the slot is bound.
+ * @property {FieldBinding} [bound] Set when this element is bound to a variable.
  */
 
 /**
@@ -66,6 +79,8 @@ import { lookupEntry, paramOptions, registry as defaultRegistry } from './kernel
  * @property {FieldComponent[]} [components] Present on `vector` fields.
  * @property {ReadonlyArray<{ value: any, label: string }>} [options] Present on `enum`
  *   fields: every value the recipe accepts, given the other params.
+ * @property {FieldBinding} [bound] Set when the whole value is bound to a project variable
+ *   (`TODO/ui-059`); {@link ParamField.value} is then the **resolved** value, read-only.
  */
 
 /**
@@ -142,6 +157,10 @@ import { lookupEntry, paramOptions, registry as defaultRegistry } from './kernel
  *   banner ("Snapped to Raspberry Pi 1 ▸ avjack, which no longer exists").
  * @property {import('./document.js').RowCondition | null} [condition] The condition on
  *   this body's creation record, if any — the Inspector's Condition row.
+ * @property {BindControl} [bind] `TODO/ui-059`: what the per-field bind control may offer for
+ *   this body — `core-050`'s `bindableParams` for its creation record, and core's own reason
+ *   when the whole record is unbindable. Present only when `describeSelection` was given the
+ *   document, and never on a drilled-into part.
  * @property {{ groupName: string, partName: string }} [subPart] Present only
  *   while the selection is drilled into one named part of a group
  *   (`TODO/ui-016`). Its presence is the signal that **everything here is
@@ -151,6 +170,15 @@ import { lookupEntry, paramOptions, registry as defaultRegistry } from './kernel
  *   the whole group — breaking CLAUDE.md's "gizmo and numeric fields drive the
  *   same underlying transform" contract — so the UI hides the gizmo and freezes
  *   the Transform fields whenever this is set.
+ */
+
+/**
+ * @typedef {object} BindControl
+ * @property {string} recordId The creation record the slots belong to — what `bindParam` takes.
+ * @property {import('./variables.js').BindableSlot[]} slots Every slot that may be bound,
+ *   by `path` (`model`, `size.0`).
+ * @property {string | null} reason Core's reason the **whole** record cannot be bound, or
+ *   `null` when it can.
  */
 
 /**
@@ -249,6 +277,77 @@ function fieldFor(key, value) {
     return { key, label, kind: 'text', unit: '', value: String(value) }
   }
   return null
+}
+
+/**
+ * A record's params as the Inspector shows them (`TODO/ui-059`): every binding replaced by
+ * the value its variable currently has, and each bound slot remembered so the field can
+ * render a chip instead of an editor.
+ *
+ * A binding that cannot resolve (an undefined name) is left as a placeholder the field
+ * builder can still draw — `0` inside a list, nothing for a whole value — and carries the
+ * problem, so the chip's error state says why rather than the field silently vanishing.
+ *
+ * @param {Record<string, any>} params The record's own params, bindings as written.
+ * @param {ReadonlyMap<string, import('./variables.js').Variable> | undefined} variables
+ * @returns {{ params: Record<string, any>, bound: Map<string, FieldBinding> }}
+ */
+function shownParamsOf(params, variables) {
+  /** @type {Map<string, FieldBinding>} */
+  const bound = new Map()
+  if (variables === undefined) return { params, bound }
+  const { params: resolved, errors } = resolveParams(params, variables)
+  const problems = new Map(errors.map((error) => [error.path, error.reason]))
+  /** @type {Record<string, any>} */
+  const shown = { ...resolved }
+  for (const [key, value] of Object.entries(params)) {
+    if (isBinding(value)) {
+      const name = String(value.$var)
+      const problem = problems.get(key)
+      bound.set(key, problem === undefined ? { name } : { name, problem })
+      if (problem !== undefined) delete shown[key]
+    } else if (Array.isArray(value) && value.some((entry) => isBinding(entry))) {
+      const next = Array.isArray(shown[key]) ? shown[key].slice() : value.slice()
+      value.forEach((entry, index) => {
+        if (!isBinding(entry)) return
+        const name = String(entry.$var)
+        const problem = problems.get(`${key}.${index}`)
+        bound.set(`${key}.${index}`, problem === undefined ? { name } : { name, problem })
+        if (problem !== undefined) next[index] = 0
+      })
+      shown[key] = next
+    }
+  }
+  return { params: shown, bound }
+}
+
+/**
+ * Put each remembered binding back onto its field.
+ *
+ * @param {ParamField[]} fields
+ * @param {Map<string, FieldBinding>} bound
+ * @returns {ParamField[]}
+ */
+function withBindings(fields, bound) {
+  if (bound.size === 0) return fields
+  const next = fields.map((field) => {
+    const whole = bound.get(field.key)
+    if (field.kind === 'vector' && field.components) {
+      const components = field.components.map((component, index) => {
+        const entry = bound.get(`${field.key}.${index}`)
+        return entry === undefined ? component : { ...component, bound: entry }
+      })
+      return { ...field, components }
+    }
+    return whole === undefined ? field : { ...field, bound: whole }
+  })
+  // A whole value whose variable is missing has no value to draw: a read-only stand-in,
+  // so the chip can still say what is wrong.
+  for (const [path, entry] of bound) {
+    if (path.includes('.') || next.some((field) => field.key === path)) continue
+    next.push({ key: path, label: labelForParam(path), kind: 'text', unit: '', value: '', bound: entry })
+  }
+  return next
 }
 
 /**
@@ -360,9 +459,11 @@ export function rotationOf(body) {
  * @param {Body} body From `document.bodies()`.
  * @param {Readonly<Record<string, RegistryEntry>>} [ops] Catalogue; the real one
  *   by default. A test passes a fake (CLAUDE.md: "always mock at the boundary").
+ * @param {ReadonlyMap<string, import('./variables.js').Variable>} [variables] The project's
+ *   variables (`TODO/ui-059`): a bound param shows the variable's value, marked bound.
  * @returns {BodyDescription}
  */
-export function describeBody(body, ops = defaultRegistry) {
+export function describeBody(body, ops = defaultRegistry, variables = undefined) {
   // `lookupEntry`, not `ops[body.op]`: a placed user part (`TODO/ui-055`) is a runtime entry
   // under `user.*`, reachable only through the real catalogue.
   const entry = lookupEntry(body.op, ops)
@@ -397,16 +498,17 @@ export function describeBody(body, ops = defaultRegistry) {
       ]
     : []
 
+  const { params: shown, bound } = shownParamsOf(body.params ?? {}, variables)
   return {
     id: body.id,
     name: body.name,
     op: body.op,
     opLabel: entry?.ui?.label ?? body.op,
     isRecipe: entry?.kind === 'composite',
-    params:
-      entry?.kind === 'composite'
-        ? withSchema(fieldsFor(body.params ?? {}, entry), body.op, body.params ?? {})
-        : fieldsFor(body.params ?? {}, entry),
+    params: withBindings(
+      entry?.kind === 'composite' ? withSchema(fieldsFor(shown, entry), body.op, shown) : fieldsFor(shown, entry),
+      bound,
+    ),
     positionMm,
     rotationDeg,
     parts,
@@ -511,12 +613,14 @@ function partRecordsFor(body, records) {
  * @param {string} partName
  * @param {readonly OpRecord[]} records
  * @param {Readonly<Record<string, RegistryEntry>>} ops
+ * @param {ReadonlyMap<string, import('./variables.js').Variable>} [variables] So a bound
+ *   param of the part's own record shows its value, not the raw binding (`TODO/ui-059`).
  * @returns {BodyDescription}
  * @throws {Error} When the group has no such part — the same contract
  *   `group.js`'s own `pick()` has, and for the same reason: a silent empty
  *   description would read on screen as a body that lost its geometry.
  */
-export function describeSubPart(body, partName, records, ops = defaultRegistry) {
+export function describeSubPart(body, partName, records, ops = defaultRegistry, variables = undefined) {
   const group = body.geometry
   if (!isGroup(group)) {
     throw new Error(`describeSubPart: body "${body.id}" is not a group, it has no part "${partName}"`)
@@ -551,7 +655,7 @@ export function describeSubPart(body, partName, records, ops = defaultRegistry) 
     // itself — and its params are frozen for `ui-016`'s own reason (no record of
     // its own to target), not for `ui-030`'s.
     isRecipe: false,
-    params: record ? fieldsFor(record.params ?? {}, entry) : [],
+    params: record ? fieldsFor(shownParamsOf(record.params ?? {}, variables).params, entry) : [],
     positionMm,
     rotationDeg,
     parts: [],
@@ -615,6 +719,7 @@ export function describeSubPart(body, partName, records, ops = defaultRegistry) 
 export function describeSelection(bodies, selectedIds, options = {}) {
   const ops = options.ops ?? defaultRegistry
   const document = options.document
+  const variables = document === undefined ? undefined : new Map(variablesOf(document).map((variable) => [variable.name, variable]))
   if (selectedIds.length >= 2) {
     return { state: 'multi', count: selectedIds.length, body: null }
   }
@@ -626,11 +731,12 @@ export function describeSelection(bodies, selectedIds, options = {}) {
         return {
           state: 'single',
           count: 1,
-          body: describeSubPart(body, subPart.partName, options.records ?? [], ops),
+          body: describeSubPart(body, subPart.partName, options.records ?? [], ops, variables),
         }
       }
-      const description = describeBody(body, ops)
+      const description = describeBody(body, ops, variables)
       if (document === undefined) return { state: 'single', count: 1, body: description }
+      const creation = currentParamsRecordOf(document.lineageOf(body.id))
       return {
         state: 'single',
         count: 1,
@@ -639,6 +745,15 @@ export function describeSelection(bodies, selectedIds, options = {}) {
           brokenDependents: brokenDependentsOf(document, body.id),
           brokenReferences: brokenReferencesOf(document, body.id),
           condition: document.conditionOf(body.id),
+          ...(creation === undefined
+            ? {}
+            : {
+                bind: {
+                  recordId: /** @type {string} */ (creation.id),
+                  slots: bindableParams(creation.op, creation.params ?? {}, undefined, variables),
+                  reason: bindabilityError(creation),
+                },
+              }),
         },
       }
     }

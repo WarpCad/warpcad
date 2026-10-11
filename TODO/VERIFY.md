@@ -34,6 +34,21 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### ui-059 — Variables panel and bind control: feel and device checks (2026-10-11 03:11)
+
+Scenario 21 and the re-driven scenarios cover the flow on Chromium and WebKit at laptop and by touch
+emulation at 390 px. What no emulated drive can judge is below. Firefox cannot launch in this
+sandbox, so the e2e spec has not run there at all.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | On a real iPhone, tap a bind link button and judge the popover bottom sheet: does it cover the field you are binding, and is **Close** reachable one-handed? | Open | |
+| 2 | On a real iPad/iPhone, change a choice variable in the Variables row (native wheel picker) and confirm the repair dialog opens above the sheet, not behind it. | Open | |
+| 3 | Vector fields (Size X / Y / Z) at 390 px: is the row of three link buttons under the inputs clear about which axis each binds, once one component is a chip? | Open | |
+| 4 | **Edit variable** on a chip scrolls its row into view but does not highlight it. Is that discoverable enough on a phone, where the tab also switches? | Open | |
+| 5 | With an empty scene at phone width there is no sheet tab, so **+** is unreachable until something is placed. Acceptable, or should the tab stay? | Open | |
+| 6 | Type a value in a variable's number box and, without pressing Enter, tap **Delete** from its menu: the typed value commits on blur first. Is committing surprising? | Open | |
+
 ### core-050 — What a person should see when a variable goes out of range (feel call for `ui-059`) (2026-10-11 02:06)
 
 Driven by writing a variable's value straight past its own `max` through the document store (the

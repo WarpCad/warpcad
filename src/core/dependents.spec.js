@@ -280,3 +280,22 @@ describe('variableImpactOf — a variable edit is an edit of every bound record 
     expect(() => variableImpactOf(document, 'nope', 3)).toThrow(/nope/)
   })
 })
+
+describe('a bound enum is named by its value, not as an object (TODO/ui-059)', () => {
+  it('the breakage reason names "Pi 5" when the model is a variable', async () => {
+    const { bindParamToNewVariable } = await import('./variables.js')
+    const { piAndCube, snapCubeTo } = await import('./__fixtures__/piScenes.js')
+    const document = snapCubeTo(piAndCube({ model: 4 }), 'avjack')
+    bindParamToNewVariable(
+      document,
+      'pi-1',
+      'model',
+      { name: 'piModel', kind: 'enum', value: 4, options: [{ value: 4, label: 'Pi 4' }, { value: 5, label: 'Pi 5' }] },
+      LOCAL,
+    )
+    const { breakages } = variableImpactOf(document, 'piModel', 5)
+    expect(breakages).toHaveLength(1)
+    expect(breakages[0].reason).toMatch(/Pi 5/)
+    expect(breakages[0].reason).not.toMatch(/object/)
+  })
+})

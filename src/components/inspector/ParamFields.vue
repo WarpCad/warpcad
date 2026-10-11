@@ -23,9 +23,14 @@ import { parseNumeric } from '../../composables/numericEntry.js'
 import { useParamCommands } from '../../composables/useParamCommands.js'
 import { hasEditableParams, paramOptions } from '../../core/kernel/registry.js'
 import { formatMmValue } from '../../core/units.js'
+import { useVariableCommands } from '../../composables/useVariableCommands.js'
 import { useDocumentStore } from '../../stores/document.js'
 import { useRepairDialogStore } from '../../stores/repairDialog.js'
 import { useSelectionStore } from '../../stores/selection.js'
+import { useVariablesUiStore } from '../../stores/variablesUi.js'
+import ParamBindButton from './ParamBindButton.vue'
+import ParamBindPopover from './ParamBindPopover.vue'
+import ParamBoundChip from './ParamBoundChip.vue'
 
 const props = defineProps({
   body: {
@@ -38,6 +43,8 @@ const documentStore = useDocumentStore()
 const selection = useSelectionStore()
 const repairDialog = useRepairDialogStore()
 const paramCommands = useParamCommands()
+const variableCommands = useVariableCommands()
+const variablesUi = useVariablesUiStore()
 
 /** Plain-language names for the ops whose result has no params of its own. */
 const BLOCKING_OP_LABELS = Object.freeze({
@@ -97,6 +104,71 @@ const parent = computed(() => {
   const firstEnum = Object.values(schema).find((field) => field.kind === 'enum')
   return { bodyId, name: record.name ?? bodyId, fields, noun: (firstEnum?.label ?? 'parameters').toLowerCase() }
 })
+
+// --- variable binding (TODO/ui-059) -----------------------------------------------
+
+/**
+ * The slot `bindableParams` offers for a param path, or `undefined` — which is the whole
+ * rule for whether a bind control shows. Nothing here decides bindability.
+ *
+ * @param {string} path
+ */
+function slotFor(path) {
+  if (!editable.value) return undefined
+  return props.body.bind?.slots.find((candidate) => candidate.path === path)
+}
+
+/** @param {string} path */
+function popoverKeyOf(path) {
+  return `${props.body.bind?.recordId ?? ''}:${path}`
+}
+
+/**
+ * Core's reason a field has no bind control, as the row's tooltip — absent when the field
+ * simply is not a number, choice or yes/no.
+ *
+ * @param {string} path
+ */
+function whyUnbindable(path) {
+  if (slotFor(path) !== undefined) return undefined
+  return props.body.bind?.reason ?? undefined
+}
+
+/**
+ * A chip's value text: a choice by its label, a number with its unit.
+ *
+ * @param {import('../../core/inspector.js').ParamField} field
+ * @param {{ value: number } | undefined} [component]
+ */
+function boundShown(field, component) {
+  if (component) return displayValue(component.value, field.unit)
+  if (field.kind === 'enum') {
+    return field.options?.find((option) => Object.is(option.value, field.value))?.label ?? String(field.value)
+  }
+  return displayValue(field.value, field.unit)
+}
+
+/**
+ * The value "New variable from this value…" seeds from, in the slot's own type.
+ *
+ * @param {import('../../core/inspector.js').ParamField} field
+ * @param {number} [index]
+ */
+function seedValueOf(field, index) {
+  if (index !== undefined) return field.components?.[index]?.value ?? 0
+  if (slotFor(field.key)?.kind === 'boolean') return field.value === 'true'
+  return field.value ?? 0
+}
+
+/** @param {string} path */
+function onUnbind(path) {
+  paramError.value = null
+  try {
+    variableCommands.unbind(props.body.bind?.recordId ?? '', path)
+  } catch (error) {
+    paramError.value = error instanceof Error ? error.message : String(error)
+  }
+}
 
 // --- typed fields (focus snapshot, the Transform section's own pattern) -------------
 
@@ -259,35 +331,78 @@ function onEnumChange(event, field) {
     <dl class="params__fields">
       <template v-for="field in body.params" :key="field.key">
         <template v-if="field.kind === 'vector'">
-          <dt class="params__label">
+          <dt class="params__label" :title="whyUnbindable(`${field.key}.0`)">
             {{ field.label }}<span v-if="field.unit" class="params__unit"> ({{ field.unit }})</span>
           </dt>
           <dd class="params__value params__value--vector">
-            <label v-for="(component, index) in field.components" :key="component.label" class="params__component">
-              <span class="params__component-label">{{ component.label }}</span>
-              <input
-                class="params__input"
-                :class="{ 'params__input--editable': fieldEditable(field) }"
-                type="text"
-                inputmode="decimal"
-                :readonly="!fieldEditable(field)"
-                :data-testid="`inspector-param-${field.key}-${component.label.toLowerCase()}`"
-                :aria-label="`${field.label} ${component.label}${field.unit === 'mm' ? ' in millimetres' : ''}`"
-                :value="fieldValue(`param-${field.key}-${index}`, displayValue(component.value, field.unit))"
-                @focus="onFieldFocus($event, `param-${field.key}-${index}`)"
-                @blur="commitParamComponent($event, field.key, index)"
-                @keydown.enter.prevent="onFieldEnter"
+            <template v-for="(component, index) in field.components" :key="component.label">
+              <ParamBoundChip
+                v-if="component.bound"
+                :id="`${field.key}-${component.label.toLowerCase()}`"
+                :name="component.bound.name"
+                :problem="component.bound.problem"
+                :shown="boundShown(field, component)"
+                @edit="variablesUi.reveal(component.bound.name)"
+                @unbind="onUnbind(`${field.key}.${index}`)"
               />
-            </label>
+              <label v-else class="params__component">
+                <span class="params__component-label">{{ component.label }}</span>
+                <input
+                  class="params__input"
+                  :class="{ 'params__input--editable': fieldEditable(field) }"
+                  type="text"
+                  inputmode="decimal"
+                  :readonly="!fieldEditable(field)"
+                  :data-testid="`inspector-param-${field.key}-${component.label.toLowerCase()}`"
+                  :aria-label="`${field.label} ${component.label}${field.unit === 'mm' ? ' in millimetres' : ''}`"
+                  :value="fieldValue(`param-${field.key}-${index}`, displayValue(component.value, field.unit))"
+                  @focus="onFieldFocus($event, `param-${field.key}-${index}`)"
+                  @blur="commitParamComponent($event, field.key, index)"
+                  @keydown.enter.prevent="onFieldEnter"
+                />
+              </label>
+            </template>
           </dd>
+          <dd v-if="field.components?.some((_c, index) => slotFor(`${field.key}.${index}`))" class="params__bindrow">
+            <template v-for="(component, index) in field.components" :key="`b-${component.label}`">
+              <ParamBindButton
+                v-if="slotFor(`${field.key}.${index}`) && !component.bound"
+                :id="`${field.key}-${component.label.toLowerCase()}`"
+                :label="`${field.label} ${component.label}`"
+                :popover-key="popoverKeyOf(`${field.key}.${index}`)"
+              />
+            </template>
+          </dd>
+          <template v-for="(component, index) in field.components" :key="`p-${component.label}`">
+            <dd v-if="variablesUi.popoverKey === popoverKeyOf(`${field.key}.${index}`) && slotFor(`${field.key}.${index}`)" class="params__popover">
+              <ParamBindPopover
+                :record-id="body.bind?.recordId ?? ''"
+                :path="`${field.key}.${index}`"
+                :bind-slot="/** @type {any} */ (slotFor(`${field.key}.${index}`))"
+                :label="`${field.label} ${component.label}`"
+                :value="component.value"
+                :unit="field.unit"
+              />
+            </dd>
+          </template>
         </template>
 
         <template v-else-if="field.kind === 'enum'">
-          <dt class="params__label">
+          <dt class="params__label" :title="whyUnbindable(field.key)">
             <label :for="`param-select-${field.key}`">{{ field.label }}</label>
           </dt>
           <dd class="params__value">
+            <ParamBoundChip
+              v-if="field.bound"
+              :id="field.key"
+              :name="field.bound.name"
+              :problem="field.bound.problem"
+              :shown="boundShown(field)"
+              @edit="variablesUi.reveal(/** @type {any} */ (field.bound).name)"
+              @unbind="onUnbind(field.key)"
+            />
             <select
+              v-else
               :id="`param-select-${field.key}`"
               class="params__select"
               :class="{ 'params__select--pending': pendingFor(field) }"
@@ -301,26 +416,68 @@ function onEnumChange(event, field) {
                 {{ option.label }}
               </option>
             </select>
+            <ParamBindButton
+              v-if="slotFor(field.key) && !field.bound"
+              :id="field.key"
+              :label="field.label"
+              :popover-key="popoverKeyOf(field.key)"
+            />
+          </dd>
+          <dd v-if="variablesUi.popoverKey === popoverKeyOf(field.key) && slotFor(field.key)" class="params__popover">
+            <ParamBindPopover
+              :record-id="body.bind?.recordId ?? ''"
+              :path="field.key"
+              :bind-slot="/** @type {any} */ (slotFor(field.key))"
+              :label="field.label"
+              :value="seedValueOf(field)"
+            />
           </dd>
         </template>
 
         <template v-else>
-          <dt class="params__label">{{ field.label }}</dt>
+          <dt class="params__label" :title="whyUnbindable(field.key)">{{ field.label }}</dt>
           <dd class="params__value">
-            <input
-              class="params__input"
-              :class="{ 'params__input--editable': fieldEditable(field) }"
-              type="text"
-              :inputmode="field.kind === 'text' ? 'text' : 'decimal'"
-              :readonly="!fieldEditable(field)"
-              :data-testid="`inspector-param-${field.key}`"
-              :aria-label="`${field.label}${field.unit === 'mm' ? ' in millimetres' : ''}`"
-              :value="fieldValue(`param-${field.key}`, displayValue(field.value, field.unit))"
-              @focus="onFieldFocus($event, `param-${field.key}`)"
-              @blur="commitParamField($event, field.key)"
-              @keydown.enter.prevent="onFieldEnter"
+            <ParamBoundChip
+              v-if="field.bound"
+              :id="field.key"
+              :name="field.bound.name"
+              :problem="field.bound.problem"
+              :shown="boundShown(field)"
+              @edit="variablesUi.reveal(/** @type {any} */ (field.bound).name)"
+              @unbind="onUnbind(field.key)"
             />
-            <span v-if="field.unit" class="params__unit">{{ field.unit }}</span>
+            <template v-else>
+              <input
+                class="params__input"
+                :class="{ 'params__input--editable': fieldEditable(field) }"
+                type="text"
+                :inputmode="field.kind === 'text' ? 'text' : 'decimal'"
+                :readonly="!fieldEditable(field)"
+                :data-testid="`inspector-param-${field.key}`"
+                :aria-label="`${field.label}${field.unit === 'mm' ? ' in millimetres' : ''}`"
+                :value="fieldValue(`param-${field.key}`, displayValue(field.value, field.unit))"
+                @focus="onFieldFocus($event, `param-${field.key}`)"
+                @blur="commitParamField($event, field.key)"
+                @keydown.enter.prevent="onFieldEnter"
+              />
+              <span v-if="field.unit" class="params__unit">{{ field.unit }}</span>
+            </template>
+            <ParamBindButton
+              v-if="slotFor(field.key) && !field.bound"
+              :id="field.key"
+              :label="field.label"
+              :popover-key="popoverKeyOf(field.key)"
+            />
+          </dd>
+          <dd v-if="variablesUi.popoverKey === popoverKeyOf(field.key) && slotFor(field.key)" class="params__popover">
+            <ParamBindPopover
+              :record-id="body.bind?.recordId ?? ''"
+              :path="field.key"
+              :bind-slot="/** @type {any} */ (slotFor(field.key))"
+              :label="field.label"
+              :value="seedValueOf(field)"
+              :unit="field.unit"
+            />
           </dd>
         </template>
       </template>
@@ -479,6 +636,17 @@ function onEnumChange(event, field) {
 .params__select--pending {
   border-style: dashed;
   border-color: var(--warn, var(--accent));
+}
+
+.params__bindrow {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px;
+  margin: 0 0 2px;
+}
+
+.params__popover {
+  margin: 0 0 4px;
 }
 
 .params__unit {

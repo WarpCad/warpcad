@@ -2,7 +2,8 @@
 import { describe, expect, it } from 'vitest'
 
 import { LOCAL, centreOf, piAndCube, piWith, snapCubeTo, snapPiBy, subtractAvjackClearance } from './__fixtures__/piScenes.js'
-import { impactOf } from './dependents.js'
+import { impactOf, variableImpactOf } from './dependents.js'
+import { bindParamToNewVariable, setVariableRevision } from './variables.js'
 import { serializeProject } from './project.js'
 import { defaultFixOf, offeredFixesOf, repairChanges } from './repair.js'
 
@@ -147,5 +148,55 @@ describe('repairChanges — one revision for the edit and every chosen fix', () 
     const document = snapCubeTo(piAndCube({ model: 4 }), 'avjack')
     const { edit, breakages } = editTo(document, 5)
     expect(() => repairChanges(document, edit, breakages, {})).toThrow(/snap-1/)
+  })
+})
+
+describe('repairChanges — a variable edit (TODO/ui-059)', () => {
+  /** @type {any} */
+  const PI_MODEL = {
+    name: 'piModel',
+    kind: 'enum',
+    value: 4,
+    options: [
+      { value: 4, label: 'Pi 4' },
+      { value: 5, label: 'Pi 5' },
+    ],
+  }
+
+  /** @param {import('./document.js').WarpDocument} document */
+  function variableEdit(document) {
+    bindParamToNewVariable(document, 'pi-1', 'model', PI_MODEL, LOCAL)
+    const { breakages } = variableImpactOf(document, 'piModel', 5)
+    const revision = /** @type {NonNullable<ReturnType<typeof setVariableRevision>>} */ (setVariableRevision(document, 'piModel', 5))
+    const edit = { rootId: 'pi-1', recordId: revision.id, record: /** @type {any} */ (revision.record), param: null, oldValue: 4, variable: 'piModel' }
+    return { edit, breakages }
+  }
+
+  it('lists the snapped cube as broken, and offers Only when (a variable is a choice)', () => {
+    const document = snapCubeTo(piAndCube({ model: 4 }), 'avjack')
+    const { breakages } = variableEdit(document)
+    expect(breakages.map((breakage) => breakage.dependentRecordId)).toEqual(['snap-1'])
+    expect(offeredFixesOf(breakages[0], { enumParam: true })).toContain('condition')
+  })
+
+  it('Only when writes { var, in } on the dependent, and the variable changes in the same step', () => {
+    const document = snapCubeTo(piAndCube({ model: 4 }), 'avjack')
+    const { edit, breakages } = variableEdit(document)
+    const changes = repairChanges(document, edit, breakages, { 'snap-1': { kind: 'condition', scope: 'body' } })
+    document.reviseRecords(changes, LOCAL)
+    expect(/** @type {any} */ (document.recordOf('cube-1')).when).toEqual({ var: 'piModel', in: [4] })
+    expect(document.brokenSteps()).toEqual([])
+    expect(document.recordOf(edit.recordId)?.params?.value).toBe(5)
+    document.undo()
+    expect(/** @type {any} */ (document.recordOf('cube-1')).when).toBeUndefined()
+    expect(document.recordOf(edit.recordId)?.params?.value).toBe(4)
+  })
+
+  it('Remap works against the body the row references, not the variable record', () => {
+    const document = snapCubeTo(piAndCube({ model: 4 }), 'camera')
+    const { edit, breakages } = variableEdit(document)
+    const changes = repairChanges(document, edit, breakages, { 'snap-1': { kind: 'remap', pieces: { camera: 'camera0' } } })
+    const remapped = /** @type {any} */ (changes.find((change) => change.id === 'snap-1')?.record)
+    expect(remapped.operands[0].pieces).toBe('camera0')
   })
 })

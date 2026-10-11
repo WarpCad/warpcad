@@ -137,6 +137,8 @@ import SketchBodyFields from './SketchBodyFields.vue'
 import SketchProfileFields from '../sketch/SketchProfileFields.vue'
 import DependentsBanner from './DependentsBanner.vue'
 import ConditionRow from './ConditionRow.vue'
+import InspectorViewTabs from './InspectorViewTabs.vue'
+import VariablesPanel from './VariablesPanel.vue'
 import { useObjectListStore } from '../../stores/objectList.js'
 import { useDocumentStore } from '../../stores/document.js'
 import { useSketchEditorStore } from '../../stores/sketchEditor.js'
@@ -153,6 +155,7 @@ import {
 import { BODY_COLORS } from '../../render/mesh.js'
 import { formatDeg, formatMmValue } from '../../core/units.js'
 import { useSplitSheetStore } from '../../stores/splitSheet.js'
+import { useVariablesUiStore } from '../../stores/variablesUi.js'
 
 const props = defineProps({
   /**
@@ -182,6 +185,16 @@ const hiddenPartVisibility = useHiddenPartVisibilityStore()
 const alignReference = useAlignReferenceStore()
 const objectList = useObjectListStore()
 const sketchEditor = useSketchEditorStore()
+const variablesUi = useVariablesUiStore()
+
+// Phone width shows one view in its single sheet (`TODO/ui-059`): a new selection means "show
+// me that", so the Variables view yields to the Inspector. Wider layouts show both stacked.
+watch(
+  () => described.value.body?.id,
+  () => {
+    variablesUi.view = 'inspector'
+  },
+)
 
 // --- Align-to-origin's Reference hand-off (TODO/ui-050) -------------------
 
@@ -653,6 +666,7 @@ watch([() => body.value?.id, colorPart], () => {
     :data-selected-id="sketchEditor.active ? '' : (body?.id ?? '')"
     :data-sub-part="body?.subPart?.partName ?? ''"
     :data-has-objects="objectList.rows.length > 0 ? 'true' : 'false'"
+    :data-view="variablesUi.view"
     aria-label="Inspector"
   >
     <button
@@ -671,6 +685,7 @@ watch([() => body.value?.id, colorPart], () => {
 
     <div id="inspector-sheet" ref="sheetEl" class="inspector__sheet" data-testid="inspector-sheet">
       <h2 class="inspector__heading">Inspector</h2>
+      <InspectorViewTabs v-if="panelState !== 'sketch'" />
 
       <!-- The object list (TODO/ui-049): the whole content at 0 selected, a collapsible
            section at the top of every body state. One mount point, above the state
@@ -703,6 +718,10 @@ watch([() => body.value?.id, colorPart], () => {
           <ObjectList @select-intent="onListIntent" />
         </div>
       </section>
+
+      <!-- Project variables (TODO/ui-059): belong to the project, so mounted in every state with
+           nothing to select first. At phone width this is the sheet's second view. -->
+      <VariablesPanel v-if="panelState !== 'sketch'" />
 
       <!-- The Bill of Materials (TODO/ui-038): read-only, selection-independent, hidden
            until a hardware / kit / Pi part is placed. -->
@@ -883,7 +902,7 @@ watch([() => body.value?.id, colorPart], () => {
              section, with Edit sketch (TODO/sketch-001). -->
         <SketchBodyFields v-if="body.op === 'primitive.sketch' && !body.subPart" :body="body" />
         <ParamFields v-else :body="body" />
-        <ConditionRow v-if="body.condition && !body.subPart" :record-id="body.id" :condition="body.condition" />
+        <ConditionRow v-if="!body.subPart" :record-id="body.id" :condition="body.condition ?? null" />
 
         <section class="inspector__section" data-testid="inspector-transform">
           <h3 class="inspector__section-title">Transform</h3>
@@ -1380,6 +1399,24 @@ watch([() => body.value?.id, colorPart], () => {
   .inspector[data-open='true'] .inspector__sheet {
     display: flex;
   }
+
+  /* The Variables view (TODO/ui-059): the one sheet shows the Variables section and its
+     two-tab switch, and nothing else. */
+  .inspector[data-view='variables'] .inspector__sheet > :not(.variables):not(.views) {
+    display: none;
+  }
+
+  .inspector[data-view='inspector'] .variables {
+    display: none;
+  }
+
+  /* The tab pair names the view, so the "Inspector" heading above it is a second, redundant
+     line of the 38vh sheet — and the one that pushed ui-049's second operand row out of
+     reach (TODO/ui-059 re-ran that repro). */
+  .inspector__heading {
+    display: none;
+  }
+
 
   /* Nothing selected and nothing in the scene to list: the sheet's own tab would
      just be a bar of dead chrome over the 3D view. With bodies in the scene the tab

@@ -920,6 +920,19 @@ function labelled(transaction, label) {
  * @throws {VariableError} For a malformed definition or a name already taken.
  */
 export function defineVariable(document, definition, transaction) {
+  const record = newDefinitionRecord(document, definition)
+  return document.append(record, labelled(transaction, `Define ${definition.name}`))
+}
+
+/**
+ * Validate a definition against the document and build its `var.define` record.
+ *
+ * @param {WarpDocument} document
+ * @param {Parameters<typeof defineVariable>[1]} definition
+ * @returns {OpRecord}
+ * @throws {VariableError}
+ */
+function newDefinitionRecord(document, definition) {
   const problem = variableDefinitionError(definition)
   if (problem !== null) throw new VariableError(problem)
   const table = tableOf(document)
@@ -929,8 +942,7 @@ export function defineVariable(document, definition, transaction) {
   }
   /** @type {Record<string, any>} */
   const params = JSON.parse(JSON.stringify(definition))
-  const record = { id: document.nextId('var'), op: VARIABLE_OP, params }
-  return document.append(record, labelled(transaction, `Define ${definition.name}`))
+  return { id: document.nextId('var'), op: VARIABLE_OP, params }
 }
 
 /**
@@ -984,8 +996,56 @@ export function setVariableRevision(document, name, value) {
  * @throws {VariableError}
  */
 export function bindParam(document, recordId, path, name, transaction) {
+  const table = tableOf(document)
+  requireVariable(document, name)
+  const { revision, subject } = bindRevisionOf(document, recordId, path, name, table)
+  return document.reviseRecords([revision], labelled(transaction, `Bind ${subject} ${path} to ${name}`))
+}
+
+/**
+ * Create a variable **and** bind one slot to it as **one** Undo step — what the Inspector's
+ * "New variable from this value…" does. One `reviseRecords` with the definition appended, not
+ * a `document.batch(define; bind)`: `batch` leaves a record step and a row revision as two
+ * Undo steps (it only merges record steps), so Undo would have unbound the field and left a
+ * stray variable behind. The definition lands at the end of the log, which is fine —
+ * bindings read the variable table from the log, not from the fold position.
+ *
+ * @param {WarpDocument} document
+ * @param {string} recordId
+ * @param {string} path
+ * @param {Parameters<typeof defineVariable>[1]} definition
+ * @param {TransactionOptions} transaction
+ * @returns {{ scene: import('./replay.js').Scene }}
+ * @throws {VariableError} For a malformed definition, a taken name, or a slot the variable
+ *   cannot bind. Nothing is written in that case.
+ */
+export function bindParamToNewVariable(document, recordId, path, definition, transaction) {
+  const record = newDefinitionRecord(document, definition)
+  const table = new Map(tableOf(document))
+  table.set(definition.name, /** @type {Variable} */ (Object.freeze({ id: /** @type {string} */ (record.id), ...record.params })))
+  const { revision, subject } = bindRevisionOf(document, recordId, path, definition.name, table)
+  return document.reviseRecords(
+    [revision],
+    labelled(transaction, `Define ${definition.name} and bind ${subject} ${path}`),
+    { append: [record] },
+  )
+}
+
+/**
+ * The revision that binds one slot, with every check {@link bindParam} makes.
+ *
+ * @param {WarpDocument} document
+ * @param {string} recordId
+ * @param {string} path
+ * @param {string} name
+ * @param {ReadonlyMap<string, Variable>} table The variables as they will be — a definition
+ *   being created in the same step is already in it.
+ * @returns {{ revision: RecordRevision, subject: string }}
+ * @throws {VariableError}
+ */
+function bindRevisionOf(document, recordId, path, name, table) {
   const record = requireRecord(document, recordId)
-  const variable = requireVariable(document, name)
+  const variable = /** @type {Variable} */ (table.get(name))
   const subject = displayNameOf(document, record)
   const structural = bindabilityError(record)
   if (structural !== null) throw new VariableError(`${subject}: ${structural}`)
@@ -993,7 +1053,7 @@ export function bindParam(document, recordId, path, name, transaction) {
   if (isReservedStepParam(key) || isReservedStepParam(path)) {
     throw new VariableError(`${subject}'s ${key} cannot be bound — ${key === 'rotation' ? 'it is carried forward as an absolute rotation by every later move' : 'it is a tessellation detail'}`)
   }
-  const slots = bindableParams(record.op, record.params ?? {}, undefined, tableOf(document))
+  const slots = bindableParams(record.op, record.params ?? {}, undefined, table)
   const slot = slots.find((candidate) => candidate.path === path)
   if (slot === undefined) {
     throw new VariableError(
@@ -1005,9 +1065,9 @@ export function bindParam(document, recordId, path, name, transaction) {
     throw new VariableError(`${subject}'s ${path} takes ${slot.kind === 'enum' ? 'a choice' : slot.kind === 'boolean' ? 'a yes/no' : 'a number'}, and "${name}" is ${variable.kind === 'enum' ? 'a choice' : variable.kind === 'boolean' ? 'a yes/no' : 'a number'}`)
   }
   const params = withSlotValue(record.params ?? {}, slot, { [BINDING_KEY]: name })
-  const check = resolveRecord({ ...record, params }, tableOf(document), { recordName: subject })
+  const check = resolveRecord({ ...record, params }, table, { recordName: subject })
   if (check.errors.length > 0) throw new VariableError(check.errors[0])
-  return document.reviseRecords([{ id: recordId, record: { ...record, params } }], labelled(transaction, `Bind ${subject} ${path} to ${name}`))
+  return { revision: { id: recordId, record: { ...record, params } }, subject }
 }
 
 /**

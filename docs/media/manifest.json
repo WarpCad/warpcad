@@ -365,5 +365,11 @@
     "specHash": "34d51cb5c4fde20f09affcee3dc076a2f8289ecab6f08b53f217856e7ce52195",
     "bytes": 658405,
     "seconds": 7.3
+  },
+  "pi-model-switch.gif": {
+    "spec": "e2e/docs/variables.docs.js",
+    "specHash": "7eeff0709b3334f44239e6e656b110b06e6b3702ae4348e67b324848417a2bd0",
+    "bytes": 1469067,
+    "seconds": 7
   }
 }

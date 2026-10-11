@@ -1541,3 +1541,14 @@ Built with Claude Code, reviewed by me. #CAD
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** one value drives three params in one undo step -> in-app probe this session (volumes 4000/6000/2000 -> 6000/9000/3000 -> back on one Undo); no UI yet -> TODO/ui-059 is still open
 **To Add:** repo URL once public
+
+## [2026-10-11T03:11:00Z] — One number, bound to many fields
+
+**Post:** Shipped in WarpCad: name a value once, bind any Inspector field to it, change it in one place. Flip a Pi from 4 to 5 and the board swaps, the case cut-out goes, and one Undo puts it all back. The batch helper I was told to use turned out to be two Undo steps.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** Pi 4 to 5 with a variable-bound Model, cube conditioned on it, one Undo restoring both → `e2e/variables.e2e.js` first test (chromium and webkit, three viewports) and the scenario 21 / 15 hand-drives in `TODO/ACCEPTANCE.md`; batch gives two Undo steps → `src/core/variables.spec.js` "document.batch(define; bind) is two Undo steps" and `TODO/core-056-*.md`
+**To Add:** repo URL once public, docs site URL once it exists

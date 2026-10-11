@@ -12,6 +12,7 @@ import {
   VariableError,
   VariableInUseError,
   bindParam,
+  bindParamToNewVariable,
   bindableParams,
   consumersOf,
   defineVariable,
@@ -721,5 +722,65 @@ describe('bindableParams — what the bind control may offer, read from the regi
     expect(() => bindParam(document, 'cube-1-move', 'rotation.0', 'wall', LOCAL)).toThrow(/rotation/)
     expect(() => bindParam(document, 'cube-1', 'size.0', 'flag', LOCAL)).toThrow(/flag/)
     expect(() => bindParam(document, 'cube-1', 'size.0', 'nope', LOCAL)).toThrow(/nope/)
+  })
+})
+
+describe('create-and-bind is one Undo step (TODO/ui-059)', () => {
+  /** @returns {WarpDocument} */
+  const piDocument = () => {
+    const document = createDocument()
+    document.append({ id: 'pi-1', op: 'raspberrypi.bplus', name: 'Raspberry Pi 1', params: { model: 4 } }, LOCAL)
+    return document
+  }
+
+  it('document.batch(define; bind) is two Undo steps — which is why a dedicated command exists', () => {
+    const document = piDocument()
+    document.batch(() => {
+      defineVariable(document, PI_MODEL, LOCAL)
+      bindParam(document, 'pi-1', 'model', 'piModel', LOCAL)
+    })
+    document.undo()
+    // The bind went; the definition is still there. Not one step.
+    expect(document.recordOf('pi-1')?.params?.model).toBe(4)
+    expect(readVariables(document.entries).variables.has('piModel')).toBe(true)
+  })
+
+  it('bindParamToNewVariable defines and binds in one step, and one Undo takes both back', () => {
+    const document = piDocument()
+    const depth = document.canUndo()
+    bindParamToNewVariable(document, 'pi-1', 'model', PI_MODEL, LOCAL)
+    expect(document.recordOf('pi-1')?.params?.model).toEqual({ $var: 'piModel' })
+    expect(readVariables(document.entries).variables.get('piModel')?.value).toBe(4)
+    expect(document.pendingUndo()?.label).toMatch(/piModel/)
+
+    document.undo()
+    expect(document.recordOf('pi-1')?.params?.model).toBe(4)
+    expect(readVariables(document.entries).variables.has('piModel')).toBe(false)
+    expect(document.canUndo()).toBe(depth)
+
+    document.redo()
+    expect(document.recordOf('pi-1')?.params?.model).toEqual({ $var: 'piModel' })
+    expect(readVariables(document.entries).variables.get('piModel')?.value).toBe(4)
+  })
+
+  it('the new variable drives the body: setVariable re-folds it', () => {
+    const document = piDocument()
+    bindParamToNewVariable(document, 'pi-1', 'model', PI_MODEL, LOCAL)
+    const before = boundsOf(document.bodies()[0].geometry)
+    setVariable(document, 'piModel', 5, LOCAL)
+    expect(boundsOf(document.bodies()[0].geometry)).not.toEqual(before)
+  })
+
+  it('a refusal writes nothing: a taken name, a kind that does not fit, a slot not offered', () => {
+    const document = piDocument()
+    defineVariable(document, PI_MODEL, LOCAL)
+    const entries = document.entries.length
+    expect(() => bindParamToNewVariable(document, 'pi-1', 'model', PI_MODEL, LOCAL)).toThrow(/already defined/)
+    expect(() =>
+      bindParamToNewVariable(document, 'pi-1', 'model', { name: 'flag', kind: 'boolean', value: true }, LOCAL),
+    ).toThrow(/flag/)
+    expect(() => bindParamToNewVariable(document, 'pi-1', 'nope', wallVar(), LOCAL)).toThrow(/nope/)
+    expect(document.entries).toHaveLength(entries)
+    expect(document.recordOf('pi-1')?.params?.model).toBe(4)
   })
 })

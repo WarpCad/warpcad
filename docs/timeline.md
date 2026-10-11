@@ -77,6 +77,11 @@ row is greyed like a suppressed one but keeps the chip instead of the word "supp
 so you can tell "switched off by me" from "only exists on a Pi 4". See
 [A part that only exists on one model](selection-and-inspector.md#a-part-that-only-exists-on-one-model).
 
+**Variable rows.** Defining a variable adds a **Define piModel** row, and binding a field
+to one is a step of its own (or part of the same step, when you bound it with **New variable
+from this value…**). A binding whose variable has since been deleted shows as a *broken* row
+that names the variable and the field. See [Variables](variables.md).
+
 ## Looking at an earlier point (preview)
 
 Tap any row *except the last one* and the 3D view shows the model **as it was just after

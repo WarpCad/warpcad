@@ -939,7 +939,11 @@ test('layout: the list in the Inspector clears the Library tab, the nav chrome a
   const rowIds = (await sceneBodies(page)).map((body) => body.id)
   for (const id of rowIds) {
     for (const testId of [`objects-row-${id}`, `objects-check-${id}`]) {
-      await page.getByTestId(testId).scrollIntoViewIfNeeded()
+      // Centred in the sheet's own scroller, not `scrollIntoViewIfNeeded`: that one is
+      // satisfied by a row that is merely inside the scroller's box, which can be a row sitting
+      // under the sheet's sticky Delete row. The question here is whether a person can scroll
+      // the row clear of everything, so put it in the middle.
+      await page.getByTestId(testId).evaluate((el) => el.scrollIntoView({ block: 'center' }))
       const reach = await isReachable(page, testId)
       expect(reach.found, testId).toBe(true)
       expect(reach.onScreen, `${testId} on screen`).toBe(true)
@@ -947,6 +951,7 @@ test('layout: the list in the Inspector clears the Library tab, the nav chrome a
       expect(reach.height, `${testId} tap-target height`).toBeGreaterThanOrEqual(44)
     }
   }
+  await page.getByTestId('inspector-objects-header').evaluate((el) => el.scrollIntoView({ block: 'center' }))
   const header = await isReachable(page, 'inspector-objects-header')
   expect(header.topmostIsItem).toBe(true)
   expect(header.height).toBeGreaterThanOrEqual(44)

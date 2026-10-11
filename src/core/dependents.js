@@ -32,7 +32,7 @@
 import { createDocument, foldableEntry } from './document.js'
 import { isGroup } from './kernel/group.js'
 import { paramOptions, partAliasesOf } from './kernel/registry.js'
-import { consumersOf, setVariableRevision } from './variables.js'
+import { consumersOf, resolveParams, setVariableRevision, variablesOf } from './variables.js'
 
 /** @typedef {import('./document.js').WarpDocument} WarpDocument */
 /** @typedef {import('./document.js').RecordRevision} RecordRevision */
@@ -122,13 +122,17 @@ function previewOf(document, changes) {
  *
  * @param {OpRecord | undefined} root The edited body's creation record, as it is now.
  * @param {Record<string, any>} [previous] Its params before the change, if any.
+ * @param {ReadonlyMap<string, import('./variables.js').Variable>} [variables] A param bound
+ *   to a project variable (`TODO/core-050`) is read at the variable's value, never as the
+ *   `{ "$var" }` object — or the label would be `[object Object]`.
  * @returns {string | null}
  */
-function variantLabelOf(root, previous) {
+function variantLabelOf(root, previous, variables = undefined) {
   if (root === undefined) return null
-  const params = root.params ?? {}
+  const params = variables === undefined ? (root.params ?? {}) : resolveParams(root.params ?? {}, variables).params
   const enums = Object.entries(paramOptions(root.op, params)).filter(([, field]) => field.kind === 'enum')
-  const changed = previous ? enums.find(([key]) => !Object.is(previous[key], params[key])) : undefined
+  const before = previous && variables !== undefined ? resolveParams(previous, variables).params : previous
+  const changed = before ? enums.find(([key]) => !Object.is(before[key], params[key])) : undefined
   const [key, field] = changed ?? enums[0] ?? []
   if (key === undefined || field === undefined || field.kind !== 'enum') return root.name ?? null
   return field.options.find((option) => Object.is(option.value, params[key]))?.label ?? String(params[key])
@@ -188,7 +192,7 @@ function describeBreakage(before, after, step, editedRootId, previousParams) {
 
   let reason = step.reason.replace(/^can't be built: /, '')
   if (missingPieces.length > 0) {
-    const variant = variantLabelOf(editedRoot, previousParams) ?? 'The new version'
+    const variant = variantLabelOf(editedRoot, previousParams, new Map(variablesOf(after).map((variable) => [variable.name, variable]))) ?? 'The new version'
     const names = missingPieces.map((piece) => `\`${piece}\``).join(', ')
     reason = `${variant} has no ${missingPieces.length === 1 ? 'part' : 'parts'} named ${names}`
   }

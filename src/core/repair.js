@@ -48,6 +48,14 @@ import { boundsOf } from './kernel/group.js'
  * @property {any[]} [conditionValues] The values **Only when…** keeps the dependent for,
  *   when they are not simply `[oldValue]` — Resolve… offers the variants that really
  *   have the missing parts, since the value before the committed change is gone.
+ * @property {string} [recordId] The row `record` revises, when it is not `rootId`
+ *   (`TODO/ui-059`: a variable's `var.define` record, while `rootId` stays the edited body).
+ * @property {string} [variable] The project variable the edit changes (`TODO/ui-059`).
+ *   **Only when…** then writes `{ var, in }` rather than `{ ref, param, in }`, and a row's
+ *   edited body is read off its own refs, since one variable can drive several bodies.
+ * @property {string} [label] The Undo step's label, when it is not `Edit <body>`.
+ * @property {string} [announce] A line to show once the edit is committed (`TODO/ui-059`'s
+ *   blast-radius summary).
  */
 
 /**
@@ -177,7 +185,17 @@ function detached(document, record) {
 export function repairChanges(document, edit, breakages, fixes) {
   /** @type {Map<string, RecordRevision>} */
   const changes = new Map()
-  if (edit.record !== null) changes.set(edit.rootId, { id: edit.rootId, record: edit.record })
+  const editedId = edit.recordId ?? edit.rootId
+  if (edit.record !== null) changes.set(editedId, { id: editedId, record: edit.record })
+
+  /**
+   * The body a breakage is "against": the edit's own for a param change; for a variable,
+   * the body this row actually references (one variable can drive several).
+   *
+   * @param {Breakage} breakage
+   */
+  const editedRootOf = (breakage) =>
+    edit.variable === undefined ? edit.rootId : (document.rootOf(breakage.refIds[0] ?? '') ?? edit.rootId)
 
   /**
    * @param {string} id
@@ -203,16 +221,23 @@ export function repairChanges(document, edit, breakages, fixes) {
     if (fix.kind === 'leave') {
       merge(id, { leftBroken: true })
     } else if (fix.kind === 'remap') {
-      merge(id, { record: remapped(document, recordFor(id), edit.rootId, fix.pieces), leftBroken: false })
+      merge(id, { record: remapped(document, recordFor(id), editedRootOf(breakage), fix.pieces), leftBroken: false })
     } else if (fix.kind === 'detach') {
       if (!breakage.placement) throw new Error(`repair: "${id}" is not a Snap or Align, so it cannot be detached`)
       merge(id, { record: detached(document, recordFor(id)), leftBroken: false })
     } else if (fix.kind === 'condition') {
       const values = fix.values ?? edit.conditionValues ?? [edit.oldValue]
-      if (edit.param === null || values.length === 0 || values.some((value) => value === undefined)) {
+      if (
+        (edit.variable === undefined && edit.param === null) ||
+        values.length === 0 ||
+        values.some((value) => value === undefined)
+      ) {
         throw new Error(`repair: "${id}" can only be made conditional on a choice, and this change is not one`)
       }
-      const when = { ref: edit.rootId, param: edit.param, in: values }
+      const when =
+        edit.variable !== undefined
+          ? { var: edit.variable, in: values }
+          : { ref: edit.rootId, param: /** @type {string} */ (edit.param), in: values }
       // Whole body: the dependent body's creation record — only a *creation* record's
       // condition takes a whole body out. A boolean's result has none (its lineage starts
       // at the boolean itself), so it falls back to this operation.
@@ -221,7 +246,7 @@ export function repairChanges(document, edit, breakages, fixes) {
       // Never the edited body itself: "the Pi only exists while the Pi is a Pi 4" would
       // make the Pi 5 delete itself. Its own row (the Pi snapped by its own AV jack) can
       // only be conditioned as this operation.
-      const self = breakage.dependentBodyId === edit.rootId
+      const self = breakage.dependentBodyId === editedRootOf(breakage)
       const target = fix.scope === 'body' && creates && !self ? breakage.dependentBodyId : id
       merge(target, { record: { ...recordFor(target), when } })
       // The row itself no longer needs tolerating once the condition covers it.

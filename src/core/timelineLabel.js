@@ -216,6 +216,12 @@ export function describeRow(record, names) {
     return `Reference image ${width} × ${height} px`
   }
 
+  // A project variable (`TODO/core-050`, shown by `TODO/ui-059`): named by what it defines, not
+  // "var-3 — placed" — it builds nothing and is not a body.
+  if (record.op === 'var.define') {
+    return typeof params.name === 'string' && params.name.length > 0 ? `Define ${params.name}` : 'Define variable'
+  }
+
   // Removing one part of a group (`TODO/ui-051`): the part is the interesting half.
   if (record.op === 'group.removePart') {
     const part = typeof params.part === 'string' && params.part.length > 0 ? params.part : 'part'

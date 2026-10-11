@@ -223,3 +223,14 @@ describe('delete and remove-part rows (TODO/ui-051)', () => {
     expect(describeRow({ op: 'group.removePart', params: {} }, new Map())).toBe('Remove part')
   })
 })
+
+describe('a variable definition row (TODO/ui-059)', () => {
+  it('reads "Define <name>", not "<id> — placed"', () => {
+    const row = { id: 'var-3', op: 'var.define', params: { name: 'piModel', kind: 'number', value: 1 } }
+    expect(describeRow(row, buildNameIndex([row]))).toBe('Define piModel')
+  })
+
+  it('a definition with no usable name still says something', () => {
+    expect(describeRow({ id: 'var-4', op: 'var.define', params: {} }, new Map())).toBe('Define variable')
+  })
+})

@@ -286,6 +286,13 @@ Inspector's object list, greyed, with its condition beside it, and tap it there 
 or remove the condition. Removing it on a Pi 5 brings the part back as a *broken*
 dependent with its warning, rather than quietly hiding the problem.
 
+### Binding a field to a variable
+
+A number, choice or yes/no field can be bound to a project **variable**, so one change in the
+Variables section moves every field bound to it. The link button beside a field does it, and
+a bound field shows a chip with the variable's name in place of its editor. See
+[Variables](variables.md).
+
 ## Colouring a shape
 
 ![Setting a cube's colour to red from the Inspector](./media/inspector-colour.gif)

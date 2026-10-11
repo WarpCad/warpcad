@@ -74,6 +74,11 @@ The Library's Raspberry Pi and Hardware items descend from the `jscad-raspberryp
 - [Mirroring a shape: Mirror](mirror.md) — the Operations toolbar's Mirror button,
   which adds a reflected copy of one shape across an X, Y or Z plane and leaves the
   original untouched.
+- [Variables: change one number and everything that uses it follows](variables.md) —
+  name a value once (a Pi model, a wall thickness), bind any field to it with the link
+  button next to it, and change it in one place. Includes conditions that read a
+  variable, deleting one that is in use, and a worked example that switches a design
+  between Pi 4 and Pi 5.
 - [The History panel: revisiting any step you've taken](timeline.md) — the
   **History** button in the top bar, the list of every step in your model, and the
   five things you can do to a past step: look at the model as it was then, change

@@ -868,3 +868,63 @@ describe('describeBody — editable composite params (TODO/ui-052)', () => {
     expect(present(body.condition).chip).toBe('if Raspberry Pi 1 = Pi 4')
   })
 })
+
+describe('bound params (TODO/ui-059)', () => {
+  const LOCAL = { origin: 'local' }
+
+  /** @returns {import('./document.js').WarpDocument} */
+  function boundCube() {
+    const document = createDocument()
+    document.append({ id: 'v1', op: 'var.define', params: { name: 'wall', kind: 'number', value: 12, unit: 'mm' } }, LOCAL)
+    document.append(
+      { id: 'cube-1', op: 'primitive.cuboid', name: 'Cube 1', params: { size: [{ $var: 'wall' }, 20, 30], center: [0, 0, 0] } },
+      LOCAL,
+    )
+    return document
+  }
+
+  it('shows the variable value in the bound component, marks it bound, and never feeds the object on', () => {
+    const document = boundCube()
+    const { body } = describeSelection(document.bodies(), ['cube-1'], { document })
+    const size = /** @type {any} */ (body?.params.find((field) => field.key === 'size'))
+    expect(size.components.map((/** @type {any} */ component) => component.value)).toEqual([12, 20, 30])
+    expect(size.components[0].bound).toEqual({ name: 'wall' })
+    expect(size.components[1].bound).toBeUndefined()
+  })
+
+  it('carries core\'s bindable slots for the creation record (the UI shows only the ones it has a field for)', () => {
+    const document = boundCube()
+    const { body } = describeSelection(document.bodies(), ['cube-1'], { document })
+    expect(body?.bind?.recordId).toBe('cube-1')
+    expect(body?.bind?.slots.map((slot) => slot.path)).toEqual(expect.arrayContaining(['size.0', 'size.1', 'size.2']))
+    expect(body?.bind?.reason).toBeNull()
+  })
+
+  it('without the document there is no bind control and no resolution — the raw description', () => {
+    const document = boundCube()
+    const body = describeBody(document.bodies()[0])
+    expect(body.params.find((field) => field.key === 'size')).toBeUndefined()
+  })
+
+  it('an unresolvable binding keeps the field, marked with core\'s reason, as a chip error', () => {
+    const document = boundCube()
+    const [cube] = document.bodies()
+    const broken = { ...cube, params: { size: [{ $var: 'ghost' }, 20, 30] } }
+    const body = describeBody(broken, undefined, new Map())
+    const size = /** @type {any} */ (body.params.find((field) => field.key === 'size'))
+    expect(size.components[0].bound.name).toBe('ghost')
+    expect(size.components[0].bound.problem).toMatch(/"ghost" is not defined/)
+    expect(size.components[1].value).toBe(20)
+  })
+
+  it('a bound whole value that cannot resolve is still listed, as a read-only stand-in', () => {
+    const document = createDocument()
+    document.append({ id: 'v1', op: 'var.define', params: { name: 'pm', kind: 'enum', value: 4, options: [{ value: 4, label: 'Pi 4' }, { value: 5, label: 'Pi 5' }] } }, LOCAL)
+    document.append({ id: 'pi-1', op: 'raspberrypi.bplus', name: 'Pi', params: { model: { $var: 'pm' } } }, LOCAL)
+    const [pi] = document.bodies()
+    const body = describeBody({ ...pi, params: { model: { $var: 'gone' } } }, undefined, new Map())
+    const model = body.params.find((field) => field.key === 'model')
+    expect(model?.bound).toMatchObject({ name: 'gone' })
+    expect(model?.bound?.problem).toMatch(/gone/)
+  })
+})

@@ -78,6 +78,8 @@ drops (dropping the second body must not hide or replace the first). Clicking ea
 individually selects only that item (gizmo and dimension lines attach to whichever was
 just clicked, not both at once).
 
+**Last run**: 2026-10-11 03:09 UTC (`ui-059`) — **PASS** at laptop 1440x900 Chromium (real mouse, jittered Library drags, from cleared storage). Cube then Cylinder dropped: both remained (*2 objects*); a click on open grid cleared the selection (0), the cube selected exactly one body (`cuboid-1`), the cylinder exactly one (`cylinder-2`). Re-driven by `ui-059` (Variables section and bind controls added to the Inspector). Console and page errors: none.
+
 **Last run**: 2026-10-11 02:05 UTC (`core-050`) — **PASS** at laptop 1440x900 Chromium (real mouse, jittered Library drags, from cleared storage). Cube then Cylinder dropped: both remained (*2 objects*); a click on open grid cleared the selection (0), the cube selected exactly one body (`cuboid-1`), the cylinder exactly one (`cylinder-2`). Re-driven because the fold now resolves project-variable bindings before handing params to the kernel (every record passes through it). Console clean.
 
 **Last run**: 2026-10-10 22:14 UTC (`ai-010`) — **PASS** at laptop 1440x900 Chromium (real mouse, jittered Library drags). Cube then Cylinder dropped: both remained (*2 objects*); a click on open grid cleared the selection (0), the cube selected exactly one body, the cylinder exactly one. Re-driven because the assistant store and chat panel changed (a developer-only scripted mode). Console clean.
@@ -1115,6 +1117,8 @@ named `M2.5 Socket`, which is not in `boltSpecs` — the real table has `m10 hex
 and `1/4 socket` — so the step now uses real values and can be driven as written. Every
 current spec has the same three fits (`tap`, `close`, `loose`); the Fit list is still read
 from the chosen spec's own row, so a spec with different fits changes it.)*
+
+**Last run**: 2026-10-11 03:09 UTC (`ui-059`) — **PASS** at laptop 1440x900 Chromium (real mouse). A Bolt dropped from Hardware; its Length field is editable (typed `20`, Enter, reads 20) and now carries a bind control (`param-bind-length`) beside it. Re-driven by `ui-059` (Variables section and bind controls added to the Inspector). Console and page errors: none.
 
 **Last run**: 2026-10-11 02:05 UTC (`core-050`) — **PASS for steps 1-4 and 7-8** at laptop 1440x900 Chromium (real mouse Library drag, native selects, typed fields). Bolt dropped and selected; Inspector showed spec, fit, length and position. Spec `1/4 socket` (volume 2920.8 -> 1070.3), Fit `loose`, Length 24 (-> 1194.9), one body still selected throughout; typed Position X 25 moved the mesh centre to x 25.00. **Gizmo-drag steps 5-6 not re-driven** (no transform code changed). Re-driven because the fold now resolves project-variable bindings before handing params to the kernel (every record passes through it). Console clean.
 
@@ -2565,6 +2569,8 @@ clean.
 alone, with no dependency on keyboard or mouse input. Tapping the orientation gizmo
 snaps the camera to the corresponding standard view.
 
+**Last run**: 2026-10-11 03:09 UTC (`ui-059`) — **PASS, partially driven** at phone 390x844 Chromium with touch emulation (`hasTouch`; taps only, no pinch or two-finger pan this run). Cube dropped; the navigation chrome expanded by tap and stepped the camera; the Inspector sheet's new **Inspector / Variables** tabs and the **+** form worked by tap; a bind tap opened the popover as a full-width bottom sheet (x 0, width 390, bottom edge at the viewport's); no horizontal scroll; the nav chrome (y 245-405) and the Operations toolbar (bottom 240) and the sheet (top 426) do not overlap. Re-driven by `ui-059` (Variables section and bind controls added to the Inspector). Console and page errors: none.
+
 **Last run**: 2026-10-09 19:32 UTC (`ai-007`) — **PASS** at the iPad viewport 820x1180 in Chromium (touch only, `tap()`; WebKit touch is the known `ui-045` gap): nav step moved the azimuth (-45 to -30), Pan then step moved the target (0,0,0 to 9.26,16.04,0), zoom-in shrank the distance (420 to 336), zoom-out twice grew it (to 525), and the gizmo's top view snapped elevation to 90. Re-driven because `Viewport.vue` gained the capture registration. Console clean.
 
 **Last run**: 2026-10-09 16:18 UTC (`ai-006`) — **PASS** at the iPad viewport 820x1180 in Chromium (touch only, `tap()`; WebKit touch is the known `ui-045` gap), with the chat sheet at each of peek / half / tall: orbit step moved the azimuth, Pan then step moved the target, zoom-in shrank the distance, and the gizmo's top cap snapped the camera to a straight-down view (elevation 90°). At every height the nav chrome stayed above the sheet (chrome bottom 1072/731/448 against sheet top 1119/755/472).
@@ -2924,6 +2930,8 @@ shows **Download copy** instead — drive whichever your browser shows, and say 
   **once** and never over a drag in progress. Nothing on GitHub is overwritten. After
   **Cancel** the second local edit does **not** raise the dialog again and does not push;
   an explicit **Save to owner/repo** raises it again.
+
+**Last run**: 2026-10-11 03:09 UTC (`ui-059`) — **PASS** at laptop 1440x900 Chromium. Placed shapes, a Pi with its Model bound to `piModel` and a cube with `wall`-bound sizes; reload restored all four bodies, both variables (`wall`, `piModel`) and the Pi's chip. (Save to file / gist leg not re-driven this run.) Re-driven by `ui-059` (Variables section and bind controls added to the Inspector). Console and page errors: none.
 
 **Last run**: 2026-10-11 02:05 UTC (`core-050`) — **PASS for steps 1-7** at laptop 1440x900 Chromium with the download/file-chooser fallback forced (real mouse, ticked in the object list). Cube + Cylinder unioned to one body (volume 76530.514, centre -13.80,-13.80,25.00); chip read `Saved`; after a reload the identical body came back and History listed `Union Cylinder 1 + Cube 1`; **Download copy** produced `warpcad-project-<timestamp>.ndjson` (4 lines), a Sphere added, **Open…** replaced the scene with the saved single body. **Hosted halves (steps 8-9) not driven** (no scratch repo). Re-driven because the fold now resolves project-variable bindings before handing params to the kernel (every record passes through it). Console clean.
 
@@ -3330,6 +3338,8 @@ preview strip and the rollback strip (with **Roll forward**), and the header's *
   turns wrong-shaped, the sphere moves or disappears, or nothing at all is said — the exact
   failure class `SECOND-ATTEMPT.md` and this file both exist to catch.
 
+**Last run**: 2026-10-11 03:09 UTC (`ui-059`) — **PASS, partially driven** at laptop 1440x900 Chromium. History opened, the first row selected, **Edit** opened its form (3 inputs) and **Cancel** left the model untouched. The commit-an-edit-and-replay leg was not re-driven this run; the variable steps (`Define piModel`) appear as their own rows. Re-driven by `ui-059` (Variables section and bind controls added to the Inspector). Console and page errors: none.
+
 **Last run**: 2026-10-11 02:05 UTC (`core-050`) — **PASS for steps 1-9 and 10 (rollback/roll forward)** at laptop 1440x900 Chromium (real mouse). Chamfer 5 mm on a Cube then a Sphere; History listed placed / Chamfer / placed; Edit Radius 5 -> 3 replayed (cube volume 62166.667 -> 63316.000, sphere centre and volume untouched); Undo gave 5 mm back and Redo 3 mm; Suppress gave 64000.000 and Unsuppress restored; Roll back to row 2 showed one body and the strip, a Cone dropped during rollback survived Roll forward (3 bodies). Steps 11-12 (Move up, break-it-on-purpose) not re-driven. Re-driven because the fold now resolves project-variable bindings before handing params to the kernel (every record passes through it). Console clean.
 
 **Last run**: 2026-10-06 17:11 UTC (`ai-003`) — **PASS for steps 1-11** at laptop 1440x900 Chromium and tablet 820x1180 WebKit (real mouse, human-paced). Re-driven because each History row now sits in a flex line with an optional note-icon toggle. Rows read `Cube 1 — placed` / `Chamfer Top (+Z) 5 mm on Cube 1` / `Sphere 1 — placed`, and **no note icon on any hand-made row**. Edit radius 5 → 3 relabelled the row with the Sphere's centre unchanged; Undo/Redo flipped 5 ↔ 3; Suppress/Unsuppress toggled `data-suppressed`; Roll back to here showed the marker, a Cone dropped while rolled back landed as row 3 above the Sphere, Roll forward gave three bodies; Sphere Move up swapped the rows and Undo put them back. **Also driven** (WebKit laptop): an AI row from a file with intent can still be selected, Suppressed (its note icon and intent stay available while suppressed), and both suppression and intent survive a reload. Step 12 (break on purpose) not driven. Console clean.
@@ -3563,6 +3573,8 @@ keys, and the header's **Undo**.
   Inspector sheet describing a body that is gone, or Backspace in a text field deleting
   a body.
 
+**Last run**: 2026-10-11 03:09 UTC (`ui-059`) — **PASS** at laptop 1440x900 Chromium. Deleted the Bolt (count 4 to 3), Undo brought it back (4), reload kept 4 bodies and both variables. Re-driven by `ui-059` (Variables section and bind controls added to the Inspector). Console and page errors: none.
+
 **Last run**: 2026-10-11 02:05 UTC (`core-050`) — **PASS for steps 1-5** at laptop 1440x900 Chromium (real mouse and **Delete** key). Cube deleted (count 1, tooltip `Undo: Delete Cube 1`), Undo restored it at a byte-identical centre, deleted again, and after a reload exactly one body came back. **Step 6 (Pi sub-part) not re-driven.** Re-driven because the fold now resolves project-variable bindings before handing params to the kernel (every record passes through it). Console clean.
 
 **Last run**: 2026-09-28 03:08 UTC (`ui-051`, **first drive**) — **PASS**. Laptop 1440x900 Chromium,
@@ -3620,6 +3632,8 @@ condition chip (`timeline-condition-chip`), and the header's **Undo**.
 - Never: a change that commits before the dialog is answered, a cube left floating at the
   Pi 4's jack position beside a Pi 5 with no warning, or more than one Undo needed to
   reverse one Apply.
+
+**Last run**: 2026-10-11 03:09 UTC (`ui-059`) — **PASS** at laptop 1440x900 Chromium (real mouse), **the same outcome through a variable**. Pi 4 with `piModel` bound, cube snapped to `avjack` by the object list; `piModel` 4 to 5 in the Variables section held the change in the repair dialog ("This change affects 1 item"); **Detach** + Apply kept the cube at the same centre (86.77, -131.01, -17.38); one Undo put the Pi 4 and the variable back (`piModel` reads 4). Re-driven by `ui-059` (Variables section and bind controls added to the Inspector). Console and page errors: none.
 
 **Last run**: 2026-10-11 02:05 UTC (`core-050`) — **PASS, all six steps** at laptop 1440x900 Chromium, and steps 1-5 again on WebKit (real mouse, native selects). Snap by the object list put the cube on the AV jack; Model -> Pi 5 held the change ("This change affects 1 item", `Cube 1`, `Snap → avjack`, "Pi 5 has no part named `avjack`"); Cancel left Pi 4 and the cube put; Detach kept the cube at the same centre and one Undo gave back the Pi 4; Leave broken showed the banners with the cube visible and Remap `ethernet` moved it and cleared them; Only when (scope `body`) removed the cube on a Pi 5, restored it at the jack on a Pi 4 with no dialog, and after a reload on a Pi 5 it was still absent with History rows `if Raspberry Pi 1 = Pi 4`. Re-driven because the fold now resolves project-variable bindings before handing params to the kernel (every record passes through it). Console clean.
 
@@ -3769,5 +3783,35 @@ and its scale survive the gist round-trip.
 **Last run**: 2026-10-06 01:51 UTC (`sketch-004`, **first drive with Auto-trace**) — **PASS** at laptop 1440x900 on **Chromium, WebKit and Firefox** (real mouse, jittered, human-paced) and phone 390x844 Chromium (**trusted CDP touch only**). Laptop Chromium: photo under the grid, *Not to scale*; Set scale by a jittery drag from the ruler's **5 cm to 15 cm** mark, *10* **cm** → *1 px = 0.2 mm*, line labelled *10 cm*; **Auto-trace** armed (banner took the toolbar's slot, sheet folded); a tap on the table → *That region runs off the edge of the photo — tap inside the part*, Cancel still reads Cancel; a tap inside the L's **vertical arm** (the e2e taps the top arm) → *Traced 1 outline and 2 holes — 32 points*, holes dashed, Threshold readout *Auto (134)*. Tolerance dragged to 2.4 mm → 14 points, back to 0.5 → 32, Threshold off Auto and back: each re-traced **in place** (slice stayed at 3 outlines). **Finish** armed Select with the Solid picked (6 points, midpoint dots); clean-up: a midpoint dot dragged (7 points), that point tapped and deleted from the toolbar trash (6), a corner dragged out and back; Linear 4 mm, Done → **120.11 × 100.19 × 4.00 mm**, 21 247 mm³ against 21 192 true; photo hidden outside the editor, Undo *Place Sketch 1* (one step); reload + **Edit sketch** → photo back at *1 px = 0.2 mm*, 3 outlines. WebKit / Firefox (same hand path, 5-15 cm calibration): **119.61 × 99.76** / **119.62 × 99.77 mm**, 34 / 32 points, edge refusal on the table tap; console clean on both. **Unscaled trace** (laptop Chromium, a second sketch): banner *Not to scale yet — outlines will use 1 px = 0.1 mm until you Set scale* before the tap, *…22 points. Not to scale yet — Set scale, then answer Yes to resize them* (warn) after; Esc kept the outlines and armed Select. **EXIF/GPS (step 8)**: a copy of the fixture with a real EXIF APP1 + GPS IFD (*N 45°*, read back by PIL) was imported; the asset decoded from the autosaved project's `dataBase64` is a JFIF JPEG (`ffd8ffe0`, 42 623 bytes) with **no APP1 segment, no `Exif`, no TIFF header, 0 EXIF tags, empty GPS IFD** (no `exiftool` on this machine, checked with PIL plus a byte scan) — **PASS**. Phone, finger only: Library drag, Add image, one swipe inside the Slices sheet to reach its buttons, **Set scale** by two taps (0 and 10 cm marks) → *1 px = 0.198 mm*; **Auto-trace** armed: **77 % reachable canvas**, Adjust sliders folded, Finish 66 × 44 px; a tap on the table refused with the edge reason, a tap inside the vertical arm → 1 outline, 2 holes, 32 points; Finish → Select, a finger drag of a corner out and back; Linear 5 mm, Done → **118.49 × 98.83 mm** — the 1.2 % is the finger-tapped scale (0.198 vs 0.2 at ~2.3 screen px per mm), not the trace (the photo at 0.198 mm/px is 118.8 × 99.0). **Drive snags, not defects of this task** (both logged in `TODO/VERIFY.md`): after Finish on the phone the Solid's two top points sit under the two-row Sketch toolbar (y 200 vs toolbar bottom 223) — a finger aimed at one pressed **Cancel** and the draft was discarded; and a stray gesture of the drive left the Inspector sheet open while armed, which cut reachable canvas to 56 %. **Not driven**: the gist round-trip (needs a GitHub token), a real phone photo, tablet (the 9-way e2e covers it).
 
 **Last run**: 2026-10-04 16:34 UTC (`sketch-003`, **first drive**) — **PASS** at laptop 1440x900 on **Chromium, WebKit and Firefox** (real mouse, jittered, human-paced) and phone 390x844 Chromium (**trusted CDP touch only**). Laptop, all three: the fixture photo appeared under the grid, *Not to scale*; opacity nudged to 65 %; **Set scale** folded the sheet and the banner took the toolbar's slot; a jittery drag from the ruler's **5 cm to its 15 cm mark** (deliberately not the e2e's 0-10), *10* **cm**, Apply → badge *1 px = 0.2 mm* (Chromium) / *0.201 mm* (WebKit, Firefox — a pixel of hand placement), line labelled *10 cm*. The L traced by six Line clicks closing on the first, two Shift-drawn circles made Holes, Linear 3 mm, Done: **120.00 × 100.00 mm** (Chromium) and **120.67 × 100.13 mm** (WebKit, Firefox), volume 15 901 / 15 989 mm³ against 15 894 for the true part; photo hidden outside the editor; Undo label *Place Sketch 1* (one step). After the autosave, a **reload** and **Edit sketch** brought the photo back at the same scale and 65 % opacity. **One drive snag, not a defect of this task:** the top of the photo sat where the Sketch toolbar grows its Finish / Undo-point row once a Line chain is live, so the clicks on the bracket's top corners landed on the toolbar; zooming out a notch (as a person would) cleared it — logged in `TODO/VERIFY.md`. Phone: Library drag by finger, Add image, **Set scale** with the sheet out of the way — the drive first measured **67 % reachable canvas** with the folded sheet header still showing (FAIL against the 69 % floor); the sheet now steps aside entirely on a narrow viewport while armed (**77 %**), Cancel 66 × 44 px; two finger taps on the 0 and 10 cm marks, *100* mm → *1 px = 0.201 mm*; a finger-drawn triangle over the photo drew and the Inspector stayed shut; Done committed one body. Console clean in every drive. Not driven by hand: tablet (the 9-way e2e covers it), a real iPhone (HEIC handling — `TODO/VERIFY.md`).
+
+### 21. Create a variable from a field, bind a second field to it, change it, undo, save, reload
+
+Added 2026-10-11 with `TODO/ui-059`, per this file's rule that a whole new capability class earns a
+scenario: a named project value any Inspector field can be bound to. Control names: the link
+button beside a field (`param-bind-<param>`), **New variable from this value…**
+(`param-bind-new`), the field's chip (`param-chip-<param>`), the **Variables** section
+(`inspector-variables`, a tab of the sheet at phone width), a row's value (`variable-value-<name>`)
+and the header's **Undo**.
+
+**Steps**:
+1. Drag a Cube in. In its Inspector tap the link button beside **Size X**, choose **New variable
+   from this value…**, name it `wall`, **Create and bind**.
+2. Tap the link button beside **Size Y** and choose `wall`.
+3. With nothing selected, open **Variables** and change `wall` to `25`.
+4. Press **Undo** once.
+5. Change `wall` to `25` again, reload the page, select the cube.
+
+**Expect**:
+- Step 1: Size X becomes a `wall` chip reading 40 (nothing moved), `wall` appears in Variables
+  as *used by 1*, and there is no editor under the chip to type into.
+- Step 2: Size Y is a `wall` chip too; *used by 2*.
+- Step 3: the cube is 25 mm in X and Y and a line says *wall 40 mm → 25 mm — 2 parameters on 1
+  part changed*.
+- Step 4: one Undo returns both to 40, in one step, and the line goes away.
+- Step 5: after the reload `wall` still reads 25 and both chips are present.
+- Never: a chip that can be typed into, a value change that needs two Undos, or a bound field
+  that silently reverts to its literal after reload.
+
+**Last run**: 2026-10-11 03:09 UTC (`ui-059`, **first drive**) — **PASS** at laptop 1440x900 Chromium (real mouse and keyboard): steps 1-5 as written. At phone 390x844 only the Variables tab, the **+** form and the bind bottom sheet were driven (by tap, in scenario 7's drive), not this step list. Also driven at laptop: typing into a chipped field changes nothing, two fields bound to one variable follow it together, a Transform rotation row offers no bind control, a variable deleted while its value box had uncommitted text still opens the usage dialog, a bind popover stays usable while a variable is changed behind it, and a bind tapped straight after a Pi drop (before the worker settled) works.
 
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

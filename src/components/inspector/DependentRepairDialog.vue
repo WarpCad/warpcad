@@ -32,6 +32,7 @@ import { computed, onBeforeUnmount, onMounted, ref, toRaw } from 'vue'
 import { useParamCommands } from '../../composables/useParamCommands.js'
 import { paramOptions } from '../../core/kernel/registry.js'
 import { offeredFixesOf } from '../../core/repair.js'
+import { variableValueLabel, variablesOf } from '../../core/variables.js'
 import { useDocumentStore } from '../../stores/document.js'
 import { useHoverHighlightStore } from '../../stores/hoverHighlight.js'
 import { useRepairDialogStore } from '../../stores/repairDialog.js'
@@ -102,6 +103,21 @@ const changedField = computed(() => {
   return field?.kind === 'enum' ? field : undefined
 })
 
+/**
+ * The project variable a held edit changes (`TODO/ui-059`), if it is one — a variable is
+ * not a body param, so its choices come from the variable itself.
+ */
+const editedVariable = computed(() => {
+  const name = dialog.edit?.variable
+  if (name === undefined) return undefined
+  return variablesOf(toRaw(documentStore.raw)).find((variable) => variable.name === name)
+})
+
+/** Whether the change is to a choice **Only when…** can keep a dependent for. */
+const conditionable = computed(
+  () => changedField.value !== undefined || (editedVariable.value !== undefined && editedVariable.value.kind !== 'number'),
+)
+
 /** The values Only when… keeps a dependent for, and their labels. */
 const conditionValues = computed(() => {
   const edit = dialog.edit
@@ -110,6 +126,11 @@ const conditionValues = computed(() => {
 })
 
 const conditionLabel = computed(() => {
+  const variable = editedVariable.value
+  if (variable !== undefined) {
+    const labels = conditionValues.value.map((value) => variableValueLabel(variable, value))
+    return `Only when ${variable.name} is ${labels.join(' or ')}`
+  }
   const field = changedField.value
   if (!field) return ''
   const labels = conditionValues.value.map(
@@ -128,7 +149,7 @@ const title = computed(() => {
 
 /** @param {Breakage} breakage @returns {FixKind[]} */
 function kindsFor(breakage) {
-  const kinds = offeredFixesOf(breakage, { enumParam: changedField.value !== undefined })
+  const kinds = offeredFixesOf(breakage, { enumParam: conditionable.value })
   return kinds.filter((kind) => kind !== 'condition' || conditionValues.value.length > 0)
 }
 
