@@ -53,7 +53,9 @@ import { exportPrintPieces } from './printPrep.js'
  * structured-cloneable data, never geometry.
  *
  * @typedef {object} RefoldRequest
- * @property {{ record: import('./kernel/registry.js').OpRecord, origin: string, suppressed?: boolean }[]} entries
+ * @property {{ record: import('./kernel/registry.js').OpRecord, origin: string, suppressed?: boolean, leftBroken?: boolean }[]} entries
+ *   `leftBroken` (`TODO/ui-052`, `TODO/core-053`) travels with the row: the worker's fold skips a
+ *   row the user chose to leave broken instead of failing the whole export on it.
  * @property {import('./userPart.js').UserPartDefinition[]} [userParts] The project's user-part
  *   definitions (`TODO/core-037`): the worker folds against its own registry, which has
  *   never seen them, so they travel with the records.
@@ -91,6 +93,7 @@ export function refoldRequestOf(document, resolution, ids) {
           record: entry.record,
           origin: entry.origin,
           ...(entry.suppressed === true ? { suppressed: true } : {}),
+          ...(entry.leftBroken === true ? { leftBroken: true } : {}),
         }))
       )
     ),

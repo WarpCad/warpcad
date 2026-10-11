@@ -2112,3 +2112,16 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** bug logged against Save to library -> TODO/done/core-054 ("ui-055 made it reachable from a button"); capture copied only id, op, params, target, operands -> src/core/userPart.js before this diff (`copy` built from those fields only); kernel ignores style.recolor -> src/core/kernel/registry.js `style.recolor` comment; colour set on the copy wins -> unit spec "a placed copy reports the same colour overrides" and hand drive (recolour #00aa00 won); refuses non-round-tripping colours -> capturePart check in this diff; hand drive Chromium and WebKit, same red after File > New and reload -> drive output this session (A7, A8, A14 PASS)
 **To Add:** before/after screenshot, repo URL once public
+
+## [2026-10-11T00:15:00Z] — Export at another resolution keeps a row you left broken
+
+**Post:** Fixed in WarpCad: exporting at a different resolution used to fail for any project holding a row the user had chosen to leave broken. The app shows that project fine, so "could not be re-evaluated" was a confusing answer to get.
+
+The cause was the request that hands the document's records to the export worker. It copied each row's record, origin and suppressed flag, but not the leave-broken flag, so the worker's fold treated the broken row as healthy and refused. The fix copies the flag next to suppressed. Two unit specs cover it, one with the row also suppressed so the two flags stay independent.
+
+By hand in the running app I exported a union at the design resolution (204 triangles) and at Print (412 triangles) with no error. Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** export failed with `evaluation-failed` on a left-broken row -> TODO/done/core-053 problem text and the two unit specs that went red before the fix (this session); one line -> diff to src/core/exportJob.js; 204 vs 412 triangles -> in-app export status line, Normal vs Print, this session
+**To Add:** repo URL once public

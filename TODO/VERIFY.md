@@ -34,6 +34,15 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### core-053 — Export a project that holds a real left-broken row (2026-10-11 00:12)
+
+The fix is proved by unit specs that build the flagged row directly and by a hand-driven Print
+re-fold of an ordinary project; no hand-driven run opened a project with a row the user left broken.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | Open a project whose History has a row left broken (Open a file that names a missing user part, choose **Leave broken**), then **File ▾ → Export…** at **Print** and again at **Fine**. The export should finish and write the healthy bodies, with no `evaluation-failed` message. | Open | |
+
 ### ai-011 — The prompt eval harness has never run against a real model (2026-10-10 23:12)
 
 The scorer and runner are proved with the scripted provider (a good transcript scores PASS, a wrong one FAIL on the right check, the key never appears in output). No model has been scored, so no baseline exists and the thresholds are first guesses.

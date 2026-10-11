@@ -6,8 +6,14 @@ priority: medium
 model: sonnet
 milestone: M6
 depends: [core-035, ui-052]
-status: open
+status: done
 ---
+
+> **Shipped as filed.** `refoldRequestOf` copies `leftBroken` next to `suppressed`, and the
+> `RefoldRequest` typedef names it. `loadEntries` already honoured the field, so no change was
+> needed there. Two unit specs in `src/core/exportJob.spec.js` (a left-broken row, and the same row
+> also suppressed) went red on the dropped flag and are green. The e2e matrix's Firefox projects
+> still fail at browser launch in this sandbox (`TROUBLESHOOTING.md`, 2026-09-17), unrelated.
 
 ## Problem
 

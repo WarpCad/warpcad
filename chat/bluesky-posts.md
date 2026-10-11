@@ -1514,3 +1514,12 @@ Built with Claude Code, reviewed by me. #CAD
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** copy came back in default colours before -> TODO/done/core-054 problem text and the failing unit tests (3 red before the fix, this session); colour lived beside the lineage -> document.js `colorOverridesOf` reads `style.recolor` off the lineage, kernel fold ignores it (registry.js comment); copy keeps `#cc3322` after File > New and after a reload -> hand drive this session, Chromium and WebKit
 **To Add:** before/after screenshot of the Standoff in red once a docs shot exists
+
+## [2026-10-11T00:15:00Z] — Export at another resolution keeps a row you left broken
+
+**Post:** Fixed in WarpCad: a project with a row you chose to leave broken now exports at Draft, Fine or Print. The export worker re-folded the log without that flag and failed on a design the app showed without complaint. One line. Built with Claude Code, reviewed by me. #CAD
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** export failed with `evaluation-failed` on a left-broken row -> TODO/done/core-053 problem text and the two unit specs that went red before the fix (this session); one line -> diff to src/core/exportJob.js
+**To Add:** repo URL once public

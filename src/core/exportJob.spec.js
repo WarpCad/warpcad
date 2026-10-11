@@ -335,3 +335,48 @@ describe('a re-fold carries the project\'s user parts to the worker (TODO/core-0
     expect(result).not.toHaveProperty('error')
   })
 })
+
+describe('a re-fold carries the per-row Leave-broken flag to the worker (TODO/core-053)', () => {
+  /**
+   * A design whose second row names an op no registry knows — the user left it broken
+   * (`TODO/ui-052`), so the app folds it as skipped and shows the first body.
+   *
+   * @param {{ suppressed?: boolean }} [extra]
+   */
+  function withLeftBrokenRow(extra = {}) {
+    const document = createDocument({ resolution: 'normal' })
+    document.loadEntries(
+      [
+        {
+          record: { id: 'cube-1', op: 'primitive.cuboid', name: 'Cube 1', params: { size: [40, 40, 40] } },
+          origin: 'local',
+        },
+        {
+          record: { id: 'gone-1', op: 'user.vanished', name: 'Vanished', params: {} },
+          origin: 'local',
+          leftBroken: true,
+          ...extra,
+        },
+      ],
+      null,
+      'normal',
+      {}
+    )
+    return document
+  }
+
+  it('copies leftBroken onto the request and the worker folds the row as skipped', () => {
+    const request = refoldRequestOf(withLeftBrokenRow(), 'fine', [])
+    expect(request.entries[1].leftBroken).toBe(true)
+    expect(request.entries[0].leftBroken).toBeUndefined()
+    const result = runExportJob({ format: 'stl', bodies: [], refold: request })
+    expect(result).not.toHaveProperty('error')
+  })
+
+  it('keeps leftBroken and suppressed independent when both are set', () => {
+    const request = refoldRequestOf(withLeftBrokenRow({ suppressed: true }), 'fine', [])
+    expect(request.entries[1].leftBroken).toBe(true)
+    expect(request.entries[1].suppressed).toBe(true)
+    expect(() => runExportJob({ format: 'stl', bodies: [], refold: request })).not.toThrow()
+  })
+})
