@@ -5,8 +5,23 @@ kind: finding
 priority: low
 model: sonnet
 depends: []
-status: open
+status: done
 ---
+
+## What shipped
+
+**The merge, not the doc-only option.** `document.batch` now folds a batch that mixes record
+steps and `reviseRecords` revisions into one composite `HistoryStep` carrying `parts` (each pushed
+step keeps its own records / revision / rollback markers, and each record part the index it was
+inserted at, found by replaying the parts forward over the log the batch started from). Undo
+applies the parts newest-first, Redo oldest-first, all or nothing: a refusal part-way (a later
+record depends on an appended one) puts the snapshot back and rethrows. The fold-cache fast path
+still works, because the merged step is `keepRestore`d against the pre-batch state; only local
+steps are ever on the stacks, so remote/AI/mcp edits still never land in the local stack. A batch
+of one revision stays a plain revision step; all-record batches are untouched. The undo
+dependency check was extracted as `assertNoDependents`. `src/stores/document.js` redo now restores
+the pre-step selection for any step with no records. `variables.spec.js`'s pinned "two Undo steps"
+test is now "one Undo step". `bindParamToNewVariable` is kept (still the direct route).
 
 ## Problem
 

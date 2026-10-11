@@ -616,6 +616,12 @@ export class ReplayRejection extends Error {
  *   puts it back — section 18: "Undo removes the inserted row and moves the
  *   marker back".
  * @property {number | null} [rollbackAfter] The marker after it, for redo.
+ * @property {HistoryStep[]} [parts] Set on a step {@link WarpDocument.batch} made out of a
+ *   **mix** of record steps and row actions (`TODO/core-056`): the steps the build pushed,
+ *   oldest first, each keeping its own `records` / `revision` / markers and, for a record
+ *   part, the `index` it sat at. Undo applies the parts newest-first, Redo oldest-first, all
+ *   or nothing. A step with `parts` has no `revision` of its own; its `records` are the
+ *   record parts' records, concatenated.
  */
 
 /**
@@ -1964,6 +1970,131 @@ export function createDocument(options = {}) {
   }
 
   /**
+   * The parts of a composite batch step, each record part stamped with the index it
+   * was inserted at, found by replaying the parts forward over the log the batch
+   * started from (`TODO/core-056`). A tail append carries no `index` of its own; a
+   * row action's `remove`/`add` shift later parts, so they are replayed too.
+   *
+   * @param {HistoryStep[]} pushed
+   * @param {readonly DocumentEntry[]} startEntries
+   * @returns {HistoryStep[]}
+   */
+  function partsWithIndexes(pushed, startEntries) {
+    const list = startEntries.map((entry) => entry.record)
+    return pushed.map((part) => {
+      const revision = part.revision
+      if (revision === undefined) {
+        const at = Math.min(part.index ?? list.length, list.length)
+        list.splice(at, 0, ...part.records)
+        return { ...part, index: at }
+      }
+      if (revision.kind === 'revise') {
+        if (revision.remove) {
+          const gone = new Set(revision.remove.records)
+          for (let i = list.length - 1; i >= 0; i -= 1) if (gone.has(list[i])) list.splice(i, 1)
+        }
+        for (const item of revision.items ?? []) {
+          const at = list.findIndex((record) => record.id === item.id)
+          if (at >= 0) list[at] = item.to
+        }
+        if (revision.add) list.splice(Math.min(revision.add.at, list.length), 0, ...revision.add.records)
+      }
+      return { ...part }
+    })
+  }
+
+  /**
+   * Refuse, by name and before anything moves, an Undo of `step` while a record
+   * outside it still references one inside it (section 19, point 4).
+   *
+   * @param {HistoryStep} step A record step.
+   */
+  function assertNoDependents(step) {
+    const stepRecords = new Set(step.records)
+    const undoneIds = new Set(
+      step.records.map((record) => record.id).filter((id) => typeof id === 'string')
+    )
+    for (const entry of entries) {
+      if (stepRecords.has(entry.record)) continue
+      for (const referenced of referencedIdsOf(entry.record)) {
+        if (!undoneIds.has(referenced)) continue
+        const blocker = entry.record.name ?? entry.record.id ?? entry.record.op
+        throw new Error(
+          `document.undo: "${blocker}", added via ${entry.origin}, depends on ` +
+            `"${step.label}" — suppress or edit it first`
+        )
+      }
+    }
+  }
+
+  /**
+   * Undo a composite step (`TODO/core-056`): its parts newest-first, each by the
+   * same rule a step of that shape has on its own. All or nothing — a refusal
+   * part-way puts the whole state back and rethrows.
+   *
+   * @param {HistoryStep} step
+   * @returns {{ parts: HistoryStep[], before: DocumentState }} The parts with the
+   *   index each record part sat at (for Redo), and the state before the Undo.
+   */
+  function undoComposite(step) {
+    const snapshot = captureState()
+    const parts = /** @type {HistoryStep[]} */ (step.parts)
+    const undone = parts.slice()
+    try {
+      for (let i = parts.length - 1; i >= 0; i -= 1) {
+        const part = parts[i]
+        if (part.revision !== undefined) {
+          applyRevision(invertRevision(part.revision), part.rollbackBefore ?? null)
+          continue
+        }
+        assertNoDependents({ ...part, label: step.label })
+        const partRecords = new Set(part.records)
+        const index = entries.findIndex((entry) => entry.record === part.records[0])
+        rebuildFrom(
+          entries.filter((entry) => !partRecords.has(entry.record)),
+          part.rollbackBefore ?? null
+        )
+        undone[i] = { ...part, index }
+      }
+    } catch (error) {
+      restoreState(snapshot)
+      document.version += 1
+      throw error
+    }
+    return { parts: undone, before: snapshot }
+  }
+
+  /**
+   * Redo a composite step: its parts oldest-first, all or nothing.
+   *
+   * @param {HistoryStep} step
+   * @returns {DocumentState} The state before the Redo.
+   */
+  function redoComposite(step) {
+    const snapshot = captureState()
+    try {
+      for (const part of /** @type {HistoryStep[]} */ (step.parts)) {
+        if (part.revision !== undefined) {
+          applyRevision(part.revision, part.rollbackAfter ?? null)
+          continue
+        }
+        const next = entries.slice()
+        next.splice(
+          part.index ?? next.length,
+          0,
+          ...part.records.map((record) => ({ record, origin: part.origin }))
+        )
+        rebuildFrom(next, part.rollbackAfter ?? null)
+      }
+    } catch (error) {
+      restoreState(snapshot)
+      document.version += 1
+      throw error
+    }
+    return snapshot
+  }
+
+  /**
    * Record a completed row action as one undoable step, with the same origin
    * scoping `appendAll` applies: only the local user's own row actions are
    * something Undo can reach.
@@ -2266,6 +2397,12 @@ export function createDocument(options = {}) {
      * merges the local steps it pushed into one, labelled by the first unless
      * `options.label` says otherwise.
      *
+     * `build` may also call a row action such as {@link WarpDocument.reviseRecords}
+     * (`TODO/core-056`). A batch of record steps merges into one step whose records
+     * are concatenated; one that mixes in a revision becomes a composite step
+     * carrying each as a `part`, which Undo reverses newest-first and Redo replays
+     * oldest-first, all or nothing. A batch of a single revision is just that step.
+     *
      * Atomic, unlike `appendAll`'s fast path: if `build` throws, the state
      * captured before it (`TODO/core-030`'s {@link restoreState}, exact by
      * construction) and both stacks are put back, and the error is rethrown.
@@ -2293,15 +2430,17 @@ export function createDocument(options = {}) {
         throw error
       }
 
-      // The steps `build` pushed, oldest first. Only local record steps are
-      // merged: a row action (`revision`) inside a batch has no records to
-      // concatenate, and is left as its own step rather than guessed at.
+      // The steps `build` pushed, oldest first. Local record steps merge by
+      // concatenating their records; a batch that also pushed a row action
+      // (`revision`) becomes a composite step carrying every one as a part
+      // (`TODO/core-056`), so one Undo reverses the append and the revision together.
       const pushed = undoStack.slice(undoBefore.length)
-      const mergeable = pushed.length > 1 && pushed.every((step) => step.revision === undefined)
       if (options.label !== undefined && pushed.length === 1) pushed[0].label = options.label
-      if (!mergeable) return result
+      if (pushed.length <= 1) return result
 
       const [first] = pushed
+      const last = /** @type {HistoryStep} */ (pushed.at(-1))
+      const composite = pushed.some((step) => step.revision !== undefined)
       /** @type {HistoryStep} */
       const merged = {
         ...first,
@@ -2309,7 +2448,14 @@ export function createDocument(options = {}) {
         // Contiguous in the log: appended at the tail, or inserted one after
         // another at a marker that advances with each insert.
         records: pushed.flatMap((step) => step.records),
-        rollbackAfter: /** @type {HistoryStep} */ (pushed.at(-1)).rollbackAfter,
+        rollbackAfter: last.rollbackAfter,
+        ...(composite ? { parts: partsWithIndexes(pushed, before.entries) } : {}),
+      }
+      if (composite) {
+        // A composite is not a record step and not a revision: neither shape's
+        // fields on the first part may leak onto it.
+        delete merged.revision
+        delete merged.index
       }
       undoStack.splice(undoBefore.length, pushed.length, merged)
       keepRestore(undoStack, merged, before)
@@ -2458,9 +2604,20 @@ export function createDocument(options = {}) {
         undoStack.pop()
         /** @type {HistoryStep} */
         const redoStep =
-          step.revision !== undefined
+          step.revision !== undefined || step.parts !== undefined
             ? step
             : { ...step, index: after.entries.findIndex((entry) => entry.record === step.records[0]) }
+        redoStack.push(redoStep)
+        keepRestore(redoStack, redoStep, after)
+        document.version += 1
+        return step
+      }
+
+      // `TODO/core-056`: a batch that mixed record steps with row actions.
+      if (step.parts !== undefined) {
+        const { parts, before: after } = undoComposite(step)
+        undoStack.pop()
+        const redoStep = { ...step, parts }
         redoStack.push(redoStep)
         keepRestore(redoStack, redoStep, after)
         document.version += 1
@@ -2478,22 +2635,8 @@ export function createDocument(options = {}) {
         return step
       }
 
+      assertNoDependents(step)
       const stepRecords = new Set(step.records)
-      const undoneIds = new Set(
-        step.records.map((record) => record.id).filter((id) => typeof id === 'string')
-      )
-      for (const entry of entries) {
-        if (stepRecords.has(entry.record)) continue
-        for (const referenced of referencedIdsOf(entry.record)) {
-          if (!undoneIds.has(referenced)) continue
-          const blocker = entry.record.name ?? entry.record.id ?? entry.record.op
-          throw new Error(
-            `document.undo: "${blocker}", added via ${entry.origin}, depends on ` +
-              `"${step.label}" — suppress or edit it first`
-          )
-        }
-      }
-
       const index = entries.findIndex((entry) => entry.record === step.records[0])
       const after = rebuildFrom(
         entries.filter((entry) => !stepRecords.has(entry.record)),
@@ -2530,6 +2673,15 @@ export function createDocument(options = {}) {
       if (done !== null) {
         const before = captureState()
         restoreState(done)
+        redoStack.pop()
+        undoStack.push(step)
+        keepRestore(undoStack, step, before)
+        document.version += 1
+        return step
+      }
+
+      if (step.parts !== undefined) {
+        const before = redoComposite(step)
         redoStack.pop()
         undoStack.push(step)
         keepRestore(undoStack, step, before)

@@ -1,5 +1,22 @@
 # LinkedIn Posts
 
+## [2026-10-11T04:29:00Z] — The batch that wasn't one step
+
+**Post:** Last week's variables work hit a gap I had half expected: in WarpCad, create-a-variable-and-bind-a-field is two document operations, an appended record and a revision of an existing row, and wrapping them in the document's batch call did not make them one Undo. The batch merged appended records and deliberately left a revision as its own step. The comment said so; I had written the caller against what I assumed, not what the comment said.
+
+The first fix shipped with the feature: a dedicated command that does both as a single revision. That handled the only caller that needed it, and I filed the general gap as a low-priority finding with a doc-only option attached.
+
+I did the merge anyway, because the doc-only option leaves a trap for the next caller. A batch that mixes the two now becomes one composite step that keeps each part. Undo reverses the parts newest-first, Redo replays them oldest-first, and a refusal part-way (a later record that depends on an appended one) restores the whole snapshot rather than leaving half an undo.
+
+Checked at the shapes that tend to break this: undo, redo, undo-after-redo, a batch of one revision, two revisions, a remote record arriving between undo and redo, and a rolled-back document. Each runs with the cached-restore fast path on and off. Then by hand in the real app: one Undo takes back both halves of "New variable from this value", and an ordinary field edit is still exactly one step.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #SoftwareEngineering #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** "has no records to concatenate, and is left as its own step" → the comment in `src/core/document.js` `batch` before this change; 3817 unit tests, non-Firefox e2e 2315 passed / 0 failed this session
+**To Add:** repo URL once public, docs site URL once it exists
+
 ## [2026-09-21T15:55:00Z] — The export format I'd argued didn't need fixing
 
 **Post:** WarpCad writes three mesh formats: STL, OBJ and glTF. Last week I closed a real defect in the first two — ordinary shapes were coming out with open edges, gaps where one face's long edge met two shorter edges of its neighbour. The glTF I left alone, on what still looks like reasonable grounds: a .glb goes to a viewer or a game engine, and a renderer draws triangles without ever asking whether they share edges.

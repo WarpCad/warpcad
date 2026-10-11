@@ -78,6 +78,8 @@ drops (dropping the second body must not hide or replace the first). Clicking ea
 individually selects only that item (gizmo and dimension lines attach to whichever was
 just clicked, not both at once).
 
+**Last run**: 2026-10-11 04:29 UTC (`core-056`) — **PASS** at laptop 1440x900 Chromium (real mouse, jittered Library drags, from cleared storage). Cube then Cylinder dropped: both remained (*2 objects*); a click on open grid cleared the selection (0), the cube selected exactly one body (`cuboid-1`), the cylinder exactly one (`cylinder-2`). Re-driven because `document.batch` / undo / redo changed (a batch may now merge a record step with a revision). Console clean.
+
 **Last run**: 2026-10-11 03:09 UTC (`ui-059`) — **PASS** at laptop 1440x900 Chromium (real mouse, jittered Library drags, from cleared storage). Cube then Cylinder dropped: both remained (*2 objects*); a click on open grid cleared the selection (0), the cube selected exactly one body (`cuboid-1`), the cylinder exactly one (`cylinder-2`). Re-driven by `ui-059` (Variables section and bind controls added to the Inspector). Console and page errors: none.
 
 **Last run**: 2026-10-11 02:05 UTC (`core-050`) — **PASS** at laptop 1440x900 Chromium (real mouse, jittered Library drags, from cleared storage). Cube then Cylinder dropped: both remained (*2 objects*); a click on open grid cleared the selection (0), the cube selected exactly one body (`cuboid-1`), the cylinder exactly one (`cylinder-2`). Re-driven because the fold now resolves project-variable bindings before handing params to the kernel (every record passes through it). Console clean.
@@ -3338,6 +3340,8 @@ preview strip and the rollback strip (with **Roll forward**), and the header's *
   turns wrong-shaped, the sphere moves or disappears, or nothing at all is said — the exact
   failure class `SECOND-ATTEMPT.md` and this file both exist to catch.
 
+**Last run**: 2026-10-11 04:29 UTC (`core-056`) — **PASS for steps 1-11** at laptop 1440x900 Chromium (real mouse and keyboard). Cube, a 5 mm Top chamfer (volume 62166.667), Sphere; History rows `Cube 1 / Chamfer Top (+Z) 5 mm / Sphere 1`; Edit to 3 mm replayed (cube 63316, sphere bounds and volume unchanged); header Undo returned 62166.667, Redo 63316; Ctrl+Z with the cursor in the viewport undid it; Suppress gave 64000 and Unsuppress 63316; Roll back to step 2 of 3 (1 body), a Cone dropped while rolled back, Roll forward left Cube, Cone, Sphere; Move up on the Sphere row then Undo restored the order. Re-driven because `document.batch` / undo / redo changed. **Step 12 not separately driven; phone width not driven.** Console clean.
+
 **Last run**: 2026-10-11 03:09 UTC (`ui-059`) — **PASS, partially driven** at laptop 1440x900 Chromium. History opened, the first row selected, **Edit** opened its form (3 inputs) and **Cancel** left the model untouched. The commit-an-edit-and-replay leg was not re-driven this run; the variable steps (`Define piModel`) appear as their own rows. Re-driven by `ui-059` (Variables section and bind controls added to the Inspector). Console and page errors: none.
 
 **Last run**: 2026-10-11 02:05 UTC (`core-050`) — **PASS for steps 1-9 and 10 (rollback/roll forward)** at laptop 1440x900 Chromium (real mouse). Chamfer 5 mm on a Cube then a Sphere; History listed placed / Chamfer / placed; Edit Radius 5 -> 3 replayed (cube volume 62166.667 -> 63316.000, sphere centre and volume untouched); Undo gave 5 mm back and Redo 3 mm; Suppress gave 64000.000 and Unsuppress restored; Roll back to row 2 showed one body and the strip, a Cone dropped during rollback survived Roll forward (3 bodies). Steps 11-12 (Move up, break-it-on-purpose) not re-driven. Re-driven because the fold now resolves project-variable bindings before handing params to the kernel (every record passes through it). Console clean.
@@ -3572,6 +3576,8 @@ keys, and the header's **Undo**.
 - Never: the other body moving or vanishing, a gizmo left attached to nothing, an
   Inspector sheet describing a body that is gone, or Backspace in a text field deleting
   a body.
+
+**Last run**: 2026-10-11 04:29 UTC (`core-056`) — **PASS for steps 1-5** at laptop 1440x900 Chromium (real mouse and **Delete** key). Cube deleted (count 1, `Undo: Delete Cube 1`, Cylinder bounds byte-identical), Undo brought it back selected (2), deleted again (1), after a reload exactly one body came back. **Step 6 (Pi sub-part) not driven.** Re-driven because undo / redo changed. Console clean.
 
 **Last run**: 2026-10-11 03:09 UTC (`ui-059`) — **PASS** at laptop 1440x900 Chromium. Deleted the Bolt (count 4 to 3), Undo brought it back (4), reload kept 4 bodies and both variables. Re-driven by `ui-059` (Variables section and bind controls added to the Inspector). Console and page errors: none.
 
@@ -3811,6 +3817,8 @@ and the header's **Undo**.
 - Step 5: after the reload `wall` still reads 25 and both chips are present.
 - Never: a chip that can be typed into, a value change that needs two Undos, or a bound field
   that silently reverts to its literal after reload.
+
+**Last run**: 2026-10-11 04:29 UTC (`core-056`) — **PASS** at laptop 1440x900 Chromium (real mouse and keyboard): steps 1-5 as written, plus: after **New variable from this value…** one Undo removed both the definition and the binding (0 variables, no chip, next Undo `Place Cube 1`) and one Redo restored both; one ordinary Inspector Size X edit was one Undo (`ui-044`). Re-driven because the batch/undo model changed. Console clean.
 
 **Last run**: 2026-10-11 03:09 UTC (`ui-059`, **first drive**) — **PASS** at laptop 1440x900 Chromium (real mouse and keyboard): steps 1-5 as written. At phone 390x844 only the Variables tab, the **+** form and the bind bottom sheet were driven (by tap, in scenario 7's drive), not this step list. Also driven at laptop: typing into a chipped field changes nothing, two fields bound to one variable follow it together, a Transform rotation row offers no bind control, a variable deleted while its value box had uncommitted text still opens the usage dialog, a bind popover stays usable while a variable is changed behind it, and a bind tapped straight after a Pi drop (before the worker settled) works.
 

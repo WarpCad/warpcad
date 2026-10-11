@@ -1,5 +1,18 @@
 # BlueSky Posts
 
+## [2026-10-11T04:29:00Z] — The batch that wasn't one step
+
+**Post:** Found while shipping variables in WarpCad: wrap "define a variable" and "bind a field to it" in one batch and Undo took two presses. The batch only knew how to merge appended records. A revision of an existing row was left as its own step.
+
+Fixed properly instead of papered over: a batch can now hold both, as one step that undoes newest-first, redoes oldest-first, and puts everything back if either half is refused.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #UndoRedo #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** two Undo steps → the pinned test in `src/core/variables.spec.js` as `ui-059` wrote it, now asserting one; 13 new batch specs fail on the previous `document.js`
+**To Add:** repo URL once public, docs site URL once it exists
+
 ## [2026-09-21T15:55:00Z] — The export format I'd argued didn't need fixing
 
 **Post:** Shipped: WarpCad's .glb exports are watertight now. This was the format I'd argued didn't need to be — a viewer draws triangles, it never asks whether they share edges.

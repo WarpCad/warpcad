@@ -627,7 +627,8 @@ export const useDocumentStore = defineStore('document', () => {
     // A row action revises records rather than adding any (`TODO/ui-052`'s revise among
     // them), so it has no records of its own to select: put back the selection it was
     // made from instead of clearing it.
-    if (step.revision !== undefined) {
+    // A composite batch of only row actions has no records of its own either.
+    if (step.revision !== undefined || step.records.length === 0) {
       restoreSelection(step.meta?.selectionBefore ?? [])
       return { ok: true, label: step.label }
     }

@@ -733,16 +733,22 @@ describe('create-and-bind is one Undo step (TODO/ui-059)', () => {
     return document
   }
 
-  it('document.batch(define; bind) is two Undo steps — which is why a dedicated command exists', () => {
+  it('document.batch(define; bind) is one Undo step (TODO/core-056), bindParamToNewVariable the direct route', () => {
     const document = piDocument()
+    const depth = document.canUndo()
     document.batch(() => {
       defineVariable(document, PI_MODEL, LOCAL)
       bindParam(document, 'pi-1', 'model', 'piModel', LOCAL)
     })
+    expect(document.recordOf('pi-1')?.params?.model).toEqual({ $var: 'piModel' })
     document.undo()
-    // The bind went; the definition is still there. Not one step.
+    // Both went: the field is a literal again and the variable is gone.
     expect(document.recordOf('pi-1')?.params?.model).toBe(4)
-    expect(readVariables(document.entries).variables.has('piModel')).toBe(true)
+    expect(readVariables(document.entries).variables.has('piModel')).toBe(false)
+    expect(document.canUndo()).toBe(depth)
+    document.redo()
+    expect(document.recordOf('pi-1')?.params?.model).toEqual({ $var: 'piModel' })
+    expect(readVariables(document.entries).variables.get('piModel')?.value).toBe(4)
   })
 
   it('bindParamToNewVariable defines and binds in one step, and one Undo takes both back', () => {
