@@ -18,6 +18,8 @@ don't each re-derive it. "Done": `docs/decisions/gears.md` exists, follows `CLAU
 Library-decisions rules (real options compared, an explicit rejection table), and the user
 has read it.
 
+> **Draft exists (2026-10-10), awaiting the user's acceptance:** `docs/decisions/gears.md`, status *Proposed*, includes the measured V1 fixtures. To accept, answer its eight calls (recommendation first): (1) analytic involute + trochoid, not a port; (2) model the undercut trochoid, not auto profile-shift; (3) store `moduleMm`, with V1 `diametralPitch` imported as 1/module in 1/mm; (4) standard pair backlash, V1 import converted `2·b/cos α`; (5) new-gear clearance 0.25·module, V1 import keeps its explicit value or 0; (6) `profile.gear` + `profile.extrudeLinear` with twist; (7) standalone internal gear; (8) clean reimplementation, `LICENSING.md` unchanged.
+
 ## What the V1 projects actually use (the evidence this decision must cover)
 
 All under `~/src/jscad/`. `@jwc/jscad-gears` v2.0.0 (`jscad-gears/src/gear.js`,
