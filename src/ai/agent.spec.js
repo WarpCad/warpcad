@@ -1,10 +1,12 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { describe, expect, it } from 'vitest'
 
+import { piAndCube, snapCubeTo } from '../core/__fixtures__/piScenes.js'
 import { createDocument } from '../core/document.js'
 import { recordsForDrop } from '../core/library.js'
 import { serializeProject } from '../core/project.js'
-import { createAgentContext, runTurn } from './agent.js'
+import { bindParam, defineVariable, variablesOf } from '../core/variables.js'
+import { createAgentContext, runTurn, undoAiTurn } from './agent.js'
 import { unwrapDocumentData } from './documentData.js'
 import { SYSTEM_PROMPT } from './prompt.js'
 import { fakeSelection } from './tools/__fixtures__/context.js'
@@ -688,5 +690,107 @@ describe('runTurn — drawings and the save proposal', () => {
     const outcome = await runTurn({ userMessage: 'make a block and save it', ctx })
     expect(outcome.status).toBe('failed')
     expect(outcome.saveProposal).toBeUndefined()
+  })
+})
+
+describe('runTurn — project variables land and undo as one AI turn (TODO/ai-014)', () => {
+  const PI_MODEL = {
+    name: 'piModel',
+    kind: /** @type {const} */ ('enum'),
+    value: 4,
+    options: [
+      { value: 4, label: 'Pi 4' },
+      { value: 5, label: 'Pi 5' },
+    ],
+  }
+
+  it('define piModel, bind the Pi’s model, 4 → 5 → 4: lands as one ai change; Undo AI turn restores the file byte-for-byte', async () => {
+    const document = piAndCube()
+    const before = serializeProject(document)
+    const undoTop = document.pendingUndo()
+    const client = scriptedProvider([
+      { calls: [call('define_variable', { ...PI_MODEL, rationale: 'One switch for the board' })] },
+      { calls: [call('bind_param', { id: 'pi-1', path: 'model', name: 'piModel' })] },
+      { calls: [call('set_variable', { name: 'piModel', value: 5 })] },
+      { calls: [call('set_variable', { name: 'piModel', value: 4 })] },
+      { text: 'piModel now drives the Pi.' },
+    ])
+    const { ctx, events } = setup({ client, document })
+    const outcome = await runTurn({ userMessage: 'make the Pi model a variable', ctx })
+
+    expect(outcome.status).toBe('done')
+    expect(events.filter((e) => e.type === 'tool_result').every((e) => e.isError === false)).toBe(true)
+    const definition = document.entries.find((entry) => entry.record.op === 'var.define')
+    expect(definition?.origin).toBe('ai')
+    expect(definition?.record.params).toMatchObject({ name: 'piModel', value: 4 })
+    expect(document.intentOf(/** @type {string} */ (definition?.record.id))).toBe('make the Pi model a variable\n— One switch for the board')
+    expect(document.recordOf('pi-1')?.params?.model).toEqual({ $var: 'piModel' })
+    // The Pi's own row keeps the origin of whoever placed it; the revision is not on the local stack.
+    expect(document.entries.find((entry) => entry.record.id === 'pi-1')?.origin).toBe('local')
+    expect(document.pendingUndo()).toBe(undoTop)
+    expect(outcome.recordIds).toEqual([definition?.record.id])
+    expect(outcome.revisedIds).toEqual(['pi-1'])
+    expect(ctx.aiTurns).toHaveLength(1)
+
+    undoAiTurn(document, ctx.aiTurns[0])
+    expect(serializeProject(document)).toBe(before)
+    expect(document.pendingUndo()).toBe(undoTop)
+  })
+
+  it('a turn of revisions only (set_variable on the user’s own variable) lands, and is undoable', async () => {
+    const document = piAndCube()
+    defineVariable(document, PI_MODEL, { origin: 'local' })
+    bindParam(document, 'pi-1', 'model', 'piModel', { origin: 'local' })
+    const before = serializeProject(document)
+    const undoTop = document.pendingUndo()
+    const client = scriptedProvider([{ calls: [call('set_variable', { name: 'piModel', value: 5 })] }, { text: 'Pi 5 now.' }])
+    const { ctx } = setup({ client, document })
+    const outcome = await runTurn({ userMessage: 'switch to a Pi 5', ctx })
+
+    expect(outcome.status).toBe('done')
+    expect(outcome.recordIds).toEqual([])
+    expect(outcome.revisedIds).toEqual([document.entries.find((entry) => entry.record.op === 'var.define')?.record.id])
+    expect(variablesOf(document)[0].value).toBe(5)
+    expect(ctx.aiTurns).toHaveLength(1)
+
+    undoAiTurn(document, ctx.aiTurns[0])
+    expect(serializeProject(document)).toBe(before)
+    expect(document.pendingUndo()).toBe(undoTop)
+  })
+
+  it('delete_variable with keepValues lands the removal; Undo AI turn puts the user’s definition back where it was, origin and all', async () => {
+    const document = piAndCube()
+    defineVariable(document, { ...PI_MODEL, value: 5 }, { origin: 'local' })
+    bindParam(document, 'pi-1', 'model', 'piModel', { origin: 'local' })
+    document.append({ id: 'late-1', op: 'primitive.cuboid', name: 'Late 1', params: { size: [4, 4, 4], center: [-60, 0, 2] } }, { origin: 'local' })
+    const before = serializeProject(document)
+    const client = scriptedProvider([{ calls: [call('delete_variable', { name: 'piModel', keepValues: true })] }, { text: 'Removed it.' }])
+    const { ctx } = setup({ client, document })
+    const outcome = await runTurn({ userMessage: 'drop the variable, keep the Pi 5', ctx })
+
+    expect(outcome.status).toBe('done')
+    expect(variablesOf(document)).toEqual([])
+    expect(document.recordOf('pi-1')?.params?.model).toBe(5)
+    expect(outcome.removedIds).toHaveLength(1)
+
+    undoAiTurn(document, ctx.aiTurns[0])
+    expect(serializeProject(document)).toBe(before)
+  })
+
+  it('a set_variable that would break a dependent comes back as an error with the breakages; the turn can still land', async () => {
+    const document = snapCubeTo(piAndCube(), 'avjack')
+    defineVariable(document, PI_MODEL, { origin: 'local' })
+    bindParam(document, 'pi-1', 'model', 'piModel', { origin: 'local' })
+    const before = serializeProject(document)
+    const client = scriptedProvider([{ calls: [call('set_variable', { name: 'piModel', value: 5 })] }, { text: 'A Pi 5 would break the snap; tell me how to proceed.' }])
+    const { ctx, events } = setup({ client, document })
+    const outcome = await runTurn({ userMessage: 'Pi 5 please', ctx })
+
+    expect(outcome.status).toBe('done')
+    const result = events.find((e) => e.type === 'tool_result')
+    expect(result.isError).toBe(true)
+    expect(result.result.breakages[0].reason).toMatch(/Pi 5/)
+    expect(serializeProject(document)).toBe(before)
+    expect(ctx.aiTurns).toHaveLength(0)
   })
 })

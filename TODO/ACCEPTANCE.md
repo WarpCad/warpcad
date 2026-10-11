@@ -78,6 +78,8 @@ drops (dropping the second body must not hide or replace the first). Clicking ea
 individually selects only that item (gizmo and dimension lines attach to whichever was
 just clicked, not both at once).
 
+**Last run**: 2026-10-11 15:09 UTC (`ai-014`) — **PASS** at laptop 1440x900 Chromium and WebKit: steps 1-3 by hand, then through the scripted Assistant, an AI `delete_variable wall` (keepValues) removed the variable and left the cube 25 mm; **Undo AI turn** put `wall` back (value 25, *used by 2*, both chips) and the header Undo still read *Undo: Set wall to 25 mm*, i.e. the user's own stack was untouched by either AI step; a second AI turn (create a Pi, define `piModel`, bind the Pi's model, set 4 to 5) showed Pi 5, two bodies, and one Undo AI turn removed all of it while the header Undo again read the user's own step; a final header Undo took `wall` back to 40. Phone width not driven (Variables is a sheet tab there).
+
 **Last run**: 2026-10-11 04:29 UTC (`core-056`) — **PASS** at laptop 1440x900 Chromium (real mouse, jittered Library drags, from cleared storage). Cube then Cylinder dropped: both remained (*2 objects*); a click on open grid cleared the selection (0), the cube selected exactly one body (`cuboid-1`), the cylinder exactly one (`cylinder-2`). Re-driven because `document.batch` / undo / redo changed (a batch may now merge a record step with a revision). Console clean.
 
 **Last run**: 2026-10-11 03:09 UTC (`ui-059`) — **PASS** at laptop 1440x900 Chromium (real mouse, jittered Library drags, from cleared storage). Cube then Cylinder dropped: both remained (*2 objects*); a click on open grid cleared the selection (0), the cube selected exactly one body (`cuboid-1`), the cylinder exactly one (`cylinder-2`). Re-driven by `ui-059` (Variables section and bind controls added to the Inspector). Console and page errors: none.
@@ -85,6 +87,8 @@ just clicked, not both at once).
 **Last run**: 2026-10-11 02:05 UTC (`core-050`) — **PASS** at laptop 1440x900 Chromium (real mouse, jittered Library drags, from cleared storage). Cube then Cylinder dropped: both remained (*2 objects*); a click on open grid cleared the selection (0), the cube selected exactly one body (`cuboid-1`), the cylinder exactly one (`cylinder-2`). Re-driven because the fold now resolves project-variable bindings before handing params to the kernel (every record passes through it). Console clean.
 
 **Last run**: 2026-10-10 22:14 UTC (`ai-010`) — **PASS** at laptop 1440x900 Chromium (real mouse, jittered Library drags). Cube then Cylinder dropped: both remained (*2 objects*); a click on open grid cleared the selection (0), the cube selected exactly one body, the cylinder exactly one. Re-driven because the assistant store and chat panel changed (a developer-only scripted mode). Console clean.
+
+**Last run**: 2026-10-11 15:09 UTC (`ai-014`, scripted provider only) — **PASS** at laptop on Chromium and WebKit (`e2e/ai-drawing.e2e.js`): the Save proposal still waits for Confirm and the turn still lands as one group. Re-run because the agent's landing path changed. Not driven: a real model, SVG refusal by hand.
 
 **Last run**: 2026-10-10 19:46 UTC (`ai-008`) — **PASS** at laptop 1440x900 Chromium (real mouse, jittered Library drags). Cube then Cylinder dropped: both remained (*2 objects*); a click on open grid cleared the selection (0), the cube selected exactly one body, the cylinder exactly one. Re-driven because `Viewport.vue` gained an image-file drop route. Console clean.
 
@@ -3702,7 +3706,9 @@ wing** (no new body, its span about 20 % longer) rather than building a second o
 **Repeatable number** (`ai-011`): `ANTHROPIC_API_KEY=… npm run eval:ai -- --case airfoil-wing` runs this
 sentence several times and scores the geometry (`bench/ai/README.md`); it never runs in CI.
 
-**Last run**: — (not yet driven live: needs a real key; the plumbing is covered by
+**Last run**: 2026-10-11 15:09 UTC (`ai-014`, **scripted provider only; the live-model run is still open**) — **PASS** at laptop 1440x900 on Chromium and WebKit (`e2e/ai-scripted.e2e.js`, run as part of the full matrix and again alone): the plumbing still lands one atomic `ai` turn and **Undo AI turn** removes it whole after the landing was changed to diff by id (ordinary create/operate turns report no revised or removed rows). Not driven: a real model, tablet/phone by hand.
+
+**Earlier**: — (not yet driven live: needs a real key; the plumbing is covered by
 `e2e/ai-scripted.e2e.js`, which is **not** this scenario)
 
 ### 18. A drawing becomes a library part

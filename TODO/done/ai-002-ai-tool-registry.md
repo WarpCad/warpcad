@@ -123,10 +123,11 @@ with a spec that fails when the registry's defaults drift from it.
 
 ## Later additions to the tool list
 
-- **Project variables (`TODO/core-050`, 2026-10-10)**. The tools listed here are **not yet
+- **Project variables (`TODO/core-050`, 2026-10-10)**. ~~The tools listed here are **not yet
   wired into `src/ai/tools/`**. Each one needs a schema, turn-limit accounting, an intent
   `rationale`, a row in `index.js`'s tool reference and in `docs/mcp.md`, and `index.spec.js`
-  coverage, which is more than a small change, so it gets its own task. Each tool is a thin
+  coverage, which is more than a small change, so it gets its own task.~~ **Wired by
+  `TODO/ai-014`** (`src/ai/tools/variables.js`, on both transports). Each tool is a thin
   wrapper over the pure functions in `src/core/variables.js` and `src/core/dependents.js`.
   The UI (`ui-059`) uses the same functions, so the AI and the UI drive variables the same way:
   - `list_variables` (read): `variablesOf(document)`, plus `consumersOf` for "used by".

@@ -633,6 +633,11 @@ export class ReplayRejection extends Error {
  *   intent each new entry carries. A string applies to every record of the write; a map by
  *   record id lets one insert land a whole forked AI turn with each call's own intent
  *   (`ai-005`). Honoured by `append`, `appendAll` and `insertAt`.
+ * @property {Readonly<Record<string, string>>} [entryOrigins] `TODO/ai-014`: `insertAt` only —
+ *   the origin each inserted **entry** keeps, by record id, where it differs from `origin`.
+ *   `origin` still decides which undo stack the write touches; this only lets **Undo AI turn**
+ *   put back a row the turn took out (a deleted variable) with the origin it had, without the
+ *   re-insert landing on the user's own undo stack.
  */
 
 /**
@@ -906,6 +911,21 @@ export function foldableEntry(entry) {
 function withIntent(intent) {
   const text = cleanText(intent, INTENT_MAX_LENGTH)
   return text === '' ? {} : { intent: text }
+}
+
+/**
+ * The entry origin a transaction gives one inserted record, when it names one
+ * (`TODO/ai-014`'s `entryOrigins`); `undefined` to use the transaction's own origin.
+ *
+ * @param {TransactionOptions | undefined} transaction
+ * @param {OpRecord} record
+ * @returns {string | undefined}
+ */
+function entryOriginFor(transaction, record) {
+  const origins = transaction?.entryOrigins
+  if (origins === undefined || record.id === undefined || !Object.hasOwn(origins, record.id)) return undefined
+  const origin = origins[record.id]
+  return typeof origin === 'string' && origin.length > 0 ? origin : undefined
 }
 
 /**
@@ -2485,7 +2505,7 @@ export function createDocument(options = {}) {
       const at = Math.max(0, Math.min(index, entries.length))
       const rollbackBefore = rollbackAt
       const next = entries.slice()
-      next.splice(at, 0, ...records.map((record) => ({ record, origin, ...intentFor(transaction, record) })))
+      next.splice(at, 0, ...records.map((record) => ({ record, origin: entryOriginFor(transaction, record) ?? origin, ...intentFor(transaction, record) })))
       const prior = rebuildFrom(
         next,
         rollbackAt === null || at > rollbackAt ? rollbackAt : rollbackAt + records.length

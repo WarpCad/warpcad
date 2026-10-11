@@ -106,6 +106,33 @@ describe('tool rows', () => {
   })
 })
 
+describe('variable rows (TODO/ai-014)', () => {
+  it('says what each variable tool did, in words, naming the variable and the body', () => {
+    const nameOf = (/** @type {string} */ id) => (id === 'pi-1' ? 'Raspberry Pi 1' : undefined)
+    expect(describeCall('list_variables', {}, undefined)).toBe('Read the variables')
+    expect(describeCall('define_variable', { name: 'piModel' }, undefined)).toBe('Defined piModel')
+    expect(describeCall('set_variable', { name: 'piModel', value: 5 }, undefined)).toBe('Set piModel to 5')
+    expect(describeCall('bind_param', { id: 'pi-1', path: 'model', name: 'piModel' }, undefined, nameOf)).toBe('Bound Raspberry Pi 1 model to piModel')
+    expect(describeCall('unbind_param', { id: 'pi-1', path: 'model' }, undefined, nameOf)).toBe('Unbound Raspberry Pi 1 model')
+    expect(describeCall('rename_variable', { from: 'piModel', to: 'boardModel' }, undefined)).toBe('Renamed piModel to boardModel')
+    expect(describeCall('delete_variable', { name: 'wall' }, undefined)).toBe('Deleted variable wall')
+  })
+
+  it('a set_variable row carries the blast radius as its second line', () => {
+    const items = run([
+      { type: 'tool_call', id: 't1', name: 'set_variable', input: { name: 'piModel', value: 5 } },
+      {
+        type: 'tool_result',
+        id: 't1',
+        name: 'set_variable',
+        isError: false,
+        result: { name: 'piModel', from: 4, to: 5, summary: 'piModel Pi 4 → Pi 5 — 1 parameter on 1 part changed', breakages: [] },
+      },
+    ])
+    expect(items[0]).toMatchObject({ status: 'ok', label: 'Set piModel to 5', summary: 'piModel Pi 4 → Pi 5 — 1 parameter on 1 part changed' })
+  })
+})
+
 describe('turn ending', () => {
   it('adds a notice for a stopped, cancelled or failed turn and marks its rows discarded', () => {
     const items = run([

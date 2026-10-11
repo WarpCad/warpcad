@@ -137,6 +137,25 @@ describe('useAgent (TODO/ai-006)', () => {
     expect(useDocumentStore().bodies).toHaveLength(2)
   })
 
+  it('a turn that only sets a variable can still be undone (TODO/ai-014)', async () => {
+    const store = useDocumentStore()
+    store.append({ id: 'var-1', op: 'var.define', params: { name: 'wall', kind: 'number', value: 2, unit: 'mm' } })
+    store.append({ id: 'box-1', op: 'primitive.cuboid', name: 'Box 1', params: { size: [{ $var: 'wall' }, 10, 10], center: [0, 0, 5] } })
+    const before = JSON.stringify(store.raw.records)
+    setAgentDependencies({ client: scripted([{ calls: [{ name: 'set_variable', input: { name: 'wall', value: 4 } }] }, { text: 'Thicker.' }]) })
+    const chat = useAiChatStore()
+    chat.draft = 'thicker walls'
+    const agent = useAgent()
+    await agent.send()
+    expect(store.raw.recordOf('var-1').params.value).toBe(4)
+    expect(chat.canUndoTurn).toBe(true)
+
+    agent.undoTurn()
+
+    expect(JSON.stringify(store.raw.records)).toBe(before)
+    expect(chat.canUndoTurn).toBe(false)
+  })
+
   it('selectBodies selects only bodies that exist on screen, so a row from a discarded turn is inert', async () => {
     setAgentDependencies({ client: scripted([{ calls: [{ name: 'create', input: CUBE }] }, { text: 'Done.' }]) })
     const chat = useAiChatStore()

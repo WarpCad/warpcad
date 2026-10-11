@@ -16,6 +16,12 @@
  *   document's trial fold, which calls it. A second copy of those numbers here would
  *   drift from the first. `create.spec.js` proves a 4,097-point outline is refused by
  *   the sketch model's own words.
+ * - **A separate cap for variable writes** (`TODO/ai-014`). `define_variable` appends one
+ *   record and is charged one against {@link Limits.recordsPerCall}/{@link Limits.recordsPerTurn},
+ *   like any append. The other variable writes (`set_variable`, `bind_param`, `unbind_param`,
+ *   `rename_variable`, `delete_variable`) revise rows in place and append nothing, so they are
+ *   bounded by {@link Limits.stepsPerTurn} only: a rename that rewrites sixty bindings is one
+ *   change, and charging it as sixty records would refuse a legitimate edit.
  * - **Network, keys, writes outside the document.** Those are guaranteed by what a tool
  *   is *given*, not by a counter: a tool receives a {@link import('./index.js').ToolContext}
  *   holding the document and nothing else. `limits.spec.js` checks statically that no

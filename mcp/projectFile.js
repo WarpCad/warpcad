@@ -16,12 +16,14 @@
  *
  * 1. runs the tool on the in-memory document (`origin: 'mcp'`, `ctx.request` = the client's
  *    request text when it sent one);
- * 2. if no record landed (a refusal, a cap, a read), **writes nothing** — the file stays
- *    byte-identical, mtime included;
+ * 2. if the log did not change (a refusal, a cap, a read), **writes nothing** — the file stays
+ *    byte-identical, mtime included. "Changed" is a record appended, revised in place or
+ *    removed: the project-variable tools (`TODO/ai-014`) revise rows and may remove one;
  * 3. otherwise serialises, checks the text parses back, re-checks the file has not changed
  *    since step 0, writes a temp file beside it, `fsync`s, and `rename`s it over the original
  *    (atomic on one filesystem: a reader sees the old file or the new one, never half of one);
- * 4. names the History rows it appended in the result.
+ * 4. names the History rows it appended in the result (`appended`), and any it revised in place
+ *    (`revised`) or removed (`removed`, by id).
  *
  * Calls are queued, so one server never interleaves its own calls either.
  *
@@ -164,7 +166,7 @@ export function writeToolNames(tools) {
  * @typedef {object} AppendedRows
  * @property {string} file The file name (never its directory).
  * @property {{ step: number, id: string, label: string }[]} rows The History rows this call
- *   appended, as the app's History will number and label them.
+ *   appended (or, as `revised`, changed in place), as the app's History will number and label them.
  */
 
 /**
@@ -229,6 +231,7 @@ export function createProjectSession({ path, tools, limits, lock }) {
     try {
       const { document: current, text: before } = await sync()
       const known = new Set(current.entries.map((entry) => entry.record))
+      const knownIds = new Set(current.entries.map((entry) => entry.record.id))
       const turn = createTurn(limits ? { limits: { ...LIMITS, ...limits } } : {})
       const result = tools.run(
         { document: current, origin: MCP_ORIGIN, turn, ...(request ? { request } : {}) },
@@ -236,7 +239,9 @@ export function createProjectSession({ path, tools, limits, lock }) {
         input
       )
       const fresh = current.entries.filter((entry) => !known.has(entry.record))
-      if (fresh.length === 0) return result
+      const afterIds = new Set(current.entries.map((entry) => entry.record.id))
+      const removedIds = [...knownIds].filter((id) => id !== undefined && !afterIds.has(id))
+      if (fresh.length === 0 && removedIds.length === 0) return result
 
       const text = serializeProject(current)
       try {
@@ -255,16 +260,20 @@ export function createProjectSession({ path, tools, limits, lock }) {
         return { error: `Can't write ${name}${code ? ` (${code})` : ''}. Nothing was written.` }
       }
       seen = text
-      const ids = new Set(fresh.map((entry) => entry.record.id))
-      /** @type {AppendedRows} */
-      const appended = {
+      const timeline = current.timeline()
+      /** @param {Set<unknown>} ids @returns {AppendedRows} */
+      const rowsOf = (ids) => ({
         file: name,
-        rows: current
-          .timeline()
-          .filter((row) => ids.has(row.id))
-          .map((row) => ({ step: row.step, id: row.id, label: row.label })),
+        rows: timeline.filter((row) => ids.has(row.id)).map((row) => ({ step: row.step, id: row.id, label: row.label })),
+      })
+      const added = new Set(fresh.filter((entry) => !knownIds.has(entry.record.id)).map((entry) => entry.record.id))
+      const revised = new Set(fresh.filter((entry) => knownIds.has(entry.record.id)).map((entry) => entry.record.id))
+      return {
+        ...result,
+        appended: rowsOf(added),
+        ...(revised.size > 0 ? { revised: rowsOf(revised) } : {}),
+        ...(removedIds.length > 0 ? { removed: removedIds } : {}),
       }
-      return { ...result, appended }
     } finally {
       await release?.()
     }

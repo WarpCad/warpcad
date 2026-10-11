@@ -34,6 +34,16 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### ai-014 — AI tools for project variables (2026-10-11 15:09)
+
+Driven with the scripted provider on a laptop only. What a scripted run cannot say: whether a real model reaches for `set_variable` on "make this for a Pi 5", and how the activity rows read at phone width.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | With a real key, a project holding a bound `piModel`: type *make this case for a Pi 5*. Does it call `set_variable` (not `list_ops`/`operate` hunting for the Pi), and does the row read *Set piModel to 5* with the impact line? | Open | |
+| 2 | At phone width (390x844) the *Set piModel to 5* row and a revisions-only **Undo AI turn** are reachable in the half-height chat sheet and the Variables tab shows Pi 5 behind it. | Open | |
+
+
 ### ui-059 — Variables panel and bind control: feel and device checks (2026-10-11 03:11)
 
 Scenario 21 and the re-driven scenarios cover the flow on Chromium and WebKit at laptop and by touch

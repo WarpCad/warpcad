@@ -1,5 +1,24 @@
 # LinkedIn Posts
 
+## [2026-10-11T15:09:00Z] — The assistant changes a value; undo has to cope with deletion
+
+**Post:** WarpCad now lets its AI assistant, and any MCP client, work with project variables: define one, bind a field to it, set it, rename it, delete it. The point is the sentence "make this case for a Pi 5" becoming one call that changes a variable, instead of the model hunting for the Pi in the history and editing it.
+
+The tools were the small part. They are thin wrappers over the same functions the Variables panel uses, so a model and a person take one path, and refusals come back in core's own words.
+
+The part that mattered was landing. An AI turn used to land by adding its new records to the document, and Undo AI turn removed them. A variable edit adds nothing: it revises a row in place, and deleting a variable removes one. Left as it was, the landing would have duplicated a revised row or silently dropped a removal.
+
+So a turn now lands as a diff of its working copy against the live log by id: additions, revisions and removals in one atomic batch, with an exact inverse for Undo AI turn. A deleted variable comes back with the origin it had, so it does not appear to be the assistant's own, and neither direction touches the user's own undo stack.
+
+Checked by driving the app with a scripted model: delete a variable the user made, undo the turn, and the header's Undo still names the user's own last edit. Not checked: a real model choosing these calls. That run is queued by hand.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #SoftwareEngineering #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** header Undo title unchanged across an AI delete and its undo → scripted-provider drive this session (Chromium and WebKit, laptop); unit 3866 passed
+**To Add:** repo URL once public, docs site URL once it exists
+
 ## [2026-10-11T04:29:00Z] — The batch that wasn't one step
 
 **Post:** Last week's variables work hit a gap I had half expected: in WarpCad, create-a-variable-and-bind-a-field is two document operations, an appended record and a revision of an existing row, and wrapping them in the document's batch call did not make them one Undo. The batch merged appended records and deliberately left a revision as its own step. The comment said so; I had written the caller against what I assumed, not what the comment said.

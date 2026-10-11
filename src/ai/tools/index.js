@@ -36,10 +36,21 @@
  * | `set_reference_scale` | no document write | Browser only. `{ sliceId, fromPx, toPx, distanceMm, label?, checks? }`: an attached image's scale from a printed length; cross-checks other dimensions. |
  * | `locate_in_image` | no | Browser only. `{ sliceId, query, boxesPx }`: boxes in image pixels and in sketch-plane mm; refused until the image is scaled. |
  * | `save_to_library` | **never** | Browser only. `{ id, name, expose? }`: *proposes* a My parts save; the user's Confirm tap saves it. |
+ * | `list_variables` | no | `{ id? }`: every project variable — name, kind, value (and in words), unit or options, and `usedBy` (each step and slot that reads it). With `id`, also the slots that step can bind (`bindableParams`), or core's reason it cannot. |
+ * | `define_variable` | yes | `{ name, kind, value, label?, unit?, min?, max?, options? }`: one `var.define` record (`TODO/ai-014`). Counted as one record. |
+ * | `set_variable` | yes | `{ name, value }`: every bound param follows, in one revision. Runs `variableImpactOf` first; a value that would break a dependent writes nothing and returns `breakages`. Returns `changedParams`, `parts`, `summary`. |
+ * | `bind_param` | yes | `{ id, path, name }`: bind one slot (`model`, `size.2`) of a step to a variable. Refused in core's words for a slot `bindableParams` does not offer (a rotate step, a boolean) or a kind that does not fit. |
+ * | `unbind_param` | yes | `{ id, path }`: the slot keeps its current value as a literal. |
+ * | `rename_variable` | yes | `{ from, to }`: the definition and every binding and condition, in one revision. |
+ * | `delete_variable` | yes | `{ name, keepValues? }`: refused with `usedBy` while anything reads it, unless `keepValues` rewrites the bindings to literals first. |
  *
  * Every write tool also takes an optional `rationale`: one line saying why. With the turn's
  * request (`ctx.request`) it is saved as each new record's design intent (`TODO/ai-003`),
  * which `get_timeline`, `describe_scene` and `describe_body` return as `intent`.
+ *
+ * The variable tools are not kernel ops: `var.define` is never in `list_ops`, and `create` /
+ * `apply_records` cannot write one (`docs/decisions/project-variables.md`). Their writes are
+ * thin wrappers over `src/core/variables.js` — see `./variables.js` for their result shapes.
  *
  * A write returns `{ applied: [{ batchStep, tool, bodyId, recordIds }], scene }`, the
  * new state rather than a bare "ok". A refused write returns `{ error, step, reason,
@@ -85,6 +96,7 @@ import { OPERATIONS, createOperateTool, operableOps } from './operate.js'
 import { createPrintabilityTool } from './printability.js'
 import { createReadTools } from './read.js'
 import { checkInput, objectSchema, paramsSchemaFor } from './schema.js'
+import { createVariableTools } from './variables.js'
 
 export { LIMITS, WRITE_ORIGINS, createTurn } from './limits.js'
 export { toStrictWire } from './schema.js'
@@ -214,6 +226,7 @@ export function createToolRegistry(options = {}) {
       createCaptureTool(),
       ...createImageTools(),
       createSaveToLibraryTool(),
+      ...createVariableTools(),
     ].sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0))
   )
 

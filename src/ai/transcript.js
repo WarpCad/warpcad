@@ -50,6 +50,7 @@ const READ_LABELS = {
   get_timeline: 'Read the History',
   get_selection: 'Checked the selection',
   list_ops: 'Checked what operations exist',
+  list_variables: 'Read the variables',
   select: 'Selected a body',
 }
 
@@ -107,6 +108,17 @@ export function describeCall(name, input, result, nameOf) {
   }
   if (name === 'check_printability') return 'Checked printability'
   if (name === 'check_clearance') return 'Checked clearance'
+  // `TODO/ai-014`: the project-variable tools.
+  const word = (/** @type {unknown} */ value) => (typeof value === 'string' ? value : 'a variable')
+  if (name === 'define_variable') return `Defined ${word(input?.name)}`
+  if (name === 'set_variable') return `Set ${word(input?.name)} to ${String(input?.value)}`
+  if (name === 'bind_param' || name === 'unbind_param') {
+    const id = typeof input?.id === 'string' ? input.id : ''
+    const subject = `${nameOf?.(id) ?? sceneNameOf(result, id) ?? (id || 'a step')} ${typeof input?.path === 'string' ? input.path : ''}`.trim()
+    return name === 'bind_param' ? `Bound ${subject} to ${word(input?.name)}` : `Unbound ${subject}`
+  }
+  if (name === 'rename_variable') return `Renamed ${word(input?.from)} to ${word(input?.to)}`
+  if (name === 'delete_variable') return `Deleted variable ${word(input?.name)}`
   if (name === 'apply_records') {
     const count = Array.isArray(input?.steps) ? input.steps.length : 0
     return `Applied ${count} ${count === 1 ? 'step' : 'steps'}`
@@ -167,6 +179,10 @@ function checkDetails(name, result) {
       check: problem ? 'fail' : 'pass',
       ...(typeof first?.message === 'string' ? { summary: first.message } : {}),
     }
+  }
+  if (name === 'set_variable') {
+    // `TODO/ai-014`: how far the change reached, as the Variables panel announces it.
+    return typeof result?.summary === 'string' ? { summary: result.summary } : {}
   }
   if (name === 'check_clearance') {
     return {

@@ -334,6 +334,18 @@ See the `data-003` and `core-030` notes in that module, around lines 109-180:
 
    The local undo stack is never touched in either direction: a local Undo can't remove
    an AI record, and Undo AI turn can't remove a local one.
+
+   **Amended by `TODO/ai-014` (project variables).** The variable tools change existing rows
+   in place (a variable's value, a param bound to it) and `delete_variable` takes one row
+   out, so a turn is no longer only "new records". The fork is diffed against the live log
+   by record id: new ids land with `insertAt` as before, revised rows land as one `ai`-origin
+   `reviseRecords`, removed rows as one `removeRecords`, all inside one `document.batch`.
+   The turn record keeps each revised row's previous record and each removed row's index and
+   entry, and Undo AI turn applies the inverse in the same batch: the removed rows go back at
+   their index with their own origin and intent (`insertAt`'s `entryOrigins`), the revised
+   rows get their previous records back, and the new rows come out. Still no entry on the
+   local undo stack. This is restoring the exact prior rows, not the rejected
+   history-revision (an appended inverse the user would see in History).
 5. **Not persisted.** The AI-turn stack is in-memory, like the local stacks (section 19:
    undo doesn't survive a reload or an Open). After a reload the turn's rows are still in
    History with their `ai` chip and can be edited or suppressed like any other row.

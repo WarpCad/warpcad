@@ -173,9 +173,11 @@ skip described above is what this build does for whatever comes next.
 The pure functions are `defineVariable`, `setVariable`, `bindParam`, `unbindParam`,
 `renameVariable`, `deleteVariable`, `variablesOf`, `bindableParams` and
 `dependents.variableImpactOf`. They are the path the UI will use, and the path tools should
-use. The tool names are recorded in `TODO/done/ai-002-ai-tool-registry.md`. They are not
-wired into `src/ai/tools/` yet: that needs schemas, turn limits, the reference table and
-`docs/mcp.md`, which belongs to its own task. `var.define` does not appear in `list_ops`,
+use. `TODO/ai-014` wires them into `src/ai/tools/variables.js` as seven tools on both
+transports (`list_variables`, `define_variable`, `set_variable`, `bind_param`, `unbind_param`,
+`rename_variable`, `delete_variable`). `set_variable` runs the impact check first and writes
+nothing when the value would break a dependent, returning the breakages instead, as the Variables
+panel does before its repair dialog. `var.define` does not appear in `list_ops`,
 because it is not a registry op. `get_timeline` already shows each definition as a
 `Define <name>` row.
 

@@ -89,17 +89,25 @@ describe('createToolRegistry', () => {
   it('offers the spec’s tools, and the browser gets the selection, capture, image and save-proposal tools on top of MCP’s', () => {
     const tools = createToolRegistry()
     const mcp = tools.toolsFor('mcp').map((tool) => tool.name)
+    // ai-014: the seven project-variable tools are on both transports.
     expect(mcp).toEqual([
       'apply_records',
+      'bind_param',
       'check_clearance',
       'check_printability',
       'create',
+      'define_variable',
+      'delete_variable',
       'describe_body',
       'describe_scene',
       'get_timeline',
       'list_ops',
+      'list_variables',
       'measure',
       'operate',
+      'rename_variable',
+      'set_variable',
+      'unbind_param',
     ])
     // ai-008: the image tools and save_to_library are browser-only too (attachments live in the
     // chat; a library save needs a person to tap Confirm).

@@ -1,5 +1,16 @@
 # BlueSky Posts
 
+## [2026-10-11T15:09:00Z] — Undo that knows what the assistant took out
+
+**Post:** WarpCad's AI can now set a project variable: "make this for a Pi 5" is one call, not a hunt for the Pi. The catch: variable edits revise and delete rows, and Undo AI turn only knew how to remove new ones. A turn now lands and undoes as a diff. #CAD
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #AI #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** Undo AI turn restores a deleted user-made variable with its origin → `src/ai/agent.spec.js` (delete_variable keepValues case); the user's own Undo untouched → header title read "Undo: Set wall to 25 mm" before, during and after, in a scripted run
+**To Add:** repo URL once public, docs site URL once it exists
+
 ## [2026-10-11T04:29:00Z] — The batch that wasn't one step
 
 **Post:** Found while shipping variables in WarpCad: wrap "define a variable" and "bind a field to it" in one batch and Undo took two presses. The batch only knew how to merge appended records. A revision of an existing row was left as its own step.

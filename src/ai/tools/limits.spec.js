@@ -12,6 +12,7 @@ import limitsSource from './limits.js?raw'
 import operateSource from './operate.js?raw'
 import readSource from './read.js?raw'
 import schemaSource from './schema.js?raw'
+import variablesSource from './variables.js?raw'
 import { LIMITS, WRITE_ORIGINS, assertWriteOrigin, createTurn } from './limits.js'
 
 describe('LIMITS — the starting caps from ai-001 decision 7', () => {
@@ -129,6 +130,7 @@ describe('what a tool module can never do (decision 7), checked statically', () 
     'operate.js': operateSource,
     'read.js': readSource,
     'schema.js': schemaSource,
+    'variables.js': variablesSource,
   }
 
   it('guards every module the registry is built from', () => {

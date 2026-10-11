@@ -9,8 +9,9 @@
  *   builds on a fork and lands once; this refreshes the document store afterwards so the viewport
  *   and History answer.
  * - `stop()` aborts the turn; the agent discards its fork, so the project is as it was.
- * - `undoTurn()` takes the last landed turn back out via the document's `removeRecords`, as an
- *   `ai`-origin write that never touches the local undo stack.
+ * - `undoTurn()` takes the last landed turn back out via the agent's `undoAiTurn` (its added rows
+ *   removed, its revised rows restored — `TODO/ai-014`), as an `ai`-origin write that never
+ *   touches the local undo stack.
  * - `attach(file)` (`TODO/ai-008`) runs the file through `sketch-003`'s sanitiser first
  *   (`src/ai/reference.js`); the model is sent a copy made from the sanitised bytes, and the
  *   sanitised record can become a sketch slice's reference photo. A refused file is an error line
@@ -26,7 +27,7 @@
  * @module composables/useAgent
  */
 
-import { createAgentContext, runTurn } from '../ai/agent.js'
+import { createAgentContext, runTurn, undoAiTurn } from '../ai/agent.js'
 import { downscaleToImagePart, fitWithin } from '../ai/image.js'
 import { prepareReference } from '../ai/reference.js'
 import { addAttachment, createReferences } from '../ai/tools/image.js'
@@ -194,7 +195,9 @@ export function useAgent() {
       // The agent wrote to the raw document; the store's mirrors (bodies, History, the viewport's
       // inputs) are only refreshed by the store itself.
       documentStore.refresh()
-      chat.landedVersion = outcome.status === 'done' && outcome.recordIds.length > 0 ? documentStore.raw.version : null
+      // `TODO/ai-014`: a turn that only revised rows (set a variable) changed the project too.
+      const landed = outcome.recordIds.length + outcome.revisedIds.length + outcome.removedIds.length > 0
+      chat.landedVersion = outcome.status === 'done' && landed ? documentStore.raw.version : null
       // `TODO/ai-008`: the built group is selected, so the Inspector lists its sub-parts.
       const group = lastGroupOf(outcome)
       if (group !== null) selectBodies([group])
@@ -217,7 +220,7 @@ export function useAgent() {
     const ctx = agentContext()
     const turn = ctx.aiTurns.at(-1)
     if (turn === undefined) return
-    documentStore.raw.removeRecords(turn.recordIds, { origin: 'ai' })
+    undoAiTurn(documentStore.raw, turn)
     ctx.aiTurns.pop()
     chat.landedVersion = null
     selection.selectMany([])

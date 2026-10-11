@@ -6,8 +6,27 @@ priority: medium
 model: opus
 milestone: M12
 depends: [core-050, ai-002]
-status: open
+status: done
 ---
+
+> **What shipped (2026-10-11).** The seven tools as specified (`src/ai/tools/variables.js`, both
+> transports, one registry), plus three changes the spec did not list, each forced by the same
+> fact: variable writes **revise** and **remove** existing rows, and the agent could only land
+> new ones. (1) `src/ai/agent.js` lands a turn by diffing the fork against the live log **by id**
+> (new ids via `insertAt`, revised rows via one `ai` `reviseRecords`, removed rows via one
+> `removeRecords`, all in one `document.batch`); `AiTurn` gained `revised`/`removed`,
+> `TurnOutcome` gained `revisedIds`/`removedIds`, and a new `undoAiTurn(live, turn)` applies the
+> exact inverse. (2) `src/core/document.js` `insertAt` accepts `transaction.entryOrigins`, so
+> Undo AI turn can restore a deleted user-made variable with its `local` origin without touching
+> the user's undo stack. (3) `src/composables/useAgent.js` calls `undoAiTurn`, and Undo AI turn is
+> enabled for a revisions-only turn. Behaviours worth knowing: `set_variable` with breakages
+> writes nothing and returns `{ error, breakages }`; `rationale` is accepted on the six write
+> tools but stored only on `define_variable` (a revision keeps the row's intent); known edges are
+> recorded in comments (landing order insert, revise, remove; rename then re-define in one turn
+> briefly has two same-named variables; a removed row is restored assuming it sat before the
+> rollback marker). `mcp/projectFile.js` now writes the file for a revise-only or remove-only
+> call and names `revised`/`removed` rows.
+
 
 ## Goal
 

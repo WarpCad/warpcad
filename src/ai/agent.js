@@ -31,15 +31,19 @@
  *    request, since a slow reply is not a tool call. `signal` is checked before every model
  *    request and before every tool call: tools are synchronous, so a Stop pressed while one
  *    runs is honoured the moment it returns, within the same step.
- * 4. **Land, or discard.** On success the fork's new records (those not in the seed, in log
- *    order) land on the live document as **one** atomic change —
+ * 4. **Land, or discard.** On success the fork's new records (ids the live document does not
+ *    have, in log order) land on the live document as **one** atomic change —
  *    `document.batch(() => document.insertAt(rollbackAt ?? entries.length, records, { origin:
  *    'ai', intent }))`, the `applySteps` pattern, because `appendAll`'s fast path is not
  *    atomic (`ai-002`'s note). `intent` is a map by record id copied from the fork's entries,
- *    so every record keeps its own call's rationale (`ai-003`'s note). A turn record is pushed
- *    on {@link AgentContext.aiTurns} for **Undo AI turn**. On Stop, a cap, or an error the fork
- *    is dropped: the live document was never written, so its serialised NDJSON is
- *    byte-identical, and the outcome says so.
+ *    so every record keeps its own call's rationale (`ai-003`'s note). The project-variable
+ *    tools (`ai-014`) also **revise** rows in place and may **remove** one (a deleted
+ *    variable); those land in the same `batch`, after the insert, as one `reviseRecords` and
+ *    one `removeRecords`, all `ai`-origin, so none reaches the user's undo stack (see
+ *    {@link landFork}). A turn record is pushed on {@link AgentContext.aiTurns} for **Undo AI
+ *    turn** ({@link undoAiTurn}). On Stop, a cap, or an error the fork is dropped: the live
+ *    document was never written, so its serialised NDJSON is byte-identical, and the outcome
+ *    says so.
  *
  * ## What a turn is told
  *
@@ -51,11 +55,6 @@
  *
  * ## Not here
  *
- * - **Removing a landed turn.** {@link AgentContext.aiTurns} records `{ turnId, recordIds,
- *   version }` for each landed turn. Taking one back needs decision 5's "remove a set of
- *   record ids atomically" hook in `src/core/document.js`, which does not exist yet; it ships
- *   with the **Undo AI turn** control (`ai-006`), whose precondition ("nothing newer by the
- *   user") the recorded `version` lets it check.
  * - **Pausing the human.** Decision 5 has the viewport show the fork in preview mode while a
  *   turn runs, so the user does not edit underneath it (`ai-006`). As a backstop, a turn whose
  *   live document changed while it ran is refused rather than landed over the change.
@@ -102,6 +101,12 @@ const NOTHING_KEPT = 'Nothing from this turn was kept — the project is as it w
  * @typedef {object} AiTurn
  * @property {string} turnId
  * @property {string[]} recordIds What landed, in log order.
+ * @property {Array<{ id: string, record: import('../core/kernel/registry.js').OpRecord }>} [revised]
+ *   `TODO/ai-014`: rows the turn revised in place, each with the record it had **before** —
+ *   what {@link undoAiTurn} puts back.
+ * @property {Array<{ index: number, entry: import('../core/document.js').DocumentEntry }>} [removed]
+ *   `TODO/ai-014`: rows the turn took out (a deleted variable), each with its log index and
+ *   entry before the turn, oldest first.
  * @property {number} version The live document's `version` right after landing: when it still
  *   matches, nothing has changed since the turn.
  */
@@ -116,6 +121,9 @@ const NOTHING_KEPT = 'Nothing from this turn was kept — the project is as it w
  * @property {string | null} turnId `null` for `busy`.
  * @property {string} text The model's text from its last reply.
  * @property {string[]} recordIds What landed on the live document; empty unless `done`.
+ * @property {string[]} revisedIds `TODO/ai-014`: existing rows the turn revised in place (a
+ *   variable's value, a param it bound); empty unless `done`.
+ * @property {string[]} removedIds `TODO/ai-014`: rows the turn took out; empty unless `done`.
  * @property {string} [message] What the transcript says for a turn that did not finish.
  * @property {string} [limit] Which cap stopped it: a `Limits` key, or `maxTokens`.
  * @property {TokenUsage} usage Summed over the turn's requests.
@@ -354,6 +362,8 @@ export async function runTurn({ userMessage, images = [], attachmentIds = [], ct
       turnId: null,
       text: '',
       recordIds: [],
+      revisedIds: [],
+      removedIds: [],
       message: 'A turn is already running. Wait for it to finish, or press Stop.',
       usage: { input: 0, cacheRead: 0, cacheWrite: 0, output: 0 },
       steps: 0,
@@ -385,7 +395,7 @@ async function turnBody({ userMessage, images, attachmentIds, ctx, signal }) {
 
   /**
    * @param {TurnOutcome['status']} status
-   * @param {{ message?: string, limit?: string, recordIds?: string[], messages?: any[] }} [extra]
+   * @param {{ message?: string, limit?: string, recordIds?: string[], revisedIds?: string[], removedIds?: string[], messages?: any[] }} [extra]
    * @returns {TurnOutcome}
    */
   const finish = (status, extra = {}) => {
@@ -396,6 +406,8 @@ async function turnBody({ userMessage, images, attachmentIds, ctx, signal }) {
       turnId,
       text,
       recordIds,
+      revisedIds: extra.revisedIds ?? [],
+      removedIds: extra.removedIds ?? [],
       ...(extra.message === undefined ? {} : { message: extra.message }),
       ...(extra.limit === undefined ? {} : { limit: extra.limit }),
       usage,
@@ -511,24 +523,120 @@ async function turnBody({ userMessage, images, attachmentIds, ctx, signal }) {
   }
 
   // Land the fork (decision 5, step 3).
-  const fresh = fork.entries.filter((entry) => !seed.has(entry.record))
+  const change = forkChange(live, fork, seed)
   const kept = [{ role: 'user', content: userContent }, ...messages.slice(turnStart + 1)]
-  if (fresh.length === 0) return finish('done', { messages: kept })
+  if (change.fresh.length === 0 && change.revised.length === 0 && change.removed.length === 0) return finish('done', { messages: kept })
   if (live.version !== startVersion) {
     return failed('The project changed while the assistant was working, so this turn was not applied.')
   }
-  /** @type {Record<string, string>} */
-  const intent = {}
-  for (const entry of fresh) {
-    if (entry.record.id !== undefined && typeof entry.intent === 'string') intent[entry.record.id] = entry.intent
-  }
-  const records = fresh.map((entry) => entry.record)
   try {
-    live.batch(() => live.insertAt(live.rollbackAt() ?? live.entries.length, records, { origin: 'ai', intent }))
+    landFork(live, change)
   } catch (error) {
     return failed(error instanceof ReplayRejection ? error.message : 'The turn could not be applied to the project.')
   }
-  const recordIds = records.map((record) => /** @type {string} */ (record.id))
-  ctx.aiTurns.push({ turnId, recordIds, version: live.version })
-  return finish('done', { recordIds, messages: kept })
+  const recordIds = change.fresh.map((entry) => /** @type {string} */ (entry.record.id))
+  const revisedIds = change.revised.map((item) => item.id)
+  const removedIds = change.removed.map((item) => /** @type {string} */ (item.entry.record.id))
+  ctx.aiTurns.push({
+    turnId,
+    recordIds,
+    ...(change.revised.length > 0 ? { revised: change.revised.map(({ id, before }) => ({ id, record: before })) } : {}),
+    ...(change.removed.length > 0 ? { removed: change.removed } : {}),
+    version: live.version,
+  })
+  return finish('done', { recordIds, revisedIds, removedIds, messages: kept })
+}
+
+/**
+ * What a turn changed, read off its fork against the live document it was seeded from.
+ *
+ * @typedef {object} ForkChange
+ * @property {import('../core/document.js').DocumentEntry[]} fresh Rows whose id the live
+ *   document does not have, in the fork's log order.
+ * @property {Array<{ id: string, before: import('../core/kernel/registry.js').OpRecord, after: import('../core/kernel/registry.js').OpRecord }>} revised
+ *   Live rows the fork holds a different record for (`TODO/ai-014`: a variable set, a param bound).
+ * @property {Array<{ index: number, entry: import('../core/document.js').DocumentEntry }>} removed
+ *   Live rows the fork no longer has (a deleted variable), oldest first.
+ */
+
+/**
+ * @param {WarpDocument} live
+ * @param {WarpDocument} fork
+ * @param {ReadonlySet<unknown>} seed The live records the fork was seeded with.
+ * @returns {ForkChange}
+ */
+function forkChange(live, fork, seed) {
+  /** @type {Map<string, import('../core/document.js').DocumentEntry>} */
+  const forkById = new Map()
+  for (const entry of fork.entries) if (entry.record.id !== undefined) forkById.set(entry.record.id, entry)
+  /** @type {Set<unknown>} */
+  const liveIds = new Set(live.entries.map((entry) => entry.record.id))
+  /** @type {ForkChange} */
+  const change = { fresh: [], revised: [], removed: [] }
+  for (const entry of fork.entries) {
+    if (!seed.has(entry.record) && !liveIds.has(entry.record.id)) change.fresh.push(entry)
+  }
+  live.entries.forEach((entry, index) => {
+    const id = entry.record.id
+    if (id === undefined) return
+    const now = forkById.get(id)
+    if (now === undefined) {
+      change.removed.push({ index, entry })
+    } else if (now.record !== entry.record && JSON.stringify(now.record) !== JSON.stringify(entry.record)) {
+      change.revised.push({ id, before: entry.record, after: now.record })
+    }
+  })
+  return change
+}
+
+/**
+ * Land a turn's change on the live document as **one** atomic `ai` change: the new rows at
+ * the marker (each with its call's intent), then the in-place revisions, then the removals.
+ * In that order because a revised row may bind a variable the turn defined, and a row is
+ * removed only after the revisions that rewrote its bindings. Any refusal puts everything back.
+ *
+ * @param {WarpDocument} live
+ * @param {ForkChange} change
+ * @returns {void}
+ */
+function landFork(live, change) {
+  /** @type {Record<string, string>} */
+  const intent = {}
+  for (const entry of change.fresh) {
+    if (entry.record.id !== undefined && typeof entry.intent === 'string') intent[entry.record.id] = entry.intent
+  }
+  const records = change.fresh.map((entry) => entry.record)
+  live.batch(() => {
+    if (records.length > 0) live.insertAt(live.rollbackAt() ?? live.entries.length, records, { origin: 'ai', intent })
+    if (change.revised.length > 0) live.reviseRecords(change.revised.map(({ id, after }) => ({ id, record: after })), { origin: 'ai' })
+    if (change.removed.length > 0) live.removeRecords(change.removed.map((item) => /** @type {string} */ (item.entry.record.id)), { origin: 'ai' })
+  })
+}
+
+/**
+ * **Undo AI turn** (`TODO/ai-006`, decision 5): take a landed turn back out of the live
+ * document as one atomic `ai` change, leaving both local undo stacks alone. The exact inverse
+ * of {@link landFork}, run in reverse: rows the turn removed go back where they were (with the
+ * origin and intent they had), revised rows get their old records back, and the rows it added
+ * come out. The caller checks the precondition — nothing newer by the user — against
+ * {@link AiTurn.version} first.
+ *
+ * @param {WarpDocument} live
+ * @param {AiTurn} turn
+ * @returns {void}
+ * @throws {Error} The document's own refusal; nothing is changed.
+ */
+export function undoAiTurn(live, turn) {
+  live.batch(() => {
+    for (const { index, entry } of turn.removed ?? []) {
+      const id = /** @type {string} */ (entry.record.id)
+      live.insertAt(index, [entry.record], {
+        origin: 'ai',
+        entryOrigins: { [id]: entry.origin },
+        ...(entry.intent === undefined ? {} : { intent: { [id]: entry.intent } }),
+      })
+    }
+    if ((turn.revised ?? []).length > 0) live.reviseRecords(/** @type {NonNullable<AiTurn['revised']>} */ (turn.revised), { origin: 'ai' })
+    if (turn.recordIds.length > 0) live.removeRecords(turn.recordIds, { origin: 'ai' })
+  })
 }

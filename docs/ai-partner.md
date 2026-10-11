@@ -152,6 +152,33 @@ Raspberry Pi 5-style board, make a library part*. When it asks, say the board is
 Check the overlay thumbnail, then tap **Confirm** on the *Save … to My parts?* card. The part
 appears at the top of **My parts** in the Library, and you can drag it into any project.
 
+## Variables
+
+The Assistant can use your project's [variables](variables.md), the same way you do in the
+**Variables** panel. To *make this for a Pi 5*, it changes the `piModel` variable once instead of
+editing the Pi, and everything tied to it follows. It has seven tools for this:
+
+| Tool | Changes the project? | For example |
+|---|---|---|
+| `list_variables` | no | `{}` lists every variable, its value and what uses it; `{ "id": "pi-1" }` also lists which of the Pi's settings can be tied to one. |
+| `define_variable` | yes | `{ "name": "wall", "kind": "number", "value": 2, "unit": "mm" }` |
+| `set_variable` | yes | `{ "name": "piModel", "value": 5 }` |
+| `bind_param` | yes | `{ "id": "pi-1", "path": "model", "name": "piModel" }` ties the Pi's model to `piModel`. |
+| `unbind_param` | yes | `{ "id": "pi-1", "path": "model" }` unties it, keeping its current model. |
+| `rename_variable` | yes | `{ "from": "piModel", "to": "boardModel" }` |
+| `delete_variable` | yes | `{ "name": "wall", "keepValues": true }` |
+
+Before it changes a value, the Assistant checks what the change would break, exactly as the
+Variables panel does. If a Pi 5 would leave a shape snapped to a connector the Pi 5 doesn't have,
+nothing changes: the activity row shows the error with what would break, and the Assistant tells
+you instead of guessing. A rotation, a Union or a Group can't be tied to a variable; the Assistant
+is told why if it tries.
+
+**Example.** In a case with a `piModel` variable, type *make this case for a Pi 5* and tap
+**Send**. An activity row appears, *Set piModel to 5*, with a second line that reads *piModel
+Pi 4 → Pi 5 — 3 parameters on 2 parts changed*. The Variables panel shows **Pi 5**. Tap **Undo AI turn** and it is
+back to **Pi 4**, with every part where it was.
+
 ## Stopping and undoing
 
 - **Stop** replaces **Send** while the Assistant is working. Tap it and the turn ends within a

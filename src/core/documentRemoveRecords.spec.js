@@ -97,3 +97,32 @@ describe('removeRecords', () => {
     expect(() => document.removeRecords(['a'], {})).toThrow(/origin/)
   })
 })
+
+describe('insertAt with entryOrigins (TODO/ai-014)', () => {
+  it('puts a removed row back with the origin it had, on neither undo stack', () => {
+    const document = createDocument()
+    document.append(cube('first'), { origin: 'local' })
+    document.append(cube('mine', 20), { origin: 'local' })
+    document.append(cube('last', 40), { origin: 'local' })
+    const pending = document.pendingUndo()
+    const removed = document.entries[1]
+
+    document.removeRecords(['mine'], { origin: 'ai' })
+    document.insertAt(1, [removed.record], { origin: 'ai', entryOrigins: { mine: 'local' } })
+
+    expect(document.entries.map((entry) => [entry.record.id, entry.origin])).toEqual([
+      ['first', 'local'],
+      ['mine', 'local'],
+      ['last', 'local'],
+    ])
+    expect(document.originOf('mine')).toBe('local')
+    expect(document.pendingUndo()).toBe(pending)
+    expect(document.canRedo()).toBe(false)
+  })
+
+  it('ignores an entry origin for a record it does not name', () => {
+    const document = createDocument()
+    document.insertAt(0, [cube('a')], { origin: 'ai', entryOrigins: { other: 'local' } })
+    expect(document.entries[0].origin).toBe('ai')
+  })
+})

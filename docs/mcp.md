@@ -57,6 +57,19 @@ Lengths are millimetres, Z is up and angles are in degrees, as in the app.
 | `measure` | no | Size, volume, surface area and centre of mass. |
 | `check_printability` | no | Is it watertight, does it fit the printer, how thin are the walls. |
 | `check_clearance` | no | The gap between two shapes, or how much they overlap. |
+| `list_variables` | no | The project's [variables](variables.md), their values, and which shapes read each one. Given a shape's id, also which of its sizes or choices can be tied to a variable. |
+| `define_variable` | yes | Add a variable, e.g. `{ "name": "piModel", "kind": "enum", "value": 4, "options": [{ "value": 4, "label": "Pi 4" }, { "value": 5, "label": "Pi 5" }] }`. |
+| `set_variable` | yes | Change a variable's value, e.g. `{ "name": "piModel", "value": 5 }`. Every size or choice tied to it follows, and the result says how many changed on how many parts. If the new value would break something (a shape snapped to a part the Pi 5 doesn't have), nothing changes and the result names what would break. |
+| `bind_param` | yes | Tie one size or choice of a shape to a variable, e.g. `{ "id": "pi-1", "path": "model", "name": "piModel" }`. |
+| `unbind_param` | yes | Untie it again, e.g. `{ "id": "pi-1", "path": "model" }`. It keeps the value it has now. |
+| `rename_variable` | yes | Rename a variable everywhere it's used, e.g. `{ "from": "piModel", "to": "boardModel" }`. |
+| `delete_variable` | yes | Delete a variable, e.g. `{ "name": "piModel", "keepValues": true }`. Without `keepValues`, it's refused while anything still uses it. |
+
+**Example: switch the board.** In a case design where the Pi's model is tied to a `piModel`
+variable, ask Claude Code *make this case for a Pi 5*. Claude calls `set_variable { "name":
+"piModel", "value": 5 }` instead of hunting for the Pi in the History, and the result reads
+*piModel Pi 4 → Pi 5 — 3 parameters on 2 parts changed*. Open the file in the app and the Variables
+panel shows the new value, with one History change for it.
 
 The server also offers two read-only resources, `warpcad://scene` and `warpcad://op-catalogue`,
 so a client can look at the scene or the catalogue without calling a tool.
