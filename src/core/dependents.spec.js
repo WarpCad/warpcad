@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { LOCAL, centreOf, piAndCube, piWith, snapCubeTo, snapPiBy, subtractAvjackClearance } from './__fixtures__/piScenes.js'
-import { brokenDependentsOf, brokenReferencesOf, impactOf } from './dependents.js'
+import { brokenDependentsOf, brokenReferencesOf, impactOf, variableImpactOf } from './dependents.js'
 import { createDocument } from './document.js'
 
 /**
@@ -220,5 +220,63 @@ describe('brokenDependentsOf — what Resolve… reopens the dialog with', () =>
       },
     ])
     expect(brokenReferencesOf(document, 'pi-1')).toEqual([])
+  })
+})
+
+describe('variableImpactOf — a variable edit is an edit of every bound record at once (TODO/core-050)', () => {
+  /**
+   * A 40 mm cube whose height is `h`, a fillet on it, and a small cube snapped onto it.
+   * With `literalHeight`, the same tower written with literals — the reference.
+   *
+   * @param {number} [literalHeight]
+   */
+  async function boundTower(literalHeight) {
+    const { defineVariable } = await import('./variables.js')
+    const document = createDocument()
+    if (literalHeight === undefined) {
+      defineVariable(document, { name: 'h', kind: 'number', value: 40, unit: 'mm' }, LOCAL)
+      defineVariable(document, { name: 'side', kind: 'number', value: 40, unit: 'mm' }, LOCAL)
+    }
+    const size = literalHeight === undefined ? [{ $var: 'side' }, { $var: 'side' }, { $var: 'h' }] : [40, 40, literalHeight]
+    document.append({ id: 'base-1', op: 'primitive.cuboid', name: 'Base 1', params: { size, center: [0, 0, 0] } }, LOCAL)
+    document.append({ id: 'rim-1', op: 'modify.filletRim', target: 'base-1', supersedes: 'base-1', params: { radius: 6, orientation: 'z+' } }, LOCAL)
+    document.append({ id: 'top-1', op: 'primitive.cuboid', name: 'Top 1', params: { size: [6, 6, 6], center: [100, 0, 0] } }, LOCAL)
+    document.append(
+      { id: 'snap-1', op: 'group.snap', target: 'top-1', operands: ['rim-1'], supersedes: 'top-1', params: { axes: 'z', orientation: 'outside+', deltaMm: 0 } },
+      LOCAL,
+    )
+    return document
+  }
+
+  it('the data-007 repro through a variable: the snapped cube follows a height change', async () => {
+    const { setVariable } = await import('./variables.js')
+    const document = await boundTower()
+    const before = centreOf(document, 'top-1')
+    expect(variableImpactOf(document, 'h', 60).breakages).toEqual([])
+    setVariable(document, 'h', 60, LOCAL)
+    const after = centreOf(document, 'top-1')
+    const expected = centreOf(await boundTower(60), 'top-1')
+    for (let axis = 0; axis < 3; axis += 1) expect(after[axis]).toBeCloseTo(expected[axis], 6)
+    expect(Math.abs(after[2] - before[2])).toBeCloseTo(10, 6)
+    document.undo()
+    expect(centreOf(document, 'top-1')[2]).toBeCloseTo(before[2], 6)
+  })
+
+  it('shrinking a bound size reports the fillet that no longer fits, by name, before commit', async () => {
+    const document = await boundTower()
+    const text = JSON.stringify(document.entries)
+    const { breakages, consumers } = variableImpactOf(document, 'side', 10)
+    expect(consumers.map((consumer) => consumer.recordId)).toEqual(['base-1', 'base-1'])
+    expect(breakages.map((breakage) => breakage.dependentRecordId)).toContain('rim-1')
+    const rim = breakages.find((breakage) => breakage.dependentRecordId === 'rim-1')
+    expect(rim?.dependentName).toBe('Base 1')
+    expect(rim?.relationship).toBe('Fillet')
+    expect(rim?.reason).toMatch(/wider than the cross-section/)
+    expect(JSON.stringify(document.entries)).toBe(text)
+  })
+
+  it('refuses a value outside the variable\'s own range, and an unknown variable, by name', () => {
+    const document = createDocument()
+    expect(() => variableImpactOf(document, 'nope', 3)).toThrow(/nope/)
   })
 })

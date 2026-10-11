@@ -487,3 +487,22 @@ describe('compositeParamEditRecord — the replace-path edit of a composite (TOD
     expect(canEditParams(document, 'cube-1')).toEqual({ editable: true, blockedBy: null, path: 'replace' })
   })
 })
+
+describe('project variables and the step editor (TODO/core-050)', () => {
+  const LOCAL = { origin: 'local' }
+  it('a variable definition is not a step the param editor rewrites — setVariable is', async () => {
+    const { stepParamEditability } = await import('./paramEdit.js')
+    expect(stepParamEditability({ id: 'v', op: 'var.define', params: { name: 'wall', kind: 'number', value: 2 } }).editable).toBe(false)
+  })
+
+  it('editing one param of a composite leaves a bound sibling alone instead of refusing it', async () => {
+    const { compositeParamEditRecord } = await import('./paramEdit.js')
+    const { createDocument } = await import('./document.js')
+    const { defineVariable } = await import('./variables.js')
+    const document = createDocument()
+    defineVariable(document, { name: 'piModel', kind: 'enum', value: 4, options: [{ value: 4, label: 'Pi 4' }, { value: 5, label: 'Pi 5' }] }, LOCAL)
+    document.append({ id: 'pi-1', op: 'raspberrypi.bplus', name: 'Raspberry Pi 1', params: { model: { $var: 'piModel' } } }, LOCAL)
+    const record = compositeParamEditRecord(document, 'pi-1', { clearance: 7 })
+    expect(record?.params).toEqual({ model: { $var: 'piModel' }, clearance: 7 })
+  })
+})

@@ -121,4 +121,25 @@ with a spec that fails when the registry's defaults drift from it.
 - **Boundary**: the kernel worker is mocked, as everywhere (`CLAUDE.md`).
 - **Acceptance**: none yet (no UI). Scenario 17 (`ai-010`) is the first end-to-end use.
 
+## Later additions to the tool list
+
+- **Project variables (`TODO/core-050`, 2026-10-10)**. The tools listed here are **not yet
+  wired into `src/ai/tools/`**. Each one needs a schema, turn-limit accounting, an intent
+  `rationale`, a row in `index.js`'s tool reference and in `docs/mcp.md`, and `index.spec.js`
+  coverage, which is more than a small change, so it gets its own task. Each tool is a thin
+  wrapper over the pure functions in `src/core/variables.js` and `src/core/dependents.js`.
+  The UI (`ui-059`) uses the same functions, so the AI and the UI drive variables the same way:
+  - `list_variables` (read): `variablesOf(document)`, plus `consumersOf` for "used by".
+  - `define_variable` (write): `defineVariable`.
+  - `set_variable` (write): `setVariable`. Runs `variableImpactOf` first and returns its
+    `breakages` alongside the new scene.
+  - `bind_param` / `unbind_param` (write): `bindParam` / `unbindParam`. The model picks a slot
+    from `bindableParams`.
+  - `rename_variable` (write): `renameVariable`.
+  - `delete_variable` (write): `deleteVariable`, with `keepValues`.
+
+  `var.define` is deliberately **not** a kernel-registry op, so it never appears in `list_ops`
+  and `create`/`apply_records` cannot write one. `get_timeline` already shows each definition
+  as a `Define <name>` row. See `docs/decisions/project-variables.md`.
+
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

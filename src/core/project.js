@@ -85,6 +85,21 @@
  * does not carry. The local library's copy is never substituted for a project's missing or
  * bad one; that would change a placed instance without the user choosing it.
  *
+ * ## Project variables (`TODO/core-050`)
+ *
+ * A variable is an ordinary record line (`op: 'var.define'`), and a binding is plain JSON in
+ * a param's slot, so neither needs the state line and both round-trip byte-identically.
+ * They are untrusted data like a part definition, so the posture is `core-037`'s: a
+ * definition that fails validation (a name like `__proto__`, a 41-character name, an empty
+ * or 10 000-option enum, a second definition of a name, more variables than the cap) is
+ * dropped with a {@link LoadWarning} naming it, and every record bound to a name no usable
+ * definition carries — or past the per-document binding cap — loads **left broken**, with
+ * whatever builds on it, so the file opens and the rows say why. A `var.*` record this build
+ * does not know (a newer build's derived variable) is skipped with a warning, the way a
+ * retired op is, never a refused file. A build from *before* this task refuses `var.define`
+ * as an unknown op — the honest outcome for a file it cannot fold — which is recorded in
+ * `docs/decisions/project-variables.md`.
+ *
  * ## Refusal, not repair
  *
  * {@link parseProject} is strict where `parseNdjson` is lenient. The lenient
@@ -105,6 +120,13 @@ import { DEFAULT_RESOLUTION, RESOLUTION_IDS, isResolution } from './kernel/tesse
 import { parseNdjson, serializeNdjson } from './ndjson.js'
 import { ASSET_OP, validateImageAsset } from '../sketch/imageAsset.js'
 import { USER_PART_LIMITS, isUserPartOp, requiredUserParts, validateUserPartSet } from './userPart.js'
+import {
+  VARIABLE_LIMITS,
+  VARIABLE_OP,
+  VARIABLE_OP_PREFIX,
+  bindingCountOf,
+  variableRecordError,
+} from './variables.js'
 
 /** @typedef {import('./document.js').DocumentEntry} DocumentEntry */
 /** @typedef {import('./document.js').WarpDocument} WarpDocument */
@@ -265,6 +287,105 @@ function unsafeImageReason(record) {
 export const IMAGE_REMOVED = "reference image removed — it couldn't be verified as a safe image"
 
 /**
+ * Why a variable record is dropped on load, or `null` (`TODO/core-050`). Records the name of
+ * every definition kept in `names`, so a second definition of it — and any past the cap —
+ * is dropped too.
+ *
+ * @param {Record<string, any>} record
+ * @param {Set<string>} names Mutated: the names defined so far.
+ * @returns {string | null}
+ */
+function variableDropReason(record, names) {
+  if (typeof record.op !== 'string' || !record.op.startsWith(VARIABLE_OP_PREFIX)) return null
+  if (record.op !== VARIABLE_OP) {
+    return `${record.op} is a variable record from a newer version of WarpCad — skipped; the rest of the project loads`
+  }
+  const problem = variableRecordError(/** @type {any} */ (record))
+  const label = typeof record.params?.name === 'string' ? JSON.stringify(record.params.name.slice(0, VARIABLE_LIMITS.maxNameLength + 8)) : 'with no name'
+  if (problem !== null) return `variable ${label} skipped — ${problem}`
+  const name = record.params.name
+  if (names.has(name)) return `variable ${label} skipped — a variable named "${name}" is already defined`
+  if (names.size >= VARIABLE_LIMITS.maxVariables) {
+    return `variable ${label} skipped — a project holds at most ${VARIABLE_LIMITS.maxVariables} variables`
+  }
+  names.add(name)
+  return null
+}
+
+/**
+ * Flag, as left broken, every record bound to a variable no usable definition carries — and
+ * every record past the binding cap — plus whatever builds on them, so the load tolerates
+ * them as broken rows instead of refusing the whole file (`TODO/core-050`, the posture
+ * `readUserParts` takes for a missing part). One warning per missing name, one for the cap.
+ *
+ * @param {DocumentEntry[]} entries Mutated: affected entries get `leftBroken`.
+ * @param {ReadonlySet<string>} names The variables the file defines (usable ones only).
+ * @param {LoadWarning[]} warnings Appended to.
+ * @returns {void}
+ */
+function flagUnresolvableBindings(entries, names, warnings) {
+  /** @type {Set<string>} */
+  const brokenIds = new Set()
+  /** @type {Set<string>} */
+  const missing = new Set()
+  let bindings = 0
+  let pastCap = 0
+  for (const entry of entries) {
+    const { record } = entry
+    let broken = referencedIds(record).some((id) => brokenIds.has(id))
+    const count = bindingCountOf(/** @type {any} */ (record))
+    if (count > 0) {
+      bindings += count
+      if (bindings > VARIABLE_LIMITS.maxBindingsPerDocument) {
+        pastCap += 1
+        broken = true
+      }
+      for (const name of boundNamesOf(record)) {
+        if (names.has(name)) continue
+        missing.add(name)
+        broken = true
+      }
+    }
+    if (!broken) continue
+    entry.leftBroken = true
+    if (record.id !== undefined) brokenIds.add(record.id)
+  }
+  for (const name of missing) {
+    warnings.push({ op: VARIABLE_OP, message: `variable ${JSON.stringify(name.slice(0, VARIABLE_LIMITS.maxNameLength + 8))} is not defined in this file — the steps bound to it load as broken` })
+  }
+  if (pastCap > 0) {
+    warnings.push({
+      op: VARIABLE_OP,
+      message: `this file has more than ${VARIABLE_LIMITS.maxBindingsPerDocument} variable bindings — the ${pastCap} step(s) past the limit load as broken`,
+    })
+  }
+}
+
+/**
+ * The variable names a record's bindings name.
+ *
+ * @param {Record<string, any>} record
+ * @returns {string[]}
+ */
+function boundNamesOf(record) {
+  /** @type {Set<string>} */
+  const names = new Set()
+  // Every claim, wherever it sits: a misplaced one is the fold's to report, but a name it
+  // carries that no definition provides is known here already.
+  const walk = (/** @type {unknown} */ value, /** @type {number} */ depth) => {
+    if (depth > 32 || value === null || typeof value !== 'object') return
+    if (!Array.isArray(value) && Object.hasOwn(value, '$var')) {
+      const name = /** @type {any} */ (value).$var
+      if (typeof name === 'string') names.add(name)
+      return
+    }
+    for (const entry of Array.isArray(value) ? value : Object.values(value)) walk(entry, depth + 1)
+  }
+  walk(record.params, 0)
+  return [...names]
+}
+
+/**
  * Parse and statically validate project text, without touching any document.
  *
  * Checks everything that can be checked from the text alone — JSON, record
@@ -315,6 +436,9 @@ export function parseProject(text) {
   /** @type {number[]} */
   const retiredPositions = []
   let recordCount = 0
+  /** `TODO/core-050`: the variable names defined so far, for the duplicate and count caps. */
+  /** @type {Set<string>} */
+  const variableNames = new Set()
 
   records.forEach((raw, index) => {
     const line = lineNumbers[index]
@@ -357,7 +481,7 @@ export function parseProject(text) {
       }
       ids.add(record.id)
     }
-    const retired = retiredReason(record.op) ?? unsafeImageReason(record)
+    const retired = retiredReason(record.op) ?? unsafeImageReason(record) ?? variableDropReason(record, variableNames)
     recordCount += 1
     if (retired !== null) {
       warnings.push({ ...(record.id !== undefined ? { id: record.id } : {}), op: record.op, message: retired })
@@ -473,6 +597,7 @@ export function parseProject(text) {
   }
 
   const { userParts, unavailableParts } = readUserParts(state?.parts, entries, warnings)
+  flagUnresolvableBindings(entries, variableNames, warnings)
 
   return { entries, rollbackAt, resolution, standingInstructions, buildVolume, userParts, unavailableParts, warnings }
 }

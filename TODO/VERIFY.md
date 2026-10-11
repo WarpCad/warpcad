@@ -34,6 +34,20 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### core-050 — What a person should see when a variable goes out of range (feel call for `ui-059`) (2026-10-11 02:06)
+
+Driven by writing a variable's value straight past its own `max` through the document store (the
+panel's `setVariable` refuses that before commit, so a person cannot reach it today). All three
+bound bodies disappeared from the scene (count 0) and each shows a named broken row. That is
+correct by the spec (never guess a value), but whether *every* bound part vanishing at once is the
+right on-screen answer, rather than a banner that holds the last good value, is a judgment call
+the panel should make with the real UI in front of it.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | In the `ui-059` panel, type a value past a variable's max: is the refusal clear *before* commit, and if a file arrives with such a value, is "3 parts disappeared" explained by name on screen? | Open | |
+| 2 | Scenario 2 steps 5-6 (gizmo drag, live Inspector fields) were not re-driven for this task; confirm on a bound-size cube once `ui-059` can bind one. | Open | |
+
 ### core-053 — Export a project that holds a real left-broken row (2026-10-11 00:12)
 
 The fix is proved by unit specs that build the flagged row directly and by a hand-driven Print

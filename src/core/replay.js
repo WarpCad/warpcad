@@ -32,6 +32,7 @@
 import { evaluate } from './kernel/index.js'
 import { createGroup } from './kernel/group.js'
 import { ASSET_OP, validateImageAsset } from '../sketch/imageAsset.js'
+import { VARIABLE_OP, variableRecordError } from './variables.js'
 
 /** @typedef {import('@jscad/modeling').geometries.geom3.Geom3} Geom3 */
 /** @typedef {import('./kernel/group.js').Group} Group */
@@ -98,6 +99,16 @@ export function applyAction(scene, action, registry, cache = null, policy = unde
     if (verdict.ok) return scene
     /** @type {ReplayError} */
     const reported = { op: ASSET_OP, message: verdict.reason }
+    if (action.id !== undefined) reported.id = action.id
+    return { ...scene, errors: [...scene.errors, reported] }
+  }
+  // A project variable (`TODO/core-050`) is data too: it never reaches the kernel. Its
+  // bindings are resolved by `document.js` before a record gets here.
+  if (action?.op === VARIABLE_OP) {
+    const problem = variableRecordError(action)
+    if (problem === null) return scene
+    /** @type {ReplayError} */
+    const reported = { op: VARIABLE_OP, message: problem }
     if (action.id !== undefined) reported.id = action.id
     return { ...scene, errors: [...scene.errors, reported] }
   }

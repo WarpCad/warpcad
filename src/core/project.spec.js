@@ -403,6 +403,63 @@ describe('retired sketch.line records (TODO/sketch-001) — skipped with a warni
   })
 })
 
+describe('project variables on load (TODO/core-050) — caps and hostile input are named warnings, never a refused file', () => {
+  /** @param {string} id @param {Record<string, unknown>} params */
+  const variable = (id, params) => JSON.stringify({ id, op: 'var.define', params })
+  /** @param {string} id @param {unknown} first */
+  const cube = (id, first = 10) => JSON.stringify({ id, op: 'primitive.cuboid', name: id, params: { size: [first, 10, 10] } })
+
+  it('round-trips a variable and its bindings byte-identically', () => {
+    const text = [variable('v1', { name: 'wall', kind: 'number', value: 3, unit: 'mm' }), cube('cube-1', { $var: 'wall' })].join('\n') + '\n'
+    const parsed = parseProject(text)
+    expect(parsed.warnings).toEqual([])
+    const document = createDocument()
+    document.loadEntries(parsed.entries, parsed.rollbackAt, parsed.resolution)
+    expect(serializeProject(document)).toBe(text)
+    const [min, max] = boundsOf(document.bodies()[0].geometry)
+    expect(max[0] - min[0]).toBeCloseTo(3, 6)
+  })
+
+  it.each([
+    ['a name of __proto__', { name: '__proto__', kind: 'number', value: 1 }, /__proto__/],
+    ['a 41-character name', { name: 'a'.repeat(41), kind: 'number', value: 1 }, /name/],
+    ['a 10 000-option enum', { name: 'big', kind: 'enum', value: 0, options: Array.from({ length: 10000 }, (_, i) => ({ value: i, label: String(i) })) }, /options/],
+    ['an empty enum', { name: 'none', kind: 'enum', value: 0, options: [] }, /option/],
+  ])('drops %s with a warning naming it, and loads the rest', (_label, params, pattern) => {
+    const parsed = parseProject([variable('v1', params), cube('cube-1')].join('\n'))
+    expect(parsed.entries.map((entry) => entry.record.id)).toEqual(['cube-1'])
+    expect(parsed.warnings).toHaveLength(1)
+    expect(parsed.warnings[0]).toMatchObject({ id: 'v1', op: 'var.define' })
+    expect(parsed.warnings[0].message).toMatch(pattern)
+  })
+
+  it('a duplicate name keeps the first definition and warns about the second', () => {
+    const parsed = parseProject([variable('v1', { name: 'wall', kind: 'number', value: 1 }), variable('v2', { name: 'wall', kind: 'number', value: 2 })].join('\n'))
+    expect(parsed.entries.map((entry) => entry.record.id)).toEqual(['v1'])
+    expect(parsed.warnings[0]).toMatchObject({ id: 'v2' })
+    expect(parsed.warnings[0].message).toMatch(/already/)
+  })
+
+  it('a variable record from a newer build (var.*) is skipped with a warning, not a refused file', () => {
+    const parsed = parseProject([JSON.stringify({ id: 'd1', op: 'var.derive', params: { name: 'outer', expr: 'inner + 2' } }), cube('cube-1')].join('\n'))
+    expect(parsed.entries.map((entry) => entry.record.id)).toEqual(['cube-1'])
+    expect(parsed.warnings).toEqual([{ id: 'd1', op: 'var.derive', message: expect.stringMatching(/newer version/) }])
+  })
+
+  it('more bindings than the cap is one warning, quickly — and the excess loads as broken rows', async () => {
+    const { VARIABLE_LIMITS } = await import('./variables.js')
+    const count = VARIABLE_LIMITS.maxBindingsPerDocument + 5
+    const lines = [variable('v1', { name: 'wall', kind: 'number', value: 3 })]
+    for (let index = 0; index < count; index += 1) lines.push(cube(`c${index}`, { $var: 'wall' }))
+    const started = Date.now()
+    const parsed = parseProject(lines.join('\n'))
+    expect(Date.now() - started).toBeLessThan(5000)
+    expect(parsed.entries).toHaveLength(count + 1)
+    expect(parsed.warnings).toHaveLength(1)
+    expect(parsed.warnings[0].message).toMatch(new RegExp(String(VARIABLE_LIMITS.maxBindingsPerDocument)))
+  })
+})
+
 describe('design intent and standing instructions on the state line (TODO/ai-003)', () => {
   const INTENT = 'Make a bracket for a 20 mm tube\n— Base plate the clamp sits on'
   const RULES = 'Print on a 220×220 mm bed; walls at least 1.6 mm'

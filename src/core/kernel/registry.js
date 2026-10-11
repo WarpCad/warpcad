@@ -171,10 +171,11 @@ import { touchScreen2 } from './recipes/raspberrypi.touchScreen2.js'
  *   `ui-016`'s single-part selection address rather than `pieces`'s comma-list
  *   operand addressing (TODO/core-024) — a colour override always targets exactly
  *   one part, never a set. Absent means the override applies to the whole body.
- * @property {{ ref: string, param: string, in: any[] }} [when] A **condition**
+ * @property {{ ref?: string, param?: string, var?: string, in: any[] }} [when] A **condition**
  *   (`TODO/ui-052`): the record takes part in the fold only while the body `ref` names
  *   has its `param` set to one of the values in `in` — "this cut-out only exists on a
- *   Pi 4". One enum param, membership only, plain JSON; `src/core/condition.js`
+ *   Pi 4" — or (`TODO/core-050`) while the project variable `var` holds one of them. One
+ *   enum (or yes/no) value, membership only, plain JSON; `src/core/condition.js`
  *   evaluates it and `src/core/document.js`'s fold honours it. The kernel fold itself
  *   never reads it — by the time a record reaches `evaluate`, the document has already
  *   decided whether it takes part.

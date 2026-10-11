@@ -8,6 +8,14 @@
  * several board revisions — an AV-jack cut-out that exists only on a Pi 4 and a fan
  * grille that exists only on a Pi 5, in the same document.
  *
+ * ## Or a project variable (`TODO/core-050`)
+ *
+ * `when: { var, in }` reads a project variable instead of a body's param — "the AV-jack
+ * cut-out only exists while `piModel` is 4" — with the same membership-only, plain-JSON
+ * rule, for a choice or a yes/no variable. A body param that is itself bound to a variable
+ * reads as that variable's value, so a `{ ref, param, in }` condition on a bound Pi still
+ * means the board the Pi actually is.
+ *
  * ## Deliberately not an expression language
  *
  * One param, membership only, and only an **enum** param (one the registry's
@@ -42,14 +50,21 @@
 
 import { currentParamsRecordOf } from './paramEdit.js'
 import { paramOptions } from './kernel/registry.js'
+import { readVariables, resolveParams, variableValueLabel } from './variables.js'
 
 /** @typedef {import('./document.js').DocumentEntry} DocumentEntry */
 /** @typedef {import('./kernel/registry.js').OpRecord} OpRecord */
 
 /**
+ * A condition reads either one body's enum param (`{ ref, param, in }`, `TODO/ui-052`) or
+ * one project variable (`{ var, in }`, `TODO/core-050`) — never both. Same membership-only,
+ * plain-JSON rule for each.
+ *
  * @typedef {object} Condition
- * @property {string} ref The lineage root id of the body the condition reads.
- * @property {string} param The param on that body, e.g. `"model"`.
+ * @property {string} [ref] The lineage root id of the body the condition reads.
+ * @property {string} [param] The param on that body, e.g. `"model"`.
+ * @property {string} [var] The project variable the condition reads (`core-050`), instead
+ *   of `ref`/`param`. Must be a choice or a yes/no variable.
  * @property {readonly any[]} in The values for which the conditioned record is active.
  */
 
@@ -60,10 +75,12 @@ import { paramOptions } from './kernel/registry.js'
  */
 
 /**
- * What a condition can learn about the bodies in one log.
+ * What a condition can learn about the bodies — and the variables — in one log.
  *
  * @typedef {object} ConditionContext
  * @property {(refId: string) => RefFacts} lookup
+ * @property {(name: string) => import('./variables.js').Variable | undefined} variable
+ *   `TODO/core-050`: a project variable by name, read from the whole active log.
  */
 
 /**
@@ -72,7 +89,10 @@ import { paramOptions } from './kernel/registry.js'
  * @property {boolean} deleted Its lineage ends in a `body.delete` tombstone.
  * @property {string} name Display name — the record's `name`, else its id.
  * @property {string} [op]
- * @property {Record<string, any>} [params] The lineage's current params.
+ * @property {Record<string, any>} [params] The lineage's current params, with any
+ *   project-variable binding resolved (`TODO/core-050`).
+ * @property {string} [unresolved] Why a bound param could not be resolved, when one could
+ *   not — the condition then cannot be evaluated either.
  */
 
 /** The tombstone `document.js` appends for a deleted body (`TODO/ui-051`). */
@@ -87,9 +107,19 @@ const DELETE_OP = 'body.delete'
  *
  * @param {readonly DocumentEntry[]} entries
  * @param {number} activeCount How many leading entries are active (the rollback marker).
+ * @param {ReadonlyMap<string, import('./variables.js').Variable>} [variables] The project
+ *   variables (`TODO/core-050`), when the caller already read them; read from `entries`
+ *   on first use otherwise.
  * @returns {ConditionContext}
  */
-export function conditionContextOf(entries, activeCount) {
+export function conditionContextOf(entries, activeCount, variables = undefined) {
+  /** @type {ReadonlyMap<string, import('./variables.js').Variable> | undefined} */
+  let table = variables
+  const variablesOf = () => {
+    if (table === undefined) table = readVariables(entries, activeCount).variables
+    return table
+  }
+
   /** @type {Map<string, OpRecord>} */
   const byId = new Map()
   for (let index = 0; index < activeCount && index < entries.length; index += 1) {
@@ -139,13 +169,21 @@ export function conditionContextOf(entries, activeCount) {
       const lineage = lineages.get(refId) ?? [root]
       const deleted = lineage.some((record) => record.op === DELETE_OP)
       const name = typeof root.name === 'string' && root.name.length > 0 ? root.name : refId
+      // A param bound to a project variable reads as the variable's value (`TODO/core-050`):
+      // "only on a Pi 4" still means the board the Pi actually is.
+      const raw = currentParamsRecordOf(lineage)?.params ?? {}
+      const { params, errors } = resolveParams(raw, variablesOf())
       return {
         exists: true,
         deleted,
         name,
         op: root.op,
-        params: currentParamsRecordOf(lineage)?.params ?? {},
+        params,
+        ...(errors.length > 0 ? { unresolved: `${name}'s ${errors[0].path} is bound to "${errors[0].name}": ${errors[0].reason}` } : {}),
       }
+    },
+    variable(name) {
+      return variablesOf().get(name)
     },
   }
 }
@@ -158,9 +196,20 @@ export function conditionContextOf(entries, activeCount) {
  */
 export function conditionShapeError(when) {
   if (when === null || typeof when !== 'object' || Array.isArray(when)) {
-    return `a condition must be { ref, param, in }, got ${JSON.stringify(when)}`
+    return `a condition must be { ref, param, in } or { var, in }, got ${JSON.stringify(when)}`
   }
   const { ref, param, in: values } = /** @type {Record<string, unknown>} */ (when)
+  if (Object.hasOwn(when, 'var')) {
+    const name = /** @type {Record<string, unknown>} */ (when).var
+    if (ref !== undefined || param !== undefined) {
+      return 'a condition reads either a body (`ref`, `param`) or a variable (`var`), not both'
+    }
+    if (typeof name !== 'string' || name.length === 0) return 'a condition needs the name of the variable it reads (`var`)'
+    if (!Array.isArray(values) || values.length === 0) {
+      return 'a condition needs at least one value it is active for (`in`)'
+    }
+    return null
+  }
   if (typeof ref !== 'string' || ref.length === 0) return 'a condition needs the id of the body it reads (`ref`)'
   if (typeof param !== 'string' || param.length === 0) return 'a condition needs the param it reads (`param`)'
   if (!Array.isArray(values) || values.length === 0) {
@@ -180,14 +229,16 @@ export function evaluateCondition(when, context) {
   const shape = conditionShapeError(when)
   if (shape !== null) return { state: 'invalid', reason: shape }
   const condition = /** @type {Condition} */ (when)
+  if (condition.var !== undefined) return evaluateVariableCondition(condition.var, condition.in, context)
 
-  const facts = context.lookup(condition.ref)
+  const facts = context.lookup(/** @type {string} */ (condition.ref))
   if (!facts.exists) {
     return { state: 'invalid', reason: `the body it reads ("${condition.ref}") is not in the document` }
   }
   if (facts.deleted) return { state: 'invalid', reason: `${facts.name} has been deleted` }
+  if (facts.unresolved !== undefined) return { state: 'invalid', reason: facts.unresolved }
 
-  const field = paramOptions(/** @type {string} */ (facts.op), facts.params ?? {})[condition.param]
+  const field = paramOptions(/** @type {string} */ (facts.op), facts.params ?? {})[/** @type {string} */ (condition.param)]
   if (field === undefined) {
     return { state: 'invalid', reason: `${facts.name} has no editable param "${condition.param}"` }
   }
@@ -205,7 +256,7 @@ export function evaluateCondition(when, context) {
       reason: `${JSON.stringify(stranger)} is not one of ${facts.name}'s ${field.label} choices`,
     }
   }
-  const current = facts.params?.[condition.param]
+  const current = facts.params?.[/** @type {string} */ (condition.param)]
   if (!known(current)) {
     return {
       state: 'invalid',
@@ -213,6 +264,33 @@ export function evaluateCondition(when, context) {
     }
   }
   return { state: condition.in.some((value) => Object.is(value, current)) ? 'active' : 'inactive' }
+}
+
+/**
+ * `{ var, in }` (`TODO/core-050`): the same membership rule as a ref condition, against a
+ * project variable. Only a choice or a yes/no can be read; every `in` value has to be one
+ * the variable can hold.
+ *
+ * @param {string} name
+ * @param {readonly any[]} values
+ * @param {ConditionContext} context
+ * @returns {ConditionVerdict}
+ */
+function evaluateVariableCondition(name, values, context) {
+  const variable = context.variable(name)
+  if (variable === undefined) return { state: 'invalid', reason: `the variable "${name}" is not defined in this project` }
+  if (variable.kind === 'number') {
+    return { state: 'invalid', reason: `"${name}" is a number, and a condition can only read a choice or a yes/no` }
+  }
+  const known =
+    variable.kind === 'boolean'
+      ? (/** @type {any} */ value) => typeof value === 'boolean'
+      : (/** @type {any} */ value) => (variable.options ?? []).some((option) => Object.is(option.value, value))
+  const stranger = values.find((value) => !known(value))
+  if (stranger !== undefined) {
+    return { state: 'invalid', reason: `${JSON.stringify(stranger)} is not one of "${name}"'s choices` }
+  }
+  return { state: values.some((value) => Object.is(value, variable.value)) ? 'active' : 'inactive' }
 }
 
 /**
@@ -225,9 +303,24 @@ export function evaluateCondition(when, context) {
  * @returns {{ sentence: string, chip: string, refName: string, paramLabel: string, valueLabels: string[] }}
  */
 export function describeCondition(when, context) {
-  const facts = context.lookup(when.ref)
-  const field = facts.exists ? paramOptions(/** @type {string} */ (facts.op), facts.params ?? {})[when.param] : undefined
-  const paramLabel = field?.label ?? when.param
+  if (when.var !== undefined) {
+    const variable = context.variable(when.var)
+    const valueLabels = (Array.isArray(when.in) ? when.in : []).map((value) =>
+      variable === undefined ? String(value) : variableValueLabel(variable, value),
+    )
+    const paramLabel = variable?.label ?? when.var
+    const values = valueLabels.join(' or ')
+    return {
+      sentence: `Only when ${paramLabel} is ${values}`,
+      chip: `if ${when.var} = ${values}`,
+      refName: when.var,
+      paramLabel,
+      valueLabels,
+    }
+  }
+  const facts = context.lookup(/** @type {string} */ (when.ref))
+  const field = facts.exists ? paramOptions(/** @type {string} */ (facts.op), facts.params ?? {})[/** @type {string} */ (when.param)] : undefined
+  const paramLabel = field?.label ?? /** @type {string} */ (when.param)
   const valueLabels = (Array.isArray(when.in) ? when.in : []).map((value) => {
     const option = field?.kind === 'enum' ? field.options.find((candidate) => Object.is(candidate.value, value)) : undefined
     return option?.label ?? String(value)

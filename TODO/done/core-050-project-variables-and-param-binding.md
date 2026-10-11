@@ -6,8 +6,35 @@ priority: high
 model: opus
 milestone: M12
 depends: [data-004, ui-052]
-status: open
+status: done
 ---
+
+> **What shipped (2026-10-11).** Core only, as scoped. New `src/core/variables.js` (record shape,
+> `readVariables`, `resolveParams`/`resolveRecord`, `bindableParams`, `defineVariable`,
+> `setVariable`, `bindParam`, `unbindParam`, `renameVariable`, `deleteVariable`, caps), the
+> single resolution point in `document.js`'s fold (before composite expansion, so the fold cache
+> still hits), `when: { var, in }` in `condition.js`, the all-consumers impact check in
+> `dependents.js`, `project.js` round-trip with named `LoadWarning`s, and
+> `docs/decisions/project-variables.md`. Deviations, all recorded in the decision doc:
+>
+> - **`var.define` is not a kernel-registry op** (like `asset.image` and `body.delete`), so it is
+>   not in `list_ops`, and `create`/`apply_records` cannot write one. `document.js` routes it
+>   past the kernel; `get_timeline` shows `Define <name>`.
+> - **The whole `transform.rotate` row is unbindable**, not only `rotation` (its angles feed the
+>   absolute rotation later transforms carry).
+> - **Two failure modes.** A binding the schema can detect as invalid becomes a tolerated, named
+>   broken row; a kernel failure on a native op with no schema refuses the revision atomically.
+>   A loaded file with a binding to an undefined name, or past the 10,000-binding cap, loads with
+>   that record left broken and a named warning.
+> - **An older build cannot skip `var.define` with a warning**: shipped builds treat it as an
+>   unknown op and refuse the file by naming the step. This build skips unknown `var.*` ops.
+> - **Known gap.** Another fold-time-only binding failure (for example a wrong kind) combined
+>   with a dependent snap can still refuse a *loaded* file.
+> - **AI tools not wired.** The seven variable tools are `TODO/ai-014` (names recorded in
+>   `TODO/done/ai-002-ai-tool-registry.md`), not added to `src/ai/tools/` here.
+> - **Handed to `ui-059`**: the raw `{ "$var" }` object reaches `recordOf`, `Body.params` and
+>   `describe_body`; variable conditions report `refId: ''`; create-and-bind should be one
+>   `document.batch` (untested here). See that file's handoff section.
 
 ## Goal
 

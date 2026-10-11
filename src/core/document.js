@@ -369,6 +369,15 @@ import {
   setProjectParts,
 } from './userPart.js'
 import { foldColorOverrides } from './colorOverride.js'
+import {
+  VARIABLE_LIMITS,
+  VARIABLE_OP,
+  bindingCountOf,
+  readVariables,
+  resolveRecord,
+  usesVariables,
+  variableRecordError,
+} from './variables.js'
 import { ASSET_OP, validateImageAsset } from '../sketch/imageAsset.js'
 
 /** @typedef {import('./kernel/registry.js').OpRecord} OpRecord */
@@ -444,15 +453,17 @@ import { ASSET_OP, validateImageAsset } from '../sketch/imageAsset.js'
 
 /**
  * @typedef {object} InactiveBy
- * @property {string} refId The body the condition reads.
- * @property {string} param
+ * @property {string} refId The body the condition reads; `''` for a variable condition.
+ * @property {string} param `''` for a variable condition.
  * @property {any[]} values
+ * @property {string} [var] `TODO/core-050`: the project variable a `{ var, in }` condition reads.
  */
 
 /**
  * @typedef {object} RowCondition
- * @property {string} refId
- * @property {string} param
+ * @property {string} refId `''` for a variable condition (`TODO/core-050`).
+ * @property {string} param `''` for a variable condition.
+ * @property {string} [var] The project variable a `{ var, in }` condition reads.
  * @property {any[]} values
  * @property {'self' | 'lineage'} scope `self` when the row carries `when` itself;
  *   `lineage` when it belongs to a body whose creation record does.
@@ -659,7 +670,9 @@ export class ReplayRejection extends Error {
  * @property {() => number | null} rollbackAt
  * @property {(id: string, record: OpRecord, transaction: TransactionOptions) => { scene: Scene }} replaceRecord
  * @property {(id: string, suppressed: boolean, transaction: TransactionOptions) => { scene: Scene }} setSuppressed
- * @property {(changes: readonly RecordRevision[], transaction: TransactionOptions, options?: { append?: readonly OpRecord[] }) => { scene: Scene }} reviseRecords
+ * @property {(changes: readonly RecordRevision[], transaction: TransactionOptions, options?: { append?: readonly OpRecord[], remove?: readonly string[] }) => { scene: Scene }} reviseRecords
+ * @property {() => import('./variables.js').Variable[]} variables `TODO/core-050`: the project
+ *   variables the current fold resolved bindings against, in log order.
  * @property {() => Map<string, OpRecord>} assets Every folded `asset.image` record, by id
  *   (`TODO/sketch-003`) — the reference photos sketch slices name. Never bodies.
  * @property {() => InactiveBody[]} inactiveBodies
@@ -1044,6 +1057,13 @@ export function createDocument(options = {}) {
   const mergedInto = new Map()
   /** @type {Map<string, OpRecord>} */
   const recordById = new Map()
+  /**
+   * `TODO/core-050`: the project variables the current fold resolved every binding against,
+   * by name — read from the whole active log, not from the fold position. Derived, like the
+   * indexes above, and put back with them when a re-fold is refused.
+   * @type {Map<string, import('./variables.js').Variable>}
+   */
+  let variableTable = new Map()
   let scene = emptyScene()
   let idCounter = 0
   /**
@@ -1291,8 +1311,12 @@ export function createDocument(options = {}) {
    *   lineage check and all the bookkeeping below exactly as usual, but its id bound to
    *   the geometry it would have changed instead of running its op. How a row the user
    *   left broken, or one a condition switches off, keeps its body on screen.
+   * @param {OpRecord} [foldRecord] `TODO/core-050`: what the kernel actually builds — the
+   *   record with its project-variable bindings resolved by {@link foldActive}. This is the
+   *   **one** place a record's params reach the kernel, so it is the one place resolution
+   *   is handed over; every index below still keeps `record`, the binding the user wrote.
    */
-  function ingest(record, origin, passThrough = false) {
+  function ingest(record, origin, passThrough = false, foldRecord = record) {
     if (typeof origin !== 'string' || origin.length === 0) {
       throw new Error(
         'document.append: a transaction origin is required — ' +
@@ -1323,6 +1347,18 @@ export function createDocument(options = {}) {
     if (record.op === ASSET_OP) {
       const verdict = validateImageAsset(record)
       if (!verdict.ok) throw new Error(`document.append: ${ASSET_OP} ${String(record.id)} refused — ${verdict.reason}`)
+      originById.set(/** @type {string} */ (record.id), origin)
+      recordById.set(/** @type {string} */ (record.id), record)
+      return
+    }
+
+    // A project variable (`TODO/core-050`) is a data record too: it builds nothing, is never a
+    // lineage or a body, and is read by the fold from the log (`variables.js`), not from
+    // here. Its shape is checked loudly, like a photo's; a duplicate name is the fold's to
+    // report, because it depends on the rest of the log.
+    if (record.op === VARIABLE_OP) {
+      const problem = variableRecordError(record)
+      if (problem !== null) throw new Error(`document.append: ${VARIABLE_OP} ${String(record.id)} refused — ${problem}`)
       originById.set(/** @type {string} */ (record.id), origin)
       recordById.set(/** @type {string} */ (record.id), record)
       return
@@ -1399,7 +1435,7 @@ export function createDocument(options = {}) {
       byIdNext.set(record.id, value)
       candidate = { ...scene, byId: byIdNext }
     } else {
-      candidate = applyAction(scene, record, ops, foldCache, policyFor(resolution))
+      candidate = applyAction(scene, foldRecord, ops, foldCache, policyFor(resolution))
     }
     if (candidate.errors.length > errorsBefore) {
       const failure = candidate.errors[candidate.errors.length - 1]
@@ -1463,6 +1499,7 @@ export function createDocument(options = {}) {
       rootOrder: rootOrder.slice(),
       mergedInto: new Map(mergedInto),
       recordById: new Map(recordById),
+      variableTable,
       scene,
     }
   }
@@ -1475,6 +1512,7 @@ export function createDocument(options = {}) {
     rootOrder.length = 0
     mergedInto.clear()
     recordById.clear()
+    variableTable = new Map()
     scene = emptyScene()
     if (!snapshot) return
     for (const [key, value] of snapshot.originById) originById.set(key, value)
@@ -1483,6 +1521,7 @@ export function createDocument(options = {}) {
     rootOrder.push(...snapshot.rootOrder)
     for (const [key, value] of snapshot.mergedInto) mergedInto.set(key, value)
     for (const [key, value] of snapshot.recordById) recordById.set(key, value)
+    variableTable = snapshot.variableTable
     scene = snapshot.scene
   }
 
@@ -1498,8 +1537,9 @@ export function createDocument(options = {}) {
    * @param {DocumentEntry} entry
    * @param {number} index Zero-based position; the message says `index + 1`.
    * @param {Map<string, OpRecord>} byId Every record in the list being folded.
+   * @param {OpRecord} [foldRecord] The record with its bindings resolved (`TODO/core-050`).
    */
-  function ingestRow(entry, index, byId) {
+  function ingestRow(entry, index, byId, foldRecord = entry.record) {
     const { record } = entry
     for (const referenced of referencedIdsOf(record)) {
       if (recordById.has(referenced)) continue
@@ -1511,7 +1551,7 @@ export function createDocument(options = {}) {
       })
     }
     try {
-      ingest(record, entry.origin)
+      ingest(record, entry.origin, false, foldRecord)
     } catch (error) {
       throw new ReplayRejection({
         id: record.id ?? '',
@@ -1667,8 +1707,16 @@ export function createDocument(options = {}) {
      * @type {Map<string, string>}
      */
     const skipped = new Map()
+    // `TODO/core-050`: the project variables, read once from the whole active log — so a
+    // binding resolves whether its variable is defined before or after it.
+    const usesVars = nextEntries.some((entry) => usesVariables(entry.record))
+    const { variables, problems: variableProblems } = usesVars
+      ? readVariables(nextEntries, activeCount)
+      : { variables: new Map(), problems: new Map() }
+    variableTable = variables
+    let bindingsSeen = 0
     const context = nextEntries.some((entry) => entry.record.when !== undefined)
-      ? conditionContextOf(nextEntries, activeCount)
+      ? conditionContextOf(nextEntries, activeCount, variables)
       : null
 
     /**
@@ -1692,6 +1740,19 @@ export function createDocument(options = {}) {
       const { record } = entry
       const key = record.id ?? `#${index + 1}`
 
+      // 0. A project variable (`TODO/core-050`) builds nothing. One that cannot be used — a
+      //    bad name, a second definition of a name — is a broken row, never a refused log,
+      //    and every binding to it is then reported by name below.
+      if (record.op === VARIABLE_OP) {
+        const problem = variableProblems.get(key)
+        if (problem !== undefined) {
+          broken.set(key, `variable can't be used: ${problem}`)
+          continue
+        }
+        ingestRow(entry, index, byId)
+        continue
+      }
+
       // 1. A later record of a lineage the fold has already left out goes with it,
       //    silently: "this body does not exist on a Pi 5" covers its moves too.
       if (typeof record.supersedes === 'string' && skipped.has(record.supersedes)) {
@@ -1711,7 +1772,12 @@ export function createDocument(options = {}) {
             broken.set(key, `condition can't be evaluated: ${verdict.reason}`)
           } else {
             const when = /** @type {import('./condition.js').Condition} */ (record.when)
-            inactive.set(key, { refId: when.ref, param: when.param, values: [...when.in] })
+            inactive.set(
+              key,
+              when.var !== undefined
+                ? { refId: '', param: '', var: when.var, values: [...when.in] }
+                : { refId: /** @type {string} */ (when.ref), param: /** @type {string} */ (when.param), values: [...when.in] }
+            )
           }
           const creates = record.supersedes === undefined && record.consumes === undefined
           if (creates) {
@@ -1745,9 +1811,42 @@ export function createDocument(options = {}) {
         continue
       }
 
-      // 4. An ordinary row — refused atomically unless the user left it broken.
+      // 4. Its project-variable bindings (`TODO/core-050`), resolved here — the one point a
+      //    record's params are handed to the kernel — and before composite expansion, so a
+      //    recipe or a user part never sees a binding. One that cannot be resolved (a missing
+      //    variable, a wrong kind, a value outside the param's own limits, a dependent choice
+      //    it stranded) is a broken row with the reason named, exactly like a condition that
+      //    cannot be evaluated: substituting a literal would change geometry silently.
+      let foldRecord = record
+      const bindingCount = usesVars ? bindingCountOf(record) : 0
+      if (bindingCount > 0) {
+        bindingsSeen += bindingCount
+        const recordName = record.id === undefined ? record.op : displayNameOf(record.id, byId)
+        const outcome =
+          bindingsSeen > VARIABLE_LIMITS.maxBindingsPerDocument
+            ? {
+                record,
+                errors: [
+                  `${recordName} is past this project's limit of ${VARIABLE_LIMITS.maxBindingsPerDocument} variable bindings`,
+                ],
+              }
+            : resolveRecord(record, variables, { recordName })
+        if (outcome.errors.length > 0) {
+          broken.set(key, `binding can't be resolved: ${outcome.errors[0]}`)
+          const creates = record.supersedes === undefined && record.consumes === undefined
+          if (creates) {
+            if (record.id !== undefined) skipped.set(record.id, key)
+          } else {
+            passThroughOrSkip(entry, key)
+          }
+          continue
+        }
+        foldRecord = outcome.record
+      }
+
+      // 5. An ordinary row — refused atomically unless the user left it broken.
       try {
-        ingestRow(entry, index, byId)
+        ingestRow(entry, index, byId, foldRecord)
       } catch (error) {
         if (!(error instanceof ReplayRejection) || !(tolerateAll || entry.leftBroken === true)) throw error
         broken.set(key, error.step.reason)
@@ -1934,6 +2033,11 @@ export function createDocument(options = {}) {
     if (record.op === RECOLOR_OP && record.colorOverride === null) {
       return subjectName === undefined ? 'Reset color' : `Reset color of ${subjectName}`
     }
+    // `TODO/core-050`: a variable definition is named by the variable, not placed.
+    if (record.op === VARIABLE_OP) {
+      const name = typeof record.params?.name === 'string' ? record.params.name : record.id ?? 'variable'
+      return `Define ${name}`
+    }
     if (record.op === REMOVE_PART_OP) {
       const part = typeof record.params?.part === 'string' ? record.params.part : 'part'
       return subjectName === undefined ? `Remove ${part}` : `Remove ${part} from ${subjectName}`
@@ -2009,7 +2113,7 @@ export function createDocument(options = {}) {
    */
   function conditionReader(byId, activeCount) {
     if (!entries.some((entry) => entry.record.when !== undefined)) return () => null
-    const context = conditionContextOf(entries, activeCount)
+    const context = conditionContextOf(entries, activeCount, variableTable)
     return (record) => {
       /** @type {'self' | 'lineage'} */
       let scope = 'self'
@@ -2031,8 +2135,9 @@ export function createDocument(options = {}) {
       const when = /** @type {import('./condition.js').Condition} */ (carrier.when)
       const words = describeCondition(when, context)
       return {
-        refId: when.ref,
-        param: when.param,
+        refId: when.ref ?? '',
+        param: when.param ?? '',
+        ...(when.var !== undefined ? { var: when.var } : {}),
         values: [...when.in],
         scope,
         sentence: words.sentence,
@@ -2098,7 +2203,11 @@ export function createDocument(options = {}) {
       // `TODO/ui-052`: a condition reads its ref from the whole log, so once the document
       // has one, an append (a delete of the Pi a condition reads, a new conditioned
       // record) has to re-fold to re-judge it. Rare, and the fold cache makes it cheap.
-      if (records.some((record) => record.when !== undefined) || entries.some((entry) => entry.record.when !== undefined)) {
+      // `TODO/core-050`: likewise variables — a binding reads its variable from the whole log,
+      // so a new definition can repair an earlier binding, and a new binding is judged against
+      // every definition, wherever it sits.
+      const refolds = (/** @type {OpRecord} */ record) => record.when !== undefined || usesVariables(record)
+      if (records.some(refolds) || entries.some((entry) => refolds(entry.record))) {
         return document.insertAt(entries.length, records, transaction)
       }
 
@@ -2917,10 +3026,19 @@ export function createDocument(options = {}) {
      *
      * Atomic, through {@link rebuildFrom}: a row that no longer builds and is not
      * flagged `leftBroken` refuses the whole revision by name, and nothing changes.
+     *
+     * `options.remove` (`TODO/core-050`) takes **one** record out of the log in the same
+     * step — a project variable deleted while its bindings are rewritten to literals, so the
+     * delete and the rewrite are one press of Undo, which puts the record back where it was.
+     * Refused, by name, while any record left behind still references it by id.
      */
     reviseRecords(changes, transaction, options = {}) {
-      if (!Array.isArray(changes) || changes.length === 0) {
+      const removeIds = [...(options.remove ?? [])]
+      if (!Array.isArray(changes) || (changes.length === 0 && (options.append ?? []).length === 0 && removeIds.length === 0)) {
         throw new Error('document.reviseRecords: at least one revision is required')
+      }
+      if (removeIds.length > 1) {
+        throw new Error('document.reviseRecords: a revision removes at most one record')
       }
       const next = entries.slice()
       /** @type {NonNullable<LogRevision['items']>} */
@@ -2940,6 +3058,23 @@ export function createDocument(options = {}) {
         next[index] = withLeftBroken({ ...current, record }, toLeftBroken)
         items.push({ id: change.id, from: current.record, to: record, fromLeftBroken, toLeftBroken })
       }
+      // `TODO/core-050`: the one record this step takes out, checked before anything moves.
+      /** @type {{ at: number, records: OpRecord[] } | undefined} */
+      let removal
+      if (removeIds.length === 1) {
+        const [removeId] = removeIds
+        const at = indexOfRecord(removeId)
+        if (at < 0) throw new Error(`document.reviseRecords: no step "${removeId}" to remove`)
+        if (seen.has(removeId)) throw new Error(`document.reviseRecords: step "${removeId}" is both revised and removed`)
+        for (const entry of next) {
+          if (entry.record.id === removeId) continue
+          if (!referencedIdsOf(entry.record).includes(removeId)) continue
+          throw new Error(
+            `document.reviseRecords: "${entry.record.name ?? entry.record.id ?? entry.record.op}" depends on "${removeId}" — it cannot be removed`
+          )
+        }
+        removal = { at, records: [next[at].record] }
+      }
       // `TODO/sketch-003`: records that arrive *with* the revision — the photo an Edit
       // sketch session added — go into the log in the same step, at the rollback marker
       // (the end of the active part), so a rolled-back document still folds them.
@@ -2948,22 +3083,41 @@ export function createDocument(options = {}) {
         (item) =>
           JSON.stringify(item.from) !== JSON.stringify(item.to) || item.fromLeftBroken !== item.toLeftBroken
       )
-      if (!changed && appended.length === 0) return { scene }
+      if (!changed && appended.length === 0 && removal === undefined) return { scene }
 
       const rollbackBefore = rollbackAt
-      const addAt = rollbackAt ?? next.length
+      let nextRollback = rollbackAt
+      if (removal !== undefined) {
+        next.splice(removal.at, 1)
+        if (nextRollback !== null && removal.at < nextRollback) nextRollback -= 1
+        if (nextRollback !== null && (nextRollback < 1 || nextRollback >= next.length)) nextRollback = null
+      }
+      const addAt = nextRollback ?? next.length
       if (appended.length > 0) {
         next.splice(addAt, 0, ...appended.map((record) => ({ record, origin: transaction?.origin ?? 'local' })))
       }
-      const prior = rebuildFrom(next, rollbackAt === null ? null : rollbackAt + appended.length)
+      const prior = rebuildFrom(next, nextRollback === null ? null : nextRollback + appended.length)
       pushRevision(
         transaction,
         items.length === 1 ? `Edit step ${indexOfRecord(items[0].id) + 1}` : `Edit ${items.length} steps`,
-        { kind: 'revise', items, ...(appended.length > 0 ? { add: { at: addAt, records: appended } } : {}) },
+        {
+          kind: 'revise',
+          items,
+          ...(appended.length > 0 ? { add: { at: addAt, records: appended } } : {}),
+          ...(removal !== undefined ? { remove: removal } : {}),
+        },
         rollbackBefore,
         prior
       )
       return { scene }
+    },
+
+    /**
+     * `TODO/core-050`: the project variables the current fold resolved every binding
+     * against, in log order — fresh copies, never the fold's own table.
+     */
+    variables() {
+      return [...variableTable.values()].map((variable) => ({ ...variable }))
     },
 
     /**

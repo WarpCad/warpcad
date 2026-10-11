@@ -118,3 +118,55 @@ describe('describeCondition — the words the chip and the Inspector use', () =>
     expect(text.chip).toBe('if Raspberry Pi 1 = Pi 3 or Pi 4')
   })
 })
+
+describe('`{ var, in }` — a condition that reads a project variable (TODO/core-050)', () => {
+  const piModel = {
+    id: 'var-1',
+    op: 'var.define',
+    params: { name: 'piModel', kind: 'enum', value: 4, label: 'Pi model', options: [{ value: 4, label: 'Pi 4' }, { value: 5, label: 'Pi 5' }] },
+  }
+  const fan = { id: 'var-2', op: 'var.define', params: { name: 'fan', kind: 'boolean', value: false } }
+  const wall = { id: 'var-3', op: 'var.define', params: { name: 'wall', kind: 'number', value: 2, unit: 'mm' } }
+
+  it('is active while the variable holds one of `in`, inactive otherwise', () => {
+    expect(verdict([piModel, cube], { var: 'piModel', in: [4] }).state).toBe('active')
+    expect(verdict([piModel, cube], { var: 'piModel', in: [5] }).state).toBe('inactive')
+    expect(verdict([fan, cube], { var: 'fan', in: [true] }).state).toBe('inactive')
+    expect(verdict([fan, cube], { var: 'fan', in: [false] }).state).toBe('active')
+  })
+
+  it('reads the variable from the log, wherever it is defined', () => {
+    expect(verdict([cube, piModel], { var: 'piModel', in: [4] }).state).toBe('active')
+  })
+
+  it('is invalid, by name, for a missing variable, a number variable, or a value it does not offer', () => {
+    const missing = verdict([cube], { var: 'piModel', in: [4] })
+    expect(missing.state).toBe('invalid')
+    expect(missing.reason).toMatch(/piModel/)
+    const number = verdict([wall, cube], { var: 'wall', in: [2] })
+    expect(number.state).toBe('invalid')
+    expect(number.reason).toMatch(/choice/)
+    const stranger = verdict([piModel, cube], { var: 'piModel', in: [9] })
+    expect(stranger.state).toBe('invalid')
+    expect(stranger.reason).toMatch(/9/)
+  })
+
+  it('refuses a condition that mixes the two forms, or names no variable', () => {
+    for (const bad of [{ var: 'piModel', ref: 'pi-1', param: 'model', in: [4] }, { var: '', in: [4] }, { var: 'piModel', in: [] }]) {
+      expect(verdict([piModel, cube], bad).state).toBe('invalid')
+    }
+  })
+
+  it('a ref condition still works when the body reads its param from a variable', () => {
+    const bound = { ...pi({ $var: 'piModel' }) }
+    expect(verdict([piModel, bound, cube], onPi([4])).state).toBe('active')
+    expect(verdict([piModel, bound, cube], onPi([5])).state).toBe('inactive')
+  })
+
+  it('describes itself with the variable\'s label and option labels', () => {
+    const entries = entriesOf([piModel, cube])
+    const text = describeCondition(/** @type {any} */ ({ var: 'piModel', in: [4] }), conditionContextOf(entries, entries.length))
+    expect(text.sentence).toBe('Only when Pi model is Pi 4')
+    expect(text.chip).toBe('if piModel = Pi 4')
+  })
+})

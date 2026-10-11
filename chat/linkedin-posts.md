@@ -2138,3 +2138,20 @@ The fix gives the comparison an explicit tolerance of 1e-9 mm, used by capture o
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** refusal on re-capture -> TODO/done/core-055 and the red unit test this session; cause is bake-order float noise -> debug run this session showing identical structure and last-digit coordinate differences; 1e-9 mm / structure exact / 0.001 mm still refused -> diff and the new spec
 **To Add:** none
+
+## [2026-10-11T02:06:00Z] — One named value that drives many parts: variables in the WarpCad document
+
+**Post:** My old jscad projects open with `const piVersion = 4` and every part reads it. WarpCad had nothing like that: switching a case from a Pi 4 to a Pi 5 meant finding the board and fixing whatever assumed the old one.
+
+The core of the answer landed today. A variable is a record in the project's own log, so undo, file round-trip and the AI's view of the document come with it. A parameter is bound by putting `{"$var": "piModel"}` where the number would go, or in one slot of a vector. The substitution happens at exactly one point, where the fold hands a record to the kernel, so no operation has to know variables exist, and a user part's exposed parameters work too.
+
+The part I cared about is the refusals. A binding that cannot be resolved is a named broken row, never a guessed literal. A rotation step cannot be bound at all, because the next transform would silently overwrite it. Deleting a variable that is in use lists its consumers first.
+
+Driving the running app: one value bound into three parameters on three bodies rebuilt all three, and a single Undo put them back. There is no panel yet, so today that is reachable by code only. Derived values (outer = inner + 2 * wall) are left out on purpose, as they need a safe evaluator.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #Parametric #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** one value into three parameters, one Undo -> in-app probe this session (volumes 4000/6000/2000 -> 6000/9000/3000 -> back); no panel yet -> TODO/ui-059 open; derived values excluded -> docs/decisions/project-variables.md
+**To Add:** repo URL once public

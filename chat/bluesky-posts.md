@@ -1532,3 +1532,12 @@ Built with Claude Code, reviewed by me. #CAD
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** refused on the exact-geometry check -> TODO/done/core-055 problem text and the unit test that failed before the fix (this session); differed by ~2e-15 mm -> last-digit diff printed from the debug run this session (15.851949702904731 vs ...733); 1e-9 mm -> CAPTURE_TOLERANCE_MM in the diff
 **To Add:** repo URL once public
+
+## [2026-10-11T02:06:00Z] — Project variables in the document model
+
+**Post:** Core of project variables landed in WarpCad: define a named value, bind any part's parameter to it with {"$var": name}, and one change rebuilds every bound part in one undo step. No UI yet. Built with Claude Code, reviewed by me. #CAD
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** one value drives three params in one undo step -> in-app probe this session (volumes 4000/6000/2000 -> 6000/9000/3000 -> back on one Undo); no UI yet -> TODO/ui-059 is still open
+**To Add:** repo URL once public

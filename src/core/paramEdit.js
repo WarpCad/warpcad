@@ -382,6 +382,30 @@ export function paramEditRecord(document, bodyId, changes) {
 const RESERVED_STEP_PARAMS = Object.freeze(new Set(['rotation', 'segments']))
 
 /**
+ * Is `key` a param no past-step edit may write — and so, by the same reasoning, one no
+ * project variable may be bound to (`TODO/core-050`)? `rotation` is carried absolutely by
+ * every later transform; `segments` is tessellation, not a dimension.
+ *
+ * @param {string} key
+ * @returns {boolean}
+ */
+export function isReservedStepParam(key) {
+  return RESERVED_STEP_PARAMS.has(key)
+}
+
+/**
+ * A project-variable binding in a param's slot (`TODO/core-050`): `{ "$var": name }`. Its
+ * value is the variable's, checked by `core/variables.js` at fold time, so a schema check
+ * of *other* params skips it rather than refusing it as an unknown choice.
+ *
+ * @param {unknown} value
+ * @returns {boolean}
+ */
+function isBindingValue(value) {
+  return value !== null && typeof value === 'object' && !Array.isArray(value) && Object.hasOwn(value, '$var')
+}
+
+/**
  * May this row's parameters be edited in place (`data-004`, section 15)?
  *
  * Takes the **record**, not a lineage: the replace path re-folds the whole log,
@@ -397,6 +421,9 @@ export function stepParamEditability(record) {
   // A reference photo (`TODO/sketch-003`) is bytes, not dimensions: its "params" are a MIME
   // type, a pixel size and base64 data, none of which a form should offer to retype.
   if (record.op === 'asset.image') return { editable: false, blockedBy: record.op }
+  // A project variable (`TODO/core-050`) changes through `setVariable`, which validates its
+  // kind, range and options — never through a generic step edit of its definition.
+  if (record.op === 'var.define') return { editable: false, blockedBy: record.op }
   // A boolean or a group: its geometry *is* its operands, and the params a user
   // would be editing do not exist. Section 15: "This step has no parameters".
   if (record.consumes !== undefined) return { editable: false, blockedBy: record.op }
@@ -536,6 +563,8 @@ function requireSchemaParams(op, params, changedKeys) {
   }
   for (const [key, field] of Object.entries(schema)) {
     const value = params[key]
+    // Bound to a project variable (`TODO/core-050`): resolved and checked in the fold.
+    if (isBindingValue(value) && !changedKeys.includes(key)) continue
     if (field.kind === 'enum') {
       if (value === undefined && !changedKeys.includes(key)) continue
       if (!field.options.some((option) => Object.is(option.value, value))) {

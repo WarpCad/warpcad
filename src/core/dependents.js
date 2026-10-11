@@ -32,6 +32,7 @@
 import { createDocument, foldableEntry } from './document.js'
 import { isGroup } from './kernel/group.js'
 import { paramOptions, partAliasesOf } from './kernel/registry.js'
+import { consumersOf, setVariableRevision } from './variables.js'
 
 /** @typedef {import('./document.js').WarpDocument} WarpDocument */
 /** @typedef {import('./document.js').RecordRevision} RecordRevision */
@@ -312,4 +313,50 @@ export function brokenReferencesOf(document, bodyId) {
     }
   }
   return list
+}
+
+/**
+ * What would changing a project variable newly break (`TODO/core-050`)?
+ *
+ * Editing a variable's value is, in effect, editing every bound record at once, so this is
+ * {@link impactOf}'s check run over **all** of them: the candidate log (the definition
+ * record with the new value) folded in a throwaway, tolerant document, its broken rows
+ * diffed against the live document's. Unlike a single param edit, a bound record that
+ * itself no longer builds is *reported* here rather than thrown — it is one of several
+ * consumers, and the user needs the whole list, by name, before committing.
+ *
+ * @param {WarpDocument} document The live document. Not modified.
+ * @param {string} name
+ * @param {number | boolean | string} value
+ * @returns {{ breakages: Breakage[], preview: WarpDocument, consumers: import('./variables.js').VariableConsumer[] }}
+ *   `consumers` is every binding and condition that reads the variable, in log order.
+ * @throws {import('./variables.js').VariableError} For an unknown variable, or a value
+ *   outside the variable's own kind, range or options — the value itself is wrong.
+ */
+export function variableImpactOf(document, name, value) {
+  const consumers = consumersOf(document.entries, name)
+  const revision = setVariableRevision(document, name, value)
+  if (revision === null) return { breakages: [], preview: previewOf(document, []), consumers }
+  const preview = previewOf(document, [revision])
+  const already = new Set(document.brokenSteps().map((step) => step.id))
+  const activeCount = document.rollbackAt() ?? document.entries.length
+  const activeIds = new Set(document.entries.slice(0, activeCount).map((entry) => entry.record.id))
+  const boundRoots = new Set(
+    consumers.map((consumer) => document.rootOf(consumer.recordId)).filter((id) => id !== undefined),
+  )
+
+  /** @type {Breakage[]} */
+  const breakages = []
+  for (const step of preview.brokenSteps()) {
+    if (already.has(step.id) || !activeIds.has(step.id)) continue
+    // The body the breakage is "against": a bound body this row references, else its own.
+    const record = preview.recordOf(step.id)
+    const refRoots = [record?.target, ...(record?.operands ?? [])]
+      .map((ref) => (typeof ref === 'string' ? ref : ref?.id))
+      .map((id) => (typeof id === 'string' ? document.rootOf(id) : undefined))
+    const editedRootId =
+      refRoots.find((root) => root !== undefined && boundRoots.has(root)) ?? document.rootOf(step.id) ?? step.id
+    breakages.push(describeBreakage(document, preview, step, editedRootId))
+  }
+  return { breakages, preview, consumers }
 }
