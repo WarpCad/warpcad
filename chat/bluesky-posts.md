@@ -1576,3 +1576,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** Pi 4 to 5 with a variable-bound Model, cube conditioned on it, one Undo restoring both → `e2e/variables.e2e.js` first test (chromium and webkit, three viewports) and the scenario 21 / 15 hand-drives in `TODO/ACCEPTANCE.md`; batch gives two Undo steps → `src/core/variables.spec.js` "document.batch(define; bind) is two Undo steps" and `TODO/core-056-*.md`
 **To Add:** repo URL once public, docs site URL once it exists
+
+## [2026-10-11T18:40:00Z] — A subscription isn't an API key, and the app now says so
+
+**Post:** WarpCad's AI chat needs an API key, and a Claude Pro/Max subscription isn't one. The no-key screen now says that and gives you the Claude Code + MCP command that does run on your subscription. Chat turns also show an estimated cost. Built with Claude Code, reviewed by me. #CAD
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** chat needs an API key, subscription route is Claude Code + MCP -> `docs/decisions/ai-partner.md` decision 10 and `docs/mcp.md` in the diff; third parties may not route through Pro/Max credentials -> Claude Code legal-and-compliance page read this session (search result, wording summarised in decision 10); estimated cost shown -> `e2e/ai-subscription-route.e2e.js` second test (1,200 in / 340 out on Opus 5.5 reads "≈ $0.01 · session $0.01", then "$0.02" after a second turn)
+**To Add:** screenshot `docs/screenshots/assistant-subscription-route.png`, repo URL once public

@@ -2206,3 +2206,18 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** "The model had landed just before" → `git log` `6f06176` (core-050), 2026-10-10 21:08 local; chip, condition, announcement line, one Undo → `e2e/variables.e2e.js`; repair dialog "Only when piModel is Pi 4" → `src/core/repair.spec.js` and `src/composables/useVariableCommands.spec.js`; batch is two steps → `src/core/variables.spec.js`; `TODO/core-056-*.md`; "var-3 — placed" → seen in the e2e run, fixed in `src/core/timelineLabel.js` with a spec
 **To Add:** repo URL once public, docs site URL once it exists
+
+## [2026-10-11T18:40:00Z] — A subscription isn't an API key, and the app now says so
+
+**Post:** WarpCad's Assistant runs on a bring-your-own Anthropic API key, billed as API usage. A Claude Pro or Max subscription is a different product, and Anthropic's Claude Code legal page says developers building on Claude should use API keys, not route requests through subscription credentials. So the in-app chat can't run on a subscription, and I shouldn't pretend it can.
+
+What a subscription does cover is Claude Code, and Claude Code can drive WarpCad through its MCP server. The key sheet now has a second button, "Use my Claude subscription...", that shows the one `claude mcp add` command and a Copy button. The decision, the options I rejected, and the reasoning are in the project's decision doc.
+
+The chat also gets a cost readout under each turn: tokens, an estimated cost from a dated price table, and a session total. It's an estimate, labelled as one, and it drops the dollar figure when the model has no price in the table.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** BYOK API key, billed as API usage -> `docs/decisions/ai-partner.md` decisions 2, 8 and 10; Anthropic legal page wording -> Claude Code legal-and-compliance page, search result read this session; second button, command, Copy -> `e2e/ai-subscription-route.e2e.js` first test; cost readout, dated table, no dollars for unknown model -> `src/ai/models.spec.js`, `src/ai/transcript.spec.js`
+**To Add:** screenshot `docs/screenshots/assistant-subscription-route.png`, repo URL once public

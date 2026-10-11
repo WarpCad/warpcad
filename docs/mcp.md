@@ -9,6 +9,10 @@ It works on a project **file on your computer**, not on the app while it is runn
 picks up the changes when you come back to it (see [Seeing the changes in the
 app](#seeing-the-changes-in-the-app)).
 
+This is also the route for a **Claude Pro or Max subscription**: Claude Code is covered by it,
+while the in-app Assistant needs an API key billed separately. See [No API key? Use your
+subscription](ai-partner.md#no-api-key-use-your-subscription).
+
 ## Try it: add a base plate from Claude Code
 
 You need a WarpCad checkout with Node.js 22 or newer, and a project saved as a file. In the

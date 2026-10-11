@@ -31,6 +31,27 @@ The dot is a hollow ring when a key is saved but not yet checked this visit, a f
 good check, and a red **✕** after a failed one. The key is still there after you close the tab and
 come back.
 
+## No API key? Use your subscription
+
+A Claude **Pro or Max subscription is not an API key.** The API is billed on its own prepaid
+credit, and Anthropic does not allow another app to borrow a subscription's sign-in, so the
+Assistant in WarpCad can't run on it. What a subscription *does* cover is **Claude Code**, and
+Claude Code can drive WarpCad through its [MCP server](mcp.md).
+
+1. Tap **Assistant** in the top bar. With no key stored, the key sheet opens.
+2. Tap **Use my Claude subscription…**. The sheet shows one command.
+3. Tap **Copy**. The sheet says **Copied**.
+4. Run the command once in a terminal, in the folder where you keep your parts. Change the two
+   paths first: your WarpCad folder, and your project file.
+5. In Claude Code, say *add a 3 mm base plate under the bracket*. Then open the file in WarpCad
+   (**File ▾ → Open…**): the new step is in **History**, marked **via mcp**.
+
+![The "Use your Claude subscription" sheet: an explanation that an API key is billed separately, the claude mcp add command in a box, and Use an API key instead and Copy buttons.](./screenshots/assistant-subscription-route.png)
+
+Tap **Use an API key instead** to go back to the key sheet. The two routes are separate: the
+in-app chat uses a key and is billed as API usage, and Claude Code uses your subscription and
+edits a project file. [Driving WarpCad from Claude Code](mcp.md) has the full walk-through.
+
 ## Where the key lives
 
 - **Only in this browser.** It is stored in this browser's IndexedDB, next to the token the
@@ -65,8 +86,14 @@ status (*Working… step 4*), so a long request stays in view while you look at 
    offers the camera. Tap ✕ on the thumbnail to take it off again.
 5. With one body selected, **Ask about** *name* puts a reference to it in the box.
 
-The row under the transcript shows the tokens the turn has used so far. It does not show a price:
-Anthropic's rates change, and a number that drifts from your real bill is worse than none.
+The row under the transcript shows what the turn has used so far, an estimate of what that
+cost, and the session's running total:
+
+> 3.0k in · 1.1k out · ≈ $0.06 · session $0.31
+
+The dollar figures are **estimates** from a price table dated in the app, not your bill. Anthropic's
+console is the source of truth, and your workspace's spend limit is the real safety net. If the
+model has no price in the table, only the token counts show.
 
 **Example.** Tap **Assistant**, type *a 40 mm cube with a 10 mm hole through the middle*, and tap
 **Send**. A few activity rows appear (the cube, the hole, the cut), and the part shows in the
@@ -233,5 +260,6 @@ That's all of it. The chat opens from the same button; see [asking for a part](#
 - [Design intent](design-intent.md): what the Assistant records about each step, and your
   project's standing rules.
 - [Saving and reopening your work](save-load.md): the key is never in a saved file.
+- [Driving WarpCad from Claude Code](mcp.md): the route that uses a Claude subscription.
 
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

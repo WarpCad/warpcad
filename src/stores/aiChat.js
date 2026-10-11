@@ -46,6 +46,12 @@ export const useAiChatStore = defineStore('aiChat', () => {
   const step = ref(0)
   /** @type {import('vue').Ref<import('../ai/client.js').TokenUsage>} */
   const usage = ref({ input: 0, cacheRead: 0, cacheWrite: 0, output: 0 })
+  /**
+   * `TODO/ai-013`: the running or last turn's estimated cost in US dollars (`null` once any of its
+   * requests had no price) and the session's total. Estimates from `ai/models.js`, never billing.
+   */
+  const turnCost = ref(/** @type {number | null} */ (0))
+  const sessionCost = ref(0)
   /** The document version right after the last turn landed, or `null` when none is takeable. */
   const landedVersion = ref(/** @type {number | null} */ (null))
   /** The attach-image failure, in words, or ''. */
@@ -89,6 +95,24 @@ export const useAiChatStore = defineStore('aiChat', () => {
     items.value = items.value.map((existing, at) => (at === index ? item : existing))
   }
 
+  /** A new turn starts at zero; the session total carries on. */
+  function resetTurnCost() {
+    turnCost.value = 0
+  }
+
+  /**
+   * @param {number | null} dollars One request's estimate, `null` when it could not be priced —
+   *   which makes the turn's figure unknown rather than silently low.
+   */
+  function addCost(dollars) {
+    if (dollars === null) {
+      turnCost.value = null
+      return
+    }
+    if (turnCost.value !== null) turnCost.value += dollars
+    sessionCost.value += dollars
+  }
+
   /** @param {'peek' | 'half' | 'full'} height */
   function setSheet(height) {
     sheet.value = height
@@ -115,6 +139,10 @@ export const useAiChatStore = defineStore('aiChat', () => {
     running,
     step,
     usage,
+    turnCost,
+    sessionCost,
+    resetTurnCost,
+    addCost,
     landedVersion,
     attachError,
     imageSentRevision,

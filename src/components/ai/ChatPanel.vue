@@ -225,7 +225,7 @@ const HEIGHTS = /** @type {const} */ ([
         >
           Ask about {{ selectedBody.name }}
         </button>
-        <TokenReadout :usage="chat.usage" />
+        <TokenReadout :usage="chat.usage" :cost="chat.turnCost" :session="chat.sessionCost" />
       </div>
 
       <Composer />

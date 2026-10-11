@@ -86,7 +86,7 @@ export const useAssistantStore = defineStore('assistant', () => {
   const status = ref('none')
   /** The last Test failure's own fixed wording, or ''. */
   const message = ref('')
-  /** @type {import('vue').Ref<'closed' | 'key' | 'chat'>} */
+  /** @type {import('vue').Ref<'closed' | 'key' | 'chat' | 'subscription'>} */
   const view = ref('closed')
   const loaded = ref(false)
   /** @type {Promise<void> | null} */
@@ -207,6 +207,11 @@ export const useAssistantStore = defineStore('assistant', () => {
     view.value = 'key'
   }
 
+  /** `TODO/ai-013`: the no-key alternative — the Claude Code route, which uses a subscription. */
+  function openSubscriptionRoute() {
+    view.value = 'subscription'
+  }
+
   function close() {
     view.value = 'closed'
   }
@@ -237,6 +242,7 @@ export const useAssistantStore = defineStore('assistant', () => {
     forget,
     open,
     openKeySheet,
+    openSubscriptionRoute,
     close,
     doneWithKeySheet,
   }

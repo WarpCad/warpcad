@@ -66,6 +66,23 @@ describe('useAgent (TODO/ai-006)', () => {
     expect(chat.canUndoTurn).toBe(true)
   })
 
+  it('prices each turn and keeps a session total across turns (TODO/ai-013)', async () => {
+    const chat = useAiChatStore()
+    setAgentDependencies({ client: scripted([{ text: 'One.' }]) })
+    chat.draft = 'first'
+    await useAgent().send()
+    // 10 in + 5 out on Opus 5.5: 10 × $4/M + 5 × $20/M.
+    const perTurn = (10 * 4 + 5 * 20) / 1e6
+    expect(chat.turnCost).toBeCloseTo(perTurn, 9)
+    expect(chat.sessionCost).toBeCloseTo(perTurn, 9)
+
+    setAgentDependencies({ client: scripted([{ text: 'Two.' }]) })
+    chat.draft = 'second'
+    await useAgent().send()
+    expect(chat.turnCost).toBeCloseTo(perTurn, 9)
+    expect(chat.sessionCost).toBeCloseTo(perTurn * 2, 9)
+  })
+
   it('refuses an empty send and a second send while running', async () => {
     let release
     const gate = new Promise((resolve) => (release = resolve))

@@ -34,6 +34,17 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### ai-013 — Subscription route and cost readout (2026-10-11 18:35)
+
+The new sheet and the cost chip were driven on laptop Chromium only. The price table is dated
+2026-09-25 and is an estimate; whether the figure tracks the real bill is the one thing a person
+with a console open can judge.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | After a real turn with a real key, the chip's "≈ $x" is within a few cents of the turn's cost in the Anthropic console (Usage page) | Open | |
+| 2 | At 390 px (iPhone), the route sheet's command wraps and **Copy** puts the command on the clipboard in Safari (the e2e is Chromium-only) | Open | |
+
 ### ai-014 — AI tools for project variables (2026-10-11 15:09)
 
 Driven with the scripted provider on a laptop only. What a scripted run cannot say: whether a real model reaches for `set_variable` on "make this for a Pi 5", and how the activity rows read at phone width.

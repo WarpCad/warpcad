@@ -43,3 +43,37 @@ export function isKnownModel(id) {
 export function modelLabel(id) {
   return MODELS.find((model) => model.id === id)?.label ?? id
 }
+
+/**
+ * `TODO/ai-013`: what a request costs, **an estimate**. Prices are USD per million tokens, read
+ * from the `claude-api` skill's model table on {@link PRICES_AS_OF} (`docs/decisions/ai-partner.md`
+ * decision 9). Cache writes are 1.25× input on the 5-minute TTL. A price that has drifted from
+ * Anthropic's is why the readout says "≈" and the key sheet's model list is the only way a model
+ * gets here; update this table and its date together.
+ *
+ * @type {Readonly<Record<string, Readonly<{ input: number, cacheRead: number, cacheWrite: number, output: number }>>>}
+ */
+const PRICES = Object.freeze({
+  'claude-opus-5-5': Object.freeze({ input: 4, cacheRead: 0.2, cacheWrite: 5, output: 20 }),
+  'claude-sonnet-5-5': Object.freeze({ input: 2, cacheRead: 0.2, cacheWrite: 2.5, output: 10 }),
+})
+
+/** When {@link PRICES} was last read from the published table. */
+export const PRICES_AS_OF = '2026-09-25'
+
+/**
+ * @param {string} modelId
+ * @param {import('./client.js').TokenUsage | undefined} usage
+ * @returns {number | null} Estimated US dollars, or `null` when the model has no price or the
+ *   usage is not a set of finite counts — never `NaN`, so the readout can simply omit it.
+ */
+export function estimateCost(modelId, usage) {
+  const price = Object.hasOwn(PRICES, modelId) ? PRICES[modelId] : undefined
+  if (price === undefined || usage === undefined || usage === null) return null
+  const counts = [usage.input, usage.cacheRead, usage.cacheWrite, usage.output]
+  if (!counts.every((count) => Number.isFinite(count) && count >= 0)) return null
+  return (
+    (usage.input * price.input + usage.cacheRead * price.cacheRead + usage.cacheWrite * price.cacheWrite + usage.output * price.output) /
+    1_000_000
+  )
+}

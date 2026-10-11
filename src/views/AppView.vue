@@ -20,6 +20,7 @@ import DependentRepairDialog from '../components/inspector/DependentRepairDialog
 import AssistantButton from '../components/ai/AssistantButton.vue'
 import ChatPanel from '../components/ai/ChatPanel.vue'
 import KeySheet from '../components/ai/KeySheet.vue'
+import SubscriptionRoute from '../components/ai/SubscriptionRoute.vue'
 import SaveStatus from '../components/display/SaveStatus.vue'
 import FileMenu from '../components/storage/FileMenu.vue'
 import { bootStorage } from '../composables/useStorageBoot.js'
@@ -268,6 +269,8 @@ function onInspectorClaim() {
     <!-- The Assistant's key sheet (TODO/ai-004), opened by the header button when there is no
          key or from the chat's "Key and model…"; teleports to <body> at the modal tier. -->
     <KeySheet />
+    <!-- The no-key alternative (TODO/ai-013): the Claude Code route, which a subscription covers. -->
+    <SubscriptionRoute />
     <!-- The Save to library… sheet and its "Saved <name>" toast (TODO/ui-055). -->
     <SaveToLibrarySheet />
   </div>

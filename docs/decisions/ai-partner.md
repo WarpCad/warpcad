@@ -681,6 +681,51 @@ condition in `docs/decisions/document-sync.md`.
 
 ---
 
+## Decision 10 — Subscription users: **the MCP route is the subscription path; the chat panel stays BYOK** (`ai-013`, proposed 2026-10-11)
+
+**The question.** A Claude Pro/Max subscriber has no API credit. Can the in-app chat
+panel draw on the subscription instead of a pasted API key?
+
+**What the terms say (re-read 2026-10-11; secondary reports and Anthropic's own
+Claude Code "legal and compliance" page, not a quote of the Consumer Terms themselves):**
+
+- Subscription OAuth is intended exclusively for purchasers of Free, Pro, Max, Team and
+  Enterprise plans using Claude Code and native Anthropic apps.
+- Developers building products or services on Claude, including on the Agent SDK, "should
+  use API key authentication".
+- Third-party developers may not offer Claude.ai login or route requests through
+  Free/Pro/Max credentials on their users' behalf, and Anthropic may enforce this
+  without notice. Server-side blocking of such tokens was reported from January 2026.
+- Pro/Max limits assume ordinary individual use of Claude Code.
+
+**Verdict:** the terms have not loosened. A static PWA that held or forwarded a
+subscription OAuth token would be exactly the prohibited case, and it would also break
+Decision 8 (the credential never leaves the credential store).
+
+### Options compared
+
+| Option | Uses the subscription? | Verdict |
+|---|---|---|
+| A. Reuse the subscription OAuth token in the chat panel | Yes | **Rejected** — prohibited by the terms above; account risk to the user. |
+| B. Claude Code + the MCP server (`mcp/server.js`, `ai-009`) | Yes, billed by Claude Code to the subscription | **The subscription path.** Closed-file only in v1 (Decision 6). No new code besides discovery. |
+| C. Claude.ai custom connector (remote MCP) | Yes | Deferred — WarpCad has no backend; needs a user-run tunnel or the `ai-012` bridge. Revisit when `ai-012` exists. |
+| D. Keep BYOK, make it cheaper (smaller default, visible cost) | No | **Kept** for people who have a key; cost chip below. |
+| E. Second provider with a free tier or local model | No | Out of scope for v1; the one-method interface keeps it possible. A separate TODO if wanted. |
+
+### What this decision commits to
+
+1. The chat panel's no-key state offers two separate choices: *Add API key* (existing) and
+   *Use my Claude subscription…*, which shows the `claude mcp add` command (copy button)
+   and links to `docs/mcp.md`. The app states plainly that the key box is billed as API
+   usage and that the subscription route runs in Claude Code, not in the panel.
+2. The per-turn readout gains an **estimated cost** from a dated price table in
+   `src/ai/models.js` (data, labelled "estimate", one place), as Decision 9 planned. The
+   current token-only readout (`TokenReadout.vue`, `ai-006`) is extended, not replaced;
+   missing `usage` renders nothing, never `NaN`.
+3. No subscription token is ever read, stored or sent by WarpCad.
+
+---
+
 ## Items needing the user's call (before `ai-002`)
 
 1. **The LLM client library.** This document picks raw `fetch`. Choosing
@@ -738,6 +783,9 @@ condition in `docs/decisions/document-sync.md`.
   cache minimums and TTL economics, Opus 5.5's thinking, effort and `tool_choice` rules,
   strict tools, eager input streaming, mid-conversation system messages and refusal
   fallbacks.
+- **Anthropic terms, re-read 2026-10-11** (Decision 10): Claude Code "legal and
+  compliance" (`code.claude.com/docs/en/legal-and-compliance`) and secondary reporting on
+  the February 2026 subscription-OAuth clarification.
 - **This repository**:
   - `src/core/document.js` (module notes on supersession, consumption, `data-003`
     undo, `core-030` restore, `core-031` fold cache; `createDocument`'s `foldCache`

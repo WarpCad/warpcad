@@ -285,8 +285,7 @@ function compact(count) {
 }
 
 /**
- * The per-turn token readout. Tokens, not money: this app holds no price table, and a price
- * that drifts from the real one is worse than none.
+ * The per-turn token count. (`formatReadout` adds the dated cost estimate, `TODO/ai-013`.)
  *
  * @param {import('./client.js').TokenUsage} usage
  * @returns {string} `''` when nothing was used.
@@ -295,4 +294,31 @@ export function formatUsage(usage) {
   const input = usage.input + usage.cacheRead + usage.cacheWrite
   if (input === 0 && usage.output === 0) return ''
   return `${compact(input)} in · ${compact(usage.output)} out`
+}
+
+/**
+ * `TODO/ai-013`: US dollars, to the cent. A real but tiny amount reads "< $0.01", never "$0.00".
+ *
+ * @param {number | null} dollars
+ * @returns {string} `''` for `null`.
+ */
+export function formatCost(dollars) {
+  if (dollars === null || !Number.isFinite(dollars)) return ''
+  if (dollars > 0 && dollars < 0.005) return '< $0.01'
+  return `$${dollars.toFixed(2)}`
+}
+
+/**
+ * The chat's one-line readout: tokens, then the turn's estimated cost and the session's. Without
+ * a price (an unknown or scripted model) the money is left out and the tokens stay.
+ *
+ * @param {import('./client.js').TokenUsage} usage
+ * @param {number | null} turnCost
+ * @param {number} sessionCost
+ * @returns {string} `''` when the turn used nothing.
+ */
+export function formatReadout(usage, turnCost, sessionCost) {
+  const tokens = formatUsage(usage)
+  if (tokens === '' || turnCost === null) return tokens
+  return `${tokens} · ≈ ${formatCost(turnCost)} · session ${formatCost(sessionCost)}`
 }

@@ -1,22 +1,27 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <script setup>
 /**
- * The per-turn token readout (`TODO/ai-006`): what the running or last turn has used so far.
- * Tokens, not a price — the app holds no price table, and a figure that drifts from the real
- * bill is worse than none. Renders nothing before the first request returns.
+ * The per-turn readout (`TODO/ai-006`, cost added by `TODO/ai-013`): what the running or last
+ * turn has used so far, its estimated cost and the session's. The cost is "≈" and comes from the
+ * dated price table in `ai/models.js`; for a model with no price only the tokens show. Renders
+ * nothing before the first request returns.
  */
 import { computed } from 'vue'
 
-import { formatUsage } from '../../ai/transcript.js'
+import { formatReadout } from '../../ai/transcript.js'
 
 const props = defineProps({
   usage: { type: /** @type {import('vue').PropType<import('../../ai/client.js').TokenUsage>} */ (Object), required: true },
+  /** The turn's estimated dollars, or `null` when it could not be priced. */
+  cost: { type: /** @type {import('vue').PropType<number | null>} */ (Number), default: null },
+  /** The session's estimated dollars. */
+  session: { type: Number, default: 0 },
 })
-const text = computed(() => formatUsage(props.usage))
+const text = computed(() => formatReadout(props.usage, props.cost, props.session))
 </script>
 
 <template>
-  <span v-if="text" class="usage" data-testid="ai-usage" title="Tokens used by this turn">{{ text }}</span>
+  <span v-if="text" class="usage" data-testid="ai-usage" title="Tokens used by this turn, and an estimate of what they cost. The estimate is not your bill.">{{ text }}</span>
 </template>
 
 <style scoped>

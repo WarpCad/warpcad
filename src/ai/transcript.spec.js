@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { describe, expect, it } from 'vitest'
 
-import { applyEvent, describeCall, formatUsage, nextStepAfter } from './transcript.js'
+import { applyEvent, describeCall, formatCost, formatReadout, formatUsage, nextStepAfter } from './transcript.js'
 
 /**
  * `TODO/ai-006` — the chat transcript is a pure reducer over the agent's events (`ai-005`), so
@@ -170,6 +170,29 @@ describe('formatUsage', () => {
 
   it('is empty for a turn that used nothing', () => {
     expect(formatUsage({ input: 0, cacheRead: 0, cacheWrite: 0, output: 0 })).toBe('')
+  })
+})
+
+describe('cost readout (TODO/ai-013)', () => {
+  const usage = { input: 3000, cacheRead: 0, cacheWrite: 0, output: 1100 }
+
+  it('formats money to cents and never shows a zero as free', () => {
+    expect(formatCost(0.0612)).toBe('$0.06')
+    expect(formatCost(0.3)).toBe('$0.30')
+    expect(formatCost(0.002)).toBe('< $0.01')
+    expect(formatCost(null)).toBe('')
+  })
+
+  it('shows tokens, the turn estimate and the session total on one line', () => {
+    expect(formatReadout(usage, 0.0612, 0.31)).toBe('3.0k in · 1.1k out · ≈ $0.06 · session $0.31')
+  })
+
+  it('drops the money when the model has no price, and keeps the tokens', () => {
+    expect(formatReadout(usage, null, 0.31)).toBe('3.0k in · 1.1k out')
+  })
+
+  it('is empty when nothing was used, whatever the session total is', () => {
+    expect(formatReadout({ input: 0, cacheRead: 0, cacheWrite: 0, output: 0 }, 0, 0.31)).toBe('')
   })
 })
 

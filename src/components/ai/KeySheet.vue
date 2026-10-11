@@ -167,6 +167,9 @@ function done() {
       <p class="key__note" data-testid="ai-key-note">
         Stored only in this browser. It is sent only to <code>api.anthropic.com</code>.
       </p>
+      <p class="key__note" data-testid="ai-key-billing">
+        An API key is billed as API usage, separately from a Claude Pro or Max subscription.
+      </p>
       <form class="key__form" novalidate @submit.prevent="save()">
         <label class="key__field">
           API key
@@ -188,9 +191,19 @@ function done() {
             <option v-for="model in MODELS" :key="model.id" :value="model.id">{{ model.label }}</option>
           </select>
         </label>
-        <div class="key__actions">
+        <div class="key__actions key__actions--wrap">
           <button type="button" class="key__button" data-testid="ai-key-cancel" @click="cancel()">
             Cancel
+          </button>
+          <!-- TODO/ai-013: a subscription isn't an API key; this is the route that does use it. -->
+          <button
+            v-if="!assistant.hasKey"
+            type="button"
+            class="key__button"
+            data-testid="ai-key-subscription"
+            @click="assistant.openSubscriptionRoute()"
+          >
+            Use my Claude subscription…
           </button>
           <button
             type="submit"

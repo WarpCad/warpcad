@@ -6,8 +6,19 @@ priority: medium
 model: opus
 milestone: M9
 depends: [ai-009]
-status: open
+status: done
 ---
+
+> **What shipped (2026-10-11).** Decision 10 in `docs/decisions/ai-partner.md` was accepted before
+> building. The **no-key state is the key sheet**, not the chat panel, so **Use my Claude
+> subscription…** sits beside **Save and test** there, and opens `SubscriptionRoute.vue` (command,
+> **Copy** with a local "Copied" status, **Use an API key instead**). The sheet names `docs/mcp.md` as
+> text rather than a link: the app has no docs-site URL to point at. The cost chip extends the
+> existing `TokenReadout` from `ai-006` with a dated price table in `ai/models.js`
+> (`estimateCost`, `PRICES_AS_OF`), a per-turn and session total in `stores/aiChat.js`, and omits
+> money for an unknown model or a scripted transcript. Docs went into `docs/ai-partner.md` (there
+> is no `docs/ai.md`). `client.js` and `agent.js` already surfaced `usage`, so they didn't change.
+> Part 4 (a second provider) stays a separate TODO if wanted.
 
 ## Goal
 

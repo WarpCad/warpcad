@@ -29,6 +29,7 @@
 
 import { createAgentContext, runTurn, undoAiTurn } from '../ai/agent.js'
 import { downscaleToImagePart, fitWithin } from '../ai/image.js'
+import { estimateCost } from '../ai/models.js'
 import { prepareReference } from '../ai/reference.js'
 import { addAttachment, createReferences } from '../ai/tools/image.js'
 import { viewportCapture } from '../render/offscreenCapture.js'
@@ -40,6 +41,7 @@ import { useDocumentStore } from '../stores/document.js'
 import { useLibraryStore } from '../stores/library.js'
 import { useProjectSettingsStore } from '../stores/projectSettings.js'
 import { useSelectionStore } from '../stores/selection.js'
+import { useSettingsStore } from '../stores/settings.js'
 
 /**
  * @typedef {object} AgentDependencies
@@ -109,6 +111,7 @@ function agentContext() {
   const documentStore = useDocumentStore()
   const selection = useSelectionStore()
   const project = useProjectSettingsStore()
+  const settings = useSettingsStore()
   /** @param {string} id */
   const nameOf = (id) => documentStore.bodies.find((body) => body.id === id)?.name
   context = createAgentContext({
@@ -125,6 +128,8 @@ function agentContext() {
     onEvent: (event) => {
       if (event.type === 'tool_call') chat.step += 1
       if (event.type === 'usage') {
+        // `TODO/ai-013`: a scripted transcript has no model, so no price.
+        chat.addCost(assistant.scripted ? null : estimateCost(settings.aiModel, event.usage))
         const total = chat.usage
         chat.usage = {
           input: total.input + event.usage.input,
@@ -182,6 +187,7 @@ export function useAgent() {
     chat.running = true
     chat.step = 0
     chat.usage = { input: 0, cacheRead: 0, cacheWrite: 0, output: 0 }
+    chat.resetTurnCost()
     controller = new AbortController()
     try {
       if (documentStore.raw.assets().size > 0) await prepareProjectPhotos(references, documentStore.raw)
