@@ -29,7 +29,7 @@ const SPHERE = { create: { op: 'primitive.sphere', positionMm: [10, 0, 0], param
 
 describe('apply_records — several steps, one atomic append', () => {
   it('builds a whole cube-sphere-subtract in one call, naming earlier steps by @n', () => {
-    const document = createDocument()
+    const document = createDocument({ replica: 'abcdef' })
     const result = /** @type {any} */ (
       tools.run(makeContext({ document }), 'apply_records', {
         steps: [CUBE, SPHERE, { operate: { op: 'boolean.subtract', operands: [{ id: '@1' }, { id: '@2' }] } }],
@@ -37,16 +37,16 @@ describe('apply_records — several steps, one atomic append', () => {
     )
     expect(result.error).toBeUndefined()
     expect(result.applied).toEqual([
-      { batchStep: 1, tool: 'create', bodyId: 'cuboid-1', recordIds: ['cuboid-1'] },
-      { batchStep: 2, tool: 'create', bodyId: 'sphere-2', recordIds: ['sphere-2'] },
-      { batchStep: 3, tool: 'operate', bodyId: 'bool-3', recordIds: ['bool-3'] },
+      { batchStep: 1, tool: 'create', bodyId: 'cuboid-abcdef-1', recordIds: ['cuboid-abcdef-1'] },
+      { batchStep: 2, tool: 'create', bodyId: 'sphere-abcdef-2', recordIds: ['sphere-abcdef-2'] },
+      { batchStep: 3, tool: 'operate', bodyId: 'bool-abcdef-3', recordIds: ['bool-abcdef-3'] },
     ])
     expect(result.scene.count).toBe(1)
     expect(document.entries.every((entry) => entry.origin === 'ai')).toBe(true)
   })
 
   it('leaves the document unchanged when the third record is invalid — all or none', () => {
-    const document = createDocument()
+    const document = createDocument({ replica: 'abcdef' })
     document.appendAll(recordsForDrop('primitive.cone', { x: -50, y: 0 }, document), { origin: 'local' })
     const before = state(document)
     const result = /** @type {any} */ (
@@ -60,7 +60,7 @@ describe('apply_records — several steps, one atomic append', () => {
   })
 
   it('leaves the document unchanged when a later step names a body that does not exist', () => {
-    const document = createDocument()
+    const document = createDocument({ replica: 'abcdef' })
     const before = state(document)
     const result = /** @type {any} */ (
       tools.run(makeContext({ document }), 'apply_records', {
@@ -74,7 +74,7 @@ describe('apply_records — several steps, one atomic append', () => {
 
   it('refuses an @n that points at itself, a later step, or nothing', () => {
     for (const ref of ['@2', '@3', '@0', '@x']) {
-      const document = createDocument()
+      const document = createDocument({ replica: 'abcdef' })
       const result = /** @type {any} */ (
         tools.run(makeContext({ document }), 'apply_records', {
           steps: [CUBE, { operate: { op: 'transform.translate', operands: [{ id: ref }], params: { deltaMm: [0, 0, 1] } } }],
@@ -86,7 +86,7 @@ describe('apply_records — several steps, one atomic append', () => {
   })
 
   it('resolves @n to a placed composite’s body, so the next step builds on its drop translate', () => {
-    const document = createDocument()
+    const document = createDocument({ replica: 'abcdef' })
     const result = /** @type {any} */ (
       tools.run(makeContext({ document }), 'apply_records', {
         steps: [
@@ -103,14 +103,14 @@ describe('apply_records — several steps, one atomic append', () => {
   })
 
   it('refuses an empty batch', () => {
-    const result = /** @type {any} */ (tools.run(makeContext({ document: createDocument() }), 'apply_records', { steps: [] }))
+    const result = /** @type {any} */ (tools.run(makeContext({ document: createDocument({ replica: 'abcdef' }) }), 'apply_records', { steps: [] }))
     expect(result.error).toBeDefined()
   })
 })
 
 describe('the caps, enforced in the registry rather than the prompt', () => {
   it('refuses more records in one call than the per-call cap, before building anything, and stops the turn', () => {
-    const document = createDocument()
+    const document = createDocument({ replica: 'abcdef' })
     const turn = createTurn()
     const steps = Array.from({ length: LIMITS.recordsPerCall + 1 }, (_, index) => ({
       create: { op: 'primitive.cuboid', positionMm: [index * 50, 0, 0] },
@@ -122,7 +122,7 @@ describe('the caps, enforced in the registry rather than the prompt', () => {
   })
 
   it('counts a composite’s two records against the per-call cap, not one', () => {
-    const document = createDocument()
+    const document = createDocument({ replica: 'abcdef' })
     const steps = Array.from({ length: 26 }, (_, index) => ({ create: { op: 'hardware.nut', positionMm: [index * 30, 0, 0] } }))
     const result = /** @type {any} */ (tools.run(makeContext({ document }), 'apply_records', { steps }))
     expect(result).toMatchObject({ limit: 'recordsPerCall', stop: true })
@@ -130,7 +130,7 @@ describe('the caps, enforced in the registry rather than the prompt', () => {
   })
 
   it('refuses the call that would cross the per-turn cap, keeping what earlier calls landed', () => {
-    const document = createDocument()
+    const document = createDocument({ replica: 'abcdef' })
     const turn = createTurn({ limits: { ...LIMITS, recordsPerTurn: 3 } })
     const ctx = makeContext({ document, turn })
     expect(/** @type {any} */ (tools.run(ctx, 'apply_records', { steps: [CUBE, SPHERE] })).error).toBeUndefined()
@@ -145,7 +145,7 @@ describe('the caps, enforced in the registry rather than the prompt', () => {
 
   it('does not charge a rejected batch against the turn', () => {
     const turn = createTurn()
-    tools.run(makeContext({ document: createDocument(), turn }), 'apply_records', {
+    tools.run(makeContext({ document: createDocument({ replica: 'abcdef' }), turn }), 'apply_records', {
       steps: [CUBE, { operate: { op: 'boolean.subtract', operands: [{ id: '@1' }, { id: 'nope-1' }] } }],
     })
     expect(turn.stats.records).toBe(0)
@@ -154,18 +154,18 @@ describe('the caps, enforced in the registry rather than the prompt', () => {
 
 describe('origin scoping — one AI turn is never on the local undo stack', () => {
   it('a local undo removes the human’s step and leaves the AI’s record in place', () => {
-    const document = createDocument()
+    const document = createDocument({ replica: 'abcdef' })
     document.appendAll(recordsForDrop('primitive.cuboid', { x: 0, y: 0 }, document), { origin: 'local' })
     tools.run(makeContext({ document }), 'apply_records', { steps: [{ create: { op: 'primitive.sphere', positionMm: [60, 0, 0] } }] })
-    expect(document.pendingUndo()?.records.map((record) => record.id)).toEqual(['cuboid-1'])
+    expect(document.pendingUndo()?.records.map((record) => record.id)).toEqual(['cuboid-abcdef-1'])
     document.undo()
-    expect(document.bodies().map((body) => body.id)).toEqual(['sphere-2'])
-    expect(document.originOf('sphere-2')).toBe('ai')
+    expect(document.bodies().map((body) => body.id)).toEqual(['sphere-abcdef-2'])
+    expect(document.originOf('sphere-abcdef-2')).toBe('ai')
     expect(document.canUndo()).toBe(false)
   })
 
   it('refuses to run any tool under the local origin', () => {
-    const document = createDocument()
+    const document = createDocument({ replica: 'abcdef' })
     expect(() => tools.run(makeContext({ document, origin: 'local' }), 'apply_records', { steps: [CUBE] })).toThrow(/local/)
     expect(document.entries).toHaveLength(0)
   })

@@ -31,7 +31,7 @@ function place(document, op, pointMm, overrides = {}) {
  * @returns {{ document: import('../../core/document.js').WarpDocument, ids: string[] }}
  */
 function cubes(count) {
-  const document = createDocument()
+  const document = createDocument({ replica: 'abcdef' })
   const ids = Array.from({ length: count }, (_, index) => place(document, 'primitive.cuboid', { x: index * 15, y: 0 }, { size: [20, 20, 20] }))
   return { document, ids }
 }
@@ -107,8 +107,8 @@ describe('operand ids — only ids the document issued, for bodies that are on s
 
   it('refuses an unknown id', () => {
     const { document, ids } = cubes(1)
-    const result = /** @type {any} */ (tools.run(makeContext({ document }), 'operate', { op: 'boolean.subtract', operands: [{ id: ids[0] }, { id: 'sphere-42' }] }))
-    expect(result.reason).toMatch(/sphere-42/)
+    const result = /** @type {any} */ (tools.run(makeContext({ document }), 'operate', { op: 'boolean.subtract', operands: [{ id: ids[0] }, { id: 'sphere-abcdef-42' }] }))
+    expect(result.reason).toMatch(/sphere-abcdef-42/)
     expect(result.reason).toMatch(/no body/)
   })
 
@@ -147,7 +147,7 @@ describe('operand ids — only ids the document issued, for bodies that are on s
   })
 
   it('subtracts just a bolt’s tap when the operand names it, as the toolbar’s drilled-in selection does', () => {
-    const document = createDocument()
+    const document = createDocument({ replica: 'abcdef' })
     const plate = place(document, 'primitive.cuboid', { x: 0, y: 0 }, { size: [40, 40, 6] })
     const bolt = place(document, 'hardware.bolt', { x: 0, y: 0 })
     // A placed composite's current record is its drop translate, not the recipe record.
@@ -171,14 +171,14 @@ describe('the records operate writes are the ones the UI writes', () => {
     const { document, ids } = cubes(2)
     const result = /** @type {any} */ (tools.run(makeContext({ document }), 'operate', { op: 'boolean.subtract', operands: ids.map((id) => ({ id })) }))
     expect(document.entries.at(-1)?.record).toEqual({
-      id: 'bool-3',
+      id: 'bool-abcdef-3',
       op: 'boolean.subtract',
       name: 'Subtract 1',
       target: ids[0],
       operands: [ids[1]],
       consumes: ids,
     })
-    expect(result.applied[0].bodyId).toBe('bool-3')
+    expect(result.applied[0].bodyId).toBe('bool-abcdef-3')
     expect(result.scene.count).toBe(1)
   })
 
@@ -209,7 +209,7 @@ describe('the records operate writes are the ones the UI writes', () => {
     const { document, ids } = cubes(1)
     tools.run(makeContext({ document }), 'operate', { op: 'modify.filletRim', operands: [{ id: ids[0] }], params: { radius: 2, orientation: 'z+' } })
     expect(document.entries.at(-1)?.record).toEqual({
-      id: 'fillet-2',
+      id: 'fillet-abcdef-2',
       op: 'modify.filletRim',
       target: ids[0],
       supersedes: ids[0],
@@ -236,7 +236,7 @@ describe('the records operate writes are the ones the UI writes', () => {
       tools.run(makeContext({ document }), 'operate', { op: 'group.snap', operands: ids.map((id) => ({ id })), params: { axes: 'z', orientation: 'outside+' } })
     )
     expect(document.entries.at(-1)?.record).toEqual({
-      id: 'snap-3',
+      id: 'snap-abcdef-3',
       op: 'group.snap',
       target: ids[0],
       operands: [ids[1]],
@@ -250,7 +250,7 @@ describe('the records operate writes are the ones the UI writes', () => {
     const { document, ids } = cubes(1)
     tools.run(makeContext({ document }), 'operate', { op: 'transform.mirror', operands: [{ id: ids[0] }], params: { axis: 'x', planeMm: 30 } })
     expect(document.entries.at(-1)?.record).toEqual({
-      id: 'mirror-2',
+      id: 'mirror-abcdef-2',
       op: 'transform.mirror',
       name: 'Mirror 1',
       target: ids[0],
@@ -278,11 +278,11 @@ describe('the records operate writes are the ones the UI writes', () => {
 
   it('works against a fake registry: a real subtract of two placed blocks', () => {
     const fakeTools = createToolRegistry({ registry: fakeRegistry })
-    const document = createDocument({ registry: fakeRegistry })
+    const document = createDocument({ registry: fakeRegistry, replica: 'abcdef' })
     const ctx = makeContext({ document })
     fakeTools.run(ctx, 'create', { op: 'fake.block', positionMm: [0, 0, 0], params: { sizeMm: 20 } })
     fakeTools.run(ctx, 'create', { op: 'fake.block', positionMm: [10, 0, 0], params: { sizeMm: 20 } })
-    const result = /** @type {any} */ (fakeTools.run(ctx, 'operate', { op: 'boolean.subtract', operands: [{ id: 'block-1' }, { id: 'block-2' }] }))
+    const result = /** @type {any} */ (fakeTools.run(ctx, 'operate', { op: 'boolean.subtract', operands: [{ id: 'block-abcdef-1' }, { id: 'block-abcdef-2' }] }))
     expect(result.error).toBeUndefined()
     expect(volumeOf(document.bodies()[0].geometry)).toBeCloseTo(20 * 20 * 20 / 2, 6)
   })
@@ -296,9 +296,9 @@ describe('the records operate writes are the ones the UI writes', () => {
  * @returns {import('../../core/document.js').WarpDocument}
  */
 function createDocumentLike(document) {
-  const twin = createDocument()
+  // Same replica id, and `loadEntries` moves the clock past every counter in the log, so the
+  // twin mints exactly the ids the live document will (`TODO/data-008`).
+  const twin = createDocument({ replica: document.replicaId() })
   twin.loadEntries(document.entries.map((entry) => ({ record: entry.record, origin: entry.origin })))
-  // Advance the twin's counter to where the live one is, so the ids match.
-  for (let index = 0; index < document.entries.length; index += 1) twin.nextId('sync')
   return twin
 }

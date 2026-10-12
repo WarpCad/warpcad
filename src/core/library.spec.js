@@ -247,7 +247,7 @@ describe('KIT_LIBRARY / RASPBERRYPI_LIBRARY — the rest of the catalogue (TODO/
   })
 
   it('commits the chosen model rather than the row default, and lands it at the drop point', () => {
-    const document = createDocument()
+    const document = createDocument({ replica: 'abcdef' })
     const [created, moved] = recordsForDrop(
       'raspberrypi.bplus',
       { x: -40, y: 25 },
@@ -301,7 +301,7 @@ describe('KIT_LIBRARY / RASPBERRYPI_LIBRARY — the rest of the catalogue (TODO/
     // (a HAT's GPIO header hangs 8.72 mm under its board), so "rests on the grid"
     // is a real measurement here and not a restatement of the recipe's origin.
     for (const row of [...KIT_LIBRARY, ...RASPBERRYPI_LIBRARY]) {
-      const document = createDocument()
+      const document = createDocument({ replica: 'abcdef' })
       const records = recordsForDrop(row.op, { x: 33.5, y: -77.25 }, document)
       expect(records, row.op).toHaveLength(2)
       for (const record of records) document.append(record, { origin: 'local' })
@@ -329,7 +329,7 @@ describe('KIT_LIBRARY / RASPBERRYPI_LIBRARY — the rest of the catalogue (TODO/
       'raspberrypi.hat',
       'raspberrypi.spacer',
     ]) {
-      const document = createDocument()
+      const document = createDocument({ replica: 'abcdef' })
       document.append(recordForDrop('primitive.cuboid', { x: 0, y: 0 }, document), {
         origin: 'local',
       })
@@ -350,7 +350,7 @@ describe('KIT_LIBRARY / RASPBERRYPI_LIBRARY — the rest of the catalogue (TODO/
 
 describe('recordsForDrop — placing a composite, which has no position param (TODO/ui-030)', () => {
   it('commits a primitive as exactly one record, position folded into its own params', () => {
-    const document = createDocument()
+    const document = createDocument({ replica: 'abcdef' })
     const records = recordsForDrop('primitive.cuboid', { x: 12, y: -8 }, document)
     expect(records).toHaveLength(1)
     expect(records[0].op).toBe('primitive.cuboid')
@@ -358,7 +358,7 @@ describe('recordsForDrop — placing a composite, which has no position param (T
   })
 
   it('commits a composite as its own record plus a trailing translate that supersedes it', () => {
-    const document = createDocument()
+    const document = createDocument({ replica: 'abcdef' })
     const records = recordsForDrop('hardware.bolt', { x: 30, y: -45 }, document)
     expect(records).toHaveLength(2)
     const [created, moved] = records
@@ -380,7 +380,7 @@ describe('recordsForDrop — placing a composite, which has no position param (T
     // The specific regression Option 2 of TODO/ui-030 exists to prevent: a part
     // committed at the recipe's internal origin rather than where it was dropped.
     for (const row of HARDWARE_LIBRARY) {
-      const document = createDocument()
+      const document = createDocument({ replica: 'abcdef' })
       const records = recordsForDrop(row.op, { x: -62.5, y: 18.25 }, document)
       let scene = null
       for (const record of records) ({ scene } = document.append(record, { origin: 'local' }))
@@ -403,7 +403,7 @@ describe('recordsForDrop — placing a composite, which has no position param (T
     // `document.append` call, which is what this task makes possible for the
     // first time. Both records are checked, because the composite's own group is
     // built by the first one and the second is a new way to reach the same fold.
-    const document = createDocument()
+    const document = createDocument({ replica: 'abcdef' })
     document.append(recordForDrop('primitive.cuboid', { x: 0, y: 0 }, document), { origin: 'local' })
     const [created, moved] = recordsForDrop('hardware.bolt', { x: 60, y: 0 }, document)
 
@@ -435,7 +435,7 @@ describe('recordsForDrop — placing a composite, which has no position param (T
     // reach an op. The symptom to rule out is the same one: the bolt's group
     // quietly containing "Cube 1", so cutting with it erases the cube and returns
     // an empty solid.
-    const document = createDocument()
+    const document = createDocument({ replica: 'abcdef' })
     document.append(recordForDrop('primitive.cuboid', { x: 0, y: 0 }, document), { origin: 'local' })
     for (const record of recordsForDrop('hardware.bolt', { x: 0, y: 0 }, document)) {
       document.append(record, { origin: 'local' })
@@ -485,7 +485,7 @@ describe('recordsForDrop — placing a composite, which has no position param (T
     // bolt's `tap` on the body the user actually dropped — and the decision it
     // made is that a transform preserves what it is handed. A bolt you moved is
     // still a bolt.
-    const document = createDocument()
+    const document = createDocument({ replica: 'abcdef' })
     for (const record of recordsForDrop('hardware.bolt', { x: 0, y: 0 }, document)) {
       document.append(record, { origin: 'local' })
     }
@@ -497,7 +497,7 @@ describe('recordsForDrop — placing a composite, which has no position param (T
   })
 
   it('numbers hardware instances per type, like the primitive rows', () => {
-    const document = createDocument()
+    const document = createDocument({ replica: 'abcdef' })
     const names = []
     for (const op of ['hardware.bolt', 'hardware.nut', 'hardware.bolt']) {
       const records = recordsForDrop(op, { x: 0, y: 0 }, document)
@@ -508,7 +508,7 @@ describe('recordsForDrop — placing a composite, which has no position param (T
   })
 
   it('refuses the single-record shortcut for a composite rather than misplacing it', () => {
-    const document = createDocument()
+    const document = createDocument({ replica: 'abcdef' })
     expect(() => recordForDrop('hardware.bolt', { x: 5, y: 5 }, document)).toThrow(
       /recordsForDrop/
     )
@@ -535,7 +535,7 @@ describe('recordsForDrop — placing a composite, which has no position param (T
 
 describe('recordForDrop — one generic drop, parameterised by which op the row names', () => {
   it('builds a record for any of the eight rows without a per-primitive branch', () => {
-    const document = createDocument()
+    const document = createDocument({ replica: 'abcdef' })
     for (const row of PRIMITIVE_LIBRARY) {
       const record = recordForDrop(row.op, { x: 0, y: 0 }, document)
       expect(record.op).toBe(row.op)
@@ -547,7 +547,7 @@ describe('recordForDrop — one generic drop, parameterised by which op the row 
   })
 
   it('places the drop point in X/Y — not a fixed-origin spawn', () => {
-    const document = createDocument()
+    const document = createDocument({ replica: 'abcdef' })
     const record = recordForDrop('primitive.cuboid', { x: 42.5, y: -17.25 }, document)
     const { scene } = document.append(record, { origin: 'local' })
     const bounds = measurements.measureBoundingBox(
@@ -560,7 +560,7 @@ describe('recordForDrop — one generic drop, parameterised by which op the row 
   it('rests every primitive on the working plane rather than half-burying it', () => {
     // The drop point is on the Z=0 grid; a solid centred there would sit half
     // underground, which reads as a bug the first time anyone drops a cube.
-    const document = createDocument()
+    const document = createDocument({ replica: 'abcdef' })
     for (const row of PRIMITIVE_LIBRARY) {
       const record = recordForDrop(row.op, { x: 10, y: 20 }, document)
       const { scene } = document.append(record, { origin: 'local' })
@@ -573,7 +573,7 @@ describe('recordForDrop — one generic drop, parameterised by which op the row 
   })
 
   it('numbers each type independently, so names never collide', () => {
-    const document = createDocument()
+    const document = createDocument({ replica: 'abcdef' })
     const names = []
     for (const op of ['primitive.cuboid', 'primitive.sphere', 'primitive.cuboid']) {
       const record = recordForDrop(op, { x: 0, y: 0 }, document)
@@ -584,7 +584,7 @@ describe('recordForDrop — one generic drop, parameterised by which op the row 
   })
 
   it('rejects an op that is not a library row', () => {
-    const document = createDocument()
+    const document = createDocument({ replica: 'abcdef' })
     expect(() => recordForDrop('boolean.union', { x: 0, y: 0 }, document)).toThrow(/boolean\.union/)
     expect(() => recordForDrop('primitive.dodecahedron', { x: 0, y: 0 }, document)).toThrow()
   })
@@ -856,10 +856,10 @@ describe('user parts in the Library (TODO/core-037)', () => {
 
   it('places through the one composite path: the part record plus a trailing translate', () => {
     setLibraryParts([bracket()])
-    const document = createDocument()
+    const document = createDocument({ replica: 'abcdef' })
     const records = libraryModule.recordsForDrop('user.bracket', { x: 50, y: -20 }, document)
     expect(records.map((record) => record.op)).toEqual(['user.bracket', 'transform.translate'])
-    expect(records[0]).toMatchObject({ id: 'bracket-1', name: 'Bracket 1', params: { length: 10 } })
+    expect(records[0]).toMatchObject({ id: 'bracket-abcdef-1', name: 'Bracket 1', params: { length: 10 } })
     expect(records[0].params).not.toHaveProperty('center')
     document.appendAll(records, { origin: 'local' })
     const [min, max] = boundsOf(document.bodies()[0].geometry)
@@ -886,7 +886,7 @@ describe('user parts in the Library (TODO/core-037)', () => {
   })
 
   it('exports definePartFromSelection, which captures a body as a part definition', () => {
-    const document = createDocument()
+    const document = createDocument({ replica: 'abcdef' })
     document.append({ id: 'cube-1', op: 'primitive.cuboid', name: 'Cube 1', params: { size: [3, 3, 3] } }, { origin: 'local' })
     const definition = libraryModule.definePartFromSelection(document, 'cube-1', { name: 'Little cube' })
     expect(definition).toMatchObject({ op: 'user.little-cube', name: 'Little cube', version: 1, result: 'r1' })

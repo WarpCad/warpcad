@@ -191,7 +191,7 @@ async function buildGroup(page, input, info) {
   // which is the only multi-select a touch screen has.
   const list = page.getByTestId('object-list')
   if (!(await list.isVisible().catch(() => false))) await input.press(page.getByTestId('inspector-objects-header'))
-  await input.press(page.getByTestId('objects-check-cuboid-1'))
+  await input.press(page.locator('[data-testid^="objects-check-cuboid-"]'))
   await expect(page.getByTestId('viewport')).toHaveAttribute('data-selected-count', '2')
   await input.press(page.getByTestId('operation-group'))
   await expect(page.getByTestId('viewport')).toHaveAttribute('data-body-count', '1')
@@ -223,7 +223,7 @@ test('Save to library is gated on exactly one selected body, and says why when i
 
   // 2 selected: disabled, and the visible reason names Combine into group.
   if (!(await page.getByTestId('object-list').isVisible().catch(() => false))) await input.press(page.getByTestId('inspector-objects-header'))
-  await input.press(page.getByTestId('objects-check-cuboid-1'))
+  await input.press(page.locator('[data-testid^="objects-check-cuboid-"]'))
   await expect(page.getByTestId('viewport')).toHaveAttribute('data-selected-count', '2')
   await expect(toolbarSave).toBeDisabled()
   await expect(page.getByTestId('library-save')).toBeDisabled()
@@ -249,7 +249,7 @@ test('Standoff: build a group, Save to library, reload, File > New, drag it in f
   await name.fill('Standoff')
   await expect(page.getByTestId('save-library-submit')).toBeEnabled()
   // Expose the cylinder's height as an adjustable size.
-  await input.press(page.getByTestId('save-library-param-cylinder-2:height'))
+  await input.press(page.locator('[data-testid^="save-library-param-cylinder-"][data-testid$=":height"]'))
   await input.press(page.getByTestId('save-library-submit'))
 
   await expect(page.getByTestId('library-toast')).toHaveText('Saved Standoff')
@@ -305,7 +305,7 @@ test('a placed part shows its exposed size as a field, and editing it resizes th
   const before = await boundsText(page)
   await input.press(page.getByTestId('op-library-save'))
   await page.getByTestId('save-library-name').fill('Standoff')
-  await input.press(page.getByTestId('save-library-param-cylinder-2:height'))
+  await input.press(page.locator('[data-testid^="save-library-param-cylinder-"][data-testid$=":height"]'))
   await input.press(page.getByTestId('save-library-submit'))
   await expect(page.getByTestId('library-toast')).toHaveText('Saved Standoff')
 
@@ -317,7 +317,7 @@ test('a placed part shows its exposed size as a field, and editing it resizes th
   await closeLibrary(page, input.press)
   await expect(page.getByTestId('inspector-name')).toHaveText('Standoff 1')
 
-  const field = page.getByTestId('inspector-param-cylinder-1-height')
+  const field = page.locator('[data-testid^="inspector-param-cylinder-"][data-testid$="-height"]')
   await field.scrollIntoViewIfNeeded()
   await expect(field).toHaveValue('50')
   await field.fill('30')

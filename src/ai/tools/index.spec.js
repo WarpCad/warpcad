@@ -13,7 +13,7 @@ describe('a whole "cube, sphere, subtract" session through the registry, in plai
   for (const origin of /** @type {const} */ (['ai', 'mcp'])) {
     it(`builds the part and leaves a document the UI would have written (origin ${origin})`, () => {
       const tools = createToolRegistry()
-      const document = createDocument()
+      const document = createDocument({ replica: 'abcdef' })
       const ctx = makeContext({ document, origin, ...(origin === 'ai' ? { selection: fakeSelection() } : {}) })
 
       // 1. Look first: an empty scene.
@@ -56,7 +56,7 @@ describe('a whole "cube, sphere, subtract" session through the registry, in plai
 
       // The log is exactly what a human's two drags and a Subtract click would have
       // appended — only the origin differs.
-      const human = createDocument()
+      const human = createDocument({ replica: 'abcdef' })
       human.appendAll(recordsForDrop('primitive.cuboid', { x: 0, y: 0 }, human, { size: [20, 20, 20] }), { origin: 'local' })
       human.appendAll(recordsForDrop('primitive.sphere', { x: 10, y: 0 }, human, { diameter: 20 }), { origin: 'local' })
       human.append(
@@ -119,7 +119,7 @@ describe('createToolRegistry', () => {
   it('never lists capture_view over MCP (no GPU there), and refuses it by name if called anyway', () => {
     const tools = createToolRegistry()
     expect(tools.definitions('mcp').map((definition) => definition.name)).not.toContain('capture_view')
-    const result = tools.run(makeContext({ document: createDocument(), origin: 'mcp' }), 'capture_view', { view: 'iso' })
+    const result = tools.run(makeContext({ document: createDocument({ replica: 'abcdef' }), origin: 'mcp' }), 'capture_view', { view: 'iso' })
     expect(result.error).toMatch(/capture_view/)
     expect(result.error).toMatch(/viewport/)
   })
@@ -148,7 +148,7 @@ describe('createToolRegistry', () => {
   it('names the op when params do not fit it, rather than a vague "matches nothing"', () => {
     const tools = createToolRegistry()
     const result = /** @type {any} */ (
-      tools.run(makeContext({ document: createDocument() }), 'create', { op: 'primitive.sphere', positionMm: [0, 0, 0], params: { size: [1, 1, 1] } })
+      tools.run(makeContext({ document: createDocument({ replica: 'abcdef' }) }), 'create', { op: 'primitive.sphere', positionMm: [0, 0, 0], params: { size: [1, 1, 1] } })
     )
     expect(result.error).toBe('invalid input')
     expect(result.reason).toMatch(/input\.params has unknown field "size"/)
@@ -157,24 +157,24 @@ describe('createToolRegistry', () => {
 
   it('answers an unknown tool by name, without throwing', () => {
     const tools = createToolRegistry()
-    expect(tools.run(makeContext({ document: createDocument() }), 'add_feature', {})).toMatchObject({ error: expect.stringMatching(/add_feature/) })
+    expect(tools.run(makeContext({ document: createDocument({ replica: 'abcdef' }) }), 'add_feature', {})).toMatchObject({ error: expect.stringMatching(/add_feature/) })
   })
 
   it('refuses a browser-only tool on the MCP transport', () => {
     const tools = createToolRegistry()
-    expect(tools.run(makeContext({ document: createDocument(), origin: 'mcp' }), 'select', { ids: [] })).toMatchObject({ error: expect.stringMatching(/select/) })
+    expect(tools.run(makeContext({ document: createDocument({ replica: 'abcdef' }), origin: 'mcp' }), 'select', { ids: [] })).toMatchObject({ error: expect.stringMatching(/select/) })
   })
 
   it('checks the input shape before a tool runs, and names what is wrong', () => {
     const tools = createToolRegistry()
-    const result = /** @type {any} */ (tools.run(makeContext({ document: createDocument() }), 'describe_body', { id: 7 }))
+    const result = /** @type {any} */ (tools.run(makeContext({ document: createDocument({ replica: 'abcdef' }) }), 'describe_body', { id: 7 }))
     expect(result).toMatchObject({ error: 'invalid input' })
     expect(result.reason).toMatch(/input\.id must be a string/)
   })
 
   it('stops the turn after three consecutive failures of one tool and says so', () => {
     const tools = createToolRegistry()
-    const ctx = makeContext({ document: createDocument() })
+    const ctx = makeContext({ document: createDocument({ replica: 'abcdef' }) })
     const call = () => /** @type {any} */ (tools.run(ctx, 'describe_body', { id: 'missing-1' }))
     expect(call().stop).toBeUndefined()
     expect(call().stop).toBeUndefined()
@@ -186,14 +186,14 @@ describe('createToolRegistry', () => {
 
   it('stops the turn at the step cap', () => {
     const tools = createToolRegistry()
-    const ctx = makeContext({ document: createDocument(), turn: createTurn({ limits: { ...LIMITS, stepsPerTurn: 1 } }) })
+    const ctx = makeContext({ document: createDocument({ replica: 'abcdef' }), turn: createTurn({ limits: { ...LIMITS, stepsPerTurn: 1 } }) })
     expect(/** @type {any} */ (tools.run(ctx, 'describe_scene', {})).stop).toBeUndefined()
     expect(tools.run(ctx, 'describe_scene', {})).toMatchObject({ stop: true, limit: 'stepsPerTurn' })
   })
 
   it('runs every tool against a fake registry too', () => {
     const tools = createToolRegistry({ registry: fakeRegistry })
-    const document = createDocument({ registry: fakeRegistry })
+    const document = createDocument({ registry: fakeRegistry, replica: 'abcdef' })
     const ctx = makeContext({ document, selection: fakeSelection() })
     const made = /** @type {any} */ (tools.run(ctx, 'create', { op: 'fake.block', positionMm: [0, 0, 0] }))
     const id = made.applied[0].bodyId

@@ -39,11 +39,11 @@ describe('the recorded fixtures are current', () => {
 describe('scenario 17 plumbing — the airfoil transcript through the real agent, document and tools', () => {
   /** @param {ReturnType<typeof createDocument>} document */
   function context(document) {
-    return createAgentContext({ client: createScriptedClient(fixture('airfoil-wing')), document, selection: fakeSelection() })
+    return createAgentContext({ client: createScriptedClient(fixture('airfoil-wing')), document, selection: fakeSelection(), replica: 'abcdef' })
   }
 
   it('builds a lofted wing, then the rest, checks printability, and every body stays', async () => {
-    const document = createDocument()
+    const document = createDocument({ replica: 'abcdef' })
     const ctx = context(document)
     const outcome = await runTurn({ userMessage: 'Use the sketch tool to create an airfoil for a model plane wing, create the wing then the rest of the model so I can 3D print it.', ctx })
     expect(outcome.status).toBe('done')
@@ -51,7 +51,7 @@ describe('scenario 17 plumbing — the airfoil transcript through the real agent
     // The real tool flags the knife-edge trailing edge; the transcript's reply must say so, not gloss over it.
     expect(outcome.text).toMatch(/trailing edge is a 0 mm wall/)
     // Scenario 1's lesson: nothing replaced anything.
-    expect(document.bodies().map((body) => body.id)).toEqual(['sketch-1', 'cuboid-2', 'cuboid-3', 'cuboid-4'])
+    expect(document.bodies().map((body) => body.id)).toEqual(['sketch-abcdef-1', 'cuboid-abcdef-2', 'cuboid-abcdef-3', 'cuboid-abcdef-4'])
     expect(outcome.steps).toBe(5)
     // The wing is a real loft: 200 mm of span.
     const wing = /** @type {any} */ (document.bodies()[0].geometry)
@@ -60,7 +60,7 @@ describe('scenario 17 plumbing — the airfoil transcript through the real agent
   })
 
   it('"make the wing 20 % longer" edits the wing in place: same bodies, 240 mm of span', async () => {
-    const document = createDocument()
+    const document = createDocument({ replica: 'abcdef' })
     const ctx = context(document)
     await runTurn({ userMessage: 'make the wing and the rest', ctx })
     const before = document.bodies().length

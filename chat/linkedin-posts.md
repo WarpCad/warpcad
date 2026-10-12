@@ -2249,3 +2249,18 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** NDJSON log, one-writer assumption, mechanism, version rule, rejection table -> `docs/decisions/document-sync.md` in the diff; "accepted" -> the user's "accept" reply this session; build tasks starting at `data-008` -> `TODO/ROADMAP.md` M15 row in the diff
 **To Add:** repo URL once public
+
+## [2026-10-12T17:20:00Z] — Record ids are replica-scoped (LinkedIn)
+
+**Post:** Two writers editing one CAD document must never hand out the same record id. WarpCad's ids were a per-document counter (`cuboid-1`, `sphere-2`), which is only safe while one writer exists. An AI turn builds on a forked copy of the document, so the fork and the live tab would both mint `cuboid-4` next.
+
+Every document instance now carries a random six-character replica id and a Lamport clock, and new ids read `cuboid-khovb4-1`. Loading a file moves the clock past the highest counter it finds; legacy `op-7` ids are read as zero and never rewritten, so old project files open as they were. A spec seeds two documents from the same log, appends 1,000 records to each, and finds 2,000 distinct ids.
+
+Nothing merges yet. This is the groundwork for the merge work that follows, and the full suite stays green: 3,907 unit tests and 3,323 end-to-end runs across the browser and viewport matrix.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** per-document counter was safe only with one writer -> the removed comment in `src/core/document.js` `nextId` (diff); an AI turn builds on a forked copy -> `src/ai/agent.js` `forkOf` in the diff and CLAUDE.md AI Partner section; 1,000 appends each, 2,000 distinct ids -> the new `document.spec.js` case, passing this session; 3,907 unit tests, 3,323 e2e runs passed, 0 failed -> the full `/test` run this session
+**To Add:** repo URL once public

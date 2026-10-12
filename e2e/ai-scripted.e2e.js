@@ -71,7 +71,12 @@ async function send(page, message) {
 const idle = (page) => expect(page.getByTestId('assistant-panel')).toHaveAttribute('data-running', 'false', { timeout: 30_000 })
 
 /** @param {import('@playwright/test').Page} page */
-const bodyIds = (page) => page.$$eval('[data-body-id]', (nodes) => nodes.map((node) => node.getAttribute('data-body-id')))
+const bodyIds = async (page) => {
+  const ids = await page.$$eval('[data-body-id]', (nodes) => nodes.map((node) => node.getAttribute('data-body-id') ?? ''))
+  // Ids are `kind-<replica>-<counter>` (`TODO/data-008`); the replica is random per page load,
+  // so compare `kind-<counter>` — the order and the kinds are what these specs assert.
+  return ids.map((id) => id.replace(/-[a-z2-7]{6}-(\d+)$/, '-$1'))
+}
 
 const WING_PROMPT = 'Use the sketch tool to create an airfoil for a model plane wing, create the wing then the rest of the model so I can 3D print it.'
 

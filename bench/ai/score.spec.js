@@ -15,18 +15,18 @@ import { CHECKS, PRICES, aggregate, costUsd, runChecks, snapshotBodies, validate
  */
 
 /** @param {Partial<import('./score.js').BodyFacts>} over */
-const body = (over = {}) => ({ id: 'cuboid-1', name: 'Cube 1', sizeMm: /** @type {[number, number, number]} */ ([40, 40, 40]), volumeMm3: 64000, watertight: true, parts: [], ...over })
+const body = (over = {}) => ({ id: 'cuboid-abcdef-1', name: 'Cube 1', sizeMm: /** @type {[number, number, number]} */ ([40, 40, 40]), volumeMm3: 64000, watertight: true, parts: [], ...over })
 /** @param {Partial<import('./score.js').RunFacts>} over */
 const facts = (over = {}) => ({ bodies: [body()], seed: [], text: '', ...over })
 
 describe('snapshotBodies — real geometry', () => {
   it('reads size, volume, watertightness and named parts off a document', () => {
-    const document = createDocument()
+    const document = createDocument({ replica: 'abcdef' })
     const tools = createToolRegistry()
     const make = (/** @type {string} */ tool, /** @type {any} */ input) => /** @type {any} */ (tools.run({ document, origin: 'ai', turn: createTurn() }, tool, input))
     expect(make('create', { op: 'primitive.cuboid', positionMm: [0, 0, 0], params: { size: [40, 40, 40] } }).error).toBeUndefined()
     expect(make('create', { op: 'primitive.cuboid', positionMm: [60, 0, 0], params: { size: [10, 10, 10] } }).error).toBeUndefined()
-    expect(make('operate', { op: 'group.assemble', operands: [{ id: 'cuboid-1' }, { id: 'cuboid-2' }], params: { names: ['Big', 'Small'] } }).error).toBeUndefined()
+    expect(make('operate', { op: 'group.assemble', operands: [{ id: 'cuboid-abcdef-1' }, { id: 'cuboid-abcdef-2' }], params: { names: ['Big', 'Small'] } }).error).toBeUndefined()
     const [group] = snapshotBodies(document)
     expect(group.sizeMm[0]).toBeCloseTo(85, 3) // centred: -20 to 65
     expect(group.sizeMm[1]).toBeCloseTo(40, 3)
@@ -48,7 +48,7 @@ const CASES = /** @type {Array<[string, any, import('./score.js').RunFacts, impo
   ['fitsBed', { bedMm: [220, 220, 250], body: 'all' }, facts({ bodies: [body({ sizeMm: [30, 30, 200] })] }), facts({ bodies: [body({ sizeMm: [30, 30, 260] })] })],
   ['namedParts', { names: ['Board', 'USB-A 1'] }, facts({ bodies: [body({ parts: ['Board', 'USB-A 1', 'Ethernet'] })] }), facts({ bodies: [body({ parts: ['Board'] })] })],
   ['askedOrAssumed', {}, facts({ bodies: [], text: 'How long should it be?' }), facts({ bodies: [body()], text: 'Done.' })],
-  ['preserved', { ids: ['cuboid-1'] }, facts({ seed: [body()], bodies: [body(), body({ id: 'cyl-2' })] }), facts({ seed: [body()], bodies: [body({ id: 'cyl-2' })] })],
+  ['preserved', { ids: ['cuboid-abcdef-1'] }, facts({ seed: [body()], bodies: [body(), body({ id: 'cyl-2' })] }), facts({ seed: [body()], bodies: [body({ id: 'cyl-2' })] })],
 ])
 
 describe('every check can fail', () => {
@@ -80,7 +80,7 @@ describe('every check can fail', () => {
 
   it('"preserved" notices a body that is still there but has been quietly replaced by a different one', () => {
     const replaced = facts({ seed: [body({ volumeMm3: 27000 })], bodies: [body({ volumeMm3: 5000 })] })
-    expect(runChecks([{ type: 'preserved', ids: ['cuboid-1'] }], replaced)[0].pass).toBe(false)
+    expect(runChecks([{ type: 'preserved', ids: ['cuboid-abcdef-1'] }], replaced)[0].pass).toBe(false)
   })
 
   it('"fitsBed" agrees with the app: a part may lie on its side, a 260 mm part on a 250 mm bed may not', () => {

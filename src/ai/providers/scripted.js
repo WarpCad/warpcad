@@ -32,7 +32,7 @@
  * each batch of tool results, so a conversation with several tool rounds needs several turns,
  * and a follow-up message consumes the turns after the ones before it. A string in a call's
  * input that is exactly `"$last:<prefix>"` (for example `"$last:group"`) is replaced by the last
- * `<prefix>-<n>` id in the conversation so far, and `"$all:<prefix>,<prefix>"` by the array of
+ * `<prefix>-<n>` id (or `<prefix>-<replica>-<n>`, `TODO/data-008`) in the conversation so far, and `"$all:<prefix>,<prefix>"` by the array of
  * every such id, in the order they first appear, because the app, not the script, issues body
  * ids. A turn's `delayMs` pauses between its chunks (abortable), so a spec can press Stop mid-reply.
  *
@@ -148,6 +148,9 @@ export function stampTranscript(transcript, registry = createToolRegistry()) {
   return { ...transcript, tools }
 }
 
+/** Optional replica segment of a record id (`TODO/data-008`): `cuboid-jpxic4-2` as well as legacy `cuboid-2`. */
+const REPLICA_SEGMENT = '(?:[a-z2-7]{6}-)?'
+
 /**
  * Replace `"$last:<prefix>"` and `"$all:<prefix>,…"` strings with ids from the conversation.
  *
@@ -158,10 +161,10 @@ export function stampTranscript(transcript, registry = createToolRegistry()) {
 function resolvePlaceholders(value, conversation) {
   if (typeof value === 'string') {
     const last = /^\$last:([a-z]+)$/.exec(value)
-    if (last !== null) return conversation.match(new RegExp(`\\b${last[1]}-\\d+`, 'g'))?.at(-1) ?? value
+    if (last !== null) return conversation.match(new RegExp(`\\b${last[1]}-${REPLICA_SEGMENT}\\d+`, 'g'))?.at(-1) ?? value
     const all = /^\$all:([a-z,]+)$/.exec(value)
     if (all !== null) {
-      const found = conversation.match(new RegExp(`\\b(?:${all[1].split(',').join('|')})-\\d+`, 'g')) ?? []
+      const found = conversation.match(new RegExp(`\\b(?:${all[1].split(',').join('|')})-${REPLICA_SEGMENT}\\d+`, 'g')) ?? []
       return [...new Set(found)]
     }
     return value

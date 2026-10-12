@@ -75,6 +75,9 @@ function seed(document, steps = []) {
   }
 }
 
+/** Replica id the harness's document mints seed ids under, so a case can name them. */
+const BENCH_REPLICA = 'benchx'
+
 /**
  * One run of one case.
  *
@@ -85,7 +88,9 @@ function seed(document, steps = []) {
  * @returns {Promise<import('./score.js').RunRecord & { text: string }>}
  */
 export async function runOnce({ entry, client, model }) {
-  const document = createDocument()
+  // A fixed replica (`TODO/data-008`) so a case can name the ids its seed creates
+  // (`cuboid-benchx-1`); the turn's own fork still mints under a random one.
+  const document = createDocument({ replica: BENCH_REPLICA })
   seed(document, entry.seed)
   const seedFacts = snapshotBodies(document)
   const ctx = createAgentContext({

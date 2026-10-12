@@ -6,8 +6,24 @@ priority: high
 model: sonnet
 milestone: M15
 depends: [docs-022]
-status: open
+status: done
 ---
+
+> **What shipped (2026-10-12).** As specified: `src/core/replica.js` (replica id, Lamport clock,
+> `compareStamps`, `isStamp`, plus `counterOfId`), `createDocument({ replica, clock })`,
+> `nextId` returning `prefix-replica-counter`, `replicaId()` on the document, and `loadEntries`
+> moving the clock past the highest counter in the ids it reads (a legacy `op-7` reads zero and
+> is never rewritten). Differences from the file: the alphabet is `a-z2-7` (base32), so the
+> example id in this file was corrected to `op-k3f5xa-12`; the clock is advanced from the
+> **ids** in a loaded log because stamps are not stored until `data-010`; `agent.js` and
+> `stores/document.js` needed no change because every `createDocument` call already draws its
+> own random replica (`agent.js` gained an optional `replica` seam so scripted specs can name the
+> ids a fork mints, and `bench/ai/run.js` fixes one for its seed). Nothing else minted ids: the
+> audit found every record id comes from `nextId`. Specs that asserted a literal `<kind>-<n>`
+> for a new row now inject `replica: 'abcdef'` or normalise the replica segment; five e2e specs
+> and `src/ai/providers/scripted.js`' `$last:`/`$all:` placeholders accept the replica form.
+> **Known gap for `data-010`:** `nextName` is untouched, so two writers can both produce
+> "Cube 3"; conflict reasons should name the step number as well as the label.
 
 ## Goal
 
@@ -25,7 +41,7 @@ every existing project file opens and re-saves byte-identical; every existing sp
 ## Interaction model
 
 Does not apply — a pure `core` change. No control is added. One visible consequence to state:
-ids shown in a saved file read `op-k3f9xa-12` instead of `op-12` for rows created after this
+ids shown in a saved file read `op-k3f5xa-12` instead of `op-12` for rows created after this
 lands. Ids are not shown in the app's UI.
 
 ## Documentation

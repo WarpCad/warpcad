@@ -128,7 +128,7 @@ function script(index, body) {
     case 3:
       return { calls: [{ name: 'capture_view', input: { view: 'top', overlay: 'reference' } }] }
     case 4: {
-      const groups = body.match(/group-\d+/g) ?? []
+      const groups = body.match(/group-(?:[a-z2-7]{6}-)?\d+/g) ?? []
       return { calls: [{ name: 'save_to_library', input: { id: groups.at(-1) ?? 'group-1', name: PART_NAME } }] }
     }
     case 5:

@@ -34,6 +34,16 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### data-008 — Replica-scoped record ids (2026-10-12 17:20)
+
+Scenarios 10 and 14 were hand-driven and pass; what is left is what a script cannot judge: how the
+longer ids read to a person, and a real project file from before this change.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | Open a real project file saved by an earlier build (not a fixture), add a body, Save, and read the file: old lines `op-7`-style and unchanged, only the new rows carry `prefix-<replica>-<n>` | Open | |
+| 2 | In the Assistant, ask for a cube and a sphere then a subtract: do `describe_scene` ids in the chat/tool readout still read acceptably (`cuboid-k3f5xa-1`), or is the replica segment noisy enough to want trimming in the UI? | Open | |
+
 ### ai-016 — `npm run mcp:add` registers the server (2026-10-12 14:31)
 
 The script is driven in specs against a fake `claude`, and the argv it produces is spoken to by a real MCP client, but no spec runs the real Claude Code CLI against the user's real config.

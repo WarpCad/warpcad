@@ -83,7 +83,8 @@ async function scriptedProvider(page, script) {
       return route.fulfill({ status: 200, headers: { ...CORS, 'content-type': 'application/json' }, body: '{"input_tokens":8}' })
     }
     state.requests.push(request.postData() ?? '')
-    const step = script[state.requests.length - 1]
+    const entry = script[state.requests.length - 1]
+    const step = typeof entry === 'function' ? entry(state.requests.at(-1) ?? '') : entry
     if (step === undefined) return route.fulfill({ status: 500, headers: CORS, body: '{}' })
     return route.fulfill({ status: 200, headers: { ...CORS, 'content-type': 'text/event-stream' }, body: sse(step, state.requests.length) })
   })
@@ -293,7 +294,9 @@ test('a failed check reads as a distinct row: a 0.3 mm fin is flagged by check_p
         { name: 'create', input: { op: 'primitive.cuboid', positionMm: [15, 0, 5], params: { size: [10, 0.3, 10] } } },
       ],
     },
-    { calls: [{ name: 'check_printability', input: { ids: ['cuboid-1', 'cuboid-2'] } }] },
+    // Ids carry a per-load replica (`TODO/data-008`), so read them back from the create results
+    // (the replica form only: the tool descriptions in the same request quote a bare `cuboid-1`).
+    (body) => ({ calls: [{ name: 'check_printability', input: { ids: [...new Set(body.match(/cuboid-[a-z2-7]{6}-\d+/g) ?? [])].slice(0, 2) } }] }),
     { text: 'The fin is too thin to print.' },
   ])
   await connect(page)

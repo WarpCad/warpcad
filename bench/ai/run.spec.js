@@ -103,7 +103,7 @@ describe('the harness, end to end, against the scripted provider', () => {
     const meddling = {
       name: 'meddling',
       tools: {},
-      turns: [{ calls: [{ name: 'operate', input: { op: 'modify.enlarge', operands: [{ id: 'cuboid-1' }], params: { deltaMm: [60, 60, 60] } } }] }, { text: 'Done.' }],
+      turns: [{ calls: [{ name: 'operate', input: { op: 'modify.enlarge', operands: [{ id: 'cuboid-benchx-1' }], params: { deltaMm: [60, 60, 60] } } }] }, { text: 'Done.' }],
     }
     const bad = await play(stampTranscript(meddling), [hostile], 1)
     expect(bad.results[0].summary.checkFailures.preserved).toBe(1)

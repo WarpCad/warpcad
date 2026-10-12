@@ -143,6 +143,9 @@ const NOTHING_KEPT = 'Nothing from this turn was kept — the project is as it w
  * @property {import('./tools/index.js').ToolRegistry} tools
  * @property {Readonly<Record<string, import('../core/kernel/registry.js').RegistryEntry>> | undefined} registry
  *   The op registry the fork is built on; `undefined` for the real one.
+ * @property {string | undefined} replica The replica id every turn's fork mints record ids
+ *   under (`TODO/data-008`); `undefined` for a fresh random one per turn, which is what the
+ *   app wants — a spec passes a fixed one so scripted turns can name the ids they create.
  * @property {import('./tools/index.js').ToolSelection | undefined} selection Browser selection.
  * @property {import('./tools/capture.js').ToolCapture | undefined} capture Browser only: the
  *   viewport's offscreen capture (`ai-007`). Read per turn; absent, `capture_view` is not offered.
@@ -169,6 +172,7 @@ const NOTHING_KEPT = 'Nothing from this turn was kept — the project is as it w
  * @param {Readonly<Record<string, import('../core/kernel/registry.js').RegistryEntry>>} [options.registry]
  *   The op registry, when not the real one (a spec's fake).
  * @param {import('./tools/index.js').ToolRegistry} [options.tools] Built over `registry` by default.
+ * @param {string} [options.replica] A fixed replica id for each turn's fork (a spec's seam).
  * @param {import('./tools/index.js').ToolSelection} [options.selection]
  * @param {import('./tools/capture.js').ToolCapture} [options.capture]
  * @param {import('./tools/image.js').ToolReferences} [options.references]
@@ -186,6 +190,7 @@ export function createAgentContext(options) {
     client,
     document,
     registry,
+    replica: options.replica,
     tools: options.tools ?? createToolRegistry(registry ? { registry } : {}),
     selection: options.selection,
     capture: options.capture,
@@ -206,11 +211,15 @@ export function createAgentContext(options) {
  *
  * @param {WarpDocument} live
  * @param {AgentContext['registry']} registry
+ * @param {AgentContext['replica']} replica
  * @returns {WarpDocument}
  */
-function forkOf(live, registry) {
+function forkOf(live, registry, replica) {
   const fork = createDocument({
     ...(registry ? { registry } : {}),
+    // Its own replica id, never the live document's: the fork and the live document are two
+    // writers (`TODO/data-008`), and sharing one would let them mint the same id.
+    ...(replica ? { replica } : {}),
     foldCache: live.foldCache,
     resolution: live.resolution(),
   })
@@ -444,7 +453,7 @@ async function turnBody({ userMessage, images, attachmentIds, ctx, signal }) {
   /** @type {any[]} */
   let userContent
   try {
-    fork = forkOf(live, ctx.registry)
+    fork = forkOf(live, ctx.registry, ctx.replica)
     userContent = userContentFor(ctx, fork, userMessage, images, attachmentIds)
     messages = assembleMessages(ctx.turns, userContent)
   } catch (error) {

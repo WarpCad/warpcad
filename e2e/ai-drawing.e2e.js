@@ -130,7 +130,7 @@ test('a drawing becomes a named group, checked against the picture, saved to My 
   // One group, selected, its sub-parts named as the model named them.
   const viewport = page.getByTestId('viewport')
   await expect(viewport).toHaveAttribute('data-body-count', '1')
-  await expect(viewport).toHaveAttribute('data-selected-id', /^group-\d+$/)
+  await expect(viewport).toHaveAttribute('data-selected-id', /^group-(?:[a-z2-7]{6}-)?\d+$/)
   await expect.poll(() => partNames(page)).toEqual(SUB_PARTS)
 
   // The overlay: a real picture, and the model got it back.

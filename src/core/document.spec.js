@@ -1047,11 +1047,11 @@ describe('setColorOverride — user colour overrides (TODO/data-005)', () => {
   })
 
   it('an override survives a later transform, still readable off the lineage', () => {
-    const document = doc()
+    const document = doc({ replica: 'abcdef' })
     document.append({ id: 'a', op: 'fake.box' }, { origin: 'local' })
     document.setColorOverride('a', { color: 0xff0000 }, { origin: 'local' })
     document.append(
-      { id: 'a-move-1', op: 'fake.move', target: 'a-color-1', supersedes: 'a-color-1', params: { by: 5 } },
+      { id: 'a-move-1', op: 'fake.move', target: 'a-color-abcdef-1', supersedes: 'a-color-abcdef-1', params: { by: 5 } },
       { origin: 'local' }
     )
     const [body] = document.bodies()
@@ -1242,7 +1242,7 @@ describe('setColorOverride — user colour overrides (TODO/data-005)', () => {
 
 describe('clearColorOverride — resetting a colour back to the default (TODO/ui-037)', () => {
   it('clears a whole-body override: the body reports no override at all, as if never set', () => {
-    const document = doc()
+    const document = doc({ replica: 'abcdef' })
     document.append({ id: 'a', op: 'fake.box', name: 'Box 1' }, { origin: 'local' })
     document.setColorOverride('a', { color: 0xff0000 }, { origin: 'local' })
 
@@ -1250,7 +1250,7 @@ describe('clearColorOverride — resetting a colour back to the default (TODO/ui
 
     expect(record.op).toBe('style.recolor')
     expect(record.colorOverride).toBeNull()
-    expect(record.supersedes).toBe('a-color-1')
+    expect(record.supersedes).toBe('a-color-abcdef-1')
     expect(record.name).toBeUndefined()
     expect(document.bodies()[0].colorOverrides).toBeUndefined()
   })
@@ -1769,5 +1769,92 @@ describe('transform.mirror — creation-shaped: a second body, the original unto
     expect(Object.keys(copy.parts).sort()).toEqual(Object.keys(bolt.parts).sort())
     expect(Object.keys(copy.parts)).not.toContain('Plate 1')
     expect(Object.keys(copy.parts)).not.toContain('Bolt 1')
+  })
+})
+
+describe('replica-scoped record ids (TODO/data-008)', () => {
+  /** @param {import('./document.js').WarpDocument} document @param {number} count */
+  function appendBoxes(document, count) {
+    const ids = []
+    for (let i = 0; i < count; i += 1) {
+      const id = document.nextId('primitive')
+      document.append({ id, op: 'fake.box', name: `Cube ${i + 1}` }, { origin: 'local' })
+      ids.push(id)
+    }
+    return ids
+  }
+
+  it('mints prefix-replica-counter ids from the replica it was given', () => {
+    const document = doc({ replica: 'abcdef' })
+    expect(document.replicaId()).toBe('abcdef')
+    expect(document.nextId('primitive')).toBe('primitive-abcdef-1')
+    expect(document.nextId('primitive')).toBe('primitive-abcdef-2')
+  })
+
+  it('gives every instance its own replica id unless the caller passes one', () => {
+    expect(doc().replicaId()).not.toBe(doc().replicaId())
+  })
+
+  it('two documents seeded from the same entries share no new id over 1000 appends each', () => {
+    const seed = doc({ replica: 'seedaa' })
+    appendBoxes(seed, 3)
+    const entries = seed.entries.map((entry) => ({ ...entry }))
+
+    const human = doc()
+    const fork = doc()
+    human.loadEntries(entries)
+    fork.loadEntries(entries)
+    const mine = appendBoxes(human, 1000)
+    const theirs = appendBoxes(fork, 1000)
+
+    expect(new Set([...mine, ...theirs]).size).toBe(2000)
+    for (const { record } of seed.entries) {
+      expect(mine).not.toContain(record.id)
+      expect(theirs).not.toContain(record.id)
+    }
+  })
+
+  it('a legacy file loads untouched and its ids are never reissued', () => {
+    const document = doc({ replica: 'abcdef' })
+    document.loadEntries([
+      { record: { id: 'op-1', op: 'fake.box', name: 'Cube 1' }, origin: 'local' },
+      { record: { id: 'op-2', op: 'fake.box', name: 'Cube 2' }, origin: 'local' },
+    ])
+    expect(document.entries.map((entry) => entry.record.id)).toEqual(['op-1', 'op-2'])
+    const next = document.nextId('op')
+    expect(next).toBe('op-abcdef-1')
+    expect(['op-1', 'op-2']).not.toContain(next)
+  })
+
+  it('moves its clock past the highest counter in a loaded file', () => {
+    const document = doc({ replica: 'abcdef' })
+    document.loadEntries([
+      { record: { id: 'cube-zzzzzz-41', op: 'fake.box', name: 'Cube 1' }, origin: 'local' },
+      { record: { id: 'cube-yyyyyy-7', op: 'fake.box', name: 'Cube 2' }, origin: 'local' },
+    ])
+    expect(document.nextId('cube')).toBe('cube-abcdef-42')
+  })
+
+  it('never reissues the id of a suppressed or rolled-back row', () => {
+    const document = doc({ replica: 'abcdef' })
+    const [first, second] = appendBoxes(document, 2)
+    document.setSuppressed(second, true, { origin: 'local' })
+    const next = document.nextId('primitive')
+    expect([first, second]).not.toContain(next)
+  })
+
+  it("a fork's records land on the live document without an id clash", () => {
+    const live = doc()
+    appendBoxes(live, 2)
+    const fork = doc()
+    fork.loadEntries(live.entries.map((entry) => ({ ...entry })))
+    const forked = appendBoxes(fork, 3)
+    const added = appendBoxes(live, 3)
+    for (const id of forked) {
+      live.append({ id, op: 'fake.box', name: id }, { origin: 'ai' })
+    }
+    const ids = live.entries.map((entry) => entry.record.id)
+    expect(new Set(ids).size).toBe(ids.length)
+    expect(ids).toEqual(expect.arrayContaining(added))
   })
 })

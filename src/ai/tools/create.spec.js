@@ -52,8 +52,8 @@ describe('buildCreateRecords — the same records a drag-to-place commits', () =
   it('matches recordsForDrop for every Library row except Sketch, ids and names included', () => {
     for (const op of creatableOps(registry)) {
       if (op === 'primitive.sketch') continue
-      const ours = buildCreateRecords(createDocument(), { op, positionMm: [12, -7, 0] }, registry)
-      const theirs = recordsForDrop(op, { x: 12, y: -7 }, createDocument())
+      const ours = buildCreateRecords(createDocument({ replica: 'abcdef' }), { op, positionMm: [12, -7, 0] }, registry)
+      const theirs = recordsForDrop(op, { x: 12, y: -7 }, createDocument({ replica: 'abcdef' }))
       expect(ours.records, op).toEqual(theirs)
       expect(ours.bodyId, op).toBe(theirs[0].id)
     }
@@ -61,18 +61,18 @@ describe('buildCreateRecords — the same records a drag-to-place commits', () =
 
   it('builds a Sketch the way the sketch editor’s Done does: the position is the sketch plane’s origin', () => {
     const { records, bodyId } = buildCreateRecords(
-      createDocument(),
+      createDocument({ replica: 'abcdef' }),
       { op: 'primitive.sketch', positionMm: [5, 6, 7], params: SQUARE_SKETCH },
       registry
     )
     expect(records).toEqual([
-      { id: 'sketch-1', op: 'primitive.sketch', name: 'Sketch 1', params: { center: [5, 6, 7], ...SQUARE_SKETCH } },
+      { id: 'sketch-abcdef-1', op: 'primitive.sketch', name: 'Sketch 1', params: { center: [5, 6, 7], ...SQUARE_SKETCH } },
     ])
-    expect(bodyId).toBe('sketch-1')
+    expect(bodyId).toBe('sketch-abcdef-1')
   })
 
   it('lifts a placed body by positionMm[2], so its underside rests at that height', () => {
-    const document = createDocument()
+    const document = createDocument({ replica: 'abcdef' })
     const { records } = buildCreateRecords(document, { op: 'primitive.cuboid', positionMm: [0, 0, 15], params: { size: [10, 10, 40] } }, registry)
     document.appendAll(records, { origin: 'ai' })
     const [min, max] = boundsOf(document.bodies()[0].geometry)
@@ -81,16 +81,16 @@ describe('buildCreateRecords — the same records a drag-to-place commits', () =
   })
 
   it('lifts a composite through its drop translate, not through a param the recipe would ignore', () => {
-    const { records } = buildCreateRecords(createDocument(), { op: 'hardware.nut', positionMm: [0, 0, 3] }, registry)
+    const { records } = buildCreateRecords(createDocument({ replica: 'abcdef' }), { op: 'hardware.nut', positionMm: [0, 0, 3] }, registry)
     expect(records).toHaveLength(2)
     expect(records[0].params?.center).toBeUndefined()
-    const plain = recordsForDrop('hardware.nut', { x: 0, y: 0 }, createDocument())
+    const plain = recordsForDrop('hardware.nut', { x: 0, y: 0 }, createDocument({ replica: 'abcdef' }))
     expect(records[1].params?.vector[2]).toBeCloseTo(plain[1].params?.vector[2] + 3, 9)
   })
 
   it('places a fake-registry op from its own measured box', () => {
-    const { records } = buildCreateRecords(createDocument({ registry: fakeRegistry }), { op: 'fake.block', positionMm: [5, 5, 0] }, fakeRegistry)
-    expect(records).toEqual([{ id: 'block-1', op: 'fake.block', name: 'Block 1', params: { sizeMm: 10, center: [5, 5, 5] } }])
+    const { records } = buildCreateRecords(createDocument({ registry: fakeRegistry, replica: 'abcdef' }), { op: 'fake.block', positionMm: [5, 5, 0] }, fakeRegistry)
+    expect(records).toEqual([{ id: 'block-abcdef-1', op: 'fake.block', name: 'Block 1', params: { sizeMm: 10, center: [5, 5, 5] } }])
   })
 })
 
@@ -98,25 +98,25 @@ describe('the create tool', () => {
   const tools = createToolRegistry()
 
   it('places a body with origin ai and returns the new scene, not just "ok"', () => {
-    const document = createDocument()
+    const document = createDocument({ replica: 'abcdef' })
     const result = /** @type {any} */ (
       tools.run(makeContext({ document }), 'create', { op: 'primitive.sphere', positionMm: [0, 0, 0], params: { diameter: 20 } })
     )
-    expect(result.applied).toEqual([{ batchStep: 1, tool: 'create', bodyId: 'sphere-1', recordIds: ['sphere-1'] }])
+    expect(result.applied).toEqual([{ batchStep: 1, tool: 'create', bodyId: 'sphere-abcdef-1', recordIds: ['sphere-abcdef-1'] }])
     expect(result.scene.count).toBe(1)
     expect(result.scene.bodies[0].boundsMm[0][2]).toBeCloseTo(0, 6)
-    expect(document.originOf('sphere-1')).toBe('ai')
+    expect(document.originOf('sphere-abcdef-1')).toBe('ai')
     expect(document.canUndo()).toBe(false)
   })
 
   it('appends under the mcp origin when the MCP transport calls it', () => {
-    const document = createDocument()
+    const document = createDocument({ replica: 'abcdef' })
     tools.run(makeContext({ document, origin: 'mcp' }), 'create', { op: 'primitive.cuboid', positionMm: [0, 0, 0] })
     expect(document.entries.map((entry) => entry.origin)).toEqual(['mcp'])
   })
 
   it('refuses an operation by name — create takes zero-operand ops only', () => {
-    const document = createDocument()
+    const document = createDocument({ replica: 'abcdef' })
     const result = /** @type {any} */ (tools.run(makeContext({ document }), 'create', { op: 'boolean.union', positionMm: [0, 0, 0] }))
     expect(result.error).toMatch(/invalid input/)
     expect(result.reason).toMatch(/input\.op must be one of/)
@@ -124,12 +124,12 @@ describe('the create tool', () => {
   })
 
   it('requires a position: a created body is placed, never dropped at the origin by default', () => {
-    const result = /** @type {any} */ (tools.run(makeContext({ document: createDocument() }), 'create', { op: 'primitive.cuboid' }))
+    const result = /** @type {any} */ (tools.run(makeContext({ document: createDocument({ replica: 'abcdef' }) }), 'create', { op: 'primitive.cuboid' }))
     expect(result.reason).toMatch(/input\.positionMm is required/)
   })
 
   it('returns the registry’s own refusal for a bad parameter, and changes nothing', () => {
-    const document = createDocument()
+    const document = createDocument({ replica: 'abcdef' })
     const before = snapshot(document)
     const result = /** @type {any} */ (
       tools.run(makeContext({ document }), 'create', { op: 'primitive.cuboid', positionMm: [0, 0, 0], params: { size: [10, -1, 10] } })
@@ -140,7 +140,7 @@ describe('the create tool', () => {
   })
 
   it('refuses a sketch whose outline crosses itself, in the sketch editor’s own words', () => {
-    const document = createDocument()
+    const document = createDocument({ replica: 'abcdef' })
     const bowTie = {
       ...SQUARE_SKETCH,
       slices: [{ id: 's1', zMm: 0, profiles: [{ id: 'p1', kind: 'polyline', role: 'solid', closed: true, pointsMm: [[0, 0], [10, 10], [10, 0], [0, 10]] }] }],
@@ -153,28 +153,28 @@ describe('the create tool', () => {
   it('leaves the hostile-input point cap to the sketch model, which refuses it by name', () => {
     const points = Array.from({ length: 4097 }, (_, index) => [Math.cos(index), Math.sin(index)])
     const huge = { ...SQUARE_SKETCH, slices: [{ id: 's1', zMm: 0, profiles: [{ id: 'p1', kind: 'polyline', role: 'solid', closed: true, pointsMm: points }] }] }
-    const document = createDocument()
+    const document = createDocument({ replica: 'abcdef' })
     const result = /** @type {any} */ (tools.run(makeContext({ document }), 'create', { op: 'primitive.sketch', positionMm: [0, 0, 0], params: huge }))
     expect(result.reason).toMatch(/at most 4096 points/)
     expect(document.entries).toHaveLength(0)
   })
 
   it('inserts at the rollback marker while the document is rolled back, like every other write', () => {
-    const document = createDocument()
+    const document = createDocument({ replica: 'abcdef' })
     document.appendAll(recordsForDrop('primitive.cuboid', { x: 0, y: 0 }, document), { origin: 'local' })
     document.appendAll(recordsForDrop('primitive.sphere', { x: 60, y: 0 }, document), { origin: 'local' })
-    document.rollBackTo('cuboid-1', { origin: 'local' })
+    document.rollBackTo('cuboid-abcdef-1', { origin: 'local' })
     const result = /** @type {any} */ (tools.run(makeContext({ document }), 'create', { op: 'primitive.cone', positionMm: [-60, 0, 0] }))
     expect(result.error).toBeUndefined()
-    expect(document.entries.map((entry) => entry.record.id)).toEqual(['cuboid-1', 'cone-3', 'sphere-2'])
+    expect(document.entries.map((entry) => entry.record.id)).toEqual(['cuboid-abcdef-1', 'cone-abcdef-3', 'sphere-abcdef-2'])
     expect(document.rollbackAt()).toBe(2)
-    expect(result.scene.bodies.map((/** @type {any} */ body) => body.id)).toEqual(['cuboid-1', 'cone-3'])
+    expect(result.scene.bodies.map((/** @type {any} */ body) => body.id)).toEqual(['cuboid-abcdef-1', 'cone-abcdef-3'])
   })
 })
 
 describe('create — a sketch from a curve spec (TODO/sketch-008)', () => {
   it('samples a curve profile into a closed polyline that keeps its source, and builds a lofted wing', () => {
-    const document = createDocument()
+    const document = createDocument({ replica: 'abcdef' })
     const tools = createToolRegistry()
     const wing = {
       slices: [
@@ -203,7 +203,7 @@ describe('create — a sketch from a curve spec (TODO/sketch-008)', () => {
   })
 
   it('refuses a bad curve by naming the field, and writes nothing', () => {
-    const document = createDocument()
+    const document = createDocument({ replica: 'abcdef' })
     const tools = createToolRegistry()
     const bad = {
       slices: [{ id: 's1', zMm: 0, profiles: [{ id: 'p', kind: 'curve', role: 'solid', curve: 'naca4', params: { code: '2412', chordMm: 0 } }] }],

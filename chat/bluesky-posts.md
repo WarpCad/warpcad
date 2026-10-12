@@ -1603,3 +1603,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** merge shape, mechanism, version rule -> `docs/decisions/document-sync.md` in the diff; Yjs/Automerge/Loro re-checked and rejected -> same file's options and rejection tables (figures from `npm view`/`gh api` run this session, 2026-10-12)
 **To Add:** repo URL once public
+
+## [2026-10-12T17:20:00Z] — Record ids are replica-scoped: two writers can no longer mint the same id
+
+**Post:** WarpCad record ids now read prefix-replica-counter, like cuboid-khovb4-1. Each document gets a random replica id and a Lamport clock, so a browser tab and an AI fork can't both hand out cuboid-1. Old files load untouched. #CAD #OpenSource Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** ids read `prefix-replica-counter`, six-character replica id, Lamport clock -> `src/core/replica.js`, `src/core/document.js` in the diff; `cuboid-khovb4-1` is what the running app minted -> the hand drive of scenarios 10 and 14, this session; a tab and an AI fork would both mint the next id -> `TODO/done/data-008-*.md` Goal section; old files load untouched, legacy ids read as zero -> `counterOfId` and its spec in the diff
+**To Add:** repo URL once public

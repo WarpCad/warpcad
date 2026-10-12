@@ -87,6 +87,9 @@ const CUBE = { op: 'primitive.cuboid', positionMm: [0, 0, 0], params: { size: [2
 const SPHERE = { op: 'primitive.sphere', positionMm: [10, 0, 0], params: { diameter: 20 } }
 const call = (/** @type {string} */ name, /** @type {any} */ input = {}) => ({ name, input })
 
+/** The replica id every fork in this file mints under, so ids read `cuboid-abcdef-1`. */
+const FORK_REPLICA = 'abcdef'
+
 /**
  * @param {object} [options]
  * @param {import('../core/document.js').WarpDocument} [options.document]
@@ -96,6 +99,7 @@ const call = (/** @type {string} */ name, /** @type {any} */ input = {}) => ({ n
  * @param {() => number} [options.now]
  * @param {any} [options.selection]
  * @param {() => { text: string, trusted: boolean }} [options.standingInstructions]
+ * @param {string} [options.replica]
  */
 function setup(options = {}) {
   const document = options.document ?? createDocument()
@@ -108,6 +112,8 @@ function setup(options = {}) {
     limits: options.limits,
     now: options.now,
     standingInstructions: options.standingInstructions,
+    // `TODO/data-008`: a fixed replica so scripted turns can name the ids their fork mints.
+    replica: options.replica ?? FORK_REPLICA,
     onEvent: (event) => {
       events.push(event)
       options.onEvent?.(event)
@@ -134,7 +140,7 @@ describe('runTurn — happy path', () => {
       { text: 'Looking first.', calls: [call('describe_scene')] },
       { calls: [call('create', { ...CUBE, rationale: 'Base block' })] },
       { calls: [call('create', SPHERE)] },
-      { calls: [call('operate', { op: 'boolean.subtract', operands: [{ id: 'cuboid-1' }, { id: 'sphere-2' }] })] },
+      { calls: [call('operate', { op: 'boolean.subtract', operands: [{ id: 'cuboid-abcdef-1' }, { id: 'sphere-abcdef-2' }] })] },
       { text: 'Done: a cube with a spherical pocket.' },
     ])
     const { document, ctx, events } = setup({
@@ -149,17 +155,17 @@ describe('runTurn — happy path', () => {
     // The live document is untouched while the turn runs: every write went to the fork.
     expect(liveDuring).toEqual([0, 0, 0, 0])
     // …and the result lands whole, origin ai, in order.
-    expect(document.entries.map((entry) => entry.record.id)).toEqual(['cuboid-1', 'sphere-2', 'bool-3'])
+    expect(document.entries.map((entry) => entry.record.id)).toEqual(['cuboid-abcdef-1', 'sphere-abcdef-2', 'bool-abcdef-3'])
     expect(document.entries.every((entry) => entry.origin === 'ai')).toBe(true)
-    expect(document.bodies().map((body) => body.id)).toEqual(['bool-3'])
-    expect(outcome.recordIds).toEqual(['cuboid-1', 'sphere-2', 'bool-3'])
+    expect(document.bodies().map((body) => body.id)).toEqual(['bool-abcdef-3'])
+    expect(outcome.recordIds).toEqual(['cuboid-abcdef-1', 'sphere-abcdef-2', 'bool-abcdef-3'])
     // Each record keeps its own call's intent (a map by record id on the one insertAt).
-    expect(document.intentOf('cuboid-1')).toBe('A cube with a ball cut out\n— Base block')
-    expect(document.intentOf('sphere-2')).toBe('A cube with a ball cut out')
+    expect(document.intentOf('cuboid-abcdef-1')).toBe('A cube with a ball cut out\n— Base block')
+    expect(document.intentOf('sphere-abcdef-2')).toBe('A cube with a ball cut out')
     // Not on the local undo stack; one Undo AI turn entry instead.
     expect(document.canUndo()).toBe(false)
     expect(ctx.aiTurns).toHaveLength(1)
-    expect(ctx.aiTurns[0].recordIds).toEqual(['cuboid-1', 'sphere-2', 'bool-3'])
+    expect(ctx.aiTurns[0].recordIds).toEqual(['cuboid-abcdef-1', 'sphere-abcdef-2', 'bool-abcdef-3'])
     expect(ctx.aiTurns[0].turnId).toBe(outcome.turnId)
     // Streams text and reports each call and result.
     expect(events.filter((e) => e.type === 'text').map((e) => e.text)).toEqual(['Looking first.', 'Done: a cube with a spherical pocket.'])
@@ -199,7 +205,7 @@ describe('runTurn — happy path', () => {
     expect(result.tool_use_id).toBe('toolu_1_1')
     expect(result.is_error).toBeUndefined()
     const value = /** @type {any} */ (unwrapDocumentData(result.content))
-    expect(value.applied[0].bodyId).toBe('cuboid-1')
+    expect(value.applied[0].bodyId).toBe('cuboid-abcdef-1')
   })
 
   it('puts the standing instructions and the scene in messages — never in system', async () => {
@@ -256,8 +262,8 @@ describe('runTurn — self-correction', () => {
   it('returns a rejected record verbatim, the model fixes it, and the turn lands', async () => {
     const client = scriptedProvider([
       { calls: [call('create', CUBE)] },
-      { calls: [call('operate', { op: 'modify.filletRim', operands: [{ id: 'cuboid-1' }], params: { radius: 500, orientation: 'z+' } })] },
-      { calls: [call('operate', { op: 'modify.filletRim', operands: [{ id: 'cuboid-1' }], params: { radius: 2, orientation: 'z+' } })] },
+      { calls: [call('operate', { op: 'modify.filletRim', operands: [{ id: 'cuboid-abcdef-1' }], params: { radius: 500, orientation: 'z+' } })] },
+      { calls: [call('operate', { op: 'modify.filletRim', operands: [{ id: 'cuboid-abcdef-1' }], params: { radius: 2, orientation: 'z+' } })] },
       { text: 'Filleted at 2 mm.' },
     ])
     const { document, ctx } = setup({ client })
@@ -331,13 +337,13 @@ describe('runTurn — Stop', () => {
     }
     const client = scriptedProvider([
       { calls: [call('create', CUBE)] },
-      { calls: [call('select', { ids: ['cuboid-1'] }), call('create', SPHERE)] },
+      { calls: [call('select', { ids: ['cuboid-abcdef-1'] }), call('create', SPHERE)] },
       { text: 'never asked' },
     ])
     const { document, ctx, events } = setup({ client, selection })
     const outcome = await runTurn({ userMessage: 'cube', ctx, signal: controller.signal })
     expect(outcome.status).toBe('cancelled')
-    expect(selection.history).toEqual([['cuboid-1']])
+    expect(selection.history).toEqual([['cuboid-abcdef-1']])
     expect(events.filter((e) => e.type === 'tool_call').map((e) => e.name)).toEqual(['create', 'select', 'create'])
     expect(events.filter((e) => e.type === 'tool_result').map((e) => e.name)).toEqual(['create', 'select'])
     expect(client.requests).toHaveLength(2)
@@ -607,10 +613,10 @@ describe('runTurn — capture_view and the image part', () => {
       },
     }
     await runTurn({ userMessage: 'a cube', ctx })
-    expect(seen[0].bodies.map((/** @type {any} */ body) => body.id)).toEqual(['cuboid-1'])
+    expect(seen[0].bodies.map((/** @type {any} */ body) => body.id)).toEqual(['cuboid-abcdef-1'])
     // ...while the live document was still empty when the capture ran; it lands afterwards.
     expect(liveBodies).toEqual([0])
-    expect(document.bodies().map((body) => body.id)).toEqual(['cuboid-1'])
+    expect(document.bodies().map((body) => body.id)).toEqual(['cuboid-abcdef-1'])
   })
 })
 
@@ -671,19 +677,19 @@ describe('runTurn — drawings and the save proposal', () => {
   it('hands back a save proposal with a landed turn, and writes nothing to any library', async () => {
     const client = scriptedProvider([
       { calls: [call('create', CUBE)] },
-      { calls: [call('save_to_library', { id: 'cuboid-1', name: 'Block' })] },
+      { calls: [call('save_to_library', { id: 'cuboid-abcdef-1', name: 'Block' })] },
       { text: 'Built it. Tap Confirm to save it to My parts.' },
     ])
     const { ctx } = setup({ client })
     const outcome = await runTurn({ userMessage: 'make a block and save it to my library', ctx })
     expect(outcome.status).toBe('done')
-    expect(outcome.saveProposal).toEqual({ bodyId: 'cuboid-1', name: 'Block', expose: [], labels: [] })
+    expect(outcome.saveProposal).toEqual({ bodyId: 'cuboid-abcdef-1', name: 'Block', expose: [], labels: [] })
   })
 
   it('drops the proposal with a turn that did not land (its body was never kept)', async () => {
     const client = scriptedProvider([
       { calls: [call('create', CUBE)] },
-      { calls: [call('save_to_library', { id: 'cuboid-1', name: 'Block' })] },
+      { calls: [call('save_to_library', { id: 'cuboid-abcdef-1', name: 'Block' })] },
       { error: { kind: 'network', message: 'The connection dropped.' } },
     ])
     const { ctx } = setup({ client })

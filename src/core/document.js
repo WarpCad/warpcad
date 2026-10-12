@@ -379,6 +379,7 @@ import {
   variableRecordError,
 } from './variables.js'
 import { ASSET_OP, validateImageAsset } from '../sketch/imageAsset.js'
+import { counterOfId, createClock, createReplicaId } from './replica.js'
 
 /** @typedef {import('./kernel/registry.js').OpRecord} OpRecord */
 /** @typedef {import('./kernel/registry.js').RegistryEntry} RegistryEntry */
@@ -711,7 +712,10 @@ export class ReplayRejection extends Error {
  *   curve without an explicit `segments` is faceted at — `legacy` for a document from
  *   before the setting existed.
  * @property {(resolution: string, transaction: TransactionOptions) => { scene: Scene }} setResolution
- * @property {(prefix?: string) => string} nextId
+ * @property {() => string} replicaId `TODO/data-008`: the replica id this document's new
+ *   record ids carry — random per instance, so a reload and a second tab get their own.
+ * @property {(prefix?: string) => string} nextId A fresh `prefix-replica-counter` id, never
+ *   one already in the log (active, suppressed or rolled back).
  * @property {(label: string) => string} nextName
  */
 
@@ -1039,6 +1043,12 @@ function reasonOf(error) {
  *   (`TODO/core-035`). Omitted: `legacy`, the old fixed 32 — so every caller that
  *   predates the setting folds exactly as before. The app's own new document passes
  *   `DEFAULT_RESOLUTION` (Normal) explicitly (`src/stores/document.js`).
+ * @param {string} [options.replica] `TODO/data-008`: this document's replica id, the middle
+ *   segment of every id it mints. Omitted: a fresh random one, so two documents — a tab and
+ *   an AI fork, a live document and a scratch one — never mint the same id. A spec passes a
+ *   fixed one. Never share one between writers.
+ * @param {import('./replica.js').Clock} [options.clock] The Lamport clock ids count from;
+ *   omitted, a new one for `replica`.
  * @param {boolean} [options.publishesUserParts] `TODO/core-037`: this is **the** open
  *   project — the app's live document (`src/stores/document.js`) — so the user-part
  *   definitions it carries are the registry's project layer (`src/core/userPart.js`):
@@ -1091,7 +1101,13 @@ export function createDocument(options = {}) {
    */
   let variableTable = new Map()
   let scene = emptyScene()
-  let idCounter = 0
+  /**
+   * `TODO/data-008`: replica-scoped ids. The clock is what `nextId` counts with and what
+   * {@link loadEntries} advances past every id it reads, so it is always ahead of anything
+   * this document has seen.
+   * @type {import('./replica.js').Clock}
+   */
+  const clock = options.clock ?? createClock(options.replica ?? createReplicaId())
   /**
    * Section 18's rollback marker, stored as the **count of active entries** —
    * `entries[0 .. rollbackAt - 1]` are folded, the rest are the inactive tail.
@@ -1670,7 +1686,7 @@ export function createDocument(options = {}) {
    *
    * A full re-fold rather than a partial one, deliberately — `data-004`'s own
    * Proposed fix makes the argument: correctness-by-construction from reusing
-   * the proven fold beats a speed win with no measured need. `idCounter` is
+   * the proven fold beats a speed win with no measured need. The clock is
    * **not** reset, so an id can never be handed out twice across an undo.
    *
    * @param {DocumentEntry[]} nextEntries
@@ -2762,8 +2778,9 @@ export function createDocument(options = {}) {
      * *refused* load deliberately leaves them alone: nothing was replaced, so
      * nothing about the user's history became untrue.
      *
-     * `idCounter` is not reset (see {@link rebuildFrom}); `nextId` already skips
-     * ids present in `entries`, so ids in the loaded log are never handed out.
+     * The replica id is kept and the clock is moved past the highest counter in the loaded
+     * ids (`TODO/data-008`; a legacy `op-7` id carries none), and `nextId` also skips ids
+     * present in `entries`, so ids in the loaded log are never handed out.
      *
      * @param {readonly DocumentEntry[]} nextEntries
      * @param {number | null} [nextRollbackAt] Count of active entries, as
@@ -2816,6 +2833,7 @@ export function createDocument(options = {}) {
       standingInstructions = cleanText(options.standingInstructions, INSTRUCTIONS_MAX_LENGTH)
       // `TODO/io-007`: likewise the build volume; omitted, the loaded project has the default.
       buildVolume = options.buildVolume === undefined ? { ...DEFAULT_BUILD_VOLUME } : normalizeBuildVolume(options.buildVolume)
+      for (const entry of nextEntries) clock.observe(counterOfId(entry.record.id))
       undoStack.length = 0
       redoStack.length = 0
       document.version += 1
@@ -3700,19 +3718,22 @@ export function createDocument(options = {}) {
       return bodies
     },
 
+    replicaId() {
+      return clock.replica
+    },
+
     nextId(prefix = 'op') {
-      // A monotonic per-document counter, not a random uuid: this is a
-      // single-writer append log (docs/decisions/document-sync.md — no CRDT for
-      // v1), so a counter is unique, and a readable id makes an NDJSON document
-      // diffable by a human and by the AI partner.
+      // `prefix-replica-counter` (`TODO/data-008`): a Lamport counter scoped by this
+      // document's replica id, not a random uuid, so two writers never mint the same id
+      // and a readable id still makes an NDJSON document diffable by a human and by the AI
+      // partner (docs/decisions/document-sync.md — no CRDT library).
       // Checked against `entries`, not only `originById`: a suppressed or
       // rolled-back row is in the log and not in the derived indexes, and
       // handing its id out again would make it collide the moment the row is
       // unsuppressed or rolled forward (`data-004`).
       let candidate
       do {
-        idCounter += 1
-        candidate = `${prefix}-${idCounter}`
+        candidate = `${prefix}-${clock.replica}-${clock.tick()}`
       } while (originById.has(candidate) || indexOfRecord(candidate) >= 0)
       return candidate
     },
