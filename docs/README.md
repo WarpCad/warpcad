@@ -94,6 +94,10 @@ The Library's Raspberry Pi and Hardware items descend from the `jscad-raspberryp
   copy in a GitHub repository, with auto-push and what happens when someone else
   changed it first; and what it says when your browser won't let WarpCad store
   anything.
+- [Merging two copies of a project](merging.md) — **File ▾ → Merge file…**: bringing the
+  changes from a copy you edited somewhere else (a phone, another tab) into the project you
+  have open, what the strip under the top bar counts, what a conflict is and how to fix the
+  step it marks, **Undo merge**, and when a merge is refused.
 - [Exporting your model: STL, OBJ and glTF](export.md) — **File ▾ → Export…**:
   choosing the whole scene or just your selection, picking STL, OBJ or glTF, what
   each format contains, how files are named, why the menu item is sometimes

@@ -21,6 +21,8 @@ import AssistantButton from '../components/ai/AssistantButton.vue'
 import ChatPanel from '../components/ai/ChatPanel.vue'
 import KeySheet from '../components/ai/KeySheet.vue'
 import SubscriptionRoute from '../components/ai/SubscriptionRoute.vue'
+import MergeBanner from '../components/display/MergeBanner.vue'
+import MergeToast from '../components/display/MergeToast.vue'
 import SaveStatus from '../components/display/SaveStatus.vue'
 import FileMenu from '../components/storage/FileMenu.vue'
 import { bootStorage } from '../composables/useStorageBoot.js'
@@ -237,6 +239,11 @@ function onInspectorClaim() {
          (§14): the viewport's own four corners are already spoken for, and
          `ui-015`'s retirement note is what a control growing into the
          orientation gizmo's corner actually costs. -->
+    <!-- What a Merge file… brought in (TODO/ui-062): in flow and full width, so at phone width
+         it sits at the top of the viewport under the header and pushes it down instead of
+         covering the Operations toolbar or the nav chrome. -->
+    <MergeToast />
+    <MergeBanner />
     <TimelineStrips />
     <main
       class="app__body"

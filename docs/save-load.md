@@ -125,13 +125,13 @@ followed by the reason — and keeps the unreadable copy aside rather than writi
 Everything on this page beyond autosave starts at **File ▾**, in the top bar, between
 **History** and the status light. It works the same on a laptop, a tablet and a phone: tap
 it and a menu opens under it, with three groups: the items for **this device** at the top
-(**New**, the save item, **Open…**, **Export…**), a **Design** group holding the **Resolution**
+(**New**, the save item, **Open…**, **Merge file…**, **Export…**), a **Design** group holding the **Resolution**
 setting and **Project settings…** (see [Design intent](design-intent.md)), and **Hosted storage**
 below the last divider. The first line of the menu repeats the
 status message in full, which is how you read it on a phone, where the status light in the bar
 is only a dot.
 
-![The File menu open: a status line, then New, Download copy, Open… and Export…, a Design group with Resolution: Normal… and Project settings…, and a Hosted storage group with Connect repository…](./screenshots/file-menu.png)
+![The File menu open: a status line, then New, Download copy, Open…, Merge file… and Export…, a Design group with Resolution: Normal… and Project settings…, and a Hosted storage group with Connect repository…](./screenshots/file-menu.png)
 
 Opening the menu never changes what is selected, and nothing in it is greyed out because of
 what is selected.
@@ -192,11 +192,19 @@ exactly why the question comes first.
 
 ![Choosing File, Open on an empty scene, picking a project file, and the saved cube and cylinder appearing with the status line reading Opened warpcad-project.ndjson · 2 steps](./media/open-project.gif)
 
+### Merging another copy instead of replacing
+
+If the file is another copy of the project you have open, say one you changed on your phone,
+choose **File ▾ → Merge file…** instead of **Open…**. Its changes are added to your project and
+yours are kept, there is no "Replace" question, and **Undo merge** takes it back out. See
+[Merging two copies of a project](merging.md).
+
 ### Older versions of WarpCad
 
 Once you have changed a project, the file WarpCad writes also remembers *which copy made each
 step and when*, so two copies of one project can be put back together later. It sits on the
-last line of the file; every step above it is unchanged.
+last line of the file; every step above it is unchanged. See
+[Merging two copies of a project](merging.md).
 
 If you open such a project in a copy of WarpCad that has not updated yet, that copy says
 **This project was saved by a newer WarpCad. Update the app to open it. The file was not

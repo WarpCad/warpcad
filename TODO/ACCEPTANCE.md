@@ -2579,6 +2579,8 @@ clean.
 alone, with no dependency on keyboard or mouse input. Tapping the orientation gizmo
 snaps the camera to the corresponding standard view.
 
+**Last run**: 2026-10-12 23:05 UTC (`ui-062`) — **PASS** at laptop 1440x900 Chromium (real jittered mouse), after performing a **Merge file…** first so the document held merged rows: touch only (CDP) at phone 390x844 and tablet 820x1180 with the merge strip showing: orbit steps and drag (az -75 → -43.8), pan on empty canvas (target moved), zoom +/- and pinch (distance 216 → 139 → 52), `gizmo-view-top` snap (az -90, el 90); strip 49-70 px tall, no overlap with the Operations toolbar or nav chrome, viewport 85-88 % of the screen. One snag, not this task: in Pan mode a touch drag starting on a selected body's gizmo ring rotated the body.
+
 **Last run**: 2026-10-11 03:09 UTC (`ui-059`) — **PASS, partially driven** at phone 390x844 Chromium with touch emulation (`hasTouch`; taps only, no pinch or two-finger pan this run). Cube dropped; the navigation chrome expanded by tap and stepped the camera; the Inspector sheet's new **Inspector / Variables** tabs and the **+** form worked by tap; a bind tap opened the popover as a full-width bottom sheet (x 0, width 390, bottom edge at the viewport's); no horizontal scroll; the nav chrome (y 245-405) and the Operations toolbar (bottom 240) and the sheet (top 426) do not overlap. Re-driven by `ui-059` (Variables section and bind controls added to the Inspector). Console and page errors: none.
 
 **Last run**: 2026-10-09 19:32 UTC (`ai-007`) — **PASS** at the iPad viewport 820x1180 in Chromium (touch only, `tap()`; WebKit touch is the known `ui-045` gap): nav step moved the azimuth (-45 to -30), Pan then step moved the target (0,0,0 to 9.26,16.04,0), zoom-in shrank the distance (420 to 336), zoom-out twice grew it (to 525), and the gizmo's top view snapped elevation to 90. Re-driven because `Viewport.vue` gained the capture registration. Console clean.
@@ -2952,6 +2954,8 @@ shows **Download copy** instead — drive whichever your browser shows, and say 
   **once** and never over a drag in progress. Nothing on GitHub is overwritten. After
   **Cancel** the second local edit does **not** raise the dialog again and does not push;
   an explicit **Save to owner/repo** raises it again.
+
+**Last run**: 2026-10-12 23:05 UTC (`ui-062`) — **PASS** at laptop 1440x900 Chromium (real jittered mouse), after performing a **Merge file…** first so the document held merged rows: cube + cylinder + a merged sphere, Union on the cube, `Saved · 16:32`; reload → `Restored your last session`, body list byte-identical, merged row survived, no toast/banner/Undo merge after the reload (in memory by design); Download copy then Open restored the 4-step project.
 
 **Last run**: 2026-10-12 19:05 UTC (`data-010`) — **PASS for the reload leg (steps 1-5, unioning omitted)** at laptop 1440x900 Chromium (real mouse, jittered Library drags, fresh profile). Cube and Cylinder dropped (both kept), a body deleted, chip reached `Saved`, reload restored exactly the surviving body with `Restored your last session`. Re-driven because every document mutator now stamps merge metadata. Not driven: File ▾ Save/Open round trip (headless, no picker), hosted half. Console and page errors: none.
 
@@ -3366,6 +3370,8 @@ preview strip and the rollback strip (with **Roll forward**), and the header's *
   turns wrong-shaped, the sphere moves or disappears, or nothing at all is said — the exact
   failure class `SECOND-ATTEMPT.md` and this file both exist to catch.
 
+**Last run**: 2026-10-12 23:05 UTC (`ui-062`) — **PASS** at laptop 1440x900 Chromium (real jittered mouse), after performing a **Merge file…** first so the document held merged rows: Cube + Chamfer, merged Cylinder in, own Sphere; edited the chamfer in the middle (5 → 3 mm), later rows replayed with unchanged positions; Undo/Redo and Suppress/Unsuppress consistent with the merge toast still up.
+
 **Last run**: 2026-10-12 19:05 UTC (`data-010`) — **PASS** at laptop 1440x900 Chromium (real mouse, jittered Library drags). Cube, Chamfer Top (+Z) 5 mm, Sphere; History listed 3 rows. Edit on the Chamfer row, Radius 5 → 3, Apply: row read `3 mm`, sphere kept. Undo restored `5 mm`, Redo `3 mm`; Suppress/Unsuppress, Roll back (1 body) / Roll forward (2), and a reload (2 bodies) all behaved. Re-driven because the rollback marker is now an anchor and every mutator stamps. Console and page errors: none.
 
 **Last run**: 2026-10-11 04:29 UTC (`core-056`) — **PASS for steps 1-11** at laptop 1440x900 Chromium (real mouse and keyboard). Cube, a 5 mm Top chamfer (volume 62166.667), Sphere; History rows `Cube 1 / Chamfer Top (+Z) 5 mm / Sphere 1`; Edit to 3 mm replayed (cube 63316, sphere bounds and volume unchanged); header Undo returned 62166.667, Redo 63316; Ctrl+Z with the cursor in the viewport undid it; Suppress gave 64000 and Unsuppress 63316; Roll back to step 2 of 3 (1 body), a Cone dropped while rolled back, Roll forward left Cube, Cone, Sphere; Move up on the Sphere row then Undo restored the order. Re-driven because `document.batch` / undo / redo changed. **Step 12 not separately driven; phone width not driven.** Console clean.
@@ -3604,6 +3610,8 @@ keys, and the header's **Undo**.
 - Never: the other body moving or vanishing, a gizmo left attached to nothing, an
   Inspector sheet describing a body that is gone, or Backspace in a text field deleting
   a body.
+
+**Last run**: 2026-10-12 23:05 UTC (`ui-062`) — **PASS** at laptop 1440x900 Chromium (real jittered mouse), after performing a **Merge file…** first so the document held merged rows: Cube, Cylinder and a merged Sphere: delete Cube, Undo brings it back at the same position, delete again, reload → Cylinder + Sphere only, merged sphere restored.
 
 **Last run**: 2026-10-12 19:05 UTC (`data-010`) — **PASS for steps 1-5** at laptop 1440x900 Chromium (real mouse, jittered Library drags). Cube and Cylinder dropped apart; Inspector **Delete** removed the cube (count 1, tooltip `Undo: Delete Cube 1`); Undo brought it back (2); the **Delete** key removed it again (1); after the chip reached Saved a reload restored exactly one body. Re-driven because removal now records a tombstone. Step 6 (Pi sub-part) and phone not driven. Console and page errors: none.
 
@@ -3855,5 +3863,50 @@ and the header's **Undo**.
 **Last run**: 2026-10-11 04:29 UTC (`core-056`) — **PASS** at laptop 1440x900 Chromium (real mouse and keyboard): steps 1-5 as written, plus: after **New variable from this value…** one Undo removed both the definition and the binding (0 variables, no chip, next Undo `Place Cube 1`) and one Redo restored both; one ordinary Inspector Size X edit was one Undo (`ui-044`). Re-driven because the batch/undo model changed. Console clean.
 
 **Last run**: 2026-10-11 03:09 UTC (`ui-059`, **first drive**) — **PASS** at laptop 1440x900 Chromium (real mouse and keyboard): steps 1-5 as written. At phone 390x844 only the Variables tab, the **+** form and the bind bottom sheet were driven (by tap, in scenario 7's drive), not this step list. Also driven at laptop: typing into a chipped field changes nothing, two fields bound to one variable follow it together, a Transform rotation row offers no bind control, a variable deleted while its value box had uncommitted text still opens the usage dialog, a bind popover stays usable while a variable is changed behind it, and a bind tapped straight after a Pi drop (before the worker settled) works.
+
+### 22. Merge a copy of the project
+
+Added 2026-10-12 with `TODO/ui-062`: the first way a person can bring another copy's changes into
+the open project by hand. Control names: **File ▾ → Merge file…** (`file-merge`), the strip under
+the top bar (`merge-toast` / `merge-banner`), **Show** (`merge-banner-show`), **Undo merge**
+(`merge-undo`), a conflicted row's `chip-broken`, and the header **Undo**.
+
+**Steps** (two browser profiles, or a laptop and a phone):
+1. On device A, drag a Cube and a Cylinder in. **File ▾ → Download copy**.
+2. On device B, **File ▾ → Open…** that file, drag a Sphere in, **Download copy** (this is B's file).
+3. On A, move the Cube (Inspector **Position X**). Note the header **Undo** label.
+4. On A, **File ▾ → Merge file…** and pick B's file.
+5. Press **Undo merge**.
+6. Make a deliberate conflict: on A move the Cube; on B select the Cube, **Fillet**, and download.
+   On A merge B's file again. Press **Show**; **Suppress** the chipped row.
+7. Reload A.
+
+**Expect**:
+- Step 4: a strip `Merged 1 step from <file>` with **Undo merge**; the Sphere is in the viewport and
+  the History; the Cube is still where you moved it; the header **Undo** label is unchanged.
+- Step 5: the Sphere is gone, Cube move and Cylinder intact, header **Undo** unchanged.
+- Step 6: a banner `Merged 1 step from <file> — 1 step conflicted`; **Show** opens History on the
+  conflicted row, which has a red broken chip and a reason (`conflicts with step N (…)`) readable
+  as text without hovering; after **Suppress** the chip is gone.
+- Step 7: the merged result is restored; **Undo merge** is no longer offered.
+- At phone width the strip sits under the header and covers neither the Operations toolbar nor the
+  navigation chrome, and orbit/pan/zoom still work with it showing.
+- Never: a merge that adds a header-**Undo** entry, an **Undo merge** that removes one of your own
+  steps, a conflict reason visible only on hover, or a strip over the nav chrome.
+- **Known gap (`data-013`):** merging a file from an *unrelated* project that was started from New
+  is not refused yet; do not count it as a failure of this scenario until `data-013` lands.
+
+**Last run**: 2026-10-12 23:05 UTC (`ui-062`, **first drive**) — **PASS** at laptop 1440x900
+Chromium (real jittered mouse, two browser profiles) and phone 390x844 / tablet 820x1180 (CDP touch
+only). Steps 1-5: strip `Merged 1 step from b.warpcad`, Sphere in viewport + History, Cube kept at
+X = 60.00, header Undo `Move Cube 1` before and after; Undo merge → `Took the merge from
+b.warpcad back out`, 3 History rows, header Undo unchanged. Step 6 (move vs Fillet): banner `Merged 1
+step from b1.warpcad — 1 step conflicted`, Show selected `fillet-…-2`, red `broken` chip with
+`conflicts with step 2 (Move Cube 1, by you)` as visible text, Suppress cleared it. Step 7: restored,
+no Undo merge. Phone: strip t53-b102 (toast) / b123.5 (banner), toolbar and nav chrome clear, viewport
+85-88 %. Snags (not failures): re-merging after Undo merge is a no-op by design (now in the docs);
+the History action bar is cramped at 900 px height; `by you` on a step the other copy made (filed
+in `data-013`); the status chip kept the old summary after Undo merge (fixed in this task).
+**Unrelated projects merged silently** — expected-gap, `data-013`. Console clean.
 
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

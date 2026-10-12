@@ -6,8 +6,22 @@ priority: high
 model: opus
 milestone: M15
 depends: [data-011]
-status: open
+status: done
 ---
+
+> **As shipped (2026-10-12):** everything in Goal, Interaction model and Documentation landed, with
+> these differences. (1) **The different-project refusal is only partial.** It fires for version-1
+> files with colliding ids, but no code mints a `projectId`, so two projects each started from New
+> merge silently (with Undo merge offered); filed as `data-013`, and `docs/merging.md` says so.
+> (2) The toast and banner are in normal flow under the header at every width (they push the
+> workspace down 49-70 px, never covering the toolbar or nav chrome) and neither times out; the
+> summary is also mirrored on the status chip, including after Undo merge. (3) Undo merge is one
+> new stamped core mutator, `restoreEntries`, rather than a chain of inserts and revisions; it also
+> refuses by name when you edited a row the merge revised. (4) A conflict reason reads
+> `…, by you)` (core's own `originChipText`), not the spec's `…, you)`; it says `by you` for a step
+> the other copy made too, which `data-013` addresses. (5) Merging the same file again after Undo
+> merge is a no-op by design (the undo is a newer tombstone); the docs say so. (6) Scenario 22 added
+> to `TODO/ACCEPTANCE.md`.
 
 ## Goal
 

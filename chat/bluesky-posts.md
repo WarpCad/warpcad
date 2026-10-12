@@ -1630,3 +1630,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** stamps, tombstones, mergeFrom, flagged rows -> src/core/document.js in the diff; nothing calls it -> TODO/data-010 (Interaction model: does not apply)
 **To Add:** repo URL once public
+
+## [2026-10-12T23:10:00Z] — File ▾ → Merge file…, the merge strip, conflict chips and Undo merge
+
+**Post:** WarpCad can now merge a copy of your project: File ▾ → Merge file…, pick the other device's save, and both sets of changes land. A step that can't survive gets a red chip saying why. Undo merge takes it back. Known gap: two unrelated projects still merge. #CAD Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** Merge file…, strip, red chip with reason, Undo merge -> diff (`src/stores/merge.js`, `FileMenu.vue`, `MergeToast.vue`, `MergeBanner.vue`); unrelated projects still merge -> hand drive this session, filed as `TODO/data-013`
+**To Add:** `docs/screenshots/merging-toast.png`, `merging-conflict.png`; repo URL once public

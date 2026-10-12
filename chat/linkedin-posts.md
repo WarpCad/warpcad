@@ -2290,3 +2290,16 @@ Stamping adds roughly 0.03 to 0.07 ms per edit; a merge on a 200-record scene to
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** 120 seeded scripts x 3 replicas -> src/core/documentMerge.spec.js in the diff, passing in the 4105-test unit run this session; 0.03-0.07 ms and 1.2 ms median -> bench/results/2026-10-12-data-010.md, node bench/merge-benchmark.mjs this session (M4 Pro, Node 24, plain Node); flag derived not stored -> module note in src/core/document.js
 **To Add:** repo URL once public
+
+## [2026-10-12T23:10:00Z] — File ▾ → Merge file…, the merge strip, conflict chips and Undo merge
+
+**Post:** WarpCad has a way to merge by hand now. Save a copy on one device, change it there, then on the other choose File ▾ → Merge file… and pick the copy. Steps that came in show up in History; a step that can't build because of what changed under it gets a red chip with the reason, such as "conflicts with step 2 (Move Cube 1)". Undo merge takes the incoming changes back out and leaves the header Undo stack alone.
+
+It sits on the merge core that landed earlier today, and it is the first place a person can reach it. I drove it on a laptop and at phone and tablet width by touch, then re-ran save and reload, History editing, delete and restore, and touch navigation on a merged document. One gap came out of that: nothing marks a project with an identity yet, so two projects each started from New will merge into each other instead of being refused. That is filed as data-013 and called out in the docs.
+
+Source is AGPL, docs are CC BY-SA. Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** menu item, strip, chip reason, Undo merge -> diff; "merge core landed earlier today" -> `git log` a348463/5e94365/8dcd9aa, all 2026-10-12; laptop/phone/tablet drive and scenarios 7, 10, 12, 14 PASS -> Step 6 report this session; two New projects merge -> same drive, `TODO/data-013`
+**To Add:** merging-conflict.png; repo URL once public

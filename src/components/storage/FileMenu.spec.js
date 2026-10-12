@@ -8,6 +8,7 @@ import { nextTick } from 'vue'
 
 enableAutoUnmount(afterEach)
 
+import { useAiChatStore } from '../../stores/aiChat.js'
 import { useDocumentStore } from '../../stores/document.js'
 import { useHostedStore, setHostedDependencies } from '../../stores/hosted.js'
 import { setExportDependencies } from '../../stores/exportDialog.js'
@@ -268,7 +269,8 @@ describe('FileMenu — Export… (TODO/ui-034, data-002 §12)', () => {
     await openMenu(wrapper)
     const group = document.body.querySelector('[role="group"][aria-label="This device"]')
     const ids = Array.from(group.querySelectorAll('button')).map((b) => b.getAttribute('data-testid'))
-    expect(ids).toEqual(['file-new', 'file-save', 'file-open', 'file-export'])
+    // Merge file… (TODO/ui-062) sits directly under Open…; Export… stays last.
+    expect(ids).toEqual(['file-new', 'file-save', 'file-open', 'file-merge', 'file-export'])
   })
 
   it('an empty scene: dimmed, with the reason visible AND as the accessible description', async () => {
@@ -356,6 +358,64 @@ describe('FileMenu — Export… (TODO/ui-034, data-002 §12)', () => {
     await nextTick()
     expect(body().q('export-popover')).toBeNull()
     expect(downloads).toEqual([])
+  })
+})
+
+describe('FileMenu — Merge file… (TODO/ui-062)', () => {
+  it('an empty project: dimmed, "Nothing to merge into" printed under it and as its description', async () => {
+    const { wrapper } = setup('fallback')
+    await openMenu(wrapper)
+    const item = body().q('file-merge')
+    expect(item.textContent).toContain('Merge file…')
+    expect(item.getAttribute('aria-disabled')).toBe('true')
+    expect(item.getAttribute('title')).toBe('Nothing to merge into')
+    const reason = body().q('file-merge-reason')
+    expect(reason.textContent.trim()).toBe('Nothing to merge into')
+    expect(item.getAttribute('aria-describedby')).toBe(reason.id)
+    expect(reason.id).not.toBe('')
+  })
+
+  it('pressing the dimmed item does nothing — no picker', async () => {
+    const { wrapper, files } = setup('fallback')
+    await openMenu(wrapper)
+    body().q('file-merge').click()
+    await nextTick()
+    expect(files.opens).toBe(0)
+    expect(body().q('file-menu')).not.toBeNull()
+  })
+
+  it('while History previews: dimmed with "Return to the latest step to merge"', async () => {
+    const { wrapper } = setup('fallback')
+    const doc = useDocumentStore()
+    doc.append(cube('cube-1'))
+    doc.append(cube('cube-2'))
+    useTimelineStore().selectRow('cube-1')
+    await openMenu(wrapper)
+    expect(body().q('file-merge').getAttribute('aria-disabled')).toBe('true')
+    expect(body().q('file-merge-reason').textContent.trim()).toBe('Return to the latest step to merge')
+  })
+
+  it('while an AI turn is landing: dimmed, with the reason', async () => {
+    const { wrapper } = setup('fallback')
+    useDocumentStore().append(cube('cube-1'))
+    useAiChatStore().running = true
+    await openMenu(wrapper)
+    expect(body().q('file-merge').getAttribute('aria-disabled')).toBe('true')
+    expect(body().q('file-merge-reason').textContent.trim()).toBe('Wait for the Assistant to finish')
+  })
+
+  it('with a step: live, and pressing it closes the menu and opens the same picker Open uses — no replace-confirm', async () => {
+    const { wrapper, files } = setup('fallback')
+    useDocumentStore().append(cube('cube-1'))
+    await openMenu(wrapper)
+    const item = body().q('file-merge')
+    expect(item.getAttribute('aria-disabled')).toBeNull()
+    expect(body().q('file-merge-reason')).toBeNull()
+    item.click()
+    await nextTick()
+    expect(body().q('file-menu')).toBeNull()
+    expect(body().q('file-open-confirm')).toBeNull()
+    await vi.waitFor(() => expect(files.opens).toBe(1))
   })
 })
 

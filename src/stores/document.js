@@ -581,11 +581,60 @@ export const useDocumentStore = defineStore('document', () => {
   }
 
   /**
+   * Everything a change that did not come from a local step needs afterwards: the reactive
+   * mirrors, and a selection that no longer names anything that is gone.
+   */
+  function afterOutsideChange() {
+    refresh()
+    const selection = useSelectionStore()
+    const subPart = selection.subPart
+    restoreSelection([...selection.ids], subPart ? { bodyId: subPart.bodyId, partName: subPart.partName } : undefined)
+  }
+
+  /**
+   * Merge another copy's state in (`TODO/ui-062`, core's `mergeFrom`), as the `merge` origin —
+   * never on either undo stack. Throws the core's refusal unchanged (`UnrelatedProjectError`
+   * for a different project); a throw changes nothing. Not a load: the camera stays where the
+   * user had it, and the History preview and selection survive where they still make sense.
+   *
+   * @param {import('../core/merge/state.js').MergeState} state
+   * @returns {ReturnType<import('../core/document.js').WarpDocument['mergeFrom']>}
+   */
+  function mergeFrom(state) {
+    const outcome = raw.mergeFrom(state, { origin: 'merge' })
+    afterOutsideChange()
+    return outcome
+  }
+
+  /**
+   * **Undo merge** (`TODO/ui-062`): put the log back to `target` and the settings a merge
+   * changed back to `settings`, as one atomic `merge`-origin batch — stamped writes, so this
+   * copy still converges with the other one later. Both undo stacks are left alone. Throws the
+   * core's refusal (a later step builds on a merged row) and changes nothing.
+   *
+   * @param {readonly import('../core/document.js').DocumentEntry[]} target
+   * @param {number | null} rollbackAt
+   * @param {{ resolution?: string, standingInstructions?: string, buildVolume?: import('../core/buildVolume.js').BuildVolume }} [settings]
+   */
+  function restoreAfterMerge(target, rollbackAt, settings = {}) {
+    const transaction = { origin: 'merge' }
+    raw.batch(() => {
+      raw.restoreEntries(target, rollbackAt, transaction)
+      if (settings.resolution !== undefined) raw.setResolution(settings.resolution, transaction)
+      if (settings.standingInstructions !== undefined) raw.setStandingInstructions(settings.standingInstructions, transaction)
+      if (settings.buildVolume !== undefined) raw.setBuildVolume(settings.buildVolume, transaction)
+    })
+    afterOutsideChange()
+  }
+
+  /**
    * @typedef {object} HistoryResult
    * @property {boolean} ok
    * @property {string} [message] Why it was refused — shown to the user, never
    *   swallowed (section 19, point 4's named refusal).
    * @property {string} [label]
+   * @property {string} [note] `TODO/data-010`/`ui-062`: Undo **dropped** the step instead of
+   *   undoing it, because a merge has since removed or revised its rows — what to tell the user.
    */
 
   /**
@@ -596,12 +645,17 @@ export const useDocumentStore = defineStore('document', () => {
   function undo() {
     const step = raw.pendingUndo()
     if (!step) return { ok: false }
+    /** @type {ReturnType<typeof raw.undo>} */
+    let undone
     try {
-      raw.undo()
+      undone = raw.undo()
     } catch (error) {
       return { ok: false, message: error instanceof Error ? error.message : String(error) }
     }
     refresh()
+    // Dropped (a merge removed or revised its rows since): nothing changed on screen, so the
+    // selection stays, and the note says why the step left the list.
+    if (undone?.note !== undefined) return { ok: true, label: step.label, note: undone.note }
     restoreSelection(step.meta?.selectionBefore ?? [], step.meta?.subPartBefore)
     return { ok: true, label: step.label }
   }
@@ -671,6 +725,8 @@ export const useDocumentStore = defineStore('document', () => {
     setBuildVolume,
     deleteBodies,
     removePart,
+    mergeFrom,
+    restoreAfterMerge,
     undo,
     redo,
     refresh,

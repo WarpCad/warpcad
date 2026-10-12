@@ -72,7 +72,7 @@
  */
 
 import { defineStore } from 'pinia'
-import { computed, ref, shallowRef, watch } from 'vue'
+import { computed, ref, shallowRef, toRaw, watch } from 'vue'
 
 import { ReplayRejection } from '../core/document.js'
 import { DEFAULT_RESOLUTION } from '../core/kernel/tessellation.js'
@@ -82,6 +82,7 @@ import { createFileStorage } from '../storage/fileSystem.js'
 import { createIndexedDbBackend } from '../storage/indexeddb.js'
 import { createLocalStorageMirror } from '../storage/localMirror.js'
 import { useDocumentStore } from './document.js'
+import { mergeStateOfProject, useMergeStore } from './merge.js'
 
 /** How long the "Restored your last session" notice stays before the chip returns to rest. */
 const RESTORED_NOTICE_MS = 6000
@@ -285,6 +286,17 @@ export const usePersistenceStore = defineStore('persistence', () => {
     noticeTimer = null
     notice.value = ''
   }
+
+  // The status chip follows the merge strip: a merge announces itself through `mergeText`, but
+  // Undo merge (pressed on the strip, not through here) writes its own sentence, and without
+  // this the chip would keep the old `Merged … — 1 step conflicted` after the merge is gone.
+  const mergeStore = useMergeStore()
+  watch(
+    () => mergeStore.notice,
+    (strip) => {
+      if (strip !== null && strip.text !== notice.value) showNotice(strip.text, SAVED_NOTICE_MS)
+    }
+  )
 
   const autosaver = createAutosaver({
     backend: deps.backend,
@@ -609,6 +621,66 @@ export const usePersistenceStore = defineStore('persistence', () => {
   }
 
   /**
+   * **Merge file…** (`TODO/ui-062`): pick a saved copy of this project and merge its changes in.
+   * The same picker Open uses (native where File System Access exists, `<input type=file>`
+   * everywhere else), called synchronously from the click like {@link openFile}. Nothing is
+   * replaced, so there is no replace-confirm — and the picked file never becomes the Save
+   * target or the watched file: the project still comes from where it came from.
+   *
+   * A cancelled picker changes nothing and says nothing (`ui-033`).
+   *
+   * @returns {Promise<import('./merge.js').MergeResult | { ok: false, cancelled: true } | { ok: false, message: string }>}
+   */
+  async function mergeFile() {
+    if (loading.value) return { ok: false, message: 'Another file is still opening' }
+    const picked = await deps.files.open()
+    if (!picked.ok) {
+      if ('cancelled' in picked) return { ok: false, cancelled: true }
+      clearNotice()
+      errorMessage.value = `Couldn't open ${picked.name ?? 'the file'}: ${picked.error}`
+      return { ok: false, message: picked.error }
+    }
+    return mergeText(picked.text, picked.name)
+  }
+
+  /**
+   * Merge a copy's text in — {@link mergeFile} minus the picker. Announced (`Merging <name>…`)
+   * and folded like a load (`TODO/core-032`): the file is folded into a throwaway document
+   * first, so a file this build cannot read is refused with **the same sentence Open shows**
+   * and changes nothing. The result's sentence goes on the one status surface as well as on
+   * the merge toast or banner, so the chip and the File menu's first line agree with it.
+   *
+   * @param {string} text
+   * @param {string} name
+   * @returns {Promise<import('./merge.js').MergeResult | { ok: false, message: string }>}
+   */
+  async function mergeText(text, name) {
+    if (loading.value) return { ok: false, message: 'Another file is still opening' }
+    const merge = useMergeStore()
+    const outcome = await announced(`Merging ${name}…`, () => {
+      /** @type {import('../core/merge/state.js').MergeState} */
+      let state
+      try {
+        state = mergeStateOfProject(parseProject(text), toRaw(documentStore.raw).foldCache)
+      } catch (error) {
+        return { ok: /** @type {const} */ (false), unreadable: reasonOf(error) }
+      }
+      return merge.mergeIn(state, name)
+    })
+    if ('unreadable' in outcome) {
+      clearNotice()
+      errorMessage.value = `Couldn't open ${name}: ${outcome.unreadable}`
+      return { ok: false, message: outcome.unreadable }
+    }
+    if (outcome.ok) {
+      // A stale error from an earlier refused file never hides this success (`ui-033`).
+      errorMessage.value = ''
+      showNotice(outcome.text, SAVED_NOTICE_MS)
+    }
+    return outcome
+  }
+
+  /**
    * Start an empty project (`TODO/ui-054`): the same atomic `documentStore.load` Open uses —
    * so selection is cleared and both undo stacks are emptied exactly as for Open — with an
    * empty entry list at the default resolution, then the remembered Save target is dropped,
@@ -753,6 +825,8 @@ export const usePersistenceStore = defineStore('persistence', () => {
     saveFile,
     openFile,
     openText,
+    mergeFile,
+    mergeText,
     newProject,
     dismissError,
     announce,

@@ -50,6 +50,14 @@
  * description (`aria-describedby`), and on a phone — where a `title` tooltip never shows — the
  * reason is simply printed under the label. Pressing a dimmed item does nothing.
  *
+ * ## `Merge file…` (`TODO/ui-062`)
+ *
+ * Directly under `Open…`: the same picker, but nothing is replaced, so there is no
+ * replace-confirm — the picked copy's changes are merged in (`stores/merge.js`). Dimmed with its
+ * reason printed under it, exactly like `Export…`: `Nothing to merge into`, `Return to the
+ * latest step to merge`, or `Wait for the Assistant to finish` while an AI turn is landing.
+ * What came in is reported by the merge toast or banner (`MergeToast.vue`, `MergeBanner.vue`).
+ *
  * ## `Resolution: Normal` (`TODO/core-035`)
  *
  * The one row of its own **Design** group, after `Export…`'s group. Its label **is** the current design resolution, so the setting
@@ -90,6 +98,7 @@ import { useStatusSurface } from '../../composables/useStatusSurface.js'
 import { useExportDialogStore } from '../../stores/exportDialog.js'
 import { useFileMenuStore } from '../../stores/fileMenu.js'
 import { useHostedStore } from '../../stores/hosted.js'
+import { useMergeStore } from '../../stores/merge.js'
 import { useOverlaysStore } from '../../stores/overlays.js'
 import { usePersistenceStore } from '../../stores/persistence.js'
 import { usePlacementStore } from '../../stores/placement.js'
@@ -107,6 +116,7 @@ import ResolutionPopover from './ResolutionPopover.vue'
 import { useResolutionDialogStore } from '../../stores/resolutionDialog.js'
 
 const menu = useFileMenuStore()
+const merge = useMergeStore()
 const exportDialog = useExportDialogStore()
 const resolutionDialog = useResolutionDialogStore()
 const hosted = useHostedStore()
@@ -375,6 +385,27 @@ onBeforeUnmount(() => {
               @click="menu.requestOpen()"
             >
               {{ capabilities.openLabel }}
+            </button>
+            <button
+              type="button"
+              role="menuitem"
+              class="file-menu__item file-menu__item--stacked"
+              data-testid="file-merge"
+              :disabled="persistence.loading !== ''"
+              :aria-disabled="merge.unavailableReason !== '' ? 'true' : undefined"
+              :aria-describedby="merge.unavailableReason !== '' ? 'file-merge-reason' : undefined"
+              :title="merge.unavailableReason !== '' ? merge.unavailableReason : 'Merge the changes from another copy of this project'"
+              @click="menu.requestMerge()"
+            >
+              <span>Merge file…</span>
+              <span
+                v-if="merge.unavailableReason !== ''"
+                id="file-merge-reason"
+                class="file-menu__reason"
+                data-testid="file-merge-reason"
+              >
+                {{ merge.unavailableReason }}
+              </span>
             </button>
             <button
               v-if="persistence.diskChanged"

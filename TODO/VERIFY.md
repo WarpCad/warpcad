@@ -34,6 +34,18 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### ui-062 — File ▾ → Merge file…, merge strip, Undo merge (2026-10-12 23:05)
+
+Scenario 22 and 7/10/12/14 were driven by hand; these are the feel and device checks that
+drive could not settle.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | On a real phone, the merge strip pushing the workspace down 49-70 px when it appears and again when it goes: is the layout jump acceptable, or should it overlay? | Open | |
+| 2 | At laptop height 900 the History selected-row action bar (Edit / Suppress / Move up…) is cramped at the bottom of the panel; on a phone sheet "Roll back to here" sits under the peek bars. Judge whether a conflicted row's fix is easy to find. | Open | |
+| 3 | The strip never times out and stays until dismissed. Does a clean-merge toast that lingers feel wrong? | Open | |
+| 4 | Pan mode, touch drag that starts on a selected body's gizmo ring rotates the body instead of panning (seen on phone; not merge-related). File as its own TODO if it reproduces on a real device. | Open | |
+
 ### data-011 — Project file version 2 (2026-10-12 19:50)
 
 Core and format only; scenarios 8 and 10 were re-driven and passed. These are what no scenario covers.

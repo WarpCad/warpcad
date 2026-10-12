@@ -39,6 +39,7 @@ import { useAlignReferenceStore } from './alignReference.js'
 import { useDocumentStore } from './document.js'
 import { useExportDialogStore } from './exportDialog.js'
 import { useHostedStore } from './hosted.js'
+import { useMergeStore } from './merge.js'
 import { usePersistenceStore } from './persistence.js'
 import { useProjectSettingsStore } from './projectSettings.js'
 import { useResolutionDialogStore } from './resolutionDialog.js'
@@ -53,6 +54,7 @@ export const useFileMenuStore = defineStore('fileMenu', () => {
   const resolutionDialog = useResolutionDialogStore()
   const projectSettings = useProjectSettingsStore()
   const alignReference = useAlignReferenceStore()
+  const merge = useMergeStore()
 
   const menuOpen = ref(false)
   const connectOpen = ref(false)
@@ -172,6 +174,21 @@ export const useFileMenuStore = defineStore('fileMenu', () => {
     hosted.detachForNewProject()
   }
 
+  /**
+   * **Merge file…** (`TODO/ui-062`): straight to the picker Open uses — nothing is replaced, so
+   * nothing is confirmed. Must be called synchronously from the click (the `<input type=file>`
+   * fallback's `click()` needs the gesture). A no-op while the item is dimmed
+   * (`merge.unavailableReason`) or a load is pending.
+   */
+  function requestMerge() {
+    if (merge.unavailableReason !== '') return
+    menuOpen.value = false
+    if (persistence.loading) return
+    exportDialog.close()
+    resolutionDialog.close()
+    void persistence.mergeFile()
+  }
+
   /** `Load from owner/repo`: the same replace question, then a read of the repository. */
   function requestLoad() {
     menuOpen.value = false
@@ -255,6 +272,7 @@ export const useFileMenuStore = defineStore('fileMenu', () => {
     requestProjectSettings,
     requestOpen,
     requestNew,
+    requestMerge,
     requestLoad,
     confirmReplace,
     cancelConfirm,

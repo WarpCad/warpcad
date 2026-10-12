@@ -68,7 +68,9 @@ const refusal = ref('')
 /** @param {'undo' | 'redo'} action */
 function run(action) {
   const result = action === 'undo' ? documentStore.undo() : documentStore.redo()
-  refusal.value = result.ok ? '' : (result.message ?? '')
+  // `TODO/data-010`/`ui-062`: an Undo that *dropped* its step (a merge has since removed or
+  // revised its rows) succeeded without changing anything — the note says why it left the list.
+  refusal.value = result.ok ? (result.note ?? '') : (result.message ?? '')
 }
 
 // `isTextEntry` lives in `composables/textEntry.js`, shared with the Delete shortcut

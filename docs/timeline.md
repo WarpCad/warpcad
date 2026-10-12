@@ -60,12 +60,17 @@ A row can also carry a small label on the right:
 |---|---|
 | `suppressed` | the step is switched off — it's still here, but the model is built as if it never happened |
 | `inactive` | the step is after the rollback point, so it isn't being built at all right now |
-| `broken` | this step can't be built as things currently stand; hover or tap it for the reason |
+| `broken` | this step can't be built as things currently stand; select the row and the reason is printed under it (on a laptop, hovering the chip shows it too) |
 | `via …` | somebody or something other than you added this step |
 | `if … = …` | the step only happens while another part has that option, e.g. `if Raspberry Pi 1 = Pi 4` (dashed; see below) |
 
 Tap a row to select it. The buttons for that row appear underneath it — deliberately
 only on the selected row, so there aren't five small buttons crowding every line.
+
+**Steps from a merge.** After **File ▾ → Merge file…**, the other copy's steps are rows here
+like any other. A row that couldn't survive the merge is `broken` with a reason such as
+`conflicts with step 6 (Move Cube 1, by you)`; fix it with its own **Edit** or **Suppress**. See
+[Merging two copies of a project](merging.md#what-a-conflict-is).
 
 **Why a step exists.** A row with a small note icon at its right end carries a note saying
 why it was made, usually recorded by the AI assistant. Tap the icon to read it; see
@@ -249,6 +254,7 @@ work away.
 ## See also
 
 - [Undoing and redoing a change](undo-redo.md)
+- [Merging two copies of a project](merging.md)
 - [Rounding or bevelling an edge: Fillet and Chamfer](fillet-chamfer.md)
 - [Selecting a shape, and reading its size](selection-and-inspector.md)
 

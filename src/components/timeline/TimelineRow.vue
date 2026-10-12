@@ -246,6 +246,13 @@ function cancel() {
       <p class="intent__text">{{ row.intent }}</p>
     </div>
 
+    <!-- The broken chip's reason, printed (`TODO/ui-062`): its `title` is a hover tooltip, and a
+         phone has no hover — so on the selected row the reason ("conflicts with step 6 (Move
+         Cube 1, by you)") is plain text, read the same way at every width. -->
+    <p v-if="selected && brokenReason" class="row__broken-reason" data-testid="timeline-broken-reason">
+      {{ brokenReason }}
+    </p>
+
     <div v-if="selected" class="actions" data-testid="timeline-actions">
       <button
         type="button"
@@ -507,6 +514,15 @@ function cancel() {
 .row__intent-icon {
   width: 16px;
   height: 16px;
+}
+
+.row__broken-reason {
+  margin: 0;
+  padding: 0 10px 6px 13px;
+  font-size: 12px;
+  line-height: 1.35;
+  color: var(--danger);
+  overflow-wrap: anywhere;
 }
 
 .intent {

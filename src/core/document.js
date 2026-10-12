@@ -370,6 +370,7 @@
  * | `setSuppressed` | `suppressed` |
  * | `moveStep` | the moved row's `pos` |
  * | `removeRecords` (Undo AI turn) | tombstones; the marker if it moves |
+ * | `restoreEntries` (Undo merge, `TODO/ui-062`) | whatever its diff is: tombstones for rows that go, a fresh `born` for rows that come back, `rec`/flags for rows put back, `pos` for rows re-ordered, the marker |
  * | `deleteBodies`, `removePart`, `setColorOverride`, `clearColorOverride` | a new row (through `appendAll`) |
  * | `rollBackTo`, `rollForward` | the `rollbackAfter` register |
  * | `setResolution` | the `resolution` register |
@@ -799,6 +800,8 @@ export class ReplayRejection extends Error {
  * @property {(id: string, delta: number, transaction: TransactionOptions) => { scene: Scene }} moveStep
  * @property {(index: number, records: readonly OpRecord[], transaction: TransactionOptions) => { records: OpRecord[], scene: Scene }} insertAt
  * @property {(ids: readonly string[], transaction: TransactionOptions) => { scene: Scene }} removeRecords `TODO/ai-006`: take a set of records back out atomically (Undo AI turn).
+ * @property {(target: readonly DocumentEntry[], rollbackAt: number | null, transaction: TransactionOptions) => { scene: Scene }} restoreEntries
+ *   `TODO/ui-062`: put the whole log back to `target` in one stamped fold (Undo merge). Never a local step.
  * @property {(id: string, transaction: TransactionOptions) => { scene: Scene }} rollBackTo
  * @property {(transaction: TransactionOptions) => { scene: Scene }} rollForward
  * @property {() => Body[]} bodies
@@ -865,6 +868,7 @@ const STAMPED_MUTATORS = Object.freeze([
   'appendAll',
   'insertAt',
   'removeRecords',
+  'restoreEntries',
   'batch',
   'undo',
   'redo',
@@ -3457,6 +3461,75 @@ export function createDocument(options = {}) {
         rollbackAt === null ? null : entries.slice(0, rollbackAt).filter((entry) => next.includes(entry)).length
       rebuildFrom(next, nextRollback)
       for (const id of doomed) {
+        originById.delete(id)
+        recordById.delete(id)
+      }
+      document.version += 1
+      return { scene }
+    },
+
+    /**
+     * `TODO/ui-062`: put the log back to `target` — rows, their order, their records, origins,
+     * intent and both fold flags — and the marker to `nextRollbackAt`, in **one** atomic re-fold.
+     * What **Undo merge** writes: computing the inverse as a list and folding it once means the
+     * intermediate states a chain of `insertAt`/`reviseRecords`/`moveStep` calls would pass
+     * through (each of which has to fold on its own) never exist. It is stamped like every other
+     * mutator — from the diff — so a row that goes becomes a tombstone newer than the row, and a
+     * row that comes back gets a fresh `born` that beats the merge's tombstone: the two copies
+     * still converge when they are merged again.
+     *
+     * Never a local step: both undo stacks are left alone, and a `local` origin is refused.
+     * Refuses by name, without changing anything, when a row that stays references one that goes
+     * — the guard {@link WarpDocument.removeRecords} applies, in the same words — and with a
+     * {@link ReplayRejection} naming the row when the target does not fold.
+     */
+    restoreEntries(target, nextRollbackAt, transaction) {
+      const origin = transaction?.origin
+      if (typeof origin !== 'string' || origin.length === 0) {
+        throw new Error(
+          'document.restoreEntries: a transaction origin is required — ' +
+            "every mutation is origin-tagged so undo/redo can be scoped to the local user's own edits"
+        )
+      }
+      if (origin === 'local') {
+        throw new Error('document.restoreEntries: never a local step — it writes what stays off the local undo stack')
+      }
+      /** @type {Set<string>} */
+      const kept = new Set()
+      for (const entry of target) {
+        const id = entry?.record?.id
+        if (typeof id !== 'string') throw new Error('document.restoreEntries: every row needs an id')
+        if (kept.has(id)) throw new Error(`document.restoreEntries: step "${id}" appears twice`)
+        kept.add(id)
+      }
+      /** @type {Set<string>} */
+      const leaving = new Set()
+      for (const entry of entries) {
+        const id = entry.record.id
+        if (id !== undefined && !kept.has(id)) leaving.add(id)
+      }
+      for (const entry of target) {
+        for (const referenced of referencedIdsOf(entry.record)) {
+          if (!leaving.has(referenced)) continue
+          const blocker = entry.record.name ?? entry.record.id ?? entry.record.op
+          throw new Error(
+            `document.restoreEntries: "${blocker}", added via ${entry.origin}, depends on "${referenced}" — edit or delete it first`
+          )
+        }
+      }
+      if (nextRollbackAt !== null && (!Number.isInteger(nextRollbackAt) || nextRollbackAt < 1 || nextRollbackAt >= target.length)) {
+        throw new Error(`document.restoreEntries: rollback position ${String(nextRollbackAt)} is not inside the log`)
+      }
+      /** @type {DocumentEntry[]} */
+      const next = target.map((entry) => ({
+        record: entry.record,
+        origin: entry.origin,
+        ...(entry.suppressed === true ? { suppressed: true } : {}),
+        ...(entry.leftBroken === true ? { leftBroken: true } : {}),
+        ...(typeof entry.intent === 'string' ? withIntent(entry.intent) : {}),
+      }))
+      rebuildFrom(next, nextRollbackAt)
+      for (const id of leaving) {
         originById.delete(id)
         recordById.delete(id)
       }
