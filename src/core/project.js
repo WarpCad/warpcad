@@ -100,6 +100,17 @@
  * as an unknown op — the honest outcome for a file it cannot fold — which is recorded in
  * `docs/decisions/project-variables.md`.
  *
+ * ## Merge metadata (`TODO/data-011`)
+ *
+ * What lets two copies of one project be merged after either was closed goes in a `merge`
+ * section of the same state line — see `src/core/merge/section.js` for what is written and
+ * `src/core/merge/validate.js` for what is refused. The line says **version 2** only when
+ * the section has content (a stamp, a non-derived position key, a tombstone, a register
+ * stamp or a project id); a legacy file opened and saved unchanged keeps version 1 and its
+ * bytes, and loads by deriving the metadata from row order. A build from before this task
+ * refuses version 2 by naming the version; this build refuses a version above 2 with the
+ * "saved by a newer WarpCad" sentence, before any record is folded.
+ *
  * ## Refusal, not repair
  *
  * {@link parseProject} is strict where `parseNdjson` is lenient. The lenient
@@ -117,6 +128,10 @@
 import { DEFAULT_BUILD_VOLUME, normalizeBuildVolume, sameBuildVolume } from './buildVolume.js'
 import { INSTRUCTIONS_MAX_LENGTH, INTENT_MAX_LENGTH, cleanText } from './intent.js'
 import { DEFAULT_RESOLUTION, RESOLUTION_IDS, isResolution } from './kernel/tessellation.js'
+import { MergeSectionError, readMergeSection } from './merge/validate.js'
+import { encodeMergeSection } from './merge/section.js'
+import { compareStamps } from './replica.js'
+import { LEGACY_STAMP } from './merge/state.js'
 import { parseNdjson, serializeNdjson } from './ndjson.js'
 import { ASSET_OP, validateImageAsset } from '../sketch/imageAsset.js'
 import { USER_PART_LIMITS, isUserPartOp, requiredUserParts, validateUserPartSet } from './userPart.js'
@@ -134,8 +149,17 @@ import {
 /** The `warpcad` discriminator on the one control line this format defines. */
 const STATE_KIND = 'project-state'
 
-/** The state line's own version — bumped only if its meaning changes incompatibly. */
+/**
+ * The state line's versions (`TODO/data-011`). **1** is every file with nothing to say about
+ * merging; **2** carries a `merge` section. Version 2 is written only when the section has
+ * content, so a legacy file opened and saved unchanged keeps its bytes — and its version.
+ */
 const STATE_VERSION = 1
+const STATE_VERSION_MERGE = 2
+
+/** What a file from a newer state-line version is refused with. */
+const NEWER_VERSION_MESSAGE =
+  'This project was saved by a newer WarpCad. Update the app to open it. The file was not changed.'
 
 /** A file this build refuses to load, with a message safe to show the user as-is. */
 export class ProjectFormatError extends Error {
@@ -149,7 +173,7 @@ export class ProjectFormatError extends Error {
 /**
  * Serialise a document to project text.
  *
- * @param {Pick<WarpDocument, 'entries' | 'rollbackAt'> & Partial<Pick<WarpDocument, 'resolution' | 'standingInstructions' | 'buildVolume' | 'userParts'>>} document
+ * @param {Pick<WarpDocument, 'entries' | 'rollbackAt'> & Partial<Pick<WarpDocument, 'resolution' | 'standingInstructions' | 'buildVolume' | 'userParts' | 'mergeState' | 'mergeClock'>>} document
  * @returns {string} `''` for an empty document at the new-document default; otherwise
  *   newline-terminated NDJSON.
  */
@@ -191,6 +215,17 @@ export function serializeProject(document) {
     (op) => carried.get(op)
   ).definitions
 
+  // `TODO/data-011`: the merge metadata, only where it says more than row order does.
+  const merge =
+    document.mergeState === undefined
+      ? null
+      : encodeMergeSection(
+          document.mergeState(),
+          entries,
+          document.mergeClock?.() ?? 0,
+          parts.map((definition) => definition.op)
+        )
+
   /** @type {object[]} */
   const lines = entries.map((entry) => entry.record)
   const hasOrigins = Object.keys(origins).length > 0
@@ -204,11 +239,12 @@ export function serializeProject(document) {
     hasIntents ||
     standingInstructions !== '' ||
     writesBuildVolume ||
-    parts.length > 0
+    parts.length > 0 ||
+    merge !== null
   ) {
     lines.push({
       warpcad: STATE_KIND,
-      version: STATE_VERSION,
+      version: merge !== null ? STATE_VERSION_MERGE : STATE_VERSION,
       ...(suppressed.length > 0 ? { suppressed } : {}),
       ...(leftBroken.length > 0 ? { leftBroken } : {}),
       ...(rollbackAt !== null ? { rollbackAt } : {}),
@@ -220,6 +256,7 @@ export function serializeProject(document) {
         ? { buildVolume: { widthMm: buildVolume.widthMm, depthMm: buildVolume.depthMm, heightMm: buildVolume.heightMm } }
         : {}),
       ...(parts.length > 0 ? { parts } : {}),
+      ...(merge !== null ? { merge } : {}),
     })
   }
   return serializeNdjson(lines)
@@ -399,11 +436,13 @@ function boundNamesOf(record) {
  * line is adjusted so it never names a record that is no longer there.
  *
  * @param {string} text
- * @returns {{ entries: DocumentEntry[], rollbackAt: number | null, resolution: string, standingInstructions: string, buildVolume: import('./buildVolume.js').BuildVolume, userParts: import('./userPart.js').UserPartDefinition[], unavailableParts: Record<string, string>, warnings: LoadWarning[] }}
+ * @returns {{ entries: DocumentEntry[], rollbackAt: number | null, resolution: string, standingInstructions: string, buildVolume: import('./buildVolume.js').BuildVolume, userParts: import('./userPart.js').UserPartDefinition[], unavailableParts: Record<string, string>, merge?: import('./merge/validate.js').MergeOverlay, warnings: LoadWarning[] }}
  *   `standingInstructions` is `''` when the file has none (`TODO/ai-003`); `buildVolume` is the
  *   default when the file has none (`TODO/io-007`). `userParts` are the usable definitions the
  *   file carries and `unavailableParts` (op → reason) the parts its records name that are
- *   missing or bad (`TODO/core-037`) — hand both to `WarpDocument.loadEntries`.
+ *   missing or bad (`TODO/core-037`) — hand both to `WarpDocument.loadEntries`. `merge`
+ *   (`TODO/data-011`) is the validated merge section of a version-2 file, absent otherwise —
+ *   hand it to `loadEntries` too.
  * @throws {ProjectFormatError} naming the line, or the offending field.
  */
 export function parseProject(text) {
@@ -435,6 +474,9 @@ export function parseProject(text) {
   /** For each dropped record, how many records (kept or not) preceded it. */
   /** @type {number[]} */
   const retiredPositions = []
+  /** Each id'd record's index among all records, so a tombstoned row can be dropped by position. */
+  /** @type {Map<string, number>} */
+  const positionOfId = new Map()
   let recordCount = 0
   /** `TODO/core-050`: the variable names defined so far, for the duplicate and count caps. */
   /** @type {Set<string>} */
@@ -457,10 +499,13 @@ export function parseProject(text) {
       if (state !== undefined) {
         throw new ProjectFormatError(`line ${line}: more than one project-state line`)
       }
-      if (record.version !== STATE_VERSION) {
+      if (Number.isInteger(record.version) && record.version > STATE_VERSION_MERGE) {
+        throw new ProjectFormatError(NEWER_VERSION_MESSAGE)
+      }
+      if (record.version !== STATE_VERSION && record.version !== STATE_VERSION_MERGE) {
         throw new ProjectFormatError(
-          `line ${line}: project-state version ${JSON.stringify(record.version)} was written by a ` +
-            'newer version of WarpCad than this one',
+          `line ${line}: project-state version ${JSON.stringify(record.version)} is not one this ` +
+            'version of WarpCad knows',
         )
       }
       state = record
@@ -482,6 +527,7 @@ export function parseProject(text) {
       ids.add(record.id)
     }
     const retired = retiredReason(record.op) ?? unsafeImageReason(record) ?? variableDropReason(record, variableNames)
+    if (record.id !== undefined) positionOfId.set(record.id, recordCount)
     recordCount += 1
     if (retired !== null) {
       warnings.push({ ...(record.id !== undefined ? { id: record.id } : {}), op: record.op, message: retired })
@@ -537,6 +583,39 @@ export function parseProject(text) {
       }
     }
   }
+  // `TODO/data-011`: the merge section is read only from a version-2 line. A version-1 line
+  // that carries one anyway is a build that ignores it, as it would any field it has no
+  // reader for (`project.spec.js` pins that), so the metadata is derived from row order.
+  /** @type {import('./merge/validate.js').MergeOverlay | undefined} */
+  let merge
+  if (state?.version === STATE_VERSION_MERGE && state.merge !== undefined) {
+    try {
+      merge = readMergeSection(state.merge, ids)
+    } catch (error) {
+      if (error instanceof MergeSectionError) throw new ProjectFormatError(`project-state: ${error.message}`)
+      throw error
+    }
+    // A row whose tombstone is not older than its own birth is dead by the merge rule (a tie
+    // goes to the tombstone), whatever the file's record lines say. Resolved, not refused: the
+    // row is dropped the way a retired record is, and named.
+    for (const [id, tombstone] of merge.dead) {
+      const position = positionOfId.get(id)
+      if (position === undefined || retiredIds.has(id)) continue
+      const born = merge.stamps.get(id)?.born ?? LEGACY_STAMP
+      if (compareStamps(tombstone, born) < 0) continue
+      const index = entries.findIndex((entry) => entry.record.id === id)
+      if (index < 0) continue
+      const [dropped] = entries.splice(index, 1)
+      warnings.push({
+        id,
+        op: dropped.record.op,
+        message: 'this step was deleted by another copy of the project — dropped, as a merge would',
+      })
+      retiredIds.add(id)
+      retiredPositions.push(position)
+    }
+  }
+
   const declaredInstructions = state?.standingInstructions
   if (declaredInstructions !== undefined && typeof declaredInstructions !== 'string') {
     throw new ProjectFormatError('project-state: `standingInstructions` must be text')
@@ -599,7 +678,17 @@ export function parseProject(text) {
   const { userParts, unavailableParts } = readUserParts(state?.parts, entries, warnings)
   flagUnresolvableBindings(entries, variableNames, warnings)
 
-  return { entries, rollbackAt, resolution, standingInstructions, buildVolume, userParts, unavailableParts, warnings }
+  return {
+    entries,
+    rollbackAt,
+    resolution,
+    standingInstructions,
+    buildVolume,
+    userParts,
+    unavailableParts,
+    ...(merge !== undefined ? { merge } : {}),
+    warnings,
+  }
 }
 
 /**

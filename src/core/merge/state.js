@@ -64,6 +64,24 @@
  * @property {Map<string, Lww<unknown>>} parts User-part definitions by op.
  */
 
+/**
+ * The replica id every derived ("legacy") stamp carries, with counter `0` — a value no clock
+ * ever issues (`tick` starts at 1), so it marks metadata derived from a file rather than
+ * written by an edit. Fixed, so two builds upgrading one file derive identical metadata.
+ */
+export const LEGACY_REPLICA = 'legacy'
+
+/** @type {Stamp} */
+export const LEGACY_STAMP = Object.freeze({ counter: 0, replica: LEGACY_REPLICA })
+
+/**
+ * @param {Stamp} stamp
+ * @returns {boolean}
+ */
+export function isLegacyStamp(stamp) {
+  return stamp.counter === 0 && stamp.replica === LEGACY_REPLICA
+}
+
 /** The document-level registers, in their canonical order. */
 export const REGISTER_NAMES = /** @type {const} */ (['rollbackAfter', 'resolution', 'standingInstructions', 'buildVolume'])
 

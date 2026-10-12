@@ -6,6 +6,7 @@ import { impactOf, variableImpactOf } from './dependents.js'
 import { bindParamToNewVariable, setVariableRevision } from './variables.js'
 import { serializeProject } from './project.js'
 import { defaultFixOf, offeredFixesOf, repairChanges } from './repair.js'
+import { recordLinesOf } from './__fixtures__/projectText.js'
 
 /**
  * `TODO/ui-052`'s repair step: the fixes chosen in the dialog, turned into one revision.
@@ -140,7 +141,7 @@ describe('repairChanges — one revision for the edit and every chosen fix', () 
     expect(undoDepth()).toBe(1)
     expect(document.pendingUndo()?.label).toBe('Edit Raspberry Pi 1')
     document.undo()
-    expect(serializeProject(document)).toBe(before)
+    expect(recordLinesOf(serializeProject(document))).toBe(recordLinesOf(before))
     expect(document.pendingUndo()?.label).not.toBe('Edit Raspberry Pi 1')
   })
 

@@ -135,6 +135,16 @@ The simplest habit: let Claude work on a file you don't have open, then open it.
   so the file is never left half-written. A lock file (`bracket.ndjson.lock`, there only while a
   write is happening) stops two servers on the same file from overwriting each other.
 
+## What the file holds
+
+The file is plain NDJSON: one line per step, exactly as the server appended it, and — only once
+something has been edited — one last `project-state` line. That line carries what was hidden,
+rolled back or noted, and a `merge` section: a small record of which copy wrote each step and
+when, and which steps were deleted. The server keeps every part of it that a call did not touch,
+so a copy you edit through Claude and a copy you edit in the app can later be told apart and
+merged. A file that has never been edited has no such line, and one that is opened and saved
+unchanged keeps its bytes.
+
 ## When something goes wrong
 
 Every message names the file and says that nothing was written to it.
@@ -142,8 +152,9 @@ Every message names the file and says that nothing was written to it.
 - **Can't open bracket.ndjson: line 4 is not valid JSON — this is not a WarpCad project file.**
   The file was cut off or edited by hand. The server refuses it, and so would the app. Restore a
   good copy (your autosave, or a copy in a [GitHub repository](save-load.md)).
-- **Can't open bracket.ndjson: … was written by a newer version of WarpCad than this one.** Update
-  your WarpCad checkout (`git pull`, then `npm run mcp:install`).
+- **Can't open bracket.ndjson: This project was saved by a newer WarpCad. Update the app to open
+  it. The file was not changed.** Update your WarpCad checkout (`git pull`, then
+  `npm run mcp:install`).
 - **Another WarpCad MCP server (process 1234) is writing bracket.ndjson…** Another server was in
   the middle of a write for more than ten seconds. Try again. A lock left behind by a server that
   crashed is cleared automatically.

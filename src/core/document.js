@@ -460,7 +460,7 @@ import {
 import { ASSET_OP, validateImageAsset } from '../sketch/imageAsset.js'
 import { counterOfId, createClock, createReplicaId } from './replica.js'
 import { compareKeys, keysBetween } from './merge/positionKey.js'
-import { highestCounter } from './merge/state.js'
+import { LEGACY_STAMP, highestCounter } from './merge/state.js'
 import { diffStates, liveOrder, mergeStates, relatedness, resolveRollback } from './merge/merge.js'
 import { originChipText } from './origin.js'
 
@@ -748,6 +748,8 @@ export class ReplayRejection extends Error {
  * @property {import('./buildVolume.js').BuildVolume} [buildVolume]
  * @property {readonly import('./userPart.js').UserPartDefinition[]} [userParts] `TODO/core-037`.
  * @property {Readonly<Record<string, string>>} [unavailableParts] `TODO/core-037`: op → why.
+ * @property {import('./merge/validate.js').MergeOverlay} [merge] `TODO/data-011`: the
+ *   validated merge section of a version-2 project file; omitted, the metadata is derived.
  */
 
 /**
@@ -819,6 +821,8 @@ export class ReplayRejection extends Error {
  * @property {() => import('./merge/state.js').MergeState} mergeState `TODO/data-010`: this
  *   replica's merge state — the live rows with their stamps, the tombstones, the registers
  *   and the user-part definitions. A fresh value; the records are shared, not copied.
+ * @property {() => number} mergeClock `TODO/data-011`: the merge clock's counter — at least
+ *   every stamp this replica holds. What a project file's `merge.clock` records.
  * @property {(state: import('./merge/state.js').MergeState, transaction: TransactionOptions) => { scene: Scene, change: ReturnType<typeof diffStates>, conflicts: MergeConflict[] }} mergeFrom
  *   `TODO/data-010`: merge another replica's state in and re-fold. See the module note.
  * @property {(label: string) => string} nextName
@@ -849,16 +853,6 @@ export class ReplayRejection extends Error {
  * @property {string | null} lostTo The row that advanced the lineage this one wanted, or
  *   `null` when it failed for another reason (a missing reference).
  */
-
-/**
- * The replica id every derived ("legacy") stamp carries, with counter `0` — a value no clock
- * ever issues (`tick` starts at 1), so it marks metadata derived from a file rather than
- * written by an edit. Fixed, so two builds upgrading one file derive identical metadata.
- */
-const LEGACY_REPLICA = 'legacy'
-
-/** @type {import('./replica.js').Stamp} */
-const LEGACY_STAMP = Object.freeze({ counter: 0, replica: LEGACY_REPLICA })
 
 /**
  * Every mutator wrapped so its whole effect is stamped as one transaction — the module
@@ -1849,6 +1843,73 @@ export function createDocument(options = {}) {
       buildVolume: sameVolume(buildVolume, DEFAULT_BUILD_VOLUME) ? null : [{ ...buildVolume }, LEGACY_STAMP],
     }
     partStamps = new Map([...userParts.keys()].map((op) => [op, LEGACY_STAMP]))
+  }
+
+  /**
+   * Lay a file's validated merge section (`TODO/data-011`) over the metadata
+   * {@link deriveLegacy} just derived: positions the file overrides, the stamps it carries
+   * (an omitted one is the row's `born`, an omitted `born` is legacy), its tombstones,
+   * register and part stamps and project id — and move the merge clock past the largest
+   * counter it names, so every later local write is later than anything in the file.
+   *
+   * @param {import('./merge/validate.js').MergeOverlay} overlay Already validated.
+   */
+  function applyMergeOverlay(overlay) {
+    /** @type {Map<string, EntryMeta>} */
+    const next = new Map()
+    for (const [id, meta] of metaById) {
+      const key = overlay.pos.get(id)
+      const stamps = overlay.stamps.get(id)
+      if (key === undefined && stamps === undefined) {
+        next.set(id, meta)
+        continue
+      }
+      const born = stamps?.born ?? LEGACY_STAMP
+      const entry = entries.find((candidate) => candidate.record.id === id)
+      next.set(id, {
+        born,
+        pos: [key ?? meta.pos[0], stamps?.pos ?? born],
+        rec: stamps?.rec ?? born,
+        ...(stamps?.sup !== undefined
+          ? { suppressed: [entry?.suppressed === true, stamps.sup] }
+          : meta.suppressed !== undefined
+            ? { suppressed: meta.suppressed }
+            : {}),
+        ...(stamps?.lb !== undefined
+          ? { leftBroken: [entry?.leftBroken === true, stamps.lb] }
+          : meta.leftBroken !== undefined
+            ? { leftBroken: meta.leftBroken }
+            : {}),
+      })
+    }
+    metaById = next
+    dead = new Map(overlay.dead)
+
+    const anchor = anchorOf(entries, rollbackAt, next)
+    const written = overlay.registers
+    registers = {
+      rollbackAfter:
+        written.rollbackAfter !== undefined
+          ? [anchor, written.rollbackAfter]
+          : anchor === null
+            ? null
+            : [anchor, LEGACY_STAMP],
+      resolution:
+        written.resolution !== undefined
+          ? [resolution, written.resolution]
+          : registers.resolution,
+      standingInstructions:
+        written.standingInstructions !== undefined
+          ? [standingInstructions, written.standingInstructions]
+          : registers.standingInstructions,
+      buildVolume:
+        written.buildVolume !== undefined ? [{ ...buildVolume }, written.buildVolume] : registers.buildVolume,
+    }
+    partStamps = new Map(
+      [...partStamps].map(([op, stamp]) => [op, overlay.partStamps.get(op) ?? stamp])
+    )
+    projectId = overlay.projectId
+    stampClock.observe(overlay.highest)
   }
 
   /**
@@ -3659,9 +3720,10 @@ export function createDocument(options = {}) {
       standingInstructions = cleanText(options.standingInstructions, INSTRUCTIONS_MAX_LENGTH)
       // `TODO/io-007`: likewise the build volume; omitted, the loaded project has the default.
       buildVolume = options.buildVolume === undefined ? { ...DEFAULT_BUILD_VOLUME } : normalizeBuildVolume(options.buildVolume)
-      // `TODO/data-010`: a loaded log is a log no edit here has stamped. (`data-011` will read
-      // the metadata a version-2 file carries instead.)
+      // `TODO/data-010`: a loaded log is a log no edit here has stamped, so its metadata is
+      // derived; `TODO/data-011`: a version-2 file's merge section is laid over that.
       deriveLegacy()
+      if (options.merge !== undefined) applyMergeOverlay(options.merge)
       for (const entry of nextEntries) clock.observe(counterOfId(entry.record.id))
       undoStack.length = 0
       redoStack.length = 0
@@ -4711,6 +4773,10 @@ export function createDocument(options = {}) {
         if (previous.layer !== null) restoreProjectParts(previous.layer)
         throw error
       }
+    },
+
+    mergeClock() {
+      return Math.max(stampClock.now(), highestCounter(document.mergeState()))
     },
 
     replicaId() {

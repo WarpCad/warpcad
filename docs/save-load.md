@@ -192,6 +192,21 @@ exactly why the question comes first.
 
 ![Choosing File, Open on an empty scene, picking a project file, and the saved cube and cylinder appearing with the status line reading Opened warpcad-project.ndjson · 2 steps](./media/open-project.gif)
 
+### Older versions of WarpCad
+
+Once you have changed a project, the file WarpCad writes also remembers *which copy made each
+step and when*, so two copies of one project can be put back together later. It sits on the
+last line of the file; every step above it is unchanged.
+
+If you open such a project in a copy of WarpCad that has not updated yet, that copy says
+**This project was saved by a newer WarpCad. Update the app to open it. The file was not
+changed.** and leaves the file — and whatever project you had open — alone.
+
+Try it: open a project you saved from the latest WarpCad in a browser tab you left open since
+yesterday. If you see that sentence, reload the page so the app updates, then open the file
+again. A file you have never edited, or one saved by an older WarpCad and not changed since, is
+written exactly as it was and opens everywhere.
+
 ### While a file is opening
 
 WarpCad rebuilds every shape in a file from its steps when you open it. A small model takes

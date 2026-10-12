@@ -1,0 +1,3 @@
+{"id":"plate-1","op":"primitive.cuboid","name":"Plate","params":{"size":[40,40,4],"center":[0,0,2]}}
+{"id":"block-2","op":"primitive.cuboid","name":"Block","params":{"size":[10,10,10],"center":[40,0,5]}}
+{"warpcad":"project-state","version":2,"merge":{"clock":9000000000000000,"stamps":{"plate-1":{"born":[9000000000000000,"aaaaaa"]}},"dead":{"__proto__":[1,"__proto__"]}}}

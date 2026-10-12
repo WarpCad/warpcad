@@ -5,6 +5,7 @@ import { LOCAL, centreOf, piAndCube, piWith, snapCubeTo, subtractAvjackClearance
 import { ReplayRejection, createDocument } from './document.js'
 import { volumeOf as kernelVolumeOf } from './kernel/group.js'
 import { parseProject, serializeProject } from './project.js'
+import { recordLinesOf } from './__fixtures__/projectText.js'
 
 /**
  * `TODO/ui-052` inside the fold: the replace-path proofs its Step 2 asks for, rows a user
@@ -57,7 +58,7 @@ describe('Step 2 proofs — the replace path against the real fold', () => {
     expect(() => document.reviseRecords([{ id: 'pi-1', record: piWith(document, { model: 5 }) }], LOCAL)).toThrow(
       ReplayRejection,
     )
-    expect(serializeProject(document)).toBe(before)
+    expect(recordLinesOf(serializeProject(document))).toBe(recordLinesOf(before))
   })
 })
 
@@ -116,9 +117,9 @@ describe('rows left broken (the dialog\'s "Leave broken")', () => {
       LOCAL,
     )
     const text = serializeProject(document)
-    const { entries, rollbackAt, resolution } = parseProject(text)
+    const { entries, rollbackAt, resolution, merge } = parseProject(text)
     const reloaded = createDocument()
-    reloaded.loadEntries(entries, rollbackAt, resolution)
+    reloaded.loadEntries(entries, rollbackAt, resolution, { merge })
     expect(reloaded.brokenSteps().map((step) => step.id)).toEqual(['snap-1'])
     expect(serializeProject(reloaded)).toBe(text)
   })
@@ -135,7 +136,7 @@ describe('rows left broken (the dialog\'s "Leave broken")', () => {
     )
     expect(document.pendingUndo()?.label).toBe('Edit Raspberry Pi 1')
     document.undo()
-    expect(serializeProject(document)).toBe(before)
+    expect(recordLinesOf(serializeProject(document))).toBe(recordLinesOf(before))
     expect(document.brokenSteps()).toEqual([])
     document.redo()
     expect(document.brokenSteps().map((step) => step.id)).toEqual(['snap-1'])

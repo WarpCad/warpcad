@@ -21,7 +21,8 @@ import { unwrapDocumentData } from '../src/ai/documentData.js'
 import { createToolRegistry } from '../src/ai/tools/index.js'
 import { createDocument } from '../src/core/document.js'
 import { boundsOf } from '../src/core/kernel/group.js'
-import { parseProject } from '../src/core/project.js'
+import { parseProject, serializeProject } from '../src/core/project.js'
+import { recordLinesOf } from '../src/core/__fixtures__/projectText.js'
 
 const SERVER = join(dirname(fileURLToPath(import.meta.url)), 'server.js')
 /** A sentinel, not a credential: the spec asserts it is never echoed anywhere. */
@@ -251,6 +252,65 @@ describe('refusals leave the file byte-identical', () => {
   })
 })
 
+describe('a version-2 file (merge metadata, TODO/data-011)', () => {
+  /** A file an edited document wrote: stamps on every row and one tombstone. */
+  function editedFile() {
+    const document = createDocument({ replica: 'hhhhhh' })
+    const local = { origin: 'local' }
+    document.append({ id: 'base', op: 'primitive.cuboid', name: 'Base', params: { size: [40, 40, 4], center: [0, 0, 2] } }, local)
+    document.append({ id: 'gone', op: 'primitive.cuboid', name: 'Gone', params: { size: [5, 5, 5], center: [60, 0, 2] } }, local)
+    document.removeRecords(['gone'], local)
+    return serializeProject(document)
+  }
+
+  it('a write call keeps the tombstones and stamps it did not touch', async () => {
+    const file = join(dir, 'p.ndjson')
+    const written = editedFile()
+    writeFileSync(file, written)
+    const before = JSON.parse(/** @type {string} */ (written.trimEnd().split('\n').at(-1)))
+    expect(before.version).toBe(2)
+    expect(before.merge.dead.gone).toBeDefined()
+
+    const { client } = await connect(file)
+    const result = await call(client, 'create', { op: 'primitive.sphere', positionMm: [0, 0, 0] })
+    expect(result.isError).toBe(false)
+
+    const lines = readFileSync(file, 'utf8').trimEnd().split('\n')
+    const after = JSON.parse(/** @type {string} */ (lines.at(-1)))
+    expect(after.version).toBe(2)
+    expect(after.merge.dead.gone).toEqual(before.merge.dead.gone)
+    expect(after.merge.stamps.base).toEqual(before.merge.stamps.base)
+    // The new row is stamped too, and the clock moved past everything that was there.
+    expect(Object.keys(after.merge.stamps)).toHaveLength(2)
+    expect(after.merge.clock).toBeGreaterThan(before.merge.clock)
+    // The record line for the row nobody touched is byte-identical.
+    expect(lines[0]).toBe(written.split('\n')[0])
+  })
+
+  it('a refused call leaves the bytes and the mtime alone', async () => {
+    const file = join(dir, 'p.ndjson')
+    writeFileSync(file, editedFile())
+    const before = bytes(file)
+    const mtime = statSync(file).mtimeMs
+    const { client } = await connect(file)
+    const result = await call(client, 'create', { op: 'not.a.real.op', positionMm: [0, 0, 0] })
+    expect(result.isError).toBe(true)
+    expect(bytes(file).equals(before)).toBe(true)
+    expect(statSync(file).mtimeMs).toBe(mtime)
+  })
+
+  it('a hostile merge section is refused by name and nothing is written', async () => {
+    const file = join(dir, 'p.ndjson')
+    writeFileSync(file, CUBE + '{"warpcad":"project-state","version":2,"merge":{"stamps":{"base":{"born":[9000000000000000,"aaaaaa"]}}}}\n')
+    const before = bytes(file)
+    const { client } = await connect(file)
+    const write = await call(client, 'create', { op: 'primitive.sphere', positionMm: [0, 0, 0] })
+    expect(write.isError).toBe(true)
+    expect(write.result.error).toMatch(/counter above/)
+    expect(bytes(file).equals(before)).toBe(true)
+  })
+})
+
 describe('files this build cannot read are refused cleanly', () => {
   it('a truncated file: a plain message, every call refused, nothing written', async () => {
     const file = join(dir, 'p.ndjson')
@@ -271,12 +331,12 @@ describe('files this build cannot read are refused cleanly', () => {
 
   it('a file written by a newer build (a newer state-line version)', async () => {
     const file = join(dir, 'p.ndjson')
-    writeFileSync(file, CUBE + '{"warpcad":"project-state","version":2}\n')
+    writeFileSync(file, CUBE + '{"warpcad":"project-state","version":3}\n')
     const before = bytes(file)
     const { client } = await connect(file)
     const write = await call(client, 'create', { op: 'primitive.sphere', positionMm: [0, 0, 0] })
     expect(write.isError).toBe(true)
-    expect(write.result.error).toMatch(/newer version of WarpCad/)
+    expect(write.result.error).toMatch(/saved by a newer WarpCad/)
     expect(bytes(file).equals(before)).toBe(true)
   })
 
@@ -376,7 +436,8 @@ describe('project variables (TODO/ai-014)', () => {
     await call(client, 'define_variable', { name: 'spare', kind: 'boolean', value: true })
     const deleted = await call(client, 'delete_variable', { name: 'spare' })
     expect(deleted.isError).toBe(false)
-    expect(readFileSync(file, 'utf8')).toBe(CUBE)
+    // The record lines are what they were; the state line now says the removed row is a tombstone.
+    expect(recordLinesOf(readFileSync(file, 'utf8'))).toBe(CUBE)
   })
 
   it('a refused variable write leaves the file byte-identical', async () => {

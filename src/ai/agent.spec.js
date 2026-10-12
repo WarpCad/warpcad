@@ -11,6 +11,7 @@ import { unwrapDocumentData } from './documentData.js'
 import { SYSTEM_PROMPT } from './prompt.js'
 import { fakeSelection } from './tools/__fixtures__/context.js'
 import { LIMITS, createToolRegistry, toStrictWire } from './tools/index.js'
+import { recordLinesOf } from '../core/__fixtures__/projectText.js'
 
 /**
  * `TODO/ai-005` — the agent loop, against a scripted fake provider (mock at the boundary: no
@@ -291,7 +292,7 @@ describe('runTurn — self-correction', () => {
     expect(outcome.message).toMatch(/nope-/)
     expect(outcome.message).toMatch(/Nothing from this turn was kept/)
     expect(client.requests).toHaveLength(4)
-    expect(serializeProject(document)).toBe(before)
+    expect(recordLinesOf(serializeProject(document))).toBe(recordLinesOf(before))
     expect(ctx.aiTurns).toEqual([])
     expect(events.some((e) => e.type === 'notice' && e.kind === 'stopped')).toBe(true)
   })
@@ -312,7 +313,7 @@ describe('runTurn — Stop', () => {
     expect(outcome.status).toBe('cancelled')
     expect(events.filter((e) => e.type === 'tool_result')).toHaveLength(1)
     expect(client.requests).toHaveLength(1)
-    expect(serializeProject(document)).toBe(before)
+    expect(recordLinesOf(serializeProject(document))).toBe(recordLinesOf(before))
     expect(outcome.message).toMatch(/Stopped/)
     expect(outcome.message).toMatch(/as it was/)
   })
@@ -402,7 +403,7 @@ describe('runTurn — caps stop the turn and say so', () => {
     expect(outcome.status).toBe('stopped')
     expect(outcome.limit).toBe('recordsPerTurn')
     expect(outcome.message).toMatch(/at most 2 records/)
-    expect(serializeProject(document)).toBe(before)
+    expect(recordLinesOf(serializeProject(document))).toBe(recordLinesOf(before))
   })
 
   it('wall clock: checked before each model request', async () => {
@@ -443,7 +444,7 @@ describe('runTurn — errors roll back byte-identically', () => {
     expect(outcome.status).toBe('failed')
     expect(outcome.message).toMatch(/Anthropic is having trouble/)
     expect(outcome.message).toMatch(/Nothing from this turn was kept/)
-    expect(serializeProject(document)).toBe(before)
+    expect(recordLinesOf(serializeProject(document))).toBe(recordLinesOf(before))
   })
 
   it('a thrown error mid-turn', async () => {
@@ -453,7 +454,7 @@ describe('runTurn — errors roll back byte-identically', () => {
     const { ctx } = setup({ client, document })
     const outcome = await runTurn({ userMessage: 'cube', ctx })
     expect(outcome.status).toBe('failed')
-    expect(serializeProject(document)).toBe(before)
+    expect(recordLinesOf(serializeProject(document))).toBe(recordLinesOf(before))
     // The running flag is released, so the next turn may start.
     expect(ctx.running).toBe(false)
   })
@@ -545,7 +546,7 @@ describe('runTurn — clarifying questions', () => {
     expect(outcome.text).toBe(question)
     expect(outcome.recordIds).toEqual([])
     expect(ctx.aiTurns).toEqual([])
-    expect(serializeProject(document)).toBe(before)
+    expect(recordLinesOf(serializeProject(document))).toBe(recordLinesOf(before))
   })
 })
 
@@ -739,7 +740,7 @@ describe('runTurn — project variables land and undo as one AI turn (TODO/ai-01
     expect(ctx.aiTurns).toHaveLength(1)
 
     undoAiTurn(document, ctx.aiTurns[0])
-    expect(serializeProject(document)).toBe(before)
+    expect(recordLinesOf(serializeProject(document))).toBe(recordLinesOf(before))
     expect(document.pendingUndo()).toBe(undoTop)
   })
 
@@ -760,7 +761,7 @@ describe('runTurn — project variables land and undo as one AI turn (TODO/ai-01
     expect(ctx.aiTurns).toHaveLength(1)
 
     undoAiTurn(document, ctx.aiTurns[0])
-    expect(serializeProject(document)).toBe(before)
+    expect(recordLinesOf(serializeProject(document))).toBe(recordLinesOf(before))
     expect(document.pendingUndo()).toBe(undoTop)
   })
 
@@ -780,7 +781,7 @@ describe('runTurn — project variables land and undo as one AI turn (TODO/ai-01
     expect(outcome.removedIds).toHaveLength(1)
 
     undoAiTurn(document, ctx.aiTurns[0])
-    expect(serializeProject(document)).toBe(before)
+    expect(recordLinesOf(serializeProject(document))).toBe(recordLinesOf(before))
   })
 
   it('a set_variable that would break a dependent comes back as an error with the breakages; the turn can still land', async () => {
@@ -796,7 +797,7 @@ describe('runTurn — project variables land and undo as one AI turn (TODO/ai-01
     const result = events.find((e) => e.type === 'tool_result')
     expect(result.isError).toBe(true)
     expect(result.result.breakages[0].reason).toMatch(/Pi 5/)
-    expect(serializeProject(document)).toBe(before)
+    expect(recordLinesOf(serializeProject(document))).toBe(recordLinesOf(before))
     expect(ctx.aiTurns).toHaveLength(0)
   })
 })

@@ -136,11 +136,17 @@ export function loadProjectText(text, name) {
       buildVolume: parsed.buildVolume,
       userParts: parsed.userParts,
       unavailableParts: parsed.unavailableParts,
+      ...(parsed.merge !== undefined ? { merge: parsed.merge } : {}),
     })
     return document
   } catch (error) {
     if (error instanceof ProjectFormatError || error instanceof ReplayRejection) {
-      throw new ProjectFileError(`Can't open ${name}: ${error.message}. The file was not changed.`)
+      // `data-011`'s newer-version sentence already says the file was not changed.
+      throw new ProjectFileError(
+        error.message.endsWith('The file was not changed.')
+          ? `Can't open ${name}: ${error.message}`
+          : `Can't open ${name}: ${error.message}. The file was not changed.`
+      )
     }
     throw new ProjectFileError(`Can't open ${name}: it could not be read as a WarpCad project. The file was not changed.`)
   }

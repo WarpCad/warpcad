@@ -6,8 +6,24 @@ priority: high
 model: sonnet
 milestone: M15
 depends: [data-010]
-status: open
+status: done
 ---
+
+
+> **What shipped.** As specified, with these differences. (1) The stamps map also carries
+> optional `pos`, `sup` and `lb` stamps per row (a position register and the two flag registers
+> each have their own stamp, so they could not be dropped); an omitted stamp is the row's
+> `born`, an omitted `born` is legacy. (2) Registers are written as stamps only — their values
+> are the state line's own `rollbackAt`, `resolution`, `standingInstructions` and `buildVolume`.
+> (3) User-part stamps go in `partStamps`. (4) The task's example ids (`k3f9xa`, `m81c0z`) are
+> not in the replica alphabet (`a-z2-7`); real ids are. (5) A tombstone not older than its own
+> row's `born` drops that row with a load warning (the merge rule) instead of keeping it.
+> (6) `document.mergeClock()` and `loadEntries(..., { merge })` are new. (7) An edited document
+> now always has a state line (version 2), so "Undo restores the file byte for byte" is true of
+> the **record lines**; the section legitimately records the tombstone and the later clock —
+> the existing specs that compared whole files now compare `recordLinesOf(text)`.
+> **Overhead: the section is 34-43% of a small edited file, over the one-third line this task
+> set; proposals are in `bench/results/2026-10-12-data-011.md`** (a decision for `data-012`).
 
 ## Goal
 

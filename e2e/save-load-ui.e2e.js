@@ -592,6 +592,81 @@ test.describe('Download copy and Open… (the fallback path — real download an
     await expect(chip).not.toHaveAttribute('data-tone', 'error')
   })
 
+  test('an edited project is a version-2 file: reopening it shows the same History and re-saving writes the same bytes (TODO/data-011)', async ({
+    page,
+  }) => {
+    await seedCubes(page, 2)
+    await expectAutosaved(page)
+
+    /** Download a copy and return its text. */
+    const downloadCopy = async () => {
+      await openFileMenu(page)
+      const downloading = page.waitForEvent('download')
+      await page.getByTestId('file-save').click()
+      const download = await downloading
+      return { name: download.suggestedFilename(), text: readFileSync(await download.path(), 'utf8') }
+    }
+    /** The History rows' text, in order. */
+    const historyRows = () =>
+      page.evaluate(() =>
+        [...document.querySelectorAll('[data-testid]')]
+          .filter((element) => /^timeline-row-\d+$/.test(element.getAttribute('data-testid') ?? ''))
+          .map((element) => (element.textContent ?? '').replace(/\s+/g, ' ').trim()),
+      )
+
+    await page.getByTestId('timeline-toggle').click()
+    await expect(page.getByTestId('timeline-row-1')).toBeVisible()
+    const before = await historyRows()
+    expect(before).toHaveLength(2)
+
+    const first = await downloadCopy()
+    const lines = first.text.trimEnd().split('\n')
+    const state = JSON.parse(lines[lines.length - 1])
+    expect(state.version).toBe(2)
+    expect(state.merge.clock).toBeGreaterThan(0)
+    // Every record line is still a plain action record.
+    for (const line of lines.slice(0, -1)) expect(JSON.parse(line).op).toBeTruthy()
+
+    // Open the same file back over the current project.
+    await openFileMenu(page)
+    await page.getByTestId('file-open').click()
+    const chooserEvent = page.waitForEvent('filechooser')
+    await page.getByTestId('file-open-confirm-replace').click()
+    const chooser = await chooserEvent
+    await chooser.setFiles({ name: first.name, mimeType: 'text/plain', buffer: Buffer.from(first.text) })
+    await expect(page.getByTestId('save-status')).toContainText(`Opened ${first.name} · 2 steps`)
+    await expectBodyCount(page, 2)
+
+    await expect(page.getByTestId('timeline-row-1')).toBeVisible()
+    expect(await historyRows()).toEqual(before)
+    const second = await downloadCopy()
+    expect(second.text).toBe(first.text)
+  })
+
+  test('a file from a newer state-line version is refused with the update sentence and the project is untouched (TODO/data-011)', async ({
+    page,
+  }) => {
+    await seedCubes(page, 2)
+    await expectAutosaved(page)
+    await openFileMenu(page)
+    await page.getByTestId('file-open').click()
+    const chooserEvent = page.waitForEvent('filechooser')
+    await page.getByTestId('file-open-confirm-replace').click()
+    const chooser = await chooserEvent
+    await chooser.setFiles({
+      name: 'from-the-future.ndjson',
+      mimeType: 'text/plain',
+      buffer: Buffer.from(CUBE_LINE + '{"warpcad":"project-state","version":3,"merge":{"clock":1}}\n'),
+    })
+
+    const chip = page.getByTestId('save-status')
+    await expect(chip).toHaveAttribute('data-tone', 'error')
+    await expect(chip).toContainText('from-the-future.ndjson')
+    await expect(chip).toContainText('saved by a newer WarpCad')
+    await expect(chip).toContainText('Update the app to open it')
+    await expectBodyCount(page, 2)
+  })
+
   test('a cancelled chooser is silent', async ({ page }) => {
     await openFileMenu(page)
     const chooserEvent = page.waitForEvent('filechooser')

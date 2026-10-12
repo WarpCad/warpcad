@@ -535,7 +535,7 @@ export const useDocumentStore = defineStore('document', () => {
    * @param {number | null} [rollbackAt]
    * @param {string} [nextResolution] The loaded design's resolution (`TODO/core-035`);
    *   `parseProject` supplies it. Omitted: the current one.
-   * @param {{ standingInstructions?: string, buildVolume?: import('../core/buildVolume.js').BuildVolume, userParts?: readonly import('../core/userPart.js').UserPartDefinition[], unavailableParts?: Readonly<Record<string, string>> }} [options]
+   * @param {{ standingInstructions?: string, buildVolume?: import('../core/buildVolume.js').BuildVolume, userParts?: readonly import('../core/userPart.js').UserPartDefinition[], unavailableParts?: Readonly<Record<string, string>>, merge?: import('../core/merge/validate.js').MergeOverlay }} [options]
    *   `TODO/ai-003`: the loaded project's standing instructions; omitted, the loaded project has
    *   none. `TODO/io-007`: its build volume; omitted, the default. `TODO/core-037`: the user-part
    *   definitions it carries and the parts it names that could not be loaded; omitted, none.
@@ -546,6 +546,7 @@ export const useDocumentStore = defineStore('document', () => {
       ...(options.buildVolume === undefined ? {} : { buildVolume: options.buildVolume }),
       userParts: options.userParts ?? [],
       unavailableParts: options.unavailableParts ?? {},
+      ...(options.merge === undefined ? {} : { merge: options.merge }),
     })
     useSelectionStore().clear()
     loadRevision.value += 1

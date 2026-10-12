@@ -465,7 +465,11 @@ test.describe('the file mechanism (functions ui-033 will call, real browser down
     // Two record lines, then the state line: a new document is at Normal resolution, and an
     // absent setting would mean Legacy on reopen (TODO/core-035), so it is always written.
     expect(lines).toHaveLength(3)
-    expect(JSON.parse(lines[2])).toEqual({ warpcad: 'project-state', version: 1, resolution: 'normal' })
+    // Version 2 since TODO/data-011: placing two bodies stamped them, and the stamps travel in
+    // the state line's `merge` section.
+    const state = JSON.parse(lines[2])
+    expect(state).toMatchObject({ warpcad: 'project-state', version: 2, resolution: 'normal' })
+    expect(Object.keys(state.merge.stamps)).toHaveLength(2)
     expect(text.endsWith('\n')).toBe(true)
 
     // Change the document, then Open the downloaded file: it replaces it wholesale.

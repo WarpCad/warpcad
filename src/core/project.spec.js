@@ -10,6 +10,8 @@ import { createAutosaver } from '../storage/autosave.js'
 import { decodeBase64, encodeBase64 } from '../storage/hostedBackend.js'
 import { ProjectFormatError, parseProject, serializeProject } from './project.js'
 import { serializeNdjson } from './ndjson.js'
+import { mergeStates } from './merge/merge.js'
+import { canonicalJSON, highestCounter } from './merge/state.js'
 
 /**
  * `TODO/io-001` — the on-storage / on-disk form of a whole document.
@@ -50,10 +52,27 @@ function bodySummary(document) {
   }))
 }
 
+/**
+ * The record lines of project text, without its state line — what the command layer appended,
+ * which `TODO/data-011` keeps byte-identical.
+ *
+ * @param {string} text
+ */
+function recordLinesOf(text) {
+  const lines = text.trimEnd().split('\n')
+  const last = lines.at(-1) ?? ''
+  return (last.includes('"warpcad":"project-state"') ? lines.slice(0, -1) : lines).join('\n') + '\n'
+}
+
 describe('serializeProject', () => {
-  it('is exactly the NDJSON action log when nothing is suppressed, rolled back or non-local', () => {
+  it('is exactly the NDJSON action log, plus one merge-metadata state line, when nothing else is on it', () => {
     const document = scenario()
-    expect(serializeProject(document)).toBe(serializeNdjson(document.records))
+    const text = serializeProject(document)
+    expect(recordLinesOf(text)).toBe(serializeNdjson(document.records))
+    // An edited document carries stamps, so its state line says version 2 and nothing else.
+    const state = JSON.parse(/** @type {string} */ (text.trimEnd().split('\n').at(-1)))
+    expect(Object.keys(state).sort()).toEqual(['merge', 'version', 'warpcad'])
+    expect(state.version).toBe(2)
   })
 
   it('is the empty string for an empty document', () => {
@@ -65,9 +84,9 @@ describe('serializeProject', () => {
     document.setSuppressed('cube-2-move', true, local)
     const lines = serializeProject(document).trim().split('\n')
     expect(lines).toHaveLength(4)
-    expect(JSON.parse(lines[3])).toEqual({
+    expect(JSON.parse(lines[3])).toMatchObject({
       warpcad: 'project-state',
-      version: 1,
+      version: 2,
       suppressed: ['cube-2-move'],
     })
   })
@@ -94,8 +113,8 @@ describe('parseProject → loadEntries round trip', () => {
     const text = serializeProject(original)
 
     const restored = createDocument()
-    const { entries, rollbackAt } = parseProject(text)
-    restored.loadEntries(entries, rollbackAt)
+    const { entries, rollbackAt, merge } = parseProject(text)
+    restored.loadEntries(entries, rollbackAt, undefined, { merge })
 
     expect(bodySummary(restored)).toEqual(bodySummary(original))
     // Byte-identical: serialising the restored document gives back the same text.
@@ -108,8 +127,8 @@ describe('parseProject → loadEntries round trip', () => {
     const text = serializeProject(original)
 
     const restored = createDocument()
-    const { entries, rollbackAt } = parseProject(text)
-    restored.loadEntries(entries, rollbackAt)
+    const { entries, rollbackAt, merge } = parseProject(text)
+    restored.loadEntries(entries, rollbackAt, undefined, { merge })
 
     expect(restored.timeline().map((row) => row.suppressed)).toEqual([false, false, true])
     expect(bodySummary(restored)).toEqual(bodySummary(original))
@@ -175,8 +194,8 @@ describe('parseProject refuses, by name, before anything is loaded', () => {
   it('refuses a file from a newer version by the state line’s version, never half-loading it', () => {
     const text =
       '{"id":"a","op":"primitive.cuboid","params":{"size":[1,1,1],"center":[0,0,0]}}\n' +
-      '{"warpcad":"project-state","version":2}\n'
-    expect(() => parseProject(text)).toThrow(/newer version/i)
+      '{"warpcad":"project-state","version":3}\n'
+    expect(() => parseProject(text)).toThrow(/newer WarpCad/i)
   })
 
   it('refuses a control line of a kind it does not know', () => {
@@ -299,7 +318,9 @@ describe('the design resolution on the state line (TODO/core-035)', () => {
 
   it('a legacy document writes no resolution — its bytes are exactly what they were before', () => {
     const document = cylinderDocument('legacy')
-    expect(serializeProject(document)).toBe(serializeNdjson(document.records))
+    const text = serializeProject(document)
+    expect(recordLinesOf(text)).toBe(serializeNdjson(document.records))
+    expect(text).not.toContain('"resolution"')
   })
 
   it('round-trips a non-legacy resolution, and the reloaded geometry is the same', () => {
@@ -309,7 +330,7 @@ describe('the design resolution on the state line (TODO/core-035)', () => {
     const parsed = parseProject(text)
     expect(parsed.resolution).toBe('fine')
     const reloaded = createDocument()
-    reloaded.loadEntries(parsed.entries, parsed.rollbackAt, parsed.resolution)
+    reloaded.loadEntries(parsed.entries, parsed.rollbackAt, parsed.resolution, { merge: parsed.merge })
     expect(reloaded.resolution()).toBe('fine')
     expect(serializeProject(reloaded)).toBe(text)
     expect(bodySummary(reloaded)).toEqual(bodySummary(document))
@@ -486,7 +507,7 @@ describe('design intent and standing instructions on the state line (TODO/ai-003
     const state = JSON.parse(/** @type {string} */ (lines.at(-1)))
     expect(state).toMatchObject({
       warpcad: 'project-state',
-      version: 1,
+      version: 2,
       origins: { 'ai-cube': 'ai' },
       intents: { 'ai-cube': INTENT },
       standingInstructions: RULES,
@@ -501,14 +522,14 @@ describe('design intent and standing instructions on the state line (TODO/ai-003
     const reloaded = createDocument()
     reloaded.loadEntries(parsed.entries, parsed.rollbackAt, parsed.resolution, {
       standingInstructions: parsed.standingInstructions,
+      merge: parsed.merge,
     })
     expect(serializeProject(reloaded)).toBe(text)
   })
 
   it('a document with neither writes neither, and an old file opens and re-saves byte-identically', () => {
-    const document = scenario()
-    const text = serializeProject(document)
-    expect(text).toBe(serializeNdjson(document.records))
+    // An old file: the plain action log, as every build before data-011 wrote it.
+    const text = serializeNdjson(scenario().records)
     const parsed = parseProject(text)
     expect(parsed.standingInstructions).toBe('')
     expect(parsed.entries.some((entry) => 'intent' in entry)).toBe(false)
@@ -523,7 +544,8 @@ describe('design intent and standing instructions on the state line (TODO/ai-003
     const document = scenario()
     document.setStandingInstructions(RULES, local)
     const state = JSON.parse(/** @type {string} */ (serializeProject(document).trimEnd().split('\n').at(-1)))
-    expect(state).toEqual({ warpcad: 'project-state', version: 1, standingInstructions: RULES })
+    expect(state).toMatchObject({ warpcad: 'project-state', version: 2, standingInstructions: RULES })
+    expect(Object.keys(state).sort()).toEqual(['merge', 'standingInstructions', 'version', 'warpcad'])
   })
 
   it('an older build still opens a file with the new fields: an unknown state-line field is ignored, not refused', () => {
@@ -620,6 +642,7 @@ describe('user parts on the state line (TODO/core-037)', () => {
     document.loadEntries(parsed.entries, parsed.rollbackAt, parsed.resolution, {
       userParts: parsed.userParts,
       unavailableParts: parsed.unavailableParts,
+      merge: parsed.merge,
     })
     return { parsed, document }
   }
@@ -629,7 +652,7 @@ describe('user parts on the state line (TODO/core-037)', () => {
     const text = serializeProject(document)
     expect(text.startsWith(serializeNdjson(document.records))).toBe(true)
     const state = stateLineOf(text)
-    expect(state?.version).toBe(1)
+    expect(state?.version).toBe(2)
     expect(state?.parts).toEqual([JSON.parse(JSON.stringify(effectiveUserPart('user.test-cube')))])
   })
 
@@ -707,7 +730,8 @@ describe('user parts on the state line (TODO/core-037)', () => {
     const document = placedScene()
     document.undo()
     const text = serializeProject(document)
-    expect(stateLineOf(text)).toBeNull()
+    // No part definition, and (the document is back to empty) nothing else on the line either.
+    expect(stateLineOf(text)?.parts).toBeUndefined()
   })
 
   it('placing pins the version: a newer library copy never changes the placed instance', () => {
@@ -806,3 +830,172 @@ describe('user parts on the state line (TODO/core-037)', () => {
     expect(/** @type {any} */ (thrown).step.reason).toMatch(/unknown op "user\.test-cube"/)
   })
 })
+
+/**
+ * `TODO/data-011` — the state line's version-2 `merge` section.
+ */
+describe('project file version 2 (merge section)', () => {
+  /**
+   * @param {string} id
+   * @param {number} x
+   */
+  const cube = (id, x) =>
+    JSON.stringify({ id, op: 'primitive.cuboid', name: id, params: { size: [10, 10, 10], center: [x * 20, 0, 5] } })
+
+  /** @param {string} text */
+  const stateOf = (text) => JSON.parse(/** @type {string} */ (text.trimEnd().split('\n').at(-1)))
+
+  /** A legacy file: plain records, version-1 state line with a suppressed row. */
+  const legacyText = () =>
+    [
+      JSON.stringify({ id: 'cube-1', op: 'primitive.cuboid', name: 'Cube 1', params: { size: [10, 10, 10], center: [0, 0, 5] } }),
+      JSON.stringify({ id: 'cube-2', op: 'primitive.cuboid', name: 'Cube 2', params: { size: [6, 6, 6], center: [20, 0, 3] } }),
+      JSON.stringify({ warpcad: 'project-state', version: 1, suppressed: ['cube-2'] }),
+    ].join('\n') + '\n'
+
+  /** @param {string} text */
+  function open(text) {
+    const parsed = parseProject(text)
+    const document = createDocument()
+    document.loadEntries(parsed.entries, parsed.rollbackAt, parsed.resolution, {
+      standingInstructions: parsed.standingInstructions,
+      buildVolume: parsed.buildVolume,
+      userParts: parsed.userParts,
+      unavailableParts: parsed.unavailableParts,
+      ...(parsed.merge !== undefined ? { merge: parsed.merge } : {}),
+    })
+    return document
+  }
+
+  it('a legacy file opened and saved unchanged is byte-identical, and still version 1', () => {
+    const text = legacyText()
+    expect(serializeProject(open(text))).toBe(text)
+    expect(stateOf(serializeProject(open(text))).version).toBe(1)
+  })
+
+  it('one edit makes it version 2 with a merge section', () => {
+    const document = open(legacyText())
+    document.setSuppressed('cube-2', false, local)
+    const state = stateOf(serializeProject(document))
+    expect(state.version).toBe(2)
+    expect(state.merge.stamps['cube-2']).toBeDefined()
+  })
+
+  it('every record line stays byte-identical to what the command layer appended', () => {
+    const document = scenario()
+    document.setSuppressed('cube-2-move', true, local)
+    const lines = serializeProject(document).trimEnd().split('\n')
+    expect(lines.slice(0, -1)).toEqual(document.records.map((record) => JSON.stringify(record)))
+  })
+
+  it('round-trips the full MergeState through serialize and parse', () => {
+    const document = scenario()
+    document.setSuppressed('cube-2-move', true, local)
+    document.rollBackTo('cube-1', local)
+    document.setStandingInstructions(RULES_FOR_MERGE, local)
+    document.removeRecords(['cube-2-move'], local)
+    document.undo()
+    const text = serializeProject(document)
+    expect(stateOf(text).version).toBe(2)
+    const reopened = open(text)
+    expect(canonicalJSON(reopened.mergeState())).toBe(canonicalJSON(document.mergeState()))
+    expect(serializeProject(reopened)).toBe(text)
+  })
+
+  it('keeps tombstones across a save and reopen', () => {
+    const document = scenario()
+    document.removeRecords(['cube-2-move'], local)
+    const reopened = open(serializeProject(document))
+    expect([...reopened.mergeState().dead.keys()]).toEqual(['cube-2-move'])
+  })
+
+  it('the loaded clock is past everything in the file, so a local write is later', () => {
+    const document = scenario()
+    const text = serializeProject(document)
+    const highest = highestCounter(document.mergeState())
+    const reopened = open(text)
+    expect(reopened.mergeClock()).toBeGreaterThanOrEqual(highest)
+    reopened.append({ id: 'late', op: 'primitive.cuboid', params: { size: [1, 1, 1], center: [0, 0, 0] } }, local)
+    expect(reopened.mergeState().entries.get('late')?.born.counter).toBeGreaterThan(highest)
+  })
+
+  it('refuses a newer state-line version with the exact sentence and touches nothing', () => {
+    const text = `${cube('cube-1', 0)}\n{"warpcad":"project-state","version":3}\n`
+    expect(() => parseProject(text)).toThrow(
+      'This project was saved by a newer WarpCad. Update the app to open it. The file was not changed.'
+    )
+    const document = scenario()
+    const before = serializeProject(document)
+    expect(() => open(text)).toThrow(ProjectFormatError)
+    expect(serializeProject(document)).toBe(before)
+  })
+
+  it('refuses a version it has never heard of, naming the version', () => {
+    expect(() => parseProject(`${cube('cube-1', 0)}\n{"warpcad":"project-state","version":0}\n`)).toThrow(/version 0/)
+    expect(() => parseProject(`${cube('cube-1', 0)}\n{"warpcad":"project-state","version":"2"}\n`)).toThrow(/version "2"/)
+  })
+
+  it('still ignores unknown state-line fields at version 1 — a `merge` field included', () => {
+    const state = JSON.stringify({ warpcad: 'project-state', version: 1, merge: { clock: 'junk' }, alsoNew: 1 })
+    const parsed = parseProject([cube('cube-1', 0), state].join('\n'))
+    expect(parsed.entries).toHaveLength(1)
+    expect(parsed.merge).toBeUndefined()
+  })
+
+  it('refuses a hostile merge section by naming the field, leaving the project untouched', () => {
+    const state = JSON.stringify({ warpcad: 'project-state', version: 2, merge: { stamps: { 'cube-1': { born: [9e15, 'k3f5xa'] } } } })
+    expect(() => parseProject([cube('cube-1', 0), state].join('\n'))).toThrow(/project-state: merge:.*counter above/)
+    const bad = JSON.stringify({ warpcad: 'project-state', version: 2, merge: [] })
+    expect(() => parseProject([cube('cube-1', 0), bad].join('\n'))).toThrow(ProjectFormatError)
+  })
+
+  it('resolves a tombstone that is not older than its row by the merge rule: the row is dropped, named', () => {
+    const state = JSON.stringify({ warpcad: 'project-state', version: 2, merge: { dead: { 'cube-1': [5, 'k3f5xa'] } } })
+    const parsed = parseProject([cube('cube-1', 0), cube('cube-2', 1), state].join('\n'))
+    expect(parsed.entries.map((entry) => entry.record.id)).toEqual(['cube-2'])
+    expect(parsed.warnings).toEqual([expect.objectContaining({ id: 'cube-1', message: expect.stringMatching(/deleted by another copy/) })])
+  })
+
+  it('keeps a row whose own stamp is newer than its tombstone', () => {
+    const state = JSON.stringify({
+      warpcad: 'project-state',
+      version: 2,
+      merge: { stamps: { 'cube-1': { born: [9, 'k3f5xa'] } }, dead: { 'cube-1': [5, 'k3f5xa'] } },
+    })
+    const parsed = parseProject([cube('cube-1', 0), state].join('\n'))
+    expect(parsed.entries).toHaveLength(1)
+    expect(parsed.warnings).toEqual([])
+  })
+
+  it('parse(serialize(doc)) merged with doc equals doc, over random edit scripts', () => {
+    for (let seed = 1; seed <= 25; seed += 1) {
+      const document = createDocument({ replica: 'hhhhhh' })
+      let state = seed * 7919
+      const next = () => {
+        state = (state * 1103515245 + 12345) % 2147483648
+        return state
+      }
+      for (let step = 0; step < 12; step += 1) {
+        const ids = document.records.map((record) => /** @type {string} */ (record.id))
+        const roll = next() % 7
+        if (roll <= 2 || ids.length === 0) {
+          document.append(
+            { id: document.nextId('box'), op: 'primitive.cuboid', params: { size: [1 + (next() % 9), 5, 5], center: [step * 10, 0, 0] } },
+            local
+          )
+        } else if (roll === 3) document.removeRecords([ids[next() % ids.length]], local)
+        else if (roll === 4) document.undo()
+        else if (roll === 5) document.redo()
+        else document.setSuppressed(ids[next() % ids.length], next() % 2 === 0, local)
+      }
+      const text = serializeProject(document)
+      const reopened = open(text)
+      expect(canonicalJSON(reopened.mergeState()), `seed ${seed}`).toBe(canonicalJSON(document.mergeState()))
+      const merged = mergeStates(document.mergeState(), reopened.mergeState())
+      expect(canonicalJSON(merged), `seed ${seed}`).toBe(canonicalJSON(document.mergeState()))
+      expect(serializeProject(reopened), `seed ${seed}`).toBe(text)
+    }
+  })
+})
+
+const RULES_FOR_MERGE = 'Always dimension in millimetres.'

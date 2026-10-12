@@ -6,7 +6,7 @@ import { createPinia, setActivePinia } from 'pinia'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { nextTick } from 'vue'
 
-import { serializeProject } from '../core/project.js'
+import { parseProject, serializeProject } from '../core/project.js'
 import { HostedError } from '../storage/hostedBackend.js'
 import { DEBOUNCE_MS } from '../storage/autoPush.js'
 import { useDocumentStore } from './document.js'
@@ -546,6 +546,9 @@ describe('useHostedStore', () => {
       await hosted.connect({ token: TOKEN, ...REPO })
       await hosted.setAutoPush(true)
       const stored = credentials.records.get('hosted-git')
+      // What autosave holds: the document's own bytes, merge metadata included
+      // (`TODO/data-011`) — a reload restores that text, it does not re-create the cube.
+      const savedText = serializeProject(documentStore.raw)
       client.writes.length = 0
 
       // A reload: same document, the connection as it was stored.
@@ -553,7 +556,8 @@ describe('useHostedStore', () => {
       credentials.records.set('hosted-git', stored)
       const reloaded = useHostedStore()
       const reloadedDocument = useDocumentStore()
-      reloadedDocument.append(cube('cube-1', [0, 0, 5]))
+      const parsed = parseProject(savedText)
+      reloadedDocument.load(parsed.entries, parsed.rollbackAt, parsed.resolution, { merge: parsed.merge })
       await reloaded.start()
       await vi.advanceTimersByTimeAsync(DEBOUNCE_MS + 1_000)
 

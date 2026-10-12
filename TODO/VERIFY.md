@@ -34,6 +34,15 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### data-011 — Project file version 2 (2026-10-12 19:50)
+
+Core and format only; scenarios 8 and 10 were re-driven and passed. These are what no scenario covers.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | Open a version-2 file saved on desktop Chromium on an iPhone or iPad (Safari) via Files → Open…: it opens, and **Download copy** from there writes the same bytes back. Engine-sensitive only through file reading, which the e2e covers in Chromium and WebKit, never on real iOS. | Open | |
+| 2 | Judge the size: a project you actually work on, saved as version 2 — is the `merge` section (34-43% of a small test file) still a reasonable share of *your* file? That decides whether `data-012`'s tighter encoding is worth doing before `ui-062`. | Open | |
+
 ### data-010 — The document carries merge state (2026-10-12)
 
 Core only; nothing calls `mergeFrom` from the app yet, so the three acceptance scenarios that write or reload were re-driven and passed. These are the two things no scenario covers.

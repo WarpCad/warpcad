@@ -25,6 +25,7 @@ import {
   unbindParam,
   variableDefinitionError,
 } from './variables.js'
+import { recordLinesOf } from './__fixtures__/projectText.js'
 
 /**
  * `TODO/core-050` — project variables: named values any param of any record can be bound to.
@@ -168,7 +169,7 @@ describe('the motivating case — one switch drives the board and the cut-outs',
 
     setVariable(document, 'piModel', 4, LOCAL)
     expectSameShape(shapeOf(document), shapeOf(piCase({ bound: false, model: 4 })))
-    expect(serializeProject(document)).toBe(start)
+    expect(recordLinesOf(serializeProject(document))).toBe(recordLinesOf(start))
   })
 
   it('one setVariable is one Undo step, and Undo puts the Pi 4 back', () => {
@@ -664,7 +665,7 @@ describe('in a document — an unresolvable binding is a broken row, named, neve
     const parsed = parseProject(text)
     expect(parsed.warnings).toEqual([])
     const reloaded = createDocument()
-    reloaded.loadEntries(parsed.entries, parsed.rollbackAt, parsed.resolution)
+    reloaded.loadEntries(parsed.entries, parsed.rollbackAt, parsed.resolution, { merge: parsed.merge })
     expect(serializeProject(reloaded)).toBe(text)
     expectSameShape(shapeOf(reloaded), shapeOf(document))
   })
