@@ -149,7 +149,15 @@ workflow (commit, feature, TDD, fix-todo, refactor-ui) proceeds.
 
 ## Notes
 
-- Single test file: `npx vitest run --reporter=verbose <filename>`
+- Single test file: `npx vitest run --reporter=verbose --reporter=./scripts/test-progress/vitest.mjs <filename>`
+- **Always load the progress reporters.** `playwright.config.js` and `vitest.config.js`
+  register `scripts/test-progress/{playwright,vitest}.mjs`, which feed the test-progress
+  mod (`.test-progress/*.json`). A CLI `--reporter` flag **replaces** the configured list,
+  so a bare `--reporter=line` / `--reporter=verbose` silently turns the mod off. Prefer no
+  `--reporter` flag at all. When you need another console view, list the progress reporter
+  too:
+  - Playwright: `--reporter=line,./scripts/test-progress/playwright.mjs`
+  - Vitest: `--reporter=verbose --reporter=./scripts/test-progress/vitest.mjs`
 - Never pipe e2e output to `tail` — Playwright (or whichever E2E tool is chosen) prints
   failures at the top and the summary at the bottom; `tail -N` hides failures and can
   make a red run look green.

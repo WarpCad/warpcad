@@ -86,8 +86,10 @@ export default defineConfig({
   testDir: './e2e',
   fullyParallel: true,
   // Agent-oriented reporter: terse console summary, failure detail in one markdown file
-  // (test-report-for-coding-agents/, gitignored). Lean options keep token use low; override
-  // with --reporter=list for the human view.
+  // (test-report-for-coding-agents/, gitignored). Lean options keep token use low.
+  // A CLI --reporter flag REPLACES this whole list, silently dropping the progress reporter
+  // below. To change the console view, keep it:
+  //   --reporter=list,./scripts/test-progress/playwright.mjs
   reporter: [
     [
       '@zenai/playwright-coding-agent-reporter',

@@ -11,7 +11,8 @@ export default defineConfig({
     environment: 'node',
     // 'agent' prints failures only (no per-file/per-test lines) to keep token use low.
     // The second reporter writes .test-progress/vitest.json for the progress/ETA mod.
-    // Override on the CLI with --reporter=default for the full human view.
+    // A CLI --reporter flag REPLACES this list, dropping the progress reporter. For the full
+    // human view keep it: --reporter=default --reporter=./scripts/test-progress/vitest.mjs
     reporter: ['agent', './scripts/test-progress/vitest.mjs'],
     // build/ holds static-markup checks (e.g. the index.html first-paint guard,
     // TODO/build-002) that aren't part of src/ but still need to run as real tests.

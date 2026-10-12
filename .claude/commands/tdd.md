@@ -67,7 +67,8 @@ Confirm: "All green. Done."
 
 - To validate UI changes against the full suite, run the `test` skill (`/test`)
   instead of listing individual commands.
-- A single test can be run with: `npx vitest run --reporter=verbose <filename>`
+- A single test can be run with: `npx vitest run --reporter=verbose --reporter=./scripts/test-progress/vitest.mjs <filename>`
+  (a bare `--reporter` replaces the configured list and turns the test-progress mod off — see `/test` Notes)
 - Test files use `.spec.js` for unit/component tests, `.e2e.js` for E2E tests
 
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

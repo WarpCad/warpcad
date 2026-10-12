@@ -348,6 +348,10 @@ Also independent of the open Stack decisions:
 
 - **Tests**: `.spec.js` (unit, next to source), `.e2e.js`/`.story.e2e.js` (E2E, in
   `e2e/` — see Project Structure above for the difference)
+- **Test runs always load the progress reporters** (`scripts/test-progress/`, which feed the
+  test-progress mod). Never pass a bare `--reporter=…` to `vitest` or `playwright test` — it
+  replaces the configured list and the mod goes dark. Use no flag, or append the progress
+  reporter; exact spellings are in `.claude/commands/test.md` Notes.
 - **Types**: every exported function has a JSDoc signature. `npm run typecheck`
   (`tsc --noEmit`) is a test stage and a CI gate — a type error is a failing build.
 - **Always mock at the boundary**: the kernel worker, WebGL contexts, the File System
