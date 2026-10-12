@@ -19,8 +19,10 @@ Two library commitments from the previous attempts are explicitly **not** carrie
 forward — they are open questions again, not defaults:
 
 - **No CRDT.** The previous document model was Yjs + y-indexeddb. Whether this attempt
-  needs multi-writer merge semantics at all — and if so, what backs them — is an open
-  kickoff decision (see Library decisions below), not an inherited answer.
+  needed multi-writer merge semantics at all was reopened rather than inherited. It is now
+  answered (`docs-022`, 2026-10-12, accepted): **yes to a merge, still no
+  CRDT library** — a hand-rolled, state-based merge over the NDJSON project file, see
+  `docs/decisions/document-sync.md`.
 - **No `manifold-3d`.** The previous geometry kernel choice is not assumed. Which
   library evaluates booleans, tessellation, and CSG is an open kickoff decision.
 
@@ -277,7 +279,7 @@ previous choice is rejected, not merely unconfirmed, and the question underneath
 | PWA | Default — reconsider | vite-plugin-pwa, previous attempt |
 | Hosting | Default — reconsider | GitHub Pages (static, no backend), previous attempt |
 | Geometry kernel | **Committed** | `@jscad/modeling` (JSCAD V3), see `docs/decisions/geometry-kernel.md` |
-| Document model / sync | **Open** | previous pick (Yjs/CRDT) explicitly not carried forward — first decide whether multi-writer merge is even a goal this attempt; no-CRDT-for-v1 deferral recorded in `docs/decisions/document-sync.md` (the AI partner does not trigger it — see `docs/decisions/ai-partner.md`) |
+| Document model / sync | **Committed** (accepted 2026-10-12, `docs-022`) | NDJSON project file with a hand-rolled, state-based merge (replica ids, Lamport stamps, position keys, tombstones; record lines byte-identical, merge metadata in the state line as version 2) — **no CRDT library**; Yjs/Automerge/Loro re-checked and rejected, and the earlier single-writer deferral kept as history — see `docs/decisions/document-sync.md`. The AI partner is the second writer that made it a goal (`docs/decisions/ai-partner.md`) |
 | LLM client | **Committed** (accepted 2026-10-06) | raw `fetch` to the Messages API behind a one-method provider interface, Anthropic-only v1, no dependency; `@anthropic-ai/sdk` rejected for now (fails the licence allow-list via a transitive Unlicense dep, 14% of the bundle) — see `docs/decisions/ai-partner.md` |
 | MCP SDK | **Committed** (accepted 2026-10-06) | `@modelcontextprotocol/server` 2.3.1 (v2 split package, Apache-2.0), in its own `mcp/package.json` — see `docs/decisions/ai-partner.md` |
 
@@ -450,8 +452,13 @@ Two access paths, both planned, served by **one** framework-free tool registry
 (`src/ai/tools/`) — neither path adds tools of its own (`docs/decisions/ai-partner.md`):
 - **MCP server** (`mcp/server.js`, `docs/mcp.md`) — reads and writes one local project
   file, so Claude Code can drive modeling (a hosted project reference is not built yet).
-  **Stated explicitly, as this section asks:** the document/sync layer does **not** support
-  concurrent merge, so v1's MCP server edits a **closed** project file only. Concretely:
+  **Stated explicitly, as this section asks:** the document/sync layer as built today does
+  **not** support concurrent merge — that is M15's work (decided and accepted in `docs-022`; `docs/decisions/document-sync.md`), which merges a changed file
+  automatically with **Undo merge** in place of the dialog below, and lets the human keep
+  editing during an AI turn. Until it lands, the single-writer rules below are what ships,
+  and `nextId`'s per-document counter is unique only because there is one writer — M15 makes
+  record ids replica-scoped (`data-008`) before any merge path exists. So v1's MCP server
+  edits a **closed** project file only. Concretely:
   every call re-reads the file (reloading if anything else changed it); a write takes
   `<file>.lock` for that one read-modify-write (so two servers serialise, never interleave),
   writes a temp file and renames it over the original, and a refused call writes nothing.
@@ -525,7 +532,8 @@ of the work, not scaffolding. Full map in `LICENSING.md`; the rules you must fol
   stack/storage questions back, not UI/UX ones, and paid for that gap later. Also
   resolve the remaining **Open** Stack row (document/sync — geometry kernel is now
   committed, see `docs/decisions/geometry-kernel.md`) via Library decisions before the
-  roadmap can name real task dependencies for it.
+  roadmap can name real task dependencies for it. (Done for document/sync by `docs-022`,
+  2026-10-12 — see `docs/decisions/document-sync.md`.)
 - `TODO/ACCEPTANCE.md` — the fixed set of 5-10 named end-to-end use cases the AI itself
   drives and reports PASS/FAIL against, per Verification above. **Does not exist yet.**
   Write it at kickoff, same session as the roadmap.

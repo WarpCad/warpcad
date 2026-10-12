@@ -2234,3 +2234,18 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** screen had specs asserting only "a command is shown" and Copy -> `TODO/done/ai-016-*.md` Problem section; script behaviours (user scope, clears stale entries, creates file) -> `scripts/mcp-add.mjs` in the diff; spec connects a real client and lists tools -> `mcp/mcp-add.spec.js` last test; server exit names path -> `mcp/server.js` and `mcp/server.spec.js` in the diff
 **To Add:** repo URL once public
+
+## [2026-10-12T15:50:00Z] — Decided: a hand-rolled state-based merge, no CRDT library
+
+**Post:** WarpCad's project file is a plain NDJSON log, and until today the app assumed one writer: when the AI assistant edits a file the human has open, one side gets paused or overwritten. The decision record for changing that is now written and accepted. It is a state-based merge over the same file, with no CRDT library and no change to how record lines look.
+
+The mechanism is small. Every writer (a tab, an AI fork, an MCP server process) has a replica id and a Lamport clock, record ids are scoped to the replica that minted them, and a deleted row leaves a tombstone so the deletion survives a merge. Order comes from a position key plus a born stamp. One thing the first answer got wrong: a file that has never been merged cannot stay at version 1, because Undo needs a tombstone the moment another copy of the file might exist. So any file the new build edits becomes version 2, and an untouched legacy file stays byte-identical.
+
+I re-checked Yjs, Automerge and Loro against the project's health criteria before rejecting them, and the rejection table lists the reasons. The record is `docs/decisions/document-sync.md`; the build tasks behind it start with `data-008`.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** NDJSON log, one-writer assumption, mechanism, version rule, rejection table -> `docs/decisions/document-sync.md` in the diff; "accepted" -> the user's "accept" reply this session; build tasks starting at `data-008` -> `TODO/ROADMAP.md` M15 row in the diff
+**To Add:** repo URL once public

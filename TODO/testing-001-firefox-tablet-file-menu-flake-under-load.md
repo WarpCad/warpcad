@@ -2,7 +2,7 @@
 title: export-ui "History previews a past state" failed once on firefox-tablet — File menu never appeared (not reproduced)
 category: testing
 kind: finding
-priority: medium
+priority: high
 model: sonnet
 milestone: M8
 depends: []
@@ -51,6 +51,19 @@ Both are Firefox, both under the full 7-worker matrix, both at the first `file-m
 test, and neither touches the History preview in the second case — which weakens the
 History-strip reflow hypothesis above and points at the File menu's own open path (or the
 header) under load. `sketch-002` touched neither.
+
+## Seen a third time (2026-10-12, during `TODO/docs-022`, a prose-only diff)
+
+Full 9-project run: 3,322 passed / 860 skipped / **1 failed** (4,183 tests, 1,034 s).
+The failure is `e2e/save-load-ui.e2e.js:230` (*hosted storage through the File menu ›
+Disconnect deletes the credential…*), the same test as the 2026-10-03 occurrence, again at
+`openFileMenu`: `file-menu` "element(s) not found" for 5 s. Passed alone **9/9** across every
+project right after (5.3 s). The compact run report did not record which project failed, so
+the Firefox-only pattern above is **not confirmed** this time. The diff under test touched
+nothing under `src/`, `e2e/`, `mcp/` or `scripts/`. This is the second occurrence of this exact
+test, which the "Done when" section names as the signal to raise the priority: **priority
+raised to high.** The commit was made with the red test recorded here, at the user's
+instruction.
 
 ## Done when
 

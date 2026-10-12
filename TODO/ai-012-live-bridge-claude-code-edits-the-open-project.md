@@ -5,7 +5,7 @@ kind: feature
 priority: high
 model: opus
 milestone: M9
-depends: [ai-009, ai-006, ai-016]
+depends: [ai-009, ai-006, ai-016, data-010, ai-017]
 status: open
 ---
 
@@ -22,10 +22,26 @@ and a 20 mm sphere on top of it" in Claude Code makes both appear in the viewpor
 and movable by hand, as one **Undo AI turn** step; a failed or refused call leaves the document
 byte-identical; and nothing but the user's own browser and Claude Code can reach the link.
 
-This resolves `docs/decisions/document-sync.md`'s revival condition **without a merge**: the
-open tab is the one writer and the AI is its client (decision 6's planned shape).
+The open tab stays the one writer and the AI is its client (decision 6's planned shape), so the
+bridge needs **no replica of its own** and no merge. M15's merge (`docs-022`) landed after this
+was written; Decision 11's "Compatibility with the M15 merge" section is the contract.
+Build it after `data-010` (stamping) and `ai-017` (the `AiTurn` shape), and only once
+`docs-022` is accepted.
 
 ## Design (what has to be true; the decision doc records it before building)
+
+**Scope decided 2026-10-12: the dev host only.** Build `mcp/bridge.js` and the Vite plugin; do
+**not** build the standalone `mcp/server.js --live` listener or add `ws`. The standalone points
+below stay as the design for the reserved follow-up row. `npm run mcp:add` gains `--dev` (HTTP
+registration), not `--live`. Documentation says plainly that live editing runs under
+`npm run dev` on a desktop browser.
+
+**Amended 2026-10-12 (Decision 11):** the bridge core (`mcp/bridge.js`) has two hosts. Under
+`npm run dev` a Vite plugin serves MCP over Streamable HTTP at `/mcp` and talks to the tab over
+Vite's own HMR WebSocket (same origin, no port, no `ws` dependency). The standalone
+`mcp/server.js --live` below is for a built or hosted app. Hosted WebKit cannot connect (measured:
+mixed-content block), and Chromium needs the local-network-access grant. Points 1 to 6 describe
+the standalone host; the dev host keeps points 2 to 4 and 6 and replaces 1 and 5's transport.
 
 Append **Decision 11** to `docs/decisions/ai-partner.md` first, accepted by the user before code,
 exactly as `ai-013` did decision 10. It records the three choices below and the browser-support
@@ -112,8 +128,9 @@ facts verified on the day.
 - `src/components/ai/ConnectClaudeCode.vue`, header chip in the existing Assistant header
 - `scripts/mcp-add.mjs` (`--live`, from `ai-016`)
 - `docs/mcp.md`, `docs/ai-partner.md`, `docs/decisions/ai-partner.md` (Decision 11),
-  `docs/decisions/document-sync.md` (revival condition marked resolved by `ai-012`),
-  `CLAUDE.md` (the AI Partner section's "reserved `ai-012`" sentence), `TODO/ACCEPTANCE.md`
+  `docs/decisions/document-sync.md` (a line saying the bridge is a single-replica client of the
+  merge, after `docs-022` rewrites it), `CLAUDE.md` (the AI Partner section's "reserved `ai-012`"
+  sentence, which `docs-022` also edits: rebase on its wording, do not overwrite), `TODO/ACCEPTANCE.md`
 
 ## Effort
 
@@ -147,7 +164,8 @@ L
   (library parts Claude may place). Add a new scenario to `TODO/ACCEPTANCE.md` for this flow.
 - Closed findings re-run: `ai-002` (atomic landing), `ai-006` (Undo AI turn leaves local undo
   alone), `data-007`, `core-056` (a batch of insert + revision is one Undo step), `ai-009`
-  (closed-file reload-on-change still behaves when the app is *not* in live mode).
+  (closed-file behaviour, as `io-010` left it, is unchanged when the app is *not* in live mode),
+  `data-008`'s id audit (a bridge-landed batch mints replica-scoped ids).
 
 ## Documentation
 

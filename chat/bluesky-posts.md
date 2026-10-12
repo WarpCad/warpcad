@@ -1594,3 +1594,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** the pasted command's placeholder paths made Claude Code report `CONNECTION_CLOSED` -> `TODO/done/ai-016-*.md` Problem section; script resolves paths, replaces old entries -> `scripts/mcp-add.mjs` in the diff; a real MCP client connects to the produced argv -> `mcp/mcp-add.spec.js` last test, passing in this session's unit run (3885 passed, 187 files)
 **To Add:** screenshot `docs/screenshots/assistant-subscription-route.png`, repo URL once public
+
+## [2026-10-12T15:50:00Z] — Decided: a hand-rolled state-based merge, no CRDT library
+
+**Post:** WarpCad's project file now has a decided merge design: hand-rolled, state-based, no CRDT library. Replica ids, Lamport stamps, tombstones; record lines stay byte-identical. Yjs, Automerge and Loro were re-checked and passed over. Built with Claude Code, reviewed by me. #CAD
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** merge shape, mechanism, version rule -> `docs/decisions/document-sync.md` in the diff; Yjs/Automerge/Loro re-checked and rejected -> same file's options and rejection tables (figures from `npm view`/`gh api` run this session, 2026-10-12)
+**To Add:** repo URL once public

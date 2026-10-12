@@ -273,6 +273,13 @@ definition of every op's params beside the registry's).
 
 ## Decision 5 — Undo vs origin scoping: **a branch per turn, then one Undo AI turn**
 
+> **Note, 2026-10-12 (`TODO/docs-022`, M15; accepted 2026-10-12).** M15
+> replaces "**the human is paused**" while a turn runs. The fork stays; the human keeps editing
+> the live document, a status chip with a **Watch** toggle shows the AI's fork, and the turn
+> lands by **merge** (`docs/decisions/document-sync.md`) instead of a plain append onto a
+> document nobody else touched (`ai-017`, which amends this decision when it lands). Undo AI
+> turn and the origin rule below are unchanged. The text below is as decided on 2026-10-06.
+
 ### What `src/core/document.js` already guarantees
 
 See the `data-003` and `core-030` notes in that module, around lines 109-180:
@@ -384,6 +391,15 @@ automatically or waits for an explicit **Accept**:
 ---
 
 ## Decision 6 — Concurrency: **closed-file MCP for v1; `ai-012` reserved**
+
+> **Note, 2026-10-12 (`TODO/docs-022`, M15; accepted 2026-10-12).** M15
+> replaces "**no merge, ever**". A project file the MCP server changed on disk is **merged
+> automatically** into the open project, followed by a toast with **Undo merge** (`io-010`);
+> the Reload / Overwrite / Cancel dialog remains only for a file that is a *different*
+> project. A stale hosted save merges and pushes the same way (`io-011`). The MCP server's
+> lock-and-rename write is unchanged and must preserve every stamp and tombstone it did not
+> touch (`data-011`). Design and rejection tables: `docs/decisions/document-sync.md`. The
+> text below is as decided on 2026-10-06.
 
 - **In-browser assistant: not a second concurrent writer.** It writes through the same
   command layer in the same tab. With decision 5 the human's edits are paused while a
@@ -624,6 +640,17 @@ mock in `CLAUDE.md`'s sense.
 
 ## CRDT, explicitly: would a CRDT help the AI co-editor?
 
+> **Amended 2026-10-12 (`TODO/docs-022`, accepted 2026-10-12).** The user
+> reversed the "one writer" premise below: the AI is a second writer on the same file and its
+> edits should **merge**. The answer to *this* section's question is unchanged, **still no CRDT
+> library**, and the comparison below was re-checked on 2026-10-12 with the same result. What
+> changed is that a merge now exists: a **hand-rolled, state-based merge over the NDJSON
+> project file** (replica ids, Lamport stamps, position keys, tombstones), recorded in
+> `docs/decisions/document-sync.md`. Point 3 below ("there's no concurrent writer to merge")
+> is no longer true from M15 on; points 1, 2 and 4 still hold and are why the merge is
+> hand-rolled rather than a library. Kept as written below as the record of the 2026-10-06
+> reasoning.
+
 **No.** That was the starting position (user, 2026-10-02), and nothing in decisions 1-8
 found a concrete need the branch model and one-writer `ai-012` can't meet.
 
@@ -723,6 +750,145 @@ Decision 8 (the credential never leaves the credential store).
    current token-only readout (`TokenReadout.vue`, `ai-006`) is extended, not replaced;
    missing `usage` renders nothing, never `NaN`.
 3. No subscription token is ever read, stored or sent by WarpCad.
+
+---
+
+## Decision 11 — Live bridge: **a document-less relay, one writer (the open tab), pairing-code gated** (`ai-012`, **accepted by the user 2026-10-12**)
+
+**The question.** Decision 6 reserved `ai-012`: let Claude Code (on the user's own
+subscription, Decision 10 option B) edit the project the user has **open**, without a
+merge. `document-sync.md`'s revival condition ("a second concurrent writer") is answered
+by making the tab the only writer and the AI its client.
+
+### What this decision commits to
+
+1. **A relay with no document.** `mcp/server.js --live` stays a stdio MCP server to
+   Claude Code and also listens on `ws://127.0.0.1:<port>` (loopback only). A `tools/call`
+   is forwarded to the connected tab, which runs it through the same
+   `createToolRegistry().run` and returns the JSON (and PNG for `capture_view`). The helper
+   never parses a project or writes a file in live mode. A file argument means closed-file,
+   `--live` means live; **no silent fallback** between them (that would be two writers).
+2. **Live mode lists the browser tool set** (`capture_view`, `get_selection`, `select` in
+   addition to the shared tools). Records keep origin `mcp`. The registry gains one seam
+   (a capability flag selecting the browser tool list), not a third copy of the tools.
+3. **A turn is a group of landed batches, not a fork.** MCP has no turn boundary. Each write
+   call lands at once as one atomic `mcp` batch; consecutive batches with the same
+   `request` within a 60 s idle gap are one `aiTurns` entry, so **Undo AI turn** removes the
+   group in one step and never touches the local undo stack. A failed call lands nothing.
+4. **One writer is enforced.** Calls run serially on the tab; user edits are paused while a
+   call runs (the existing preview-mode backstop). A call arriving mid-gesture waits up to
+   10 s, then is refused with "the user is editing; try again". A call whose live document
+   changed under it is refused, never landed over the change.
+5. **Pairing and origin.** (a) the upgrade is rejected unless `Origin` is the app's own
+   origin or a localhost dev origin; (b) a single-use 8-character code, printed by the
+   helper, valid 5 minutes and dead when the helper exits; (c) the code is never written to
+   a file, log, or tool result. It is a one-session handshake, not a credential-store
+   entry (Decision 8).
+6. **Caps, trust and data rules unchanged** (Decision 7); no subscription token is read,
+   stored or sent (Decision 10 point 3).
+
+### The standalone WebSocket server: **deferred; `ws` not added** (decided 2026-10-12)
+
+**Decision: dev host only for now.** `ai-012` ships the Vite-plugin host and no standalone
+`--live` listener. No `ws` dependency enters `mcp/package.json`; if the standalone host is
+wanted later, `ws` 8.x is the pick below and its health check re-runs then. A reserved roadmap
+row holds it. Everything below in this section is the record of that later option.
+
+The dev host uses Vite's WebSocket and needs none of this. Only the standalone host (a
+built or hosted app) needs a WebSocket *server*.
+
+Node has a WebSocket *client* but no server. Options:
+
+| Option | Verdict |
+|---|---|
+| `ws` (MIT, no dependencies, the de-facto Node implementation) | **Proposed.** `mcp/` already has its own manifest and licence check; MIT is on the allow-list. Re-run the health check (stars, issues, release recency, maintainers) when pulling it in, per Library decisions. |
+| Hand-rolled RFC 6455 over `node:http` `upgrade` | Rejected — ~200 lines of framing, masking and close handshake to own and test, for no licence or size gain in a Node-only helper. |
+| Server-Sent Events + `POST` (no WebSocket) | Rejected — measured 2026-10-12: WebKit blocks `fetch` and SSE to loopback from an `https` page just as it blocks `ws://`, so it is no fallback (see the spike table). |
+| Streamable-HTTP MCP direct to the tab | Rejected — the tab cannot listen; it must dial out, so a relay is needed regardless. |
+
+### Browser-support spike (measured 2026-10-12, Playwright: Chromium 153, Firefox 155, WebKit 26.6)
+
+A page served at `https://…` (route-fulfilled, so mixed-content rules apply) or at
+`http://localhost`, probing a loopback listener:
+
+| Engine | https page → `ws://127.0.0.1` | https page → `http://127.0.0.1` (fetch / SSE) | `http://localhost` page → `ws://127.0.0.1` (dev) |
+|---|---|---|---|
+| Chromium | **Blocked** (`ERR_BLOCKED_BY_LOCAL_NETWORK_ACCESS_CHECKS`) until the user grants *local network access*; **works once granted** | works once granted | blocked until granted, then works |
+| Firefox | works, no prompt | works | works |
+| WebKit | **Blocked** as mixed content, `localhost` too | **Blocked** (fetch and SSE) | works |
+
+Consequences, now facts rather than risks:
+
+- **Hosted (`https`) Safari and every WebKit-based iOS browser cannot use the live bridge.**
+  There is no fallback transport: the block is mixed-content, not WebSocket-specific, so SSE
+  plus `POST` does not help (that fallback row above is withdrawn). The Connect sheet says so
+  on WebKit, plainly. It works from `npm run dev` (`http://localhost`).
+- **Chromium shows a local-network-access permission prompt** on first connect; the sheet
+  tells the user to expect it and to choose *Allow*.
+- The e2e spec grants `local-network-access` for Chromium and asserts the WebKit message on
+  the hosted origin rather than skipping.
+- Port: default `47600`, `--port` override; a taken port is reported in the tool result,
+  never silently re-picked.
+- MCP SDK: `@modelcontextprotocol/server` 2.3.1 does export
+  `WebStandardStreamableHTTPServerTransport` and `createMcpHandler` from its main entry
+  (Request in, Response out), so the dev HTTP host needs no new dependency.
+
+### Two hosts, one bridge core (amended 2026-10-12 at the user's request; **only the dev host is built in `ai-012`**)
+
+The bridge is a framework-free module (`mcp/bridge.js`: call queue, pairing, one-writer
+rules, timeouts) with two thin hosts:
+
+| Host | When | Claude Code side | Tab side |
+|---|---|---|---|
+| **Vite plugin** (`configureServer`) | `npm run dev` | Streamable HTTP MCP at `http://127.0.0.1:5183/mcp` (`claude mcp add --transport http`), via the SDK's web-standard handler | **Vite's own HMR WebSocket**: custom events through `server.ws.on/send` and `import.meta.hot` (same origin, already connected, no new dependency, no port) |
+| **Standalone** `node mcp/server.js --live` | the built / hosted app | stdio, as Decision 3 | `ws://127.0.0.1:<port>`, Origin check + pairing code (points 1 to 5 above) |
+
+In dev the same-origin tab needs no cross-origin check and avoids the WebKit loopback
+risk, but the HTTP endpoint is still reachable by any local web page, so the plugin keeps
+the `Origin` allow-list and the pairing code. `npm run mcp:add -- --live --dev` registers
+the HTTP form. The registry seam and `request` semantics are identical in both hosts; the
+Vite plugin is dev-only and ships nothing in `vite build`. The MCP SDK's HTTP transport
+must be confirmed available in `@modelcontextprotocol/server` 2.3.1 before building (it
+will be recorded here).
+
+### Compatibility with the M15 merge (`docs-022`, `data-008`..`data-011`; checked 2026-10-12)
+
+The storage conversion landed as TODOs, and it is **not a CRDT library**: a hand-rolled,
+state-based merge over the NDJSON file (replica ids, Lamport clock, position keys, tombstones).
+`docs-022` and `ai-017` both say Decision 11 is left as written, so this section is the
+bridge's side of the contract. The bridge holds no document, so almost nothing moves:
+
+| M15 change | Effect on the bridge |
+|---|---|
+| **Replica ids** (`data-008`): one per tab, per AI fork, per MCP server process | The bridge helper has no document, so it needs **no replica id**. Tool calls run in the tab and mint ids from the tab's replica. A tab reload gets a new replica; the bridge just sees a reconnect. |
+| **Ids become `op-<replica>-<n>`** | `@n` references resolve to real ids through `nextId` (`data-008` point 5 audits this). Nothing in the bridge parses an id. |
+| **Every mutator stamps** (`data-010`) | The `mcp`-origin batch the bridge lands is stamped by the command layer like any other write; no bridge code. |
+| **Tombstones; Undo records a `dead` stamp** | Undo AI turn on a group of batches is the same remove-and-record-tombstone path. |
+| **`AiTurn` becomes `data-010`'s `change`** (`ai-017`) | The bridge's group must be recorded in that same shape, **not** a separate one. This is why `ai-012` builds after `ai-017`'s record exists. |
+| **In-app turns stop pausing the user** (`ai-017`) | The bridge's calls land directly on the live document (no fork), so the pause-while-a-call-runs rule stays: it protects one call's read-then-write, not a long turn. A short, deliberate difference; `ai-017` point 7 reserves relaxing it. |
+| **Files merge on disk** (`io-010`) and **Merge file…** (`ui-062`) can land mid-call | The staleness refusal (point 4) still applies, and now has a real source of staleness. |
+
+**The one seam:** `documentRevision()` is the document's **Lamport clock value**
+(`data-008`'s `clock`), which ticks on every mutation and observes every merged stamp. A call
+records it at start and is refused if it moved before landing. A merge that only advances the
+clock is a harmless false refusal, which the model is told to retry.
+
+**What the premise now is.** Decision 11 originally said it "resolves the revival condition
+without a merge". With M15 the document *has* a merge; the bridge is still a single writer
+into it (the tab), with the AI as that writer's client, and needs no merge of its own. The
+claim to keep is "no second replica", not "no merge exists".
+
+**Ordering.** Build `ai-012` after `data-010` (stamping) and `ai-017` (the `AiTurn`
+shape). `docs-022` must be accepted before `data-008` starts, so `ai-012` is gated on that
+acceptance. The closed-file MCP changes under `io-010` (auto-merge replaces
+Reload/Overwrite), so "closed-file unchanged" in this task's testing means *as `io-010` left it*.
+
+### Honest limits
+
+Desktop browser on the same machine only (a phone cannot reach another machine's
+loopback). Any local process can try the port, hence the code and origin gates; the
+residual risk is another local program that reads the helper's stderr, which is the same
+trust boundary as the user's own shell.
 
 ---
 

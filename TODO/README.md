@@ -25,7 +25,7 @@ Example: `TODO/core-003-boolean-features.md`
 |---|---|
 | `build` | scaffold, tooling, typecheck, CI, PWA shell, deployment |
 | `core` | document model, feature timeline, evaluation engine, kernel adapter |
-| `data` | document schema, persistence, undo/redo, merge and sync semantics — deliberately not named `crdt`, since whether this attempt uses one at all is an open kickoff decision (see `CLAUDE.md`'s Stack table) |
+| `data` | document schema, persistence, undo/redo, merge and sync semantics — deliberately not named `crdt`: this attempt merges with a hand-rolled, state-based merge over the NDJSON project file, **no CRDT library** (`docs/decisions/document-sync.md`, `docs-022`, 2026-10-12; see `CLAUDE.md`'s Stack table) |
 | `render` | 3D viewport, mesh bridge, picking, gizmos, the frame loop |
 | `sketch` | 2D sketch model, drawing tools, snapping, dimensions, constraints |
 | `ui` | Vue components, views, composables, UI-only stores |

@@ -211,6 +211,14 @@ Three things follow:
    with **409 Conflict**. That *is* the "refuse to silently overwrite" semantic
    `io-002` specifies and that `docs/decisions/document-sync.md` names as its revival
    condition — available identically to `fetch` and to Octokit. Octokit adds nothing here.
+
+   > **Note, 2026-10-12 (`TODO/docs-022`, M15; accepted 2026-10-12).**
+   > The answer `io-002` built on that 409, **Overwrite / Load / Cancel, no merge**, is
+   > replaced in M15: a stale save (or an auto-push tick, or a Load) fetches the remote copy,
+   > **merges** it into the open project and pushes the result (`io-011`). The dialog remains
+   > only when the remote file is a *different* project. The 409 is still the signal that
+   > starts it, so nothing in this sub-decision's client choice changes. Design:
+   > `docs/decisions/document-sync.md`.
 2. **The ergonomics Octokit is bought for do not apply.** Pagination is its headline
    feature; a single file at a known path has no pages. Throttling and abuse-retry plugins
    target high-volume automation, not a human pressing Save. Its auth strategies are built
