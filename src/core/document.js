@@ -250,8 +250,9 @@
  * name. The refusal is a {@link ReplayRejection} carrying a {@link BrokenStep} —
  * the row's id, its **1-based step number**, its label and a reason — so the
  * panel can say `Step 4 (Fillet Cube 1) can't be built: radius 4 mm doesn't fit`
- * and chip that exact row, rather than parsing a string. Two reason shapes,
- * deliberately only two:
+ * and chip that exact row, rather than parsing a string. Two reason shapes for a
+ * refusal, deliberately only two (a merge adds a third, for a row it flags rather than
+ * refuses — see the replica note below):
  *
  * - **`needs <name>`** — the row references a record this fold no longer has
  *   (suppressed out, reordered after it, superseded by an insert). Checked
@@ -336,6 +337,84 @@
  * this new body"; `mergedInto` would point at a body that never renders, and
  * `currentIdOf` walking forward through it would resolve a stale reference to nothing.
  *
+ * ## The document is a replica (`TODO/data-010`)
+ *
+ * Every mutation also records what `data-009`'s merge core needs, and {@link
+ * WarpDocument.mergeFrom} merges another replica's {@link WarpDocument.mergeState} in.
+ * `docs/decisions/document-sync.md` is the design; this is how it sits on this module.
+ *
+ * **Where the metadata lives.** Per row: a born-or-revival stamp, a position key with its
+ * stamp, a record stamp and stamps for the `suppressed`/`leftBroken` flags — beside the record,
+ * never inside it, in a side table by record id (`metaById`), not on the entry objects, so
+ * `entries` is exactly what it was for every reader that never merges. Per document:
+ * tombstones (`dead`, id → stamp), four last-writer-wins registers and a stamp per user-part
+ * definition. A log no edit here has stamped — a seed, a loaded file — **derives** it:
+ * position keys from row order, every stamp counter 0 under the fixed replica `legacy`, a
+ * register only where the value differs from what its absence means. Deterministic, so two
+ * builds upgrading one file agree and their copies merge.
+ *
+ * **Every mutator stamps, once per transaction.** Rather than each mutator writing its own
+ * stamps, each is wrapped (`STAMPED_MUTATORS`) so the before/after diff of the whole
+ * transaction is stamped with **one** clock tick ({@link stampSince}): a new row is born and
+ * keyed between its neighbours, a removed row is tombstoned, a changed record or flag is
+ * stamped, a moved row is re-keyed, a changed register is written. A nested call (a `batch`
+ * build, `append` → `appendAll` → `insertAt`) joins its caller's transaction, so a batch
+ * shares one stamp. Computing it from the diff is what makes "a mutator forgot to stamp"
+ * impossible rather than silent; the table is what each one ends up writing:
+ *
+ * | Mutator | Writes |
+ * |---|---|
+ * | `append`, `appendAll`, `insertAt` | new rows: `born`, `pos`, `rec`; the marker if it inserts at it; a user part it places |
+ * | `replaceRecord` | `rec` |
+ * | `reviseRecords` | `rec` and `leftBroken` of each row; `born`/`pos`/`rec` of rows it adds; a tombstone for one it removes |
+ * | `setSuppressed` | `suppressed` |
+ * | `moveStep` | the moved row's `pos` |
+ * | `removeRecords` (Undo AI turn) | tombstones; the marker if it moves |
+ * | `deleteBodies`, `removePart`, `setColorOverride`, `clearColorOverride` | a new row (through `appendAll`) |
+ * | `rollBackTo`, `rollForward` | the `rollbackAfter` register |
+ * | `setResolution` | the `resolution` register |
+ * | `setStandingInstructions` | the `standingInstructions` register |
+ * | `setBuildVolume` | the `buildVolume` register |
+ * | user-part adoption (inside the fold of a placement) | the part's definition stamp |
+ * | `undo`, `redo`, `batch` | whatever the change they make is: Undo of a placement tombstones its rows, Redo brings them back with a fresh `born` that beats the tombstone, Undo of an edit stamps the old record as a new write |
+ * | `loadEntries`, the seed | derive (above), never stamp |
+ * | `mergeFrom` | takes the merged state's stamps as they are; writes nothing of its own |
+ *
+ * **Removal is a tombstone.** Undo, Undo AI turn and `removeRecords` still splice the entry out
+ * of `entries` — the fold and every reader are unchanged — and the diff records the id with
+ * the transaction's stamp. The record is not kept in it; the undo stack already holds it.
+ *
+ * **The marker is an anchor.** The register stores "after row X" (`{ row, key, born }`), and
+ * `rollbackAt()` is still the count every consumer reads: kept as a count locally, derived
+ * from the anchor after a merge. A step's `index` and marker counts mean nothing once a merge
+ * has inserted rows before them, so a step pushed before the most recent merge is reversed by
+ * its rows' **position keys** and a re-derived marker (`key`, `anchorBefore`/`anchorAfter`).
+ *
+ * **`mergeFrom`.** Refuses a copy of another project by name ({@link UnrelatedProjectError}),
+ * merges with `mergeStates`, and re-folds through the one {@link rebuildFrom} with
+ * `tolerateAll`, so there is still exactly one implementation of lineage bookkeeping. A row
+ * that no longer builds is **flagged, never re-parented** (`docs-022`): it folds as identity,
+ * exactly as a row left broken does (`ui-052`). Its reason is the third `BrokenStep` shape,
+ * `conflicts with step N (<label>, <origin chip>)`, naming the row that advanced the lineage
+ * it wanted — derived from the log at fold time, so it survives a reload — or the existing
+ * `needs <name>` when a reference is missing. It never touches either undo stack, bumps the
+ * state token (so `core-030`'s restore path falls back to a re-fold for anything older), and
+ * a throw anywhere puts everything back.
+ *
+ * **Deliberate deviation: the conflict flag is derived, not a stamped write.** `data-010`'s
+ * Proposed fix asks for the `leftBroken` a merge sets to be an ordinary stamped write. It is
+ * set on the entry (so the fold tolerates it, a save writes it, and a reload keeps it) but not
+ * stamped into the merge state, because a written flag makes the merge depend on its order:
+ * merging A ← B can break a row that merging in C then repairs, and the stale flag would then
+ * exist on that path only (`documentMerge.spec.js`, "path independence of flags"). Derived
+ * from the merged log, the same set of rows is flagged on every replica in every order. A
+ * flag a person writes (Leave broken) is stamped as usual.
+ *
+ * **Local Undo after a merge.** `undo` still refuses by name when a later row from another
+ * origin depends on the step. A step whose rows a merge has since removed or edited is
+ * **dropped** from the stack instead of resurrecting or half-applying it: Undo returns the
+ * step with `dropped` and a `note` ({@link undoAfterMergeNote}) for the store to show.
+ *
  * ## Loud locally, lenient remotely
  *
  * `replay.js` skips and reports a bad record because a document can arrive from an
@@ -380,6 +459,10 @@ import {
 } from './variables.js'
 import { ASSET_OP, validateImageAsset } from '../sketch/imageAsset.js'
 import { counterOfId, createClock, createReplicaId } from './replica.js'
+import { compareKeys, keysBetween } from './merge/positionKey.js'
+import { highestCounter } from './merge/state.js'
+import { diffStates, liveOrder, mergeStates, relatedness, resolveRollback } from './merge/merge.js'
+import { originChipText } from './origin.js'
 
 /** @typedef {import('./kernel/registry.js').OpRecord} OpRecord */
 /** @typedef {import('./kernel/registry.js').RegistryEntry} RegistryEntry */
@@ -424,8 +507,14 @@ import { counterOfId, createClock, createReplicaId } from './replica.js'
  *   rows — section 15's `Step 4 (…)`, not an array index.
  * @property {string} label The row label, from the same shallow table Undo's
  *   tooltip uses. `ui-032` renders its own richer label and may ignore this.
- * @property {string} reason Either `needs <body name>` or
- *   `can't be built: <why>`. See the module note for why only those two.
+ * @property {string} reason One of three shapes:
+ *   - `needs <body name>` — the row references a record this fold no longer has;
+ *   - `can't be built: <why>` — the record's own build threw;
+ *   - `conflicts with step N (<label>, <origin chip>)` (`TODO/data-010`) — a tolerated
+ *     (left-broken or merged) row whose `supersedes`/`consumes` target is no longer its
+ *     lineage's terminal, naming the row that advanced that lineage. Derived from the log at
+ *     fold time, so it survives a reload. A refused local edit never carries it.
+ *   See the module note.
  */
 
 /**
@@ -610,6 +699,17 @@ export class ReplayRejection extends Error {
  *   this framework-free module knowing what a selection is.
  * @property {number} [index] Where the step's first record sat when it was
  *   removed; redo re-inserts there. See the undo/redo note above.
+ * @property {string} [key] `TODO/data-010`: the position key the step's first record had
+ *   when it was removed. Once a merge has happened since, Redo re-inserts by this key, since
+ *   a merge may have put rows before `index`.
+ * @property {string | null} [anchorBefore] `TODO/data-010`, a `rollback` row action only: the
+ *   marker before it as a row id (`null` none, `''` before the first row), so an Undo after a
+ *   merge can put it back where it was rather than at a stale count.
+ * @property {string | null} [anchorAfter] The same, after the action.
+ * @property {'removed' | 'revised'} [dropped] Set on the value {@link WarpDocument.undo}
+ *   returns when it dropped the step instead of undoing it, because a merge since removed or
+ *   edited it (`TODO/data-010`). Nothing was changed but the stack.
+ * @property {string} [note] With `dropped`: what to tell the user ({@link undoAfterMergeNote}).
  * @property {LogRevision} [revision] Set instead of `records` for a `data-004`
  *   row action, which revises an entry rather than adding one. Undo applies the
  *   inverse; redo applies it again.
@@ -716,8 +816,197 @@ export class ReplayRejection extends Error {
  *   record ids carry — random per instance, so a reload and a second tab get their own.
  * @property {(prefix?: string) => string} nextId A fresh `prefix-replica-counter` id, never
  *   one already in the log (active, suppressed or rolled back).
+ * @property {() => import('./merge/state.js').MergeState} mergeState `TODO/data-010`: this
+ *   replica's merge state — the live rows with their stamps, the tombstones, the registers
+ *   and the user-part definitions. A fresh value; the records are shared, not copied.
+ * @property {(state: import('./merge/state.js').MergeState, transaction: TransactionOptions) => { scene: Scene, change: ReturnType<typeof diffStates>, conflicts: MergeConflict[] }} mergeFrom
+ *   `TODO/data-010`: merge another replica's state in and re-fold. See the module note.
  * @property {(label: string) => string} nextName
  */
+
+/**
+ * The merge metadata one live row carries (`TODO/data-010`): {@link MergeEntry} without the
+ * record, origin and intent, which the {@link DocumentEntry} already holds. Kept in a side
+ * table keyed by record id rather than on the entry, so `entries` stays exactly what it was
+ * before this task for every reader that never merges. Immutable once stored.
+ *
+ * @typedef {object} EntryMeta
+ * @property {import('./replica.js').Stamp} born Born-or-revival stamp.
+ * @property {[string, import('./replica.js').Stamp]} pos Position key and the stamp that wrote it.
+ * @property {import('./replica.js').Stamp} rec The record's stamp.
+ * @property {[boolean, import('./replica.js').Stamp]} [suppressed] Absent: never written.
+ * @property {[boolean, import('./replica.js').Stamp]} [leftBroken] Absent: never written.
+ */
+
+/**
+ * One row a merge left broken, and the row it lost to (`TODO/data-010`).
+ *
+ * @typedef {object} MergeConflict
+ * @property {string} id
+ * @property {number} step 1-based.
+ * @property {string} label
+ * @property {string} reason The row's {@link BrokenStep} reason.
+ * @property {string | null} lostTo The row that advanced the lineage this one wanted, or
+ *   `null` when it failed for another reason (a missing reference).
+ */
+
+/**
+ * The replica id every derived ("legacy") stamp carries, with counter `0` — a value no clock
+ * ever issues (`tick` starts at 1), so it marks metadata derived from a file rather than
+ * written by an edit. Fixed, so two builds upgrading one file derive identical metadata.
+ */
+const LEGACY_REPLICA = 'legacy'
+
+/** @type {import('./replica.js').Stamp} */
+const LEGACY_STAMP = Object.freeze({ counter: 0, replica: LEGACY_REPLICA })
+
+/**
+ * Every mutator wrapped so its whole effect is stamped as one transaction — the module
+ * note's table, as code. A mutator missing here would write nothing a merge can see.
+ * (`append`, `setColorOverride`, `clearColorOverride`, `deleteBodies` and `removePart` all
+ * write through `appendAll`, and user-part adoption happens inside the fold of whichever of
+ * these placed the part.)
+ */
+const STAMPED_MUTATORS = Object.freeze([
+  'appendAll',
+  'insertAt',
+  'removeRecords',
+  'batch',
+  'undo',
+  'redo',
+  'replaceRecord',
+  'reviseRecords',
+  'setSuppressed',
+  'moveStep',
+  'rollBackTo',
+  'rollForward',
+  'setResolution',
+  'setStandingInstructions',
+  'setBuildVolume',
+])
+
+/**
+ * A merge was refused because the state is a copy of a different project
+ * (`relatedness` says `unrelated`). Callers decide whether to offer anything else (`io-012`).
+ */
+export class UnrelatedProjectError extends Error {
+  constructor() {
+    super('document.mergeFrom: that is a copy of a different project, so it cannot be merged into this one')
+    this.name = 'UnrelatedProjectError'
+  }
+}
+
+/**
+ * What Undo says when it drops a step a merge has since removed or edited, instead of
+ * resurrecting or half-applying it (`TODO/data-010`). The store shows it as-is.
+ *
+ * @param {string} label The step's label, e.g. `Move Cube 1`.
+ * @param {'removed' | 'revised'} cause
+ * @returns {string}
+ */
+export function undoAfterMergeNote(label, cause) {
+  const what = cause === 'removed' ? 'removed it' : 'edited it since'
+  return `"${label}" can't be undone — a merged change ${what}. It has been taken off the Undo list.`
+}
+
+/**
+ * Two records are the same record: the same object, or the same JSON.
+ *
+ * @param {OpRecord} a
+ * @param {OpRecord} b
+ * @returns {boolean}
+ */
+function sameRecord(a, b) {
+  return a === b || JSON.stringify(a) === JSON.stringify(b)
+}
+
+/**
+ * @param {{ widthMm: number, depthMm: number, heightMm: number }} a
+ * @param {{ widthMm: number, depthMm: number, heightMm: number }} b
+ * @returns {boolean}
+ */
+function sameVolume(a, b) {
+  return a.widthMm === b.widthMm && a.depthMm === b.depthMm && a.heightMm === b.heightMm
+}
+
+/**
+ * @param {ReadonlyArray<{ key: string }>} sequence
+ * @returns {boolean}
+ */
+function increasingKeys(sequence) {
+  for (let i = 1; i < sequence.length; i += 1) {
+    if (compareKeys(sequence[i - 1].key, sequence[i].key) >= 0) return false
+  }
+  return true
+}
+
+/**
+ * Which surviving rows a transaction **moved**: those whose old position keys are out of
+ * order in the new log. Prefer the hinted ids (a `moveStep` names the row it moves; a swap of
+ * two adjacent rows is otherwise ambiguous), else the complement of a longest increasing run.
+ *
+ * @param {ReadonlyArray<{ id: string, key: string }>} sequence Survivors in their new order.
+ * @param {ReadonlySet<string>} hint
+ * @returns {Set<string>}
+ */
+function movedRows(sequence, hint) {
+  if (increasingKeys(sequence)) return new Set()
+  if (hint.size > 0) {
+    const rest = sequence.filter((slot) => !hint.has(slot.id))
+    if (increasingKeys(rest)) return new Set(sequence.filter((slot) => hint.has(slot.id)).map((slot) => slot.id))
+  }
+  /** @type {number[]} */
+  const tails = []
+  /** @type {number[]} */
+  const previous = []
+  sequence.forEach((slot, index) => {
+    let low = 0
+    let high = tails.length
+    while (low < high) {
+      const middle = (low + high) >> 1
+      if (compareKeys(sequence[tails[middle]].key, slot.key) < 0) low = middle + 1
+      else high = middle
+    }
+    previous[index] = low > 0 ? tails[low - 1] : -1
+    tails[low] = index
+  })
+  const kept = new Set()
+  for (let at = tails.length > 0 ? tails[tails.length - 1] : -1; at >= 0; at = previous[at]) kept.add(sequence[at].id)
+  return new Set(sequence.filter((slot) => !kept.has(slot.id)).map((slot) => slot.id))
+}
+
+/**
+ * The ids a step's reorders moved — the hint {@link movedRows} prefers.
+ *
+ * @param {HistoryStep | undefined} step
+ * @returns {Set<string>}
+ */
+function reorderHintOf(step) {
+  /** @type {Set<string>} */
+  const ids = new Set()
+  if (step === undefined) return ids
+  for (const part of step.parts ?? [step]) {
+    if (part.revision?.kind === 'reorder' && typeof part.revision.id === 'string') ids.add(part.revision.id)
+  }
+  return ids
+}
+
+/**
+ * The rollback marker as a row id: `null` for none, `''` for "before the first row",
+ * otherwise the id of the row it sits after.
+ *
+ * @param {readonly DocumentEntry[]} list
+ * @param {number | null} count
+ * @returns {string | null}
+ */
+function anchorIdOf(list, count) {
+  if (count === null) return null
+  for (let at = Math.min(count, list.length) - 1; at >= 0; at -= 1) {
+    const id = list[at].record.id
+    if (id !== undefined) return id
+  }
+  return ''
+}
 
 /**
  * Three finite numbers, or not.
@@ -1109,6 +1398,14 @@ export function createDocument(options = {}) {
    */
   const clock = options.clock ?? createClock(options.replica ?? createReplicaId())
   /**
+   * `TODO/data-010`: the Lamport clock merge **stamps** count with — the same replica id, a
+   * separate counter from the one {@link nextId} mints ids from, so stamping a transaction
+   * never changes which ids a document hands out. Observes every merged state's highest
+   * counter, so a write after a merge beats everything that merge brought in.
+   * @type {import('./replica.js').Clock}
+   */
+  const stampClock = createClock(clock.replica)
+  /**
    * Section 18's rollback marker, stored as the **count of active entries** —
    * `entries[0 .. rollbackAt - 1]` are folded, the rest are the inactive tail.
    * A count rather than a row id because that is what every consumer actually
@@ -1159,6 +1456,46 @@ export function createDocument(options = {}) {
    */
   let inactiveById = new Map()
 
+  // ---- `TODO/data-010`: this document is a replica. See the module note. ----
+  /**
+   * Merge metadata per live row, by record id. Replaced, never mutated in place, so a
+   * captured {@link DocumentState} and a transaction's mark can hold it by reference.
+   * @type {Map<string, EntryMeta>}
+   */
+  let metaById = new Map()
+  /**
+   * Tombstones: id → the stamp that removed it. Kept for a row a later Redo or merge brought
+   * back, as the merge core keeps them. Replaced, never mutated in place.
+   * @type {Map<string, import('./replica.js').Stamp>}
+   */
+  let dead = new Map()
+  /** @type {import('./merge/state.js').MergeRegisters} */
+  let registers = { rollbackAfter: null, resolution: null, standingInstructions: null, buildVolume: null }
+  /**
+   * The stamp that wrote each user-part definition this project carries, by op.
+   * @type {Map<string, import('./replica.js').Stamp>}
+   */
+  let partStamps = new Map()
+  /** @type {string | null} */
+  let projectId = null
+  /** The seed loop runs unstamped; its result is derived afterwards, like a load. */
+  let seeding = true
+  /** How deep in a stamped transaction we are; only the outermost one stamps. */
+  let stampDepth = 0
+  /**
+   * How many merges this document has taken in. A history step remembers the epoch it was
+   * pushed in; one older than the current epoch is reversed with the after-merge rules.
+   */
+  let mergeEpoch = 0
+  /** @type {WeakMap<HistoryStep, number>} */
+  const epochOf = new WeakMap()
+  /**
+   * Rows the last successful re-fold tolerated (left broken, or under `tolerateAll`), by key →
+   * the row each lost to, or `null`. Read by {@link WarpDocument.mergeFrom}.
+   * @type {Map<string, string | null>}
+   */
+  let lastTolerated = new Map()
+
   /**
    * Identity of the document's **whole** current state — entries, marker and
    * everything derived from them (`TODO/core-030`). Every change assigns a fresh
@@ -1189,6 +1526,11 @@ export function createDocument(options = {}) {
    * @property {Map<string, string>} brokenById
    * @property {Map<string, InactiveBy>} inactiveById
    * @property {number} token
+   * @property {{ meta: Map<string, EntryMeta>, dead: Map<string, import('./replica.js').Stamp>,
+   *   registers: import('./merge/state.js').MergeRegisters, partStamps: Map<string, import('./replica.js').Stamp>,
+   *   projectId: string | null }} merge `TODO/data-010`: the merge metadata, by reference (it is
+   *   replaced, never mutated). Put back by a failed batch or merge; an Undo or Redo that
+   *   restores a state re-stamps on top of it instead (see {@link stampSince}).
    */
 
   /**
@@ -1221,6 +1563,7 @@ export function createDocument(options = {}) {
       brokenById,
       inactiveById,
       token: stateToken,
+      merge: { meta: metaById, dead, registers, partStamps, projectId },
     }
   }
 
@@ -1241,6 +1584,11 @@ export function createDocument(options = {}) {
     brokenById = state.brokenById
     inactiveById = state.inactiveById
     stateToken = state.token
+    metaById = state.merge.meta
+    dead = state.merge.dead
+    registers = state.merge.registers
+    partStamps = state.merge.partStamps
+    projectId = state.merge.projectId
   }
 
   /**
@@ -1252,6 +1600,7 @@ export function createDocument(options = {}) {
    * @param {DocumentState | null} state
    */
   function keepRestore(stack, step, state) {
+    epochOf.set(step, mergeEpoch)
     if (keepRestorable === 0 || state === null) {
       restoreOf.delete(step)
     } else {
@@ -1270,6 +1619,401 @@ export function createDocument(options = {}) {
   function restorable(step) {
     const entry = restoreOf.get(step)
     return entry !== undefined && entry.token === stateToken ? entry.state : null
+  }
+
+  /**
+   * What a transaction is stamped against: the document as it was before it.
+   */
+  function mergeMark() {
+    return {
+      entries: entries.slice(),
+      rollbackAt,
+      resolution,
+      standingInstructions,
+      buildVolume,
+      partOps: new Set(userParts.keys()),
+      meta: metaById,
+      dead,
+      registers,
+      partStamps,
+    }
+  }
+
+  /**
+   * Run one mutator as **one stamped transaction** (`TODO/data-010`): whatever it changed is
+   * recorded with a single clock tick once it returns — or throws, since `appendAll`'s fast
+   * path can commit part of a batch before it throws. A nested call (a `batch` build, an
+   * `append` that inserts at the marker) is part of the outer transaction. Nothing changed:
+   * nothing written, no tick.
+   *
+   * @template T
+   * @param {() => T} run
+   * @param {ReadonlySet<string>} [hint] Rows this transaction moves, for {@link movedRows}.
+   * @returns {T}
+   */
+  function stamped(run, hint = new Set()) {
+    if (stampDepth > 0 || seeding) return run()
+    const mark = mergeMark()
+    stampDepth += 1
+    try {
+      return run()
+    } finally {
+      stampDepth -= 1
+      stampSince(mark, hint)
+    }
+  }
+
+  /**
+   * The rollback register's value for a log and marker, read against `meta`.
+   *
+   * @param {readonly DocumentEntry[]} list
+   * @param {number | null} count
+   * @param {Map<string, EntryMeta>} meta
+   * @returns {import('./merge/state.js').RollbackMarker}
+   */
+  function anchorOf(list, count, meta) {
+    const row = anchorIdOf(list, count)
+    if (row === null) return null
+    const entryMeta = row === '' ? undefined : meta.get(row)
+    if (entryMeta === undefined) return { row: null }
+    return { row, key: entryMeta.pos[0], born: entryMeta.born }
+  }
+
+  /**
+   * Record, with one stamp, everything that changed since `mark`: the diff of the entry list
+   * (new rows born and keyed, removed rows tombstoned, revised records and flags stamped,
+   * moved rows re-keyed between their new neighbours) and of every register. **The one
+   * implementation of "every mutator stamps"**: computing it from the before/after states,
+   * rather than in each mutator, is what makes a forgotten mutator impossible rather than
+   * silent. Starts from the mark's metadata, so an Undo that restored an older snapshot is
+   * re-stamped as the new write it is, never rolled back to older stamps.
+   *
+   * @param {ReturnType<typeof mergeMark>} mark
+   * @param {ReadonlySet<string>} hint
+   */
+  function stampSince(mark, hint) {
+    /** @type {Map<string, DocumentEntry>} */
+    const before = new Map()
+    for (const entry of mark.entries) if (entry.record.id !== undefined) before.set(entry.record.id, entry)
+    const kept = (/** @type {string} */ id) => before.has(id) && mark.meta.has(id)
+    /** @type {Set<string>} */
+    const present = new Set()
+    /** @type {Array<{ id: string, key: string }>} */
+    const survivors = []
+    let changed = false
+    for (const entry of entries) {
+      const id = entry.record.id
+      if (id === undefined) continue
+      present.add(id)
+      const prior = before.get(id)
+      if (prior === undefined || !kept(id)) {
+        changed = true
+        continue
+      }
+      survivors.push({ id, key: /** @type {EntryMeta} */ (mark.meta.get(id)).pos[0] })
+      if (prior !== entry && (!sameRecord(prior.record, entry.record) ||
+        (prior.suppressed === true) !== (entry.suppressed === true) ||
+        (prior.leftBroken === true) !== (entry.leftBroken === true))) {
+        changed = true
+      }
+    }
+    const removed = [...before.keys()].filter((id) => !present.has(id))
+    const moved = movedRows(survivors, hint)
+    /** @type {Array<keyof import('./merge/state.js').MergeRegisters>} */
+    const written = []
+    if (anchorIdOf(mark.entries, mark.rollbackAt) !== anchorIdOf(entries, rollbackAt)) written.push('rollbackAfter')
+    if (mark.resolution !== resolution) written.push('resolution')
+    if (mark.standingInstructions !== standingInstructions) written.push('standingInstructions')
+    if (!sameVolume(mark.buildVolume, buildVolume)) written.push('buildVolume')
+    const newParts = [...userParts.keys()].filter((op) => !mark.partOps.has(op))
+    if (!changed && removed.length === 0 && moved.size === 0 && written.length === 0 && newParts.length === 0) {
+      metaById = mark.meta
+      dead = mark.dead
+      registers = mark.registers
+      partStamps = mark.partStamps
+      return
+    }
+
+    /** @type {import('./replica.js').Stamp} */
+    const stamp = { counter: stampClock.tick(), replica: stampClock.replica }
+
+    // Keys for new and moved rows: each run of them goes between its nearest kept neighbours,
+    // whose keys are in order (that is what `movedRows` guarantees).
+    /** @type {Map<string, string>} */
+    const keyOf = new Map()
+    const keyed = entries.filter((entry) => entry.record.id !== undefined)
+    const stays = (/** @type {string} */ id) => kept(id) && !moved.has(id)
+    /** @type {string | null} */
+    let lastKept = null
+    for (let at = 0; at < keyed.length; ) {
+      const id = /** @type {string} */ (keyed[at].record.id)
+      if (stays(id)) {
+        lastKept = /** @type {EntryMeta} */ (mark.meta.get(id)).pos[0]
+        at += 1
+        continue
+      }
+      /** @type {string[]} */
+      const run = []
+      while (at < keyed.length && !stays(/** @type {string} */ (keyed[at].record.id))) {
+        run.push(/** @type {string} */ (keyed[at].record.id))
+        at += 1
+      }
+      const high = at < keyed.length ? /** @type {EntryMeta} */ (mark.meta.get(/** @type {string} */ (keyed[at].record.id))).pos[0] : null
+      keysBetween(lastKept, high, run.length, stamp).forEach((key, index) => keyOf.set(run[index], key))
+    }
+
+    /** @type {Map<string, EntryMeta>} */
+    const nextMeta = new Map()
+    for (const entry of keyed) {
+      const id = /** @type {string} */ (entry.record.id)
+      const meta = mark.meta.get(id)
+      const prior = before.get(id)
+      if (prior === undefined || meta === undefined) {
+        nextMeta.set(id, {
+          born: stamp,
+          pos: [/** @type {string} */ (keyOf.get(id)), stamp],
+          rec: stamp,
+          ...(entry.suppressed === true ? { suppressed: [true, stamp] } : {}),
+          ...(entry.leftBroken === true ? { leftBroken: [true, stamp] } : {}),
+        })
+        continue
+      }
+      let next = meta
+      if (prior !== entry) {
+        const record = !sameRecord(prior.record, entry.record)
+        const suppressed = (prior.suppressed === true) !== (entry.suppressed === true)
+        const leftBroken = (prior.leftBroken === true) !== (entry.leftBroken === true)
+        if (record || suppressed || leftBroken) {
+          next = {
+            ...meta,
+            ...(record ? { rec: stamp } : {}),
+            ...(suppressed ? { suppressed: [entry.suppressed === true, stamp] } : {}),
+            ...(leftBroken ? { leftBroken: [entry.leftBroken === true, stamp] } : {}),
+          }
+        }
+      }
+      if (moved.has(id)) next = { ...next, pos: [/** @type {string} */ (keyOf.get(id)), stamp] }
+      nextMeta.set(id, next)
+    }
+    metaById = nextMeta
+
+    dead = mark.dead
+    if (removed.length > 0) {
+      dead = new Map(mark.dead)
+      for (const id of removed) dead.set(id, stamp)
+    }
+    registers = mark.registers
+    if (written.length > 0) {
+      registers = { ...mark.registers }
+      for (const name of written) {
+        if (name === 'rollbackAfter') registers.rollbackAfter = [anchorOf(entries, rollbackAt, nextMeta), stamp]
+        else if (name === 'resolution') registers.resolution = [resolution, stamp]
+        else if (name === 'standingInstructions') registers.standingInstructions = [standingInstructions, stamp]
+        else registers.buildVolume = [{ ...buildVolume }, stamp]
+      }
+    }
+    partStamps = mark.partStamps
+    if (newParts.length > 0) {
+      partStamps = new Map(mark.partStamps)
+      for (const op of newParts) partStamps.set(op, stamp)
+    }
+  }
+
+  /**
+   * Derive the merge metadata of a log no merge-capable edit has touched — a seed or a loaded
+   * file (`TODO/data-010` item 1): position keys from row order, every stamp
+   * {@link LEGACY_STAMP}, a register only where the value differs from what an absent one
+   * means. Deterministic, so two builds upgrading one file agree and their copies merge.
+   */
+  function deriveLegacy() {
+    const keyed = entries.filter((entry) => entry.record.id !== undefined)
+    const keys = keysBetween(null, null, keyed.length, LEGACY_STAMP)
+    /** @type {Map<string, EntryMeta>} */
+    const next = new Map()
+    keyed.forEach((entry, index) => {
+      next.set(/** @type {string} */ (entry.record.id), {
+        born: LEGACY_STAMP,
+        pos: [keys[index], LEGACY_STAMP],
+        rec: LEGACY_STAMP,
+        ...(entry.suppressed === true ? { suppressed: [true, LEGACY_STAMP] } : {}),
+        ...(entry.leftBroken === true ? { leftBroken: [true, LEGACY_STAMP] } : {}),
+      })
+    })
+    metaById = next
+    dead = new Map()
+    const anchor = anchorOf(entries, rollbackAt, next)
+    registers = {
+      rollbackAfter: anchor === null ? null : [anchor, LEGACY_STAMP],
+      resolution: resolution === 'legacy' ? null : [resolution, LEGACY_STAMP],
+      standingInstructions: standingInstructions === '' ? null : [standingInstructions, LEGACY_STAMP],
+      buildVolume: sameVolume(buildVolume, DEFAULT_BUILD_VOLUME) ? null : [{ ...buildVolume }, LEGACY_STAMP],
+    }
+    partStamps = new Map([...userParts.keys()].map((op) => [op, LEGACY_STAMP]))
+  }
+
+  /**
+   * A row's position key, if it has one.
+   *
+   * @param {OpRecord | undefined} record
+   * @returns {string | undefined}
+   */
+  function keyOfRecord(record) {
+    return record?.id === undefined ? undefined : metaById.get(record.id)?.pos[0]
+  }
+
+  /**
+   * Where a row with position key `key` belongs in the current log, or `undefined` when that
+   * cannot be told (no key, or a row without merge metadata).
+   *
+   * @param {string | undefined} key
+   * @returns {number | undefined}
+   */
+  function indexForKey(key) {
+    if (key === undefined) return undefined
+    let at = 0
+    for (const entry of entries) {
+      const meta = entry.record.id === undefined ? undefined : metaById.get(entry.record.id)
+      if (meta === undefined) return undefined
+      if (compareKeys(meta.pos[0], key) < 0) at += 1
+    }
+    return at
+  }
+
+  /**
+   * Whether `step` was pushed before the most recent merge.
+   *
+   * @param {HistoryStep} step
+   * @returns {boolean}
+   */
+  function predatesMerge(step) {
+    return (epochOf.get(step) ?? mergeEpoch) !== mergeEpoch
+  }
+
+  /**
+   * The marker once the `gone` records are taken out — the same count rule `removeRecords`
+   * uses, normalised to `null` when no inactive row would be left.
+   *
+   * @param {ReadonlySet<OpRecord>} gone
+   * @returns {number | null}
+   */
+  function markerWithout(gone) {
+    if (rollbackAt === null) return null
+    const kept = entries.slice(0, rollbackAt).filter((entry) => !gone.has(entry.record)).length
+    const remaining = entries.filter((entry) => !gone.has(entry.record)).length
+    return kept >= remaining ? null : kept
+  }
+
+  /**
+   * The marker once `count` rows are inserted at `at` — `insertAt`'s rule.
+   *
+   * @param {number} at
+   * @param {number} count
+   * @returns {number | null}
+   */
+  function markerWithInsert(at, count) {
+    if (rollbackAt === null) return null
+    return at > rollbackAt ? rollbackAt : rollbackAt + count
+  }
+
+  /**
+   * The marker count for an anchor row id ({@link anchorIdOf}'s shape).
+   *
+   * @param {string | null | undefined} anchor
+   * @returns {number | null}
+   */
+  function markerAt(anchor) {
+    if (anchor === undefined) return rollbackAt
+    if (anchor === null) return null
+    if (anchor === '') return 0
+    const at = indexOfRecord(anchor)
+    return at < 0 || at + 1 >= entries.length ? null : at + 1
+  }
+
+  /**
+   * The marker an Undo of `part` leaves, for a step that predates a merge: counts recorded
+   * before the merge mean nothing now, so it is re-derived from the log as it is.
+   *
+   * @param {HistoryStep} part
+   * @returns {number | null}
+   */
+  function undoMarkerAfterMerge(part) {
+    const revision = part.revision
+    if (revision === undefined) return markerWithout(new Set(part.records))
+    if (revision.kind === 'rollback') return markerAt(part.anchorBefore)
+    if (revision.kind === 'revise' && revision.add) return markerWithout(new Set(revision.add.records))
+    if (revision.kind === 'revise' && revision.remove) return markerWithInsert(revision.remove.at, revision.remove.records.length)
+    return rollbackAt
+  }
+
+  /**
+   * The Redo mirror of {@link undoMarkerAfterMerge}.
+   *
+   * @param {HistoryStep} part
+   * @param {number} [at] Where a record part is being re-inserted.
+   * @returns {number | null}
+   */
+  function redoMarkerAfterMerge(part, at = entries.length) {
+    const revision = part.revision
+    if (revision === undefined) return markerWithInsert(at, part.records.length)
+    if (revision.kind === 'rollback') return markerAt(part.anchorAfter)
+    if (revision.kind === 'revise' && revision.add) return markerWithInsert(revision.add.at, revision.add.records.length)
+    if (revision.kind === 'revise' && revision.remove) return markerWithout(new Set(revision.remove.records))
+    return rollbackAt
+  }
+
+  /**
+   * Whether a merge since `step` removed or edited what it changed, so undoing it would
+   * resurrect a row the other side removed or overwrite their edit (`TODO/data-010` item 7).
+   *
+   * @param {HistoryStep} step
+   * @returns {'removed' | 'revised' | null}
+   */
+  function undoConflictOf(step) {
+    /** @param {string | undefined} id @param {(entry: DocumentEntry) => boolean} [same] */
+    const check = (id, same) => {
+      if (id === undefined) return null
+      const at = indexOfRecord(id)
+      if (at < 0) return 'removed'
+      return same === undefined || same(entries[at]) ? null : 'revised'
+    }
+    for (const part of step.parts ?? [step]) {
+      const revision = part.revision
+      /** @type {Array<'removed' | 'revised' | null>} */
+      const verdicts = []
+      if (revision === undefined) {
+        for (const record of part.records) verdicts.push(check(record.id, (entry) => sameRecord(entry.record, record)))
+      } else if (revision.kind === 'replace') {
+        verdicts.push(check(revision.id, (entry) => sameRecord(entry.record, /** @type {OpRecord} */ (revision.to))))
+      } else if (revision.kind === 'suppress') {
+        verdicts.push(check(revision.id, (entry) => (entry.suppressed === true) === (revision.toSuppressed === true)))
+      } else if (revision.kind === 'reorder') {
+        verdicts.push(check(revision.id))
+      } else if (revision.kind === 'revise') {
+        for (const item of revision.items ?? []) verdicts.push(check(item.id, (entry) => sameRecord(entry.record, item.to)))
+        for (const record of revision.add?.records ?? []) verdicts.push(check(record.id, (entry) => sameRecord(entry.record, record)))
+      } else if (revision.kind === 'rollback') {
+        if (anchorIdOf(entries, rollbackAt) !== part.anchorAfter) verdicts.push('revised')
+        else if (typeof part.anchorBefore === 'string' && part.anchorBefore !== '') verdicts.push(check(part.anchorBefore))
+      } else if (revision.kind === 'resolution') {
+        if (resolution !== revision.toResolution) verdicts.push('revised')
+      }
+      const verdict = verdicts.find((value) => value !== null)
+      if (verdict !== undefined && verdict !== null) return verdict
+    }
+    return null
+  }
+
+  /**
+   * The step, with each record part's first record's position key, for a Redo after a merge.
+   *
+   * @param {HistoryStep} step
+   * @returns {HistoryStep}
+   */
+  function withRedoKeys(step) {
+    if (step.parts !== undefined) {
+      return { ...step, parts: step.parts.map((part) => (part.revision === undefined ? { ...part, key: keyOfRecord(part.records[0]) } : part)) }
+    }
+    return step.revision === undefined ? { ...step, key: keyOfRecord(step.records[0]) } : step
   }
 
   /**
@@ -1622,9 +2366,12 @@ export function createDocument(options = {}) {
    * @param {readonly DocumentEntry[]} nextEntries
    * @param {number} activeCount
    * @param {Map<string, OpRecord>} byId
+   * @param {ReadonlyMap<string, unknown>} [flagged] `TODO/data-010`: rows of the active prefix
+   *   to load as left broken — what a merge's fold tolerated, which it flags only once the fold
+   *   is done. Without it the prefix load refuses and every tail row reads `needs …`.
    * @returns {Map<string, string>} Row id → reason.
    */
-  function shadowCheckTail(nextEntries, activeCount, byId) {
+  function shadowCheckTail(nextEntries, activeCount, byId, flagged = new Map()) {
     /** @type {Map<string, string>} */
     const broken = new Map()
     if (activeCount >= nextEntries.length) return broken
@@ -1646,7 +2393,16 @@ export function createDocument(options = {}) {
     // throw: this prefix is the fold that just succeeded. Guarded anyway so a shadow
     // check can never be the thing that breaks a document.
     try {
-      scratch.loadEntries(nextEntries.slice(0, activeCount).map(foldableEntry), null, resolution)
+      scratch.loadEntries(
+        nextEntries
+          .slice(0, activeCount)
+          .map((entry, index) => {
+            const copy = foldableEntry(entry)
+            return flagged.has(entry.record.id ?? `#${index + 1}`) ? withLeftBroken(copy, true) : copy
+          }),
+        null,
+        resolution
+      )
       for (const entry of nextEntries.slice(0, activeCount)) {
         const id = entry.record.id
         if (id !== undefined && scratch.currentIdOf(id) !== undefined) built.add(id)
@@ -1695,7 +2451,9 @@ export function createDocument(options = {}) {
    * @param {string} [nextResolution] The design resolution to fold at
    *   (`TODO/core-035`); defaults to the current one. Put back with everything else if
    *   the fold is refused.
-   * @param {{ tolerateAll?: boolean }} [options] `tolerateAll`: see {@link foldActive}.
+   * @param {{ tolerateAll?: boolean, flagTolerated?: boolean }} [options] `tolerateAll`: see
+   *   {@link foldActive}. `flagTolerated` (`TODO/data-010`, a merge only): the tail shadow check
+   *   loads the rows the fold tolerated as left broken, as the merge is about to flag them.
    * @returns {DocumentState} The state **before** the rebuild, so the caller can
    *   record it on the step it pushes and a later Undo can put it back without
    *   this fold running again (`TODO/core-030`).
@@ -1707,7 +2465,7 @@ export function createDocument(options = {}) {
     const byId = recordMapOf(nextEntries)
     resetDerived(null)
     resolution = nextResolution
-    /** @type {{ broken: Map<string, string>, inactive: Map<string, InactiveBy> }} */
+    /** @type {ReturnType<typeof foldActive>} */
     let outcome
     try {
       outcome = foldActive(nextEntries, activeCount, byId, options.tolerateAll === true)
@@ -1719,10 +2477,46 @@ export function createDocument(options = {}) {
     entries.length = 0
     entries.push(...nextEntries)
     rollbackAt = nextRollbackAt
-    brokenById = new Map([...outcome.broken, ...shadowCheckTail(nextEntries, activeCount, byId)])
+    brokenById = new Map([
+      ...outcome.broken,
+      ...shadowCheckTail(nextEntries, activeCount, byId, options.flagTolerated === true ? outcome.tolerated : undefined),
+    ])
     inactiveById = outcome.inactive
+    lastTolerated = outcome.tolerated
     bumpState()
     return prior
+  }
+
+  /**
+   * `TODO/data-010` item 6: when a tolerated row failed because a `supersedes`/`consumes`
+   * target is no longer its lineage's terminal, the row that advanced that lineage — the
+   * earliest folded row before it that superseded or consumed the target. Read off the log
+   * and the indexes as the fold has built them so far, so it is the same on a reload.
+   *
+   * @param {OpRecord} record
+   * @param {readonly DocumentEntry[]} nextEntries
+   * @param {number} index The failing row's position.
+   * @param {Map<string, OpRecord>} byId
+   * @returns {{ reason: string, lostTo: string } | null}
+   */
+  function lineageConflictOf(record, nextEntries, index, byId) {
+    const targets = [record.supersedes, ...(record.consumes ?? [])].filter((id) => typeof id === 'string')
+    for (const target of targets) {
+      const root = rootById.get(target)
+      if (root === undefined || !recordById.has(target)) continue
+      if (terminalByRoot.get(root) === target && !mergedInto.has(root)) continue
+      for (let at = 0; at < index; at += 1) {
+        const entry = nextEntries[at]
+        const winner = entry.record
+        if (entry.suppressed === true || winner.id === undefined || recordById.get(winner.id) !== winner) continue
+        if (winner.supersedes !== target && !(winner.consumes ?? []).includes(target)) continue
+        return {
+          reason: `conflicts with step ${at + 1} (${labelFor([winner], byId)}, ${originChipText(entry.origin)})`,
+          lostTo: winner.id,
+        }
+      }
+    }
+    return null
   }
 
   /**
@@ -1735,9 +2529,13 @@ export function createDocument(options = {}) {
    * @param {Map<string, OpRecord>} byId Every record in the list being folded.
    * @param {boolean} tolerateAll Tolerate *every* failing row as if the user had left it
    *   broken — only for a throwaway document asking "what would break?" (`dependents.js`).
-   * @returns {{ broken: Map<string, string>, inactive: Map<string, InactiveBy> }}
+   * @returns {{ broken: Map<string, string>, inactive: Map<string, InactiveBy>, tolerated: Map<string, string | null> }}
+   *   `tolerated` (`TODO/data-010`): the rows that failed and were folded anyway because they
+   *   are left broken or `tolerateAll` is set, by key → the row each lost to, or `null`.
    */
   function foldActive(nextEntries, activeCount, byId, tolerateAll) {
+    /** @type {Map<string, string | null>} */
+    const tolerated = new Map()
     /** @type {Map<string, string>} */
     const broken = new Map()
     /** @type {Map<string, InactiveBy>} */
@@ -1849,6 +2647,7 @@ export function createDocument(options = {}) {
           throw new ReplayRejection({ id: record.id ?? '', step: index + 1, label: labelFor([record], byId), reason })
         }
         broken.set(key, reason)
+        tolerated.set(key, null)
         passThroughOrSkip(entry, key)
         continue
       }
@@ -1891,11 +2690,15 @@ export function createDocument(options = {}) {
         ingestRow(entry, index, byId, foldRecord)
       } catch (error) {
         if (!(error instanceof ReplayRejection) || !(tolerateAll || entry.leftBroken === true)) throw error
-        broken.set(key, error.step.reason)
+        // Only a *tolerated* row gets the conflict reason (`TODO/data-010`): a refused local
+        // edit keeps exactly the rejection it always had.
+        const conflict = lineageConflictOf(record, nextEntries, index, byId)
+        broken.set(key, conflict?.reason ?? error.step.reason)
+        tolerated.set(key, conflict?.lostTo ?? null)
         passThroughOrSkip(entry, key)
       }
     }
-    return { broken, inactive }
+    return { broken, inactive, tolerated }
   }
 
   /**
@@ -2069,10 +2872,12 @@ export function createDocument(options = {}) {
    * part-way puts the whole state back and rethrows.
    *
    * @param {HistoryStep} step
+   * @param {boolean} [afterMerge] The step predates a merge: markers are re-derived
+   *   (`TODO/data-010`).
    * @returns {{ parts: HistoryStep[], before: DocumentState }} The parts with the
    *   index each record part sat at (for Redo), and the state before the Undo.
    */
-  function undoComposite(step) {
+  function undoComposite(step, afterMerge = false) {
     const snapshot = captureState()
     const parts = /** @type {HistoryStep[]} */ (step.parts)
     const undone = parts.slice()
@@ -2080,17 +2885,18 @@ export function createDocument(options = {}) {
       for (let i = parts.length - 1; i >= 0; i -= 1) {
         const part = parts[i]
         if (part.revision !== undefined) {
-          applyRevision(invertRevision(part.revision), part.rollbackBefore ?? null)
+          applyRevision(invertRevision(part.revision), afterMerge ? undoMarkerAfterMerge(part) : part.rollbackBefore ?? null)
           continue
         }
         assertNoDependents({ ...part, label: step.label })
         const partRecords = new Set(part.records)
         const index = entries.findIndex((entry) => entry.record === part.records[0])
+        const key = keyOfRecord(part.records[0])
         rebuildFrom(
           entries.filter((entry) => !partRecords.has(entry.record)),
-          part.rollbackBefore ?? null
+          afterMerge ? markerWithout(partRecords) : part.rollbackBefore ?? null
         )
-        undone[i] = { ...part, index }
+        undone[i] = { ...part, index, key }
       }
     } catch (error) {
       restoreState(snapshot)
@@ -2104,23 +2910,22 @@ export function createDocument(options = {}) {
    * Redo a composite step: its parts oldest-first, all or nothing.
    *
    * @param {HistoryStep} step
+   * @param {boolean} [afterMerge] The step predates a merge: re-insert by position key and
+   *   re-derive markers (`TODO/data-010`).
    * @returns {DocumentState} The state before the Redo.
    */
-  function redoComposite(step) {
+  function redoComposite(step, afterMerge = false) {
     const snapshot = captureState()
     try {
       for (const part of /** @type {HistoryStep[]} */ (step.parts)) {
         if (part.revision !== undefined) {
-          applyRevision(part.revision, part.rollbackAfter ?? null)
+          applyRevision(part.revision, afterMerge ? redoMarkerAfterMerge(part) : part.rollbackAfter ?? null)
           continue
         }
+        const at = (afterMerge ? indexForKey(part.key) : undefined) ?? part.index ?? entries.length
         const next = entries.slice()
-        next.splice(
-          part.index ?? next.length,
-          0,
-          ...part.records.map((record) => ({ record, origin: part.origin }))
-        )
-        rebuildFrom(next, part.rollbackAfter ?? null)
+        next.splice(at, 0, ...part.records.map((record) => ({ record, origin: part.origin })))
+        rebuildFrom(next, afterMerge ? redoMarkerAfterMerge(part, at) : part.rollbackAfter ?? null)
       }
     } catch (error) {
       restoreState(snapshot)
@@ -2154,6 +2959,9 @@ export function createDocument(options = {}) {
       revision,
       rollbackBefore,
       rollbackAfter: rollbackAt,
+      ...(revision.kind === 'rollback'
+        ? { anchorBefore: anchorIdOf(prior.entries, rollbackBefore), anchorAfter: anchorIdOf(entries, rollbackAt) }
+        : {}),
     }
     undoStack.push(step)
     keepRestore(undoStack, step, prior)
@@ -2635,23 +3443,37 @@ export function createDocument(options = {}) {
       // nothing can depend on it, and the state being restored already folded.
       const before = restorable(step)
       if (before !== null) {
+        const keyed = withRedoKeys(step)
         const after = captureState()
         restoreState(before)
         undoStack.pop()
         /** @type {HistoryStep} */
         const redoStep =
           step.revision !== undefined || step.parts !== undefined
-            ? step
-            : { ...step, index: after.entries.findIndex((entry) => entry.record === step.records[0]) }
+            ? keyed
+            : { ...keyed, index: after.entries.findIndex((entry) => entry.record === step.records[0]) }
         redoStack.push(redoStep)
         keepRestore(redoStack, redoStep, after)
         document.version += 1
         return step
       }
 
+      // `TODO/data-010` item 7: a merge since this step removed or edited what it changed.
+      // Undoing it would resurrect their removal or overwrite their edit, so it is dropped
+      // from the stack, with a note, and nothing else changes.
+      const afterMerge = predatesMerge(step)
+      if (afterMerge) {
+        const cause = undoConflictOf(step)
+        if (cause !== null) {
+          undoStack.pop()
+          document.version += 1
+          return { ...step, dropped: cause, note: undoAfterMergeNote(step.label, cause) }
+        }
+      }
+
       // `TODO/core-056`: a batch that mixed record steps with row actions.
       if (step.parts !== undefined) {
-        const { parts, before: after } = undoComposite(step)
+        const { parts, before: after } = undoComposite(step, afterMerge)
         undoStack.pop()
         const redoStep = { ...step, parts }
         redoStack.push(redoStep)
@@ -2663,7 +3485,10 @@ export function createDocument(options = {}) {
       // A `data-004` row action added no record, so there is nothing to take
       // out and nothing to orphan — it is reversed by applying its inverse.
       if (step.revision !== undefined) {
-        const after = applyRevision(invertRevision(step.revision), step.rollbackBefore ?? null)
+        const after = applyRevision(
+          invertRevision(step.revision),
+          afterMerge ? undoMarkerAfterMerge(step) : step.rollbackBefore ?? null
+        )
         undoStack.pop()
         redoStack.push(step)
         keepRestore(redoStack, step, after)
@@ -2674,12 +3499,13 @@ export function createDocument(options = {}) {
       assertNoDependents(step)
       const stepRecords = new Set(step.records)
       const index = entries.findIndex((entry) => entry.record === step.records[0])
+      const key = keyOfRecord(step.records[0])
       const after = rebuildFrom(
         entries.filter((entry) => !stepRecords.has(entry.record)),
-        step.rollbackBefore ?? null
+        afterMerge ? markerWithout(stepRecords) : step.rollbackBefore ?? null
       )
       undoStack.pop()
-      const redoStep = { ...step, index }
+      const redoStep = { ...step, index, key }
       redoStack.push(redoStep)
       // Even after a fold, Redo from here can restore: the state this Undo left
       // is what Redo would re-fold back to, so the state before it is the answer.
@@ -2716,8 +3542,9 @@ export function createDocument(options = {}) {
         return step
       }
 
+      const afterMerge = predatesMerge(step)
       if (step.parts !== undefined) {
-        const before = redoComposite(step)
+        const before = redoComposite(step, afterMerge)
         redoStack.pop()
         undoStack.push(step)
         keepRestore(undoStack, step, before)
@@ -2726,20 +3553,19 @@ export function createDocument(options = {}) {
       }
 
       if (step.revision !== undefined) {
-        const before = applyRevision(step.revision, step.rollbackAfter ?? null)
+        const before = applyRevision(step.revision, afterMerge ? redoMarkerAfterMerge(step) : step.rollbackAfter ?? null)
         redoStack.pop()
         undoStack.push(step)
         keepRestore(undoStack, step, before)
         document.version += 1
         return step
       }
+      // After a merge, by position key (`TODO/data-010`): a merge may have put rows before
+      // the index this step was taken out at.
+      const at = (afterMerge ? indexForKey(step.key) : undefined) ?? step.index ?? entries.length
       const next = entries.slice()
-      next.splice(
-        step.index ?? next.length,
-        0,
-        ...step.records.map((record) => ({ record, origin: step.origin }))
-      )
-      const before = rebuildFrom(next, step.rollbackAfter ?? null)
+      next.splice(at, 0, ...step.records.map((record) => ({ record, origin: step.origin })))
+      const before = rebuildFrom(next, afterMerge ? redoMarkerAfterMerge(step, at) : step.rollbackAfter ?? null)
       redoStack.pop()
       undoStack.push(step)
       keepRestore(undoStack, step, before)
@@ -2833,6 +3659,9 @@ export function createDocument(options = {}) {
       standingInstructions = cleanText(options.standingInstructions, INSTRUCTIONS_MAX_LENGTH)
       // `TODO/io-007`: likewise the build volume; omitted, the loaded project has the default.
       buildVolume = options.buildVolume === undefined ? { ...DEFAULT_BUILD_VOLUME } : normalizeBuildVolume(options.buildVolume)
+      // `TODO/data-010`: a loaded log is a log no edit here has stamped. (`data-011` will read
+      // the metadata a version-2 file carries instead.)
+      deriveLegacy()
       for (const entry of nextEntries) clock.observe(counterOfId(entry.record.id))
       undoStack.length = 0
       redoStack.length = 0
@@ -3718,6 +4547,172 @@ export function createDocument(options = {}) {
       return bodies
     },
 
+    /**
+     * `TODO/data-010`: this replica's merge state, for another replica's
+     * {@link WarpDocument.mergeFrom} (and, in `data-011`, the file's state line).
+     *
+     * A row's `leftBroken` here is only the flag someone **wrote**. The flag a merge sets on a
+     * conflicted row is derived by every fold of the merged log (see the module note), so it
+     * never travels as a stamped write.
+     *
+     * @returns {import('./merge/state.js').MergeState}
+     */
+    mergeState() {
+      /** @type {Map<string, import('./merge/state.js').MergeEntry>} */
+      const rows = new Map()
+      for (const entry of entries) {
+        const id = entry.record.id
+        const meta = id === undefined ? undefined : metaById.get(id)
+        if (id === undefined || meta === undefined) continue
+        rows.set(id, {
+          record: entry.record,
+          origin: entry.origin,
+          ...(entry.intent !== undefined ? { intent: entry.intent } : {}),
+          born: meta.born,
+          pos: meta.pos,
+          rec: meta.rec,
+          ...(meta.suppressed !== undefined ? { suppressed: meta.suppressed } : {}),
+          ...(meta.leftBroken !== undefined ? { leftBroken: meta.leftBroken } : {}),
+        })
+      }
+      return {
+        projectId,
+        entries: rows,
+        dead: new Map(dead),
+        registers: { ...registers },
+        parts: new Map([...userParts].map(([op, definition]) => [op, [definition, partStamps.get(op) ?? LEGACY_STAMP]])),
+      }
+    },
+
+    /**
+     * `TODO/data-010`: merge another replica's state into this one and re-fold.
+     *
+     * Refuses a copy of a different project ({@link UnrelatedProjectError}), and a log with a
+     * row that has no id (a merge addresses rows by id). Otherwise it computes
+     * `mergeStates(own, theirs)` and re-folds through the one {@link rebuildFrom} with
+     * `tolerateAll`, so a row that no longer builds is **flagged, never re-parented**
+     * (`docs-022`): it folds as identity exactly as a left-broken row does (`ui-052`), its
+     * reason is `conflicts with step N (…)` or `needs <name>`, and it comes back in
+     * `conflicts`. Never touches either undo stack; bumps the state token, so a restore
+     * recorded before the merge is never used after it.
+     *
+     * Atomic: a throw anywhere puts back every field it had changed and rethrows.
+     */
+    mergeFrom(theirs, transaction) {
+      const origin = transaction?.origin
+      if (typeof origin !== 'string' || origin.length === 0) {
+        throw new Error(
+          'document.mergeFrom: a transaction origin is required — ' +
+            "every mutation is origin-tagged so undo/redo can be scoped to the local user's own edits"
+        )
+      }
+      if (stampDepth > 0) throw new Error('document.mergeFrom: a merge cannot run inside another transaction')
+      if (entries.some((entry) => entry.record.id === undefined)) {
+        throw new Error('document.mergeFrom: this document has a row without an id, which a merge cannot address')
+      }
+      const own = document.mergeState()
+      if (relatedness(own, theirs) === 'unrelated') throw new UnrelatedProjectError()
+      const merged = mergeStates(own, theirs)
+      const nextResolution = /** @type {string} */ (merged.registers.resolution?.[0] ?? 'legacy')
+      if (!isResolution(nextResolution)) {
+        throw new Error(`document.mergeFrom: unknown resolution "${String(nextResolution)}"`)
+      }
+
+      const snapshot = captureState()
+      const previous = {
+        userParts,
+        standingInstructions,
+        buildVolume,
+        layer: publishesUserParts ? projectPartsSnapshot() : null,
+      }
+      try {
+        /** @type {Map<string, import('./userPart.js').UserPartDefinition>} */
+        const nextParts = new Map()
+        /** @type {Map<string, import('./replica.js').Stamp>} */
+        const nextPartStamps = new Map()
+        /** @type {import('./userPart.js').UserPartDefinition[]} */
+        const arriving = []
+        for (const [op, [definition, stamp]] of merged.parts) {
+          const part = /** @type {import('./userPart.js').UserPartDefinition} */ (definition)
+          nextParts.set(op, part)
+          nextPartStamps.set(op, stamp)
+          if (userParts.get(op) !== part) arriving.push(part)
+        }
+        userParts = nextParts
+        if (arriving.length > 0) ensureProjectParts(arriving)
+
+        const order = liveOrder(merged)
+        /** @type {Map<string, EntryMeta>} */
+        const nextMeta = new Map()
+        /** @type {DocumentEntry[]} */
+        const nextEntries = order.map((id) => {
+          const row = /** @type {import('./merge/state.js').MergeEntry} */ (merged.entries.get(id))
+          nextMeta.set(id, {
+            born: row.born,
+            pos: row.pos,
+            rec: row.rec,
+            ...(row.suppressed !== undefined ? { suppressed: row.suppressed } : {}),
+            ...(row.leftBroken !== undefined ? { leftBroken: row.leftBroken } : {}),
+          })
+          return {
+            record: /** @type {OpRecord} */ (row.record),
+            origin: row.origin,
+            ...(row.suppressed?.[0] === true ? { suppressed: true } : {}),
+            ...(row.leftBroken?.[0] === true ? { leftBroken: true } : {}),
+            ...withIntent(row.intent),
+          }
+        })
+        const marker = resolveRollback(merged)
+        /** @type {number | null} */
+        let nextRollback = null
+        if (marker !== null) {
+          const at = marker.after === null ? 0 : order.indexOf(marker.after) + 1
+          nextRollback = at >= order.length ? null : at
+        }
+
+        metaById = nextMeta
+        dead = merged.dead
+        registers = merged.registers
+        partStamps = nextPartStamps
+        projectId = merged.projectId
+        rebuildFrom(nextEntries, nextRollback, nextResolution, { tolerateAll: true, flagTolerated: true })
+
+        // Flag what the fold had to tolerate. Derived, not written: the same merged log folds
+        // to the same set on every replica in every merge order, and a written flag would
+        // not (a later merge can repair a row an earlier one broke) — see the module note.
+        const byId = recordMapOf(entries)
+        /** @type {MergeConflict[]} */
+        const conflicts = []
+        entries.forEach((entry, index) => {
+          const id = /** @type {string} */ (entry.record.id)
+          if (!lastTolerated.has(id)) return
+          if (entry.leftBroken !== true) entries[index] = withLeftBroken(entry, true)
+          conflicts.push({
+            id,
+            step: index + 1,
+            label: labelFor([entry.record], byId),
+            reason: brokenById.get(id) ?? '',
+            lostTo: lastTolerated.get(id) ?? null,
+          })
+        })
+
+        standingInstructions = cleanText(merged.registers.standingInstructions?.[0] ?? '', INSTRUCTIONS_MAX_LENGTH)
+        const volume = merged.registers.buildVolume?.[0]
+        buildVolume = volume === undefined || volume === null ? { ...DEFAULT_BUILD_VOLUME } : normalizeBuildVolume(/** @type {any} */ (volume))
+        stampClock.observe(highestCounter(merged))
+        mergeEpoch += 1
+        document.version += 1
+        return { scene, change: diffStates(own, document.mergeState()), conflicts }
+      } catch (error) {
+        restoreState(snapshot)
+        userParts = previous.userParts
+        standingInstructions = previous.standingInstructions
+        buildVolume = previous.buildVolume
+        if (previous.layer !== null) restoreProjectParts(previous.layer)
+        throw error
+      }
+    },
+
     replicaId() {
       return clock.replica
     },
@@ -3749,9 +4744,27 @@ export function createDocument(options = {}) {
     },
   }
 
+  // `TODO/data-010`: every mutator is one stamped transaction. Wrapped here, once, so the
+  // list is `STAMPED_MUTATORS` and nowhere else; an inner call (`append` → `appendAll` →
+  // `insertAt`) joins its caller's transaction.
+  const wrapped = /** @type {Record<string, (...args: any[]) => any>} */ (/** @type {unknown} */ (document))
+  for (const name of STAMPED_MUTATORS) {
+    const inner = wrapped[name]
+    wrapped[name] = (...args) => {
+      /** @type {Set<string>} */
+      let hint = new Set()
+      if (name === 'moveStep') hint = new Set([args[0]])
+      else if (name === 'undo') hint = reorderHintOf(undoStack.at(-1))
+      else if (name === 'redo') hint = reorderHintOf(redoStack.at(-1))
+      return stamped(() => inner(...args), hint)
+    }
+  }
+
   for (const action of options.actions ?? []) {
     document.append(action, { origin: options.origin ?? 'local' })
   }
+  seeding = false
+  deriveLegacy()
   document.version = 0
   keepRestorable = restorableSteps
   // Loading a document is not a stack of things to undo back out of, even though

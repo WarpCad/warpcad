@@ -1621,3 +1621,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** last-writer-wins, tombstones, position keys, no interleaving -> `src/core/merge/merge.js`, `positionKey.js` in the diff; fuzz over three replicas checking the three laws -> `src/core/merge/fuzz.spec.js` in the diff, 40/40 targeted specs passing this session
 **To Add:** repo URL once public
+
+## [2026-10-12T19:10:00Z] — The document carries merge state and can mergeFrom another replica
+
+**Post:** WarpCad's document now keeps merge metadata per record: every edit gets a stamp, deletes leave a tombstone, and mergeFrom() folds another copy in. A row that can't build is flagged, not dropped. Nothing in the UI calls it yet. #CAD #OpenSource Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** stamps, tombstones, mergeFrom, flagged rows -> src/core/document.js in the diff; nothing calls it -> TODO/data-010 (Interaction model: does not apply)
+**To Add:** repo URL once public

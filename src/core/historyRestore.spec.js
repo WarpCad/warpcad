@@ -345,9 +345,11 @@ function freshFoldOf(document) {
  * @param {Array<(document: any) => unknown>} script
  */
 function differential(script) {
-  const restoring = createDocument()
+  // One replica id for both twins (`TODO/data-010`): a merge orders rows by stamp, and a
+  // stamp's tie-break is the replica, so twins that are to merge identically must share it.
+  const restoring = createDocument({ replica: 'twinzz' })
   // The old path on both counts: no restore (core-030) and no fold cache (core-031).
-  const folding = createDocument({ restorableSteps: 0, foldCache: null })
+  const folding = createDocument({ replica: 'twinzz', restorableSteps: 0, foldCache: null })
   script.forEach((act, index) => {
     /** @type {unknown} */
     let restoringError
@@ -520,6 +522,41 @@ describe('identical to the synchronous fold, action by action (real kernel)', ()
       (d) => d.setSuppressed('cube-1', true, local), // refused: needs Cube 1
       (d) => d.undo(),
     ])
+  })
+
+  it('(data-010) a merge between steps: Undo/Redo around it fold, and still equal a fresh fold', () => {
+    const merge = { origin: 'merge' }
+    /**
+     * A second replica that copies `d`, edits it, and is merged back into `d` — built from
+     * `d` itself, so both twins merge exactly the same state.
+     *
+     * @param {any} d
+     * @param {(other: any) => void} edit
+     */
+    const mergeAnEditOf = (d, edit) => {
+      const other = createDocument({ replica: 'otherz' })
+      other.mergeFrom(d.mergeState(), merge)
+      edit(other)
+      return d.mergeFrom(other.mergeState(), merge)
+    }
+    const merged = differential([
+      (d) => d.append(cube, local),
+      (d) => d.append(chamfer(5), local),
+      (d) => d.append(sphere, local),
+      (d) => mergeAnEditOf(d, (other) => other.append(cone, { origin: 'ai' })),
+      (d) => d.undo(), // the sphere: a merge since, so the fold path
+      (d) => d.redo(),
+      (d) => mergeAnEditOf(d, (other) => other.replaceRecord('cube-1-chamfer', chamfer(3), { origin: 'ai' })),
+      (d) => d.undo(), // the sphere again: untouched by the merge, undoes
+      (d) => d.undo(), // the chamfer: revised by the merge, so dropped with a note
+      (d) => d.undo(), // the cube
+      (d) => d.redo(),
+      (d) => d.append({ id: 'cube-1-mv', op: 'transform.translate', target: 'cube-1-chamfer', supersedes: 'cube-1-chamfer', params: { vector: [0, 4, 0] } }, local),
+      (d) => d.undo(),
+    ])
+    // The differential compares errors as well, so assert the merges really landed.
+    expect(merged.timeline().map((/** @type {any} */ row) => row.id)).toContain('cone-1')
+    expect(merged.recordOf('cube-1-chamfer')).toEqual(chamfer(3))
   })
 
   it('restores the very geometry objects the step replaced, so nothing downstream re-measures them', () => {

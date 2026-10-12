@@ -34,6 +34,16 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### data-010 — The document carries merge state (2026-10-12)
+
+Core only; nothing calls `mergeFrom` from the app yet, so the three acceptance scenarios that write or reload were re-driven and passed. These are the two things no scenario covers.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | Open a project saved *before* this build, edit it, Undo, Redo, reload: it behaves exactly as it did (legacy metadata is derived, never written yet). | Open | |
+| 2 | Edit a 200-record scene and feel the mutation latency (stamping adds ~0.05 ms; should be imperceptible). | Open | |
+
+
 ### data-008 — Replica-scoped record ids (2026-10-12 17:20)
 
 Scenarios 10 and 14 were hand-driven and pass; what is left is what a script cannot judge: how the

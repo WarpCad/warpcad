@@ -6,8 +6,10 @@ priority: high
 model: opus
 milestone: M15
 depends: [data-009]
-status: open
+status: done
 ---
+
+> **As shipped (2026-10-12):** all eight items landed, with one deliberate deviation from item 5: the `leftBroken` conflict flag is *derived* at merge time rather than written as a stamped `merge`-origin register, because a stamped flag made the result depend on merge order (a later merge that repairs the row left a stale flag on one path). It is set on the entry so the fold, save and reload all see it, and re-derived by every `mergeFrom`. Metadata lives in a side table keyed by record id, stamps use their own Lamport clock, and a transaction is stamped by one before/after diff. Deferred: Redo of a `revise` step that adds or removes rows after a merge still re-inserts at the old index; `projectId` stays `null` (`data-011`). The store does not yet show the `dropped`/`note` an undo returns after a merge (`ui-062`).
 
 ## Goal
 

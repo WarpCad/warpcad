@@ -325,6 +325,24 @@ the eventual decision, not an afterthought to retrofit once a library is picked 
 library that can't express transaction-origin scoping is disqualified by that alone,
 regardless of its merge-semantics quality.
 
+### As built — `data-010` (2026-10-12)
+
+`document.js` carries the merge metadata in a side table keyed by record id (never on the
+entry objects, so `entries` and every reader are unchanged); every mutator is wrapped once and
+the before/after diff of the whole transaction is stamped with one Lamport tick. Two places
+differ from the plan above, both on purpose:
+
+- **The conflict flag is derived, not a stamped write.** A row a merge cannot build is flagged
+  `leftBroken` on the entry (so the fold tolerates it, a save writes it and a reload keeps
+  it), but the flag is not part of `mergeState` and every `mergeFrom` re-derives it from the
+  merged log. Stamping it as a write made the result depend on merge order: A←B can break a
+  row that merging C later repairs, leaving a stale flag on one path only. The `merge` origin
+  labels the transaction, not a write.
+- **Conflict reason** is `conflicts with step N (<label>, <origin chip>)`, built with
+  `originChipText` so file text never appears in it; a missing reference keeps `needs <name>`.
+
+Measured cost: `bench/results/2026-10-12-data-010.md`.
+
 ### Sources
 
 `Initial design.md` §1 ("Document model / sync — proposed as deferred, not resolved")

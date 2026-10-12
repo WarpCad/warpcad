@@ -175,6 +175,23 @@ describe('a row action rebuilds only the records whose inputs changed (TODO/core
     expect(preview.bodies().map((body) => body.recordId)).toEqual([...Array.from({ length: 10 }, (unused, index) => `seed-${index}`), 'a-mv'])
   })
 
+  it('(data-010) a merge builds only the records that arrived, and a row action after it only what changed', () => {
+    const { document, calls, registry } = scene()
+    const other = createDocument({ registry, foldCache: null, replica: 'otherz' })
+    other.mergeFrom(document.mergeState(), { origin: 'merge' })
+    other.append(box('theirs', 2), { origin: 'ai' })
+    other.append(move('theirs-mv', 'theirs', 4), { origin: 'ai' })
+    calls.built.length = 0
+
+    document.mergeFrom(other.mergeState(), { origin: 'merge' })
+    expect(calls.built).toEqual(['box', 'move'])
+
+    calls.built.length = 0
+    document.replaceRecord('a', box('a', 6), local)
+    expect(calls.built).toEqual(['box', 'move'])
+    expect(document.bodies().map((body) => body.recordId)).toContain('theirs-mv')
+  })
+
   it('`foldCache: null` is the uncached fold: every active record builds again', () => {
     const { registry, calls } = countingRegistry()
     const document = createDocument({ registry, foldCache: null })

@@ -2277,3 +2277,16 @@ Correctness is a property suite rather than a list of examples: seeded random ed
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** pure function, imports only replica.js and siblings -> `src/core/merge/merge.js` imports (checked this session); rules and the self-run exception -> `merge.js`, `positionKey.js`, "As built" section of `docs/decisions/document-sync.md` in the diff; property suite -> `fuzz.spec.js`; 5 000 entries ~2 ms and 43-char key -> Opus agent's measurements this session (about 1.6–2.2 ms; 43 chars for one run at one gap); nothing imports it -> grep of src/mcp/e2e this session
 **To Add:** repo URL once public
+
+## [2026-10-12T19:10:00Z] — The document carries merge state and can mergeFrom another replica
+
+**Post:** WarpCad's document model can now merge another copy of itself. Every edit carries a stamp, removing a row leaves a tombstone, and `mergeFrom()` joins the two states and re-folds the timeline. Two replicas seeded from one file and edited independently end up with the same timeline and the same serialised state, in whichever order they merge. That is checked over 120 seeded random scripts on three replicas.
+
+A row that can't be rebuilt after a merge is flagged with the step it lost to, not re-parented, so later rows of its lineage still build. The flag is derived from the merged log on every merge rather than stored as a write, because a stored flag made the result depend on merge order.
+
+Stamping adds roughly 0.03 to 0.07 ms per edit; a merge on a 200-record scene took a 1.2 ms median with the fold cache. No control calls it yet; the UI work is the next set of tasks. Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** 120 seeded scripts x 3 replicas -> src/core/documentMerge.spec.js in the diff, passing in the 4105-test unit run this session; 0.03-0.07 ms and 1.2 ms median -> bench/results/2026-10-12-data-010.md, node bench/merge-benchmark.mjs this session (M4 Pro, Node 24, plain Node); flag derived not stored -> module note in src/core/document.js
+**To Add:** repo URL once public
