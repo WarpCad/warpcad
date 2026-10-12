@@ -15,3 +15,6 @@ test-report-for-coding-agents/
 
 # TODO-runner progress + green stamp (see scripts/todo-progress.mjs)
 .todo-progress/
+
+# Live test progress for the Claude Code progress/ETA mod (see scripts/test-progress/)
+.test-progress/

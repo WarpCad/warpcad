@@ -106,6 +106,8 @@ export default defineConfig({
         showCodeSnippet: true,
       },
     ],
+    // Writes .test-progress/playwright.json for the progress/ETA mod.
+    ['./scripts/test-progress/playwright.mjs'],
   ],
   webServer: {
     command: PREVIEW ? 'npm run build && npx vite preview --port 5184 --strictPort' : 'npm run dev',
