@@ -119,7 +119,7 @@ The Library's Raspberry Pi and Hardware items descend from the `jscad-raspberryp
   kept (this browser only, never in a project file), **Forget key**, choosing a model, and what
   each failure message means.
 - [Driving WarpCad from Claude Code (the MCP server)](mcp.md) — `npm run mcp:install`, then
-  `claude mcp add warpcad -- node …/mcp/server.js ~/parts/bracket.ndjson`: Claude Code reads and
+  `npm run mcp:add -- bracket.ndjson`: Claude Code reads and
   adds steps to a project file with the Assistant's tools, and the steps arrive in History marked
   **via mcp** with your request. Also: the **File changed on disk — Reload** dialog (and which
   browsers can show it), what the server will and won't do, and its error messages.

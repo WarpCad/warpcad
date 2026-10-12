@@ -1585,3 +1585,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** chat needs an API key, subscription route is Claude Code + MCP -> `docs/decisions/ai-partner.md` decision 10 and `docs/mcp.md` in the diff; third parties may not route through Pro/Max credentials -> Claude Code legal-and-compliance page read this session (search result, wording summarised in decision 10); estimated cost shown -> `e2e/ai-subscription-route.e2e.js` second test (1,200 in / 340 out on Opus 5.5 reads "≈ $0.01 · session $0.01", then "$0.02" after a second turn)
 **To Add:** screenshot `docs/screenshots/assistant-subscription-route.png`, repo URL once public
+
+## [2026-10-12T14:40:00Z] — The subscription command printed paths that don't exist
+
+**Post:** WarpCad's "use my Claude subscription" screen showed a command with placeholder paths. Pasted as written, Claude Code reported CONNECTION_CLOSED. It's now `npm run mcp:add -- my-part.ndjson`: the script works out the paths, replaces old entries, and a spec connects a real MCP client to what it registered. Built with Claude Code, reviewed by me. #CAD
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** the pasted command's placeholder paths made Claude Code report `CONNECTION_CLOSED` -> `TODO/done/ai-016-*.md` Problem section; script resolves paths, replaces old entries -> `scripts/mcp-add.mjs` in the diff; a real MCP client connects to the produced argv -> `mcp/mcp-add.spec.js` last test, passing in this session's unit run (3885 passed, 187 files)
+**To Add:** screenshot `docs/screenshots/assistant-subscription-route.png`, repo URL once public

@@ -39,14 +39,16 @@ Assistant in WarpCad can't run on it. What a subscription *does* cover is **Clau
 Claude Code can drive WarpCad through its [MCP server](mcp.md).
 
 1. Tap **Assistant** in the top bar. With no key stored, the key sheet opens.
-2. Tap **Use my Claude subscription…**. The sheet shows one command.
+2. Tap **Use my Claude subscription…**. The sheet shows one command, `npm run mcp:add -- my-part.ndjson`.
 3. Tap **Copy**. The sheet says **Copied**.
-4. Run the command once in a terminal, in the folder where you keep your parts. Change the two
-   paths first: your WarpCad folder, and your project file.
+4. Run the command once in a terminal, from the folder you cloned WarpCad into. Replace
+   `my-part.ndjson` with the project file you want Claude Code to edit; it is created if it
+   doesn't exist, and the script fills in every other path. Then start Claude Code in any folder
+   and type `/mcp`: `warpcad` should say *connected*.
 5. In Claude Code, say *add a 3 mm base plate under the bracket*. Then open the file in WarpCad
    (**File ▾ → Open…**): the new step is in **History**, marked **via mcp**.
 
-![The "Use your Claude subscription" sheet: an explanation that an API key is billed separately, the claude mcp add command in a box, and Use an API key instead and Copy buttons.](./screenshots/assistant-subscription-route.png)
+![The "Use your Claude subscription" sheet: an explanation that an API key is billed separately, the npm run mcp:add command in a box, and Use an API key instead and Copy buttons.](./screenshots/assistant-subscription-route.png)
 
 Tap **Use an API key instead** to go back to the key sheet. The two routes are separate: the
 in-app chat uses a key and is billed as API usage, and Claude Code uses your subscription and

@@ -2221,3 +2221,16 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** BYOK API key, billed as API usage -> `docs/decisions/ai-partner.md` decisions 2, 8 and 10; Anthropic legal page wording -> Claude Code legal-and-compliance page, search result read this session; second button, command, Copy -> `e2e/ai-subscription-route.e2e.js` first test; cost readout, dated table, no dollars for unknown model -> `src/ai/models.spec.js`, `src/ai/transcript.spec.js`
 **To Add:** screenshot `docs/screenshots/assistant-subscription-route.png`, repo URL once public
+
+## [2026-10-12T14:40:00Z] — A tested control that nobody ran
+
+**Post:** The previous WarpCad change added a screen that hands you a command to connect Claude Code to the app. It had a unit test and an e2e spec, and both only checked that a command was shown and could be copied. Nobody ran the command. It carried two placeholder paths, and pasted as written the server exited at once and Claude Code reported CONNECTION_CLOSED.
+
+The fix is `npm run mcp:add -- my-part.ndjson`. The script finds the server from where it lives, resolves your project file, creates it if missing, clears stale registrations and registers at user scope so it works from any folder. The new spec takes the exact arguments the script produced and connects a real MCP client to them, then lists the tools. The server also now exits with the offending path in its message, so a bad path no longer shows up only as a closed connection.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** screen had specs asserting only "a command is shown" and Copy -> `TODO/done/ai-016-*.md` Problem section; script behaviours (user scope, clears stale entries, creates file) -> `scripts/mcp-add.mjs` in the diff; spec connects a real client and lists tools -> `mcp/mcp-add.spec.js` last test; server exit names path -> `mcp/server.js` and `mcp/server.spec.js` in the diff
+**To Add:** repo URL once public

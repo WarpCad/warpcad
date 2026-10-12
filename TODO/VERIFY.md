@@ -34,6 +34,14 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### ai-016 — `npm run mcp:add` registers the server (2026-10-12 14:31)
+
+The script is driven in specs against a fake `claude`, and the argv it produces is spoken to by a real MCP client, but no spec runs the real Claude Code CLI against the user's real config.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | From the clone folder run `npm run mcp:add -- bracket.ndjson`; in Claude Code (any folder) `/mcp` lists `warpcad` as connected, and a stale placeholder entry from before is gone | Open | |
+
 ### ai-013 — Subscription route and cost readout (2026-10-11 18:35)
 
 The new sheet and the cost chip were driven on laptop Chromium only. The price table is dated

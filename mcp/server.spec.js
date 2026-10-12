@@ -158,6 +158,18 @@ describe('create and operate', () => {
     expect(readFileSync(file, 'utf8').startsWith(CUBE)).toBe(true)
   })
 
+  it('exits non-zero naming the path when the file cannot be opened or created (TODO/ai-016)', () => {
+    const missing = join(dir, 'no-such-folder', 'part.ndjson')
+    const result = spawnSync(process.execPath, [SERVER, missing], { encoding: 'utf8', timeout: 10_000 })
+    expect(result.status).toBe(1)
+    expect(result.stderr).toContain(missing)
+    expect(result.stdout).toBe('')
+
+    const asDir = spawnSync(process.execPath, [SERVER, dir], { encoding: 'utf8', timeout: 10_000 })
+    expect(asDir.status).toBe(1)
+    expect(asDir.stderr).toContain(dir)
+  })
+
   it('creates the file on the first write when it does not exist yet', async () => {
     const file = join(dir, 'new.ndjson')
     const { client } = await connect(file)

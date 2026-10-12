@@ -5,7 +5,7 @@
  * **closed** WarpCad project file with the same tools the in-app assistant uses.
  *
  * ```sh
- * claude mcp add warpcad -- node /path/to/WarpCad/mcp/server.js ~/parts/bracket.ndjson
+ * npm run mcp:add -- bracket.ndjson   # from the WarpCad folder; works out the paths and registers it
  * ```
  *
  * A thin transport, per `docs/decisions/ai-partner.md` decision 1: the tools are
@@ -37,8 +37,8 @@
 
 import { Server } from '@modelcontextprotocol/server'
 import { serveStdio } from '@modelcontextprotocol/server/stdio'
-import { realpathSync } from 'node:fs'
-import { resolve } from 'node:path'
+import { accessSync, constants, existsSync, realpathSync, statSync } from 'node:fs'
+import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import { documentDataBlock } from '../src/ai/documentData.js'
@@ -192,6 +192,32 @@ export function createWarpcadServer({ path }) {
   return server
 }
 
+/**
+ * @param {string} path An absolute project-file path.
+ * @returns {string | null} Why the server cannot serve it (naming the path), or `null`.
+ */
+export function unusablePath(path) {
+  if (existsSync(path)) {
+    if (!statSync(path).isFile()) return `${path} is not a file.`
+    try {
+      accessSync(path, constants.R_OK)
+    } catch {
+      return `${path} is not readable.`
+    }
+    return null
+  }
+  const folder = dirname(path)
+  if (!existsSync(folder) || !statSync(folder).isDirectory()) {
+    return `${path} does not exist and cannot be created: ${folder} is not a folder.`
+  }
+  try {
+    accessSync(folder, constants.W_OK)
+  } catch {
+    return `${path} does not exist and cannot be created: ${folder} is not writable.`
+  }
+  return null
+}
+
 const USAGE = 'usage: node mcp/server.js <project-file.ndjson>'
 
 /**
@@ -213,6 +239,13 @@ function main(argv) {
     path = realpathSync(path)
   } catch {
     /* does not exist yet: the first write creates it */
+  }
+  // Fail here, in words, rather than later as the client's bare `CONNECTION_CLOSED`
+  // (`TODO/ai-016`): the file must be readable, or creatable in a folder that exists.
+  const problem = unusablePath(path)
+  if (problem !== null) {
+    log(problem)
+    process.exit(1)
   }
   log(`serving ${path}`)
   serveStdio(() => createWarpcadServer({ path }), {

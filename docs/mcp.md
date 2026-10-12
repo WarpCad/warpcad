@@ -24,11 +24,18 @@ app, **File ▾ → Save** (or **Download copy**) writes a `.ndjson` file.
    npm run mcp:install
    ```
 
-2. Tell Claude Code about it. Use the full path to `mcp/server.js` and to your project file:
+2. Tell Claude Code about it. From the same folder, give it the project file to edit; it works out
+   the path to `mcp/server.js` itself:
 
    ```sh
-   claude mcp add warpcad -- node ~/src/WarpCad/mcp/server.js ~/parts/bracket.ndjson
+   npm run mcp:add -- bracket.ndjson
    ```
+
+   It creates `bracket.ndjson` if it doesn't exist, replaces any earlier `warpcad` registration,
+   and prints the two absolute paths it registered. Then start Claude Code in any folder and type
+   `/mcp`: `warpcad` should say *connected*. If it says `CONNECTION_CLOSED`, run
+   `claude mcp get warpcad` and check both paths exist; running `npm run mcp:add` again fixes a
+   stale entry.
 
 3. In Claude Code, say: *add a 3 mm base plate under the bracket*.
 

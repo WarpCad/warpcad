@@ -52,13 +52,15 @@ function back() {
       Pro or Max subscription. A subscription can't be used by the app directly.
     </p>
     <p class="route__text">
-      What a subscription does cover is <strong>Claude Code</strong>. Run this once in a terminal, in
-      the folder that holds your parts, then ask Claude Code to change your project file:
+      What a subscription does cover is <strong>Claude Code</strong>. Run this once in a terminal,
+      from the folder you cloned WarpCad into, then ask Claude Code to change your project file:
     </p>
     <pre class="route__command" data-testid="ai-subscription-command">{{ MCP_ADD_COMMAND }}</pre>
     <p class="route__note">
-      Change the two paths to your WarpCad folder and your project file. The steps it adds appear in
-      History marked <em>via mcp</em>. The full walk-through is <code>docs/mcp.md</code>.
+      <code>my-part.ndjson</code> is the project file: use any name, and it is created if it doesn't
+      exist. Then type <code>/mcp</code> in Claude Code to see <em>warpcad</em> connected. The steps
+      it adds appear in History marked <em>via mcp</em>. The full walk-through is
+      <code>docs/mcp.md</code>.
     </p>
     <p class="route__status" role="status" data-testid="ai-subscription-status">
       <template v-if="copied === 'copied'">Copied</template>

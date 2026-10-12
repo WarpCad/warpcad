@@ -8,7 +8,7 @@ import { join } from 'node:path'
  *
  * - with **no key**, the key sheet offers **Use my Claude subscription…** beside **Save and
  *   test**; it opens a sheet that says plainly an API key is billed separately, shows the
- *   `claude mcp add` command, and **Copy** puts that exact command on the clipboard ("Copied");
+ *   `npm run mcp:add` command, and **Copy** puts that exact command on the clipboard ("Copied");
  * - **Use an API key instead** goes back to the key sheet;
  * - with a key, a turn ends with a one-line readout: tokens, an estimated cost and the session
  *   total (`docs/decisions/ai-partner.md` decisions 9 and 10).
@@ -26,7 +26,7 @@ const SNAPSHOT_DIR = join(process.cwd(), 'test-results', 'ai-subscription-snapsh
 test.beforeAll(() => mkdirSync(SNAPSHOT_DIR, { recursive: true }))
 test.skip(({ browserName }) => browserName !== 'chromium', 'clipboard grants are Chromium-only')
 
-const COMMAND = 'claude mcp add warpcad -- node ~/src/WarpCad/mcp/server.js ~/parts/bracket.ndjson'
+const COMMAND = 'npm run mcp:add -- my-part.ndjson'
 const KEY = 'sk-ant-api03-E2ESUBSENTINEL-0123456789-abcdefghij'
 
 const CORS = {
@@ -80,6 +80,9 @@ test('no key: the subscription route is offered, shows the command and copies it
   const sheet = page.getByTestId('ai-subscription-sheet')
   await expect(sheet).toBeVisible()
   await expect(page.getByTestId('ai-subscription-command')).toHaveText(COMMAND)
+  // `TODO/ai-016`: never a path the page cannot know — those registered a server that exits at once.
+  const shown = (await page.getByTestId('ai-subscription-command').textContent()) ?? ''
+  expect(shown).not.toMatch(/~|\/path\/to|claude mcp add/)
 
   await page.getByTestId('ai-subscription-copy').click()
   await expect(page.getByTestId('ai-subscription-status')).toHaveText('Copied')
