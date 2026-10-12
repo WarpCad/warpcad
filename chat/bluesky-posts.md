@@ -1612,3 +1612,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** ids read `prefix-replica-counter`, six-character replica id, Lamport clock -> `src/core/replica.js`, `src/core/document.js` in the diff; `cuboid-khovb4-1` is what the running app minted -> the hand drive of scenarios 10 and 14, this session; a tab and an AI fork would both mint the next id -> `TODO/done/data-008-*.md` Goal section; old files load untouched, legacy ids read as zero -> `counterOfId` and its spec in the diff
 **To Add:** repo URL once public
+
+## [2026-10-12T18:25:00Z] — The merge core: one pure function that joins two project states
+
+**Post:** WarpCad's merge is now one pure function over two project states. Last-writer-wins per field, tombstones for deletes, fractional position keys so two writers' runs of inserts don't interleave. Seeded fuzz over three replicas checks commutative, associative, idempotent. #CAD #OpenSource Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** last-writer-wins, tombstones, position keys, no interleaving -> `src/core/merge/merge.js`, `positionKey.js` in the diff; fuzz over three replicas checking the three laws -> `src/core/merge/fuzz.spec.js` in the diff, 40/40 targeted specs passing this session
+**To Add:** repo URL once public

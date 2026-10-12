@@ -106,6 +106,44 @@ merge brings in land with a non-`local` origin, so header **Undo** never reaches
 stacks. Stamps and tombstones are metadata the command layer writes; they add no new way to
 mutate the document outside it.
 
+### As built: corrections from `data-009` (the merge core)
+
+`src/core/merge/` implements the mechanism above. Where it had to be more specific, or differ:
+
+- **A position key carries the insert's whole stamp, not just the replica id.**
+  `keyBetween(before, after, stamp)` takes a stamp: same-gap order can follow the stamp only if
+  the key holds the counter too. A key is a path of `(digit, counter, replica)` segments in a
+  prefix-free, order-preserving base-62 encoding, so it still ends with the replica id and plain
+  string comparison orders it. A replica's first insert at a gap is a *head*; its next inserts
+  after its own rows stay inside that head's subtree, as *members* only that replica mints. That
+  is what keeps runs from interleaving.
+- **Same-gap order follows the stamp, with one exception.** It holds when the left neighbour of
+  the gap is a row neither writer minted. When it is a row the inserting replica minted itself,
+  that replica's insert continues its own run in place and sorts **before** another replica's
+  insert at the same gap, whatever the stamps. So "the later-stamped row is the one flagged" holds
+  in that common case but not this one. The alternative, making every insert a child of its left
+  neighbour, grows a key by one segment per sequential insert. Runs never interleave in either case
+  (fuzzed).
+- **Presence is decided by the born-or-revival stamp only.** A param edit or a move racing a
+  delete does not revive the row: the delete wins in both stamp orders. A Redo writes a new
+  `born`. Copies of a row with different `born` stamps are different **lives** of it: the newer
+  life wins whole, and an edit made to an older life is dropped. Without this rule, dropping the
+  record at the tombstone would make the merge non-associative.
+- **The rollback register stores the marker row's position with its id**
+  (`{ row, key, born }`, or `{ row: null }` for "before the first row"; `null` is no marker).
+  A tombstone keeps only an id and a stamp, so this is the only way a marker on a dead row can
+  resolve deterministically to the nearest earlier live row. If the row moved after the marker
+  was set, it resolves against the position recorded with the marker.
+- **`relatedness`'s "unstamped"** means a record stamp with counter `0`, the stamp `data-011`
+  is to give a record read from a version-1 file. As specified, two states with no project id
+  and no shared unstamped row count as `legacy-same`.
+- **Measured** (longest key after 1 000 inserts, characters): 43 for a run at one gap, 33 for
+  inserts each right after one row, 12 for alternating front inserts by two replicas, and 33 for
+  two replicas alternating at one gap. All four are constant: digits step by one from 1 922
+  before a gap needs a new segment. The worst case, always halving the newest gap, is linear:
+  537 characters after 1 000 inserts. Merging and ordering two 5 000-entry states takes about
+  2 ms (Node, M-series laptop).
+
 ## Options compared
 
 Library numbers re-checked on **2026-10-12** (npm registry and GitHub API, same method as

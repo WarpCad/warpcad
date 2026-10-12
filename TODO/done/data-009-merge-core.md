@@ -6,8 +6,20 @@ priority: high
 model: opus
 milestone: M15
 depends: [data-008]
-status: open
+status: done
 ---
+
+> **What shipped (2026-10-12).** As specified: `src/core/merge/` (`positionKey.js`, `state.js`,
+> `merge.js`) plus unit specs and a seeded three-replica fuzz suite (2 000 fixed seeds plus a
+> time-boxed random run; commutative, associative, idempotent, all six orders identical). Five
+> deliberate deviations are recorded in `docs/decisions/document-sync.md` ("As built"):
+> `keyBetween` takes the insert's stamp; a replica inserting after its own row continues its own
+> run (so "later stamp sorts later" has that one exception); presence is decided by the
+> born-or-revival stamp only; the rollback register stores `{row, key, born}`; `relatedness`
+> reads "unstamped" as record counter 0. `mergeStates` throws on `unrelated`. Measured: longest
+> key after 1 000 inserts is 43 / 33 / 12 / 33 characters for the four patterns (constant), 537
+> for always halving the newest gap (linear); merging two 5 000-entry states takes about 2 ms.
+> Acceptance scenarios: none could be affected (nothing imports the module); no closed findings.
 
 ## Goal
 

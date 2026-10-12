@@ -2264,3 +2264,16 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** per-document counter was safe only with one writer -> the removed comment in `src/core/document.js` `nextId` (diff); an AI turn builds on a forked copy -> `src/ai/agent.js` `forkOf` in the diff and CLAUDE.md AI Partner section; 1,000 appends each, 2,000 distinct ids -> the new `document.spec.js` case, passing this session; 3,907 unit tests, 3,323 e2e runs passed, 0 failed -> the full `/test` run this session
 **To Add:** repo URL once public
+
+## [2026-10-12T18:25:00Z] — The merge core: position keys, last-writer-wins registers, tombstones
+
+**Post:** The merge in WarpCad is now a single pure function: it takes two project states and returns the merged one, and knows nothing about the kernel, the document fold or the UI.
+
+The rules are small. Each field group is last-writer-wins by Lamport stamp. A delete leaves a tombstone, and only a newer entry (a Redo) outranks it. Row order comes from fractional position keys that end in the writer's replica id, so when two writers each insert a run of rows at the same gap, each run stays contiguous. One case bends the "later stamp sorts later" rule: a writer appending after a row it minted itself keeps its own run first. That is written into the decision record.
+
+Correctness is a property suite rather than a list of examples: seeded random edit scripts on three replicas, checking that merging is commutative, associative and idempotent. Merging two 5 000-entry states took about 2 ms on this machine, and the longest key after 1 000 inserts at one gap was 43 characters. Nothing imports it yet; the document layer picks it up next. Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** pure function, imports only replica.js and siblings -> `src/core/merge/merge.js` imports (checked this session); rules and the self-run exception -> `merge.js`, `positionKey.js`, "As built" section of `docs/decisions/document-sync.md` in the diff; property suite -> `fuzz.spec.js`; 5 000 entries ~2 ms and 43-char key -> Opus agent's measurements this session (about 1.6–2.2 ms; 43 chars for one run at one gap); nothing imports it -> grep of src/mcp/e2e this session
+**To Add:** repo URL once public
