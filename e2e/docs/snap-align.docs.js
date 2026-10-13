@@ -248,4 +248,91 @@ test.describe('docs media: snap and align', () => {
     await page.waitForTimeout(900)
     await endMovie(page, 'snap-subpart-operand', { fps: 8, width: 640 })
   })
+
+  /**
+   * `TODO/ui-063`: a part on **both** sides. The Pi's `hole1` aligned onto the screen's
+   * `piMountingPost1` in plan, then the Pi's `mb` snapped onto the post's top. Recorded at
+   * a brisk pace (two commits fit the 18 s budget), then checked against the Inspector's
+   * own readings of the parts once the recording has stopped.
+   */
+  test('snap-subpart-both-sides', { tag: '@movie' }, async ({ page }) => {
+    await openScene(page, 'pi-and-screen.ndjson')
+    const before = await bodies(page)
+    const num = async (testId) => Number((await page.getByTestId(testId).inputValue()).replace(/[^\d.+-]/g, ''))
+    const quick = async (testId) => {
+      const el = page.getByTestId(testId)
+      await el.scrollIntoViewIfNeeded()
+      const b = await el.boundingBox()
+      await glideTo(page, { x: b.x + b.width / 2, y: b.y + b.height / 2 })
+      await el.click()
+      await page.waitForTimeout(150)
+    }
+    const showList = async () => {
+      if (!(await page.getByTestId('object-list').isVisible())) await quick('inspector-objects-header')
+      await expect(page.getByTestId('object-list')).toBeVisible()
+    }
+    const showParts = async (id) => {
+      await showList()
+      if ((await page.getByTestId(`objects-expand-${id}`).getAttribute('aria-expanded')) !== 'true') {
+        await quick(`objects-expand-${id}`)
+      }
+    }
+    /** Inspector reading of one part: centre and size, with that part selected. */
+    const inspect = async (id, part) => {
+      await openObjectList(page)
+      const toggle = page.getByTestId(`objects-expand-${id}`)
+      if ((await toggle.getAttribute('aria-expanded')) !== 'true') await toggle.click()
+      await page.getByTestId(`objects-part-${id}-${part}`).scrollIntoViewIfNeeded()
+      await page.getByTestId(`objects-part-${id}-${part}`).click()
+      await expect(page.getByTestId('inspector-breadcrumb-part')).toHaveText(part)
+      const read = async (kind) => Promise.all(['x', 'y', 'z'].map((axis) => num(`inspector-${kind}-${axis}`)))
+      return { centre: await read('position'), size: await read('size') }
+    }
+    const popover = page.getByTestId('snap-align-popover')
+
+    await startMovie(page, 'snap-subpart-both-sides')
+    // The Pi at hole1 (a plain tap on the part row), then the screen at its first post
+    // (the part row's check, which adds rather than replaces).
+    await showParts('pi-1')
+    await quick('objects-part-pi-1-hole1')
+    await showParts('screen-1')
+    await quick('objects-part-check-screen-1-piMountingPost1')
+    await expect(viewport(page)).toHaveAttribute('data-selected-count', '2')
+    await quick('operation-align')
+    await expect(popover).toHaveAttribute('data-op', 'group.align')
+    await expect(page.getByTestId('snap-align-operand-moving')).toHaveText('Raspberry Pi 1 › hole1')
+    await expect(page.getByTestId('snap-align-operand-reference')).toHaveText('Touchscreen 2 1 › piMountingPost1')
+    await page.waitForTimeout(700)
+    await page.getByTestId('snap-align-axis-x').check()
+    await page.getByTestId('snap-align-axis-y').check()
+    await quick('snap-align-commit')
+    await expect(popover).toHaveCount(0)
+    const aligned = await afterMove(page, 'pi-1', before)
+    await page.waitForTimeout(500)
+
+    // Re-address the Pi at mb, add the post again, and Snap on Z with Outside minus.
+    await showParts('pi-1')
+    await quick('objects-part-pi-1-mb')
+    await showParts('screen-1')
+    await quick('objects-part-check-screen-1-piMountingPost1')
+    await quick('operation-snap')
+    await expect(popover).toHaveAttribute('data-op', 'group.snap')
+    await expect(page.getByTestId('snap-align-operand-moving')).toHaveText('Raspberry Pi 1 › mb')
+    await page.waitForTimeout(500)
+    await page.getByTestId('snap-align-axis-z').check()
+    await page.getByTestId('snap-align-orientation').selectOption('outside-')
+    await quick('snap-align-commit')
+    await expect(popover).toHaveCount(0)
+    await afterMove(page, 'pi-1', aligned)
+    await page.waitForTimeout(1000)
+    await endMovie(page, 'snap-subpart-both-sides', { fps: 8, width: 640 })
+
+    // Checked after the recording: hole1 on the post's axis, mb on the post's top.
+    const hole = await inspect('pi-1', 'hole1')
+    const mb = await inspect('pi-1', 'mb')
+    const post = await inspect('screen-1', 'piMountingPost1')
+    expect(Math.abs(hole.centre[0] - post.centre[0])).toBeLessThan(0.02)
+    expect(Math.abs(hole.centre[1] - post.centre[1])).toBeLessThan(0.02)
+    expect(Math.abs(mb.centre[2] - mb.size[2] / 2 - (post.centre[2] + post.size[2] / 2))).toBeLessThan(0.02)
+  })
 })

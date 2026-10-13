@@ -184,7 +184,7 @@ describe('object list store (TODO/ui-041, moved into the Inspector by ui-049)', 
     objects.choose('shell', true)
     objects.choose('bolt-1t', true)
     expect(selection.ids).toEqual(['shell', 'bolt-1t'])
-    expect(selection.subPart).toEqual({ bodyId: 'bolt-1t', partName: 'tap' })
+    expect(selection.partOf('bolt-1t')).toBe('tap')
   })
 
   it('ignores an id the scene does not contain, rather than selecting a ghost', () => {
@@ -411,7 +411,7 @@ describe('object list store — part rows (TODO/ui-042)', () => {
     objects.choosePart('pi', 'ethernet', true) // tap ethernet's check
     // ids[0] is Subtract's base (`ui-014`/`ui-040`): the shell. The Pi is subtracted from it.
     expect(selection.ids).toEqual(['shell', 'pi'])
-    expect(selection.subPart).toEqual({ bodyId: 'pi', partName: 'ethernet' })
+    expect(selection.partOf('pi')).toBe('ethernet')
     expect(selection.count).toBe(2)
     expect(objects.rows.map((row) => row.role)).toEqual(['base', 'secondary', 'none'])
     expect(objects.rows[1].parts.find((part) => part.name === 'ethernet')).toMatchObject({ selected: true, order: 2, role: 'secondary' })
@@ -472,7 +472,19 @@ describe('object list store — part rows (TODO/ui-042)', () => {
     objects.choose('shell', true)
     objects.choose('pi', true) // check: back in, at the end
     expect(selection.ids).toEqual(['shell', 'pi'])
-    expect(selection.subPart).toEqual({ bodyId: 'pi', partName: 'ethernet' })
+    expect(selection.partOf('pi')).toBe('ethernet')
+  })
+
+  it('two bodies, each addressed: both part rows are ticked at once (TODO/ui-063)', () => {
+    seedEnclosedPi()
+    const objects = useObjectListStore()
+    const selection = useSelectionStore()
+    objects.choosePart('pi', 'ethernet')
+    objects.choose('shell', true)
+    expect(selection.partOf('pi')).toBe('ethernet')
+    const pi = objects.rows.find((row) => row.id === 'pi')
+    expect(pi?.drilledPart).toBe('ethernet')
+    expect(pi?.parts.filter((part) => part.selected).map((part) => part.name)).toEqual(['ethernet'])
   })
 
   it('a depth left on a body that is no longer selected does not light up its child row', () => {

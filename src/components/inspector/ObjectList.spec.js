@@ -207,7 +207,7 @@ describe('ObjectList — part rows (TODO/ui-042)', () => {
     await wrapper.get('[data-testid="objects-expand-pi"]').trigger('click')
     await wrapper.get(partCheck('ethernet')).trigger('click')
     expect(selection.ids).toEqual(['shell', 'pi'])
-    expect(selection.subPart).toEqual({ bodyId: 'pi', partName: 'ethernet' })
+    expect(selection.partOf('pi')).toBe('ethernet')
     expect(wrapper.get('[data-testid="objects-check-shell"]').text()).toBe('1')
     expect(wrapper.get('[data-testid="objects-check-pi"]').text()).toBe('2')
     expect(wrapper.get(partCheck('ethernet')).text()).toBe('2')
@@ -219,7 +219,7 @@ describe('ObjectList — part rows (TODO/ui-042)', () => {
     await wrapper.get('[data-testid="objects-expand-pi"]').trigger('click')
     await wrapper.get(partCheck('ethernet')).trigger('click')
     expect(selection.ids).toEqual(['shell', 'pi'])
-    expect(selection.subPart).toBeNull()
+    expect(selection.partOf('pi')).toBeNull()
     expect(wrapper.find('[data-testid="objects-drilled-pi"]').exists()).toBe(false)
   })
 
@@ -230,7 +230,7 @@ describe('ObjectList — part rows (TODO/ui-042)', () => {
     await wrapper.get('[data-testid="objects-expand-pi"]').trigger('click')
     await wrapper.get(part('ethernet')).trigger('click', { shiftKey: true })
     expect(selection.ids).toEqual(['shell', 'pi'])
-    expect(selection.subPart).toEqual({ bodyId: 'pi', partName: 'ethernet' })
+    expect(selection.partOf('pi')).toBe('ethernet')
   })
 
   it('the parent\'s check does not disturb the depth; a plain tap on the parent row steps back up', async () => {
@@ -240,7 +240,7 @@ describe('ObjectList — part rows (TODO/ui-042)', () => {
     await wrapper.get(part('ethernet')).trigger('click')
     await wrapper.get('[data-testid="objects-check-shell"]').trigger('click') // add shell, after the Pi
     expect(selection.ids).toEqual(['pi', 'shell'])
-    expect(selection.subPart).toEqual({ bodyId: 'pi', partName: 'ethernet' })
+    expect(selection.partOf('pi')).toBe('ethernet')
     await wrapper.get('[data-testid="objects-row-pi"]').trigger('click')
     expect(selection.ids).toEqual(['pi'])
     expect(selection.subPart).toBeNull()

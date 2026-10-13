@@ -1476,6 +1476,8 @@ person can actually perform. It was hand-driven at laptop 1440x900/Chromium and 
 snaps into place once within tolerance (step 4), and on release the camera module sits
 aligned to the board's mounting holes, not at an arbitrary offset position.
 
+**Last run**: 2026-10-13 17:31 UTC (`ui-063`) — **PASS** at laptop 1440x900 Chromium (real mouse, 28-sample jittered drag, fresh profile). Pi 5 dropped, Camera Module dragged toward it: `data-snapped` false for the first 6 samples and true for the last 6; on release both bodies remained (count 2). Re-driven because the selection store's pick-depth state changed. Console and page errors: none.
+
 **Last run**: 2026-10-11 02:05 UTC (`core-050`) — **PASS** at laptop 1440x900 Chromium (real mouse, 28-sample wobbly drag). Pi dropped, a Camera Module dragged toward it: `data-snapped` false at the first sample and true for the last 10 of 28; on release both bodies remained. Re-driven because the fold now resolves project-variable bindings before handing params to the kernel (every record passes through it). Console clean.
 
 **Last run**: 2026-10-11 00:38 UTC (`core-055`) — **PASS** on Chromium and WebKit at laptop 1440x900 (real jittered mouse, hand-style script, not a spec). Pi (`raspberrypi.bplus`) dropped, a Camera Module dragged in from the lower right: `data-snapped` false for the first sample and true for the last 10 of 28; on release both bodies remained. Re-driven because `core-055` changed the exact-geometry check `capturePart` runs. Console clean.
@@ -2373,6 +2375,8 @@ first (step 4), never jumping straight to a sub-part. A second, distinct click o
 member mesh narrows to that sub-part (step 6), with the breadcrumb showing the pick
 depth. Clicking the breadcrumb's "Group" segment (step 7) steps back up to whole-group
 selection.
+
+**Last run**: 2026-10-13 17:31 UTC (`ui-063`) — **PASS (partial)** at laptop 1440x900 Chromium (real mouse). Pi, Camera Module and Touchscreen 2 selected through the Objects list checks (3 selected), grouped (3 to 1), and a click on open grid cleared the selection (0). Sub-part narrowing was driven through the Objects list part rows rather than by clicking a member mesh in the 3D view (no picking code changed): a screen's `piMountingPost1` and a Pi's `hole1` held **both** addresses at once, and Align/Snap named both. Console and page errors: none.
 
 **Last run**: 2026-10-11 00:38 UTC (`core-055`) — **PASS** on Chromium and WebKit at laptop (real mouse). Pi, Camera Module (snapped) and a Cube grouped (3 to 1). A click on open grid cleared the selection (0); the first click on the group selected `Group 1` with no part crumb and unchanged bounds; a second click narrowed to `Camera Module 1` (crumb `Objects ▸ Group 1 ▸ Camera Module 1`); the `Group` crumb stepped back up.
 

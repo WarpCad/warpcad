@@ -110,7 +110,7 @@ export const useObjectListStore = defineStore('objectList', () => {
   let choosing = false
 
   watch(
-    () => [...selection.ids, selection.subPart?.bodyId, selection.subPart?.partName],
+    () => [...selection.ids, ...Object.entries(selection.addresses).flat()],
     () => {
       if (!choosing) keepOpenForOperands.value = false
     },
@@ -163,11 +163,11 @@ export const useObjectListStore = defineStore('objectList', () => {
       const index = selection.ids.indexOf(body.id)
       const [min, max] = body.bounds
       const role = index === -1 ? 'none' : index === 0 ? 'base' : 'secondary'
-      // A depth only means something on a body that is in the selection: `toggle` leaves it
-      // behind on a body that was checked out, and that stale address must not light up a
-      // child row (`ui-040` designed it to be inert until the body is checked back in).
-      const drilled =
-        index !== -1 && selection.subPart?.bodyId === body.id ? selection.subPart.partName : null
+      // Each selected body's **own** address (`TODO/ui-063`), so a Pi at `hole1` and a
+      // screen at `piMountingPost1` both show their ticked part row at once. `partOf` only
+      // reports selected bodies: the address `toggle` parks on a body that was checked out
+      // must not light up a child row (`ui-040` designed it to be inert until it is back in).
+      const drilled = index !== -1 ? selection.partOf(body.id) : null
       const partNames = body.partNames ?? []
       const expandable = partNames.length > 0
       /** @type {PartRow[]} */

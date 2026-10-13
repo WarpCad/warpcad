@@ -117,16 +117,52 @@ up with the Cube. The rest of the board comes along with it: addressing a part
 changes what gets *measured*, never what gets *moved*. A bolt snapped by its
 head brings its thread and tap with it.
 
-**You can only drill into a part you can click.** A part that sits *inside*
-another one — a Raspberry Pi's mounting holes, for instance, which pass through
-the board — is hidden behind the part in front of it, so clicking never reaches
-it. Orbit the view (bottom-left navigation controls) until the part you want is
-the one facing you.
+**You can only drill into a part you can click** — in the 3D view. A part that sits
+*inside* another one — a Raspberry Pi's mounting holes, for instance, which pass through
+the board — is hidden behind the part in front of it, so clicking never reaches it. Tick it
+in the Inspector's [Objects list](selection-and-inspector.md#picking-one-piece-of-a-hidden-shape)
+instead, or orbit the view (bottom-left navigation controls) until the part you want is the
+one facing you.
 
-**You can drill into one side only.** The moving item and the reference item do
-not have to be at the same depth — a whole screen positioned against one hole on
-a board is the ordinary case, not a special one. Whichever side you drilled
-into is the side that gets measured by its part; the other is measured whole.
+**You can address a part on both sides.** The moving item and the reference item each
+keep their own part, so *this hole on the board* against *that post on the screen* is one
+Snap or Align. Either side can also be whole: a whole screen positioned against one hole
+on a board is just as ordinary. Whichever side carries a `›` in the popover's top line is
+measured by that part; a side with no `›` is measured whole. The app never quietly drops a
+part you addressed: if it can't use one, the popover says so in red and nothing moves.
+
+### Mounting a Raspberry Pi on a screen's posts
+
+This is the both-sides case: a hole on the board against a post on the screen, then the
+board itself against the top of the post. Units are millimetres, with Z pointing up.
+
+1. From the Library's "Raspberry Pi" section, set the **Raspberry Pi** row's Model to
+   **Pi 5** and drag it into the 3D view. Drag a **Touchscreen 2** in as well.
+2. Click the Pi, then open the Inspector's **Objects** list, open the Pi's parts (the
+   chevron on its row) and tap **hole1**. The breadcrumb reads `Raspberry Pi 1 › hole1`.
+3. Open the screen's parts and tap the check next to **piMountingPost1**. That adds the
+   screen to the selection *at that post*, and the Pi keeps `hole1`: both part rows stay
+   ticked, numbered `1` and `2`. (With a keyboard, Shift-clicking the **piMountingPost1**
+   row does the same. Shift-clicking the screen's own row would add the *whole* screen.)
+4. Press **Align**. The top line reads
+   **Aligning Raspberry Pi 1 › hole1 to Touchscreen 2 1 › piMountingPost1**. Tick **X** and
+   **Y** and press **Align**. The axis of `hole1` is now on the axis of post 1. The whole
+   board moved with it, so the other three holes are on the other three posts too: the
+   board's holes are 58 × 49 mm apart, and so are the posts.
+5. Now the height. After the Align only the Pi is still selected. Reopen the Objects list,
+   tap the Pi's **mb** part (the circuit board itself), then tick
+   **piMountingPost1** on the screen again. Press **Snap**, tick **Z**, set Orientation to
+   **Outside −** and press **Snap**. The underside of `mb` now sits on the top of the post,
+   with no gap and no overlap.
+
+Use **mb** for the height, not the hole and not the whole Pi. The hole runs from 3.34 mm
+below the board to 3.34 mm above it, so snapping the hole would leave the board floating.
+The whole Pi's lowest point is the underside of the microSD card, 1.5 mm below the board, so
+snapping the whole Pi would leave a 1.5 mm gap above the posts. **Outside −** puts the
+moving part's bottom on the reference's top; **Outside +** would hang the board under the
+post instead.
+
+![Ticking the Pi's hole1 and the screen's piMountingPost1 in the Objects list, aligning on X and Y, then re-addressing the Pi at mb and snapping on Z: the board drops onto the posts with its holes on the post axes](./media/snap-subpart-both-sides.gif)
 
 **To go back to whole-item addressing**, click the breadcrumb's first segment
 (the item's own name) in the Inspector, or click empty space and start the
@@ -226,10 +262,6 @@ still selects only that one.
 
 - **A per-axis offset.** The Offset field is a single millimetre value applied
   to every checked axis alike, not a separate value per axis.
-- **Both sides addressed by part at once.** You can drill into one part at a time,
-  so one of the two operands is addressed by part and the other is addressed
-  whole. Positioning two named parts of two different composites against each
-  other in a single step isn't possible yet.
 
 ## Notes and gotchas
 

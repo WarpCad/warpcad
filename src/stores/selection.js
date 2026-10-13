@@ -21,30 +21,95 @@ export const useSelectionStore = defineStore('selection', () => {
   const ids = ref([])
 
   /**
-   * How deep inside the selected body the selection currently points
-   * (`TODO/ui-016`), or `null` for the ordinary whole-body selection.
+   * The part each selected body is **addressed** at (`TODO/ui-063`), keyed by lineage-root
+   * id: `{ [bodyId]: partName }`. A body with no entry is selected whole.
    *
-   * A second dimension rather than a different kind of selection: `ids` still
-   * says *which body*, and drilling in never changes it, so stepping back up is
-   * a matter of dropping this and nothing else. That is what lets the gizmo's
-   * whole-group contract return byte-identically from the breadcrumb.
+   * Until `ui-063` this was one slot, `subPart: { bodyId, partName } | null`, for the whole
+   * selection, so addressing `piMountingPost1` on a screen silently overwrote `hole1` on the
+   * Pi that was already addressed, and Snap/Align measured the Pi whole. One entry per body
+   * is what lets a commit name a part on **both** sides — the V1 assembly idiom
+   * `align('piMountingPad1', rpi.parts.hole1, 'xy')` is exactly that.
    *
-   * @type {import('vue').Ref<{ bodyId: string, partName: string } | null>}
+   * A second dimension rather than a different kind of selection: `ids` still says *which
+   * bodies*, and addressing never changes it, so `count` — what every count gate reads —
+   * is untouched by depth (`ui-040`'s invariant).
+   *
+   * Entries may outlive their body's place in `ids`, but only one way: {@link toggle}
+   * *parks* the address of a body it takes out (so `ui-040`'s documented "Shift-click the
+   * drilled body out, add the base, Shift-click it back in" lands it second with its part
+   * still addressed — `docs/booleans.md`). A parked entry is inert: {@link addresses},
+   * {@link partOf} and {@link subPart} only ever report bodies that are selected, so it is
+   * never an operand, never a lit row and never a breadcrumb. Every path that *replaces* the
+   * selection drops parked entries outright.
+   *
+   * @type {import('vue').Ref<Record<string, string>>}
    */
-  const subPart = ref(null)
+  const addressMap = ref({})
 
   /**
-   * Drop a pick depth that no longer names the single selected body.
+   * The live addresses: {@link addressMap} restricted to bodies in the selection, in
+   * selection order.
    *
-   * Called from the paths that *replace* a selection. Deliberately not from
-   * {@link toggle}: the additive path is untouched by this task, and a depth
-   * left behind by a Shift-click is inert anyway, because `describeSelection`
-   * only honours one whose `bodyId` is the single selected body.
+   * @type {import('vue').ComputedRef<Record<string, string>>}
    */
-  function pruneSubPart() {
-    const current = subPart.value
-    if (!current) return
-    if (ids.value.length !== 1 || ids.value[0] !== current.bodyId) subPart.value = null
+  const addresses = computed(() => {
+    /** @type {Record<string, string>} */
+    const live = {}
+    for (const id of ids.value) {
+      const partName = addressMap.value[id]
+      if (partName) live[id] = partName
+    }
+    return live
+  })
+
+  /**
+   * The single-body view of the pick depth (`TODO/ui-016`) — what the breadcrumb, the gizmo
+   * and `describeSelection` read. Exactly the shape the one slot used to have, and `null`
+   * unless **exactly one** body is selected and it is addressed: a multi-selection's
+   * addresses are operands, not a breadcrumb, and are read through {@link partOf}.
+   *
+   * @type {import('vue').ComputedRef<{ bodyId: string, partName: string } | null>}
+   */
+  const subPart = computed(() => {
+    if (ids.value.length !== 1) return null
+    const bodyId = ids.value[0]
+    const partName = addressMap.value[bodyId]
+    return partName ? { bodyId, partName } : null
+  })
+
+  /**
+   * The part a **selected** body is addressed at, or `null` (whole, or not selected).
+   *
+   * @param {string | null | undefined} bodyId
+   * @returns {string | null}
+   */
+  function partOf(bodyId) {
+    if (!bodyId || !ids.value.includes(bodyId)) return null
+    return addressMap.value[bodyId] ?? null
+  }
+
+  /**
+   * @param {string} bodyId
+   * @param {string | null} partName `null` drops the address.
+   * @returns {void}
+   */
+  function setAddress(bodyId, partName) {
+    const next = { ...addressMap.value }
+    if (partName) next[bodyId] = partName
+    else delete next[bodyId]
+    addressMap.value = next
+  }
+
+  /**
+   * After a path that *replaces* the selection: keep only the address of the one body that
+   * is still the whole selection, if it had one, and drop everything else — parked entries
+   * included. Exactly the old `pruneSubPart`, generalised over the map.
+   */
+  function pruneAddresses() {
+    if (Object.keys(addressMap.value).length === 0) return
+    const only = ids.value.length === 1 ? ids.value[0] : null
+    const kept = only && addressMap.value[only] ? { [only]: addressMap.value[only] } : {}
+    addressMap.value = kept
   }
 
   /**
@@ -55,7 +120,7 @@ export const useSelectionStore = defineStore('selection', () => {
    */
   function select(id) {
     ids.value = id ? [id] : []
-    pruneSubPart()
+    pruneAddresses()
   }
 
   /**
@@ -73,7 +138,7 @@ export const useSelectionStore = defineStore('selection', () => {
    */
   function drillInto(partName) {
     if (!partName || ids.value.length !== 1) return
-    subPart.value = { bodyId: ids.value[0], partName }
+    addressMap.value = { [ids.value[0]]: partName }
   }
 
   /**
@@ -97,9 +162,10 @@ export const useSelectionStore = defineStore('selection', () => {
    *   selected, mirroring how a check toggles.
    *
    * Depth never touches {@link ids}, so `count` — the number every count gate reads — is
-   * unchanged by it (`ui-040`'s invariant). There is one depth slot: addressing a part on a
-   * second body moves it rather than holding two, which is the shape `selectedOperands`
-   * already assumes.
+   * unchanged by it (`ui-040`'s invariant). Each body keeps its **own** address
+   * (`TODO/ui-063`): addressing a part on a second body *adds* an address for that body and
+   * leaves the first body's alone, so "Pi › hole1 against screen › piMountingPost1" is one
+   * selection. It used to move a single slot, which silently measured the Pi whole.
    *
    * @param {string | null | undefined} bodyId
    * @param {string | null | undefined} partName
@@ -110,19 +176,15 @@ export const useSelectionStore = defineStore('selection', () => {
     if (!bodyId || !partName) return
     if (!additive) {
       ids.value = [bodyId]
-      subPart.value = { bodyId, partName }
+      addressMap.value = { [bodyId]: partName }
       return
     }
-    const alreadyAddressed =
-      ids.value.includes(bodyId) &&
-      subPart.value?.bodyId === bodyId &&
-      subPart.value.partName === partName
-    if (alreadyAddressed) {
-      subPart.value = null
+    if (partOf(bodyId) === partName) {
+      setAddress(bodyId, null)
       return
     }
     if (!ids.value.includes(bodyId)) ids.value = [...ids.value, bodyId]
-    subPart.value = { bodyId, partName }
+    setAddress(bodyId, partName)
   }
 
   /**
@@ -130,10 +192,35 @@ export const useSelectionStore = defineStore('selection', () => {
    * breadcrumb's group segment, and a UI affordance only: nothing here
    * raycasts.
    *
+   * With a `bodyId`, only that body steps up and every other body keeps its address
+   * (`TODO/ui-063`); without one, every body does — the breadcrumb's and a plain Objects
+   * list row tap's meaning, both of which only ever see one selected body.
+   *
+   * @param {string} [bodyId]
    * @returns {void}
    */
-  function stepUp() {
-    subPart.value = null
+  function stepUp(bodyId) {
+    if (bodyId === undefined) addressMap.value = {}
+    else setAddress(bodyId, null)
+  }
+
+  /**
+   * Put addresses back after a path that rebuilt the selection from ids alone — a merge
+   * or an Undo restoring the selection a step recorded (`stores/document.js`'s
+   * `restoreSelection`). Only bodies that are selected take one; anything else in
+   * `addressesByBody` is ignored. The caller checks the part still exists.
+   *
+   * @param {Record<string, string>} addressesByBody
+   * @returns {void}
+   */
+  function restoreAddresses(addressesByBody) {
+    /** @type {Record<string, string>} */
+    const next = {}
+    for (const id of ids.value) {
+      const partName = addressesByBody[id]
+      if (typeof partName === 'string' && partName !== '') next[id] = partName
+    }
+    addressMap.value = next
   }
 
   /**
@@ -149,6 +236,10 @@ export const useSelectionStore = defineStore('selection', () => {
    * end state as clicking empty space, so the Inspector, gizmo and dimension
    * lines all fall back to their empty contract without a special case.
    *
+   * Taking a body out *parks* its address rather than deleting it (see
+   * {@link addressMap}): inert while the body is out, live again if it is toggled
+   * straight back in — `ui-040`'s documented base-first route.
+   *
    * @param {string | null | undefined} id
    * @returns {void}
    */
@@ -161,7 +252,7 @@ export const useSelectionStore = defineStore('selection', () => {
 
   function clear() {
     ids.value = []
-    pruneSubPart()
+    addressMap.value = {}
   }
 
   /**
@@ -183,7 +274,7 @@ export const useSelectionStore = defineStore('selection', () => {
   function selectMany(selectedIds, additive = false) {
     if (!additive) {
       ids.value = [...selectedIds]
-        pruneSubPart()
+      pruneAddresses()
       return
     }
     if (selectedIds.length === 0) return
@@ -203,6 +294,7 @@ export const useSelectionStore = defineStore('selection', () => {
   return {
     ids,
     subPart,
+    addresses,
     count: computed(() => ids.value.length),
     onlyId: computed(() => (ids.value.length === 1 ? ids.value[0] : null)),
     select,
@@ -210,7 +302,9 @@ export const useSelectionStore = defineStore('selection', () => {
     selectMany,
     drillInto,
     selectPart,
+    partOf,
     stepUp,
+    restoreAddresses,
     clear,
     has,
   }

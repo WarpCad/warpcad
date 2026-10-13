@@ -434,7 +434,7 @@ describe('OperationsToolbar — sub-part-addressed Snap/Align operands (TODO/ui-
     selection.drillInto('Cube 1')
     selection.toggle('cyl-1')
     expect(selection.ids).toEqual(['group-1', 'cyl-1'])
-    expect(selection.subPart).toEqual({ bodyId: 'group-1', partName: 'Cube 1' })
+    expect(selection.partOf('group-1')).toBe('Cube 1')
 
     const wrapper = mount(OperationsToolbar)
     const appendSpy = vi.spyOn(documentStore, 'append')
@@ -465,7 +465,7 @@ describe('OperationsToolbar — sub-part-addressed Snap/Align operands (TODO/ui-
     selection.toggle('group-1')
     selection.toggle('group-1')
     expect(selection.ids).toEqual(['cyl-1', 'group-1'])
-    expect(selection.subPart).toEqual({ bodyId: 'group-1', partName: 'Cube 2' })
+    expect(selection.partOf('group-1')).toBe('Cube 2')
 
     const wrapper = mount(OperationsToolbar)
     const appendSpy = vi.spyOn(documentStore, 'append')
@@ -475,6 +475,42 @@ describe('OperationsToolbar — sub-part-addressed Snap/Align operands (TODO/ui-
     expect(record.target).toBe('cyl-1')
     expect(record.operands).toEqual([{ id: 'group-1', pieces: 'Cube 2' }])
     expect(record.supersedes).toBe('cyl-1')
+  })
+
+  it('both operands addressed: each commits as { id, pieces }, and the operand line names both parts (TODO/ui-063)', async () => {
+    placeGroupAndCuboid()
+    placeCuboid('base-1', 'Base 1', [0, 200, 5])
+    placeCuboid('base-2', 'Base 2', [100, 200, 5])
+    // The user's case is two composites (a Pi and a screen); a part on both sides of one
+    // commit needs a second group, so the reference is one here.
+    documentStore.append(
+      {
+        id: 'group-2',
+        op: 'group.assemble',
+        name: 'Group 2',
+        target: 'base-1',
+        operands: ['base-2'],
+        consumes: ['base-1', 'base-2'],
+        params: { names: ['Base 1', 'Base 2'] },
+      },
+      { origin: 'local' },
+    )
+    selection.selectPart('group-1', 'Cube 1')
+    selection.selectPart('group-2', 'Base 1', true)
+    expect(selection.ids).toEqual(['group-1', 'group-2'])
+
+    const wrapper = mount(OperationsToolbar)
+    await wrapper.get('[data-testid="operation-align"]').trigger('click')
+    expect(body().get('[data-testid="snap-align-operand-moving"]').text()).toBe('Group 1 › Cube 1')
+    expect(body().get('[data-testid="snap-align-operand-reference"]').text()).toBe('Group 2 › Base 1')
+
+    const appendSpy = vi.spyOn(documentStore, 'append')
+    await body().get('[data-testid="snap-align-axis-x"]').setValue(true)
+    await body().get('[data-testid="snap-align-commit"]').trigger('click')
+    const [record] = appendSpy.mock.calls[0]
+    expect(record.target).toEqual({ id: 'group-1', pieces: 'Cube 1' })
+    expect(record.operands).toEqual([{ id: 'group-2', pieces: 'Base 1' }])
+    expect(record.supersedes).toBe('group-1')
   })
 
   it('addresses the sub-part on the operand’s *terminal* id, not its lineage root', async () => {

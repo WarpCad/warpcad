@@ -1062,6 +1062,15 @@ function subPartOf(page) {
 }
 
 /**
+ * Every selected body's own address (`TODO/ui-063`) — `subPart` is only the single-body view.
+ *
+ * @param {import('@playwright/test').Page} page
+ */
+function addressesOf(page) {
+  return storeApi(page).run((api) => ({ ...api.selection.addresses }))
+}
+
+/**
  * Scroll a list item into view *within the sheet* and report whether the topmost element at
  * its centre is the item itself — the trial click.
  *
@@ -1142,7 +1151,7 @@ test('an enclosed Raspberry Pi: expand it, address `ethernet`, add the case FIRS
   await openObjectList(page)
   await page.getByTestId('objects-part-check-pi-ethernet').click()
   expect(await selectedIds(page)).toEqual(['shell', 'pi'])
-  expect(await subPartOf(page)).toEqual({ bodyId: 'pi', partName: 'ethernet' })
+  expect(await addressesOf(page)).toEqual({ pi: 'ethernet' })
   await expect(page.getByTestId('viewport')).toHaveAttribute('data-selected-count', '2')
   await expect(page.getByTestId('objects-check-shell')).toHaveText('1')
   await expect(page.getByTestId('objects-check-pi')).toHaveText('2')

@@ -301,6 +301,7 @@
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 
 import { DEFAULT_ROTATE_AXIS, mirrorRotationDeg } from '../../core/kernel/group.js'
+import { useSelectedOperands } from '../../composables/useSelectedBody.js'
 import { useDocumentStore } from '../../stores/document.js'
 import { useLibraryStore } from '../../stores/library.js'
 import { useOverlaysStore } from '../../stores/overlays.js'
@@ -870,20 +871,7 @@ const canCommitSnapAlign = computed(
   () => !snapAlignDisabled.value && axesString.value.length > 0,
 )
 
-/**
- * @typedef {object} SelectedOperand
- * @property {import('../../core/kernel/registry.js').OperandRef} ref What the
- *   record actually carries: a bare terminal id, or `{ id, pieces }` when this
- *   operand is drilled into a named part (`TODO/ui-035`, `TODO/ui-040`).
- * @property {string} terminalId The same id on its own, for `supersedes` and for
- *   `consumes` — both lineage bookkeeping, never an operand reference (see the
- *   module doc).
- * @property {string} name The body's own name, with no part attached — what
- *   `group.assemble` needs for its `params.names`.
- * @property {string} label What the toolbar shows: {@link name}, plus its part
- *   after a `›` when drilled in.
- * @property {boolean} isSubPart
- */
+/** @typedef {import('../../composables/useSelectedBody.js').SelectedOperand} SelectedOperand */
 
 /**
  * Every selected item, resolved into the operands a record would carry right
@@ -892,39 +880,16 @@ const canCommitSnapAlign = computed(
  * rather than something each commit works out for itself, because the toolbar
  * has to be able to *show* the same answer before anything is committed.
  *
- * Three reads, each with a reason it cannot be one of the others:
- *
- * - `documentStore.raw.currentIdOf(rootId)` — the *terminal* record id, which is
- *   what the kernel binds geometry to. The same discipline `run()` above states
- *   at length: a selection holds lineage-root ids, and a root's own entry still
- *   holds the geometry the body had when it was first placed.
- * - `documentStore.bodies` — keyed by *root* id, so the display name is looked up
- *   by `rootId`, not by the terminal id above. Exactly the lookup `run()`'s
- *   `group.assemble` names branch already has to make for the same reason.
- * - `selection.subPart` — `ui-016`'s pick depth, which carries the body it
- *   belongs to (`bodyId`, a root id), so it is matched against `rootId` too. It
- *   is a single depth for the whole selection, which is what makes asymmetric
- *   addressing the natural shape here rather than a special case: at most one of
- *   the two operands can be drilled in at a time.
+ * Built by `useSelectedOperands` (`src/composables/useSelectedBody.js`), which
+ * reads **each** selected body's own address (`TODO/ui-063`). Until then this
+ * read one pick-depth slot for the whole selection, so at most one of the two
+ * operands could be addressed and the other was silently measured whole —
+ * "Raspberry Pi 1 › hole1 to touchScreen2 1 › piMountingPost1" is now one
+ * selection and one record.
  *
  * @type {import('vue').ComputedRef<SelectedOperand[]>}
  */
-const selectedOperands = computed(() =>
-  selection.ids.map((rootId) => {
-    const terminalId = documentStore.raw.currentIdOf(rootId) ?? rootId
-    const body = documentStore.bodies.find((candidate) => candidate.id === rootId)
-    const name = body?.name ?? rootId
-    const depth = selection.subPart
-    const partName = depth && depth.bodyId === rootId ? depth.partName : null
-    return {
-      ref: partName === null ? terminalId : { id: terminalId, pieces: partName },
-      terminalId,
-      name,
-      label: partName === null ? name : `${name} › ${partName}`,
-      isSubPart: partName !== null,
-    }
-  }),
-)
+const selectedOperands = useSelectedOperands()
 
 /** Whether any selected operand is currently drilled into a named part. */
 const hasSubPartOperand = computed(() =>
@@ -1063,6 +1028,24 @@ function commitSnapAlign() {
   // doc's "Sub-part-addressed operands" section.
   const [moving, reference] = selectedOperands.value
   if (!moving || !reference) return
+  // `TODO/ui-063`: never measure a body whole when the user addressed a part of it.
+  // Every selected body's address must be on the record this commit writes; one that
+  // would be dropped is refused out loud rather than turned into a plausible-looking
+  // whole-body snap — the exact silent failure the one-slot selection used to produce.
+  const dropped = selection.ids.find((rootId) => {
+    const addressed = selection.partOf(rootId)
+    if (addressed === null) return false
+    const operand = [moving, reference].find((candidate) => candidate.rootId === rootId)
+    return operand?.partName !== addressed
+  })
+  if (dropped !== undefined) {
+    const name = documentStore.bodies.find((body) => body.id === dropped)?.name ?? dropped
+    opError.value =
+      `${name} is addressed at ${selection.partOf(dropped)}, but this ` +
+      `${op === 'group.snap' ? 'Snap' : 'Align'} would measure it whole. ` +
+      'Select exactly the two items, each at the part you want.'
+    return
+  }
   const id = documentStore.raw.nextId(op === 'group.snap' ? 'snap' : 'align')
 
   /** @type {Record<string, any>} */

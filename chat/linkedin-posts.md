@@ -2303,3 +2303,18 @@ Source is AGPL, docs are CC BY-SA. Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** menu item, strip, chip reason, Undo merge -> diff; "merge core landed earlier today" -> `git log` a348463/5e94365/8dcd9aa, all 2026-10-12; laptop/phone/tablet drive and scenarios 7, 10, 12, 14 PASS -> Step 6 report this session; two New projects merge -> same drive, `TODO/data-013`
 **To Add:** merging-conflict.png; repo URL once public
+
+## [2026-10-13T22:40:00Z] — Snap and Align can name a part on both sides
+
+**Post:** Snap and Align in WarpCad let you pick a part of a body, such as one hole on a Raspberry Pi, and measure from that instead of the whole shape. Until now that only worked on one side. Pick a post on the screen and the Pi's hole was quietly forgotten, so the board was centred on the post by its overall bounding box and its SD card, not the board itself, ended up on the post's top.
+
+The selection store held a single pick-depth slot. Each selected body now keeps its own address, and the Snap/Align popover shows both: "Raspberry Pi 1 › hole1" against "Touchscreen 2 1 › piMountingPost1". The kernel needed no change, since it already resolved each operand's part independently.
+
+In a hand drive, hole1 and post 1 coincided in x and y after one Align, and the board's underside landed at 15.2 mm, exactly the post's top, after one Snap. One commit places all the holes because the whole board moves with the named part.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL #Vue #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** one slot, second pick overwrote -> TODO/ui-063; popover text -> `e2e/snap-align-both-subparts.e2e.js` and hand drive this session; 15.2 mm -> hand drive this session; kernel unchanged -> diff (no `src/core/group.js` change)
+**To Add:** `docs/media/snap-subpart-both-sides.gif`; repo URL once public

@@ -84,16 +84,19 @@ describe('selection store — sub-part pick depth (TODO/ui-016)', () => {
     expect(selection.subPart).toBeNull()
   })
 
-  it('the additive toggle path is untouched by pick depth', () => {
-    // `toggle` is the Shift-click/marquee-additive path, and this task
-    // deliberately adds no sub-part logic to it: a `subPart` left behind by a
-    // multi-select is inert, because `describeSelection` only honours one whose
-    // `bodyId` is the single selected body.
+  it('the additive toggle path keeps a body’s address; `subPart` is the single-body view only (ui-063)', () => {
+    // `toggle` is the Shift-click/marquee-additive path. Adding a second body
+    // keeps the first body's address (it is still an operand), but `subPart` —
+    // what the breadcrumb, gizmo and `describeSelection` read — is now strictly
+    // the single-body view, so it reads null at 2 selected.
     const selection = useSelectionStore()
     selection.select('group-1')
     selection.drillInto('Cube 1')
     selection.toggle('cuboid-2')
     expect(selection.ids).toEqual(['group-1', 'cuboid-2'])
+    expect(selection.partOf('group-1')).toBe('Cube 1')
+    expect(selection.subPart).toBeNull()
+    selection.toggle('cuboid-2')
     expect(selection.subPart).toEqual({ bodyId: 'group-1', partName: 'Cube 1' })
   })
 })
@@ -158,7 +161,8 @@ describe('selection store — selectPart (TODO/ui-042)', () => {
     selection.selectPart('pi', 'ethernet', true)
     // Order is the operand order: the shell is first (Subtract's base), the Pi second.
     expect(selection.ids).toEqual(['shell', 'pi'])
-    expect(selection.subPart).toEqual({ bodyId: 'pi', partName: 'ethernet' })
+    expect(selection.partOf('pi')).toBe('ethernet')
+    expect(selection.partOf('shell')).toBeNull()
   })
 
   it('additive on a body that is already selected: keeps its position, only the depth changes', () => {
@@ -166,10 +170,10 @@ describe('selection store — selectPart (TODO/ui-042)', () => {
     selection.selectMany(['pi', 'shell'])
     selection.selectPart('pi', 'ethernet', true)
     expect(selection.ids).toEqual(['pi', 'shell'])
-    expect(selection.subPart).toEqual({ bodyId: 'pi', partName: 'ethernet' })
+    expect(selection.partOf('pi')).toBe('ethernet')
     selection.selectPart('pi', 'hdmi', true)
     expect(selection.ids).toEqual(['pi', 'shell'])
-    expect(selection.subPart).toEqual({ bodyId: 'pi', partName: 'hdmi' })
+    expect(selection.partOf('pi')).toBe('hdmi')
   })
 
   it('additive on the part that is already addressed: steps back up to the whole body, body stays selected', () => {
@@ -178,6 +182,7 @@ describe('selection store — selectPart (TODO/ui-042)', () => {
     selection.selectPart('pi', 'ethernet', true)
     selection.selectPart('pi', 'ethernet', true)
     expect(selection.ids).toEqual(['shell', 'pi'])
+    expect(selection.partOf('pi')).toBeNull()
     expect(selection.subPart).toBeNull()
   })
 
@@ -193,12 +198,13 @@ describe('selection store — selectPart (TODO/ui-042)', () => {
     expect(selection.count).toBe(2)
   })
 
-  it('one depth at a time: a part on a second body takes the slot from the first — never two silently', () => {
+  it('a part on a second body ADDS an address — the first body keeps its own (ui-063, was one slot)', () => {
     const selection = useSelectionStore()
-    selection.selectPart('pi', 'ethernet')
-    selection.selectPart('bolt', 'tap', true)
-    expect(selection.ids).toEqual(['pi', 'bolt'])
-    expect(selection.subPart).toEqual({ bodyId: 'bolt', partName: 'tap' })
+    selection.selectPart('pi', 'hole1')
+    selection.selectPart('screen', 'piMountingPost1', true)
+    expect(selection.ids).toEqual(['pi', 'screen'])
+    expect(selection.partOf('pi')).toBe('hole1')
+    expect(selection.partOf('screen')).toBe('piMountingPost1')
   })
 
   it('ignores an empty id or part name', () => {
@@ -216,5 +222,148 @@ describe('selection store — selectPart (TODO/ui-042)', () => {
     selection.selectMany(['a', 'b'])
     selection.drillInto('tap')
     expect(selection.subPart).toBeNull()
+  })
+})
+
+/**
+ * Per-body addresses (`TODO/ui-063`). The single `subPart` slot could hold one depth for
+ * the whole selection, so addressing `piMountingPost1` on the screen silently overwrote
+ * `hole1` on the Pi and Snap/Align measured the Pi whole. Each selected body now carries
+ * its own address; `subPart` survives as the derived single-body view the breadcrumb,
+ * gizmo and `describeSelection` read.
+ */
+describe('selection store — per-body addresses (TODO/ui-063)', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+  })
+
+  it('addresses accumulate per body in a multi-selection, in selection order', () => {
+    const selection = useSelectionStore()
+    selection.select('pi')
+    selection.selectPart('pi', 'hole1', true)
+    selection.selectPart('screen', 'piMountingPost1', true)
+    expect(selection.ids).toEqual(['pi', 'screen'])
+    expect(selection.addresses).toEqual({ pi: 'hole1', screen: 'piMountingPost1' })
+    expect(selection.count).toBe(2)
+  })
+
+  it('re-addressing the moving side between two commits is one additive tap, and leaves the other side alone', () => {
+    const selection = useSelectionStore()
+    selection.selectPart('pi', 'hole1')
+    selection.selectPart('screen', 'piMountingPost1', true)
+    selection.selectPart('pi', 'mb', true)
+    expect(selection.ids).toEqual(['pi', 'screen'])
+    expect(selection.partOf('pi')).toBe('mb')
+    expect(selection.partOf('screen')).toBe('piMountingPost1')
+  })
+
+  it('stepping one body back up to whole leaves the other body’s address alone', () => {
+    const selection = useSelectionStore()
+    selection.selectPart('pi', 'hole1')
+    selection.selectPart('screen', 'piMountingPost1', true)
+    selection.selectPart('pi', 'hole1', true)
+    expect(selection.partOf('pi')).toBeNull()
+    expect(selection.partOf('screen')).toBe('piMountingPost1')
+  })
+
+  it('a body toggled out of the selection is dropped from the live addresses', () => {
+    const selection = useSelectionStore()
+    selection.selectPart('pi', 'hole1')
+    selection.selectPart('screen', 'piMountingPost1', true)
+    selection.toggle('screen')
+    expect(selection.ids).toEqual(['pi'])
+    expect(selection.partOf('screen')).toBeNull()
+    expect(Object.keys(selection.addresses)).toEqual(['pi'])
+    // Back to one body: the single-body view is that body's address.
+    expect(selection.subPart).toEqual({ bodyId: 'pi', partName: 'hole1' })
+  })
+
+  it('ui-040’s documented dance still works: a drilled body toggled out and back in comes back addressed', () => {
+    // docs/booleans.md step 3 and e2e/boolean-operations.e2e.js: Shift-click the drilled
+    // body out, Shift-click the base, Shift-click the drilled body back in. Parked while
+    // out — inert, not an operand, not a lit row — and live again on the way back in.
+    const selection = useSelectionStore()
+    selection.select('bolt')
+    selection.drillInto('thread')
+    selection.toggle('bolt')
+    expect(selection.partOf('bolt')).toBeNull()
+    selection.toggle('cube')
+    selection.toggle('bolt')
+    expect(selection.ids).toEqual(['cube', 'bolt'])
+    expect(selection.partOf('bolt')).toBe('thread')
+    expect(selection.addresses).toEqual({ bolt: 'thread' })
+  })
+
+  it('select replaces the selection and clears every address but the surviving body’s own', () => {
+    const selection = useSelectionStore()
+    selection.selectPart('pi', 'hole1')
+    selection.selectPart('screen', 'piMountingPost1', true)
+    selection.select('cube')
+    expect(selection.addresses).toEqual({})
+    expect(selection.subPart).toBeNull()
+  })
+
+  it('select of a body that was addressed keeps that one address (the post-commit reselect)', () => {
+    // `commitSnapAlign` reselects the moving body by its root id; its address was
+    // valid before the move and is still valid after it, exactly as `pruneSubPart` did.
+    const selection = useSelectionStore()
+    selection.selectPart('pi', 'hole1')
+    selection.selectPart('screen', 'piMountingPost1', true)
+    selection.select('pi')
+    expect(selection.addresses).toEqual({ pi: 'hole1' })
+    expect(selection.subPart).toEqual({ bodyId: 'pi', partName: 'hole1' })
+  })
+
+  it('clear and an empty-space click clear every address, parked ones included', () => {
+    const selection = useSelectionStore()
+    selection.selectPart('pi', 'hole1')
+    selection.selectPart('screen', 'piMountingPost1', true)
+    selection.toggle('screen')
+    selection.clear()
+    expect(selection.addresses).toEqual({})
+    selection.toggle('screen')
+    expect(selection.partOf('screen')).toBeNull()
+  })
+
+  it('a replacing marquee clears every address', () => {
+    const selection = useSelectionStore()
+    selection.selectPart('pi', 'hole1')
+    selection.selectPart('screen', 'piMountingPost1', true)
+    selection.selectMany(['pi', 'screen'])
+    expect(selection.addresses).toEqual({})
+  })
+
+  it('an additive marquee leaves existing addresses alone', () => {
+    const selection = useSelectionStore()
+    selection.selectPart('pi', 'hole1')
+    selection.selectMany(['screen'], true)
+    expect(selection.ids).toEqual(['pi', 'screen'])
+    expect(selection.partOf('pi')).toBe('hole1')
+  })
+
+  it('the single-body view is unchanged byte-for-byte: drill, step up, re-target', () => {
+    const selection = useSelectionStore()
+    selection.select('pi')
+    selection.drillInto('mb')
+    expect(selection.subPart).toEqual({ bodyId: 'pi', partName: 'mb' })
+    selection.drillInto('hole1')
+    expect(selection.subPart).toEqual({ bodyId: 'pi', partName: 'hole1' })
+    selection.stepUp()
+    expect(selection.subPart).toBeNull()
+    expect(selection.ids).toEqual(['pi'])
+  })
+
+  it('subPart is null whenever more than one body is selected, even if both are addressed', () => {
+    const selection = useSelectionStore()
+    selection.selectPart('pi', 'hole1')
+    selection.selectPart('screen', 'piMountingPost1', true)
+    expect(selection.subPart).toBeNull()
+  })
+
+  it('restoreAddresses puts back only addresses whose body is selected (merge / undo)', () => {
+    const selection = useSelectionStore()
+    selection.selectMany(['pi', 'screen'])
+    selection.restoreAddresses({ pi: 'hole1', screen: 'piMountingPost1', gone: 'x' })
+    expect(selection.addresses).toEqual({ pi: 'hole1', screen: 'piMountingPost1' })
   })
 })

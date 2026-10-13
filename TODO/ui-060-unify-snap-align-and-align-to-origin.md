@@ -52,7 +52,10 @@ and Undo is the escape hatch.
   - The existing `previewing` and inactive-selection disablers carry over unchanged.
   - Sub-part drilling (`ui-016`/`ui-035`) carries over: the popover's top line still names
     the exact operands, `Aligning Raspberry Pi 1 › ethernet to Cube 1`, or
-    `… to World origin`.
+    `… to World origin`. Since `ui-063`, **both** sides can carry a `›`
+    (`Aligning Raspberry Pi 1 › hole1 to touchScreen2 1 › piMountingPost1`): each selected
+    body has its own address (`selection.partOf`), and the operands come from
+    `useSelectedOperands` in `src/composables/useSelectedBody.js`.
 - **Trigger**: one toolbar button, **Align** (glyph `⇔`), replacing the **Snap** and
   **Align** buttons. The toolbar loses one button. This matters at phone width, where
   `e2e/phone-toolbar-chrome-fit.e2e.js` is the guard. The button opens a popover, toggled

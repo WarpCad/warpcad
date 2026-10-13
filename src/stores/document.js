@@ -465,9 +465,13 @@ export const useDocumentStore = defineStore('document', () => {
   function selectionMeta() {
     const selection = useSelectionStore()
     const subPart = selection.subPart
+    // `TODO/ui-063`: a multi-selection carries one address per body, which the single-body
+    // `subPart` view cannot express, so those ride along separately.
+    const addresses = selection.ids.length > 1 ? { ...selection.addresses } : {}
     return {
       selectionBefore: [...selection.ids],
       ...(subPart ? { subPartBefore: { bodyId: subPart.bodyId, partName: subPart.partName } } : {}),
+      ...(Object.keys(addresses).length > 0 ? { addressesBefore: addresses } : {}),
     }
   }
 
@@ -490,7 +494,7 @@ export const useDocumentStore = defineStore('document', () => {
       refresh()
       return records
     } catch (error) {
-      restoreSelection(meta.selectionBefore, meta.subPartBefore)
+      restoreSelection(meta.selectionBefore, meta.subPartBefore, meta.addressesBefore)
       throw error
     }
   }
@@ -513,7 +517,7 @@ export const useDocumentStore = defineStore('document', () => {
       refresh()
       return record
     } catch (error) {
-      restoreSelection(meta.selectionBefore, meta.subPartBefore)
+      restoreSelection(meta.selectionBefore, meta.subPartBefore, meta.addressesBefore)
       throw error
     }
   }
@@ -564,19 +568,37 @@ export const useDocumentStore = defineStore('document', () => {
    * A remembered sub-part depth (`TODO/ui-051`'s Remove part) comes back too, but
    * only when its body is the one survivor and it really has that part again.
    *
+   * A multi-selection's per-body addresses (`TODO/ui-063`) come back the same way: each
+   * one only on a surviving body that really has that part again. A merge that removed
+   * `hole1` from the Pi leaves the Pi selected whole rather than addressed at nothing.
+   *
    * @param {readonly string[]} ids
    * @param {{ bodyId: string, partName: string }} [subPart]
+   * @param {Record<string, string>} [addresses] Per-body addresses, for a multi-selection.
    */
-  function restoreSelection(ids, subPart) {
+  function restoreSelection(ids, subPart, addresses) {
     const live = new Set(bodies.value.map((body) => body.id))
     const survivors = ids.filter((id) => live.has(id))
     const selection = useSelectionStore()
     if (survivors.length === 0) selection.clear()
     else selection.selectMany(survivors)
+    /** @param {string} bodyId @param {string} partName */
+    const hasPart = (bodyId, partName) => {
+      const body = bodies.value.find((candidate) => candidate.id === bodyId)
+      return [...(body?.partNames ?? []), ...(body?.hiddenPartNames ?? [])].includes(partName)
+    }
     if (subPart && survivors.length === 1 && survivors[0] === subPart.bodyId) {
-      const body = bodies.value.find((candidate) => candidate.id === subPart.bodyId)
-      const known = [...(body?.partNames ?? []), ...(body?.hiddenPartNames ?? [])]
-      if (known.includes(subPart.partName)) selection.selectPart(subPart.bodyId, subPart.partName)
+      if (hasPart(subPart.bodyId, subPart.partName)) selection.selectPart(subPart.bodyId, subPart.partName)
+      return
+    }
+    if (addresses && survivors.length > 1) {
+      /** @type {Record<string, string>} */
+      const kept = {}
+      for (const id of survivors) {
+        const partName = addresses[id]
+        if (partName && hasPart(id, partName)) kept[id] = partName
+      }
+      if (Object.keys(kept).length > 0) selection.restoreAddresses(kept)
     }
   }
 
@@ -588,7 +610,11 @@ export const useDocumentStore = defineStore('document', () => {
     refresh()
     const selection = useSelectionStore()
     const subPart = selection.subPart
-    restoreSelection([...selection.ids], subPart ? { bodyId: subPart.bodyId, partName: subPart.partName } : undefined)
+    restoreSelection(
+      [...selection.ids],
+      subPart ? { bodyId: subPart.bodyId, partName: subPart.partName } : undefined,
+      { ...selection.addresses },
+    )
   }
 
   /**
@@ -656,7 +682,7 @@ export const useDocumentStore = defineStore('document', () => {
     // Dropped (a merge removed or revised its rows since): nothing changed on screen, so the
     // selection stays, and the note says why the step left the list.
     if (undone?.note !== undefined) return { ok: true, label: step.label, note: undone.note }
-    restoreSelection(step.meta?.selectionBefore ?? [], step.meta?.subPartBefore)
+    restoreSelection(step.meta?.selectionBefore ?? [], step.meta?.subPartBefore, step.meta?.addressesBefore)
     return { ok: true, label: step.label }
   }
 

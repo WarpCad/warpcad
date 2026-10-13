@@ -196,9 +196,12 @@ Pi 4 (the case stays, just without that cut-out, on a Pi 5), or **Leave broken**
 
 ### Three things to know
 
-- **One part at a time.** The selection carries a single part, so you cut with the
-  Ethernet jack *or* USB port 1, not both at once. Run a second Subtract for the next
-  one; that is the normal way to build a multi-port case wall.
+- **One part per shape.** Each selected shape carries at most one part, so you cut with
+  the Pi's Ethernet jack *or* its USB port 1, not both at once. Run a second Subtract for
+  the next one; that is the normal way to build a multi-port case wall. (Two *different*
+  shapes can each carry their own part, which is what
+  [Snap and Align](snap-align.md#mounting-a-raspberry-pi-on-a-screens-posts) use to put
+  one board's hole on another item's post.)
 - **Group ignores the part.** The `⊞ Group` button always uses the whole shape, even
   when a part is selected — the toolbar's note says so while a part is selected, so you
   do not have to remember it. Only Union, Subtract and Intersect read the part.

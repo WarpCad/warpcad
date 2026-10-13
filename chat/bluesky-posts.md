@@ -1639,3 +1639,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** Merge file…, strip, red chip with reason, Undo merge -> diff (`src/stores/merge.js`, `FileMenu.vue`, `MergeToast.vue`, `MergeBanner.vue`); unrelated projects still merge -> hand drive this session, filed as `TODO/data-013`
 **To Add:** `docs/screenshots/merging-toast.png`, `merging-conflict.png`; repo URL once public
+
+## [2026-10-13T22:40:00Z] — Snap and Align can name a part on both sides
+
+**Post:** Mounting a Raspberry Pi on a screen in WarpCad used to measure the whole board, SD card and all, because picking the screen's post silently dropped the Pi's hole. Each selected body now keeps its own picked part, so hole1 goes on the post and mb rests on its top. Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** second pick overwrote the first (one slot) -> TODO/ui-063 Problem and `src/stores/selection.js` diff; hole1 and post coincide in x/y, mb bottom 15.2 = post top 15.2 -> hand drive this session; microsd reaches below mb -> hand-back report from the implementing agent, asserted in `src/core/snap-align-both-subparts.spec.js`
+**To Add:** `docs/media/snap-subpart-both-sides.gif`; repo URL once public

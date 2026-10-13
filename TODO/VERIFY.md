@@ -34,6 +34,18 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### ui-063 — Snap/Align names a part on both operands (2026-10-13 22:32)
+
+Re-addressing between the Align (XY) and Snap (Z) commits takes two taps and the Objects
+section collapses when a body row is tapped; that is unchanged behaviour but worth a feel
+judgment on a phone. Nothing here is covered by an acceptance scenario.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | On a phone (390x844), is the Align then Snap flow with `hole1` then `mb` still quick, given the Objects section collapses on a row tap? | Open | |
+| 2 | Scenarios 5, 10 and 15 were not hand-driven for this task; drive them once on the next milestone check. | Open | |
+
+
 ### ui-062 — File ▾ → Merge file…, merge strip, Undo merge (2026-10-12 23:05)
 
 Scenario 22 and 7/10/12/14 were driven by hand; these are the feel and device checks that

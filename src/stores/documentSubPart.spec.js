@@ -56,3 +56,31 @@ describe('a drilled-into part that a change takes away (TODO/ui-052)', () => {
     expect(selection.subPart).toEqual({ bodyId: 'pi', partName: 'ethernet' })
   })
 })
+
+/**
+ * `TODO/ui-063`: a multi-selection carries one address per body. Undo of a step that
+ * parked the selection, and a merge that rebuilds it, must put each body's own address
+ * back — not only the single-body `subPart` view, which is `null` at two selected.
+ */
+describe('per-body addresses survive Undo (TODO/ui-063)', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+  })
+
+  it('Delete two addressed bodies, then Undo: both come back selected, each at its own part', () => {
+    const documentStore = useDocumentStore()
+    const selection = useSelectionStore()
+    documentStore.append({ id: 'pi', op: 'raspberrypi.bplus', name: 'Raspberry Pi 1', params: { model: 5 } })
+    documentStore.append({ id: 'screen', op: 'raspberrypi.touchScreen2', name: 'touchScreen2 1', params: {} })
+    selection.selectPart('pi', 'hole1')
+    selection.selectPart('screen', 'piMountingPost1', true)
+
+    documentStore.deleteBodies(['pi', 'screen'])
+    expect(selection.ids).toEqual([])
+    documentStore.undo()
+
+    expect(selection.ids).toEqual(['pi', 'screen'])
+    expect(selection.partOf('pi')).toBe('hole1')
+    expect(selection.partOf('screen')).toBe('piMountingPost1')
+  })
+})

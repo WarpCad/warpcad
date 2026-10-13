@@ -145,6 +145,100 @@ export function piWith(document, params) {
 }
 
 /**
+ * A Raspberry Pi and a `touchScreen2`, both moved off the origin the way two Library
+ * drops leave them — the user's own scene for `TODO/ui-063` ("mount the board on the
+ * screen's posts").
+ *
+ * @param {object} [options]
+ * @param {number} [options.model] The Pi's model, default 5.
+ * @returns {WarpDocument}
+ */
+export function piAndTouchScreen({ model = 5 } = {}) {
+  const document = createDocument()
+  document.append({ id: 'pi-1', op: 'raspberrypi.bplus', name: 'Raspberry Pi 1', params: { model } }, LOCAL)
+  document.append(
+    {
+      id: 'pi-1-move',
+      op: 'transform.translate',
+      target: 'pi-1',
+      supersedes: 'pi-1',
+      params: { vector: [-120, 15, 4], rotation: [0, 0, 0] },
+    },
+    LOCAL,
+  )
+  document.append({ id: 'screen-1', op: 'raspberrypi.touchScreen2', name: 'touchScreen2 1', params: {} }, LOCAL)
+  document.append(
+    {
+      id: 'screen-1-move',
+      op: 'transform.translate',
+      target: 'screen-1',
+      supersedes: 'screen-1',
+      params: { vector: [40, -30, 0], rotation: [0, 0, 0] },
+    },
+    LOCAL,
+  )
+  return document
+}
+
+/**
+ * Snap or Align one body against another with **either or both** sides addressed at a
+ * named part — the record `OperationsToolbar`'s `commitSnapAlign` writes once every
+ * selected body can carry its own address (`TODO/ui-063`). `''` for a side means the
+ * whole body, exactly as a bare id does.
+ *
+ * @param {WarpDocument} document
+ * @param {object} spec
+ * @param {'group.snap' | 'group.align'} spec.op
+ * @param {string} spec.moving Lineage-root id of the body that moves.
+ * @param {string} spec.movingPieces
+ * @param {string} spec.reference Lineage-root id of the body it is measured against.
+ * @param {string} spec.referencePieces
+ * @param {string} spec.axes
+ * @param {string} [spec.orientation] `group.snap` only.
+ * @param {string} [spec.id]
+ * @returns {WarpDocument}
+ */
+export function snapAlignParts(
+  document,
+  { op, moving, movingPieces, reference, referencePieces, axes, orientation, id = document.nextId('snapalign') },
+) {
+  const movingId = /** @type {string} */ (document.currentIdOf(moving))
+  const referenceId = /** @type {string} */ (document.currentIdOf(reference))
+  /** @type {Record<string, any>} */
+  const params = { axes, deltaMm: 0 }
+  if (op === 'group.snap') params.orientation = orientation
+  document.append(
+    {
+      id,
+      op,
+      target: movingPieces === '' ? movingId : { id: movingId, pieces: movingPieces },
+      operands: [referencePieces === '' ? referenceId : { id: referenceId, pieces: referencePieces }],
+      supersedes: movingId,
+      params,
+    },
+    LOCAL,
+  )
+  return document
+}
+
+/**
+ * One named part's bounding box, measured off its body's evaluated geometry — hidden
+ * parts (a Pi's `hole1`) included, since those are exactly what a mount is aligned by.
+ *
+ * @param {WarpDocument} document
+ * @param {string} bodyId Lineage-root id.
+ * @param {string} partName
+ * @returns {[Vec3Mm, Vec3Mm]}
+ */
+export function partBoundsOf(document, bodyId, partName) {
+  const body = document.bodies().find((candidate) => candidate.id === bodyId)
+  if (!body) throw new Error(`piScenes: no body "${bodyId}"`)
+  const part = /** @type {any} */ (body.geometry).parts?.[partName]
+  if (!part) throw new Error(`piScenes: body "${bodyId}" has no part "${partName}"`)
+  return /** @type {[Vec3Mm, Vec3Mm]} */ (boundsOf(part))
+}
+
+/**
  * A body's bounding-box centre, measured off its evaluated geometry.
  *
  * @param {WarpDocument} document

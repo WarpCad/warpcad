@@ -1,0 +1,4 @@
+{"id":"screen-1","op":"raspberrypi.touchScreen2","name":"Touchscreen 2 1","params":{}}
+{"id":"screen-1-move-1","op":"transform.translate","target":"screen-1","supersedes":"screen-1","params":{"vector":[-72,-46,0],"rotation":[0,0,0]}}
+{"id":"pi-1","op":"raspberrypi.bplus","name":"Raspberry Pi 1","params":{"model":5}}
+{"id":"pi-1-move-1","op":"transform.translate","target":"pi-1","supersedes":"pi-1","params":{"vector":[-20,40,30],"rotation":[0,0,0]}}

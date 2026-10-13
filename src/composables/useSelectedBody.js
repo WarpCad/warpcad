@@ -26,6 +26,81 @@ import { useSelectionStore } from '../stores/selection.js'
 import { useTransformPreviewStore } from '../stores/transformPreview.js'
 
 /**
+ * One selected item resolved into the operand a record would carry right now.
+ *
+ * @typedef {object} SelectedOperand
+ * @property {string} rootId The body's lineage-root id — what the selection holds.
+ * @property {string | { id: string, pieces: string }} ref What goes into the record's
+ *   `target`/`operands`: a bare terminal id, or `{ id, pieces }` when addressed.
+ * @property {string} terminalId Always the bare terminal id — what `supersedes` and
+ *   `consumes` name, since those name records, not operands.
+ * @property {string} name The body's own name, with no part attached.
+ * @property {string | null} partName The addressed part, or `null` for the whole body.
+ * @property {string} label What the UI shows: {@link name}, plus `› part` when addressed.
+ * @property {boolean} isSubPart
+ */
+
+/**
+ * Every selected body, in selection order, as the operand a record would carry — the one
+ * operand-building path every two-body control shares (`TODO/ui-035`, `ui-040`). Pure, so
+ * the record shape is testable without a component.
+ *
+ * `TODO/ui-063`: **each** body's own address is read, so a body addressed at a part
+ * becomes `{ id, pieces }` whichever side of the operation it is on. It used to read one
+ * pick-depth slot for the whole selection, which meant at most one operand could carry a
+ * part, and the other was silently measured whole.
+ *
+ * @param {object} source
+ * @param {readonly string[]} source.ids Lineage-root ids, in selection order.
+ * @param {(rootId: string) => string | null} source.partOf The body's addressed part.
+ * @param {(rootId: string) => string | null | undefined} source.currentIdOf Terminal record id.
+ * @param {(rootId: string) => string | null | undefined} source.nameOf Display name.
+ * @returns {SelectedOperand[]}
+ */
+export function selectedOperandsOf({ ids, partOf, currentIdOf, nameOf }) {
+  return ids.map((rootId) => {
+    const terminalId = currentIdOf(rootId) ?? rootId
+    const name = nameOf(rootId) ?? rootId
+    const partName = partOf(rootId) || null
+    return {
+      rootId,
+      ref: partName === null ? terminalId : { id: terminalId, pieces: partName },
+      terminalId,
+      name,
+      partName,
+      label: partName === null ? name : `${name} › ${partName}`,
+      isSubPart: partName !== null,
+    }
+  })
+}
+
+/**
+ * The live selection, through {@link selectedOperandsOf}. Recomputed on a selection or
+ * document change, never per frame.
+ *
+ * - `documentStore.raw.currentIdOf(rootId)` — the *terminal* record id the kernel binds
+ *   geometry to; a selection holds lineage-root ids.
+ * - `documentStore.bodies` — keyed by root id, for the display name.
+ * - `selection.partOf(rootId)` — that body's own address (`TODO/ui-063`).
+ *
+ * @returns {import('vue').ComputedRef<SelectedOperand[]>}
+ */
+export function useSelectedOperands() {
+  const documentStore = useDocumentStore()
+  const selection = useSelectionStore()
+  return computed(() => {
+    void documentStore.version
+    const bodies = documentStore.bodies
+    return selectedOperandsOf({
+      ids: selection.ids,
+      partOf: (rootId) => selection.partOf(rootId),
+      currentIdOf: (rootId) => documentStore.raw.currentIdOf(rootId),
+      nameOf: (rootId) => bodies.find((candidate) => candidate.id === rootId)?.name,
+    })
+  })
+}
+
+/**
  * @returns {import('vue').ComputedRef<import('../core/inspector.js').SelectionDescription>}
  *   Recomputed when the selection changes or the document mutates — **not** per
  *   frame. The viewport re-projects this description every frame; it does not
