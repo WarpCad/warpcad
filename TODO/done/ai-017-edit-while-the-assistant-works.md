@@ -6,8 +6,10 @@ priority: high
 model: opus
 milestone: M15
 depends: [ui-062]
-status: open
+status: done
 ---
+
+> **Shipped (2026-10-14):** as specified, with these differences. (1) `ai-006` had no on-screen preview lock to remove, only the "changed while working" refusal, which is gone; decision 5's amendment says so. (2) Merge file… stays disabled while a turn runs. (3) Selecting the built group after a turn (`ai-008`) is skipped when the user edited during the turn. (4) Added `src/core/mergeUndo.js` (the inverse of a merge moved out of `stores/merge.js` so `src/ai` stays framework-free) and `WarpDocument.observeMergeClock`. (5) Found by the new e2e: Undo after a merge or Undo AI turn matched step records by object identity and silently popped the step while leaving the rows; `document.js` now matches by id (`liveRecordsOf`), regression in `documentMerge.spec.js`. (6) Scenario 24 was driven with the scripted transcript, not a real key; tablet width and a real model are not driven.
 
 ## Goal
 

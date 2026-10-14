@@ -102,7 +102,59 @@ model has no price in the table, only the token counts show.
 viewport. Open **History** and its rows are marked as written by the Assistant.
 
 A turn lands all at once, when it is finished. Until then the Assistant works on a private copy, so
-a turn that is stopped, fails, or runs into a limit changes nothing in your project.
+a turn that is stopped, fails, or runs into a limit changes nothing in your project. You don't have
+to wait for it: see [While the Assistant works](#while-the-assistant-works).
+
+## While the Assistant works
+
+You can keep working while the Assistant does. While it says *Working…*, the rest of WarpCad
+works as usual: drag shapes in, move them, edit steps in History, undo. The Assistant builds on its
+own copy of your project, and when it finishes, its changes are merged into yours. Nothing you did
+in the meantime is lost.
+
+A small **Assistant working** chip in the top bar shows that a turn is running, even with the
+Assistant closed. On a phone it shrinks to a dot. On a phone the Assistant's sheet covers the
+Library, so close the Assistant (**✕**) to drag a shape in. The chip stays, and **Assistant** opens
+the chat again where you left it.
+
+![The top bar with the Assistant working chip beside the Assistant button, while a turn runs](./screenshots/ai-working-chip.png)
+
+**Watch**, on the Assistant's status line, shows what it has built so far. The viewport switches
+to the Assistant's copy, read-only, with an amber outline and the strip *Watching the Assistant —
+your project is unchanged*. You can't edit while you watch: Operations, the Library, **Undo** and
+**Redo** are greyed out, as they are when you preview an earlier step in History. Tap **Watch**
+again, or **Back to latest**, to come back to your project. Watching also ends by itself when the
+turn ends.
+
+![Watching the Assistant: the viewport outlined in amber showing the standoff it has placed so far, the strip reading Watching the Assistant — your project is unchanged, and Watch pressed on the Assistant's status line](./screenshots/ai-watch.png)
+
+When the turn finishes:
+
+- The Assistant's steps appear in [History](timeline.md) with their `ai` chip, alongside yours.
+- If you changed anything while it worked, the chat adds a line such as *Merged with 2 changes
+  you made meanwhile*.
+- If you and the Assistant both changed the same thing, for example the same variable, the later
+  change is kept, and the chat says whose that was.
+- If one of its steps can no longer be built because of something you did, say you moved a cube
+  it was rounding, that step is marked as a conflict, exactly as when you
+  [merge two copies of a project](merging.md#what-a-conflict-is). A yellow strip reads *Merged 1
+  step from the Assistant — 1 step conflicted*, and **Show** opens History on the marked step. The
+  Assistant is told which of its steps conflicted at the start of your next request.
+
+The Assistant doesn't see what you change while it works: it works from your project as it was
+when you pressed **Send**. If you change the very thing you asked it about, expect a conflict, or
+expect the later of the two changes to win.
+
+**Undo AI turn** takes out only the Assistant's steps, and **Undo** in the top bar takes back only
+yours. **Stop** ends the turn, keeps nothing from it, and leaves everything you did meanwhile.
+
+**Example.**
+
+1. Open the Assistant and ask *add four M3 standoffs at the corners of the board*.
+2. While it says *Working…*, drag a Cube in from the Library and move it.
+3. To see what the Assistant is doing, tap **Watch**; tap it again to come back.
+4. When it finishes, the standoffs appear next to your cube. **Undo AI turn** removes the
+   standoffs only; **Undo** removes your move.
 
 ## What the assistant checks
 
@@ -211,11 +263,13 @@ back to **Pi 4**, with every part where it was.
 ## Stopping and undoing
 
 - **Stop** replaces **Send** while the Assistant is working. Tap it and the turn ends within a
-  step; the chat says *Nothing from this turn was kept*, and the project is exactly as it was.
+  step; the chat says *Nothing from this turn was kept*, and the project is exactly as you left it,
+  including anything you did while the Assistant worked.
 - **Undo AI turn** takes back everything the Assistant did in its last turn, in one tap. It is
-  available only while nothing newer has happened: the moment you edit the model yourself, drop in
-  a shape, or undo, it switches itself off, so it can never undo something of yours by accident.
-  It is separate from the **Undo** button in the top bar, which stays yours.
+  available only while nothing newer has happened since the turn finished: the moment you edit the
+  model yourself, drop in a shape, or undo, it switches itself off, so it can never undo something
+  of yours by accident. Changes you made *while* the turn ran don't count, and stay when you use
+  it. It is separate from the **Undo** button in the top bar, which stays yours.
 
 **Example.** After the cube above, tap **Undo AI turn**. The cube and both History rows are gone and
 the button greys out.
@@ -261,6 +315,8 @@ That's all of it. The chat opens from the same button; see [asking for a part](#
 
 - [Design intent](design-intent.md): what the Assistant records about each step, and your
   project's standing rules.
+- [Merging two copies of a project](merging.md): conflicts, which an Assistant turn can also
+  produce.
 - [Saving and reopening your work](save-load.md): the key is never in a saved file.
 - [Driving WarpCad from Claude Code](mcp.md): the route that uses a Claude subscription.
 

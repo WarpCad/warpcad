@@ -38,6 +38,17 @@
  * in a plain, non-reactive variable
  * because it holds kernel geometry, which CLAUDE.md's Performance section puts
  * off-limits to Vue's deep reactivity.
+ *
+ * ## Watch: the Assistant's fork as the preview source (`TODO/ai-017`)
+ *
+ * While an Assistant turn runs, the user keeps editing the live document and the Assistant
+ * builds on its own fork. **Watch** asks the viewport to show that fork instead, read-only, in
+ * this same preview mode — amber outline, Operations, Library, Undo and Redo disabled, picking
+ * off — with the strip reading {@link WATCH_TEXT}. The fork is handed in as a {@link WatchSource}
+ * (getters, so the fork itself never enters reactive state) by `composables/useAgent.js`, which
+ * ends it when the turn ends. **Back to latest**, Esc, selecting a History row and any whole-
+ * document load end it too. Closing the History panel does not: watching is not a History
+ * preview.
  */
 
 import { defineStore } from 'pinia'
@@ -49,6 +60,19 @@ import { summarizeBody, useDocumentStore } from './document.js'
 import { useSelectionStore } from './selection.js'
 
 /** @typedef {import('../core/document.js').BrokenStep} BrokenStep */
+
+/** `TODO/ai-017`: the strip's text while the viewport shows the Assistant's fork. */
+export const WATCH_TEXT = 'Watching the Assistant — your project is unchanged'
+
+/**
+ * Where a Watch preview reads from (`TODO/ai-017`).
+ *
+ * @typedef {object} WatchSource
+ * @property {() => import('../core/document.js').WarpDocument | null} document The running fork,
+ *   raw; `null` once the turn has ended.
+ * @property {() => number} revision A **reactive** counter that moves whenever the fork changes,
+ *   so the viewport re-reads it.
+ */
 /** @typedef {import('../core/document.js').WarpDocument} WarpDocument */
 
 /**
@@ -150,13 +174,22 @@ export const useTimelineStore = defineStore('timeline', () => {
     return row.step
   })
 
-  const previewing = computed(() => previewStep.value !== null)
+  /**
+   * `TODO/ai-017`: the Assistant's fork, while **Watch** is on. Shallow: the source is a pair of
+   * getters, never the fork itself.
+   * @type {import('vue').ShallowRef<WatchSource | null>}
+   */
+  const watchSource = shallowRef(null)
+  const watching = computed(() => watchSource.value !== null)
+  /** Moves with the watched fork; `null` while not watching. What the viewport re-syncs on. */
+  const watchRevision = computed(() => (watchSource.value === null ? null : watchSource.value.revision()))
 
-  const previewText = computed(() =>
-    previewStep.value === null
-      ? ''
-      : `Previewing step ${previewStep.value} of ${stepCount.value} — read-only`
-  )
+  const previewing = computed(() => watching.value || previewStep.value !== null)
+
+  const previewText = computed(() => {
+    if (watching.value) return WATCH_TEXT
+    return previewStep.value === null ? '' : `Previewing step ${previewStep.value} of ${stepCount.value} — read-only`
+  })
 
   const rollbackText = computed(() =>
     rollbackAt.value === null ? '' : `Rolled back to step ${rollbackAt.value} of ${stepCount.value}`
@@ -187,6 +220,9 @@ export const useTimelineStore = defineStore('timeline', () => {
    * @returns {WarpDocument | null}
    */
   function previewDocument() {
+    // `TODO/ai-017`: Watch wins over a History preview — it is what the user asked for last.
+    const watched = watchSource.value?.document() ?? null
+    if (watched !== null) return watched
     const step = previewStep.value
     if (step === null) {
       previewDoc = null
@@ -242,6 +278,13 @@ export const useTimelineStore = defineStore('timeline', () => {
    * @type {import('vue').ComputedRef<import('./document.js').BodySummary[] | null>}
    */
   const previewBodies = computed(() => {
+    // `TODO/ai-017`: the watched fork, re-read whenever it changes.
+    if (watchSource.value !== null) {
+      void watchSource.value.revision()
+      void documentStore.measureRevision
+      const watched = watchSource.value.document()
+      if (watched !== null) return watched.bodies().map(summarizeBody)
+    }
     if (previewStep.value === null) return null
     // Depend on the version too: an edit while previewing re-folds the prefix.
     void documentStore.version
@@ -271,6 +314,7 @@ export const useTimelineStore = defineStore('timeline', () => {
       previewRequested.value = false
       selectedId.value = ''
       error.value = null
+      watchSource.value = null
     },
     { flush: 'sync' }
   )
@@ -279,8 +323,9 @@ export const useTimelineStore = defineStore('timeline', () => {
   function setOpen(next) {
     open.value = next
     // §13: "Closing the panel while previewing ends the preview" — the row stays
-    // selected, so reopening puts the user back where they were.
-    if (!next) endPreview()
+    // selected, so reopening puts the user back where they were. A Watch is not a History
+    // preview, so it stays (`TODO/ai-017`).
+    if (!next) previewRequested.value = false
   }
 
   function toggle() {
@@ -294,6 +339,8 @@ export const useTimelineStore = defineStore('timeline', () => {
    */
   function selectRow(id) {
     selectedId.value = id
+    // `TODO/ai-017`: asking to see a past step is leaving the Assistant's fork.
+    watchSource.value = null
     previewRequested.value = true
     error.value = null
     // §14, point 4: "Body selection is cleared on entering preview — a selection
@@ -301,9 +348,29 @@ export const useTimelineStore = defineStore('timeline', () => {
     if (previewStep.value !== null) useSelectionStore().clear()
   }
 
-  /** Leave preview mode, keeping the row selected. §14: not restored on exit. */
+  /**
+   * Leave preview mode, keeping the row selected. §14: not restored on exit. **Back to latest**
+   * and Esc also end a Watch (`TODO/ai-017`): both mean "show me my project".
+   */
   function endPreview() {
     previewRequested.value = false
+    watchSource.value = null
+  }
+
+  /**
+   * `TODO/ai-017`: show the Assistant's fork, read-only, until {@link endWatch}, {@link endPreview}
+   * or a load. Starting it drops a History preview, so ending it returns to the live document.
+   *
+   * @param {WatchSource} source
+   */
+  function watchFork(source) {
+    previewRequested.value = false
+    watchSource.value = source
+  }
+
+  /** `TODO/ai-017`: stop showing the fork; a History preview, if any, is not touched. */
+  function endWatch() {
+    watchSource.value = null
   }
 
   /**
@@ -331,6 +398,10 @@ export const useTimelineStore = defineStore('timeline', () => {
     previewStep,
     previewing,
     previewText,
+    watching,
+    watchRevision,
+    watchFork,
+    endWatch,
     rollbackText,
     rollbackDetail,
     previewBodies,

@@ -2,11 +2,14 @@
 // @vitest-environment jsdom
 // @ts-nocheck — test doubles.
 import { createPinia, setActivePinia } from 'pinia'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { toRaw } from 'vue'
 
+import { serializeProject } from '../core/project.js'
 import { useAiChatStore } from '../stores/aiChat.js'
 import { useDocumentStore } from '../stores/document.js'
 import { useSelectionStore } from '../stores/selection.js'
+import { useTimelineStore } from '../stores/timeline.js'
 import { setAgentDependencies, useAgent } from './useAgent.js'
 
 /**
@@ -185,5 +188,85 @@ describe('useAgent (TODO/ai-006)', () => {
     expect(useSelectionStore().ids).toEqual([])
     agent.selectBodies([id])
     expect(useSelectionStore().ids).toEqual([id])
+  })
+
+  // --- TODO/ai-017: keep editing while the Assistant works; Watch shows its fork ---------------
+
+  /** A gate the script waits on, so the turn is observably in progress. */
+  function gated() {
+    let release
+    const gate = new Promise((resolve) => (release = resolve))
+    return { gate, release: () => release() }
+  }
+
+  /** The turn's first tool call has run on the fork. */
+  const firstResult = (chat) => vi.waitFor(() => expect(chat.items.some((i) => i.kind === 'tool' && i.status === 'ok')).toBe(true))
+
+  it('Watch is offered only while a turn runs; on, the viewport shows the fork read-only and the live document is untouched; the turn ending returns to live', async () => {
+    const { gate, release } = gated()
+    setAgentDependencies({ client: scripted([{ calls: [{ name: 'create', input: CUBE }] }, { gate, text: 'Done.' }]) })
+    const chat = useAiChatStore()
+    const timeline = useTimelineStore()
+    const store = useDocumentStore()
+    const agent = useAgent()
+
+    expect(chat.canWatch).toBe(false)
+    agent.toggleWatch()
+    expect(timeline.watching).toBe(false)
+
+    chat.draft = 'a cube'
+    const turn = agent.send()
+    await firstResult(chat)
+    expect(chat.canWatch).toBe(true)
+    const before = serializeProject(toRaw(store.raw))
+    const version = store.version
+
+    agent.toggleWatch()
+    expect(timeline.watching).toBe(true)
+    expect(timeline.previewing).toBe(true)
+    expect(timeline.previewText).toBe('Watching the Assistant — your project is unchanged')
+    // The fork has the cube; the live project does not, and was not written to.
+    expect(timeline.previewBodies).toHaveLength(1)
+    expect(store.bodies).toHaveLength(0)
+    expect(store.version).toBe(version)
+    expect(serializeProject(toRaw(store.raw))).toBe(before)
+
+    agent.toggleWatch()
+    expect(timeline.watching).toBe(false)
+    expect(timeline.previewing).toBe(false)
+    agent.toggleWatch()
+    expect(timeline.watching).toBe(true)
+
+    release()
+    await turn
+    expect(timeline.watching).toBe(false)
+    expect(timeline.previewDocument()).toBeNull()
+    expect(chat.canWatch).toBe(false)
+    expect(store.bodies).toHaveLength(1)
+  })
+
+  it('a local edit during the turn is kept; the transcript says the turn merged with it; Undo AI turn takes only the turn back', async () => {
+    const { gate, release } = gated()
+    setAgentDependencies({ client: scripted([{ calls: [{ name: 'create', input: CUBE }] }, { gate, text: 'Done.' }]) })
+    const chat = useAiChatStore()
+    const store = useDocumentStore()
+    const agent = useAgent()
+    chat.draft = 'a cube'
+    const turn = agent.send()
+    await firstResult(chat)
+
+    // Nothing is locked while the turn runs: the user's own edit goes straight in.
+    store.append({ id: 'mine', op: 'primitive.cuboid', name: 'Mine', params: { size: [5, 5, 5], center: [90, 0, 3] } })
+    expect(store.bodies.map((body) => body.id)).toEqual(['mine'])
+    release()
+    await turn
+
+    expect(store.bodies).toHaveLength(2)
+    expect(chat.items.some((i) => i.kind === 'notice' && i.message === 'Merged with 1 change you made meanwhile')).toBe(true)
+    expect(chat.canUndoTurn).toBe(true)
+    agent.undoTurn()
+    expect(store.bodies.map((body) => body.id)).toEqual(['mine'])
+    // The header Undo still has the user's own step.
+    expect(store.canUndo).toBe(true)
   })
 })

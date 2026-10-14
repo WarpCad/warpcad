@@ -788,3 +788,23 @@ describe('model-based property suite: three replicas, every merge order (seeded)
     expect(rowOf(one[0], 'fit').broken).toBeNull()
   })
 })
+
+describe('local Undo after the log is rebuilt with equal-but-new record objects (TODO/ai-017)', () => {
+  it('takes the step back out by id, not by object identity', () => {
+    const doc = createDocument({ replica: 'aaaaaa' })
+    doc.append(boxA, local)
+    doc.append(boxB, local)
+    // Undo AI turn's restore (and a merge) can hand back records equal to the captured ones
+    // but not the same objects.
+    const target = doc.entries.map((entry) => ({ ...entry, record: structuredClone(entry.record) }))
+    doc.restoreEntries(target, null, MERGE)
+    expect(doc.entries.map((entry) => entry.record.id)).toEqual(['box-a', 'box-b'])
+
+    const step = doc.undo()
+
+    expect(step?.dropped).toBeUndefined()
+    expect(doc.entries.map((entry) => entry.record.id)).toEqual(['box-a'])
+    expect(doc.redo()).toBeDefined()
+    expect(doc.entries.map((entry) => entry.record.id)).toEqual(['box-a', 'box-b'])
+  })
+})

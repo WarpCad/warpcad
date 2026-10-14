@@ -826,6 +826,9 @@ export class ReplayRejection extends Error {
  *   and the user-part definitions. A fresh value; the records are shared, not copied.
  * @property {() => number} mergeClock `TODO/data-011`: the merge clock's counter — at least
  *   every stamp this replica holds. What a project file's `merge.clock` records.
+ * @property {(counter: number) => void} observeMergeClock `TODO/ai-017`: a Lamport *receive*
+ *   with no data — move the merge clock past `counter`, so this replica's next write is stamped
+ *   later than another replica's writes up to it. Changes nothing else (no row, no version).
  * @property {(state: import('./merge/state.js').MergeState, transaction: TransactionOptions) => { scene: Scene, change: ReturnType<typeof diffStates>, conflicts: MergeConflict[] }} mergeFrom
  *   `TODO/data-010`: merge another replica's state in and re-fold. See the module note.
  * @property {(label: string) => string} nextName
@@ -2908,13 +2911,36 @@ export function createDocument(options = {}) {
   }
 
   /**
+   * The records a step put in the log, as the log holds them now (`TODO/ai-017`).
+   *
+   * A merge, or Undo AI turn's restore, can rebuild the entries with new record objects that
+   * are equal to the ones the step captured but are not the same objects. Taking a step back
+   * out by object identity then matches nothing: the step is popped and the rows stay. Rows
+   * are matched by id, falling back to the captured object for a record with no live twin.
+   *
+   * @param {readonly OpRecord[]} records
+   * @returns {Set<OpRecord>}
+   */
+  function liveRecordsOf(records) {
+    const live = new Set(records)
+    const ids = new Set(records.map((record) => record.id).filter((id) => typeof id === 'string'))
+    if (ids.size > 0) {
+      for (const entry of entries) {
+        const id = entry.record.id
+        if (typeof id === 'string' && ids.has(id)) live.add(entry.record)
+      }
+    }
+    return live
+  }
+
+  /**
    * Refuse, by name and before anything moves, an Undo of `step` while a record
    * outside it still references one inside it (section 19, point 4).
    *
    * @param {HistoryStep} step A record step.
    */
   function assertNoDependents(step) {
-    const stepRecords = new Set(step.records)
+    const stepRecords = liveRecordsOf(step.records)
     const undoneIds = new Set(
       step.records.map((record) => record.id).filter((id) => typeof id === 'string')
     )
@@ -2954,8 +2980,8 @@ export function createDocument(options = {}) {
           continue
         }
         assertNoDependents({ ...part, label: step.label })
-        const partRecords = new Set(part.records)
-        const index = entries.findIndex((entry) => entry.record === part.records[0])
+        const partRecords = liveRecordsOf(part.records)
+        const index = entries.findIndex((entry) => partRecords.has(entry.record))
         const key = keyOfRecord(part.records[0])
         rebuildFrom(
           entries.filter((entry) => !partRecords.has(entry.record)),
@@ -3631,8 +3657,8 @@ export function createDocument(options = {}) {
       }
 
       assertNoDependents(step)
-      const stepRecords = new Set(step.records)
-      const index = entries.findIndex((entry) => entry.record === step.records[0])
+      const stepRecords = liveRecordsOf(step.records)
+      const index = entries.findIndex((entry) => stepRecords.has(entry.record))
       const key = keyOfRecord(step.records[0])
       const after = rebuildFrom(
         entries.filter((entry) => !stepRecords.has(entry.record)),
@@ -4850,6 +4876,16 @@ export function createDocument(options = {}) {
 
     mergeClock() {
       return Math.max(stampClock.now(), highestCounter(document.mergeState()))
+    },
+
+    observeMergeClock(counter) {
+      // `TODO/ai-017`: the AI's fork reads the live document's clock before each tool call, so a
+      // write the user made earlier in the turn always sorts first in the merge (and wins a
+      // same-gap order or a register by being earlier, not by replica id).
+      if (!Number.isSafeInteger(counter) || counter < 0) {
+        throw new Error(`document.observeMergeClock: ${String(counter)} is not a clock counter`)
+      }
+      stampClock.observe(counter)
     },
 
     replicaId() {

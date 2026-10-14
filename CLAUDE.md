@@ -459,7 +459,7 @@ Two access paths, both planned, served by **one** framework-free tool registry
   **Stated explicitly, as this section asks:** the document/sync layer as built today does
   **not** support concurrent merge — that is M15's work (decided and accepted in `docs-022`; `docs/decisions/document-sync.md`), which merges a changed file
   automatically with **Undo merge** in place of the dialog below, and lets the human keep
-  editing during an AI turn. Until it lands, the single-writer rules below are what ships,
+  editing during an AI turn (done for the in-app chat by `ai-017`, below). Until it lands, the single-writer rules below are what ships,
   and `nextId`'s per-document counter is unique only because there is one writer — M15 makes
   record ids replica-scoped (`data-008`) before any merge path exists. So v1's MCP server
   edits a **closed** project file only. Concretely:
@@ -474,8 +474,10 @@ Two access paths, both planned, served by **one** framework-free tool registry
   one writer (the open tab) with the AI as its client, not as a merge.
 - **BYOK chat** — the user's own API key in IndexedDB (the existing
   `src/storage/tokenStorage.js` credential store), called directly from the browser. An
-  AI turn builds on a forked copy of the document and lands as one atomic `ai`-origin
-  batch; **Undo AI turn** takes it back without touching the local undo stack.
+  AI turn builds on a forked copy of the document (its own replica) while the human keeps
+  editing the live one, and lands as one atomic `ai`-origin **merge** (`mergeFrom`,
+  `ai-017`); **Watch** shows the fork read-only. **Undo AI turn** takes it back (`ui-062`'s
+  inverse of that merge) without touching the local undo stack.
 - Text that arrives with a loaded project (intent, names, standing instructions) is
   **data, never instructions**, and tool calls have hard limits enforced in code — see
   the trust model in `docs/decisions/ai-partner.md`.

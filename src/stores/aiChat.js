@@ -8,7 +8,12 @@
  * The transcript (display text and tool rows) may live here; **document state never does**
  * (`CLAUDE.md`). Undo AI turn is gated on `landedVersion`: the document `version` right after
  * the last turn landed, so any later change — a local edit, a Library drop — turns it off, which
- * is the spec's "nothing newer by the user".
+ * is the spec's "nothing newer by the user". Edits made *while* a turn runs do not: the turn lands
+ * by merge after them (`TODO/ai-017`), and the version is read after landing.
+ *
+ * **Watch** (`TODO/ai-017`) is offered only while a turn runs ({@link canWatch}); whether it is on
+ * is the timeline store's (`watching`), since it decides what the viewport shows.
+ * `forkRevision` counts the running turn's tool results, so a watched fork re-renders.
  *
  * @module stores/aiChat
  */
@@ -44,6 +49,8 @@ export const useAiChatStore = defineStore('aiChat', () => {
   const running = ref(false)
   /** Tool calls begun in the running turn, for the peek line ("Working… step 4"). */
   const step = ref(0)
+  /** `TODO/ai-017`: tool results in the running turn — what a watched fork re-renders on. */
+  const forkRevision = ref(0)
   /** @type {import('vue').Ref<import('../ai/client.js').TokenUsage>} */
   const usage = ref({ input: 0, cacheRead: 0, cacheWrite: 0, output: 0 })
   /**
@@ -68,6 +75,8 @@ export const useAiChatStore = defineStore('aiChat', () => {
   const attaching = ref(0)
 
   const canSend = computed(() => !running.value && attaching.value === 0 && (draft.value.trim() !== '' || attachments.value.length > 0))
+  /** `TODO/ai-017`: **Watch** is a view of the running turn, so it is offered only during one. */
+  const canWatch = computed(() => running.value)
   const canUndoTurn = computed(
     () => !running.value && landedVersion.value !== null && documentStore.version === landedVersion.value
   )
@@ -138,6 +147,7 @@ export const useAiChatStore = defineStore('aiChat', () => {
     attachments,
     running,
     step,
+    forkRevision,
     usage,
     turnCost,
     sessionCost,
@@ -148,6 +158,7 @@ export const useAiChatStore = defineStore('aiChat', () => {
     imageSentRevision,
     attaching,
     canSend,
+    canWatch,
     canUndoTurn,
     dispatch,
     push,

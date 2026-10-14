@@ -1,0 +1,43 @@
+{
+  "name": "edit-while-working-conflict",
+  "tools": {
+    "describe_scene": "2c1588af",
+    "operate": "4d72d80f"
+  },
+  "turns": [
+    {
+      "delayMs": 200,
+      "text": "Looking at the scene first, so I know which cube you mean and how big it is before I round anything off. A fillet that is too large for the edge would fail, so I will size it from the cube's own dimensions.",
+      "calls": [
+        {
+          "name": "describe_scene",
+          "input": {}
+        }
+      ]
+    },
+    {
+      "delayMs": 120,
+      "text": "Rounding the top edge with a 2 mm fillet, which is small enough for any of the standard cubes in the Library.",
+      "calls": [
+        {
+          "name": "operate",
+          "input": {
+            "op": "modify.filletRim",
+            "operands": [
+              {
+                "id": "$last:cuboid"
+              }
+            ],
+            "params": {
+              "radius": 2,
+              "orientation": "z+"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "text": "Rounded the top edge of the cube with a 2 mm fillet."
+    }
+  ]
+}

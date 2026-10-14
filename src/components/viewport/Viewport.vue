@@ -3249,6 +3249,9 @@ onMounted(() => {
     // Entering, leaving or moving a preview changes what is on screen without
     // changing the document, so it needs its own trigger.
     watch(() => timeline.previewStep, syncBodies),
+    // `TODO/ai-017`: Watch shows the Assistant's fork, which changes with every tool call and
+    // with no live-document mutation at all; starting and ending a Watch moves this too.
+    watch(() => timeline.watchRevision, syncBodies),
     // The Show hidden parts toggle (`TODO/ui-047`) changes what is on screen with
     // no document mutation at all — spreading the reactive Set into a fresh array
     // is what makes this getter re-run on every add/delete, since two different

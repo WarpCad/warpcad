@@ -38,7 +38,7 @@ Anything not verified is marked **unverified**. The two target prompts
 | 2 | LLM client | **Raw `fetch` to the Messages API**, behind a one-method provider interface. **Anthropic-only for v1.** No new dependency. |
 | 3 | MCP SDK | **`@modelcontextprotocol/server` 2.3.1** (the v2 split package, Apache-2.0, 3 packages in its tree). It lives in its own `mcp/package.json`, so the app's production dependencies are unchanged. |
 | 4 | Tool-input validation | **No zod, no ajv in the app.** A small structural check of the JSON-Schema subset the registry emits runs first. The kernel registry's own validation (the trial fold) stays the authority. Anthropic tool definitions set `strict: true`. |
-| 5 | Undo vs origin scoping | **A branch per turn, then one Undo AI turn control.** A turn builds on a forked throwaway document and lands as one atomic `ai`-origin batch. **Undo AI turn** removes that batch with the existing remove-and-rebuild. The local undo stack is untouched. A history-revision (inverse records) is rejected. |
+| 5 | Undo vs origin scoping | **A branch per turn, then one Undo AI turn control.** A turn builds on a forked throwaway document and lands as one atomic `ai`-origin change — since `ai-017`, by **merge**, with the human editing meanwhile. **Undo AI turn** takes that change back (since `ai-017`, `ui-062`'s inverse of the merge). The local undo stack is untouched. A history-revision (inverse records) is rejected. |
 | 6 | Concurrency | **v1 MCP edits a closed project file only.** The in-browser assistant isn't a concurrent writer: user edits pause while a turn runs. The live bridge stays the reserved `ai-012`, and its planned answer is "one writer, the AI as its client", not merge. |
 | 7 | Trust model | Text from a loaded project goes into a delimited, escaped **data** block and is never placed in `system`. Hard limits live in code, not the prompt: no network, no key access, no writes outside the open document, plus step, record and time caps. |
 | 8 | Key handling | The key lives in the existing `warpcad-credentials` IndexedDB store (`src/storage/tokenStorage.js`) and nowhere else. Named exposure: XSS on the origin. Mitigations: a meta-tag CSP with a `connect-src` allowlist, no HTML rendering of model output, no remote images. |
@@ -277,8 +277,9 @@ definition of every op's params beside the registry's).
 > replaces "**the human is paused**" while a turn runs. The fork stays; the human keeps editing
 > the live document, a status chip with a **Watch** toggle shows the AI's fork, and the turn
 > lands by **merge** (`docs/decisions/document-sync.md`) instead of a plain append onto a
-> document nobody else touched (`ai-017`, which amends this decision when it lands). Undo AI
-> turn and the origin rule below are unchanged. The text below is as decided on 2026-10-06.
+> document nobody else touched. Undo AI turn and the origin rule below are unchanged. The text
+> below is as decided on 2026-10-06, **amended by `ai-017` (2026-10-14)**: see "Amended by
+> `TODO/ai-017`" at the end of "How the chosen design works".
 
 ### What `src/core/document.js` already guarantees
 
@@ -356,6 +357,41 @@ See the `data-003` and `core-030` notes in that module, around lines 109-180:
 5. **Not persisted.** The AI-turn stack is in-memory, like the local stacks (section 19:
    undo doesn't survive a reload or an Open). After a reload the turn's rows are still in
    History with their `ai` chip and can be edited or suppressed like any other row.
+
+**Amended by `TODO/ai-017` (2026-10-14): the human keeps editing; a turn lands by merge.**
+Points 1-4 above described a single-writer turn. As built now:
+
+- **Fork as a replica.** The fork is an empty document with its own replica id, seeded by
+  `fork.mergeFrom(live.mergeState())` rather than `loadEntries`, so it carries the live rows with
+  their own stamps and position keys (a load would derive legacy ones, and the fork's new rows and
+  revisions would then mis-order or lose on landing). Its id counter starts past the live ids, as
+  the old seed's did, and its merge clock starts from the live document's. Before **every** tool
+  call the fork also reads the live clock (`observeMergeClock`, a Lamport receive with no data):
+  an edit the user made earlier in the turn is then always stamped earlier than the fork's next
+  write, so "first writer sorts first" holds by wall order at tool-call granularity, not by
+  replica id.
+- **No pause.** Point 2's "the viewport shows the fork in preview mode … so the human doesn't
+  edit while a turn runs" is withdrawn. (As built by `ai-006` it was a backstop — a turn whose live
+  document changed was refused — not an on-screen lock; both are gone.) The preview machinery is
+  kept for an opt-in **Watch**: the viewport shows the fork read-only in `ui-032`'s amber
+  preview, with Operations, Library, Undo and Redo disabled while watching. The fork does **not**
+  receive the user's mid-turn edits: one merge at the end, not continuous two-way merging.
+- **Land by merge.** Point 3's `appendAll` / `insertAt` + `reviseRecords` + `removeRecords` (and
+  `ai-014`'s by-id diff, `forkChange`) is replaced by `live.mergeFrom(fork.mergeState(), { origin:
+  'ai' })`: atomic, never on either undo stack, every row keeps the origin and intent it was born
+  with. A row that no longer builds is flagged (`docs-022`), shown with `ui-062`'s banner, and
+  named to the model on its next turn as one `document_data` line (decision 7). Rows both writers
+  changed resolve by stamp; the transcript says whose change was kept.
+- **Undo AI turn** (point 4) is the merge's returned `change`, restricted to the fork's own diff
+  from its seed, undone by `ui-062`'s inverse (`src/core/mergeUndo.js`, moved out of the merge
+  store so `src/ai/` stays framework-free) under origin `ai`. Same meaning: it removes the turn's
+  rows, restores the rows it revised, brings back the ones it removed, and refuses by name when a
+  later step builds on one of them; it is offered only while nothing has changed since the turn
+  landed (edits made *during* the turn don't count).
+- **Selection.** `get_selection` and `select` act on the fork's own selection, seeded from the
+  user's at turn start; the user's selection is never changed by a turn.
+- **Unchanged:** the caps count the fork's records (`limits.js`), not the merged total; decision
+  11's one-writer rules for the live bridge (`ai-012`) are not relaxed here.
 
 **What `ai-006` should surface** (not decided here, flagged): the header **Undo** does
 nothing to an AI turn, by rule. When the most recent change is an AI turn and the local

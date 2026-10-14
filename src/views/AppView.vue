@@ -19,6 +19,7 @@ import Inspector from '../components/inspector/Inspector.vue'
 import DependentRepairDialog from '../components/inspector/DependentRepairDialog.vue'
 import AssistantButton from '../components/ai/AssistantButton.vue'
 import ChatPanel from '../components/ai/ChatPanel.vue'
+import AiWorkingChip from '../components/display/AiWorkingChip.vue'
 import KeySheet from '../components/ai/KeySheet.vue'
 import SubscriptionRoute from '../components/ai/SubscriptionRoute.vue'
 import MergeBanner from '../components/display/MergeBanner.vue'
@@ -231,6 +232,9 @@ function onInspectorClaim() {
         <FileMenu />
         <SaveStatus />
       </div>
+      <!-- While an Assistant turn runs (TODO/ai-017): visible with the panel closed, since the
+           user keeps editing during a turn. Beside the button that opens the turn's controls. -->
+      <AiWorkingChip />
       <!-- App-level, not document-level (`TODO/ai-004`): always present, never gated on a
            selection or a key; with no key it opens the key sheet. -->
       <AssistantButton />

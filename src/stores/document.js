@@ -19,6 +19,7 @@ import { defineStore } from 'pinia'
 import { computed, ref, shallowRef } from 'vue'
 
 import { createDocument } from '../core/document.js'
+import { applyMergeUndo } from '../core/mergeUndo.js'
 import { DEFAULT_RESOLUTION } from '../core/kernel/tessellation.js'
 import { createEvaluationChannel, evaluationWorkerAvailable } from '../core/kernel/evaluationClient.js'
 import { boundsOf, hasNamedParts, hiddenNamesOf, isGroup } from '../core/kernel/group.js'
@@ -643,13 +644,8 @@ export const useDocumentStore = defineStore('document', () => {
    * @param {{ resolution?: string, standingInstructions?: string, buildVolume?: import('../core/buildVolume.js').BuildVolume }} [settings]
    */
   function restoreAfterMerge(target, rollbackAt, settings = {}) {
-    const transaction = { origin: 'merge' }
-    raw.batch(() => {
-      raw.restoreEntries(target, rollbackAt, transaction)
-      if (settings.resolution !== undefined) raw.setResolution(settings.resolution, transaction)
-      if (settings.standingInstructions !== undefined) raw.setStandingInstructions(settings.standingInstructions, transaction)
-      if (settings.buildVolume !== undefined) raw.setBuildVolume(settings.buildVolume, transaction)
-    })
+    // `TODO/ai-017`: the same writer Undo AI turn uses (`src/core/mergeUndo.js`).
+    applyMergeUndo(raw, { target, rollbackAt, settings }, { origin: 'merge' })
     afterOutsideChange()
   }
 

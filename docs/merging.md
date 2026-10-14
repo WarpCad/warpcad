@@ -93,6 +93,28 @@ If you press the top bar's **Undo** after a merge and the merge has since remove
 step it would undo, Undo explains this under the button and takes that step off its list. It
 won't bring back something the other copy deliberately deleted.
 
+## When the Assistant's turn is merged
+
+You can keep editing while the [Assistant](ai-partner.md#while-the-assistant-works) works. It
+builds on its own copy of the project, and when it finishes, that copy is merged into yours the
+same way **Merge file…** merges a file: your changes and its changes both stay, and a step that
+can no longer be built is marked as a conflict, never attached to a different shape.
+
+- A clean turn shows no strip. The chat says *Merged with 2 changes you made meanwhile* if you
+  changed anything while it worked.
+- A turn with a conflict shows the yellow strip, naming the Assistant as the source: **Merged 2
+  steps from the Assistant — 1 step conflicted**, with **Show**. Fix the marked step the same way
+  as [above](#fixing-a-conflicted-step).
+- The strip has no **Undo merge**. To take the Assistant's work back out, use **Undo AI turn** in
+  the chat. It works like Undo merge, but for that turn only.
+- If you and the Assistant both changed the same step or setting, the later change is kept, and
+  the chat says whose it was.
+
+**Example.** Drag a Cube in. Ask the Assistant to *round the top edge of the cube*, and while it
+says *Working…*, move the cube. When it finishes, the strip reads **Merged 1 step from the
+Assistant — 1 step conflicted**. Press **Show**: History opens on the Assistant's fillet, with the
+reason **conflicts with step 2 (Move Cube 1, by you)**. Suppress it, or ask the Assistant again.
+
 ## When a merge is refused
 
 Nothing changes in any of these cases:
@@ -114,7 +136,8 @@ Nothing changes in any of these cases:
 - **Nothing to merge into**: the project is empty. Use **Open…** instead.
 - **Return to the latest step to merge**: History is showing an earlier step. Click the last row
   or close History first.
-- **Wait for the Assistant to finish**: an AI assistant turn is still landing.
+- **Wait for the Assistant to finish**: an Assistant turn is running. Merge the file when it is
+  done. (Everything else, including your own edits, works while the Assistant works.)
 
 ## Good to know
 
@@ -131,5 +154,6 @@ Nothing changes in any of these cases:
 - [The History panel: revisiting any step you've taken](timeline.md)
 - [Undoing and redoing a change](undo-redo.md)
 - [Using WarpCad on a phone or tablet](mobile.md)
+- [The Assistant: while it works](ai-partner.md#while-the-assistant-works)
 
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

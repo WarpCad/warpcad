@@ -78,6 +78,8 @@ drops (dropping the second body must not hide or replace the first). Clicking ea
 individually selects only that item (gizmo and dimension lines attach to whichever was
 just clicked, not both at once).
 
+**Last run**: 2026-10-14 UTC (`ai-017`) — **PASS** at laptop 1440x900 and phone 390x844 Chromium (real mouse via `page.mouse`, jittered 24-step Library drags, fresh profile). Cube then Cylinder dropped: both remained (1 then 2). At laptop a click on open grid left 0 selected; at phone the same click left 1 selected (landed on the just-dropped body or the nav chrome, a drive-aim question not re-checked). Re-driven because the agent's landing path and `Viewport.vue` changed. Console and page errors: none.
+
 **Last run**: 2026-10-12 14:30 UTC (`ai-016`) — **PASS** at laptop 1440x900 Chromium (real mouse, jittered Library drags, fresh profile). Cube then Cylinder dropped: both remained (count 1 then 2); a click on open grid cleared the selection. Re-driven because the subscription sheet's command and text changed. By hand: no-key Assistant -> **Use my Claude subscription…** shows `npm run mcp:add -- my-part.ndjson`, Copy put exactly that on the clipboard, Escape returned to the key sheet, both bodies still there. Console and page errors: none. Per-body click selection not re-driven (no picking code changed).
 
 **Last run**: 2026-10-11 18:30 UTC (`ai-013`) — **PASS** at laptop 1440x900 Chromium (real mouse, jittered Library drags, fresh profile). Cube then Cylinder dropped: both remained (count 1 then 2); a click on open grid left *2 objects* with nothing selected. Re-driven because `KeySheet.vue`, `AppView.vue` and the chat readout changed (a subscription-route dialog, an estimated-cost chip). Then, by hand: the no-key Assistant button opens the key sheet, **Use my Claude subscription…** opens the route sheet with the exact `claude mcp add` command, **Copy** put it on the clipboard, Escape returned to the key sheet, Cancel left both bodies in place. Console and page errors: none. Per-body click selection not re-driven (no picking code changed).
@@ -3912,5 +3914,49 @@ no Undo merge. Phone: strip t53-b102 (toast) / b123.5 (banner), toolbar and nav 
 the History action bar is cramped at 900 px height; `by you` on a step the other copy made (filed
 in `data-013`); the status chip kept the old summary after Undo merge (fixed in this task).
 **Unrelated projects merged silently** — expected-gap, `data-013`. Console clean.
+
+
+### 24. Edit while the Assistant works
+
+Added 2026-10-14 with `TODO/ai-017`: an Assistant turn no longer pauses the person; they keep
+editing the live project and the turn lands by merge. Control names: **Send** (`ai-send`), the
+status line (`ai-status`), **Watch** (`ai-watch`), the header chip (`ai-working-chip`), **Stop**
+(`ai-stop`), **Undo AI turn** (`ai-undo-turn`), the header **Undo**, and `ui-062`'s strip
+(`merge-banner`, **Show**). Needs a **real key**: the scripted transcript proves the plumbing,
+not that a model's turn stays out of the way.
+
+**Steps** (laptop 1440x900, then phone 390x844):
+1. Drag a Cube in. Open the Assistant and ask *add four M3 standoffs at the corners of the board*
+   (or anything that takes several tool calls).
+2. While it says *Working…*: drag a Cylinder in from the Library (on a phone, close the Assistant
+   first; the chip stays), and move the Cube with the gizmo.
+3. Tap **Watch**. Look at the viewport, then tap **Watch** again.
+4. Wait for the turn to finish.
+5. Press **Undo AI turn**, then the header **Undo**.
+6. Ask the Assistant to change the Cube itself (*round the top edge of the cube*), and while it
+   works, move that same Cube. Wait for it to finish; press **Show** if a strip appears.
+7. Start another request and, after making one edit of your own while it works, press **Stop**.
+
+**Expect**:
+- Steps 1-2: the chip `Assistant working` in the header (a dot with that name on a phone) for the
+  whole turn, with the panel open or closed; the viewport shows **your** project, with no amber
+  outline; every control works — Library, gizmo, Operations, Undo.
+- Step 3: Watch on — the amber outline and the strip `Watching the Assistant — your project is
+  unchanged`, the Assistant's bodies so far, Operations/Library/Undo/Redo disabled; Watch off —
+  back to your project, Cylinder and moved Cube there. At phone width the viewport stays visible
+  above the chat sheet.
+- Step 4: the standoffs appear next to your Cylinder; the Cube is where you moved it; History has
+  the Assistant's rows with `ai` chips and yours without; the transcript says `Merged with 2
+  changes you made meanwhile`; the chip is gone and Watch is disabled.
+- Step 5: Undo AI turn removes the standoffs only; header Undo then takes back your last step.
+- Step 6: either the turn's step lands, or a strip `Merged 1 step from the Assistant — 1 step
+  conflicted`; **Show** selects the Assistant's row (the one flagged when your move came first),
+  with its reason as text. Nothing is attached to a different body.
+- Step 7: `Nothing from this turn was kept`; your edit is still there.
+- Never: a turn refused because you edited, an edit of yours lost or undone by the turn, a
+  header **Undo** that removes an Assistant step, a Watch that writes to the project, or a chip
+  that stays after the turn ends.
+
+**Last run**: 2026-10-14 UTC (`ai-017`) — **PASS, with a scripted transcript instead of a real key** (`edit-while-working`), at laptop 1440x900 and phone 390x844 Chromium, real mouse. Turn started, header chip showed, viewport live (`data-previewing` false); panel closed, a Sphere dragged in mid-turn (count 3, chip still up); Watch on showed the amber strip *Watching the Assistant — your project is unchanged*, off returned to live; turn ended with count 5, chip gone and the transcript line *Merged with N changes you made meanwhile*; **Undo AI turn** left 3 (the user's three), header Undo then read *Undo: Place Cylinder 1* and took the Sphere (2). Console and page errors: none. **Not driven**: a real model/key, an edit to the very body the Assistant was changing (covered by the conflict e2e only), tablet width. The new e2e (Step 5, before this drive) had found a real defect: after Undo AI turn, header Undo popped the step but left the rows (undo matched by object identity; fixed in `document.js`, regression in `documentMerge.spec.js`).
 
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

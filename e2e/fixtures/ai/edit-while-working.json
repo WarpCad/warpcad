@@ -1,0 +1,55 @@
+{
+  "name": "edit-while-working",
+  "tools": {
+    "create": "267ee92e"
+  },
+  "turns": [
+    {
+      "delayMs": 200,
+      "text": "Adding M3 standoffs at the corners of the board. I am placing them one at a time so each one lands where you can see it, starting with the front left corner, six millimetres in from each edge, and five millimetres tall so a screw has something to bite into.",
+      "calls": [
+        {
+          "name": "create",
+          "input": {
+            "op": "primitive.cylinder",
+            "positionMm": [
+              -60,
+              -40,
+              0
+            ],
+            "params": {
+              "diameter": 6,
+              "height": 5
+            },
+            "rationale": "M3 standoff, front left"
+          }
+        }
+      ]
+    },
+    {
+      "delayMs": 200,
+      "text": "Now the back right corner, the same height and the same distance in from the edges, so the board sits level on both of them when you print it. I will stop at two for this test piece rather than all four, and tell you why when I am done.",
+      "calls": [
+        {
+          "name": "create",
+          "input": {
+            "op": "primitive.cylinder",
+            "positionMm": [
+              60,
+              40,
+              0
+            ],
+            "params": {
+              "diameter": 6,
+              "height": 5
+            },
+            "rationale": "M3 standoff, back right"
+          }
+        }
+      ]
+    },
+    {
+      "text": "Placed two M3 standoffs, at the front left and back right corners. Two diagonal standoffs are enough to test the fit; ask for the other two when you are happy with these."
+    }
+  ]
+}

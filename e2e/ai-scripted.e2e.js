@@ -181,6 +181,226 @@ test.describe('scenario 18 plumbing — a drawing becomes a library part', () =>
   })
 })
 
+/**
+ * `TODO/ai-017` — keep editing while the Assistant works. A **paced** transcript (`delayMs` per
+ * text chunk) keeps the turn observably in progress while the test places one body and moves
+ * another with pointer events in the real viewport, then toggles **Watch**. The Assistant panel
+ * is closed for the edits: at phone width its sheet owns the bottom slot and hides the Library
+ * (`AppView.vue`), so closing it is what a person on a phone does, and the header chip is what
+ * says the turn is still running.
+ *
+ * Engines: all three (viewport, pointer input, IndexedDB autosave during a turn). Viewports: all
+ * three, with a snapshot of the chip and of Watch at each.
+ */
+const SNAPSHOT_DIR = join(process.cwd(), 'test-results', 'ai-edit-while-working')
+
+/** @param {import('@playwright/test').Page} page */
+async function openLibrary(page) {
+  const rows = page.getByTestId('library-rows')
+  if (await rows.isVisible()) return
+  await page.getByTestId('library-tab').click()
+  await expect(rows).toBeVisible()
+}
+
+/** @param {import('@playwright/test').Page} page */
+async function closeLibrary(page) {
+  const tab = page.getByTestId('library-tab')
+  if (!(await tab.isVisible())) return
+  if (await page.getByTestId('library-rows').isVisible()) await tab.click()
+  await expect(page.getByTestId('library-rows')).toBeHidden()
+}
+
+/**
+ * Drag a Library row into the viewport with pointer events (the `gizmo-transform.e2e.js` helper:
+ * one gesture that drives every engine, including those without touch emulation).
+ *
+ * @param {import('@playwright/test').Page} page
+ * @param {{ op: string, fx: number, fy: number }} options
+ */
+async function placeFromLibrary(page, { op, fx, fy }) {
+  await openLibrary(page)
+  await page.evaluate(
+    ({ op, fx, fy }) => {
+      const row = document.querySelector(`[data-testid="library-row-${op}"]`)
+      const view = document.querySelector('[data-testid="viewport"]')
+      if (!row || !view) throw new Error(`missing row ${op} or viewport`)
+      const from = row.getBoundingClientRect()
+      const to = view.getBoundingClientRect()
+      const startX = from.left + from.width / 2
+      const startY = from.top + from.height / 2
+      const endX = to.left + to.width * fx
+      const endY = to.top + to.height * fy
+      /** @param {EventTarget} target @param {string} type @param {number} x @param {number} y */
+      const fire = (target, type, x, y) =>
+        target.dispatchEvent(
+          new PointerEvent(type, { pointerId: 7, pointerType: 'mouse', isPrimary: true, button: 0, buttons: type === 'pointerup' ? 0 : 1, clientX: x, clientY: y, bubbles: true, cancelable: true })
+        )
+      fire(row, 'pointerdown', startX, startY)
+      for (const t of [0.25, 0.5, 0.75, 1]) fire(window, 'pointermove', startX + (endX - startX) * t, startY + (endY - startY) * t)
+      fire(window, 'pointerup', endX, endY)
+    },
+    { op, fx, fy }
+  )
+  await page.waitForTimeout(120)
+  await closeLibrary(page)
+}
+
+/**
+ * Drag the selected body's X arm outward by `distancePx`: one move step, by the user.
+ *
+ * @param {import('@playwright/test').Page} page
+ * @param {number} distancePx
+ */
+async function dragGizmoArm(page, distancePx) {
+  const handle = page.locator('[data-testid="gizmo-grab-arm-x"]')
+  await expect(handle).toBeAttached()
+  await page.evaluate((distancePx) => {
+    const el = document.querySelector('[data-testid="gizmo-grab-arm-x"]')
+    const view = document.querySelector('[data-testid="viewport"]')
+    const gizmo = document.querySelector('[data-testid="transform-gizmo"]')
+    if (!el || !view || !gizmo) throw new Error('no gizmo')
+    const rect = view.getBoundingClientRect()
+    const [ox, oy] = (gizmo.getAttribute('data-origin') ?? '0,0').split(',').map(Number)
+    const box = el.getBoundingClientRect()
+    const startX = box.left + box.width / 2
+    const startY = box.top + box.height / 2
+    let dx = startX - (rect.left + ox)
+    let dy = startY - (rect.top + oy)
+    const length = Math.hypot(dx, dy) || 1
+    dx /= length
+    dy /= length
+    /** @param {string} type @param {number} t */
+    const fire = (type, t) =>
+      el.dispatchEvent(
+        new PointerEvent(type, {
+          pointerId: 21,
+          pointerType: 'mouse',
+          isPrimary: true,
+          button: 0,
+          buttons: type === 'pointerup' ? 0 : 1,
+          clientX: startX + dx * distancePx * t,
+          clientY: startY + dy * distancePx * t,
+          bubbles: true,
+          cancelable: true,
+        })
+      )
+    fire('pointerdown', 0)
+    for (const t of [0.2, 0.45, 0.7, 1]) fire('pointermove', t)
+    fire('pointerup', 1)
+  }, distancePx)
+  await page.waitForTimeout(80)
+}
+
+/** @param {import('@playwright/test').Page} page */
+const cubeCenter = (page) => page.getByTestId('scene-bodies').locator('[data-body-name="Cube 1"]').getAttribute('data-body-center')
+
+/** A paced turn: two standoffs, each in a reply slow enough to edit during. */
+const STANDOFF_PROMPT = 'add four M3 standoffs at the corners of the board'
+
+test.describe('TODO/ai-017 — keep editing while the Assistant works', () => {
+  test.skip(process.env.E2E_PREVIEW === '1', 'scripted mode is dev-only: the production build ignores a transcript')
+  test.setTimeout(90_000)
+
+  test('edit during a turn, Watch on and off, both writers land; Undo AI turn takes the AI’s part, header Undo the user’s', async ({ page }, testInfo) => {
+    await useScript(page, transcript('edit-while-working'))
+    // Before the turn: the cube the user will move while the Assistant works.
+    await placeFromLibrary(page, { op: 'primitive.cuboid', fx: 0.35, fy: 0.45 })
+    await expect(page.getByTestId('viewport')).toHaveAttribute('data-body-count', '1')
+    const startCenter = await cubeCenter(page)
+
+    await openAssistant(page)
+    await send(page, STANDOFF_PROMPT)
+    await expect(page.getByTestId('ai-status')).toContainText('Working')
+    const chip = page.getByTestId('ai-working-chip')
+    await expect(chip).toBeVisible()
+    await expect(chip).toHaveAccessibleName('Assistant working')
+    // The viewport shows the live document, with no amber outline.
+    await expect(page.getByTestId('viewport')).toHaveAttribute('data-previewing', 'false')
+
+    // Close the panel (the chip stays) and work: move the cube, then drop a sphere.
+    await page.getByTestId('assistant-close').click()
+    await expect(chip).toBeVisible()
+    await page.screenshot({ path: join(SNAPSHOT_DIR, `${testInfo.project.name}-chip.png`) })
+    await page.getByTestId('scene-bodies').locator('[data-body-name="Cube 1"]').waitFor({ state: 'attached' })
+    await dragGizmoArm(page, 60)
+    await expect.poll(() => cubeCenter(page)).not.toBe(startCenter)
+    const movedCenter = await cubeCenter(page)
+    await placeFromLibrary(page, { op: 'primitive.sphere', fx: 0.75, fy: 0.25 })
+    await expect(page.getByTestId('viewport')).toHaveAttribute('data-body-count', '2')
+
+    // Watch: the fork, read-only, in the amber preview; and back.
+    await openAssistant(page)
+    const watch = page.getByTestId('ai-watch')
+    await expect(watch).toBeEnabled()
+    await watch.click()
+    await expect(watch).toHaveAttribute('aria-pressed', 'true')
+    await expect(page.getByTestId('viewport')).toHaveAttribute('data-previewing', 'true')
+    await expect(page.getByTestId('timeline-preview-strip')).toContainText('Watching the Assistant — your project is unchanged')
+    await expect(page.getByTestId('undo-button')).toBeDisabled()
+    await page.screenshot({ path: join(SNAPSHOT_DIR, `${testInfo.project.name}-watch.png`) })
+    await watch.click()
+    await expect(watch).toHaveAttribute('aria-pressed', 'false')
+    await expect(page.getByTestId('viewport')).toHaveAttribute('data-previewing', 'false')
+    await expect(page.getByTestId('viewport')).toHaveAttribute('data-body-count', '2')
+
+    await idle(page)
+    await expect(chip).toBeHidden()
+    await expect(watch).toBeDisabled()
+    // Both writers: the user's cube and sphere, and the Assistant's two standoffs.
+    await expect(page.getByTestId('viewport')).toHaveAttribute('data-body-count', '4')
+    expect(await cubeCenter(page)).toBe(movedCenter)
+    await expect(page.getByTestId('ai-transcript')).toContainText('Merged with 2 changes you made meanwhile')
+
+    // Undo AI turn removes only the standoffs; header Undo then removes the user's last step.
+    await page.getByTestId('ai-undo-turn').click()
+    await expect(page.getByTestId('viewport')).toHaveAttribute('data-body-count', '2')
+    expect(await cubeCenter(page)).toBe(movedCenter)
+    await page.getByTestId('assistant-close').click()
+    await page.getByTestId('undo-button').click()
+    await expect(page.getByTestId('viewport')).toHaveAttribute('data-body-count', '1')
+    expect(await cubeCenter(page)).toBe(movedCenter)
+  })
+
+  test('the user moves the cube first, the Assistant fillets it: the banner, Show, and the AI row is the one flagged', async ({ page }) => {
+    await useScript(page, transcript('edit-while-working-conflict'))
+    await placeFromLibrary(page, { op: 'primitive.cuboid', fx: 0.4, fy: 0.45 })
+    await expect(page.getByTestId('viewport')).toHaveAttribute('data-body-count', '1')
+
+    await openAssistant(page)
+    await send(page, 'round the top edge of the cube')
+    await expect(page.getByTestId('ai-working-chip')).toBeVisible()
+    await page.getByTestId('assistant-close').click()
+    await dragGizmoArm(page, 60)
+
+    await expect(page.getByTestId('ai-working-chip')).toBeHidden({ timeout: 30_000 })
+    await expect(page.getByTestId('merge-banner-text')).toHaveText(/1 step conflicted$/)
+    await page.getByTestId('merge-banner-show').click()
+    await expect(page.getByTestId('timeline-panel')).toBeVisible()
+    const row = page.locator('[data-testid="timeline-panel"] [aria-current="true"]')
+    await expect(row.getByTestId('chip-broken')).toBeVisible()
+    await expect(row).toContainText(/Fillet/)
+    await expect(page.getByTestId('timeline-broken-reason')).toHaveText(/^conflicts with step 2 \(Move Cube 1, by you\)$/)
+  })
+
+  test('Stop mid-turn after a user edit: the user’s edit stays, nothing from the turn does', async ({ page }) => {
+    await useScript(page, transcript('edit-while-working'))
+    await openAssistant(page)
+    await send(page, STANDOFF_PROMPT)
+    await expect(page.getByTestId('ai-working-chip')).toBeVisible()
+    await page.getByTestId('assistant-close').click()
+    await placeFromLibrary(page, { op: 'primitive.sphere', fx: 0.5, fy: 0.25 })
+    await expect(page.getByTestId('viewport')).toHaveAttribute('data-body-count', '1')
+
+    await openAssistant(page)
+    await page.getByTestId('ai-stop').click()
+    await idle(page)
+    await expect(page.getByTestId('ai-transcript')).toContainText('Nothing from this turn was kept')
+    await expect(page.getByTestId('viewport')).toHaveAttribute('data-body-count', '1')
+    expect(await bodyIds(page)).toEqual(['sphere-1'])
+    await expect(page.getByTestId('ai-working-chip')).toBeHidden()
+  })
+})
+
 test('a production build ignores a transcript: no badge, and the Assistant asks for a key', async ({ page }) => {
   test.skip(process.env.E2E_PREVIEW !== '1', 'needs the production build: E2E_PREVIEW=1 npx playwright test e2e/ai-scripted.e2e.js')
   await useScript(page, transcript('airfoil-wing'))

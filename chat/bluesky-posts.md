@@ -1648,3 +1648,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** second pick overwrote the first (one slot) -> TODO/ui-063 Problem and `src/stores/selection.js` diff; hole1 and post coincide in x/y, mb bottom 15.2 = post top 15.2 -> hand drive this session; microsd reaches below mb -> hand-back report from the implementing agent, asserted in `src/core/snap-align-both-subparts.spec.js`
 **To Add:** `docs/media/snap-subpart-both-sides.gif`; repo URL once public
+
+## [2026-10-14T14:50:00Z] — You can keep editing while the Assistant works
+
+**Post:** In WarpCad the Assistant used to lock the viewport until its turn finished. Now it works on its own copy and lands by merge: I dropped a sphere in mid-turn and it sat next to the Assistant's parts, and Undo AI turn took out only theirs. Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** lock replaced by merge landing -> diff (`src/ai/agent.js`, decision 5 amendment); sphere placed mid-turn, count 3 then 5, Undo AI turn left 3 -> hand drive this session, scripted transcript (laptop and phone Chromium)
+**To Add:** `docs/screenshots/ai-working-chip.png`, `ai-watch.png`; repo URL once public

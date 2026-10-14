@@ -34,6 +34,17 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### ai-017 — Keep editing while the Assistant works (2026-10-14 14:39)
+
+Driven with a scripted transcript only; the judgment calls below need a real turn and a real phone.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | With a real key, a turn of several tool calls: does editing during it *feel* uninterrupted, and is `Working…` plus the header chip enough to tell the turn is still running? | Open | |
+| 2 | At 390 px, the chat header wraps in Scripted mode; check the header chip dot and the **Watch** toggle are still comfortably tappable and not clipped. | Open | |
+| 3 | Edit the very body the Assistant was asked to change, then read the conflict banner and the flagged row: is the wording understandable? | Open | |
+
+
 ### ui-063 — Snap/Align names a part on both operands (2026-10-13 22:32)
 
 Re-addressing between the Align (XY) and Snap (Z) commits takes two taps and the Objects

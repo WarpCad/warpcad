@@ -16,6 +16,11 @@
  *
  * Everything the model said is shown as plain text — assistant text and tool reasons can quote
  * project text, so nothing in this panel is ever rendered as markup.
+ *
+ * **Watch** (`ai-watch`, `TODO/ai-017`) sits on the status line, beside `ai-status`, so it is in
+ * reach at the folded (peek) height too. Enabled only while a turn runs; on, the viewport shows the
+ * Assistant's fork read-only in the amber preview (`stores/timeline.js`); off, or the turn ending,
+ * returns to the live project. The user is never paused: every other control works during a turn.
  */
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 
@@ -26,6 +31,7 @@ import { useAiChatStore } from '../../stores/aiChat.js'
 import { useAssistantStore } from '../../stores/assistant.js'
 import { useDocumentStore } from '../../stores/document.js'
 import { useSelectionStore } from '../../stores/selection.js'
+import { useTimelineStore } from '../../stores/timeline.js'
 import ConnectionDot from '../display/ConnectionDot.vue'
 import ActivityRow from './ActivityRow.vue'
 import Composer from './Composer.vue'
@@ -37,6 +43,7 @@ const chat = useAiChatStore()
 const agent = useAgent()
 const documentStore = useDocumentStore()
 const selection = useSelectionStore()
+const timeline = useTimelineStore()
 
 const open = computed(() => assistant.view === 'chat')
 useEscapeToClose(() => open.value, () => assistant.close())
@@ -143,6 +150,23 @@ const HEIGHTS = /** @type {const} */ ([
       <strong class="chat__title">Assistant</strong>
       <span v-if="assistant.scripted" class="chat__scripted" role="note" title="A recorded transcript is standing in for the model. Nothing here shows what the live model would do." data-testid="ai-scripted-badge">Scripted</span>
       <span class="chat__status" role="status" data-testid="ai-status">{{ statusLine }}</span>
+      <button
+        type="button"
+        class="chat__watch"
+        data-testid="ai-watch"
+        :disabled="!chat.canWatch"
+        :aria-pressed="timeline.watching ? 'true' : 'false'"
+        :title="
+          timeline.watching
+            ? 'Back to your project'
+            : chat.canWatch
+              ? 'Show what the Assistant is building, read-only. Your project is unchanged.'
+              : 'Available while the Assistant is working'
+        "
+        @click="agent.toggleWatch()"
+      >
+        Watch
+      </button>
       <div class="chat__heights" role="group" aria-label="Assistant height">
         <button
           v-for="height in HEIGHTS"
@@ -302,6 +326,7 @@ const HEIGHTS = /** @type {const} */ ([
 }
 
 .chat__height,
+.chat__watch,
 .chat__close,
 .chat__undo,
 .chat__chip,
@@ -330,6 +355,31 @@ const HEIGHTS = /** @type {const} */ ([
 
 .chat__close {
   min-width: var(--tap);
+}
+
+/* `TODO/ai-017`: a 44px toggle; the accent when it is on, like the height buttons. */
+.chat__watch {
+  flex: none;
+  min-width: var(--tap);
+  padding: 0 8px;
+}
+
+.chat__watch[aria-pressed='true'] {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.chat__watch:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* At phone width the status line holds the title, the status, Watch, three heights and Close:
+   it wraps rather than pushing Close off-screen (the Scripted badge is what tips it over). */
+@media (max-width: 480px) {
+  .chat__head {
+    flex-wrap: wrap;
+  }
 }
 
 .chat__meta p {

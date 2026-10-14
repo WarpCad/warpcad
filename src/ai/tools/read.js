@@ -7,8 +7,9 @@
  * - **`describe_body(id)`**: one body, adding its params, position and rotation.
  * - **`get_timeline`**: the History rows, compactly.
  * - **`get_selection`** / **`select(ids)`** (browser only): selection is not something
- *   the model needs for geometry, since operations take ids. It exists so the *human*
- *   sees what the AI is talking about (`CLAUDE.md`'s feedback rule).
+ *   the model needs for geometry, since operations take ids. Since `TODO/ai-017` the user keeps
+ *   working during a turn, so both act on the turn's **own** selection (the agent seeds it from
+ *   the user's at turn start) and never change the user's; the descriptions say so.
  *
  * Results are compact on purpose. A mesh is never returned: a result is read by a
  * model, priced per token, and a body's polygons would cost thousands of tokens to say
@@ -284,7 +285,8 @@ export function createReadTools() {
     },
     {
       name: 'get_selection',
-      description: 'The bodies the user currently has selected in the viewport, by id and name.',
+      description:
+        'The bodies selected for this turn, by id and name: what the user had selected at the start of this turn, or what you last selected with select. The user keeps working while you do, so this is not their live selection.',
       inputSchema: objectSchema({}),
       transports: ['ai'],
       run: (ctx) => selectionResult(ctx),
@@ -292,7 +294,7 @@ export function createReadTools() {
     {
       name: 'select',
       description:
-        'Select bodies in the viewport so the user can see which ones you mean. Selection does not change geometry, and operations take ids directly; an empty list clears the selection.',
+        'Select bodies for this turn, to keep track of which ones you mean. It sets the selection get_selection reads, which started as the user’s selection at the start of this turn; the user’s own selection is not changed. Selection does not change geometry, and operations take ids directly; an empty list clears it.',
       inputSchema: objectSchema(
         { ids: { type: 'array', items: { type: 'string' }, description: 'Body ids from describe_scene.' } },
         ['ids']

@@ -5,13 +5,16 @@ import { piAndCube, snapCubeTo } from '../core/__fixtures__/piScenes.js'
 import { createDocument } from '../core/document.js'
 import { recordsForDrop } from '../core/library.js'
 import { serializeProject } from '../core/project.js'
-import { bindParam, defineVariable, variablesOf } from '../core/variables.js'
+import { translateRecord } from '../core/transform.js'
+import { bindParam, defineVariable, setVariable, variablesOf } from '../core/variables.js'
 import { createAgentContext, runTurn, undoAiTurn } from './agent.js'
 import { unwrapDocumentData } from './documentData.js'
 import { SYSTEM_PROMPT } from './prompt.js'
 import { fakeSelection } from './tools/__fixtures__/context.js'
 import { LIMITS, createToolRegistry, toStrictWire } from './tools/index.js'
 import { recordLinesOf } from '../core/__fixtures__/projectText.js'
+import { LANDED_TURNS } from './__fixtures__/landedTurns.js'
+import { FORK_REPLICA as FIXTURE_FORK_REPLICA, LANDING_SCENARIOS, replay } from './__fixtures__/landingScenarios.js'
 
 /**
  * `TODO/ai-005` — the agent loop, against a scripted fake provider (mock at the boundary: no
@@ -330,23 +333,25 @@ describe('runTurn — Stop', () => {
 
   it('abort during a tool call is honoured within that step', async () => {
     const controller = new AbortController()
-    const selection = fakeSelection()
-    const select = selection.select
-    selection.select = (ids) => {
-      select(ids)
-      controller.abort() // Stop pressed while the tool is running
+    // `TODO/ai-017`: `select` now acts on the fork's own selection, so the tool that is running
+    // when Stop is pressed is a capture (the browser's boundary, faked here).
+    const capture = {
+      capture: (/** @type {any} */ request) => {
+        controller.abort() // Stop pressed while the tool is running
+        return { mediaType: /** @type {'image/png'} */ ('image/png'), data: 'iVBORw0KGgo=', widthPx: request.widthPx, heightPx: request.heightPx, contentFraction: 0.2 }
+      },
     }
     const client = scriptedProvider([
       { calls: [call('create', CUBE)] },
-      { calls: [call('select', { ids: ['cuboid-abcdef-1'] }), call('create', SPHERE)] },
+      { calls: [call('capture_view', { view: 'iso' }), call('create', SPHERE)] },
       { text: 'never asked' },
     ])
-    const { document, ctx, events } = setup({ client, selection })
+    const { document, ctx, events } = setup({ client })
+    ctx.capture = capture
     const outcome = await runTurn({ userMessage: 'cube', ctx, signal: controller.signal })
     expect(outcome.status).toBe('cancelled')
-    expect(selection.history).toEqual([['cuboid-abcdef-1']])
-    expect(events.filter((e) => e.type === 'tool_call').map((e) => e.name)).toEqual(['create', 'select', 'create'])
-    expect(events.filter((e) => e.type === 'tool_result').map((e) => e.name)).toEqual(['create', 'select'])
+    expect(events.filter((e) => e.type === 'tool_call').map((e) => e.name)).toEqual(['create', 'capture_view', 'create'])
+    expect(events.filter((e) => e.type === 'tool_result').map((e) => e.name)).toEqual(['create', 'capture_view'])
     expect(client.requests).toHaveLength(2)
     expect(document.entries).toHaveLength(0)
   })
@@ -459,22 +464,6 @@ describe('runTurn — errors roll back byte-identically', () => {
     expect(ctx.running).toBe(false)
   })
 
-  it('refuses to land when the live document changed underneath the turn', async () => {
-    const document = createDocument()
-    const client = scriptedProvider([{ calls: [call('create', CUBE)] }, { text: 'ok' }])
-    const { ctx } = setup({
-      client,
-      document,
-      onEvent: (event) => {
-        if (event.type === 'tool_result') document.appendAll(recordsForDrop('primitive.cone', { x: 0, y: 0 }, document), { origin: 'local' })
-      },
-    })
-    const outcome = await runTurn({ userMessage: 'cube', ctx })
-    expect(outcome.status).toBe('failed')
-    expect(outcome.message).toMatch(/changed/)
-    expect(document.entries.every((entry) => entry.origin === 'local')).toBe(true)
-    expect(ctx.aiTurns).toEqual([])
-  })
 })
 
 describe('runTurn — trust and concurrency', () => {
@@ -799,5 +788,234 @@ describe('runTurn — project variables land and undo as one AI turn (TODO/ai-01
     expect(result.result.breakages[0].reason).toMatch(/Pi 5/)
     expect(recordLinesOf(serializeProject(document))).toBe(recordLinesOf(before))
     expect(ctx.aiTurns).toHaveLength(0)
+  })
+})
+
+// --- TODO/ai-017: the human keeps editing; the turn lands by merge -------------------------------
+
+describe('runTurn — the user keeps editing while a turn runs, and the turn lands by merge (TODO/ai-017)', () => {
+  const LOCAL = { origin: 'local' }
+  /**
+   * The live replica in the interleaving specs. Later than the fork's `abcdef` in replica order,
+   * so a tie on the stamp counter would put the fork's row first — which is what the clock
+   * observation (the fork reads the live clock before each tool call) has to beat.
+   */
+  const LIVE = 'zzzzzz'
+  /** @param {import('../core/document.js').WarpDocument} document */
+  const ids = (document) => document.entries.map((entry) => entry.record.id)
+
+  for (const scenario of LANDING_SCENARIOS) {
+    it(`with no edits meanwhile, lands exactly what the old landing wrote — ${scenario.name}`, async () => {
+      const document = scenario.build()
+      const ctx = createAgentContext({ client: replay(scenario.steps), document, replica: FIXTURE_FORK_REPLICA })
+      const outcome = await runTurn({ userMessage: scenario.userMessage, ctx })
+      const expected = LANDED_TURNS[scenario.name]
+      expect(outcome.status).toBe('done')
+      expect(recordLinesOf(serializeProject(document))).toBe(expected.recordLines)
+      expect(document.entries.map((entry) => ({ id: entry.record.id, origin: entry.origin, ...(entry.intent === undefined ? {} : { intent: entry.intent }) }))).toEqual(expected.entries)
+      expect(document.rollbackAt()).toBe(expected.rollbackAt)
+      expect(outcome.recordIds).toEqual(expected.recordIds)
+      expect(outcome.revisedIds).toEqual(expected.revisedIds)
+      expect(outcome.removedIds).toEqual(expected.removedIds)
+      expect(outcome.meanwhile).toBe(0)
+      expect(outcome.conflicts).toEqual([])
+      expect(outcome.contested).toEqual([])
+      // Not on the local undo stack; one Undo AI turn entry, which takes it back exactly.
+      expect(ctx.aiTurns).toHaveLength(1)
+      const fresh = scenario.build()
+      undoAiTurn(document, ctx.aiTurns[0])
+      // `.trim()`: an emptied log still writes its state line (tombstones), a fresh one writes nothing.
+      expect(recordLinesOf(serializeProject(document)).trim()).toBe(recordLinesOf(serializeProject(fresh)).trim())
+      expect(document.rollbackAt()).toBe(fresh.rollbackAt())
+    })
+  }
+
+  it('a turn with the user appending in between lands both, each row with its own origin', async () => {
+    const document = createDocument({ replica: LIVE })
+    let edits = 0
+    const client = scriptedProvider([{ calls: [call('create', CUBE)] }, { calls: [call('create', SPHERE)] }, { text: 'Two shapes.' }])
+    const { ctx } = setup({
+      client,
+      document,
+      onEvent: (event) => {
+        if (event.type !== 'tool_result' || edits >= 2) return
+        edits += 1
+        document.appendAll(recordsForDrop('primitive.cone', { x: -60 * edits, y: 0 }, document), LOCAL)
+      },
+    })
+    const outcome = await runTurn({ userMessage: 'a cube and a ball', ctx })
+
+    expect(outcome.status).toBe('done')
+    expect(outcome.recordIds).toEqual(['cuboid-abcdef-1', 'sphere-abcdef-2'])
+    expect(document.entries.filter((entry) => entry.origin === 'ai').map((entry) => entry.record.id)).toEqual(['cuboid-abcdef-1', 'sphere-abcdef-2'])
+    expect(document.entries.filter((entry) => entry.origin === 'local')).toHaveLength(2)
+    expect(document.bodies()).toHaveLength(4)
+    expect(outcome.meanwhile).toBe(2)
+    // The user's two steps are still theirs to undo; the AI's never reach that stack.
+    expect(document.pendingUndo()?.origin ?? 'local').toBe('local')
+    expect(document.canUndo()).toBe(true)
+  })
+
+  it('Stop mid-turn leaves the live document, the mid-turn edits included, byte-identical to the moment before Stop', async () => {
+    const document = seededDocument()
+    const controller = new AbortController()
+    let before = ''
+    let results = 0
+    const client = scriptedProvider([{ calls: [call('create', CUBE)] }, { calls: [call('create', SPHERE)] }, { text: 'never asked' }])
+    const { ctx } = setup({
+      client,
+      document,
+      onEvent: (event) => {
+        if (event.type !== 'tool_result') return
+        results += 1
+        if (results !== 1) return
+        document.appendAll(recordsForDrop('primitive.cylinder', { x: 60, y: 0 }, document), LOCAL)
+        const coneId = /** @type {string} */ (document.entries[0].record.id)
+        document.append(translateRecord(document, coneId, [0, 10, 0]), LOCAL)
+        before = serializeProject(document)
+        controller.abort()
+      },
+    })
+    const outcome = await runTurn({ userMessage: 'two things', ctx, signal: controller.signal })
+
+    expect(outcome.status).toBe('cancelled')
+    expect(serializeProject(document)).toBe(before)
+    expect(document.entries.some((entry) => entry.origin === 'ai')).toBe(false)
+    expect(ctx.aiTurns).toEqual([])
+  })
+
+  it('Undo AI turn after a mixed landing removes only the ai rows and leaves both local stacks as they were', async () => {
+    const document = createDocument({ replica: LIVE })
+    document.append({ id: 'box-1', op: 'primitive.cuboid', name: 'Box 1', params: { size: [10, 10, 10], center: [80, 0, 5] } }, LOCAL)
+    document.clearHistory()
+    let results = 0
+    const client = scriptedProvider([{ calls: [call('create', CUBE)] }, { calls: [call('create', SPHERE)] }, { text: 'ok' }])
+    const { ctx } = setup({
+      client,
+      document,
+      onEvent: (event) => {
+        if (event.type !== 'tool_result') return
+        results += 1
+        if (results === 1) document.appendAll(recordsForDrop('primitive.cone', { x: -60, y: 0 }, document), LOCAL)
+        if (results === 2) document.append(translateRecord(document, 'box-1', [0, 20, 0]), LOCAL)
+      },
+    })
+    const outcome = await runTurn({ userMessage: 'two shapes', ctx })
+    expect(outcome.status).toBe('done')
+    const usersRows = document.entries.filter((entry) => entry.origin === 'local').map((entry) => entry.record.id)
+    expect(usersRows).toHaveLength(3)
+    const undoTop = document.pendingUndo()
+    const redoTop = document.pendingRedo()
+
+    undoAiTurn(document, ctx.aiTurns[0])
+
+    expect(ids(document)).toEqual(usersRows)
+    expect(document.pendingUndo()).toBe(undoTop)
+    expect(document.pendingRedo()).toBe(redoTop)
+    // The local stack still holds exactly the user's two steps, and header Undo takes back theirs.
+    let depth = 0
+    while (document.canUndo()) {
+      document.undo()
+      depth += 1
+    }
+    expect(depth).toBe(2)
+    expect(ids(document)).toEqual(['box-1'])
+  })
+
+  it('Undo AI turn refuses by name when a user step builds on one of its rows, and changes nothing', async () => {
+    const client = scriptedProvider([{ calls: [call('create', CUBE)] }, { text: 'A cube.' }])
+    const { document, ctx } = setup({ client })
+    await runTurn({ userMessage: 'a cube', ctx })
+    document.append(translateRecord(document, 'cuboid-abcdef-1', [5, 0, 0]), LOCAL)
+    const before = serializeProject(document)
+
+    expect(() => undoAiTurn(document, ctx.aiTurns[0])).toThrow(/cuboid-abcdef-1/)
+    expect(serializeProject(document)).toBe(before)
+  })
+
+  it('a variable the user changed mid-turn and the turn also set resolves by stamp, and the outcome says whose was kept', async () => {
+    const document = createDocument({ replica: LIVE })
+    defineVariable(document, { name: 'wall', kind: 'number', value: 2, unit: 'mm' }, LOCAL)
+    document.append({ id: 'box-1', op: 'primitive.cuboid', name: 'Box 1', params: { size: [{ $var: 'wall' }, 10, 10], center: [0, 0, 5] } }, LOCAL)
+    const variableId = /** @type {string} */ (document.entries[0].record.id)
+    let results = 0
+    const client = scriptedProvider([{ calls: [call('describe_scene')] }, { calls: [call('set_variable', { name: 'wall', value: 4 })] }, { text: 'Thicker.' }])
+    const { ctx } = setup({
+      client,
+      document,
+      onEvent: (event) => {
+        if (event.type === 'tool_result' && ++results === 1) setVariable(document, 'wall', 6, LOCAL)
+      },
+    })
+    const outcome = await runTurn({ userMessage: 'thicker walls', ctx })
+
+    expect(outcome.status).toBe('done')
+    // The user's change came first, so the turn's (the later stamp) is the one kept — and said.
+    expect(variablesOf(document)[0].value).toBe(4)
+    expect(outcome.contested).toEqual([expect.objectContaining({ id: variableId, kept: 'assistant' })])
+    expect(outcome.meanwhile).toBe(1)
+  })
+
+  it('a fillet on a cube the user moved first is the row flagged, and the next turn is told as document_data', async () => {
+    const document = createDocument({ replica: LIVE })
+    document.append({ id: 'cube-1', op: 'primitive.cuboid', name: 'Cube 1', params: { size: [20, 20, 20], center: [0, 0, 10] } }, LOCAL)
+    let results = 0
+    const client = scriptedProvider([
+      { calls: [call('describe_scene')] },
+      { calls: [call('operate', { op: 'modify.filletRim', operands: [{ id: 'cube-1' }], params: { radius: 2, orientation: 'z+' } })] },
+      { text: 'Rounded the top.' },
+      { text: 'I see.' },
+    ])
+    const { ctx } = setup({
+      client,
+      document,
+      onEvent: (event) => {
+        if (event.type === 'tool_result' && ++results === 1) document.append(translateRecord(document, 'cube-1', [30, 0, 0]), LOCAL)
+      },
+    })
+    const outcome = await runTurn({ userMessage: 'round the top edge', ctx })
+
+    expect(outcome.status).toBe('done')
+    const fillet = /** @type {import('../core/document.js').DocumentEntry} */ (document.entries.find((entry) => entry.record.op === 'modify.filletRim'))
+    expect(fillet.origin).toBe('ai')
+    expect(fillet.leftBroken).toBe(true)
+    expect(document.entries.find((entry) => entry.record.op === 'transform.translate')?.leftBroken).toBeUndefined()
+    expect(outcome.conflicts).toEqual([expect.objectContaining({ id: fillet.record.id })])
+    expect(outcome.conflicts[0].reason).toMatch(/conflicts with step 2/)
+
+    await runTurn({ userMessage: 'what happened?', ctx })
+    /** @type {string[]} */
+    const texts = client.requests[3].messages.at(-1).content.map((/** @type {any} */ block) => block.text ?? '')
+    const line = texts.find((text) => text.includes('label="merge"'))
+    expect(line).toBeDefined()
+    const block = /** @type {string} */ (line).slice(/** @type {string} */ (line).indexOf('<document_data'))
+    expect(unwrapDocumentData(block)).toMatchObject({ conflicted: [{ id: fillet.record.id }] })
+    // Only on the next turn: the one after that is not told again.
+  })
+
+  it('get_selection and select act on the fork’s own selection, seeded from the user’s; the user’s is never changed', async () => {
+    const document = createDocument({ replica: LIVE })
+    document.append({ id: 'cube-1', op: 'primitive.cuboid', name: 'Cube 1', params: { size: [20, 20, 20], center: [0, 0, 10] } }, LOCAL)
+    const selection = fakeSelection(['cube-1'])
+    const client = scriptedProvider([
+      { calls: [call('get_selection')] },
+      { calls: [call('create', CUBE)] },
+      { calls: [call('select', { ids: ['cuboid-abcdef-1'] })] },
+      { calls: [call('get_selection')] },
+      { text: 'ok' },
+    ])
+    const { ctx, events } = setup({ client, document, selection })
+    await runTurn({ userMessage: 'which one?', ctx })
+
+    const reads = events.filter((event) => event.type === 'tool_result' && event.name === 'get_selection')
+    expect(reads[0].result.ids).toEqual(['cube-1'])
+    expect(reads[1].result.ids).toEqual(['cuboid-abcdef-1'])
+    expect(selection.history).toEqual([])
+    expect(selection.ids()).toEqual(['cube-1'])
+    // …and the tools say so.
+    const definitions = createToolRegistry().definitions('ai')
+    for (const name of ['get_selection', 'select']) {
+      expect(definitions.find((definition) => definition.name === name)?.description).toMatch(/start of (this|the) turn/)
+    }
   })
 })

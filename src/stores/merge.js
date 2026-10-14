@@ -19,6 +19,7 @@
  *
  * ## What Undo merge puts back, and what it refuses
  *
+ * `src/core/mergeUndo.js` (moved there by `TODO/ai-017`, so Undo AI turn uses the same inverse).
  * It works from three snapshots — the project just before the merge, just after it, and now —
  * so a local step made *after* the merge is never taken out:
  *
@@ -41,24 +42,15 @@ import { defineStore } from 'pinia'
 import { computed, ref, shallowRef, toRaw, watch } from 'vue'
 
 import { UnrelatedProjectError, createDocument } from '../core/document.js'
+import { mergeSnapshotOf, planMergeUndo } from '../core/mergeUndo.js'
 import { useAiChatStore } from './aiChat.js'
 import { useDocumentStore } from './document.js'
 import { useTimelineStore } from './timeline.js'
 
-/** @typedef {import('../core/document.js').DocumentEntry} DocumentEntry */
 /** @typedef {ReturnType<typeof import('../core/merge/merge.js').diffStates>} MergeChange */
 /** @typedef {import('../core/document.js').MergeConflict} MergeConflict */
 
-/**
- * The project as it stood at one moment — what Undo merge needs from before and after.
- *
- * @typedef {object} MergeSnapshot
- * @property {readonly DocumentEntry[]} entries The log's entry objects (immutable once stored).
- * @property {number | null} rollbackAt
- * @property {string} resolution
- * @property {string} standingInstructions
- * @property {import('../core/buildVolume.js').BuildVolume} buildVolume
- */
+/** @typedef {import('../core/mergeUndo.js').MergeSnapshot} MergeSnapshot */
 
 /**
  * What the toast or banner shows.
@@ -169,158 +161,8 @@ export function mergeStateOfProject(parsed, foldCache) {
   return scratch.mergeState()
 }
 
-/**
- * @param {import('../core/document.js').WarpDocument} raw
- * @returns {MergeSnapshot}
- */
-function snapshotOf(raw) {
-  return {
-    entries: raw.entries.slice(),
-    rollbackAt: raw.rollbackAt(),
-    resolution: raw.resolution(),
-    standingInstructions: raw.standingInstructions(),
-    buildVolume: raw.buildVolume(),
-  }
-}
-
-/** @param {DocumentEntry} entry */
+/** @param {import('../core/document.js').DocumentEntry} entry */
 const idOf = (entry) => /** @type {string} */ (entry.record.id)
-
-/**
- * @param {import('../core/kernel/registry.js').OpRecord} a
- * @param {import('../core/kernel/registry.js').OpRecord} b
- */
-function sameRecord(a, b) {
-  return a === b || JSON.stringify(a) === JSON.stringify(b)
-}
-
-/**
- * @param {DocumentEntry} entry
- * @param {'suppressed' | 'leftBroken'} flag
- * @param {boolean} value
- * @returns {DocumentEntry}
- */
-function withFlag(entry, flag, value) {
-  const { [flag]: _previous, ...rest } = entry
-  return value ? { ...rest, [flag]: true } : rest
-}
-
-/** @param {import('../core/buildVolume.js').BuildVolume} a @param {import('../core/buildVolume.js').BuildVolume} b */
-function sameVolume(a, b) {
-  return a.widthMm === b.widthMm && a.depthMm === b.depthMm && a.heightMm === b.heightMm
-}
-
-/**
- * The id of the row the marker sits after, or `null` for no marker.
- *
- * @param {MergeSnapshot} snapshot
- */
-function anchorOf(snapshot) {
-  if (snapshot.rollbackAt === null) return null
-  return idOf(snapshot.entries[snapshot.rollbackAt - 1])
-}
-
-/**
- * Undo merge as a target log — pure, from the three snapshots (see the module note).
- *
- * @param {MergeSnapshot} base The project just before the merge.
- * @param {MergeSnapshot} merged The project just after it.
- * @param {MergeSnapshot} current The project now.
- * @param {MergeChange} change What the merge changed (`mergeFrom`'s `change`).
- * @returns {{ ok: true, target: DocumentEntry[], rollbackAt: number | null, settings: { resolution?: string, standingInstructions?: string, buildVolume?: import('../core/buildVolume.js').BuildVolume } } | { ok: false, message: string }}
- */
-export function planMergeUndo(base, merged, current, change) {
-  const baseById = new Map(base.entries.map((entry) => [idOf(entry), entry]))
-  const mergedById = new Map(merged.entries.map((entry) => [idOf(entry), entry]))
-  const added = new Set(change.added)
-  const revised = new Set(change.revised)
-  const moved = new Set(change.moved)
-  const removed = new Set(change.removed)
-
-  /** @type {DocumentEntry[]} */
-  const rows = []
-  for (const entry of current.entries) {
-    const id = idOf(entry)
-    if (added.has(id)) continue
-    const before = baseById.get(id)
-    const after = mergedById.get(id)
-    if (before === undefined || after === undefined) {
-      rows.push(entry)
-      continue
-    }
-    let next = entry
-    if (revised.has(id) && !sameRecord(before.record, after.record)) {
-      if (!sameRecord(entry.record, after.record)) {
-        const name = entry.record.name ?? id
-        return { ok: false, message: `"${name}" was edited after the merge — undo that edit first` }
-      }
-      next = { ...next, record: before.record, origin: before.origin }
-      const { intent: _intent, ...withoutIntent } = next
-      next = before.intent === undefined ? withoutIntent : { ...withoutIntent, intent: before.intent }
-    }
-    for (const flag of /** @type {const} */ (['suppressed', 'leftBroken'])) {
-      const was = before[flag] === true
-      const left = after[flag] === true
-      if (was !== left && (entry[flag] === true) === left) next = withFlag(next, flag, was)
-    }
-    rows.push(next)
-  }
-
-  // Rows the merge removed come back, and rows it moved go back, in the old order: each after
-  // its nearest earlier neighbour (in the old log) that is still there.
-  const order = base.entries.map(idOf)
-  /** @type {Map<string, DocumentEntry>} */
-  const pulled = new Map()
-  for (let at = rows.length - 1; at >= 0; at -= 1) {
-    const id = idOf(rows[at])
-    if (moved.has(id) && baseById.has(id)) pulled.set(id, rows.splice(at, 1)[0])
-  }
-  for (let at = 0; at < order.length; at += 1) {
-    const id = order[at]
-    /** @type {DocumentEntry | undefined} */
-    let entry = pulled.get(id)
-    if (entry === undefined && removed.has(id) && !rows.some((row) => idOf(row) === id)) entry = baseById.get(id)
-    if (entry === undefined) continue
-    let index = 0
-    for (let back = at - 1; back >= 0; back -= 1) {
-      const found = rows.findIndex((row) => idOf(row) === order[back])
-      if (found >= 0) {
-        index = found + 1
-        break
-      }
-    }
-    rows.splice(index, 0, entry)
-  }
-
-  // The marker: back to where it was, unless the user has moved it since.
-  const currentAnchor = anchorOf(current)
-  const restoreMarker = change.registers.includes('rollbackAfter') && currentAnchor === anchorOf(merged)
-  const anchor = restoreMarker ? anchorOf(base) : currentAnchor
-  const anchorOrder = restoreMarker ? order : current.entries.map(idOf)
-  /** @type {number | null} */
-  let rollbackAt = null
-  if (anchor !== null) {
-    for (let back = anchorOrder.indexOf(anchor); back >= 0; back -= 1) {
-      const found = rows.findIndex((row) => idOf(row) === anchorOrder[back])
-      if (found >= 0) {
-        rollbackAt = found + 1
-        break
-      }
-    }
-    if (rollbackAt !== null && rollbackAt >= rows.length) rollbackAt = null
-  }
-
-  /** @type {{ resolution?: string, standingInstructions?: string, buildVolume?: import('../core/buildVolume.js').BuildVolume }} */
-  const settings = {}
-  if (change.registers.includes('resolution') && current.resolution === merged.resolution) settings.resolution = base.resolution
-  if (change.registers.includes('standingInstructions') && current.standingInstructions === merged.standingInstructions) {
-    settings.standingInstructions = base.standingInstructions
-  }
-  if (change.registers.includes('buildVolume') && sameVolume(current.buildVolume, merged.buildVolume)) {
-    settings.buildVolume = base.buildVolume
-  }
-  return { ok: true, target: rows, rollbackAt, settings }
-}
 
 /**
  * A core refusal as a sentence for the user: the `document.<method>: ` prefix is for
@@ -399,7 +241,7 @@ export const useMergeStore = defineStore('merge', () => {
    * @returns {MergeResult}
    */
   function mergeIn(state, sourceName) {
-    const base = snapshotOf(live())
+    const base = mergeSnapshotOf(live())
     /** @type {ReturnType<typeof documentStore.mergeFrom>} */
     let outcome
     try {
@@ -414,7 +256,7 @@ export const useMergeStore = defineStore('merge', () => {
     const { change, conflicts } = outcome
     const text = describeMerge(change, conflicts, sourceName)
     const nothing = isEmpty(change)
-    last = nothing ? null : { base, merged: snapshotOf(live()), change, sourceName }
+    last = nothing ? null : { base, merged: mergeSnapshotOf(live()), change, sourceName }
     available.value = !nothing
     undoRefusal.value = ''
     notice.value = {
@@ -436,7 +278,7 @@ export const useMergeStore = defineStore('merge', () => {
    */
   function undoMerge() {
     if (last === null) return { ok: false, message: 'There is no merge to undo' }
-    const plan = planMergeUndo(last.base, last.merged, snapshotOf(live()), last.change)
+    const plan = planMergeUndo(last.base, last.merged, mergeSnapshotOf(live()), last.change)
     if (!plan.ok) {
       undoRefusal.value = `Can't undo the merge: ${plan.message}`
       return { ok: false, message: undoRefusal.value }
@@ -463,6 +305,28 @@ export const useMergeStore = defineStore('merge', () => {
     if (first !== undefined) timeline.selectRow(first)
   }
 
+  /**
+   * `TODO/ai-017`: an Assistant turn landed by merge and some rows conflicted — the same banner,
+   * **Show** and chipped rows a Merge file… gets, reading `Merged 2 steps from the Assistant — 1
+   * step conflicted`. No **Undo merge** on it: the turn's own undo is **Undo AI turn** in the
+   * chat, and this merge's inverse is not this store's `last`. A clean landing shows nothing
+   * here; the transcript says what happened.
+   *
+   * @param {MergeChange} change The turn's change (the fork's own work).
+   * @param {readonly { id: string }[]} conflicts
+   */
+  function noteAiLanding(change, conflicts) {
+    if (conflicts.length === 0) return
+    undoRefusal.value = ''
+    notice.value = {
+      kind: 'banner',
+      tone: 'warn',
+      text: describeMerge(change, /** @type {any} */ (conflicts), 'the Assistant'),
+      undoable: false,
+      conflictIds: conflicts.map((conflict) => conflict.id),
+    }
+  }
+
   /** Close the toast or banner. Undo merge stays in memory until the next merge or load. */
   function dismiss() {
     notice.value = null
@@ -475,8 +339,12 @@ export const useMergeStore = defineStore('merge', () => {
     canUndo: computed(() => available.value),
     unavailableReason,
     mergeIn,
+    noteAiLanding,
     undoMerge,
     showConflicts,
     dismiss,
   }
 })
+
+// `TODO/ai-017`: the inverse moved to core; re-exported for this module's existing callers.
+export { planMergeUndo }

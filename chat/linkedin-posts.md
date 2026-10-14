@@ -2318,3 +2318,16 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** one slot, second pick overwrote -> TODO/ui-063; popover text -> `e2e/snap-align-both-subparts.e2e.js` and hand drive this session; 15.2 mm -> hand drive this session; kernel unchanged -> diff (no `src/core/group.js` change)
 **To Add:** `docs/media/snap-subpart-both-sides.gif`; repo URL once public
+
+## [2026-10-14T14:50:00Z] — You can keep editing while the Assistant works
+
+**Post:** Until now, an Assistant turn in WarpCad froze your own editing: the viewport switched to the AI's working copy and the controls were disabled until it finished.
+
+That lock is gone. The turn works on its own replica of the project and lands by merge when it ends, so a cylinder you place or a cube you move mid-turn is still there afterwards. Undo AI turn removes only the Assistant's rows; the header Undo removes yours. A Watch toggle shows the Assistant's copy read-only if you want to see what it is doing.
+
+The new end-to-end spec turned up a core bug along the way: Undo after a merge matched step rows by object identity and could pop the step without removing anything. It now matches by id. Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** lock removed, landing by merge, Watch, chip -> diff; Undo identity bug and fix -> `src/core/document.js` diff and the `documentMerge.spec.js` regression, failing without the fix in this session
+**To Add:** `docs/screenshots/ai-working-chip.png`, `ai-watch.png`; repo URL once public
