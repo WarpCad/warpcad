@@ -30,8 +30,60 @@ avoidable token cost in the TODO workflow. So:
   means the code is byte-identical to a tree that already passed everything, so report
   "green (stamp match, not re-run)" instead of paying for the same run twice. Callers
   that need an *independent* check (the `/run-todos` loop verifying an agent's claim)
-  pass `--force` in the brief, which skips the check. A *targeted* run (one spec file)
-  never sets the stamp.
+  pass `--force` in the brief, which skips the check. A *targeted* run (one spec file),
+  a `one`-scope run, or a run that skipped an engine never sets the stamp (see Scope below).
+
+### Scope — full matrix, or one e2e project
+
+The e2e stage is a 9-way matrix (3 engines x 3 viewports) plus `guards` and docs
+projects, and it is the expensive part of a run. The caller picks a scope in the brief:
+
+| Scope | When | E2E command |
+|---|---|---|
+| `full` (default) | Nothing said, or the caller asks for the full suite | `npm run test:e2e:headless` |
+| `changed` | The work is confined to a specific area (a component category, one subsystem) | the matching specs, **all engines**, see below |
+| `one` | The caller says "one suite", "single project", or passes `--project=<name>` | `npm run test:e2e:headless -- --project=<name> --project=guards` |
+
+- **`changed` — test what's changing, on every engine.** When a task's diff stays inside
+  one area, run only the specs that cover it, but run them across **all engine-viewport
+  projects** rather than one:
+  1. List the changed files (`git diff --name-only HEAD`, plus untracked).
+  2. Unit: `npm run test:unit -- --run related <changed src files>` (Vitest's `related`
+     follows imports), plus any `.spec.js` the TODO's Testing section names.
+  3. E2E: the `*.e2e.js` specs the TODO's Testing section names, plus specs whose filename
+     or `data-testid`s match the touched `src/components/<category>/` or subsystem (grep
+     `e2e/` for the component/store/feature name). Playwright's `--only-changed` does not
+     help here, because e2e specs drive `/` rather than importing source.
+  4. Run them as `npm run test:e2e:headless -- <spec files>` (all projects, minus the
+     Firefox exclusion below) and add `--project=guards` only if docs/media changed.
+  5. **Fall back to `full`** when the diff touches shared infrastructure (`src/core/`
+     kernel or document layer, the render loop, `playwright.config.js`, `package.json`,
+     shared stores, global styles), when no spec can be mapped to the change, or at a
+     milestone boundary. Never narrow because the full run is slow and the change "looks
+     small."
+  Report the list of specs run and why each was chosen. Like `one`, it never sets the stamp.
+- **Picking the project for `one`.** If the caller names one, use it. Otherwise pick
+  **one at random** from the engine-viewport projects (`chromium-phone`, `chromium-tablet`,
+  `chromium-laptop`, and the `firefox-*` / `webkit-*` equivalents; `webkit-*` and `firefox-*`
+  only when the environment rule below allows), e.g.
+  `node -e "const p=process.argv.slice(1);console.log(p[Math.floor(Math.random()*p.length)])" chromium-phone chromium-tablet chromium-laptop webkit-phone webkit-tablet webkit-laptop`.
+  Always add `guards` (cheap, file-level). **Report which project ran** so a failure
+  is reproducible with the same flag.
+- **Typecheck and unit always run in full.** `one` only narrows the e2e stage.
+- **Environment rule — skip Firefox in the Claude app / cloud.** When running in the Claude
+  app or Claude Code on the web (`CLAUDE_CODE_REMOTE=true` in the environment, or the
+  user says so), Firefox's Playwright browser does not start reliably. Run every
+  e2e command with `--project=chromium-* --project=webkit-* --project=guards` style
+  selection — i.e. **exclude every `firefox-*` project** — in **both** scopes, and say in
+  the report that Firefox was skipped for that reason. Firefox still runs on a
+  local machine in `full` scope. A skipped engine is a coverage gap, not a pass: note it
+  so the user knows the cross-engine claim in `CLAUDE.md` Browser Support is unverified for it.
+- **A `one` or `changed` run, or one that skipped Firefox, is not a full green.** Report it as
+  `green (one: <project>)` / `green (firefox skipped)`, and **never `stamp set`** after it —
+  the stamp means "everything passed". Only a `full`, Firefox-included run sets it.
+- Which scope a workflow uses: `/fix-todo` Step 5 and `/run-todos` default to `changed`
+  when the area is confined, else `full`; either accepts `one` (see their own notes). A milestone's last task, or anything
+  touching the kernel/WebGL/persistence, should still get one `full` run locally.
 
 ### Escalation ladder when a stage is red
 
@@ -88,7 +140,7 @@ avoid re-running stages that already passed.
 | Unit | `npm run test:unit -- --run` | ~1s / 223 tests (2026-09-06, ui-010) | 60s |
 | Browser | `npm run test:browser -- --run` | *(stage not defined in package.json)* | 90s |
 | Component workshop | `npm run test:storybook -- --run` | *(stage not defined in package.json)* | 90s |
-| E2E | `npm run test:e2e:headless` | ~31s / 225 tests, 9-way matrix (2026-09-06, ui-010) | 180s |
+| E2E | `npm run test:e2e:headless` (or a `--project=` subset, see Scope) | ~31s / 225 tests, 9-way matrix (2026-09-06, ui-010) | 180s |
 
 **Record the warm baseline for each stage in this file the first time you measure it**
 (warm cache, `node_modules/.vite` populated, single machine), so future sessions can

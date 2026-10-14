@@ -182,6 +182,19 @@ elsewhere: run the `test` skill (`/test`) — **once**. Haiku runs it, sets the 
 stamp on success, and everything downstream (the `/commit` gate) reuses that stamp
 instead of re-running an identical tree.
 
+**Default scope is `changed`.** When the diff stays inside one area, ask `/test` for the
+`changed` scope: the specs that cover what you touched (the TODO's Testing section plus
+related unit specs and matching `*.e2e.js`), on **all** engines. Fall back to `full` for
+shared infrastructure, unmappable changes, or a milestone's last task.
+
+**Scope.** `/fix-todo <id> --one-suite` (or "one suite" in the request) tells `/test` to
+run the e2e stage as a single randomly-chosen engine-viewport project plus `guards`,
+instead of the 9-way matrix; typecheck and unit still run in full. **In the Claude app /
+Claude Code on the web (`CLAUDE_CODE_REMOTE=true`), skip the Firefox projects** (Firefox runs only in VS Code or a local terminal) —
+they don't start reliably there. Pass the scope through in Haiku's brief and quote the
+project it ran in the Step 9 report. A `one`-scope or Firefox-skipped run doesn't set the
+green stamp, so `/commit` will re-run; that is intended. See `/test` "Scope".
+
 All stages must be green before moving on. Fix any regression before continuing,
 following `/test`'s escalation ladder (this task's tier x2 → Opus once → stop) —
 don't hand back a partially-passing state.

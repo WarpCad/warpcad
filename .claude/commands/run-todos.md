@@ -187,6 +187,15 @@ done in the right order, because this loop's context is the one that accumulates
 - `git show --stat HEAD`. Compare the touched files with the TODO's **Affected files**.
   Read the actual diff (`git show HEAD -- <file>`) **only for files outside that list or
   that look disproportionate** — not the whole commit every tick.
+- **Scope.** The default is `/test`'s `changed` scope (all engines, only the specs for the
+  area the task touched; `full` when it touched shared infrastructure). The agent's own
+  Step 5 run uses it, so run the same scope when re-verifying with `--force`.
+  If the user started the loop with `--one-suite` (or the runner is in the
+  Claude app / Claude Code on the web, `CLAUDE_CODE_REMOTE=true`), tell the agent and
+  Haiku to use `/test`'s `one` scope for the e2e stage, and **never include Firefox
+  projects in the cloud**. Pass the flag to each `/fix-todo` brief too. Log the scope in
+  the Runner Log line so a skipped engine is visible, and still run one `full` local
+  suite at each milestone boundary.
 - Re-run the suite through `/test` with `--force` in the brief (skips the green-stamp
   shortcut — the stamp was written by the agent's own run, so it can't be the
   independent check). Haiku runs it; you read the compact report. Don't take the agent's
