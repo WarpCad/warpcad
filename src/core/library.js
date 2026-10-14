@@ -121,6 +121,7 @@ const ROW_ORDER = Object.freeze([
   'kit.board',
   'kit.boardFrame',
   'kit.anchor',
+  'kit.phone',
   // The Raspberry Pi section reads outward from the board (`TODO/ui-031`): the
   // board itself, what plugs straight into it, then the accessories, then the
   // screens — which is the order someone building a Pi enclosure reaches for them

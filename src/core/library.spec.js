@@ -139,9 +139,19 @@ describe('HARDWARE_LIBRARY — the catalogue rows a composite recipe earns (TODO
 })
 
 describe('KIT_LIBRARY / RASPBERRYPI_LIBRARY — the rest of the catalogue (TODO/ui-031)', () => {
-  it('lists the three kit.* recipes, in catalogue order', () => {
-    expect(KIT_LIBRARY.map((row) => row.op)).toEqual(['kit.board', 'kit.boardFrame', 'kit.anchor'])
-    expect(KIT_LIBRARY.map((row) => row.label)).toEqual(['Board', 'Board Frame', 'Anchor'])
+  it('lists the four kit.* recipes, in catalogue order', () => {
+    expect(KIT_LIBRARY.map((row) => row.op)).toEqual([
+      'kit.board',
+      'kit.boardFrame',
+      'kit.anchor',
+      'kit.phone',
+    ])
+    expect(KIT_LIBRARY.map((row) => row.label)).toEqual([
+      'Board',
+      'Board Frame',
+      'Anchor',
+      'Phone (iPhone 17 Pro, TechWeave)',
+    ])
   })
 
   it('lists all twelve raspberrypi.* recipes, board first', () => {
@@ -324,6 +334,7 @@ describe('KIT_LIBRARY / RASPBERRYPI_LIBRARY — the rest of the catalogue (TODO/
     for (const op of [
       'kit.board',
       'kit.anchor',
+      'kit.phone',
       'raspberrypi.bplus',
       'raspberrypi.cameraModule',
       'raspberrypi.hat',

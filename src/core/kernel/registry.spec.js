@@ -878,7 +878,7 @@ describe('composite() ui metadata — what earns a recipe a Library row', () => 
     const ops = Object.keys(registry).filter(
       (op) => op.startsWith('kit.') || op.startsWith('raspberrypi.')
     )
-    expect(ops).toHaveLength(15)
+    expect(ops).toHaveLength(16)
     for (const op of ops) {
       const { ui } = registry[op]
       expect(ui?.label, op).toMatch(/\S/)

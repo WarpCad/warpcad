@@ -61,6 +61,10 @@ function detailOf(op, params) {
     case 'kit.board':
     case 'kit.anchor':
       return isNumber(params.width) && isNumber(params.height) ? `${params.width} × ${params.height} mm` : ''
+    case 'kit.phone':
+      return isNumber(params.width) && isNumber(params.length)
+        ? `${params.width} × ${params.length} mm`
+        : ''
     case 'kit.boardFrame':
       return isNumber(params.outerWidth) && isNumber(params.outerHeight)
         ? `${params.outerWidth} × ${params.outerHeight} mm`

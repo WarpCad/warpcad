@@ -71,14 +71,18 @@ the AI partner). Once there, a screw behaves like a bolt: select it and the Insp
 
 ![Four screws side by side: M4 and #8, each with a PanHead and a FlatHead.](./screenshots/hardware-screw-family.png)
 
-## Kit parts: boards, frames and anchors
+## Kit parts: boards, frames, anchors and a phone
 
 ![The Library scrolled to its Kit Parts section: Board, Board Frame and Anchor rows.](./screenshots/library-kit-section.png)
 
 Kit parts are general-purpose building blocks you size yourself: **Board** (a flat slab with
 rounded corners), **Board Frame** (the same slab with a rectangular window cut out) and
 **Anchor** (a post with a matching hole). Their sizes are numbers in mm in the Inspector, and
-the bill of materials lists each by width × height. The defaults are in the table in
+the bill of materials lists each by width × height.
+
+**Phone (iPhone 17 Pro, TechWeave)** is different: it is not a part you print but a
+*stand-in* you subtract, so a plate can have a pocket for the phone's camera plateau and the
+phone can lie flat. See [Cutting a pocket for a phone's camera plateau](#cutting-a-pocket-for-a-phones-camera-plateau). The defaults are in the table in
 [Placing a kit part](primitive-placement.md#placing-a-kit-part).
 
 ## Raspberry Pi parts
@@ -133,3 +137,24 @@ Subtract it from your own enclosure and the enclosure leaves that space free.
 - [Selecting a shape, and reading its size](selection-and-inspector.md): the Inspector, the Objects list and Show hidden parts.
 
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->
+
+### Cutting a pocket for a phone's camera plateau
+
+A phone's camera plateau stops it lying flat on a plate. The **Phone** row in Kit Parts is a
+slab the size of a phone in its case, with the plateau as a raised block on its back,
+protruding *below* the slab at the +Y end. Subtract it from the plate and only the plateau
+cuts; the plate's top stays flat everywhere the phone rests.
+
+1. Scroll to **Kit Parts** and drag **Phone (iPhone 17 Pro, TechWeave)** into the 3D view.
+2. With the plate and the phone both in the scene, select the phone and check its sizes in
+   the Inspector. The defaults are estimates (77 × 157 mm, 9 mm thick; plateau 74 × 46 mm,
+   4 mm proud), and the case matters as much as the phone, so measure yours and edit
+   `width`, `length`, `thickness`, `plateauWidth`, `plateauLength` and `plateauHeight`.
+3. Move the phone so its flat back sits level with the plate's top face. The plateau is then
+   inside the plate by exactly `plateauHeight`. Rotate it 180° about Z if the camera end
+   should be at the other end of the plate.
+4. Select the **plate**, then the **phone** (ctrl/shift-click), and choose **Subtract**. The
+   plate keeps a pocket in the phone's shape; hide or delete the phone if you do not want it
+   shown.
+
+The stand-in is for cutting, not for printing: leave it out of the exported model.

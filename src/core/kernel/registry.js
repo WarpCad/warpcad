@@ -73,6 +73,7 @@ import { screw, SCREW_HEADS } from './recipes/hardware.screw.js'
 import { anchor } from './recipes/kit.anchor.js'
 import { board } from './recipes/kit.board.js'
 import { boardFrame } from './recipes/kit.boardFrame.js'
+import { phone } from './recipes/kit.phone.js'
 import { activeCoolingFan } from './recipes/raspberrypi.activeCoolingFan.js'
 import { BPLUS_MODELS, BPLUS_PART_ALIASES, DEFAULT_CLEARANCE_MM, bplus } from './recipes/raspberrypi.bplus.js'
 import { boltSpecs } from './tables/bolt-specs.js'
@@ -1362,6 +1363,21 @@ export const registry = Object.freeze({
   // V1's own `Anchor(width = 10, height = 10)` defaults, named here rather than
   // left implicit, so the Inspector shows what the row actually placed.
   'kit.anchor': composite(0, anchor, { label: 'Anchor', defaults: { width: 10, height: 10 } }),
+  // A phone-in-a-case stand-in to subtract from a plate (recipes/kit.phone.js). Every
+  // default is the recipe's own, repeated so the Inspector shows what was placed.
+  'kit.phone': composite(0, phone, {
+    label: 'Phone (iPhone 17 Pro, TechWeave)',
+    defaults: {
+      width: 77,
+      length: 157,
+      thickness: 9,
+      cornerRadius: 12,
+      plateauWidth: 74,
+      plateauLength: 46,
+      plateauHeight: 4,
+      plateauCornerRadius: 10,
+    },
+  }),
 
   // TODO/core-014: the catalogue's largest recipe — a whole Raspberry Pi board, every
   // connector, with one `model` param picking the revision (2/3/4/5) the way

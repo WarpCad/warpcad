@@ -158,7 +158,7 @@ test('the Library panel shows Kit Parts and Raspberry Pi sections with every rec
   const kit = await page.$$eval('[data-testid="library-rows-kit"] [data-op]', (nodes) =>
     nodes.map((node) => node.getAttribute('data-label')),
   )
-  expect(kit).toEqual(['Board', 'Board Frame', 'Anchor'])
+  expect(kit).toEqual(['Board', 'Board Frame', 'Anchor', 'Phone (iPhone 17 Pro, TechWeave)'])
 
   await openLibrary(page, 'raspberrypi')
   await expect(page.getByTestId('library-heading-raspberrypi')).toHaveText('Raspberry Pi')
@@ -202,6 +202,28 @@ test('dragging a Kit Board into the viewport places it at the drop point, not at
   expect(Math.hypot(x, y)).toBeGreaterThan(1)
   expect(z).toBeGreaterThan(0)
   await expect(viewport).toHaveAttribute('data-selected-id', board.id)
+})
+
+test('dragging the Phone stand-in drops a slab whose camera plateau sits below its underside', async ({
+  page,
+}) => {
+  // `kit.phone` is a stand-in to subtract from a plate: its plateau must hang *below* the
+  // slab, so the whole body is slab (9 mm) + plateau (4 mm) tall and rests on the grid.
+  await openLibrary(page, 'kit')
+  const viewport = page.getByTestId('viewport')
+  await expect(viewport).toHaveAttribute('data-body-count', '0')
+
+  await dragRowIntoViewport(page, { op: 'kit.phone', fx: 0.4, fy: 0.3 })
+
+  await expect(viewport).toHaveAttribute('data-body-count', '1')
+  const [phone] = await sceneBodies(page)
+  expect(phone.op).toBe('kit.phone')
+  expect(phone.name).toBe('Phone (iPhone 17 Pro, TechWeave) 1')
+  const [x, y, z] = centerParts(phone.center)
+  expect(Math.hypot(x, y)).toBeGreaterThan(1)
+  // Resting on the grid: the centre of a 13 mm tall body is 6.5 mm up.
+  expect(z).toBeCloseTo(6.5, 1)
+  await expect(viewport).toHaveAttribute('data-selected-id', phone.id)
 })
 
 test('the Raspberry Pi row places the model its own dropdown is set to', async ({

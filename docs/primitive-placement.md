@@ -121,7 +121,7 @@ For the sizes each Hardware row offers, the hidden `tap` clearance and the screw
 
 ## Placing a kit part
 
-Below Hardware is **Kit Parts** — three general-purpose blocks you build enclosures and
+Below Hardware is **Kit Parts** — general-purpose blocks you build enclosures and
 brackets out of:
 
 | Row | What you get | Default |
@@ -129,6 +129,7 @@ brackets out of:
 | Board | A flat slab with rounded corners | 40 × 30 mm, 1.62 mm thick, 3 mm corners |
 | Board Frame | The same slab with a rectangular window cut out of it | 40 × 30 outer, 30 × 20 window |
 | Anchor | A post with a matching hole, as one two-part item | ⌀10 × 10 mm |
+| Phone (iPhone 17 Pro, TechWeave) | A phone-in-case slab with its camera plateau on the back, to subtract from a plate ([how](hardware-library.md#cutting-a-pocket-for-a-phones-camera-plateau)) | 77 × 157 × 9 mm, plateau 74 × 46 × 4 mm |
 
 1. Scroll down past Hardware to the **Kit Parts** section.
 2. Drag **Board** into the 3D view exactly the way you dragged a Cube.
