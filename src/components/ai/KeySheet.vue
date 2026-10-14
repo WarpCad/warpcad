@@ -41,6 +41,7 @@ import { useEscapeToClose } from '../../composables/useEscapeToClose.js'
 import { useAssistantStore } from '../../stores/assistant.js'
 import { useSettingsStore } from '../../stores/settings.js'
 import ConnectionDot from '../display/ConnectionDot.vue'
+import ConnectButton from './ConnectButton.vue'
 import ModalShell from '../storage/ModalShell.vue'
 
 const assistant = useAssistantStore()
@@ -205,6 +206,8 @@ function done() {
           >
             Use my Claude subscription…
           </button>
+          <!-- TODO/ai-012: the live bridge — Claude Code edits this open project, no key. -->
+          <ConnectButton v-if="!assistant.hasKey" testid="ai-key-connect" />
           <button
             type="submit"
             class="key__button key__button--primary"

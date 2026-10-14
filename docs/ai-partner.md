@@ -54,6 +54,26 @@ Tap **Use an API key instead** to go back to the key sheet. The two routes are s
 in-app chat uses a key and is billed as API usage, and Claude Code uses your subscription and
 edits a project file. [Driving WarpCad from Claude Code](mcp.md) has the full walk-through.
 
+### Claude Code on the project you have open (live mode)
+
+If you run WarpCad yourself with `npm run dev`, Claude Code can change the project open in your
+browser tab instead of a file, and you watch each change land. This is **dev-host only**: it
+needs `npm run dev` and a desktop browser on the same computer as Claude Code. On a phone or
+tablet, **Connect to Claude Code…** is greyed out with the reason *Claude Code must run on this
+device*.
+
+1. From your WarpCad folder run `npm run mcp:add -- --dev`, then `npm run dev`.
+2. Open WarpCad at `http://localhost:5183` in Chrome, Edge, Firefox or Safari.
+3. In Claude Code, say *add a 40 mm cube*. It replies with a pairing code, such as `K7Q4-FX2M`.
+4. In WarpCad tap **Assistant → Connect to Claude Code…**, type the code, tap **Connect**, then
+   **Done**. The panel's header says **Claude Code · connected**.
+5. Say *add a cube* again. It appears in the viewport, marked **via mcp** in History. Tap
+   **Undo AI turn** to take it back.
+
+No key is needed, and none is sent. [Live mode](mcp.md#live-mode-claude-code-edits-the-project-you-have-open)
+covers the details: browsers, the pairing code, and what happens if you're mid-drag when a
+change arrives.
+
 ## Where the key lives
 
 - **Only in this browser.** It is stored in this browser's IndexedDB, next to the token the
@@ -273,6 +293,12 @@ back to **Pi 4**, with every part where it was.
 
 **Example.** After the cube above, tap **Undo AI turn**. The cube and both History rows are gone and
 the button greys out.
+
+**Claude Code in live mode** is slightly different. Everything it did for one request is one
+**Undo AI turn**, and the button stays available after your own edits. If one of your edits
+builds on Claude's work, for example you moved its sphere, **Undo AI turn** says *Can't undo the
+AI turn* and names the step in the way. Press **Undo** in the top bar to take your move back,
+then **Undo AI turn** again: Claude's cube and sphere go, and your own **Undo** is untouched.
 
 ## Test, replace and forget
 

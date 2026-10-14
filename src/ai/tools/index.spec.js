@@ -6,7 +6,7 @@ import { boundsOf, volumeOf } from '../../core/kernel/group.js'
 import { recordsForDrop } from '../../core/library.js'
 import { fakeRegistry } from './__fixtures__/fakeRegistry.js'
 import { fakeSelection, makeContext } from './__fixtures__/context.js'
-import { createToolRegistry } from './index.js'
+import { LIVE_BROWSER_TOOLS, createToolRegistry } from './index.js'
 import { LIMITS, createTurn } from './limits.js'
 
 describe('a whole "cube, sphere, subtract" session through the registry, in plain Node', () => {
@@ -204,5 +204,38 @@ describe('createToolRegistry', () => {
     expect(/** @type {any} */ (tools.run(ctx, 'get_timeline', {})).rows).toHaveLength(2)
     expect(/** @type {any} */ (tools.run(ctx, 'apply_records', { steps: [{ create: { op: 'fake.block', positionMm: [30, 0, 0] } }] })).error).toBeUndefined()
     expect(document.bodies()).toHaveLength(2)
+  })
+})
+
+describe('the live-bridge seam (TODO/ai-012): origin mcp, the browser tool list', () => {
+  it('names exactly the three browser tools the live bridge adds', () => {
+    expect([...LIVE_BROWSER_TOOLS].sort()).toEqual(['capture_view', 'get_selection', 'select'])
+  })
+
+  it('lists MCP’s tools plus those three when the capability flag is set — one list, not a third copy', () => {
+    const tools = createToolRegistry()
+    const closedFile = tools.toolsFor('mcp').map((tool) => tool.name)
+    const live = tools.toolsFor('mcp', { live: true }).map((tool) => tool.name)
+    expect(live).toEqual([...closedFile, ...LIVE_BROWSER_TOOLS].sort())
+    expect(tools.definitions('mcp', { live: true }).map((definition) => definition.name)).toEqual(live)
+    // The closed-file list is unchanged (ai-009 as io-010 left it).
+    expect(closedFile).not.toContain('get_selection')
+    expect(tools.definitions('mcp').map((definition) => definition.name)).toEqual(closedFile)
+  })
+
+  it('runs a browser tool over mcp only with ctx.live, and the write still carries origin mcp', () => {
+    const tools = createToolRegistry()
+    const document = createDocument({ replica: 'abcdef' })
+    const selection = fakeSelection([])
+    expect(tools.run(makeContext({ document, origin: 'mcp', selection }), 'get_selection', {})).toMatchObject({ error: expect.stringMatching(/not available over MCP/) })
+    expect(tools.run({ ...makeContext({ document, origin: 'mcp', selection }), live: true }, 'get_selection', {}).error).toBeUndefined()
+    const created = tools.run({ ...makeContext({ document, origin: 'mcp', selection }), live: true }, 'create', { op: 'primitive.cuboid', positionMm: [0, 0, 0] })
+    expect(created.error).toBeUndefined()
+    expect(document.originOf(/** @type {string} */ (document.entries[0].record.id))).toBe('mcp')
+  })
+
+  it('never offers the image or save-proposal tools over the bridge (they need the in-app chat)', () => {
+    const live = createToolRegistry().toolsFor('mcp', { live: true }).map((tool) => tool.name)
+    for (const name of ['get_reference_image', 'set_reference_scale', 'locate_in_image', 'save_to_library']) expect(live).not.toContain(name)
   })
 })

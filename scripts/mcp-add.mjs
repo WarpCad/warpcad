@@ -15,6 +15,12 @@
  * Registered at **user** scope: Claude Code's default scope is per-folder, and the docs promise
  * "start Claude Code in any folder".
  *
+ * `npm run mcp:add -- --dev` (`TODO/ai-012`, Decision 11) registers the **live bridge** instead:
+ * the HTTP form, pointing at the Vite dev server's `/mcp` (`mcp/liveBridge.js`), so Claude Code
+ * edits the project open in a WarpCad tab under `npm run dev`. It takes no project file — live
+ * mode never touches one — and it replaces a closed-file registration under the same name, as a
+ * closed-file registration replaces it: one server, one mode, no silent fallback between them.
+ *
  * @module scripts/mcp-add
  */
 
@@ -27,7 +33,9 @@ import { createDocument } from '../src/core/document.js'
 import { serializeProject } from '../src/core/project.js'
 import { ProjectFileError, loadProjectText } from '../mcp/projectFile.js'
 
-const USAGE = 'usage: npm run mcp:add -- <project-file.ndjson>'
+const USAGE = 'usage: npm run mcp:add -- <project-file.ndjson>   or   npm run mcp:add -- --dev'
+/** The Vite dev server's live-bridge endpoint (`vite.config.js`: port 5183, strict). */
+const DEV_URL = 'http://127.0.0.1:5183/mcp'
 const NAME = 'warpcad'
 const SERVER = resolve(dirname(fileURLToPath(import.meta.url)), '..', 'mcp', 'server.js')
 
@@ -52,8 +60,50 @@ function claude(args) {
   return result
 }
 
+/**
+ * Drop any earlier registration under {@link NAME}, at either scope. Failure just means there was
+ * nothing registered there.
+ */
+function removeExisting() {
+  for (const scope of ['user', 'local']) claude(['mcp', 'remove', NAME, '--scope', scope])
+}
+
+/** `--dev`: register the live bridge's HTTP endpoint. */
+function registerDev() {
+  if (!existsSync(resolve(dirname(SERVER), 'node_modules', '@modelcontextprotocol'))) {
+    fail('the MCP server\'s dependencies are not installed. Run `npm run mcp:install` first (the dev server loads them too).')
+  }
+  removeExisting()
+  const added = claude(['mcp', 'add', '--scope', 'user', '--transport', 'http', NAME, DEV_URL])
+  if (added.status !== 0) {
+    fail(`\`claude mcp add\` failed${added.stderr ? `: ${added.stderr.trim()}` : ` (exit ${added.status})`}`)
+  }
+  process.stdout.write(
+    [
+      `Registered the "${NAME}" MCP server with Claude Code (user scope) in live mode:`,
+      `  endpoint ${DEV_URL}`,
+      '',
+      'Live mode is dev-host only: run `npm run dev` in this folder and open WarpCad in a desktop browser',
+      'on this computer (Chrome, Edge, Firefox or Safari at http://localhost:5183).',
+      'Then ask Claude Code for a change. It replies with a pairing code: enter it in WarpCad under',
+      'Assistant → Connect to Claude Code.',
+      '',
+      `To go back to editing a closed project file: npm run mcp:add -- <project-file.ndjson>`,
+      '',
+    ].join('\n')
+  )
+}
+
 function main() {
   const args = process.argv.slice(2)
+  if (args.includes('--dev')) {
+    if (args.length !== 1) {
+      process.stderr.write(`mcp:add: --dev takes no project file: live mode edits the project open in WarpCad, never a file.\n${USAGE}\n`)
+      process.exit(2)
+    }
+    registerDev()
+    return
+  }
   if (args.length !== 1 || args[0].startsWith('-')) {
     process.stderr.write(`${USAGE}\n`)
     process.exit(args[0] === '--help' || args[0] === '-h' ? 0 : 2)
@@ -88,9 +138,8 @@ function main() {
     }
   }
 
-  // A stale entry (the old placeholder, or a previous file) must not survive. Failure just means
-  // there was nothing registered at that scope.
-  for (const scope of ['user', 'local']) claude(['mcp', 'remove', NAME, '--scope', scope])
+  // A stale entry (the old placeholder, a previous file, or the live bridge) must not survive.
+  removeExisting()
 
   const added = claude(['mcp', 'add', '--scope', 'user', NAME, '--', 'node', SERVER, file])
   if (added.status !== 0) {

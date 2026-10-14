@@ -17,7 +17,8 @@
  *   including what they did during the turn.
  * - `undoTurn()` takes the last landed turn back out via the agent's `undoAiTurn` (`ui-062`'s
  *   inverse of the merge it landed by), as an `ai`-origin write that never touches the local undo
- *   stack, and names the step that blocks it when it cannot.
+ *   stack, and names the step that blocks it when it cannot. When the last AI change was Claude
+ *   Code's over the live bridge (`TODO/ai-012`), it is `useLiveBridge`'s to take back instead.
  * - `attach(file)` (`TODO/ai-008`) runs the file through `sketch-003`'s sanitiser first
  *   (`src/ai/reference.js`); the model is sent a copy made from the sanitised bytes, and the
  *   sanitised record can become a sketch slice's reference photo. A refused file is an error line
@@ -42,6 +43,7 @@ import { viewportCapture } from '../render/offscreenCapture.js'
 import { bytesFromBase64 } from '../sketch/imageAsset.js'
 import { decodeAssetBitmap, importImageFile } from '../sketch/imageClient.js'
 import { useAiChatStore } from '../stores/aiChat.js'
+import { useLiveBridge } from './useLiveBridge.js'
 import { useAssistantStore } from '../stores/assistant.js'
 import { useDocumentStore } from '../stores/document.js'
 import { useLibraryStore } from '../stores/library.js'
@@ -230,6 +232,8 @@ export function useAgent() {
       // `TODO/ai-014`: a turn that only revised rows (set a variable) changed the project too.
       const landed = outcome.status === 'done' && outcome.recordIds.length + outcome.revisedIds.length + outcome.removedIds.length > 0
       chat.landedVersion = landed ? documentStore.raw.version : null
+      // `TODO/ai-012`: Undo AI turn takes back whichever AI change landed last.
+      if (landed) chat.lastLanded = 'ai'
       if (landed) reportLanding(outcome, ctx)
       // `TODO/ai-008`: the built group is selected, so the Inspector lists its sub-parts — unless
       // the user was working during the turn (`TODO/ai-017`): their selection is theirs then.
@@ -293,6 +297,11 @@ export function useAgent() {
 
   function undoTurn() {
     if (!chat.canUndoTurn) return
+    // `TODO/ai-012`: the last AI change was Claude Code's, over the live bridge.
+    if (chat.lastLanded === 'mcp') {
+      useLiveBridge().undoTurn()
+      return
+    }
     const ctx = agentContext()
     const turn = ctx.aiTurns.at(-1)
     if (turn === undefined) return

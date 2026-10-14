@@ -2331,3 +2331,16 @@ The new end-to-end spec turned up a core bug along the way: Undo after a merge m
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** lock removed, landing by merge, Watch, chip -> diff; Undo identity bug and fix -> `src/core/document.js` diff and the `documentMerge.spec.js` regression, failing without the fix in this session
 **To Add:** `docs/screenshots/ai-working-chip.png`, `ai-watch.png`; repo URL once public
+
+## [2026-10-14T17:50:00Z] — Claude Code edits the project you have open
+
+**Post:** WarpCad can now be edited by Claude Code while the project is open in a browser tab. Under `npm run dev`, Claude Code's tool calls reach the tab over the dev server's own socket, run through the same tool registry the in-app assistant uses, and land as one step per request. A pairing code and an Origin check keep other pages out, and the code never appears in a log.
+
+The tab stays the single writer; the AI is its client. A call whose document moved underneath it is refused rather than landed over your change. In a hand drive, a call made while I held a Library drag was refused and my dropped cube was kept.
+
+Dev host only for now, desktop browser, and I drove it with an MCP client stand-in rather than a real Claude Code. Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource #MCP
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** Claude Code edits the open tab under `npm run dev` -> diff (`mcp/liveBridge.js`, `src/ai/bridge/tabEndpoint.js`); cube and sphere landed, Undo AI turn took the group back, held-drag call refused and drop kept -> hand drive this session (MCP client stand-in, not a real Claude Code); wrong pairing code refused, phone control disabled with its reason -> same drive; Safari/real Claude Code not driven -> TODO/ACCEPTANCE.md scenario 25 Last run
+**To Add:** `docs/screenshots/ai-live-bridge.png` (already generated); repo URL once public

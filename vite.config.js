@@ -3,6 +3,8 @@ import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import { VitePWA } from 'vite-plugin-pwa'
 
+import { warpcadLiveBridge } from './mcp/liveBridge.js'
+
 /**
  * The dev server only. `index.html`'s Content-Security-Policy is the production policy; `vite
  * dev` relaxes it in exactly two ways, and `vite build` output carries the policy
@@ -37,6 +39,9 @@ export default defineConfig({
   server: { port: 5183, strictPort: true },
   plugins: [
     devContentSecurityPolicy(),
+    // `TODO/ai-012`: Claude Code edits the open tab, under `npm run dev` only (`apply: 'serve'`;
+    // `vite build` output carries nothing of it). MCP at /mcp, the tab over the HMR socket.
+    warpcadLiveBridge(),
     vue(),
     VitePWA({
       registerType: 'autoUpdate',

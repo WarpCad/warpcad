@@ -1657,3 +1657,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** lock replaced by merge landing -> diff (`src/ai/agent.js`, decision 5 amendment); sphere placed mid-turn, count 3 then 5, Undo AI turn left 3 -> hand drive this session, scripted transcript (laptop and phone Chromium)
 **To Add:** `docs/screenshots/ai-working-chip.png`, `ai-watch.png`; repo URL once public
+
+## [2026-10-14T17:50:00Z] — Claude Code edits the project you have open
+
+**Post:** WarpCad now lets Claude Code edit the project open in your browser tab, on your own plan, no API key. Each request lands as one step; Undo AI turn takes the whole group back and leaves your own edits alone. Dev host only for now. Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** Claude Code edits the open tab under `npm run dev` -> diff (`mcp/liveBridge.js`, `src/ai/bridge/tabEndpoint.js`); cube and sphere landed, Undo AI turn took the group back, held-drag call refused and drop kept -> hand drive this session (MCP client stand-in, not a real Claude Code); wrong pairing code refused, phone control disabled with its reason -> same drive; Safari/real Claude Code not driven -> TODO/ACCEPTANCE.md scenario 25 Last run
+**To Add:** `docs/screenshots/ai-live-bridge.png` (already generated); repo URL once public

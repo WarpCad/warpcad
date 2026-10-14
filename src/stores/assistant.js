@@ -36,6 +36,7 @@ import { createAnthropicClient } from '../ai/client.js'
 import { modelLabel } from '../ai/models.js'
 import { createScriptedClient } from '../ai/providers/scripted.js'
 import { createAiKeyStore } from '../storage/aiKey.js'
+import { useAiChatStore } from './aiChat.js'
 import { useSettingsStore } from './settings.js'
 
 /** Shown beside the key sheet whenever the key could not be written to browser storage. */
@@ -86,7 +87,7 @@ export const useAssistantStore = defineStore('assistant', () => {
   const status = ref('none')
   /** The last Test failure's own fixed wording, or ''. */
   const message = ref('')
-  /** @type {import('vue').Ref<'closed' | 'key' | 'chat' | 'subscription'>} */
+  /** @type {import('vue').Ref<'closed' | 'key' | 'chat' | 'subscription' | 'connect'>} */
   const view = ref('closed')
   const loaded = ref(false)
   /** @type {Promise<void> | null} */
@@ -198,9 +199,18 @@ export const useAssistantStore = defineStore('assistant', () => {
     view.value = 'key'
   }
 
-  /** The header button: chat if connected, the key sheet if there is nothing to connect with. */
+  /**
+   * The header button: chat if connected — by a key, or by Claude Code over the live bridge
+   * (`TODO/ai-012`, whose History rows and **Undo AI turn** live in the chat) — the key sheet if
+   * there is nothing to connect with.
+   */
   function open() {
-    view.value = hasKey.value ? 'chat' : 'key'
+    view.value = hasKey.value || useAiChatStore().bridge === 'connected' ? 'chat' : 'key'
+  }
+
+  /** `TODO/ai-012`: **Connect to Claude Code** — the live bridge's pairing sheet. */
+  function openConnect() {
+    view.value = 'connect'
   }
 
   function openKeySheet() {
@@ -243,6 +253,7 @@ export const useAssistantStore = defineStore('assistant', () => {
     open,
     openKeySheet,
     openSubscriptionRoute,
+    openConnect,
     close,
     doneWithKeySheet,
   }

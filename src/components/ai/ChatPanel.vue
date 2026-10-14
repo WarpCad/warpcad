@@ -21,6 +21,12 @@
  * reach at the folded (peek) height too. Enabled only while a turn runs; on, the viewport shows the
  * Assistant's fork read-only in the amber preview (`stores/timeline.js`); off, or the turn ending,
  * returns to the live project. The user is never paused: every other control works during a turn.
+ *
+ * **Claude Code** (`TODO/ai-012`): the live bridge's chip sits on the status line too
+ * (`BridgeChip`), and **Connect to Claude Code…** beside **Key and model…** (`ConnectButton`;
+ * on a phone or tablet it is shown disabled with its reason on the key sheet instead, so the
+ * half-height sheet keeps Send in view). Claude Code's changes land in the live project as
+ * `mcp` rows; **Undo AI turn** takes back whichever AI change landed last.
  */
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 
@@ -34,6 +40,8 @@ import { useSelectionStore } from '../../stores/selection.js'
 import { useTimelineStore } from '../../stores/timeline.js'
 import ConnectionDot from '../display/ConnectionDot.vue'
 import ActivityRow from './ActivityRow.vue'
+import BridgeChip from './BridgeChip.vue'
+import ConnectButton from './ConnectButton.vue'
 import Composer from './Composer.vue'
 import SaveProposal from './SaveProposal.vue'
 import TokenReadout from './TokenReadout.vue'
@@ -150,6 +158,7 @@ const HEIGHTS = /** @type {const} */ ([
       <strong class="chat__title">Assistant</strong>
       <span v-if="assistant.scripted" class="chat__scripted" role="note" title="A recorded transcript is standing in for the model. Nothing here shows what the live model would do." data-testid="ai-scripted-badge">Scripted</span>
       <span class="chat__status" role="status" data-testid="ai-status">{{ statusLine }}</span>
+      <BridgeChip />
       <button
         type="button"
         class="chat__watch"
@@ -193,6 +202,7 @@ const HEIGHTS = /** @type {const} */ ([
         <p class="chat__model">
           Model: <strong data-testid="assistant-model-name">{{ assistant.modelName }}</strong>
           <button v-if="!assistant.scripted" type="button" class="chat__link" data-testid="assistant-keys" @click="assistant.openKeySheet()">Key and model…</button>
+          <ConnectButton testid="ai-connect-open" only-where-usable />
         </p>
         <p v-if="assistant.storageNote" class="chat__warn" role="status" data-testid="assistant-storage-note">
           {{ assistant.storageNote }}

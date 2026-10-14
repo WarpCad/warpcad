@@ -180,3 +180,29 @@ describe('mcp:add', () => {
     }
   })
 })
+
+describe('mcp:add --dev (TODO/ai-012: the live bridge under npm run dev)', () => {
+  it('registers the dev host’s HTTP endpoint under the same name, replacing a closed-file registration', () => {
+    fakeClaude({ registered: true })
+    const result = run(['--dev'])
+    expect(result.status, result.stderr).toBe(0)
+    const argv = calls()
+    expect(argv.slice(0, 2)).toEqual([
+      ['mcp', 'remove', 'warpcad', '--scope', 'user'],
+      ['mcp', 'remove', 'warpcad', '--scope', 'local'],
+    ])
+    expect(argv[2]).toEqual(['mcp', 'add', '--scope', 'user', '--transport', 'http', 'warpcad', 'http://127.0.0.1:5183/mcp'])
+    // No project file is created: live mode edits the open tab, never a file.
+    expect(result.stdout).toMatch(/npm run dev/)
+    expect(result.stdout).toMatch(/desktop browser/)
+    expect(result.stdout).toMatch(/Connect to Claude Code/)
+  })
+
+  it('takes no project file with --dev: one server, one mode', () => {
+    fakeClaude()
+    const result = run(['--dev', 'bracket.ndjson'])
+    expect(result.status).not.toBe(0)
+    expect(result.stderr).toMatch(/--dev/)
+    expect(calls()).toEqual([])
+  })
+})

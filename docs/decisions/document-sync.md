@@ -211,7 +211,11 @@ None of these is solved by this document. Each names the task that has to put a 
 Live multi-person editing over a network (there is still no server), tombstone compaction
 (`data-012`), importing a *different* project's bodies (`io-012`), and any change to
 `ai-012`'s relay (`ai-partner.md` Decision 11 is left as written; its own "Compatibility with
-the M15 merge" section is the bridge's side of the contract).
+the M15 merge" section is the bridge's side of the contract). As built (`ai-012`, dev host
+only), the bridge is a **single-replica client of the merge**: Claude Code's calls run in the open
+tab and land as that tab's own stamped `mcp`-origin writes under the tab's replica id; the bridge
+holds no document and no replica of its own, and is refused (never landed) when the tab's Lamport
+clock moved under a call.
 
 ## Sources (2026-10-12)
 

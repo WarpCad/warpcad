@@ -78,6 +78,7 @@ drops (dropping the second body must not hide or replace the first). Clicking ea
 individually selects only that item (gizmo and dimension lines attach to whichever was
 just clicked, not both at once).
 
+**Last run**: 2026-10-14 UTC (`ai-012`) — **PASS** at laptop 1440x900 Chromium (real mouse, jittered 24-step Library drags, fresh profile). Cube then Cylinder dropped: both remained (1 then 2). Re-driven because the Assistant header, `Viewport` and the registry seam changed. Console and page errors: none.
 **Last run**: 2026-10-14 UTC (`ai-017`) — **PASS** at laptop 1440x900 and phone 390x844 Chromium (real mouse via `page.mouse`, jittered 24-step Library drags, fresh profile). Cube then Cylinder dropped: both remained (1 then 2). At laptop a click on open grid left 0 selected; at phone the same click left 1 selected (landed on the just-dropped body or the nav chrome, a drive-aim question not re-checked). Re-driven because the agent's landing path and `Viewport.vue` changed. Console and page errors: none.
 
 **Last run**: 2026-10-12 14:30 UTC (`ai-016`) — **PASS** at laptop 1440x900 Chromium (real mouse, jittered Library drags, fresh profile). Cube then Cylinder dropped: both remained (count 1 then 2); a click on open grid cleared the selection. Re-driven because the subscription sheet's command and text changed. By hand: no-key Assistant -> **Use my Claude subscription…** shows `npm run mcp:add -- my-part.ndjson`, Copy put exactly that on the clipboard, Escape returned to the key sheet, both bodies still there. Console and page errors: none. Per-body click selection not re-driven (no picking code changed).
@@ -2961,6 +2962,7 @@ shows **Download copy** instead — drive whichever your browser shows, and say 
   **Cancel** the second local edit does **not** raise the dialog again and does not push;
   an explicit **Save to owner/repo** raises it again.
 
+**Last run**: 2026-10-14 UTC (`ai-012`) — **PASS for the MCP half only** (real stdio client against `mcp/server.js <file>`, temp project): the closed-file tool list has no `capture_view`/`get_selection`/`select`, `create` changed the file, `get_selection` was refused as browser-only. Re-driven because the registry seam and `mcp/server.js` changed. The in-app Save/Reload half was not hand-driven (its e2e, `mcp-reload.e2e.js`, passes 36/36).
 **Last run**: 2026-10-12 23:05 UTC (`ui-062`) — **PASS** at laptop 1440x900 Chromium (real jittered mouse), after performing a **Merge file…** first so the document held merged rows: cube + cylinder + a merged sphere, Union on the cube, `Saved · 16:32`; reload → `Restored your last session`, body list byte-identical, merged row survived, no toast/banner/Undo merge after the reload (in memory by design); Download copy then Open restored the 4-step project.
 
 **Last run**: 2026-10-12 19:05 UTC (`data-010`) — **PASS for the reload leg (steps 1-5, unioning omitted)** at laptop 1440x900 Chromium (real mouse, jittered Library drags, fresh profile). Cube and Cylinder dropped (both kept), a body deleted, chip reached `Saved`, reload restored exactly the surviving body with `Restored your last session`. Re-driven because every document mutator now stamps merge metadata. Not driven: File ▾ Save/Open round trip (headless, no picker), hosted half. Console and page errors: none.
@@ -3958,5 +3960,48 @@ not that a model's turn stays out of the way.
   that stays after the turn ends.
 
 **Last run**: 2026-10-14 UTC (`ai-017`) — **PASS, with a scripted transcript instead of a real key** (`edit-while-working`), at laptop 1440x900 and phone 390x844 Chromium, real mouse. Turn started, header chip showed, viewport live (`data-previewing` false); panel closed, a Sphere dragged in mid-turn (count 3, chip still up); Watch on showed the amber strip *Watching the Assistant — your project is unchanged*, off returned to live; turn ended with count 5, chip gone and the transcript line *Merged with N changes you made meanwhile*; **Undo AI turn** left 3 (the user's three), header Undo then read *Undo: Place Cylinder 1* and took the Sphere (2). Console and page errors: none. **Not driven**: a real model/key, an edit to the very body the Assistant was changing (covered by the conflict e2e only), tablet width. The new e2e (Step 5, before this drive) had found a real defect: after Undo AI turn, header Undo popped the step but left the rows (undo matched by object identity; fixed in `document.js`, regression in `documentMerge.spec.js`).
+
+
+### 25. Claude Code edits the project you have open (live bridge)
+
+Added 2026-10-14 with `TODO/ai-012`: under `npm run dev`, Claude Code (on the user's own plan)
+changes the project open in a desktop browser tab, with no key. Control names: **Assistant**
+(`assistant-button`), **Connect to Claude Code…** (`ai-key-connect` on the key sheet,
+`ai-connect-open` in the panel), the sheet (`ai-connect-sheet`, code field `ai-connect-code`,
+**Connect** `ai-connect-submit`, **Done** `ai-connect-done`), the header chip (`ai-bridge-chip`),
+the working chip (`ai-working-chip`), **Undo AI turn** (`ai-undo-turn`) and the header **Undo**.
+Needs **a real Claude Code** (`npm run mcp:add -- --dev`), not the e2e's MCP client stand-in.
+
+**Steps** (laptop 1440x900 in Chrome, then Safari; then phone 390x844 for step 7 only):
+1. `npm run dev`, open `http://localhost:5183`. In Claude Code ask *add a 40 mm cube*.
+2. Type the code Claude Code shows into **Assistant → Connect to Claude Code…**; first try a
+   wrong one.
+3. Ask *add a 40 mm cube and a 20 mm sphere on top of it*. Watch the header while it works.
+4. Select the sphere and move it with the gizmo. Ask *what have I selected?*
+5. Press **Undo AI turn**; then the header **Undo**; then **Undo AI turn** again.
+6. Ask for another change while dragging a Library part into the viewport, and hold the drag for
+   a few seconds before dropping.
+7. On a phone (or at 390 px), open the Assistant.
+
+**Expect**:
+- Step 1: Claude Code shows a sentence with a code like `K7Q4-FX2M` and the menu path; nothing
+  hangs. The code appears nowhere in the `npm run dev` terminal.
+- Step 2: the wrong code is refused in words; the right one gives `Connected` and, after Done, the
+  chip `Claude Code · connected` in the Assistant header. Safari's sheet says a hosted (https)
+  copy cannot connect; Chrome's says to choose Allow if asked.
+- Step 3: `Claude Code working` in the header; the cube and sphere appear, the sphere on top;
+  History rows marked `via mcp`, with the request as their intent.
+- Step 4: the sphere moves like any body; Claude names the selected sphere.
+- Step 5: the first **Undo AI turn** is refused, naming your move; **Undo** takes back the move;
+  the second **Undo AI turn** removes both of Claude's bodies in one step, and the header Undo is
+  then disabled (Claude's rows were never on it).
+- Step 6: the change lands after you drop, or Claude says *the user is editing; try again* and
+  retries; your drop is never lost or overwritten.
+- Step 7: **Connect to Claude Code…** is shown greyed out with `Claude Code must run on this
+  device`; no horizontal scroll.
+- Never: a Claude change on the header Undo stack, a refused call that changed the project, a
+  code in a log, or a tab another web page could pair with.
+
+**Last run**: 2026-10-14 UTC (`ai-012`) — **PASS, with a stand-in for Claude Code** at laptop 1440x900 Chromium (real jittered `page.mouse`; the MCP client stand-in over Streamable HTTP, not a real Claude Code; Safari not driven) and phone 390x844. A cold call returned the sentence with the menu path and a code; a wrong code was refused in words; the right one gave `Claude Code · connected`; cube + sphere landed (4 bodies with scenario 1's two); `get_selection` named the selected body; a call made while a Library drag was held was refused ("project changed… while this call waited") and the dropped cube was kept; **Undo AI turn** took back the whole Claude group and left the drop; phone showed the control disabled with `Claude Code must run on this device`, no horizontal scroll. Console/page errors: none. Not driven: a real Claude Code, Safari, the Chromium local-network prompt, step 5's gizmo-move-then-refusal order (covered by the e2e).
 
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

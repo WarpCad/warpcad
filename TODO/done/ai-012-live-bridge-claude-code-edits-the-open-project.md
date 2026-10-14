@@ -6,8 +6,10 @@ priority: high
 model: opus
 milestone: M9
 depends: [ai-009, ai-006, ai-016, data-010, ai-017]
-status: open
+status: done
 ---
+
+> **Shipped 2026-10-14 (dev host only, as scoped).** `mcp/bridge.js` core, `mcp/liveHttp.js` + `mcp/liveBridge.js` (Vite plugin: Streamable HTTP `/mcp`, tab over the HMR socket), `src/ai/bridge/`, Connect sheet + header chip, `npm run mcp:add -- --dev`. Differences from the text below: the pairing code is read from the MCP tool result (never stderr or any log); no explicit pause while a call runs (the run is synchronous, the staleness check covers the wait); Claude Code groups stay undoable after the user's own edits and are refused by name when an edit builds on them; Connect is left out of the chat panel at phone/tablet width (shown disabled on the key sheet with its reason); "port taken" belongs to the standalone `--live` host, not built. Not driven: a real Claude Code, Safari, the Chromium local-network prompt.
 
 ## Goal
 

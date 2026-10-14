@@ -470,8 +470,12 @@ Two access paths, both planned, served by **one** framework-free tool registry
   on window focus and before every in-place Save, and on a difference asks **Reload /
   Overwrite the file / Cancel** — no merge, and Save never overwrites without that answer.
   Engines without a handle (Safari, Firefox, every phone) cannot see the change; the user
-  re-Opens the file. The localhost live-editing bridge is the reserved `ai-012`, planned as
-  one writer (the open tab) with the AI as its client, not as a merge.
+  re-Opens the file. The localhost live-editing bridge is `ai-012`, built for the **dev host
+  only** (`npm run dev`, `mcp/liveBridge.js` + `mcp/bridge.js`, registered with
+  `npm run mcp:add -- --dev`): one writer (the open tab) with the AI as its client, not as a
+  merge — each call lands as one `mcp`-origin batch, a group per `request` is one **Undo AI
+  turn**, and a pairing code gates the link. The standalone `mcp/server.js --live` host for a
+  built or hosted app stays reserved.
 - **BYOK chat** — the user's own API key in IndexedDB (the existing
   `src/storage/tokenStorage.js` credential store), called directly from the browser. An
   AI turn builds on a forked copy of the document (its own replica) while the human keeps

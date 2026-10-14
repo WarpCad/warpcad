@@ -106,6 +106,21 @@ export { toStrictWire } from './schema.js'
 /** @typedef {'ai' | 'mcp'} Transport */
 
 /**
+ * The live bridge's seam (`TODO/ai-012`, Decision 11 point 2): the browser tools an `mcp` client
+ * may also call when its calls run in an open WarpCad tab rather than on a closed file. The tab
+ * has a selection and a GPU, so these work there; the image and save-proposal tools need the
+ * in-app chat (attachments, a Confirm tap) and stay browser-chat only. A capability flag
+ * (`{ live: true }` on {@link ToolRegistry.toolsFor} / {@link ToolContext.live}), not a third
+ * transport: records keep origin `mcp`.
+ */
+export const LIVE_BROWSER_TOOLS = Object.freeze(['capture_view', 'get_selection', 'select'])
+
+/**
+ * @typedef {object} ListOptions
+ * @property {boolean} [live] `mcp` from an open tab (the live bridge): add {@link LIVE_BROWSER_TOOLS}.
+ */
+
+/**
  * The selection, as the browser transport hands it over from its selection store.
  *
  * @typedef {object} ToolSelection
@@ -135,6 +150,8 @@ export { toStrictWire } from './schema.js'
  *   each write's own `rationale` it becomes the design intent every appended record carries.
  *   The agent (`ai-005`) or the MCP server (`ai-009`) sets it; absent, only the rationale is
  *   recorded.
+ * @property {boolean} [live] `TODO/ai-012`: an `mcp` call running in the open tab (the live
+ *   bridge), which may also use {@link LIVE_BROWSER_TOOLS}. Origin stays `mcp`.
  */
 
 /**
@@ -160,9 +177,10 @@ export { toStrictWire } from './schema.js'
 /**
  * @typedef {object} ToolRegistry
  * @property {readonly Tool[]} tools Every tool, sorted by name.
- * @property {(transport: Transport) => Tool[]} toolsFor The tools one transport lists.
- * @property {(transport: Transport) => ToolDefinition[]} definitions Deterministic: same
- *   registry, same JSON, so a cached prompt prefix never shifts (decision 9).
+ * @property {(transport: Transport, options?: ListOptions) => Tool[]} toolsFor The tools one
+ *   transport lists.
+ * @property {(transport: Transport, options?: ListOptions) => ToolDefinition[]} definitions
+ *   Deterministic: same registry, same JSON, so a cached prompt prefix never shifts (decision 9).
  * @property {(ctx: ToolContext, name: string, input: unknown) => Record<string, any>} run
  */
 
@@ -230,25 +248,34 @@ export function createToolRegistry(options = {}) {
     ].sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0))
   )
 
-  /** @param {Transport} transport */
-  const toolsFor = (transport) => tools.filter((tool) => tool.transports.includes(transport))
+  /**
+   * @param {Tool} tool
+   * @param {Transport} transport
+   * @param {ListOptions} options
+   */
+  const offered = (tool, transport, options) =>
+    tool.transports.includes(transport) || (options.live === true && transport === 'mcp' && LIVE_BROWSER_TOOLS.includes(tool.name))
+  /** @param {Transport} transport @param {ListOptions} [options] */
+  const toolsFor = (transport, options = {}) => tools.filter((tool) => offered(tool, transport, options))
 
   return {
     tools,
     toolsFor,
-    definitions: (transport) =>
-      toolsFor(transport).map((tool) => ({ name: tool.name, description: tool.description, inputSchema: tool.inputSchema })),
+    definitions: (transport, options) =>
+      toolsFor(transport, options).map((tool) => ({ name: tool.name, description: tool.description, inputSchema: tool.inputSchema })),
     run(ctx, name, input) {
       assertWriteOrigin(ctx.origin)
       const hit = ctx.turn.beginStep(name)
       if (hit) return hit
 
+      const transport = /** @type {Transport} */ (ctx.origin)
+      const options = { live: ctx.live === true }
       const tool = tools.find((candidate) => candidate.name === name)
       /** @type {Record<string, any>} */
       let result
       if (!tool) {
-        result = { error: `There is no tool named ${JSON.stringify(name)}. The tools are: ${toolsFor(/** @type {Transport} */ (ctx.origin)).map((t) => t.name).join(', ')}.` }
-      } else if (!tool.transports.includes(/** @type {Transport} */ (ctx.origin))) {
+        result = { error: `There is no tool named ${JSON.stringify(name)}. The tools are: ${toolsFor(transport, options).map((t) => t.name).join(', ')}.` }
+      } else if (!offered(tool, transport, options)) {
         result = {
           error: `${name} is not available over ${ctx.origin === 'mcp' ? 'MCP' : ctx.origin}: it needs the browser viewport (a selection to read, or a GPU to render with).`,
         }

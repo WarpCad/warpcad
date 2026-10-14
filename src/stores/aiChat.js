@@ -15,6 +15,14 @@
  * is the timeline store's (`watching`), since it decides what the viewport shows.
  * `forkRevision` counts the running turn's tool results, so a watched fork re-renders.
  *
+ * **Live bridge** (`TODO/ai-012`): the connection to Claude Code (`bridge`, what the header chip
+ * shows), whether a relayed call is running (`bridgeWorking`, the same "AI is working" chip), and
+ * how many landed Claude Code groups can still be taken back (`bridgeTurns`). `lastLanded` says
+ * which kind of AI change **Undo AI turn** takes back: an in-app turn is gated on `landedVersion`
+ * as before; a Claude Code group stays takeable after the user's own edits and is refused by name
+ * when one of them builds on it (`src/ai/bridge/tabEndpoint.js`). The orchestration is
+ * `composables/useLiveBridge.js`.
+ *
  * @module stores/aiChat
  */
 
@@ -74,12 +82,31 @@ export const useAiChatStore = defineStore('aiChat', () => {
    */
   const attaching = ref(0)
 
+  /**
+   * `TODO/ai-012`: the live bridge. `unavailable` — this copy was not started with `npm run dev`;
+   * `idle` — never connected; `waiting` — a code was sent, no answer yet; `connected`;
+   * `disconnected` — the link dropped (reconnect with a new code).
+   *
+   * @type {import('vue').Ref<'unavailable' | 'idle' | 'waiting' | 'connected' | 'disconnected'>}
+   */
+  const bridge = ref(/** @type {'unavailable' | 'idle' | 'waiting' | 'connected' | 'disconnected'} */ ('idle'))
+  /** The last thing the bridge said to the user (a refused code, why it dropped), or ''. */
+  const bridgeMessage = ref('')
+  /** A Claude Code call is running in this tab (held briefly after, so it can be seen). */
+  const bridgeWorking = ref(false)
+  /** Landed Claude Code groups that **Undo AI turn** can still take back. */
+  const bridgeTurns = ref(0)
+  /** Which AI change landed last: an in-app turn or a Claude Code group. */
+  const lastLanded = ref(/** @type {'ai' | 'mcp'} */ ('ai'))
+
   const canSend = computed(() => !running.value && attaching.value === 0 && (draft.value.trim() !== '' || attachments.value.length > 0))
   /** `TODO/ai-017`: **Watch** is a view of the running turn, so it is offered only during one. */
   const canWatch = computed(() => running.value)
-  const canUndoTurn = computed(
-    () => !running.value && landedVersion.value !== null && documentStore.version === landedVersion.value
-  )
+  const canUndoTurn = computed(() => {
+    if (running.value || bridgeWorking.value) return false
+    if (lastLanded.value === 'mcp') return bridgeTurns.value > 0
+    return landedVersion.value !== null && documentStore.version === landedVersion.value
+  })
 
   /**
    * @param {import('../ai/agent.js').AgentEvent} event
@@ -157,6 +184,11 @@ export const useAiChatStore = defineStore('aiChat', () => {
     attachError,
     imageSentRevision,
     attaching,
+    bridge,
+    bridgeMessage,
+    bridgeWorking,
+    bridgeTurns,
+    lastLanded,
     canSend,
     canWatch,
     canUndoTurn,

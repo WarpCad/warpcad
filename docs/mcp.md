@@ -7,7 +7,9 @@ The steps it adds show up in the app's History marked **via mcp**, along with wh
 
 It works on a project **file on your computer**, not on the app while it is running. The app
 picks up the changes when you come back to it (see [Seeing the changes in the
-app](#seeing-the-changes-in-the-app)).
+app](#seeing-the-changes-in-the-app)). If you run WarpCad yourself with `npm run dev`, there is
+also a [live mode](#live-mode-claude-code-edits-the-project-you-have-open) where Claude's
+changes appear in the open app as it makes them.
 
 This is also the route for a **Claude Pro or Max subscription**: Claude Code is covered by it,
 while the in-app Assistant needs an API key billed separately. See [No API key? Use your
@@ -120,6 +122,84 @@ differs, **Save** brings up this dialog instead of writing.
 
 The simplest habit: let Claude work on a file you don't have open, then open it.
 
+## Live mode: Claude Code edits the project you have open
+
+In live mode, Claude Code changes the project **open in a WarpCad tab**, and each change appears
+in the viewport as it lands. No project file, no API key: the model runs in Claude Code on your
+own Claude plan, and WarpCad only supplies the tools.
+
+**Live mode only works when you run WarpCad yourself with `npm run dev`, in a desktop browser
+on the same computer as Claude Code.** The hosted app can't use it, and neither can a phone or
+tablet: there the **Connect to Claude Code…** button is greyed out with the reason *Claude Code
+must run on this device*.
+
+### Try it: a cube with a sphere on top
+
+1. From your WarpCad folder, install the server's dependencies (once), register live mode, and
+   start the dev server:
+
+   ```sh
+   npm run mcp:install
+   npm run mcp:add -- --dev
+   npm run dev
+   ```
+
+   `mcp:add -- --dev` registers `warpcad` with Claude Code as `http://127.0.0.1:5183/mcp`. It
+   replaces a closed-file registration: one at a time. To go back, run
+   `npm run mcp:add -- <project-file.ndjson>`.
+
+2. Open WarpCad at `http://localhost:5183` in Chrome, Edge, Firefox or Safari on this computer.
+
+3. In Claude Code, say *add a 40 mm cube*. WarpCad isn't connected yet, so Claude replies with a
+   pairing code such as `K7Q4-FX2M`.
+
+4. In WarpCad choose **Assistant → Connect to Claude Code…** (on the key sheet if you have no
+   API key, or beside **Key and model…** in the Assistant panel), type the code and choose
+   **Connect**, then **Done**. The Assistant panel's header says **Claude Code · connected**.
+
+5. Say *add a 40 mm cube and a 20 mm sphere on top of it*. Both appear in the viewport, and in
+   **History** each row is marked **via mcp**. They are ordinary bodies: select one and move it
+   with the gizmo.
+
+6. Press **Undo AI turn**. Everything Claude did for that request goes, in one step. Your own
+   **Undo** is untouched: it never takes back Claude's rows, and **Undo AI turn** never takes back
+   yours.
+
+![WarpCad with the Assistant panel's "Claude Code · connected" chip, a cube with a sphere on top in the viewport, and History rows "Cube 1 — placed" and "Sphere 1 — placed", each marked "via mcp".](./screenshots/ai-live-bridge.png)
+
+### How it behaves
+
+- **One Undo AI turn per request.** Changes Claude makes for the same request, less than a
+  minute apart, are one **Undo AI turn**. A new request, or a minute's pause, starts the next
+  one. If you've since built on one of Claude's bodies (moved it, for example), **Undo AI turn**
+  says which step is in the way. Undo that first, then try again.
+- **You stay in charge of the editing.** Claude's changes are made one at a time. If one arrives
+  while you're dragging, or typing in a number field, it waits up to 10 seconds for you to
+  finish. Then it's refused with *the user is editing; try again*, and Claude retries. If the
+  project changed while it waited, it's refused too, and Claude reads the project again first.
+  A refused change leaves the project exactly as it was.
+- **Claude sees what you select.** `get_selection` tells Claude what you've picked, so *make
+  this 5 mm taller* works. `capture_view` lets it look at the viewport.
+- **While a change runs** the header shows **Claude Code working**.
+- **The code works once, for 5 minutes.** If it expires, ask Claude again for a new one. After
+  five wrong codes, reload the page. The code is never written to a log or a file. If the tab
+  reloads or the dev server restarts, the chip says **disconnected — reconnect**; ask Claude for
+  a new code.
+
+### Browsers
+
+| Browser | Under `npm run dev` |
+|---|---|
+| Chrome, Edge | Works. It may ask to let the page reach devices on your local network; choose **Allow**. |
+| Firefox | Works, no prompt. |
+| Safari | Works. A hosted (`https://`) copy of WarpCad could never connect: Safari, and every iPhone and iPad browser, blocks that. The Connect sheet says so. |
+
+### What can reach it
+
+Only Claude Code (or another MCP client) on this computer, and only the WarpCad tab you paired.
+`/mcp` refuses requests from any other web page (including other local dev servers) and from
+any address but this computer's loopback. Without the code, nothing reaches your project.
+
 ## Safety
 
 - **Only one file.** The server reads and writes the file it was started with and nothing else.
@@ -166,7 +246,8 @@ Every message names the file and says that nothing was written to it.
 - **Projects in a GitHub repository.** The server works on a local file only. To use it with a
   project you keep in a repository, **Load from** it in the app, **Save** it as a file, run the
   server on that file, then open the file and **Save to** the repository.
-- **Live editing of the open app.** Claude working directly in a WarpCad window you're looking at
-  is planned separately; for now, the file is the hand-off.
+- **Live editing of the hosted app.** [Live mode](#live-mode-claude-code-edits-the-project-you-have-open)
+  works under `npm run dev` only. A helper that lets Claude Code reach a built or hosted copy is
+  planned separately.
 
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

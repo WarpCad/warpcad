@@ -34,6 +34,18 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### ai-012 — Live bridge, dev host (2026-10-14)
+
+Driven with an MCP client stand-in, not a real Claude Code, so the parts that need one or need a human's eye are here.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | With a real Claude Code (`npm run mcp:add -- --dev`, `npm run dev`), ask for a cube and a sphere: the pairing sentence reads clearly and the change lands | Open | |
+| 2 | Chromium's local-network prompt on first connect: the sheet's wording prepares you for it (choose Allow) | Open | |
+| 3 | Safari at `http://localhost:5183` connects; the Connect sheet's WebKit note is the right amount of warning | Open | |
+| 4 | **Undo AI turn** looks greyed for ~1.5 s after a call while the `Claude Code working` chip lingers; feels right or just laggy? | Open | |
+| 5 | A Claude call during a held Library drag is refused as "project changed… while this call waited", not the spec's "the user is editing; try again"; the drop is kept. Acceptable wording? | Open | |
+
 ### ai-017 — Keep editing while the Assistant works (2026-10-14 14:39)
 
 Driven with a scripted transcript only; the judgment calls below need a real turn and a real phone.

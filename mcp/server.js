@@ -86,11 +86,13 @@ const RESOURCES = Object.freeze([
  * The definitions this transport lists: the registry's, plus `request` on write tools.
  *
  * @param {import('../src/ai/tools/index.js').ToolRegistry} tools
+ * @param {import('../src/ai/tools/index.js').ListOptions} [options] `{ live: true }` for the live
+ *   bridge (`TODO/ai-012`, `mcp/liveHttp.js`): the browser tool set on top.
  * @returns {import('../src/ai/tools/index.js').ToolDefinition[]}
  */
-export function mcpToolDefinitions(tools) {
+export function mcpToolDefinitions(tools, options) {
   const writers = writeToolNames(tools)
-  return tools.definitions('mcp').map((definition) =>
+  return tools.definitions('mcp', options).map((definition) =>
     writers.has(definition.name)
       ? {
           ...definition,

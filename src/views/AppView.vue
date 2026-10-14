@@ -22,12 +22,14 @@ import ChatPanel from '../components/ai/ChatPanel.vue'
 import AiWorkingChip from '../components/display/AiWorkingChip.vue'
 import KeySheet from '../components/ai/KeySheet.vue'
 import SubscriptionRoute from '../components/ai/SubscriptionRoute.vue'
+import ConnectClaudeCode from '../components/ai/ConnectClaudeCode.vue'
 import MergeBanner from '../components/display/MergeBanner.vue'
 import MergeToast from '../components/display/MergeToast.vue'
 import SaveStatus from '../components/display/SaveStatus.vue'
 import FileMenu from '../components/storage/FileMenu.vue'
 import { bootStorage } from '../composables/useStorageBoot.js'
 import { useDeleteShortcut } from '../composables/useDeleteShortcut.js'
+import { startLiveBridge } from '../composables/useLiveBridge.js'
 import HistoryControls from '../components/layout/HistoryControls.vue'
 import LibraryPanel from '../components/layout/LibraryPanel.vue'
 import SaveToLibrarySheet from '../components/layout/SaveToLibrarySheet.vue'
@@ -71,6 +73,8 @@ onMounted(() => {
   void bootStorage({ persistence, hosted })
   void assistant.start()
   void library.start()
+  // `TODO/ai-012`: listen for Claude Code over the dev server's HMR socket (`npm run dev` only).
+  startLiveBridge()
 })
 
 /**
@@ -282,6 +286,8 @@ function onInspectorClaim() {
     <KeySheet />
     <!-- The no-key alternative (TODO/ai-013): the Claude Code route, which a subscription covers. -->
     <SubscriptionRoute />
+    <!-- The live bridge's pairing sheet (TODO/ai-012): Claude Code edits this open project. -->
+    <ConnectClaudeCode />
     <!-- The Save to library… sheet and its "Saved <name>" toast (TODO/ui-055). -->
     <SaveToLibrarySheet />
   </div>
