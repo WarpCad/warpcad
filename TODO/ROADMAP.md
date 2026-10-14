@@ -137,6 +137,7 @@ table to edit when a task opens, closes or changes priority — see the next sec
 |  | [`docs-021`](docs-021-media-gears-and-porting-guide.md) Docs media for gears, and a "porting a jscad-gears script" guide | feature | low | sonnet | ⏳ waits on `ui-057`, `ui-058`, `testing-002` |
 | M13 — One Align tool | [`ui-060`](ui-060-unify-snap-align-and-align-to-origin.md) One Align tool for Snap, Align and Align-to-origin, with a Target dropdown, and remove the Insp… | feature | medium | opus | ▶ **ready** |
 | M14 — Help inside the app | [`ui-061`](ui-061-bundle-docs-in-app-and-tool-help-buttons.md) Ship the documentation inside the app and put a help button on every tool pop-up | feature | medium | sonnet | ▶ **ready** |
+| M16 — Rotation feedback | [`ui-064`](ui-064-rotation-dial-and-snapped-rotation.md) Rotation dial: watchface, hands and readout while dragging a ring; Shift 5° steps, speed-sensitive steps on touch | feature | medium | opus | ▶ **ready** |
 | M15 — Mergeable project file | ✅ [`ai-017`](done/ai-017-edit-while-the-assistant-works.md) Keep editing while the Assistant works — an AI turn lands by merge | feature | high | opus | ✅ done 2026-10-14 |
 |  | ✅ [`data-008`](done/data-008-replica-scoped-record-ids.md) Replica-scoped record ids and a Lamport clock on every document | feature | high | sonnet | done |
 |  | ✅ [`data-009`](done/data-009-merge-core.md) The merge core — position keys, last-writer-wins registers, tombstones, one pure merge function | feature | high | opus | ▶ **ready** |
