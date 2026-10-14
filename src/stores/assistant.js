@@ -103,7 +103,17 @@ export const useAssistantStore = defineStore('assistant', () => {
   const modelName = computed(() => (scripted.value ? 'Scripted' : modelLabel(settings.aiModel)))
   const storageNote = computed(() => (hasKey.value && !persisted.value ? SESSION_ONLY_NOTE : ''))
 
+  /**
+   * `TODO/ai-020`: Claude Code is connected over the live bridge and there is no key, so the
+   * panel is a window on Claude Code's work, not a place to type. Everything key-shaped (the
+   * status line, the model row, the composer) must say so rather than ask for a key.
+   */
+  const claudeCodeOnly = computed(
+    () => !scripted.value && !hasKey.value && useAiChatStore().bridge === 'connected',
+  )
+
   const dotState = computed(() => {
+    if (claudeCodeOnly.value) return 'ok'
     if (!hasKey.value) return 'none'
     if (status.value === 'ok') return 'ok'
     if (status.value === 'failed') return 'failed'
@@ -112,6 +122,7 @@ export const useAssistantStore = defineStore('assistant', () => {
 
   const statusText = computed(() => {
     if (scripted.value) return `Scripted transcript “${scriptedName.value}” — no model, no key`
+    if (claudeCodeOnly.value) return 'Claude Code is editing this project — type your request in Claude Code'
     if (!hasKey.value) return 'No key — paste one to connect'
     if (status.value === 'testing') return 'Testing the key…'
     if (status.value === 'ok') return `Connected — ${modelName.value}`
@@ -226,13 +237,14 @@ export const useAssistantStore = defineStore('assistant', () => {
     view.value = 'closed'
   }
 
-  /** Leaving the key sheet: on to the chat if there is a key, otherwise just away. */
+  /** Leaving the key sheet: on to the chat if there is a key or Claude Code is connected, otherwise just away. */
   function doneWithKeySheet() {
-    view.value = hasKey.value ? 'chat' : 'closed'
+    view.value = hasKey.value || useAiChatStore().bridge === 'connected' ? 'chat' : 'closed'
   }
 
   return {
     hasKey,
+    claudeCodeOnly,
     persisted,
     status,
     message,

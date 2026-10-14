@@ -6,8 +6,15 @@ priority: medium
 model: opus
 milestone: M9
 depends: [ai-012, ai-013]
-status: open
+status: wont-do
 ---
+
+> **Closed as won't do, 2026-10-14.** Decision 12 (`docs/decisions/ai-partner.md`) re-read the
+> terms and the user accepted a dev-host-only build, then chose not to build it: the `ai-012`
+> live bridge already gives live edits on the user's own plan, and this engine would only move
+> where the person types. The real defect behind the request, the panel saying "No key — paste
+> one to connect" during a live bridge session, is `ai-020`.
+
 
 ## Goal
 

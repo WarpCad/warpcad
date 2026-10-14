@@ -171,6 +171,15 @@ test('Claude Code pairs through the Connect sheet, places a box and a sphere, an
     await expect(page.getByTestId('assistant-panel')).toBeVisible()
     await expect(page.getByTestId('ai-bridge-chip')).toHaveText('Claude Code · connected')
 
+    // `TODO/ai-020`: with no key, a connected panel says Claude Code is editing — it never asks for
+    // a key — and the composer is off with its reason instead of sending to a model that is not there.
+    await expect(page.getByTestId('assistant-connection-text')).toContainText('Claude Code is editing this project')
+    await expect(page.getByTestId('assistant-connection-text')).not.toContainText('paste')
+    await expect(page.getByTestId('assistant-model-name')).toHaveCount(0)
+    await expect(page.getByTestId('ai-composer-reason')).toBeVisible()
+    await expect(page.getByTestId('ai-input')).toBeDisabled()
+    await expect(page.getByTestId('ai-send')).toBeDisabled()
+
     // Claude places a box and a sphere: both in the viewport, both in History via mcp.
     const cube = await claude.call('create', { op: 'primitive.cuboid', positionMm: [0, 0, 0], request: REQUEST })
     expect(cube.isError, cube.text).toBe(false)

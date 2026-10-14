@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { serializeProject } from '../core/project.js'
 import { createAiKeyStore } from '../storage/aiKey.js'
+import { useAiChatStore } from './aiChat.js'
 import { useDocumentStore } from './document.js'
 import { setAssistantDependencies, useAssistantStore } from './assistant.js'
 import { useSettingsStore } from './settings.js'
@@ -120,6 +121,36 @@ describe('the assistant store', () => {
     expect(assistant.dotState).toBe('none')
     assistant.open()
     expect(assistant.view).toBe('key')
+  })
+
+  it('TODO/ai-020: with no key and Claude Code connected, the panel says Claude Code is editing, not "paste a key"', async () => {
+    install()
+    const assistant = useAssistantStore()
+    await assistant.start()
+    useAiChatStore().bridge = 'connected'
+    expect(assistant.hasKey).toBe(false)
+    expect(assistant.claudeCodeOnly).toBe(true)
+    expect(assistant.statusText).toMatch(/Claude Code is editing/)
+    expect(assistant.statusText).not.toMatch(/key/i)
+    expect(assistant.dotState).toBe('ok')
+    assistant.openKeySheet()
+    assistant.doneWithKeySheet()
+    expect(assistant.view).toBe('chat')
+  })
+
+  it('TODO/ai-020: not connected, or holding a key, nothing changes', async () => {
+    install()
+    const assistant = useAssistantStore()
+    await assistant.start()
+    for (const state of ['idle', 'waiting', 'disconnected', 'unavailable']) {
+      useAiChatStore().bridge = state
+      expect(assistant.claudeCodeOnly).toBe(false)
+      expect(assistant.statusText).toBe('No key — paste one to connect')
+    }
+    useAiChatStore().bridge = 'connected'
+    await assistant.saveKey(KEY)
+    expect(assistant.claudeCodeOnly).toBe(false)
+    expect(assistant.statusText).toMatch(/connected — /i)
   })
 
   it('with a stored key, start() restores it (a reload) and opening goes to the minimal connected state', async () => {

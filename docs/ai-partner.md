@@ -70,7 +70,9 @@ device*.
 5. Say *add a cube* again. It appears in the viewport, marked **via mcp** in History. Tap
    **Undo AI turn** to take it back.
 
-No key is needed, and none is sent. [Live mode](mcp.md#live-mode-claude-code-edits-the-project-you-have-open)
+No key is needed, and none is sent. With no key, the panel's status line says *Claude Code is
+editing this project* and its message box is off: you type in Claude Code, and the panel shows
+what lands. [Live mode](mcp.md#live-mode-claude-code-edits-the-project-you-have-open)
 covers the details: browsers, the pairing code, and what happens if you're mid-drag when a
 change arrives.
 

@@ -200,7 +200,7 @@ const HEIGHTS = /** @type {const} */ ([
           <span data-testid="assistant-connection-text">{{ assistant.statusText }}</span>
         </p>
         <p class="chat__model">
-          Model: <strong data-testid="assistant-model-name">{{ assistant.modelName }}</strong>
+          <template v-if="!assistant.claudeCodeOnly">Model: <strong data-testid="assistant-model-name">{{ assistant.modelName }}</strong></template>
           <button v-if="!assistant.scripted" type="button" class="chat__link" data-testid="assistant-keys" @click="assistant.openKeySheet()">Key and model…</button>
           <ConnectButton testid="ai-connect-open" only-where-usable />
         </p>

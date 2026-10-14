@@ -181,6 +181,11 @@ must run on this device*.
 - **Claude sees what you select.** `get_selection` tells Claude what you've picked, so *make
   this 5 mm taller* works. `capture_view` lets it look at the viewport.
 - **While a change runs** the header shows **Claude Code working**.
+- **The Assistant panel is a window, not a place to type.** With no API key and Claude Code
+  connected, the panel's status line reads *Claude Code is editing this project — type your
+  request in Claude Code*, and the message box is greyed out with the same reason. Ask Claude Code
+  in its own window; the changes appear in the viewport and in History as they land. To type in
+  the panel instead, add an API key under **Key and model…**.
 - **The code works once, for 5 minutes.** If it expires, ask Claude again for a new one. After
   five wrong codes, reload the page. The code is never written to a log or a file. If the tab
   reloads or the dev server restarts, the chip says **disconnected — reconnect**; ask Claude for

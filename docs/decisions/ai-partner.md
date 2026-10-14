@@ -928,6 +928,93 @@ trust boundary as the user's own shell.
 
 ---
 
+## Decision 12 — Chat panel on the user's local Claude Code: **not built; the live bridge already covers the need** (`ai-015` closed as won't do, **decided by the user 2026-10-14**)
+
+> **Outcome.** The user accepted a dev-host-only, opt-in build, then, comparing it with the live
+> bridge (Decision 11), chose not to build it: Claude Code already edits the open project live on
+> the user's plan, and the only gain left was typing in the panel instead of Claude Code. What
+> was actually wrong was the panel telling a bridge-connected user to paste an API key; that is
+> `ai-020`. The terms analysis and flag findings below stay as the record if this is reopened.
+
+**The question.** `ai-015` would have had the `ai-012` helper spawn the user's own signed-in `claude` in
+print mode (`-p`) from a text box in WarpCad's Assistant panel, so a subscriber gets an in-app
+chat with no API key. WarpCad never sees a token; the binary is the official, unmodified one
+on the user's machine. The open point was whether a third-party program driving `claude -p`
+on a subscription login is permitted.
+
+### What the terms say (fetched 2026-10-14, quoted)
+
+From `code.claude.com/docs/en/legal-and-compliance` ("Authentication and credential use"):
+
+- "**OAuth authentication** is intended exclusively for purchasers of Claude Free, Pro, Max,
+  Team, and Enterprise subscription plans and is designed to support ordinary use of Claude
+  Code and other native Anthropic applications."
+- "**Developers** building products or services that interact with Claude's capabilities,
+  including those using the Agent SDK, should use API key authentication through Claude
+  Console or a supported cloud provider. Anthropic does not permit third-party developers to
+  offer Claude.ai login into their own applications, or to route requests through Free, Pro,
+  or Max plan credentials on behalf of their users. Moreover, developers may not collect,
+  store, or intermediate Claude.ai credentials or session tokens."
+- "Nor does it prevent an end user from signing in to the unmodified Claude Code binary with
+  their own Claude subscription, including where a platform hosts Claude Code as described
+  under *Can customers offer Claude Code in their products?* above."
+- "Advertised usage limits for Pro and Max plans assume ordinary, individual usage of Claude
+  Code and the Agent SDK." and "Anthropic reserves the right to take measures to enforce
+  these restrictions and may do so without prior notice."
+
+From `code.claude.com/docs/en/headless`:
+
+- "This page covers using the Agent SDK via the CLI (`claude -p`)." Print mode **is** the
+  Agent SDK's CLI form, so the "including those using the Agent SDK" sentence names it.
+- `--bare` "is the recommended mode for scripted and SDK calls, and will become the default
+  for `-p` in a future release"; in bare mode "Claude Code never reads OAuth credentials or
+  the system keychain". The subscription login works under `-p` today only because bare mode
+  is not yet the default.
+
+### Which side this falls on: **a grey area, accepted at personal scale**
+
+- *For:* WarpCad holds no credential, the binary is unmodified, the user installed and signed
+  in themselves, and the feature runs only on the user's own machine for the user's own
+  ordinary use. Nothing is hosted, resold or intermediated.
+- *Against:* `-p` is documented as the Agent SDK CLI, and the page tells products using the
+  Agent SDK to use API keys without separating a company's product from personal tooling.
+  Enforcement is "without prior notice" and lands on the **user's** account.
+- *Direction of travel:* bare-by-default for `-p` could stop the subscription login working
+  with no change on our side, so the feature must fail as one plain sentence (`ai-015` design
+  6), never hang.
+
+**Conditions the user accepted on 2026-10-14** (they would have been `ai-015`'s scope; kept for a reopening):
+
+1. **Dev host only**, the same scope as `ai-012` (Decision 11): `npm run dev`. The built or
+   GitHub Pages app never offers the engine and uses an API key (BYOK) or `ai-012`.
+2. **Opt-in and labelled**: "Runs your local Claude Code. Uses your Claude plan's limits.
+   WarpCad never sees your sign-in." Never the default engine.
+3. **No shell, no file tools** in the spawned session (`--tools ""` plus the WarpCad MCP
+   allow-list, `--strict-mcp-config`), because a model driven from a web page's text box must
+   not get Bash.
+4. **Off-switch**: the engine is one seam in the chat store and one helper message, so it can
+   be removed without touching the key engine if Anthropic's wording changes.
+
+### Technical findings
+
+Verified against `claude --help`, Claude Code 2.1.263, 2026-10-14: `-p/--print`,
+`--output-format stream-json` (with `--verbose` and `--include-partial-messages`),
+`--resume <id>`, `--mcp-config` + `--strict-mcp-config`, `--tools ""`, `--allowedTools`,
+`--permission-mode dontAsk`, `--permission-prompts none`, `--setting-sources`,
+`--append-system-prompt`, `--no-session-persistence`. Exact spellings used are recorded in
+`mcp/claudeRunner.js` and re-checked against `--help` when it changes.
+
+### Options
+
+| Option | Verdict |
+|---|---|
+| A. Build `ai-015`, dev host only, opt-in, labelled | Accepted on terms, then **not built**: low benefit over Decision 11. |
+| B. Close as won't do; keep `ai-012` + BYOK, fix the panel's no-key state (`ai-020`) | **Chosen 2026-10-14.** |
+| C. Ask Anthropic for a written answer first | Optional; revisit if the feature is ever offered beyond the dev host. |
+| D. Engine that runs `claude --bare -p` with an API key | Adds nothing over BYOK; rejected. |
+
+---
+
 ## Items needing the user's call (before `ai-002`)
 
 1. **The LLM client library.** This document picks raw `fetch`. Choosing

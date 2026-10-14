@@ -14,8 +14,10 @@ import { ref } from 'vue'
 
 import { useAgent } from '../../composables/useAgent.js'
 import { useAiChatStore } from '../../stores/aiChat.js'
+import { useAssistantStore } from '../../stores/assistant.js'
 
 const chat = useAiChatStore()
+const assistant = useAssistantStore()
 const agent = useAgent()
 /** @type {import('vue').Ref<HTMLInputElement | null>} */
 const picker = ref(null)
@@ -24,6 +26,7 @@ const picker = ref(null)
 function onKeydown(event) {
   if (event.key !== 'Enter' || event.shiftKey || event.isComposing) return
   event.preventDefault()
+  if (assistant.claudeCodeOnly) return
   void agent.send()
 }
 
@@ -37,7 +40,10 @@ async function onPicked(event) {
 </script>
 
 <template>
-  <form class="composer" data-testid="ai-composer" @submit.prevent="agent.send()">
+  <form class="composer" data-testid="ai-composer" @submit.prevent="assistant.claudeCodeOnly || agent.send()">
+    <p v-if="assistant.claudeCodeOnly" class="composer__pending" role="status" data-testid="ai-composer-reason">
+      This box is off while Claude Code is connected: type your request in Claude Code and it appears here and in the viewport. To type here instead, add an API key under <strong>Key and model…</strong>.
+    </p>
     <ul v-if="chat.attachments.length > 0" class="composer__attachments" data-testid="ai-attachments">
       <li v-for="(attachment, index) in chat.attachments" :key="index" class="composer__thumb">
         <img :src="attachment.dataUrl" :alt="`Attached: ${attachment.name}`" />
@@ -61,7 +67,7 @@ async function onPicked(event) {
         data-testid="ai-attach"
         aria-label="Attach image"
         title="Attach image"
-        :disabled="chat.running"
+        :disabled="chat.running || assistant.claudeCodeOnly"
         @click="picker?.click()"
       >
         📎
@@ -83,6 +89,7 @@ async function onPicked(event) {
         placeholder="Ask for a part or a change…"
         aria-label="Message the assistant"
         data-testid="ai-input"
+        :disabled="assistant.claudeCodeOnly"
         @keydown="onKeydown"
       />
       <button
@@ -99,7 +106,7 @@ async function onPicked(event) {
         type="submit"
         class="composer__button composer__button--send"
         data-testid="ai-send"
-        :disabled="!chat.canSend"
+        :disabled="!chat.canSend || assistant.claudeCodeOnly"
       >
         Send
       </button>
