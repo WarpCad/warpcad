@@ -53,12 +53,13 @@ export const LIMITS = Object.freeze({
 })
 
 /**
- * The only origins a tool write may carry: `ai` (the browser agent) and `mcp` (the
- * MCP server). **Never `local`**: only `local` steps go on the user's undo stack
+ * The only origins a tool write may carry: `ai` (the browser agent), `mcp` (the
+ * MCP server and the live bridge) and `webmcp` (an in-browser agent over WebMCP,
+ * `TODO/ai-021`). **Never `local`**: only `local` steps go on the user's undo stack
  * (`src/core/document.js`), and an AI record there would let one press of Undo take
  * back the model's work instead of the user's own.
  */
-export const WRITE_ORIGINS = Object.freeze(['ai', 'mcp'])
+export const WRITE_ORIGINS = Object.freeze(['ai', 'mcp', 'webmcp'])
 
 /**
  * Throw unless `origin` is one of {@link WRITE_ORIGINS}.

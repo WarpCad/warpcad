@@ -126,7 +126,12 @@ The Library's Raspberry Pi and Hardware items descend from the `jscad-raspberryp
   `npm run mcp:add -- bracket.ndjson`: Claude Code reads and
   adds steps to a project file with the Assistant's tools, and the steps arrive in History marked
   **via mcp** with your request. Also: the **File changed on disk — Reload** dialog (and which
-  browsers can show it), what the server will and won't do, and its error messages.
+  browsers can show it), what the server will and won't do, and its error messages. Opens with
+  a table of the three ways an AI agent can reach WarpCad.
+- [Browser agents (WebMCP)](webmcp.md) — in Chrome with the WebMCP flag, an agent that runs in
+  the browser drives the open project with no key and no helper program: the **Browser agents ·
+  on / off** switch in the Assistant header, its rows marked **via webmcp** in History, **Undo AI
+  turn**, and exactly what an attached agent can see.
 - [Moving around the 3D view](viewport-navigation.md) — orbit, pan, zoom, the
   orientation triad, touch gestures, and reading size off the grid.
 - [Using WarpCad on a phone or tablet](mobile.md) — where every control lives at phone and

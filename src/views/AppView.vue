@@ -30,6 +30,7 @@ import FileMenu from '../components/storage/FileMenu.vue'
 import { bootStorage } from '../composables/useStorageBoot.js'
 import { useDeleteShortcut } from '../composables/useDeleteShortcut.js'
 import { startLiveBridge } from '../composables/useLiveBridge.js'
+import { startWebMcp } from '../composables/useWebMcp.js'
 import HistoryControls from '../components/layout/HistoryControls.vue'
 import LibraryPanel from '../components/layout/LibraryPanel.vue'
 import SaveToLibrarySheet from '../components/layout/SaveToLibrarySheet.vue'
@@ -75,6 +76,8 @@ onMounted(() => {
   void library.start()
   // `TODO/ai-012`: listen for Claude Code over the dev server's HMR socket (`npm run dev` only).
   startLiveBridge()
+  // `TODO/ai-021`: register the tools for in-browser agents when the browser has WebMCP (default on).
+  void startWebMcp()
 })
 
 /**

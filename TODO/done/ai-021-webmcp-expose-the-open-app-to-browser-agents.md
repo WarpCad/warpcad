@@ -6,8 +6,22 @@ priority: low
 model: opus
 milestone: M9
 depends: [ai-012, ai-017]
-status: open
+status: done
 ---
+
+> **What shipped (2026-10-14).** Decision 13 (accepted by the user the same day) superseded parts
+> of this spec, so read it before the text below: the entry point is `document.modelContext`
+> (falling back to `navigator.modelContext`), unregistering is an `AbortController` signal (there
+> is no `unregisterTool`), results are plain JSON values with refusals returned as
+> `{ ok: false, error }`, and `capture_view` is withheld on this transport. The user's direction
+> was *"if WebMCP is available it should be supported"*, so registration is **default on** with a
+> **Browser agents · on/off** chip and switch in the Assistant header (state remembered per
+> browser profile), not the opt-in sheet described below, and the docs shot is that chip
+> (`webmcp-chip.png`), not a sheet. The Assistant offers a key whenever WebMCP is absent outside
+> dev, a key or an agent when it is present, and the dev-host bridge as well in dev. Tools are
+> registered only while the tab is visible. `describe_scene`, `get_timeline`, `list_ops` and
+> `list_variables` take `limit`/`offset` to stay near Chrome's 1.5K-character advice. Real Chrome
+> with the flag and the two-tab case were not verified; see `TODO/VERIFY.md`.
 
 ## Goal
 

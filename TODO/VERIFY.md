@@ -34,6 +34,19 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### ai-021 — WebMCP transport (2026-10-14 23:33)
+
+Everything automated ran against a **fake** `document.modelContext`; the real API is Chromium-behind-a-flag and cannot be switched on in a Playwright-launched browser. These are the checks only a person with that browser can make.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | Chrome 146+ with `chrome://flags/#enable-webmcp-testing` Enabled: open the Model Context Tool Inspector extension on WarpCad and confirm 19 tools list and `capture_view` is absent. | Open | |
+| 2 | Ask the agent *add a 40 mm cube and put a 20 mm sphere on top of it*: both appear, History shows one row with a `webmcp` chip, **Undo AI turn** removes both. | Open | |
+| 3 | Two WarpCad tabs open: confirm the agent reaches the tab you are looking at (Decision 13's visible-tab hypothesis; neither the spec nor Chrome's pages say what happens). | Open | |
+| 4 | Whether a deployed (https) app needs an origin-trial token before the API exists for ordinary visitors, and the trial's end date. `docs/webmcp.md` deliberately leaves this out until confirmed from Chrome's own page. | Open | |
+| 5 | Tool results against Chrome's 1.5K-character advice on a large project: `measure` and `check_printability` over many bodies come back whole with an `oversize` note, unmeasured. | Open | |
+
+
 ### ai-012 — Live bridge, dev host (2026-10-14)
 
 Driven with an MCP client stand-in, not a real Claude Code, so the parts that need one or need a human's eye are here.

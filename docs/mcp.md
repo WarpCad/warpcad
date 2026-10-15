@@ -15,6 +15,18 @@ This is also the route for a **Claude Pro or Max subscription**: Claude Code is 
 while the in-app Assistant needs an API key billed separately. See [No API key? Use your
 subscription](ai-partner.md#no-api-key-use-your-subscription).
 
+## Three ways in
+
+An AI agent can reach WarpCad's tools three ways. All three use the same tools, follow the same
+limits, and mark what they add in History. With your own API key, you can also type in the
+[Assistant panel](ai-partner.md).
+
+| Way in | What it needs | Where it works | Changes appear |
+|---|---|---|---|
+| **Claude Code on a project file** (this page) | Claude Code, a WarpCad checkout with Node.js 22+, a saved `.ndjson` file | Any computer. The app sees the changes when you open the file, or choose **Reload** | In the file, marked **via mcp** |
+| **[Live mode](#live-mode-claude-code-edits-the-project-you-have-open)** | Claude Code and WarpCad running under `npm run dev`, a pairing code | A desktop browser on the same computer as Claude Code | In the open tab as they land, marked **via mcp** |
+| **[Browser agents (WebMCP)](webmcp.md)** | Chrome with the WebMCP flag, and an agent that runs in the browser | Any copy of WarpCad, hosted or local, on desktop Chrome | In the open tab as they land, marked **via webmcp** |
+
 ## Try it: add a base plate from Claude Code
 
 You need a WarpCad checkout with Node.js 22 or newer, and a project saved as a file. In the
@@ -251,8 +263,9 @@ Every message names the file and says that nothing was written to it.
 - **Projects in a GitHub repository.** The server works on a local file only. To use it with a
   project you keep in a repository, **Load from** it in the app, **Save** it as a file, run the
   server on that file, then open the file and **Save to** the repository.
-- **Live editing of the hosted app.** [Live mode](#live-mode-claude-code-edits-the-project-you-have-open)
+- **Live editing of the hosted app from Claude Code.** [Live mode](#live-mode-claude-code-edits-the-project-you-have-open)
   works under `npm run dev` only. A helper that lets Claude Code reach a built or hosted copy is
-  planned separately.
+  planned separately. An agent that runs in the browser can already drive a hosted copy over
+  [WebMCP](webmcp.md).
 
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

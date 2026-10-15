@@ -17,10 +17,11 @@
 
 /**
  * Every origin this build writes: `local` (the user, the only one on the undo stack), `ai` (the
- * in-app assistant), `mcp` (the MCP server, `mcp/server.js`), `remote`, `programmatic`, and
- * `merge` (`TODO/data-010`: the transaction a `mergeFrom` runs as — never on either undo stack).
+ * in-app assistant), `mcp` (the MCP server, `mcp/server.js`), `remote`, `programmatic`,
+ * `merge` (`TODO/data-010`: the transaction a `mergeFrom` runs as — never on either undo stack),
+ * and `webmcp` (`TODO/ai-021`: an in-browser agent calling the tools the open tab registers).
  */
-export const KNOWN_ORIGINS = Object.freeze(['local', 'ai', 'mcp', 'remote', 'programmatic', 'merge'])
+export const KNOWN_ORIGINS = Object.freeze(['local', 'ai', 'mcp', 'remote', 'programmatic', 'merge', 'webmcp'])
 
 /**
  * @param {string} origin As the entry carries it.

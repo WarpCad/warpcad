@@ -6,7 +6,7 @@ import { boundsOf, volumeOf } from '../../core/kernel/group.js'
 import { recordsForDrop } from '../../core/library.js'
 import { fakeRegistry } from './__fixtures__/fakeRegistry.js'
 import { fakeSelection, makeContext } from './__fixtures__/context.js'
-import { LIVE_BROWSER_TOOLS, createToolRegistry } from './index.js'
+import { LIVE_BROWSER_TOOLS, WEBMCP_WITHHELD, WRITE_ORIGINS, createToolRegistry } from './index.js'
 import { LIMITS, createTurn } from './limits.js'
 
 describe('a whole "cube, sphere, subtract" session through the registry, in plain Node', () => {
@@ -237,5 +237,39 @@ describe('the live-bridge seam (TODO/ai-012): origin mcp, the browser tool list'
   it('never offers the image or save-proposal tools over the bridge (they need the in-app chat)', () => {
     const live = createToolRegistry().toolsFor('mcp', { live: true }).map((tool) => tool.name)
     for (const name of ['get_reference_image', 'set_reference_scale', 'locate_in_image', 'save_to_library']) expect(live).not.toContain(name)
+  })
+})
+
+describe('the WebMCP transport (TODO/ai-021, Decision 13): origin webmcp, the live list minus capture_view', () => {
+  it('names capture_view as the one live tool WebMCP withholds (a PNG is no JSON value under the 1.5K budget)', () => {
+    expect([...WEBMCP_WITHHELD]).toEqual(['capture_view'])
+  })
+
+  it('lists exactly what the live bridge lists, minus capture_view — no tool of its own', () => {
+    const tools = createToolRegistry()
+    const live = tools.toolsFor('mcp', { live: true }).map((tool) => tool.name)
+    const webmcp = tools.toolsFor('webmcp').map((tool) => tool.name)
+    expect(webmcp).toEqual(live.filter((name) => name !== 'capture_view'))
+    expect(tools.definitions('webmcp').map((definition) => definition.name)).toEqual(webmcp)
+    // The same definitions, byte for byte: the registry's own (strict) schemas, not a re-typed copy.
+    const mcpByName = new Map(tools.definitions('mcp', { live: true }).map((definition) => [definition.name, definition]))
+    for (const definition of tools.definitions('webmcp')) expect(definition).toEqual(mcpByName.get(definition.name))
+  })
+
+  it('accepts webmcp as a write origin, so its records carry it — never local', () => {
+    expect(WRITE_ORIGINS).toContain('webmcp')
+    const tools = createToolRegistry()
+    const document = createDocument({ replica: 'abcdef' })
+    const ctx = makeContext({ document, origin: 'webmcp', selection: fakeSelection([]) })
+    expect(tools.run(ctx, 'create', { op: 'primitive.cuboid', positionMm: [0, 0, 0] }).error).toBeUndefined()
+    expect(document.originOf(/** @type {string} */ (document.entries[0].record.id))).toBe('webmcp')
+    expect(document.canUndo()).toBe(false)
+    expect(tools.run(ctx, 'get_selection', {}).error).toBeUndefined()
+  })
+
+  it('refuses capture_view by name over webmcp, without throwing', () => {
+    const tools = createToolRegistry()
+    const ctx = makeContext({ document: createDocument({ replica: 'abcdef' }), origin: 'webmcp', selection: fakeSelection([]) })
+    expect(tools.run(ctx, 'capture_view', { view: 'iso' })).toMatchObject({ error: expect.stringMatching(/not available over WebMCP/) })
   })
 })

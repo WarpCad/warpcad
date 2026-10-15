@@ -10,7 +10,9 @@ describe('originChipText — the History origin chip never echoes file text (TOD
     expect(originChipText('mcp')).toBe('via mcp')
     expect(originChipText('remote')).toBe('via remote')
     expect(originChipText('merge')).toBe('via merge')
-    expect([...KNOWN_ORIGINS].sort()).toEqual(['ai', 'local', 'mcp', 'merge', 'programmatic', 'remote'])
+    // TODO/ai-021: a browser agent over WebMCP.
+    expect(originChipText('webmcp')).toBe('via webmcp')
+    expect([...KNOWN_ORIGINS].sort()).toEqual(['ai', 'local', 'mcp', 'merge', 'programmatic', 'remote', 'webmcp'])
   })
 
   it('any other origin a file declares reads as one fixed phrase, whatever it says', () => {

@@ -23,6 +23,12 @@
  * when one of them builds on it (`src/ai/bridge/tabEndpoint.js`). The orchestration is
  * `composables/useLiveBridge.js`.
  *
+ * **WebMCP** (`TODO/ai-021`, Decision 13): `webMcp` is the **Browser agents** chip — `unavailable`
+ * where the browser has no WebMCP (no chip at all), otherwise `on` or `off` — and `webMcpTools` how
+ * many tools are registered right now (0 while the tab is hidden). Its calls run on the same tab
+ * endpoint as Claude Code's, so they share `bridgeWorking` (with `workingOrigin` saying who),
+ * `bridgeTurns` and `lastLanded` (`webmcp`). The orchestration is `composables/useWebMcp.js`.
+ *
  * @module stores/aiChat
  */
 
@@ -96,15 +102,30 @@ export const useAiChatStore = defineStore('aiChat', () => {
   const bridgeWorking = ref(false)
   /** Landed Claude Code groups that **Undo AI turn** can still take back. */
   const bridgeTurns = ref(0)
-  /** Which AI change landed last: an in-app turn or a Claude Code group. */
-  const lastLanded = ref(/** @type {'ai' | 'mcp'} */ ('ai'))
+  /** Which AI change landed last: an in-app turn, a Claude Code group, or a browser agent's (`ai-021`). */
+  const lastLanded = ref(/** @type {'ai' | 'mcp' | 'webmcp'} */ ('ai'))
+  /** Who the running tab-endpoint call belongs to, for the working chip's words. */
+  const workingOrigin = ref(/** @type {'mcp' | 'webmcp'} */ ('mcp'))
+
+  /**
+   * `TODO/ai-021`: the **Browser agents** switch. `unavailable` — this browser has no WebMCP (the chip
+   * is absent); `on` — tools registered whenever the tab is visible (the default); `off` — the user
+   * turned it off (remembered per browser profile).
+   *
+   * @type {import('vue').Ref<'unavailable' | 'on' | 'off'>}
+   */
+  const webMcp = ref(/** @type {'unavailable' | 'on' | 'off'} */ ('unavailable'))
+  /** How many tools are registered on `document.modelContext` right now. */
+  const webMcpTools = ref(0)
+  /** What the switch last needs to say (storage blocked, a name another tab holds), or ''. */
+  const webMcpMessage = ref('')
 
   const canSend = computed(() => !running.value && attaching.value === 0 && (draft.value.trim() !== '' || attachments.value.length > 0))
   /** `TODO/ai-017`: **Watch** is a view of the running turn, so it is offered only during one. */
   const canWatch = computed(() => running.value)
   const canUndoTurn = computed(() => {
     if (running.value || bridgeWorking.value) return false
-    if (lastLanded.value === 'mcp') return bridgeTurns.value > 0
+    if (lastLanded.value !== 'ai') return bridgeTurns.value > 0
     return landedVersion.value !== null && documentStore.version === landedVersion.value
   })
 
@@ -189,6 +210,10 @@ export const useAiChatStore = defineStore('aiChat', () => {
     bridgeWorking,
     bridgeTurns,
     lastLanded,
+    workingOrigin,
+    webMcp,
+    webMcpTools,
+    webMcpMessage,
     canSend,
     canWatch,
     canUndoTurn,

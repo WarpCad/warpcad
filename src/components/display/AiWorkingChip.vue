@@ -7,14 +7,23 @@
  * controls. At ≤ 640 px it collapses to its dot, keeping the same accessible name.
  *
  * `TODO/ai-012`: also while a Claude Code call runs in this tab over the live bridge — the "AI is
- * working" state Decision 11 asks for — worded for who is working.
+ * working" state Decision 11 asks for — worded for who is working. `TODO/ai-021`: and while a
+ * browser agent's WebMCP call runs, on the same endpoint.
  */
 import { computed } from 'vue'
 
 import { useAiChatStore } from '../../stores/aiChat.js'
 
 const chat = useAiChatStore()
-const who = computed(() => (chat.running ? 'Assistant working' : 'Claude Code working'))
+const who = computed(() => {
+  if (chat.running) return 'Assistant working'
+  return chat.workingOrigin === 'webmcp' ? 'Browser agent working' : 'Claude Code working'
+})
+const detail = computed(() => {
+  if (chat.running) return 'Assistant working — keep editing; its changes land when it finishes'
+  const agent = chat.workingOrigin === 'webmcp' ? 'A browser agent' : 'Claude Code'
+  return `${agent} is changing this project — each change lands as it finishes`
+})
 </script>
 
 <template>
@@ -23,7 +32,7 @@ const who = computed(() => (chat.running ? 'Assistant working' : 'Claude Code wo
     class="ai-working"
     role="status"
     :aria-label="who"
-    :title="chat.running ? 'Assistant working — keep editing; its changes land when it finishes' : 'Claude Code is changing this project — each change lands as it finishes'"
+    :title="detail"
     data-testid="ai-working-chip"
   >
     <span class="ai-working__dot" aria-hidden="true" />

@@ -1015,6 +1015,107 @@ Verified against `claude --help`, Claude Code 2.1.263, 2026-10-14: `-p/--print`,
 
 ---
 
+## Decision 13 — WebMCP: **a third transport onto `TabEndpoint`, registered whenever the browser has the API** (`ai-021`, **accepted by the user 2026-10-14**, default-on and the route table included)
+
+**The question.** Decisions 1 and 11 give two routes in: the BYOK chat and Claude Code over the
+dev-host bridge. Both need a key or a terminal. WebMCP lets an agent that already lives in the
+browser call tools the page registers, with no socket, so the mixed-content and
+local-network blocks of Decision 11's spike do not apply.
+
+**The user's direction (2026-10-14):** *"If WebMCP is available in the browser it should be
+supported."* This decision reads that as: feature-detect, register on by default, never throw
+where the API is missing. It changes `ai-021` point 4 (see "The one change from the TODO").
+
+### Facts re-verified 2026-10-14 (the TODO's text is wrong on four of them)
+
+| Fact | Verified value | Source |
+|---|---|---|
+| Entry point | **`document.modelContext`** (`[SecureContext, SameObject]`), not `navigator.modelContext`. A `navigator` alias was reported deprecated in Chrome 150 and removed in 153 (third-party report, not Chrome's own docs). | W3C WebML CG draft, 13 Oct 2026; Chrome docs |
+| Register | `Promise<undefined> registerTool(ModelContextTool tool, optional ModelContextRegisterToolOptions options)`; tool = `name` (1-128 of `[A-Za-z0-9_.-]`), `description` (non-empty), `inputSchema` (JSON Schema), `execute(input, options)`, optional `title`, `annotations`. | spec; Chrome Imperative API page |
+| Unregister | **No `unregisterTool`.** Pass `{ signal }` to `registerTool` and `abort()` it. As of Chrome 153 aborting does not cancel an in-flight `execute`. | spec; Chrome Imperative API page |
+| Result | **No MCP content array.** `execute` returns any value; `executeTool` resolves to the **JSON string** of it. A tool reports its own failure inside that value; platform failures reject with a `DOMException`. Chrome's examples return plain strings. | spec; Chrome Imperative API page |
+| Annotations | `readOnlyHint`, `untrustedContentHint`, `consequentialHint`, `debugging` (Chrome 156+), all default false. | spec; Chrome docs |
+| Visibility | Other origins and cross-origin iframes see nothing unless `exposedTo` lists a secure origin. A frame needs `allow="tools"` to delegate. Site-wide off switch: `Permissions-Policy: tools=()`. | Chrome "WebMCP tool security" |
+| Output budget | Chrome advises **1.5K characters per tool output** (guidance, not an enforced limit that I could find). | Chrome "WebMCP tool security" |
+| Availability | Early preview; Chromium 146.0.7672.0+ behind `chrome://flags/#enable-webmcp-testing`. An origin trial is reported for Chrome 149-156 (end date and token requirement for deployed sites **not confirmed from Chrome's own pages**; recheck before the docs page states it). | GoogleChrome/modern-web-guidance-src; third-party reports |
+| User prompt | None documented for registration. `consequentialHint` is how a tool asks the agent/browser to confirm before running. | Chrome docs |
+| Multiple tabs | **Not addressed** by the spec or Chrome's pages (issue #227 only proposes cross-document execution). | spec |
+
+### What this decision commits to
+
+1. **A third transport, no new tools.** `src/ai/webmcp/` adapts `createToolRegistry()` exactly
+   as `mcp/server.js` and `tabEndpoint.js` do. Each registry tool becomes one `registerTool`
+   with the registry's own (already strict) schema.
+2. **Calls run through `TabEndpoint`**, made constructible without the dev-host socket, so a
+   WebMCP call and a Claude Code call share one serial queue, the mid-gesture wait and
+   refusal, the stale-revision refusal and group-per-`request` into `aiTurns`.
+3. **Origin `webmcp`**, a new transport value beside `ai` and `mcp`; out of the local undo
+   stack by Decision 5; **Undo AI turn** removes the group.
+4. **Refusals are values, not exceptions.** `execute` returns `{ ok: false, error: "<refusal
+   sentence>" }` for "the user is editing", stale revision, and cap-exceeded, so the agent's
+   loop is never killed by a `DOMException`.
+5. **Unregistration is an `AbortController` per registration**, aborted on opt-out and on
+   `pagehide`. Since there is no cross-tab guidance, **register only while
+   `document.visibilityState === "visible"`** and abort on hidden, so the focused tab is the
+   one an agent reaches. This is a hypothesis to verify by hand with two tabs (VERIFY.md).
+6. **Annotations are honest and per tool:** read tools (`describe`, `get_selection`, listing)
+   carry `readOnlyHint`; any tool that returns document text (intent, names, standing
+   instructions) also carries `untrustedContentHint`, matching Decision 7's "data, never
+   instructions". Writes are **not** `consequentialHint`: every landed batch is one **Undo AI
+   turn**, which is the reversibility that annotation exists to ask for.
+7. **Results are JSON values, and `capture_view` is withheld.** There is no image content type
+   in the result model, so a PNG would have to be a base64 string far over the 1.5K advice.
+   The tool is not registered on this transport; vision stays with the chat and the bridge.
+   Other tools' output is measured against the 1.5K budget in the build; any that exceed it
+   are summarised with a "ask for more with `limit`/`offset`" hint, not truncated silently.
+8. **Feature detect on `document.modelContext`, falling back to `navigator.modelContext` for
+   older Chromes.** Missing API means nothing registers and nothing throws. No shim, no
+   `@mcp-b/*` dependency. Declarative form attributes stay out of scope.
+9. **Trust model unchanged** (Decision 7): `limits.js` caps per call and per group; no key or
+   token is read or sent. **New exposure, stated plainly:** a tool result is read by an agent
+   WarpCad cannot see or choose, so document text leaves the tab to whichever agent is attached.
+
+### The one change from the TODO: default on, with an off switch
+
+`ai-021` point 4 said "registers nothing until the user opts in". The user's direction is that
+support should simply be there when the browser has it. Proposed: **registered by default
+when the API exists**, plus an Assistant-header **Browser agents · on / off** chip and switch
+whose off state is remembered per browser profile and unregisters everything. Reasons this is
+acceptable: other origins see nothing by default; the agent is one the user installed and
+pointed at this tab; every write is one undoable group. **What it costs:** an agent that is
+attached can read the project without a separate yes. If you would rather keep opt-in, only
+the default flips; nothing else in this decision changes.
+
+### Which routes the Assistant offers (the user's rule, 2026-10-14)
+
+Three routes in, and what the environment allows is the whole selector. Routes are additive:
+a route that is available is offered, none is hidden because another exists.
+
+| Environment | WebMCP | API key (BYOK chat) | Live bridge MCP (dev host) |
+|---|---|---|---|
+| Built or hosted app, **no** WebMCP | n/a | **Required** (the only route) | n/a (dev host only, Decision 11) |
+| Built or hosted app, WebMCP present | Available | Available | n/a |
+| `npm run dev`, any browser | Available if the API is present | Available | **Available** |
+
+Consequences for the build:
+
+- The panel's "no key" empty state (`ai-020`) appears **only** in the first row, where a key
+  really is the only way in. With WebMCP present the panel says an in-browser agent can drive
+  the project and the key is optional; in dev it also names the Claude Code bridge.
+- The **Browser agents** chip is absent where the API is missing (first row), so the panel never
+  offers a route that cannot work.
+- Detection is two independent checks: `document.modelContext` (WebMCP) and the dev-host flag
+  the bridge already uses. No new environment switch.
+- All routes share `TabEndpoint`'s one-writer rules, so using the key chat while a WebMCP agent
+  or the bridge is attached is serialised, never interleaved.
+
+### Honest limits
+
+Chromium with a flag (or an origin-trial token) only, desktop-first. The real path is not
+automatable in Playwright; the e2e spec injects a fake `document.modelContext`. The spec has
+moved twice already (`provideContext`/`clearContext` removed, `navigator` to `document`), so
+`toolShape.js` is the single place that knows the registration shape.
+
 ## Items needing the user's call (before `ai-002`)
 
 1. **The LLM client library.** This document picks raw `fetch`. Choosing

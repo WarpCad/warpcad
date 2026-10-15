@@ -1666,3 +1666,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** Claude Code edits the open tab under `npm run dev` -> diff (`mcp/liveBridge.js`, `src/ai/bridge/tabEndpoint.js`); cube and sphere landed, Undo AI turn took the group back, held-drag call refused and drop kept -> hand drive this session (MCP client stand-in, not a real Claude Code); wrong pairing code refused, phone control disabled with its reason -> same drive; Safari/real Claude Code not driven -> TODO/ACCEPTANCE.md scenario 25 Last run
 **To Add:** `docs/screenshots/ai-live-bridge.png` (already generated); repo URL once public
+
+## 2026-10-14T23:40:00Z — A browser agent can drive the open WarpCad tab
+
+**Post:** WarpCad now registers its tools on WebMCP, so an agent living in your browser can drive the open tab with no API key and no helper process. Chrome only, behind a flag for now. Its changes land as one group that Undo AI turn removes, your own edits untouched. Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** tools register on document.modelContext, abort-signal unregister, JSON results -> diff (`src/ai/webmcp/register.js`) and `docs/decisions/ai-partner.md` Decision 13; Chrome 146+ and `#enable-webmcp-testing` -> Decision 13 facts table (Chrome guide, fetched this session); 19 tools registered, capture_view absent, Undo AI turn removed only the agent's group -> hand drive this session against a fake `document.modelContext`; real Chrome not driven -> TODO/VERIFY.md rows 1-3
+**To Add:** `docs/screenshots/webmcp-chip.png` (already generated); repo URL once public

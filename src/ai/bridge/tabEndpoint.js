@@ -44,6 +44,16 @@
  * Caps (`limits.js`, Decision 7) count per call, as the closed-file server does, and the records
  * cap also per group.
  *
+ * ## A second transport on the same endpoint (`TODO/ai-021`, Decision 13)
+ *
+ * WebMCP calls run through **this** object too, so a browser agent's call and a Claude Code call
+ * share one queue, one gesture wait and one stale check, and can never interleave. The caller
+ * says which transport a call came from with {@link CallVia} (the dev-host bridge passes nothing,
+ * so its behaviour is exactly as above): its records carry that origin, its groups are its own —
+ * a WebMCP write never joins a Claude Code group — and a WebMCP group is formed by the idle gap
+ * alone (`groupBy: 'idle'`), because WebMCP has no request to compare. The endpoint is built
+ * without any socket; `composables/useTabEndpoint.js` holds the one instance both transports use.
+ *
  * `get_selection` / `select` act on the group's **own** selection, seeded from the user's live
  * selection, exactly as an in-app turn's do (`ai-017`): the model may look at what the user picked,
  * and never changes it.
@@ -63,6 +73,9 @@ import { EDITING_REFUSAL, GESTURE_WAIT_MS, GROUP_IDLE_MS, STALE_REFUSAL } from '
 /** How often a waiting call looks again at whether the gesture has ended. */
 const GESTURE_POLL_MS = 100
 
+/** Who a group's undo refusal names. */
+const WHO = Object.freeze({ mcp: 'Claude Code', webmcp: 'the browser agent' })
+
 /**
  * @typedef {object} TabEndpointOptions
  * @property {() => WarpDocument} document The live document, raw (not a reactive proxy).
@@ -77,10 +90,21 @@ const GESTURE_POLL_MS = 100
  */
 
 /**
+ * Which transport a call came from (`TODO/ai-021`). Omitted, it is the live bridge's: origin `mcp`,
+ * grouped by `request`.
+ *
+ * @typedef {object} CallVia
+ * @property {'mcp' | 'webmcp'} [origin] What its records carry, and whose group it joins.
+ * @property {'request' | 'idle'} [groupBy] `request`: same request inside the idle gap (the bridge);
+ *   `idle`: any write from the same origin inside the idle gap (WebMCP, which has no request).
+ */
+
+/**
  * @typedef {object} TabEndpoint
- * @property {(call: import('./protocol.js').CallMessage) => Promise<{ type: 'result', id: number, result: Record<string, any> }>} handle
+ * @property {(call: import('./protocol.js').CallMessage, via?: CallVia) => Promise<{ type: 'result', id: number, result: Record<string, any> }>} handle
  *   Run one call (queued behind any running one). Never throws: a failure is a result with `error`.
  * @property {readonly AiTurn[]} turns The landed groups not taken back, oldest first.
+ * @property {'mcp' | 'webmcp' | null} lastOrigin Who made the newest group, or `null` when there is none.
  * @property {() => void} undoLast **Undo AI turn** for the newest group. Throws the refusal, by
  *   name, and changes nothing.
  * @property {() => void} reset Forget every group (a new project was loaded).
@@ -88,6 +112,7 @@ const GESTURE_POLL_MS = 100
 
 /**
  * @typedef {object} Group
+ * @property {'mcp' | 'webmcp'} origin
  * @property {string} request
  * @property {number} lastAt When its latest write landed.
  * @property {import('../../core/merge/state.js').MergeState} baseState
@@ -177,11 +202,13 @@ export function createTabEndpoint(options) {
    * The group a write with `request` joins, or `null` for a new one.
    *
    * @param {string} request
+   * @param {Required<CallVia>} via
    * @returns {Group | null}
    */
-  function openGroupFor(request) {
+  function openGroupFor(request, via) {
     const last = groups.at(-1)
-    if (last === undefined || last.request !== request || now() - last.lastAt > GROUP_IDLE_MS) return null
+    if (last === undefined || last.origin !== via.origin || now() - last.lastAt > GROUP_IDLE_MS) return null
+    if (via.groupBy === 'request' && last.request !== request) return null
     return last
   }
 
@@ -203,9 +230,10 @@ export function createTabEndpoint(options) {
 
   /**
    * @param {import('./protocol.js').CallMessage} call
+   * @param {Required<CallVia>} via
    * @returns {Promise<Record<string, any>>}
    */
-  async function run(call) {
+  async function run(call, via) {
     const live = options.document()
     const arrived = live.mergeClock()
     const waitStart = now()
@@ -216,7 +244,7 @@ export function createTabEndpoint(options) {
     if (live.mergeClock() !== arrived) return { error: STALE_REFUSAL }
 
     const request = call.request ?? ''
-    const group = openGroupFor(request)
+    const group = openGroupFor(request, via)
     const budget = group?.budget ?? createTurn({ now, limits: { ...limits, turnMs: Infinity, stepsPerTurn: Infinity, consecutiveFailures: Infinity } })
     const perCall = createTurn({ now, limits })
     /** @type {import('../tools/limits.js').Turn} */
@@ -237,7 +265,7 @@ export function createTabEndpoint(options) {
     /** @type {import('../tools/index.js').ToolContext} */
     const ctx = {
       document: live,
-      origin: 'mcp',
+      origin: via.origin,
       live: true,
       turn,
       ...(call.request === undefined ? {} : { request: call.request }),
@@ -254,13 +282,14 @@ export function createTabEndpoint(options) {
 
     /** @type {Group} */
     const landedIn = group ?? {
+      origin: via.origin,
       request,
       lastAt: now(),
       baseState: beforeState,
       own: emptyChange(),
       budget,
       turn: {
-        turnId: `mcp-turn-${(turnCount += 1)}`,
+        turnId: `${via.origin}-turn-${(turnCount += 1)}`,
         recordIds: [],
         revisedIds: [],
         removedIds: [],
@@ -292,12 +321,14 @@ export function createTabEndpoint(options) {
   }
 
   return {
-    handle(call) {
+    handle(call, via = {}) {
+      /** @type {Required<CallVia>} */
+      const resolved = { origin: via.origin ?? 'mcp', groupBy: via.groupBy ?? 'request' }
       const next = queue.then(async () => {
         /** @type {Record<string, any>} */
         let result
         try {
-          result = await run(call)
+          result = await run(call, resolved)
         } catch {
           // A bug, not the model: fixed wording, never the error's own text (decision 8).
           result = { error: `${call.name} failed inside WarpCad. The project was not changed by it.` }
@@ -310,13 +341,16 @@ export function createTabEndpoint(options) {
     get turns() {
       return groups.map((group) => group.turn)
     },
+    get lastOrigin() {
+      return groups.at(-1)?.origin ?? null
+    },
     undoLast() {
       const group = groups.at(-1)
       if (group === undefined) throw new Error('There is no Claude Code change to take back.')
       const live = options.document()
       const plan = planMergeUndo(group.turn.base, group.turn.merged, mergeSnapshotOf(live), group.turn.change)
-      if (!plan.ok) throw new Error(plan.message.replace('after the merge', 'after Claude Code made it'))
-      applyMergeUndo(live, plan, { origin: 'mcp' })
+      if (!plan.ok) throw new Error(plan.message.replace('after the merge', `after ${WHO[group.origin]} made it`))
+      applyMergeUndo(live, plan, { origin: group.origin })
       groups.pop()
     },
     reset() {

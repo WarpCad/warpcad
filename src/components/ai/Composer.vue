@@ -26,7 +26,7 @@ const picker = ref(null)
 function onKeydown(event) {
   if (event.key !== 'Enter' || event.shiftKey || event.isComposing) return
   event.preventDefault()
-  if (assistant.claudeCodeOnly) return
+  if (assistant.claudeCodeOnly || assistant.browserAgentOnly) return
   void agent.send()
 }
 
@@ -40,9 +40,12 @@ async function onPicked(event) {
 </script>
 
 <template>
-  <form class="composer" data-testid="ai-composer" @submit.prevent="assistant.claudeCodeOnly || agent.send()">
+  <form class="composer" :class="{ 'composer--keyless': assistant.browserAgentOnly }" data-testid="ai-composer" @submit.prevent="assistant.claudeCodeOnly || assistant.browserAgentOnly || agent.send()">
     <p v-if="assistant.claudeCodeOnly" class="composer__pending" role="status" data-testid="ai-composer-reason">
       This box is off while Claude Code is connected: type your request in Claude Code and it appears here and in the viewport. To type here instead, add an API key under <strong>Key and model…</strong>.
+    </p>
+    <p v-else-if="assistant.browserAgentOnly" class="composer__pending" role="status" data-testid="ai-composer-reason">
+      This box needs an API key (add one under <strong>Key and model…</strong>). Without one, ask the agent in your browser.
     </p>
     <ul v-if="chat.attachments.length > 0" class="composer__attachments" data-testid="ai-attachments">
       <li v-for="(attachment, index) in chat.attachments" :key="index" class="composer__thumb">
@@ -67,7 +70,7 @@ async function onPicked(event) {
         data-testid="ai-attach"
         aria-label="Attach image"
         title="Attach image"
-        :disabled="chat.running || assistant.claudeCodeOnly"
+        :disabled="chat.running || assistant.claudeCodeOnly || assistant.browserAgentOnly"
         @click="picker?.click()"
       >
         📎
@@ -89,7 +92,7 @@ async function onPicked(event) {
         placeholder="Ask for a part or a change…"
         aria-label="Message the assistant"
         data-testid="ai-input"
-        :disabled="assistant.claudeCodeOnly"
+        :disabled="assistant.claudeCodeOnly || assistant.browserAgentOnly"
         @keydown="onKeydown"
       />
       <button
@@ -106,7 +109,7 @@ async function onPicked(event) {
         type="submit"
         class="composer__button composer__button--send"
         data-testid="ai-send"
-        :disabled="!chat.canSend || assistant.claudeCodeOnly"
+        :disabled="!chat.canSend || assistant.claudeCodeOnly || assistant.browserAgentOnly"
       >
         Send
       </button>
@@ -131,6 +134,17 @@ async function onPicked(event) {
   display: flex;
   align-items: flex-end;
   gap: 6px;
+}
+
+/*
+ * `TODO/ai-021`: no key and a browser agent can drive the project, so every control in the row is
+ * disabled. In the bottom sheet (phone and tablet) the reason line stands in for the row, which
+ * keeps the half-height sheet from clipping; at laptop width the column has room for both.
+ */
+@media (max-width: 1099px) {
+  .composer--keyless .composer__row {
+    display: none;
+  }
 }
 
 .composer__input {

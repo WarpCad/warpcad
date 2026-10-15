@@ -145,12 +145,105 @@ describe('the assistant store', () => {
     for (const state of ['idle', 'waiting', 'disconnected', 'unavailable']) {
       useAiChatStore().bridge = state
       expect(assistant.claudeCodeOnly).toBe(false)
-      expect(assistant.statusText).toBe('No key — paste one to connect')
+      // TODO/ai-021, Decision 13's route table: on the dev host the bridge is a route too, so the
+      // bare "paste one" line is only the built/hosted copy's, where a key is the only way in.
+      if (state === 'unavailable') expect(assistant.statusText).toBe('No key — paste one to connect')
+      else expect(assistant.statusText).toBe('No key — paste one, or connect Claude Code')
     }
     useAiChatStore().bridge = 'connected'
     await assistant.saveKey(KEY)
     expect(assistant.claudeCodeOnly).toBe(false)
     expect(assistant.statusText).toMatch(/connected — /i)
+  })
+
+  describe('TODO/ai-021: which routes the Assistant offers (Decision 13 route table)', () => {
+    it('built or hosted, no WebMCP: a key is the only way in, so the panel asks for one', async () => {
+      install()
+      const assistant = useAssistantStore()
+      await assistant.start()
+      const chat = useAiChatStore()
+      chat.bridge = 'unavailable'
+      chat.webMcp = 'unavailable'
+      expect(assistant.browserAgentOnly).toBe(false)
+      expect(assistant.statusText).toBe('No key — paste one to connect')
+      assistant.open()
+      expect(assistant.view).toBe('key')
+    })
+
+    it('built or hosted, WebMCP on: an in-browser agent can drive the project and a key is optional', async () => {
+      install()
+      const assistant = useAssistantStore()
+      await assistant.start()
+      const chat = useAiChatStore()
+      chat.bridge = 'unavailable'
+      chat.webMcp = 'on'
+      expect(assistant.browserAgentOnly).toBe(true)
+      expect(assistant.statusText).toMatch(/browser agent can drive this project/)
+      expect(assistant.statusText).toMatch(/optional/)
+      expect(assistant.statusText).not.toMatch(/paste/)
+      expect(assistant.statusText).not.toMatch(/Claude Code/)
+      // The panel, not the key sheet: that is where the Browser agents switch lives.
+      assistant.open()
+      expect(assistant.view).toBe('chat')
+      assistant.openKeySheet()
+      assistant.doneWithKeySheet()
+      expect(assistant.view).toBe('chat')
+    })
+
+    it('WebMCP present but switched off: the panel still opens (the switch is there) and says how to turn it on', async () => {
+      install()
+      const assistant = useAssistantStore()
+      await assistant.start()
+      const chat = useAiChatStore()
+      chat.bridge = 'unavailable'
+      chat.webMcp = 'off'
+      expect(assistant.statusText).toMatch(/Browser agents are off/)
+      assistant.open()
+      expect(assistant.view).toBe('chat')
+    })
+
+    it('dev host with WebMCP: names the Claude Code bridge too', async () => {
+      install()
+      const assistant = useAssistantStore()
+      await assistant.start()
+      const chat = useAiChatStore()
+      chat.bridge = 'idle'
+      chat.webMcp = 'on'
+      expect(assistant.statusText).toMatch(/browser agent/)
+      expect(assistant.statusText).toMatch(/Claude Code/)
+    })
+
+    it('a key wins: with one stored nothing about WebMCP changes the connected line', async () => {
+      install()
+      const assistant = useAssistantStore()
+      await assistant.start()
+      useAiChatStore().webMcp = 'on'
+      await assistant.saveKey(KEY)
+      expect(assistant.browserAgentOnly).toBe(false)
+      expect(assistant.statusText).toMatch(/connected — /i)
+    })
+
+    it('Claude Code connected wins over WebMCP for the no-key line (ai-020 unchanged)', async () => {
+      install()
+      const assistant = useAssistantStore()
+      await assistant.start()
+      const chat = useAiChatStore()
+      chat.webMcp = 'on'
+      chat.bridge = 'connected'
+      expect(assistant.claudeCodeOnly).toBe(true)
+      expect(assistant.browserAgentOnly).toBe(false)
+      expect(assistant.statusText).toMatch(/Claude Code is editing/)
+    })
+
+    it('Undo AI turn is offered for a landed webmcp group exactly as for an mcp one', async () => {
+      install()
+      const chat = useAiChatStore()
+      chat.lastLanded = 'webmcp'
+      chat.bridgeTurns = 1
+      expect(chat.canUndoTurn).toBe(true)
+      chat.bridgeTurns = 0
+      expect(chat.canUndoTurn).toBe(false)
+    })
   })
 
   it('with a stored key, start() restores it (a reload) and opening goes to the minimal connected state', async () => {

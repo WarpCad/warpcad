@@ -29,10 +29,11 @@ describe('LIMITS — the starting caps from ai-001 decision 7', () => {
 })
 
 describe('assertWriteOrigin — every write carries the transport’s origin, never local', () => {
-  it('accepts exactly ai and mcp', () => {
-    expect(WRITE_ORIGINS).toEqual(['ai', 'mcp'])
+  it('accepts exactly ai, mcp and webmcp (TODO/ai-021)', () => {
+    expect(WRITE_ORIGINS).toEqual(['ai', 'mcp', 'webmcp'])
     expect(() => assertWriteOrigin('ai')).not.toThrow()
     expect(() => assertWriteOrigin('mcp')).not.toThrow()
+    expect(() => assertWriteOrigin('webmcp')).not.toThrow()
   })
 
   it('refuses local, by name, so an AI record can never land on the user’s own undo stack', () => {

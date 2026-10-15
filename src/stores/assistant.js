@@ -112,6 +112,40 @@ export const useAssistantStore = defineStore('assistant', () => {
     () => !scripted.value && !hasKey.value && useAiChatStore().bridge === 'connected',
   )
 
+  /**
+   * `TODO/ai-021`, Decision 13's route table: this browser has WebMCP. The panel — where the
+   * **Browser agents** switch lives — is then a way in without a key, on or off.
+   */
+  const webMcpPresent = computed(() => useAiChatStore().webMcp !== 'unavailable')
+
+  /**
+   * `TODO/ai-021`: no key, Claude Code not connected, and browser agents may drive the project over
+   * WebMCP. The composer is off with its reason, like `claudeCodeOnly`, because it needs a key.
+   */
+  const browserAgentOnly = computed(() => !scripted.value && !hasKey.value && !claudeCodeOnly.value && webMcpPresent.value)
+
+  /** The dev host, where the Claude Code bridge is a route too (Decision 11: dev host only). */
+  const devHost = computed(() => useAiChatStore().bridge !== 'unavailable')
+
+  /**
+   * The no-key line, by route (Decision 13): the bare "paste one" only where a key is the only
+   * way in — a built or hosted copy with no WebMCP.
+   */
+  const noKeyText = computed(() => {
+    const webMcp = useAiChatStore().webMcp
+    if (webMcp === 'on') {
+      return devHost.value
+        ? 'A browser agent or Claude Code can drive this project; a key is optional.'
+        : 'A browser agent can drive this project; a key is optional.'
+    }
+    if (webMcp === 'off') {
+      return devHost.value
+        ? 'Browser agents are off: turn them on, connect Claude Code, or add a key.'
+        : 'Browser agents are off: turn them on, or add a key.'
+    }
+    return devHost.value ? 'No key — paste one, or connect Claude Code' : 'No key — paste one to connect'
+  })
+
   const dotState = computed(() => {
     if (claudeCodeOnly.value) return 'ok'
     if (!hasKey.value) return 'none'
@@ -123,7 +157,7 @@ export const useAssistantStore = defineStore('assistant', () => {
   const statusText = computed(() => {
     if (scripted.value) return `Scripted transcript “${scriptedName.value}” — no model, no key`
     if (claudeCodeOnly.value) return 'Claude Code is editing this project — type your request in Claude Code'
-    if (!hasKey.value) return 'No key — paste one to connect'
+    if (!hasKey.value) return noKeyText.value
     if (status.value === 'testing') return 'Testing the key…'
     if (status.value === 'ok') return `Connected — ${modelName.value}`
     if (status.value === 'failed') return message.value
@@ -212,11 +246,12 @@ export const useAssistantStore = defineStore('assistant', () => {
 
   /**
    * The header button: chat if connected — by a key, or by Claude Code over the live bridge
-   * (`TODO/ai-012`, whose History rows and **Undo AI turn** live in the chat) — the key sheet if
-   * there is nothing to connect with.
+   * (`TODO/ai-012`, whose History rows and **Undo AI turn** live in the chat), or when the browser
+   * has WebMCP (`TODO/ai-021`: the **Browser agents** switch is in the chat's header) — the key
+   * sheet if there is nothing to connect with.
    */
   function open() {
-    view.value = hasKey.value || useAiChatStore().bridge === 'connected' ? 'chat' : 'key'
+    view.value = hasKey.value || useAiChatStore().bridge === 'connected' || webMcpPresent.value ? 'chat' : 'key'
   }
 
   /** `TODO/ai-012`: **Connect to Claude Code** — the live bridge's pairing sheet. */
@@ -237,14 +272,18 @@ export const useAssistantStore = defineStore('assistant', () => {
     view.value = 'closed'
   }
 
-  /** Leaving the key sheet: on to the chat if there is a key or Claude Code is connected, otherwise just away. */
+  /**
+   * Leaving the key sheet: on to the chat if there is a key, Claude Code is connected, or the
+   * browser has WebMCP (`ai-021`); otherwise just away.
+   */
   function doneWithKeySheet() {
-    view.value = hasKey.value || useAiChatStore().bridge === 'connected' ? 'chat' : 'closed'
+    view.value = hasKey.value || useAiChatStore().bridge === 'connected' || webMcpPresent.value ? 'chat' : 'closed'
   }
 
   return {
     hasKey,
     claudeCodeOnly,
+    browserAgentOnly,
     persisted,
     status,
     message,

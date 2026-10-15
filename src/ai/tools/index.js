@@ -13,6 +13,10 @@
  * viewport to hand over (`ToolContext.capture`), so no list ever offers a tool that fails every
  * time.
  *
+ * A third adapter, WebMCP (`TODO/ai-021`, `src/ai/webmcp/`, origin `webmcp`), registers the live
+ * bridge's list minus {@link WEBMCP_WITHHELD} on the open tab's `document.modelContext`, and adds
+ * no tools either.
+ *
  * ## Tool reference (reused by `docs/mcp.md`, `ai-009`)
  *
  * Units throughout: millimetres, Z up, degrees.
@@ -62,7 +66,7 @@
  *
  * {@link ToolRegistry.run} is the only entry point a transport calls. In order, it:
  *
- * 1. refuses an origin other than `ai`/`mcp` (thrown: a transport bug);
+ * 1. refuses an origin other than `ai`/`mcp`/`webmcp` (thrown: a transport bug);
  * 2. counts the call against the turn's step and time caps;
  * 3. checks the input's shape against the tool's schema and names what is wrong;
  * 4. runs the tool;
@@ -103,7 +107,12 @@ export { toStrictWire } from './schema.js'
 
 /** @typedef {import('../../core/kernel/registry.js').RegistryEntry} RegistryEntry */
 /** @typedef {Readonly<Record<string, RegistryEntry>>} Registry */
-/** @typedef {'ai' | 'mcp'} Transport */
+/**
+ * `webmcp` (`TODO/ai-021`, Decision 13): an in-browser agent calling tools the open tab registers
+ * on `document.modelContext`. It lists what the live bridge lists, minus {@link WEBMCP_WITHHELD}.
+ *
+ * @typedef {'ai' | 'mcp' | 'webmcp'} Transport
+ */
 
 /**
  * The live bridge's seam (`TODO/ai-012`, Decision 11 point 2): the browser tools an `mcp` client
@@ -114,6 +123,15 @@ export { toStrictWire } from './schema.js'
  * transport: records keep origin `mcp`.
  */
 export const LIVE_BROWSER_TOOLS = Object.freeze(['capture_view', 'get_selection', 'select'])
+
+/**
+ * The WebMCP seam (`TODO/ai-021`, Decision 13 point 7): `webmcp` is a third transport onto the
+ * same registry, running in the open tab like the live bridge, so it lists exactly the live
+ * bridge's tools — minus these. A WebMCP result is a JSON value with no image type, and a PNG as a
+ * base64 string is far over Chrome's 1.5K-character advice, so vision stays with the chat and
+ * the bridge.
+ */
+export const WEBMCP_WITHHELD = Object.freeze(['capture_view'])
 
 /**
  * @typedef {object} ListOptions
@@ -136,7 +154,7 @@ export const LIVE_BROWSER_TOOLS = Object.freeze(['capture_view', 'get_selection'
  * @property {import('../../core/document.js').WarpDocument} document The document the
  *   writes land on: in the browser, the turn's forked document (decision 5); in MCP, the
  *   loaded project file. It must use the same op registry the tool registry was built with.
- * @property {string} origin `ai` or `mcp`; every write carries it.
+ * @property {string} origin `ai`, `mcp` or `webmcp`; every write carries it.
  * @property {import('./limits.js').Turn} turn This turn's budget.
  * @property {ToolSelection} [selection] Browser only.
  * @property {import('./capture.js').ToolCapture} [capture] Browser only, and only with a working
@@ -220,6 +238,21 @@ function createListOpsTool(ops) {
 }
 
 /**
+ * Why a tool the registry has is refused on this transport, in a sentence the model can act on.
+ *
+ * @param {string} name
+ * @param {string} origin
+ * @returns {string}
+ */
+function notOfferedReason(name, origin) {
+  if (origin === 'webmcp') {
+    return `${name} is not available over WebMCP: its result is an image, which this transport cannot carry. Use describe_scene, describe_body or measure instead.`
+  }
+  const over = origin === 'mcp' ? 'MCP' : origin
+  return `${name} is not available over ${over}: it needs the browser viewport (a selection to read, or a GPU to render with).`
+}
+
+/**
  * Build the tool registry over an op catalogue.
  *
  * @param {object} [options]
@@ -253,8 +286,12 @@ export function createToolRegistry(options = {}) {
    * @param {Transport} transport
    * @param {ListOptions} options
    */
-  const offered = (tool, transport, options) =>
-    tool.transports.includes(transport) || (options.live === true && transport === 'mcp' && LIVE_BROWSER_TOOLS.includes(tool.name))
+  const offered = (tool, transport, options) => {
+    if (transport === 'webmcp') return !WEBMCP_WITHHELD.includes(tool.name) && offeredLive(tool)
+    return tool.transports.includes(transport) || (options.live === true && transport === 'mcp' && LIVE_BROWSER_TOOLS.includes(tool.name))
+  }
+  /** @param {Tool} tool What an `mcp` call from an open tab may use. */
+  const offeredLive = (tool) => tool.transports.includes('mcp') || LIVE_BROWSER_TOOLS.includes(tool.name)
   /** @param {Transport} transport @param {ListOptions} [options] */
   const toolsFor = (transport, options = {}) => tools.filter((tool) => offered(tool, transport, options))
 
@@ -269,16 +306,15 @@ export function createToolRegistry(options = {}) {
       if (hit) return hit
 
       const transport = /** @type {Transport} */ (ctx.origin)
-      const options = { live: ctx.live === true }
+      // A WebMCP call always runs in the open tab.
+      const options = { live: ctx.live === true || transport === 'webmcp' }
       const tool = tools.find((candidate) => candidate.name === name)
       /** @type {Record<string, any>} */
       let result
       if (!tool) {
         result = { error: `There is no tool named ${JSON.stringify(name)}. The tools are: ${toolsFor(transport, options).map((t) => t.name).join(', ')}.` }
       } else if (!offered(tool, transport, options)) {
-        result = {
-          error: `${name} is not available over ${ctx.origin === 'mcp' ? 'MCP' : ctx.origin}: it needs the browser viewport (a selection to read, or a GPU to render with).`,
-        }
+        result = { error: notOfferedReason(name, ctx.origin) }
       } else {
         const errors = tool.validate ? tool.validate(input) : checkInput(tool.inputSchema, input)
         result = errors.length > 0 ? { error: 'invalid input', reason: errors.join('; ') } : tool.run(ctx, input)

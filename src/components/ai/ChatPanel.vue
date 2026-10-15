@@ -27,6 +27,10 @@
  * on a phone or tablet it is shown disabled with its reason on the key sheet instead, so the
  * half-height sheet keeps Send in view). Claude Code's changes land in the live project as
  * `mcp` rows; **Undo AI turn** takes back whichever AI change landed last.
+ *
+ * **Browser agents** (`TODO/ai-021`): where the browser has WebMCP, the header carries the
+ * **Browser agents · on / off** switch (`WebMcpChip`). A browser agent's changes land as `webmcp`
+ * rows, and **Undo AI turn** takes them back the same way.
  */
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 
@@ -41,6 +45,7 @@ import { useTimelineStore } from '../../stores/timeline.js'
 import ConnectionDot from '../display/ConnectionDot.vue'
 import ActivityRow from './ActivityRow.vue'
 import BridgeChip from './BridgeChip.vue'
+import WebMcpChip from './WebMcpChip.vue'
 import ConnectButton from './ConnectButton.vue'
 import Composer from './Composer.vue'
 import SaveProposal from './SaveProposal.vue'
@@ -159,6 +164,7 @@ const HEIGHTS = /** @type {const} */ ([
       <span v-if="assistant.scripted" class="chat__scripted" role="note" title="A recorded transcript is standing in for the model. Nothing here shows what the live model would do." data-testid="ai-scripted-badge">Scripted</span>
       <span class="chat__status" role="status" data-testid="ai-status">{{ statusLine }}</span>
       <BridgeChip />
+      <WebMcpChip />
       <button
         type="button"
         class="chat__watch"
@@ -200,10 +206,11 @@ const HEIGHTS = /** @type {const} */ ([
           <span data-testid="assistant-connection-text">{{ assistant.statusText }}</span>
         </p>
         <p class="chat__model">
-          <template v-if="!assistant.claudeCodeOnly">Model: <strong data-testid="assistant-model-name">{{ assistant.modelName }}</strong></template>
+          <template v-if="!assistant.claudeCodeOnly && !assistant.browserAgentOnly">Model: <strong data-testid="assistant-model-name">{{ assistant.modelName }}</strong></template>
           <button v-if="!assistant.scripted" type="button" class="chat__link" data-testid="assistant-keys" @click="assistant.openKeySheet()">Key and model…</button>
           <ConnectButton testid="ai-connect-open" only-where-usable />
         </p>
+        <p v-if="chat.webMcpMessage" class="chat__warn" role="status" data-testid="ai-webmcp-message">{{ chat.webMcpMessage }}</p>
         <p v-if="assistant.storageNote" class="chat__warn" role="status" data-testid="assistant-storage-note">
           {{ assistant.storageNote }}
         </p>
@@ -298,10 +305,15 @@ const HEIGHTS = /** @type {const} */ ([
   --chat-sheet-height: 60dvh;
 }
 
+/* Never shrunk by the sheet's column: when the row wraps (a narrow column, the Browser agents
+   chip), the header grows instead of drawing its second line over the text below. */
 .chat__head {
+  flex: none;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 8px;
+  row-gap: 4px;
   min-height: var(--tap);
 }
 

@@ -2344,3 +2344,19 @@ Dev host only for now, desktop browser, and I drove it with an MCP client stand-
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** Claude Code edits the open tab under `npm run dev` -> diff (`mcp/liveBridge.js`, `src/ai/bridge/tabEndpoint.js`); cube and sphere landed, Undo AI turn took the group back, held-drag call refused and drop kept -> hand drive this session (MCP client stand-in, not a real Claude Code); wrong pairing code refused, phone control disabled with its reason -> same drive; Safari/real Claude Code not driven -> TODO/ACCEPTANCE.md scenario 25 Last run
 **To Add:** `docs/screenshots/ai-live-bridge.png` (already generated); repo URL once public
+
+## 2026-10-14T23:40:00Z — A browser agent can drive the open WarpCad tab
+
+**Post:**
+
+WarpCad can now be driven by an AI agent that runs inside the browser. If the browser exposes WebMCP (Chrome 146 or later with a flag today), the open tab registers its modelling tools on document.modelContext and an agent can create and combine bodies directly. Nothing is sent to a helper process and no API key is involved.
+
+It reuses the one-writer path the Claude Code bridge already has, so a browser agent and Claude Code cannot interleave. Every landed group is tagged as coming from the browser agent, and Undo AI turn removes it without touching the user's own undo stack. A refusal, such as the user mid-drag, comes back as a value the agent can read.
+
+Where WebMCP is missing outside dev, the Assistant still asks for an API key; where it is present, the key is optional. The spec moved while I was writing this (document.modelContext replaced navigator.modelContext, and tools are removed with an AbortSignal), so the decision record cites the spec and Chrome's own pages. Built with Claude Code, reviewed by me.
+
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** tools register on document.modelContext, abort-signal unregister, JSON results -> diff (`src/ai/webmcp/register.js`) and `docs/decisions/ai-partner.md` Decision 13; Chrome 146+ and `#enable-webmcp-testing` -> Decision 13 facts table (Chrome guide, fetched this session); 19 tools registered, capture_view absent, Undo AI turn removed only the agent's group -> hand drive this session against a fake `document.modelContext`; real Chrome not driven -> TODO/VERIFY.md rows 1-3
+**To Add:** `docs/screenshots/webmcp-chip.png` (already generated); repo URL once public
