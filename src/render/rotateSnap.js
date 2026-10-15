@@ -2,8 +2,7 @@
 /**
  * Step sizes for a rotate-ring drag (`TODO/ui-064`): how far the body has
  * turned, unwrapped past ±180°, and which step that turn is quantised to — 5°
- * with Shift held, a speed-dependent step on touch and pen, continuous with a
- * plain mouse.
+ * with Shift held, otherwise a speed-dependent step on every pointer type.
  *
  * Framework-free like the rest of `src/render/`: no DOM, no Vue, no timers. The
  * speed tracker takes its clock as an argument, so a unit test describes "80 ms
@@ -42,7 +41,7 @@ import {
 // the translate ruler. Re-exported so `ui-064`'s callers do not change.
 export { BAND_HYSTERESIS, SPEED_HOLD_MS, SPEED_SMOOTHING_MS, SPEED_STALL_MS }
 
-/** Shift-held step, degrees (mouse and keyboard; also wins over speed on touch/pen). */
+/** Shift-held step, degrees (wins over speed on any pointer). */
 export const SHIFT_STEP_DEG = 5
 
 /**
@@ -52,7 +51,7 @@ export const SHIFT_STEP_DEG = 5
  */
 
 /**
- * Speed bands for touch and pen, slowest first. The *shape* is fixed by the spec
+ * Speed bands for every pointer type, slowest first. The *shape* is fixed by the spec
  * (fine at a crawl, coarse when flung); the edges are tunables, to be settled
  * against a real finger on a real device.
  *
@@ -96,7 +95,7 @@ export function snapDeg(deg, stepDeg) {
 }
 
 /**
- * The touch/pen step for a pointer moving at `speedPxPerS`, with hysteresis
+ * The speed step for a pointer moving at `speedPxPerS`, with hysteresis
  * against the step it was already in.
  *
  * @param {number} speedPxPerS Smoothed tangential speed. Non-finite or negative
@@ -213,29 +212,29 @@ export function accumulateTurnDeg(previousTurnedDeg, originXPx, originYPx, start
 /**
  * Which step a ring drag is in right now.
  *
- * Shift wins on any pointer (a pen on a laptop can reach it). Touch and pen use
- * the speed step. A mouse without Shift is continuous, exactly as before this
- * task, so nothing changes for existing users.
+ * Shift wins (5°); otherwise the speed step, on every pointer type — a mouse, a
+ * pen and a finger alike, and the same rule `translateStepMm` gives an arm
+ * (`TODO/ui-066`). The speed tracker always has a band, so there is no
+ * continuous case any more.
  *
  * @param {boolean} shift
- * @param {string} pointerType `PointerEvent.pointerType`.
- * @param {number} speedStepDeg The touch/pen speed step ({@link stepForSpeed}).
- * @returns {number} Degrees, or `0` for continuous.
+ * @param {number} speedStepDeg The speed step ({@link stepForSpeed}).
+ * @returns {number} Degrees, always positive.
  */
-export function rotateStepDeg(shift, pointerType, speedStepDeg) {
+export function rotateStepDeg(shift, speedStepDeg) {
   if (shift) return SHIFT_STEP_DEG
-  if (usesSpeedStep(pointerType)) return speedStepDeg
-  return 0
+  return speedStepDeg > 0 ? speedStepDeg : SPEED_BANDS[0].stepDeg
 }
 
 /**
- * Whether a pointer type gets the speed-sensitive step: touch and pen, which have
- * no Shift to reach for (open question (c), settled as "pen is like touch").
+ * Whether a pointer type is a finger or pen, which the readout dodges
+ * ({@link placeDialReadout}'s `touch` flag). Not about steps: every pointer type
+ * gets the speed step.
  *
  * @param {string} pointerType `PointerEvent.pointerType`.
  * @returns {boolean}
  */
-export function usesSpeedStep(pointerType) {
+export function isFingerPointer(pointerType) {
   return pointerType === 'touch' || pointerType === 'pen'
 }
 

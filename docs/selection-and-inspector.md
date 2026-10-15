@@ -542,21 +542,22 @@ on screen.
   half a turn, so three quarters of a turn reads `+270.0°`.
 - **Readout**: the signed angle turned, to 0.1°, e.g. `+37.5°`. Positive is
   counter-clockwise looking down the ring's axis toward the origin (the right-hand rule).
-  Under it a small line names the active step: `5° steps`, `fine 0.1°`, or nothing when the
-  drag is continuous.
+  Under it a small line names the active step: `5° steps`, `fine 0.1°` and so on. Every
+  drag has a step, with a mouse as much as with a finger.
 - Release and the shape keeps exactly the angle on the readout, as one step you can Undo.
   The Rotation field in the Inspector shows the same number.
 
-**Landing on a round number.** Hold **Shift** while dragging (mouse and keyboard) and the
+**Landing on a round number.** Hold **Shift** while dragging and the
 turn snaps to 5° steps of the turn from where you grabbed. Press or release Shift
 mid-drag and it takes effect at once. The steps are relative to the start: a shape
 already at 17° lands on 22°, 27° and so on. To reach a specific absolute angle, type it
 into the Rotation field.
 
-**On a touch screen** there is no Shift, so the step follows how fast your finger moves:
-fast is a coarse step (up to 15°), slower is 5°, then 1°, and nearly stopped is 0.1°. Slow
-right down at the end of the drag to settle on the exact angle; the readout says which
-step you are in. Holding Shift on a pen or an attached keyboard overrides the speed rule.
+**Without Shift, how fast you drag picks the step**, the same for a mouse, a pen and a
+finger, and the same rule the move arrows follow: fast is a coarse step (up to 15°), slower
+is 5°, then 1°, and nearly stopped is 0.1°. Slow right down at the end of the drag to settle
+on the exact angle; the readout says which step you are in. A touch screen has no Shift, so
+speed is its only way to choose. Holding Shift always overrides the speed rule.
 
 ![Dragging a ring: the dial follows, then Shift snaps the readout to 5-degree steps](./media/gizmo-rotate-dial.gif)
 
@@ -568,9 +569,9 @@ step you are in. Holding Shift on a pen or an attached keyboard overrides the sp
 3. Hold **Shift** and keep dragging: the readout moves in jumps, `+45.0°`, `+50.0°`,
    `+55.0°`. Release with it on `+90.0°`.
 4. The Inspector's Rotation Z says `90`. Ctrl+Z puts the cube back in one step.
-5. *On a tablet:* drag the blue ring quickly and the readout jumps in big steps; slow
-   right down near the end and it falls to `0.1°` steps, so you can settle on `89.9°` or
-   `90.0°`.
+5. *Without a keyboard* (a mouse, or a finger on a tablet): drag the blue ring quickly and
+   the readout jumps in big steps; slow right down near the end and it falls to `0.1°`
+   steps, so you can settle on `89.9°` or `90.0°`.
 
 Typing a number does the same job from the other side. The two always agree.
 

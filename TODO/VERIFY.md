@@ -34,6 +34,15 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### ui-066 — Rotate rings pick the step from drag speed on every pointer type (2026-10-15 07:02)
+
+The mouse now steps by speed like a finger. The unit and e2e specs pin the bands and a scripted real-mouse drive read well, but whether the 40 and 250 px/s edges *feel* right for a human hand and for a real finger is a judgment call no assertion makes.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | With a real mouse, drag a ring at an ordinary pace and then creep: does the readout feel steady in the `1°` band, or does the jump between `1°` and `0.1°` at the slow edge read as twitchy? | Open | |
+| 2 | On a real iPad or iPhone, repeat the fling, creep, rest drag on a ring: coarse then `fine 0.1°`, camera does not orbit, readout clear of the finger. (A synthetic CDP touch drive was inconclusive; the e2e touch-type pointer test passes.) | Open | |
+
 ### ui-061 — Docs inside the app, help buttons (2026-10-15 UTC)
 
 Offline Help is asserted in Chromium and Firefox and, for WebKit, only as precache contents (Playwright's WebKit offline emulation defeats service-worker answers), so a real Safari/iPhone check is the one thing not covered. The GIFs are not precached by design.

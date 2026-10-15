@@ -342,11 +342,13 @@ test('a ring drag draws a dial and a readout, the Rotation field agrees, release
   const readout = await page.getByTestId('gizmo-dial-readout').getAttribute('data-value')
   expect(readout).toMatch(/^[+-]\d+\.\d°$/)
   const shown = degrees(/** @type {string} */ (readout))
-  // A mouse without Shift is continuous: the readout tracks the screen sweep.
-  expect(Math.abs(shown)).toBeGreaterThan(45)
-  expect(Math.abs(shown)).toBeLessThan(55)
-  // Continuous: no step line.
-  await expect(page.getByTestId('gizmo-dial-step')).toHaveCount(0)
+  // A mouse without Shift picks its step from drag speed, as a finger does
+  // (`ui-066`). This sweep is brisk, so the band is not asserted exactly, only
+  // that the readout tracks the 50° screen sweep to within a coarse step...
+  expect(Math.abs(Math.abs(shown) - 50)).toBeLessThanOrEqual(10)
+  // ...and that a step is in force, so the step line is shown on a mouse too.
+  await expect(page.getByTestId('gizmo-dial-step')).toHaveCount(1)
+  await expect(page.getByTestId('gizmo-dial-step')).toHaveText(/steps|fine/)
   // The Inspector's Rotation Z follows the same number, live (`ui-012`).
   expect(sameTurn(await fieldNumber(page, 'inspector-rotation-z'), shown)).toBe(true)
   // The readout pill is wholly inside the viewport.
@@ -416,8 +418,8 @@ test('pressing and releasing Shift mid-drag snaps and unsnaps at once, without m
 }) => {
   await placeCube(page)
   await pressRing(page, { pointerType: 'mouse' })
-  // 22° of sweep: continuous, so not on a 5° step.
-  await sweepRing(page, { sweepDeg: 22, steps: 11, intervalMs: 16 })
+  // 22° of sweep at ~50°/s: the 1° band (or 0.1° once paused), so not on a 5° step.
+  await sweepRing(page, { sweepDeg: 22, steps: 11, intervalMs: 40 })
   const value = page.getByTestId('gizmo-dial-readout')
   const raw = degrees((await value.getAttribute('data-value')) ?? '')
   expect(onFiveDegreeStep(raw)).toBe(false)
@@ -428,14 +430,17 @@ test('pressing and releasing Shift mid-drag snaps and unsnaps at once, without m
 
   await page.keyboard.up('Shift')
   await expect.poll(async () => degrees((await value.getAttribute('data-value')) ?? '')).toBeCloseTo(raw, 1)
-  await expect(page.getByTestId('gizmo-dial-step')).toHaveCount(0)
+  await expect(page.getByTestId('gizmo-dial-step')).not.toHaveText('5° steps')
 
   await releaseRing(page)
   expect(sameTurn(await fieldNumber(page, 'inspector-rotation-z'), raw, 0.1)).toBe(true)
   expect(await sceneBodies(page)).toHaveLength(1)
 })
 
-test('on touch, a fast drag steps coarsely and slowing down falls to 0.1° steps, without orbiting the camera', async ({
+// The same gesture on a finger and on a mouse: speed picks the step either way
+// (`ui-066` made the mouse row match `ui-064`'s touch row).
+for (const pointerType of /** @type {const} */ (['touch', 'mouse'])) {
+test(`on ${pointerType}, a fast drag steps coarsely and slowing down falls to 0.1° steps, without orbiting the camera`, async ({
   page,
 }, testInfo) => {
   await placeCube(page)
@@ -445,7 +450,7 @@ test('on touch, a fast drag steps coarsely and slowing down falls to 0.1° steps
     await viewport.getAttribute('data-camera-elevation'),
   ]
 
-  await pressRing(page, { pointerType: 'touch' })
+  await pressRing(page, { pointerType })
   // Fling: ~15° of screen angle per 16 ms frame.
   await sweepRing(page, { sweepDeg: 120, steps: 8, intervalMs: 16 })
   // Creep: 0.2° per 40 ms.
@@ -453,7 +458,7 @@ test('on touch, a fast drag steps coarsely and slowing down falls to 0.1° steps
   // Then rest the finger: stalling counts as slow.
   await page.waitForTimeout(200)
   await expect(page.getByTestId('gizmo-dial-step')).toHaveText('fine 0.1°')
-  await page.screenshot({ path: join(SNAPSHOT_DIR, `dial-touch-fine-${testInfo.project.name}.png`) })
+  await page.screenshot({ path: join(SNAPSHOT_DIR, `dial-${pointerType}-fine-${testInfo.project.name}.png`) })
   const samples = await releaseRing(page)
 
   const coarse = samples.filter((sample) => sample.stepDeg >= 5)
@@ -485,3 +490,4 @@ test('on touch, a fast drag steps coarsely and slowing down falls to 0.1° steps
   ]).toEqual(cameraBefore)
   await expect(page.getByTestId('gizmo-dial')).toHaveCount(0)
 })
+}

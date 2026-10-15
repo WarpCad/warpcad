@@ -2456,3 +2456,14 @@ Two things the full test run caught that no one would have thought to check: a n
 **Evidence:** same as the BlueSky entry; the layout regressions -> `e2e/phone-toolbar-chrome-fit.e2e.js` and `e2e/ai-chat.e2e.js` failed on the phone projects before the fix and pass after (this session)
 **To Add:** `docs/screenshots/help-contents-phone.png`; repo URL once public
 
+
+## 2026-10-15T07:05:00Z — A mouse drags a rotate ring the way a finger does
+
+**Post:** Two days ago I gave WarpCad's rotate rings a dial and a rule: on a touch screen, how fast you drag picks the step, and slowing down at the end lets you land on an exact angle. A mouse stayed continuous, because that was what it had always been. That left the rings and the move arrows disagreeing about the same gesture.
+
+Today the mouse follows the same rule as the finger and the arrows. Fast is coarse, slow is 0.1 degrees, and Shift always wins with 5-degree steps. The change was small, one function lost its pointer-type argument, and the part worth the time was the question underneath it: is a mouse more jittery than a finger at the slowest step? I drove it by hand with a deliberately shaky pointer and the readout wandered by under a degree, the same as the old continuous mouse did, so I left the band edges alone and logged the real-hand check as a manual item. Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource #WebGL
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** same as the BlueSky entry; the jitter drive -> 60 moves with plus or minus 0.8 px of noise at a 67 px ring radius read within about 0.7 degrees at `fine 0.1°`
+**To Add:** `docs/media/gizmo-rotate-dial.gif` (generated); repo URL once public

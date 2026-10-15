@@ -74,8 +74,8 @@
   "gizmo-rotate-dial.gif": {
     "spec": "e2e/docs/selection-inspector.docs.js",
     "specHash": "327aadee71a8d663f6a6d3a5501b5627ebfddc6926e442c44a92bb7d751af8f6",
-    "bytes": 1333295,
-    "seconds": 12
+    "bytes": 1311644,
+    "seconds": 11.58
   },
   "gizmo-translate.gif": {
     "spec": "e2e/docs/selection-inspector.docs.js",

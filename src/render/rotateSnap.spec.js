@@ -8,6 +8,7 @@ import {
   accumulateTurnDeg,
   createSpeedTracker,
   formatTurnDeg,
+  isFingerPointer,
   rotateStepDeg,
   snapDeg,
   stepForSpeed,
@@ -364,22 +365,38 @@ describe('accumulateTurnDeg — the unwrapped turned angle', () => {
 })
 
 describe('rotateStepDeg — which step a drag is in', () => {
-  it('Shift is 5° steps, for any pointer — Shift wins over speed on touch and pen', () => {
+  it('Shift is 5° steps, whatever the speed — Shift wins over speed', () => {
     expect(SHIFT_STEP_DEG).toBe(5)
-    expect(rotateStepDeg(true, 'mouse', 0.1)).toBe(5)
-    expect(rotateStepDeg(true, 'touch', 0.1)).toBe(5)
-    expect(rotateStepDeg(true, 'pen', 15)).toBe(5)
+    expect(rotateStepDeg(true, 0.1)).toBe(5)
+    expect(rotateStepDeg(true, 1)).toBe(5)
+    expect(rotateStepDeg(true, 15)).toBe(5)
   })
 
-  it('a mouse without Shift stays continuous (no surprise for existing users)', () => {
-    expect(rotateStepDeg(false, 'mouse', 15)).toBe(0)
-    expect(rotateStepDeg(false, '', 15)).toBe(0)
+  it('without Shift the speed step is used, with no pointer type in the signature (TODO/ui-066)', () => {
+    // A mouse used to be continuous (0); it now gets the same band as touch and pen.
+    expect(rotateStepDeg(false, 0.1)).toBe(0.1)
+    expect(rotateStepDeg(false, 1)).toBe(1)
+    expect(rotateStepDeg(false, 5)).toBe(5)
+    expect(rotateStepDeg(false, 15)).toBe(15)
+    expect(rotateStepDeg.length).toBe(2)
   })
 
-  it('touch and pen without Shift use the speed step', () => {
-    expect(rotateStepDeg(false, 'touch', 15)).toBe(15)
-    expect(rotateStepDeg(false, 'touch', 0.1)).toBe(0.1)
-    expect(rotateStepDeg(false, 'pen', 1)).toBe(1)
+  it('a cold start (no speed step yet) is the finest band, never continuous', () => {
+    expect(rotateStepDeg(false, 0)).toBe(0.1)
+  })
+
+  it('a slow mouse drag lands on 0.1° and a fast one on a coarse step, through the real bands', () => {
+    // The step a drag at this speed picks, from a cold start, fed straight in.
+    expect(rotateStepDeg(false, stepForSpeed(10, 0))).toBe(0.1)
+    expect(rotateStepDeg(false, stepForSpeed(1500, 0))).toBe(15)
+    expect(rotateStepDeg(true, stepForSpeed(1500, 0))).toBe(5)
+  })
+
+  it('the readout dodges a finger or pen, and nothing else', () => {
+    expect(isFingerPointer('touch')).toBe(true)
+    expect(isFingerPointer('pen')).toBe(true)
+    expect(isFingerPointer('mouse')).toBe(false)
+    expect(isFingerPointer('')).toBe(false)
   })
 })
 

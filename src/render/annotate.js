@@ -906,7 +906,7 @@ const DIAL_READOUT_MARGIN_PX = 8
  *   from the start hand to the live hand; the hub closes the wedge.
  * @property {number} sectorSweepDeg The turn the sector shows, clamped to ±360.
  * @property {number} turnedDeg The signed turned angle, unwrapped.
- * @property {number} stepDeg The active snap step, `0` when continuous.
+ * @property {number} stepDeg The active snap step, degrees (a drag always has one; `0` is only the rest value).
  * @property {number} readoutX Centre of the readout pill.
  * @property {number} readoutY
  */

@@ -6,8 +6,19 @@ priority: low
 model: sonnet
 milestone: M16
 depends: [ui-064, ui-065]
-status: open
+status: done
 ---
+
+## What actually shipped (retirement note, 2026-10-15)
+
+As proposed. `rotateStepDeg(shift, speedStepDeg)` drops its pointer-type parameter: Shift wins,
+otherwise the speed step (a cold start is the finest band, never continuous). `usesSpeedStep` is gone;
+`isFingerPointer(pointerType)` stays for the readout's finger-dodging placement only. The ring's speed
+tracker and stall timer in `Viewport.vue` run for every pointer type. The mouse e2e now asserts a step is
+in force (band-tolerant) and the touch speed-band test runs for both `touch` and `mouse`. Band edges were
+**not** tuned: a 60-move crawl with plus or minus 0.8 px of hand jitter at a 67 px ring radius read within
+plus or minus 0.7 degrees at `fine 0.1°`, which is what the old continuous mouse read too, so there is no
+evidence a pointer-type branch or new edges are needed.
 
 ## Goal
 

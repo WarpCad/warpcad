@@ -84,7 +84,7 @@ import {
   rotateStepDeg,
   snapDeg,
   stepForSpeed,
-  usesSpeedStep,
+  isFingerPointer,
 } from '../../render/rotateSnap.js'
 import { createScalarSpeedTracker } from '../../render/dragSteps.js'
 import { snapMm, translateSpeedStepMm, translateStepMm } from '../../render/translateSnap.js'
@@ -629,7 +629,7 @@ const gizmoDrag = {
   centreYMm: 0,
   centreZMm: 0,
   // --- rotate dial (`TODO/ui-064`) ---
-  /** `PointerEvent.pointerType` of the press: touch and pen get the speed step. */
+  /** `PointerEvent.pointerType` of the press: a finger or pen gets the readout moved clear of it. */
   pointerType: 'mouse',
   /** Shift held right now: tracked on every move *and* on keydown/keyup mid-drag. */
   shift: false,
@@ -641,7 +641,7 @@ const gizmoDrag = {
   rawTurnDeg: 0,
   /** `rawTurnDeg` snapped to `stepDeg`: the one number the preview, dial, field and commit share. */
   turnedDeg: 0,
-  /** The active step, degrees; `0` is continuous. */
+  /** The active step, degrees; `0` only before the first move. */
   stepDeg: 0,
   /** The touch/pen speed band's step, carried for hysteresis; `0` before the first sample. */
   speedStep: 0,
@@ -2216,7 +2216,7 @@ function syncDial() {
     gizmoAnnotation.originY,
     gizmoDrag.pointerXPx,
     gizmoDrag.pointerYPx,
-    usesSpeedStep(gizmoDrag.pointerType),
+    isFingerPointer(gizmoDrag.pointerType),
     widthPx,
     heightPx,
     dialAnnotation,
@@ -2226,13 +2226,13 @@ function syncDial() {
 /**
  * Quantise the ring drag's turn and show it (`TODO/ui-064`).
  *
- * Done once, here: pick the step (Shift → 5°, touch/pen → speed band, mouse →
- * continuous), snap the raw unwrapped turn to it, and hand *that* to the
+ * Done once, here: pick the step (Shift → 5°, otherwise the speed band, on every
+ * pointer type), snap the raw unwrapped turn to it, and hand *that* to the
  * preview. The dial, readout, preview mesh, Inspector field and commit then all
  * read the same number, so release commits exactly what was displayed.
  */
 function applyRotateStep() {
-  gizmoDrag.stepDeg = rotateStepDeg(gizmoDrag.shift, gizmoDrag.pointerType, gizmoDrag.speedStep)
+  gizmoDrag.stepDeg = rotateStepDeg(gizmoDrag.shift, gizmoDrag.speedStep)
   const turned = snapDeg(gizmoDrag.rawTurnDeg, gizmoDrag.stepDeg)
   gizmoDrag.turnedDeg = turned
   preview.setRotate(
@@ -2266,7 +2266,7 @@ function syncRuler() {
   placeRulerReadout(
     gizmoDrag.pointerXPx,
     gizmoDrag.pointerYPx,
-    usesSpeedStep(gizmoDrag.pointerType),
+    isFingerPointer(gizmoDrag.pointerType),
     widthPx,
     heightPx,
     rulerAnnotation,
@@ -2299,11 +2299,10 @@ function refreshArmSpeedStep() {
 }
 
 /**
- * Re-read the touch/pen speed band, decayed by the time since the last move.
- * "Stalling counts as slow": `pointermove` stops firing when a finger stops.
+ * Re-read the ring's speed band, decayed by the time since the last move.
+ * "Stalling counts as slow": `pointermove` stops firing when a pointer stops.
  */
 function refreshSpeedStep() {
-  if (!usesSpeedStep(gizmoDrag.pointerType)) return
   gizmoDrag.speedStep = stepForSpeed(rotateSpeed.speed(), gizmoDrag.speedStep)
 }
 
@@ -2444,11 +2443,9 @@ function onGizmoHandleMove(event) {
     yPx,
     gizmoDrag.facing,
   )
-  if (usesSpeedStep(gizmoDrag.pointerType)) {
-    rotateSpeed.sample(xPx, yPx, gizmoDrag.originXPx, gizmoDrag.originYPx)
-    refreshSpeedStep()
-    armGizmoStall()
-  }
+  rotateSpeed.sample(xPx, yPx, gizmoDrag.originXPx, gizmoDrag.originYPx)
+  refreshSpeedStep()
+  armGizmoStall()
   applyRotateStep()
 }
 
@@ -2456,9 +2453,9 @@ function onGizmoHandleMove(event) {
 function onGizmoHandleUp(event) {
   if (!gizmoDrag.active) return
   clearGizmoStall()
-  // A touch drag that ends with a pause lands at the fine step it has slowed
-  // into, not the coarse one it was in before the finger stopped.
-  if (!event.cancelled && gizmoDrag.kind === 'rotate' && gizmoDrag.moved && usesSpeedStep(gizmoDrag.pointerType)) {
+  // A drag that ends with a pause lands at the fine step it has slowed into,
+  // not the coarse one it was in before the pointer stopped (any pointer type).
+  if (!event.cancelled && gizmoDrag.kind === 'rotate' && gizmoDrag.moved) {
     refreshSpeedStep()
     applyRotateStep()
   }

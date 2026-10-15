@@ -1739,3 +1739,12 @@ Built with Claude Code, reviewed by me.
 **Evidence:** `scripts/help-build.mjs` renders `docs/*.md` at build time -> `help/<page>.html`, precached by the service worker (`vite.config.js`); `e2e/help.e2e.js` passes on Chromium, Firefox and WebKit at three widths, offline under `E2E_PREVIEW=1`; 4580 unit tests passed
 **To Add:** `docs/screenshots/help-from-popup.png`, `docs/media/help-open-close.gif` (generated); repo URL once public
 
+
+## 2026-10-15T07:05:00Z — A mouse drags a rotate ring the way a finger does
+
+**Post:** Rotating a part with a mouse in WarpCad used to be continuous while a finger got speed-picked steps. Now both do: drag fast and the ring moves in big steps, slow right down and it falls to 0.1 degrees, and Shift still snaps to 5. Same rule as the move arrows. Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** `rotateStepDeg` no longer takes a pointer type (`src/render/rotateSnap.js`), unit tests pin mouse/touch/pen to the same bands; `e2e/rotate-dial.e2e.js` and `e2e/gizmo-transform.e2e.js` pass on Chromium, Firefox and WebKit at three widths; a real-mouse drive reloaded `-45.0°` and `-87.3°` exactly
+**To Add:** `docs/media/gizmo-rotate-dial.gif` (generated); repo URL once public
