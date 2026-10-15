@@ -323,6 +323,24 @@ export const useDocumentStore = defineStore('document', () => {
   }
 
   /**
+   * Rename a body or group (`TODO/ui-056`) — core's `renameBody`, one `style.rename` record
+   * and one undoable step. Routed through here like {@link setColorOverride}, for the
+   * selection-before `meta` Undo restores and one `refresh()`. A blank or `null` name
+   * clears the override (the generated name returns).
+   *
+   * @param {string} id A body's lineage-root id (or any record in its lineage).
+   * @param {string | null} name
+   * @param {{ origin?: string }} [transaction]
+   * @returns {OpRecord}
+   */
+  function renameBody(id, name, transaction = {}) {
+    const origin = transaction.origin ?? 'local'
+    const { record } = raw.renameBody(id, name, { origin, meta: localMeta(origin) })
+    refresh()
+    return record
+  }
+
+  /**
    * Change the design resolution (`TODO/core-035`) — core's `setResolution`, one local
    * undoable step that re-folds every body. Routed through here like every other
    * mutation, for the selection-before `meta` Undo restores and one `refresh()`.
@@ -740,6 +758,7 @@ export const useDocumentStore = defineStore('document', () => {
     revise,
     setColorOverride,
     clearColorOverride,
+    renameBody,
     setResolution,
     standingInstructions,
     setStandingInstructions,

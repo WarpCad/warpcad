@@ -2416,3 +2416,16 @@ The Inspector field that uses it is the next task. Built with Claude Code, revie
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** same as the BlueSky entry; the `record.name` pitfall -> diff (`src/core/kernel/index.js` adds every named record to the group; `nextName` in `src/core/document.js`)
 **To Add:** screenshot of the renamed body in the Inspector once `ui-056` lands; repo URL once public
+
+## 2026-10-15T04:00:00Z — Name a part in the Inspector: pencil, F2, Enter
+
+**Post:** With two dozen bolts on the board, "Bolt 14" tells you nothing. WarpCad's Inspector now has an inline name field: tap the name or its pencil (F2 on a keyboard), type `Pi camera bolt`, press Enter. The name shows at once in the Inspector header, the object list and the phone tab, survives a reload, and Undo takes it back.
+
+The rules are small on purpose. Escape reverts and does not cancel anything else you have armed. A blank entry restores the generated name and says so. A name another part already uses shows a hint rather than a refusal, because two screws is a legitimate model. It only appears when exactly one part or group is selected.
+
+One thing the touch test caught that a mouse test would not have: on Chromium, tapping plain text does not blur a focused input, so "tap away to finish" left the keyboard up and the name uncommitted. The field now also commits on a press outside it. Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource #WebGL
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** same as the BlueSky entry; the touch-blur gap -> `e2e/rename-part.e2e.js` "with a touchscreen" failed on `chromium-phone` and `chromium-tablet` before the outside-press commit and passes after (this session)
+**To Add:** `docs/screenshots/inspector-rename-list.png`; repo URL once public

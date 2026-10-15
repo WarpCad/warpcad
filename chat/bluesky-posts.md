@@ -1711,3 +1711,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** `style.rename` record, newest wins, blank clears, `nextName` unchanged -> diff (`src/core/document.js`, `src/core/naming.js`); name survived a size edit, a move, a union plus undo and a reload in a real-mouse drive this session; full suite 4502 unit and 3545 e2e passed; no Inspector control yet (`ui-056`)
 **To Add:** nothing yet, the Inspector field and its screenshot land with `ui-056`; repo URL once public
+
+## 2026-10-15T04:00:00Z — Name a part in the Inspector: pencil, F2, Enter
+
+**Post:** WarpCad's Inspector now lets you name a part or group in place. Tap the name or its pencil (or F2), type, Enter. Escape puts the old name back, blank restores the generated one, and a name another part already has shows a hint but still goes through. The new name shows in the Inspector, the object list and the phone tab at once, and Undo takes it back. Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** `NameField.vue` over `documentStore.renameBody` -> diff (`src/components/inspector/NameField.vue`, `src/stores/document.js`); `e2e/rename-part.e2e.js` passes on Chromium, Firefox and WebKit at phone, tablet and laptop widths (full run 3596 passed, 0 failed, this session); 4519 unit tests passed; a real-mouse drive on Chromium kept the selection through a rename and a following size edit
+**To Add:** `docs/media/inspector-rename.gif` (generated); repo URL once public

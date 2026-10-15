@@ -55,63 +55,63 @@
   },
   "align-to-origin.gif": {
     "spec": "e2e/docs/selection-inspector.docs.js",
-    "specHash": "cf3cd63929982760d9ef1ad652948ce38c6e14a4413a10505a71f76d30139cf1",
-    "bytes": 583555,
-    "seconds": 6.41
+    "specHash": "327aadee71a8d663f6a6d3a5501b5627ebfddc6926e442c44a92bb7d751af8f6",
+    "bytes": 405444,
+    "seconds": 5.5
   },
   "delete-body.gif": {
     "spec": "e2e/docs/selection-inspector.docs.js",
-    "specHash": "cf3cd63929982760d9ef1ad652948ce38c6e14a4413a10505a71f76d30139cf1",
-    "bytes": 238214,
-    "seconds": 5.33
+    "specHash": "327aadee71a8d663f6a6d3a5501b5627ebfddc6926e442c44a92bb7d751af8f6",
+    "bytes": 249883,
+    "seconds": 5.16
   },
   "gizmo-rotate.gif": {
     "spec": "e2e/docs/selection-inspector.docs.js",
-    "specHash": "cf3cd63929982760d9ef1ad652948ce38c6e14a4413a10505a71f76d30139cf1",
-    "bytes": 1099728,
-    "seconds": 9.5
+    "specHash": "327aadee71a8d663f6a6d3a5501b5627ebfddc6926e442c44a92bb7d751af8f6",
+    "bytes": 1274825,
+    "seconds": 11.25
   },
   "gizmo-rotate-dial.gif": {
     "spec": "e2e/docs/selection-inspector.docs.js",
-    "specHash": "64db1ba0378a6eb328252306cd98064d3fb5ab08352784fcec357546b9cb8718",
-    "bytes": 1017574,
-    "seconds": 7.16
+    "specHash": "327aadee71a8d663f6a6d3a5501b5627ebfddc6926e442c44a92bb7d751af8f6",
+    "bytes": 1333295,
+    "seconds": 12
   },
   "gizmo-translate.gif": {
     "spec": "e2e/docs/selection-inspector.docs.js",
-    "specHash": "cf3cd63929982760d9ef1ad652948ce38c6e14a4413a10505a71f76d30139cf1",
-    "bytes": 1250553,
-    "seconds": 9.25
+    "specHash": "327aadee71a8d663f6a6d3a5501b5627ebfddc6926e442c44a92bb7d751af8f6",
+    "bytes": 1048352,
+    "seconds": 10.75
   },
   "inspector-colour.gif": {
     "spec": "e2e/docs/selection-inspector.docs.js",
-    "specHash": "cf3cd63929982760d9ef1ad652948ce38c6e14a4413a10505a71f76d30139cf1",
-    "bytes": 217644,
-    "seconds": 5.25
+    "specHash": "327aadee71a8d663f6a6d3a5501b5627ebfddc6926e442c44a92bb7d751af8f6",
+    "bytes": 211236,
+    "seconds": 5.83
   },
   "inspector-numeric-edit.gif": {
     "spec": "e2e/docs/selection-inspector.docs.js",
-    "specHash": "cf3cd63929982760d9ef1ad652948ce38c6e14a4413a10505a71f76d30139cf1",
-    "bytes": 234816,
-    "seconds": 5.83
+    "specHash": "327aadee71a8d663f6a6d3a5501b5627ebfddc6926e442c44a92bb7d751af8f6",
+    "bytes": 258311,
+    "seconds": 6.41
   },
   "inspector-param-edit.gif": {
     "spec": "e2e/docs/selection-inspector.docs.js",
-    "specHash": "cf3cd63929982760d9ef1ad652948ce38c6e14a4413a10505a71f76d30139cf1",
-    "bytes": 601350,
-    "seconds": 7.58
+    "specHash": "327aadee71a8d663f6a6d3a5501b5627ebfddc6926e442c44a92bb7d751af8f6",
+    "bytes": 711474,
+    "seconds": 8.58
   },
   "select-click.gif": {
     "spec": "e2e/docs/selection-inspector.docs.js",
-    "specHash": "cf3cd63929982760d9ef1ad652948ce38c6e14a4413a10505a71f76d30139cf1",
-    "bytes": 491397,
-    "seconds": 6.75
+    "specHash": "327aadee71a8d663f6a6d3a5501b5627ebfddc6926e442c44a92bb7d751af8f6",
+    "bytes": 625658,
+    "seconds": 7.33
   },
   "select-marquee.gif": {
     "spec": "e2e/docs/selection-inspector.docs.js",
-    "specHash": "cf3cd63929982760d9ef1ad652948ce38c6e14a4413a10505a71f76d30139cf1",
-    "bytes": 464026,
-    "seconds": 6.5
+    "specHash": "327aadee71a8d663f6a6d3a5501b5627ebfddc6926e442c44a92bb7d751af8f6",
+    "bytes": 628032,
+    "seconds": 6.83
   },
   "boolean-bolt-hole.gif": {
     "spec": "e2e/docs/booleans.docs.js",
@@ -386,8 +386,14 @@
   },
   "gizmo-translate-ruler.gif": {
     "spec": "e2e/docs/selection-inspector.docs.js",
-    "specHash": "b997e8a1c5b657a9fce4c9d3f54ec82c32d87b4028ee1f90343f525987af71ec",
-    "bytes": 839570,
-    "seconds": 7.08
+    "specHash": "327aadee71a8d663f6a6d3a5501b5627ebfddc6926e442c44a92bb7d751af8f6",
+    "bytes": 979171,
+    "seconds": 11.5
+  },
+  "inspector-rename.gif": {
+    "spec": "e2e/docs/selection-inspector.docs.js",
+    "specHash": "327aadee71a8d663f6a6d3a5501b5627ebfddc6926e442c44a92bb7d751af8f6",
+    "bytes": 562063,
+    "seconds": 7
   }
 }

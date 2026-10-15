@@ -6,8 +6,18 @@ priority: high
 model: sonnet
 milestone: M16
 depends: [core-038, ui-049]
-status: open
+status: done
 ---
+
+
+> **What shipped (2026-10-15).** As specified. The name field is `NameField.vue` (always-visible pencil,
+> F2, Enter/blur commit, Escape revert and swallowed, blank restores the generated name with helper
+> text, duplicate hint that does not block, 60-char cap); `useSelectedBody.js` exports
+> `useRenameSelected` (a sibling of `useSelectedBody`, which stays a computed) over a new
+> `documentStore.renameBody`. Two things beyond the text: the field also commits on a pointerdown
+> outside it (tapping plain text does not blur an input on touch Chromium, found by the touch e2e),
+> and the phone tab carries the full name in `title`/`aria-label`. The BOM groups identical parts
+> (`Bolt M10 hex x 12 mm  x 2`) and shows no per-body name, so nothing there needed changing.
 
 ## Goal
 

@@ -293,6 +293,39 @@ Variables section moves every field bound to it. The link button beside a field 
 a bound field shows a chip with the variable's name in place of its editor. See
 [Variables](variables.md).
 
+## Naming a part
+
+![Renaming the selected cube from the Inspector](./media/inspector-rename.gif)
+
+A part arrives called `Bolt 1`, `Cube 2`, `Raspberry Pi 1`. With two dozen bolts on the
+board that tells you nothing, so give a part or a group a name of your own. The name shows
+at once in the Inspector header, the object list, the phone tab, the Bill of materials and
+the history.
+
+**Worked example.** Open **Library**, drag an **M3 bolt** into the view twice. Select the
+first, tap the name **Bolt 1** at the top of the **Inspector**, type `Pi camera bolt` and
+press **Enter**. Select the second and name it `Screen bolt`. Open the object list: the rows
+now read *Pi camera bolt* and *Screen bolt*.
+
+![The object list after renaming: the rows read the new names](./screenshots/inspector-rename-list.png)
+
+- **Start**: tap or click the name, or the pencil beside it (it is always there, so it works
+  on a touchscreen), or press **F2** with a part selected.
+- **Finish**: **Enter**, or tap away, keeps the new name. **Escape** puts the old one back
+  and changes nothing — it does not cancel anything else you have armed.
+- **Blank** gives the generated name back (`Bolt 1`), and the helper line under the field
+  says so.
+- **A name another part already uses** shows *Another part is already called this*. It is
+  only a hint: the name is kept, because two `Screw`s is a legitimate model.
+- **Up to 60 characters.**
+- **Undo** (Ctrl/Cmd+Z) takes the rename back like any other step, and the name is saved
+  with the project, so it is there after a reload.
+
+The field appears only when **exactly one** part or group is selected. With nothing or
+several selected there is no name to edit, and while you are drilled into one of a
+recipe's own parts (a Pi's `ethernet`, a bolt's `head`) the name is plain text — those
+names belong to the recipe. Step back out to the group (the breadcrumb) to rename it.
+
 ## Colouring a shape
 
 ![Setting a cube's colour to red from the Inspector](./media/inspector-colour.gif)

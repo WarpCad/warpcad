@@ -34,6 +34,15 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### ui-056 — Name a part in the Inspector (2026-10-15 03:59)
+
+The field is covered by unit specs and `e2e/rename-part.e2e.js` (trusted touch on the Chromium and WebKit phone and tablet projects), but a Playwright tap does not raise a real on-screen keyboard, so what the keyboard does to the sheet is a feel judgement only a device can give. Commit-on-outside-press was added because tapping plain text does not blur an input on touch Chromium; Safari's behaviour is covered only by the emulated WebKit run.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | On a real iPhone, select a part, tap its name: the keyboard rises without pushing the sheet or viewport off-screen, the field stays visible above it, and tapping the keyboard's Done key or the empty viewport commits the name | Open | |
+| 2 | On a real iPad, the pencil and the name are easy to hit, and the field does not zoom the page on focus | Open | |
+
 ### ui-065 — Translate ruler (2026-10-15 01:47)
 
 Speed bands for the arm (`src/render/translateSnap.js`: 40/300/1000 px/s -> 0.1/1/5/10 mm) are unit-tested with an injected clock and exercised with paced synthetic and CDP input only. A plain mouse drag on an arm is now speed-stepped (it was continuous), which is a feel call.

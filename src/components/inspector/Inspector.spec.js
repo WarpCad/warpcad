@@ -217,4 +217,53 @@ describe('Inspector — the object list (TODO/ui-049)', () => {
     const wrapper = mountInspector()
     expect(wrapper.find('[data-testid="inspector-parts"]').exists()).toBe(false)
   })
+
+  describe('the name field (TODO/ui-056)', () => {
+    it('is present for exactly one selected body, with a pencil', () => {
+      seed()
+      selection.select('bolt')
+      const wrapper = mountInspector()
+      expect(wrapper.get('[data-testid="inspector-name"]').text()).toBe('Bolt 1')
+      expect(wrapper.find('[data-testid="inspector-name-edit"]').exists()).toBe(true)
+    })
+
+    it('is present for a group-valued body (a Pi)', () => {
+      seed()
+      selection.select('pi')
+      const wrapper = mountInspector()
+      expect(wrapper.find('[data-testid="inspector-name-edit"]').exists()).toBe(true)
+    })
+
+    it('is absent with nothing selected and with two or more', async () => {
+      seed()
+      const wrapper = mountInspector()
+      expect(wrapper.find('[data-testid="inspector-name-edit"]').exists()).toBe(false)
+      selection.select('cube')
+      selection.toggle('bolt')
+      await nextTick()
+      expect(wrapper.find('[data-testid="inspector-name-edit"]').exists()).toBe(false)
+    })
+
+    it('is absent for a drilled-into recipe sub-part', () => {
+      seed()
+      selection.selectPart('pi', 'ethernet')
+      const wrapper = mountInspector()
+      expect(wrapper.find('[data-testid="inspector-name-edit"]').exists()).toBe(false)
+    })
+
+    it('renaming keeps the selection, and the object list, tab and header read the new name', async () => {
+      seed()
+      selection.select('bolt')
+      const wrapper = mountInspector()
+      await wrapper.get('[data-testid="inspector-name-edit"]').trigger('click')
+      const input = wrapper.get('[data-testid="inspector-name-input"]')
+      await input.setValue('Pi camera bolt')
+      await input.trigger('keydown', { key: 'Enter' })
+      await nextTick()
+      expect(selection.ids).toEqual(['bolt'])
+      expect(wrapper.get('[data-testid="inspector-name"]').text()).toBe('Pi camera bolt')
+      expect(wrapper.get('[data-testid="inspector-tab"]').text()).toBe('Pi camera bolt')
+      expect(wrapper.get('[data-testid="inspector-tab"]').attributes('title')).toBe('Pi camera bolt')
+    })
+  })
 })

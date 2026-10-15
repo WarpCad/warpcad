@@ -78,6 +78,8 @@ drops (dropping the second body must not hide or replace the first). Clicking ea
 individually selects only that item (gizmo and dimension lines attach to whichever was
 just clicked, not both at once).
 
+**Last run**: 2026-10-15 UTC (`ui-056`) — **PASS** at laptop 1440x900 Chromium (real `page.mouse`, jittered 24-28-step Library drags, fresh profile). Re-driven because the Inspector header name became an editable field (`NameField`). Cube then Cylinder dropped: both remained (2); the just-dropped one renamed with pencil + typing + Enter kept its selection and showed the new name; Escape out of a second name edit then a first Library drag placed a third body on the first try (`ui-053` repro) and the first body's bounds stayed byte-identical; a click selected exactly one body and a rename then a Size edit kept both selection and name (`ui-029` repro). Console and page errors: none.
+
 **Last run**: 2026-10-15 UTC (`core-038`) — **PASS** at laptop 1440x900 Chromium (real `page.mouse`, jittered 24-step Library drags, fresh profile). Cube then Cylinder dropped: both remained (1 then 2). Re-driven because the fold's name resolution (`Body.name`, `displayNameOf`) changed. A `style.rename` record appended over the cube: the Inspector, the scene bodies and a Move History row read the new name (`Base plate`), body count stayed 2; a typed Size X edit (40 to 44) and a Position X move after it kept the name and did not revert. Console and page errors: none.
 
 **Last run**: 2026-10-15 UTC (`ui-065`) — **PASS** at laptop 1440x900 Chromium (real `page.mouse`, jittered 24-step Library drags, fresh profile). Cube then Cylinder dropped: both remained (2); a click on the cube selected one body. Slid the cube along X with the new ruler (Shift held for the second half): the readout moved in whole millimetres, ended on +50.0 mm, Position X moved by exactly 50.0, and the body count stayed 2. Re-driven because the translate-arm drag path in `Viewport.vue`/`Gizmo.vue` changed. Console and page errors: none.
@@ -1484,6 +1486,8 @@ person can actually perform. It was hand-driven at laptop 1440x900/Chromium and 
 snaps into place once within tolerance (step 4), and on release the camera module sits
 aligned to the board's mounting holes, not at an arbitrary offset position.
 
+**Last run**: 2026-10-15 UTC (`ui-056`) — **PASS** at laptop 1440x900 Chromium (real `page.mouse`, jittered 24-28-step Library drags, fresh profile). Re-driven because the Inspector header name became an editable field (`NameField`). Pi dropped, Camera Module dragged toward it: ghost visible and `data-snapped` true during the drag; on release both bodies remained (2), both measured, and a rename of the camera left it selected and drawn complete. Console and page errors: none.
+
 **Last run**: 2026-10-13 17:31 UTC (`ui-063`) — **PASS** at laptop 1440x900 Chromium (real mouse, 28-sample jittered drag, fresh profile). Pi 5 dropped, Camera Module dragged toward it: `data-snapped` false for the first 6 samples and true for the last 6; on release both bodies remained (count 2). Re-driven because the selection store's pick-depth state changed. Console and page errors: none.
 
 **Last run**: 2026-10-11 02:05 UTC (`core-050`) — **PASS** at laptop 1440x900 Chromium (real mouse, 28-sample wobbly drag). Pi dropped, a Camera Module dragged toward it: `data-snapped` false at the first sample and true for the last 10 of 28; on release both bodies remained. Re-driven because the fold now resolves project-variable bindings before handing params to the kernel (every record passes through it). Console clean.
@@ -1806,6 +1810,8 @@ selected (step 6).
 *(Note: step 4 is the Subtract base/subtrahend indicator check
 `docs/decisions/interaction-model-qa.md` control 5 flagged for this scenario — the
 original §9 draft only checked count-gating, not the order indicator.)*
+
+**Last run**: 2026-10-15 UTC (`ui-056`) — **PASS** at laptop 1440x900 Chromium (real `page.mouse`, jittered 24-28-step Library drags, fresh profile). Re-driven because the Inspector header name became an editable field (`NameField`). Two overlapping cubes, one renamed `Drill block`: Subtract disabled at 1 selected, enabled at 2 (second operand via the list check; canvas shift-click aim varied between runs because drops snap), one result body, Subtract disabled again. Console and page errors: none.
 
 **Last run**: 2026-10-15 UTC (`core-038`) — **PASS** at laptop 1440x900 Chromium (real mouse; second operand added through the selection store). With the renamed `Base plate` and `Cylinder 1` both selected the badge read 2 and Union was enabled; Union left exactly one solid (`Union 1`), selected; header Undo brought back both bodies with the name `Base plate` intact. Re-driven because the fold's name resolution changed. Console and page errors: none.
 
@@ -2385,6 +2391,8 @@ first (step 4), never jumping straight to a sub-part. A second, distinct click o
 member mesh narrows to that sub-part (step 6), with the breadcrumb showing the pick
 depth. Clicking the breadcrumb's "Group" segment (step 7) steps back up to whole-group
 selection.
+
+**Last run**: 2026-10-15 UTC (`ui-056`) — **PASS** at laptop 1440x900 Chromium (real `page.mouse`, jittered 24-28-step Library drags, fresh profile). Re-driven because the Inspector header name became an editable field (`NameField`). Pi + Camera grouped from the list checks (2 to 1); group renamed `Camera rig`; empty click cleared (0); first mesh click selected the whole group with the name field showing `Camera rig`; a second click drilled into a part with no name field (breadcrumb shown); the group crumb stepped back out and the name field and name returned (`ui-016` repro). Console and page errors: none.
 
 **Last run**: 2026-10-13 17:31 UTC (`ui-063`) — **PASS (partial)** at laptop 1440x900 Chromium (real mouse). Pi, Camera Module and Touchscreen 2 selected through the Objects list checks (3 selected), grouped (3 to 1), and a click on open grid cleared the selection (0). Sub-part narrowing was driven through the Objects list part rows rather than by clicking a member mesh in the 3D view (no picking code changed): a screen's `piMountingPost1` and a Pi's `hole1` held **both** addresses at once, and Align/Snap named both. Console and page errors: none.
 

@@ -130,6 +130,7 @@ import ObjectList from './ObjectList.vue'
 import BillOfMaterials from '../display/BillOfMaterials.vue'
 import DeleteButton from './DeleteButton.vue'
 import IntentLine from './IntentLine.vue'
+import NameField from './NameField.vue'
 import FitBadge from './FitBadge.vue'
 import SaveToLibraryButton from '../layout/SaveToLibraryButton.vue'
 import ParamFields from './ParamFields.vue'
@@ -673,6 +674,8 @@ watch([() => body.value?.id, colorPart], () => {
       type="button"
       class="inspector__tab"
       data-testid="inspector-tab"
+      :title="tabLabel"
+      :aria-label="tabLabel"
       :aria-expanded="isOpen"
       aria-controls="inspector-sheet"
       @click="onTabClick"
@@ -812,7 +815,10 @@ watch([() => body.value?.id, colorPart], () => {
             {{ body.name }}
           </span>
         </nav>
-        <p class="inspector__name" data-testid="inspector-name">{{ body.name }}</p>
+        <!-- Editable in place for exactly one body or group (TODO/ui-056); a recipe's own
+             sub-part keeps its name as read-only text — step out to rename the group. -->
+        <NameField v-if="!body.subPart" :body-id="body.id" />
+        <p v-else class="inspector__name" data-testid="inspector-name">{{ body.name }}</p>
         <p class="inspector__op" data-testid="inspector-op" :data-op="body.op">
           {{ body.opLabel }}
         </p>

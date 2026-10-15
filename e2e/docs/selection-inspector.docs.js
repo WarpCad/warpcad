@@ -12,8 +12,8 @@ import { openApp, loadScene, startMovie, endMovie, humanDrag, shot, settle, MAX_
  * drags start from the handle's real on-screen position, read from the overlay the app
  * itself draws, and use a real mouse. Not an acceptance check: scenario 2 is driven by hand.
  *
- * Deferred: `inspector-rename` (`ui-056` is still open), the dependent-repair dialog still
- * (needs a snapped-assembly fixture), and the dependents banner on delete.
+ * Deferred: the dependent-repair dialog still (needs a snapped-assembly fixture), and the
+ * dependents banner on delete.
  */
 test.describe('docs media: selection, inspector, gizmo', () => {
   test.skip(({ viewport }) => viewport?.width !== 1440, 'laptop-only')
@@ -489,5 +489,39 @@ test.describe('docs media: selection, inspector, gizmo', () => {
     await expect(viewport(page)).toHaveAttribute('data-body-count', '1')
     await page.waitForTimeout(1200)
     await endMovie(page, 'delete-body', { fps: 12, width: 640 })
+  })
+
+  test('inspector-rename', { tag: '@movie' }, async ({ page }) => {
+    await openScene(page, 'two-solids.ndjson', 2)
+    await selectCube(page)
+    await startMovie(page, 'inspector-rename')
+    const pencil = page.getByTestId('inspector-name-edit')
+    const b = await pencil.boundingBox()
+    await glideTo(page, { x: b.x + b.width / 2, y: b.y + b.height / 2 })
+    await page.waitForTimeout(400)
+    await pencil.click()
+    const input = page.getByTestId('inspector-name-input')
+    await expect(input).toBeFocused()
+    await input.fill('')
+    await input.pressSequentially('Mounting block', { delay: 70 })
+    await page.waitForTimeout(400)
+    await page.keyboard.press('Enter')
+    await expect(page.getByTestId('inspector-name')).toHaveText('Mounting block')
+    expect(await page.$$eval('[data-testid="scene-bodies"] li', (n) => n.map((x) => x.getAttribute('data-body-name')))).toContain('Mounting block')
+    await page.waitForTimeout(1200)
+    await endMovie(page, 'inspector-rename', { fps: 12, width: 640 })
+  })
+
+  test('inspector-rename-list still', async ({ page }) => {
+    await openScene(page, 'two-solids.ndjson', 2)
+    await selectCube(page)
+    await page.getByTestId('inspector-name-edit').click()
+    const input = page.getByTestId('inspector-name-input')
+    await input.fill('Mounting block')
+    await page.keyboard.press('Enter')
+    await expect(page.getByTestId('inspector-name')).toHaveText('Mounting block')
+    await openObjectList(page)
+    await expect(page.getByTestId('object-list')).toContainText('Mounting block')
+    await shot(page, 'inspector-rename-list.png', { locator: page.getByTestId('inspector') })
   })
 })

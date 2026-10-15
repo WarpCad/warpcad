@@ -20,6 +20,7 @@
 import { computed, toRaw } from 'vue'
 
 import { describeSelection } from '../core/inspector.js'
+import { nameOverrideOf, normalizeBodyName } from '../core/naming.js'
 import { composeDeg } from '../core/rotation.js'
 import { useDocumentStore } from '../stores/document.js'
 import { useSelectionStore } from '../stores/selection.js'
@@ -193,4 +194,52 @@ export function useSelectedBody() {
       },
     }
   })
+}
+
+/**
+ * Rename the selected body or group (`TODO/ui-056`): the one adapter between the Inspector's
+ * name field and `document.renameBody`, so the field never touches the document itself.
+ *
+ * - `genericNameOf(id)` is the name the body would have with no override — what a blank
+ *   entry restores.
+ * - `rename(id, raw)` returns the outcome rather than throwing for the cases a field must
+ *   explain: `{ changed: false }` when nothing differs (not an Undo step), `{ changed: true,
+ *   name }` with the name now showing, or `{ refused: reason }` for an invalid name.
+ *
+ * @returns {{
+ *   genericNameOf: (bodyId: string) => string,
+ *   hasOverride: (bodyId: string) => boolean,
+ *   rename: (bodyId: string, raw: string | null) => { changed: boolean, name?: string, refused?: string },
+ * }}
+ */
+export function useRenameSelected() {
+  const documentStore = useDocumentStore()
+
+  /** @param {string} bodyId */
+  function hasOverride(bodyId) {
+    return nameOverrideOf(documentStore.raw.lineageOf(bodyId)) !== undefined
+  }
+
+  /** @param {string} bodyId */
+  function genericNameOf(bodyId) {
+    return documentStore.raw.recordOf(bodyId)?.name ?? bodyId
+  }
+
+  return {
+    genericNameOf,
+    hasOverride,
+    rename(bodyId, raw) {
+      const checked = normalizeBodyName(raw)
+      if (!checked.ok) return { changed: false, refused: checked.reason }
+      const current = documentStore.bodies.find((candidate) => candidate.id === bodyId)?.name
+      if (checked.name === null) {
+        // Blank: clear the override — but with none in force that is not a mutation.
+        if (!hasOverride(bodyId)) return { changed: false, name: genericNameOf(bodyId) }
+      } else if (checked.name === current) {
+        return { changed: false, name: current }
+      }
+      documentStore.renameBody(bodyId, checked.name, { origin: 'local' })
+      return { changed: true, name: checked.name ?? genericNameOf(bodyId) }
+    },
+  }
 }
