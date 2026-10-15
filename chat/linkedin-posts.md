@@ -2360,3 +2360,18 @@ Where WebMCP is missing outside dev, the Assistant still asks for an API key; wh
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** tools register on document.modelContext, abort-signal unregister, JSON results -> diff (`src/ai/webmcp/register.js`) and `docs/decisions/ai-partner.md` Decision 13; Chrome 146+ and `#enable-webmcp-testing` -> Decision 13 facts table (Chrome guide, fetched this session); 19 tools registered, capture_view absent, Undo AI turn removed only the agent's group -> hand drive this session against a fake `document.modelContext`; real Chrome not driven -> TODO/VERIFY.md rows 1-3
 **To Add:** `docs/screenshots/webmcp-chip.png` (already generated); repo URL once public
+
+## 2026-10-15T01:10:00Z — Rotate rings get a watchface dial, Shift 5° steps and speed-sensitive touch
+
+**Post:** Turning a part in WarpCad used to give one piece of feedback: the part turned. You could not tell how far, from where, or land on a round angle without typing into a field.
+
+Dragging a rotate ring now draws a dial in that ring's own plane and colour, with ticks, a fixed start hand, a live hand, a shaded sweep and a signed readout that keeps counting past 180°. Hold Shift for 5° steps. On a touch screen, where there is no Shift, the step follows how fast the finger moves, from coarse down to 0.1° when it nearly stops.
+
+The hand and the part turn from the same number, so the dial, the Inspector field and the committed rotation always agree. The touch speed thresholds still need tuning on a real iPad and phone.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** same as the BlueSky entry; one number feeds dial, readout, preview, field and commit -> diff (`src/components/viewport/Viewport.vue` `applyRotateStep`); thresholds untuned -> `TODO/VERIFY.md`
+**To Add:** `docs/screenshots/gizmo-rotate-dial.png` and `docs/media/gizmo-rotate-dial.gif`; repo URL once public

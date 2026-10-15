@@ -54,6 +54,7 @@ import {
   createDimensionAnnotation,
   createOrientedBox,
   createGizmoAnnotation,
+  createDialAnnotation,
   createMarqueeRect,
   createBoxScreenBounds,
   createScreenPoint,
@@ -62,8 +63,10 @@ import {
   updateSketchPath,
   gizmoSizeForBounds,
   marqueeIntersectsBox,
-  rotateDeltaDeg,
+  placeDialReadout,
+  ringParamDeg,
   translateDeltaMm,
+  updateDialAnnotation,
   createSnapGuideAnnotations,
   updateBoxScreenBounds,
   updateDimensionAnnotation,
@@ -71,6 +74,15 @@ import {
   updateMarqueeRect,
   updateSnapGuideAnnotations,
 } from '../../render/annotate.js'
+import {
+  SPEED_STALL_MS,
+  accumulateTurnDeg,
+  createSpeedTracker,
+  rotateStepDeg,
+  snapDeg,
+  stepForSpeed,
+  usesSpeedStep,
+} from '../../render/rotateSnap.js'
 import { useTransformCommands } from '../../composables/useTransformCommands.js'
 import { useSketchEditorCommands } from '../../composables/useSketchEditorCommands.js'
 import { isTextEntry } from '../../composables/textEntry.js'
@@ -303,6 +315,12 @@ const overlay = reactive({
  * frame writes numbers into an existing structure rather than rebuilding one.
  */
 const gizmoAnnotation = reactive(createGizmoAnnotation())
+/**
+ * The rotate dial (`TODO/ui-064`), drawn while a rotate ring is dragged.
+ * Reactive and allocated once, mutated in place by `annotate.js`, for the same
+ * reasons as `gizmoAnnotation` just above.
+ */
+const dialAnnotation = reactive(createDialAnnotation())
 const dimensionAnnotations = reactive([
   createDimensionAnnotation(),
   createDimensionAnnotation(),
@@ -600,7 +618,37 @@ const gizmoDrag = {
   centreXMm: 0,
   centreYMm: 0,
   centreZMm: 0,
+  // --- rotate dial (`TODO/ui-064`) ---
+  /** `PointerEvent.pointerType` of the press: touch and pen get the speed step. */
+  pointerType: 'mouse',
+  /** Shift held right now: tracked on every move *and* on keydown/keyup mid-drag. */
+  shift: false,
+  /** Whether the pointer has moved since the press, so a plain click never flashes the dial. */
+  moved: false,
+  /** Ring parameter of the grab, degrees: where the start hand points. */
+  startParamDeg: 0,
+  /** The pointer's turn from the start, unwrapped past ±180°, before snapping. */
+  rawTurnDeg: 0,
+  /** `rawTurnDeg` snapped to `stepDeg`: the one number the preview, dial, field and commit share. */
+  turnedDeg: 0,
+  /** The active step, degrees; `0` is continuous. */
+  stepDeg: 0,
+  /** The touch/pen speed band's step, carried for hysteresis; `0` before the first sample. */
+  speedStep: 0,
+  /** The pointer now, viewport pixels, for placing the readout clear of a finger. */
+  pointerXPx: 0,
+  pointerYPx: 0,
 }
+
+/** The ring-drag pointer's tangential speed, for the touch/pen step. Allocated once. */
+const rotateSpeed = createSpeedTracker(() => performance.now())
+
+/**
+ * Fires once a touch/pen ring drag has gone quiet for longer than the speed
+ * tracker's stall window, so a finger that stops on an angle settles into the
+ * fine step *visibly*, not only at release. `0` when not armed.
+ */
+let rotateStallTimer = 0
 
 /**
  * The outline being dragged out right now, in sketch millimetres (`TODO/sketch-001`).
@@ -750,6 +798,7 @@ function syncAnnotations() {
     // attach a gizmo to, and leaving the last one drawn would point at a solid
     // the user is no longer working on.
     gizmoAnnotation.visible = false
+    dialAnnotation.visible = false
     for (const annotation of dimensionAnnotations) annotation.visible = false
     return
   }
@@ -782,6 +831,7 @@ function syncAnnotations() {
       gizmoAnnotation,
     )
   }
+  syncDial()
   // `TODO/ui-023`: the dimension lines measure the body's **own** box, not the
   // world-axis shadow the gizmo above is sized against. The two genuinely want
   // different measurements — the gizmo has to clear the tilted part's whole
@@ -2097,10 +2147,105 @@ function clearPreviewTransform() {
   preview.clear()
   gizmoDrag.active = false
   gizmoDrag.bodyId = ''
+  gizmoDrag.moved = false
+  // Everything the dial drew vanishes with the drag, release or cancel alike.
+  dialAnnotation.visible = false
+  clearRotateStall()
   scheduleRender()
 }
 
-/** @param {{ kind: 'translate' | 'rotate', axisIndex: number, clientX: number, clientY: number }} event */
+/**
+ * Lay out the rotate dial for the drag in progress, or hide it (`TODO/ui-064`).
+ * Called from `syncAnnotations`, so the dial is drawn from the same ring the
+ * frame drew. Allocates nothing.
+ */
+function syncDial() {
+  if (!gizmoDrag.active || gizmoDrag.kind !== 'rotate' || !gizmoDrag.moved || !gizmoAnnotation.visible) {
+    if (dialAnnotation.visible) dialAnnotation.visible = false
+    return
+  }
+  const ring = gizmoAnnotation.rings[gizmoDrag.axisIndex]
+  updateDialAnnotation(
+    ring,
+    gizmoDrag.startParamDeg,
+    gizmoDrag.turnedDeg,
+    gizmoAnnotation.originX,
+    gizmoAnnotation.originY,
+    dialAnnotation,
+  )
+  dialAnnotation.stepDeg = gizmoDrag.stepDeg
+  placeDialReadout(
+    ring,
+    gizmoAnnotation.originX,
+    gizmoAnnotation.originY,
+    gizmoDrag.pointerXPx,
+    gizmoDrag.pointerYPx,
+    usesSpeedStep(gizmoDrag.pointerType),
+    widthPx,
+    heightPx,
+    dialAnnotation,
+  )
+}
+
+/**
+ * Quantise the ring drag's turn and show it (`TODO/ui-064`).
+ *
+ * Done once, here: pick the step (Shift → 5°, touch/pen → speed band, mouse →
+ * continuous), snap the raw unwrapped turn to it, and hand *that* to the
+ * preview. The dial, readout, preview mesh, Inspector field and commit then all
+ * read the same number, so release commits exactly what was displayed.
+ */
+function applyRotateStep() {
+  gizmoDrag.stepDeg = rotateStepDeg(gizmoDrag.shift, gizmoDrag.pointerType, gizmoDrag.speedStep)
+  const turned = snapDeg(gizmoDrag.rawTurnDeg, gizmoDrag.stepDeg)
+  gizmoDrag.turnedDeg = turned
+  preview.setRotate(
+    gizmoDrag.axisIndex === 0 ? turned : 0,
+    gizmoDrag.axisIndex === 1 ? turned : 0,
+    gizmoDrag.axisIndex === 2 ? turned : 0,
+  )
+  applyPreviewTransform()
+}
+
+/**
+ * Re-read the touch/pen speed band, decayed by the time since the last move.
+ * "Stalling counts as slow": `pointermove` stops firing when a finger stops.
+ */
+function refreshSpeedStep() {
+  if (!usesSpeedStep(gizmoDrag.pointerType)) return
+  gizmoDrag.speedStep = stepForSpeed(rotateSpeed.speed(), gizmoDrag.speedStep)
+}
+
+function clearRotateStall() {
+  if (rotateStallTimer) clearTimeout(rotateStallTimer)
+  rotateStallTimer = 0
+}
+
+function onRotateStall() {
+  rotateStallTimer = 0
+  if (!gizmoDrag.active || gizmoDrag.kind !== 'rotate' || !gizmoDrag.moved) return
+  refreshSpeedStep()
+  applyRotateStep()
+}
+
+/**
+ * Shift pressed or released mid ring-drag: snap (or unsnap) at once, without
+ * waiting for the pointer to move. Same idea as the sketch's `onSnapShiftKey`.
+ *
+ * @param {KeyboardEvent} event
+ */
+function onRotateShiftKey(event) {
+  if (event.key !== 'Shift' || !gizmoDrag.active || gizmoDrag.kind !== 'rotate') return
+  const shift = event.type === 'keydown'
+  if (shift === gizmoDrag.shift) return
+  gizmoDrag.shift = shift
+  if (gizmoDrag.moved) applyRotateStep()
+}
+
+/**
+ * @param {{ kind: 'translate' | 'rotate', axisIndex: number, clientX: number, clientY: number,
+ *   pointerType?: string, shiftKey?: boolean }} event
+ */
 function onGizmoHandleDown(event) {
   const body = selected.value.body
   // Exactly one body, per control 4's precondition. The gizmo is not drawn in
@@ -2118,10 +2263,31 @@ function onGizmoHandleDown(event) {
   gizmoDrag.centreXMm = body.positionMm[0]
   gizmoDrag.centreYMm = body.positionMm[1]
   gizmoDrag.centreZMm = body.positionMm[2]
+  gizmoDrag.pointerType = event.pointerType || 'mouse'
+  gizmoDrag.shift = event.shiftKey === true
+  gizmoDrag.moved = false
+  gizmoDrag.rawTurnDeg = 0
+  gizmoDrag.turnedDeg = 0
+  gizmoDrag.stepDeg = 0
+  gizmoDrag.speedStep = 0
+  gizmoDrag.pointerXPx = event.clientX - viewportRect.left
+  gizmoDrag.pointerYPx = event.clientY - viewportRect.top
+  gizmoDrag.startParamDeg =
+    event.kind === 'rotate'
+      ? ringParamDeg(
+          gizmoAnnotation.rings[event.axisIndex],
+          gizmoAnnotation.originX,
+          gizmoAnnotation.originY,
+          gizmoDrag.pointerXPx,
+          gizmoDrag.pointerYPx,
+        )
+      : 0
+  rotateSpeed.begin(gizmoDrag.pointerXPx, gizmoDrag.pointerYPx)
+  clearRotateStall()
   preview.begin(body.id)
 }
 
-/** @param {{ clientX: number, clientY: number }} event */
+/** @param {{ clientX: number, clientY: number, shiftKey?: boolean }} event */
 function onGizmoHandleMove(event) {
   if (!gizmoDrag.active) return
   const dxPx = event.clientX - gizmoDrag.startXPx
@@ -2140,28 +2306,47 @@ function onGizmoHandleMove(event) {
       gizmoDrag.axisIndex === 1 ? deltaMm : 0,
       gizmoDrag.axisIndex === 2 ? deltaMm : 0,
     )
-  } else {
-    const deltaDeg = rotateDeltaDeg(
-      gizmoDrag.originXPx,
-      gizmoDrag.originYPx,
-      gizmoDrag.startXPx - viewportRect.left,
-      gizmoDrag.startYPx - viewportRect.top,
-      event.clientX - viewportRect.left,
-      event.clientY - viewportRect.top,
-      gizmoDrag.facing,
-    )
-    preview.setRotate(
-      gizmoDrag.axisIndex === 0 ? deltaDeg : 0,
-      gizmoDrag.axisIndex === 1 ? deltaDeg : 0,
-      gizmoDrag.axisIndex === 2 ? deltaDeg : 0,
-    )
+    applyPreviewTransform()
+    return
   }
-  applyPreviewTransform()
+
+  // Rotate (`TODO/ui-064`): accumulate the unwrapped turn, track speed for
+  // touch/pen, then quantise once in `applyRotateStep`.
+  const xPx = event.clientX - viewportRect.left
+  const yPx = event.clientY - viewportRect.top
+  gizmoDrag.moved = true
+  gizmoDrag.pointerXPx = xPx
+  gizmoDrag.pointerYPx = yPx
+  gizmoDrag.shift = event.shiftKey === true
+  gizmoDrag.rawTurnDeg = accumulateTurnDeg(
+    gizmoDrag.rawTurnDeg,
+    gizmoDrag.originXPx,
+    gizmoDrag.originYPx,
+    gizmoDrag.startXPx - viewportRect.left,
+    gizmoDrag.startYPx - viewportRect.top,
+    xPx,
+    yPx,
+    gizmoDrag.facing,
+  )
+  if (usesSpeedStep(gizmoDrag.pointerType)) {
+    rotateSpeed.sample(xPx, yPx, gizmoDrag.originXPx, gizmoDrag.originYPx)
+    refreshSpeedStep()
+    clearRotateStall()
+    rotateStallTimer = window.setTimeout(onRotateStall, SPEED_STALL_MS + 10)
+  }
+  applyRotateStep()
 }
 
 /** @param {{ cancelled: boolean }} event */
 function onGizmoHandleUp(event) {
   if (!gizmoDrag.active) return
+  clearRotateStall()
+  // A touch drag that ends with a pause lands at the fine step it has slowed
+  // into, not the coarse one it was in before the finger stopped.
+  if (!event.cancelled && gizmoDrag.kind === 'rotate' && gizmoDrag.moved && usesSpeedStep(gizmoDrag.pointerType)) {
+    refreshSpeedStep()
+    applyRotateStep()
+  }
   const bodyId = gizmoDrag.bodyId
   const kind = gizmoDrag.kind
   /** @type {[number, number, number]} */
@@ -3350,6 +3535,8 @@ onMounted(() => {
   window.addEventListener('keydown', onSketchChainKey)
   window.addEventListener('keydown', onSnapShiftKey)
   window.addEventListener('keyup', onSnapShiftKey)
+  window.addEventListener('keydown', onRotateShiftKey)
+  window.addEventListener('keyup', onRotateShiftKey)
   window.addEventListener('resize', measure)
   window.addEventListener('scroll', measure, { passive: true })
 
@@ -3386,6 +3573,9 @@ onBeforeUnmount(() => {
   window.removeEventListener('keydown', onSketchChainKey)
   window.removeEventListener('keydown', onSnapShiftKey)
   window.removeEventListener('keyup', onSnapShiftKey)
+  window.removeEventListener('keydown', onRotateShiftKey)
+  window.removeEventListener('keyup', onRotateShiftKey)
+  clearRotateStall()
   window.removeEventListener('resize', measure)
   window.removeEventListener('scroll', measure)
   themeQuery?.removeEventListener('change', onThemeChange)
@@ -3527,6 +3717,7 @@ onBeforeUnmount(() => {
     <Gizmo
       v-if="!timeline.previewing"
       :annotation="gizmoAnnotation"
+      :dial="dialAnnotation"
       @handle-down="onGizmoHandleDown"
       @handle-move="onGizmoHandleMove"
       @handle-up="onGizmoHandleUp"

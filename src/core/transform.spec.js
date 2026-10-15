@@ -293,6 +293,59 @@ describe('rotateRecord', () => {
     expect(rotationOf(document, 'cube-1')).toEqual([30, 40, 50])
   })
 
+  it('treats an unwrapped +270° drag and a -90° one as the same orientation (TODO/ui-064)', () => {
+    // The rotate dial accumulates a turn past ±180° into one unwrapped number,
+    // so a three-quarter turn now commits `[0, 0, 270]` where `rotateDeltaDeg`
+    // alone would have committed `[0, 0, -90]`. Same rotation, so the document
+    // must not be able to tell them apart.
+    const unwrapped = docWithBlock()
+    const wrapped = docWithBlock()
+    unwrapped.append(rotateRecord(unwrapped, 'block-1', [0, 0, 270]), { origin: 'local' })
+    wrapped.append(rotateRecord(wrapped, 'block-1', [0, 0, -90]), { origin: 'local' })
+
+    expect(unwrapped.bodies()).toHaveLength(1)
+    const carried = rotationOf(unwrapped, 'block-1')
+    const reference = rotationOf(wrapped, 'block-1')
+    for (let axis = 0; axis < 3; axis += 1) expect(carried[axis]).toBeCloseTo(reference[axis], 9)
+    expectSameAxes(axesUnder(carried), axesAfterHistory([[0, 0, -90]]))
+    // Discriminating: +90 is a genuinely different orientation, so this cannot
+    // pass by both collapsing onto some third answer.
+    expect(() => expectSameAxes(axesUnder(carried), axesUnder([0, 0, 90]))).toThrow()
+
+    // And the solid itself: same extents, same place.
+    const sizeA = sizeAlong(unwrapped)
+    const sizeB = sizeAlong(wrapped)
+    const centreA = centreOf(unwrapped)
+    const centreB = centreOf(wrapped)
+    for (let axis = 0; axis < 3; axis += 1) {
+      expect(sizeA[axis]).toBeCloseTo(sizeB[axis], 6)
+      expect(centreA[axis]).toBeCloseTo(centreB[axis], 6)
+    }
+    expect(sizeA[0]).toBeCloseTo(40, 6)
+    expect(sizeA[1]).toBeCloseTo(20, 6)
+  })
+
+  it('composes a snapped dial drag after a previous drag on another axis (TODO/ui-064, core-004)', () => {
+    // A continuous drag lands wherever the pointer stopped; a Shift-snapped one
+    // lands on a multiple of 5 *of the turn*. Either is a world-frame delta on
+    // top of the existing orientation, composed, never summed.
+    const document = docWithBlock()
+    applyTurns(document, 'block-1', [
+      [0, 0, 37.3],
+      [45, 0, 0],
+      [0, 270, 0],
+    ])
+    expect(document.bodies()).toHaveLength(1)
+    expectSameAxes(
+      axesUnder(rotationOf(document, 'block-1')),
+      axesAfterHistory([
+        [0, 0, 37.3],
+        [45, 0, 0],
+        [0, 270, 0],
+      ]),
+    )
+  })
+
   it('a move after a rotate keeps the rotation readable', () => {
     // The state param has to be carried forward by *every* transform record, or
     // the Inspector's Rotation fields would silently reset on the next drag.

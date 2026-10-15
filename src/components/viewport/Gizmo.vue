@@ -46,6 +46,7 @@
  */
 import { computed } from 'vue'
 
+import RotateDial from './RotateDial.vue'
 import {
   AXIS_LABELS,
   GIZMO_SHAFT_WIDTH_PX,
@@ -61,7 +62,20 @@ const props = defineProps({
    * viewport's render callback rather than replaced per frame.
    */
   annotation: { type: Object, required: true },
+  /**
+   * A `DialAnnotation` from `src/render/annotate.js` (`TODO/ui-064`): the
+   * watchface drawn in a rotate ring's plane while that ring is dragged.
+   * Mutated in place like `annotation`; `null` or `visible: false` draws nothing.
+   */
+  dial: { type: Object, default: null },
 })
+
+/**
+ * The dial prop, typed once, like `gizmo` below.
+ *
+ * @type {import('vue').ComputedRef<import('../../render/annotate.js').DialAnnotation | null>}
+ */
+const dialAnnotation = computed(() => /** @type {any} */ (props.dial))
 
 /**
  * The prop, named at its type boundary. `defineProps` in a plain-JS SFC widens
@@ -259,7 +273,17 @@ function onHandleDown(event, kind, axisIndex) {
     // consider active (synthetic events in specs), and must never take the
     // gesture down with it.
   }
-  emit('handle-down', { kind, axisIndex, clientX: event.clientX, clientY: event.clientY })
+  // `pointerType` and `shiftKey` ride along for the rotate dial (`TODO/ui-064`):
+  // Shift snaps to 5° steps, and touch/pen use a speed-sensitive step. This
+  // component only reports them; `Viewport.vue` decides what they mean.
+  emit('handle-down', {
+    kind,
+    axisIndex,
+    clientX: event.clientX,
+    clientY: event.clientY,
+    pointerType: event.pointerType || 'mouse',
+    shiftKey: event.shiftKey === true,
+  })
 }
 
 /** @param {PointerEvent} event */
@@ -267,7 +291,7 @@ function onHandleMove(event) {
   if (event.pointerId !== dragPointerId) return
   event.stopPropagation()
   dragTravelPx += Math.abs(event.clientX - dragStartX) + Math.abs(event.clientY - dragStartY)
-  emit('handle-move', { clientX: event.clientX, clientY: event.clientY })
+  emit('handle-move', { clientX: event.clientX, clientY: event.clientY, shiftKey: event.shiftKey === true })
 }
 
 /** @param {PointerEvent} event */
@@ -453,6 +477,15 @@ function onHandleUp(event) {
       :cx="gizmo.originX"
       :cy="gizmo.originY"
       r="3.5"
+    />
+
+    <!-- The rotate dial (TODO/ui-064), only while a ring is being dragged: on
+         top of the drawn handles, under the (invisible) hit targets, and
+         `pointer-events: none` like everything else here but the grabs. -->
+    <RotateDial
+      v-if="dialAnnotation && dialAnnotation.visible"
+      :dial="dialAnnotation"
+      :color="AXIS_STROKE[dialAnnotation.axis]"
     />
 
     <!-- Hit targets, drawn last so they sit above everything they stand for.

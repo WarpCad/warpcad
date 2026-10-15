@@ -34,6 +34,16 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### ui-064 — Rotate dial (2026-10-15 01:04)
+
+The speed-sensitive touch step (`src/render/rotateSnap.js`, bands 0.1°/1°/5°/15° at 40/250/900 px/s) is
+unit-tested with an injected clock and exercised by synthetic pointer events only; the thresholds need a real finger.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | On an iPad and a phone, drag a rotate ring fast, then slow down: does the step feel right (coarse when flinging, `0.1°` when nearly stopped) and is the readout never under the fingertip? | Open | |
+| 2 | Dial legibility in light and dark themes: tick density on a small ring, the `0/90/180/270` labels, and the readout pill contrast (`--surface-glass`). | Open | |
+
 ### ai-021 — WebMCP transport (2026-10-14 23:33)
 
 Everything automated ran against a **fake** `document.modelContext`; the real API is Chromium-behind-a-flag and cannot be switched on in a Playwright-launched browser. These are the checks only a person with that browser can make.

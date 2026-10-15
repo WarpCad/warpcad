@@ -4,12 +4,22 @@ import { describe, expect, it } from 'vitest'
 import { createOrbitCamera } from './camera.js'
 import { projectToSketchPlane, projectToWorkingPlane } from './pick.js'
 import {
+  DIAL_HAND_RATIO,
+  DIAL_READOUT_FONT_PX,
+  DIAL_READOUT_HEIGHT_PX,
+  DIAL_READOUT_WIDTH_PX,
+  DIAL_SECTOR_POINTS,
+  DIAL_TICK_COUNT,
   GIZMO_ARM_FLOOR_PX,
   GIZMO_HEAD_MAX_PX,
   RING_SEGMENTS,
   axisFacing,
   axisToward,
+  createDialAnnotation,
   createDimensionAnnotation,
+  placeDialReadout,
+  ringParamDeg,
+  updateDialAnnotation,
   createGizmoAnnotation,
   createRingArrowheads,
   createRingPoints,
@@ -1207,5 +1217,445 @@ describe('sketch paths (TODO/sketch-001)', () => {
     expect(distanceToSegmentPx(30, 0, 0, 0, 100, 0)).toBeCloseTo(0, 9)
     // Degenerate segment: distance to the one point, no division by zero.
     expect(distanceToSegmentPx(3, 4, 0, 0, 0, 0)).toBeCloseTo(5, 9)
+  })
+})
+
+describe('the rotate dial (TODO/ui-064)', () => {
+  /**
+   * While a rotate ring is dragged, a dial is drawn in that ring's own plane: the
+   * ring's own `origin + u·cos t + v·sin t` at a smaller radius, so it is right
+   * under any camera with no second projection. The trap the spec names is sign
+   * and facing — the readout is just a number and looks perfect while a hand
+   * swings the wrong way — so the hand is checked against an independent
+   * world-space rotation, not against the dial's own arithmetic.
+   */
+
+  const RING_PX = 80
+  const AXIS_NAMES = ['X', 'Y', 'Z']
+
+  /** World unit vector of axis `index`. @param {number} index */
+  const unit = (index) => [index === 0 ? 1 : 0, index === 1 ? 1 : 0, index === 2 ? 1 : 0]
+
+  /** The two world axes each ring spans, in `annotate.js`'s own order. */
+  const SPANS = [
+    [1, 2],
+    [0, 2],
+    [0, 1],
+  ]
+
+  /**
+   * Rodrigues: turn `p` about unit axis `k` by `deg`, right-handed.
+   *
+   * @param {number[]} p
+   * @param {number[]} k
+   * @param {number} deg
+   */
+  function rotateAbout(p, k, deg) {
+    const a = (deg * Math.PI) / 180
+    const cos = Math.cos(a)
+    const sin = Math.sin(a)
+    const cross = [k[1] * p[2] - k[2] * p[1], k[2] * p[0] - k[0] * p[2], k[0] * p[1] - k[1] * p[0]]
+    const dot = k[0] * p[0] + k[1] * p[1] + k[2] * p[2]
+    return [0, 1, 2].map((i) => p[i] * cos + cross[i] * sin + k[i] * dot * (1 - cos))
+  }
+
+  /**
+   * A gizmo at the screen centre under a camera, plus a helper projecting a
+   * world direction to a gizmo-scaled screen point.
+   *
+   * @param {number} azimuthDeg
+   * @param {number} elevationDeg
+   */
+  function rig(azimuthDeg, elevationDeg) {
+    const orbit = cameraAt({ azimuthDeg, elevationDeg })
+    const gizmo = createGizmoAnnotation()
+    updateGizmoAnnotation(orbit, 0, 0, 0, WIDTH_PX, HEIGHT_PX, RING_PX + 18, RING_PX, gizmo)
+    /** @param {number[]} world @param {number} scale */
+    const project = (world, scale) => {
+      const dir = { x: 0, y: 0 }
+      screenDirection(azimuthDeg, elevationDeg, world[0], world[1], world[2], dir)
+      return { x: gizmo.originX + dir.x * RING_PX * scale, y: gizmo.originY + dir.y * RING_PX * scale }
+    }
+    return { orbit, gizmo, project }
+  }
+
+  /**
+   * The screen point at ring parameter `deg` and radius `scale` (1 = on the ring).
+   *
+   * @param {import('./annotate.js').GizmoRing} ring
+   * @param {{ originX: number, originY: number }} gizmo
+   * @param {number} deg
+   * @param {number} [scale]
+   */
+  function onRing(ring, gizmo, deg, scale = 1) {
+    const t = (deg * Math.PI) / 180
+    return {
+      x: gizmo.originX + scale * (ring.ux * Math.cos(t) + ring.vx * Math.sin(t)),
+      y: gizmo.originY + scale * (ring.uy * Math.cos(t) + ring.vy * Math.sin(t)),
+    }
+  }
+
+  /**
+   * The ring parameter and radius of a screen point, by inverting `[u v]` — an
+   * independent reading of where a dial point sits in the ring's own plane.
+   *
+   * @param {import('./annotate.js').GizmoRing} ring
+   * @param {{ originX: number, originY: number }} gizmo
+   * @param {number} x
+   * @param {number} y
+   */
+  function inPlane(ring, gizmo, x, y) {
+    const dx = x - gizmo.originX
+    const dy = y - gizmo.originY
+    const det = ring.ux * ring.vy - ring.vx * ring.uy
+    const c = (dx * ring.vy - ring.vx * dy) / det
+    const s = (ring.ux * dy - dx * ring.uy) / det
+    return { radius: Math.hypot(c, s), deg: (Math.atan2(s, c) * 180) / Math.PI }
+  }
+
+  /** Signed difference `a − b` wrapped to (−180, 180]. @param {number} a @param {number} b */
+  function angleDiff(a, b) {
+    let d = (a - b) % 360
+    if (d > 180) d -= 360
+    if (d <= -180) d += 360
+    return d
+  }
+
+  /** Cameras that between them put every axis both toward and away from the viewer. */
+  const CAMERAS = [
+    { az: 30, el: 30 },
+    { az: 30, el: 60 },
+    { az: 200, el: -40 },
+    { az: -120, el: 25 },
+    { az: 120, el: -60 },
+    { az: -60, el: 50 },
+  ]
+
+  describe('ringParamDeg — where on the ring the drag began', () => {
+    it('recovers the grab parameter on a face-on ring', () => {
+      const { gizmo } = rig(-90, 90)
+      const ring = gizmo.rings[2]
+      for (const deg of [0, 37, 90, 155, -120]) {
+        const p = onRing(ring, gizmo, deg)
+        expect(angleDiff(ringParamDeg(ring, gizmo.originX, gizmo.originY, p.x, p.y), deg)).toBeCloseTo(0, 6)
+      }
+    })
+
+    it('recovers the parameter, not the screen angle, on a foreshortened ring (30° and 60° elevation)', () => {
+      for (const elevationDeg of [30, 60]) {
+        const { gizmo } = rig(25, elevationDeg)
+        const ring = gizmo.rings[2]
+        for (const deg of [20, 70, 135, 200, 300]) {
+          // A grab lands somewhere in the fat hit band, not exactly on the line.
+          const p = onRing(ring, gizmo, deg, 1.15)
+          const recovered = ringParamDeg(ring, gizmo.originX, gizmo.originY, p.x, p.y)
+          expect(angleDiff(recovered, deg)).toBeCloseTo(0, 6)
+          // And this is genuinely not the same as the screen polar angle there,
+          // or the test would prove nothing about foreshortening.
+          const screenDeg = (Math.atan2(-(p.y - gizmo.originY), p.x - gizmo.originX) * 180) / Math.PI
+          if (deg === 70) expect(Math.abs(angleDiff(screenDeg, deg))).toBeGreaterThan(1)
+        }
+      }
+    })
+
+    it('returns a finite angle on an edge-on ring and on the hub itself', () => {
+      const { gizmo } = rig(-90, 90)
+      const edgeOn = gizmo.rings[0]
+      const p = onRing(edgeOn, gizmo, 60)
+      expect(Number.isFinite(ringParamDeg(edgeOn, gizmo.originX, gizmo.originY, p.x, p.y))).toBe(true)
+      expect(Number.isFinite(ringParamDeg(gizmo.rings[2], gizmo.originX, gizmo.originY, gizmo.originX, gizmo.originY))).toBe(true)
+    })
+  })
+
+  describe('updateDialAnnotation', () => {
+    it('draws a tick every 15°, a longer one every 45°, all in the ring\'s own plane', () => {
+      const { gizmo } = rig(25, 35)
+      const ring = gizmo.rings[2]
+      const dial = createDialAnnotation()
+      updateDialAnnotation(ring, 10, 0, gizmo.originX, gizmo.originY, dial)
+
+      expect(dial.visible).toBe(true)
+      expect(dial.degenerate).toBe(false)
+      expect(DIAL_TICK_COUNT).toBe(24)
+      expect(dial.ticks).toHaveLength(24)
+
+      const outer = inPlane(ring, gizmo, dial.ticks[0].x2, dial.ticks[0].y2).radius
+      expect(outer).toBeGreaterThan(0.8)
+      expect(outer).toBeLessThanOrEqual(1)
+      for (let index = 0; index < 24; index += 1) {
+        const tick = dial.ticks[index]
+        expect(tick.major).toBe(index % 3 === 0)
+        const tip = inPlane(ring, gizmo, tick.x2, tick.y2)
+        const foot = inPlane(ring, gizmo, tick.x1, tick.y1)
+        // Every outer end on the same circle in the ring's plane — i.e. on an
+        // ellipse concentric with the ring on screen.
+        expect(tip.radius).toBeCloseTo(outer, 6)
+        // Radial: both ends at the same ring parameter, 15° apart round the dial.
+        expect(angleDiff(foot.deg, tip.deg)).toBeCloseTo(0, 6)
+        expect(Math.abs(angleDiff(tip.deg, 10 + index * 15 * (ring.axis === 'Y' ? -1 : 1)))).toBeCloseTo(0, 6)
+        // Majors reach further in.
+        expect(foot.radius).toBeLessThan(tip.radius)
+        if (tick.major) expect(foot.radius).toBeLessThan(inPlane(ring, gizmo, dial.ticks[1].x1, dial.ticks[1].y1).radius)
+      }
+    })
+
+    it('labels 0 at the grab and 90/180/270 a turn of that much further round', () => {
+      const { gizmo } = rig(25, 35)
+      for (const ring of gizmo.rings) {
+        const dial = createDialAnnotation()
+        updateDialAnnotation(ring, 40, 0, gizmo.originX, gizmo.originY, dial)
+        expect(dial.labels.map((label) => label.text)).toEqual(['0', '90', '180', '270'])
+        const sense = ring.axis === 'Y' ? -1 : 1
+        dial.labels.forEach((label, index) => {
+          const where = inPlane(ring, gizmo, label.x, label.y)
+          expect(Math.abs(angleDiff(where.deg, 40 + sense * index * 90))).toBeCloseTo(0, 5)
+        })
+      }
+    })
+
+    it('keeps the start hand at the grab and swings the live hand exactly where the body takes that point — every axis, facing +1 and -1', () => {
+      /** @type {Record<string, Set<number>>} */
+      const facingsSeen = { X: new Set(), Y: new Set(), Z: new Set() }
+      for (const { az, el } of CAMERAS) {
+        const { gizmo, project } = rig(az, el)
+        for (let axis = 0; axis < 3; axis += 1) {
+          if (Math.abs(axisToward(az, el, axis)) < 0.3) continue
+          facingsSeen[AXIS_NAMES[axis]].add(axisFacing(az, el, axis))
+          const ring = gizmo.rings[axis]
+          const [a, b] = SPANS[axis]
+          const startDeg = 50
+          const t0 = (startDeg * Math.PI) / 180
+          // The world point on the ring's circle at the grab parameter.
+          const world = [0, 1, 2].map((i) => Math.cos(t0) * unit(a)[i] + Math.sin(t0) * unit(b)[i])
+
+          for (const turnedDeg of [30, -70, 135]) {
+            const dial = createDialAnnotation()
+            updateDialAnnotation(ring, startDeg, turnedDeg, gizmo.originX, gizmo.originY, dial)
+
+            const start = project(world, DIAL_HAND_RATIO)
+            expect(dial.startX).toBeCloseTo(start.x, 6)
+            expect(dial.startY).toBeCloseTo(start.y, 6)
+
+            // Turn that same point about the world axis by the turned angle —
+            // what the preview mesh does to it — and project it independently.
+            const expected = project(rotateAbout(world, unit(axis), turnedDeg), DIAL_HAND_RATIO)
+            expect(dial.liveX).toBeCloseTo(expected.x, 6)
+            expect(dial.liveY).toBeCloseTo(expected.y, 6)
+          }
+        }
+      }
+      for (const axis of AXIS_NAMES) expect([...facingsSeen[axis]].sort()).toEqual([-1, 1])
+    })
+
+    it('swings the live hand the same way round the screen as the pointer that turned it, for either facing', () => {
+      // The pointer half of the same contract: `rotateDeltaDeg` turns a screen
+      // sweep into degrees with `facing`, and the hand turns those degrees back
+      // into a screen sweep. Get either backwards and they disagree here.
+      let checked = 0
+      for (const { az, el } of CAMERAS) {
+        const { gizmo } = rig(az, el)
+        for (let axis = 0; axis < 3; axis += 1) {
+          if (Math.abs(axisToward(az, el, axis)) < 0.3) continue
+          const ring = gizmo.rings[axis]
+          const facing = axisFacing(az, el, axis)
+          for (const delta of [12, -12]) {
+            const from = onRing(ring, gizmo, 80)
+            const to = onRing(ring, gizmo, 80 + delta)
+            const turned = rotateDeltaDeg(gizmo.originX, gizmo.originY, from.x, from.y, to.x, to.y, facing)
+            const startDeg = ringParamDeg(ring, gizmo.originX, gizmo.originY, from.x, from.y)
+            const dial = createDialAnnotation()
+            updateDialAnnotation(ring, startDeg, turned, gizmo.originX, gizmo.originY, dial)
+
+            const cross = (/** @type {number} */ x1, /** @type {number} */ y1, /** @type {number} */ x2, /** @type {number} */ y2) =>
+              (x1 - gizmo.originX) * (y2 - gizmo.originY) - (y1 - gizmo.originY) * (x2 - gizmo.originX)
+            const pointerSense = Math.sign(cross(from.x, from.y, to.x, to.y))
+            const handSense = Math.sign(cross(dial.startX, dial.startY, dial.liveX, dial.liveY))
+            expect(handSense).toBe(pointerSense)
+            // Only the *direction* is asserted: `rotateDeltaDeg` measures the
+            // pointer's screen angle, which on a foreshortened ring is not the
+            // ring parameter, so the hand (which turns with the body) can run a
+            // little ahead of or behind the pointer — but never the other way.
+            checked += 1
+          }
+        }
+      }
+      expect(checked).toBeGreaterThan(20)
+    })
+
+    it('puts a 3-point arrowhead on the live hand, tip at the hand\'s end, pointing outward', () => {
+      const { gizmo } = rig(25, 35)
+      const dial = createDialAnnotation()
+      updateDialAnnotation(gizmo.rings[2], 0, 60, gizmo.originX, gizmo.originY, dial)
+      expect(dial.liveHead).toHaveLength(3)
+      expect(dial.liveHead[0].x).toBeCloseTo(dial.liveX, 9)
+      expect(dial.liveHead[0].y).toBeCloseTo(dial.liveY, 9)
+      const baseX = (dial.liveHead[1].x + dial.liveHead[2].x) / 2
+      const baseY = (dial.liveHead[1].y + dial.liveHead[2].y) / 2
+      // The base sits between the hub and the tip.
+      expect(Math.hypot(baseX - gizmo.originX, baseY - gizmo.originY)).toBeLessThan(
+        Math.hypot(dial.liveX - gizmo.originX, dial.liveY - gizmo.originY),
+      )
+    })
+
+    it('fills a 270° sweep with a 270° sector, not a -90° one', () => {
+      const { gizmo } = rig(-90, 90)
+      for (const ring of [gizmo.rings[2]]) {
+        const dial = createDialAnnotation()
+        updateDialAnnotation(ring, 0, 270, gizmo.originX, gizmo.originY, dial)
+        expect(dial.sectorVisible).toBe(true)
+        expect(dial.sector).toHaveLength(DIAL_SECTOR_POINTS)
+        expect(dial.sectorSweepDeg).toBeCloseTo(270, 9)
+
+        // Walk the arc: every step goes the same way, and they add up to 270.
+        let total = 0
+        for (let index = 1; index < dial.sector.length; index += 1) {
+          const prev = inPlane(ring, gizmo, dial.sector[index - 1].x, dial.sector[index - 1].y).deg
+          const next = inPlane(ring, gizmo, dial.sector[index].x, dial.sector[index].y).deg
+          const step = angleDiff(next, prev)
+          expect(step).toBeGreaterThan(0)
+          total += step
+        }
+        expect(total).toBeCloseTo(270, 6)
+        // The middle of the sector is at 135°, on the far side from where a
+        // -90° wedge would be.
+        const middle = dial.sector[(DIAL_SECTOR_POINTS - 1) / 2]
+        expect(inPlane(ring, gizmo, middle.x, middle.y).deg).toBeCloseTo(135, 6)
+      }
+    })
+
+    it('a sweep past a full turn fills the whole disc rather than wrapping round again', () => {
+      const { gizmo } = rig(-90, 90)
+      const dial = createDialAnnotation()
+      updateDialAnnotation(gizmo.rings[2], 0, -400, gizmo.originX, gizmo.originY, dial)
+      expect(dial.sectorSweepDeg).toBeCloseTo(-360, 9)
+      expect(dial.turnedDeg).toBeCloseTo(-400, 9)
+    })
+
+    it('a zero sweep draws no sector and carries +0, not -0', () => {
+      const { gizmo } = rig(25, 35)
+      const dial = createDialAnnotation()
+      updateDialAnnotation(gizmo.rings[2], 30, -0, gizmo.originX, gizmo.originY, dial)
+      expect(dial.sectorVisible).toBe(false)
+      expect(Object.is(dial.turnedDeg, 0)).toBe(true)
+      // The two hands coincide.
+      expect(dial.liveX).toBeCloseTo(dial.startX, 9)
+      expect(dial.liveY).toBeCloseTo(dial.startY, 9)
+    })
+
+    it('an edge-on ring takes the degenerate path: live hand only, no 24 ticks on a line', () => {
+      // Top view: the X and Y rings are seen exactly edge-on.
+      const { gizmo } = rig(-90, 90)
+      const dial = createDialAnnotation()
+      updateDialAnnotation(gizmo.rings[0], 30, 45, gizmo.originX, gizmo.originY, dial)
+      expect(dial.visible).toBe(true)
+      expect(dial.degenerate).toBe(true)
+      expect(dial.sectorVisible).toBe(false)
+      expect(Number.isFinite(dial.liveX)).toBe(true)
+      expect(Number.isFinite(dial.liveY)).toBe(true)
+
+      // Nearly edge-on (a couple of degrees off) is still degenerate… The Y
+      // ring, not X: at azimuth -90 the X axis lies across the screen at every
+      // elevation, so the X ring never tilts away from edge-on there.
+      const nearly = rig(-90, 88)
+      updateDialAnnotation(nearly.gizmo.rings[1], 30, 45, nearly.gizmo.originX, nearly.gizmo.originY, dial)
+      expect(dial.degenerate).toBe(true)
+      // …and a comfortably tilted ring is not, with the same buffers.
+      const tilted = rig(-90, 40)
+      updateDialAnnotation(tilted.gizmo.rings[1], 30, 45, tilted.gizmo.originX, tilted.gizmo.originY, dial)
+      expect(dial.degenerate).toBe(false)
+      expect(dial.sectorVisible).toBe(true)
+    })
+
+    it('mutates the caller\'s buffers rather than allocating new ones', () => {
+      const { gizmo } = rig(25, 35)
+      const dial = createDialAnnotation()
+      const tick = dial.ticks[3]
+      const head = dial.liveHead[1]
+      const arc = dial.sector[5]
+      const label = dial.labels[2]
+      updateDialAnnotation(gizmo.rings[2], 0, 30, gizmo.originX, gizmo.originY, dial)
+      updateDialAnnotation(gizmo.rings[1], 90, -120, gizmo.originX, gizmo.originY, dial)
+      expect(dial.ticks[3]).toBe(tick)
+      expect(dial.liveHead[1]).toBe(head)
+      expect(dial.sector[5]).toBe(arc)
+      expect(dial.labels[2]).toBe(label)
+      expect(dial.axis).toBe('Y')
+    })
+  })
+
+  describe('placeDialReadout', () => {
+    const PHONE = { width: 390, height: 844 }
+
+    /** @param {import('./annotate.js').DialAnnotation} dial */
+    function box(dial) {
+      return {
+        left: dial.readoutX - DIAL_READOUT_WIDTH_PX / 2,
+        right: dial.readoutX + DIAL_READOUT_WIDTH_PX / 2,
+        top: dial.readoutY - DIAL_READOUT_HEIGHT_PX / 2,
+        bottom: dial.readoutY + DIAL_READOUT_HEIGHT_PX / 2,
+      }
+    }
+
+    it('uses legible text: at least 14 px', () => {
+      expect(DIAL_READOUT_FONT_PX).toBeGreaterThanOrEqual(14)
+    })
+
+    it('with a mouse, sits clear above the ring, centred on the hub', () => {
+      const { gizmo } = rig(25, 35)
+      const ring = gizmo.rings[2]
+      const dial = createDialAnnotation()
+      updateDialAnnotation(ring, 0, 30, gizmo.originX, gizmo.originY, dial)
+      placeDialReadout(ring, gizmo.originX, gizmo.originY, gizmo.originX + 60, gizmo.originY, false, WIDTH_PX, HEIGHT_PX, dial)
+      const b = box(dial)
+      expect(dial.readoutX).toBeCloseTo(gizmo.originX, 6)
+      // Above the ring's own top edge on screen.
+      expect(b.bottom).toBeLessThan(gizmo.originY - Math.hypot(ring.uy, ring.vy))
+    })
+
+    it('on touch, sits up and away from the fingertip so the finger never covers it', () => {
+      const { gizmo } = rig(25, 35)
+      const ring = gizmo.rings[2]
+      const dial = createDialAnnotation()
+      const finger = { x: gizmo.originX + 70, y: gizmo.originY + 40 }
+      placeDialReadout(ring, gizmo.originX, gizmo.originY, finger.x, finger.y, true, WIDTH_PX, HEIGHT_PX, dial)
+      const b = box(dial)
+      // Wholly above the finger, with a fingertip's worth of clearance.
+      expect(b.bottom).toBeLessThanOrEqual(finger.y - 40)
+    })
+
+    it('stays inside the viewport at phone width, wherever the finger is', () => {
+      const dial = createDialAnnotation()
+      const { gizmo } = rig(25, 35)
+      const ring = gizmo.rings[2]
+      for (const [x, y] of [
+        [2, 2],
+        [388, 2],
+        [2, 842],
+        [388, 842],
+        [195, 30],
+        [380, 420],
+      ]) {
+        for (const touch of [true, false]) {
+          placeDialReadout(ring, x, y, x, y, touch, PHONE.width, PHONE.height, dial)
+          const b = box(dial)
+          expect(b.left).toBeGreaterThanOrEqual(0)
+          expect(b.top).toBeGreaterThanOrEqual(0)
+          expect(b.right).toBeLessThanOrEqual(PHONE.width)
+          expect(b.bottom).toBeLessThanOrEqual(PHONE.height)
+        }
+      }
+    })
+
+    it('near the top edge on touch, moves beside the finger rather than under it', () => {
+      const dial = createDialAnnotation()
+      const { gizmo } = rig(25, 35)
+      const ring = gizmo.rings[2]
+      const finger = { x: 120, y: 30 }
+      placeDialReadout(ring, 200, 200, finger.x, finger.y, true, PHONE.width, PHONE.height, dial)
+      const b = box(dial)
+      const coversFinger =
+        finger.x > b.left - 20 && finger.x < b.right + 20 && finger.y > b.top - 20 && finger.y < b.bottom + 20
+      expect(coversFinger).toBe(false)
+    })
   })
 })

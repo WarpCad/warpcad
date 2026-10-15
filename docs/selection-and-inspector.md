@@ -453,6 +453,50 @@ Drag a ring and the Rotation field follows the same way.
 
 ![Dragging a rotate ring while the Rotation X field changes](./media/gizmo-rotate.gif)
 
+### The rotation dial
+
+While you drag a ring, a **dial** appears in that ring's own plane and colour, so you can
+see how far you have turned, not only that the shape is moving.
+
+![A rotate ring mid-drag, with the dial, both hands, the swept wedge and the angle readout](./screenshots/gizmo-rotate-dial.png)
+
+- **Ticks** every 15°, longer every 45°, labelled `0`, `90`, `180`, `270`. `0` is
+  where you grabbed the ring, not a world direction.
+- **Dim hand** stays where the drag began. **Bright hand** (with an arrowhead) follows the
+  rotation, and the shaded wedge between them is the amount turned. It keeps growing past
+  half a turn, so three quarters of a turn reads `+270.0°`.
+- **Readout**: the signed angle turned, to 0.1°, e.g. `+37.5°`. Positive is
+  counter-clockwise looking down the ring's axis toward the origin (the right-hand rule).
+  Under it a small line names the active step: `5° steps`, `fine 0.1°`, or nothing when the
+  drag is continuous.
+- Release and the shape keeps exactly the angle on the readout, as one step you can Undo.
+  The Rotation field in the Inspector shows the same number.
+
+**Landing on a round number.** Hold **Shift** while dragging (mouse and keyboard) and the
+turn snaps to 5° steps of the turn from where you grabbed. Press or release Shift
+mid-drag and it takes effect at once. The steps are relative to the start: a shape
+already at 17° lands on 22°, 27° and so on. To reach a specific absolute angle, type it
+into the Rotation field.
+
+**On a touch screen** there is no Shift, so the step follows how fast your finger moves:
+fast is a coarse step (up to 15°), slower is 5°, then 1°, and nearly stopped is 0.1°. Slow
+right down at the end of the drag to settle on the exact angle; the readout says which
+step you are in. Holding Shift on a pen or an attached keyboard overrides the speed rule.
+
+![Dragging a ring: the dial follows, then Shift snaps the readout to 5-degree steps](./media/gizmo-rotate-dial.gif)
+
+**Example:**
+
+1. Click a cube in the viewport. Three coloured rings appear around it.
+2. Press on the **blue** ring and drag a quarter of the way round. A blue dial appears,
+   a bright hand follows your pointer and the readout counts up.
+3. Hold **Shift** and keep dragging: the readout moves in jumps, `+45.0°`, `+50.0°`,
+   `+55.0°`. Release with it on `+90.0°`.
+4. The Inspector's Rotation Z says `90`. Ctrl+Z puts the cube back in one step.
+5. *On a tablet:* drag the blue ring quickly and the readout jumps in big steps; slow
+   right down near the end and it falls to `0.1°` steps, so you can settle on `89.9°` or
+   `90.0°`.
+
 Typing a number does the same job from the other side. The two always agree.
 
 ![Typing 25 into the Position X field and the cube jumping to match](./media/inspector-numeric-edit.gif)

@@ -6,8 +6,18 @@ priority: medium
 model: opus
 milestone: M16
 depends: []
-status: open
+status: done
 ---
+
+> **What shipped (2026-10-14):** as specified, with these differences. The dial's hand sweeps the
+> ring parameter by `turnedDeg x sense(axis)` (sense is -1 for the Y ring), not `x facing`: `facing`
+> is already applied inside `rotateDeltaDeg`. Speed decays by a 30 ms hold, then linearly to 0 at
+> 80 ms. A stall timer re-quantises so the readout drops to `fine 0.1°` while a finger rests. The
+> dial appears on the first move, not on press. Open questions took the recommended answers (a:
+> relative to start; b: no mouse fine mode; c: pen like touch, Shift wins; d: no sticky toggle).
+> `docs/touch.md` does not exist, so the touch rule lives in `docs/selection-and-inspector.md`.
+> **Still open:** the speed-band constants (40/250/900 px/s) are untuned and need a real finger on
+> an iPad or phone; see `TODO/VERIFY.md`.
 
 ## Goal
 

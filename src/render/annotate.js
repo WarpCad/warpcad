@@ -760,6 +760,385 @@ export function axisFacing(azimuthDeg, elevationDeg, axisIndex) {
   return axisToward(azimuthDeg, elevationDeg, axisIndex) >= 0 ? 1 : -1
 }
 
+// --- rotate dial (TODO/ui-064) ---------------------------------------------
+
+/**
+ * The rotate dial is drawn in the ring's own plane, from the ring's own
+ * `origin + u·cos t + v·sin t` at radii a little inside 1. That expression is the
+ * exact screen image of a circle in the plane the ring spans, so the dial
+ * foreshortens with the ring at any camera angle, and turns edge-on with it,
+ * with no second projection. That is the whole "same plane as the ring"
+ * requirement.
+ *
+ * ## Hand direction: parameter sense, not facing
+ *
+ * A world rotation of `θ` about the ring's axis moves a point at ring parameter
+ * `t` to `t + sense·θ`, where `sense` depends only on which two world axes the
+ * ring spans and in what order (`OTHER_AXES`). X spans (Y, Z) and Z spans (X, Y),
+ * both right-handed about their own axis, so `sense = +1`. Y spans (X, Z), and
+ * `X × Z = −Y`, so `sense = −1`.
+ *
+ * `facing` does **not** enter here. It belongs to the screen-sweep →
+ * world-angle step, which `rotateDeltaDeg` has already done before a turned
+ * angle reaches the dial. Applying it twice is the same "turns the wrong way"
+ * bug `rotateDeltaDeg`'s doc comment warns about, and no readout would show
+ * it. The spec checks the hand against an independent world-space rotation of
+ * the grabbed point for both facings of every axis.
+ */
+
+/** Tick spacing round the dial, degrees of turn. */
+const DIAL_TICK_STEP_DEG = 15
+
+/** How many ticks make a full dial. */
+export const DIAL_TICK_COUNT = 360 / DIAL_TICK_STEP_DEG
+
+/** Every this-many ticks is a long one (45°). */
+const DIAL_MAJOR_EVERY = 3
+
+/** Outer end of every tick, as a fraction of the ring's radius. */
+const DIAL_TICK_OUTER = 0.94
+/** Inner end of a minor tick. */
+const DIAL_TICK_MINOR_INNER = 0.84
+/** Inner end of a major (45°) tick. */
+const DIAL_TICK_MAJOR_INNER = 0.74
+/** Where the 0/90/180/270 labels sit. */
+const DIAL_LABEL_RATIO = 0.6
+
+/** Length of both hands and the sector's radius, as a fraction of the ring. */
+export const DIAL_HAND_RATIO = 0.9
+
+/** The live hand's arrowhead length, px. */
+const DIAL_HAND_HEAD_PX = 9
+
+/**
+ * Points along the sector's arc, hub excluded. Odd, so a sweep's midpoint is
+ * a sample. 37 is 10° a segment at a full turn.
+ */
+export const DIAL_SECTOR_POINTS = 37
+
+/**
+ * Below this, the ring is edge-on enough that its ticks overlap and the sector
+ * degenerates to a sliver, so the dial draws only the live hand and the
+ * readout. The measure is `|u × v| / ((|u|² + |v|²) / 2)`. For a circle whose
+ * axis makes `c = |axis · view|` with the view, that is `2c / (1 + c²)`: 1
+ * face-on, 0 edge-on. 0.25 is about 7° off edge-on.
+ */
+const DIAL_EDGE_ON_RATIO = 0.25
+
+/** Labels round the dial: the turn, relative to the grab. */
+const DIAL_LABEL_TEXT = Object.freeze(['0', '90', '180', '270'])
+
+/** Readout pill size, px. Fixed so placement can be computed without measuring text. */
+export const DIAL_READOUT_WIDTH_PX = 112
+export const DIAL_READOUT_HEIGHT_PX = 50
+/** The readout's main line, px. ≥ 14 so it is legible at phone width. */
+export const DIAL_READOUT_FONT_PX = 18
+/** Clear space between the readout and whatever it must not cover, px. */
+const DIAL_READOUT_GAP_PX = 12
+/**
+ * How far clear of a fingertip the readout sits, px. A fingertip covers about
+ * 9 mm of glass, more below the contact point (where the hand is) than above.
+ */
+const DIAL_READOUT_FINGER_PX = 48
+/** Minimum distance from the viewport's edge, px. */
+const DIAL_READOUT_MARGIN_PX = 8
+
+/**
+ * @typedef {object} DialTick
+ * @property {number} x1 Inner end.
+ * @property {number} y1
+ * @property {number} x2 Outer end.
+ * @property {number} y2
+ * @property {boolean} major Every 45° of turn.
+ */
+
+/**
+ * @typedef {object} DialLabel
+ * @property {number} x Centre of the label text.
+ * @property {number} y
+ * @property {string} text `"0"` | `"90"` | `"180"` | `"270"`.
+ */
+
+/**
+ * @typedef {object} DialAnnotation
+ * @property {boolean} visible
+ * @property {string} axis The ring's axis, `"X"` | `"Y"` | `"Z"`, for its colour.
+ * @property {boolean} degenerate Ring seen (nearly) edge-on: only the live hand
+ *   and the readout are drawn.
+ * @property {number} originX Hub.
+ * @property {number} originY
+ * @property {DialTick[]} ticks {@link DIAL_TICK_COUNT} of them, tick 0 at the grab.
+ * @property {DialLabel[]} labels Four.
+ * @property {number} startX Tip of the start hand, fixed at the grab.
+ * @property {number} startY
+ * @property {number} liveX Tip of the live hand, at grab + turned.
+ * @property {number} liveY
+ * @property {{ x: number, y: number }[]} liveHead Three points, tip first.
+ * @property {boolean} sectorVisible
+ * @property {{ x: number, y: number }[]} sector {@link DIAL_SECTOR_POINTS} arc points
+ *   from the start hand to the live hand; the hub closes the wedge.
+ * @property {number} sectorSweepDeg The turn the sector shows, clamped to ±360.
+ * @property {number} turnedDeg The signed turned angle, unwrapped.
+ * @property {number} stepDeg The active snap step, `0` when continuous.
+ * @property {number} readoutX Centre of the readout pill.
+ * @property {number} readoutY
+ */
+
+/**
+ * Allocate the dial's output structure once; {@link updateDialAnnotation}
+ * mutates it.
+ *
+ * @returns {DialAnnotation}
+ */
+export function createDialAnnotation() {
+  return {
+    visible: false,
+    axis: 'Z',
+    degenerate: false,
+    originX: 0,
+    originY: 0,
+    ticks: Array.from({ length: DIAL_TICK_COUNT }, (_, index) => ({
+      x1: 0,
+      y1: 0,
+      x2: 0,
+      y2: 0,
+      major: index % DIAL_MAJOR_EVERY === 0,
+    })),
+    labels: DIAL_LABEL_TEXT.map((text) => ({ x: 0, y: 0, text })),
+    startX: 0,
+    startY: 0,
+    liveX: 0,
+    liveY: 0,
+    liveHead: [
+      { x: 0, y: 0 },
+      { x: 0, y: 0 },
+      { x: 0, y: 0 },
+    ],
+    sectorVisible: false,
+    sector: Array.from({ length: DIAL_SECTOR_POINTS }, () => ({ x: 0, y: 0 })),
+    sectorSweepDeg: 0,
+    turnedDeg: 0,
+    stepDeg: 0,
+    readoutX: 0,
+    readoutY: 0,
+  }
+}
+
+/**
+ * Which way a world rotation moves a ring's parameter. See the section comment.
+ *
+ * @param {string} axis `"X"` | `"Y"` | `"Z"`.
+ * @returns {1 | -1}
+ */
+function ringParamSense(axis) {
+  return axis === 'Y' ? -1 : 1
+}
+
+/**
+ * How face-on a ring is: 1 face-on, 0 edge-on. See {@link DIAL_EDGE_ON_RATIO}.
+ *
+ * @param {GizmoRing} ring
+ * @returns {number}
+ */
+function ringOpenness(ring) {
+  const det = ring.ux * ring.vy - ring.vx * ring.uy
+  const scale = (ring.ux * ring.ux + ring.uy * ring.uy + ring.vx * ring.vx + ring.vy * ring.vy) / 2
+  return scale > EPSILON_PX ? Math.abs(det) / scale : 0
+}
+
+/**
+ * The ring parameter, degrees, of a screen point: where on the ring a drag began.
+ *
+ * Inverts the ring's 2×2 `[u v]` map at the point rather than taking its screen
+ * angle. On a foreshortened ring the two differ (an ellipse's polar angle is not
+ * its parameter), and only the parameter lets the hands turn with the body.
+ * The point need not be on the ring itself: the grab lands anywhere in the
+ * ring's fat hit band, and the angle of `(cos t, sin t)·r` is the same for any `r`.
+ *
+ * On a ring too close to edge-on to invert, the parameter whose ring point
+ * lies most nearly in the point's direction is used instead (the maximum of
+ * `(u·p) cos t + (v·p) sin t`).
+ *
+ * @param {GizmoRing} ring
+ * @param {number} originX Hub.
+ * @param {number} originY
+ * @param {number} xPx The point, viewport pixels.
+ * @param {number} yPx
+ * @returns {number} Degrees in (-180, 180]; `0` for a point on the hub.
+ */
+export function ringParamDeg(ring, originX, originY, xPx, yPx) {
+  const dx = xPx - originX
+  const dy = yPx - originY
+  if (!(Math.hypot(dx, dy) > EPSILON_PX)) return 0
+  let c
+  let s
+  if (ringOpenness(ring) >= DIAL_EDGE_ON_RATIO) {
+    const det = ring.ux * ring.vy - ring.vx * ring.uy
+    c = (dx * ring.vy - ring.vx * dy) / det
+    s = (ring.ux * dy - dx * ring.uy) / det
+  } else {
+    c = ring.ux * dx + ring.uy * dy
+    s = ring.vx * dx + ring.vy * dy
+  }
+  if (!(Math.hypot(c, s) > 0)) return 0
+  const degrees = (Math.atan2(s, c) * 180) / Math.PI
+  return degrees === 0 ? 0 : degrees
+}
+
+/**
+ * Write the screen point at ring parameter `t` (radians) and radius `ratio`.
+ *
+ * @param {GizmoRing} ring
+ * @param {number} originX
+ * @param {number} originY
+ * @param {number} t
+ * @param {number} ratio
+ * @param {{ x: number, y: number }} out
+ */
+function dialPoint(ring, originX, originY, t, ratio, out) {
+  const cos = Math.cos(t)
+  const sin = Math.sin(t)
+  out.x = originX + ratio * (ring.ux * cos + ring.vx * sin)
+  out.y = originY + ratio * (ring.uy * cos + ring.vy * sin)
+}
+
+// Scratch for the dial's hand endpoints: single-threaded, finished with before return.
+const scratchDialPoint = { x: 0, y: 0 }
+
+/**
+ * Lay out the rotate dial for a drag in progress (`TODO/ui-064`).
+ *
+ * Ticks every 15° of turn and labels every 90°, both counted from the grab, so
+ * `0` is where you took hold. The start hand stays at the grab; the live hand
+ * sits at grab + turned, exactly where the preview has carried the grabbed
+ * point of the body. The sector fills the wedge between the hands, the long
+ * way round when the turn is past 180°, up to a full disc.
+ *
+ * Allocates nothing: every array in `out` is reused.
+ *
+ * @param {GizmoRing} ring The ring being dragged.
+ * @param {number} startParamDeg Ring parameter of the grab ({@link ringParamDeg}).
+ * @param {number} turnedDeg Signed world rotation about the ring's axis, unwrapped.
+ * @param {number} originX Hub.
+ * @param {number} originY
+ * @param {DialAnnotation} out Mutated in place.
+ * @returns {DialAnnotation} `out`
+ */
+export function updateDialAnnotation(ring, startParamDeg, turnedDeg, originX, originY, out) {
+  const sense = ringParamSense(ring.axis)
+  const start = startParamDeg * DEG
+  const turned = turnedDeg === 0 ? 0 : turnedDeg
+  out.visible = true
+  out.axis = ring.axis
+  out.originX = originX
+  out.originY = originY
+  out.turnedDeg = turned
+  // Edge-on: the ticks would stack on one line and the sector would be a
+  // sliver, so only the live hand (and the readout) is drawn. The hand still
+  // runs along the collapsed line as the body turns, which is honest.
+  out.degenerate = ringOpenness(ring) < DIAL_EDGE_ON_RATIO
+
+  dialPoint(ring, originX, originY, start, DIAL_HAND_RATIO, scratchDialPoint)
+  out.startX = scratchDialPoint.x
+  out.startY = scratchDialPoint.y
+  dialPoint(ring, originX, originY, start + sense * turned * DEG, DIAL_HAND_RATIO, scratchDialPoint)
+  out.liveX = scratchDialPoint.x
+  out.liveY = scratchDialPoint.y
+
+  let dirX = originX - out.liveX
+  let dirY = originY - out.liveY
+  const dirLength = Math.hypot(dirX, dirY)
+  if (dirLength > EPSILON_PX) {
+    dirX /= dirLength
+    dirY /= dirLength
+  } else {
+    dirX = 1
+    dirY = 0
+  }
+  writeArrowhead(out.liveHead, out.liveX, out.liveY, dirX, dirY, Math.min(DIAL_HAND_HEAD_PX, dirLength * 0.5))
+
+  for (let index = 0; index < DIAL_TICK_COUNT; index += 1) {
+    const tick = out.ticks[index]
+    const t = start + sense * index * DIAL_TICK_STEP_DEG * DEG
+    dialPoint(ring, originX, originY, t, tick.major ? DIAL_TICK_MAJOR_INNER : DIAL_TICK_MINOR_INNER, scratchDialPoint)
+    tick.x1 = scratchDialPoint.x
+    tick.y1 = scratchDialPoint.y
+    dialPoint(ring, originX, originY, t, DIAL_TICK_OUTER, scratchDialPoint)
+    tick.x2 = scratchDialPoint.x
+    tick.y2 = scratchDialPoint.y
+  }
+  for (let index = 0; index < out.labels.length; index += 1) {
+    dialPoint(ring, originX, originY, start + sense * index * 90 * DEG, DIAL_LABEL_RATIO, out.labels[index])
+  }
+
+  const sweep = clamp(turned, -360, 360)
+  out.sectorSweepDeg = sweep === 0 ? 0 : sweep
+  out.sectorVisible = !out.degenerate && sweep !== 0
+  const last = DIAL_SECTOR_POINTS - 1
+  for (let index = 0; index <= last; index += 1) {
+    const t = start + (sense * sweep * DEG * index) / last
+    dialPoint(ring, originX, originY, t, DIAL_HAND_RATIO, out.sector[index])
+  }
+  return out
+}
+
+/**
+ * Place the dial's readout pill (`TODO/ui-064`): screen-aligned text, since
+ * text skewed onto an ellipse is unreadable, kept inside the viewport.
+ *
+ * - **Mouse**: centred on the hub, just clear above the ring, so it never
+ *   covers the hands it describes.
+ * - **Touch**: above the fingertip by a finger's width, so the finger never
+ *   covers it. Near the top edge, where there is no room above, it moves beside
+ *   the finger instead: away from the hub if that side fits, otherwise the
+ *   other side. It never drops under the finger, where the hand is.
+ *
+ * Writes `readoutX`/`readoutY`, the pill's centre, into `out`.
+ *
+ * @param {GizmoRing} ring
+ * @param {number} originX Hub.
+ * @param {number} originY
+ * @param {number} pointerXPx The pointer, viewport pixels.
+ * @param {number} pointerYPx
+ * @param {boolean} touch Touch or pen: dodge the finger.
+ * @param {number} widthPx Viewport size.
+ * @param {number} heightPx
+ * @param {DialAnnotation} out Mutated in place.
+ * @returns {DialAnnotation} `out`
+ */
+export function placeDialReadout(ring, originX, originY, pointerXPx, pointerYPx, touch, widthPx, heightPx, out) {
+  const halfW = DIAL_READOUT_WIDTH_PX / 2
+  const halfH = DIAL_READOUT_HEIGHT_PX / 2
+  const minX = DIAL_READOUT_MARGIN_PX + halfW
+  const maxX = widthPx - DIAL_READOUT_MARGIN_PX - halfW
+  const minY = DIAL_READOUT_MARGIN_PX + halfH
+  const maxY = heightPx - DIAL_READOUT_MARGIN_PX - halfH
+
+  let x
+  let y
+  if (!touch) {
+    // The ellipse's exact vertical half-extent on screen.
+    const ringHalfHeight = Math.hypot(ring.uy, ring.vy)
+    x = originX
+    y = originY - ringHalfHeight - DIAL_READOUT_GAP_PX - halfH
+  } else {
+    x = pointerXPx
+    y = pointerYPx - DIAL_READOUT_FINGER_PX - halfH
+    if (y < minY) {
+      // No room above: beside the finger, away from the hub if that side fits.
+      const reach = DIAL_READOUT_FINGER_PX + halfW
+      const away = pointerXPx >= originX ? 1 : -1
+      const preferred = pointerXPx + away * reach
+      x = preferred >= minX && preferred <= maxX ? preferred : pointerXPx - away * reach
+      y = pointerYPx
+    }
+  }
+  // Clamp inside the viewport. A viewport narrower than the pill pins it to the left margin.
+  out.readoutX = maxX >= minX ? clamp(x, minX, maxX) : minX
+  out.readoutY = maxY >= minY ? clamp(y, minY, maxY) : minY
+  return out
+}
+
 // --- dimension lines -------------------------------------------------------
 
 /**
