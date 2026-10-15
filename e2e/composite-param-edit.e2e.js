@@ -159,14 +159,18 @@ async function snapCubeTo(page, part) {
   await page.getByTestId(`objects-part-check-pi-${part}`).click()
   await expect(page.getByTestId('viewport')).toHaveAttribute('data-selected-count', '2')
   const before = await centerOf(page, 'Cube 1')
-  await page.getByTestId('operation-snap').click()
-  await expect(page.getByTestId('snap-align-popover')).toBeVisible()
-  // All three axes: a Z-only snap onto `ethernet` sits under the jack's bottom face,
-  // which is the board top on every model — nothing would visibly follow.
-  for (const axis of ['x', 'y', 'z']) await page.getByTestId(`snap-align-axis-${axis}`).check()
-  await page.getByTestId('snap-align-commit').click()
-  await expect(page.getByTestId('snap-align-popover')).toHaveCount(0)
-  await expect.poll(async () => (await centerOf(page, 'Cube 1'))[2]).not.toBeCloseTo(before[2], 1)
+  await page.getByTestId('operation-align').click()
+  await expect(page.getByTestId('align-popover')).toBeVisible()
+  // One Y tap, one record (`TODO/ui-060` commits per tap, and the repair dialog lists one
+  // row per record). Y because that is where the jack moves between models: the Pi 4's
+  // Ethernet midline is y = 10.25, the Pi 5's y = 45.75. A Z snap would sit under the
+  // jack's bottom face, the board top on every model, and nothing would visibly follow.
+  await page.getByTestId('align-relation').selectOption('outside')
+  await page.getByTestId('align-y-snap-minus').click() // outside+
+  await expect(page.getByTestId('align-error')).toHaveCount(0)
+  await page.keyboard.press('Escape')
+  await expect(page.getByTestId('align-popover')).toHaveCount(0)
+  await expect.poll(async () => (await centerOf(page, 'Cube 1'))[1]).not.toBeCloseTo(before[1], 1)
 }
 
 /**

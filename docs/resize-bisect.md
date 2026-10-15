@@ -3,8 +3,8 @@
 **Enlarge**, **Fit** and **Bisect** change one already-placed shape's size, or cut it
 into two independently selectable parts. They live on the same **Operations
 toolbar** as [Union, Subtract and Intersect](booleans.md), [Group](groups.md),
-[Snap and Align](snap-align.md) and [Fillet and Chamfer](fillet-chamfer.md), as the
-ninth, tenth and eleventh buttons.
+[Align](snap-align.md) and [Fillet and Chamfer](fillet-chamfer.md), as the
+eighth, ninth and tenth buttons.
 
 | Button | What it does |
 |---|---|
@@ -143,7 +143,7 @@ The Bisect popover with those values filled in:
 If another shape was [snapped](snap-align.md) to the one you resize, how you
 resize decides what happens. Typing a new **Size** in the Inspector's
 **Parameters** (the movie above, Z from 8 to 24) rebuilds the shape and every
-Snap against it, so the lug keeps standing on the plate's new top. **Enlarge**
+snap against it, so the lug keeps standing on the plate's new top. **Enlarge**
 and **Fit** are different: they add a step on top of the shape, and a part
 snapped to it stays where it was, so it can end up buried or floating. To keep a
 snapped part attached, resize in the Inspector.
@@ -190,8 +190,8 @@ full click-once/click-again mechanism.
 - [Rounding or bevelling an edge: Fillet and Chamfer](fillet-chamfer.md) — the
   toolbar's other exactly-1-gated pair, and the popover pattern this page's
   three controls reuse.
-- [Precise placement: Snap and Align](snap-align.md) — the toolbar's
-  exactly-2-gated pair, for moving one shape against another rather than
+- [Precise placement: Align](snap-align.md) — the toolbar's
+  one-or-two-gated tool, for moving one shape against another rather than
   resizing or cutting a single shape.
 - [Selecting a shape, and reading its size](selection-and-inspector.md) — what
   selection does, and how drilling into one part of a group (including a

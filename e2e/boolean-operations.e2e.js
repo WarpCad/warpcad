@@ -625,7 +625,7 @@ test('Subtract addresses a drilled-in sub-part: the result is that member, not t
   // The two containers' bounding boxes have always touched by ~1px at phone
   // width, so rectangle arithmetic here would fail on a condition that predates
   // this task and say nothing about the one that does not.
-  for (const name of [...OPERATIONS, 'group', 'snap', 'align']) {
+  for (const name of [...OPERATIONS, 'group', 'align']) {
     await page.getByTestId(`operation-${name}`).click({ trial: true, timeout: 3000 })
   }
 

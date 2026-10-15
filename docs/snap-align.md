@@ -1,85 +1,140 @@
-# Precise placement: Snap and Align
+# Precise placement: Align
 
-**Snap** and **Align** move one already-placed shape to an exact computed position
-against another already-placed shape — flush against a side, or centred, on
-whichever axes you pick. They live on the same **Operations toolbar** as
-[Union, Subtract and Intersect](booleans.md) and [Group](groups.md), as the fifth
-and sixth buttons.
+**Align** puts a shape at an exact position: against another shape that is already
+sitting in the scene (flush against a side, flush inside it, or centred), or on the
+grid's origin. It is one button on the **Operations toolbar**, **⇔ Align**, next to
+[Union, Subtract and Intersect](booleans.md) and [Group](groups.md).
 
-Snap and Align are fundamentally different from every other button on this
-toolbar: Union, Subtract, Intersect and Group all take two or more shapes and
-produce **one** result, retiring the originals. Snap and Align do neither —
-they move one shape, leave the other exactly where it was, and **both remain
-two separate, independently selectable shapes afterward.**
+Align is fundamentally different from the toolbar's combining buttons: Union, Subtract,
+Intersect and Group all take two or more shapes and produce **one** result, retiring the
+originals. Align moves one shape, leaves the other exactly where it was, and **both remain
+separate, independently selectable shapes afterward.**
 
-| Button | What it does |
-|---|---|
-| **⇥ Snap** | Moves the first-selected shape flush against a side of the second, with an optional offset. |
-| **⇔ Align** | Centres the first-selected shape on the second, along whichever axes you pick. |
+It is the precise, computed counterpart to
+[drag-time snap guides](primitive-placement.md): those only ever run while you are
+dropping a **new** shape in from the Library, guiding it into place as you drag. Align
+works on shapes that are **already** in the scene, any time afterward, no drag required.
 
-This is the precise, computed counterpart to
-[drag-time snap guides](primitive-placement.md): those only ever run while you
-are dropping a **new** shape in from the Library, guiding it into place as you
-drag. Snap and Align work on two shapes that are **already** sitting in the
-scene, any time afterward — no drag required.
+## You need 1 or 2 shapes selected
 
-## You need exactly 2 shapes selected — not "2 or more"
+The **⇔ Align** button stays dimmed, with the hint *Select 1 or 2 solids*, unless exactly
+one or exactly two shapes are selected. Zero, or three or more, disables it.
 
-Every other button on this toolbar accepts two or more shapes. Snap and Align
-are stricter: they stay **dimmed and unclickable unless exactly two** shapes are
-selected. Selecting a third shape disables them again, the same as selecting
-only one does.
+- **One shape:** it can only be aligned to the **World origin**.
+- **Two shapes:** it can be aligned to the **second selected** shape (the default) or to the
+  **World origin**.
 
-To select exactly two shapes: click the first, then hold **Shift** and click
-the second. On a touch screen, switch the navigation controls (bottom-left) to
-**Select** and drag a box around exactly the two shapes you want.
+To select exactly two shapes: click the first, then hold **Shift** and click the second. On
+a touch screen, switch the navigation controls (bottom-left) to **Select** and drag a box
+around exactly the two shapes you want.
 
 ## Which shape moves: the first one you picked
 
-The shape you select **first** is the one that moves — the popover calls it the
-**moving** shape. The shape you select **second** never moves — the popover calls
-it the **reference** shape. This is the same first-picked/second-picked
-distinction [Subtract](booleans.md#which-shape-gets-cut-the-first-one-you-picked)
-already uses, painted onto the shapes in the scene the same way (amber for the
-first pick, teal for the second) before you open either popover.
+The shape you select **first** is the one that moves. The shape you select **second** never
+moves: it is the **target**. This is the same first-picked/second-picked distinction
+[Subtract](booleans.md#which-shape-gets-cut-the-first-one-you-picked) already uses, painted
+onto the shapes in the scene the same way (amber for the first pick, teal for the second)
+before you open the popover. With the **Target** set to World origin on a two-shape
+selection, only the first-picked shape is involved, so the second loses its teal colour.
+
+## One tap, one step
+
+Every button in the popover **does its move the moment you tap it**: there is no Apply
+step, and the popover stays open so you can tap X, then Y, then Z without reopening it.
+Each tap is one step in the timeline, so **Undo** takes back one tap. A tap that would not
+move anything against the World origin (the shape is already exactly there) does nothing
+at all and does not add an empty step. Press **Escape**, or tap outside the popover, to
+close it.
+
+Units are **millimetres**, Z points **up**, and **min** is always the face with the
+**smaller** coordinate (the underside on Z, the left face on X).
 
 ## A quick example: a lug against a plate
 
-Select a plate and a lug (the lug first), press **⇥ Snap**, choose *Outside −* on the
-**X** axis and press **Snap** in the popover. The lug slides against the plate's +X side
-and stops flush with it, without merging: the plate has not moved, and both are still two
-separate shapes you can select on their own.
+Select a plate and a lug (the lug first) and press **⇔ Align**. The popover's top line
+reads `Aligning Lug 1 to Plate 1`. Leave **Snap** on *Outside* and, in the Snap grid, tap
+**X ⇤ + side**. The lug slides against the plate's +X side and stops flush with it, without
+merging: the plate has not moved, and both are still two separate shapes you can select on
+their own.
 
-![Clicking the lug, Shift-clicking the plate, pressing Snap, ticking X, choosing Outside minus and pressing Snap: the lug slides across until its face meets the plate's side](./media/snap-operation.gif)
+![Clicking the lug, Shift-clicking the plate, pressing Align and tapping X plus side: the lug slides across until its face meets the plate's side](./media/snap-operation.gif)
 
-To flush the lug against the plate's *−X* side instead, choose *Outside +*. The sign names
-the side of the **moving** shape that touches: *Outside −* puts the moving shape's low
-side against the reference's high side, so the moving shape ends up on the reference's +X
-side. See [the popover's fields](#the-popovers-fields).
+To flush the lug against the plate's *−X* side instead, tap **X ⇥ − side**. Each Snap
+button is named for **where the moving shape ends up**: *− side* leaves it on the target's
+−X side, *+ side* on its +X side. Hover a button for the full sentence. See
+[the popover's fields](#the-popovers-fields).
 
-## A worked example
+## A worked example: centring a cube on a cylinder
 
 1. Drag a **Cube** and a **Cylinder** into the 3D view so they don't overlap.
-2. Click the Cube, then hold **Shift** and click the Cylinder. The Cube is now
-   the "moving" item, the Cylinder the "reference" item — the toolbar's badge
-   reads `2 selected`, and Snap and Align both light up.
-3. Click **Align**. A small popover opens with an **Axes** row of X/Y/Z
-   checkboxes, an **Offset (mm)** field, and **Cancel**/**Align** buttons.
-4. Check the **Z** axis, then click **Align** inside the popover.
-5. The Cube moves to sit centred on the Cylinder along Z, while its X and Y
-   position stay exactly as they were (only the checked axes move). The
-   popover closes, and the Cube stays selected on its own.
+2. Click the Cube, then hold **Shift** and click the Cylinder. The Cube is now the one that
+   moves; the toolbar's badge reads `2 selected` and **⇔ Align** lights up.
+3. Click **⇔ Align**. The popover opens with **Target** set to `Second selected (Cylinder 1)`.
+4. Tap **Z ◇ ctr**.
+5. The Cube moves to sit centred on the Cylinder along Z, while its X and Y position stay
+   exactly as they were (only the tapped axis moves). The popover is still open: tap
+   **X ◇ ctr** as well and the Cube is centred along X too.
 
-Both solids remain separately selectable afterward — click the Cylinder, and
-it opens its own Inspector entry exactly as before. Nothing was combined.
+Both solids remain separately selectable afterward. Click the Cylinder and it opens its own
+Inspector entry exactly as before. Nothing was combined.
 
-![Selecting a lug and a plate, pressing Align, ticking Y and pressing Align in the popover: the lug moves along Y until it is centred on the plate, and does not move on X or Z](./media/align-operation.gif)
+![Selecting a lug and a plate, pressing Align and tapping Y ctr: the lug moves along Y until it is centred on the plate, and does not move on X or Z](./media/align-operation.gif)
+
+## Aligning to the origin
+
+![Selecting a Raspberry Pi, pressing Align, setting Measure from to mb and tapping Center on origin, sit on grid: the board jumps onto the origin](./media/align-to-origin-popover.gif)
+
+Dragging or typing gets a shape *close* to the grid's origin. Align gets it there exactly,
+centred or sitting flush on a face, in one tap, without doing the arithmetic yourself.
+
+With **one** shape selected (or two, with **Target** switched to **World origin**), the
+popover offers:
+
+- **Measure from**, only shown when the shape has more than one named part (a Raspberry Pi,
+  a Bolt). It defaults to **Whole object**, the shape's own outer box, and offers one entry
+  per part the shape actually draws. A part that only exists to be subtracted (a bolt's
+  `tap`, a washer's `clearance`) is never listed: measuring "flush on the grid" from an
+  invisible clearance hole would not mean what you mean by it. The choice is remembered per
+  shape for as long as the page stays open, and stepping into one of the shape's own parts
+  (see [Parts](selection-and-inspector.md#parts)) sets it to that part.
+- **Center on origin, sit on grid**, a full-width shortcut. It does the most common
+  combination, X centre, Y centre, Z min, in one tap and one timeline step.
+- A grid of nine buttons, three per axis, each **⊢ min**, **◇ ctr** or **⊣ max**. **min**
+  moves the shape so the measured face with the smaller coordinate lands on 0 on that axis,
+  **max** does the same for the larger-coordinate face, and **ctr** centres it on 0.
+
+Aligning several shapes at once, as one combined unit, is not supported: select one shape,
+or [group](groups.md) them first and align the group.
+
+### Example: seat a Raspberry Pi on the grid
+
+1. Drag a **Raspberry Pi** from the Library and drop it anywhere.
+2. Click it, then press **⇔ Align** on the Operations toolbar. The popover's top line reads
+   `Aligning Raspberry Pi 1 to World origin`.
+3. Set **Measure from** to `mb` (the board itself; every part of the Pi keeps the short name
+   its own recipe gave it, the same names the Inspector's Parts list shows).
+4. Tap **X ◇ ctr**, then **Y ◇ ctr**, then **Z ⊢ min**.
+
+The board's footprint is now centred on the origin in X and Y and its underside sits exactly
+on Z = 0. **Position Z** in the Inspector will not read `0`: it reads the whole Pi's own box
+centre, and the micro-SD card hangs about 1.5 mm below the board. Press **Undo** three
+times to put the Pi back, or, with **Measure from** already on `mb`, tap **Center on
+origin, sit on grid** once instead: it does all three in a single step.
+
+Now Shift-click a **Cube** so two shapes are selected, switch **Target** to
+`Second selected (Cube 1)` and tap **X ⇤ + side** in the Snap grid (Relation **Outside**).
+The Pi rests against the cube's +X face, measured by `mb`. Switch **Target** back to
+**World origin** to go back to the grid.
+
+> The origin is a one-shot, baked placement: dragging the shape afterwards simply moves it
+> from there. Aligning to a **second shape** is different, because that move is *live*,
+> see [When the part you snapped to goes away](#when-the-part-you-snapped-to-goes-away).
 
 ## A second example: positioning against one named part
 
 A [group](groups.md) — and every composite item from the Library's Hardware,
 Kit and Raspberry Pi sections, such as a **Raspberry Pi 5** board or a **Bolt** —
-is made of *named parts*. Snap and Align can work against one of those parts
+is made of *named parts*. Align can work against one of those parts
 specifically, instead of against the whole item's overall bounding box. That is
 how you position something against a **particular mounting hole** on a board,
 rather than against the middle of the board.
@@ -98,12 +153,13 @@ To do it, [drill into the part](selection-and-inspector.md) first:
    `usb1`, `usb2`, `gpio`, and so on.)
 4. Hold **Shift** and click the Cube. Two things are now selected, and the board
    is still drilled into that one part.
-5. Click **Align**. The popover's top line names exactly what it is about to do:
+5. Click **⇔ Align**. The popover's top line names exactly what it is about to do:
    **Aligning Raspberry Pi 1 › ethernet to Cube 1**. That `›` is the
-   confirmation you drilled to the depth you meant.
-6. Check the **X** and **Y** axes and click **Align**.
+   confirmation you drilled to the depth you meant. (**Measure from** is hidden: the
+   part you drilled into is what is measured.)
+6. Tap **X ◇ ctr** and **Y ◇ ctr**.
 
-![Clicking a screw, then ticking the Raspberry Pi's hole1 part in the Objects list, pressing Align and ticking X and Y: the screw moves until it sits on the mounting hole's axis](./media/snap-subpart-operand.gif)
+![Clicking a screw, then ticking the Raspberry Pi's hole1 part in the Objects list, pressing Align and tapping X ctr and Y ctr: the screw moves until it sits on the mounting hole's axis](./media/snap-subpart-operand.gif)
 
 The picture above does the same with a **mounting hole**: the screw is the moving shape,
 and the board's `hole1` part is the reference. A hole passes through the board and can't be
@@ -126,7 +182,7 @@ one facing you.
 
 **You can address a part on both sides.** The moving item and the reference item each
 keep their own part, so *this hole on the board* against *that post on the screen* is one
-Snap or Align. Either side can also be whole: a whole screen positioned against one hole
+Align. Either side can also be whole: a whole screen positioned against one hole
 on a board is just as ordinary. Whichever side carries a `›` in the popover's top line is
 measured by that part; a side with no `›` is measured whole. The app never quietly drops a
 part you addressed: if it can't use one, the popover says so in red and nothing moves.
@@ -144,25 +200,24 @@ board itself against the top of the post. Units are millimetres, with Z pointing
    screen to the selection *at that post*, and the Pi keeps `hole1`: both part rows stay
    ticked, numbered `1` and `2`. (With a keyboard, Shift-clicking the **piMountingPost1**
    row does the same. Shift-clicking the screen's own row would add the *whole* screen.)
-4. Press **Align**. The top line reads
-   **Aligning Raspberry Pi 1 › hole1 to Touchscreen 2 1 › piMountingPost1**. Tick **X** and
-   **Y** and press **Align**. The axis of `hole1` is now on the axis of post 1. The whole
+4. Press **⇔ Align**. The top line reads
+   **Aligning Raspberry Pi 1 › hole1 to Touchscreen 2 1 › piMountingPost1**. Tap **X ◇ ctr**
+   and **Y ◇ ctr**. The axis of `hole1` is now on the axis of post 1. The whole
    board moved with it, so the other three holes are on the other three posts too: the
    board's holes are 58 × 49 mm apart, and so are the posts.
-5. Now the height. After the Align only the Pi is still selected. Reopen the Objects list,
-   tap the Pi's **mb** part (the circuit board itself), then tick
-   **piMountingPost1** on the screen again. Press **Snap**, tick **Z**, set Orientation to
-   **Outside −** and press **Snap**. The underside of `mb` now sits on the top of the post,
+5. Now the height. Press **Escape** to close the popover, then in the Objects list tap the
+   Pi's **mb** part (the circuit board itself) and tick **piMountingPost1** on the screen
+   again. Press **⇔ Align**, leave **Snap** on *Outside* and tap **Z ⇤ + side**. The underside of `mb` now sits on the top of the post,
    with no gap and no overlap.
 
 Use **mb** for the height, not the hole and not the whole Pi. The hole runs from 3.34 mm
 below the board to 3.34 mm above it, so snapping the hole would leave the board floating.
 The whole Pi's lowest point is the underside of the microSD card, 1.5 mm below the board, so
-snapping the whole Pi would leave a 1.5 mm gap above the posts. **Outside −** puts the
-moving part's bottom on the reference's top; **Outside +** would hang the board under the
-post instead.
+snapping the whole Pi would leave a 1.5 mm gap above the posts. **⇤ + side** leaves the
+moving part on the reference's +Z side, its bottom on the reference's top; **⇥ − side**
+would hang the board under the post instead.
 
-![Ticking the Pi's hole1 and the screen's piMountingPost1 in the Objects list, aligning on X and Y, then re-addressing the Pi at mb and snapping on Z: the board drops onto the posts with its holes on the post axes](./media/snap-subpart-both-sides.gif)
+![Ticking the Pi's hole1 and the screen's piMountingPost1 in the Objects list, aligning on X and Y, then re-addressing the Pi at mb and tapping Z plus side: the board drops onto the posts with its holes on the post axes](./media/snap-subpart-both-sides.gif)
 
 **To go back to whole-item addressing**, click the breadcrumb's first segment
 (the item's own name) in the Inspector, or click empty space and start the
@@ -170,7 +225,7 @@ selection again. The popover's top line always tells you which you are on.
 
 ## When the part you snapped to goes away
 
-A Snap or Align against a named part is **live**: it is worked out again whenever the
+An Align against a second shape's named part is **live**: it is worked out again whenever the
 thing it points at changes. So if you
 [change the board's model](selection-and-inspector.md#changing-a-parts-model-or-size), a
 cube snapped to a Pi 4's Ethernet jack moves to where the Pi 5's Ethernet jack is, with
@@ -186,7 +241,7 @@ each row:
 |---|---|
 | **Only when Raspberry Pi 1's Model is Pi 4** | Keep the item, but only on a Pi 4. On a Pi 5 it simply isn't there (not broken, not drawn); switch back to a Pi 4 and it returns, still snapped. One design can then hold parts for several board revisions. |
 | **Remap to another part…** | Point the snap at a part the new board *does* have. Pre-filled only when the part really was renamed (a Pi 4's `camera` is a Pi 5's `camera0`); otherwise you choose. |
-| **Detach — keep it where it is** | The item stays exactly where it is now and forgets the link. Offered for Snap and Align only. |
+| **Detach — keep it where it is** | The item stays exactly where it is now and forgets the link. Offered for the Align tool's snaps and aligns only. |
 | **Leave broken** | Make the change anyway and fix it later. |
 
 **Apply** makes the model change and every fix as **one** step — a single **Undo** puts
@@ -211,7 +266,7 @@ conditional now.
    dropping it. Drop a Cube next to it.
 2. Select the Cube, then Shift-click the Pi's AV jack (or, in the Inspector's object list,
    tick the Cube and then tick `avjack` under the Pi's ▸) so both are selected, and use
-   **Snap** to sit the cube against the jack.
+   **⇔ Align**'s Snap buttons to sit the cube against the jack.
 3. Now select the whole Pi and change **Model** to **Pi 5**. A dialog explains that the
    Pi 5 has no AV jack.
 4. For the Cube's row choose **Detach** and press **Apply**. The Pi becomes a Pi 5 and the
@@ -228,28 +283,40 @@ design.
 
 ## The popover's fields
 
-![The Snap popover for a lug and a plate: Axes with X ticked, Orientation set to Outside minus, Offset 0 and Cancel and Snap buttons, with "Snapping Lug 1 to Plate 1" beneath](./screenshots/snap-popover.png)
+![The Align popover for a lug and a plate: Target, the Center on origin shortcut, the min ctr max grid, the Snap relation and its minus and plus buttons, and Offset](./screenshots/snap-popover.png)
 
-- **What's being positioned** — the top line, naming the moving item first and
-  the reference item second, each with its `›` part name if you drilled into it.
-  Read this before committing: a part-addressed move and a whole-item move look
-  identical once they have happened, and this line is the only place the
-  difference is visible beforehand.
-- **Axes** — one or more of X/Y/Z, any combination. Only the checked axes are
-  affected; an unchecked axis is left exactly where it was.
-- **Orientation** (Snap only) — how the moving shape meets the reference shape:
-  `Outside +`, `Outside −`, `Inside +`, `Inside −`, `Center +`, or `Center −`. The
-  sign names the side of the **moving** shape that does the touching, so
-  `Outside −` puts the moving shape's low face against the reference's high face (the
-  moving shape ends up on the reference's + side), and `Outside +` does the opposite.
-  `Inside` lines up like faces (high with high, or low with low), and `Center` puts the
-  moving shape's high or low face on the reference's middle. Align has no orientation
-  control — it always centres, on whichever axes you check.
-- **Offset (mm)** — an extra millimetre nudge, applied uniformly to every
-  checked axis. Defaults to `0`.
-- **Cancel** closes the popover without changing anything. **Snap**/**Align**
-  (the popover's own commit button, labelled to match whichever one you
-  opened) appends the move.
+Top to bottom:
+
+- **What's being aligned**: the top line, naming the moving item first and the target
+  second, each with its `›` part name if you drilled into it. Read this before tapping: a
+  part-addressed move and a whole-item move look identical once they have happened, and
+  this line is the only place the difference is visible beforehand.
+- **Target**: `Second selected (<name>)` or `World origin`. Only shown when two shapes are
+  selected; with one, the target is always the origin.
+- **Measure from**: which part of the moving shape is measured, or **Whole object**. Hidden
+  for a plain solid, and hidden when you have already drilled into a part.
+- **Center on origin, sit on grid**: enabled only when **Target** is **World origin**. One
+  tap, one step.
+- **The min / ctr / max grid**, one row per axis. Against **World origin** every button
+  works, as in [Aligning to the origin](#aligning-to-the-origin). Against a **second
+  selected** shape, **◇ ctr** centres the moving shape on the target on that axis, and
+  **⊢ min** and **⊣ max** are dimmed: to line up low faces or high faces, use the Snap
+  row's **Inside** buttons.
+- **Snap**, only against a second shape: a **Relation** dropdown, then a **− / +** pair of
+  buttons per axis. The sign names **where the moving shape ends up** relative to the
+  target on that axis:
+
+  | Relation | **−** button | **+** button |
+  |---|---|---|
+  | **Outside** | **⇥ − side**: your + face meets the target's − face, so you end up beside it on its − side | **⇤ + side**: your − face meets the target's + face, so you end up beside it on its + side |
+  | **Inside** | **⊏ − face**: inside, your − face flush with the target's − face | **⊐ + face**: inside, your + face flush with the target's + face |
+  | **Center** | **◁ − half**: your + face on the target's centre, covering its − half | **▷ + half**: your − face on the target's centre, covering its + half |
+
+  The Relation is remembered while the page stays open. Hover a button for its full
+  sentence.
+- **Offset (mm)**: a nudge, applied to the **next** tap against a second shape (not against
+  the origin). Defaults to `0`. Change it, then tap.
+- **Error line**: if the move can't be made, the reason appears here and nothing moves.
 
 ## What happens to the two shapes
 
@@ -260,39 +327,37 @@ still selects only that one.
 
 ## Not yet supported
 
-- **A per-axis offset.** The Offset field is a single millimetre value applied
-  to every checked axis alike, not a separate value per axis.
+- **A per-axis offset.** The Offset field is a single millimetre value applied to the tap
+  you make next, not a separate value per axis.
+- **Low-with-low / high-with-high against a second shape from the grid.** Use the Snap row's
+  **Inside** buttons for that.
 
 ## Notes and gotchas
 
-- **Units are millimetres**, as everywhere else in WarpCad.
-- **Order matters.** Selecting the same two shapes in the other order swaps
-  which one moves — the same as reversing Subtract's operand order gives a
-  different result.
-- **Closing the popover without clicking Snap/Align changes nothing** — Cancel,
-  or opening the other button's popover instead, discards whatever axes or
-  offset you'd picked.
+- **Units are millimetres**, Z is up, and **min** is the smaller coordinate.
+- **Order matters.** Selecting the same two shapes in the other order swaps which one
+  moves, the same as reversing Subtract's operand order gives a different result.
+- **There is no Apply or Cancel.** Every tap commits one step; **Undo** is the way back.
+- **Projects saved before the single Align tool open unchanged.** The same snap and align
+  steps are stored as before, so an old design replays to the same geometry; only the
+  buttons that make them have changed.
 
 ## See also
 
 - [Combining shapes: Union, Subtract and Intersect](booleans.md) — the same
   toolbar's other buttons, which retire their operands into one new shape.
 - [Combining shapes into a group](groups.md) — the toolbar's Group button,
-  which also keeps every original shape intact but, unlike Snap/Align, merges
+  which also keeps every original shape intact but, unlike Align, merges
   them into one selectable body.
 - [Rounding or bevelling an edge: Fillet and Chamfer](fillet-chamfer.md) — the
-  toolbar's other exact-count-gated pair (exactly one shape, rather than Snap/
-  Align's exactly two), reusing the same popover pattern.
+  toolbar's exactly-one-shape tools, reusing the same popover pattern.
 - [Resizing and cutting a shape: Enlarge, Fit and Bisect](resize-bisect.md) —
   another exactly-1-gated trio, for changing one shape's size or cutting it in
   two rather than moving it against a second shape.
 - [Placing a shape](primitive-placement.md) — drag-time snap guides, the
-  live-alignment mechanism Snap and Align's own precise, computed positioning
+  live-alignment mechanism Align's own precise, computed positioning
   is the after-the-fact counterpart to.
 - [Selecting a shape, and reading its size](selection-and-inspector.md) — what
   selection does, and reading a shape's new position after a move.
-- To align one shape to the **grid's origin** rather than to another shape, that
-  is a different control — the Inspector's own **Align to origin** row, see
-  [Selecting a shape, and reading its size § Align to origin](selection-and-inspector.md#align-to-origin).
 
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

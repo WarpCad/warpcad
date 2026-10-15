@@ -8,9 +8,8 @@
  * not in it; that is what keeps a **?** button from quietly rotting. A page slug is the file name
  * without `.md`; an anchor is GitHub's id for the heading (`slugify` in `scripts/help-build.mjs`).
  *
- * **Heading renames** (record them here, per the TODO): none so far. `snap` and `align` share
- * `snap-align`'s "The popover's fields" because that page has no heading named for either tool;
- * `TODO/ui-060` (one Align tool) should repoint both at its own heading.
+ * **Heading renames** (record them here, per the TODO): `TODO/ui-060` folded Snap and Align
+ * into one Align tool, so the `snap` topic is gone and `align` is the only one for that page.
  *
  * @module help/topics
  */
@@ -32,7 +31,6 @@ export const TOPICS = Object.freeze({
   // The Operations toolbar.
   boolean: { page: 'booleans', anchor: 'you-need-at-least-two-shapes-selected', title: 'Union, Subtract and Intersect' },
   group: { page: 'groups', anchor: 'you-need-at-least-two-shapes-selected', title: 'Group' },
-  snap: { page: 'snap-align', anchor: 'the-popovers-fields', title: 'Snap' },
   align: { page: 'snap-align', anchor: 'the-popovers-fields', title: 'Align' },
   mirror: { page: 'mirror', anchor: 'the-two-fields', title: 'Mirror' },
   fillet: { page: 'fillet-chamfer', anchor: 'the-popovers-fields', title: 'Fillet' },

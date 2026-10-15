@@ -148,18 +148,19 @@ test.describe('Help from a tool pop-up', () => {
   test('? in the Align pop-up opens its docs section; closing returns to the pop-up intact', async ({ page }) => {
     await placeAndSelectTwo(page)
     await page.getByTestId('operation-align').click()
-    const popover = page.getByTestId('snap-align-popover')
+    const popover = page.getByTestId('align-popover')
     await expect(popover).toBeVisible()
 
-    // Fields the user had already filled in: they must survive the round trip.
-    await page.getByTestId('snap-align-axis-x').check()
-    await page.getByTestId('snap-align-offset').fill('7')
-    const boxBefore = await page.getByTestId('snap-align-offset').boundingBox()
+    // Fields the user had already set: they must survive the round trip.
+    await page.getByTestId('align-relation').selectOption('inside')
+    await page.getByTestId('align-offset').fill('7')
+    const boxBefore = await page.getByTestId('align-offset').boundingBox()
 
     await page.getByTestId('help-align').click()
     const sheet = page.getByTestId('help-sheet')
     await expect(sheet).toBeVisible()
-    await expect(page.getByTestId('help-current-page')).toContainText('Snap and Align')
+    // `TODO/ui-060` retitles the page around the one Align tool.
+    await expect(page.getByTestId('help-current-page')).toContainText('Align')
     // Scrolled to the tool's section, heading marked.
     const target = page.getByTestId('help-content').locator('.help-target')
     await expect(target).toHaveText(/popover's fields/)
@@ -177,29 +178,29 @@ test.describe('Help from a tool pop-up', () => {
     await page.getByTestId('help-close').click()
     await expect(sheet).toBeHidden()
     await expect(popover).toBeVisible()
-    await expect(page.getByTestId('snap-align-axis-x')).toBeChecked()
-    await expect(page.getByTestId('snap-align-offset')).toHaveValue('7')
+    await expect(page.getByTestId('align-relation')).toHaveValue('inside')
+    await expect(page.getByTestId('align-offset')).toHaveValue('7')
     await expect(page.getByTestId('viewport')).toHaveAttribute('data-selected-count', '2')
     // The new header button did not move the pop-up's own controls.
-    const boxAfter = await page.getByTestId('snap-align-offset').boundingBox()
+    const boxAfter = await page.getByTestId('align-offset').boundingBox()
     expect(boxAfter?.y).toBeCloseTo(boxBefore?.y ?? 0, 0)
     // And the pop-up still commits: help did not disarm it.
-    await expect(page.getByTestId('snap-align-commit')).toBeEnabled()
+    await expect(page.getByTestId('align-x-center')).toBeEnabled()
   })
 
   test('Escape closes help first and leaves the pop-up open', async ({ page }) => {
     await placeAndSelectTwo(page)
-    await page.getByTestId('operation-snap').click()
-    await expect(page.getByTestId('snap-align-popover')).toBeVisible()
-    await page.getByTestId('help-snap').click()
+    await page.getByTestId('operation-align').click()
+    await expect(page.getByTestId('align-popover')).toBeVisible()
+    await page.getByTestId('help-align').click()
     await expect(page.getByTestId('help-sheet')).toBeVisible()
     await page.keyboard.press('Escape')
     await expect(page.getByTestId('help-sheet')).toBeHidden()
-    await expect(page.getByTestId('snap-align-popover')).toBeVisible()
+    await expect(page.getByTestId('align-popover')).toBeVisible()
   })
 
   test('the ? is enabled even when the tool it documents is disabled', async ({ page }) => {
-    await expect(page.getByTestId('operation-snap')).toBeDisabled()
+    await expect(page.getByTestId('operation-align')).toBeDisabled()
     const help = page.getByTestId('help-boolean')
     // A narrow viewport column has no room for it beside "N selected"; File ▾ → Help is the route there.
     test.skip(!(await help.isVisible()), 'toolbar ? is hidden in a narrow viewport column')

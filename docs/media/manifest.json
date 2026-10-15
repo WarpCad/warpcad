@@ -53,63 +53,57 @@
     "bytes": 1783297,
     "seconds": 10.67
   },
-  "align-to-origin.gif": {
-    "spec": "e2e/docs/selection-inspector.docs.js",
-    "specHash": "327aadee71a8d663f6a6d3a5501b5627ebfddc6926e442c44a92bb7d751af8f6",
-    "bytes": 405444,
-    "seconds": 5.5
-  },
   "delete-body.gif": {
     "spec": "e2e/docs/selection-inspector.docs.js",
-    "specHash": "327aadee71a8d663f6a6d3a5501b5627ebfddc6926e442c44a92bb7d751af8f6",
+    "specHash": "4f0b6710d80174aca079a45a7ca254a769d0389959073ee43bc0e90aa4e667d7",
     "bytes": 249883,
     "seconds": 5.16
   },
   "gizmo-rotate.gif": {
     "spec": "e2e/docs/selection-inspector.docs.js",
-    "specHash": "327aadee71a8d663f6a6d3a5501b5627ebfddc6926e442c44a92bb7d751af8f6",
+    "specHash": "4f0b6710d80174aca079a45a7ca254a769d0389959073ee43bc0e90aa4e667d7",
     "bytes": 1274825,
     "seconds": 11.25
   },
   "gizmo-rotate-dial.gif": {
     "spec": "e2e/docs/selection-inspector.docs.js",
-    "specHash": "327aadee71a8d663f6a6d3a5501b5627ebfddc6926e442c44a92bb7d751af8f6",
+    "specHash": "4f0b6710d80174aca079a45a7ca254a769d0389959073ee43bc0e90aa4e667d7",
     "bytes": 1311644,
     "seconds": 11.58
   },
   "gizmo-translate.gif": {
     "spec": "e2e/docs/selection-inspector.docs.js",
-    "specHash": "327aadee71a8d663f6a6d3a5501b5627ebfddc6926e442c44a92bb7d751af8f6",
+    "specHash": "4f0b6710d80174aca079a45a7ca254a769d0389959073ee43bc0e90aa4e667d7",
     "bytes": 1048352,
     "seconds": 10.75
   },
   "inspector-colour.gif": {
     "spec": "e2e/docs/selection-inspector.docs.js",
-    "specHash": "327aadee71a8d663f6a6d3a5501b5627ebfddc6926e442c44a92bb7d751af8f6",
+    "specHash": "4f0b6710d80174aca079a45a7ca254a769d0389959073ee43bc0e90aa4e667d7",
     "bytes": 211236,
     "seconds": 5.83
   },
   "inspector-numeric-edit.gif": {
     "spec": "e2e/docs/selection-inspector.docs.js",
-    "specHash": "327aadee71a8d663f6a6d3a5501b5627ebfddc6926e442c44a92bb7d751af8f6",
+    "specHash": "4f0b6710d80174aca079a45a7ca254a769d0389959073ee43bc0e90aa4e667d7",
     "bytes": 258311,
     "seconds": 6.41
   },
   "inspector-param-edit.gif": {
     "spec": "e2e/docs/selection-inspector.docs.js",
-    "specHash": "327aadee71a8d663f6a6d3a5501b5627ebfddc6926e442c44a92bb7d751af8f6",
+    "specHash": "4f0b6710d80174aca079a45a7ca254a769d0389959073ee43bc0e90aa4e667d7",
     "bytes": 711474,
     "seconds": 8.58
   },
   "select-click.gif": {
     "spec": "e2e/docs/selection-inspector.docs.js",
-    "specHash": "327aadee71a8d663f6a6d3a5501b5627ebfddc6926e442c44a92bb7d751af8f6",
+    "specHash": "4f0b6710d80174aca079a45a7ca254a769d0389959073ee43bc0e90aa4e667d7",
     "bytes": 625658,
     "seconds": 7.33
   },
   "select-marquee.gif": {
     "spec": "e2e/docs/selection-inspector.docs.js",
-    "specHash": "327aadee71a8d663f6a6d3a5501b5627ebfddc6926e442c44a92bb7d751af8f6",
+    "specHash": "4f0b6710d80174aca079a45a7ca254a769d0389959073ee43bc0e90aa4e667d7",
     "bytes": 628032,
     "seconds": 6.83
   },
@@ -163,21 +157,21 @@
   },
   "snap-operation.gif": {
     "spec": "e2e/docs/snap-align.docs.js",
-    "specHash": "76bd0d2e01af5c57623447b1370ced735d42522a1cc205e55d40091f192601da",
-    "bytes": 774012,
-    "seconds": 10.7
+    "specHash": "0ff1905ff4f8e2d302dd14441b477a1ca4695943bc763d805c838be23f07f10f",
+    "bytes": 704765,
+    "seconds": 9.8
   },
   "align-operation.gif": {
     "spec": "e2e/docs/snap-align.docs.js",
-    "specHash": "76bd0d2e01af5c57623447b1370ced735d42522a1cc205e55d40091f192601da",
-    "bytes": 815080,
-    "seconds": 10.3
+    "specHash": "0ff1905ff4f8e2d302dd14441b477a1ca4695943bc763d805c838be23f07f10f",
+    "bytes": 780701,
+    "seconds": 10.1
   },
   "snap-subpart-operand.gif": {
     "spec": "e2e/docs/snap-align.docs.js",
-    "specHash": "76bd0d2e01af5c57623447b1370ced735d42522a1cc205e55d40091f192601da",
-    "bytes": 762498,
-    "seconds": 10.51
+    "specHash": "0ff1905ff4f8e2d302dd14441b477a1ca4695943bc763d805c838be23f07f10f",
+    "bytes": 693857,
+    "seconds": 11.51
   },
   "mirror-operation.gif": {
     "spec": "e2e/docs/mirror.docs.js",
@@ -380,26 +374,32 @@
   },
   "snap-subpart-both-sides.gif": {
     "spec": "e2e/docs/snap-align.docs.js",
-    "specHash": "76bd0d2e01af5c57623447b1370ced735d42522a1cc205e55d40091f192601da",
-    "bytes": 1447959,
-    "seconds": 14.63
+    "specHash": "0ff1905ff4f8e2d302dd14441b477a1ca4695943bc763d805c838be23f07f10f",
+    "bytes": 1418134,
+    "seconds": 14.38
   },
   "gizmo-translate-ruler.gif": {
     "spec": "e2e/docs/selection-inspector.docs.js",
-    "specHash": "327aadee71a8d663f6a6d3a5501b5627ebfddc6926e442c44a92bb7d751af8f6",
+    "specHash": "4f0b6710d80174aca079a45a7ca254a769d0389959073ee43bc0e90aa4e667d7",
     "bytes": 979171,
     "seconds": 11.5
   },
   "inspector-rename.gif": {
     "spec": "e2e/docs/selection-inspector.docs.js",
-    "specHash": "327aadee71a8d663f6a6d3a5501b5627ebfddc6926e442c44a92bb7d751af8f6",
+    "specHash": "4f0b6710d80174aca079a45a7ca254a769d0389959073ee43bc0e90aa4e667d7",
     "bytes": 562063,
     "seconds": 7
   },
   "help-open-close.gif": {
     "spec": "e2e/docs/help.docs.js",
-    "specHash": "6832157c8d884e9cdcc250096bc5d1fc5df674e45bdbe8ce6980cff3e4fd337b",
-    "bytes": 843741,
-    "seconds": 11.1
+    "specHash": "b66dee5e2f807e36db40c4292cc1251b919a7d1f5e5d7008a1d754a1b53db918",
+    "bytes": 1285654,
+    "seconds": 12.5
+  },
+  "align-to-origin-popover.gif": {
+    "spec": "e2e/docs/snap-align.docs.js",
+    "specHash": "0ff1905ff4f8e2d302dd14441b477a1ca4695943bc763d805c838be23f07f10f",
+    "bytes": 297812,
+    "seconds": 6.2
   }
 }

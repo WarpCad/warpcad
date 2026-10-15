@@ -245,8 +245,8 @@ export function rotateToRecord(document, bodyId, targetDeg) {
  *   measure from. Omitted, or naming a part the body's *current* evaluated
  *   group does not have, means "Whole object" — the body's own
  *   {@link boundsOf}, exactly what {@link positionOf} measures. Never throws
- *   on an unknown name: `AlignToOrigin.vue` is a single-tap control with no
- *   confirm step (`TODO/ui-050`), so a stale part name left over from an undo
+ *   on an unknown name: the Align popover (`AlignPopover.vue`) is a single-tap control with no
+ *   confirm step (`TODO/ui-050`, `ui-060`), so a stale part name left over from an undo
  *   or a param edit has to degrade quietly to the whole body rather than take
  *   the tap down.
  */
@@ -254,7 +254,7 @@ export function rotateToRecord(document, bodyId, targetDeg) {
 /**
  * Move a body so that one reference — the whole body, or one named part of
  * its group — lands its minimum face, centre, or maximum face at world 0 on
- * each requested axis (`TODO/ui-050`, the Inspector's **Align to origin** row).
+ * each requested axis (`TODO/ui-050`; since `ui-060` the Align popover's **World origin** target).
  *
  * This is the same kind of record {@link moveToRecord} builds, not a new op:
  * a baked `transform.translate` delta, so the gizmo, the typed Position

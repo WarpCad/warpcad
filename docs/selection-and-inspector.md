@@ -678,67 +678,7 @@ the numbers behave in a way that surprises people the first time.
 
 ### Align to origin
 
-![Pressing "Center on origin, sit on grid" and the cube jumping to the origin](./media/align-to-origin.gif)
-
-Dragging or typing gets a shape *close* to the grid's origin. This row gets it there
-exactly — centred, or sitting flush on a face — in one tap, without doing the
-arithmetic yourself.
-
-With exactly one shape selected, the Transform section has a small **Align to
-origin** row underneath Position and Rotation. It has:
-
-- A **Reference** dropdown, only shown when the selected shape has more than one
-  named part (a Raspberry Pi, a Bolt). It defaults to **Whole object** — the shape's
-  own outer box — and offers one entry per part the shape actually draws. A part
-  that only exists to be subtracted (a bolt's `tap`, a washer's `clearance`) is
-  never in the list: measuring "flush on the grid" from an invisible clearance hole
-  would not mean what a user means by it.
-- Nine small buttons, three per axis (**X**, **Y**, **Z**), each labelled **min**,
-  **ctr** (centre) or **max**. **min** moves the shape so the Reference's
-  smaller-coordinate face lands on 0 for that axis; **max** does the same for its
-  larger-coordinate face; **ctr** centres it on 0 instead.
-- A shortcut button, **Center on origin, sit on grid**, above the grid of nine. It
-  does the single most common combination — X centre, Y centre, Z min — in one tap.
-
-Every button commits immediately: there is no extra confirm step, and pressing
-**Undo** afterwards is the way back. Tapping a button that would not actually move
-anything (the shape is already sitting exactly there) does nothing at all — it does
-not add an empty step to Undo. The Reference you pick is remembered for that shape for
-as long as the page stays open, so aligning the same shape on X and then separately on
-Z does not mean re-picking the part in between; stepping into one of the shape's own
-parts (see [Parts](#parts) and the object list below) and then back out
-also sets Reference to whichever part you were just looking at.
-
-**Convention**: positions here are millimetres, Z is up, and **min** always means the
-face with the smaller coordinate — the underside on Z, the left face on X.
-
-Aligning several selected shapes at once, as one combined unit, is not supported —
-select one shape at a time, or first combine them into a group and align the group.
-
-> To align one shape *against another shape* instead of against the grid's origin,
-> that is Snap and Align, a different pair of buttons — see
-> [Snap and Align](snap-align.md).
-
-#### Worked example: sit a Raspberry Pi's board flush on the grid, centred
-
-The Raspberry Pi is the reason this row measures from a *part*, not just the whole
-shape's outer box: its micro-SD card is drawn hanging a little below the board, so the
-shape's own outer box is not the same as "where the board itself sits."
-
-1. Drag a **Raspberry Pi** from the Library and drop it anywhere.
-2. Click it so the Inspector shows **Raspberry Pi 1**.
-3. Under **Transform ▸ Align to origin**, set **Reference** to `mb` (the board itself —
-   every part of the Pi keeps the short name its own recipe gave it, the same names
-   the Inspector's Parts list and Snap/Align show).
-4. Tap **X ctr**, then **Y ctr**, then **Z min**.
-
-The board's own footprint is now centred on the grid's origin in X and Y, and its
-underside sits exactly on Z = 0. **Position Z** in the Inspector will not read `0` —
-it reads the whole Pi's own box centre, and the micro-SD card hangs about 1.5 mm below
-the board, so the whole shape's box starts a little below the grid even though the
-board itself is flush with it. Press **Undo** three times to put the Pi back where it
-started — or next time, with Reference already remembered as `mb`, tap **Center on
-origin, sit on grid** once instead: it does all three in a single step.
+To put an object on the origin, select it and use [Align](snap-align.md#aligning-to-the-origin).
 
 ## Worked example
 
@@ -874,8 +814,8 @@ selects a shape, and picking a shape never selects a step.
 
 You need a Cube (the shell) and a Bolt (the hardware) with the bolt entirely inside it. A
 drag always places a new shape flush against its neighbour, so build the overlap by hand:
-place a Cube and a Bolt, then use **Align** and **Snap** from the Operations toolbar (see
-[Precise placement: Snap and Align](snap-align.md)) to move the bolt inside the cube, or
+place a Cube and a Bolt, then use **Align** from the Operations toolbar (see
+[Precise placement: Align](snap-align.md)) to move the bolt inside the cube, or
 open a project that already has one inside the other.
 
 1. Tap empty space so nothing is selected. The Inspector lists two rows: *Cube 1* and

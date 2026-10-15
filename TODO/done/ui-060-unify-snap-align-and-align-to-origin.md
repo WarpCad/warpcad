@@ -6,8 +6,17 @@ priority: medium
 model: opus
 milestone: M16
 depends: []
-status: open
+status: done
 ---
+
+> **What shipped (2026-10-15).** One **⇔ Align** button (1 or 2 selected) opens `AlignPopover.vue`
+> (with `AlignGrid.vue`): Target, Measure from, the drop shortcut, the min/ctr/max grid and, against
+> a second body, the Snap row with a Relation. Each tap commits one record and the popover stays
+> open. `min`/`max` against a second body are disabled with a hint (open question a). The Snap
+> buttons name where the body ends up, so `⇥ − side` writes `outside+` (open question b); the
+> `AlignToOrigin` row and the `snap` help topic are gone. No record shape changed, so old projects
+> load unchanged (`src/core/snapAlignReplay.spec.js`). Filed `ai-022` for the backwards `group.snap`
+> tool description in `src/ai/tools/operate.js`.
 
 ## Goal
 
@@ -237,6 +246,64 @@ c. **Backward compatibility of saved documents.** Nothing here changes any recor
 d. **Keyboard.** If `Snap` or `Align` have a keyboard shortcut or an AI tool name
    (`ai-002`), keep both working. A shortcut must open the new popover, and an AI tool
    name must keep resolving to the same op. Grep before deleting any identifier.
+
+**Step 2 answers (2026-10-15, Opus half of `/run-todos`):**
+
+a. **The smaller option.** Against `Second selected` the grid's `◇ ctr` commits `group.align`
+   and the Snap row commits `group.snap`; `⊢ min` / `⊣ max` stay in the grid but are
+   **disabled with a hint** (`title`: line faces up with the Snap row's **Inside** buttons)
+   rather than hidden, so the grid keeps one shape in both targets and the 390 px layout does
+   not jump when Target changes. No new `core` modes, so no `core-NNN` split. (Noted, not
+   built: `min`/`max` against a second body *could* commit `group.snap` `inside-`/`inside+`
+   with no core change, since those are exactly low-with-low and high-with-high. Left out to
+   keep one button per behaviour; a follow-up can turn it on.)
+b. **The six buttons name where the moving body ends up, not which of its faces touches.**
+   Checked against `group.js`'s `SNAP_SIDES` (`[referenceSide, movingSide]`, `0` min, `1` max,
+   `-1` the reference's centroid): `outside+` is `[0, 1]`, the moving body's **max** face on the
+   reference's **min** face, so the moving body ends up on the reference's **−** side. The
+   TODO's literal mapping (`Outside` + `+ side` = `outside+`) would therefore put the body on
+   the *opposite* side from the button's label, and would contradict this TODO's own docs
+   example ("tap **X + side** to rest the Pi against the cube's +X face"). The mapping built
+   is one-to-one onto the six canonical keys:
+
+   | Relation | `− …` button | `+ …` button |
+   |---|---|---|
+   | Outside | `⇥ − side` → `outside+` | `⇤ + side` → `outside-` |
+   | Inside | `⊏ − face` → `inside-` | `⊐ + face` → `inside+` |
+   | Center | `◁ − half` → `center+` | `▷ + half` → `center-` |
+
+   Each button's `title` gives the full sentence (e.g. *"Outside, + side: your − face meets
+   the target's + face, so you end up beside it on its + side"*). The `above-*`/`below-*`
+   aliases stay unexposed. The record written is byte-for-byte the shape the old popover wrote
+   (`params: { axes, orientation, deltaMm }`), so only the *label* changed meaning; the docs
+   rewrite must drop the old "the sign names the moving shape's face" sentence. Separately,
+   `src/ai/tools/operate.js`'s `group.snap` orientation description says *"outside+ puts the
+   first body on the second's + side"*, which is backwards by the same table — out of this
+   task's files, reported for its own finding.
+c. **Nothing changes a record shape**, so old projects load unchanged.
+   `src/core/snapAlignReplay.spec.js` replays NDJSON text with `group.snap` and `group.align`
+   lines written in the pre-`ui-060` shape and pins the resulting bounds.
+d. **No keyboard shortcut exists** for Snap or Align (grepped `src/composables`, `src/stores`,
+   `src/views`). The AI tools (`src/ai/tools/operate.js`) name the ops `group.snap` /
+   `group.align` directly, not the UI buttons, so they are untouched and keep resolving.
+
+Further decisions made while building it:
+
+- **No-op suppression is `World origin` only.** A `Second selected` tap always appends,
+  even when nothing moves yet: the record is parametric, and appending it is what makes the
+  body *follow* the target later (`data-007`). Skipping it would silently drop the link.
+- **Measure from vs. a drilled-in moving body.** When the moving body is addressed at a part
+  (`selection.partOf`), that address *is* what is measured and the top line's `›` says so;
+  the **Measure from** select is hidden then, so the two can never disagree (`ui-063`: an
+  addressed part is never quietly dropped). Otherwise **Measure from** applies to both
+  targets: `World origin` passes it as `partName`, `Second selected` writes the moving
+  operand as `{ id, pieces }`.
+- **Selection is unchanged by a tap in either target** (the old commit reselected only the
+  moving body; both lineage roots stay valid across a `supersedes` move, so there is nothing
+  to reselect, and the popover stays open on both).
+- **Relation and Target-is-origin live in `alignReference.js`** (additive: `relation`,
+  `originOnly`), UI-only. `Viewport.vue` reads `originOnly` so the second-picked body loses its
+  teal role colour while `World origin` is chosen on a 2-selection.
 
 ## Effort
 

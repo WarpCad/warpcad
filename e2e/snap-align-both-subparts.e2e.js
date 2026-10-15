@@ -179,23 +179,26 @@ async function inspectPart(page, bodyId, partName) {
 }
 
 /**
- * Commit the open Snap/Align popover on the given axes, waiting for the moving body to be
- * re-measured.
+ * Tap the open Align popover's buttons on the given axes (`TODO/ui-060`: one tap, one
+ * commit) — `◇ ctr` against the second body, or a Snap button when `snap` is given — waiting
+ * for the moving body to be re-measured after each, then close the popover with Escape.
  *
  * @param {import('@playwright/test').Page} page
  * @param {string} movingId
  * @param {('x' | 'y' | 'z')[]} axes
- * @param {string} [orientation]
+ * @param {{ relation: 'outside' | 'inside' | 'center', side: 'minus' | 'plus' }} [snap]
  */
-async function commitPopover(page, movingId, axes, orientation) {
+async function commitPopover(page, movingId, axes, snap) {
   const item = page.locator(`[data-testid="scene-bodies"] li[data-body-id="${movingId}"]`)
-  const before = await item.getAttribute('data-body-bounds')
-  for (const axis of axes) await page.getByTestId(`snap-align-axis-${axis}`).check()
-  if (orientation) await page.getByTestId('snap-align-orientation').selectOption(orientation)
-  await page.getByTestId('snap-align-commit').click()
-  await expect(page.getByTestId('snap-align-error')).toHaveCount(0)
-  await expect(page.getByTestId('snap-align-popover')).toHaveCount(0)
-  await expect.poll(() => item.getAttribute('data-body-bounds'), { timeout: 15_000 }).not.toBe(before)
+  if (snap) await page.getByTestId('align-relation').selectOption(snap.relation)
+  for (const axis of axes) {
+    const before = await item.getAttribute('data-body-bounds')
+    await page.getByTestId(snap ? `align-${axis}-snap-${snap.side}` : `align-${axis}-center`).click()
+    await expect(page.getByTestId('align-error')).toHaveCount(0)
+    await expect.poll(() => item.getAttribute('data-body-bounds'), { timeout: 15_000 }).not.toBe(before)
+  }
+  await page.keyboard.press('Escape')
+  await expect(page.getByTestId('align-popover')).toHaveCount(0)
 }
 
 test('a Pi’s hole1 aligned onto a screen’s post, then its mb snapped onto the post top — both sides addressed (TODO/ui-063)', async ({
@@ -223,10 +226,10 @@ test('a Pi’s hole1 aligned onto a screen’s post, then its mb snapped onto th
   await expect(page.getByTestId(`objects-part-check-${pi}-hole1`)).toHaveAttribute('aria-checked', 'true')
 
   await page.getByTestId('operation-align').click()
-  await expect(page.getByTestId('snap-align-popover')).toHaveAttribute('data-op', 'group.align')
-  await expect(page.getByTestId('snap-align-operand-moving')).toHaveText('Raspberry Pi 1 › hole1')
-  await expect(page.getByTestId('snap-align-operand-reference')).toHaveText('Touchscreen 2 1 › piMountingPost1')
-  await expect(page.getByTestId('snap-align-operands')).toHaveAttribute('data-subpart', 'true')
+  await expect(page.getByTestId('align-popover')).toHaveAttribute('data-target', 'second')
+  await expect(page.getByTestId('align-operand-moving')).toHaveText('Raspberry Pi 1 › hole1')
+  await expect(page.getByTestId('align-operand-target')).toHaveText('Touchscreen 2 1 › piMountingPost1')
+  await expect(page.getByTestId('align-operands')).toHaveAttribute('data-subpart', 'true')
   await commitPopover(page, pi, ['x', 'y'])
 
   const hole1 = await inspectPart(page, pi, 'hole1')
@@ -242,11 +245,13 @@ test('a Pi’s hole1 aligned onto a screen’s post, then its mb snapped onto th
   // --- Z: mb on the post's top ------------------------------------------------------
   await tapPart(page, pi, 'mb')
   await checkPart(page, screen, 'piMountingPost1')
-  await page.getByTestId('operation-snap').click()
-  await expect(page.getByTestId('snap-align-popover')).toHaveAttribute('data-op', 'group.snap')
-  await expect(page.getByTestId('snap-align-operand-moving')).toHaveText(/› mb$/)
-  await expect(page.getByTestId('snap-align-operand-reference')).toHaveText(/› piMountingPost1$/)
-  await commitPopover(page, pi, ['z'], 'outside-')
+  await page.getByTestId('operation-align').click()
+  await expect(page.getByTestId('align-popover')).toHaveAttribute('data-target', 'second')
+  await expect(page.getByTestId('align-operand-moving')).toHaveText(/› mb$/)
+  await expect(page.getByTestId('align-operand-target')).toHaveText(/› piMountingPost1$/)
+  // `outside-` (the board's underside on the post's top) is Outside, **+ side**: the board
+  // ends up on the post's + Z side (`TODO/ui-060`).
+  await commitPopover(page, pi, ['z'], { relation: 'outside', side: 'plus' })
 
   const mb = await inspectPart(page, pi, 'mb')
   const post = await inspectPart(page, screen, 'piMountingPost1')

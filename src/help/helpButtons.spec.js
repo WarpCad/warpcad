@@ -47,6 +47,7 @@ const EXCEPTIONS = Object.freeze({
 /** Surfaces with headers that are not caught by the pop-up test above but are named in the TODO. */
 const SURFACES = Object.freeze([
   'src/components/viewport/OperationsToolbar.vue',
+  'src/components/viewport/AlignPopover.vue',
   'src/components/storage/ExportPopover.vue',
   'src/components/storage/ResolutionPopover.vue',
   'src/components/storage/ProjectSettingsDialog.vue',

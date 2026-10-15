@@ -40,6 +40,11 @@
  *
  * ## Snap and Align are a different shape (`TODO/ui-026`)
  *
+ * **Since `TODO/ui-060`** they are one **Align** button (1 or 2 selected) whose popover is
+ * `AlignPopover.vue`; the record shapes below are unchanged and written there now, and the
+ * popover stays open after a tap rather than closing and reselecting. What follows is the
+ * `ui-026` reasoning those records still carry.
+ *
  * Two more buttons follow the same operand-resolution discipline but diverge on
  * every other axis, and both divergences are load-bearing, not stylistic:
  *
@@ -168,7 +173,8 @@
  *    plain shell. Either way `selection.count` is untouched by depth, which is
  *    what keeps every existing count gate meaning exactly what it did.
  * 2. **One operand-building path, not two.** `snapAlignOperands` became
- *    `selectedOperands` and both `run()` and `commitSnapAlign()` read it. The
+ *    `selectedOperands` and both `run()` and Snap/Align's commit read it (since `ui-060`,
+ *    `AlignPopover.vue` reads the same `useSelectedOperands`). The
  *    two buttons groups disagree about operand *count*, *order* and lineage
  *    bookkeeping, but "what does this selection resolve to, at what depth" is
  *    one question with one answer, and having answered it twice is how the two
@@ -301,6 +307,7 @@
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 
 import HelpButton from '../controls/HelpButton.vue'
+import AlignPopover from './AlignPopover.vue'
 
 import { DEFAULT_ROTATE_AXIS, mirrorRotationDeg } from '../../core/kernel/group.js'
 import { useSelectedOperands } from '../../composables/useSelectedBody.js'
@@ -500,66 +507,40 @@ function run(op, label) {
   selection.select(id)
 }
 
-// --- Snap / Align (TODO/ui-026) --------------------------------------------
+// --- Align (TODO/ui-026, unified by TODO/ui-060) ---------------------------
 
 /**
- * The two operations that need a popover instead of a stateless click.
- *
- * @type {ReadonlyArray<{ op: 'group.snap' | 'group.align', label: string, glyph: string, hint: string }>}
+ * The one Align button (`TODO/ui-060`). It replaced Snap and Align (`ui-026`) and absorbed
+ * the Inspector's Align to origin row (`ui-050`): its popover, `AlignPopover.vue`, aligns the
+ * first-picked body to the second-picked one (a parametric `group.snap`/`group.align`) or to
+ * the world origin (a baked `transform.translate`). This file keeps only the button, the
+ * toggle and the frame; everything inside the popover is that component's.
  */
-const SNAP_ALIGN_OPERATIONS = Object.freeze([
-  {
-    op: 'group.snap',
-    label: 'Snap',
-    glyph: '⇥',
-    hint: 'Move the moving item flush against the reference, on the checked axes',
-  },
-  {
-    op: 'group.align',
-    label: 'Align',
-    glyph: '⇔',
-    hint: 'Centre the moving item on the reference, on the checked axes',
-  },
-])
+const ALIGN_OPERATION = Object.freeze({
+  op: 'align',
+  label: 'Align',
+  glyph: '⇔',
+  hint: 'Line the first-picked solid up with the second, or with the origin',
+})
 
 /** @type {ReadonlyArray<'x' | 'y' | 'z'>} */
 const AXES = Object.freeze(['x', 'y', 'z'])
 
 /**
- * The 6 canonical `SNAP_SIDES` keys `group.js` exports, one name per distinct
- * behaviour. `above-*`/`below-*` are literal aliases of four of these six (see
- * `group.js`'s own `SNAP_SIDES` table) — exposing all 10 would just show the
- * same six behaviours under two names each for four of them.
- *
- * @type {ReadonlyArray<{ value: string, label: string }>}
+ * Align's precondition: **1 or 2** selected (`TODO/ui-060`). One body aligns to the world
+ * origin; two align the first to the second (or the first alone to the origin). Three or more
+ * is out of scope — group them first (`ui-015`) and align the group.
  */
-const SNAP_ORIENTATIONS = Object.freeze([
-  { value: 'outside+', label: 'Outside +' },
-  { value: 'outside-', label: 'Outside −' },
-  { value: 'inside+', label: 'Inside +' },
-  { value: 'inside-', label: 'Inside −' },
-  { value: 'center+', label: 'Center +' },
-  { value: 'center-', label: 'Center −' },
-])
-
-/** Snap/Align's own precondition: exactly 2, not "2 or more" (see module doc). */
-const EXACT_OPERANDS = 2
-
-const snapAlignDisabled = computed(
-  () => selection.count !== EXACT_OPERANDS || timeline.previewing || inactiveSelected.value,
+const alignDisabled = computed(
+  () => (selection.count !== 1 && selection.count !== 2) || timeline.previewing || inactiveSelected.value,
 )
 
-/** What a disabled Snap/Align button says when hovered or long-pressed. */
-const SNAP_ALIGN_DISABLED_HINT = `Select exactly ${EXACT_OPERANDS} solids`
+/** What a disabled Align button says when hovered or long-pressed. */
+const ALIGN_DISABLED_HINT = 'Select 1 or 2 solids'
 
-/**
- * @param {{ label: string, hint: string }} operation
- * @returns {string}
- */
-function snapAlignTitleFor(operation) {
-  return snapAlignDisabled.value
-    ? SNAP_ALIGN_DISABLED_HINT
-    : `${operation.label} — ${operation.hint}`
+/** @returns {string} */
+function alignTitle() {
+  return alignDisabled.value ? ALIGN_DISABLED_HINT : `${ALIGN_OPERATION.label} — ${ALIGN_OPERATION.hint}`
 }
 
 // --- Fillet / Chamfer (TODO/ui-027) -----------------------------------------
@@ -671,7 +652,7 @@ const canCommitFilletChamfer = computed(
 
 /** Which popover is open, or none. */
 const openPopover = ref(
-  /** @type {'group.snap' | 'group.align' | 'modify.filletRim' | 'modify.chamferRim' | 'modify.enlarge' | 'modify.fit' | 'modify.bisect' | 'transform.mirror' | null} */ (
+  /** @type {'align' | 'modify.filletRim' | 'modify.chamferRim' | 'modify.enlarge' | 'modify.fit' | 'modify.bisect' | 'transform.mirror' | null} */ (
     null
   ),
 )
@@ -853,26 +834,6 @@ const canCommitResize = computed(() => {
   return typeof bisectOffsetMm.value === 'number' && Number.isFinite(bisectOffsetMm.value)
 })
 
-/** Axis checkboxes — reset to unchecked every time a popover opens. */
-const axesChecked = reactive(/** @type {Record<'x' | 'y' | 'z', boolean>} */ ({
-  x: false,
-  y: false,
-  z: false,
-}))
-
-/** Snap-only orientation, defaults to the first canonical option on open. */
-const orientation = ref(SNAP_ORIENTATIONS[0].value)
-
-/** Millimetre offset, applied uniformly across every checked axis (see module doc). */
-const offsetMm = ref(0)
-
-/** The checked axes, in `x`/`y`/`z` order, as the single string the registry wants. */
-const axesString = computed(() => AXES.filter((axis) => axesChecked[axis]).join(''))
-
-const canCommitSnapAlign = computed(
-  () => !snapAlignDisabled.value && axesString.value.length > 0,
-)
-
 /** @typedef {import('../../composables/useSelectedBody.js').SelectedOperand} SelectedOperand */
 
 /**
@@ -948,12 +909,11 @@ function isExactOneOp(op) {
   return isFilletChamferOp(op) || isResizeOp(op) || op === 'transform.mirror'
 }
 
-// If the selection stops being exactly 2 while a popover is open — a third
-// solid picked, or one deselected — the precondition this popover exists to
-// enforce is no longer met, so it closes itself rather than staying open for
-// a commit that would now throw inside the registry's own `requireTwoOperands`.
-watch(snapAlignDisabled, (isDisabled) => {
-  if (isDisabled && !isExactOneOp(openPopover.value)) openPopover.value = null
+// If the selection stops being 1 or 2 while the Align popover is open — a third
+// solid picked, or everything deselected — its precondition is no longer met, so it
+// closes itself rather than staying open for a tap that has nothing to move.
+watch(alignDisabled, (isDisabled) => {
+  if (isDisabled && openPopover.value === 'align') openPopover.value = null
 })
 
 // Same self-closing discipline for the exactly-1 precondition Fillet, Chamfer,
@@ -964,32 +924,21 @@ watch(exactOneDisabled, (isDisabled) => {
 })
 
 /**
- * Open a popover, or close it if its own button is clicked again.
+ * Open the Align popover, or close it if its own button is clicked again (`TODO/ui-060`).
+ * `AlignPopover.vue` is mounted fresh on every open, so its Target and Offset start over;
+ * the Relation and Measure from are remembered for the session in `alignReference.js`.
  *
- * @param {'group.snap' | 'group.align'} op
  * @returns {void}
  */
-function togglePopover(op) {
-  if (snapAlignDisabled.value) return
-  if (openPopover.value === op) {
-    openPopover.value = null
-    return
-  }
-  // A fresh form every time: an axis/orientation/offset left checked from a
-  // previous Snap would otherwise silently carry over onto a different pair
-  // of solids.
-  axesChecked.x = false
-  axesChecked.y = false
-  axesChecked.z = false
-  orientation.value = SNAP_ORIENTATIONS[0].value
-  offsetMm.value = 0
+function toggleAlignPopover() {
+  if (alignDisabled.value) return
   opError.value = null
-  openPopover.value = op
+  openPopover.value = openPopover.value === 'align' ? null : 'align'
 }
 
 /**
  * Open the Fillet or Chamfer popover, or close it if its own button is
- * clicked again — same toggle mechanism as {@link togglePopover}, reused
+ * clicked again — same toggle mechanism as {@link toggleAlignPopover}, reused
  * rather than reinvented a third time, per this task's own Interaction model.
  *
  * @param {'modify.filletRim' | 'modify.chamferRim'} op
@@ -1016,83 +965,6 @@ function closePopover() {
 }
 
 /**
- * Commit the open popover's Snap or Align. See the module doc above for why
- * this appends a `supersedes` record, never a `consumes` one.
- *
- * @returns {void}
- */
-function commitSnapAlign() {
-  const op = openPopover.value
-  if (!op || !canCommitSnapAlign.value) return
-
-  // Both operands, already resolved to terminal ids and (where the user has
-  // drilled in) to a named part — see {@link selectedOperands} and the module
-  // doc's "Sub-part-addressed operands" section.
-  const [moving, reference] = selectedOperands.value
-  if (!moving || !reference) return
-  // `TODO/ui-063`: never measure a body whole when the user addressed a part of it.
-  // Every selected body's address must be on the record this commit writes; one that
-  // would be dropped is refused out loud rather than turned into a plausible-looking
-  // whole-body snap — the exact silent failure the one-slot selection used to produce.
-  const dropped = selection.ids.find((rootId) => {
-    const addressed = selection.partOf(rootId)
-    if (addressed === null) return false
-    const operand = [moving, reference].find((candidate) => candidate.rootId === rootId)
-    return operand?.partName !== addressed
-  })
-  if (dropped !== undefined) {
-    const name = documentStore.bodies.find((body) => body.id === dropped)?.name ?? dropped
-    opError.value =
-      `${name} is addressed at ${selection.partOf(dropped)}, but this ` +
-      `${op === 'group.snap' ? 'Snap' : 'Align'} would measure it whole. ` +
-      'Select exactly the two items, each at the part you want.'
-    return
-  }
-  const id = documentStore.raw.nextId(op === 'group.snap' ? 'snap' : 'align')
-
-  /** @type {Record<string, any>} */
-  const params = { axes: axesString.value, deltaMm: offsetMm.value }
-  if (op === 'group.snap') params.orientation = orientation.value
-
-  /** @type {import('../../core/kernel/registry.js').OpRecord} */
-  const record = {
-    id,
-    op,
-    // `target` before `operands` is the fold's own input order, so the
-    // first-selected ("moving") solid lands at `inputs[0]` — exactly the
-    // operand `group.snap`/`group.align` move, per `core-013`'s registry.
-    target: moving.ref,
-    operands: [reference.ref],
-    // Not `consumes` — see the module doc's "Snap and Align are a different
-    // shape" section for why that would be a real bug here, not a style choice.
-    // A bare id even when `target` above is `{ id, pieces }`: this names the
-    // record whose logical body continues, not an operand (module doc §2).
-    supersedes: moving.terminalId,
-    params,
-  }
-
-  try {
-    documentStore.append(record, { origin: 'local' })
-  } catch (error) {
-    // New to this pair with `TODO/ui-035`: a `pieces` address the fold rejects
-    // (a part name the group no longer has, a pick depth left hanging off a body
-    // that is no longer a composite) throws where nothing could throw before.
-    // Surfaced in the popover rather than the console, the path Fillet/Chamfer
-    // established; the popover stays open so the depth can be corrected.
-    opError.value = error instanceof Error ? error.message : String(error)
-    return
-  }
-
-  // `base` above is the moving solid's *terminal* id (what the record has to
-  // build on); `selection.ids[0]` is its *lineage root*, which is what stays a
-  // valid identity across this move — the same reason a gizmo drag never has
-  // to reselect after committing a `transform.*` record. The reference solid
-  // drops out of the selection; only the moved solid stays selected.
-  selection.select(selection.ids[0])
-  closePopover()
-}
-
-/**
  * Commit the open popover's Fillet or Chamfer. See the module doc's "Fillet
  * and Chamfer are a third shape" section for why this record is `supersedes`-
  * based and unnamed, and for why a thrown kernel error is caught and shown
@@ -1111,7 +983,7 @@ function commitFilletChamfer() {
   const onlyId = selection.onlyId
   if (!onlyId) return
 
-  // Same operand-resolution discipline as `run()`/`commitSnapAlign()` above:
+  // Same operand-resolution discipline as `run()` above and `AlignPopover.vue`:
   // the selection id is a lineage root, and the kernel needs the operand's
   // *current* terminal id, not the geometry it had when first placed.
   const targetId = documentStore.raw.currentIdOf(onlyId) ?? onlyId
@@ -1497,25 +1369,21 @@ function commitMirror() {
         <span class="ops__label">{{ operation.label }}</span>
       </button>
 
-      <!-- Snap/Align (TODO/ui-026): appended to the same row as the four
-           stateless buttons above, but each opens a popover rather than
-           committing immediately — see the module doc's "Snap and Align are a
-           different shape" section for why. -->
+      <!-- Align (TODO/ui-060, replacing ui-026's Snap and Align and ui-050's Inspector
+           row): 1 or 2 selected, opening AlignPopover rather than committing. -->
       <button
-        v-for="operation in SNAP_ALIGN_OPERATIONS"
-        :key="operation.op"
         type="button"
         class="ops__btn"
-        :disabled="snapAlignDisabled"
-        :data-testid="`operation-${operation.label.toLowerCase()}`"
-        :data-op="operation.op"
-        :aria-expanded="openPopover === operation.op"
-        :title="snapAlignTitleFor(operation)"
-        :aria-label="snapAlignTitleFor(operation)"
-        @click="togglePopover(operation.op)"
+        :disabled="alignDisabled"
+        data-testid="operation-align"
+        :data-op="ALIGN_OPERATION.op"
+        :aria-expanded="openPopover === 'align'"
+        :title="alignTitle()"
+        :aria-label="alignTitle()"
+        @click="toggleAlignPopover"
       >
-        <span class="ops__glyph" aria-hidden="true">{{ operation.glyph }}</span>
-        <span class="ops__label">{{ operation.label }}</span>
+        <span class="ops__glyph" aria-hidden="true">{{ ALIGN_OPERATION.glyph }}</span>
+        <span class="ops__label">{{ ALIGN_OPERATION.label }}</span>
       </button>
 
       <!-- Fillet/Chamfer (TODO/ui-027): this toolbar's first exactly-1-gated
@@ -1899,94 +1767,9 @@ function commitMirror() {
         <HelpButton topic="mirror" class="ops__popover-help" />
       </div>
 
-      <div
-        v-else-if="openPopover"
-        class="ops__popover"
-        data-testid="snap-align-popover"
-        :data-op="openPopover"
-      >
-        <p class="ops__popover-note">
-          Moves the <strong>moving</strong> item (first selected) against the
-          <strong>reference</strong> item (second selected), which never moves.
-          Unlike every other button here, both stay separately selectable
-          afterward — nothing is combined.
-        </p>
-
-        <fieldset class="ops__popover-axes">
-          <legend>Axes</legend>
-          <label v-for="axis in AXES" :key="axis" class="ops__checkbox">
-            <input
-              type="checkbox"
-              v-model="axesChecked[axis]"
-              :data-testid="`snap-align-axis-${axis}`"
-            />
-            {{ axis.toUpperCase() }}
-          </label>
-        </fieldset>
-
-        <label v-if="openPopover === 'group.snap'" class="ops__popover-field">
-          Orientation
-          <select v-model="orientation" data-testid="snap-align-orientation">
-            <option v-for="choice in SNAP_ORIENTATIONS" :key="choice.value" :value="choice.value">
-              {{ choice.label }}
-            </option>
-          </select>
-        </label>
-        <p v-else class="ops__popover-hint">Align always centres — there is no orientation to pick.</p>
-
-        <label class="ops__popover-field">
-          Offset (mm)
-          <input type="number" v-model.number="offsetMm" data-testid="snap-align-offset" />
-        </label>
-
-        <!-- What is actually about to be committed, named (TODO/ui-035). This
-             replaces ui-026's printed "sub-part addressing isn't available yet"
-             disclaimer, which is now false. It is not decoration: a
-             sub-part-addressed move and a whole-object one both just slide one
-             body, so without this line the only way to tell which of the two is
-             armed is to run it and measure. The Inspector's breadcrumb is a
-             different panel and only ever describes a single-body selection. -->
-        <p
-          class="ops__popover-operands"
-          data-testid="snap-align-operands"
-          :data-subpart="hasSubPartOperand ? 'true' : 'false'"
-        >
-          {{ openPopover === 'group.snap' ? 'Snapping' : 'Aligning' }}
-          <strong data-testid="snap-align-operand-moving">{{ selectedOperands[0]?.label }}</strong>
-          to
-          <strong data-testid="snap-align-operand-reference">{{
-            selectedOperands[1]?.label
-          }}</strong>
-        </p>
-
-        <!-- A `pieces` address the kernel rejects — the same first-user-facing
-             kernel-error path Fillet/Chamfer established, reused rather than
-             reinvented (TODO/ui-035). -->
-        <p v-if="opError" class="ops__popover-error" data-testid="snap-align-error">
-          {{ opError }}
-        </p>
-
-        <div class="ops__popover-actions">
-          <button
-            type="button"
-            class="ops__popover-cancel"
-            data-testid="snap-align-cancel"
-            @click="closePopover"
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
-            class="ops__popover-commit"
-            :disabled="!canCommitSnapAlign"
-            data-testid="snap-align-commit"
-            @click="commitSnapAlign"
-          >
-            {{ openPopover === 'group.snap' ? 'Snap' : 'Align' }}
-          </button>
-        </div>
-        <HelpButton :topic="openPopover === 'group.snap' ? 'snap' : 'align'" class="ops__popover-help" />
-      </div>
+      <!-- Align (TODO/ui-060): the frame is this file's `.ops__popover`, the contents are
+           AlignPopover's. It stays open across taps; Escape or the backdrop closes it. -->
+      <AlignPopover v-else-if="openPopover === 'align'" class="ops__popover" />
     </Teleport>
   </div>
 </template>
@@ -2337,22 +2120,6 @@ function commitMirror() {
   color: var(--text-1);
   font-size: 11px;
   line-height: 1.4;
-}
-
-.ops__popover-axes {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin: 0;
-  padding: 0;
-  border: none;
-}
-
-.ops__popover-axes legend {
-  padding: 0;
-  margin-right: 2px;
-  font-size: 11px;
-  color: var(--text-2);
 }
 
 .ops__checkbox {

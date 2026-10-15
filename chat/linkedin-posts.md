@@ -1,5 +1,22 @@
 # LinkedIn Posts
 
+## [2026-10-15T09:10:00Z] — When the label says + and the record says −
+
+**Post:** I merged WarpCad's Snap, Align and Align-to-origin into one Align popover. The interesting part was a sign. The kernel's snap key `outside+` means "my + face meets the target's − face", so the body ends up on the target's − side. Put that on a button called "+ side" and it does the opposite of what it says.
+
+So the new buttons name where the body lands, and each maps one-to-one onto the six existing keys. The record written is byte-for-byte what the old popover wrote, so saved projects replay unchanged, and a unit test pins that by replaying old file lines. Only the meaning of the label moved.
+
+Checking it turned up a second copy of the same mistake: the description the AI partner reads for `group.snap` says `outside+` puts the first body on the second's + side, which is backwards. I filed that as its own finding rather than quietly widening this change.
+
+Not checked: how the taller popover feels under a thumb on a real phone. It fits at 390 px and the common taps need no scroll, but that is a judgement call and is queued for a hand test.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #SoftwareEngineering #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** pre-change snap and align lines replay to pinned bounds → `src/core/snapAlignReplay.spec.js`; full e2e matrix on three engines and three viewports passed after updating the toolbar-dependent snapshots; unit 4606 passed
+**To Add:** repo URL once public, docs site URL once it exists
+
 ## [2026-10-11T15:09:00Z] — The assistant changes a value; undo has to cope with deletion
 
 **Post:** WarpCad now lets its AI assistant, and any MCP client, work with project variables: define one, bind a field to it, set it, rename it, delete it. The point is the sentence "make this case for a Pi 5" becoming one call that changes a variable, instead of the model hunting for the Pi in the history and editing it.

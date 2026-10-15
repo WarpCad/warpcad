@@ -181,8 +181,7 @@ const TOOLBAR_BUTTONS = [
   'operation-subtract',
   'operation-intersect',
   'operation-group',
-  'operation-snap',
-  'operation-align',
+  'operation-align', // one button since TODO/ui-060 (Snap folded into it)
   'operation-fillet',
   'operation-chamfer',
   'operation-enlarge',

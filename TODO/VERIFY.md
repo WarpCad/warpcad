@@ -34,6 +34,15 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### ui-060 — The tall Align popover on a real phone (2026-10-15)
+
+The one Align popover stacks Target, Measure from, the drop shortcut, a 3x3 grid, the Snap relation, a 3x2 Snap grid and Offset, so with two bodies selected it scrolls inside its own max height on a 390 px screen, and on a laptop it covers the middle of the scene. The e2e specs and a scripted drive prove it fits, opens, commits and closes at 390, 820 and 1440; whether it *feels* usable under a thumb, and whether the scene stays readable behind it, is a judgment call. Also worth a glance: tapping Undo while the popover is open first closes it (the backdrop takes the tap), so Undo needs two taps.
+
+| Check | Status | Notes |
+|---|---|---|
+| On a real phone, select two cubes, open Align, tap X ⇤ + side then Z ◇ ctr: no scrolling needed for the common taps, and the shapes are still visible | Open | |
+| On a real tablet, the popover does not hide the body being moved | Open | |
+
 ### ui-066 — Rotate rings pick the step from drag speed on every pointer type (2026-10-15 07:02)
 
 The mouse now steps by speed like a finger. The unit and e2e specs pin the bands and a scripted real-mouse drive read well, but whether the 40 and 250 px/s edges *feel* right for a human hand and for a real finger is a judgment call no assertion makes.

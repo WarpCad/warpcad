@@ -3,8 +3,9 @@ import { test, expect } from '@playwright/test'
 import { openApp, loadScene, startMovie, endMovie, shot, settle } from './support.js'
 
 /**
- * Docs media for `docs/snap-align.md` (`TODO/docs-012`): the Snap popover as a still, then
- * Snap, Align and Snap-against-a-named-part as movies. Laptop, Chromium only.
+ * Docs media for `docs/snap-align.md` (`TODO/docs-012`, re-recorded for the one Align tool by
+ * `TODO/ui-060`): the Align popover as a still, then Snap, Align, Align-to-origin and
+ * Align-against-a-named-part as movies. Laptop, Chromium only.
  *
  * Every movie selects with real mouse clicks and ends by asserting its end state against
  * the kernel's own measurements: after Snap the two bodies share a face plane within 0.01 mm
@@ -14,7 +15,7 @@ import { openApp, loadScene, startMovie, endMovie, shot, settle } from './suppor
  * kernel's re-measure (a changed `data-body-bounds`) comes before every result frame. Not
  * an acceptance check: scenario 3 is driven by hand.
  */
-test.describe('docs media: snap and align', () => {
+test.describe('docs media: align', () => {
   test.skip(({ viewport }) => viewport?.width !== 1440, 'laptop-only')
 
   /** Face-plane tolerance, mm: the kernel works in doubles, the attribute prints two decimals. */
@@ -68,9 +69,9 @@ test.describe('docs media: snap and align', () => {
     await el.click()
   }
 
-  const openScene = async (page, fixture) => {
+  const openScene = async (page, fixture, count = 2) => {
     await openApp(page)
-    await loadScene(page, fixture, 2)
+    await loadScene(page, fixture, count)
   }
 
   /** The Objects list, opened (it is already open when nothing is selected). */
@@ -112,21 +113,24 @@ test.describe('docs media: snap and align', () => {
     await expect(viewport(page)).toHaveAttribute('data-selected-id', 'lug-1')
     await click(page, PLATE, { shift: true })
     await expect(viewport(page)).toHaveAttribute('data-selected-count', '2')
-    await expect(page.getByTestId('operation-snap')).toBeEnabled()
     await expect(page.getByTestId('operation-align')).toBeEnabled()
+  }
+
+  /** Tap one popover button and wait for the moving body's re-measure. */
+  const tapAndSettle = async (page, testId, id, before) => {
+    await press(page, testId)
+    return afterMove(page, id, before)
   }
 
   test('snap-popover still', async ({ page }) => {
     await openScene(page, 'plate-and-lug.ndjson')
     await selectLugThenPlate(page)
-    await press(page, 'operation-snap')
-    await expect(page.getByTestId('snap-align-popover')).toBeVisible()
-    await expect(page.getByTestId('snap-align-popover')).toHaveAttribute('data-op', 'group.snap')
-    await expect(page.getByTestId('snap-align-operands')).toContainText('Lug 1')
-    await expect(page.getByTestId('snap-align-operands')).toContainText('Plate 1')
-    await page.getByTestId('snap-align-axis-x').check()
-    await page.getByTestId('snap-align-orientation').selectOption('outside-')
-    await shot(page, 'snap-popover.png', { locator: page.getByTestId('snap-align-popover') })
+    await press(page, 'operation-align')
+    await expect(page.getByTestId('align-popover')).toBeVisible()
+    await expect(page.getByTestId('align-popover')).toHaveAttribute('data-target', 'second')
+    await expect(page.getByTestId('align-operands')).toContainText('Lug 1')
+    await expect(page.getByTestId('align-operands')).toContainText('Plate 1')
+    await shot(page, 'snap-popover.png', { locator: page.getByTestId('align-popover') })
   })
 
   test('snap-operation', { tag: '@movie' }, async ({ page }) => {
@@ -135,21 +139,12 @@ test.describe('docs media: snap and align', () => {
     await startMovie(page, 'snap-operation')
     await selectLugThenPlate(page)
     await page.waitForTimeout(400)
-    await press(page, 'operation-snap')
-    const popover = page.getByTestId('snap-align-popover')
+    await press(page, 'operation-align')
+    const popover = page.getByTestId('align-popover')
     await expect(popover).toBeVisible()
-    await page.waitForTimeout(500)
-    await glideTo(page, await page.getByTestId('snap-align-axis-x').evaluate((el) => {
-      const b = el.getBoundingClientRect()
-      return { x: b.x + b.width / 2, y: b.y + b.height / 2 }
-    }))
-    await page.getByTestId('snap-align-axis-x').check()
-    await page.waitForTimeout(300)
-    await page.getByTestId('snap-align-orientation').selectOption('outside-')
-    await page.waitForTimeout(500)
-    await press(page, 'snap-align-commit')
-    await expect(popover).toHaveCount(0)
-    const after = await afterMove(page, 'lug-1', before)
+    await page.waitForTimeout(700)
+    // Outside, + side on X: the lug ends up on the plate's +X side (`outside-`). One tap commits.
+    const after = await tapAndSettle(page, 'align-x-snap-plus', 'lug-1', before)
     // Two bodies still: Snap moves one against the other and merges nothing.
     await expect(viewport(page)).toHaveAttribute('data-body-count', '2')
     expect(after['plate-1'].bounds).toEqual(before['plate-1'].bounds) // the reference never moved
@@ -169,18 +164,10 @@ test.describe('docs media: snap and align', () => {
     await selectLugThenPlate(page)
     await page.waitForTimeout(400)
     await press(page, 'operation-align')
-    const popover = page.getByTestId('snap-align-popover')
-    await expect(popover).toHaveAttribute('data-op', 'group.align')
-    await page.waitForTimeout(500)
-    await glideTo(page, await page.getByTestId('snap-align-axis-y').evaluate((el) => {
-      const b = el.getBoundingClientRect()
-      return { x: b.x + b.width / 2, y: b.y + b.height / 2 }
-    }))
-    await page.getByTestId('snap-align-axis-y').check()
-    await page.waitForTimeout(500)
-    await press(page, 'snap-align-commit')
-    await expect(popover).toHaveCount(0)
-    const after = await afterMove(page, 'lug-1', before)
+    const popover = page.getByTestId('align-popover')
+    await expect(popover).toHaveAttribute('data-target', 'second')
+    await page.waitForTimeout(700)
+    const after = await tapAndSettle(page, 'align-y-center', 'lug-1', before)
     await expect(viewport(page)).toHaveAttribute('data-body-count', '2')
     expect(after['plate-1'].bounds).toEqual(before['plate-1'].bounds)
     // Centred on the plate along Y; X and Z (unchecked) did not move.
@@ -189,6 +176,36 @@ test.describe('docs media: snap and align', () => {
     expect(after['lug-1'].center[2]).toBeCloseTo(before['lug-1'].center[2], 2)
     await page.waitForTimeout(1200)
     await endMovie(page, 'align-operation', { fps: 10, width: 640 })
+  })
+
+  /**
+   * `TODO/ui-060`: Align to the **World origin**, the Inspector row's old movie moved into
+   * the toolbar popover. A Pi set well away from the origin; Measure from `mb`; the one-tap
+   * drop shortcut. Checked against the kernel's own bounds afterwards.
+   */
+  test('align-to-origin-popover', { tag: '@movie' }, async ({ page }) => {
+    await openScene(page, 'pi-away.ndjson', 1)
+    await openObjectList(page)
+    await page.getByTestId('objects-row-pi-1').click()
+    await expect(viewport(page)).toHaveAttribute('data-selected-id', 'pi-1')
+    const before = await bodies(page)
+    await startMovie(page, 'align-to-origin-popover')
+    await press(page, 'operation-align')
+    await expect(page.getByTestId('align-popover')).toHaveAttribute('data-target', 'origin')
+    await expect(page.getByTestId('align-operands')).toContainText('World origin')
+    await page.waitForTimeout(500)
+    await page.getByTestId('align-reference').selectOption('mb')
+    await page.waitForTimeout(600)
+    await press(page, 'align-drop')
+    const after = await afterMove(page, 'pi-1', before)
+    // Centred on the origin in X and Y, the board's underside on the grid (the SD card hangs
+    // a little below it), so the whole body's low Z is within 2 mm of 0.
+    expect(Math.abs(after['pi-1'].center[0])).toBeLessThan(3)
+    expect(Math.abs(after['pi-1'].center[1])).toBeLessThan(3)
+    expect(after['pi-1'].bounds[2]).toBeLessThan(0.01)
+    expect(after['pi-1'].bounds[2]).toBeGreaterThan(-2)
+    await page.waitForTimeout(1200)
+    await endMovie(page, 'align-to-origin-popover', { fps: 10, width: 640 })
   })
 
   test('snap-subpart-operand', { tag: '@movie' }, async ({ page }) => {
@@ -226,18 +243,22 @@ test.describe('docs media: snap and align', () => {
     await expect(viewport(page)).toHaveAttribute('data-selected-count', '2')
     await page.waitForTimeout(250)
     await press(page, 'operation-align')
-    const popover = page.getByTestId('snap-align-popover')
-    await expect(popover).toHaveAttribute('data-op', 'group.align')
+    const popover = page.getByTestId('align-popover')
+    await expect(popover).toHaveAttribute('data-target', 'second')
     // The popover names the part it will measure against.
-    await expect(page.getByTestId('snap-align-operands')).toContainText('Screw 1')
-    await expect(page.getByTestId('snap-align-operands')).toContainText('hole1')
-    await page.waitForTimeout(350)
-    await page.getByTestId('snap-align-axis-x').check()
-    await page.getByTestId('snap-align-axis-y').check()
-    await page.waitForTimeout(300)
-    await press(page, 'snap-align-commit')
-    await expect(popover).toHaveCount(0)
-    const after = await afterMove(page, 'screw-1', before)
+    await expect(page.getByTestId('align-operands')).toContainText('Screw 1')
+    await expect(page.getByTestId('align-operands')).toContainText('hole1')
+    await page.waitForTimeout(500)
+    await press(page, 'align-x-center')
+    await page.waitForTimeout(400)
+    await press(page, 'align-y-center')
+    await expect
+      .poll(async () => {
+        const c = (await bodies(page))['screw-1'].center
+        return Math.max(Math.abs(c[0] - hole.x), Math.abs(c[1] - hole.y))
+      }, { timeout: 10000 })
+      .toBeLessThan(0.02)
+    const after = await bodies(page)
     await expect(viewport(page)).toHaveAttribute('data-body-count', '2')
     // The screw's axis is on the hole's axis (the Inspector's own reading of hole1), and it
     // did not move in Z. The Pi, the reference, stayed put.
@@ -251,7 +272,7 @@ test.describe('docs media: snap and align', () => {
 
   /**
    * `TODO/ui-063`: a part on **both** sides. The Pi's `hole1` aligned onto the screen's
-   * `piMountingPost1` in plan, then the Pi's `mb` snapped onto the post's top. Recorded at
+   * `piMountingPost1` in plan, then the Pi's `mb` snapped onto the post's top (Outside, + side). Recorded at
    * a brisk pace (two commits fit the 18 s budget), then checked against the Inspector's
    * own readings of the parts once the recording has stopped.
    */
@@ -288,7 +309,7 @@ test.describe('docs media: snap and align', () => {
       const read = async (kind) => Promise.all(['x', 'y', 'z'].map((axis) => num(`inspector-${kind}-${axis}`)))
       return { centre: await read('position'), size: await read('size') }
     }
-    const popover = page.getByTestId('snap-align-popover')
+    const popover = page.getByTestId('align-popover')
 
     await startMovie(page, 'snap-subpart-both-sides')
     // The Pi at hole1 (a plain tap on the part row), then the screen at its first post
@@ -299,15 +320,16 @@ test.describe('docs media: snap and align', () => {
     await quick('objects-part-check-screen-1-piMountingPost1')
     await expect(viewport(page)).toHaveAttribute('data-selected-count', '2')
     await quick('operation-align')
-    await expect(popover).toHaveAttribute('data-op', 'group.align')
-    await expect(page.getByTestId('snap-align-operand-moving')).toHaveText('Raspberry Pi 1 › hole1')
-    await expect(page.getByTestId('snap-align-operand-reference')).toHaveText('Touchscreen 2 1 › piMountingPost1')
+    await expect(popover).toHaveAttribute('data-target', 'second')
+    await expect(page.getByTestId('align-operand-moving')).toHaveText('Raspberry Pi 1 › hole1')
+    await expect(page.getByTestId('align-operand-target')).toHaveText('Touchscreen 2 1 › piMountingPost1')
     await page.waitForTimeout(700)
-    await page.getByTestId('snap-align-axis-x').check()
-    await page.getByTestId('snap-align-axis-y').check()
-    await quick('snap-align-commit')
+    await quick('align-x-center')
+    const afterX = await afterMove(page, 'pi-1', before)
+    await quick('align-y-center')
+    const aligned = await afterMove(page, 'pi-1', afterX)
+    await page.keyboard.press('Escape')
     await expect(popover).toHaveCount(0)
-    const aligned = await afterMove(page, 'pi-1', before)
     await page.waitForTimeout(500)
 
     // Re-address the Pi at mb, add the post again, and Snap on Z with Outside minus.
@@ -315,17 +337,17 @@ test.describe('docs media: snap and align', () => {
     await quick('objects-part-pi-1-mb')
     await showParts('screen-1')
     await quick('objects-part-check-screen-1-piMountingPost1')
-    await quick('operation-snap')
-    await expect(popover).toHaveAttribute('data-op', 'group.snap')
-    await expect(page.getByTestId('snap-align-operand-moving')).toHaveText('Raspberry Pi 1 › mb')
+    await quick('operation-align')
+    await expect(popover).toHaveAttribute('data-target', 'second')
+    await expect(page.getByTestId('align-operand-moving')).toHaveText('Raspberry Pi 1 › mb')
     await page.waitForTimeout(500)
-    await page.getByTestId('snap-align-axis-z').check()
-    await page.getByTestId('snap-align-orientation').selectOption('outside-')
-    await quick('snap-align-commit')
-    await expect(popover).toHaveCount(0)
+    // Outside, + side on Z (`outside-`): the board's underside on the post's top.
+    await quick('align-z-snap-plus')
     await afterMove(page, 'pi-1', aligned)
     await page.waitForTimeout(1000)
     await endMovie(page, 'snap-subpart-both-sides', { fps: 8, width: 640 })
+    await page.keyboard.press('Escape')
+    await expect(popover).toHaveCount(0)
 
     // Checked after the recording: hole1 on the post's axis, mb on the post's top.
     const hole = await inspect('pi-1', 'hole1')

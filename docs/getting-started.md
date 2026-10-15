@@ -95,7 +95,7 @@ browser as you go).
 
 - [Placing a shape](primitive-placement.md): every Library item, snap guides, and placing on a phone.
 - [Moving around the 3D view](viewport-navigation.md): orbit, pan, zoom and the orientation triad.
-- [Combining shapes](booleans.md), [Snap and Align](snap-align.md), [Fillet and Chamfer](fillet-chamfer.md): the rest of the Operations toolbar.
+- [Combining shapes](booleans.md), [Align](snap-align.md), [Fillet and Chamfer](fillet-chamfer.md): the rest of the Operations toolbar.
 - [Sketch primitives](sketch-mode.md): draw an outline and turn it into a solid.
 - [Using the built-in help](help.md): press the **?** in any tool's pop-up, or **File ▾ → Help and documentation**, to read about it without leaving your project.
 - [The full list of pages](README.md).

@@ -17,17 +17,17 @@ There are three ways in, and they all open the same **Help** sheet:
 1. Place a Cube and a Cylinder, then click the Cube and Shift-click the Cylinder. Both are
    selected.
 2. Press **⇔ Align** on the Operations toolbar. The Align pop-up opens.
-3. Tick **X** and type `7` in **Offset**, so there is something of yours in the pop-up.
+3. Set **Snap** to *Inside* and type `7` in **Offset**, so there is something of yours in the pop-up.
 4. Press the **?** in the pop-up's top-right corner.
 
-![The Align pop-up with the Help sheet open over it, on Precise placement: Snap and Align, scrolled to The popover's fields with that heading highlighted](./screenshots/help-from-popup.png)
+![The Align pop-up with the Help sheet open over it, on Precise placement: Align, scrolled to The popover's fields with that heading highlighted](./screenshots/help-from-popup.png)
 
-The Help sheet opens on *Precise placement: Snap and Align*, scrolled to the section about
+The Help sheet opens on *Precise placement: Align*, scrolled to the section about
 the pop-up's fields, with that heading marked. Your selection and the pop-up stay exactly as
 they were underneath it.
 
-5. Close the sheet with **×** (or press Esc). The Align pop-up is still open, **X** is still
-   ticked and the offset still says `7`. Press **Align** to carry on.
+5. Close the sheet with **×** (or press Esc). The Align pop-up is still open, **Snap** still
+   says *Inside* and the offset still says `7`. Tap an axis button to carry on.
 
 ![Selecting two shapes, opening Align, pressing ? to read its help, closing it, and the pop-up still there with its choices intact](./media/help-open-close.gif)
 
@@ -47,8 +47,8 @@ they were underneath it.
 
 ## The ? is always there
 
-The **?** is never greyed out, even when the tool it belongs to is. If **Snap** is dimmed and
-you do not know why, the **?** beside it still opens the page that says "you need exactly 2
+The **?** is never greyed out, even when the tool it belongs to is. If **Align** is dimmed and
+you do not know why, the **?** beside it still opens the page that says "you need 1 or 2
 shapes selected".
 
 Tools without a pop-up of their own (Union, Subtract, Intersect and Group commit on one

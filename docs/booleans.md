@@ -8,9 +8,9 @@ they have in common. They are how a plain box becomes a case with a bolt hole in
 
 The three operations live in the **Operations toolbar**, in the top-left corner of the
 3D view — alongside a fourth button, **Group**, which combines shapes without merging
-their geometry (see [Combining shapes into a group](groups.md)), and two more, **Snap**
-and **Align**, which move one shape against another without combining or discarding
-either one at all (see [Precise placement: Snap and Align](snap-align.md)). They are
+their geometry (see [Combining shapes into a group](groups.md)), and one more, **Align**,
+which moves one shape against another, or onto the origin, without combining or discarding
+either one at all (see [Precise placement: Align](snap-align.md)). They are
 deliberately *not* in the Library panel next to Cube and Cylinder: the Library creates
 new shapes out of nothing, while these act on shapes you have already placed. That is a
 different kind of action with a different requirement, and the toolbar says so before
@@ -22,7 +22,7 @@ you press anything.
 | **− Subtract** | Removes every solid you selected *after* the first one from that first one. |
 | **∩ Intersect** | Keeps only the volume that all the selected solids share, and discards the rest. |
 | **⊞ Group** | Combines the selected solids into one selectable body, keeping each one's own geometry intact — see [Combining shapes into a group](groups.md). |
-| **⇥ Snap** / **⇔ Align** | Moves one selected solid to a precise position against the other — flush against a side, or centred — without combining or discarding either one. See [Precise placement: Snap and Align](snap-align.md). |
+| **⇔ Align** | Moves one selected solid to a precise position against the other — flush against a side, or centred — or onto the origin, without combining or discarding either one. See [Precise placement: Align](snap-align.md). |
 
 ## You need at least two shapes selected
 
@@ -200,14 +200,14 @@ Pi 4 (the case stays, just without that cut-out, on a Pi 5), or **Leave broken**
   the Pi's Ethernet jack *or* its USB port 1, not both at once. Run a second Subtract for
   the next one; that is the normal way to build a multi-port case wall. (Two *different*
   shapes can each carry their own part, which is what
-  [Snap and Align](snap-align.md#mounting-a-raspberry-pi-on-a-screens-posts) use to put
+  [Align](snap-align.md#mounting-a-raspberry-pi-on-a-screens-posts) use to put
   one board's hole on another item's post.)
 - **Group ignores the part.** The `⊞ Group` button always uses the whole shape, even
   when a part is selected — the toolbar's note says so while a part is selected, so you
   do not have to remember it. Only Union, Subtract and Intersect read the part.
 - **The whole shape is still consumed.** Cutting with the Ethernet jack still uses up
   the Pi as a separate object, exactly like any other Subtract. If you want to keep the
-  board, place a second one, or undo and use [Snap](snap-align.md) to position a copy.
+  board, place a second one, or undo and use [Align](snap-align.md) to position a copy.
 
 A word about bolts specifically, because it changes what you get, not just how clear
 the intent is. A bolt's rendered outline is its **metal** — head and thread only, so
@@ -253,7 +253,7 @@ with something else.
   does, and reading the result's dimensions afterwards.
 - [Moving around the 3D view](viewport-navigation.md) — orbiting to check a boolean
   result from another angle.
-- [Precise placement: Snap and Align](snap-align.md) — the same toolbar's other two
-  buttons, which move a shape against another without combining or discarding either.
+- [Precise placement: Align](snap-align.md) — the same toolbar's Align
+  button, which moves a shape against another without combining or discarding either.
 
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

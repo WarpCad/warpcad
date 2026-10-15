@@ -166,8 +166,8 @@ Cooling Fan**, and the screens — **7-inch Touch Display**, **Touchscreen 2**,
 > screen gives you that part by itself, resting on the grid wherever you dropped it —
 > it does not arrive already mounted on a Pi, and placing a Pi afterwards does not pull
 > it into position. That is deliberate: mounting one part onto another is its own
-> step, so you can see and undo it. Place both parts, select them, and use **Snap** or
-> **Align** to bring them together — see [Snapping and aligning](snap-align.md).
+> step, so you can see and undo it. Place both parts, select them, and use **Align**
+> to bring them together — see [Precise placement: Align](snap-align.md).
 
 ### Mounting holes
 
@@ -180,8 +180,8 @@ Each hole is also kept as a hidden part, so you can snap to it or cut with it:
 1. Drag **Raspberry Pi**, set to **Pi 5**, into the 3D view. The board shows four mounting
    holes at its corners, plus two fan holes.
 2. To line a Camera Module up with a hole, drag **Camera Module** in as well, then select
-   both and use **Snap** or **Align** — the holes are among the parts you can pick (see
-   [Snapping and aligning](snap-align.md)).
+   both and use **Align** — the holes are among the parts you can pick (see
+   [Precise placement: Align](snap-align.md)).
 3. To cut matching holes into your own case, select the Pi, tick **Show hidden parts** in
    the Inspector, tap `hole1`, and use it as a Subtract operand (see [Booleans](booleans.md)).
 

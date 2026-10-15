@@ -4,7 +4,7 @@ import { openApp, loadScene, startMovie, endMovie, humanDrag, shot, settle, MAX_
 
 /**
  * Docs media for `docs/selection-and-inspector.md` (`TODO/docs-010`): selecting, the
- * transform gizmo with the Inspector following it, parameter edits, colour, align,
+ * transform gizmo with the Inspector following it, parameter edits, colour,
  * hidden parts, the object list and delete. Laptop only.
  *
  * Every movie asserts its end state (a position value, a body count, a colour), so a drag
@@ -455,25 +455,6 @@ test.describe('docs media: selection, inspector, gizmo', () => {
     await page.getByTestId('inspector-hidden-parts-toggle').check()
     await expect(page.getByTestId('inspector-hidden-parts-toggle')).toBeChecked()
     await shot(page, 'inspector-hidden-parts.png')
-  })
-
-  test('align-to-origin', { tag: '@movie' }, async ({ page }) => {
-    await openScene(page, 'offset-cube.ndjson', 1)
-    await openObjectList(page)
-    await page.getByTestId('objects-row-cube-1').click()
-    await expect(page.getByTestId('align-origin-row')).toBeVisible()
-    expect(await num(page, 'inspector-position-x')).toBeCloseTo(60, 1)
-    await startMovie(page, 'align-to-origin')
-    const btn = page.getByTestId('align-origin-drop')
-    await btn.scrollIntoViewIfNeeded()
-    const b = await btn.boundingBox()
-    await glideTo(page, { x: b.x + b.width / 2, y: b.y + b.height / 2 })
-    await page.waitForTimeout(400)
-    await btn.click()
-    await expect.poll(() => num(page, 'inspector-position-x')).toBeCloseTo(0, 1)
-    expect(await num(page, 'inspector-position-y')).toBeCloseTo(0, 1)
-    await page.waitForTimeout(1200)
-    await endMovie(page, 'align-to-origin', { fps: 12, width: 640 })
   })
 
   test('delete-body', { tag: '@movie' }, async ({ page }) => {

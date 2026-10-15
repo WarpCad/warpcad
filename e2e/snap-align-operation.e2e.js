@@ -12,8 +12,11 @@ import { test, expect } from '@playwright/test'
  * the precondition is **exactly 2** selected, not "2 or more". Sharing a file
  * with the other four would blur those two divergent claims into one.
  *
- * **All three reference viewports, Chromium only.** Same reasoning
- * `ui-014`/`ui-015` gave for their own engine coverage: this is DOM/state logic
+ * **All three reference viewports and (since `TODO/ui-060`) all three engines.** The tool is
+ * now the one Align popover, whose taps commit straight into the document, and every flow
+ * here places its bodies by dragging in the canvas, so the cross-engine run is cheap and
+ * `CLAUDE.md`'s Browser Support section asks for it. Earlier this file was Chromium only,
+ * on `ui-014`/`ui-015`'s reasoning, which still describes the logic under test: it is DOM/state logic
  * (popover open/close, axis/orientation/offset collection, the record shape
  * appended to the document) rather than a new WebGL/WASM/canvas/touch surface —
  * `viewport-scaffold.e2e.js` already covers that nine ways for the viewport
@@ -55,11 +58,6 @@ async function openNavChrome(page) {
     await expect(toggle).toHaveAttribute('aria-expanded', 'true')
   }
 }
-
-test.skip(
-  ({ browserName }) => browserName !== 'chromium',
-  'DOM/state logic, no new WebGL/canvas/touch surface — see this file’s header and TODO/ui-026',
-)
 
 /**
  * Open the Library if this viewport keeps it behind a tab.
@@ -284,14 +282,13 @@ test.beforeEach(async ({ page }) => {
   await expect(page.getByTestId('viewport')).toBeVisible()
 })
 
-test('Snap and Align start disabled, need exactly 2 — not "2 or more" like the other four buttons', async ({
+test('Align starts disabled and needs 1 or 2 selected — not "2 or more" like the four buttons before it (TODO/ui-060)', async ({
   page,
 }) => {
-  const snap = page.getByTestId('operation-snap')
+  // One Align button since `TODO/ui-060`: Snap is gone from the toolbar.
+  await expect(page.getByTestId('operation-snap')).toHaveCount(0)
   const align = page.getByTestId('operation-align')
-  await expect(snap).toBeVisible()
   await expect(align).toBeVisible()
-  await expect(snap).toBeDisabled()
   await expect(align).toBeDisabled()
 
   await placeCubeAndCylinder(page)
@@ -299,26 +296,22 @@ test('Snap and Align start disabled, need exactly 2 — not "2 or more" like the
   await closeLibrary(page)
   await expect(page.getByTestId('viewport')).toHaveAttribute('data-body-count', '3')
 
-  // One selected: still not enough.
+  // One selected: enough — it aligns to the world origin.
   await clickViewportAt(page, CUBE.click.fx, CUBE.click.fy)
   await expect(page.getByTestId('viewport')).toHaveAttribute('data-selected-count', '1')
-  await expect(snap).toBeDisabled()
-  await expect(align).toBeDisabled()
+  await expect(align).toBeEnabled()
 
-  // Two selected: exactly enough — enabled, unlike a fresh Union/Subtract/
-  // Intersect/Group check, which this test deliberately leaves alone (already
-  // covered by `boolean-operations.e2e.js`/`group-combine.e2e.js`).
+  // Two selected: the first aligns to the second.
   await clickViewportAt(page, CYLINDER.click.fx, CYLINDER.click.fy, { shift: true })
   await expect(page.getByTestId('viewport')).toHaveAttribute('data-selected-count', '2')
-  await expect(snap).toBeEnabled()
   await expect(align).toBeEnabled()
 
   // Three selected: disabled again — the divergence from the other four
   // buttons' "2+" gate, which would still be enabled at 3.
   await clickViewportAt(page, 0.5, 0.32, { shift: true })
   await expect(page.getByTestId('viewport')).toHaveAttribute('data-selected-count', '3')
-  await expect(snap).toBeDisabled()
   await expect(align).toBeDisabled()
+  await expect(align).toHaveAttribute('title', 'Select 1 or 2 solids')
   await expect(page.getByTestId('operation-union')).toBeEnabled()
 })
 
@@ -327,11 +320,13 @@ test('closing the popover without committing changes nothing', async ({ page }) 
   await selectCubeThenCylinder(page)
 
   await page.getByTestId('operation-align').click()
-  await expect(page.getByTestId('snap-align-popover')).toBeVisible()
-  await page.getByTestId('snap-align-axis-z').check()
+  await expect(page.getByTestId('align-popover')).toBeVisible()
+  // Picking a Relation and an offset is not a commit: only a grid tap is.
+  await page.getByTestId('align-relation').selectOption('inside')
+  await page.getByTestId('align-offset').fill('4')
 
-  await page.getByTestId('snap-align-cancel').click()
-  await expect(page.getByTestId('snap-align-popover')).toHaveCount(0)
+  await page.keyboard.press('Escape')
+  await expect(page.getByTestId('align-popover')).toHaveCount(0)
 
   // Still 2 bodies, still 2 selected, and neither body moved.
   await expect(page.getByTestId('viewport')).toHaveAttribute('data-body-count', '2')
@@ -352,25 +347,24 @@ test('Align centres the moving Cube on the reference Cylinder along Z; the Cylin
   const expectedCubeCenter = [cubeCenter[0], cubeCenter[1], cubeCenter[2] + expectedZ]
 
   await page.getByTestId('operation-align').click()
-  const popover = page.getByTestId('snap-align-popover')
+  const popover = page.getByTestId('align-popover')
   await expect(popover).toBeVisible()
-  await expect(popover).toHaveAttribute('data-op', 'group.align')
-  // Align has no orientation control — V1's own signature difference.
-  await expect(page.getByTestId('snap-align-orientation')).toHaveCount(0)
+  // Two selected: Target defaults to the second-picked body (`TODO/ui-060`).
+  await expect(popover).toHaveAttribute('data-target', 'second')
 
-  const commit = page.getByTestId('snap-align-commit')
-  await expect(commit).toBeDisabled() // no axis checked yet
-  await page.getByTestId('snap-align-axis-z').check()
-  await expect(commit).toBeEnabled()
-  await commit.click()
+  // ◇ ctr on Z is the old Align with Z ticked: one tap, one commit.
+  await page.getByTestId('align-z-center').click()
 
+  // The popover stays open for the next axis (`TODO/ui-060`); Escape closes it.
+  await expect(popover).toBeVisible()
+  await page.keyboard.press('Escape')
   await expect(popover).toHaveCount(0)
 
   // Both operands remain — `supersedes`, not `consumes` — so the body count
   // is unchanged (a boolean or Group would have dropped this to 1).
   await expect(page.getByTestId('viewport')).toHaveAttribute('data-body-count', '2')
-  // Only the moved (Cube) solid stays selected; the reference drops out.
-  await expect(page.getByTestId('viewport')).toHaveAttribute('data-selected-count', '1')
+  // A tap leaves the selection alone (`TODO/ui-060`): both stay selected.
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-selected-count', '2')
 
   const bodiesAfter = await sceneBodies(page)
   const cubeAfter = bodiesAfter.find((body) => body.id === cube.id)
@@ -413,16 +407,17 @@ test('Snap moves the moving Cube flush outside the reference Cylinder on Z, with
   const expectedZ = calcSnapZ(cubeCenter, CUBE_HALF, cylinderCenter, CYLINDER_HALF, OFFSET_MM)
   const expectedCubeCenter = [cubeCenter[0], cubeCenter[1], cubeCenter[2] + expectedZ]
 
-  await page.getByTestId('operation-snap').click()
-  const popover = page.getByTestId('snap-align-popover')
+  await page.getByTestId('operation-align').click()
+  const popover = page.getByTestId('align-popover')
   await expect(popover).toBeVisible()
-  await expect(popover).toHaveAttribute('data-op', 'group.snap')
 
-  await page.getByTestId('snap-align-axis-z').check()
-  await page.getByTestId('snap-align-orientation').selectOption('outside+')
-  await page.getByTestId('snap-align-offset').fill(String(OFFSET_MM))
-
-  await page.getByTestId('snap-align-commit').click()
+  // `outside+` is Relation Outside, **− side**: the Cube ends up under the Cylinder
+  // (`TODO/ui-060`'s Step 2 mapping onto `SNAP_SIDES`). The offset applies to the next tap.
+  await page.getByTestId('align-offset').fill(String(OFFSET_MM))
+  await page.getByTestId('align-relation').selectOption('outside')
+  await page.getByTestId('align-z-snap-minus').click()
+  await expect(popover).toBeVisible()
+  await page.keyboard.press('Escape')
   await expect(popover).toHaveCount(0)
 
   await expect(page.getByTestId('viewport')).toHaveAttribute('data-body-count', '2')
@@ -444,11 +439,11 @@ test('a body snapped to a shape follows when that shape is resized in the Inspec
 }) => {
   const [cube, cylinder] = await placeCubeAndCylinder(page)
   await selectCubeThenCylinder(page)
-  await page.getByTestId('operation-snap').click()
-  await page.getByTestId('snap-align-axis-z').check()
-  await page.getByTestId('snap-align-orientation').selectOption('outside+')
-  await page.getByTestId('snap-align-commit').click()
-  await expect(page.getByTestId('snap-align-popover')).toHaveCount(0)
+  await page.getByTestId('operation-align').click()
+  await page.getByTestId('align-relation').selectOption('outside')
+  await page.getByTestId('align-z-snap-minus').click() // outside+
+  await page.keyboard.press('Escape')
+  await expect(page.getByTestId('align-popover')).toHaveCount(0)
 
   const snapped = parseCenter((await sceneBodies(page)).find((body) => body.id === cube.id).center)
 
@@ -478,7 +473,7 @@ test('a body snapped to a shape follows when that shape is resized in the Inspec
   expect(parseCenter(undone.find((body) => body.id === cube.id).center)[2]).toBeCloseTo(snapped[2], 2)
 })
 
-test('a third selected body disables both Snap and Align, same exact-2 gate as the gating test above', async ({
+test('a third selected body disables Align, same 1-or-2 gate as the gating test above', async ({
   page,
 }) => {
   await placeCubeAndCylinder(page)
@@ -510,7 +505,6 @@ test('a third selected body disables both Snap and Align, same exact-2 gate as t
   })
   await expect(page.getByTestId('viewport')).toHaveAttribute('data-selected-count', '3')
 
-  await expect(page.getByTestId('operation-snap')).toBeDisabled()
   await expect(page.getByTestId('operation-align')).toBeDisabled()
 })
 
@@ -595,24 +589,24 @@ test('Align addresses a drilled-in sub-part: the whole Group moves by that part�
   await expect(page.getByTestId('viewport')).toHaveAttribute('data-selected-count', '2')
 
   await page.getByTestId('operation-align').click()
-  const popover = page.getByTestId('snap-align-popover')
+  const popover = page.getByTestId('align-popover')
   await expect(popover).toBeVisible()
 
   // The feedback half of this task: which depth is about to be committed has to
   // be readable inside the popover, because a sub-part-addressed move looks
   // exactly like a whole-object one once it has happened.
-  const operands = page.getByTestId('snap-align-operands')
+  const operands = page.getByTestId('align-operands')
   await expect(operands).toBeVisible()
   await expect(operands).toHaveAttribute('data-subpart', 'true')
-  await expect(page.getByTestId('snap-align-operand-moving')).toHaveText(/›\s*Cube 1$/)
+  await expect(page.getByTestId('align-operand-moving')).toHaveText(/›\s*Cube 1$/)
   // The line fits the popover at every reference viewport, 390px included —
   // this task's Interaction model asks for that to be confirmed, not assumed.
   const operandsBox = await operands.boundingBox()
   const popoverBox = await popover.boundingBox()
   expect(operandsBox.x + operandsBox.width).toBeLessThanOrEqual(popoverBox.x + popoverBox.width + 1)
 
-  await page.getByTestId('snap-align-axis-x').check()
-  await page.getByTestId('snap-align-commit').click()
+  await page.getByTestId('align-x-center').click()
+  await page.keyboard.press('Escape')
   await expect(popover).toHaveCount(0)
 
   // Both bodies survive — `supersedes`, not `consumes`, unchanged from ui-026.
@@ -662,13 +656,12 @@ test('with nothing drilled in, the popover names both whole bodies and commits u
   await selectCubeThenCylinder(page)
 
   await page.getByTestId('operation-align').click()
-  const operands = page.getByTestId('snap-align-operands')
+  const operands = page.getByTestId('align-operands')
   await expect(operands).toHaveAttribute('data-subpart', 'false')
-  await expect(page.getByTestId('snap-align-operand-moving')).toHaveText(cube.name)
-  await expect(page.getByTestId('snap-align-operand-reference')).toHaveText(cylinder.name)
+  await expect(page.getByTestId('align-operand-moving')).toHaveText(cube.name)
+  await expect(page.getByTestId('align-operand-target')).toHaveText(cylinder.name)
 
-  await page.getByTestId('snap-align-axis-z').check()
-  await page.getByTestId('snap-align-commit').click()
+  await page.getByTestId('align-z-center').click()
 
   const after = await sceneBodies(page)
   const cubeAfter = after.find((candidate) => candidate.id === cube.id)
@@ -683,7 +676,7 @@ test('the popover stays on-screen and reachable at 390px width — no horizontal
   await selectCubeThenCylinder(page)
 
   await page.getByTestId('operation-align').click()
-  const popover = page.getByTestId('snap-align-popover')
+  const popover = page.getByTestId('align-popover')
   await expect(popover).toBeVisible()
 
   const box = await popover.boundingBox()
@@ -695,10 +688,12 @@ test('the popover stays on-screen and reachable at 390px width — no horizontal
   const scrollWidth = await page.evaluate(() => document.documentElement.scrollWidth)
   expect(scrollWidth).toBeLessThanOrEqual(clientWidth + 1)
 
-  // Every control inside is a real tap target, not a shrunken icon.
-  for (const testid of ['snap-align-axis-z', 'snap-align-cancel', 'snap-align-commit']) {
+  // Every grid button is a real 44px tap target, not a shrunken icon (`TODO/ui-060`).
+  for (const testid of ['align-x-min', 'align-y-center', 'align-z-max', 'align-x-snap-minus', 'align-z-snap-plus']) {
     const controlBox = await page.getByTestId(testid).boundingBox()
     expect(controlBox).not.toBeNull()
+    expect(controlBox.width).toBeGreaterThanOrEqual(44)
+    expect(controlBox.height).toBeGreaterThanOrEqual(44)
   }
 })
 
@@ -713,12 +708,12 @@ test('the popover stays on-screen and reachable at 390px width — no horizontal
  * drag afterward still places a body rather than being swallowed by a
  * still-mounted backdrop.
  */
-test('the first Library drag after dismissing the Snap popover with Escape still places a body', async ({ page }) => {
+test('the first Library drag after dismissing the Align popover with Escape still places a body', async ({ page }) => {
   await placeCubeAndCylinder(page)
   await selectCubeThenCylinder(page)
 
-  await page.getByTestId('operation-snap').click()
-  const popover = page.getByTestId('snap-align-popover')
+  await page.getByTestId('operation-align').click()
+  const popover = page.getByTestId('align-popover')
   await expect(popover).toBeVisible()
 
   await page.keyboard.press('Escape')

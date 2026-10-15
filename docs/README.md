@@ -65,14 +65,14 @@ The Library's Raspberry Pi and Hardware items descend from the `jscad-raspberryp
 - [Saving your own parts: Save to library and My parts](user-library.md) — turning a
   group into a part in the Library, naming it, choosing which sizes stay adjustable, and
   placing it again in any project.
-- [Precise placement: Snap and Align](snap-align.md) — the Operations toolbar's
-  fifth and sixth buttons, which move one shape to a computed position against
-  another without combining or discarding either one.
+- [Precise placement: Align](snap-align.md) — the Operations toolbar's
+  Align button, which moves one shape to a computed position against another
+  (or onto the grid's origin) without combining or discarding either one.
 - [Rounding or bevelling an edge: Fillet and Chamfer](fillet-chamfer.md) — the
-  Operations toolbar's seventh and eighth buttons, which round or bevel the
+  Operations toolbar's sixth and seventh buttons, which round or bevel the
   whole rim of one chosen face on a single selected shape.
 - [Resizing and cutting a shape: Enlarge, Fit and Bisect](resize-bisect.md) —
-  the Operations toolbar's ninth, tenth and eleventh buttons, which grow or
+  the Operations toolbar's eighth, ninth and tenth buttons, which grow or
   shrink a single selected shape, resize it to an exact size, or cut it into
   two independently selectable parts.
 - [Mirroring a shape: Mirror](mirror.md) — the Operations toolbar's Mirror button,

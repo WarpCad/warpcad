@@ -1,5 +1,16 @@
 # BlueSky Posts
 
+## [2026-10-15T09:10:00Z] — Three ways to place a shape became one
+
+**Post:** WarpCad had three ways to put a shape exactly where you mean: Snap, Align, and an Align-to-origin row buried in the Inspector. Two UIs, and I kept reaching for the worse one. They are now one Align button with a Target (the other shape, or the origin), per-axis taps that commit on the spot, and a Snap row. #CAD
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #UX #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** old project files replay to the same bounds → `src/core/snapAlignReplay.spec.js`; Pi onto the origin by X ctr, Y ctr, Z min, then Undo x3 → driven at 1440 and 390 px Chromium this session
+**To Add:** repo URL once public, docs site URL once it exists
+
 ## [2026-10-11T15:09:00Z] — Undo that knows what the assistant took out
 
 **Post:** WarpCad's AI can now set a project variable: "make this for a Pi 5" is one call, not a hunt for the Pi. The catch: variable edits revise and delete rows, and Undo AI turn only knew how to remove new ones. A turn now lands and undoes as a diff. #CAD

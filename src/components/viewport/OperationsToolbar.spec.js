@@ -322,6 +322,100 @@ describe('OperationsToolbar — angled Bisect (TODO/ui-036)', () => {
 })
 
 /**
+ * One **Align** button in place of Snap and Align (`TODO/ui-060`). The popover's own
+ * contents are `AlignPopover.spec.js`'s; this block owns the button: its count gate
+ * (1 **or** 2 — it absorbed the Inspector's single-body Align to origin), the toggle, and
+ * the popover staying open across taps.
+ */
+describe('OperationsToolbar — the one Align button (TODO/ui-060)', () => {
+  /** @type {ReturnType<typeof useDocumentStore>} */
+  let documentStore
+  /** @type {ReturnType<typeof useSelectionStore>} */
+  let selection
+
+  beforeEach(() => {
+    setActivePinia(createPinia())
+    documentStore = useDocumentStore()
+    selection = useSelectionStore()
+  })
+
+  /** @param {string} id */
+  function placeCube(id) {
+    documentStore.append(
+      { id, op: 'primitive.cuboid', name: id, params: { size: [10, 10, 10], center: [Number(id.slice(-1)) * 30, 0, 5] } },
+      { origin: 'local' },
+    )
+  }
+
+  /** @returns {DOMWrapper<HTMLElement>} */
+  function body() {
+    return new DOMWrapper(document.body)
+  }
+
+  it('there is no Snap button, only one Align', () => {
+    const wrapper = mount(OperationsToolbar)
+    expect(wrapper.find('[data-testid="operation-snap"]').exists()).toBe(false)
+    expect(wrapper.findAll('[data-testid="operation-align"]')).toHaveLength(1)
+  })
+
+  it('is enabled at exactly 1 and exactly 2 selected, and disabled with a hint at 0 and 3', async () => {
+    placeCube('cube-1')
+    placeCube('cube-2')
+    placeCube('cube-3')
+    const wrapper = mount(OperationsToolbar)
+    const align = wrapper.get('[data-testid="operation-align"]')
+
+    expect(align.attributes('disabled')).toBeDefined()
+    expect(align.attributes('title')).toBe('Select 1 or 2 solids')
+
+    selection.select('cube-1')
+    await wrapper.vm.$nextTick()
+    expect(align.attributes('disabled')).toBeUndefined()
+
+    selection.toggle('cube-2')
+    await wrapper.vm.$nextTick()
+    expect(align.attributes('disabled')).toBeUndefined()
+
+    selection.toggle('cube-3')
+    await wrapper.vm.$nextTick()
+    expect(align.attributes('disabled')).toBeDefined()
+    expect(align.attributes('title')).toBe('Select 1 or 2 solids')
+  })
+
+  it('toggles the popover open and shut, and it stays open after a committing tap', async () => {
+    placeCube('cube-1')
+    selection.select('cube-1')
+    const wrapper = mount(OperationsToolbar)
+    const align = wrapper.get('[data-testid="operation-align"]')
+
+    await align.trigger('click')
+    expect(body().find('[data-testid="align-popover"]').exists()).toBe(true)
+    expect(align.attributes('aria-expanded')).toBe('true')
+
+    const before = documentStore.raw.records.length
+    await body().get('[data-testid="align-x-min"]').trigger('click')
+    expect(documentStore.raw.records.length).toBe(before + 1)
+    expect(body().find('[data-testid="align-popover"]').exists()).toBe(true)
+
+    await align.trigger('click')
+    expect(body().find('[data-testid="align-popover"]').exists()).toBe(false)
+  })
+
+  it('closes itself when the selection grows past 2 while it is open', async () => {
+    placeCube('cube-1')
+    placeCube('cube-2')
+    placeCube('cube-3')
+    selection.selectMany(['cube-1', 'cube-2'])
+    const wrapper = mount(OperationsToolbar)
+    await wrapper.get('[data-testid="operation-align"]').trigger('click')
+    expect(body().find('[data-testid="align-popover"]').exists()).toBe(true)
+    selection.toggle('cube-3')
+    await wrapper.vm.$nextTick()
+    expect(body().find('[data-testid="align-popover"]').exists()).toBe(false)
+  })
+})
+
+/**
  * Sub-part-addressed operands for Snap/Align (`TODO/ui-035`).
  *
  * `core-013` registered `group.snap`/`group.align` as `rawOperands` entries that
@@ -415,15 +509,14 @@ describe('OperationsToolbar — sub-part-addressed Snap/Align operands (TODO/ui-
   }
 
   /**
-   * Open Align, check one axis, commit.
+   * Open Align, tap one axis's ◇ ctr (`TODO/ui-060`: one tap is the commit).
    *
    * @param {import('@vue/test-utils').VueWrapper} wrapper
    * @param {'x' | 'y' | 'z'} axis
    */
   async function commitAlign(wrapper, axis = 'x') {
     await wrapper.get('[data-testid="operation-align"]').trigger('click')
-    await body().get(`[data-testid="snap-align-axis-${axis}"]`).setValue(true)
-    await body().get('[data-testid="snap-align-commit"]').trigger('click')
+    await body().get(`[data-testid="align-${axis}-center"]`).trigger('click')
   }
 
   it('a drilled-in moving operand commits as { id, pieces }, while the whole-body reference stays a bare id', async () => {
@@ -501,12 +594,11 @@ describe('OperationsToolbar — sub-part-addressed Snap/Align operands (TODO/ui-
 
     const wrapper = mount(OperationsToolbar)
     await wrapper.get('[data-testid="operation-align"]').trigger('click')
-    expect(body().get('[data-testid="snap-align-operand-moving"]').text()).toBe('Group 1 › Cube 1')
-    expect(body().get('[data-testid="snap-align-operand-reference"]').text()).toBe('Group 2 › Base 1')
+    expect(body().get('[data-testid="align-operand-moving"]').text()).toBe('Group 1 › Cube 1')
+    expect(body().get('[data-testid="align-operand-target"]').text()).toBe('Group 2 › Base 1')
 
     const appendSpy = vi.spyOn(documentStore, 'append')
-    await body().get('[data-testid="snap-align-axis-x"]').setValue(true)
-    await body().get('[data-testid="snap-align-commit"]').trigger('click')
+    await body().get('[data-testid="align-x-center"]').trigger('click')
     const [record] = appendSpy.mock.calls[0]
     expect(record.target).toEqual({ id: 'group-1', pieces: 'Cube 1' })
     expect(record.operands).toEqual([{ id: 'group-2', pieces: 'Base 1' }])
@@ -566,15 +658,15 @@ describe('OperationsToolbar — sub-part-addressed Snap/Align operands (TODO/ui-
     selection.toggle('cyl-1')
 
     const wrapper = mount(OperationsToolbar)
-    await wrapper.get('[data-testid="operation-snap"]').trigger('click')
+    await wrapper.get('[data-testid="operation-align"]').trigger('click')
 
     // The new feedback this task's Interaction model asks for: a sub-part-
     // addressed snap looks identical on screen to a whole-object one, so the
     // depth being addressed has to be legible *before* the commit.
-    const operands = body().get('[data-testid="snap-align-operands"]')
+    const operands = body().get('[data-testid="align-operands"]')
     expect(operands.attributes('data-subpart')).toBe('true')
-    expect(body().get('[data-testid="snap-align-operand-moving"]').text()).toBe('Group 1 › Cube 1')
-    expect(body().get('[data-testid="snap-align-operand-reference"]').text()).toBe('Cylinder 1')
+    expect(body().get('[data-testid="align-operand-moving"]').text()).toBe('Group 1 › Cube 1')
+    expect(body().get('[data-testid="align-operand-target"]').text()).toBe('Cylinder 1')
     // And the stale disclaimer `core-016` filed a finding against is gone.
     expect(operands.text()).not.toContain("isn't available yet")
   })
@@ -587,10 +679,10 @@ describe('OperationsToolbar — sub-part-addressed Snap/Align operands (TODO/ui-
     const wrapper = mount(OperationsToolbar)
     await wrapper.get('[data-testid="operation-align"]').trigger('click')
 
-    const operands = body().get('[data-testid="snap-align-operands"]')
+    const operands = body().get('[data-testid="align-operands"]')
     expect(operands.attributes('data-subpart')).toBe('false')
-    expect(body().get('[data-testid="snap-align-operand-moving"]').text()).toBe('Group 1')
-    expect(body().get('[data-testid="snap-align-operand-reference"]').text()).toBe('Cylinder 1')
+    expect(body().get('[data-testid="align-operand-moving"]').text()).toBe('Group 1')
+    expect(body().get('[data-testid="align-operand-target"]').text()).toBe('Cylinder 1')
   })
 
   it('a sub-part the kernel rejects surfaces in the popover instead of throwing past the click', async () => {
@@ -606,10 +698,10 @@ describe('OperationsToolbar — sub-part-addressed Snap/Align operands (TODO/ui-
     const wrapper = mount(OperationsToolbar)
     await commitAlign(wrapper, 'x')
 
-    const error = body().get('[data-testid="snap-align-error"]')
+    const error = body().get('[data-testid="align-error"]')
     expect(error.text().length).toBeGreaterThan(0)
     // Popover stays open, nothing committed, both bodies untouched.
-    expect(body().find('[data-testid="snap-align-popover"]').exists()).toBe(true)
+    expect(body().find('[data-testid="align-popover"]').exists()).toBe(true)
     expect(documentStore.bodies).toHaveLength(2)
   })
 
@@ -891,12 +983,12 @@ describe('OperationsToolbar — operands chosen from the Objects list (TODO/ui-0
     objects.choose('shell')
     objects.choose('pi', true)
     const whole = mount(OperationsToolbar)
-    const enabledWhole = ['union', 'subtract', 'intersect', 'group', 'snap', 'align'].map(
+    const enabledWhole = ['union', 'subtract', 'intersect', 'group', 'align'].map(
       (op) => whole.get(`[data-testid="operation-${op}"]`).attributes('disabled') === undefined,
     )
     objects.choosePart('pi', 'ethernet', true)
     const drilled = mount(OperationsToolbar)
-    const enabledDrilled = ['union', 'subtract', 'intersect', 'group', 'snap', 'align'].map(
+    const enabledDrilled = ['union', 'subtract', 'intersect', 'group', 'align'].map(
       (op) => drilled.get(`[data-testid="operation-${op}"]`).attributes('disabled') === undefined,
     )
     expect(enabledDrilled).toEqual(enabledWhole)

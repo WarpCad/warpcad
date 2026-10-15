@@ -4,7 +4,7 @@
 bottom, or side face meets its walls — a rounded-over box lid, a bevelled shelf
 corner. They live on the same **Operations toolbar** as
 [Union, Subtract and Intersect](booleans.md), [Group](groups.md) and
-[Snap and Align](snap-align.md), as the seventh and eighth buttons.
+[Align](snap-align.md), as the sixth and seventh buttons.
 
 ## This rounds a whole face's rim, not one edge you click on
 
@@ -171,8 +171,8 @@ one that is too small to take it is refused too:
 - [Combining shapes: Union, Subtract and Intersect](booleans.md) and
   [Combining shapes into a group](groups.md) — the toolbar's other buttons,
   which need two or more shapes selected rather than exactly one.
-- [Precise placement: Snap and Align](snap-align.md) — the toolbar's other
-  exact-count-gated pair (exactly two, rather than Fillet/Chamfer's exactly
+- [Precise placement: Align](snap-align.md) — the toolbar's other
+  selection-count-gated tool (one or two, rather than Fillet/Chamfer's exactly
   one), and the popover pattern Fillet/Chamfer's own popover reuses.
 - [Resizing and cutting a shape: Enlarge, Fit and Bisect](resize-bisect.md) —
   the toolbar's other exactly-1-gated trio, reusing this pair's own popover

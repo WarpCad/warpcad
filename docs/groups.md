@@ -151,8 +151,8 @@ way you would reach any other hidden piece.
 - [Combining shapes: Union, Subtract and Intersect](booleans.md) — the same
   toolbar's other three buttons, which compute a new volume instead of keeping
   every part intact.
-- [Precise placement: Snap and Align](snap-align.md) — the same toolbar's fifth
-  and sixth buttons, which also keep every shape intact but, unlike Group,
+- [Precise placement: Align](snap-align.md) — the same toolbar's Align
+  button, which also keeps every shape intact but, unlike Group,
   never combine them into one selectable body at all.
 - [Placing a shape](primitive-placement.md) — getting shapes into the view in the
   first place.

@@ -36,12 +36,17 @@ describe('help topics', () => {
 
   it('covers the tool surfaces the TODO lists', () => {
     for (const id of [
-      'boolean', 'group', 'snap', 'align', 'mirror', 'fillet', 'chamfer', 'resize', 'bisect',
+      'boolean', 'group', 'align', 'mirror', 'fillet', 'chamfer', 'resize', 'bisect',
       'export', 'resolution', 'sketch', 'curve', 'slices', 'extrude', 'trace', 'scale', 'reference-image',
       'library', 'save-to-library', 'project-settings', 'assistant', 'file', 'split',
     ]) {
       expect(TOPICS, id).toHaveProperty(id)
     }
+  })
+
+  it('Snap and Align are one tool with one topic (TODO/ui-060)', () => {
+    expect(TOPICS).not.toHaveProperty('snap')
+    expect(TOPICS.align).toMatchObject({ page: 'snap-align', title: 'Align' })
   })
 
   it('resolves an unknown id to the Getting started page rather than throwing', () => {

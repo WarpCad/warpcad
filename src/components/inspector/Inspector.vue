@@ -125,7 +125,6 @@ import { useSelectedBody } from '../../composables/useSelectedBody.js'
 import { useSelectionStore } from '../../stores/selection.js'
 import { useHiddenPartVisibilityStore } from '../../stores/hiddenPartVisibility.js'
 import { useAlignReferenceStore } from '../../stores/alignReference.js'
-import AlignToOrigin from './AlignToOrigin.vue'
 import ObjectList from './ObjectList.vue'
 import BillOfMaterials from '../display/BillOfMaterials.vue'
 import DeleteButton from './DeleteButton.vue'
@@ -197,17 +196,16 @@ watch(
   },
 )
 
-// --- Align-to-origin's Reference hand-off (TODO/ui-050) -------------------
+// --- Align's Measure-from hand-off (TODO/ui-050, moved by TODO/ui-060) ----
 
 /**
  * When the user drills into a named part (`TODO/ui-016`) and then steps back
- * up, the Align-to-origin row's Reference preselects that part — "I tapped
+ * up, the Align popover's **Measure from** preselects that part — "I tapped
  * `mb`, now align from it" with no dropdown re-pick.
  *
- * This has to live here, in the always-mounted-while-single-selected parent,
- * rather than inside `AlignToOrigin.vue` itself: that component is unmounted
- * for exactly the state this watches (sub-part depth is where its own
- * `showRow` is false), so it can never observe its own step-up transition.
+ * This lives here, in the always-mounted-while-single-selected panel, rather
+ * than in `AlignPopover.vue`: the popover is only mounted while it is open, so
+ * it can never observe the step-up transition itself.
  */
 watch(
   () => selection.subPart,
@@ -973,14 +971,8 @@ watch([() => body.value?.id, colorPart], () => {
             </dd>
           </dl>
 
-          <!-- Align to origin (`TODO/ui-050`) — self-gated, "absent, not
-               disabled" the same way the Parts section above is: it
-               renders nothing at 2+ selected or at sub-part depth, both of
-               which are already impossible here (this whole branch is
-               `v-else-if="body"`, and `isSubPart` freezes everything else in
-               this section), and nothing for a bare solid's own Reference
-               dropdown, so it needs no extra guard from this file. -->
-          <AlignToOrigin />
+          <!-- No Align to origin row here any more: it moved into the Operations
+               toolbar's Align popover (`TODO/ui-060`). -->
         </section>
 
         <p v-if="isSubPart" class="inspector__note" data-testid="inspector-transform-note">

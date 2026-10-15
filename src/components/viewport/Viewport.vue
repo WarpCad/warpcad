@@ -141,6 +141,7 @@ import { useHiddenPartVisibilityStore } from '../../stores/hiddenPartVisibility.
 import { useHoverHighlightStore } from '../../stores/hoverHighlight.js'
 import { usePlacementStore } from '../../stores/placement.js'
 import { useSelectionStore } from '../../stores/selection.js'
+import { useAlignReferenceStore } from '../../stores/alignReference.js'
 import { useTimelineStore } from '../../stores/timeline.js'
 import { useSettingsStore } from '../../stores/settings.js'
 import { useSketchEditorStore } from '../../stores/sketchEditor.js'
@@ -252,6 +253,7 @@ defineProps({
 })
 const placement = usePlacementStore()
 const selection = useSelectionStore()
+const alignReference = useAlignReferenceStore()
 const settings = useSettingsStore()
 const preview = useTransformPreviewStore()
 const colorPreview = useColorPreviewStore()
@@ -1962,12 +1964,17 @@ function syncBodies() {
  * the scene list announces, so the DOM cannot claim an order the render does not
  * show.
  *
+ * While the Align popover is aligning the first-picked body to the **World origin** on a
+ * 2-selection (`TODO/ui-060`), the second body is not involved at all, so it shows no role
+ * colour rather than the teal that would read as "the target".
+ *
  * @param {string} id A body's lineage root id.
  * @returns {'base' | 'secondary' | 'none'}
  */
 function selectionRole(id) {
   if (!selection.has(id)) return 'none'
-  return selection.ids[0] === id ? 'base' : 'secondary'
+  if (selection.ids[0] === id) return 'base'
+  return alignReference.originOnly ? 'none' : 'secondary'
 }
 
 /**
@@ -3628,6 +3635,7 @@ onMounted(() => {
       },
     ),
     watch(() => selection.ids, applySelectionMaterial, { deep: true }),
+    watch(() => alignReference.originOnly, applySelectionMaterial),
     // The object list's hover (`TODO/ui-049`). The store hands out a fresh object only on
     // a real change, so this fires at hover-change rate, never pointer rate.
     watch(() => hoverHighlight.target, applyHover),
