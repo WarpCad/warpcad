@@ -41,7 +41,7 @@ unit-tested with an injected clock and exercised by synthetic pointer events onl
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | On an iPad and a phone, drag a rotate ring fast, then slow down: does the step feel right (coarse when flinging, `0.1°` when nearly stopped) and is the readout never under the fingertip? | Open | |
+| 1 | On an iPad and a phone, drag a rotate ring fast, then slow down: does the step feel right (coarse when flinging, `0.1°` when nearly stopped) and is the readout never under the fingertip? | OK | iPad: works OK (reported by the user 2026-10-15, no detail given). Phone not checked. |
 | 2 | Dial legibility in light and dark themes: tick density on a small ring, the `0/90/180/270` labels, and the readout pill contrast (`--surface-glass`). | Open | |
 
 ### ai-021 — WebMCP transport (2026-10-14 23:33)
