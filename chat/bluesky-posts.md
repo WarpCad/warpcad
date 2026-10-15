@@ -1759,3 +1759,13 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** `rotateStepDeg` no longer takes a pointer type (`src/render/rotateSnap.js`), unit tests pin mouse/touch/pen to the same bands; `e2e/rotate-dial.e2e.js` and `e2e/gizmo-transform.e2e.js` pass on Chromium, Firefox and WebKit at three widths; a real-mouse drive reloaded `-45.0°` and `-87.3°` exactly
 **To Add:** `docs/media/gizmo-rotate-dial.gif` (generated); repo URL once public
+
+
+## 2026-10-15T10:10:00Z — Claude Code and the app edit one file
+
+**Post:** Claude Code and WarpCad can now edit the same project file without anyone losing work. Move a part in the app, ask Claude Code for a sphere, switch back: the sphere merges in, your move stays, one note says what came in, and Undo merge takes it back. A dialog only shows up if the file is a different project. Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** `mcp/server.spec.js` and `src/stores/diskChange.spec.js` pin one replica id per server process, a bounded re-read when the file changes mid-call, and merge-before-save; `e2e/mcp-merge.e2e.js` drives the real `mcp/server.js` against a real file (handle path Chromium only, Merge file… route on Chromium, Firefox and WebKit at three widths); 4618 unit tests passed
+**To Add:** `docs/screenshots/mcp-merged.png` (generated); repo URL once public

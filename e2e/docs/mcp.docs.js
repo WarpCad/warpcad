@@ -8,9 +8,10 @@ import { join } from 'node:path'
 import { settle, shot } from './support.js'
 
 /**
- * Docs media for `docs/mcp.md` (`TODO/ai-009`): the "changed on disk — Reload" dialog the app
- * shows after the MCP server edits the open file, and the History row that Reload brings in,
- * marked `via mcp` with its intent. The edit is made by **the real server** (`mcp/server.js`
+ * Docs media for `docs/mcp.md` (`TODO/ai-009`, `TODO/io-010`): the note the app shows after the
+ * MCP server edits the open file — **Merged 1 step from Claude Code**, with Undo merge — beside
+ * the History row it brought in, marked `via mcp` with its intent. No dialog: the change merges
+ * on focus. The edit is made by **the real server** (`mcp/server.js`
  * over stdio, as Claude Code drives it), on a real file the page reads through a File System
  * Access handle backed by `page.exposeFunction` — the one thing nothing headless can click is
  * the OS picker. Laptop, Chromium only.
@@ -82,7 +83,12 @@ test.describe('docs media: MCP server', () => {
     await expect(viewport).toHaveAttribute('data-body-count', '1')
     await addBasePlate(file)
     await page.evaluate(() => window.dispatchEvent(new Event('focus')))
-    await expect(page.getByTestId('disk-change')).toBeVisible()
+    await expect(page.getByTestId('merge-toast')).toBeVisible()
+    await expect(viewport).toHaveAttribute('data-body-count', '2')
+    await page.getByTestId('timeline-toggle').click()
+    await expect(page.getByTestId('timeline-panel')).toBeVisible()
+    await page.getByTestId('timeline-intent-toggle').click()
+    await expect(page.getByTestId('timeline-intent')).toContainText('add a 3 mm base plate under the bracket')
     await settle(page)
   })
   // `afterEach` also runs for a test the laptop-only skip above skipped, when `dir` was never set.
@@ -90,19 +96,7 @@ test.describe('docs media: MCP server', () => {
     if (dir) rmSync(dir, { recursive: true, force: true })
   })
 
-  test('mcp-reload-prompt still', async ({ page }) => {
-    await page.getByTestId('disk-change-cancel').blur()
-    await shot(page, 'mcp-reload-prompt.png', { locator: page.getByTestId('disk-change') })
-  })
-
-  test('mcp-history-row still', async ({ page }) => {
-    await page.getByTestId('disk-change-reload').click()
-    await expect(page.getByTestId('viewport')).toHaveAttribute('data-body-count', '2')
-    await page.getByTestId('timeline-toggle').click()
-    const panel = page.getByTestId('timeline-panel')
-    await expect(panel).toBeVisible()
-    await page.getByTestId('timeline-intent-toggle').click()
-    await expect(page.getByTestId('timeline-intent')).toContainText('add a 3 mm base plate under the bracket')
-    await shot(page, 'mcp-history-row.png', { locator: panel })
+  test('mcp-merged still', async ({ page }) => {
+    await shot(page, 'mcp-merged.png')
   })
 })

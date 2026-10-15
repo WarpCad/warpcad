@@ -238,9 +238,12 @@ export const useMergeStore = defineStore('merge', () => {
    *
    * @param {import('../core/merge/state.js').MergeState} state
    * @param {string} sourceName The file name, as the user picked it.
+   * @param {(change: MergeChange) => string} [labelFor] `TODO/io-010`: what the summary calls the
+   *   source once the change is known (`Claude Code` when every incoming row came from the MCP
+   *   server); omitted, `sourceName`. A refusal always names the file.
    * @returns {MergeResult}
    */
-  function mergeIn(state, sourceName) {
+  function mergeIn(state, sourceName, labelFor) {
     const base = mergeSnapshotOf(live())
     /** @type {ReturnType<typeof documentStore.mergeFrom>} */
     let outcome
@@ -254,7 +257,7 @@ export const useMergeStore = defineStore('merge', () => {
       return { ok: false, text }
     }
     const { change, conflicts } = outcome
-    const text = describeMerge(change, conflicts, sourceName)
+    const text = describeMerge(change, conflicts, labelFor === undefined ? sourceName : labelFor(change))
     const nothing = isEmpty(change)
     last = nothing ? null : { base, merged: mergeSnapshotOf(live()), change, sourceName }
     available.value = !nothing

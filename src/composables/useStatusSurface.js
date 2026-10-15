@@ -13,8 +13,9 @@
  * 0. a **load in progress** (`Opening <name>…`, `Restoring your last session…`,
  *    `TODO/core-032`) — what is happening right now, painted before the fold blocks;
  * 1. a **local persistent error** (`Not saved — browser storage unavailable`, a refused file);
- * 1b. the opened file **changed on disk** (`File changed on disk — Reload`, `TODO/ai-009`) — it
- *    needs the user, and the newer bytes are on disk, not in the repository;
+ * 1b. the opened file **changed on disk** — `File changed on disk — Reload` when it needs the
+ *    user (a different project, unreadable; `TODO/ai-009`), `Changes waiting to merge` while a
+ *    merge waits for a drag to end (`TODO/io-010`);
  * 2. a **hosted persistent error** (token rejected, no network, a bad remote file);
  * 3. a hosted state that needs the user or is happening now — `paused`/diverged, `pushing`,
  *    `pending` — because a transient "Saved · 14:02" must not reassure while the repository
@@ -77,7 +78,7 @@ export function useStatusSurface() {
     if (persistence.errorMessage) return { text: persistence.errorMessage, tone: 'error' }
     // What the last load left out (`TODO/sketch-003`): outlives the autosave that follows it.
     if (persistence.loadWarning) return { text: persistence.loadWarning, tone: 'error' }
-    if (persistence.diskChanged) return { text: DISK_CHANGED_TEXT, tone: 'warn' }
+    if (persistence.diskChanged) return { text: persistence.chipText, tone: 'warn' }
     if (hosted.connected) {
       if (hosted.errorMessage) return { text: hosted.errorMessage, tone: 'error' }
       const dot = hosted.dotState

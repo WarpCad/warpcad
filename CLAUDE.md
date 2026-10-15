@@ -456,22 +456,24 @@ Two access paths, both planned, served by **one** framework-free tool registry
 (`src/ai/tools/`) — neither path adds tools of its own (`docs/decisions/ai-partner.md`):
 - **MCP server** (`mcp/server.js`, `docs/mcp.md`) — reads and writes one local project
   file, so Claude Code can drive modeling (a hosted project reference is not built yet).
-  **Stated explicitly, as this section asks:** the document/sync layer as built today does
-  **not** support concurrent merge — that is M15's work (decided and accepted in `docs-022`; `docs/decisions/document-sync.md`), which merges a changed file
-  automatically with **Undo merge** in place of the dialog below, and lets the human keep
-  editing during an AI turn (done for the in-app chat by `ai-017`, below). Until it lands, the single-writer rules below are what ships,
-  and `nextId`'s per-document counter is unique only because there is one writer — M15 makes
-  record ids replica-scoped (`data-008`) before any merge path exists. So v1's MCP server
-  edits a **closed** project file only. Concretely:
-  every call re-reads the file (reloading if anything else changed it); a write takes
-  `<file>.lock` for that one read-modify-write (so two servers serialise, never interleave),
-  writes a temp file and renames it over the original, and a refused call writes nothing.
-  The app re-reads a file it holds a File System Access handle for (desktop Chromium only)
-  on window focus and before every in-place Save, and on a difference asks **Reload /
-  Overwrite the file / Cancel** — no merge, and Save never overwrites without that answer.
-  Engines without a handle (Safari, Firefox, every phone) cannot see the change; the user
-  re-Opens the file. The localhost live-editing bridge is `ai-012`, built for the **dev host
-  only** (`npm run dev`, `mcp/liveBridge.js` + `mcp/bridge.js`, registered with
+  **The file can be open in the app at the same time** (`io-010`, on top of `docs-022`'s merge,
+  `docs/decisions/document-sync.md`): every call re-reads the file; the server is one replica for
+  its whole process, its clock observes every stamp it reads so its writes are always later; a
+  write takes `<file>.lock` for that one read-modify-write (so two servers serialise, never
+  interleave — the lock guards a torn write and a stale shared read, not lost work), writes a temp
+  file and renames it over the original, and a refused call writes nothing. If the file changes
+  between the server's read and its write (the app saved), the call is re-read, re-applied and
+  written, up to three attempts, then refused with nothing written. The server does no merge of
+  its own. The app **merges** a changed file into the open project (`mergeIn`, the merge toast
+  with **Undo merge** or the conflict banner) when it has a File System Access handle for it
+  (desktop Chromium only) — on window focus, on the tab becoming visible, and before every
+  in-place Save, which merges first and then writes; a merge waits (`Changes waiting to merge`)
+  while a drag or field edit is in progress. The Reload / Overwrite the file / Cancel dialog
+  remains only for a file that is a **different project** or **cannot be read**, and behind
+  **File ▾ → Reload from disk** ("discard mine, take the file"). Engines without a handle
+  (Safari, Firefox, every phone) cannot see the change; the user chooses **File ▾ → Merge file…**
+  and picks the project file. The localhost live-editing bridge is `ai-012`, built for the **dev
+  host only** (`npm run dev`, `mcp/liveBridge.js` + `mcp/bridge.js`, registered with
   `npm run mcp:add -- --dev`): one writer (the open tab) with the AI as its client, not as a
   merge — each call lands as one `mcp`-origin batch, a group per `request` is one **Undo AI
   turn**, and a pairing code gates the link. The standalone `mcp/server.js --live` host for a

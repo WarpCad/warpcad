@@ -5,9 +5,9 @@ client, open a WarpCad project file, read it, and add steps to it. It uses the s
 in-app [Assistant](ai-partner.md): place a shape, run an operation, measure, check printability.
 The steps it adds show up in the app's History marked **via mcp**, along with what you asked for.
 
-It works on a project **file on your computer**, not on the app while it is running. The app
-picks up the changes when you come back to it (see [Seeing the changes in the
-app](#seeing-the-changes-in-the-app)). If you run WarpCad yourself with `npm run dev`, there is
+It works on a project **file on your computer**, not on the app while it is running. If the app
+has the same file open, it merges the changes into your open project when you come back to it
+(see [Working on a project you have open](#working-on-a-project-you-have-open)). If you run WarpCad yourself with `npm run dev`, there is
 also a [live mode](#live-mode-claude-code-edits-the-project-you-have-open) where Claude's
 changes appear in the open app as it makes them.
 
@@ -23,7 +23,7 @@ limits, and mark what they add in History. With your own API key, you can also t
 
 | Way in | What it needs | Where it works | Changes appear |
 |---|---|---|---|
-| **Claude Code on a project file** (this page) | Claude Code, a WarpCad checkout with Node.js 22+, a saved `.ndjson` file | Any computer. The app sees the changes when you open the file, or choose **Reload** | In the file, marked **via mcp** |
+| **Claude Code on a project file** (this page) | Claude Code, a WarpCad checkout with Node.js 22+, a saved `.ndjson` file | Any computer. Chrome or Edge merge the changes into the open project when you switch back; other browsers use **File ▾ → Merge file…** | In the file, marked **via mcp** |
 | **[Live mode](#live-mode-claude-code-edits-the-project-you-have-open)** | Claude Code and WarpCad running under `npm run dev`, a pairing code | A desktop browser on the same computer as Claude Code | In the open tab as they land, marked **via mcp** |
 | **[Browser agents (WebMCP)](webmcp.md)** | Chrome with the WebMCP flag, and an agent that runs in the browser | Any copy of WarpCad, hosted or local, on desktop Chrome | In the open tab as they land, marked **via webmcp** |
 
@@ -56,12 +56,13 @@ app, **File ▾ → Save** (or **Download copy**) writes a `.ndjson` file.
    Claude reads the scene, places a 3 mm plate and tells you which History row it added (for
    example *row 2, Place Cube 1*).
 
-4. Open `bracket.ndjson` in WarpCad (**File ▾ → Open…**). If it was already open, switch back to
-   the WarpCad window and choose **Reload**. The new step is in **History**, marked **via mcp**.
-   Tap the note icon on the row to see *add a 3 mm base plate under the bracket*, the request
-   that made it.
+4. Open `bracket.ndjson` in WarpCad (**File ▾ → Open…**). If it was already open in Chrome or
+   Edge, just switch back to the WarpCad window: the new step is merged in and a note says
+   **Merged 1 step from Claude Code**. The step is in **History**, marked **via mcp**. Tap the
+   note icon on the row to see *add a 3 mm base plate under the bracket*, the request that made
+   it. In Safari, Firefox or on a phone, use **File ▾ → Merge file…** instead (see below).
 
-![The History panel after Reload: row 1 is the Bracket, row 2 "Cube 1 — placed" has a "via mcp" chip, and its expanded note reads "add a 3 mm base plate under the bracket — Base plate".](./screenshots/mcp-history-row.png)
+![The note "Merged 1 step from Claude Code" with an Undo merge button over the viewport, and the History panel with row 2 marked "via mcp".](./screenshots/mcp-merged.png)
 
 The server edits exactly one file, the one named on the command line. If that file doesn't exist
 yet, it starts an empty project and creates the file on the first change.
@@ -106,33 +107,52 @@ Every change Claude makes carries **why** it was made: the words of your request
 own one-line reason. That's what you see on the History row's note, the same as for the in-app
 Assistant ([Design intent](design-intent.md)).
 
-## Seeing the changes in the app
+## Working on a project you have open
 
-The server edits the **file**. It can't reach into a WarpCad window that has the same file open,
-and it doesn't try to merge anything. How the app notices depends on the browser:
+You do not have to close the project first. Claude Code and the app can both edit the same file,
+and WarpCad **merges** what Claude did into what you have open. Neither side's work is thrown away.
+
+**Example.**
+
+1. In Chrome or Edge, **File ▾ → Open…** your project file and leave it open. Move the cube; don't
+   save yet.
+2. In Claude Code say *add a 20 mm sphere on top of the cube*.
+3. Click back into WarpCad. The sphere appears, the cube stays where you moved it, and a note says
+   **Merged 1 step from Claude Code**. No dialog asks you anything.
+4. Press **Undo merge** on the note if you do not want the sphere. Otherwise **Save**: the file now
+   has your move and Claude's sphere.
+
+How the app finds out depends on the browser:
 
 | Browser | Notices the change? | What to do |
 |---|---|---|
-| Chrome or Edge on a computer | **Yes**, when you switch back to the WarpCad window or tab, and before every **Save** | Choose **Reload** in the dialog. |
-| Safari, Firefox, and every phone and tablet | **No.** These browsers hand WarpCad a one-time copy of the file when you open it, so the app can't look at it again | **File ▾ → Open…** the file again. |
+| Chrome or Edge on a computer | **Yes**, when you switch back to the WarpCad window or tab, and before every **Save** | Nothing. The change is merged in. |
+| Safari, Firefox, and every phone and tablet | **No.** These browsers hand WarpCad a one-time copy of the file when you open it, so the app can't look at it again | **File ▾ → Merge file…**, then pick the project file. Your open project stays as it is and the file's new steps are added. See [Merging two copies of a project](merging.md). |
 
-On Chrome or Edge, coming back to WarpCad after Claude has changed the file shows this:
+What you see:
 
-![The dialog "bracket.ndjson changed on disk since you opened or saved it." with three buttons: Reload (replaces this project), Overwrite the file with this project, and Cancel.](./screenshots/mcp-reload-prompt.png)
+- **A note** (**Merged 1 step from Claude Code**) with **Undo merge**. When some of the steps came
+  from somewhere other than Claude Code it names the file instead, for example **Merged 2 steps
+  from bracket.ndjson**.
+- **A yellow strip** when you and Claude changed the same step in ways that can't both be kept,
+  for example you moved a cube and Claude filleted it. **Show** opens the step in History. See
+  [What a conflict is](merging.md#what-a-conflict-is).
+- **Changes waiting to merge** in the status light, when the file changed while you were dragging
+  or typing in a number field. It merges the moment you let go.
+- **Save** merges first, then writes. It never writes over a change it hasn't merged.
 
-- **Reload (replaces this project)** loads the file as it is now, with Claude's new steps. Any
-  edits you made in the app since you last opened or saved the file are dropped, and Undo starts
-  empty, as after any Open.
-- **Overwrite the file with this project** writes what you have in the app over the file. Claude's
-  changes are lost.
-- **Cancel** leaves both alone. The status light in the top bar keeps saying **File changed on
-  disk — Reload**. Tap it, or choose **File ▾ → Reload bracket.ndjson from disk…**, to get the
-  dialog back. Switching windows again won't ask about the same change twice.
+The app still asks, with a dialog, in two cases, because there is nothing safe to do on its own:
 
-Nothing is ever merged. **Save** won't silently overwrite Claude's changes either: while the file
-differs, **Save** brings up this dialog instead of writing.
+- **The file is a different project** (someone put another project in that file name).
+- **The file can't be read** (it was cut off, or was written by a newer WarpCad).
 
-The simplest habit: let Claude work on a file you don't have open, then open it.
+The dialog's first line says which. **Reload** replaces this project with the file, **Overwrite the
+file** writes this project over it, and **Cancel** leaves both alone; the status light then says
+**File changed on disk — Reload**, and tapping it asks again.
+
+**File ▾ → Reload from disk…** is always there on Chrome and Edge when a file is open. It is the
+explicit "throw away what I have here, take the file": it asks the same three-answer question,
+and **Reload** drops the edits you have not saved and clears Undo, as after any Open.
 
 ## Live mode: Claude Code edits the project you have open
 
@@ -230,7 +250,8 @@ any address but this computer's loopback. Without the code, nothing reaches your
 - **A refused change leaves the file untouched**, byte for byte.
 - **Writes are all-or-nothing.** The server writes a new copy beside the file and then swaps it in,
   so the file is never left half-written. A lock file (`bracket.ndjson.lock`, there only while a
-  write is happening) stops two servers on the same file from overwriting each other.
+  write is happening) stops two servers on the same file from overwriting each other, and if the app saves the file
+  while a change is running, the server reads it again and redoes the change on top.
 
 ## What the file holds
 
@@ -238,8 +259,9 @@ The file is plain NDJSON: one line per step, exactly as the server appended it, 
 something has been edited — one last `project-state` line. That line carries what was hidden,
 rolled back or noted, and a `merge` section: a small record of which copy wrote each step and
 when, and which steps were deleted. The server keeps every part of it that a call did not touch,
-so a copy you edit through Claude and a copy you edit in the app can later be told apart and
-merged. A file that has never been edited has no such line, and one that is opened and saved
+and writes its own steps as one copy that is always later than anything it read, so a file you
+edit through Claude and the same file you edit in the app are merged by the app (see
+[Working on a project you have open](#working-on-a-project-you-have-open)). A file that has never been edited has no such line, and one that is opened and saved
 unchanged keeps its bytes.
 
 ## When something goes wrong
@@ -255,8 +277,10 @@ Every message names the file and says that nothing was written to it.
 - **Another WarpCad MCP server (process 1234) is writing bracket.ndjson…** Another server was in
   the middle of a write for more than ten seconds. Try again. A lock left behind by a server that
   crashed is cleared automatically.
-- **bracket.ndjson changed on disk while this call ran.** Something else saved the file during
-  that change. Nothing was written; ask again.
+- **bracket.ndjson changed on disk while this call ran.** The app or another program kept saving
+  the file during that change, three times in a row. Nothing was written; ask again. (A single
+  save during a change is no problem: the server reads the file again and redoes the change on
+  top of it.)
 
 ## Not yet
 

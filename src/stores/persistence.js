@@ -40,28 +40,31 @@
  * atomic `loadEntries` run. A refusal is unchanged, just after the pending state, which it
  * clears. While one load is pending no other Open or Load can start.
  *
- * ## The opened file changed on disk (`TODO/ai-009`)
+ * ## The opened file changed on disk (`TODO/ai-009`, `TODO/io-010`)
  *
- * The MCP server (`mcp/server.js`) edits a **closed** project file; if the app has the same
- * file open, the server cannot know (`docs/decisions/ai-partner.md` decision 6). So the app
- * looks: on window focus, on the tab becoming visible, and before every in-place Save, it
- * re-reads the file it opened or last saved (`FileStorage.readCurrent`) and compares the bytes
- * with what it last read or wrote. A difference sets `diskChanged`, the chip reads
- * {@link DISK_CHANGED_TEXT}, and the `disk-change` dialog asks — the hosted conflict dialog's
- * rules for a local file: **Reload** (replace this project with the file), **Overwrite the
- * file** (write this project over it), or **Cancel** (decide later; the chip keeps saying so,
- * and tapping it asks again). **No merge, ever**, and nothing is overwritten without that
- * explicit answer: an in-place Save while the file has changed raises the dialog instead of
- * writing.
+ * The MCP server (`mcp/server.js`) edits the project file; the app may have the same file open.
+ * So the app looks: on window focus, on the tab becoming visible, and before every in-place
+ * Save, it re-reads the file it opened or last saved (`FileStorage.readCurrent`) and compares
+ * the bytes with what it last read or wrote. A difference is **merged in** (`TODO/io-010`, with
+ * `ui-062`'s `mergeIn`): nothing the user did here is thrown away and nothing the file gained is
+ * ignored; the merge toast (or conflict banner) says what came in, with **Undo merge**.
+ *
+ * - A merge needs a quiet moment: while a drag, a field edit, a popover or a dialog is open
+ *   (`setUiBusy`), or History is being previewed, the change waits and the chip reads
+ *   {@link WAITING_TEXT}; the merge runs when it ends.
+ * - **Save** runs the check first and merges before it serialises, so it never writes over a
+ *   change it has not merged — also on the path that falls back to a download (`io-008`).
+ * - The dialog is kept only where there is nothing safe to do automatically: the file is a
+ *   **different project**, or cannot be read. Its three answers are **Reload** (replace this
+ *   project with the file), **Overwrite the file**, **Cancel**; the chip then reads
+ *   {@link DISK_CHANGED_TEXT} and tapping it asks again. File ▾ → **Reload from disk** asks the
+ *   same question on demand ({@link askReloadFromDisk}) — "discard mine, take the file".
  *
  * What can be seen depends on the engine, and the UI never pretends otherwise
  * (`diskCanWatch`): only a file opened or saved through **File System Access** (desktop
  * Chromium) has a handle to read again. A file picked with `<input type=file>` — Firefox,
  * Safari, every phone and tablet — is a one-time copy, so a change to it cannot be noticed;
- * **File ▸ Open…** again is how its new rows come in (`docs/mcp.md`).
- *
- * The dialog waits while a drag or another dialog is open (`setUiBusy`, wired by the File
- * menu exactly as for the hosted conflict), so it never lands under a finger.
+ * **File ▸ Merge file…** (`ui-062`) is how its new rows come in (`docs/mcp.md`).
  *
  * ## Restore goes through the same seeding as everything else
  *
@@ -82,7 +85,8 @@ import { createFileStorage } from '../storage/fileSystem.js'
 import { createIndexedDbBackend } from '../storage/indexeddb.js'
 import { createLocalStorageMirror } from '../storage/localMirror.js'
 import { useDocumentStore } from './document.js'
-import { mergeStateOfProject, useMergeStore } from './merge.js'
+import { differentProjectText, mergeStateOfProject, useMergeStore } from './merge.js'
+import { UnrelatedProjectError } from '../core/document.js'
 
 /** How long the "Restored your last session" notice stays before the chip returns to rest. */
 const RESTORED_NOTICE_MS = 6000
@@ -94,6 +98,10 @@ const REFUSED_NOTICE_MS = 12000
 
 /** The chip's words while the opened file has changed on disk (`TODO/ai-009`). */
 export const DISK_CHANGED_TEXT = 'File changed on disk — Reload'
+/** The chip's words while a change from the file waits for a quiet moment to merge (`TODO/io-010`). */
+export const WAITING_TEXT = 'Changes waiting to merge'
+/** What the merge toast calls the source when every incoming row has origin `mcp`. */
+const MCP_SOURCE_NAME = 'Claude Code'
 
 /**
  * @typedef {object} PersistenceDependencies
@@ -252,6 +260,13 @@ export const usePersistenceStore = defineStore('persistence', () => {
    * @type {import('vue').ShallowRef<{ name: string, text: string, lastModified: number } | null>}
    */
   const diskChange = shallowRef(null)
+  /**
+   * Why the pending change cannot be merged automatically — the dialog's detail — or `''` while it
+   * simply waits for a quiet moment (`TODO/io-010`). `manual` is File ▾ → Reload from disk.
+   */
+  const diskIssue = ref('')
+  /** Whether {@link diskIssue} is the user asking to reload rather than a problem. */
+  let diskIssueManual = false
   /** Whether the user wants the dialog showing (false after Cancel, until asked again). */
   const diskPromptWanted = ref(false)
   /** A drag or another dialog is in the way; set by the File menu. */
@@ -263,7 +278,13 @@ export const usePersistenceStore = defineStore('persistence', () => {
 
   const diskChanged = computed(() => diskChange.value !== null)
   const diskChangeName = computed(() => diskChange.value?.name ?? '')
-  const diskPromptOpen = computed(() => diskChange.value !== null && diskPromptWanted.value && !uiBusy.value)
+  /** A change is pending and a person has to decide (different project, unreadable, or asked). */
+  const diskNeedsAnswer = computed(() => diskChange.value !== null && diskIssue.value !== '')
+  /** A change is pending and will merge by itself at the next quiet moment. */
+  const diskWaiting = computed(() => diskChange.value !== null && diskIssue.value === '')
+  const diskPromptOpen = computed(() => diskNeedsAnswer.value && diskPromptWanted.value && !uiBusy.value)
+  const diskIssueText = computed(() => diskIssue.value)
+  const diskIssueIsManual = computed(() => diskNeedsAnswer.value && diskIssueManual)
 
   /** @type {ReturnType<typeof setTimeout> | null} */
   let noticeTimer = null
@@ -302,6 +323,14 @@ export const usePersistenceStore = defineStore('persistence', () => {
     }
   )
 
+  // A merge held back by History preview or a running Assistant turn goes ahead when that ends.
+  watch(
+    () => mergeStore.unavailableReason,
+    (reason) => {
+      if (reason === '' && diskWaiting.value) void mergePendingDiskChange({ force: false })
+    },
+  )
+
   const autosaver = createAutosaver({
     backend: deps.backend,
     mirror: deps.mirror,
@@ -335,7 +364,7 @@ export const usePersistenceStore = defineStore('persistence', () => {
     if (loading.value) return loading.value
     if (errorMessage.value) return errorMessage.value
     if (loadWarning.value) return loadWarning.value
-    if (diskChange.value !== null) return DISK_CHANGED_TEXT
+    if (diskChange.value !== null) return diskIssue.value === '' ? WAITING_TEXT : DISK_CHANGED_TEXT
     if (notice.value) return notice.value
     if (autosaveState.value === 'saving') return 'Saving…'
     if (autosaveState.value === 'saved') return `Saved · ${clock(savedAt.value)}`
@@ -517,9 +546,10 @@ export const usePersistenceStore = defineStore('persistence', () => {
    * Save the project to a file: `Save`/`Save As…` where the browser can write a
    * file in place, otherwise a downloaded copy. Sets the chip either way.
    *
-   * An in-place Save first looks at the file (`TODO/ai-009`): if it changed on disk since this
-   * session read or wrote it, nothing is written and the disk-change dialog asks instead —
-   * `{ ok: false, conflict: true }`.
+   * An in-place Save first looks at the file (`TODO/ai-009`, `TODO/io-010`): if it changed on
+   * disk since this session read or wrote it, the change is merged in first and the merged
+   * project is what is written. Only a change that cannot be merged (a different project, an
+   * unreadable file) writes nothing and asks in the dialog — `{ ok: false, conflict: true }`.
    *
    * @param {{ saveAs?: boolean }} [options]
    * @returns {Promise<import('../storage/fileSystem.js').SaveResult | { ok: false, conflict: true }>}
@@ -527,8 +557,10 @@ export const usePersistenceStore = defineStore('persistence', () => {
   async function saveFile({ saveAs = false } = {}) {
     if (!saveAs && diskKnown !== null && deps.files.capabilities.mode === 'native') {
       await checkDiskFile()
+      // Saving is the user asking now: a merge held back only by an open menu goes ahead.
+      if (diskWaiting.value) await mergePendingDiskChange({ force: true })
       if (diskChange.value !== null) {
-        diskPromptWanted.value = true
+        if (diskIssue.value !== '') diskPromptWanted.value = true
         return { ok: false, conflict: true }
       }
     }
@@ -548,8 +580,7 @@ export const usePersistenceStore = defineStore('persistence', () => {
     if (result.ok && result.mode === 'native') {
       // Now in step with the file this handle points at (a Save As points it somewhere new).
       diskKnown = { text, lastModified: null }
-      diskChange.value = null
-      diskPromptWanted.value = false
+      clearPending()
       diskCanWatch.value = true
     }
     // The file layer's capabilities can change under a Save (`TODO/io-008`); the menu reads the ref.
@@ -627,8 +658,7 @@ export const usePersistenceStore = defineStore('persistence', () => {
       deps.files.adopt(picked)
       // `TODO/ai-009`: only a native pick can be read again, so only it can be watched.
       diskKnown = picked.handle === undefined ? null : { text: picked.text, lastModified: picked.lastModified ?? null }
-      diskChange.value = null
-      diskPromptWanted.value = false
+      clearPending()
       diskCanWatch.value = diskKnown !== null
     }
     return opened
@@ -718,15 +748,14 @@ export const usePersistenceStore = defineStore('persistence', () => {
   /** The project no longer comes from the file this session was watching. */
   function forgetDisk() {
     diskKnown = null
-    diskChange.value = null
-    diskPromptWanted.value = false
+    clearPending()
     diskCanWatch.value = false
   }
 
   /**
-   * Look at the opened file on disk and raise the disk-change dialog if it changed
-   * (`TODO/ai-009`). Never throws; a no-op when nothing can be watched. Concurrent calls share
-   * one read.
+   * Look at the opened file on disk and merge what changed (`TODO/ai-009`, `TODO/io-010`).
+   * Never throws; a no-op when nothing can be watched. Concurrent calls share one read. The
+   * returned promise settles after the merge, so a caller that goes on to write sees it done.
    *
    * @returns {Promise<void>}
    */
@@ -742,29 +771,141 @@ export const usePersistenceStore = defineStore('persistence', () => {
       if (read.text === known.text) {
         // Rewritten with the same bytes (a touch, our own Save), or changed back.
         known.lastModified = read.lastModified
-        diskChange.value = null
+        if (!diskIssueManual) clearPending()
         return
       }
       const pending = diskChange.value
       if (pending !== null && pending.text === read.text) {
         diskChange.value = { ...pending, lastModified: read.lastModified }
-        return
+        // A Cancelled question stays cancelled; a change that is only waiting goes on waiting.
+        if (diskIssue.value !== '') return
+      } else {
+        diskChange.value = { name: read.name, text: read.text, lastModified: read.lastModified }
+        diskIssue.value = ''
+        diskIssueManual = false
+        diskPromptWanted.value = false
       }
-      diskChange.value = { name: read.name, text: read.text, lastModified: read.lastModified }
-      diskPromptWanted.value = true
+      await mergePendingDiskChange({ force: false })
     })().finally(() => {
       diskCheck = null
     })
     return diskCheck
   }
 
+  function clearPending() {
+    diskChange.value = null
+    diskIssue.value = ''
+    diskIssueManual = false
+    diskPromptWanted.value = false
+  }
+
+  /** @type {Promise<void> | null} */
+  let diskMerge = null
+
   /**
-   * The disk-change dialog's three answers. **No merge, ever.**
+   * Merge the pending file change into the open project, if this is a quiet moment
+   * (`TODO/io-010`). A different project or a file this build cannot read becomes
+   * {@link diskIssue} and raises the dialog; anything else is merged through `ui-062`'s
+   * `mergeIn`, announced like any merge, and `diskKnown` moves to the bytes just merged.
+   *
+   * @param {{ force: boolean }} options `force` ignores a popover or dialog being open (Save).
+   * @returns {Promise<void>}
+   */
+  function mergePendingDiskChange({ force }) {
+    diskMerge ??= (async () => {
+      // A change can arrive while a merge runs; go round again for it, a bounded number of times.
+      for (let round = 0; round < 3; round += 1) {
+        const pending = diskChange.value
+        if (pending === null || diskIssue.value !== '' || loading.value) return
+        if (!quietForMerge(force)) return
+        const mergeStore = useMergeStore()
+        /** @type {ReturnType<typeof parseProject>} */
+        let parsed
+        /** @type {import('../core/merge/state.js').MergeState} */
+        let state
+        try {
+          parsed = parseProject(pending.text)
+          state = mergeStateOfProject(parsed, toRaw(documentStore.raw).foldCache)
+        } catch (error) {
+          raiseDiskIssue(`Couldn't read ${pending.name}: ${reasonOf(error)}`)
+          return
+        }
+        const origins = new Map(parsed.entries.map((entry) => [entry.record.id, entry.origin]))
+        const outcome = await announced(`Merging ${pending.name}…`, () => {
+          try {
+            return mergeStore.mergeIn(state, pending.name, (change) => {
+              const incoming = [...change.added, ...change.revised]
+              return incoming.length > 0 && incoming.every((id) => origins.get(id) === 'mcp') ? MCP_SOURCE_NAME : pending.name
+            })
+          } catch (error) {
+            return { ok: /** @type {const} */ (false), text: reasonOf(error), unrelated: error instanceof UnrelatedProjectError }
+          }
+        })
+        if (diskKnown === null) return
+        if (!outcome.ok) {
+          raiseDiskIssue(differentProjectText(pending.name))
+          return
+        }
+        errorMessage.value = ''
+        showNotice(outcome.text, SAVED_NOTICE_MS)
+        diskKnown = { text: pending.text, lastModified: pending.lastModified }
+        if (diskChange.value === pending) {
+          clearPending()
+          return
+        }
+      }
+    })().finally(() => {
+      diskMerge = null
+    })
+    return diskMerge
+  }
+
+  /**
+   * @param {boolean} force
+   * @returns {boolean} Whether nothing is in the way of a merge landing right now.
+   */
+  function quietForMerge(force) {
+    if (uiBusy.value && !force) return false
+    // Previewing History or an Assistant turn running: the same moments Merge file… is dimmed for.
+    const blocked = useMergeStore().unavailableReason
+    return blocked === '' || documentStore.raw.entries.length === 0
+  }
+
+  /** @param {string} reason */
+  function raiseDiskIssue(reason) {
+    diskIssue.value = reason
+    diskIssueManual = false
+    diskPromptWanted.value = true
+  }
+
+  /**
+   * File ▾ → **Reload from disk** (`TODO/io-010`): the explicit "discard mine, take the file".
+   * Reads the file now and opens the same three-answer question, whether or not it changed.
+   *
+   * @returns {Promise<void>}
+   */
+  async function askReloadFromDisk() {
+    if (diskKnown === null || typeof deps.files.readCurrent !== 'function') return
+    const read = await deps.files.readCurrent(undefined)
+    if (read === null || !read.ok) {
+      errorMessage.value = "Couldn't read the file to reload it"
+      return
+    }
+    diskChange.value = { name: read.name, text: read.text, lastModified: read.lastModified }
+    diskIssue.value = `Reload replaces this project with ${read.name} as it is on disk now, and clears the undo history.`
+    diskIssueManual = true
+    diskPromptWanted.value = true
+  }
+
+  /**
+   * The disk-change dialog's three answers (a different project, an unreadable file, or File ▾ →
+   * Reload from disk).
    *
    * - `reload` — replace this project with the file (the same atomic load as Open; a file this
    *   build cannot read is refused by name and the project is untouched);
    * - `overwrite` — write this project over the file, in place;
-   * - `cancel` — close the dialog; the chip still says the file changed, and tapping it asks again.
+   * - `cancel` — close the dialog; the chip still says the file changed (not after a manual
+   *   Reload from disk), and tapping it asks again.
    *
    * @param {'reload' | 'overwrite' | 'cancel'} choice
    * @returns {Promise<void>}
@@ -772,12 +913,16 @@ export const usePersistenceStore = defineStore('persistence', () => {
   async function resolveDiskChange(choice) {
     const pending = diskChange.value
     diskPromptWanted.value = false
-    if (pending === null || choice === 'cancel') return
+    if (pending === null) return
+    if (choice === 'cancel') {
+      if (diskIssueManual) clearPending()
+      return
+    }
     if (choice === 'reload') {
       const opened = await openText(pending.text, pending.name)
       if (opened.ok && diskChange.value === pending) {
         diskKnown = { text: pending.text, lastModified: pending.lastModified }
-        diskChange.value = null
+        clearPending()
       }
       return
     }
@@ -786,7 +931,7 @@ export const usePersistenceStore = defineStore('persistence', () => {
 
   /** Ask again after a Cancel — what tapping the chip does while the file differs. */
   function showDiskPrompt() {
-    if (diskChange.value !== null) diskPromptWanted.value = true
+    if (diskNeedsAnswer.value) diskPromptWanted.value = true
   }
 
   /**
@@ -796,6 +941,8 @@ export const usePersistenceStore = defineStore('persistence', () => {
    */
   function setUiBusy(busy) {
     uiBusy.value = busy
+    // The quiet moment a deferred merge was waiting for (`TODO/io-010`).
+    if (!busy && diskWaiting.value) void mergePendingDiskChange({ force: false })
   }
 
   function dismissError() {
@@ -826,6 +973,11 @@ export const usePersistenceStore = defineStore('persistence', () => {
     fileCapabilities,
     diskChanged,
     diskChangeName,
+    diskNeedsAnswer,
+    diskWaiting,
+    diskIssueText,
+    diskIssueIsManual,
+    askReloadFromDisk,
     diskPromptOpen,
     diskCanWatch,
     checkDiskFile,

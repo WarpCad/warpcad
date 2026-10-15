@@ -4,13 +4,16 @@ import { createPinia, setActivePinia } from 'pinia'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { useDocumentStore } from './document.js'
-import { DISK_CHANGED_TEXT, setPersistenceDependencies, usePersistenceStore } from './persistence.js'
+import { useMergeStore } from './merge.js'
+import { DISK_CHANGED_TEXT, WAITING_TEXT, setPersistenceDependencies, usePersistenceStore } from './persistence.js'
+import { parseProject } from '../core/project.js'
 
 /**
- * `TODO/ai-009` — the app side of "closed-file MCP": when the project file the app opened is
- * changed on disk by something else (the MCP server), the app notices on focus and asks —
- * **Reload**, **Overwrite the file**, or **Cancel** — and never merges or overwrites on its own
- * (`docs/decisions/ai-partner.md` decision 6, reusing the hosted conflict dialog's rules).
+ * `TODO/ai-009`, `TODO/io-010` — the app side of the MCP server: when the project file the app
+ * opened is changed on disk by something else, the app notices on focus (and before Save) and
+ * **merges the change in** (`ui-062`'s `mergeIn`); the three-answer dialog — **Reload**,
+ * **Overwrite the file**, **Cancel** — remains only for a different project or an unreadable
+ * file, and for File ▾ → Reload from disk.
  */
 
 const BASE = '{"id":"base","op":"primitive.cuboid","name":"Base","params":{"size":[40,40,4],"center":[0,0,2]}}\n'
@@ -18,6 +21,16 @@ const WITH_MCP =
   BASE +
   '{"id":"cuboid-1","op":"primitive.cuboid","name":"Block","params":{"size":[10,10,10],"center":[30,0,5]}}\n' +
   '{"warpcad":"project-state","version":1,"origins":{"cuboid-1":"mcp"},"intents":{"cuboid-1":"add a block beside the base"}}\n'
+/** A second outside change: another row, this one not from the MCP server. */
+const WITH_TWO =
+  BASE +
+  '{"id":"cuboid-1","op":"primitive.cuboid","name":"Block","params":{"size":[10,10,10],"center":[30,0,5]}}\n' +
+  '{"id":"plate-1","op":"primitive.cuboid","name":"Plate","params":{"size":[50,50,2],"center":[0,0,-1]}}\n' +
+  '{"warpcad":"project-state","version":1,"origins":{"cuboid-1":"mcp"}}\n'
+/** A different project that happens to use the id `base` for a different record. */
+const OTHER = '{"id":"base","op":"primitive.sphere","name":"Ball","params":{"diameter":30,"center":[0,0,15]}}\n'
+/** A file this build cannot read: a truncated second line. */
+const TRUNCATED = WITH_MCP.slice(0, BASE.length + 20)
 
 function quietBackend() {
   return { async load() { return null }, async save() {}, async keepUnreadable() {} }
@@ -110,23 +123,6 @@ describe('noticing the file changed on disk', () => {
     expect(disk.reads).toBe(reads)
   })
 
-  it('a change raises the prompt and the chip, and touches nothing in the document', async () => {
-    const { files, change } = nativeFiles()
-    const { persistence, documentStore } = await openedApp(files)
-    const version = documentStore.raw.version
-    change(WITH_MCP)
-    await persistence.checkDiskFile()
-
-    expect(persistence.diskChanged).toBe(true)
-    expect(persistence.diskChangeName).toBe('bracket.ndjson')
-    expect(persistence.diskPromptOpen).toBe(true)
-    expect(persistence.chipText).toBe(DISK_CHANGED_TEXT)
-    expect(persistence.chipTone).toBe('warn')
-    expect(DISK_CHANGED_TEXT).toBe('File changed on disk — Reload')
-    expect(documentStore.raw.version).toBe(version)
-    expect(documentStore.raw.entries).toHaveLength(1)
-  })
-
   it('a rewrite with identical bytes (a touch, a re-save) raises nothing', async () => {
     const { files, change } = nativeFiles()
     const { persistence } = await openedApp(files)
@@ -152,20 +148,155 @@ describe('noticing the file changed on disk', () => {
   })
 })
 
-describe('the three answers', () => {
-  it('Reload replaces the project with the file: the new rows keep their mcp origin and intent', async () => {
+describe('a change on disk merges in by itself (TODO/io-010)', () => {
+  it('focus with a changed file merges it: the row arrives with its origin and intent, no dialog, a toast', async () => {
     const { files, change } = nativeFiles()
     const { persistence, documentStore } = await openedApp(files)
     change(WITH_MCP)
     await persistence.checkDiskFile()
-    await persistence.resolveDiskChange('reload')
 
     const entries = documentStore.raw.entries
     expect(entries.map((entry) => entry.origin)).toEqual(['local', 'mcp'])
     expect(entries[1].intent).toBe('add a block beside the base')
     expect(persistence.diskChanged).toBe(false)
     expect(persistence.diskPromptOpen).toBe(false)
-    // Now in step with the file: checking again raises nothing.
+    expect(persistence.notice).toBe('Merged 1 step from Claude Code')
+    expect(useMergeStore().notice).toMatchObject({ kind: 'toast', text: 'Merged 1 step from Claude Code', undoable: true })
+    // Now in step with the file: checking again merges nothing.
+    await persistence.checkDiskFile()
+    expect(useMergeStore().notice.text).toBe('Merged 1 step from Claude Code')
+  })
+
+  it('an unsaved local step and the file’s step both survive; Save writes both and nothing else', async () => {
+    const { files, change, disk } = nativeFiles()
+    const { persistence, documentStore } = await openedApp(files)
+    documentStore.append({ id: 'mine', op: 'primitive.sphere', name: 'Mine', params: { diameter: 10, center: [0, 30, 5] } })
+    change(WITH_MCP)
+    const result = await persistence.saveFile()
+
+    expect(result).toMatchObject({ ok: true })
+    expect(persistence.diskPromptOpen).toBe(false)
+    expect(files.saves).toHaveLength(1)
+    const written = parseProject(files.saves[0].text).entries.map((entry) => entry.record.id)
+    expect(written).toEqual(expect.arrayContaining(['base', 'cuboid-1', 'mine']))
+    expect(written).toHaveLength(3)
+    expect(disk.text).toBe(files.saves[0].text)
+    // The write is recorded as last seen: nothing looks like an outside change afterwards.
+    await persistence.checkDiskFile()
+    expect(persistence.diskChanged).toBe(false)
+    expect(documentStore.raw.entries).toHaveLength(3)
+  })
+
+  it('Save with a changed file writes the merged text, even with a menu open (an explicit click)', async () => {
+    const { files, change } = nativeFiles()
+    const { persistence, documentStore } = await openedApp(files)
+    persistence.setUiBusy(true)
+    change(WITH_MCP)
+    expect(await persistence.saveFile()).toMatchObject({ ok: true })
+    expect(documentStore.raw.entries).toHaveLength(2)
+    expect(parseProject(files.saves[0].text).entries).toHaveLength(2)
+  })
+
+  it('merges before the download fallback too (io-008): a refused native write still carries the merge', async () => {
+    const { files, change } = nativeFiles()
+    files.save = async (text) => {
+      files.saves.push({ text, saveAs: false })
+      return { ok: true, mode: 'fallback', name: 'bracket.ndjson', refusedName: 'bracket.ndjson' }
+    }
+    const { persistence } = await openedApp(files)
+    change(WITH_MCP)
+    expect(await persistence.saveFile()).toMatchObject({ ok: true, mode: 'fallback' })
+    expect(parseProject(files.saves[0].text).entries.map((entry) => entry.record.id)).toEqual(['base', 'cuboid-1'])
+  })
+
+  it('a change arriving mid-gesture waits (chip says so), then merges when the gesture ends', async () => {
+    const { files, change } = nativeFiles()
+    const { persistence, documentStore } = await openedApp(files)
+    persistence.setUiBusy(true)
+    change(WITH_MCP)
+    await persistence.checkDiskFile()
+
+    expect(persistence.chipText).toBe(WAITING_TEXT)
+    expect(WAITING_TEXT).toBe('Changes waiting to merge')
+    expect(persistence.diskPromptOpen).toBe(false)
+    expect(documentStore.raw.entries).toHaveLength(1)
+
+    persistence.setUiBusy(false)
+    await vi.waitFor(() => expect(documentStore.raw.entries).toHaveLength(2))
+    expect(persistence.diskChanged).toBe(false)
+    expect(persistence.notice).toBe('Merged 1 step from Claude Code')
+  })
+
+  it('two changes in a row merge twice; the second toast replaces the first and names the file', async () => {
+    const { files, change } = nativeFiles()
+    const { persistence, documentStore } = await openedApp(files)
+    change(WITH_MCP)
+    await persistence.checkDiskFile()
+    expect(useMergeStore().notice.text).toBe('Merged 1 step from Claude Code')
+
+    change(WITH_TWO)
+    await persistence.checkDiskFile()
+    expect(documentStore.raw.entries).toHaveLength(3)
+    expect(useMergeStore().notice.text).toBe('Merged 1 step from bracket.ndjson')
+    expect(persistence.notice).toBe('Merged 1 step from bracket.ndjson')
+  })
+
+  it('Undo merge takes the file’s rows back out', async () => {
+    const { files, change } = nativeFiles()
+    const { persistence, documentStore } = await openedApp(files)
+    change(WITH_MCP)
+    await persistence.checkDiskFile()
+    expect(useMergeStore().undoMerge()).toMatchObject({ ok: true })
+    expect(documentStore.raw.entries).toHaveLength(1)
+  })
+})
+
+describe('what still asks: a different project, an unreadable file, Reload from disk', () => {
+  it('a different project opens the dialog with its reason, and merges nothing', async () => {
+    const { files, change } = nativeFiles()
+    const { persistence, documentStore } = await openedApp(files)
+    const version = documentStore.raw.version
+    change(OTHER)
+    await persistence.checkDiskFile()
+
+    expect(persistence.diskPromptOpen).toBe(true)
+    expect(persistence.diskIssueText).toMatch(/different project/)
+    expect(persistence.chipText).toBe(DISK_CHANGED_TEXT)
+    expect(persistence.chipTone).toBe('warn')
+    expect(DISK_CHANGED_TEXT).toBe('File changed on disk — Reload')
+    expect(documentStore.raw.version).toBe(version)
+    expect(documentStore.raw.entries).toHaveLength(1)
+  })
+
+  it('an unreadable file opens the dialog and says so; the project is untouched', async () => {
+    const { files, change } = nativeFiles()
+    const { persistence, documentStore } = await openedApp(files)
+    change(TRUNCATED)
+    await persistence.checkDiskFile()
+    expect(persistence.diskPromptOpen).toBe(true)
+    expect(persistence.diskIssueText).toMatch(/^Couldn't read bracket\.ndjson: line 2 is not valid JSON/)
+    expect(documentStore.raw.entries).toHaveLength(1)
+  })
+
+  it('Save with a different project’s bytes on disk writes nothing and asks instead', async () => {
+    const { files, change, disk } = nativeFiles()
+    const { persistence } = await openedApp(files)
+    change(OTHER)
+    const result = await persistence.saveFile()
+    expect(result).toEqual({ ok: false, conflict: true })
+    expect(files.saves).toEqual([])
+    expect(disk.text).toBe(OTHER)
+    expect(persistence.diskPromptOpen).toBe(true)
+  })
+
+  it('Reload replaces the project with the file', async () => {
+    const { files, change } = nativeFiles()
+    const { persistence, documentStore } = await openedApp(files)
+    change(OTHER)
+    await persistence.checkDiskFile()
+    await persistence.resolveDiskChange('reload')
+    expect(documentStore.raw.entries.map((entry) => entry.record.name)).toEqual(['Ball'])
+    expect(persistence.diskChanged).toBe(false)
     await persistence.checkDiskFile()
     expect(persistence.diskChanged).toBe(false)
   })
@@ -173,7 +304,7 @@ describe('the three answers', () => {
   it('Reload of a file this build cannot read refuses it by name and leaves the project alone', async () => {
     const { files, change } = nativeFiles()
     const { persistence, documentStore } = await openedApp(files)
-    change(WITH_MCP.slice(0, BASE.length + 20))
+    change(TRUNCATED)
     await persistence.checkDiskFile()
     await persistence.resolveDiskChange('reload')
     expect(persistence.errorMessage).toMatch(/^Couldn't open bracket\.ndjson: line 2 is not valid JSON/)
@@ -184,7 +315,7 @@ describe('the three answers', () => {
   it('Overwrite writes this project over the file, in place — and only on that explicit answer', async () => {
     const { files, change, disk } = nativeFiles()
     const { persistence, documentStore } = await openedApp(files)
-    change(WITH_MCP)
+    change(OTHER)
     await persistence.checkDiskFile()
     expect(files.saves).toEqual([])
     await persistence.resolveDiskChange('overwrite')
@@ -198,7 +329,7 @@ describe('the three answers', () => {
   it('Cancel closes the prompt but not the divergence; the same change does not re-prompt, a newer one does', async () => {
     const { files, change } = nativeFiles()
     const { persistence } = await openedApp(files)
-    change(WITH_MCP)
+    change(OTHER)
     await persistence.checkDiskFile()
     await persistence.resolveDiskChange('cancel')
     expect(persistence.diskPromptOpen).toBe(false)
@@ -212,22 +343,27 @@ describe('the three answers', () => {
     expect(persistence.diskPromptOpen).toBe(true)
     await persistence.resolveDiskChange('cancel')
 
-    change(WITH_MCP + '\n')
+    change(OTHER + '\n')
     await persistence.checkDiskFile()
     expect(persistence.diskPromptOpen).toBe(true)
   })
-})
 
-describe('Save never silently overwrites a file that changed on disk', () => {
-  it('Save raises the prompt instead of writing', async () => {
-    const { files, change, disk } = nativeFiles()
+  it('File ▾ → Reload from disk asks even when nothing changed, and Cancel leaves no warning behind', async () => {
+    const { files } = nativeFiles()
     const { persistence } = await openedApp(files)
-    change(WITH_MCP)
-    const result = await persistence.saveFile()
-    expect(result).toEqual({ ok: false, conflict: true })
-    expect(files.saves).toEqual([])
-    expect(disk.text).toBe(WITH_MCP)
+    await persistence.askReloadFromDisk()
     expect(persistence.diskPromptOpen).toBe(true)
+    expect(persistence.diskIssueIsManual).toBe(true)
+    await persistence.resolveDiskChange('cancel')
+    expect(persistence.diskChanged).toBe(false)
+  })
+
+  it('Save As goes to a new file the user picks, so it is not held back', async () => {
+    const { files, change } = nativeFiles()
+    const { persistence } = await openedApp(files)
+    change(OTHER)
+    expect(await persistence.saveFile({ saveAs: true })).toMatchObject({ ok: true })
+    expect(files.saves).toHaveLength(1)
   })
 
   it('the app’s own Save does not look like an outside change afterwards', async () => {
@@ -239,26 +375,16 @@ describe('Save never silently overwrites a file that changed on disk', () => {
     expect(persistence.diskChanged).toBe(false)
   })
 
-  it('Save As goes to a new file the user picks, so it is not held back', async () => {
-    const { files, change } = nativeFiles()
-    const { persistence } = await openedApp(files)
-    change(WITH_MCP)
-    expect(await persistence.saveFile({ saveAs: true })).toMatchObject({ ok: true })
-    expect(files.saves).toHaveLength(1)
-  })
-})
-
-describe('never under a finger', () => {
-  it('waits while a drag or another dialog is open, then opens', async () => {
+  it('a dialog waits while a drag or another dialog is open, then opens', async () => {
     const { files, change } = nativeFiles()
     const { persistence } = await openedApp(files)
     persistence.setUiBusy(true)
-    change(WITH_MCP)
+    change(OTHER)
     await persistence.checkDiskFile()
     expect(persistence.diskChanged).toBe(true)
     expect(persistence.diskPromptOpen).toBe(false)
     persistence.setUiBusy(false)
-    expect(persistence.diskPromptOpen).toBe(true)
+    await vi.waitFor(() => expect(persistence.diskPromptOpen).toBe(true))
   })
 
   it('File ▸ New forgets the file, so its later changes are none of this project’s business', async () => {

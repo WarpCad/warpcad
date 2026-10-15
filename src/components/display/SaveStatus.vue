@@ -39,7 +39,7 @@ const persistence = usePersistenceStore()
 
 const isError = computed(() => surface.tone.value === 'error')
 /** The disk-change state is what the chip shows (not outranked by an error). */
-const isDiskChange = computed(() => !isError.value && persistence.diskChanged)
+const isDiskChange = computed(() => !isError.value && persistence.diskNeedsAnswer)
 const isButton = computed(() => isError.value || isDiskChange.value)
 
 function onClick() {
@@ -49,7 +49,7 @@ function onClick() {
 
 const title = computed(() => {
   if (isError.value) return `${surface.text.value} — open the File menu`
-  if (isDiskChange.value) return `${persistence.diskChangeName} changed on disk — reload it, or keep this version`
+  if (isDiskChange.value) return `${persistence.diskChangeName} changed on disk and can't be merged — reload it, or keep this version`
   return surface.text.value
 })
 </script>

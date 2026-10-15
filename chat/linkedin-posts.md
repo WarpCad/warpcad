@@ -2484,3 +2484,17 @@ Today the mouse follows the same rule as the finger and the arrows. Fast is coar
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** same as the BlueSky entry; the jitter drive -> 60 moves with plus or minus 0.8 px of noise at a 67 px ring radius read within about 0.7 degrees at `fine 0.1°`
 **To Add:** `docs/media/gizmo-rotate-dial.gif` (generated); repo URL once public
+
+
+## 2026-10-15T10:10:00Z — Claude Code and the app edit one file, and nobody loses work
+
+**Post:** For a few weeks the rule between WarpCad and Claude Code was: if both touched the same project file, one of you lost. The app noticed the change on focus and asked Reload or Overwrite, and either answer threw someone's work away.
+
+Today that dialog is gone for the normal case. The app merges the file's changes into the open project, keeps your unsaved move, shows a note that says "Merged 1 step from Claude Code", and puts Undo merge on it. Save merges first, then writes. If you are mid-drag the merge waits and the status light says so. The dialog only survives for a file that is a different project or cannot be read.
+
+The part worth writing down: a move in the app and a fillet from Claude Code on the same cube cannot both build, and which one gets flagged turned out to depend on random replica ids when the two clocks tie. My first e2e asserted one outcome and failed one run in seven. The honest fix was to assert the documented rule (exactly one is flagged, the banner names both) instead of making the rule look more deterministic than it is.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource #AI
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** same as the BlueSky entry; the order-dependence -> `e2e/mcp-merge.e2e.js` repeated 15x on Chromium laptop, 90/90 after the assertion change, 2 of 72 failed before it
+**To Add:** `docs/screenshots/mcp-merged.png` (generated); repo URL once public

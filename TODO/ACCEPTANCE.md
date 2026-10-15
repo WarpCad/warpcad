@@ -2986,6 +2986,7 @@ shows **Download copy** instead — drive whichever your browser shows, and say 
   **Cancel** the second local edit does **not** raise the dialog again and does not push;
   an explicit **Save to owner/repo** raises it again.
 
+**Last run**: 2026-10-15 06:00 UTC (`io-010`) — **PASS for the local half** (steps 1-7; hosted steps 8-10 not driven, no scratch repo). Re-driven because Save now merges before writing. Laptop 1440x900 Chromium, real jittered mouse, Download-copy label (native picker forced off): Cube then overlapping Cylinder dropped, both selected, Union enabled, 1 body; chip `Saved · 05:55` unprompted; reload kept 1 body; `Download started: warpcad-project-….ndjson`; Sphere dropped (2 bodies); Open + Replace of the saved file gave 1 body and `Opened warpcad-project.ndjson · 3 steps`.
 **Last run**: 2026-10-15 UTC (`ui-060`) — **PASS** at laptop 1440x900 and phone 390x844 Chromium (real `page.mouse`). After placing, aligning and dropping a Pi to the origin, a page reload restored every body with byte-identical bounds from autosave.
 **Last run**: 2026-10-15 UTC (`ui-066`) — **PASS** at laptop 1440x900 Chromium (real `page.mouse`, jittered 24-step Library drags, fresh profile). Re-driven because a plain-mouse ring drag now picks its step from speed. A Shift ring drag read `-45.0°`, the Rotation Z field `-45°`; after a browser reload the field read `-45°` exactly and 2 bodies came back. A slow fine drag then read `-42.3°` (field `-87.3°`); after another reload the field read `-87.3°` exactly. The History list showed one `Rotate Cube 1` row per drag. Hosted half and file round-trip not driven (nothing in them changed).
 **Last run**: 2026-10-15 UTC (`io-008`) — **PASS for the local legs** at laptop 1440x900 Chromium (real `page.mouse`, jittered 24-step Library drags, fresh profile; hosted half not driven, union omitted). Re-driven because Save's write path and the File menu's labels changed. A cube and a cylinder dropped (2); with the picker stubbed to refuse the write, **File ▾ → Save** downloaded `warpcad-project-…ndjson` from the same click, the chip named it and the empty `chamfer error.ndjson` as a notice (tone not error), and the menu then read **Download copy** with no Save As…; Ctrl+S downloaded again with the picker called once. Reload: `Restored your last session`, both bodies back, menu read **Save** again (the refusal is per session). In a fresh no-picker profile **File ▾ → Open…** loaded the downloaded file: `Opened … · 2 steps`, 2 bodies. Console and page errors: none.
@@ -2994,7 +2995,7 @@ shows **Download copy** instead — drive whichever your browser shows, and say 
 
 **Last run**: 2026-10-15 UTC (`ui-065`) — **PASS** at laptop 1440x900 Chromium (real mouse). A cube slid by a Shift-snapped arm drag, reloaded: both bodies came back and Position X read -16.6 before and after. Re-driven because the translate commit path changed. Console and page errors: none.
 **Last run**: 2026-10-14 UTC (`ui-064`) — **PASS** at laptop 1440x900 Chromium (real mouse). A cube turned by a Shift-snapped ring drag and a second ring drag, then reloaded: both bodies came back and the Rotation fields read byte-identical (`x 0.11, y -35, z -90.19` before and after). Re-driven because the rotate commit path changed. Console and page errors: none.
-**Last run**: 2026-10-14 UTC (`ai-012`) — **PASS for the MCP half only** (real stdio client against `mcp/server.js <file>`, temp project): the closed-file tool list has no `capture_view`/`get_selection`/`select`, `create` changed the file, `get_selection` was refused as browser-only. Re-driven because the registry seam and `mcp/server.js` changed. The in-app Save/Reload half was not hand-driven (its e2e, `mcp-reload.e2e.js`, passes 36/36).
+**Last run**: 2026-10-14 UTC (`ai-012`) — **PASS for the MCP half only** (real stdio client against `mcp/server.js <file>`, temp project): the closed-file tool list has no `capture_view`/`get_selection`/`select`, `create` changed the file, `get_selection` was refused as browser-only. Re-driven because the registry seam and `mcp/server.js` changed. The in-app Save/Reload half was not hand-driven (its e2e, then `mcp-reload.e2e.js`, passed 36/36; renamed `mcp-merge.e2e.js` by `io-010`).
 **Last run**: 2026-10-12 23:05 UTC (`ui-062`) — **PASS** at laptop 1440x900 Chromium (real jittered mouse), after performing a **Merge file…** first so the document held merged rows: cube + cylinder + a merged sphere, Union on the cube, `Saved · 16:32`; reload → `Restored your last session`, body list byte-identical, merged row survived, no toast/banner/Undo merge after the reload (in memory by design); Download copy then Open restored the 4-step project.
 
 **Last run**: 2026-10-12 19:05 UTC (`data-010`) — **PASS for the reload leg (steps 1-5, unioning omitted)** at laptop 1440x900 Chromium (real mouse, jittered Library drags, fresh profile). Cube and Cylinder dropped (both kept), a body deleted, chip reached `Saved`, reload restored exactly the surviving body with `Restored your last session`. Re-driven because every document mutator now stamps merge metadata. Not driven: File ▾ Save/Open round trip (headless, no picker), hosted half. Console and page errors: none.
@@ -3949,6 +3950,53 @@ no Undo merge. Phone: strip t53-b102 (toast) / b123.5 (banner), toolbar and nav 
 the History action bar is cramped at 900 px height; `by you` on a step the other copy made (filed
 in `data-013`); the status chip kept the old summary after Undo merge (fixed in this task).
 **Unrelated projects merged silently** — expected-gap, `data-013`. Console clean.
+
+**Re-checked**: 2026-10-15 06:00 UTC — **PASS** (`io-010`, re-driven because it changed the shared `mergeIn` signature and the persistence wiring). Laptop 1440x900 Chromium, real mouse drags, two browser contexts, fallback (Download copy / Merge file…): Cube and Cylinder on A, Sphere on B, A moved the Cube (Inspector Position X): strip `Merged 1 step from b.ndjson`, 3 bodies, header Undo label `Move Cube 1` before and after; Undo merge: `Took the merge from b.ndjson back out`, 2 bodies, Undo label unchanged. Conflict (fillet seeded through the store on B, as `merge-file.e2e.js` does): banner `Merged 1 step from b2.ndjson — 1 step conflicted`, Show, one broken chip with `conflicts with step 3 (Move Cube 1, by you)` as text. Reload: 2 bodies, Undo merge no longer offered. Not driven in this pass: the Suppress click, phone/tablet width.
+
+
+### 23. Claude Code edits the file you have open
+
+Added 2026-10-15 with `TODO/io-010`: a project file open in desktop Chromium that the MCP server
+changes is **merged into** the open project on focus, instead of asking Reload / Overwrite. Control
+names: **File ▾ → Open…** (`file-open`), the strip (`merge-toast` / `merge-banner`, text
+`merge-toast-text`), **Undo merge** (`merge-undo`), **File ▾ → Save** (`file-save`), **File ▾ →
+Merge file…** (`file-merge`), **File ▾ → Reload from disk…** (`file-disk-reload`), the dialog
+(`disk-change`, only for a different project or an unreadable file) and the status chip
+(`save-status`). Needs **a real Claude Code** (`npm run mcp:add -- <file>`) in desktop Chrome, then
+Safari for the last step; the e2e's SDK client stands in for Claude Code but is not it.
+
+**Steps**:
+1. In Chrome, **File ▾ → Open…** a project file with a cube in it.
+2. Move the cube (Inspector **Position X**). Do not save.
+3. In Claude Code say *add a 20 mm sphere on top of the cube*.
+4. Click back into the WarpCad tab.
+5. Press **File ▾ → Save**. Then in Claude Code say *make the sphere 30 mm*; click back into WarpCad.
+6. Drag the cube with the gizmo and, while still holding the drag, make Claude Code add a cylinder;
+   release the drag.
+7. Make a conflict: move the cube in the app, and in Claude Code say *fillet the top edge of the cube*
+   (after a couple of other requests, so its edits are later); click back into WarpCad.
+8. In Safari (or Firefox, or a phone), **Open…** the file, have Claude Code add a sphere, then
+   **File ▾ → Merge file…** and pick the file.
+
+**Expect**:
+- Step 4: the sphere is in the viewport, the cube is still where you moved it, a strip reads
+  `Merged 1 step from Claude Code` with **Undo merge**; **no dialog**; History marks the sphere row
+  `via mcp` with your request as its intent; the header **Undo** label is still your move.
+- Step 5: the chip reads `Saved`; the file now holds both (ask Claude Code *what is in the scene?*);
+  the sphere's new size arrives as `Merged 1 step from Claude Code (1 changed)`.
+- Step 6: while the drag is held the chip reads `Changes waiting to merge` and the viewport does not
+  jump; the cylinder arrives after release.
+- Step 7: a yellow banner `Merged … — 1 step conflicted`; **Show** opens History on the flagged row
+  with its reason as text; still no dialog.
+- Step 8: Safari never offers anything by itself (it cannot see the file); **Merge file…** brings the
+  sphere in with `Merged 1 step from <file name>` and **Undo merge**.
+- **File ▾ → Reload from disk…** in Chrome asks the three-answer question; **Reload** takes the file
+  and drops unsaved edits.
+- At phone width nothing here triggers by itself; the strip is scenario 22's.
+- Never: a dialog for a copy of the same project, an edit of yours lost, a `Save` that writes over
+  a change it has not merged, the chip stuck on `Changes waiting to merge` after the drag ends.
+
+**Last run**: 2026-10-15 06:00 UTC (`io-010`, **first drive**) — **PASS for what a script with real mouse input can reach; real Claude Code and Safari were NOT driven.** Laptop 1440x900 Chromium, native file handle faked over a real temp file, **the real `mcp/server.js` as a child process driven by the SDK client** (not Claude Code). Unsaved cube move via the Inspector, server `create` sphere, focus: bodies 1 to 3 with the move kept, strip `Merged 1 step from Claude Code`, no dialog; Save chip `Saved to bracket.ndjson`, file holds the sphere and the move. A real Library drag held while the file changed and the window refocused: chip `Changes waiting to merge`, bodies unchanged, no dialog, no toast; after the drop the merge landed. A different project written over the file: dialog with `bracket.ndjson is a different project. Merge only works between copies of the same project.` Not driven: steps 3 and 7-8 as written (real Claude Code, the conflict banner with a real model, Safari and phone Merge file… — the Merge file… route itself was driven in scenario 22 and by `mcp-merge.e2e.js` on Firefox and WebKit), tablet width. Flake note: the move-vs-fillet outcome depends on random replica ids when clocks tie (either row can be the one flagged); the e2e now asserts either.
 
 
 ### 24. Edit while the Assistant works

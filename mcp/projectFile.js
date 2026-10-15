@@ -11,8 +11,10 @@
  * ## One call, one read-modify-write
  *
  * Every tool call first re-reads the file. If its bytes differ from what this server last saw
- * (the app saved, another server wrote), the document is reloaded from disk — the file is the
- * truth, and nothing is merged. A **write** call does that under the lock (`lock.js`), then:
+ * (the app saved, another server wrote), the document is reloaded from disk and this server's
+ * clock observes the file's stamps. The server needs no merge of its own: the app merges the
+ * file into the open project (`TODO/io-010`), and this server writes under **one replica id**
+ * for the process, always later than anything it read. A **write** call does that under the lock (`lock.js`), then:
  *
  * 1. runs the tool on the in-memory document (`origin: 'mcp'`, `ctx.request` = the client's
  *    request text when it sent one);
@@ -20,8 +22,10 @@
  *    byte-identical, mtime included. "Changed" is a record appended, revised in place or
  *    removed: the project-variable tools (`TODO/ai-014`) revise rows and may remove one;
  * 3. otherwise serialises, checks the text parses back, re-checks the file has not changed
- *    since step 0, writes a temp file beside it, `fsync`s, and `rename`s it over the original
- *    (atomic on one filesystem: a reader sees the old file or the new one, never half of one);
+ *    since step 0 — if it has (the app saved meanwhile), re-reads and re-applies the call, up to
+ *    {@link MAX_ATTEMPTS} times, then refuses with nothing written (`TODO/io-010`) — writes a
+ *    temp file beside it, `fsync`s, and `rename`s it over the original (atomic on one
+ *    filesystem: a reader sees the old file or the new one, never half of one);
  * 4. names the History rows it appended in the result (`appended`), and any it revised in place
  *    (`revised`) or removed (`removed`, by id).
  *
@@ -53,10 +57,14 @@ import { basename, dirname, join } from 'node:path'
 import { LIMITS, createTurn } from '../src/ai/tools/limits.js'
 import { ReplayRejection, createDocument } from '../src/core/document.js'
 import { ProjectFormatError, parseProject, serializeProject } from '../src/core/project.js'
+import { createReplicaId } from '../src/core/replica.js'
 import { acquireLock } from './lock.js'
 
 /** @typedef {import('../src/ai/tools/index.js').ToolRegistry} ToolRegistry */
 /** @typedef {import('../src/core/document.js').WarpDocument} WarpDocument */
+
+/** `TODO/io-010`: how many times one call re-reads, re-applies and retries before refusing. */
+export const MAX_ATTEMPTS = 3
 
 /** The one origin every record this server appends carries. */
 export const MCP_ORIGIN = 'mcp'
@@ -124,13 +132,15 @@ export async function writeFileAtomic(path, text) {
  *
  * @param {string} text
  * @param {string} name For the message.
+ * @param {string} [replica] The replica id the document writes under (`TODO/io-010`: one per
+ *   server process); omitted, a fresh one.
  * @returns {WarpDocument}
  * @throws {ProjectFileError} naming the reason, when the app would refuse the file too.
  */
-export function loadProjectText(text, name) {
+export function loadProjectText(text, name, replica) {
   try {
     const parsed = parseProject(text)
-    const document = createDocument()
+    const document = createDocument(replica === undefined ? {} : { replica })
     document.loadEntries(parsed.entries, parsed.rollbackAt, parsed.resolution, {
       standingInstructions: parsed.standingInstructions,
       buildVolume: parsed.buildVolume,
@@ -195,6 +205,15 @@ export function writeToolNames(tools) {
 export function createProjectSession({ path, tools, limits, lock }) {
   const name = basename(path)
   const writers = writeToolNames(tools)
+  /**
+   * `TODO/io-010`: this process is one writer — one replica id for every document it folds
+   * from the file, so the rows it writes carry one replica across reads. Each fold observes the
+   * file's stamps (`loadEntries` moves the merge clock past `merge.clock`), and
+   * {@link highest} keeps it past this server's own earlier stamps even if the file went back.
+   */
+  const replica = createReplicaId()
+  /** The largest merge-clock counter this server has read or written. */
+  let highest = 0
   /** The text this session last read or wrote; `undefined` before the first read. */
   /** @type {string | null | undefined} */
   let seen
@@ -217,7 +236,9 @@ export function createProjectSession({ path, tools, limits, lock }) {
       refusal = null
       document = null
       try {
-        document = loadProjectText(text ?? '', name)
+        document = loadProjectText(text ?? '', name, replica)
+        document.observeMergeClock(highest)
+        highest = Math.max(highest, document.mergeClock())
       } catch (error) {
         refusal = /** @type {ProjectFileError} */ (error)
       }
@@ -235,50 +256,63 @@ export function createProjectSession({ path, tools, limits, lock }) {
     const writes = writers.has(tool)
     const release = writes ? await acquireLock(path, lock) : null
     try {
-      const { document: current, text: before } = await sync()
-      const known = new Set(current.entries.map((entry) => entry.record))
-      const knownIds = new Set(current.entries.map((entry) => entry.record.id))
-      const turn = createTurn(limits ? { limits: { ...LIMITS, ...limits } } : {})
-      const result = tools.run(
-        { document: current, origin: MCP_ORIGIN, turn, ...(request ? { request } : {}) },
-        tool,
-        input
-      )
-      const fresh = current.entries.filter((entry) => !known.has(entry.record))
-      const afterIds = new Set(current.entries.map((entry) => entry.record.id))
-      const removedIds = [...knownIds].filter((id) => id !== undefined && !afterIds.has(id))
-      if (fresh.length === 0 && removedIds.length === 0) return result
+      // `TODO/io-010`: the app may save while a call runs. Rather than refuse, re-read the file,
+      // re-apply the call on top of it and write — a bounded number of times, then the refusal.
+      for (let attempt = 1; ; attempt += 1) {
+        const { document: current, text: before } = await sync()
+        const known = new Set(current.entries.map((entry) => entry.record))
+        const knownIds = new Set(current.entries.map((entry) => entry.record.id))
+        const turn = createTurn(limits ? { limits: { ...LIMITS, ...limits } } : {})
+        const result = tools.run(
+          { document: current, origin: MCP_ORIGIN, turn, ...(request ? { request } : {}) },
+          tool,
+          input
+        )
+        const fresh = current.entries.filter((entry) => !known.has(entry.record))
+        const afterIds = new Set(current.entries.map((entry) => entry.record.id))
+        const removedIds = [...knownIds].filter((id) => id !== undefined && !afterIds.has(id))
+        if (fresh.length === 0 && removedIds.length === 0) return result
 
-      const text = serializeProject(current)
-      try {
-        // Never write what the app could not reopen.
-        parseProject(text)
-        if ((await readText(path)) !== before) {
-          throw new ProjectFileError(`${name} changed on disk while this call ran. Nothing was written; try again.`)
+        const text = serializeProject(current)
+        /** @param {string} message */
+        const forget = (message) => {
+          // The in-memory document is ahead of the file: drop it, so the next read starts from disk.
+          seen = undefined
+          document = null
+          return { error: message }
         }
-        await writeFileAtomic(path, text)
-      } catch (error) {
-        // The in-memory document is ahead of the file: drop it, so the next call starts from disk.
-        seen = undefined
-        document = null
-        if (error instanceof ProjectFileError) return { error: error.message }
-        const code = /** @type {NodeJS.ErrnoException} */ (error).code
-        return { error: `Can't write ${name}${code ? ` (${code})` : ''}. Nothing was written.` }
-      }
-      seen = text
-      const timeline = current.timeline()
-      /** @param {Set<unknown>} ids @returns {AppendedRows} */
-      const rowsOf = (ids) => ({
-        file: name,
-        rows: timeline.filter((row) => ids.has(row.id)).map((row) => ({ step: row.step, id: row.id, label: row.label })),
-      })
-      const added = new Set(fresh.filter((entry) => !knownIds.has(entry.record.id)).map((entry) => entry.record.id))
-      const revised = new Set(fresh.filter((entry) => knownIds.has(entry.record.id)).map((entry) => entry.record.id))
-      return {
-        ...result,
-        appended: rowsOf(added),
-        ...(revised.size > 0 ? { revised: rowsOf(revised) } : {}),
-        ...(removedIds.length > 0 ? { removed: removedIds } : {}),
+        try {
+          // Never write what the app could not reopen.
+          parseProject(text)
+          if ((await readText(path)) !== before) {
+            forget('')
+            if (attempt < MAX_ATTEMPTS) continue
+            return {
+              error: `${name} changed on disk while this call ran. Nothing was written; try again.`,
+            }
+          }
+          await writeFileAtomic(path, text)
+        } catch (error) {
+          if (error instanceof ProjectFileError) return forget(error.message)
+          const code = /** @type {NodeJS.ErrnoException} */ (error).code
+          return forget(`Can't write ${name}${code ? ` (${code})` : ''}. Nothing was written.`)
+        }
+        seen = text
+        highest = Math.max(highest, current.mergeClock())
+        const timeline = current.timeline()
+        /** @param {Set<unknown>} ids @returns {AppendedRows} */
+        const rowsOf = (ids) => ({
+          file: name,
+          rows: timeline.filter((row) => ids.has(row.id)).map((row) => ({ step: row.step, id: row.id, label: row.label })),
+        })
+        const added = new Set(fresh.filter((entry) => !knownIds.has(entry.record.id)).map((entry) => entry.record.id))
+        const revised = new Set(fresh.filter((entry) => knownIds.has(entry.record.id)).map((entry) => entry.record.id))
+        return {
+          ...result,
+          appended: rowsOf(added),
+          ...(revised.size > 0 ? { revised: rowsOf(revised) } : {}),
+          ...(removedIds.length > 0 ? { removed: removedIds } : {}),
+        }
       }
     } finally {
       await release?.()

@@ -23,6 +23,22 @@ taken back out with **Undo merge**.
 
 ![The strip under the top bar reading Merged 1 step from bracket-copy.ndjson, with an Undo merge button, above a cube and the cylinder that came from the other copy](./screenshots/merging-toast.png)
 
+## When Claude Code edits the file you have open
+
+You don't have to pick the file yourself when the other copy is a project file that Claude Code
+(the [MCP server](mcp.md)) is editing, and you have it open in Chrome or Edge: WarpCad notices
+when you switch back to its window and does the same merge by itself, with the same strip and
+**Undo merge**. The strip then names the source **Claude Code** when every step that came in was
+Claude's, and the file's name otherwise.
+
+**Example.** Open `bracket.ndjson` in Chrome and move the cube without saving. In Claude Code say
+*add a 20 mm sphere on top of the cube*, then click back into WarpCad: the sphere appears, the
+cube stays where you moved it, and the strip reads **Merged 1 step from Claude Code**.
+
+**In Safari, Firefox, or on a phone** WarpCad can't look at the file again, so it can't notice.
+Choose **File ▾ → Merge file…** and pick the project file instead: the strip reads **Merged 1 step
+from bracket.ndjson**. See [Working on a project you have open](mcp.md#working-on-a-project-you-have-open).
+
 **Merge file…** sits directly under **Open…** in the File menu and opens the same file picker.
 The new steps show up in [History](timeline.md) like any others. A step that came from another
 program, such as the AI assistant, keeps its `via …` label.
@@ -151,6 +167,7 @@ Nothing changes in any of these cases:
 ## See also
 
 - [Saving and reopening your work](save-load.md)
+- [Working on a project you have open: Claude Code and the app](mcp.md#working-on-a-project-you-have-open)
 - [The History panel: revisiting any step you've taken](timeline.md)
 - [Undoing and redoing a change](undo-redo.md)
 - [Using WarpCad on a phone or tablet](mobile.md)

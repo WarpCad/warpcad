@@ -1,25 +1,23 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <script setup>
 /**
- * "bracket.ndjson changed on disk since you opened or saved it" — the local-file counterpart of
- * the hosted conflict dialog (`TODO/ai-009`; `ConflictDialog.vue`; `stores/persistence.js`).
+ * "bracket.ndjson changed on disk and can't be merged" — the question asked only where there is
+ * nothing safe to do automatically (`TODO/ai-009`, `TODO/io-010`; `stores/persistence.js`). A
+ * changed copy of *this* project is merged in without asking (`ui-062`'s toast or banner).
  *
  * - **Precondition**: a project file opened or saved through File System Access (desktop
- *   Chromium — the only engine that keeps a handle the app can read again), and the file's
- *   bytes on disk now differ from what the app last read or wrote. Typically the MCP server
- *   (`mcp/server.js`) appended steps to it.
- * - **Trigger**: the app regaining focus (window `focus`, or the tab becoming visible), an
- *   in-place **Save** (which checks first and asks instead of writing), or tapping the
- *   `File changed on disk — Reload` chip / the File menu's `Reload … from disk…` after a Cancel.
- * - **Feedback**: this dialog; the chip; after **Reload**, `Opened <name> · N steps` and the new
- *   History rows with their origin chip (`via mcp`) and intent.
+ *   Chromium), and the file on disk is a **different project**, cannot be read, or the user asked
+ *   for **File ▾ → Reload from disk**.
+ * - **Trigger**: the app regaining focus, an in-place **Save**, the chip's
+ *   `File changed on disk — Reload` after a Cancel, or the File menu item.
+ * - **Feedback**: this dialog, whose first line says why; the chip; after **Reload**,
+ *   `Opened <name> · N steps`.
  *
- * Three answers and **no merge, ever** (`docs/decisions/ai-partner.md` decision 6): **Reload**
- * (replace this project with the file — the expected answer after an MCP edit, so it is first),
- * **Overwrite the file** (write this project over it), **Cancel**. Cancel is focused by default
- * and Escape is Cancel, so a stray Enter never replaces or overwrites anything. The same modal
- * frame as every File-menu dialog (`ModalShell.vue`): top-anchored and full width at phone width,
- * 44px targets, and it waits while a drag or another dialog is open.
+ * Three answers: **Reload** (replace this project with the file), **Overwrite the file** (write
+ * this project over it), **Cancel**. Cancel is focused by default and Escape is Cancel, so a
+ * stray Enter never replaces or overwrites anything. The same modal frame as every File-menu
+ * dialog (`ModalShell.vue`): top-anchored and full width at phone width, 44px targets, and it
+ * waits while a drag or another dialog is open.
  *
  * The file's name is shown as text; nothing from the file's *contents* is shown here.
  */
@@ -30,7 +28,11 @@ import ModalShell from './ModalShell.vue'
 
 const persistence = usePersistenceStore()
 
-const title = computed(() => `${persistence.diskChangeName} changed on disk since you opened or saved it.`)
+const title = computed(() =>
+  persistence.diskIssueIsManual
+    ? `Reload ${persistence.diskChangeName} from disk?`
+    : `${persistence.diskChangeName} changed on disk and can't be merged.`,
+)
 
 const working = ref(false)
 /** @type {import('vue').Ref<HTMLButtonElement | null>} */
@@ -69,7 +71,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
 
 <template>
   <ModalShell :open="persistence.diskPromptOpen" testid="disk-change" :title="title" @backdrop="choose('cancel')">
-    <p class="disk__detail">Another program — such as the WarpCad MCP server — changed this file.</p>
+    <p class="disk__detail" data-testid="disk-change-reason">{{ persistence.diskIssueText }}</p>
     <div class="disk__actions">
       <button
         type="button"
@@ -101,8 +103,9 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
       </button>
     </div>
     <p class="disk__note">
-      Nothing is merged. Reload drops any edits made here since you opened or saved the file, and clears
-      the undo history. Overwrite discards the other program’s changes.
+      Reload drops any edits made here since you opened or saved the file, and clears the undo history.
+      Overwrite discards the file’s changes. A file that is a copy of this project is merged in
+      automatically instead of asking.
     </p>
   </ModalShell>
 </template>

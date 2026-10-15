@@ -6,8 +6,18 @@ priority: high
 model: sonnet
 milestone: M16
 depends: [ui-062]
-status: open
+status: done
 ---
+
+> **What shipped (2026-10-15).** As specified. The app side is `checkDiskFile` →
+> `mergePendingDiskChange` in `src/stores/persistence.js` (a merge waits for `uiBusy`, History preview or a
+> running Assistant turn; Save forces it because a click is an explicit ask). `mergeIn` gained an optional
+> third argument, a label function, so the toast can say `Claude Code`. The dialog is kept for an unrelated
+> project, an unreadable file and the new `askReloadFromDisk` (File ▾ → Reload from disk, now shown whenever a
+> handle is held). The MCP session holds one replica id and a high-water clock, and retries a call up to
+> `MAX_ATTEMPTS` (3) when the file changes between read and write. `e2e/mcp-reload.e2e.js` became
+> `e2e/mcp-merge.e2e.js`; `mcp-reload-prompt.png` and `mcp-history-row.png` were replaced by `mcp-merged.png`.
+> The unrelated-project check is `data-013`'s gap: two app-made projects with no shared rows still merge.
 
 ## Goal
 

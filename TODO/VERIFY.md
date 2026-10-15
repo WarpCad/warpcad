@@ -34,6 +34,17 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### io-010 — A changed project file merges into the open project (2026-10-15 06:10 UTC)
+
+Driven by script: the real `mcp/server.js` through the SDK client against a faked file handle over a real file, in headless Chromium. Not driven: real Claude Code, real Safari or a phone using **Merge file…**, and how the `Changes waiting to merge` deferral feels in a hand that is actually dragging.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | In desktop Chrome, open a project file, move a body without saving, ask real Claude Code (`npm run mcp:add -- <file>`) to add a sphere, click back into WarpCad: the sphere appears, the move stays, the strip reads `Merged 1 step from Claude Code`, no dialog; Save, then ask Claude Code to describe the scene | Open | |
+| 2 | In Safari (desktop and iPhone), open the same file, have Claude Code add a step, then **File ▾ → Merge file…** and pick it: the step comes in with `Merged 1 step from <file name>` and **Undo merge**; nothing appears by itself | Open | |
+| 3 | While holding a real drag (Library part or gizmo), have Claude Code change the file and switch windows back: the chip says `Changes waiting to merge`, the viewport does not jump, and the merge lands the moment you let go. Does that read as calm, or does the wait feel like the app ignoring you? | Open | |
+| 4 | The flagged row in a move-versus-fillet conflict is chosen by replica ids when both clocks tie, so it can be either one on different runs. Is a banner naming whichever step lost clear enough, or should the app prefer the local step? | Open | |
+
 ### ui-060 — The tall Align popover on a real phone (2026-10-15)
 
 The one Align popover stacks Target, Measure from, the drop shortcut, a 3x3 grid, the Snap relation, a 3x2 Snap grid and Offset, so with two bodies selected it scrolls inside its own max height on a 390 px screen, and on a laptop it covers the middle of the scene. The e2e specs and a scripted drive prove it fits, opens, commits and closes at 390, 820 and 1440; whether it *feels* usable under a thumb, and whether the scene stays readable behind it, is a judgment call. Also worth a glance: tapping Undo while the popover is open first closes it (the backdrop takes the tap), so Undo needs two taps.

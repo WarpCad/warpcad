@@ -129,8 +129,9 @@ The Library's Raspberry Pi and Hardware items descend from the `jscad-raspberryp
 - [Driving WarpCad from Claude Code (the MCP server)](mcp.md) — `npm run mcp:install`, then
   `npm run mcp:add -- bracket.ndjson`: Claude Code reads and
   adds steps to a project file with the Assistant's tools, and the steps arrive in History marked
-  **via mcp** with your request. Also: the **File changed on disk — Reload** dialog (and which
-  browsers can show it), what the server will and won't do, and its error messages. Opens with
+  **via mcp** with your request. Also: how the app **merges** them into a project you have open
+  (and which browsers can do it, versus **Merge file…**), the dialog for a different project,
+  what the server will and won't do, and its error messages. Opens with
   a table of the three ways an AI agent can reach WarpCad.
 - [Browser agents (WebMCP)](webmcp.md) — in Chrome with the WebMCP flag, an agent that runs in
   the browser drives the open project with no key and no helper program: the **Browser agents ·

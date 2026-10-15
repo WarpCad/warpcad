@@ -23,6 +23,7 @@ import { createDocument } from '../src/core/document.js'
 import { boundsOf } from '../src/core/kernel/group.js'
 import { parseProject, serializeProject } from '../src/core/project.js'
 import { recordLinesOf } from '../src/core/__fixtures__/projectText.js'
+import { createProjectSession } from './projectFile.js'
 
 const SERVER = join(dirname(fileURLToPath(import.meta.url)), 'server.js')
 /** A sentinel, not a credential: the spec asserts it is never echoed anywhere. */
@@ -526,5 +527,108 @@ describe('the command line', () => {
     const run = spawnSync(process.execPath, [SERVER], { encoding: 'utf8', timeout: 10_000 })
     expect(run.status).toBe(2)
     expect(run.stderr).toContain('usage: node mcp/server.js <project-file.ndjson>')
+  })
+})
+
+describe('the app and the server edit one file (TODO/io-010)', () => {
+  /** The state line of a project file, parsed. @param {string} file */
+  const stateOf = (file) => JSON.parse(/** @type {string} */ (readFileSync(file, 'utf8').trimEnd().split('\n').at(-1)))
+
+  /**
+   * A file another replica (the app) wrote: `extra` rows on top of `text`.
+   *
+   * @param {string} text
+   * @param {string} replica
+   * @param {any[]} extra
+   */
+  function appWrites(text, replica, extra) {
+    const parsed = parseProject(text)
+    const document = createDocument({ replica })
+    document.loadEntries(parsed.entries, parsed.rollbackAt, parsed.resolution, parsed)
+    for (const record of extra) document.append(record, { origin: 'local' })
+    return serializeProject(document)
+  }
+
+  /** @param {string} id */
+  const box = (id) => ({ id, op: 'primitive.cuboid', name: id, params: { size: [5, 5, 5], center: [id.length * 10, 0, 2.5] } })
+
+  it('keeps one replica id for the process and stamps later than every stamp it read', async () => {
+    const file = join(dir, 'p.ndjson')
+    writeFileSync(file, appWrites(CUBE, 'hhhhhh', [box('one'), box('two'), box('three')]))
+    const session = createProjectSession({ path: file, tools: createToolRegistry() })
+
+    const clockBefore = stateOf(file).merge.clock
+    const first = await session.call('create', { op: 'primitive.sphere', positionMm: [0, 0, 0] })
+    expect(first.error).toBeUndefined()
+    const firstId = first.appended.rows[0].id
+
+    // The app saves in between, and its clock has moved on a long way.
+    const more = Array.from({ length: 12 }, (_, index) => box(`app-${'x'.repeat(index + 1)}`))
+    writeFileSync(file, appWrites(readFileSync(file, 'utf8'), 'kkkkkk', more))
+    const clockMid = stateOf(file).merge.clock
+    expect(clockMid).toBeGreaterThan(clockBefore)
+
+    const second = await session.call('create', { op: 'primitive.sphere', positionMm: [0, 50, 0] })
+    expect(second.error).toBeUndefined()
+    const secondId = second.appended.rows[0].id
+
+    const { stamps } = stateOf(file).merge
+    expect(stamps[firstId].born[0]).toBeGreaterThan(clockBefore)
+    expect(stamps[secondId].born[0]).toBeGreaterThan(clockMid)
+    // One writer, one replica id, across both reads.
+    expect(stamps[secondId].born[1]).toBe(stamps[firstId].born[1])
+    expect(stamps[firstId].born[1]).not.toBe('hhhhhh')
+  })
+
+  it('a file changed between the read and the write is re-read and the call re-applied', async () => {
+    const file = join(dir, 'p.ndjson')
+    writeFileSync(file, appWrites(CUBE, 'hhhhhh', [box('one')]))
+    const real = createToolRegistry()
+    let runs = 0
+    const tools = /** @type {any} */ ({
+      ...real,
+      run(/** @type {any} */ ctx, /** @type {any} */ name, /** @type {any} */ input) {
+        runs += 1
+        const out = real.run(ctx, name, input)
+        // The app saved while this call was running — only the first time.
+        if (runs === 1) writeFileSync(file, appWrites(readFileSync(file, 'utf8'), 'kkkkkk', [box('theirs')]))
+        return out
+      },
+    })
+    const session = createProjectSession({ path: file, tools })
+    const result = await session.call('create', { op: 'primitive.sphere', positionMm: [0, 0, 0] })
+
+    expect(result.error).toBeUndefined()
+    expect(runs).toBe(2)
+    const ids = parseProject(readFileSync(file, 'utf8')).entries.map((entry) => entry.record.id)
+    expect(ids).toContain('theirs')
+    expect(ids).toContain('one')
+    expect(ids).toContain(result.appended.rows[0].id)
+    expect(ids).toHaveLength(4)
+  })
+
+  it('gives up after three attempts with the existing refusal, and writes nothing', async () => {
+    const file = join(dir, 'p.ndjson')
+    writeFileSync(file, CUBE)
+    const real = createToolRegistry()
+    let runs = 0
+    let last = ''
+    const tools = /** @type {any} */ ({
+      ...real,
+      run(/** @type {any} */ ctx, /** @type {any} */ name, /** @type {any} */ input) {
+        runs += 1
+        const out = real.run(ctx, name, input)
+        last = appWrites(readFileSync(file, 'utf8'), 'kkkkkk', [box(`again-${runs}`)])
+        writeFileSync(file, last)
+        return out
+      },
+    })
+    const session = createProjectSession({ path: file, tools })
+    const result = await session.call('create', { op: 'primitive.sphere', positionMm: [0, 0, 0] })
+
+    expect(runs).toBe(3)
+    expect(result.error).toMatch(/changed on disk while this call ran\. Nothing was written/)
+    expect(readFileSync(file, 'utf8')).toBe(last)
+    expect(existsSync(`${file}.lock`)).toBe(false)
   })
 })

@@ -82,10 +82,11 @@
  *
  * ## The opened file changed on disk (`TODO/ai-009`)
  *
- * While `persistence.diskChanged` (the MCP server, or anything else, changed the file this
- * session opened or saved natively), the "This device" group gains **`Reload <name> from
- * disk…`** (`file-disk-reload`), which asks the disk-change question again after a Cancel — the
- * phone-sized way in, where the chip is a 10px dot. The dialog itself (`DiskChangeDialog.vue`) is
+ * A change to the file this session opened or saved natively is **merged in** by itself
+ * (`TODO/io-010`). While `persistence.diskCanWatch`, the "This device" group has **`Reload from
+ * disk…`** (`file-disk-reload`), the explicit "discard mine, take the file": it reads the file
+ * and asks the three-answer question (also how a Cancelled different-project question comes
+ * back, next to the chip). The dialog itself (`DiskChangeDialog.vue`) is
  * mounted here and deferred by the same `busy` rule as the hosted conflict, and it also waits
  * for a hosted conflict that is already showing.
  *
@@ -204,7 +205,7 @@ function openHelp() {
 
 function reloadFromDisk() {
   menu.closeMenu()
-  persistence.showDiskPrompt()
+  void persistence.askReloadFromDisk()
 }
 
 /** `Opening…` / `Restoring…` — the short form of `persistence.loading` the button can fit. */
@@ -418,7 +419,7 @@ onBeforeUnmount(() => {
               </span>
             </button>
             <button
-              v-if="persistence.diskChanged"
+              v-if="persistence.diskCanWatch"
               type="button"
               role="menuitem"
               class="file-menu__item"
@@ -426,7 +427,7 @@ onBeforeUnmount(() => {
               :disabled="persistence.loading !== ''"
               @click="reloadFromDisk()"
             >
-              Reload {{ persistence.diskChangeName }} from disk…
+              Reload from disk…
             </button>
             <button
               type="button"
