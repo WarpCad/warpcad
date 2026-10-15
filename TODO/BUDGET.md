@@ -793,3 +793,4 @@ Note on `io-011`: committed as `0a9f5d6` (sonnet agent ~11m). Independently re-v
 
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->
 | 2026-10-15 20:40 | 2026-10-15 21:30 | `core-059` (opus: Opus half, then Sonnet half; committed as `c2b1e25`) | stopped for a user decision before the next task: `ui-067` builds on the screw-boss drive path, which the agent flagged as needing your call. Independent full run at HEAD `c2b1e25`: typecheck PASS, unit 4885/4885, e2e 3855 passed, 953 skipped, 0 failed; green stamp NOT set (skip reasons not verified). Batch 1 of 3. | no — M16 now 11/15; `ui-067`, `data-006` and `core-059`-adjacent rows remain |
+| 2026-10-15 22:10 | _(in progress)_ | `ui-067` (sonnet). Decision recorded: screw bosses keep the far-face drive only (user chose option 2); no side-access counterbore. | _(batch 2 open)_ | no |
