@@ -1,1 +1,2 @@
+# Animated help pictures are large and rebuilt often; keep them out of the git pack (PUBLISH-CHECKLIST.md §8).
 docs/media/**/*.gif filter=lfs diff=lfs merge=lfs -text
