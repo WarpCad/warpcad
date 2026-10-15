@@ -11,7 +11,7 @@ standard.
 ## Reporting
 
 If someone's behaviour concerns you, contact the maintainer privately at
-**CONTACT-ADDRESS-TO-BE-ADDED**. Reports are handled confidentially, and the enforcement
+**conduct@warpcad.com**. Reports are handled confidentially, and the enforcement
 guidelines of the Contributor Covenant 2.1 apply.
 
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->
