@@ -773,4 +773,8 @@ Note on `ui-061`: committed as `a54fe74` (sonnet agent ~80m, 87 files). Independ
 
 Note on `ui-066`: committed as `d60ef07` (sonnet agent ~11m). Independently re-verified by this loop: diff stat read (all within Affected files plus `annotate.js` comment and media); typecheck clean; src/render 353 passed; rotate-dial e2e 10/10 on chromium-laptop + webkit-laptop. Agent's own run: unit 4582, changed-scope e2e 240 passed / 0 failed across 9 projects; green stamp not set (changed scope). Acceptance 1, 10 PASS with real mouse; 12 partial; real touch not hand-driven (VERIFY.md row). Band edges left alone: jitter drive gave no evidence for tuning. Scope: changed.
 
+| 2026-10-15 07:33 | *(in progress)* | `testing-001` | *(batch open, 1 of 3)* | no |
+
+Note on `testing-001`: committed as `4fd8b81` (sonnet agent ~65m). Mechanism proven, not guessed: the autosave status chip changed width ~500 ms after an edit and slid the File button 9-31 px left under an in-flight click; reproduced under 28-burner load (10 failures, exact signature), fixed with `min-width` on `SaveStatus.vue`, rAF-probe regression test red→green. Independently re-verified by this loop: typecheck clean; unit 218 files / 4582 passed; save-load-ui + export-ui + docs-media on firefox-laptop/tablet, webkit-phone, guards: 142 passed / 10 skipped by design / 0 failed. Gap: agent's final full e2e was not re-run after regenerating 3 stills, and `TODO/ACCEPTANCE.md` Last-run lines were not updated (real-mouse File-click drive 15/15 on 3 engines instead of the full scenario 10). Scope: full + targeted.
+
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->
