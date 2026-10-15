@@ -32,7 +32,22 @@ function devContentSecurityPolicy() {
   }
 }
 
+/**
+ * The path the built app is served under, from `BASE_PATH` (`/` when unset). GitHub Pages sets it
+ * in `.github/workflows/pages.yml`: `/warpcad/` at `warpcad.github.io/warpcad/`, `/` behind a
+ * custom domain. Help (`src/help/loader.js`), the kernel worker and the PWA manifest's scope and
+ * start URL all follow it, so nothing else needs to change between the two.
+ *
+ * @param {string | undefined} raw
+ * @returns {string}
+ */
+function basePath(raw) {
+  const trimmed = (raw ?? '').split('/').filter(Boolean).join('/')
+  return trimmed === '' ? '/' : `/${trimmed}/`
+}
+
 export default defineConfig({
+  base: basePath(process.env.BASE_PATH),
   // Dedicated, strict port: with auto-increment-on-conflict (Vite's default),
   // a stray dev server from another project squatting on the default port
   // would make Playwright's `reuseExistingServer` silently attach to the

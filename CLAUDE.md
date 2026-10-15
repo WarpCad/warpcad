@@ -276,8 +276,8 @@ previous choice is rejected, not merely unconfirmed, and the question underneath
 | Testing (E2E) | Default — reconsider | Playwright, previous attempt |
 | Testing (component workshop) | Default — reconsider | Storybook, previous attempt |
 | Rendering | **Committed** | three.js (pinned `0.185.1`), see `docs/decisions/rendering.md` |
-| PWA | Default — reconsider | vite-plugin-pwa, previous attempt |
-| Hosting | Default — reconsider | GitHub Pages (static, no backend), previous attempt |
+| PWA | **Committed** (accepted 2026-10-15) | vite-plugin-pwa — see `docs/decisions/hosting.md` |
+| Hosting | **Committed** (accepted 2026-10-15) | GitHub Pages (static, no backend) from `github.com/WarpCad/warpcad`, `.github/workflows/pages.yml`; served path from `BASE_PATH` — see `docs/decisions/hosting.md` |
 | Geometry kernel | **Committed** | `@jscad/modeling` (JSCAD V3), see `docs/decisions/geometry-kernel.md` |
 | Document model / sync | **Committed** (accepted 2026-10-12, `docs-022`) | NDJSON project file with a hand-rolled, state-based merge (replica ids, Lamport stamps, position keys, tombstones; record lines byte-identical, merge metadata in the state line as version 2) — **no CRDT library**; Yjs/Automerge/Loro re-checked and rejected, and the earlier single-writer deferral kept as history — see `docs/decisions/document-sync.md`. The AI partner is the second writer that made it a goal (`docs/decisions/ai-partner.md`) |
 | LLM client | **Committed** (accepted 2026-10-06) | raw `fetch` to the Messages API behind a one-method provider interface, Anthropic-only v1, no dependency; `@anthropic-ai/sdk` rejected for now (fails the licence allow-list via a transitive Unlicense dep, 14% of the bundle) — see `docs/decisions/ai-partner.md` |
