@@ -4,7 +4,14 @@ import modeling from '@jscad/modeling'
 
 import { boundsOf, isGroup, volumeOf } from './group.js'
 import { getEntry, acceptsOperandCount } from './registry.js'
-import { DEFAULT_JOINT_CLEARANCE_MM, JOINT_TYPES, planJoint, splitWarnings, splitWithJoint } from './split.js'
+import {
+  DEFAULT_JOINT_CLEARANCE_MM,
+  JOINT_TYPES,
+  PLACEMENT_KINDS,
+  planJoint,
+  splitWarnings,
+  splitWithJoint,
+} from './split.js'
 import { makeWatertight, openEdgesOf } from './watertight.js'
 import { DEFAULT_BUILD_VOLUME, buildVolumeVector, fitVerdict } from '../buildVolume.js'
 
@@ -213,6 +220,246 @@ describe('splitWithJoint — refusals and warnings', () => {
     expect(() => splitWithJoint(bar(), { axis: 'x', offsetMm: 150, joint: 'none', names: ['A,1', 'B'] })).toThrow(
       /names/
     )
+  })
+})
+
+// ## Hand-placed connectors (TODO/core-059)
+//
+// Every expected volume below is computed from the connector's own sizing rule at the size
+// asked for, not read back off the plan: a pin of diameter d stands clamp(2d, 4, 12) mm proud,
+// a tongue of width w stands clamp(2.5w, 3, 10) mm, a wedge of wide end w is 3w long with a
+// w/2 narrow end and stands clamp(1.5w, 2, 8) mm, a screw boss for an Ms screw is Ø(bore + 4)
+// standing clamp(1.5s, 3, 8) mm with a 2.5s-deep bore in B. Every cylinder is the fixed
+// 32-segment polygon `joint.common.js` builds, so its exact area is the polygon's, not πr².
+
+/** Exact area of the 32-gon every joint cylinder is built from. @param {number} radiusMm */
+function ngonArea(radiusMm) {
+  return 0.5 * 32 * radiusMm * radiusMm * Math.sin((2 * Math.PI) / 32)
+}
+
+/** A 300 × 40 × 20 mm slab along X — room on its cut face for more than one connector. */
+function slab() {
+  return primitives.cuboid({ size: [300, 40, 20], center: [150, 0, 0] })
+}
+
+/** @param {number} got @param {number} want */
+function relativeError(got, want) {
+  return Math.abs(got - want) / Math.abs(want)
+}
+
+describe('splitWithJoint — hand-placed connectors (TODO/core-059)', () => {
+  const RELATIVE_TOLERANCE = 1e-6
+  // The bar's halves before any joint: 150 × 20 × 20 mm each.
+  const HALF = 150 * 20 * 20
+
+  /** @param {Record<string, any>[]} placements @param {number} [clearanceMm] */
+  const split = (placements, clearanceMm = 0.2) =>
+    splitWithJoint(bar(), { axis: 'x', offsetMm: 150, clearanceMm, placements })
+
+  /** @param {any} result */
+  const pieceVolumes = (result) => result.names.map((/** @type {string} */ name) => volumeOf(result.parts[name]))
+
+  it('lists the four connector kinds a placement may ask for', () => {
+    expect(PLACEMENT_KINDS).toEqual(['pins', 'tongue', 'wedge', 'screwBoss'])
+    // The Split sheet's own joint list is unchanged: placements are a separate input.
+    expect(JOINT_TYPES).toEqual(['pins', 'tongue', 'none'])
+  })
+
+  it('a pin placed by hand is sized by the same rule as a searched one: Ø5 stands 10 mm proud', () => {
+    const [a, b] = pieceVolumes(split([{ kind: 'pins', uMm: 0, vMm: 0, sizeMm: 5 }]))
+    expect(relativeError(a, HALF + ngonArea(2.5) * 10)).toBeLessThan(RELATIVE_TOLERANCE)
+    // The socket is wider by the clearance per side and deeper by it.
+    expect(relativeError(b, HALF - ngonArea(2.7) * 10.2)).toBeLessThan(RELATIVE_TOLERANCE)
+  })
+
+  it('placing pins exactly where the search put them gives the search’s own pieces', () => {
+    const auto = planJoint(bar(), { axis: 'x', offsetMm: 150, joint: 'pins', clearanceMm: 0.2 })
+    expect(auto.connectors.length).toBe(auto.pins.length)
+    expect(auto.connectors.every((c) => c.source === 'search' && c.kind === 'pins')).toBe(true)
+    const placements = auto.connectors.map((c) => ({ kind: 'pins', uMm: c.uMm, vMm: c.vMm, sizeMm: c.sizeMm }))
+    const searched = pieceVolumes(splitWithJoint(bar(), { axis: 'x', offsetMm: 150, joint: 'pins', clearanceMm: 0.2 }))
+    const placed = pieceVolumes(split(placements))
+    expect(relativeError(placed[0], searched[0])).toBeLessThan(RELATIVE_TOLERANCE)
+    expect(relativeError(placed[1], searched[1])).toBeLessThan(RELATIVE_TOLERANCE)
+  })
+
+  it('a tongue placed by hand: 4 mm wide, 16 mm long, standing 10 mm proud along the face', () => {
+    const [a, b] = pieceVolumes(split([{ kind: 'tongue', uMm: 0, vMm: 0, sizeMm: 4, lengthMm: 16 }]))
+    expect(relativeError(a, HALF + 16 * 4 * 10)).toBeLessThan(RELATIVE_TOLERANCE)
+    expect(relativeError(b, HALF - 16.4 * 4.4 * 10.2)).toBeLessThan(RELATIVE_TOLERANCE)
+  })
+
+  it('placing a tongue exactly where the search put it gives the search’s own pieces', () => {
+    const params = { axis: 'x', offsetMm: 150, joint: 'tongue', clearanceMm: 0.2 }
+    const auto = planJoint(bar(), params)
+    expect(auto.connectors).toHaveLength(1)
+    const [rib] = auto.connectors
+    expect(rib.source).toBe('search')
+    const searched = pieceVolumes(splitWithJoint(bar(), params))
+    const placed = pieceVolumes(
+      split([{ kind: 'tongue', uMm: rib.uMm, vMm: rib.vMm, sizeMm: rib.sizeMm, lengthMm: rib.lengthMm }])
+    )
+    expect(relativeError(placed[0], searched[0])).toBeLessThan(RELATIVE_TOLERANCE)
+    expect(relativeError(placed[1], searched[1])).toBeLessThan(RELATIVE_TOLERANCE)
+  })
+
+  it('a wedge is a tapered key: 4 mm at its wide end, 2 mm at its narrow end, 12 mm long, 6 mm proud', () => {
+    const [a, b] = pieceVolumes(split([{ kind: 'wedge', uMm: 0, vMm: 0, sizeMm: 4 }]))
+    expect(relativeError(a, HALF + ((4 + 2) / 2) * 12 * 6)).toBeLessThan(RELATIVE_TOLERANCE)
+    // Its socket is the key's outline offset by the clearance — the slanted sides move out by
+    // 0.2 mm square to themselves, so the half-width grows by 0.2·√(1 + slope²), not 0.2.
+    const slope = (1 - 2) / 12
+    const meanHalfWidth = 1.5 + 0.2 * Math.hypot(1, slope)
+    const socketArea = 2 * meanHalfWidth * (12 + 0.4)
+    expect(relativeError(b, HALF - socketArea * 6.2)).toBeLessThan(RELATIVE_TOLERANCE)
+  })
+
+  it('a self-tapping screw boss: an M3 boss on A bored through for the screw, a 2.4 mm pilot in B', () => {
+    const result = split([{ kind: 'screwBoss', uMm: 0, vMm: 0, sizeMm: 3 }])
+    const [a, b] = pieceVolumes(result)
+    // Boss Ø(3.4 clearance bore + 2 × 2 mm wall) = 7.4, 4.5 mm proud; the 3.4 mm bore runs
+    // through the boss and all of piece A, out of its far face, so the screw is driven from
+    // outside.
+    expect(relativeError(a, HALF + ngonArea(3.7) * 4.5 - ngonArea(1.7) * (150 + 4.5))).toBeLessThan(RELATIVE_TOLERANCE)
+    // B: the boss's socket (radius + clearance, depth + clearance) and a 7.5 mm pilot past it.
+    expect(relativeError(b, HALF - ngonArea(3.9) * 4.7 - ngonArea(1.2) * 7.5)).toBeLessThan(RELATIVE_TOLERANCE)
+    for (const name of result.names) expect(openEdges(result.parts[name])).toBe(0)
+  })
+
+  it('a heat-set insert boss: insertMm sets B’s bore, and the boss grows to keep its wall', () => {
+    const [a, b] = pieceVolumes(split([{ kind: 'screwBoss', uMm: 0, vMm: 0, sizeMm: 3, insertMm: 4 }]))
+    expect(relativeError(a, HALF + ngonArea(4) * 4.5 - ngonArea(1.7) * 154.5)).toBeLessThan(RELATIVE_TOLERANCE)
+    expect(relativeError(b, HALF - ngonArea(4.2) * 4.7 - ngonArea(2) * 7.5)).toBeLessThan(RELATIVE_TOLERANCE)
+  })
+
+  it('zero clearance builds sockets exactly the size of their pins', () => {
+    const [a, b] = pieceVolumes(split([{ kind: 'pins', uMm: 0, vMm: 0, sizeMm: 5 }], 0))
+    expect(relativeError(a, HALF + ngonArea(2.5) * 10)).toBeLessThan(RELATIVE_TOLERANCE)
+    expect(relativeError(b, HALF - ngonArea(2.5) * 10)).toBeLessThan(RELATIVE_TOLERANCE)
+  })
+
+  it('a hand-placed pin plus a searched pair: the search keeps clear, nothing is counted twice', () => {
+    const params = {
+      axis: 'x',
+      offsetMm: 150,
+      clearanceMm: 0.2,
+      placements: [{ kind: 'pins', uMm: -12, vMm: 0, sizeMm: 6 }, { kind: 'pins' }],
+    }
+    const plan = planJoint(slab(), params)
+    expect(plan.connectors[0]).toMatchObject({ kind: 'pins', source: 'placed', uMm: -12, vMm: 0, sizeMm: 6 })
+    const searched = plan.connectors.slice(1)
+    expect(searched.length).toBeGreaterThanOrEqual(1)
+    expect(searched.every((c) => c.source === 'search')).toBe(true)
+    // No two sockets share material: their walls stay apart, as the search's own pairs do.
+    for (let i = 0; i < plan.connectors.length; i += 1) {
+      for (let j = i + 1; j < plan.connectors.length; j += 1) {
+        const p = plan.connectors[i]
+        const q = plan.connectors[j]
+        const apart = Math.hypot(p.uMm - q.uMm, p.vMm - q.vMm)
+        expect(apart).toBeGreaterThanOrEqual(p.sizeMm / 2 + q.sizeMm / 2 + 2 * (0.2 + 1.2) - 1e-9)
+      }
+    }
+    const result = splitWithJoint(slab(), params)
+    const added = plan.pins.reduce((sum, pin) => sum + volumeBeyond(pin, 0, 150), 0)
+    const removed = plan.sockets.reduce((sum, socket) => sum + volumeBeyond(socket, 0, 150), 0)
+    const total = result.names.reduce((sum, name) => sum + volumeOf(result.parts[name]), 0)
+    const expected = volumeOf(slab()) + added - removed
+    expect(relativeError(total, expected)).toBeLessThan(RELATIVE_TOLERANCE)
+  })
+
+  it('a mixed list — a screw boss by hand, pins by search — keeps every socket apart', () => {
+    const params = {
+      axis: 'x',
+      offsetMm: 150,
+      clearanceMm: 0.2,
+      placements: [{ kind: 'screwBoss', uMm: -12, vMm: 0, sizeMm: 3 }, { kind: 'pins' }],
+    }
+    const plan = planJoint(slab(), params)
+    expect(plan.kind).toBe('placements')
+    expect(plan.connectors.map((c) => c.kind)).toContain('screwBoss')
+    expect(plan.connectors.filter((c) => c.kind === 'pins').length).toBeGreaterThanOrEqual(1)
+    // The boss's socket and each pin's socket share no material. Sockets come in connector
+    // order, and a screw boss cuts two: the boss's socket, then the bore past it.
+    const [bossSocket, , ...pinSockets] = plan.sockets
+    expect(pinSockets.length).toBeGreaterThanOrEqual(1)
+    for (const socket of pinSockets) {
+      expect(volumeOf(booleans.intersect(bossSocket, socket))).toBeCloseTo(0, 6)
+    }
+    const result = splitWithJoint(slab(), params)
+    for (const name of result.names) expect(openEdges(result.parts[name])).toBe(0)
+  })
+
+  it('leaving placements out is today’s search; an empty list is refused, not read as no joint', () => {
+    const withUndefined = planJoint(bar(), { axis: 'x', offsetMm: 150, joint: 'pins', clearanceMm: 0.2, placements: undefined })
+    expect(withUndefined.kind).toBe('pins')
+    expect(() => split([])).toThrow(/placements must list at least one connector/)
+  })
+})
+
+describe('splitWithJoint — hand-placed connectors that do not fit are refused by name and position', () => {
+  /** @param {Record<string, any>[]} placements @param {any} [body] */
+  const split = (placements, body = bar()) =>
+    splitWithJoint(body, { axis: 'x', offsetMm: 150, clearanceMm: 0.2, placements })
+
+  it('a placement off the cut face', () => {
+    expect(() => split([{ kind: 'pins', uMm: 50, vMm: 0, sizeMm: 5 }])).toThrow(
+      /modify\.splitWithJoint: placement 1 \(pins at y = 50, z = 0 mm\) is outside the cut face \(y -10 to 10, z -10 to 10 mm\)/
+    )
+    expect(() => split([{ kind: 'wedge', uMm: 0, vMm: -10.5, sizeMm: 4 }])).toThrow(/placement 1 .* outside the cut face/)
+  })
+
+  it('a socket whose wall would break out of piece B — refused, never clipped', () => {
+    // Ø5 at y = 6.5: the pin's base is in the material (to y = 9), but its socket and 1.2 mm
+    // wall reach y = 10.4, past the bar's side at y = 10.
+    expect(() => split([{ kind: 'pins', uMm: 6.5, vMm: 0, sizeMm: 5 }])).toThrow(
+      /placement 1 \(pins at y = 6\.5, z = 0 mm\).*would break out of piece B/
+    )
+    expect(() => split([{ kind: 'tongue', uMm: 0, vMm: 0, sizeMm: 4, lengthMm: 18 }])).toThrow(
+      /placement 1 \(tongue at y = 0, z = 0 mm\).*would break out of piece B/
+    )
+  })
+
+  it('a placement on top of an existing hole in the cut face', () => {
+    const holed = booleans.subtract(bar(), primitives.cuboid({ size: [8, 40, 8], center: [150, 0, 0] }))
+    expect(() => split([{ kind: 'pins', uMm: 0, vMm: 0, sizeMm: 3 }], holed)).toThrow(
+      /placement 1 \(pins at y = 0, z = 0 mm\) is not on solid material/
+    )
+    // Beside the hole, in the 6 mm strip, a small pin still fits.
+    expect(() => split([{ kind: 'pins', uMm: 0, vMm: 7, sizeMm: 2 }], holed)).not.toThrow()
+  })
+
+  it('a screw bore that would break out of piece A’s side before reaching its far face', () => {
+    // Piece A narrows to a 4 mm plate (z -2 to 2) before its far end; the screw's bore through
+    // A at z = 4 fits B and A's thick part, then would leave the plate.
+    const stepped = booleans.union(
+      primitives.cuboid({ size: [200, 20, 20], center: [200, 0, 0] }),
+      primitives.cuboid({ size: [101, 20, 4], center: [50.5, 0, 0] })
+    )
+    expect(() => split([{ kind: 'screwBoss', uMm: 0, vMm: 4, sizeMm: 3 }], stepped)).toThrow(
+      /placement 1 \(screwBoss at y = 0, z = 4 mm\).*screw bore.*piece A/
+    )
+  })
+
+  it('two placements whose walls would meet', () => {
+    expect(() =>
+      split([
+        { kind: 'pins', uMm: -2, vMm: 0, sizeMm: 4 },
+        { kind: 'pins', uMm: 2, vMm: 0, sizeMm: 4 },
+      ])
+    ).toThrow(/placement 2 \(pins at y = 2, z = 0 mm\) overlaps placement 1 \(pins at y = -2, z = 0 mm\)/)
+  })
+
+  it('malformed placements are refused by name', () => {
+    expect(() => split([{ kind: 'dowel', uMm: 0, vMm: 0 }])).toThrow(/kind must be one of pins, tongue, wedge, screwBoss/)
+    expect(() => split([{ kind: 'pins', uMm: 0 }])).toThrow(/placement 1.*uMm and vMm/)
+    expect(() => split([{ kind: 'wedge' }])).toThrow(/placement 1 \(wedge\).*needs uMm and vMm/)
+    expect(() => split([{ kind: 'pins', uMm: 0, vMm: 0, sizeMm: 9 }])).toThrow(/placement 1.*sizeMm.*2 to 8/)
+    expect(() => split([{ kind: 'pins', uMm: 0, vMm: 0, sizeMm: Number.NaN }])).toThrow(/sizeMm/)
+    expect(() => split([{ kind: 'pins', uMm: 0, vMm: 0, insertMm: 4 }])).toThrow(/insertMm.*screwBoss/)
+    expect(() => split([{ kind: 'screwBoss', uMm: 0, vMm: 0, sizeMm: 3, insertMm: 3 }])).toThrow(/insertMm/)
+    expect(() => split([{ kind: 'tongue', uMm: 0, vMm: 0, sizeMm: 4, lengthMm: 6 }])).toThrow(/lengthMm/)
+    expect(() => split(Array.from({ length: 17 }, () => ({ kind: 'pins' })))).toThrow(/at most 16/)
+    expect(() => splitWithJoint(bar(), { axis: 'x', offsetMm: 150, placements: 'pins' })).toThrow(/placements must be a list/)
   })
 })
 

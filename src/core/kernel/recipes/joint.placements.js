@@ -1,0 +1,272 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+/**
+ * A split's joint built from a hand-given list of connectors (`TODO/core-059`) rather than one
+ * auto-placed joint: pins, tongues, wedges and screw bosses, each at a face position the
+ * person chose — or, for pins and tongues, left to the search to find, clear of the others.
+ *
+ * ## One check, two callers
+ *
+ * A hand placement is accepted by the **same** exact containment check the search confirms
+ * its own winners with — each kind's `…Misfit` (`joint.pins.js`'s {@link pinMisfit},
+ * `joint.tongueGroove.js`'s {@link tongueMisfit}, and the new kinds' own), all built on
+ * `joint.common.js`'s `contains`. The clearance field (`clearanceTo`, via {@link solidAt})
+ * then explains a refusal: a placement on a hole is "not on solid material", one near an edge
+ * "would break out of piece B". The field never accepts a placement on its own — it is a grid
+ * and may be coarse — it only words the refusal the boolean has already made.
+ *
+ * ## Order
+ *
+ * Hand placements are checked first, in list order, each against the face and then against
+ * every earlier one. Then each search entry runs with every connector placed so far as a
+ * keep-out, so a search never lands on a hand-placed connector even when it is listed first.
+ * Pins and sockets come back in **list order**, a search entry's one or two pins where the
+ * entry sits.
+ *
+ * Every refusal names the placement by its 1-based position in the list, its kind and — when
+ * it has one — its position on the face. The op prefixes its own name.
+ *
+ * Millimetres, document frame, Z-up. Framework-free.
+ *
+ * @module core/kernel/recipes/joint.placements
+ */
+
+import { JOINT_WALL_MM, footprintsOverlap, solidAt } from './joint.common.js'
+import { PIN_MAX_DIAMETER_MM, PIN_MIN_DIAMETER_MM, pinJoint, pinMisfit, pinsAt } from './joint.pins.js'
+import { SCREW_BOSS_WALL_MM, screwBossAt, screwBossMisfit } from './joint.screwBoss.js'
+import {
+  TONGUE_MAX_WIDTH_MM,
+  TONGUE_MIN_WIDTH_MM,
+  ribAlongU,
+  tongueAt,
+  tongueGrooveJoint,
+  tongueMisfit,
+} from './joint.tongueGroove.js'
+import { WEDGE_MAX_WIDTH_MM, WEDGE_MIN_WIDTH_MM, wedgeAt, wedgeMisfit } from './joint.wedge.js'
+
+/** @typedef {import('@jscad/modeling').geometries.geom3.Geom3} Geom3 */
+/** @typedef {import('./joint.common.js').ClearanceField} ClearanceField */
+/** @typedef {import('./joint.common.js').Footprint} Footprint */
+/** @typedef {import('./joint.pins.js').JointGeometry} JointGeometry */
+/** @typedef {import('./joint.pins.js').Connector} Connector */
+
+/**
+ * One placement as the op read it: kind and fields checked for type and range, nothing yet
+ * checked against the solid. `uMm`/`vMm` are `null` for a search entry.
+ *
+ * @typedef {object} Placement
+ * @property {'pins' | 'tongue' | 'wedge' | 'screwBoss'} kind
+ * @property {number | null} uMm
+ * @property {number | null} vMm
+ * @property {number | null} sizeMm `null` for the kind's default at this face.
+ * @property {number | null} lengthMm A tongue's rib length; `null` for its default.
+ * @property {number | null} insertMm A screw boss's insert bore; `null` for self-tapping.
+ */
+
+/** A refusal of one placement; the op prefixes its own name. */
+export class PlacementRefusal extends Error {}
+
+/** Default screw for a screw boss with no `sizeMm`, mm (M3). */
+export const DEFAULT_SCREW_MM = 3
+
+/** A tongue's default rib length, × its width. */
+const TONGUE_DEFAULT_LENGTH_RATIO = 4
+
+/** @param {number} mm */
+function fmt(mm) {
+  return String(Number(mm.toFixed(3)))
+}
+
+const AXIS_NAMES = /** @type {const} */ (['x', 'y', 'z'])
+
+/**
+ * The default size of a kind on a face of this narrower side — for pins, tongues and wedges
+ * the size the search starts at (35 % of the narrower side, clamped to the kind's range).
+ *
+ * @param {Placement['kind']} kind
+ * @param {number} minorMm
+ * @returns {number}
+ */
+function defaultSize(kind, minorMm) {
+  /** @param {number} low @param {number} high */
+  const start = (low, high) => Math.min(high, Math.max(low, minorMm * 0.35))
+  if (kind === 'pins') return start(PIN_MIN_DIAMETER_MM, PIN_MAX_DIAMETER_MM)
+  if (kind === 'tongue') return start(TONGUE_MIN_WIDTH_MM, TONGUE_MAX_WIDTH_MM)
+  if (kind === 'wedge') return start(WEDGE_MIN_WIDTH_MM, WEDGE_MAX_WIDTH_MM)
+  return DEFAULT_SCREW_MM
+}
+
+/**
+ * Build a split's joint from a placement list. Throws a {@link PlacementRefusal} naming the
+ * first placement that does not fit, or that overlaps another.
+ *
+ * @param {object} args
+ * @param {ClearanceField} args.field The uncut solid's clearance field at this cut.
+ * @param {Geom3} args.lower Piece A.
+ * @param {Geom3} args.upper Piece B.
+ * @param {number} args.clearanceMm
+ * @param {Placement[]} args.placements At least one.
+ * @returns {JointGeometry}
+ */
+export function placedJoint({ field, lower, upper, clearanceMm, placements }) {
+  const uName = AXIS_NAMES[field.u]
+  const vName = AXIS_NAMES[field.v]
+  const minorMm = Math.min(field.uRange[1] - field.uRange[0], field.vRange[1] - field.vRange[0])
+  const alongU = ribAlongU(field)
+
+  /** @param {number} index @param {string} kind @param {{ uMm: number, vMm: number } | null} at @param {boolean} [searched] */
+  const label = (index, kind, at, searched = false) =>
+    at === null
+      ? `placement ${index + 1} (${kind})`
+      : `placement ${index + 1} (${kind}${searched ? ' found by search' : ''} at ${uName} = ${fmt(at.uMm)}, ${vName} = ${fmt(at.vMm)} mm)`
+
+  /** @type {(JointGeometry | null)[]} one per list entry, in list order */
+  const built = placements.map(() => null)
+  /** @type {{ index: number, connector: Connector }[]} */
+  const placed = []
+
+  // Hand placements first, so every search keeps clear of all of them.
+  placements.forEach((placement, index) => {
+    if (placement.uMm === null || placement.vMm === null) return
+    const at = { uMm: placement.uMm, vMm: placement.vMm }
+    const name = label(index, placement.kind, at)
+    const [u0, u1] = field.uRange
+    const [v0, v1] = field.vRange
+    if (at.uMm < u0 || at.uMm > u1 || at.vMm < v0 || at.vMm > v1) {
+      throw new PlacementRefusal(
+        `${name} is outside the cut face (${uName} ${fmt(u0)} to ${fmt(u1)}, ${vName} ${fmt(v0)} to ${fmt(v1)} mm)`
+      )
+    }
+    const sizeMm = placement.sizeMm ?? defaultSize(placement.kind, minorMm)
+    const geometry = buildPlaced({ field, lower, upper, clearanceMm, placement, at, sizeMm, alongU, name })
+    for (const connector of geometry.connectors) {
+      for (const other of placed) {
+        if (footprintsOverlap(other.connector.footprint, connector.footprint)) {
+          throw new PlacementRefusal(
+            `${name} overlaps ${label(other.index, other.connector.kind, other.connector, other.connector.source === 'search')} — ` +
+              'their sockets would share a wall; move one apart'
+          )
+        }
+      }
+      placed.push({ index, connector })
+    }
+    built[index] = geometry
+  })
+
+  // Then the searches, each clear of everything placed so far.
+  placements.forEach((placement, index) => {
+    if (placement.uMm !== null && placement.vMm !== null) return
+    const keepOut = placed.map((entry) => entry.connector.footprint)
+    const args = { field, lower, upper, clearanceMm, keepOut }
+    const geometry = placement.kind === 'pins' ? pinJoint(args) : tongueGrooveJoint(args)
+    if (geometry === null) {
+      throw new PlacementRefusal(
+        `${label(index, placement.kind, null)}: the search found no room for ${placement.kind === 'pins' ? 'a pin' : 'a tongue'} ` +
+          'on the cut face clear of the other connectors — place it by hand, or remove it'
+      )
+    }
+    built[index] = geometry
+    for (const connector of geometry.connectors) placed.push({ index, connector })
+  })
+
+  // Belt and braces: a search keeps clear by construction, but nothing leaves here that
+  // overlaps, whoever placed it.
+  assertSeparate(placed, label)
+
+  const parts = /** @type {JointGeometry[]} */ (built)
+  return {
+    kind: 'placements',
+    pins: parts.flatMap((part) => part.pins),
+    sockets: parts.flatMap((part) => part.sockets),
+    holes: parts.flatMap((part) => part.holes),
+    connectors: parts.flatMap((part) => part.connectors),
+    summary: parts.map((part) => part.summary).join('; '),
+  }
+}
+
+/**
+ * Refuse, by name, the first connector whose footprint overlaps an earlier one's.
+ *
+ * @param {{ index: number, connector: Connector }[]} entries In list order.
+ * @param {(index: number, kind: string, at: { uMm: number, vMm: number } | null, searched?: boolean) => string} label
+ */
+export function assertSeparate(entries, label) {
+  for (let j = 1; j < entries.length; j += 1) {
+    for (let i = 0; i < j; i += 1) {
+      const a = entries[i]
+      const b = entries[j]
+      if (footprintsOverlap(a.connector.footprint, b.connector.footprint)) {
+        throw new PlacementRefusal(
+          `${label(b.index, b.connector.kind, b.connector, b.connector.source === 'search')} overlaps ` +
+            `${label(a.index, a.connector.kind, a.connector, a.connector.source === 'search')} — ` +
+            'their sockets would share a wall; move one apart'
+        )
+      }
+    }
+  }
+}
+
+/**
+ * Check and build one hand placement.
+ *
+ * @param {object} args
+ * @param {ClearanceField} args.field
+ * @param {Geom3} args.lower
+ * @param {Geom3} args.upper
+ * @param {number} args.clearanceMm
+ * @param {Placement} args.placement
+ * @param {{ uMm: number, vMm: number }} args.at
+ * @param {number} args.sizeMm
+ * @param {boolean} args.alongU
+ * @param {string} args.name
+ * @returns {JointGeometry}
+ */
+function buildPlaced({ field, lower, upper, clearanceMm, placement, at, sizeMm, alongU, name }) {
+  const common = { field, lower, upper, clearanceMm }
+  /** @type {'wall' | 'base' | 'bore' | null} */
+  let misfit
+  /** @type {() => JointGeometry} */
+  let build
+  /** @type {string} what B's wall is around, for the refusal */
+  let socket = 'socket'
+  if (placement.kind === 'pins') {
+    misfit = pinMisfit({ ...common, diameterMm: sizeMm, centre: at })
+    build = () => pinsAt({ field, clearanceMm, diameterMm: sizeMm, centres: [at], source: 'placed' })
+  } else if (placement.kind === 'tongue') {
+    const lengthMm = placement.lengthMm ?? TONGUE_DEFAULT_LENGTH_RATIO * sizeMm
+    if (!(lengthMm >= 2 * sizeMm)) {
+      throw new PlacementRefusal(
+        `${name}: lengthMm must be at least twice the tongue's width (${fmt(2 * sizeMm)} mm), got ${fmt(lengthMm)}`
+      )
+    }
+    const rib = { ...at, widthMm: sizeMm, lengthMm, alongU }
+    socket = 'groove'
+    misfit = tongueMisfit({ ...common, rib })
+    build = () => tongueAt({ field, clearanceMm, rib, source: 'placed' })
+  } else if (placement.kind === 'wedge') {
+    const wedge = { ...at, widthMm: sizeMm, alongU }
+    misfit = wedgeMisfit({ ...common, wedge })
+    build = () => wedgeAt({ field, clearanceMm, wedge })
+  } else {
+    const boss = { ...at, sizeMm, ...(placement.insertMm === null ? {} : { insertMm: placement.insertMm }) }
+    misfit = screwBossMisfit({ ...common, boss })
+    build = () => screwBossAt({ field, lower, clearanceMm, boss })
+  }
+  if (misfit === null) return build()
+  if (!solidAt(field, at.uMm, at.vMm)) {
+    throw new PlacementRefusal(`${name} is not on solid material — the cut face has a hole there, or ends before it`)
+  }
+  if (misfit === 'wall') {
+    const wallMm = placement.kind === 'screwBoss' ? `${JOINT_WALL_MM}–${SCREW_BOSS_WALL_MM}` : `${JOINT_WALL_MM}`
+    throw new PlacementRefusal(
+      `${name}: its ${socket} and ${wallMm} mm wall would break out of piece B — move it away from the edge or a hole, or make it smaller`
+    )
+  }
+  if (misfit === 'base') {
+    throw new PlacementRefusal(`${name}: piece A is not solid under it — move it onto the material, or make it smaller`)
+  }
+  throw new PlacementRefusal(
+    `${name}: its screw bore through piece A would break out of the side before reaching piece A's far face — ` +
+      'place it where piece A is solid all the way through'
+  )
+}
+

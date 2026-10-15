@@ -33,7 +33,7 @@ import modeling from '@jscad/modeling'
 import { TriangleTree, triangleSoup } from '../meshQuery.js'
 import { boundsOf, volumeOf } from '../group.js'
 
-const { booleans, primitives, transforms } = modeling
+const { booleans, geometries, primitives, transforms } = modeling
 
 /** @typedef {import('@jscad/modeling').geometries.geom3.Geom3} Geom3 */
 /** @typedef {[number, number, number]} Vec3Mm */
@@ -98,6 +98,118 @@ export function prismAlong(axisIndex, fromMm, toMm, uMm, vMm, section) {
   size[u] = section.uSizeMm
   size[v] = section.vSizeMm
   return primitives.cuboid({ size, center: centre })
+}
+
+/**
+ * A prism along `axisIndex` from `fromMm` to `toMm` whose section is a convex `outline`,
+ * given as `(du, dv)` offsets from `(uMm, vMm)`, counter-clockwise seen from the axis's
+ * positive end (`TODO/core-059`: the wedge's trapezoid). `(u, v, axis)` is always a
+ * right-handed frame ({@link faceAxes} is a cyclic shift), so counter-clockwise in `(u, v)`
+ * gives outward faces on every axis. Built from its polygons, so a trapezoid keeps its exact
+ * area — nothing is faceted.
+ *
+ * @param {number} axisIndex
+ * @param {number} fromMm
+ * @param {number} toMm
+ * @param {number} uMm
+ * @param {number} vMm
+ * @param {[number, number][]} outline
+ * @returns {Geom3}
+ */
+export function outlinePrismAlong(axisIndex, fromMm, toMm, uMm, vMm, outline) {
+  if (outline.length < 3) throw new Error(`a prism outline needs at least three corners, got ${outline.length}`)
+  if (!(toMm > fromMm)) throw new Error(`a prism needs a positive length along its axis, got ${fromMm} to ${toMm} mm`)
+  const [u, v] = faceAxes(axisIndex)
+  /** @param {[number, number]} corner @param {number} alongMm @returns {Vec3Mm} */
+  const at = ([du, dv], alongMm) => {
+    /** @type {Vec3Mm} */
+    const point = [0, 0, 0]
+    point[u] = uMm + du
+    point[v] = vMm + dv
+    point[axisIndex] = alongMm
+    return point
+  }
+  const bottom = outline.map((corner) => at(corner, fromMm))
+  const top = outline.map((corner) => at(corner, toMm))
+  /** @type {Vec3Mm[][]} */
+  const faces = [[...bottom].reverse(), top]
+  for (let i = 0; i < outline.length; i += 1) {
+    const j = (i + 1) % outline.length
+    faces.push([bottom[i], bottom[j], top[j], top[i]])
+  }
+  return geometries.geom3.create(faces.map((vertices) => geometries.poly3.create(vertices)))
+}
+
+/**
+ * Where one connector's socket-plus-wall sits on the cut face (`TODO/core-059`), for telling
+ * whether two connectors would share a wall. A circle for a pin or a screw boss; the bounding
+ * rectangle of a tongue's or a wedge's outline, which for a wedge is conservative (it can only
+ * call two connectors overlapping that are a little apart, never the other way).
+ *
+ * @typedef {{ shape: 'circle', uMm: number, vMm: number, radiusMm: number }
+ *   | { shape: 'rect', uMm: number, vMm: number, halfUMm: number, halfVMm: number }} Footprint
+ */
+
+/** Slack on a footprint comparison, mm: walls exactly touching are apart, as the search's own pairs are. */
+const FOOTPRINT_SLACK_MM = 1e-9
+
+/**
+ * Whether two footprints overlap. Touching is not overlapping.
+ *
+ * @param {Footprint} a
+ * @param {Footprint} b
+ * @returns {boolean}
+ */
+export function footprintsOverlap(a, b) {
+  if (a.shape === 'circle' && b.shape === 'circle') {
+    if (a.uMm === b.uMm && a.vMm === b.vMm) return true
+    return Math.hypot(a.uMm - b.uMm, a.vMm - b.vMm) < a.radiusMm + b.radiusMm - FOOTPRINT_SLACK_MM
+  }
+  if (a.shape === 'rect' && b.shape === 'rect') {
+    return (
+      Math.abs(a.uMm - b.uMm) < a.halfUMm + b.halfUMm - FOOTPRINT_SLACK_MM &&
+      Math.abs(a.vMm - b.vMm) < a.halfVMm + b.halfVMm - FOOTPRINT_SLACK_MM
+    )
+  }
+  const circle = a.shape === 'circle' ? a : /** @type {Extract<Footprint, { shape: 'circle' }>} */ (b)
+  const rect = a.shape === 'rect' ? a : /** @type {Extract<Footprint, { shape: 'rect' }>} */ (b)
+  // The rectangle's nearest point to the circle's centre.
+  const du = Math.max(Math.abs(circle.uMm - rect.uMm) - rect.halfUMm, 0)
+  const dv = Math.max(Math.abs(circle.vMm - rect.vMm) - rect.halfVMm, 0)
+  if (du === 0 && dv === 0) return true
+  return Math.hypot(du, dv) < circle.radiusMm - FOOTPRINT_SLACK_MM
+}
+
+/**
+ * The field point nearest `(uMm, vMm)` on the face — `null` off the field's grid.
+ *
+ * @param {ClearanceField} field
+ * @param {number} uMm
+ * @param {number} vMm
+ * @returns {FacePoint | null}
+ */
+export function nearestFieldPoint(field, uMm, vMm) {
+  const { uRange, vRange, columns, rows, points } = field
+  if (uMm < uRange[0] || uMm > uRange[1] || vMm < vRange[0] || vMm > vRange[1]) return null
+  const column = Math.min(columns - 1, Math.max(0, Math.floor(((uMm - uRange[0]) / (uRange[1] - uRange[0])) * columns)))
+  const row = Math.min(rows - 1, Math.max(0, Math.floor(((vMm - vRange[0]) / (vRange[1] - vRange[0])) * rows)))
+  return points[row * columns + column] ?? null
+}
+
+/**
+ * Whether the field says the face is solid at `(uMm, vMm)` on both sides of the cut — the
+ * same samples the joint searches filter on, read at the nearest grid point. Used to explain
+ * a hand placement {@link contains} has already refused: "there is no material there" reads
+ * better than "its wall would break out" when the placement sits on a hole.
+ *
+ * @param {ClearanceField} field
+ * @param {number} uMm
+ * @param {number} vMm
+ * @returns {boolean}
+ */
+export function solidAt(field, uMm, vMm) {
+  const point = nearestFieldPoint(field, uMm, vMm)
+  return point !== null && point.baseClearMm >= 0 && clearanceTo(field, point, 0) >= 0
 }
 
 /**

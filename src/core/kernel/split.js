@@ -16,6 +16,13 @@
  *    `recipes/joint.tongueGroove.js`): pins or a tongue are unioned onto piece **A** (the
  *    minimum side), sockets or a groove — wider and deeper by `clearanceMm` — are cut out of
  *    piece **B**.
+ *    With a `placements` list (`TODO/core-059`) the joint is the person's instead: pins,
+ *    tongues, wedges (`recipes/joint.wedge.js`) and screw bosses (`recipes/joint.screwBoss.js`)
+ *    at the face positions they chose, or — for pins and tongues with no position — found by
+ *    the search, clear of the rest (`recipes/joint.placements.js`). Each is accepted by the
+ *    same containment check the search confirms with, and a placement that does not fit is
+ *    refused by number, kind and position. Without `placements`, the search runs exactly as
+ *    it always has.
  * 4. Returns a **group of two named parts**, A then B — `["Wing A", "Wing B"]` when the record
  *    carries those `names` (the Split sheet passes the body's own name plus a letter) — so each
  *    piece stays addressable and the group tools, the Inspector's parts list and Export → Print
@@ -32,7 +39,7 @@
  * ## Record shape
  *
  * `{ op: 'modify.splitWithJoint', target, supersedes: target, params: { axis, offsetMm, joint,
- * clearanceMm, names } }` — unnamed and `supersedes`-based, exactly like Bisect's
+ * clearanceMm, names, placements? } }` — unnamed and `supersedes`-based, exactly like Bisect's
  * (`OperationsToolbar.vue`'s "Resize and Bisect are a fourth shape"): the body keeps its
  * identity, its geometry becomes the two-part group.
  *
@@ -44,8 +51,16 @@
 import { add, bisect, boundsOf, createGroup, hasNamedParts, hiddenNamesOf, toGeom3 } from './group.js'
 import { makeWatertight, openEdgesOf } from './watertight.js'
 import { JOINT_WALL_MM, clearanceField } from './recipes/joint.common.js'
-import { PIN_MAX_DIAMETER_MM, PIN_MAX_REACH_MM, pinJoint } from './recipes/joint.pins.js'
-import { TONGUE_MAX_REACH_MM, TONGUE_MAX_WIDTH_MM, tongueGrooveJoint } from './recipes/joint.tongueGroove.js'
+import { PIN_MAX_DIAMETER_MM, PIN_MAX_REACH_MM, PIN_MIN_DIAMETER_MM, pinJoint } from './recipes/joint.pins.js'
+import { DEFAULT_SCREW_MM, PlacementRefusal, placedJoint } from './recipes/joint.placements.js'
+import { INSERT_MAX_RATIO, SCREW_MAX_MM, SCREW_MIN_MM } from './recipes/joint.screwBoss.js'
+import {
+  TONGUE_MAX_REACH_MM,
+  TONGUE_MAX_WIDTH_MM,
+  TONGUE_MIN_WIDTH_MM,
+  tongueGrooveJoint,
+} from './recipes/joint.tongueGroove.js'
+import { WEDGE_MAX_WIDTH_MM, WEDGE_MIN_WIDTH_MM } from './recipes/joint.wedge.js'
 import modeling from '@jscad/modeling'
 
 const { booleans } = modeling
@@ -53,6 +68,8 @@ const { booleans } = modeling
 /** @typedef {import('@jscad/modeling').geometries.geom3.Geom3} Geom3 */
 /** @typedef {import('./group.js').Group} Group */
 /** @typedef {import('./recipes/joint.pins.js').JointGeometry} JointGeometry */
+/** @typedef {import('./recipes/joint.pins.js').Connector} Connector */
+/** @typedef {import('./recipes/joint.placements.js').Placement} Placement */
 
 /** The op name, for messages. */
 const OP = 'modify.splitWithJoint'
@@ -73,17 +90,135 @@ export const MAX_JOINT_CLEARANCE_MM = 2
 const AXES = /** @type {const} */ (['x', 'y', 'z'])
 
 /**
+ * The connector kinds a hand placement may ask for (`TODO/core-059`) — a separate list from
+ * {@link JOINT_TYPES}, which is what the Split sheet's joint picker offers.
+ */
+export const PLACEMENT_KINDS = Object.freeze(/** @type {const} */ (['pins', 'tongue', 'wedge', 'screwBoss']))
+
+/** The most connectors one split may place — a hard limit, as every tool-call input has. */
+export const MAX_PLACEMENTS = 16
+
+/** Each kind's `sizeMm` range, mm: a pin's diameter, a tongue's or wedge's width, a screw's size. */
+const SIZE_RANGE_MM = Object.freeze({
+  pins: [PIN_MIN_DIAMETER_MM, PIN_MAX_DIAMETER_MM],
+  tongue: [TONGUE_MIN_WIDTH_MM, TONGUE_MAX_WIDTH_MM],
+  wedge: [WEDGE_MIN_WIDTH_MM, WEDGE_MAX_WIDTH_MM],
+  screwBoss: [SCREW_MIN_MM, SCREW_MAX_MM],
+})
+
+/**
  * @typedef {object} SplitParams
  * @property {'x' | 'y' | 'z'} axis The cut plane's normal.
  * @property {number} offsetMm Where the plane crosses the axis, from the body's minimum face.
  * @property {'pins' | 'tongue' | 'none'} [joint] Default `pins`.
  * @property {number} [clearanceMm] Per side, default {@link DEFAULT_JOINT_CLEARANCE_MM}.
  * @property {[string, string]} [names] Piece A's and piece B's part names.
+ * @property {PlacementParams[]} [placements] Hand-placed connectors (`TODO/core-059`); when
+ *   given, `joint` is not used.
  */
 
 /**
+ * One hand-placed connector, as a record carries it. `uMm`/`vMm` are document millimetres
+ * along the cut face's two axes — for a cut across `x` those are `y` and `z`, across `y` they
+ * are `z` and `x`, across `z` they are `x` and `y` (`joint.common.js`'s `faceAxes`). Leave
+ * both out on `pins` or `tongue` to let the search place it, clear of the rest.
+ *
+ * @typedef {object} PlacementParams
+ * @property {'pins' | 'tongue' | 'wedge' | 'screwBoss'} kind
+ * @property {number} [uMm]
+ * @property {number} [vMm]
+ * @property {number} [sizeMm] A pin's diameter, a tongue's width, a wedge's width at its wide
+ *   end, a screw boss's screw size. Default: the search's starting size; M3 for a screw boss.
+ * @property {number} [lengthMm] A tongue's rib length, at least twice its width; default 4×.
+ * @property {number} [insertMm] A screw boss's heat-set insert bore; leave out for a
+ *   self-tapping screw.
+ */
+
+/**
+ * @param {unknown} given
+ * @returns {Placement[] | null}
+ */
+function readPlacements(given) {
+  if (given === undefined) return null
+  if (!Array.isArray(given)) {
+    throw new Error(`${OP}: placements must be a list of connectors, got ${JSON.stringify(given)}`)
+  }
+  if (given.length === 0) {
+    throw new Error(
+      `${OP}: placements must list at least one connector — leave it out to let the search place the joint, or choose no joint`
+    )
+  }
+  if (given.length > MAX_PLACEMENTS) {
+    throw new Error(`${OP}: placements may list at most ${MAX_PLACEMENTS} connectors, got ${given.length}`)
+  }
+  return given.map((entry, index) => readPlacement(entry, index))
+}
+
+/**
+ * @param {unknown} entry
+ * @param {number} index
+ * @returns {Placement}
+ */
+function readPlacement(entry, index) {
+  const at = `${OP}: placement ${index + 1}`
+  if (entry === null || typeof entry !== 'object' || Array.isArray(entry)) {
+    throw new Error(`${at} must be an object with a kind, got ${JSON.stringify(entry)}`)
+  }
+  const raw = /** @type {Record<string, unknown>} */ (entry)
+  const kind = /** @type {Placement['kind']} */ (raw.kind)
+  if (!PLACEMENT_KINDS.includes(kind)) {
+    throw new Error(`${at}: kind must be one of ${PLACEMENT_KINDS.join(', ')}, got ${JSON.stringify(raw.kind)}`)
+  }
+  const named = `${at} (${kind})`
+  /** @param {string} key @returns {number | null} */
+  const finite = (key) => {
+    const value = raw[key]
+    if (value === undefined) return null
+    if (typeof value !== 'number' || !Number.isFinite(value)) {
+      throw new Error(`${named}: ${key} must be a finite number of millimetres, got ${JSON.stringify(value)}`)
+    }
+    return value
+  }
+  const uMm = finite('uMm')
+  const vMm = finite('vMm')
+  if ((uMm === null) !== (vMm === null)) {
+    throw new Error(`${named}: give both uMm and vMm, or neither to let the search place it`)
+  }
+  const searched = uMm === null
+  if (searched && kind !== 'pins' && kind !== 'tongue') {
+    throw new Error(`${named} needs uMm and vMm — only pins and tongue can be placed by the search`)
+  }
+  const sizeMm = finite('sizeMm')
+  const lengthMm = finite('lengthMm')
+  const insertMm = finite('insertMm')
+  if (searched && (sizeMm !== null || lengthMm !== null)) {
+    throw new Error(`${named}: the search picks its own size — give uMm and vMm to set sizeMm or lengthMm`)
+  }
+  if (sizeMm !== null) {
+    const [low, high] = SIZE_RANGE_MM[kind]
+    if (sizeMm < low || sizeMm > high) {
+      throw new Error(`${named}: sizeMm must be ${low} to ${high} mm, got ${sizeMm}`)
+    }
+  }
+  if (lengthMm !== null && kind !== 'tongue') {
+    throw new Error(`${named}: lengthMm is only for a tongue`)
+  }
+  if (insertMm !== null) {
+    if (kind !== 'screwBoss') throw new Error(`${named}: insertMm is only for a screwBoss`)
+    const screwMm = sizeMm ?? DEFAULT_SCREW_MM
+    if (!(insertMm > screwMm && insertMm <= INSERT_MAX_RATIO * screwMm)) {
+      throw new Error(
+        `${named}: insertMm (the heat-set insert's bore) must be larger than the screw's ${screwMm} mm and at most ` +
+          `${INSERT_MAX_RATIO}× it, got ${insertMm}`
+      )
+    }
+  }
+  return { kind, uMm, vMm, sizeMm, lengthMm, insertMm }
+}
+
+/**
  * @param {Record<string, any>} params
- * @returns {{ axisIndex: number, axis: string, offsetMm: number, joint: 'pins' | 'tongue' | 'none', clearanceMm: number, names: [string, string] | null }}
+ * @returns {{ axisIndex: number, axis: string, offsetMm: number, joint: 'pins' | 'tongue' | 'none', clearanceMm: number, names: [string, string] | null, placements: Placement[] | null }}
  */
 function readParams(params) {
   const axisIndex = AXES.indexOf(params?.axis)
@@ -117,7 +252,8 @@ function readParams(params) {
     }
     names = /** @type {[string, string]} */ ([given[0], given[1]])
   }
-  return { axisIndex, axis: AXES[axisIndex], offsetMm, joint, clearanceMm, names }
+  const placements = readPlacements(params.placements)
+  return { axisIndex, axis: AXES[axisIndex], offsetMm, joint, clearanceMm, names, placements }
 }
 
 /**
@@ -209,7 +345,7 @@ function cut(value, read) {
  *
  * @param {Geom3 | Group} value
  * @param {SplitParams | Record<string, any>} params
- * @returns {{ kind: 'pins' | 'tongue' | 'none', pins: Geom3[], sockets: Geom3[], summary: string }}
+ * @returns {JointPlan}
  */
 export function planJoint(value, params) {
   const read = readParams(params)
@@ -218,15 +354,29 @@ export function planJoint(value, params) {
 }
 
 /**
+ * What a split adds and removes: `pins` unioned onto piece A, then `holes` cut from it;
+ * `sockets` cut from piece B. `connectors` says where each one is.
+ *
+ * @typedef {object} JointPlan
+ * @property {'pins' | 'tongue' | 'placements' | 'none'} kind
+ * @property {Geom3[]} pins
+ * @property {Geom3[]} sockets
+ * @property {Geom3[]} holes
+ * @property {Connector[]} connectors
+ * @property {string} summary
+ */
+
+/**
  * @param {Geom3} solid The uncut piece.
  * @param {Geom3} lower
  * @param {Geom3} upper
  * @param {ReturnType<typeof readParams>} read
  * @param {number} cutMm
- * @returns {{ kind: 'pins' | 'tongue' | 'none', pins: Geom3[], sockets: Geom3[], summary: string }}
+ * @returns {JointPlan}
  */
 function planOn(solid, lower, upper, read, cutMm) {
-  if (read.joint === 'none') return { kind: 'none', pins: [], sockets: [], summary: 'no joint' }
+  if (read.placements !== null) return planPlaced(solid, lower, upper, read, read.placements, cutMm)
+  if (read.joint === 'none') return { kind: 'none', pins: [], sockets: [], holes: [], connectors: [], summary: 'no joint' }
   const reach = read.joint === 'pins' ? PIN_MAX_REACH_MM : TONGUE_MAX_REACH_MM
   const widest = read.joint === 'pins' ? PIN_MAX_DIAMETER_MM / 2 : TONGUE_MAX_WIDTH_MM / 2
   const field = clearanceField(solid, read.axisIndex, cutMm, {
@@ -250,6 +400,34 @@ function planOn(solid, lower, upper, read, cutMm) {
 }
 
 /**
+ * The joint from a hand-given placement list (`TODO/core-059`).
+ *
+ * @param {Geom3} solid The uncut piece.
+ * @param {Geom3} lower
+ * @param {Geom3} upper
+ * @param {ReturnType<typeof readParams>} read
+ * @param {Placement[]} placements
+ * @param {number} cutMm
+ * @returns {JointPlan}
+ */
+function planPlaced(solid, lower, upper, read, placements, cutMm) {
+  // Deep and wide enough for a pin or a tongue search either; a hand placement is decided by
+  // its exact containment check, and only reads the field to word a refusal.
+  const reach = Math.max(PIN_MAX_REACH_MM, TONGUE_MAX_REACH_MM)
+  const widest = Math.max(PIN_MAX_DIAMETER_MM, TONGUE_MAX_WIDTH_MM) / 2
+  const field = clearanceField(solid, read.axisIndex, cutMm, {
+    maxDepthMm: reach + read.clearanceMm,
+    maxClearMm: Math.hypot(widest + read.clearanceMm + JOINT_WALL_MM, 10),
+  })
+  try {
+    return placedJoint({ field, lower, upper, clearanceMm: read.clearanceMm, placements })
+  } catch (error) {
+    if (error instanceof PlacementRefusal) throw new Error(`${OP}: ${error.message}`)
+    throw error
+  }
+}
+
+/**
  * Split a body into two pieces with a joint. See the module doc for every rule.
  *
  * @param {Geom3 | Group} value
@@ -261,7 +439,9 @@ export function splitWithJoint(value, params) {
   const { cutMm, piece, lower, upper } = cut(value, read)
   const plan = planOn(piece.solid, lower, upper, read, cutMm)
 
-  const pieceA = plan.pins.length > 0 ? booleans.union(lower, ...plan.pins) : lower
+  const joined = plan.pins.length > 0 ? booleans.union(lower, ...plan.pins) : lower
+  // A screw boss's bore runs through its own boss, so it is cut after the union.
+  const pieceA = plan.holes.length > 0 ? booleans.subtract(joined, ...plan.holes) : joined
   const pieceB = plan.sockets.length > 0 ? booleans.subtract(upper, ...plan.sockets) : upper
 
   if (piece.group === null || piece.partName === null) {

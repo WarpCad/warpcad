@@ -5,7 +5,7 @@ kind: feature
 priority: medium
 model: opus
 depends: [io-007]
-status: open
+status: done
 ---
 
 ## Goal
