@@ -580,6 +580,47 @@ describe('the app and the server edit one file (TODO/io-010)', () => {
     expect(stamps[firstId].born[1]).not.toBe('hhhhhh')
   })
 
+  // `TODO/data-013`: the server edits the project the file is a copy of. It keeps the file's
+  // project id and never mints one of its own over it, or the app would refuse its own file.
+  it('keeps the project id of the file it edits', async () => {
+    const file = join(dir, 'p.ndjson')
+    const app = createDocument({ replica: 'hhhhhh' })
+    app.append(box('one'), { origin: 'local' })
+    const id = app.mergeState().projectId
+    expect(id).not.toBeNull()
+    writeFileSync(file, serializeProject(app))
+
+    const session = createProjectSession({ path: file, tools: createToolRegistry() })
+    expect((await session.call('create', { op: 'primitive.sphere', positionMm: [0, 0, 0] })).error).toBeUndefined()
+    expect(stateOf(file).merge.project).toBe(id)
+    expect((await session.call('create', { op: 'primitive.sphere', positionMm: [0, 40, 0] })).error).toBeUndefined()
+    expect(stateOf(file).merge.project).toBe(id)
+
+    // And the app merges the server's edit as a copy of its own project.
+    const parsed = parseProject(readFileSync(file, 'utf8'))
+    const read = createDocument()
+    read.loadEntries(parsed.entries, parsed.rollbackAt, parsed.resolution, parsed)
+    expect(app.mergeFrom(read.mergeState(), { origin: 'merge' }).change.added).toHaveLength(2)
+  })
+
+  it('a project file the server creates gets one id, kept across calls', async () => {
+    const file = join(dir, 'new.ndjson')
+    const session = createProjectSession({ path: file, tools: createToolRegistry() })
+    expect((await session.call('create', { op: 'primitive.sphere', positionMm: [0, 0, 0] })).error).toBeUndefined()
+    const id = stateOf(file).merge.project
+    expect(id).toMatch(/^[a-z2-7]{16}$/)
+    expect((await session.call('create', { op: 'primitive.sphere', positionMm: [0, 40, 0] })).error).toBeUndefined()
+    expect(stateOf(file).merge.project).toBe(id)
+  })
+
+  it('a legacy file it edits is not given an id', async () => {
+    const file = join(dir, 'p.ndjson')
+    writeFileSync(file, CUBE)
+    const session = createProjectSession({ path: file, tools: createToolRegistry() })
+    expect((await session.call('create', { op: 'primitive.sphere', positionMm: [0, 0, 0] })).error).toBeUndefined()
+    expect(stateOf(file).merge.project).toBeUndefined()
+  })
+
   it('a file changed between the read and the write is re-read and the call re-applied', async () => {
     const file = join(dir, 'p.ndjson')
     writeFileSync(file, appWrites(CUBE, 'hhhhhh', [box('one')]))

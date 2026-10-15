@@ -396,7 +396,7 @@
  * `tolerateAll`, so there is still exactly one implementation of lineage bookkeeping. A row
  * that no longer builds is **flagged, never re-parented** (`docs-022`): it folds as identity,
  * exactly as a row left broken does (`ui-052`). Its reason is the third `BrokenStep` shape,
- * `conflicts with step N (<label>, <origin chip>)`, naming the row that advanced the lineage
+ * `conflicts with step N (<label>[, via <origin>])`, naming the row that advanced the lineage
  * it wanted — derived from the log at fold time, so it survives a reload — or the existing
  * `needs <name>` when a reference is missing. It never touches either undo stack, bumps the
  * state token (so `core-030`'s restore path falls back to a re-fold for anything older), and
@@ -460,11 +460,11 @@ import {
   variableRecordError,
 } from './variables.js'
 import { ASSET_OP, validateImageAsset } from '../sketch/imageAsset.js'
-import { counterOfId, createClock, createReplicaId } from './replica.js'
+import { counterOfId, createClock, createProjectId, createReplicaId } from './replica.js'
 import { compareKeys, keysBetween } from './merge/positionKey.js'
 import { LEGACY_STAMP, highestCounter } from './merge/state.js'
 import { diffStates, liveOrder, mergeStates, relatedness, resolveRollback } from './merge/merge.js'
-import { originChipText } from './origin.js'
+import { conflictAttribution } from './origin.js'
 
 /** @typedef {import('./kernel/registry.js').OpRecord} OpRecord */
 /** @typedef {import('./kernel/registry.js').RegistryEntry} RegistryEntry */
@@ -512,10 +512,12 @@ import { originChipText } from './origin.js'
  * @property {string} reason One of three shapes:
  *   - `needs <body name>` — the row references a record this fold no longer has;
  *   - `can't be built: <why>` — the record's own build threw;
- *   - `conflicts with step N (<label>, <origin chip>)` (`TODO/data-010`) — a tolerated
- *     (left-broken or merged) row whose `supersedes`/`consumes` target is no longer its
- *     lineage's terminal, naming the row that advanced that lineage. Derived from the log at
- *     fold time, so it survives a reload. A refused local edit never carries it.
+ *   - `conflicts with step N (<label>)` or `conflicts with step N (<label>, via <origin>)`
+ *     (`TODO/data-010`) — a tolerated (left-broken or merged) row whose `supersedes`/`consumes`
+ *     target is no longer its lineage's terminal, naming the row that advanced that lineage.
+ *     Derived from the log at fold time, so it survives a reload and reads the same on every
+ *     copy; a `local` row is never called "by you" (`TODO/data-013`, `conflictAttribution`).
+ *     A refused local edit never carries it.
  *   See the module note.
  */
 
@@ -820,6 +822,9 @@ export class ReplayRejection extends Error {
  *   curve without an explicit `segments` is faceted at — `legacy` for a document from
  *   before the setting existed.
  * @property {(resolution: string, transaction: TransactionOptions) => { scene: Scene }} setResolution
+ * @property {() => string | null} ensureProjectId `TODO/data-013`: this document's project id,
+ *   minting it now if the document may have one and has none yet; `null` for a legacy
+ *   document, which never mints.
  * @property {() => string} replicaId `TODO/data-008`: the replica id this document's new
  *   record ids carry — random per instance, so a reload and a second tab get their own.
  * @property {(prefix?: string) => string} nextId A fresh `prefix-replica-counter` id, never
@@ -1394,6 +1399,9 @@ function reasonOf(error) {
  *   fixed one. Never share one between writers.
  * @param {import('./replica.js').Clock} [options.clock] The Lamport clock ids count from;
  *   omitted, a new one for `replica`.
+ * @param {() => string} [options.mintProjectId] `TODO/data-013`: where this document's project
+ *   id comes from when it mints one. Omitted: {@link createProjectId}. A spec that pins file
+ *   bytes passes a fixed one.
  * @param {boolean} [options.publishesUserParts] `TODO/core-037`: this is **the** open
  *   project — the app's live document (`src/stores/document.js`) — so the user-part
  *   definitions it carries are the registry's project layer (`src/core/userPart.js`):
@@ -1534,6 +1542,17 @@ export function createDocument(options = {}) {
   let partStamps = new Map()
   /** @type {string | null} */
   let projectId = null
+  /**
+   * `TODO/data-013`: whether this document may **mint** a project id — true while everything
+   * in it was made here (a fresh document, New, a load of an empty file with no tombstones).
+   * False once it holds content that came from outside without an id: a legacy file (version
+   * 1, or version 2 from before ids were minted), a seed, or a merge that brought such rows in.
+   * Two devices editing copies of one such file would otherwise mint two different ids, and
+   * then refuse each other as different projects; left without one, they are compared by the
+   * legacy rule (`relatedness`). Never put back by an Undo or a failed batch, like the id.
+   */
+  let mintable = (options.actions ?? []).length === 0
+  const mintProjectId = options.mintProjectId ?? (() => createProjectId())
   /** The seed loop runs unstamped; its result is derived afterwards, like a load. */
   let seeding = true
   /** How deep in a stamped transaction we are; only the outermost one stamps. */
@@ -1644,7 +1663,10 @@ export function createDocument(options = {}) {
     dead = state.merge.dead
     registers = state.merge.registers
     partStamps = state.merge.partStamps
-    projectId = state.merge.projectId
+    // `TODO/data-013`: the project id is deliberately **not** put back. It is minted once, on
+    // the first change, and an Undo of that change restores a snapshot from before it: putting
+    // `null` back would mint a second id on the next change, splitting the project from every
+    // copy saved in between. `mergeFrom` puts its own adoption back by hand when it fails.
   }
 
   /**
@@ -1789,6 +1811,9 @@ export function createDocument(options = {}) {
       partStamps = mark.partStamps
       return
     }
+
+    // `TODO/data-013`: the first change a document makes mints its project id.
+    if (projectId === null && mintable) projectId = mintProjectId()
 
     /** @type {import('./replica.js').Stamp} */
     const stamp = { counter: stampClock.tick(), replica: stampClock.replica }
@@ -2645,7 +2670,7 @@ export function createDocument(options = {}) {
         if (entry.suppressed === true || winner.id === undefined || recordById.get(winner.id) !== winner) continue
         if (winner.supersedes !== target && !(winner.consumes ?? []).includes(target)) continue
         return {
-          reason: `conflicts with step ${at + 1} (${labelFor([winner], byId)}, ${originChipText(entry.origin)})`,
+          reason: `conflicts with step ${at + 1} (${labelFor([winner], byId)}${conflictAttribution(entry.origin)})`,
           lostTo: winner.id,
         }
       }
@@ -3888,7 +3913,11 @@ export function createDocument(options = {}) {
       // `TODO/data-010`: a loaded log is a log no edit here has stamped, so its metadata is
       // derived; `TODO/data-011`: a version-2 file's merge section is laid over that.
       deriveLegacy()
+      // `TODO/data-013`: the loaded file's id, or none. A file without one is legacy unless
+      // there is nothing in it, and a legacy document never mints (see `mintable`).
+      projectId = null
       if (options.merge !== undefined) applyMergeOverlay(options.merge)
+      mintable = projectId === null && nextEntries.length === 0 && (options.merge?.dead.size ?? 0) === 0
       for (const entry of nextEntries) clock.observe(counterOfId(entry.record.id))
       undoStack.length = 0
       redoStack.length = 0
@@ -4896,6 +4925,8 @@ export function createDocument(options = {}) {
         standingInstructions,
         buildVolume,
         layer: publishesUserParts ? projectPartsSnapshot() : null,
+        projectId,
+        mintable,
       }
       try {
         /** @type {Map<string, import('./userPart.js').UserPartDefinition>} */
@@ -4972,11 +5003,16 @@ export function createDocument(options = {}) {
         const volume = merged.registers.buildVolume?.[0]
         buildVolume = volume === undefined || volume === null ? { ...DEFAULT_BUILD_VOLUME } : normalizeBuildVolume(/** @type {any} */ (volume))
         stampClock.observe(highestCounter(merged))
+        // `TODO/data-013`: rows that came in without an id are legacy content, so this document
+        // stays without one too (see `mintable`); with nothing in it, it still may mint.
+        if (projectId === null && (merged.entries.size > 0 || merged.dead.size > 0)) mintable = false
         mergeEpoch += 1
         document.version += 1
         return { scene, change: diffStates(own, document.mergeState()), conflicts }
       } catch (error) {
         restoreState(snapshot)
+        projectId = previous.projectId
+        mintable = previous.mintable
         userParts = previous.userParts
         standingInstructions = previous.standingInstructions
         buildVolume = previous.buildVolume
@@ -4997,6 +5033,14 @@ export function createDocument(options = {}) {
         throw new Error(`document.observeMergeClock: ${String(counter)} is not a clock counter`)
       }
       stampClock.observe(counter)
+    },
+
+    ensureProjectId() {
+      // `TODO/data-013`: an AI turn forks the live document before either has written. Minting
+      // here first means the fork copies this id instead of minting its own, so a turn and the
+      // user's edits during it land as one project. Metadata only: no row, no version bump.
+      if (projectId === null && mintable) projectId = mintProjectId()
+      return projectId
     },
 
     replicaId() {

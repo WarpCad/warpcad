@@ -275,6 +275,10 @@ function forkOf(live, registry, replica) {
   // the same as they did before the fork was seeded by merge.
   const clock = createClock(replica ?? createReplicaId())
   for (const entry of live.entries) clock.observe(counterOfId(entry.record.id))
+  // `TODO/data-013`: a project that has not been edited yet has no id. Without this, the fork's
+  // first tool call and the user's first edit meanwhile would each mint their own, and the
+  // landing merge would refuse the turn as a different project. The fork copies this one.
+  live.ensureProjectId()
   const fork = createDocument({
     ...(registry ? { registry } : {}),
     clock,

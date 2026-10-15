@@ -46,6 +46,28 @@ export function createReplicaId(randomBytes = cryptoRandomBytes) {
   return id
 }
 
+/** Length of a minted project id, in characters: 80 random bits (`TODO/data-013`). */
+export const PROJECT_ID_LENGTH = 16
+
+/**
+ * A new project id (`TODO/data-013`): what says two files are copies of one project.
+ *
+ * Unlike a replica id it is **shared**: every copy of a project, on every device, carries the
+ * one id its document minted on its first change. It is long enough (80 bits) that two
+ * projects started anywhere never collide, and fits the file's `merge.project` rule
+ * (`src/core/merge/validate.js`: short, lowercase).
+ *
+ * @param {(length: number) => Uint8Array} [randomBytes] Injected byte source; defaults to
+ *   `crypto.getRandomValues`.
+ * @returns {string} Sixteen characters of `a-z2-7`.
+ */
+export function createProjectId(randomBytes = cryptoRandomBytes) {
+  const bytes = randomBytes(PROJECT_ID_LENGTH)
+  let id = ''
+  for (let i = 0; i < PROJECT_ID_LENGTH; i += 1) id += ALPHABET[bytes[i] & 31]
+  return id
+}
+
 /**
  * @param {unknown} value
  * @returns {value is string}

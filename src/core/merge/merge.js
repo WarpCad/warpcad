@@ -108,13 +108,29 @@ function unstamped(entry) {
 }
 
 /**
+ * Whether a state holds nothing at all: no live row and no tombstone.
+ *
+ * @param {MergeState} state
+ * @returns {boolean}
+ */
+function holdsNothing(state) {
+  return state.entries.size === 0 && state.dead.size === 0
+}
+
+/**
  * Whether two states are copies of one project.
  *
  * - `same`: both carry the same project id.
- * - `legacy-same`: either has no project id, and every id present and unstamped on both sides
- *   holds a byte-identical record. (Vacuously true when no id is shared: two states with no
- *   row in common are related.)
+ * - `legacy-same`: either has no project id, every id present and unstamped on both sides
+ *   holds a byte-identical record, **and** the two have at least one row id in common (live
+ *   or tombstoned, on either side) — or one of them holds nothing at all, so there is nothing
+ *   to tell apart and nothing to bring in.
  * - `unrelated`: anything else. Callers decide what to do; {@link mergeStates} refuses it.
+ *
+ * `TODO/data-013`: "no row in common" used to count as related. Since `data-008` made record
+ * ids replica-scoped, two projects that were each started fresh share **no** ids, so that
+ * vacuous case merged unrelated projects silently. A genuine copy of a legacy project always
+ * shares the legacy rows it started from (as rows, or as the tombstones its deletions left).
  *
  * @param {MergeState} a
  * @param {MergeState} b
@@ -124,15 +140,30 @@ export function relatedness(a, b) {
   if (a.projectId !== null && b.projectId !== null) {
     return a.projectId === b.projectId ? 'same' : 'unrelated'
   }
-  const [small, large] = a.entries.size <= b.entries.size ? [a, b] : [b, a]
+  if (holdsNothing(a) || holdsNothing(b)) return 'legacy-same'
+  const [small, large] = a.entries.size + a.dead.size <= b.entries.size + b.dead.size ? [a, b] : [b, a]
+  let shared = false
   for (const [id, entry] of small.entries) {
     const other = large.entries.get(id)
-    if (!other || !unstamped(entry) || !unstamped(other)) continue
+    if (other === undefined) {
+      if (large.dead.has(id)) shared = true
+      continue
+    }
+    shared = true
+    if (!unstamped(entry) || !unstamped(other)) continue
     if (entry.record !== other.record && JSON.stringify(entry.record) !== JSON.stringify(other.record)) {
       return 'unrelated'
     }
   }
-  return 'legacy-same'
+  if (!shared) {
+    for (const id of small.dead.keys()) {
+      if (large.entries.has(id) || large.dead.has(id)) {
+        shared = true
+        break
+      }
+    }
+  }
+  return shared ? 'legacy-same' : 'unrelated'
 }
 
 /**

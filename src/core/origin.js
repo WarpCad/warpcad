@@ -31,3 +31,23 @@ export function originChipText(origin) {
   if (origin === 'local') return 'by you'
   return KNOWN_ORIGINS.includes(origin) ? `via ${origin}` : 'via another program'
 }
+
+/**
+ * Who a conflict reason says made the row a flagged step lost to (`TODO/data-010`'s
+ * `conflicts with step N (<label>, …)`; `TODO/data-013`).
+ *
+ * A `local` row is named by step and label only — **never "by you"**. `local` means a person
+ * made the row by hand, on *some* copy of the project: after a merge it may be a step made on
+ * another device, or by whoever sent the file, and a replica id cannot tell this device from
+ * another once the page reloads. The reason is part of the merged log every replica folds,
+ * so it must read the same on every copy and after a reload; a phrase that depended on who is
+ * looking ("by you" here, "on another copy" there) would not. Any other origin keeps its
+ * {@link originChipText} (`via ai`, `via mcp`, `via another program`), which is the same on
+ * every copy.
+ *
+ * @param {string} origin As the winning entry carries it.
+ * @returns {string} `''` for `local`, otherwise `, ` plus the chip text.
+ */
+export function conflictAttribution(origin) {
+  return origin === 'local' ? '' : `, ${originChipText(origin)}`
+}

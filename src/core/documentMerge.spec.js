@@ -336,9 +336,9 @@ describe('the named conflicts (real kernel), merged in both orders', () => {
       (d) => d.append({ id: 'fillet', op: 'modify.filletRim', target: 'cube-1', supersedes: 'cube-1', params: { face: 'top', radius: 2 } }, ai)
     )
     expect(rowOf(document, 'move').broken).toBeNull()
-    expect(rowOf(document, 'fillet').broken).toBe('conflicts with step 4 (Move Cube 1, by you)')
+    expect(rowOf(document, 'fillet').broken).toBe('conflicts with step 4 (Move Cube 1)')
     expect(outcome.conflicts).toEqual([
-      { id: 'fillet', step: 5, label: 'Fillet Cube 1', reason: 'conflicts with step 4 (Move Cube 1, by you)', lostTo: 'move' },
+      { id: 'fillet', step: 5, label: 'Fillet Cube 1', reason: 'conflicts with step 4 (Move Cube 1)', lostTo: 'move' },
     ])
     expect(document.bodies()).toHaveLength(3)
   })
@@ -349,7 +349,7 @@ describe('the named conflicts (real kernel), merged in both orders', () => {
       (d) => d.append({ id: 'move-a', op: 'transform.translate', target: 'box-a', supersedes: 'box-a', params: { vector: [0, 5, 0] } }, ai)
     )
     expect(rowOf(document, 'union').broken).toBeNull()
-    expect(rowOf(document, 'move-a').broken).toBe('conflicts with step 4 (Union, by you)')
+    expect(rowOf(document, 'move-a').broken).toBe('conflicts with step 4 (Union)')
     expect(document.bodies().map((/** @type {any} */ body) => body.id)).toEqual(['cube-1', 'union'])
   })
 
@@ -370,7 +370,7 @@ describe('the named conflicts (real kernel), merged in both orders', () => {
       (d) => d.setColorOverride('box-a', { color: 0xff0000 }, ai)
     )
     expect(outcome.conflicts).toHaveLength(1)
-    expect(outcome.conflicts[0].reason).toBe('conflicts with step 4 (Delete Box A, by you)')
+    expect(outcome.conflicts[0].reason).toBe('conflicts with step 4 (Delete Box A)')
     expect(document.bodies().map((/** @type {any} */ body) => body.id)).toEqual(['cube-1', 'box-b'])
   })
 

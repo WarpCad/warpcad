@@ -379,7 +379,7 @@ test.describe('TODO/ai-017 — keep editing while the Assistant works', () => {
     const row = page.locator('[data-testid="timeline-panel"] [aria-current="true"]')
     await expect(row.getByTestId('chip-broken')).toBeVisible()
     await expect(row).toContainText(/Fillet/)
-    await expect(page.getByTestId('timeline-broken-reason')).toHaveText(/^conflicts with step 2 \(Move Cube 1, by you\)$/)
+    await expect(page.getByTestId('timeline-broken-reason')).toHaveText(/^conflicts with step 2 \(Move Cube 1\)$/)
   })
 
   test('Stop mid-turn after a user edit: the user’s edit stays, nothing from the turn does', async ({ page }) => {

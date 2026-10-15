@@ -347,6 +347,34 @@ differ from the plan above, both on purpose:
 
 Measured cost: `bench/results/2026-10-12-data-010.md`.
 
+### As built: `data-013` (2026-10-15), the project id is minted
+
+Found by hand-driving `ui-062`: nothing minted a project id, so two projects each started from
+**New** fell to the legacy test, which since `data-008` (replica-scoped ids) found no shared row
+and called them related. They merged silently.
+
+- **Minted on a document's first change**: a random 16-character id (`createProjectId`, 80
+  bits) set in the stamped-transaction path, so every mutator mints. New clears it, and an
+  untouched empty document still saves as `''`. `ensureProjectId()` mints immediately; the AI
+  fork calls it on the live document so a turn and the user's edits during it share one id.
+  Undo never puts the `null` back.
+- **An id-less file with content is legacy and never gets an id.** This covers version 1,
+  version 2 from before `data-013`, seeds, and documents that merged id-less rows in. Two
+  devices editing copies of one old file would otherwise mint two ids and refuse each other.
+- **The legacy rule now needs a shared row id** (live or tombstoned) unless one side holds
+  nothing. This is what refuses a fresh project merged with an unrelated legacy file, and two
+  pre-`data-013` projects that share nothing.
+- **No version 3.** `merge.project` was reserved and validated by `data-011`. Only a change
+  mints, and a change already writes version 2, so an untouched save keeps its bytes and record
+  lines never change.
+- **Conflict wording is the same on every copy**: `conflicts with step N (<label>)` for a
+  `local` winner, `…, via <origin>)` otherwise. "By you" was wrong for a step made on another
+  copy, and any wording that depends on the viewer ("by you" here, "on another copy" there,
+  or a per-device replica list in IndexedDB) breaks the invariant that every replica and a
+  fresh load show the same reason. Correction to the section above: rows a merge brings in
+  keep the origin they were written with (often `local`). Header **Undo** still never reaches
+  them because the undo stack holds steps, not origins.
+
 ### Sources
 
 `Initial design.md` §1 ("Document model / sync — proposed as deferred, not resolved")

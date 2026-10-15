@@ -236,6 +236,34 @@ describe('relatedness and project id', () => {
     expect(relatedness(legacy(10), stamped)).toBe('legacy-same') // a stamped row may differ
   })
 
+  // `TODO/data-013`: "no row in common" is no longer evidence of being related. Two projects
+  // started from New share no ids at all (`data-008` made ids replica-scoped), and the old
+  // vacuous rule merged them silently.
+  it('two states without project ids that share no id are unrelated, unless one side is empty', () => {
+    const mine = stateOf([row('op-aaaaaa-1', K1, s(1))], [], null)
+    const theirs = stateOf([row('op-bbbbbb-1', K1, s(1, B))], [], null)
+    expect(relatedness(mine, theirs)).toBe('unrelated')
+    expect(() => mergeStates(mine, theirs)).toThrow(/different projects/)
+    // A side with no rows and no tombstones has nothing to tell the two apart, and merging it
+    // brings nothing in (an AI fork seeded from the live document starts this way).
+    expect(relatedness(mine, emptyMergeState(null))).toBe('legacy-same')
+    expect(relatedness(emptyMergeState(null), theirs)).toBe('legacy-same')
+  })
+
+  it('a fresh project with an id and a legacy file that share no id are unrelated', () => {
+    const fresh = stateOf([row('op-aaaaaa-1', K1, s(1))], [], 'proj-1')
+    const legacy = stateOf([row('op-1', K1, s(0))], [], null)
+    expect(relatedness(fresh, legacy)).toBe('unrelated')
+    expect(relatedness(legacy, fresh)).toBe('unrelated')
+  })
+
+  it('a shared tombstone is a shared id: a copy that deleted every common row is still related', () => {
+    const legacy = stateOf([row('op-1', K1, s(0))], [], null)
+    const deletedIt = stateOf([row('op-bbbbbb-4', K2, s(4, B))], [['op-1', s(3, B)]], null)
+    expect(relatedness(legacy, deletedIt)).toBe('legacy-same')
+    expect(relatedness(deletedIt, legacy)).toBe('legacy-same')
+  })
+
   it('a merged state takes the defined project id, or the lexically smaller', () => {
     const legacy = stateOf([], [], null)
     expect(mergeStates(legacy, base).projectId).toBe('proj-1')

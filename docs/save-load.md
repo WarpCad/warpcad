@@ -220,6 +220,12 @@ choose **File ▾ → Merge file…** instead of **Open…**. Its changes are ad
 yours are kept, there is no "Replace" question, and **Undo merge** takes it back out. See
 [Merging two copies of a project](merging.md).
 
+A project is given its own identity the first time you change it, and the file keeps it on
+that same last line, so a copy of the project can be told from a different one when you
+**Merge file…**. A project you start with **New** and don't touch has none, and is saved as an
+empty file. A file saved by an older WarpCad is never given one, so the bytes of an unchanged
+old file stay exactly as they were; WarpCad recognises copies of it by the steps they share.
+
 ### Older versions of WarpCad
 
 Once you have changed a project, the file WarpCad writes also remembers *which copy made each

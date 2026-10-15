@@ -69,7 +69,7 @@ only on the selected row, so there aren't five small buttons crowding every line
 
 **Steps from a merge.** After **File ▾ → Merge file…**, the other copy's steps are rows here
 like any other. A row that couldn't survive the merge is `broken` with a reason such as
-`conflicts with step 6 (Move Cube 1, by you)`; fix it with its own **Edit** or **Suppress**. See
+`conflicts with step 6 (Move Cube 1)`; fix it with its own **Edit** or **Suppress**. See
 [Merging two copies of a project](merging.md#what-a-conflict-is).
 
 **Why a step exists.** A row with a small note icon at its right end carries a note saying

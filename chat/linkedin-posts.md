@@ -2498,3 +2498,19 @@ The part worth writing down: a move in the app and a fillet from Claude Code on 
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** same as the BlueSky entry; the order-dependence -> `e2e/mcp-merge.e2e.js` repeated 15x on Chromium laptop, 90/90 after the assertion change, 2 of 72 failed before it
 **To Add:** `docs/screenshots/mcp-merged.png` (generated); repo URL once public
+
+
+## 2026-10-15T13:42:00Z — A merge now refuses a project that isn't a copy
+
+**Post:** When two WarpCad projects were each started from New and one was merged into the other, the app folded them together without complaint and offered Undo. Nothing marked either project as the same one, so it had no way to tell.
+
+The fix gives a project an id on its first change. The id is written into the file's state line, so every copy carries it and a different project is refused with a plain sentence. Old files without an id are still compared by the steps they share, and that rule is now stricter: it needs at least one step in common instead of passing when nothing overlaps.
+
+One detail I changed on the way: a conflict note used to say "by you" about a step another copy had made. It now names the step and its label only, so every copy of the merged log reads the same.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** same as the BlueSky entry; legacy rule and "by you" removal -> `src/core/merge/merge.js` `relatedness()` and `src/core/origin.js` `conflictAttribution` in this diff; id stored in `merge.project` of the state line -> hand-driven file this session
+**To Add:** `docs/screenshots/merging-conflict.png` (updated in this diff); repo URL once public

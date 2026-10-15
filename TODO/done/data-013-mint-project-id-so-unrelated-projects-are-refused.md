@@ -6,7 +6,7 @@ priority: high
 model: opus
 depends: [ui-062]
 milestone: M16
-status: open
+status: done
 ---
 
 ## Problem
@@ -78,5 +78,57 @@ M
   unchanged History. All three viewports and engines (file reading, persistence).
 - Acceptance scenarios to re-drive: **10** (save and reload keeps the id), **22** (merge a copy).
 - Closed findings to re-run: `ui-062`'s different-project steps; `data-011`'s v1 round trip.
+
+## Design calls (made 2026-10-15, before the code)
+
+Also recorded in `docs/decisions/document-sync.md`, "As built: `data-013`".
+
+1. **When an id is minted, and what an id-less file means.**
+   - A document mints a random 16-character id (`createProjectId`, 80 bits, `a-z2-7`) on its
+     **first change**, in the one stamped-transaction path (`stampSince`), so every mutator
+     mints without being listed. **New** clears the id (`loadEntries([])`) and the first change
+     after it mints a new one. An untouched New project mints nothing and still saves as `''`.
+   - `ensureProjectId()` mints immediately. The AI fork calls it on the live document before
+     seeding (`forkOf`): otherwise, on a never-edited project, the fork's first tool call and
+     the user's first edit during the turn would each mint their own id and the landing merge
+     would refuse the turn.
+   - The id is **never put back** by Undo or a failed batch (`restoreState` skips it): undoing
+     the first change would otherwise mint a second id on the next change and split the project
+     from copies saved in between. `mergeFrom` restores its own adoption by hand when it throws.
+   - **An id-less file with content is legacy and is never given an id**: version 1, version 2
+     from before this task, a seeded document, or an empty document that merged id-less rows in.
+     A random id there would split two copies of one old file the moment both were edited on two
+     devices (two different ids, refused as different projects). A legacy file therefore stays
+     on the legacy rule, which is **tightened**: `legacy-same` now also needs at least one row id
+     in common, live or tombstoned, unless one side holds nothing (no rows, no tombstones). That
+     closes the hazard without minting: two projects started fresh share no ids (`data-008`), so
+     the old vacuous "no shared row" case is now `unrelated`. A genuine copy of an old file
+     always shares its rows or their tombstones. Only an old copy that deleted **every** shared
+     row in a pre-merge build shares nothing and is refused; that is accepted.
+   - Two files with different ids are `unrelated` through the existing `UnrelatedProjectError`
+     and the existing sentence, unchanged.
+2. **Format.** No version 3. The id rides in the state line's `merge.project`, which
+   `data-011` already reserved, validates and round-trips, so every merge-capable build reads
+   it. It is minted only by a change, and a change already makes the file version 2, so an
+   otherwise-untouched save never gains bytes: a v1 file opened and saved unchanged is still
+   byte-identical v1, and an untouched empty document still writes `''`. Record lines are
+   unchanged.
+3. **Attribution: neither option as written; a phrase that is the same on every copy.** A
+   conflict reason is part of the merged log every replica folds. `data-010`'s property suite
+   pins that every replica in every merge order, and a fresh load of the file, show the same
+   reason text. "By you" here and "on another copy" there is a perspective, so both TODO
+   options break that invariant. A per-device replica list in IndexedDB also reads wrong in a
+   private window, after site data is cleared, and on a second tab. So the reason names a
+   `local` winner by **step and label only**, `conflicts with step 3 (Fillet Cube 1)`, and keeps
+   `via ai` / `via mcp` / `via another program` for other origins, which are the same on every
+   copy (`conflictAttribution` in `src/core/origin.js`). That is true on every copy, after a
+   reload, and for a file someone else sent. Not changed: the History intent block's origin chip
+   (`TimelineRow.vue`) still says "by you" for a `local` row that arrived by merge. It is a
+   follow-up if wanted, and a perspective question again.
+
+**MCP (`io-010`):** the server re-reads the file on every call, so it keeps the file's id. It
+mints only for a file it creates from nothing, and never for a legacy file it edits
+(`mcp/server.spec.js`). The live bridge and webmcp write into the open tab's document and use
+its id.
 
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

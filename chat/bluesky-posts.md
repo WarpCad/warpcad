@@ -1769,3 +1769,13 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** `mcp/server.spec.js` and `src/stores/diskChange.spec.js` pin one replica id per server process, a bounded re-read when the file changes mid-call, and merge-before-save; `e2e/mcp-merge.e2e.js` drives the real `mcp/server.js` against a real file (handle path Chromium only, Merge file… route on Chromium, Firefox and WebKit at three widths); 4618 unit tests passed
 **To Add:** `docs/screenshots/mcp-merged.png` (generated); repo URL once public
+
+
+## 2026-10-15T13:42:00Z — A merge now refuses a project that isn't a copy
+
+**Post:** WarpCad's Merge file… used to fold in any project you handed it, including a completely different one. Each project now gets an id on its first change, saved with the file, so unrelated projects get refused and real copies still merge. Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** two projects each started from New were merged silently -> `TODO/done/ui-062` retirement note in `TODO/ROADMAP.md` and the old caveat removed from `docs/merging.md` in this diff; refusal and copy-merge driven by hand this session (scenarios 10 and 22, `TODO/ACCEPTANCE.md`); typecheck clean, unit 4650 passed, full e2e 3739 passed / 909 skipped / exit 0, run this session
+**To Add:** repo URL once public

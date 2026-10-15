@@ -324,8 +324,8 @@ test('a move-versus-fillet conflict: the banner, Show, the chip and its reason, 
     // The reason, readable without hover (a phone has none).
     const reason = page.getByTestId('timeline-broken-reason')
     await expect(reason).toBeVisible()
-    await expect(reason).toHaveText('conflicts with step 2 (Move Cube 1, by you)')
-    await expect(row.getByTestId('chip-broken')).toHaveAttribute('title', 'conflicts with step 2 (Move Cube 1, by you)')
+    await expect(reason).toHaveText('conflicts with step 2 (Move Cube 1)')
+    await expect(row.getByTestId('chip-broken')).toHaveAttribute('title', 'conflicts with step 2 (Move Cube 1)')
     // The banner stays until dismissed.
     await expect(banner).toBeVisible()
 
@@ -363,6 +363,43 @@ test('a different project is refused with the sentence, and the History does not
   await openHistory(page)
   expect(await historyRows(page)).toEqual(rowsBefore)
   await expect(page.getByTestId('scene-bodies').locator('[data-body-name="Cube 1"]')).toHaveAttribute('data-body-bounds', '-10.00,-10.00,0.00,10.00,10.00,20.00')
+})
+
+test('two projects each started from New in the app are refused, and the History does not change (TODO/data-013)', async ({ page }, testInfo) => {
+  // Not two fixtures: each project is built here. New clears the document; the first change
+  // mints its project id (`data-013`), so the second New + body is a different project.
+  /** @param {import('@playwright/test').Page} p */
+  const newProject = async (p) => {
+    await openFileMenu(p)
+    await p.getByTestId('file-new').click()
+    if (await p.getByTestId('file-open-confirm').isVisible().catch(() => false)) {
+      await p.getByTestId('file-open-confirm-replace').click()
+    }
+    await expectBodyCount(p, 0)
+  }
+  await newProject(page)
+  await withStore(page, (api, cube) => api.documentStore.append(cube), { ...CUBE, id: 'cube-first' })
+  await expectBodyCount(page, 1)
+  const first = await downloadCopy(page)
+  expect(first).toMatch(/"project":"[a-z2-7]{16}"/)
+
+  await newProject(page)
+  await withStore(page, (api, cyl) => api.documentStore.append(cyl), { ...CYLINDER, id: 'cyl-second' })
+  await expectBodyCount(page, 1)
+  await openHistory(page)
+  const rowsBefore = await historyRows(page)
+  if (isPhone(testInfo)) await page.getByTestId('timeline-toggle').click()
+
+  await mergeFile(page, 'first-project.ndjson', first)
+
+  await expect(page.getByTestId('merge-toast-text')).toHaveText(
+    'first-project.ndjson is a different project. Merge only works between copies of the same project.',
+  )
+  await expect(page.getByTestId('merge-undo')).toHaveCount(0)
+  await expectBodyCount(page, 1)
+  await openHistory(page)
+  expect(await historyRows(page)).toEqual(rowsBefore)
+  await expect(page.getByTestId('scene-bodies').locator('[data-body-name="Cylinder 1"]')).toHaveCount(1)
 })
 
 test('Merge file… is dimmed with its reason on an empty project, and a cancelled picker changes nothing (TODO/ui-062, ui-033)', async ({

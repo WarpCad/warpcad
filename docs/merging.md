@@ -68,14 +68,14 @@ to be the next step for that cube, and only one of them can be.
 
 WarpCad keeps one and marks the other. It never quietly attaches a step to a different shape.
 The marked step stays in History but builds nothing for now. It gets a red **broken** chip, and
-when you select it the reason is printed under it: **conflicts with step 6 (Move Cube 1, by
-you)**. That means the step was built for a version of the cube that step 6 has since changed.
+when you select it the reason is printed under it: **conflicts with step 6 (Move Cube 1)**.
+That means the step was built for a version of the cube that step 6 has since changed.
 
 When any step conflicts, a yellow strip shows up in place of the usual one and stays until
 you close it: **Merged 4 steps from bracket-copy.ndjson — 2 steps conflicted**, with **Show** and
 **Undo merge**.
 
-![The yellow strip reading Merged 1 step from bracket-copy.ndjson — 1 step conflicted, with Show and Undo merge, and the History list open with the Fillet Top (+Z) 4 mm on Cube 1 row selected, its red broken chip and the reason conflicts with step 2 (Move Cube 1, by you)](./screenshots/merging-conflict.png)
+![The yellow strip reading Merged 1 step from bracket-copy.ndjson — 1 step conflicted, with Show and Undo merge, and the History list open with the Fillet Top (+Z) 4 mm on Cube 1 row selected, its red broken chip and the reason conflicts with step 2 (Move Cube 1)](./screenshots/merging-conflict.png)
 
 ### Fixing a conflicted step
 
@@ -129,7 +129,10 @@ can no longer be built is marked as a conflict, never attached to a different sh
 **Example.** Drag a Cube in. Ask the Assistant to *round the top edge of the cube*, and while it
 says *Working…*, move the cube. When it finishes, the strip reads **Merged 1 step from the
 Assistant — 1 step conflicted**. Press **Show**: History opens on the Assistant's fillet, with the
-reason **conflicts with step 2 (Move Cube 1, by you)**. Suppress it, or ask the Assistant again.
+reason **conflicts with step 2 (Move Cube 1)**. Suppress it, or ask the Assistant again.
+The reason names the step you made by its number and label only; a step the Assistant (or
+another program) made is named with **via ai** (or **via mcp**) after the label, for example
+**(Fillet Cube 1, via ai)**.
 
 ## When a merge is refused
 
@@ -138,10 +141,10 @@ Nothing changes in any of these cases:
 - **bracket-v2.ndjson is a different project. Merge only works between copies of the same
   project.** The file isn't a copy of the project you have open. To combine two separate
   projects, open one of them and rebuild what you need from the other.
-  This check is not complete yet. WarpCad can only tell two files apart when they came from
-  older (version 1) saves. Two projects you each started from **New** in this version are not
-  recognised as different, and merging one into the other combines them, with **Undo merge**
-  to take it back. Only merge a file you know is a copy of the open project.
+  A project gets its own identity the first time you change it, and every copy of it carries
+  that identity, so two projects you each started from **New** are always told apart. Older
+  files, saved before that, have no identity and are recognised by the steps they share with
+  your project: a real copy shares them, a different project shares none.
 - A file that isn't a WarpCad project, or that needs a newer WarpCad, gets the same message
   **Open…** would show, for example **Couldn't open notes.txt: line 1 is not valid JSON — this
   is not a WarpCad project file**.

@@ -148,7 +148,7 @@ describe('the merge summary, in History rows (TODO/ui-062)', () => {
     expect(result.text).toBe(`Merged 1 step from ${NAME} — 1 step conflicted`)
     expect(merge.notice).toMatchObject({ kind: 'banner', undoable: true, conflictIds: ['fillet-1'] })
     const row = documentStore.raw.timeline().find((candidate) => candidate.id === 'fillet-1')
-    expect(row.broken).toBe('conflicts with step 3 (Move Cube 1, by you)')
+    expect(row.broken).toBe('conflicts with step 3 (Move Cube 1)')
   })
 
   it('Show opens History and selects the first conflicted row', () => {

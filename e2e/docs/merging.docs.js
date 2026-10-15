@@ -76,7 +76,7 @@ test.describe('docs media: merging', () => {
     await expect(page.getByTestId('merge-banner-text')).toHaveText('Merged 1 step from bracket-copy.ndjson — 1 step conflicted')
     await page.getByTestId('merge-banner-show').click()
     await expect(page.getByTestId('timeline-panel')).toBeVisible()
-    await expect(page.getByTestId('timeline-broken-reason')).toHaveText('conflicts with step 2 (Move Cube 1, by you)')
+    await expect(page.getByTestId('timeline-broken-reason')).toHaveText('conflicts with step 2 (Move Cube 1)')
     await shot(page, 'merging-conflict.png')
   })
 })

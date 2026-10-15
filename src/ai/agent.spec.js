@@ -856,6 +856,30 @@ describe('runTurn — the user keeps editing while a turn runs, and the turn lan
     expect(document.canUndo()).toBe(true)
   })
 
+  // `TODO/data-013`: a turn on an empty, never-edited project must not let the fork and the live
+  // document each mint their own project id on their first write, or the landing merge would
+  // refuse the turn as "a different project". The fork takes the live document's id.
+  it('a turn on an empty project, with the user placing a body meanwhile, lands under one project id', async () => {
+    const document = createDocument({ replica: LIVE })
+    expect(document.mergeState().projectId).toBeNull()
+    let edited = false
+    const client = scriptedProvider([{ calls: [call('create', CUBE)] }, { text: 'A cube.' }])
+    const { ctx } = setup({
+      client,
+      document,
+      onEvent: (event) => {
+        if (event.type !== 'tool_result' || edited) return
+        edited = true
+        document.appendAll(recordsForDrop('primitive.cone', { x: -60, y: 0 }, document), LOCAL)
+      },
+    })
+    const outcome = await runTurn({ userMessage: 'a cube', ctx })
+
+    expect(outcome.status).toBe('done')
+    expect(document.bodies()).toHaveLength(2)
+    expect(document.mergeState().projectId).toMatch(/^[a-z2-7]{16}$/)
+  })
+
   it('Stop mid-turn leaves the live document, the mid-turn edits included, byte-identical to the moment before Stop', async () => {
     const document = seededDocument()
     const controller = new AbortController()
