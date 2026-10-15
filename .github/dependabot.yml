@@ -1,0 +1,40 @@
+# Weekly dependency PRs, grouped so they arrive as a handful rather than dozens. Every PR still
+# has to pass CI, including `npm run licenses` (a new transitive licence outside the allow-list
+# fails there, and widening the list is the maintainer's call — CLAUDE.md "Licensing").
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    ignore:
+      # Pinned on purpose (docs/decisions/rendering.md, docs/decisions/geometry-kernel.md):
+      # upgraded by a deliberate task with its own health check, not by a bot.
+      - dependency-name: three
+      - dependency-name: "@types/three"
+      - dependency-name: "@jscad/*"
+    groups:
+      dev-tooling:
+        dependency-type: development
+        update-types: [minor, patch]
+      runtime:
+        dependency-type: production
+        update-types: [minor, patch]
+
+  - package-ecosystem: npm
+    directory: /mcp
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 3
+    groups:
+      mcp:
+        update-types: [minor, patch]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ["*"]

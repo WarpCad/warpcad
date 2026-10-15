@@ -8,8 +8,13 @@ playwright-report/
 blob-report/
 storybook-static/
 *.local
+
+# Claude Code per-machine state: local permission grants and the scheduler's lock
+.claude/settings.local.json
+.claude/scheduled_tasks.lock
 HANDOFF-NAME.md
 NAME-ACCOUNTS.md
+PUBLISH-CHECKLIST.md
 .docs-movies/
 test-report-for-coding-agents/
 

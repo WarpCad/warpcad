@@ -11,7 +11,7 @@ Copyright © 2026 John Cole.
 
 | Path | License | File |
 |---|---|---|
-| `src/`, `mcp/`, `e2e/`, `scripts/`, `bench/`, `build/`, `.storybook/`, root `*.js` / `*.ts` config, `index.html` | **AGPL-3.0-or-later** | [`LICENSE`](LICENSE) |
+| `src/`, `mcp/`, `e2e/`, `scripts/`, `bench/`, `build/`, `.storybook/`, `.github/` workflows and config, root `*.js` / `*.ts` config, `index.html` | **AGPL-3.0-or-later** | [`LICENSE`](LICENSE) |
 | `TODO/` (roadmap, specs, acceptance scenarios, findings), `.claude/commands/`, `.claude/prompts/`, `CLAUDE.md`, `AGENTS.md`, `docs/`, `README.md`, `PREVIOUS-ATTEMPT.md`, `SECOND-ATTEMPT.md`, `TROUBLESHOOTING.md`, `Initial design.md`, every other `*.md` | **CC BY-SA 4.0** | [`LICENSE-DOCS`](LICENSE-DOCS) |
 | `docs/screenshots/`, `docs/media/` and other images or GIFs under `docs/` | **CC BY-SA 4.0** by path (binary files cannot carry an SPDX marker) | [`LICENSE-DOCS`](LICENSE-DOCS) |
 | `chat/` (drafted social posts) | All rights reserved | — |

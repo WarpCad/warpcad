@@ -10,7 +10,7 @@
  * `jscad-utils@6.0.0`'s `parts.BoardFrame`. That version is **not** installed in this
  * project — the vendored copy is 3.2.0, which has `Board` but neither `BoardFrame` nor
  * `Anchor` — so this port was written by reading
- * `/Users/johncole/src/jscad/jscad-utils/src/parts.js:445-472` directly, per the
+ * `jscad-utils@6.0.0`'s `src/parts.js:445-472` (the upstream source) directly, per the
  * explicit call in `TODO/core-012` not to add a 6.0.0 dependency just to diff a
  * fixture against. That is why `kit.boardFrame.spec.js` asserts geometric
  * relationships (outer size, wall volume, hollowness) rather than diffing V1 numbers

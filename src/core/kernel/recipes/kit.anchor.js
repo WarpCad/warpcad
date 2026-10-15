@@ -8,7 +8,7 @@
  * `jscad-utils@6.0.0`'s `parts.Anchor`. As with `kit.boardFrame`, 6.0.0 is not
  * installed here (the vendored copy is 3.2.0, which has neither `Anchor` nor
  * `BoardFrame`), so this was ported by reading
- * `/Users/johncole/src/jscad/jscad-utils/src/parts.js:398-407` directly, per
+ * `jscad-utils@6.0.0`'s `src/parts.js:398-407` (the upstream source) directly, per
  * `TODO/core-012`'s explicit instruction not to add a dependency for a fixture:
  *
  * ```js

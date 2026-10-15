@@ -1,8 +1,17 @@
 {
-  "name": "warpcad2",
+  "name": "warpcad",
   "version": "0.0.0",
   "private": true,
+  "description": "Parametric CAD in the browser: drag-to-place solids, booleans, sketches, and an AI partner via MCP.",
   "license": "AGPL-3.0-or-later",
+  "homepage": "https://github.com/WarpCad/warpcad#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/WarpCad/warpcad.git"
+  },
+  "bugs": {
+    "url": "https://github.com/WarpCad/warpcad/issues"
+  },
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -30,7 +39,7 @@
     "mcp:add": "node scripts/mcp-add.mjs",
     "mcp:install": "npm --prefix mcp ci",
     "mcp:licenses": "npm --prefix mcp run licenses",
-    "licenses": "npx --yes license-checker@25.0.1 --production --excludePackages \"warpcad2@0.0.0\" --onlyAllow \"MIT;ISC;BSD-2-Clause;BSD-3-Clause;Apache-2.0;0BSD;BlueOak-1.0.0;MIT-0;CC0-1.0;(MIT OR CC0-1.0);MPL-2.0;CC-BY-4.0\" --summary"
+    "licenses": "npx --yes license-checker@25.0.1 --production --excludePackages \"warpcad@0.0.0\" --onlyAllow \"MIT;ISC;BSD-2-Clause;BSD-3-Clause;Apache-2.0;0BSD;BlueOak-1.0.0;MIT-0;CC0-1.0;(MIT OR CC0-1.0);MPL-2.0;CC-BY-4.0\" --summary"
   },
   "dependencies": {
     "@jscad/modeling": "2.13.0",
