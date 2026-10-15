@@ -6,8 +6,20 @@ priority: medium
 model: opus
 milestone: M16
 depends: [ui-064]
-status: open
+status: done
 ---
+
+> **What shipped (2026-10-15):** as specified, with these differences. The step code lives in a new
+> `src/render/translateSnap.js` (mirroring `rotateSnap.js`), and the shared tracker/hysteresis in
+> `src/render/dragSteps.js`; `rotateSnap.js`'s `createSpeedTracker`/`stepForSpeed` are thin wrappers
+> (a golden run captured before the extraction proves identical results), not literal re-exports.
+> `updateRulerAnnotation` takes the whole gizmo and an axis index so the ruler shares `armDirection`
+> with `translateDeltaMm`. The ruler follows the arm's screen direction at `1/mmPerPixel` px per mm,
+> so tick spacing on screen does not shrink as the arm tilts. Open questions took the recommended
+> answers (a: rings stay Shift-only, follow-up row; b: fixed 1 mm; c: ruler runs past the tip, the
+> readout is the authority). **Still open:** the speed bands (40/300/1000 px/s -> 0.1/1/5/10 mm) are
+> untuned on a real device, and a plain mouse arm drag is now speed-stepped, which is the judgment
+> call for the hand-drive; see `TODO/VERIFY.md`.
 
 ## Goal
 

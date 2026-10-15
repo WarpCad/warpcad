@@ -2375,3 +2375,18 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** same as the BlueSky entry; one number feeds dial, readout, preview, field and commit -> diff (`src/components/viewport/Viewport.vue` `applyRotateStep`); thresholds untuned -> `TODO/VERIFY.md`
 **To Add:** `docs/screenshots/gizmo-rotate-dial.png` and `docs/media/gizmo-rotate-dial.gif`; repo URL once public
+
+## 2026-10-15T01:55:00Z — Translate arrows get a ruler, Shift 1 mm steps and speed-sensitive steps
+
+**Post:** Moving a part with its arrow in WarpCad used to give one piece of feedback: the part moved. You could not see how far, from where, or land on a round distance without typing into a field.
+
+Dragging a translate arrow now draws a ruler along that arrow, starting where you pressed, with a live marker, a shaded span and a signed readout like +12.5 mm. Hold Shift for whole millimetres. Without Shift, how fast you drag picks the step, from 10 mm down to 0.1 mm when you nearly stop, and it works the same on a mouse as on a finger.
+
+The speed tracker was lifted out of the rotate dial into a shared module, with a captured run of the old behaviour to prove rotation results did not change. The speed thresholds still need tuning on a real device.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** same as the BlueSky entry; tracker extraction pinned by a golden run captured before the move -> diff (`src/render/dragSteps.spec.js`); thresholds untuned -> `TODO/VERIFY.md`
+**To Add:** `docs/screenshots/gizmo-translate-ruler.png` and `docs/media/gizmo-translate-ruler.gif`; repo URL once public

@@ -674,13 +674,33 @@ export function ringArrowheads(ring, originX, originY, out) {
  * @returns {number} Millimetres along that axis, signed.
  */
 export function translateDeltaMm(gizmo, axisIndex, dxPx, dyPx, mmPerPixel) {
+  if (!armDirection(gizmo, axisIndex, scratchArmDir)) return 0
+  return (dxPx * scratchArmDir.x + dyPx * scratchArmDir.y) * mmPerPixel
+}
+
+// Scratch for an arm's unit direction: single-threaded, finished with before return.
+const scratchArmDir = { x: 0, y: 0 }
+
+/**
+ * The unit screen direction of a translate arm, hub to tip: the one definition
+ * of "along the arm" that {@link translateDeltaMm} moves the body by and the
+ * translate ruler (`TODO/ui-065`) is drawn along, so the two cannot disagree.
+ *
+ * @param {GizmoAnnotation} gizmo
+ * @param {number} axisIndex 0 | 1 | 2.
+ * @param {{ x: number, y: number }} out Mutated in place, only when this returns `true`.
+ * @returns {boolean} `false` for a hidden arm or one with no screen length.
+ */
+function armDirection(gizmo, axisIndex, out) {
   const arrow = gizmo.arrows[axisIndex]
-  if (!arrow || !arrow.visible) return 0
+  if (!arrow || !arrow.visible) return false
   const armX = arrow.tipX - gizmo.originX
   const armY = arrow.tipY - gizmo.originY
   const armLength = Math.hypot(armX, armY)
-  if (!(armLength > EPSILON_PX)) return 0
-  return ((dxPx * armX + dyPx * armY) / armLength) * mmPerPixel
+  if (!(armLength > EPSILON_PX)) return false
+  out.x = armX / armLength
+  out.y = armY / armLength
+  return true
 }
 
 /**
@@ -1116,34 +1136,431 @@ export function updateDialAnnotation(ring, startParamDeg, turnedDeg, originX, or
 export function placeDialReadout(ring, originX, originY, pointerXPx, pointerYPx, touch, widthPx, heightPx, out) {
   const halfW = DIAL_READOUT_WIDTH_PX / 2
   const halfH = DIAL_READOUT_HEIGHT_PX / 2
+  if (touch) return placePillAboveFinger(pointerXPx, pointerYPx, originX, halfW, halfH, widthPx, heightPx, out)
+  // The ellipse's exact vertical half-extent on screen.
+  const ringHalfHeight = Math.hypot(ring.uy, ring.vy) * DIAL_TICK_OUTER
+  return clampPill(originX, originY - ringHalfHeight - DIAL_READOUT_GAP_PX - halfH, halfW, halfH, widthPx, heightPx, out)
+}
+
+/**
+ * Write a readout pill's centre, clamped inside the viewport. A viewport
+ * narrower than the pill pins it to the left margin.
+ *
+ * @template {{ readoutX: number, readoutY: number }} T
+ * @param {number} x Wanted centre.
+ * @param {number} y
+ * @param {number} halfW The pill's half-size.
+ * @param {number} halfH
+ * @param {number} widthPx Viewport size.
+ * @param {number} heightPx
+ * @param {T} out Mutated in place.
+ * @returns {T} `out`
+ */
+function clampPill(x, y, halfW, halfH, widthPx, heightPx, out) {
   const minX = DIAL_READOUT_MARGIN_PX + halfW
   const maxX = widthPx - DIAL_READOUT_MARGIN_PX - halfW
   const minY = DIAL_READOUT_MARGIN_PX + halfH
   const maxY = heightPx - DIAL_READOUT_MARGIN_PX - halfH
-
-  let x
-  let y
-  if (!touch) {
-    // The ellipse's exact vertical half-extent on screen.
-    const ringHalfHeight = Math.hypot(ring.uy, ring.vy) * DIAL_TICK_OUTER
-    x = originX
-    y = originY - ringHalfHeight - DIAL_READOUT_GAP_PX - halfH
-  } else {
-    x = pointerXPx
-    y = pointerYPx - DIAL_READOUT_FINGER_PX - halfH
-    if (y < minY) {
-      // No room above: beside the finger, away from the hub if that side fits.
-      const reach = DIAL_READOUT_FINGER_PX + halfW
-      const away = pointerXPx >= originX ? 1 : -1
-      const preferred = pointerXPx + away * reach
-      x = preferred >= minX && preferred <= maxX ? preferred : pointerXPx - away * reach
-      y = pointerYPx
-    }
-  }
-  // Clamp inside the viewport. A viewport narrower than the pill pins it to the left margin.
   out.readoutX = maxX >= minX ? clamp(x, minX, maxX) : minX
   out.readoutY = maxY >= minY ? clamp(y, minY, maxY) : minY
   return out
+}
+
+/**
+ * Place a readout pill for a touch drag, shared by the dial and the ruler:
+ * above the fingertip by a finger's width, so the finger never covers it. Near
+ * the top edge, where there is no room above, it moves beside the finger
+ * instead: away from `awayFromXPx` if that side fits, otherwise the other side.
+ * It never drops under the finger, where the hand is.
+ *
+ * @template {{ readoutX: number, readoutY: number }} T
+ * @param {number} pointerXPx
+ * @param {number} pointerYPx
+ * @param {number} awayFromXPx The thing the pill should not cover (the dial's
+ *   hub, the ruler's start mark).
+ * @param {number} halfW
+ * @param {number} halfH
+ * @param {number} widthPx
+ * @param {number} heightPx
+ * @param {T} out Mutated in place.
+ * @returns {T} `out`
+ */
+function placePillAboveFinger(pointerXPx, pointerYPx, awayFromXPx, halfW, halfH, widthPx, heightPx, out) {
+  let x = pointerXPx
+  let y = pointerYPx - DIAL_READOUT_FINGER_PX - halfH
+  if (y < DIAL_READOUT_MARGIN_PX + halfH) {
+    // No room above: beside the finger, away from the hub if that side fits.
+    const minX = DIAL_READOUT_MARGIN_PX + halfW
+    const maxX = widthPx - DIAL_READOUT_MARGIN_PX - halfW
+    const reach = DIAL_READOUT_FINGER_PX + halfW
+    const away = pointerXPx >= awayFromXPx ? 1 : -1
+    const preferred = pointerXPx + away * reach
+    x = preferred >= minX && preferred <= maxX ? preferred : pointerXPx - away * reach
+    y = pointerYPx
+  }
+  return clampPill(x, y, halfW, halfH, widthPx, heightPx, out)
+}
+
+// --- translate ruler (TODO/ui-065) -----------------------------------------
+
+/**
+ * While a translate arm is dragged, a ruler lies along that arm's screen line,
+ * starting where the drag began. The arm's screen line is the axis
+ * {@link translateDeltaMm} projects the pointer onto, and one screen pixel along
+ * it is `mmPerPixel` millimetres there, so a tick at `v` mm sits `v / mmPerPixel`
+ * px from the start along {@link armDirection}: exactly where the pointer has to
+ * be for the body to have moved `v`. The ruler turns with the arm as the camera
+ * orbits, and is the arm's own line, so the two never part.
+ *
+ * ## Sign
+ *
+ * `translateDeltaMm` is signed by the arm's direction: toward the tip is
+ * positive. The live marker, the span and the tick values all use that same
+ * signed distance against that same direction, so a positive readout always
+ * has its span on the tip side. A ruler running the other way would still read
+ * plausibly, which is why `annotate.spec.js` checks it against the tip and the
+ * world axis.
+ *
+ * ## Ticks
+ *
+ * At the fine step, ticks a tenth of a millimetre apart would be a grey smear,
+ * so the spacing climbs a 1–2–5 ladder from the step in force until no more than
+ * {@link RULER_MAX_TICKS} fit and each is at least {@link RULER_MIN_TICK_PX}
+ * apart. The 0.1/1/5/10 mm steps are all on that ladder, so every tick is a
+ * value the step can land on. Every fifth tick from the start is labelled.
+ *
+ * Past the arm's tip the ruler simply keeps going (open question (c)): the
+ * readout is the authority, and the overlay clips at the viewport's edge.
+ */
+
+/** Most ticks a ruler draws, and the size of its tick buffer. */
+export const RULER_MAX_TICKS = 40
+
+/** Ticks are never drawn closer than this, px. */
+export const RULER_MIN_TICK_PX = 6
+
+/** How far the ruler runs past the start and the live marker, px. */
+const RULER_PAD_PX = 24
+
+/** Half-length of a tick across the ruler, px; labelled ticks are longer. */
+const RULER_TICK_HALF_PX = 4
+const RULER_TICK_LABELLED_HALF_PX = 7
+
+/** Every this-many ticks from the start carries a label. */
+const RULER_LABEL_EVERY = 5
+
+/** How far a tick label sits from the ruler's line, on the side away from the readout, px. */
+const RULER_LABEL_OFFSET_PX = 14
+
+/** Half-length of the start mark's cross-bar, px. */
+const RULER_MARK_HALF_PX = 10
+
+/** Half-width of the span band, px. */
+const RULER_SPAN_HALF_PX = 4
+
+/** The live marker's arrowhead length, px. */
+const RULER_HEAD_PX = 10
+
+/**
+ * Below this, the arm points so nearly along the view that its screen line is
+ * an unstable sliver and the ticks would pile up, so only the live marker and
+ * the readout are drawn. The measure is the arm's foreshortening,
+ * `√(1 − (axis · view)²)`: 1 lying across the screen, 0 end-on. 0.25 is about
+ * 14° off end-on. The same idea as the dial's edge-on ring.
+ */
+const RULER_EDGE_ON_RATIO = 0.25
+
+/** Bounds the 1–2–5 ladder's climb, so a nonsense scale cannot loop forever. */
+const RULER_LADDER_GUARD = 40
+
+/** Float dust on tick values is rounded off at this many decimal places. */
+const RULER_CLEAN = 1e9
+
+/** Readout pill size, px: wider than the dial's, for `+1234.5 mm`. */
+export const RULER_READOUT_WIDTH_PX = 124
+export const RULER_READOUT_HEIGHT_PX = 50
+/** The readout's main line, px. ≥ 14 so it is legible at phone width. */
+export const RULER_READOUT_FONT_PX = 18
+
+/**
+ * @typedef {object} RulerTick
+ * @property {number} x1 One end, on the readout's side of the line.
+ * @property {number} y1
+ * @property {number} x2 The other end.
+ * @property {number} y2
+ * @property {number} valueMm Signed distance from the start, millimetres.
+ * @property {boolean} labelled Every fifth tick from the start.
+ * @property {number} labelX Centre of the label text.
+ * @property {number} labelY
+ */
+
+/**
+ * @typedef {object} RulerAnnotation
+ * @property {boolean} visible
+ * @property {string} axis The arm's axis, `"X"` | `"Y"` | `"Z"`, for its colour.
+ * @property {boolean} degenerate Arm (nearly) end-on, hidden or unscaled: only
+ *   the live marker and the readout are drawn.
+ * @property {number} startX Where the drag began. Never moves.
+ * @property {number} startY
+ * @property {number} dirX The arm's unit screen direction, toward the tip.
+ * @property {number} dirY
+ * @property {number} markX1 The start mark, across the line through the start.
+ * @property {number} markY1
+ * @property {number} markX2
+ * @property {number} markY2
+ * @property {number} barX1 The ruler's bar, along the arm's line.
+ * @property {number} barY1
+ * @property {number} barX2
+ * @property {number} barY2
+ * @property {number} liveX The live marker: start + the signed distance.
+ * @property {number} liveY
+ * @property {{ x: number, y: number }[]} liveHead Three points, tip first,
+ *   pointing the way the drag has travelled.
+ * @property {boolean} spanVisible
+ * @property {{ x: number, y: number }[]} span Four corners of the band between
+ *   the start and the live marker: start side first, then live side.
+ * @property {RulerTick[]} ticks {@link RULER_MAX_TICKS} buffers; the first
+ *   `tickCount` are in use.
+ * @property {number} tickCount
+ * @property {number} tickMm Spacing between ticks, millimetres; `0` when degenerate.
+ * @property {number} distanceMm The signed distance the ruler shows.
+ * @property {number} stepMm The active snap step.
+ * @property {number} readoutX Centre of the readout pill.
+ * @property {number} readoutY
+ */
+
+/**
+ * Allocate the ruler's output structure once; {@link updateRulerAnnotation}
+ * mutates it.
+ *
+ * @returns {RulerAnnotation}
+ */
+export function createRulerAnnotation() {
+  return {
+    visible: false,
+    axis: 'X',
+    degenerate: false,
+    startX: 0,
+    startY: 0,
+    dirX: 1,
+    dirY: 0,
+    markX1: 0,
+    markY1: 0,
+    markX2: 0,
+    markY2: 0,
+    barX1: 0,
+    barY1: 0,
+    barX2: 0,
+    barY2: 0,
+    liveX: 0,
+    liveY: 0,
+    liveHead: [
+      { x: 0, y: 0 },
+      { x: 0, y: 0 },
+      { x: 0, y: 0 },
+    ],
+    spanVisible: false,
+    span: [
+      { x: 0, y: 0 },
+      { x: 0, y: 0 },
+      { x: 0, y: 0 },
+      { x: 0, y: 0 },
+    ],
+    ticks: Array.from({ length: RULER_MAX_TICKS }, () => ({
+      x1: 0,
+      y1: 0,
+      x2: 0,
+      y2: 0,
+      valueMm: 0,
+      labelled: false,
+      labelX: 0,
+      labelY: 0,
+    })),
+    tickCount: 0,
+    tickMm: 0,
+    distanceMm: 0,
+    stepMm: 0,
+    readoutX: 0,
+    readoutY: 0,
+  }
+}
+
+/**
+ * How far across the screen an arm lies: 1 flat across it, 0 end-on. Read off
+ * the cone's own foreshortening (`coneRy = coneRx × |axis · view|`), so it
+ * needs nothing the arm doesn't already carry.
+ *
+ * @param {GizmoArrow | undefined} arrow
+ * @returns {number}
+ */
+function armOpenness(arrow) {
+  if (!arrow || !arrow.visible || !(arrow.coneRx > 0)) return 0
+  const toward = arrow.coneRy / arrow.coneRx
+  return Math.sqrt(Math.max(0, 1 - toward * toward))
+}
+
+/**
+ * The next rung of the 1–2–5 ladder above `tickMm`.
+ *
+ * @param {number} tickMm
+ * @returns {number}
+ */
+function nextTickMm(tickMm) {
+  const decade = 10 ** Math.floor(Math.log10(tickMm) + 1e-9)
+  const mantissa = tickMm / decade
+  const next = mantissa < 1.5 ? 2 : mantissa < 3.5 ? 5 : 10
+  return Math.round(next * decade * RULER_CLEAN) / RULER_CLEAN
+}
+
+/**
+ * Lay out the translate ruler for a drag in progress (`TODO/ui-065`).
+ *
+ * Allocates nothing: every array in `out` is reused.
+ *
+ * @param {GizmoAnnotation} gizmo The frame's gizmo, whose arm the ruler follows.
+ * @param {number} axisIndex 0 | 1 | 2.
+ * @param {number} startXPx Where the drag began, viewport pixels.
+ * @param {number} startYPx
+ * @param {number} distanceMm The signed, *snapped* distance: the number the
+ *   preview, the Inspector and the commit all use.
+ * @param {number} mmPerPixel The scale {@link translateDeltaMm} was given.
+ * @param {number} stepMm The active snap step; the ticks start from it.
+ * @param {RulerAnnotation} out Mutated in place.
+ * @returns {RulerAnnotation} `out`
+ */
+export function updateRulerAnnotation(gizmo, axisIndex, startXPx, startYPx, distanceMm, mmPerPixel, stepMm, out) {
+  const arrow = gizmo.arrows[axisIndex]
+  out.visible = true
+  out.axis = arrow ? arrow.axis : 'X'
+  out.startX = startXPx
+  out.startY = startYPx
+  out.stepMm = stepMm > 0 ? stepMm : 0
+
+  // No direction (a hidden or zero-length arm) or no scale: `translateDeltaMm`
+  // reads zero there, so the ruler does too.
+  const hasDirection = armDirection(gizmo, axisIndex, scratchArmDir)
+  const scaled = hasDirection && mmPerPixel > 0
+  const distance = scaled && Number.isFinite(distanceMm) && distanceMm !== 0 ? distanceMm : 0
+  out.distanceMm = distance
+  const dx = hasDirection ? scratchArmDir.x : 1
+  const dy = hasDirection ? scratchArmDir.y : 0
+  out.dirX = dx
+  out.dirY = dy
+  // The normal toward the upper left, the arm's own lit flank: the readout
+  // sits that side, the tick labels the other.
+  let nx = -dy
+  let ny = dx
+  if (nx + ny > 0) {
+    nx = -nx
+    ny = -ny
+  }
+  // Edge-on: the line would be an unstable sliver and the ticks would pile up,
+  // so only the live marker (and the readout) is drawn. It still slides along
+  // the collapsed line as the body moves, which is honest.
+  out.degenerate = !scaled || armOpenness(arrow) < RULER_EDGE_ON_RATIO
+
+  const livePx = scaled ? distance / mmPerPixel : 0
+  out.liveX = startXPx + dx * livePx
+  out.liveY = startYPx + dy * livePx
+  // The marker points the way the drag went; its base trails back toward the start.
+  const travel = distance < 0 ? -1 : 1
+  writeArrowhead(out.liveHead, out.liveX, out.liveY, -travel * dx, -travel * dy, RULER_HEAD_PX)
+
+  out.markX1 = startXPx + nx * RULER_MARK_HALF_PX
+  out.markY1 = startYPx + ny * RULER_MARK_HALF_PX
+  out.markX2 = startXPx - nx * RULER_MARK_HALF_PX
+  out.markY2 = startYPx - ny * RULER_MARK_HALF_PX
+
+  out.spanVisible = !out.degenerate && distance !== 0
+  const [s0, s1, s2, s3] = out.span
+  s0.x = startXPx + nx * RULER_SPAN_HALF_PX
+  s0.y = startYPx + ny * RULER_SPAN_HALF_PX
+  s1.x = out.liveX + nx * RULER_SPAN_HALF_PX
+  s1.y = out.liveY + ny * RULER_SPAN_HALF_PX
+  s2.x = out.liveX - nx * RULER_SPAN_HALF_PX
+  s2.y = out.liveY - ny * RULER_SPAN_HALF_PX
+  s3.x = startXPx - nx * RULER_SPAN_HALF_PX
+  s3.y = startYPx - ny * RULER_SPAN_HALF_PX
+
+  if (out.degenerate) {
+    out.tickCount = 0
+    out.tickMm = 0
+    out.barX1 = out.barX2 = startXPx
+    out.barY1 = out.barY2 = startYPx
+    return out
+  }
+
+  const padMm = RULER_PAD_PX * mmPerPixel
+  const loMm = Math.min(0, distance) - padMm
+  const hiMm = Math.max(0, distance) + padMm
+  let tickMm = out.stepMm > 0 ? out.stepMm : 0.1
+  for (let guard = 0; guard < RULER_LADDER_GUARD; guard += 1) {
+    if ((hiMm - loMm) / tickMm <= RULER_MAX_TICKS - 1 && tickMm / mmPerPixel >= RULER_MIN_TICK_PX) break
+    tickMm = nextTickMm(tickMm)
+  }
+  out.tickMm = tickMm
+
+  const first = Math.ceil(loMm / tickMm - 1e-9)
+  const last = Math.floor(hiMm / tickMm + 1e-9)
+  let count = 0
+  for (let k = first; k <= last && count < RULER_MAX_TICKS; k += 1) {
+    const tick = out.ticks[count]
+    const value = Math.round(k * tickMm * RULER_CLEAN) / RULER_CLEAN
+    tick.valueMm = value === 0 ? 0 : value
+    tick.labelled = k % RULER_LABEL_EVERY === 0
+    const alongPx = value / mmPerPixel
+    const cx = startXPx + dx * alongPx
+    const cy = startYPx + dy * alongPx
+    const half = tick.labelled ? RULER_TICK_LABELLED_HALF_PX : RULER_TICK_HALF_PX
+    tick.x1 = cx + nx * half
+    tick.y1 = cy + ny * half
+    tick.x2 = cx - nx * half
+    tick.y2 = cy - ny * half
+    tick.labelX = cx - nx * RULER_LABEL_OFFSET_PX
+    tick.labelY = cy - ny * RULER_LABEL_OFFSET_PX
+    count += 1
+  }
+  out.tickCount = count
+
+  out.barX1 = startXPx + (dx * loMm) / mmPerPixel
+  out.barY1 = startYPx + (dy * loMm) / mmPerPixel
+  out.barX2 = startXPx + (dx * hiMm) / mmPerPixel
+  out.barY2 = startYPx + (dy * hiMm) / mmPerPixel
+  return out
+}
+
+/**
+ * Place the ruler's readout pill (`TODO/ui-065`): screen-aligned text, inside
+ * the viewport. Call after {@link updateRulerAnnotation}, which sets the start
+ * and direction this reads.
+ *
+ * - **Mouse**: beside the start mark, on the arm's lit (upper-left) side, just
+ *   clear of the ruler's line and its ticks, so it never covers what it reads.
+ * - **Touch / pen**: up and away from the fingertip, as the dial's readout is.
+ *
+ * Writes `readoutX`/`readoutY`, the pill's centre, into `out`.
+ *
+ * @param {number} pointerXPx The pointer, viewport pixels.
+ * @param {number} pointerYPx
+ * @param {boolean} touch Touch or pen: dodge the finger.
+ * @param {number} widthPx Viewport size.
+ * @param {number} heightPx
+ * @param {RulerAnnotation} out Mutated in place.
+ * @returns {RulerAnnotation} `out`
+ */
+export function placeRulerReadout(pointerXPx, pointerYPx, touch, widthPx, heightPx, out) {
+  const halfW = RULER_READOUT_WIDTH_PX / 2
+  const halfH = RULER_READOUT_HEIGHT_PX / 2
+  if (touch) return placePillAboveFinger(pointerXPx, pointerYPx, out.startX, halfW, halfH, widthPx, heightPx, out)
+  let nx = -out.dirY
+  let ny = out.dirX
+  if (nx + ny > 0) {
+    nx = -nx
+    ny = -ny
+  }
+  // The pill's half-extent along the normal (its support distance), plus a gap.
+  const offset = DIAL_READOUT_GAP_PX + Math.abs(nx) * halfW + Math.abs(ny) * halfH
+  return clampPill(out.startX + nx * offset, out.startY + ny * offset, halfW, halfH, widthPx, heightPx, out)
 }
 
 // --- dimension lines -------------------------------------------------------

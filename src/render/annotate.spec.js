@@ -13,11 +13,19 @@ import {
   GIZMO_ARM_FLOOR_PX,
   GIZMO_HEAD_MAX_PX,
   RING_SEGMENTS,
+  RULER_MAX_TICKS,
+  RULER_MIN_TICK_PX,
+  RULER_READOUT_FONT_PX,
+  RULER_READOUT_HEIGHT_PX,
+  RULER_READOUT_WIDTH_PX,
   axisFacing,
   axisToward,
   createDialAnnotation,
   createDimensionAnnotation,
+  createRulerAnnotation,
   placeDialReadout,
+  placeRulerReadout,
+  updateRulerAnnotation,
   ringParamDeg,
   updateDialAnnotation,
   createGizmoAnnotation,
@@ -1668,6 +1676,408 @@ describe('the rotate dial (TODO/ui-064)', () => {
       const finger = { x: 120, y: 30 }
       placeDialReadout(ring, 200, 200, finger.x, finger.y, true, PHONE.width, PHONE.height, dial)
       const b = box(dial)
+      const coversFinger =
+        finger.x > b.left - 20 && finger.x < b.right + 20 && finger.y > b.top - 20 && finger.y < b.bottom + 20
+      expect(coversFinger).toBe(false)
+    })
+  })
+})
+
+describe('the translate ruler (TODO/ui-065)', () => {
+  /**
+   * While a translate arm is dragged, a ruler lies along that arm's screen line
+   * from where the drag began: ticks, a fixed start mark, a live marker at the
+   * snapped distance and a span between them. The trap the spec names is sign:
+   * a ruler that runs the opposite way to the body still reads plausibly, so the
+   * direction is checked against the arm's tip and the world axis, and the
+   * marker against `translateDeltaMm`, the function that moves the body.
+   */
+
+  const ARM_PX = 98
+  const RING_PX = 80
+  const MM_PER_PX = 0.5
+
+  /**
+   * A gizmo at the screen centre under a camera.
+   *
+   * @param {number} azimuthDeg
+   * @param {number} elevationDeg
+   */
+  function armRig(azimuthDeg, elevationDeg) {
+    const orbit = cameraAt({ azimuthDeg, elevationDeg })
+    const gizmo = createGizmoAnnotation()
+    updateGizmoAnnotation(orbit, 0, 0, 0, WIDTH_PX, HEIGHT_PX, ARM_PX, RING_PX, gizmo)
+    return { orbit, gizmo }
+  }
+
+  /**
+   * The arm's unit screen direction, read off the drawn arm.
+   *
+   * @param {import('./annotate.js').GizmoAnnotation} gizmo
+   * @param {number} axis
+   */
+  function tipward(gizmo, axis) {
+    const arrow = gizmo.arrows[axis]
+    const x = arrow.tipX - gizmo.originX
+    const y = arrow.tipY - gizmo.originY
+    const length = Math.hypot(x, y)
+    return { x: x / length, y: y / length }
+  }
+
+  /**
+   * A grab point part-way along an arm, where the hit target actually is.
+   *
+   * @param {import('./annotate.js').GizmoAnnotation} gizmo
+   * @param {number} axis
+   */
+  function grabOn(gizmo, axis) {
+    const dir = tipward(gizmo, axis)
+    return { x: gizmo.originX + dir.x * ARM_PX * 0.7, y: gizmo.originY + dir.y * ARM_PX * 0.7 }
+  }
+
+  /** @param {{ x: number, y: number }} a @param {{ x: number, y: number }} b */
+  const dot = (a, b) => a.x * b.x + a.y * b.y
+
+  /** The rendering cases the sign test runs: a diagonal arm and a horizontal one. */
+  const SIGN_CASES = [
+    { name: 'diagonal X arm', az: 25, el: 35, axis: 0 },
+    { name: 'diagonal Y arm', az: 25, el: 35, axis: 1 },
+    { name: 'horizontal X arm', az: -90, el: 40, axis: 0 },
+  ]
+
+  describe('updateRulerAnnotation', () => {
+    it('puts every tick on the arm\'s screen line, across it, at whole multiples of the tick spacing', () => {
+      const { gizmo } = armRig(25, 35)
+      const start = grabOn(gizmo, 0)
+      const dir = tipward(gizmo, 0)
+      const ruler = createRulerAnnotation()
+      updateRulerAnnotation(gizmo, 0, start.x, start.y, 23.4, MM_PER_PX, 1, ruler)
+
+      expect(ruler.visible).toBe(true)
+      expect(ruler.axis).toBe('X')
+      expect(ruler.degenerate).toBe(false)
+      expect(ruler.tickCount).toBeGreaterThan(3)
+      for (let index = 0; index < ruler.tickCount; index += 1) {
+        const tick = ruler.ticks[index]
+        const mid = { x: (tick.x1 + tick.x2) / 2 - start.x, y: (tick.y1 + tick.y2) / 2 - start.y }
+        // On the line through the start along the arm: no component across it.
+        expect(mid.x * dir.y - mid.y * dir.x).toBeCloseTo(0, 6)
+        // Drawn across the line, not along it.
+        expect(dot({ x: tick.x2 - tick.x1, y: tick.y2 - tick.y1 }, dir)).toBeCloseTo(0, 6)
+        // At its own value, measured the way the body is moved.
+        expect(translateDeltaMm(gizmo, 0, mid.x, mid.y, MM_PER_PX)).toBeCloseTo(tick.valueMm, 6)
+        expect(tick.valueMm / ruler.tickMm).toBeCloseTo(Math.round(tick.valueMm / ruler.tickMm), 6)
+        // Every fifth tick, counted from the start, is labelled.
+        expect(tick.labelled).toBe(Math.round(tick.valueMm / ruler.tickMm) % 5 === 0)
+      }
+      // The bar runs the length of the ticks and contains both the start and the live marker.
+      const along = (/** @type {number} */ x, /** @type {number} */ y) => dot({ x: x - start.x, y: y - start.y }, dir)
+      const barLo = Math.min(along(ruler.barX1, ruler.barY1), along(ruler.barX2, ruler.barY2))
+      const barHi = Math.max(along(ruler.barX1, ruler.barY1), along(ruler.barX2, ruler.barY2))
+      expect(barLo).toBeLessThan(0)
+      expect(barHi).toBeGreaterThan(along(ruler.liveX, ruler.liveY))
+    })
+
+    for (const { name, az, el, axis } of SIGN_CASES) {
+      it(`sign: toward the tip reads positive and the span runs tipward; away is the mirror (${name})`, () => {
+        const { gizmo } = armRig(az, el)
+        const dir = tipward(gizmo, axis)
+        if (name.startsWith('horizontal')) expect(Math.abs(dir.y)).toBeLessThan(1e-9)
+        else expect(Math.min(Math.abs(dir.x), Math.abs(dir.y))).toBeGreaterThan(0.2)
+        // The world axis, projected independently of the gizmo's own arm.
+        const world = { x: 0, y: 0 }
+        screenDirection(az, el, axis === 0 ? 1 : 0, axis === 1 ? 1 : 0, axis === 2 ? 1 : 0, world)
+        const start = grabOn(gizmo, axis)
+        const tip = { x: gizmo.arrows[axis].tipX, y: gizmo.arrows[axis].tipY }
+
+        for (const sign of [1, -1]) {
+          // Along the arm, with some wobble across it that must not count.
+          const pointer = {
+            x: start.x + sign * dir.x * 40 - dir.y * 13,
+            y: start.y + sign * dir.y * 40 + dir.x * 13,
+          }
+          const distanceMm = translateDeltaMm(gizmo, axis, pointer.x - start.x, pointer.y - start.y, MM_PER_PX)
+          expect(Math.sign(distanceMm)).toBe(sign)
+          expect(Math.abs(distanceMm)).toBeCloseTo(40 * MM_PER_PX, 6)
+
+          const ruler = createRulerAnnotation()
+          updateRulerAnnotation(gizmo, axis, start.x, start.y, distanceMm, MM_PER_PX, 0.1, ruler)
+          const live = { x: ruler.liveX - start.x, y: ruler.liveY - start.y }
+
+          // The live marker sits on the pointer's projection onto the arm…
+          expect(ruler.liveX).toBeCloseTo(start.x + sign * dir.x * 40, 6)
+          expect(ruler.liveY).toBeCloseTo(start.y + sign * dir.y * 40, 6)
+          // …which is the same distance the body is moved by.
+          expect(translateDeltaMm(gizmo, axis, live.x, live.y, MM_PER_PX)).toBeCloseTo(distanceMm, 6)
+          // Toward the tip for +, away from it for −, in screen and in the world.
+          const fromTip = Math.hypot(ruler.liveX - tip.x, ruler.liveY - tip.y)
+          const startFromTip = Math.hypot(start.x - tip.x, start.y - tip.y)
+          expect(Math.sign(startFromTip - fromTip)).toBe(sign)
+          expect(Math.sign(dot(live, world))).toBe(sign)
+
+          // The span runs from the start mark to the live marker, the same way.
+          expect(ruler.spanVisible).toBe(true)
+          const near = { x: (ruler.span[0].x + ruler.span[3].x) / 2, y: (ruler.span[0].y + ruler.span[3].y) / 2 }
+          const far = { x: (ruler.span[1].x + ruler.span[2].x) / 2, y: (ruler.span[1].y + ruler.span[2].y) / 2 }
+          expect(near.x).toBeCloseTo(start.x, 6)
+          expect(near.y).toBeCloseTo(start.y, 6)
+          expect(far.x).toBeCloseTo(ruler.liveX, 6)
+          expect(far.y).toBeCloseTo(ruler.liveY, 6)
+          expect(Math.sign(dot({ x: far.x - near.x, y: far.y - near.y }, world))).toBe(sign)
+
+          // Tick labels carry the body's sign: positive ticks on the tip side.
+          let positive = 0
+          let negative = 0
+          for (let index = 0; index < ruler.tickCount; index += 1) {
+            const tick = ruler.ticks[index]
+            const side = dot({ x: (tick.x1 + tick.x2) / 2 - start.x, y: (tick.y1 + tick.y2) / 2 - start.y }, world)
+            if (tick.valueMm > 0) {
+              positive += 1
+              expect(side).toBeGreaterThan(0)
+            } else if (tick.valueMm < 0) {
+              negative += 1
+              expect(side).toBeLessThan(0)
+            }
+          }
+          expect(sign > 0 ? positive : negative).toBeGreaterThan(0)
+
+          // The live marker points the way it travelled: its base trails behind.
+          const base = {
+            x: (ruler.liveHead[1].x + ruler.liveHead[2].x) / 2 - ruler.liveX,
+            y: (ruler.liveHead[1].y + ruler.liveHead[2].y) / 2 - ruler.liveY,
+          }
+          expect(ruler.liveHead[0].x).toBeCloseTo(ruler.liveX, 9)
+          expect(ruler.liveHead[0].y).toBeCloseTo(ruler.liveY, 9)
+          expect(Math.sign(dot(base, world))).toBe(-sign)
+        }
+      })
+    }
+
+    it('keeps the start mark exactly where the drag began, across updates', () => {
+      const { gizmo } = armRig(25, 35)
+      const start = grabOn(gizmo, 1)
+      const ruler = createRulerAnnotation()
+      updateRulerAnnotation(gizmo, 1, start.x, start.y, 10, MM_PER_PX, 1, ruler)
+      const mark = [ruler.markX1, ruler.markY1, ruler.markX2, ruler.markY2]
+      expect((mark[0] + mark[2]) / 2).toBeCloseTo(start.x, 9)
+      expect((mark[1] + mark[3]) / 2).toBeCloseTo(start.y, 9)
+      updateRulerAnnotation(gizmo, 1, start.x, start.y, -37.5, MM_PER_PX, 5, ruler)
+      updateRulerAnnotation(gizmo, 1, start.x, start.y, 2.3, MM_PER_PX, 0.1, ruler)
+      expect([ruler.markX1, ruler.markY1, ruler.markX2, ruler.markY2]).toEqual(mark)
+      expect(ruler.startX).toBe(start.x)
+      expect(ruler.startY).toBe(start.y)
+    })
+
+    it('a distance of zero draws no span and carries +0, not -0; the marker sits on the start', () => {
+      const { gizmo } = armRig(25, 35)
+      const start = grabOn(gizmo, 0)
+      const ruler = createRulerAnnotation()
+      // The pointer exactly on the start point is a zero distance, by translateDeltaMm.
+      const distanceMm = translateDeltaMm(gizmo, 0, 0, 0, MM_PER_PX)
+      updateRulerAnnotation(gizmo, 0, start.x, start.y, -distanceMm, MM_PER_PX, 0.1, ruler)
+      expect(ruler.spanVisible).toBe(false)
+      expect(Object.is(ruler.distanceMm, 0)).toBe(true)
+      expect(ruler.liveX).toBeCloseTo(start.x, 9)
+      expect(ruler.liveY).toBeCloseTo(start.y, 9)
+      // A zero ruler still shows where 0 is: the start mark and its ticks.
+      expect(ruler.tickCount).toBeGreaterThan(0)
+    })
+
+    it('widens the tick spacing at the fine step so no more than ~40 ticks are drawn, never closer than a few px', () => {
+      const { gizmo } = armRig(25, 35)
+      const start = grabOn(gizmo, 0)
+      const ruler = createRulerAnnotation()
+      for (const [distanceMm, mmPerPixel] of [
+        [12.4, 0.5],
+        [75, 0.5], // a single move that jumps more than 50 mm
+        [-140, 0.25],
+        [2000, 2],
+        [3.2, 0.05],
+      ]) {
+        updateRulerAnnotation(gizmo, 0, start.x, start.y, distanceMm, mmPerPixel, 0.1, ruler)
+        expect(ruler.tickCount).toBeGreaterThan(0)
+        expect(ruler.tickCount).toBeLessThanOrEqual(RULER_MAX_TICKS)
+        expect(RULER_MAX_TICKS).toBeLessThanOrEqual(41)
+        expect(ruler.tickMm / mmPerPixel).toBeGreaterThanOrEqual(RULER_MIN_TICK_PX - 1e-9)
+        // The ticks land on values the step can reach.
+        expect(ruler.tickMm / 0.1).toBeCloseTo(Math.round(ruler.tickMm / 0.1), 6)
+        // And they cover the whole travel, start to live.
+        const values = ruler.ticks.slice(0, ruler.tickCount).map((tick) => tick.valueMm)
+        expect(Math.min(...values)).toBeLessThanOrEqual(Math.min(0, distanceMm) + ruler.tickMm)
+        expect(Math.min(...values)).toBeLessThanOrEqual(0)
+        expect(Math.max(...values)).toBeGreaterThanOrEqual(Math.max(0, distanceMm) - ruler.tickMm)
+        expect(Number.isFinite(ruler.liveX) && Number.isFinite(ruler.liveY)).toBe(true)
+      }
+    })
+
+    it('at a coarse step, the ticks are the step itself while they fit', () => {
+      const { gizmo } = armRig(25, 35)
+      const start = grabOn(gizmo, 0)
+      const ruler = createRulerAnnotation()
+      updateRulerAnnotation(gizmo, 0, start.x, start.y, 30, 0.5, 5, ruler)
+      expect(ruler.tickMm).toBeCloseTo(5, 9)
+      updateRulerAnnotation(gizmo, 0, start.x, start.y, 30, 0.5, 1, ruler)
+      expect(ruler.tickMm).toBeCloseTo(5, 9) // 1 mm is 2 px apart at 0.5 mm/px: widened
+      updateRulerAnnotation(gizmo, 0, start.x, start.y, 8, 0.1, 1, ruler)
+      expect(ruler.tickMm).toBeCloseTo(1, 9)
+    })
+
+    it('an edge-on arm takes the degenerate path: only the live marker, no ticks, no span', () => {
+      // A couple of degrees off the Y axis's own line of sight.
+      const { gizmo } = armRig(-90, 5)
+      expect(gizmo.arrows[1].visible).toBe(true)
+      const start = grabOn(gizmo, 1)
+      const ruler = createRulerAnnotation()
+      updateRulerAnnotation(gizmo, 1, start.x, start.y, 12, MM_PER_PX, 1, ruler)
+      expect(ruler.visible).toBe(true)
+      expect(ruler.degenerate).toBe(true)
+      expect(ruler.tickCount).toBe(0)
+      expect(ruler.spanVisible).toBe(false)
+      expect(Number.isFinite(ruler.liveX) && Number.isFinite(ruler.liveY)).toBe(true)
+      expect(ruler.distanceMm).toBeCloseTo(12, 9)
+
+      // A comfortably tilted arm is not, with the same buffers.
+      const tilted = armRig(-90, 40)
+      const grab = grabOn(tilted.gizmo, 1)
+      updateRulerAnnotation(tilted.gizmo, 1, grab.x, grab.y, 12, MM_PER_PX, 1, ruler)
+      expect(ruler.degenerate).toBe(false)
+      expect(ruler.tickCount).toBeGreaterThan(0)
+      expect(ruler.spanVisible).toBe(true)
+    })
+
+    it('a zero-length or hidden arm reads zero, like translateDeltaMm, and stays finite', () => {
+      const { gizmo } = armRig(25, 35)
+      // Zero length: tip on the hub.
+      gizmo.arrows[0].tipX = gizmo.originX
+      gizmo.arrows[0].tipY = gizmo.originY
+      expect(translateDeltaMm(gizmo, 0, 30, 30, MM_PER_PX)).toBe(0)
+      const ruler = createRulerAnnotation()
+      updateRulerAnnotation(gizmo, 0, 400, 300, 25, MM_PER_PX, 1, ruler)
+      expect(ruler.degenerate).toBe(true)
+      expect(Object.is(ruler.distanceMm, 0)).toBe(true)
+      expect(ruler.liveX).toBeCloseTo(400, 9)
+      expect(ruler.liveY).toBeCloseTo(300, 9)
+      for (const point of ruler.liveHead) expect(Number.isFinite(point.x) && Number.isFinite(point.y)).toBe(true)
+
+      // Hidden: the top view hides the Z arm outright.
+      const top = cameraAt()
+      top.snapTo('top')
+      const hidden = createGizmoAnnotation()
+      updateGizmoAnnotation(top, 0, 0, 0, WIDTH_PX, HEIGHT_PX, ARM_PX, RING_PX, hidden)
+      expect(hidden.arrows[2].visible).toBe(false)
+      updateRulerAnnotation(hidden, 2, 400, 300, 25, MM_PER_PX, 1, ruler)
+      expect(ruler.degenerate).toBe(true)
+      expect(Object.is(ruler.distanceMm, 0)).toBe(true)
+      expect(ruler.axis).toBe('Z')
+    })
+
+    it('a non-positive scale is degenerate, never NaN', () => {
+      const { gizmo } = armRig(25, 35)
+      const ruler = createRulerAnnotation()
+      for (const scale of [0, -1, Number.NaN]) {
+        updateRulerAnnotation(gizmo, 0, 400, 300, 5, scale, 1, ruler)
+        expect(ruler.degenerate).toBe(true)
+        expect(Number.isFinite(ruler.liveX) && Number.isFinite(ruler.liveY)).toBe(true)
+      }
+    })
+
+    it('mutates the caller\'s buffers rather than allocating new ones', () => {
+      const { gizmo } = armRig(25, 35)
+      const ruler = createRulerAnnotation()
+      const tick = ruler.ticks[3]
+      const head = ruler.liveHead[1]
+      const corner = ruler.span[2]
+      expect(ruler.ticks).toHaveLength(RULER_MAX_TICKS)
+      updateRulerAnnotation(gizmo, 0, 400, 300, 12, MM_PER_PX, 1, ruler)
+      updateRulerAnnotation(gizmo, 2, 400, 300, -80, MM_PER_PX, 0.1, ruler)
+      expect(ruler.ticks[3]).toBe(tick)
+      expect(ruler.liveHead[1]).toBe(head)
+      expect(ruler.span[2]).toBe(corner)
+      expect(ruler.ticks).toHaveLength(RULER_MAX_TICKS)
+      expect(ruler.axis).toBe('Z')
+    })
+  })
+
+  describe('placeRulerReadout', () => {
+    const PHONE = { width: 390, height: 844 }
+
+    /** @param {import('./annotate.js').RulerAnnotation} ruler */
+    function box(ruler) {
+      return {
+        left: ruler.readoutX - RULER_READOUT_WIDTH_PX / 2,
+        right: ruler.readoutX + RULER_READOUT_WIDTH_PX / 2,
+        top: ruler.readoutY - RULER_READOUT_HEIGHT_PX / 2,
+        bottom: ruler.readoutY + RULER_READOUT_HEIGHT_PX / 2,
+      }
+    }
+
+    it('uses legible text: at least 14 px', () => {
+      expect(RULER_READOUT_FONT_PX).toBeGreaterThanOrEqual(14)
+    })
+
+    it('with a mouse, sits beside the start mark, clear of the ruler line', () => {
+      for (const { az, el, axis } of SIGN_CASES) {
+        const { gizmo } = armRig(az, el)
+        const start = grabOn(gizmo, axis)
+        const dir = tipward(gizmo, axis)
+        const ruler = createRulerAnnotation()
+        updateRulerAnnotation(gizmo, axis, start.x, start.y, 20, MM_PER_PX, 1, ruler)
+        placeRulerReadout(ruler.liveX, ruler.liveY, false, WIDTH_PX, HEIGHT_PX, ruler)
+        const b = box(ruler)
+        // Near the start…
+        expect(Math.hypot(ruler.readoutX - start.x, ruler.readoutY - start.y)).toBeLessThan(110)
+        // …and no corner of the pill on the far side of, or on, the ruler's line.
+        const across = [
+          [b.left, b.top],
+          [b.right, b.top],
+          [b.left, b.bottom],
+          [b.right, b.bottom],
+        ].map(([x, y]) => (x - start.x) * dir.y - (y - start.y) * dir.x)
+        const sides = new Set(across.map((value) => Math.sign(value)))
+        expect(sides.size).toBe(1)
+        expect(Math.min(...across.map(Math.abs))).toBeGreaterThan(4)
+      }
+    })
+
+    it('on touch, sits up and away from the fingertip so the finger never covers it', () => {
+      const { gizmo } = armRig(25, 35)
+      const ruler = createRulerAnnotation()
+      updateRulerAnnotation(gizmo, 0, 400, 300, 20, MM_PER_PX, 1, ruler)
+      const finger = { x: 380, y: 340 }
+      placeRulerReadout(finger.x, finger.y, true, WIDTH_PX, HEIGHT_PX, ruler)
+      expect(box(ruler).bottom).toBeLessThanOrEqual(finger.y - 40)
+    })
+
+    it('stays inside the viewport at phone width, wherever the finger is', () => {
+      const { gizmo } = armRig(25, 35)
+      const ruler = createRulerAnnotation()
+      for (const [x, y] of [
+        [2, 2],
+        [388, 2],
+        [2, 842],
+        [388, 842],
+        [195, 30],
+        [380, 420],
+      ]) {
+        for (const touch of [true, false]) {
+          updateRulerAnnotation(gizmo, 0, x, y, 20, MM_PER_PX, 1, ruler)
+          placeRulerReadout(x, y, touch, PHONE.width, PHONE.height, ruler)
+          const b = box(ruler)
+          expect(b.left).toBeGreaterThanOrEqual(0)
+          expect(b.top).toBeGreaterThanOrEqual(0)
+          expect(b.right).toBeLessThanOrEqual(PHONE.width)
+          expect(b.bottom).toBeLessThanOrEqual(PHONE.height)
+        }
+      }
+    })
+
+    it('near the top edge on touch, moves beside the finger rather than under it', () => {
+      const { gizmo } = armRig(25, 35)
+      const ruler = createRulerAnnotation()
+      const finger = { x: 120, y: 30 }
+      updateRulerAnnotation(gizmo, 0, 200, 40, 20, MM_PER_PX, 1, ruler)
+      placeRulerReadout(finger.x, finger.y, true, PHONE.width, PHONE.height, ruler)
+      const b = box(ruler)
       const coversFinger =
         finger.x > b.left - 20 && finger.x < b.right + 20 && finger.y > b.top - 20 && finger.y < b.bottom + 20
       expect(coversFinger).toBe(false)

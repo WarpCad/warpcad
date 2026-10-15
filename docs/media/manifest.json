@@ -383,5 +383,11 @@
     "specHash": "76bd0d2e01af5c57623447b1370ced735d42522a1cc205e55d40091f192601da",
     "bytes": 1447959,
     "seconds": 14.63
+  },
+  "gizmo-translate-ruler.gif": {
+    "spec": "e2e/docs/selection-inspector.docs.js",
+    "specHash": "b997e8a1c5b657a9fce4c9d3f54ec82c32d87b4028ee1f90343f525987af71ec",
+    "bytes": 839570,
+    "seconds": 7.08
   }
 }

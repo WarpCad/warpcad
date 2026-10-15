@@ -1684,3 +1684,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** dial, Shift 5° steps, speed bands 0.1/1/5/15° -> diff (`src/render/rotateSnap.js`, `src/components/viewport/RotateDial.vue`); readout moved in 5° steps with Shift in a real-mouse drive this session; touch band thresholds untuned on a real device -> `TODO/VERIFY.md`
 **To Add:** `docs/screenshots/gizmo-rotate-dial.png` and `docs/media/gizmo-rotate-dial.gif` (already generated); repo URL once public
+
+## 2026-10-15T01:55:00Z — Translate arrows get a ruler, Shift 1 mm steps and speed-sensitive steps
+
+**Post:** Dragging a translate arrow in WarpCad now draws a ruler along the arm from where you pressed, with a live marker, a shaded span and a readout like +12.5 mm. Shift snaps to 1 mm. Without Shift, drag speed picks the step, 10 mm down to 0.1 mm, on mouse and touch alike. Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** ruler, Shift 1 mm, speed bands 0.1/1/5/10 mm on every pointer type -> diff (`src/render/translateSnap.js`, `src/components/viewport/TranslateRuler.vue`); readout moved in whole mm with Shift and Position X moved by exactly the final +50.0 mm in a real-mouse drive this session; speed bands untuned on a real device -> `TODO/VERIFY.md`
+**To Add:** `docs/screenshots/gizmo-translate-ruler.png` and `docs/media/gizmo-translate-ruler.gif` (already generated); repo URL once public

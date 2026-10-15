@@ -28,6 +28,19 @@
  */
 
 import { rotateDeltaDeg } from './annotate.js'
+import {
+  BAND_HYSTERESIS,
+  SPEED_HOLD_MS,
+  SPEED_SMOOTHING_MS,
+  SPEED_STALL_MS,
+  createRateTracker,
+  snapToStep,
+  stepForSpeedIn,
+} from './dragSteps.js'
+
+// The tracker's tuning moved to `dragSteps.js` with `TODO/ui-065`, shared with
+// the translate ruler. Re-exported so `ui-064`'s callers do not change.
+export { BAND_HYSTERESIS, SPEED_HOLD_MS, SPEED_SMOOTHING_MS, SPEED_STALL_MS }
 
 /** Shift-held step, degrees (mouse and keyboard; also wins over speed on touch/pen). */
 export const SHIFT_STEP_DEG = 5
@@ -55,31 +68,10 @@ export const SPEED_BANDS = Object.freeze([
   Object.freeze({ minPxPerS: 900, stepDeg: 15 }),
 ])
 
-/**
- * How far past a band edge a speed must go before it leaves its current band,
- * as a fraction of that edge. Without this, a speed hovering on an edge flips
- * between two steps on every event and the value jitters.
- */
-export const BAND_HYSTERESIS = 0.15
-
-/** Time constant of the speed's exponential average, ms (roughly "the last 100 ms"). */
-export const SPEED_SMOOTHING_MS = 100
-
-/**
- * Silence after which the speed reads zero, ms. `pointermove` stops firing when
- * a finger stops, so the last sample goes stale. Without a decay, a drag that
- * ends with a pause would commit at whatever coarse step it was in half a
- * second earlier.
- */
-export const SPEED_STALL_MS = 80
-
-/**
- * Silence the speed rides out untouched, ms, before it starts decaying toward
- * {@link SPEED_STALL_MS}. Longer than any ordinary gap between `pointermove`s
- * (8–33 ms from 120 Hz down to 30 Hz), so a steady drag is never mistaken
- * for a slowing one; shorter than the stall, so a real stop still reads zero by 80 ms.
- */
-export const SPEED_HOLD_MS = 30
+/** {@link SPEED_BANDS} in the shared `dragSteps.js` band shape. */
+const ROTATE_BANDS = Object.freeze(
+  SPEED_BANDS.map((band) => Object.freeze({ minPxPerS: band.minPxPerS, step: band.stepDeg })),
+)
 
 /**
  * Within this many pixels of the hub, the pointer has no usable angle, so the
@@ -88,17 +80,11 @@ export const SPEED_HOLD_MS = 30
 export const HUB_DEAD_PX = 2
 
 /**
- * Float dust on a snapped value is rounded off at this many decimal places, so
- * `3 × 0.1` is `0.3` in the document, not `0.30000000000000004`.
- */
-const CLEAN_DECIMALS = 1e9
-
-/**
  * Round a signed angle to the nearest multiple of `stepDeg`.
  *
  * Halves round **away from zero** (`2.5 → 5`, `-2.5 → -5`), unlike
  * `Math.round`, which sends `-2.5` to `-2`. So a drag mirrored through the
- * start lands on the mirrored step.
+ * start lands on the mirrored step. (`dragSteps.js`'s `snapToStep`, in degrees.)
  *
  * @param {number} deg
  * @param {number} stepDeg `0` (or anything not positive) means continuous: the
@@ -106,24 +92,7 @@ const CLEAN_DECIMALS = 1e9
  * @returns {number} Degrees, never `-0`.
  */
 export function snapDeg(deg, stepDeg) {
-  if (!(stepDeg > 0)) return deg === 0 ? 0 : deg
-  const steps = Math.round(Math.abs(deg) / stepDeg)
-  const magnitude = Math.round(steps * stepDeg * CLEAN_DECIMALS) / CLEAN_DECIMALS
-  const value = deg < 0 ? -magnitude : magnitude
-  return value === 0 ? 0 : value
-}
-
-/**
- * The band index whose step is `stepDeg`, or `-1`.
- *
- * @param {number} stepDeg
- * @returns {number}
- */
-function bandOf(stepDeg) {
-  for (let index = 0; index < SPEED_BANDS.length; index += 1) {
-    if (SPEED_BANDS[index].stepDeg === stepDeg) return index
-  }
-  return -1
+  return snapToStep(deg, stepDeg)
 }
 
 /**
@@ -138,20 +107,7 @@ function bandOf(stepDeg) {
  * @returns {number} One of the {@link SPEED_BANDS} steps.
  */
 export function stepForSpeed(speedPxPerS, previousStep) {
-  const speed = Number.isFinite(speedPxPerS) && speedPxPerS > 0 ? speedPxPerS : 0
-  let band = bandOf(previousStep)
-  if (band < 0) {
-    band = 0
-    while (band + 1 < SPEED_BANDS.length && speed >= SPEED_BANDS[band + 1].minPxPerS) band += 1
-    return SPEED_BANDS[band].stepDeg
-  }
-  // Leave upward only once clearly past the next edge…
-  while (band + 1 < SPEED_BANDS.length && speed >= SPEED_BANDS[band + 1].minPxPerS * (1 + BAND_HYSTERESIS)) {
-    band += 1
-  }
-  // …and downward only once clearly below this band's own edge.
-  while (band > 0 && speed < SPEED_BANDS[band].minPxPerS * (1 - BAND_HYSTERESIS)) band -= 1
-  return SPEED_BANDS[band].stepDeg
+  return stepForSpeedIn(ROTATE_BANDS, speedPxPerS, previousStep)
 }
 
 /**
@@ -168,14 +124,9 @@ export function stepForSpeed(speedPxPerS, previousStep) {
  * A tangential-speed tracker for one pointer, smoothed and stall-aware.
  *
  * Only motion *around* the hub counts. Pulling straight out from the hub isn't
- * turning anything, so it doesn't make the step coarser.
- *
- * The smoothing is an exponential average with time constant
- * {@link SPEED_SMOOTHING_MS}, weighted by each event's real interval, so uneven
- * event timing doesn't skew it. After {@link SPEED_HOLD_MS} of silence the stored
- * value decays linearly, reaching zero at {@link SPEED_STALL_MS}. That applies
- * both when it is read and before the next sample is blended in. So a finger that stops reads as slow at once, and a move after
- * a long pause is measured on its own.
+ * turning anything, so it doesn't make the step coarser. The smoothing and the
+ * stall decay are `dragSteps.js`'s `createRateTracker`, shared with the
+ * translate ruler; this adds only what "travel" means for a ring.
  *
  * Allocated once per viewport and reused across drags: `sample` and `speed`
  * allocate nothing.
@@ -184,32 +135,17 @@ export function stepForSpeed(speedPxPerS, previousStep) {
  * @returns {SpeedTracker}
  */
 export function createSpeedTracker(now) {
+  const rate = createRateTracker(now)
   let lastX = 0
   let lastY = 0
-  let lastT = 0
-  let smoothed = 0
-
-  /** @param {number} t */
-  function decayed(t) {
-    const idle = t - lastT
-    if (!(idle < SPEED_STALL_MS)) return 0
-    if (idle <= SPEED_HOLD_MS) return smoothed
-    return smoothed * ((SPEED_STALL_MS - idle) / (SPEED_STALL_MS - SPEED_HOLD_MS))
-  }
 
   return {
     begin(xPx, yPx) {
       lastX = xPx
       lastY = yPx
-      lastT = now()
-      smoothed = 0
+      rate.begin()
     },
     sample(xPx, yPx, originXPx, originYPx) {
-      const t = now()
-      const dt = t - lastT
-      // Two events with one timestamp: let this travel accrue into the next
-      // sample rather than divide by zero.
-      if (!(dt > 0)) return
       const rx = xPx - originXPx
       const ry = yPx - originYPx
       const radius = Math.hypot(rx, ry)
@@ -217,16 +153,15 @@ export function createSpeedTracker(now) {
       const dy = yPx - lastY
       // The displacement's component across the radius: |r̂ × d|.
       const tangentialPx = radius > HUB_DEAD_PX ? Math.abs(rx * dy - ry * dx) / radius : 0
-      const instant = (tangentialPx * 1000) / dt
-      const alpha = 1 - Math.exp(-dt / SPEED_SMOOTHING_MS)
-      const base = decayed(t)
-      smoothed = base + alpha * (instant - base)
-      lastX = xPx
-      lastY = yPx
-      lastT = t
+      // Two events with one timestamp: the rate tracker refuses the sample, and
+      // the reference point stays put so this travel accrues into the next one.
+      if (rate.record(tangentialPx)) {
+        lastX = xPx
+        lastY = yPx
+      }
     },
     speed() {
-      return decayed(now())
+      return rate.speed()
     },
   }
 }

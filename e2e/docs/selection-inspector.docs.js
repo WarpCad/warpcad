@@ -241,6 +241,63 @@ test.describe('docs media: selection, inspector, gizmo', () => {
   })
 
   /**
+   * Press the X arm and drag outward, holding Shift for the second half so the readout
+   * visibly jumps in whole millimetres (`ui-065`). `probe` runs once mid-drag, button down.
+   */
+  const rulerDrag = async (page, probe) => {
+    const hub = await hubPoint(page)
+    const from = await armPoint(page, 'gizmo-grab-arm-x', 0.7)
+    const len = Math.hypot(from.x - hub.x, from.y - hub.y) || 1
+    const dir = { x: (from.x - hub.x) / len, y: (from.y - hub.y) / len }
+    await glideTo(page, from)
+    await page.mouse.down()
+    const steps = 36
+    for (let i = 1; i <= steps; i++) {
+      if (i === 20) await page.keyboard.down('Shift')
+      const travel = (i / steps) * 110
+      await page.mouse.move(from.x + dir.x * travel, from.y + dir.y * travel)
+      await page.waitForTimeout(45)
+      if (i === 14 && probe) await probe()
+    }
+    await page.waitForTimeout(500)
+    await page.mouse.up()
+    await page.keyboard.up('Shift')
+    await page.waitForTimeout(250)
+  }
+
+  test('gizmo-translate-ruler still', async ({ page }) => {
+    await openScene(page, 'one-cube.ndjson', 1)
+    await selectCube(page)
+    const hub = await hubPoint(page)
+    const box = await viewport(page).boundingBox()
+    const clip = {
+      // Wide and tall enough to take in the ruler and its readout pill.
+      x: Math.max(box.x, hub.x - 300),
+      y: Math.max(box.y, hub.y - 260),
+      width: 600,
+      height: 520,
+    }
+    await rulerDrag(page, async () => {
+      await expect(page.getByTestId('gizmo-ruler-readout')).toBeVisible()
+      await heldShot(page, 'gizmo-translate-ruler.png', clip)
+    })
+    await expect(viewport(page)).toHaveAttribute('data-body-count', '1')
+  })
+
+  test('gizmo-translate-ruler', { tag: '@movie' }, async ({ page }) => {
+    await openScene(page, 'one-cube.ndjson', 1)
+    await selectCube(page)
+    const startX = await num(page, 'inspector-position-x')
+    await startMovie(page, 'gizmo-translate-ruler')
+    await rulerDrag(page, null)
+    await expect(viewport(page)).toHaveAttribute('data-transforming', 'false')
+    expect(Math.abs((await num(page, 'inspector-position-x')) - startX)).toBeGreaterThan(5)
+    await expect(viewport(page)).toHaveAttribute('data-body-count', '1')
+    await page.waitForTimeout(700)
+    await endMovie(page, 'gizmo-translate-ruler', { fps: 12, width: 640 })
+  })
+
+  /**
    * Press the X ring and sweep it round, holding Shift for the second half so the readout
    * visibly jumps in 5-degree steps (`ui-064`). `probe` runs once mid-sweep, button down.
    */

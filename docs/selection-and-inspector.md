@@ -453,6 +453,45 @@ Drag a ring and the Rotation field follows the same way.
 
 ![Dragging a rotate ring while the Rotation X field changes](./media/gizmo-rotate.gif)
 
+### The translate ruler
+
+While you drag an arrow, a **ruler** appears along that arrow, starting where you pressed, so
+you can see how far you have moved and from where.
+
+![A translate arrow mid-drag, with the ruler, the start mark, the span and the distance readout](./screenshots/gizmo-translate-ruler.png)
+
+- **Ticks** along the arrow's own line, in the arrow's colour, every 1, 2, 5, 10 mm and so on,
+  widened as needed so there are never more than about 40. Every fifth tick is labelled.
+- **Start mark**: a dim cross-bar where the drag began. It never moves.
+- **Live marker** (an arrowhead) follows your pointer along the arrow, and the shaded **span**
+  between the two is the distance moved.
+- **Readout**: the signed distance to 0.1 mm, e.g. `+12.5 mm`, and under it the step in force
+  (`1 mm steps`, `fine 0.1 mm`), or nothing for the coarser speed steps. Positive is the
+  arrow's direction. Dragging back the other way reads negative.
+- While the ruler is up the other arrows and all three rings are hidden. Release and the shape
+  keeps exactly the distance on the readout, as one step you can Undo. The Position field in the
+  Inspector shows the same number.
+
+**Landing on a round number.** Hold **Shift** while dragging and the distance snaps to whole
+millimetres. Press or release Shift mid-drag and it takes effect at once. Without Shift, **how
+fast you drag picks the step**, and it works the same with a mouse, a pen or a finger: fast is
+coarse (up to 10 mm), then 5 mm, then 1 mm, and nearly stopped is `0.1 mm`. Slow right down at
+the end of the drag to settle on the exact distance. Shift always wins over speed.
+
+![Dragging an arrow: the ruler follows, then Shift snaps the readout to whole millimetres](./media/gizmo-translate-ruler.gif)
+
+**Example:**
+
+1. Click a cube in the viewport. Three coloured arrows and three rings appear on it.
+2. Press on the **red** arrow and drag a little way along it. A red ruler appears, starting
+   where you pressed; the cube slides along it and the readout counts up in `mm`.
+3. Hold **Shift** and keep dragging: the readout jumps in whole millimetres, `+10 mm`,
+   `+11 mm`, `+12 mm`. Release with it on `+12 mm`.
+4. The Inspector's Position X says `12`. Ctrl+Z puts the cube back in one step.
+5. *Without a keyboard* (a mouse, or a finger on a tablet): drag the red arrow quickly and the
+   readout moves in big steps; slow right down near the end and it falls to `0.1 mm`, so you can
+   settle on `12.4 mm` or `12.5 mm`.
+
 ### The rotation dial
 
 While you drag a ring, a **dial** appears in that ring's own plane and colour, so you can

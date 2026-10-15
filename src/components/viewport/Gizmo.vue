@@ -47,6 +47,7 @@
 import { computed } from 'vue'
 
 import RotateDial from './RotateDial.vue'
+import TranslateRuler from './TranslateRuler.vue'
 import {
   AXIS_LABELS,
   GIZMO_SHAFT_WIDTH_PX,
@@ -68,6 +69,12 @@ const props = defineProps({
    * Mutated in place like `annotation`; `null` or `visible: false` draws nothing.
    */
   dial: { type: Object, default: null },
+  /**
+   * A `RulerAnnotation` from `src/render/annotate.js` (`TODO/ui-065`): the ruler
+   * drawn along a translate arm while that arm is dragged. Mutated in place like
+   * `annotation`; `null` or `visible: false` draws nothing.
+   */
+  ruler: { type: Object, default: null },
 })
 
 /**
@@ -88,11 +95,38 @@ const dialAnnotation = computed(() => /** @type {any} */ (props.dial))
 const dialAxis = computed(() => (dialAnnotation.value?.visible ? dialAnnotation.value.axis : ''))
 
 /**
+ * The ruler prop, typed once.
+ *
+ * @type {import('vue').ComputedRef<import('../../render/annotate.js').RulerAnnotation | null>}
+ */
+const rulerAnnotation = computed(() => /** @type {any} */ (props.ruler))
+
+/**
+ * The axis whose ruler is showing, or `''`. While a translate drag shows its
+ * ruler, the other two arms and all three rings are hidden, the same way the
+ * dial hides everything but its own ring: one thing is drawn at a time.
+ *
+ * @type {import('vue').ComputedRef<string>}
+ */
+const rulerAxis = computed(() => (rulerAnnotation.value?.visible ? rulerAnnotation.value.axis : ''))
+
+/**
  * @param {string} axis `"X"` | `"Y"` | `"Z"`.
- * @returns {boolean} False for a ring hidden because another ring's dial is up.
+ * @returns {boolean} False for a ring hidden because another ring's dial, or
+ *   any arm's ruler, is up.
  */
 function ringShown(axis) {
-  return dialAxis.value === '' || dialAxis.value === axis
+  return (dialAxis.value === '' || dialAxis.value === axis) && rulerAxis.value === ''
+}
+
+/**
+ * @param {string} axis `"X"` | `"Y"` | `"Z"`.
+ * @returns {boolean} False for an arm hidden because a dial, or another arm's
+ *   ruler, is up. The dragged arm itself stays, grab and all: it holds the
+ *   pointer capture.
+ */
+function armShown(axis) {
+  return dialAxis.value === '' && (rulerAxis.value === '' || rulerAxis.value === axis)
 }
 
 /**
@@ -291,9 +325,9 @@ function onHandleDown(event, kind, axisIndex) {
     // consider active (synthetic events in specs), and must never take the
     // gesture down with it.
   }
-  // `pointerType` and `shiftKey` ride along for the rotate dial (`TODO/ui-064`):
-  // Shift snaps to 5° steps, and touch/pen use a speed-sensitive step. This
-  // component only reports them; `Viewport.vue` decides what they mean.
+  // `pointerType` and `shiftKey` ride along for the rotate dial (`TODO/ui-064`)
+  // and the translate ruler (`TODO/ui-065`): Shift snaps, and drag speed picks
+  // a step. This component only reports them; `Viewport.vue` decides what they mean.
   emit('handle-down', {
     kind,
     axisIndex,
@@ -309,7 +343,12 @@ function onHandleMove(event) {
   if (event.pointerId !== dragPointerId) return
   event.stopPropagation()
   dragTravelPx += Math.abs(event.clientX - dragStartX) + Math.abs(event.clientY - dragStartY)
-  emit('handle-move', { clientX: event.clientX, clientY: event.clientY, shiftKey: event.shiftKey === true })
+  emit('handle-move', {
+    clientX: event.clientX,
+    clientY: event.clientY,
+    shiftKey: event.shiftKey === true,
+    pointerType: event.pointerType || 'mouse',
+  })
 }
 
 /** @param {PointerEvent} event */
@@ -449,7 +488,7 @@ function onHandleUp(event) {
          An arm pointing away shows the disc face-on, so it draws on top.
          The disc is `gizmo-cone-base-*`, never `gizmo-head-*`/`gizmo-arm-*`:
          e2e specs count matches on those prefixes. -->
-    <g v-for="arrow in gizmo.arrows" v-show="dialAxis === ''" :key="`arm-${arrow.axis}`">
+    <g v-for="arrow in gizmo.arrows" v-show="armShown(arrow.axis)" :key="`arm-${arrow.axis}`">
       <template v-if="arrow.visible">
         <line
           class="tgizmo__arm"
@@ -508,6 +547,13 @@ function onHandleUp(event) {
       :dial="dialAnnotation"
       :color="AXIS_STROKE[dialAnnotation.axis]"
     />
+    <!-- The translate ruler (TODO/ui-065), only while an arm is being dragged,
+         in the same layer as the dial and for the same reasons. -->
+    <TranslateRuler
+      v-if="rulerAnnotation && rulerAnnotation.visible"
+      :ruler="rulerAnnotation"
+      :color="AXIS_STROKE[rulerAnnotation.axis]"
+    />
 
     <!-- Hit targets, drawn last so they sit above everything they stand for.
          Invisible and far fatter than the handles they cover; the rings come
@@ -526,7 +572,7 @@ function onHandleUp(event) {
     />
     <line
       v-for="(grab, index) in armGrabs"
-      v-show="grab.visible && dialAxis === ''"
+      v-show="grab.visible && armShown(grab.axis)"
       :key="`grab-arm-${grab.axis}`"
       class="tgizmo__grab tgizmo__grab--arm"
       :data-testid="`gizmo-grab-arm-${grab.axis.toLowerCase()}`"
