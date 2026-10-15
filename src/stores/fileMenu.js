@@ -60,6 +60,15 @@ export const useFileMenuStore = defineStore('fileMenu', () => {
   const connectOpen = ref(false)
   /** Which replace question is showing, or `null`. @type {import('vue').Ref<ConfirmKind | null>} */
   const confirm = ref(null)
+  /** Resolves the hosted store's pending "replace?" question (`TODO/io-011`). */
+  let replaceAnswer = /** @type {((answer: boolean) => void) | null} */ (null)
+
+  /** @param {boolean} answer */
+  function settleReplace(answer) {
+    const resolve = replaceAnswer
+    replaceAnswer = null
+    resolve?.(answer)
+  }
 
   /** Anything of this menu's own that is open — what defers a background conflict dialog. */
   const anyOpen = computed(
@@ -193,24 +202,37 @@ export const useFileMenuStore = defineStore('fileMenu', () => {
   function requestLoad() {
     menuOpen.value = false
     if (persistence.loading) return
-    if (hasContent()) {
+    void hosted.loadFromRemote(hasContent() ? { confirmReplace: askReplaceRemote } : {})
+  }
+
+  /**
+   * `TODO/io-011`: Load from … merges a copy of this project, so the replace question is asked
+   * only if the load turns out to replace — the hosted store calls this at that moment.
+   *
+   * @returns {Promise<boolean>}
+   */
+  function askReplaceRemote() {
+    return new Promise((resolve) => {
+      replaceAnswer = resolve
       confirm.value = 'load'
-      return
-    }
-    void hosted.loadFromRemote()
+    })
   }
 
   /** The Replace button. Must be called synchronously from its click (see the module note). */
   function confirmReplace() {
     const kind = confirm.value
     confirm.value = null
-    if (persistence.loading) return
+    if (persistence.loading) {
+      if (kind === 'load') settleReplace(false)
+      return
+    }
     if (kind === 'open') void persistence.openFile()
-    else if (kind === 'load') void hosted.loadFromRemote()
+    else if (kind === 'load') settleReplace(true)
     else if (kind === 'new') startNewProject()
   }
 
   function cancelConfirm() {
+    if (confirm.value === 'load') settleReplace(false)
     confirm.value = null
   }
 
@@ -243,6 +265,7 @@ export const useFileMenuStore = defineStore('fileMenu', () => {
       return true
     }
     if (confirm.value !== null) {
+      if (confirm.value === 'load') settleReplace(false)
       confirm.value = null
       return true
     }

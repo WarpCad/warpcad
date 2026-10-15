@@ -520,7 +520,7 @@ Built with Claude Code, reviewed by me.
 **Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
 **Hashtags:** #CAD #WebGL #OpenSource
 **Disclosure:** Built with Claude Code, reviewed by me.
-**Evidence:** composite recipes expand into other ops and build nothing → `src/core/kernel/registry.js`'s own module doc and `composite()` helper, plus `src/core/kernel/index.js`'s fold, in this diff and read this session; V1's BoardFrame subtracts in 2D to avoid non-manifold artifacts from same-height solids → `parts.js`'s doc comment on `BoardFrame` in `/Users/johncole/src/jscad/jscad-utils` (6.0.0), read directly this session; `BoardFrame`/`Anchor` exist only in 6.0.0, not the vendored 3.2.0 → `TODO/done/core-012-kit-part-recipes.md`'s source note plus that file read at lines 398-472; `booleans.subtract` dispatches on its arguments' geometry type and returns a geom2 for two geom2 inputs → `node_modules/@jscad/modeling/src/operations/booleans/subtract.js` and a Node probe run this session (`subtract type geom2? true`); record ordering pinned → `kit.boardFrame.spec.js`'s "subtracts before it extrudes" test in this diff; a tessellated cylinder's bounding box depends on segment count, so the snap offset is measured not derived → `src/core/kernel/recipes/kit.anchor.js`'s module doc and its `calcCenterWith`/`calcSnap` calls in this diff, with `kit.anchor.spec.js` re-deriving the baked vector from real bounding boxes; ±90° about X give identical bounding boxes for the post → Node probe this session (`rot+90 bbox` and `rot-90 bbox` both `[[-2.5,-3.3,-2.5],[2.5,3.3,2.5]]`) and the spec's own sign-immateriality test; full suite green (typecheck, 457 unit tests across 26 files, 571 e2e passed/42 skipped) → this session's `npm run typecheck`/`test:unit`/`test:e2e:headless` runs
+**Evidence:** composite recipes expand into other ops and build nothing → `src/core/kernel/registry.js`'s own module doc and `composite()` helper, plus `src/core/kernel/index.js`'s fold, in this diff and read this session; V1's BoardFrame subtracts in 2D to avoid non-manifold artifacts from same-height solids → `parts.js`'s doc comment on `BoardFrame` in `~/src/jscad/jscad-utils` (6.0.0), read directly this session; `BoardFrame`/`Anchor` exist only in 6.0.0, not the vendored 3.2.0 → `TODO/done/core-012-kit-part-recipes.md`'s source note plus that file read at lines 398-472; `booleans.subtract` dispatches on its arguments' geometry type and returns a geom2 for two geom2 inputs → `node_modules/@jscad/modeling/src/operations/booleans/subtract.js` and a Node probe run this session (`subtract type geom2? true`); record ordering pinned → `kit.boardFrame.spec.js`'s "subtracts before it extrudes" test in this diff; a tessellated cylinder's bounding box depends on segment count, so the snap offset is measured not derived → `src/core/kernel/recipes/kit.anchor.js`'s module doc and its `calcCenterWith`/`calcSnap` calls in this diff, with `kit.anchor.spec.js` re-deriving the baked vector from real bounding boxes; ±90° about X give identical bounding boxes for the post → Node probe this session (`rot+90 bbox` and `rot-90 bbox` both `[[-2.5,-3.3,-2.5],[2.5,3.3,2.5]]`) and the spec's own sign-immateriality test; full suite green (typecheck, 457 unit tests across 26 files, 571 e2e passed/42 skipped) → this session's `npm run typecheck`/`test:unit`/`test:e2e:headless` runs
 **To Add:** repo URL once public; a render of the Anchor showing the post snapped into the hole would carry this one
 
 ## [2026-09-10T15:47:00Z] — group.snap/group.align wired to the op registry (TODO/core-013)
@@ -2548,3 +2548,19 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** same as the BlueSky entry; the two libraries' behaviour -> source read 2026-10-15, rejection table in `docs/decisions/mesh-import.md`; header-count refusal without allocation -> `src/io/meshFormats/stl.spec.js` (count 0xFFFFFFFF)
 **To Add:** `docs/screenshots/import-model-row.png`, `docs/media/import-model-place.gif` (generated); repo URL once public
+
+
+## 2026-10-15T19:50:00Z — A conflict dialog that only had losing answers
+
+**Post:** WarpCad can save a project to a git repository, and until today a save from a second device raised a dialog: Overwrite, Load, or Cancel. Overwrite throws away the other device's work, Load throws away yours, and Cancel leaves you stuck. That made sense when a project file could not be merged. It can now, so the common case needs no answer at all: the second save fetches the repository's copy, merges it into the open project, pushes the result, and says "Merged 1 step from owner/repo" with an Undo.
+
+The loop is bounded. If someone else saves again between my fetch and my push, it fetches and merges again, up to three times, then falls back to the dialog with a message that says so. And merging is only automatic for a copy of the same project; two unrelated projects still get the old three buttons, because merging those would be the worse failure.
+
+The part I nearly got wrong was Load. It used to ask "replace this project?" before it had read anything. Now it reads first and asks only if the file would actually replace something.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource #git
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** same as the BlueSky entry; the three-attempt bound -> `src/stores/hosted.spec.js` (four stale writes end in the dialog with its own message)
+**To Add:** `docs/screenshots/hosted-merged.png` (generated); repo URL once public

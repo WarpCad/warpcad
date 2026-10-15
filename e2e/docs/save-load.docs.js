@@ -40,6 +40,9 @@ test.describe('docs media: saving, opening, hosted storage', () => {
     '{"id":"remote-cube","op":"primitive.cuboid","name":"Remote Cube","params":{"size":[40,40,40],"center":[0,0,20]}}\n'
   const SECOND_LINE =
     '{"id":"their-cube","op":"primitive.cuboid","name":"Their Cube","params":{"size":[20,20,20],"center":[50,0,10]}}\n'
+  // An unrelated project: no row in common with CUBE_LINE, so it is never merged (`TODO/io-011`).
+  const STRANGER_LINE =
+    '{"id":"stranger-1","op":"primitive.cuboid","name":"Stranger","params":{"size":[30,30,30],"center":[0,0,15]}}\n'
 
   /** @param {import('@playwright/test').Page} page */
   const viewport = (page) => page.getByTestId('viewport')
@@ -345,6 +348,31 @@ test.describe('docs media: saving, opening, hosted storage', () => {
     await page.getByTestId('hosted-connect-cancel').click()
   })
 
+  test('hosted-merged still', async ({ page }) => {
+    const repository = await mockHost(page)
+    repository.text = CUBE_LINE
+    repository.sha = 'sha-theirs'
+    await openApp(page)
+    await connect(page)
+    await openFileMenu(page)
+    await press(page, 'hosted-load')
+    await bodyCount(page, 1)
+    // Another device commits a second step to the same project, then we add one and Save.
+    repository.text = CUBE_LINE + SECOND_LINE
+    repository.sha = 'sha-theirs-2'
+    await place(page, 'primitive.cylinder', 0.7, 0.65, 2)
+    await openFileMenu(page)
+    await press(page, 'hosted-save')
+    // No dialog: the two copies were merged and the result pushed.
+    await expect(page.getByTestId('merge-toast')).toContainText(`Merged 1 step from ${LABEL}`)
+    await expect(page.getByTestId('hosted-conflict')).toHaveCount(0)
+    await bodyCount(page, 3)
+    expect(repository.text).toContain('their-cube')
+    expect(repository.text).toContain('Cylinder')
+    await clockShot(page, 'hosted-merged.png')
+    await assertOnlyTheFakeToken(page, repository)
+  })
+
   test('hosted-conflict-dialog still', async ({ page }) => {
     const repository = await mockHost(page)
     repository.text = CUBE_LINE
@@ -355,8 +383,8 @@ test.describe('docs media: saving, opening, hosted storage', () => {
     await openFileMenu(page)
     await press(page, 'hosted-load')
     await bodyCount(page, 1)
-    // A second writer commits over it, then we make a change and Save: a stale write.
-    repository.text = CUBE_LINE + SECOND_LINE
+    // A second writer replaces it with a different project, then we make a change and Save.
+    repository.text = STRANGER_LINE
     repository.sha = 'sha-theirs-2'
     const theirs = repository.text
     await place(page, 'primitive.cylinder', 0.7, 0.65, 2)

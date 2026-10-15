@@ -2,7 +2,7 @@
 // @vitest-environment jsdom
 // @ts-nocheck — drives hand-written duck-typed fakes of the hosted client and the credential
 // store; the modules under test are fully typed and checked by `npm run typecheck`.
-import { createPinia, setActivePinia } from 'pinia'
+import { createPinia, getActivePinia, setActivePinia } from 'pinia'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { nextTick } from 'vue'
 
@@ -11,6 +11,7 @@ import { HostedError } from '../storage/hostedBackend.js'
 import { DEBOUNCE_MS } from '../storage/autoPush.js'
 import { useDocumentStore } from './document.js'
 import { setHostedDependencies, useHostedStore } from './hosted.js'
+import { useMergeStore } from './merge.js'
 import { setPersistenceDependencies, usePersistenceStore } from './persistence.js'
 
 /**
@@ -47,6 +48,31 @@ const cube = (id, at) => ({
   name: id,
   params: { size: [10, 10, 10], center: at },
 })
+
+/**
+ * Another device's copy: load `text` into a document of its own (a second Pinia), make one
+ * edit, and hand back the bytes it would have pushed (`TODO/io-011`).
+ *
+ * @param {string | null} text
+ * @param {(documentStore: ReturnType<typeof useDocumentStore>) => void} edit
+ */
+function otherDevice(text, edit) {
+  const previous = getActivePinia()
+  setActivePinia(createPinia())
+  try {
+    const documentStore = useDocumentStore()
+    if (text !== null) {
+      const parsed = parseProject(text)
+      documentStore.load(parsed.entries, parsed.rollbackAt, parsed.resolution, { merge: parsed.merge })
+    }
+    edit(documentStore)
+    return serializeProject(documentStore.raw)
+  } finally {
+    setActivePinia(previous)
+  }
+}
+
+const idsOf = (text) => parseProject(text).entries.map((entry) => entry.record.id).sort()
 
 /** @param {{ file?: { text: string, sha: string } | null }} [options] */
 function fakeClient({ file = null } = {}) {
@@ -513,6 +539,155 @@ describe('useHostedStore', () => {
       await vi.advanceTimersByTimeAsync(100)
 
       expect(client.writes).toHaveLength(0)
+    })
+  })
+
+  describe('a stale save merges (TODO/io-011)', () => {
+    /** The laptop saved cube-1; the phone then loaded it, added cube-2 and saved. */
+    async function laptopAndPhone() {
+      const hosted = useHostedStore()
+      const documentStore = useDocumentStore()
+      await hosted.connect({ token: TOKEN, ...REPO })
+      documentStore.append(cube('cube-1', [0, 0, 5]))
+      await hosted.saveToRemote()
+      const phone = otherDevice(client.remote.text, (doc) => doc.append(cube('cube-2', [40, 0, 5])))
+      client.remote = { text: phone, sha: 'sha-phone' }
+      return { hosted, documentStore, phone }
+    }
+
+    it('fetches, merges, pushes against the sha it read, and says what came in', async () => {
+      const { hosted, documentStore } = await laptopAndPhone()
+      documentStore.append(cube('cube-3', [80, 0, 5]))
+      client.writes.length = 0
+
+      const result = await hosted.saveToRemote()
+
+      expect(result.ok).toBe(true)
+      expect(hosted.conflictOpen).toBe(false)
+      expect(hosted.dotState).toBe('in-sync')
+      expect(client.writes).toHaveLength(2) // the stale PUT, then the merged one
+      expect(client.writes[1].sha).toBe('sha-phone')
+      expect(idsOf(client.remote.text)).toEqual(['cube-1', 'cube-2', 'cube-3'])
+      expect(documentStore.raw.entries.map((entry) => entry.record.id).sort()).toEqual(['cube-1', 'cube-2', 'cube-3'])
+      expect(useMergeStore().notice.text).toMatch(/^Merged 1 step from octo\/parts/)
+      expect(everythingReadable(hosted)).not.toContain(TOKEN)
+      expect(useMergeStore().notice.text).not.toContain('SENTINEL')
+    })
+
+    it('Undo merge makes the project differ from the repository again', async () => {
+      const { hosted, documentStore } = await laptopAndPhone()
+      documentStore.append(cube('cube-3', [80, 0, 5]))
+      await hosted.saveToRemote()
+
+      expect(useMergeStore().undoMerge().ok).toBe(true)
+      await nextTick()
+
+      expect(documentStore.raw.entries.map((entry) => entry.record.id)).not.toContain('cube-2')
+      expect(idsOf(client.remote.text)).toContain('cube-2')
+    })
+
+    it('an auto-push tick merges and pushes, and the scheduler keeps running', async () => {
+      const { hosted, documentStore } = await laptopAndPhone()
+      await hosted.setAutoPush(true) // pushes once: that is the merge
+      expect(idsOf(client.remote.text)).toEqual(['cube-1', 'cube-2'])
+      client.writes.length = 0
+
+      const phone = otherDevice(client.remote.text, (doc) => doc.append(cube('cube-4', [0, 40, 5])))
+      client.remote = { text: phone, sha: 'sha-phone-2' }
+      documentStore.append(cube('cube-3', [80, 0, 5]))
+      await nextTick()
+      await vi.advanceTimersByTimeAsync(DEBOUNCE_MS + 1_000)
+
+      expect(idsOf(client.remote.text)).toEqual(['cube-1', 'cube-2', 'cube-3', 'cube-4'])
+      expect(hosted.conflictOpen).toBe(false)
+      expect(hosted.dotState).toBe('in-sync')
+      expect(hosted.autoPushLabel).toBe('Auto-push on')
+
+      documentStore.append(cube('cube-5', [0, 80, 5]))
+      await nextTick()
+      await vi.advanceTimersByTimeAsync(DEBOUNCE_MS + 1_000)
+      expect(idsOf(client.remote.text)).toContain('cube-5')
+    })
+
+    it('three stale pushes in a row end in the dialog with its own message', async () => {
+      const { hosted, documentStore } = await laptopAndPhone()
+      documentStore.append(cube('cube-3', [80, 0, 5]))
+      client.writes.length = 0
+      for (let index = 0; index < 4; index += 1) {
+        client.writeOutcomes.push(new HostedError('conflict', 'changed'))
+      }
+
+      const result = await hosted.saveToRemote()
+
+      expect(result).toMatchObject({ ok: false, conflict: true })
+      expect(client.writes).toHaveLength(4)
+      expect(hosted.conflictOpen).toBe(true)
+      expect(hosted.conflict.message).toBe('The repository keeps changing. Try again in a moment.')
+    })
+
+    it('a different project opens the dialog and merges nothing; Cancel leaves the dot at !', async () => {
+      const { hosted, documentStore } = await laptopAndPhone()
+      const stranger = otherDevice(null, (doc) => doc.append(cube('stranger-1', [0, 0, 5])))
+      client.remote = { text: stranger, sha: 'sha-stranger' }
+      documentStore.append(cube('cube-3', [80, 0, 5]))
+      const before = serializeProject(documentStore.raw)
+
+      const result = await hosted.saveToRemote()
+
+      expect(result).toMatchObject({ ok: false, conflict: true })
+      expect(hosted.conflictOpen).toBe(true)
+      expect(client.remote.text).toBe(stranger)
+      expect(serializeProject(documentStore.raw)).toBe(before)
+
+      await hosted.resolveConflict('cancel')
+      expect(hosted.conflictOpen).toBe(false)
+      expect(hosted.dotState).toBe('paused')
+    })
+
+    it('the first Save into a file this session never loaded merges only a copy of this project', async () => {
+      const hosted = useHostedStore()
+      const documentStore = useDocumentStore()
+      // The repository holds a project this session did not load, and ours is empty: nothing
+      // ties the two together, so the dialog — never an automatic merge.
+      const theirs = otherDevice(null, (doc) => doc.append(cube('cube-1', [0, 0, 5])))
+      client.remote = { text: theirs, sha: 'sha-theirs' }
+      await hosted.connect({ token: TOKEN, ...REPO })
+      expect(await hosted.saveToRemote()).toMatchObject({ ok: false, conflict: true })
+      expect(client.writes).toHaveLength(0)
+
+      // …but a copy that carries this project's id (a reload, a second device) merges.
+      const parsed = parseProject(theirs)
+      documentStore.load(parsed.entries, parsed.rollbackAt, parsed.resolution, { merge: parsed.merge })
+      documentStore.append(cube('cube-9', [0, 0, 50]))
+      await hosted.resolveConflict('cancel')
+      const result = await hosted.saveToRemote()
+      expect(result.ok).toBe(true)
+      expect(idsOf(client.remote.text)).toEqual(['cube-1', 'cube-9'])
+    })
+
+    it('Load from the repository merges a copy of this project instead of replacing it', async () => {
+      const { hosted, documentStore, phone } = await laptopAndPhone()
+      documentStore.append(cube('cube-3', [80, 0, 5]))
+      client.writes.length = 0
+
+      const result = await hosted.loadFromRemote()
+
+      expect(result.ok).toBe(true)
+      expect(client.writes).toHaveLength(0)
+      expect(client.remote.text).toBe(phone)
+      expect(documentStore.raw.entries.map((entry) => entry.record.id).sort()).toEqual(['cube-1', 'cube-2', 'cube-3'])
+      expect(useMergeStore().notice.text).toMatch(/^Merged 1 step from octo\/parts/)
+      expect(documentStore.canUndo).toBe(true) // a merge is not a replace
+    })
+
+    it('the dialog\'s Load still takes the repository copy', async () => {
+      const { hosted, documentStore, phone } = await laptopAndPhone()
+      documentStore.append(cube('cube-3', [80, 0, 5]))
+
+      await hosted.resolveConflict('load')
+
+      expect(documentStore.raw.entries.map((entry) => entry.record.id).sort()).toEqual(['cube-1', 'cube-2'])
+      expect(client.remote.text).toBe(phone)
     })
   })
 

@@ -384,19 +384,42 @@ The same words appear in the status line, and it and the dot always agree.
 **Ctrl/Cmd+S never pushes.** It saves or downloads a local file, with auto-push on or off.
 Nothing in WarpCad uses the network because you pressed a keyboard shortcut.
 
-### If the repository copy changed: "someone else got there first"
+### If the repository copy changed: WarpCad merges it
 
-This is the case worth understanding, because it is the one where work could be lost if
-WarpCad guessed.
+You edit the same project on two devices and save on both. The second save finds that the file
+in the repository moved on since you last loaded or saved it. When that file is **a copy of
+this project**, nothing is lost and nothing needs answering: WarpCad fetches it, merges it
+into your open project (the same merge as [File ▾ → Merge file…](merging.md)), pushes the
+result, and tells you what came in:
 
-If the file in the repository changed since you last loaded or saved it — you edited from
-another browser, a colleague committed, you edited the file on github.com — then **WarpCad
-refuses to write over it** and asks:
+![The File menu closed and the merge notice reading Merged 1 step from janecoder/enclosure-parts, with the File dot back to in sync](./screenshots/hosted-merged.png)
+
+**Try it.**
+
+1. On your laptop, **File ▾ → Save to janecoder/enclosure-parts**.
+2. On your phone, **File ▾ → Load from janecoder/enclosure-parts**, add a cylinder, and
+   **Save to**.
+3. On the laptop, move the cube and **Save to**. WarpCad says *Merged 1 step from
+   janecoder/enclosure-parts*: the cylinder from your phone is now on the laptop too, and the
+   repository has both changes.
+
+The same happens for an auto-push, which is not paused, and for **Load from** when you have
+unsaved edits: your edits stay and the repository's changes are merged in. **Undo merge** on
+the notice takes the incoming steps back out; the File dot then shows that your project
+differs from the repository, as after any edit. If two steps conflict, the banner says so and
+**Show** takes you to them (see [Merging](merging.md)).
+
+### If the repository holds a different project: the three-button dialog
+
+Merging two unrelated projects is never automatic. If the file in the repository is a
+**different project**, or this is the first time you save into a repository that already had a
+file you have not loaded and it is not a copy of this project, WarpCad **refuses to write over
+it** and asks:
 
 > **The repository copy changed since you last loaded or saved it.**
 > **Overwrite remote** · **Load remote (replaces this project)** · **Cancel**
 
-![The repository copy changed dialog with three buttons: Overwrite remote, Load remote (replaces this project) and Cancel, and a note that nothing is merged](./screenshots/hosted-conflict-dialog.png)
+![The repository copy changed dialog with three buttons: Overwrite remote, Load remote (replaces this project) and Cancel](./screenshots/hosted-conflict-dialog.png)
 
 - **Overwrite remote** — your version wins. Theirs stays in the repository's history, so it
   is recoverable from GitHub, but it is no longer the current file.
@@ -407,10 +430,8 @@ refuses to write over it** and asks:
   off) so it cannot quietly overwrite anything while you decide; pick it up again with
   *Save to owner/repo*, *Load from owner/repo*, or by switching Auto-push off and on.
 
-**WarpCad never merges two versions.** There is no algorithm here quietly deciding which of
-two models is right — you are asked, every time, and only ever with those three answers.
-The same question appears the first time you save into a repository that already had a
-project file, so connecting to the wrong repository cannot silently replace what is in it.
+The dialog also appears, with the line *The repository keeps changing. Try again in a
+moment.*, when the repository moved again after each of three merge attempts in a row.
 
 If the network drops instead, that is not a conflict and you are not asked anything: the
 dot goes amber, the status says **Offline — will retry**, and WarpCad retries on its own

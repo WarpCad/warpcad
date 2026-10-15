@@ -55,6 +55,11 @@ const CUBE_LINE =
   '{"id":"remote-cube","op":"primitive.cuboid","name":"Remote Cube","params":{"size":[20,20,20],"center":[0,0,10]}}\n'
 const SECOND_LINE =
   '{"id":"their-cube","op":"primitive.cuboid","name":"Their Cube","params":{"size":[5,5,5],"center":[50,0,2.5]}}\n'
+/** An unrelated project: no row in common with `CUBE_LINE`, so it is never merged (`TODO/io-011`). */
+const STRANGER_LINE =
+  '{"id":"stranger-1","op":"primitive.cuboid","name":"Stranger","params":{"size":[5,5,5],"center":[50,0,2.5]}}\n'
+const THIRD_LINE =
+  '{"id":"third","op":"primitive.cuboid","name":"Third","params":{"size":[1,1,1],"center":[0,0,0.5]}}\n'
 
 /**
  * Force the fallback (`<a download>` / `<input type=file>`) on every engine, so the same
@@ -1092,7 +1097,35 @@ test.describe('hosted storage through the File menu (host fully mocked)', () => 
     assertNothingEscaped(repository)
   })
 
-  test('a repository copy that changed raises the three-button dialog; Cancel writes nothing and leaves the dot at "!"; Overwrite and Load do what they say', async ({
+  test('a repository copy of THIS project that changed is merged, pushed and announced; no dialog (TODO/io-011)', async ({
+    page,
+  }, info) => {
+    repository.text = CUBE_LINE
+    repository.sha = 'sha-theirs'
+    await connectThroughDialog(page)
+    await page.getByTestId('hosted-connect-done').click()
+    await openFileMenu(page)
+    await page.getByTestId('hosted-load').click()
+    await expectBodyCount(page, 1)
+
+    // A second device commits another step to the same project.
+    repository.text = CUBE_LINE + SECOND_LINE
+    repository.sha = 'sha-theirs-2'
+    await addCube(page, 'mine-1')
+    await openFileMenu(page)
+    await page.getByTestId('hosted-save').click()
+
+    await expect(page.getByTestId('merge-toast')).toContainText(`Merged 1 step from ${LABEL}`)
+    await expect(page.getByTestId('hosted-conflict')).toHaveCount(0)
+    await expectBodyCount(page, 3)
+    await expect(page.getByTestId('file-menu-dot')).toHaveAttribute('data-dot-state', 'in-sync')
+    expect(repository.text).toContain('their-cube')
+    expect(repository.text).toContain('mine-1')
+    await page.screenshot({ path: join(SNAPSHOT_DIR, `${info.project.name}-merged.png`) })
+    assertNothingEscaped(repository)
+  })
+
+  test('a repository copy of a DIFFERENT project raises the three-button dialog; Cancel writes nothing and leaves the dot at "!"; Overwrite and Load do what they say', async ({
     page,
   }, info) => {
     repository.text = CUBE_LINE
@@ -1106,8 +1139,8 @@ test.describe('hosted storage through the File menu (host fully mocked)', () => 
     await expectBodyCount(page, 1)
     await expect(page.getByTestId('file-menu-dot')).toHaveAttribute('data-dot-state', 'in-sync')
 
-    // A second writer commits over it.
-    repository.text = CUBE_LINE + SECOND_LINE
+    // A second writer replaces it with a different project.
+    repository.text = STRANGER_LINE
     repository.sha = 'sha-theirs-2'
     const theirs = repository.text
 
@@ -1133,17 +1166,17 @@ test.describe('hosted storage through the File menu (host fully mocked)', () => 
     await page.waitForTimeout(500)
     await expect(conflict).toHaveCount(0) // it does not come back on its own
 
-    // An explicit Save raises it again; Load remote replaces the project (their two cubes), undo cleared.
+    // An explicit Save raises it again; Load remote replaces the project (their one cube), undo cleared.
     await openFileMenu(page)
     await page.getByTestId('hosted-save').click()
     await expect(conflict).toBeVisible()
     await page.getByTestId('hosted-conflict-load').click()
-    await expectBodyCount(page, 2)
+    await expectBodyCount(page, 1)
     await expect(page.getByTestId('undo-button')).toBeDisabled()
     await expect(page.getByTestId('file-menu-dot')).toHaveAttribute('data-dot-state', 'in-sync')
 
     // Overwrite remote: a deliberate, user-chosen overwrite goes through.
-    repository.text = theirs + '{"id":"third","op":"primitive.cuboid","name":"Third","params":{"size":[1,1,1],"center":[0,0,0.5]}}\n'
+    repository.text = THIRD_LINE
     repository.sha = 'sha-theirs-3'
     await addCube(page, 'mine-2')
     await openFileMenu(page)
@@ -1185,7 +1218,7 @@ test.describe('hosted storage through the File menu (host fully mocked)', () => 
     await openFileMenu(page)
     await page.getByTestId('hosted-load').click()
     await expectBodyCount(page, 1)
-    repository.text = CUBE_LINE + SECOND_LINE
+    repository.text = STRANGER_LINE
     repository.sha = 'sha-theirs-2'
     await addCube(page, 'mine-1')
 

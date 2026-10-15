@@ -412,7 +412,7 @@ Built with Claude Code, reviewed by me. #CAD
 **Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
 **Hashtags:** #CAD
 **Disclosure:** Built with Claude Code, reviewed by me.
-**Evidence:** V1 subtracts the two rounded rectangles in 2D specifically to avoid "BSP non-manifold artifacts that occur when subtracting two same-height `Board` solids" → `parts.js`'s own doc comment on `BoardFrame` in `/Users/johncole/src/jscad/jscad-utils` (6.0.0), read directly this session; the port preserves that ordering as records → `src/core/kernel/recipes/kit.boardFrame.js` in the diff, with `kit.boardFrame.spec.js` asserting the extrude's `target` is the subtract's `id`; the 2D layer is new (`profile.roundedRectangle`, `profile.extrudeLinear`) → this diff's `src/core/kernel/registry.js`; full suite green (typecheck, 457 unit tests across 26 files, 571 e2e passed/42 skipped) → this session's `npm run typecheck`/`test:unit`/`test:e2e:headless` runs
+**Evidence:** V1 subtracts the two rounded rectangles in 2D specifically to avoid "BSP non-manifold artifacts that occur when subtracting two same-height `Board` solids" → `parts.js`'s own doc comment on `BoardFrame` in `~/src/jscad/jscad-utils` (6.0.0), read directly this session; the port preserves that ordering as records → `src/core/kernel/recipes/kit.boardFrame.js` in the diff, with `kit.boardFrame.spec.js` asserting the extrude's `target` is the subtract's `id`; the 2D layer is new (`profile.roundedRectangle`, `profile.extrudeLinear`) → this diff's `src/core/kernel/registry.js`; full suite green (typecheck, 457 unit tests across 26 files, 571 e2e passed/42 skipped) → this session's `npm run typecheck`/`test:unit`/`test:e2e:headless` runs
 **To Add:** repo URL once public
 
 ## [2026-09-10T15:47:00Z] — group.snap/group.align wired to the op registry (TODO/core-013)
@@ -1799,3 +1799,13 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** a 100,352-triangle import held the longest frame gap to 17 ms, against 133 ms with the parse on the main thread -> measured in a browser, table in `docs/decisions/mesh-import.md`; a hand-made L-bracket with a T-junction exported with 0 open edges after a Subtract -> driven by hand this session (scenario 26); typecheck clean, unit 4825 passed, `e2e/import-model.e2e.js` 27 of 27 across three engines and three widths, run this session
 **To Add:** `docs/screenshots/import-model-row.png`, `docs/media/import-model-place.gif` (generated); repo URL once public
+
+
+## 2026-10-15T19:50:00Z — A stale hosted save merges
+
+**Post:** Saving a WarpCad project to a git repository from two devices used to end in a three-button dialog where every answer threw something away. Now the second save fetches the repository's copy, merges it in, pushes the result and tells you what came in. The dialog is left for the one case that deserves it: the file in the repository is a different project. Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource #git
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** laptop and phone both edit and save, the second save lands both changes and one push -> `e2e/hosted-persistence.e2e.js` and `e2e/save-load-ui.e2e.js` (226 passed on Chromium and WebKit, mocked host), driven by hand against the mock this session; a different project still opens the dialog and Cancel leaves the dot at `!` -> same specs; typecheck clean, unit 4833 passed
+**To Add:** `docs/screenshots/hosted-merged.png` (generated); repo URL once public

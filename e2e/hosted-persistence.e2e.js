@@ -202,6 +202,12 @@ const CONNECT = { token: TOKEN, owner: OWNER, repo: REPO, path: PATH }
 const REMOTE_PROJECT =
   '{"id":"remote-cube","op":"primitive.cuboid","name":"Remote Cube","params":{"size":[20,20,20],"center":[0,0,10]}}\n'
 
+/** An unrelated project: no row in common with `REMOTE_PROJECT` (`TODO/io-011`). */
+const STRANGER_PROJECT =
+  '{"id":"stranger-1","op":"primitive.cuboid","name":"Stranger","params":{"size":[5,5,5],"center":[50,0,2.5]}}\n'
+const THIRD_PROJECT =
+  '{"id":"third","op":"primitive.cuboid","name":"Third","params":{"size":[1,1,1],"center":[0,0,0.5]}}\n'
+
 test.describe('hosted git-backend persistence (host fully mocked)', () => {
   /** @type {ReturnType<typeof fakeRepository>} */
   let repository
@@ -288,7 +294,7 @@ test.describe('hosted git-backend persistence (host fully mocked)', () => {
     assertNothingEscaped(repository)
   })
 
-  test('a repository copy that changed is REFUSED, not overwritten, and the three resolutions do what they say', async ({
+  test('a repository copy of a DIFFERENT project is REFUSED, not overwritten, and the three resolutions do what they say', async ({
     page,
   }) => {
     const api = storeApi(page)
@@ -304,8 +310,9 @@ test.describe('hosted git-backend persistence (host fully mocked)', () => {
     expect(loaded.result.ok).toBe(true)
     expect(loaded.ids).toEqual(['remote-cube'])
 
-    // A second tab (or an MCP session) commits over it.
-    repository.text = `${REMOTE_PROJECT}{"id":"their-cube","op":"primitive.cuboid","name":"Their Cube","params":{"size":[5,5,5],"center":[50,0,2.5]}}\n`
+    // A second writer replaces the file with an unrelated project (`TODO/io-011`: a copy of THIS
+    // project would be merged; two unrelated projects never are).
+    repository.text = STRANGER_PROJECT
     repository.sha = 'sha-theirs-2'
     const theirText = repository.text
 
@@ -322,22 +329,25 @@ test.describe('hosted git-backend persistence (host fully mocked)', () => {
         conflictOpen: api.hosted.conflictOpen,
         message: api.hosted.conflict?.message ?? '',
         dot: api.hosted.dotState,
+        ids: api.documentStore.raw.entries.map((entry) => entry.record.id),
       }
     })
     expect(refused.result.ok).toBe(false)
     expect(refused.conflictOpen).toBe(true)
     expect(refused.message).toMatch(/changed/i)
+    expect(refused.ids, 'an unrelated project was merged in').toEqual(['remote-cube', 'mine-1'])
     expect(repository.text, 'the repository was written anyway').toBe(theirText)
 
-    // Cancel: nothing is written, and the dialog does not come back on its own.
+    // Cancel: nothing is written, the dialog does not come back, and the dot keeps its `!`.
     const cancelled = await api.run(async (api) => {
       await api.hosted.resolveConflict('cancel')
-      return { conflictOpen: api.hosted.conflictOpen }
+      return { conflictOpen: api.hosted.conflictOpen, dot: api.hosted.dotState }
     })
     expect(cancelled.conflictOpen).toBe(false)
+    expect(cancelled.dot).toBe('paused')
     expect(repository.text).toBe(theirText)
 
-    // Load remote: replaces the project (their two cubes), clearing undo.
+    // Load remote: replaces the project, clearing undo.
     const pulled = await api.run(async (api) => {
       await api.hosted.saveToRemote() // raises it again, as the docs say it does
       const result = await api.hosted.resolveConflict('load')
@@ -348,11 +358,11 @@ test.describe('hosted git-backend persistence (host fully mocked)', () => {
       }
     })
     expect(pulled.result.ok).toBe(true)
-    expect(pulled.ids).toEqual(['remote-cube', 'their-cube'])
+    expect(pulled.ids).toEqual(['stranger-1'])
     expect(pulled.canUndo).toBe(false)
 
     // Overwrite remote: a deliberate, user-chosen overwrite does go through.
-    repository.text = `${theirText}{"id":"third","op":"primitive.cuboid","name":"Third","params":{"size":[1,1,1],"center":[0,0,0.5]}}\n`
+    repository.text = THIRD_PROJECT
     repository.sha = 'sha-theirs-3'
     const overwritten = await api.run(async (api) => {
       api.documentStore.append({
@@ -369,6 +379,109 @@ test.describe('hosted git-backend persistence (host fully mocked)', () => {
     expect(repository.text).toBe(overwritten.local)
     expect(overwritten.dot).toBe('in-sync')
 
+    assertNothingEscaped(repository)
+  })
+
+  test('two devices edit one hosted project; the second save merges the first, pushes, and shows what came in', async ({
+    page,
+    browser,
+    baseURL,
+  }) => {
+    const laptop = storeApi(page)
+    const cubeRecord = (id, x) => ({ id, op: 'primitive.cuboid', name: id, params: { size: [10, 10, 10], center: [x, 0, 5] } })
+
+    // 1. The laptop saves the project.
+    await laptop.run(async (api, arg) => {
+      await api.hosted.connect(arg.connect)
+      api.documentStore.append(arg.cube)
+      await api.hosted.saveToRemote()
+    }, { connect: CONNECT, cube: cubeRecord('cube-a', 0) })
+
+    // 2. The phone (its own browser context: its own IndexedDB, its own document) loads it,
+    //    adds a cylinder and saves.
+    const phoneContext = await browser.newContext({ baseURL })
+    try {
+      const phonePage = await phoneContext.newPage()
+      await mockHost(phonePage, repository)
+      await phonePage.goto('/')
+      await expect(phonePage.getByTestId('app-root')).toBeVisible()
+      const phone = storeApi(phonePage)
+      const phoneResult = await phone.run(async (api, arg) => {
+        await api.hosted.connect(arg.connect)
+        const loaded = await api.hosted.loadFromRemote()
+        api.documentStore.append(arg.cube)
+        const saved = await api.hosted.saveToRemote()
+        return { loaded: loaded.ok, saved: saved.ok }
+      }, { connect: CONNECT, cube: cubeRecord('cube-phone', 40) })
+      expect(phoneResult).toEqual({ loaded: true, saved: true })
+    } finally {
+      await phoneContext.close()
+    }
+
+    // 3. The laptop moves on and saves: stale, so it merges instead of asking.
+    const merged = await laptop.run(async (api, arg) => {
+      api.documentStore.append(arg)
+      const result = await api.hosted.saveToRemote()
+      return {
+        result,
+        dot: api.hosted.dotState,
+        dialog: api.hosted.conflictOpen,
+        ids: api.documentStore.raw.entries.map((entry) => entry.record.id).sort(),
+        local: api.serializeProject(api.documentStore.raw),
+      }
+    }, cubeRecord('cube-laptop', 80))
+    expect(merged.result.ok).toBe(true)
+    expect(merged.dialog).toBe(false)
+    expect(merged.dot).toBe('in-sync')
+    expect(merged.ids).toEqual(['cube-a', 'cube-laptop', 'cube-phone'])
+    expect(repository.text, 'the repository holds the merged project').toBe(merged.local)
+    await expect(page.getByTestId('merge-toast')).toContainText(`Merged 1 step from ${LABEL}`)
+    await expect(page.getByTestId('hosted-conflict')).toHaveCount(0)
+    assertNothingEscaped(repository)
+  })
+
+  test('a merge that conflicts shows the banner and still pushes', async ({ page, browser, baseURL }) => {
+    const laptop = storeApi(page)
+    await laptop.run(async (api, arg) => {
+      await api.hosted.connect(arg.connect)
+      api.documentStore.append(arg.cube)
+      await api.hosted.saveToRemote()
+    }, {
+      connect: CONNECT,
+      cube: { id: 'cube-1', op: 'primitive.cuboid', name: 'Cube 1', params: { size: [20, 20, 20], center: [0, 0, 10] } },
+    })
+
+    // The phone fillets the cube (a stamped write first, so its row is the later one).
+    const phoneContext = await browser.newContext({ baseURL })
+    try {
+      const phonePage = await phoneContext.newPage()
+      await mockHost(phonePage, repository)
+      await phonePage.goto('/')
+      await expect(phonePage.getByTestId('app-root')).toBeVisible()
+      await storeApi(phonePage).run(async (api, arg) => {
+        await api.hosted.connect(arg.connect)
+        await api.hosted.loadFromRemote()
+        api.documentStore.setStandingInstructions('Keep the top edge rounded')
+        api.documentStore.append(arg.fillet)
+        await api.hosted.saveToRemote()
+      }, {
+        connect: CONNECT,
+        fillet: { id: 'fillet-1', op: 'modify.filletRim', target: 'cube-1', supersedes: 'cube-1', params: { face: 'top', radius: 2 } },
+      })
+    } finally {
+      await phoneContext.close()
+    }
+
+    // The laptop moves the same cube and saves.
+    const saved = await laptop.run(async (api, arg) => {
+      api.documentStore.append(arg)
+      const result = await api.hosted.saveToRemote()
+      return { result, dialog: api.hosted.conflictOpen, local: api.serializeProject(api.documentStore.raw) }
+    }, { id: 'move-1', op: 'transform.translate', target: 'cube-1', supersedes: 'cube-1', params: { vector: [5, 0, 0] } })
+    expect(saved.result.ok).toBe(true)
+    expect(saved.dialog).toBe(false)
+    expect(repository.text).toBe(saved.local)
+    await expect(page.getByTestId('merge-banner')).toContainText('conflicted')
     assertNothingEscaped(repository)
   })
 

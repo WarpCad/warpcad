@@ -6,8 +6,20 @@ priority: medium
 model: sonnet
 milestone: M16
 depends: [ui-062]
-status: open
+status: done
 ---
+
+> **As shipped (2026-10-15):** as specified, with these differences. (1) The fetch-merge-push loop
+> lives in `writeOnce` in `src/stores/hosted.js`, so the explicit Save, `Overwrite` and the auto-push
+> tick all share it and `src/storage/autoPush.js` and `hostedBackend.js` needed **no change**: a
+> stale tick that merges simply resolves, so the scheduler never sees a conflict and is not paused.
+> (2) **Load from …** reads before it asks: `fileMenu.requestLoad` now passes a `confirmReplace`
+> callback, so the "replace this project?" question appears only when the repository holds a
+> different project; a copy of this project merges with no question. (3) With auto-push off, **Undo
+> merge** leaves the dot at in sync, the same as any other edit does (the dot only reports an
+> unsaved edit while auto-push is on). (4) The store-driven `e2e/hosted-persistence.e2e.js` stays
+> laptop-only as it always was; the three-viewport merge case is in `e2e/save-load-ui.e2e.js`.
+> (5) The real-repository half of scenario 10 was not driven (no token): `TODO/VERIFY.md`.
 
 ## Goal
 

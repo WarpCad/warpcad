@@ -52,9 +52,10 @@ function fakeClient() {
   return {
     apiOrigin: 'https://api.github.com',
     calls: [],
+    remote: null,
     async read(connection) {
       this.calls.push('read')
-      return { exists: false, sha: null, text: null }
+      return this.remote ?? { exists: false, sha: null, text: null }
     },
     async write() {
       this.calls.push('write')
@@ -203,18 +204,21 @@ describe('useFileMenuStore', () => {
     })
   })
 
-  it('Load from the repository asks the same replace question, and only then reads it', async () => {
+  it('Load from the repository asks the replace question only when the load would replace', async () => {
+    // `TODO/io-011`: a copy of this project is merged, so it reads first; an unrelated project
+    // would replace, and that — not the click — is what raises the question.
     useDocumentStore().append(cube('cube-1'))
+    client.remote = { exists: true, sha: 'r1', text: '{"id":"other","op":"primitive.cuboid","name":"other","params":{"size":[1,1,1],"center":[0,0,0]}}\n' }
     const hosted = useHostedStore()
     await hosted.connect({ token: 'ghp_SENTINEL', owner: 'octo', repo: 'parts' })
     client.calls.length = 0
 
     const menu = useFileMenuStore()
     menu.requestLoad()
-    expect(menu.confirm).toBe('load')
-    expect(client.calls).toEqual([])
+    await vi.waitFor(() => expect(menu.confirm).toBe('load'))
+    expect(client.calls).toEqual(['read'])
     menu.confirmReplace()
-    await vi.waitFor(() => expect(client.calls).toContain('read'))
+    await vi.waitFor(() => expect(useDocumentStore().raw.entries.map((e) => e.record.id)).toEqual(['other']))
   })
 
   it('Save / Download copy writes through the local files boundary with the Save-As flag', async () => {

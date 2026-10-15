@@ -87,6 +87,14 @@ you close it: **Merged 4 steps from bracket-copy.ndjson — 2 steps conflicted**
    - To drop a whole shape, select it and delete it as usual.
 3. A step that builds again loses its chip straight away. There is no separate "resolve" step.
 
+## When the copy is in a git repository
+
+If you keep the project in a hosted repository (see [Saving, opening and
+sharing](save-load.md)), a **Save to**, an auto-push or a **Load from** that finds the
+repository's file changed merges it in the same way, with the same notice, banner and **Undo
+merge**, and then pushes the result. A different project is never merged: you get the
+three-button dialog instead.
+
 ## Undo merge
 
 **Undo merge** on the strip takes the merge back out in one go. It removes the steps the merge

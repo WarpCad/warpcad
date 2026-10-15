@@ -34,6 +34,15 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### io-011 — A stale hosted save merges instead of asking (2026-10-15 19:50)
+
+Everything was driven against a mocked `api.github.com`; no scratch repository and token were available to the runner, so scenario 10's hosted half is not driven for real. This is the one manual check that remains.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | With a real scratch repository and a fine-grained token: save from one browser, change the project from a second and save, then Save from the first. Expect `Merged 1 step from <owner>/<repo>`, no dialog, and the repository holding both changes (check the commit on GitHub). Also confirm a file over 1 MB still merges (the blob path). | Open | |
+
+
 ### io-009 — Import an STL (and later OBJ / 3MF) into My parts (2026-10-15 18:34 UTC)
 
 Driven by script and by hand with a made-up L-bracket (scenarios 1, 3, 6, 8, 20, new 26). What no generated file can judge is a real-world STL and a real slicer.

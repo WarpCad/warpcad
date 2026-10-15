@@ -4,11 +4,12 @@
  * "The repository copy changed since you last loaded or saved it" — the hosted conflict
  * dialog (`TODO/ui-033`, `docs/decisions/interaction-model-qa.md` §11, `stores/hosted.js`).
  *
- * Three answers and **no merge, ever** (`docs/decisions/document-sync.md` deferred that on
- * purpose): **Overwrite remote**, **Load remote (replaces this project)**, **Cancel**. Whatever
- * raised it — an explicit `Save to`, a background auto-push, or the first Save into a
- * repository that already holds a project file — this is the one dialog, and it never
- * overwrites on its own.
+ * Three answers: **Overwrite remote**, **Load remote (replaces this project)**, **Cancel**.
+ * Since `TODO/io-011` a repository copy of **this** project is merged before it gets here
+ * (`stores/hosted.js`), so this is reached only for a different project, a file this build
+ * cannot read, a first Save into a file this session never loaded that is not a copy of this
+ * project, or a repository that kept changing through three merge attempts. Whatever raised
+ * it — an explicit `Save to`, a background auto-push — it never overwrites on its own.
  *
  * It opens only when `hosted.conflictOpen` says so, which the store defers while a drag is in
  * progress or another popover/dialog is open (the File menu wires that up), so it never lands
@@ -116,8 +117,8 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
       </button>
     </div>
     <p class="conflict__note">
-      Nothing is merged. Load remote also replaces any edits you have not pushed, and clears the
-      undo history.
+      Nothing was merged automatically. Load remote also replaces any edits you
+      have not pushed, and clears the undo history.
     </p>
   </ModalShell>
 </template>

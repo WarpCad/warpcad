@@ -46,9 +46,10 @@
  */
 
 import { defineStore } from 'pinia'
-import { computed, ref, watch } from 'vue'
+import { computed, ref, toRaw, watch } from 'vue'
 
-import { serializeProject } from '../core/project.js'
+import { relatedness } from '../core/merge/merge.js'
+import { parseProject, serializeProject } from '../core/project.js'
 import { createAutoPusher } from '../storage/autoPush.js'
 import {
   DEFAULT_HOSTED_PATH,
@@ -60,7 +61,13 @@ import {
 } from '../storage/hostedBackend.js'
 import { HOSTED_CREDENTIAL_KEY, createCredentialStore } from '../storage/tokenStorage.js'
 import { useDocumentStore } from './document.js'
+import { mergeStateOfProject } from './merge.js'
 import { usePersistenceStore } from './persistence.js'
+
+/** `TODO/io-011`: how many fetch-merge-push rounds one save makes before it asks the user. */
+const MAX_MERGE_ROUNDS = 3
+/** Shown in the dialog when the repository moved on again after each of those rounds. */
+const KEEPS_CHANGING = 'The repository keeps changing. Try again in a moment.'
 
 /** How long a success notice stays before the chip falls back to the resting text. */
 const NOTICE_MS = 4000
@@ -221,31 +228,81 @@ export const useHostedStore = defineStore('hosted', () => {
   }
 
   /**
+   * `TODO/io-011`: the repository's copy moved on (or this session never loaded it). Read it
+   * and, when it is a copy of **this** project, merge it in through `ui-062`'s `mergeIn` — the
+   * merge toast or banner says what came in — and adopt its `sha` so the next write lands.
+   *
+   * Two rules from `io-002` are kept here: a file this session never loaded is merged only when
+   * relatedness says `same` (`unseen`), never `legacy-same`; and a different project, an
+   * unreadable file or a refused merge is **not** absorbed — the caller raises the dialog.
+   * The merge is not an edit to push back, so the document watcher is told to skip it.
+   *
+   * @param {{ unseen: boolean }} options
+   * @returns {Promise<boolean>} Whether the remote copy is now merged in and `lastSha` is its sha.
+   */
+  async function absorbRemote({ unseen }) {
+    const remote = await deps.client.read(connection())
+    if (!remote.exists || typeof remote.text !== 'string' || remote.sha === null) return false
+    /** @type {import('../core/merge/state.js').MergeState} */
+    let theirs
+    try {
+      theirs = mergeStateOfProject(parseProject(remote.text), toRaw(documentStore.raw).foldCache)
+    } catch {
+      return false
+    }
+    const kind = relatedness(documentStore.raw.mergeState(), theirs)
+    if (kind === 'unrelated' || (unseen && kind !== 'same')) return false
+    const before = documentStore.version
+    suppressNextMutation = true
+    const merged = await persistence.mergeText(remote.text, repoLabel.value)
+    if (documentStore.version === before) suppressNextMutation = false
+    if (!merged.ok) {
+      suppressNextMutation = false
+      return false
+    }
+    lastSha.value = remote.sha
+    adopted = true
+    return true
+  }
+
+  /**
    * One push. Shared by the explicit item and the scheduler so there is exactly
-   * one place that writes, and therefore one place that can conflict.
+   * one place that writes, and therefore one place that can conflict. A stale `sha` is
+   * answered by fetch → merge → push (`absorbRemote`), at most {@link MAX_MERGE_ROUNDS} times;
+   * only a copy that cannot be merged reaches the dialog.
    *
    * @param {{ message: string }} options
    * @returns {Promise<{ sha: string }>}
    */
   async function writeOnce({ message }) {
-    if (!adopted) {
-      // Refused locally rather than by a deliberately-stale PUT: the answer is the
-      // same (ask the user) and this costs the repository no failed request.
-      throw new HostedError(
-        'conflict',
-        `${repoLabel.value} already has a project file that this session has not loaded`,
-      )
+    let rounds = 0
+    for (;;) {
+      if (!adopted && !(await absorbRemote({ unseen: true }))) {
+        // Refused locally rather than by a deliberately-stale PUT: the answer is the
+        // same (ask the user) and this costs the repository no failed request.
+        throw new HostedError(
+          'conflict',
+          `${repoLabel.value} already has a project file that this session has not loaded`,
+        )
+      }
+      const text = projectText()
+      try {
+        const result = await deps.client.write(connection(), { text, sha: lastSha.value, message })
+        lastSha.value = result.sha
+        pushedHash.value = hashOf(text)
+        adopted = true
+        divergent.value = false
+        await persistConnection().catch(() => {
+          /* the write landed; a failed bookkeeping save is not worth failing it for */
+        })
+        return result
+      } catch (error) {
+        if (!(error instanceof HostedError) || error.kind !== 'conflict') throw error
+        if (rounds >= MAX_MERGE_ROUNDS) throw new HostedError('conflict', KEEPS_CHANGING)
+        if (!(await absorbRemote({ unseen: false }))) throw error
+        rounds += 1
+      }
     }
-    const text = projectText()
-    const result = await deps.client.write(connection(), { text, sha: lastSha.value, message })
-    lastSha.value = result.sha
-    pushedHash.value = hashOf(text)
-    adopted = true
-    divergent.value = false
-    await persistConnection().catch(() => {
-      /* the write landed; a failed bookkeeping save is not worth failing it for */
-    })
-    return result
   }
 
   const pusher = createAutoPusher({
@@ -450,13 +507,19 @@ export const useHostedStore = defineStore('hosted', () => {
   }
 
   /**
-   * `Load from owner/repo`. Goes through `persistence.openText`, which is the
-   * same fully-validated `parseProject` → `documentStore.load` path as `Open…`:
-   * a bad remote file is refused **by name** and the current project is untouched.
+   * `Load from owner/repo`. A copy of **this** project (`relatedness` `same` or `legacy-same`)
+   * is **merged** in (`TODO/io-011`, `ui-062`'s `mergeIn`, same toast) — nothing local is
+   * thrown away. Anything else replaces the project through `persistence.openText`, the same
+   * fully-validated `parseProject` → `documentStore.load` path as `Open…`: a bad remote file is
+   * refused **by name** and the current project is untouched.
    *
+   * @param {{ replace?: boolean, confirmReplace?: () => Promise<boolean> }} [options] `replace`
+   *   is the conflict dialog's explicit "take theirs": never merges. `confirmReplace` is asked
+   *   only when the load really would replace the project, so a merge never shows a
+   *   "this replaces your project" question.
    * @returns {Promise<{ ok: true, steps: number } | { ok: false, message: string }>}
    */
-  async function loadFromRemote() {
+  async function loadFromRemote({ replace = false, confirmReplace } = {}) {
     if (!connected.value) return { ok: false, message: 'No repository is connected' }
     explicitState.value = 'busy'
     try {
@@ -465,6 +528,12 @@ export const useHostedStore = defineStore('hosted', () => {
         const message = `There is no ${repository.value?.path} in ${repoLabel.value} yet`
         errorMessage.value = message
         return { ok: false, message }
+      }
+      if (!replace && (await mergeLoaded(remote))) {
+        return { ok: true, steps: documentStore.raw.entries.length }
+      }
+      if (confirmReplace !== undefined && !(await confirmReplace())) {
+        return { ok: false, message: 'Load cancelled' }
       }
       suppressNextMutation = true
       const opened = await persistence.openText(remote.text ?? '', repoLabel.value)
@@ -492,8 +561,44 @@ export const useHostedStore = defineStore('hosted', () => {
   }
 
   /**
-   * The three buttons of the conflict modal. **No automatic merge, ever**
-   * (`docs/decisions/document-sync.md`).
+   * The merge half of {@link loadFromRemote}.
+   *
+   * @param {{ sha: string | null, text: string | null }} remote
+   * @returns {Promise<boolean>} Whether the remote copy was merged in (otherwise nothing changed).
+   */
+  async function mergeLoaded(remote) {
+    if (typeof remote.text !== 'string' || remote.sha === null) return false
+    /** @type {import('../core/merge/state.js').MergeState} */
+    let theirs
+    try {
+      theirs = mergeStateOfProject(parseProject(remote.text), toRaw(documentStore.raw).foldCache)
+    } catch {
+      return false // unreadable: the replace path refuses it by name
+    }
+    if (relatedness(documentStore.raw.mergeState(), theirs) === 'unrelated') return false
+    const ahead = hashOf(projectText()) !== pushedHash.value
+    const before = documentStore.version
+    suppressNextMutation = true
+    const merged = await persistence.mergeText(remote.text, repoLabel.value)
+    if (!merged.ok || documentStore.version === before) suppressNextMutation = false
+    if (!merged.ok) return false
+    lastSha.value = remote.sha
+    // Nothing local was waiting: the merged copy *is* what the repository holds. Otherwise the
+    // local copy is ahead of it, and stays so until pushed.
+    if (!ahead) pushedHash.value = hashOf(projectText())
+    adopted = true
+    divergent.value = false
+    errorMessage.value = ''
+    conflict.value = null
+    await persistConnection().catch(() => {})
+    if (autoPushEnabled.value) await pusher.resume({ pushNow: ahead })
+    return true
+  }
+
+  /**
+   * The three buttons of the conflict modal — now reached only for a repository copy that is
+   * a different project, unreadable, or that keeps changing (`TODO/io-011`; a copy of this
+   * project is merged before it gets here). Nothing here merges: Load is "take theirs".
    *
    * @param {'overwrite' | 'load' | 'cancel'} choice
    */
@@ -507,7 +612,7 @@ export const useHostedStore = defineStore('hosted', () => {
     }
     if (choice === 'load') {
       conflict.value = null
-      const loaded = await loadFromRemote()
+      const loaded = await loadFromRemote({ replace: true })
       if (loaded.ok && autoPushEnabled.value) await pusher.resume()
       return loaded
     }

@@ -3211,6 +3211,8 @@ Hosted half not driven (no scratch repo/token in this session). Console clean.
 
 **Re-checked**: 2026-10-12 UTC (`data-011`) — **PASS**, laptop Chromium, driven by hand (real mouse drags from the Library, **Select** mode box-select, **Union**): Cube and Cylinder placed (chip `Saved · 14:43` unprompted), unioned to one body, **page reloaded** — History came back as `Cube 1 — placed`, `Cylinder 1 — placed`, `Union Cube 1 + Cylinder 1`; **Download copy** wrote a 4-line file whose state line is `version 2` with a `merge` section; **Open…** of that file in a fresh profile read *Opened warpcad-project.ndjson · 3 steps* with the same three History rows. Console clean. Not driven on a phone or WebKit this run.
 
+**Re-checked**: 2026-10-15 UTC — **PASS (hosted half against a mocked host)** (`io-011`). Steps 8-10 were re-driven with `api.github.com` mocked in the browser (same drive as scenario 22): a Save after the repository's copy of the *same* project moved on **merged** and pushed with no dialog (the old step-8 dialog now appears only for a *different* project: seen, Cancel left the dot at `!`, the repository unchanged, no token text on the page). **NOT DRIVEN against a real scratch repository** — no token available; recorded in `TODO/VERIFY.md`. Local steps 1-7 untouched by this change.
+
 ### 11. Export a solid and confirm it opens elsewhere
 
 Added 2026-09-17 alongside `TODO/ROADMAP.md`'s M6, same rule as scenario 10. Steps
@@ -3964,6 +3966,8 @@ in `data-013`); the status chip kept the old summary after Undo merge (fixed in 
 
 **Re-checked**: 2026-10-15 06:00 UTC — **PASS** (`io-010`, re-driven because it changed the shared `mergeIn` signature and the persistence wiring). Laptop 1440x900 Chromium, real mouse drags, two browser contexts, fallback (Download copy / Merge file…): Cube and Cylinder on A, Sphere on B, A moved the Cube (Inspector Position X): strip `Merged 1 step from b.ndjson`, 3 bodies, header Undo label `Move Cube 1` before and after; Undo merge: `Took the merge from b.ndjson back out`, 2 bodies, Undo label unchanged. Conflict (fillet seeded through the store on B, as `merge-file.e2e.js` does): banner `Merged 1 step from b2.ndjson — 1 step conflicted`, Show, one broken chip with `conflicts with step 3 (Move Cube 1, by you)` as text. Reload: 2 bodies, Undo merge no longer offered. Not driven in this pass: the Suppress click, phone/tablet width.
 
+
+**Re-checked**: 2026-10-15 UTC — **PASS** (`io-011`, re-driven because the hosted store now calls the shared `persistence.mergeText`/`mergeIn`). Laptop 1440x900 and 1280x800 Chromium, real `page.mouse` jittered 24-step Library drags, two browser contexts, `api.github.com` mocked: A saved a Cube to the repository, B loaded it and added a Cylinder and saved, A dropped a Sphere and pressed Save to: strip `Merged 1 step from me/bracket` with **Undo merge**, no dialog, 3 bodies, repository holds both; **Undo merge** took the Sphere... back to 2 bodies. Console: only the expected 404/409 responses from the mocked host.
 
 ### 23. Claude Code edits the file you have open
 
