@@ -52,6 +52,19 @@ const browserProjects = ENGINES.flatMap((engine) =>
 )
 
 /**
+ * Smoke projects: the `@smoke`-tagged subset, on Chrome at laptop width (`chromium-laptop`) and on
+ * Safari's engine at iPad width (`webkit-tablet`, the Responsive Layout tablet row, 820×1180, touch).
+ * This is what GitHub Actions runs (`.github/workflows/ci.yml`); the full 9-way matrix stays a local
+ * run (`npm run test:e2e:headless`), because on free hosted runners it is hours of minutes. Smoke
+ * tests carry `{ tag: '@smoke' }`; add one only when a scenario is a regression gate for the whole
+ * app, not for a single feature.
+ */
+const SMOKE_BROWSERS = ['chromium-laptop', 'webkit-tablet']
+const smokeProjects = browserProjects
+  .filter((project) => SMOKE_BROWSERS.includes(project.name))
+  .map((project) => ({ ...project, name: `smoke-${project.name}`, grep: /@smoke/ }))
+
+/**
  * Docs-media projects (`TODO/docs-005`). Chromium only, on purpose: these are pictures
  * for humans, not a cross-engine behaviour gate. Software GL keeps pixels independent of
  * the contributor's GPU; `deviceScaleFactor: 2` is the one fixed choice for crisp images.
@@ -125,6 +138,7 @@ export default defineConfig({
     // enough, so they stay out of the 9-way browser matrix.
     { name: 'guards', testMatch: /(naming|docs-media)\.spec\.js/ },
     ...browserProjects,
+    ...smokeProjects,
     ...docsProjects,
   ],
 })

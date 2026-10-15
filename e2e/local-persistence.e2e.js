@@ -224,7 +224,7 @@ test.describe('autosave and restore', () => {
     await expectBodyCount(page, 0)
   })
 
-  test('place two solids, union them, add a third, reload: the same bodies come back, undo is empty', async ({
+  test('place two solids, union them, add a third, reload: the same bodies come back, undo is empty', { tag: '@smoke' }, async ({
     page,
   }, info) => {
     await openLibrary(page)

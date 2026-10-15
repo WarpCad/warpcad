@@ -208,7 +208,7 @@ test('the root view mounts the Library panel with all eight primitive rows', asy
   expect(labels).toEqual(['Cube', 'Cylinder', 'Cone', 'Hexagon', 'Triangle', 'Tube', 'Sketch', 'Sphere'])
 })
 
-test('dragging a row into the viewport places and renders a primitive', async ({ page }, testInfo) => {
+test('dragging a row into the viewport places and renders a primitive', { tag: '@smoke' }, async ({ page }, testInfo) => {
   await openLibrary(page)
   const viewport = page.getByTestId('viewport')
   await expect(viewport).toHaveAttribute('data-body-count', '0')
@@ -233,7 +233,7 @@ test('dragging a row into the viewport places and renders a primitive', async ({
   })
 })
 
-test('a second, different primitive leaves the first visible and unmoved', async ({ page }) => {
+test('a second, different primitive leaves the first visible and unmoved', { tag: '@smoke' }, async ({ page }) => {
   // ACCEPTANCE.md scenario 1, as an automated regression. The second attempt
   // shipped exactly this bug — a new body replacing the previous one — with a
   // green suite and a clean reachability audit.

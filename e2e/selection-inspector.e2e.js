@@ -327,7 +327,7 @@ test('the root view mounts the Inspector, and it starts empty', async ({ page })
   await expect(page.getByTestId('dimension-lines')).toHaveAttribute('data-axis-count', '0')
 })
 
-test('selecting a body shows a gizmo, three dimension lines, and its own parameters', async ({
+test('selecting a body shows a gizmo, three dimension lines, and its own parameters', { tag: '@smoke' }, async ({
   page,
 }, testInfo) => {
   await openLibrary(page)

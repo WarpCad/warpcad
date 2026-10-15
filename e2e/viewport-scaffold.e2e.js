@@ -208,7 +208,7 @@ test.beforeEach(async ({ page }) => {
   await expect(page.getByTestId('viewport')).not.toHaveAttribute('data-frames-rendered', '0')
 })
 
-test('the root view mounts the viewport, grid readout, gizmo and nav chrome', async ({ page }) => {
+test('the root view mounts the viewport, grid readout, gizmo and nav chrome', { tag: '@smoke' }, async ({ page }) => {
   await expect(page.getByTestId('app-root')).toBeVisible()
   await expect(page.getByTestId('viewport-canvas')).toBeVisible()
   await expect(page.getByTestId('orientation-gizmo')).toBeVisible()
@@ -241,7 +241,7 @@ test('the scale readout follows the zoom level', async ({ page }) => {
   expect(after).toBeLessThan(before)
 })
 
-test('WebGL actually draws a visible grid, not a blank or black rectangle', async ({ page }) => {
+test('WebGL actually draws a visible grid, not a blank or black rectangle', { tag: '@smoke' }, async ({ page }) => {
   // The direct guard against SECOND-ATTEMPT.md's "the scene is very dark" — a
   // bug that shipped twice under passing tests because nothing ever looked at a
   // pixel.
@@ -392,7 +392,7 @@ test('the gizmo triad re-projects as the camera moves', async ({ page }) => {
   expect(Math.abs((fromFront.z?.y ?? 0) - (fromTop?.y ?? 0))).toBeGreaterThan(10)
 })
 
-test('nav chrome orbits, pans and zooms without a keyboard or a drag', async ({ page }) => {
+test('nav chrome orbits, pans and zooms without a keyboard or a drag', { tag: '@smoke' }, async ({ page }) => {
   const start = await cameraState(page)
   expect(start.dragMode).toBe('orbit')
 

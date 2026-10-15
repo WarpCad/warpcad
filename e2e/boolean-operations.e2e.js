@@ -336,7 +336,7 @@ for (const name of OPERATIONS) {
   })
 }
 
-test('Subtract cuts the later-selected solid out of the first — reversing the order reverses the result', async ({
+test('Subtract cuts the later-selected solid out of the first — reversing the order reverses the result', { tag: '@smoke' }, async ({
   page,
 }) => {
   // The claim no count-based assertion can make: *order* drove the operation,
