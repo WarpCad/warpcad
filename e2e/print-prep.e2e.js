@@ -358,3 +358,268 @@ test('the cut-plane handle is the topmost thing at its own centre, and a cancell
   expect(offset).toBeGreaterThan(140)
   expect(offset).toBeLessThan(160)
 })
+
+/**
+ * Place connectors (`TODO/ui-067`): the helpers and the specs below drive the cut-plane marker
+ * layer. Positions are face millimetres (`y`, `z` for a cut across X); the page turns them into
+ * client pixels with the overlay's own `data-face-*` map, and every pointer is a real
+ * `page.mouse` event unless a spec says it fires a synthetic touch.
+ */
+
+/** @param {import('@playwright/test').Page} page @param {number} uMm @param {number} vMm */
+async function faceToClient(page, uMm, vMm) {
+  return page.evaluate(
+    ({ uMm, vMm }) => {
+      const svg = document.querySelector('[data-testid="cut-plane"]')
+      if (!svg) throw new Error('no cut plane')
+      const pair = (name) => svg.getAttribute(name).split(',').map(Number)
+      const [uX, uY] = pair('data-face-u')
+      const [vX, vY] = pair('data-face-v')
+      const [cu, cv] = pair('data-face-centre')
+      const [hx, hy] = pair('data-handle')
+      const box = svg.getBoundingClientRect()
+      return { x: box.left + hx + (uMm - cu) * uX + (vMm - cv) * vX, y: box.top + hy + (uMm - cu) * uY + (vMm - cv) * vY }
+    },
+    { uMm, vMm }
+  )
+}
+
+/** @param {import('@playwright/test').Locator} marker */
+async function markerFace(marker) {
+  return { uMm: Number(await marker.getAttribute('data-u-mm')), vMm: Number(await marker.getAttribute('data-v-mm')) }
+}
+
+/**
+ * Wait for the plane's projection to hold still across several frames, as the handle drag does.
+ *
+ * @param {import('@playwright/test').Page} page
+ */
+async function waitForStablePlane(page) {
+  await page.waitForFunction(
+    () =>
+      new Promise((resolve) => {
+        const read = () => {
+          const el = document.querySelector('[data-testid="cut-plane"]')
+          return el ? `${el.getAttribute('data-handle')}|${el.getAttribute('data-face-u')}|${el.getAttribute('data-face-v')}` : ''
+        }
+        let last = read()
+        let stable = 0
+        const tick = () => {
+          const now = read()
+          stable = now && now === last ? stable + 1 : 0
+          last = now
+          if (stable >= 5) resolve(true)
+          else requestAnimationFrame(tick)
+        }
+        requestAnimationFrame(tick)
+      }),
+    undefined,
+    { timeout: 10000 }
+  )
+}
+
+/**
+ * Open Split on the wing, look square at the cut face, switch Place connectors on.
+ *
+ * @param {import('@playwright/test').Page} page
+ */
+async function openPlacing(page) {
+  await seedWing(page)
+  await store(page, (api) => api.selection.select('wing'))
+  // Look square at the cut face first: at tablet width the Split sheet sits over the gizmo.
+  await page.getByTestId('gizmo-view-right').click()
+  await page.getByTestId('op-split').click()
+  await expect(page.getByTestId('split-sheet')).toBeVisible()
+  await page.getByTestId('split-offset').fill('150')
+  await page.getByTestId('split-manual-joints').check()
+  await expect(page.getByTestId('split-connector-kind')).toBeVisible()
+  await expect(page.getByTestId('split-joint')).toHaveCount(0)
+  await expect(page.getByTestId('connector-marker').first()).toBeVisible()
+  await expect(page.getByTestId('split-manual-hint')).toHaveAttribute('data-face-view', 'usable')
+  await zoomToFace(page)
+  await waitForStablePlane(page)
+}
+
+/**
+ * Zoom with wheel events until the 40 mm face is about 4-5 px per millimetre: wide enough to
+ * tap on (the offset handle is a 44 px target at the face's centre, and a face a hundred pixels
+ * wide is mostly handle), narrow enough to stay clear of the Split sheet at tablet width. A
+ * person does the same with the wheel or a pinch; the wheel event is fired on the canvas so
+ * every engine takes it, touch-emulated or not.
+ *
+ * @param {import('@playwright/test').Page} page
+ */
+async function zoomToFace(page) {
+  const readScale = () =>
+    page.evaluate(() => Number(document.querySelector('[data-testid="cut-plane"]')?.getAttribute('data-face-u')?.split(',')[0]))
+  const seen = []
+  for (let i = 0; i < 40; i += 1) {
+    const scale = await readScale()
+    seen.push(Number(scale.toFixed(2)))
+    if (scale >= 3.5 && scale <= 5.5) return
+    await page.evaluate((deltaY) => {
+      const canvas = document.querySelector('[data-testid="viewport"] canvas')
+      const box = canvas.getBoundingClientRect()
+      canvas.dispatchEvent(
+        new WheelEvent('wheel', { deltaY, clientX: box.left + box.width / 2, clientY: box.top + box.height / 2, bubbles: true, cancelable: true })
+      )
+    }, scale < 3.5 ? -60 : 60)
+    await page.waitForTimeout(120)
+  }
+  throw new Error(`could not zoom the cut face to a tappable size: px/mm went ${seen.join(', ')}`)
+}
+
+test('Place connectors: drag a seeded marker, switch its kind, Apply, and the pieces carry it where it was dragged', async ({
+  page,
+}) => {
+  await openPlacing(page)
+  const markers = page.getByTestId('connector-marker')
+  const seeded = await markers.count()
+  expect(seeded, 'the search’s own placements seed the markers').toBeGreaterThanOrEqual(1)
+  await expect(markers.first()).toHaveAttribute('data-kind', 'pins')
+  await expect(markers.first()).toHaveAttribute('data-state', 'ok')
+  await expect(page.getByTestId('split-apply')).toBeEnabled()
+
+  // Drag the first marker to (y = 4, z = 6) with the real mouse.
+  const first = markers.first()
+  const from = await centreOfMarker(first)
+  const target = await faceToClient(page, 4, 6)
+  await page.mouse.move(from.x, from.y)
+  await page.mouse.down()
+  await page.mouse.move((from.x + target.x) / 2, (from.y + target.y) / 2, { steps: 5 })
+  await page.mouse.move(target.x, target.y, { steps: 5 })
+  await page.mouse.up()
+  await expect(markers.first()).toHaveAttribute('data-dragging', 'false')
+  await expect.poll(async () => (await markerFace(markers.first())).uMm).toBeCloseTo(4, 0)
+  expect((await markerFace(markers.first())).vMm).toBeCloseTo(6, 0)
+  const dragged = await markerFace(markers.first())
+
+  // The dragged marker is selected; the picker switches its kind.
+  await expect(markers.first()).toHaveAttribute('data-selected', 'true')
+  await page.getByTestId('split-connector-kind-screwBoss').click()
+  await expect(markers.first()).toHaveAttribute('data-kind', 'screwBoss')
+  expect(await markerFace(markers.first())).toEqual(dragged)
+
+  // A drag to a spot with no room goes red, then snaps back with the reason.
+  const here = await centreOfMarker(markers.first())
+  const bad = await faceToClient(page, 19.5, 6)
+  await page.mouse.move(here.x, here.y)
+  await page.mouse.down()
+  await page.mouse.move(bad.x, bad.y, { steps: 8 })
+  await expect(markers.first()).toHaveAttribute('data-state', 'bad')
+  await page.mouse.up()
+  await expect(markers.first()).toHaveAttribute('data-dragging', 'false')
+  await expect(page.getByTestId('split-notice')).toContainText(/placement \d+ \(screwBoss at y = /)
+  await expect(markers.first()).toHaveAttribute('data-state', 'ok')
+  expect(await markerFace(markers.first())).toEqual(dragged)
+
+  await expect(page.getByTestId('split-apply')).toBeEnabled()
+  await page.getByTestId('split-apply').click()
+  await expect(page.getByTestId('split-sheet')).toHaveCount(0)
+
+  // Bounds check on the evaluated geometry: piece A (x <= 0) has a boss standing proud of the
+  // cut face, centred where the marker was dragged, not where the search put the posts.
+  const boss = await store(page, (api) => {
+    const body = api.documentStore.raw.bodies().find((candidate) => candidate.id === 'wing')
+    const a = body.geometry.parts['Wing A']
+    let minY = Infinity, maxY = -Infinity, minZ = Infinity, maxZ = -Infinity, maxX = -Infinity
+    for (const polygon of a.polygons) {
+      for (const [x, y, z] of polygon.vertices) {
+        maxX = Math.max(maxX, x)
+        if (x > 0.2 && y > -8) {
+          minY = Math.min(minY, y); maxY = Math.max(maxY, y); minZ = Math.min(minZ, z); maxZ = Math.max(maxZ, z)
+        }
+      }
+    }
+    return { maxX, centreY: (minY + maxY) / 2, centreZ: (minZ + maxZ) / 2, spanY: maxY - minY }
+  })
+  expect(boss.maxX, 'a boss stands proud of piece A').toBeGreaterThan(1)
+  expect(boss.centreY).toBeCloseTo(dragged.uMm, 0)
+  expect(boss.centreZ).toBeCloseTo(dragged.vMm, 0)
+  const record = await store(page, (api) => api.documentStore.raw.records.at(-1))
+  expect(record.params.placements.some((placement) => placement.kind === 'screwBoss')).toBe(true)
+  expect(record.params.joint).toBeUndefined()
+})
+
+/** @param {import('@playwright/test').Locator} marker */
+async function centreOfMarker(marker) {
+  const box = await marker.locator('.marker__hit').boundingBox()
+  if (!box) throw new Error('marker has no box')
+  return { x: box.x + box.width / 2, y: box.y + box.height / 2 }
+}
+
+test('Place connectors: a tap drops the picked kind, × removes it, and Apply needs at least one', async ({ page }) => {
+  await openPlacing(page)
+  const markers = page.getByTestId('connector-marker')
+  // Remove every seeded marker with the × on each (select, then ×).
+  while ((await markers.count()) > 0) {
+    const box = await centreOfMarker(markers.first())
+    await page.mouse.click(box.x, box.y)
+    await expect(markers.first()).toHaveAttribute('data-selected', 'true')
+    await page.getByTestId('connector-marker-remove').first().dispatchEvent('pointerdown', { button: 0 })
+  }
+  await expect(page.getByTestId('split-apply')).toBeDisabled()
+  await expect(page.getByTestId('split-problem')).toContainText(/at least one/)
+
+  // Pick Wedge, tap the face.
+  await page.getByTestId('split-connector-kind-wedge').click()
+  const tap = await faceToClient(page, -8, 6)
+  await page.mouse.click(tap.x, tap.y)
+  await expect(markers).toHaveCount(1)
+  await expect(markers.first()).toHaveAttribute('data-kind', 'wedge')
+  await expect(markers.first()).toHaveAttribute('data-state', 'ok')
+  await expect(page.getByTestId('split-apply')).toBeEnabled()
+
+  // A tap where nothing fits is turned back with the kernel's reason, not clipped.
+  const rim = await faceToClient(page, 19.8, 6)
+  await page.mouse.click(rim.x, rim.y)
+  await expect(markers).toHaveCount(1)
+  await expect(page.getByTestId('split-notice')).toContainText(/placement 2 \(wedge at y = 19\.\d/)
+
+  // Turning it off returns to the automatic joint dropdown.
+  await page.getByTestId('split-manual-joints').uncheck()
+  await expect(markers).toHaveCount(0)
+  await expect(page.getByTestId('split-joint')).toBeVisible()
+  await expect(page.getByTestId('split-apply')).toBeEnabled()
+})
+
+test('Place connectors, closed io-007 findings: markers are not buried, and a cancelled touch does not move one', async ({
+  page,
+}) => {
+  await openPlacing(page)
+  const markers = page.getByTestId('connector-marker')
+  const count = await markers.count()
+  // (a) Topmost at each marker's own centre — the Inspector or Split sheet must not cover it.
+  for (let i = 0; i < count; i += 1) {
+    const box = await centreOfMarker(markers.nth(i))
+    const top = await page.evaluate(
+      ({ x, y }) => document.elementFromPoint(x, y)?.closest('[data-testid="connector-marker"]')?.getAttribute('data-marker-id') ?? null,
+      box
+    )
+    expect(top, `marker ${i} is the topmost thing at its centre`).toBe(await markers.nth(i).getAttribute('data-marker-id'))
+  }
+  // (b) A touch that the browser cancels mid-drag carries no position: the marker stays put,
+  // and so does the plane's offset handle.
+  const before = await markerFace(markers.first())
+  const offset = await page.getByTestId('split-offset').inputValue()
+  const box = await centreOfMarker(markers.first())
+  await page.evaluate(
+    ({ x, y }) => {
+      const target = document.querySelector('[data-testid="connector-marker"] .marker__hit')
+      if (!target) throw new Error('no marker')
+      const fire = (type, cx, cy) =>
+        target.dispatchEvent(
+          new PointerEvent(type, { pointerId: 21, pointerType: 'touch', isPrimary: true, buttons: 1, clientX: cx, clientY: cy, bubbles: true, cancelable: true })
+        )
+      fire('pointerdown', x, y)
+      fire('pointermove', x + 12, y + 9)
+      fire('pointermove', x + 20, y + 14)
+      fire('pointercancel', 0, 0)
+    },
+    box
+  )
+  await page.waitForTimeout(300)
+  expect(await markerFace(markers.first())).toEqual(before)
+  expect(await page.getByTestId('split-offset').inputValue()).toBe(offset)
+  await expect(markers.first()).toHaveAttribute('data-state', 'ok')
+})

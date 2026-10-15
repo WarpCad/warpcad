@@ -34,6 +34,17 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### ui-067 — Place connectors on the split cut face by hand (2026-10-15 23:46)
+
+Drag, tap, kind switch, refusal and cancelled-touch behaviour are covered by `e2e/print-prep.e2e.js` on all nine projects and by the Step 6 hand drive; these are the feel and layout calls a script cannot make.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | On a real iPad, the Split sheet covers the orientation cube (right-hand panel at 820 px), so the face can only be turned square-on before opening Split or by dragging the view; judge whether a "face the cut" button in the sheet is wanted. | Open | |
+| 2 | The offset handle (44 px) sits at the centre of the cut face; on a small face it covers much of it until you zoom in. Judge whether the handle should hide, or shrink, while Place connectors is on. | Open | |
+| 3 | Marker positions use the plane's affine map at its centre, so under strong perspective (a close camera, an oblique view) a marker can sit a few pixels off the drawn plane's corner geometry. Judge at an oblique view on a phone whether that reads wrong. | Open | |
+| 4 | Markers are SVG only: no keyboard path to move or remove one yet. Judge whether that is acceptable for v1. | Open | |
+
 ### io-011 — A stale hosted save merges instead of asking (2026-10-15 19:50)
 
 Everything was driven against a mocked `api.github.com`; no scratch repository and token were available to the runner, so scenario 10's hosted half is not driven for real. This is the one manual check that remains.

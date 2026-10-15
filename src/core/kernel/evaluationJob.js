@@ -29,6 +29,7 @@
 
 import { evaluateOp, policyFor } from './index.js'
 import { measureGeometry } from './measure.js'
+import { previewSplitFace } from './split.js'
 import { packGeometry, unpackGeometry } from './transport.js'
 
 /** @typedef {import('./transport.js').PackedGeometry} PackedGeometry */
@@ -75,8 +76,26 @@ import { packGeometry, unpackGeometry } from './transport.js'
  * @property {string} [error] The kernel's reason when it did not.
  */
 
-/** @typedef {MeasureJob | BuildJob} EvaluationJob */
-/** @typedef {MeasureResult | BuildResult} EvaluationResult */
+/**
+ * The Split sheet's Place connectors overlay (`TODO/ui-067`): the cut face's clearance
+ * field, the joint the search would place, and a verdict per hand placement — see
+ * `previewSplitFace`. Its own channel, so a drag's live validation supersedes itself.
+ *
+ * @typedef {object} SplitFaceJob
+ * @property {'splitFace'} kind
+ * @property {PackedGeometry} body The uncut body.
+ * @property {Record<string, any>} params `previewSplitFace`'s params, plain JSON.
+ */
+
+/**
+ * @typedef {object} SplitFaceResult
+ * @property {'splitFace'} kind
+ * @property {import('./split.js').FacePreview} [face] Present when the cut could be previewed.
+ * @property {string} [error] The kernel's reason when it could not.
+ */
+
+/** @typedef {MeasureJob | BuildJob | SplitFaceJob} EvaluationJob */
+/** @typedef {MeasureResult | BuildResult | SplitFaceResult} EvaluationResult */
 
 /**
  * Run one evaluation job.
@@ -104,6 +123,13 @@ export function runEvaluationJob(job) {
       return { kind: 'build', geometry: packGeometry(/** @type {any} */ (geometry)) }
     } catch (error) {
       return { kind: 'build', error: error instanceof Error ? error.message : String(error) }
+    }
+  }
+  if (job?.kind === 'splitFace') {
+    try {
+      return { kind: 'splitFace', face: previewSplitFace(unpackGeometry(job.body), /** @type {any} */ (job.params)) }
+    } catch (error) {
+      return { kind: 'splitFace', error: error instanceof Error ? error.message : String(error) }
     }
   }
   throw new Error(`evaluation job: unknown kind "${/** @type {any} */ (job)?.kind}"`)

@@ -122,3 +122,25 @@ describe('runEvaluationJob — build (TODO/sketch-001: the sketch editor’s pre
     expect(result.error).toMatch(/closed solid outline/)
   })
 })
+
+describe('runEvaluationJob splitFace (TODO/ui-067)', () => {
+  it('answers what previewSplitFace answers, for geometry that crossed the transport format', async () => {
+    const modeling = (await import('@jscad/modeling')).default
+    const { previewSplitFace } = await import('./split.js')
+    const body = modeling.primitives.cuboid({ size: [300, 40, 20], center: [150, 0, 0] })
+    const params = { axis: 'x', offsetMm: 150, seed: 'pins', placements: [{ kind: 'pins', uMm: 0, vMm: 0, sizeMm: 3 }] }
+    const result = /** @type {any} */ (runEvaluationJob({ kind: 'splitFace', body: packGeometry(body), params }))
+    expect(result.kind).toBe('splitFace')
+    expect(result.face).toEqual(previewSplitFace(body, /** @type {any} */ (params)))
+  })
+
+  it('answers a refused cut with its reason instead of throwing', async () => {
+    const modeling = (await import('@jscad/modeling')).default
+    const body = modeling.primitives.cuboid({ size: [300, 40, 20], center: [150, 0, 0] })
+    const result = /** @type {any} */ (
+      runEvaluationJob({ kind: 'splitFace', body: packGeometry(body), params: { axis: 'x', offsetMm: 999 } })
+    )
+    expect(result.face).toBeUndefined()
+    expect(result.error).toMatch(/outside the body/)
+  })
+})

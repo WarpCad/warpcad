@@ -23,7 +23,13 @@ import { onBeforeUnmount, onMounted, watch } from 'vue'
 
 import HelpButton from '../controls/HelpButton.vue'
 import { useOverlaysStore } from '../../stores/overlays.js'
-import { JOINT_LABELS, SPLIT_AXES, useSplitSheetStore } from '../../stores/splitSheet.js'
+import {
+  CONNECTOR_KINDS,
+  CONNECTOR_LABELS,
+  JOINT_LABELS,
+  SPLIT_AXES,
+  useSplitSheetStore,
+} from '../../stores/splitSheet.js'
 
 const sheet = useSplitSheetStore()
 const overlays = useOverlaysStore()
@@ -92,14 +98,70 @@ const sizeText = (size) => `${size.map((mm) => Number(mm.toFixed(1))).join(' × 
         />
       </label>
 
-      <label class="split__field">
+      <label v-if="!sheet.manual" class="split__field">
         Joint
         <select v-model="sheet.joint" class="split__input" data-testid="split-joint">
           <option v-for="type in sheet.jointTypes" :key="type" :value="type">{{ JOINT_LABELS[type] }}</option>
         </select>
       </label>
 
-      <label v-if="sheet.joint !== 'none'" class="split__field">
+      <label class="split__toggle">
+        <input
+          type="checkbox"
+          :checked="sheet.manual"
+          :disabled="sheet.joint === 'none' && !sheet.manual"
+          data-testid="split-manual-joints"
+          @change="sheet.setManual(/** @type {HTMLInputElement} */ ($event.target).checked)"
+        />
+        Place connectors by hand
+      </label>
+
+      <div
+        v-if="sheet.manual"
+        class="split__kinds"
+        role="radiogroup"
+        aria-label="Connector kind"
+        data-testid="split-connector-kind"
+      >
+        <button
+          v-for="kind in CONNECTOR_KINDS"
+          :key="kind"
+          type="button"
+          role="radio"
+          class="split__kind"
+          :aria-checked="sheet.connectorKind === kind"
+          :aria-label="CONNECTOR_LABELS[kind]"
+          :data-testid="`split-connector-kind-${kind}`"
+          :data-active="sheet.connectorKind === kind"
+          @click="sheet.chooseKind(kind)"
+        >
+          <svg class="split__kind-glyph" viewBox="-10 -10 20 20" aria-hidden="true">
+            <circle v-if="kind === 'pins'" r="6" class="split__glyph--solid" />
+            <path v-else-if="kind === 'wedge'" d="M0 -8 L8 0 L0 8 L-8 0 Z" class="split__glyph--solid" />
+            <circle v-else r="6" class="split__glyph--ring" />
+          </svg>
+          <span class="split__kind-label">{{ CONNECTOR_LABELS[kind] }}</span>
+        </button>
+      </div>
+      <p
+        v-if="sheet.manual"
+        class="split__hint"
+        data-testid="split-manual-hint"
+        :data-face-view="sheet.faceViewUsable ? 'usable' : 'edge-on'"
+      >
+        <template v-if="!sheet.faceViewUsable">
+          Turn the view to face the cut plane to place connectors.
+        </template>
+        <template v-else>
+          Tap the cut plane to drop a {{ CONNECTOR_LABELS[sheet.connectorKind].toLowerCase() }}; drag a marker to move
+          it. Red areas have no room.
+        </template>
+      </p>
+      <p v-if="sheet.manual && sheet.notice" class="split__problem" role="status" data-testid="split-notice">
+        {{ sheet.notice }}
+      </p>
+
+      <label v-if="sheet.manual || sheet.joint !== 'none'" class="split__field">
         Clearance per side (mm)
         <input
           v-model.number="sheet.clearanceMm"
@@ -313,6 +375,72 @@ const sizeText = (size) => `${size.map((mm) => Number(mm.toFixed(1))).join(' × 
   cursor: not-allowed;
 }
 
+.split__toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: var(--tap);
+  font-size: 13px;
+  color: var(--text-1);
+}
+
+.split__toggle input {
+  width: 20px;
+  height: 20px;
+  margin: 0;
+}
+
+.split__kinds {
+  display: flex;
+  gap: 6px;
+}
+
+.split__kind {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: var(--tap);
+  padding: 0 8px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  color: var(--text-1);
+  font-family: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.split__kind[data-active='true'] {
+  border-color: var(--accent);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+
+.split__kind-glyph {
+  width: 18px;
+  height: 18px;
+  flex: none;
+}
+
+.split__glyph--solid {
+  fill: var(--accent);
+}
+
+.split__glyph--ring {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 3;
+}
+
+.split__hint {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--text-2);
+}
+
 /* Phone: a bottom sheet, so the viewport — and the cut plane — stay visible above it. */
 @media (max-width: 640px) {
   .split {
@@ -321,7 +449,6 @@ const sizeText = (size) => `${size.map((mm) => Number(mm.toFixed(1))).join(' × 
     bottom: 0;
     left: 0;
     width: 100%;
-    max-height: 50dvh;
     border-radius: var(--radius-lg) var(--radius-lg) 0 0;
     padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
     /* Two fields per row and no intro paragraph: the sheet stays under half the screen, so the
@@ -332,6 +459,9 @@ const sizeText = (size) => `${size.map((mm) => Number(mm.toFixed(1))).join(' × 
   }
 
   .split > .split__title,
+  .split > .split__toggle,
+  .split > .split__kinds,
+  .split > .split__hint,
   .split > .split__pieces,
   .split > .split__problem,
   .split > .split__warning,
@@ -341,6 +471,30 @@ const sizeText = (size) => `${size.map((mm) => Number(mm.toFixed(1))).join(' × 
 
   .split__note {
     display: none;
+  }
+
+  /* The cut plane and its connector markers sit just above the middle of the screen, and the
+     sheet has grown (Place connectors toggle, picker, hint) — so it is capped lower, scrolls
+     inside, and keeps Apply in reach, rather than burying them (the `io-007` finding, again). */
+  .split {
+    max-height: 42dvh;
+  }
+
+  .split > .split__actions {
+    position: sticky;
+    bottom: calc(-12px - env(safe-area-inset-bottom, 0px));
+    margin: 0 -12px calc(-12px - env(safe-area-inset-bottom, 0px));
+    padding: 6px 12px calc(12px + env(safe-area-inset-bottom, 0px));
+    background: var(--surface-glass);
+  }
+
+  /* Place connectors: the kind picker is a horizontal icon row beneath the two-column grid. */
+  .split__kind-label {
+    display: none;
+  }
+
+  .split__hint {
+    font-size: 11px;
   }
 
   .split__field,

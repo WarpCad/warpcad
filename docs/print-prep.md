@@ -41,6 +41,33 @@ already has a long part), and rename it **Wing**.
 
 ![Dragging the cut plane's handle, typing offset 150, choosing Tongue and groove, pressing Apply, then File, Export and Print pieces](./media/print-prep-split.gif)
 
+## Try it: choose where the connectors go
+
+**Pins and sockets** and **Tongue and groove** pick their own places on the cut face. When you want a
+post near the spar, a second one near the tip, a wedge key, or a screw boss you can take apart and
+reassemble, place them yourself. With the wing split at offset 150:
+
+1. Turn the view to face the cut: in the view cube press **X** (camera on +X). On a tablet the
+   Split sheet covers the cube, so do this first, or drag the view round with a finger.
+2. Open **Split…**, set the offset, and tick **Place connectors by hand**. The **Joint** list is replaced
+   by a **Connector kind** row (**Post**, **Wedge**, **Screw boss**), and the cut plane shows what
+   the automatic search found as markers: a disc for a post, a diamond for a wedge, a ring for a
+   screw boss. Red patches on the plane are where nothing fits.
+3. Press **Screw boss**, then **tap the plane** where you want one. It appears as a ring if it
+   fits. A tap where it does not fit is turned back, and the sheet says why, for example
+   *placement 2 (screwBoss at y = 19.7, z = 6 mm): its socket and 1.2-2 mm wall would break out of
+   piece B*.
+4. **Drag a marker** to move it. It turns red while the spot is no good, and goes back to where it
+   was when you let go, with the reason. With a marker selected, pressing a kind changes that
+   marker (at the same spot), and the **×** beside it removes it; a right-click or a long press
+   removes it too.
+5. Press **Apply**. It stays dimmed, with the reason, until at least one connector fits. Untick
+   **Place connectors by hand** at any time to go back to the automatic joint.
+
+![The Split sheet with Place connectors on: the Post, Wedge and Screw boss picker, and the wing's cut face with its connector markers](./screenshots/split-sheet-manual-joints.png)
+
+![Picking Screw boss, dragging a marker 10 mm along the cut face, a drag toward the rim turning red and snapping back with its reason, then Apply](./media/print-prep-manual-joint.gif)
+
 ## The build volume
 
 **File ▾ → Project settings…** has a **Build volume** group: width, depth and height in
@@ -63,6 +90,13 @@ Select a body and the Inspector shows its bounds and a fit badge:
 - **Joint** — **Pins and sockets** (round pins on one piece, matching sockets on the other, 2-8 mm across),
   **Tongue and groove** (a rib along the cut, for thin sections such as a trailing edge where a pin
   cannot fit) or **No joint** (a plain cut).
+- **Place connectors by hand** — replaces the **Joint** list with a kind picker and makes the cut
+  plane tappable: tap to add, drag to move, **×** to remove. Posts, wedges and screw bosses can be mixed.
+  The marker positions are millimetres along the cut face (for a cut across X, Y then Z); a marker's
+  bore or wall must stay inside both pieces. A **screw boss** is drilled from the far face of piece A
+  through to the boss, so it is refused where that bore would leave piece A before reaching it; there is
+  no side-access counterbore. The face must be seen squarely (the sheet says when it is not), and
+  the plane's own offset handle sits at its centre, so zoom in before placing near it.
 - **Clearance per side** — the gap left around the joint so it goes together after printing.
   The default 0.2 mm is a starting point, not a measurement of your printer: print a test and
   adjust. Setting 0 shows a warning, because the pieces would not fit together.

@@ -50,8 +50,14 @@
 
 import { add, bisect, boundsOf, createGroup, hasNamedParts, hiddenNamesOf, toGeom3 } from './group.js'
 import { makeWatertight, openEdgesOf } from './watertight.js'
-import { JOINT_WALL_MM, clearanceField } from './recipes/joint.common.js'
-import { PIN_MAX_DIAMETER_MM, PIN_MAX_REACH_MM, PIN_MIN_DIAMETER_MM, pinJoint } from './recipes/joint.pins.js'
+import { JOINT_WALL_MM, clearanceField, clearanceTo } from './recipes/joint.common.js'
+import {
+  PIN_MAX_DIAMETER_MM,
+  PIN_MAX_REACH_MM,
+  PIN_MIN_DIAMETER_MM,
+  pinJoint,
+  pinSizing,
+} from './recipes/joint.pins.js'
 import { DEFAULT_SCREW_MM, PlacementRefusal, placedJoint } from './recipes/joint.placements.js'
 import { INSERT_MAX_RATIO, SCREW_MAX_MM, SCREW_MIN_MM } from './recipes/joint.screwBoss.js'
 import {
@@ -476,4 +482,108 @@ export function splitWithJoint(value, params) {
     group = add(group, source.parts[name], name, { hidden: true, ...colorOf(name) })
   }
   return group
+}
+
+/**
+ * What the Split sheet's **Place connectors** overlay draws and asks (`TODO/ui-067`): the cut
+ * face's clearance field as a grid of cells, the joint the automatic search would place, and a
+ * verdict for each hand placement given. Everything a person sees there comes from the same
+ * checks Apply runs — `placedJoint`, with its refusals worded by number, kind and position.
+ *
+ * @typedef {object} FacePreview
+ * @property {'x' | 'y' | 'z'} uAxis The document axis the face's `u` runs along.
+ * @property {'x' | 'y' | 'z'} vAxis
+ * @property {[number, number]} uRange The face's extent along `u`, mm.
+ * @property {[number, number]} vRange
+ * @property {number} columns
+ * @property {number} rows
+ * @property {number[]} fits Row-major, `rows × columns`: `1` where the smallest pin fits
+ *   (solid on both sides of the cut with room for its socket and wall), `0` where nothing does.
+ * @property {PlacementParams[]} auto The connectors the automatic search finds for `seed`
+ *   (empty when `seed` is not asked for, or the search finds nothing).
+ * @property {string} autoError Why the search found nothing, or `''`.
+ * @property {{ ok: boolean, reason: string }[]} verdicts One per placement given, in order.
+ * @property {string} overall A refusal of the list as a whole (two placements overlapping),
+ *   or `''` when every placement fits alone and together; `''` for an empty list.
+ */
+
+/**
+ * Preview a split's cut face for hand placement.
+ *
+ * @param {Geom3 | Group} value The uncut body.
+ * @param {{ axis: string, offsetMm: number, clearanceMm?: number, placements?: PlacementParams[], seed?: 'pins' | 'tongue' | null }} params
+ * @returns {FacePreview}
+ * @throws {Error} The op's own refusal for a cut that is outside the body, crosses several
+ *   parts or is not watertight.
+ */
+export function previewSplitFace(value, params) {
+  const { placements: given = [], seed = null, ...rest } = params
+  const read = readParams({ ...rest, joint: 'pins' })
+  const placements = given.length === 0 ? [] : given.map((entry, index) => readPlacement(entry, index))
+  const { cutMm, piece, lower, upper } = cut(value, read)
+  const reach = Math.max(PIN_MAX_REACH_MM, TONGUE_MAX_REACH_MM)
+  const widest = Math.max(PIN_MAX_DIAMETER_MM, TONGUE_MAX_WIDTH_MM) / 2
+  const field = clearanceField(piece.solid, read.axisIndex, cutMm, {
+    maxDepthMm: reach + read.clearanceMm,
+    maxClearMm: Math.hypot(widest + read.clearanceMm + JOINT_WALL_MM, 10),
+  })
+
+  const { radiusMm, socketRadiusMm, socketDepthMm } = pinSizing(PIN_MIN_DIAMETER_MM, read.clearanceMm)
+  const wallNeed = Math.hypot(socketRadiusMm + JOINT_WALL_MM, field.depthStepMm / 2)
+  const baseNeed = Math.hypot(radiusMm, field.depthStepMm / 2)
+  const fits = field.points.map((point) =>
+    point.baseClearMm >= baseNeed && clearanceTo(field, point, socketDepthMm + JOINT_WALL_MM) >= wallNeed ? 1 : 0
+  )
+
+  /** @type {PlacementParams[]} */
+  let auto = []
+  let autoError = ''
+  if (seed !== null) {
+    const args = { field, lower, upper, clearanceMm: read.clearanceMm }
+    const plan = seed === 'pins' ? pinJoint(args) : tongueGrooveJoint(args)
+    if (plan === null) autoError = `${OP}: the automatic search finds no room for a ${seed === 'pins' ? 'pin' : 'tongue'} on this cut face`
+    else {
+      auto = plan.connectors.map((connector) => ({
+        kind: connector.kind,
+        uMm: Number(connector.uMm.toFixed(3)),
+        vMm: Number(connector.vMm.toFixed(3)),
+        sizeMm: Number(connector.sizeMm.toFixed(3)),
+        ...(connector.kind === 'tongue' && connector.lengthMm !== undefined
+          ? { lengthMm: Number(connector.lengthMm.toFixed(3)) }
+          : {}),
+      }))
+    }
+  }
+
+  const verdicts = placements.map((placement, index) => {
+    try {
+      placedJoint({ field, lower, upper, clearanceMm: read.clearanceMm, placements: [placement] })
+      return { ok: true, reason: '' }
+    } catch (error) {
+      if (!(error instanceof PlacementRefusal)) throw error
+      return { ok: false, reason: error.message.replace(/^placement 1\b/, `placement ${index + 1}`) }
+    }
+  })
+  let overall = ''
+  if (placements.length > 1 && verdicts.every((verdict) => verdict.ok)) {
+    try {
+      placedJoint({ field, lower, upper, clearanceMm: read.clearanceMm, placements })
+    } catch (error) {
+      if (!(error instanceof PlacementRefusal)) throw error
+      overall = error.message
+    }
+  }
+  return {
+    uAxis: AXES[field.u],
+    vAxis: AXES[field.v],
+    uRange: field.uRange,
+    vRange: field.vRange,
+    columns: field.columns,
+    rows: field.rows,
+    fits,
+    auto,
+    autoError,
+    verdicts,
+    overall,
+  }
 }

@@ -2594,3 +2594,17 @@ The drag-to-place interface is a separate task, so for now the placements are on
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** placement list and the four kinds → commit `c2b1e25` diff; same clearance check as the search, refusals by name and position → `joint.common.js` and `split.spec.js` in that commit; leaving the list out keeps the search → the io-007 split specs in the same run (unit 4885/4885 at HEAD `c2b1e25`); no drag UI yet → `TODO/ui-067` status open
 **To Add:** the screenshot of a split once `ui-067` lands; repo URL once public
+
+
+## 2026-10-15T23:50:00Z — Place split connectors by hand, on the cut face
+
+**Post:** WarpCad's Split tool used to choose its own joint, wherever its clearance search landed, and you never saw where. It now has a Place connectors toggle.
+
+Turn it on and the cut face appears over the model with a red map of where no connector fits, and the connectors the search found as markers you can drag: a disc for a post, a diamond for a wedge key, a ring for a screw boss. Tap to add one of the picked kind, drag to move it, press the cross to remove it. If a spot would break through a wall or overlap another connector, the marker goes red and snaps back when you let go, with the reason by number, kind and position. Apply stays disabled until at least one connector fits.
+
+The check runs off the main thread in the same worker as the rest of the kernel, so dragging stays smooth, and it is the very check Apply uses. A screw boss is still drilled from the far face of its piece, so one whose bore would leave the piece early is refused by name rather than clipped. Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource #WebDev
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** markers, kinds, tap/drag/remove, snap-back with reason, Apply gating -> `e2e/print-prep.e2e.js` "Place connectors" specs on all nine projects (full run 3884 passed / 0 failed); worker job `splitFace` -> `evaluationJob.js`, `splitFace.spec.js`; same check as Apply -> `previewSplitFace` calling `placedJoint` in `split.js`; far-face screw boss refusal -> `splitSheet.spec.js` and `splitFace.spec.js`
+**To Add:** `docs/media/print-prep-manual-joint.gif`; repo URL once public

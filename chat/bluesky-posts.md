@@ -1829,3 +1829,13 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** pins, tongue, wedge and screw-boss kinds accepted with `placements` → commit `c2b1e25` diff (`split.js`, `joint.wedge.js`, `joint.screwBoss.js`); refusal of walls breaking out and overlaps by name and position → `split.spec.js`, `joint.placements.spec.js` in the same commit, passing in the independent run at HEAD `c2b1e25` (unit 4885/4885); screw bosses are not in the post's claims beyond the kind name
 **To Add:** none yet; the drag-to-place UI is `ui-067`, not built
+
+
+## 2026-10-15T23:50:00Z — Place split connectors by hand, on the cut face
+
+**Post:** WarpCad's Split sheet now has Place connectors: tick it, and the cut face shows what the search found as markers over a red map of where nothing fits. Tap to drop a post, wedge or screw boss, drag to move it. A bad spot snaps back with the reason. Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** toggle, kind picker, draggable markers, red clearance map, snap-back with reason -> `e2e/print-prep.e2e.js` "Place connectors" specs, 3884 passed / 0 failed in the full run at this commit; reasons are `core-059`'s refusals (`joint.placements.js`); the red map is `previewSplitFace` in `split.js` (`splitFace.spec.js`)
+**To Add:** `docs/screenshots/split-sheet-manual-joints.png` or `docs/media/print-prep-manual-joint.gif`; repo URL once public

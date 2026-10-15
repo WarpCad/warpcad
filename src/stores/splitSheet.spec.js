@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // @vitest-environment jsdom
 import { createPinia, setActivePinia } from 'pinia'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { useDocumentStore } from './document.js'
 import { useSelectionStore } from './selection.js'
@@ -106,5 +106,144 @@ describe('Split sheet', () => {
     expect(sheet.pieceFits.map((piece) => piece.verdict)).toEqual(['fits', 'fits'])
     sheet.offsetMm = 20
     expect(sheet.pieceFits[1].verdict).toBe('too-large')
+  })
+})
+
+describe('Split sheet — Place connectors (TODO/ui-067)', () => {
+  beforeEach(() => setActivePinia(createPinia()))
+
+  async function manualSheet() {
+    const made = setup()
+    made.sheet.open()
+    await made.sheet.setManual(true)
+    return made
+  }
+
+  it('is off by default, and Apply writes today’s joint record', () => {
+    const { sheet, documentStore } = setup()
+    sheet.open()
+    expect(sheet.manual).toBe(false)
+    expect(sheet.apply()).toBe(true)
+    expect(documentStore.raw.records.at(-1)?.params).toMatchObject({ joint: 'pins' })
+    expect(documentStore.raw.records.at(-1)?.params?.placements).toBeUndefined()
+  })
+
+  it('turning it on starts from what the automatic search found, not from nothing', async () => {
+    const { sheet } = await manualSheet()
+    expect(sheet.manual).toBe(true)
+    expect(sheet.markers.length).toBeGreaterThanOrEqual(1)
+    expect(sheet.markers.every((marker) => marker.kind === 'pins')).toBe(true)
+    // The 40 × 12 face is narrower than the pin search's best-case spread; the markers are on it.
+    for (const marker of sheet.markers) {
+      expect(Math.abs(marker.uMm)).toBeLessThanOrEqual(20)
+      expect(Math.abs(marker.vMm - 6)).toBeLessThanOrEqual(6)
+    }
+    await sheet.settled()
+    expect(sheet.canApply).toBe(true)
+  })
+
+  it('adds a marker of the picked kind where it fits, and the record carries it as a placement', async () => {
+    const { sheet, documentStore } = await manualSheet()
+    // Clear the seeded posts so the wedge has the middle of the face to itself.
+    for (const marker of [...sheet.markers]) sheet.removeMarker(marker.id)
+    const before = sheet.markers.length
+    await sheet.chooseKind('wedge')
+    expect(await sheet.addMarker(-12, 6)).toBe(true)
+    expect(sheet.markers).toHaveLength(before + 1)
+    expect(sheet.markers.at(-1)).toMatchObject({ kind: 'wedge', uMm: -12, vMm: 6 })
+    expect(sheet.selectedMarkerId).toBe(sheet.markers.at(-1)?.id)
+    await sheet.settled()
+    expect(sheet.apply()).toBe(true)
+    const params = documentStore.raw.records.at(-1)?.params
+    expect(params?.joint).toBeUndefined()
+    expect(params?.placements).toHaveLength(before + 1)
+    expect(params?.placements.at(-1)).toEqual({ kind: 'wedge', uMm: -12, vMm: 6 })
+  })
+
+  it('refuses a drop off the material with the kernel’s reason, and the list does not change', async () => {
+    const { sheet } = await manualSheet()
+    const before = JSON.stringify(sheet.markers)
+    expect(await sheet.addMarker(19.9, 6)).toBe(false)
+    expect(sheet.notice).toMatch(/placement \d+ \(pins at y = 19\.9, z = 6 mm\)/)
+    expect(JSON.stringify(sheet.markers)).toBe(before)
+  })
+
+  it('a drag to an invalid position reverts without mutating the committed list; a valid one moves it', async () => {
+    const { sheet } = await manualSheet()
+    const marker = sheet.markers[0]
+    const before = JSON.stringify(sheet.markers)
+    sheet.dragMarker(marker.id, 19.9, 6)
+    expect(sheet.drag).toMatchObject({ id: marker.id, uMm: 19.9, ok: null })
+    expect(await sheet.moveMarker(marker.id, 19.9, 6)).toBe(false)
+    expect(sheet.drag).toBeNull()
+    expect(JSON.stringify(sheet.markers)).toBe(before)
+    expect(sheet.notice).not.toBe('')
+    expect(await sheet.moveMarker(marker.id, 6, 6)).toBe(true)
+    expect(sheet.markers[0]).toMatchObject({ id: marker.id, uMm: 6, vMm: 6 })
+    expect(sheet.notice).toBe('')
+  })
+
+  it('live drag reports fit or the reason while the committed list stays put', async () => {
+    const { sheet } = await manualSheet()
+    const marker = sheet.markers[0]
+    sheet.dragMarker(marker.id, 19.9, 6)
+    await vi.waitFor(() => expect(sheet.drag?.ok).toBe(false))
+    expect(sheet.drag?.reason).toMatch(/placement 1/)
+    expect(sheet.markers[0].uMm).toBe(marker.uMm)
+  })
+
+  it('switching a selected marker’s kind keeps its position; a kind that does not fit is refused', async () => {
+    const { sheet } = await manualSheet()
+    const marker = sheet.markers[0]
+    // Out at the rim a screw boss's wall would break out of piece B: refused, kind unchanged.
+    sheet.selectMarker(marker.id)
+    expect(await sheet.chooseKind('screwBoss')).toBe(false)
+    expect(sheet.notice).toMatch(/placement 1 \(screwBoss at/)
+    expect(sheet.markers[0].kind).toBe('pins')
+    // Moved onto the middle of the face, the same switch fits and keeps the position.
+    expect(await sheet.moveMarker(marker.id, 0, 6)).toBe(true)
+    expect(await sheet.chooseKind('screwBoss')).toBe(true)
+    expect(sheet.markers[0]).toMatchObject({ id: marker.id, kind: 'screwBoss', uMm: 0, vMm: 6 })
+  })
+
+  it('removing the last marker leaves Apply disabled with a reason', async () => {
+    const { sheet } = await manualSheet()
+    for (const marker of [...sheet.markers]) sheet.removeMarker(marker.id)
+    expect(sheet.canApply).toBe(false)
+    expect(sheet.problem).toMatch(/at least one/)
+  })
+
+  it('turning it back off returns to the automatic joint', async () => {
+    const { sheet, documentStore } = await manualSheet()
+    await sheet.setManual(false)
+    expect(sheet.manual).toBe(false)
+    expect(sheet.markers).toEqual([])
+    expect(sheet.apply()).toBe(true)
+    expect(documentStore.raw.records.at(-1)?.params?.joint).toBe('pins')
+  })
+
+  it('a screw boss whose bore would leave piece A before its far face is refused by name and position, not clipped', async () => {
+    const made = setup()
+    made.documentStore.append(
+      { id: 'step', op: 'primitive.cuboid', name: 'Step', params: { size: [200, 20, 20], center: [600, 0, 0] } },
+      { origin: 'local' }
+    )
+    made.documentStore.append(
+      { id: 'plate', op: 'primitive.cuboid', name: 'Plate', params: { size: [101, 20, 4], center: [450.5, 0, 0] } },
+      { origin: 'local' }
+    )
+    made.documentStore.append(
+      { id: 'stepped', op: 'boolean.union', target: 'step', operands: ['plate'], name: 'Stepped' },
+      { origin: 'local' }
+    )
+    made.selection.select('stepped')
+    made.sheet.open()
+    made.sheet.offsetMm = 150
+    await made.sheet.setManual(true)
+    for (const marker of [...made.sheet.markers]) made.sheet.removeMarker(marker.id)
+    await made.sheet.chooseKind('screwBoss')
+    expect(await made.sheet.addMarker(0, 4)).toBe(false)
+    expect(made.sheet.notice).toMatch(/placement 1 \(screwBoss at y = 0, z = 4 mm\).*screw bore.*piece A/)
+    expect(made.sheet.markers).toEqual([])
   })
 })

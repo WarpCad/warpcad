@@ -34,11 +34,30 @@ import { createScreenPoint, worldToScreen } from './annotate.js'
  * @property {number} handleY
  * @property {number} axisX The cut axis's screen image at the centre, px per mm.
  * @property {number} axisY
+ * @property {number} centreU The plane's centre along the face's `u` axis, document mm.
+ * @property {number} centreV
+ * @property {number} uX The face's `u` axis's screen image at the centre, px per mm.
+ * @property {number} uY
+ * @property {number} vX The face's `v` axis's screen image at the centre, px per mm.
+ * @property {number} vY
  */
 
 /** @returns {CutPlaneAnnotation} */
 export function createCutPlaneAnnotation() {
-  return { visible: false, points: '', handleX: 0, handleY: 0, axisX: 0, axisY: 0 }
+  return {
+    visible: false,
+    points: '',
+    handleX: 0,
+    handleY: 0,
+    axisX: 0,
+    axisY: 0,
+    centreU: 0,
+    centreV: 0,
+    uX: 0,
+    uY: 0,
+    vX: 0,
+    vY: 0,
+  }
 }
 
 /** How far past the body the plane extends, as a fraction of the body's size. */
@@ -102,6 +121,21 @@ export function updateCutPlaneAnnotation(orbit, boundsMm, axisIndex, cutMm, widt
   out.handleY = centre.y
   out.axisX = ahead.visible ? ahead.x - centre.x : 0
   out.axisY = ahead.visible ? ahead.y - centre.y : 0
+  // The face's own two axes, for the Place connectors markers (`TODO/ui-067`): the same
+  // two-points-1-mm-apart measure, so a marker sits where the plane's own centre says it does.
+  out.centreU = (min[u] + max[u]) / 2
+  out.centreV = (min[v] + max[v]) / 2
+  scratch[axisIndex] = cutMm
+  scratch[u] = out.centreU + 1
+  scratch[v] = out.centreV
+  worldToScreen(orbit, scratch[0], scratch[1], scratch[2], widthPx, heightPx, ahead)
+  out.uX = ahead.visible ? ahead.x - centre.x : 0
+  out.uY = ahead.visible ? ahead.y - centre.y : 0
+  scratch[u] = out.centreU
+  scratch[v] = out.centreV + 1
+  worldToScreen(orbit, scratch[0], scratch[1], scratch[2], widthPx, heightPx, ahead)
+  out.vX = ahead.visible ? ahead.x - centre.x : 0
+  out.vY = ahead.visible ? ahead.y - centre.y : 0
   return out
 }
 
@@ -117,4 +151,66 @@ export function cutPlaneDragDeltaMm(annotation, dxPx, dyPx) {
   const squared = annotation.axisX * annotation.axisX + annotation.axisY * annotation.axisY
   if (!(squared > 1e-6)) return 0
   return (dxPx * annotation.axisX + dyPx * annotation.axisY) / squared
+}
+
+/**
+ * The least `|sin|` between the face's two screen axes for markers to be placed: below it the
+ * camera is looking along the face and a pixel is many millimetres.
+ */
+export const FACE_VIEW_MIN_SIN = 0.2
+
+/**
+ * The determinant of the face's screen basis (px² per mm²), signed.
+ *
+ * @param {CutPlaneAnnotation} a
+ */
+function faceDeterminant(a) {
+  return a.uX * a.vY - a.uY * a.vX
+}
+
+/**
+ * Whether the camera sees the cut face well enough to place or drag a connector on it.
+ *
+ * @param {CutPlaneAnnotation} annotation
+ * @returns {boolean}
+ */
+export function faceViewIsUsable(annotation) {
+  const lengths = Math.hypot(annotation.uX, annotation.uY) * Math.hypot(annotation.vX, annotation.vY)
+  return lengths > 1e-9 && Math.abs(faceDeterminant(annotation)) / lengths >= FACE_VIEW_MIN_SIN
+}
+
+/**
+ * A face position as a point on screen, by the affine map at the plane's centre.
+ *
+ * @param {CutPlaneAnnotation} annotation
+ * @param {number} uMm
+ * @param {number} vMm
+ * @param {{ x: number, y: number }} out Mutated in place.
+ * @returns {{ x: number, y: number }} `out`.
+ */
+export function faceToScreen(annotation, uMm, vMm, out) {
+  const du = uMm - annotation.centreU
+  const dv = vMm - annotation.centreV
+  out.x = annotation.handleX + du * annotation.uX + dv * annotation.vX
+  out.y = annotation.handleY + du * annotation.uY + dv * annotation.vY
+  return out
+}
+
+/**
+ * A screen point as a face position — the inverse of {@link faceToScreen}.
+ *
+ * @param {CutPlaneAnnotation} annotation
+ * @param {number} x CSS px in the overlay's own frame.
+ * @param {number} y
+ * @param {{ uMm: number, vMm: number }} out Mutated in place.
+ * @returns {{ uMm: number, vMm: number } | null} `out`, or `null` when the face is seen edge-on.
+ */
+export function screenToFace(annotation, x, y, out) {
+  const det = faceDeterminant(annotation)
+  if (!(Math.abs(det) > 1e-9)) return null
+  const dx = x - annotation.handleX
+  const dy = y - annotation.handleY
+  out.uMm = annotation.centreU + (dx * annotation.vY - dy * annotation.vX) / det
+  out.vMm = annotation.centreV + (dy * annotation.uX - dx * annotation.uY) / det
+  return out
 }

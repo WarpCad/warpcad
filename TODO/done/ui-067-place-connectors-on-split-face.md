@@ -5,8 +5,25 @@ kind: feature
 priority: medium
 model: sonnet
 depends: [core-059]
-status: open
+status: done
 ---
+
+> **What shipped.** Everything in the Goal, with these deliberate shapes. The overlay is a face
+> preview computed **off the main thread**: a new `splitFace` job on the evaluation worker
+> (`previewSplitFace` in `src/core/kernel/split.js`) returns the clearance-field grid, the joint the
+> automatic search would place, and a verdict per placement, all through `core-059`'s own
+> `placedJoint` — one check, three callers (search, Apply, the overlay). A drag asks that job live (its own
+> channel, so a newer drag supersedes an older one) and, on release, commits only if the kernel agrees;
+> otherwise the marker goes back and the notice carries `core-059`'s refusal by number, kind and position.
+> A screw boss whose bore would leave piece A before its far face is refused with that exact reason,
+> not clipped, and there is no side-access counterbore (decided in `core-059`). Markers use the plane's
+> own affine map at its centre (`render/cutPlane.js`, `faceToScreen`/`screenToFace`), the same
+> approximation the offset drag already used, and need the face seen with its axes at least 0.2 apart
+> on screen (`faceViewIsUsable`); edge-on, the sheet says to turn the view. The picker is a radio row
+> of Post / Wedge / Screw boss; a seeded tongue stays a marker but is not offered. At phone width the
+> Split sheet is now capped at 42 dvh and scrolls with Apply pinned, because the toggle, picker and hint
+> would otherwise have buried the markers (the `io-007` finding, caught by this task's own e2e on
+> WebKit). The Split sheet covers the orientation gizmo at tablet width: snap the view first.
 
 ## Goal
 

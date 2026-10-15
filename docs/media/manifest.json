@@ -350,9 +350,9 @@
   },
   "print-prep-split.gif": {
     "spec": "e2e/docs/print-prep.docs.js",
-    "specHash": "c803c4ad7d5a787f4ddc4fa1beebf5320778542a06bad21a9397480c6e056270",
-    "bytes": 1153784,
-    "seconds": 13.63
+    "specHash": "45fef980d1d02aeef974db7ee33676084b26847d95b1c31729486ba89e1b1d7e",
+    "bytes": 1450641,
+    "seconds": 14.13
   },
   "user-library-place.gif": {
     "spec": "e2e/docs/user-library.docs.js",
@@ -407,5 +407,11 @@
     "specHash": "9393f0964b7aace49de260056ab1ee05fd42b7214fddeafdece27cda1cffabc3",
     "bytes": 1060783,
     "seconds": 8.9
+  },
+  "print-prep-manual-joint.gif": {
+    "spec": "e2e/docs/print-prep.docs.js",
+    "specHash": "45fef980d1d02aeef974db7ee33676084b26847d95b1c31729486ba89e1b1d7e",
+    "bytes": 1134895,
+    "seconds": 16.88
   }
 }

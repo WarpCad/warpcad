@@ -2,7 +2,14 @@
 import { describe, expect, it } from 'vitest'
 
 import { createOrbitCamera } from './camera.js'
-import { createCutPlaneAnnotation, cutPlaneDragDeltaMm, updateCutPlaneAnnotation } from './cutPlane.js'
+import {
+  createCutPlaneAnnotation,
+  cutPlaneDragDeltaMm,
+  faceToScreen,
+  faceViewIsUsable,
+  screenToFace,
+  updateCutPlaneAnnotation,
+} from './cutPlane.js'
 
 /** @type {[[number, number, number], [number, number, number]]} */
 const BAR = [
@@ -54,5 +61,46 @@ describe('cut plane overlay — the translucent plane Split previews', () => {
     out.visible = true
     updateCutPlaneAnnotation(orbit, null, 0, 0, 800, 600, out)
     expect(out.visible).toBe(false)
+  })
+})
+
+describe('cut face markers — face position <-> screen (TODO/ui-067)', () => {
+  /** Looking along X at the plane x = 150, from whichever side faces it square on. */
+  function faceOn() {
+    for (const azimuthDeg of [0, 90, 180, -90]) {
+      const orbit = createOrbitCamera({ azimuthDeg, elevationDeg: 0, distanceMm: 800, target: { x: 150, y: 0, z: 0 } })
+      const out = createCutPlaneAnnotation()
+      updateCutPlaneAnnotation(orbit, BAR, 0, 150, 800, 600, out)
+      if (faceViewIsUsable(out)) return out
+    }
+    throw new Error('no square-on view found')
+  }
+
+  it('a square-on camera can place markers; one looking along the face cannot', () => {
+    expect(faceViewIsUsable(faceOn())).toBe(true)
+    const orbit = createOrbitCamera({ azimuthDeg: -90, elevationDeg: 0, distanceMm: 800, target: { x: 150, y: 0, z: 0 } })
+    const out = createCutPlaneAnnotation()
+    updateCutPlaneAnnotation(orbit, BAR, 0, 150, 800, 600, out)
+    expect(faceViewIsUsable(out)).toBe(false)
+  })
+
+  it('the face centre lands on the handle, and screenToFace inverts faceToScreen', () => {
+    const out = faceOn()
+    expect(out.centreU).toBeCloseTo(0, 9)
+    expect(out.centreV).toBeCloseTo(0, 9)
+    const at = faceToScreen(out, 0, 0, { x: 0, y: 0 })
+    expect(at.x).toBeCloseTo(out.handleX, 9)
+    expect(at.y).toBeCloseTo(out.handleY, 9)
+    const moved = faceToScreen(out, 7.5, -3, { x: 0, y: 0 })
+    const back = screenToFace(out, moved.x, moved.y, { uMm: 0, vMm: 0 })
+    expect(back?.uMm).toBeCloseTo(7.5, 6)
+    expect(back?.vMm).toBeCloseTo(-3, 6)
+  })
+
+  it('screenToFace refuses a face seen edge-on', () => {
+    const orbit = createOrbitCamera({ azimuthDeg: -90, elevationDeg: 0, distanceMm: 800, target: { x: 150, y: 0, z: 0 } })
+    const out = createCutPlaneAnnotation()
+    updateCutPlaneAnnotation(orbit, BAR, 0, 150, 800, 600, out)
+    expect(screenToFace(out, 100, 100, { uMm: 0, vMm: 0 })).toBeNull()
   })
 })
