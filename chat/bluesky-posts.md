@@ -1702,3 +1702,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** per-contour correspondence with a mitre check -> diff (`src/core/kernel/fillet.js`); the reported plate now loses the expected rim volume in a real-app Open on Chromium, Firefox and WebKit (`e2e/chamfer-with-hole.e2e.js`); a holed sketch chamfered by hand removed 522-534 mm3 against 528 expected
 **To Add:** `docs/screenshots/chamfer-with-hole.png` (already generated); repo URL once public
+
+## 2026-10-15T03:20:00Z — A body or group can be renamed, as one undoable record
+
+**Post:** WarpCad can now rename a body in the document: one undoable record overrides the name wherever it shows, from History rows to refusal messages. Blank puts the generated name back, and the next drop keeps its own count. The Inspector field is next. Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** `style.rename` record, newest wins, blank clears, `nextName` unchanged -> diff (`src/core/document.js`, `src/core/naming.js`); name survived a size edit, a move, a union plus undo and a reload in a real-mouse drive this session; full suite 4502 unit and 3545 e2e passed; no Inspector control yet (`ui-056`)
+**To Add:** nothing yet, the Inspector field and its screenshot land with `ui-056`; repo URL once public

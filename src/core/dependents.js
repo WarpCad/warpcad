@@ -31,6 +31,7 @@
 
 import { createDocument, foldableEntry } from './document.js'
 import { isGroup } from './kernel/group.js'
+import { nameOverrideOf } from './naming.js'
 import { paramOptions, partAliasesOf } from './kernel/registry.js'
 import { consumersOf, resolveParams, setVariableRevision, variablesOf } from './variables.js'
 
@@ -199,10 +200,13 @@ function describeBreakage(before, after, step, editedRootId, previousParams) {
 
   const dependentBodyId = before.rootOf(step.id) ?? after.rootOf(step.id) ?? step.id
   const bodyRecord = before.recordOf(dependentBodyId) ?? after.recordOf(dependentBodyId)
+  const beforeLineage = before.lineageOf(dependentBodyId)
+  const renamedLineage = beforeLineage.length > 0 ? beforeLineage : after.lineageOf(dependentBodyId)
   return {
     dependentRecordId: step.id,
     dependentBodyId,
-    dependentName: bodyRecord?.name ?? dependentBodyId,
+    // `TODO/core-038`: what the user calls it now, rename included.
+    dependentName: nameOverrideOf(renamedLineage) ?? bodyRecord?.name ?? dependentBodyId,
     step: step.step,
     relationship,
     placement: PLACEMENT_OPS.has(record.op),
@@ -308,7 +312,7 @@ export function brokenReferencesOf(document, bodyId) {
       list.push({
         recordId: step.id,
         refBodyId,
-        refBodyName: document.recordOf(refBodyId)?.name ?? refBodyId,
+        refBodyName: nameOverrideOf(document.lineageOf(refBodyId)) ?? document.recordOf(refBodyId)?.name ?? refBodyId,
         relationship: breakage.relationship,
         pieces: typeof ref === 'object' && typeof ref.pieces === 'string' ? ref.pieces.split(',') : [],
         reason: breakage.reason,

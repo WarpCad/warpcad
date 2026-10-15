@@ -6,8 +6,18 @@ priority: high
 model: sonnet
 milestone: M16
 depends: [ui-049, ui-052]
-status: open
+status: done
 ---
+
+> **What shipped (2026-10-15).** As specified, with one deliberate deviation: the new name rides in
+> `params.name`, not a top-level `name` on the record. A named record is added to the scene group
+> as a second part by the kernel fold (`kernel/index.js`) and is what `nextName` numbers, which is
+> exactly the "duplicate at worst" this spec's own *Why a record* section warns about. `naming.js`
+> holds `normalizeBodyName`, `isDuplicateName(name, bodies, exceptId?)`, `RENAME_OP` and
+> `nameOverrideOf`. Beyond the listed files: `kernel/registry.js` (an identity entry beside
+> `style.recolor`), `timelineLabel.js` (History rows follow the new name; `Rename X` / `Reset name
+> of X`), `ai/tools/operate.js` (`NOT_OFFERED`, exhaustiveness spec), and `useParamCommands.js`
+> (the `Edit <name>` label). `bom.js` reads no body names, so it needed no change.
 
 ## Goal
 

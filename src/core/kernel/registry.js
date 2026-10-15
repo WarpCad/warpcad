@@ -1047,6 +1047,14 @@ export const registry = Object.freeze({
   // record, for `document.js`'s `bodies()` to read back, not on the geometry.
   'style.recolor': wholeGroupNative(1, ({ inputs }) => soleOperand(inputs).value),
 
+  // ## Renaming a body (TODO/core-038)
+  //
+  // The same shape and reasoning as `style.recolor` above: the operand arrives and leaves
+  // whole and the new name lives on the record (`params.name`), for `document.js`'s
+  // `bodies()` and `displayNameOf` to read back. Not `record.name` — a named record would
+  // join the scene group as a second part.
+  'style.rename': wholeGroupNative(1, ({ inputs }) => soleOperand(inputs).value),
+
   // ## Removing one part from a placed group (TODO/ui-051)
   //
   // `src/core/document.js`'s `removePart` appends this over the body's current

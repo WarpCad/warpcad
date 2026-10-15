@@ -371,7 +371,7 @@
  * | `moveStep` | the moved row's `pos` |
  * | `removeRecords` (Undo AI turn) | tombstones; the marker if it moves |
  * | `restoreEntries` (Undo merge, `TODO/ui-062`) | whatever its diff is: tombstones for rows that go, a fresh `born` for rows that come back, `rec`/flags for rows put back, `pos` for rows re-ordered, the marker |
- * | `deleteBodies`, `removePart`, `setColorOverride`, `clearColorOverride` | a new row (through `appendAll`) |
+ * | `deleteBodies`, `removePart`, `setColorOverride`, `clearColorOverride`, `renameBody` | a new row (through `appendAll`) |
  * | `rollBackTo`, `rollForward` | the `rollbackAfter` register |
  * | `setResolution` | the `resolution` register |
  * | `setStandingInstructions` | the `standingInstructions` register |
@@ -437,6 +437,7 @@ import { conditionContextOf, conditionShapeError, describeCondition, evaluateCon
 import { INSTRUCTIONS_MAX_LENGTH, INTENT_MAX_LENGTH, cleanText } from './intent.js'
 import { DEFAULT_BUILD_VOLUME, normalizeBuildVolume } from './buildVolume.js'
 import { currentParamsRecordOf } from './paramEdit.js'
+import { RENAME_OP, nameOverrideOf, normalizeBodyName } from './naming.js'
 import { applyAction, emptyScene } from './replay.js'
 import {
   bakedRecolorsOf,
@@ -794,6 +795,8 @@ export class ReplayRejection extends Error {
  * @property {(id: string) => RowCondition | null} conditionOf
  * @property {(id: string, override: { color: number, colorAlpha?: number, subPart?: string }, transaction: TransactionOptions) => { record: OpRecord, scene: Scene }} setColorOverride
  * @property {(id: string, target: { subPart?: string }, transaction: TransactionOptions) => { record: OpRecord, scene: Scene }} clearColorOverride
+ * @property {(id: string, name: string | null, transaction: TransactionOptions) => { record: OpRecord, scene: Scene }} renameBody
+ *   `TODO/core-038`: one undoable `style.rename` record; `null`/blank clears the override.
  * @property {(ids: readonly string[], transaction: TransactionOptions) => { records: OpRecord[], scene: Scene }} deleteBodies
  * @property {(id: string, partName: string, transaction: TransactionOptions) => { record: OpRecord, scene: Scene }} removePart
  * @property {(id: string, delta: number) => MoveLegality} canMove
@@ -863,7 +866,7 @@ export class ReplayRejection extends Error {
 /**
  * Every mutator wrapped so its whole effect is stamped as one transaction — the module
  * note's table, as code. A mutator missing here would write nothing a merge can see.
- * (`append`, `setColorOverride`, `clearColorOverride`, `deleteBodies` and `removePart` all
+ * (`append`, `setColorOverride`, `clearColorOverride`, `renameBody`, `deleteBodies` and `removePart` all
  * write through `appendAll`, and user-part adoption happens inside the fold of whichever of
  * these placed the part.)
  */
@@ -1025,6 +1028,7 @@ function isVec3(value) {
  */
 const RECOLOR_OP = 'style.recolor'
 
+
 /**
  * The tombstone `deleteBodies` appends (`TODO/ui-051`) — see the module note. Routed
  * past the kernel.
@@ -1098,6 +1102,7 @@ const STEP_VERBS = Object.freeze({
   'modify.bisect': 'Bisect',
   'transform.mirror': 'Mirror',
   'style.recolor': 'Recolor',
+  'style.rename': 'Rename',
   'body.delete': 'Delete',
 })
 
@@ -1280,6 +1285,10 @@ function recordMapOf(list) {
  * @returns {string} The name, or `id` itself when nothing names it.
  */
 function displayNameOf(id, byId) {
+  // `TODO/core-038`: a `style.rename` anywhere in the lineage — including *after* `id`, which
+  // may be an older record of it — wins over every generated name.
+  const override = renameOverridesIn(byId).get(rootIdIn(id, byId))
+  if (override !== undefined) return override
   const visited = new Set()
   let cursor = id
   for (;;) {
@@ -1291,6 +1300,52 @@ function displayNameOf(id, byId) {
     if (typeof record.supersedes !== 'string') return id
     cursor = record.supersedes
   }
+}
+
+/**
+ * The lineage root of `id`, walked back along `supersedes` (cycle-guarded).
+ *
+ * @param {string} id
+ * @param {Map<string, OpRecord>} byId
+ * @returns {string}
+ */
+function rootIdIn(id, byId) {
+  const visited = new Set()
+  let cursor = id
+  for (;;) {
+    visited.add(cursor)
+    const next = byId.get(cursor)?.supersedes
+    if (typeof next !== 'string' || visited.has(next) || !byId.has(next)) return cursor
+    cursor = next
+  }
+}
+
+/** @type {WeakMap<Map<string, OpRecord>, { size: number, overrides: Map<string, string> }>} */
+const renameOverrideCache = new WeakMap()
+
+/**
+ * The newest `style.rename` name per lineage root in `byId` (`TODO/core-038`), for
+ * {@link displayNameOf}. Memoised per map and invalidated by its size, because the fold's
+ * map grows as rows are folded and a message may be built mid-fold.
+ *
+ * @param {Map<string, OpRecord>} byId
+ * @returns {Map<string, string>}
+ */
+function renameOverridesIn(byId) {
+  const cached = renameOverrideCache.get(byId)
+  if (cached !== undefined && cached.size === byId.size) return cached.overrides
+  /** @type {Map<string, string>} */
+  const overrides = new Map()
+  for (const record of byId.values()) {
+    if (record.op !== RENAME_OP || record.id === undefined) continue
+    const checked = normalizeBodyName(record.params?.name === undefined ? null : record.params.name)
+    if (!checked.ok) continue
+    const root = rootIdIn(record.id, byId)
+    if (checked.name === null) overrides.delete(root)
+    else overrides.set(root, checked.name)
+  }
+  renameOverrideCache.set(byId, { size: byId.size, overrides })
+  return overrides
 }
 
 /**
@@ -2095,6 +2150,17 @@ export function createDocument(options = {}) {
   }
 
   /**
+   * What the user currently calls the body rooted at `rootId` (`TODO/core-038`): its newest
+   * `style.rename`, else the root record's own name. `undefined` when it has neither.
+   *
+   * @param {string} rootId
+   * @returns {string | undefined}
+   */
+  function currentNameOfRoot(rootId) {
+    return nameOverrideOf(document.lineageOf(rootId)) ?? recordById.get(rootId)?.name
+  }
+
+  /**
    * Refuse, by the body's name, a reference into a deleted lineage.
    *
    * @param {string} root
@@ -2103,7 +2169,7 @@ export function createDocument(options = {}) {
    */
   function assertNotDeleted(root, id, field) {
     if (!isDeletedRoot(root)) return
-    const name = recordById.get(root)?.name ?? root
+    const name = currentNameOfRoot(root) ?? root
     throw new Error(
       `document.append: ${field} "${id}" names ${name}, which has been deleted — ` +
         'undo the delete (or suppress its step) to bring it back first'
@@ -3087,7 +3153,7 @@ export function createDocument(options = {}) {
     // The *root's* name, not the acting record's: a transform and a param edit
     // both carry generated ids and no name of their own, and what the user calls
     // the thing is "Cube 1" — the same reason `Body.name` reads from the root.
-    let subjectName = rootId === undefined ? undefined : recordById.get(rootId)?.name
+    let subjectName = rootId === undefined ? undefined : currentNameOfRoot(rootId)
     if (subjectName === undefined && typeof subject === 'string' && byId !== undefined) {
       const resolved = displayNameOf(subject, byId)
       subjectName = resolved === subject ? undefined : resolved
@@ -4419,6 +4485,50 @@ export function createDocument(options = {}) {
     },
 
     /**
+     * TODO/core-038: rename a body (or group) — appends one unnamed `style.rename` record over
+     * the lineage's current terminal, the same shape as {@link setColorOverride}, so a rename
+     * is one visible, undoable step and nothing in history is rewritten. `name` is trimmed;
+     * `null`, empty or whitespace clears the override and the generated name returns.
+     * Duplicates are allowed (see `naming.js`'s `isDuplicateName` for a UI warning).
+     *
+     * `id` may be any record in the lineage. A body that has been deleted is refused, by its
+     * displayed name. A group's sub-part names are fixed (they are addressed by name in
+     * booleans and colour overrides), so there is no `subPart` here.
+     *
+     * `nextName` is deliberately unchanged: it numbers the *root* records' generated names,
+     * so renaming `Bolt 1` does not free the number and the next drop is `Bolt 2`.
+     *
+     * @param {string} id
+     * @param {string | null} name
+     * @param {TransactionOptions} transaction
+     */
+    renameBody(id, name, transaction) {
+      const checked = normalizeBodyName(name)
+      if (!checked.ok) throw new Error(`document.renameBody: ${checked.reason}`)
+      const root = typeof id === 'string' ? rootById.get(id) : undefined
+      if (root === undefined) throw new Error(`document.renameBody: no such body "${id}" in this document`)
+      if (isDeletedRoot(root)) {
+        throw new Error(`document.renameBody: ${currentNameOfRoot(root) ?? root} has been deleted`)
+      }
+      if (mergedInto.has(root)) {
+        throw new Error(
+          `document.renameBody: ${currentNameOfRoot(root) ?? root} has been consumed into another body — rename that one instead`
+        )
+      }
+      const currentId = /** @type {string} */ (document.currentIdOf(id))
+      return document.append(
+        {
+          id: document.nextId(`${root}-rename`),
+          op: RENAME_OP,
+          target: currentId,
+          supersedes: currentId,
+          params: { name: checked.name },
+        },
+        transaction
+      )
+    },
+
+    /**
      * TODO/ui-051: delete one or more bodies as **one undoable step** — one
      * `body.delete` tombstone per body, superseding its current terminal, appended
      * together through {@link WarpDocument.appendAll} (so while rolled back they
@@ -4442,7 +4552,7 @@ export function createDocument(options = {}) {
       for (const id of ids) {
         const root = typeof id === 'string' ? rootById.get(id) : undefined
         if (root === undefined) throw new Error(`document.deleteBodies: no such body "${id}" in this document`)
-        const name = recordById.get(root)?.name ?? root
+        const name = currentNameOfRoot(root) ?? root
         if (isDeletedRoot(root)) throw new Error(`document.deleteBodies: ${name} has already been deleted`)
         if (mergedInto.has(root)) {
           throw new Error(
@@ -4481,7 +4591,7 @@ export function createDocument(options = {}) {
       const root = rootById.get(id)
       if (root === undefined) throw new Error(`document.removePart: no such body "${id}" in this document`)
       if (isDeletedRoot(root)) {
-        throw new Error(`document.removePart: ${recordById.get(root)?.name ?? root} has been deleted`)
+        throw new Error(`document.removePart: ${currentNameOfRoot(root) ?? root} has been deleted`)
       }
       const currentId = /** @type {string} */ (document.currentIdOf(id))
       return document.append(
@@ -4697,7 +4807,8 @@ export function createDocument(options = {}) {
         bodies.push({
           id: rootId,
           recordId: terminalId,
-          name: rootRecord.name ?? rootId,
+          // `TODO/core-038`: a `style.rename` in the lineage overrides the root's own name.
+          name: nameOverrideOf(lineage) ?? rootRecord.name ?? rootId,
           op: rootRecord.op,
           params: paramsRecord.params ?? {},
           rotationDeg: isVec3(carried) ? [carried[0], carried[1], carried[2]] : [0, 0, 0],
@@ -4909,6 +5020,9 @@ export function createDocument(options = {}) {
     },
 
     nextName(label) {
+      // `TODO/core-038`: deliberately blind to `style.rename`. It numbers the *root* records'
+      // generated names, so a rename neither frees a number nor claims one (a rename's name
+      // lives in `params`, never `record.name`).
       const pattern = new RegExp(`^${label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')} (\\d+)$`)
       let highest = 0
       for (const { record } of entries) {

@@ -49,6 +49,7 @@
  */
 
 import { currentParamsRecordOf } from './paramEdit.js'
+import { nameOverrideOf } from './naming.js'
 import { paramOptions } from './kernel/registry.js'
 import { readVariables, resolveParams, variableValueLabel } from './variables.js'
 
@@ -168,7 +169,7 @@ export function conditionContextOf(entries, activeCount, variables = undefined) 
       }
       const lineage = lineages.get(refId) ?? [root]
       const deleted = lineage.some((record) => record.op === DELETE_OP)
-      const name = typeof root.name === 'string' && root.name.length > 0 ? root.name : refId
+      const name = nameOverrideOf(lineage) ?? (typeof root.name === 'string' && root.name.length > 0 ? root.name : refId)
       // A param bound to a project variable reads as the variable's value (`TODO/core-050`):
       // "only on a Pi 4" still means the board the Pi actually is.
       const raw = currentParamsRecordOf(lineage)?.params ?? {}

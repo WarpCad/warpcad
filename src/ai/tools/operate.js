@@ -368,6 +368,8 @@ export const NOT_OFFERED = Object.freeze({
     'A 2D-profile step used inside composite recipes. A body on screen is never a 2D profile, so there is nothing for the model to extrude.',
   'style.recolor':
     'Colour is not geometry, and the UI writes it through document.setColorOverride rather than a plain append. A recolour tool is a later addition, not part of v1.',
+  'style.rename':
+    'Renaming is the human’s call from the Inspector (document.renameBody); a rename tool is a later addition, not part of v1.',
   'group.removePart':
     'Removing a part from a placed group is destructive and is the human’s call from the Inspector; not offered to the model in v1.',
 })

@@ -55,6 +55,7 @@ import { evaluate } from '../core/kernel/index.js'
 import { isGroup } from '../core/kernel/group.js'
 import { lookupEntry, paramOptions, registry } from '../core/kernel/registry.js'
 import { canEditParams, compositeParamEditRecord, paramEditRecord, currentParamsOf, withComponent } from '../core/paramEdit.js'
+import { nameOverrideOf } from '../core/naming.js'
 import { repairChanges } from '../core/repair.js'
 import { useDocumentStore } from '../stores/document.js'
 import { useVariablesUiStore } from '../stores/variablesUi.js'
@@ -96,7 +97,8 @@ export function useParamCommands() {
 
   /** @param {string} id */
   function nameOf(id) {
-    return live().recordOf(id)?.name ?? id
+    // `TODO/core-038`: a rename wins over the creation record's generated name.
+    return nameOverrideOf(live().lineageOf(id)) ?? live().recordOf(id)?.name ?? id
   }
 
   /**

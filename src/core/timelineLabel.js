@@ -32,6 +32,7 @@
 
 import { RIM_ORIENTATIONS } from './kernel/fillet.js'
 import { colorIntToCssHex } from './colorOverride.js'
+import { normalizeBodyName } from './naming.js'
 
 /** @typedef {import('./kernel/registry.js').OpRecord} OpRecord */
 
@@ -147,7 +148,42 @@ export function buildNameIndex(records) {
       cursor = byId.get(cursorId)
     }
   }
+
+  // `TODO/core-038`: a `style.rename` renames the whole lineage, newest wins, blank clears —
+  // every row of that lineage then reads the new name, the same rule `document.js` applies.
+  /** @type {Map<string, string | null>} */
+  const overrides = new Map()
+  for (const [id, record] of byId) {
+    if (record.op !== 'style.rename') continue
+    const checked = normalizeBodyName(record.params?.name === undefined ? null : record.params.name)
+    if (!checked.ok) continue
+    overrides.set(rootOf(id, byId), checked.name)
+  }
+  if (overrides.size > 0) {
+    for (const id of byId.keys()) {
+      const override = overrides.get(rootOf(id, byId))
+      if (typeof override === 'string') names.set(id, override)
+    }
+  }
   return names
+}
+
+/**
+ * The lineage root of `id` along `supersedes`, cycle-guarded.
+ *
+ * @param {string} id
+ * @param {Map<string, OpRecord>} byId
+ * @returns {string}
+ */
+function rootOf(id, byId) {
+  const seen = new Set()
+  let cursor = id
+  for (;;) {
+    seen.add(cursor)
+    const next = byId.get(cursor)?.supersedes
+    if (typeof next !== 'string' || seen.has(next) || !byId.has(next)) return cursor
+    cursor = next
+  }
 }
 
 /**
@@ -196,6 +232,13 @@ export function describeRow(record, names) {
       .map((ref) => nameOf(ref, index))
       .filter((name) => name !== undefined)
     return operands.length > 0 ? `${verb} ${operands.join(' + ')}` : verb
+  }
+
+  // A rename (`TODO/core-038`): the subject already reads as its new name, so say so.
+  if (record.op === 'style.rename') {
+    const cleared = params.name === null || params.name === undefined
+    if (cleared) return subject === undefined ? 'Reset name' : `Reset name of ${subject}`
+    return subject === undefined ? 'Rename' : `Rename ${subject}`
   }
 
   // A colour step (`TODO/ui-037`): which colour, on which part, of what — or a

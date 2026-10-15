@@ -2403,3 +2403,16 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** same as the BlueSky entry; volume oracle independent of the implementation (r^2/2 x perimeter) in 33 new unit cases -> diff (`src/core/kernel/fillet.spec.js`)
 **To Add:** `docs/screenshots/chamfer-with-hole.png`; repo URL once public
+
+## 2026-10-15T03:20:00Z — A body or group can be renamed, as one undoable record
+
+**Post:** Until now a placed part kept the name it was given at drop time. WarpCad's document layer can now override it: one new `style.rename` record on the part's history, newest one wins, and a blank name puts the generated one back. Undo takes it back like any other step.
+
+The name is read in one place for everything that shows it: the object list, History rows, the label on an Edit, and the "needs Base plate" text a refusal or dependent repair prints. One detail worth recording: the spec said to put the name on the record's own `name` field, but a named record is added to the scene as a second part and counted by the "Cube 1, Cube 2" numbering, so the name rides in `params` instead.
+
+The Inspector field that uses it is the next task. Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** same as the BlueSky entry; the `record.name` pitfall -> diff (`src/core/kernel/index.js` adds every named record to the group; `nextName` in `src/core/document.js`)
+**To Add:** screenshot of the renamed body in the Inspector once `ui-056` lands; repo URL once public
