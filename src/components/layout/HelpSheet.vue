@@ -27,6 +27,13 @@ import { useHelpStore } from '../../stores/help.js'
 
 const help = useHelpStore()
 
+/**
+ * Where this app's source lives. AGPL-3.0 §13: a hosted copy must offer its users the
+ * corresponding source, so every Help page ends with this link (`LICENSING.md`). A fork that
+ * hosts a modified copy points this at its own repository.
+ */
+const SOURCE_URL = 'https://github.com/WarpCad/warpcad'
+
 /** @type {import('vue').Ref<import('../../help/loader.js').HelpIndex | null>} */
 const index = ref(null)
 const html = ref('')
@@ -258,6 +265,11 @@ onBeforeUnmount(() => {
               @click="onContentClick"
               v-html="html"
             />
+            <footer v-if="state === 'ready'" class="help__footer" data-testid="help-source">
+              WarpCad is free software under the
+              <abbr title="GNU Affero General Public License, version 3 or later">AGPL-3.0</abbr>.
+              <a :href="SOURCE_URL" target="_blank" rel="noopener" data-testid="help-source-link">Source code</a>
+            </footer>
           </div>
         </div>
       </div>
@@ -394,6 +406,22 @@ onBeforeUnmount(() => {
 
 .help__contents-toggle {
   display: none;
+}
+
+.help__footer {
+  margin-top: 24px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+  color: var(--text-2);
+  font-size: 12.5px;
+}
+
+.help__footer a {
+  color: var(--accent);
+}
+
+.help__footer abbr {
+  text-decoration: none;
 }
 
 /* Prose. The fragment is plain HTML from the build, so it is styled from here. */

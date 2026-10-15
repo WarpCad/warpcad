@@ -256,6 +256,17 @@ test.describe('Help from the main UI', () => {
     })
   })
 
+  test('every page ends with a link to the source code (AGPL-3.0 §13)', async ({ page }) => {
+    await openHelpFromFileMenu(page)
+    await expect(page.getByTestId('help-current-page')).toContainText('Getting started')
+    const link = page.getByTestId('help-source-link')
+    await link.scrollIntoViewIfNeeded()
+    await expect(link).toBeVisible()
+    await expect(link).toHaveAttribute('href', 'https://github.com/WarpCad/warpcad')
+    await expect(link).toHaveAttribute('target', '_blank')
+    await expect(page.getByTestId('help-source')).toContainText('AGPL-3.0')
+  })
+
   test('? and F1 open it from the keyboard, but not while typing in a field', async ({ page }) => {
     await page.keyboard.press('?')
     await expect(page.getByTestId('help-sheet')).toBeVisible()

@@ -73,6 +73,16 @@ While the sheet is open, the address ends in `#/help/align` (or whichever topic 
 are on). Send that address and the other person's WarpCad opens straight onto the same page.
 If the address already carries a shared project (`#/gist/…`), help leaves it alone.
 
+## The source code
+
+WarpCad is free software under the AGPL-3.0, so you can always get the code of the copy you are
+running. To find it:
+
+1. Open **File ▾ → Help and documentation**.
+2. Scroll to the bottom of any page.
+3. Press **Source code** under the line *WarpCad is free software under the AGPL-3.0*. The
+   project's GitHub repository opens in a new tab.
+
 ## See also
 
 - [Getting started in five minutes](getting-started.md)
