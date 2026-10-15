@@ -2580,3 +2580,17 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** manifest had no icons, no favicon, so Chromium would not offer Install → `TODO/done/build-006` Goal and the `vite.config.js` diff in 1fdb565; two sets of ten → `set` field in `design/logo-concepts/index.json`; concept subjects (Pi B+, bolt, bearing, Viewport gizmo, Sketch → extrude, Cube − sphere scenario) → `kind` field in `index.json`; tunnel, comet, spinning bearing → concept names 11-warp-tunnel, 13-bolt-comet, 17-spinning-bearing; cube-and-sphere subtraction as the model acceptance test → CLAUDE.md Verification ("adding a cube and a sphere and subtracting one from the other"); concept 16, warp flash → `scripts/app-icons.mjs` header; icon sizes, full-bleed maskable and Apple variants, Playwright's Chromium, shared manifest list → `scripts/app-icons.mjs` (ICONS, manifestIcons) and build-006 retirement note; install prompt and real-device home screen unchecked → build-006 retirement note ("Not verified")
 **To Add:** the comparison sheet of all 20 concepts as an image; repo URL once public
+
+
+## 2026-10-15T21:30:00Z — Choose where a split joint goes
+
+**Post:** WarpCad's split tool used to pick its own joint, wherever its clearance search landed. It can now take connectors placed by hand: a pin near the spar, a wedge key to stop the two halves twisting, or a screw boss for a part that has to come apart again.
+
+Each placement goes through the same clearance check the automatic search uses. A connector that would break through a wall or overlap another is refused, with its name and position, rather than quietly clipped. Leaving the placement list out keeps the automatic search as it was.
+
+The drag-to-place interface is a separate task, so for now the placements are only reachable through the kernel's parameters. Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource #WebDev
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** placement list and the four kinds → commit `c2b1e25` diff; same clearance check as the search, refusals by name and position → `joint.common.js` and `split.spec.js` in that commit; leaving the list out keeps the search → the io-007 split specs in the same run (unit 4885/4885 at HEAD `c2b1e25`); no drag UI yet → `TODO/ui-067` status open
+**To Add:** the screenshot of a split once `ui-067` lands; repo URL once public

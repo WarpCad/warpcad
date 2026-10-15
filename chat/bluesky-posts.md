@@ -1819,3 +1819,13 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** 20 concepts → 20 SVGs in `design/logo-concepts/` (commit 1fdb565); ten "cad" and ten "warp" → `set` field in `design/logo-concepts/index.json`; Pi B+, bolt, bearing, cube−sphere → kinds `raspberrypi.bplus`, `hardware.bolt`, `hardware.bearing`, "Cube − sphere scenario" in `index.json`; the pick is concept 16, the warp flash → `scripts/app-icons.mjs` header and `TODO/done/build-006` retirement note; one SVG feeds every icon → `scripts/app-icons.mjs` renders the PNGs and the .ico from `public/favicon.svg` and supplies the manifest list to `vite.config.js` (commit 1fdb565)
 **To Add:** `public/pwa-512x512.png` as the image; repo URL once public
+
+
+## 2026-10-15T21:30:00Z — Choose where a split joint goes
+
+**Post:** WarpCad's split tool can now take connectors you place by hand: pins, tongues, wedge keys or screw bosses, at exact coordinates on the cut face. A connector that would break through a wall or overlap another is refused, with its name and position. Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** pins, tongue, wedge and screw-boss kinds accepted with `placements` → commit `c2b1e25` diff (`split.js`, `joint.wedge.js`, `joint.screwBoss.js`); refusal of walls breaking out and overlaps by name and position → `split.spec.js`, `joint.placements.spec.js` in the same commit, passing in the independent run at HEAD `c2b1e25` (unit 4885/4885); screw bosses are not in the post's claims beyond the kind name
+**To Add:** none yet; the drag-to-place UI is `ui-067`, not built
