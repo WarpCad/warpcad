@@ -4,7 +4,7 @@ category: ui
 kind: feature
 priority: medium
 model: sonnet
-milestone: M14
+milestone: M16
 depends: []
 status: open
 ---

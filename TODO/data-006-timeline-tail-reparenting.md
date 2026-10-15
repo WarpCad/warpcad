@@ -4,7 +4,7 @@ category: data
 kind: feature
 priority: low
 model: opus
-milestone: M6
+milestone: M16
 depends: [data-004, ui-032]
 status: open
 ---

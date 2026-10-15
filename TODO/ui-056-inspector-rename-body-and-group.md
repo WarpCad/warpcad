@@ -4,7 +4,7 @@ category: ui
 kind: feature
 priority: high
 model: sonnet
-milestone: M9
+milestone: M16
 depends: [core-038, ui-049]
 status: open
 ---
