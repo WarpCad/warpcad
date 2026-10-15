@@ -80,7 +80,7 @@ then priority, then small tasks as tie-breakers.*
 | [`ai-022`](ai-022-snap-orientation-description-is-backwards.md) `group.snap` tool description says `outside+` is the second's + side (it is the − side) | medium | sonnet | Found by `ui-060`; text-only fix in `src/ai/tools/operate.js` |
 | ✅ [`io-009`](done/io-009-import-stl-mesh-into-library.md) Import an STL into My parts | medium | opus | ✅ done 2026-10-15: **Import model file…** reads a binary or ASCII STL in a worker into a `user.<slug>` part of `[asset.mesh, import.mesh]`; Mesh tag, size, Units control; not parametric |
 | ✅ [`testing-001`](done/testing-001-firefox-tablet-file-menu-flake-under-load.md) Firefox tablet File-menu flake under load | high | sonnet | ✅ done 2026-10-15: the autosave chip changed width and slid the File button under the pointer; fixed with a min-width |
-| [`data-006`](data-006-timeline-tail-reparenting.md) Re-parent an inactive timeline tail | low | opus | Held on purpose — measured at 36% of roll-back-then-move cases, no one has asked |
+| [`data-006`](data-006-timeline-tail-reparenting.md) Re-parent an inactive timeline tail | low | opus | ▶ Ready to pick up, not started — parked by you 2026-10-15. Measured at 36% of roll-back-then-move cases; scenario 12 step 10 hand-drive still owed |
 
 > **The runner follows table order, not this list.** As of 2026-10-14 that order is **[M16](#m16--next-batch-naming-align-in-app-help-rotation-saveimport-fixes-merge-reach)
 > (11 rows, runs next) → [M11 gears](#m11--gears-the-jscad-gears-library-ported-and-extended) (15 rows) → the rest**.

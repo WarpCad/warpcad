@@ -9,6 +9,16 @@ depends: [data-004, ui-032]
 status: open
 ---
 
+> **Status (2026-10-15): ready to pick up, not started.** The build was parked on purpose, so
+> `/run-todos` will not reach it on its own schedule. Two things to know before running
+> `/fix-todo data-006`:
+>
+> - **The hand-drive gate is still owed.** The Proposed fix below says to wait for `ui-032` to
+>   be driven by hand. Scenario 12 step 10 has not been tried yet (`TODO/VERIFY.md`, `data-004`
+>   check 3), so the "is being told it can't be built acceptable?" judgment is still missing.
+> - **Feedback shape is not chosen.** Option (c), "offer it, with a `Re-link to the moved step`
+>   button", is the recommendation here. Confirm it, or pick (a) or (b), before the build.
+
 ## Goal
 
 `docs/decisions/interaction-model-qa.md` section 18's own **"Unsure — how often the tail
