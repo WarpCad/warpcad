@@ -126,7 +126,7 @@ export function buildCreateRecords(document, input, ops = kernelRegistry, refere
   const [min, max] = boundsOf(evaluateOp(op, params, { registry: ops }))
   const id = document.nextId(idPrefixFor(op))
   /** @type {OpRecord} */
-  const created = { id, op, name: document.nextName(ui.label), params }
+  const created = { id, op, name: document.nextName(ui.nameFor ? ui.nameFor(params) : ui.label), params }
   /** @type {OpRecord} */
   const drop = {
     id: document.nextId(`${id}-drop`),

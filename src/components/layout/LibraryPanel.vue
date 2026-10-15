@@ -207,6 +207,23 @@ const chosen = reactive(
 )
 
 /**
+ * The second and later variants a row offers beside its `choice` (`TODO/core-057`: a
+ * phone's Case), keyed `op` then `param`. Same lifetime and seeding as {@link chosen}.
+ *
+ * @type {Record<string, Record<string, any>>}
+ */
+const chosenExtra = reactive(
+  Object.fromEntries(
+    LIBRARY_SECTIONS.flatMap((section) => section.rows)
+      .filter((row) => row.extraChoices?.length)
+      .map((row) => [
+        row.op,
+        Object.fromEntries(row.extraChoices.map((extra) => [extra.param, row.defaults[extra.param]])),
+      ]),
+  ),
+)
+
+/**
  * The params a drag from this row commits on top of its defaults — the chosen
  * variant, or nothing at all for a row with no choice.
  *
@@ -218,7 +235,8 @@ const chosen = reactive(
  */
 function overridesFor(row) {
   if (!row.choice) return NO_OVERRIDES
-  return { [row.choice.param]: chosen[row.op] }
+  const extras = chosenExtra[row.op]
+  return { [row.choice.param]: chosen[row.op], ...(extras ?? {}) }
 }
 
 /** Shared payload for the rows with nothing to choose. See {@link overridesFor}. */
@@ -318,6 +336,25 @@ onBeforeUnmount(stopTracking)
                 :aria-label="`${row.choice.label} for ${row.label}`"
               >
                 <option v-for="option in row.choice.options" :key="String(option.value)" :value="option.value">
+                  {{ option.label }}
+                </option>
+              </select>
+            </label>
+            <!-- A second pre-drag variant (core-057's Case beside its Model): the same
+                 control, one label per extra choice. -->
+            <label
+              v-for="extra in row.extraChoices"
+              :key="extra.param"
+              class="library__choice"
+            >
+              <span class="library__choice-label">{{ extra.label }}</span>
+              <select
+                v-model="chosenExtra[row.op][extra.param]"
+                class="library__choice-select"
+                :data-testid="`library-choice-${row.op}-${extra.param}`"
+                :aria-label="`${extra.label} for ${row.label}`"
+              >
+                <option v-for="option in extra.options" :key="String(option.value)" :value="option.value">
                   {{ option.label }}
                 </option>
               </select>
@@ -504,6 +541,9 @@ onBeforeUnmount(stopTracking)
 
 .library__item {
   display: grid;
+  /* `minmax(0, 1fr)`, not the implicit auto track: a variant select with a long option
+     ("Galaxy S25 Ultra") must shrink to the panel rather than push the row wider than it. */
+  grid-template-columns: minmax(0, 1fr);
   gap: 4px;
 }
 
@@ -511,6 +551,7 @@ onBeforeUnmount(stopTracking)
    it, so the row still reads as the thing you drag and this as a setting on it —
    not as a second, competing control of equal weight. */
 .library__choice {
+  min-width: 0;
   display: flex;
   align-items: center;
   gap: 8px;

@@ -150,7 +150,7 @@ describe('KIT_LIBRARY / RASPBERRYPI_LIBRARY — the rest of the catalogue (TODO/
       'Board',
       'Board Frame',
       'Anchor',
-      'Phone (iPhone 17 Pro, TechWeave)',
+      'Phone',
     ])
   })
 
@@ -208,14 +208,36 @@ describe('KIT_LIBRARY / RASPBERRYPI_LIBRARY — the rest of the catalogue (TODO/
     }
   })
 
-  it('offers a model choice on exactly the two model-parameterised rows, and nowhere else', () => {
+  it('offers a model choice on exactly the model-parameterised rows (the phone and two Pi parts), and nowhere else', () => {
     // `core-014a`'s "one factory, not one draggable per revision" decision, as a
     // UI contract: one row, a choice on it — not four Pi rows and five camera
     // rows. Every other row in the whole catalogue has nothing to choose.
     const withChoice = [...PRIMITIVE_LIBRARY, ...HARDWARE_LIBRARY, ...KIT_LIBRARY, ...RASPBERRYPI_LIBRARY]
       .filter((row) => row.choice)
       .map((row) => row.op)
-    expect(withChoice).toEqual(['raspberrypi.bplus', 'raspberrypi.cameraModule'])
+    expect(withChoice).toEqual(['kit.phone', 'raspberrypi.bplus', 'raspberrypi.cameraModule'])
+  })
+
+  it('gives the phone row a Case dropdown beside its Model, and names a drop after both (core-057)', () => {
+    const phone = KIT_LIBRARY.find((row) => row.op === 'kit.phone')
+    expect(phone?.choice?.label).toBe('Model')
+    expect(phone?.extraChoices.map((extra) => extra.label)).toEqual(['Case'])
+    expect(phone?.extraChoices[0].options.map((option) => option.label)).toEqual([
+      'None',
+      'Slim',
+      'Protective',
+      'Rugged',
+      'TechWeave',
+      'Custom',
+    ])
+    expect(phone?.defaults.model).toBe('iphone-17-pro')
+    expect(phone?.defaults.case).toBe('slim')
+    expect(phone?.nameFor?.({ model: 'iphone-17-pro', case: 'slim' })).toBe('iPhone 17 Pro in Slim case')
+    // Every other row has no extra choice.
+    const others = [...PRIMITIVE_LIBRARY, ...HARDWARE_LIBRARY, ...KIT_LIBRARY, ...RASPBERRYPI_LIBRARY].filter(
+      (row) => row.op !== 'kit.phone'
+    )
+    for (const row of others) expect(row.extraChoices, row.op).toEqual([])
   })
 
   it('offers exactly the models the recipe itself accepts, and defaults to one of them', () => {
@@ -317,7 +339,7 @@ describe('KIT_LIBRARY / RASPBERRYPI_LIBRARY — the rest of the catalogue (TODO/
       for (const record of records) document.append(record, { origin: 'local' })
       const bodies = document.bodies()
       expect(bodies, row.op).toHaveLength(1)
-      expect(bodies[0].name, row.op).toBe(`${row.label} 1`)
+      expect(bodies[0].name, row.op).toBe(`${row.nameFor ? row.nameFor(row.defaults) : row.label} 1`)
       const [min, max] = boundsOf(bodies[0].geometry)
       expect((min[0] + max[0]) / 2, `${row.op} X`).toBeCloseTo(33.5, 6)
       expect((min[1] + max[1]) / 2, `${row.op} Y`).toBeCloseTo(-77.25, 6)

@@ -73,7 +73,14 @@ import { screw, SCREW_HEADS } from './recipes/hardware.screw.js'
 import { anchor } from './recipes/kit.anchor.js'
 import { board } from './recipes/kit.board.js'
 import { boardFrame } from './recipes/kit.boardFrame.js'
-import { phone } from './recipes/kit.phone.js'
+import { phone, phoneDisplayName, resolvePhone } from './recipes/kit.phone.js'
+import {
+  DEFAULT_PHONE_CASE,
+  DEFAULT_PHONE_MODEL,
+  LEGACY_PHONE_CASE,
+  PHONE_CASES,
+  PHONE_MODELS,
+} from './recipes/phoneModels.js'
 import { activeCoolingFan } from './recipes/raspberrypi.activeCoolingFan.js'
 import { BPLUS_MODELS, BPLUS_PART_ALIASES, DEFAULT_CLEARANCE_MM, bplus } from './recipes/raspberrypi.bplus.js'
 import { boltSpecs } from './tables/bolt-specs.js'
@@ -222,6 +229,15 @@ import { touchScreen2 } from './recipes/raspberrypi.touchScreen2.js'
  *   on nothing else: a row with no choice is a fixed shape the way a Bolt is. The
  *   panel renders whatever is here and names no recipe of its own, so a third
  *   variant-bearing recipe is a change in this file alone.
+ * @property {readonly OpUiChoice[]} [extraChoices] More variants picked before the drag,
+ *   beside {@link OpUi}`.choice` (`TODO/core-057`: a phone's **Case** beside its **Model**).
+ *   Each one's `param` is a key of `defaults`, like `choice`'s.
+ * @property {(params: Record<string, any>) => string} [nameFor] The label a dropped
+ *   instance is numbered from, when it depends on the params chosen (`iPhone 17 Pro in
+ *   Slim case`); `label` is used when absent.
+ * @property {Record<string, any>} [absent] What a record that does **not** carry a key
+ *   behaves as, where that differs from `defaults` (a pre-core-057 phone has no `case` and
+ *   is the TechWeave estimate) — so the Inspector shows what the geometry really is.
  * @property {'sketch'} [editor] Dropping this row opens an editor instead of committing a
  *   record (`TODO/sketch-001`): a Sketch has no geometry until the user draws it, so the
  *   drop places the editor's plane and Done appends the one record. `defaults` is then
@@ -1373,18 +1389,41 @@ export const registry = Object.freeze({
   'kit.anchor': composite(0, anchor, { label: 'Anchor', defaults: { width: 10, height: 10 } }),
   // A phone-in-a-case stand-in to subtract from a plate (recipes/kit.phone.js). Every
   // default is the recipe's own, repeated so the Inspector shows what was placed.
+  //
+  // TODO/core-057: one row, a Model dropdown (the `choice`) and a Case dropdown
+  // (`extraChoices`), the same shape as the Raspberry Pi's. A new placement writes `model`,
+  // `case` and the enlarge fields; the eight numerics are left off so they follow the table
+  // until the user edits one. A record with none of them is a pre-core-057 document and
+  // replays as the old fused `phone` body (recipes/kit.phone.js).
   'kit.phone': composite(0, phone, {
-    label: 'Phone (iPhone 17 Pro, TechWeave)',
+    label: 'Phone',
     defaults: {
-      width: 77,
-      length: 157,
-      thickness: 9,
-      cornerRadius: 12,
-      plateauWidth: 74,
-      plateauLength: 46,
-      plateauHeight: 4,
-      plateauCornerRadius: 10,
+      model: DEFAULT_PHONE_MODEL,
+      case: DEFAULT_PHONE_CASE,
+      caseEnlarge: 0,
+      caseEnlargeX: 0,
+      caseEnlargeY: 0,
+      caseEnlargeZ: 0,
+      plateauClearance: 0,
     },
+    choice: Object.freeze({
+      param: 'model',
+      label: 'Model',
+      options: Object.freeze(
+        PHONE_MODELS.map((row) => Object.freeze({ value: row.id, label: row.label }))
+      ),
+    }),
+    extraChoices: Object.freeze([
+      Object.freeze({
+        param: 'case',
+        label: 'Case',
+        options: Object.freeze(
+          Object.entries(PHONE_CASES).map(([id, preset]) => Object.freeze({ value: id, label: preset.label }))
+        ),
+      }),
+    ]),
+    nameFor: phoneDisplayName,
+    absent: Object.freeze({ model: DEFAULT_PHONE_MODEL, case: LEGACY_PHONE_CASE }),
   }),
 
   // TODO/core-014: the catalogue's largest recipe — a whole Raspberry Pi board, every
@@ -1749,6 +1788,16 @@ function enumParam(label, options) {
 }
 
 /**
+ * A non-negative millimetre field that defaults to zero (an enlarge, a clearance).
+ *
+ * @param {string} label
+ * @returns {NumberParamSchema}
+ */
+function mmNonNegativeParam(label) {
+  return Object.freeze({ kind: 'number', label, unit: 'mm', min: 0, default: 0 })
+}
+
+/**
  * @param {string} label
  * @param {number} [fallback] The recipe's own default, when it has one.
  * @returns {NumberParamSchema}
@@ -1785,6 +1834,38 @@ function choiceOptionsOf(op) {
 
 /** @type {Readonly<Record<string, ParamSchemaEntry>>} */
 const PARAM_SCHEMAS = Object.freeze({
+  // TODO/core-057: the model and the case are choices; the eight sizes are shown at what the
+  // table (plus the case) resolves to, so an untouched field reads as the real number.
+  'kit.phone': {
+    params: (params) => {
+      /** @type {ReturnType<typeof resolvePhone> | undefined} */
+      let sized
+      try {
+        sized = resolvePhone(params)
+      } catch {
+        // A half-typed model: the enums still list their options, the numbers have no default.
+        sized = undefined
+      }
+      const principal = sized?.plateaus[0]
+      return {
+        model: enumParam('Model', choiceOptionsOf('kit.phone')),
+        case: enumParam('Case', registry['kit.phone'].ui?.extraChoices?.[0]?.options ?? []),
+        caseEnlarge: mmNonNegativeParam('Case enlarge'),
+        caseEnlargeX: mmNonNegativeParam('Case enlarge X'),
+        caseEnlargeY: mmNonNegativeParam('Case enlarge Y'),
+        caseEnlargeZ: mmNonNegativeParam('Case enlarge Z'),
+        plateauClearance: mmNonNegativeParam('Plateau clearance'),
+        width: mmParam('Width', sized?.width),
+        length: mmParam('Length', sized?.length),
+        thickness: mmParam('Thickness', sized?.thickness),
+        cornerRadius: Object.freeze({ kind: 'number', label: 'Corner radius', unit: 'mm', min: 0, ...(sized ? { default: sized.cornerRadius } : {}) }),
+        plateauWidth: mmParam('Plateau width', principal?.widthMm),
+        plateauLength: mmParam('Plateau length', principal?.lengthMm),
+        plateauHeight: mmParam('Plateau height', principal?.heightMm),
+        plateauCornerRadius: Object.freeze({ kind: 'number', label: 'Plateau corner radius', unit: 'mm', min: 0, ...(principal ? { default: principal.cornerRadiusMm } : {}) }),
+      }
+    },
+  },
   'raspberrypi.bplus': {
     params: () => ({
       model: enumParam('Model', choiceOptionsOf('raspberrypi.bplus')),

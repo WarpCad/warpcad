@@ -56,6 +56,28 @@ export function tessellationCases() {
         },
       ],
     },
+    {
+      // core-057: the record exactly as the pre-model Library wrote it — eight numerics, no
+      // `model`/`case`. Its golden digest is the one `kit.phone` held before the Library row
+      // gained a model (hand-carried, not regenerated).
+      key: 'kit.phone:legacy',
+      records: [
+        {
+          id: 'it',
+          op: 'kit.phone',
+          params: {
+            width: 77,
+            length: 157,
+            thickness: 9,
+            cornerRadius: 12,
+            plateauWidth: 74,
+            plateauLength: 46,
+            plateauHeight: 4,
+            plateauCornerRadius: 10,
+          },
+        },
+      ],
+    },
     { key: 'kit.anchor:explicit', records: [{ id: 'it', op: 'kit.anchor', params: { width: 10, height: 10 } }] },
     { key: 'profile.roundedRectangle', records: [{ id: 'it', op: 'profile.roundedRectangle', params: { size: [30, 20], roundRadius: 4 } }] },
     { key: 'primitive.cylinder:d6', records: [{ id: 'it', op: 'primitive.cylinder', params: { diameter: 6, height: 10 } }] },

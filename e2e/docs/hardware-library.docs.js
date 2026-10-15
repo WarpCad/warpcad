@@ -156,6 +156,67 @@ test.describe('docs media: hardware, kit and Raspberry Pi library', () => {
     await endMovie(page, 'hardware-drag-bolt', { fps: 10, width: 640 })
   })
 
+  /**
+   * Seed a plate and a phone through the app's own document store, so the picture shows an
+   * exact arrangement: the plate's top face at z = 0 and the phone's back level with it.
+   *
+   * @param {import('@playwright/test').Page} page
+   * @param {{ model: string, caseId: string }} choice
+   */
+  const seedPlateAndPhone = async (page, { model, caseId }) => {
+    await page.evaluate(
+      async ({ model, caseId }) => {
+        const { useDocumentStore } = await import('/src/stores/document.js')
+        const store = useDocumentStore()
+        store.append({ id: 'plate-1', op: 'primitive.cuboid', name: 'Plate 1', params: { size: [100, 190, 10], center: [0, 0, -5] } })
+        store.append({
+          id: 'phone-1',
+          op: 'kit.phone',
+          name: 'Phone 1',
+          params: { model, case: caseId, center: [0, 0, 3] },
+        })
+      },
+      { model, caseId },
+    )
+    await expect(viewport(page)).toHaveAttribute('data-body-count', '2')
+    await bodies(page)
+  }
+
+  test('phone-library-row still', async ({ page }) => {
+    await openApp(page)
+    await scrollToSection(page, 'kit')
+    await page.getByTestId('library-choice-kit.phone').selectOption('iphone-16-pro')
+    await page.getByTestId('library-choice-kit.phone-case').selectOption('slim')
+    await shot(page, 'phone-library-row.png', { locator: page.getByTestId('library-panel') })
+  })
+
+  test('phone-plateau-selected still', async ({ page }) => {
+    await openApp(page)
+    await seedPlateAndPhone(page, { model: 'iphone-17-pro', caseId: 'slim' })
+    await openObjectList(page)
+    await page.getByTestId('objects-row-phone-1').click()
+    const plateau = page.getByTestId('inspector-part-plateau')
+    await plateau.scrollIntoViewIfNeeded()
+    await plateau.click()
+    await expect(page.getByTestId('inspector-breadcrumb-part')).toHaveText('plateau')
+    await heavySettle(page)
+    await shot(page, 'phone-plateau-selected.png', { maxDiffPixelRatio: PI_DIFF })
+  })
+
+  test('phone-plateau-pocket still', async ({ page }) => {
+    await openApp(page)
+    await seedPlateAndPhone(page, { model: 'iphone-17-pro', caseId: 'slim' })
+    await openObjectList(page)
+    await page.getByTestId('objects-check-plate-1').click()
+    await page.getByTestId('objects-expand-phone-1').click()
+    await page.getByTestId('objects-part-check-phone-1-plateau').click()
+    await expect(viewport(page)).toHaveAttribute('data-selected-count', '2')
+    await page.getByTestId('operation-subtract').click()
+    await expect(viewport(page)).toHaveAttribute('data-body-count', '1')
+    await heavySettle(page)
+    await shot(page, 'phone-plateau-pocket.png', { maxDiffPixelRatio: PI_DIFF })
+  })
+
   test('hardware-bolt-fit still', async ({ page }) => {
     await openApp(page)
     await loadScene(page, 'bolt.ndjson', 1)

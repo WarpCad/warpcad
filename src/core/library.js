@@ -70,6 +70,11 @@ import { capturePart, effectiveUserPart, effectiveUserParts, isUserPartOp, userP
  *   renders a control without naming a recipe and this module does not branch on it
  *   at all — a chosen value simply arrives as the `overrides` argument every
  *   function here already took.
+ * @property {readonly import('./kernel/registry.js').OpUiChoice[]} extraChoices More
+ *   pre-drag variants beside `choice` (`TODO/core-057`'s Case beside its Model); empty for
+ *   every other row.
+ * @property {((params: Record<string, any>) => string) | null} nameFor Label a dropped
+ *   instance is numbered from, when it depends on the chosen params; `null` uses `label`.
  * @property {'sketch' | null} editor Whether dropping the row opens an editor instead
  *   of committing a record (`TODO/sketch-001`'s Sketch row), copied off the registry
  *   like `choice`, so the viewport reads a flag rather than naming an op.
@@ -202,6 +207,8 @@ function buildRows(ops, namespace) {
       operandCount: entry.operandCount,
       kind: entry.kind,
       choice: ui.choice ?? null,
+      extraChoices: ui.extraChoices ?? Object.freeze([]),
+      nameFor: ui.nameFor ?? null,
       editor: ui.editor ?? null,
     })
   })
@@ -297,6 +304,8 @@ function userPartRow(op) {
     operandCount: entry.operandCount,
     kind: entry.kind,
     choice: null,
+    extraChoices: Object.freeze([]),
+    nameFor: null,
     editor: null,
     userPart: Object.freeze({ version: definition.version, ...status }),
   })
@@ -523,7 +532,7 @@ export function recordsForDrop(op, pointMm, document, overrides = {}) {
   const created = {
     id: document.nextId(idPrefixFor(op)),
     op,
-    name: document.nextName(row.label),
+    name: document.nextName(row.nameFor ? row.nameFor(params) : row.label),
     params,
   }
   if (row.kind !== 'composite') return [created]

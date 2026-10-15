@@ -129,7 +129,7 @@ brackets out of:
 | Board | A flat slab with rounded corners | 40 × 30 mm, 1.62 mm thick, 3 mm corners |
 | Board Frame | The same slab with a rectangular window cut out of it | 40 × 30 outer, 30 × 20 window |
 | Anchor | A post with a matching hole, as one two-part item | ⌀10 × 10 mm |
-| Phone (iPhone 17 Pro, TechWeave) | A phone-in-case slab with its camera plateau on the back, to subtract from a plate ([how](hardware-library.md#cutting-a-pocket-for-a-phones-camera-plateau)) | 77 × 157 × 9 mm, plateau 74 × 46 × 4 mm |
+| Phone | A phone-in-case stand-in to subtract from a plate: a group of `body` and `plateau` parts, with a **Model** and a **Case** dropdown beside the row ([how](hardware-library.md#cutting-a-pocket-for-a-phones-camera-plateau)) | iPhone 17 Pro in a Slim case: 74.9 × 153 × 10.25 mm, plateau 71.9 × 44 × 4 mm (estimates) |
 
 1. Scroll down past Hardware to the **Kit Parts** section.
 2. Drag **Board** into the 3D view exactly the way you dragged a Cube.

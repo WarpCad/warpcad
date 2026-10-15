@@ -34,6 +34,16 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### core-057 — Phone library item: model, case, enlarge and separate plateau (2026-10-15 14:55 UTC)
+
+Driven by script and by hand-style mouse drive (scenarios 3, 4, 6, 10); what no script can judge is whether the numbers match a real handset in a real case.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | Hold a real phone in its case against the placed stand-in (iPhone 17 Pro, or whichever you own): is the plateau's size and position, and the case's added width and length, within a millimetre or two? Every plateau and every Android size is an estimate; adjust with Case enlarge and note the real caliper numbers here. | Open | |
+| 2 | Print or cut a pocket from a Subtract of `plateau` and test-fit the phone: does it lie flat with the camera in the pocket? | Open | |
+| 3 | On real phone/tablet hardware, are the Model and Case dropdowns under the Phone row easy to tap and legible (they are 32 px tall like the Pi's; the TODO suggested 44 px)? | Open | |
+
 ### io-010 — A changed project file merges into the open project (2026-10-15 06:10 UTC)
 
 Driven by script: the real `mcp/server.js` through the SDK client against a faked file handle over a real file, in headless Chromium. Not driven: real Claude Code, real Safari or a phone using **Merge file…**, and how the `Changes waiting to merge` deferral feels in a hand that is actually dragging.

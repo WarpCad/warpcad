@@ -2514,3 +2514,19 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** same as the BlueSky entry; legacy rule and "by you" removal -> `src/core/merge/merge.js` `relatedness()` and `src/core/origin.js` `conflictAttribution` in this diff; id stored in `merge.project` of the state line -> hand-driven file this session
 **To Add:** `docs/screenshots/merging-conflict.png` (updated in this diff); repo URL once public
+
+
+## 2026-10-15T14:55:00Z — The Phone part picks its handset and case, and the plateau is its own part
+
+**Post:** The Phone entry in WarpCad's Kit Parts began as a test while exercising the MCP server: one estimated slab, 77 x 157 x 9 mm, with a camera plateau fused on. It turned out to be useful as the thing you subtract from a plate so a phone can lie flat, but you could not choose a handset, and the plateau could not be picked on its own.
+
+Now the Library row has Model and Case dropdowns beside it. Models are the current iPhone line-up and three Android phones; cases are None, Slim, Protective, Rugged, TechWeave (the original numbers, kept) and Custom. A "Case enlarge" field adds a millimetre to all three dimensions at once, for the case that is slightly bigger than the preset. The result is a group of `body` and `plateau`, so selecting the plate and the plateau and pressing Subtract cuts the camera pocket and leaves the top flat.
+
+The part I cared about most is honesty in the table. Apple's outer sizes were read from its own compare page and are marked verified. Samsung's and Google's pages would not load in full, so those rows are marked estimate, and every plateau is an estimate because no manufacturer publishes one. Projects saved before this change open unchanged.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** same as the BlueSky entry; Apple rows read from apple.com/iphone/compare on 2026-10-15 -> `phoneModels.js` row sources; Samsung and Google pages truncated -> fetches this session, rows marked estimate; legacy documents unchanged -> hand-pinned replay in `kit.phone.spec.js` and the old tessellation digest carried as `kit.phone:legacy`
+**To Add:** `docs/screenshots/phone-library-row.png`, `docs/screenshots/phone-plateau-selected.png` (generated); repo URL once public

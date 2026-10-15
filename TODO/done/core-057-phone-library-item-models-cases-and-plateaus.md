@@ -6,8 +6,10 @@ priority: medium
 model: sonnet
 milestone: M16
 depends: []
-status: open
+status: done
 ---
+
+> **Shipped (2026-10-15).** As specified, with these decisions written down: a record with none of `model`, `case`, the enlarge fields or `plateauClearance` takes the legacy path (one fused `phone` body); otherwise the model path emits named records `body`, `plateau` (`plateau2`, ... where a table row has more). A numeric param **present in the record is an override**; absent follows the table; a record holding the complete legacy eight, still at the old defaults, treats them as unedited so choosing a model resizes it. A record naming a model but no case behaves as `TechWeave`. `TechWeave` is geometry-exact only on the iPhone 17 Pro; on another handset it adds the same margins (a lenient superset of "iPhone 17 Pro only", so the Library dropdown never offers a choice that throws). Android rows could not be read from Samsung's or Google's own pages (truncated fetches), so all three are `estimate`; the Galaxy S25/S25+ and Pixel 10 were not found and are left out. Every plateau is an `estimate`. Added `OpUi.extraChoices` (a second pre-drag dropdown), `OpUi.nameFor` (the dropped name, `iPhone 17 Pro in Slim case 1`) and `OpUi.absent` (what a record without a key behaves as). The Phone row is labelled `Phone`.
 
 ## Goal
 

@@ -370,7 +370,7 @@ function withSchema(fields, op, params) {
     // A user part's exposed number is labelled by what the person called it, not by its key.
     if (option?.kind === 'number' && field.kind === 'number') return { ...field, label: option.label, unit: option.unit }
     if (option?.kind !== 'enum') return field
-    return { key: field.key, label: option.label, kind: /** @type {const} */ ('enum'), unit: '', value: params[field.key], options: option.options }
+    return { key: field.key, label: option.label, kind: /** @type {const} */ ('enum'), unit: '', value: params[field.key] ?? field.value, options: option.options }
   })
   for (const key of keys) {
     if (next.some((field) => field.key === key)) continue
@@ -412,7 +412,7 @@ function fieldsFor(params, entry) {
   /** @type {ParamField[]} */
   const fields = []
   for (const key of keys) {
-    const value = params[key] ?? entry?.ui?.defaults?.[key]
+    const value = params[key] ?? entry?.ui?.absent?.[key] ?? entry?.ui?.defaults?.[key]
     const field = fieldFor(key, value)
     if (field) fields.push(field)
   }

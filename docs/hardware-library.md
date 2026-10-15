@@ -80,10 +80,12 @@ rounded corners), **Board Frame** (the same slab with a rectangular window cut o
 **Anchor** (a post with a matching hole). Their sizes are numbers in mm in the Inspector, and
 the bill of materials lists each by width × height.
 
-**Phone (iPhone 17 Pro, TechWeave)** is different: it is not a part you print but a
-*stand-in* you subtract, so a plate can have a pocket for the phone's camera plateau and the
-phone can lie flat. See [Cutting a pocket for a phone's camera plateau](#cutting-a-pocket-for-a-phones-camera-plateau). The defaults are in the table in
-[Placing a kit part](primitive-placement.md#placing-a-kit-part).
+**Phone** is different: it is not a part you print but a *stand-in* you subtract, so a plate
+can have a pocket for the phone's camera plateau and the phone can lie flat. It has a
+**Model** and a **Case** dropdown beside the row, and it places as a group of separately
+selectable parts, `body` and `plateau`. See
+[Cutting a pocket for a phone's camera plateau](#cutting-a-pocket-for-a-phones-camera-plateau).
+The defaults are in the table in [Placing a kit part](primitive-placement.md#placing-a-kit-part).
 
 ## Raspberry Pi parts
 
@@ -136,25 +138,75 @@ Subtract it from your own enclosure and the enclosure leaves that space free.
 - [Combining shapes](booleans.md): using a hidden part as a Subtract operand.
 - [Selecting a shape, and reading its size](selection-and-inspector.md): the Inspector, the Objects list and Show hidden parts.
 
-<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->
-
 ### Cutting a pocket for a phone's camera plateau
 
 A phone's camera plateau stops it lying flat on a plate. The **Phone** row in Kit Parts is a
-slab the size of a phone in its case, with the plateau as a raised block on its back,
-protruding *below* the slab at the +Y end. Subtract it from the plate and only the plateau
-cuts; the plate's top stays flat everywhere the phone rests.
+stand-in for the phone in its case: a slab the size of the handset plus its case, with the
+camera plateau as a raised block on its back, protruding *below* the slab. Subtract the
+plateau from the plate and only the plateau cuts; the plate's top stays flat everywhere the
+phone rests.
 
-1. Scroll to **Kit Parts** and drag **Phone (iPhone 17 Pro, TechWeave)** into the 3D view.
-2. With the plate and the phone both in the scene, select the phone and check its sizes in
-   the Inspector. The defaults are estimates (77 × 157 mm, 9 mm thick; plateau 74 × 46 mm,
-   4 mm proud), and the case matters as much as the phone, so measure yours and edit
-   `width`, `length`, `thickness`, `plateauWidth`, `plateauLength` and `plateauHeight`.
-3. Move the phone so its flat back sits level with the plate's top face. The plateau is then
-   inside the plate by exactly `plateauHeight`. Rotate it 180° about Z if the camera end
-   should be at the other end of the plate.
-4. Select the **plate**, then the **phone** (ctrl/shift-click), and choose **Subtract**. The
-   plate keeps a pocket in the phone's shape; hide or delete the phone if you do not want it
-   shown.
+![The Library's Kit Parts section with the Phone row and its Model and Case dropdowns.](./screenshots/phone-library-row.png)
+
+**Choose the handset and the case before you drag**, the same way you choose a Raspberry Pi's
+model:
+
+- **Model** lists the current iPhone line-up (iPhone 17 Pro, 17 Pro Max, 17, Air, 16 Pro, 16
+  Pro Max, 16, 16 Plus, 16e, SE 3rd gen) and three Android phones (Galaxy S25 Ultra, Pixel 10
+  Pro, Pixel 10 Pro XL).
+- **Case** is `None` (the bare handset), `Slim`, `Protective`, `Rugged`, `TechWeave` or
+  `Custom`. `TechWeave` is the original default, kept as it was: 77 × 157 × 9 mm with a
+  74 × 46 × 4 mm plateau, measured around an iPhone 17 Pro.
+
+Both are also editable afterwards in the Inspector; changing the model rebuilds the same
+group in place, and the plateau keeps its name, so a Subtract that uses `plateau` survives it.
+
+#### How big is the case?
+
+| Number | Where it comes from |
+|---|---|
+| Handset width, length, depth | The manufacturer's published outer size. Apple's rows were read from apple.com/iphone/compare on 2026-10-15 and are marked **verified**; the Android rows could not be read from Samsung's or Google's own pages that day, so they come from third-party listings and are marked **estimate**. |
+| Plateau size, position and height | **Always an estimate.** No manufacturer publishes them; they were read from product photos. Measure yours with calipers. |
+| Case margins | **Estimates**, except `Rugged`, which is OtterBox's own published size for the Defender Pro for iPhone 17 Pro (161.75 × 84.65 × 16.73 mm). `Slim` adds about 1.5 mm a side, `Protective` about 3 mm. |
+
+Every row carries its source, the date it was read and its `verified` or `estimate` status in
+the table the app is built from (`src/core/kernel/recipes/phoneModels.js`). A printed case
+pocket should be test-fitted.
+
+If your case is a millimetre bigger than the preset, you do not have to retype seven numbers:
+set **Case enlarge** to `1` and the width, length and thickness each grow by 1 mm.
+**Case enlarge X**, **Y** and **Z** add to one axis on top of that, and **Plateau clearance**
+adds slack around every plateau so the pocket is not a press fit. Any size field you have
+edited by hand (`width`, `plateauHeight` and so on) is kept when you change the model or case;
+a field you have not touched follows the table.
+
+#### Example: a camera pocket in a plate
+
+1. Open **Library → Kit Parts**. Next to **Phone** choose **Model: iPhone 17 Pro** and
+   **Case: Slim**, then drag it onto the grid.
+2. Select the phone. The Inspector reads *iPhone 17 Pro in Slim case 1* and lists `body` and
+   `plateau`. Your case is a millimetre bigger than the preset? Set **Case enlarge** to `1`.
+3. Place a **Board** (or a Cube you have resized) under it so the phone's back sits on the
+   plate's top face. The plateau is then inside the plate by its own height. Rotate the phone
+   180° about Z if the camera end should be at the other end of the plate.
+4. Select the **plate**. In the Inspector's **Objects** list, tap the arrow beside the phone
+   to list its parts and tick the check beside `plateau`.
+
+   ![The phone with its plateau part selected: the breadcrumb reads the phone's name, then plateau.](./screenshots/phone-plateau-selected.png)
+
+5. The Operations toolbar names the plate and `plateau` as its two operands. Press
+   **Subtract**. The plate has a camera-bump pocket and is flat everywhere else.
+
+   ![A plate after subtracting only the phone's plateau: a rounded pocket, with the top face flat around it.](./screenshots/phone-plateau-pocket.png)
+
+If you subtract the *whole* phone instead of its `plateau`, the slab cuts too: with the
+phone's back level with the plate that is the same pocket, but a phone sunk below the plate's
+top face leaves a phone-shaped hole.
 
 The stand-in is for cutting, not for printing: leave it out of the exported model.
+
+**Projects saved before the Model and Case dropdowns existed** open unchanged: they keep one
+fused `phone` body at the size they were saved at. Choose a model in the Inspector to move
+them onto the new group.
+
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

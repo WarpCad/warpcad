@@ -887,11 +887,11 @@ describe('composite() ui metadata — what earns a recipe a Library row', () => 
     }
   })
 
-  it('offers a variant choice on the two model-parameterised recipes, and no others', () => {
+  it('offers a variant choice on the model-parameterised recipes (two Pi boards and the phone), and no others', () => {
     // `core-014a`'s "one factory, not one draggable per revision", as a registry
     // contract rather than a comment: an op is a row, and a revision is a value.
     const withChoice = Object.keys(registry).filter((op) => registry[op].ui?.choice)
-    expect(withChoice).toEqual(['raspberrypi.bplus', 'raspberrypi.cameraModule'])
+    expect(withChoice).toEqual(['kit.phone', 'raspberrypi.bplus', 'raspberrypi.cameraModule'])
 
     for (const op of withChoice) {
       const choice = /** @type {any} */ (registry[op].ui).choice

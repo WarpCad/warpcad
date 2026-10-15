@@ -1779,3 +1779,13 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** two projects each started from New were merged silently -> `TODO/done/ui-062` retirement note in `TODO/ROADMAP.md` and the old caveat removed from `docs/merging.md` in this diff; refusal and copy-merge driven by hand this session (scenarios 10 and 22, `TODO/ACCEPTANCE.md`); typecheck clean, unit 4650 passed, full e2e 3739 passed / 909 skipped / exit 0, run this session
 **To Add:** repo URL once public
+
+
+## 2026-10-15T14:55:00Z — The Phone part picks its handset and case, and the plateau is its own part
+
+**Post:** WarpCad's Phone stand-in is no longer one hard-coded slab. Pick a handset (ten iPhones, three Android phones) and a case beside the Library row, drag it in, and the camera plateau is its own selectable part, so Subtract cuts only the camera pocket. Handset sizes are marked verified or estimate. Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** 13 handset rows and 6 case presets, each with source, date and status -> `src/core/kernel/recipes/phoneModels.js` and its spec; plate minus `{ id, pieces: 'plateau' }` removes the plateau's volume only -> `kit.phone.spec.js` and `e2e/phone-library.e2e.js`; typecheck clean, unit 4730 passed, full e2e 3776 passed / 915 skipped / 2 docs stills regenerated, run this session
+**To Add:** `docs/screenshots/phone-plateau-pocket.png` (generated); repo URL once public
