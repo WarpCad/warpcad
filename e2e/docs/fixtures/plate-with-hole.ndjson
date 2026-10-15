@@ -1,0 +1,2 @@
+{"id":"sketch-1","op":"primitive.sketch","name":"Plate with hole","params":{"center":[0,0,0],"slices":[{"id":"s1","zMm":0,"profiles":[{"id":"p1","kind":"rect","role":"solid","centerMm":[0,0],"widthMm":100,"heightMm":60},{"id":"p2","kind":"rect","role":"hole","centerMm":[0,0],"widthMm":50,"heightMm":20}]}],"extrusion":{"method":"linear","heightMm":10,"twistDeg":0,"twistSteps":1}}}
+{"warpcad":"project-state","version":1,"resolution":"normal"}

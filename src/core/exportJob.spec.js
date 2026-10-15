@@ -10,6 +10,9 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import modeling from '@jscad/modeling'
 
+// The user's saved project from the TODO/core-051 report, as text.
+import chamferErrorProject from '../../examples/chamfer error.ndjson?raw'
+
 import { createDocument } from './document.js'
 import { ExportError } from './export.js'
 import { refoldRequestOf, runExportJob } from './exportJob.js'
@@ -304,6 +307,49 @@ describe('runExportJob — a rim op on a hexagon is watertight (io-006)', () => 
     ['an off-origin primitive.cylinder', 'modify.chamferRim', 'print', cylinder],
   ])('%s + %s has 0 open edges at %s', (_name, op, resolution, base) => {
     const triangles = stl(base, /** @type {any} */ (op), /** @type {any} */ (resolution))
+    expect(triangles.length).toBeGreaterThan(20)
+    expect(openEdges(triangles)).toBe(0)
+  })
+})
+
+// TODO/core-051: a rim op on a face with a hole. The sweep now lofts each contour of the
+// section against its own inset, so the seam structure where the loft meets the remainder
+// changed for every holed face — it must not open edges, at the design resolution or at
+// Print. The plate is the user's own saved project, through the real sketch primitive.
+describe('runExportJob — a rim op on a face with a hole is watertight (core-051)', () => {
+  /** @returns {any[]} The fixture's records, in file order, without its state line. */
+  function fixtureRecords() {
+    return chamferErrorProject
+      .split('\n')
+      .filter((/** @type {string} */ line) => line.trim() !== '')
+      .map((/** @type {string} */ line) => JSON.parse(line))
+      .filter((/** @type {any} */ record) => typeof record.op === 'string')
+  }
+
+  /**
+   * @param {'modify.filletRim' | 'modify.chamferRim'} op
+   * @param {number} radius
+   * @param {'normal' | 'print'} resolution
+   */
+  function stl(op, radius, resolution) {
+    const document = createDocument({ resolution: 'normal' })
+    const [sketch, rim] = fixtureRecords()
+    document.append(sketch, local)
+    document.append({ ...rim, op, params: { ...rim.params, radius } }, local)
+    const result =
+      resolution === 'normal' ? runExportJob({ format: 'stl', bodies: packBodies(document.bodies()) }) : refoldJob(document, 'stl', resolution)
+    return stlTriangles(/** @type {Uint8Array} */ (result.bytes))
+  }
+
+  it.each([
+    // The report's own row: chamfer 5 on z+, as saved.
+    ['modify.chamferRim', 5, 'normal'],
+    ['modify.chamferRim', 5, 'print'],
+    ['modify.chamferRim', 2, 'normal'],
+    ['modify.filletRim', 2, 'normal'],
+    ['modify.filletRim', 2, 'print'],
+  ])('the user\'s holed plate + %s r=%d has 0 open edges at %s', (op, radius, resolution) => {
+    const triangles = stl(/** @type {any} */ (op), /** @type {number} */ (radius), /** @type {any} */ (resolution))
     expect(triangles.length).toBeGreaterThan(20)
     expect(openEdges(triangles)).toBe(0)
   })

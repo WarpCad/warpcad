@@ -170,6 +170,26 @@ test.describe('docs media: fillet and chamfer', () => {
     })
   }
 
+  test('chamfer-with-hole still', async ({ page }) => {
+    // `core-051`: the rim of a hole is bevelled too. A 100 x 60 x 10 plate, 50 x 20 hole.
+    await openApp(page)
+    await loadScene(page, 'plate-with-hole.ndjson', 1)
+    const before = (await volumes(page))['sketch-1']
+    await clickAt(page, { x: 560, y: 470 })
+    await expect(viewport(page)).toHaveAttribute('data-selected-count', '1')
+    await fillPopover(page, 'chamfer', '2')
+    await press(page, 'fillet-chamfer-commit')
+    await expect(page.getByTestId('fillet-chamfer-popover')).toHaveCount(0)
+    await waitForRimApplied(page, 'sketch-1', before)
+    // Outer rim (perimeter 320) plus hole rim (perimeter 140): about 2 x 2 / 2 x 460 removed.
+    const after = (await volumes(page))['sketch-1']
+    expect(before - after).toBeGreaterThan(0.9 * 2 * 460)
+    expect(before - after).toBeLessThan(1.1 * 2 * 460)
+    await clickAt(page, EMPTY)
+    await expect(viewport(page)).toHaveAttribute('data-selected-count', '0')
+    await shot(page, 'chamfer-with-hole.png', { locator: viewport(page) })
+  })
+
   test('fillet-vs-chamfer still', async ({ page }) => {
     await openApp(page)
     await loadScene(page, 'two-cubes.ndjson', 2)

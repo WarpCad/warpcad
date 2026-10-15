@@ -5,8 +5,21 @@ kind: finding
 priority: high
 model: opus
 depends: []
-status: open
+status: done
 ---
+
+> **What shipped (2026-10-15):** per-contour correspondence (the first design). `alignInsetContours`
+> pairs each section contour with its own inset ring and proves every vertex sits on its exact mitre
+> point (a mismatch throws instead of returning a twisted solid); `sidesInBaseOrder` keeps the sweep's
+> original side order so every single-outline result is byte-identical; `assertContoursClear` rejects a
+> radius where a hole's bevel would reach the outside edge or another hole (named, with the widest
+> radius that fits), and a flare that closes a hole. Islands inside holes are supported and tested.
+> Where a section's total area collapses first (a wall wider than the radius at a round hole of a thin
+> plate), the older `assertRadiusFits` message fires, not the new wall one; both leave the shape alone.
+> A second chamfer on the same face of an already-chamfered body is still refused as "not prismatic"
+> (pre-existing, not hole-specific). Doc: `docs/fillet-chamfer.md` "Shapes with holes"; still
+> `docs/screenshots/chamfer-with-hole.png`; app-level spec `e2e/chamfer-with-hole.e2e.js`
+> (chromium/firefox/webkit, laptop).
 
 ## Problem
 

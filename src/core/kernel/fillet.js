@@ -310,63 +310,419 @@ function bandOf(radius) {
   return Math.abs(radius)
 }
 
+/** @typedef {[number, number]} Vec2 */
+
 /**
- * Rotate an offset outline's vertex list so vertex `i` still corresponds to vertex `i`
- * of the outline it came from.
- *
- * `extrudeFromSlices` walls slice `n` to slice `n + 1` by index, so the two lists have
- * to agree on where the outline starts. They usually do — and every inward offset this
- * module took before `TODO/core-017` did, which is why this was never needed. An
- * **outward** `expansions.offset` does not: for a square it hands back
- * `[[13,-13],[13,13],[-13,13],[-13,-13]]` against a base of
- * `[[-10,-10],[10,-10],[10,10],[-10,10]]` — the same four corners, rotated one place.
- * Lofted as-is, every wall quad joins a corner to its *neighbour* and the solid comes
- * out twisted: a 3mm flare on a 20mm cube measured 556mm³ where 1596mm³ was right, and
- * crept towards the true value as slices were added rather than being wrong by a fixed
- * amount, which is exactly what a twist looks like.
- *
- * A pure offset moves every vertex and creates none (with `corners: 'edge'`), so the
- * correspondence is recoverable: take the cyclic shift that minimises total squared
- * distance between the two rings. Shift zero wins whenever the kernel already agreed,
- * which is why this is a no-op for every case that worked before.
- *
- * @param {Geom2} base Outline the offset was taken from.
- * @param {Geom2} offsetOutline Result of `expansions.offset`.
- * @param {string} op Named in the error.
- * @returns {Geom2}
+ * How far a vertex of an inset contour may sit from its exact mitre point before the
+ * two slices are judged not to correspond: an absolute floor plus a share of how far the
+ * vertex moved. `offsetFromPoints` computes the same intersection of the same two offset
+ * lines, so a true partner lands within ~1e-12 mm of it; a wrong partner is a whole side
+ * length away. The gap between the two is many orders of magnitude, so neither number is
+ * delicate.
  */
-function alignVertices(base, offsetOutline, op) {
-  const from = geometries.geom2.toPoints(base)
-  const to = geometries.geom2.toPoints(offsetOutline)
-  if (to.length !== from.length) {
+const CORRESPONDENCE_FLOOR_MM = 1e-6
+const CORRESPONDENCE_SHARE = 1e-6
+
+/**
+ * Two segments closer than this are touching. Used only between inset contours, where a
+ * touch is already a zero-width wall.
+ */
+const TOUCH_EPSILON_MM = 1e-9
+
+/**
+ * Signed area of a closed ring, positive counter-clockwise (shoelace).
+ *
+ * @param {Vec2[]} ring
+ * @returns {number} Square millimetres.
+ */
+function ringArea(ring) {
+  let twice = 0
+  for (let index = 0; index < ring.length; index += 1) {
+    const a = ring[index]
+    const b = ring[(index + 1) % ring.length]
+    twice += a[0] * b[1] - b[0] * a[1]
+  }
+  return twice / 2
+}
+
+/**
+ * Where an inset of `inset` mm puts each vertex of `ring`, worked out from the ring alone.
+ *
+ * A geom2 keeps its material on the **left** of every side: an outside edge winds
+ * counter-clockwise, a hole clockwise, an island inside a hole counter-clockwise again.
+ * So "inset into the material" is the same rule for every contour, whatever it is: move
+ * each side left by `inset` (right, for a negative inset) and take each corner where its
+ * two moved sides meet. That is a mitre — `expansions.offset` with `corners: 'edge'`
+ * builds exactly this point — and it sits `inset / cos(turn / 2)` from the vertex, which
+ * is `inset·√2` at a 90° corner (the bound `TODO/core-051` proposed, generalised so an
+ * acute corner, which moves further, is not refused).
+ *
+ * @param {Vec2[]} ring
+ * @param {number} inset Millimetres; negative moves the sides outward.
+ * @returns {Vec2[]} One point per vertex, `NaN` where the corner is a hairpin.
+ */
+function mitresOf(ring, inset) {
+  const count = ring.length
+  /** @param {Vec2} from @param {Vec2} to @returns {Vec2} */
+  const leftNormal = (from, to) => {
+    const dx = to[0] - from[0]
+    const dy = to[1] - from[1]
+    const length = Math.hypot(dx, dy)
+    return [-dy / length, dx / length]
+  }
+  return ring.map((vertex, index) => {
+    const before = leftNormal(ring[(index - 1 + count) % count], vertex)
+    const after = leftNormal(vertex, ring[(index + 1) % count])
+    const denominator = 1 + before[0] * after[0] + before[1] * after[1]
+    if (!(denominator > 1e-12)) return /** @type {Vec2} */ ([Number.NaN, Number.NaN])
+    return /** @type {Vec2} */ ([
+      vertex[0] + (inset * (before[0] + after[0])) / denominator,
+      vertex[1] + (inset * (before[1] + after[1])) / denominator,
+    ])
+  })
+}
+
+/**
+ * Pair each contour of the section with its own inset, start each inset ring at the
+ * partner of the base ring's first vertex, and **prove** every pairing rather than
+ * trusting it.
+ *
+ * ## Why per contour (TODO/core-051)
+ *
+ * `extrudeFromSlices` walls side `i` of one slice to side `i` of the next, so the two
+ * slices must agree side for side. Before this fix the agreement was recovered by trying
+ * every cyclic shift of **one flat list** of the section's points (`geom2.toPoints`) and
+ * keeping the cheapest. That is right for one closed outline, which is all `TODO/core-017`
+ * (an outward offset hands back the same square rotated one place) ever met. A face with
+ * a hole has two outlines, and `geom2.toPoints` returns their points **interleaved** in
+ * the kernel's internal order, differently for the section and for its inset — on the
+ * user's plate, outer ×3, hole ×4, outer for the section against outer ×3, hole ×3, outer,
+ * hole for its inset. No shift
+ * lines those up, so the loft walled corners to the wrong neighbours and returned a
+ * twisted solid: a chamfer that *added* 832 mm³, with no error.
+ *
+ * So the unit here is the contour. `expansions.offset` insets each outline on its own and
+ * keeps one inset ring per outline, which `geom2.toOutlines` reads back. For each base
+ * ring this finds the inset ring and start vertex that put every vertex on its own mitre
+ * ({@link mitresOf}), and keeps the best. An outside edge and a hole can never trade
+ * places, because their mitres move in opposite directions relative to their winding.
+ *
+ * ## Verified, not assumed
+ *
+ * The best match is then held to the mitre within {@link CORRESPONDENCE_FLOOR_MM}. A
+ * pairing that only *looks* plausible — the right counts, the right windings, the wrong
+ * vertices — throws here instead of reaching the loft. That is the gap that let this bug
+ * through: the old guard checked only that the vertex counts matched.
+ *
+ * Exported for its spec, which feeds it insets that do not correspond.
+ *
+ * @param {Vec2[][]} contours The section's outlines, `geom2.toOutlines(base)`.
+ * @param {Geom2} insetSection `expansions.offset({ delta: -inset, corners: 'edge' }, base)`.
+ * @param {number} inset Millimetres, signed as the offset was.
+ * @param {string} op Named in the error.
+ * @returns {Vec2[][]} One ring per contour, in contour order, vertex `i` partnering
+ *   vertex `i` of that contour.
+ */
+export function alignInsetContours(contours, insetSection, inset, op) {
+  if (inset === 0) return contours
+  const rings = /** @type {Vec2[][]} */ (geometries.geom2.toOutlines(insetSection))
+  const fromCount = contours.reduce((sum, ring) => sum + ring.length, 0)
+  const toCount = rings.reduce((sum, ring) => sum + ring.length, 0)
+  /** @returns {never} */
+  const countChanged = () => {
     // `extrudeFromSlices` cannot wall two rings of different lengths into anything
-    // meaningful, and quietly returning a mangled solid is the failure class this
-    // whole module exists to refuse.
+    // meaningful, and quietly returning a mangled solid is the failure class this whole
+    // module exists to refuse.
     throw new Error(
       `${op}: the rim profile changes the cross-section's vertex count ` +
-        `(${from.length} to ${to.length}), so the sweep has no correspondence to loft ` +
+        `(${fromCount} to ${toCount}), so the sweep has no correspondence to loft ` +
         'along. This happens when an offset merges or splits part of the outline; use ' +
         'a smaller radius.'
     )
   }
-  let bestShift = 0
-  let bestCost = Infinity
-  for (let shift = 0; shift < from.length; shift += 1) {
-    let cost = 0
-    for (let index = 0; index < from.length; index += 1) {
-      const a = from[index]
-      const b = to[(index + shift) % from.length]
-      cost += (a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2
+  if (rings.length !== contours.length || toCount !== fromCount) countChanged()
+
+  const used = new Set()
+  return contours.map((ring, contourIndex) => {
+    const mitres = mitresOf(ring, inset)
+    let best = { worst: Infinity, candidate: -1, shift: 0 }
+    rings.forEach((candidate, candidateIndex) => {
+      if (used.has(candidateIndex) || candidate.length !== ring.length) return
+      // Start at the candidate vertex nearest the first mitre, then measure every vertex.
+      let shift = 0
+      let nearest = Infinity
+      candidate.forEach((point, index) => {
+        const distance = Math.hypot(point[0] - mitres[0][0], point[1] - mitres[0][1])
+        if (distance < nearest) {
+          nearest = distance
+          shift = index
+        }
+      })
+      let worst = 0
+      for (let index = 0; index < ring.length && worst <= best.worst; index += 1) {
+        const point = candidate[(index + shift) % ring.length]
+        const mitre = mitres[index]
+        const moved = Math.hypot(mitre[0] - ring[index][0], mitre[1] - ring[index][1])
+        const allowed = CORRESPONDENCE_FLOOR_MM + CORRESPONDENCE_SHARE * moved
+        const miss = Math.hypot(point[0] - mitre[0], point[1] - mitre[1]) / allowed
+        worst = Number.isNaN(miss) ? Infinity : Math.max(worst, miss)
+      }
+      if (worst < best.worst) best = { worst, candidate: candidateIndex, shift }
+    })
+    if (best.candidate < 0) countChanged()
+    if (!(best.worst <= 1)) {
+      throw new Error(
+        `${op}: the rim profile's slices do not correspond — contour ${contourIndex + 1} of ` +
+          `the cross-section has no inset ring whose corners sit where a ${inset}mm inset ` +
+          'puts them. Lofting them would return a twisted solid, so this stops here; ' +
+          'please report it with the project file.'
+      )
     }
-    if (cost < bestCost) {
-      bestCost = cost
-      bestShift = shift
+    used.add(best.candidate)
+    const partner = rings[best.candidate]
+    return ring.map((_unused, index) => partner[(index + best.shift) % ring.length])
+  })
+}
+
+/**
+ * What each contour of a section is, for an error a person can act on.
+ *
+ * @param {Vec2[][]} contours
+ * @returns {Array<'outside' | 'hole' | 'island'>}
+ */
+function contourKinds(contours) {
+  /** @param {Vec2} point @param {Vec2[]} ring */
+  const inside = (point, ring) => {
+    let crossings = 0
+    for (let index = 0, previous = ring.length - 1; index < ring.length; previous = index, index += 1) {
+      const a = ring[index]
+      const b = ring[previous]
+      if (a[1] > point[1] !== b[1] > point[1] && point[0] < ((b[0] - a[0]) * (point[1] - a[1])) / (b[1] - a[1]) + a[0]) {
+        crossings += 1
+      }
+    }
+    return crossings % 2 === 1
+  }
+  return contours.map((ring, index) => {
+    if (ringArea(ring) < 0) return 'hole'
+    const depth = contours.filter((other, otherIndex) => otherIndex !== index && inside(ring[0], other)).length
+    return depth === 0 ? 'outside' : 'island'
+  })
+}
+
+/**
+ * Shortest distance between segments `a0a1` and `b0b1`.
+ *
+ * @param {Vec2} a0 @param {Vec2} a1 @param {Vec2} b0 @param {Vec2} b1
+ * @returns {number} Millimetres; 0 when they cross.
+ */
+function segmentDistance(a0, a1, b0, b1) {
+  /** @param {Vec2} p @param {Vec2} q @param {Vec2} r */
+  const cross = (p, q, r) => (q[0] - p[0]) * (r[1] - p[1]) - (q[1] - p[1]) * (r[0] - p[0])
+  const d1 = cross(b0, b1, a0)
+  const d2 = cross(b0, b1, a1)
+  const d3 = cross(a0, a1, b0)
+  const d4 = cross(a0, a1, b1)
+  if (((d1 > 0 && d2 < 0) || (d1 < 0 && d2 > 0)) && ((d3 > 0 && d4 < 0) || (d3 < 0 && d4 > 0))) return 0
+  /** @param {Vec2} p @param {Vec2} s0 @param {Vec2} s1 */
+  const toSegment = (p, s0, s1) => {
+    const dx = s1[0] - s0[0]
+    const dy = s1[1] - s0[1]
+    const lengthSquared = dx * dx + dy * dy
+    const t = lengthSquared === 0 ? 0 : Math.max(0, Math.min(1, ((p[0] - s0[0]) * dx + (p[1] - s0[1]) * dy) / lengthSquared))
+    return Math.hypot(p[0] - (s0[0] + t * dx), p[1] - (s0[1] + t * dy))
+  }
+  return Math.min(toSegment(a0, b0, b1), toSegment(a1, b0, b1), toSegment(b0, a0, a1), toSegment(b1, a0, a1))
+}
+
+/**
+ * The first pair of sides of the inset rings that touch or cross, other than neighbours
+ * in one ring, or `null` if none do. A sort-and-sweep on X keeps this near linear on a
+ * finely tessellated round hole.
+ *
+ * @param {Vec2[][]} rings
+ * @returns {{ ringA: number, sideA: number, ringB: number, sideB: number } | null}
+ */
+function firstCollision(rings) {
+  const sides = rings.flatMap((ring, ringIndex) =>
+    ring.map((from, sideIndex) => {
+      const to = ring[(sideIndex + 1) % ring.length]
+      return {
+        ringIndex,
+        sideIndex,
+        from,
+        to,
+        minX: Math.min(from[0], to[0]),
+        maxX: Math.max(from[0], to[0]),
+        minY: Math.min(from[1], to[1]),
+        maxY: Math.max(from[1], to[1]),
+      }
+    })
+  )
+  sides.sort((a, b) => a.minX - b.minX)
+  for (let i = 0; i < sides.length; i += 1) {
+    const a = sides[i]
+    for (let j = i + 1; j < sides.length && sides[j].minX <= a.maxX + TOUCH_EPSILON_MM; j += 1) {
+      const b = sides[j]
+      if (b.minY > a.maxY + TOUCH_EPSILON_MM || a.minY > b.maxY + TOUCH_EPSILON_MM) continue
+      if (a.ringIndex === b.ringIndex) {
+        const length = rings[a.ringIndex].length
+        const gap = Math.abs(a.sideIndex - b.sideIndex)
+        if (gap <= 1 || gap === length - 1) continue
+      }
+      if (segmentDistance(a.from, a.to, b.from, b.to) <= TOUCH_EPSILON_MM) {
+        return { ringA: a.ringIndex, sideA: a.sideIndex, ringB: b.ringIndex, sideB: b.sideIndex }
+      }
     }
   }
-  if (bestShift === 0) return offsetOutline
-  return geometries.geom2.fromPoints(
-    from.map((_unused, index) => to[(index + bestShift) % from.length])
+  return null
+}
+
+/**
+ * What a positive radius runs into, by the kinds of the two contours that met (sorted,
+ * joined with `+`). Only these two pairs move *towards* each other under an inset; an
+ * island and the hole round it move apart.
+ *
+ * @type {Readonly<Record<string, string>>}
+ */
+const WALL_NAMES = Object.freeze({
+  'hole+outside': 'the wall between a hole and the outside edge',
+  'hole+hole': 'the wall between two holes',
+})
+
+/**
+ * The same for a flare (negative radius), which moves every contour the other way.
+ *
+ * @type {Readonly<Record<string, string>>}
+ */
+const GAP_NAMES = Object.freeze({
+  'hole+island': 'the gap between a hole and the island inside it',
+  'outside+outside': 'the gap between two separate outlines',
+})
+
+/**
+ * Reject a radius the face's contours cannot all take without running into each other
+ * (`TODO/core-051`).
+ *
+ * A rim op moves **every** contour of the face into the material: a chamfer of *r* cuts
+ * the outside edge in by *r* and grows each hole by *r*. So the wall between a hole and
+ * the outside edge, or between two holes, is cut from both sides, and when it is narrower
+ * than `2r` the two bevels cross. `expansions.offset` does not notice — it offsets each
+ * outline on its own — and {@link assertRadiusFits} cannot either, because it reads only
+ * the section's total area, which keeps falling straight through the collision. A
+ * negative radius runs the other way: it shrinks every hole, and a hole smaller than
+ * `2|r|` closes and re-opens inside out, which `offset` does not stop at either (the
+ * core-003 note on {@link assertRadiusFits}).
+ *
+ * Checked at every inset the profile lofts *and* at evenly spaced probes across the
+ * band, since a chamfer lofts only its two ends:
+ *
+ * - each contour's signed area must keep moving the one way an inset moves it — down for
+ *   a positive radius, up for a negative one — and never change sign, which catches a
+ *   hole or an island collapsing;
+ * - no two sides of the inset rings may touch or cross, other than neighbours, which
+ *   catches two contours (or two stretches of one) meeting.
+ *
+ * @param {Vec2[][]} contours The section's outlines.
+ * @param {Array<{ inset: number, rings: Vec2[][] }>} samples Ordered by `|inset|`, rising.
+ * @param {number} radius Signed.
+ * @param {string} op
+ * @returns {void}
+ */
+function assertContoursClear(contours, samples, radius, op) {
+  const kinds = contourKinds(contours)
+  const direction = Math.sign(radius)
+  let previous = contours.map(ringArea)
+  for (const { inset, rings } of samples) {
+    const areas = rings.map(ringArea)
+    areas.forEach((area, index) => {
+      // Floating-point slack only: two samples a hair apart (a fillet's last inset,
+      // r·(1 − cos 90°), against the probe at r) may measure equal.
+      const slack = 1e-9 * Math.abs(previous[index])
+      if (Math.sign(area) === Math.sign(previous[index]) && direction * (previous[index] - area) >= -slack) return
+      if (radius < 0 && kinds[index] === 'hole') {
+        throw new Error(
+          `${op}: a ${-radius}mm flare closes a hole in this face — a flare shrinks every hole ` +
+            `by ${-radius}mm on each side, and this one is too small to take it. Use a smaller ` +
+            'flare, or fill the hole first.'
+        )
+      }
+      throw new Error(
+        `${op}: radius ${radius}mm is wider than the cross-section can absorb — an inset of ` +
+          `${Math.abs(inset).toFixed(3)}mm collapses ${kinds[index] === 'island' ? 'an island' : 'one of its outlines'}. ` +
+          'Use a smaller radius.'
+      )
+    })
+    previous = areas
+
+    const hit = firstCollision(rings)
+    if (hit) {
+      const a = contours[hit.ringA]
+      const b = contours[hit.ringB]
+      const width = segmentDistance(
+        a[hit.sideA],
+        a[(hit.sideA + 1) % a.length],
+        b[hit.sideB],
+        b[(hit.sideB + 1) % b.length]
+      )
+      // Two stretches of one ring meeting (a hole bent round a thin tongue) name no pair.
+      const pair =
+        hit.ringA === hit.ringB ? 'same' : [kinds[hit.ringA], kinds[hit.ringB]].sort((x, y) => x.localeCompare(y)).join('+')
+      const size = Math.abs(radius)
+      if (radius > 0) {
+        const what = WALL_NAMES[pair] ?? 'a wall of this face'
+        throw new Error(
+          `${op}: radius ${radius}mm is too large for this face — ${what} is only ` +
+            `${width.toFixed(2)}mm wide, and the rim cuts into it by ${size}mm from each side, ` +
+            `so the two cuts would run into each other. Use a radius under ${(width / 2).toFixed(2)}mm.`
+        )
+      }
+      const what = GAP_NAMES[pair] ?? 'a gap in this face'
+      throw new Error(
+        `${op}: a ${size}mm flare is too large for this face — ${what} is only ` +
+          `${width.toFixed(2)}mm wide, and the flare grows into it by ${size}mm from each side, ` +
+          `so the two would run into each other. Use a flare under ${(width / 2).toFixed(2)}mm.`
+      )
+    }
+  }
+}
+
+/**
+ * Build each slice's sides in the base section's **own** side order, so side `i` of every
+ * slice partners side `i` of the base.
+ *
+ * Any one order would do for correctness, as long as every slice used it. This one is the
+ * order the sweep used before `TODO/core-051` (`geom2.toSides(base)`), so wherever the old
+ * sweep was already right (every single-outline face) it still writes the identical
+ * polygons, and the `legacy` tessellation golden (`resolution.spec.js`) stays
+ * byte-for-byte. `geom2.toOutlines` starts each ring one vertex along from `toSides`, which
+ * is why the rings themselves are not used in their own order.
+ *
+ * @param {Geom2} base
+ * @param {Vec2[][]} contours `geom2.toOutlines(base)`.
+ * @param {string} op
+ * @returns {(rings: Vec2[][]) => Array<[Vec2, Vec2]>} Sides for rings aligned to `contours`.
+ */
+function sidesInBaseOrder(base, contours, op) {
+  /** @param {Vec2} from @param {Vec2} to */
+  const keyOf = (from, to) => `${from[0]},${from[1]}|${to[0]},${to[1]}`
+  /** @type {Map<string, [number, number]>} */
+  const where = new Map()
+  contours.forEach((ring, contour) =>
+    ring.forEach((point, index) => where.set(keyOf(point, ring[(index + 1) % ring.length]), [contour, index]))
   )
+  const order = geometries.geom2.toSides(base).map(([from, to]) => {
+    const found = where.get(keyOf(/** @type {Vec2} */ (from), /** @type {Vec2} */ (to)))
+    if (!found) {
+      throw new Error(`${op}: the cross-section's outlines do not account for every side of it, so the sweep has no correspondence to loft along.`)
+    }
+    return found
+  })
+  return (rings) =>
+    order.map(([contour, index]) => {
+      const ring = rings[contour]
+      return /** @type {[Vec2, Vec2]} */ ([ring[index], ring[(index + 1) % ring.length]])
+    })
 }
 
 /**
@@ -401,21 +757,43 @@ function sweepRim({ solid, radius, orientation, slices, profile, op }) {
   //
   // Only for an inward radius: the guard exists because an over-large *inset*
   // collapses the outline through zero and re-expands it inverted. An outward offset
-  // has no such failure mode — the section only grows — so applying the guard to a
-  // negative radius would reject every legitimate flare.
+  // has no such failure mode for the outside edge — the section only grows — so
+  // applying the guard to a negative radius would reject every legitimate flare. (It
+  // does for a hole, which a flare shrinks; `assertContoursClear` covers that per contour.)
   if (r > 0) assertRadiusFits(base, r, op)
+
+  // The section as contours — the unit the slices must correspond by (TODO/core-051).
+  const contours = /** @type {Vec2[][]} */ (geometries.geom2.toOutlines(base))
+  /** @type {Map<number, Vec2[][]>} */
+  const ringsAt = new Map([[0, contours]])
+  /** @param {number} inset @returns {Vec2[][]} */
+  const insetRings = (inset) => {
+    let rings = ringsAt.get(inset)
+    if (!rings) {
+      rings = alignInsetContours(contours, expansions.offset({ delta: -inset, corners: 'edge' }, base), inset, op)
+      ringsAt.set(inset, rings)
+    }
+    return rings
+  }
+
   const steps = Array.from({ length: slices }, (_unused, index) => profile(index / (slices - 1), r))
-  const outlines = steps.map(({ inset }) =>
-    inset === 0
-      ? base
-      : alignVertices(base, expansions.offset({ delta: -inset, corners: 'edge' }, base), op)
+  const probes = Array.from({ length: RADIUS_PROBE_SAMPLES - 1 }, (_unused, index) => (r * (index + 1)) / (RADIUS_PROBE_SAMPLES - 1))
+  const insets = [...new Set([...steps.map(({ inset }) => inset), ...probes])]
+    .filter((inset) => inset !== 0)
+    .sort((a, b) => Math.abs(a) - Math.abs(b))
+  assertContoursClear(
+    contours,
+    insets.map((inset) => ({ inset, rings: insetRings(inset) })),
+    r,
+    op
   )
 
+  const sidesOf = sidesInBaseOrder(base, contours, op)
   const loft = extrusions.extrudeFromSlices(
     {
       numberOfSlices: slices,
       callback: (_progress, index) => {
-        const s = extrusions.slice.fromSides(geometries.geom2.toSides(outlines[index]))
+        const s = extrusions.slice.fromSides(/** @type {any} */ (sidesOf(insetRings(steps[index].inset))))
         return extrusions.slice.transform(
           maths.mat4.fromTranslation(maths.mat4.create(), [0, 0, cutZ + steps[index].rise]),
           s

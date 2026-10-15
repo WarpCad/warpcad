@@ -97,6 +97,53 @@ just with its corners eased rather than sharp. The Inspector's own Size fields
 for the shape stay unchanged, since they describe the shape's own original
 creation parameters, not its current rounded-off silhouette.
 
+## Shapes with holes
+
+If the face you pick has a hole in it, **the rim of the hole is rounded or
+bevelled too**, not just the outside edge. Fillet and Chamfer work on the whole
+face's rim, and a hole is part of that rim. The cut on a hole makes the hole
+**wider** at the face by the radius you typed, the same way the outside edge is
+cut back by it.
+
+Try it:
+
+1. In Sketch mode, draw a rectangle and then a smaller rectangle inside it, and
+   mark the inner one as a hole (a 100 x 60 mm outer with a 50 x 20 mm hole works
+   well).
+2. Extrude the sketch 10 mm.
+3. Select the extruded body.
+4. Click **Chamfer**, set **Face** to **Top (+Z)**, type **2** as the radius and
+   press **Chamfer**.
+
+Both the outer edge and the edge of the hole come out bevelled by 2 mm:
+
+![A rectangular plate with a rectangular hole, the top rim of both the outside and the hole bevelled](./screenshots/chamfer-with-hole.png)
+
+Several holes, a hole near a corner, round holes, and an island standing inside a
+hole all work the same way.
+
+### When the radius is too big for the wall
+
+Because the cut eats into the material from **both** sides of a wall, a wall
+between a hole and the outside edge (or between two holes) can only take a radius
+under half its width. A larger radius is refused and the shape is left alone. For
+a 2 mm wall and a radius of 1.5:
+
+> radius 1.5mm is too large for this face — the wall between a hole and the
+> outside edge is only 2.00mm wide, and the rim cuts into it by 1.5mm from each
+> side, so the two cuts would run into each other. Use a radius under 1.00mm.
+
+(On a very thin plate, a radius that would use up the whole cross-section is
+refused earlier, with a message that says the radius is wider than the
+cross-section can absorb. The fix is the same: use a smaller radius.)
+
+A negative radius (a flare) goes the other way: it makes every hole smaller, and
+one that is too small to take it is refused too:
+
+> a 3mm flare closes a hole in this face — a flare shrinks every hole by 3mm on
+> each side, and this one is too small to take it. Use a smaller flare, or fill
+> the hole first.
+
 ## Not yet supported
 
 - **Picking an edge directly.** As covered above, this isn't offered by the

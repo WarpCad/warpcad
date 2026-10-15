@@ -2,7 +2,10 @@
 import { describe, expect, it } from 'vitest'
 import modeling from '@jscad/modeling'
 
-import { chamferRim, filletRim, RIM_ORIENTATIONS } from './fillet.js'
+// The user's saved project from the TODO/core-051 report, as text.
+import chamferErrorProject from '../../../examples/chamfer error.ndjson?raw'
+
+import { alignInsetContours, chamferRim, filletRim, RIM_ORIENTATIONS } from './fillet.js'
 
 const { booleans, expansions, geometries, measurements, minkowski, modifiers, primitives, transforms } = modeling
 
@@ -229,6 +232,280 @@ describe('rim ops reject what they cannot model, rather than returning wrong geo
     expect(volumeOf(chamferRim({ radius: 3, orientation: 'z+' }, cube20()))).toBeLessThan(
       volumeOf(cube20())
     )
+  })
+})
+
+/**
+ * A plate with holes through it, built from primitives and `subtract` — not the sketch
+ * primitive, so a failure here is the rim sweep's, not the sketch's. The plate's top face
+ * is at `z = height / 2` and every hole runs right through it.
+ *
+ * Alongside the solid, this returns the two numbers the volume oracle needs, derived from
+ * the construction rather than measured off the result (see {@link chamferRemoved}):
+ *
+ * - `perimeter`: every boundary of the top face, holes included, because the rim op
+ *   bevels a hole's edge as well as the outside edge.
+ * - `corners`: the Steiner constant `Σ tan(turnᵢ / 2)`, the δ² term of a mitred offset's
+ *   area. A convex 90° corner adds 1, so an outside rectangle adds 4. A hole's corners are
+ *   reflex corners of the *material* and subtract, so a square hole takes 4 away and a
+ *   regular n-gon hole takes `n·tan(π/n)` (π in the limit) away.
+ *
+ * @param {object} spec
+ * @param {[number, number]} spec.size Outside of the plate, millimetres.
+ * @param {number} [spec.height]
+ * @param {[number, number]} [spec.center] Plate centre in X/Y.
+ * @param {Array<{ size: [number, number], center: [number, number] } | { radius: number, segments: number, center: [number, number] }>} spec.holes
+ * @returns {{ solid: Geom3, perimeter: number, corners: number }}
+ */
+function plateWithHoles({ size, height = 10, center = [0, 0], holes }) {
+  let solid = primitives.cuboid({ size: [size[0], size[1], height], center: [center[0], center[1], 0] })
+  let perimeter = 2 * (size[0] + size[1])
+  let corners = 4
+  for (const hole of holes) {
+    if ('radius' in hole) {
+      const { radius, segments } = hole
+      solid = booleans.subtract(
+        solid,
+        primitives.cylinder({ radius, segments, height: height * 3, center: [hole.center[0], hole.center[1], 0] })
+      )
+      perimeter += 2 * segments * radius * Math.sin(Math.PI / segments)
+      corners -= segments * Math.tan(Math.PI / segments)
+    } else {
+      solid = booleans.subtract(
+        solid,
+        primitives.cuboid({ size: [hole.size[0], hole.size[1], height * 3], center: [hole.center[0], hole.center[1], 0] })
+      )
+      perimeter += 2 * (hole.size[0] + hole.size[1])
+      corners -= 4
+    }
+  }
+  return { solid, perimeter, corners }
+}
+
+/**
+ * The user's plate from the 2026-10-04 report, built from the numbers in the saved
+ * project itself (`examples/chamfer error.ndjson`): a 215.1 × 127.5 mm rectangle with a
+ * 120.4 × 65.8 mm rectangular hole, extruded 10 mm. Read from the file, not retyped, so
+ * the spec and the fixture cannot drift apart.
+ *
+ * @returns {{ solid: Geom3, perimeter: number, corners: number }}
+ */
+function usersPlate() {
+  const sketch = chamferErrorProject
+    .split('\n')
+    .filter((/** @type {string} */ line) => line.trim() !== '')
+    .map((/** @type {string} */ line) => JSON.parse(line))
+    .find((/** @type {any} */ record) => record.op === 'primitive.sketch')
+  const [outside, hole] = sketch.params.slices[0].profiles
+  return plateWithHoles({
+    size: [outside.widthMm, outside.heightMm],
+    height: sketch.params.extrusion.heightMm,
+    center: outside.centerMm,
+    holes: [{ size: [hole.widthMm, hole.heightMm], center: hole.centerMm }],
+  })
+}
+
+/**
+ * Every holed fixture, with the radii each one takes. Each runs through *both* ops.
+ *
+ * @type {Array<[string, () => { solid: Geom3, perimeter: number, corners: number }, number[]]>}
+ */
+const HOLED_PLATES = [
+  ["the user's plate (examples/chamfer error.ndjson)", usersPlate, [1, 2, 5]],
+  ['a square hole', () => plateWithHoles({ size: [40, 40], holes: [{ size: [20, 20], center: [0, 0] }] }), [2]],
+  ['a round hole', () => plateWithHoles({ size: [40, 40], holes: [{ radius: 10, segments: 32, center: [0, 0] }] }), [2]],
+  [
+    'two holes',
+    () => plateWithHoles({ size: [60, 30], holes: [{ size: [10, 10], center: [-12, 0] }, { size: [10, 10], center: [12, 0] }] }),
+    [2],
+  ],
+  ['an off-centre hole', () => plateWithHoles({ size: [40, 40], holes: [{ size: [10, 10], center: [8, -6] }] }), [2]],
+  // Walls of 3 mm on two sides, meeting at the plate's corner: 1 mm fits, 2 mm does not
+  // (that one is in the rejection block below).
+  ['a hole near a corner', () => plateWithHoles({ size: [40, 40], holes: [{ size: [8, 8], center: [13, 13] }] }), [1]],
+]
+
+/** @type {Array<[string, 'chamferRim' | 'filletRim', number, () => { solid: Geom3, perimeter: number, corners: number }]>} */
+const HOLED_ROWS = HOLED_PLATES.flatMap(([name, build, radii]) =>
+  radii.flatMap((radius) => /** @type {const} */ (['chamferRim', 'filletRim']).map((op) => /** @type {any} */ ([name, op, radius, build])))
+)
+
+/**
+ * Volume a rim op removes (positive radius) or adds (negative), per the analytic oracle.
+ * For a flare the offset runs the other way, `A(δ) = A₀ + P·δ + C·δ²`, so the corner term
+ * changes sign.
+ *
+ * @param {'chamferRim' | 'filletRim'} op
+ * @param {number} perimeter
+ * @param {number} corners
+ * @param {number} radius
+ * @returns {number} Removed volume, mm³; negative when material is added.
+ */
+function oracleRemoved(op, perimeter, corners, radius) {
+  const r = Math.abs(radius)
+  const linear = op === 'chamferRim' ? (perimeter * r ** 2) / 2 : perimeter * r ** 2 * (1 - Math.PI / 4)
+  const corner = op === 'chamferRim' ? (corners * r ** 3) / 3 : corners * r ** 3 * (1 + 2 / 3 - Math.PI / 2)
+  return radius > 0 ? linear - corner : -(linear + corner)
+}
+
+/**
+ * The relative tolerance each op is held to. A chamfer is exact in two slices, so only the
+ * section read (≤ 1e-3 mm of slab) is left: 0.1 %. A fillet's chords cut inside the arc
+ * (see `DEFAULT_RIM_SEGMENTS`): 1 %. Every wrong result in the TODO's table was out by
+ * more than 25 %.
+ */
+const RIM_TOLERANCE = { chamferRim: 1e-3, filletRim: 1e-2 }
+
+/**
+ * @param {'chamferRim' | 'filletRim'} op
+ * @param {{ radius: number, orientation?: string }} options
+ * @param {Geom3} solid
+ * @returns {Geom3}
+ */
+const runRim = (op, options, solid) => (op === 'chamferRim' ? chamferRim(options, solid) : filletRim(options, solid))
+
+describe('rim ops on a face with holes (TODO/core-051)', () => {
+  it.each(HOLED_ROWS)('%s: %s r=%d removes the analytic volume from the outside edge and the hole', (_name, op, radius, build) => {
+    const { solid, perimeter, corners } = build()
+    const removed = volumeOf(solid) - volumeOf(runRim(op, { radius }, solid))
+    const expected = oracleRemoved(op, perimeter, corners, radius)
+    expect(removed).toBeGreaterThan(0)
+    expect(Math.abs(removed - expected) / expected).toBeLessThan(RIM_TOLERANCE[op])
+  })
+
+  it.each(/** @type {const} */ (['chamferRim', 'filletRim']))(
+    '%s: an island inside a hole is bevelled too (a tube with a post standing in it)',
+    (op) => {
+      // Three contours on one face: the tube's outside, its bore, and the post's outside —
+      // the post is an island in the bore. Every one of them is a rim the op bevels.
+      const tube = booleans.subtract(primitives.cuboid({ size: [40, 40, 10] }), primitives.cuboid({ size: [30, 30, 30] }))
+      const solid = booleans.union(tube, primitives.cuboid({ size: [10, 10, 10] }))
+      const removed = volumeOf(solid) - volumeOf(runRim(op, { radius: 1.5 }, solid))
+      // 160 + 120 + 40 mm of rim; corners +4 (outside) −4 (bore) +4 (post).
+      const expected = oracleRemoved(op, 320, 4, 1.5)
+      expect(Math.abs(removed - expected) / expected).toBeLessThan(RIM_TOLERANCE[op])
+    }
+  )
+
+  it.each(/** @type {const} */ (['chamferRim', 'filletRim']))(
+    '%s: works on a face that is not z+ (z− and y+), through the canonical frame',
+    (op) => {
+      const { solid, perimeter, corners } = plateWithHoles({ size: [40, 40], holes: [{ size: [20, 20], center: [0, 0] }] })
+      const expected = oracleRemoved(op, perimeter, corners, 2)
+      // The plate is symmetric through z = 0, so its z− face is the same rim.
+      const bottom = volumeOf(solid) - volumeOf(runRim(op, { radius: 2, orientation: 'z-' }, solid))
+      expect(Math.abs(bottom - expected) / expected).toBeLessThan(RIM_TOLERANCE[op])
+      // Turned so its holed face points +Y: rotateX(−90°) carries +Z onto +Y.
+      const turned = transforms.rotateX(-Math.PI / 2, solid)
+      const side = volumeOf(turned) - volumeOf(runRim(op, { radius: 2, orientation: 'y+' }, turned))
+      expect(Math.abs(side - expected) / expected).toBeLessThan(RIM_TOLERANCE[op])
+    }
+  )
+
+  it.each(/** @type {const} */ (['chamferRim', 'filletRim']))(
+    '%s: a negative radius flares the outside edge outward and shrinks the hole (TODO/core-017)',
+    (op) => {
+      for (const build of [
+        () => plateWithHoles({ size: [40, 40], holes: [{ size: [20, 20], center: [0, 0] }] }),
+        () => plateWithHoles({ size: [40, 40], holes: [{ radius: 10, segments: 32, center: [0, 0] }] }),
+      ]) {
+        const { solid, perimeter, corners } = build()
+        const flared = runRim(op, { radius: -2 }, solid)
+        const added = volumeOf(flared) - volumeOf(solid)
+        const expected = -oracleRemoved(op, perimeter, corners, -2)
+        expect(added).toBeGreaterThan(0)
+        expect(Math.abs(added - expected) / expected).toBeLessThan(RIM_TOLERANCE[op])
+        // The face grew 2 mm on every side and the solid kept its height.
+        const [min, max] = measurements.measureBoundingBox(flared)
+        expect(max[0] - min[0]).toBeCloseTo(44, 3)
+        expect(max[2] - min[2]).toBeCloseTo(10, 3)
+      }
+    }
+  )
+
+  it('leaves a plate with no hole exactly where it was (the TODO table\'s control row)', () => {
+    const { solid } = plateWithHoles({ size: [40, 40], holes: [] })
+    expect(volumeOf(solid) - volumeOf(chamferRim({ radius: 2 }, solid))).toBeCloseTo(chamferRemoved(160, 4, 2), 1)
+    const filleted = volumeOf(solid) - volumeOf(filletRim({ radius: 2, segments: 256 }, solid))
+    expect(filleted).toBeCloseTo(filletRemoved(160, 4, 2), 1)
+  })
+})
+
+describe('rim ops refuse a radius a holed face cannot take (TODO/core-051)', () => {
+  it.each(/** @type {const} */ (['chamferRim', 'filletRim']))(
+    '%s: a hole 2 mm from the outside edge takes 0.9 mm but refuses 1.5 mm, naming the wall',
+    (op) => {
+      const { solid, perimeter, corners } = plateWithHoles({ size: [40, 40], holes: [{ size: [10, 10], center: [13, 0] }] })
+      // Both cuts eat into the 2 mm wall from either side: 2 × 1.5 > 2.
+      expect(() => runRim(op, { radius: 1.5 }, solid)).toThrow(/radius 1\.5mm is too large for this face/)
+      expect(() => runRim(op, { radius: 1.5 }, solid)).toThrow(/wall between a hole and the outside edge is only 2\.00mm wide/)
+      const removed = volumeOf(solid) - volumeOf(runRim(op, { radius: 0.9 }, solid))
+      const expected = oracleRemoved(op, perimeter, corners, 0.9)
+      expect(Math.abs(removed - expected) / expected).toBeLessThan(RIM_TOLERANCE[op])
+    }
+  )
+
+  it.each(/** @type {const} */ (['chamferRim', 'filletRim']))('%s: two holes 2 mm apart refuse 1.5 mm, naming them', (op) => {
+    const { solid } = plateWithHoles({ size: [60, 30], holes: [{ size: [10, 10], center: [-6, 0] }, { size: [10, 10], center: [6, 0] }] })
+    expect(() => runRim(op, { radius: 1.5 }, solid)).toThrow(/wall between two holes is only 2\.00mm wide/)
+  })
+
+  it.each(/** @type {const} */ (['chamferRim', 'filletRim']))('%s: a hole near a corner refuses a radius its 3 mm walls cannot take', (op) => {
+    const { solid } = plateWithHoles({ size: [40, 40], holes: [{ size: [8, 8], center: [13, 13] }] })
+    expect(() => runRim(op, { radius: 2 }, solid)).toThrow(/wall between a hole and the outside edge is only 3\.00mm wide/)
+  })
+
+  it.each(/** @type {const} */ (['chamferRim', 'filletRim']))(
+    '%s: a flare that would close a hole is refused, and one that fits is not',
+    (op) => {
+      // A 4 mm hole: a −3 mm flare shrinks it 3 mm from every side, through nothing and
+      // out the other side. offset() does not stop at empty (see the core-003 block), so
+      // without the check this returns a hole that has quietly turned inside out.
+      const { solid, perimeter, corners } = plateWithHoles({ size: [40, 40], holes: [{ size: [4, 4], center: [0, 0] }] })
+      expect(() => runRim(op, { radius: -3 }, solid)).toThrow(/a 3mm flare closes a hole in this face/)
+      const added = volumeOf(runRim(op, { radius: -1.5 }, solid)) - volumeOf(solid)
+      const expected = -oracleRemoved(op, perimeter, corners, -1.5)
+      expect(Math.abs(added - expected) / expected).toBeLessThan(RIM_TOLERANCE[op])
+    }
+  )
+})
+
+describe('the sweep verifies slice correspondence instead of assuming it (TODO/core-051)', () => {
+  // A plate section with a square hole, wound as geom2 winds it: material on the left.
+  const section = geometries.geom2.create([
+    ...[[-20, -20], [20, -20], [20, 20], [-20, 20]].map((point, index, ring) => [point, ring[(index + 1) % 4]]),
+    ...[[-10, -10], [-10, 10], [10, 10], [10, -10]].map((point, index, ring) => [point, ring[(index + 1) % 4]]),
+  ].map((side) => /** @type {any} */ (side)))
+  const contours = geometries.geom2.toOutlines(section)
+
+  it('pairs each contour with its own inset, in base order, every vertex on its mitre', () => {
+    const inset = expansions.offset({ delta: -2, corners: 'edge' }, section)
+    const aligned = alignInsetContours(contours, inset, 2, 'test')
+    expect(aligned).toHaveLength(contours.length)
+    aligned.forEach((ring, ringIndex) => {
+      expect(ring).toHaveLength(contours[ringIndex].length)
+      ring.forEach((point, index) => {
+        const from = contours[ringIndex][index]
+        // A 90° corner's mitre moves it √2 × inset, diagonally.
+        expect(Math.hypot(point[0] - from[0], point[1] - from[1])).toBeCloseTo(2 * Math.SQRT2, 6)
+      })
+    })
+  })
+
+  it('throws, rather than lofting, when the inset is not the one claimed', () => {
+    const inset = expansions.offset({ delta: -3, corners: 'edge' }, section)
+    expect(() => alignInsetContours(contours, inset, 2, 'test')).toThrow(/do not correspond/)
+  })
+
+  it('throws when one contour moved and another did not (no uniform inset explains it)', () => {
+    // Outside inset by 2, hole left alone: the counts and orientations all match, which is
+    // exactly the case the old vertex-count check let through.
+    const outer = geometries.geom2.fromPoints(
+      /** @type {any} */ ([[-18, -18], [18, -18], [18, 18], [-18, 18]])
+    )
+    const hole = geometries.geom2.toSides(section).slice(4)
+    const lopsided = geometries.geom2.create([...geometries.geom2.toSides(outer), ...hole])
+    expect(() => alignInsetContours(contours, lopsided, 2, 'test')).toThrow(/do not correspond/)
   })
 })
 

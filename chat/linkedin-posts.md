@@ -2390,3 +2390,16 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** same as the BlueSky entry; tracker extraction pinned by a golden run captured before the move -> diff (`src/render/dragSteps.spec.js`); thresholds untuned -> `TODO/VERIFY.md`
 **To Add:** `docs/screenshots/gizmo-translate-ruler.png` and `docs/media/gizmo-translate-ruler.gif`; repo URL once public
+
+## 2026-10-15T02:45:00Z — Fillet and chamfer now get the rim of a hole right
+
+**Post:** A bug report came in with a saved project: a chamfer on a plate with a rectangular hole made the plate heavier. The kernel lofts a cross-section up to an inset copy of itself, pairing vertices by index, and with a hole the two outlines' points were interleaved differently in each slice, so the loft joined corners to the wrong neighbours. Nothing noticed, because the only guard compared vertex counts.
+
+The fix works per contour: each outline of the face pairs with its own inset ring, and every pairing is checked against the exact corner position a straight inset gives. A wrong pairing now throws instead of returning a plausible-looking solid. The rim of the hole is bevelled too, and a radius that would run the two cuts into each other, such as a 2 mm wall and a 1.5 mm chamfer, is refused with the width of the wall and the largest radius that fits.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** same as the BlueSky entry; volume oracle independent of the implementation (r^2/2 x perimeter) in 33 new unit cases -> diff (`src/core/kernel/fillet.spec.js`)
+**To Add:** `docs/screenshots/chamfer-with-hole.png`; repo URL once public

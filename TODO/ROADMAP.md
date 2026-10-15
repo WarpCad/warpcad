@@ -47,7 +47,7 @@ run at all); see `TODO/done/build-001-project-scaffold.md`'s own note.
 - ⬜ [M13 — One Align tool](#m13--one-align-tool) — moved to M16
 - ⬜ [M14 — Help inside the app](#m14--help-inside-the-app) — moved to M16
 - ⬜ [M15 — A mergeable project file: the AI as a second writer](#m15--a-mergeable-project-file-the-ai-as-a-second-writer) — 0/10
-- 🔶 [Findings](#findings) — 0/1
+- ✅ [Findings](#findings) — 1/1
 
 **Archive**
 
@@ -60,13 +60,13 @@ run at all); see `TODO/done/build-001-project-scaffold.md`'s own note.
 ## Next up — recommended TODOs
 
 *Last reviewed 2026-10-14. **Ready** = `status: open` and every id in its `depends:` already has a file in
-`TODO/done/`. Ten tasks are ready today; the other 26 wait on one of them (see
+`TODO/done/`. Nine tasks are ready today; the other 26 wait on one of them (see
 [All open work](#all-open-work)). Ranked by: wrong output first, then the gate that unblocks the most,
 then priority, then small tasks as tie-breakers.*
 
 | # | Task | Why now | Unlocks | Model |
 |---|---|---|---|---|
-| 1 | [`core-051`](core-051-fillet-chamfer-rim-wrong-on-shapes-with-holes.md) Fillet / chamfer wrong on rims with holes | The only open bug that makes a *shipped* feature produce wrong geometry (material added, not removed). Reported with a saved repro, no dependencies. | — | opus |
+| 1 | ✅ [`core-051`](done/core-051-fillet-chamfer-rim-wrong-on-shapes-with-holes.md) Fillet / chamfer wrong on rims with holes | The only open bug that makes a *shipped* feature produce wrong geometry (material added, not removed). Reported with a saved repro, no dependencies. | — | opus |
 | 2 | ✅ [`docs-022`](done/docs-022-mergeable-project-decision.md) Decide the merge design | Gate for all of M15 and, through it, the live bridge. Writing only, no app code. **Accepted 2026-10-12**, so `data-008` is unblocked. | `data-008` → `data-009` → `data-010` → `data-011` → `ui-062` → `io-010`, `io-011`, `ai-017` → `ai-012` → `ai-020` (9 tasks) | opus |
 | 3 | [`core-039`](core-039-gear-kernel-approach-decision.md) Gears: kernel approach | A draft already exists (`docs/decisions/gears.md`, *Proposed*). **🧑 Nothing for an agent to do until you answer its eight calls** — the cheapest unblock on the board. | `core-040`…`core-049`, `ui-057`, `ui-058`, `testing-002`, `docs-021` (14 tasks) | opus |
 | 4 | [`core-038`](core-038-rename-body-record.md) Rename record | Small, no decision needed; first half of the rename pair. | `ui-056`, then `docs-020` | sonnet |
@@ -153,7 +153,7 @@ table to edit when a task opens, closes or changes priority — see the next sec
 | M16 — Next batch | [`io-010`](io-010-disk-file-auto-merge.md) A project file changed on disk merges automatically — Claude Code and the app edit one file | feature | high | sonnet | ▶ **ready** |
 |  | ✅ [`ui-062`](done/ui-062-merge-file-and-merge-summary.md) File ▾ → Merge file…, the merge summary banner, conflict chips and Undo merge | feature | high | opus | ✅ done |
 | M16 — Next batch | [`io-011`](io-011-hosted-backend-merge.md) A stale hosted save merges instead of asking Overwrite / Load / Cancel | feature | medium | sonnet | ▶ **ready** |
-| Findings | [`core-051`](core-051-fillet-chamfer-rim-wrong-on-shapes-with-holes.md) Fillet and chamfer produce wrong geometry (material added, not removed) on any rim that has a h… | finding | high | opus | ▶ **ready** |
+| Findings | ✅ [`core-051`](done/core-051-fillet-chamfer-rim-wrong-on-shapes-with-holes.md) Fillet and chamfer produce wrong geometry (material added, not removed) on any rim that has a h… | finding | high | opus | ✅ done 2026-10-15 |
 | M16 — Next batch | [`io-008`](io-008-save-falls-back-to-download-when-native-write-is-refused.md) Fall back to a download when the browser offers the File System Access API but refuses the write | finding | medium | sonnet | ▶ **ready** |
 |  | `data-012` Tombstone and position-key compaction — `data-011` measured the section at 34-43% of an edited file (`bench/results/2026-10-12-data-011.md`), so the encoding proposals there are this task's starting point | reserved | — | — | 📝 no file yet; ▶ measured, ready to write up |
 | M16 — Next batch | [`data-013`](data-013-mint-project-id-so-unrelated-projects-are-refused.md) Mint a project id so a merge refuses an unrelated project, and attribute merged rows to the right copy — found driving `ui-062` (two app-made projects merge silently) | finding | high | opus | ▶ **ready** |
@@ -236,7 +236,7 @@ milestone tables on 2026-10-12 — update them in the same edit that closes a ro
 | [M13 — One Align tool](#m13--one-align-tool) | ➡️ | — | `ui-060` moved to M16. |
 | [M14 — Help inside the app](#m14--help-inside-the-app) | ➡️ | — | `ui-061` moved to M16. |
 | [M15 — A mergeable project file: the AI as a second writer](#m15--a-mergeable-project-file-the-ai-as-a-second-writer) | ⬜ | 0/10 | Mergeable project file. `io-010` and `io-011` moved to M16; 4 rows are reserved with no file. |
-| [Findings](#findings) | 🔶 | 0/1 | `core-051` (wrong geometry). `io-008` and `data-013` moved to M16. |
+| [Findings](#findings) | ✅ | 1/1 | `core-051` (wrong geometry) fixed 2026-10-15. `io-008` and `data-013` moved to M16. |
 
 Every M0–M4 milestone closed with its own human free-form pass per `CLAUDE.md`'s Verification section
 (see each milestone's last row below). M5–M8 and M12 are recorded as still owing theirs.
@@ -1000,7 +1000,7 @@ as a milestone table.) `io-008` and `data-013` moved to [M16](#m16--next-batch-n
 
 | id | Task | Kind | Depends | Acceptance |
 |---|---|---|---|---|
-| `core-051` | Fillet and chamfer produce wrong geometry (material **added**, not removed) on any rim that has a hole — reported 2026-10-04 with `examples/chamfer error.ndjson` | Finding | — | 1, 12 |
+| ✅ `core-051` | Fillet and chamfer produce wrong geometry (material **added**, not removed) on any rim that has a hole — reported 2026-10-04 with `examples/chamfer error.ndjson` | Finding | — | 1, 12 |
 
 ---
 
@@ -1209,5 +1209,6 @@ convention going forward.
 | `ai-021` | 2026-10-14 23:33 | ~1h36m from the Step 3 start (21:57 UTC, stamp stale so baseline run). Decision 13 researched, drafted and accepted by the user first, with two user rulings folded in (default on; the routes per environment). Opus agent ~19m for specs and implementation. **Typecheck clean; unit 4334 passed (205 files); full e2e matrix exit 0 (3456 passed, 883 skipped by design, 0 failed; Firefox ran); spdx and docs:screenshots green; stamp set.** **Step 6** (real `page.mouse`, fake `document.modelContext`, laptop and phone Chromium): scenario 1 PASS; Undo AI turn / header Undo interplay and the switch PASS. **Not hand-driven: scenarios 10, 12, 17, 18, 24**, a real Claude Code bridge, real Chrome with the WebMCP flag, tablet width; covered by specs only. |
 | `ui-064` | 2026-10-15 01:04 | ~40m of wall-clock from the Step 3 start (00:24 UTC, stamp matched, baseline not re-run); Opus agent ~17m for specs and implementation, then docs and media. **Typecheck clean; unit 4390 passed (206 files); `changed`-scope e2e (rotate-dial, gizmo-transform, selection-inspector, undo-redo, all engines incl. Firefox) 336 passed / 33 skipped by existing conditions / 0 failed; guards 4/4. Full 9-way matrix not run, so the green stamp was not set.** `docs:media` regenerated every GIF; only the new one was kept (unrelated churn reverted), and `print-prep-split` / `snap-subpart-both-sides` GIFs were over their duration budget in that run (not this task). **Step 6** (real mouse, laptop Chromium; CDP touch): scenarios 1 and 10 PASS; scenario 7 PASS for no-orbit, speed bands **not** judged. **Not hand-driven: scenarios 12 and 6**, closed-finding repros `ui-012`/`core-004` covered by specs and by the composed-rotation check in scenario 10; no real iPad/phone. |
 | `ui-065` | 2026-10-15 01:47 | ~1h10m from the Step 3 start (01:25 UTC, stamp stale so the baseline ran: typecheck clean, unit 4391); Opus agent ~16m wrote specs, the shared `dragSteps.js` extraction and the ruler, then docs and media. **Typecheck clean; unit 4443 passed (208 files); `changed`-scope e2e (translate-ruler, rotate-dial, gizmo-transform, selection-inspector, undo-redo; all engines incl. Firefox) 381 passed / 33 skipped by existing conditions / 0 failed; guards 4/4; docs:screenshots no drift. Full 9-way matrix not run, so the green stamp was not set.** **Step 6** (real mouse, laptop Chromium; CDP touch): scenarios 1 and 10 PASS (Position X moved by exactly the +50.0 readout, same value after reload); scenario 7 PASS for no-orbit (CDP touch drag ends early as it did for `ui-064`'s baseline; bands not judged). **Not hand-driven: scenarios 12 and 6**, closed-finding repros (`ui-012`, `ui-048`, `ui-021/022`, `ui-025`) covered by specs only; no real iPad/phone or mouse-feel judgment. |
+| `core-051` | 2026-10-15 02:40 | Opus agent did specs and the fix (per-contour correspondence, verified not assumed, thin-wall and flare-closing rejections); Sonnet half did docs, the app-level e2e and retirement. **Typecheck clean; unit 4482 passed (208 files); full e2e matrix 3545 passed / 899 skipped by design / 0 failed (9 projects incl. Firefox, guards, docs); green stamp not set by this half.** The user's plate (chamfer 5) now removes the expected rim volume to within 10% (asserted by `e2e/chamfer-with-hole.e2e.js`) instead of adding material; no-hole results are unchanged. **Step 6** (real mouse, laptop Chromium/WebKit/Firefox): scenarios 1, 4 (gating with a chamfered holed body), 9 with a holed sketch extruded and chamfered (removed 522-534 mm3 vs 528 expected), 12 (chamfer row in History) PASS; io-004/io-005/core-017 repros PASS. Not hand-driven: phone/tablet. |
 
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

@@ -1693,3 +1693,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** ruler, Shift 1 mm, speed bands 0.1/1/5/10 mm on every pointer type -> diff (`src/render/translateSnap.js`, `src/components/viewport/TranslateRuler.vue`); readout moved in whole mm with Shift and Position X moved by exactly the final +50.0 mm in a real-mouse drive this session; speed bands untuned on a real device -> `TODO/VERIFY.md`
 **To Add:** `docs/screenshots/gizmo-translate-ruler.png` and `docs/media/gizmo-translate-ruler.gif` (already generated); repo URL once public
+
+## 2026-10-15T02:45:00Z — Fillet and chamfer now get the rim of a hole right
+
+**Post:** A WarpCad chamfer on a plate with a hole was adding material instead of removing it: the loft walled the outer rim to the wrong neighbours. Each contour of a face now pairs with its own inset and the pairing is checked, not assumed. A hole's rim bevels too, and a radius too big for the wall between holes is refused in plain words. Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** per-contour correspondence with a mitre check -> diff (`src/core/kernel/fillet.js`); the reported plate now loses the expected rim volume in a real-app Open on Chromium, Firefox and WebKit (`e2e/chamfer-with-hole.e2e.js`); a holed sketch chamfered by hand removed 522-534 mm3 against 528 expected
+**To Add:** `docs/screenshots/chamfer-with-hole.png` (already generated); repo URL once public
