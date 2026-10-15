@@ -18,6 +18,7 @@ import { computed, nextTick, ref, watch } from 'vue'
 
 import { LENGTH_UNITS } from '../../sketch/calibration.js'
 import { parseNumeric } from '../../composables/numericEntry.js'
+import HelpButton from '../controls/HelpButton.vue'
 import { useSketchEditorStore } from '../../stores/sketchEditor.js'
 
 const editor = useSketchEditorStore()
@@ -103,7 +104,10 @@ function cancel() {
       </div>
     </template>
     <template v-else>
-      <p class="scale-tool__text" data-testid="sketch-scale-instruction">{{ instruction }}</p>
+      <div class="scale-tool__lead">
+        <p class="scale-tool__text" data-testid="sketch-scale-instruction">{{ instruction }}</p>
+        <HelpButton topic="scale" class="scale-tool__help" />
+      </div>
       <form v-if="step === 'length'" class="scale-tool__row" @submit.prevent="apply">
         <input
           ref="lengthInput"
@@ -147,8 +151,19 @@ function cancel() {
   z-index: 14;
 }
 
-.scale-tool__text {
+.scale-tool__lead {
   flex: 1 1 220px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.scale-tool__help {
+  margin: -8px -8px -8px 0;
+}
+
+.scale-tool__text {
+  flex: 1 1 auto;
   margin: 0;
   font-size: 13px;
   color: var(--text-1);

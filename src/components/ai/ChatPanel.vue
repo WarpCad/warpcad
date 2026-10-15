@@ -42,6 +42,7 @@ import { useAssistantStore } from '../../stores/assistant.js'
 import { useDocumentStore } from '../../stores/document.js'
 import { useSelectionStore } from '../../stores/selection.js'
 import { useTimelineStore } from '../../stores/timeline.js'
+import HelpButton from '../controls/HelpButton.vue'
 import ConnectionDot from '../display/ConnectionDot.vue'
 import ActivityRow from './ActivityRow.vue'
 import BridgeChip from './BridgeChip.vue'
@@ -209,6 +210,9 @@ const HEIGHTS = /** @type {const} */ ([
           <template v-if="!assistant.claudeCodeOnly && !assistant.browserAgentOnly">Model: <strong data-testid="assistant-model-name">{{ assistant.modelName }}</strong></template>
           <button v-if="!assistant.scripted" type="button" class="chat__link" data-testid="assistant-keys" @click="assistant.openKeySheet()">Key and model…</button>
           <ConnectButton testid="ai-connect-open" only-where-usable />
+          <!-- Help for the Assistant (`TODO/ui-061`): at the end of the Model line, not in the header,
+               which has no spare width at phone width (its extra row costs the log its height). -->
+          <HelpButton topic="assistant" class="chat__help" />
         </p>
         <p v-if="chat.webMcpMessage" class="chat__warn" role="status" data-testid="ai-webmcp-message">{{ chat.webMcpMessage }}</p>
         <p v-if="assistant.storageNote" class="chat__warn" role="status" data-testid="assistant-storage-note">
@@ -303,6 +307,11 @@ const HEIGHTS = /** @type {const} */ ([
 
 .chat[data-sheet='full'] {
   --chat-sheet-height: 60dvh;
+}
+
+.chat__help {
+  /* A 44px target that adds no height to the Model line. */
+  margin: -6px -8px -6px auto;
 }
 
 /* Never shrunk by the sheet's column: when the row wraps (a narrow column, the Browser agents

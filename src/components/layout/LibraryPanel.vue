@@ -70,6 +70,7 @@ import { LIBRARY_SECTIONS } from '../../core/library.js'
 import { useLibraryStore } from '../../stores/library.js'
 import { usePlacementStore } from '../../stores/placement.js'
 import { useTimelineStore } from '../../stores/timeline.js'
+import HelpButton from '../controls/HelpButton.vue'
 import UserPartMenu from './UserPartMenu.vue'
 
 const props = defineProps({
@@ -270,9 +271,12 @@ onBeforeUnmount(stopTracking)
     </button>
 
     <div id="library-sheet" ref="sheetEl" class="library__sheet">
-      <p class="library__hint" data-testid="library-hint">
-        Drag an item into the 3D view to place it.
-      </p>
+      <div class="library__hint-row">
+        <p class="library__hint" data-testid="library-hint">
+          Drag an item into the 3D view to place it.
+        </p>
+        <HelpButton topic="library" class="library__help" />
+      </div>
       <template v-for="section in sections" :key="section.id">
         <h2 class="library__heading" :data-testid="`library-heading-${section.id}`">
           {{ section.title }}
@@ -470,8 +474,21 @@ onBeforeUnmount(stopTracking)
   margin-top: 14px;
 }
 
-.library__hint {
+.library__hint-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
   margin: 0 0 10px;
+}
+
+/* The 44px target overhangs the hint's line instead of growing the row (`TODO/ui-061`). */
+.library__help {
+  margin: -14px -8px -14px 0;
+}
+
+.library__hint {
+  margin: 0;
   font-size: 11px;
   line-height: 1.4;
   color: var(--text-3);

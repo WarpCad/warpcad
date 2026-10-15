@@ -2442,3 +2442,17 @@ The notice has to name something unpleasant: the picker already created the file
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** same as the BlueSky entry; the empty-file wording -> `docs/save-load.md` "If your browser can't save in place"
 **To Add:** `docs/screenshots/save-refused-notice.png`; repo URL once public
+
+## 2026-10-15T06:55:00Z — The docs now ship inside the app
+
+**Post:** WarpCad's documentation used to live only in the repository, which is no help on a phone with no signal. It is now part of the build: the Markdown is rendered to HTML at build time, so no Markdown parser ships to the browser, and the service worker keeps the text and the pictures so Help opens offline and always matches the version you are running.
+
+Every tool pop-up carries a ? in its header that opens the right page, scrolled to the right section, over the pop-up. Closing it puts you back where you were: same selection, same fields. The ? is never disabled, because "why can't I use this?" is mostly asked of tools that are disabled.
+
+Two things the full test run caught that no one would have thought to check: a new button in the toolbar's badge row wrapped its text and pushed the toolbar into the navigation chrome at phone width, and one in the chat header cost the log its height. Both are now hidden where there is no room, with File, Help as the route there. Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource #WebGL
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** same as the BlueSky entry; the layout regressions -> `e2e/phone-toolbar-chrome-fit.e2e.js` and `e2e/ai-chat.e2e.js` failed on the phone projects before the fix and pass after (this session)
+**To Add:** `docs/screenshots/help-contents-phone.png`; repo URL once public
+

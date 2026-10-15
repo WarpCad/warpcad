@@ -13,6 +13,7 @@
  * One panel at a time, chosen by the toolbar — Slices, Extrude, or Curve (`TODO/sketch-008`). While Set scale is armed the sheet folds to
  * its header — and on a narrow viewport steps aside entirely (`TODO/sketch-003`).
  */
+import HelpButton from '../controls/HelpButton.vue'
 import CurveSheet from './CurveSheet.vue'
 import ExtrudePanel from './ExtrudePanel.vue'
 import SlicePanel from './SlicePanel.vue'
@@ -36,6 +37,7 @@ const TITLES = Object.freeze({ slices: 'Slices', extrude: 'Extrude', curve: 'Cur
   >
     <header class="sketch-sheet__head">
       <h3 class="sketch-sheet__title">{{ TITLES[editor.panel] }}</h3>
+      <HelpButton :topic="editor.panel" class="sketch-sheet__help" />
       <button
         type="button"
         class="sketch-sheet__close"
@@ -78,6 +80,10 @@ const TITLES = Object.freeze({ slices: 'Slices', extrude: 'Extrude', curve: 'Cur
   align-items: center;
   justify-content: space-between;
   padding: 4px 6px 0 12px;
+}
+
+.sketch-sheet__help {
+  margin: -3px 0 -3px auto;
 }
 
 .sketch-sheet__title {

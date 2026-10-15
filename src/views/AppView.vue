@@ -29,8 +29,11 @@ import SaveStatus from '../components/display/SaveStatus.vue'
 import FileMenu from '../components/storage/FileMenu.vue'
 import { bootStorage } from '../composables/useStorageBoot.js'
 import { useDeleteShortcut } from '../composables/useDeleteShortcut.js'
+import { useHelpShortcut } from '../composables/useHelpShortcut.js'
 import { startLiveBridge } from '../composables/useLiveBridge.js'
 import { startWebMcp } from '../composables/useWebMcp.js'
+import HelpEntryButton from '../components/layout/HelpEntryButton.vue'
+import HelpSheet from '../components/layout/HelpSheet.vue'
 import HistoryControls from '../components/layout/HistoryControls.vue'
 import LibraryPanel from '../components/layout/LibraryPanel.vue'
 import SaveToLibrarySheet from '../components/layout/SaveToLibrarySheet.vue'
@@ -70,6 +73,8 @@ const chatSheet = computed(() => (assistant.view === 'chat' ? aiChat.sheet : 'no
 // Delete / Backspace delete the selection (`TODO/ui-051`). Mounted here, not in the
 // Inspector, so it works with the Inspector sheet collapsed.
 useDeleteShortcut()
+// `?` / F1 open the Help sheet (`TODO/ui-061`); the sheet itself is mounted once, below.
+useHelpShortcut()
 onMounted(() => {
   void bootStorage({ persistence, hosted })
   void assistant.start()
@@ -237,6 +242,7 @@ function onInspectorClaim() {
         <HistoryControls />
         <TimelineToggle />
         <FileMenu />
+        <HelpEntryButton />
         <SaveStatus />
       </div>
       <!-- While an Assistant turn runs (TODO/ai-017): visible with the panel closed, since the
@@ -293,6 +299,9 @@ function onInspectorClaim() {
     <ConnectClaudeCode />
     <!-- The Save to library… sheet and its "Saved <name>" toast (TODO/ui-055). -->
     <SaveToLibrarySheet />
+    <!-- The in-app docs (TODO/ui-061): over every pop-up (modal tier 50/51), opened by any ? button,
+         File ▾ → Help or the ? / F1 keys. -->
+    <HelpSheet />
   </div>
 </template>
 

@@ -46,7 +46,7 @@ function back() {
 </script>
 
 <template>
-  <ModalShell :open="open" testid="ai-subscription-sheet" title="Use your Claude subscription" @backdrop="back()">
+  <ModalShell :open="open" testid="ai-subscription-sheet" title="Use your Claude subscription" help-topic="assistant-subscription" @backdrop="back()">
     <p class="route__text">
       The in-app Assistant needs an <strong>API key</strong>, which is billed separately from a Claude
       Pro or Max subscription. A subscription can't be used by the app directly.

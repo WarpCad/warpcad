@@ -395,5 +395,11 @@
     "specHash": "327aadee71a8d663f6a6d3a5501b5627ebfddc6926e442c44a92bb7d751af8f6",
     "bytes": 562063,
     "seconds": 7
+  },
+  "help-open-close.gif": {
+    "spec": "e2e/docs/help.docs.js",
+    "specHash": "6832157c8d884e9cdcc250096bc5d1fc5df674e45bdbe8ce6980cff3e4fd337b",
+    "bytes": 843741,
+    "seconds": 11.1
   }
 }

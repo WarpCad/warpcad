@@ -157,7 +157,7 @@ function done() {
 </script>
 
 <template>
-  <ModalShell :open="open" testid="ai-key-sheet" title="Assistant key" @backdrop="cancel()">
+  <ModalShell :open="open" testid="ai-key-sheet" title="Assistant key" help-topic="assistant-key" @backdrop="cancel()">
     <template v-if="mode === 'form'">
       <p class="key__help">
         Create a key in the

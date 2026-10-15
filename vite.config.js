@@ -4,6 +4,7 @@ import vue from '@vitejs/plugin-vue'
 import { VitePWA } from 'vite-plugin-pwa'
 
 import { warpcadLiveBridge } from './mcp/liveBridge.js'
+import { HELP_PRECACHE_GLOBS, helpRuntimeCaching, warpcadHelp } from './scripts/vite-plugin-help.mjs'
 
 /**
  * The dev server only. `index.html`'s Content-Security-Policy is the production policy; `vite
@@ -43,8 +44,17 @@ export default defineConfig({
     // `vite build` output carries nothing of it). MCP at /mcp, the tab over the HMR socket.
     warpcadLiveBridge(),
     vue(),
+    // `TODO/ui-061`: docs/*.md rendered to help/<page>.html at build time (dev: on request).
+    warpcadHelp(),
     VitePWA({
       registerType: 'autoUpdate',
+      workbox: {
+        // The plugin's default globs plus the help text and still pictures, so Help opens
+        // offline right after install. The GIFs are runtime-cached, not precached: they are
+        // ~60 MB (see `scripts/vite-plugin-help.mjs`).
+        globPatterns: ['**/*.{js,css,html,webmanifest}', ...HELP_PRECACHE_GLOBS],
+        runtimeCaching: [helpRuntimeCaching()],
+      },
       manifest: {
         name: 'WarpCad',
         short_name: 'WarpCad',

@@ -34,6 +34,16 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### ui-061 — Docs inside the app, help buttons (2026-10-15 UTC)
+
+Offline Help is asserted in Chromium and Firefox and, for WebKit, only as precache contents (Playwright's WebKit offline emulation defeats service-worker answers), so a real Safari/iPhone check is the one thing not covered. The GIFs are not precached by design.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | Installed PWA on an iPhone: open once online, go to airplane mode, relaunch, File menu → Help and documentation opens with text and stills | Open | |
+| 2 | Same offline: a GIF you never opened online shows its alt text rather than a broken box; one you opened online still plays | Open | |
+| 3 | First install on a phone connection: the extra ~15 MB precache is acceptable (or flip `HELP_PRECACHE_GLOBS` in `scripts/vite-plugin-help.mjs`) | Open | |
+
 ### io-008 — Save falls back to a download when the write is refused (2026-10-15 05:30)
 
 Driven against a stubbed refusing picker on Chromium, WebKit and Firefox, and by hand on Chromium. What

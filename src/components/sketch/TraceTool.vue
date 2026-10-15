@@ -21,6 +21,7 @@
 import { computed, ref } from 'vue'
 
 import { formatMmValue } from '../../core/units.js'
+import HelpButton from '../controls/HelpButton.vue'
 import { useSketchEditorStore } from '../../stores/sketchEditor.js'
 
 const editor = useSketchEditorStore()
@@ -93,6 +94,7 @@ function toggleAuto() {
       >
         {{ editor.tracedThisArming > 0 ? 'Finish' : 'Cancel' }}
       </button>
+      <HelpButton topic="trace" class="trace-tool__help" />
     </div>
 
     <div v-if="adjustOpen" class="trace-tool__row" data-testid="sketch-trace-settings">
@@ -172,6 +174,10 @@ function toggleAuto() {
   flex-wrap: wrap;
   align-items: center;
   gap: 4px 10px;
+}
+
+.trace-tool__help {
+  margin: -4px -8px -4px -4px;
 }
 
 .trace-tool__row--head {

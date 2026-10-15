@@ -52,6 +52,10 @@ The Library's Raspberry Pi and Hardware items descend from the `jscad-raspberryp
 - [Bill of materials](bill-of-materials.md) — the Inspector's read-only tally of
   the bolts, nuts, washers, bearings, kit parts and Raspberry Pi boards you've
   placed, by size, updating as you add, change or delete them.
+- [Using the built-in help](help.md) — the **?** in every tool pop-up's header, **File ▾ → Help
+  and documentation**, and the **?** / **F1** keys: the whole documentation inside the app,
+  opening on the section for the tool you are using, working offline, and leaving your
+  selection and open pop-up alone.
 - [Combining shapes: Union, Subtract and Intersect](booleans.md) — the
   Operations toolbar, why its buttons stay dimmed until two shapes are selected,
   and how to tell which shape Subtract is about to cut.

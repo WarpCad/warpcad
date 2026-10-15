@@ -6,8 +6,23 @@ priority: medium
 model: sonnet
 milestone: M16
 depends: []
-status: open
+status: done
 ---
+
+> **What shipped (2026-10-15).** All seven proposed items, with these differences from the text below.
+> The build step is `scripts/help-build.mjs` (a small renderer for exactly the Markdown the docs use,
+> so no new dependency and no licence-list change) plus `scripts/vite-plugin-help.mjs`, which also
+> serves the same files on request under `npm run dev`. **Precache decision, yours to veto:** the
+> text, the index and the 118 still pictures are precached (160 entries, 17.2 MB against 11 entries,
+> 2.5 MB before); the 66 GIFs (60 MB) are runtime-cached on first sight, because precaching them
+> would make every install a 75 MB download. Flip `HELP_PRECACHE_GLOBS` in the plugin to change it.
+> `snap` and `align` share *Precise placement* "The popover's fields", since that page has no heading
+> named for either; `ui-060` repoints them. Operations pop-ups had no header, so the **?** sits in
+> each pop-up's top-right corner; Union/Subtract/Intersect/Group, which commit on one click and have
+> no pop-up, share one **?** at the end of the toolbar. The header **?** is hidden at phone width, where
+> **File ▾ → Help and documentation** is the entry. Offline is proven in Chromium and Firefox with
+> `context.setOffline`; WebKit asserts the precache contents instead (its offline emulation defeats
+> service-worker responses). 17 existing docs stills moved with the new buttons.
 
 ## Goal
 

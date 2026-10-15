@@ -27,6 +27,7 @@
  */
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 
+import HelpButton from '../controls/HelpButton.vue'
 import { useResolutionDialogStore } from '../../stores/resolutionDialog.js'
 
 const props = defineProps({
@@ -129,6 +130,7 @@ onBeforeUnmount(() => window.removeEventListener('resize', measure))
             Done
           </button>
         </div>
+        <HelpButton topic="resolution" class="resolution__help" />
       </div>
     </template>
   </Teleport>
@@ -154,6 +156,13 @@ onBeforeUnmount(() => window.removeEventListener('resize', measure))
   box-shadow: var(--shadow-overlay);
   color: var(--text-1);
   z-index: 31;
+}
+
+/* The ? in the popover's top-right corner (`TODO/ui-061`): out of flow, so nothing else moves. */
+.resolution__help {
+  position: absolute;
+  top: 0;
+  right: 0;
 }
 
 .resolution__heading {

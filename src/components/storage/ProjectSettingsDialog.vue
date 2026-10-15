@@ -68,7 +68,7 @@ function save() {
 </script>
 
 <template>
-  <ModalShell :open="settings.isOpen" testid="project-settings-dialog" title="Project settings" @backdrop="settings.close()">
+  <ModalShell :open="settings.isOpen" testid="project-settings-dialog" title="Project settings" help-topic="project-settings" @backdrop="settings.close()">
     <form class="settings__form" novalidate @submit.prevent="save()">
       <label class="settings__field" for="project-settings-text">Standing instructions</label>
       <p id="project-settings-help" class="settings__help">

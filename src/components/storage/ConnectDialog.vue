@@ -132,6 +132,7 @@ function cancel() {
     :open="menu.connectOpen"
     testid="hosted-connect-dialog"
     :title="hosted.connected && mode === 'form' ? 'Replace token' : 'Connect repository'"
+    help-topic="hosted"
     @backdrop="cancel()"
   >
     <template v-if="mode === 'form'">

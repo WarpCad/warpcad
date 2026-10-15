@@ -51,6 +51,7 @@
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 
 import { EXPORT_FORMATS } from '../../core/export.js'
+import HelpButton from '../controls/HelpButton.vue'
 import { useExportDialogStore } from '../../stores/exportDialog.js'
 
 const props = defineProps({
@@ -267,6 +268,7 @@ function sizeLabel(bytes) {
             {{ commitLabel }}
           </button>
         </div>
+        <HelpButton topic="export" class="export__help" />
       </form>
     </template>
   </Teleport>
@@ -293,6 +295,13 @@ function sizeLabel(bytes) {
   box-shadow: var(--shadow-overlay);
   color: var(--text-1);
   z-index: 31;
+}
+
+/* The ? in the popover's top-right corner (`TODO/ui-061`): out of flow, so nothing else moves. */
+.export__help {
+  position: absolute;
+  top: 0;
+  right: 0;
 }
 
 .export__heading {

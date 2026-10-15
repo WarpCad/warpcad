@@ -97,6 +97,7 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useStatusSurface } from '../../composables/useStatusSurface.js'
 import { useExportDialogStore } from '../../stores/exportDialog.js'
 import { useFileMenuStore } from '../../stores/fileMenu.js'
+import { useHelpStore } from '../../stores/help.js'
 import { useHostedStore } from '../../stores/hosted.js'
 import { useMergeStore } from '../../stores/merge.js'
 import { useOverlaysStore } from '../../stores/overlays.js'
@@ -120,6 +121,7 @@ const merge = useMergeStore()
 const exportDialog = useExportDialogStore()
 const resolutionDialog = useResolutionDialogStore()
 const hosted = useHostedStore()
+const help = useHelpStore()
 const persistence = usePersistenceStore()
 const timeline = useTimelineStore()
 const overlays = useOverlaysStore()
@@ -182,6 +184,7 @@ const busy = computed(
     menu.anyOpen ||
     overlays.anyOpen ||
     placement.isDragging ||
+    help.isOpen ||
     transformPreview.bodyId !== '' ||
     sketchEditor.active,
 )
@@ -192,6 +195,12 @@ watch(
   (value) => persistence.setUiBusy(value),
   { immediate: true },
 )
+
+/** **Help** (`TODO/ui-061`): the docs, opened at Getting started; the menu closes first. */
+function openHelp() {
+  menu.closeMenu()
+  help.open('getting-started')
+}
 
 function reloadFromDisk() {
   menu.closeMenu()
@@ -533,6 +542,15 @@ onBeforeUnmount(() => {
                 Disconnect
               </button>
             </template>
+          </div>
+
+          <div class="file-menu__divider" role="separator">
+            <span>Help</span>
+          </div>
+          <div role="group" aria-label="Help">
+            <button type="button" role="menuitem" class="file-menu__item" data-testid="file-help" @click="openHelp()">
+              Help and documentation
+            </button>
           </div>
         </div>
       </template>

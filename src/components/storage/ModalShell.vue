@@ -13,13 +13,20 @@
  * - A dimming backdrop that catches clicks: a modal is not something to click past.
  * - `role="dialog"` + `aria-modal` + a labelled title.
  *
+ * - An optional **?** in the header (`helpTopic`, a key of `src/help/topics.js`): every dialog
+ *   that documents a tool gets its help button by passing one string (`TODO/ui-061`).
+ *
  * It owns layout only. What each dialog says and does is its own component's.
  */
+import HelpButton from '../controls/HelpButton.vue'
+
 defineProps({
   open: { type: Boolean, default: false },
   /** The dialog's own `data-testid`. */
   testid: { type: String, required: true },
   title: { type: String, required: true },
+  /** A topic id for the header's **?**; empty for a dialog with nothing to document. */
+  helpTopic: { type: String, default: '' },
 })
 defineEmits(['backdrop'])
 </script>
@@ -29,7 +36,10 @@ defineEmits(['backdrop'])
     <template v-if="open">
       <div class="modal__backdrop" :data-testid="`${testid}-backdrop`" @click="$emit('backdrop')" />
       <div class="modal" role="dialog" aria-modal="true" :aria-label="title" :data-testid="testid">
-        <h2 class="modal__title">{{ title }}</h2>
+        <div class="modal__head">
+          <h2 class="modal__title">{{ title }}</h2>
+          <HelpButton v-if="helpTopic" class="modal__help" :topic="helpTopic" />
+        </div>
         <slot />
       </div>
     </template>
@@ -63,6 +73,19 @@ defineEmits(['backdrop'])
   color: var(--text-1);
   box-shadow: var(--shadow-overlay);
   z-index: 41;
+}
+
+.modal__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+/* The 44px tap target overhangs the title's line instead of making the header taller, so the
+   fields below do not move for a dialog that gains a ?. */
+.modal__help {
+  margin: -12px -8px -12px 0;
 }
 
 .modal__title {

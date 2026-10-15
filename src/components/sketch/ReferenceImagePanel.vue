@@ -25,6 +25,7 @@ import { computed, ref } from 'vue'
 
 import { parseNumeric } from '../../composables/numericEntry.js'
 import { formatMmValue } from '../../core/units.js'
+import HelpButton from '../controls/HelpButton.vue'
 import { importImageFile, rememberAssetBitmap } from '../../sketch/imageClient.js'
 import { useSketchEditorStore } from '../../stores/sketchEditor.js'
 
@@ -112,6 +113,7 @@ function blurTarget(event) {
         :class="{ 'ref-image__badge--warn': !placement?.calibration }"
         data-testid="sketch-image-badge"
       >{{ view.badge }}</span>
+      <HelpButton topic="reference-image" class="ref-image__help" />
     </header>
 
     <p v-if="view.state === 'removed'" class="ref-image__removed" data-testid="sketch-image-removed" role="status">
@@ -254,6 +256,10 @@ function blurTarget(event) {
   align-items: center;
   justify-content: space-between;
   gap: 8px;
+}
+
+.ref-image__help {
+  margin: -13px -8px -13px auto;
 }
 
 .ref-image__title {

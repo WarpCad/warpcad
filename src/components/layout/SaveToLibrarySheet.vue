@@ -21,6 +21,7 @@
  */
 import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 
+import HelpButton from '../controls/HelpButton.vue'
 import { useLibraryStore } from '../../stores/library.js'
 import { useOverlaysStore } from '../../stores/overlays.js'
 
@@ -61,7 +62,10 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown, true))
       novalidate
       @submit.prevent="library.save()"
     >
-      <p class="save-sheet__title">Save to library</p>
+      <div class="save-sheet__head">
+        <p class="save-sheet__title">Save to library</p>
+        <HelpButton topic="save-to-library" class="save-sheet__help" />
+      </div>
       <p class="save-sheet__note">
         Saves this group as a part you can drag into any project, with its sub-parts and names intact.
       </p>
@@ -171,6 +175,18 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown, true))
   overflow-y: auto;
   border-radius: var(--radius-lg) var(--radius-lg) 0 0;
   padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+}
+
+.save-sheet__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+/* The 44px target overhangs the title line rather than growing the header (`TODO/ui-061`). */
+.save-sheet__help {
+  margin: -12px -8px -12px 0;
 }
 
 .save-sheet__title {

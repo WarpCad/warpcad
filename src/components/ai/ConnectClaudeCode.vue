@@ -74,7 +74,7 @@ function close() {
 </script>
 
 <template>
-  <ModalShell :open="open" testid="ai-connect-sheet" title="Connect to Claude Code" @backdrop="close()">
+  <ModalShell :open="open" testid="ai-connect-sheet" title="Connect to Claude Code" help-topic="claude-code" @backdrop="close()">
     <p class="connect__text" data-testid="ai-connect-explain">
       Lets <strong>Claude Code</strong>, running on this computer on your own Claude plan, add and change
       steps in the project open here. Each change shows in History marked <em>via mcp</em>, and

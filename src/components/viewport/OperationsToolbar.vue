@@ -300,6 +300,8 @@
  */
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 
+import HelpButton from '../controls/HelpButton.vue'
+
 import { DEFAULT_ROTATE_AXIS, mirrorRotationDeg } from '../../core/kernel/group.js'
 import { useSelectedOperands } from '../../composables/useSelectedBody.js'
 import { useDocumentStore } from '../../stores/document.js'
@@ -1470,6 +1472,11 @@ function commitMirror() {
         <span class="ops__legend-full">{{ DISABLED_HINT.toLowerCase() }}</span>
         <span class="ops__legend-short">{{ DISABLED_HINT_SHORT.toLowerCase() }}</span>
       </span>
+      <!-- Help for the buttons that commit on one click and so have no pop-up of their own
+           (Union, Subtract, Intersect, Group) — `TODO/ui-061`. Never disabled. In the badge row,
+           with negative margins, so the toolbar is no taller than before: phone-toolbar-chrome-fit
+           (`ui-043`) measures it against the navigation chrome to the pixel. -->
+      <HelpButton topic="boolean" class="ops__help" />
     </p>
 
 
@@ -1716,6 +1723,7 @@ function commitMirror() {
             {{ openPopover === 'modify.filletRim' ? 'Fillet' : 'Chamfer' }}
           </button>
         </div>
+        <HelpButton :topic="openPopover === 'modify.filletRim' ? 'fillet' : 'chamfer'" class="ops__popover-help" />
       </div>
 
       <!-- Enlarge/Fit/Bisect (TODO/ui-028): this toolbar's third popover
@@ -1850,6 +1858,7 @@ function commitMirror() {
             {{ RESIZE_OPERATIONS.find((operation) => operation.op === openPopover)?.label }}
           </button>
         </div>
+        <HelpButton :topic="openPopover === 'modify.bisect' ? 'bisect' : 'resize'" class="ops__popover-help" />
       </div>
 
       <div
@@ -1887,6 +1896,7 @@ function commitMirror() {
             Mirror
           </button>
         </div>
+        <HelpButton topic="mirror" class="ops__popover-help" />
       </div>
 
       <div
@@ -1975,6 +1985,7 @@ function commitMirror() {
             {{ openPopover === 'group.snap' ? 'Snap' : 'Align' }}
           </button>
         </div>
+        <HelpButton :topic="openPopover === 'group.snap' ? 'snap' : 'align'" class="ops__popover-help" />
       </div>
     </Teleport>
   </div>
@@ -2029,6 +2040,19 @@ function commitMirror() {
   font-size: 11px;
   line-height: 1.3;
   color: var(--text-3);
+}
+
+.ops__help {
+  margin: -16px -10px -16px auto;
+}
+
+/* A narrow viewport column (the phone, and the tablet's 390px pane) has no room in the badge row:
+   the legend would wrap and the toolbar grow into the navigation chrome (`ui-043`). There the
+   File menu's Help row and the Contents list reach Combining shapes instead. */
+@container viewport (max-width: 520px) {
+  .ops__help {
+    display: none;
+  }
 }
 
 .ops__count {
@@ -2246,6 +2270,18 @@ function commitMirror() {
   backdrop-filter: blur(6px);
   box-shadow: var(--shadow-overlay);
   z-index: 31;
+}
+
+/* The ? sits in the popover's top-right corner (`TODO/ui-061`), out of flow so no field moves;
+   the first line of the popover keeps clear of it. The button is the last child on purpose. */
+.ops__popover-help {
+  position: absolute;
+  top: 0;
+  right: 0;
+}
+
+.ops__popover > :first-child {
+  padding-right: 34px;
 }
 
 .ops__popover-note {

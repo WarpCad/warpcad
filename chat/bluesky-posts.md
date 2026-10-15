@@ -1729,3 +1729,13 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** refusal (`NotAllowedError`/`SecurityError`) -> download in the same call, handle dropped, `capabilities` getter flips -> diff (`src/storage/fileSystem.js`, `src/stores/persistence.js`); `e2e/save-load-ui.e2e.js` against a refusing picker passes on Chromium, Firefox and WebKit at three widths; full e2e matrix 4516 passed, 0 failed this session; a real-mouse drive on Chromium downloaded, reloaded and re-opened the copy
 **To Add:** `docs/screenshots/save-refused-notice.png`; repo URL once public
+
+## 2026-10-15T06:55:00Z — The docs now ship inside the app
+
+**Post:** WarpCad's documentation is in the app now. Every tool pop-up has a ? in its header that opens the docs at that tool's section, over the pop-up, without losing your selection. It works offline. Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** `scripts/help-build.mjs` renders `docs/*.md` at build time -> `help/<page>.html`, precached by the service worker (`vite.config.js`); `e2e/help.e2e.js` passes on Chromium, Firefox and WebKit at three widths, offline under `E2E_PREVIEW=1`; 4580 unit tests passed
+**To Add:** `docs/screenshots/help-from-popup.png`, `docs/media/help-open-close.gif` (generated); repo URL once public
+

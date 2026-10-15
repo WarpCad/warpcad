@@ -21,6 +21,7 @@
  */
 import { onBeforeUnmount, onMounted, watch } from 'vue'
 
+import HelpButton from '../controls/HelpButton.vue'
 import { useOverlaysStore } from '../../stores/overlays.js'
 import { JOINT_LABELS, SPLIT_AXES, useSplitSheetStore } from '../../stores/splitSheet.js'
 
@@ -58,7 +59,10 @@ const sizeText = (size) => `${size.map((mm) => Number(mm.toFixed(1))).join(' × 
       novalidate
       @submit.prevent="sheet.apply()"
     >
-      <p class="split__title">Split into printable pieces</p>
+      <div class="split__head">
+        <p class="split__title">Split into printable pieces</p>
+        <HelpButton topic="split" class="split__help" />
+      </div>
       <p class="split__note">
         Cuts the body in two across a plane and adds a joint so the pieces fit back together. Drag the plane in
         the view, or type where to cut.
@@ -164,6 +168,18 @@ const sizeText = (size) => `${size.map((mm) => Number(mm.toFixed(1))).join(' × 
   box-shadow: var(--shadow-overlay);
   color: var(--text-1);
   font-family: var(--font);
+}
+
+.split__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+/* The 44px target overhangs the title line rather than growing the header (`TODO/ui-061`). */
+.split__help {
+  margin: -12px -8px -12px 0;
 }
 
 .split__title {
