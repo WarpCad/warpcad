@@ -1,0 +1,63 @@
+name: Something doesn't work
+description: A control that's missing, does the wrong thing, or can't be reached.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for trying WarpCad. Bugs here are often specific to one browser or screen size,
+        so the two dropdowns below matter as much as the steps.
+        **Security problems go [here](https://github.com/WarpCad/warpcad/security/advisories/new), not in an issue.**
+  - type: textarea
+    id: steps
+    attributes:
+      label: What you did
+      description: Step by step, from opening the app. "Dragged a Cube in, then a Sphere, selected both, pressed Subtract."
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: What happened instead
+      description: A screenshot or screen recording helps a lot. Drag it into this box.
+    validations:
+      required: true
+  - type: dropdown
+    id: device
+    attributes:
+      label: Device
+      options:
+        - Phone
+        - Tablet
+        - Laptop / desktop
+    validations:
+      required: true
+  - type: dropdown
+    id: browser
+    attributes:
+      label: Browser
+      options:
+        - Safari (iPhone / iPad)
+        - Safari (Mac)
+        - Chrome or Edge
+        - Firefox
+        - Installed app (PWA)
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Where you ran it
+      description: The hosted app, or a local `npm run dev` (with the commit, if you know it).
+  - type: textarea
+    id: project
+    attributes:
+      label: Project file (optional)
+      description: If it happens with a particular model, attach the project file (File ▾ → Save As…, or Download copy on Safari and phones). Remove anything private first.

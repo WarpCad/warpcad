@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Report a security vulnerability
+    url: https://github.com/WarpCad/warpcad/security/advisories/new
+    about: Privately, not as a public issue. See SECURITY.md.
+  - name: How do I…?
+    url: https://github.com/WarpCad/warpcad/blob/main/docs/README.md
+    about: Every control has a docs page with a worked example. They're also in the app under File ▾ → Help and documentation.

@@ -1,0 +1,37 @@
+name: Feature idea
+description: Something you'd like to be able to do in WarpCad.
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Every WarpCad control is specified by what must be true before it's used, how you set
+        it off, and how you know it worked (see "Interaction Model" in `CLAUDE.md`). Answering
+        those three here is the most useful thing you can do. Rough answers are fine.
+  - type: textarea
+    id: goal
+    attributes:
+      label: What you're trying to make or do
+      description: The part or task, not the button. "Cut a row of vent slots into a case lid."
+    validations:
+      required: true
+  - type: textarea
+    id: precondition
+    attributes:
+      label: Before you'd use it
+      description: What would already be placed or selected? "The lid is selected."
+  - type: textarea
+    id: trigger
+    attributes:
+      label: How you'd start it
+      description: A button, a menu item, a gesture, a shortcut, and where you'd expect to find it, including on a phone.
+  - type: textarea
+    id: feedback
+    attributes:
+      label: How you'd know it worked
+      description: What changes on screen?
+  - type: textarea
+    id: workaround
+    attributes:
+      label: How you do it today
+      description: In WarpCad, in another CAD tool, or in code (OpenSCAD, JSCAD).
