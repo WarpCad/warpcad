@@ -795,17 +795,24 @@ export const DIAL_TICK_COUNT = 360 / DIAL_TICK_STEP_DEG
 /** Every this-many ticks is a long one (45°). */
 const DIAL_MAJOR_EVERY = 3
 
-/** Outer end of every tick, as a fraction of the ring's radius. */
-const DIAL_TICK_OUTER = 0.94
-/** Inner end of a minor tick. */
-const DIAL_TICK_MINOR_INNER = 0.84
-/** Inner end of a major (45°) tick. */
-const DIAL_TICK_MAJOR_INNER = 0.74
-/** Where the 0/90/180/270 labels sit. */
-const DIAL_LABEL_RATIO = 0.6
+/**
+ * The dial is drawn **larger than the gizmo ring**, which is itself sized to
+ * clear the part's bounding sphere (`gizmoSizeForBounds`). So every ratio below
+ * is a multiple of the ring's radius, and the whole tick band and both hands
+ * sit outside the part rather than being drawn over it.
+ */
 
-/** Length of both hands and the sector's radius, as a fraction of the ring. */
-export const DIAL_HAND_RATIO = 0.9
+/** Outer end of every tick, as a multiple of the ring's radius. */
+const DIAL_TICK_OUTER = 1.3
+/** Inner end of a minor tick. */
+const DIAL_TICK_MINOR_INNER = 1.2
+/** Inner end of a major (45°) tick. */
+const DIAL_TICK_MAJOR_INNER = 1.1
+/** Where the 0/90/180/270 labels sit: just inside the ticks, on the ring itself. */
+const DIAL_LABEL_RATIO = 1.0
+
+/** Length of both hands and the sector's radius, as a multiple of the ring. */
+export const DIAL_HAND_RATIO = 1.2
 
 /** The live hand's arrowhead length, px. */
 const DIAL_HAND_HEAD_PX = 9
@@ -1118,7 +1125,7 @@ export function placeDialReadout(ring, originX, originY, pointerXPx, pointerYPx,
   let y
   if (!touch) {
     // The ellipse's exact vertical half-extent on screen.
-    const ringHalfHeight = Math.hypot(ring.uy, ring.vy)
+    const ringHalfHeight = Math.hypot(ring.uy, ring.vy) * DIAL_TICK_OUTER
     x = originX
     y = originY - ringHalfHeight - DIAL_READOUT_GAP_PX - halfH
   } else {

@@ -78,6 +78,23 @@ const props = defineProps({
 const dialAnnotation = computed(() => /** @type {any} */ (props.dial))
 
 /**
+ * The axis whose dial is showing, or `''` when none is. While a rotate drag
+ * shows its dial, the other two rings are hidden (`v-show`, so the DOM and its
+ * test ids stay put) and only the ring being turned remains.
+ *
+ * @type {import('vue').ComputedRef<string>}
+ */
+const dialAxis = computed(() => (dialAnnotation.value?.visible ? dialAnnotation.value.axis : ''))
+
+/**
+ * @param {string} axis `"X"` | `"Y"` | `"Z"`.
+ * @returns {boolean} False for a ring hidden because another ring's dial is up.
+ */
+function ringShown(axis) {
+  return dialAxis.value === '' || dialAxis.value === axis
+}
+
+/**
  * The prop, named at its type boundary. `defineProps` in a plain-JS SFC widens
  * to `Object`, so this is where the shape is stated once instead of every
  * template expression re-asserting it.
@@ -388,6 +405,7 @@ function onHandleUp(event) {
          new ring geometry since both reuse the same `ringPaths` points. -->
     <polygon
       v-for="ring in ringPaths"
+      v-show="ringShown(ring.axis)"
       :key="`ring-${ring.axis}`"
       class="tgizmo__ring"
       :data-testid="`gizmo-ring-${ring.axis.toLowerCase()}`"
@@ -401,6 +419,7 @@ function onHandleUp(event) {
          comment above that block. -->
     <polygon
       v-for="ring in ringPaths"
+      v-show="ringShown(ring.axis)"
       :key="`ring-core-${ring.axis}`"
       class="tgizmo__ring-core"
       :data-testid="`gizmo-core-ring-${ring.axis.toLowerCase()}`"
@@ -413,6 +432,7 @@ function onHandleUp(event) {
     <template v-for="ringArrow in ringArrowPaths" :key="`ring-arrows-${ringArrow.axis}`">
       <polygon
         v-for="head in ringArrow.heads"
+        v-show="ringShown(ringArrow.axis)"
         :key="`ring-arrow-${ringArrow.axis}-${head.key}`"
         class="tgizmo__ring-arrow"
         :data-testid="`gizmo-rotate-arrow-${ringArrow.axis.toLowerCase()}-${head.key}`"
@@ -493,6 +513,7 @@ function onHandleUp(event) {
          first so that where an arm crosses a ring, the arm wins. -->
     <polygon
       v-for="ring in ringPaths"
+      v-show="ringShown(ring.axis)"
       :key="`grab-ring-${ring.axis}`"
       class="tgizmo__grab tgizmo__grab--ring"
       :data-testid="`gizmo-grab-ring-${ring.axis.toLowerCase()}`"

@@ -1380,8 +1380,10 @@ describe('the rotate dial (TODO/ui-064)', () => {
       expect(dial.ticks).toHaveLength(24)
 
       const outer = inPlane(ring, gizmo, dial.ticks[0].x2, dial.ticks[0].y2).radius
-      expect(outer).toBeGreaterThan(0.8)
-      expect(outer).toBeLessThanOrEqual(1)
+      // The dial is bigger than the ring, and the ring already clears the part:
+      // the whole tick band (and both hands) sit outside the part.
+      expect(outer).toBeGreaterThan(1.2)
+      expect(outer).toBeLessThanOrEqual(1.5)
       for (let index = 0; index < 24; index += 1) {
         const tick = dial.ticks[index]
         expect(tick.major).toBe(index % 3 === 0)
@@ -1396,6 +1398,19 @@ describe('the rotate dial (TODO/ui-064)', () => {
         // Majors reach further in.
         expect(foot.radius).toBeLessThan(tip.radius)
         if (tick.major) expect(foot.radius).toBeLessThan(inPlane(ring, gizmo, dial.ticks[1].x1, dial.ticks[1].y1).radius)
+      }
+    })
+
+    it('draws the hands and every tick clear of the ring, i.e. outside the part it was sized to clear', () => {
+      const { gizmo } = rig(25, 35)
+      for (const ring of gizmo.rings) {
+        const dial = createDialAnnotation()
+        updateDialAnnotation(ring, 10, 33, gizmo.originX, gizmo.originY, dial)
+        expect(inPlane(ring, gizmo, dial.liveX, dial.liveY).radius).toBeGreaterThan(1)
+        expect(inPlane(ring, gizmo, dial.startX, dial.startY).radius).toBeGreaterThan(1)
+        for (const tick of dial.ticks) {
+          expect(inPlane(ring, gizmo, tick.x1, tick.y1).radius).toBeGreaterThanOrEqual(1)
+        }
       }
     })
 

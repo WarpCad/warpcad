@@ -333,6 +333,10 @@ test('a ring drag draws a dial and a readout, the Rotation field agrees, release
   await expect(page.getByTestId('gizmo-dial')).toHaveAttribute('data-axis', 'Z')
   await expect(page.getByTestId('gizmo-dial-hand')).toBeAttached()
   await expect(page.getByTestId('gizmo-dial-readout')).toBeVisible()
+  // Only the ring being turned stays on screen: the other two are hidden.
+  await expect(page.getByTestId('gizmo-ring-z')).toBeVisible()
+  await expect(page.getByTestId('gizmo-ring-x')).toBeHidden()
+  await expect(page.getByTestId('gizmo-ring-y')).toBeHidden()
   const readout = await page.getByTestId('gizmo-dial-readout').getAttribute('data-value')
   expect(readout).toMatch(/^[+-]\d+\.\d°$/)
   const shown = degrees(/** @type {string} */ (readout))
@@ -364,6 +368,9 @@ test('a ring drag draws a dial and a readout, the Rotation field agrees, release
 
   // Everything vanishes on release.
   await expect(page.getByTestId('gizmo-dial')).toHaveCount(0)
+  // ...and the two hidden rings come back.
+  await expect(page.getByTestId('gizmo-ring-x')).toBeVisible()
+  await expect(page.getByTestId('gizmo-ring-y')).toBeVisible()
   // Exactly one body (`ui-012`'s load-bearing check), at the displayed angle.
   expect(await sceneBodies(page)).toHaveLength(1)
   expect(sameTurn(await fieldNumber(page, 'inspector-rotation-z'), last)).toBe(true)
