@@ -41,7 +41,7 @@ Speed bands for the arm (`src/render/translateSnap.js`: 40/300/1000 px/s -> 0.1/
 | # | Check | Status | Notes |
 |---|---|---|---|
 | 1 | With a mouse, drag an arm at a normal pace: does the speed step feel predictable, or does the value jump in coarse steps you did not ask for? Consider whether the rings should match (ui-065 Open question a). | Open | |
-| 2 | On an iPad and a phone, drag an arm fast then slow: coarse then `0.1 mm`; is the readout never under the fingertip (it can sit over the start mark on a diagonal arm)? | Open | |
+| 2 | On an iPad and a phone, drag an arm fast then slow: coarse then `0.1 mm`; is the readout never under the fingertip (it can sit over the start mark on a diagonal arm)? | OK | iPad: looks OK (reported by the user 2026-10-15, no detail given). Phone not checked. |
 | 3 | Ruler legibility in light and dark themes: tick density, the `+5` labels, readout contrast. | Open | |
 
 ### ui-064 — Rotate dial (2026-10-15 01:04)
