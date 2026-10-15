@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+<style>
+.bg{fill:#f7f9fc}.ink{fill:#131820}.inks{stroke:#131820}.a{fill:#1f6fb2}.as{stroke:#1f6fb2}
+.b{fill:#0f8a72}.bs{stroke:#0f8a72}.m{stroke:#b6c0ce}.mf{fill:#b6c0ce}.M{stroke:#8f9bab}.bgs{stroke:#f7f9fc}
+.x{fill:#b3392f}.xs{stroke:#b3392f}.y{fill:#3f7d2c}.ys{stroke:#3f7d2c}
+.st{fill:#1f6fb2}.ga{stop-color:#1f6fb2}.gb{stop-color:#f7f9fc}
+@media (prefers-color-scheme:dark){
+.st{fill:#cfe6ff}.ga{stop-color:#5aa9e6}.gb{stop-color:#171b24}
+.bg{fill:#171b24}.ink{fill:#e7ecf3}.inks{stroke:#e7ecf3}.a{fill:#5aa9e6}.as{stroke:#5aa9e6}
+.b{fill:#66d9c0}.bs{stroke:#66d9c0}.m{stroke:#2c333f}.mf{fill:#3d4756}.M{stroke:#4a5566}.bgs{stroke:#171b24}
+.x{fill:#e06c6c}.xs{stroke:#e06c6c}.y{fill:#7cc35f}.ys{stroke:#7cc35f}}
+</style>
+<rect class="bg" width="512" height="512" rx="112"/><rect class="a" x="69" y="112.8" width="374" height="246.4" rx="13.2" fill-opacity=".18"/><rect class="as" fill="none" stroke-width="10" x="69" y="112.8" width="374" height="246.4" rx="13.2"/><rect class="ink" x="100.24" y="118.96" width="223.52" height="22" rx="4"/><rect class="mf" x="357.2" y="277.8" width="101.2" height="70.4" rx="4"/><rect class="mf" x="374.8" y="200.8" width="83.6" height="59.4" rx="4"/><rect class="mf" x="374.8" y="121.6" width="83.6" height="59.4" rx="4"/><polygon class="b" points="105.4,343.8 94.9,361.99 73.9,361.99 63.4,343.8 73.9,325.61 94.9,325.61"/><circle class="bg" cx="84.4" cy="343.8" r="8"/><polygon class="b" points="360.6,343.8 350.1,361.99 329.1,361.99 318.6,343.8 329.1,325.61 350.1,325.61"/><circle class="bg" cx="339.6" cy="343.8" r="8"/><polygon class="b" points="105.4,128.2 94.9,146.39 73.9,146.39 63.4,128.2 73.9,110.01 94.9,110.01"/><circle class="bg" cx="84.4" cy="128.2" r="8"/><polygon class="b" points="360.6,128.2 350.1,146.39 329.1,146.39 318.6,128.2 329.1,110.01 350.1,110.01"/><circle class="bg" cx="339.6" cy="128.2" r="8"/><g class="inks" stroke-width="5" stroke-linecap="round"><line x1="84.4" y1="389.2" x2="84.4" y2="425.2"/><line x1="339.6" y1="389.2" x2="339.6" y2="425.2"/><line x1="84.4" y1="411.2" x2="339.6" y2="411.2"/></g><polygon class="ink" points="84.4,411.2 104.4,402.2 104.4,420.2"/><polygon class="ink" points="339.6,411.2 319.6,402.2 319.6,420.2"/><rect class="bg" x="178" y="389.2" width="68" height="44"/><text class="ink" x="212" y="424.2" font-family="ui-monospace,Menlo,monospace" font-size="38" font-weight="700" text-anchor="middle">58</text>
+</svg>

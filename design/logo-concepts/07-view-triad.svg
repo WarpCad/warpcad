@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+<style>
+.bg{fill:#f7f9fc}.ink{fill:#131820}.inks{stroke:#131820}.a{fill:#1f6fb2}.as{stroke:#1f6fb2}
+.b{fill:#0f8a72}.bs{stroke:#0f8a72}.m{stroke:#b6c0ce}.mf{fill:#b6c0ce}.M{stroke:#8f9bab}.bgs{stroke:#f7f9fc}
+.x{fill:#b3392f}.xs{stroke:#b3392f}.y{fill:#3f7d2c}.ys{stroke:#3f7d2c}
+.st{fill:#1f6fb2}.ga{stop-color:#1f6fb2}.gb{stop-color:#f7f9fc}
+@media (prefers-color-scheme:dark){
+.st{fill:#cfe6ff}.ga{stop-color:#5aa9e6}.gb{stop-color:#171b24}
+.bg{fill:#171b24}.ink{fill:#e7ecf3}.inks{stroke:#e7ecf3}.a{fill:#5aa9e6}.as{stroke:#5aa9e6}
+.b{fill:#66d9c0}.bs{stroke:#66d9c0}.m{stroke:#2c333f}.mf{fill:#3d4756}.M{stroke:#4a5566}.bgs{stroke:#171b24}
+.x{fill:#e06c6c}.xs{stroke:#e06c6c}.y{fill:#7cc35f}.ys{stroke:#7cc35f}}
+</style>
+<polygon class="ink" points="166.58,357.26 256,408.89 256,305.64 166.58,254.01"/><polygon points="166.58,357.26 256,408.89 256,305.64 166.58,254.01" fill="#000" fill-opacity="0.25"/><polygon class="ink" points="345.42,357.26 256,408.89 256,305.64 345.42,254.01"/><polygon points="345.42,357.26 256,408.89 256,305.64 345.42,254.01" fill="#000" fill-opacity="0.12"/><polygon class="ink" points="256,202.38 166.58,254.01 256,305.64 345.42,254.01"/><line class="xs" stroke-width="22" stroke-linecap="round" x1="256" y1="305.64" x2="127.3" y2="379.94"/><circle class="x" cx="127.3" cy="379.94" r="24.58"/><line class="ys" stroke-width="22" stroke-linecap="round" x1="256" y1="305.64" x2="384.7" y2="379.94"/><circle class="y" cx="384.7" cy="379.94" r="24.58"/><line class="as" stroke-width="22" stroke-linecap="round" x1="256" y1="305.64" x2="256" y2="157.03"/><circle class="a" cx="256" cy="157.03" r="24.58"/>
+</svg>

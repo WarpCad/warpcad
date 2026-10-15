@@ -91,6 +91,18 @@ exporting a finer mesh, and the whole scene; [Saving and reopening your
 work](save-load.md) covers keeping a copy you can edit again (your work also autosaves in this
 browser as you go).
 
+## Keep WarpCad on your home screen
+
+WarpCad can be installed like an app, so it opens in its own window without the browser's
+toolbars. Its icon is a dark cube in a blue-white flash, with stars streaking out around it.
+
+- **iPhone or iPad (Safari):** tap the **Share** button, choose **Add to Home Screen**, then tap
+  **Add**. The icon appears on your home screen, labelled **WarpCad**.
+- **Android (Chrome):** open the **⋮** menu and choose **Install app** (on some phones it is
+  called **Add to Home screen**), then confirm.
+- **Computer (Chrome or Edge):** click the install icon at the right-hand end of the address bar,
+  then **Install**. WarpCad gets its own window and a dock or Start-menu entry.
+
 ## Where to go next
 
 - [Placing a shape](primitive-placement.md): every Library item, snap guides, and placing on a phone.

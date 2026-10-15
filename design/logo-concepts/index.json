@@ -1,0 +1,122 @@
+[
+  {
+    "name": "01-twist-stack",
+    "adaptive": true,
+    "kind": "Brand mark",
+    "set": "cad"
+  },
+  {
+    "name": "02-grid-w",
+    "adaptive": true,
+    "kind": "Brand mark",
+    "set": "cad"
+  },
+  {
+    "name": "03-pi-board",
+    "adaptive": false,
+    "kind": "raspberrypi.bplus",
+    "set": "cad"
+  },
+  {
+    "name": "04-hex-bolt",
+    "adaptive": true,
+    "kind": "hardware.bolt",
+    "set": "cad"
+  },
+  {
+    "name": "05-cube-minus-sphere",
+    "adaptive": true,
+    "kind": "Cube − sphere scenario",
+    "set": "cad"
+  },
+  {
+    "name": "06-union-w",
+    "adaptive": true,
+    "kind": "Brand mark",
+    "set": "cad"
+  },
+  {
+    "name": "07-view-triad",
+    "adaptive": true,
+    "kind": "Viewport gizmo",
+    "set": "cad"
+  },
+  {
+    "name": "08-extruded-w",
+    "adaptive": false,
+    "kind": "Sketch → extrude",
+    "set": "cad"
+  },
+  {
+    "name": "09-board-frame",
+    "adaptive": true,
+    "kind": "kit.boardFrame",
+    "set": "cad"
+  },
+  {
+    "name": "10-bearing",
+    "adaptive": false,
+    "kind": "hardware.bearing",
+    "set": "cad"
+  },
+  {
+    "name": "11-warp-tunnel",
+    "adaptive": true,
+    "kind": "Brand mark",
+    "set": "warp"
+  },
+  {
+    "name": "12-pi-at-warp",
+    "adaptive": false,
+    "kind": "raspberrypi.bplus",
+    "set": "warp"
+  },
+  {
+    "name": "13-bolt-comet",
+    "adaptive": true,
+    "kind": "hardware.bolt",
+    "set": "warp"
+  },
+  {
+    "name": "14-cube-sphere-warp",
+    "adaptive": true,
+    "kind": "Cube − sphere scenario",
+    "set": "warp"
+  },
+  {
+    "name": "15-italic-speed-w",
+    "adaptive": true,
+    "kind": "Brand mark",
+    "set": "warp"
+  },
+  {
+    "name": "16-warp-flash",
+    "adaptive": false,
+    "kind": "Brand mark",
+    "set": "warp"
+  },
+  {
+    "name": "17-spinning-bearing",
+    "adaptive": false,
+    "kind": "hardware.bearing",
+    "set": "warp"
+  },
+  {
+    "name": "18-hyperspace-grid",
+    "adaptive": true,
+    "kind": "Viewport grid",
+    "set": "warp"
+  },
+  {
+    "name": "19-board-frame-warp",
+    "adaptive": true,
+    "kind": "kit.boardFrame",
+    "set": "warp"
+  },
+  {
+    "name": "20-extrude-to-warp",
+    "adaptive": false,
+    "kind": "Sketch → extrude",
+    "set": "warp"
+  }
+]

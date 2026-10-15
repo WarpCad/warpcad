@@ -5,6 +5,7 @@ import { VitePWA } from 'vite-plugin-pwa'
 
 import { warpcadLiveBridge } from './mcp/liveBridge.js'
 import { HELP_PRECACHE_GLOBS, helpRuntimeCaching, warpcadHelp } from './scripts/vite-plugin-help.mjs'
+import { manifestIcons } from './scripts/app-icons.mjs'
 
 /**
  * The dev server only. `index.html`'s Content-Security-Policy is the production policy; `vite
@@ -63,6 +64,9 @@ export default defineConfig({
     warpcadHelp(),
     VitePWA({
       registerType: 'autoUpdate',
+      // The tab icons `index.html` links, precached so they survive going offline. The
+      // manifest's own icons are precached by the plugin already.
+      includeAssets: ['favicon.svg', 'favicon.ico', 'apple-touch-icon.png'],
       workbox: {
         // The plugin's default globs plus the help text and still pictures, so Help opens
         // offline right after install. The GIFs are runtime-cached, not precached: they are
@@ -74,8 +78,13 @@ export default defineConfig({
         name: 'WarpCad',
         short_name: 'WarpCad',
         display: 'standalone',
-        background_color: '#111111',
-        theme_color: '#111111',
+        // `--surface-0` from src/styles/tokens.css, the same value index.html paints before any
+        // CSS loads, so the install splash and title bar match the app's first frame.
+        background_color: '#10131a',
+        theme_color: '#10131a',
+        // Rendered from public/favicon.svg by `npm run icons` (scripts/app-icons.mjs), which
+        // owns this list so the manifest and the files on disk cannot drift apart.
+        icons: manifestIcons(),
       },
     }),
   ],
