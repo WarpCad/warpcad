@@ -36,6 +36,51 @@ steps that built it, so it can be resized if you choose to expose a size (below)
 
 ![After File, New, dragging the Standoff row from My parts into the 3D view places the whole group, and the Inspector lists Cube 1 and Cylinder 1 as its parts](./media/user-library-place.gif)
 
+## Importing a model file
+
+You do not have to build every part: if you already have a model as an **STL** file (from
+Thingiverse, a scan, a bracket someone else designed), **Import model file…** in the My
+parts header turns it into a part you can drag into the view like any other.
+
+1. Open the Library and expand **My parts** (on a phone, tap **Library** first).
+2. Tap **Import model file…** and choose `bracket.stl`. A *Reading bracket.stl…* line shows
+   while it is read. Choosing a second file while one is still being read replaces it.
+3. A row appears at the top of **My parts** with a thumbnail, the name, a **Mesh** tag and its
+   size in millimetres, and a toast reads *Imported bracket.stl, 12 triangles, 40 × 20 × 10 mm*.
+4. **Check the size under its name.** STL files carry no units, so the row says
+   **Units assumed: mm** until you touch **Units**. If a bracket reads 0.04 × 0.02 × 0.01 mm,
+   switch **Units** to *inch* (or *cm*) and the size updates. Do this before you place it: a
+   copy already in the project keeps the units it was placed with.
+5. Drag the row into the view. It lands on the ground plane under the pointer, centred, not
+   buried or off at the file's own origin.
+6. Select it: the Inspector shows its name and its size (read-only). To cut a pocket, add a
+   **Cube**, select the model first and the cube second, and tap **Subtract**.
+
+![The My parts row for an imported bracket: a thumbnail, the name, a Mesh tag, its size 40 × 20 × 10 mm, a Units control and the Units assumed: mm badge](./screenshots/import-model-row.png)
+
+![Tap Import model file, choose bracket.stl, then drag its row from My parts into the 3D view: the whole bracket lands selected, and the Inspector shows its size](./media/import-model-place.gif)
+
+### What it reads, and its limits
+
+- **Formats:** binary and ASCII **STL** (`.stl`). OBJ, 3MF and glTF are planned; the importer
+  is built so each is one more reader.
+- **Size caps:** a file up to 25 MB and **250,000 triangles**, and a stored mesh up to 5 MB.
+  A file over a cap is refused with its reason shown under the **My parts** header, and nothing
+  is added. A file that is not an STL, or is cut short, is refused the same way.
+- **Cleaned up on the way in:** corners that coincide are welded so the faces share edges,
+  and triangles with no area are dropped, so the part exports as a closed shape.
+- **Not parametric.** An imported mesh has no sizes to edit: the Inspector says so and shows
+  its size as a measurement. You can move, rotate, scale, combine and cut it (Union, Subtract,
+  Intersect work as with any body), but not change its dimensions as numbers.
+- **STEP, IGES and BREP are out of scope.** Those are exact solid models, not triangle meshes,
+  and reading them needs a different kind of geometry engine than this app has. "STEP does not
+  import" is how the app is built, not a bug. Export STL from your other program instead.
+- **Exporting the part** (⋯ ▸ **Export part file**) carries the mesh. It is refused with a
+  reason if the file would be larger than **Import part file…** reads (8 million characters).
+
+On a laptop you can also drop a `.stl` file straight onto the Library panel. Touch screens
+have no file drag, so the button is the way in there.
+
 ## When Save to library… is available
 
 It needs **exactly one** group or body selected. With nothing selected, or with two or more,

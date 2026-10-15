@@ -50,6 +50,7 @@ import { evaluate, isGroup } from './kernel/index.js'
 import { RUNTIME_OP_PREFIX, lookupEntry, registry, setRuntimeEntries } from './kernel/registry.js'
 import { policyFor } from './kernel/tessellation.js'
 import { foldColorOverrides } from './colorOverride.js'
+import { MESH_ASSET_OP, validateMeshAsset } from '../io/meshAsset.js'
 
 const { geom3 } = modeling.geometries
 
@@ -113,14 +114,27 @@ export const USER_PART_LIMITS = Object.freeze({
   maxVersion: 1e6,
   /** Definitions one project file may carry. */
   maxPartsPerProject: 64,
-  /** One definition's JSON size, in UTF-16 code units. */
+  /** One definition's JSON size, in UTF-16 code units — not counting an imported mesh's data. */
   maxDefinitionBytes: 1_000_000,
+  /**
+   * Imported meshes (`asset.mesh`, `TODO/io-009`) one part may hold. A mesh's own data is
+   * capped by `MESH_LIMITS` (`src/io/meshAsset.js`), not by `maxDefinitionBytes`.
+   */
+  maxMeshAssetsPerPart: 1,
+  /**
+   * A definition holding a mesh, whole, in UTF-16 code units: a cap-sized mesh's base64 plus
+   * room for its records, and still under the part file's 8 M-character limit with a
+   * thumbnail, so a mesh part can always be exported as a part file.
+   */
+  maxMeshDefinitionBytes: 7_500_000,
 })
 
 /**
- * Op namespaces a part may use: creation, transform, boolean, group, modify and style.
- * Deliberately absent: `body.delete` (a document tombstone), `asset.image` (document data),
- * `library.*`, and anything this list has not heard of. An op must also be one this build
+ * Op namespaces a part may use: creation, transform, boolean, group, modify and style — and
+ * an imported model's `asset.mesh` / `import.mesh` pair (`TODO/io-009`), whose mesh record
+ * is checked by the same validator a load uses. Deliberately absent: `body.delete` (a
+ * document tombstone), `asset.image` (document data), `library.*`, and anything this list has
+ * not heard of. An op must also be one this build
  * knows (or another `user.*` part the same set carries).
  */
 export const ALLOWED_OP_PREFIXES = Object.freeze([
@@ -135,8 +149,13 @@ export const ALLOWED_OP_PREFIXES = Object.freeze([
   'group.',
   'modify.',
   'style.',
+  MESH_ASSET_OP,
+  'import.',
   USER_PART_PREFIX,
 ])
+
+/** The op that builds a body from a part's `asset.mesh` (`TODO/io-009`). */
+const IMPORT_MESH_OP = 'import.mesh'
 
 const DEFINITION_FIELDS = new Set(['op', 'name', 'version', 'result', 'records', 'params'])
 const RECORD_FIELDS = new Set(['id', 'op', 'params', 'target', 'operands'])
@@ -284,8 +303,24 @@ function normalizeDefinition(raw) {
   } catch {
     throw new UserPartError('not a part definition (it is not plain JSON)')
   }
-  if (size > USER_PART_LIMITS.maxDefinitionBytes) {
-    throw new UserPartError(`the definition is larger than ${USER_PART_LIMITS.maxDefinitionBytes} characters`)
+  // An imported mesh's data is capped by MESH_LIMITS on its own; the rest of the definition
+  // keeps the ordinary cap, and the whole stays small enough to export as a part file.
+  const meshChars = Array.isArray(raw.records)
+    ? raw.records.reduce(
+        (/** @type {number} */ total, /** @type {unknown} */ record) =>
+          isPlainObject(record) && record.op === MESH_ASSET_OP && isPlainObject(record.params) && typeof record.params.dataBase64 === 'string'
+            ? total + record.params.dataBase64.length
+            : total,
+        0
+      )
+    : 0
+  if (size - meshChars > USER_PART_LIMITS.maxDefinitionBytes) {
+    throw new UserPartError(
+      `the definition is larger than ${USER_PART_LIMITS.maxDefinitionBytes} characters` + (meshChars > 0 ? ', not counting its mesh data' : '')
+    )
+  }
+  if (meshChars > 0 && size > USER_PART_LIMITS.maxMeshDefinitionBytes) {
+    throw new UserPartError(`the definition, with its mesh, is larger than ${USER_PART_LIMITS.maxMeshDefinitionBytes} characters`)
   }
   for (const key of Object.keys(raw)) {
     if (!DEFINITION_FIELDS.has(key)) throw new UserPartError(`unexpected field "${key}" in a part definition`)
@@ -316,6 +351,9 @@ function normalizeDefinition(raw) {
   }
   /** @type {Set<string>} */
   const ids = new Set()
+  /** @type {Map<string, string>} id → op, for the records read so far */
+  const opOf = new Map()
+  let meshes = 0
   /** @type {OpRecord[]} */
   const records = raw.records.map((/** @type {unknown} */ candidate, /** @type {number} */ index) => {
     const label = `record ${index + 1}`
@@ -344,6 +382,14 @@ function normalizeDefinition(raw) {
       throw fail(`record "${id}": unknown op "${recordOp}" — written by a newer build, or not a WarpCad op`)
     }
     if (candidate.params !== undefined && !isPlainObject(candidate.params)) throw fail(`record "${id}": params must be an object`)
+    if (recordOp === MESH_ASSET_OP) {
+      meshes += 1
+      if (meshes > USER_PART_LIMITS.maxMeshAssetsPerPart) {
+        throw fail(`a part holds more than ${USER_PART_LIMITS.maxMeshAssetsPerPart} mesh`)
+      }
+      const verdict = validateMeshAsset(candidate)
+      if (!verdict.ok) throw fail(`record "${id}": the imported mesh can't be used — ${verdict.reason}`)
+    }
     if (recordOp === SKETCH_OP && Array.isArray(candidate.params?.slices)) {
       if (candidate.params.slices.some((/** @type {any} */ slice) => isPlainObject(slice) && slice.image !== undefined)) {
         throw fail(`record "${id}": a sketch in a part may not carry a reference image`)
@@ -385,7 +431,18 @@ function normalizeDefinition(raw) {
       if (!Array.isArray(candidate.operands)) throw fail(`record "${id}": operands must be a list`)
       record.operands = candidate.operands.map(checkRef)
     }
+    // A mesh is consumed by exactly one kind of record, and that record by nothing else: its
+    // value is decoded triangles, not a solid, so any other op handed one would fail obscurely.
+    const meshRefs = [record.target, ...(record.operands ?? [])].filter((ref) => ref !== undefined && opOf.get(String(refId(ref))) === MESH_ASSET_OP)
+    if (recordOp === IMPORT_MESH_OP) {
+      if (record.target === undefined || meshRefs.length !== 1 || meshRefs[0] !== record.target || record.operands !== undefined) {
+        throw fail(`record "${id}": import.mesh must take one asset.mesh record of this part as its target`)
+      }
+    } else if (meshRefs.length > 0) {
+      throw fail(`record "${id}": only import.mesh may use an asset.mesh record`)
+    }
     ids.add(id)
+    opOf.set(id, recordOp)
     return record
   })
 

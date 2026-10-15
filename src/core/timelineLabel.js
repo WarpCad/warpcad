@@ -33,6 +33,7 @@
 import { RIM_ORIENTATIONS } from './kernel/fillet.js'
 import { colorIntToCssHex } from './colorOverride.js'
 import { normalizeBodyName } from './naming.js'
+import { formatCount } from '../io/meshAsset.js'
 
 /** @typedef {import('./kernel/registry.js').OpRecord} OpRecord */
 
@@ -257,6 +258,17 @@ export function describeRow(record, names) {
     const width = Number.isInteger(params.widthPx) ? params.widthPx : '?'
     const height = Number.isInteger(params.heightPx) ? params.heightPx : '?'
     return `Reference image ${width} × ${height} px`
+  }
+
+  // An imported model (`TODO/io-009`): the build row is named by its file and size, and the
+  // data row it reads from — a data row, not a body — by its size alone.
+  if (record.op === 'import.mesh') {
+    const name = typeof params.name === 'string' ? params.name.trim().slice(0, 80) : ''
+    const count = Number.isInteger(params.triangleCount) && params.triangleCount >= 0 ? ` (${formatCount(params.triangleCount)} triangles)` : ''
+    return `Imported mesh${name === '' ? '' : ` ${name}`}${count}`
+  }
+  if (record.op === 'asset.mesh') {
+    return Number.isInteger(params.triangleCount) ? `Mesh data (${formatCount(params.triangleCount)} triangles)` : 'Mesh data'
   }
 
   // A project variable (`TODO/core-050`, shown by `TODO/ui-059`): named by what it defines, not

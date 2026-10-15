@@ -401,5 +401,11 @@
     "specHash": "0ff1905ff4f8e2d302dd14441b477a1ca4695943bc763d805c838be23f07f10f",
     "bytes": 297812,
     "seconds": 6.2
+  },
+  "import-model-place.gif": {
+    "spec": "e2e/docs/import-model.docs.js",
+    "specHash": "9393f0964b7aace49de260056ab1ee05fd42b7214fddeafdece27cda1cffabc3",
+    "bytes": 1060783,
+    "seconds": 8.9
   }
 }

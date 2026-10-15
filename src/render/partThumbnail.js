@@ -90,10 +90,11 @@ export function partPolygons(geometry) {
  *
  * @param {readonly PolygonVertices[]} polygons
  * @param {number} size Picture width and height, pixels.
+ * @param {number} [maxFaces] Draw every n-th face beyond this many (default {@link MAX_FACES}).
  * @returns {ThumbnailFace[]}
  */
-export function projectThumbnail(polygons, size) {
-  const stride = Math.max(1, Math.ceil(polygons.length / MAX_FACES))
+export function projectThumbnail(polygons, size, maxFaces = MAX_FACES) {
+  const stride = Math.max(1, Math.ceil(polygons.length / maxFaces))
   /** @type {{ xy: number[], shade: number, depth: number }[]} */
   const faces = []
   let minX = Infinity
@@ -153,13 +154,15 @@ export function projectThumbnail(polygons, size) {
  * to draw on (no DOM, a canvas without a 2D context, an unexpectedly large result).
  *
  * @param {any} geometry A body's evaluated geometry.
- * @param {{ size?: number, document?: Pick<Document, 'createElement'> | null }} [options]
+ * @param {{ size?: number, maxFaces?: number, document?: Pick<Document, 'createElement'> | null }} [options]
+ *   `maxFaces` lowers the face budget for a part that is a dense mesh (an imported scan), so
+ *   drawing it does not hold the main thread for a frame.
  * @returns {string | null}
  */
-export function renderPartThumbnail(geometry, { size = 96, document: doc = globalThis.document ?? null } = {}) {
+export function renderPartThumbnail(geometry, { size = 96, maxFaces = MAX_FACES, document: doc = globalThis.document ?? null } = {}) {
   try {
     if (doc === null || doc === undefined) return null
-    const faces = projectThumbnail(partPolygons(geometry), size)
+    const faces = projectThumbnail(partPolygons(geometry), size, maxFaces)
     if (faces.length === 0) return null
     const canvas = /** @type {HTMLCanvasElement} */ (doc.createElement('canvas'))
     canvas.width = size

@@ -42,7 +42,11 @@ import {
   saveToLibraryGate,
   usageOf,
 } from '../core/userPartTools.js'
-import { parsePartFile, partFileName, serializePartFile } from '../core/userPartFile.js'
+import { evaluateOp } from '../core/kernel/index.js'
+import { MAX_PART_FILE_CHARS, parsePartFile, partFileName, serializePartFile } from '../core/userPartFile.js'
+import { formatCount } from '../io/meshAsset.js'
+import { cancelModelImport, importModelFile } from '../io/meshClient.js'
+import { UNIT_SCALES, meshPartDefinition, meshPartInfo, meshPartSizeMm, withUnits } from '../io/meshPart.js'
 import { renderPartThumbnail } from '../render/partThumbnail.js'
 import { downloadBytes } from '../storage/download.js'
 import { createUserLibrary, loadUserLibrary } from '../storage/userLibrary.js'
@@ -50,19 +54,49 @@ import { useDocumentStore } from './document.js'
 import { useSelectionStore } from './selection.js'
 import { useTimelineStore } from './timeline.js'
 
+/** The face budget of an imported model's thumbnail (the default is 40,000). */
+const MESH_THUMBNAIL_FACES = 12_000
+
 /** How long the "Saved <name>" toast stays, ms. */
 const TOAST_MS = 4500
 
 /** @typedef {import('../core/userPart.js').UserPartDefinition} UserPartDefinition */
 /** @typedef {import('../core/library.js').LibraryRow} LibraryRow */
 /**
- * @typedef {LibraryRow & { inLibrary: boolean, usage: number, thumbnail: string | null }} UserPartRow
+ * @typedef {object} MeshRowInfo What an imported model's row shows (`TODO/io-009`).
+ * @property {number} triangleCount
+ * @property {keyof typeof UNIT_SCALES | null} units
+ * @property {boolean} unitsConfirmed
+ * @property {[number, number, number] | null} sizeMm Bounding box in mm at the current units;
+ *   `null` if the stored mesh no longer decodes.
+ * @property {string} sizeText `"42 × 18 × 6 mm"`, or `''`.
  */
+/**
+ * @typedef {LibraryRow & {
+ *   inLibrary: boolean, usage: number, thumbnail: string | null, mesh: MeshRowInfo | null
+ * }} UserPartRow
+ */
+
+/**
+ * "42 × 18 × 6 mm" — enough digits to tell 0.04 from 0.4, not more.
+ *
+ * @param {readonly number[]} size Millimetres.
+ * @returns {string}
+ */
+export function formatSizeMm(size) {
+  const one = (/** @type {number} */ value) => {
+    const abs = Math.abs(value)
+    const digits = abs >= 100 ? 0 : abs >= 10 ? 1 : abs >= 1 ? 2 : 3
+    return String(Number(value.toFixed(digits)))
+  }
+  return `${size.map(one).join(' × ')} mm`
+}
 
 /**
  * @typedef {object} LibraryBoundaries
  * @property {(text: string, name: string) => void} [download] Hands a file to the browser.
- * @property {(geometry: unknown) => string | null} [thumbnailer] Draws a part's thumbnail.
+ * @property {(geometry: unknown, options?: { maxFaces?: number }) => string | null} [thumbnailer]
+ *   Draws a part's thumbnail.
  */
 
 export const useLibraryStore = defineStore('library', () => {
@@ -77,8 +111,11 @@ export const useLibraryStore = defineStore('library', () => {
     download: (text, name) => {
       downloadBytes(text, name, 'application/json')
     },
-    thumbnailer: (geometry) => renderPartThumbnail(geometry),
+    thumbnailer: (geometry, options) => renderPartThumbnail(geometry, options),
   }
+
+  /** `assetId|unitScale` → size in mm, so a row decodes its mesh once, not on every re-render. */
+  const sizeCache = new Map()
 
   /**
    * Bumped whenever the local library changes, so every computed over the registry's
@@ -172,12 +209,42 @@ export const useLibraryStore = defineStore('library', () => {
           inLibrary: row.userPart?.libraryVersion !== null && row.userPart?.libraryVersion !== undefined,
           usage: usageOf(records, row.op),
           thumbnail: thumbnails.value[row.op] ?? null,
+          mesh: meshRowInfo(row.op),
         })
       )
       // Newest first ("the new row appears at the top of My parts"); a part that is only in
       // the open project has no save time and follows, by name — `userLibrarySection`'s order.
       .sort((a, b) => (stamps[b.op] ?? 0) - (stamps[a.op] ?? 0))
   })
+
+  /**
+   * An imported model's facts for its row, or `null` for an ordinary part. The size decodes
+   * the stored mesh, so it is cached by asset and units.
+   *
+   * @param {string} op
+   * @returns {MeshRowInfo | null}
+   */
+  function meshRowInfo(op) {
+    const definition = effectiveUserPart(op)
+    const info = definition === undefined ? null : meshPartInfo(definition)
+    if (definition === undefined || info === null) return null
+    const key = `${info.assetId}|${info.unitScale}`
+    if (!sizeCache.has(key)) {
+      try {
+        sizeCache.set(key, meshPartSizeMm(definition))
+      } catch {
+        sizeCache.set(key, null)
+      }
+    }
+    const sizeMm = sizeCache.get(key) ?? null
+    return {
+      triangleCount: info.triangleCount,
+      units: info.units,
+      unitsConfirmed: info.unitsConfirmed,
+      sizeMm,
+      sizeText: sizeMm === null ? '' : formatSizeMm(sizeMm),
+    }
+  }
 
   /** Every part that exists right now, for name checks. */
   function takenParts() {
@@ -397,6 +464,15 @@ export const useLibraryStore = defineStore('library', () => {
     if (part === undefined) return false
     const { definitions } = requiredUserParts([{ id: 'x', op, params: {} }], effectiveUserPart)
     const text = serializePartFile(definitions, thumbnails.value)
+    // An imported mesh can make the file bigger than the importer will read back: refuse
+    // here, in words, rather than hand over a file Import part file… would call too large.
+    if (text.length > MAX_PART_FILE_CHARS) {
+      showToast(
+        `Could not export ${part.name}: the part file would be ${(text.length / 1_000_000).toFixed(1)} million characters, ` +
+          `over the ${(MAX_PART_FILE_CHARS / 1_000_000).toFixed(0)} million Import part file… reads`
+      )
+      return false
+    }
     boundaries.download(text, partFileName(op))
     showToast(`Exported ${part.name}`)
     return true
@@ -509,9 +585,111 @@ export const useLibraryStore = defineStore('library', () => {
     return { added, skipped, problems }
   }
 
+  // --- Import model file… (TODO/io-009) ---------------------------------------------------
+
+  /** The file being read right now, or `''` — the "Reading bracket.stl…" row. */
+  const modelImporting = ref('')
+
+  /**
+   * A free part name for an imported file: its base name, or "<name> copy" when taken.
+   *
+   * @param {string} name
+   * @returns {string}
+   */
+  function importedNameFor(name) {
+    const taken = takenParts()
+    return partNameProblem(name, taken) === '' ? name : copyNameFor(name, taken)
+  }
+
+  /**
+   * Read a model file (STL) in the worker and add it to My parts as a part. A second file
+   * supersedes the one being read. Never throws; a refusal is {@link importError}.
+   *
+   * @param {File} file
+   * @returns {Promise<{ ok: true, op: string } | { ok: false, reason: string } | { superseded: true }>}
+   */
+  async function importModel(file) {
+    importError.value = ''
+    expanded.value = true
+    modelImporting.value = file.name
+    const outcome = await importModelFile(file)
+    if (outcome.superseded) return { superseded: true }
+    modelImporting.value = ''
+    const { result } = outcome
+    if (!result.ok) {
+      importError.value = result.reason
+      return { ok: false, reason: result.reason }
+    }
+    try {
+      const name = importedNameFor(result.name)
+      const op = `${USER_PREFIX}${slugify(name)}`
+      const definition = meshPartDefinition({ record: result.record, name, triangleCount: result.triangleCount, op })
+      await backendOf().save(definition, { thumbnail: null })
+      await reload()
+      // The thumbnail is drawn once, from the part as the registry now builds it.
+      // One frame to paint the row first, then a thumbnail with a lowered face budget: a scan
+      // has far more faces than a 96 px picture can show, and drawing them all would hold the
+      // main thread for several frames (measured in docs/decisions/mesh-import.md).
+      await new Promise((resolve) => setTimeout(resolve, 0))
+      let thumbnail = null
+      try {
+        thumbnail = boundaries.thumbnailer(evaluateOp(op, {}), { maxFaces: MESH_THUMBNAIL_FACES })
+      } catch {
+        thumbnail = null
+      }
+      if (thumbnail !== null) {
+        await backendOf().save(definition, { thumbnail })
+        await reload()
+      }
+      revealOp.value = op
+      const info = meshRowInfo(op)
+      showToast(
+        `Imported ${file.name} — ${formatCount(result.triangleCount)} triangles` +
+          (info?.sizeText ? `, ${info.sizeText}` : '')
+      )
+      return { ok: true, op }
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : String(error)
+      importError.value = `Could not add ${file.name}: ${reason}`
+      return { ok: false, reason }
+    }
+  }
+
+  /** Stop reading the model file in progress, if any. */
+  function cancelImportModel() {
+    cancelModelImport()
+    modelImporting.value = ''
+  }
+
+  /**
+   * Read an imported model in other units (or confirm the assumed ones). A new version of the
+   * part, so a project that already placed it keeps its copy.
+   *
+   * @param {string} op
+   * @param {keyof typeof UNIT_SCALES} units
+   * @returns {Promise<boolean>}
+   */
+  async function setMeshUnits(op, units) {
+    const stored = (await backendOf().list()).parts.find((part) => part.op === op)
+    const part = stored ?? effectiveUserPart(op)
+    if (part === undefined) return false
+    try {
+      await backendOf().save(withUnits(part, units))
+      await reload()
+      return true
+    } catch (error) {
+      showToast(`Could not change units: ${error instanceof Error ? error.message : String(error)}`)
+      return false
+    }
+  }
+
   return {
     revision,
     thumbnails,
+    modelImporting,
+    importModel,
+    cancelImportModel,
+    setMeshUnits,
     revealOp,
     loadProblem,
     loaded,

@@ -372,6 +372,8 @@ export const NOT_OFFERED = Object.freeze({
     'Renaming is the human’s call from the Inspector (document.renameBody); a rename tool is a later addition, not part of v1.',
   'group.removePart':
     'Removing a part from a placed group is destructive and is the human’s call from the Inspector; not offered to the model in v1.',
+  'import.mesh':
+    'It builds a body from an asset.mesh record inside an imported-model library part (TODO/io-009), never from a body on screen. Importing a model file is the human’s call from the Library; the model places the part that import made like any other.',
 })
 
 /**

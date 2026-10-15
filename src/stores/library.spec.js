@@ -6,6 +6,8 @@ import { createPinia, setActivePinia } from 'pinia'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { resetUserParts, setLibraryParts, effectiveUserPart } from '../core/userPart.js'
+import { cubeTriangles, binaryStl, asciiBytes } from '../io/__fixtures__/stl.js'
+import { setMeshWorkerFactory } from '../io/meshClient.js'
 import { useDocumentStore } from './document.js'
 import { useLibraryStore } from './library.js'
 import { useSelectionStore } from './selection.js'
@@ -243,6 +245,41 @@ describe('My parts rows', () => {
     const bad = await library.importText('{nope')
     expect(bad.problems[0].reason).toMatch(/JSON/)
     expect(library.importError).toMatch(/JSON/)
+  })
+})
+
+describe('Import model file — the Library flow (TODO/io-009)', () => {
+  const fileOf = (bytes, name) => ({ name, size: bytes.byteLength, arrayBuffer: async () => bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) })
+
+  beforeEach(() => setMeshWorkerFactory(() => { throw new Error('no worker in jsdom') }))
+
+  it('adds the file as a Mesh part with its size, toast and thumbnail, and refuses a bad file inline', async () => {
+    const { library, backend } = setup()
+    const outcome = await library.importModel(fileOf(binaryStl(cubeTriangles(20)), 'bracket.stl'))
+    expect(outcome).toMatchObject({ ok: true, op: 'user.bracket' })
+    expect(backend.rows.get('user.bracket').thumbnail).toBe('data:image/png;base64,AAAA')
+    const row = library.userRows.find((candidate) => candidate.op === 'user.bracket')
+    expect(row.mesh).toMatchObject({ triangleCount: 12, units: 'mm', unitsConfirmed: false, sizeText: '20 × 20 × 20 mm' })
+    expect(library.toast.text).toBe('Imported bracket.stl — 12 triangles, 20 × 20 × 20 mm')
+    expect(library.expanded).toBe(true)
+    expect(library.modelImporting).toBe('')
+
+    const before = library.userRows.length
+    const bad = await library.importModel(fileOf(asciiBytes('this is not a model'), 'x.stl'))
+    expect(bad.ok).toBe(false)
+    expect(library.importError).not.toBe('')
+    expect(library.userRows).toHaveLength(before)
+  })
+
+  it('names a second import of the same file "<name> copy" and re-reads in other units as a new version', async () => {
+    const { library, backend } = setup()
+    await library.importModel(fileOf(binaryStl(cubeTriangles(2)), 'bracket.stl'))
+    await library.importModel(fileOf(binaryStl(cubeTriangles(2)), 'bracket.stl'))
+    expect(backend.rows.has('user.bracket-copy')).toBe(true)
+    expect(await library.setMeshUnits('user.bracket', 'inch')).toBe(true)
+    const row = library.userRows.find((candidate) => candidate.op === 'user.bracket')
+    expect(row.mesh).toMatchObject({ units: 'inch', unitsConfirmed: true, sizeText: '50.8 × 50.8 × 50.8 mm' })
+    expect(backend.rows.get('user.bracket').definition.version).toBe(2)
   })
 })
 

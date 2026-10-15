@@ -134,6 +134,7 @@ import { compareStamps } from './replica.js'
 import { LEGACY_STAMP } from './merge/state.js'
 import { parseNdjson, serializeNdjson } from './ndjson.js'
 import { ASSET_OP, validateImageAsset } from '../sketch/imageAsset.js'
+import { MESH_ASSET_OP, validateMeshAsset } from '../io/meshAsset.js'
 import { USER_PART_LIMITS, isUserPartOp, requiredUserParts, validateUserPartSet } from './userPart.js'
 import {
   VARIABLE_LIMITS,
@@ -322,6 +323,24 @@ function unsafeImageReason(record) {
 
 /** The start of every dropped-image warning — the same words the Slices panel row uses. */
 export const IMAGE_REMOVED = "reference image removed — it couldn't be verified as a safe image"
+
+/**
+ * Why a top-level imported mesh is dropped on load, or `null` (`TODO/io-009`) — the photo's
+ * rule, for the same reason: untrusted bytes that must neither reach the kernel nor cost the
+ * user every other record in the file. (A mesh inside a part definition is checked by
+ * `validateUserPart`, and a bad one takes that part down with its own named warning.)
+ *
+ * @param {Record<string, any>} record
+ * @returns {string | null}
+ */
+function unsafeMeshReason(record) {
+  if (record.op !== MESH_ASSET_OP) return null
+  const verdict = validateMeshAsset(record)
+  return verdict.ok ? null : `${MESH_REMOVED} (${verdict.reason})`
+}
+
+/** The start of every dropped-mesh warning. */
+export const MESH_REMOVED = "imported mesh removed — it couldn't be verified as a safe mesh"
 
 /**
  * Why a variable record is dropped on load, or `null` (`TODO/core-050`). Records the name of
@@ -526,7 +545,8 @@ export function parseProject(text) {
       }
       ids.add(record.id)
     }
-    const retired = retiredReason(record.op) ?? unsafeImageReason(record) ?? variableDropReason(record, variableNames)
+    const retired =
+      retiredReason(record.op) ?? unsafeImageReason(record) ?? unsafeMeshReason(record) ?? variableDropReason(record, variableNames)
     if (record.id !== undefined) positionOfId.set(record.id, recordCount)
     recordCount += 1
     if (retired !== null) {

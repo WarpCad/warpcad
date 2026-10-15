@@ -6,8 +6,22 @@ priority: medium
 model: opus
 milestone: M16
 depends: [core-037, ui-055, sketch-003, io-003]
-status: open
+status: done
 ---
+
+
+> **Shipped 2026-10-15 (`io-009`), as filed except for four things.** (1) The parser is
+> hand-rolled, not `@jscad/stl-deserializer`, and `import.mesh` refers to its asset through
+> `target`, not `assetId` — both in `docs/decisions/mesh-import.md`. (2) The stored-mesh cap is
+> **5 MiB**, not 10, so a mesh at the cap still fits in an exported part file; **Export part
+> file** now refuses with a reason if its text would exceed `MAX_PART_FILE_CHARS`. (3) The **Mesh**
+> tag sits on the line under the name with the size and Units control, not in the row, because
+> inside the 210 px column it truncated "bracket" to "b…" (found by looking at the docs still).
+> (4) The docs movie is `docs/media/import-model-place.gif`, the project's convention, not
+> `.webm`. Measured in a browser: a 100,352-triangle import held the longest frame gap to 17 ms
+> (133 ms with the parse on the main thread); the thumbnail got a 12,000-face budget and a yield
+> to get there. The ~4 MB hosted-backend round trip is a unit spec. New scenario 26 in
+> `TODO/ACCEPTANCE.md`. OBJ, 3MF and glTF remain follow-ups; STEP is out of scope.
 
 ## Goal
 

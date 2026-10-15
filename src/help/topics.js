@@ -54,6 +54,7 @@ export const TOPICS = Object.freeze({
   'reference-image': { page: 'sketch-tracing', anchor: 'loading-the-photo', title: 'Reference image' },
   // The Library and saved parts.
   library: { page: 'primitive-placement', anchor: 'where-the-library-panel-is', title: 'Library' },
+  'import-model': { page: 'user-library', anchor: 'importing-a-model-file', title: 'Import a model file' },
   'save-to-library': { page: 'user-library', anchor: 'a-worked-example-a-standoff', title: 'Save to library' },
   // The Inspector and its neighbours.
   variables: { page: 'variables', anchor: 'binding-a-field-to-a-variable', title: 'Variables' },

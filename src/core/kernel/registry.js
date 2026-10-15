@@ -56,6 +56,7 @@ import {
 } from './group.js'
 import { label } from './text.js'
 import { splitWithJoint } from './split.js'
+import { importMesh, meshValueOf } from './recipes/importMesh.js'
 import {
   EXTRUSION_DEFAULTS as SKETCH_EXTRUSION_DEFAULTS,
   regionOf as sketchRegionOf,
@@ -1308,6 +1309,15 @@ export const registry = Object.freeze({
   // silently dropping every earlier piece's name (the spec that caught it:
   // `stores/splitSheet.spec.js`, "a second split keeps the crossed part's name").
   'modify.splitWithJoint': wholeGroupNative(1, ({ params, inputs }) => splitWithJoint(soleOperand(inputs).value, params)),
+
+  // TODO/io-009: an imported model. `asset.mesh` validates and decodes the stored triangles
+  // into a mesh value — not a solid, never named, never a body — and `import.mesh` takes it
+  // as its `target` and builds the solid (`recipes/importMesh.js`). The pair only ever folds
+  // inside a mesh part's expansion; at the top level of a document `asset.mesh` is a data
+  // record, like a reference photo, and never reaches here (`document.js`). Neither carries
+  // `ui`: an import is not a catalogue row — the part it is wrapped in is.
+  'asset.mesh': native(0, ({ params }) => /** @type {any} */ (meshValueOf(params))),
+  'import.mesh': wholeGroupNative(1, ({ params, inputs }) => importMesh({ params, inputs })),
 
   // TODO/ui-030: the four entries below are the first composites to carry `ui`
   // metadata, which is the whole of what puts them in the Library panel's new

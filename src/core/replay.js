@@ -32,6 +32,7 @@
 import { evaluate } from './kernel/index.js'
 import { createGroup } from './kernel/group.js'
 import { ASSET_OP, validateImageAsset } from '../sketch/imageAsset.js'
+import { MESH_ASSET_OP, validateMeshAsset } from '../io/meshAsset.js'
 import { VARIABLE_OP, variableRecordError } from './variables.js'
 
 /** @typedef {import('@jscad/modeling').geometries.geom3.Geom3} Geom3 */
@@ -99,6 +100,16 @@ export function applyAction(scene, action, registry, cache = null, policy = unde
     if (verdict.ok) return scene
     /** @type {ReplayError} */
     const reported = { op: ASSET_OP, message: verdict.reason }
+    if (action.id !== undefined) reported.id = action.id
+    return { ...scene, errors: [...scene.errors, reported] }
+  }
+  // A top-level imported mesh (`TODO/io-009`) is data in the same way. (Inside a library
+  // part it folds through the part's expansion, which never comes through here.)
+  if (action?.op === MESH_ASSET_OP) {
+    const verdict = validateMeshAsset(action)
+    if (verdict.ok) return scene
+    /** @type {ReplayError} */
+    const reported = { op: MESH_ASSET_OP, message: verdict.reason }
     if (action.id !== undefined) reported.id = action.id
     return { ...scene, errors: [...scene.errors, reported] }
   }

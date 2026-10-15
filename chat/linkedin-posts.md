@@ -2530,3 +2530,21 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** same as the BlueSky entry; Apple rows read from apple.com/iphone/compare on 2026-10-15 -> `phoneModels.js` row sources; Samsung and Google pages truncated -> fetches this session, rows marked estimate; legacy documents unchanged -> hand-pinned replay in `kit.phone.spec.js` and the old tessellation digest carried as `kit.phone:legacy`
 **To Add:** `docs/screenshots/phone-library-row.png`, `docs/screenshots/phone-plateau-selected.png` (generated); repo URL once public
+
+
+## 2026-10-15T18:34:00Z — Importing an STL: the file is hostile until a validator says otherwise
+
+**Post:** The next WarpCad feature was the obvious one: let someone bring in an STL they already have. The interesting part was what an STL is. It carries no units, and its header holds a triangle count that anyone can set to four billion.
+
+So the importer is a parser I wrote rather than a library, because the one rule that matters is checking `80 + 4 + 50 x n` against the real byte length before allocating anything for n. I read the two obvious libraries' source first: one trusts the header and the other sizes a buffer from it. A file that passes is welded into shared vertices, stored as a small validated record, and becomes an ordinary My parts entry with no new kind of library item.
+
+Two things I only found by using it. The first row layout cut the name "bracket" to "b..." because I put a tag beside it, which the docs screenshot made obvious. And the first browser measurement of a 100,000-triangle import showed a 50 ms stall after the worker had finished: the thumbnail. A yield and a smaller face budget took the longest frame from 133 ms (parse on the main thread) to 17 ms.
+
+STEP is out of scope and the docs say so plainly: it is an exact solid format, not a mesh, and the geometry engine here is a mesh one.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** same as the BlueSky entry; the two libraries' behaviour -> source read 2026-10-15, rejection table in `docs/decisions/mesh-import.md`; header-count refusal without allocation -> `src/io/meshFormats/stl.spec.js` (count 0xFFFFFFFF)
+**To Add:** `docs/screenshots/import-model-row.png`, `docs/media/import-model-place.gif` (generated); repo URL once public

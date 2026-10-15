@@ -421,6 +421,10 @@ export function stepParamEditability(record) {
   // A reference photo (`TODO/sketch-003`) is bytes, not dimensions: its "params" are a MIME
   // type, a pixel size and base64 data, none of which a form should offer to retype.
   if (record.op === 'asset.image') return { editable: false, blockedBy: record.op }
+  // An imported model (`TODO/io-009`) is the same: its data row is triangles, and its build
+  // row's one setting — the units — is changed in the part's definition (`io/meshPart.js`'s
+  // `withUnits`), never retyped here. A mesh has no parametric sizes to offer.
+  if (record.op === 'asset.mesh' || record.op === 'import.mesh') return { editable: false, blockedBy: record.op }
   // A project variable (`TODO/core-050`) changes through `setVariable`, which validates its
   // kind, range and options — never through a generic step edit of its definition.
   if (record.op === 'var.define') return { editable: false, blockedBy: record.op }

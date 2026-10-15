@@ -214,6 +214,48 @@ describe('read', () => {
   })
 })
 
+describe('a project carrying an imported mesh (TODO/io-009)', () => {
+  it('a ~4 MB project with a placed mesh part is written whole and read back whole, mesh intact', async () => {
+    const { createDocument } = await import('../core/document.js')
+    const { parseProject, serializeProject } = await import('../core/project.js')
+    const { recordsForDrop } = await import('../core/library.js')
+    const { resetUserParts, setLibraryParts } = await import('../core/userPart.js')
+    const { importMeshBytes } = await import('../io/meshJob.js')
+    const { meshPartDefinition } = await import('../io/meshPart.js')
+    const { binaryStl, gridTriangles } = await import('../io/__fixtures__/stl.js')
+
+    // 180,000 triangles: well over the Contents API's 1 MB read line, under the 5 MB mesh cap.
+    const imported = await importMeshBytes('plate.stl', binaryStl(gridTriangles(300)))
+    if (!imported.ok) throw new Error(imported.reason)
+    setLibraryParts([meshPartDefinition({ record: imported.record, name: 'Plate', triangleCount: imported.triangleCount })])
+    const document = createDocument()
+    document.appendAll(recordsForDrop('user.plate', { x: 0, y: 0 }, document), { origin: 'local' })
+    const text = serializeProject(document)
+    resetUserParts()
+    expect(text.length).toBeGreaterThan(4_000_000)
+
+    // Write: one PUT carrying all of it.
+    const writeFetch = fakeFetch([
+      { match: '/contents/', method: 'PUT', answer: response({ body: { content: { sha: 'mesh2' }, commit: { sha: 'c1' } } }) },
+    ])
+    await createHostedClient({ fetch: writeFetch }).write(CONNECTION, { text, sha: 'mesh1', message: 'WarpCad: save' })
+    expect(decodeBase64(JSON.parse(writeFetch.calls[0].init.body).content)).toBe(text)
+
+    // Read: too big for the contents endpoint, so through the blob endpoint, whole.
+    const readFetch = fakeFetch([
+      { match: '/contents/', answer: response({ body: { type: 'file', encoding: 'none', content: '', sha: 'mesh2', size: text.length } }) },
+      { match: '/git/blobs/mesh2', answer: response({ body: { encoding: 'base64', content: encodeBase64(text), sha: 'mesh2' } }) },
+    ])
+    const read = await createHostedClient({ fetch: readFetch }).read(CONNECTION)
+    expect(read.text).toBe(text)
+    const parsed = parseProject(read.text)
+    expect(parsed.warnings).toEqual([])
+    expect(parsed.userParts.map((part) => part.op)).toEqual(['user.plate'])
+    expect(parsed.userParts[0].records[0].params.triangleCount).toBe(imported.triangleCount)
+    resetUserParts()
+  })
+})
+
 describe('write', () => {
   it('commits with the last-known sha and returns the new one', async () => {
     const fetchImpl = fakeFetch([

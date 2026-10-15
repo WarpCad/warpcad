@@ -1789,3 +1789,13 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** 13 handset rows and 6 case presets, each with source, date and status -> `src/core/kernel/recipes/phoneModels.js` and its spec; plate minus `{ id, pieces: 'plateau' }` removes the plateau's volume only -> `kit.phone.spec.js` and `e2e/phone-library.e2e.js`; typecheck clean, unit 4730 passed, full e2e 3776 passed / 915 skipped / 2 docs stills regenerated, run this session
 **To Add:** `docs/screenshots/phone-plateau-pocket.png` (generated); repo URL once public
+
+
+## 2026-10-15T18:34:00Z — Import an STL into My parts
+
+**Post:** WarpCad can now take an STL you already have. Import model file... in My parts reads it off the main thread, shows its size in mm with a Units control (STL has none), and the row drags into the view like any part. You can move it, subtract a cube from it, and export it closed. Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** a 100,352-triangle import held the longest frame gap to 17 ms, against 133 ms with the parse on the main thread -> measured in a browser, table in `docs/decisions/mesh-import.md`; a hand-made L-bracket with a T-junction exported with 0 open edges after a Subtract -> driven by hand this session (scenario 26); typecheck clean, unit 4825 passed, `e2e/import-model.e2e.js` 27 of 27 across three engines and three widths, run this session
+**To Add:** `docs/screenshots/import-model-row.png`, `docs/media/import-model-place.gif` (generated); repo URL once public

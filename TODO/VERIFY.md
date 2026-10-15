@@ -34,6 +34,17 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### io-009 — Import an STL (and later OBJ / 3MF) into My parts (2026-10-15 18:34 UTC)
+
+Driven by script and by hand with a made-up L-bracket (scenarios 1, 3, 6, 8, 20, new 26). What no generated file can judge is a real-world STL and a real slicer.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | Import a real STL from Thingiverse (or a phone scan, if you have one) with a few hundred thousand triangles: does the row's size read right for the object, and does **Units** fix it when it does not? | Open | |
+| 2 | Export a placed, cut imported part as STL and open it in your slicer (PrusaSlicer or Cura): is it closed, with no "repaired" or "non-manifold" warning? The test counts open edges at 1e-3 mm, not what a slicer thinks. | Open | |
+| 3 | On a real iPhone, **Import model file…** opens Files and iCloud (no camera-only picker), and an STL in iCloud Drive reads without a timeout. | Open | |
+| 4 | Is the 96 px thumbnail of a dense scan (12,000-face budget, sampled) recognisable, or does it speckle? | Open | |
+
 ### core-057 — Phone library item: model, case, enlarge and separate plateau (2026-10-15 14:55 UTC)
 
 Driven by script and by hand-style mouse drive (scenarios 3, 4, 6, 10); what no script can judge is whether the numbers match a real handset in a real case.

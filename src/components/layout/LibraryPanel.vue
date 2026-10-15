@@ -72,6 +72,8 @@ import { usePlacementStore } from '../../stores/placement.js'
 import { useTimelineStore } from '../../stores/timeline.js'
 import HelpButton from '../controls/HelpButton.vue'
 import UserPartMenu from './UserPartMenu.vue'
+import { acceptAttribute } from '../../io/meshFormats/index.js'
+import { UNIT_SCALES } from '../../io/meshPart.js'
 
 const props = defineProps({
   /**
@@ -105,6 +107,15 @@ const sections = LIBRARY_SECTIONS
 const library = useLibraryStore()
 const isOpen = ref(false)
 const importInput = ref(/** @type {HTMLInputElement | null} */ (null))
+const modelInput = ref(/** @type {HTMLInputElement | null} */ (null))
+/** The file types **Import model file…** offers (`.stl` today); no `capture`, so a phone offers Files. */
+const modelAccept = acceptAttribute()
+const UNIT_OPTIONS = Object.freeze([
+  { value: 'mm', label: 'mm' },
+  { value: 'cm', label: 'cm' },
+  { value: 'inch', label: 'inch' },
+])
+const fileDragOver = ref(false)
 const sheetEl = ref(/** @type {HTMLElement | null} */ (null))
 
 // A part just saved (or imported, or duplicated) is brought into view: My parts sits below the
@@ -126,6 +137,48 @@ async function onImportFile(/** @type {Event} */ event) {
   input.value = ''
   if (!file) return
   await library.importText(await file.text())
+}
+
+/** Read the chosen model file; the store parses it in a worker and adds the part. */
+async function onModelFile(/** @type {Event} */ event) {
+  const input = /** @type {HTMLInputElement} */ (event.target)
+  const file = input.files?.[0]
+  input.value = ''
+  if (!file) return
+  await library.importModel(file)
+}
+
+/** @param {DragEvent} event */
+function hasFiles(event) {
+  return Array.from(event.dataTransfer?.types ?? []).includes('Files')
+}
+
+/** Dropping a file on the panel is a convenience at laptop width; the button is the path. */
+function onFileDragOver(/** @type {DragEvent} */ event) {
+  if (!hasFiles(event)) return
+  event.preventDefault()
+  fileDragOver.value = true
+}
+
+function onFileDragLeave() {
+  fileDragOver.value = false
+}
+
+async function onFileDrop(/** @type {DragEvent} */ event) {
+  fileDragOver.value = false
+  if (!hasFiles(event)) return
+  event.preventDefault()
+  const file = event.dataTransfer?.files?.[0]
+  if (file) await library.importModel(file)
+}
+
+/**
+ * @param {string} op
+ * @param {Event} event
+ */
+function onUnitsChange(op, event) {
+  const select = /** @type {HTMLSelectElement} */ (event.target)
+  void library.setMeshUnits(op, /** @type {keyof typeof UNIT_SCALES} */ (select.value))
 }
 
 watch(
@@ -288,7 +341,15 @@ onBeforeUnmount(stopTracking)
       Library
     </button>
 
-    <div id="library-sheet" ref="sheetEl" class="library__sheet">
+    <div
+      id="library-sheet"
+      ref="sheetEl"
+      class="library__sheet"
+      :data-file-over="fileDragOver ? 'true' : 'false'"
+      @dragover="onFileDragOver"
+      @dragleave="onFileDragLeave"
+      @drop="onFileDrop"
+    >
       <div class="library__hint-row">
         <p class="library__hint" data-testid="library-hint">
           Drag an item into the 3D view to place it.
@@ -401,8 +462,38 @@ onBeforeUnmount(stopTracking)
           aria-hidden="true"
           @change="onImportFile"
         />
+        <button
+          type="button"
+          class="library__import"
+          data-testid="library-import-model"
+          title="Add an STL model file to My parts as a part you can place"
+          @click="modelInput?.click()"
+        >
+          Import model file…
+        </button>
+        <!-- The same visually-hidden-input recipe as the part-file input above (ui-055): in
+             the sheet's positioned box, so WebKit and Firefox do not grow the page. -->
+        <input
+          ref="modelInput"
+          type="file"
+          :accept="modelAccept"
+          class="library__file"
+          data-testid="library-import-model-input"
+          tabindex="-1"
+          aria-hidden="true"
+          @change="onModelFile"
+        />
       </div>
       <div v-show="library.expanded" id="library-user-body" data-testid="library-user-body">
+        <p
+          v-if="library.modelImporting"
+          class="library__reading"
+          role="status"
+          data-testid="library-import-progress"
+        >
+          <span class="library__spinner" aria-hidden="true" />
+          Reading {{ library.modelImporting }}…
+        </p>
         <p v-if="library.importError" class="library__import-error" role="alert" data-testid="library-import-error">
           {{ library.importError }}
         </p>
@@ -410,7 +501,7 @@ onBeforeUnmount(stopTracking)
           Your saved parts could not all be read: {{ library.loadProblem }}
         </p>
         <p v-if="library.userRows.length === 0" class="library__hint" data-testid="library-user-empty">
-          Nothing saved yet. Select a group, then choose Save to library… and it appears here.
+          Nothing saved yet. Select a group, then choose Save to library… — or choose Import model file… for an STL — and it appears here.
         </p>
         <ul class="library__rows" data-testid="library-rows-user">
           <li v-for="row in library.userRows" :key="row.op" class="library__item library__item--user" :data-in-library="row.inLibrary ? 'true' : 'false'">
@@ -452,6 +543,36 @@ onBeforeUnmount(stopTracking)
               />
             </button>
             <UserPartMenu :row="row" />
+            <div v-if="row.mesh" class="library__mesh" :data-testid="`library-mesh-${row.op}`">
+              <span
+                class="library__tag"
+                data-testid="library-mesh-tag"
+                :title="`Imported model, ${row.mesh.triangleCount.toLocaleString('en-US')} triangles`"
+                >Mesh</span
+              >
+              <span class="library__mesh-size" data-testid="library-mesh-size">{{ row.mesh.sizeText }}</span>
+              <label class="library__choice library__choice--mesh">
+                <span class="library__choice-label">Units</span>
+                <select
+                  class="library__choice-select"
+                  :value="row.mesh.units ?? 'mm'"
+                  :data-testid="`library-mesh-units-${row.op}`"
+                  :aria-label="`Units of ${row.label}`"
+                  @change="onUnitsChange(row.op, $event)"
+                >
+                  <option v-for="option in UNIT_OPTIONS" :key="option.value" :value="option.value">
+                    {{ option.label }}
+                  </option>
+                </select>
+              </label>
+              <span
+                v-if="!row.mesh.unitsConfirmed"
+                class="library__badge"
+                data-testid="library-mesh-assumed"
+                title="STL files carry no units. Check the size above; change Units if it looks wrong."
+                >Units assumed: mm</span
+              >
+            </div>
           </li>
         </ul>
       </div>
@@ -808,6 +929,76 @@ onBeforeUnmount(stopTracking)
 
 .library__import:hover {
   border-color: var(--border-strong);
+}
+
+.library__reading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 6px;
+  font-size: 12px;
+  color: var(--text-2);
+}
+
+.library__spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--border-strong);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: library-spin 0.8s linear infinite;
+}
+
+@keyframes library-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .library__spinner {
+    animation: none;
+  }
+}
+
+.library__tag {
+  flex: none;
+  padding: 0 6px;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  font-size: 10px;
+  line-height: 16px;
+  color: var(--text-2);
+}
+
+.library__mesh {
+  /* Under the row and its ⋯ button, across both columns of the user item's grid. */
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  padding-left: 28px;
+  font-size: 11px;
+  color: var(--text-3);
+}
+
+.library__choice--mesh {
+  flex: 1 1 120px;
+  padding-left: 0;
+}
+
+.library__badge {
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  font-size: 10px;
+  line-height: 16px;
+}
+
+.library__sheet[data-file-over='true'] {
+  outline: 2px dashed var(--accent);
+  outline-offset: -4px;
 }
 
 .library__file {

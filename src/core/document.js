@@ -460,6 +460,7 @@ import {
   variableRecordError,
 } from './variables.js'
 import { ASSET_OP, validateImageAsset } from '../sketch/imageAsset.js'
+import { MESH_ASSET_OP, validateMeshAsset } from '../io/meshAsset.js'
 import { counterOfId, createClock, createProjectId, createReplicaId } from './replica.js'
 import { compareKeys, keysBetween } from './merge/positionKey.js'
 import { LEGACY_STAMP, highestCounter } from './merge/state.js'
@@ -793,6 +794,9 @@ export class ReplayRejection extends Error {
  *   variables the current fold resolved bindings against, in log order.
  * @property {() => Map<string, OpRecord>} assets Every folded `asset.image` record, by id
  *   (`TODO/sketch-003`) — the reference photos sketch slices name. Never bodies.
+ * @property {() => Map<string, OpRecord>} meshAssets Every folded top-level `asset.mesh`
+ *   record, by id (`TODO/io-009`). Kept apart from `assets()`, whose readers
+ *   (the assistant's photo tools, the sketch editor) treat every entry as a photo. Never bodies.
  * @property {() => InactiveBody[]} inactiveBodies
  * @property {(id: string) => RowCondition | null} conditionOf
  * @property {(id: string, override: { color: number, colorAlpha?: number, subPart?: string }, transaction: TransactionOptions) => { record: OpRecord, scene: Scene }} setColorOverride
@@ -2292,6 +2296,18 @@ export function createDocument(options = {}) {
     if (record.op === ASSET_OP) {
       const verdict = validateImageAsset(record)
       if (!verdict.ok) throw new Error(`document.append: ${ASSET_OP} ${String(record.id)} refused — ${verdict.reason}`)
+      originById.set(/** @type {string} */ (record.id), origin)
+      recordById.set(/** @type {string} */ (record.id), record)
+      return
+    }
+
+    // An imported model's triangles (`TODO/io-009`) at the top level of a log are data in the
+    // same way: validated loudly, never folded, never a body. Inside a library part the same
+    // record does fold — through the part's own expansion, where `import.mesh` consumes it
+    // (`kernel/recipes/importMesh.js`); a document fold never builds one directly.
+    if (record.op === MESH_ASSET_OP) {
+      const verdict = validateMeshAsset(record)
+      if (!verdict.ok) throw new Error(`document.append: ${MESH_ASSET_OP} ${String(record.id)} refused — ${verdict.reason}`)
       originById.set(/** @type {string} */ (record.id), origin)
       recordById.set(/** @type {string} */ (record.id), record)
       return
@@ -4797,6 +4813,17 @@ export function createDocument(options = {}) {
       const found = new Map()
       for (const { record } of entries) {
         if (record.op !== ASSET_OP || record.id === undefined) continue
+        if (recordById.get(record.id) === record) found.set(record.id, record)
+      }
+      return found
+    },
+
+    meshAssets() {
+      // `TODO/io-009`: the same rule as `assets()`, for top-level imported meshes.
+      /** @type {Map<string, OpRecord>} */
+      const found = new Map()
+      for (const { record } of entries) {
+        if (record.op !== MESH_ASSET_OP || record.id === undefined) continue
         if (recordById.get(record.id) === record) found.set(record.id, record)
       }
       return found

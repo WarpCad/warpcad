@@ -22,7 +22,9 @@ import { computed, ref, watch } from 'vue'
 import { parseNumeric } from '../../composables/numericEntry.js'
 import { useParamCommands } from '../../composables/useParamCommands.js'
 import { hasEditableParams, paramOptions } from '../../core/kernel/registry.js'
+import { effectiveUserPart } from '../../core/userPart.js'
 import { formatMmValue } from '../../core/units.js'
+import { meshPartInfo } from '../../io/meshPart.js'
 import { useVariableCommands } from '../../composables/useVariableCommands.js'
 import { useDocumentStore } from '../../stores/document.js'
 import { useRepairDialogStore } from '../../stores/repairDialog.js'
@@ -67,6 +69,17 @@ const editable = computed(() => editability.value.editable)
 
 /** A part the person saved to the Library (`TODO/ui-055`), not a built-in recipe. */
 const isUserPart = computed(() => props.body.op.startsWith('user.'))
+
+/**
+ * What the part is when it was imported from a model file (`TODO/io-009`), else `null`. A mesh
+ * has no parametric sizes, so the section says that instead of listing nothing.
+ */
+const meshInfo = computed(() => {
+  void documentStore.version
+  if (isSubPart.value || !props.body.op.startsWith('user.')) return null
+  const part = effectiveUserPart(props.body.op)
+  return part === undefined ? null : meshPartInfo(part)
+})
 
 /** A recipe nobody has described yet — the note says why, not "an operation". */
 const isRecipePart = computed(() => Boolean(props.body.isRecipe) && !editable.value)
@@ -504,6 +517,12 @@ function onEnumChange(event, field) {
       </p>
     </div>
 
+    <p v-else-if="meshInfo" class="params__note" data-testid="inspector-mesh-note">
+      Imported model: {{ meshInfo.name }} ({{ meshInfo.triangleCount.toLocaleString('en-US') }} triangles). A
+      mesh is not parametric, so it has no sizes to edit — Size below is a measurement. Move,
+      rotate, combine and cut it as usual. To read the file in other units, change Units on its
+      My parts row and place it again.
+    </p>
     <p v-else-if="!editable && !isSubPart" class="params__note" data-testid="inspector-params-note">
       <template v-if="isRecipePart">
         These are catalogue values for a ready-made part whose options aren't described yet, so
