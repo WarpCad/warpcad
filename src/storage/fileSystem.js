@@ -132,7 +132,7 @@ export function projectFileName(mode, date = new Date()) {
 }
 
 /**
- * @typedef {{ ok: true, mode: 'native' | 'fallback', name: string }
+ * @typedef {{ ok: true, mode: 'native' | 'fallback', name: string, refusedName?: string }
  *   | { ok: false, cancelled: true }
  *   | { ok: false, error: string, name?: string }} SaveResult
  */
@@ -150,6 +150,20 @@ export function projectFileName(mode, date = new Date()) {
  * @typedef {{ ok: true, name: string, text: string, lastModified: number }
  *   | { ok: false, error: string, name: string }} DiskRead
  */
+
+/**
+ * `TODO/io-008`: the browser defines the pickers and then refuses the write. `NotAllowedError`
+ * is what `createWritable()` throws when permission is denied or the context disallows it (the
+ * integrated browser's case); `SecurityError` is the same refusal from a sandboxed or insecure
+ * context. Everything else — `AbortError`, `QuotaExceededError`, `NotFoundError`,
+ * `NoModificationAllowedError` (a locked file) — is a real failure of *that* write and must
+ * not silently turn Save into a download.
+ *
+ * @param {unknown} error
+ */
+function isWriteRefused(error) {
+  return error instanceof Error && (error.name === 'NotAllowedError' || error.name === 'SecurityError')
+}
 
 /**
  * @param {unknown} error
@@ -172,7 +186,8 @@ function isCancel(error) {
 
 /**
  * @typedef {object} FileStorage
- * @property {FileCapabilities} capabilities
+ * @property {FileCapabilities} capabilities A getter: it flips to the fallback shape for the
+ *   rest of the session once the browser refuses a write (`TODO/io-008`).
  * @property {string | null} currentName The retained handle's file name, if any.
  * @property {(text: string, options?: { saveAs?: boolean, now?: Date }) => Promise<SaveResult>} save
  * @property {() => Promise<OpenResult>} open Must be called synchronously from the
@@ -194,7 +209,11 @@ function isCancel(error) {
  * @returns {FileStorage}
  */
 export function createFileStorage(env = globalThis) {
-  const capabilities = getFileCapabilities(env)
+  /**
+   * Set once a write the browser offered was refused (`TODO/io-008`): from then on this session
+   * is honestly a fallback one, whatever `showSaveFilePicker` claims.
+   */
+  let nativeWriteRefused = false
   /** @type {any} */
   let handle = null
 
@@ -214,7 +233,7 @@ export function createFileStorage(env = globalThis) {
   /**
    * @param {any} target
    * @param {string} text
-   * @returns {Promise<SaveResult>}
+   * @returns {Promise<SaveResult & { refused?: boolean }>}
    */
   async function writeHandle(target, text) {
     try {
@@ -223,23 +242,58 @@ export function createFileStorage(env = globalThis) {
       await writable.close()
       return { ok: true, mode: 'native', name: target.name }
     } catch (error) {
-      return { ok: false, error: messageOf(error), name: target.name }
+      return { ok: false, error: messageOf(error), name: target.name, refused: isWriteRefused(error) }
     }
+  }
+
+  /**
+   * @param {any} result
+   * @returns {SaveResult}
+   */
+  function stripRefused(result) {
+    if (result.ok) return result
+    const { refused: _refused, ...rest } = result
+    return rest
+  }
+
+  /**
+   * The browser took the picker and refused the write (`TODO/io-008`). Deliver the user's data
+   * from the click they already made, drop the handle, and remember the refusal so the menu
+   * stops offering a Save that cannot be kept. `refusedName` is the file the picker may have
+   * left empty on disk — the caller must tell the user about it.
+   *
+   * @param {any} target
+   * @param {string} text
+   * @param {Date} now
+   * @returns {SaveResult}
+   */
+  function refusedToDownload(target, text, now) {
+    handle = null
+    nativeWriteRefused = true
+    const result = downloadCopy(text, projectFileName('fallback', now))
+    return result.ok ? { ...result, refusedName: target.name } : result
   }
 
   /** @type {FileStorage} */
   const storage = {
-    capabilities,
+    get capabilities() {
+      return nativeWriteRefused ? getFileCapabilities({}) : getFileCapabilities(env)
+    },
 
     get currentName() {
       return handle?.name ?? null
     },
 
     async save(text, { saveAs = false, now = new Date() } = {}) {
-      if (capabilities.mode === 'fallback') {
+      if (storage.capabilities.mode === 'fallback') {
         return downloadCopy(text, projectFileName('fallback', now))
       }
-      if (handle !== null && !saveAs) return writeHandle(handle, text)
+      if (handle !== null && !saveAs) {
+        const target = handle
+        const result = await writeHandle(target, text)
+        if (!result.ok && result.refused) return refusedToDownload(target, text, now)
+        return stripRefused(result)
+      }
       /** @type {any} */
       let picked
       try {
@@ -254,11 +308,12 @@ export function createFileStorage(env = globalThis) {
       // Retain only a handle that actually took a write: a failed first save must
       // not leave the next Save silently aimed at a file that could not be written.
       if (result.ok) handle = picked
-      return result
+      if (!result.ok && result.refused) return refusedToDownload(picked, text, now)
+      return stripRefused(result)
     },
 
     open() {
-      if (capabilities.mode === 'fallback') return openWithInput()
+      if (storage.capabilities.mode === 'fallback') return openWithInput()
       return openWithPicker()
     },
 

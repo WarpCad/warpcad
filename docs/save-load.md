@@ -166,6 +166,27 @@ warpcad-project-20260921-1402.ndjson** where it can only download (it says "star
 browser can't confirm a download finished). Cancelling the file picker is not an error, and
 says nothing.
 
+### If your browser can't save in place
+
+A few browsers — the editor's built-in browser is one — offer **Save** and **Save As…** and
+then refuse to write the file when you pick a place for it. Nothing is lost: WarpCad hands you
+a downloaded copy from the same click instead, and says so in the status line:
+
+![The status line reading: This browser won't save in place. A copy was downloaded instead: warpcad-project-20260921-1402.ndjson. An empty file named bracket.ndjson may have been left where you chose to save; you can delete it.](./screenshots/save-refused-notice.png)
+
+Two things to know:
+
+- **An empty file may be left behind.** Choosing a place in the picker already created the
+  file, before the browser refused the write, and WarpCad can't delete it. It has the name you
+  typed (`bracket.ndjson` above) and nothing in it. The downloaded copy is the real one; delete
+  the empty file so it isn't mistaken for your project.
+- **From then on the menu says Download copy.** **Save As…** disappears and every save is a
+  new downloaded file, until you reload the page.
+
+**Try it:** in such a browser, choose **File ▾ → Save**, pick a folder and a name, and confirm.
+The status line shows "A copy was downloaded instead", and your browser's downloads list has
+`warpcad-project-…ndjson`. Open that file with **File ▾ → Open…** to check your work is in it.
+
 ### Opening a file
 
 **File ▾ → Open…** (or **Ctrl/Cmd+O**) replaces your model with the one in a project file.

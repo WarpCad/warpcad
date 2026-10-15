@@ -89,6 +89,8 @@ const RESTORED_NOTICE_MS = 6000
 /** Transient result notices (`section 9`: 4 s for a confirmed save, 6 s for a started download). */
 const SAVED_NOTICE_MS = 4000
 const DOWNLOAD_NOTICE_MS = 6000
+/** The refused-write notice carries two file names and an instruction; it needs reading time. */
+const REFUSED_NOTICE_MS = 12000
 
 /** The chip's words while the opened file has changed on disk (`TODO/ai-009`). */
 export const DISK_CHANGED_TEXT = 'File changed on disk — Reload'
@@ -216,6 +218,8 @@ export const usePersistenceStore = defineStore('persistence', () => {
   const savedAt = ref(0)
   /** Transient message over the resting text; cleared by its own timer. */
   const notice = ref('')
+  /** What the file layer can honestly do now; refreshed after each Save (`TODO/io-008`). */
+  const fileCapabilities = ref(deps.files.capabilities)
   /** Persistent, until the next success or a dismissal. */
   const errorMessage = ref('')
   /**
@@ -548,9 +552,19 @@ export const usePersistenceStore = defineStore('persistence', () => {
       diskPromptWanted.value = false
       diskCanWatch.value = true
     }
+    // The file layer's capabilities can change under a Save (`TODO/io-008`); the menu reads the ref.
+    fileCapabilities.value = deps.files.capabilities
     if (result.ok) {
       errorMessage.value = ''
-      if (result.mode === 'native') {
+      if (result.refusedName !== undefined) {
+        // Not an error: the user's data is in the download. But the picker may have left an empty
+        // file with a real project's name where they chose, and that part loses work if unread.
+        showNotice(
+          `This browser won't save in place. A copy was downloaded instead: ${result.name}. ` +
+            `An empty file named ${result.refusedName} may have been left where you chose to save; you can delete it.`,
+          REFUSED_NOTICE_MS,
+        )
+      } else if (result.mode === 'native') {
         showNotice(`Saved to ${result.name} · ${clock(Date.now())}`, SAVED_NOTICE_MS)
       } else {
         // "Started", never "saved": a download cannot be confirmed to have landed.
@@ -809,7 +823,7 @@ export const usePersistenceStore = defineStore('persistence', () => {
     loading,
     chipText,
     chipTone,
-    fileCapabilities: deps.files.capabilities,
+    fileCapabilities,
     diskChanged,
     diskChangeName,
     diskPromptOpen,

@@ -6,8 +6,21 @@ priority: medium
 model: sonnet
 depends: []
 milestone: M16
-status: open
+status: done
 ---
+
+> **What shipped (2026-10-15).** As proposed, with these decisions. The refusal set is
+> `NotAllowedError` and `SecurityError` only (permission denied / blocked context); `AbortError`,
+> `QuotaExceededError`, `NotFoundError` and the like stay real failures with no download. The fallback
+> also covers a *retained* handle that is later refused (Save over the same file), not only the first
+> Save, and drops the handle. `capabilities` is a getter on the file storage; the persistence store
+> mirrors it into a ref (`fileCapabilities`) refreshed after each save, and `FileMenu.vue` reads it
+> through a `computed`. `SaveResult` gained `refusedName` (the file the picker may have left empty);
+> the notice (12 s, not an error) names both files. The download from the awaited picker's
+> continuation works in Chromium, WebKit and Firefox against a stubbed refusing picker; it could not
+> be checked in the editor's integrated browser itself, which stays on `TODO/VERIFY.md`. At phone
+> width the chip is a dot, so the words are read in the File menu's status line, where the notice
+> wraps inside the menu.
 
 ## Problem
 

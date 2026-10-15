@@ -416,6 +416,38 @@ describe('usePersistenceStore', () => {
       expect(persistence.chipText).toBe('Saved to warpcad-project.ndjson · 14:02')
     })
 
+    it('a refused in-place write that fell back to a download is a notice naming both files, not an error (io-008)', async () => {
+      const files = fakeFiles('native')
+      files.nextSave = {
+        ok: true,
+        mode: 'fallback',
+        name: 'warpcad-project-20260919-1402.ndjson',
+        refusedName: 'chamfer error.ndjson',
+      }
+      setPersistenceDependencies({ backend: fakeBackend(), files })
+      const persistence = usePersistenceStore()
+      await persistence.start()
+      await persistence.saveFile()
+      expect(persistence.errorMessage).toBe('')
+      expect(persistence.notice).toContain('warpcad-project-20260919-1402.ndjson')
+      expect(persistence.notice).toContain('chamfer error.ndjson')
+      expect(persistence.notice).toMatch(/empty/i)
+    })
+
+    it('fileCapabilities follows the file layer after a refusal, so the File menu relabels', async () => {
+      const files = fakeFiles('native')
+      setPersistenceDependencies({ backend: fakeBackend(), files })
+      const persistence = usePersistenceStore()
+      await persistence.start()
+      expect(persistence.fileCapabilities.mode).toBe('native')
+      files.save = async () => {
+        files.capabilities = fakeFiles('fallback').capabilities
+        return { ok: true, mode: 'fallback', name: 'a.ndjson', refusedName: 'b.ndjson' }
+      }
+      await persistence.saveFile()
+      expect(persistence.fileCapabilities).toMatchObject({ saveLabel: 'Download copy', saveAsLabel: null })
+    })
+
     it('a cancelled picker is silent', async () => {
       const files = fakeFiles('native')
       files.nextSave = { ok: false, cancelled: true }

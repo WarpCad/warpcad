@@ -34,6 +34,15 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### io-008 — Save falls back to a download when the write is refused (2026-10-15 05:30)
+
+Driven against a stubbed refusing picker on Chromium, WebKit and Firefox, and by hand on Chromium. What
+no stub can prove is the real refusal in the editor's integrated browser, so that is the one check.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | In the editor's integrated browser (the original report), File ▾ → Save, pick a folder and a name: a `warpcad-project-…ndjson` download starts from that click, the status line names it and the empty file left at the chosen path, and the menu then reads Download copy. If the download does not start there (user activation lapsed after the picker), file it: the TODO's step (3) is the fallback design | Open | |
+
 ### ui-056 — Name a part in the Inspector (2026-10-15 03:59)
 
 The field is covered by unit specs and `e2e/rename-part.e2e.js` (trusted touch on the Chromium and WebKit phone and tablet projects), but a Playwright tap does not raise a real on-screen keyboard, so what the keyboard does to the sheet is a feel judgement only a device can give. Commit-on-outside-press was added because tapping plain text does not blur an input on touch Chromium; Safari's behaviour is covered only by the emulated WebKit run.

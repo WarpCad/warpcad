@@ -342,14 +342,125 @@ describe('native Save / Open — File System Access (desktop Chromium only)', ()
     await expect(createFileStorage(env).save('x')).resolves.toEqual({ ok: false, cancelled: true })
   })
 
-  it('a write failure is an error naming the file (permission revoked, disk full)', async () => {
+  it('a write failure is an error naming the file (disk full)', async () => {
     const { env, handle } = nativeEnv()
     handle.createWritable = async () => {
-      throw new DOMException('permission revoked', 'NotAllowedError')
+      throw new DOMException('permission revoked', 'QuotaExceededError')
     }
     const result = await createFileStorage(env).save('x', { saveAs: true })
     expect(result).toMatchObject({ ok: false, name: 'chosen.ndjson' })
     expect(/** @type {any} */ (result).error).toMatch(/permission revoked/)
+  })
+
+  describe('the browser offers the picker but refuses the write (TODO/io-008)', () => {
+    /** A native env whose handle's createWritable throws `name`, with a fallback-capable DOM. */
+    function refusingEnv(name = 'NotAllowedError') {
+      const base = nativeEnv({ name: 'chamfer error.ndjson' })
+      base.handle.createWritable = async () => {
+        throw new DOMException('The request is not allowed by the user agent', name)
+      }
+      const dom = fallbackEnv()
+      Object.assign(base.env, {
+        document: dom.env.document,
+        Blob: dom.env.Blob,
+        URL: dom.env.URL,
+        setTimeout: dom.env.setTimeout,
+      })
+      return { ...base, dom }
+    }
+
+    it('falls back to a download in the same call and names the file left behind', async () => {
+      const { env, dom } = refusingEnv()
+      const storage = createFileStorage(env)
+      const result = await storage.save('x', { now: new Date(2026, 8, 19, 14, 2) })
+      expect(result).toEqual({
+        ok: true,
+        mode: 'fallback',
+        name: 'warpcad-project-20260919-1402.ndjson',
+        refusedName: 'chamfer error.ndjson',
+      })
+      expect(dom.dom.created.filter((node) => node.tag === 'a')).toHaveLength(1)
+    })
+
+    it('does not retain the handle, and capabilities flip to the fallback shape', async () => {
+      const { env } = refusingEnv()
+      const storage = createFileStorage(env)
+      expect(storage.capabilities.mode).toBe('native')
+      await storage.save('x')
+      expect(storage.currentName).toBeNull()
+      expect(storage.capabilities).toMatchObject({
+        mode: 'fallback',
+        canSaveInPlace: false,
+        saveLabel: 'Download copy',
+        saveAsLabel: null,
+      })
+    })
+
+    it('the second Save goes straight to a download and never reopens the picker', async () => {
+      const { env, showSaveFilePicker, dom } = refusingEnv()
+      const storage = createFileStorage(env)
+      await storage.save('one')
+      const second = await storage.save('two')
+      expect(showSaveFilePicker).toHaveBeenCalledOnce()
+      expect(second).toMatchObject({ ok: true, mode: 'fallback' })
+      expect(second).not.toHaveProperty('refusedName')
+      expect(dom.dom.created.filter((node) => node.tag === 'a')).toHaveLength(2)
+    })
+
+    it('SecurityError (a blocked context) falls back the same way', async () => {
+      const { env } = refusingEnv('SecurityError')
+      const result = await createFileStorage(env).save('x')
+      expect(result).toMatchObject({ ok: true, mode: 'fallback', refusedName: 'chamfer error.ndjson' })
+    })
+
+    it('a retained handle that is later refused also falls back, and is dropped', async () => {
+      const { env, handle, dom } = refusingEnv()
+      const good = handle.createWritable
+      handle.createWritable = async () => ({ async write() {}, async close() {} })
+      const storage = createFileStorage(env)
+      await storage.save('one')
+      expect(storage.currentName).toBe('chamfer error.ndjson')
+      handle.createWritable = good
+      const result = await storage.save('two')
+      expect(result).toMatchObject({ ok: true, mode: 'fallback' })
+      expect(storage.currentName).toBeNull()
+      expect(dom.dom.created.filter((node) => node.tag === 'a')).toHaveLength(1)
+    })
+
+    it.each(['QuotaExceededError', 'AbortError', 'NotFoundError'])(
+      'a %s is a real failure, not a refusal: no download, no flip, handle not kept',
+      async (name) => {
+        const { env, dom } = refusingEnv(name)
+        const storage = createFileStorage(env)
+        const result = await storage.save('x')
+        expect(result).toMatchObject({ ok: false, name: 'chamfer error.ndjson' })
+        expect(dom.dom.created.filter((node) => node.tag === 'a')).toHaveLength(0)
+        expect(storage.capabilities.mode).toBe('native')
+        expect(storage.currentName).toBeNull()
+      },
+    )
+
+    it('a cancelled picker is still just cancelled and does not flip anything', async () => {
+      const { env } = refusingEnv()
+      env.showSaveFilePicker = vi.fn(async () => {
+        throw new DOMException('dismissed', 'AbortError')
+      })
+      const storage = createFileStorage(env)
+      await expect(storage.save('x')).resolves.toEqual({ ok: false, cancelled: true })
+      expect(storage.capabilities.mode).toBe('native')
+    })
+
+    it('a refusal whose fallback download also fails reports the failure', async () => {
+      const { env } = refusingEnv()
+      env.URL = {
+        createObjectURL() {
+          throw new Error('blocked')
+        },
+        revokeObjectURL() {},
+      }
+      const result = await createFileStorage(env).save('x')
+      expect(result).toMatchObject({ ok: false })
+    })
   })
 
   it('Open returns the text and does not adopt the handle until told to', async () => {

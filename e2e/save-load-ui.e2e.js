@@ -857,6 +857,94 @@ test.describe('Save / Save As… (the native File System Access path, against a 
 // The hosted half — the git host fully mocked
 // =======================================================================================
 
+/**
+ * `TODO/io-008`: a browser that defines both pickers and then refuses the write — the editor's
+ * integrated browser. The picker "creates" a file (its name is the part the notice must report),
+ * then `createWritable()` throws `NotAllowedError`. Defined on every engine, so Firefox and
+ * WebKit drive the same path Chromium does.
+ */
+const FAKE_REFUSING = () => {
+  const state = { pickerCalls: 0 }
+  Object.defineProperty(window, '__refusing', { value: state, configurable: true })
+  Object.defineProperty(window, 'showSaveFilePicker', {
+    configurable: true,
+    value: async () => {
+      state.pickerCalls += 1
+      return {
+        name: 'chamfer error.ndjson',
+        async createWritable() {
+          throw new DOMException(
+            "Failed to execute 'createWritable' on 'FileSystemFileHandle': The request is not allowed by the user agent or the platform in the current context.",
+            'NotAllowedError',
+          )
+        },
+      }
+    },
+  })
+  Object.defineProperty(window, 'showOpenFilePicker', {
+    configurable: true,
+    value: async () => {
+      throw new DOMException('not offered', 'NotAllowedError')
+    },
+  })
+}
+
+test.describe('a browser that offers the picker but refuses the write falls back to a download (TODO/io-008)', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.addInitScript(FAKE_REFUSING)
+    await page.goto('/')
+    await expect(page.getByTestId('app-root')).toBeVisible()
+  })
+
+  test('Save downloads a copy from the same click, says what happened (both files), and the menu then reads Download copy', async ({
+    page,
+  }, info) => {
+    await seedCubes(page, 2)
+    await openFileMenu(page)
+    await expect(page.getByTestId('file-save')).toHaveText(/^\s*Save\s*$/)
+    await expect(page.getByTestId('file-save-as')).toHaveText(/^\s*Save As…\s*$/)
+
+    const downloading = page.waitForEvent('download')
+    await page.getByTestId('file-save').click()
+    const download = await downloading
+    expect(download.suggestedFilename()).toMatch(/^warpcad-project-\d{8}-\d{4}\.ndjson$/)
+    const text = readFileSync(await download.path(), 'utf8')
+    expect(text).toContain('"id":"seed-1"')
+    expect(text).toContain('"id":"seed-2"')
+
+    // A notice, not an error: both file names, and the empty one called out.
+    const chip = page.getByTestId('save-status')
+    await expect(chip).toContainText(`A copy was downloaded instead: ${download.suggestedFilename()}`)
+    await expect(chip).toContainText('An empty file named chamfer error.ndjson may have been left')
+    await expect(chip).not.toHaveAttribute('data-tone', 'error')
+    // The whole notice is readable on screen (the chip must not clip it off at phone width).
+    const box = await chip.boundingBox()
+    const viewport = page.viewportSize()
+    expect(box).not.toBeNull()
+    expect(box.x).toBeGreaterThanOrEqual(0)
+    expect(box.x + box.width).toBeLessThanOrEqual(viewport.width + 1)
+
+    // The menu stops promising a Save it cannot keep.
+    await openFileMenu(page)
+    // At phone width the chip is a dot: the File menu's own status line is where the words are
+    // read, and the long notice must wrap inside the menu rather than run off screen.
+    const menuStatus = page.getByTestId('file-menu-status')
+    await expect(menuStatus).toContainText('An empty file named chamfer error.ndjson may have been left')
+    const statusBox = await menuStatus.boundingBox()
+    expect(statusBox.x).toBeGreaterThanOrEqual(0)
+    expect(statusBox.x + statusBox.width).toBeLessThanOrEqual(viewport.width + 1)
+    await page.screenshot({ path: join(SNAPSHOT_DIR, `refused-write-${info.project.name}.png`) })
+    await expect(page.getByTestId('file-save')).toHaveText(/^\s*Download copy\s*$/)
+    await expect(page.getByTestId('file-save-as')).toHaveCount(0)
+
+    // A second Save goes straight to a download: no picker, no new notice about an empty file.
+    const again = page.waitForEvent('download')
+    await page.getByTestId('file-save').click()
+    await again
+    expect(await page.evaluate(() => window.__refusing.pickerCalls)).toBe(1)
+  })
+})
+
 test.describe('hosted storage through the File menu (host fully mocked)', () => {
   /** @type {ReturnType<typeof fakeRepository>} */
   let repository

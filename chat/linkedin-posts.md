@@ -2429,3 +2429,16 @@ One thing the touch test caught that a mouse test would not have: on Chromium, t
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** same as the BlueSky entry; the touch-blur gap -> `e2e/rename-part.e2e.js` "with a touchscreen" failed on `chromium-phone` and `chromium-tablet` before the outside-press commit and passes after (this session)
 **To Add:** `docs/screenshots/inspector-rename-list.png`; repo URL once public
+
+## 2026-10-15T05:30:00Z — Save no longer dead-ends when the browser refuses the write
+
+**Post:** A report from the editor's built-in browser: Save asked for a file, the picker said yes, and then the write failed with "not allowed by the user agent". The app had offered Save because the picker function existed, and from there it had no way to get the project out.
+
+WarpCad now recovers at the failure instead of trying to predict it. When the write is refused for permission or context reasons, the same click downloads a copy, the handle is dropped, and the File menu reads Download copy for the rest of the session. Disk-full and cancelled-dialog errors are left alone, because those are real failures of that one write.
+
+The notice has to name something unpleasant: the picker already created the file, and the app has no way to delete it, so an empty file with a project's name may be sitting where you chose to save. It says so by name, next to the name of the download that does hold your work. Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource #WebGL
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** same as the BlueSky entry; the empty-file wording -> `docs/save-load.md` "If your browser can't save in place"
+**To Add:** `docs/screenshots/save-refused-notice.png`; repo URL once public

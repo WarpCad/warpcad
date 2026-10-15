@@ -1720,3 +1720,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** `NameField.vue` over `documentStore.renameBody` -> diff (`src/components/inspector/NameField.vue`, `src/stores/document.js`); `e2e/rename-part.e2e.js` passes on Chromium, Firefox and WebKit at phone, tablet and laptop widths (full run 3596 passed, 0 failed, this session); 4519 unit tests passed; a real-mouse drive on Chromium kept the selection through a rename and a following size edit
 **To Add:** `docs/media/inspector-rename.gif` (generated); repo URL once public
+
+## 2026-10-15T05:30:00Z — Save no longer dead-ends when the browser refuses the write
+
+**Post:** Some browsers offer the file picker and then refuse the write. WarpCad's Save used to stop at an error there. Now the same click downloads a copy, the menu switches to Download copy, and the notice names the file it downloaded and the empty one the picker may have left behind. Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** refusal (`NotAllowedError`/`SecurityError`) -> download in the same call, handle dropped, `capabilities` getter flips -> diff (`src/storage/fileSystem.js`, `src/stores/persistence.js`); `e2e/save-load-ui.e2e.js` against a refusing picker passes on Chromium, Firefox and WebKit at three widths; full e2e matrix 4516 passed, 0 failed this session; a real-mouse drive on Chromium downloaded, reloaded and re-opened the copy
+**To Add:** `docs/screenshots/save-refused-notice.png`; repo URL once public

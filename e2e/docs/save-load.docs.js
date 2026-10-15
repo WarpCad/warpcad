@@ -268,6 +268,43 @@ test.describe('docs media: saving, opening, hosted storage', () => {
     await shot(page, 'save-status-unsaved.png', { locator: chip, mask: [] })
   })
 
+  test('save-refused-notice still', async ({ page }) => {
+    // The integrated-browser case (`TODO/io-008`): both pickers exist, the write is refused.
+    // Non-configurable on purpose: `openApp` installs its own init script that forces the download
+    // fallback, and redefining a locked property throws there, leaving these in place.
+    await page.addInitScript(() => {
+      Object.defineProperty(window, 'showSaveFilePicker', {
+        configurable: false,
+        value: async () => ({
+          name: 'bracket.ndjson',
+          async createWritable() {
+            throw new DOMException('The request is not allowed by the user agent', 'NotAllowedError')
+          },
+        }),
+      })
+      Object.defineProperty(window, 'showOpenFilePicker', { configurable: false, value: async () => [] })
+    })
+    await openApp(page)
+    // Placed by hand: `loadScene` needs the file-chooser fallback this test deliberately lacks.
+    await place(page, 'primitive.cuboid', 0.5, 0.5, 1)
+    await openFileMenu(page)
+    const downloading = page.waitForEvent('download')
+    await press(page, 'file-save')
+    await downloading
+    const chip = page.getByTestId('save-status')
+    await expect(chip).toContainText('A copy was downloaded instead')
+    await expect(chip).toContainText('An empty file named bracket.ndjson may have been left')
+    // Pin the timestamp in the downloaded name, in place, like the clock elsewhere in this file.
+    await page.evaluate(() => {
+      const root = document.querySelector('[data-testid="save-status"]')
+      const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT)
+      for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+        node.nodeValue = node.nodeValue.replace(/\d{8}-\d{4}/, '20260921-1402')
+      }
+    })
+    await shot(page, 'save-refused-notice.png', { locator: chip, mask: [] })
+  })
+
   test('new-project-confirm still', async ({ page }) => {
     await openApp(page)
     await loadScene(page, 'cube-and-cylinder.ndjson', 2)

@@ -128,7 +128,8 @@ const transformPreview = useTransformPreviewStore()
 const sketchEditor = useSketchEditorStore()
 const surface = useStatusSurface()
 
-const capabilities = persistence.fileCapabilities
+// Reactive: a refused in-place write flips this to the download shape mid-session (`TODO/io-008`).
+const capabilities = computed(() => persistence.fileCapabilities)
 
 /** @type {import('vue').Ref<HTMLButtonElement | null>} */
 const buttonRef = ref(null)
