@@ -78,11 +78,14 @@ const title = computed(() => {
   display: flex;
   align-items: center;
   gap: 6px;
-  /* Shrinkable, so a long refusal message truncates inside the header instead of
+  /* Capped, so a long refusal message truncates inside the header instead of
      pushing Undo/Redo off the right edge. The full text is in `title` and
      `aria-label`. */
-  min-width: 0;
   max-width: 280px;
+  /* A fixed floor, so "Saved · 14:02" arriving ~500 ms after an edit does not slide the File
+     button (and everything left of the chip) sideways under a pointer already aimed at it
+     (`TODO/testing-001`). Every routine message fits; only a long error grows past it. */
+  min-width: 132px;
   padding: 0 4px;
   font-size: 12px;
   color: var(--text-3);
@@ -148,6 +151,7 @@ const title = computed(() => {
   .save-status {
     /* The dot alone, in a 20px slot: the text is visually hidden below, not removed. */
     width: 20px;
+    min-width: 0;
     justify-content: center;
     padding: 0;
   }

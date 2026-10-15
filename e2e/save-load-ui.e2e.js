@@ -434,6 +434,32 @@ test.describe('the File ▾ menu is mounted in the header and stays reachable (a
     await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2)
     await expect(page.getByTestId('file-menu')).toBeHidden()
   })
+
+  // TODO/testing-001: the autosave chip used to change width when "Saved · HH:MM" replaced the
+  // pre-save text (~500 ms after an edit), sliding the File button ~9-30 px under a pointer that
+  // had already been aimed at it — a click in that window missed. Firefox under load hit it.
+  test('the File button does not move when an edit autosaves and the save-status chip changes text', async ({
+    page,
+  }) => {
+    await page.evaluate(() => {
+      const button = document.querySelector('[data-testid="file-menu-button"]')
+      const seen = new Set()
+      window.__fileButtonLefts = seen
+      const tick = () => {
+        seen.add(Math.round(button.getBoundingClientRect().left * 10) / 10)
+        requestAnimationFrame(tick)
+      }
+      tick()
+    })
+    await page.waitForTimeout(1200) // let the first status settle; the probe starts from here
+    await page.evaluate(() => window.__fileButtonLefts.clear())
+    await addCube(page, 'shift-probe')
+    await expect(page.getByTestId('save-status-text')).toHaveText(/Saved/)
+    await page.waitForTimeout(400)
+    const lefts = await page.evaluate(() => [...window.__fileButtonLefts])
+    expect(lefts, 'the File button stayed put while the chip changed').toHaveLength(1)
+  })
+
 })
 
 // =======================================================================================

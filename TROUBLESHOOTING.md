@@ -389,6 +389,24 @@ Ignore `pointercancel` position (keep the offset reached), put `touch-action: no
 
 Hand-drove the Split sheet with CDP touch at 390x844, logged the offset per move, saw it jump at move 7, then read `onUp`.
 
+### 2026-10-15 — A click on the File button missed because the autosave chip slid it sideways ~500 ms after an edit
+
+**What happened:**
+
+`openFileMenu` (click `file-menu-button`, expect `file-menu` visible) timed out at 5 s with "element(s) not found" three times in full-suite runs, always on Firefox, always in a test that had just placed or seeded a cube, never alone and never in 40 repeats at 7 workers (`TODO/testing-001`).
+
+**Why it happened:**
+
+The header is a right-aligned flex row and the save-status chip (`SaveStatus.vue`) had no fixed width. About 500 ms after an edit the autosave lands and its text changes ("Saved · HH:MM" replaces the pre-save text), which changed the chip's width and slid the File button 9-31 px left. A trace of a failing run showed the click resolved the button at x=1142 (its centre), the click action took 200 ms to perform, and every later snapshot still had `aria-expanded="false"` — the pointer went down on the button and the button had moved out from under it before the click completed (or after Playwright's stable check passed). Playwright's actionability check cannot see that, and it only fires when the click lands in the ~500 ms window after an edit, which a loaded Firefox stretches. Reproduced by running the two specs on three Firefox projects with 28 busy loops and 14 workers: ten failures with the identical signature across 8 different tests.
+
+**Fix / Prevention:**
+
+`SaveStatus` has a `min-width: 132px` (below 641 px it is already a fixed 20 px dot), so a routine status change no longer moves anything. `save-load-ui.e2e.js` has a rAF probe that records the File button's left edge across an autosave and fails if it takes more than one value. General rule: a control a user is about to click must not move when a status text beside it changes — give status text a floor width. When a Playwright click "succeeds" but the handler never ran, sample `getBoundingClientRect()` of the target every frame before suspecting the app's handlers.
+
+**Steps taken to resolve:**
+
+Read `FileMenu.vue` and `fileMenu.js` for a path that closes the menu behind the click (none), then reproduced under CPU contention with `--trace=retain-on-failure`, read the `after` snapshots (`aria-expanded` never became true), and probed the button's rect around an autosave.
+
 <!-- Template for new entries:
 
 ### YYYY-MM-DD — [Short title describing the discovery]

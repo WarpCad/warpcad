@@ -6,8 +6,21 @@ priority: high
 model: sonnet
 milestone: M8
 depends: []
-status: open
+status: done
 ---
+
+> **Shipped (2026-10-15):** mechanism found and fixed. The File button moved. The header is a
+> right-aligned row and the save-status chip changed width when "Saved · HH:MM" replaced its
+> earlier text ~500 ms after an edit, sliding the File button 9-31 px left under a pointer
+> already aimed at it; under Firefox load the click straddled that moment and never fired.
+> Evidence: a trace from a CPU-contended run (28 busy loops, 14 workers, three Firefox
+> projects, ten failures with this exact signature) showing the click resolved at x=1142,
+> a 200 ms click action, and `aria-expanded="false"` in every later snapshot; and a rAF probe
+> showing the button's left edge going 496.2 → 465.2. Fix: `SaveStatus.vue` `min-width: 132px`
+> (tablet/laptop; phone is already a fixed dot). Test: "the File button does not move when an
+> edit autosaves…" in `e2e/save-load-ui.e2e.js` (red before, green after). The earlier
+> History-strip-reflow hypothesis was wrong; it was the chip, not the strip. See
+> `TROUBLESHOOTING.md`, 2026-10-15.
 
 ## Problem
 
