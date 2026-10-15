@@ -2564,3 +2564,19 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** same as the BlueSky entry; the three-attempt bound -> `src/stores/hosted.spec.js` (four stale writes end in the dialog with its own message)
 **To Add:** `docs/screenshots/hosted-merged.png` (generated); repo URL once public
+
+
+## 2026-10-15T20:26:27Z — WarpCad gets an icon
+
+**Post:** WarpCad, the browser CAD app I'm building, now has an icon. Until now its web app manifest listed no icons and index.html had no favicon, so Chromium would not offer Install at all.
+
+The mark came from 20 concepts in two sets of ten. The first set starts from the app itself: a Raspberry Pi B+, a hex bolt and a bearing from its parts library, the cube-minus-sphere case the project's notes use as their model acceptance test, a viewport gizmo, a sketch extruded into a solid. The second set adds Warp as speed: a tunnel, a bolt as a comet, a spinning bearing. The pick was concept 16, the warp flash.
+
+One SVG is the source for everything. A script renders the 192 and 512 px icons, a full-bleed maskable version for Android, the 180 px Apple home-screen icon and favicon.ico through Playwright's Chromium, and hands the same icon list to the build config, so the manifest and the files stay in step. The install prompt itself and a real iPhone home screen are still unchecked.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #PWA #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** manifest had no icons, no favicon, so Chromium would not offer Install → `TODO/done/build-006` Goal and the `vite.config.js` diff in 1fdb565; two sets of ten → `set` field in `design/logo-concepts/index.json`; concept subjects (Pi B+, bolt, bearing, Viewport gizmo, Sketch → extrude, Cube − sphere scenario) → `kind` field in `index.json`; tunnel, comet, spinning bearing → concept names 11-warp-tunnel, 13-bolt-comet, 17-spinning-bearing; cube-and-sphere subtraction as the model acceptance test → CLAUDE.md Verification ("adding a cube and a sphere and subtracting one from the other"); concept 16, warp flash → `scripts/app-icons.mjs` header; icon sizes, full-bleed maskable and Apple variants, Playwright's Chromium, shared manifest list → `scripts/app-icons.mjs` (ICONS, manifestIcons) and build-006 retirement note; install prompt and real-device home screen unchecked → build-006 retirement note ("Not verified")
+**To Add:** the comparison sheet of all 20 concepts as an image; repo URL once public

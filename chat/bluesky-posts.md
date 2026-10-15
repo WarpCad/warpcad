@@ -1809,3 +1809,13 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** laptop and phone both edit and save, the second save lands both changes and one push -> `e2e/hosted-persistence.e2e.js` and `e2e/save-load-ui.e2e.js` (226 passed on Chromium and WebKit, mocked host), driven by hand against the mock this session; a different project still opens the dialog and Cancel leaves the dot at `!` -> same specs; typecheck clean, unit 4833 passed
 **To Add:** `docs/screenshots/hosted-merged.png` (generated); repo URL once public
+
+
+## 2026-10-15T20:26:27Z — WarpCad gets an icon
+
+**Post:** WarpCad has an icon: a cube in a warp flash, picked from 20 concepts. Ten start from the app (a Pi B+, a bolt, a bearing, cube minus sphere), ten add Warp. One SVG feeds the favicon, home-screen icons and manifest. Built with Claude Code, reviewed by me. #CAD #PWA
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #PWA
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** 20 concepts → 20 SVGs in `design/logo-concepts/` (commit 1fdb565); ten "cad" and ten "warp" → `set` field in `design/logo-concepts/index.json`; Pi B+, bolt, bearing, cube−sphere → kinds `raspberrypi.bplus`, `hardware.bolt`, `hardware.bearing`, "Cube − sphere scenario" in `index.json`; the pick is concept 16, the warp flash → `scripts/app-icons.mjs` header and `TODO/done/build-006` retirement note; one SVG feeds every icon → `scripts/app-icons.mjs` renders the PNGs and the .ico from `public/favicon.svg` and supplies the manifest list to `vite.config.js` (commit 1fdb565)
+**To Add:** `public/pwa-512x512.png` as the image; repo URL once public
