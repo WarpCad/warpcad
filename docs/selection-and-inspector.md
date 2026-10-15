@@ -458,7 +458,8 @@ Drag a ring and the Rotation field follows the same way.
 While you drag a ring, a **dial** appears in that ring's own plane and colour, so you can
 see how far you have turned, not only that the shape is moving. It is drawn a little larger
 than the shape, so the ticks and hands are never hidden behind it, and the other two rings
-are hidden until you let go, so only the one you are turning is on screen.
+and the three move arrows are hidden until you let go, so only the one you are turning is
+on screen.
 
 ![A rotate ring mid-drag, with the dial, both hands, the swept wedge and the angle readout](./screenshots/gizmo-rotate-dial.png)
 

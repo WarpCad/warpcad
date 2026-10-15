@@ -79,8 +79,9 @@ const dialAnnotation = computed(() => /** @type {any} */ (props.dial))
 
 /**
  * The axis whose dial is showing, or `''` when none is. While a rotate drag
- * shows its dial, the other two rings are hidden (`v-show`, so the DOM and its
- * test ids stay put) and only the ring being turned remains.
+ * shows its dial, the other two rings and all three translate arms are hidden
+ * (`v-show`, so the DOM and its test ids stay put) and only the ring being
+ * turned remains.
  *
  * @type {import('vue').ComputedRef<string>}
  */
@@ -448,7 +449,7 @@ function onHandleUp(event) {
          An arm pointing away shows the disc face-on, so it draws on top.
          The disc is `gizmo-cone-base-*`, never `gizmo-head-*`/`gizmo-arm-*`:
          e2e specs count matches on those prefixes. -->
-    <g v-for="arrow in gizmo.arrows" :key="`arm-${arrow.axis}`">
+    <g v-for="arrow in gizmo.arrows" v-show="dialAxis === ''" :key="`arm-${arrow.axis}`">
       <template v-if="arrow.visible">
         <line
           class="tgizmo__arm"
@@ -525,7 +526,7 @@ function onHandleUp(event) {
     />
     <line
       v-for="(grab, index) in armGrabs"
-      v-show="grab.visible"
+      v-show="grab.visible && dialAxis === ''"
       :key="`grab-arm-${grab.axis}`"
       class="tgizmo__grab tgizmo__grab--arm"
       :data-testid="`gizmo-grab-arm-${grab.axis.toLowerCase()}`"
