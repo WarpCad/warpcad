@@ -765,8 +765,10 @@ Note on `core-038`: committed as `457dbdc` (sonnet agent ~31m). Name rides in `p
 
 Note on `ui-056`: committed as `9c4c441` (sonnet agent ~43m). Independently re-verified by this loop: diff stat read; inspector component specs re-run. Agent's own full run: typecheck clean, unit 4519, e2e 3596 passed / 0 failed (9 projects incl. Firefox, guards). Acceptance 1, 3, 4, 6 and ui-029/ui-016/ui-053 repros PASS on laptop Chromium; phone/tablet by trusted-touch e2e only. VERIFY.md entry (real iPhone keyboard behaviour, iPad pencil/zoom) is specific. Scope: full.
 
-| 2026-10-15 04:31 | *(in progress)* | `io-008` | *(batch open, 1 of 3)* | no |
+| 2026-10-15 04:31 | *(in progress)* | `io-008`, `ui-061` | *(batch open, 2 of 3)* | no |
 
 Note on `io-008`: committed as `b78e4d6` (sonnet agent ~59m). Independently re-verified by this loop: diff stat read (extra file `FileMenu.vue` justified); typecheck clean; storage + persistence specs 186 passed. Agent's own run: unit 211 files 0 failed, e2e 4516/4516 across 9 projects; its final /test text report never arrived, so the loop's typecheck run covers that gap. Acceptance 10 local legs + io-001 repro PASS on Chromium laptop; real integrated-browser refusal is the VERIFY.md entry. Scope: full.
+
+Note on `ui-061`: committed as `a54fe74` (sonnet agent ~80m, 87 files). Independently re-verified by this loop: typecheck clean; unit 218 files / 4580 passed; docs-media guards 2/2. Agent's own final e2e: 3665 passed, 1 drifted docs still fixed and re-run; green stamp NOT set (the independent suite sub-agent's run was of the tree before that still update). Offline Help proven on Chromium + Firefox; WebKit only as precache contents (Playwright WebKit offline defeats the SW) — VERIFY.md has the real-iPhone checks. Precache grew 2.5 MB → 17.2 MB (decision flagged for the user: `HELP_PRECACHE_GLOBS`). Deviations: toolbar `?` hidden at narrow widths, `snap`/`align` topics both → snap-align page until `ui-060`. Scope: full.
 
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->
