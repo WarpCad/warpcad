@@ -16,8 +16,9 @@ status: open
 > - **The hand-drive gate is still owed.** The Proposed fix below says to wait for `ui-032` to
 >   be driven by hand. Scenario 12 step 10 has not been tried yet (`TODO/VERIFY.md`, `data-004`
 >   check 3), so the "is being told it can't be built acceptable?" judgment is still missing.
-> - **Feedback shape is not chosen.** Option (c), "offer it, with a `Re-link to the moved step`
->   button", is the recommendation here. Confirm it, or pick (a) or (b), before the build.
+> - **Feedback shape chosen: option (c)**, "offer it, with a `Re-link to the moved step`
+>   button", as decided by the user on 2026-10-15. The hand-drive is "most done" per the user;
+>   whatever part is still open is the one scenario 12 step 10 judgment above.
 
 ## Goal
 
