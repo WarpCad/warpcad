@@ -83,6 +83,40 @@ export const BEVEL_LIMITS = Object.freeze({
   hubLengthMm: Object.freeze({ min: 0, max: 1000 }),
 })
 
+/**
+ * A worm's caps (TODO/core-047): 1…4 starts, the gear's module and pressure angle (both
+ * **axial** on a worm), a pitch diameter and length of more than 0 mm, and the friction
+ * coefficient the self-locking readout assumes, 0…1. The pitch diameter's lower bound (the
+ * root circle) and the lead angle's upper one depend on the rest, so `./worm.js` checks
+ * those, by name. How many turns a long, fine worm may sample is the kernel's vertex budget.
+ *
+ * @type {Readonly<Record<'starts' | 'moduleMm' | 'pressureAngleDeg' | 'pitchDiameterMm' | 'lengthMm' | 'frictionCoefficient', Readonly<GearLimit>>>}
+ */
+export const WORM_LIMITS = Object.freeze({
+  starts: Object.freeze({ min: 1, max: 4, integer: true }),
+  moduleMm: GEAR_LIMITS.moduleMm,
+  pressureAngleDeg: GEAR_LIMITS.pressureAngleDeg,
+  pitchDiameterMm: Object.freeze({ min: 0, max: 1000, minExclusive: true }),
+  lengthMm: Object.freeze({ min: 0, max: 1000, minExclusive: true }),
+  frictionCoefficient: Object.freeze({ min: 0, max: 1 }),
+})
+
+/**
+ * A worm wheel's caps (TODO/core-047): the gear's tooth count, the worm's starts, module,
+ * pressure angle and pitch diameter (the wheel's helix is derived from them), and a face
+ * width of more than 0 mm.
+ *
+ * @type {Readonly<Record<'teeth' | 'starts' | 'moduleMm' | 'pressureAngleDeg' | 'wormPitchDiameterMm' | 'faceWidthMm', Readonly<GearLimit>>>}
+ */
+export const WORM_WHEEL_LIMITS = Object.freeze({
+  teeth: GEAR_LIMITS.teeth,
+  starts: WORM_LIMITS.starts,
+  moduleMm: GEAR_LIMITS.moduleMm,
+  pressureAngleDeg: GEAR_LIMITS.pressureAngleDeg,
+  wormPitchDiameterMm: WORM_LIMITS.pitchDiameterMm,
+  faceWidthMm: GEAR_LIMITS.thicknessMm,
+})
+
 /** Params that must be finite numbers when present but carry no range of their own. */
 const FINITE_ONLY = Object.freeze(['clearanceMm', 'backlashMm'])
 

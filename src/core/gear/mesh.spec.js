@@ -19,6 +19,7 @@ import {
   meshPlacement,
 } from './mesh.js'
 import meshSource from './mesh.js?raw'
+import { wormWheelGearParams } from './worm.js'
 
 const DEG = Math.PI / 180
 /** @param {number} a radians */
@@ -746,6 +747,95 @@ describe('hostile and malformed input — a named error before any arithmetic', 
     const b = { teeth: 12, moduleMm: 1, helixAngleDeg: 20, handedness: /** @type {const} */ ('left') }
     expect(() => meshPhaseDeg(a, b)).not.toThrow()
     expect(() => meshPhaseDeg(a, { ...b, frame: { centerMm: [16, 0, 2] } })).toThrow(GearParameterError)
+  })
+})
+
+describe('worm pairs (core-047) — the worm is a gear kind, meshed by the crossed-axis rules', () => {
+  /**
+   * @param {number} starts
+   * @param {Partial<import('./mesh.js').MeshGear>} [over]
+   * @returns {import('./mesh.js').MeshGear}
+   */
+  const worm = (starts, over = {}) => ({ kind: 'worm', starts, moduleMm: 2, pitchDiameterMm: 20, lengthMm: 30, ...over })
+  /**
+   * The wheel a `starts`-start worm of {@link worm} needs, as `gear.wormWheel` builds it.
+   *
+   * @param {number} starts
+   * @param {Record<string, unknown>} [over]
+   * @returns {import('./mesh.js').MeshGear}
+   */
+  const wheel = (starts, over = {}) =>
+    /** @type {import('./mesh.js').MeshGear} */ (wormWheelGearParams({ teeth: 30, starts, moduleMm: 2, wormPitchDiameterMm: 20, faceWidthMm: 10, ...over }))
+
+  for (const starts of [1, 2, 4]) {
+    it(`${starts}-start: the ratio is wheelTeeth : starts — turns of the worm per turn of the wheel`, () => {
+      expect(Math.abs(gearRatio(worm(starts), wheel(starts)))).toBeCloseTo(30 / starts, 12)
+      expect(gearRatio(worm(starts), wheel(starts))).toBe(-30 / starts)
+      expect(gearRatio(wheel(starts), worm(starts))).toBe(-starts / 30)
+    })
+
+    it(`${starts}-start: centres (d_worm + d_wheel) / 2 apart, crossed at 90° without being told`, () => {
+      expect(centerDistanceMm(wheel(starts), worm(starts))).toBeCloseTo((20 + 60) / 2, 9)
+      expect(centerDistanceMm(worm(starts), wheel(starts))).toBeCloseTo((20 + 60) / 2, 9)
+      expect(compatibility(wheel(starts), worm(starts))).toEqual([])
+    })
+  }
+
+  it('places the worm one centre distance along +X, its axis square to the wheel’s and to the line of centres', () => {
+    for (const [hand, expectedAxis] of /** @type {const} */ ([
+      ['right', [0, 1, 0]],
+      ['left', [0, -1, 0]],
+    ])) {
+      const placed = meshPlacement(wheel(1, { handedness: hand }), worm(1, { handedness: hand }))
+      expect(placed.axes).toBe('crossed')
+      expect(placed.shaftAngleDeg).toBe(90)
+      expect(placed.centerMm).toEqual([expect.closeTo(40, 9), expect.closeTo(0, 12), 0])
+      expect(placed.axis).toEqual(expectedAxis.map((c) => expect.closeTo(c, 12)))
+      expect(rotateByDeg(placed.orientationDeg, [0, 0, 1])).toEqual(placed.axis.map((c) => expect.closeTo(c, 12)))
+      expect(placed.ratio).toBe(-1 / 30)
+      // A worm has `starts` teeth round its section: the turn is within half of one of them.
+      expect(Math.abs(placed.rotateDeg)).toBeLessThanOrEqual(180 + 1e-9)
+    }
+  })
+
+  it('refuses a wheel cut for another worm — lead angle, hand or module — each by its code', () => {
+    // A wheel for a 2-start worm differs in lead angle first; its normal module and pressure
+    // angle differ only because of it, so the lead angle is what a worm pair reports first.
+    // A Ø25 module-2.5 worm has the same lead angle as the Ø20 module-2 one: only the module differs.
+    /** @type {[import('./mesh.js').MeshGear, string][]} */
+    const cases = [
+      [wheel(2), 'helix-angle-mismatch'],
+      [wheel(1, { handedness: 'left' }), 'helix-hand-opposite'],
+      [wheel(1, { moduleMm: 2.5, wormPitchDiameterMm: 25 }), 'module-mismatch'],
+    ]
+    for (const [mate, code] of cases) {
+      expect(codesOf(compatibility(mate, worm(1))), code).toContain(code)
+      const error = errorOf(() => meshPlacement(mate, worm(1)))
+      expect(error, code).toBeInstanceOf(GearMeshError)
+      expect(error.code).toBe(code)
+    }
+  })
+
+  it('refuses two worms, a worm on parallel axes, and a worm with a rack or ring', () => {
+    expect(codesOf(compatibility(worm(1), worm(2)))).toEqual(['two-worms'])
+    const parallel = errorOf(() => meshPlacement(wheel(1), worm(1), { axes: 'parallel' }))
+    expect(parallel).toBeInstanceOf(GearMeshError)
+    expect(parallel.code).toBe('worm-needs-crossed-axes')
+    expect(codesOf(compatibility({ kind: 'rack', moduleMm: 2 }, worm(1)))).toContain('axes-not-parallel')
+    expect(codesOf(compatibility({ kind: 'internal', teeth: 60, moduleMm: 2 }, worm(1)))).toContain('axes-not-parallel')
+  })
+
+  it('checks a worm’s own params as a worm (starts 1…4, a root circle), labelled with which gear it is', () => {
+    const error = errorOf(() => gearRatio(worm(5), wheel(1)))
+    expect(error).toBeInstanceOf(GearLimitError)
+    expect(error.message).toMatch(/^gear 1: /)
+    expect(() => centerDistanceMm(wheel(1), worm(1, { pitchDiameterMm: 4 }))).toThrow(/gear 2: .*root/)
+  })
+
+  it('refuses a worm whose middle is off the wheel’s face', () => {
+    const error = errorOf(() => meshPlacement({ ...wheel(1), frame: { centerMm: [0, 0, 0] } }, { ...worm(1), frame: { centerMm: [40, 0, 6] } }))
+    expect(error).toBeInstanceOf(GearMeshError)
+    expect(error.code).toBe('no-face-overlap')
   })
 })
 

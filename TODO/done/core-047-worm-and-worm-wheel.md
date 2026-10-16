@@ -6,8 +6,16 @@ priority: medium
 model: opus
 milestone: M11
 depends: [core-042, core-044]
-status: open
+status: done
 ---
+
+> **What shipped (2026-10-16).** `gear.worm`, `gear.wormWheel` and `gear.wormPair` are registered (no `ui` until `ui-057`), with `src/core/gear/worm.js` (lead, lead angle, `selfLocking = tan γ < μ` readout labelled as information), `WORM_LIMITS`/`WORM_WHEEL_LIMITS`, a `worm` kind in `mesh.js` (crossed axes forced; `gearRatio` = -z/starts, not special-cased) and `profile.gear` kind `worm`. The wheel is a non-throated helical `gear.spur` at the worm's lead angle and hand (the throated wheel is a stated follow-up; wheels under 17 teeth warn by name). Interference proof: 0 mm^3 at 12 positions for 1- and 2-start right-hand pairs, at most 0.014 mm^3 left-hand, asserted below 0.1 mm^3; the half-tooth and wrong-direction controls overlap. A 200 mm Print worm is 198,612 vertices and about 45 ms; the spec fails over 250,000 vertices, 500,000 polygons or 3 s. Details in `docs/decisions/gears.md`'s `core-047` addendum.
+>
+> **Deviation from the spec.** The worm is the transverse section (Archimedean flanks) twisted once per lead in one `extrudeFromSlices`, via new `leadMm`/`handedness` params on `profile.extrudeLinear` (`leadExtrude`), not `extrudeHelical` plus a union: that union was not watertight (10/49/6/30 open edges at 1/2/4 starts and 200 mm) and cost 0.3-1.7 s each. `extrudeHelical` and the sketch `helical` path are untouched.
+>
+> **Open questions for the user.** (1) Worm tooth depth uses the normal module, not the axial (0.5% difference at gamma 5.7 degrees). (2) Self-locking default mu is 0.1 (lubricated steel on bronze); printed plastic is nearer 0.2-0.3, so the default errs toward not claiming a lock. (3) `shaftMm` is refused as an unknown param (a shaft stub needs a union that is not watertight): offer a separate `shaft` part, or leave it out? (4) Accept the `leadMm`/`handedness` extension to `profile.extrudeLinear`, or make it its own op?
+>
+> **Verification scope (narrowed by the user).** typecheck clean; unit 254 files / 5713 passed; e2e `changed` scope (chamfer-with-hole, sketch-airfoil, sketch-primitive, user-library, phone-library, viewport-scaffold) on all engines incl. Firefox: 559 passed, 0 failed, 77 skipped. No full e2e run, no green stamp. Scenarios 1, 3, 9, 10 driven (PASS), `core-024` and `core-042` repros re-run (PASS).
 
 ## Goal
 

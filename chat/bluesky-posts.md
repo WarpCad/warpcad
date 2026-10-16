@@ -1959,3 +1959,13 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** lease options and no code → `TODO/done/ai-023-pairing-code-works-for-any-mcp-agent.md`; crashed client stayed counted, fixed by a five-minute idle sweep → `mcp/liveHttp.js`, `mcp/liveHttp.spec.js`
 **To Add:** screenshot of the Live MCP access sheet
+
+## [2026-10-16T22:40:00Z] — Worm gears, built without a boolean
+
+**Post:** WarpCad now builds worms and worm wheels: 1 to 4 starts, a wheel cut at the worm's lead angle, and a pair placed at the right centre distance and phase. I planned to sweep a thread and union it onto a core, but that union left open edges every time. So the worm is its cross-section twisted once per lead, one pass, no boolean. A 200 mm worm comes out watertight at about 200k vertices.
+
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** union left 10/49/6/30 open edges, twisted section watertight, 198,612 vertices at 200 mm → `docs/decisions/gears.md` core-047 addendum; interference 0 mm^3 across 12 positions → `src/core/kernel/recipes/gear.wormPair.spec.js`
+**To Add:** screenshot of a 2-start worm meshed with its wheel

@@ -533,4 +533,73 @@ section ("Gears") and its row order, empty until then.
 - **Interference proof, measured:** 0 mm^3 at every sampled angle for 16T/32T at 90 and 60 degrees, 24T/32T at
   120 degrees; the wrong-phase controls overlap.
 
+## Addendum — what `core-047` decided about the worm and its wheel (2026-10-16)
+
+- **The wheel is non-throated, so the contact is a point.** `gear.wormWheel` is a helical `gear.spur` with
+  helix angle γ (the worm's lead angle) and the worm's hand. Its teeth run straight across the face, so they
+  touch the worm at one point, not along a line as an enveloping wheel's would. That is enough for a
+  light-duty printed drive. **The throated (enveloping) wheel is a stated follow-up, not built here.** When
+  it is built, its own Testing section must re-run this addendum's interference proof, with a bound tight
+  enough to tell line contact from point contact.
+- **The worm is a ZA worm**, with a straight-sided axial profile (the rack tooth). `moduleMm` and
+  `pressureAngleDeg` on a worm are **axial** values. The lead is `starts·π·m`, the lead angle
+  `γ = atan(starts·m / d)`, and the pitch diameter `d` is a free parameter. The wheel is cut in the worm's
+  normal values, `mₙ = m·cos γ` and `αₙ = atan(tan α·cos γ)`. Its transverse section is then exactly the spur
+  gear that meshes the worm's axial rack, so its pitch diameter is `z·m`, and the centre distance is
+  `(d_worm + d_wheel)/2`. **Tooth depth uses the normal module on both parts** (addendum `mₙ`, dedendum
+  `mₙ + clearance`), as on every helical gear here, so tip-to-root clearance is `clearanceMm` each way.
+  **Open for the user:** some references size worm depth in the axial module instead. The difference at
+  γ = 5.7° is 0.5%.
+- **Built as a twisted transverse section, not a helical sweep of the thread.** The TODO proposed
+  `extrudeHelical` on the rack tooth. That thread has to be unioned onto a core cylinder. Measured: the
+  union is not watertight even after `makeWatertight` (10, 49, 6 and 30 open edges at 1, 2 and 4 starts and
+  on a 200 mm worm), and each union takes 0.3–1.7 s. Instead, the section `r(θ)` has Archimedean flanks,
+  `r = r_p + (s/2 − |θ|·lead/2π)/tan α`, between tip and root arcs. `profile.extrudeLinear` turns it once
+  per lead with a new `leadMm` / `handedness` pair. That is one `extrudeFromSlices` with no boolean: 0 open
+  edges with no repair. The cost is more triangles at the same tolerance, because the lands are sampled in
+  every slice. `leadMm` steps are the design resolution per turn (`twistStepsFor` of one turn), are never
+  fewer than Draft's, and are held to the same 2,000,000-vertex budget as `twistDeg`, checked before
+  building. `twistDeg` keeps its one-turn cap for gears.
+- **Budget, measured and enforced.** The test case is module 2, 1 start, Ø20, 200 mm long (31.8 turns). At
+  Print it is 81 section points × 2,452 slices: **198,612 vertices and 397,220 triangles, folded in about
+  45 ms**. Draft is 23,910 vertices, Normal 42,408, Fine 101,616. `gear.worm.spec.js` fails above 250,000
+  vertices, 500,000 polygons or 3 s.
+- **Mesh.** The worm is a `mesh.js` gear kind (`kind: 'worm'`, `starts`, `pitchDiameterMm`, `lengthMm`). It
+  resolves to the helical gear of `starts` teeth it is, with helix `90° − γ`, so core-046's crossed-axis
+  rules place it unchanged: Σ = 90°, the same hand, and the external half-tooth rule. A worm forces crossed
+  axes. New codes: `two-worms`, and `worm-needs-crossed-axes` when told `'parallel'`. For a worm pair, helix
+  reasons are reported before module and pressure-angle reasons, because a wheel cut for another worm
+  differs in lead angle first. `gearRatio(worm, wheel)` is `−z/starts`, with the starts counted as teeth. It
+  is not special-cased in a component.
+- **Phase and ratio sign, proved by interference.** `gear.wormPair` puts the wheel on the origin (axis +Z)
+  and the worm one centre distance along +X, axis +Y (right hand) or −Y (left). The worm is turned to
+  `meshPlacement`'s phase. Turning the worm and the wheel by the placement's `ratio`, about their own axes,
+  through 12 positions across one worm tooth at Normal: **0.000 mm³** for 1- and 2-start right-hand pairs,
+  and **at most 0.014 mm³** for a left-hand one. The half-tooth control overlaps 227–243 mm³, and the wheel
+  turned the wrong way overlaps up to 240 mm³. **The asserted bound is 0.1 mm³, not zero.** With no
+  backlash the flanks touch, and two touching solids faceted to tolerance can cross by a sliver. Away from
+  the contact point a ZA flank is not conjugate to a straight helical tooth, so other proportions could
+  part slightly inward.
+- **`selfLocking` is `tan γ < μ`, information, not a guarantee.** It is computed from the ratio
+  `starts·m/d`, not through `tan(atan())`, so the boundary is exact. μ is `frictionCoefficient`, default
+  **0.1** (lubricated steel on bronze, which gives "self-locking below about 5.7°"). Printed plastic is
+  usually higher, so this default errs toward *not* claiming a lock. The readout carries
+  `selfLockingNote`. `gear.worm` and `gear.wormPair` accept `frictionCoefficient` without changing a
+  record: it is stored for `ui-057`'s Inspector. **Open for the user:** keep 0.1, or use a
+  printed-plastic figure (about 0.2–0.3)?
+- **Warnings** (string codes, as on bevel gears): `wormDimensions().warnings` gives `'shorter-than-lead'`
+  for a worm shorter than one lead, which builds but loses contact once a turn, plus `'pointed-tip'` and
+  `'pointed-root'`. `wormWheelDimensions().warnings` gives `'wheel-undercut'` below
+  `round(2·cos γ / sin² α)` teeth (17 at 20°). Recipes have no warning channel, so `ui-057` shows them.
+- **Refused by name:** 0 or 5+ starts; a pitch diameter with no root circle (the message names the
+  minimum, twice the dedendum); a lead angle past 45°, which is the wheel's helix cap; a bore at or above
+  the worm's root diameter. **`shaftMm` is not built.** The TODO's `boreMm/shaftMm` is read as the bore
+  only. An integral shaft stub would need a union, and so would not be watertight. **Open for the user:** a
+  separate `shaft` part, or nothing?
+- **Hand convention.** A right-hand worm turns CCW about +Z going up, like a right-hand thread
+  (`helix.js`), and its wheel has the same hand. `gear.wormPair` takes one `handedness` for both.
+- **Library.** `gear.worm`, `gear.wormWheel` and `gear.wormPair` are registered without `ui` and ranked
+  after Bevel gear and Bevel pair. `ui-057` adds the rows and Inspector readouts (lead angle, ratio,
+  self-locking with its note, warnings), and `ui-058` adds the Mesh operation.
+
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

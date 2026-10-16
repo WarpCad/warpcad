@@ -77,8 +77,21 @@
  * at `P`: projected onto the normal of the tooth direction both gears have normal pitch
  * `π·mₙ`, so the transverse pitches cancel out of the rule. Each gear's phase there carries its
  * own twist at `P`'s height — gear 1's at gear 2's height along gear 1's axis, gear 2's at its
- * own mid-plane — so both face widths are needed. Only the frame maths lands here; the worm
- * pair is `core-047`'s.
+ * own mid-plane — so both face widths are needed.
+ *
+ * ## Worms (TODO/core-047)
+ *
+ * A worm (`kind: 'worm'`) is a helical gear of `starts` teeth whose helix is `90° − γ` (γ its
+ * lead angle), and its wheel a helical gear of helix γ and the same hand (`./worm.js`), so a
+ * worm pair is a crossed pair at Σ = 90° and every rule above applies as written: centres
+ * `R_worm + R_wheel` apart (`(d_worm + d_wheel) / 2`), the same-hand rule, the external
+ * half-tooth rule with the worm's `starts` teeth round its transverse section, and its twist
+ * `2π·z / lead` at the contact point. A worm forces crossed axes (`'worm-needs-crossed-axes'`
+ * if told `'parallel'`); two worms do not mesh (`'two-worms'`). The ratio is
+ * {@link gearRatio}'s `b.teeth / a.teeth` with the worm's `starts` as its teeth — wheel teeth :
+ * starts. For a worm pair the helix reasons come before the module and pressure angle ones: a
+ * wheel cut for another worm differs in lead angle first, and in normal module and pressure
+ * angle only because of it.
  *
  * ## Bevel pairs (TODO/core-046)
  *
@@ -110,8 +123,9 @@ import { DEFAULT_SHAFT_ANGLE_DEG, bevelGearDimensions } from './bevel.js'
 import { GearParameterError, gearDimensions } from './dimensions.js'
 import { helixTwistRad } from './helix.js'
 import { GearMeshError, checkRingPinion, ringGearDimensions } from './internal.js'
-import { BEVEL_LIMITS, GEAR_LIMITS, RACK_LIMITS, RING_LIMITS, checkGearLimits } from './limits.js'
+import { BEVEL_LIMITS, GEAR_LIMITS, RACK_LIMITS, RING_LIMITS, WORM_LIMITS, checkGearLimits } from './limits.js'
 import { DEFAULT_RACK_TEETH, rackDimensions } from './rack.js'
+import { wormDimensions } from './worm.js'
 
 const DEG_TO_RAD = Math.PI / 180
 const RAD_TO_DEG = 180 / Math.PI
@@ -125,7 +139,7 @@ const inv = (a) => Math.tan(a) - a
 /** @typedef {[number, number, number]} Vec3Mm */
 /** @typedef {[number, number, number]} Vec3 A direction, or three angles in degrees. */
 /** @typedef {[[number, number, number], [number, number, number], [number, number, number]]} Mat3 */
-/** @typedef {'external' | 'internal' | 'rack'} GearKind */
+/** @typedef {'external' | 'internal' | 'rack' | 'worm'} GearKind */
 /** @typedef {'xy' | 'xz' | 'yz'} PitchPlane */
 /** @typedef {'parallel' | 'crossed'} MeshAxes */
 
@@ -138,7 +152,7 @@ const inv = (a) => Math.tan(a) - a
  *   | 'axes-not-parallel' | 'ring-not-larger' | 'tip-interference'
  *   | 'pinion-shift-not-checked' | 'tip-clearance' | 'no-face-overlap'
  *   | 'shift-too-negative' | 'rack-pair' | 'shaft-angle-mismatch' | 'cone-angle-sum'
- *   | 'cone-distance-mismatch'} MeshReasonCode
+ *   | 'cone-distance-mismatch' | 'two-worms' | 'worm-needs-crossed-axes'} MeshReasonCode
  */
 
 /**
@@ -173,7 +187,15 @@ const inv = (a) => Math.tan(a) - a
  *   faces are not level with each other.
  * @property {number} [rimThicknessMm] A ring's rim.
  * @property {number} [heightMm] A rack's backing bar.
+ * @property {number} [starts] A worm's (`kind: 'worm'`), in place of `teeth`.
+ * @property {number} [pitchDiameterMm] A worm's: a free param, not `teeth · module`.
+ * @property {number} [lengthMm] A worm's length — its face width here.
  * @property {MeshFrame} [frame] Where the gear is now; the origin, in XY, at phase 0 if omitted.
+ *
+ * On a **worm** (`kind: 'worm'`, `./worm.js`) `moduleMm` and `pressureAngleDeg` are the
+ * **axial** values, as `gear.worm` stores them; it is resolved to the helical gear of
+ * `starts` teeth it is (normal module and pressure angle, helix `90° − γ`, pitch radius
+ * `pitchDiameterMm / 2`), so the crossed-axis rules apply to it unchanged.
  */
 
 /**
@@ -257,7 +279,7 @@ const inv = (a) => Math.tan(a) - a
 /** The pitch planes a pair can stand in. */
 export const PITCH_PLANES = Object.freeze(/** @type {const} */ (['xy', 'xz', 'yz']))
 
-const KINDS = Object.freeze(/** @type {const} */ (['external', 'internal', 'rack']))
+const KINDS = Object.freeze(/** @type {const} */ (['external', 'internal', 'rack', 'worm']))
 
 /**
  * Each pitch plane's right-handed basis — `u` (phase 0, and where gear 2 goes when it sits
@@ -367,6 +389,7 @@ function resolveGear(gear, label) {
   if (!KINDS.includes(kind)) {
     throw new GearParameterError(`${label}: kind must be ${KINDS.map((k) => `'${k}'`).join(', ')}, got ${String(kind)}`)
   }
+  if (kind === 'worm') return resolveWorm(g, label)
   const limits = kind === 'internal' ? RING_LIMITS : kind === 'rack' ? RACK_LIMITS : GEAR_LIMITS
   checkGearLimits(g, { op: label, required: kind === 'rack' ? ['moduleMm'] : ['teeth', 'moduleMm'], limits })
   if (kind !== 'external' && g.profileShift !== undefined && g.profileShift !== 0) {
@@ -437,6 +460,50 @@ function resolveGear(gear, label) {
 }
 
 /**
+ * A worm, checked as a worm (`./worm.js`, `WORM_LIMITS` first) and resolved to the helical
+ * gear of `starts` teeth it is (module doc): normal module and pressure angle, helix
+ * `90° − γ`, pitch radius `pitchDiameterMm / 2`, its length as its face width.
+ *
+ * @param {Record<string, unknown>} g
+ * @param {string} label
+ * @returns {ResolvedGear}
+ */
+function resolveWorm(g, label) {
+  checkGearLimits(g, { op: label, required: ['starts', 'moduleMm', 'pitchDiameterMm'], limits: WORM_LIMITS })
+  for (const [name, why] of /** @type {const} */ ([
+    ['teeth', 'its starts are its teeth'],
+    ['profileShift', 'it has no profile shift'],
+    ['helixAngleDeg', 'its helix is the complement of its lead angle, which its starts, module and pitch diameter fix'],
+    ['herringbone', 'it has no herringbone'],
+  ])) {
+    if (g[name] !== undefined) throw new GearParameterError(`${label}: a worm has no ${name} — ${why}`)
+  }
+  const frame = resolveFrame(g.frame, label)
+  const worm = wormDimensions(/** @type {any} */ (g), { op: label })
+  const helixAngleDeg = worm.helixAngleDeg
+  return {
+    label,
+    kind: 'worm',
+    teeth: worm.starts,
+    moduleMm: worm.normalModuleMm,
+    pressureAngleDeg: worm.normalPressureAngleDeg,
+    transversePressureAngleDeg:
+      Math.atan(Math.tan(worm.normalPressureAngleDeg * DEG_TO_RAD) / Math.cos(helixAngleDeg * DEG_TO_RAD)) * RAD_TO_DEG,
+    helixAngleDeg,
+    handedness: worm.handedness,
+    herringbone: false,
+    profileShift: 0,
+    thicknessMm: worm.lengthMm,
+    pitchRadiusMm: worm.pitchRadiusMm,
+    circularPitchMm: (Math.PI * worm.pitchDiameterMm) / worm.starts,
+    tipMm: worm.tipRadiusMm,
+    rootMm: worm.rootRadiusMm,
+    ring: undefined,
+    frame,
+  }
+}
+
+/**
  * @typedef {object} MeshOptions
  * @property {number} [extraBacklashMm=0] Play beyond the gears' own `backlashMm`,
  *   circumferential mm on the pitch circle.
@@ -468,13 +535,19 @@ function resolveOptions(options) {
 }
 
 /**
- * Crossed when asked, or when both frames are given in different pitch planes.
+ * Crossed when asked, when both frames are given in different pitch planes, or whenever a
+ * worm is one of the pair.
  *
  * @param {ResolvedGear} A
  * @param {ResolvedGear} B
  * @param {MeshAxes | undefined} axes
+ * @returns {boolean}
+ * @throws {GearMeshError} `'worm-needs-crossed-axes'` for a worm told `'parallel'`.
  */
 function isCrossed(A, B, axes) {
+  const wormAxes = wormAxesReason(A, B, axes)
+  if (wormAxes) throw new GearMeshError(wormAxes.message, wormAxes.code)
+  if (A.kind === 'worm' || B.kind === 'worm') return true
   if (axes !== undefined) return axes === 'crossed'
   return A.frame !== undefined && B.frame !== undefined && A.frame.pitchPlane !== B.frame.pitchPlane
 }
@@ -491,10 +564,27 @@ function kindReason(A, B) {
   if (A.kind === 'rack' && B.kind === 'rack') {
     return reason('two-racks', 'Two racks cannot mesh — a rack needs a round gear (a pinion) rolling along it.')
   }
-  if (A.kind !== 'external' && B.kind !== 'external') {
+  if (A.kind === 'worm' && B.kind === 'worm') {
+    return reason('two-worms', 'Two worms cannot mesh — a worm drives a worm wheel, a helical gear cut to its lead angle.')
+  }
+  const flat = (/** @type {GearKind} */ k) => k === 'internal' || k === 'rack'
+  if (flat(A.kind) && flat(B.kind)) {
     return reason('ring-and-rack', 'A ring gear and a rack cannot mesh — each needs an external gear (a pinion).')
   }
   return undefined
+}
+
+/**
+ * A worm only meshes on crossed axes: told `'parallel'`, this is why not.
+ *
+ * @param {ResolvedGear} A
+ * @param {ResolvedGear} B
+ * @param {MeshAxes | undefined} axes
+ * @returns {MeshReason | undefined}
+ */
+function wormAxesReason(A, B, axes) {
+  if (axes !== 'parallel' || (A.kind !== 'worm' && B.kind !== 'worm')) return undefined
+  return reason('worm-needs-crossed-axes', 'A worm only meshes with its wheel on crossed axes — its shaft runs square to the wheel’s, not parallel to it.')
 }
 
 /**
@@ -535,7 +625,8 @@ function helixReasons(A, B, crossed, shaftAngleDeg = DEFAULT_SHAFT_ANGLE_DEG) {
   const out = []
   const rack = A.kind === 'rack' ? A : B.kind === 'rack' ? B : undefined
   if (crossed) {
-    if (A.kind !== 'external' || B.kind !== 'external') {
+    const round = (/** @type {GearKind} */ k) => k === 'external' || k === 'worm'
+    if (!round(A.kind) || !round(B.kind)) {
       out.push(reason('axes-not-parallel', `A ${rack ? 'rack' : 'ring gear'} only meshes with a pinion on a parallel axis.`))
       return out
     }
@@ -654,7 +745,7 @@ function pairType(A, B) {
 function assertMeshable(A, B, crossed, shaftAngleDeg = DEFAULT_SHAFT_ANGLE_DEG) {
   if (crossed) {
     const kind = kindReason(A, B)
-    const first = kind ?? [...profileReasons(A, B), ...helixReasons(A, B, true, shaftAngleDeg)].find((r) => r.severity === 'error')
+    const first = kind ?? crossedReasons(A, B, shaftAngleDeg).find((r) => r.severity === 'error')
     if (first) throw new GearMeshError(first.message, first.code)
     return
   }
@@ -665,6 +756,21 @@ function assertMeshable(A, B, crossed, shaftAngleDeg = DEFAULT_SHAFT_ANGLE_DEG) 
   }
   const blocking = reasons.find((r) => BLOCKING.has(r.code))
   if (blocking) throw new GearMeshError(blocking.message, blocking.code)
+}
+
+/**
+ * Every profile and helix reason for a crossed pair — for a worm pair the helix ones first
+ * (module doc: a wheel cut for another worm differs in lead angle first).
+ *
+ * @param {ResolvedGear} A
+ * @param {ResolvedGear} B
+ * @param {number} shaftAngleDeg
+ * @returns {MeshReason[]}
+ */
+function crossedReasons(A, B, shaftAngleDeg) {
+  const profile = profileReasons(A, B)
+  const helix = helixReasons(A, B, true, shaftAngleDeg)
+  return A.kind === 'worm' || B.kind === 'worm' ? [...helix, ...profile] : [...profile, ...helix]
 }
 
 /**
@@ -776,6 +882,11 @@ export function centerDistanceMm(a, b, options) {
  * The turns ratio, `b.teeth / a.teeth` — turns of `a` per turn of `b` — signed: negative for
  * an external pair (the shafts reverse), positive for a ring and its pinion. V1's
  * `gear1.toothCount / gear1.toothCount` was always 1 (Decision 5 defect 1).
+ *
+ * A **worm** counts its `starts` as its teeth, so a worm and its wheel give wheel teeth :
+ * starts (TODO/core-047) — `gearRatio(worm, wheel)` is `−z / starts` worm turns per wheel
+ * turn. On crossed axes, as on a bevel pair, the sign is each gear's turn about its own axis
+ * (its placement's `axis` for gear 2).
  *
  * @param {MeshGear} a
  * @param {MeshGear} b
@@ -1044,13 +1155,16 @@ export function compatibility(a, b, options) {
   const A = resolveGear(a, 'gear 1')
   const B = resolveGear(b, 'gear 2')
   const { axes, shaftAngleDeg } = resolveOptions(options)
-  const crossed = isCrossed(A, B, axes)
   const kind = kindReason(A, B)
   if (kind) return [kind]
+  const wormAxes = wormAxesReason(A, B, axes)
+  if (wormAxes) return [wormAxes]
+  const crossed = isCrossed(A, B, axes)
+  if (crossed) return crossedReasons(A, B, shaftAngleDeg)
   const profile = profileReasons(A, B)
   /** @type {MeshReason[]} */
-  const reasons = [...profile, ...helixReasons(A, B, crossed, shaftAngleDeg)]
-  if (profile.length > 0 || crossed) return reasons
+  const reasons = [...profile, ...helixReasons(A, B, false, shaftAngleDeg)]
+  if (profile.length > 0) return reasons
   if (pairType(A, B) === 'internal') reasons.push(...(A.kind === 'internal' ? ringReasons(A, B) : ringReasons(B, A)))
   if (reasons.some((r) => BLOCKING.has(r.code))) return reasons
 

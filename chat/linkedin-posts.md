@@ -2774,3 +2774,17 @@ Details are in docs/mcp.md, including steps for agents other than Claude Code. B
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** lease options, no code, origin gate → `TODO/done/ai-023-pairing-code-works-for-any-mcp-agent.md`; stale-session lock-out and five-minute sweep → `mcp/liveHttp.js`, `mcp/liveHttp.spec.js`; other-agent steps → `docs/mcp.md`
 **To Add:** screenshot of the Live MCP access sheet
+
+## [2026-10-16T22:40:00Z] — Worm gears, built without a boolean
+
+**Post:** WarpCad can now build worms and worm wheels, the gear a telescope drive needs and the one a cylinder placeholder had been standing in for. A worm takes 1 to 4 starts, the wheel is cut at the worm's lead angle and hand, and the pair is placed at the right centre distance and phase. A self-locking readout reports whether the worm resists back-driving, and says plainly it is information, not a guarantee.
+
+The plan was to sweep a thread along a helix and union it onto a core cylinder. Measured, that union was never watertight: 10, 49, 6 and 30 open edges at 1, 2 and 4 starts and on a 200 mm worm, at 0.3 to 1.7 seconds each. So the worm is its cross-section twisted once per lead through its length. That is one extrusion with no boolean, and it is watertight with no repair. A 200 mm worm at export resolution is about 200,000 vertices and folds in roughly 45 ms.
+
+The interference check meshes the pair through 12 positions: 0 mm^3 for right-hand pairs, with a half-tooth-out-of-phase control that overlaps by over 200 mm^3. Built with Claude Code, reviewed by me.
+
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** open-edge counts, vertex budget, interference numbers → `docs/decisions/gears.md` core-047 addendum; the pair proof → `src/core/kernel/recipes/gear.wormPair.spec.js`
+**To Add:** screenshot of a 2-start worm meshed with its wheel

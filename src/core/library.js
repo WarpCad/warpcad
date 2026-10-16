@@ -148,10 +148,16 @@ const ROW_ORDER = Object.freeze([
   // TODO/core-045: the bevel gear is a single gear too, so it ranks before the pair; unlisted
   // until ui-057 gives it `ui`.
   'gear.bevel',
+  // TODO/core-047: the worm and its wheel are single parts too, so they rank with the single
+  // gears, after the bevel; unlisted until ui-057 gives them `ui`.
+  'gear.worm',
+  'gear.wormWheel',
   // TODO/core-044: the meshed pair follows the single gears, unlisted until ui-057 gives it `ui`.
   'gear.pair',
   // TODO/core-046: the bevel pair follows the spur pair, unlisted until ui-057 gives it `ui`.
   'gear.bevelPair',
+  // TODO/core-047: the worm pair follows the bevel pair, unlisted until ui-057 gives it `ui`.
+  'gear.wormPair',
   'text.label',
 ])
 

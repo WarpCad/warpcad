@@ -84,14 +84,18 @@ import { rack } from './recipes/gear.rack.js'
 import { pair } from './recipes/gear.pair.js'
 import { bevel } from './recipes/gear.bevel.js'
 import { bevelPair } from './recipes/gear.bevelPair.js'
+import { worm } from './recipes/gear.worm.js'
+import { wormWheel } from './recipes/gear.wormWheel.js'
+import { wormPair } from './recipes/gear.wormPair.js'
 import { GearAliasError } from '../gear/aliases.js'
 import { bevelConeDimensions, bevelProfile } from '../gear/bevel.js'
 import { GearParameterError, gearDimensions } from '../gear/dimensions.js'
-import { MAX_TWIST_DEG } from '../gear/helix.js'
+import { HANDEDNESS, MAX_TWIST_DEG } from '../gear/helix.js'
 import { internalProfile, ringGearDimensions, ringToothHalfAngleRadAt } from '../gear/internal.js'
 import { involuteProfile, toothHalfAngleRadAt } from '../gear/involute.js'
-import { GearLimitError, RACK_LIMITS, RING_LIMITS, checkGearLimits } from '../gear/limits.js'
+import { GearLimitError, RACK_LIMITS, RING_LIMITS, WORM_LIMITS, checkGearLimits } from '../gear/limits.js'
 import { rackProfile } from '../gear/rack.js'
+import { wormDimensions, wormSection } from '../gear/worm.js'
 import { screw, SCREW_HEADS } from './recipes/hardware.screw.js'
 import { anchor } from './recipes/kit.anchor.js'
 import { board } from './recipes/kit.board.js'
@@ -771,7 +775,8 @@ const GEAR_PROFILE_PARAMS = Object.freeze(['teeth', 'moduleMm', 'pressureAngleDe
 /**
  * `profile.gear`'s vocabulary per `kind` (Decision 2's `'external' | 'internal' | 'rack'`,
  * TODO/core-043, and `'bevel'`, TODO/core-045: the large-end section of a bevel gear, whose
- * `pitchConeAngleDeg` is the recipe's to compute from the pair). `kind` is optional and
+ * `pitchConeAngleDeg` is the recipe's to compute from the pair; and `'worm'`, TODO/core-047: a
+ * worm's transverse section, which `profile.extrudeLinear`'s `leadMm` twists). `kind` is optional and
  * defaults to `'external'`, so every `gear.spur` record written before the ring and rack
  * existed reads exactly as it did.
  *
@@ -782,9 +787,11 @@ const GEAR_PROFILE_PARAMS_BY_KIND = Object.freeze({
   internal: Object.freeze(['teeth', 'moduleMm', 'pressureAngleDeg', 'clearanceMm', 'backlashMm', 'helixAngleDeg', 'rimThicknessMm']),
   rack: Object.freeze(['teeth', 'moduleMm', 'pressureAngleDeg', 'clearanceMm', 'backlashMm', 'heightMm']),
   bevel: Object.freeze(['teeth', 'moduleMm', 'pressureAngleDeg', 'clearanceMm', 'backlashMm', 'pitchConeAngleDeg']),
+  // TODO/core-047: the worm's transverse section — `moduleMm` and `pressureAngleDeg` axial.
+  worm: Object.freeze(['starts', 'moduleMm', 'pressureAngleDeg', 'pitchDiameterMm', 'clearanceMm', 'backlashMm']),
 })
 
-/** @typedef {'external' | 'internal' | 'rack' | 'bevel'} GearProfileKind */
+/** @typedef {'external' | 'internal' | 'rack' | 'bevel' | 'worm'} GearProfileKind */
 
 /** Decision 4: `legacy` samples each flank with a fixed 8 points. */
 const LEGACY_POINTS_PER_FLANK = 8
@@ -904,7 +911,7 @@ function buildGearProfile(params, policy) {
   const op = GEAR_PROFILE_OP
   const { kind = 'external', ...gearParams } = params
   if (!Object.prototype.hasOwnProperty.call(GEAR_PROFILE_PARAMS_BY_KIND, kind)) {
-    throw new GearLimitError(`${op}: kind must be 'external', 'internal', 'rack' or 'bevel', got ${String(kind)}`, 'kind')
+    throw new GearLimitError(`${op}: kind must be 'external', 'internal', 'rack', 'bevel' or 'worm', got ${String(kind)}`, 'kind')
   }
   const vocabulary = GEAR_PROFILE_PARAMS_BY_KIND[/** @type {GearProfileKind} */ (kind)]
   // Canonical names only: the recipes resolve aliases before they emit this record.
@@ -915,10 +922,12 @@ function buildGearProfile(params, policy) {
   }
   if (kind === 'internal') checkGearLimits(gearParams, { op, required: ['teeth', 'moduleMm'], limits: RING_LIMITS })
   else if (kind === 'rack') checkGearLimits(gearParams, { op, required: ['moduleMm'], limits: RACK_LIMITS })
+  else if (kind === 'worm') checkGearLimits(gearParams, { op, required: ['starts', 'moduleMm', 'pitchDiameterMm'], limits: WORM_LIMITS })
   else checkGearLimits(gearParams, { op, required: kind === 'bevel' ? ['teeth', 'moduleMm', 'pitchConeAngleDeg'] : ['teeth', 'moduleMm'] })
   try {
     if (kind === 'internal') return buildRingProfile(gearParams, policy)
     if (kind === 'bevel') return buildBevelProfile(gearParams, policy)
+    if (kind === 'worm') return buildWormProfile(gearParams, policy)
     if (kind === 'rack') return geometries.geom2.fromPoints(rackProfile(/** @type {any} */ (gearParams)).outline)
     const gear = /** @type {import('../gear/dimensions.js').GearParams} */ (gearParams)
     const dims = gearDimensions(gear)
@@ -955,6 +964,23 @@ function buildRingProfile(params, policy) {
   for (let i = 0; i < rim.length; i++) sides.push([/** @type {Vec2Mm2} */ (rim[i]), /** @type {Vec2Mm2} */ (rim[(i + 1) % rim.length])])
   for (let i = hole.length - 1; i >= 0; i--) sides.push([hole[i], hole[(i - 1 + hole.length) % hole.length]])
   return geometries.geom2.create(/** @type {any} */ (sides))
+}
+
+/**
+ * The worm's transverse section (TODO/core-047): `src/core/gear/worm.js`'s outline, at the
+ * segment count a circle of the worm's tip radius takes under `policy` — its lands are arcs
+ * and its Archimedean flanks bend no tighter than that circle, so the section meets the
+ * design's tolerance the way a cylinder of the same size does.
+ *
+ * @param {Record<string, any>} params Canonical worm-section params, limits already checked.
+ * @param {import('./tessellation.js').TessellationPolicy | undefined} policy
+ * @returns {Geom2}
+ */
+function buildWormProfile(params, policy) {
+  const wormParams = /** @type {import('../gear/worm.js').WormParams} */ (params)
+  const pointsPerTurn = segmentsFor(wormDimensions(wormParams).tipRadiusMm, policy)
+  const { outline } = wormSection({ ...wormParams, pointsPerTurn })
+  return geometries.geom2.fromPoints(outline)
 }
 
 /**
@@ -1081,6 +1107,54 @@ function twistedExtrude(profile, heightMm, params, policy) {
     },
     base
   )
+}
+
+/**
+ * Extrude `profile` to `heightMm`, turning it once per `leadMm` of height (TODO/core-047):
+ * a worm's thread, which turns through as many whole turns as its length holds — past the
+ * one turn `twistDeg` allows a gear. The twist is `±2π · height / lead`, CCW going up for a
+ * right hand (`../gear/helix.js`'s convention), and its steps are the design's resolution
+ * per turn ({@link twistStepsFor} of one turn, so a turn here samples exactly as a one-turn
+ * `twistDeg` would), never fewer than Draft's floor. The same vertex budget as
+ * `twistedExtrude` holds, checked before anything is built: a lead too fine for its height
+ * is refused, and a fine resolution past the budget is sampled down to it.
+ *
+ * @param {Geom2} profile
+ * @param {number} heightMm
+ * @param {Record<string, any>} params `leadMm`, `handedness`.
+ * @param {import('./tessellation.js').TessellationPolicy | undefined} policy
+ * @returns {Geom3}
+ */
+function leadExtrude(profile, heightMm, params, policy) {
+  const op = 'profile.extrudeLinear'
+  for (const name of ['twistDeg', 'twistSteps', 'herringbone']) {
+    if (params[name] !== undefined) throw new Error(`${op}: leadMm and ${name} cannot be combined — leadMm is the whole twist, one turn per lead`)
+  }
+  const leadMm = params.leadMm
+  if (typeof leadMm !== 'number' || !Number.isFinite(leadMm) || !(leadMm > 0)) {
+    throw new Error(`${op}: leadMm must be a finite number of millimetres, more than 0, got ${String(leadMm)}`)
+  }
+  const handedness = params.handedness ?? 'right'
+  if (!HANDEDNESS.includes(handedness)) {
+    throw new Error(`${op}: handedness must be ${HANDEDNESS.map((h) => `'${h}'`).join(' or ')}, got ${String(handedness)}`)
+  }
+  const turns = heightMm / leadMm
+  const twistRad = (handedness === 'left' ? -1 : 1) * 2 * Math.PI * turns
+  const sides = geometries.geom2.toSides(profile)
+  let radiusMm = 0
+  for (const [point] of sides) radiusMm = Math.max(radiusMm, Math.hypot(point[0], point[1]))
+  const verticesFor = (/** @type {number} */ steps) => sides.length * (steps + 1)
+
+  const minimum = Math.max(1, Math.ceil(turns * minTwistSteps(2 * Math.PI, radiusMm)))
+  if (verticesFor(minimum) > TWIST_VERTEX_BUDGET) {
+    throw new Error(
+      `${op}: ${turns.toFixed(1)} turns at ${radiusMm.toFixed(3)} mm need at least ${minimum} steps — ` +
+        `${verticesFor(minimum)} vertices, past the ${TWIST_VERTEX_BUDGET}-vertex budget; lengthen the lead, shorten the height or simplify the profile`
+    )
+  }
+  const withinBudget = Math.floor(TWIST_VERTEX_BUDGET / sides.length - 1)
+  const steps = Math.max(minimum, Math.min(Math.ceil(turns * twistStepsFor(2 * Math.PI, radiusMm, policy)), withinBudget))
+  return extrusions.extrudeLinear({ height: heightMm, twistAngle: twistRad, twistSteps: steps }, profile)
 }
 
 // ## The loft to an apex (TODO/core-045, `docs/decisions/gears.md` Decision 3)
@@ -1431,7 +1505,9 @@ export const registry = Object.freeze({
   //
   // `twistDeg` / `twistSteps` / `herringbone` (TODO/core-042) twist it about Z as it goes
   // up — the helical and herringbone gears' only geometry. Without them the call is
-  // exactly the untwisted one it always was. See `twistedExtrude`.
+  // exactly the untwisted one it always was. See `twistedExtrude`. `leadMm` / `handedness`
+  // (TODO/core-047) twist it once per lead, as many turns as the height holds — the worm's
+  // thread. See `leadExtrude`.
   'profile.extrudeLinear': native(1, ({ params, inputs, policy }) => {
     const op = 'profile.extrudeLinear'
     // `BuildArgs.inputs` is typed as solids because every other op consumes solids;
@@ -1444,6 +1520,10 @@ export const registry = Object.freeze({
       throw new Error(`${op}: operand must be a 2D profile (geom2), got ${describeGeometry(profile)}`)
     }
     const heightMm = requirePositive(params.height, 'height', op)
+    if (params.leadMm !== undefined) return leadExtrude(profile, heightMm, params, policy)
+    if (params.handedness !== undefined) {
+      throw new Error(`${op}: handedness is the hand of a leadMm twist — give leadMm too, or sign twistDeg instead`)
+    }
     if (params.twistDeg === undefined && params.twistSteps === undefined && params.herringbone === undefined) {
       return extrusions.extrudeLinear({ height: heightMm }, profile)
     }
@@ -2151,6 +2231,14 @@ export const registry = Object.freeze({
   // origin, the pinion turned to the mesh phase and stood up Σ about +Y; parts `drive` and
   // `pinion`. Also without `ui` until `ui-057` gives it its Library row.
   'gear.bevelPair': composite(0, bevelPair),
+  // TODO/core-047: the worm (`profile.gear` kind `worm` → `profile.extrudeLinear` with
+  // `leadMm` → centre, plus hidden `bore` and `pitch`), its non-throated wheel (a helical
+  // `gear.spur` at the worm's lead angle — gear.spur's records), and the pair placed by
+  // `src/core/gear/mesh.js`'s crossed-axis rules, parts `wheel` and `worm`. Also without `ui`
+  // until `ui-057` gives them their Library rows.
+  'gear.worm': composite(0, worm),
+  'gear.wormWheel': composite(0, wormWheel),
+  'gear.wormPair': composite(0, wormPair),
 
   // Deliberately absent, and not an oversight — TODO/core-003 spiked this:
   //

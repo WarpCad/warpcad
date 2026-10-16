@@ -1049,4 +1049,26 @@ describe('the Gears section (TODO/core-041) — defined here, listed once ui-057
     const gears = librarySectionsFor(withUi).find((section) => section.id === 'gear')
     expect(gears?.rows.map((row) => row.op)).toEqual(['gear.spur', 'gear.bevel', 'gear.pair', 'gear.bevelPair'])
   })
+
+  it('ranks Worm and Worm wheel after the bevel gear and Worm pair last (core-047), unlisted until ui-057', () => {
+    for (const op of ['gear.worm', 'gear.wormWheel', 'gear.wormPair']) {
+      expect(registry[op]?.kind, op).toBe('composite')
+      expect(registry[op]?.ui, op).toBeUndefined()
+      expect(() => libraryRow(op), op).toThrow(new RegExp(op.replace('.', '\\.')))
+    }
+    /** @param {string} op @param {Record<string, unknown>} defaults */
+    const withRow = (op, defaults) => Object.freeze({ ...registry[op], ui: { label: op, defaults } })
+    const withUi = {
+      ...registry,
+      'gear.wormPair': withRow('gear.wormPair', { starts: 1, moduleMm: 2, wormPitchDiameterMm: 20, wormLengthMm: 30, wheelTeeth: 30, faceWidthMm: 10 }),
+      'gear.wormWheel': withRow('gear.wormWheel', { teeth: 30, starts: 1, moduleMm: 2, wormPitchDiameterMm: 20, faceWidthMm: 10 }),
+      'gear.worm': withRow('gear.worm', { starts: 1, moduleMm: 2, pitchDiameterMm: 20, lengthMm: 30 }),
+      'gear.spur': Object.freeze({ ...registry['gear.spur'], ui: GEAR_SPUR_UI }),
+      'gear.bevelPair': withRow('gear.bevelPair', { driveTeeth: 32, pinionTeeth: 16, moduleMm: 2 }),
+      'gear.bevel': withRow('gear.bevel', { teeth: 20, mateTeeth: 20, moduleMm: 2 }),
+      'gear.pair': withRow('gear.pair', { driveTeeth: 36, pinionTeeth: 12, moduleMm: 2, thicknessMm: 8 }),
+    }
+    const gears = librarySectionsFor(withUi).find((section) => section.id === 'gear')
+    expect(gears?.rows.map((row) => row.op)).toEqual(['gear.spur', 'gear.bevel', 'gear.worm', 'gear.wormWheel', 'gear.pair', 'gear.bevelPair', 'gear.wormPair'])
+  })
 })
