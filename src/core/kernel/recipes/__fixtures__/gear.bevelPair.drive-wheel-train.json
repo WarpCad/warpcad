@@ -1,0 +1,33 @@
+{
+  "about": "drive-wheel's four-bevel differential cluster (V1 ~/src/jscad/drive-wheel/drive-wheel.jscad gearTrain: base, drive, antidrive, top — four 32T bevels, circularPitch pi*50/32, clearance 0.05, V1 backlash 0.05) rebuilt from two gear.bevelPair document lines and one 180-degree turn, with no hand-tuned offset. V1 placed the same four gears with rotateY(+-90/180) and snap(..., +-addendum). moduleMm = 50/32; backlashMm = 2 * 0.05 / cos(20 deg) (call 4's V1 conversion). The pair's own part names are drive/pinion; `gears` maps them to drive-wheel's. TODO/core-046; docs-021 ships it as the worked example.",
+  "records": [
+    {
+      "id": "baseAndDrive",
+      "op": "gear.bevelPair",
+      "params": { "driveTeeth": 32, "pinionTeeth": 32, "moduleMm": 1.5625, "clearanceMm": 0.05, "backlashMm": 0.10641777724759122 }
+    },
+    {
+      "id": "topAndAntidrivePair",
+      "op": "gear.bevelPair",
+      "params": { "driveTeeth": 32, "pinionTeeth": 32, "moduleMm": 1.5625, "clearanceMm": 0.05, "backlashMm": 0.10641777724759122 }
+    },
+    { "id": "topAndAntidrive", "op": "transform.rotate", "target": "topAndAntidrivePair", "params": { "angles": [0, 180, 0] } }
+  ],
+  "gears": {
+    "base": { "record": "baseAndDrive", "part": "drive", "axis": [0, 0, 1] },
+    "drive": { "record": "baseAndDrive", "part": "pinion", "axis": [1, 0, 0] },
+    "top": { "record": "topAndAntidrive", "part": "drive", "axis": [0, 0, -1] },
+    "antidrive": { "record": "topAndAntidrive", "part": "pinion", "axis": [-1, 0, 0] }
+  },
+  "meshes": [
+    ["base", "drive"],
+    ["base", "antidrive"],
+    ["top", "drive"],
+    ["top", "antidrive"]
+  ],
+  "opposed": [
+    ["base", "top"],
+    ["drive", "antidrive"]
+  ],
+  "apexMm": [0, 0, 0]
+}

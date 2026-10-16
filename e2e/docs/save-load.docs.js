@@ -367,8 +367,9 @@ test.describe('docs media: saving, opening, hosted storage', () => {
     await expect(page.getByTestId('merge-toast')).toContainText(`Merged 1 step from ${LABEL}`)
     await expect(page.getByTestId('hosted-conflict')).toHaveCount(0)
     await bodyCount(page, 3)
+    // The push lands after the toast, so wait for the mock repository to receive it.
+    await expect.poll(() => repository.text).toContain('Cylinder')
     expect(repository.text).toContain('their-cube')
-    expect(repository.text).toContain('Cylinder')
     await clockShot(page, 'hosted-merged.png')
     await assertOnlyTheFakeToken(page, repository)
   })

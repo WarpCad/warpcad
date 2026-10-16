@@ -64,15 +64,53 @@
  * backlash their own `backlashMm` thinned them by (call 4). Backlash therefore does not move
  * the shafts; `extraBacklashMm` spreads them (`Δa = j / (2 tan α_w)`) for play beyond that.
  *
+ * ## Crossed axes (TODO/core-046)
+ *
+ * Two helical gears on shafts `Σ` apart that do not meet (`axes: 'crossed'`, or frames in
+ * different pitch planes) touch at one point `P` on the line of centres. Each meshes with the
+ * same imaginary rack in the plane normal to its teeth, so the centre distance is
+ * `R₁ + x₁·m + R₂ + x₂·m` on each gear's own transverse pitch circle — no working-angle
+ * correction. At `P` the two teeth must be parallel: gear 1's right-hand tooth leans `+β₁`
+ * from its axis, and gear 2's leans the same way only if gear 2's axis is gear 1's turned
+ * **`−Σ` about the line of centres for a right hand, `+Σ` for a left** (`Σ = β₁ + β₂`, the
+ * same hand on both). The half-tooth rule is the external one, `u₁ + u₂ ≡ ½`, with `u` read
+ * at `P`: projected onto the normal of the tooth direction both gears have normal pitch
+ * `π·mₙ`, so the transverse pitches cancel out of the rule. Each gear's phase there carries its
+ * own twist at `P`'s height — gear 1's at gear 2's height along gear 1's axis, gear 2's at its
+ * own mid-plane — so both face widths are needed. Only the frame maths lands here; the worm
+ * pair is `core-047`'s.
+ *
+ * ## Bevel pairs (TODO/core-046)
+ *
+ * Two bevel gears mesh with their **apexes on one point** and their axes `Σ` apart; their
+ * pitch cones (`δ₁ + δ₂ = Σ`, `./bevel.js`) touch along one line. Gear 2's frame is gear 1's
+ * turned to the contact azimuth `ψ` about gear 1's axis, then by `Σ` about the turned `+Y`:
+ * `R₂ = R₁ · Rz(ψ) · Ry(Σ)`. In that frame the contact line lies at bearing 180°, as gear 2's
+ * centre does on a spur pair. **Phase**: on the back cone each gear is its virtual spur gear
+ * of `z' = z / cos δ` teeth, and a virtual angle is a real one times `cos δ`, so
+ * `u' = (ψ' − φ') · z' / 360` is exactly `u = (ψ − φ) · z / 360`. The two virtual gears are an
+ * external pair rolling at `P`, and a turn of either about its own axis (apex toward its large
+ * end) moves its pitch point the same way round as on a spur pair, so the rule is again
+ * `u₁ + u₂ ≡ ½`: `φ₂ = 180° − (½ − u₁) · 360 / z₂`, V1's `180 + 180/z₂` at rest. It comes out
+ * the same form as the spur rule — derived, not copied — and does not depend on Σ.
+ * {@link bevelCompatibility} checks module, pressure angle, shaft angle, `δ₁ + δ₂ = Σ` and the
+ * cone distance; spiral bevels (and so hand) are not built (`./bevel.js`).
+ *
+ * A **rotation** crosses this module as `transform.rotate`'s three angles (`orientationDeg`,
+ * `rotateDeg` on a bevel): X first, then Y, then Z, the order {@link PITCH_PLANE_BASIS}'s
+ * `rotateDeg` is written in. A gear's own turn about its axis (`phaseDeg`) is always applied
+ * before it, about local Z.
+ *
  * Framework-free and kernel-free: no Vue, no DOM, no three.js, no `@jscad/modeling`.
  *
  * @module core/gear/mesh
  */
 
+import { DEFAULT_SHAFT_ANGLE_DEG, bevelGearDimensions } from './bevel.js'
 import { GearParameterError, gearDimensions } from './dimensions.js'
 import { helixTwistRad } from './helix.js'
 import { GearMeshError, checkRingPinion, ringGearDimensions } from './internal.js'
-import { GEAR_LIMITS, RACK_LIMITS, RING_LIMITS, checkGearLimits } from './limits.js'
+import { BEVEL_LIMITS, GEAR_LIMITS, RACK_LIMITS, RING_LIMITS, checkGearLimits } from './limits.js'
 import { DEFAULT_RACK_TEETH, rackDimensions } from './rack.js'
 
 const DEG_TO_RAD = Math.PI / 180
@@ -85,6 +123,8 @@ const BISECT_ITERATIONS = 64
 const inv = (a) => Math.tan(a) - a
 
 /** @typedef {[number, number, number]} Vec3Mm */
+/** @typedef {[number, number, number]} Vec3 A direction, or three angles in degrees. */
+/** @typedef {[[number, number, number], [number, number, number], [number, number, number]]} Mat3 */
 /** @typedef {'external' | 'internal' | 'rack'} GearKind */
 /** @typedef {'xy' | 'xz' | 'yz'} PitchPlane */
 /** @typedef {'parallel' | 'crossed'} MeshAxes */
@@ -97,7 +137,8 @@ const inv = (a) => Math.tan(a) - a
  *   | 'helix-hand-opposite' | 'herringbone-mismatch' | 'herringbone-apex-offset'
  *   | 'axes-not-parallel' | 'ring-not-larger' | 'tip-interference'
  *   | 'pinion-shift-not-checked' | 'tip-clearance' | 'no-face-overlap'
- *   | 'shift-too-negative' | 'rack-pair'} MeshReasonCode
+ *   | 'shift-too-negative' | 'rack-pair' | 'shaft-angle-mismatch' | 'cone-angle-sum'
+ *   | 'cone-distance-mismatch'} MeshReasonCode
  */
 
 /**
@@ -144,7 +185,52 @@ const inv = (a) => Math.tan(a) - a
  *   the smallest one: within half a tooth. Always 0 for a rack, which slides instead.
  * @property {number} centerDistanceMm
  * @property {number | null} ratio {@link gearRatio}; `null` for a rack pair.
- * @property {PitchPlane} pitchPlane
+ * @property {PitchPlane} pitchPlane Gear 1's.
+ * @property {MeshAxes} axes
+ * @property {number} shaftAngleDeg 0 on parallel axes.
+ * @property {Vec3} axis Gear 2's axis there, a unit vector.
+ * @property {Vec3} orientationDeg The `transform.rotate` angles that stand gear 2 — built in
+ *   XY, axis +Z, already turned by `phaseDeg` about it — where it goes, before the move to
+ *   `centerMm`. On parallel axes the pitch plane's {@link PITCH_PLANE_BASIS} `rotateDeg`.
+ */
+
+/**
+ * Where a bevel gear is: its apex (world mm), and the rotation that stands it up from its
+ * as-built layout (axis +Z, apex at the origin, tooth 0 on +X), after its own turn about +Z.
+ *
+ * @typedef {object} BevelFrame
+ * @property {Vec3Mm} apexMm
+ * @property {Vec3} [rotateDeg=[0, 0, 0]] `transform.rotate` angles.
+ * @property {number} [phaseDeg=0] Its turn about its own axis, applied first, degrees.
+ */
+
+/**
+ * A bevel gear's params — `gear.bevel`'s canonical names (a record's `boreMm` and
+ * `hubLengthMm` are ignored) — and where it is.
+ *
+ * @typedef {object} BevelMeshGear
+ * @property {number} teeth
+ * @property {number} mateTeeth The tooth count it was cut to mesh with.
+ * @property {number} moduleMm At the large end.
+ * @property {number} [shaftAngleDeg=90] The Σ it was cut for.
+ * @property {number} [pressureAngleDeg=20]
+ * @property {number} [clearanceMm]
+ * @property {number} [backlashMm=0]
+ * @property {number} [faceWidthMm]
+ * @property {BevelFrame} [frame] The origin, unturned, if omitted.
+ */
+
+/**
+ * @typedef {object} BevelMeshPlacement
+ * @property {Vec3Mm} apexMm Gear 2's apex: gear 1's.
+ * @property {Vec3Mm} translateMm The move from gear 2's current apex.
+ * @property {Vec3} rotateDeg Gear 2's `transform.rotate` angles (its {@link BevelFrame}'s).
+ * @property {number} phaseDeg Gear 2's turn about its own axis, in `[0, 360/z₂)`.
+ * @property {Vec3} axis Gear 2's axis (apex toward its large end), a unit vector.
+ * @property {number} shaftAngleDeg
+ * @property {[number, number]} pitchConeAnglesDeg `[δ₁, δ₂]`.
+ * @property {number} coneDistanceMm Apex to either large-end pitch circle.
+ * @property {number} ratio `−z₂ / z₁`, each gear turning about its own axis.
  */
 
 /**
@@ -185,6 +271,16 @@ export const PITCH_PLANE_BASIS = Object.freeze({
   xz: Object.freeze({ u: Object.freeze([1, 0, 0]), v: Object.freeze([0, 0, 1]), n: Object.freeze([0, -1, 0]), rotateDeg: Object.freeze([90, 0, 0]) }),
   yz: Object.freeze({ u: Object.freeze([0, 1, 0]), v: Object.freeze([0, 0, 1]), n: Object.freeze([1, 0, 0]), rotateDeg: Object.freeze([90, 0, 90]) }),
 })
+
+/**
+ * @typedef {object} ResolvedBevel
+ * @property {string} label
+ * @property {number} teeth
+ * @property {number} moduleMm
+ * @property {number} pressureAngleDeg
+ * @property {import('./bevel.js').BevelGearDimensions} dims
+ * @property {{ apexMm: Vec3Mm, rotateDeg: Vec3, phaseDeg: number } | undefined} frame
+ */
 
 /** Codes that make a pair's centre distance and phase meaningless. */
 const BLOCKING = new Set(
@@ -341,8 +437,18 @@ function resolveGear(gear, label) {
 }
 
 /**
+ * @typedef {object} MeshOptions
+ * @property {number} [extraBacklashMm=0] Play beyond the gears' own `backlashMm`,
+ *   circumferential mm on the pitch circle.
+ * @property {MeshAxes} [axes] Default `'crossed'` when both frames are given in different
+ *   pitch planes, else `'parallel'`.
+ * @property {number} [shaftAngleDeg=90] Crossed axes only: the angle between the shafts,
+ *   `0 < Σ < 180`; the two helix angles must add up to it.
+ */
+
+/**
  * @param {unknown} options
- * @returns {{ extraBacklashMm: number, axes: MeshAxes | undefined }}
+ * @returns {{ extraBacklashMm: number, axes: MeshAxes | undefined, shaftAngleDeg: number }}
  */
 function resolveOptions(options) {
   const o = /** @type {Record<string, unknown>} */ (options ?? {})
@@ -354,7 +460,11 @@ function resolveOptions(options) {
   if (axes !== undefined && axes !== 'parallel' && axes !== 'crossed') {
     throw new GearParameterError(`axes must be 'parallel' or 'crossed', got ${String(axes)}`)
   }
-  return { extraBacklashMm: extra, axes: /** @type {MeshAxes | undefined} */ (axes) }
+  const shaftAngleDeg = o.shaftAngleDeg ?? DEFAULT_SHAFT_ANGLE_DEG
+  if (typeof shaftAngleDeg !== 'number' || !Number.isFinite(shaftAngleDeg) || !(shaftAngleDeg > 0 && shaftAngleDeg < 180)) {
+    throw new GearParameterError(`shaftAngleDeg must be between 0° and 180° (exclusive), got ${String(shaftAngleDeg)}`)
+  }
+  return { extraBacklashMm: extra, axes: /** @type {MeshAxes | undefined} */ (axes), shaftAngleDeg }
 }
 
 /**
@@ -417,9 +527,10 @@ function profileReasons(A, B) {
  * @param {ResolvedGear} A
  * @param {ResolvedGear} B
  * @param {boolean} crossed
+ * @param {number} [shaftAngleDeg=90] Crossed axes only.
  * @returns {MeshReason[]}
  */
-function helixReasons(A, B, crossed) {
+function helixReasons(A, B, crossed, shaftAngleDeg = DEFAULT_SHAFT_ANGLE_DEG) {
   /** @type {MeshReason[]} */
   const out = []
   const rack = A.kind === 'rack' ? A : B.kind === 'rack' ? B : undefined
@@ -428,11 +539,11 @@ function helixReasons(A, B, crossed) {
       out.push(reason('axes-not-parallel', `A ${rack ? 'rack' : 'ring gear'} only meshes with a pinion on a parallel axis.`))
       return out
     }
-    if (A.helixAngleDeg === 0 || B.helixAngleDeg === 0 || Math.abs(A.helixAngleDeg + B.helixAngleDeg - 90) > EPS) {
+    if (A.helixAngleDeg === 0 || B.helixAngleDeg === 0 || Math.abs(A.helixAngleDeg + B.helixAngleDeg - shaftAngleDeg) > EPS) {
       out.push(
         reason(
           'helix-angle-mismatch',
-          `Gears on crossed axes need helix angles that add up to the 90° between the shafts — these are ${fmt(A.helixAngleDeg)}° and ${fmt(B.helixAngleDeg)}°.`
+          `Gears on crossed axes need helix angles that add up to the ${fmt(shaftAngleDeg)}° between the shafts — these are ${fmt(A.helixAngleDeg)}° and ${fmt(B.helixAngleDeg)}°.`
         )
       )
     }
@@ -529,20 +640,23 @@ function pairType(A, B) {
 }
 
 /**
- * Throw the first reason that makes centre distance and phase meaningless.
+ * Throw the first reason that makes centre distance and phase meaningless. On crossed axes
+ * that is every error: the hand decides which way the shafts cross, so a pair of the wrong
+ * hands has no placement at all.
  *
  * @param {ResolvedGear} A
  * @param {ResolvedGear} B
  * @param {boolean} crossed
+ * @param {number} [shaftAngleDeg=90] Crossed axes only.
  * @returns {void}
  * @throws {GearMeshError}
  */
-function assertMeshable(A, B, crossed) {
+function assertMeshable(A, B, crossed, shaftAngleDeg = DEFAULT_SHAFT_ANGLE_DEG) {
   if (crossed) {
-    throw new GearMeshError(
-      'Gears on crossed axes cannot be placed yet — only pairs on parallel axes (the same pitch plane) are meshed.',
-      'axes-not-parallel'
-    )
+    const kind = kindReason(A, B)
+    const first = kind ?? [...profileReasons(A, B), ...helixReasons(A, B, true, shaftAngleDeg)].find((r) => r.severity === 'error')
+    if (first) throw new GearMeshError(first.message, first.code)
+    return
   }
   const kind = kindReason(A, B)
   const reasons = kind ? [kind] : [...profileReasons(A, B), ...helixReasons(A, B, false)]
@@ -568,6 +682,21 @@ function invInverse(target) {
     else hi = mid
   }
   return (lo + hi) / 2
+}
+
+/**
+ * Crossed axes: each gear meshes with the same normal rack, so the shifts add straight on and
+ * the pair runs at the normal pressure angle (module doc). Assumes {@link assertMeshable} passed.
+ *
+ * @param {ResolvedGear} A
+ * @param {ResolvedGear} B
+ * @returns {{ centerDistanceMm: number, workingAngleRad: number }}
+ */
+function crossedWorking(A, B) {
+  return {
+    centerDistanceMm: A.pitchRadiusMm + B.pitchRadiusMm + (A.profileShift + B.profileShift) * A.moduleMm,
+    workingAngleRad: A.pressureAngleDeg * DEG_TO_RAD,
+  }
 }
 
 /**
@@ -616,10 +745,12 @@ function working(A, B) {
  * `R_pinion + x·m` (rack), corrected to the working pressure angle by any profile shift (module
  * doc). Backlash thins the teeth and does not move the shafts; `extraBacklashMm` spreads them.
  *
+ * On crossed axes it is `R₁ + R₂ + (x₁ + x₂)·m`, each on its own transverse pitch circle.
+ *
  * @param {MeshGear} a
  * @param {MeshGear} b
- * @param {{ extraBacklashMm?: number }} [options] Play beyond the gears' own `backlashMm`,
- *   circumferential mm on the pitch circle: `Δa = j / (2 tan α_w)`.
+ * @param {MeshOptions} [options] `extraBacklashMm` spreads the shafts by `Δa = j / (2 tan α_w)`
+ *   (crossed: the normal pressure angle).
  * @returns {number} mm. For a rack pair: pinion axis to the rack's pitch line.
  * @throws {GearParameterError} for malformed or hostile params.
  * @throws {GearMeshError} for a pair that cannot mesh (its {@link MeshReasonCode}).
@@ -627,8 +758,13 @@ function working(A, B) {
 export function centerDistanceMm(a, b, options) {
   const A = resolveGear(a, 'gear 1')
   const B = resolveGear(b, 'gear 2')
-  const { extraBacklashMm } = resolveOptions(options)
-  assertMeshable(A, B, isCrossed(A, B, undefined))
+  const { extraBacklashMm, axes, shaftAngleDeg } = resolveOptions(options)
+  const crossed = isCrossed(A, B, axes)
+  assertMeshable(A, B, crossed, shaftAngleDeg)
+  if (crossed) {
+    const { centerDistanceMm: crossedMm, workingAngleRad } = crossedWorking(A, B)
+    return crossedMm + extraBacklashMm / (2 * Math.tan(workingAngleRad))
+  }
   const { centerDistanceMm: distanceMm, workingAngleRad, type } = working(A, B)
   if (extraBacklashMm === 0) return distanceMm
   const spreadMm = extraBacklashMm / (2 * Math.tan(workingAngleRad))
@@ -701,23 +837,30 @@ function twistDegAt(G, axialMm, stationMm) {
  * Gear 1 stays put. Gear 2 moves, in the pitch plane, along its current bearing from gear 1
  * (or along `+u` when it sits on gear 1's axis) to the centre distance, keeping its axial
  * position, and turns the smallest way that interleaves the teeth (module doc). A rack as
- * gear 2 keeps its direction and slides along itself instead. Both gears' frames must share
- * a pitch plane: crossed axes are refused (`'axes-not-parallel'`).
+ * gear 2 keeps its direction and slides along itself instead.
+ *
+ * On **crossed axes** (`options.axes`, or frames in different pitch planes) gear 2 goes the
+ * same way along the same bearing, keeping its height along gear 1's axis, and its axis is
+ * gear 1's turned `∓Σ` about the line of centres (module doc): `orientationDeg` stands it up.
+ * Its pitch plane is ignored past telling the axes are crossed. Both face widths are needed.
  *
  * @param {MeshGear} a Gear 1; its frame (default: origin, XY, phase 0) is kept.
  * @param {MeshGear} b Gear 2; its frame (default: gear 1's centre, phase 0) is moved.
- * @param {{ extraBacklashMm?: number }} [options] As {@link centerDistanceMm}.
+ * @param {MeshOptions} [options] As {@link centerDistanceMm}.
  * @returns {MeshPlacement}
- * @throws {GearParameterError} for malformed or hostile params, or a helical pair whose faces
- *   are not level and whose `thicknessMm` is not given.
- * @throws {GearMeshError} for a pair that cannot mesh.
+ * @throws {GearParameterError} for malformed or hostile params, a helical pair whose faces
+ *   are not level and whose `thicknessMm` is not given, or a crossed pair missing either.
+ * @throws {GearMeshError} for a pair that cannot mesh; `'no-face-overlap'` on crossed axes
+ *   when the contact point is off gear 1's face.
  */
 export function meshPlacement(a, b, options) {
   const A = resolveGear(a, 'gear 1')
   const B = resolveGear(b, 'gear 2')
-  resolveOptions(options)
-  assertMeshable(A, B, isCrossed(A, B, undefined))
-  const distanceMm = centerDistanceMm(a, b, options)
+  const { axes, shaftAngleDeg } = resolveOptions(options)
+  const crossed = isCrossed(A, B, axes)
+  assertMeshable(A, B, crossed, shaftAngleDeg)
+  const distanceMm = centerDistanceMm(a, b, { ...options, axes: crossed ? 'crossed' : 'parallel' })
+  if (crossed) return crossedPlacement(A, B, distanceMm, shaftAngleDeg, gearRatio(a, b))
   const plane = A.frame?.pitchPlane ?? B.frame?.pitchPlane ?? 'xy'
   const { u, v, n } = PITCH_PLANE_BASIS[plane]
   const fa = A.frame ?? { centerMm: /** @type {Vec3Mm} */ ([0, 0, 0]), pitchPlane: plane, phaseDeg: 0 }
@@ -801,6 +944,68 @@ export function meshPlacement(a, b, options) {
     centerDistanceMm: distanceMm,
     ratio: type === 'rack' ? null : gearRatio(a, b),
     pitchPlane: plane,
+    axes: /** @type {MeshAxes} */ ('parallel'),
+    shaftAngleDeg: 0,
+    axis: /** @type {Vec3} */ ([n[0], n[1], n[2]]),
+    orientationDeg: /** @type {Vec3} */ ([...PITCH_PLANE_BASIS[plane].rotateDeg]),
+  })
+}
+
+/**
+ * {@link meshPlacement} on crossed axes, after {@link assertMeshable} passed (module doc).
+ *
+ * @param {ResolvedGear} A
+ * @param {ResolvedGear} B
+ * @param {number} distanceMm
+ * @param {number} shaftAngleDeg
+ * @param {number} ratio
+ * @returns {MeshPlacement}
+ */
+function crossedPlacement(A, B, distanceMm, shaftAngleDeg, ratio) {
+  for (const G of [A, B]) {
+    if (G.thicknessMm === undefined) {
+      throw new GearParameterError(`${G.label}: thicknessMm is required to mesh helical gears on crossed axes — each section's twist at the contact point depends on it`)
+    }
+  }
+  const plane = A.frame?.pitchPlane ?? 'xy'
+  const { u, v, n, rotateDeg: planeDeg } = PITCH_PLANE_BASIS[plane]
+  const fa = A.frame ?? { centerMm: /** @type {Vec3Mm} */ ([0, 0, 0]), pitchPlane: plane, phaseDeg: 0 }
+  const fb = B.frame ?? { centerMm: fa.centerMm, pitchPlane: plane, phaseDeg: 0 }
+  const [ax, ay, aAxial] = [dot(fa.centerMm, u), dot(fa.centerMm, v), dot(fa.centerMm, n)]
+  const [bx, by, bAxial] = [dot(fb.centerMm, u), dot(fb.centerMm, v), dot(fb.centerMm, n)]
+  const halfFaceMm = /** @type {number} */ (A.thicknessMm) / 2
+  if (Math.abs(bAxial - aAxial) > halfFaceMm + EPS) {
+    throw new GearMeshError(
+      `The contact point would be ${fmt(Math.abs(bAxial - aAxial))} mm along gear 1's axis from its middle, off its ${fmt(2 * halfFaceMm)} mm face — move gear 2 level with gear 1's face.`,
+      'no-face-overlap'
+    )
+  }
+  const dx = bx - ax
+  const dy = by - ay
+  const bearingDeg = Math.hypot(dx, dy) > EPS ? Math.atan2(dy, dx) * RAD_TO_DEG : 0
+  const newX = ax + distanceMm * Math.cos(bearingDeg * DEG_TO_RAD)
+  const newY = ay + distanceMm * Math.sin(bearingDeg * DEG_TO_RAD)
+  // Gear 2's local +X runs along the line of centres, away from gear 1, so the contact point
+  // is at its bearing 180°; its axis is gear 1's turned −Σ (right hand) or +Σ (left) about it.
+  const sense = A.handedness === 'left' ? 1 : -1
+  const R = matMul(matMul(matFromEulerDeg(planeDeg), rotZ(bearingDeg)), rotX(sense * shaftAngleDeg))
+  const phaseAEffDeg = fa.phaseDeg + twistDegAt(A, aAxial, bAxial)
+  const uA = ((bearingDeg - phaseAEffDeg) * A.teeth) / 360
+  const phaseBDeg = 180 - ((0.5 - uA) * 360) / B.teeth - twistDegAt(B, 0, 0)
+  const rotateDeg = nearest(phaseBDeg - fb.phaseDeg, 360 / B.teeth)
+  const centerMm = /** @type {Vec3Mm} */ ([0, 1, 2].map((i) => u[i] * newX + v[i] * newY + n[i] * bAxial))
+  return Object.freeze({
+    centerMm,
+    phaseDeg: fb.phaseDeg + rotateDeg,
+    translateMm: /** @type {Vec3Mm} */ ([0, 1, 2].map((i) => centerMm[i] - fb.centerMm[i])),
+    rotateDeg,
+    centerDistanceMm: distanceMm,
+    ratio,
+    pitchPlane: plane,
+    axes: /** @type {MeshAxes} */ ('crossed'),
+    shaftAngleDeg,
+    axis: columnZ(R),
+    orientationDeg: eulerDegFromMat(R),
   })
 }
 
@@ -830,20 +1035,21 @@ export function meshPhaseDeg(a, b) {
  *
  * @param {MeshGear} a
  * @param {MeshGear} b
- * @param {{ axes?: MeshAxes }} [options] `axes` defaults to `'crossed'` when the two frames
- *   are in different pitch planes, else `'parallel'`.
+ * @param {MeshOptions} [options] `axes` defaults to `'crossed'` when the two frames are in
+ *   different pitch planes, else `'parallel'`; `shaftAngleDeg` (crossed) defaults to 90°.
  * @returns {MeshReason[]}
  * @throws {GearParameterError} for malformed or hostile params — never for a mismatch.
  */
 export function compatibility(a, b, options) {
   const A = resolveGear(a, 'gear 1')
   const B = resolveGear(b, 'gear 2')
-  const crossed = isCrossed(A, B, resolveOptions(options).axes)
+  const { axes, shaftAngleDeg } = resolveOptions(options)
+  const crossed = isCrossed(A, B, axes)
   const kind = kindReason(A, B)
   if (kind) return [kind]
   const profile = profileReasons(A, B)
   /** @type {MeshReason[]} */
-  const reasons = [...profile, ...helixReasons(A, B, crossed)]
+  const reasons = [...profile, ...helixReasons(A, B, crossed, shaftAngleDeg)]
   if (profile.length > 0 || crossed) return reasons
   if (pairType(A, B) === 'internal') reasons.push(...(A.kind === 'internal' ? ringReasons(A, B) : ringReasons(B, A)))
   if (reasons.some((r) => BLOCKING.has(r.code))) return reasons
@@ -905,4 +1111,256 @@ function tipClearanceMm(A, B, aMm) {
     return Math.min(R.rootMm - (aMm + P.tipMm), R.tipMm - aMm - P.rootMm)
   }
   return Math.min(aMm - A.tipMm - B.rootMm, aMm - B.tipMm - A.rootMm)
+}
+
+// ── Rotations ────────────────────────────────────────────────────────────────────────
+// 3 × 3 matrices, rows of columns-as-used: `M · p`. Only the few a placement composes.
+
+/** @param {number} deg */
+function rotX(deg) {
+  const c = Math.cos(deg * DEG_TO_RAD)
+  const s = Math.sin(deg * DEG_TO_RAD)
+  return /** @type {Mat3} */ ([
+    [1, 0, 0],
+    [0, c, -s],
+    [0, s, c],
+  ])
+}
+
+/** @param {number} deg */
+function rotY(deg) {
+  const c = Math.cos(deg * DEG_TO_RAD)
+  const s = Math.sin(deg * DEG_TO_RAD)
+  return /** @type {Mat3} */ ([
+    [c, 0, s],
+    [0, 1, 0],
+    [-s, 0, c],
+  ])
+}
+
+/** @param {number} deg */
+function rotZ(deg) {
+  const c = Math.cos(deg * DEG_TO_RAD)
+  const s = Math.sin(deg * DEG_TO_RAD)
+  return /** @type {Mat3} */ ([
+    [c, -s, 0],
+    [s, c, 0],
+    [0, 0, 1],
+  ])
+}
+
+/**
+ * @param {Mat3} p
+ * @param {Mat3} q
+ * @returns {Mat3}
+ */
+function matMul(p, q) {
+  return /** @type {Mat3} */ (
+    [0, 1, 2].map((i) => [0, 1, 2].map((j) => p[i][0] * q[0][j] + p[i][1] * q[1][j] + p[i][2] * q[2][j]))
+  )
+}
+
+/**
+ * `transform.rotate`'s matrix: X first, then Y, then Z — `Rz · Ry · Rx`.
+ *
+ * @param {readonly number[]} anglesDeg
+ * @returns {Mat3}
+ */
+function matFromEulerDeg(anglesDeg) {
+  return matMul(matMul(rotZ(anglesDeg[2]), rotY(anglesDeg[1])), rotX(anglesDeg[0]))
+}
+
+/** @param {number} x Below 1e-12 is 0, and never `−0`. */
+const tidy = (x) => (Math.abs(x) < 1e-12 ? 0 : x)
+
+/**
+ * The `transform.rotate` angles of `M` (the inverse of {@link matFromEulerDeg}). Of the two
+ * angle triples every rotation has, the one turning least about X and Z — so a turn of Σ
+ * about Y reads `[0, Σ, 0]` for any Σ, not `[180, 180 − Σ, 180]`.
+ *
+ * @param {Mat3} M
+ * @returns {Vec3} degrees
+ */
+function eulerDegFromMat(M) {
+  const sinB = Math.max(-1, Math.min(1, -M[2][0]))
+  if (Math.abs(sinB) > 1 - 1e-12) {
+    // Gimbal lock: only a − c (or a + c) is defined; put it all on Z.
+    return [0, sinB > 0 ? 90 : -90, tidy(Math.atan2(-M[0][1], M[1][1]) * RAD_TO_DEG)]
+  }
+  const b1 = Math.asin(sinB) * RAD_TO_DEG
+  const first = [Math.atan2(M[2][1], M[2][2]) * RAD_TO_DEG, b1, Math.atan2(M[1][0], M[0][0]) * RAD_TO_DEG]
+  const second = [Math.atan2(-M[2][1], -M[2][2]) * RAD_TO_DEG, b1 > 0 ? 180 - b1 : -180 - b1, Math.atan2(-M[1][0], -M[0][0]) * RAD_TO_DEG]
+  const cost = (/** @type {number[]} */ t) => Math.abs(t[0]) + Math.abs(t[2])
+  const best = cost(second) < cost(first) - 1e-9 ? second : first
+  return /** @type {Vec3} */ (best.map(tidy))
+}
+
+/**
+ * `M`'s image of +Z, a unit vector.
+ *
+ * @param {Mat3} M
+ * @returns {Vec3}
+ */
+function columnZ(M) {
+  return [tidy(M[0][2]), tidy(M[1][2]), tidy(M[2][2])]
+}
+
+// ── Bevel pairs ──────────────────────────────────────────────────────────────────────
+
+/**
+ * @param {unknown} value
+ * @param {string} what
+ * @param {string} label
+ * @returns {Vec3}
+ */
+function finiteTriple(value, what, label) {
+  if (!Array.isArray(value) || value.length !== 3 || !value.every((x) => typeof x === 'number' && Number.isFinite(x))) {
+    throw new GearParameterError(`${label}: ${what} must be three finite numbers, got ${JSON.stringify(value)}`)
+  }
+  return [value[0], value[1], value[2]]
+}
+
+/**
+ * @param {unknown} frame
+ * @param {string} label
+ * @returns {ResolvedBevel['frame']}
+ */
+function resolveBevelFrame(frame, label) {
+  if (frame === undefined) return undefined
+  if (frame === null || typeof frame !== 'object' || Array.isArray(frame)) {
+    throw new GearParameterError(`${label}: frame must be an object with an apexMm`)
+  }
+  const f = /** @type {Record<string, unknown>} */ (frame)
+  const apexMm = finiteTriple(f.apexMm, 'frame.apexMm (millimetres)', label)
+  const rotateDeg = f.rotateDeg === undefined ? /** @type {Vec3} */ ([0, 0, 0]) : finiteTriple(f.rotateDeg, 'frame.rotateDeg (degrees)', label)
+  const phaseDeg = f.phaseDeg ?? 0
+  if (typeof phaseDeg !== 'number' || !Number.isFinite(phaseDeg)) {
+    throw new GearParameterError(`${label}: frame.phaseDeg must be a finite number of degrees, got ${String(phaseDeg)}`)
+  }
+  return { apexMm, rotateDeg, phaseDeg }
+}
+
+/**
+ * Check one bevel gear's params (caps first, `./limits.js`) and derive its cone
+ * (`./bevel.js`'s `bevelGearDimensions`, which refuses a crown gear by name).
+ *
+ * @param {unknown} gear
+ * @param {string} label
+ * @returns {ResolvedBevel}
+ */
+function resolveBevel(gear, label) {
+  if (gear === null || typeof gear !== 'object' || Array.isArray(gear)) {
+    throw new GearParameterError(`${label}: a bevel gear must be an object of params`)
+  }
+  const g = /** @type {Record<string, unknown>} */ (gear)
+  checkGearLimits(g, { op: label, required: ['teeth', 'mateTeeth', 'moduleMm'], limits: BEVEL_LIMITS })
+  const frame = resolveBevelFrame(g.frame, label)
+  try {
+    const dims = bevelGearDimensions(/** @type {any} */ (g))
+    return { label, teeth: dims.teeth, moduleMm: dims.moduleMm, pressureAngleDeg: dims.pressureAngleDeg, dims, frame }
+  } catch (error) {
+    throw about(error, label)
+  }
+}
+
+/**
+ * @param {ResolvedBevel} A
+ * @param {ResolvedBevel} B
+ * @returns {MeshReason[]}
+ */
+function bevelReasons(A, B) {
+  /** @type {MeshReason[]} */
+  const out = profileReasons(/** @type {any} */ (A), /** @type {any} */ (B))
+  const sigmaA = A.dims.shaftAngleDeg
+  const sigmaB = B.dims.shaftAngleDeg
+  if (Math.abs(sigmaA - sigmaB) > EPS) {
+    out.push(
+      reason(
+        'shaft-angle-mismatch',
+        `These bevel gears were cut for shafts ${fmt(sigmaA)}° and ${fmt(sigmaB)}° apart — a pair only meshes on the shaft angle both were cut for.`
+      )
+    )
+    return out
+  }
+  const sumDeg = A.dims.pitchConeAngleDeg + B.dims.pitchConeAngleDeg
+  if (Math.abs(sumDeg - sigmaA) > EPS) {
+    out.push(
+      reason(
+        'cone-angle-sum',
+        `Pitch cones of ${fmt(A.dims.pitchConeAngleDeg)}° and ${fmt(B.dims.pitchConeAngleDeg)}° add up to ${fmt(sumDeg)}°, not the ${fmt(sigmaA)}° between the shafts — each gear must be cut for the other's tooth count (${A.teeth}-tooth gear for ${A.dims.mateTeeth}, ${B.teeth}-tooth for ${B.dims.mateTeeth}).`
+      )
+    )
+    return out
+  }
+  const lA = A.dims.coneDistanceMm
+  const lB = B.dims.coneDistanceMm
+  if (Math.abs(lA - lB) > EPS * Math.max(1, lA, lB)) {
+    out.push(
+      reason(
+        'cone-distance-mismatch',
+        `Cone distances of ${fmt(lA)} mm and ${fmt(lB)} mm differ — the cones have the right angles but different sizes, so the large ends cannot meet; each gear must be cut for the other's tooth count.`
+      )
+    )
+  }
+  return out
+}
+
+/**
+ * Every reason two bevel gears will not mesh, each a code and one sentence the UI can show
+ * verbatim; `[]` for a good pair. Checks module and pressure angle, that both were cut for
+ * the same shaft angle (`'shaft-angle-mismatch'`), that their pitch cones add up to it
+ * (`'cone-angle-sum'`), and that the cones are the same length (`'cone-distance-mismatch'`).
+ *
+ * @param {BevelMeshGear} a
+ * @param {BevelMeshGear} b
+ * @returns {MeshReason[]}
+ * @throws {GearParameterError} for malformed or hostile params, and `./bevel.js`'s
+ *   `BevelGearError` (`'crown-gear'`, `'shaft-angle'`, `'face-width'`) for a gear that cannot be
+ *   built — never for a mismatch.
+ */
+export function bevelCompatibility(a, b) {
+  return bevelReasons(resolveBevel(a, 'gear 1'), resolveBevel(b, 'gear 2'))
+}
+
+/**
+ * Where bevel gear 2 goes to mesh with gear 1: its apex on gear 1's, its axis Σ from gear 1's
+ * at `azimuthDeg` round it, turned to interleave the teeth (module doc). Gear 1 stays put.
+ *
+ * @param {BevelMeshGear} a Gear 1; its frame (default: apex at the origin, unturned) is kept.
+ * @param {BevelMeshGear} b Gear 2; only its frame's apex is read, for `translateMm`.
+ * @param {{ azimuthDeg?: number }} [options] Where round gear 1's axis the pitch cones touch,
+ *   degrees CCW from its frame's local +X (before its own phase). Default 0.
+ * @returns {BevelMeshPlacement}
+ * @throws {GearParameterError | GearMeshError} as {@link bevelCompatibility}, plus a
+ *   `GearMeshError` with the first error's code for a pair that cannot mesh.
+ */
+export function bevelMeshPlacement(a, b, options) {
+  const A = resolveBevel(a, 'gear 1')
+  const B = resolveBevel(b, 'gear 2')
+  const azimuthDeg = /** @type {Record<string, unknown>} */ (options ?? {}).azimuthDeg ?? 0
+  if (typeof azimuthDeg !== 'number' || !Number.isFinite(azimuthDeg)) {
+    throw new GearParameterError(`azimuthDeg must be a finite number of degrees, got ${String(azimuthDeg)}`)
+  }
+  const problem = bevelReasons(A, B).find((r) => r.severity === 'error')
+  if (problem) throw new GearMeshError(problem.message, problem.code)
+
+  const fa = A.frame ?? { apexMm: /** @type {Vec3Mm} */ ([0, 0, 0]), rotateDeg: /** @type {Vec3} */ ([0, 0, 0]), phaseDeg: 0 }
+  const fromMm = B.frame?.apexMm ?? fa.apexMm
+  const shaftAngleDeg = A.dims.shaftAngleDeg
+  const R = matMul(matMul(matFromEulerDeg(fa.rotateDeg), rotZ(azimuthDeg)), rotY(shaftAngleDeg))
+  const uA = ((azimuthDeg - fa.phaseDeg) * A.teeth) / 360
+  const pitchDeg = 360 / B.teeth
+  const raw = (((180 - ((0.5 - uA) * 360) / B.teeth) % pitchDeg) + pitchDeg) % pitchDeg
+  const phaseDeg = Math.abs(raw - pitchDeg) < EPS ? 0 : tidy(raw)
+  return Object.freeze({
+    apexMm: /** @type {Vec3Mm} */ ([...fa.apexMm]),
+    translateMm: /** @type {Vec3Mm} */ ([0, 1, 2].map((i) => fa.apexMm[i] - fromMm[i])),
+    rotateDeg: eulerDegFromMat(R),
+    phaseDeg,
+    axis: columnZ(R),
+    shaftAngleDeg,
+    pitchConeAnglesDeg: /** @type {[number, number]} */ ([A.dims.pitchConeAngleDeg, B.dims.pitchConeAngleDeg]),
+    coneDistanceMm: A.dims.coneDistanceMm,
+    ratio: -B.teeth / A.teeth,
+  })
 }

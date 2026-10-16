@@ -506,4 +506,31 @@ section ("Gears") and its row order, empty until then.
   outline sampled 0.0009 mm apart, below the export weld. Very large spur gears may carry the same
   latent issue; it is not fixed here.
 
+## Addendum — what `core-046` decided about bevel pairs and crossed axes (2026-10-16)
+
+- **The bevel phase rule lives in `mesh.js`, beside the spur rule.** `phi2 = 180 - (1/2 - u1) * 360 / z2`
+  degrees, independent of the shaft angle Sigma, because both gears are measured on their back-cone
+  virtual gears. `bevel.js` is unchanged.
+- **Bevel gears get their own functions** (`bevelCompatibility`, `bevelMeshPlacement`), returning a frame
+  `{ apexMm, rotateDeg, phaseDeg }`. `gear.bevelPair` takes per-gear parameters (`driveBoreMm`,
+  `pinionHubLengthMm`, and so on); the plain `teeth`, `mateTeeth`, `boreMm` and `hubLengthMm` are refused so
+  a value cannot silently apply to the wrong gear. The bevel ratio is `-z2/z1`. New codes:
+  `shaft-angle-mismatch`, `cone-angle-sum`, `cone-distance-mismatch`.
+- **The Sigma = 120 degree proof uses 24T/32T.** 16T/32T at 120 degrees is a crown gear and is refused by
+  name; 200T/10T at 90 degrees is refused by the 85 degree cone cap.
+- **Crossed-axis helical pairs: same hand only.** The shaft angle is `Sigma = beta1 + beta2`; opposite-hand
+  crossing is unsupported. Gear 2's axis is gear 1's turned `-Sigma` about the line of centres for a right
+  hand, `+Sigma` for a left. Profile shifts add; the extra-backlash spread uses the normal pressure angle;
+  both `thicknessMm` values are required; contact off the face gives `no-face-overlap`; every error is
+  blocking on crossed axes. `MeshPlacement` gained `axes`, `shaftAngleDeg`, `axis` and `orientationDeg`,
+  additively. `core-047`'s worm may need its own rules on top.
+- **`gear.bevelPair` exposes only `drive` and `pinion`.** **Open for the user:** surface a hidden `apex`
+  part for `ui-058` and snapping?
+- **The `drive-wheel` four-gear train** (fixture `gear.bevelPair.drive-wheel-train.json`) uses the default
+  face width `L/3` (11.79 mm), not V1's 15 mm. It works with a plain 180 degree turn because `(32+32)/2` is a
+  whole number; other tooth counts may need a rolling turn. `docs-021` can ship it as the worked example.
+- **Spiral-bevel hand is not checked** (v2).
+- **Interference proof, measured:** 0 mm^3 at every sampled angle for 16T/32T at 90 and 60 degrees, 24T/32T at
+  120 degrees; the wrong-phase controls overlap.
+
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

@@ -5,7 +5,7 @@ import modeling from '@jscad/modeling'
 import { GearAliasError } from '../../gear/aliases.js'
 import { GearMeshError } from '../../gear/internal.js'
 import { GearBoreError, GearLimitError } from '../../gear/limits.js'
-import { PITCH_PLANE_BASIS, centerDistanceMm, meshPhaseDeg } from '../../gear/mesh.js'
+import { PITCH_PLANE_BASIS, centerDistanceMm, meshPhaseDeg, meshPlacement } from '../../gear/mesh.js'
 import { boundsOf, isGroup } from '../group.js'
 import { evaluateOp, expand } from '../index.js'
 import { registry } from '../registry.js'
@@ -290,5 +290,68 @@ describe('hostile and ill-formed params: a named error before any record is emit
   it('degenerate: equal tooth counts make a 1:1 pair at one pitch diameter apart', () => {
     const records = pair({ driveTeeth: 20, pinionTeeth: 20, moduleMm: 2, thicknessMm: 4 })
     expect(records[3].params?.vector).toEqual([expect.closeTo(40, 12), 0, 0])
+  })
+})
+
+describe('crossed axes (core-046): two gear.spur records placed by mesh.js’s crossed-axis frame never interpenetrate', () => {
+  // The frame maths core-047's worm builds on: centre distance R₁ + R₂, gear 2's axis turned
+  // Σ about the line of centres (−Σ for a right hand, +Σ for a left), and the half-tooth rule
+  // applied at the contact point with each section's twist there. Gear 1 turns across one of
+  // its teeth in 12 steps; gear 2 turns back by z₁ / z₂ of each step about its own axis.
+  const policy = policyFor('normal')
+
+  /**
+   * @param {Record<string, unknown>} a gear.spur params for gear 1 (helical)
+   * @param {Record<string, unknown>} b gear.spur params for gear 2
+   * @param {{ shaftAngleDeg?: number }} [meshOptions]
+   * @param {{ extraDeg?: number, wrongSense?: boolean }} [faults] A deliberate phase or crossing error.
+   * @returns {number[]} intersect volume, mm³, at each of 12 angles of gear 1
+   */
+  function crossedOverlapMm3(a, b, meshOptions = {}, { extraDeg = 0, wrongSense = false } = {}) {
+    const placed = meshPlacement(/** @type {any} */ (a), /** @type {any} */ (b), { axes: 'crossed', ...meshOptions })
+    const gear1 = partOf(asGroup(evaluateOp('gear.spur', a, { policy })), 'gear')
+    const gear2 = partOf(asGroup(evaluateOp('gear.spur', b, { policy })), 'gear')
+    const orientation = wrongSense
+      ? [-placed.orientationDeg[0], placed.orientationDeg[1], placed.orientationDeg[2]]
+      : placed.orientationDeg
+    const z1 = /** @type {number} */ (a.teeth)
+    const z2 = /** @type {number} */ (b.teeth)
+    /** @type {number[]} */
+    const volumes = []
+    for (let k = 0; k < 12; k++) {
+      const turnDeg = (360 / z1) * (k / 12)
+      const turned2 = transforms.translate(
+        placed.centerMm,
+        transforms.rotate(
+          /** @type {[number, number, number]} */ (orientation.map((x) => (x * Math.PI) / 180)),
+          transforms.rotateZ(((placed.phaseDeg + extraDeg - (turnDeg * z1) / z2) * Math.PI) / 180, gear2)
+        )
+      )
+      volumes.push(measurements.measureVolume(booleans.intersect(transforms.rotateZ((turnDeg * Math.PI) / 180, gear1), turned2)))
+    }
+    return volumes
+  }
+
+  /** @param {'right' | 'left'} handedness @param {number} teeth @param {number} [helixAngleDeg] */
+  const helical = (handedness, teeth, helixAngleDeg = 45) => ({ teeth, moduleMm: 1, helixAngleDeg, handedness, thicknessMm: 6, backlashMm: 0.1 })
+
+  it.each(/** @type {const} */ (['right', 'left']))('20T/12T, 45° %s-hand helices on 90° shafts — zero overlap at 12 angles', (hand) => {
+    for (const [k, v] of crossedOverlapMm3(helical(hand, 20), helical(hand, 12)).entries()) expect(v, `angle ${k}`).toBeLessThan(1e-4)
+  })
+
+  it('30° + 15° right-hand helices on 45° shafts — zero overlap at 12 angles', () => {
+    const volumes = crossedOverlapMm3(helical('right', 20, 30), helical('right', 12, 15), { shaftAngleDeg: 45 })
+    for (const [k, v] of volumes.entries()) expect(v, `angle ${k}`).toBeLessThan(1e-4)
+  })
+
+  it('negative control: half a tooth out of phase does interpenetrate', () => {
+    expect(Math.min(...crossedOverlapMm3(helical('right', 20), helical('right', 12), {}, { extraDeg: 180 / 12 }))).toBeGreaterThan(1)
+  })
+
+  it('negative control: on 45° shafts, crossing them the other way (teeth no longer parallel at the contact) does interpenetrate', () => {
+    // At Σ = 90° the other sense is only gear 2 turned end over end, which keeps its hand —
+    // the sense the hand picks matters once Σ ≠ 90°.
+    const volumes = crossedOverlapMm3(helical('right', 20, 30), helical('right', 12, 15), { shaftAngleDeg: 45 }, { wrongSense: true })
+    expect(Math.min(...volumes)).toBeGreaterThan(1)
   })
 })

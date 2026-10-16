@@ -6,8 +6,10 @@ priority: medium
 model: opus
 milestone: M11
 depends: [core-044, core-045]
-status: open
+status: done
 ---
+
+> **What shipped (2026-10-16).** `mesh.js` gained `bevelCompatibility`, `bevelMeshPlacement` (phase `phi2 = 180 - (1/2 - u1) * 360 / z2` degrees, independent of Sigma; `bevel.js` unchanged) and crossed-axis helical frame math (same hand only, `Sigma = beta1 + beta2`). `gear.bevelPair` is registered (no `ui` until `ui-057`), takes per-gear bore/hub params, and exposes `drive` and `pinion` only. Interference proof measured 0 mm^3 at 12 angles for 16T/32T at 90 and 60 degrees and 24T/32T at 120 degrees (16T/32T at 120 degrees is a crown gear, refused by name); half-tooth controls overlap. The `drive-wheel` four-gear train is a fixture built from two pairs and one 180 degree turn, no fudge offsets. Details in `docs/decisions/gears.md`'s `core-046` addendum. Open: surface a hidden `apex` part for `ui-058`?
 
 ## Goal
 

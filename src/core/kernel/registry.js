@@ -83,6 +83,7 @@ import { ring } from './recipes/gear.ring.js'
 import { rack } from './recipes/gear.rack.js'
 import { pair } from './recipes/gear.pair.js'
 import { bevel } from './recipes/gear.bevel.js'
+import { bevelPair } from './recipes/gear.bevelPair.js'
 import { GearAliasError } from '../gear/aliases.js'
 import { bevelConeDimensions, bevelProfile } from '../gear/bevel.js'
 import { GearParameterError, gearDimensions } from '../gear/dimensions.js'
@@ -2146,6 +2147,10 @@ export const registry = Object.freeze({
   // → `profile.extrudeToApex`, apex at the origin, plus hidden `bore`, `pitchCone` and `apex`.
   // Also without `ui` until `ui-057`; `core-046` places a pair.
   'gear.bevel': composite(0, bevel),
+  // TODO/core-046: two gear.bevel records meshed by `src/core/gear/mesh.js` — apexes on the
+  // origin, the pinion turned to the mesh phase and stood up Σ about +Y; parts `drive` and
+  // `pinion`. Also without `ui` until `ui-057` gives it its Library row.
+  'gear.bevelPair': composite(0, bevelPair),
 
   // Deliberately absent, and not an oversight — TODO/core-003 spiked this:
   //

@@ -83,9 +83,9 @@ test('a browser agent lists the tools, places a cube and a sphere and unions the
   const chip = page.getByTestId('ai-webmcp-switch')
   await expect(chip).toHaveText('Browser agents · on')
   await expect(chip).toHaveAttribute('aria-checked', 'true')
-  // The dev host (what this suite runs on) names the Claude Code bridge too: Decision 13's third row.
+  // The dev host (what this suite runs on) names the local MCP agent too: Decision 13's third row (agent-neutral since ai-023).
   await expect(page.getByTestId('assistant-connection-text')).toContainText('browser agent')
-  await expect(page.getByTestId('assistant-connection-text')).toContainText('Claude Code')
+  await expect(page.getByTestId('assistant-connection-text')).toContainText('local MCP agent')
   await expect(page.getByTestId('assistant-connection-text')).toContainText('optional')
   await expect(page.getByTestId('assistant-connection-text')).toContainText('can drive this project')
   await expect(page.getByTestId('assistant-connection-text')).not.toContainText('paste')

@@ -150,6 +150,8 @@ const ROW_ORDER = Object.freeze([
   'gear.bevel',
   // TODO/core-044: the meshed pair follows the single gears, unlisted until ui-057 gives it `ui`.
   'gear.pair',
+  // TODO/core-046: the bevel pair follows the spur pair, unlisted until ui-057 gives it `ui`.
+  'gear.bevelPair',
   'text.label',
 ])
 
