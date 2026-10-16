@@ -789,7 +789,7 @@ Decision 8 (the credential never leaves the credential store).
 
 ---
 
-## Decision 11 — Live bridge: **a document-less relay, one writer (the open tab), pairing-code gated** (`ai-012`, **accepted by the user 2026-10-12**)
+## Decision 11 — Live bridge: **a document-less relay, one writer (the open tab), explicitly enabled** (`ai-012`, accepted 2026-10-12; dev-host access amended 2026-10-16)
 
 **The question.** Decision 6 reserved `ai-012`: let Claude Code (on the user's own
 subscription, Decision 10 option B) edit the project the user has **open**, without a
@@ -815,11 +815,17 @@ by making the tab the only writer and the AI its client.
    call runs (the existing preview-mode backstop). A call arriving mid-gesture waits up to
    10 s, then is refused with "the user is editing; try again". A call whose live document
    changed under it is refused, never landed over the change.
-5. **Pairing and origin.** (a) the upgrade is rejected unless `Origin` is the app's own
-   origin or a localhost dev origin; (b) a single-use 8-character code, printed by the
-   helper, valid 5 minutes and dead when the helper exits; (c) the code is never written to
-   a file, log, or tool result. It is a one-session handshake, not a credential-store
-   entry (Decision 8).
+5. **Dev-host authorization and origin** (amended 2026-10-16 at the user's direction). The
+   Vite dev-host live MCP endpoint is loopback-only and keeps its Origin gate, but no pairing
+   code is required. Running `npm run dev` alone is not consent: the user explicitly enables
+   access in WarpCad for **15 minutes**, **1 hour**, **this tab**, or **unlimited until manually
+   turned off**. Timed access starts when enabled; expiry or turning it off revokes the live
+   connection. While enabled, any local MCP client that reaches the loopback endpoint may
+   request access, so the UI must state that scope. The bridge refuses ambiguous client/tab
+   routing rather than sending a call to an arbitrary tab. WebMCP's separate Browser agents
+   switch is unchanged.
+   The earlier single-use code policy is removed for the dev host. The standalone live host is
+   still deferred; its authorization policy must be decided if that host is built.
 6. **Caps, trust and data rules unchanged** (Decision 7); no subscription token is read,
    stored or sent (Decision 10 point 3).
 
@@ -877,7 +883,7 @@ rules, timeouts) with two thin hosts:
 | Host | When | Claude Code side | Tab side |
 |---|---|---|---|
 | **Vite plugin** (`configureServer`) | `npm run dev` | Streamable HTTP MCP at `http://127.0.0.1:5183/mcp` (`claude mcp add --transport http`), via the SDK's web-standard handler | **Vite's own HMR WebSocket**: custom events through `server.ws.on/send` and `import.meta.hot` (same origin, already connected, no new dependency, no port) |
-| **Standalone** `node mcp/server.js --live` | the built / hosted app | stdio, as Decision 3 | `ws://127.0.0.1:<port>`, Origin check + pairing code (points 1 to 5 above) |
+| **Standalone** `node mcp/server.js --live` | the built / hosted app | stdio, as Decision 3 | `ws://127.0.0.1:<port>`, authorization policy to decide if built |
 
 In dev the same-origin tab needs no cross-origin check and avoids the WebKit loopback
 risk, but the HTTP endpoint is still reachable by any local web page, so the plugin keeps
@@ -922,9 +928,10 @@ Reload/Overwrite), so "closed-file unchanged" in this task's testing means *as `
 ### Honest limits
 
 Desktop browser on the same machine only (a phone cannot reach another machine's
-loopback). Any local process can try the port, hence the code and origin gates; the
-residual risk is another local program that reads the helper's stderr, which is the same
-trust boundary as the user's own shell.
+loopback). Any local process can try the port. The dev host now relies on the explicit
+in-app access lease plus the loopback and Origin gates; while access is enabled, the user
+accepts that local MCP clients can request access. The residual risk is another local
+program on the user's machine, within the same trust boundary as the user's own shell.
 
 ---
 
