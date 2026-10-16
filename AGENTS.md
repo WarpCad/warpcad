@@ -13,4 +13,13 @@ Short version of the licensing rules:
   dependency outside the allow-list in `package.json`'s `licenses` script.
 - Do not strip license or attribution notices from anything under `TODO/` or `.claude/`.
 
+Commit identity:
+
+- Commits in this repo are authored with the GitHub noreply address, never a personal email.
+  The repo's local git config must set `user.email` to
+  `230922+johnwebbcole@users.noreply.github.com`. Before the first commit in a session, check it
+  with `git config --local user.email`, and set it if it's missing or different. Do not rely on
+  the global config, which may hold a personal address.
+- Sign off every commit with `git commit -s` (DCO), as `CONTRIBUTING.md` requires.
+
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->
