@@ -86,6 +86,8 @@ export const WATCH_TEXT = 'Watching the Assistant — your project is unchanged'
  * @property {boolean} suppressed
  * @property {boolean} active `false` past the rollback marker.
  * @property {string | null} broken Why the row does not build, or `null`.
+ * @property {string | null} relinkTo `TODO/data-006`: the record `Re-link to the moved step`
+ *   would point this broken tail row at, or `null` when the row has no such offer.
  * @property {import('../core/document.js').InactiveBy | null} inactiveBy `TODO/ui-052`:
  *   the condition currently keeping this row out of the fold.
  * @property {import('../core/document.js').RowCondition | null} condition The condition
@@ -135,6 +137,7 @@ export const useTimelineStore = defineStore('timeline', () => {
       suppressed: row.suppressed,
       active: row.active,
       broken: row.broken,
+      relinkTo: row.relinkTo,
       inactiveBy: row.inactiveBy,
       condition: row.condition,
       record: row.record,

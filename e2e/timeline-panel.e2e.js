@@ -504,3 +504,157 @@ test('the History panel and the Inspector never fight over the phone sheet slot'
   await page.getByTestId('inspector-tab').click()
   await expect(page.getByTestId('timeline-panel')).toHaveCount(0)
 })
+
+/**
+ * Drag the selected body's X translate arm with real `PointerEvent`s, the same way
+ * `gizmo-transform.e2e.js` does: along the arm's own screen image, so the camera
+ * does not matter.
+ *
+ * @param {import('@playwright/test').Page} page
+ * @param {number} distancePx
+ */
+async function dragGizmoArmX(page, distancePx) {
+  await expect(page.locator('[data-testid="gizmo-grab-arm-x"]')).toBeAttached()
+  const plan = await page.evaluate((distancePx) => {
+    const el = document.querySelector('[data-testid="gizmo-grab-arm-x"]')
+    const view = document.querySelector('[data-testid="viewport"]')
+    const gizmo = document.querySelector('[data-testid="transform-gizmo"]')
+    if (!el || !view || !gizmo) throw new Error('missing gizmo arm')
+    const [ox, oy] = (gizmo.getAttribute('data-origin') ?? '0,0').split(',').map(Number)
+    const rect = view.getBoundingClientRect()
+    const box = el.getBoundingClientRect()
+    const startX = box.left + box.width / 2
+    const startY = box.top + box.height / 2
+    let dx = startX - (rect.left + ox)
+    let dy = startY - (rect.top + oy)
+    const length = Math.hypot(dx, dy) || 1
+    dx /= length
+    dy /= length
+    return { startX, startY, endX: startX + dx * distancePx, endY: startY + dy * distancePx }
+  }, distancePx)
+  /** @param {string} type @param {number} t */
+  const step = (type, t) =>
+    page.evaluate(
+      ({ type, x, y }) => {
+        const el = document.querySelector('[data-testid="gizmo-grab-arm-x"]')
+        if (!el) throw new Error('missing gizmo arm')
+        el.dispatchEvent(
+          new PointerEvent(type, {
+            pointerId: 21,
+            pointerType: 'mouse',
+            isPrimary: true,
+            button: 0,
+            buttons: type === 'pointerup' ? 0 : 1,
+            clientX: x,
+            clientY: y,
+            bubbles: true,
+            cancelable: true,
+          }),
+        )
+      },
+      {
+        type,
+        x: plan.startX + (plan.endX - plan.startX) * t,
+        y: plan.startY + (plan.endY - plan.startY) * t,
+      },
+    )
+  await step('pointerdown', 0)
+  for (const t of [0.2, 0.45, 0.7]) await step('pointermove', t)
+  await page.waitForTimeout(60)
+  await step('pointermove', 1)
+  await page.waitForTimeout(40)
+  await step('pointerup', 1)
+  await page.waitForTimeout(160)
+}
+
+test('TODO/data-006: Re-link points a broken tail row at the body an insert moved, and it builds', async ({
+  page,
+}, testInfo) => {
+  await seedCubeChamferSphere(page)
+  const cubeBefore = await bodyNamed(page, 'Cube 1')
+
+  // Roll back to step 1 (the bare cube), so the chamfer (step 2) is inactive tail.
+  await openHistory(page)
+  await page.getByTestId('timeline-row-1').click()
+  await page.getByTestId('timeline-rollback').click()
+  await expect(page.getByTestId('timeline-row-2')).toHaveAttribute('data-active', 'false')
+
+  // Move the cube with the gizmo while rolled back. That supersedes the very record
+  // the chamfer targets.
+  const phone = await libraryIsSheet(page)
+  if (phone) {
+    await page.getByTestId('timeline-close').click()
+    await page.getByTestId('inspector-tab').click()
+  }
+  const cube = await bodyNamed(page, 'Cube 1')
+  await page.getByTestId(`objects-row-${cube.id}`).click()
+  await dragGizmoArmX(page, 70)
+  const moved = await bodyNamed(page, 'Cube 1')
+  expect(moved.bounds).not.toBe(cubeBefore.bounds)
+  if (phone) await openHistory(page)
+
+  // The move landed at the marker as step 2, so the chamfer is now step 3. It is amber,
+  // and it is *offered* the re-link — nothing re-pointed yet.
+  await expect(page.getByTestId('timeline-row-3').getByTestId('chip-broken')).toBeVisible()
+  await page.getByTestId('timeline-row-3').click()
+  await expect(page.getByTestId('timeline-broken-reason')).toContainText('has itself already been superseded')
+  const relink = page.getByTestId('timeline-relink')
+  await expect(relink).toBeVisible()
+  await expect(relink).toBeEnabled()
+
+  // It fits beside the other action buttons: inside the viewport horizontally, tall
+  // enough to tap, and overlapping none of its siblings.
+  const geometry = await page.evaluate(() => {
+    const bar = document.querySelector('[data-testid="timeline-actions"]')
+    const own = document.querySelector('[data-testid="timeline-relink"]')
+    if (!bar || !own) throw new Error('missing action bar')
+    const r = own.getBoundingClientRect()
+    const siblings = [...bar.querySelectorAll('button')]
+      .filter((b) => b !== own)
+      .map((b) => b.getBoundingClientRect())
+      .filter((s) => s.width > 0)
+    const overlaps = siblings.some(
+      (s) => r.left < s.right - 0.5 && r.right > s.left + 0.5 && r.top < s.bottom - 0.5 && r.bottom > s.top + 0.5,
+    )
+    return {
+      left: r.left,
+      right: r.right,
+      height: r.height,
+      innerWidth: window.innerWidth,
+      scrollW: document.documentElement.scrollWidth,
+      overlaps,
+    }
+  })
+  expect(geometry.left).toBeGreaterThanOrEqual(0)
+  expect(geometry.right).toBeLessThanOrEqual(geometry.innerWidth + 0.5)
+  expect(geometry.scrollW).toBeLessThanOrEqual(geometry.innerWidth)
+  expect(geometry.height).toBeGreaterThanOrEqual(40)
+  expect(geometry.overlaps).toBe(false)
+  await page.screenshot({ path: testInfo.outputPath(`relink-offered-${testInfo.project.name}.png`) })
+
+  await relink.click()
+  // One press re-pointed it: the offer is gone and the amber chip with it.
+  await expect(page.getByTestId('timeline-relink')).toHaveCount(0)
+  await expect(page.getByTestId('timeline-row-3').getByTestId('chip-broken')).toHaveCount(0)
+
+  // Roll forward: the chamfered cube and the sphere come back, at the cube's new place.
+  await page.getByTestId('timeline-roll-forward').click()
+  await expect(page.getByTestId('timeline-rollback-strip')).toHaveCount(0)
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-body-count', '2')
+  const cubeAfter = await bodyNamed(page, 'Cube 1')
+  expect(cubeAfter.bounds).toBe(moved.bounds)
+  expect(cubeAfter.volumeMm3).toBeLessThan(cubeBefore.volumeMm3 + 1e-6)
+  expect(cubeAfter.volumeMm3).toBeCloseTo(cubeBefore.volumeMm3, 3)
+  await expect(page.getByTestId('timeline-row-3').getByTestId('chip-broken')).toHaveCount(0)
+  await page.screenshot({ path: testInfo.outputPath(`relink-done-${testInfo.project.name}.png`) })
+})
+
+test('TODO/data-006: a row that is not broken, or is active, never shows Re-link', async ({
+  page,
+}) => {
+  await seedCubeChamferSphere(page)
+  await openHistory(page)
+  await page.getByTestId('timeline-row-2').click()
+  await expect(page.getByTestId('timeline-actions')).toBeVisible()
+  await expect(page.getByTestId('timeline-relink')).toHaveCount(0)
+})

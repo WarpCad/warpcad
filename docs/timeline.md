@@ -231,6 +231,35 @@ rounds the edge of), roll-forward is refused with a message naming it, the bound
 where it is, and that row is labelled `broken`. To get past it, either **Suppress** the
 broken row or **Undo** the change that broke it, then press Roll forward again.
 
+### When the move was yours: Re-link to the moved step
+
+The most common way a step breaks is one you caused on purpose: you roll back to before a
+step, then **move or resize a body** that the step builds on. Moving a body adds a new step
+that replaces the body's old position, so a later step that was pointing at the old one is
+left pointing at something that no longer exists. That later step gets the `broken` label, and when you select it the line under the row
+reads `can't be built: supersedes "…", which has itself already been superseded by "…"` —
+the two names are the body's old and new positions.
+
+When that is the reason, selecting the broken row also shows a **Re-link to the moved
+step** button. Nothing changes until you press it — WarpCad does not guess that you meant
+the later step to follow the body. Pressing it points the step at the body's new position,
+as one step you can **Undo**.
+
+**Example:** drag a Cube in, chamfer its top edge, drag a Sphere in. Press **History**,
+select row 1 (the cube) and press **Roll back to here**. Select the cube and drag it along
+the X arrow. The chamfer, now step 3, turns amber and `broken`. Select that row and press
+**Re-link to the moved step**; the amber label goes. Press **Roll forward** on the strip:
+the chamfered cube comes back at its new position, with the sphere.
+
+The button is offered for a step that follows a body which was **moved, resized or
+otherwise edited** while you were rolled back. It covers steps that act on one body
+(Chamfer, Fillet and the like) and also a **Union or Subtract** whose body was moved. It is
+not offered when the body was merged into another shape or deleted — there is no body left
+to follow, so Suppress the step or Undo instead — nor for a step that is broken because its
+own settings do not fit (a bevel too large for the shape). Offering the button also does not
+promise the step will build at the new position: if it still cannot, Roll forward names it
+as before.
+
 There is no "delete everything after here" anywhere in WarpCad. Rolling back never throws
 work away.
 

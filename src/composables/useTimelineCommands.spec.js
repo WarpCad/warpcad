@@ -465,4 +465,67 @@ describe('useTimelineCommands (TODO/ui-032)', () => {
     expect(store.rolledBack).toBe(true)
     expect(doc.raw.rollbackAt()).toBe(2)
   })
+
+  describe('Re-link to the moved step (TODO/data-006, option c)', () => {
+    /** Cube 1, Sphere 1, a fillet on Cube 1 — rolled back to the sphere, then the cube moved. */
+    function movedUnderTheTail() {
+      const doc = useDocumentStore()
+      doc.append(
+        { id: 'cube-1', op: 'primitive.cuboid', name: 'Cube 1', params: { size: [20, 20, 20], center: [0, 0, 10] } },
+        { origin: 'local' }
+      )
+      doc.append(
+        { id: 'sphere-2', op: 'primitive.sphere', name: 'Sphere 1', params: { diameter: 10, center: [60, 0, 5] } },
+        { origin: 'local' }
+      )
+      doc.append(
+        { id: 'rim-3', op: 'modify.filletRim', target: 'cube-1', supersedes: 'cube-1', params: { face: 'top', radius: 4 } },
+        { origin: 'local' }
+      )
+      const timeline = useTimelineCommands()
+      timeline.rollBackTo('sphere-2')
+      // The gizmo's own record shape: a translate superseding the body's current terminal.
+      doc.append(
+        {
+          id: 'move-4',
+          op: 'transform.translate',
+          target: 'cube-1',
+          supersedes: 'cube-1',
+          params: { vector: [25, 0, 0], rotation: [0, 0, 0] },
+        },
+        { origin: 'local' }
+      )
+      return { doc, timeline, store: useTimelineStore() }
+    }
+
+    it('offers the re-link on the broken row, and only there, without re-pointing anything', () => {
+      const { doc, store } = movedUnderTheTail()
+      const rim = store.rows.find((row) => row.id === 'rim-3')
+      expect(rim?.broken).toBeTruthy()
+      expect(rim?.relinkTo).toBe('move-4')
+      expect(store.rows.filter((row) => row.id !== 'rim-3').every((row) => row.relinkTo === null)).toBe(true)
+      expect(doc.raw.recordOf('rim-3')).toMatchObject({ supersedes: 'cube-1' })
+    })
+
+    it('re-links as one row action, and the roll-forward then builds the fillet on the moved cube', () => {
+      const { doc, timeline, store } = movedUnderTheTail()
+      expect(timeline.relinkStep('rim-3')).toEqual({ ok: true })
+      expect(store.rows.find((row) => row.id === 'rim-3')?.broken).toBeNull()
+      expect(doc.raw.pendingUndo()?.label).toBe('Re-link step 4')
+
+      expect(timeline.rollForward().ok).toBe(true)
+      expect(doc.raw.currentIdOf('cube-1')).toBe('rim-3')
+      expect(doc.bodies.map((entry) => entry.name)).toEqual(['Cube 1', 'Sphere 1'])
+    })
+
+    it('refuses a row with nothing to re-link as a renderable result, never a throw', () => {
+      const { doc, timeline } = movedUnderTheTail()
+      const version = doc.raw.version
+      const result = timeline.relinkStep('sphere-2')
+      expect(result.ok).toBe(false)
+      expect(result.message).toMatch(/nothing to re-link/)
+      expect(result.message).not.toMatch(/^document\./)
+      expect(doc.raw.version).toBe(version)
+    })
+  })
 })

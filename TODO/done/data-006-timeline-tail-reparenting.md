@@ -6,7 +6,7 @@ priority: low
 model: opus
 milestone: M16
 depends: [data-004, ui-032]
-status: open
+status: done
 ---
 
 > **Status (2026-10-15): ready to pick up, not started.** The build was parked on purpose, so
@@ -19,6 +19,15 @@ status: open
 > - **Feedback shape chosen: option (c)**, "offer it, with a `Re-link to the moved step`
 >   button", as decided by the user on 2026-10-15. The hand-drive is "most done" per the user;
 >   whatever part is still open is the one scenario 12 step 10 judgment above.
+
+> **What actually shipped (2026-10-15).** Option (c): a `Re-link to the moved step` button
+> (`timeline-relink`) on a selected broken tail row. Three things differ from the text above.
+> The offer is decided from the lineage indexes, not from a `needs…` reason: the row's real
+> reason is `can't be built: supersedes "…", which has itself already been superseded by "…"`,
+> and the chip just says `broken`. The offer also covers a tail **Union/Subtract** over a moved
+> body (`consumes`/`operands`), wider than `supersedes`/`target`. It is structural only: it
+> does not promise the row builds. `replaceRecord`'s shape guard accepts exactly the one record
+> `relinkPlanOf` offers and refuses every other shape change as before.
 
 ## Goal
 

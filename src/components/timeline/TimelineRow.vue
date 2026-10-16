@@ -308,6 +308,19 @@ function cancel() {
       >
         Roll back to here
       </button>
+      <!-- TODO/data-006 (option c): only on a broken tail row that broke because a step
+           inserted while rolled back moved the body it builds on. Nothing re-points until
+           this is pressed; a row broken for any other reason never shows it. -->
+      <button
+        v-if="row.relinkTo !== null"
+        type="button"
+        class="actions__btn actions__btn--primary"
+        data-testid="timeline-relink"
+        title="Point this step at the body’s new position, so it can be built again"
+        @click="commands.relinkStep(row.id)"
+      >
+        Re-link to the moved step
+      </button>
     </div>
 
     <form v-if="selected && editing" class="edit" data-testid="timeline-edit-form" @submit.prevent="apply()">

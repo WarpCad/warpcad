@@ -538,6 +538,10 @@ import { conflictAttribution } from './origin.js'
  *   dimmed, chipped `inactive`, and simply not evaluated (section 18).
  * @property {string | null} broken Why the row does not build — the tail shadow check's
  *   reason, a left-broken row's, or a condition that cannot be evaluated — or `null`.
+ * @property {string | null} relinkTo `TODO/data-006`: for a broken **inactive** row that
+ *   broke because an active step moved the body it builds on, the record
+ *   {@link WarpDocument.relinkStep} would point it at; otherwise `null`. Never set on an
+ *   active row, nor on a row whose own build throws.
  * @property {InactiveBy | null} inactiveBy `TODO/ui-052`: the condition that is currently
  *   keeping this row out of the fold, or `null`. Not the same as `suppressed` (the user
  *   switched it off) or `active: false` (past the rollback marker).
@@ -788,6 +792,8 @@ export class ReplayRejection extends Error {
  * @property {() => BrokenStep[]} brokenSteps
  * @property {() => number | null} rollbackAt
  * @property {(id: string, record: OpRecord, transaction: TransactionOptions) => { scene: Scene }} replaceRecord
+ * @property {(id: string, transaction: TransactionOptions) => { scene: Scene }} relinkStep
+ *   `TODO/data-006`: point a broken tail row at the body an active step moved.
  * @property {(id: string, suppressed: boolean, transaction: TransactionOptions) => { scene: Scene }} setSuppressed
  * @property {(changes: readonly RecordRevision[], transaction: TransactionOptions, options?: { append?: readonly OpRecord[], remove?: readonly string[] }) => { scene: Scene }} reviseRecords
  * @property {() => import('./variables.js').Variable[]} variables `TODO/core-050`: the project
@@ -888,6 +894,7 @@ const STAMPED_MUTATORS = Object.freeze([
   'undo',
   'redo',
   'replaceRecord',
+  'relinkStep',
   'reviseRecords',
   'setSuppressed',
   'moveStep',
@@ -2695,6 +2702,68 @@ export function createDocument(options = {}) {
   }
 
   /**
+   * `TODO/data-006` (option c): the re-link a **broken inactive tail row** may be offered —
+   * its record with every reference to a body an active step has since *moved* pointed at
+   * that body's current record instead — or `null` when there is none to offer.
+   *
+   * The exact case only, never the general one. A row qualifies when one of its lineage
+   * claims (`supersedes`, or a `consumes` entry) names a record the active fold built and
+   * whose lineage active rows have since **superseded** — a move, a resize, any edit that
+   * continues the same body. Re-pointing there is always onto a record that superseded the
+   * one the row named, so it is the same body, moved; never another body. A lineage that was
+   * **consumed** (the body is now part of a union) or **deleted** refuses the whole row: the
+   * body it built on is gone, not moved, and pointing it at a different body would be the
+   * silent guess about intent this task exists not to make. A row broken only because its
+   * own build throws names live records already, so it has nothing to re-point and keeps
+   * its `can't be built:` reason.
+   *
+   * `target`/`operands` entries that name a moved record are mirrored (a sub-part address
+   * keeps its `pieces`); a plain read of a record that is not one of the row's lineage
+   * claims is left alone.
+   *
+   * Read off `entries`, the marker, `brokenById` and the active fold's indexes, so it is
+   * derived on call and never stored — Undo, a merge, a reload all get it right for free.
+   *
+   * @param {number} index The row's position in `entries`.
+   * @returns {{ record: OpRecord, to: string } | null} `to`: the record it would point at
+   *   (the first, when several of its references moved).
+   */
+  function relinkPlanOf(index) {
+    const entry = entries[index]
+    const activeCount = rollbackAt ?? entries.length
+    if (entry === undefined || index < activeCount || entry.suppressed === true) return null
+    const { record } = entry
+    if (!brokenById.has(record.id ?? `#${index + 1}`)) return null
+    /** @type {Map<string, string>} */
+    const moved = new Map()
+    for (const claim of [record.supersedes, ...(record.consumes ?? [])]) {
+      if (typeof claim !== 'string') continue
+      const root = rootById.get(claim)
+      // Not built by the active fold (an earlier tail row, a typo): the shadow check's to judge.
+      if (root === undefined || !recordById.has(claim)) continue
+      if (mergedInto.has(root) || isDeletedRoot(root)) return null
+      const terminal = terminalByRoot.get(root)
+      if (terminal === undefined || terminal === claim) continue
+      moved.set(claim, terminal)
+    }
+    if (moved.size === 0) return null
+    /** @param {any} ref */
+    const swap = (ref) => {
+      const id = refIdOf(ref)
+      const to = id === undefined ? undefined : moved.get(id)
+      if (to === undefined) return ref
+      return typeof ref === 'string' ? to : { ...ref, id: to }
+    }
+    /** @type {OpRecord} */
+    const next = { ...record }
+    if (record.supersedes !== undefined) next.supersedes = swap(record.supersedes)
+    if (record.consumes !== undefined) next.consumes = record.consumes.map(swap)
+    if (record.target !== undefined) next.target = swap(record.target)
+    if (record.operands !== undefined) next.operands = record.operands.map(swap)
+    return { record: next, to: /** @type {string} */ (moved.values().next().value) }
+  }
+
+  /**
    * The active part of a re-fold: every row before the marker, in order, with
    * `TODO/ui-052`'s two exceptions to "any failure is an atomic rejection" — see the
    * module note. Throws a {@link ReplayRejection} for any failure that is not one of them.
@@ -4122,6 +4191,7 @@ export function createDocument(options = {}) {
           suppressed: entry.suppressed === true,
           active: index < activeCount,
           broken: brokenById.get(key) ?? null,
+          relinkTo: index < activeCount ? null : relinkPlanOf(index)?.to ?? null,
           inactiveBy: inactiveById.get(key) ?? null,
           condition: conditionOf(entry.record),
         }
@@ -4238,11 +4308,21 @@ export function createDocument(options = {}) {
             'reference to it stays valid, so its id may never change'
         )
       }
-      for (const field of SHAPE_FIELDS) {
+      /** @param {OpRecord} a @param {OpRecord} b @param {string} field */
+      const sameShape = (a, b, field) => {
         const key = /** @type {keyof OpRecord} */ (field)
-        if (JSON.stringify(record[key] ?? null) === JSON.stringify(current[key] ?? null)) continue
+        return JSON.stringify(a[key] ?? null) === JSON.stringify(b[key] ?? null)
+      }
+      const reshaped = SHAPE_FIELDS.find((field) => !sameShape(record, current, field))
+      // `TODO/data-006`: the one widening of this guard, knowingly narrow. What the step
+      // operates on may change only when the result is **exactly** the re-link
+      // `relinkPlanOf` offers this row — a broken tail row pointed at the body an active
+      // step moved — field for field across every shape field. Anything else (another
+      // body, half a re-link, an active row, a row with no offer) is refused as before.
+      const relink = reshaped === undefined ? null : relinkPlanOf(index)
+      if (reshaped !== undefined && (relink === null || !SHAPE_FIELDS.every((field) => sameShape(record, relink.record, field)))) {
         throw new Error(
-          `document.replaceRecord: the replacement for "${id}" changes \`${field}\` — ` +
+          `document.replaceRecord: the replacement for "${id}" changes \`${reshaped}\` — ` +
             'editing a past step rewrites its parameters, never what it operates on; ' +
             'changing that is a reorder or a new step, not an edit'
         )
@@ -4254,12 +4334,43 @@ export function createDocument(options = {}) {
       const prior = rebuildFrom(next)
       pushRevision(
         transaction,
-        `Edit step ${index + 1}`,
+        `${relink === null ? 'Edit' : 'Re-link'} step ${index + 1}`,
         { kind: 'replace', id, from: current, to: record },
         rollbackBefore,
         prior
       )
       return { scene }
+    },
+
+    /**
+     * `TODO/data-006` (option c): point a broken tail row at the body an active step has
+     * since moved — the row's `Re-link to the moved step` action. Nothing re-points until
+     * this is called; a row it could fix stays `broken` until then, with
+     * {@link TimelineRow.relinkTo} naming where it would point.
+     *
+     * Not a second primitive: it builds the one record {@link relinkPlanOf} offers and
+     * hands it to {@link WarpDocument.replaceRecord}, whose guard accepts exactly that
+     * record and nothing else. So it is one undoable `Re-link step N`, and Undo is
+     * `replaceRecord`'s own inverse — the original `supersedes`/`target` back.
+     *
+     * Refused, changing nothing, for a row with no offer: an active row, a row that is not
+     * broken, one broken because its own build throws, or one whose body was consumed or
+     * deleted rather than moved.
+     */
+    relinkStep(id, transaction) {
+      const index = indexOfRecord(id)
+      if (index < 0) {
+        throw new Error(`document.relinkStep: no step "${id}" in this document`)
+      }
+      const plan = relinkPlanOf(index)
+      if (plan === null) {
+        throw new Error(
+          `document.relinkStep: step ${index + 1} has nothing to re-link — only a step after the ` +
+            'rollback point that broke because a step before it moved the body it builds on can be ' +
+            'pointed at the moved step'
+        )
+      }
+      return document.replaceRecord(id, plan.record, transaction)
     },
 
     /**

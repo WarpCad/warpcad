@@ -533,6 +533,176 @@ describe('rollback, insert-at-the-marker and the tail shadow check (interaction-
   })
 })
 
+/**
+ * `TODO/data-006`'s fixture: Cube 1, Sphere 1, then a rim on Cube 1 — rolled back to
+ * Sphere 1 so the rim is the inactive tail row that builds on the cube.
+ *
+ * @returns {ReturnType<typeof createDocument>}
+ */
+function rimInTheTail() {
+  const document = doc()
+  document.append({ id: 'cube', op: 'fake.box', name: 'Cube 1', params: { size: 10 } }, { origin: 'local' })
+  document.append({ id: 'sphere', op: 'fake.box', name: 'Sphere 1', params: { size: 4 } }, { origin: 'local' })
+  document.append(
+    { id: 'cube-rim', op: 'fake.rim', target: 'cube', supersedes: 'cube', params: { radius: 5 } },
+    { origin: 'local' }
+  )
+  document.rollBackTo('sphere', { origin: 'local' })
+  return document
+}
+
+/** @param {ReturnType<typeof createDocument>} document @param {string} id */
+function rowOf(document, id) {
+  return /** @type {any} */ (document.timeline().find((row) => row.id === id))
+}
+
+describe('re-linking a tail row to the moved step (TODO/data-006, option c)', () => {
+  it('leaves a tail row broken by a move a re-link candidate, and the re-link makes it build on roll-forward', () => {
+    const document = rimInTheTail()
+    document.append(
+      { id: 'cube-move', op: 'fake.move', target: 'cube', supersedes: 'cube', params: { by: 2 } },
+      { origin: 'local' }
+    )
+
+    // Option (c): nothing re-points on its own. The row stays broken, and offers the action.
+    expect(document.recordOf('cube-rim')).toMatchObject({ supersedes: 'cube', target: 'cube' })
+    expect(document.brokenSteps().map((step) => step.id)).toEqual(['cube-rim'])
+    expect(rowOf(document, 'cube-rim').relinkTo).toBe('cube-move')
+    // Rows that are fine, and active rows, never offer it.
+    expect(document.timeline().filter((row) => row.id !== 'cube-rim').every((row) => /** @type {any} */ (row).relinkTo === null)).toBe(true)
+
+    document.relinkStep('cube-rim', { origin: 'local' })
+
+    expect(document.recordOf('cube-rim')).toMatchObject({
+      id: 'cube-rim',
+      op: 'fake.rim',
+      target: 'cube-move',
+      supersedes: 'cube-move',
+      params: { radius: 5 },
+    })
+    expect(document.brokenSteps()).toEqual([])
+    expect(rowOf(document, 'cube-rim').relinkTo).toBeNull()
+    // Still rolled back: the re-link changed the tail, not the marker.
+    expect(document.rollbackAt()).toBe(3)
+
+    document.rollForward({ origin: 'local' })
+    expect(document.rollbackAt()).toBeNull()
+    expect(document.currentIdOf('cube')).toBe('cube-rim')
+    expect(document.bodies().map((body) => body.name)).toEqual(['Cube 1', 'Sphere 1'])
+    expect(document.scene.byId.get('cube-rim')).toMatchObject({ tag: 'rim', radius: 5 })
+  })
+
+  it('re-points a tail boolean’s operand the insert moved, keeping the other operand', () => {
+    const document = doc()
+    document.append({ id: 'cube', op: 'fake.box', name: 'Cube 1', params: { size: 10 } }, { origin: 'local' })
+    document.append({ id: 'sphere', op: 'fake.box', name: 'Sphere 1', params: { size: 4 } }, { origin: 'local' })
+    document.append(
+      { id: 'merge', op: 'fake.merge', operands: ['cube', 'sphere'], consumes: ['cube', 'sphere'] },
+      { origin: 'local' }
+    )
+    document.rollBackTo('sphere', { origin: 'local' })
+    document.append(
+      { id: 'cube-move', op: 'fake.move', target: 'cube', supersedes: 'cube', params: { by: 2 } },
+      { origin: 'local' }
+    )
+    expect(rowOf(document, 'merge').relinkTo).toBe('cube-move')
+
+    document.relinkStep('merge', { origin: 'local' })
+    expect(document.recordOf('merge')).toMatchObject({
+      operands: ['cube-move', 'sphere'],
+      consumes: ['cube-move', 'sphere'],
+    })
+    expect(document.brokenSteps()).toEqual([])
+  })
+
+  it('offers nothing for a tail row whose own build throws, and keeps its can’t-be-built reason', () => {
+    const document = rimInTheTail()
+    // Shrink the cube while rolled back: the rim still targets the cube's terminal, it just
+    // no longer fits. Re-pointing cannot fix that, so it is not offered.
+    const edited = stepParamEditRecord(document, 'cube', { size: 6 })
+    document.replaceRecord('cube', /** @type {any} */ (edited), { origin: 'local' })
+
+    const [broken] = document.brokenSteps()
+    expect(broken.id).toBe('cube-rim')
+    expect(broken.reason).toMatch(/^can't be built: /)
+    expect(rowOf(document, 'cube-rim').relinkTo).toBeNull()
+
+    const version = document.version
+    const label = document.pendingUndo()?.label
+    expect(() => document.relinkStep('cube-rim', { origin: 'local' })).toThrow(/re-link/i)
+    // data-004's atomicity contract: a refused action changes nothing.
+    expect(document.version).toBe(version)
+    expect(document.pendingUndo()?.label).toBe(label)
+    expect(document.recordOf('cube-rim')).toMatchObject({ supersedes: 'cube', target: 'cube' })
+    expect(document.brokenSteps()[0].reason).toBe(broken.reason)
+  })
+
+  it('is one undoable step, and Undo restores the original supersedes', () => {
+    const document = rimInTheTail()
+    document.append(
+      { id: 'cube-move', op: 'fake.move', target: 'cube', supersedes: 'cube', params: { by: 2 } },
+      { origin: 'local' }
+    )
+    document.relinkStep('cube-rim', { origin: 'local' })
+    expect(document.pendingUndo()?.label).toBe('Re-link step 4')
+
+    document.undo()
+    expect(document.recordOf('cube-rim')).toMatchObject({ supersedes: 'cube', target: 'cube' })
+    // The move it was re-linked to is still there: one press undid only the re-link.
+    expect(document.recordOf('cube-move')).toBeDefined()
+    expect(document.brokenSteps().map((step) => step.id)).toEqual(['cube-rim'])
+    expect(rowOf(document, 'cube-rim').relinkTo).toBe('cube-move')
+
+    document.redo()
+    expect(document.recordOf('cube-rim')).toMatchObject({ supersedes: 'cube-move', target: 'cube-move' })
+    expect(document.brokenSteps()).toEqual([])
+  })
+
+  it('never re-points onto a record the user did not supersede', () => {
+    // A consume is not a move: the cube is now part of another body.
+    const merged = rimInTheTail()
+    merged.append(
+      { id: 'merge', op: 'fake.merge', operands: ['cube', 'sphere'], consumes: ['cube', 'sphere'] },
+      { origin: 'local' }
+    )
+    expect(merged.brokenSteps().map((step) => step.id)).toEqual(['cube-rim'])
+    expect(rowOf(merged, 'cube-rim').relinkTo).toBeNull()
+    expect(() => merged.relinkStep('cube-rim', { origin: 'local' })).toThrow(/re-link/i)
+
+    // A delete is not a move either.
+    const deleted = rimInTheTail()
+    deleted.append({ id: 'cube-gone', op: 'body.delete', supersedes: 'cube' }, { origin: 'local' })
+    expect(rowOf(deleted, 'cube-rim').relinkTo).toBeNull()
+    expect(() => deleted.relinkStep('cube-rim', { origin: 'local' })).toThrow(/re-link/i)
+
+    // The guard on replaceRecord widens for the exact re-link and nothing else: not onto
+    // another body, and not half of it (supersedes moved, target left behind).
+    const moved = rimInTheTail()
+    moved.append(
+      { id: 'cube-move', op: 'fake.move', target: 'cube', supersedes: 'cube', params: { by: 2 } },
+      { origin: 'local' }
+    )
+    const rim = /** @type {any} */ (moved.recordOf('cube-rim'))
+    expect(() =>
+      moved.replaceRecord('cube-rim', { ...rim, target: 'sphere', supersedes: 'sphere' }, { origin: 'local' })
+    ).toThrow(/supersedes/)
+    expect(() =>
+      moved.replaceRecord('cube-rim', { ...rim, supersedes: 'cube-move' }, { origin: 'local' })
+    ).toThrow(/supersedes/)
+    expect(moved.recordOf('cube-rim')).toBe(rim)
+    // …and the exact re-link, through the same primitive, is accepted.
+    moved.replaceRecord('cube-rim', { ...rim, target: 'cube-move', supersedes: 'cube-move' }, { origin: 'local' })
+    expect(moved.brokenSteps()).toEqual([])
+  })
+
+  it('refuses an active row and an unbroken tail row', () => {
+    const document = rimInTheTail()
+    expect(() => document.relinkStep('sphere', { origin: 'local' })).toThrow(/re-link/i)
+    expect(() => document.relinkStep('cube-rim', { origin: 'local' })).toThrow(/re-link/i)
+    expect(() => document.relinkStep('nope', { origin: 'local' })).toThrow(/no step/)
+  })
+})
+
 describe('the timeline() row contract ui-032 consumes', () => {
   it('reports step number, label, origin, suppressed, active and broken for every row', () => {
     const document = scenarioTwelve()

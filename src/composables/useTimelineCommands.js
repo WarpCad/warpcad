@@ -435,6 +435,25 @@ export function useTimelineCommands() {
   }
 
   /**
+   * `TODO/data-006` (option c): point a broken tail row at the body a step inserted
+   * while rolled back has moved — the row's `Re-link to the moved step` button. The
+   * document decides whether the row has that offer (`TimelineRowView.relinkTo`) and
+   * refuses one that does not; this only turns that refusal into something renderable.
+   *
+   * @param {string} id
+   * @returns {RowActionResult}
+   */
+  function relinkStep(id) {
+    try {
+      documentStore.raw.relinkStep(id, transaction())
+      settle()
+      return { ok: true }
+    } catch (error) {
+      return report(refusal(error, richLabel))
+    }
+  }
+
+  /**
    * §18: clear the marker and replay the whole log in its new order.
    *
    * @returns {RowActionResult}
@@ -460,5 +479,6 @@ export function useTimelineCommands() {
     moveStep,
     rollBackTo,
     rollForward,
+    relinkStep,
   }
 }

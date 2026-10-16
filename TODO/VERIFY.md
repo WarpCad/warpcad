@@ -1756,4 +1756,13 @@ once a phone masks it, or confirm that the install prompt appears.
 |---|---|---|---|
 | 1 | **The icon on a real home screen.** Once deployed, add WarpCad to the home screen on an iPhone and an iPad (Safari → Share → Add to Home Screen) and install it from Chrome on Android, following the new section in `docs/getting-started.md`. Is the cube centred and clear of the mask, and does the label read **WarpCad**? On desktop Chrome, does the address-bar install icon appear? | open | iOS uses the full-bleed `apple-touch-icon.png` and Android the full-bleed maskable icon, both from `npm run icons`. |
 
+### data-006 — Re-link an inactive tail onto the record an insert moved (2026-10-15)
+
+Driven with real mouse input at laptop width and covered by `e2e/timeline-panel.e2e.js` at all
+three viewports (the 390 px fit is asserted there). What is left is the judgment call only.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | **Scenario 12 step 10, as an exploring human.** Roll back, move a body a later step uses, and decide whether the amber `broken` row plus **Re-link to the moved step** reads as clear or as clutter. Also whether the button label is understood without the docs. This is the `data-004` check 3 judgment, now with the button in place | Open | |
+
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->
