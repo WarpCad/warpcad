@@ -1871,3 +1871,14 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** planned, not built → TODO/core-061 and TODO/ui-069 are status: open; one screw then Apply for the other three → ui-069 Goal and Interaction model; linked, length change follows → ui-069 Decisions 1 and core-061 decisions 3–4, chosen by the user 2026-10-15
 **To Add:** none until it ships; then `repeat-placement.gif` from ui-069's Media
+
+## 2026-10-16T04:20:00Z — A phone-layout overlap, filed
+
+**Post:** Found by hand on a phone, not by a test: in WarpCad, select a part while the Library sheet is open and the Inspector's tab gets drawn over the Library's rows. Filed as ui-070, and the fix stacks the tab below the sheet. #CAD #OpenSource
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** found by hand on a phone → user's screenshot and report, this session; tab over rows → `Inspector.vue` phone `bottom`/`z-index` vs `LibraryPanel.vue` phone sheet; fix proposed, not built → `TODO/ui-070`
+**To Add:** the user's phone screenshot, if they want it public

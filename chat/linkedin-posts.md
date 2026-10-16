@@ -2644,3 +2644,14 @@ It works because Snap and Align in WarpCad are already saved as live steps that 
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** the per-screw steps → user's request quoted in TODO/ui-069 Goal; one History row, one Undo → ui-069 Done-looks-like + core-061 decision 1; linked edits → core-061 decisions 3–4; AI tool over MCP and chat → core-061 decision 11; Snap/Align are live, part-naming records → docs/snap-align.md "When the part you snapped to goes away" and core-061 decision 2; specs written, not built → both files status: open
 **To Add:** no article yet; worth one once it ships (the linked-record design is a reusable idea)
+
+## 2026-10-16T04:20:00Z — A phone-layout overlap, filed
+
+**Post:** A layout bug in WarpCad that no test caught: on a phone, selecting a part while the Library sheet is open draws the Inspector's collapsed tab over the Library's rows. The Inspector is positioned for a collapsed Library, and nothing moves it out of the way when the sheet opens.
+
+It's filed as ui-070. The proposed fix stacks the tab under the open sheet instead of hiding it, and its test checks that every row's centre can actually be tapped, not just that it looks right in a screenshot. Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** found on a phone → user's report this session; positioned for a collapsed Library → `Inspector.vue:1350` `bottom: var(--library-tab-height)`; tap-at-centre test → `TODO/ui-070` Testing section
+**To Add:** none

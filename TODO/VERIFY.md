@@ -40,8 +40,8 @@ Acceptance 3, 6 and 15 were driven and passed. These two checks are judgement ca
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | Library → Raspberry Pi at laptop, tablet and on a real phone: is the truncated **Screen model** select still clear enough to tell which screen is chosen, or should the label shrink to "Model" or the select wrap under its label? | Open | |
-| 2 | On a real iPhone/iPad (Safari), open the **Screen model** select on the Library row and in the Inspector: the native picker lists all six names in full | Open | |
+| 1 | Library → Raspberry Pi at laptop, tablet and on a real phone: is the truncated **Screen model** select still clear enough to tell which screen is chosen, or should the label shrink to "Model" or the select wrap under its label? | OK | 2026-10-16, user: checked, fine as is. |
+| 2 | On a real iPhone/iPad (Safari), open the **Screen model** select on the Library row and in the Inspector: the native picker lists all six names in full | OK | 2026-10-16, user: fine. Separately saw the Inspector's collapsed tab covering the open Library sheet's rows at phone width; filed as `ui-070`. |
 
 ### ai-022 — group.snap orientation description (2026-10-16 02:21)
 
