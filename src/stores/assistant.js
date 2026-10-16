@@ -104,12 +104,12 @@ export const useAssistantStore = defineStore('assistant', () => {
   const storageNote = computed(() => (hasKey.value && !persisted.value ? SESSION_ONLY_NOTE : ''))
 
   /**
-   * `TODO/ai-020`: Claude Code is connected over the live bridge and there is no key, so the
-   * panel is a window on Claude Code's work, not a place to type. Everything key-shaped (the
+  * `TODO/ai-020`: live MCP access is enabled and there is no key, so the panel is a status window,
+  * not a place to type. Everything key-shaped (the
    * status line, the model row, the composer) must say so rather than ask for a key.
    */
-  const claudeCodeOnly = computed(
-    () => !scripted.value && !hasKey.value && useAiChatStore().bridge === 'connected',
+  const mcpOnly = computed(
+    () => !scripted.value && !hasKey.value && ['enabled', 'connected', 'ambiguous'].includes(useAiChatStore().bridge),
   )
 
   /**
@@ -119,10 +119,10 @@ export const useAssistantStore = defineStore('assistant', () => {
   const webMcpPresent = computed(() => useAiChatStore().webMcp !== 'unavailable')
 
   /**
-   * `TODO/ai-021`: no key, Claude Code not connected, and browser agents may drive the project over
-   * WebMCP. The composer is off with its reason, like `claudeCodeOnly`, because it needs a key.
+  * `TODO/ai-021`: no key, live MCP access not enabled, and browser agents may drive the project
+  * over WebMCP. The composer is off with its reason because it needs a key.
    */
-  const browserAgentOnly = computed(() => !scripted.value && !hasKey.value && !claudeCodeOnly.value && webMcpPresent.value)
+  const browserAgentOnly = computed(() => !scripted.value && !hasKey.value && !mcpOnly.value && webMcpPresent.value)
 
   /** The dev host, where the Claude Code bridge is a route too (Decision 11: dev host only). */
   const devHost = computed(() => useAiChatStore().bridge !== 'unavailable')
@@ -135,19 +135,19 @@ export const useAssistantStore = defineStore('assistant', () => {
     const webMcp = useAiChatStore().webMcp
     if (webMcp === 'on') {
       return devHost.value
-        ? 'A browser agent or Claude Code can drive this project; a key is optional.'
+        ? 'A browser agent or local MCP agent can drive this project; a key is optional.'
         : 'A browser agent can drive this project; a key is optional.'
     }
     if (webMcp === 'off') {
       return devHost.value
-        ? 'Browser agents are off: turn them on, connect Claude Code, or add a key.'
+        ? 'Browser agents are off: turn them on, enable live MCP access, or add a key.'
         : 'Browser agents are off: turn them on, or add a key.'
     }
-    return devHost.value ? 'No key — paste one, or connect Claude Code' : 'No key — paste one to connect'
+    return devHost.value ? 'No key — paste one, or enable live MCP access' : 'No key — paste one to connect'
   })
 
   const dotState = computed(() => {
-    if (claudeCodeOnly.value) return 'ok'
+    if (mcpOnly.value) return 'ok'
     if (!hasKey.value) return 'none'
     if (status.value === 'ok') return 'ok'
     if (status.value === 'failed') return 'failed'
@@ -156,7 +156,11 @@ export const useAssistantStore = defineStore('assistant', () => {
 
   const statusText = computed(() => {
     if (scripted.value) return `Scripted transcript “${scriptedName.value}” — no model, no key`
-    if (claudeCodeOnly.value) return 'Claude Code is editing this project — type your request in Claude Code'
+    if (mcpOnly.value) {
+      return useAiChatStore().bridge === 'connected'
+        ? 'An MCP agent is connected — make requests in that agent'
+        : 'Live MCP access is enabled — ask an MCP agent to use this project'
+    }
     if (!hasKey.value) return noKeyText.value
     if (status.value === 'testing') return 'Testing the key…'
     if (status.value === 'ok') return `Connected — ${modelName.value}`
@@ -245,16 +249,15 @@ export const useAssistantStore = defineStore('assistant', () => {
   }
 
   /**
-   * The header button: chat if connected — by a key, or by Claude Code over the live bridge
-   * (`TODO/ai-012`, whose History rows and **Undo AI turn** live in the chat), or when the browser
+  * The header button: chat if connected — by a key, by an enabled live MCP lease, or when the browser
    * has WebMCP (`TODO/ai-021`: the **Browser agents** switch is in the chat's header) — the key
    * sheet if there is nothing to connect with.
    */
   function open() {
-    view.value = hasKey.value || useAiChatStore().bridge === 'connected' || webMcpPresent.value ? 'chat' : 'key'
+    view.value = hasKey.value || mcpOnly.value || webMcpPresent.value ? 'chat' : 'key'
   }
 
-  /** `TODO/ai-012`: **Connect to Claude Code** — the live bridge's pairing sheet. */
+  /** `TODO/ai-012`: live MCP access controls. */
   function openConnect() {
     view.value = 'connect'
   }
@@ -273,16 +276,16 @@ export const useAssistantStore = defineStore('assistant', () => {
   }
 
   /**
-   * Leaving the key sheet: on to the chat if there is a key, Claude Code is connected, or the
+  * Leaving the key sheet: on to the chat if there is a key, live MCP access is enabled, or the
    * browser has WebMCP (`ai-021`); otherwise just away.
    */
   function doneWithKeySheet() {
-    view.value = hasKey.value || useAiChatStore().bridge === 'connected' || webMcpPresent.value ? 'chat' : 'closed'
+    view.value = hasKey.value || mcpOnly.value || webMcpPresent.value ? 'chat' : 'closed'
   }
 
   return {
     hasKey,
-    claudeCodeOnly,
+    mcpOnly,
     browserAgentOnly,
     persisted,
     status,

@@ -194,8 +194,9 @@ describe('mcp:add --dev (TODO/ai-012: the live bridge under npm run dev)', () =>
     expect(argv[2]).toEqual(['mcp', 'add', '--scope', 'user', '--transport', 'http', 'warpcad', 'http://127.0.0.1:5183/mcp'])
     // No project file is created: live mode edits the open tab, never a file.
     expect(result.stdout).toMatch(/npm run dev/)
-    expect(result.stdout).toMatch(/desktop browser/)
-    expect(result.stdout).toMatch(/Connect to Claude Code/)
+    expect(result.stdout).toMatch(/same\s+computer as your MCP client/)
+    expect(result.stdout).toMatch(/Live MCP access/)
+    expect(result.stdout).toMatch(/off by default/)
   })
 
   it('takes no project file with --dev: one server, one mode', () => {

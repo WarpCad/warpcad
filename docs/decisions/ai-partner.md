@@ -877,7 +877,7 @@ Consequences, now facts rather than risks:
 
 ### Two hosts, one bridge core (amended 2026-10-12 at the user's request; **only the dev host is built in `ai-012`**)
 
-The bridge is a framework-free module (`mcp/bridge.js`: call queue, pairing, one-writer
+The bridge is a framework-free module (`mcp/bridge.js`: call queue, access lease, one-writer
 rules, timeouts) with two thin hosts:
 
 | Host | When | Claude Code side | Tab side |
@@ -887,7 +887,7 @@ rules, timeouts) with two thin hosts:
 
 In dev the same-origin tab needs no cross-origin check and avoids the WebKit loopback
 risk, but the HTTP endpoint is still reachable by any local web page, so the plugin keeps
-the `Origin` allow-list and the pairing code. `npm run mcp:add -- --live --dev` registers
+the `Origin` allow-list and requires an enabled access lease in WarpCad. `npm run mcp:add -- --live --dev` registers
 the HTTP form. The registry seam and `request` semantics are identical in both hosts; the
 Vite plugin is dev-only and ships nothing in `vite build`. The MCP SDK's HTTP transport
 must be confirmed available in `@modelcontextprotocol/server` 2.3.1 before building (it

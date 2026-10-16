@@ -4,13 +4,13 @@
  * bridge core"): Streamable HTTP at `/mcp`, served by `@modelcontextprotocol/server` 2.3.1's
  * `WebStandardStreamableHTTPServerTransport` (Request in, Response out) — no new dependency.
  *
- * One MCP session per Claude Code connection, each its own bridge *link* (`mcp/bridge.js`), so
- * two Claude Code sessions get two codes and can each drive their own tab. Every request passes
- * the Origin/Host gate first (`createRequestGate`).
+ * Each MCP session is tracked by the bridge (`mcp/bridge.js`); calls route only when one client
+ * and one enabled tab are unambiguous. Every request passes the Origin/Host gate first
+ * (`createRequestGate`).
  *
  * The tools are the registry's `mcp` list with `{ live: true }` (the browser tool set on top) and
  * the same `request` property and `document_data` wrapping as the closed-file server
- * (`mcp/server.js`); this file adds no tool. A tool call is relayed to the paired tab; nothing
+ * (`mcp/server.js`); this file adds no tool. A tool call is relayed to the enabled tab; nothing
  * here holds a document.
  *
  * Loaded by `mcp/liveBridge.js` with a dynamic `import()`, so a checkout without
@@ -31,7 +31,9 @@ import { mcpToolDefinitions, splitRequest } from './server.js'
 /** What the live server says about itself in `initialize` — ours, never project text. */
 export const LIVE_SERVER_INSTRUCTIONS = [
   'WarpCad parametric CAD, live: this server edits the project the user has open in a WarpCad browser tab, and each change appears there at once.',
-  'If a call answers that WarpCad is not connected, show the user the code it gives and ask them to enter it in WarpCad (Assistant → Connect to Claude Code), then retry.',
+  'The user must explicitly enable live MCP access in WarpCad before calls can reach the open project. Access is off by default; any MCP client on this computer that can reach the loopback endpoint may call while a lease is enabled.',
+  'If a call is refused because access is off or expired, ask the user to open Assistant → Live MCP access and enable it, then retry. No pairing code is used.',
+  'If a call is refused because more than one client or tab makes routing ambiguous, do not retry until the user disconnects the extra client or disables access in the extra tab.',
   'Units are millimetres, Z up, angles in degrees. Call list_ops first, and describe_scene for the body ids. get_selection tells you what the user has selected, so "make this taller" can be answered.',
   'create places one body from nothing; operate changes existing bodies by id; apply_records does several as one atomic change.',
   'Pass `request` on every write: the user’s own words. Writes with the same request are one Undo AI turn for the user, and the request is saved as each row’s design intent.',

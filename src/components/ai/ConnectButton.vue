@@ -1,24 +1,19 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <script setup>
 /**
- * **Connect to Claude Code…** (`TODO/ai-012`): the way into the live bridge's pairing sheet, in
+ * **Live MCP access…** (`TODO/ai-023`): the way into the live access sheet, in
  * the Assistant panel (beside **Key and model…**) and in the no-key sheet (beside **Use my Claude
  * subscription…**).
  *
- * On a phone or tablet it is **disabled with the reason shown beside it** — "Claude Code must run
- * on this device" — rather than hidden: a browser there cannot reach Claude Code on another
- * machine, and a tooltip is no use on a touch screen. The Assistant panel passes
- * `onlyWhereUsable`: its phone and tablet sheet is a half-height bottom sheet where two more lines
- * push **Send** out of view, so there the disabled control and its reason live on the no-key sheet
- * only — the way into the Assistant when there is no key, which is when Claude Code is the route.
+ * Available at phone and tablet widths too; only the host's dev server and Origin gate can expose
+ * this local endpoint, and access remains off until the user chooses a lease here.
  */
-import { deviceReason } from '../../composables/useLiveBridge.js'
 import { useAssistantStore } from '../../stores/assistant.js'
 
 defineProps({
   /** The button's `data-testid`; the reason line is `${testid}-reason`. */
   testid: { type: String, required: true },
-  /** Render nothing on a phone or tablet instead of the disabled control (the chat panel). */
+  /** Retained for call-site compatibility; the access control is reachable at every width. */
   onlyWhereUsable: { type: Boolean, default: false },
 })
 
@@ -26,18 +21,15 @@ const assistant = useAssistantStore()
 </script>
 
 <template>
-  <span v-if="!(onlyWhereUsable && deviceReason)" class="connect-entry">
+  <span class="connect-entry">
     <button
       type="button"
       class="connect-entry__button"
       :data-testid="testid"
-      :disabled="deviceReason !== ''"
-      :aria-describedby="deviceReason ? `${testid}-reason` : undefined"
       @click="assistant.openConnect()"
     >
-      Connect to Claude Code…
+      Live MCP access…
     </button>
-    <span v-if="deviceReason" :id="`${testid}-reason`" class="connect-entry__reason" :data-testid="`${testid}-reason`">{{ deviceReason }}</span>
   </span>
 </template>
 

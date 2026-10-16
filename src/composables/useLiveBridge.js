@@ -8,44 +8,23 @@
  *   (`import.meta.hot` exists) it listens for the host's messages on `warpcad:bridge`; in a built
  *   or hosted copy `import.meta.hot` is `undefined`, the state is `unavailable`, and a build drops
  *   the rest of this path as dead code.
- * - `connect(code)` — the **Connect to Claude Code** sheet's button: sends the typed code.
- * - Calls from Claude Code run through the tab's **shared** endpoint (`useTabEndpoint.js`, which
+ * - `setAccess(lease)` — the live-MCP sheet's explicit local-access control.
+ * - Calls from an MCP agent run through the tab's **shared** endpoint (`useTabEndpoint.js`, which
  *   WebMCP uses too — `TODO/ai-021`) against the **raw** live document, then the document store is
  *   refreshed so the viewport and History answer — exactly what `useAgent` does after a turn. The
  *   header's working chip shows while one runs (held a moment after, since a call is synchronous
  *   and would otherwise never paint).
- * - `undoTurn()` — **Undo AI turn** when the last AI change was a Claude Code group: the merge
+ * - `undoTurn()` — **Undo AI turn** when the last AI change was an MCP group: the merge
  *   inverse under origin `mcp`, never the local undo stack (`useTabEndpoint.undoTabTurn`).
- *
- * Phone and tablet: a browser there cannot reach Claude Code on another machine, so
- * {@link deviceReason} disables the Connect control with the reason shown beside it.
  *
  * @module composables/useLiveBridge
  */
 
-import { computed, ref } from 'vue'
-
-import { BRIDGE_EVENT, normaliseCode, parseHostMessage } from '../ai/bridge/protocol.js'
+import { BRIDGE_EVENT, parseHostMessage } from '../ai/bridge/protocol.js'
 import { useAiChatStore } from '../stores/aiChat.js'
 import { runOnTab, undoTabTurn } from './useTabEndpoint.js'
 
-/** The reason shown beside the disabled Connect control on a phone or tablet. */
-export const DEVICE_REASON = 'Claude Code must run on this device'
-
 let started = false
-
-/** Whether this is a touch-first or narrow screen — a phone or a tablet. */
-const narrowOrTouch = ref(false)
-
-function measureDevice() {
-  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return
-  const wide = window.matchMedia('(min-width: 1100px)').matches
-  const touchOnly = window.matchMedia('(hover: none) and (pointer: coarse)').matches
-  narrowOrTouch.value = !wide || touchOnly
-}
-
-/** `''` on a desktop browser; on a phone or tablet, why Connect is disabled. */
-export const deviceReason = computed(() => (narrowOrTouch.value ? DEVICE_REASON : ''))
 
 /**
  * Which engine is drawing this page, for the sheet's one engine-specific line.
@@ -68,17 +47,13 @@ async function runCall(call, hot) {
 }
 
 /**
- * Start listening for Claude Code. Idempotent; safe to call from a mount hook.
+ * Start listening for the live MCP host. Idempotent; safe to call from a mount hook.
  *
  * @returns {void}
  */
 export function startLiveBridge() {
   if (started) return
   started = true
-  measureDevice()
-  if (typeof window !== 'undefined' && typeof window.matchMedia === 'function') {
-    window.matchMedia('(min-width: 1100px)').addEventListener?.('change', measureDevice)
-  }
   const chat = useAiChatStore()
   const hot = import.meta.hot
   if (!hot) {
@@ -89,52 +64,51 @@ export function startLiveBridge() {
   hot.on(BRIDGE_EVENT, (data) => {
     const message = parseHostMessage(data)
     if (message === null) return
-    if (message.type === 'paired') {
-      chat.bridge = 'connected'
-      chat.bridgeMessage = ''
-    } else if (message.type === 'pair-refused') {
-      chat.bridge = chat.bridge === 'waiting' ? 'idle' : chat.bridge
-      chat.bridgeMessage = message.reason
-    } else if (message.type === 'unpaired') {
-      chat.bridge = 'disconnected'
+    if (message.type === 'status') {
+      chat.bridgeExpiresAt = message.expiresAt
+      chat.bridge = message.connection === 'connected'
+        ? 'connected'
+        : message.connection === 'ambiguous'
+          ? 'ambiguous'
+        : message.access === 'enabled'
+          ? 'enabled'
+          : message.access === 'expired'
+            ? 'expired'
+            : 'off'
       chat.bridgeMessage = message.reason
     } else if (message.type === 'call') {
       void runCall(message, hot)
     }
   })
   hot.on('vite:ws:disconnect', () => {
-    if (chat.bridge === 'connected' || chat.bridge === 'waiting') {
+    if (chat.bridge === 'connected' || chat.bridge === 'enabled' || chat.bridge === 'ambiguous') {
       chat.bridge = 'disconnected'
-      chat.bridgeMessage = 'The connection to the dev server dropped. Ask Claude Code for a new code to reconnect.'
+      chat.bridgeMessage = 'The connection to the WarpCad dev server dropped. Reopen this tab to restore the live MCP connection.'
     }
   })
   hot.send(BRIDGE_EVENT, { type: 'hello' })
 }
 
 /**
- * @returns {{ connect: (typed: string) => boolean, undoTurn: () => void }}
+ * @returns {{ setAccess: (lease: '15m' | '1h' | 'tab' | 'unlimited' | 'off') => boolean, undoTurn: () => void }}
  */
 export function useLiveBridge() {
   const chat = useAiChatStore()
 
   /**
-   * Send a pairing code. `false` when it is not code-shaped (nothing is sent).
+   * Set the explicit local-access lease in the host.
    *
-   * @param {string} typed
+  * @param {'15m' | '1h' | 'tab' | 'unlimited' | 'off'} lease
    */
-  function connect(typed) {
+  function setAccess(lease) {
     const hot = import.meta.hot
-    if (!hot || deviceReason.value !== '') return false
-    const code = normaliseCode(typed)
-    if (code === null) {
-      chat.bridgeMessage = 'A code is 8 letters and digits, like K7Q4-FX2M.'
-      return false
-    }
-    chat.bridge = 'waiting'
+    if (!hot) return false
+    if (lease !== 'off') chat.bridge = 'enabled'
+    else chat.bridge = 'idle'
     chat.bridgeMessage = ''
-    hot.send(BRIDGE_EVENT, { type: 'pair', code })
+    hot.send(BRIDGE_EVENT, { type: 'access', lease })
     return true
   }
 
-  return { connect, undoTurn: undoTabTurn }
+  return { setAccess, undoTurn: undoTabTurn }
 }

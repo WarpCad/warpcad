@@ -2,7 +2,7 @@
 /**
  * The live bridge's wire (`TODO/ai-012`, `docs/decisions/ai-partner.md` Decision 11): the
  * messages between the bridge host (`mcp/bridge.js`, inside the Vite dev server) and the open
- * WarpCad tab (`./tabEndpoint.js`), and the pairing code's shape. Framework-free and shared by
+ * WarpCad tab (`./tabEndpoint.js`), and live-access leases. Framework-free and shared by
  * both ends, so neither can drift from the other.
  *
  * Under `npm run dev` these ride Vite's own HMR WebSocket as custom events named
@@ -12,11 +12,9 @@
  * | Direction | Message | Meaning |
  * |---|---|---|
  * | tab → host | `{ type: 'hello' }` | The tab can take calls (sent on connect; harmless repeated). |
- * | tab → host | `{ type: 'pair', code }` | The code the user typed into **Connect to Claude Code**. |
+ * | tab → host | `{ type: 'access', lease }` | The user enabled or disabled local MCP access. |
  * | tab → host | `{ type: 'result', id, result }` | The registry's JSON for call `id`. |
- * | host → tab | `{ type: 'paired' }` | The code was right; calls from that Claude Code session now come here. |
- * | host → tab | `{ type: 'pair-refused', reason }` | Wrong, expired, reused, or too many tries. |
- * | host → tab | `{ type: 'unpaired', reason }` | The session ended, or another tab took it over. |
+ * | host → tab | `{ type: 'status', access, expiresAt, connection }` | Lease and unambiguous route state. |
  * | host → tab | `{ type: 'call', id, name, input, request? }` | Run one tool. `request` is the user's words (write tools). |
  *
  * Everything that arrives is checked here before either end acts on it ({@link parseTabMessage},
@@ -28,17 +26,8 @@
 /** The Vite custom-event name both ends use. */
 export const BRIDGE_EVENT = 'warpcad:bridge'
 
-/** No 0/O, no 1/I/L: a code read off one screen and typed into another must not be ambiguous. */
-export const CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'
-
-/** Characters in a pairing code (shown as two halves of four). */
-export const CODE_LENGTH = 8
-
-/** How long a pairing code stays valid. */
-export const CODE_TTL_MS = 5 * 60_000
-
-/** Wrong codes one tab may send before the host stops listening to it. */
-export const MAX_PAIR_ATTEMPTS = 5
+/** Lease choices accepted by the host. */
+export const ACCESS_LEASES = /** @type {const} */ (['15m', '1h', 'tab', 'unlimited', 'off'])
 
 /** How long a call that arrives mid-gesture waits for the gesture to end. */
 export const GESTURE_WAIT_MS = 10_000
@@ -56,30 +45,6 @@ export const EDITING_REFUSAL = 'the user is editing; try again'
 export const STALE_REFUSAL =
   'The project changed in WarpCad while this call waited (the user edited it, or a merge landed), so nothing was applied. Read it again (describe_scene) and retry.'
 
-const CODE_PATTERN = new RegExp(`^[${CODE_ALPHABET}]{${CODE_LENGTH}}$`)
-
-/**
- * A typed or pasted code, as the host compares it: upper case, spaces and hyphens gone.
- *
- * @param {unknown} text
- * @returns {string | null} `null` when it cannot be a code at all.
- */
-export function normaliseCode(text) {
-  if (typeof text !== 'string') return null
-  const code = text.toUpperCase().replace(/[\s-]/g, '')
-  return CODE_PATTERN.test(code) ? code : null
-}
-
-/**
- * A code as shown to a person: `K7Q4-FX2M`.
- *
- * @param {string} code A normalised code.
- * @returns {string}
- */
-export function formatCode(code) {
-  return `${code.slice(0, 4)}-${code.slice(4)}`
-}
-
 /** @param {unknown} value @returns {value is Record<string, unknown>} */
 function isObject(value) {
   return value !== null && typeof value === 'object' && !Array.isArray(value)
@@ -87,16 +52,14 @@ function isObject(value) {
 
 /**
  * @typedef {{ type: 'hello' }
- *   | { type: 'pair', code: string }
+ *   | { type: 'access', lease: typeof ACCESS_LEASES[number] }
  *   | { type: 'result', id: number, result: Record<string, any> }} TabMessage
  */
 
 /**
  * @typedef {{ type: 'call', id: number, name: string, input: unknown, request?: string }} CallMessage
- * @typedef {CallMessage
- *   | { type: 'paired' }
- *   | { type: 'pair-refused', reason: string }
- *   | { type: 'unpaired', reason: string }} HostMessage
+ * @typedef {{ type: 'status', access: 'off' | 'enabled' | 'expired', expiresAt: number | null, connection: 'idle' | 'connected' | 'ambiguous', reason: string }} StatusMessage
+ * @typedef {CallMessage | StatusMessage} HostMessage
  */
 
 /**
@@ -108,7 +71,9 @@ function isObject(value) {
 export function parseTabMessage(data) {
   if (!isObject(data)) return null
   if (data.type === 'hello') return { type: 'hello' }
-  if (data.type === 'pair' && typeof data.code === 'string') return { type: 'pair', code: data.code }
+  if (data.type === 'access' && ACCESS_LEASES.includes(/** @type {any} */ (data.lease))) {
+    return { type: 'access', lease: /** @type {typeof ACCESS_LEASES[number]} */ (data.lease) }
+  }
   if (data.type === 'result' && Number.isInteger(data.id) && isObject(data.result)) {
     return { type: 'result', id: /** @type {number} */ (data.id), result: data.result }
   }
@@ -134,9 +99,18 @@ export function parseHostMessage(data) {
       ...(data.request === undefined ? {} : { request: data.request }),
     }
   }
-  if (data.type === 'paired') return { type: 'paired' }
-  if ((data.type === 'pair-refused' || data.type === 'unpaired') && typeof data.reason === 'string') {
-    return { type: data.type, reason: data.reason }
+  if (data.type === 'status') {
+    if (!['off', 'enabled', 'expired'].includes(/** @type {any} */ (data.access))) return null
+    if (data.expiresAt !== null && !Number.isFinite(data.expiresAt)) return null
+    if (!['idle', 'connected', 'ambiguous'].includes(/** @type {any} */ (data.connection))) return null
+    if (typeof data.reason !== 'string') return null
+    return {
+      type: 'status',
+      access: /** @type {StatusMessage['access']} */ (data.access),
+      expiresAt: /** @type {number | null} */ (data.expiresAt),
+      connection: /** @type {StatusMessage['connection']} */ (data.connection),
+      reason: data.reason,
+    }
   }
   return null
 }

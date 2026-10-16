@@ -3,9 +3,9 @@ import { Client, StreamableHTTPClientTransport } from '@modelcontextprotocol/cli
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createLogger, createServer } from 'vite'
-import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
-import { BRIDGE_EVENT, formatCode } from '../src/ai/bridge/protocol.js'
+import { BRIDGE_EVENT } from '../src/ai/bridge/protocol.js'
 import { createTabEndpoint } from '../src/ai/bridge/tabEndpoint.js'
 import { unwrapDocumentData } from '../src/ai/documentData.js'
 import { createDocument } from '../src/core/document.js'
@@ -28,7 +28,8 @@ let port = 0
 /** @type {string[]} */
 const logged = []
 
-beforeAll(async () => {
+beforeEach(async () => {
+  logged.length = 0
   const logger = createLogger('info')
   for (const level of /** @type {const} */ (['info', 'warn', 'error'])) {
     logger[level] = (message) => {
@@ -48,11 +49,11 @@ beforeAll(async () => {
   port = /** @type {import('node:net').AddressInfo} */ (server.httpServer?.address()).port
 }, 30_000)
 
-afterAll(async () => {
+afterEach(async () => {
   await server?.close()
 })
 
-/** Claude Code's stand-in. */
+/** Plain MCP client, independent of the agent implementation. */
 async function claudeCode() {
   const client = new Client({ name: 'live-bridge-spec', version: '0.0.0' })
   await client.connect(new StreamableHTTPClientTransport(new URL(`http://127.0.0.1:${port}/mcp`)))
@@ -118,20 +119,18 @@ describe('the Vite dev host (warpcadLiveBridge)', () => {
     await client.close()
   })
 
-  it('pairs a tab with the code from the instruction sentence, then lands Claude’s calls in it as mcp rows', async () => {
+  it('routes an ordinary MCP client after the user enables live access in WarpCad', async () => {
     const client = await claudeCode()
     const unpaired = /** @type {any} */ (await client.callTool({ name: 'create', arguments: { op: 'primitive.cuboid', positionMm: [0, 0, 0], request: 'add a 40 mm cube' } }))
     expect(unpaired.isError).toBe(true)
-    const sentence = textOf(unpaired)
-    expect(sentence).toMatch(/Assistant → Connect to Claude Code/)
-    const code = /** @type {RegExpExecArray} */ (/\b([A-Z2-9]{4}-[A-Z2-9]{4})\b/.exec(sentence))[1]
+    expect(textOf(unpaired)).toMatch(/live MCP access is off/i)
+    expect(textOf(unpaired)).not.toMatch(/[A-Z2-9]{4}-[A-Z2-9]{4}/)
 
     const browser = await tab()
-    // A wrong code first: refused, and the right one still works.
-    browser.send({ type: 'pair', code: 'ABCD-EFGH' })
-    expect(await next(browser.inbox, 'pair-refused')).toMatchObject({ reason: expect.stringMatching(/code/) })
-    browser.send({ type: 'pair', code })
-    await next(browser.inbox, 'paired')
+    await next(browser.inbox, 'status')
+    browser.inbox.length = 0
+    browser.send({ type: 'access', lease: 'tab' })
+    expect(await next(browser.inbox, 'status')).toMatchObject({ access: 'enabled', connection: 'connected' })
 
     const cube = /** @type {any} */ (await client.callTool({ name: 'create', arguments: { op: 'primitive.cuboid', positionMm: [0, 0, 0], params: { size: [40, 40, 40] }, request: 'a 40 mm cube with a 20 mm sphere on top' } }))
     expect(cube.isError).toBeFalsy()
@@ -150,16 +149,8 @@ describe('the Vite dev host (warpcadLiveBridge)', () => {
     expect(refused.isError).toBe(true)
     expect(serializeProject(browser.doc)).toBe(before)
 
-    // The code is in no other result, and in no line the dev server logged.
-    for (const response of [cube, sphere, refused]) {
-      expect(JSON.stringify(response)).not.toContain(code)
-      expect(JSON.stringify(response)).not.toContain(code.replace('-', ''))
-    }
-    for (const line of logged) {
-      expect(line).not.toContain(code)
-      expect(line).not.toContain(code.replace('-', ''))
-    }
-    expect(formatCode(code.replace('-', ''))).toBe(code)
+    for (const response of [unpaired, cube, sphere, refused]) expect(textOf(response)).not.toMatch(/[A-Z2-9]{4}-[A-Z2-9]{4}/)
+    expect(logged.join('\n')).not.toMatch(/[A-Z2-9]{4}-[A-Z2-9]{4}/)
 
     browser.close()
     await client.close()

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 /**
  * The live bridge's tab side (`TODO/ai-012`, `docs/decisions/ai-partner.md` Decision 11):
- * receives one tool call from Claude Code (relayed by the dev host, `mcp/bridge.js`), runs it
+ * receives one tool call from an MCP client (relayed by the dev host, `mcp/bridge.js`), runs it
  * through the **same** registry (`createToolRegistry().run`) against the **live** document, and
  * returns the JSON. Framework-free: the app hands in the document, the selection, the capture and
  * "is the user mid-gesture" (`composables/useLiveBridge.js`), and a spec hands in fakes for the
@@ -46,11 +46,11 @@
  *
  * ## A second transport on the same endpoint (`TODO/ai-021`, Decision 13)
  *
- * WebMCP calls run through **this** object too, so a browser agent's call and a Claude Code call
+ * WebMCP calls run through **this** object too, so a browser agent's call and an MCP client call
  * share one queue, one gesture wait and one stale check, and can never interleave. The caller
  * says which transport a call came from with {@link CallVia} (the dev-host bridge passes nothing,
  * so its behaviour is exactly as above): its records carry that origin, its groups are its own —
- * a WebMCP write never joins a Claude Code group — and a WebMCP group is formed by the idle gap
+ * a WebMCP write never joins an MCP group — and a WebMCP group is formed by the idle gap
  * alone (`groupBy: 'idle'`), because WebMCP has no request to compare. The endpoint is built
  * without any socket; `composables/useTabEndpoint.js` holds the one instance both transports use.
  *
@@ -74,7 +74,7 @@ import { EDITING_REFUSAL, GESTURE_WAIT_MS, GROUP_IDLE_MS, STALE_REFUSAL } from '
 const GESTURE_POLL_MS = 100
 
 /** Who a group's undo refusal names. */
-const WHO = Object.freeze({ mcp: 'Claude Code', webmcp: 'the browser agent' })
+const WHO = Object.freeze({ mcp: 'MCP agent', webmcp: 'browser agent' })
 
 /**
  * @typedef {object} TabEndpointOptions
@@ -346,7 +346,7 @@ export function createTabEndpoint(options) {
     },
     undoLast() {
       const group = groups.at(-1)
-      if (group === undefined) throw new Error('There is no Claude Code change to take back.')
+      if (group === undefined) throw new Error('There is no MCP agent change to take back.')
       const live = options.document()
       const plan = planMergeUndo(group.turn.base, group.turn.merged, mergeSnapshotOf(live), group.turn.change)
       if (!plan.ok) throw new Error(plan.message.replace('after the merge', `after ${WHO[group.origin]} made it`))

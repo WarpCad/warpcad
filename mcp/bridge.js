@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 /**
  * The live bridge's host core (`TODO/ai-012`, `docs/decisions/ai-partner.md` Decision 11):
- * **a relay with no document.** Claude Code's `tools/call` arrives on an MCP session; this
- * forwards it to the one WarpCad tab paired with that session, which runs it through the real
+ * **a relay with no document.** An MCP client's `tools/call` arrives on a session; this
+ * forwards it to the one WarpCad tab authorized by the active lease, which runs it through the real
  * registry on the live document (`src/ai/bridge/tabEndpoint.js`), and hands back the JSON. It
  * never parses a project and never writes a file.
  *
@@ -12,26 +12,18 @@
  * socket. The standalone `mcp/server.js --live` host Decision 11 also describes is reserved, not
  * built; it would reuse this core unchanged.
  *
- * ## Pairing (Decision 11 point 5)
+ * ## Access lease
  *
- * - The first call on a link with no tab gets back **the instruction sentence**, the one place
- *   the code ever appears: "…choose Assistant → Connect to Claude Code, and enter the code
- *   K7Q4-FX2M…". Claude Code shows it to the user. A call is never left hanging.
- * - The code is 8 characters (`CODE_ALPHABET`, no look-alikes), **single use**, valid
- *   {@link CODE_TTL_MS}, and dies with the host (`close()`). The same code is repeated while it
- *   is valid, so asking twice does not invalidate what the user is already typing.
- * - A tab that sends {@link MAX_PAIR_ATTEMPTS} wrong codes is not listened to again until it
- *   reloads (a fresh HMR client).
- * - **The code is never logged**, never written to a file, and never in any other tool result:
- *   `log` lines name a link by a short prefix of its session id and nothing else. Not a
- *   credential-store entry (Decision 8): a one-session handshake.
+ * The user enables a lease in the WarpCad tab. Calls route only when exactly one MCP session and
+ * one enabled tab exist; otherwise they are refused. Timed leases expire on the host, and closing
+ * the tab revokes every lease.
  *
  * ## One call at a time
  *
  * Each link's calls are queued and sent to its tab one at a time, in order. A call the tab does
  * not answer within {@link CALL_TIMEOUT_MS} is refused in words (it may still have landed; the
  * model is told to check `get_timeline`), and a late answer is dropped. A tab whose socket drops
- * fails its in-flight call the same way and leaves the link waiting for a new code.
+ * fails its in-flight call the same way and leaves the link waiting for access to be enabled again.
  *
  * ## The request gate
  *
@@ -39,23 +31,18 @@
  * a request with no `Origin` (Claude Code, a CLI) or the app's own dev origin passes; any other
  * web page — including another local dev server — is refused, and so is a non-loopback `Host`
  * (DNS rebinding). The HMR socket has Vite's own gate (its Host allow-list and token); the
- * pairing code is the gate behind both.
+ * explicit access lease is the gate behind both.
  *
  * @module mcp/bridge
  */
 
-import { randomInt } from 'node:crypto'
-
 import {
+  ACCESS_LEASES,
   CALL_TIMEOUT_MS,
-  CODE_ALPHABET,
-  CODE_LENGTH,
-  CODE_TTL_MS,
-  MAX_PAIR_ATTEMPTS,
-  formatCode,
-  normaliseCode,
   parseTabMessage,
 } from '../src/ai/bridge/protocol.js'
+
+const LEASE_MS = { '15m': 15 * 60_000, '1h': 60 * 60_000 }
 
 /**
  * @typedef {object} BridgeTab
@@ -77,8 +64,6 @@ import {
 /**
  * @typedef {object} Link
  * @property {string} id
- * @property {string | null} code The live pairing code, normalised; `null` when none is out.
- * @property {number} codeExpires
  * @property {BridgeTab | null} tab
  * @property {Promise<unknown>} queue
  * @property {{ id: number, resolve: (outcome: BridgeOutcome) => void, timer: unknown } | null} inFlight
@@ -95,28 +80,21 @@ import {
  * @property {() => void} close The host is going away: every code dies, every call fails.
  */
 
-/** @returns {string} */
-function cryptoRandomCode() {
-  let code = ''
-  for (let index = 0; index < CODE_LENGTH; index += 1) code += CODE_ALPHABET[randomInt(CODE_ALPHABET.length)]
-  return code
-}
-
 /** @param {string} id A session id — only its first characters ever reach a log line. */
 const short = (id) => id.slice(0, 8)
 
 /**
  * The sentence a call gets when no tab is paired — the only place the code is ever written.
  *
- * @param {string} code
+ * @param {'off' | 'enabled' | 'expired'} access
+ * @param {'idle' | 'ambiguous'} connection
  * @param {string} tool
  */
-function instructionSentence(code, tool) {
-  return (
-    `WarpCad is not connected to this Claude Code session yet. Ask the user to open WarpCad in a desktop browser on this computer ` +
-    `(it must be running under \`npm run dev\`), choose Assistant → Connect to Claude Code, and enter the code ${formatCode(code)}. ` +
-    `The code works once and expires in 5 minutes. Then call ${tool} again.`
-  )
+function routeRefusal(access, connection, tool) {
+  if (connection === 'ambiguous') return `WarpCad refused ${tool}: more than one MCP client or enabled WarpCad tab is connected. Disconnect the extra client or turn off access in the other tab, then retry.`
+  if (access === 'expired') return `WarpCad refused ${tool}: live MCP access expired. Enable it again in WarpCad, then retry.`
+  if (access === 'enabled') return `WarpCad refused ${tool}: there is no unambiguous enabled WarpCad tab. Keep one project tab open with live MCP access enabled, then retry.`
+  return `WarpCad refused ${tool}: live MCP access is off. In WarpCad, open Assistant → Live MCP access and explicitly enable it, then retry.`
 }
 
 const DROPPED =
@@ -137,30 +115,22 @@ const DROPPED =
  */
 export function createBridge(options = {}) {
   const now = options.now ?? Date.now
-  const randomCode = options.randomCode ?? cryptoRandomCode
   const callTimeoutMs = options.callTimeoutMs ?? CALL_TIMEOUT_MS
   const log = options.log ?? (() => {})
   const setTimer = options.setTimer ?? ((fn, ms) => setTimeout(fn, ms))
   const clearTimer = options.clearTimer ?? ((timer) => clearTimeout(/** @type {any} */ (timer)))
   /** @type {Map<string, Link>} */
   const links = new Map()
-  /** Wrong codes per tab. A WeakMap: a tab that goes away takes its count with it. */
-  /** @type {WeakMap<BridgeTab, number>} */
-  const attempts = new WeakMap()
+  /** @type {Map<BridgeTab, { lease: '15m' | '1h' | 'tab' | 'unlimited' | null, expiresAt: number | null, expired: boolean, timer: unknown }>} */
+  const tabs = new Map()
   let nextCallId = 1
   let closed = false
 
-  /** @param {BridgeTab} tab @returns {Link | undefined} */
-  const linkOfTab = (tab) => [...links.values()].find((link) => link.tab === tab)
+  const enabledTabs = () => [...tabs.entries()].filter(([, state]) => state.lease !== null && (state.expiresAt === null || now() < state.expiresAt))
 
-  /** @param {Link} link */
-  function currentCode(link) {
-    if (link.code === null || now() >= link.codeExpires) {
-      link.code = randomCode()
-      link.codeExpires = now() + CODE_TTL_MS
-      log(`session ${short(link.id)}: waiting for a WarpCad tab to pair (a code was issued)`)
-    }
-    return link.code
+  function route() {
+    const active = enabledTabs()
+    return !closed && links.size === 1 && active.length === 1 ? { link: [...links.values()][0], tab: active[0][0] } : null
   }
 
   /** @param {Link} link @param {BridgeOutcome} outcome */
@@ -172,17 +142,38 @@ export function createBridge(options = {}) {
     flight.resolve(outcome)
   }
 
+  function refreshStatus() {
+    const active = enabledTabs()
+    const ambiguous = active.length > 1 || (active.length === 1 && links.size > 1)
+    const routed = route()
+    for (const link of links.values()) {
+      const nextTab = routed?.link === link ? routed.tab : null
+      if (link.tab !== null && link.tab !== nextTab) settle(link, { kind: 'refused', text: DROPPED })
+      link.tab = nextTab
+    }
+    for (const [tab, state] of tabs) {
+      const access = state.expired ? 'expired' : state.lease === null ? 'off' : 'enabled'
+      const reason = ambiguous
+        ? 'More than one MCP client or enabled tab is connected; calls are refused until there is only one.'
+        : access === 'expired'
+          ? 'Live MCP access expired.'
+          : access === 'off'
+            ? 'Live MCP access is off.'
+            : ''
+      try {
+        tab.send({ type: 'status', access, expiresAt: state.expiresAt, connection: ambiguous ? 'ambiguous' : routed?.tab === tab ? 'connected' : 'idle', reason })
+      } catch {
+        // A disconnected HMR client is removed by the socket close event.
+      }
+    }
+  }
+
   /** @param {Link} link @param {string} reason */
   function unpair(link, reason) {
-    const tab = link.tab
-    if (tab === null) return
+    if (link.tab === null) return
     link.tab = null
     settle(link, { kind: 'refused', text: DROPPED })
-    try {
-      tab.send({ type: 'unpaired', reason })
-    } catch {
-      // The tab is already gone.
-    }
+    log(`session ${short(link.id)}: route closed (${reason})`)
   }
 
   /**
@@ -192,8 +183,14 @@ export function createBridge(options = {}) {
    */
   function forward(link, call) {
     if (closed) return Promise.resolve({ kind: 'refused', text: 'The WarpCad dev server is shutting down.' })
-    const tab = link.tab
-    if (tab === null) return Promise.resolve({ kind: 'refused', text: instructionSentence(currentCode(link), call.name) })
+    const routed = route()
+    const active = enabledTabs()
+    const access = active.length > 0 ? 'enabled' : [...tabs.values()].some((state) => state.expired) ? 'expired' : 'off'
+    const ambiguous = active.length > 1 || (active.length > 0 && links.size > 1)
+    if (routed === null || routed.link !== link) {
+      return Promise.resolve({ kind: 'refused', text: routeRefusal(access, ambiguous ? 'ambiguous' : 'idle', call.name) })
+    }
+    const tab = routed.tab
     const id = nextCallId++
     return new Promise((resolve) => {
       const timer = setTimer(() => {
@@ -213,44 +210,37 @@ export function createBridge(options = {}) {
     })
   }
 
-  /** @param {BridgeTab} tab @param {string} typed */
-  function pair(tab, typed) {
-    const tries = attempts.get(tab) ?? 0
-    if (tries >= MAX_PAIR_ATTEMPTS) {
-      tab.send({ type: 'pair-refused', reason: 'Too many wrong codes. Reload WarpCad, then ask Claude Code for a new code.' })
-      return
+  /** @param {BridgeTab} tab @param {'15m' | '1h' | 'tab' | 'unlimited' | 'off'} lease */
+  function setAccess(tab, lease) {
+    const state = tabs.get(tab)
+    if (state === undefined || closed || !ACCESS_LEASES.includes(lease)) return
+    clearTimer(state.timer)
+    state.timer = null
+    state.expired = false
+    state.lease = lease === 'off' ? null : lease
+    state.expiresAt = lease === '15m' ? now() + LEASE_MS['15m'] : lease === '1h' ? now() + LEASE_MS['1h'] : null
+    if (state.expiresAt !== null) {
+      const expectedExpiry = state.expiresAt
+      state.timer = setTimer(() => {
+        if (state.expiresAt !== expectedExpiry || now() < expectedExpiry) return
+        state.lease = null
+        state.expired = true
+        state.timer = null
+        const activeLink = [...links.values()].find((link) => link.tab === tab)
+        if (activeLink !== undefined) unpair(activeLink, 'Live MCP access expired.')
+        refreshStatus()
+      }, Math.max(0, state.expiresAt - now()))
     }
-    const code = normaliseCode(typed)
-    const link =
-      closed || code === null ? undefined : [...links.values()].find((candidate) => candidate.code === code && now() < candidate.codeExpires)
-    if (link === undefined) {
-      attempts.set(tab, tries + 1)
-      log('a pairing attempt was refused')
-      tab.send({
-        type: 'pair-refused',
-        reason: 'That code is not right, has been used, or has expired. Ask Claude Code for a new one: it gives you a code when it next tries to change the project.',
-      })
-      return
-    }
-    // Single use: it is gone the moment it works.
-    link.code = null
-    const previous = linkOfTab(tab)
-    if (previous !== undefined && previous !== link) {
-      previous.tab = null
-      settle(previous, { kind: 'refused', text: DROPPED })
-    }
-    if (link.tab !== null && link.tab !== tab) unpair(link, 'Another WarpCad tab connected to this Claude Code session.')
-    link.tab = tab
-    attempts.delete(tab)
-    log(`session ${short(link.id)}: a WarpCad tab paired`)
-    tab.send({ type: 'paired' })
+    log(`tab access ${state.lease === null ? 'disabled' : `enabled (${lease})`}`)
+    refreshStatus()
   }
 
   return {
     openLink(linkId) {
       if (links.has(linkId)) return
-      links.set(linkId, { id: linkId, code: null, codeExpires: 0, tab: null, queue: Promise.resolve(), inFlight: null })
+      links.set(linkId, { id: linkId, tab: null, queue: Promise.resolve(), inFlight: null })
       log(`session ${short(linkId)}: opened`)
+      refreshStatus()
     },
 
     closeLink(linkId) {
@@ -259,12 +249,13 @@ export function createBridge(options = {}) {
       unpair(link, 'Claude Code ended this session.')
       links.delete(linkId)
       log(`session ${short(linkId)}: closed`)
+      refreshStatus()
     },
 
     call(linkId, call) {
       const link = links.get(linkId)
       if (link === undefined) {
-        return Promise.resolve({ kind: 'refused', text: 'This MCP session is not known to the WarpCad bridge. Reconnect the warpcad server (/mcp in Claude Code).' })
+        return Promise.resolve({ kind: 'refused', text: 'This MCP session is not known to the WarpCad bridge. Reconnect the WarpCad MCP server.' })
       }
       const next = link.queue.then(() => forward(link, call))
       link.queue = next.catch(() => undefined)
@@ -274,23 +265,33 @@ export function createBridge(options = {}) {
     tabMessage(tab, data) {
       const message = parseTabMessage(data)
       if (message === null) return
-      if (message.type === 'pair') {
-        pair(tab, message.code)
+      if (message.type === 'hello') {
+        if (!tabs.has(tab)) tabs.set(tab, { lease: null, expiresAt: null, expired: false, timer: null })
+        refreshStatus()
+        return
+      }
+      if (message.type === 'access') {
+        setAccess(tab, message.lease)
         return
       }
       if (message.type === 'result') {
-        const link = linkOfTab(tab)
+        const link = [...links.values()].find((candidate) => candidate.tab === tab)
         if (link === undefined || link.inFlight?.id !== message.id) return
         settle(link, { kind: 'result', result: message.result })
       }
     },
 
     tabDisconnected(tab) {
-      const link = linkOfTab(tab)
-      if (link === undefined) return
-      link.tab = null
-      log(`session ${short(link.id)}: its WarpCad tab disconnected`)
-      settle(link, { kind: 'refused', text: DROPPED })
+      const state = tabs.get(tab)
+      if (state !== undefined) clearTimer(state.timer)
+      tabs.delete(tab)
+      for (const link of links.values()) {
+        if (link.tab !== tab) continue
+        link.tab = null
+        log(`session ${short(link.id)}: its WarpCad tab disconnected`)
+        settle(link, { kind: 'refused', text: DROPPED })
+      }
+      refreshStatus()
     },
 
     linkState(linkId) {
@@ -302,9 +303,10 @@ export function createBridge(options = {}) {
     close() {
       closed = true
       for (const link of links.values()) {
-        link.code = null
         unpair(link, 'The WarpCad dev server stopped.')
       }
+      for (const state of tabs.values()) clearTimer(state.timer)
+      tabs.clear()
       log('bridge closed')
     },
   }

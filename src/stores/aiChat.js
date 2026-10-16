@@ -90,19 +90,23 @@ export const useAiChatStore = defineStore('aiChat', () => {
 
   /**
    * `TODO/ai-012`: the live bridge. `unavailable` — this copy was not started with `npm run dev`;
-   * `idle` — never connected; `waiting` — a code was sent, no answer yet; `connected`;
-   * `disconnected` — the link dropped (reconnect with a new code).
+  * `idle` — the initial host status is pending; `off` — access is off; `enabled` — a lease is active;
+  * `connected` — one client and tab route;
+  * `ambiguous` — the host refuses multiple possible clients or tabs;
+  * `expired` — a timed lease ended; `disconnected` — the dev-server socket dropped.
    *
-   * @type {import('vue').Ref<'unavailable' | 'idle' | 'waiting' | 'connected' | 'disconnected'>}
+  * @type {import('vue').Ref<'unavailable' | 'idle' | 'off' | 'enabled' | 'connected' | 'ambiguous' | 'expired' | 'disconnected'>}
    */
-  const bridge = ref(/** @type {'unavailable' | 'idle' | 'waiting' | 'connected' | 'disconnected'} */ ('idle'))
-  /** The last thing the bridge said to the user (a refused code, why it dropped), or ''. */
+  const bridge = ref(/** @type {'unavailable' | 'idle' | 'off' | 'enabled' | 'connected' | 'ambiguous' | 'expired' | 'disconnected'} */ ('idle'))
+  /** The last thing the live MCP host said (off/expired/ambiguous), or ''. */
   const bridgeMessage = ref('')
-  /** A Claude Code call is running in this tab (held briefly after, so it can be seen). */
+  /** Host-clock expiry timestamp for a timed lease, or null for tab/unlimited. */
+  const bridgeExpiresAt = ref(/** @type {number | null} */ (null))
+  /** An MCP call is running in this tab (held briefly after, so it can be seen). */
   const bridgeWorking = ref(false)
-  /** Landed Claude Code groups that **Undo AI turn** can still take back. */
+  /** Landed MCP groups that **Undo AI turn** can still take back. */
   const bridgeTurns = ref(0)
-  /** Which AI change landed last: an in-app turn, a Claude Code group, or a browser agent's (`ai-021`). */
+  /** Which AI change landed last: an in-app turn, an MCP group, or a browser agent's (`ai-021`). */
   const lastLanded = ref(/** @type {'ai' | 'mcp' | 'webmcp'} */ ('ai'))
   /** Who the running tab-endpoint call belongs to, for the working chip's words. */
   const workingOrigin = ref(/** @type {'mcp' | 'webmcp'} */ ('mcp'))
@@ -207,6 +211,7 @@ export const useAiChatStore = defineStore('aiChat', () => {
     attaching,
     bridge,
     bridgeMessage,
+    bridgeExpiresAt,
     bridgeWorking,
     bridgeTurns,
     lastLanded,

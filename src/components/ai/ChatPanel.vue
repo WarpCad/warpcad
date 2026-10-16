@@ -22,10 +22,9 @@
  * Assistant's fork read-only in the amber preview (`stores/timeline.js`); off, or the turn ending,
  * returns to the live project. The user is never paused: every other control works during a turn.
  *
- * **Claude Code** (`TODO/ai-012`): the live bridge's chip sits on the status line too
- * (`BridgeChip`), and **Connect to Claude Code…** beside **Key and model…** (`ConnectButton`;
- * on a phone or tablet it is shown disabled with its reason on the key sheet instead, so the
- * half-height sheet keeps Send in view). Claude Code's changes land in the live project as
+ * **Live MCP access** (`TODO/ai-023`): the live bridge's chip sits on the status line too
+ * (`BridgeChip`), and the lease control sits beside **Key and model…** (`ConnectButton`). Any
+ * local MCP client's changes land in the live project as
  * `mcp` rows; **Undo AI turn** takes back whichever AI change landed last.
  *
  * **Browser agents** (`TODO/ai-021`): where the browser has WebMCP, the header carries the
@@ -207,7 +206,7 @@ const HEIGHTS = /** @type {const} */ ([
           <span data-testid="assistant-connection-text">{{ assistant.statusText }}</span>
         </p>
         <p class="chat__model">
-          <template v-if="!assistant.claudeCodeOnly && !assistant.browserAgentOnly">Model: <strong data-testid="assistant-model-name">{{ assistant.modelName }}</strong></template>
+          <template v-if="!assistant.mcpOnly && !assistant.browserAgentOnly">Model: <strong data-testid="assistant-model-name">{{ assistant.modelName }}</strong></template>
           <button v-if="!assistant.scripted" type="button" class="chat__link" data-testid="assistant-keys" @click="assistant.openKeySheet()">Key and model…</button>
           <ConnectButton testid="ai-connect-open" only-where-usable />
           <!-- Help for the Assistant (`TODO/ui-061`): at the end of the Model line, not in the header,

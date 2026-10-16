@@ -26,7 +26,7 @@ const picker = ref(null)
 function onKeydown(event) {
   if (event.key !== 'Enter' || event.shiftKey || event.isComposing) return
   event.preventDefault()
-  if (assistant.claudeCodeOnly || assistant.browserAgentOnly) return
+  if (assistant.mcpOnly || assistant.browserAgentOnly) return
   void agent.send()
 }
 
@@ -40,9 +40,9 @@ async function onPicked(event) {
 </script>
 
 <template>
-  <form class="composer" :class="{ 'composer--keyless': assistant.browserAgentOnly }" data-testid="ai-composer" @submit.prevent="assistant.claudeCodeOnly || assistant.browserAgentOnly || agent.send()">
-    <p v-if="assistant.claudeCodeOnly" class="composer__pending" role="status" data-testid="ai-composer-reason">
-      This box is off while Claude Code is connected: type your request in Claude Code and it appears here and in the viewport. To type here instead, add an API key under <strong>Key and model…</strong>.
+  <form class="composer" :class="{ 'composer--keyless': assistant.browserAgentOnly }" data-testid="ai-composer" @submit.prevent="assistant.mcpOnly || assistant.browserAgentOnly || agent.send()">
+    <p v-if="assistant.mcpOnly" class="composer__pending" role="status" data-testid="ai-composer-reason">
+      This box is off while {{ chat.bridge === 'connected' ? 'an MCP agent is connected' : 'live MCP access is enabled' }}. Make requests in your MCP client; changes appear here and in the viewport. To type here instead, add an API key under <strong>Key and model…</strong>.
     </p>
     <p v-else-if="assistant.browserAgentOnly" class="composer__pending" role="status" data-testid="ai-composer-reason">
       This box needs an API key (add one under <strong>Key and model…</strong>). Without one, ask the agent in your browser.
@@ -70,7 +70,7 @@ async function onPicked(event) {
         data-testid="ai-attach"
         aria-label="Attach image"
         title="Attach image"
-        :disabled="chat.running || assistant.claudeCodeOnly || assistant.browserAgentOnly"
+        :disabled="chat.running || assistant.mcpOnly || assistant.browserAgentOnly"
         @click="picker?.click()"
       >
         📎
@@ -92,7 +92,7 @@ async function onPicked(event) {
         placeholder="Ask for a part or a change…"
         aria-label="Message the assistant"
         data-testid="ai-input"
-        :disabled="assistant.claudeCodeOnly || assistant.browserAgentOnly"
+        :disabled="assistant.mcpOnly || assistant.browserAgentOnly"
         @keydown="onKeydown"
       />
       <button
@@ -109,7 +109,7 @@ async function onPicked(event) {
         type="submit"
         class="composer__button composer__button--send"
         data-testid="ai-send"
-        :disabled="!chat.canSend || assistant.claudeCodeOnly || assistant.browserAgentOnly"
+        :disabled="!chat.canSend || assistant.mcpOnly || assistant.browserAgentOnly"
       >
         Send
       </button>

@@ -123,14 +123,14 @@ describe('the assistant store', () => {
     expect(assistant.view).toBe('key')
   })
 
-  it('TODO/ai-020: with no key and Claude Code connected, the panel says Claude Code is editing, not "paste a key"', async () => {
+  it('TODO/ai-020: with no key and an MCP agent connected, the panel does not ask for a key', async () => {
     install()
     const assistant = useAssistantStore()
     await assistant.start()
     useAiChatStore().bridge = 'connected'
     expect(assistant.hasKey).toBe(false)
-    expect(assistant.claudeCodeOnly).toBe(true)
-    expect(assistant.statusText).toMatch(/Claude Code is editing/)
+    expect(assistant.mcpOnly).toBe(true)
+    expect(assistant.statusText).toMatch(/MCP agent is connected/)
     expect(assistant.statusText).not.toMatch(/key/i)
     expect(assistant.dotState).toBe('ok')
     assistant.openKeySheet()
@@ -142,17 +142,20 @@ describe('the assistant store', () => {
     install()
     const assistant = useAssistantStore()
     await assistant.start()
-    for (const state of ['idle', 'waiting', 'disconnected', 'unavailable']) {
+    for (const state of ['idle', 'expired', 'disconnected', 'unavailable']) {
       useAiChatStore().bridge = state
-      expect(assistant.claudeCodeOnly).toBe(false)
+      expect(assistant.mcpOnly).toBe(false)
       // TODO/ai-021, Decision 13's route table: on the dev host the bridge is a route too, so the
       // bare "paste one" line is only the built/hosted copy's, where a key is the only way in.
       if (state === 'unavailable') expect(assistant.statusText).toBe('No key — paste one to connect')
-      else expect(assistant.statusText).toBe('No key — paste one, or connect Claude Code')
+      else expect(assistant.statusText).toBe('No key — paste one, or enable live MCP access')
     }
+    useAiChatStore().bridge = 'enabled'
+    expect(assistant.mcpOnly).toBe(true)
+    expect(assistant.statusText).toMatch(/Live MCP access is enabled/)
     useAiChatStore().bridge = 'connected'
     await assistant.saveKey(KEY)
-    expect(assistant.claudeCodeOnly).toBe(false)
+    expect(assistant.mcpOnly).toBe(false)
     expect(assistant.statusText).toMatch(/connected — /i)
   })
 
@@ -210,7 +213,7 @@ describe('the assistant store', () => {
       chat.bridge = 'idle'
       chat.webMcp = 'on'
       expect(assistant.statusText).toMatch(/browser agent/)
-      expect(assistant.statusText).toMatch(/Claude Code/)
+      expect(assistant.statusText).toMatch(/local MCP agent/)
     })
 
     it('a key wins: with one stored nothing about WebMCP changes the connected line', async () => {
@@ -223,16 +226,16 @@ describe('the assistant store', () => {
       expect(assistant.statusText).toMatch(/connected — /i)
     })
 
-    it('Claude Code connected wins over WebMCP for the no-key line (ai-020 unchanged)', async () => {
+    it('live MCP access wins over WebMCP for the no-key line (ai-020 unchanged)', async () => {
       install()
       const assistant = useAssistantStore()
       await assistant.start()
       const chat = useAiChatStore()
       chat.webMcp = 'on'
       chat.bridge = 'connected'
-      expect(assistant.claudeCodeOnly).toBe(true)
+      expect(assistant.mcpOnly).toBe(true)
       expect(assistant.browserAgentOnly).toBe(false)
-      expect(assistant.statusText).toMatch(/Claude Code is editing/)
+      expect(assistant.statusText).toMatch(/MCP agent is connected/)
     })
 
     it('Undo AI turn is offered for a landed webmcp group exactly as for an mcp one', async () => {

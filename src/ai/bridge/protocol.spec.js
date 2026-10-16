@@ -1,44 +1,26 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { describe, expect, it } from 'vitest'
 
-import {
-  CODE_ALPHABET,
-  CODE_LENGTH,
-  formatCode,
-  normaliseCode,
-  parseHostMessage,
-  parseTabMessage,
-} from './protocol.js'
+import { ACCESS_LEASES, parseHostMessage, parseTabMessage } from './protocol.js'
 
-describe('pairing codes', () => {
-  it('are 8 characters from an alphabet with no look-alikes (0/O, 1/I/L)', () => {
-    expect(CODE_LENGTH).toBe(8)
-    for (const confusable of ['0', 'O', '1', 'I', 'L']) expect(CODE_ALPHABET).not.toContain(confusable)
-  })
-
-  it('are shown in two halves and read back however they were typed', () => {
-    expect(formatCode('K7Q4FX2M')).toBe('K7Q4-FX2M')
-    expect(normaliseCode(' k7q4-fx2m ')).toBe('K7Q4FX2M')
-    expect(normaliseCode('K7Q4 FX2M')).toBe('K7Q4FX2M')
-  })
-
-  it('reads anything that is not code-shaped as no code at all', () => {
-    expect(normaliseCode('K7Q4')).toBeNull()
-    expect(normaliseCode('K7Q4FX2M9')).toBeNull()
-    expect(normaliseCode('K7Q0FX2M')).toBeNull()
-    expect(normaliseCode(42)).toBeNull()
+describe('live MCP access leases', () => {
+  it('allows only the four consented durations plus explicit off', () => {
+    expect(ACCESS_LEASES).toEqual(['15m', '1h', 'tab', 'unlimited', 'off'])
   })
 })
 
 describe('message shapes', () => {
-  it('accepts the tab’s three messages and nothing else', () => {
+  it('accepts hello, valid lease changes, and results, but no legacy pairing code', () => {
     expect(parseTabMessage({ type: 'hello' })).toEqual({ type: 'hello' })
-    expect(parseTabMessage({ type: 'pair', code: 'k7q4-fx2m' })).toEqual({ type: 'pair', code: 'k7q4-fx2m' })
+    expect(parseTabMessage({ type: 'access', lease: '15m' })).toEqual({ type: 'access', lease: '15m' })
+    expect(parseTabMessage({ type: 'access', lease: 'off' })).toEqual({ type: 'access', lease: 'off' })
+    expect(parseTabMessage({ type: 'access', lease: 'invalid' })).toBeNull()
+    expect(parseTabMessage({ type: 'pair', code: 'k7q4-fx2m' })).toBeNull()
     expect(parseTabMessage({ type: 'result', id: 3, result: { applied: [] } })).toEqual({ type: 'result', id: 3, result: { applied: [] } })
     expect(parseTabMessage({ type: 'result', id: '3', result: {} })).toBeNull()
     expect(parseTabMessage({ type: 'result', id: 3, result: null })).toBeNull()
     expect(parseTabMessage({ type: 'call', id: 1, name: 'create', input: {} })).toBeNull()
-    expect(parseTabMessage('pair')).toBeNull()
+    expect(parseTabMessage('access')).toBeNull()
     expect(parseTabMessage(null)).toBeNull()
   })
 
@@ -54,9 +36,13 @@ describe('message shapes', () => {
     expect(parseHostMessage({ type: 'call', id: 'x', name: 'create', input: {} })).toBeNull()
     expect(parseHostMessage({ type: 'call', id: 1, name: '', input: {} })).toBeNull()
     expect(parseHostMessage({ type: 'call', id: 1, name: 'create', input: {}, request: 7 })).toBeNull()
-    expect(parseHostMessage({ type: 'paired' })).toEqual({ type: 'paired' })
-    expect(parseHostMessage({ type: 'pair-refused', reason: 'wrong' })).toEqual({ type: 'pair-refused', reason: 'wrong' })
-    expect(parseHostMessage({ type: 'unpaired', reason: 'gone' })).toEqual({ type: 'unpaired', reason: 'gone' })
+    expect(parseHostMessage({ type: 'status', access: 'enabled', expiresAt: 123, connection: 'connected', reason: '' })).toEqual({
+      type: 'status', access: 'enabled', expiresAt: 123, connection: 'connected', reason: '',
+    })
+    expect(parseHostMessage({ type: 'status', access: 'enabled', expiresAt: NaN, connection: 'connected', reason: '' })).toBeNull()
+    expect(parseHostMessage({ type: 'status', access: 'enabled', expiresAt: null, connection: 'ambiguous', reason: 'busy' })).toMatchObject({ connection: 'ambiguous' })
+    expect(parseHostMessage({ type: 'paired' })).toBeNull()
+    expect(parseHostMessage({ type: 'pair-refused', reason: 'wrong' })).toBeNull()
     expect(parseHostMessage({ type: 'nonsense' })).toBeNull()
   })
 })

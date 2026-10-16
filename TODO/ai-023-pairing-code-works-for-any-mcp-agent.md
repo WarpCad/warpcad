@@ -37,12 +37,11 @@ agent is shown.
 - **Feedback**: the bridge chip reads `connected` while a client is using the enabled tab and
   reports when access is off or expired. Calls are refused if more than one client or tab would
   make routing ambiguous.
-  **Small-screen behavior**: same as desktop. The access control is reachable from the header at
-  phone width.
 - **Placement**: n/a (no geometry).
 - **Selection response**: n/a.
 - **Selection count**: n/a.
-- **Small-screen behavior**: same as desktop. The sheet is reachable from the header at phone width.
+- **Small-screen behavior**: same as desktop. The access control is reachable from the header at
+  phone width.
 
 ## Decision recorded (2026-10-16)
 
@@ -68,21 +67,25 @@ what Copilot receives or why its setup failed.
 
 ## Documentation
 
-- **Page**: `docs/mcp.md`, section *Live mode: Claude Code edits the project you have open*. Add
-  a short subsection *Using another agent (Copilot)* that names the agent-neutral steps, explains
-  the timed live-access switch and its local-machine scope, and changes the table's "Claude Code"
-  wording where it applies to any MCP client.
+- **Page**: `docs/mcp.md`, section *Live mode: an MCP agent edits the project you have open*
+  (line 161). Add a short subsection *Using another agent (Copilot)* that names the agent-neutral
+  steps, explains the timed live-access switch and its local-machine scope, and changes the
+  table's "Claude Code" wording where it applies to any MCP client.
 - **Example**: "Run `npm run dev` and register WarpCad with your agent using the command printed by
   `npm run mcp:add -- --live --dev`. In WarpCad, enable live MCP access for 15 minutes. In your
   agent, ask it to connect to WarpCad. The header reports the connected MCP agent."
-- **Media**: none. The sheet is covered by the existing `e2e/docs/` shot for the connect sheet;
-  update it only if the wording changes the picture (`npm run docs:screenshots:update`).
+- **Media**: `e2e/docs/ai-live-bridge.docs.js` already shoots `ai-live-bridge.png` (embedded in
+  `docs/mcp.md`). Re-run `npm run docs:media` once the enable control is in place, so the picture
+  shows the new switch, and confirm the embed still resolves (`e2e/docs-media.spec.js`).
 
 ## Affected files
 
 - `mcp/bridge.js`: replace code pairing with timed access leases, fail-closed tab/session routing,
   and agent-neutral connection status.
 - `mcp/liveBridge.js`, `mcp/liveHttp.js`: the dev host's HTTP MCP endpoint and Origin gate.
+- `docs/decisions/ai-partner.md`: record the amendment to Decision 11 point 5 (the pairing code is
+  replaced by timed access). The decision is the user's; the record must say so and the date.
+- `e2e/docs/ai-live-bridge.docs.js`: update the shot's steps for the enable control.
 - `src/ai/bridge/protocol.js`: access-enable, expiry, and connection-status messages; remove the
   pairing-code message.
 - `src/composables/useLiveBridge.js`, `src/components/ai/ConnectClaudeCode.vue`,

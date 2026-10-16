@@ -3,7 +3,7 @@
  * The open tab's **one** tool endpoint (`src/ai/bridge/tabEndpoint.js`), wired to the live
  * document and the chat store, shared by every transport that runs in this tab: the dev-host live
  * bridge (`TODO/ai-012`, `useLiveBridge.js`) and WebMCP (`TODO/ai-021`, `useWebMcp.js`). Holding one
- * instance is the point — Decision 13 point 2 — so a browser agent's call and a Claude Code call
+ * instance is the point — Decision 13 point 2 — so a browser agent's call and an MCP client call
  * share one serial queue, one mid-gesture wait and one stale check, and can never interleave.
  *
  * Extracted from `useLiveBridge.js` without changing what the bridge does: the endpoint is built
@@ -28,7 +28,7 @@ import { useTransformPreviewStore } from '../stores/transformPreview.js'
 const WORKING_LINGER_MS = 1500
 
 /** Who the undo notice names, by the origin of the group it took back. */
-const WHO = Object.freeze({ mcp: 'Claude Code', webmcp: 'the browser agent' })
+const WHO = Object.freeze({ mcp: 'MCP agent', webmcp: 'browser agent' })
 
 /** @type {import('../ai/bridge/tabEndpoint.js').TabEndpoint | null} */
 let endpoint = null
@@ -129,8 +129,8 @@ export async function runOnTab(call, options = {}) {
 }
 
 /**
- * **Undo AI turn** when the last AI change was a group landed through the tab endpoint (Claude
- * Code over the bridge, or a browser agent over WebMCP): the merge inverse under that group's
+ * **Undo AI turn** when the last AI change was a group landed through the tab endpoint (an MCP
+ * client over the bridge, or a browser agent over WebMCP): the merge inverse under that group's
  * origin, never the local undo stack.
  *
  * @returns {void}

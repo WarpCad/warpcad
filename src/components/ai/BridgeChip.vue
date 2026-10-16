@@ -1,9 +1,8 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <script setup>
 /**
- * The live bridge's state in the Assistant header (`TODO/ai-012`): *Claude Code · connected*,
- * *waiting for Claude Code*, or *disconnected — reconnect*. Shown once a connection has been
- * tried; a tap opens **Connect to Claude Code** (to reconnect with a new code, or to read why).
+ * The live MCP access state in the Assistant header. A tap opens the lease controls and any
+ * current routing refusal.
  */
 import { computed } from 'vue'
 
@@ -14,9 +13,12 @@ const chat = useAiChatStore()
 const assistant = useAssistantStore()
 
 const label = computed(() => {
-  if (chat.bridge === 'connected') return 'Claude Code · connected'
-  if (chat.bridge === 'waiting') return 'waiting for Claude Code'
-  if (chat.bridge === 'disconnected') return 'disconnected — reconnect'
+  if (chat.bridge === 'connected') return 'MCP agent · connected'
+  if (chat.bridge === 'off') return 'MCP access · off'
+  if (chat.bridge === 'enabled') return 'MCP access · enabled'
+  if (chat.bridge === 'ambiguous') return 'MCP routing · ambiguous'
+  if (chat.bridge === 'expired') return 'MCP access · expired'
+  if (chat.bridge === 'disconnected') return 'MCP connection · disconnected'
   return ''
 })
 </script>
@@ -28,7 +30,7 @@ const label = computed(() => {
     class="bridge-chip"
     :data-state="chat.bridge"
     data-testid="ai-bridge-chip"
-    :title="chat.bridgeMessage || 'Connect to Claude Code'"
+    :title="chat.bridgeMessage || 'Live MCP access'"
     @click="assistant.openConnect()"
   >
     <span class="bridge-chip__dot" aria-hidden="true" />{{ label }}
@@ -70,6 +72,12 @@ const label = computed(() => {
 }
 
 .bridge-chip[data-state='disconnected'] .bridge-chip__dot {
+  background: var(--warn);
+}
+
+.bridge-chip[data-state='ambiguous'] .bridge-chip__dot,
+.bridge-chip[data-state='expired'] .bridge-chip__dot,
+.bridge-chip[data-state='off'] .bridge-chip__dot {
   background: var(--warn);
 }
 </style>

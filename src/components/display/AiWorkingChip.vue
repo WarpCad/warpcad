@@ -6,7 +6,7 @@
  * own status line may be folded away or shut. Read-only: the panel's **Watch** and **Stop** are the
  * controls. At ≤ 640 px it collapses to its dot, keeping the same accessible name.
  *
- * `TODO/ai-012`: also while a Claude Code call runs in this tab over the live bridge — the "AI is
+ * `TODO/ai-012`: also while an MCP client call runs in this tab over the live bridge — the "AI is
  * working" state Decision 11 asks for — worded for who is working. `TODO/ai-021`: and while a
  * browser agent's WebMCP call runs, on the same endpoint.
  */
@@ -17,11 +17,11 @@ import { useAiChatStore } from '../../stores/aiChat.js'
 const chat = useAiChatStore()
 const who = computed(() => {
   if (chat.running) return 'Assistant working'
-  return chat.workingOrigin === 'webmcp' ? 'Browser agent working' : 'Claude Code working'
+  return chat.workingOrigin === 'webmcp' ? 'Browser agent working' : 'MCP agent working'
 })
 const detail = computed(() => {
   if (chat.running) return 'Assistant working — keep editing; its changes land when it finishes'
-  const agent = chat.workingOrigin === 'webmcp' ? 'A browser agent' : 'Claude Code'
+  const agent = chat.workingOrigin === 'webmcp' ? 'A browser agent' : 'An MCP agent'
   return `${agent} is changing this project — each change lands as it finishes`
 })
 </script>

@@ -2,11 +2,10 @@
 import { request as httpRequest, createServer } from 'node:http'
 import { afterEach, describe, expect, it } from 'vitest'
 
-import { CODE_ALPHABET, formatCode } from '../src/ai/bridge/protocol.js'
 import { createBridge, createRequestGate, devAllowList } from './bridge.js'
 
 /**
- * The live bridge's host core (`TODO/ai-012`, Decision 11): pairing, origin gate, the call queue,
+ * The live bridge's host core (`TODO/ai-012`, Decision 11): timed access, origin gate, the call queue,
  * timeouts, and the tab dropping mid-call. Framework-free and transport-free — the Vite plugin
  * (`mcp/liveBridge.js`) is the thin host that wires it to HTTP and Vite's HMR socket. Here a "tab"
  * is a plain object with a `send`, which is all the core ever sees of one.
@@ -18,12 +17,9 @@ function harness(options = {}) {
   const logs = []
   /** @type {Array<{ ms: number, fn: () => void, cleared: boolean }>} */
   const timers = []
-  let codes = 0
   const bridge = createBridge({
     now: () => t,
     log: (line) => logs.push(line),
-    // Distinct, alphabet-valid codes, so a test can tell one from the next.
-    randomCode: () => ['K7Q4FX2M', 'HJ3NPR8W', 'ZX9CVB2N', 'MN4PQR7S'][codes++ % 4],
     setTimer: (fn, ms) => {
       const timer = { ms, fn, cleared: false }
       timers.push(timer)
@@ -53,131 +49,82 @@ function fakeTab() {
   return { inbox, send: (/** @type {any} */ message) => inbox.push(message) }
 }
 
-/** @param {{ kind: string, text?: string }} outcome */
-function codeIn(outcome) {
-  const match = /\b([A-Z2-9]{4})-([A-Z2-9]{4})\b/.exec(outcome.text ?? '')
-  return match ? `${match[1]}${match[2]}` : null
-}
-
 const flush = () => new Promise((resolve) => setImmediate(resolve))
 
-describe('createBridge: no tab yet', () => {
-  it('answers a call with the instruction sentence carrying an 8-character code, not a hang', async () => {
+/** @param {{ bridge: import('./bridge.js').Bridge }} h @param {ReturnType<typeof fakeTab>} tab @param {string} lease */
+function enable(h, tab, lease = 'tab') {
+  h.bridge.tabMessage(tab, { type: 'hello' })
+  h.bridge.tabMessage(tab, { type: 'access', lease })
+}
+
+describe('createBridge: explicit access leases', () => {
+  it('refuses calls while access is off and does not create or return a pairing code', async () => {
     const { bridge } = harness()
     bridge.openLink('s1')
-    const outcome = await bridge.call('s1', { name: 'create', input: {} })
-    expect(outcome.kind).toBe('refused')
-    const code = codeIn(outcome)
-    expect(code).toHaveLength(8)
-    for (const char of /** @type {string} */ (code)) expect(CODE_ALPHABET).toContain(char)
-    expect(/** @type {any} */ (outcome).text).toMatch(/Assistant → Connect to Claude Code/)
-    expect(/** @type {any} */ (outcome).text).toMatch(/npm run dev/)
-    expect(/** @type {any} */ (outcome).text).toMatch(/5 minutes/)
-    // Asked again while it is still valid: the same code, not a new one each call.
-    expect(codeIn(await bridge.call('s1', { name: 'describe_scene', input: {} }))).toBe(code)
-  })
-
-  it('refuses a call on a link that was never opened, in words', async () => {
-    const { bridge } = harness()
-    const outcome = await bridge.call('nope', { name: 'create', input: {} })
-    expect(outcome).toMatchObject({ kind: 'refused' })
-    expect(codeIn(outcome)).toBeNull()
-  })
-})
-
-describe('createBridge: pairing', () => {
-  it('pairs a tab that sends the right code (any case, with or without the hyphen), then forwards calls to it', async () => {
-    const { bridge } = harness()
-    bridge.openLink('s1')
-    const code = /** @type {string} */ (codeIn(await bridge.call('s1', { name: 'create', input: {} })))
     const tab = fakeTab()
-    bridge.tabMessage(tab, { type: 'pair', code: formatCode(code).toLowerCase() })
-    expect(tab.inbox).toEqual([{ type: 'paired' }])
-    expect(bridge.linkState('s1')).toBe('paired')
+    enable({ bridge }, tab)
+    bridge.tabMessage(tab, { type: 'access', lease: 'off' })
+    const outcome = await bridge.call('s1', { name: 'create', input: {} })
+    expect(outcome).toMatchObject({ kind: 'refused', text: expect.stringMatching(/access is off/i) })
+    expect(outcome.kind === 'refused' ? outcome.text : '').not.toMatch(/[A-Z2-9]{4}-[A-Z2-9]{4}/)
+    expect(tab.inbox.at(-1)).toMatchObject({ type: 'status', access: 'off' })
+  })
 
-    const pending = bridge.call('s1', { name: 'create', input: { op: 'primitive.cuboid' }, request: 'a cube' })
+  it.each(['15m', '1h', 'tab', 'unlimited'])('routes calls during the %s lease', async (lease) => {
+    const h = harness()
+    h.bridge.openLink('s1')
+    const tab = fakeTab()
+    enable(h, tab, lease)
+    expect(h.bridge.linkState('s1')).toBe('paired')
+    expect(tab.inbox.at(-1)).toMatchObject({ type: 'status', access: 'enabled', connection: 'connected' })
+    const pending = h.bridge.call('s1', { name: 'create', input: { op: 'primitive.cuboid' }, request: 'a cube' })
     await flush()
     const forwarded = tab.inbox.at(-1)
     expect(forwarded).toMatchObject({ type: 'call', name: 'create', input: { op: 'primitive.cuboid' }, request: 'a cube' })
-    bridge.tabMessage(tab, { type: 'result', id: forwarded.id, result: { applied: [{ bodyId: 'cuboid-x-1' }] } })
+    h.bridge.tabMessage(tab, { type: 'result', id: forwarded.id, result: { applied: [{ bodyId: 'cuboid-x-1' }] } })
     expect(await pending).toEqual({ kind: 'result', result: { applied: [{ bodyId: 'cuboid-x-1' }] } })
   })
 
-  it('refuses a wrong code and keeps the right one usable', async () => {
-    const { bridge } = harness()
-    bridge.openLink('s1')
-    const code = /** @type {string} */ (codeIn(await bridge.call('s1', { name: 'create', input: {} })))
+  it('revokes timed access at expiry and reports the expired state', async () => {
+    const h = harness()
+    h.bridge.openLink('s1')
     const tab = fakeTab()
-    bridge.tabMessage(tab, { type: 'pair', code: 'ABCD-EFGH' })
-    expect(tab.inbox.at(-1)).toMatchObject({ type: 'pair-refused', reason: expect.stringMatching(/code/i) })
-    bridge.tabMessage(tab, { type: 'pair', code })
-    expect(tab.inbox.at(-1)).toEqual({ type: 'paired' })
+    enable(h, tab, '15m')
+    h.advance(15 * 60_000)
+    h.fireTimers()
+    expect(tab.inbox.at(-1)).toMatchObject({ type: 'status', access: 'expired', connection: 'idle' })
+    expect(await h.bridge.call('s1', { name: 'create', input: {} })).toMatchObject({ kind: 'refused', text: expect.stringMatching(/expired/i) })
   })
 
-  it('refuses a reused code: single use', async () => {
-    const { bridge } = harness()
-    bridge.openLink('s1')
-    const code = /** @type {string} */ (codeIn(await bridge.call('s1', { name: 'create', input: {} })))
-    const first = fakeTab()
-    const second = fakeTab()
-    bridge.tabMessage(first, { type: 'pair', code })
-    bridge.tabMessage(second, { type: 'pair', code })
-    expect(first.inbox).toEqual([{ type: 'paired' }])
-    expect(second.inbox.at(-1)).toMatchObject({ type: 'pair-refused' })
-  })
-
-  it('refuses an expired code (5 minutes) and issues a new one on the next call', async () => {
-    const { bridge, advance } = harness()
-    bridge.openLink('s1')
-    const code = /** @type {string} */ (codeIn(await bridge.call('s1', { name: 'create', input: {} })))
-    advance(5 * 60_000 + 1)
+  it('refuses when more than one MCP session or enabled tab makes routing ambiguous', async () => {
+    const h = harness()
+    h.bridge.openLink('s1')
     const tab = fakeTab()
-    bridge.tabMessage(tab, { type: 'pair', code })
-    expect(tab.inbox.at(-1)).toMatchObject({ type: 'pair-refused' })
-    const next = codeIn(await bridge.call('s1', { name: 'create', input: {} }))
-    expect(next).not.toBeNull()
-    expect(next).not.toBe(code)
+    enable(h, tab)
+    h.bridge.openLink('s2')
+    expect(await h.bridge.call('s1', { name: 'create', input: {} })).toMatchObject({ kind: 'refused', text: expect.stringMatching(/more than one MCP client/i) })
+    h.bridge.closeLink('s2')
+    const secondTab = fakeTab()
+    enable(h, secondTab)
+    expect(await h.bridge.call('s1', { name: 'create', input: {} })).toMatchObject({ kind: 'refused', text: expect.stringMatching(/more than one MCP client or enabled WarpCad tab/i) })
   })
 
-  it('stops listening to a tab after five wrong codes, even for the right one', async () => {
+  it('ignores a result from a tab that has not introduced itself', () => {
     const { bridge } = harness()
-    bridge.openLink('s1')
-    const code = /** @type {string} */ (codeIn(await bridge.call('s1', { name: 'create', input: {} })))
-    const tab = fakeTab()
-    for (let attempt = 0; attempt < 5; attempt += 1) bridge.tabMessage(tab, { type: 'pair', code: 'ABCD-EFGH' })
-    bridge.tabMessage(tab, { type: 'pair', code })
-    expect(tab.inbox.at(-1)).toMatchObject({ type: 'pair-refused', reason: expect.stringMatching(/too many/i) })
-    expect(bridge.linkState('s1')).toBe('waiting')
-  })
-
-  it('kills every code when the host closes', async () => {
-    const { bridge } = harness()
-    bridge.openLink('s1')
-    const code = /** @type {string} */ (codeIn(await bridge.call('s1', { name: 'create', input: {} })))
-    bridge.close()
-    const tab = fakeTab()
-    bridge.tabMessage(tab, { type: 'pair', code })
-    expect(tab.inbox.at(-1)).toMatchObject({ type: 'pair-refused' })
-  })
-
-  it('ignores a result from a tab that is not paired', async () => {
-    const { bridge } = harness()
-    bridge.openLink('s1')
     const stranger = fakeTab()
     expect(() => bridge.tabMessage(stranger, { type: 'result', id: 1, result: {} })).not.toThrow()
     expect(() => bridge.tabMessage(stranger, 'garbage')).not.toThrow()
   })
 })
 
-/** Pair a fresh tab to link `s1` and return it. */
+/** Enable a fresh tab for link `s1` and return it. */
 async function paired() {
   const h = harness()
   h.bridge.openLink('s1')
-  const code = /** @type {string} */ (codeIn(await h.bridge.call('s1', { name: 'create', input: {} })))
   const tab = fakeTab()
-  h.bridge.tabMessage(tab, { type: 'pair', code })
+  enable(h, tab)
   tab.inbox.length = 0
-  return { ...h, tab, code }
+  return { ...h, tab }
 }
 
 describe('createBridge: one call at a time', () => {
@@ -197,8 +144,8 @@ describe('createBridge: one call at a time', () => {
     expect(await second).toEqual({ kind: 'result', result: { ok: 2 } })
   })
 
-  it('fails the in-flight call with a readable error when the tab’s socket drops, and asks for a new pairing after', async () => {
-    const { bridge, tab, code } = await paired()
+  it('fails an in-flight call when the tab drops and requires a new explicit lease after reload', async () => {
+    const { bridge, tab } = await paired()
     const pending = bridge.call('s1', { name: 'create', input: {} })
     await flush()
     bridge.tabDisconnected(tab)
@@ -207,9 +154,10 @@ describe('createBridge: one call at a time', () => {
     expect(/** @type {any} */ (outcome).text).toMatch(/closed|reloaded|disconnected/i)
     expect(/** @type {any} */ (outcome).text).toMatch(/get_timeline/)
     expect(bridge.linkState('s1')).toBe('waiting')
-    const again = await bridge.call('s1', { name: 'create', input: {} })
-    expect(codeIn(again)).not.toBeNull()
-    expect(codeIn(again)).not.toBe(code)
+    expect(await bridge.call('s1', { name: 'create', input: {} })).toMatchObject({ kind: 'refused', text: expect.stringMatching(/access is off/i) })
+    const reloaded = fakeTab()
+    enable({ bridge }, reloaded)
+    expect(bridge.linkState('s1')).toBe('paired')
   })
 
   it('times out a call the tab never answers, says so, and ignores a late answer', async () => {
@@ -223,32 +171,32 @@ describe('createBridge: one call at a time', () => {
     expect(() => bridge.tabMessage(tab, { type: 'result', id: tab.inbox[0].id, result: {} })).not.toThrow()
   })
 
-  it('moves a tab to the newest session that pairs it, telling the old one', async () => {
+  it('refuses multiple MCP sessions and restores the route when the extra session closes', async () => {
     const { bridge, tab } = await paired()
     bridge.openLink('s2')
-    const code2 = /** @type {string} */ (codeIn(await bridge.call('s2', { name: 'create', input: {} })))
-    bridge.tabMessage(tab, { type: 'pair', code: code2 })
-    expect(bridge.linkState('s2')).toBe('paired')
+    expect(bridge.linkState('s2')).toBe('waiting')
     expect(bridge.linkState('s1')).toBe('waiting')
+    expect(await bridge.call('s1', { name: 'create', input: {} })).toMatchObject({ kind: 'refused', text: expect.stringMatching(/more than one MCP client/i) })
+    bridge.closeLink('s2')
+    expect(bridge.linkState('s1')).toBe('paired')
   })
 })
 
-describe('createBridge: the code is never written down', () => {
-  it('appears in no log line, and in no result after pairing', async () => {
-    const { bridge, tab, code, logs } = await paired()
+describe('createBridge: no code handshake', () => {
+  it('ignores legacy code-pair messages and never returns a pairing code', async () => {
+    const { bridge, tab, logs } = await paired()
     const pending = bridge.call('s1', { name: 'describe_scene', input: {} })
     await flush()
+    expect(tab.inbox[0]).toMatchObject({ type: 'call', name: 'describe_scene' })
+    bridge.tabMessage(tab, { type: 'pair', code: 'K7Q4-FX2M' })
+    expect(tab.inbox.at(-1)).toMatchObject({ type: 'call' })
     bridge.tabMessage(tab, { type: 'result', id: tab.inbox[0].id, result: { count: 0 } })
     const outcome = await pending
     bridge.tabDisconnected(tab)
     bridge.close()
     expect(logs.length).toBeGreaterThan(0)
-    for (const line of logs) {
-      expect(line).not.toContain(code)
-      expect(line).not.toContain(formatCode(code))
-    }
-    expect(JSON.stringify(outcome)).not.toContain(code)
-    expect(JSON.stringify(outcome)).not.toContain(formatCode(code))
+    expect(JSON.stringify(outcome)).not.toMatch(/[A-Z2-9]{4}-[A-Z2-9]{4}/)
+    expect(logs.join('\n')).not.toMatch(/[A-Z2-9]{4}-[A-Z2-9]{4}/)
   })
 })
 

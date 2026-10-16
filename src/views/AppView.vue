@@ -295,7 +295,7 @@ function onInspectorClaim() {
     <KeySheet />
     <!-- The no-key alternative (TODO/ai-013): the Claude Code route, which a subscription covers. -->
     <SubscriptionRoute />
-    <!-- The live bridge's pairing sheet (TODO/ai-012): Claude Code edits this open project. -->
+    <!-- The live MCP access sheet (TODO/ai-023): a local MCP client edits this open project. -->
     <ConnectClaudeCode />
     <!-- The Save to library… sheet and its "Saved <name>" toast (TODO/ui-055). -->
     <SaveToLibrarySheet />

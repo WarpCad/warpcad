@@ -1,4 +1,4 @@
-# Driving WarpCad from Claude Code (the MCP server)
+# Driving WarpCad from an MCP client (including Claude Code)
 
 WarpCad comes with an **MCP server**: a small program that lets Claude Code, or any other MCP
 client, open a WarpCad project file, read it, and add steps to it. It uses the same tools as the
@@ -8,7 +8,7 @@ The steps it adds show up in the app's History marked **via mcp**, along with wh
 It works on a project **file on your computer**, not on the app while it is running. If the app
 has the same file open, it merges the changes into your open project when you come back to it
 (see [Working on a project you have open](#working-on-a-project-you-have-open)). If you run WarpCad yourself with `npm run dev`, there is
-also a [live mode](#live-mode-claude-code-edits-the-project-you-have-open) where Claude's
+also a [live mode](#live-mode-an-mcp-agent-edits-the-project-you-have-open) where an MCP agent's
 changes appear in the open app as it makes them.
 
 This is also the route for a **Claude Pro or Max subscription**: Claude Code is covered by it,
@@ -24,7 +24,7 @@ limits, and mark what they add in History. With your own API key, you can also t
 | Way in | What it needs | Where it works | Changes appear |
 |---|---|---|---|
 | **Claude Code on a project file** (this page) | Claude Code, a WarpCad checkout with Node.js 24+, a saved `.ndjson` file | Any computer. Chrome or Edge merge the changes into the open project when you switch back; other browsers use **File ▾ → Merge file…** | In the file, marked **via mcp** |
-| **[Live mode](#live-mode-claude-code-edits-the-project-you-have-open)** | Claude Code and WarpCad running under `npm run dev`, a pairing code | A desktop browser on the same computer as Claude Code | In the open tab as they land, marked **via mcp** |
+| **[Live mode](#live-mode-an-mcp-agent-edits-the-project-you-have-open)** | An MCP client and WarpCad running under `npm run dev`; access explicitly enabled in WarpCad | Any browser on the same computer as the local MCP client | In the open tab as they land, marked **via mcp** |
 | **[Browser agents (WebMCP)](webmcp.md)** | Chrome with the WebMCP flag, and an agent that runs in the browser | Any copy of WarpCad, hosted or local, on desktop Chrome | In the open tab as they land, marked **via webmcp** |
 
 ## Try it: add a base plate from Claude Code
@@ -158,18 +158,18 @@ file** writes this project over it, and **Cancel** leaves both alone; the status
 explicit "throw away what I have here, take the file": it asks the same three-answer question,
 and **Reload** drops the edits you have not saved and clears Undo, as after any Open.
 
-## Live mode: Claude Code edits the project you have open
+## Live mode: an MCP agent edits the project you have open
 
-In live mode, Claude Code changes the project **open in a WarpCad tab**, and each change appears
-in the viewport as it lands. No project file, no API key: the model runs in Claude Code on your
-own Claude plan, and WarpCad only supplies the tools.
+In live mode, an MCP client changes the project **open in a WarpCad tab**, and each change appears
+in the viewport as it lands. No project file or API key is needed by WarpCad; the model runs in
+your chosen MCP client, and WarpCad supplies the tools.
 
-**Live mode only works when you run WarpCad yourself with `npm run dev`, in a desktop browser
-on the same computer as Claude Code.** The hosted app can't use it, and neither can a phone or
-tablet: there the **Connect to Claude Code…** button is greyed out with the reason *Claude Code
-must run on this device*.
+**Live mode works only when WarpCad runs with `npm run dev` on the same computer as the MCP
+client.** The hosted app cannot use it. Phone, tablet, and desktop browsers can all enable access
+to the local endpoint. Access is off by default; while enabled, any local MCP client that can
+reach the loopback endpoint may read and change the open project.
 
-### Try it: a cube with a sphere on top
+### Try it: use an MCP agent to add a cube and sphere
 
 1. From your WarpCad folder, install the dependencies (once), register live mode, and
    start the dev server:
@@ -181,52 +181,50 @@ must run on this device*.
    npm run dev
    ```
 
-   `mcp:add -- --dev` registers `warpcad` with Claude Code as `http://127.0.0.1:5183/mcp`. It
-   replaces a closed-file registration: one at a time. To go back, run
-   `npm run mcp:add -- <project-file.ndjson>`.
+    `mcp:add -- --dev` prints the registration details for the live endpoint at
+    `http://127.0.0.1:5183/mcp`. Use those details to register WarpCad with your MCP client. It
+    replaces a closed-file registration: one at a time. To go back, run
+    `npm run mcp:add -- <project-file.ndjson>`.
 
-2. Open WarpCad at `http://localhost:5183` in Chrome, Edge, Firefox or Safari on this computer.
+2. Open WarpCad at `http://localhost:5183` in a browser on this computer.
 
-3. In Claude Code, say *add a 40 mm cube*. WarpCad isn't connected yet, so Claude replies with a
-   pairing code such as `K7Q4-FX2M`.
+3. In WarpCad open **Assistant → Live MCP access**, choose **15 minutes**, and select **Enable
+  access**. The sheet explains that any local MCP client can use the enabled tab. Choose a longer
+  lease only when you need it; you can turn access off from the same sheet at any time.
 
-4. In WarpCad choose **Assistant → Connect to Claude Code…** (on the key sheet if you have no
-   API key, or beside **Key and model…** in the Assistant panel), type the code and choose
-   **Connect**, then **Done**. The Assistant panel's header says **Claude Code · connected**.
+4. In your MCP client, ask *add a 40 mm cube and a 20 mm sphere on top*. The bodies appear in the
+  viewport, and in **History** each row is marked **via mcp**. The Assistant header reports the
+  connected MCP agent.
 
-5. Say *add a 40 mm cube and a 20 mm sphere on top of it*. Both appear in the viewport, and in
-   **History** each row is marked **via mcp**. They are ordinary bodies: select one and move it
-   with the gizmo.
+5. Select a body and move it with the gizmo. Press **Undo AI turn** to remove the agent's changes
+  in one step. Your own **Undo** is untouched: it never takes back MCP rows, and **Undo AI turn**
+  never takes back yours.
 
-6. Press **Undo AI turn**. Everything Claude did for that request goes, in one step. Your own
-   **Undo** is untouched: it never takes back Claude's rows, and **Undo AI turn** never takes back
-   yours.
-
-![WarpCad with the Assistant panel's "Claude Code · connected" chip, a cube with a sphere on top in the viewport, and History rows "Cube 1 — placed" and "Sphere 1 — placed", each marked "via mcp".](./screenshots/ai-live-bridge.png)
+![WarpCad with the Assistant panel's "MCP agent · connected" chip, a cube with a sphere on top in the viewport, and History rows "Cube 1 — placed" and "Sphere 1 — placed", each marked "via mcp".](./screenshots/ai-live-bridge.png)
 
 ### How it behaves
 
-- **One Undo AI turn per request.** Changes Claude makes for the same request, less than a
+- **One Undo AI turn per request.** Changes an MCP client makes for the same request, less than a
   minute apart, are one **Undo AI turn**. A new request, or a minute's pause, starts the next
-  one. If you've since built on one of Claude's bodies (moved it, for example), **Undo AI turn**
+  one. If you've since built on one of the agent's bodies (moved it, for example), **Undo AI turn**
   says which step is in the way. Undo that first, then try again.
-- **You stay in charge of the editing.** Claude's changes are made one at a time. If one arrives
+- **You stay in charge of the editing.** MCP changes are made one at a time. If one arrives
   while you're dragging, or typing in a number field, it waits up to 10 seconds for you to
-  finish. Then it's refused with *the user is editing; try again*, and Claude retries. If the
-  project changed while it waited, it's refused too, and Claude reads the project again first.
+  finish. Then it's refused with *the user is editing; try again*, and the agent can retry. If the
+  project changed while it waited, it's refused too, and the agent must read it again first.
   A refused change leaves the project exactly as it was.
-- **Claude sees what you select.** `get_selection` tells Claude what you've picked, so *make
+- **The MCP agent sees what you select.** `get_selection` tells the agent what you've picked, so *make
   this 5 mm taller* works. `capture_view` lets it look at the viewport.
-- **While a change runs** the header shows **Claude Code working**.
-- **The Assistant panel is a window, not a place to type.** With no API key and Claude Code
-  connected, the panel's status line reads *Claude Code is editing this project — type your
-  request in Claude Code*, and the message box is greyed out with the same reason. Ask Claude Code
-  in its own window; the changes appear in the viewport and in History as they land. To type in
+- **While a change runs** the header shows **MCP agent working**.
+- **The Assistant panel is a window, not a place to type.** With no API key and live MCP access
+  enabled, the panel reports that access is enabled or an MCP client is connected, and the message
+  box is greyed out with that reason. Ask the MCP agent in its own client; changes appear in the
+  viewport and History as they land. To type in
   the panel instead, add an API key under **Key and model…**.
-- **The code works once, for 5 minutes.** If it expires, ask Claude again for a new one. After
-  five wrong codes, reload the page. The code is never written to a log or a file. If the tab
-  reloads or the dev server restarts, the chip says **disconnected — reconnect**; ask Claude for
-  a new code.
+- **The lease controls access.** The timed options expire after 15 minutes or 1 hour; **This tab**
+  ends when the tab closes; **Until turned off** remains active until manually revoked or the tab
+  closes. Expiry, turning access off, or a tab reload revokes the route. If more than one MCP
+  client or enabled tab makes routing ambiguous, WarpCad refuses calls until only one remains.
 
 ### Browsers
 
@@ -234,13 +232,14 @@ must run on this device*.
 |---|---|
 | Chrome, Edge | Works. It may ask to let the page reach devices on your local network; choose **Allow**. |
 | Firefox | Works, no prompt. |
-| Safari | Works. A hosted (`https://`) copy of WarpCad could never connect: Safari, and every iPhone and iPad browser, blocks that. The Connect sheet says so. |
+| Safari | Works. A hosted (`https://`) copy of WarpCad could never connect: Safari, and every iPhone and iPad browser, blocks that. The live-access sheet says so. |
 
 ### What can reach it
 
-Only Claude Code (or another MCP client) on this computer, and only the WarpCad tab you paired.
-`/mcp` refuses requests from any other web page (including other local dev servers) and from
-any address but this computer's loopback. Without the code, nothing reaches your project.
+Any MCP client on this computer that can reach the loopback endpoint can request access while the
+lease is enabled. `/mcp` refuses requests from any other web page (including other local dev
+servers) and from any address but this computer's loopback. Without the explicit lease, no call
+reaches your project.
 
 ## Safety
 
@@ -292,7 +291,7 @@ Every message names the file and says that nothing was written to it.
 - **Projects in a GitHub repository.** The server works on a local file only. To use it with a
   project you keep in a repository, **Load from** it in the app, **Save** it as a file, run the
   server on that file, then open the file and **Save to** the repository.
-- **Live editing of the hosted app from Claude Code.** [Live mode](#live-mode-claude-code-edits-the-project-you-have-open)
+- **Live editing of the hosted app from an MCP client.** [Live mode](#live-mode-an-mcp-agent-edits-the-project-you-have-open)
   works under `npm run dev` only. A helper that lets Claude Code reach a built or hosted copy is
   planned separately. An agent that runs in the browser can already drive a hosted copy over
   [WebMCP](webmcp.md).

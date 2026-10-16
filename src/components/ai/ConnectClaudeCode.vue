@@ -1,12 +1,8 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <script setup>
 /**
- * **Connect to Claude Code** (`TODO/ai-012`, Decision 11): the live bridge's pairing sheet.
- *
- * Claude Code, on the user's own Claude plan and on this computer, asks WarpCad for a change; the
- * first time, its reply carries an 8-character code. Typing it here pairs this tab with that
- * Claude Code session, and from then on its tool calls land in this project as `mcp` History rows,
- * with **Undo AI turn** to take them back. No key, no token: WarpCad supplies only the tools.
+ * **Live MCP access** (`TODO/ai-023`): explicit timed consent for any local MCP client to reach
+ * the project open in this tab. There is no pairing code or client-specific setup.
  *
  * What it says, plainly, where it cannot work:
  *
@@ -15,15 +11,13 @@
  *   never connect, because WebKit blocks an https page from reaching the computer's loopback.
  * - Chromium: may show its local-network-access prompt; the sheet says to choose Allow.
  *
- * `ModalShell`'s top-anchored frame, like the key sheet: at phone width the keyboard cannot cover
- * the field. (On a phone or tablet the button that opens it is disabled with the reason anyway —
- * `ConnectButton.vue`.) The code is a one-session handshake, not a credential (Decision 8); the
- * field is cleared once it is sent.
+ * The same control is available at phone and tablet widths. Access is disabled by default and
+ * closes automatically when this tab disconnects, including for the unlimited lease.
  */
-import { computed, ref, watch } from 'vue'
+import { computed, ref } from 'vue'
 
 import { useEscapeToClose } from '../../composables/useEscapeToClose.js'
-import { browserEngine, deviceReason, useLiveBridge } from '../../composables/useLiveBridge.js'
+import { browserEngine, useLiveBridge } from '../../composables/useLiveBridge.js'
 import { useAiChatStore } from '../../stores/aiChat.js'
 import { useAssistantStore } from '../../stores/assistant.js'
 import ModalShell from '../storage/ModalShell.vue'
@@ -33,12 +27,8 @@ const chat = useAiChatStore()
 const bridge = useLiveBridge()
 
 const open = computed(() => assistant.view === 'connect')
-const code = ref('')
+const lease = ref(/** @type {'15m' | '1h' | 'tab' | 'unlimited'} */ ('15m'))
 const engine = browserEngine()
-
-watch(open, (now) => {
-  if (now) code.value = ''
-})
 
 useEscapeToClose(() => open.value, () => close())
 
@@ -55,74 +45,75 @@ const engineNote = computed(() => {
 })
 
 const status = computed(() => {
-  if (chat.bridge === 'waiting') return 'Checking the code…'
+  if (chat.bridge === 'ambiguous') return chat.bridgeMessage || 'More than one MCP client or enabled tab is connected; calls are refused.'
+  if (chat.bridge === 'connected') return 'An MCP client is connected to this tab.'
+  if (chat.bridge === 'off') return 'Live MCP access is off.'
+  if (chat.bridge === 'enabled') {
+    return chat.bridgeExpiresAt === null
+      ? 'Live MCP access is enabled until this tab closes or you turn it off.'
+      : `Live MCP access is enabled until ${new Date(chat.bridgeExpiresAt).toLocaleTimeString()}.`
+  }
+  if (chat.bridge === 'expired') return 'Live MCP access expired. Enable it again to reconnect.'
+  if (chat.bridge === 'disconnected') return 'The dev-server connection dropped. Reload this tab before enabling access again.'
   return chat.bridgeMessage
 })
 
-const canSubmit = computed(() => code.value.trim() !== '' && deviceReason.value === '' && chat.bridge !== 'waiting')
+const available = computed(() => chat.bridge !== 'unavailable')
+const accessEnabled = computed(() => chat.bridge === 'enabled' || chat.bridge === 'connected')
 
-function submit() {
-  if (!canSubmit.value) return
-  if (bridge.connect(code.value)) code.value = ''
+function enable() {
+  bridge.setAccess(lease.value)
+}
+
+function turnOff() {
+  bridge.setAccess('off')
 }
 
 /** Back to the chat once connected (its History rows and Undo AI turn live there), else away. */
 function close() {
-  if (chat.bridge === 'connected') assistant.open()
+  if (accessEnabled.value) assistant.open()
   else assistant.close()
 }
 </script>
 
 <template>
-  <ModalShell :open="open" testid="ai-connect-sheet" title="Connect to Claude Code" help-topic="claude-code" @backdrop="close()">
+  <ModalShell :open="open" testid="ai-connect-sheet" title="Live MCP access" @backdrop="close()">
     <p class="connect__text" data-testid="ai-connect-explain">
-      Lets <strong>Claude Code</strong>, running on this computer on your own Claude plan, add and change
-      steps in the project open here. Each change shows in History marked <em>via mcp</em>, and
-      <strong>Undo AI turn</strong> takes it back. WarpCad sends no key and stores nothing.
+      When enabled, <strong>any MCP client on this computer</strong> that can reach the local WarpCad
+      endpoint can read and change the project open in this tab. Changes appear in History as
+      <em>via mcp</em>; <strong>Undo AI turn</strong> can take them back. Access is off by default.
     </p>
 
-    <p v-if="chat.bridge === 'unavailable'" class="connect__warn" role="note" data-testid="ai-connect-unavailable">
-      Live editing runs only when WarpCad is started with <code>npm run dev</code> on the same computer
-      as Claude Code. This copy can't reach it.
+    <p v-if="!available" class="connect__warn" role="note" data-testid="ai-connect-unavailable">
+      Live MCP access is available only when WarpCad is started with <code>npm run dev</code>. This copy cannot reach the local endpoint.
     </p>
 
     <p v-else-if="chat.bridge === 'connected'" class="connect__ok" role="status" data-testid="ai-connect-connected">
-      Connected. Ask Claude Code for a change, and it appears here.
+      Connected. Make requests in your MCP client; changes appear here as they land.
     </p>
 
-    <form v-else class="connect__form" novalidate @submit.prevent="submit()">
-      <p class="connect__text">
-        In Claude Code, ask for any change (say, “add a 40 mm cube”). It replies with a code like
-        <code>K7Q4-FX2M</code>. Type it here.
-      </p>
-      <p v-if="deviceReason" class="connect__warn" role="note" data-testid="ai-connect-device-reason">{{ deviceReason }}.</p>
+    <div v-if="available" class="connect__form">
       <label class="connect__field">
-        Code
-        <input
-          v-model="code"
-          class="connect__input"
-          type="text"
-          autocomplete="off"
-          autocapitalize="characters"
-          autocorrect="off"
-          spellcheck="false"
-          maxlength="12"
-          placeholder="K7Q4-FX2M"
-          data-testid="ai-connect-code"
-        />
+        Allow local MCP access for
+        <select v-model="lease" class="connect__select" data-testid="ai-connect-lease">
+          <option value="15m">15 minutes</option>
+          <option value="1h">1 hour</option>
+          <option value="tab">This tab</option>
+          <option value="unlimited">Until turned off</option>
+        </select>
       </label>
       <div class="connect__actions">
-        <button type="button" class="connect__button" data-testid="ai-connect-cancel" @click="close()">Cancel</button>
-        <button type="submit" class="connect__button connect__button--primary" data-testid="ai-connect-submit" :disabled="!canSubmit">
-          Connect
+        <button v-if="accessEnabled" type="button" class="connect__button" data-testid="ai-connect-disable" @click="turnOff()">Turn off</button>
+        <button type="button" class="connect__button connect__button--primary" data-testid="ai-connect-enable" @click="enable()">
+          {{ accessEnabled ? 'Update access' : 'Enable access' }}
         </button>
       </div>
-    </form>
+    </div>
 
     <p v-if="engineNote" class="connect__note" role="note" data-testid="ai-connect-engine-note" :data-engine="engine">{{ engineNote }}</p>
     <p class="connect__status" role="status" data-testid="ai-connect-status" :data-state="chat.bridge">{{ status }}</p>
 
-    <div v-if="chat.bridge === 'connected' || chat.bridge === 'unavailable'" class="connect__actions">
+    <div class="connect__actions">
       <button type="button" class="connect__button connect__button--primary" data-testid="ai-connect-done" @click="close()">Done</button>
     </div>
   </ModalShell>
@@ -174,7 +165,7 @@ function close() {
 }
 
 /* 16px: iOS zooms the page on focus of anything smaller. */
-.connect__input {
+.connect__select {
   min-height: var(--tap);
   box-sizing: border-box;
   padding: 0 10px;
@@ -182,10 +173,8 @@ function close() {
   border-radius: var(--radius-sm);
   background: var(--surface-0);
   color: var(--text-1);
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-family: inherit;
   font-size: 16px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
 }
 
 .connect__actions {
