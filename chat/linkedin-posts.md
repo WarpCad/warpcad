@@ -2655,3 +2655,16 @@ It's filed as ui-070. The proposed fix stacks the tab under the open sheet inste
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** found on a phone → user's report this session; positioned for a collapsed Library → `Inspector.vue:1350` `bottom: var(--library-tab-height)`; tap-at-centre test → `TODO/ui-070` Testing section
 **To Add:** none
+
+## 2026-10-16T04:24:22Z — Overnight runner config: M16 then gears, one flaky test parked
+
+**Post:** Tonight's unattended run of the WarpCAD backlog is scoped in writing before it starts. It finishes the two remaining rows of milestone 16 (one fastener part for bolts and screws, and a Library that remembers each part's last-used parameters), then moves straight into the gears milestone.
+
+One unit test is known to time out under full-suite load while passing alone. Rather than let the runner read it as a pre-existing failure and stop, the budget file now says exactly what to do: confirm it passes when run alone, log it, continue. Any other failure, or this test failing on an assertion, still stops the loop. The test's own ticket moved from M16 to the Findings table so it runs after the gears.
+
+The runner log, not my memory, will be the record of what happened overnight. Built with Claude Code, reviewed by me.
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** two remaining M16 rows core-060 and ui-068 → ROADMAP.md diff; flake rule wording → BUDGET.md diff; ticket moved to Findings → ROADMAP.md diff; test passes alone but times out in full run → testing-004 ticket title
+**To Add:** nothing

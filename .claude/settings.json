@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep -vE \"^\\\\s*$|WebServer|Plugin:\")",
+      "Bash(grep -vE \"^\\\\s*$|WebServer|Plugin:|^\\\\[\")",
+      "Bash(grep -n \"library-row-\\\\${row.op}\\\\|library-row-\" src/components/layout/LibraryPanel.vue)",
+      "Bash(lsof -iTCP -sTCP:LISTEN -nP)"
+    ]
+  }
+}

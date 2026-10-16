@@ -1882,3 +1882,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** found by hand on a phone → user's screenshot and report, this session; tab over rows → `Inspector.vue` phone `bottom`/`z-index` vs `LibraryPanel.vue` phone sheet; fix proposed, not built → `TODO/ui-070`
 **To Add:** the user's phone screenshot, if they want it public
+
+## 2026-10-16T04:24:22Z — Overnight runner config: M16 then gears, one flaky test parked
+
+**Post:** Planning the overnight run for WarpCAD: finish the last two M16 rows, then start the gears milestone, no stops. A known flaky unit test (lens volume, times out under full-suite load) is parked behind the gears, with a written rule for how the runner treats it. Built with Claude Code, reviewed by me. #CAD #OpenSource
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** testing-004 moved out of M16 → diff of TODO/ROADMAP.md; runner rule → diff of TODO/BUDGET.md; gears are M11 and run after M16 → ROADMAP.md milestone table in the diff
+**To Add:** nothing

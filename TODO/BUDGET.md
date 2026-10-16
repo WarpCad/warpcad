@@ -37,6 +37,20 @@ don't rebuild the estimation math without one.
   for the five-minute free-form human pass from `CLAUDE.md`'s Verification section
   before the next batch starts — even if the task-count/wall-clock limits above hadn't
   been hit yet. See `.claude/commands/run-todos.md`.
+- **Overnight run of 2026-10-16 only. The user asked for this explicitly ("M16 will run and then the
+  gears tonight without interruption").** It holds until the user's next check-in, then delete
+  this bullet.
+  - **M16 boundary**: when `ui-068` completes M16, do **not** hold for the five-minute free-form
+    pass. Write in the Runner Log that it is still owed, and carry on into M11. This is the "user
+    explicitly says to proceed without it" case in `run-todos.md` Step 6. **M11's own boundary
+    still stops** as normal.
+  - **Known flake, `testing-004`** (moved behind the gears): if the *only* failure in a run is
+    `src/core/kernel/measure.spec.js` › "two overlapping spheres give the analytic lens volume"
+    with `Test timed out in 5000ms`, do not treat it as a pre-existing failure. Confirm it passes
+    when `measure.spec.js` is run alone, note it in the Runner Log, and continue. Any other
+    failure, or this test failing on an assertion rather than a timeout, stops the loop as usual.
+  - Batch size and the wall-clock cap are unchanged. Between batches the loop still schedules its
+    20-30 minute wakeup and starts the next batch by itself; that is a pause, not a stop.
 
 Edit **Batch size** any time. Everything below this line is a log, not logic the runner
 reads back — treat it as a human-readable history of what ran.

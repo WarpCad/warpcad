@@ -4,7 +4,6 @@ category: testing
 kind: finding
 priority: medium
 model: sonnet
-milestone: M16
 depends: []
 status: open
 ---
