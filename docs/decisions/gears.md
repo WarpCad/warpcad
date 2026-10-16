@@ -1,7 +1,8 @@
 # Gears: an analytic involute with a generated root, `module` as the stored size, profile op + extrude
 
-Status: **Proposed — awaiting the user's acceptance** (`TODO/core-039`). Nothing in M11
-(`core-040` onward) starts until the open calls at the end of this page are answered.
+Status: **Accepted 2026-10-16** (`TODO/done/core-039`). The user answered all eight calls at
+the end of this page, one at a time, and took the recommendation on each. M11 (`core-040`
+onward) builds on this page as written.
 `CLAUDE.md`'s Stack table is unchanged: this decision adds no dependency.
 
 This settles how WarpCad produces a gear tooth outline and what the parameters are called,
@@ -294,6 +295,9 @@ Found while measuring, not in the TODO:
 ## Items needing the user's call (before `core-040`)
 
 Each has a recommendation; accepting this page as written accepts all eight.
+
+**Answered 2026-10-16: the recommendation, on all eight.** Each call was put to the user
+separately, not as one accept-all.
 
 | # | Call | Recommendation | Alternative |
 |---|---|---|---|
