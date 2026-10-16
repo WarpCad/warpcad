@@ -145,6 +145,8 @@ const ROW_ORDER = Object.freeze([
   // TODO/core-043: ring and rack follow the spur gear, unlisted until ui-057 gives them `ui`.
   'gear.ring',
   'gear.rack',
+  // TODO/core-044: the meshed pair follows the single gears, unlisted until ui-057 gives it `ui`.
+  'gear.pair',
   'text.label',
 ])
 

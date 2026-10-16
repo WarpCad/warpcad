@@ -6,8 +6,17 @@ priority: high
 model: opus
 milestone: M11
 depends: [core-041]
-status: open
+status: done
 ---
+
+> **Shipped (2026-10-16).** `mesh.js` and the `gear.pair` composite landed as specified, with these
+> differences, all recorded in `docs/decisions/gears.md` (core-044 addendum): per-gear params on the
+> pair (`driveProfileShift`, `pinionBoreMm`, ...), handedness is the drive's with the pinion opposite,
+> the signed ratio (equal teeth give -1, a rack pair throws `rack-pair`), a tip-clearance error and an
+> optional `extraBacklashMm`, and `meshPlacement` refusing crossed axes (`axes-not-parallel`, left to
+> `core-046`). Pitch-plane orientations for `xz`/`yz` are open for the user to confirm. Interference
+> proof measured: 0 mm³ overlap for 36T/12T, 30T/8T at 14.5° and a helical 20T/12T pair; wrong phase
+> gives 13.9, 47.6 and 17.4 mm³. No Library row until `ui-057`.
 
 ## Goal
 

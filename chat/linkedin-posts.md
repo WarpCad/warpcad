@@ -2732,3 +2732,17 @@ Two things are deliberately open. V1 puts the clearance at the ring tip and this
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** negative/zero tooth counts and swept pinion → `TODO/done/core-043-internal-ring-gear-and-rack.md` Goal; max pinion 55 for 64T and 88 for 96T, `no-pinion-fits`, `checkRingPinion` → `docs/decisions/gears.md` core-043 addendum; tip/root offset equals clearance 0.05 mm → same addendum and `src/core/gear/internal.spec.js`; no Library row → `src/core/kernel/recipes/gear.ring.spec.js`
 **To Add:** repo URL once public, docs site URL once it exists
+
+## [2026-10-16T10:14:00Z] — Proving two gears mesh by trying to overlap them
+
+**Post:** WarpCad can now compute how two gears mesh. Given two gear descriptions, one pure module returns the centre distance, the rotation that puts a tooth into a gap, the gear ratio and a list of reasons the pair is incompatible. A ready-made pair recipe uses it, and the interactive Mesh operation will use the same code.
+
+The V1 library had a quiet defect here: its ratio divided gear 1's tooth count by itself, so it was always 1. The new ratio is signed, minus 3 for a 36-tooth drive and a 12-tooth pinion, because an external pair reverses the shaft. Equal tooth counts give exactly minus 1, and a rack pair has no rotational ratio at all, so it is refused by name.
+
+The check that matters is geometric. The test builds the pair, turns the drive through twelve positions, and boolean-intersects the two bodies: 0 mm³ of overlap for 36T/12T, for a 30T/8T pair at 14.5 degrees, and for a helical pair with opposite hands. Deliberately wrong phase overlaps by 14 to 48 mm³, so the test can fail. Open for the user: the axis directions chosen for the xz and yz pitch planes. There is still no Library row, so none of this is reachable by hand yet. Built with Claude Code, reviewed by me.
+
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** V1 ratio always 1 → `TODO/done/core-044-gear-mesh-math-and-pair-recipe.md` Design; signed ratio, equal teeth -1, `rack-pair` → `docs/decisions/gears.md` core-044 addendum and `src/core/gear/mesh.spec.js`; 0 mm³ overlap and 13.9, 47.6, 17.4 mm³ controls → `src/core/kernel/recipes/gear.pair.spec.js`; open plane axes → same addendum; no Library row → `src/core/library.spec.js`
+**To Add:** repo URL once public, docs site URL once it exists

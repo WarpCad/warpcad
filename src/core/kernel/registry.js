@@ -81,6 +81,7 @@ import { bearing } from './recipes/hardware.bearing.js'
 import { spur } from './recipes/gear.spur.js'
 import { ring } from './recipes/gear.ring.js'
 import { rack } from './recipes/gear.rack.js'
+import { pair } from './recipes/gear.pair.js'
 import { GearAliasError } from '../gear/aliases.js'
 import { GearParameterError, gearDimensions } from '../gear/dimensions.js'
 import { MAX_TWIST_DEG } from '../gear/helix.js'
@@ -1962,6 +1963,10 @@ export const registry = Object.freeze({
   // box whose +Y face is the pitch line). Also without `ui` until `ui-057`.
   'gear.ring': composite(0, ring),
   'gear.rack': composite(0, rack),
+  // TODO/core-044: two gear.spur records meshed by `src/core/gear/mesh.js` — the pinion turned
+  // to the mesh phase and moved one centre distance along +X, parts `drive` and `pinion`. Also
+  // without `ui` until `ui-057` gives it its Library row.
+  'gear.pair': composite(0, pair),
 
   // Deliberately absent, and not an oversight — TODO/core-003 spiked this:
   //

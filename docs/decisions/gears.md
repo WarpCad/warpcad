@@ -448,4 +448,36 @@ section ("Gears") and its row order, empty until then.
 - Ring and rack share the flank equation exported from `involute.js`; `gear.spur`'s twist code
   is now the exported `helicalExtrude`, with spur records unchanged.
 
+## Addendum — what `core-044` decided about meshing math and `gear.pair` (2026-10-16)
+
+- **Vocabulary follows this document.** `moduleMm` is the name; `module` and `circularPitch`
+  are accepted through the aliases, as on `gear.spur`.
+- **Per-gear params on `gear.pair`.** `driveProfileShift` / `pinionProfileShift` and
+  `driveBoreMm` / `pinionBoreMm`. A plain `teeth`, `profileShift` or `boreMm` is refused by
+  name, because on a pair it would not say which gear it means.
+- **Handedness is the drive's; the pinion is always the opposite hand** (parallel axes). A
+  herringbone pair checks that the two chevron apexes line up and that the hands mismatch
+  correctly.
+- **The pair exposes only `drive` and `pinion` parts.** The nested spurs' own hidden bore and
+  pitch parts are not carried through. `ui-057` / `ui-058` may want them.
+- **Pitch planes.** `xy`: both axes +Z, pinion along +X. `xz`: rotation `[90, 0, 0]`, axis
+  -Y. `yz`: rotation `[90, 0, 90]`, axis +X. The pinion is placed along the plane's first
+  in-plane axis `u`. **Open for the user:** confirm these two orientations (the axis sign in
+  particular).
+- **Signed ratio.** `gearRatio(a, b)` is `-b.teeth / a.teeth` for an external pair, positive for
+  a ring. Equal tooth counts give exactly -1. A rack pair has no rotational ratio:
+  `gearRatio` throws `GearMeshError` code `rack-pair`, and `meshPlacement.ratio` is `null`.
+- **Additions beyond the task text.** A tip-clearance error (centre distance too small for the
+  two tip circles), a `pinion-shift-not-checked` warning, an optional `extraBacklashMm` that
+  spreads the shafts by `j / (2 tan(alpha_w))`, and the herringbone mismatch and apex checks.
+- **Ring tip interference is a warning**, not an error: `checkRingPinion` already refuses a
+  pinion that cannot fit at all.
+- **Crossed axes** are evaluated by `compatibility` (same hand required), but `meshPlacement`
+  refuses them with `axes-not-parallel`; placement is `core-046`'s.
+- **A helical pair with no `thicknessMm`** assumes both gears share their faces when level.
+- **Interference proof, measured** (boolean-intersect the two built bodies): 36T/12T,
+  30T/8T at 14.5 degrees and a 20T/12T helical pair with opposite hands all overlap by
+  0 mm^3 at every sampled drive angle. The wrong-phase negative controls overlap by 13.9,
+  47.6 and 17.4 mm^3.
+
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

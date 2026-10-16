@@ -83,7 +83,12 @@ const BISECT_ITERATIONS = 64
 const inv = (a) => Math.tan(a) - a
 
 /** @typedef {[number, number]} Vec2Mm */
-/** @typedef {'ring-not-larger' | 'no-pinion-fits'} GearMeshErrorCode */
+/**
+ * `'ring-not-larger'` and `'no-pinion-fits'` are this module's; the rest are the pair
+ * checks `./mesh.js` throws with (TODO/core-044).
+ *
+ * @typedef {'ring-not-larger' | 'no-pinion-fits' | import('./mesh.js').MeshReasonCode} GearMeshErrorCode
+ */
 /** @typedef {'tip-truncated' | 'pointed-tip' | 'pointed-root'} RingWarning */
 /** @typedef {'tip-interference'} RingPinionWarning */
 

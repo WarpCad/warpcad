@@ -1929,3 +1929,13 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** ring defined by own params, `connectedGear` refused by name → `src/core/kernel/recipes/gear.ring.spec.js`; zero overlap at 12 angles, 64T/14T and 96T/14T → same file, "meshing proof" block; V1 swept the pinion → `TODO/done/core-043-internal-ring-gear-and-rack.md` Goal; no Library row → same spec, "no ui yet"
 **To Add:** nothing
+
+## [2026-10-16T10:14:00Z] — Two gears that mesh, by arithmetic
+
+**Post:** WarpCad can now place two gears so their teeth interleave: centre distance, phase and a signed ratio. Boolean-intersecting the built bodies gives 0 mm³ overlap on 36T/12T, 30T/8T and a helical pair; wrong phase gives 14 to 48. Built with Claude Code, reviewed by me. #CAD #OpenSource
+
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** centre distance, phase, signed ratio from params → `src/core/gear/mesh.spec.js`; 0 mm³ overlap on 36T/12T, 30T/8T at 14.5° and helical 20T/12T, wrong-phase controls 13.9, 47.6 and 17.4 mm³ → `src/core/kernel/recipes/gear.pair.spec.js` and `docs/decisions/gears.md` core-044 addendum
+**To Add:** nothing
