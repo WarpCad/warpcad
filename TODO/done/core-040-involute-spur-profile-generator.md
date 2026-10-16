@@ -6,8 +6,17 @@ priority: high
 model: opus
 milestone: M11
 depends: [core-039]
-status: open
+status: done
 ---
+
+> **What shipped (2026-10-16).** `involuteProfile` and `gearDimensions` landed as specified, with
+> the decision-doc vocabulary: the size parameter is `moduleMm` (not `module`), `backlashMm` is
+> total pair play (tooth thinned by half of it), and `clearanceMm` defaults to `0.25 * module`.
+> Undercut is modelled (trochoid), with `warnings: ['undercut']`; a vanished tooth throws
+> `GearToothVanishedError`. Fixtures cover all six reference gears (`bf-gear` 30T and 8T
+> included) at default and converged V1 densities. V1 truly cuts at `atan(sin α)`, and the 8T
+> printed shape is outside the default band; both are recorded in the addendum to
+> `docs/decisions/gears.md`.
 
 ## Goal
 
