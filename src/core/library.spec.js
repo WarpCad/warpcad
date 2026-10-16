@@ -18,6 +18,8 @@ import {
   createSnapState,
   gapMm,
   ghostBoxAtOrigin,
+  librarySectionsFor,
+  libraryRow,
   ghostOffsetMm,
   paramsForDrop,
   recordForDrop,
@@ -29,6 +31,8 @@ import {
 import { BPLUS_MODELS } from './kernel/recipes/raspberrypi.bplus.js'
 import { CAMERA_MODULE_MODELS } from './kernel/recipes/raspberrypi.cameraModule.js'
 import { SCREEN_MODELS } from './kernel/recipes/raspberrypi.screen.js'
+import { GEAR_SPUR_UI } from './kernel/recipes/gear.spur.js'
+import { registry } from './kernel/registry.js'
 import { boundsOf, calcCenterWith, calcSnap, volumeOf } from './kernel/group.js'
 import { evaluate, evaluateOp } from './kernel/index.js'
 import { createDocument } from './document.js'
@@ -959,5 +963,28 @@ describe('user parts in the Library (TODO/core-037)', () => {
     document.append({ id: 'cube-1', op: 'primitive.cuboid', name: 'Cube 1', params: { size: [3, 3, 3] } }, { origin: 'local' })
     const definition = libraryModule.definePartFromSelection(document, 'cube-1', { name: 'Little cube' })
     expect(definition).toMatchObject({ op: 'user.little-cube', name: 'Little cube', version: 1, result: 'r1' })
+  })
+})
+
+describe('the Gears section (TODO/core-041) — defined here, listed once ui-057 gives the row its ui', () => {
+  it('lists no gear row yet: gear.spur is a recipe with no Library row until ui-057', () => {
+    expect(LIBRARY_SECTIONS.map((section) => section.id)).not.toContain('gear')
+    expect(() => libraryRow('gear.spur')).toThrow(/gear\.spur/)
+  })
+
+  it('renders the built-in catalogue from the same arrays it always exported', () => {
+    expect(librarySectionsFor(registry).map((section) => section.id)).toEqual(LIBRARY_SECTIONS.map((section) => section.id))
+    expect(librarySectionsFor(registry)[0].rows).toBe(PRIMITIVE_LIBRARY)
+  })
+
+  it('becomes a Gears section after Raspberry Pi, holding Spur gear, the moment the entry carries GEAR_SPUR_UI', () => {
+    const withUi = { ...registry, 'gear.spur': Object.freeze({ ...registry['gear.spur'], ui: GEAR_SPUR_UI }) }
+    const sections = librarySectionsFor(withUi)
+    expect(sections.map((section) => section.id)).toEqual(['primitive', 'hardware', 'kit', 'raspberrypi', 'gear', 'text'])
+    const gears = sections.find((section) => section.id === 'gear')
+    expect(gears?.title).toBe('Gears')
+    expect(gears?.rows.map((row) => [row.op, row.label, row.kind, row.operandCount])).toEqual([
+      ['gear.spur', 'Spur gear', 'composite', 0],
+    ])
   })
 })

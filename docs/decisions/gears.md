@@ -363,4 +363,41 @@ They refine, and in places correct, the measurements above.
   `360/teeth` maps the outline onto itself, so `core-042`'s twist and `core-045`'s loft see a
   fixed vertex correspondence.
 
+---
+
+## Addendum — what `core-041` built, and two questions it leaves open (2026-10-16)
+
+`gear.spur` is now a registry composite (`src/core/kernel/recipes/gear.spur.js`) over a new
+native op. It has **no `ui` metadata yet**, so it is not a Library row and an AI turn cannot
+create it; `ui-057` attaches the `GEAR_SPUR_UI` block. `library.js` gained the `gear`
+section ("Gears") and its row order, empty until then.
+
+- **The native op is `profile.gear`, not `gear.profile`.** The task file's name was written
+  before this document fixed the `profile.*` namespace for ops that return a `geom2`. The
+  composite keeps `gear.spur`. A second new native op, `profile.circle`, exists for the bore.
+- **The bore is cut in 2D, before the extrude.** The recipe subtracts a `profile.circle`
+  from the tooth outline and extrudes the result once, rather than extruding and then
+  subtracting a cylinder. One extrude gives one watertight solid, and a bore at or above
+  the root diameter is refused by name before any geometry is built instead of cutting
+  through the teeth. The `bore` named part is still emitted so a pin can be snapped into it.
+- **`pitch` is a hidden, full-thickness cylinder** of the pitch diameter, not the
+  zero-thickness reference the task file described: a zero-height solid is not a valid
+  kernel body. `core-044`'s mesh tools snap to it.
+- **The alias table converts values, not only names** (`src/core/gear/aliases.js`):
+  `circularPitch` becomes `moduleMm = cp / pi`; `diametralPitch` becomes `1 / dp` (V1's
+  value is 1/module in 1/mm, defect 7); V1 `backlash` b becomes `backlashMm = 2b / cos(alpha)`
+  (call 4); `clearance` is `0` when a V1-vocabulary record omits it (call 5);
+  `toothCount` below 1 (internal) or 0 (rack) is refused, since those are `core-043`'s.
+  `center` is refused (the Library's trailing translate places composites) and
+  `qualitySettings` is dropped with a note.
+- **Open: V1 `pressureAngle`.** The table refuses it with code `pressure-angle-undecided`
+  rather than choose between keeping V1's number and converting to `atan(sin a)`
+  (the core-040 addendum above). The importer task decides; callers write
+  `pressureAngleDeg`.
+- **Open: `boreMm` on `gear.spur`.** The `Decision 2` text above says `centerHoleDiameter`
+  "is not a gear parameter at all: bores belong to the hub op (`core-048`)", while the
+  `core-041` task file (and so this implementation) accepts `boreMm` on `gear.spur`. Settle
+  it before `core-048`: either `boreMm` stays as the simple round-bore shorthand and the hub
+  op extends it, or it moves out and `gear.spur` loses the param.
+
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

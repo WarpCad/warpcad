@@ -139,6 +139,9 @@ const ROW_ORDER = Object.freeze([
   'raspberrypi.spacer',
   'raspberrypi.activeCoolingFan',
   'raspberrypi.screen',
+  // M11 (`TODO/core-041`). Ranked now so the row lands in place the day it is listed —
+  // which is `ui-057`, not yet: see the Gears note on {@link SECTION_DEFINITIONS}.
+  'gear.spur',
   'text.label',
 ])
 
@@ -161,6 +164,13 @@ const SECTION_DEFINITIONS = Object.freeze([
   Object.freeze({ id: 'hardware', title: 'Hardware' }),
   Object.freeze({ id: 'kit', title: 'Kit Parts' }),
   Object.freeze({ id: 'raspberrypi', title: 'Raspberry Pi' }),
+  // **Gears (`TODO/core-041`) is defined but not yet listed.** `gear.spur` is registered
+  // without `ui` metadata, so the section has no rows, and a section with no rows is not
+  // offered (no heading over an empty list). `ui-057` attaches `GEAR_SPUR_UI`
+  // (`kernel/recipes/gear.spur.js`) to the entry — with the panel's docs and e2e
+  // coverage — and the section appears here, between Raspberry Pi and Text, with no
+  // change to this file.
+  Object.freeze({ id: 'gear', title: 'Gears' }),
   Object.freeze({ id: 'text', title: 'Text' }),
 ])
 
@@ -263,6 +273,26 @@ const SECTION_ROWS = Object.freeze({
 })
 
 /**
+ * The catalogue's sections as `ops` defines them, in order, leaving out any section with
+ * no rows (a namespace the project has decided to offer but has nothing in yet — Gears,
+ * until `ui-057`). Against the real registry the built-in sections are the same frozen
+ * arrays exported above.
+ *
+ * @param {Readonly<Record<string, import('./kernel/registry.js').RegistryEntry>>} ops
+ * @returns {readonly LibrarySection[]}
+ */
+export function librarySectionsFor(ops) {
+  return Object.freeze(
+    SECTION_DEFINITIONS.map((section) =>
+      Object.freeze({
+        ...section,
+        rows: (ops === registry ? SECTION_ROWS[section.id] : undefined) ?? Object.freeze(buildRows(ops, section.id)),
+      })
+    ).filter((section) => section.rows.length > 0)
+  )
+}
+
+/**
  * Every section the panel renders, in order.
  *
  * The panel iterates this rather than naming its sections itself, so a third
@@ -270,14 +300,7 @@ const SECTION_ROWS = Object.freeze({
  *
  * @type {readonly LibrarySection[]}
  */
-export const LIBRARY_SECTIONS = Object.freeze(
-  SECTION_DEFINITIONS.map((section) =>
-    Object.freeze({
-      ...section,
-      rows: SECTION_ROWS[section.id] ?? Object.freeze(buildRows(registry, section.id)),
-    })
-  )
-)
+export const LIBRARY_SECTIONS = librarySectionsFor(registry)
 
 /** Every row in every section, flattened — the lookup {@link libraryRow} walks. */
 const ALL_ROWS = Object.freeze(LIBRARY_SECTIONS.flatMap((section) => [...section.rows]))

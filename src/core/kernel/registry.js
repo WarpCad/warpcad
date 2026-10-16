@@ -65,11 +65,16 @@ import {
   validateSketchParams,
 } from '../../sketch/profile.js'
 import { loftRings } from '../../sketch/resample.js'
-import { LEGACY_SEGMENTS, rimSlicesFor, segmentsFor } from './tessellation.js'
+import { LEGACY_POLICY, LEGACY_SEGMENTS, rimSlicesFor, segmentsFor } from './tessellation.js'
 import { bolt } from './recipes/hardware.bolt.js'
 import { nut } from './recipes/hardware.nut.js'
 import { washer } from './recipes/hardware.washer.js'
 import { bearing } from './recipes/hardware.bearing.js'
+import { spur } from './recipes/gear.spur.js'
+import { GearAliasError } from '../gear/aliases.js'
+import { GearParameterError, gearDimensions } from '../gear/dimensions.js'
+import { involuteProfile, toothHalfAngleRadAt } from '../gear/involute.js'
+import { checkGearLimits } from '../gear/limits.js'
 import { screw, SCREW_HEADS } from './recipes/hardware.screw.js'
 import { anchor } from './recipes/kit.anchor.js'
 import { board } from './recipes/kit.board.js'
@@ -733,6 +738,107 @@ function buildSketch(params, policy) {
   return transforms.translate([center[0], center[1], center[2] + lift], solid)
 }
 
+// ## The gear profile (TODO/core-041, `docs/decisions/gears.md` Decisions 3-4)
+//
+// `src/core/gear/involute.js` returns points; this is where they become a `geom2`, and
+// where the design's resolution becomes points per flank — the generator never sees a
+// policy, and no recipe chooses a sampling.
+
+const GEAR_PROFILE_OP = 'profile.gear'
+
+/** `profile.gear`'s own vocabulary: canonical names only, no aliases (those are the recipe's). */
+const GEAR_PROFILE_PARAMS = Object.freeze(['teeth', 'moduleMm', 'pressureAngleDeg', 'profileShift', 'clearanceMm', 'backlashMm'])
+
+/** Decision 4: `legacy` samples each flank with a fixed 8 points. */
+const LEGACY_POINTS_PER_FLANK = 8
+/** Decision 4's ceiling on points per flank, whatever the tolerance asks for. */
+const MAX_POINTS_PER_FLANK = 64
+
+/**
+ * Segments across half a land (tip or root) spanning `halfSpanRad` at `radiusMm`: the
+ * full circle's count under `policy`, scaled to the span. At least 1.
+ *
+ * @param {number} radiusMm
+ * @param {number} halfSpanRad
+ * @param {import('./tessellation.js').TessellationPolicy} policy
+ * @returns {number}
+ */
+function landSegmentsFor(radiusMm, halfSpanRad, policy) {
+  if (!(halfSpanRad > 0)) return 1
+  return Math.max(1, Math.ceil((segmentsFor(radiusMm, policy) * halfSpanRad) / (2 * Math.PI)))
+}
+
+/**
+ * Sampling for one gear under the design's resolution (Decision 4).
+ *
+ * Flank points are chosen so the involute's chordal error is within `toleranceMm`: the
+ * outline samples the involute evenly in roll angle `t`, along which the tangent turns by
+ * `Δt` and the radius of curvature is `r_b · t`, largest at the tip — so a step
+ * `Δt = 2 acos(1 − tol / (r_b · t_tip))` bounds the sag everywhere. The trochoid root
+ * shares the count. Clamped to `[minSegments / 4, 64]`; `legacy` is a fixed 8.
+ *
+ * @param {import('../gear/dimensions.js').GearDimensions} dims
+ * @param {import('./tessellation.js').TessellationPolicy | undefined} policy
+ * @returns {{ pointsPerFlank: number, tipSegments: number, rootSegments: number }}
+ */
+function gearProfileResolution(dims, policy) {
+  const active = policy ?? LEGACY_POLICY
+  const tipHalfRad = toothHalfAngleRadAt(dims, dims.outsideRadiusMm)
+  const rootHalfRad = Math.PI / dims.teeth - toothHalfAngleRadAt(dims, dims.rootRadiusMm)
+  const tipSegments = landSegmentsFor(dims.outsideRadiusMm, tipHalfRad, active)
+  const rootSegments = landSegmentsFor(dims.rootRadiusMm, rootHalfRad, active)
+  if (active.toleranceMm === null) {
+    return { pointsPerFlank: LEGACY_POINTS_PER_FLANK, tipSegments, rootSegments }
+  }
+  const rb = dims.baseRadiusMm
+  const rollAt = (/** @type {number} */ r) => Math.sqrt(Math.max(0, (r / rb) ** 2 - 1))
+  const tTip = rollAt(dims.outsideRadiusMm)
+  const tStart = rollAt(Math.max(dims.involuteStartRadiusMm, rb))
+  const curvatureMm = rb * tTip
+  const floor = Math.ceil(active.minSegments / 4)
+  let points = floor
+  if (curvatureMm > active.toleranceMm) {
+    const stepRad = 2 * Math.acos(1 - active.toleranceMm / curvatureMm)
+    points = Math.ceil((tTip - tStart) / stepRad)
+  }
+  return {
+    pointsPerFlank: Math.min(MAX_POINTS_PER_FLANK, Math.max(floor, points)),
+    tipSegments,
+    rootSegments,
+  }
+}
+
+/**
+ * Build `profile.gear`: the external spur outline as a `geom2`, tooth 0 on +X, centred on
+ * the origin. The caps are checked before anything is sampled.
+ *
+ * @param {Record<string, any>} params
+ * @param {import('./tessellation.js').TessellationPolicy | undefined} policy
+ * @returns {Geom2}
+ */
+function buildGearProfile(params, policy) {
+  const op = GEAR_PROFILE_OP
+  // Canonical names only: `gear.spur` resolves aliases before it emits this record.
+  for (const key of Object.keys(params)) {
+    if (!GEAR_PROFILE_PARAMS.includes(key)) {
+      throw new GearAliasError(`${op}: unknown param ${key} — expected ${GEAR_PROFILE_PARAMS.join(', ')}`, 'unknown-param', key)
+    }
+  }
+  checkGearLimits(params, { op, required: ['teeth', 'moduleMm'] })
+  const gear = /** @type {import('../gear/dimensions.js').GearParams} */ (params)
+  try {
+    const dims = gearDimensions(gear)
+    const profile = involuteProfile({ ...gear, ...gearProfileResolution(dims, policy) })
+    return geometries.geom2.fromPoints(profile.outline)
+  } catch (error) {
+    if (error instanceof GearParameterError && !error.message.startsWith(`${op}: `)) {
+      const Named = /** @type {new (message: string) => GearParameterError} */ (error.constructor)
+      throw new Named(`${op}: ${error.message}`)
+    }
+    throw error
+  }
+}
+
 /**
  * The op catalogue.
  *
@@ -958,6 +1064,26 @@ export const registry = Object.freeze({
       profile
     )
   }),
+
+  // A circle as a `geom2` (TODO/core-041): the bore `gear.spur` cuts from its profile in
+  // 2D, before the extrude — see that recipe's module doc for why. Same segment rule as
+  // `primitive.cylinder`, so a hole and a cylinder of one diameter share their vertices.
+  'profile.circle': native(0, ({ params, policy }) => {
+    const op = 'profile.circle'
+    const radius = requirePositive(params.diameter, 'diameter', op) / 2
+    return primitives.circle({
+      radius,
+      segments: params.segments ?? segmentsFor(radius, policy),
+      center: params.center ?? [0, 0],
+    })
+  }),
+
+  // The involute spur outline (TODO/core-041): a `profile.*` op like the two above — an
+  // intermediate `geom2`, never a Library row — which `gear.spur` extrudes. Named
+  // `profile.gear` per `docs/decisions/gears.md` Decision 3 (the TODO's `gear.profile`
+  // would put an intermediate in the `gear.` Library namespace and outside
+  // `userPart.js`'s allowed prefixes).
+  'profile.gear': native(0, ({ params, policy }) => buildGearProfile(params, policy)),
 
   // TODO/render-002: `jscad-utils`' `label()` — a string as a thin extruded body.
   // A native op taking `center` like a primitive, so the Library places it by the same
@@ -1603,6 +1729,15 @@ export const registry = Object.freeze({
   'raspberrypi.hat': composite(0, hat, { label: 'HAT', defaults: {} }),
   'raspberrypi.hatStandoff': composite(0, hatStandoff, { label: 'HAT Standoff', defaults: {} }),
   'raspberrypi.spacer': composite(0, spacer, { label: 'Spacer', defaults: {} }),
+
+  // ## Gears (M11, TODO/core-041)
+  //
+  // `gear.spur` expands to `profile.gear` → (a 2D bore subtract) → `profile.extrudeLinear`
+  // → a centring translate; see `recipes/gear.spur.js`. Registered **without** `ui` for now:
+  // `ui` is what makes an entry a Library row and an AI-creatable op, and that surface —
+  // panel, Inspector, docs, e2e — is `ui-057`'s, which attaches `GEAR_SPUR_UI`. Until
+  // then a gear is reachable by document line (and `expand`) only.
+  'gear.spur': composite(0, spur),
 
   // Deliberately absent, and not an oversight — TODO/core-003 spiked this:
   //

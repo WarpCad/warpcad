@@ -1900,3 +1900,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** batch and milestone stops waived → TODO/BUDGET.md diff; M17 rows ui-070, core-061, ui-069 → TODO/ROADMAP.md diff; cron restart and resume rules → TODO/BUDGET.md diff
 **To Add:** nothing
+
+## [2026-10-16T06:20:00Z] — A gear is now a registry entry, not a library row yet
+
+**Post:** WarpCad can now fold a spur gear from one document line: teeth, module, pressure angle, thickness, bore. The bore is cut in 2D before a single extrude, so the solid stays watertight. It has no Library row yet, on purpose: the panel comes next. Built with Claude Code, reviewed by me. #CAD #OpenSource
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** `gear.spur` composite with parts gear, bore, pitch → `src/core/kernel/recipes/gear.spur.spec.js`; bore cut in 2D by `profile.circle` before the extrude → `src/core/kernel/recipes/gear.spur.js`; no Library row → `src/core/library.spec.js`; full suite 5115 unit and 3909 e2e passing → test run this session
+**To Add:** nothing

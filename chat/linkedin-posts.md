@@ -2681,3 +2681,22 @@ The milestone free-form passes it skips are written down as owed, not dropped. B
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** normal stop every three tasks → TODO/BUDGET.md Config (Batch size: 3); waiver, cron heartbeat, in-progress marker, resume, real stops delete cron → TODO/BUDGET.md diff; M17 contents → TODO/ROADMAP.md diff; phone tab bug → TODO/ui-070 title; passes logged as owed → TODO/BUDGET.md diff
 **To Add:** nothing
+
+## [2026-10-16T06:20:00Z] — Cutting the bore before the extrude, and a naming call I had to leave open
+
+**Post:** WarpCad's spur gear is now a first-class registry entry: one document line with teeth, module, pressure angle, thickness and a bore folds to a solid. Two choices are worth writing down.
+
+First, the bore. Rather than extrude the tooth outline and subtract a cylinder, the recipe subtracts a 2D circle from the outline and extrudes once. One extrude gives one watertight solid, and a bore at or above the root diameter is refused by name before any geometry exists, instead of quietly cutting through the teeth.
+
+Second, the old project's vocabulary. Importing a V1 gear is not a rename: V1's `circularPitch` becomes `module = cp / pi`, and its `backlash` becomes `2b / cos(alpha)`. The alias table does those conversions, and it refuses V1's `pressureAngle` outright, because V1 really cuts at `atan(sin a)` and whether to keep the number or reproduce the printed shape is a decision for the importer, not for a lookup table.
+
+One more thing I left open on purpose: the decision doc says bores belong to the hub operation, but this task accepts a `boreMm` shorthand. It is written up as a question to settle before the hub task, not smoothed over.
+
+There is no Library row yet. The recipe has no UI metadata, so a user cannot place a gear until the panel task lands. I re-drove the Two-primitives, Snap-placement and Save-and-reload scenarios by hand anyway, since this touched shared registry code. Not driven: the file-picker half of save and reload.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource #AIEngineering
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** bore cut in 2D before one extrude, oversize bore refused by name → `src/core/kernel/recipes/gear.spur.js` and its spec; V1 `circularPitch`, `backlash` conversions and the refused `pressureAngle` → `src/core/gear/aliases.spec.js`; `boreMm` question recorded → `docs/decisions/gears.md` core-041 addendum; scenarios 1, 3, 10 driven at 1440x900 Chromium → `TODO/ACCEPTANCE.md` Last run lines
+**To Add:** repo URL once public, docs site URL once it exists

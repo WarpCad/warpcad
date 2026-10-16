@@ -6,8 +6,16 @@ priority: high
 model: opus
 milestone: M11
 depends: [core-040]
-status: open
+status: done
 ---
+
+> **What actually shipped.** The native op is named `profile.gear` (the `profile.*` namespace
+> from `docs/decisions/gears.md`), with a second native op `profile.circle` so the bore is cut in
+> 2D before one extrude. `gear.spur` is a composite with parts `gear`, `bore` and `pitch` (a hidden
+> full-thickness cylinder, not zero-thickness). It carries **no `ui`**, so it is not yet a Library
+> row or AI-creatable; `ui-057` attaches `GEAR_SPUR_UI`. `library.js` has the empty "Gears"
+> section. The alias table converts V1 values (backlash, circularPitch, diametralPitch) and refuses
+> V1 `pressureAngle`; that and `boreMm` vs `core-048` are open (see the gears.md addendum).
 
 ## Goal
 
