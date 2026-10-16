@@ -38,6 +38,8 @@ jobs:
       - id: pages
         uses: actions/configure-pages@v5
       - run: npm ci
+      # The build bundles mcp/ (the AI tool registry), whose dependencies live in mcp/package.json.
+      - run: npm run mcp:install
       # `base_path` is "/warpcad" at warpcad.github.io/warpcad/ and "" behind a custom domain;
       # vite.config.js normalises either into Vite's `base`.
       - run: npm run build
