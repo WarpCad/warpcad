@@ -41,6 +41,31 @@ export const GEAR_LIMITS = Object.freeze({
   profileShift: Object.freeze({ min: -1, max: 2 }),
 })
 
+/**
+ * A ring gear's caps (TODO/core-043): the gear's, plus the rim. A 0 mm rim is refused — a
+ * ring is all rim behind its teeth.
+ *
+ * @type {Readonly<Record<keyof typeof GEAR_LIMITS | 'rimThicknessMm', Readonly<GearLimit>>>}
+ */
+export const RING_LIMITS = Object.freeze({
+  ...GEAR_LIMITS,
+  rimThicknessMm: Object.freeze({ min: 0, max: 1000, minExclusive: true }),
+})
+
+/**
+ * A rack's caps (TODO/core-043): 1…200 teeth (V1 hard-coded 41), the gear's module,
+ * pressure angle and thickness, and a backing bar of more than 0 mm.
+ *
+ * @type {Readonly<Record<'teeth' | 'moduleMm' | 'pressureAngleDeg' | 'thicknessMm' | 'heightMm', Readonly<GearLimit>>>}
+ */
+export const RACK_LIMITS = Object.freeze({
+  teeth: Object.freeze({ min: 1, max: 200, integer: true }),
+  moduleMm: GEAR_LIMITS.moduleMm,
+  pressureAngleDeg: GEAR_LIMITS.pressureAngleDeg,
+  thicknessMm: GEAR_LIMITS.thicknessMm,
+  heightMm: Object.freeze({ min: 0, max: 1000, minExclusive: true }),
+})
+
 /** Params that must be finite numbers when present but carry no range of their own. */
 const FINITE_ONLY = Object.freeze(['clearanceMm', 'backlashMm'])
 
@@ -88,21 +113,23 @@ function checkRange(value, name, limit, op) {
 }
 
 /**
- * Check canonical gear params against {@link GEAR_LIMITS}. Cheap and allocation-free: it
- * reads numbers and compares them, and never builds a profile.
+ * Check canonical gear params against {@link GEAR_LIMITS} (or a kind's own table). Cheap
+ * and allocation-free: it reads numbers and compares them, and never builds a profile.
  *
  * @param {Record<string, unknown>} params Canonical names (after `./aliases.js`).
- * @param {{ op: string, required: readonly string[] }} options `required` params must be
- *   present; every other limited param is checked only when given.
+ * @param {{ op: string, required: readonly string[], limits?: Readonly<Record<string, Readonly<GearLimit>>> }} options
+ *   `required` params must be present; every other limited param is checked only when
+ *   given. `limits` defaults to {@link GEAR_LIMITS}; the ring and rack pass
+ *   {@link RING_LIMITS} and {@link RACK_LIMITS}.
  * @returns {void}
  * @throws {GearLimitError}
  */
-export function checkGearLimits(params, { op, required }) {
+export function checkGearLimits(params, { op, required, limits = GEAR_LIMITS }) {
   for (const name of required) {
     if (params[name] === undefined) throw new GearLimitError(`${op}: ${name} is required`, name)
   }
   // Teeth first: it is the one param that scales the work, so it is refused before anything else.
-  for (const name of /** @type {(keyof typeof GEAR_LIMITS)[]} */ (Object.keys(GEAR_LIMITS))) {
+  for (const name of Object.keys(limits)) {
     const value = params[name]
     if (value === undefined) continue
     if (name === 'helixAngleDeg' && typeof value === 'number' && value < 0) {
@@ -111,7 +138,7 @@ export function checkGearLimits(params, { op, required }) {
         name
       )
     }
-    checkRange(value, name, GEAR_LIMITS[name], op)
+    checkRange(value, name, limits[name], op)
   }
   const hand = params.handedness
   if (hand !== undefined && !HANDEDNESS.includes(/** @type {any} */ (hand))) {

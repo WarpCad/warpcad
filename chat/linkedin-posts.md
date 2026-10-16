@@ -2719,3 +2719,16 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** twist and normal/transverse maths → `src/core/gear/helix.spec.js`; herringbone chevron, β = 0, twist limits → `src/core/kernel/recipes/gear.spur.helical.spec.js`; steps floor, cap and budget → `src/core/kernel/tessellation.spec.js`; decisions → `docs/decisions/gears.md` core-042 addendum; groove filed → `TODO/core-062-herringbone-relief-groove.md`; twisted-volume observation → `TODO/VERIFY.md`; scenarios 1, 3, 9, 10 driven at 1440x900 Chromium → `TODO/ACCEPTANCE.md` Last run lines
 **To Add:** repo URL once public, docs site URL once it exists
+
+## [2026-10-16T09:35:00Z] — A ring gear limit that points the other way
+
+**Post:** WarpCad can now build an internal (ring) gear and a rack as their own parts. The V1 library hid both behind a tooth count: negative meant a ring, zero meant a rack, and the ring could not exist without the pinion it was swept against. Now a ring is defined by its teeth, module, pressure angle and rim thickness, and meshes with any pinion that fits.
+
+The surprise was the limit. I expected a minimum pinion size, as with an external gear. For a ring the binding constraint is a maximum: a pinion too close in size to the ring cuts into the ring's teeth through trochoid interference. A 64-tooth ring at 20 degrees takes at most a 55-tooth pinion, a 96-tooth ring at most 88. A ring that no pinion fits is refused by name, and a core function checks a given pair for the tasks that will place them.
+
+Two things are deliberately open. V1 puts the clearance at the ring tip and this build puts it at the root, so the drive-wheel ring differs from V1 by exactly the 0.05 mm clearance; the parity test asserts that offset instead of hiding it. And there is still no Library row, so none of this is reachable by hand until the next panel task. Built with Claude Code, reviewed by me.
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** negative/zero tooth counts and swept pinion → `TODO/done/core-043-internal-ring-gear-and-rack.md` Goal; max pinion 55 for 64T and 88 for 96T, `no-pinion-fits`, `checkRingPinion` → `docs/decisions/gears.md` core-043 addendum; tip/root offset equals clearance 0.05 mm → same addendum and `src/core/gear/internal.spec.js`; no Library row → `src/core/kernel/recipes/gear.ring.spec.js`
+**To Add:** repo URL once public, docs site URL once it exists

@@ -109,6 +109,20 @@ export function v1BacklashToBacklashMm(v1BacklashMm, v1PressureAngleDeg) {
 }
 
 /**
+ * V1's **rack** thins each tooth by `backlash / (2 cos α)` — half what a V1 gear does
+ * (Decision 5 defect 8: its rack cutter widens each side by a quarter of the backlash).
+ * Keeping an imported rack unchanged therefore takes `backlashMm = backlashV1 / cos α`
+ * (TODO/core-043), half {@link v1BacklashToBacklashMm}'s rate.
+ *
+ * @param {number} v1BacklashMm
+ * @param {number} v1PressureAngleDeg
+ * @returns {number} backlashMm
+ */
+export function v1RackBacklashToBacklashMm(v1BacklashMm, v1PressureAngleDeg) {
+  return v1BacklashMm / Math.cos(v1PressureAngleDeg * DEG_TO_RAD)
+}
+
+/**
  * Clearance for a new gear when none is given: `0.25 · module` (call 5).
  *
  * @param {number} moduleMm

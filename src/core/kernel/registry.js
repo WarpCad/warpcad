@@ -79,11 +79,15 @@ import { nut } from './recipes/hardware.nut.js'
 import { washer } from './recipes/hardware.washer.js'
 import { bearing } from './recipes/hardware.bearing.js'
 import { spur } from './recipes/gear.spur.js'
+import { ring } from './recipes/gear.ring.js'
+import { rack } from './recipes/gear.rack.js'
 import { GearAliasError } from '../gear/aliases.js'
 import { GearParameterError, gearDimensions } from '../gear/dimensions.js'
 import { MAX_TWIST_DEG } from '../gear/helix.js'
+import { internalProfile, ringGearDimensions, ringToothHalfAngleRadAt } from '../gear/internal.js'
 import { involuteProfile, toothHalfAngleRadAt } from '../gear/involute.js'
-import { checkGearLimits } from '../gear/limits.js'
+import { GearLimitError, RACK_LIMITS, RING_LIMITS, checkGearLimits } from '../gear/limits.js'
+import { rackProfile } from '../gear/rack.js'
 import { screw, SCREW_HEADS } from './recipes/hardware.screw.js'
 import { anchor } from './recipes/kit.anchor.js'
 import { board } from './recipes/kit.board.js'
@@ -760,6 +764,19 @@ const GEAR_PROFILE_OP = 'profile.gear'
 // hand and the herringbone are the extrude's, so they are not profile params.
 const GEAR_PROFILE_PARAMS = Object.freeze(['teeth', 'moduleMm', 'pressureAngleDeg', 'profileShift', 'clearanceMm', 'backlashMm', 'helixAngleDeg'])
 
+/**
+ * `profile.gear`'s vocabulary per `kind` (Decision 2's `'external' | 'internal' | 'rack'`,
+ * TODO/core-043). `kind` is optional and defaults to `'external'`, so every `gear.spur`
+ * record written before the ring and rack existed reads exactly as it did.
+ *
+ * @type {Readonly<Record<'external' | 'internal' | 'rack', readonly string[]>>}
+ */
+const GEAR_PROFILE_PARAMS_BY_KIND = Object.freeze({
+  external: GEAR_PROFILE_PARAMS,
+  internal: Object.freeze(['teeth', 'moduleMm', 'pressureAngleDeg', 'clearanceMm', 'backlashMm', 'helixAngleDeg', 'rimThicknessMm']),
+  rack: Object.freeze(['teeth', 'moduleMm', 'pressureAngleDeg', 'clearanceMm', 'backlashMm', 'heightMm']),
+})
+
 /** Decision 4: `legacy` samples each flank with a fixed 8 points. */
 const LEGACY_POINTS_PER_FLANK = 8
 /** Decision 4's ceiling on points per flank, whatever the tolerance asks for. */
@@ -793,24 +810,71 @@ function landSegmentsFor(radiusMm, halfSpanRad, policy) {
  * @returns {{ pointsPerFlank: number, tipSegments: number, rootSegments: number }}
  */
 function gearProfileResolution(dims, policy) {
+  return flankSampling(
+    {
+      baseRadiusMm: dims.baseRadiusMm,
+      flankInnerRadiusMm: Math.max(dims.involuteStartRadiusMm, dims.baseRadiusMm),
+      flankOuterRadiusMm: dims.outsideRadiusMm,
+      tipRadiusMm: dims.outsideRadiusMm,
+      tipHalfRad: toothHalfAngleRadAt(dims, dims.outsideRadiusMm),
+      rootRadiusMm: dims.rootRadiusMm,
+      rootHalfRad: Math.PI / dims.teeth - toothHalfAngleRadAt(dims, dims.rootRadiusMm),
+    },
+    policy
+  )
+}
+
+/**
+ * The same sampling rule for a ring gear (TODO/core-043): its flank runs from the tip
+ * (inner) circle out to the root circle, so the curvature that bounds the step is the
+ * root's.
+ *
+ * @param {import('../gear/internal.js').RingGearDimensions} dims
+ * @param {import('./tessellation.js').TessellationPolicy | undefined} policy
+ * @returns {{ pointsPerFlank: number, tipSegments: number, rootSegments: number }}
+ */
+function ringProfileResolution(dims, policy) {
+  return flankSampling(
+    {
+      baseRadiusMm: dims.baseRadiusMm,
+      flankInnerRadiusMm: dims.tipRadiusMm,
+      flankOuterRadiusMm: dims.rootRadiusMm,
+      tipRadiusMm: dims.tipRadiusMm,
+      tipHalfRad: ringToothHalfAngleRadAt(dims, dims.tipRadiusMm),
+      rootRadiusMm: dims.rootRadiusMm,
+      rootHalfRad: Math.PI / dims.teeth - ringToothHalfAngleRadAt(dims, dims.rootRadiusMm),
+    },
+    policy
+  )
+}
+
+/**
+ * Decision 4's rule for any involute flank: points evenly in roll angle at a step whose
+ * chordal sag at the outer end (the largest radius of curvature, `r_b · t`) is within
+ * `toleranceMm`; lands scaled from the circle's own segment count.
+ *
+ * @param {{ baseRadiusMm: number, flankInnerRadiusMm: number, flankOuterRadiusMm: number,
+ *   tipRadiusMm: number, tipHalfRad: number, rootRadiusMm: number, rootHalfRad: number }} flank
+ * @param {import('./tessellation.js').TessellationPolicy | undefined} policy
+ * @returns {{ pointsPerFlank: number, tipSegments: number, rootSegments: number }}
+ */
+function flankSampling(flank, policy) {
   const active = policy ?? LEGACY_POLICY
-  const tipHalfRad = toothHalfAngleRadAt(dims, dims.outsideRadiusMm)
-  const rootHalfRad = Math.PI / dims.teeth - toothHalfAngleRadAt(dims, dims.rootRadiusMm)
-  const tipSegments = landSegmentsFor(dims.outsideRadiusMm, tipHalfRad, active)
-  const rootSegments = landSegmentsFor(dims.rootRadiusMm, rootHalfRad, active)
+  const tipSegments = landSegmentsFor(flank.tipRadiusMm, flank.tipHalfRad, active)
+  const rootSegments = landSegmentsFor(flank.rootRadiusMm, flank.rootHalfRad, active)
   if (active.toleranceMm === null) {
     return { pointsPerFlank: LEGACY_POINTS_PER_FLANK, tipSegments, rootSegments }
   }
-  const rb = dims.baseRadiusMm
+  const rb = flank.baseRadiusMm
   const rollAt = (/** @type {number} */ r) => Math.sqrt(Math.max(0, (r / rb) ** 2 - 1))
-  const tTip = rollAt(dims.outsideRadiusMm)
-  const tStart = rollAt(Math.max(dims.involuteStartRadiusMm, rb))
-  const curvatureMm = rb * tTip
+  const tOuter = rollAt(flank.flankOuterRadiusMm)
+  const tInner = rollAt(flank.flankInnerRadiusMm)
+  const curvatureMm = rb * tOuter
   const floor = Math.ceil(active.minSegments / 4)
   let points = floor
   if (curvatureMm > active.toleranceMm) {
     const stepRad = 2 * Math.acos(1 - active.toleranceMm / curvatureMm)
-    points = Math.ceil((tTip - tStart) / stepRad)
+    points = Math.ceil((tOuter - tInner) / stepRad)
   }
   return {
     pointsPerFlank: Math.min(MAX_POINTS_PER_FLANK, Math.max(floor, points)),
@@ -829,26 +893,61 @@ function gearProfileResolution(dims, policy) {
  */
 function buildGearProfile(params, policy) {
   const op = GEAR_PROFILE_OP
-  // Canonical names only: `gear.spur` resolves aliases before it emits this record.
-  for (const key of Object.keys(params)) {
-    if (!GEAR_PROFILE_PARAMS.includes(key)) {
-      throw new GearAliasError(`${op}: unknown param ${key} — expected ${GEAR_PROFILE_PARAMS.join(', ')}`, 'unknown-param', key)
+  const { kind = 'external', ...gearParams } = params
+  if (kind !== 'external' && kind !== 'internal' && kind !== 'rack') {
+    throw new GearLimitError(`${op}: kind must be 'external', 'internal' or 'rack', got ${String(kind)}`, 'kind')
+  }
+  const vocabulary = GEAR_PROFILE_PARAMS_BY_KIND[/** @type {'external' | 'internal' | 'rack'} */ (kind)]
+  // Canonical names only: the recipes resolve aliases before they emit this record.
+  for (const key of Object.keys(gearParams)) {
+    if (!vocabulary.includes(key)) {
+      throw new GearAliasError(`${op}: unknown param ${key} for kind ${kind} — expected ${vocabulary.join(', ')}`, 'unknown-param', key)
     }
   }
-  checkGearLimits(params, { op, required: ['teeth', 'moduleMm'] })
-  const gear = /** @type {import('../gear/dimensions.js').GearParams} */ (params)
+  if (kind === 'internal') checkGearLimits(gearParams, { op, required: ['teeth', 'moduleMm'], limits: RING_LIMITS })
+  else if (kind === 'rack') checkGearLimits(gearParams, { op, required: ['moduleMm'], limits: RACK_LIMITS })
+  else checkGearLimits(gearParams, { op, required: ['teeth', 'moduleMm'] })
   try {
+    if (kind === 'internal') return buildRingProfile(gearParams, policy)
+    if (kind === 'rack') return geometries.geom2.fromPoints(rackProfile(/** @type {any} */ (gearParams)).outline)
+    const gear = /** @type {import('../gear/dimensions.js').GearParams} */ (gearParams)
     const dims = gearDimensions(gear)
     const profile = involuteProfile({ ...gear, ...gearProfileResolution(dims, policy) })
     return geometries.geom2.fromPoints(profile.outline)
   } catch (error) {
     if (error instanceof GearParameterError && !error.message.startsWith(`${op}: `)) {
-      const Named = /** @type {new (message: string) => GearParameterError} */ (error.constructor)
-      throw new Named(`${op}: ${error.message}`)
+      const Named = /** @type {new (message: string, code?: unknown) => GearParameterError} */ (error.constructor)
+      throw new Named(`${op}: ${error.message}`, /** @type {{ code?: unknown }} */ (error).code)
     }
     throw error
   }
 }
+
+/**
+ * The ring annulus (TODO/core-043): the rim circle, CCW, with the toothed hole as its inner
+ * contour, CW — one `geom2` built from sides, no 2D boolean, so the teeth keep the exact
+ * vertices `internalProfile` sampled. The rim takes the same policy-driven segment count
+ * as any circle of its radius.
+ *
+ * @param {Record<string, any>} params Canonical ring params, limits already checked.
+ * @param {import('./tessellation.js').TessellationPolicy | undefined} policy
+ * @returns {Geom2}
+ */
+function buildRingProfile(params, policy) {
+  const ringParams = /** @type {import('../gear/internal.js').RingGearParams} */ (params)
+  const dims = ringGearDimensions(ringParams)
+  const hole = internalProfile({ ...ringParams, ...ringProfileResolution(dims, policy) }).outline
+  const rim = geometries.geom2.toPoints(
+    primitives.circle({ radius: dims.rimOuterRadiusMm, segments: segmentsFor(dims.rimOuterRadiusMm, policy) })
+  )
+  /** @type {[Vec2Mm2, Vec2Mm2][]} */
+  const sides = []
+  for (let i = 0; i < rim.length; i++) sides.push([/** @type {Vec2Mm2} */ (rim[i]), /** @type {Vec2Mm2} */ (rim[(i + 1) % rim.length])])
+  for (let i = hole.length - 1; i >= 0; i--) sides.push([hole[i], hole[(i - 1 + hole.length) % hole.length]])
+  return geometries.geom2.create(/** @type {any} */ (sides))
+}
+
+/** @typedef {[number, number]} Vec2Mm2 A 2D point, mm. */
 
 // ## The twisted extrude (TODO/core-042, `docs/decisions/gears.md` Decision 3)
 //
@@ -1858,6 +1957,11 @@ export const registry = Object.freeze({
   // panel, Inspector, docs, e2e — is `ui-057`'s, which attaches `GEAR_SPUR_UI`. Until
   // then a gear is reachable by document line (and `expand`) only.
   'gear.spur': composite(0, spur),
+  // TODO/core-043: the ring (`profile.gear` kind `internal` → extrude → centre, plus hidden
+  // `bore` and `pitch`) and the rack (kind `rack` → extrude → centre, plus a hidden `pitch`
+  // box whose +Y face is the pitch line). Also without `ui` until `ui-057`.
+  'gear.ring': composite(0, ring),
+  'gear.rack': composite(0, rack),
 
   // Deliberately absent, and not an oversight — TODO/core-003 spiked this:
   //

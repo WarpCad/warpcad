@@ -1919,3 +1919,13 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** twist = t·tan(β)/r, transverse module mₙ/cos β → `src/core/gear/helix.spec.js`; herringbone as one chevron extrude, β = 0 still valid → `src/core/kernel/recipes/gear.spur.helical.spec.js`; step count and vertex budget → `src/core/kernel/tessellation.spec.js`; full run 5194 unit, 3908 e2e passing → test run this session
 **To Add:** nothing
+
+## [2026-10-16T09:35:00Z] — A ring gear without the pinion it meshes with
+
+**Post:** WarpCad now builds an internal (ring) gear and a rack from their own parameters. The old V1 library cut a ring by sweeping the pinion it meshed with. Here the tooth shape comes straight from the involute, and a test checks a 64-tooth ring against a 14-tooth pinion for zero overlap at 12 angles. Built with Claude Code, reviewed by me. #CAD #OpenSource
+
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** ring defined by own params, `connectedGear` refused by name → `src/core/kernel/recipes/gear.ring.spec.js`; zero overlap at 12 angles, 64T/14T and 96T/14T → same file, "meshing proof" block; V1 swept the pinion → `TODO/done/core-043-internal-ring-gear-and-rack.md` Goal; no Library row → same spec, "no ui yet"
+**To Add:** nothing

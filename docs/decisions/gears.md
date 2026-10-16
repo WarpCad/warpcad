@@ -425,4 +425,27 @@ section ("Gears") and its row order, empty until then.
 - **`grooveMm` (the relief gap at the apex) is not built.** It is refused as an unknown
   parameter by name, and filed as `core-062` (M11, low priority).
 
+## Addendum — what `core-043` decided about ring gears and racks (2026-10-16)
+
+- **Drive-wheel ring does not match V1's tip and root within 0.02 mm, by a documented offset.**
+  V1 puts the clearance at the ring tip (tip `R - m + c`, root `R + m`); this project uses the
+  standard construction (tip `R - m`, root `R + m + c`). The two differ by exactly `c`
+  (0.05 mm for the drive-wheel). The parity spec asserts the offset. **Open for the user:**
+  confirm the standard construction, or ask for V1's placement as an import-only option.
+- **`minPinionTeeth` was the wrong quantity.** The binding limit for a ring is a *maximum*
+  pinion (trochoid interference, the KHK condition), exposed as `maxPinionTeeth` and
+  `minToothDifference` (55 for a 64T ring, 88 for a 96T ring at 20 degrees). The involute
+  interference check is deliberately not applied. A ring with no fitting pinion is refused
+  (`GearMeshError`, code `no-pinion-fits`). `checkRingPinion(ring, z)` is a core function for
+  `core-044` to call.
+- **V1 aliases.** Negative `toothCount` maps to `gear.ring`; `toothCount` 0 maps to `gear.rack`
+  of 41 teeth (V1's hard-coded count), with a note. Wrong-sign refusals are named. Rack backlash
+  is `b / cos(alpha)` (half the gear rate). `profileShift`, `boreMm` and `centerHoleDiameter` are
+  refused on ring and rack.
+- **V1 ring sweep fails at fine densities** (`Area is not closed!`), so the fixture's ring is the
+  finest density V1 survives.
+- **Rim thickness and rack height are measured from the as-built root**, and a rack has no helix.
+- Ring and rack share the flank equation exported from `involute.js`; `gear.spur`'s twist code
+  is now the exported `helicalExtrude`, with spur records unchanged.
+
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

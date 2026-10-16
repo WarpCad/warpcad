@@ -42,6 +42,11 @@
  * module, and this file reads only those dimensions, so it draws the section unchanged.
  * The twist that makes it helical is the extrude's (`./helix.js`).
  *
+ * ── Ring gears and racks (TODO/core-043) ─────────────────────────────────────────────
+ * {@link involuteHalfAngleFn} is the flank equation alone, and {@link rackHalfWidthMmAt}
+ * its straight-line limit. `./internal.js` and `./rack.js` draw from those two and never
+ * restate either.
+ *
  * Framework-free: no Vue, DOM, three.js or `@jscad/modeling` — it returns points; the
  * kernel adapter turns them into a `geom2`.
  *
@@ -86,6 +91,55 @@ const BISECT_ITERATIONS = 64
 const inv = (a) => Math.tan(a) - a
 
 /**
+ * What the involute flank needs: the circles and the tooth's thickness along the pitch
+ * circle. A {@link GearDimensions} is one; so is an internal gear's tooth *space*
+ * (`./internal.js`), which is an external tooth of the space width.
+ *
+ * @typedef {Pick<GearDimensions, 'pitchRadiusMm' | 'baseRadiusMm' | 'toothThicknessAtPitchMm' | 'transversePressureAngleDeg'>} InvoluteFlankDims
+ */
+
+/**
+ * The **one** flank equation every gear kind uses (TODO/core-043: the ring and the rack
+ * must not re-implement it): the half-angle, about the tooth's centre line, of an involute
+ * flank of the given pitch-circle thickness, `ψ(r) = s / (2R) + inv α − inv α_r`,
+ * `cos α_r = r_b / r`. Defined for `r ≥ r_b`; inside the base circle it returns the
+ * base-circle value (the involute does not exist there).
+ *
+ * @param {InvoluteFlankDims} dims
+ * @returns {(radiusMm: number) => number} radians
+ */
+export function involuteHalfAngleFn(dims) {
+  const rb = dims.baseRadiusMm
+  const involuteConstRad = dims.toothThicknessAtPitchMm / (2 * dims.pitchRadiusMm) + inv((dims.transversePressureAngleDeg * Math.PI) / 180)
+  return (radiusMm) => involuteConstRad - inv(Math.acos(Math.min(1, rb / radiusMm)))
+}
+
+/**
+ * {@link involuteHalfAngleFn} at one radius.
+ *
+ * @param {InvoluteFlankDims} dims
+ * @param {number} radiusMm
+ * @returns {number} radians
+ */
+export function involuteHalfAngleRadAt(dims, radiusMm) {
+  return involuteHalfAngleFn(dims)(radiusMm)
+}
+
+/**
+ * The involute's straight-line limit — a rack tooth (TODO/core-043). As the tooth count
+ * grows without bound the pitch circle becomes the pitch line and every involute becomes a
+ * straight flank at the pressure angle, so the half-width of the tooth at height `y` above
+ * the pitch line is `s / 2 − y · tan α`. Zero or negative means no material at that height.
+ *
+ * @param {Pick<GearDimensions, 'toothThicknessAtPitchMm' | 'transversePressureAngleDeg'>} dims
+ * @param {number} heightMm Above the pitch line (negative below it).
+ * @returns {number} mm
+ */
+export function rackHalfWidthMmAt(dims, heightMm) {
+  return dims.toothThicknessAtPitchMm / 2 - heightMm * Math.tan((dims.transversePressureAngleDeg * Math.PI) / 180)
+}
+
+/**
  * The half-tooth angle as a function of radius, for one set of dimensions.
  *
  * @param {GearDimensions} dims
@@ -99,14 +153,14 @@ function halfAngleFn(dims) {
   const v = dims.rackCornerRadialMm
   const rGen = Math.max(dims.involuteStartRadiusMm, rb)
   const halfPitchRad = Math.PI / N
-  const involuteConstRad = dims.toothThicknessAtPitchMm / (2 * R) + inv((dims.transversePressureAngleDeg * Math.PI) / 180)
+  const involute = involuteHalfAngleFn(dims)
   return (radiusMm) => {
     const tau = Math.sqrt(Math.max(0, radiusMm * radiusMm - v * v))
     const lean = Math.atan2(tau, v)
     const spaceRad = Math.max((u - tau) / R + lean, (u + tau) / R - lean)
     let psi = halfPitchRad - spaceRad
     if (radiusMm >= rGen) {
-      const psiInv = involuteConstRad - inv(Math.acos(Math.min(1, rb / radiusMm)))
+      const psiInv = involute(radiusMm)
       if (psiInv < psi) psi = psiInv
     }
     return psi
@@ -224,13 +278,12 @@ export function involuteProfile(params) {
     // The corner's trochoid cuts the involute: find where the involute takes over.
     const R = dims.pitchRadiusMm
     const u = dims.rackCornerTangentialMm
-    const psiInvConst = dims.toothThicknessAtPitchMm / (2 * R) + inv((dims.transversePressureAngleDeg * Math.PI) / 180)
     const psiTro = (/** @type {number} */ r) => {
       const tau = Math.sqrt(Math.max(0, r * r - v * v))
       const lean = Math.atan2(tau, v)
       return halfPitchRad - Math.max((u - tau) / R + lean, (u + tau) / R - lean)
     }
-    const psiInv = (/** @type {number} */ r) => psiInvConst - inv(Math.acos(Math.min(1, rb / r)))
+    const psiInv = involuteHalfAngleFn(dims)
     // gap(r) > 0 while the trochoid is the tighter cut.
     const gap = (/** @type {number} */ r) => psiInv(r) - psiTro(r)
     rJoin = rTip

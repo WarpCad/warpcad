@@ -144,6 +144,49 @@ function withOp(error) {
 }
 
 /**
+ * The helical part of a gear's expansion (TODO/core-042), shared by `gear.spur` and
+ * `gear.ring` (TODO/core-043): the helix angle the profile record carries (0 means none),
+ * and the `profile.extrudeLinear` params that twist it — `t · tan β / r` on the transverse
+ * pitch radius, signed by the hand, a herringbone turning by the half-thickness twist and
+ * back. Empty at β = 0 unless a herringbone was asked for. A twist past one full turn is
+ * refused here, before any record is emitted.
+ *
+ * @param {string} op Prefixes the error.
+ * @param {Record<string, unknown>} canonical Checked params: `thicknessMm`, and optionally
+ *   `helixAngleDeg`, `handedness`, `herringbone`.
+ * @param {{ pitchRadiusMm: number, pitchDiameterMm: number }} dims The **transverse** pitch circle.
+ * @returns {{ helixAngleDeg: number, twistParams: Record<string, unknown> }}
+ * @throws {GearLimitError} for a twist past `MAX_TWIST_DEG`.
+ */
+export function helicalExtrude(op, canonical, dims) {
+  const thicknessMm = /** @type {number} */ (canonical.thicknessMm)
+  const helixAngleDeg = /** @type {number} */ (canonical.helixAngleDeg ?? 0)
+  const herringbone = canonical.herringbone === true
+  /** @type {Record<string, unknown>} */
+  const twistParams = {}
+  if (helixAngleDeg === 0 && !herringbone) return { helixAngleDeg, twistParams }
+  const twistRad = helixTwistRad({
+    // A herringbone turns by the half-thickness twist, then back.
+    thicknessMm: herringbone ? thicknessMm / 2 : thicknessMm,
+    pitchRadiusMm: dims.pitchRadiusMm,
+    helixAngleDeg,
+    handedness: /** @type {import('../../gear/helix.js').Handedness} */ (canonical.handedness ?? 'right'),
+  })
+  const twistDeg = twistRad * RAD_TO_DEG
+  if (Math.abs(twistDeg) > MAX_TWIST_DEG) {
+    throw new GearLimitError(
+      `${op}: a ${helixAngleDeg}° helix over ${herringbone ? 'half of ' : ''}thicknessMm ${thicknessMm} on a ` +
+        `${dims.pitchDiameterMm.toFixed(3)} mm pitch circle twists the teeth ${Math.abs(twistDeg).toFixed(0)}° — ` +
+        `more than one full turn (${MAX_TWIST_DEG}°), which is a worm, not a gear; reduce thicknessMm or helixAngleDeg`,
+      'thicknessMm'
+    )
+  }
+  twistParams.twistDeg = twistDeg
+  if (herringbone) twistParams.herringbone = true
+  return { helixAngleDeg, twistParams }
+}
+
+/**
  * Expand a `gear.spur` document line into the records that define it.
  *
  * @param {Record<string, unknown>} params `teeth`, `moduleMm`, `thicknessMm` (required),
@@ -184,31 +227,8 @@ export function spur(params, _tables) {
   }
 
   // Helical (TODO/core-042): the transverse section and a twist; nothing at all at β = 0.
-  const helixAngleDeg = /** @type {number} */ (canonical.helixAngleDeg ?? 0)
-  const herringbone = canonical.herringbone === true
-  /** @type {Record<string, unknown>} */
-  const twistParams = {}
-  if (helixAngleDeg !== 0 || herringbone) {
-    if (helixAngleDeg !== 0) profileParams.helixAngleDeg = helixAngleDeg
-    const twistRad = helixTwistRad({
-      // A herringbone turns by the half-thickness twist, then back.
-      thicknessMm: herringbone ? thicknessMm / 2 : thicknessMm,
-      pitchRadiusMm: dims.pitchRadiusMm,
-      helixAngleDeg,
-      handedness: /** @type {import('../../gear/helix.js').Handedness} */ (canonical.handedness ?? 'right'),
-    })
-    const twistDeg = twistRad * RAD_TO_DEG
-    if (Math.abs(twistDeg) > MAX_TWIST_DEG) {
-      throw new GearLimitError(
-        `${OP}: a ${helixAngleDeg}° helix over ${herringbone ? 'half of ' : ''}thicknessMm ${thicknessMm} on a ` +
-          `${dims.pitchDiameterMm.toFixed(3)} mm pitch circle twists the teeth ${Math.abs(twistDeg).toFixed(0)}° — ` +
-          `more than one full turn (${MAX_TWIST_DEG}°), which is a worm, not a gear; reduce thicknessMm or helixAngleDeg`,
-        'thicknessMm'
-      )
-    }
-    twistParams.twistDeg = twistDeg
-    if (herringbone) twistParams.herringbone = true
-  }
+  const { helixAngleDeg, twistParams } = helicalExtrude(OP, canonical, dims)
+  if (helixAngleDeg !== 0) profileParams.helixAngleDeg = helixAngleDeg
 
   /** @type {OpRecord[]} */
   const records = [{ id: 'profile', op: 'profile.gear', params: profileParams }]

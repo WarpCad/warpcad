@@ -987,4 +987,17 @@ describe('the Gears section (TODO/core-041) — defined here, listed once ui-057
       ['gear.spur', 'Spur gear', 'composite', 0],
     ])
   })
+
+  it('ranks Ring gear and Rack after Spur gear (core-043), the day ui-057 gives them their ui', () => {
+    expect(registry['gear.ring']?.ui).toBeUndefined()
+    expect(registry['gear.rack']?.ui).toBeUndefined()
+    const withUi = {
+      ...registry,
+      'gear.rack': Object.freeze({ ...registry['gear.rack'], ui: { label: 'Rack', defaults: { teeth: 10, moduleMm: 2, thicknessMm: 8 } } }),
+      'gear.ring': Object.freeze({ ...registry['gear.ring'], ui: { label: 'Ring gear', defaults: { teeth: 64, moduleMm: 2, thicknessMm: 8 } } }),
+      'gear.spur': Object.freeze({ ...registry['gear.spur'], ui: GEAR_SPUR_UI }),
+    }
+    const gears = librarySectionsFor(withUi).find((section) => section.id === 'gear')
+    expect(gears?.rows.map((row) => row.op)).toEqual(['gear.spur', 'gear.ring', 'gear.rack'])
+  })
 })

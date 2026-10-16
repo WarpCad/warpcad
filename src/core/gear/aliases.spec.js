@@ -158,6 +158,20 @@ describe('what the alias table refuses, each by name', () => {
     expect(aliasErrorOf(() => resolve({ toothCount: 0, circularPitch: 4, thicknessMm: 6 })).code).toBe('rack')
   })
 
+  it('names the op that takes each V1 kind when gear.spur refuses it', () => {
+    expect(aliasErrorOf(() => resolve({ toothCount: -36, circularPitch: 4, thicknessMm: 6 })).message).toMatch(/gear\.ring/)
+    expect(aliasErrorOf(() => resolve({ toothCount: 0, circularPitch: 4, thicknessMm: 6 })).message).toMatch(/gear\.rack/)
+  })
+
+  it('refuses V1’s connectedGear by name on every kind: a gear never needs its mate to exist (defect 10)', () => {
+    for (const kind of /** @type {const} */ (['external', 'internal', 'rack'])) {
+      const error = aliasErrorOf(() =>
+        resolveGearAliases({ toothCount: -36, circularPitch: 4, connectedGear: {} }, { op: OP, canonical: CANONICAL, kind })
+      )
+      expect(error.code, kind).toBe('connected-gear')
+    }
+  })
+
   it('refuses a non-finite V1 value under the name the user actually typed', () => {
     const error = aliasErrorOf(() => resolve({ toothCount: 20, circularPitch: Number.NaN, thicknessMm: 6 }))
     expect(error.code).toBe('not-finite')
@@ -168,5 +182,53 @@ describe('what the alias table refuses, each by name', () => {
   it('refuses params that are not a plain object', () => {
     expect(aliasErrorOf(() => resolve(/** @type {any} */ (null))).code).toBe('not-an-object')
     expect(aliasErrorOf(() => resolve(/** @type {any} */ ([20, 2]))).code).toBe('not-an-object')
+  })
+})
+
+describe('V1’s sign-encoded kinds on the ring and the rack (TODO/core-043)', () => {
+  const RING_CANONICAL = Object.freeze(['teeth', 'moduleMm', 'pressureAngleDeg', 'clearanceMm', 'backlashMm', 'thicknessMm', 'rimThicknessMm'])
+  const RACK_CANONICAL = Object.freeze(['teeth', 'moduleMm', 'pressureAngleDeg', 'clearanceMm', 'backlashMm', 'thicknessMm', 'heightMm'])
+  /** @param {Record<string, unknown>} params */
+  const asRing = (params) => resolveGearAliases(params, { op: 'gear.ring', canonical: RING_CANONICAL, kind: 'internal' })
+  /** @param {Record<string, unknown>} params */
+  const asRack = (params) => resolveGearAliases(params, { op: 'gear.rack', canonical: RACK_CANONICAL, kind: 'rack' })
+
+  it('reads a negative toothCount as the ring’s tooth count', () => {
+    const { params } = asRing({ toothCount: -96, circularPitch: (Math.PI * 50) / 96, thicknessMm: 3 })
+    expect(params.teeth).toBe(96)
+    expect(params.moduleMm).toBeCloseTo(50 / 96, 12)
+    expect(params.clearanceMm).toBe(0)
+  })
+
+  it('converts a ring’s V1 backlash as a gear’s: V1 cut the ring with a pinion thickened by b / cos α', () => {
+    const { params } = asRing({ toothCount: -64, circularPitch: 4, backlash: 0.05, thicknessMm: 3 })
+    expect(params.backlashMm).toBeCloseTo(v1BacklashToBacklashMm(0.05, 20), 12)
+  })
+
+  it('reads toothCount 0 as V1’s rack, which always had 41 teeth, and says so', () => {
+    const { params, notes } = asRack({ toothCount: 0, circularPitch: 4, thicknessMm: 3 })
+    expect(params.teeth).toBe(41)
+    expect(notes.join(' ')).toMatch(/41/)
+  })
+
+  it('converts a rack’s V1 backlash at half a gear’s rate: V1’s rack thinned by b / (2 cos α) (defect 8)', () => {
+    const { params } = asRack({ toothCount: 0, circularPitch: 4, backlash: 0.1, pressureAngleDeg: 25, thicknessMm: 3 })
+    expect(params.backlashMm).toBeCloseTo(0.1 / Math.cos((25 * Math.PI) / 180), 12)
+  })
+
+  it('refuses the other kinds’ sign by name', () => {
+    expect(aliasErrorOf(() => asRing({ toothCount: 64, circularPitch: 4, thicknessMm: 3 })).code).toBe('external-gear')
+    expect(aliasErrorOf(() => asRing({ toothCount: 0, circularPitch: 4, thicknessMm: 3 })).code).toBe('rack')
+    expect(aliasErrorOf(() => asRack({ toothCount: 64, circularPitch: 4, thicknessMm: 3 })).code).toBe('external-gear')
+    expect(aliasErrorOf(() => asRack({ toothCount: -64, circularPitch: 4, thicknessMm: 3 })).code).toBe('internal-gear')
+  })
+
+  it('refuses a rack’s toothCount 0 beside an explicit teeth, rather than picking one', () => {
+    expect(aliasErrorOf(() => asRack({ toothCount: 0, teeth: 12, circularPitch: 4, thicknessMm: 3 })).code).toBe('conflict')
+  })
+
+  it('keeps V1’s centerHoleDiameter off both: neither takes a bore', () => {
+    expect(aliasErrorOf(() => asRing({ toothCount: -64, circularPitch: 4, centerHoleDiameter: 5, thicknessMm: 3 })).code).toBe('unknown-param')
+    expect(aliasErrorOf(() => asRack({ toothCount: 0, circularPitch: 4, centerHoleDiameter: 5, thicknessMm: 3 })).code).toBe('unknown-param')
   })
 })

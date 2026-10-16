@@ -142,6 +142,9 @@ const ROW_ORDER = Object.freeze([
   // M11 (`TODO/core-041`). Ranked now so the row lands in place the day it is listed —
   // which is `ui-057`, not yet: see the Gears note on {@link SECTION_DEFINITIONS}.
   'gear.spur',
+  // TODO/core-043: ring and rack follow the spur gear, unlisted until ui-057 gives them `ui`.
+  'gear.ring',
+  'gear.rack',
   'text.label',
 ])
 

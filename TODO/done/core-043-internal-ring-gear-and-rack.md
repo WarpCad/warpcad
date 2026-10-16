@@ -6,8 +6,16 @@ priority: medium
 model: opus
 milestone: M11
 depends: [core-041]
-status: open
+status: done
 ---
+
+> **Shipped (2026-10-16).** `gear.ring` and `gear.rack` landed as specified, with these differences,
+> all recorded in `docs/decisions/gears.md` (core-043 addendum): the binding ring limit is a
+> *maximum* pinion (`maxPinionTeeth`, `minToothDifference`; trochoid interference), not
+> `minPinionTeeth`; the drive-wheel ring differs from V1 by exactly the clearance (V1 puts it at
+> the tip, we put it at the root), asserted in the parity spec; V1 aliases (negative count to
+> ring, 0 to a 41-tooth rack) are in `aliases.js`; `gear.spur`'s twist code is the shared
+> `helicalExtrude`. No `ui`, so no Library row until `ui-057`.
 
 ## Goal
 
