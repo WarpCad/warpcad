@@ -42,15 +42,42 @@ don't rebuild the estimation math without one.
   this bullet.
   - **M16 boundary**: when `ui-068` completes M16, do **not** hold for the five-minute free-form
     pass. Write in the Runner Log that it is still owed, and carry on into M11. This is the "user
-    explicitly says to proceed without it" case in `run-todos.md` Step 6. **M11's own boundary
-    still stops** as normal.
+    explicitly says to proceed without it" case in `run-todos.md` Step 6. M11's and M17's boundaries
+    are waived the same way (see "Budget waived" below), and each pass is still owed.
   - **Known flake, `testing-004`** (moved behind the gears): if the *only* failure in a run is
     `src/core/kernel/measure.spec.js` › "two overlapping spheres give the analytic lens volume"
     with `Test timed out in 5000ms`, do not treat it as a pre-existing failure. Confirm it passes
     when `measure.spec.js` is run alone, note it in the Runner Log, and continue. Any other
     failure, or this test failing on an assertion rather than a timeout, stops the loop as usual.
-  - Batch size and the wall-clock cap are unchanged. Between batches the loop still schedules its
-    20-30 minute wakeup and starts the next batch by itself; that is a pause, not a stop.
+  - **Budget waived for this run (user, 2026-10-16: "waive the budget for tonight").** Ignore
+    **Batch size** and the **Hard wall-clock cap**. Treat the night as one batch: after each task,
+    Step 5 loops straight back to Step 2 with no check-in and no 20-30 minute wakeup. **Milestone
+    boundaries don't stop it either.** That covers M16, M11 and M17. When a milestone completes,
+    write in the Runner Log that its five-minute free-form pass is owed, then carry on to the next
+    table. The run ends only on a real stop (below), on a fully blocked backlog, or when the backlog
+    is empty.
+  - **Usage-window pause: resume when the new 5-hour window opens.** Hitting the subscription
+    usage limit is a pause, never a failure. That applies to a refusal on this loop's own turn and
+    to a `/fix-todo` agent that ends early with a usage/rate-limit error.
+    - **Heartbeat.** On the first tick of the run, `CronList`. If no job's prompt is `/run-todos`,
+      `CronCreate` a recurring job with cron `7,27,47 * * * *` and prompt `/run-todos`. Cron jobs
+      live only in this session and fire only while it is idle. While the limit holds, its turns are
+      refused; the first one after the window reopens resumes the run, within about 30 minutes of
+      the reset. It doesn't depend on a `ScheduleWakeup` surviving the refused turn.
+    - **Mark the task before starting it.** Before spawning an agent for an id, write
+      `in progress: <id>` in the current Runner Log row's `ended because` cell. Replace it when the
+      id commits.
+    - **Resume, don't restart.** At Step 0, if the last row still says `in progress: <id>` and
+      `git log` has no commit for that id, that id runs next, ahead of the table scan. If
+      `git status` shows uncommitted work, brief the agent to continue `/fix-todo <id>` from the
+      working tree as it stands (re-read the spec, check what is already done, never discard or
+      reset changes). Append `resumed after usage limit at <UTC time>` to the row.
+    - **Real stops end the heartbeat.** A real stop is: a test failure other than the
+      `testing-004` timeout above, an unresolved acceptance-scenario FAIL, a task that stops to ask
+      the user (for example, `core-060` finding no acceptable wood-screw chart), a fully blocked
+      backlog, or an empty backlog. On any of these, `CronDelete` the `/run-todos` job and write
+      `STOPPED — awaiting user` in the row. If a heartbeat fires anyway and the last row says
+      `STOPPED — awaiting user`, reply with one line and do nothing else.
 
 Edit **Batch size** any time. Everything below this line is a log, not logic the runner
 reads back — treat it as a human-readable history of what ran.

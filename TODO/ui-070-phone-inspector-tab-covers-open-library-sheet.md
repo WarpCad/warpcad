@@ -4,6 +4,7 @@ category: ui
 kind: finding
 priority: high
 model: sonnet
+milestone: M17
 depends: []
 status: open
 ---

@@ -2668,3 +2668,16 @@ The runner log, not my memory, will be the record of what happened overnight. Bu
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** two remaining M16 rows core-060 and ui-068 → ROADMAP.md diff; flake rule wording → BUDGET.md diff; ticket moved to Findings → ROADMAP.md diff; test passes alone but times out in full run → testing-004 ticket title
 **To Add:** nothing
+
+## 2026-10-16T04:32:08Z — Overnight runner: no batch stops, resume after the usage window
+
+**Post:** The WarpCAD backlog runner normally stops every three tasks for a human go/no-go. For tonight only, that limit is off: it finishes milestone 16, works through the gears milestone, then picks up a new milestone 17. That one holds three tasks I had filed but never scheduled: a linked Repeat step, its control, and a phone layout bug where one panel's tab covered another's rows.
+
+The interesting part is the usage window. A loop that schedules its own next wake-up can't do that once its turn is refused, so the run would simply die at the limit. The runner now creates a recurring cron job in its own session, marks each task in its log before starting it, and on the first turn after the window resets continues that task from the uncommitted work instead of starting over. A real failure deletes the cron job, so it never ticks forward on a broken baseline.
+
+The milestone free-form passes it skips are written down as owed, not dropped. Built with Claude Code, reviewed by me.
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** normal stop every three tasks → TODO/BUDGET.md Config (Batch size: 3); waiver, cron heartbeat, in-progress marker, resume, real stops delete cron → TODO/BUDGET.md diff; M17 contents → TODO/ROADMAP.md diff; phone tab bug → TODO/ui-070 title; passes logged as owed → TODO/BUDGET.md diff
+**To Add:** nothing

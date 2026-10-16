@@ -1891,3 +1891,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** testing-004 moved out of M16 → diff of TODO/ROADMAP.md; runner rule → diff of TODO/BUDGET.md; gears are M11 and run after M16 → ROADMAP.md milestone table in the diff
 **To Add:** nothing
+
+## 2026-10-16T04:32:08Z — Overnight runner: no batch stops, resume after the usage window
+
+**Post:** Tonight's WarpCAD backlog run has no batch limit and no milestone stops: M16, the gears, then a new M17 (Repeat across matching parts plus a phone layout fix). If the usage window runs out mid-task, an hourly cron restarts the run and resumes the half-done task. Built with Claude Code, reviewed by me. #CAD #OpenSource
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** batch and milestone stops waived → TODO/BUDGET.md diff; M17 rows ui-070, core-061, ui-069 → TODO/ROADMAP.md diff; cron restart and resume rules → TODO/BUDGET.md diff
+**To Add:** nothing

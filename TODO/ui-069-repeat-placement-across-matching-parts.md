@@ -4,6 +4,7 @@ category: ui
 kind: feature
 priority: medium
 model: opus
+milestone: M17
 depends: [core-061]
 status: open
 ---

@@ -38,6 +38,7 @@ run at all); see `TODO/done/build-001-project-scaffold.md`'s own note.
 - ✅ [M5 — Hardware Library surface, closing the fastener reachability gap](#m5--hardware-library-surface-closing-the-fastener-reachability-gap) — 7/7
 - ⬜ [M16 — Next batch: naming, Align, in-app help, rotation, save/import fixes, merge reach](#m16--next-batch-naming-align-in-app-help-rotation-saveimport-fixes-merge-reach) — all rows done — **free-form pass owed**
 - ⬜ [M11 — Gears: the `jscad-gears` library, ported and extended](#m11--gears-the-jscad-gears-library-ported-and-extended) — 0/15 — **runs after M16**
+- ⬜ [M17 — Repeat across matching parts, and a phone Library fix](#m17--repeat-across-matching-parts-and-a-phone-library-fix) — 0/3 — **runs after M11, before `testing-004`**
 - ✅ [M6 — Persistence, export, and timeline history editing](#m6--persistence-export-and-timeline-history-editing) — 23/23
 - ✅ [M7 — Color, mirror, the Screw hardware family, and a Bill-of-Materials panel](#m7--color-mirror-the-screw-hardware-family-and-a-bill-of-materials-panel) — 23/23
 - ✅ [M8 — Sketch primitives: a sketch is a way of defining a solid](#m8--sketch-primitives-a-sketch-is-a-way-of-defining-a-solid) — 8/8
@@ -83,7 +84,9 @@ then priority, then small tasks as tie-breakers.*
 | [`data-006`](done/data-006-timeline-tail-reparenting.md) Re-parent an inactive timeline tail | low | opus | ✅ done 2026-10-15 — option (c) `Re-link to the moved step` button |
 
 > **The runner follows table order, not this list.** As of 2026-10-14 that order is **[M16](#m16--next-batch-naming-align-in-app-help-rotation-saveimport-fixes-merge-reach)
-> (11 rows, runs next) → [M11 gears](#m11--gears-the-jscad-gears-library-ported-and-extended) (15 rows) → the rest**.
+> (11 rows, runs next) → [M11 gears](#m11--gears-the-jscad-gears-library-ported-and-extended) (15 rows) →
+> [M17](#m17--repeat-across-matching-parts-and-a-phone-library-fix) (`ui-070`, `core-061`, `ui-069`, added 2026-10-16) → the rest**,
+> with `testing-004` in Findings after all of them.
 > `core-039` was accepted 2026-10-16, so gears runs as a chain from `core-040`; the runner skips
 > blocked rows, so it carries on into M6–M15 whenever the chain is waiting.
 
@@ -114,9 +117,9 @@ table to edit when a task opens, closes or changes priority — see the next sec
 
 | Milestone | Task | Kind | Priority | Model | State |
 |---|---|---|---|---|---|
-| Findings | [`ui-070`](ui-070-phone-inspector-tab-covers-open-library-sheet.md) At phone width the Inspector's collapsed tab is drawn over an open Library sheet's rows; dock it below the sheet | finding | high | sonnet | ▶ **ready** |
-|  | [`core-061`](core-061-linked-repeat-record.md) A linked `pattern.repeat` record: one row re-places a body's steps at every matching part of another body and follows the first body's edits; BOM, repair dialog, merge, and a shared `repeat` AI tool. Requested by the user 2026-10-15 | feature | medium | opus | ▶ **ready** (unscheduled; no milestone yet) |
-|  | [`ui-069`](ui-069-repeat-placement-across-matching-parts.md) Repeat: place a part once against one target (a Pi's `hole1`), then apply the same steps to every matching target (`hole2`–`hole4`) as one Undo step, linked to the first. Requested by the user 2026-10-15 | feature | medium | opus | ⏳ blocked on `core-061` (unscheduled; no milestone yet) |
+| M17 — Repeat, phone Library fix | [`ui-070`](ui-070-phone-inspector-tab-covers-open-library-sheet.md) At phone width the Inspector's collapsed tab is drawn over an open Library sheet's rows; dock it below the sheet | finding | high | sonnet | ▶ **ready** |
+| M17 — Repeat, phone Library fix | [`core-061`](core-061-linked-repeat-record.md) A linked `pattern.repeat` record: one row re-places a body's steps at every matching part of another body and follows the first body's edits; BOM, repair dialog, merge, and a shared `repeat` AI tool. Requested by the user 2026-10-15 | feature | medium | opus | ▶ **ready** |
+| M17 — Repeat, phone Library fix | [`ui-069`](ui-069-repeat-placement-across-matching-parts.md) Repeat: place a part once against one target (a Pi's `hole1`), then apply the same steps to every matching target (`hole2`–`hole4`) as one Undo step, linked to the first. Requested by the user 2026-10-15 | feature | medium | opus | ⏳ blocked on `core-061` |
 |  | [`build-004`](build-004-sentry-error-reporting.md) Hook up Sentry error reporting and source-map upload in the build and the Pages workflow, with the token kept out of the bundle and the repo | feature | medium | sonnet | ▶ **ready** (unscheduled; no milestone yet) |
 | Findings | [`testing-004`](testing-004-measure-spec-lens-volume-times-out-under-full-suite-load.md) `measure.spec.js` lens-volume test times out under the full unit run | finding | medium | sonnet | ▶ **ready** |
 | M10 — Docs media | [`build-005`](build-005-pwa-update-on-reload.md) Make a reload pick up a new deploy, and tell the user when an update has landed | feature | high | sonnet | ▶ **ready** |
@@ -239,6 +242,7 @@ milestone tables on 2026-10-12 — update them in the same edit that closes a ro
 | [M5 — Hardware Library surface, closing the fastener reachability gap](#m5--hardware-library-surface-closing-the-fastener-reachability-gap) | ✅ | 7/7 | Hardware Library surface; every fastener reachable; scenarios 3, 5 and 6 pass by hand. |
 | [M16 — Next batch: naming, Align, in-app help, rotation, save/import fixes, merge reach](#m16--next-batch-naming-align-in-app-help-rotation-saveimport-fixes-merge-reach) | ⬜ | 16/18 | **Two rows left: `core-060` (one fastener part) and `ui-068` (the Library remembers params), both added 2026-10-15; then the five-minute free-form hand pass is owed before it closes.** The user waived the stop for that pass for the overnight run of 2026-10-16 only (see `TODO/BUDGET.md` Config); the pass itself is still owed. Rows moved from M6, M9, M13, M14, M15 and Findings, plus `ui-064` and `data-013`, `ui-065` (the translate ruler, added 2026-10-14), and `core-059`/`ui-067` (hand-placed split connectors, added 2026-10-15). |
 | [M11 — Gears: the `jscad-gears` library, ported and extended](#m11--gears-the-jscad-gears-library-ported-and-extended) | 🔶 | 1/15 | Gears. **Runs right after M16.** `core-039` accepted 2026-10-16 (all eight calls as recommended); `core-040` is next. |
+| [M17 — Repeat across matching parts, and a phone Library fix](#m17--repeat-across-matching-parts-and-a-phone-library-fix) | ⬜ | 0/3 | `ui-070`, `core-061`, `ui-069`, added 2026-10-16. **Runs right after M11, before `testing-004` in Findings.** `ui-069` waits on `core-061`. |
 | [M6 — Persistence, export, and timeline history editing](#m6--persistence-export-and-timeline-history-editing) | ✅ | 23/23 | Autosave, File menu, hosted storage, export, History. `data-006` (the last open row) moved to M16; **free-form pass owed**. |
 | [M7 — Color, mirror, the Screw hardware family, and a Bill-of-Materials panel](#m7--color-mirror-the-screw-hardware-family-and-a-bill-of-materials-panel) | ✅ | 23/23 | Colour, hidden parts, `hardware.screw`, mirror, BOM, delete, editable composites, curve resolution. The old summary still said "9 open"; every row is ✅. |
 | [M8 — Sketch primitives: a sketch is a way of defining a solid](#m8--sketch-primitives-a-sketch-is-a-way-of-defining-a-solid) | ✅ | 8/8 | A sketch is a Library primitive that always extrudes; reference photo and auto-trace. Owes its human free-form pass; interaction-model §7 awaits your confirmation. |
@@ -577,6 +581,34 @@ free-form pass here, and run scenario 19's steps 1-4 by hand**) → `core-048` �
 `core-042` → `core-045` → `core-046` (the `drive-wheel` case) → `core-047` → `core-049` →
 `testing-002` → `docs-021`. `core-048` can land any time after `core-041` and should before
 anyone prints a gear.
+
+---
+
+
+## M17 — Repeat across matching parts, and a phone Library fix
+
+[↑ Contents](#contents)
+
+Added 2026-10-16 at the user's request: these three rows run **after the gears
+([M11](#m11--gears-the-jscad-gears-library-ported-and-extended)) and before `testing-004`** (in
+[Findings](#findings)). This section sits directly below M11 in table order so `/run-todos` reaches
+it as soon as the gear rows are ✅ or blocked, ahead of M10's open rows and Findings. The specs are
+unchanged; only their milestone was assigned.
+
+Why this order: `ui-070` first, because it is `priority: high`, small, and a phone layout bug the user
+hit by hand; then `core-061` → `ui-069`, a dependency chain (the linked `pattern.repeat` record, then
+the Repeat control built on it).
+
+| id | Task | Kind | Depends | Acceptance |
+|---|---|---|---|---|
+| `ui-070` | At phone width the Inspector's collapsed tab is drawn over an open Library sheet's rows; dock it below the sheet. Reported by the user 2026-10-16 while hand-checking `core-058` | Finding | — | 1, 6, 12; `ui-010`, `ui-011`, `ui-032`, `ui-046` repros |
+| `core-061` | A linked `pattern.repeat` record: one row re-places a body's steps at every matching part of another body and follows the first body's edits; BOM, repair dialog, merge, and a shared `repeat` AI tool. Requested by the user 2026-10-15 | Core, L | — | 10, 12, 15, 22, 23; `data-007`, `ui-052`, `core-024`, `ui-063`, `ui-038`, `ai-022` repros |
+| `ui-069` | Repeat: place a part once against one target (a Pi's `hole1`), then apply the same steps to every matching target (`hole2`–`hole4`) as one Undo step, linked to the first. Requested by the user 2026-10-15 | Operation | `core-061` | 3, 6, 10, 12, 15, 22; `ui-063`, `ui-035`, `ui-060`, `ui-042`/`ui-049`, `core-034` repros |
+
+**Milestone end**: the five-minute free-form human pass, at phone, tablet and laptop. Open the Library
+on a phone with a body selected and confirm that the Inspector tab sits below the sheet. Bolt an M2.5
+bolt to a Pi's `hole1`, Repeat it to `hole2`–`hole4`, edit the first bolt and watch all four follow,
+then change the Pi's model and read the repair dialog.
 
 ---
 
