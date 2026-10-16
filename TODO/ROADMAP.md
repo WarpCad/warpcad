@@ -114,6 +114,8 @@ table to edit when a task opens, closes or changes priority — see the next sec
 
 | Milestone | Task | Kind | Priority | Model | State |
 |---|---|---|---|---|---|
+|  | [`core-061`](core-061-linked-repeat-record.md) A linked `pattern.repeat` record: one row re-places a body's steps at every matching part of another body and follows the first body's edits; BOM, repair dialog, merge, and a shared `repeat` AI tool. Requested by the user 2026-10-15 | feature | medium | opus | ▶ **ready** (unscheduled; no milestone yet) |
+|  | [`ui-069`](ui-069-repeat-placement-across-matching-parts.md) Repeat: place a part once against one target (a Pi's `hole1`), then apply the same steps to every matching target (`hole2`–`hole4`) as one Undo step, linked to the first. Requested by the user 2026-10-15 | feature | medium | opus | ⏳ blocked on `core-061` (unscheduled; no milestone yet) |
 |  | [`build-004`](build-004-sentry-error-reporting.md) Hook up Sentry error reporting and source-map upload in the build and the Pages workflow, with the token kept out of the bundle and the repo | feature | medium | sonnet | ▶ **ready** (unscheduled; no milestone yet) |
 | M16 — Next batch | [`testing-004`](testing-004-measure-spec-lens-volume-times-out-under-full-suite-load.md) `measure.spec.js` lens-volume test times out under the full unit run | finding | medium | sonnet | ▶ **ready** |
 | M10 — Docs media | [`build-005`](build-005-pwa-update-on-reload.md) Make a reload pick up a new deploy, and tell the user when an update has landed | feature | high | sonnet | ▶ **ready** |

@@ -1860,3 +1860,14 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** six rows → one → `library.spec.js` row list (7 rows), `ROW_ORDER` diff; Inspector change rebuilds in place → `e2e/raspberrypi-screen-library.e2e.js`, acceptance 15 drive 2026-10-16; old projects open → `raspberrypi.screen.spec.js` replay tests + tessellation goldens carried over
 **To Add:** `docs/screenshots/library-rpi-screen-models.png`
+
+## 2026-10-16T04:21:47Z — Planned: Repeat a placement on every mounting hole
+
+**Post:** Next up for WarpCad (planned, not built yet): Repeat. Place one M2.5 screw on a Raspberry Pi's first hole, press Apply, and the other three holes get one too. The repeats stay linked: change the first screw's length and all four follow. #CAD #RaspberryPi #OpenSource
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #RaspberryPi #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** planned, not built → TODO/core-061 and TODO/ui-069 are status: open; one screw then Apply for the other three → ui-069 Goal and Interaction model; linked, length change follows → ui-069 Decisions 1 and core-061 decisions 3–4, chosen by the user 2026-10-15
+**To Add:** none until it ships; then `repeat-placement.gif` from ui-069's Media

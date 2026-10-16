@@ -2631,3 +2631,16 @@ Projects that used the old rows still open: those six ops stay registered, they 
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** six unrelated products, no shared factory → TODO/core-058 text + six recipe files; dispatcher returns the recipes unchanged → `raspberrypi.screen.spec.js` byte-identical test; same digest → `tessellation-legacy-golden.json` diff (new keys copy old values) + `resolution.spec.js` green; Inspector rebuild → e2e + acceptance 15; old projects open → replay tests
 **To Add:** `docs/screenshots/library-rpi-screen-models.png`; no article — a small consolidation
+
+## 2026-10-16T04:21:47Z — Planned: Repeat a placement on every mounting hole
+
+**Post:** Mounting a Raspberry Pi in WarpCad means placing one M2.5 screw per hole: drag it in, turn it, align it to the hole, snap it with an offset. Then do the same thing three more times.
+
+The plan for the next feature is Repeat. You pick the Pi's first hole, press Repeat, finish one screw the normal way, and press Apply. The other three holes get the same steps, re-aimed at each hole. It lands as one History row and one Undo step. The repeats are linked to the first screw, so editing its length or its offset later updates all four. The same operation is planned as a tool for the AI partner, over MCP and in the in-app chat.
+
+It works because Snap and Align in WarpCad are already saved as live steps that name the part they measure against, so repeating them is a matter of swapping hole1 for hole2. The specs are written. Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #RaspberryPi #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** the per-screw steps → user's request quoted in TODO/ui-069 Goal; one History row, one Undo → ui-069 Done-looks-like + core-061 decision 1; linked edits → core-061 decisions 3–4; AI tool over MCP and chat → core-061 decision 11; Snap/Align are live, part-naming records → docs/snap-align.md "When the part you snapped to goes away" and core-061 decision 2; specs written, not built → both files status: open
+**To Add:** no article yet; worth one once it ships (the linked-record design is a reusable idea)
