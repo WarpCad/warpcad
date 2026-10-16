@@ -222,6 +222,35 @@ export function gearDimensions(params) {
   if (typeof teeth !== 'number' || !Number.isInteger(teeth) || teeth < 3) {
     throw new GearParameterError('teeth must be a whole number, 3 or more')
   }
+  return dimensionsFor(params, teeth)
+}
+
+/**
+ * {@link gearDimensions} for a gear that exists only as a construction: the **back-cone
+ * virtual gear** of a bevel (TODO/core-045, Tredgold's approximation), whose tooth count is
+ * `z / cos δ` and is almost never whole. Every formula is the spur gear's; only the
+ * whole-number check is relaxed to "a finite number, 3 or more". `teeth` in the result is
+ * that real count, so `toothAngleDeg` is `360 / z'` and is not a divisor of 360.
+ *
+ * @param {Omit<GearParams, 'teeth'> & { teeth: number }} params
+ * @returns {GearDimensions}
+ */
+export function virtualGearDimensions(params) {
+  const { teeth } = params
+  if (typeof teeth !== 'number' || !Number.isFinite(teeth) || teeth < 3) {
+    throw new GearParameterError('the virtual gear’s teeth must be a finite number, 3 or more')
+  }
+  return dimensionsFor(params, teeth)
+}
+
+/**
+ * The body of {@link gearDimensions}, after the tooth count has been checked.
+ *
+ * @param {GearParams} params
+ * @param {number} teeth
+ * @returns {GearDimensions}
+ */
+function dimensionsFor(params, teeth) {
   const moduleMm = finite(params.moduleMm, 'moduleMm')
   if (!(moduleMm > 0)) throw new GearParameterError('moduleMm must be greater than 0')
   const pressureAngleDeg = finite(params.pressureAngleDeg ?? 20, 'pressureAngleDeg')

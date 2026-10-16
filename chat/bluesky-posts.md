@@ -1939,3 +1939,13 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** centre distance, phase, signed ratio from params → `src/core/gear/mesh.spec.js`; 0 mm³ overlap on 36T/12T, 30T/8T at 14.5° and helical 20T/12T, wrong-phase controls 13.9, 47.6 and 17.4 mm³ → `src/core/kernel/recipes/gear.pair.spec.js` and `docs/decisions/gears.md` core-044 addendum
 **To Add:** nothing
+
+## [2026-10-16T12:05:00Z] — A bevel gear whose cone is computed, not eyeballed
+
+**Post:** WarpCad can now build a straight bevel gear from tooth counts and shaft angle. The cone angle is computed: a 32T/32T pair at 90 degrees is exactly 45, a 1:2 pair 26.565. The V1 bevel tapered about 43. Built with Claude Code, reviewed by me. #CAD #OpenSource
+
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** cone angle from tooth counts and shaft angle, miter 45°, 1:2 at 26.565° → `src/core/gear/bevel.spec.js`; V1 tapered about 43° → `TODO/done/core-045-straight-bevel-gear.md` Goal; full run 5546 unit, 3909 e2e passing → test run this session
+**To Add:** nothing

@@ -66,6 +66,23 @@ export const RACK_LIMITS = Object.freeze({
   heightMm: Object.freeze({ min: 0, max: 1000, minExclusive: true }),
 })
 
+/**
+ * A bevel gear's caps (TODO/core-045): the gear's tooth count, module and pressure angle, the
+ * same range for the mate's tooth count, a face width of more than 0 mm and an optional hub.
+ * The shaft angle (0° < Σ < 180°, both ends excluded) and the face width's upper bound (the
+ * cone distance) depend on the pair, so `src/core/gear/bevel.js` checks those, by name.
+ *
+ * @type {Readonly<Record<'teeth' | 'mateTeeth' | 'moduleMm' | 'pressureAngleDeg' | 'faceWidthMm' | 'hubLengthMm', Readonly<GearLimit>>>}
+ */
+export const BEVEL_LIMITS = Object.freeze({
+  teeth: GEAR_LIMITS.teeth,
+  mateTeeth: GEAR_LIMITS.teeth,
+  moduleMm: GEAR_LIMITS.moduleMm,
+  pressureAngleDeg: GEAR_LIMITS.pressureAngleDeg,
+  faceWidthMm: Object.freeze({ min: 0, max: 1000, minExclusive: true }),
+  hubLengthMm: Object.freeze({ min: 0, max: 1000 }),
+})
+
 /** Params that must be finite numbers when present but carry no range of their own. */
 const FINITE_ONLY = Object.freeze(['clearanceMm', 'backlashMm'])
 

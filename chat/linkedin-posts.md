@@ -2746,3 +2746,17 @@ The check that matters is geometric. The test builds the pair, turns the drive t
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** V1 ratio always 1 → `TODO/done/core-044-gear-mesh-math-and-pair-recipe.md` Design; signed ratio, equal teeth -1, `rack-pair` → `docs/decisions/gears.md` core-044 addendum and `src/core/gear/mesh.spec.js`; 0 mm³ overlap and 13.9, 47.6, 17.4 mm³ controls → `src/core/kernel/recipes/gear.pair.spec.js`; open plane axes → same addendum; no Library row → `src/core/library.spec.js`
 **To Add:** repo URL once public, docs site URL once it exists
+
+## [2026-10-16T12:05:00Z] — Making a bevel gear closed without subtracting from it
+
+**Post:** WarpCad can now build a straight bevel gear: give it the tooth counts, the module and the shaft angle, and it computes the pitch cone. Equal counts at 90 degrees give the 45 degree miter gear, a 1:2 pair gives 26.565. The V1 drive-wheel faked this with a shrunken copy of a spur outline, and its cone really tapered about 43 degrees, so the apexes never met.
+
+The part that cost the time was the bore. Cutting a hole out of a tapered gear with a 3D boolean left between 12 and 122 open edges, so the solid was not watertight. The fix was a new profile operation that builds the bore, the hub and the back face directly as one closed solid. It also drops outline points closer than 1e-4 of the tip radius: a steep cone behaves like a gear of nearly 2000 teeth, and its points ended up 0.0009 mm apart, below the export weld.
+
+Two things are open for the user. The flat back face lets the tooth tips poke past the textbook outside diameter (27.31 mm against 26.10 on the 32-tooth miter), though meshing is unaffected. And a crown gear is refused past an 85 degree face cone, because the 89 degree case cannot stay watertight with flat cross-sections. There is no Library row yet, so none of this is reachable by hand. Built with Claude Code, reviewed by me.
+
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** miter 45°, 1:2 at 26.565° → `src/core/gear/bevel.spec.js`; V1 about 43° → `TODO/done/core-045-straight-bevel-gear.md` Goal; open edges 12 to 122 and the new op → `docs/decisions/gears.md` core-045 addendum; 27.31 vs 26.10 mm and the 85° cap → same addendum; no Library row → `src/core/library.spec.js`
+**To Add:** repo URL once public, docs site URL once it exists

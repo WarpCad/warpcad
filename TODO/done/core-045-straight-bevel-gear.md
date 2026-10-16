@@ -6,8 +6,16 @@ priority: high
 model: opus
 milestone: M11
 depends: [core-041]
-status: open
+status: done
 ---
+
+> **Shipped (2026-10-16).** `bevel.js` and the `gear.bevel` composite landed with the Tredgold
+> design as specified, plus a new native op `profile.extrudeToApex` (the bore, hub and back cap are
+> built into one closed solid because 3D booleans on a tapered body left 12 to 122 open edges), and
+> `profile.gear` gained `kind: 'bevel'`. Differences from the text: `crown-gear` is refused past an
+> 85 degree face cone (`MAX_FACE_CONE_ANGLE_DEG`), the hub diameter is fixed at the small-end root,
+> and the tips protrude past the textbook outside diameter on the flat back face. See
+> `docs/decisions/gears.md`, the `core-045` addendum, which lists what is open for the user.
 
 ## Goal
 

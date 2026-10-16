@@ -1015,4 +1015,21 @@ describe('the Gears section (TODO/core-041) — defined here, listed once ui-057
     const gears = librarySectionsFor(withUi).find((section) => section.id === 'gear')
     expect(gears?.rows.map((row) => row.op)).toEqual(['gear.spur', 'gear.ring', 'gear.rack', 'gear.pair'])
   })
+
+  it('ranks Bevel gear with the single gears, after Rack and before Gear pair (core-045), unlisted until ui-057', () => {
+    expect(registry['gear.bevel']?.kind).toBe('composite')
+    expect(registry['gear.bevel']?.ui).toBeUndefined()
+    expect(() => libraryRow('gear.bevel')).toThrow(/gear\.bevel/)
+    /** @param {string} op @param {Record<string, unknown>} defaults */
+    const withRow = (op, defaults) => Object.freeze({ ...registry[op], ui: { label: op, defaults } })
+    const withUi = {
+      ...registry,
+      'gear.spur': Object.freeze({ ...registry['gear.spur'], ui: GEAR_SPUR_UI }),
+      'gear.rack': withRow('gear.rack', { teeth: 10, moduleMm: 2, thicknessMm: 8 }),
+      'gear.bevel': withRow('gear.bevel', { teeth: 20, mateTeeth: 20, moduleMm: 2 }),
+      'gear.pair': withRow('gear.pair', { driveTeeth: 36, pinionTeeth: 12, moduleMm: 2, thicknessMm: 8 }),
+    }
+    const gears = librarySectionsFor(withUi).find((section) => section.id === 'gear')
+    expect(gears?.rows.map((row) => row.op)).toEqual(['gear.spur', 'gear.rack', 'gear.bevel', 'gear.pair'])
+  })
 })

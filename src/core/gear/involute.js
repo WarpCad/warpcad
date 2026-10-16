@@ -222,9 +222,61 @@ function count(value, fallback, name) {
  */
 export function involuteProfile(params) {
   const dims = gearDimensions(params)
-  const P = count(params.pointsPerFlank, 8, 'pointsPerFlank')
-  let T = count(params.tipSegments, 2, 'tipSegments')
-  let S = count(params.rootSegments, 2, 'rootSegments')
+  const tooth = involuteToothTemplate(dims, params)
+  const N = dims.teeth
+  const halfPitchRad = Math.PI / N
+  const { radiiMm, anglesRad } = tooth
+  const n = radiiMm.length
+  const tx = new Float64Array(n)
+  const ty = new Float64Array(n)
+  for (let i = 0; i < n; i++) {
+    tx[i] = radiiMm[i] * Math.cos(anglesRad[i])
+    ty[i] = radiiMm[i] * Math.sin(anglesRad[i])
+  }
+  /** @type {Vec2Mm[]} */
+  const outline = new Array(n * N)
+  for (let k = 0; k < N; k++) {
+    const c = Math.cos(2 * halfPitchRad * k)
+    const s = Math.sin(2 * halfPitchRad * k)
+    for (let i = 0; i < n; i++) {
+      outline[k * n + i] = k === 0 ? [tx[i], ty[i]] : [c * tx[i] - s * ty[i], s * tx[i] + c * ty[i]]
+    }
+  }
+
+  return {
+    ...dims,
+    outline,
+    tipRadiusMm: tooth.tipRadiusMm,
+    warnings: tooth.warnings,
+    verticesPerTooth: n,
+    pointsPerFlank: tooth.pointsPerFlank,
+    tipSegments: tooth.tipSegments,
+    rootSegments: tooth.rootSegments,
+    involuteEndRadiusMm: tooth.involuteEndRadiusMm,
+  }
+}
+
+/**
+ * One tooth of the outline, in polar form about the gear centre: what {@link involuteProfile}
+ * rotates into `teeth` copies. Vertex 0 is on the root circle at the middle of the gap
+ * before the tooth (angle `−π / teeth`), the tooth is centred on angle 0, and the run stops
+ * one vertex short of the next gap's middle.
+ *
+ * Exposed for the bevel gear (TODO/core-045): its teeth are the back-cone **virtual** gear's,
+ * whose tooth count `z / cos δ` is rarely whole, so it samples this template from
+ * {@link import('./dimensions.js').virtualGearDimensions} and maps it onto its own pitch
+ * circle instead of building `z / cos δ` copies.
+ *
+ * @param {GearDimensions} dims From `gearDimensions` or `virtualGearDimensions`.
+ * @param {ProfileResolution} [resolution]
+ * @returns {{ radiiMm: number[], anglesRad: number[], tipRadiusMm: number, warnings: GearWarning[],
+ *   pointsPerFlank: number, tipSegments: number, rootSegments: number, involuteEndRadiusMm: number }}
+ * @throws {GearToothVanishedError} when no tooth material is left.
+ */
+export function involuteToothTemplate(dims, resolution = {}) {
+  const P = count(resolution.pointsPerFlank, 8, 'pointsPerFlank')
+  let T = count(resolution.tipSegments, 2, 'tipSegments')
+  let S = count(resolution.rootSegments, 2, 'rootSegments')
 
   const N = dims.teeth
   const halfPitchRad = Math.PI / N
@@ -336,36 +388,19 @@ export function involuteProfile(params) {
     halfPsi.push(psiTip * (1 - k / T))
   }
 
-  // ── Tooth template (polar, tooth centred on angle 0), then N rotated copies. ──
-  /** @type {number[]} */ const toothR = [rRoot, ...halfR, rTip]
-  /** @type {number[]} */ const toothAngle = [-halfPitchRad, ...halfPsi.map((p) => -p), 0]
+  // ── Tooth template (polar, tooth centred on angle 0). ──
+  /** @type {number[]} */ const radiiMm = [rRoot, ...halfR, rTip]
+  /** @type {number[]} */ const anglesRad = [-halfPitchRad, ...halfPsi.map((p) => -p), 0]
   for (let i = halfR.length - 1; i >= 0; i--) {
-    toothR.push(halfR[i])
-    toothAngle.push(halfPsi[i])
-  }
-  const n = toothR.length
-  const tx = new Float64Array(n)
-  const ty = new Float64Array(n)
-  for (let i = 0; i < n; i++) {
-    tx[i] = toothR[i] * Math.cos(toothAngle[i])
-    ty[i] = toothR[i] * Math.sin(toothAngle[i])
-  }
-  /** @type {Vec2Mm[]} */
-  const outline = new Array(n * N)
-  for (let k = 0; k < N; k++) {
-    const c = Math.cos(2 * halfPitchRad * k)
-    const s = Math.sin(2 * halfPitchRad * k)
-    for (let i = 0; i < n; i++) {
-      outline[k * n + i] = k === 0 ? [tx[i], ty[i]] : [c * tx[i] - s * ty[i], s * tx[i] + c * ty[i]]
-    }
+    radiiMm.push(halfR[i])
+    anglesRad.push(halfPsi[i])
   }
 
   return {
-    ...dims,
-    outline,
+    radiiMm,
+    anglesRad,
     tipRadiusMm: rTip,
     warnings,
-    verticesPerTooth: n,
     pointsPerFlank: P,
     tipSegments: T,
     rootSegments: S,

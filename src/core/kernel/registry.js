@@ -82,7 +82,9 @@ import { spur } from './recipes/gear.spur.js'
 import { ring } from './recipes/gear.ring.js'
 import { rack } from './recipes/gear.rack.js'
 import { pair } from './recipes/gear.pair.js'
+import { bevel } from './recipes/gear.bevel.js'
 import { GearAliasError } from '../gear/aliases.js'
+import { bevelConeDimensions, bevelProfile } from '../gear/bevel.js'
 import { GearParameterError, gearDimensions } from '../gear/dimensions.js'
 import { MAX_TWIST_DEG } from '../gear/helix.js'
 import { internalProfile, ringGearDimensions, ringToothHalfAngleRadAt } from '../gear/internal.js'
@@ -767,16 +769,21 @@ const GEAR_PROFILE_PARAMS = Object.freeze(['teeth', 'moduleMm', 'pressureAngleDe
 
 /**
  * `profile.gear`'s vocabulary per `kind` (Decision 2's `'external' | 'internal' | 'rack'`,
- * TODO/core-043). `kind` is optional and defaults to `'external'`, so every `gear.spur`
- * record written before the ring and rack existed reads exactly as it did.
+ * TODO/core-043, and `'bevel'`, TODO/core-045: the large-end section of a bevel gear, whose
+ * `pitchConeAngleDeg` is the recipe's to compute from the pair). `kind` is optional and
+ * defaults to `'external'`, so every `gear.spur` record written before the ring and rack
+ * existed reads exactly as it did.
  *
- * @type {Readonly<Record<'external' | 'internal' | 'rack', readonly string[]>>}
+ * @type {Readonly<Record<GearProfileKind, readonly string[]>>}
  */
 const GEAR_PROFILE_PARAMS_BY_KIND = Object.freeze({
   external: GEAR_PROFILE_PARAMS,
   internal: Object.freeze(['teeth', 'moduleMm', 'pressureAngleDeg', 'clearanceMm', 'backlashMm', 'helixAngleDeg', 'rimThicknessMm']),
   rack: Object.freeze(['teeth', 'moduleMm', 'pressureAngleDeg', 'clearanceMm', 'backlashMm', 'heightMm']),
+  bevel: Object.freeze(['teeth', 'moduleMm', 'pressureAngleDeg', 'clearanceMm', 'backlashMm', 'pitchConeAngleDeg']),
 })
+
+/** @typedef {'external' | 'internal' | 'rack' | 'bevel'} GearProfileKind */
 
 /** Decision 4: `legacy` samples each flank with a fixed 8 points. */
 const LEGACY_POINTS_PER_FLANK = 8
@@ -895,10 +902,10 @@ function flankSampling(flank, policy) {
 function buildGearProfile(params, policy) {
   const op = GEAR_PROFILE_OP
   const { kind = 'external', ...gearParams } = params
-  if (kind !== 'external' && kind !== 'internal' && kind !== 'rack') {
-    throw new GearLimitError(`${op}: kind must be 'external', 'internal' or 'rack', got ${String(kind)}`, 'kind')
+  if (!Object.prototype.hasOwnProperty.call(GEAR_PROFILE_PARAMS_BY_KIND, kind)) {
+    throw new GearLimitError(`${op}: kind must be 'external', 'internal', 'rack' or 'bevel', got ${String(kind)}`, 'kind')
   }
-  const vocabulary = GEAR_PROFILE_PARAMS_BY_KIND[/** @type {'external' | 'internal' | 'rack'} */ (kind)]
+  const vocabulary = GEAR_PROFILE_PARAMS_BY_KIND[/** @type {GearProfileKind} */ (kind)]
   // Canonical names only: the recipes resolve aliases before they emit this record.
   for (const key of Object.keys(gearParams)) {
     if (!vocabulary.includes(key)) {
@@ -907,9 +914,10 @@ function buildGearProfile(params, policy) {
   }
   if (kind === 'internal') checkGearLimits(gearParams, { op, required: ['teeth', 'moduleMm'], limits: RING_LIMITS })
   else if (kind === 'rack') checkGearLimits(gearParams, { op, required: ['moduleMm'], limits: RACK_LIMITS })
-  else checkGearLimits(gearParams, { op, required: ['teeth', 'moduleMm'] })
+  else checkGearLimits(gearParams, { op, required: kind === 'bevel' ? ['teeth', 'moduleMm', 'pitchConeAngleDeg'] : ['teeth', 'moduleMm'] })
   try {
     if (kind === 'internal') return buildRingProfile(gearParams, policy)
+    if (kind === 'bevel') return buildBevelProfile(gearParams, policy)
     if (kind === 'rack') return geometries.geom2.fromPoints(rackProfile(/** @type {any} */ (gearParams)).outline)
     const gear = /** @type {import('../gear/dimensions.js').GearParams} */ (gearParams)
     const dims = gearDimensions(gear)
@@ -946,6 +954,26 @@ function buildRingProfile(params, policy) {
   for (let i = 0; i < rim.length; i++) sides.push([/** @type {Vec2Mm2} */ (rim[i]), /** @type {Vec2Mm2} */ (rim[(i + 1) % rim.length])])
   for (let i = hole.length - 1; i >= 0; i--) sides.push([hole[i], hole[(i - 1 + hole.length) % hole.length]])
   return geometries.geom2.create(/** @type {any} */ (sides))
+}
+
+/**
+ * The bevel gear's large-end section (TODO/core-045): `src/core/gear/bevel.js`'s outline,
+ * sampled by the same rule as any involute flank — applied to the back-cone virtual gear,
+ * whose tooth it is, with the tolerance tightened by `cos δ`. The projection onto the
+ * large-end plane stretches the tooth radially by at most `1 / cos δ` and keeps its
+ * tangential size, so the section's chordal error stays within the design's tolerance.
+ *
+ * @param {Record<string, any>} params Canonical bevel-section params, limits already checked.
+ * @param {import('./tessellation.js').TessellationPolicy | undefined} policy
+ * @returns {Geom2}
+ */
+function buildBevelProfile(params, policy) {
+  const sectionParams = /** @type {import('../gear/bevel.js').BevelConeParams} */ (params)
+  const cone = bevelConeDimensions(sectionParams)
+  const cosDelta = Math.cos(degToRad(cone.pitchConeAngleDeg))
+  const active = policy ?? LEGACY_POLICY
+  const sampling = active.toleranceMm === null ? active : { ...active, toleranceMm: active.toleranceMm * cosDelta }
+  return geometries.geom2.fromPoints(bevelProfile({ ...sectionParams, ...gearProfileResolution(cone.virtual, sampling) }).outline)
 }
 
 /** @typedef {[number, number]} Vec2Mm2 A 2D point, mm. */
@@ -1052,6 +1080,142 @@ function twistedExtrude(profile, heightMm, params, policy) {
     },
     base
   )
+}
+
+// ## The loft to an apex (TODO/core-045, `docs/decisions/gears.md` Decision 3)
+//
+// `profile.extrudeToApex`: a profile lofted toward a point on its own axis, every outline
+// shrinking linearly to it — a bevel gear's teeth, whose flanks are cones through the apex.
+// It reuses the slice path (`extrudeFromSlices`, two slices walled vertex for vertex), and
+// it builds the bore and the hub **into** the loft, because the obvious alternatives are not
+// watertight: a 3D subtract of a bore, or a union of a hub onto the back face, leaves 12-122
+// open edges on a 20-80 tooth gear (measured while building this), and a bore cut from the
+// profile in 2D first would taper with the teeth.
+
+const EXTRUDE_TO_APEX_OP = 'profile.extrudeToApex'
+
+/**
+ * A circle's sides, CCW, sampled exactly as `profile.circle` / `primitive.cylinder` sample
+ * one of the same radius under `policy`.
+ *
+ * @param {number} radiusMm
+ * @param {import('./tessellation.js').TessellationPolicy | undefined} policy
+ * @returns {[Vec2Mm2, Vec2Mm2][]}
+ */
+function circleSidesMm(radiusMm, policy) {
+  const points = /** @type {Vec2Mm2[]} */ (geometries.geom2.toPoints(primitives.circle({ radius: radiusMm, segments: segmentsFor(radiusMm, policy) })))
+  return points.map((point, i) => /** @type {[Vec2Mm2, Vec2Mm2]} */ ([point, points[(i + 1) % points.length]]))
+}
+
+/**
+ * The same loop, wound the other way: a hole.
+ *
+ * @param {[Vec2Mm2, Vec2Mm2][]} sides
+ * @returns {[Vec2Mm2, Vec2Mm2][]}
+ */
+function reversedSides(sides) {
+  return sides.map(([a, b]) => /** @type {[Vec2Mm2, Vec2Mm2]} */ ([b, a])).reverse()
+}
+
+/**
+ * A slice from 2D sides placed at height `zMm`. The coordinates are copied, never computed,
+ * so two slices built from the same sides share their vertices bit for bit.
+ *
+ * @param {readonly (readonly [Vec2Mm2, Vec2Mm2])[]} sides
+ * @param {number} zMm
+ */
+function sliceAtMm(sides, zMm) {
+  return extrusions.slice.create(sides.map(([a, b]) => [[a[0], a[1], zMm], [b[0], b[1], zMm]]))
+}
+
+/**
+ * The profile's clear radius about the Z axis — the distance from the origin to its nearest
+ * side — or 0 when the origin is not inside it (an even crossing count on the +X ray, the
+ * half-open rule, so a vertex on the axis counts once).
+ *
+ * @param {readonly (readonly [Vec2Mm2, Vec2Mm2])[]} sides
+ * @returns {number}
+ */
+function clearRadiusMm(sides) {
+  let crossings = 0
+  let nearest = Number.POSITIVE_INFINITY
+  for (const [a, b] of sides) {
+    if (a[1] > 0 !== b[1] > 0 && a[0] - (a[1] * (b[0] - a[0])) / (b[1] - a[1]) > 0) crossings++
+    const dx = b[0] - a[0]
+    const dy = b[1] - a[1]
+    const lengthSq = dx * dx + dy * dy
+    const t = lengthSq > 0 ? Math.min(1, Math.max(0, -(a[0] * dx + a[1] * dy) / lengthSq)) : 0
+    nearest = Math.min(nearest, Math.hypot(a[0] + t * dx, a[1] + t * dy))
+  }
+  return crossings % 2 === 1 ? nearest : 0
+}
+
+/**
+ * Build `profile.extrudeToApex`. The profile lies in the plane `z = apexDistanceMm`; the apex
+ * is the origin. The solid runs `lengthMm` from that plane toward the apex, each outline
+ * scaled by `z / apexDistanceMm`, so every side wall lies on a plane through the apex. A
+ * `boreMm` hole on the axis keeps its size the whole way; a hub of `hubDiameterMm` stands
+ * `hubLengthMm` out beyond the profile's plane, bored too. One closed solid either way.
+ *
+ * @param {Geom2} profile
+ * @param {Record<string, any>} params
+ * @param {import('./tessellation.js').TessellationPolicy | undefined} policy
+ * @returns {Geom3}
+ */
+function extrudeToApex(profile, params, policy) {
+  const op = EXTRUDE_TO_APEX_OP
+  const apexMm = requirePositive(params.apexDistanceMm, 'apexDistanceMm', op)
+  const lengthMm = requirePositive(params.lengthMm, 'lengthMm', op)
+  if (!(lengthMm < apexMm)) {
+    throw new Error(`${op}: lengthMm ${lengthMm} must be less than apexDistanceMm ${apexMm} — the loft would reach the apex`)
+  }
+  const boreMm = requireNonNegative(params.boreMm ?? 0, 'boreMm', op)
+  const hubLengthMm = requireNonNegative(params.hubLengthMm ?? 0, 'hubLengthMm', op)
+  const hub = hubLengthMm > 0
+  const hubDiameterMm = hub ? requirePositive(params.hubDiameterMm, 'hubDiameterMm', op) : 0
+  if (hub && !(hubDiameterMm > boreMm)) {
+    throw new Error(`${op}: hubDiameterMm ${hubDiameterMm} must be more than boreMm ${boreMm}, or the hub has no wall`)
+  }
+  const scale = (apexMm - lengthMm) / apexMm
+  const sides = /** @type {[Vec2Mm2, Vec2Mm2][]} */ (geometries.geom2.toSides(profile))
+  if (boreMm > 0 || hub) {
+    const clearMm = clearRadiusMm(sides)
+    if (!(clearMm > 0)) {
+      throw new Error(`${op}: the profile does not surround its apex axis (the origin), so a bore or hub has nothing to sit in`)
+    }
+    if (boreMm / 2 >= clearMm * scale) {
+      throw new Error(`${op}: boreMm ${boreMm} does not fit inside the profile at the small end (clear diameter ${(2 * clearMm * scale).toFixed(3)} mm)`)
+    }
+    if (hub && hubDiameterMm / 2 >= clearMm) {
+      throw new Error(`${op}: hubDiameterMm ${hubDiameterMm} does not fit inside the profile (clear diameter ${(2 * clearMm).toFixed(3)} mm)`)
+    }
+  }
+
+  const smallZMm = apexMm - lengthMm
+  const scaled = sides.map(([a, b]) => /** @type {[Vec2Mm2, Vec2Mm2]} */ ([[a[0] * scale, a[1] * scale], [b[0] * scale, b[1] * scale]]))
+  const holeSides = boreMm > 0 ? reversedSides(circleSidesMm(boreMm / 2, policy)) : []
+  const small = sliceAtMm([...scaled, ...holeSides], smallZMm)
+  const large = sliceAtMm([...sides, ...holeSides], apexMm)
+  // Two slices walled edge for edge: the profile's sides shrink toward the apex, the bore's
+  // stay put, so its wall is a straight cylinder through the taper.
+  const body = extrusions.extrudeFromSlices(
+    { numberOfSlices: 2, capStart: true, capEnd: !hub, callback: (/** @type {number} */ _progress, /** @type {number} */ index) => (index === 0 ? small : large) },
+    small
+  )
+  if (!hub) return body
+
+  // The hub: the large end's cap becomes the ring between the profile and the hub circle,
+  // and a bored cylinder rises from that circle — sharing its vertices with the ring, and the
+  // bore's with the loft's, so the three pieces close into one solid with no boolean.
+  const hubSides = circleSidesMm(hubDiameterMm / 2, policy)
+  const hubFoot = sliceAtMm([...hubSides, ...holeSides], apexMm)
+  const hubTop = sliceAtMm([...hubSides, ...holeSides], apexMm + hubLengthMm)
+  const hubBody = extrusions.extrudeFromSlices(
+    { numberOfSlices: 2, capStart: false, capEnd: true, callback: (/** @type {number} */ _progress, /** @type {number} */ index) => (index === 0 ? hubFoot : hubTop) },
+    hubFoot
+  )
+  const ring = extrusions.slice.toPolygons(sliceAtMm([...sides, ...reversedSides(hubSides)], apexMm))
+  return geometries.geom3.create([...geometries.geom3.toPolygons(body), ...ring, ...geometries.geom3.toPolygons(hubBody)])
 }
 
 /**
@@ -1304,6 +1468,17 @@ export const registry = Object.freeze({
   // would put an intermediate in the `gear.` Library namespace and outside
   // `userPart.js`'s allowed prefixes).
   'profile.gear': native(0, ({ params, policy }) => buildGearProfile(params, policy)),
+
+  // A profile lofted toward an apex on its axis (TODO/core-045): the bevel gear's body, with
+  // its bore and hub built in — see `extrudeToApex`. Like `profile.extrudeLinear`, it takes
+  // a `geom2` operand and is a recipe's step, never a Library row.
+  'profile.extrudeToApex': native(1, ({ params, inputs, policy }) => {
+    const profile = /** @type {Geom2} */ (/** @type {unknown} */ (inputs[0]))
+    if (!geometries.geom2.isA(profile)) {
+      throw new Error(`${EXTRUDE_TO_APEX_OP}: operand must be a 2D profile (geom2), got ${describeGeometry(profile)}`)
+    }
+    return extrudeToApex(profile, params, policy)
+  }),
 
   // TODO/render-002: `jscad-utils`' `label()` — a string as a thin extruded body.
   // A native op taking `center` like a primitive, so the Library places it by the same
@@ -1967,6 +2142,10 @@ export const registry = Object.freeze({
   // to the mesh phase and moved one centre distance along +X, parts `drive` and `pinion`. Also
   // without `ui` until `ui-057` gives it its Library row.
   'gear.pair': composite(0, pair),
+  // TODO/core-045: a straight bevel gear — `profile.gear` kind `bevel` (the large-end section)
+  // → `profile.extrudeToApex`, apex at the origin, plus hidden `bore`, `pitchCone` and `apex`.
+  // Also without `ui` until `ui-057`; `core-046` places a pair.
+  'gear.bevel': composite(0, bevel),
 
   // Deliberately absent, and not an oversight — TODO/core-003 spiked this:
   //

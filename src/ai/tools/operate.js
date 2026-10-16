@@ -366,6 +366,8 @@ export const OPERATIONS = Object.freeze({
 export const NOT_OFFERED = Object.freeze({
   'profile.extrudeLinear':
     'A 2D-profile step used inside composite recipes. A body on screen is never a 2D profile, so there is nothing for the model to extrude.',
+  'profile.extrudeToApex':
+    'The bevel gear’s loft (TODO/core-045), a 2D-profile step inside gear.bevel exactly like profile.extrudeLinear. A body on screen is never a 2D profile, so there is nothing for the model to loft.',
   'style.recolor':
     'Colour is not geometry, and the UI writes it through document.setColorOverride rather than a plain append. A recolour tool is a later addition, not part of v1.',
   'style.rename':

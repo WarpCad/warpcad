@@ -277,6 +277,7 @@ describe('hostile input: a named error, checked before the profile is built', ()
   })
 
   it('refuses an unknown kind on profile.gear', () => {
-    expect(() => evaluateOp('profile.gear', { kind: 'bevel', teeth: 20, moduleMm: 2 })).toThrow(/kind/)
+    // Not 'bevel' any more: that kind is core-045's. A hypoid is out of scope (core-045's notes).
+    expect(() => evaluateOp('profile.gear', { kind: 'hypoid', teeth: 20, moduleMm: 2 })).toThrow(/kind/)
   })
 })

@@ -480,4 +480,30 @@ section ("Gears") and its row order, empty until then.
   0 mm^3 at every sampled drive angle. The wrong-phase negative controls overlap by 13.9,
   47.6 and 17.4 mm^3.
 
+## Addendum — what `core-045` decided about the straight bevel gear (2026-10-16)
+
+- **No 3D booleans for the bore or hub on a tapered gear.** Subtracting a bore from a cone-shaped
+  tooth body produced 12 to 122 open edges when measured. The new native op
+  `profile.extrudeToApex` builds the bore, hub and back cap into one closed solid directly, from two
+  `extrudeFromSlices` runs plus an earcut cap. `gear.bevel` is a composite over it, and the
+  `profile.gear` section op gains `kind: 'bevel'` with a computed `pitchConeAngleDeg`.
+- **Tooth tips protrude past the textbook outside diameter on the flat back face.** The large end is
+  planar and carries the exact Tredgold flanks, so the tips reach further than the textbook
+  outside diameter (the drive-wheel 32T miter measures 27.31 mm against 26.10 mm). Meshing is
+  unaffected. The alternative is a non-planar back face that follows the back cone.
+  **Open for the user:** accept the planar back face, or ask for the back-cone one.
+- **`MAX_FACE_CONE_ANGLE_DEG` is 85.** A `crown-gear` (pitch cone angle past it) is refused by
+  name. The task text's near-89 degree watertight case cannot hold with flat cross-sections.
+  **Open for the user:** confirm 85.
+- **Hub diameter is fixed at the small-end root diameter**; a bore larger than that is refused.
+  A `hubDiameterMm` could arrive with `ui-057` or `core-048`.
+- **Face width** defaults to `min(L/3, 10 modules)` where `L` is the cone distance. Above `L/3` it
+  is allowed with a warning from `bevelGearDimensions().warnings`; at or above `L` it is refused.
+  Recipes have no warning channel, so `ui-057` must show that warning itself.
+- **Vocabulary.** `moduleMm` is the name, as elsewhere. No profile shift on a bevel. Minimum 3 teeth.
+- **Close vertices are dropped.** `bevelProfile` removes vertices closer than 1e-4 times the tip
+  radius. The back-cone virtual gear of a steep cone has about 1915 teeth at 84 degrees and its
+  outline sampled 0.0009 mm apart, below the export weld. Very large spur gears may carry the same
+  latent issue; it is not fixed here.
+
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->
