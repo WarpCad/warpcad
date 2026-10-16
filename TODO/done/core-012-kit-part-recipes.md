@@ -46,7 +46,7 @@ status: done
 > project's `node_modules` (the version `core-001`'s bolt port and `core-010`/`011`'s
 > nut/washer ports diff against) only has `Board` — `BoardFrame` and `Anchor` don't
 > exist in it. Both exist in the user's actively-developed `jscad-utils@6.0.0`, at
-> `/Users/johncole/src/jscad/jscad-utils/src/parts.js:398` (`Anchor`) and `:445`
+> `jscad-utils@6.0.0`'s `src/parts.js:398` (`Anchor`) and `:445`
 > (`BoardFrame`) — confirmed by reading that source directly. Per the user's explicit
 > instruction, this task **ports by reading that source, without wiring up a real V1
 > execution/dimensional-diff fixture** the way `core-001`/`core-010`/`core-011` do —
