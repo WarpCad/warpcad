@@ -1909,3 +1909,13 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** `gear.spur` composite with parts gear, bore, pitch → `src/core/kernel/recipes/gear.spur.spec.js`; bore cut in 2D by `profile.circle` before the extrude → `src/core/kernel/recipes/gear.spur.js`; no Library row → `src/core/library.spec.js`; full suite 5115 unit and 3909 e2e passing → test run this session
 **To Add:** nothing
+
+## [2026-10-16T07:10:00Z] — A helical gear is a spur gear's outline with a twist
+
+**Post:** WarpCad's spur gear now takes a helix angle, a hand and a herringbone flag. There is no helical-gear op: the recipe computes the twist from the angle and hands it to the same extrude. Module and pressure angle stay the normal values, as on a store-bought gear, and the outline is the true transverse section. Built with Claude Code, reviewed by me. #CAD #OpenSource
+
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** twist = t·tan(β)/r, transverse module mₙ/cos β → `src/core/gear/helix.spec.js`; herringbone as one chevron extrude, β = 0 still valid → `src/core/kernel/recipes/gear.spur.helical.spec.js`; step count and vertex budget → `src/core/kernel/tessellation.spec.js`; full run 5194 unit, 3908 e2e passing → test run this session
+**To Add:** nothing

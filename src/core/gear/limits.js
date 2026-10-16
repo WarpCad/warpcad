@@ -14,6 +14,7 @@
  */
 
 import { GearParameterError } from './dimensions.js'
+import { HANDEDNESS, MAX_HELIX_ANGLE_DEG } from './helix.js'
 
 /**
  * @typedef {object} GearLimit
@@ -26,14 +27,16 @@ import { GearParameterError } from './dimensions.js'
 /**
  * The registry's gear caps. Teeth 3…500, module 0.05…50 mm and pressure angle 5…35° are
  * the TODO's; thickness and profile shift are bounded so no finite input can grow the
- * solid past what the kernel tessellates in a frame's worth of work.
+ * solid past what the kernel tessellates in a frame's worth of work. The helix angle is
+ * 0…45° (TODO/core-042): its sign is never the hand — `handedness` is.
  *
- * @type {Readonly<Record<'teeth' | 'moduleMm' | 'pressureAngleDeg' | 'thicknessMm' | 'profileShift', Readonly<GearLimit>>>}
+ * @type {Readonly<Record<'teeth' | 'moduleMm' | 'pressureAngleDeg' | 'helixAngleDeg' | 'thicknessMm' | 'profileShift', Readonly<GearLimit>>>}
  */
 export const GEAR_LIMITS = Object.freeze({
   teeth: Object.freeze({ min: 3, max: 500, integer: true }),
   moduleMm: Object.freeze({ min: 0.05, max: 50 }),
   pressureAngleDeg: Object.freeze({ min: 5, max: 35 }),
+  helixAngleDeg: Object.freeze({ min: 0, max: MAX_HELIX_ANGLE_DEG }),
   thicknessMm: Object.freeze({ min: 0, max: 1000, minExclusive: true }),
   profileShift: Object.freeze({ min: -1, max: 2 }),
 })
@@ -100,7 +103,23 @@ export function checkGearLimits(params, { op, required }) {
   }
   // Teeth first: it is the one param that scales the work, so it is refused before anything else.
   for (const name of /** @type {(keyof typeof GEAR_LIMITS)[]} */ (Object.keys(GEAR_LIMITS))) {
-    if (params[name] !== undefined) checkRange(params[name], name, GEAR_LIMITS[name], op)
+    const value = params[name]
+    if (value === undefined) continue
+    if (name === 'helixAngleDeg' && typeof value === 'number' && value < 0) {
+      throw new GearLimitError(
+        `${op}: helixAngleDeg must be 0 or more, got ${value} — a negative angle is the other hand; set handedness: 'left'`,
+        name
+      )
+    }
+    checkRange(value, name, GEAR_LIMITS[name], op)
+  }
+  const hand = params.handedness
+  if (hand !== undefined && !HANDEDNESS.includes(/** @type {any} */ (hand))) {
+    throw new GearLimitError(`${op}: handedness must be ${HANDEDNESS.map((h) => `'${h}'`).join(' or ')}, got ${String(hand)}`, 'handedness')
+  }
+  const herringbone = params.herringbone
+  if (herringbone !== undefined && typeof herringbone !== 'boolean') {
+    throw new GearLimitError(`${op}: herringbone must be true or false, got ${String(herringbone)}`, 'herringbone')
   }
   for (const name of FINITE_ONLY) {
     const value = params[name]

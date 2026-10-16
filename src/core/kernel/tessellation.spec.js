@@ -10,8 +10,11 @@ import {
   chordDeviationMm,
   isResolution,
   policyFor,
+  MAX_TWIST_STEPS,
+  minTwistSteps,
   rimSlicesFor,
   segmentsFor,
+  twistStepsFor,
 } from './tessellation.js'
 
 /**
@@ -168,5 +171,55 @@ describe('policyFor / isResolution', () => {
 
   it('new documents default to Normal', () => {
     expect(DEFAULT_RESOLUTION).toBe('normal')
+  })
+})
+
+describe('twistStepsFor — a twisted extrude meets the tolerance along the twist (TODO/core-042)', () => {
+  /** Sag of the chord a point at `radiusMm` cuts across one step of `stepRad`. */
+  const sagMm = (/** @type {number} */ radiusMm, /** @type {number} */ stepRad) => radiusMm * (1 - Math.cos(stepRad / 2))
+
+  it('needs one step for no twist, under every policy', () => {
+    for (const id of RESOLUTION_IDS) expect(twistStepsFor(0, 30, policyFor(id)), id).toBe(1)
+    expect(twistStepsFor(0, 30, undefined)).toBe(1)
+  })
+
+  it.each(['draft', 'normal', 'fine', 'print'])('%s keeps every step’s chord within its tolerance', (id) => {
+    const policy = policyFor(id)
+    for (const radiusMm of [2, 10, 38, 250]) {
+      for (const twistRad of [0.05, 0.3, 1, Math.PI]) {
+        const steps = twistStepsFor(twistRad, radiusMm, policy)
+        if (steps < MAX_TWIST_STEPS) {
+          expect(sagMm(radiusMm, twistRad / steps), `${id} r=${radiusMm} θ=${twistRad}`).toBeLessThanOrEqual(
+            /** @type {number} */ (policy.toleranceMm) + 1e-12
+          )
+        }
+      }
+    }
+  })
+
+  it('takes more steps for Print than for Draft, and reads the twist unsigned', () => {
+    expect(twistStepsFor(1, 38, policyFor('print'))).toBeGreaterThan(twistStepsFor(1, 38, policyFor('draft')))
+    expect(twistStepsFor(-1, 38, policyFor('normal'))).toBe(twistStepsFor(1, 38, policyFor('normal')))
+  })
+
+  it('is deterministic under legacy, and never fewer than the minimum', () => {
+    expect(twistStepsFor(1, 38, undefined)).toBe(twistStepsFor(1, 38, policyFor('legacy')))
+    for (const radiusMm of [1, 38, 400]) {
+      expect(twistStepsFor(1, radiusMm, undefined)).toBeGreaterThanOrEqual(minTwistSteps(1, radiusMm))
+    }
+  })
+
+  it('takes its minimum from the coarsest preset, so a document is never refused at one resolution and built at another', () => {
+    expect(minTwistSteps(1, 38)).toBe(twistStepsFor(1, 38, policyFor('draft')))
+    expect(minTwistSteps(0, 38)).toBe(1)
+  })
+
+  it('is capped, and a degenerate radius never yields NaN or 0', () => {
+    expect(twistStepsFor(2 * Math.PI, 1e6, policyFor('print'))).toBe(MAX_TWIST_STEPS)
+    for (const radiusMm of [0, -3, Number.NaN, 1e-9]) {
+      const steps = twistStepsFor(1, radiusMm, policyFor('print'))
+      expect(Number.isInteger(steps), String(radiusMm)).toBe(true)
+      expect(steps, String(radiusMm)).toBeGreaterThanOrEqual(1)
+    }
   })
 })

@@ -35,6 +35,32 @@
  * hole and the hidden `bore` cylinder take the same policy-driven segment count, so they
  * coincide.
  *
+ * ## Helical and herringbone (TODO/core-042)
+ *
+ * `helixAngleDeg` (0…45°), `handedness` (`'right'` default, or `'left'`) and `herringbone`
+ * make the same expansion helical; there is no helical-gear op (Decision 3).
+ *
+ * - **The profile is the transverse section.** `profile.gear` gets `helixAngleDeg`, and
+ *   `moduleMm` / `pressureAngleDeg` are read as the **normal** values a store-bought gear
+ *   is sold by — so the pitch circle is `z · mₙ / cos β` and the teeth are `mₙ` deep
+ *   (`src/core/gear/helix.js`). `normalModuleMm` and `transverseModuleMm` are accepted
+ *   spellings (`src/core/gear/aliases.js`). The hand never reaches the profile: both hands
+ *   have the same section.
+ * - **The twist is computed here, not by a new op**: `t · tan β / r` on the transverse
+ *   pitch radius, signed by the hand, handed to `profile.extrudeLinear` as `twistDeg`.
+ *   How finely the twist is sampled is the document's resolution, so the record carries no
+ *   `twistSteps`; the kernel derives them (`tessellation.js`'s `twistStepsFor`).
+ * - **A herringbone is one extrude**, `herringbone: true`: the profile turns by the
+ *   half-thickness twist over the lower half and back over the upper, as one
+ *   `extrudeFromSlices` chevron. Two mirrored halves unioned at mid-thickness would meet
+ *   on exactly coincident faces — the classic non-manifold seam — so they are never built.
+ *   A relief groove (`grooveMm`) is not built yet and is refused by name.
+ * - **Helix angle 0 is the plain spur gear, record for record**: `helixAngleDeg: 0`,
+ *   either hand and `herringbone: false` are dropped from the expansion. A β = 0
+ *   herringbone is kept as asked — a chevron with no twist, a spur gear with a seam.
+ * - **A twist past one full turn is refused** before any record is emitted
+ *   (`MAX_TWIST_DEG`): that is a worm, and its vertex count would grow with the twist.
+ *
  * ## Placement
  *
  * Axis is local Z, centred on the origin, mid-thickness at Z = 0, tooth 0 on +X (the
@@ -56,7 +82,8 @@
 
 import { resolveGearAliases } from '../../gear/aliases.js'
 import { GearParameterError, gearDimensions } from '../../gear/dimensions.js'
-import { GEAR_LIMITS, GearBoreError, checkGearLimits } from '../../gear/limits.js'
+import { MAX_TWIST_DEG, helixTwistRad } from '../../gear/helix.js'
+import { GEAR_LIMITS, GearBoreError, GearLimitError, checkGearLimits } from '../../gear/limits.js'
 
 /** @typedef {import('../registry.js').OpRecord} OpRecord */
 /** @typedef {import('../registry.js').OpUi} OpUi */
@@ -74,10 +101,18 @@ export const SPUR_PARAMS = Object.freeze([
   'backlashMm',
   'thicknessMm',
   'boreMm',
+  'helixAngleDeg',
+  'handedness',
+  'herringbone',
 ])
 
-/** The subset that shapes the 2D outline, passed on to `profile.gear`. */
+/**
+ * The subset that shapes the 2D outline, passed on to `profile.gear`. `helixAngleDeg` is
+ * added only when it is not 0, so a spur gear's records are unchanged by it.
+ */
 const PROFILE_PARAMS = Object.freeze(['teeth', 'moduleMm', 'pressureAngleDeg', 'profileShift', 'clearanceMm', 'backlashMm'])
+
+const RAD_TO_DEG = 180 / Math.PI
 
 /**
  * Catalogue metadata for the Spur gear row. **Not attached to the registry entry yet**:
@@ -112,12 +147,13 @@ function withOp(error) {
  * Expand a `gear.spur` document line into the records that define it.
  *
  * @param {Record<string, unknown>} params `teeth`, `moduleMm`, `thicknessMm` (required),
- *   `pressureAngleDeg`, `profileShift`, `clearanceMm`, `backlashMm`, `boreMm` (optional),
- *   or their aliases (`src/core/gear/aliases.js`).
+ *   `pressureAngleDeg`, `profileShift`, `clearanceMm`, `backlashMm`, `boreMm`,
+ *   `helixAngleDeg`, `handedness`, `herringbone` (optional), or their aliases
+ *   (`src/core/gear/aliases.js`).
  * @param {unknown} [_tables] Unused — a gear has no size table.
  * @returns {OpRecord[]}
  * @throws {import('../../gear/dimensions.js').GearParameterError} Named: an alias, limit,
- *   bore or core-040 dimension error.
+ *   bore, twist or core-040 dimension error.
  */
 export function spur(params, _tables) {
   const canonical = resolveGearAliases(params, { op: OP, canonical: SPUR_PARAMS }).params
@@ -147,6 +183,33 @@ export function spur(params, _tables) {
     if (canonical[key] !== undefined) profileParams[key] = canonical[key]
   }
 
+  // Helical (TODO/core-042): the transverse section and a twist; nothing at all at β = 0.
+  const helixAngleDeg = /** @type {number} */ (canonical.helixAngleDeg ?? 0)
+  const herringbone = canonical.herringbone === true
+  /** @type {Record<string, unknown>} */
+  const twistParams = {}
+  if (helixAngleDeg !== 0 || herringbone) {
+    if (helixAngleDeg !== 0) profileParams.helixAngleDeg = helixAngleDeg
+    const twistRad = helixTwistRad({
+      // A herringbone turns by the half-thickness twist, then back.
+      thicknessMm: herringbone ? thicknessMm / 2 : thicknessMm,
+      pitchRadiusMm: dims.pitchRadiusMm,
+      helixAngleDeg,
+      handedness: /** @type {import('../../gear/helix.js').Handedness} */ (canonical.handedness ?? 'right'),
+    })
+    const twistDeg = twistRad * RAD_TO_DEG
+    if (Math.abs(twistDeg) > MAX_TWIST_DEG) {
+      throw new GearLimitError(
+        `${OP}: a ${helixAngleDeg}° helix over ${herringbone ? 'half of ' : ''}thicknessMm ${thicknessMm} on a ` +
+          `${dims.pitchDiameterMm.toFixed(3)} mm pitch circle twists the teeth ${Math.abs(twistDeg).toFixed(0)}° — ` +
+          `more than one full turn (${MAX_TWIST_DEG}°), which is a worm, not a gear; reduce thicknessMm or helixAngleDeg`,
+        'thicknessMm'
+      )
+    }
+    twistParams.twistDeg = twistDeg
+    if (herringbone) twistParams.herringbone = true
+  }
+
   /** @type {OpRecord[]} */
   const records = [{ id: 'profile', op: 'profile.gear', params: profileParams }]
   let face = 'profile'
@@ -160,7 +223,7 @@ export function spur(params, _tables) {
     face = 'face'
   }
   records.push(
-    { id: 'blank', op: 'profile.extrudeLinear', target: face, params: { height: thicknessMm } },
+    { id: 'blank', op: 'profile.extrudeLinear', target: face, params: { height: thicknessMm, ...twistParams } },
     { id: 'gear', op: 'transform.translate', target: 'blank', params: { vector: [0, 0, -thicknessMm / 2] }, name: 'gear' }
   )
   if (boreMm > 0) {

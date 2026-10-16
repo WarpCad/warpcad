@@ -19,6 +19,8 @@
  * @module core/gear/dimensions
  */
 
+import { transverseModuleMm, transversePressureAngleDeg } from './helix.js'
+
 /** ISO 53 addendum, in modules. */
 export const ADDENDUM_COEFFICIENT = 1
 /**
@@ -28,6 +30,11 @@ export const ADDENDUM_COEFFICIENT = 1
 export const DEDENDUM_COEFFICIENT = 1.25
 /** Pressure-angle range accepted, degrees (inclusive). */
 export const PRESSURE_ANGLE_RANGE_DEG = Object.freeze([0, 45])
+/**
+ * Helix-angle range accepted, degrees (inclusive): what still makes a gear. The registry's
+ * tighter cap (45°, `./limits.js`) is what an op accepts; a hand is `handedness`, never a sign.
+ */
+export const HELIX_ANGLE_RANGE_DEG = Object.freeze([0, 60])
 
 const DEG_TO_RAD = Math.PI / 180
 
@@ -125,19 +132,29 @@ export function defaultClearanceMm(moduleMm) {
  *   `0.25 · moduleMm`. May be 0 (V1 gears that omitted it) or negative.
  * @property {number} [backlashMm=0] Total circumferential play of a meshing pair, mm,
  *   measured along the pitch circle. **Sign convention:** positive thins this gear's tooth
- *   by `backlashMm / 2` at the pitch circle; negative thickens it.
+ *   by `backlashMm / 2` at the pitch circle; negative thickens it. On a helical gear the
+ *   pitch circle is the transverse one, so this is the transverse play.
+ * @property {number} [helixAngleDeg=0] Helix angle, degrees, 0…60 (TODO/core-042). When
+ *   non-zero, `moduleMm` and `pressureAngleDeg` are the **normal** values and every
+ *   dimension below describes the transverse section (`./helix.js`'s conventions).
  */
 
 /**
  * @typedef {object} GearDimensions
  * @property {number} teeth
- * @property {number} moduleMm
- * @property {number} pressureAngleDeg
+ * @property {number} moduleMm The (normal) module given.
+ * @property {number} pressureAngleDeg The (normal) pressure angle given.
+ * @property {number} helixAngleDeg 0 for a spur gear.
+ * @property {number} transverseModuleMm `moduleMm / cos β` — sets the pitch circle;
+ *   `moduleMm` itself at β = 0.
+ * @property {number} transversePressureAngleDeg `atan(tan α / cos β)` — the involute's
+ *   angle in the transverse section; `pressureAngleDeg` itself at β = 0.
  * @property {number} profileShift
  * @property {number} clearanceMm Resolved (default applied).
  * @property {number} backlashMm
- * @property {number} circularPitchMm `π · module`.
- * @property {number} pitchDiameterMm `module · teeth`.
+ * @property {number} circularPitchMm `π · module` (transverse module on a helical gear: the
+ *   pitch measured along the pitch circle).
+ * @property {number} pitchDiameterMm `module · teeth` (transverse module).
  * @property {number} pitchRadiusMm
  * @property {number} baseDiameterMm Pitch Ø · cos α.
  * @property {number} baseRadiusMm
@@ -148,7 +165,7 @@ export function defaultClearanceMm(moduleMm) {
  *   outline's tip is this unless the tooth is pointed — see `involuteProfile().tipRadiusMm`.
  * @property {number} rootRadiusMm Root circle: the generating rack's tip line.
  * @property {number} toothThicknessAtPitchMm Arc length along the pitch circle:
- *   `circularPitch / 2 + 2 x m tan α − backlash / 2`.
+ *   `circularPitch / 2 + 2 x m tan α − backlash / 2` (transverse α on a helical gear).
  * @property {number} toothAngleDeg `360 / teeth`.
  * @property {number} rackCornerTangentialMm Generating rack's tip corner, distance from the
  *   tooth-space centre line along the rolling line, mm (≥ 0; 0 when the rack tip is pointed).
@@ -201,12 +218,22 @@ export function gearDimensions(params) {
   const profileShift = finite(params.profileShift ?? 0, 'profileShift')
   const clearanceMm = finite(params.clearanceMm ?? defaultClearanceMm(moduleMm), 'clearanceMm')
   const backlashMm = finite(params.backlashMm ?? 0, 'backlashMm')
+  const helixAngleDeg = finite(params.helixAngleDeg ?? 0, 'helixAngleDeg')
+  const [minHelixDeg, maxHelixDeg] = HELIX_ANGLE_RANGE_DEG
+  if (helixAngleDeg < minHelixDeg || helixAngleDeg > maxHelixDeg) {
+    throw new GearParameterError(`helixAngleDeg must be between ${minHelixDeg}° and ${maxHelixDeg}°`)
+  }
 
-  const alphaRad = pressureAngleDeg * DEG_TO_RAD
+  // The transverse section (TODO/core-042): pitch and pressure angle from the transverse
+  // values, depth from the normal module. Both helpers return their input unchanged at
+  // β = 0, so a spur gear's arithmetic below is exactly what it was before helix angles.
+  const pitchModuleMm = transverseModuleMm(moduleMm, helixAngleDeg)
+  const profileAngleDeg = transversePressureAngleDeg(pressureAngleDeg, helixAngleDeg)
+  const alphaRad = profileAngleDeg * DEG_TO_RAD
   const tanAlpha = Math.tan(alphaRad)
   const sinAlpha = Math.sin(alphaRad)
-  const circularPitchMm = moduleMmToCircularPitchMm(moduleMm)
-  const pitchRadiusMm = (moduleMm * teeth) / 2
+  const circularPitchMm = moduleMmToCircularPitchMm(pitchModuleMm)
+  const pitchRadiusMm = (pitchModuleMm * teeth) / 2
   const baseRadiusMm = pitchRadiusMm * Math.cos(alphaRad)
   const shiftMm = profileShift * moduleMm
   const addendumMm = moduleMm * (ADDENDUM_COEFFICIENT + profileShift)
@@ -247,7 +274,7 @@ export function gearDimensions(params) {
   const interferenceDepthMm = pitchRadiusMm * sinAlpha * sinAlpha
   const undercut = cornerDepthMm > interferenceDepthMm
   const minTeethWithoutUndercut =
-    sinAlpha === 0 ? Number.POSITIVE_INFINITY : (2 * cornerDepthMm) / (moduleMm * sinAlpha * sinAlpha)
+    sinAlpha === 0 ? Number.POSITIVE_INFINITY : (2 * cornerDepthMm) / (pitchModuleMm * sinAlpha * sinAlpha)
   const involuteStartRadiusMm =
     undercut || tanAlpha === 0 ? baseRadiusMm : Math.hypot(cornerRadialMm, cornerDepthMm / tanAlpha)
 
@@ -255,6 +282,9 @@ export function gearDimensions(params) {
     teeth,
     moduleMm,
     pressureAngleDeg,
+    helixAngleDeg,
+    transverseModuleMm: pitchModuleMm,
+    transversePressureAngleDeg: profileAngleDeg,
     profileShift,
     clearanceMm,
     backlashMm,

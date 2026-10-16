@@ -186,6 +186,66 @@ export function rimSlicesFor(radiusMm, policy) {
 }
 
 /**
+ * The most slices a twisted extrude takes per twisted run (TODO/core-042), whatever the
+ * tolerance asks for — the same role {@link MAX_SEGMENTS} plays for a circle.
+ */
+export const MAX_TWIST_STEPS = 360
+
+/**
+ * Steps so that a point at `radiusMm`, turned by `twistRad` in straight chords, never
+ * strays more than `toleranceMm` from its true arc: each step at most `2 acos(1 − tol / r)`.
+ * Uncapped. A zero, NaN or within-tolerance radius, or no twist, needs one step.
+ *
+ * @param {number} twistRad Read unsigned.
+ * @param {number} radiusMm
+ * @param {number} toleranceMm
+ * @returns {number}
+ */
+function twistStepsAt(twistRad, radiusMm, toleranceMm) {
+  const twist = Math.abs(twistRad)
+  if (!(twist > 0) || !(radiusMm > toleranceMm)) return 1
+  if (radiusMm === Number.POSITIVE_INFINITY) return Number.POSITIVE_INFINITY
+  return Math.max(1, Math.ceil(twist / (2 * Math.acos(1 - toleranceMm / radiusMm))))
+}
+
+/**
+ * The fewest steps any document may give a twist of `twistRad` at `radiusMm`: what the
+ * coarsest preset (Draft) needs. It is policy-independent on purpose — an explicit
+ * `twistSteps` is checked against it, so a record valid at preview is valid at export.
+ * **Uncapped**, so a caller can tell when even the floor is past {@link MAX_TWIST_STEPS}.
+ *
+ * @param {number} twistRad Read unsigned.
+ * @param {number} radiusMm The profile's outermost radius.
+ * @returns {number} At least 1.
+ */
+export function minTwistSteps(twistRad, radiusMm) {
+  return twistStepsAt(twistRad, radiusMm, RESOLUTION_PRESETS.draft.toleranceMm)
+}
+
+/**
+ * How many steps a twisted extrude of `twistRad` takes under `policy`: enough that the
+ * outermost point (`radiusMm`) stays within the policy's tolerance of its helix, so a
+ * gear previews coarse and exports fine (TODO/core-035). `legacy` turns by one of its
+ * fixed segments (`360° / 32`) per step. Never below {@link minTwistSteps}; capped at
+ * {@link MAX_TWIST_STEPS}.
+ *
+ * @param {number} twistRad Read unsigned.
+ * @param {number} radiusMm The profile's outermost radius.
+ * @param {Readonly<TessellationPolicy> | null | undefined} policy `legacy` when absent.
+ * @returns {number} An integer in `[1, MAX_TWIST_STEPS]`.
+ */
+export function twistStepsFor(twistRad, radiusMm, policy) {
+  const active = policy ?? LEGACY_POLICY
+  const twist = Math.abs(twistRad)
+  if (!(twist > 0)) return 1
+  const steps =
+    active.toleranceMm === null
+      ? Math.ceil(twist / ((2 * Math.PI) / (active.fixedSegments ?? LEGACY_SEGMENTS)))
+      : twistStepsAt(twist, radiusMm, active.toleranceMm)
+  return Math.min(MAX_TWIST_STEPS, Math.max(1, steps, minTwistSteps(twist, radiusMm)))
+}
+
+/**
  * A resolution's display name: `Normal`, or `Legacy (32 segments)`.
  *
  * @param {string} id

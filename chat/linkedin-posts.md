@@ -2700,3 +2700,22 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** bore cut in 2D before one extrude, oversize bore refused by name → `src/core/kernel/recipes/gear.spur.js` and its spec; V1 `circularPitch`, `backlash` conversions and the refused `pressureAngle` → `src/core/gear/aliases.spec.js`; `boreMm` question recorded → `docs/decisions/gears.md` core-041 addendum; scenarios 1, 3, 10 driven at 1440x900 Chromium → `TODO/ACCEPTANCE.md` Last run lines
 **To Add:** repo URL once public, docs site URL once it exists
+
+## [2026-10-16T07:10:00Z] — Helical gears without a helical-gear op, and the seam I refused to build
+
+**Post:** WarpCad's spur gear recipe now accepts a helix angle, a hand and a herringbone option. Two decisions are worth writing down.
+
+First, the vocabulary. A helical gear is sold by its normal module and normal pressure angle, because it is cut by a standard rack in the plane normal to the teeth. But the outline you extrude is the transverse section, with module m/cos(beta). So the recipe reads the normal values, draws the transverse section, keeps tooth depth in the normal module, and derives the twist as thickness times tan(beta) over pitch radius. No new native op; the same extrude gained a twist. A user matching a store-bought gear is not off by cos(beta).
+
+Second, the herringbone. The obvious build is two mirrored helical halves unioned at mid-thickness, which meets on exactly coincident faces, the classic non-manifold trap. It is one chevron extrude instead, twisting up over the lower half and back over the upper. At a helix angle of zero it is still valid: a spur gear with a seam.
+
+Limits are enforced in code rather than hoped for: 45 degrees maximum, one run may not twist past a full turn (that is a worm, a later task), and a vertex budget refuses a thick, small gear at a steep angle instead of sampling it at huge cost. The relief groove at the chevron's apex is not built; it is refused by name and filed as its own task.
+
+There is no Library row yet, so I could not drive a gear by hand. I re-drove the shared paths instead (two primitives, snap placement, a sketch extrude with a 90 degree twist, save and reload). One finding I did not cause and did not fix: a twisted sketch body reports a volume that does not match its area times height, identical on the previous commit. It is logged for a person to look at.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource #AIEngineering
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** twist and normal/transverse maths → `src/core/gear/helix.spec.js`; herringbone chevron, β = 0, twist limits → `src/core/kernel/recipes/gear.spur.helical.spec.js`; steps floor, cap and budget → `src/core/kernel/tessellation.spec.js`; decisions → `docs/decisions/gears.md` core-042 addendum; groove filed → `TODO/core-062-herringbone-relief-groove.md`; twisted-volume observation → `TODO/VERIFY.md`; scenarios 1, 3, 9, 10 driven at 1440x900 Chromium → `TODO/ACCEPTANCE.md` Last run lines
+**To Add:** repo URL once public, docs site URL once it exists

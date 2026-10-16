@@ -6,8 +6,15 @@ priority: medium
 model: opus
 milestone: M11
 depends: [core-041]
-status: open
+status: done
 ---
+
+> **What shipped (2026-10-16).** As specified, with four calls recorded in the `docs/decisions/gears.md`
+> core-042 addendum: `moduleMm` and `pressureAngleDeg` are the normal values and the profile is the
+> transverse section; `grooveMm` is not built (refused by name, filed as `core-062`); a negative
+> `helixAngleDeg` is refused (use `handedness: 'left'`); a twist past 360 degrees or 2M vertices is
+> refused (worm is `core-047`). `profile.extrudeLinear` gained `twistDeg`, `twistSteps` and `herringbone`
+> (a single chevron `extrudeFromSlices`), not just param validation.
 
 ## Goal
 

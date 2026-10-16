@@ -34,6 +34,14 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### core-042 — Helical and herringbone gears (2026-10-16 07:08)
+
+Gears have no Library row yet, so the helical path is unit-covered only. While re-driving acceptance 9 with a Twist of 90 degrees, the twisted sketch body measured 3 820 mm³ where a 30 x 16 mm rectangle at 30 mm should be 14 400 mm³ (the untwisted run gives 14 400), and a Subtract against it removed 19 468 mm³. An unmodified HEAD build gave the identical numbers, so this task did not cause it; it needs a person to look at whether the twisted mesh is inverted or the volume readout is wrong.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | Sketch a 30 x 16 mm rectangle, Extrude Linear 30 mm with Twist 90, Done: does the Inspector volume read about 14 400 mm³, and does the solid look right (not inside-out) from several angles? | Open | |
+
 ### core-058 — One Raspberry Pi Screen row with a Screen model dropdown (2026-10-16 03:52)
 
 Acceptance 3, 6 and 15 were driven and passed. These two checks are judgement calls about look and feel that the drive cannot make. "Screen model" is a longer label than "Model", so the closed select has less room. In the 1440 px laptop panel and the docs screenshot it reads "7-inch T…" / "Touchs…".

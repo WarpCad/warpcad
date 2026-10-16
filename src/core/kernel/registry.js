@@ -35,7 +35,7 @@
 import modeling from '@jscad/modeling'
 
 // See group.js: default import, not named, so this runs under raw Node ESM too.
-const { booleans, extrusions, geometries, measurements, primitives, transforms } = modeling
+const { booleans, extrusions, geometries, maths, measurements, primitives, transforms } = modeling
 
 import { chamferRim, filletRim } from './fillet.js'
 import {
@@ -65,7 +65,15 @@ import {
   validateSketchParams,
 } from '../../sketch/profile.js'
 import { loftRings } from '../../sketch/resample.js'
-import { LEGACY_POLICY, LEGACY_SEGMENTS, rimSlicesFor, segmentsFor } from './tessellation.js'
+import {
+  LEGACY_POLICY,
+  LEGACY_SEGMENTS,
+  MAX_TWIST_STEPS,
+  minTwistSteps,
+  rimSlicesFor,
+  segmentsFor,
+  twistStepsFor,
+} from './tessellation.js'
 import { bolt } from './recipes/hardware.bolt.js'
 import { nut } from './recipes/hardware.nut.js'
 import { washer } from './recipes/hardware.washer.js'
@@ -73,6 +81,7 @@ import { bearing } from './recipes/hardware.bearing.js'
 import { spur } from './recipes/gear.spur.js'
 import { GearAliasError } from '../gear/aliases.js'
 import { GearParameterError, gearDimensions } from '../gear/dimensions.js'
+import { MAX_TWIST_DEG } from '../gear/helix.js'
 import { involuteProfile, toothHalfAngleRadAt } from '../gear/involute.js'
 import { checkGearLimits } from '../gear/limits.js'
 import { screw, SCREW_HEADS } from './recipes/hardware.screw.js'
@@ -747,7 +756,9 @@ function buildSketch(params, policy) {
 const GEAR_PROFILE_OP = 'profile.gear'
 
 /** `profile.gear`'s own vocabulary: canonical names only, no aliases (those are the recipe's). */
-const GEAR_PROFILE_PARAMS = Object.freeze(['teeth', 'moduleMm', 'pressureAngleDeg', 'profileShift', 'clearanceMm', 'backlashMm'])
+// `helixAngleDeg` makes the outline a helical gear's transverse section (TODO/core-042); the
+// hand and the herringbone are the extrude's, so they are not profile params.
+const GEAR_PROFILE_PARAMS = Object.freeze(['teeth', 'moduleMm', 'pressureAngleDeg', 'profileShift', 'clearanceMm', 'backlashMm', 'helixAngleDeg'])
 
 /** Decision 4: `legacy` samples each flank with a fixed 8 points. */
 const LEGACY_POINTS_PER_FLANK = 8
@@ -837,6 +848,110 @@ function buildGearProfile(params, policy) {
     }
     throw error
   }
+}
+
+// ## The twisted extrude (TODO/core-042, `docs/decisions/gears.md` Decision 3)
+//
+// `profile.extrudeLinear`'s `twistDeg`: the helical gear's twist, and the one twist path
+// for any profile. Steps are a quality setting derived from the design's resolution
+// (`twistStepsFor`), with a policy-independent floor (`minTwistSteps`) an explicit
+// `twistSteps` is checked against, and a vertex budget checked before anything is built.
+
+/**
+ * The most vertices (profile vertices × slices) one twisted extrude may sample. A spur
+ * gear at the registry's caps has ~150 000 profile vertices, extruded once; this lets the
+ * same gear twist through a dozen slices while keeping a hostile twist from hanging the
+ * kernel worker.
+ */
+const TWIST_VERTEX_BUDGET = 2_000_000
+
+/**
+ * Extrude `profile` to `heightMm` with a twist, or as a herringbone chevron.
+ *
+ * A herringbone is **one** `extrudeFromSlices` over `2 · steps + 1` slices: the profile
+ * turns by `twistDeg` up to mid-height and back to 0 at the top. Two mirrored helical
+ * halves unioned at mid-height would meet on exactly coincident faces — the classic
+ * non-manifold seam — so this never builds them.
+ *
+ * @param {Geom2} profile
+ * @param {number} heightMm
+ * @param {Record<string, any>} params `twistDeg`, `twistSteps`, `herringbone`.
+ * @param {import('./tessellation.js').TessellationPolicy | undefined} policy
+ * @returns {Geom3}
+ */
+function twistedExtrude(profile, heightMm, params, policy) {
+  const op = 'profile.extrudeLinear'
+  const twistDeg = params.twistDeg ?? 0
+  if (typeof twistDeg !== 'number' || !Number.isFinite(twistDeg) || Math.abs(twistDeg) > MAX_TWIST_DEG) {
+    throw new Error(`${op}: twistDeg must be a finite number of degrees within ±${MAX_TWIST_DEG}, got ${String(twistDeg)}`)
+  }
+  const herringbone = params.herringbone ?? false
+  if (typeof herringbone !== 'boolean') {
+    throw new Error(`${op}: herringbone must be true or false, got ${String(herringbone)}`)
+  }
+  const explicitSteps = params.twistSteps
+  if (
+    explicitSteps !== undefined &&
+    (typeof explicitSteps !== 'number' || !Number.isInteger(explicitSteps) || explicitSteps < 1 || explicitSteps > MAX_TWIST_STEPS)
+  ) {
+    throw new Error(`${op}: twistSteps must be a whole number from 1 to ${MAX_TWIST_STEPS}, got ${String(explicitSteps)}`)
+  }
+  if (twistDeg === 0 && !herringbone) return extrusions.extrudeLinear({ height: heightMm }, profile)
+
+  const twistRad = degToRad(twistDeg)
+  const sides = geometries.geom2.toSides(profile)
+  let radiusMm = 0
+  for (const [point] of sides) radiusMm = Math.max(radiusMm, Math.hypot(point[0], point[1]))
+  const runs = herringbone ? 2 : 1
+  const verticesFor = (/** @type {number} */ steps) => sides.length * (runs * steps + 1)
+
+  const minimum = minTwistSteps(twistRad, radiusMm)
+  if (minimum > MAX_TWIST_STEPS || verticesFor(minimum) > TWIST_VERTEX_BUDGET) {
+    throw new Error(
+      `${op}: a ${twistDeg.toFixed(3)}° twist at ${radiusMm.toFixed(3)} mm needs at least ${minimum} steps — ` +
+        `${verticesFor(minimum)} vertices, past the ${TWIST_VERTEX_BUDGET}-vertex budget; reduce the twist or the profile`
+    )
+  }
+  /** @type {number} */
+  let steps
+  if (explicitSteps !== undefined) {
+    if (explicitSteps < minimum) {
+      throw new Error(
+        `${op}: twistSteps ${explicitSteps} is too few for a ${twistDeg.toFixed(3)}° twist at ${radiusMm.toFixed(3)} mm — ` +
+          `it needs at least ${minimum}, so each step's chord stays within the coarsest resolution's tolerance`
+      )
+    }
+    steps = explicitSteps
+  } else {
+    const withinBudget = Math.floor((TWIST_VERTEX_BUDGET / sides.length - 1) / runs)
+    steps = Math.max(minimum, Math.min(twistStepsFor(twistRad, radiusMm, policy), withinBudget))
+  }
+
+  if (!herringbone) {
+    return extrusions.extrudeLinear({ height: heightMm, twistAngle: twistRad, twistSteps: steps }, profile)
+  }
+  const { mat4 } = maths
+  const slices = 2 * steps
+  const base = extrusions.slice.fromSides(sides)
+  return extrusions.extrudeFromSlices(
+    {
+      numberOfSlices: slices + 1,
+      capStart: true,
+      capEnd: true,
+      // `repair` is upstream's default (true), as for `extrudeLinear`; its typings omit it.
+      callback: (/** @type {number} */ _progress, /** @type {number} */ index, /** @type {any} */ slice) => {
+        // 0 at the bottom, the full twist at mid-height (index = steps), 0 again at the top.
+        const turnRad = twistRad * (1 - Math.abs(index - steps) / steps)
+        const matrix = mat4.multiply(
+          mat4.create(),
+          mat4.fromZRotation(mat4.create(), turnRad),
+          mat4.fromTranslation(mat4.create(), [0, 0, (heightMm * index) / slices])
+        )
+        return extrusions.slice.transform(matrix, slice)
+      },
+    },
+    base
+  )
 }
 
 /**
@@ -1048,7 +1163,11 @@ export const registry = Object.freeze({
   // here: a recipe that wants the registry's usual centred-on-`center` convention
   // emits its own `transform.translate`, which keeps that placement visible in the
   // expansion the way `hardware.bolt.js` argues for.
-  'profile.extrudeLinear': native(1, ({ params, inputs }) => {
+  //
+  // `twistDeg` / `twistSteps` / `herringbone` (TODO/core-042) twist it about Z as it goes
+  // up — the helical and herringbone gears' only geometry. Without them the call is
+  // exactly the untwisted one it always was. See `twistedExtrude`.
+  'profile.extrudeLinear': native(1, ({ params, inputs, policy }) => {
     const op = 'profile.extrudeLinear'
     // `BuildArgs.inputs` is typed as solids because every other op consumes solids;
     // this is the one op whose operand is a profile, so it narrows here.
@@ -1059,10 +1178,11 @@ export const registry = Object.freeze({
       // through and the mistake would surface as wrong geometry much later.
       throw new Error(`${op}: operand must be a 2D profile (geom2), got ${describeGeometry(profile)}`)
     }
-    return extrusions.extrudeLinear(
-      { height: requirePositive(params.height, 'height', op) },
-      profile
-    )
+    const heightMm = requirePositive(params.height, 'height', op)
+    if (params.twistDeg === undefined && params.twistSteps === undefined && params.herringbone === undefined) {
+      return extrusions.extrudeLinear({ height: heightMm }, profile)
+    }
+    return twistedExtrude(profile, heightMm, params, policy)
   }),
 
   // A circle as a `geom2` (TODO/core-041): the bore `gear.spur` cuts from its profile in

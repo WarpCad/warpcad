@@ -400,4 +400,29 @@ section ("Gears") and its row order, empty until then.
   it before `core-048`: either `boreMm` stays as the simple round-bore shorthand and the hub
   op extends it, or it moves out and `gear.spur` loses the param.
 
+## Addendum — what `core-042` decided about helical and herringbone gears (2026-10-16)
+
+- **On a helical gear `moduleMm` and `pressureAngleDeg` are the normal values**, the ones a
+  store-bought gear is sold by. The profile is the true **transverse** section: module
+  `mn / cos(beta)`, pressure angle `atan(tan(alpha_n) / cos(beta))`, while addendum, dedendum
+  and clearance stay in the normal module (a radial height is the same in both planes).
+  `backlashMm` stays a transverse value. `normalModuleMm` and `transverseModuleMm` are accepted
+  spellings (`src/core/gear/aliases.js`). At beta = 0 nothing changes, record for record.
+- **Hand is a sign, not a shape.** `handedness: 'right' | 'left'` flips the twist; both hands
+  have the same section. A negative `helixAngleDeg` is refused: write `handedness: 'left'`.
+  `helixAngleDeg` is capped at 45 degrees.
+- **Twist is derived, never stored.** `gear.spur` computes `t * tan(beta) / r` and hands it to
+  `profile.extrudeLinear` as `twistDeg`; the record carries no `twistSteps`. `profile.extrudeLinear`
+  gained `twistDeg`, `twistSteps` and `herringbone`; the kernel derives the step count from
+  the document resolution (`twistStepsFor`, `minTwistSteps` in `tessellation.js`), floored at
+  the Draft resolution's count and capped at 360 (`MAX_TWIST_STEPS`).
+- **One run may not twist more than 360 degrees**, and a twisted extrude is refused past a
+  2,000,000-vertex budget. A thick, small gear at a steep angle is a worm, which is
+  `core-047`'s, not a gear sampled at huge cost.
+- **A herringbone is one chevron extrude** (`extrudeFromSlices`: twist up over the lower
+  half, back over the upper), never two halves unioned on coincident faces. At beta = 0 a
+  herringbone stays a chevron with no twist: a spur gear with a seam, valid and watertight.
+- **`grooveMm` (the relief gap at the apex) is not built.** It is refused as an unknown
+  parameter by name, and filed as `core-062` (M11, low priority).
+
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

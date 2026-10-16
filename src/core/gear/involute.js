@@ -36,6 +36,12 @@
  * `4 · pointsPerFlank + 2 · rootSegments + 2 · tipSegments` vertices (`rootSegments` /
  * `tipSegments` are reported as 0 for a pointed root / tip, which have no land).
  *
+ * ── Helical gears (TODO/core-042) ─────────────────────────────────────────────────────
+ * With `helixAngleDeg` the outline is the gear's **transverse** section: `./dimensions.js`
+ * supplies the transverse pitch and pressure angle and keeps the depth in the normal
+ * module, and this file reads only those dimensions, so it draws the section unchanged.
+ * The twist that makes it helical is the extrude's (`./helix.js`).
+ *
  * Framework-free: no Vue, DOM, three.js or `@jscad/modeling` — it returns points; the
  * kernel adapter turns them into a `geom2`.
  *
@@ -93,7 +99,7 @@ function halfAngleFn(dims) {
   const v = dims.rackCornerRadialMm
   const rGen = Math.max(dims.involuteStartRadiusMm, rb)
   const halfPitchRad = Math.PI / N
-  const involuteConstRad = dims.toothThicknessAtPitchMm / (2 * R) + inv((dims.pressureAngleDeg * Math.PI) / 180)
+  const involuteConstRad = dims.toothThicknessAtPitchMm / (2 * R) + inv((dims.transversePressureAngleDeg * Math.PI) / 180)
   return (radiusMm) => {
     const tau = Math.sqrt(Math.max(0, radiusMm * radiusMm - v * v))
     const lean = Math.atan2(tau, v)
@@ -218,7 +224,7 @@ export function involuteProfile(params) {
     // The corner's trochoid cuts the involute: find where the involute takes over.
     const R = dims.pitchRadiusMm
     const u = dims.rackCornerTangentialMm
-    const psiInvConst = dims.toothThicknessAtPitchMm / (2 * R) + inv((dims.pressureAngleDeg * Math.PI) / 180)
+    const psiInvConst = dims.toothThicknessAtPitchMm / (2 * R) + inv((dims.transversePressureAngleDeg * Math.PI) / 180)
     const psiTro = (/** @type {number} */ r) => {
       const tau = Math.sqrt(Math.max(0, r * r - v * v))
       const lean = Math.atan2(tau, v)

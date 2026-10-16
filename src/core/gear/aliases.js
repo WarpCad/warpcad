@@ -18,6 +18,14 @@
  * | `backlash` | `backlashMm` | `2 · b / cos α` (call 4), α the record's `pressureAngleDeg`, default 20 |
  * | `profileShift` | `profileShift` | as is — the same name and meaning in both |
  *
+ * Two non-V1 spellings name a helical gear's module explicitly (TODO/core-042), because
+ * `moduleMm` on a helical gear is the **normal** module (`./helix.js`):
+ *
+ * | Name | Becomes | Conversion |
+ * |---|---|---|
+ * | `normalModuleMm` | `moduleMm` | as is |
+ * | `transverseModuleMm` | `moduleMm` | `mₜ · cos β`, β the record's `helixAngleDeg` (default 0) |
+ *
  * Refused or dropped, each by a stated reason rather than as "unknown":
  *
  * - **`pressureAngle`** (V1) — refused. V1 really cuts at `atan(sin α)`, and whether an
@@ -35,6 +43,7 @@
  */
 
 import { GearParameterError, circularPitchMmToModuleMm, v1BacklashToBacklashMm, v1DiametralPitchToModuleMm } from './dimensions.js'
+import { normalModuleMm } from './helix.js'
 
 /**
  * Why a param could not be read.
@@ -83,12 +92,15 @@ export const V1_GEAR_ALIASES = Object.freeze({
 })
 
 /**
- * Non-V1 spellings accepted for convenience — the TODO's own `module`.
+ * Non-V1 spellings accepted for convenience — the TODO's own `module`, and a helical
+ * gear's two named modules (TODO/core-042).
  *
- * @type {Readonly<Record<'module', Readonly<GearAlias>>>}
+ * @type {Readonly<Record<'module' | 'normalModuleMm' | 'transverseModuleMm', Readonly<GearAlias>>>}
  */
 export const SHORTHAND_GEAR_ALIASES = Object.freeze({
   module: Object.freeze({ to: 'moduleMm', note: 'as is' }),
+  normalModuleMm: Object.freeze({ to: 'moduleMm', note: 'as is — a helical gear’s moduleMm is its normal module' }),
+  transverseModuleMm: Object.freeze({ to: 'moduleMm', note: 'transverseModuleMm · cos(helixAngleDeg)' }),
 })
 
 /** V1 names whose presence marks a record as V1 vocabulary (`profileShift` is shared). */
@@ -159,7 +171,7 @@ export function resolveGearAliases(params, { op, canonical }) {
     out[to] = value
   }
 
-  /** @type {[string, unknown][]} V1 backlash waits for the angle */
+  /** @type {[string, unknown][]} V1 backlash and a transverse module wait for their angle */
   const deferred = []
   for (const key of Object.keys(params)) {
     const value = params[key]
@@ -186,8 +198,12 @@ export function resolveGearAliases(params, { op, canonical }) {
       notes.push('qualitySettings was dropped: resolution comes from the document, not the gear')
       continue
     }
-    if (key === 'module') {
+    if ((key === 'module' || key === 'normalModuleMm') && accepted.has('moduleMm')) {
       put('moduleMm', value, key)
+      continue
+    }
+    if (key === 'transverseModuleMm' && accepted.has('moduleMm')) {
+      deferred.push([key, finiteAlias(value, key, op)])
       continue
     }
     if (!own(V1_GEAR_ALIASES, key) || !accepted.has(V1_GEAR_ALIASES[/** @type {keyof typeof V1_GEAR_ALIASES} */ (key)].to)) {
@@ -232,6 +248,14 @@ export function resolveGearAliases(params, { op, canonical }) {
   }
 
   for (const [key, value] of deferred) {
+    if (key === 'transverseModuleMm') {
+      // A hostile helix angle is left for `./limits.js` to name; converting through 0 here
+      // only keeps this step from producing a NaN first.
+      const helix = out.helixAngleDeg
+      const helixDeg = typeof helix === 'number' && Number.isFinite(helix) ? helix : 0
+      put('moduleMm', normalModuleMm(/** @type {number} */ (value), helixDeg), key)
+      continue
+    }
     const angle = out.pressureAngleDeg ?? V1_DEFAULT_PRESSURE_ANGLE_DEG
     const angleDeg = typeof angle === 'number' && Number.isFinite(angle) ? angle : V1_DEFAULT_PRESSURE_ANGLE_DEG
     put('backlashMm', v1BacklashToBacklashMm(/** @type {number} */ (value), angleDeg), key)
