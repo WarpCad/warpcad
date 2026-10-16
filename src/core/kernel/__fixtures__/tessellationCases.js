@@ -78,6 +78,18 @@ export function tessellationCases() {
         },
       ],
     },
+    // core-058: the six per-screen ops lost their Library rows to `raspberrypi.screen`, so the
+    // loop above no longer reaches them — but saved projects still replay them, so they keep
+    // their cases under their old keys. `raspberrypi.screen:<model>` carries the same digest
+    // as each (hand-carried, not regenerated): the dispatcher must not move a vertex.
+    ...[
+      'touchDisplay7inch',
+      'touchScreen2',
+      'miniPiTFT',
+      'piTFT22',
+      'piTFT24',
+      'hyperPixel4Rectangular',
+    ].map((model) => ({ key: `raspberrypi.${model}`, records: [{ id: 'it', op: `raspberrypi.${model}`, params: {} }] })),
     { key: 'kit.anchor:explicit', records: [{ id: 'it', op: 'kit.anchor', params: { width: 10, height: 10 } }] },
     { key: 'profile.roundedRectangle', records: [{ id: 'it', op: 'profile.roundedRectangle', params: { size: [30, 20], roundRadius: 4 } }] },
     { key: 'primitive.cylinder:d6', records: [{ id: 'it', op: 'primitive.cylinder', params: { diameter: 6, height: 10 } }] },

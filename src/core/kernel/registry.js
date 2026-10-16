@@ -97,6 +97,7 @@ import { hyperPixel4Rectangular } from './recipes/raspberrypi.hyperPixel4Rectang
 import { miniPiTFT } from './recipes/raspberrypi.miniPiTFT.js'
 import { piTFT22 } from './recipes/raspberrypi.piTFT22.js'
 import { piTFT24 } from './recipes/raspberrypi.piTFT24.js'
+import { SCREEN_MODELS, screen } from './recipes/raspberrypi.screen.js'
 import { spacer } from './recipes/raspberrypi.spacer.js'
 import { touchDisplay7inch } from './recipes/raspberrypi.touchDisplay7inch.js'
 import { touchScreen2 } from './recipes/raspberrypi.touchScreen2.js'
@@ -255,12 +256,14 @@ import { touchScreen2 } from './recipes/raspberrypi.touchScreen2.js'
  *
  * @param {readonly any[]} values The recipe's exported model list.
  * @param {Record<string, string>} labels Display name per model, keyed by `String(value)`.
+ * @param {string} [controlLabel] What the control itself is called — `"Screen model"`
+ *   where a bare "Model" would not say which thing's model it is (`TODO/core-058`).
  * @returns {OpUiChoice}
  */
-function modelChoice(values, labels) {
+function modelChoice(values, labels, controlLabel = 'Model') {
   return Object.freeze({
     param: 'model',
-    label: 'Model',
+    label: controlLabel,
     options: Object.freeze(
       values.map((value) => {
         const label = labels[String(value)]
@@ -270,6 +273,22 @@ function modelChoice(values, labels) {
     ),
   })
 }
+
+/**
+ * Display name per `raspberrypi.screen` model (`TODO/core-058`) — the six labels each
+ * screen carried as its own Library row, kept so a dropped screen is still called what
+ * it was called before the rows collapsed into one.
+ *
+ * @type {Readonly<Record<string, string>>}
+ */
+const SCREEN_LABELS = Object.freeze({
+  touchDisplay7inch: '7-inch Touch Display',
+  touchScreen2: 'Touchscreen 2',
+  hyperPixel4Rectangular: 'HyperPixel 4',
+  miniPiTFT: 'Mini PiTFT',
+  piTFT22: 'PiTFT 2.2',
+  piTFT24: 'PiTFT 2.4',
+})
 
 /**
  * @typedef {object} RegistryEntry
@@ -1506,21 +1525,11 @@ export const registry = Object.freeze({
   // See raspberrypi.touchScreen2.js's NO_GO_POWER_MM for the one call that genuinely
   // mixed frames, and what dropping the board narrows about it.
   //
-  // TODO/ui-031 gave both `ui` metadata. `touchScreen2` keeps V1's own factory name
-  // rather than the product name its module doc quotes: that doc calls it "the
-  // HyperPixel 4 rectangular display", which is also what `hyperPixel4Rectangular`
-  // below is called, and the two are measurably different parts (143 x 91 x 15 mm
-  // against 98 x 58 x 24). Labelling both "HyperPixel 4" would put two
-  // indistinguishable rows in the panel, so the ambiguity is left where V1 put it
-  // instead of being resolved by guess.
-  'raspberrypi.touchDisplay7inch': composite(0, touchDisplay7inch, {
-    label: '7-inch Touch Display',
-    defaults: {},
-  }),
-  'raspberrypi.touchScreen2': composite(0, touchScreen2, {
-    label: 'Touchscreen 2',
-    defaults: {},
-  }),
+  // TODO/ui-031 gave both `ui` metadata; TODO/core-058 took it back off all six screens,
+  // which are now offered through `raspberrypi.screen` below. These entries stay so a
+  // project saved before that still replays — they are simply no longer Library rows.
+  'raspberrypi.touchDisplay7inch': composite(0, touchDisplay7inch),
+  'raspberrypi.touchScreen2': composite(0, touchScreen2),
 
   // TODO/core-017: the four small displays. Family B again — every one of these takes
   // an external board in V1 and every one of them drops it here — but with a wrinkle
@@ -1538,13 +1547,32 @@ export const registry = Object.freeze({
   // `.bisect().parts.negative` ports as the same half-space subtraction `bisect`
   // itself performs; and `modify.chamferRim` had to learn V1's negative-radius
   // semantics, because `miniPiTFT`'s display clearance is an outward flare rather
-  // than a bevel. All four gained `ui` metadata in TODO/ui-031.
-  'raspberrypi.miniPiTFT': composite(0, miniPiTFT, { label: 'Mini PiTFT', defaults: {} }),
-  'raspberrypi.piTFT22': composite(0, piTFT22, { label: 'PiTFT 2.2', defaults: {} }),
-  'raspberrypi.piTFT24': composite(0, piTFT24, { label: 'PiTFT 2.4', defaults: {} }),
-  'raspberrypi.hyperPixel4Rectangular': composite(0, hyperPixel4Rectangular, {
-    label: 'HyperPixel 4',
-    defaults: {},
+  // than a bevel. All four gained `ui` metadata in TODO/ui-031 and lost it again in
+  // TODO/core-058, like the touch pair above.
+  'raspberrypi.miniPiTFT': composite(0, miniPiTFT),
+  'raspberrypi.piTFT22': composite(0, piTFT22),
+  'raspberrypi.piTFT24': composite(0, piTFT24),
+  'raspberrypi.hyperPixel4Rectangular': composite(0, hyperPixel4Rectangular),
+
+  // TODO/core-058: **one row for the six screens**, with a Screen model choice — the
+  // `bplus`/`cameraModule` shape one level up. Unlike those two it merges no geometry:
+  // recipes/raspberrypi.screen.js dispatches to the screen's own recipe unchanged.
+  //
+  // The labels are the six old rows' own. `touchScreen2` keeps V1's factory name rather
+  // than the product name its module doc quotes: that doc calls it "the HyperPixel 4
+  // rectangular display", which is also what `hyperPixel4Rectangular` is called, and the
+  // two are measurably different parts (143 x 91 x 15 mm against 98 x 58 x 24).
+  // Labelling both "HyperPixel 4" would put two indistinguishable options in the list,
+  // so the ambiguity is left where V1 put it instead of being resolved by guess.
+  //
+  // A drop is named after the screen chosen ("Touchscreen 2 1"), not after the row, so
+  // the Inspector and every saved operand label read exactly as they did when each
+  // screen was its own row.
+  'raspberrypi.screen': composite(0, screen, {
+    label: 'Raspberry Pi Screen',
+    defaults: { model: 'touchDisplay7inch' },
+    choice: modelChoice(SCREEN_MODELS, SCREEN_LABELS, 'Screen model'),
+    nameFor: (params) => SCREEN_LABELS[String(params.model ?? 'touchDisplay7inch')] ?? 'Raspberry Pi Screen',
   }),
 
   // TODO/core-018: the four accessories. `raspberrypi.hat` is the standalone Hat
@@ -1885,6 +1913,11 @@ const PARAM_SCHEMAS = Object.freeze({
   },
   'raspberrypi.cameraModule': {
     params: () => ({ model: enumParam('Model', choiceOptionsOf('raspberrypi.cameraModule')) }),
+  },
+  // TODO/core-058: no `partAliases` — the six screens are unrelated products sharing no
+  // connector, so a model change that orphans a Snap/Align has nothing honest to remap to.
+  'raspberrypi.screen': {
+    params: () => ({ model: enumParam('Screen model', choiceOptionsOf('raspberrypi.screen')) }),
   },
   'hardware.bolt': {
     // `fit` follows `spec`: `tables.boltSpecs[spec].fitDiameterMm` is what the recipe

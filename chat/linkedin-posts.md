@@ -2618,3 +2618,16 @@ The check runs off the main thread in the same worker as the rest of the kernel,
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** description said + side → `operate.js` diff; outside+ is the − side → `SNAP_SIDES` in `group.js` and the measured test in `operate.spec.js`; found while building `ui-060` → TODO text
 **To Add:** none
+
+## 2026-10-16T03:55:00Z — Six Raspberry Pi screens, one Library row
+
+**Post:** The Raspberry Pi section of WarpCad's Library used to list six screens as six separate rows. They are six unrelated products, so there was never one shared factory behind them. Each row was just its own registry entry.
+
+They now sit behind one Raspberry Pi Screen row with a Screen model dropdown. You choose it before dragging, and you can change it later in the Inspector, where the placed part rebuilds as the new screen. The new op only dispatches to the six existing recipes, unchanged. The test proves this by giving each new case the exact geometry digest the old op already had.
+
+Projects that used the old rows still open: those six ops stay registered, they just no longer appear in the panel. Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #RaspberryPi #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** six unrelated products, no shared factory → TODO/core-058 text + six recipe files; dispatcher returns the recipes unchanged → `raspberrypi.screen.spec.js` byte-identical test; same digest → `tessellation-legacy-golden.json` diff (new keys copy old values) + `resolution.spec.js` green; Inspector rebuild → e2e + acceptance 15; old projects open → replay tests
+**To Add:** `docs/screenshots/library-rpi-screen-models.png`; no article — a small consolidation

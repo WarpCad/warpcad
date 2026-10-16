@@ -210,8 +210,10 @@ test('a Pi’s hole1 aligned onto a screen’s post, then its mb snapped onto th
   await page.getByTestId('library-choice-raspberrypi.bplus').selectOption('5')
   await dragFromLibrary(page, 'raspberrypi.bplus', 0.3, 0.2)
   const pi = await bodyIdOf(page, 'raspberrypi.bplus')
-  await dragFromLibrary(page, 'raspberrypi.touchScreen2', 0.7, 0.25)
-  const screen = await bodyIdOf(page, 'raspberrypi.touchScreen2')
+  // TODO/core-058: the six screens are one row now, picked by its Screen model dropdown.
+  await page.getByTestId('library-choice-raspberrypi.screen').selectOption('touchScreen2')
+  await dragFromLibrary(page, 'raspberrypi.screen', 0.7, 0.25)
+  const screen = await bodyIdOf(page, 'raspberrypi.screen')
   await expect(page.getByTestId('viewport')).toHaveAttribute('data-body-count', '2')
   const library = page.getByTestId('library-rows')
   if (await page.getByTestId('library-tab').isVisible() && (await library.isVisible())) {

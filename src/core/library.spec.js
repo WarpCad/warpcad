@@ -28,6 +28,7 @@ import {
 } from './library.js'
 import { BPLUS_MODELS } from './kernel/recipes/raspberrypi.bplus.js'
 import { CAMERA_MODULE_MODELS } from './kernel/recipes/raspberrypi.cameraModule.js'
+import { SCREEN_MODELS } from './kernel/recipes/raspberrypi.screen.js'
 import { boundsOf, calcCenterWith, calcSnap, volumeOf } from './kernel/group.js'
 import { evaluate, evaluateOp } from './kernel/index.js'
 import { createDocument } from './document.js'
@@ -154,7 +155,7 @@ describe('KIT_LIBRARY / RASPBERRYPI_LIBRARY — the rest of the catalogue (TODO/
     ])
   })
 
-  it('lists all twelve raspberrypi.* recipes, board first', () => {
+  it('lists the raspberrypi.* rows board first, with the six screens behind one row (core-058)', () => {
     expect(RASPBERRYPI_LIBRARY.map((row) => row.op)).toEqual([
       'raspberrypi.bplus',
       'raspberrypi.cameraModule',
@@ -162,14 +163,44 @@ describe('KIT_LIBRARY / RASPBERRYPI_LIBRARY — the rest of the catalogue (TODO/
       'raspberrypi.hatStandoff',
       'raspberrypi.spacer',
       'raspberrypi.activeCoolingFan',
+      'raspberrypi.screen',
+    ])
+    expect(RASPBERRYPI_LIBRARY).toHaveLength(7)
+    // The six per-screen ops stay registered for replay, but none is a row of its own.
+    for (const op of [
       'raspberrypi.touchDisplay7inch',
       'raspberrypi.touchScreen2',
       'raspberrypi.hyperPixel4Rectangular',
       'raspberrypi.miniPiTFT',
       'raspberrypi.piTFT22',
       'raspberrypi.piTFT24',
-    ])
-    expect(RASPBERRYPI_LIBRARY).toHaveLength(12)
+    ]) {
+      expect(RASPBERRYPI_LIBRARY.map((row) => row.op), op).not.toContain(op)
+    }
+  })
+
+  it('drops each Screen model as exactly the screen its own op always built (core-058)', () => {
+    const screenRow = RASPBERRYPI_LIBRARY.find((row) => row.op === 'raspberrypi.screen')
+    expect(screenRow?.label).toBe('Raspberry Pi Screen')
+    expect(screenRow?.choice?.label).toBe('Screen model')
+    expect(screenRow?.choice?.options.map((option) => option.value)).toEqual([...SCREEN_MODELS])
+    for (const option of screenRow?.choice?.options ?? []) {
+      const model = String(option.value)
+      const document = createDocument({ replica: 'abcdef' })
+      const records = recordsForDrop('raspberrypi.screen', { x: 0, y: 0 }, document, { model })
+      expect(records[0].params?.model, model).toBe(model)
+      expect(records[0].name, model).toBe(`${option.label} 1`)
+      for (const record of records) document.append(record, { origin: 'local' })
+      const placed = /** @type {any} */ (document.bodies()[0].geometry)
+      const legacy = /** @type {any} */ (evaluateOp(`raspberrypi.${model}`, {}))
+      expect(placed.names, model).toEqual(legacy.names)
+      // Same size as the old op's own build — the drop only translates it.
+      const [pMin, pMax] = boundsOf(placed)
+      const [lMin, lMax] = boundsOf(legacy)
+      for (let axis = 0; axis < 3; axis += 1) {
+        expect(pMax[axis] - pMin[axis], `${model} axis ${axis}`).toBeCloseTo(lMax[axis] - lMin[axis], 6)
+      }
+    }
   })
 
   it('groups the catalogue into five named sections rather than one long list', () => {
@@ -208,14 +239,19 @@ describe('KIT_LIBRARY / RASPBERRYPI_LIBRARY — the rest of the catalogue (TODO/
     }
   })
 
-  it('offers a model choice on exactly the model-parameterised rows (the phone and two Pi parts), and nowhere else', () => {
+  it('offers a model choice on exactly the model-parameterised rows (the phone and three Pi rows), and nowhere else', () => {
     // `core-014a`'s "one factory, not one draggable per revision" decision, as a
     // UI contract: one row, a choice on it — not four Pi rows and five camera
     // rows. Every other row in the whole catalogue has nothing to choose.
     const withChoice = [...PRIMITIVE_LIBRARY, ...HARDWARE_LIBRARY, ...KIT_LIBRARY, ...RASPBERRYPI_LIBRARY]
       .filter((row) => row.choice)
       .map((row) => row.op)
-    expect(withChoice).toEqual(['kit.phone', 'raspberrypi.bplus', 'raspberrypi.cameraModule'])
+    expect(withChoice).toEqual([
+      'kit.phone',
+      'raspberrypi.bplus',
+      'raspberrypi.cameraModule',
+      'raspberrypi.screen',
+    ])
   })
 
   it('gives the phone row a Case dropdown beside its Model, and names a drop after both (core-057)', () => {

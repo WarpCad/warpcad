@@ -137,7 +137,7 @@ brackets out of:
 
 ## Placing a Raspberry Pi part
 
-The last section, **Raspberry Pi**, holds twelve real parts at their real dimensions —
+The last section, **Raspberry Pi**, holds seven rows of real parts at their real dimensions —
 useful as the thing you design a case *around*, and as an operand for Subtract when you
 want a cut-out that something actually fits through.
 
@@ -148,19 +148,41 @@ want a cut-out that something actually fits through.
    let go.
 3. Release to place it, exactly like a primitive.
 
-Two rows have that dropdown, because the same part comes in several revisions:
+Three rows have that dropdown, because each one stands for several parts:
 
-| Row | Models | Default |
-| --- | --- | --- |
-| Raspberry Pi | Pi 2 / B+, Pi 3, Pi 4, Pi 5 | Pi 4 |
-| Camera Module | Camera v1, v2, v3, HQ Camera, Arducam HQ | Camera v3 |
+| Row | Dropdown | Choices | Default |
+| --- | --- | --- | --- |
+| Raspberry Pi | Model | Pi 2 / B+, Pi 3, Pi 4, Pi 5 | Pi 4 |
+| Camera Module | Model | Camera v1, v2, v3, HQ Camera, Arducam HQ | Camera v3 |
+| Raspberry Pi Screen | Screen model | 7-inch Touch Display, Touchscreen 2, HyperPixel 4, Mini PiTFT, PiTFT 2.2, PiTFT 2.4 | 7-inch Touch Display |
 
 Your choice sticks until you change it, so placing three Pi 5s means picking the model
 once, not three times. Every other row is a single fixed part with nothing to choose.
 
-The rest of the section is accessories: **HAT**, **HAT Standoff**, **Spacer**, **Active
-Cooling Fan**, and the screens — **7-inch Touch Display**, **Touchscreen 2**,
-**HyperPixel 4**, **Mini PiTFT**, **PiTFT 2.2** and **PiTFT 2.4**.
+The rest of the section is accessories: **HAT**, **HAT Standoff**, **Spacer** and **Active
+Cooling Fan**.
+
+### Placing a screen
+
+All six screens are behind the one **Raspberry Pi Screen** row. A placed screen is named
+after the screen you chose (**Touchscreen 2 1**, not "Raspberry Pi Screen 1"), and has the
+same parts it always had.
+
+1. Open **Library → Raspberry Pi**. Next to **Raspberry Pi Screen** choose **Screen model:
+   Touchscreen 2**, then drag it onto the grid. The preview is the Touchscreen 2, and it
+   lands where you let go.
+2. Changed your mind? Select the placed screen, and in the Inspector change **Screen model**
+   to **Mini PiTFT**. The group rebuilds in place as the new screen. It stays where it was,
+   and one **Undo** brings the Touchscreen 2 back.
+
+![The Raspberry Pi Screen row's Screen model dropdown open, listing the six screens.](./screenshots/library-rpi-screen-models.png)
+
+Changing to a *different* screen can break an [Align](snap-align.md) that used one of the
+old screen's parts, such as a Pi aligned onto the Touchscreen 2's `piMountingPost1`. The
+six screens are separate products with no parts in common, so the app does not guess a
+replacement. It shows the usual repair dialog, and you choose a part or remove the Align.
+
+Projects saved before this row existed, when each screen had its own row, open unchanged.
 
 > **Each part is placed on its own, not attached to a board.** Dragging in a HAT or a
 > screen gives you that part by itself, resting on the grid wherever you dropped it —

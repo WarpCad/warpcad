@@ -34,6 +34,15 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### core-058 — One Raspberry Pi Screen row with a Screen model dropdown (2026-10-16 03:52)
+
+Acceptance 3, 6 and 15 were driven and passed. These two checks are judgement calls about look and feel that the drive cannot make. "Screen model" is a longer label than "Model", so the closed select has less room. In the 1440 px laptop panel and the docs screenshot it reads "7-inch T…" / "Touchs…".
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | Library → Raspberry Pi at laptop, tablet and on a real phone: is the truncated **Screen model** select still clear enough to tell which screen is chosen, or should the label shrink to "Model" or the select wrap under its label? | Open | |
+| 2 | On a real iPhone/iPad (Safari), open the **Screen model** select on the Library row and in the Inspector: the native picker lists all six names in full | Open | |
+
 ### ai-022 — group.snap orientation description (2026-10-16 02:21)
 
 The unit and scripted-transcript specs check the wording and the kernel's side. They cannot show that a

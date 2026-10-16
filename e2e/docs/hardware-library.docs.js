@@ -114,8 +114,27 @@ test.describe('docs media: hardware, kit and Raspberry Pi library', () => {
   })
 
   test('library-rpi-section still', async ({ page }) => {
-    const locator = await prepSection(page, 'raspberrypi', 12)
+    // Seven rows since TODO/core-058 folded the six screens into one.
+    const locator = await prepSection(page, 'raspberrypi', 7)
     await shot(page, 'library-rpi-section.png', { locator })
+  })
+
+  test('library-rpi-screen-models still', async ({ page }) => {
+    await prepSection(page, 'raspberrypi', 7)
+    const select = page.getByTestId('library-choice-raspberrypi.screen')
+    await select.scrollIntoViewIfNeeded()
+    await expect(select.locator('option')).toHaveCount(6)
+    // A headless browser never paints a native <select>'s popup, so the list is shown the
+    // one way a screenshot can see it: the same element, expanded in place to all six rows.
+    // Sized to its content, as the real popup is, so no screen's name is clipped.
+    await select.evaluate((element) => {
+      element.setAttribute('size', '6')
+      element.style.flex = 'none'
+      element.style.width = 'max-content'
+      const item = element.closest('li')
+      if (item) item.style.width = 'max-content'
+    })
+    await shot(page, 'library-rpi-screen-models.png', { locator: page.getByTestId('library-row-raspberrypi.screen').locator('..') })
   })
 
   test('hardware-drag-bolt', { tag: '@movie' }, async ({ page }) => {

@@ -849,12 +849,7 @@ onBeforeUnmount(stopTracking)
 }
 
 /* A screen: an inset display area inside a bezel. */
-.library__swatch[data-shape='raspberrypi.touchDisplay7inch'],
-.library__swatch[data-shape='raspberrypi.touchScreen2'],
-.library__swatch[data-shape='raspberrypi.hyperPixel4Rectangular'],
-.library__swatch[data-shape='raspberrypi.miniPiTFT'],
-.library__swatch[data-shape='raspberrypi.piTFT22'],
-.library__swatch[data-shape='raspberrypi.piTFT24'] {
+.library__swatch[data-shape='raspberrypi.screen'] {
   background:
     linear-gradient(var(--text-3), var(--text-3)) padding-box content-box,
     linear-gradient(140deg, var(--border-strong), var(--surface-1));

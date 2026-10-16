@@ -6,8 +6,21 @@ priority: medium
 model: sonnet
 milestone: M16
 depends: []
-status: open
+status: done
 ---
+
+> **What shipped (2026-10-16).** As proposed, plus four things the file did not name. (1) A
+> dropped screen is named after the model chosen (`nameFor` → "Touchscreen 2 1"), so the
+> Inspector, saved operand labels and `e2e/snap-align*` read as before. (2) `modelChoice` takes
+> an optional control label, so the Library and the Inspector both say **Screen model**.
+> (3) The Small-screen line's "44 px" was not built: the TODO also asks to reuse the Pi
+> board's row control, which is 32 px on purpose (`LibraryPanel.vue`, `ui-031`). The e2e asserts
+> parity with the Pi's dropdown instead. (4) Knock-on fixtures: the tessellation golden keeps
+> the six old keys as explicit cases, and gives each `raspberrypi.screen:<model>` key the same
+> **hand-carried** digest. The four AI transcripts were re-stamped (the `create` schema's op list
+> changed) and proven by `ai-scripted.e2e.js`. `kit-rpi-library-placement.e2e.js` and
+> `snap-align-both-subparts.e2e.js` were updated for the one row. `src/ai/tools/` needed no edit,
+> because it derives its op list from the registry.
 
 ## Goal
 

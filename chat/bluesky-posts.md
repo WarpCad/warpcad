@@ -1849,3 +1849,14 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** description said + side → `operate.js` diff; outside+ is the − side → `SNAP_SIDES` in `group.js` and the measured test in `operate.spec.js`; unit 4918 passed and snap-align e2e 90/90 this session
 **To Add:** none; a live Assistant check is logged in `TODO/VERIFY.md`
+
+## 2026-10-16T03:55:00Z — Six Raspberry Pi screens, one Library row
+
+**Post:** WarpCad's Library had six separate rows for Raspberry Pi screens. Now it's one: Raspberry Pi Screen, with a Screen model dropdown you can change again in the Inspector after placing. Projects that used the old rows still open unchanged. #CAD #RaspberryPi #OpenSource
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #RaspberryPi #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** six rows → one → `library.spec.js` row list (7 rows), `ROW_ORDER` diff; Inspector change rebuilds in place → `e2e/raspberrypi-screen-library.e2e.js`, acceptance 15 drive 2026-10-16; old projects open → `raspberrypi.screen.spec.js` replay tests + tessellation goldens carried over
+**To Add:** `docs/screenshots/library-rpi-screen-models.png`

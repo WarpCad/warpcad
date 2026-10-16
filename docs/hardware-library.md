@@ -89,14 +89,18 @@ The defaults are in the table in [Placing a kit part](primitive-placement.md#pla
 
 ## Raspberry Pi parts
 
-![The Library scrolled to its Raspberry Pi section: Raspberry Pi, Camera Module, HAT, HAT Standoff, Spacer, Active Cooling Fan, the screens and the Text row.](./screenshots/library-rpi-section.png)
+![The Library scrolled to its Raspberry Pi section: Raspberry Pi, Camera Module, HAT, HAT Standoff, Spacer, Active Cooling Fan, Raspberry Pi Screen and the Text row.](./screenshots/library-rpi-section.png)
 
 The Raspberry Pi section has the board, a camera module, a HAT and its standoff, a spacer, a
-cooling fan and six screens. Boards and screens are placed at their real size, with their
-connectors, chips and mounting holes. The **Raspberry Pi** and **Camera Module** rows have a
-**Model** dropdown *beside* the row: choose it before you drag. See
+cooling fan, and one **Raspberry Pi Screen** row for all six screens. Boards and screens are
+placed at their real size, with their connectors, chips and mounting holes. The **Raspberry
+Pi** and **Camera Module** rows have a **Model** dropdown *beside* the row, and the screen row
+has a **Screen model** dropdown: choose it before you drag. You can change it later in the
+Inspector. For example, open **Library → Raspberry Pi**, choose **Screen model: Touchscreen 2**
+and drag it onto the grid. Then select it and change **Screen model** to **Mini PiTFT** in the
+Inspector, and it rebuilds in place. See
 [Placing a Raspberry Pi part](primitive-placement.md#placing-a-raspberry-pi-part) for the
-model list and for why each part is placed on its own rather than mounted on a board.
+model lists and for why each part is placed on its own rather than mounted on a board.
 
 ![A Raspberry Pi 5 placed in the 3D view, with its green board, grey connectors and dark headers coloured separately.](./screenshots/rpi-board-placed.png)
 

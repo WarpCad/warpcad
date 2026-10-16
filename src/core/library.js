@@ -130,19 +130,15 @@ const ROW_ORDER = Object.freeze([
   // The Raspberry Pi section reads outward from the board (`TODO/ui-031`): the
   // board itself, what plugs straight into it, then the accessories, then the
   // screens — which is the order someone building a Pi enclosure reaches for them
-  // in, and not the alphabetical order `Object.keys` would give.
+  // in, and not the alphabetical order `Object.keys` would give. The screens are one
+  // row with a Screen model choice (`TODO/core-058`), not six.
   'raspberrypi.bplus',
   'raspberrypi.cameraModule',
   'raspberrypi.hat',
   'raspberrypi.hatStandoff',
   'raspberrypi.spacer',
   'raspberrypi.activeCoolingFan',
-  'raspberrypi.touchDisplay7inch',
-  'raspberrypi.touchScreen2',
-  'raspberrypi.hyperPixel4Rectangular',
-  'raspberrypi.miniPiTFT',
-  'raspberrypi.piTFT22',
-  'raspberrypi.piTFT24',
+  'raspberrypi.screen',
   'text.label',
 ])
 
@@ -240,11 +236,12 @@ export const KIT_LIBRARY = Object.freeze(buildRows(registry, 'kit'))
 
 /**
  * The "Raspberry Pi" section (`TODO/ui-031`): the whole `core-014`-`core-018`
- * catalogue — the board, the cameras, the HAT trio, the fan and the five screens.
+ * catalogue — the board, the cameras, the HAT trio, the fan and the six screens.
  *
- * Twelve rows for twelve recipes, **not** twelve plus one per board revision and
- * camera variant: `raspberrypi.bplus` and `raspberrypi.cameraModule` are each one
- * factory with a `model` param (`core-014a`), so each is one row carrying a
+ * Seven rows, **not** one per board revision, camera variant or screen:
+ * `raspberrypi.bplus` and `raspberrypi.cameraModule` are each one factory with a
+ * `model` param (`core-014a`), and `raspberrypi.screen` dispatches to the six screen
+ * recipes by `model` (`TODO/core-058`), so each is one row carrying a
  * {@link LibraryRow}`.choice`.
  *
  * @type {readonly LibraryRow[]}

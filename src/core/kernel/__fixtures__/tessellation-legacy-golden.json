@@ -55,5 +55,11 @@
   "kit.phone:iphone-se-3": "39872:1123beed8bc0340115a93529ae7e",
   "kit.phone:galaxy-s25-ultra": "37534:17ccbe94441dd914b88ee2ccbe75",
   "kit.phone:pixel-10-pro": "34872:0439ad9c7289df07501a8c8e117a",
-  "kit.phone:pixel-10-pro-xl": "35364:0db375a24af8d414dfd45786d01b"
+  "kit.phone:pixel-10-pro-xl": "35364:0db375a24af8d414dfd45786d01b",
+  "raspberrypi.screen:touchDisplay7inch": "165476:1c07687e867f6d03e04fdb1f7a39",
+  "raspberrypi.screen:touchScreen2": "218466:0e46a126f970050537e41057180c",
+  "raspberrypi.screen:hyperPixel4Rectangular": "62410:1857847b8824fa111616e3c7bd37",
+  "raspberrypi.screen:miniPiTFT": "617635:13048b27577c801a0485448962ca",
+  "raspberrypi.screen:piTFT22": "155610:0fc2c00fcc81b607d28de82e9bc3",
+  "raspberrypi.screen:piTFT24": "564951:0f34fb27fa50f8009a661df36df5"
 }

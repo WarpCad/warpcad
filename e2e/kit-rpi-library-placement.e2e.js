@@ -165,8 +165,10 @@ test('the Library panel shows Kit Parts and Raspberry Pi sections with every rec
   const rpi = await page.$$eval('[data-testid="library-rows-raspberrypi"] [data-op]', (nodes) =>
     nodes.map((node) => node.getAttribute('data-op')),
   )
-  expect(rpi).toHaveLength(12)
+  // Seven since TODO/core-058 put the six screens behind one Screen model row.
+  expect(rpi).toHaveLength(7)
   expect(rpi[0]).toBe('raspberrypi.bplus')
+  expect(rpi[6]).toBe('raspberrypi.screen')
 
   // The two sections that already existed are untouched — creation families stay
   // separate lists, never one undifferentiated dropdown.

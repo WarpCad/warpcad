@@ -875,10 +875,26 @@ describe('composite() ui metadata — what earns a recipe a Library row', () => 
     // list, so a family joins the panel the moment its entries gain `ui`
     // metadata. That is precisely what happened: fifteen entries gained metadata
     // here and neither `library.js` nor `LibraryPanel.vue` learned a recipe name.
+    //
+    // TODO/core-058 then took six of them back out: the six screens became one
+    // `raspberrypi.screen` row with a Screen model choice, and their own entries stay
+    // registered with no `ui` so a project saved before the collapse still replays.
+    const replayOnly = [
+      'raspberrypi.touchDisplay7inch',
+      'raspberrypi.touchScreen2',
+      'raspberrypi.hyperPixel4Rectangular',
+      'raspberrypi.miniPiTFT',
+      'raspberrypi.piTFT22',
+      'raspberrypi.piTFT24',
+    ]
+    for (const op of replayOnly) {
+      expect(registry[op], op).toMatchObject({ kind: 'composite', operandCount: 0 })
+      expect(registry[op].ui, op).toBeUndefined()
+    }
     const ops = Object.keys(registry).filter(
-      (op) => op.startsWith('kit.') || op.startsWith('raspberrypi.')
+      (op) => (op.startsWith('kit.') || op.startsWith('raspberrypi.')) && !replayOnly.includes(op)
     )
-    expect(ops).toHaveLength(16)
+    expect(ops).toHaveLength(11)
     for (const op of ops) {
       const { ui } = registry[op]
       expect(ui?.label, op).toMatch(/\S/)
@@ -887,11 +903,16 @@ describe('composite() ui metadata — what earns a recipe a Library row', () => 
     }
   })
 
-  it('offers a variant choice on the model-parameterised recipes (two Pi boards and the phone), and no others', () => {
+  it('offers a variant choice on the model-parameterised recipes (three Pi rows and the phone), and no others', () => {
     // `core-014a`'s "one factory, not one draggable per revision", as a registry
     // contract rather than a comment: an op is a row, and a revision is a value.
     const withChoice = Object.keys(registry).filter((op) => registry[op].ui?.choice)
-    expect(withChoice).toEqual(['kit.phone', 'raspberrypi.bplus', 'raspberrypi.cameraModule'])
+    expect(withChoice).toEqual([
+      'kit.phone',
+      'raspberrypi.bplus',
+      'raspberrypi.cameraModule',
+      'raspberrypi.screen',
+    ])
 
     for (const op of withChoice) {
       const choice = /** @type {any} */ (registry[op].ui).choice
