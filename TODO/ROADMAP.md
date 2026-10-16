@@ -77,7 +77,7 @@ then priority, then small tasks as tie-breakers.*
 | Task | Priority | Model | Note |
 |---|---|---|---|
 | ✅ [`ui-060`](done/ui-060-unify-snap-align-and-align-to-origin.md) One Align tool | medium | opus | ✅ done 2026-10-15: one **⇔ Align** button, popover with Target, Measure from, drop shortcut, grid and Snap row; the `snap` help topic is gone. Old projects load unchanged |
-| [`ai-022`](ai-022-snap-orientation-description-is-backwards.md) `group.snap` tool description says `outside+` is the second's + side (it is the − side) | medium | sonnet | Found by `ui-060`; text-only fix in `src/ai/tools/operate.js` |
+| ✅ [`ai-022`](ai-022-snap-orientation-description-is-backwards.md) `group.snap` tool description says `outside+` is the second's + side (it is the − side) | medium | sonnet | Found by `ui-060`; text-only fix in `src/ai/tools/operate.js` |
 | ✅ [`io-009`](done/io-009-import-stl-mesh-into-library.md) Import an STL into My parts | medium | opus | ✅ done 2026-10-15: **Import model file…** reads a binary or ASCII STL in a worker into a `user.<slug>` part of `[asset.mesh, import.mesh]`; Mesh tag, size, Units control; not parametric |
 | ✅ [`testing-001`](done/testing-001-firefox-tablet-file-menu-flake-under-load.md) Firefox tablet File-menu flake under load | high | sonnet | ✅ done 2026-10-15: the autosave chip changed width and slid the File button under the pointer; fixed with a min-width |
 | [`data-006`](done/data-006-timeline-tail-reparenting.md) Re-parent an inactive timeline tail | low | opus | ✅ done 2026-10-15 — option (c) `Re-link to the moved step` button |
@@ -142,7 +142,7 @@ table to edit when a task opens, closes or changes priority — see the next sec
 |  | [`core-049`](core-049-planetary-gear-set.md) Planetary gear set — sun, planets, ring and carrier from one parameter record | feature | low | opus | ⏳ waits on `core-043`, `core-044` |
 |  | [`docs-021`](docs-021-media-gears-and-porting-guide.md) Docs media for gears, and a "porting a jscad-gears script" guide | feature | low | sonnet | ⏳ waits on `ui-057`, `ui-058`, `testing-002` |
 | M16 — Next batch | ✅ [`ui-060`](done/ui-060-unify-snap-align-and-align-to-origin.md) One Align tool for Snap, Align and Align-to-origin, with a Target dropdown, and remove the Insp… | feature | medium | opus | ✅ done 2026-10-15 |
-| Findings | [`ai-022`](ai-022-snap-orientation-description-is-backwards.md) `group.snap` tool description says `outside+` puts the first body on the second's + side; it is the − side | finding | medium | sonnet | ▶ **ready** |
+| Findings | ✅ [`ai-022`](ai-022-snap-orientation-description-is-backwards.md) `group.snap` tool description says `outside+` puts the first body on the second's + side; it is the − side | finding | medium | sonnet | ▶ **ready** |
 | M16 — Next batch | ✅ [`ui-061`](done/ui-061-bundle-docs-in-app-and-tool-help-buttons.md) Ship the documentation inside the app and put a help button on every tool pop-up | feature | medium | sonnet | ✅ done 2026-10-15 |
 | M16 — Next batch | ✅ [`ui-064`](done/ui-064-rotation-dial-and-snapped-rotation.md) Rotation dial: watchface, hands and readout while dragging a ring; Shift 5° steps, speed-sensitive steps on touch | feature | medium | opus | ▶ **ready** |
 | M16 — Next batch | ✅ [`ui-065`](done/ui-065-translate-arm-ruler-and-velocity-steps.md) Translate arrows show a ruler from where the drag began, with a distance readout; Shift snaps to 1 mm and drag speed sets the step, the same on mouse and touch | feature | medium | opus | ⏳ waits on `ui-064` (done — ▶ **ready**) |
@@ -241,7 +241,7 @@ milestone tables on 2026-10-12 — update them in the same edit that closes a ro
 | [M13 — One Align tool](#m13--one-align-tool) | ➡️ | — | `ui-060` moved to M16. |
 | [M14 — Help inside the app](#m14--help-inside-the-app) | ➡️ | — | `ui-061` moved to M16. |
 | [M15 — A mergeable project file: the AI as a second writer](#m15--a-mergeable-project-file-the-ai-as-a-second-writer) | ⬜ | 0/10 | Mergeable project file. `io-010` and `io-011` moved to M16; 4 rows are reserved with no file. |
-| [Findings](#findings) | 🔶 | 1/2 | `core-051` (wrong geometry) fixed 2026-10-15; `ai-022` (a backwards tool description) open. `io-008` and `data-013` moved to M16. |
+| [Findings](#findings) | ✅ | 2/2 | `core-051` (wrong geometry) fixed 2026-10-15; `ai-022` (a backwards tool description) fixed 2026-10-16. `io-008` and `data-013` moved to M16. |
 
 Every M0–M4 milestone closed with its own human free-form pass per `CLAUDE.md`'s Verification section
 (see each milestone's last row below). M5–M8 and M12 are recorded as still owing theirs.
@@ -1008,7 +1008,7 @@ as a milestone table.) `io-008` and `data-013` moved to [M16](#m16--next-batch-n
 | id | Task | Kind | Depends | Acceptance |
 |---|---|---|---|---|
 | ✅ `core-051` | Fillet and chamfer produce wrong geometry (material **added**, not removed) on any rim that has a hole — reported 2026-10-04 with `examples/chamfer error.ndjson` | Finding | — | 1, 12 |
-| `ai-022` | The `group.snap` tool description says `outside+` puts the first body on the second's + side; by `SNAP_SIDES` it is the − side — found by `ui-060` | Finding | — | none; `ui-060` repro |
+| ✅ `ai-022` | The `group.snap` tool description says `outside+` puts the first body on the second's + side; by `SNAP_SIDES` it is the − side — found by `ui-060` | Finding | — | none; `ui-060` repro |
 
 ---
 
@@ -1233,3 +1233,4 @@ convention going forward.
 
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->
 | `ui-067` | 2026-10-15 23:46 | ~55m wall clock (preflight 22:52 UTC), the full e2e run (1263 s) being the long part. Typecheck clean; unit 233 files / 4906 passed; full e2e 3884 passed / 0 failed / 957 skipped by design on all 9 projects. Step 6: scenarios 4 and 11 plus the io-007 touch repro PASS. |
+| `ai-022` | 2026-10-16 02:20 | ~8m wall clock (preflight 02:12 UTC), text-only fix plus a measured test. The tool description now says outside+ puts the first body on the second’s − side, matching calcSnap. Typecheck clean; unit 233 files / 4918 passed. Scripted-AI e2e failed on the stale fixture hashes until re-stamped (npm run ai:stamp, 3 hash lines), then matched the pre-change baseline (72/81). Snap-align e2e 90/90. Acceptance 17 (AI path) covered by the scripted transcript only, with no live Assistant drive; scenario 3 (UI snap) was not driven by hand. |

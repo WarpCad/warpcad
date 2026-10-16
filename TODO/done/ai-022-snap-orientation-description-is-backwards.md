@@ -5,8 +5,15 @@ kind: finding
 priority: medium
 model: sonnet
 depends: []
-status: open
+status: done
 ---
+
+> **What actually shipped (2026-10-16):** the description was corrected, as proposed. The Testing
+> section asked for a measured check on both `outside+` and `outside-`, so it has one (`operate.spec.js`).
+> The description test pins the sentence itself, so the two checks are separate: one reads the text, one measures the kernel. Two things went beyond
+> the TODO: the scripted AI transcripts (`e2e/fixtures/ai/`) went stale on the schema hash, so the three
+> hash lines were re-stamped (`npm run ai:stamp`) only after `e2e/ai-scripted.e2e.js` matched its pre-change
+> baseline; and the browser run was the gate for the stamp, not the stamp script's own order.
 
 ## Problem
 

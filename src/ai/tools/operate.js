@@ -208,7 +208,7 @@ export const OPERATIONS = Object.freeze({
     objectSchema(
       {
         axes: AXES,
-        orientation: { type: 'string', enum: Object.keys(SNAP_SIDES), description: 'Which sides meet, e.g. "outside+" puts the first body on the second’s + side.' },
+        orientation: { type: 'string', enum: Object.keys(SNAP_SIDES), description: 'Which sides meet. "outside+" puts the first body on the second’s − side (its + face meets the second’s − face); "outside-" puts it on the second’s + side.' },
         deltaMm: { type: 'number', description: 'Extra gap along the axes, in millimetres. Default 0.' },
       },
       ['axes', 'orientation']

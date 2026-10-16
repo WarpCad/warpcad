@@ -1839,3 +1839,13 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** toggle, kind picker, draggable markers, red clearance map, snap-back with reason -> `e2e/print-prep.e2e.js` "Place connectors" specs, 3884 passed / 0 failed in the full run at this commit; reasons are `core-059`'s refusals (`joint.placements.js`); the red map is `previewSplitFace` in `split.js` (`splitFace.spec.js`)
 **To Add:** `docs/screenshots/split-sheet-manual-joints.png` or `docs/media/print-prep-manual-joint.gif`; repo URL once public
+
+
+## 2026-10-16T02:22:00Z — The AI assistant's snap description
+
+**Post:** WarpCad's AI assistant was told the wrong side for one snap option. outside+ puts the first body on the second's − side, but the tool's own description said +. Fixed, with a test that measures the kernel against the words. Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** description said + side → `operate.js` diff; outside+ is the − side → `SNAP_SIDES` in `group.js` and the measured test in `operate.spec.js`; unit 4918 passed and snap-align e2e 90/90 this session
+**To Add:** none; a live Assistant check is logged in `TODO/VERIFY.md`

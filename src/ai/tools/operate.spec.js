@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { describe, expect, it } from 'vitest'
+import modeling from '@jscad/modeling'
 
 import { createDocument } from '../../core/document.js'
-import { mirrorRotationDeg, volumeOf } from '../../core/kernel/group.js'
+import { calcSnap, mirrorRotationDeg, volumeOf } from '../../core/kernel/group.js'
 import { registry } from '../../core/kernel/registry.js'
 import { recordsForDrop } from '../../core/library.js'
 import { rotateRecord, translateRecord } from '../../core/transform.js'
@@ -302,3 +303,53 @@ function createDocumentLike(document) {
   twin.loadEntries(document.entries.map((entry) => ({ record: entry.record, origin: entry.origin })))
   return twin
 }
+
+describe('group.snap orientation — the description names the side calcSnap actually uses (TODO/ai-022)', () => {
+  const tools = createToolRegistry()
+  const operate = /** @type {any} */ (tools.tools.find((candidate) => candidate.name === 'operate'))
+
+  /** The `orientation` property's description, found wherever the operate schema nests it. */
+  const orientationDescription = () => {
+    /** @param {unknown} node @returns {string | undefined} */
+    const search = (node) => {
+      if (node === null || typeof node !== 'object') return undefined
+      const schema = /** @type {any} */ (node)
+      if (schema.properties?.orientation?.description) return schema.properties.orientation.description
+      for (const value of Object.values(schema)) {
+        /** @type {string | undefined} */
+        const found = search(value)
+        if (found !== undefined) return found
+      }
+      return undefined
+    }
+    return search(operate.inputSchema)
+  }
+
+  it('says outside+ puts the first body on the second’s − side, the side the kernel measures', () => {
+    const description = orientationDescription()
+    expect(description).toMatch(/"outside\+" puts the first body on the second[’']s − side/)
+    expect(description).not.toMatch(/"outside\+" puts the first body on the second[’']s \+ side/)
+  })
+
+  it.each([
+    ['outside+', 'below'],
+    ['outside-', 'above'],
+  ])('agrees with a measured %s snap: the first body ends up %s the second', (orientation, side) => {
+    const { primitives, measurements, transforms } = modeling
+    const small = primitives.cuboid({ size: [4, 4, 4] })
+    const big = primitives.cuboid({ size: [10, 10, 10] })
+    const vector = calcSnap(small, big, 'z', orientation)
+    const moved = transforms.translate(vector, small)
+    const [movedMin, movedMax] = measurements.measureBoundingBox(moved)
+    const [bigMin, bigMax] = measurements.measureBoundingBox(big)
+    const movedCentre = (movedMin[2] + movedMax[2]) / 2
+    const bigCentre = (bigMin[2] + bigMax[2]) / 2
+    if (side === 'below') {
+      expect(movedMax[2]).toBeCloseTo(bigMin[2], 9)
+      expect(movedCentre).toBeLessThan(bigCentre)
+    } else {
+      expect(movedMin[2]).toBeCloseTo(bigMax[2], 9)
+      expect(movedCentre).toBeGreaterThan(bigCentre)
+    }
+  })
+})

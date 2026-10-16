@@ -34,6 +34,15 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### ai-022 — group.snap orientation description (2026-10-16 02:21)
+
+The unit and scripted-transcript specs check the wording and the kernel's side. They cannot show that a
+live model, reading the corrected sentence, now picks the right side for a request.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | With a real Assistant key, ask it to snap a body with `outside+` onto another and say which side it lands on. It should answer the − side, and the result should match. | Open | |
+
 ### ui-067 — Place connectors on the split cut face by hand (2026-10-15 23:46)
 
 Drag, tap, kind switch, refusal and cancelled-touch behaviour are covered by `e2e/print-prep.e2e.js` on all nine projects and by the Step 6 hand drive; these are the feel and layout calls a script cannot make.

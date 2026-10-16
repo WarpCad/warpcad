@@ -2608,3 +2608,13 @@ The check runs off the main thread in the same worker as the rest of the kernel,
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** markers, kinds, tap/drag/remove, snap-back with reason, Apply gating -> `e2e/print-prep.e2e.js` "Place connectors" specs on all nine projects (full run 3884 passed / 0 failed); worker job `splitFace` -> `evaluationJob.js`, `splitFace.spec.js`; same check as Apply -> `previewSplitFace` calling `placedJoint` in `split.js`; far-face screw boss refusal -> `splitSheet.spec.js` and `splitFace.spec.js`
 **To Add:** `docs/media/print-prep-manual-joint.gif`; repo URL once public
+
+
+## 2026-10-16T02:22:00Z — The AI assistant's snap description
+
+**Post:** While building WarpCad's Align tool, I found that the description the AI partner reads for one snap option named the wrong side. outside+ puts the first body on the second's − side; the text said +. The fix is one sentence, plus a test that measures the kernel's actual placement and compares it to the words. Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource #WebDev
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** description said + side → `operate.js` diff; outside+ is the − side → `SNAP_SIDES` in `group.js` and the measured test in `operate.spec.js`; found while building `ui-060` → TODO text
+**To Add:** none
