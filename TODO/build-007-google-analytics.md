@@ -29,12 +29,11 @@ Done means:
 
 These steps need your Google account or a GitHub setting. Claude can't do them.
 
-1. **Create the stream.** In Google Analytics, use the account you already use for jwc.dev. Either
-   add a new **web data stream** to that property for the WarpCad host (for example
+1. **Create a separate property.** Decided 2026-10-16: WarpCad gets its own GA property, so its
+   numbers are apart from jwc.dev. In Google Analytics (the same Google account is fine), create a
+   new property, then add a **web data stream** for the WarpCad host (for example
    `https://<your-github-user>.github.io`, with the path if WarpCad is served under one: check
-   `BASE_PATH` in `.github/workflows/pages.yml`), or create a separate property if you want the
-   two sites reported apart. Recommendation: a separate **data stream** in the same property, so
-   one login shows both.
+   `BASE_PATH` in `.github/workflows/pages.yml`).
 2. **Copy the Measurement ID** (`G-XXXXXXXXXX`). It is public: it ends up in the page the browser
    loads, so it is not a secret. Give it to Claude, or set it yourself in step 3.
 3. **Set the repository variable**: GitHub → WarpCad repo → **Settings → Secrets and variables →
@@ -51,9 +50,9 @@ These steps need your Google account or a GitHub setting. Claude can't do them.
    and confirm one active user with the page path. Then open **Admin → DebugView** (with the
    Google Analytics Debugger browser extension switched on) to see the page view arrive with its
    parameters.
-7. **Decide on consent.** GA sets cookies. For a site visited mostly by you and a few people, no
-   banner is the usual choice, but if you share the link widely or serve users in the EU/UK,
-   decide whether to add a consent notice. Tell Claude which you choose; it changes the spec below.
+7. **Consent: no banner** (decided 2026-10-16). GA still sets cookies, so the **Documentation** note
+   must say so plainly. If you later share the link widely or serve users in the EU/UK, tell
+   Claude, because that reopens this decision and adds a consent UI surface.
 8. **Tell Claude when the first real numbers show up**, if you want the **Documentation** note
    (`docs/`, see below) to say what is measured.
 
@@ -89,7 +88,8 @@ Confirm the sidebar entry if a new page is added (`.claude/commands/docs.md` Ste
   spirit: list the realistic options (GA4, Plausible / Umami self-hosted, no analytics, server logs
   from GitHub Pages) with the reason GA was picked. Tell the user if they want the self-hosted path
   instead, which needs a different stack.
-- `e2e/` (see Testing): a spec that blocks the GA hosts.
+- `e2e/analytics-guard.e2e.js` (new, see Testing): blocks the GA hosts so tests never send hits.
+- `e2e/csp.e2e.js`: extend with the GA CSP assertion (see Testing).
 
 ## Proposed fix
 
@@ -117,10 +117,12 @@ S. The code is small. The checklist is the bulk of the work and is the owner's.
   `googletagmanager.com` and `google-analytics.com` request, then assert the app still loads, the
   Library drop still works, and no request was attempted during the dev run. This is the spec that
   keeps tests from sending real hits.
-- **CSP**: a check in the same spec that `index.html`'s CSP still allows the app's own origins and
-  the existing `api.anthropic.com` and `api.github.com` connections (regression guard for the CSP
-  change). A dev-server run can pass while the production CSP blocks the script, so run this
-  check against the production build (`npm run build`, then serve `dist/`).
+- **CSP**: extend the existing `e2e/csp.e2e.js` (the guard for `index.html`'s policy,
+  `ai-004`, `docs/decisions/ai-partner.md` decision 8) rather than adding a second CSP check. Its
+  "policy is live" assertions must still pass, and an unlisted host must still be refused. Add one
+  assertion that the GA script loads with no `securitypolicyviolation` in the production build.
+  The guard runs against the production build, which carries the CSP `<meta>`; a dev-server run
+  can pass while the production policy blocks the script, so the GA check runs there too.
 - **Engines**: Chromium only. Analytics is a plain script, not WebGL, canvas, or persistence.
   Say so explicitly here; do not run the full matrix for it.
 - **Viewports**: one project (desktop). No layout change.

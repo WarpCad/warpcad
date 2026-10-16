@@ -5,7 +5,7 @@ kind: feature
 priority: medium
 model: sonnet
 milestone: M9
-depends: [ai-012, ai-020]
+depends: [ai-012, ai-020, ai-023]
 status: open
 ---
 
@@ -29,11 +29,11 @@ user can still reach **Key and model…** from the panel to save a key, so BYOK 
 - **Precondition**: the live bridge is `connected` (`chat.bridge === 'connected'`, from
   `src/stores/aiChat.js`). Not a selection precondition: this is panel state, not an operation.
 - **Trigger**: automatic. The panel reads the bridge state. No new control is added. The way out
-  stays: the bridge chip still opens **Connect to Claude Code**, which can disconnect (or reconnect
-  with a new code). A **Key and model…** link stays reachable from the connect sheet, so a user
+  stays: the bridge chip still opens **Live MCP access**, which can turn the lease off or change
+  its duration. A **Key and model…** link stays reachable from the access sheet, so a user
   who wants BYOK instead can still get to the key sheet.
 - **Feedback**: the chat area and composer disappear, and the header reads the bridge state in a
-  compact chip: `Claude Code · connected` (or the existing wording, unchanged). The bridge chip
+  compact chip: `MCP agent · connected` (or the existing wording, unchanged). The bridge chip
   remains the one status control.
 - **Placement**: n/a (no geometry).
 - **Selection response**: n/a.
@@ -45,17 +45,16 @@ user can still reach **Key and model…** from the panel to save a key, so BYOK 
 
 ## Documentation
 
-- **Page**: `docs/mcp.md`, section *Live mode: Claude Code edits the project you have open*.
-  Add: "While Claude Code is connected, the Assistant panel shows only the connection status. To
-  use your own API key instead, open **Connect to Claude Code** and choose **Key and model…**."
-- **Example**: "Run `npm run dev`, pair Claude Code with the code from **Assistant ▾ → Connect to
-  Claude Code**. The panel now shows just **Claude Code · connected** in its header. Ask Claude
-  Code for a change in its own window and watch it appear in the viewport. To go back to the chat,
-  tap **Claude Code · connected** and choose **Disconnect**, then **Key and model…**."
-- **Media**: the `e2e/docs/` mobile shot that shows the Assistant (look for it under
-  `e2e/docs/`, probably the Assistant or live-bridge shot). Re-shoot it with
-  `npm run docs:screenshots:update` once the bridge-connected state is captured, and embed the new
-  `mcp-connected.png` in `docs/mcp.md`. If no shot covers the connected state, add one.
+- **Page**: `docs/mcp.md`, section *Live mode: an MCP agent edits the project you have open*.
+  Add: "While an MCP agent is connected, the Assistant panel shows only the connection status. To
+  use your own API key instead, open **Live MCP access** and choose **Key and model…**."
+- **Example**: "Run `npm run dev`, enable a lease from **Assistant → Live MCP access**, then ask
+  your MCP agent for a change in its own window. The panel shows **MCP agent · connected** in its
+  header. To go back to the chat, turn off live access, then choose **Key and model…**."
+- **Media**: `e2e/docs/ai-live-bridge.docs.js` already shoots `ai-live-bridge.png` (embedded in
+  `docs/mcp.md`). Add a shot of the connected state to that file, named `mcp-connected.png`, and
+  embed it in `docs/mcp.md`. Generate it with `npm run docs:media`, never by hand, then confirm
+  `e2e/docs-media.spec.js` passes.
 
 ## Affected files
 
@@ -76,9 +75,8 @@ truth. In `ChatPanel.vue`, wrap the transcript, composer and token readout in on
 `chat.bridge !== 'connected'`, and have the header render only the chip while connected. Leave
 the key and subscription paths untouched.
 
-Don't reuse the `claudeCodeOnly` branch in `assistant.js` to decide this, if it has drifted from
-the bridge state. Check it first; `ai-020`'s note says it is driven by `bridge: connected` and no
-scripted mode, which is the right condition.
+Don't reuse the `mcpOnly` branch in `assistant.js` to decide this if it has drifted from the bridge
+state. Check it first; the panel mode should key on `bridge: connected` and no scripted mode.
 
 ## Effort
 
@@ -87,13 +85,14 @@ S to M. Mostly a template change plus one spec.
 ## Testing
 
 - **Unit** (`src/components/ai/ChatPanel.spec.js`, new or extended): with the bridge `connected`,
-  the transcript and composer are not visible; with `disconnected` or `waiting`, they are. The
+  the transcript and composer are not visible; with `disconnected` or `off`, they are. The
   chip's label is unchanged.
 - **E2E** (`e2e/mcp-connected-assistant.e2e.js`, navigates to `/`, against a fake connected bridge
-  state with the same test hook used by `e2e/ai-*.e2e.js`; do not run a real Claude Code):
+  state through an existing test hook, found by reading `e2e/ai-*.e2e.js` when building (none is
+  assumed here); do not run a real Claude Code):
   1. With no bridge, open the Assistant: the full chat is visible (regression guard).
   2. Put the bridge in `connected`: the transcript, composer and token readout are hidden; the
-     chip reads `Claude Code · connected`.
+    chip reads `MCP agent · connected`.
   3. Open the chip, choose **Key and model…**: the key sheet opens and saving a key returns the
      chat to visible when the bridge is not connected.
   4. Assert the viewport's bounding box is unchanged in size between states at each viewport, so
@@ -111,13 +110,17 @@ S to M. Mostly a template change plus one spec.
     drag and select while an agent is active.
 - **Closed findings whose repro gets re-run**: `ai-020` (the panel's connected state drives the
   header and the composer's disabled reason; this change hides both, so re-run its steps and
-  confirm the status text still reads correctly). `ui-070` (phone Inspector tab vs. sheets), since
-  the Assistant's bottom slot shares the phone layout with it.
+  confirm the status text still reads correctly).
+- **Open finding that shares the layout** (not closed, so not a regression repro): `ui-070`
+  (phone Inspector tab vs. the Library sheet). Both touch the phone bottom slot. Check it by hand
+  while this lands, and if `ui-070` is still open when this task lands, note any overlap in the
+  task's VERIFY entry rather than assuming it is fixed.
 
 ## Notes
 
-Raised by the user on 2026-10-16 in `TODO/NEW-TODO.md`. Independent of `ai-023` (Copilot
-pairing): this keys on the bridge state, not the agent's name, so once another agent can connect
-through `ai-023`, this mode applies to it with no extra change.
+Raised by the user on 2026-10-16 in `TODO/NEW-TODO.md`. Depends on `ai-023` because both rework
+the same connect sheet and chip (`ConnectClaudeCode.vue`, `BridgeChip.vue`), so `ai-023` lands
+first. This keys on the bridge state, not the agent's name, so once `ai-023` lets another agent
+connect, this mode applies to it with no extra change.
 
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->
