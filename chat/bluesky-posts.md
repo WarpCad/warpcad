@@ -1949,3 +1949,13 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** cone angle from tooth counts and shaft angle, miter 45°, 1:2 at 26.565° → `src/core/gear/bevel.spec.js`; V1 tapered about 43° → `TODO/done/core-045-straight-bevel-gear.md` Goal; full run 5546 unit, 3909 e2e passing → test run this session
 **To Add:** nothing
+
+## [2026-10-16T19:40:00Z] — Live MCP access with a timer instead of a pairing code
+
+**Post:** WarpCad's live MCP link no longer uses a pairing code. You switch access on in the app for 15 minutes, an hour, this tab, or until you turn it off, and any MCP agent on your machine can edit the open project. Finishing it turned up a bug: a client that crashed stayed counted and blocked every later call. #CAD #OpenSource Built with Claude Code, reviewed by me.
+
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** lease options and no code → `TODO/done/ai-023-pairing-code-works-for-any-mcp-agent.md`; crashed client stayed counted, fixed by a five-minute idle sweep → `mcp/liveHttp.js`, `mcp/liveHttp.spec.js`
+**To Add:** screenshot of the Live MCP access sheet

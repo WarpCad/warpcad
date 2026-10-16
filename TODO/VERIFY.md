@@ -34,6 +34,17 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### ai-023 — Agent-neutral timed live MCP access (2026-10-16 19:11)
+
+Scenario 25 covers the lease, writes, undo, off and phone reachability. These are what it cannot
+show: the real agent, and the idle-session sweep with a real client that crashes.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | Register the live endpoint with GitHub Copilot's MCP support (the reported failure was never reproduced), enable 15 minutes, and ask it to add a cube. Does it connect with no code step? | Open | |
+| 2 | Kill a real MCP client with `kill -9` while access is enabled, then connect a second one immediately and again after five minutes. Is the first refused as ambiguous, then accepted? | Open | |
+| 3 | At 390x844 with an API key saved, find the way to **Live MCP access**. The panel entry is laptop-only now (it pushed **Send** out of the half sheet), so a keyed phone user has only the chip once access is on. Is that acceptable, or does it need a header entry? | Open | |
+
 ### core-042 — Helical and herringbone gears (2026-10-16 07:08)
 
 Gears have no Library row yet, so the helical path is unit-covered only. While re-driving acceptance 9 with a Twist of 90 degrees, the twisted sketch body measured 3 820 mm³ where a 30 x 16 mm rectangle at 30 mm should be 14 400 mm³ (the untwisted run gives 14 400), and a Subtract against it removed 19 468 mm³. An unmodified HEAD build gave the identical numbers, so this task did not cause it; it needs a person to look at whether the twisted mesh is inverted or the volume readout is wrong.

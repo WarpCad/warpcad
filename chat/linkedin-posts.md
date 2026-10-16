@@ -2760,3 +2760,17 @@ Two things are open for the user. The flat back face lets the tooth tips poke pa
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** miter 45°, 1:2 at 26.565° → `src/core/gear/bevel.spec.js`; V1 about 43° → `TODO/done/core-045-straight-bevel-gear.md` Goal; open edges 12 to 122 and the new op → `docs/decisions/gears.md` core-045 addendum; 27.31 vs 26.10 mm and the 85° cap → same addendum; no Library row → `src/core/library.spec.js`
 **To Add:** repo URL once public, docs site URL once it exists
+
+## [2026-10-16T19:40:00Z] — Live MCP access with a timer instead of a pairing code
+
+**Post:** WarpCad's live MCP endpoint used a pairing code that only suited Claude Code. It now uses explicit, timed access: you enable it in the app for 15 minutes, an hour, the life of the tab, or until you turn it off, and any MCP agent on the same computer can edit the open project. A foreign web origin is still refused.
+
+The new rule that refuses calls when more than one client is connected had a catch. A client that quit without the protocol's DELETE stayed counted, so every later call was refused until the dev server restarted. The dev host now drops a session after five minutes without a request, and a spec covers it.
+
+Details are in docs/mcp.md, including steps for agents other than Claude Code. Built with Claude Code, reviewed by me.
+
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** lease options, no code, origin gate → `TODO/done/ai-023-pairing-code-works-for-any-mcp-agent.md`; stale-session lock-out and five-minute sweep → `mcp/liveHttp.js`, `mcp/liveHttp.spec.js`; other-agent steps → `docs/mcp.md`
+**To Add:** screenshot of the Live MCP access sheet

@@ -826,6 +826,12 @@ by making the tab the only writer and the AI its client.
    switch is unchanged.
    The earlier single-use code policy is removed for the dev host. The standalone live host is
    still deferred; its authorization policy must be decided if that host is built.
+   *Consequence found while building it (`ai-023`, 2026-10-16):* "refuse when more than one client
+   is connected" counts sessions, and a client that crashes or drops without the protocol's DELETE
+   would stay counted until the dev server restarts. The dev host therefore closes a session that
+   has sent no request for five minutes (`SESSION_IDLE_MS`, swept on the next request); a client
+   that is merely quiet reconnects on its next call (the transport answers 404 and MCP clients
+   re-initialize).
 6. **Caps, trust and data rules unchanged** (Decision 7); no subscription token is read,
    stored or sent (Decision 10 point 3).
 

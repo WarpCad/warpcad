@@ -202,6 +202,20 @@ reach the loopback endpoint may read and change the open project.
 
 ![WarpCad with the Assistant panel's "MCP agent · connected" chip, a cube with a sphere on top in the viewport, and History rows "Cube 1 — placed" and "Sphere 1 — placed", each marked "via mcp".](./screenshots/ai-live-bridge.png)
 
+### Using another agent (Copilot, or any MCP client)
+
+Nothing here is specific to Claude Code: WarpCad's live endpoint is a standard MCP server over HTTP,
+and there is no pairing code to copy between the agent and WarpCad.
+
+1. Register the endpoint with your agent, using the details `npm run mcp:add -- --dev` prints
+   (for example, as an HTTP server named `warpcad` at `http://127.0.0.1:5183/mcp`).
+2. In WarpCad, open **Assistant → Live MCP access** and enable access for **15 minutes**.
+3. In your agent, ask it to connect to WarpCad and add a part. The Assistant header reports
+   **MCP agent · connected**.
+
+If the agent says access is off or expired, enable it again in WarpCad. If it says routing is
+ambiguous, close the second client or tab (see below).
+
 ### How it behaves
 
 - **One Undo AI turn per request.** Changes an MCP client makes for the same request, less than a
@@ -225,6 +239,12 @@ reach the loopback endpoint may read and change the open project.
   ends when the tab closes; **Until turned off** remains active until manually revoked or the tab
   closes. Expiry, turning access off, or a tab reload revokes the route. If more than one MCP
   client or enabled tab makes routing ambiguous, WarpCad refuses calls until only one remains.
+- **A client that vanishes stops counting.** A client that quits cleanly is dropped at once. One that
+  crashes or loses its connection is dropped after five minutes without a request, so it cannot
+  block every later call. A client that is merely quiet reconnects on its next call.
+- **Where the control is.** On a laptop, **Live MCP access…** sits beside **Key and model…** in the
+  Assistant panel. On a phone or tablet it is on the Assistant's no-key sheet (the half-height
+  panel keeps room for **Send**), and the header chip opens it once access is on.
 
 ### Browsers
 

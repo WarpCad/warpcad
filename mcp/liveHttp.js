@@ -28,6 +28,9 @@ import { createRequestGate } from './bridge.js'
 import { writeToolNames } from './projectFile.js'
 import { mcpToolDefinitions, splitRequest } from './server.js'
 
+/** How long a session may be silent before the bridge stops counting it (see `createLiveHttpHandler`). */
+export const SESSION_IDLE_MS = 5 * 60_000
+
 /** What the live server says about itself in `initialize` — ours, never project text. */
 export const LIVE_SERVER_INSTRUCTIONS = [
   'WarpCad parametric CAD, live: this server edits the project the user has open in a WarpCad browser tab, and each change appears there at once.',
@@ -167,11 +170,27 @@ function refuse(res, status, message) {
  * @param {() => import('./bridge.js').AllowList} options.allow Read per request (the port is known
  *   only once the server listens).
  * @param {(line: string) => void} [options.log]
+ * @param {() => number} [options.now] Clock, injectable for tests.
+ * @param {number} [options.idleMs] A session with no request for this long is closed. A client that
+ *   dies without sending the protocol's DELETE would otherwise stay counted forever, and the
+ *   one-client rule would then refuse every later call.
  * @returns {{ handle: (req: import('node:http').IncomingMessage, res: import('node:http').ServerResponse) => Promise<void>, close: () => Promise<void> }}
  */
-export function createLiveHttpHandler({ bridge, allow, log = () => {} }) {
-  /** @type {Map<string, { transport: WebStandardStreamableHTTPServerTransport, server: Server }>} */
+export function createLiveHttpHandler({ bridge, allow, log = () => {}, now = Date.now, idleMs = SESSION_IDLE_MS }) {
+  /** @type {Map<string, { transport: WebStandardStreamableHTTPServerTransport, server: Server, lastSeen: number }>} */
   const sessions = new Map()
+
+  /** Close every session that has been quiet for `idleMs`, before the next request is routed. */
+  function sweepIdle() {
+    const cutoff = now() - idleMs
+    for (const [id, entry] of sessions) {
+      if (entry.lastSeen > cutoff) continue
+      sessions.delete(id)
+      bridge.closeLink(id)
+      log(`session ${id.slice(0, 8)}: closed after ${Math.round(idleMs / 1000)}s without a request`)
+      void entry.server.close().catch(() => {})
+    }
+  }
 
   return {
     async handle(req, res) {
@@ -182,6 +201,7 @@ export function createLiveHttpHandler({ bridge, allow, log = () => {} }) {
         return
       }
       try {
+        sweepIdle()
         const request = await toWebRequest(req)
         const sessionId = req.headers['mcp-session-id']
         const known = typeof sessionId === 'string' ? sessions.get(sessionId) : undefined
@@ -205,8 +225,9 @@ export function createLiveHttpHandler({ bridge, allow, log = () => {} }) {
           })
           const server = createLiveServer(bridge, () => transport.sessionId)
           await server.connect(transport)
-          entry = { transport, server }
+          entry = { transport, server, lastSeen: now() }
         }
+        entry.lastSeen = now()
         await writeResponse(res, await entry.transport.handleRequest(request), req)
       } catch (error) {
         log(`a /mcp request failed: ${error instanceof Error ? error.message : String(error)}`)

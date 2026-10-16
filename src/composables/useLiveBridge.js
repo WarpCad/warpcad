@@ -105,6 +105,8 @@ export function useLiveBridge() {
     if (!hot) return false
     if (lease !== 'off') chat.bridge = 'enabled'
     else chat.bridge = 'idle'
+    // Until the host's status arrives (with the authoritative time), show the lease the user chose.
+    chat.bridgeExpiresAt = lease === '15m' ? Date.now() + 15 * 60_000 : lease === '1h' ? Date.now() + 60 * 60_000 : null
     chat.bridgeMessage = ''
     hot.send(BRIDGE_EVENT, { type: 'access', lease })
     return true

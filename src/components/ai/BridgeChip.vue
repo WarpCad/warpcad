@@ -2,7 +2,10 @@
 <script setup>
 /**
  * The live MCP access state in the Assistant header. A tap opens the lease controls and any
- * current routing refusal.
+ * current routing refusal. Shown once access has been enabled (or has gone wrong), not while it is
+ * simply off: an always-on chip wraps the header at phone width and pushes the sheet past the
+ * viewport's nav chrome. While off, the lease control is the Assistant panel's **Live MCP access…**
+ * button (laptop) or the no-key sheet's (phone and tablet).
  */
 import { computed } from 'vue'
 
@@ -14,7 +17,6 @@ const assistant = useAssistantStore()
 
 const label = computed(() => {
   if (chat.bridge === 'connected') return 'MCP agent · connected'
-  if (chat.bridge === 'off') return 'MCP access · off'
   if (chat.bridge === 'enabled') return 'MCP access · enabled'
   if (chat.bridge === 'ambiguous') return 'MCP routing · ambiguous'
   if (chat.bridge === 'expired') return 'MCP access · expired'
@@ -76,8 +78,7 @@ const label = computed(() => {
 }
 
 .bridge-chip[data-state='ambiguous'] .bridge-chip__dot,
-.bridge-chip[data-state='expired'] .bridge-chip__dot,
-.bridge-chip[data-state='off'] .bridge-chip__dot {
+.bridge-chip[data-state='expired'] .bridge-chip__dot {
   background: var(--warn);
 }
 </style>

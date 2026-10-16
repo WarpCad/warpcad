@@ -77,7 +77,7 @@ function close() {
 </script>
 
 <template>
-  <ModalShell :open="open" testid="ai-connect-sheet" title="Live MCP access" @backdrop="close()">
+  <ModalShell :open="open" testid="ai-connect-sheet" title="Live MCP access" help-topic="claude-code" @backdrop="close()">
     <p class="connect__text" data-testid="ai-connect-explain">
       When enabled, <strong>any MCP client on this computer</strong> that can reach the local WarpCad
       endpoint can read and change the project open in this tab. Changes appear in History as

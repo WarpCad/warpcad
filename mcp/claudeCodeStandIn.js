@@ -25,7 +25,8 @@ import { Client, StreamableHTTPClientTransport } from '@modelcontextprotocol/cli
  */
 export async function connectMcpClient(url) {
   const client = new Client({ name: 'mcp-client-stand-in', version: '0.0.0' })
-  await client.connect(new StreamableHTTPClientTransport(new URL(url)))
+  const transport = new StreamableHTTPClientTransport(new URL(url))
+  await client.connect(transport)
   return {
     async call(name, args) {
       const response = /** @type {any} */ (await client.callTool({ name, arguments: args }))
@@ -37,6 +38,10 @@ export async function connectMcpClient(url) {
     async toolNames() {
       return (await client.listTools()).tools.map((tool) => tool.name)
     },
-    close: () => client.close(),
+    async close() {
+      // DELETE first, so the host drops this session at once; a bare close() leaves it counted.
+      await transport.terminateSession().catch(() => {})
+      await client.close()
+    },
   }
 }

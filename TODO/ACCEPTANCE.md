@@ -4079,45 +4079,59 @@ not that a model's turn stays out of the way.
 **Last run**: 2026-10-14 UTC (`ai-017`) — **PASS, with a scripted transcript instead of a real key** (`edit-while-working`), at laptop 1440x900 and phone 390x844 Chromium, real mouse. Turn started, header chip showed, viewport live (`data-previewing` false); panel closed, a Sphere dragged in mid-turn (count 3, chip still up); Watch on showed the amber strip *Watching the Assistant — your project is unchanged*, off returned to live; turn ended with count 5, chip gone and the transcript line *Merged with N changes you made meanwhile*; **Undo AI turn** left 3 (the user's three), header Undo then read *Undo: Place Cylinder 1* and took the Sphere (2). Console and page errors: none. **Not driven**: a real model/key, an edit to the very body the Assistant was changing (covered by the conflict e2e only), tablet width. The new e2e (Step 5, before this drive) had found a real defect: after Undo AI turn, header Undo popped the step but left the rows (undo matched by object identity; fixed in `document.js`, regression in `documentMerge.spec.js`).
 
 
-### 25. Claude Code edits the project you have open (live bridge)
+### 25. An MCP agent edits the project you have open (live access)
 
-Added 2026-10-14 with `TODO/ai-012`: under `npm run dev`, Claude Code (on the user's own plan)
-changes the project open in a desktop browser tab, with no key. Control names: **Assistant**
-(`assistant-button`), **Connect to Claude Code…** (`ai-key-connect` on the key sheet,
-`ai-connect-open` in the panel), the sheet (`ai-connect-sheet`, code field `ai-connect-code`,
-**Connect** `ai-connect-submit`, **Done** `ai-connect-done`), the header chip (`ai-bridge-chip`),
-the working chip (`ai-working-chip`), **Undo AI turn** (`ai-undo-turn`) and the header **Undo**.
-Needs **a real Claude Code** (`npm run mcp:add -- --dev`), not the e2e's MCP client stand-in.
+Updated 2026-10-16 with `TODO/ai-023` and Decision 11: under `npm run dev`, a local MCP client
+changes the project open in a WarpCad tab after the user explicitly enables a lease. Control names:
+**Assistant** (`assistant-button`), **Live MCP access…** (`ai-key-connect` on the key sheet and
+`ai-connect-open` in the panel), the sheet (`ai-connect-sheet`, duration `ai-connect-lease`,
+**Enable access** `ai-connect-enable`, **Turn off** `ai-connect-disable`, **Done**
+`ai-connect-done`), the header chip (`ai-bridge-chip`), the working chip (`ai-working-chip`),
+**Undo AI turn** (`ai-undo-turn`) and the header **Undo**. A plain MCP client is sufficient; the
+client does not need to provide a code or identify itself as Claude Code.
 
-**Steps** (laptop 1440x900 in Chrome, then Safari; then phone 390x844 for step 7 only):
-1. `npm run dev`, open `http://localhost:5183`. In Claude Code ask *add a 40 mm cube*.
-2. Type the code Claude Code shows into **Assistant → Connect to Claude Code…**; first try a
-   wrong one.
-3. Ask *add a 40 mm cube and a 20 mm sphere on top of it*. Watch the header while it works.
-4. Select the sphere and move it with the gizmo. Ask *what have I selected?*
+**Steps** (laptop 1440x900, then phone 390x844 for access-control reachability):
+1. Run `npm run dev`, register WarpCad's loopback MCP endpoint with a client, and open
+   `http://localhost:5183` in a browser on the same computer.
+2. Before enabling access, ask the client to add a 40 mm cube.
+3. In WarpCad choose **Assistant → Live MCP access…**, select **15 minutes**, and enable access.
+4. In the MCP client ask *add a 40 mm cube and a 20 mm sphere on top of it*. Watch the header,
+   then select the sphere, move it with the gizmo, and ask *what have I selected?*
 5. Press **Undo AI turn**; then the header **Undo**; then **Undo AI turn** again.
 6. Ask for another change while dragging a Library part into the viewport, and hold the drag for
    a few seconds before dropping.
-7. On a phone (or at 390 px), open the Assistant.
+7. Turn access off in the sheet and try another write. On a phone (390x844), reopen Assistant and
+   confirm the access control is reachable without horizontal scrolling.
 
 **Expect**:
-- Step 1: Claude Code shows a sentence with a code like `K7Q4-FX2M` and the menu path; nothing
-  hangs. The code appears nowhere in the `npm run dev` terminal.
-- Step 2: the wrong code is refused in words; the right one gives `Connected` and, after Done, the
-  chip `Claude Code · connected` in the Assistant header. Safari's sheet says a hosted (https)
-  copy cannot connect; Chrome's says to choose Allow if asked.
-- Step 3: `Claude Code working` in the header; the cube and sphere appear, the sphere on top;
-  History rows marked `via mcp`, with the request as their intent.
-- Step 4: the sphere moves like any body; Claude names the selected sphere.
+- Step 2: the call is refused in words because live MCP access is off; no project change or code
+  is returned.
+- Step 3: the UI names the local-machine scope and selected duration. Once the client makes a call,
+  the chip reads **MCP agent · connected**; the composer says to make requests in the MCP client,
+  not to paste an API key or use Claude Code specifically.
+- Step 4: both bodies appear, the History rows are marked `via mcp` with the request as intent,
+  the sphere moves like any body, and `get_selection` names it.
 - Step 5: the first **Undo AI turn** is refused, naming your move; **Undo** takes back the move;
-  the second **Undo AI turn** removes both of Claude's bodies in one step, and the header Undo is
-  then disabled (Claude's rows were never on it).
-- Step 6: the change lands after you drop, or Claude says *the user is editing; try again* and
-  retries; your drop is never lost or overwritten.
-- Step 7: **Connect to Claude Code…** is shown greyed out with `Claude Code must run on this
-  device`; no horizontal scroll.
-- Never: a Claude change on the header Undo stack, a refused call that changed the project, a
-  code in a log, or a tab another web page could pair with.
+  the second **Undo AI turn** removes the agent's bodies in one step and leaves your undo stack
+  untouched.
+- Step 6: the change lands after you drop, or is refused with *the user is editing; try again*;
+  your drop is never lost or overwritten.
+- Step 7: turning access off or letting a timed lease expire refuses the next write with no
+  project change. Multiple clients or enabled tabs are refused as ambiguous; a foreign web Origin
+  and non-loopback Host are still refused.
+- Never: a change while access is off, a call routed to an arbitrary tab, a refused write that
+  changed the project, or a pairing code in any result or log.
+
+**Last run**: 2026-10-16 19:11 UTC (`ai-023`, finishing pass) — **PASS for steps 2-5 and 7; step 6 (hold a Library drag while the agent writes) and a gizmo drag were NOT driven; real Copilot/Claude Code was not used (SDK stand-in).** Laptop 1440x900 and phone 390x844 Chromium, real jittered `page.mouse`, a private dev server on :5199. Off: create refused in words, 0 bodies, no code. Enabled for 15 minutes: bodies 2, chip `MCP agent · connected`, composer says to ask the MCP agent; a click in the viewport selected the cube and `get_selection` named it. A user move via the Inspector then **Undo AI turn** was refused naming the move; **Undo**, then the second **Undo AI turn** removed both bodies (0). Off: the next write refused, 0 bodies. A second client made routing ambiguous (refused) and the first worked again once it closed; a foreign Origin got 403; the phone sheet showed the lease control with no horizontal scroll. **The drive found**: a 15-minute lease read "until this tab closes" until the host replied (fixed, `useLiveBridge.js`); and, earlier in the pass, that a client which quits without the protocol's DELETE stayed counted forever and made every later call ambiguous until the dev server restarted (fixed with a five-minute idle sweep in `mcp/liveHttp.js`). Scenario 23 not re-driven: its closed-file path is untouched by this change.
+**Last run**: 2026-10-16 19:11 UTC (`ai-023`, finishing pass) — **PASS for steps 2-5 and 7; step 6 (hold a Library drag while the agent writes) and a gizmo drag were NOT driven; real Copilot/Claude Code was not used (SDK stand-in).** Laptop 1440x900 and phone 390x844 Chromium, real jittered `page.mouse`, a private dev server on :5199. Off: create refused in words, 0 bodies, no code. Enabled for 15 minutes: bodies 2, chip `MCP agent · connected`, composer says to ask the MCP agent; a click in the viewport selected the cube and `get_selection` named it. A user move via the Inspector then **Undo AI turn** was refused naming the move; **Undo**, then the second **Undo AI turn** removed both bodies (0). Off: the next write refused, 0 bodies. A second client made routing ambiguous (refused) and the first worked again once it closed; a foreign Origin got 403; the phone sheet showed the lease control with no horizontal scroll. **The drive found**: a 15-minute lease read "until this tab closes" until the host replied (fixed, `useLiveBridge.js`); and, earlier in the pass, that a client which quits without the protocol's DELETE stayed counted forever and made every later call ambiguous until the dev server restarted (fixed with a five-minute idle sweep in `mcp/liveHttp.js`). Scenario 23 not re-driven: its closed-file path is untouched by this change.
+**Last run**: 2026-10-16 UTC (`ai-023`) — **PASS for the manually driven lease/write/undo path; full
+scenario not re-driven**. In the running app, enabled a 15-minute lease, used one plain MCP client
+session to add a cube and sphere, confirmed `MCP agent · connected` and the no-key composer copy,
+then **Undo AI turn** returned to the prior body count. The drive found the stale Claude-specific
+undo notice, fixed in `useTabEndpoint.js`; the E2E now asserts its agent-neutral replacement. The
+new E2E also verifies off/refused writes and phone/tablet/laptop access-control reachability.
+**Not manually driven**: gizmo selection/Get-selection, drag-in-progress, and scenario 23's
+closed-file merge workflow.
 
 **Last run**: 2026-10-14 UTC (`ai-021`) — **PASS for what a WebMCP transport could break; the bridge itself was not re-driven by hand** (`ai-live-bridge.e2e.js` passed in the full run after `useLiveBridge` moved onto the shared endpoint). Driven at laptop 1440x900 and phone 390x844 Chromium with a fake `document.modelContext`: 19 tools registered on load (no `capture_view`); an agent `create` landed beside the user's cube and cylinder; **Undo AI turn** (opened from the Assistant panel) removed only the agent's sphere (3 to 2) and the header **Undo** then read `Undo: Place Cylinder 1` and took the user's cylinder (1); switch off left 0 tools registered. Panel text with the API present: *A browser agent or Claude Code can drive this project; a key is optional.* With the API absent in dev the key sheet still opens, with no switch. **Not driven**: a real Claude Code, real Chrome with the WebMCP flag and the Inspector extension, Firefox/WebKit by hand, tablet width, the hosted-and-no-API row of the route table (needs a built app), and scenarios 10, 12, 17, 18 and 24 (not re-driven by hand; their e2e specs passed in the full run).
 **Last run**: 2026-10-14 UTC (`ai-012`) — **PASS, with a stand-in for Claude Code** at laptop 1440x900 Chromium (real jittered `page.mouse`; the MCP client stand-in over Streamable HTTP, not a real Claude Code; Safari not driven) and phone 390x844. A cold call returned the sentence with the menu path and a code; a wrong code was refused in words; the right one gave `Claude Code · connected`; cube + sphere landed (4 bodies with scenario 1's two); `get_selection` named the selected body; a call made while a Library drag was held was refused ("project changed… while this call waited") and the dropped cube was kept; **Undo AI turn** took back the whole Claude group and left the drop; phone showed the control disabled with `Claude Code must run on this device`, no horizontal scroll. Console/page errors: none. Not driven: a real Claude Code, Safari, the Chromium local-network prompt, step 5's gizmo-move-then-refusal order (covered by the e2e).

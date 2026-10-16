@@ -6,8 +6,21 @@ priority: high
 model: opus
 milestone: M9
 depends: [ai-012]
-status: open
+status: done
 ---
+
+> **What shipped (2026-10-16).** Explicit timed live access with no pairing code (15 min, 1 hour, this
+> tab, unlimited), agent-neutral wording on the sheet, chip and composer, and `docs/mcp.md` steps for any
+> MCP agent. The Copilot-specific failure was **never reproduced**; the design removes the pairing step
+> it most plausibly broke on. Finishing the task found and fixed three things the first pass missed:
+> (1) a client that vanished without the protocol's DELETE stayed counted forever, so the new
+> one-client rule refused every later call until the dev server restarted: `mcp/liveHttp.js` now closes
+> a session silent for five minutes, and the stand-in client sends the DELETE; (2) the panel's new
+> **Live MCP access…** row and an always-on `MCP access · off` chip pushed **Send** and the nav chrome
+> out of view in the phone/tablet sheet (`ai-chat`, `ai-capture` regressed): the panel entry is
+> laptop-only again and the chip appears once access is on; the no-key sheet is the narrow-width route;
+> (3) the help button and its anchor on the sheet were lost in the rename. A 15-minute lease also read
+> "until this tab closes" for a moment before the host replied.
 
 ## Goal
 

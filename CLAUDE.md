@@ -476,7 +476,7 @@ Two access paths, both planned, served by **one** framework-free tool registry
   host only** (`npm run dev`, `mcp/liveBridge.js` + `mcp/bridge.js`, registered with
   `npm run mcp:add -- --dev`): one writer (the open tab) with the AI as its client, not as a
   merge — each call lands as one `mcp`-origin batch, a group per `request` is one **Undo AI
-  turn**, and a pairing code gates the link. The standalone `mcp/server.js --live` host for a
+  turn**, and explicit timed access in WarpCad gates the dev-host link. The standalone `mcp/server.js --live` host for a
   built or hosted app stays reserved.
 - **BYOK chat** — the user's own API key in IndexedDB (the existing
   `src/storage/tokenStorage.js` credential store), called directly from the browser. An
