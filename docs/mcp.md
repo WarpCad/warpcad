@@ -23,18 +23,22 @@ limits, and mark what they add in History. With your own API key, you can also t
 
 | Way in | What it needs | Where it works | Changes appear |
 |---|---|---|---|
-| **Claude Code on a project file** (this page) | Claude Code, a WarpCad checkout with Node.js 22+, a saved `.ndjson` file | Any computer. Chrome or Edge merge the changes into the open project when you switch back; other browsers use **File ▾ → Merge file…** | In the file, marked **via mcp** |
+| **Claude Code on a project file** (this page) | Claude Code, a WarpCad checkout with Node.js 24+, a saved `.ndjson` file | Any computer. Chrome or Edge merge the changes into the open project when you switch back; other browsers use **File ▾ → Merge file…** | In the file, marked **via mcp** |
 | **[Live mode](#live-mode-claude-code-edits-the-project-you-have-open)** | Claude Code and WarpCad running under `npm run dev`, a pairing code | A desktop browser on the same computer as Claude Code | In the open tab as they land, marked **via mcp** |
 | **[Browser agents (WebMCP)](webmcp.md)** | Chrome with the WebMCP flag, and an agent that runs in the browser | Any copy of WarpCad, hosted or local, on desktop Chrome | In the open tab as they land, marked **via webmcp** |
 
 ## Try it: add a base plate from Claude Code
 
-You need a WarpCad checkout with Node.js 22 or newer, and a project saved as a file. In the
-app, **File ▾ → Save** (or **Download copy**) writes a `.ndjson` file.
+You need a WarpCad checkout (see [Run it yourself](../README.md#run-it-yourself) for how to
+clone it) with Node.js 24 or newer, [Claude Code](https://claude.com/claude-code) installed, and
+a project saved as a file. In the app, **File ▾ → Save** (or **Download copy**) writes a
+`.ndjson` file.
 
-1. Install the server's dependencies, once, from the WarpCad folder:
+1. Install the dependencies, once, from the WarpCad folder you cloned. The server uses the app's
+   own code, so it needs both installs:
 
    ```sh
+   npm install
    npm run mcp:install
    ```
 
@@ -167,10 +171,11 @@ must run on this device*.
 
 ### Try it: a cube with a sphere on top
 
-1. From your WarpCad folder, install the server's dependencies (once), register live mode, and
+1. From your WarpCad folder, install the dependencies (once), register live mode, and
    start the dev server:
 
    ```sh
+   npm install
    npm run mcp:install
    npm run mcp:add -- --dev
    npm run dev
@@ -272,8 +277,8 @@ Every message names the file and says that nothing was written to it.
   The file was cut off or edited by hand. The server refuses it, and so would the app. Restore a
   good copy (your autosave, or a copy in a [GitHub repository](save-load.md)).
 - **Can't open bracket.ndjson: This project was saved by a newer WarpCad. Update the app to open
-  it. The file was not changed.** Update your WarpCad checkout (`git pull`, then
-  `npm run mcp:install`).
+  it. The file was not changed.** Update your WarpCad checkout (`git pull`, then `npm install`
+  and `npm run mcp:install`).
 - **Another WarpCad MCP server (process 1234) is writing bracket.ndjson…** Another server was in
   the middle of a write for more than ten seconds. Try again. A lock left behind by a server that
   crashed is cleared automatically.

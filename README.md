@@ -255,9 +255,13 @@ and checked by `e2e/docs-media.spec.js`, so they stay in step with the app.
 
 ## Run it yourself
 
-Requires Node 24+.
+Requires Node 24+ and [Git LFS](https://git-lfs.com) (the animated help pictures are stored
+there). Install Git LFS and run `git lfs install` once per machine **before** you clone;
+without it the Help pages show broken GIFs.
 
 ```
+git clone https://github.com/WarpCad/warpcad.git
+cd warpcad
 npm install
 npm run dev
 ```

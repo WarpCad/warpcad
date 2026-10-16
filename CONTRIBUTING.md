@@ -50,8 +50,9 @@ Dynamic actions (a drag, a gizmo pull) are recorded as video and converted to a 
   Refresh the final-frame still with `npm run docs:movies -- --update-snapshots`.
 - **Budget:** each GIF is at most 12 s and 1.5 MB; the converter fails and says which knob to turn.
   `docs/media/manifest.json` records the source spec's hash so a stale GIF can be detected.
-- **Repo size:** GIFs are committed as plain files, not Git LFS. At roughly 1 MB each, 30 of them
-  is about 30 MB. Revisit LFS if `docs/media/` passes about 25 MB.
+- **Repo size:** GIFs are stored in Git LFS (`.gitattributes` routes `docs/media/**/*.gif` to
+  it), so install Git LFS and run `git lfs install` before cloning or committing a regenerated
+  GIF. Regenerate them at milestone ends rather than on every change, to limit LFS storage.
 - **A movie is not an acceptance check.** It replays the sequence its author scripted.
   `TODO/ACCEPTANCE.md` scenarios still have to be driven by hand.
 
