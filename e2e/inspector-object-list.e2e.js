@@ -464,7 +464,6 @@ test('the header no longer carries an Objects toggle, and still fits (Undo, Redo
   expect(overflow).toBeLessThanOrEqual(0)
   // The 44px + gap the toggle took is given back: the cluster is narrower than the six-control one.
   const cluster = /** @type {any} */ (await rectOf(page, 'document-bar'))
-  console.log(`[ui-049 header] document bar ${Math.round(cluster.right - cluster.left)}px wide at ${page.viewportSize()?.width}px`)
 })
 
 test('an empty document says so, and names the way out', async ({ page }) => {
@@ -576,7 +575,6 @@ test('hovering a body row lights that body on the canvas; leaving reverts it', a
   await expect(page.getByTestId('viewport')).toHaveAttribute('data-hover', sphere.id)
   // View state only: nothing selected, nothing written.
   await expect(page.getByTestId('viewport')).toHaveAttribute('data-selected-count', '0')
-  console.log(`[ui-049 hover body] ${changed} px changed`)
 
   await leaveAndExpectRevert(page, 'before')
 })
@@ -599,7 +597,6 @@ test('hovering the Pi\'s `ethernet` part row lights the jack only, not the whole
   await expect(page.getByTestId('viewport')).toHaveAttribute('data-hover', 'pi/ethernet')
   // The jack is a small part of the board: a part hover is not a group hover.
   expect(jack).toBeLessThan(whole * 0.6)
-  console.log(`[ui-049 ${testInfo.project.name}] hover whole Pi ${whole} px, ethernet only ${jack} px`)
   await leaveAndExpectRevert(page, 'before')
 })
 
@@ -619,7 +616,6 @@ test('hovering a Bolt\'s hidden `tap` row with Show hidden parts off shows the c
 
   const changed = await hoverAndMeasure(page, 'objects-part-item-bolt-tap', 'hover-tap', 'before')
   await expect(page.getByTestId('viewport')).toHaveAttribute('data-hover-transient', 'tap')
-  console.log(`[ui-049 hover hidden tap] ${changed} px changed`)
 
   await leaveAndExpectRevert(page, 'before')
   await expect(page.getByTestId('viewport')).toHaveAttribute('data-hover-transient', '')
@@ -632,7 +628,6 @@ test('hovering a cube fully inside a larger cube visibly changes the canvas — 
   await snapshotCanvas(page, 'before')
   const changed = await hoverAndMeasure(page, 'objects-line-inner', 'hover-inner', 'before')
   expect(Number(await page.getByTestId('viewport').getAttribute('data-hover-twins'))).toBeGreaterThan(0)
-  console.log(`[ui-049 hover enclosed] ${changed} px changed`)
   await leaveAndExpectRevert(page, 'before')
   await expect(page.getByTestId('viewport')).toHaveAttribute('data-hover-twins', '0')
 })
@@ -1187,9 +1182,6 @@ test('an enclosed Raspberry Pi: expand it, address `ethernet`, add the case FIRS
   expect(Math.abs(measured - kernel.shellMinusPi)).toBeGreaterThan(1000)
   expect(/** @type {any} */ (result).bounds).toBe(shellBefore?.bounds)
   expect(await page.evaluate(() => window.__notReloaded)).toBe(true)
-  console.log(
-    `[ui-049 ${testInfo.project.name}] shell ${kernel.shellVolume.toFixed(3)} - ethernet ${kernel.ethernetVolume.toFixed(3)} = ${measured.toFixed(3)} (kernel ${kernel.shellMinusEthernet.toFixed(3)}); whole-board cut would be ${kernel.shellMinusPi.toFixed(3)}`,
-  )
 
   await page.getByTestId('undo-button').click()
   await expect(page.getByTestId('viewport')).toHaveAttribute('data-body-count', '3')
@@ -1340,8 +1332,5 @@ test('phone-first layout with a fully expanded Pi: chevrons and child rows are 4
   await page.getByTestId('objects-part-pi-hole4').click()
   expect(await subPartOf(page)).toEqual({ bodyId: 'pi', partName: 'hole4' })
 
-  console.log(
-    `[ui-049 ${testInfo.project.name}] Pi parts ${kernel.partCount} (${kernel.hiddenCount} hidden); sheet client ${/** @type {any} */ (scroll).client}px vs content ${/** @type {any} */ (scroll).scroll}px; chevron ${Math.round(/** @type {any} */ (chevron).right - /** @type {any} */ (chevron).left)}x${Math.round(/** @type {any} */ (chevron).bottom - /** @type {any} */ (chevron).top)}`,
-  )
   await page.screenshot({ path: join(SNAPSHOT_DIR, `inspector-object-list-parts-${testInfo.project.name}.png`) })
 })

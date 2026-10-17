@@ -304,7 +304,6 @@ describe('scale', () => {
     const merged = mergeStates(left.state, right.state)
     const order = liveOrder(merged)
     const elapsed = performance.now() - started
-    console.log(`merge + order of two 5 000-entry states: ${elapsed.toFixed(1)} ms`)
     expect(order.length).toBe(5000 - Math.ceil(4999 / 7))
     expect(elapsed).toBeLessThan(2000)
   })

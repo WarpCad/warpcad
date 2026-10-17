@@ -107,7 +107,6 @@ describe('keyBetween', () => {
 
 describe('key growth (TODO/data-009 asks for these two numbers)', () => {
   /** @type {Record<string, number>} */
-  const measured = {}
 
   it('1 000 inserts at one gap stay constant length (one replica, each after the last)', () => {
     const x = keyBetween(null, null, { counter: 1, replica: BASE })
@@ -119,7 +118,6 @@ describe('key growth (TODO/data-009 asks for these two numbers)', () => {
       previous = keyBetween(previous, y, c.next())
       longest = Math.max(longest, previous.length)
     }
-    measured.appendRun = longest
     // Four segments: the base's second row is a member of its first, so the gap needs an escape.
     expect(longest).toBeLessThanOrEqual(50)
   })
@@ -134,7 +132,6 @@ describe('key growth (TODO/data-009 asks for these two numbers)', () => {
       after = keyBetween(x, after, c.next())
       longest = Math.max(longest, after.length)
     }
-    measured.rightAfterOneRow = longest
     expect(longest).toBeLessThanOrEqual(40)
   })
 
@@ -149,7 +146,6 @@ describe('key growth (TODO/data-009 asks for these two numbers)', () => {
       first = keyBetween(null, first, c.next())
       longest = Math.max(longest, first.length)
     }
-    measured.alternatingFront = longest
     expect(longest).toBeLessThanOrEqual(40)
   })
 
@@ -165,7 +161,6 @@ describe('key growth (TODO/data-009 asks for these two numbers)', () => {
       previous = keyBetween(previous, y, c.next())
       longest = Math.max(longest, previous.length)
     }
-    measured.alternatingAppend = longest
     expect(longest).toBeLessThanOrEqual(60)
   })
 
@@ -181,9 +176,7 @@ describe('key growth (TODO/data-009 asks for these two numbers)', () => {
       else high = key
       longest = Math.max(longest, key.length)
     }
-    measured.zigzag = longest
     // Linear, not super-linear: one segment (about 12 characters) per ~11 halvings at worst.
     expect(longest).toBeLessThan(1000 * 12)
-    console.log('position-key growth after 1 000 inserts (longest key, characters):', JSON.stringify(measured))
   })
 })
