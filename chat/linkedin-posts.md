@@ -3060,3 +3060,19 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** "no @license comment / no NOTICE file" → `TODO/done/build-011-third-party-notices.md` Goal section (a 2026-10-17 check of a local `dist/`); generator behaviour → `scripts/third-party-notices.spec.js`; 80,890 bytes → `dist/THIRD-PARTY-NOTICES.txt` from this session's build; plugin, dev serving and service-worker denylist → `scripts/vite-plugin-notices.mjs`, `vite.config.js`; dot at 390 px → phone footer snapshot reviewed this session; commit 5546188
 **To Add:** the Help footer at phone width (`e2e/help.e2e.js-snapshots/help-footer-chromium-phone-darwin.png`)
+
+
+## [2026-10-17T19:55:00Z] — Naming the parts you are compatible with
+
+**Post:** A CAD app that models a Raspberry Pi mounting plate has to say "Raspberry Pi" somewhere. A pre-publish review counted the third-party names in WarpCad's source: Raspberry Pi 57 times, iPhone 37, Apple 17, Pixel 8, Galaxy 4, Samsung 2, Adafruit 3, Pimoroni 1. Naming a part you fit is ordinary nominative use, and the review found no brand logos in the tree. What was missing was any statement of it.
+
+LICENSING.md now has a "Trademarks and names" section: each owner, the services the app calls (Claude, GitHub, Sentry, Google Analytics), and one rule: a name says what a part is compatible with, and WarpCad is not affiliated with or endorsed by any of them. The README and the hardware-library Help page link to it, and CONTRIBUTING.md adds that no third-party logo goes into the repository without a licence check.
+
+A prose notice goes stale the first time someone adds a new brand name, so a unit spec scans src/ and fails when a listed name is missing from the section. One honest gap: the owner names came from the task text, and I still need to check each against the owner's own trademark page.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #OpenSource #Licensing
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** mention counts → `TODO/done/docs-023-trademark-notice.md` Goal section (the 2026-10-17 review); section and guard → `LICENSING.md`, `scripts/trademarkNotice.spec.js`; owner-name check still open → `TODO/VERIFY.md`; commit 1e94338
+**To Add:** none

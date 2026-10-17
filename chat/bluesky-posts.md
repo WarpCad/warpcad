@@ -2137,3 +2137,13 @@ Hooked up Sentry to the browser build, with the rule that a build with no DSN se
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** generator, sorted output and per-package guard → `scripts/third-party-notices.spec.js` (8 tests, passing this session); file size and Help link → `dist/THIRD-PARTY-NOTICES.txt` 80,890 B and `e2e/help.e2e.js`, commit 5546188
 **To Add:** none
+
+
+## [2026-10-17T19:55:00Z] — A trademark notice that a test keeps honest
+
+**Post:** WarpCad names real parts (Raspberry Pi, Adafruit, Pimoroni) and phones (iPhone, Pixel, Galaxy). LICENSING.md now says who owns each name and that nothing implies an endorsement. A unit spec fails if a brand name appears in src/ without being listed there. #OpenSource Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** guard and name list → `scripts/trademarkNotice.spec.js`; section → `LICENSING.md` "Trademarks and names", commit 1e94338
+**To Add:** none
