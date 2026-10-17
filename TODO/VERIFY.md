@@ -34,6 +34,15 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### perf-002 — Bundle load time on the real deploy (2026-10-17 15:55)
+
+Every number in `bench/results/2026-10-17-perf-002.md` came from headless engines with software GL, throttling emulated in `vite preview` (HTTP/1.1, no TLS). Nothing here can be covered by a scripted scenario; it needs the real host and a real device.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | Run `node bench/bundle-load.mjs` against the real GitHub Pages deploy (HTTP/2, real TLS) to see whether the fragmented builds' request cost shrinks and whether the ~330 ms defer-boot gain holds (needs the bench pointed at a URL; it serves local `dist/` only today). | Open | |
+| 2 | On a real phone over a real mobile connection, load the hosted app cold and judge by eye whether the first usable frame feels any different once `perf-003` ships. | Open | |
+
 ### build-007 — Google Analytics 4 page views (2026-10-17 12:35)
 
 No GA property or Measurement ID existed in the implementing session and Google was never contacted, so nothing has reached Google Analytics. Everything short of that is covered by unit specs (`gtag` mocked), the production-build CSP specs (Google hosts stubbed) and scenario 1. These steps are the owner's.

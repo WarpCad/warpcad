@@ -5,8 +5,25 @@ kind: finding
 priority: medium
 model: opus
 depends: []
-status: open
+status: done
 ---
+
+> **Shipped (2026-10-17): investigation only, no source change.** The >500 kB warning alone does not
+> justify a split: the 1,825 kB entry chunk is ~70 % code the first frame needs (three.js, `src/core`,
+> on-screen components, Vue, `@jscad/modeling`), vendor chunks change nothing in Chromium/WebKit, cost
+> extra requests and still leave a 1,091 kB chunk, and repeat visits come from the service worker with
+> no network. What does pay is not shipping code unused at boot: deferring Sentry, the AI agent, the
+> WebMCP registry and a dev-only scripted provider (build **defer-boot**) makes a cold first visit on a
+> slow link ~330 ms (~9 %) faster in Chromium, Firefox and WebKit (3,724 to 3,390 / 3,912 to 3,581 /
+> 3,777 to 3,436 ms at `slow4g`, medians of 7), with repeat and fast loads within spread; page JS on
+> the wire 601.4 to 534.8 kB. Delivered: `bench/bundle-load.mjs`, `bench/bundle-modules.mjs`,
+> `bench/results/2026-10-17-perf-002.md`. Filed as `TODO/perf-003-defer-code-unused-at-boot.md`.
+> **Not measured**: a real phone, GPU or network (headless, software GL, throttling emulated in the
+> server); HTTP/2 (`vite preview` is HTTP/1.1, GitHub Pages is HTTP/2); builds with a Sentry DSN or GA
+> id; an AI turn after deferral; phone and tablet viewports; long tasks after usable. The machine had
+> ~1.3 of 14 cores busy with other processes. Acceptance scenario 1 re-driven on the production build:
+> PASS. `chunkSizeWarningLimit` left alone.
+
 
 ## Problem
 

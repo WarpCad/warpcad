@@ -3027,3 +3027,20 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** tests and build checks → `src/analytics/analytics.spec.js`, `scripts/analytics-build.spec.js`, `e2e/csp.e2e.js`; decision and measurements → `docs/decisions/analytics.md`
 **To Add:** none
+
+
+## [2026-10-17T15:55:00Z] — Measuring a bundle warning before acting on it
+
+Vite warns that WarpCad's entry chunk is 1.8 MB, over its 500 kB line. The usual advice is to split it, so before touching anything I wrote a benchmark that loads the production build in Chromium, Firefox and WebKit, cold and as a returning visitor through the service worker, unthrottled and on an emulated slow mobile link, and compared five alternative builds made in scratch copies.
+
+The warning alone did not justify a split. About 70 percent of the chunk is code the first frame needs, so vendor chunks changed nothing in Chromium or WebKit, added requests, and still left a chunk over the limit. A returning visit comes from the service worker with no network, so chunking cannot help it. What did help was narrower: four modules that load at boot and are never used there (error reporting, the AI agent, the tool registry for browser-hosted agents, a dev-only test provider). Deferring them made a cold first visit about 330 ms faster, around 9 percent, in all three engines, with no cost on repeat or fast loads.
+
+The honest limits: headless engines with software rendering on one laptop, throttling emulated on a local server over HTTP/1.1, no real phone, and no build with the error-reporting key set. The change is filed as a follow-up with those numbers as its targets.
+
+Built with Claude Code, reviewed by me.
+
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #WebPerformance #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** report with tables and the not-measured list → `bench/results/2026-10-17-perf-002.md`; bench → `bench/bundle-load.mjs`, `bench/bundle-modules.mjs`
+**To Add:** none

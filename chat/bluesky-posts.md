@@ -2117,3 +2117,13 @@ Hooked up Sentry to the browser build, with the rule that a build with no DSN se
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** loader and gates → `src/analytics/analytics.spec.js`; CSP additions → `scripts/analytics-build.spec.js`, `e2e/csp.e2e.js`; decision → `docs/decisions/analytics.md`
 **To Add:** none (not yet run against a real GA property)
+
+
+## [2026-10-17T15:55:00Z] — The 500 kB warning did not cost load time; unused boot code did
+
+**Post:** Vite warned my entry chunk is 1.8 MB. I measured before splitting: 3 engines, cold vs repeat, throttled link. Vendor chunks changed nothing in Chromium/WebKit. Deferring 4 modules unused at boot saved ~330 ms (9%) cold. No real phone or HTTP/2 yet. #WebPerf Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #WebPerf #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** method, tables and the not-measured list → `bench/results/2026-10-17-perf-002.md`; bench → `bench/bundle-load.mjs`; follow-up → `TODO/perf-003-defer-code-unused-at-boot.md`
+**To Add:** none (headless engines on one laptop; no real device or HTTP/2 yet)
