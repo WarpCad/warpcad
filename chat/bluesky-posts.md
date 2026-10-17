@@ -1969,3 +1969,22 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** union left 10/49/6/30 open edges, twisted section watertight, 198,612 vertices at 200 mm → `docs/decisions/gears.md` core-047 addendum; interference 0 mm^3 across 12 positions → `src/core/kernel/recipes/gear.wormPair.spec.js`
 **To Add:** screenshot of a 2-start worm meshed with its wheel
+
+## [2026-10-16T23:40:00Z] — The backlog runner prints its plan first, and gears move to the end
+
+**Post:** My task runner for WarpCad now prints the order it will work in before it starts, and doesn't stop to ask. I read the list, interrupt if something looks wrong. The gear tasks moved to the very end of the queue so the rest of the backlog clears first.
+
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #OpenSource #CAD
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** diff only
+**To Add:** none
+
+## [2026-10-17T00:09:20Z] — WARPCAD_LIVE_BRIDGE=0 turns off the dev live MCP bridge
+
+**Post:** WarpCad's dev server now has a switch for its live MCP endpoint: WARPCAD_LIVE_BRIDGE=0 npm run dev leaves /mcp out entirely. I wanted to test Chrome's WebMCP tools with nothing else listening. On by default.
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #OpenSource #CAD
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** off for 0/false/off/no → `mcp/liveBridge.spec.js`; bridge landed 2026-10-15 → git log (ai-012)
+**To Add:** none

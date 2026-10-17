@@ -2788,3 +2788,31 @@ The interference check meshes the pair through 12 positions: 0 mm^3 for right-ha
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** open-edge counts, vertex budget, interference numbers → `docs/decisions/gears.md` core-047 addendum; the pair proof → `src/core/kernel/recipes/gear.wormPair.spec.js`
 **To Add:** screenshot of a 2-start worm meshed with its wheel
+
+## [2026-10-16T23:40:00Z] — The backlog runner prints its plan first, and gears move to the end
+
+**Post:** The unattended runner I use on WarpCad's backlog now prints the full order of what it expects to do before it touches anything. It builds the list by dry-running its own pick-the-next-task scan, counting each planned task as done so dependency chains show up in order, and it marks where batches check in and where a milestone's hand-test pause falls.
+
+It does not wait for an answer. I read the plan and interrupt if I disagree, which keeps the overnight run unattended and still tells me what to expect.
+
+I also moved the whole gears milestone to the end of the roadmap, because the runner follows table order and I want everything else finished first. Built with Claude Code, reviewed by me.
+
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #OpenSource #DeveloperTools
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** diff only
+**To Add:** a sample printed plan
+
+## [2026-10-17T00:09:20Z] — WARPCAD_LIVE_BRIDGE=0 turns off the dev live MCP bridge
+
+**Post:** WarpCad's dev server always started a local MCP endpoint for Claude Code to edit the open tab. That got in the way when I wanted to test Chrome's own WebMCP tools by themselves.
+
+WARPCAD_LIVE_BRIDGE=0 npm run dev now registers no bridge plugin at all, so /mcp returns 404 and the tab opens no bridge socket. The app's WebMCP tools register as before. Unset, or any value other than 0/false/off/no, keeps it on.
+
+It is documented in docs/mcp.md. Built with Claude Code, reviewed by me.
+
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #OpenSource #DeveloperTools
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** /mcp 404 when opted out → `mcp/liveBridge.spec.js`; documented → `docs/mcp.md` diff
+**To Add:** none

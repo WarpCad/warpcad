@@ -27,6 +27,32 @@ import { BRIDGE_EVENT } from '../src/ai/bridge/protocol.js'
 import { createBridge, devAllowList } from './bridge.js'
 
 /**
+ * Whether the live bridge is registered, from the server-side `WARPCAD_LIVE_BRIDGE` setting. On
+ * unless it is `0`, `false`, `off` or `no` (any case): turn it off to test Chrome's WebMCP without
+ * the local `/mcp` endpoint beside it. It never reaches the browser, and the app's own WebMCP
+ * registration (`src/ai/`) does not read it.
+ *
+ * @param {string | undefined} raw
+ * @returns {boolean}
+ */
+export function liveBridgeEnabled(raw) {
+  return !['0', 'false', 'off', 'no'].includes((raw ?? '').trim().toLowerCase())
+}
+
+/**
+ * The plugin list `vite.config.js` spreads in: the bridge, or nothing when it is opted out. With
+ * nothing registered there is no `/mcp` middleware and no `warpcad:bridge` socket handler.
+ * `vite preview` never ran the bridge (`configureServer` is a dev-server hook), so the setting
+ * changes nothing there; it is honored in both because the plugin list is shared.
+ *
+ * @param {Record<string, string | undefined>} [env]
+ * @returns {import('vite').Plugin[]}
+ */
+export function liveBridgePlugins(env = process.env) {
+  return liveBridgeEnabled(env.WARPCAD_LIVE_BRIDGE) ? [warpcadLiveBridge()] : []
+}
+
+/**
  * @returns {import('vite').Plugin}
  */
 export function warpcadLiveBridge() {

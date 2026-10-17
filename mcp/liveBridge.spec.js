@@ -10,7 +10,7 @@ import { createTabEndpoint } from '../src/ai/bridge/tabEndpoint.js'
 import { unwrapDocumentData } from '../src/ai/documentData.js'
 import { createDocument } from '../src/core/document.js'
 import { serializeProject } from '../src/core/project.js'
-import { warpcadLiveBridge } from './liveBridge.js'
+import { liveBridgeEnabled, liveBridgePlugins, warpcadLiveBridge } from './liveBridge.js'
 
 /**
  * The live bridge end to end in one process (`TODO/ai-012`), **driven** rather than wired by
@@ -168,5 +168,38 @@ describe('the Vite dev host (warpcadLiveBridge)', () => {
     expect(otherLocal.status).toBe(403)
     const own = await fetch(`http://127.0.0.1:${port}/mcp`, { ...init, headers: { ...init.headers, origin: `http://localhost:${port}` } })
     expect(own.status).toBe(200)
+  })
+})
+
+describe('the opt-out (WARPCAD_LIVE_BRIDGE)', () => {
+  it('is on by default and for any value that is not an explicit off', () => {
+    for (const raw of [undefined, '', '1', 'true', 'on', 'yes']) expect(liveBridgeEnabled(raw)).toBe(true)
+    expect(liveBridgePlugins({}).map((plugin) => plugin.name)).toEqual(['warpcad-live-bridge'])
+  })
+
+  it('registers nothing when set to 0, false, off or no', () => {
+    for (const raw of ['0', 'false', 'OFF', ' no ']) {
+      expect(liveBridgeEnabled(raw)).toBe(false)
+      expect(liveBridgePlugins({ WARPCAD_LIVE_BRIDGE: raw })).toEqual([])
+    }
+  })
+
+  it('an opted-out dev server has no /mcp endpoint and no bridge plugin (so no socket handler)', async () => {
+    await server.close()
+    const quiet = await createServer({
+      configFile: false,
+      root: ROOT,
+      logLevel: 'silent',
+      appType: 'custom',
+      optimizeDeps: { noDiscovery: true, include: [] },
+      server: { host: '127.0.0.1', port: 0, strictPort: false },
+      plugins: liveBridgePlugins({ WARPCAD_LIVE_BRIDGE: '0' }),
+    })
+    server = quiet
+    await quiet.listen()
+    const optedOutPort = /** @type {import('node:net').AddressInfo} */ (quiet.httpServer?.address()).port
+    const response = await fetch(`http://127.0.0.1:${optedOutPort}/mcp`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' })
+    expect(response.status).toBe(404)
+    expect(quiet.config.plugins.some((plugin) => plugin.name === 'warpcad-live-bridge')).toBe(false)
   })
 })

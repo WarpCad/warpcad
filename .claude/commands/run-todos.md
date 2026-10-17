@@ -14,6 +14,9 @@ invocation) and it applies here too.
 
 Running `/run-todos` once, outside a loop, does exactly one tick and stops.
 
+**Every run starts by printing the planned order of everything it expects to do** (Step
+0.5) and then goes straight on — the user reads it and interrupts if they disagree.
+
 ---
 
 ## Standing authorization note — read this before the first run
@@ -66,6 +69,43 @@ and prompt caching persist) — "start cold" here means *re-verify facts from fi
 *discard the process*. If the loop has been running long enough that context has been
 auto-compacted more than once or twice, that's fine and expected; don't try to prevent
 it.
+
+---
+
+## Step 0.5 — Print the planned order (never stops the run)
+
+The user wants to know what to expect before the loop starts working, and will interrupt
+if they see something they don't like. So **print the plan, then carry straight on to
+Step 1 in the same tick — no question, no pause, no go/no-go on the plan itself.** (The
+end-of-batch check-in in Step 6 is unchanged; this is only a preview.)
+
+Print it on the **first tick of a session** (nothing in this conversation has printed a
+plan yet) and on **the first tick of every new batch** (Step 1's "no in-progress batch"
+case). On any other tick, print nothing here beyond the usual one-line "next up".
+
+How to build it — a dry run of Step 2, writing nothing:
+
+1. Read `TODO/ROADMAP.md`'s milestone tables in file order and each open id's
+   `TODO/<id>-*.md` frontmatter (`depends`, `model`).
+2. Simulate the scan: repeatedly take the earliest not-`✅` id whose `depends` are all
+   done *or already placed earlier in this plan*, append it, and treat it as done. Keep
+   going until nothing more is eligible. This is exactly the order Step 2 will produce
+   if every task succeeds.
+3. Print a numbered list, one line per id: `n. <id> — <title, shortened> (<model>,
+   <milestone>)`. Then mark, inline, where the run will **pause or change character**:
+   - a `── batch check-in ──` line after every **Batch size** tasks (from
+     `TODO/BUDGET.md` Config), counting from the current batch's progress;
+   - a `── milestone ends: free-form human pass owed ──` line after the last open row
+     of each milestone (Step 3's rule), since the loop pauses there;
+   - a `⚠` suffix on any id that is `model: opus` (it splits into two agents), touches a
+     subsystem a closed finding was filed against, or is flagged as needing a human.
+4. After the list, print **Blocked** (ids with a dependency that nothing in the plan
+   satisfies, and what they wait on) and **Skipped** (anything unscheduled / reserved
+   with no file), so nothing open is missing from the output unexplained.
+
+Keep it to one screen's worth: if the plan is longer than ~40 ids, print the first ~25
+in full and then a compressed tail (`… 18 more: M9 ×3, M10 ×2, Findings ×1, M11 gears
+×12`) grouped by milestone. Never ask whether to proceed.
 
 ---
 

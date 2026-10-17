@@ -3,7 +3,7 @@ import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import { VitePWA } from 'vite-plugin-pwa'
 
-import { warpcadLiveBridge } from './mcp/liveBridge.js'
+import { liveBridgePlugins } from './mcp/liveBridge.js'
 import { HELP_PRECACHE_GLOBS, helpRuntimeCaching, warpcadHelp } from './scripts/vite-plugin-help.mjs'
 import { manifestIcons } from './scripts/app-icons.mjs'
 
@@ -58,7 +58,8 @@ export default defineConfig({
     devContentSecurityPolicy(),
     // `TODO/ai-012`: Claude Code edits the open tab, under `npm run dev` only (`apply: 'serve'`;
     // `vite build` output carries nothing of it). MCP at /mcp, the tab over the HMR socket.
-    warpcadLiveBridge(),
+    // `WARPCAD_LIVE_BRIDGE=0 npm run dev` leaves it out (default on); see docs/mcp.md.
+    ...liveBridgePlugins(),
     vue(),
     // `TODO/ui-061`: docs/*.md rendered to help/<page>.html at build time (dev: on request).
     warpcadHelp(),

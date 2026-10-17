@@ -202,6 +202,23 @@ reach the loopback endpoint may read and change the open project.
 
 ![WarpCad with the Assistant panel's "MCP agent · connected" chip, a cube with a sphere on top in the viewport, and History rows "Cube 1 — placed" and "Sphere 1 — placed", each marked "via mcp".](./screenshots/ai-live-bridge.png)
 
+### Turn the live endpoint off
+
+The live endpoint is on by default under `npm run dev`. To run the dev server without it, for
+example to test Chrome's WebMCP tools with nothing else listening, set `WARPCAD_LIVE_BRIDGE=0` in
+the environment of the command:
+
+```sh
+WARPCAD_LIVE_BRIDGE=0 npm run dev
+WARPCAD_LIVE_BRIDGE=0 npm run preview
+```
+
+`0`, `false`, `off` and `no` turn it off; anything else, or leaving it unset, keeps it on. With it
+off, `http://127.0.0.1:5183/mcp` is not served and the tab opens no bridge connection. The browser
+agents (WebMCP) switch in the Assistant header is unaffected and keeps working. `npm run preview`
+serves the production build, which never carried the live endpoint, so the setting makes no
+difference there; it is accepted so the same command line works for both.
+
 ### Using another agent (Copilot, or any MCP client)
 
 Nothing here is specific to Claude Code: WarpCad's live endpoint is a standard MCP server over HTTP,
