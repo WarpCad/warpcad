@@ -37,47 +37,10 @@ don't rebuild the estimation math without one.
   for the five-minute free-form human pass from `CLAUDE.md`'s Verification section
   before the next batch starts — even if the task-count/wall-clock limits above hadn't
   been hit yet. See `.claude/commands/run-todos.md`.
-- **Overnight run of 2026-10-16 only. The user asked for this explicitly ("M16 will run and then the
-  gears tonight without interruption").** It holds until the user's next check-in, then delete
-  this bullet.
-  - **Re-waived 2026-10-16 (user, answering `/run-todos` planning questions).** The waiver below
-    applies again to the run that starts now: no Batch size, no wall-clock cap, no check-ins.
-    M16, M17 and M10 boundaries are logged as owed and carried past, not stopped on. The planned
-    order is M16, M17, M9 (`ui-071`), M10, Findings (`testing-004`, `build-004`, `build-007`,
-    `perf-002`, `build-003`), then M11 gears.
-  - **M16 boundary**: when `ui-068` completes M16, do **not** hold for the five-minute free-form
-    pass. Write in the Runner Log that it is still owed, and carry on into M11. This is the "user
-    explicitly says to proceed without it" case in `run-todos.md` Step 6. M11's and M17's boundaries
-    are waived the same way (see "Budget waived" below), and each pass is still owed.
-  - **Budget waived for this run (user, 2026-10-16: "waive the budget for tonight").** Ignore
-    **Batch size** and the **Hard wall-clock cap**. Treat the night as one batch: after each task,
-    Step 5 loops straight back to Step 2 with no check-in and no 20-30 minute wakeup. **Milestone
-    boundaries don't stop it either.** That covers M16, M11 and M17. When a milestone completes,
-    write in the Runner Log that its five-minute free-form pass is owed, then carry on to the next
-    table. The run ends only on a real stop (below), on a fully blocked backlog, or when the backlog
-    is empty.
-  - **Usage-window pause: resume when the new 5-hour window opens.** Hitting the subscription
-    usage limit is a pause, never a failure. That applies to a refusal on this loop's own turn and
-    to a `/fix-todo` agent that ends early with a usage/rate-limit error.
-    - **Heartbeat.** On the first tick of the run, `CronList`. If no job's prompt is `/run-todos`,
-      `CronCreate` a recurring job with cron `7,27,47 * * * *` and prompt `/run-todos`. Cron jobs
-      live only in this session and fire only while it is idle. While the limit holds, its turns are
-      refused; the first one after the window reopens resumes the run, within about 30 minutes of
-      the reset. It doesn't depend on a `ScheduleWakeup` surviving the refused turn.
-    - **Mark the task before starting it.** Before spawning an agent for an id, write
-      `in progress: <id>` in the current Runner Log row's `ended because` cell. Replace it when the
-      id commits.
-    - **Resume, don't restart.** At Step 0, if the last row still says `in progress: <id>` and
-      `git log` has no commit for that id, that id runs next, ahead of the table scan. If
-      `git status` shows uncommitted work, brief the agent to continue `/fix-todo <id>` from the
-      working tree as it stands (re-read the spec, check what is already done, never discard or
-      reset changes). Append `resumed after usage limit at <UTC time>` to the row.
-    - **Real stops end the heartbeat.** A real stop is: a test failure other than the
-      `testing-004` timeout above, an unresolved acceptance-scenario FAIL, a task that stops to ask
-      the user (for example, `core-060` finding no acceptable wood-screw chart), a fully blocked
-      backlog, or an empty backlog. On any of these, `CronDelete` the `/run-todos` job and write
-      `STOPPED — awaiting user` in the row. If a heartbeat fires anyway and the last row says
-      `STOPPED — awaiting user`, reply with one line and do nothing else.
+- **Decided 2026-10-17:** the overnight no-limits waiver (2026-10-16) is removed and the batch of 3 is
+  restored: 3 tasks or 3 hours per run, then a check-in with an explicit go/no-go, and a stop at every
+  milestone boundary for the five-minute free-form pass. The usage-limit pause/resume rules and the
+  heartbeat described in the removed text no longer apply unless you ask for another overnight run.
 
 Edit **Batch size** any time. Everything below this line is a log, not logic the runner
 reads back — treat it as a human-readable history of what ran.

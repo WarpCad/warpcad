@@ -61,7 +61,7 @@ run at all); see `TODO/done/build-001-project-scaffold.md`'s own note.
 
 ## Next up — recommended TODOs
 
-*Last reviewed 2026-10-17 (core-065 taken out of the push prerequisites). Ranked by the user's order of 2026-10-17: today's goal first ([M18](#m18--launch-publish-appwarpcadcom-sentry-and-ga)), with the four clean-up tasks that still gate the push (`build-011`, `docs-023`, `docs-024`, `build-012`) from the pre-publish review **before** the push to GitHub, then every other open task, then the gears last (as decided 2026-10-16).*
+*Last reviewed 2026-10-17 (the GitHub repository is confirmed to exist). Ranked by the user's order of 2026-10-17: today's goal first ([M18](#m18--launch-publish-appwarpcadcom-sentry-and-ga)), with the four clean-up tasks that still gate the push (`build-011`, `docs-023`, `docs-024`, `build-012`) from the pre-publish review **before** the push to GitHub, then every other open task, then the gears last (as decided 2026-10-16).*
 
 **Today's goal (2026-10-17):** publish to GitHub, make `warpcad.com` work, and get Sentry and GA working.
 
@@ -72,7 +72,7 @@ run at all); see `TODO/done/build-001-project-scaffold.md`'s own note.
 | 3 | ▶ [`docs-023`](docs-023-trademark-notice.md) Trademarks notice | Clean-up before the push | sonnet |
 | 4 | ▶ [`docs-024`](docs-024-ported-code-provenance-statement.md) Provenance statement for ported V1 code | Clean-up before the push. **Owner step first**: confirm no outside contributor's code is in the V1 libraries | sonnet |
 | 5 | ▶ [`build-012`](build-012-cut-lfs-bandwidth-in-ci-and-pages.md) Cache the LFS media instead of fetching it in four jobs per push | Clean-up before the push. **Owner step first**: read the free LFS quota | sonnet |
-| 6 | ▶ **Publish.** Merge into `main`, run the CI steps locally, push `main` to `github.com/WarpCad/warpcad` | Waits for rows 2–5 (row 1 parked) | — |
+| 6 | ▶ **Publish.** Merge into `main`, run the CI steps locally, push `main` to `github.com/WarpCad/warpcad` | Waits for rows 2–5 (row 1 parked). **Decided 2026-10-17:** the owner says the GitHub repository `WarpCad/warpcad` exists. No remote is configured in this clone yet, so `git remote add origin` is part of this step. | — |
 | 7 | ▶ [`build-010`](build-010-serve-at-app-warpcad-com.md) Serve at `app.warpcad.com` (`public/CNAME`, guard, Pages custom domain) | The domain | sonnet |
 | 8 | ▶ [`build-009`](build-009-drop-sentry-vite-plugin.md) Drop the Sentry build plugin (FSL licence), upload maps with `curl` | Must land before Sentry is switched on | sonnet |
 | 9 | Owner: Sentry project, DSN, token and variables, then a Pages run (`build-004` VERIFY rows 1–5) | Sentry working | — |
@@ -92,11 +92,14 @@ run at all); see `TODO/done/build-001-project-scaffold.md`'s own note.
 | 18 | ▶ [`ui-074`](ui-074-repeat-note-wording.md) Repeat note wording | Decided 2026-10-17; small | sonnet |
 | 19 | ▶ [`perf-003`](perf-003-defer-code-unused-at-boot.md) Defer code unused at boot (Sentry included) | Ready; faster cold start once Sentry is live | sonnet |
 | 20 | ▶ [`build-003`](build-003-native-mobile-shell-research.md) Research a native mobile shell | Research only; no code | opus |
+| 20b | ▶ [`testing-005`](testing-005-triage-verify-md-open-rows.md) Triage the ~347 Open rows in `VERIFY.md` | Decided 2026-10-17; keeps the manual queue small | sonnet |
 | 21+ | Gears: [`core-048`](core-048-gear-hub-bore-keyway-and-set-screw.md), [`ui-057`](ui-057-gears-library-section-and-inspector.md), [`ui-058`](ui-058-gear-mesh-operation.md), [`testing-002`](testing-002-acceptance-scenario-19-gear-train.md), [`core-049`](core-049-planetary-gear-set.md), [`core-062`](core-062-herringbone-relief-groove.md), [`docs-021`](docs-021-media-gears-and-porting-guide.md) | M11 runs last, as decided 2026-10-16 | — |
 
 **Runner order** (`/run-todos` follows table order): [M18](#m18--launch-publish-appwarpcadcom-sentry-and-ga) first, then the milestone tables and Findings as they appear in this file, then [M11](#m11--gears-the-jscad-gears-library-ported-and-extended) last. The tasks in the table above are the ones to take in that order. Inside M18 the five clean-up rows come first and the push waits for all five.
 
 **Decided 2026-10-17:** the owner reports the M16 and M17 five-minute free-form passes done (details of what was tried and found not yet given; any issue becomes its own TODO). **Owed to you, not to an agent:** the M9, M10 passes (carried past per `TODO/BUDGET.md`); the M5–M8 and M12 passes (recorded as owed; whether any was done since is not written down here). The clean-up owner steps (`docs-024` authorship check, `build-012` quota check, `core-065` pilot-hole question) and the Sentry and GA owner rows are in M18.
+
+**Decided 2026-10-17:** the owner reports the free-form hand passes for M5, M6, M7, M8, M9, M10 and M12 done too (what was tried and found not given; any issue becomes its own TODO). No pass is owed now; the next one falls due when the next milestone completes.
 
 **The shape of what is blocked**
 
@@ -124,8 +127,8 @@ table to edit when a task opens, closes or changes priority — see the next sec
 
 | Milestone | Task | Kind | Priority | Model | State |
 |---|---|---|---|---|---|
-| M18 — Launch | [`core-065`](core-065-wood-screw-holes-cite-asme-not-albany.md) Wood-screw hole table cites ASME B18.6.1 instead of Albany County Fasteners' chart (stops to ask if the pilot columns are not in the standard) | finding | high | sonnet | ▶ **ready** |
-| M18 — Launch | ✅ [`build-011`](build-011-third-party-notices.md) Ship `THIRD-PARTY-NOTICES.txt` with the build and link it from Help | feature | high | sonnet | ▶ **ready** |
+| M18 — Launch | [`core-065`](core-065-wood-screw-holes-cite-asme-not-albany.md) Wood-screw hole table cites ASME B18.6.1 instead of Albany County Fasteners' chart (stops to ask if the pilot columns are not in the standard) | finding | high | sonnet | ⏸ **parked** (decided 2026-10-17: keep the Albany table for now) |
+| M18 — Launch | ✅ [`build-011`](done/build-011-third-party-notices.md) Ship `THIRD-PARTY-NOTICES.txt` with the build and link it from Help | feature | high | sonnet | ✅ done |
 | M18 — Launch | [`docs-023`](docs-023-trademark-notice.md) A trademarks notice for the product and service names the app uses | feature | high | sonnet | ▶ **ready** |
 | M18 — Launch | [`docs-024`](docs-024-ported-code-provenance-statement.md) Provenance statement for ported V1 code and data (owner confirms authorship first) | finding | high | sonnet | ▶ **ready** (owner step first) |
 | M18 — Launch | [`build-012`](build-012-cut-lfs-bandwidth-in-ci-and-pages.md) Cache the Git LFS media instead of downloading it in four jobs per push | finding | high | sonnet | ▶ **ready** (owner step first) |
@@ -149,6 +152,7 @@ table to edit when a task opens, closes or changes priority — see the next sec
 | Findings | ✅ [`testing-004`](done/testing-004-measure-spec-lens-volume-times-out-under-full-suite-load.md) `measure.spec.js` lens-volume test times out under the full unit run | finding | medium | sonnet | ✅ done 2026-10-17 |
 | M10 — Docs media | ✅ [`build-005`](done/build-005-pwa-update-on-reload.md) Make a reload pick up a new deploy, and tell the user when an update has landed | feature | high | sonnet | ✅ done 2026-10-17 |
 | Findings | [`build-003`](build-003-native-mobile-shell-research.md) Research how to package WarpCAD as an iOS and Android app that can host the MCP tool surface | feature | medium | opus | ▶ **ready** (unscheduled; research, no milestone yet) |
+| Findings | [`testing-005`](testing-005-triage-verify-md-open-rows.md) Triage the ~347 Open rows in `TODO/VERIFY.md`: move, graduate or close each | finding | medium | sonnet | ▶ **ready** |
 | M16 — Next batch | ✅ [`core-057`](done/core-057-phone-library-item-models-cases-and-plateaus.md) Phone library item — pick the handset model and case, enlarge the case with parameters, body and every camera plateau separately selectable | feature | medium | sonnet | ✅ done 2026-10-15 |
 | M16 — Next batch | ✅ [`core-058`](done/core-058-combine-raspberry-pi-screens-into-one-library-item.md) Combine the six Raspberry Pi screen rows into one Library item with a Screen model dropdown | feature | medium | sonnet | ✅ done 2026-10-16 |
 | M16 — Next batch | ✅ [`data-006`](done/data-006-timeline-tail-reparenting.md) Re-parent an inactive tail row onto the record an insert superseded | feature | low | opus | ✅ done 2026-10-15 — option (c), a `Re-link to the moved step` button; M16 is now complete and owes the five-minute free-form hand pass |
@@ -174,15 +178,15 @@ table to edit when a task opens, closes or changes priority — see the next sec
 |  | ✅ [`core-046`](done/core-046-bevel-and-crossed-axis-pair-placement.md) Bevel-pair and crossed-axis placement — apex-coincident bevels and the drive-wheel four-gear tr… | feature | medium | opus | ✅ done 2026-10-16 |
 |  | ✅ [`core-047`](done/core-047-worm-and-worm-wheel.md) Worm and worm wheel — the gear the drive-mount RA bracket only had a cylinder placeholder for | feature | medium | opus | ✅ done 2026-10-16 |
 | M16 — Next batch | ✅ [`ui-060`](done/ui-060-unify-snap-align-and-align-to-origin.md) One Align tool for Snap, Align and Align-to-origin, with a Target dropdown, and remove the Insp… | feature | medium | opus | ✅ done 2026-10-15 |
-| Findings | ✅ [`ai-022`](ai-022-snap-orientation-description-is-backwards.md) `group.snap` tool description says `outside+` puts the first body on the second's + side; it is the − side | finding | medium | sonnet | ▶ **ready** |
+| Findings | ✅ [`ai-022`](done/ai-022-snap-orientation-description-is-backwards.md) `group.snap` tool description says `outside+` puts the first body on the second's + side; it is the − side | finding | medium | sonnet | ✅ done |
 | M16 — Next batch | ✅ [`ui-061`](done/ui-061-bundle-docs-in-app-and-tool-help-buttons.md) Ship the documentation inside the app and put a help button on every tool pop-up | feature | medium | sonnet | ✅ done 2026-10-15 |
-| M16 — Next batch | ✅ [`ui-064`](done/ui-064-rotation-dial-and-snapped-rotation.md) Rotation dial: watchface, hands and readout while dragging a ring; Shift 5° steps, speed-sensitive steps on touch | feature | medium | opus | ▶ **ready** |
-| M16 — Next batch | ✅ [`ui-065`](done/ui-065-translate-arm-ruler-and-velocity-steps.md) Translate arrows show a ruler from where the drag began, with a distance readout; Shift snaps to 1 mm and drag speed sets the step, the same on mouse and touch | feature | medium | opus | ⏳ waits on `ui-064` (done — ▶ **ready**) |
+| M16 — Next batch | ✅ [`ui-064`](done/ui-064-rotation-dial-and-snapped-rotation.md) Rotation dial: watchface, hands and readout while dragging a ring; Shift 5° steps, speed-sensitive steps on touch | feature | medium | opus | ✅ done |
+| M16 — Next batch | ✅ [`ui-065`](done/ui-065-translate-arm-ruler-and-velocity-steps.md) Translate arrows show a ruler from where the drag began, with a distance readout; Shift snaps to 1 mm and drag speed sets the step, the same on mouse and touch | feature | medium | opus | ✅ done |
 | M16 — Next batch | ✅ [`ui-066`](done/ui-066-rotate-rings-speed-steps-like-arms.md) Rotate rings pick the step from drag speed on every pointer type, matching translate arrows | feature | low | sonnet | ✅ done 2026-10-15 |
 | M15 — Mergeable project file | ✅ [`ai-017`](done/ai-017-edit-while-the-assistant-works.md) Keep editing while the Assistant works — an AI turn lands by merge | feature | high | opus | ✅ done 2026-10-14 |
 |  | ✅ [`data-008`](done/data-008-replica-scoped-record-ids.md) Replica-scoped record ids and a Lamport clock on every document | feature | high | sonnet | done |
-|  | ✅ [`data-009`](done/data-009-merge-core.md) The merge core — position keys, last-writer-wins registers, tombstones, one pure merge function | feature | high | opus | ▶ **ready** |
-|  | ✅ [`data-010`](done/data-010-document-carries-merge-state.md) The document carries merge state — every mutation stamps, removal is a tombstone, and a merge f… | feature | high | opus | ▶ **ready** |
+|  | ✅ [`data-009`](done/data-009-merge-core.md) The merge core — position keys, last-writer-wins registers, tombstones, one pure merge function | feature | high | opus | ✅ done |
+|  | ✅ [`data-010`](done/data-010-document-carries-merge-state.md) The document carries merge state — every mutation stamps, removal is a tombstone, and a merge f… | feature | high | opus | ✅ done |
 |  | ✅ [`data-011`](done/data-011-project-file-version-2.md) Project file version 2 — merge metadata in the state line, validated as untrusted data | feature | high | sonnet | done |
 |  | ✅ [`docs-022`](done/docs-022-mergeable-project-decision.md) Decide the document/sync row — a hand-rolled, state-based merge over the NDJSON project file | feature | high | opus | ✅ done — accepted 2026-10-12 |
 | M16 — Next batch | ✅ [`io-010`](done/io-010-disk-file-auto-merge.md) A project file changed on disk merges automatically — Claude Code and the app edit one file | feature | high | sonnet | ✅ done 2026-10-15 |
@@ -195,7 +199,7 @@ table to edit when a task opens, closes or changes priority — see the next sec
 |  | `data-012` Tombstone and position-key compaction — `data-011` measured the section at 34-43% of an edited file (`bench/results/2026-10-12-data-011.md`), so the encoding proposals there are this task's starting point | reserved | — | — | 📝 no file yet; ▶ measured, ready to write up |
 | M16 — Next batch | ✅ [`data-013`](done/data-013-mint-project-id-so-unrelated-projects-are-refused.md) Mint a project id so a merge refuses an unrelated project, and attribute merged rows to the right copy — found driving `ui-062` (two app-made projects merge silently) | finding | high | opus | ✅ done 2026-10-15 |
 |  | ✅ [`ui-063`](done/ui-063-snap-align-both-operands-sub-part-addressed.md) Snap/Align names a part on both operands (a Pi's `hole1` against a screen's post, the board's `mb` against the post top) | finding | high | opus | ✅ done |
-|  | `io-012` Import another project's bodies into this one (id remap) | reserved | — | — | 📝 no file yet; waits on `ui-062` |
+|  | `io-013` Import another project's bodies into this one (id remap) | reserved | — | — | 📝 no file yet; waits on `ui-062` |
 |  | `ai-019` Standalone live-bridge host: `mcp/server.js --live` over a loopback WebSocket | reserved | — | — | 📝 no file yet; waits on `ui-062` |
 |  | `ai-018` Relax `ai-012`'s one-writer refusals now that a merge exists | reserved | — | — | 📝 no file yet; waits on `ai-012`, `ai-017` |
 |  | [`ui-057`](ui-057-gears-library-section-and-inspector.md) Gears section in the Library, drag-to-place, and a parametric Inspector with derived readouts | feature | high | sonnet | ⏳ waits on `core-041`, `core-048` |
@@ -269,7 +273,7 @@ milestone tables on 2026-10-12 — update them in the same edit that closes a ro
 | [M3 — Booleans, selection-count gating, group/sub-part selection](#m3--booleans-selection-count-gating-groupsub-part-selection) | ✅ | 7/7 | Booleans, selection-count gating, group and sub-part selection. |
 | [M4+ — Raspberry Pi accessory catalog, sketch mode, flagged-risk follow-ups](#m4--raspberry-pi-accessory-catalog-sketch-mode-flagged-risk-follow-ups) | ✅ | 13/13 | Raspberry Pi accessory catalog, sketch mode, fillet/chamfer UI. |
 | [M5 — Hardware Library surface, closing the fastener reachability gap](#m5--hardware-library-surface-closing-the-fastener-reachability-gap) | ✅ | 7/7 | Hardware Library surface; every fastener reachable; scenarios 3, 5 and 6 pass by hand. |
-| [M18 — Launch: publish, app.warpcad.com, Sentry and GA](#m18--launch-publish-appwarpcadcom-sentry-and-ga) | ⬜ | 0/7 | Publish, `app.warpcad.com`, Sentry and GA. Runs first, per the user's 2026-10-17 goal; five pre-publish clean-up rows (`core-065`, `build-011`, `docs-023`, `docs-024`, `build-012`) come before the push. |
+| [M18 — Launch: publish, app.warpcad.com, Sentry and GA](#m18--launch-publish-appwarpcadcom-sentry-and-ga) | 🔶 | 1/7 | Publish, `app.warpcad.com`, Sentry and GA. Runs first, per the user's 2026-10-17 goal; five pre-publish clean-up rows (`core-065`, `build-011`, `docs-023`, `docs-024`, `build-012`) come before the push. |
 | [M16 — Next batch: naming, Align, in-app help, rotation, save/import fixes, merge reach](#m16--next-batch-naming-align-in-app-help-rotation-saveimport-fixes-merge-reach) | ✅ | 18/18 | **Complete: `ui-068` (the Library remembers params) landed 2026-10-17. The five-minute free-form hand pass at phone/tablet/laptop is still owed, carried past per `TODO/BUDGET.md`.** The user waived the stop for that pass for the overnight run of 2026-10-16 only (see `TODO/BUDGET.md` Config); the pass itself is still owed. Rows moved from M6, M9, M13, M14, M15 and Findings, plus `ui-064` and `data-013`, `ui-065` (the translate ruler, added 2026-10-14), and `core-059`/`ui-067` (hand-placed split connectors, added 2026-10-15). |
 | [M17 — Repeat across matching parts, and a phone Library fix](#m17--repeat-across-matching-parts-and-a-phone-library-fix) | ✅ | 3/3 | **Complete: `ui-070`, `core-061` and `ui-069` (the Repeat button and panel) landed 2026-10-17. The five-minute free-form hand pass at phone/tablet/laptop is still owed, carried past per `TODO/BUDGET.md`.** |
 | [M6 — Persistence, export, and timeline history editing](#m6--persistence-export-and-timeline-history-editing) | ✅ | 23/23 | Autosave, File menu, hosted storage, export, History. `data-006` (the last open row) moved to M16; **free-form pass owed**. |
@@ -280,12 +284,12 @@ milestone tables on 2026-10-12 — update them in the same edit that closes a ro
 | [M12 — Project variables: one named value drives any parameter of any part](#m12--project-variables-one-named-value-drives-any-parameter-of-any-part) | ✅ | 3/3 | Project variables. **Free-form five-minute pass is due** (Pi 4 → Pi 5 by hand, then by asking the Assistant). |
 | [M13 — One Align tool](#m13--one-align-tool) | ➡️ | — | `ui-060` moved to M16. |
 | [M14 — Help inside the app](#m14--help-inside-the-app) | ➡️ | — | `ui-061` moved to M16. |
-| [M15 — A mergeable project file: the AI as a second writer](#m15--a-mergeable-project-file-the-ai-as-a-second-writer) | ⬜ | 0/10 | Mergeable project file. `io-010` and `io-011` moved to M16; 4 rows are reserved with no file. |
-| [Findings](#findings) | 🔶 | 6/16 | `build-004`, `build-007`, `perf-002`, `build-003` moved here from unscheduled 2026-10-16 to run before the gears. `core-051` (wrong geometry) fixed 2026-10-15; `ai-022` (a backwards tool description) fixed 2026-10-16. `testing-004` (a unit-test timeout under load) moved here from M16 on 2026-10-16 so it runs after the other milestones, ahead of the gears. `io-008` and `data-013` moved to M16. |
+| [M15 — A mergeable project file: the AI as a second writer](#m15--a-mergeable-project-file-the-ai-as-a-second-writer) | 🔶 | 7/11 | Mergeable project file. `io-010` and `io-011` moved to M16; 4 rows are reserved (`io-012` renamed `io-013`) with no file. |
+| [Findings](#findings) | 🔶 | 6/17 | `build-004`, `build-007`, `perf-002`, `build-003` moved here from unscheduled 2026-10-16 to run before the gears. `core-051` (wrong geometry) fixed 2026-10-15; `ai-022` (a backwards tool description) fixed 2026-10-16. `testing-004` (a unit-test timeout under load) moved here from M16 on 2026-10-16 so it runs after the other milestones, ahead of the gears. `io-008` and `data-013` moved to M16. |
 | [M11 — Gears: the `jscad-gears` library, ported and extended](#m11--gears-the-jscad-gears-library-ported-and-extended) | 🔶 | 9/16 | Gears. **Runs last, after every other milestone and Findings (moved 2026-10-16 at the user's request).** `core-039` accepted 2026-10-16 (all eight calls as recommended); `core-040`, `core-041`, `core-042`, `core-043`, `core-044`, `core-045`, `core-046` and `core-047` done 2026-10-16 (`core-062`, the herringbone relief groove, filed from `core-042`); `ui-057` waits on `core-048`, which is next. |
 
 Every M0–M4 milestone closed with its own human free-form pass per `CLAUDE.md`'s Verification section
-(see each milestone's last row below). M5–M8 and M12 are recorded as still owing theirs.
+(see each milestone's last row below). M5–M8 and M12 owed theirs until the owner reported them done on 2026-10-17.
 
 ---
 
@@ -1061,7 +1065,7 @@ chip-plus-banner conflicts, all four storage paths) are recorded in `docs-022`.
 | ✅ `ui-062` | **File ▾ → Merge file…**, merge toast and banner, conflict chip reason, **Undo merge**, `docs/merging.md` | Operation, L | `data-011` | 7, 10, 12, 14 + new **22**; `ui-033/043/052`, `ai-006` repros |
 | ✅ `ai-017` | Keep editing while the Assistant works: the turn lands by merge, header chip, **Watch** toggle; decision 5 amended | Control, L | `ui-062` | 1, 4, 7, 12, 17, 18, 21, 22 + new **24**; `ai-002/006/014`, `core-056`, `ui-032/043` repros |
 | `data-012` | *(reserved)* Tombstone and position-key compaction, once `data-011` has measured real file growth | Core | `data-011` | 10 |
-| `io-012` | *(reserved)* Import another project's bodies into this one (id remap), the case `ui-062` refuses as "a different project" | Creation | `ui-062` | new |
+| `io-013` | *(reserved; was `io-012` until 2026-10-17)* Import another project's bodies into this one (id remap), the case `ui-062` refuses as "a different project" | Creation | `ui-062` | new |
 | `ai-019` | *(reserved)* Standalone live-bridge host: `mcp/server.js --live` with a loopback WebSocket (`ws` 8.x, health check re-run) for a built or hosted app, Chromium/Firefox only (WebKit measured blocked) | Control | `ai-012` | live-bridge scenario |
 | `ai-018` | *(reserved)* Relax `ai-012`'s one-writer refusals ("the user is editing; try again") now that a merge exists | Control | `ai-012`, `ai-017` | live-bridge scenario |
 

@@ -32,6 +32,8 @@ If this file's queue ever starts growing the way the previous attempt's did — 
 entries per day, unread between sessions — that's itself a signal to move more of it
 into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention again.
 
+**Decided 2026-10-17:** the roughly 347 Open rows get a triage task, `testing-005` (move, graduate or close each row). Until it runs, add new rows only for genuine one-offs.
+
 ## Queue
 
 ### build-011 — Third-party notices (2026-10-17 14:25)
