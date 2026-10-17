@@ -134,7 +134,7 @@ test.describe('docs media: hardware, kit and Raspberry Pi library', () => {
       const item = element.closest('li')
       if (item) item.style.width = 'max-content'
     })
-    await shot(page, 'library-rpi-screen-models.png', { locator: page.getByTestId('library-row-raspberrypi.screen').locator('..') })
+    await shot(page, 'library-rpi-screen-models.png', { locator: page.getByTestId('library-row-raspberrypi.screen').locator('xpath=ancestor::li[1]') })
   })
 
   test('hardware-drag-bolt', { tag: '@movie' }, async ({ page }) => {
@@ -268,7 +268,30 @@ test.describe('docs media: hardware, kit and Raspberry Pi library', () => {
       const item = element.closest('li')
       if (item) item.style.width = 'max-content'
     })
-    await shot(page, 'library-screw-type-dropdown.png', { locator: page.getByTestId('library-row-hardware.bolt').locator('..') })
+    await shot(page, 'library-screw-type-dropdown.png', { locator: page.getByTestId('library-row-hardware.bolt').locator('xpath=ancestor::li[1]') })
+  })
+
+  test('library-remembered-bolt still', async ({ page }) => {
+    // TODO/ui-068: drag a Bolt / screw in, make it an M2.5 socket cap 8 mm in the Inspector, and the
+    // Library row now shows what the next drag will place, with its Reset button.
+    await prepSection(page, 'hardware', 4)
+    const row = page.getByTestId('library-row-hardware.bolt')
+    await row.scrollIntoViewIfNeeded()
+    const rb = await row.boundingBox()
+    const vb = await viewport(page).boundingBox()
+    await humanDrag(page, { x: rb.x + rb.width / 2, y: rb.y + rb.height / 2 }, { x: vb.x + vb.width * 0.5, y: vb.y + vb.height * 0.4 })
+    await expect(viewport(page)).toHaveAttribute('data-body-count', '1')
+    await expect(viewport(page)).toHaveAttribute('data-selected-count', '1')
+    await page.getByTestId('inspector-param-type').selectOption('socket')
+    await page.getByTestId('inspector-param-spec').selectOption('m2.5')
+    await typeInto(page, 'inspector-param-length', '8')
+    await expect(page.getByTestId('library-remembered-hardware.bolt')).toContainText('× 8 mm')
+    await expect(page.getByTestId('library-choice-hardware.bolt')).toHaveValue('socket')
+    await expect(page.getByTestId('library-choice-hardware.bolt-spec')).toHaveValue('m2.5')
+    await expect(page.getByTestId('library-reset-hardware.bolt')).toBeVisible()
+    await bodies(page)
+    await settle(page)
+    await shot(page, 'library-remembered-bolt.png', { locator: row.locator('xpath=ancestor::li[1]') })
   })
 
   test('hardware-screw-family still', async ({ page }) => {

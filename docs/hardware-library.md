@@ -44,12 +44,51 @@ pick `m2.5` on the nut and on the washer. A project saved before the Type list e
 `m10 hex`-style bolts or the old separate screws, opens and builds exactly as it did; nothing is
 rewritten until you edit that part.
 
+### The Library remembers your last choice
+
+When you change a placed part in the Inspector, the Library remembers it, and the **next** part you
+drag from that row starts the same way. Building an enclosure means placing the same screw six or
+eight times; you set it up once.
+
+![The Bolt / screw row after an M2.5 socket cap, 8 mm long, was placed and edited: its Type and Size lists show Socket cap and m2.5, "× 8 mm" sits under the label, and a ↺ button waits at the right edge.](./screenshots/library-remembered-bolt.png)
+
+- **What is remembered**: everything the Inspector lets you edit on that part (for a Bolt / screw,
+  its **Type**, **Size**, **Length** and **Fit**; for a Raspberry Pi board, its **Model**). It is
+  remembered per row, per device, and it survives closing the tab. It is not saved in your
+  project file.
+- **How you can tell**: the row's lists show the remembered value, and a line under the row's
+  name spells out the rest (`× 8 mm`). The dragging preview shows the remembered part too.
+- **Which rows**: every row in **Hardware**, **Kit Parts** and **Raspberry Pi**, and your own
+  parts under **My parts** that have editable numbers. **Primitives** and **Text** always start from
+  their defaults: a Cube's size describes that one Cube, and the next label should not repeat the
+  last one's words.
+- **Going back**: press **↺** at the right edge of the row. It goes back to its usual starting
+  part (Hex head, `m10`, 20 mm for Bolt / screw), and the **↺** and the summary line disappear.
+- **What does not change it**: **Undo** (undoing the M2.5 edit leaves the next drag at M2.5, because
+  the memory is a preference of yours, not part of the drawing), an edit made by the AI partner
+  or an MCP tool (an AI-placed M3 does not change what *your* next drag drops), merging or opening
+  a file, and an edit you cancel in the repair dialog. The last edit you commit wins, even if it
+  was to a part you placed last week.
+
+#### Example: place eight M2.5 screws
+
+1. Drag **Bolt / screw** into the 3D view.
+2. In the Inspector set **Type** to **Socket cap**, **Size** to `m2.5` and **Length** to `8` (mm).
+   The **Bolt / screw** row in the Library now shows **Socket cap** and `m2.5` in its lists, and
+   `× 8 mm` under its label.
+3. Drag **Bolt / screw** in again. The new screw is already an M2.5 socket cap, 8 mm long. Drag it
+   in six more times; the first one stays where you put it.
+4. To go back to the default, press **↺** on the **Bolt / screw** row. It returns to Hex head `m10`,
+   20 mm.
+
 ### Example: a 30 mm M12 bolt, and the bill of materials
 
 1. Open the **Library** and drag **Bolt / screw** into the 3D view. Let go; it lands on the grid
    and is selected, and the **Inspector** shows its parameters.
 2. In the Inspector, set **Size** to `m12`. The bolt is rebuilt in place. (A new bolt
-   already starts as a hex head `m10`, so the Type stays Hex head.)
+   already starts as a hex head `m10`, so the Type stays Hex head. If you have placed
+   screws before, the row starts from your last choice instead: press **↺** on the row first.
+   See [The Library remembers your last choice](#the-library-remembers-your-last-choice).)
 3. Click the **Length** box, type `30` (mm) and press Enter. The bolt grows to 30 mm of thread
    under its head.
 4. Look at **Bill of materials** just under the object list: one line, `Bolt / screw M12 hex × 30 mm × 1`.
@@ -113,7 +152,7 @@ To cut with it, select your part first and then add `tap` as the second operand,
 
 Kit parts are general-purpose building blocks you size yourself: **Board** (a flat slab with
 rounded corners), **Board Frame** (the same slab with a rectangular window cut out) and
-**Anchor** (a post with a matching hole). Their sizes are numbers in mm in the Inspector, and
+**Anchor** (a post with a matching hole). Their sizes are numbers in mm in the Inspector (the Library [remembers your last choice](#the-library-remembers-your-last-choice) for them, too), and
 the bill of materials lists each by width × height.
 
 **Phone** is different: it is not a part you print but a *stand-in* you subtract, so a plate
@@ -131,7 +170,9 @@ The Raspberry Pi section has the board, a camera module, a HAT and its standoff,
 cooling fan, and one **Raspberry Pi Screen** row for all six screens. Boards and screens are
 placed at their real size, with their connectors, chips and mounting holes. The **Raspberry
 Pi** and **Camera Module** rows have a **Model** dropdown *beside* the row, and the screen row
-has a **Screen model** dropdown: choose it before you drag. You can change it later in the
+has a **Screen model** dropdown: choose it before you drag. The Library keeps the model you
+last chose, even if you changed it on a placed part in the Inspector: see
+[The Library remembers your last choice](#the-library-remembers-your-last-choice). You can change it later in the
 Inspector. For example, open **Library → Raspberry Pi**, choose **Screen model: Touchscreen 2**
 and drag it onto the grid. Then select it and change **Screen model** to **Mini PiTFT** in the
 Inspector, and it rebuilds in place. See

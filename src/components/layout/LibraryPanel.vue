@@ -64,10 +64,12 @@
  * starts — the drag has to be able to end over the viewport, but auto-closing
  * mid-gesture would yank the row out from under the finger that is holding it.
  */
-import { nextTick, onBeforeUnmount, reactive, ref, watch } from 'vue'
+import { nextTick, onBeforeUnmount, ref, watch } from 'vue'
 
 import { LIBRARY_SECTIONS } from '../../core/library.js'
-import { reconcileParamEdit } from '../../core/kernel/registry.js'
+import { detailOf } from '../../core/bom.js'
+import { summaryParamsFor } from '../../core/libraryDefaults.js'
+import { useLibraryDefaultsStore } from '../../stores/libraryDefaults.js'
 import { useLibraryStore } from '../../stores/library.js'
 import { usePlacementStore } from '../../stores/placement.js'
 import { useTimelineStore } from '../../stores/timeline.js'
@@ -241,41 +243,11 @@ function stopTracking() {
 }
 
 /**
- * The variant currently selected on each row that offers one, keyed by op
- * (`TODO/ui-031`) — `{ 'raspberrypi.bplus': 4, 'raspberrypi.cameraModule': 'v3' }`.
- *
- * Seeded from each row's own registry default rather than from a literal here, so
- * the `<select>` opens showing exactly what a drag would place if it were never
- * touched. Panel state, not document state: it is which variant the *next* drag
- * from that row commits, and it deliberately persists across drags, because
- * someone placing a Pi 5 and then a second Pi 5 should not have to pick twice.
- *
- * @type {Record<string, any>}
+ * The Library's memory of each part's last-used params (`TODO/ui-068`). It replaced this
+ * file's own component-local `chosen` / `chosenExtra`: the row's dropdowns now read and write
+ * the store, so a Type or Size changed in the Inspector moves them, and they survive a reload.
  */
-const chosen = reactive(
-  Object.fromEntries(
-    LIBRARY_SECTIONS.flatMap((section) => section.rows)
-      .filter((row) => row.choice)
-      .map((row) => [row.op, row.defaults[/** @type {any} */ (row.choice).param]]),
-  ),
-)
-
-/**
- * The second and later variants a row offers beside its `choice` (`TODO/core-057`: a
- * phone's Case), keyed `op` then `param`. Same lifetime and seeding as {@link chosen}.
- *
- * @type {Record<string, Record<string, any>>}
- */
-const chosenExtra = reactive(
-  Object.fromEntries(
-    LIBRARY_SECTIONS.flatMap((section) => section.rows)
-      .filter((row) => row.extraChoices?.length)
-      .map((row) => [
-        row.op,
-        Object.fromEntries(row.extraChoices.map((extra) => [extra.param, row.defaults[extra.param]])),
-      ]),
-  ),
-)
+const remembered = useLibraryDefaultsStore()
 
 /**
  * The options an extra choice offers right now. A choice whose list depends on another one
@@ -288,51 +260,40 @@ const chosenExtra = reactive(
  */
 function extraOptions(row, extra) {
   if (!extra.optionsFor) return extra.options
-  return extra.optionsFor({ ...row.defaults, ...overridesFor(row) })
+  return extra.optionsFor(remembered.effectiveFor(row))
 }
 
 /**
- * The row's main choice changed: any extra choice whose offered values no longer include
- * its current value falls back to the new choice's own default (Type `pan` strands Size
- * `m10`). Reconciled through the registry so the panel never re-derives which size is the
- * default for which type.
+ * A dropdown on a row changed: hand the picked value to the store, which reconciles whatever
+ * depends on it (Type `pan` strands Size `m10`) through the registry, so the panel never
+ * re-derives which size is the default for which type.
  *
- * The new value is read off the event: this listener runs before `v-model`'s own `change`
- * listener has written it to `chosen`.
+ * The option is found by its text, because a `<select>` reports strings and a Pi's model is a
+ * number.
  *
  * @param {import('../../core/library.js').LibraryRow} row
+ * @param {string} param
+ * @param {readonly import('../../core/kernel/registry.js').OpUiOption[]} options
  * @param {Event} event
  */
-function onChoiceChange(row, event) {
-  const extras = chosenExtra[row.op]
-  if (!extras || !row.choice) return
-  const param = row.choice.param
-  const picked = row.choice.options.find((option) => String(option.value) === /** @type {HTMLSelectElement} */ (event.target).value)
-  if (!picked) return
-  const next = reconcileParamEdit(row.op, { ...row.defaults, ...overridesFor(row), [param]: picked.value }, [param])
-  for (const extra of row.extraChoices) {
-    if (extra.optionsFor && next[extra.param] !== undefined) extras[extra.param] = next[extra.param]
-  }
+function onChoiceChange(row, param, options, event) {
+  const text = /** @type {HTMLSelectElement} */ (event.target).value
+  const picked = options.find((option) => String(option.value) === text)
+  if (picked) remembered.setChoice(row, param, picked.value)
 }
 
 /**
- * The params a drag from this row commits on top of its defaults — the chosen
- * variant, or nothing at all for a row with no choice.
- *
- * Returns a fresh object only for the rows that need one; every other row hands
- * back the shared frozen empty, so the common drag allocates nothing.
+ * The line under a row's label saying what a drag will now place, built with the Bill of
+ * materials' own words (`detailOf`) so the two describe a part the same way. A row with
+ * dropdowns leaves out what they already show. Empty when the row is at its defaults.
  *
  * @param {import('../../core/library.js').LibraryRow} row
- * @returns {Record<string, any>}
+ * @returns {string}
  */
-function overridesFor(row) {
-  if (!row.choice) return NO_OVERRIDES
-  const extras = chosenExtra[row.op]
-  return { [row.choice.param]: chosen[row.op], ...(extras ?? {}) }
+function summaryOf(row) {
+  if (!remembered.isCustom(row)) return ''
+  return detailOf(row.op, summaryParamsFor(row, remembered.effectiveFor(row)))
 }
-
-/** Shared payload for the rows with nothing to choose. See {@link overridesFor}. */
-const NO_OVERRIDES = Object.freeze({})
 
 /**
  * @param {PointerEvent} event
@@ -355,7 +316,7 @@ function onRowPointerDown(event, row) {
   // The variant is read **here**, once, at the start of the gesture — so the
   // ghost and the committed record are built from the same choice even if the
   // dropdown were somehow changed mid-drag.
-  placement.begin(row.op, row.label, event.clientX, event.clientY, overridesFor(row))
+  placement.begin(row.op, row.label, event.clientX, event.clientY, remembered.overridesFor(row))
 }
 
 onBeforeUnmount(stopTracking)
@@ -413,21 +374,43 @@ onBeforeUnmount(stopTracking)
             class="library__item"
             :class="{ 'library__item--stacked': row.extraChoices.some((extra) => extra.optionsFor) }"
           >
-            <button
-              type="button"
-              class="library__row"
-              :class="{ 'library__row--active': placement.op === row.op }"
-              :data-testid="`library-row-${row.op}`"
-              :data-op="row.op"
-              :data-label="row.label"
-              :data-editor="row.editor ?? ''"
-              :disabled="timeline.previewing"
-              :title="timeline.previewing ? 'Leave the preview to place a shape' : undefined"
-              @pointerdown="onRowPointerDown($event, row)"
+            <div class="library__line">
+              <button
+                type="button"
+                class="library__row"
+                :class="{ 'library__row--active': placement.op === row.op }"
+                :data-testid="`library-row-${row.op}`"
+                :data-op="row.op"
+                :data-label="row.label"
+                :data-editor="row.editor ?? ''"
+                :disabled="timeline.previewing"
+                :title="timeline.previewing ? 'Leave the preview to place a shape' : undefined"
+                @pointerdown="onRowPointerDown($event, row)"
+              >
+                <span class="library__swatch" :data-shape="row.op" aria-hidden="true" />
+                {{ row.label }}
+              </button>
+              <!-- ↺ Reset (ui-068): only while the row is not at its registry defaults. A sibling of
+                   the drag button, never inside it, so pressing it cannot start a placement. -->
+              <button
+                v-if="remembered.isCustom(row)"
+                type="button"
+                class="library__reset"
+                :data-testid="`library-reset-${row.op}`"
+                :aria-label="`Reset ${row.label} to its default`"
+                :title="`Reset ${row.label} to its default`"
+                @click="remembered.reset(row.op)"
+              >
+                <span aria-hidden="true">↺</span>
+              </button>
+            </div>
+            <p
+              v-if="summaryOf(row)"
+              class="library__remembered"
+              :data-testid="`library-remembered-${row.op}`"
             >
-              <span class="library__swatch" :data-shape="row.op" aria-hidden="true" />
-              {{ row.label }}
-            </button>
+              {{ summaryOf(row) }}
+            </p>
             <!-- A variant picked before the drag (ui-031). Outside the button on
                  purpose: a form control inside a <button> is invalid HTML and
                  would never get its own pointer events — and keeping it a sibling
@@ -435,9 +418,9 @@ onBeforeUnmount(stopTracking)
             <label v-if="row.choice" class="library__choice">
               <span class="library__choice-label">{{ row.choice.label }}</span>
               <select
-                v-model="chosen[row.op]"
+                :value="remembered.effectiveFor(row)[row.choice.param]"
                 class="library__choice-select"
-                @change="onChoiceChange(row, $event)"
+                @change="onChoiceChange(row, row.choice.param, row.choice.options, $event)"
                 :data-testid="`library-choice-${row.op}`"
                 :aria-label="`${row.choice.label} for ${row.label}`"
               >
@@ -455,8 +438,9 @@ onBeforeUnmount(stopTracking)
             >
               <span class="library__choice-label">{{ extra.label }}</span>
               <select
-                v-model="chosenExtra[row.op][extra.param]"
+                :value="remembered.effectiveFor(row)[extra.param]"
                 class="library__choice-select"
+                @change="onChoiceChange(row, extra.param, extraOptions(row, extra), $event)"
                 :data-testid="`library-choice-${row.op}-${extra.param}`"
                 :aria-label="`${extra.label} for ${row.label}`"
               >
@@ -549,7 +533,13 @@ onBeforeUnmount(stopTracking)
           Nothing saved yet. Select a group, then choose Save to library… — or choose Import model file… for an STL — and it appears here.
         </p>
         <ul class="library__rows" data-testid="library-rows-user">
-          <li v-for="row in library.userRows" :key="row.op" class="library__item library__item--user" :data-in-library="row.inLibrary ? 'true' : 'false'">
+          <li
+            v-for="row in library.userRows"
+            :key="row.op"
+            class="library__item library__item--user"
+            :class="{ 'library__item--has-reset': remembered.isCustom(row) }"
+            :data-in-library="row.inLibrary ? 'true' : 'false'"
+          >
             <button
               type="button"
               class="library__row"
@@ -587,7 +577,25 @@ onBeforeUnmount(stopTracking)
                 :aria-label="`In this project, ${row.usage} placed`"
               />
             </button>
+            <button
+              v-if="remembered.isCustom(row)"
+              type="button"
+              class="library__reset"
+              :data-testid="`library-reset-${row.op}`"
+              :aria-label="`Reset ${row.label} to its default`"
+              :title="`Reset ${row.label} to its default`"
+              @click="remembered.reset(row.op)"
+            >
+              <span aria-hidden="true">↺</span>
+            </button>
             <UserPartMenu :row="row" />
+            <p
+              v-if="summaryOf(row)"
+              class="library__remembered library__remembered--user"
+              :data-testid="`library-remembered-${row.op}`"
+            >
+              {{ summaryOf(row) }}
+            </p>
             <div v-if="row.mesh" class="library__mesh" :data-testid="`library-mesh-${row.op}`">
               <span
                 class="library__tag"
@@ -754,6 +762,57 @@ onBeforeUnmount(stopTracking)
 .library__choice-select:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 1px;
+}
+
+/* The drag row plus its ↺ Reset (ui-068), side by side; the button is 44 x 44 at the right edge. */
+.library__line {
+  display: flex;
+  align-items: stretch;
+  gap: 4px;
+}
+
+.library__line .library__row {
+  flex: 1;
+  min-width: 0;
+  width: auto;
+}
+
+.library__reset {
+  flex: none;
+  width: 44px;
+  min-height: 44px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+  color: var(--text-1);
+  font: inherit;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.library__reset:hover {
+  border-color: var(--border-strong);
+}
+
+.library__reset:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+/* What the next drag will place, in the Bill of materials' words (ui-068). Wraps under the label. */
+.library__remembered {
+  margin: 0;
+  padding-left: 28px;
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--text-2);
+  overflow-wrap: anywhere;
+}
+
+.library__remembered--user {
+  grid-column: 1 / -1;
 }
 
 .library__row {
@@ -1066,6 +1125,10 @@ onBeforeUnmount(stopTracking)
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: stretch;
   gap: 4px;
+}
+
+.library__item--has-reset {
+  grid-template-columns: minmax(0, 1fr) auto auto;
 }
 
 .library__row-label {

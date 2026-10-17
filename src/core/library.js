@@ -78,6 +78,8 @@ import { capturePart, effectiveUserPart, effectiveUserParts, isUserPartOp, userP
  * @property {'sketch' | null} editor Whether dropping the row opens an editor instead
  *   of committing a record (`TODO/sketch-001`'s Sketch row), copied off the registry
  *   like `choice`, so the viewport reads a flag rather than naming an op.
+ * @property {boolean} remembersParams Whether a drag from this row starts from the params the user
+ *   last committed for the op (`TODO/ui-068`); `false` for Primitives and Text.
  * @property {UserPartRowStatus} [userPart] Present on a user part's row only
  *   (`TODO/core-037`): which version places, and whether the library is ahead of it.
  */
@@ -173,21 +175,26 @@ const ROW_ORDER = Object.freeze([
  * it, `ui` metadata still decides row by row, and {@link buildRows} throws rather
  * than silently listing anything that turns out to need operands.
  *
- * @type {readonly { id: string, title: string }[]}
+ * `remembersParams` (`TODO/ui-068`): whether a row in the section starts a drag from the params
+ * the user last committed for that op, rather than always from the registry defaults. Off for
+ * Primitives (a box's size describes that one box) and Text (the next label must not repeat the
+ * last one's words).
+ *
+ * @type {readonly { id: string, title: string, remembersParams: boolean }[]}
  */
 const SECTION_DEFINITIONS = Object.freeze([
-  Object.freeze({ id: 'primitive', title: 'Primitives' }),
-  Object.freeze({ id: 'hardware', title: 'Hardware' }),
-  Object.freeze({ id: 'kit', title: 'Kit Parts' }),
-  Object.freeze({ id: 'raspberrypi', title: 'Raspberry Pi' }),
+  Object.freeze({ id: 'primitive', title: 'Primitives', remembersParams: false }),
+  Object.freeze({ id: 'hardware', title: 'Hardware', remembersParams: true }),
+  Object.freeze({ id: 'kit', title: 'Kit Parts', remembersParams: true }),
+  Object.freeze({ id: 'raspberrypi', title: 'Raspberry Pi', remembersParams: true }),
   // **Gears (`TODO/core-041`) is defined but not yet listed.** `gear.spur` is registered
   // without `ui` metadata, so the section has no rows, and a section with no rows is not
   // offered (no heading over an empty list). `ui-057` attaches `GEAR_SPUR_UI`
   // (`kernel/recipes/gear.spur.js`) to the entry — with the panel's docs and e2e
   // coverage — and the section appears here, between Raspberry Pi and Text, with no
   // change to this file.
-  Object.freeze({ id: 'gear', title: 'Gears' }),
-  Object.freeze({ id: 'text', title: 'Text' }),
+  Object.freeze({ id: 'gear', title: 'Gears', remembersParams: true }),
+  Object.freeze({ id: 'text', title: 'Text', remembersParams: false }),
 ])
 
 /**
@@ -196,6 +203,7 @@ const SECTION_DEFINITIONS = Object.freeze([
  * @returns {LibraryRow[]}
  */
 function buildRows(ops, namespace) {
+  const remembersParams = SECTION_DEFINITIONS.find((section) => section.id === namespace)?.remembersParams ?? false
   const prefix = `${namespace}.`
   // `ui` metadata, not merely the namespace: a registry entry earns a row by
   // saying what to call it and what to build it with. `ui-031` added fifteen rows
@@ -232,6 +240,7 @@ function buildRows(ops, namespace) {
       extraChoices: ui.extraChoices ?? Object.freeze([]),
       nameFor: ui.nameFor ?? null,
       editor: ui.editor ?? null,
+      remembersParams,
     })
   })
 }
@@ -343,6 +352,7 @@ function userPartRow(op) {
     extraChoices: Object.freeze([]),
     nameFor: null,
     editor: null,
+    remembersParams: true,
     userPart: Object.freeze({ version: definition.version, ...status }),
   })
 }

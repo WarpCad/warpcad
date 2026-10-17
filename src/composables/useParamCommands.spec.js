@@ -1,10 +1,12 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-import { beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 
 import { boundsOf } from '../core/kernel/group.js'
 import { moveToRecord, positionOf, rotateToRecord } from '../core/transform.js'
+import { bindParam, defineVariable } from '../core/variables.js'
 import { useDocumentStore } from '../stores/document.js'
+import { useLibraryDefaultsStore } from '../stores/libraryDefaults.js'
 import { useParamCommands } from './useParamCommands.js'
 
 /**
@@ -283,5 +285,108 @@ describe('useParamCommands — a primitive resize is a replace, so dependents fo
 
     expect(() => commands.setParam('cyl', 'diameter', 4)).toThrow(/cyl-rim|Fillet/i)
     expect(doc.raw.recordOf('cyl')?.params?.diameter).toBe(50)
+  })
+})
+
+/**
+ * `TODO/ui-068`: a local Inspector / History param edit on a placed Library part is what the
+ * Library remembers for the next drag. This composable is the only boundary the AI and MCP
+ * tools do not cross, which is what keeps the memory "what *you* last picked".
+ */
+describe('useParamCommands remembers the last local part params (TODO/ui-068)', () => {
+  beforeEach(() => {
+    // The memory is persisted to localStorage; a Node environment has none, so give it a fake.
+    const backing = new Map()
+    vi.stubGlobal('localStorage', {
+      getItem: (/** @type {string} */ key) => backing.get(key) ?? null,
+      setItem: (/** @type {string} */ key, /** @type {string} */ value) => void backing.set(key, String(value)),
+    })
+    setActivePinia(createPinia())
+  })
+
+  afterEach(() => vi.unstubAllGlobals())
+
+  function seedBolt() {
+    const doc = useDocumentStore()
+    doc.append(
+      { id: 'bolt-1', op: 'hardware.bolt', name: 'Bolt 1', params: { type: 'hex', spec: 'm10', length: 20, fit: 'loose' } },
+      { origin: 'local' }
+    )
+    return doc
+  }
+
+  it('a direct commit remembers the post-edit params', () => {
+    seedBolt()
+    const library = useLibraryDefaultsStore()
+    const commands = useParamCommands()
+    expect(commands.setCompositeParams('bolt-1', { type: 'socket', spec: 'm2.5', length: 8 })).toEqual({ committed: true })
+    expect(library.remembered['hardware.bolt']).toMatchObject({ type: 'socket', spec: 'm2.5', length: 8 })
+  })
+
+  it('a single-field setParam remembers too', () => {
+    seedBolt()
+    useParamCommands().setParam('bolt-1', 'length', 33)
+    expect(useLibraryDefaultsStore().remembered['hardware.bolt']).toMatchObject({ length: 33 })
+  })
+
+  /** A Pi 4 with a cube snapped to its AV jack: a Pi 5 has none, so a model change needs repair. */
+  function piWithSnap() {
+    const doc = useDocumentStore()
+    const local = { origin: 'local' }
+    doc.append({ id: 'pi-1', op: 'raspberrypi.bplus', name: 'Raspberry Pi 1', params: { model: 4 } }, local)
+    doc.append({ id: 'cube-1', op: 'primitive.cuboid', name: 'Cube 1', params: { size: [6, 6, 6], center: [120, 20, 3] } }, local)
+    doc.append(
+      {
+        id: 'snap-1',
+        op: 'group.snap',
+        target: 'cube-1',
+        operands: [{ id: 'pi-1', pieces: 'avjack' }],
+        supersedes: 'cube-1',
+        params: { axes: 'xy', orientation: 'inside+', deltaMm: 0 },
+      },
+      local
+    )
+    return doc
+  }
+
+  it('a needsRepair result remembers nothing, and an applied repair remembers once', () => {
+    piWithSnap()
+    const library = useLibraryDefaultsStore()
+    const commands = useParamCommands()
+    const result = commands.setParam('pi-1', 'model', 5)
+    if (!('needsRepair' in result)) throw new Error('expected a repair')
+    expect(library.remembered['raspberrypi.bplus']).toBeUndefined()
+
+    commands.applyRepair(result.edit, result.breakages, { 'snap-1': { kind: 'detach' } })
+    expect(library.remembered['raspberrypi.bplus']).toEqual({ model: 5 })
+  })
+
+  it('a primitive resize is never remembered', () => {
+    seedBolt()
+    const doc = useDocumentStore()
+    doc.append({ id: 'cube-9', op: 'primitive.cuboid', name: 'Cube 9', params: { size: [5, 5, 5], center: [0, 0, 0] } }, { origin: 'local' })
+    useParamCommands().setParam('cube-9', 'size', [50, 50, 50])
+    expect(useLibraryDefaultsStore().remembered).toEqual({})
+  })
+
+  it('adds no document record and exactly one Undo step per edit', () => {
+    const doc = seedBolt()
+    const before = doc.raw.entries.length
+    useParamCommands().setCompositeParams('bolt-1', { length: 9 })
+    expect(doc.raw.entries.length).toBe(before)
+    expect(doc.raw.pendingUndo()?.label).toBe('Edit Bolt 1')
+    doc.undo()
+    expect(doc.raw.recordOf('bolt-1')?.params?.length).toBe(20)
+    // Undo does not roll the memory back.
+    expect(useLibraryDefaultsStore().remembered['hardware.bolt']).toMatchObject({ length: 9 })
+  })
+
+  it('a variable-bound length is remembered as its resolved value', () => {
+    const doc = seedBolt()
+    defineVariable(doc.raw, { name: 'len', kind: 'number', value: 14, unit: 'mm' }, { origin: 'local' })
+    bindParam(doc.raw, 'bolt-1', 'length', 'len', { origin: 'local' })
+    doc.refresh()
+    useParamCommands().setCompositeParams('bolt-1', { spec: 'm12' })
+    expect(useLibraryDefaultsStore().remembered['hardware.bolt']?.length).toBe(14)
   })
 })

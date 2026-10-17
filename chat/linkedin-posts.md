@@ -2856,3 +2856,16 @@ Two details I care about. Every file saved before the change still opens and bui
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** types and sizes → `src/core/kernel/tables/fastener-specs.js`; chart citation → `src/core/kernel/tables/wood-screw-holes.js` module doc; legacy replay → oracle fixture `src/core/kernel/recipes/__fixtures__/fasteners.legacy-oracle.json`
 **To Add:** none
+
+## [2026-10-17T02:30:00Z] — The Library remembers your last part
+
+**Post:** Building an enclosure means placing the same screw six or eight times, and until now every drag from the WarpCad Library started from the part's default, so you made the same three edits each time. The request was plain: if I drag a screw in and change it to an M2.5 socket head, the next screw should be one too.
+
+Now it is. The Library remembers the params you last committed for each part, in the Hardware, Kit, Raspberry Pi and My parts sections, and the next drag starts from them. The row shows what it will place, and a Reset button puts it back.
+
+The part I spent the most care on is what the memory ignores. Undo does not roll it back, and neither do AI or MCP edits, so an assistant placing an M3 does not change what your next drag drops. Primitives and Text always start from defaults, because a cube's size describes that one cube. And a remembered value that has gone stale, say a size no longer offered for the chosen type, is checked on every read and falls back instead of ever reaching the kernel. Built with Claude Code, reviewed by me.
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #OpenSource #CAD
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** rules and stale-value handling → `src/core/libraryDefaults.js` and its spec; undo and AI never write it → `useParamCommands.spec.js`; reload and Reset → `e2e/library-remember-params.e2e.js`
+**To Add:** none

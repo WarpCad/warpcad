@@ -6,8 +6,21 @@ priority: medium
 model: sonnet
 milestone: M16
 depends: [core-060]
-status: open
+status: done
 ---
+
+> **Retired 2026-10-17.** Shipped as specified in one pass. New `src/core/libraryDefaults.js` (pure
+> merge/validate rules) and `src/stores/libraryDefaults.js` (Pinia, `localStorage` key
+> `warpcad.library.lastParams`); `useParamCommands` feeds it after a committed composite edit or applied
+> repair; `LibraryPanel.vue` dropdowns now read and write the store, plus a summary line and a **↺ Reset**
+> button. Deviations and decisions: (1) the spec contradicts itself on the Bolt / screw summary (the Done
+> paragraph says `× 8 mm`, e2e step 1 says `M2.5 socket × 8 mm`); the Done reading shipped, i.e. a row with
+> dropdowns omits the params they already show. (2) The remembered set replays through
+> `reconcileParamEdit` (core-060), so a remembered Size or Fit the Type lacks falls back, never throws.
+> (3) The row button is now wrapped in `div.library__line`, so docs shots that took the row's `..` use
+> `xpath=ancestor::li[1]`. (4) The AI-origin e2e step uses a scripted `create` of a bolt (no AI tool edits
+> params in place). (5) Four docs screenshots (mobile, getting-started tour-step-2, primitive-placement
+> library panel, inspector-hidden-parts) drift on this machine with or without this change.
 
 ## Goal
 

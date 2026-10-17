@@ -74,7 +74,7 @@ const isNumber = (value) => typeof value === 'number' && Number.isFinite(value)
  * @param {Record<string, any>} params
  * @returns {string}
  */
-function detailOf(op, params) {
+export function detailOf(op, params) {
   const spec = typeof params.spec === 'string' ? specLabel(params.spec) : ''
   const length = isNumber(params.length) ? `× ${params.length} mm` : ''
   switch (op) {

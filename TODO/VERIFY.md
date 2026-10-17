@@ -34,6 +34,16 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### ui-068 — The Library remembers each part's last-used params (2026-10-17 02:30 UTC)
+
+Acceptance 1, 2, 3 and 15 plus the repros were driven (emulated viewports only). These are the judgment calls and the spec contradiction they left.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | The spec disagrees with itself on the Bolt / screw summary line: Done says `× 8 mm` (dropdowns already show Type and Size), e2e step 1 says `M2.5 socket × 8 mm`. `× 8 mm` shipped. Does it read right on a phone, or would the full `M2.5 socket × 8 mm` be clearer? | Open | |
+| 2 | On a real phone, is the ↺ Reset button easy to hit and clearly not a drag handle (44 x 44 at the row's right edge)? | Open | |
+| 3 | Does the always-on memory surprise anyone (the spec's follow-up: a Settings "remember" toggle only if it does)? | Open | |
+
 ### core-060 — One Bolt / screw row with a Type dropdown (2026-10-17 UTC)
 
 Visual and feel checks the scenarios do not cover, plus one deliberate gap.

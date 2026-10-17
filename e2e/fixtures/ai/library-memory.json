@@ -1,0 +1,31 @@
+{
+  "name": "library-memory",
+  "tools": {
+    "create": "71ec770e"
+  },
+  "turns": [
+    {
+      "delayMs": 100,
+      "text": "Adding one pan head M4 screw, twelve millimetres long, near the middle of the bed so you can see where it landed. This is the assistant's own choice of fastener, so it should not change what your next Library drag drops.",
+      "calls": [
+        {
+          "name": "create",
+          "input": {
+            "op": "hardware.bolt",
+            "positionMm": [0, 0, 0],
+            "params": {
+              "type": "pan",
+              "spec": "m4",
+              "length": 12
+            },
+            "rationale": "A pan head M4 screw, chosen by the assistant"
+          }
+        }
+      ]
+    },
+    {
+      "delayMs": 100,
+      "text": "Placed one pan head M4 screw, 12 mm long. Your own next screw will start from whatever you last picked, not from this one."
+    }
+  ]
+}

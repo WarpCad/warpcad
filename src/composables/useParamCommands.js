@@ -45,6 +45,16 @@
  * builds in under 10 ms, and a synchronous result keeps `ui-029`'s "a rejected value
  * throws" contract for every caller.
  *
+ * ## It also feeds the Library's memory (`TODO/ui-068`)
+ *
+ * A composite edit that **commits** — directly in {@link setCompositeParams}, or with a repair
+ * in {@link applyRepair} — tells `stores/libraryDefaults.js` what the part now looks like, so
+ * the next drag from that Library row starts from it. An edit that returns `needsRepair` and is
+ * then cancelled commits nothing and remembers nothing. This composable is what makes that
+ * "local, user-driven only": Inspector fields and History rows call it, while the AI tools and
+ * the MCP server edit through `src/ai/tools/` and never import it (checked by grep; the unit
+ * spec asserts the memory is untouched by anything else).
+ *
  * @module composables/useParamCommands
  */
 
@@ -57,7 +67,9 @@ import { lookupEntry, normalizedParams, paramOptions, registry } from '../core/k
 import { canEditParams, compositeParamEditRecord, paramEditRecord, currentParamsOf, withComponent } from '../core/paramEdit.js'
 import { nameOverrideOf } from '../core/naming.js'
 import { repairChanges } from '../core/repair.js'
+import { variablesOf } from '../core/variables.js'
 import { useDocumentStore } from '../stores/document.js'
+import { useLibraryDefaultsStore } from '../stores/libraryDefaults.js'
 import { useVariablesUiStore } from '../stores/variablesUi.js'
 
 /** @typedef {import('../core/paramEdit.js').ParamEditability} ParamEditability */
@@ -93,6 +105,18 @@ export function useParamCommands() {
    */
   function live() {
     return toRaw(documentStore.raw)
+  }
+
+  /**
+   * Tell the Library what a committed edit left the part as (`TODO/ui-068`). Bindings are
+   * resolved against the live variables first: the memory outlives the project.
+   *
+   * @param {import('../core/kernel/registry.js').OpRecord | null | undefined} record
+   */
+  function rememberForLibrary(record) {
+    if (record === null || record === undefined) return
+    const variables = new Map(variablesOf(live()).map((variable) => [variable.name, variable]))
+    useLibraryDefaultsStore().remember(record.op, record.params, variables)
   }
 
   /** @param {string} id */
@@ -133,6 +157,7 @@ export function useParamCommands() {
     }
     if (breakages.length > 0) return { needsRepair: true, breakages, edit }
     documentStore.revise(changes, { label: `Edit ${nameOf(bodyId)}` })
+    rememberForLibrary(record)
     return { committed: true }
   }
 
@@ -238,6 +263,7 @@ export function useParamCommands() {
         label:
           edit.label ?? (edit.record === null ? `Repair ${nameOf(edit.rootId)}` : `Edit ${nameOf(edit.rootId)}`),
       })
+      rememberForLibrary(edit.record)
       if (edit.announce !== undefined) useVariablesUiStore().announce(edit.announce, documentStore.version)
     },
 

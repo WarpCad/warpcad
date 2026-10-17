@@ -19,6 +19,12 @@ The Library has five sections, and the gesture is identical in all of them:
 - **Text** — a word or label as a thin 3D solid, for naming a part or embossing a
   mark.
 
+**Hardware, Kit Parts, Raspberry Pi and My parts rows remember your last choice.** Edit a placed
+Bolt / screw into an `m2.5` socket cap in the Inspector, and the next Bolt / screw you drag in
+starts as that screw; a **↺** button on the row puts it back. **Primitives and Text always start
+from their defaults**, and neither Undo nor an AI edit changes what the next drag drops. See
+[The Library remembers your last choice](hardware-library.md#the-library-remembers-your-last-choice).
+
 ## Where the Library panel is
 
 - **On a laptop or tablet**, the Library is the column down the left-hand side of the

@@ -2015,3 +2015,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** six types and their size lists → `src/core/kernel/tables/fastener-specs.js`; legacy bolts replay identically → `src/core/kernel/recipes/fasteners.legacy-oracle.json` oracle test
 **To Add:** none
+
+## [2026-10-17T02:30:00Z] — The Library remembers your last part
+
+**Post:** WarpCad's Library now remembers what you last picked for each part. Drag a screw in, make it an M2.5 socket cap, 8 mm long, and the next screw you drag in is already that one. A small button on the row puts it back to the default.
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #OpenSource #CAD
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** the merge and validation rules → `src/core/libraryDefaults.js`; real-mouse drag, reload and Reset checks → `e2e/library-remember-params.e2e.js`
+**To Add:** none
