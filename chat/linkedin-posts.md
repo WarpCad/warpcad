@@ -3076,3 +3076,19 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** mention counts → `TODO/done/docs-023-trademark-notice.md` Goal section (the 2026-10-17 review); section and guard → `LICENSING.md`, `scripts/trademarkNotice.spec.js`; owner-name check still open → `TODO/VERIFY.md`; commit 1e94338
 **To Add:** none
+
+
+## [2026-10-17T20:10:00Z] — Who owns the code you ported from yourself
+
+**Post:** Before pushing WarpCad to GitHub, a pre-publish review found that several tables in src/ were ported from my own JSCAD v1 libraries, and that nothing in the repository said so. I wrote those libraries, but "I wrote them" is only true if no outside contributor's code is inside. The repository cannot show that either way, so I checked each of the five v1 repositories myself and confirmed there is none.
+
+LICENSING.md now has a "Ported code and data" section. It names each ported file and the library it came from (jscad-raspberrypi, jscad-hardware, jscad-utils), says I hold the copyright and relicense it as AGPL-3.0-or-later, and notes that the gear fixture is measured output from my gears package with no source copied. It also records two facts without overstating them: the gears package carries Rainer Hessmer's 2014 MIT notice, which does not attach here because none of that file is used, and some fastener sizes were first read from vendor pages or ISO 7089 and ISO 4032, with the source kept in a comment.
+
+A new spec scans src/ for "ported from jscad-" and fails if a ported file is not named in the section. Writing it showed the task's own list had missed one file, a small axis helper from jscad-utils in group.js, which is now covered.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #OpenSource #Licensing
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** owner confirmation → `TODO/done/docs-024-ported-code-provenance-statement.md` "Decided 2026-10-17"; guard and the missed `group.js` → `scripts/portedCodeProvenance.spec.js`; section → `LICENSING.md`, commit b54ee71; Hessmer notice and decision 6 → `docs/decisions/gears.md`
+**To Add:** none

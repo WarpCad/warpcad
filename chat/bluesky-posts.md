@@ -2147,3 +2147,13 @@ Hooked up Sentry to the browser build, with the rule that a build with no DSN se
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** guard and name list → `scripts/trademarkNotice.spec.js`; section → `LICENSING.md` "Trademarks and names", commit 1e94338
 **To Add:** none
+
+
+## [2026-10-17T20:10:00Z] — Where the ported code came from, in writing
+
+**Post:** Some of WarpCad's fastener and Raspberry Pi tables started life in my own JSCAD v1 libraries. LICENSING.md now lists each ported file, the library it came from, and says I relicense it as AGPL-3.0-or-later. A unit spec fails if a file says "ported from jscad-" and isn't listed. #OpenSource Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** guard and file list → `scripts/portedCodeProvenance.spec.js` (15 tests, passing this session); section → `LICENSING.md` "Ported code and data", commit b54ee71
+**To Add:** none
