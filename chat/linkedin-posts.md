@@ -2816,3 +2816,17 @@ It is documented in docs/mcp.md. Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** /mcp 404 when opted out → `mcp/liveBridge.spec.js`; documented → `docs/mcp.md` diff
 **To Add:** none
+
+## [2026-10-17T00:09:20Z] — A fast test mode: Chrome desktop and Safari on iPad only
+
+**Post:** WarpCad's e2e suite is a 3-engine by 3-viewport matrix, which is the right gate for a WebGL app and the wrong thing to wait on during every edit.
+
+A gitignored .test-fast file now narrows the default Playwright run to all specs on Chrome desktop and WebKit at iPad width. Delete it and the full matrix comes back. Fast runs never set the green stamp, and the backlog runner asks at the start of a run whether to keep fast mode or clear it.
+
+Built with Claude Code, reviewed by me.
+
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #OpenSource #Playwright
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** config resolves to guards + chromium-laptop + webkit-tablet with the marker → node check this session; stamp not set on fast runs → `.claude/commands/test.md` diff
+**To Add:** none

@@ -70,6 +70,22 @@ and prompt caching persist) — "start cold" here means *re-verify facts from fi
 auto-compacted more than once or twice, that's fine and expected; don't try to prevent
 it.
 
+### Step 0.1 — Fast-mode check (first tick of a run only)
+
+If the repo-root marker file `.test-fast` exists (see `.claude/commands/test.md` — it narrows
+e2e to `chromium-laptop` + `webkit-tablet` and skips Firefox), say so and ask with
+`AskUserQuestion` before doing anything else:
+
+- **Proceed in fast mode** (Recommended when iterating) — leave the file; every `/test` run in
+  this batch is `fast`, reports as `green (fast: …)`, and never sets the green stamp.
+- **Clear it** — `rm -f .test-fast`, so the batch runs the normal `changed`/`full` scopes.
+
+Ask once per run, not once per tick: a later tick of the same `/loop` reuses the answer from
+this conversation (re-check only that the file still matches it). If the question can't be asked
+(non-interactive session), proceed in fast mode and log that in the Runner Log. Either way,
+record the mode in the tick's Runner Log line, and in the brief to each fix-todo agent so
+it doesn't re-ask. No marker file means skip this step.
+
 ---
 
 ## Step 0.5 — Print the planned order (never stops the run)

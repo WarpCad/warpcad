@@ -42,8 +42,20 @@ projects, and it is the expensive part of a run. The caller picks a scope in the
 |---|---|---|
 | `full` (default) | Nothing said, or the caller asks for the full suite | `npm run test:e2e:headless` |
 | `changed` | The work is confined to a specific area (a component category, one subsystem) | the matching specs, **all engines**, see below |
+| `fast` | The user asks for a "fast" test suite | `touch .test-fast`, then `npm run test:e2e:headless` (see below) |
 | `one` | The caller says "one suite", "single project", or passes `--project=<name>` | `npm run test:e2e:headless -- --project=<name> --project=guards` |
 
+- **`fast` — all tests, two projects.** When the user asks for a "fast" test suite, run
+  **every** e2e spec but only on **Chrome desktop (`chromium-laptop`) and Safari on iPad
+  (`webkit-tablet`, 820×1180 touch)**. The choice is carried by the gitignored marker file
+  `.test-fast` at the repo root, which `playwright.config.js` checks: while it exists, a bare
+  `npm run test:e2e:headless` runs just those two projects plus `guards` (smoke projects are
+  dropped as redundant; `docs-*` projects are still available when named by `npm run docs:*`).
+  Create it with `touch .test-fast` when the user asks for fast; **delete it** (`rm -f .test-fast`)
+  when they ask for the full suite again or when a task needs a `full` run. Typecheck and unit
+  still run in full. Like `one`, report it as `green (fast: chromium-laptop + webkit-tablet)`
+  and **never `stamp set`** after it. Firefox is not run, so say so in the report. The file is
+  per-developer and never committed.
 - **`changed` — test what's changing, on every engine.** When a task's diff stays inside
   one area, run only the specs that cover it, but run them across **all engine-viewport
   projects** rather than one:

@@ -1988,3 +1988,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** off for 0/false/off/no → `mcp/liveBridge.spec.js`; bridge landed 2026-10-15 → git log (ai-012)
 **To Add:** none
+
+## [2026-10-17T00:09:20Z] — A fast test mode: Chrome desktop and Safari on iPad only
+
+**Post:** Added a fast mode to WarpCad's tests: touch .test-fast and Playwright runs everything on just Chrome desktop and Safari on iPad instead of all nine engine/viewport combos. The file is gitignored.
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #OpenSource #WebGL
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** config resolves to guards + chromium-laptop + webkit-tablet with the marker → node check this session; 3x3 matrix → `playwright.config.js`
+**To Add:** none

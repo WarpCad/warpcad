@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
+import { existsSync } from 'node:fs'
 import { defineConfig, devices } from '@playwright/test'
 
 /**
@@ -93,6 +94,16 @@ const docsProjects = VIEWPORTS.map((size) => ({
  * production service worker, get exercised: `E2E_PREVIEW=1 npx playwright test e2e/csp.e2e.js`.
  */
 const PREVIEW = process.env.E2E_PREVIEW === '1'
+
+/**
+ * Fast mode: an untracked, gitignored marker file at the repo root (`.test-fast`) narrows the
+ * default run to **all** tests on just `chromium-laptop` (Chrome desktop) and `webkit-tablet`
+ * (Safari on iPad) plus the `guards`. The smoke projects are dropped as redundant (they are a
+ * subset of those two). Create it with `touch .test-fast`, delete it to get the full 9-way
+ * matrix back. Explicit `--project=<name>` flags still work for the projects that exist.
+ */
+const FAST = existsSync(new URL('./.test-fast', import.meta.url))
+
 const ORIGIN = PREVIEW ? 'http://localhost:5184' : 'http://localhost:5183'
 
 export default defineConfig({
@@ -133,12 +144,19 @@ export default defineConfig({
   use: {
     baseURL: ORIGIN,
   },
-  projects: [
-    // Repo guards that assert on files rather than on a page — one run is
-    // enough, so they stay out of the 9-way browser matrix.
-    { name: 'guards', testMatch: /(naming|docs-media)\.spec\.js/ },
-    ...browserProjects,
-    ...smokeProjects,
-    ...docsProjects,
-  ],
+  projects: FAST
+    ? [
+        { name: 'guards', testMatch: /(naming|docs-media)\.spec\.js/ },
+        ...browserProjects.filter((project) => SMOKE_BROWSERS.includes(project.name)),
+        // `npm run docs:*` names its docs-* projects explicitly; keep them selectable.
+        ...(process.argv.some((arg) => arg.includes('docs-')) ? docsProjects : []),
+      ]
+    : [
+        // Repo guards that assert on files rather than on a page — one run is
+        // enough, so they stay out of the 9-way browser matrix.
+        { name: 'guards', testMatch: /(naming|docs-media)\.spec\.js/ },
+        ...browserProjects,
+        ...smokeProjects,
+        ...docsProjects,
+      ],
 })
