@@ -3044,3 +3044,19 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** report with tables and the not-measured list → `bench/results/2026-10-17-perf-002.md`; bench → `bench/bundle-load.mjs`, `bench/bundle-modules.mjs`
 **To Add:** none
+
+
+## [2026-10-17T19:31:00Z] — The build now ships its own licence notices
+
+**Post:** MIT, BSD and Apache-2.0 all ask the same thing of anyone who distributes a library: keep the licence notice with it. Before this commit, a local WarpCad build had no @license comment in any chunk, and WarpCad's own repository had no NOTICE file. Checking that took one look at dist/.
+
+The fix is a small build step. A pure function reads the lock file's production packages (the same set `npm run licenses` checks), pulls each package's LICENSE and NOTICE file from node_modules, and renders one sorted, timestamp-free text file. A Vite plugin writes it to the root of the build and serves the same text under `vite dev`. The result is 80,890 bytes, one entry per package, and a unit spec fails if a production dependency has no entry. Help's footer now links it beside the source-code link, and the service worker is told not to answer that URL with the app shell.
+
+One detail from the phone-width check: the first version put a dot between the two footer links, and at 390 px it landed alone at the start of the second line. The links are separated by a margin now.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #OpenSource #Licensing #Vue
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** "no @license comment / no NOTICE file" → `TODO/done/build-011-third-party-notices.md` Goal section (a 2026-10-17 check of a local `dist/`); generator behaviour → `scripts/third-party-notices.spec.js`; 80,890 bytes → `dist/THIRD-PARTY-NOTICES.txt` from this session's build; plugin, dev serving and service-worker denylist → `scripts/vite-plugin-notices.mjs`, `vite.config.js`; dot at 390 px → phone footer snapshot reviewed this session; commit 5546188
+**To Add:** the Help footer at phone width (`e2e/help.e2e.js-snapshots/help-footer-chromium-phone-darwin.png`)

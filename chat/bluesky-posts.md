@@ -2127,3 +2127,13 @@ Hooked up Sentry to the browser build, with the rule that a build with no DSN se
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** method, tables and the not-measured list → `bench/results/2026-10-17-perf-002.md`; bench → `bench/bundle-load.mjs`; follow-up → `TODO/perf-003-defer-code-unused-at-boot.md`
 **To Add:** none (headless engines on one laptop; no real device or HTTP/2 yet)
+
+
+## [2026-10-17T19:31:00Z] — The build now ships its own licence notices
+
+**Post:** WarpCad's build now carries a THIRD-PARTY-NOTICES.txt: every production dependency with its version, licence and full text, generated from the lock file. A unit spec fails if one is missing. Linked from Help's footer. #OpenSource #WebDev Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #OpenSource #WebDev
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** generator, sorted output and per-package guard → `scripts/third-party-notices.spec.js` (8 tests, passing this session); file size and Help link → `dist/THIRD-PARTY-NOTICES.txt` 80,890 B and `e2e/help.e2e.js`, commit 5546188
+**To Add:** none
