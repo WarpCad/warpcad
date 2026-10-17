@@ -34,29 +34,15 @@ describe('addConnectSrc', () => {
 })
 
 describe('sentryBuildOptions', () => {
-  it('is inert without a token: no maps, no plugin', () => {
-    expect(sentryBuildOptions({})).toEqual({ sourcemap: false, plugin: null })
-    expect(sentryBuildOptions({ SENTRY_AUTH_TOKEN: '' })).toEqual({ sourcemap: false, plugin: null })
-    expect(sentryBuildOptions({ VITE_SENTRY_DSN: 'https://abc@o1.ingest.us.sentry.io/2' })).toEqual({ sourcemap: false, plugin: null })
+  it('is inert without a token: no maps', () => {
+    expect(sentryBuildOptions({})).toEqual({ sourcemap: false })
+    expect(sentryBuildOptions({ SENTRY_AUTH_TOKEN: '' })).toEqual({ sourcemap: false })
+    expect(sentryBuildOptions({ VITE_SENTRY_DSN: 'https://abc@o1.ingest.us.sentry.io/2' })).toEqual({ sourcemap: false })
   })
 
-  it('with a token: hidden maps, deleted after upload, release from the env, telemetry off', () => {
-    const { sourcemap, plugin } = sentryBuildOptions({
-      SENTRY_AUTH_TOKEN: 'fake-token-for-test',
-      SENTRY_ORG: 'org',
-      SENTRY_PROJECT: 'proj',
-      SENTRY_RELEASE: 'abc1234',
-    })
-    expect(sourcemap).toBe('hidden')
-    expect(plugin.authToken).toBe('fake-token-for-test')
-    expect(plugin.org).toBe('org')
-    expect(plugin.project).toBe('proj')
-    expect(plugin.release).toEqual({ name: 'abc1234' })
-    expect(plugin.telemetry).toBe(false)
-    expect(plugin.sourcemaps.filesToDeleteAfterUpload).toEqual(['./dist/**/*.map'])
-  })
-
-  it('falls back to GITHUB_SHA for the release name', () => {
-    expect(sentryBuildOptions({ SENTRY_AUTH_TOKEN: 't', GITHUB_SHA: 'f00' }).plugin.release).toEqual({ name: 'f00' })
+  it('with a token: hidden maps and nothing else (the upload is the workflow\'s curl step, TODO/build-009)', () => {
+    const options = sentryBuildOptions({ SENTRY_AUTH_TOKEN: 'fake-token-for-test', SENTRY_ORG: 'org', SENTRY_PROJECT: 'proj' })
+    expect(options).toEqual({ sourcemap: 'hidden' })
+    expect(JSON.stringify(options)).not.toContain('fake-token-for-test')
   })
 })

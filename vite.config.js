@@ -3,7 +3,6 @@ import { readFileSync } from 'node:fs'
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import { VitePWA } from 'vite-plugin-pwa'
-import { sentryVitePlugin } from '@sentry/vite-plugin'
 
 import { liveBridgePlugins } from './mcp/liveBridge.js'
 import { HELP_PRECACHE_GLOBS, helpRuntimeCaching, warpcadHelp } from './scripts/vite-plugin-help.mjs'
@@ -116,7 +115,7 @@ function analyticsSources() {
   }
 }
 
-/** Hidden source maps and the upload plugin exist only when `SENTRY_AUTH_TOKEN` is set. */
+/** Hidden source maps exist only when `SENTRY_AUTH_TOKEN` is set; the workflow uploads and deletes them. */
 const SENTRY = sentryBuildOptions(process.env)
 
 export default defineConfig(({ command }) => ({
@@ -156,7 +155,7 @@ export default defineConfig(({ command }) => ({
       includeAssets: ['favicon.svg', 'favicon.ico', 'apple-touch-icon.png'],
       workbox: {
         // `TODO/build-004`: with `build.sourcemap: 'hidden'` Workbox would also emit sw.js.map and
-        // reference it; the Sentry plugin runs before Workbox, so those maps would be published.
+        // reference it; Workbox runs after the bundle, so those maps would be published.
         sourcemap: false,
         skipWaiting: true,
         clientsClaim: true,
@@ -185,7 +184,5 @@ export default defineConfig(({ command }) => ({
         icons: manifestIcons(),
       },
     }),
-    // Last, so it sees the finished bundle. Uploads the hidden maps, then deletes them from dist/.
-    ...(SENTRY.plugin === null ? [] : [sentryVitePlugin(SENTRY.plugin)]),
   ],
 }))

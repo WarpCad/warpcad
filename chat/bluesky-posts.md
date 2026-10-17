@@ -2177,3 +2177,13 @@ Hooked up Sentry to the browser build, with the rule that a build with no DSN se
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** guard → `scripts/cname.spec.js` (3 tests, failing before the file, passing after); built `dist/CNAME` from a real `npm run build`; section → `docs/decisions/hosting.md` "Custom domain"
 **To Add:** a screenshot of the live site once the DNS record and certificate are in place
+
+
+## [2026-10-17T21:00:00Z] — Dropping a build plugin over its licence
+
+**Post:** WarpCad's Sentry source-map upload used a build plugin that pulls in a package under the Functional Source License, which is source-available, not open source. For an AGPL project that did not fit, so the plugin is gone and the Pages workflow uploads maps with curl instead. I could not test the upload against a real Sentry project yet. #OpenSource Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** guards -> `scripts/sentry-upload.spec.js` (7 tests, failing before, passing after); lockfile -> 495 lines removed, none added; decision note -> `docs/decisions/error-reporting.md`
+**To Add:** the log line from the first real upload run

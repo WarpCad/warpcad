@@ -1,4 +1,4 @@
-# Error reporting: Sentry (`@sentry/vue` + `@sentry/vite-plugin`)
+# Error reporting: Sentry (`@sentry/vue`; source maps uploaded with `curl`)
 
 **Status:** accepted 2026-10-17 (`TODO/build-004`). The user asked for Sentry by name; this record
 still compares it against real alternatives, as `CLAUDE.md`'s Library decisions section requires.
@@ -42,14 +42,37 @@ Numbers fetched 2026-10-17 from the npm registry and the GitHub and GitLab APIs.
 ## Decision
 
 **Sentry**, the hosted service, with `@sentry/vue` 11.8.0 as a production dependency and
-`@sentry/vite-plugin` 11.8.0 as a **development** dependency (it runs in Node during `vite build`
-and is never imported by client code).
+source maps uploaded by a `curl` step in the Pages workflow. (`@sentry/vite-plugin` was used first
+and dropped on 2026-10-17, `build-009`; see the next section.)
+
+### Change 2026-10-17 (`build-009`): no build plugin
+
+`@sentry/vite-plugin` 11.8.0 pulled the build-time package `sentry@0.45.0`, licensed
+**`FSL-1.1-Apache-2.0`** (source-available, not open source). `npm run licenses` checks production
+dependencies only and never saw it, and nothing of it reached `dist/`, but it does not fit an AGPL
+project's toolchain. The project owner ruled to drop the plugin. The Sentry decision itself stands.
+
+- `package.json` and the lockfile no longer contain the plugin, `@sentry/bundler-plugins`, `sentry`
+  or any FSL package (`scripts/sentry-upload.spec.js` guards it).
+- `build.sourcemap` is still `'hidden'` only when `SENTRY_AUTH_TOKEN` is set. The
+  *Upload source maps to Sentry* step in `.github/workflows/pages.yml` then creates the release and
+  posts each bundle file (with a `Sourcemap` header) and its `.map` to
+  `POST /api/0/organizations/{org}/releases/{version}/files/` with `curl --fail`, under the name
+  `~/<BASE_PATH>/assets/<file>`. The next step deletes every `.map` from `dist/`.
+- Release name: `SENTRY_RELEASE` for the upload and `VITE_SENTRY_RELEASE` for `Sentry.init` are the
+  same expression (the commit SHA); the spec checks they stay equal.
+- Behaviour change from the plugin: an upload error now **fails the job** (the plugin only logged),
+  so a Sentry outage can block a deploy. Chosen deliberately: a silent pass would ship unreadable
+  stacks unnoticed. With `SENTRY_DSN` set but the token, org or project missing, the step warns and
+  skips.
+- Not confirmed against a live project: the legacy release-files API is documented by Sentry, but
+  was not exercised here. See `TODO/VERIFY.md` build-009.
 
 ### Licence result (`npm run licenses`)
 
 - `npm run licenses` (production dependencies, the existing allow-list, unchanged) **passes** with
   `@sentry/vue` installed: every package in its tree is MIT, ISC, BSD or Apache-2.0.
-- **Open question for the project owner, not an allow-list change:** `@sentry/vite-plugin` pulls the
+- **Resolved by `build-009` (history):** `@sentry/vite-plugin` pulled the
   npm package `sentry@0.45.0`, which declares **`FSL-1.1-Apache-2.0`** (Functional Source License;
   converts to Apache-2.0 two years after each release; it forbids offering a competing product).
   It is a **build-time-only** dependency (the upload CLI), it is not in `--production`, and nothing
@@ -76,13 +99,12 @@ gitignored `.env.sentry.local` (covered by `.env.*` and `*.local`), or leave it 
 ### Build
 
 - `build.sourcemap` is `'hidden'` **only when `SENTRY_AUTH_TOKEN` is set**: maps are generated,
-  the bundle carries no `//# sourceMappingURL`, the plugin uploads them and then deletes every
-  `dist/**/*.map` (`filesToDeleteAfterUpload`), so Pages never serves them. With no token the build
+  the bundle carries no `//# sourceMappingURL`, the workflow uploads them and then deletes every
+  `dist/**/*.map`, so Pages never serves them. With no token the build
   is unchanged (no maps, no plugin). The logic is `sentryBuildOptions()` in
   `scripts/sentry-build.mjs`, unit-tested.
 - Release name: `SENTRY_RELEASE` (the commit SHA in CI), the same value as `VITE_SENTRY_RELEASE`
   given to `Sentry.init`. A mismatch is the usual reason Sentry shows minified frames.
-- Plugin telemetry (`telemetry: false`) is off: the build should not report to anyone by itself.
 
 ### CSP: the ingest host (the part that needs the project owner)
 

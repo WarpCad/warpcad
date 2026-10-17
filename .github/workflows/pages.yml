@@ -61,6 +61,53 @@ jobs:
           # repository variable unset the build carries no tag and its CSP allows no Google host. The
           # measurement ID is public by design (a variable, not a secret).
           GA_MEASUREMENT_ID: ${{ vars.GA_MEASUREMENT_ID }}
+      # Source maps (TODO/build-009; replaces @sentry/vite-plugin, whose dependency `sentry` is
+      # FSL-licensed). The build wrote hidden maps only because SENTRY_AUTH_TOKEN was set. Each bundle
+      # file and its map are uploaded to Sentry's release-files API under the release the app reports
+      # at runtime (VITE_SENTRY_RELEASE, the same commit SHA). Any HTTP error fails the job.
+      - name: Upload source maps to Sentry
+        if: ${{ vars.SENTRY_DSN != '' }}
+        env:
+          BASE_PATH: ${{ steps.pages.outputs.base_path }}
+          SENTRY_DSN: ${{ vars.SENTRY_DSN }}
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ vars.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ vars.SENTRY_PROJECT }}
+          SENTRY_RELEASE: ${{ github.event.workflow_run.head_sha || github.sha }}
+        run: |
+          set -euo pipefail
+          if [ -z "$SENTRY_AUTH_TOKEN" ] || [ -z "$SENTRY_ORG" ] || [ -z "$SENTRY_PROJECT" ]; then
+            echo "::warning::SENTRY_DSN is set but SENTRY_AUTH_TOKEN, SENTRY_ORG or SENTRY_PROJECT is not: errors are reported but not unminified."
+            exit 0
+          fi
+          # Region host from the DSN (o123.ingest.us.sentry.io -> us.sentry.io); sentry.io otherwise.
+          dsn_host="${SENTRY_DSN#*@}"; dsn_host="${dsn_host%%/*}"
+          api_host="$(echo "$dsn_host" | sed -nE 's#^o[0-9]+\.ingest\.([a-z]+)\.sentry\.io$#\1.sentry.io#p')"
+          api="https://${api_host:-sentry.io}/api/0/organizations/$SENTRY_ORG/releases"
+          auth="Authorization: Bearer $SENTRY_AUTH_TOKEN"
+          # The release must exist before files attach to it.
+          curl --fail --silent --show-error -X POST "$api/" -H "$auth" -H 'Content-Type: application/json' \
+            -d "{\"version\":\"$SENTRY_RELEASE\",\"projects\":[\"$SENTRY_PROJECT\"]}" > /dev/null
+          # "~" matches any host; the path is the served path (BASE_PATH is "" or "/warpcad").
+          count=0
+          while IFS= read -r map; do
+            js="${map%.map}"
+            [ -f "$js" ] || { echo "::error::no bundle file for $map"; exit 1; }
+            rel="${js#dist/}"
+            # The bundle carries no sourceMappingURL (hidden maps); the Sourcemap header links the two.
+            curl --fail --silent --show-error -X POST "$api/$SENTRY_RELEASE/files/" -H "$auth" \
+              -F "file=@$js" -F "name=~${BASE_PATH}/$rel" -F "header=Sourcemap:$(basename "$map")" > /dev/null
+            curl --fail --silent --show-error -X POST "$api/$SENTRY_RELEASE/files/" -H "$auth" \
+              -F "file=@$map" -F "name=~${BASE_PATH}/$rel.map" > /dev/null
+            count=$((count + 1))
+          done < <(find dist -name '*.js.map')
+          if [ "$count" -eq 0 ]; then echo "::error::no source maps in dist/ to upload"; exit 1; fi
+          echo "Uploaded $count source maps for release $SENTRY_RELEASE"
+      # Maps never ship: Pages serves dist/ as it stands after this step.
+      - name: Remove source maps from the Pages artifact
+        run: |
+          find dist -name '*.map' -delete
+          test -z "$(find dist -name '*.map')"
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist

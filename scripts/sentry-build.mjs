@@ -2,8 +2,7 @@
 /**
  * Build-time Sentry wiring (`TODO/build-004`, `docs/decisions/error-reporting.md`), kept out of
  * `vite.config.js` so it is unit-testable in plain Node. Nothing here reads a secret into a
- * file or into the client bundle: the auth token is only ever copied from `process.env` into the
- * Node-side plugin options.
+ * file or into the client bundle: the auth token is only tested for presence.
  *
  * @module scripts/sentry-build
  */
@@ -45,25 +44,16 @@ export function addConnectSrc(html, host) {
 }
 
 /**
- * Source-map and upload options for `vite build`. Without `SENTRY_AUTH_TOKEN` the build is
- * exactly what it was before Sentry: no maps, no plugin.
+ * Source-map option for `vite build`. Without `SENTRY_AUTH_TOKEN` the build is exactly what it was
+ * before Sentry: no maps. With it, maps are generated but not referenced from the bundle; the
+ * Pages workflow uploads them with `curl` and deletes them (`TODO/build-009`: no Sentry build
+ * plugin, so no FSL-licensed `sentry` package in the toolchain).
  *
  * @param {Record<string, string | undefined>} env `process.env`
- * @returns {{ sourcemap: false | 'hidden', plugin: null | Record<string, any> }}
+ * @returns {{ sourcemap: false | 'hidden' }}
  */
 export function sentryBuildOptions(env) {
   const authToken = env.SENTRY_AUTH_TOKEN
-  if (typeof authToken !== 'string' || authToken === '') return { sourcemap: false, plugin: null }
-  return {
-    // Generated but not referenced from the bundle; deleted again once uploaded.
-    sourcemap: 'hidden',
-    plugin: {
-      authToken,
-      org: env.SENTRY_ORG,
-      project: env.SENTRY_PROJECT,
-      release: { name: env.SENTRY_RELEASE ?? env.GITHUB_SHA },
-      sourcemaps: { filesToDeleteAfterUpload: ['./dist/**/*.map'] },
-      telemetry: false,
-    },
-  }
+  if (typeof authToken !== 'string' || authToken === '') return { sourcemap: false }
+  return { sourcemap: 'hidden' }
 }

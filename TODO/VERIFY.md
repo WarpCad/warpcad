@@ -100,6 +100,17 @@ No GA property or Measurement ID existed in the implementing session and Google 
 | 5 | On the deployed app, DevTools console: no `Content Security Policy` errors naming a Google host. If one appears, widen by that single host in `scripts/analytics-build.mjs` and record it in `docs/decisions/analytics.md`. | Open | |
 | 6 | Open a shared-link address (`…/#/help/getting-started`) and confirm the Network `collect` request's `dl` has no `#` part. | Open | |
 
+### build-009 — Source maps uploaded with curl instead of @sentry/vite-plugin (2026-10-17 2026-10-17 20:19)
+
+The upload moved from the plugin to a `curl` step in `.github/workflows/pages.yml`. The implementing session had no Sentry project, so the real upload has never run, and the exact API shape was read from Sentry's docs (`POST /api/0/organizations/{org}/releases/{version}/files/`, multipart `file`, `name`, `header`; Bearer token with `org:ci`), not exercised. The `Sourcemap` header approach and the `~/…` file names are the part most likely to need adjusting. Never paste the token into chat or a commit.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | Run the Pages workflow with `workflow_dispatch` (variables `SENTRY_DSN`, `SENTRY_ORG`, `SENTRY_PROJECT` and secret `SENTRY_AUTH_TOKEN` set). The step *Upload source maps to Sentry* must pass and end `Uploaded N source maps for release <sha>` with N at least 1; a red step with an HTTP status in the log means the endpoint or token scope is wrong (report it, do not retry blindly). In Sentry, Releases then the commit SHA then Artifacts should list `~/assets/*.js` and `~/assets/*.js.map`. | Open | |
+| 2 | Same run: the *Remove source maps* step is green, and `https://app.warpcad.com/assets/<main chunk>.js.map` returns 404 (maps are not served). | Open | |
+| 3 | After row 1, throw a test error in the deployed app (`setTimeout(() => { throw new Error('sentry smoke') })`). The Sentry event's stack frames must show original file names and lines. If frames are minified, the upload worked but did not match: compare the artifact names with the event's file URLs and tell me what they look like. | Open | |
+| 4 | Confirm the auth token's scopes still include `org:ci` (the release-create and file-upload calls need it); a 403 in row 1 means they do not. | Open | |
+
 ### build-004 — Sentry error reporting and source-map upload (2026-10-17 12:17)
 
 The implementing session had no Sentry account, DSN, org, project or token, so the spec's live smoke test is untested. Everything short of a real event reaching a real project is covered by unit specs (SDK mocked) and production-build checks. Never paste the token or DSN into chat, a TODO, a commit or `TROUBLESHOOTING.md`.
@@ -108,10 +119,10 @@ The implementing session had no Sentry account, DSN, org, project or token, so t
 |---|---|---|---|
 | 1 | Create a Sentry browser/Vue project; copy its DSN. Create an auth token with only `project:releases` and `org:read`, named for the Pages workflow. | Open | 2026-10-17: project exists, DSN supplied by the owner (org `o4511265456128000`, project `4512273042964480`, ingest.us.sentry.io). Org slug `johnwebbcole`, project slug `warpcad`. Auth token created (organization token `warpcad-pages-ci`, scope `org:ci`); its value is not recorded here. Whether the GitHub variables and secret are set is not recorded yet. Not marked OK until row 2 is confirmed. |
 | 2 | GitHub → Settings → Secrets and variables → Actions: variables `SENTRY_DSN`, `SENTRY_ORG`, `SENTRY_PROJECT`; secret `SENTRY_AUTH_TOKEN` (repo secret, because the `build` job has no `environment`). | Open | 2026-10-17: the owner reports all four are set (three variables, one secret). Not marked OK: not seen by the agent, and the Pages run (row 3) has not happened. |
-| 3 | Run the Pages workflow with `workflow_dispatch`. The build log should show the Sentry plugin uploading (a `[sentry-vite-plugin] Error` line means the upload failed but the deploy still went out), and the Sentry release list should show the commit SHA. | Open | |
+| 3 | Run the Pages workflow with `workflow_dispatch`. The log of the *Upload source maps to Sentry* step (`build-009`) should end `Uploaded N source maps for release <sha>` (an upload error now fails the job), and the Sentry release list should show the commit SHA. | Open | |
 | 4 | Smoke test: locally `VITE_SENTRY_DSN=<dsn> SENTRY_AUTH_TOKEN=<token> SENTRY_ORG=… SENTRY_PROJECT=… SENTRY_RELEASE=smoke VITE_SENTRY_RELEASE=smoke npm run build && npx vite preview`, open the page, run `setTimeout(() => { throw new Error('sentry smoke') })` in devtools. The event must arrive within a minute, with the original file and line (not minified names), the page URL without any `#fragment`, and no request data. Then delete the local `dist/`. | Open | |
 | 5 | On the deployed app (`app.warpcad.com`), DevTools console: no `Content Security Policy` errors mentioning the Sentry host (the CSP host comes from the DSN at build time). | Open | |
-| 6 | Decide whether the build-time package `sentry@0.45.0` (licence `FSL-1.1-Apache-2.0`, pulled by `@sentry/vite-plugin`, not in `npm run licenses` which is production-only) is acceptable in this AGPL project's build toolchain. | Open | |
+| 6 | Decide whether the build-time package `sentry@0.45.0` (licence `FSL-1.1-Apache-2.0`, pulled by `@sentry/vite-plugin`, not in `npm run licenses` which is production-only) is acceptable in this AGPL project's build toolchain. | N/A | 2026-10-17: resolved by `build-009`. The owner ruled to drop the plugin; it and `sentry@0.45.0` are gone from the lockfile. Rows 3 and 4 now describe the `curl` upload; see the build-009 entry. |
 
 ### docs-020 — Docs media sweep for the AI chat, My parts, sketch select/delete and timeline re-link (2026-10-17 11:50)
 

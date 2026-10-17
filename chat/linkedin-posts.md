@@ -3124,3 +3124,21 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** guard → `scripts/cname.spec.js`; `dist/CNAME` and manifest scope → this session's `npm run build`; decision note → `docs/decisions/hosting.md` "Custom domain"; owner steps → `TODO/VERIFY.md` build-010
 **To Add:** the result of the live checks, after the DNS record and the first deploy
+
+
+## [2026-10-17T21:00:00Z] — A licence check that only looked at what ships
+
+**Post:** WarpCad's licence check covers production dependencies only, and it passed every time. It could not see a build-time package that the Sentry source-map plugin pulled in, `sentry@0.45.0`, licensed under the Functional Source License. That licence is source-available, not open source, and a copyleft project should not carry it in its toolchain, even though none of it reaches the shipped bundle.
+
+I found it while wiring up error reporting, because I read the lockfile instead of trusting the check. The owner decided to drop the plugin. The replacement is a short curl step in the deploy workflow: create the release, then upload each bundle file with its source map under the same release name the app reports at runtime. A second step deletes every map before the site is published, so the maps never ship.
+
+Two things changed on the way. The plugin used to create the release and link each file to its map without being asked, so the workflow now does both. And an upload error now fails the deploy, where the plugin only logged one. I would rather see a red build than ship stack traces nobody can read.
+
+Specs now fail if the plugin or the package comes back into the lockfile, if the app and the upload use different release names, or if a map could reach the published folder. What I cannot show yet is the upload working against a real Sentry project; I built it from Sentry's documented endpoint and have not run it.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #OpenSource #Licensing
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** package gone -> `scripts/sentry-upload.spec.js`; 495 lockfile lines removed -> `git diff --stat package-lock.json`; endpoint and fields -> Sentry's release-files API docs; decision -> `docs/decisions/error-reporting.md`
+**To Add:** the result of the first real upload run

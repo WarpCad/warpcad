@@ -5,8 +5,14 @@ kind: finding
 priority: medium
 model: sonnet
 depends: []
-status: open
+status: done
 ---
+
+> **What shipped (2026-10-17):** as proposed, plus two things the plugin used to do implicitly. The
+> workflow creates the release before uploading (the plugin did), and uploads each bundle file with a
+> `Sourcemap` header beside its `.map` (hidden maps leave no `sourceMappingURL`). A separate step deletes
+> every `.map` from `dist/` before the Pages artifact. An upload error now fails the job (the plugin only
+> logged). Guarded by `scripts/sentry-upload.spec.js`. The live upload is unverified: `TODO/VERIFY.md` build-009.
 
 ## Problem
 
