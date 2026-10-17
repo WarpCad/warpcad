@@ -2869,3 +2869,19 @@ The part I spent the most care on is what the memory ignores. Undo does not roll
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** rules and stale-value handling → `src/core/libraryDefaults.js` and its spec; undo and AI never write it → `useParamCommands.spec.js`; reload and Reset → `e2e/library-remember-params.e2e.js`
 **To Add:** none
+
+## [2026-10-17T02:36:00Z] — Why my own test missed the overlap on the first try
+
+**Post:** A phone bug in WarpCad: with the Library sheet open and a part selected, the Inspector's collapsed tab was drawn over the sheet's rows and swallowed taps on them. The fix is two CSS custom properties: when both are showing, the tab docks on the bottom edge and the Library lifts above it. This is the fourth time the same class of bug (a tab covering a control) has turned up, each found by hand.
+
+The more useful part was the test. My first version asserted the tab's box did not intersect the Library's row list, and it would have passed on the broken code, because that list is taller than the clipped sheet. Hit-testing the centre of every visible row with `elementFromPoint` failed on the old code for the right reason, and I measured the panel's own box for the overlap check.
+
+Not checked: real phone hardware. I drove it on an emulated 390 px WebKit with touch, which is the engine where this has broken before, but not a physical iPhone. The group-selection steps of the related acceptance scenario were also not hand-driven this time.
+
+Built with Claude Code, reviewed by me.
+
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #Testing #UX #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** an overlap check against the row list passed on broken code (rows box 394 px tall ending at y 862 vs. tab at 800, yet clipped) → measured by hand this session; fixed spec fails before and passes after → `e2e/phone-sheet-stacking.e2e.js`; earlier instances → `TODO/done/ui-010*`, `ui-011*`, `ui-032*`
+**To Add:** the new `mobile-library-with-selection.png` screenshot, repo URL once public, docs site URL once it exists

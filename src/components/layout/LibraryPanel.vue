@@ -1186,7 +1186,8 @@ onBeforeUnmount(stopTracking)
   .library {
     position: absolute;
     right: 0;
-    bottom: 0;
+    /* Lifted above the Inspector's docked tab while the sheet is open (AppView, ui-070). */
+    bottom: var(--library-bottom, 0px);
     left: 0;
     z-index: 10;
     border-right: none;
@@ -1234,19 +1235,6 @@ onBeforeUnmount(stopTracking)
 
   .library[data-open='true'] .library__sheet {
     display: flex;
-  }
-}
-</style>
-
-<!-- Unscoped on purpose: it reads the *parent's* state (`AppView`'s `data-inspector-sheet`), which
-     a scoped rule cannot select. At phone width the Inspector's collapsed tab (a body is selected)
-     stacks over the bottom of the open Library sheet, so the last rows — My parts, now — would
-     scroll to rest *under* it, unreachable. Leave room for it. Found hand-driving the phone: a
-     placed Standoff's own row sat under the tab. -->
-<style>
-@media (max-width: 640px) {
-  .app__body[data-inspector-sheet='tab'] .library__sheet {
-    padding-bottom: calc(14px + var(--library-tab-height, 52px) + var(--inspector-tab-height, 44px));
   }
 }
 </style>

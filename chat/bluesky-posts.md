@@ -2024,3 +2024,13 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** the merge and validation rules → `src/core/libraryDefaults.js`; real-mouse drag, reload and Reset checks → `e2e/library-remember-params.e2e.js`
 **To Add:** none
+
+## [2026-10-17T02:36:00Z] — The tab that sat on top of the list
+
+**Post:** On a phone, WarpCad's Library is a bottom sheet. Drop a part and the Inspector's little tab, named after what you just placed, appeared right across the sheet's rows, covering Active Cooling Fan and half of Raspberry Pi Screen. Both panels anchored to the bottom edge and only one knew the other might be open. The tab now docks on the bottom edge and the Library lifts above it. Built with Claude Code, reviewed by me.
+
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #UX #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** tab overlapped the sheet by 44 px before, 0 after, every row's centre hit-tested → `e2e/phone-sheet-stacking.e2e.js` (failed on chromium-phone before the change); drawn from the user's own phone report 2026-10-16 → `TODO/done/ui-070-phone-inspector-tab-covers-open-library-sheet.md`
+**To Add:** the new `mobile-library-with-selection.png` screenshot, repo URL once public, docs site URL once it exists

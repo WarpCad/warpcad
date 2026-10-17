@@ -74,6 +74,16 @@ Open the Library *before* you start to drag, because a row has to be on screen t
 dragged. If you open **History** or tap the Inspector's tab while the Library is up, the
 Library puts itself away: there is room for one sheet at a time.
 
+With the Library open and something selected, the Inspector's tab (named after the selection)
+sits along the bottom edge, under the Library, and never covers its rows. Tap that tab to close
+the Library and switch to the Inspector.
+
+For example: open **Library**, drag a **Cube** onto the grid. The Library stays open, and the
+Cube's tab (**Cube 1**) waits along the bottom edge below it. Tap **Cube 1** to close the
+Library and see the Cube's controls.
+
+![The Library sheet open on a phone with a shape selected: the Inspector's tab sits along the bottom edge, under the sheet.](./screenshots/mobile-library-with-selection.png)
+
 ## The Inspector
 
 Tap a shape in the 3D view and the **Inspector** sheet rises by itself, titled with the

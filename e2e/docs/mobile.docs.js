@@ -178,6 +178,16 @@ test.describe('docs media: phone and tablet', () => {
     else await shot(page, 'operations-toolbar-tablet.png')
   })
 
+  test('phone: the Library open with a shape selected', async ({ page, viewport }) => {
+    test.skip(!isPhone(viewport), 'phone only')
+    await openScene(page, viewport)
+    await tapCanvas(page, CUBES[390].a)
+    await expect(view(page)).toHaveAttribute('data-selected-count', '1')
+    await openLibrary(page)
+    await expect(page.getByTestId('inspector-tab')).toBeVisible()
+    await shot(page, 'mobile-library-with-selection.png')
+  })
+
   test('phone: nav chrome folded and open, File menu', async ({ page, viewport }) => {
     test.skip(!isPhone(viewport), 'phone only')
     await openScene(page, viewport)

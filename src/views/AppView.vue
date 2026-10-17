@@ -265,6 +265,7 @@ function onInspectorClaim() {
     <main
       class="app__body"
       :data-inspector-sheet="inspectorSheet"
+      :data-library-sheet="libraryOpen ? 'open' : 'closed'"
       :data-timeline-sheet="timeline.open ? 'open' : 'none'"
       :data-chat-sheet="chatSheet"
     >
@@ -460,6 +461,15 @@ function onInspectorClaim() {
   .app__body[data-inspector-sheet='tab'],
   .app__body[data-inspector-sheet='open'] {
     --bottom-panel-bottom: calc(var(--library-tab-height) + var(--inspector-tab-height));
+  }
+
+  /* An open Library sheet with the Inspector as a tab (`TODO/ui-070`): stack, don't overlap.
+     The Inspector's tab docks on the bottom edge and the whole Library panel lifts above it,
+     the same move `--bottom-panel-bottom` makes for History. Otherwise the tab (z 11) is drawn
+     across the sheet's rows, which the Library grows upward from the bottom edge. */
+  .app__body[data-library-sheet='open'][data-inspector-sheet='tab'] {
+    --inspector-bottom: 0px;
+    --library-bottom: var(--inspector-tab-height);
   }
 
   .app__body[data-timeline-sheet='open'] {

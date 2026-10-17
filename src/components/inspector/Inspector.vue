@@ -1350,8 +1350,9 @@ watch([() => body.value?.id, colorPart], () => {
     position: absolute;
     right: 0;
     /* Stacked directly above the Library sheet's collapsed tab rather than on
-       top of it — ui-010's hand-drive found exactly this class of overlap. */
-    bottom: var(--library-tab-height, 52px);
+       top of it — ui-010's hand-drive found exactly this class of overlap. While the Library
+       sheet is open it docks on the bottom edge instead and the Library lifts (ui-070). */
+    bottom: var(--inspector-bottom, var(--library-tab-height, 52px));
     left: 0;
     z-index: 11;
     border-left: none;

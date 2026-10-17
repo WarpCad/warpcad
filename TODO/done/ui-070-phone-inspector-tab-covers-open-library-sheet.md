@@ -6,8 +6,10 @@ priority: high
 model: sonnet
 milestone: M17
 depends: []
-status: open
+status: done
 ---
+
+> **Retirement note (2026-10-17):** shipped as proposed. `AppView.vue` sets `data-library-sheet` and, for Library open + Inspector tab, `--inspector-bottom: 0px` and `--library-bottom: var(--inspector-tab-height)`; the Inspector and Library phone `bottom` read them. Also removed the older unscoped `padding-bottom` workaround in `LibraryPanel.vue` (rows scrolling clear of the tab), which the lift makes redundant. The spec measures the Library *panel* box, not `library-rows` (an inner list taller than the clipped sheet), and asserts every visible row's centre via `elementFromPoint`. New docs shot `mobile-library-with-selection.png`; the three mobile movies were regenerated because their spec file changed.
 
 ## Problem
 
