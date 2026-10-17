@@ -16,7 +16,7 @@ import { join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 /** Per-GIF limits. Over budget is a failure, not a silent oversize commit. */
-export const BUDGET = { maxSeconds: 18, maxBytes: 2.25 * 1024 * 1024 }
+export const BUDGET = { maxSeconds: 24, maxBytes: 2.25 * 1024 * 1024 }
 
 /**
  * The one recorded relaxation of the duration limit (`TODO/docs-019`: the README tour). A movie

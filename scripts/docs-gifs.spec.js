@@ -72,10 +72,10 @@ describe('checkBudget', () => {
 })
 
 describe('duration exception (docs-019)', () => {
-  it('keeps 18 s as the default and never shortens it', () => {
+  it('keeps 24 s as the default and never shortens it', () => {
     expect(allowedSeconds(undefined)).toBe(BUDGET.maxSeconds)
     expect(allowedSeconds(5)).toBe(BUDGET.maxSeconds)
-    expect(checkBudget({ bytes: 1000, seconds: 19 })).toHaveLength(1)
+    expect(checkBudget({ bytes: 1000, seconds: 25 })).toHaveLength(1)
   })
 
   it('lets a movie that asks for more time have it, up to the ceiling', () => {

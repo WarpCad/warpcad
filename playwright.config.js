@@ -104,6 +104,15 @@ const PREVIEW = process.env.E2E_PREVIEW === '1'
  */
 const FAST = existsSync(new URL('./.test-fast', import.meta.url))
 
+/**
+ * Whether this run names a `docs-*` project. Only the launching process sees the `--project`
+ * flags; each worker re-loads this config with different argv and would otherwise drop the
+ * project it was handed ("Project docs-laptop not found in the worker process"), failing every
+ * test. The answer is passed down in the environment, which workers inherit.
+ */
+const WANTS_DOCS = process.env.WARPCAD_DOCS_PROJECTS === '1' || process.argv.some((arg) => arg.includes('docs-'))
+if (WANTS_DOCS) process.env.WARPCAD_DOCS_PROJECTS = '1'
+
 const ORIGIN = PREVIEW ? 'http://localhost:5184' : 'http://localhost:5183'
 
 export default defineConfig({
@@ -149,7 +158,7 @@ export default defineConfig({
         { name: 'guards', testMatch: /(naming|docs-media)\.spec\.js/ },
         ...browserProjects.filter((project) => SMOKE_BROWSERS.includes(project.name)),
         // `npm run docs:*` names its docs-* projects explicitly; keep them selectable.
-        ...(process.argv.some((arg) => arg.includes('docs-')) ? docsProjects : []),
+        ...(WANTS_DOCS ? docsProjects : []),
       ]
     : [
         // Repo guards that assert on files rather than on a page — one run is
