@@ -175,6 +175,8 @@ circle's edge: it turns thick and the status line reads *Circle, Solid — 20 mm
 Tap **Hole** to make it a hole (its outline turns dashed and the status says *Hole*),
 then tap **Delete** to remove it. Tap empty grid to clear the selection.
 
+![Drawing two circles, tapping Select, picking the larger circle by its rim and tapping Delete: only that circle goes and Delete greys out again](./media/sketch-select-delete.gif)
+
 ## Solid and Hole
 
 Every closed outline is either **Solid** (material) or **Hole** (a cut-out). New

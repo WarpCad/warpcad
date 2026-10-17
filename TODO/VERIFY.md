@@ -34,6 +34,16 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### docs-020 — Docs media sweep for the AI chat, My parts, sketch select/delete and timeline re-link (2026-10-17 11:50)
+
+Judgment calls a scripted spec cannot make. The AI pictures were recorded with the scripted provider, so they show a *Scripted* badge by design; scenarios 17 and 18 were driven by hand against the same provider, not a real model.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | Watch `ai-wing-airfoil.gif` and `ai-drawing-to-group.gif` cold: does a stranger understand what the Assistant did, and is the *Scripted* badge in `ai-chat-panel.png` explained well enough by the caption in `docs/ai-partner.md`? | Open | |
+| 2 | `timeline-relink.gif` is 8 fps at 600 px to fit the size budget: is the amber `broken` chip and the Re-link press still readable? | Open | |
+
+
 ### build-005 — A reload picks up a new deploy, and an update banner (2026-10-17 11:20 UTC)
 
 The two-deploy behaviour is proven in Playwright against simulated deploys on all three engines, but the real GitHub Pages `sw.js` headers and an installed phone PWA cannot be simulated; the delay on Pages was not measured.

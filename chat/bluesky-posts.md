@@ -2074,3 +2074,14 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** two simulated deploys, banner, Reload, project intact, on Chromium, Firefox and WebKit at three sizes (36 of 36 passed) → `e2e/pwa-update.e2e.js`; generated worker has skipWaiting, clientsClaim, cleanupOutdatedCaches → `dist/sw.js` after `npm run build`
 **To Add:** `docs/screenshots/pwa-update-toast.png`, real Pages delay once measured, repo URL once public, docs site URL once it exists
+
+
+## [2026-10-17T11:50:00Z] — Docs pictures for the Assistant, and none of them used a real model
+
+**Post:** Swept WarpCad's docs for gaps in pictures. Most were already filled by the tasks that built each feature. Added movies for the Assistant building a model wing, the Assistant turning a drawing into a library part, select-and-delete in sketch mode, and re-linking a broken history step. The AI ones replay a recorded turn: no model, no key, no network, and the panel says Scripted.
+
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** every picture comes from a Playwright spec and the media guard checks links and orphans → `e2e/docs/ai-chat.docs.js`, `e2e/docs-media.spec.js`; any call to the Anthropic API fails the spec → `e2e/docs/ai-chat.docs.js`
+**To Add:** `docs/media/ai-wing-airfoil.gif`, repo URL once public, docs site URL once it exists

@@ -6,8 +6,47 @@ priority: low
 model: sonnet
 milestone: M10
 depends: [docs-005, docs-006, docs-007, ai-006, ui-055, ui-056, sketch-002, sketch-003, sketch-004, sketch-005, sketch-006, sketch-007, sketch-008]
-status: open
+status: done
 ---
+
+> **Retired 2026-10-17 (`/fix-todo docs-020`).** The file was written when none of its features
+> existed; all thirteen dependencies were done by the time it ran, and most of them had already
+> added their own media under `docs-007`'s per-task rule. This was the **sweep**: the Media
+> inventory was checked row by row against `docs/`, `e2e/docs/` and `docs/media/manifest.json`, and
+> only what was missing was added. Two pages the file names never existed: the chat is documented
+> in `docs/ai-partner.md` (not `docs/ai-chat.md`) and My parts in `docs/user-library.md` (not
+> `docs/library-my-parts.md`). Outcome per row:
+>
+> - **AI chat panel (`ai-006`)** — *shipped*: `ai-chat-panel`, `ai-chat-overlay-tablet`,
+>   `ai-chat-overlay-phone` stills (new `e2e/docs/ai-chat.docs.js`, the scripted provider and the
+>   `airfoil-wing` transcript, any call to the Anthropic API fails the test). *Already existed*:
+>   `ai-key-entry` is `assistant-key-sheet.png` (placeholder key in a password field).
+>   *Skipped*: a separate `ai-chat-prompt-to-part` movie. The only scripted prompt-to-part turn that
+>   builds a model is scenario 17's wing, so it would duplicate `ai-wing-airfoil`.
+> - **AI wing / board group (`ai-008`, `sketch-008`)** — *shipped*: `ai-wing-airfoil` movie
+>   (scenario 17, scripted transcript) and `ai-drawing-to-group` movie (scenario 18: attach, ask,
+>   built group, Confirm, My parts 0 to 1; the key is set up before recording). *Already existed*:
+>   `curve-helpers` is `sketch-curve-sheet.png` (plus `sketch-airfoil-placed.png`).
+> - **Save to library / My parts (`ui-055`, `core-037`)** — *already existed*: `user-library-save`
+>   and `user-library-place` movies and the save-sheet still. *Shipped*: `library-my-parts` still
+>   (new `e2e/docs/user-library-parts.docs.js`).
+> - **Rename (`ui-056`, `core-038`)** — *already existed*: `inspector-rename` movie and
+>   `inspector-rename-list` still. Nothing added.
+> - **Sketch editing (`sketch-002`...`007`)** — *already existed*: `sketch-vertex-edit` movie,
+>   `sketch-trace-photo`/`set-scale`/`scaled` stills (the reference image), `sketch-trace-auto`
+>   movie, `sketch-draw-line` movie (the continuous-line tool, `sketch-006`), `sketch-snap` movie
+>   with the snap marker visible. *Shipped*: `sketch-select-delete` movie (the select/delete
+>   section had only a still).
+> - **Print-prep split (`io-007`)** — *already existed*: `split-sheet` still, `print-pieces-popover`,
+>   `print-prep-split` and `print-prep-manual-joint` movies. Nothing added.
+> - **Timeline tail reparenting (`data-006`)** — *shipped*: `timeline-relink` movie, the page's own
+>   worked example (the feature shipped as the **Re-link to the moved step** button, option c).
+>
+> New specs live in their own files wherever the existing file already had movies, so the sweep did
+> not re-record any unrelated movie (a movie is keyed to its spec file's hash). The docs pages
+> `ai-partner.md`, `user-library.md`, `sketch-mode.md` and `timeline.md` gained the embeds;
+> `selection-and-inspector.md` needed none. Scenarios 17 and 18 were driven by hand against the
+> scripted provider only; **no real model, key or network was used**, so the live-model runs stay open.
 
 ## Goal
 

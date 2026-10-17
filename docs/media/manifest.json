@@ -419,5 +419,29 @@
     "specHash": "dfedbb0d60a79db640e5cdac206551189d2cd944977f95d610422a2e8ee2f579",
     "bytes": 1905765,
     "seconds": 15.63
+  },
+  "ai-drawing-to-group.gif": {
+    "spec": "e2e/docs/ai-drawing.docs.js",
+    "specHash": "4bd1841c1f5000ba8ab3bcfafa310e1ba7160571f37b3e08c1fbc5e51f8a3141",
+    "bytes": 2006275,
+    "seconds": 9.8
+  },
+  "ai-wing-airfoil.gif": {
+    "spec": "e2e/docs/ai-chat.docs.js",
+    "specHash": "26edbff65244fecae90f2cef44f960002811ceccfe84027c356fbb324a028476",
+    "bytes": 1725169,
+    "seconds": 8.3
+  },
+  "sketch-select-delete.gif": {
+    "spec": "e2e/docs/sketch-select.docs.js",
+    "specHash": "c0c4bc05aee62df887b8340e7aac180442e00cda54e17506fd661bd690cb2415",
+    "bytes": 875572,
+    "seconds": 8.41
+  },
+  "timeline-relink.gif": {
+    "spec": "e2e/docs/timeline-relink.docs.js",
+    "specHash": "55ffa49cd0ab91a1e8e75fcc95e36411ded3804211ff33621edda36ecedbabda",
+    "bytes": 1891956,
+    "seconds": 14.88
   }
 }

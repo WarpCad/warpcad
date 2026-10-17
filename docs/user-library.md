@@ -32,6 +32,8 @@ steps that built it, so it can be resized if you choose to expose a size (below)
 
 ![The Save to library sheet: a name field reading Standoff, the category My parts, and the group's sizes with Cylinder 1 height ticked](./screenshots/user-library-save-sheet.png)
 
+![The Library panel scrolled to its My parts section: a count of 1, the Import part file and Import model file buttons, and a Standoff row with a thumbnail and a menu button](./screenshots/library-my-parts.png)
+
 ![Group a cube and a cylinder, tap Save to library, name it Standoff and tap Save: a toast reads Saved Standoff and a Standoff row appears in My parts](./media/user-library-save.gif)
 
 ![After File, New, dragging the Standoff row from My parts into the 3D view places the whole group, and the Inspector lists Cube 1 and Cylinder 1 as its parts](./media/user-library-place.gif)

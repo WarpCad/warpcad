@@ -121,6 +121,20 @@ model has no price in the table, only the token counts show.
 **Send**. A few activity rows appear (the cube, the hole, the cut), and the part shows in the
 viewport. Open **History** and its rows are marked as written by the Assistant.
 
+![The Assistant panel after a turn: a column beside the viewport with activity rows Created Sketch 1 and Created Cube 1 to 3, a printability warning, the reply, Undo AI turn and the token line, and the finished wing model in the 3D view](./screenshots/ai-chat-panel.png)
+
+![Asking for a model wing: the prompt is typed and sent, activity rows stream in for the sketch and the other parts, and four bodies appear in the viewport](./media/ai-wing-airfoil.gif)
+
+The pictures above were made with the app's built-in **scripted replay** (a recorded turn, so the
+panel wears a *Scripted* badge): no model, no key and no network were involved. Your own chat shows
+a *Connected* line instead of the badge.
+
+On a tablet the same chat is a sheet over the bottom of the screen, and the model stays visible above it:
+
+![On a tablet, the Assistant sheet across the bottom with the wing in the 3D view above it and the Inspector listing four objects](./screenshots/ai-chat-overlay-tablet.png)
+
+![On a phone, the half-height Assistant sheet over the viewport, with Fold, Half and Tall buttons and the wing visible above it](./screenshots/ai-chat-overlay-phone.png)
+
 A turn lands all at once, when it is finished. Until then the Assistant works on a private copy, so
 a turn that is stopped, fails, or runs into a limit changes nothing in your project. You don't have
 to wait for it: see [While the Assistant works](#while-the-assistant-works).
@@ -242,6 +256,8 @@ part.
 ![The Assistant's activity row "Compared the top view with the drawing", opened full width: the built board drawn semi-transparent over the drawing, its four holes and three connectors on top of the drawing's own.](./screenshots/assistant-drawing-overlay.png)
 
 ![On a phone, the half-height Assistant sheet over the viewport: the built board is selected above it, and a card reads "Save WC-85 board to My parts?" with Confirm and Not now buttons and "Nothing is saved until you tap Confirm."](./screenshots/assistant-save-proposal.png)
+
+![Attaching a drawing, asking for a library part, the Assistant building the board as a named group on the drawing and proposing a save, then Confirm: the part appears in My parts](./media/ai-drawing-to-group.gif)
 
 The image goes only to Anthropic, inside your own request, using your key. The first time you
 send one in a project, the chat says *Image sent*. Only the copy you build on is kept in the

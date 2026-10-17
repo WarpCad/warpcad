@@ -2955,3 +2955,22 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** plugin source: autoUpdate registers an `activated` listener that reloads unless `onNeedReload` is given → `node_modules/vite-plugin-pwa/dist/client/build/register.js` (v1.3.0); 36 of 36 on nine projects → `e2e/pwa-update.e2e.js`
 **To Add:** none
+
+
+## [2026-10-17T11:50:00Z] — A docs sweep that mostly found nothing missing
+
+**Post:** The last open item in WarpCad's docs-media milestone was written before the features it pictures existed. When I got to it, all thirteen dependencies were done, and most had already added their own pictures under a rule that every task owns its media. So the job became an audit: check each row of the plan against the docs, the specs and the manifest, and add only what is missing.
+
+What was missing: four movies (the Assistant building a wing from one sentence, the Assistant turning a drawing into a library part, select-and-delete in sketch mode, and re-linking a broken history step) and four stills (the chat panel on a laptop, the same panel over the viewport on a tablet and a phone, and the My parts list).
+
+The AI pictures never touch a model. They replay a recorded turn through the app's scripted provider, any request to the Anthropic API fails the spec, and the panel wears a Scripted badge so nobody mistakes it for the real thing. The docs say so next to the pictures. The honest limit: this shows the plumbing from chat to tools to viewport, not that a model would choose those calls.
+
+Two pages the plan named, ai-chat.md and library-my-parts.md, never existed; the content lives in ai-partner.md and user-library.md, so that is where the pictures went.
+
+Built with Claude Code, reviewed by me.
+
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #Testing #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** inventory audit and outcomes per row → `TODO/done/docs-020-media-for-m9-and-open-features.md`; scripted-only recording → `e2e/docs/ai-chat.docs.js`
+**To Add:** none
