@@ -36,6 +36,7 @@ run at all); see `TODO/done/build-001-project-scaffold.md`'s own note.
 - ✅ [M3 — Booleans, selection-count gating, group/sub-part selection](#m3--booleans-selection-count-gating-groupsub-part-selection) — 7/7
 - ✅ [M4+ — Raspberry Pi accessory catalog, sketch mode, flagged-risk follow-ups](#m4--raspberry-pi-accessory-catalog-sketch-mode-flagged-risk-follow-ups) — 13/13
 - ✅ [M5 — Hardware Library surface, closing the fastener reachability gap](#m5--hardware-library-surface-closing-the-fastener-reachability-gap) — 7/7
+- ⬜ [M18 — Launch: publish, app.warpcad.com, Sentry and GA](#m18--launch-publish-appwarpcadcom-sentry-and-ga) — 0/2 — **runs first**
 - ⬜ [M16 — Next batch: naming, Align, in-app help, rotation, save/import fixes, merge reach](#m16--next-batch-naming-align-in-app-help-rotation-saveimport-fixes-merge-reach) — all rows done — **free-form pass owed**
 - ⬜ [M17 — Repeat across matching parts, and a phone Library fix](#m17--repeat-across-matching-parts-and-a-phone-library-fix) — 3/3 — all rows done — **free-form pass owed**
 - ✅ [M6 — Persistence, export, and timeline history editing](#m6--persistence-export-and-timeline-history-editing) — 23/23
@@ -60,44 +61,38 @@ run at all); see `TODO/done/build-001-project-scaffold.md`'s own note.
 
 ## Next up — recommended TODOs
 
-*Last reviewed 2026-10-16. **Ready** = `status: open` and every id in its `depends:` already has a file in
-  `TODO/done/`. Nineteen tasks are ready today; the other six open tasks wait on dependencies (see
-[All open work](#all-open-work)). Ranked by: wrong output first, then the gate that unblocks the most,
-then priority, then small tasks as tie-breakers.*
+*Last reviewed 2026-10-17. Ranked by the user's order of 2026-10-17: today's goal first ([M18](#m18--launch-publish-appwarpcadcom-sentry-and-ga)), then every other open task, then the gears last (as decided 2026-10-16).*
 
-| # | Task | Why now | Unlocks | Model |
-|---|---|---|---|---|
-| 1 | ✅ [`core-051`](done/core-051-fillet-chamfer-rim-wrong-on-shapes-with-holes.md) Fillet / chamfer wrong on rims with holes | The only open bug that makes a *shipped* feature produce wrong geometry (material added, not removed). Reported with a saved repro, no dependencies. | — | opus |
-| 2 | ✅ [`docs-022`](done/docs-022-mergeable-project-decision.md) Decide the merge design | Gate for all of M15 and, through it, the live bridge. Writing only, no app code. **Accepted 2026-10-12**, so `data-008` is unblocked. | `data-008` → `data-009` → `data-010` → `data-011` → `ui-062` → `io-010`, `io-011`, `ai-017` → `ai-012` → `ai-020` (9 tasks) | opus |
-| 3 | ✅ [`core-039`](done/core-039-gear-kernel-approach-decision.md) Gears: kernel approach | `docs/decisions/gears.md` **accepted 2026-10-16**: you took the recommendation on all eight calls, so `core-040` is unblocked. | `core-040`…`core-049`, `ui-057`, `ui-058`, `testing-002`, `docs-021` (14 tasks) | opus |
-| 4 | ✅ [`core-038`](done/core-038-rename-body-record.md) Rename record | Small, no decision needed; first half of the rename pair. | `ui-056`, then `docs-020` | sonnet |
-| 5 | ✅ [`io-008`](done/io-008-save-falls-back-to-download-when-native-write-is-refused.md) Save falls back to a download | You hit this in the editor's integrated browser: Save fails with `NotAllowedError` instead of offering a download. Small. | — | sonnet |
+**Today's goal (2026-10-17):** publish to GitHub, make `warpcad.com` work, and get Sentry and GA working.
 
-**Also ready, in no particular order:**
-
-| Task | Priority | Model | Note |
+| # | Task | Why now | Model |
 |---|---|---|---|
-| ✅ [`ui-060`](done/ui-060-unify-snap-align-and-align-to-origin.md) One Align tool | medium | opus | ✅ done 2026-10-15: one **⇔ Align** button, popover with Target, Measure from, drop shortcut, grid and Snap row; the `snap` help topic is gone. Old projects load unchanged |
-| ✅ [`ai-022`](ai-022-snap-orientation-description-is-backwards.md) `group.snap` tool description says `outside+` is the second's + side (it is the − side) | medium | sonnet | Found by `ui-060`; text-only fix in `src/ai/tools/operate.js` |
-| ✅ [`io-009`](done/io-009-import-stl-mesh-into-library.md) Import an STL into My parts | medium | opus | ✅ done 2026-10-15: **Import model file…** reads a binary or ASCII STL in a worker into a `user.<slug>` part of `[asset.mesh, import.mesh]`; Mesh tag, size, Units control; not parametric |
-| ✅ [`testing-001`](done/testing-001-firefox-tablet-file-menu-flake-under-load.md) Firefox tablet File-menu flake under load | high | sonnet | ✅ done 2026-10-15: the autosave chip changed width and slid the File button under the pointer; fixed with a min-width |
-| [`data-006`](done/data-006-timeline-tail-reparenting.md) Re-parent an inactive timeline tail | low | opus | ✅ done 2026-10-15 — option (c) `Re-link to the moved step` button |
-| ✅ [`ai-023`](done/ai-023-pairing-code-works-for-any-mcp-agent.md) Agent-neutral timed access to the live MCP bridge | high | opus | M9; ready after `ai-012` |
-| ✅ [`ui-071`](done/ui-071-hide-assistant-chrome-when-mcp-agent-is-connected.md) Hide Assistant chat chrome while an MCP agent is connected | medium | sonnet | M9; ready after `ai-012`, `ai-020` |
-| ✅ [`build-007`](done/build-007-google-analytics.md) Add hosted-app GA4 page views and the owner setup checklist | low | sonnet | ✅ done 2026-10-17 |
-| ✅ [`build-008`](done/build-008-opt-out-of-the-dev-live-mcp-bridge.md) Add a configuration switch to disable the dev live MCP bridge | medium | sonnet | ✅ done 2026-10-16 |
-| ✅ [`perf-002`](done/perf-002-investigate-production-bundle-load-time.md) Measure whether the production bundle warning affects load time | medium | opus | ✅ done 2026-10-17: the warning alone does not justify a split; deferring code unused at boot is ~330 ms (~9 %) faster cold on a slow link, filed as `perf-003` |
-| [`perf-003`](perf-003-defer-code-unused-at-boot.md) Defer the code the app does not use at boot | low | sonnet | Ready; from `perf-002` |
+| 1 | ▶ **Publish.** Push `main` to `github.com/WarpCad/warpcad` once local CI parity passes (see M18 step 1) | Nothing is published yet; the Pages deploy only runs after CI passes on `main` | — |
+| 2 | ▶ [`build-010`](build-010-serve-at-app-warpcad-com.md) Serve at `app.warpcad.com` (`public/CNAME`, guard, Pages custom domain) | The domain | sonnet |
+| 3 | ▶ [`build-009`](build-009-drop-sentry-vite-plugin.md) Drop the Sentry build plugin (FSL licence) and upload maps with `curl` | Must land before Sentry is switched on | sonnet |
+| 4 | Owner: Sentry project, DSN, token and variables, then a Pages run (`build-004` VERIFY rows 1–5) | Sentry working | — |
+| 5 | Owner: GA property, Measurement ID, enhanced measurement off (`build-007` VERIFY rows 1–5) | GA working | — |
 
-> **The runner follows table order, not this list.** As of 2026-10-14 that order is **[M16](#m16--next-batch-naming-align-in-app-help-rotation-saveimport-fixes-merge-reach)
-> (11 rows, runs next) →
-> [M17](#m17--repeat-across-matching-parts-and-a-phone-library-fix) (`ui-070`, `core-061`, `ui-069`, added 2026-10-16) → the rest →
-> `testing-004` in Findings → [M11 gears](#m11--gears-the-jscad-gears-library-ported-and-extended) (16 rows, last, moved there 2026-10-16)**.
-> `core-039` was accepted 2026-10-16, so the gear chain is unblocked, but the user wants every other
-> TODO finished first, so the runner only reaches it once nothing else is open.
+**Then the other open work, in this order:**
 
-**Owed to you, not to an agent:** the M16 five-minute free-form pass (owed since `data-006`); the five-minute free-form passes for
-M5–M8 and M12 (recorded as owed; whether any was done since is not written down here).
+| # | Task | Why this place | Model |
+|---|---|---|---|
+| 6 | ▶ [`ui-072`](ui-072-phone-library-drag-does-not-register.md) Phone Library drag does not register; `save-load-ui` fails on three phone projects | High-priority bug in shipped UI; not in CI, so it does not block the goal | sonnet |
+| 7 | ▶ [`core-064`](core-064-subtract-pi-hole-keeps-tool-part.md) Subtract with a Pi's `hole1` keeps the tool part | Decided 2026-10-17 | opus |
+| 8 | ▶ [`core-063`](core-063-repeat-apply-copies-foreign-steps.md) Repeat Apply copies a foreign step | Decided 2026-10-17 | sonnet |
+| 9 | ▶ [`ui-073`](ui-073-save-repeat-saves-its-source.md) Save to library saves a repeat's source | Decided 2026-10-17 | sonnet |
+| 10 | ▶ [`data-014`](data-014-merge-tie-prefers-local-step.md) Merge tie-break prefers the local step | Decided 2026-10-17; merge semantics, so opus | opus |
+| 11 | ▶ [`io-012`](io-012-warn-on-focus-when-file-may-have-changed.md) Warn on focus when the file may have changed (no file handle) | Decided 2026-10-17 | sonnet |
+| 12 | ▶ [`ui-075`](ui-075-live-mcp-access-phone-header-entry.md) Live MCP access entry in the phone header | Decided 2026-10-17 | sonnet |
+| 13 | ▶ [`ui-076`](ui-076-combined-bolt-screw-library-entry.md) One Library entry for bolts and screws | Decided 2026-10-17; **confirm the reading first** (see the file) | sonnet |
+| 14 | ▶ [`ui-074`](ui-074-repeat-note-wording.md) Repeat note wording | Decided 2026-10-17; small | sonnet |
+| 15 | ▶ [`perf-003`](perf-003-defer-code-unused-at-boot.md) Defer code unused at boot (Sentry included) | Ready; faster cold start once Sentry is live | sonnet |
+| 16 | ▶ [`build-003`](build-003-native-mobile-shell-research.md) Research a native mobile shell | Research only; no code | opus |
+| 17+ | Gears: [`core-048`](core-048-gear-hub-bore-keyway-and-set-screw.md), [`ui-057`](ui-057-gears-library-section-and-inspector.md), [`ui-058`](ui-058-gear-mesh-operation.md), [`testing-002`](testing-002-acceptance-scenario-19-gear-train.md), [`core-049`](core-049-planetary-gear-set.md), [`core-062`](core-062-herringbone-relief-groove.md), [`docs-021`](docs-021-media-gears-and-porting-guide.md) | M11 runs last, as decided 2026-10-16 | — |
+
+**Runner order** (`/run-todos` follows table order): [M18](#m18--launch-publish-appwarpcadcom-sentry-and-ga) first, then the milestone tables and Findings as they appear in this file, then [M11](#m11--gears-the-jscad-gears-library-ported-and-extended) last. The tasks in the table above are the ones to take in that order.
+
+**Owed to you, not to an agent:** the M16 and M17 five-minute free-form passes (owed since 2026-10-16); the M9, M10 passes (carried past per `TODO/BUDGET.md`); the M5–M8 and M12 passes (recorded as owed; whether any was done since is not written down here). The Sentry and GA owner rows are in M18.
 
 **The shape of what is blocked**
 
@@ -113,9 +108,6 @@ M11  core-039 ─ core-040 ─ core-041 ─┬─ core-042 ─┐
 M9   core-038 ─ ui-056 ─ docs-020 (M10)
 ```
 
----
-
-
 ## All open work
 
 Every open TODO file plus the reserved rows, from the files' own front matter (2026-10-16). This is the
@@ -123,6 +115,17 @@ table to edit when a task opens, closes or changes priority — see the next sec
 
 | Milestone | Task | Kind | Priority | Model | State |
 |---|---|---|---|---|---|
+| M18 — Launch | [`build-010`](build-010-serve-at-app-warpcad-com.md) Serve the hosted app at `app.warpcad.com` (`public/CNAME`, guard, Pages custom domain) | feature | high | sonnet | ▶ **ready** |
+| M18 — Launch | [`build-009`](build-009-drop-sentry-vite-plugin.md) Drop `@sentry/vite-plugin` (FSL-1.1-Apache-2.0 via `sentry@0.45.0`); upload source maps with `curl` | finding | medium | sonnet | ▶ **ready** |
+| Findings | [`ui-072`](ui-072-phone-library-drag-does-not-register.md) Phone (390 px): the second Library drag does not register; `save-load-ui` fails on all three phone projects | finding | high | sonnet | ▶ **ready** |
+| Findings | [`core-064`](core-064-subtract-pi-hole-keeps-tool-part.md) Subtract with a Pi's `hole1` keeps the tool part, so one Pi can drill several holes | finding | medium | opus | ▶ **ready** |
+| Findings | [`core-063`](core-063-repeat-apply-copies-foreign-steps.md) Repeat Apply copies a foreign step, listed as "Not part of the repeat" | finding | medium | sonnet | ▶ **ready** |
+| Findings | [`ui-073`](ui-073-save-repeat-saves-its-source.md) Save to library on a repeat body saves its source part too | finding | medium | sonnet | ▶ **ready** |
+| Findings | [`data-014`](data-014-merge-tie-prefers-local-step.md) Merge tie-break prefers the local step, not the replica id | finding | medium | opus | ▶ **ready** |
+| Findings | [`io-012`](io-012-warn-on-focus-when-file-may-have-changed.md) On focus, warn "this file may have changed" in browsers with no file handle | feature | medium | sonnet | ▶ **ready** |
+| Findings | [`ui-075`](ui-075-live-mcp-access-phone-header-entry.md) Live MCP access entry in the phone header | feature | medium | sonnet | ▶ **ready** |
+| Findings | [`ui-076`](ui-076-combined-bolt-screw-library-entry.md) One Library entry for bolts and screws (confirm the reading first) | feature | medium | sonnet | ▶ **ready** |
+| Findings | [`ui-074`](ui-074-repeat-note-wording.md) Repeat body Inspector note says the repeats follow every move | finding | low | sonnet | ▶ **ready** |
 | M17 — Repeat, phone Library fix | ✅ [`ui-070`](done/ui-070-phone-inspector-tab-covers-open-library-sheet.md) At phone width the Inspector's collapsed tab is drawn over an open Library sheet's rows; dock it below the sheet | finding | high | sonnet | ✅ done |
 | M17 — Repeat, phone Library fix | ✅ [`core-061`](done/core-061-linked-repeat-record.md) A linked `pattern.repeat` record: one row re-places a body's steps at every matching part of another body and follows the first body's edits; BOM, repair dialog, merge, and a shared `repeat` AI tool. Requested by the user 2026-10-15 | feature | medium | opus | ✅ done |
 | M17 — Repeat, phone Library fix | ✅ [`ui-069`](done/ui-069-repeat-placement-across-matching-parts.md) Repeat: place a part once against one target (a Pi's `hole1`), then apply the same steps to every matching target (`hole2`–`hole4`) as one Undo step, linked to the first. Requested by the user 2026-10-15 | feature | medium | opus | ✅ done |
@@ -253,6 +256,7 @@ milestone tables on 2026-10-12 — update them in the same edit that closes a ro
 | [M3 — Booleans, selection-count gating, group/sub-part selection](#m3--booleans-selection-count-gating-groupsub-part-selection) | ✅ | 7/7 | Booleans, selection-count gating, group and sub-part selection. |
 | [M4+ — Raspberry Pi accessory catalog, sketch mode, flagged-risk follow-ups](#m4--raspberry-pi-accessory-catalog-sketch-mode-flagged-risk-follow-ups) | ✅ | 13/13 | Raspberry Pi accessory catalog, sketch mode, fillet/chamfer UI. |
 | [M5 — Hardware Library surface, closing the fastener reachability gap](#m5--hardware-library-surface-closing-the-fastener-reachability-gap) | ✅ | 7/7 | Hardware Library surface; every fastener reachable; scenarios 3, 5 and 6 pass by hand. |
+| [M18 — Launch: publish, app.warpcad.com, Sentry and GA](#m18--launch-publish-appwarpcadcom-sentry-and-ga) | ⬜ | 0/2 | Publish, `app.warpcad.com`, Sentry and GA. Runs first, per the user's 2026-10-17 goal. |
 | [M16 — Next batch: naming, Align, in-app help, rotation, save/import fixes, merge reach](#m16--next-batch-naming-align-in-app-help-rotation-saveimport-fixes-merge-reach) | ✅ | 18/18 | **Complete: `ui-068` (the Library remembers params) landed 2026-10-17. The five-minute free-form hand pass at phone/tablet/laptop is still owed, carried past per `TODO/BUDGET.md`.** The user waived the stop for that pass for the overnight run of 2026-10-16 only (see `TODO/BUDGET.md` Config); the pass itself is still owed. Rows moved from M6, M9, M13, M14, M15 and Findings, plus `ui-064` and `data-013`, `ui-065` (the translate ruler, added 2026-10-14), and `core-059`/`ui-067` (hand-placed split connectors, added 2026-10-15). |
 | [M17 — Repeat across matching parts, and a phone Library fix](#m17--repeat-across-matching-parts-and-a-phone-library-fix) | ✅ | 3/3 | **Complete: `ui-070`, `core-061` and `ui-069` (the Repeat button and panel) landed 2026-10-17. The five-minute free-form hand pass at phone/tablet/laptop is still owed, carried past per `TODO/BUDGET.md`.** |
 | [M6 — Persistence, export, and timeline history editing](#m6--persistence-export-and-timeline-history-editing) | ✅ | 23/23 | Autosave, File menu, hosted storage, export, History. `data-006` (the last open row) moved to M16; **free-form pass owed**. |
@@ -264,7 +268,7 @@ milestone tables on 2026-10-12 — update them in the same edit that closes a ro
 | [M13 — One Align tool](#m13--one-align-tool) | ➡️ | — | `ui-060` moved to M16. |
 | [M14 — Help inside the app](#m14--help-inside-the-app) | ➡️ | — | `ui-061` moved to M16. |
 | [M15 — A mergeable project file: the AI as a second writer](#m15--a-mergeable-project-file-the-ai-as-a-second-writer) | ⬜ | 0/10 | Mergeable project file. `io-010` and `io-011` moved to M16; 4 rows are reserved with no file. |
-| [Findings](#findings) | 🔶 | 6/8 | `build-004`, `build-007`, `perf-002`, `build-003` moved here from unscheduled 2026-10-16 to run before the gears. `core-051` (wrong geometry) fixed 2026-10-15; `ai-022` (a backwards tool description) fixed 2026-10-16. `testing-004` (a unit-test timeout under load) moved here from M16 on 2026-10-16 so it runs after the other milestones, ahead of the gears. `io-008` and `data-013` moved to M16. |
+| [Findings](#findings) | 🔶 | 6/17 | `build-004`, `build-007`, `perf-002`, `build-003` moved here from unscheduled 2026-10-16 to run before the gears. `core-051` (wrong geometry) fixed 2026-10-15; `ai-022` (a backwards tool description) fixed 2026-10-16. `testing-004` (a unit-test timeout under load) moved here from M16 on 2026-10-16 so it runs after the other milestones, ahead of the gears. `io-008` and `data-013` moved to M16. |
 | [M11 — Gears: the `jscad-gears` library, ported and extended](#m11--gears-the-jscad-gears-library-ported-and-extended) | 🔶 | 9/16 | Gears. **Runs last, after every other milestone and Findings (moved 2026-10-16 at the user's request).** `core-039` accepted 2026-10-16 (all eight calls as recommended); `core-040`, `core-041`, `core-042`, `core-043`, `core-044`, `core-045`, `core-046` and `core-047` done 2026-10-16 (`core-062`, the herringbone relief groove, filed from `core-042`); `ui-057` waits on `core-048`, which is next. |
 
 Every M0–M4 milestone closed with its own human free-form pass per `CLAUDE.md`'s Verification section
@@ -493,6 +497,51 @@ request rather than left to be rediscovered later:
 | ✅ `ui-040` | A route for the boolean buttons to address a drilled-in sub-part — **done 2026-09-20**, and the file's own premise was stale: `selection.js` needed **no change at all**, because `toggle` deliberately does not prune a pick depth, so `ui-035`'s existing idiom already expresses "shell selected plus the bolt drilled to `tap`". That file's `snapAlignOperands` computed became `selectedOperands` and now serves **both** the booleans and Snap/Align — one operand path, not two. `consumes` stays bare ids; `group.assemble` still gets whole bodies (its registry entry is not `subPartOperands`) and the toolbar says so. `ACCEPTANCE.md` scenario 5 now **passes hand-driven for the first time** with a partially-overlapping operand (Pi `ethernet` cuts 1 207.743 mm³ where the whole board cuts 5 661.317 mm³); a **fully enclosed** body still cannot be selected at all, and `ui-032` turned out **not** to be the cure (its rows are a row selection, never a body selection — `data-002` §13), so that remainder is filed as `ui-041` | Operation, 2+ | `core-024`, `ui-016` | feeds §9 scenario 5 |
 | ✅ `ui-036` | UI surface for angled Bisect — an Angle field, Rotate-axis dropdown, and Rotate-offset field added to the existing Bisect popover (`ui-028`), exposing the `angleDeg`/`rotateAxis`/`rotateOffsetMm` params `core-021` already shipped at the kernel level with no control anywhere to reach them. `core-021`'s own Interaction model section pre-answers precondition/trigger/feedback for exactly this control (unchanged 1-selection precondition, falsy-default Angle, no-default offset per `ui-028`'s own convention) so this task starts from an already-resolved spec rather than a blank one | Operation, 1 | `core-021`, `ui-028` | none directly (no new scenario; re-drive scenario 1 for the shared popover mechanism, per `CLAUDE.md`'s standing-regression-surface rule) — docs land on the existing `docs/resize-bisect.md` page as a third worked example, per that page's own two-example structure, not a new page — scoped in `TODO/ui-036-angled-bisect-controls.md` |
 | ✅ `core-025` *(tech debt)* | Extract the shared "probe-and-bake" recipe-expansion kit (`makePart`/`cuboidPart`/`cylinderPart`/`roundedCubePart`/`move`/`chain`/`place`/`emit`/`addVectors`) that `core-014`, `core-015`, `core-016`, and `core-017`'s `rpi-recipe-kit.js` each independently grew a ~200-line copy of. `core-015` asked `core-016` to decide ("a sample of two cannot settle it, a sample of three can"); `core-016` decided **yes, extract** but did not do it in that commit; `core-017` built a fourth copy as `rpi-recipe-kit.js` specifically as "the module it should grow into rather than a sixth copy" and confirmed the refactor "is still open and still wants its own task" — no task has claimed it since | — (refactor) | `core-014`, `core-015`, `core-016`, `core-017`, `core-018` | none directly (pure internal refactor, no behavior change) — re-run all four V1-execution fixtures (`core-014`/`015`/`016`/`017`) as this task's own regression proof, since a shared kit touching four already-diffed recipes is exactly `CLAUDE.md`'s standing-regression-surface case — scoped in `TODO/done/core-025-recipe-expansion-kit-extraction.md` ✅ done — pure refactor, zero behaviour change, proven rather than asserted: a 34-variant sweep of every `raspberrypi.*` recipe (all four bplus models × two clearances, all five camera models × both `flipTripodMount` values, both touch displays, and the eight recipes already on the kit) serialised to JSON before and after the extraction is **byte-identical** (180,793 bytes, `cmp` clean), on top of the unchanged 936-test suite and its V1-execution fixtures. **The drift check found no behavioural drift** — the four copies differed only in signature (`cuboidPart`'s `frame`, `cylinderPart`'s `rotationDeg`, `roundedCubePart`'s `'centred'`, `chain`'s array references) and in two unreachable code paths (the kit clamps corner radius the way V1's `CAG.roundedRectangle` does; the old copies did not, and no call site reaches the clamp), so the kit took the union as optional arguments defaulting to the older behaviour. `Builder` gained `placeUnion`/`placeBoolean`/`place(…, null)` to replace the four copies' `plan`/`emit` pair. `recipes/` 10,865 → 9,818 lines (−1,047). Scenario 1 and `ui-010`'s seven-row repro re-driven at laptop/Chromium and phone/WebKit and PASS, with `core-020`'s repro re-run against the four migrated composites |
+
+---
+
+## M18 — Launch: publish, app.warpcad.com, Sentry and GA
+
+[↑ Contents](#contents)
+
+Set 2026-10-17 by the user: today's goal is to publish WarpCad to GitHub, make `warpcad.com` work,
+and get Sentry and GA working. Every other row in this file waits behind it
+([Next up](#next-up--recommended-todos)).
+
+| id | Task | Kind | Depends | Acceptance |
+|---|---|---|---|---|
+| `build-010` | Serve the hosted app at `app.warpcad.com`: `public/CNAME`, a guard spec, the Pages custom domain | Feature | — | none (scenario 1 as a smoke check after deploy) |
+| `build-009` | Drop `@sentry/vite-plugin` (it pulls `sentry@0.45.0`, FSL-1.1-Apache-2.0) and upload source maps with `curl` from the Pages workflow | Finding | — | none |
+
+**Order of work, as the user set it.** Steps 2 and 3 are code; the rest are the owner's settings and
+accounts, which no agent can do. The owner rows point at the VERIFY rows that check them.
+
+1. **Publish.** Commit this roadmap and the new TODO files on the current branch, merge into `main`
+   (a fast-forward; `main` has no commits the branch lacks), run the CI steps locally
+   (`spdx`, `licenses`, `mcp:licenses`, `typecheck`, unit, `guards`, and the two smoke projects), then
+   push `main` to `github.com/WarpCad/warpcad`. The repository exists and is public with no
+   commits yet. Pushing `main` triggers CI, and CI passing triggers the Pages deploy.
+2. **Domain.** `build-010`. Owner: Squarespace Domains, add `CNAME app → warpcad.github.io`; repository
+   Settings → Pages: Source "GitHub Actions", custom domain `app.warpcad.com`; then Enforce HTTPS
+   once the certificate is issued.
+3. **Sentry, code first.** `build-009` lands before any Sentry setting is switched on, because the
+   plugin it removes is the licence question decided 2026-10-17.
+4. **Sentry, owner.** `TODO/VERIFY.md` build-004 rows 1–5: create the Sentry project, copy the DSN,
+   create a token with only `project:releases` and `org:read`; set the variables `SENTRY_DSN`,
+   `SENTRY_ORG`, `SENTRY_PROJECT` and the secret `SENTRY_AUTH_TOKEN`; run the Pages workflow; check
+   the smoke event arrives with the original file and line. Row 6 is closed by `build-009`.
+5. **GA, owner.** `TODO/VERIFY.md` build-007 rows 1–5: create the GA4 property and web stream, set the
+   variable `GA_MEASUREMENT_ID`, turn **Enhanced measurement OFF**, and check Realtime and DebugView
+   show one page view with no `#` in the path.
+6. **Close.** Open `https://app.warpcad.com`, check the Help version line shows the deployed commit,
+   and check the console has no CSP error naming a Sentry or Google host. Then M18 is complete.
+
+**Milestone end:** the five-minute free-form pass on the live site at phone, tablet and laptop. Not a
+gate on the goal, but owed.
+
+| Milestone | | Progress | State |
+|---|---|---|---|
+| M18 | ⬜ | 0/2 | Publish, `app.warpcad.com`, Sentry, GA. Steps 1–6 above. |
 
 ---
 
@@ -1011,6 +1060,15 @@ as a milestone table.) `io-008` and `data-013` moved to [M16](#m16--next-batch-n
 | ✅ `build-004` | Hook up Sentry error reporting and source-map upload in the build and the Pages workflow, token kept out of the bundle and repo. Moved here from unscheduled 2026-10-16 so the overnight run reaches it | Feature | — | none |
 | ✅ `build-007` | Add hosted-app GA4 page views and the owner setup checklist. Moved here from unscheduled 2026-10-16 | Feature | — | none |
 | ✅ `perf-002` | Measure whether the production bundle warning affects load time. Moved here from unscheduled 2026-10-16 | Finding | — | 1 |
+| `ui-072` | Phone (390 px): the second Library drag does not register; `save-load-ui` fails on all three phone projects (at HEAD and earlier) | Finding | — | 1, 12; `ui-070` repro |
+| `core-064` | Subtract with a Pi's `hole1` consumes the Pi along with the plate; the tool part should survive so one Pi can drill several holes. Decided 2026-10-17 | Finding | — | 5, 10, 15 |
+| `core-063` | Repeat Apply copies a foreign step on the first part; decided 2026-10-17 to copy it and list it under *Not part of the repeat* | Finding | `core-061` | 10, 15 |
+| `ui-073` | Save to library on a repeat body saves its source part too, so the saved part rebuilds on drop. Decided 2026-10-17 | Finding | `core-061` | 22 |
+| `data-014` | Merge tie-break prefers the local step when two clocks tie. Decided 2026-10-17 | Finding | — | 1 (merge scenarios) |
+| `io-012` | On focus, warn "this file may have changed" in browsers with no file handle. Decided 2026-10-17 | Feature | — | 13 |
+| `ui-075` | Live MCP access entry in the phone header. Decided 2026-10-17 | Feature | — | 24, 25 |
+| `ui-076` | One Library entry for bolts and screws (the Library has no Screw row). Decided 2026-10-17; the reading needs confirming | Feature | — | 3 |
+| `ui-074` | Repeat body Inspector note says the repeats follow every move, but a later Pi move moves only the Pi. Decided 2026-10-17 | Finding | `core-061` | 15 |
 | `perf-003` | Defer the code the app does not use at boot (Sentry, the AI agent and tool registry, a dev-only provider); filed by `perf-002` with measured targets | Feature | `perf-002` | 1 |
 | `build-003` | Research how to package WarpCAD as an iOS and Android app that can host the MCP tool surface. Moved here from unscheduled 2026-10-16 | Feature | — | none |
 
