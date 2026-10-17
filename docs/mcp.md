@@ -210,6 +210,24 @@ reach the loopback endpoint may read and change the open project.
 
 ![WarpCad with the Assistant panel's "MCP agent · connected" chip, a cube with a sphere on top in the viewport, and History rows "Cube 1 — placed" and "Sphere 1 — placed", each marked "via mcp".](./screenshots/ai-live-bridge.png)
 
+### What the Assistant shows while an agent is connected
+
+While an MCP agent is connected, the Assistant panel shows only the connection status: the
+**MCP agent · connected** chip in its header, plus **Undo AI turn**. The transcript, the message
+box and the token readout are hidden (not removed), so at phone width the panel folds down to two
+short rows and the viewport keeps the space. When the agent disconnects, or you turn live access
+off, the full chat comes back exactly as it was.
+
+To use your own API key instead, open **Live MCP access** (tap the chip) and choose **Key and
+model…**.
+
+Example: run `npm run dev`, enable a lease from **Assistant → Live MCP access**, then ask your MCP
+agent for a change in its own window. The panel shows **MCP agent · connected** in its header. To
+go back to the chat, choose **Turn off** in the **Live MCP access** sheet, then **Key and
+model…**, and save a key.
+
+![The Assistant panel while an MCP agent is connected: only the "MCP agent · connected" chip and Undo AI turn are shown, with a cube in the viewport.](./screenshots/mcp-connected.png)
+
 ### Turn the live endpoint off
 
 The live endpoint is on by default under `npm run dev`. To run the dev server without it, for

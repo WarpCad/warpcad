@@ -63,6 +63,33 @@ useEscapeToClose(() => open.value, () => assistant.close())
 
 const peek = computed(() => chat.sheet === 'peek')
 
+/**
+ * `TODO/ui-071`: an MCP agent is connected through the live bridge, so the chat is not in use. The
+ * panel shows its header (the bridge chip is the status) and **Undo AI turn**; everything else is
+ * hidden with `v-show`, never unmounted, so the draft, the transcript and the key path keep their
+ * state. Keyed on the bridge state alone (not `assistant.mcpOnly`, which also covers `enabled`).
+ */
+const linked = computed(() => chat.bridge === 'connected')
+
+/** The compact sheet's own height, for the viewport's overlay inset (`AppView`); 0 when not linked. */
+/** @type {import('vue').Ref<HTMLElement | null>} */
+const root = ref(null)
+/** @type {ResizeObserver | null} */
+let sizeWatch = null
+function watchSize() {
+  sizeWatch?.disconnect()
+  sizeWatch = null
+  if (!linked.value || !root.value || typeof ResizeObserver === 'undefined') {
+    chat.linkedHeight = 0
+    return
+  }
+  sizeWatch = new ResizeObserver(([entry]) => {
+    chat.linkedHeight = Math.round(entry.borderBoxSize?.[0]?.blockSize ?? entry.contentRect.height)
+  })
+  sizeWatch.observe(root.value)
+}
+watch([linked, root], watchSize, { flush: 'post' })
+
 /** The one line the peek sheet (and the header) shows. */
 const statusLine = computed(() => {
   if (chat.running) return `Working… step ${chat.step}`
@@ -135,6 +162,8 @@ onMounted(() => {
   window.visualViewport?.addEventListener('scroll', measureKeyboard)
 })
 onBeforeUnmount(() => {
+  sizeWatch?.disconnect()
+  chat.linkedHeight = 0
   window.visualViewport?.removeEventListener('resize', measureKeyboard)
   window.visualViewport?.removeEventListener('scroll', measureKeyboard)
 })
@@ -149,12 +178,14 @@ const HEIGHTS = /** @type {const} */ ([
 <template>
   <section
     v-if="open"
+    ref="root"
     class="chat"
-    :class="{ 'chat--deciding': pinnedSave !== null && pinnedSave.item.status !== 'saved' && pinnedSave.item.status !== 'cancelled' }"
+    :class="{ 'chat--linked': linked, 'chat--deciding': pinnedSave !== null && pinnedSave.item.status !== 'saved' && pinnedSave.item.status !== 'cancelled' }"
     role="complementary"
     aria-label="Assistant"
     data-testid="assistant-panel"
     :data-sheet="chat.sheet"
+    :data-linked="linked ? 'true' : 'false'"
     :data-running="chat.running ? 'true' : 'false'"
     :style="{ '--kb-inset': `${keyboardInset}px` }"
   >
@@ -201,7 +232,7 @@ const HEIGHTS = /** @type {const} */ ([
     </header>
 
     <template v-if="!peek">
-      <div class="chat__meta">
+      <div v-show="!linked" class="chat__meta">
         <p class="chat__connection" data-testid="assistant-connection" :data-status="assistant.status">
           <span data-testid="assistant-connection-text">{{ assistant.statusText }}</span>
         </p>
@@ -219,7 +250,7 @@ const HEIGHTS = /** @type {const} */ ([
         </p>
       </div>
 
-      <ol ref="log" class="chat__log" data-testid="ai-transcript" aria-live="polite">
+      <ol v-show="!linked" ref="log" class="chat__log" data-testid="ai-transcript" aria-live="polite">
         <li v-if="chat.items.length === 0" class="chat__empty" data-testid="ai-empty">
           Describe a part — “a 40 mm cube with a 10 mm hole through the middle” — and it appears in the viewport.
         </li>
@@ -243,6 +274,7 @@ const HEIGHTS = /** @type {const} */ ([
       <!-- TODO/ai-008: a proposed Save is pinned outside the scrolling log, so it is readable at phone height. -->
       <SaveProposal
         v-if="pinnedSave"
+        v-show="!linked"
         :item="pinnedSave.item"
         :busy="chat.running"
         @confirm="agent.confirmSave(pinnedSave.index)"
@@ -262,6 +294,7 @@ const HEIGHTS = /** @type {const} */ ([
         </button>
         <button
           v-if="selectedBody"
+          v-show="!linked"
           type="button"
           class="chat__chip"
           data-testid="ai-ask-selection"
@@ -269,10 +302,10 @@ const HEIGHTS = /** @type {const} */ ([
         >
           Ask about {{ selectedBody.name }}
         </button>
-        <TokenReadout :usage="chat.usage" :cost="chat.turnCost" :session="chat.sessionCost" />
+        <TokenReadout v-show="!linked" :usage="chat.usage" :cost="chat.turnCost" :session="chat.sessionCost" />
       </div>
 
-      <Composer />
+      <Composer v-show="!linked" />
     </template>
   </section>
 </template>
@@ -302,6 +335,13 @@ const HEIGHTS = /** @type {const} */ ([
 
 .chat[data-sheet='peek'] {
   --chat-sheet-height: auto;
+}
+
+/* `TODO/ui-071`: connected, the sheet is its header and one row, whatever height was chosen. */
+@media (max-width: 1099px) {
+  .chat.chat--linked[data-sheet] {
+    --chat-sheet-height: auto;
+  }
 }
 
 .chat[data-sheet='full'] {

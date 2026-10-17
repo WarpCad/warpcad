@@ -12,6 +12,8 @@ import { openApp, shot } from './support.js'
  */
 test.describe('docs media: live bridge', () => {
   test.skip(({ viewport }) => viewport?.width !== 1440, 'laptop-only')
+  // Two tabs holding a lease at once make the bridge refuse as ambiguous: one worker, in order.
+  test.describe.configure({ mode: 'serial' })
 
   test('ai-live-bridge still', async ({ page, baseURL }) => {
     await openApp(page)
@@ -36,6 +38,30 @@ test.describe('docs media: live bridge', () => {
       // The working chip lingers a moment after a call; let it go so the picture is steady.
       await expect(page.getByTestId('ai-working-chip')).toHaveCount(0)
       await shot(page, 'ai-live-bridge.png')
+    } finally {
+      await client.close()
+    }
+  })
+
+  // `TODO/ui-071`: connected, the Assistant is its header and Undo AI turn; the chat is hidden.
+  test('mcp-connected still', async ({ page, baseURL }) => {
+    await openApp(page)
+    const client = await connectMcpClient(`${baseURL}/mcp`)
+    try {
+      const request = 'add a 40 mm cube'
+      await page.getByTestId('assistant-button').click()
+      await page.getByTestId('ai-key-connect').click()
+      await page.getByTestId('ai-connect-lease').selectOption('15m')
+      await page.getByTestId('ai-connect-enable').click()
+      await expect(page.getByTestId('ai-connect-status')).toContainText('enabled until')
+      await page.getByTestId('ai-connect-done').click()
+      expect((await client.call('create', { op: 'primitive.cuboid', positionMm: [0, 0, 0], request })).isError).toBe(false)
+      await expect(page.getByTestId('viewport')).toHaveAttribute('data-body-count', '1')
+      await expect(page.getByTestId('ai-bridge-chip')).toHaveText('MCP agent · connected')
+      await expect(page.getByTestId('assistant-panel')).toHaveAttribute('data-linked', 'true')
+      await expect(page.getByTestId('ai-composer')).toBeHidden()
+      await expect(page.getByTestId('ai-working-chip')).toHaveCount(0)
+      await shot(page, 'mcp-connected.png')
     } finally {
       await client.close()
     }

@@ -6,8 +6,20 @@ priority: medium
 model: sonnet
 milestone: M9
 depends: [ai-012, ai-020, ai-023]
-status: open
+status: done
 ---
+
+> **Shipped 2026-10-17.** `ChatPanel.vue` reads `chat.bridge === 'connected'` (`linked`) and hides the
+> connection lines, transcript, save proposal, "Ask about" chip, token readout and composer with
+> `v-show` (still mounted); the sheet's height is `auto` below 1100 px whatever fold was chosen.
+> **Deviation:** **Undo AI turn** stays visible while connected (one 44 px row beside the chip): it is
+> the only way to take back the agent's changes at phone width, and `ai-mcp-agent-pairing.e2e.js`
+> drives it, so "header only" became "header plus Undo". `ConnectClaudeCode.vue` gained a
+> **Key and model…** button (`ai-connect-keys`); Turn off was already there. The connected state is
+> faked in e2e by writing `chat.bridge` through the app's own module, with the HMR socket silenced
+> so other tabs' host broadcasts cannot overwrite it. `ai-mcp-agent-pairing.e2e.js` now asserts the
+> composer reason is hidden (not visible) but keeps its text. At laptop width the column still
+> occupies its grid cell, so the saving is vertical space at phone/tablet only.
 
 ## Goal
 

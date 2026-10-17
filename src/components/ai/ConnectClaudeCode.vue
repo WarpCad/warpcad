@@ -114,6 +114,7 @@ function close() {
     <p class="connect__status" role="status" data-testid="ai-connect-status" :data-state="chat.bridge">{{ status }}</p>
 
     <div class="connect__actions">
+      <button type="button" class="connect__button" data-testid="ai-connect-keys" @click="assistant.openKeySheet()">Key and model…</button>
       <button type="button" class="connect__button connect__button--primary" data-testid="ai-connect-done" @click="close()">Done</button>
     </div>
   </ModalShell>

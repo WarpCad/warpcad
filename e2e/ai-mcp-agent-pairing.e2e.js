@@ -51,7 +51,10 @@ test('any MCP client can use explicitly enabled live access, and off refuses wri
     await expect(page.getByTestId('assistant-connection-text')).not.toContainText('paste')
     await expect(page.getByTestId('assistant-model-name')).toHaveCount(0)
     const composerReason = page.getByTestId('ai-composer-reason')
-    await expect(composerReason).toBeVisible()
+    // `ui-071`: connected, the chat body is hidden (not removed): the chip is the visible status,
+    // and the hidden nodes still carry the key-free wording.
+    await expect(composerReason).toBeHidden()
+    await expect(page.getByTestId('assistant-panel')).toHaveAttribute('data-linked', 'true')
     await expect(composerReason).toContainText('MCP agent is connected')
     await expect(composerReason).not.toContainText('Claude Code')
     await expect(page.getByTestId('ai-input')).toBeDisabled()

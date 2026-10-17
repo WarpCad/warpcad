@@ -34,6 +34,15 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### ui-071 — Assistant folds to its header while an MCP agent is connected (2026-10-17 UTC)
+
+Scenarios 25 and 24 (connected half) were driven; scenario 6 is partial because the phone rule that hides the Library, Inspector and History sheets under any open chat sheet predates this task and was left alone. Only the judgment calls are queued here.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | On a real iPhone, with a real MCP agent connected, does the compact Assistant (header + Undo AI turn, about 159 px) feel right, and is the Inspector reachable enough by closing the Assistant first? Decide whether the phone should keep the Inspector tab docked above the compact sheet instead. | Open | |
+| 2 | At laptop width the connected column still fills its grid cell with empty space under Undo AI turn. Is that acceptable, or should the column narrow while connected? | Open | |
+
 ### ui-069 — Repeat button and panel (2026-10-17 07:55 UTC)
 
 Acceptance 3, 6, 10, 12, 15, 22 and the `ui-063`, `ui-035`, `ui-060`, `ui-042`/`ui-049`, `core-034` repros were driven (emulated viewports only, no real phone or iPad). These are the judgment calls left.

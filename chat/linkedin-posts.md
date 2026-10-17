@@ -2921,3 +2921,19 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** the panel covered `operation-align` (a click timed out on "intercepts pointer events") before the move; box-overlap checks for the phone bar → `e2e/repeat-placement.e2e.js`; Pi moved +10 mm, bolts unchanged, then the screen's Move row edited +10 mm moved all four → driven by hand 2026-10-17
 **To Add:** none
+
+## [2026-10-17T10:35:00Z] — Hiding a panel is easy; the layout around it is the work
+
+**Post:** WarpCad's Assistant panel has two jobs. With your own API key it is a chat. With the live bridge, an outside agent such as Claude Code does the work and the chat sits empty. I made the panel fold to its header whenever an agent is connected: the status chip and Undo AI turn stay, the transcript, composer and token readout go. They are hidden, not removed, so nothing is lost when the agent disconnects.
+
+The hiding was a few lines. The surrounding layout was the work. The viewport's nav chrome and scale readout had been raised to clear the old half-height sheet, so after the fold they floated 300 px above nothing. The sheet now reports its own height and the overlays follow it. Measuring it on a phone, a tablet and a laptop, on Chromium, Firefox and WebKit, also showed that an empty transcript has zero height on a phone at the default sheet size, which is how the chat already looked.
+
+One thing is not solved: on a phone the Inspector tab stays hidden under any open Assistant sheet, a rule from before this change. I logged it for a person to decide. Real iPhone hardware is not checked.
+
+Built with Claude Code, reviewed by me.
+
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #UX #Testing #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** sheet 159 px at 390x844 and overlay gap under 40 px → `e2e/mcp-connected-assistant.e2e.js`; transcript 0 px high at half height on a phone, measured by hand 2026-10-17; Inspector tab `visibility: hidden` under the sheet → `src/views/AppView.vue` phone rule, `TODO/ACCEPTANCE.md` scenario 6
+**To Add:** none

@@ -55,6 +55,11 @@ export const useAiChatStore = defineStore('aiChat', () => {
 
   /** @type {import('vue').Ref<'peek' | 'half' | 'full'>} */
   const sheet = ref('half')
+  /**
+   * `TODO/ui-071`: the connected (compact) Assistant sheet's measured height in px, 0 otherwise.
+   * `AppView` insets the viewport's overlays by it, so the space the sheet gave back is used.
+   */
+  const linkedHeight = ref(0)
   const draft = ref('')
   /** @type {import('vue').ShallowRef<import('../ai/transcript.js').TranscriptItem[]>} */
   const items = shallowRef([])
@@ -194,6 +199,7 @@ export const useAiChatStore = defineStore('aiChat', () => {
 
   return {
     sheet,
+    linkedHeight,
     draft,
     items,
     attachments,

@@ -2054,3 +2054,13 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** real-pointer flow on Chromium, Firefox and WebKit at phone, tablet and laptop size → `e2e/repeat-placement.e2e.js`; the record → `src/core/repeat.js`; the walkthrough and a recorded run → `docs/snap-align.md`
 **To Add:** `docs/media/repeat-placement.gif` (the whole flow), repo URL once public, docs site URL once it exists
+
+## [2026-10-17T10:35:00Z] — The Assistant folds up when an agent is driving
+
+**Post:** When an MCP agent is connected to WarpCad, the Assistant panel used to keep a whole empty chat on screen. Now it folds to its header: the "MCP agent · connected" chip and Undo AI turn. On a phone that is 159 px instead of about 300, and the nav chrome drops down with it. Turn live access off and the chat is back. Built with Claude Code, reviewed by me. #CAD #OpenSource
+
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** panel 159 px on a 390x844 phone, 111 px at 820 wide, scale readout within 40 px of the sheet → `e2e/mcp-connected-assistant.e2e.js` (9 engine-viewport projects); the hidden chat keeps its state → `src/components/ai/ChatPanel.spec.js`
+**To Add:** `docs/screenshots/mcp-connected.png`, repo URL once public, docs site URL once it exists

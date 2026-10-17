@@ -70,7 +70,11 @@ const aiChat = useAiChatStore()
 // A blocked or empty store is an empty section, never a startup failure.
 const library = useLibraryStore()
 /** The chat sheet's state for CSS: its height name while open, `none` otherwise (`TODO/ai-006`). */
-const chatSheet = computed(() => (assistant.view === 'chat' ? aiChat.sheet : 'none'))
+const chatSheet = computed(() => {
+  if (assistant.view !== 'chat') return 'none'
+  // `TODO/ui-071`: connected, the sheet is its compact header (unless folded, which is smaller still).
+  return aiChat.bridge === 'connected' && aiChat.sheet !== 'peek' ? 'linked' : aiChat.sheet
+})
 
 // Delete / Backspace delete the selection (`TODO/ui-051`). Mounted here, not in the
 // Inspector, so it works with the Inspector sheet collapsed.
@@ -275,6 +279,7 @@ function onInspectorClaim() {
       :data-library-sheet="libraryOpen ? 'open' : 'closed'"
       :data-timeline-sheet="timeline.open ? 'open' : 'none'"
       :data-chat-sheet="chatSheet"
+      :style="chatSheet === 'linked' && aiChat.linkedHeight > 0 ? { '--chat-linked-height': `${aiChat.linkedHeight}px` } : undefined"
       :data-repeat-bar="repeat.armed && repeat.minimized ? 'true' : 'false'"
     >
       <LibraryPanel
@@ -562,6 +567,11 @@ function onInspectorClaim() {
 
   .app__body[data-chat-sheet='full'] {
     --viewport-bottom-inset: calc(60dvh + 12px);
+  }
+
+  /* `TODO/ui-071`: an MCP agent is connected, so the sheet is its measured compact height. */
+  .app__body[data-chat-sheet='linked'] {
+    --viewport-bottom-inset: calc(var(--chat-linked-height, 160px) + 12px);
   }
 }
 
