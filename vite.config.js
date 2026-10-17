@@ -9,6 +9,7 @@ import { liveBridgePlugins } from './mcp/liveBridge.js'
 import { HELP_PRECACHE_GLOBS, helpRuntimeCaching, warpcadHelp } from './scripts/vite-plugin-help.mjs'
 import { manifestIcons } from './scripts/app-icons.mjs'
 import { addConnectSrc, connectHostFromDsn, sentryBuildOptions } from './scripts/sentry-build.mjs'
+import { addAnalyticsSources, measurementId } from './scripts/analytics-build.mjs'
 
 /**
  * The dev server only. `index.html`'s Content-Security-Policy is the production policy; `vite
@@ -92,11 +93,34 @@ function sentryConnectSrc() {
   }
 }
 
+/**
+ * `TODO/build-007`: the GA4 measurement ID of a production build, from `GA_MEASUREMENT_ID` /
+ * `VITE_GA_MEASUREMENT_ID` (`''` when unset). `vite build` only: the dev server and tests never
+ * get one, so nothing there can report. Never written in source.
+ */
+const GA_ID = measurementId(process.env)
+
+/**
+ * Allows the production build to load `gtag.js` and send page views, and to nothing broader
+ * (`scripts/analytics-build.mjs`). Without an ID `index.html` is untouched, so a build that is not
+ * configured for analytics allows no Google host at all (`docs/decisions/analytics.md`).
+ *
+ * @returns {import('vite').Plugin}
+ */
+function analyticsSources() {
+  return {
+    name: 'warpcad-analytics-sources',
+    apply: 'build',
+    transformIndexHtml: (html) => addAnalyticsSources(html, GA_ID),
+  }
+}
+
 /** Hidden source maps and the upload plugin exist only when `SENTRY_AUTH_TOKEN` is set. */
 const SENTRY = sentryBuildOptions(process.env)
 
-export default defineConfig({
+export default defineConfig(({ command }) => ({
   define: {
+    __GA_MEASUREMENT_ID__: JSON.stringify(command === 'build' ? GA_ID : ''),
     __APP_VERSION__: JSON.stringify(APP_VERSION),
     __APP_COMMIT__: JSON.stringify(APP_COMMIT),
   },
@@ -110,6 +134,7 @@ export default defineConfig({
   plugins: [
     devContentSecurityPolicy(),
     sentryConnectSrc(),
+    analyticsSources(),
     versionMeta(),
     // `TODO/ai-012`: Claude Code edits the open tab, under `npm run dev` only (`apply: 'serve'`;
     // `vite build` output carries nothing of it). MCP at /mcp, the tab over the HMR socket.
@@ -158,4 +183,4 @@ export default defineConfig({
     // Last, so it sees the finished bundle. Uploads the hidden maps, then deletes them from dist/.
     ...(SENTRY.plugin === null ? [] : [sentryVitePlugin(SENTRY.plugin)]),
   ],
-})
+}))

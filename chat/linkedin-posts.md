@@ -3010,3 +3010,20 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** tests and build checks → `src/core/errorReporting.spec.js`, `scripts/sentry-build.spec.js`, `e2e/csp.e2e.js`; decision and measurements → `docs/decisions/error-reporting.md`
 **To Add:** none
+
+
+## [2026-10-17T12:35:00Z] — Adding analytics without letting it see the project
+
+WarpCad can now count visits to its hosted build with Google Analytics 4, and most of the work was deciding what it must not do. Without a Measurement ID in the build there is no script tag and the Content-Security-Policy allows no Google host. With one, the policy gains exactly three entries: the script host, and Google's two collection domains for connections and the image fallback, nothing broader. Localhost, `npm run dev`, preview servers, automated test browsers and visitors who send Do Not Track all skip it.
+
+The part I care about most: the app already puts shareable things after a `#` in the address, so the page view is built from the origin and path only and the hash is never handed to Google. Reading the real `gtag.js` showed the collection host's region label is chosen at run time, which is why the policy needs a single-label wildcard on Google's own domain rather than a fixed host. I compared it with Plausible, GoatCounter and Umami: `gtag.js` is about 150 kB gzipped against 1-3 kB for those, and it sets cookies, which the new privacy page says plainly. The owner chose GA4, so it stays, and the alternatives are one small swap away.
+
+The honest limit: I had no GA property, so no event has reached Google. Checking Realtime, and switching off enhanced measurement in the stream, are queued for the owner.
+
+Built with Claude Code, reviewed by me.
+
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #WebDev #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** tests and build checks → `src/analytics/analytics.spec.js`, `scripts/analytics-build.spec.js`, `e2e/csp.e2e.js`; decision and measurements → `docs/decisions/analytics.md`
+**To Add:** none

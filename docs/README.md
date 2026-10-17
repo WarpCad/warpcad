@@ -151,6 +151,9 @@ The Library's Raspberry Pi and Hardware items descend from the `jscad-raspberryp
 - [Tracing a photo](sketch-tracing.md) — load a photo of a part onto a sketch's slice,
   set its real scale from a ruler in the photo, and trace over it; plus how to take a
   usable photo, accuracy tips, and what happens to the photo when you share the project.
+- [Privacy: what the hosted app measures](privacy.md) — the one page view Google Analytics
+  counts when the hosted app loads, what is never sent (the `#` part of the address, your
+  projects, your Assistant key), the cookies it sets, and how to opt out.
 
 ## Decisions
 
@@ -163,5 +166,6 @@ Library and architecture decisions, with the data behind them, live in
 - [Interaction-model Q&A](decisions/interaction-model-qa.md) — the six §7 controls
 - [Stack-defaults health check](decisions/stack-defaults-health-check.md)
 - [Hosting and PWA](decisions/hosting.md) — GitHub Pages, vite-plugin-pwa
+- [Analytics](decisions/analytics.md) — Google Analytics 4 page views, against Plausible, GoatCounter and none
 
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

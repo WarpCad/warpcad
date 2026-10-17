@@ -4,10 +4,14 @@ category: build
 kind: feature
 priority: low
 model: sonnet
-milestone: none (not yet placed in TODO/ROADMAP.md)
+milestone: Findings
 depends: []
-status: open
+status: done
 ---
+
+> **Retirement note (2026-10-17 12:35 UTC).** Shipped as specified, with these differences. (1) The module is `src/analytics/analytics.js` (`initAnalytics()`, called from `src/main.js`); the build side is `scripts/analytics-build.mjs` (`measurementId()`, `addAnalyticsSources()`) plus a build-only Vite plugin and a build-only `__GA_MEASUREMENT_ID__` define in `vite.config.js`; `index.html`'s policy text is unchanged, so a build without an ID allows no Google host (the same shape as `build-004`). (2) The ID is read from `GA_MEASUREMENT_ID` (the Actions variable, passed in `.github/workflows/pages.yml`) or `VITE_GA_MEASUREMENT_ID`, and only a well-formed `G-XXXXXXXX` is honoured. (3) Beyond the spec's gates (production, not localhost) it is also inert on any non-https page, in an automated browser (`navigator.webdriver`), and when Do Not Track or Global Privacy Control is set; the script is added after `load`. (4) `page_view` is sent once, explicitly, with `page_location`/`page_path` = origin + pathname only (no hash, no query); `send_page_view`, `allow_google_signals` and `allow_ad_personalization_signals` are all `false`. (5) CSP additions with an ID: `script-src https://www.googletagmanager.com`; `connect-src https://*.google-analytics.com https://*.analytics.google.com`; `img-src https://*.google-analytics.com` (read off the real `gtag.js`: the region label of the collect host is chosen at run time). Nothing broader. (6) The privacy page is the new `docs/privacy.md` (listed in `docs/README.md`). (7) The Engines/Viewports Testing note said Chromium only; the CSP and guard specs were run on all nine projects anyway because the build and CSP changed. Decision record: `docs/decisions/analytics.md` (`gtag.js` 439,625 B / 152,842 B gzip from Google, only in a configured production build; own loader about 1.1 kB / 0.7 kB gzip).
+>
+> **NOT verified, and cannot be from here:** that any event reaches Google Analytics. The implementing session had no GA property or Measurement ID and never contacted Google from the app (tests stub or abort every Google host). So the Realtime and DebugView checks, and that the CSP above is *sufficient* for real `gtag.js` traffic (it is derived from reading the script, not from watching it run), are open. **Enhanced measurement** (including "page changes based on browser history events", which could re-send a page view carrying a `#/gist/…` hash) is a data-stream setting that code cannot turn off: the owner must switch it off (new checklist item below, and in `TODO/VERIFY.md`). The owner checklist (steps 1-8 below) is untouched and entirely still the owner's.
 
 ## Goal
 
@@ -53,6 +57,10 @@ These steps need your Google account or a GitHub setting. Claude can't do them.
 7. **Consent: no banner** (decided 2026-10-16). GA still sets cookies, so the **Documentation** note
    must say so plainly. If you later share the link widely or serve users in the EU/UK, tell
    Claude, because that reopens this decision and adds a consent UI surface.
+9. **Turn off enhanced measurement** (added at retirement). **Admin → Data streams → your web stream
+   → Enhanced measurement**: switch off every toggle (page views stay on, as the base event), in
+   particular "Page changes based on browser history events", so only the page view the app sends
+   is recorded and no automatic event can carry the URL hash.
 8. **Tell Claude when the first real numbers show up**, if you want the **Documentation** note
    (`docs/`, see below) to say what is measured.
 

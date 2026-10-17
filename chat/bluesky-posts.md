@@ -2107,3 +2107,13 @@ Hooked up Sentry to the browser build, with the rule that a build with no DSN se
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** one tested scrubber and the init options → `src/core/errorReporting.spec.js`; build and CSP host logic → `scripts/sentry-build.spec.js`, `e2e/csp.e2e.js`; decision and bundle cost → `docs/decisions/error-reporting.md`
 **To Add:** none (not yet run against a real Sentry project)
+
+
+## [2026-10-17T12:35:00Z] — Page views, and a list of what it will not send
+
+**Post:** Added Google Analytics to WarpCad's hosted build, with the rules written first: a build with no Measurement ID has no script and allows no Google host, the URL hash never leaves the browser, and localhost, previews and test runs report nothing. It sends one page view with just the origin and path. I could not check any of it against a real property, so that part is on the owner's list.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #WebDev #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** loader and gates → `src/analytics/analytics.spec.js`; CSP additions → `scripts/analytics-build.spec.js`, `e2e/csp.e2e.js`; decision → `docs/decisions/analytics.md`
+**To Add:** none (not yet run against a real GA property)

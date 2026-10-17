@@ -54,6 +54,10 @@ jobs:
           SENTRY_PROJECT: ${{ vars.SENTRY_PROJECT }}
           SENTRY_RELEASE: ${{ github.event.workflow_run.head_sha || github.sha }}
           VITE_SENTRY_RELEASE: ${{ github.event.workflow_run.head_sha || github.sha }}
+          # Page-view analytics (TODO/build-007, docs/decisions/analytics.md). Optional: with the
+          # repository variable unset the build carries no tag and its CSP allows no Google host. The
+          # measurement ID is public by design (a variable, not a secret).
+          GA_MEASUREMENT_ID: ${{ vars.GA_MEASUREMENT_ID }}
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist

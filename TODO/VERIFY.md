@@ -34,6 +34,19 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### build-007 — Google Analytics 4 page views (2026-10-17 12:35)
+
+No GA property or Measurement ID existed in the implementing session and Google was never contacted, so nothing has reached Google Analytics. Everything short of that is covered by unit specs (`gtag` mocked), the production-build CSP specs (Google hosts stubbed) and scenario 1. These steps are the owner's.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | Create a separate GA4 property for WarpCad and a web data stream for the hosted host (see the checklist in `TODO/done/build-007-google-analytics.md`); copy the `G-XXXXXXXXXX` Measurement ID. | Open | |
+| 2 | GitHub → Settings → Secrets and variables → Actions → Variables: add `GA_MEASUREMENT_ID` = the ID, then run the Pages workflow (`workflow_dispatch`). | Open | |
+| 3 | In the data stream turn **Enhanced measurement OFF** (all toggles, especially "Page changes based on browser history events"); set event data retention to 2 months; turn off Google signals under Data collection. | Open | |
+| 4 | Open the deployed app: GA → Reports → Realtime shows one active user and the page path with no `#` part; DebugView (Analytics Debugger extension) shows one `page_view`. | Open | |
+| 5 | On the deployed app, DevTools console: no `Content Security Policy` errors naming a Google host. If one appears, widen by that single host in `scripts/analytics-build.mjs` and record it in `docs/decisions/analytics.md`. | Open | |
+| 6 | Open a shared-link address (`…/#/help/getting-started`) and confirm the Network `collect` request's `dl` has no `#` part. | Open | |
+
 ### build-004 — Sentry error reporting and source-map upload (2026-10-17 12:17)
 
 The implementing session had no Sentry account, DSN, org, project or token, so the spec's live smoke test is untested. Everything short of a real event reaching a real project is covered by unit specs (SDK mocked) and production-build checks. Never paste the token or DSN into chat, a TODO, a commit or `TROUBLESHOOTING.md`.

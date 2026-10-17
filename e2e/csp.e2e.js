@@ -28,6 +28,12 @@ import { join } from 'node:path'
  * to launch in this sandbox (`TROUBLESHOOTING.md`).
  */
 
+/** `TODO/build-007`: the GA4 measurement id the production build was given, if any (build-time only). */
+const GA_ID = (process.env.GA_MEASUREMENT_ID ?? process.env.VITE_GA_MEASUREMENT_ID ?? '').trim()
+const GA_CONNECT = ['https://*.google-analytics.com', 'https://*.analytics.google.com']
+const GA_SCRIPT = 'https://www.googletagmanager.com'
+const PREVIEW = process.env.E2E_PREVIEW === '1'
+
 const FIXTURE = join(process.cwd(), 'e2e', 'docs', 'fixtures', 'cube-and-cylinder.ndjson')
 
 test.beforeEach(async ({ page }) => {
@@ -57,15 +63,17 @@ test('the policy is present on the page the browser actually loaded', async ({ p
   const sources = connect.split(/\s+/).slice(1).filter((source) => !/^wss?:/.test(source))
   const extras = sources.filter((source) => !["'self'", 'https://api.anthropic.com', 'https://api.github.com'].includes(source))
   expect(sources).not.toContain('https:')
-  expect(sources.some((source) => source.includes('*'))).toBe(false)
+  // `TODO/build-007`: the only wildcards are Google's two single-label Analytics collection hosts,
+  // and only in a build given a GA4 measurement id.
+  const wildcards = sources.filter((source) => source.includes('*'))
   const dsn = process.env.VITE_SENTRY_DSN ?? ''
-  if (process.env.E2E_PREVIEW === '1' && dsn) {
-    expect(extras).toEqual(['https://' + new URL(dsn).hostname])
-    expect(extras[0]).toMatch(/\.sentry\.io$/)
-  } else if (process.env.E2E_PREVIEW === '1') {
-    expect(extras).toEqual([])
+  if (process.env.E2E_PREVIEW === '1') {
+    const sentry = dsn ? ['https://' + new URL(dsn).hostname] : []
+    expect(extras).toEqual([...sentry, ...(GA_ID ? GA_CONNECT : [])])
+    expect(wildcards).toEqual(GA_ID ? GA_CONNECT : [])
+    if (dsn) expect(extras[0]).toMatch(/\.sentry\.io$/)
   } else {
-    expect(extras.length).toBeLessThanOrEqual(1)
+    expect(extras.length).toBeLessThanOrEqual(3)
   }
   // The dev server relaxes exactly two things (vite.config.js); the production build — which
   // `E2E_PREVIEW=1` serves — carries the policy exactly as written in index.html.
@@ -154,4 +162,99 @@ test('the policy is live: inline script, an unlisted host and an image beacon ar
   expect(seen.some((d) => d.startsWith('script'))).toBe(true)
   expect(seen.some((d) => d.startsWith('connect'))).toBe(true)
   expect(seen.some((d) => d.startsWith('img'))).toBe(true)
+})
+
+/**
+ * `TODO/build-007`: the Google Analytics allowance, asserted on the **production build** (the dev
+ * server's CSP is the same text plus two relaxations, and carries no GA hosts ever). Google is
+ * never contacted: every Google host is answered by a stub from `page.context().route`, so the
+ * only thing proved is what the policy permits or refuses.
+ *
+ * - Without a measurement id (the default build): `script-src`, `connect-src` and `img-src` carry
+ *   no Google host, and a gtag.js script injected into the page is refused.
+ * - With one (`GA_MEASUREMENT_ID=G-TEST000000 E2E_PREVIEW=1`): exactly `www.googletagmanager.com`
+ *   in `script-src`, the two collection wildcards in `connect-src`, the one in `img-src`; the
+ *   stubbed gtag.js, a collect `fetch` and a collect image raise no violation, while a Google host
+ *   that is not on the list (`www.google.com`) is still refused. Nothing broader (`https:`, a bare
+ *   `*`) appears in any directive.
+ */
+function directives(content) {
+  const out = {}
+  for (const part of content.split(';')) {
+    const [name, ...values] = part.trim().split(/\s+/)
+    if (name) out[name] = values
+  }
+  return out
+}
+
+test('Google Analytics hosts are in the production policy only when the build was given an id', async ({ page }) => {
+  test.skip(!PREVIEW, 'The dev server never carries a GA allowance; this asserts the production build.')
+  await page.goto('/')
+  const content = (await page.locator('meta[http-equiv="Content-Security-Policy"]').getAttribute('content')) ?? ''
+  const policy = directives(content)
+  expect(content).not.toMatch(/(^|[\s;])https:([\s;]|$)/)
+  expect(content).not.toMatch(/\s\*([\s;]|$)/)
+  expect(policy['script-src']).toEqual(GA_ID ? ["'self'", GA_SCRIPT] : ["'self'"])
+  expect(policy['img-src']).toEqual(GA_ID ? ["'self'", 'blob:', 'data:', 'https://*.google-analytics.com'] : ["'self'", 'blob:', 'data:'])
+  expect(policy['connect-src'].filter((source) => /google|analytics/.test(source))).toEqual(GA_ID ? GA_CONNECT : [])
+  // The production page has no tag in it either way: the app adds it at runtime, never from the HTML.
+  expect(await page.locator('script[src*="googletagmanager"]').count()).toBe(0)
+})
+
+test('the policy lets a stubbed gtag.js, collect call and collect image through only in a GA build', async ({ page }) => {
+  test.skip(!PREVIEW, 'Asserted on the production build only.')
+  await page.context().route(/^https:\/\/([a-z0-9-]+\.)?(googletagmanager|google-analytics|analytics\.google|google)\.com\//, async (route) => {
+    const headers = { 'access-control-allow-origin': '*' }
+    if (route.request().resourceType() === 'script') return route.fulfill({ status: 200, headers, contentType: 'text/javascript', body: 'window.__gtagStubRan = true' })
+    if (route.request().resourceType() === 'image') return route.fulfill({ status: 200, headers, contentType: 'image/gif', body: Buffer.from('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7', 'base64') })
+    return route.fulfill({ status: 204, headers })
+  })
+  await page.goto('/')
+  await expect(page.getByTestId('viewport')).toBeVisible()
+  const outcome = await page.evaluate(async () => {
+    const script = document.createElement('script')
+    script.src = 'https://www.googletagmanager.com/gtag/js?id=G-TEST000000'
+    const scriptDone = new Promise((resolve) => {
+      script.onload = () => resolve(true)
+      script.onerror = () => resolve(false)
+    })
+    document.head.append(script)
+    const refused = document.createElement('script')
+    refused.src = 'https://www.google.com/other.js'
+    const refusedDone = new Promise((resolve) => {
+      refused.onload = () => resolve(false)
+      refused.onerror = () => resolve(true)
+    })
+    document.head.append(refused)
+    const tryFetch = (url) => fetch(url, { method: 'POST', mode: 'no-cors' }).then(() => true, () => false)
+    const tryImage = (url) =>
+      new Promise((resolve) => {
+        const image = new Image()
+        image.onload = () => resolve(true)
+        image.onerror = () => resolve(false)
+        image.src = url
+      })
+    const result = {
+      scriptLoaded: await scriptDone,
+      otherGoogleScriptRefused: await refusedDone,
+      collectWww: await tryFetch('https://www.google-analytics.com/g/collect?v=2'),
+      collectRegion: await tryFetch('https://region1.google-analytics.com/g/collect?v=2'),
+      collectAnalyticsGoogle: await tryFetch('https://region1.analytics.google.com/g/s/collect?v=2'),
+      otherGoogleFetch: await tryFetch('https://www.google.com/collect'),
+      collectImage: await tryImage('https://region1.google-analytics.com/g/collect?v=2'),
+    }
+    await new Promise((resolve) => setTimeout(resolve, 100))
+    return result
+  })
+  const blocked = (await violations(page)).map((v) => v.blocked)
+  expect(outcome.otherGoogleScriptRefused).toBe(true)
+  expect(outcome.otherGoogleFetch).toBe(false)
+  expect(blocked.some((uri) => uri.includes('www.google.com'))).toBe(true)
+  if (GA_ID) {
+    expect(outcome).toMatchObject({ scriptLoaded: true, collectWww: true, collectRegion: true, collectAnalyticsGoogle: true, collectImage: true })
+    expect(blocked.filter((uri) => /googletagmanager|google-analytics|analytics\.google/.test(uri))).toEqual([])
+  } else {
+    expect(outcome).toMatchObject({ scriptLoaded: false, collectWww: false, collectRegion: false, collectAnalyticsGoogle: false, collectImage: false })
+    expect(blocked.some((uri) => uri.includes('googletagmanager'))).toBe(true)
+  }
 })
