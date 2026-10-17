@@ -1,11 +1,9 @@
 name: CI
 
-# Two jobs, on purpose. The fast job covers everything that is not a browser. The smoke job runs
-# only the `@smoke`-tagged e2e subset: Chrome at desktop (laptop) width, and Safari's engine (WebKit)
-# at iPad (tablet, 820×1180, touch) width.
-# The full e2e matrix (474 tests x 9 engine/viewport projects) is NOT run here: it is a local run
-# (`npm run test:e2e:headless`), because hosted runners bill every minute of it. See
-# playwright.config.js (`smoke-*` projects) and CLAUDE.md's Browser Support section.
+# One job: unit tests, typecheck, licence checks and the `guards` project. No browser runs in CI.
+# The e2e matrix (474 tests x 9 engine/viewport projects) is a local run
+# (`npm run test:e2e:headless`), because hosted runners bill every minute of it. The `smoke-*`
+# projects in playwright.config.js are still available for a local run; CI does not start them.
 
 on:
   push:
@@ -41,34 +39,6 @@ jobs:
       # The `guards` project (e2e/naming.spec.js, e2e/docs-media.spec.js) reads files, not pages,
       # so it needs no browser binary.
       - run: npx playwright test --project=guards
-
-  smoke:
-    name: Smoke e2e (${{ matrix.project }})
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          # Desktop Chrome at laptop width.
-          - browser: chromium
-            project: smoke-chromium-laptop
-          # Safari's engine (WebKit) at iPad width (Responsive Layout tablet row).
-          - browser: webkit
-            project: smoke-webkit-tablet
-    steps:
-      # lfs: false, as in the `test` job: the @smoke specs never open Help or load a GIF.
-      - uses: actions/checkout@v4
-        with:
-          lfs: false
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 24
-          cache: npm
-      - run: npm ci
-      - run: npx playwright install --with-deps ${{ matrix.browser }}
-      # Each matrix leg names its own project (see the matrix above).
-      - run: npx playwright test --project=${{ matrix.project }}
 
 # A superseded pull-request run is cancelled. Pushes to main always finish, because pages.yml
 # deploys from the run that tested that commit.
