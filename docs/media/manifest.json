@@ -413,11 +413,5 @@
     "specHash": "45fef980d1d02aeef974db7ee33676084b26847d95b1c31729486ba89e1b1d7e",
     "bytes": 1269682,
     "seconds": 22.01
-  },
-  "align-to-origin.gif": {
-    "spec": "e2e/docs/selection-inspector.docs.js",
-    "specHash": "4f0b6710d80174aca079a45a7ca254a769d0389959073ee43bc0e90aa4e667d7",
-    "bytes": 435553,
-    "seconds": 5.66
   }
 }
