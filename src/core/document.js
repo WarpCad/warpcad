@@ -466,6 +466,18 @@ import { compareKeys, keysBetween } from './merge/positionKey.js'
 import { LEGACY_STAMP, highestCounter } from './merge/state.js'
 import { diffStates, liveOrder, mergeStates, relatedness, resolveRollback } from './merge/merge.js'
 import { conflictAttribution } from './origin.js'
+import {
+  REPEAT_LINEAGE_OPS,
+  REPEAT_OP,
+  checkRepeat,
+  defaultRepeatName,
+  evaluateRepeat,
+  hasMemberConditions,
+  moveRefusalText,
+  removeRepeatMember,
+  repeatLabel,
+  repeatReferencedIds,
+} from './repeat.js'
 
 /** @typedef {import('./kernel/registry.js').OpRecord} OpRecord */
 /** @typedef {import('./kernel/registry.js').RegistryEntry} RegistryEntry */
@@ -676,6 +688,23 @@ export class ReplayRejection extends Error {
  *   records ever set one, the default that leaves every existing body's rendered
  *   appearance unchanged. See `colorOverridesOf`.
  * @property {Geom3 | Group} geometry Derived, disposable — never persisted.
+ * @property {import('./repeat.js').RepeatInfo} [repeat] `TODO/core-061`: set on a
+ *   `pattern.repeat` body only — its source, seed, targets, and which members are built, broken
+ *   or switched off by their own condition.
+ */
+
+/**
+ * What the fold recorded for one `pattern.repeat` row (`TODO/core-061`); `bodies()` adds the
+ * names, which can change without a re-fold.
+ *
+ * @typedef {object} RepeatStatus
+ * @property {string[]} members
+ * @property {import('./repeat.js').BrokenMember[]} broken
+ * @property {string[]} inactive
+ * @property {string} sourceOp
+ * @property {Record<string, any>} sourceParams
+ * @property {[number, number, number] | undefined} rotation The source's carried rotation as
+ *   the members were built.
  */
 
 /**
@@ -787,6 +816,8 @@ export class ReplayRejection extends Error {
  * @property {(id: string) => string | undefined} currentIdOf
  * @property {(id: string) => string | undefined} rootOf
  * @property {(id: string) => OpRecord[]} lineageOf
+ * @property {(id: string) => import('./repeat.js').RepeatInfo | undefined} repeatOf `TODO/core-061`:
+ *   what a `pattern.repeat` row built, by its id.
  * @property {(id: string) => OpRecord | undefined} recordOf
  * @property {() => TimelineRow[]} timeline
  * @property {() => BrokenStep[]} brokenSteps
@@ -1151,6 +1182,8 @@ function referencedIdsOf(record) {
   push(record.target)
   for (const consumed of record.consumes ?? []) push(consumed)
   for (const operand of record.operands ?? []) push(operand)
+  // `TODO/core-061`: a repeat names its source and seed body in params, as lineage roots.
+  ids.push(...repeatReferencedIds(record))
   return ids
 }
 
@@ -1465,6 +1498,29 @@ export function createDocument(options = {}) {
    */
   let variableTable = new Map()
   let scene = emptyScene()
+  /**
+   * `TODO/core-061`: what each folded `pattern.repeat` built — members, broken members, members
+   * a condition has switched off — by its record id. Derived like the indexes above.
+   * @type {Map<string, RepeatStatus>}
+   */
+  let repeatStatusById = new Map()
+  /**
+   * `TODO/core-061`: record ids the fold folded as identity (left broken, or an operation a
+   * condition switched off), so a repeat member replaying that step does the same.
+   * @type {Set<string>}
+   */
+  let passedThroughIds = new Set()
+  /**
+   * `TODO/core-061`: per fold, not per state — set by {@link foldActive} for the rows it folds
+   * and cleared after. The roots the active log deletes anywhere (a repeat's source deleted
+   * after the repeat row still breaks it, decision 8), the condition context a member's own
+   * condition is judged in, and whether the row being folded tolerates broken members.
+   */
+  /** @type {Set<string>} */
+  let foldDeletedRoots = new Set()
+  /** @type {import('./condition.js').ConditionContext | null} */
+  let foldContext = null
+  let repeatTolerant = false
   /**
    * `TODO/data-008`: replica-scoped ids. The clock is what `nextId` counts with and what
    * {@link loadEntries} advances past every id it reads, so it is always ahead of anything
@@ -2354,6 +2410,15 @@ export function createDocument(options = {}) {
         throw new Error('document.append: a record that supersedes another needs its own `id`')
       }
       supersededRoot = resolveLiveRoot(record.supersedes, 'supersedes')
+      // `TODO/core-061` decision 6: a repeat body's members are derived. Its own lineage may be
+      // renamed, recoloured or deleted; a move, a turn or a reshape would break the link.
+      const repeatRoot = recordById.get(supersededRoot)
+      if (repeatRoot?.op === REPEAT_OP && !REPEAT_LINEAGE_OPS.has(record.op)) {
+        const params = repeatRoot.params ?? {}
+        throw new Error(
+          `document.append: ${moveRefusalText(currentNameOfRoot(params.source) ?? String(params.source), currentNameOfRoot(params.seed?.id) ?? String(params.seed?.id))}`
+        )
+      }
     }
 
     /** @type {string[]} */
@@ -2389,8 +2454,16 @@ export function createDocument(options = {}) {
     // no geometry to evaluate and no registry entry to look up.
     const errorsBefore = scene.errors.length
     let candidate
+    /** @type {RepeatStatus | undefined} */
+    let repeatStatus
     if (isTombstone) {
       candidate = scene
+    } else if (record.op === REPEAT_OP && !passThrough) {
+      // `TODO/core-061`: folded here, not by the kernel — a repeat replays another body's
+      // *records*, which only the document has. Each member still builds through the kernel.
+      const folded = foldRepeat(record, foldRecord)
+      candidate = folded.scene
+      repeatStatus = folded.status
     } else if (passThrough) {
       // The body it would have changed: what it supersedes, else its first operand (a
       // boolean with its operation switched off leaves its base un-cut).
@@ -2422,9 +2495,151 @@ export function createDocument(options = {}) {
       // retire the lineages it absorbed, so `bodies()` stops reporting them and
       // `currentIdOf` starts resolving through them.
       for (const consumedRoot of consumedRoots) mergedInto.set(consumedRoot, record.id)
+      if (repeatStatus !== undefined) repeatStatusById.set(record.id, repeatStatus)
+      if (passThrough) passedThroughIds.add(record.id)
     }
     scene = candidate
     if (!isTombstone && !passThrough && isUserPartOp(record.op)) adoptUserPart(record.op)
+  }
+
+  /**
+   * A repeat row's {@link import('./repeat.js').RepeatInfo}, names as they read now
+   * (`TODO/core-061`), or `undefined` when the row did not fold.
+   *
+   * @param {OpRecord} record The repeat record.
+   * @returns {import('./repeat.js').RepeatInfo | undefined}
+   */
+  function repeatInfoOf(record) {
+    const status = record.id === undefined ? undefined : repeatStatusById.get(record.id)
+    if (status === undefined) return undefined
+    const params = record.params ?? {}
+    return {
+      source: params.source,
+      sourceName: currentNameOfRoot(params.source) ?? params.source,
+      sourceOp: status.sourceOp,
+      sourceParams: status.sourceParams,
+      seed: { id: params.seed.id, pieces: params.seed.pieces },
+      seedName: currentNameOfRoot(params.seed.id) ?? params.seed.id,
+      targets: [...params.targets],
+      members: [...status.members],
+      broken: status.broken.map((member) => ({ ...member })),
+      inactive: [...status.inactive],
+    }
+  }
+
+  /**
+   * One repeat body (`TODO/core-061`): named after its source unless renamed, its colour the
+   * source's whole-body colour unless it has its own (decision 6).
+   *
+   * @param {OpRecord} rootRecord
+   * @param {string} terminalId
+   * @param {readonly OpRecord[]} lineage
+   * @param {Geom3 | Group} geometry
+   * @param {(op: string) => import('./userPart.js').UserPartDefinition | undefined} partOf
+   * @returns {Body}
+   */
+  function repeatBody(rootRecord, terminalId, lineage, geometry, partOf) {
+    const info = /** @type {import('./repeat.js').RepeatInfo} */ (repeatInfoOf(rootRecord))
+    const status = /** @type {RepeatStatus} */ (repeatStatusById.get(/** @type {string} */ (rootRecord.id)))
+    const inherited = document
+      .lineageOf(info.source)
+      .filter((record) => record.op === RECOLOR_OP && record.subPart === undefined)
+    const colorOverrides = colorOverridesOf([...inherited, ...lineage], partOf)
+    return {
+      id: /** @type {string} */ (rootRecord.id),
+      recordId: terminalId,
+      name: nameOverrideOf(lineage) ?? rootRecord.name ?? defaultRepeatName(info.sourceName, info.targets.length),
+      op: REPEAT_OP,
+      params: rootRecord.params ?? {},
+      rotationDeg: status.rotation ?? [0, 0, 0],
+      ...(colorOverrides !== undefined ? { colorOverrides } : {}),
+      geometry,
+      repeat: info,
+    }
+  }
+
+  /**
+   * The fold, as `repeat.js`'s rules see it: the indexes as built **so far**, so a repeat is
+   * judged at its own position in the log (`TODO/core-061`).
+   *
+   * @returns {import('./repeat.js').RepeatView}
+   */
+  function foldView() {
+    return {
+      rootOf: (id) => rootById.get(id),
+      stateOf: (root) => (isDeletedRoot(root) ? 'deleted' : mergedInto.has(root) ? 'consumed' : 'live'),
+      nameOf: (root) => currentNameOfRoot(root) ?? root,
+      lineageOf: (root) => document.lineageOf(root),
+      valueOf: (root) => scene.byId.get(terminalByRoot.get(root) ?? root),
+    }
+  }
+
+  /**
+   * Fold one `pattern.repeat` (`TODO/core-061`): judge it, then build every member through the
+   * kernel. A broken member refuses the row unless {@link foldActive} is folding it tolerantly
+   * (`repeatTolerant`: the row is left broken, or the whole fold tolerates), in which case the
+   * members that build are kept and the rest are reported on its status.
+   *
+   * @param {OpRecord} record
+   * @param {OpRecord} foldRecord The record with its bindings resolved; a repeat has none of its
+   *   own, so this is `record` — kept for symmetry with every other row.
+   * @returns {{ scene: Scene, status: RepeatStatus }}
+   */
+  function foldRepeat(record, foldRecord) {
+    if (record.id === undefined) throw new Error(`document.append: ${REPEAT_OP} needs its own \`id\``)
+    const view = foldView()
+    const problem = checkRepeat(view, foldRecord.params)
+    if (problem !== null) throw new Error(`document.append: ${REPEAT_OP} could not be applied — ${problem}`)
+    const params = /** @type {import('./repeat.js').RepeatParams} */ (foldRecord.params)
+    // Decision 8: a source deleted anywhere in the active log breaks the repeat as a whole —
+    // unless the repeat itself is deleted too (it goes with its source).
+    if (foldDeletedRoots.has(params.source) && !foldDeletedRoots.has(record.id)) {
+      throw new Error(
+        `document.append: ${REPEAT_OP} could not be applied — ${view.nameOf(params.source)} has been deleted, so its repeats have nothing to follow`
+      )
+    }
+    const lineage = document.lineageOf(params.source)
+    const outcome = evaluateRepeat({
+      record: foldRecord,
+      lineage,
+      rootOf: (id) => rootById.get(id),
+      byId: scene.byId,
+      registry: ops,
+      cache: foldCache,
+      policy: policyFor(resolution),
+      seedName: view.nameOf(params.seed.id),
+      resolve: (step) => (usesVariables(step) ? resolveRecord(step, variableTable).record : step),
+      passedThrough: (id) => passedThroughIds.has(id),
+      memberState: (target) => {
+        const when = params.when?.[target]
+        if (when === undefined) return { state: 'active' }
+        if (foldContext === null) return { state: 'invalid', reason: 'it was folded without its condition context' }
+        const verdict = evaluateCondition(when, foldContext)
+        return verdict.state === 'invalid' ? { state: 'invalid', reason: verdict.reason } : { state: verdict.state }
+      },
+    })
+    if (outcome.broken.length > 0 && !repeatTolerant) {
+      const [first] = outcome.broken
+      throw new Error(`document.append: ${REPEAT_OP} could not be applied — ${first.target}: ${first.reason}`)
+    }
+    if (outcome.value === undefined && outcome.broken.length > 0) {
+      throw new Error(`document.append: ${REPEAT_OP} could not be applied — no member could be built`)
+    }
+    const paramsRecord = currentParamsRecordOf(lineage) ?? lineage[0]
+    const carried = lineage.at(-1)?.params?.rotation
+    /** @type {RepeatStatus} */
+    const status = {
+      members: outcome.members,
+      broken: outcome.broken,
+      inactive: outcome.inactive,
+      sourceOp: lineage[0]?.op ?? '',
+      sourceParams: paramsRecord?.params ?? {},
+      rotation: isVec3(carried) ? [carried[0], carried[1], carried[2]] : undefined,
+    }
+    if (outcome.value === undefined) return { scene, status }
+    const byIdNext = new Map(scene.byId)
+    byIdNext.set(record.id, outcome.value)
+    return { scene: { ...scene, byId: byIdNext }, status }
   }
 
   /**
@@ -2469,6 +2684,8 @@ export function createDocument(options = {}) {
       recordById: new Map(recordById),
       variableTable,
       scene,
+      repeatStatusById: new Map(repeatStatusById),
+      passedThroughIds: new Set(passedThroughIds),
     }
   }
 
@@ -2482,6 +2699,8 @@ export function createDocument(options = {}) {
     recordById.clear()
     variableTable = new Map()
     scene = emptyScene()
+    repeatStatusById = new Map()
+    passedThroughIds = new Set()
     if (!snapshot) return
     for (const [key, value] of snapshot.originById) originById.set(key, value)
     for (const [key, value] of snapshot.rootById) rootById.set(key, value)
@@ -2491,6 +2710,8 @@ export function createDocument(options = {}) {
     for (const [key, value] of snapshot.recordById) recordById.set(key, value)
     variableTable = snapshot.variableTable
     scene = snapshot.scene
+    repeatStatusById = new Map(snapshot.repeatStatusById)
+    passedThroughIds = new Set(snapshot.passedThroughIds)
   }
 
   /**
@@ -2798,10 +3019,70 @@ export function createDocument(options = {}) {
       ? readVariables(nextEntries, activeCount)
       : { variables: new Map(), problems: new Map() }
     variableTable = variables
-    let bindingsSeen = 0
-    const context = nextEntries.some((entry) => entry.record.when !== undefined)
+    const context = nextEntries.some((entry) => entry.record.when !== undefined || hasMemberConditions(entry.record))
       ? conditionContextOf(nextEntries, activeCount, variables)
       : null
+    // `TODO/core-061`: what a repeat row needs from the whole active log, not just its prefix.
+    foldContext = context
+    foldDeletedRoots = new Set()
+    if (nextEntries.some((entry) => entry.record.op === REPEAT_OP)) {
+      for (let index = 0; index < activeCount && index < nextEntries.length; index += 1) {
+        const entry = nextEntries[index]
+        if (entry.suppressed === true || entry.record.op !== DELETE_OP || typeof entry.record.supersedes !== 'string') continue
+        foldDeletedRoots.add(rootIdIn(entry.record.supersedes, byId))
+      }
+    }
+    try {
+      return foldActiveRows(nextEntries, activeCount, byId, tolerateAll, {
+        tolerated,
+        broken,
+        inactive,
+        skipped,
+        variables,
+        variableProblems,
+        usesVars,
+        context,
+      })
+    } finally {
+      foldContext = null
+      foldDeletedRoots = new Set()
+    }
+  }
+
+  /**
+   * Fold a repeat row that failed strictly again, keeping the members that build
+   * (`TODO/core-061`). `false` when it still cannot be folded at all.
+   *
+   * @param {DocumentEntry} entry
+   * @param {OpRecord} foldRecord
+   * @returns {boolean}
+   */
+  function foldRepeatTolerantly(entry, foldRecord) {
+    repeatTolerant = true
+    try {
+      ingest(entry.record, entry.origin, false, foldRecord)
+      return true
+    } catch {
+      return false
+    } finally {
+      repeatTolerant = false
+    }
+  }
+
+  /**
+   * The row loop of {@link foldActive}, split out so the per-fold repeat state it sets is always
+   * cleared afterwards.
+   *
+   * @param {readonly DocumentEntry[]} nextEntries
+   * @param {number} activeCount
+   * @param {Map<string, OpRecord>} byId
+   * @param {boolean} tolerateAll
+   * @param {{ tolerated: Map<string, string | null>, broken: Map<string, string>, inactive: Map<string, InactiveBy>, skipped: Map<string, string>, variables: Map<string, import('./variables.js').Variable>, variableProblems: Map<string, string>, usesVars: boolean, context: import('./condition.js').ConditionContext | null }} state
+   * @returns {{ broken: Map<string, string>, inactive: Map<string, InactiveBy>, tolerated: Map<string, string | null> }}
+   */
+  function foldActiveRows(nextEntries, activeCount, byId, tolerateAll, state) {
+    const { tolerated, broken, inactive, skipped, variables, variableProblems, usesVars, context } = state
+    let bindingsSeen = 0
 
     /**
      * @param {DocumentEntry} entry
@@ -2939,6 +3220,9 @@ export function createDocument(options = {}) {
         const conflict = lineageConflictOf(record, nextEntries, index, byId)
         broken.set(key, conflict?.reason ?? error.step.reason)
         tolerated.set(key, conflict?.lostTo ?? null)
+        // `TODO/core-061`: a tolerated repeat keeps the members that do build; only when none
+        // can (or the row is broken as a whole) does it leave the fold.
+        if (record.op === REPEAT_OP && foldRepeatTolerantly(entry, foldRecord)) continue
         passThroughOrSkip(entry, key)
       }
     }
@@ -3284,6 +3568,8 @@ export function createDocument(options = {}) {
       const part = typeof record.params?.part === 'string' ? record.params.part : 'part'
       return subjectName === undefined ? `Remove ${part}` : `Remove ${part} from ${subjectName}`
     }
+    // `TODO/core-061`: the targets are the interesting half.
+    if (record.op === REPEAT_OP) return repeatLabel(record)
     const verb = /** @type {Record<string, string>} */ (STEP_VERBS)[record.op]
     if (verb !== undefined) {
       if (record.consumes !== undefined) return verb
@@ -3448,8 +3734,13 @@ export function createDocument(options = {}) {
       // `TODO/core-050`: likewise variables — a binding reads its variable from the whole log,
       // so a new definition can repair an earlier binding, and a new binding is judged against
       // every definition, wherever it sits.
-      const refolds = (/** @type {OpRecord} */ record) => record.when !== undefined || usesVariables(record)
-      if (records.some(refolds) || entries.some((entry) => refolds(entry.record))) {
+      const refolds = (/** @type {OpRecord} */ record) =>
+        record.when !== undefined || usesVariables(record) || hasMemberConditions(record)
+      // `TODO/core-061`: deleting a body a repeat follows breaks that repeat (decision 8), which
+      // only a re-fold of the repeat row can judge.
+      const deletesUnderRepeat =
+        records.some((record) => record.op === DELETE_OP) && entries.some((entry) => entry.record.op === REPEAT_OP)
+      if (deletesUnderRepeat || records.some(refolds) || entries.some((entry) => refolds(entry.record))) {
         return document.insertAt(entries.length, records, transaction)
       }
 
@@ -4749,6 +5040,12 @@ export function createDocument(options = {}) {
       if (isDeletedRoot(root)) {
         throw new Error(`document.removePart: ${currentNameOfRoot(root) ?? root} has been deleted`)
       }
+      // `TODO/core-061` decision 7: removing one member of a repeat drops its target — a replace
+      // of the repeat row, so the record and the BOM agree with what is drawn.
+      if (recordById.get(root)?.op === REPEAT_OP) {
+        removeRepeatMember(document, root, partName, transaction)
+        return { record: /** @type {OpRecord} */ (recordById.get(root)), scene }
+      }
       const currentId = /** @type {string} */ (document.currentIdOf(id))
       return document.append(
         {
@@ -4917,6 +5214,18 @@ export function createDocument(options = {}) {
       return chain.reverse()
     },
 
+    /**
+     * `TODO/core-061`: what a `pattern.repeat` row built — by its record id (its body's id) —
+     * or `undefined` for any other id, or a repeat that did not fold.
+     *
+     * @param {string} id
+     * @returns {import('./repeat.js').RepeatInfo | undefined}
+     */
+    repeatOf(id) {
+      const record = recordById.get(id)
+      return record?.op === REPEAT_OP ? repeatInfoOf(record) : undefined
+    },
+
     assets() {
       // Folded ones only, in log order: a suppressed or rolled-back photo is out of play
       // the same way a suppressed body is. A handful of entries; no index is needed.
@@ -4970,7 +5279,12 @@ export function createDocument(options = {}) {
         // the same record, so the panel and the next mutation cannot disagree.
         const lineage = document.lineageOf(rootId)
         const paramsRecord = currentParamsRecordOf(lineage) ?? rootRecord
-        const colorOverrides = colorOverridesOf(lineage, (op) => userParts.get(op) ?? effectiveUserPart(op))
+        const partOf = (/** @type {string} */ op) => userParts.get(op) ?? effectiveUserPart(op)
+        if (rootRecord.op === REPEAT_OP) {
+          bodies.push(repeatBody(rootRecord, terminalId, lineage, geometry, partOf))
+          continue
+        }
+        const colorOverrides = colorOverridesOf(lineage, partOf)
         bodies.push({
           id: rootId,
           recordId: terminalId,

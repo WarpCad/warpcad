@@ -34,6 +34,7 @@ import { isGroup } from './kernel/group.js'
 import { nameOverrideOf } from './naming.js'
 import { paramOptions, partAliasesOf } from './kernel/registry.js'
 import { consumersOf, resolveParams, setVariableRevision, variablesOf } from './variables.js'
+import { REPEAT_OP } from './repeat.js'
 
 /** @typedef {import('./document.js').WarpDocument} WarpDocument */
 /** @typedef {import('./document.js').RecordRevision} RecordRevision */
@@ -60,6 +61,10 @@ import { consumersOf, resolveParams, setVariableRevision, variablesOf } from './
  *   message.
  * @property {string[]} refIds The ids of this record's operands that belong to the
  *   edited body — the references a Remap rewrites.
+ * @property {string} [member] `TODO/core-061`: for a `pattern.repeat` row, the one target
+ *   (member) this breakage is about. A repeat with several broken members is several rows.
+ * @property {string} [key] Set exactly when `member` is: `<record id>#<target>`, what the repair
+ *   dialog keys this row's fix by. Every other breakage is keyed by `dependentRecordId`.
  */
 
 /** Verb per op, for a breakage's relationship column. */
@@ -78,6 +83,7 @@ const RELATIONSHIP_VERBS = Object.freeze({
   'transform.rotate': 'Rotate',
   'transform.mirror': 'Mirror',
   'group.assemble': 'Group',
+  'pattern.repeat': 'Repeat',
 })
 
 /** The two ops that *place* one body against another. */
@@ -219,6 +225,74 @@ function describeBreakage(before, after, step, editedRootId, previousParams) {
 }
 
 /**
+ * A broken row as the repair dialog's rows: one {@link Breakage}, or — for a `pattern.repeat`
+ * whose members are reported one by one (`TODO/core-061` decision 8) — one per broken member,
+ * each keyed `<id>#<target>`. A repeat broken as a whole (its source deleted, its seed part gone)
+ * is one ordinary row.
+ *
+ * @param {WarpDocument} before
+ * @param {WarpDocument} after
+ * @param {BrokenStep} step
+ * @param {string} editedRootId
+ * @param {Record<string, any>} [previousParams]
+ * @returns {Breakage[]}
+ */
+function breakagesOf(before, after, step, editedRootId, previousParams) {
+  const record = after.recordOf(step.id)
+  const info = record?.op === REPEAT_OP ? after.repeatOf(step.id) : undefined
+  if (info === undefined || info.broken.length === 0) return [describeBreakage(before, after, step, editedRootId, previousParams)]
+
+  const seedBody = after.bodies().find((body) => body.id === info.seed.id)
+  const newParts = seedBody !== undefined && isGroup(seedBody.geometry) ? Object.keys(seedBody.geometry.parts) : []
+  const seedRoot = after.recordOf(info.seed.id)
+  const aliases = seedRoot ? partAliasesOf(seedRoot.op) : {}
+  const variables = new Map(variablesOf(after).map((variable) => [variable.name, variable]))
+  const variant =
+    variantLabelOf(seedRoot, info.seed.id === editedRootId ? previousParams : undefined, variables) ?? info.seedName
+  const dependentName =
+    before.bodies().find((body) => body.id === step.id)?.name ?? after.bodies().find((body) => body.id === step.id)?.name ?? step.id
+  return info.broken.map(({ target, reason }) => {
+    const missing = seedBody !== undefined && !newParts.includes(target)
+    const alias = aliases[target]
+    return {
+      dependentRecordId: step.id,
+      dependentBodyId: step.id,
+      dependentName,
+      step: step.step,
+      relationship: `Repeat → ${target}`,
+      placement: false,
+      missingPieces: missing ? [target] : [],
+      newParts,
+      suggestions: missing && alias !== undefined && newParts.includes(alias) ? { [target]: alias } : {},
+      reason: missing ? `${variant} has no part named \`${target}\`` : reason,
+      refIds: [info.seed.id],
+      member: target,
+      key: `${step.id}#${target}`,
+    }
+  })
+}
+
+/**
+ * Every breakage key the live document already has — so a check reports only what is new.
+ *
+ * @param {WarpDocument} document
+ * @returns {Set<string>}
+ */
+function brokenKeysOf(document) {
+  /** @type {Set<string>} */
+  const keys = new Set()
+  for (const step of document.brokenSteps()) {
+    const info = document.recordOf(step.id)?.op === REPEAT_OP ? document.repeatOf(step.id) : undefined
+    if (info !== undefined && info.broken.length > 0) {
+      for (const member of info.broken) keys.add(`${step.id}#${member.target}`)
+    } else {
+      keys.add(step.id)
+    }
+  }
+  return keys
+}
+
+/**
  * What would a set of revisions newly break?
  *
  * @param {WarpDocument} document The live document. Not modified.
@@ -232,7 +306,7 @@ function describeBreakage(before, after, step, editedRootId, previousParams) {
  */
 export function impactOf(document, changes, { editedRootId }) {
   const preview = previewOf(document, changes)
-  const already = new Set(document.brokenSteps().map((step) => step.id))
+  const already = brokenKeysOf(document)
   const activeCount = document.rollbackAt() ?? document.entries.length
   const activeIds = new Set(document.entries.slice(0, activeCount).map((entry) => entry.record.id))
   const previousParams = document.recordOf(editedRootId)?.params ?? {}
@@ -240,9 +314,11 @@ export function impactOf(document, changes, { editedRootId }) {
   /** @type {Breakage[]} */
   const breakages = []
   for (const step of preview.brokenSteps()) {
-    if (already.has(step.id) || !activeIds.has(step.id)) continue
-    if (step.id === editedRootId) throw new Error(step.reason.replace(/^can't be built: /, ''))
-    breakages.push(describeBreakage(document, preview, step, editedRootId, previousParams))
+    if (!activeIds.has(step.id)) continue
+    if (step.id === editedRootId && !already.has(step.id)) throw new Error(step.reason.replace(/^can't be built: /, ''))
+    for (const breakage of breakagesOf(document, preview, step, editedRootId, previousParams)) {
+      if (!already.has(breakage.key ?? breakage.dependentRecordId)) breakages.push(breakage)
+    }
   }
   return { breakages, preview }
 }
@@ -261,6 +337,11 @@ export function brokenDependentsOf(document, rootId) {
   for (const step of document.brokenSteps()) {
     const record = document.recordOf(step.id)
     if (record === undefined) continue
+    // `TODO/core-061`: a repeat depends on its seed body's parts, named in params.
+    if (record.op === REPEAT_OP) {
+      if (record.params?.seed?.id === rootId) list.push(...breakagesOf(document, document, step, rootId))
+      continue
+    }
     const refs = [record.target, ...(record.operands ?? [])]
     const own = document.rootOf(step.id) === rootId
     const touches = refs.some((ref) => {
@@ -346,7 +427,7 @@ export function variableImpactOf(document, name, value) {
   const revision = setVariableRevision(document, name, value)
   if (revision === null) return { breakages: [], preview: previewOf(document, []), consumers }
   const preview = previewOf(document, [revision])
-  const already = new Set(document.brokenSteps().map((step) => step.id))
+  const already = brokenKeysOf(document)
   const activeCount = document.rollbackAt() ?? document.entries.length
   const activeIds = new Set(document.entries.slice(0, activeCount).map((entry) => entry.record.id))
   const boundRoots = new Set(
@@ -356,7 +437,7 @@ export function variableImpactOf(document, name, value) {
   /** @type {Breakage[]} */
   const breakages = []
   for (const step of preview.brokenSteps()) {
-    if (already.has(step.id) || !activeIds.has(step.id)) continue
+    if (!activeIds.has(step.id)) continue
     // The body the breakage is "against": a bound body this row references, else its own.
     const record = preview.recordOf(step.id)
     const refRoots = [record?.target, ...(record?.operands ?? [])]
@@ -364,7 +445,9 @@ export function variableImpactOf(document, name, value) {
       .map((id) => (typeof id === 'string' ? document.rootOf(id) : undefined))
     const editedRootId =
       refRoots.find((root) => root !== undefined && boundRoots.has(root)) ?? document.rootOf(step.id) ?? step.id
-    breakages.push(describeBreakage(document, preview, step, editedRootId))
+    for (const breakage of breakagesOf(document, preview, step, editedRootId)) {
+      if (!already.has(breakage.key ?? breakage.dependentRecordId)) breakages.push(breakage)
+    }
   }
   return { breakages, preview, consumers }
 }

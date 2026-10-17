@@ -6,8 +6,27 @@ priority: medium
 model: opus
 milestone: M17
 depends: []
-status: open
+status: done
 ---
+
+> **Retirement note (2026-10-17):** shipped as specified, with these deviations. Substitution keeps the
+> operand's record id and rewrites only `pieces`. `nameFamily` matches the same stem plus a number
+> compared numerically (`hole10` is in `hole1`'s family; `fan1hole` and `hathole1` are not). A
+> per-member condition is a new field, `params.when[target]`. The move refusal names the bodies
+> (*"Move Bolt 1 or Raspberry Pi 1; the repeats follow them"*). The AI tool takes `rationale`, and the
+> MCP transport adds `request`, like every other write tool. Deleting a source is refused while a repeat
+> follows it; the *Delete the repeats / Leave broken* dialog is `ui-069`'s. Beyond the spec: the repair
+> dialog's fixes were keyed by record id, which made Apply refuse a repeat member (found by driving
+> acceptance scenario 15), so `src/stores/repairDialog.js` and `DependentRepairDialog.vue` now key by
+> `fixKeyOf` and label the new fix **Remove this repeat** (`repairDialog.spec.js`).
+>
+> **Handed to `ui-069`:** the Inspector shows Position and Rotation fields on a repeat body, and an edit
+> there throws *"Move Bolt 1 or Raspberry Pi 1; the repeats follow them"* (nothing moves, but it is an
+> uncaught page error): hide or disable them and show that sentence as a note, and attach no gizmo.
+> Deleting one member has no control yet (a sub-part has no Delete button). Also its: **Go to Bolt 1**,
+> **Detach**, read-only Parameters, the *Delete the repeats* dialog row, and the docs. **Known gap:**
+> *Save to library…* on a repeat body does not include its source, so a saved part would not rebuild;
+> recorded in `TODO/VERIFY.md`.
 
 ## Goal
 

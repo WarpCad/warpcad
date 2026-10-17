@@ -30,6 +30,8 @@
  * @module ai/tools/limits
  */
 
+import { REPEAT_LIMITS } from '../../core/repeat.js'
+
 /**
  * The starting caps (decision 7), to be tuned by `ai-011`'s evals rather than by
  * guesswork.
@@ -41,6 +43,8 @@
  * @property {number} consecutiveFailures Failures of the same tool in a row before
  *   the turn stops and the user is asked.
  * @property {number} turnMs Wall-clock time one turn may take, in milliseconds.
+ * @property {number} repeatTargets Targets one `repeat` call may name (`TODO/core-061`) — the
+ *   document's own limit, read from `src/core/repeat.js` so the two are one number.
  */
 
 /** @type {Readonly<Limits>} */
@@ -50,6 +54,7 @@ export const LIMITS = Object.freeze({
   stepsPerTurn: 40,
   consecutiveFailures: 3,
   turnMs: 10 * 60 * 1000,
+  repeatTargets: REPEAT_LIMITS.maxTargets,
 })
 
 /**

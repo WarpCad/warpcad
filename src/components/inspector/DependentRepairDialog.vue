@@ -31,7 +31,7 @@ import { computed, onBeforeUnmount, onMounted, ref, toRaw } from 'vue'
 
 import { useParamCommands } from '../../composables/useParamCommands.js'
 import { paramOptions } from '../../core/kernel/registry.js'
-import { offeredFixesOf } from '../../core/repair.js'
+import { fixKeyOf, offeredFixesOf } from '../../core/repair.js'
 import { variableValueLabel, variablesOf } from '../../core/variables.js'
 import { useDocumentStore } from '../../stores/document.js'
 import { useHoverHighlightStore } from '../../stores/hoverHighlight.js'
@@ -158,12 +158,13 @@ function kindLabel(kind) {
   if (kind === 'condition') return conditionLabel.value
   if (kind === 'remap') return 'Remap to another part…'
   if (kind === 'detach') return 'Detach — keep it where it is'
+  if (kind === 'removeTarget') return 'Remove this repeat'
   return 'Leave broken'
 }
 
 /** @param {Breakage} breakage @returns {Fix | undefined} */
 function fixOf(breakage) {
-  return dialog.fixes[breakage.dependentRecordId]
+  return dialog.fixes[fixKeyOf(breakage)]
 }
 
 /**
@@ -199,7 +200,7 @@ function onKindChange(breakage, event) {
   if (kind === 'condition') fix = { kind, scope: defaultScope(breakage), values: [...conditionValues.value] }
   else if (kind === 'remap') fix = { kind, pieces: { ...breakage.suggestions } }
   else fix = { kind }
-  dialog.setFix(breakage.dependentRecordId, fix)
+  dialog.setFix(fixKeyOf(breakage), fix)
 }
 
 /** @param {Breakage} breakage @returns {'body' | 'operation'} */
@@ -216,7 +217,7 @@ function onScopeChange(breakage, event) {
   const fix = fixOf(breakage)
   if (fix?.kind !== 'condition') return
   const scope = /** @type {'body' | 'operation'} */ (/** @type {HTMLSelectElement} */ (event.target).value)
-  dialog.setFix(breakage.dependentRecordId, { ...fix, scope })
+  dialog.setFix(fixKeyOf(breakage), { ...fix, scope })
 }
 
 /**
@@ -232,7 +233,7 @@ function onRemapChange(breakage, piece, event) {
   const pieces = { ...fix.pieces }
   if (value) pieces[piece] = value
   else delete pieces[piece]
-  dialog.setFix(breakage.dependentRecordId, { kind: 'remap', pieces })
+  dialog.setFix(fixKeyOf(breakage), { kind: 'remap', pieces })
 }
 
 /** @param {Breakage} breakage @param {string} piece */
@@ -309,7 +310,7 @@ function apply() {
       <ul class="repair__rows">
         <li
           v-for="breakage in dialog.breakages"
-          :key="breakage.dependentRecordId"
+          :key="fixKeyOf(breakage)"
           class="repair__row"
           data-testid="repair-row"
           :data-record-id="breakage.dependentRecordId"

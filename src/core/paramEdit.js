@@ -50,6 +50,7 @@
  */
 
 import { hasEditableParams, lookupEntry, normalizedParams, paramOptions, reconcileParamEdit } from './kernel/registry.js'
+import { REPEAT_OP } from './repeat.js'
 
 /** @typedef {import('./document.js').WarpDocument} WarpDocument */
 /** @typedef {import('./kernel/registry.js').OpRecord} OpRecord */
@@ -104,6 +105,10 @@ export function paramEditability(lineage) {
   if (root.consumes !== undefined || root.operands !== undefined || root.target !== undefined) {
     return { editable: false, blockedBy: root.op }
   }
+
+  // `TODO/core-061` decision 6: a repeat's members are its source's steps re-aimed; its params
+  // say *which* targets, not what anything is. Edits happen on the source (Go to Bolt 1).
+  if (root.op === REPEAT_OP) return { editable: false, blockedBy: REPEAT_OP }
 
   // A composite recipe's params are a **catalogue choice**, not dimensions
   // (`TODO/ui-030`). A bolt's `spec` is a key into a size table and its `fit` is a

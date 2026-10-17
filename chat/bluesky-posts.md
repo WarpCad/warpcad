@@ -2034,3 +2034,13 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** tab overlapped the sheet by 44 px before, 0 after, every row's centre hit-tested → `e2e/phone-sheet-stacking.e2e.js` (failed on chromium-phone before the change); drawn from the user's own phone report 2026-10-16 → `TODO/done/ui-070-phone-inspector-tab-covers-open-library-sheet.md`
 **To Add:** the new `mobile-library-with-selection.png` screenshot, repo URL once public, docs site URL once it exists
+
+## [2026-10-17T06:00:00Z] — One bolt, three more, still linked
+
+**Post:** In WarpCad you can now finish one screw on a Raspberry Pi's first mounting hole, then repeat it on the other three as one History row, "Bolt 1 ×3". It is linked, not copied: change the first bolt's length and all three resize, change its Align and all three move. A later move of the first bolt moves only that bolt, because a row only sees what came before it. The Bill of Materials counts four. Built with Claude Code, reviewed by me.
+
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** Length 10 to 14 mm took the repeat from 274.506 to 333.033 mm³, exactly three times one bolt (111.011), driven by hand in the app; the record, its refusals and the repair rows → `src/core/repeat.js`, `src/core/repeat.fold.spec.js`; the `repeat` tool against the real MCP server → `mcp/server.spec.js`
+**To Add:** none (no UI yet, that is the next task)

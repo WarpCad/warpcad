@@ -1719,6 +1719,22 @@ export const registry = Object.freeze({
   // join the scene group as a second part.
   'style.rename': wholeGroupNative(1, ({ inputs }) => soleOperand(inputs).value),
 
+  // ## A linked Repeat (TODO/core-061)
+  //
+  // Registered so a document line naming it is a known op (an older build drops it with the
+  // unknown-op warning; this one loads it), but deliberately with no `ui`: it is never a Library
+  // or toolbar row, and `TODO/ui-069` owns the trigger. It is not built here: a repeat replays
+  // another body's *records*, which only the document fold has, so `src/core/document.js` folds
+  // it through `src/core/repeat.js` — which runs each member's steps through this same kernel's
+  // `evaluate`. A direct build is a bug and says so.
+  'pattern.repeat': Object.freeze({
+    kind: 'native',
+    operandCount: 0,
+    build: () => {
+      throw new Error('pattern.repeat is folded by the document (src/core/repeat.js) — it has no standalone build')
+    },
+  }),
+
   // ## Removing one part from a placed group (TODO/ui-051)
   //
   // `src/core/document.js`'s `removePart` appends this over the body's current

@@ -119,21 +119,37 @@ function labelOf(op) {
 }
 
 /**
+ * What one body adds to the tally: itself, or — for a linked Repeat (`TODO/core-061`) — one
+ * copy of its source per member actually built. A broken member, or one its own condition has
+ * switched off, is not drawn and is not counted.
+ *
+ * @param {{ op: string, params?: Record<string, any>, repeat?: { sourceOp: string, sourceParams: Record<string, any>, members: readonly string[] } }} body
+ * @returns {{ op: string, params: Record<string, any>, count: number }}
+ */
+function tallyOf(body) {
+  if (body.repeat !== undefined) {
+    return { op: body.repeat.sourceOp, params: body.repeat.sourceParams ?? {}, count: body.repeat.members.length }
+  }
+  return { op: body.op, params: body.params ?? {}, count: 1 }
+}
+
+/**
  * Tally bodies into BOM rows, in first-placed order.
  *
- * @param {readonly { op: string, params?: Record<string, any> }[]} bodies
+ * @param {readonly { op: string, params?: Record<string, any>, repeat?: { sourceOp: string, sourceParams: Record<string, any>, members: readonly string[] } }[]} bodies
  * @returns {BomRow[]}
  */
 export function tallyBom(bodies) {
   /** @type {Map<string, BomRow>} */
   const rows = new Map()
   for (const body of bodies) {
-    if (!PART_NAMESPACES.includes(body.op.split('.')[0])) continue
-    const detail = detailOf(body.op, body.params ?? {})
-    const key = `${body.op}|${detail}`
+    const { op, params, count } = tallyOf(body)
+    if (count === 0 || !PART_NAMESPACES.includes(op.split('.')[0])) continue
+    const detail = detailOf(op, params)
+    const key = `${op}|${detail}`
     const row = rows.get(key)
-    if (row) row.count += 1
-    else rows.set(key, { key, op: body.op, label: labelOf(body.op), detail, count: 1 })
+    if (row) row.count += count
+    else rows.set(key, { key, op, label: labelOf(op), detail, count })
   }
   return [...rows.values()]
 }

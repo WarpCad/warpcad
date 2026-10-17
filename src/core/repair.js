@@ -12,6 +12,11 @@
  * | **Detach** | the Snap/Align replaced by the `transform.translate` it amounted to |
  * | **Only when…** | a `when` on the dependent body's creation record (whole body) or on the one dependent record (this operation) |
  * | **Leave broken** | the row's `leftBroken` flag — see `document.js`'s module note |
+ * | **Remove this repeat** | `TODO/core-061`: one target dropped from a `pattern.repeat` row |
+ *
+ * A `pattern.repeat` row reports each broken **member** as its own breakage (`member`, keyed
+ * `key`); its Remap renames that target, its **Only when…** writes `params.when[target]`, and
+ * Leave broken flags the whole row (the members that build are still drawn).
  *
  * Framework-free, per CLAUDE.md's Project Structure: no Vue, no DOM, no three.js.
  *
@@ -19,6 +24,7 @@
  */
 
 import { boundsOf } from './kernel/group.js'
+import { withRenamedTarget, withoutTarget } from './repeat.js'
 
 /** @typedef {import('./document.js').WarpDocument} WarpDocument */
 /** @typedef {import('./document.js').RecordRevision} RecordRevision */
@@ -29,10 +35,22 @@ import { boundsOf } from './kernel/group.js'
  * @typedef {{ kind: 'remap', pieces: Record<string, string> }
  *   | { kind: 'detach' }
  *   | { kind: 'condition', scope: 'body' | 'operation', values?: any[] }
+ *   | { kind: 'removeTarget' }
  *   | { kind: 'leave' }} Fix
  */
 
-/** @typedef {'condition' | 'remap' | 'detach' | 'leave'} FixKind */
+/** @typedef {'condition' | 'remap' | 'detach' | 'removeTarget' | 'leave'} FixKind */
+
+/**
+ * The key a breakage's fix is chosen under: `<id>#<target>` for one member of a repeat
+ * (`TODO/core-061`), the dependent record's id for everything else.
+ *
+ * @param {Pick<Breakage, 'dependentRecordId' | 'key'>} breakage
+ * @returns {string}
+ */
+export function fixKeyOf(breakage) {
+  return breakage.key ?? breakage.dependentRecordId
+}
 
 /**
  * The edit the dialog is repairing: a composite's replaced creation record, and which
@@ -68,13 +86,20 @@ import { boundsOf } from './kernel/group.js'
  *   boolean's operand.
  * - **Leave broken** always.
  *
- * @param {Pick<Breakage, 'missingPieces' | 'placement'>} breakage
+ * @param {Pick<Breakage, 'missingPieces' | 'placement' | 'member'>} breakage
  * @param {{ enumParam: boolean }} context
  * @returns {FixKind[]}
  */
 export function offeredFixesOf(breakage, { enumParam }) {
   /** @type {FixKind[]} */
   const kinds = []
+  // `TODO/core-061`: one member of a repeat — no Detach (a member is not a placement of its own).
+  if (breakage.member !== undefined) {
+    if (enumParam) kinds.push('condition')
+    if (breakage.missingPieces.length > 0) kinds.push('remap')
+    kinds.push('removeTarget', 'leave')
+    return kinds
+  }
   if (enumParam) kinds.push('condition')
   if (breakage.missingPieces.length > 0) kinds.push('remap')
   if (breakage.placement) kinds.push('detach')
@@ -177,7 +202,8 @@ function detached(document, record) {
  * @param {WarpDocument} document The live document, before the edit.
  * @param {RepairEdit} edit
  * @param {readonly Breakage[]} breakages Every row the dialog listed.
- * @param {Record<string, Fix>} fixes The choice per row, keyed by `dependentRecordId`.
+ * @param {Record<string, Fix>} fixes The choice per row, keyed by {@link fixKeyOf}: the
+ *   `dependentRecordId`, or `<id>#<target>` for one member of a repeat.
  * @returns {RecordRevision[]} For `document.reviseRecords` — the edit first.
  * @throws {Error} When a row has no fix: Apply stays disabled until every row has one,
  *   and this is the same rule for any caller that skips the dialog.
@@ -213,10 +239,48 @@ export function repairChanges(document, edit, breakages, fixes) {
     return record
   }
 
+  /** @type {Set<string>} Repeat rows a member fix chose Leave broken for. */
+  const leaveRows = new Set()
+  /** @type {Set<string>} Repeat rows a member fix repaired. */
+  const repairedRows = new Set()
+
   for (const breakage of breakages) {
     const id = breakage.dependentRecordId
-    const fix = fixes[id]
-    if (fix === undefined) throw new Error(`repair: no fix chosen for "${id}" (${breakage.dependentName})`)
+    const fix = fixes[fixKeyOf(breakage)]
+    if (fix === undefined) throw new Error(`repair: no fix chosen for "${fixKeyOf(breakage)}" (${breakage.dependentName})`)
+
+    // `TODO/core-061`: one member of a repeat. Every member fix edits the same row, in turn.
+    if (breakage.member !== undefined) {
+      const target = breakage.member
+      if (fix.kind === 'leave') {
+        leaveRows.add(id)
+        continue
+      }
+      const record = recordFor(id)
+      if (fix.kind === 'remap') {
+        const to = fix.pieces[target]
+        if (typeof to !== 'string' || to.length === 0) throw new Error(`repair: no part chosen to remap ${target} to`)
+        merge(id, { record: withRenamedTarget(record, target, to) })
+      } else if (fix.kind === 'removeTarget') {
+        if ((record.params?.targets ?? []).length <= 1) {
+          throw new Error(`repair: ${target} is this repeat's only target — delete ${breakage.dependentName} instead`)
+        }
+        merge(id, { record: withoutTarget(record, target) })
+      } else if (fix.kind === 'condition') {
+        const values = fix.values ?? edit.conditionValues ?? [edit.oldValue]
+        if ((edit.variable === undefined && edit.param === null) || values.length === 0 || values.some((value) => value === undefined)) {
+          throw new Error(`repair: "${id}" can only be made conditional on a choice, and this change is not one`)
+        }
+        const when =
+          edit.variable !== undefined ? { var: edit.variable, in: values } : { ref: edit.rootId, param: /** @type {string} */ (edit.param), in: values }
+        const params = record.params ?? {}
+        merge(id, { record: { ...record, params: { ...params, when: { ...(params.when ?? {}), [target]: when } } } })
+      } else {
+        throw new Error(`repair: ${fix.kind} is not a fix for one repeat member`)
+      }
+      repairedRows.add(id)
+      continue
+    }
 
     if (fix.kind === 'leave') {
       merge(id, { leftBroken: true })
@@ -253,5 +317,9 @@ export function repairChanges(document, edit, breakages, fixes) {
       merge(id, { leftBroken: false })
     }
   }
+  // A repeat row stays flagged while any of its members is left broken; otherwise its member
+  // fixes cleared what was broken.
+  for (const id of leaveRows) merge(id, { leftBroken: true })
+  for (const id of repairedRows) if (!leaveRows.has(id)) merge(id, { leftBroken: false })
   return [...changes.values()]
 }

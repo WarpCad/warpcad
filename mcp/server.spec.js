@@ -20,6 +20,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { unwrapDocumentData } from '../src/ai/documentData.js'
 import { createToolRegistry } from '../src/ai/tools/index.js'
 import { createDocument } from '../src/core/document.js'
+import { piBoltOnHole1 } from '../src/core/__fixtures__/piScenes.js'
 import { boundsOf } from '../src/core/kernel/group.js'
 import { parseProject, serializeProject } from '../src/core/project.js'
 import { recordLinesOf } from '../src/core/__fixtures__/projectText.js'
@@ -214,6 +215,54 @@ describe('create and operate', () => {
     const ids = parseProject(readFileSync(file, 'utf8')).entries.map((entry) => entry.record.id)
     expect(ids.slice(0, 2)).toEqual(['base', 'theirs'])
     expect(ids).toHaveLength(3)
+  })
+})
+
+describe('repeat (TODO/core-061)', () => {
+  /** A Pi 5 on a Touchscreen 2 with one finished bolt on hole1, saved as a project file. */
+  const piFile = () => {
+    const file = join(dir, 'pi-bolt.ndjson')
+    writeFileSync(file, serializeProject(piBoltOnHole1()))
+    return file
+  }
+
+  it('is listed, and one call appends one mcp pattern.repeat the app reopens as Bolt 1 x3', async () => {
+    const file = piFile()
+    const { client } = await connect(file)
+    const { tools } = await client.listTools()
+    expect(tools.map((tool) => tool.name)).toContain('repeat')
+
+    const done = await call(client, 'repeat', {
+      source: 'bolt-1',
+      seedBody: 'pi-1',
+      seedPart: 'hole1',
+      targets: ['hole2', 'hole3', 'hole4'],
+      request: 'Put the same screw on the other three holes.',
+    })
+    expect(done.isError).toBe(false)
+    expect(done.result.appended.rows).toHaveLength(1)
+
+    const parsed = parseProject(readFileSync(file, 'utf8'))
+    const last = parsed.entries.at(-1)
+    expect(last?.origin).toBe('mcp')
+    expect(last?.intent).toContain('same screw')
+    expect(last?.record).toMatchObject({
+      op: 'pattern.repeat',
+      params: { source: 'bolt-1', seed: { id: 'pi-1', pieces: 'hole1' }, targets: ['hole2', 'hole3', 'hole4'] },
+    })
+    const document = createDocument()
+    document.loadEntries(parsed.entries, parsed.rollbackAt, parsed.resolution, { userParts: parsed.userParts })
+    expect(document.bodies().map((body) => body.name)).toContain('Bolt 1 \u00d73')
+  })
+
+  it('a refusal returns the reason and leaves the file byte-identical', async () => {
+    const file = piFile()
+    const before = bytes(file)
+    const { client } = await connect(file)
+    const refused = await call(client, 'repeat', { source: 'bolt-1', seedBody: 'pi-1', seedPart: 'hole1', targets: ['hole9'] })
+    expect(refused.isError).toBe(true)
+    expect(JSON.stringify(refused.result)).toContain('has no part named hole9')
+    expect(bytes(file).equals(before)).toBe(true)
   })
 })
 

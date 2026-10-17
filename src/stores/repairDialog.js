@@ -15,7 +15,7 @@
 import { defineStore } from 'pinia'
 import { computed, ref, shallowRef } from 'vue'
 
-import { defaultFixOf } from '../core/repair.js'
+import { defaultFixOf, fixKeyOf } from '../core/repair.js'
 
 /** @typedef {import('../core/dependents.js').Breakage} Breakage */
 /** @typedef {import('../core/repair.js').RepairEdit} RepairEdit */
@@ -57,7 +57,7 @@ export const useRepairDialogStore = defineStore('repairDialog', () => {
     breakages.value = nextBreakages
     /** @type {Record<string, Fix>} */
     const initial = {}
-    for (const breakage of nextBreakages) initial[breakage.dependentRecordId] = defaultFixOf(breakage)
+    for (const breakage of nextBreakages) initial[fixKeyOf(breakage)] = defaultFixOf(breakage)
     fixes.value = initial
     pending.value = nextPending
     error.value = null
@@ -65,11 +65,11 @@ export const useRepairDialogStore = defineStore('repairDialog', () => {
   }
 
   /**
-   * @param {string} recordId
+   * @param {string} key A breakage's `fixKeyOf` — its record id, or `<record>#<member>` for one member of a repeat.
    * @param {Fix} fix
    */
-  function setFix(recordId, fix) {
-    fixes.value = { ...fixes.value, [recordId]: fix }
+  function setFix(key, fix) {
+    fixes.value = { ...fixes.value, [key]: fix }
   }
 
   function close() {
@@ -83,7 +83,7 @@ export const useRepairDialogStore = defineStore('repairDialog', () => {
 
   /** Apply is disabled until every row has a fix. */
   const complete = computed(() =>
-    breakages.value.every((breakage) => fixes.value[breakage.dependentRecordId] !== undefined),
+    breakages.value.every((breakage) => fixes.value[fixKeyOf(breakage)] !== undefined),
   )
 
   return { open, edit, breakages, fixes, pending, error, complete, show, setFix, close }

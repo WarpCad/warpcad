@@ -24,6 +24,7 @@ import {
   translateRecord,
   withAxis,
 } from '../core/transform.js'
+import { repeatMoveRefusal } from '../core/repeat.js'
 import { useDocumentStore } from '../stores/document.js'
 
 /** @typedef {[number, number, number]} Vec3 */
@@ -53,6 +54,18 @@ export function useTransformCommands() {
     documentStore.append(record, { origin: 'local' })
   }
 
+  /**
+   * `TODO/core-061` decision 6: a repeat body's members follow its source and seed, so it is
+   * never moved or turned on its own. Refused before any record is built, with the sentence the
+   * Inspector shows in the gizmo's place; the document refuses the same record too.
+   *
+   * @param {string} bodyId
+   */
+  function assertMovable(bodyId) {
+    const refusal = repeatMoveRefusal(documentStore.raw, bodyId)
+    if (refusal !== null) throw new Error(refusal)
+  }
+
   return {
     /**
      * Move a body by a millimetre delta — the gizmo translate-arm drag's commit.
@@ -63,12 +76,14 @@ export function useTransformCommands() {
      */
     translateBy(bodyId, deltaMm) {
       if (deltaMm.every((value) => value === 0)) return
+      assertMovable(bodyId)
       commit(translateRecord(documentStore.raw, bodyId, deltaMm))
     },
 
     /** Turn a body by a degree delta — the gizmo rotate-ring drag's commit. */
     rotateBy(bodyId, deltaDeg) {
       if (deltaDeg.every((value) => value === 0)) return
+      assertMovable(bodyId)
       commit(rotateRecord(documentStore.raw, bodyId, deltaDeg))
     },
 
@@ -76,6 +91,7 @@ export function useTransformCommands() {
     setPositionAxis(bodyId, axisIndex, valueMm) {
       const current = positionOf(documentStore.raw, bodyId)
       if (current[axisIndex] === valueMm) return
+      assertMovable(bodyId)
       commit(moveToRecord(documentStore.raw, bodyId, withAxis(current, axisIndex, valueMm)))
     },
 
@@ -83,6 +99,7 @@ export function useTransformCommands() {
     setRotationAxis(bodyId, axisIndex, valueDeg) {
       const current = rotationOf(documentStore.raw, bodyId)
       if (current[axisIndex] === valueDeg) return
+      assertMovable(bodyId)
       commit(rotateToRecord(documentStore.raw, bodyId, withAxis(current, axisIndex, valueDeg)))
     },
 
@@ -97,6 +114,7 @@ export function useTransformCommands() {
      * that ends where it started.
      */
     alignToOrigin(bodyId, spec) {
+      assertMovable(bodyId)
       const record = alignToOriginRecord(documentStore.raw, bodyId, spec)
       if (record) commit(record)
     },

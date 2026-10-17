@@ -34,6 +34,17 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### core-061 — A linked Repeat record (2026-10-17 06:00 UTC)
+
+Acceptance 10, 12, 15, 22, 23 and the data-007, ui-052, core-024, ui-063, ui-038 and ai-022 repros were driven (emulated viewports only, no real phone). These are the judgment calls and the gap the drive left; `ui-069` owns the controls.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | *Save to library…* on a repeat body (*Bolt 1 ×3*) saves the repeat without its source, so dropping that part from My parts will not rebuild it. Decide whether it should refuse, or save the source with it. | Open | |
+| 2 | Edit Bolt 1's Length with the repeat on screen: do the three repeats change at the same moment as Bolt 1, or is there a visible lag that reads as "not linked"? | Open | |
+| 3 | Move the Pi after the bolts exist: only the Pi moves and the bolts stay (a later step is not consumed by earlier rows). Does that read as a bug to someone who did not read the docs? `ui-069` must explain it. | Open | |
+| 4 | Type a value into Position X on *Bolt 1 ×3*: nothing moves, but the refusal is an uncaught error, not a message. | Open | |
+
 ### ui-068 — The Library remembers each part's last-used params (2026-10-17 02:30 UTC)
 
 Acceptance 1, 2, 3 and 15 plus the repros were driven (emulated viewports only). These are the judgment calls and the spec contradiction they left.

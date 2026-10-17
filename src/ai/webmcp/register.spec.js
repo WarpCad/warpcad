@@ -121,7 +121,7 @@ const BOX = { op: 'primitive.cuboid', positionMm: [0, 0, 0] }
 const SPHERE = { op: 'primitive.sphere', positionMm: [0, 0, 40], params: { diameter: 20 } }
 
 const READ_TOOLS = ['check_clearance', 'check_printability', 'describe_body', 'describe_scene', 'get_selection', 'get_timeline', 'list_ops', 'list_variables', 'measure']
-const WRITE_TOOLS = ['apply_records', 'bind_param', 'create', 'define_variable', 'delete_variable', 'operate', 'rename_variable', 'set_variable', 'unbind_param']
+const WRITE_TOOLS = ['apply_records', 'bind_param', 'create', 'define_variable', 'delete_variable', 'operate', 'rename_variable', 'repeat', 'set_variable', 'unbind_param']
 
 describe('registerWebMcpTools: one registerTool per registry tool, the registry’s own schema', () => {
   it('registers every webmcp tool exactly once, and no capture_view', async () => {

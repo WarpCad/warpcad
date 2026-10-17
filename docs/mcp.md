@@ -84,6 +84,7 @@ Lengths are millimetres, Z is up and angles are in degrees, as in the app.
 | `create` | yes | Place one new shape at a position. |
 | `operate` | yes | One operation on existing shapes by id: Union, Subtract, Fillet, Mirror, Move… |
 | `apply_records` | yes | Several of the above as one change: all of them land, or none do. |
+| `repeat` | yes | Put the same finished part, placed the same way, on other matching parts of the body it was placed against: `{ "source": "bolt-1", "seedBody": "pi-1", "seedPart": "hole1", "targets": ["hole2", "hole3", "hole4"] }`. One new shape, *Bolt 1 ×3*, appears. The copies are linked: later changes to the source's size, Align or Snap move or resize all of them. It is refused, with the reason, if the source's steps never name `seedPart` or a target isn't a part of `seedBody`. Up to 64 targets. |
 | `measure` | no | Size, volume, surface area and centre of mass. |
 | `check_printability` | no | Is it watertight, does it fit the printer, how thin are the walls. |
 | `check_clearance` | no | The gap between two shapes, or how much they overlap. |
@@ -100,6 +101,13 @@ variable, ask Claude Code *make this case for a Pi 5*. Claude calls `set_variabl
 "piModel", "value": 5 }` instead of hunting for the Pi in the History, and the result reads
 *piModel Pi 4 → Pi 5 — 3 parameters on 2 parts changed*. Open the file in the app and the Variables
 panel shows the new value, with one History change for it.
+
+**Example: the same screw on every hole.** With a bolt already on a Pi's `hole1`, ask Claude Code
+*put the same screw on the other three holes*. Claude calls `describe_body` on the Pi to read its
+part names, then `repeat` with `source: "bolt-1"`, `seedBody: "pi-1"`, `seedPart: "hole1"` and
+`targets: ["hole2", "hole3", "hole4"]`. One History row, *Bolt 1 ×3*, appears in the file. Open it in
+the app and the three bolts sit on holes 2, 3 and 4; change Bolt 1's **Length** and all three
+follow.
 
 The server also offers two read-only resources, `warpcad://scene` and `warpcad://op-catalogue`,
 so a client can look at the scene or the catalogue without calling a tool.

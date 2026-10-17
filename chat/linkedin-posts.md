@@ -2885,3 +2885,21 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** an overlap check against the row list passed on broken code (rows box 394 px tall ending at y 862 vs. tab at 800, yet clipped) → measured by hand this session; fixed spec fails before and passes after → `e2e/phone-sheet-stacking.e2e.js`; earlier instances → `TODO/done/ui-010*`, `ui-011*`, `ui-032*`
 **To Add:** the new `mobile-library-with-selection.png` screenshot, repo URL once public, docs site URL once it exists
+
+## [2026-10-17T06:00:00Z] — The repair dialog that said "no fix chosen" for a choice it showed
+
+**Post:** WarpCad gained a linked Repeat record: one History row that puts the same placed bolt on a board's other mounting holes and follows edits to the first bolt. If the board changes to a model without one of those holes, the existing repair dialog opens with a row for just that one member.
+
+The bug worth writing down came from driving it by hand. The unit tests had the repair logic right: one broken member, the documented fixes, each producing the documented result. In the real dialog, the row showed "Leave broken" as the selected fix and Apply refused with "no fix chosen for rep-1#hole4". The dialog's state was keyed by the record's id, and the repair logic keyed each fix by record id plus member. One repeat record, one broken member, and the two keys never matched. Every test sat on one side of that line.
+
+The fix is three lines and a small store spec. The slower lesson is that a new record kind reaches code that predates it, here a Vue store that assumed one broken thing per record, and only a click in the running dialog could show that.
+
+Not checked: real phone hardware (emulated 390 px and 820 px WebKit only), and the Repeat button does not exist yet.
+
+Built with Claude Code, reviewed by me.
+
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #Testing #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** Apply refused for a repeat member on the first hand drive, then Leave broken kept two members (16 mm³) and Remove this repeat gave "Cube 1 ×2" with Undo restoring three → driven in the app 2026-10-17; the fix → `src/stores/repairDialog.js`, `src/stores/repairDialog.spec.js`
+**To Add:** none

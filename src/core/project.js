@@ -133,6 +133,7 @@ import { encodeMergeSection } from './merge/section.js'
 import { compareStamps } from './replica.js'
 import { LEGACY_STAMP } from './merge/state.js'
 import { parseNdjson, serializeNdjson } from './ndjson.js'
+import { repeatReferencedIds } from './repeat.js'
 import { ASSET_OP, validateImageAsset } from '../sketch/imageAsset.js'
 import { MESH_ASSET_OP, validateMeshAsset } from '../io/meshAsset.js'
 import { USER_PART_LIMITS, isUserPartOp, requiredUserParts, validateUserPartSet } from './userPart.js'
@@ -808,6 +809,8 @@ function referencedIds(record) {
   }
   if (typeof record.supersedes === 'string') ids.push(record.supersedes)
   if (Array.isArray(record.consumes)) ids.push(...record.consumes.filter((id) => typeof id === 'string'))
+  // `TODO/core-061`: a repeat depends on its source and seed body, named in params.
+  ids.push(...repeatReferencedIds(/** @type {any} */ (record)))
   return ids
 }
 

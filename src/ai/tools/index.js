@@ -31,6 +31,7 @@
  * | `select` | selection only | Browser only. Select bodies so the user sees which ones the model means. |
  * | `create` | yes | Place one body: `{ op, positionMm, params? }`. Zero-operand Library ops only. |
  * | `operate` | yes | One operation: `{ op, operands: [{ id, pieces? }], params? }`. Refused by name on a wrong operand count or an id that is not a body on screen. |
+ * | `repeat` | yes | `{ source, seedBody, seedPart, targets }`: one linked `pattern.repeat` (`TODO/core-061`) — the source's own steps re-aimed from `seedPart` at each target, as one new body. Refused in core's words; at most 64 targets. |
  * | `apply_records` | yes | `{ steps: [{ create } \| { operate }] }` as one atomic change; a step names an earlier step's body as `@n`. |
  * | `measure` | no | `{ ids }`: bounds and size (mm), volume (mm³), surface area (mm²), centre of mass; a total for several, overlaps counted once. |
  * | `check_printability` | no | `{ ids, buildVolumeMm?, minWallMm?, nozzleMm? }`: watertight, fits the build volume (and which way round), thinnest wall by sampling, walls under the nozzle — `issues: [{ severity, message, where }]`. Heuristic, and says so. |
@@ -99,6 +100,7 @@ import { createMeasureTool } from './measure.js'
 import { OPERATIONS, createOperateTool, operableOps } from './operate.js'
 import { createPrintabilityTool } from './printability.js'
 import { createReadTools } from './read.js'
+import { createRepeatTool } from './repeat.js'
 import { checkInput, objectSchema, paramsSchemaFor } from './schema.js'
 import { createVariableTools } from './variables.js'
 
@@ -274,6 +276,7 @@ export function createToolRegistry(options = {}) {
       createMeasureTool(),
       createPrintabilityTool(),
       createClearanceTool(),
+      createRepeatTool(),
       createCaptureTool(),
       ...createImageTools(),
       createSaveToLibraryTool(),

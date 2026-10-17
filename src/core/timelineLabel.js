@@ -277,6 +277,12 @@ export function describeRow(record, names) {
     return typeof params.name === 'string' && params.name.length > 0 ? `Define ${params.name}` : 'Define variable'
   }
 
+  // A linked Repeat (`TODO/core-061`): the targets are the interesting half.
+  if (record.op === 'pattern.repeat') {
+    const targets = Array.isArray(params.targets) ? params.targets.filter((target) => typeof target === 'string') : []
+    return targets.length === 0 ? 'Repeat' : `Repeat → ${targets.join(', ')}`
+  }
+
   // Removing one part of a group (`TODO/ui-051`): the part is the interesting half.
   if (record.op === 'group.removePart') {
     const part = typeof params.part === 'string' && params.part.length > 0 ? params.part : 'part'

@@ -106,6 +106,7 @@ describe('createToolRegistry', () => {
       'measure',
       'operate',
       'rename_variable',
+      'repeat',
       'set_variable',
       'unbind_param',
     ])

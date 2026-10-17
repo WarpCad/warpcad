@@ -50,6 +50,20 @@ import { objectSchema } from './schema.js'
  * @property {Vec3} sizeMm
  * @property {string | null} color `#rrggbb`, or `null` for the default material.
  * @property {PartSummary[]} parts Empty for a body with no named parts.
+ * @property {RepeatSummary} [repeat] `TODO/core-061`: set on a repeat body only.
+ */
+
+/**
+ * A repeat body read back (`TODO/core-061`), so a model can extend an existing pattern rather
+ * than guess at it.
+ *
+ * @typedef {object} RepeatSummary
+ * @property {{ id: string, name: string }} source The body whose steps are repeated.
+ * @property {{ body: string, part: string }} seed
+ * @property {string[]} targets
+ * @property {string[]} members The targets actually built.
+ * @property {Array<{ target: string, reason: string }>} broken
+ * @property {string[]} inactive Targets their own condition currently switches off.
  */
 
 /**
@@ -137,6 +151,18 @@ export function bodySummary(body) {
     sizeMm: round3([max[0] - min[0], max[1] - min[1], max[2] - min[2]]),
     color: colorOf(body),
     parts: partsOf(body),
+    ...(body.repeat === undefined
+      ? {}
+      : {
+          repeat: {
+            source: { id: body.repeat.source, name: body.repeat.sourceName },
+            seed: { body: body.repeat.seed.id, part: body.repeat.seed.pieces },
+            targets: [...body.repeat.targets],
+            members: [...body.repeat.members],
+            broken: body.repeat.broken.map((member) => ({ ...member })),
+            inactive: [...body.repeat.inactive],
+          },
+        }),
   }
 }
 

@@ -61,6 +61,9 @@ import { useSelectionStore } from './selection.js'
  *   `names` — a tap-clearance solid, a Raspberry Pi's mounting holes. Still addressable
  *   (`pieces` resolves against every part), which is exactly why the Objects list shows
  *   them. `[]` whenever {@link BodySummary.partNames} is.
+ * @property {import('../core/repeat.js').RepeatInfo} [repeat] `TODO/core-061`: a repeat
+ *   body's source, seed, targets and member states, as `Body.repeat` reports them — what the
+ *   BOM counts members by. Plain JSON. Absent on every other body.
  */
 /**
  * A body's measurements as far as they are known **right now**, without running a
@@ -170,6 +173,7 @@ export function summarizeBody(body) {
     ...(body.colorOverrides !== undefined ? { colorOverrides: body.colorOverrides } : {}),
     partNames: composite ? [...geometry.names] : [],
     hiddenPartNames: composite ? [...hiddenNamesOf(geometry)] : [],
+    ...(body.repeat !== undefined ? { repeat: body.repeat } : {}),
   }
 }
 

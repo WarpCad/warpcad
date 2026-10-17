@@ -280,6 +280,25 @@ is told why if it tries.
 Pi 4 → Pi 5 — 3 parameters on 2 parts changed*. The Variables panel shows **Pi 5**. Tap **Undo AI turn** and it is
 back to **Pi 4**, with every part where it was.
 
+## Repeating a part on matching holes
+
+When you have finished one part and want the same one on the other matching parts of a board, the
+Assistant has one tool, `repeat`. It reads the board's part names with `describe_body`, then adds one
+History row that puts a copy of the finished part on every target:
+
+| Tool | Changes the project? | For example |
+|---|---|---|
+| `repeat` | yes | `{ "source": "bolt-1", "seedBody": "pi-1", "seedPart": "hole1", "targets": ["hole2", "hole3", "hole4"] }` |
+
+The copies are **linked**, not copied: changing the source's size, or its Align or Snap in History,
+moves or resizes every copy. A move of the source made *after* the repeat moves the source alone.
+The tool is refused, and nothing changes, if the source's steps never name `seedPart`, or a target
+isn't a part of the board. It takes at most 64 targets.
+
+**Example.** With a bolt already on a Pi's `hole1`, type *put the same screw on the other three
+holes* and tap **Send**. An activity row appears, *Repeat → hole2, hole3, hole4*, and the History
+gets one row, *Bolt 1 ×3*. Tap **Undo AI turn** and it is gone, with Bolt 1 untouched.
+
 ## Stopping and undoing
 
 - **Stop** replaces **Send** while the Assistant is working. Tap it and the turn ends within a

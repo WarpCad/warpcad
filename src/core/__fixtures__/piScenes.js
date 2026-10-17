@@ -222,6 +222,96 @@ export function snapAlignParts(
 }
 
 /**
+ * The user's own `TODO/core-061` scene, up to the first finished bolt: a Pi 5 mounted on a
+ * Touchscreen 2's posts (Align `hole1` → `piMountingPost1` on XY, Snap `mb` onto the post top
+ * on Z), then an M2.5 socket bolt turned over, aligned to `hole1` on XY and snapped to `mb`
+ * on Z with a −5 mm offset. Ids: `pi-align`, `pi-snap`, `bolt-1`, `bolt-align`, `bolt-snap`.
+ *
+ * @returns {WarpDocument}
+ */
+export function piBoltOnHole1() {
+  const document = piAndTouchScreen()
+  const pi = () => /** @type {string} */ (document.currentIdOf('pi-1'))
+  const screen = /** @type {string} */ (document.currentIdOf('screen-1'))
+  document.append(
+    {
+      id: 'pi-align',
+      op: 'group.align',
+      target: { id: pi(), pieces: 'hole1' },
+      supersedes: pi(),
+      operands: [{ id: screen, pieces: 'piMountingPost1' }],
+      params: { axes: 'xy', deltaMm: 0 },
+    },
+    LOCAL,
+  )
+  document.append(
+    {
+      id: 'pi-snap',
+      op: 'group.snap',
+      target: { id: pi(), pieces: 'mb' },
+      supersedes: pi(),
+      operands: [{ id: screen, pieces: 'piMountingPost1' }],
+      params: { axes: 'z', orientation: 'outside-', deltaMm: 0 },
+    },
+    LOCAL,
+  )
+  document.append(
+    { id: 'bolt-1', op: 'hardware.bolt', name: 'Bolt 1', params: { type: 'socket', spec: 'm2.5', length: 10, fit: 'loose' } },
+    LOCAL,
+  )
+  document.append(
+    {
+      id: 'bolt-turn',
+      op: 'transform.rotate',
+      target: 'bolt-1',
+      supersedes: 'bolt-1',
+      params: { angles: [180, 0, 0], center: [0, 0, 6.25], rotation: [180, 0, 0] },
+    },
+    LOCAL,
+  )
+  document.append(
+    {
+      id: 'bolt-align',
+      op: 'group.align',
+      target: 'bolt-turn',
+      supersedes: 'bolt-turn',
+      operands: [{ id: pi(), pieces: 'hole1' }],
+      params: { axes: 'xy', deltaMm: 0 },
+    },
+    LOCAL,
+  )
+  document.append(
+    {
+      id: 'bolt-snap',
+      op: 'group.snap',
+      target: 'bolt-align',
+      supersedes: 'bolt-align',
+      operands: [{ id: pi(), pieces: 'mb' }],
+      params: { axes: 'z', orientation: 'outside-', deltaMm: -5 },
+    },
+    LOCAL,
+  )
+  return document
+}
+
+/**
+ * {@link piBoltOnHole1} plus the `pattern.repeat` that puts the same bolt on `hole2`–`hole4`
+ * (`TODO/core-061`), appended as `rep-1`.
+ *
+ * @param {object} [options]
+ * @param {string[]} [options.targets]
+ * @returns {WarpDocument}
+ */
+export function piBoltRepeated({ targets = ['hole2', 'hole3', 'hole4'] } = {}) {
+  const document = piBoltOnHole1()
+  document.append(
+    { id: 'rep-1', op: 'pattern.repeat', params: { source: 'bolt-1', seed: { id: 'pi-1', pieces: 'hole1' }, targets } },
+    LOCAL,
+  )
+  return document
+}
+
+/**
  * One named part's bounding box, measured off its body's evaluated geometry — hidden
  * parts (a Pi's `hole1`) included, since those are exactly what a mount is aligned by.
  *

@@ -119,6 +119,12 @@ export function describeCall(name, input, result, nameOf) {
   }
   if (name === 'rename_variable') return `Renamed ${word(input?.from)} to ${word(input?.to)}`
   if (name === 'delete_variable') return `Deleted variable ${word(input?.name)}`
+  // `TODO/core-061`.
+  if (name === 'repeat') {
+    const count = Array.isArray(input?.targets) ? input.targets.length : 0
+    const source = typeof input?.source === 'string' ? nameOf?.(input.source) ?? sceneNameOf(result, input.source) ?? input.source : 'a part'
+    return `Repeated ${source} on ${count} more ${count === 1 ? 'part' : 'parts'}`
+  }
   if (name === 'apply_records') {
     const count = Array.isArray(input?.steps) ? input.steps.length : 0
     return `Applied ${count} ${count === 1 ? 'step' : 'steps'}`
