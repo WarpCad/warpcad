@@ -34,6 +34,8 @@ licensing matter. It would break the first publish, so the user put it before th
 
 1. **Owner step first:** read the free LFS storage and bandwidth limits on GitHub's current
    billing and LFS pages, and record the figures and the date in `docs/decisions/hosting.md`.
+
+   **Figures found 2026-10-17** (GitHub's public Git LFS billing docs page, not the owner's billing screen): GitHub Free personal accounts and Free organizations each include **10 GiB of LFS storage and 10 GiB of bandwidth a month**, not the 1 GiB the Problem section assumed. At about 290 MB a push that is roughly 35 pushes a month, so the cache still matters but is less urgent. Beyond the quota, usage is billed if a budget allows it and blocked if none is set. The owner's own billing page (Billing and licensing) shows no budget, so the quota is a hard stop. Owner to confirm the figures on their account after the repository is published.
 2. Cache the LFS objects instead of re-downloading them. Check out with `lfs: false`, restore
    a cache of `.git/lfs/objects` keyed by a hash of the LFS pointer list
    (`git lfs ls-files -l | cut -d' ' -f1 | sort | sha256sum`), then run `git lfs pull` and

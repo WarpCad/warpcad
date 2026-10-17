@@ -57,6 +57,8 @@ Two facts the review did find, to record rather than fix:
 2. If an outsider's work is in a ported file, **stop**: that file needs the contributor's
    permission or a clean rewrite. File a follow-up task per file. Do not write the statement
    until the owner decides.
+
+**Decided 2026-10-17:** owner step 1 is done. The owner confirms no outside contributor's code is in any of the five V1 repositories (`jscad-utils`, `jscad-hardware`, `jscad-raspberrypi`, `jscad-gears`, `PiPiece`), so step 2's stop does not apply and step 3 can proceed. This is the owner's answer to the question, not something the agent checked.
 3. Once confirmed, add the section to `LICENSING.md`. It says: which files are ported, from
    which V1 library and version; that the author holds the copyright to the ported code and
    relicenses it AGPL-3.0-or-later; that the gear fixtures are measured data, with no V1 source

@@ -49,6 +49,10 @@ here may be assumed. Step 1 below finds out before any value changes.
    - keep a supplier chart for that column only, and say so in the notice file
      (`build-011`).
 4. Update the citation in the module header, the spec header and `docs/hardware-library.md`.
+
+**Deferred 2026-10-17:** the question in step 3 (if B18.6.1 does not print the pilot columns, which fallback to use: drop the column, derive it by a stated rule, or keep the supplier chart for that column) — parked, no decision yet.
+
+**Decided 2026-10-17:** keep the existing Albany County Fasteners table for now. No value, citation or doc sentence changes. The B18.6.1 search found no sign that the standard prints any of the three columns (it is paywalled, so unconfirmed). This task stays open to be revisited; `build-011`'s notices file must name the Albany chart as the source of this table while it ships.
    Remove the Engineering ToolBox cross-check note if the column it compared no longer exists.
 5. Keep every gauge's behaviour the same unless step 3 changed it. A gauge without a source for a
    column has no Fit field for it, as today.
