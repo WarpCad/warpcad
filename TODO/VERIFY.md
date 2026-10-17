@@ -36,6 +36,20 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### build-010 — Owner checks to bring app.warpcad.com live (2026-10-17 20:20)
+
+The repository side is done (`public/CNAME`, guard, `dist/CNAME` confirmed in a real build). The domain is NOT live until the owner does rows 1-2, and none of this can run in CI because it needs the real DNS record. Do rows in order; the certificate in row 3 can take a while to issue.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | Squarespace Domains, DNS for `warpcad.com`: add a record of type CNAME, host `app`, value `warpcad.github.io`. `dig app.warpcad.com CNAME +short` then prints `warpcad.github.io.` | Open | |
+| 2 | Repository `WarpCad/warpcad` Settings -> Pages: Source "GitHub Actions"; custom domain `app.warpcad.com`; Save. GitHub's DNS check turns green. (Do this after the first push and deploy so a Pages site exists; without the domain set, `configure-pages` returns `/warpcad` and the build uses base `/warpcad/`.) | Open | |
+| 3 | Once GitHub has issued the certificate, tick **Enforce HTTPS** in the same Pages settings. Then `http://app.warpcad.com` redirects to `https://`. | Open | |
+| 4 | After a deploy that ran with the domain set: `https://app.warpcad.com/` loads the app, and Help's version line shows the deployed commit. | Open | |
+| 5 | `https://app.warpcad.com/manifest.webmanifest` lists `"scope": "/"` and `"start_url": "/"`; `https://app.warpcad.com/sw.js` loads; installing the PWA still works. | Open | |
+| 6 | `https://app.warpcad.com/CNAME` is not required to resolve, but the Pages settings must still show the domain after the next deploy (the file in the artifact keeps it from being cleared). | Open | |
+| 7 | Smoke on the live site: acceptance scenario 1 (place a box and a sphere, both stay visible) at laptop and phone width. | Open | |
+
 ### build-012 — LFS cache on the first two CI runs after the push (2026-10-17 20:12)
 
 The workflows run only on GitHub, so nothing here could be proved on the laptop. Locally verified: YAML lint, the guard `scripts/workflowLfs.spec.js`, and that unit plus `guards` pass on pointer files.

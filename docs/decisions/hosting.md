@@ -41,6 +41,20 @@ fills it from `actions/configure-pages` (`/warpcad/` at `warpcad.github.io/warpc
 custom domain). The same build therefore works under either address, and under a Capacitor
 WebView later.
 
+### Custom domain (`TODO/build-010`, 2026-10-17)
+
+Configured in the repository: `public/CNAME` holds `app.warpcad.com`, Vite copies it to
+`dist/CNAME`, so every Pages artifact carries it, and `scripts/cname.spec.js` fails the unit
+stage if the file is missing, wrong, or absent from a built `dist/`. The local build keeps base
+`/` (`BASE_PATH` is unset), and `pages.yml`'s `base_path` comment stays correct:
+`actions/configure-pages` reports `""` once the Pages settings name a custom domain.
+
+**Not done, and owner steps:** the DNS record `CNAME app -> warpcad.github.io` at Squarespace
+Domains, and the repository's Settings -> Pages (Source "GitHub Actions", custom domain
+`app.warpcad.com`, **Enforce HTTPS** after GitHub issues the certificate). Until both are done
+the domain is not live, and the first deploy would still be built with base `/warpcad/`. The
+live checks are in `TODO/VERIFY.md`.
+
 ### Rejection table
 
 | Option | Why not |

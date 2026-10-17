@@ -6,8 +6,10 @@ priority: high
 model: sonnet
 milestone: M18 — Launch: publish, app.warpcad.com, Sentry and GA
 depends: []
-status: open
+status: done
 ---
+
+> **What shipped:** `public/CNAME` (`app.warpcad.com` plus the usual trailing newline) and the unit guard `scripts/cname.spec.js` (3 cases: file exists, content is exactly the domain, built `dist/CNAME` matches when `dist/` exists; RED 3/3 before the file, GREEN after). A real `npm run build` produced `dist/CNAME` with the same content and a manifest scope of `/`. `pages.yml`'s `base_path` comment was already right and is unchanged; the local build keeps base `/`. `docs/decisions/hosting.md` gained a dated "Custom domain" subsection. `public/CNAME` carries no SPDX marker: `scripts/spdx.mjs` only marks files with a known extension, and an extensionless file is skipped, like the other `public/` assets. **Not done (owner steps):** the DNS record `CNAME app -> warpcad.github.io` and the repository Pages settings (custom domain, Enforce HTTPS); the domain is not live. The live checks are in `TODO/VERIFY.md`. No acceptance scenario was re-driven (the spec lists none, and no user-visible control changed).
 
 ## Goal
 

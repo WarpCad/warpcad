@@ -2167,3 +2167,13 @@ Hooked up Sentry to the browser build, with the rule that a build with no DSN se
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** guard → `scripts/workflowLfs.spec.js` (6 tests, passing this session); pointer-only run → 6142 unit tests and the guards project, see `TODO/done/build-012-cut-lfs-bandwidth-in-ci-and-pages.md`; cache action → `.github/actions/lfs-media/action.yml`
 **To Add:** the byte counts from the first two runs on GitHub (cache miss, then hit); not measurable before the push
+
+
+## [2026-10-17T20:22:00Z] — A CNAME file and a guard for app.warpcad.com
+
+**Post:** WarpCad's repo now carries the CNAME file for app.warpcad.com, so every GitHub Pages deploy keeps the custom domain. A unit spec fails if the file goes missing or the built dist/ lacks it. The DNS record and Pages settings are still my job, so it is not live yet. #OpenSource Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** guard → `scripts/cname.spec.js` (3 tests, failing before the file, passing after); built `dist/CNAME` from a real `npm run build`; section → `docs/decisions/hosting.md` "Custom domain"
+**To Add:** a screenshot of the live site once the DNS record and certificate are in place

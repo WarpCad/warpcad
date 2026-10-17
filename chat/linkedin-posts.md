@@ -3108,3 +3108,19 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** guard → `scripts/workflowLfs.spec.js`; pointer-only run and the 10 GiB figures → `docs/decisions/hosting.md` "Git LFS bandwidth"; action → `.github/actions/lfs-media/action.yml`
 **To Add:** the byte counts from the first two post-push runs
+
+
+## [2026-10-17T20:22:00Z] — Attaching a custom domain, and what a repository cannot do for you
+
+**Post:** The plan for WarpCad is to serve the hosted app at app.warpcad.com on GitHub Pages. Today I did the part that lives in the repository, and wrote down plainly the part that does not.
+
+In the repo: a one-line `public/CNAME` file. Vite copies `public/` into `dist/` unchanged and the Pages artifact is built from `dist/`, so every deploy carries the domain and a later deploy cannot clear it. A three-case unit spec guards it: the file exists, it holds exactly the domain, and a built `dist/CNAME` matches when `dist/` exists. I wrote the spec first and watched it fail three of three with the file missing, then added the file. I also ran a real production build and confirmed `dist/CNAME` is there and the PWA manifest scope is still `/`.
+
+Not in the repo, and not done: the DNS record (`CNAME app` pointing at `warpcad.github.io`, at my registrar) and the repository's Pages settings, including turning on Enforce HTTPS once GitHub issues the certificate. Until those happen the domain is not live, and the first deploy would still be built for the `/warpcad/` path. I put the live checks, in order, in the project's manual verification queue instead of claiming them.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #OpenSource #GitHubPages
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** guard → `scripts/cname.spec.js`; `dist/CNAME` and manifest scope → this session's `npm run build`; decision note → `docs/decisions/hosting.md` "Custom domain"; owner steps → `TODO/VERIFY.md` build-010
+**To Add:** the result of the live checks, after the DNS record and the first deploy
