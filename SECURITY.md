@@ -30,6 +30,18 @@ browser and in the local MCP server:
 Out of scope: problems in a third-party service itself (GitHub, the Anthropic API), and attacks
 that need an already-compromised browser or machine.
 
+## Error reporting (Sentry)
+
+The hosted build can report uncaught errors to a Sentry project (`docs/decisions/error-reporting.md`).
+It is off unless the deploy was built with a Sentry DSN; a local build or `npm run dev` sends nothing.
+When on, an event carries the error message and stack, the browser and operating system, the build's
+commit, and the page address **without** its `#` fragment. It never carries your project's contents,
+your Anthropic API key or GitHub token, request bodies, cookies, the AI chat, or the `#/gist/<id>`
+part of a shared link: one function (`src/core/errorReporting.js`) removes those and drops any event
+that still looks like it holds a key or a fragment. There is no session replay and no performance
+tracing. The one thing it cannot promise is that an error message never quotes text you typed, so a
+report that arrives from a deploy is still data you should not treat as secret-free.
+
 ## Supported versions
 
 Only the latest build on `main` (the hosted app) is supported. There are no release branches yet.

@@ -2993,3 +2993,20 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** timings and counts → `TODO/done/testing-004-measure-spec-lens-volume-times-out-under-full-suite-load.md`
 **To Add:** none
+
+
+## [2026-10-17T12:17:00Z] — Error reporting that stays off until it is configured
+
+WarpCad now has the plumbing to report production errors to Sentry, and the interesting part is everything it refuses to do. With no DSN the app never calls the SDK and the Content-Security-Policy allows no extra host. With no auth token the build makes no source maps and uploads nothing. The token only exists as a GitHub secret and is never given a `VITE_` prefix, so it cannot reach the bundle.
+
+Two things I would have shipped wrong from memory. Sentry 11 removed the `sendDefaultPii` option and replaced it with `dataCollection`, whose defaults collect cookies, headers and request bodies; setting the old flag would have done nothing. And the ingest host depends on the project's region, so instead of guessing between EU and US the build reads the exact host from the DSN and adds that one host to `connect-src`. One function decides what leaves the browser: it drops any event that looks like it holds an API key (even split across two fields) or a shared-link fragment, and strips bodies, cookies and headers. The SDK adds about 40 kB gzipped to the main chunk.
+
+The honest limit: I had no Sentry account, so no real event has reached a real project yet. The operator steps are queued in the verification list.
+
+Built with Claude Code, reviewed by me.
+
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #Sentry #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** tests and build checks → `src/core/errorReporting.spec.js`, `scripts/sentry-build.spec.js`, `e2e/csp.e2e.js`; decision and measurements → `docs/decisions/error-reporting.md`
+**To Add:** none

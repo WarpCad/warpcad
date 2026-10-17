@@ -51,6 +51,22 @@ test('the policy is present on the page the browser actually loaded', async ({ p
   expect(content).toContain('https://api.anthropic.com')
   expect(content).toContain('https://api.github.com')
   expect(content).not.toMatch(/script-src[^;]*unsafe-inline/)
+  // `TODO/build-004`: connect-src is exactly 'self', the two API hosts and — only when the build
+  // was given a Sentry DSN — that DSN's own https host. Nothing broader (no `https:`, no `*`).
+  const connect = content.split(';').map((d) => d.trim()).find((d) => d.startsWith('connect-src')) ?? ''
+  const sources = connect.split(/\s+/).slice(1).filter((source) => !/^wss?:/.test(source))
+  const extras = sources.filter((source) => !["'self'", 'https://api.anthropic.com', 'https://api.github.com'].includes(source))
+  expect(sources).not.toContain('https:')
+  expect(sources.some((source) => source.includes('*'))).toBe(false)
+  const dsn = process.env.VITE_SENTRY_DSN ?? ''
+  if (process.env.E2E_PREVIEW === '1' && dsn) {
+    expect(extras).toEqual(['https://' + new URL(dsn).hostname])
+    expect(extras[0]).toMatch(/\.sentry\.io$/)
+  } else if (process.env.E2E_PREVIEW === '1') {
+    expect(extras).toEqual([])
+  } else {
+    expect(extras.length).toBeLessThanOrEqual(1)
+  }
   // The dev server relaxes exactly two things (vite.config.js); the production build — which
   // `E2E_PREVIEW=1` serves — carries the policy exactly as written in index.html.
   if (process.env.E2E_PREVIEW === '1') expect(content).not.toMatch(/unsafe-eval|ws:/)

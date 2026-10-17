@@ -45,6 +45,15 @@ jobs:
       - run: npm run build
         env:
           BASE_PATH: ${{ steps.pages.outputs.base_path }}
+          # Error reporting (TODO/build-004, docs/decisions/error-reporting.md). All optional: with
+          # none set the build sends and uploads nothing. The DSN is public by design (a variable);
+          # the auth token is a secret and is never given a VITE_ prefix, so it cannot reach the bundle.
+          VITE_SENTRY_DSN: ${{ vars.SENTRY_DSN }}
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ vars.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ vars.SENTRY_PROJECT }}
+          SENTRY_RELEASE: ${{ github.event.workflow_run.head_sha || github.sha }}
+          VITE_SENTRY_RELEASE: ${{ github.event.workflow_run.head_sha || github.sha }}
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist

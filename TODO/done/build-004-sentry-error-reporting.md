@@ -5,8 +5,12 @@ kind: feature
 priority: medium
 model: sonnet
 depends: []
-status: open
+status: done
 ---
+
+> **Retirement note (2026-10-17 12:17 UTC).** Shipped as specified, with these differences. (1) The Sentry ingest host is **derived from `VITE_SENTRY_DSN` at build time** (`scripts/sentry-build.mjs`, a build-only Vite plugin) and the exact DSN host is appended to the production `connect-src`; `index.html` itself is unchanged, so a build with no DSN allows nothing extra. (2) `build.sourcemap: 'hidden'` applies **only when `SENTRY_AUTH_TOKEN` is set** (no token: no maps, no plugin); `workbox.sourcemap: false` stops the service worker's own maps being published. (3) Sentry 11 removed `sendDefaultPii`; privacy is `dataCollection` with every collector off (the old key would have been a silent no-op while the new defaults send more). (4) An event whose only URL fragment is its own `request.url` is kept with the fragment stripped, not dropped (dropping would lose every error raised while Help is open). (5) `@sentry/vue` and `@sentry/vite-plugin` pinned exactly at 11.8.0. Decision record: `docs/decisions/error-reporting.md` (bundle: +117.71 kB minified, +39.91 kB gzip on the main chunk).
+>
+> **Not verified, and cannot be from here:** the spec's live smoke test (production build with the real DSN and token, a thrown error arriving in Sentry with a readable stack, the Pages workflow's upload line, the release listing). The implementing session had no Sentry account, DSN, org, project or token. Everything else is proved with mocks at the SDK boundary and production builds; the operator steps are in `TODO/VERIFY.md`. **Open for the owner:** (a) the region/ingest host is whatever the DSN says, nothing to choose in code, but the CSP only allows it if `SENTRY_DSN` is set as an Actions variable; (b) `@sentry/vite-plugin` pulls the build-time-only package `sentry@0.45.0`, licensed `FSL-1.1-Apache-2.0`, which is outside `npm run licenses` (production only) and was not added to any allow-list; say if a source-available licence in the build toolchain is unacceptable.
 
 ## Goal
 

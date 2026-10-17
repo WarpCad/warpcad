@@ -2096,3 +2096,14 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** per-run timeout counts and per-spec timings → `TODO/done/testing-004-measure-spec-lens-volume-times-out-under-full-suite-load.md`; guard → `scripts/heavySpecTimeouts.spec.js`
 **To Add:** none
+
+
+## [2026-10-17T12:17:00Z] — Error reporting that is off until you give it a key
+
+Hooked up Sentry to the browser build, with the rule that a build with no DSN sends nothing and allows nothing. Two surprises: Sentry 11 dropped `sendDefaultPii` for `dataCollection`, whose defaults are all on, so the old privacy flag would have been a silent no-op. And the CSP names the ingest host straight from the DSN at build time, one exact host, never `https:`.
+
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #Sentry #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** one tested scrubber and the init options → `src/core/errorReporting.spec.js`; build and CSP host logic → `scripts/sentry-build.spec.js`, `e2e/csp.e2e.js`; decision and bundle cost → `docs/decisions/error-reporting.md`
+**To Add:** none (not yet run against a real Sentry project)

@@ -3,10 +3,12 @@ import { readFileSync } from 'node:fs'
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import { VitePWA } from 'vite-plugin-pwa'
+import { sentryVitePlugin } from '@sentry/vite-plugin'
 
 import { liveBridgePlugins } from './mcp/liveBridge.js'
 import { HELP_PRECACHE_GLOBS, helpRuntimeCaching, warpcadHelp } from './scripts/vite-plugin-help.mjs'
 import { manifestIcons } from './scripts/app-icons.mjs'
+import { addConnectSrc, connectHostFromDsn, sentryBuildOptions } from './scripts/sentry-build.mjs'
 
 /**
  * The dev server only. `index.html`'s Content-Security-Policy is the production policy; `vite
@@ -69,6 +71,30 @@ function versionMeta() {
   }
 }
 
+/**
+ * `TODO/build-004`: allows the production build to post to the Sentry project it was given, and
+ * to nothing broader. The exact host comes from `VITE_SENTRY_DSN` (so the EU and US regions both
+ * work without a guess in the code); without a DSN `connect-src` stays as written in
+ * `index.html`. Build only: the dev server never reports (`docs/decisions/error-reporting.md`).
+ *
+ * @returns {import('vite').Plugin}
+ */
+function sentryConnectSrc() {
+  /** @type {string | null} */
+  let host = null
+  return {
+    name: 'warpcad-sentry-connect-src',
+    apply: 'build',
+    configResolved(config) {
+      host = connectHostFromDsn(config.env.VITE_SENTRY_DSN)
+    },
+    transformIndexHtml: (html) => addConnectSrc(html, host),
+  }
+}
+
+/** Hidden source maps and the upload plugin exist only when `SENTRY_AUTH_TOKEN` is set. */
+const SENTRY = sentryBuildOptions(process.env)
+
 export default defineConfig({
   define: {
     __APP_VERSION__: JSON.stringify(APP_VERSION),
@@ -80,8 +106,10 @@ export default defineConfig({
   // would make Playwright's `reuseExistingServer` silently attach to the
   // wrong app instead of failing loudly. Fail loudly instead.
   server: { port: 5183, strictPort: true },
+  build: { sourcemap: SENTRY.sourcemap },
   plugins: [
     devContentSecurityPolicy(),
+    sentryConnectSrc(),
     versionMeta(),
     // `TODO/ai-012`: Claude Code edits the open tab, under `npm run dev` only (`apply: 'serve'`;
     // `vite build` output carries nothing of it). MCP at /mcp, the tab over the HMR socket.
@@ -99,6 +127,9 @@ export default defineConfig({
       // manifest's own icons are precached by the plugin already.
       includeAssets: ['favicon.svg', 'favicon.ico', 'apple-touch-icon.png'],
       workbox: {
+        // `TODO/build-004`: with `build.sourcemap: 'hidden'` Workbox would also emit sw.js.map and
+        // reference it; the Sentry plugin runs before Workbox, so those maps would be published.
+        sourcemap: false,
         skipWaiting: true,
         clientsClaim: true,
         // Drop the previous build's precache entries on activate, so a stale index.html can
@@ -124,5 +155,7 @@ export default defineConfig({
         icons: manifestIcons(),
       },
     }),
+    // Last, so it sees the finished bundle. Uploads the hidden maps, then deletes them from dist/.
+    ...(SENTRY.plugin === null ? [] : [sentryVitePlugin(SENTRY.plugin)]),
   ],
 })

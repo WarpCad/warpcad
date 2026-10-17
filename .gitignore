@@ -9,6 +9,10 @@ blob-report/
 storybook-static/
 *.local
 
+# Environment files: Sentry's SENTRY_AUTH_TOKEN may live in .env.sentry.local (TODO/build-004); never commit one
+.env
+.env.*
+
 # Claude Code per-machine state: local permission grants and the scheduler's lock
 .claude/settings.local.json
 .claude/scheduled_tasks.lock

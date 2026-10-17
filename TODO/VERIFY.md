@@ -34,6 +34,19 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### build-004 — Sentry error reporting and source-map upload (2026-10-17 12:17)
+
+The implementing session had no Sentry account, DSN, org, project or token, so the spec's live smoke test is untested. Everything short of a real event reaching a real project is covered by unit specs (SDK mocked) and production-build checks. Never paste the token or DSN into chat, a TODO, a commit or `TROUBLESHOOTING.md`.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | Create a Sentry browser/Vue project; copy its DSN. Create an auth token with only `project:releases` and `org:read`, named for the Pages workflow. | Open | |
+| 2 | GitHub → Settings → Secrets and variables → Actions: variables `SENTRY_DSN`, `SENTRY_ORG`, `SENTRY_PROJECT`; secret `SENTRY_AUTH_TOKEN` (repo secret, because the `build` job has no `environment`). | Open | |
+| 3 | Run the Pages workflow with `workflow_dispatch`. The build log should show the Sentry plugin uploading (a `[sentry-vite-plugin] Error` line means the upload failed but the deploy still went out), and the Sentry release list should show the commit SHA. | Open | |
+| 4 | Smoke test: locally `VITE_SENTRY_DSN=<dsn> SENTRY_AUTH_TOKEN=<token> SENTRY_ORG=… SENTRY_PROJECT=… SENTRY_RELEASE=smoke VITE_SENTRY_RELEASE=smoke npm run build && npx vite preview`, open the page, run `setTimeout(() => { throw new Error('sentry smoke') })` in devtools. The event must arrive within a minute, with the original file and line (not minified names), the page URL without any `#fragment`, and no request data. Then delete the local `dist/`. | Open | |
+| 5 | On the deployed app (`app.warpcad.com`), DevTools console: no `Content Security Policy` errors mentioning the Sentry host (the CSP host comes from the DSN at build time). | Open | |
+| 6 | Decide whether the build-time package `sentry@0.45.0` (licence `FSL-1.1-Apache-2.0`, pulled by `@sentry/vite-plugin`, not in `npm run licenses` which is production-only) is acceptable in this AGPL project's build toolchain. | Open | |
+
 ### docs-020 — Docs media sweep for the AI chat, My parts, sketch select/delete and timeline re-link (2026-10-17 11:50)
 
 Judgment calls a scripted spec cannot make. The AI pictures were recorded with the scripted provider, so they show a *Scripted* badge by design; scenarios 17 and 18 were driven by hand against the same provider, not a real model.
