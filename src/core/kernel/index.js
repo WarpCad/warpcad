@@ -31,6 +31,7 @@ import { screwSpecs } from './tables/screw-specs.js'
 import { washerSpecs } from './tables/washer-specs.js'
 import { bearingSpecs } from './tables/bearing-specs.js'
 import { FIT_CLEARANCE_MM } from './tables/fit-clearances.js'
+import { fastenerSpecs } from './tables/fastener-specs.js'
 import { assertOperandCount, getEntry, lookupEntry, registry } from './registry.js'
 import { LEGACY_POLICY } from './tessellation.js'
 
@@ -167,6 +168,8 @@ const DEFAULT_TABLES = Object.freeze({
   bearingSpecs,
   screwSpecs,
   FIT_CLEARANCE_MM,
+  // TODO/core-060: `hardware.bolt`'s sizes per Type.
+  fastenerSpecs,
 })
 
 /**

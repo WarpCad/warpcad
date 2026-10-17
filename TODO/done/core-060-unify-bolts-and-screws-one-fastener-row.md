@@ -6,8 +6,19 @@ priority: medium
 model: opus
 milestone: M16
 depends: []
-status: open
+status: done
 ---
+
+> **Retired 2026-10-17.** Shipped as specified in one pass (not split). `hardware.bolt` is the one
+> fastener op with `type`/`spec`/`length`/`fit`; legacy `{ spec: 'm10 hex' }` bolts are read through
+> `normalizeBoltParams` and never rewritten on load. Wood-screw Fit comes from the Albany County
+> Fasteners *Wood Screw Pilot Hole Guide* (no #11/#13/#15; #16 has no wood Fit; #10's clearance is
+> 0.0025" under nominal, ported as published). Deviations: `paramsForDrop` (not only the Library
+> panel) reconciles Size and Fit after a Type pick, so a drag, the ghost and the AI share one path;
+> the History row's Edit form still shows a legacy bolt's legacy Spec form (submitting writes the
+> new shape); `e2e/fastener-types.e2e.js` seeds its legacy file through the document store rather
+> than a fixture file; the `screw-family.ndjson` docs fixture was deleted because the picture is now
+> made by dragging.
 
 ## Goal
 

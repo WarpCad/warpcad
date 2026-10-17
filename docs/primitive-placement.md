@@ -11,7 +11,7 @@ The Library has five sections, and the gesture is identical in all of them:
 
 - **Primitives** — the basic solids you shape a part out of: Cube, Cylinder, Cone,
   Hexagon, Triangle, Tube, Sphere.
-- **Hardware** — ready-made, real-world fasteners at their real sizes: Bolt, Nut,
+- **Hardware** — ready-made, real-world fasteners at their real sizes: Bolt / screw, Nut,
   Washer, Bearing.
 - **Kit Parts** — the general-purpose building blocks: Board, Board Frame, Anchor.
 - **Raspberry Pi** — real Raspberry Pi boards and accessories at their real
@@ -85,7 +85,7 @@ dimensions, the sizes you would actually buy.
 
 1. Scroll down in the Library panel (or in the phone sheet) past Primitives to the
    **Hardware** section.
-2. Drag **Bolt** into the 3D view exactly the way you dragged a Cube. The preview that
+2. Drag **Bolt / screw** into the 3D view exactly the way you dragged a Cube. The preview that
    follows your pointer is the bolt itself — its hex head and its thread — not a
    placeholder box, so you can see how it is sitting before you let go.
 3. Release. Like a primitive, it lands at the spot you released, resting on the grid,
@@ -99,7 +99,7 @@ What you get by default:
 
 | Row | What you get | Default |
 | --- | --- | --- |
-| Bolt | A hex-head bolt (metal only — its clearance envelope is a hidden part) | M10 hex, 20 mm thread |
+| Bolt / screw | A bolt or screw of the Type you pick beside the row (metal only — its clearance envelope is a hidden part) | Hex head, M10, 20 mm thread |
 | Nut | A hex nut | M4 |
 | Washer | A flat washer | M6 |
 | Bearing | A deep-groove ball bearing | 608 (⌀22 × ⌀8 × 7 mm) |

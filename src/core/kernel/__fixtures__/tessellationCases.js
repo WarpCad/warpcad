@@ -18,7 +18,7 @@
 import modeling from '@jscad/modeling'
 
 import { isGroup } from '../group.js'
-import { registry } from '../registry.js'
+import { reconcileParamEdit, registry } from '../registry.js'
 
 const { geometries } = modeling
 
@@ -38,8 +38,12 @@ export function tessellationCases() {
     if (!ui) continue
     const options = ui.choice ? ui.choice.options : [null]
     for (const option of options) {
+      // A choice another param depends on (a fastener's Size follows its Type, core-060)
+      // falls back the way the Library row does when the default no longer exists.
       const params =
-        option === null || !ui.choice ? { ...ui.defaults } : { ...ui.defaults, [ui.choice.param]: option.value }
+        option === null || !ui.choice
+          ? { ...ui.defaults }
+          : reconcileParamEdit(op, { ...ui.defaults, [ui.choice.param]: option.value }, [ui.choice.param])
       const suffix = option === null ? '' : `:${String(option.value)}`
       cases.push({ key: `${op}${suffix}`, records: [{ id: 'it', op, params }] })
     }
@@ -90,6 +94,11 @@ export function tessellationCases() {
       'piTFT24',
       'hyperPixel4Rectangular',
     ].map((model) => ({ key: `raspberrypi.${model}`, records: [{ id: 'it', op: `raspberrypi.${model}`, params: {} }] })),
+    // core-060: the bolt row gained a Type, so the loop above reaches it as
+    // `hardware.bolt:<type>`. The record exactly as the pre-core-060 Library wrote it keeps
+    // the digest `hardware.bolt` held (hand-carried, not regenerated), and
+    // `hardware.bolt:hex` — today's default in the new shape — carries the same one.
+    { key: 'hardware.bolt:legacy', records: [{ id: 'it', op: 'hardware.bolt', params: { spec: 'm10 hex', length: 20, fit: 'loose' } }] },
     { key: 'kit.anchor:explicit', records: [{ id: 'it', op: 'kit.anchor', params: { width: 10, height: 10 } }] },
     { key: 'profile.roundedRectangle', records: [{ id: 'it', op: 'profile.roundedRectangle', params: { size: [30, 20], roundRadius: 4 } }] },
     { key: 'primitive.cylinder:d6', records: [{ id: 'it', op: 'primitive.cylinder', params: { diameter: 6, height: 10 } }] },

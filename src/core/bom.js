@@ -15,10 +15,17 @@
  * it grows the hidden clearance solid, not the physical part, so a loose and a tight M4×12
  * bolt are one line on a shopping list.
  *
+ * `hardware.bolt` is the one fastener op since `TODO/core-060` — a **Type** and a bare
+ * **Size** — and its detail reads `M2.5 socket × 8 mm`, `M3 flat × 10 mm`,
+ * `#8 wood flat × 25 mm`. It is computed from the params read in the new shape
+ * (`normalizedParams`), so a saved `{ spec: 'm2.5 socket' }` and a new
+ * `{ type: 'socket', spec: 'm2.5' }` of one length are one line. A replay-only
+ * `hardware.screw` keeps its own line and label.
+ *
  * @module core/bom
  */
 
-import { registry } from './kernel/registry.js'
+import { normalizedParams, registry } from './kernel/registry.js'
 
 /**
  * The op namespaces a BOM lists. Primitives, text labels and booleans are shapes, not
@@ -41,6 +48,21 @@ function specLabel(spec) {
   return spec.length > 0 ? spec[0].toUpperCase() + spec.slice(1) : spec
 }
 
+/**
+ * How a fastener Type reads in a BOM detail, after the size. Socket and hex keep exactly
+ * the suffix their legacy `spec` carried, so a saved bolt's line does not change.
+ *
+ * @type {Readonly<Record<string, string>>}
+ */
+const FASTENER_TYPE_WORDS = Object.freeze({
+  socket: 'socket',
+  hex: 'hex',
+  pan: 'pan',
+  flat: 'flat',
+  woodPan: 'wood pan',
+  woodFlat: 'wood flat',
+})
+
 /** @param {unknown} value @returns {value is number} */
 const isNumber = (value) => typeof value === 'number' && Number.isFinite(value)
 
@@ -56,6 +78,12 @@ function detailOf(op, params) {
   const spec = typeof params.spec === 'string' ? specLabel(params.spec) : ''
   const length = isNumber(params.length) ? `× ${params.length} mm` : ''
   switch (op) {
+    case 'hardware.bolt': {
+      const normal = normalizedParams(op, params)
+      const size = typeof normal.spec === 'string' ? specLabel(normal.spec) : ''
+      const type = typeof normal.type === 'string' && Object.hasOwn(FASTENER_TYPE_WORDS, normal.type) ? FASTENER_TYPE_WORDS[normal.type] : ''
+      return [size, type, length].filter(Boolean).join(' ')
+    }
     case 'hardware.screw':
       return [spec, params.head, length].filter(Boolean).join(' ')
     case 'kit.board':
@@ -77,7 +105,8 @@ function detailOf(op, params) {
 
 /**
  * Family name for an op: the registry's Library label where it has one, else the
- * capitalised op tail (`hardware.screw` has no `ui` block yet).
+ * capitalised op tail (`hardware.screw`, replay-only since `TODO/core-060`, has no `ui`
+ * block, so it keeps reading **Screw**).
  *
  * @param {string} op
  * @returns {string}

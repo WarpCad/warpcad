@@ -1117,13 +1117,13 @@ scenario itself, not a re-run of the checked-in e2e spec.
 ### 2. Hardware property edit
 
 **Steps**:
-1. From the Library panel's "Hardware" section, drag a "Bolt" row into the viewport and
+1. From the Library panel's "Hardware" section, drag the "Bolt / screw" row into the viewport and
    release to drop it.
 2. Click the bolt to select it. Confirm the Inspector panel opens showing the bolt's
-   `spec`, `length`, `fit`, and `color` fields alongside the Transform section
+   `type`, `spec` (Size), `length`, `fit`, and `color` fields alongside the Transform section
    (position X/Y/Z, rotation X/Y/Z).
-3. In the Inspector, change **Spec** (a dropdown) from its default `m10 hex` to
-   `1/4 socket`, then change **Fit** (a dropdown whose options are the chosen spec's own
+3. In the Inspector, change **Type** (a dropdown) from its default Hex head to
+   **Socket cap** and **Size** (a dropdown) from its default `m10` to `1/4`, then change **Fit** (a dropdown whose options are the chosen spec's own
    fits) to `loose`, then type `20` into **Length** and press Enter.
 4. Confirm the 3D mesh updates to match after each change (a socket head instead of a hex
    head; a longer thread), with the bolt still selected and still where it was.
@@ -1149,6 +1149,7 @@ and `1/4 socket` — so the step now uses real values and can be driven as writt
 current spec has the same three fits (`tap`, `close`, `loose`); the Fit list is still read
 from the chosen spec's own row, so a spec with different fits changes it.)*
 
+**Last run**: 2026-10-17 UTC (`core-060`) — **PASS** at laptop 1440x900 Chromium, plus phone 390x844 Chromium and tablet 820x1180 WebKit (real `page.mouse`, jittered 26-step Library drag, fresh profile). Re-driven because the Bolt row became **Bolt / screw** with Type and Size. Dropped; Inspector read Type `hex`, Size `m10`, Length 20, Fit `loose`, Color. Type to Socket cap (volume 2920.8 -> 3618.6), Size `1/4` (-> 1070.3), Fit options `tap`/`close`/`loose` then `loose`, Length 24 (-> 1194.9): one body, still selected, console clean. Gizmo steps 5-8 not re-driven (no transform code changed).
 **Last run**: 2026-10-11 03:09 UTC (`ui-059`) — **PASS** at laptop 1440x900 Chromium (real mouse). A Bolt dropped from Hardware; its Length field is editable (typed `20`, Enter, reads 20) and now carries a bind control (`param-bind-length`) beside it. Re-driven by `ui-059` (Variables section and bind controls added to the Inspector). Console and page errors: none.
 
 **Last run**: 2026-10-11 02:05 UTC (`core-050`) — **PASS for steps 1-4 and 7-8** at laptop 1440x900 Chromium (real mouse Library drag, native selects, typed fields). Bolt dropped and selected; Inspector showed spec, fit, length and position. Spec `1/4 socket` (volume 2920.8 -> 1070.3), Fit `loose`, Length 24 (-> 1194.9), one body still selected throughout; typed Position X 25 moved the mesh centre to x 25.00. **Gizmo-drag steps 5-6 not re-driven** (no transform code changed). Re-driven because the fold now resolves project-variable bindings before handing params to the kernel (every record passes through it). Console clean.
@@ -1497,6 +1498,7 @@ person can actually perform. It was hand-driven at laptop 1440x900/Chromium and 
 snaps into place once within tolerance (step 4), and on release the camera module sits
 aligned to the board's mounting holes, not at an arbitrary offset position.
 
+**Last run**: 2026-10-17 UTC (`core-060`) — **PASS** at laptop 1440x900 Chromium (real `page.mouse`, jittered 26-step drags, fresh profile). Re-driven because `library.js` (`paramsForDrop`, `ghostOffsetMm`) changed. Pi dropped, Camera Module dragged toward it: `data-snapped` false for the first 12 samples, true for the last 14; both bodies remained. The Bolt / screw row's six Types also dragged in complete (docs picture and `fastener-types.e2e.js`); the first drive of a wood screw found `ghostOffsetMm` throwing `unknown fit "loose"` and the drop never committing, fixed in this task.
 **Last run**: 2026-10-16 UTC (`core-047`) — **PASS** at laptop 1440x900 Chromium (real `page.mouse`, jittered 26-27-step Library drags, fresh context). Re-driven because `registry.js` (`profile.extrudeLinear` gained `leadMm`/`handedness`, new `profile.gear` kind `worm`) and `library.js` shared infra changed (`gear.worm`/`wormWheel`/`wormPair` composites, no `ui`, so no Library row). Pi (B+) dropped, Camera Module dragged toward it: `data-snapped` false for the first 16 samples, true for the last 24, 2 guide elements, both bodies remained after release (3 then 4 scene bodies incl. composite parts). Console and page errors: none.
 **Last run**: 2026-10-16 UTC (`core-046`) — **PASS** at laptop 1440x900 Chromium (real `page.mouse`, jittered 27-step drags, fresh context). Re-driven because `registry.js`/`library.js` shared infra changed (`gear.bevelPair` composite, no `ui`, so no Library row). Pi (B+) dropped, Camera Module dragged toward it: `data-snapped` false for the first 16 samples and true for the last 24, snap guides present (2), 4 bodies after the drop. Console and page errors: none.
 **Last run**: 2026-10-16 UTC (`core-045`) — **PASS** at laptop 1440x900 Chromium (real `page.mouse`, jittered Library drags, fresh context). Re-driven because `registry.js`/`operate.js`/`library.js` shared infra changed. The Library lists no gear row. Pi (B+) dropped, Camera Module dragged toward it: `data-snapped` false for the first 18 samples and true for the last 10, 3 guide elements, both bodies remained (count 2). Console and page errors: none.
@@ -2017,17 +2019,17 @@ own retirement note promised as a follow-up — to explicitly address `tap`. The
 
 **Steps**:
 1. Drag a case-shell solid into the viewport.
-2. Drag a "Bolt" into the viewport, positioned so it overlaps the shell (visually, the
+2. Drag the "Bolt / screw" row into the viewport, positioned so it overlaps the shell (visually, the
    bolt's head/thread mesh will appear to just touch or slightly penetrate the shell
    wall).
 3. Select the bolt (click it, or — with nothing selected — its row in the Inspector's
    object list). Under the Inspector's **Parts** section, point at `tap` (with a mouse:
    the clearance shows as a translucent overlay while you do) and tap it to drill into
    the bolt's hidden clearance envelope — the breadcrumb reads
-   `Objects ▸ Bolt 1 ▸ tap`.
+   `Objects ▸ Bolt / screw 1 ▸ tap`.
 4. Make the shell the base and the bolt's `tap` piece the second operand, with no
    keyboard: select the shell (click it, or tap **Objects** in the breadcrumb and its
-   row's check), then in the Inspector's object list tap ▸ on *Bolt 1* and the check on
+   row's check), then in the Inspector's object list tap ▸ on *Bolt / screw 1* and the check on
    its `tap` row — so the checks read `1`/`2` and the toolbar reads "Shell 1 then
    Bolt 1 › tap" (per scenario 4's base-first ordering). Shift-click in the viewport is
    the keyboard equivalent. For the enclosed-bolt fixture (bolt wholly inside the
@@ -2045,6 +2047,7 @@ mm cube minus an m10 hex bolt, length 12, wholly inside it) this is a measured
 **61 108.343 mm³** remaining, not the metal-only **61 695.679 mm³** a whole-bolt
 Subtract now leaves.
 
+**Last run**: 2026-10-17 UTC (`core-060`) — **PASS** at laptop 1440x900 Chromium (real `page.mouse`; phone 390x844 Chromium flat-head pass only, the hex phone drive timed out on an object-list click in my driver and was not retried). A 40 mm cube (64000 mm3) with a Bolt / screw dropped onto it, cube check + the bolt's `tap` check, Subtract. **Hex head**: 3637.6 mm3 removed against a metal volume of 2920.8 (clearance-sized hole). **Flat head** (Type changed in the Inspector): 2957.5 removed against 2338.5 metal, the grown cone, i.e. the countersink. Remainders 60362.4 and 61042.5. Console clean.
 **Last run**: 2026-10-10 14:00 UTC (`core-054`) — **PASS** on Chromium and WebKit at laptop (real jittered mouse). Cube (64000 mm³) then Bolt dropped overlapping, nothing selected; the cube's check, ▸ on the Bolt, check on its `tap` row (toolbar "Cube 1 then Bolt 1 › tap"); Subtract: one body (`boolean.subtract`), bounds unchanged (-20,-20,0,20,20,40), volume 60362.401 mm³ (cut made). Console clean. (A first run selected the bolt first because the drop left it selected, and gave an empty result: a drive-script mistake, re-run from a cleared selection.)
 
 **Last run**: 2026-10-10 04:15 UTC (`core-037`) — **PASS** on Chromium and WebKit at laptop. Cube then Bolt dropped overlapping; the cube's check, then ▸ on the Bolt and the check on its `tap` row (toolbar "2 selected, first is the base"), Subtract: one body left, the cube's bounds unchanged (-12.91,-53.16,0,27.09,-13.16,40) and a bolt-shaped cut visible in the screenshot. Console clean.
@@ -3012,6 +3015,7 @@ shows **Download copy** instead — drive whichever your browser shows, and say 
   **Cancel** the second local edit does **not** raise the dialog again and does not push;
   an explicit **Save to owner/repo** raises it again.
 
+**Last run**: 2026-10-17 UTC (`core-060`) — **PASS** at laptop 1440x900 Chromium (also phone 390x844 Chromium, tablet WebKit for the same flow; chip `Saved · 20:38`). A Bolt / screw (changed to Pan head) plus a legacy `hardware.bolt` (`m10 hex`, close) and a legacy `hardware.screw` (`m4` PanHead) appended; after Reload every body's name, volume and bounds string was identical (legacy bolt 2299.636 mm3, legacy screw 300.223 mm3). Console clean.
 **Last run**: 2026-10-16 UTC (`core-047`) — **PASS** at laptop 1440x900 Chromium (real `page.mouse`, jittered 26-27-step Library drags, fresh context). Re-driven because `registry.js` (`profile.extrudeLinear` gained `leadMm`/`handedness`, new `profile.gear` kind `worm`) and `library.js` shared infra changed (`gear.worm`/`wormWheel`/`wormPair` composites, no `ui`, so no Library row). Cube and Cylinder dropped, both selected with Shift (count 2), **Union** enabled and gave one `boolean.union` (126652.572 mm3); chip `Saved`; reload restored the same single body (`Restored your last session`). Console and page errors: none.
 **Last run**: 2026-10-16 UTC (`core-046`) — **PASS** at laptop 1440x900 Chromium (real `page.mouse`, jittered 27-step drags, fresh context). Re-driven because `registry.js`/`library.js` shared infra changed (`gear.bevelPair` composite, no `ui`, so no Library row). Cube and Cylinder dropped, both selected (shift-click, count 2), Union enabled and pressed: one `boolean.union` body (126652.572), chip `Saved`, reload restored the same single union body (`Restored your last session`). Steps 6+ (File round-trip) not driven. Console and page errors: none.
 **Last run**: 2026-10-16 UTC (`core-045`) — **PASS** at laptop 1440x900 Chromium with the File System Access pickers removed (so the menu read **Download copy**), fresh context. Re-driven because `registry.js`/`operate.js`/`library.js` shared infra changed. Cube and overlapping Cylinder dropped, both selected, **Union** enabled and pressed: 1 body, selected, position x -7.59. The chip went to `Saved · 07:00` unprompted. After a reload: 1 body, chip `Restored your last session`. **Download copy** downloaded `warpcad-project-20261016-0702.ndjson` and the chip named it. A Sphere dropped in (2 bodies), then **Open… → Replace** with that file: back to 1 body. Console and page errors: none. History rows were not read in this drive.
@@ -3759,6 +3763,7 @@ condition chip (`timeline-condition-chip`), and the header's **Undo**.
   Pi 4's jack position beside a Pi 5 with no warning, or more than one Undo needed to
   reverse one Apply.
 
+**Last run**: 2026-10-17 UTC (`core-060`) — **PASS** at laptop 1440x900 Chromium (real `page.mouse`), adapted to a fastener: a Bolt / screw and a Cube, the cube Align-snapped (outside+, X) onto the bolt's `tap` via the object list (cube bounds moved from x 35.2..75.2 to -63.3..-23.3). Type to **Wood screw, flat head** (keeps `tap`): no dialog, the cube followed the rebuilt `tap` (x -58.1..-18.1). Size to `#16` (no wood Fit, so no `tap`): the repair dialog read "This change affects 1 item" and "#16 has no part named `tap`"; Cancel put Size back to `#8`.
 **Last run**: 2026-10-16 03:48 UTC (`core-058`) — **PASS** at laptop 1440x900 Chromium (real `page.mouse`, jittered 24-29-step Library drags, fresh profile), adapted to the new **Screen model**: a Pi 5 and a Raspberry Pi Screen (Touchscreen 2) dropped; the Pi's `hole1` aligned onto the screen's `piMountingPost1` (target read `Touchscreen 2 1 › piMountingPost1`, the Pi moved). Selecting the screen and choosing **Screen model: Mini PiTFT** opened the repair dialog (`Mini PiTFT has no part named piMountingPost1`, no remap suggested — the six screens share no parts); **Cancel** left it Touchscreen 2 with 2 bodies. A screen with nothing depending on it changed to Mini PiTFT in place (same id, new volume, no dialog) and one **Undo** restored it. Also `ui-052`'s repro for this new model-bearing row. Console and page errors: none.
 **Last run**: 2026-10-11 03:09 UTC (`ui-059`) — **PASS** at laptop 1440x900 Chromium (real mouse), **the same outcome through a variable**. Pi 4 with `piModel` bound, cube snapped to `avjack` by the object list; `piModel` 4 to 5 in the Variables section held the change in the repair dialog ("This change affects 1 item"); **Detach** + Apply kept the cube at the same centre (86.77, -131.01, -17.38); one Undo put the Pi 4 and the variable back (`piModel` reads 4). Re-driven by `ui-059` (Variables section and bind controls added to the Inspector). Console and page errors: none.
 

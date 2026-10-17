@@ -74,7 +74,7 @@ import {
   segmentsFor,
   twistStepsFor,
 } from './tessellation.js'
-import { bolt } from './recipes/hardware.bolt.js'
+import { bolt, defaultFitFor, normalizeBoltParams } from './recipes/hardware.bolt.js'
 import { nut } from './recipes/hardware.nut.js'
 import { washer } from './recipes/hardware.washer.js'
 import { bearing } from './recipes/hardware.bearing.js'
@@ -116,6 +116,7 @@ import { screwSpecs } from './tables/screw-specs.js'
 import { washerSpecs } from './tables/washer-specs.js'
 import { bearingSpecs } from './tables/bearing-specs.js'
 import { FIT_CLEARANCE_MM } from './tables/fit-clearances.js'
+import { DEFAULT_SIZE_BY_TYPE, FASTENER_TYPES, fastenerSpecs } from './tables/fastener-specs.js'
 import { CAMERA_MODULE_MODELS, cameraModule } from './recipes/raspberrypi.cameraModule.js'
 import { hat } from './recipes/raspberrypi.hat.js'
 import { hatStandoff } from './recipes/raspberrypi.hatStandoff.js'
@@ -245,6 +246,11 @@ import { touchScreen2 } from './recipes/raspberrypi.touchScreen2.js'
  *   {@link OpUi}`.defaults`' own keys, so the row opens showing its real default.
  * @property {string} label Label for the control itself, e.g. `"Model"`.
  * @property {readonly OpUiOption[]} options Every value the recipe accepts.
+ * @property {(params: Record<string, any>) => readonly OpUiOption[]} [optionsFor] Options
+ *   that depend on the row's other choices (`TODO/core-060`: a fastener's **Size** list
+ *   follows its **Type**). Given the row's current params, the values this control may
+ *   offer; `options` is then the list for the row's `defaults`, for a renderer that does
+ *   not read this.
  */
 
 /**
@@ -299,6 +305,26 @@ function modelChoice(values, labels, controlLabel = 'Model') {
     ),
   })
 }
+
+/**
+ * What each fastener Type is called — on the Library row, in the Inspector, and in the
+ * AI partner's schema (`TODO/core-060`).
+ *
+ * @type {Readonly<Record<import('./tables/fastener-specs.js').FastenerType, string>>}
+ */
+const FASTENER_TYPE_LABELS = Object.freeze({
+  socket: 'Socket cap',
+  hex: 'Hex head',
+  pan: 'Pan head',
+  flat: 'Flat head',
+  woodPan: 'Wood screw, pan head',
+  woodFlat: 'Wood screw, flat head',
+})
+
+/** @type {readonly OpUiOption[]} */
+const FASTENER_TYPE_OPTIONS = Object.freeze(
+  FASTENER_TYPES.map((type) => Object.freeze({ value: type, label: FASTENER_TYPE_LABELS[type] }))
+)
 
 /**
  * Display name per `raspberrypi.screen` model (`TODO/core-058`) — the six labels each
@@ -1954,9 +1980,23 @@ export const registry = Object.freeze({
   // (`Hardware.Bolt`'s `fit = fit || 'loose'`) — rather than three different
   // judgement calls. `hardware.nut` has no default fit of its own (see its module
   // doc) so naming one here is required, not decorative.
+  //
+  // TODO/core-060: the bolt row became the one fastener row, **Bolt / screw** (the user's
+  // label, 2026-10-15): a **Type** picked before the drag, then a **Size** whose options
+  // are that Type's own table. Its defaults are still exactly the bolt above (hex, m10,
+  // 20 mm, loose), so a default drop means what it always did.
   'hardware.bolt': composite(0, bolt, {
-    label: 'Bolt',
-    defaults: { spec: 'm10 hex', length: 20, fit: 'loose' },
+    label: 'Bolt / screw',
+    defaults: { type: 'hex', spec: 'm10', length: 20, fit: 'loose' },
+    choice: Object.freeze({ param: 'type', label: 'Type', options: FASTENER_TYPE_OPTIONS }),
+    extraChoices: Object.freeze([
+      Object.freeze({
+        param: 'spec',
+        label: 'Size',
+        options: keyOptions(fastenerSpecs.hex),
+        optionsFor: (/** @type {Record<string, any>} */ params) => keyOptions(fastenerRowsOf(params.type, PARAM_TABLES)),
+      }),
+    ]),
   }),
 
   // TODO/core-010: single-record expansion — Hardware.Nut returns one bare CSG in
@@ -1984,12 +2024,12 @@ export const registry = Object.freeze({
   // fit/tap solids, and FlatHead's head is a cone, not a countersink cut. See
   // recipes/hardware.screw.js's module doc.
   //
-  // Deliberately **no `ui` block**: `library.js` builds a Library row from any 0-operand
-  // entry that has one, and a row is a new user-visible control — which needs its own
-  // e2e spec and docs page, neither of which this kernel-only task owns. Same as
-  // hardware.nut/washer/bearing sat until `ui-030`. The follow-up adds `ui: { label:
-  // 'Screw', defaults: { spec: 'm4', length: 12, head: 'PanHead' } }` and a ROW_ORDER
-  // slot. Its Inspector dropdowns (PARAM_SCHEMAS below) don't depend on `ui`.
+  // Deliberately **no `ui` block**, and now for good (TODO/core-060): screws are reached
+  // through the **Bolt / screw** row's Type — `hardware.bolt`'s `pan`, `flat`, `woodPan`
+  // and `woodFlat` share this recipe's head-and-thread builder
+  // (`recipes/fastener-geometry.js`). This op is replay-only, like the six screen ops in
+  // core-058: a saved screw keeps building and keeps its own Inspector dropdowns
+  // (PARAM_SCHEMAS below), which don't depend on `ui`.
   'hardware.screw': composite(0, screw),
 
   // TODO/core-012: §6's three Kit-part rows. All three expand through the
@@ -2429,6 +2469,9 @@ export function assertOperandCount(op, count, ops = registry) {
  * @property {Readonly<Record<string, unknown>>} bearingSpecs
  * @property {Readonly<Record<string, unknown>>} screwSpecs
  * @property {Readonly<Record<string, number>>} FIT_CLEARANCE_MM
+ * @property {Readonly<Record<string, Readonly<Record<string, { fitDiameterMm?: Readonly<Record<string, number>> }>>>>} [fastenerSpecs]
+ *   `hardware.bolt`'s sizes per Type (`TODO/core-060`). Optional so a fake for another op
+ *   need not build one; `socket`/`hex` then fall back to `boltSpecs`.
  */
 
 /** @type {ParamTables} */
@@ -2439,6 +2482,7 @@ const PARAM_TABLES = Object.freeze({
   bearingSpecs,
   screwSpecs,
   FIT_CLEARANCE_MM,
+  fastenerSpecs,
 })
 
 /**
@@ -2450,6 +2494,74 @@ const PARAM_TABLES = Object.freeze({
  */
 function keyOptions(table) {
   return Object.freeze(Object.keys(table ?? {}).map((key) => Object.freeze({ value: key, label: key })))
+}
+
+/**
+ * The size rows for a fastener Type. A fake `tables` without `fastenerSpecs` still answers
+ * for `socket`/`hex`, from `boltSpecs` keys split on their suffix — the same split the real
+ * table is built by.
+ *
+ * @param {unknown} type
+ * @param {ParamTables} tables
+ * @returns {Readonly<Record<string, { fitDiameterMm?: Readonly<Record<string, number>> }>> | undefined}
+ */
+function fastenerRowsOf(type, tables) {
+  if (typeof type !== 'string' || !FASTENER_TYPES.includes(/** @type {any} */ (type))) return undefined
+  const real = tables.fastenerSpecs?.[type]
+  if (real !== undefined) return real
+  if (type !== 'socket' && type !== 'hex') return undefined
+  const tail = ` ${type}`
+  return Object.fromEntries(
+    Object.entries(tables.boltSpecs)
+      .filter(([key]) => key.endsWith(tail))
+      .map(([key, row]) => [key.slice(0, -tail.length), row])
+  )
+}
+
+/**
+ * The row for a fastener's size, or `undefined` when the Type or size is not one there is.
+ *
+ * @param {Record<string, any>} params
+ * @param {ParamTables} tables
+ * @returns {{ fitDiameterMm?: Readonly<Record<string, number>> } | undefined}
+ */
+function fastenerRowOf(params, tables) {
+  const rows = fastenerRowsOf(params.type, tables)
+  return rows !== undefined && typeof params.spec === 'string' && Object.hasOwn(rows, params.spec) ? rows[params.spec] : undefined
+}
+
+/**
+ * After an edit to a new-shape `hardware.bolt`, bring the values the edit did **not** name
+ * back in line with the ones it did (`TODO/core-060`): a Type change that strands the
+ * Size falls back to that Type's default size; a Fit the new Type/Size lacks falls back to
+ * the Type's default fit, or is dropped where the size has no fit data at all.
+ *
+ * A value the edit names itself is never coerced — `paramEdit.js`'s validation reports it
+ * by name. A bound (`{ $var }`) value is never coerced either: it is resolved and checked
+ * in the fold, and reported there.
+ *
+ * @param {Record<string, any>} params The complete params after the change.
+ * @param {readonly string[]} changedKeys
+ * @param {ParamTables} tables
+ * @returns {Record<string, any>}
+ */
+function reconcileBoltEdit(params, changedKeys, tables) {
+  const rows = params.type === undefined ? undefined : fastenerRowsOf(params.type, tables)
+  if (rows === undefined) return params
+  let next = params
+  if (!changedKeys.includes('spec') && typeof next.spec === 'string' && !Object.hasOwn(rows, next.spec)) {
+    next = { ...next, spec: DEFAULT_SIZE_BY_TYPE[/** @type {keyof typeof DEFAULT_SIZE_BY_TYPE} */ (next.type)] }
+  }
+  const row = fastenerRowOf(next, tables)
+  if (row === undefined || changedKeys.includes('fit') || (next.fit !== undefined && typeof next.fit !== 'string')) return next
+  const fits = row.fitDiameterMm
+  if (fits === undefined) {
+    if (!('fit' in next)) return next
+    const { fit: _stale, ...rest } = next
+    return rest
+  }
+  if (next.fit !== undefined && !Object.hasOwn(fits, next.fit)) return { ...next, fit: defaultFitFor(next.type) }
+  return next
 }
 
 /**
@@ -2504,6 +2616,13 @@ function choiceOptionsOf(op) {
  * @property {(params: Record<string, any>, tables: ParamTables) => Record<string, ParamSchema>} params
  * @property {Readonly<Record<string, string>>} [partAliases] Real part renames between
  *   variants — see `BPLUS_PART_ALIASES` for what qualifies.
+ * @property {(params: Record<string, any>) => Record<string, any>} [normalize] Read a
+ *   record's params in the op's current shape, when older records may hold an earlier one
+ *   (`TODO/core-060`: a `{ spec: 'm10 hex' }` bolt). Pure; the record itself is never
+ *   rewritten by reading it — see {@link normalizedParams}.
+ * @property {(params: Record<string, any>, changedKeys: readonly string[], tables: ParamTables) => Record<string, any>} [reconcile]
+ *   After an edit, bring the params the edit did not name back in line with the ones it
+ *   did — see {@link reconcileParamEdit}.
  */
 
 /** @type {Readonly<Record<string, ParamSchemaEntry>>} */
@@ -2555,14 +2674,34 @@ const PARAM_SCHEMAS = Object.freeze({
   'raspberrypi.screen': {
     params: () => ({ model: enumParam('Screen model', choiceOptionsOf('raspberrypi.screen')) }),
   },
+  // TODO/core-060: the schema describes the record **as stored**. A record with no `type`
+  // is the pre-core-060 shape and keeps today's schema exactly, so a saved condition or a
+  // variable bound to its `spec` (`'m10 hex'`) still resolves. The Inspector and the edit
+  // path read it through `normalize` first, so a user sees — and the first edit writes —
+  // Type, Size, Length and Fit.
   'hardware.bolt': {
-    // `fit` follows `spec`: `tables.boltSpecs[spec].fitDiameterMm` is what the recipe
-    // looks the fit up in, so that row's keys *are* the valid fits for that spec.
-    params: (params, tables) => ({
-      spec: enumParam('Spec', keyOptions(tables.boltSpecs)),
-      length: mmParam('Length'),
-      fit: enumParam('Fit', keyOptions(tables.boltSpecs[params.spec]?.fitDiameterMm)),
-    }),
+    normalize: normalizeBoltParams,
+    reconcile: reconcileBoltEdit,
+    params: (params, tables) => {
+      if (params.type === undefined) {
+        // `fit` follows `spec`: `tables.boltSpecs[spec].fitDiameterMm` is what the recipe
+        // looks the fit up in, so that row's keys *are* the valid fits for that spec.
+        return {
+          spec: enumParam('Spec', keyOptions(tables.boltSpecs)),
+          length: mmParam('Length'),
+          fit: enumParam('Fit', keyOptions(tables.boltSpecs[params.spec]?.fitDiameterMm)),
+        }
+      }
+      // Size follows Type; Fit follows both, and a size with no fit data has no Fit field
+      // at all — hidden, never guessed.
+      const fits = fastenerRowOf(params, tables)?.fitDiameterMm
+      return {
+        type: enumParam('Type', FASTENER_TYPE_OPTIONS),
+        spec: enumParam('Size', keyOptions(fastenerRowsOf(params.type, tables))),
+        length: mmParam('Length'),
+        ...(fits === undefined ? {} : { fit: enumParam('Fit', keyOptions(fits)) }),
+      }
+    },
   },
   'hardware.nut': {
     params: (_params, tables) => ({
@@ -2606,6 +2745,37 @@ export function paramOptions(op, params = {}, tables = PARAM_TABLES) {
   const entry = PARAM_SCHEMAS[op]
   if (!entry) return runtimeParamSchema(op)
   return Object.freeze(entry.params(params ?? {}, tables))
+}
+
+/**
+ * A record's params read in the op's current shape (`TODO/core-060`): a legacy
+ * `{ spec: 'm10 hex' }` bolt reads as `{ type: 'hex', spec: 'm10' }`. Every other op, and
+ * any params already current, come back as the same object. Reading never rewrites the
+ * record; only an edit writes the current shape back.
+ *
+ * @param {string} op
+ * @param {Record<string, any>} params
+ * @returns {Record<string, any>}
+ */
+export function normalizedParams(op, params) {
+  const normalize = PARAM_SCHEMAS[op]?.normalize
+  return normalize === undefined ? params : normalize(params)
+}
+
+/**
+ * After an edit, bring the params the edit did not name back in line with the ones it
+ * did — a fastener's Type change that strands its Size or Fit (`TODO/core-060`). Ops with
+ * nothing to reconcile, and any value the edit names itself, come back unchanged.
+ *
+ * @param {string} op
+ * @param {Record<string, any>} params The complete params after the change.
+ * @param {readonly string[]} changedKeys
+ * @param {ParamTables} [tables]
+ * @returns {Record<string, any>}
+ */
+export function reconcileParamEdit(op, params, changedKeys, tables = PARAM_TABLES) {
+  const reconcile = PARAM_SCHEMAS[op]?.reconcile
+  return reconcile === undefined ? params : reconcile(params, changedKeys, tables)
 }
 
 /**

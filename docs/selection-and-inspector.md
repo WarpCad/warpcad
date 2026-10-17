@@ -230,7 +230,7 @@ itself while you draw, so it never covers the drawing.
 
 ![A bolt's Spec, Fit and Length controls in the Inspector](./screenshots/inspector-composite-param-edit.png)
 
-A ready-made part from the Library — a **Raspberry Pi**, a **Bolt**, a **Nut**, a
+A ready-made part from the Library — a **Raspberry Pi**, a **Bolt / screw**, a **Nut**, a
 **Washer**, a **Bearing**, the Pi **Camera Module** — can be changed after you have placed
 it, not just before. Select it and look at its **Parameters**:
 
@@ -268,11 +268,11 @@ their options described yet, so theirs stay read-only and the panel says so.
    dialog appears, because nothing depended on it.
 4. Press **Undo** once. It is a Pi 4 again.
 
-### Worked example: change a bolt's spec
+### Worked example: change a bolt's type and size
 
-1. Drag a **Bolt** in from the Library's Hardware section and select it. **Spec** reads
-   `m10 hex`, and **Fit** lists `tap`, `close` and `loose`.
-2. Change **Spec** to `1/4 socket`. The bolt is rebuilt with a socket head, and the
+1. Drag a **Bolt / screw** in from the Library's Hardware section and select it. **Type** reads
+   `Hex head`, **Size** reads `m10`, and **Fit** lists `tap`, `close` and `loose`.
+2. Change **Type** to `Socket cap` and **Size** to `1/4`. The bolt is rebuilt with a socket head, and the
    **Fit** list now shows only the fits a 1/4 socket has.
 3. Type `20` into **Length** and press **Enter**. The bolt is now 20 mm long.
 
@@ -297,13 +297,13 @@ a bound field shows a chip with the variable's name in place of its editor. See
 
 ![Renaming the selected cube from the Inspector](./media/inspector-rename.gif)
 
-A part arrives called `Bolt 1`, `Cube 2`, `Raspberry Pi 1`. With two dozen bolts on the
+A part arrives called `Bolt / screw 1`, `Cube 2`, `Raspberry Pi 1`. With two dozen bolts on the
 board that tells you nothing, so give a part or a group a name of your own. The name shows
 at once in the Inspector header, the object list, the phone tab, the Bill of materials and
 the history.
 
 **Worked example.** Open **Library**, drag an **M3 bolt** into the view twice. Select the
-first, tap the name **Bolt 1** at the top of the **Inspector**, type `Pi camera bolt` and
+first, tap the name **Bolt / screw 1** at the top of the **Inspector**, type `Pi camera bolt` and
 press **Enter**. Select the second and name it `Screen bolt`. Open the object list: the rows
 now read *Pi camera bolt* and *Screen bolt*.
 
@@ -313,7 +313,7 @@ now read *Pi camera bolt* and *Screen bolt*.
   on a touchscreen), or press **F2** with a part selected.
 - **Finish**: **Enter**, or tap away, keeps the new name. **Escape** puts the old one back
   and changes nothing — it does not cancel anything else you have armed.
-- **Blank** gives the generated name back (`Bolt 1`), and the helper line under the field
+- **Blank** gives the generated name back (`Bolt / screw 1`), and the helper line under the field
   says so.
 - **A name another part already uses** shows *Another part is already called this*. It is
   only a hint: the name is kept, because two `Screw`s is a legitimate model.
@@ -426,7 +426,7 @@ A plain Cube, Sphere or any other one-piece shape has no Parts section at all. I
 there and greyed out. It simply is not there.
 
 - **Tap a piece** to select just that piece. The breadcrumb changes to
-  `Objects ▸ Bolt 1 ▸ tap`, and the piece is ready to use as an operand for Union,
+  `Objects ▸ Bolt / screw 1 ▸ tap`, and the piece is ready to use as an operand for Union,
   Subtract or Intersect. It is the same as clicking the shape a second time in the 3D
   view, but it also reaches the pieces you cannot click, like the hidden ones.
 - **Tap the small box on the left of a piece** to add the shape to the selection
@@ -456,18 +456,18 @@ there and greyed out. It simply is not there.
 
 ![A selected bolt with Show hidden parts on, showing its clearance as a translucent overlay](./screenshots/inspector-hidden-parts.png)
 
-1. Drag a **Bolt** from the Library's **Hardware** section onto the grid. It arrives
+1. Drag a **Bolt / screw** from the Library's **Hardware** section onto the grid. It arrives
    selected, and under **Parts** the Inspector lists `head`, `thread`, and then four
    pieces labelled *hidden*: `tap-head`, `tap-thread`, `tap-headClearSpace` and `tap`.
 2. With a mouse, point at the **tap** row. A translucent red cylinder, tinted violet
    while you point at it, appears around the bolt: that is the hole size it actually
    needs to slide through, not the size of its visible metal. Move the pointer away and it disappears again. To keep it on screen,
    turn on **Show hidden parts** instead.
-3. Tap **tap** in the list. The breadcrumb reads `Objects ▸ Bolt 1 ▸ tap`, and the bolt
+3. Tap **tap** in the list. The breadcrumb reads `Objects ▸ Bolt / screw 1 ▸ tap`, and the bolt
    is now addressed at just that piece.
 4. Drag a **Cube** in to stand in for a case wall and select it. Tap **Objects** in the
    breadcrumb (or the **Objects** bar at the top of the Inspector) to open the list, tap
-   ▸ on *Bolt 1*, and tap the small box on its **tap** row so it lands second. Press
+   ▸ on *Bolt / screw 1*, and tap the small box on its **tap** row so it lands second. Press
    **Subtract** for a clearance-fit hole. See
    [Combining shapes](booleans.md#cutting-with-just-one-part-of-a-multi-part-shape)
    for the full mechanics of cutting with one named piece.
@@ -798,15 +798,15 @@ selects a shape, and picking a shape never selects a step.
 
 ### Worked example: find, point at and combine two shapes
 
-1. Drop a **Raspberry Pi** and a **Bolt** from the Library, then tap empty space in the 3D
-   view so nothing is selected. The Inspector lists both: *Raspberry Pi 1* and *Bolt 1*.
+1. Drop a **Raspberry Pi** and a **Bolt / screw** from the Library, then tap empty space in the 3D
+   view so nothing is selected. The Inspector lists both: *Raspberry Pi 1* and *Bolt / screw 1*.
    (On a phone, tap the **Objects (2)** tab first.)
-2. Move the pointer over **Bolt 1**. The bolt lights up violet in the 3D view.
+2. Move the pointer over **Bolt / screw 1**. The bolt lights up violet in the 3D view.
 3. Tap **▸** on **Raspberry Pi 1** to list its pieces, then point at `ethernet`. Only the
    Ethernet jack lights up, not the whole board.
 4. Tap `ethernet` to select just that piece. The Inspector shows
    `Objects ▸ Raspberry Pi 1 ▸ ethernet`.
-5. Tap **Objects** in that breadcrumb to get back to the list, and tick **Bolt 1**'s box.
+5. Tap **Objects** in that breadcrumb to get back to the list, and tick **Bolt / screw 1**'s box.
    The box shows **2**, the Pi's shows **1**, and the Operations toolbar says
    *2 selected*: the Ethernet jack is the base, the bolt the second operand.
 
@@ -819,20 +819,20 @@ place a Cube and a Bolt, then use **Align** from the Operations toolbar (see
 open a project that already has one inside the other.
 
 1. Tap empty space so nothing is selected. The Inspector lists two rows: *Cube 1* and
-   *Bolt 1*.
+   *Bolt / screw 1*.
 2. Try clicking the bolt in the 3D view. You get the cube every time, because the bolt is
    inside it. That is the problem the list solves.
 3. **Tap the little box on the *Cube 1* row.** The cube is selected (*1 selected* in the
    Operations toolbar) and the list stays open.
-4. **Tap the little box on the *Bolt 1* row.** The box turns teal and shows **2**; the
+4. **Tap the little box on the *Bolt / screw 1* row.** The box turns teal and shows **2**; the
    *Cube 1* box shows **1**. The Operations toolbar now says *2 selected — first is the
    base*, and **Subtract** lights up. In the 3D view the hidden bolt shows through the
    cube as a teal tint.
-5. Press **Subtract**. The cube now has a bolt-shaped cavity, the *Bolt 1* row disappears
+5. Press **Subtract**. The cube now has a bolt-shaped cavity, the *Bolt / screw 1* row disappears
    from the list (that shape has been used up), and the cube's volume has dropped by
    exactly the bolt's volume. Press **Undo** to bring the bolt back.
 
-If you tap the *Bolt 1* row itself instead of its box, the bolt alone is selected: its
+If you tap the *Bolt / screw 1* row itself instead of its box, the bolt alone is selected: its
 Inspector and gizmo appear, and you can move or rotate it, even though the cube is in
 front of it, by dragging the gizmo's arrows or typing into the Position boxes. On a phone,
 tap the Inspector's tab to lower the sheet first so the gizmo is in view; that keeps the

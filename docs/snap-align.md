@@ -133,7 +133,7 @@ The Pi rests against the cube's +X face, measured by `mb`. Switch **Target** bac
 ## A second example: positioning against one named part
 
 A [group](groups.md) — and every composite item from the Library's Hardware,
-Kit and Raspberry Pi sections, such as a **Raspberry Pi 5** board or a **Bolt** —
+Kit and Raspberry Pi sections, such as a **Raspberry Pi 5** board or a **Bolt / screw** —
 is made of *named parts*. Align can work against one of those parts
 specifically, instead of against the whole item's overall bounding box. That is
 how you position something against a **particular mounting hole** on a board,

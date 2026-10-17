@@ -67,6 +67,7 @@
 import { nextTick, onBeforeUnmount, reactive, ref, watch } from 'vue'
 
 import { LIBRARY_SECTIONS } from '../../core/library.js'
+import { reconcileParamEdit } from '../../core/kernel/registry.js'
 import { useLibraryStore } from '../../stores/library.js'
 import { usePlacementStore } from '../../stores/placement.js'
 import { useTimelineStore } from '../../stores/timeline.js'
@@ -277,6 +278,44 @@ const chosenExtra = reactive(
 )
 
 /**
+ * The options an extra choice offers right now. A choice whose list depends on another one
+ * (a fastener's Size follows its Type, `TODO/core-060`) computes it from the row's current
+ * params; every other choice keeps its static list.
+ *
+ * @param {import('../../core/library.js').LibraryRow} row
+ * @param {import('../../core/kernel/registry.js').OpUiChoice} extra
+ * @returns {readonly import('../../core/kernel/registry.js').OpUiOption[]}
+ */
+function extraOptions(row, extra) {
+  if (!extra.optionsFor) return extra.options
+  return extra.optionsFor({ ...row.defaults, ...overridesFor(row) })
+}
+
+/**
+ * The row's main choice changed: any extra choice whose offered values no longer include
+ * its current value falls back to the new choice's own default (Type `pan` strands Size
+ * `m10`). Reconciled through the registry so the panel never re-derives which size is the
+ * default for which type.
+ *
+ * The new value is read off the event: this listener runs before `v-model`'s own `change`
+ * listener has written it to `chosen`.
+ *
+ * @param {import('../../core/library.js').LibraryRow} row
+ * @param {Event} event
+ */
+function onChoiceChange(row, event) {
+  const extras = chosenExtra[row.op]
+  if (!extras || !row.choice) return
+  const param = row.choice.param
+  const picked = row.choice.options.find((option) => String(option.value) === /** @type {HTMLSelectElement} */ (event.target).value)
+  if (!picked) return
+  const next = reconcileParamEdit(row.op, { ...row.defaults, ...overridesFor(row), [param]: picked.value }, [param])
+  for (const extra of row.extraChoices) {
+    if (extra.optionsFor && next[extra.param] !== undefined) extras[extra.param] = next[extra.param]
+  }
+}
+
+/**
  * The params a drag from this row commits on top of its defaults — the chosen
  * variant, or nothing at all for a row with no choice.
  *
@@ -368,7 +407,12 @@ onBeforeUnmount(stopTracking)
           class="library__rows"
           :data-testid="section.id === 'primitive' ? 'library-rows' : `library-rows-${section.id}`"
         >
-          <li v-for="row in section.rows" :key="row.op" class="library__item">
+          <li
+            v-for="row in section.rows"
+            :key="row.op"
+            class="library__item"
+            :class="{ 'library__item--stacked': row.extraChoices.some((extra) => extra.optionsFor) }"
+          >
             <button
               type="button"
               class="library__row"
@@ -393,6 +437,7 @@ onBeforeUnmount(stopTracking)
               <select
                 v-model="chosen[row.op]"
                 class="library__choice-select"
+                @change="onChoiceChange(row, $event)"
                 :data-testid="`library-choice-${row.op}`"
                 :aria-label="`${row.choice.label} for ${row.label}`"
               >
@@ -415,7 +460,7 @@ onBeforeUnmount(stopTracking)
                 :data-testid="`library-choice-${row.op}-${extra.param}`"
                 :aria-label="`${extra.label} for ${row.label}`"
               >
-                <option v-for="option in extra.options" :key="String(option.value)" :value="option.value">
+                <option v-for="option in extraOptions(row, extra)" :key="String(option.value)" :value="option.value">
                   {{ option.label }}
                 </option>
               </select>
@@ -699,6 +744,11 @@ onBeforeUnmount(stopTracking)
   color: var(--text-1);
   font: inherit;
   font-size: 12px;
+}
+
+/* WebKit's native select ignores `min-height` and draws 20px; an explicit height is honoured. */
+.library__item--stacked .library__choice-select {
+  height: 32px;
 }
 
 .library__choice-select:focus-visible {
@@ -1082,6 +1132,13 @@ onBeforeUnmount(stopTracking)
     background: var(--surface-glass);
     backdrop-filter: blur(8px);
     box-shadow: var(--shadow-overlay);
+  }
+
+  /* Rows whose Size follows their Type (core-060) stack their dropdowns, each a full
+     44px tap target like the row above them. */
+  .library__item--stacked .library__choice-select {
+    min-height: 44px;
+    height: 44px;
   }
 
   .library__tab {

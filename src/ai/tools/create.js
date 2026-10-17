@@ -6,8 +6,10 @@
  * **Only zero-operand ops, and only the ones the Library offers.** {@link creatableOps}
  * is "`operandCount: 0` with `ui` metadata", the same two facts `src/core/library.js`
  * builds its rows from, so the model can place exactly what a human can and nothing a
- * human cannot: not a 2D `profile.*` intermediate, and not `hardware.screw` until it
- * gets a Library row of its own. Operations are a separate tool (`operate.js`), never a
+ * human cannot: not a 2D `profile.*` intermediate, and not the replay-only
+ * `hardware.screw` — pan-head, flat-head and wood screws are placed through
+ * `hardware.bolt` with a `type` (`TODO/core-060`), exactly as the Library's **Bolt /
+ * screw** row places them. Operations are a separate tool (`operate.js`), never a
  * branch of this one (`CLAUDE.md`'s creation-vs-operation rule, applied to the model).
  *
  * **A created body is placed, never spawned at the origin.** `positionMm` is required.

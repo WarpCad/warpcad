@@ -8,68 +8,104 @@ page doesn't repeat it.
 
 All sizes below are millimetres unless a part is named in inches (`1/4 socket`, `#8`).
 
-## Hardware: bolts, nuts, washers and bearings
+## Hardware: bolts and screws, nuts, washers and bearings
 
-![The Library scrolled to its Hardware section: Bolt, Nut, Washer and Bearing rows.](./screenshots/library-hardware-section.png)
+![The Library scrolled to its Hardware section: Bolt / screw, Nut, Washer and Bearing rows.](./screenshots/library-hardware-section.png)
 
 | Row | Sizes you can pick | Starts as |
 |---|---|---|
-| **Bolt** | Metric socket cap `m1.6` to `m20` (`m2.5 socket`, `m3 socket`, ...), metric hex `m10` to `m20`, imperial socket `#0` to `1` and imperial hex `1/4` to `1` (`1/4 hex`, `5/16 hex`, ...) | M10 hex, 20 mm long |
+| **Bolt / screw** | Six **Types**, each with its own sizes: see [Bolts and screws](#bolts-and-screws) below | Hex head, M10, 20 mm long |
 | **Nut** | A size for every bolt above: `m1.6` to `m20`, and imperial `#0 hex` to `1 hex` | M4 |
 | **Washer** | `m1.6` to `m20`, plus `1/4`, `5/16` and `1/4 fender` | M6 |
 | **Bearing** | Standard bearing numbers: `608`, `6000`-`6004`, `6200`-`6204`, `6300`-`6304` | 608 (22 mm outside, 8 mm bore, 7 mm wide) |
 
-A bolt is as long as you say, so it has a **Length** box (mm); the rest are fixed sizes you
-pick from a list. The Spec list runs metric first (smallest to largest), then imperial. There
-is no metric hex head below `m10`: small metric bolts are socket cap screws, which is how
-small-board projects use them. A bolt and its nut share a size, so for an `m2.5 socket` bolt
-pick `m2.5` on the nut and on the washer.
+### Bolts and screws
+
+Bolts and screws are one row, **Bolt / screw**. Before you drag it, choose a **Type** in the
+dropdown beside the row; the **Size** list next to it then offers only the sizes that exist for
+that Type. If the Size you had isn't offered for the new Type, it falls back to that Type's
+usual size.
+
+![The Type list beside the Bolt / screw row, open: Socket cap, Hex head, Pan head, Flat head, and two wood screws.](./screenshots/library-screw-type-dropdown.png)
+
+| Type | Sizes you can pick | Opens on |
+|---|---|---|
+| **Socket cap** | Metric `m1.6` to `m20` (`m2.5`, `m3`, ...) and imperial `#0` to `1` (`1/4`, `5/16`, ...) | `m3` |
+| **Hex head** | Metric `m10` to `m20` and imperial `1/4` to `1`. There is no metric hex head below `m10`: small metric bolts are socket caps | `m10` |
+| **Pan head** | `m4` only. That is the only metric machine-screw table the hardware library ships; more sizes are a table addition, not something to guess | `m4` |
+| **Flat head** | Metric `m2`, `m2.5`, `m3`, `m4`, `m5`, `m6`, `m8`, `m10`. The head is a cone, for a countersunk hole | `m3` |
+| **Wood screw, pan head** | Gauges `#2` to `#16` | `#8` |
+| **Wood screw, flat head** | Gauges `#2` to `#16`. The head is a cone, for a countersunk hole | `#8` |
+
+A fastener is as long as you say, so it has a **Length** box (mm); **Type**, **Size** and **Fit**
+are lists. You can change the Type and the Size after you've placed it, in the Inspector, and the
+part is rebuilt where it stands. A bolt and its nut share a size, so for an `m2.5` socket cap
+pick `m2.5` on the nut and on the washer. A project saved before the Type list existed, with
+`m10 hex`-style bolts or the old separate screws, opens and builds exactly as it did; nothing is
+rewritten until you edit that part.
 
 ### Example: a 30 mm M12 bolt, and the bill of materials
 
-1. Open the **Library** and drag **Bolt** into the 3D view. Let go; it lands on the grid and is
-   selected, and the **Inspector** shows its parameters.
-2. In the Inspector, set **Spec** to `m12 hex`. The bolt is rebuilt in place. (A new bolt
-   already starts as `m10 hex`, so switching to that size changes nothing.)
+1. Open the **Library** and drag **Bolt / screw** into the 3D view. Let go; it lands on the grid
+   and is selected, and the **Inspector** shows its parameters.
+2. In the Inspector, set **Size** to `m12`. The bolt is rebuilt in place. (A new bolt
+   already starts as a hex head `m10`, so the Type stays Hex head.)
 3. Click the **Length** box, type `30` (mm) and press Enter. The bolt grows to 30 mm of thread
    under its head.
-4. Look at **Bill of materials** just under the object list: one line, `Bolt M12 hex × 30 mm × 1`.
+4. Look at **Bill of materials** just under the object list: one line, `Bolt / screw M12 hex × 30 mm × 1`.
    See [Bill of materials](bill-of-materials.md).
 
-![Dragging a Bolt in, switching its Spec to m12 hex and its Length to 30 mm; the Bill of materials follows.](./media/hardware-drag-bolt.gif)
+![Dragging a Bolt / screw in, switching its Size to m12 and its Length to 30 mm; the Bill of materials follows.](./media/hardware-drag-bolt.gif)
 
 ### Example: a matching M2.5 bolt and nut
 
-1. Drag **Bolt** into the 3D view. In the Inspector set **Spec** to `m2.5 socket` and **Length**
-   to `8` (mm).
+1. In the Library, set the **Bolt / screw** row's **Type** to **Socket cap** and its **Size** to
+   `m2.5`, then drag it into the 3D view. In the Inspector set **Length** to `8` (mm).
 2. Drag **Nut** into the 3D view and set its **Spec** to `m2.5`.
-3. **Bill of materials** shows `Bolt M2.5 socket × 8 mm × 1` and `Nut M2.5 × 1`.
+3. **Bill of materials** shows `Bolt / screw M2.5 socket × 8 mm × 1` and `Nut M2.5 × 1`.
+
+### Example: a countersunk flat-head screw
+
+1. Open **Library → Hardware**. Next to **Bolt / screw**, choose **Type: Flat head** and **Size:
+   M3**, then drag it onto your part.
+2. In the Inspector set **Length** to `10` (mm) and **Fit** to `close`.
+3. To countersink the hole, tick **Show hidden parts**, select your part, then add the screw's
+   `tap` as the second operand of **Subtract**.
+4. The Bill of materials reads `Bolt / screw M3 flat × 10 mm × 1`.
+
+![Six fastener Types side by side, each dragged in from the one Bolt / screw row.](./screenshots/hardware-screw-family.png)
+
+### Example: a wood screw into a printed boss
+
+Choose **Type: Wood screw, flat head** and **Size: #8**, drag it onto a printed boss, and set
+**Fit** to `softwood`. Subtracting its `tap` leaves a pilot hole the thread bites into, plus the
+countersink for the head.
 
 ### Fit: the part you can't see
 
-A bolt has a **Fit** list: `tap`, `close` or `loose`. Fit decides how much room the bolt's
-*clearance envelope* leaves around the metal. That envelope is a hidden part named `tap`: a
-slightly fatter copy of the bolt that you subtract from your own part to leave a hole the
-bolt slides through, instead of one it jams in. It is not drawn by default, and a plain
-Subtract uses the bolt's metal, not the envelope.
+A bolt or screw has a **Fit** list. Fit decides how much room its *clearance envelope* leaves
+around the metal. That envelope is a hidden part named `tap`: a slightly fatter copy of the
+fastener that you subtract from your own part to leave a hole it slides through, instead of one
+it jams in. It is not drawn by default, and a plain Subtract uses the fastener's metal, not the
+envelope.
 
-To see it, select the bolt, tick **Show hidden parts** in the Inspector's **Parts** section,
-and tap `tap` in the list. The envelope appears as a translucent red shape around the bolt.
+- **Socket cap, hex, pan and flat head**: `tap`, `close` or `loose`, from the metric and imperial
+  tap-size tables. A size with no fit data has no Fit field and no `tap` part; Fit is hidden
+  rather than guessed. For a flat head the grown cone *is* the countersink.
+- **Wood screws**: `clearance`, `hardwood` or `softwood`. `clearance` is the hole the shank
+  passes through freely, in the piece being fastened down. `hardwood` and `softwood` are the pilot
+  hole for the piece the thread bites into, narrower than the thread on purpose. A new wood
+  screw opens on `softwood`, the closest to a printed-plastic boss. The holes come from Albany
+  County Fasteners' *Wood Screw Pilot Hole Guide* (retrieved 2026-10-16), converted from inches.
+  The chart covers gauges `#2` to `#10`, `#12` and `#14`; `#16` has no wood Fit, so it has no
+  Fit field and no `tap` part.
+
+To see it, select the fastener, tick **Show hidden parts** in the Inspector's **Parts** section,
+and tap `tap` in the list. The envelope appears as a translucent red shape around the fastener.
 To cut with it, select your part first and then add `tap` as the second operand, as in
 [Cutting with just one part of a multi-part shape](booleans.md#cutting-with-just-one-part-of-a-multi-part-shape).
 
 ![A bolt with Show hidden parts on and its tap clearance part selected: a translucent red envelope around the head and shank.](./screenshots/hardware-bolt-fit.png)
-
-### Screws
-
-There is a second fastener family, **screws**, with two head styles: `PanHead` (a flat-topped
-round head) and `FlatHead` (a cone, for a countersunk hole), in sizes `m4`,
-`#4`, `#6`, `#8`, `#10` and `#12`. **Screws have no Library row yet**, so you cannot drag one
-in; they appear in a project that includes them (opened with **File ▾ → Open**, or built by
-the AI partner). Once there, a screw behaves like a bolt: select it and the Inspector offers
-**Spec**, **Head** and **Length**, and the bill of materials counts it by all three.
-
-![Four screws side by side: M4 and #8, each with a PanHead and a FlatHead.](./screenshots/hardware-screw-family.png)
 
 ## Kit parts: boards, frames, anchors and a phone
 

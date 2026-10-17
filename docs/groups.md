@@ -117,10 +117,10 @@ separate shapes you created and so have no parameters of their own to show.
 
 ### This works on shapes you have moved, too
 
-A built-in multi-part shape — a **Bolt** from the Hardware section, a **Raspberry Pi
+A built-in multi-part shape — a **Bolt / screw** from the Hardware section, a **Raspberry Pi
 board**, anything with named parts inside it — keeps those parts after you drag it in
-and after you move or turn it with the gizmo. Drag a Bolt into the view, move it
-somewhere with the gizmo, then click it twice: the breadcrumb reads `Bolt 1 ▸ head`,
+and after you move or turn it with the gizmo. Drag a Bolt / screw into the view, move it
+somewhere with the gizmo, then click it twice: the breadcrumb reads `Bolt / screw 1 ▸ head`,
 and clicking its thread takes you straight there too. Earlier versions lost the
 breakdown the moment the shape was placed, so clicking a Bolt twice did nothing at all.
 

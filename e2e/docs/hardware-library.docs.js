@@ -8,9 +8,9 @@ import { openApp, loadScene, startMovie, endMovie, humanDrag, shot, settle } fro
  * tap-clearance part, the screw heads, a placed Pi, its mounting holes drilled into a plate by
  * a sub-part Subtract, and the 7-inch display's keep-out volume. Laptop, Chromium only.
  *
- * Deviation from the TODO's inventory: there is **no Screw row in the Library** (`hardware.screw`
- * has no `ui` block, see `registry.js`), so `hardware-screw-family` is loaded from a fixture
- * through File > Open, and the page says so rather than inventing a drag.
+ * Since `TODO/core-060` the one **Bolt / screw** row has a Type dropdown, so `hardware-screw-family`
+ * is made by dragging each of the six Types in (the old fixture-loaded screws are gone) and
+ * `library-screw-type-dropdown` shows the Type list open.
  *
  * The Pi shots are the heaviest renders in the docs (hundreds of solids per board), so they wait
  * for the worker to report every body measured (`data-body-volume`) and then a longer settle, and
@@ -151,16 +151,17 @@ test.describe('docs media: hardware, kit and Raspberry Pi library', () => {
     await expect(viewport(page)).toHaveAttribute('data-selected-count', '1')
     const id = await viewport(page).getAttribute('data-selected-id')
     let scene = await bodies(page)
-    await expect(page.getByTestId('inspector-param-spec')).toHaveValue('m10 hex')
+    await expect(page.getByTestId('inspector-param-type')).toHaveValue('hex')
+    await expect(page.getByTestId('inspector-param-spec')).toHaveValue('m10')
     await expect(page.getByTestId('inspector-param-length')).toHaveValue('20')
     await page.waitForTimeout(400)
 
     const pick = page.getByTestId('inspector-param-spec')
     const pb = await pick.boundingBox()
     await glideTo(page, { x: pb.x + pb.width / 2, y: pb.y + pb.height / 2 })
-    await pick.selectOption('m12 hex')
+    await pick.selectOption('m12')
     scene = await afterChange(page, id, scene)
-    await expect(pick).toHaveValue('m12 hex')
+    await expect(pick).toHaveValue('m12')
     await page.waitForTimeout(300)
 
     const before = scene
@@ -253,11 +254,42 @@ test.describe('docs media: hardware, kit and Raspberry Pi library', () => {
     await shot(page, 'hardware-bolt-fit.png')
   })
 
+  test('library-screw-type-dropdown still', async ({ page }) => {
+    await prepSection(page, 'hardware', 4)
+    const select = page.getByTestId('library-choice-hardware.bolt')
+    await select.scrollIntoViewIfNeeded()
+    await expect(select.locator('option')).toHaveCount(6)
+    // A headless browser never paints a native <select>'s popup, so the list is shown the
+    // one way a screenshot can see it: the same element, expanded in place to all six rows.
+    await select.evaluate((element) => {
+      element.setAttribute('size', '6')
+      element.style.flex = 'none'
+      element.style.width = 'max-content'
+      const item = element.closest('li')
+      if (item) item.style.width = 'max-content'
+    })
+    await shot(page, 'library-screw-type-dropdown.png', { locator: page.getByTestId('library-row-hardware.bolt').locator('..') })
+  })
+
   test('hardware-screw-family still', async ({ page }) => {
     await openApp(page)
-    await loadScene(page, 'screw-family.ndjson', 4)
+    await scrollToSection(page, 'hardware')
+    // Dragged in the way a user does it: pick the Type on the row, drag the row, six times.
+    const types = ['socket', 'hex', 'pan', 'flat', 'woodPan', 'woodFlat']
+    for (const [index, type] of types.entries()) {
+      // Re-measured each time: the Inspector opening on the first drop changes the viewport's box.
+      const vb = await viewport(page).boundingBox()
+      await page.getByTestId('library-choice-hardware.bolt').selectOption(type)
+      const row = page.getByTestId('library-row-hardware.bolt')
+      const rb = await row.boundingBox()
+      const fx = 0.2 + (index % 3) * 0.3
+      const fy = index < 3 ? 0.3 : 0.52
+      await humanDrag(page, { x: rb.x + rb.width / 2, y: rb.y + rb.height / 2 }, { x: vb.x + vb.width * fx, y: vb.y + vb.height * fy }, { steps: 12, ms: 300 })
+      await expect(viewport(page)).toHaveAttribute('data-body-count', String(index + 1), { timeout: 30000 })
+    }
     await bodies(page)
-    await shot(page, 'hardware-screw-family.png')
+    await heavySettle(page)
+    await shot(page, 'hardware-screw-family.png', { maxDiffPixelRatio: PI_DIFF })
   })
 
   test('rpi-board-placed still', async ({ page }) => {

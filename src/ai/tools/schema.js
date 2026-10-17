@@ -427,6 +427,11 @@ export function toStrictWire(schema) {
  * bolt's fits depend on its spec) is unioned over that param's every value, so the
  * schema offers what *some* pairing accepts and the trial fold judges the pairing.
  *
+ * Two levels deep, because a dependency can chain (`TODO/core-060`: a fastener's sizes
+ * follow its type, and its fits follow both): every value of every enum from the
+ * defaults, then every value each of *those* variants offers — so a wood screw's
+ * `softwood` fit is reached through a wood type paired with a wood gauge.
+ *
  * @param {string} op
  * @param {import('../../core/kernel/registry.js').RegistryEntry} entry
  * @param {Record<string, any>} defaults
@@ -456,15 +461,35 @@ function registryEnumsOf(op, entry, defaults) {
     const enumKeys = Object.keys(base).filter((key) => base[key].kind === 'enum')
     /** @type {Record<string, any>[]} */
     const variants = [defaults]
-    for (const key of enumKeys) {
-      const schema = /** @type {import('../../core/kernel/registry.js').EnumParamSchema} */ (base[key])
-      for (const option of schema.options) variants.push({ ...defaults, [key]: option.value })
+    const seen = new Set([JSON.stringify(defaults)])
+    /** @type {Record<string, any>[]} */
+    let frontier = [defaults]
+    for (let depth = 0; depth < 2; depth += 1) {
+      /** @type {Record<string, any>[]} */
+      const next = []
+      for (const variant of frontier) {
+        const options = paramOptions(op, variant)
+        for (const key of enumKeys) {
+          const schema = options[key]
+          if (schema?.kind !== 'enum') continue
+          for (const option of schema.options) {
+            const candidate = { ...variant, [key]: option.value }
+            const id = JSON.stringify(candidate)
+            if (seen.has(id)) continue
+            seen.add(id)
+            next.push(candidate)
+            variants.push(candidate)
+          }
+        }
+      }
+      frontier = next
     }
     for (const variant of variants) {
       const options = paramOptions(op, variant)
       for (const key of enumKeys) {
-        const schema = /** @type {import('../../core/kernel/registry.js').EnumParamSchema} */ (options[key])
-        add(key, schema.options.map((option) => option.value))
+        // A variant can drop a dependent field (a size with no fit data has no Fit).
+        const schema = options[key]
+        if (schema?.kind === 'enum') add(key, schema.options.map((option) => option.value))
       }
     }
     for (const [key, schema] of Object.entries(base)) {
@@ -526,6 +551,13 @@ export function paramsSchemaFor(op, ops = kernelRegistry) {
   for (const [key, value] of Object.entries(defaults)) {
     if (key === 'center') continue
     properties[key] = propertyFromDefault(op, key, value, enums.get(key))
+  }
+  // A Library choice whose values are terse ids (`woodFlat`) says what each one is, by the
+  // label the row shows (`TODO/core-060`: the model should know the fastener types exist).
+  const choice = entry.ui.choice
+  if (choice && properties[choice.param]?.enum && choice.options.some((option) => option.label !== String(option.value))) {
+    const meanings = choice.options.map((option) => `${String(option.value)} = ${option.label}`).join('; ')
+    properties[choice.param] = { ...properties[choice.param], description: `${labelForParam(choice.param)}. One of the listed values: ${meanings}.` }
   }
   for (const [key, values] of enums) {
     if (!(key in properties)) properties[key] = { type: typeof values[0] === 'number' ? 'number' : 'string', description: `${labelForParam(key)}. One of the listed values.`, enum: values }

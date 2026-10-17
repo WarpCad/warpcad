@@ -322,22 +322,27 @@ test('a Pi 4 with nothing attached becomes a Pi 5 in place: no dialog, same body
   await expect(page.getByTestId('inspector-param-model')).toHaveValue('4')
 })
 
-test('a Bolt: spec and fit are dropdowns, fit lists the chosen spec’s own fits, and length is editable', async ({ page }) => {
+test('a legacy Bolt: type, size and fit are dropdowns, fit lists the chosen spec’s own fits, and length is editable', async ({ page }) => {
   await storeApi(page).run((api) => {
     api.documentStore.append({ id: 'bolt', op: 'hardware.bolt', name: 'Bolt 1', params: { spec: 'm10 hex', length: 12, fit: 'close' } })
   })
   await expectBodyCount(page, 1)
   await selectFromList(page, 'bolt')
+  const type = page.getByTestId('inspector-param-type')
   const spec = page.getByTestId('inspector-param-spec')
   const fit = page.getByTestId('inspector-param-fit')
+  await expect(type).toHaveJSProperty('tagName', 'SELECT')
   await expect(spec).toHaveJSProperty('tagName', 'SELECT')
   await expect(fit).toHaveJSProperty('tagName', 'SELECT')
-  await expect(spec).toHaveValue('m10 hex')
+  // A saved `m10 hex` reads as Type hex, Size m10 (TODO/core-060); opening it rewrote nothing.
+  await expect(type).toHaveValue('hex')
+  await expect(spec).toHaveValue('m10')
   const specVolume = (await sceneBodies(page))[0].volume
 
-  await spec.selectOption('1/4 socket')
+  await type.selectOption('socket')
+  await spec.selectOption('1/4')
   await expect(page.getByTestId('repair-dialog')).toHaveCount(0)
-  await expect(spec).toHaveValue('1/4 socket')
+  await expect(spec).toHaveValue('1/4')
   // Read off `boltSpecs['1/4 socket'].fitDiameterMm` — its own row, not a shared list.
   const fits = await page.evaluate(async () => {
     const { boltSpecs } = await import('/src/core/kernel/tables/bolt-specs.js')

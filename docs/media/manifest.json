@@ -224,20 +224,20 @@
   "bom-updates.gif": {
     "spec": "e2e/docs/bill-of-materials.docs.js",
     "specHash": "3689ca84d12860213a52ffe0b013ecae3e67991a43d12e0742374b44be867f1b",
-    "bytes": 1244671,
-    "seconds": 11.4
+    "bytes": 1172392,
+    "seconds": 9.1
   },
   "hardware-drag-bolt.gif": {
     "spec": "e2e/docs/hardware-library.docs.js",
-    "specHash": "3b21cd8992aa2df2d79fb9784409cb2192dd4e32e3656922e5b8e0dfa6295958",
-    "bytes": 1139103,
-    "seconds": 9.3
+    "specHash": "3eccffffddd7f77567906256e47b102251b7af17e1e51dac7c92aa4257a44a02",
+    "bytes": 1217259,
+    "seconds": 9.2
   },
   "rpi-mounting-holes.gif": {
     "spec": "e2e/docs/hardware-library.docs.js",
-    "specHash": "3b21cd8992aa2df2d79fb9784409cb2192dd4e32e3656922e5b8e0dfa6295958",
-    "bytes": 646756,
-    "seconds": 10.26
+    "specHash": "3eccffffddd7f77567906256e47b102251b7af17e1e51dac7c92aa4257a44a02",
+    "bytes": 583633,
+    "seconds": 9.01
   },
   "timeline-edit-step.gif": {
     "spec": "e2e/docs/timeline.docs.js",

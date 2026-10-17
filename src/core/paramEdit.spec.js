@@ -436,15 +436,18 @@ describe('compositeParamEditRecord — the replace-path edit of a composite (TOD
       id: 'bolt-1',
       op: 'hardware.bolt',
       name: 'Bolt 1',
-      params: { spec: '1/4 socket', length: 12, fit: 'loose' },
+      // TODO/core-060: the first edit of a legacy bolt writes the normalised shape.
+      params: { type: 'socket', spec: '1/4', length: 12, fit: 'loose' },
     })
   })
 
   it('rejects an enum value outside the schema by name — the MCP surface cannot write an invalid model', async () => {
     const { compositeParamEditRecord } = await import('./paramEdit.js')
     const document = await boltDocument()
-    expect(() => compositeParamEditRecord(document, 'bolt-1', { spec: 'm2.5 hex' })).toThrow(/m2\.5 hex/)
-    expect(() => compositeParamEditRecord(document, 'bolt-1', { spec: 'm2.5 hex' })).toThrow(/m10 hex/)
+    // Read in the normalised shape (TODO/core-060): there is no m2.5 hex head, and hex
+    // offers m10 and up.
+    expect(() => compositeParamEditRecord(document, 'bolt-1', { spec: 'm2.5 hex' })).toThrow(/spec "m2\.5" is not one of/)
+    expect(() => compositeParamEditRecord(document, 'bolt-1', { spec: 'm2.5 hex' })).toThrow(/"m10"/)
     expect(() => compositeParamEditRecord(document, 'bolt-1', { fit: 'snug' })).toThrow(/fit.*snug/)
   })
 
@@ -467,6 +470,26 @@ describe('compositeParamEditRecord — the replace-path edit of a composite (TOD
     const { compositeParamEditRecord } = await import('./paramEdit.js')
     const document = await boltDocument()
     expect(compositeParamEditRecord(document, 'bolt-1', { spec: 'm10 hex' })).toBeNull()
+  })
+
+  it('the first edit of a legacy bolt writes the new shape — one ordinary edit, nothing migrated on load (TODO/core-060)', async () => {
+    const { compositeParamEditRecord } = await import('./paramEdit.js')
+    const document = await boltDocument()
+    expect(document.recordOf('bolt-1')?.params).toEqual({ spec: 'm10 hex', length: 20, fit: 'loose' })
+    expect(compositeParamEditRecord(document, 'bolt-1', { length: 30 })?.params).toEqual({ type: 'hex', spec: 'm10', length: 30, fit: 'loose' })
+  })
+
+  it('a Type change rebuilds in place: a Size the Type lacks falls back to its default, Fit to its default (TODO/core-060)', async () => {
+    const { compositeParamEditRecord } = await import('./paramEdit.js')
+    const document = await boltDocument({ type: 'socket', spec: 'm3', length: 10, fit: 'loose' })
+    expect(compositeParamEditRecord(document, 'bolt-1', { type: 'woodFlat' })?.params).toEqual({ type: 'woodFlat', spec: '#8', length: 10, fit: 'softwood' })
+    expect(compositeParamEditRecord(document, 'bolt-1', { type: 'flat' })?.params).toEqual({ type: 'flat', spec: 'm3', length: 10, fit: 'loose' })
+  })
+
+  it('an explicitly named Size the Type lacks is refused by name, not coerced (TODO/core-060)', async () => {
+    const { compositeParamEditRecord } = await import('./paramEdit.js')
+    const document = await boltDocument({ type: 'socket', spec: 'm3', length: 10, fit: 'loose' })
+    expect(() => compositeParamEditRecord(document, 'bolt-1', { type: 'pan', spec: 'm10' })).toThrow(/spec "m10" is not one of .*"m4"/)
   })
 
   it('refuses a composite with no schema, and a primitive (which has its own builder, paramEditRecord)', async () => {

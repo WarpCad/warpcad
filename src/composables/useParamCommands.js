@@ -53,7 +53,7 @@ import { toRaw } from 'vue'
 import { brokenDependentsOf, impactOf } from '../core/dependents.js'
 import { evaluate } from '../core/kernel/index.js'
 import { isGroup } from '../core/kernel/group.js'
-import { lookupEntry, paramOptions, registry } from '../core/kernel/registry.js'
+import { lookupEntry, normalizedParams, paramOptions, registry } from '../core/kernel/registry.js'
 import { canEditParams, compositeParamEditRecord, paramEditRecord, currentParamsOf, withComponent } from '../core/paramEdit.js'
 import { nameOverrideOf } from '../core/naming.js'
 import { repairChanges } from '../core/repair.js'
@@ -111,7 +111,10 @@ export function useParamCommands() {
    */
   function setCompositeParams(bodyId, values) {
     const raw = live()
-    const before = raw.recordOf(bodyId)?.params ?? {}
+    const root = raw.recordOf(bodyId)
+    // Read in the op's current shape (TODO/core-060), as the edit is: a legacy bolt's
+    // Type change is from `hex`, not from `undefined`, for Only when….
+    const before = root === undefined ? {} : normalizedParams(root.op, root.params ?? {})
     const record = compositeParamEditRecord(raw, bodyId, values)
     if (record === null) return { committed: true }
     const changes = [{ id: bodyId, record }]

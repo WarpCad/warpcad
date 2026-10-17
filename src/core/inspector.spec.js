@@ -411,15 +411,17 @@ describe('describeBody', () => {
     )
     const description = describeBody(document.bodies()[0])
 
-    // The row's own label, not the registry key — the panel offers "Bolt".
-    expect(description.opLabel).toBe('Bolt')
+    // The row's own label, not the registry key — the panel offers "Bolt / screw"
+    // (TODO/core-060, the user's label).
+    expect(description.opLabel).toBe('Bolt / screw')
     // The registry schema's key order, which is the order the row's defaults
-    // name them in, rather than whatever order the record happens to carry.
-    expect(description.params.map((field) => field.key)).toEqual(['spec', 'length', 'fit'])
+    // name them in, rather than whatever order the record happens to carry. A legacy
+    // record reads in the current shape (TODO/core-060).
+    expect(description.params.map((field) => field.key)).toEqual(['type', 'spec', 'length', 'fit'])
     // `ui-052`: a catalogue choice is an enum with its own options, not read-only text.
     const spec = present(description.params.find((field) => field.key === 'spec'))
     expect(spec.kind).toBe('enum')
-    expect(spec.value).toBe('m10 hex')
+    expect(spec.value).toBe('m10')
   })
 
   it('reports a recipe s own recipe colour for a single-visible-part composite, whole-body (TODO/render-003)', () => {
@@ -805,15 +807,30 @@ describe('describeBody — editable composite params (TODO/ui-052)', () => {
     })
   })
 
-  it('a bolt\'s spec and fit are enums and its length a number', () => {
+  it('a bolt\'s type, spec and fit are enums and its length a number — a legacy record read in the new shape (TODO/core-060)', () => {
     const document = createDocument()
     document.append({ id: 'bolt-1', op: 'hardware.bolt', name: 'Bolt 1', params: { spec: 'm10 hex', length: 20, fit: 'loose' } }, LOCAL)
-    const kinds = describeBody(document.bodies()[0]).params.map((field) => [field.key, field.kind])
-    expect(kinds).toEqual([
+    const fields = describeBody(document.bodies()[0]).params
+    expect(fields.map((field) => [field.key, field.kind])).toEqual([
+      ['type', 'enum'],
       ['spec', 'enum'],
       ['length', 'number'],
       ['fit', 'enum'],
     ])
+    expect(present(fields.find((field) => field.key === 'type'))).toMatchObject({ label: 'Type', value: 'hex' })
+    expect(present(fields.find((field) => field.key === 'spec'))).toMatchObject({ label: 'Size', value: 'm10' })
+    // Read, never rewritten: the record on disk keeps its legacy shape until an edit.
+    expect(document.recordOf('bolt-1')?.params).toEqual({ spec: 'm10 hex', length: 20, fit: 'loose' })
+  })
+
+  it('a wood screw\'s Fit offers clearance, hardwood and softwood; a gauge with no chart row has no Fit (TODO/core-060)', () => {
+    const document = createDocument()
+    document.append({ id: 'bolt-1', op: 'hardware.bolt', name: 'Bolt / screw 1', params: { type: 'woodFlat', spec: '#8', length: 25, fit: 'softwood' } }, LOCAL)
+    document.append({ id: 'bolt-2', op: 'hardware.bolt', name: 'Bolt / screw 2', params: { type: 'woodFlat', spec: '#16', length: 25 } }, LOCAL)
+    const [eight, sixteen] = document.bodies().map((body) => describeBody(body).params)
+    const fit = present(eight.find((field) => field.key === 'fit'))
+    expect(present(fit.options).map((option) => option.value)).toEqual(['clearance', 'hardwood', 'softwood'])
+    expect(sixteen.map((field) => field.key)).toEqual(['type', 'spec', 'length'])
   })
 
   it('a composite with no schema keeps its read-only text fields', () => {

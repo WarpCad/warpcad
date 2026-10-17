@@ -183,12 +183,22 @@ describe('paramsSchemaFor — op params as JSON Schema, derived from the registr
     const pi = paramsSchemaFor('raspberrypi.bplus').schema.properties ?? {}
     expect(pi.model?.enum).toEqual([2, 3, 4, 5])
     const bolt = paramsSchemaFor('hardware.bolt').schema.properties ?? {}
-    expect(bolt.spec?.enum).toContain('m10 hex')
-    // A bolt's valid fits depend on its spec; the schema offers every fit any spec
-    // has, and the trial fold judges the pairing.
-    expect(bolt.fit?.enum).toContain('loose')
+    // TODO/core-060: one fastener op — a Type, then a bare Size.
+    expect(bolt.type?.enum).toEqual(['socket', 'hex', 'pan', 'flat', 'woodPan', 'woodFlat'])
+    // Sizes depend on the type; the schema offers every size some type has.
+    expect(bolt.spec?.enum).toEqual(expect.arrayContaining(['m10', 'm2.5', '1/4', 'm4', '#8', '#16']))
+    expect(bolt.spec?.enum).not.toContain('m10 hex')
+    // A bolt's valid fits depend on its type and size; the schema offers every fit any
+    // pairing has — wood screws' too — and the trial fold judges the pairing.
+    expect(bolt.fit?.enum).toEqual(expect.arrayContaining(['tap', 'close', 'loose', 'clearance', 'hardwood', 'softwood']))
     // A schema-known param the defaults omit (the Pi's clearance) is still offered.
     expect(pi.clearance?.type).toBe('number')
+  })
+
+  it('tells the model what each fastener Type is, by its Library label (TODO/core-060)', () => {
+    const type = (paramsSchemaFor('hardware.bolt').schema.properties ?? {}).type
+    expect(type?.description).toMatch(/woodFlat = Wood screw, flat head/)
+    expect(type?.description).toMatch(/pan = Pan head/)
   })
 
   it('accepts every op’s own defaults — the schema cannot refuse what the Library itself places', () => {

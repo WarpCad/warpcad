@@ -66,10 +66,39 @@
  * three `tap-*` parts red — measured from V1's own output in
  * `hardware.bolt.v1-reference.json`, not just read.
  *
+ * ## One fastener op: `type` (TODO/core-060)
+ *
+ * `hardware.bolt` is the project's single fastener function — the Library's **Bolt /
+ * screw** row. Its params are `{ type, spec, length, fit? }`, `spec` being the bare
+ * size (`'m2.5'`, `'#8'`, `'1/4'`) and `type` one of {@link FASTENER_TYPES}:
+ *
+ * - `socket`, `hex` — the bolts above, **through exactly the same code path**: the size
+ *   and type are rejoined into the `boltSpecs` key (`'m10'` + `'hex'` → `'m10 hex'`), so
+ *   a new-shape hex bolt and a saved `m10 hex` expand to the same bytes.
+ * - `pan`, `flat`, `woodPan`, `woodFlat` — screws, built by `fastener-geometry.js`, the
+ *   head-and-thread builder `hardware.screw` also uses: a cylinder head for pan, a cone
+ *   head (the countersunk shape) for flat. A size with fit data adds the same hidden
+ *   `tap-head` / `tap-thread` / `tap-headClearSpace` / `tap` parts a bolt has, so part
+ *   names survive a Type change. For `flat`, `tap-head` is the head cone grown by the
+ *   clearance — the countersink a user subtracts.
+ * - A wood screw's fits are holes from a published pilot-hole chart
+ *   (`tables/wood-screw-holes.js`): `clearance`, `hardwood`, `softwood` (the default).
+ *   Its `tap-thread` is the chosen hole itself — a pilot is narrower than the thread —
+ *   and its `tap-head` is grown by the `clearance` hole's clearance whatever the fit.
+ * - A size with no fit data builds `head` and `thread` only, and refuses a `fit`.
+ *
+ * **Legacy shapes are read, never rewritten.** A record with no `type` is the pre-core-060
+ * shape (`{ spec: 'm10 hex' }`) and takes the original path untouched, wording of its
+ * refusals included. {@link normalizeBoltParams} is the one function every consumer —
+ * this recipe, the param schema, the BOM, the edit path, the Inspector — uses to read it
+ * in the new shape; only an edit writes that shape back (`paramEdit.js`).
+ *
  * @module core/kernel/recipes/hardware.bolt
  */
 
 import { v1ColorToRecord } from '../colors.js'
+import { FASTENER_TYPES } from '../tables/fastener-specs.js'
+import { headAndThread, placed } from './fastener-geometry.js'
 
 /** @typedef {import('../tables/bolt-specs.js').BoltSpec} BoltSpec */
 /** @typedef {import('../registry.js').OpRecord} OpRecord */
@@ -128,7 +157,202 @@ function prismRecords({ id, op, diameterMm, heightMm, baseZMm, name, hidden, v1C
 }
 
 /**
+ * Read a `hardware.bolt`'s params in the new `{ type, spec }` shape.
+ *
+ * A `spec` that carries a head suffix — `'m10 hex'`, `'1/4 socket'` — is split on its last
+ * space, and the suffix becomes `type`. New sizes never contain a space, so a suffix is
+ * unambiguous and wins over any `type` already present (an edit that sets a legacy spec
+ * on a new-shape record). Anything else — a new-shape record, a bound (`{ $var }`) spec,
+ * an unrecognised suffix — comes back as the **same object**, untouched.
+ *
+ * Pure: never mutates `params`.
+ *
+ * @param {Record<string, any>} params
+ * @returns {Record<string, any>}
+ */
+export function normalizeBoltParams(params) {
+  const spec = params?.spec
+  if (typeof spec !== 'string') return params
+  const space = spec.lastIndexOf(' ')
+  if (space === -1) return params
+  const suffix = spec.slice(space + 1)
+  if (suffix !== 'socket' && suffix !== 'hex') return params
+  const { spec: _spec, type: _type, ...rest } = params
+  return { type: suffix, spec: spec.slice(0, space), ...rest }
+}
+
+/**
+ * The fit a fastener of `type` takes when its record names none: `'loose'` for machine
+ * screws and bolts (V1 `Hardware.Bolt`'s own default), `'softwood'` for wood screws — the
+ * pilot closest to a printed-plastic boss, this app's common case.
+ *
+ * @param {string} type
+ * @returns {string}
+ */
+export function defaultFitFor(type) {
+  return type === 'woodPan' || type === 'woodFlat' ? 'softwood' : 'loose'
+}
+
+/**
+ * The head style a screw Type draws: a cone for the flat (countersunk) heads, a cylinder
+ * otherwise.
+ *
+ * @param {string} type
+ * @returns {import('./fastener-geometry.js').ScrewHead}
+ */
+function screwHeadOf(type) {
+  return type === 'flat' || type === 'woodFlat' ? 'FlatHead' : 'PanHead'
+}
+
+/**
+ * @typedef {object} BoltTables
+ * @property {Readonly<Record<string, BoltSpec>>} boltSpecs The legacy-keyed bolt table.
+ * @property {Readonly<Record<string, Readonly<Record<string, import('../tables/fastener-specs.js').FastenerSpec>>>>} [fastenerSpecs]
+ *   Sizes per Type; needed only for the screw Types.
+ */
+
+/**
  * Expand a `hardware.bolt` document line into the op records that define it.
+ *
+ * @param {object} params
+ * @param {string} [params.type] One of {@link FASTENER_TYPES}. Absent: the legacy shape,
+ *   where `spec` is a `boltSpecs` key like `'m10 hex'`.
+ * @param {string} params.spec The size (`'m3'`, `'#8'`), or a legacy `boltSpecs` key.
+ * @param {number} params.length Thread length in millimetres; must be positive.
+ * @param {string} [params.fit] Fit class; see {@link defaultFitFor} for the default.
+ * @param {number} [params.segments] Cylinder segment count. Omitted: the design
+ *   resolution decides (`TODO/core-035`).
+ * @param {BoltTables} tables Size tables.
+ * @returns {OpRecord[]} Op records in the same schema the document stores.
+ */
+export function bolt(params, tables) {
+  // The pre-core-060 shape takes the original path, untouched — refusals included.
+  if (params.type === undefined) return machineBolt(params, tables)
+
+  const normal = normalizeBoltParams(params)
+  const { type, spec } = normal
+  if (!FASTENER_TYPES.includes(/** @type {any} */ (type))) {
+    throw new Error(`hardware.bolt: unknown type "${type}", expected one of ${FASTENER_TYPES.join(' | ')}`)
+  }
+  if (type === 'socket' || type === 'hex') {
+    const sizes = Object.keys(tables.boltSpecs)
+      .filter((key) => key.endsWith(` ${type}`))
+      .map((key) => key.slice(0, -type.length - 1))
+    if (!sizes.includes(spec)) throw unknownSize(type, spec, sizes)
+    return machineBolt(/** @type {{ spec: string, length: number }} */ ({ ...normal, spec: `${spec} ${type}` }), tables)
+  }
+  return screwBolt(/** @type {{ type: string, spec: string, length: number }} */ (normal), tables)
+}
+
+/**
+ * @param {string} type
+ * @param {unknown} spec
+ * @param {readonly string[]} sizes
+ * @returns {Error}
+ */
+function unknownSize(type, spec, sizes) {
+  return new Error(`hardware.bolt: unknown ${type} size "${spec}", expected one of ${sizes.join(' | ')}`)
+}
+
+/**
+ * @param {unknown} length
+ * @returns {void}
+ */
+function requireLength(length) {
+  if (typeof length !== 'number' || !Number.isFinite(length) || length <= 0) {
+    throw new Error(`hardware.bolt: length must be a positive number of millimetres, got ${length}`)
+  }
+}
+
+/**
+ * A pan, flat or wood screw: head and thread from the shared builder, plus the hidden
+ * clearance parts when the size has fit data.
+ *
+ * @param {{ type: string, spec: string, length: number, fit?: string, segments?: number }} params
+ * @param {BoltTables} tables
+ * @returns {OpRecord[]}
+ */
+function screwBolt({ type, spec, length, fit, segments }, tables) {
+  const rows = tables.fastenerSpecs?.[type] ?? {}
+  if (typeof spec !== 'string' || !Object.hasOwn(rows, spec)) throw unknownSize(type, spec, Object.keys(rows))
+  requireLength(length)
+
+  const entry = rows[spec]
+  const head = screwHeadOf(type)
+  const { headDiameterMm, headHeightMm, bodyDiameterMm } = entry
+  const metal = headAndThread({
+    head,
+    headDiameterMm,
+    headTopDiameterMm: bodyDiameterMm,
+    headHeightMm,
+    threadDiameterMm: bodyDiameterMm,
+    lengthMm: length,
+    segments,
+  })
+
+  const fits = entry.fitDiameterMm
+  if (fits === undefined) {
+    if (fit !== undefined) {
+      throw new Error(`hardware.bolt: ${type} ${spec} has no fit data, so it takes no fit — got "${fit}"`)
+    }
+    return metal
+  }
+  const chosen = fit ?? defaultFitFor(type)
+  const holeMm = Object.hasOwn(fits, chosen) ? fits[chosen] : undefined
+  if (typeof holeMm !== 'number') {
+    throw new Error(`hardware.bolt: unknown fit "${chosen}", expected one of ${Object.keys(fits).join(' | ')}`)
+  }
+
+  // A bolt grows its head by the fit's own clearance (V1 `bolt[fit] - bolt.E`). A wood
+  // screw's head always passes through the piece being fastened down, so it grows by the
+  // `clearance` hole's clearance whichever pilot the thread gets.
+  const growthMm = (type === 'woodPan' || type === 'woodFlat' ? fits.clearance : holeMm) - bodyDiameterMm
+  const tapHeadHeightMm = headHeightMm + growthMm
+
+  return [
+    ...metal,
+    ...headAndThread({
+      head,
+      headDiameterMm: headDiameterMm + growthMm,
+      headTopDiameterMm: bodyDiameterMm + growthMm,
+      headHeightMm: tapHeadHeightMm,
+      // The hole itself, not a growth of the thread: a pilot is narrower than the thread.
+      threadDiameterMm: holeMm,
+      lengthMm: length,
+      prefix: 'tap-',
+      hidden: true,
+      headColor: 'red',
+      threadColor: 'red',
+      segments,
+    }),
+    ...placed({
+      id: 'tap-headClearSpace',
+      op: 'primitive.cylinder',
+      params:
+        segments === undefined
+          ? { diameter: headDiameterMm + growthMm, height: length }
+          : { diameter: headDiameterMm + growthMm, height: length, segments },
+      heightMm: length,
+      // Tops flush with the clearance head, as on a bolt.
+      baseZMm: tapHeadHeightMm - length,
+      name: 'tap-headClearSpace',
+      hidden: true,
+      v1Color: 'red',
+    }),
+    {
+      id: 'tap',
+      op: 'boolean.union',
+      params: {},
+      operands: ['tap-head', 'tap-thread'],
+      name: 'tap',
+      hidden: true,
+      ...v1ColorToRecord('red'),
+    },
+  ]
+}
+
+/**
+ * The socket/hex bolt — the original `hardware.bolt` expansion, byte for byte.
  *
  * @param {object} params
  * @param {string} params.spec Key into `tables.boltSpecs`, e.g. `'m10 hex'`.
@@ -141,7 +365,7 @@ function prismRecords({ id, op, diameterMm, heightMm, baseZMm, name, hidden, v1C
  * @param {{ boltSpecs: Readonly<Record<string, BoltSpec>> }} tables Size tables.
  * @returns {OpRecord[]} Op records in the same schema the document stores.
  */
-export function bolt(params, tables) {
+function machineBolt(params, tables) {
   const { spec, length, fit = 'loose', segments } = params
 
   const entry = tables.boltSpecs[spec]

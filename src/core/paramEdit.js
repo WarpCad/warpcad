@@ -49,7 +49,7 @@
  * @module core/paramEdit
  */
 
-import { hasEditableParams, lookupEntry, paramOptions } from './kernel/registry.js'
+import { hasEditableParams, lookupEntry, normalizedParams, paramOptions, reconcileParamEdit } from './kernel/registry.js'
 
 /** @typedef {import('./document.js').WarpDocument} WarpDocument */
 /** @typedef {import('./kernel/registry.js').OpRecord} OpRecord */
@@ -612,6 +612,15 @@ function requireSchemaParams(op, params, changedKeys) {
  * surface and any other caller that skips the Inspector's dropdown still cannot write a
  * model the recipe does not have.
  *
+ * The edit applies to the params **read in the op's current shape** (`normalizedParams`,
+ * `TODO/core-060`), so the first edit of a legacy `{ spec: 'm10 hex' }` bolt writes
+ * `{ type: 'hex', spec: 'm10', ... }` — one ordinary edit and one Undo step; a document is
+ * never migrated just by opening it. Values the edit did not name are then brought in
+ * line with the ones it did (`reconcileParamEdit`: a fastener's Type change falls back to
+ * that Type's default Size and Fit where the old ones do not exist). An edit that ends up
+ * changing nothing — `{ spec: 'm10 hex' }` on that same legacy bolt — returns `null` and
+ * writes nothing, legacy shape included.
+ *
  * @param {WarpDocument} document
  * @param {string} bodyId Lineage root id — the composite's own creation record.
  * @param {Record<string, unknown>} changes
@@ -629,16 +638,17 @@ export function compositeParamEditRecord(document, bodyId, changes) {
         'only a described composite is edited in place'
     )
   }
-  const current = root.params ?? {}
+  const current = normalizedParams(root.op, root.params ?? {})
   /** @type {Record<string, any>} */
-  const params = { ...current }
-  let changed = false
+  const merged = { ...current }
   for (const [key, value] of Object.entries(changes)) {
     if (sameValue(current[key], value)) continue
-    params[key] = Array.isArray(value) ? value.slice() : value
-    changed = true
+    merged[key] = Array.isArray(value) ? value.slice() : value
   }
-  requireSchemaParams(root.op, params, Object.keys(changes))
-  if (!changed) return null
+  const changedKeys = Object.keys(changes)
+  // A change may itself be spelled in an earlier shape (an MCP caller's `'1/4 socket'`).
+  const params = reconcileParamEdit(root.op, normalizedParams(root.op, merged), changedKeys)
+  requireSchemaParams(root.op, params, changedKeys)
+  if (sameValue(current, params)) return null
   return { ...root, params }
 }

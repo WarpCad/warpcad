@@ -695,6 +695,14 @@ describe('bindableParams — what the bind control may offer, read from the regi
     expect(slots.find((slot) => slot.path === 'fit')?.dependsOn).toEqual(['spec'])
   })
 
+  it('a new-shape bolt offers type, spec, length and fit; fit follows type and spec, spec follows type (TODO/core-060)', () => {
+    const slots = bindableParams('hardware.bolt', { type: 'flat', spec: 'm3', length: 10, fit: 'close' })
+    expect(slots.map((slot) => `${slot.path}:${slot.kind}`)).toEqual(['type:enum', 'spec:enum', 'length:number', 'fit:enum'])
+    expect(slots.find((slot) => slot.path === 'fit')?.dependsOn).toEqual(['type', 'spec'])
+    expect(slots.find((slot) => slot.path === 'spec')?.dependsOn).toEqual(['type'])
+    expect(slots.find((slot) => slot.path === 'type')?.dependsOn).toBeUndefined()
+  })
+
   it('a described composite offers a boolean literal too', () => {
     expect(paths('raspberrypi.cameraModule', { model: 'hq', flipTripodMount: false })).toEqual(['model:enum', 'flipTripodMount:boolean'])
   })

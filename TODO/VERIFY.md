@@ -34,6 +34,18 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### core-060 — One Bolt / screw row with a Type dropdown (2026-10-17 UTC)
+
+Visual and feel checks the scenarios do not cover, plus one deliberate gap.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | The Library row's **Type** dropdown clips its longest label ("Wood screw, flat head" reads "Wood screw, fla" in the 197 px Library column). Decide whether to widen the column, shorten the labels or let it wrap | Open | |
+| 2 | `docs/screenshots/hardware-screw-family.png` still shows the last-dropped screw's gizmo and highlight, and the six screws are small. Judge whether it reads as "six types side by side" | Open | |
+| 3 | The History row **Edit** form still shows a legacy `hardware.bolt`'s old **Spec** form (`m10 hex`), not Type + Size; submitting writes the new shape. Decide whether that is acceptable or worth a task | Open | |
+| 4 | The BOM line for a bolt whose Size or Fit is bound to a variable drops the size (`Bolt / screw hex × 20 mm`), because the bound value is not a string. Same as before core-060; decide whether the BOM should show the resolved value | Open | |
+
+
 ### ai-023 — Agent-neutral timed live MCP access (2026-10-16 19:11)
 
 Scenario 25 covers the lease, writes, undo, off and phone reachability. These are what it cannot

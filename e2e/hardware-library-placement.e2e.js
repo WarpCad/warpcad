@@ -157,7 +157,7 @@ test('the Library panel shows a Hardware section with all four fastener rows', a
   const labels = await page.$$eval('[data-testid="library-rows-hardware"] [data-op]', (nodes) =>
     nodes.map((node) => node.getAttribute('data-label')),
   )
-  expect(labels).toEqual(['Bolt', 'Nut', 'Washer', 'Bearing'])
+  expect(labels).toEqual(['Bolt / screw', 'Nut', 'Washer', 'Bearing'])
   await expect(page.getByTestId('library-heading-hardware')).toHaveText('Hardware')
 
   // Creation and operation stay separate lists, and so do the two creation
@@ -180,7 +180,7 @@ test('dragging Bolt into the viewport places it at the drop point, not at the or
   await expect(viewport).toHaveAttribute('data-body-count', '1')
   const [bolt] = await sceneBodies(page)
   expect(bolt.op).toBe('hardware.bolt')
-  expect(bolt.name).toBe('Bolt 1')
+  expect(bolt.name).toBe('Bolt / screw 1')
   // The regression this whole task's Option 2 exists to prevent: a composite
   // committed at the recipe's own internal origin however far it was dragged.
   const [x, y, z] = centerParts(bolt.center)
@@ -207,7 +207,7 @@ test('two hardware rows dropped at different points land at different places', a
 
   expect(afterSecond).toHaveLength(2)
   expect(afterSecond.map((body) => body.op)).toEqual(['hardware.bolt', 'hardware.bearing'])
-  expect(afterSecond.map((body) => body.name)).toEqual(['Bolt 1', 'Bearing 1'])
+  expect(afterSecond.map((body) => body.name)).toEqual(['Bolt / screw 1', 'Bearing 1'])
   // Unmoved, not merely still listed — ACCEPTANCE scenario 1's own claim, on the
   // path that commits two records per drop instead of one.
   expect(afterSecond[0].id).toBe(afterFirst[0].id)
@@ -235,7 +235,7 @@ test('a composite placed after a primitive leaves the primitive alone (core-020 
   expect(bodies[0].id).toBe(cube.id)
   expect(bodies[0].name).toBe('Cube 1')
   expect(bodies[0].center).toBe(cube.center)
-  expect(bodies[1].name).toBe('Bolt 1')
+  expect(bodies[1].name).toBe('Bolt / screw 1')
 })
 
 test('every hardware row places its own kind of part', async ({ page }) => {
@@ -269,7 +269,7 @@ test('selecting a placed bolt shows its recipe parameters, editable (TODO/ui-052
   await expect(params).toBeVisible()
   // Read-only until `ui-052`, which gave `spec`/`fit` the dropdown `ui-029` scoped out and
   // made `length` an ordinary editable number (`composite-param-edit.e2e.js` drives them).
-  for (const key of ['spec', 'fit']) {
+  for (const key of ['type', 'spec', 'fit']) {
     const field = page.getByTestId(`inspector-param-${key}`)
     await expect(field).toBeVisible()
     await expect(field).toHaveJSProperty('tagName', 'SELECT')
@@ -279,7 +279,8 @@ test('selecting a placed bolt shows its recipe parameters, editable (TODO/ui-052
   await expect(length).toBeVisible()
   await expect(length).not.toHaveAttribute('readonly', '')
   await expect(params).toHaveAttribute('data-editable', 'true')
-  await expect(page.getByTestId('inspector-param-spec')).toHaveValue('m10 hex')
+  await expect(page.getByTestId('inspector-param-type')).toHaveValue('hex')
+  await expect(page.getByTestId('inspector-param-spec')).toHaveValue('m10')
   await expect(length).toHaveValue('20')
 })
 
@@ -289,14 +290,20 @@ test('a placed bolt offers the small metric sizes, and picking one updates the B
   await closeLibrary(page)
 
   const spec = page.getByTestId('inspector-param-spec')
-  const values = await spec.locator('option').evaluateAll((options) => options.map((o) => /** @type {HTMLOptionElement} */ (o).value))
+  const optionValues = () =>
+    spec.locator('option').evaluateAll((options) => options.map((o) => /** @type {HTMLOptionElement} */ (o).value))
+  // The Size list follows the Type (core-060): the default hex head offers the hex sizes, including the
+  // imperial 1/4, and the metric socket sizes appear once Type is Socket cap.
+  expect(await optionValues()).toContain('1/4')
+  await page.getByTestId('inspector-param-type').selectOption('socket')
+  const values = await optionValues()
   // Sizes that did not exist before core-052 (the table had m10 hex, m12 hex, 1/4 socket).
-  for (const size of ['m2 socket', 'm2.5 socket', 'm3 socket', '1/4 hex']) expect(values).toContain(size)
+  for (const size of ['m2', 'm2.5', 'm3', '1/4']) expect(values).toContain(size)
   // Numeric order, not lexicographic: m2 comes before m10.
-  expect(values.indexOf('m2 socket')).toBeLessThan(values.indexOf('m10 socket'))
+  expect(values.indexOf('m2')).toBeLessThan(values.indexOf('m10'))
 
-  await spec.selectOption('m2.5 socket')
-  await expect(spec).toHaveValue('m2.5 socket')
+  await spec.selectOption('m2.5')
+  await expect(spec).toHaveValue('m2.5')
   await expect(page.getByTestId('bom-row')).toContainText('M2.5 socket')
   await expect(page.getByTestId('bom-row')).toContainText('20 mm')
 })

@@ -9,6 +9,7 @@ import { hexToUnitRgb } from '../colors.js'
 import { SCREW_HEADS, screw } from './hardware.screw.js'
 
 import v1Reference from './__fixtures__/hardware.screw.v1-reference.json'
+import oracle from './__fixtures__/fasteners.legacy-oracle.json'
 
 const { measurements } = modeling
 
@@ -191,5 +192,22 @@ describe('BOM convention (documented for TODO/ui-038, consumed by nothing yet)',
     // `Hardware.Bolt(length, bolt, fit, BOM)` writes `${bolt.name} - ${cm(length)}`.
     // The recipe's module doc records this so ui-038 does not go looking for one.
     expect(screw.length).toBe(2)
+  })
+})
+
+describe('byte-identical after the shared fastener builder was extracted (TODO/core-060)', () => {
+  // The oracle is the recipe's output pinned *before* `fastener-geometry.js` existed.
+  it.each(oracle.screw.map((testCase) => [JSON.stringify(testCase.params), testCase]))('hardware.screw %s', (_label, testCase) => {
+    expect(JSON.stringify(screw(testCase.params, { screwSpecs }))).toBe(JSON.stringify(testCase.records))
+  })
+
+  it('an m4 PanHead record expands exactly as before, through the registry', () => {
+    const pinned = oracle.screw.find((testCase) => testCase.params.spec === 'm4' && testCase.params.head === undefined)
+    expect(JSON.stringify(expand('hardware.screw', { spec: 'm4', length: 16 }))).toBe(JSON.stringify(pinned?.records))
+  })
+
+  it('still has no Library row: replay-only, reached through the Bolt / screw row\'s Type', async () => {
+    const { registry } = await import('../registry.js')
+    expect(registry['hardware.screw'].ui).toBeUndefined()
   })
 })

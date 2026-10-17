@@ -105,7 +105,8 @@ describe('HARDWARE_LIBRARY — the catalogue rows a composite recipe earns (TODO
       'hardware.washer',
       'hardware.bearing',
     ])
-    expect(HARDWARE_LIBRARY.map((row) => row.label)).toEqual(['Bolt', 'Nut', 'Washer', 'Bearing'])
+    // TODO/core-060: the bolt row is the one fastener row, **Bolt / screw**.
+    expect(HARDWARE_LIBRARY.map((row) => row.label)).toEqual(['Bolt / screw', 'Nut', 'Washer', 'Bearing'])
   })
 
   it('carries the same row contract as a primitive row, plus the kind the drop branches on', () => {
@@ -243,14 +244,16 @@ describe('KIT_LIBRARY / RASPBERRYPI_LIBRARY — the rest of the catalogue (TODO/
     }
   })
 
-  it('offers a model choice on exactly the model-parameterised rows (the phone and three Pi rows), and nowhere else', () => {
+  it('offers a choice on exactly the variant rows (the fastener\'s Type, the phone and three Pi rows), and nowhere else', () => {
     // `core-014a`'s "one factory, not one draggable per revision" decision, as a
     // UI contract: one row, a choice on it — not four Pi rows and five camera
     // rows. Every other row in the whole catalogue has nothing to choose.
+    // TODO/core-060: one Bolt / screw row with a Type, not a bolt row and a screw row.
     const withChoice = [...PRIMITIVE_LIBRARY, ...HARDWARE_LIBRARY, ...KIT_LIBRARY, ...RASPBERRYPI_LIBRARY]
       .filter((row) => row.choice)
       .map((row) => row.op)
     expect(withChoice).toEqual([
+      'hardware.bolt',
       'kit.phone',
       'raspberrypi.bplus',
       'raspberrypi.cameraModule',
@@ -273,11 +276,13 @@ describe('KIT_LIBRARY / RASPBERRYPI_LIBRARY — the rest of the catalogue (TODO/
     expect(phone?.defaults.model).toBe('iphone-17-pro')
     expect(phone?.defaults.case).toBe('slim')
     expect(phone?.nameFor?.({ model: 'iphone-17-pro', case: 'slim' })).toBe('iPhone 17 Pro in Slim case')
-    // Every other row has no extra choice.
+    // Every other row has no extra choice, but the fastener's Size (TODO/core-060).
     const others = [...PRIMITIVE_LIBRARY, ...HARDWARE_LIBRARY, ...KIT_LIBRARY, ...RASPBERRYPI_LIBRARY].filter(
-      (row) => row.op !== 'kit.phone'
+      (row) => row.op !== 'kit.phone' && row.op !== 'hardware.bolt'
     )
     for (const row of others) expect(row.extraChoices, row.op).toEqual([])
+    const fastener = HARDWARE_LIBRARY.find((row) => row.op === 'hardware.bolt')
+    expect(fastener?.extraChoices.map((extra) => extra.label)).toEqual(['Size'])
   })
 
   it('offers exactly the models the recipe itself accepts, and defaults to one of them', () => {
@@ -436,7 +441,7 @@ describe('recordsForDrop — placing a composite, which has no position param (T
     expect(records).toHaveLength(2)
     const [created, moved] = records
     expect(created.op).toBe('hardware.bolt')
-    expect(created.name).toBe('Bolt 1')
+    expect(created.name).toBe('Bolt / screw 1')
     // The recipe would silently ignore a `center`, so folding the drop point in
     // there — the primitive path's shortcut — would place every bolt at the
     // recipe's own fixed origin however far the user dragged.
@@ -491,7 +496,7 @@ describe('recordsForDrop — placing a composite, which has no position param (T
 
     document.append(moved, { origin: 'local' })
     const bodies = document.bodies()
-    expect(bodies.map((body) => body.name)).toEqual(['Cube 1', 'Bolt 1'])
+    expect(bodies.map((body) => body.name)).toEqual(['Cube 1', 'Bolt / screw 1'])
     // The cube is still its own size and still 60 mm away, not swallowed.
     const [cubeMin, cubeMax] = boundsOf(bodies[0].geometry)
     expect(cubeMax[0] - cubeMin[0]).toBeCloseTo(40, 6)
@@ -577,7 +582,7 @@ describe('recordsForDrop — placing a composite, which has no position param (T
       for (const record of records) document.append(record, { origin: 'local' })
       names.push(String(records[0].name))
     }
-    expect(names).toEqual(['Bolt 1', 'Nut 1', 'Bolt 2'])
+    expect(names).toEqual(['Bolt / screw 1', 'Nut 1', 'Bolt / screw 2'])
   })
 
   it('refuses the single-record shortcut for a composite rather than misplacing it', () => {
@@ -1070,5 +1075,18 @@ describe('the Gears section (TODO/core-041) — defined here, listed once ui-057
     }
     const gears = librarySectionsFor(withUi).find((section) => section.id === 'gear')
     expect(gears?.rows.map((row) => row.op)).toEqual(['gear.spur', 'gear.bevel', 'gear.worm', 'gear.wormWheel', 'gear.pair', 'gear.bevelPair', 'gear.wormPair'])
+  })
+})
+
+describe('a Bolt / screw drag whose Type strands the row default Fit (TODO/core-060)', () => {
+  it.each([
+    ['woodPan', '#8', 'softwood'],
+    ['woodFlat', '#8', 'softwood'],
+    ['flat', 'm3', 'loose'],
+  ])('%s %s commits and ghosts with a Fit that Type has (%s)', (type, spec, fit) => {
+    const params = libraryModule.paramsForDrop('hardware.bolt', { x: 0, y: 0 }, { type, spec })
+    expect(params).toMatchObject({ type, spec, fit })
+    // The ghost's offset builds the same params; it used to throw `unknown fit "loose"`.
+    expect(() => libraryModule.ghostOffsetMm('hardware.bolt', { type, spec })).not.toThrow()
   })
 })

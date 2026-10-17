@@ -2006,3 +2006,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** gate exits 1 on stale, waits then exits 1 with no TTY, stamp check unchanged → run by hand this session; sha256 → `scripts/todo-progress.mjs`
 **To Add:** none
+
+## [2026-10-17T01:40:00Z] — One Bolt / screw part with a Type dropdown
+
+**Post:** WarpCad's bolts and screws are now one Library part. Pick a Type (socket cap, hex, pan, flat head, or a wood screw) and a Size list that only offers sizes that exist for it, then drag it in. Files saved with the old bolts open and build exactly as before.
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #OpenSource #CAD
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** six types and their size lists → `src/core/kernel/tables/fastener-specs.js`; legacy bolts replay identically → `src/core/kernel/recipes/fasteners.legacy-oracle.json` oracle test
+**To Add:** none

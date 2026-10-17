@@ -23,7 +23,7 @@ brackets stays visible when it's folded.
 
 ## What a line means
 
-Each line is one distinct part and how many of it you have, e.g. `Bolt M4 × 12 mm  × 3`.
+Each line is one distinct part and how many of it you have, e.g. `Bolt / screw M4 socket × 12 mm  × 3`.
 
 - **Bolts and screws** are told apart by size *and* length, so an M4 × 12 and an M4 × 20 are
   two lines.
@@ -38,15 +38,15 @@ The list updates as you work — placing, changing a part's size in the Inspecto
 undoing — and while you're previewing an earlier step in History it shows that step's parts.
 
 Parts you place by dragging them from the Library are listed the moment they land. The
-**Bolt**, **Nut**, **Washer** and **Bearing** rows are described in
+**Bolt / screw**, **Nut**, **Washer** and **Bearing** rows are described in
 [Hardware, kit parts and Raspberry Pi parts](hardware-library.md).
 
 ## Example
 
-1. Open the **Library** and drag **Bolt** into the 3D view twice, then **Washer** once.
+1. Open the **Library** and drag **Bolt / screw** into the 3D view twice, then **Washer** once.
 2. Open the Inspector (on a phone, close the Library first, then tap the Inspector tab).
-3. The **Bill of materials** shows `Bolt M10 hex × 20 mm  × 2` and `Washer M6  × 1`, total `(3)`.
-   ![Dragging a second identical Bolt in: the one Bolt line's count goes from 1 to 2.](./media/bom-updates.gif)
+3. The **Bill of materials** shows `Bolt / screw M10 hex × 20 mm  × 2` and `Washer M6  × 1`, total `(3)`.
+   ![Dragging a second identical Bolt / screw in: the one Bolt / screw line's count goes from 1 to 2.](./media/bom-updates.gif)
 4. With the washer still selected, press **Delete**. The washer line disappears and the total
    drops to `(2)`.
 

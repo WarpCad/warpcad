@@ -724,6 +724,260 @@ export const generatedMetricWasherSpecs = {
   }
 }
 
+/**
+ * Metric `ScrewTapSizes`, every size: hole diameter per fit class, millimetres.
+ *
+ * @type {Readonly<Record<string, Readonly<Record<'tap' | 'close' | 'loose', number>>>>}
+ */
+export const generatedMetricFitDiametersMm = {
+  "m1.5": {
+    "tap": 1.15,
+    "close": 1.6,
+    "loose": 1.65
+  },
+  "m1.6": {
+    "tap": 1.25,
+    "close": 1.7,
+    "loose": 1.75
+  },
+  "m1.8": {
+    "tap": 1.45,
+    "close": 1.9,
+    "loose": 2
+  },
+  "m2": {
+    "tap": 1.55,
+    "close": 2.1,
+    "loose": 2.2
+  },
+  "m2.2": {
+    "tap": 1.75,
+    "close": 2.3,
+    "loose": 2.4
+  },
+  "m2.5": {
+    "tap": 2.05,
+    "close": 2.65,
+    "loose": 2.75
+  },
+  "m3": {
+    "tap": 2.4,
+    "close": 3.15,
+    "loose": 3.3
+  },
+  "m3.5": {
+    "tap": 2.9,
+    "close": 3.7,
+    "loose": 3.85
+  },
+  "m4": {
+    "tap": 3.25,
+    "close": 4.2,
+    "loose": 4.4
+  },
+  "m4.5": {
+    "tap": 3.75,
+    "close": 4.75,
+    "loose": 5
+  },
+  "m5": {
+    "tap": 4.1,
+    "close": 5.25,
+    "loose": 5.5
+  },
+  "m5.5": {
+    "tap": 4.6,
+    "close": 5.8,
+    "loose": 6.1
+  },
+  "m6": {
+    "tap": 5,
+    "close": 6.3,
+    "loose": 6.6
+  },
+  "m7": {
+    "tap": 6,
+    "close": 7.4,
+    "loose": 7.7
+  },
+  "m8": {
+    "tap": 6.8,
+    "close": 8.4,
+    "loose": 8.8
+  },
+  "m9": {
+    "tap": 7.8,
+    "close": 9.5,
+    "loose": 9.9
+  },
+  "m10": {
+    "tap": 8.8,
+    "close": 10.5,
+    "loose": 11
+  },
+  "m11": {
+    "tap": 9.5,
+    "close": 11.6,
+    "loose": 12.1
+  },
+  "m12": {
+    "tap": 10.5,
+    "close": 12.6,
+    "loose": 13.2
+  },
+  "m14": {
+    "tap": 12.5,
+    "close": 14.75,
+    "loose": 15.5
+  },
+  "m15": {
+    "tap": 13.5,
+    "close": 15.75,
+    "loose": 16.5
+  },
+  "m16": {
+    "tap": 14,
+    "close": 16.75,
+    "loose": 17.5
+  },
+  "m17": {
+    "tap": 15.5,
+    "close": 18,
+    "loose": 18.5
+  },
+  "m18": {
+    "tap": 16,
+    "close": 19,
+    "loose": 20
+  },
+  "m19": {
+    "tap": 16.5,
+    "close": 20,
+    "loose": 21
+  },
+  "m20": {
+    "tap": 18,
+    "close": 21,
+    "loose": 22
+  }
+}
+
+/**
+ * Metric flat-head (countersunk) machine screws, `MetricFlatHeadScrews`, millimetres.
+ *
+ * @type {Readonly<Record<string, { bodyDiameterMm: number, headDiameterMm: number, headHeightMm: number }>>}
+ */
+export const generatedMetricFlatHeadScrewSpecs = {
+  "m2": {
+    "bodyDiameterMm": 2,
+    "headDiameterMm": 3.8,
+    "headHeightMm": 1.2
+  },
+  "m2.5": {
+    "bodyDiameterMm": 2.5,
+    "headDiameterMm": 4.7,
+    "headHeightMm": 1.5
+  },
+  "m3": {
+    "bodyDiameterMm": 3,
+    "headDiameterMm": 5.6,
+    "headHeightMm": 1.65
+  },
+  "m4": {
+    "bodyDiameterMm": 4,
+    "headDiameterMm": 7.5,
+    "headHeightMm": 2.2
+  },
+  "m5": {
+    "bodyDiameterMm": 5,
+    "headDiameterMm": 9.2,
+    "headHeightMm": 2.5
+  },
+  "m6": {
+    "bodyDiameterMm": 6,
+    "headDiameterMm": 11,
+    "headHeightMm": 3
+  },
+  "m8": {
+    "bodyDiameterMm": 8,
+    "headDiameterMm": 14.5,
+    "headHeightMm": 4
+  },
+  "m10": {
+    "bodyDiameterMm": 10,
+    "headDiameterMm": 18,
+    "headHeightMm": 5
+  }
+}
+
+/**
+ * Imperial wood screws, `ImperialWoodScrews` + `WoodScrewDiameter`, in **inches**.
+ *
+ * @type {Readonly<Record<string, { headDiameterIn: number, headHeightIn: number, bodyDiameterIn: number }>>}
+ */
+export const generatedImperialWoodScrewSpecsIn = {
+  "#2": {
+    "headDiameterIn": 0.172,
+    "headHeightIn": 0.051,
+    "bodyDiameterIn": 0.086
+  },
+  "#3": {
+    "headDiameterIn": 0.199,
+    "headHeightIn": 0.059,
+    "bodyDiameterIn": 0.099
+  },
+  "#4": {
+    "headDiameterIn": 0.225,
+    "headHeightIn": 0.067,
+    "bodyDiameterIn": 0.112
+  },
+  "#5": {
+    "headDiameterIn": 0.252,
+    "headHeightIn": 0.075,
+    "bodyDiameterIn": 0.125
+  },
+  "#6": {
+    "headDiameterIn": 0.279,
+    "headHeightIn": 0.083,
+    "bodyDiameterIn": 0.138
+  },
+  "#7": {
+    "headDiameterIn": 0.305,
+    "headHeightIn": 0.091,
+    "bodyDiameterIn": 0.151
+  },
+  "#8": {
+    "headDiameterIn": 0.332,
+    "headHeightIn": 0.1,
+    "bodyDiameterIn": 0.164
+  },
+  "#9": {
+    "headDiameterIn": 0.358,
+    "headHeightIn": 0.108,
+    "bodyDiameterIn": 0.177
+  },
+  "#10": {
+    "headDiameterIn": 0.385,
+    "headHeightIn": 0.116,
+    "bodyDiameterIn": 0.19
+  },
+  "#12": {
+    "headDiameterIn": 0.438,
+    "headHeightIn": 0.132,
+    "bodyDiameterIn": 0.216
+  },
+  "#14": {
+    "headDiameterIn": 0.507,
+    "headHeightIn": 0.153,
+    "bodyDiameterIn": 0.242
+  },
+  "#16": {
+    "headDiameterIn": 0.544,
+    "headHeightIn": 0.164,
+    "bodyDiameterIn": 0.268
+  }
+}
+
 /** Rows whose fit diameters fell back to the body diameter (none are shipped). */
 /** @type {string[]} */
 export const generatedFallbackRows = []

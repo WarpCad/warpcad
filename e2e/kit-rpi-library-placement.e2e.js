@@ -179,7 +179,7 @@ test('the Library panel shows Kit Parts and Raspberry Pi sections with every rec
   const hardware = await page.$$eval('[data-testid="library-rows-hardware"] [data-op]', (nodes) =>
     nodes.map((node) => node.getAttribute('data-label')),
   )
-  expect(hardware).toEqual(['Bolt', 'Nut', 'Washer', 'Bearing'])
+  expect(hardware).toEqual(['Bolt / screw', 'Nut', 'Washer', 'Bearing'])
 
   // The 26-row sheet, captured at every reference viewport — the phone case is
   // "confirm by driving", not "no change needed".

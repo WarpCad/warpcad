@@ -857,7 +857,8 @@ describe('composite() ui metadata — what earns a recipe a Library row', () => 
   it('threads and freezes a `ui` argument, exactly as native() already does', () => {
     const entry = registry['hardware.bolt']
     expect(entry.kind).toBe('composite')
-    expect(entry.ui).toEqual({ label: 'Bolt', defaults: { spec: 'm10 hex', length: 20, fit: 'loose' } })
+    // TODO/core-060: one fastener row; defaults stay today's bolt exactly (hex, m10, 20, loose).
+    expect(entry.ui).toMatchObject({ label: 'Bolt / screw', defaults: { type: 'hex', spec: 'm10', length: 20, fit: 'loose' } })
     expect(Object.isFrozen(entry.ui)).toBe(true)
   })
 
@@ -903,11 +904,13 @@ describe('composite() ui metadata — what earns a recipe a Library row', () => 
     }
   })
 
-  it('offers a variant choice on the model-parameterised recipes (three Pi rows and the phone), and no others', () => {
+  it('offers a variant choice on the model-parameterised recipes (three Pi rows, the phone) and the fastener\'s Type, and no others', () => {
     // `core-014a`'s "one factory, not one draggable per revision", as a registry
     // contract rather than a comment: an op is a row, and a revision is a value.
+    // TODO/core-060 adds the one fastener row, whose variant is its Type.
     const withChoice = Object.keys(registry).filter((op) => registry[op].ui?.choice)
     expect(withChoice).toEqual([
+      'hardware.bolt',
       'kit.phone',
       'raspberrypi.bplus',
       'raspberrypi.cameraModule',
@@ -916,14 +919,14 @@ describe('composite() ui metadata — what earns a recipe a Library row', () => 
 
     for (const op of withChoice) {
       const choice = /** @type {any} */ (registry[op].ui).choice
-      expect(choice.param, op).toBe('model')
+      expect(choice.param, op).toBe(op === 'hardware.bolt' ? 'type' : 'model')
       expect(Object.isFrozen(choice.options), op).toBe(true)
       // The row's own default has to be one of the values it offers, or the panel
       // opens showing a selection the control cannot represent.
       expect(
         choice.options.map((/** @type {any} */ option) => option.value),
         op
-      ).toContain(/** @type {any} */ (registry[op].ui).defaults.model)
+      ).toContain(/** @type {any} */ (registry[op].ui).defaults[choice.param])
     }
   })
 })
@@ -1842,5 +1845,101 @@ describe('primitive.sketch — curve outlines, per-slice offset/twist, airfoil l
     })
     expect(openEdgesOf(makeWatertight(wing)).openEdges).toBe(0)
     expect(measurements.measureVolume(wing)).toBeGreaterThan(0)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// TODO/core-060 — hardware.bolt is the one fastener: Type, Size, Length, Fit
+// ---------------------------------------------------------------------------
+
+describe('hardware.bolt as the one fastener op (TODO/core-060)', () => {
+  /** @param {any} field @returns {any[]} */
+  const values = (field) => field.options.map((/** @type {any} */ option) => option.value)
+
+  it('the Library row picks Type, then a Size whose options follow the Type', async () => {
+    const { fastenerSpecs } = await import('./tables/fastener-specs.js')
+    const ui = /** @type {any} */ (registry['hardware.bolt'].ui)
+    expect(ui.choice.param).toBe('type')
+    expect(ui.choice.label).toBe('Type')
+    expect(ui.choice.options).toEqual([
+      { value: 'socket', label: 'Socket cap' },
+      { value: 'hex', label: 'Hex head' },
+      { value: 'pan', label: 'Pan head' },
+      { value: 'flat', label: 'Flat head' },
+      { value: 'woodPan', label: 'Wood screw, pan head' },
+      { value: 'woodFlat', label: 'Wood screw, flat head' },
+    ])
+    const [size] = ui.extraChoices
+    expect(size.param).toBe('spec')
+    expect(size.label).toBe('Size')
+    // Static options are the default type's sizes, so a renderer that ignores `optionsFor`
+    // still offers only real choices for the row as it opens.
+    expect(values(size)).toEqual(Object.keys(fastenerSpecs.hex))
+    expect(values({ options: size.optionsFor({ type: 'flat' }) })).toEqual(Object.keys(fastenerSpecs.flat))
+    expect(values({ options: size.optionsFor({ type: 'woodPan' }) })).toEqual(Object.keys(fastenerSpecs.woodPan))
+  })
+
+  it('the default row really builds: hex m10, 20 mm, loose', async () => {
+    const { evaluateOp } = await import('./index.js')
+    expect(() => evaluateOp('hardware.bolt', registry['hardware.bolt'].ui?.defaults)).not.toThrow()
+  })
+
+  it('a new-shape record\'s schema is Type, Size, Length, Fit, with Size following Type and Fit following both', async () => {
+    const { paramOptions } = await import('./registry.js')
+    const { fastenerSpecs } = await import('./tables/fastener-specs.js')
+    const schema = /** @type {any} */ (paramOptions('hardware.bolt', { type: 'flat', spec: 'm3', length: 10, fit: 'close' }))
+    expect(Object.keys(schema)).toEqual(['type', 'spec', 'length', 'fit'])
+    expect(schema.type.label).toBe('Type')
+    expect(schema.spec.label).toBe('Size')
+    expect(values(schema.type)).toEqual(['socket', 'hex', 'pan', 'flat', 'woodPan', 'woodFlat'])
+    expect(values(schema.spec)).toEqual(Object.keys(fastenerSpecs.flat))
+    expect(values(schema.fit)).toEqual(['tap', 'close', 'loose'])
+    const wood = /** @type {any} */ (paramOptions('hardware.bolt', { type: 'woodFlat', spec: '#8', length: 25 }))
+    expect(values(wood.fit)).toEqual(['clearance', 'hardwood', 'softwood'])
+    const hex = /** @type {any} */ (paramOptions('hardware.bolt', { type: 'hex', spec: 'm10' }))
+    expect(values(hex.fit)).toEqual(['tap', 'close', 'loose'])
+  })
+
+  it('a size with no fit data has no Fit field — hidden, never guessed', async () => {
+    const { paramOptions } = await import('./registry.js')
+    expect(Object.keys(paramOptions('hardware.bolt', { type: 'woodPan', spec: '#16', length: 30 }))).toEqual(['type', 'spec', 'length'])
+  })
+
+  it('a legacy record (no type) keeps today\'s schema, so a saved condition or binding on its spec still resolves', async () => {
+    const { paramOptions } = await import('./registry.js')
+    const { boltSpecs } = await import('./tables/bolt-specs.js')
+    const schema = /** @type {any} */ (paramOptions('hardware.bolt', { spec: 'm10 hex', length: 20 }))
+    expect(Object.keys(schema)).toEqual(['spec', 'length', 'fit'])
+    expect(values(schema.spec)).toEqual(Object.keys(boltSpecs))
+  })
+
+  it('normalizedParams reads a legacy bolt in the new shape, and passes every other op through', async () => {
+    const { normalizedParams } = await import('./registry.js')
+    expect(normalizedParams('hardware.bolt', { spec: 'm2.5 socket', length: 8 })).toEqual({ type: 'socket', spec: 'm2.5', length: 8 })
+    const nut = { spec: 'm4', fit: 'loose' }
+    expect(normalizedParams('hardware.nut', nut)).toBe(nut)
+  })
+
+  it('a Type change keeps a Size the new Type offers, and falls back to its default where it does not', async () => {
+    const { reconcileParamEdit } = await import('./registry.js')
+    expect(reconcileParamEdit('hardware.bolt', { type: 'flat', spec: 'm3', length: 10, fit: 'loose' }, ['type'])).toEqual({
+      type: 'flat', spec: 'm3', length: 10, fit: 'loose',
+    })
+    expect(reconcileParamEdit('hardware.bolt', { type: 'woodFlat', spec: 'm3', length: 10, fit: 'loose' }, ['type'])).toEqual({
+      type: 'woodFlat', spec: '#8', length: 10, fit: 'softwood',
+    })
+  })
+
+  it('a Type or Size change onto a size with no fit data drops the stale fit', async () => {
+    const { reconcileParamEdit } = await import('./registry.js')
+    expect(reconcileParamEdit('hardware.bolt', { type: 'woodPan', spec: '#16', length: 10, fit: 'softwood' }, ['spec'])).toEqual({
+      type: 'woodPan', spec: '#16', length: 10,
+    })
+  })
+
+  it('a value the edit names explicitly is never coerced — validation reports it instead', async () => {
+    const { reconcileParamEdit } = await import('./registry.js')
+    const params = { type: 'pan', spec: 'm10', length: 10, fit: 'loose' }
+    expect(reconcileParamEdit('hardware.bolt', params, ['type', 'spec'])).toEqual(params)
   })
 })

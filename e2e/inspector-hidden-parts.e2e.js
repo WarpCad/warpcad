@@ -264,11 +264,11 @@ test('toggling Show hidden parts draws a translucent overlay, and toggling off r
     .toBeLessThan(40)
 })
 
-test('tapping a listed hidden part drills in, reading the breadcrumb "Objects ▸ Bolt 1 ▸ tap"', async ({ page }) => {
+test('tapping a listed hidden part drills in, reading the breadcrumb "Objects ▸ Bolt / screw 1 ▸ tap"', async ({ page }) => {
   await placeAndSelectBolt(page)
   await page.getByTestId('inspector-part-tap').click()
   await expect(page.getByTestId('inspector-breadcrumb')).toBeVisible()
-  await expect(page.getByTestId('inspector-breadcrumb-group')).toHaveText('Bolt 1')
+  await expect(page.getByTestId('inspector-breadcrumb-group')).toHaveText('Bolt / screw 1')
   await expect(page.getByTestId('inspector-breadcrumb-part')).toHaveText('tap')
   await expect(page.getByTestId('inspector-breadcrumb-root')).toHaveText('Objects')
   // Drilled in: the Parts section is gone (a part has no parts of its own), exactly

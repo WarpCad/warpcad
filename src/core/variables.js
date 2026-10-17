@@ -734,6 +734,22 @@ function resolveUncached(record, variables, options) {
 // --- what may be bound ----------------------------------------------------------------
 
 /**
+ * What a `hardware.bolt` enum's options depend on (`TODO/core-060`). In the current shape
+ * Size follows Type and Fit follows both; a legacy record (no `type`) keeps Fit following
+ * its suffixed Spec alone.
+ *
+ * @param {string} key
+ * @param {Readonly<Record<string, unknown>>} schema
+ * @returns {string[] | undefined}
+ */
+function boltDependsOn(key, schema) {
+  const typed = schema.type !== undefined
+  if (key === 'fit') return typed ? ['type', 'spec'] : ['spec']
+  if (key === 'spec' && typed) return ['type']
+  return undefined
+}
+
+/**
  * Every slot of a record's params the bind control may offer — data-driven from the
  * registry's schema (`paramOptions`) and `paramEdit.js`'s editability, never a hand list.
  *
@@ -774,7 +790,7 @@ export function bindableParams(op, params, tables = undefined, variables = undef
   if (described) {
     for (const [key, field] of Object.entries(schema)) {
       if (field.kind === 'enum') {
-        const dependsOn = op === 'hardware.bolt' && key === 'fit' ? ['spec'] : undefined
+        const dependsOn = op === 'hardware.bolt' ? boltDependsOn(key, schema) : undefined
         slots.push({ path: key, key, kind: 'enum', label: field.label, options: field.options, ...(dependsOn ? { dependsOn } : {}) })
       } else {
         slots.push({

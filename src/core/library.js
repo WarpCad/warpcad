@@ -47,7 +47,7 @@
 
 import { evaluateOp } from './kernel/index.js'
 import { boundsOf } from './kernel/group.js'
-import { lookupEntry, registry } from './kernel/registry.js'
+import { lookupEntry, reconcileParamEdit, registry } from './kernel/registry.js'
 import { capturePart, effectiveUserPart, effectiveUserParts, isUserPartOp, userPartStatus } from './userPart.js'
 
 /** @typedef {import('./kernel/registry.js').OpRecord} OpRecord */
@@ -479,7 +479,9 @@ export function restingOffsetMm(op, params, pointMm) {
  */
 export function paramsForDrop(op, pointMm, overrides = {}) {
   const row = libraryRow(op)
-  const params = { ...row.defaults, ...overrides }
+  // A chosen variant can strand a default it did not name (a fastener's Type with a Fit the
+  // new Type lacks, `TODO/core-060`); ops with nothing to reconcile get the same object back.
+  const params = reconcileParamEdit(op, { ...row.defaults, ...overrides }, Object.keys(overrides))
   // A composite's position is not a param and never will be — see
   // {@link restingOffsetMm}. Writing a `center` here would look like placement
   // and do nothing, which is worse than not writing one.
@@ -858,7 +860,8 @@ export function ghostBoxAtOrigin(op, overrides = {}) {
 export function ghostOffsetMm(op, overrides = {}) {
   const row = libraryRow(op)
   if (row.kind !== 'composite') return [0, 0, 0]
-  return restingOffsetMm(op, { ...row.defaults, ...overrides }, { x: 0, y: 0 })
+  // Through the same reconcile as the drop (`TODO/core-060`), or a wood Type with the row's default Fit throws.
+  return restingOffsetMm(op, reconcileParamEdit(op, { ...row.defaults, ...overrides }, Object.keys(overrides)), { x: 0, y: 0 })
 }
 
 /**

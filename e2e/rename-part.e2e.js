@@ -188,7 +188,7 @@ test('name two bolts with the mouse: header, object list and scene all read the 
   mkdirSync(SNAPSHOT_DIR, { recursive: true })
   await placeTwoBolts(page)
   const [first, second] = await sceneBodies(page)
-  expect([first.name, second.name].sort()).toEqual(['Bolt 1', 'Bolt 2'])
+  expect([first.name, second.name].sort()).toEqual(['Bolt / screw 1', 'Bolt / screw 2'])
 
   // The part that just arrived is selected: the field is right there, not pre-selected
   // for typing (nothing steals an arrow-key nudge), and the pencil is always visible.
@@ -214,7 +214,7 @@ test('name two bolts with the mouse: header, object list and scene all read the 
   // Undo (keyboard, focus not in a field) restores the generated name.
   await page.keyboard.press('Control+z')
   await page.waitForTimeout(150)
-  await expect.poll(() => names(page)).toEqual(['Bolt 1', 'Screen bolt'])
+  await expect.poll(() => names(page)).toEqual(['Bolt / screw 1', 'Screen bolt'])
 })
 
 test('Escape in the field reverts and a blank entry restores the generated name', async ({ page }) => {

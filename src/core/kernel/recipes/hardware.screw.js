@@ -23,6 +23,15 @@
  * //   headClearSpace red, hidden, snapped 'inside+' against the head.
  * ```
  *
+ * ## Replay-only since `TODO/core-060`
+ *
+ * Pan- and flat-head screws, and wood screws, are now placed through `hardware.bolt`'s
+ * **Type** (the Library's **Bolt / screw** row). This op stays registered, unchanged and
+ * without a Library row, so every saved screw keeps building and keeps its own Inspector
+ * fields. Its head and thread come from `fastener-geometry.js`, the builder those bolt
+ * Types share; `__fixtures__/fasteners.legacy-oracle.json` pins its output from before
+ * that extraction.
+ *
  * ## Divergences from the TODO's premise (`TODO/core-027`)
  *
  * - **`FlatHead` has no countersink boolean cut.** The task expected one; the real
@@ -61,7 +70,7 @@
  * @module core/kernel/recipes/hardware.screw
  */
 
-import { v1ColorToRecord } from '../colors.js'
+import { headAndThread, placed } from './fastener-geometry.js'
 
 /** @typedef {import('../tables/screw-specs.js').ScrewSpec} ScrewSpec */
 /** @typedef {import('../registry.js').OpRecord} OpRecord */
@@ -72,36 +81,6 @@ import { v1ColorToRecord } from '../colors.js'
  * @type {readonly string[]}
  */
 export const SCREW_HEADS = Object.freeze(['PanHead', 'FlatHead'])
-
-/**
- * Emit the two records that place one solid with its base at `baseZMm`: the centred V3
- * primitive, then the translate that lifts it.
- *
- * @param {object} args
- * @param {string} args.id
- * @param {string} args.op A `primitive.*` op name.
- * @param {Record<string, number>} args.params The primitive's own params.
- * @param {number} args.heightMm Same as `params.height`; repeated for the lift.
- * @param {number} args.baseZMm Where the bottom face lands, in millimetres.
- * @param {string} args.name
- * @param {boolean} [args.hidden]
- * @param {string} args.v1Color
- * @returns {OpRecord[]}
- */
-function placed({ id, op, params, heightMm, baseZMm, name, hidden, v1Color }) {
-  return [
-    { id: `${id}.solid`, op, params },
-    {
-      id,
-      op: 'transform.translate',
-      params: { vector: [0, 0, baseZMm + heightMm / 2] },
-      target: `${id}.solid`,
-      name,
-      ...(hidden ? { hidden: true } : {}),
-      ...v1ColorToRecord(v1Color),
-    },
-  ]
-}
 
 /**
  * Expand a `hardware.screw` document line into the op records that define it.
@@ -148,23 +127,16 @@ export function screw(params, tables) {
 
   const { headDiameterMm, headHeightMm, bodyDiameterMm } = entry
 
-  /** @type {{ op: string, params: Record<string, number> }} */
-  const headSolid =
-    head === 'FlatHead'
-      ? { op: 'primitive.cone', params: { diameter: headDiameterMm, topDiameter: bodyDiameterMm, height: headHeightMm } }
-      : { op: 'primitive.cylinder', params: { diameter: headDiameterMm, height: headHeightMm } }
-
   return [
-    ...placed({ id: 'head', ...headSolid, heightMm: headHeightMm, baseZMm: 0, name: 'head', v1Color: 'gray' }),
-    ...placed({
-      id: 'thread',
-      op: 'primitive.cylinder',
-      params: { diameter: bodyDiameterMm, height: length },
-      heightMm: length,
-      // thread.snap(head, 'z', 'outside-') resolves to exactly this.
-      baseZMm: headHeightMm,
-      name: 'thread',
-      v1Color: 'silver',
+    // The head and thread live in `fastener-geometry.js` since TODO/core-060, shared with
+    // `hardware.bolt`'s pan, flat and wood Types; the output is byte-identical.
+    ...headAndThread({
+      head: /** @type {import('./fastener-geometry.js').ScrewHead} */ (head),
+      headDiameterMm,
+      headTopDiameterMm: bodyDiameterMm,
+      headHeightMm,
+      threadDiameterMm: bodyDiameterMm,
+      lengthMm: length,
     }),
     ...(clearLength === undefined
       ? []

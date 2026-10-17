@@ -14,7 +14,7 @@ describe('tallyBom', () => {
       body('hardware.bolt', { spec: 'm4', length: 12, fit: 'loose' }),
     ])
     expect(rows).toHaveLength(1)
-    expect(rows[0]).toMatchObject({ label: 'Bolt', detail: 'M4 × 12 mm', count: 3 })
+    expect(rows[0]).toMatchObject({ label: 'Bolt / screw', detail: 'M4 × 12 mm', count: 3 })
   })
 
   it('splits differing specs and lengths into separate rows', () => {
@@ -24,8 +24,8 @@ describe('tallyBom', () => {
       body('hardware.washer', { spec: 'm6', fit: 'loose' }),
     ])
     expect(rows.map((row) => `${row.label} ${row.detail} ${row.count}`)).toEqual([
-      'Bolt M4 × 12 mm 1',
-      'Bolt M4 × 20 mm 1',
+      'Bolt / screw M4 × 12 mm 1',
+      'Bolt / screw M4 × 20 mm 1',
       'Washer M6 1',
     ])
   })
@@ -56,5 +56,41 @@ describe('tallyBom', () => {
   it('returns an empty list for no bodies, and tolerates a body with no params', () => {
     expect(tallyBom([])).toEqual([])
     expect(tallyBom([{ op: 'hardware.nut' }])[0]).toMatchObject({ count: 1, detail: '' })
+  })
+
+  describe('one fastener row (TODO/core-060)', () => {
+    it('labels every hardware.bolt "Bolt / screw" and names the type in the detail', () => {
+      const rows = tallyBom([
+        body('hardware.bolt', { type: 'socket', spec: 'm2.5', length: 8, fit: 'loose' }),
+        body('hardware.bolt', { type: 'flat', spec: 'm3', length: 10, fit: 'close' }),
+        body('hardware.bolt', { type: 'woodFlat', spec: '#8', length: 25, fit: 'softwood' }),
+        body('hardware.bolt', { type: 'woodPan', spec: '#6', length: 12 }),
+        body('hardware.bolt', { type: 'pan', spec: 'm4', length: 6 }),
+      ])
+      expect(rows.map((row) => `${row.label} ${row.detail} × ${row.count}`)).toEqual([
+        'Bolt / screw M2.5 socket × 8 mm × 1',
+        'Bolt / screw M3 flat × 10 mm × 1',
+        'Bolt / screw #8 wood flat × 25 mm × 1',
+        'Bolt / screw #6 wood pan × 12 mm × 1',
+        'Bolt / screw M4 pan × 6 mm × 1',
+      ])
+    })
+
+    it('a legacy { spec: "m2.5 socket" } and a new { type: "socket", spec: "m2.5" } of one length tally as one line', () => {
+      const rows = tallyBom([
+        body('hardware.bolt', { spec: 'm2.5 socket', length: 8, fit: 'loose' }),
+        body('hardware.bolt', { type: 'socket', spec: 'm2.5', length: 8, fit: 'tap' }),
+      ])
+      expect(rows).toHaveLength(1)
+      expect(rows[0]).toMatchObject({ label: 'Bolt / screw', detail: 'M2.5 socket × 8 mm', count: 2 })
+    })
+
+    it('an old hardware.screw keeps its own line and label', () => {
+      const rows = tallyBom([
+        body('hardware.screw', { head: 'PanHead', spec: 'm4', length: 8 }),
+        body('hardware.bolt', { type: 'pan', spec: 'm4', length: 8 }),
+      ])
+      expect(rows.map((row) => `${row.label} ${row.detail}`)).toEqual(['Screw M4 PanHead × 8 mm', 'Bolt / screw M4 pan × 8 mm'])
+    })
   })
 })

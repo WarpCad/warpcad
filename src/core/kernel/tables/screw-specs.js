@@ -16,10 +16,21 @@
  * written with `util.inch()` — that conversion is {@link inchToMm} below, named at its
  * boundary. More sizes are a table-only follow-up.
  *
+ * `screwSpecs` itself is **frozen at that 1.1.0 set**: it is what `hardware.screw` (now
+ * replay-only, TODO/core-060) validates against, so a saved screw neither gains nor loses
+ * a size. The one-fastener op's wider tables — `5.0.0`'s flat-head machine screws and
+ * its full `#2`..`#16` wood-screw set — are separate exports below; the shared `#4`..`#12`
+ * rows are asserted equal in `hardware-tables.spec.js`.
+ *
  * @module core/kernel/tables/screw-specs
  */
 
 import { inchToMm } from './bolt-specs.js'
+import {
+  generatedImperialWoodScrewSpecsIn,
+  generatedMetricFitDiametersMm,
+  generatedMetricFlatHeadScrewSpecs,
+} from './hardware-tables.generated.js'
 
 /**
  * One screw size.
@@ -55,3 +66,46 @@ export const screwSpecs = Object.freeze({
   '#10': spec(inchToMm(0.385), inchToMm(0.116), inchToMm(0.19)),
   '#12': spec(inchToMm(0.438), inchToMm(0.132), inchToMm(0.216)),
 })
+
+/**
+ * Imperial wood screws `#2`..`#16`, `jscad-hardware@5.0.0` `ImperialWoodScrews` with
+ * `WoodScrewDiameter` (TODO/core-060), converted from the generated inches here with
+ * {@link inchToMm} — the same conversion, on the same numbers, as `screwSpecs`' rows.
+ *
+ * @type {Readonly<Record<string, ScrewSpec>>}
+ */
+export const woodScrewSpecs = Object.freeze(
+  Object.fromEntries(
+    Object.entries(generatedImperialWoodScrewSpecsIn).map(([gauge, row]) => [
+      gauge,
+      spec(inchToMm(row.headDiameterIn), inchToMm(row.headHeightIn), inchToMm(row.bodyDiameterIn)),
+    ])
+  )
+)
+
+/**
+ * Metric flat-head (countersunk) machine screws `m2`..`m10`, `5.0.0`
+ * `MetricFlatHeadScrews` (head height K, head diameter D2), millimetres (TODO/core-060).
+ *
+ * @type {Readonly<Record<string, ScrewSpec>>}
+ */
+export const metricFlatHeadScrewSpecs = Object.freeze(
+  Object.fromEntries(
+    Object.entries(generatedMetricFlatHeadScrewSpecs).map(([size, row]) => [
+      size,
+      spec(row.headDiameterMm, row.headHeightMm, row.bodyDiameterMm),
+    ])
+  )
+)
+
+/**
+ * The metric tap/close/loose hole diameters for a size, from `5.0.0`'s `ScrewTapSizes` —
+ * the table every metric bolt's `fitDiameterMm` already comes from. `undefined` for a
+ * size the table has no row for: a fit is then hidden, never guessed.
+ *
+ * @param {string} size e.g. `'m3'`.
+ * @returns {Readonly<Record<'tap' | 'close' | 'loose', number>> | undefined}
+ */
+export function metricFitDiameterMm(size) {
+  return Object.hasOwn(generatedMetricFitDiametersMm, size) ? generatedMetricFitDiametersMm[size] : undefined
+}

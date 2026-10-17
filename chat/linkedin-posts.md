@@ -2843,3 +2843,16 @@ The `/test` skill now goes through the gate. Built with Claude Code, reviewed by
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** behavior → hand-run this session; stamp predates this change → `scripts/todo-progress.mjs` (git log 6f56a01, 2026-10-09)
 **To Add:** none
+
+## [2026-10-17T01:40:00Z] — One Bolt / screw part with a Type dropdown
+
+**Post:** WarpCad had two fastener ops that disagreed with each other: a bolt with its head baked into a spec string, and a screw with a separate head field that you could not drag in at all. From a user's side they are the same thing, a fastener with a head style, a size and a length.
+
+They are now one Library part, Bolt / screw. You choose a Type (socket cap, hex, pan head, flat head, wood screw with a pan head, wood screw with a flat head) and a Size list that offers only the sizes that exist for that Type, then drag it in. Type and Size can still be changed in the Inspector afterwards and the part rebuilds in place.
+
+Two details I care about. Every file saved before the change still opens and builds byte-identically, because old records are read through a normaliser and only rewritten when you edit them. And wood-screw pilot and clearance holes come from a published chart rather than from a library column nobody could vouch for. Built with Claude Code, reviewed by me.
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #OpenSource #CAD
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** types and sizes → `src/core/kernel/tables/fastener-specs.js`; chart citation → `src/core/kernel/tables/wood-screw-holes.js` module doc; legacy replay → oracle fixture `src/core/kernel/recipes/__fixtures__/fasteners.legacy-oracle.json`
+**To Add:** none

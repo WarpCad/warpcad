@@ -29,7 +29,7 @@
 import { recipeColorOf } from './colorOverride.js'
 import { brokenDependentsOf, brokenReferencesOf } from './dependents.js'
 import { boundsOf, hasNamedParts, hiddenNamesOf, isGroup, localBoundsOf } from './kernel/group.js'
-import { lookupEntry, paramOptions, registry as defaultRegistry } from './kernel/registry.js'
+import { lookupEntry, normalizedParams, paramOptions, registry as defaultRegistry } from './kernel/registry.js'
 import { currentParamsRecordOf } from './paramEdit.js'
 import { bindabilityError, bindableParams, isBinding, resolveParams, variablesOf } from './variables.js'
 
@@ -365,7 +365,11 @@ function withSchema(fields, op, params) {
   const schema = paramOptions(op, params)
   const keys = Object.keys(schema)
   if (keys.length === 0) return fields
-  const next = fields.map((field) => {
+  // A Library default the record does not carry and the schema does not describe is not a
+  // field: a wood-screw gauge with no pilot-hole data has no Fit (`TODO/core-060`), even
+  // though the row's defaults name one.
+  const carried = fields.filter((field) => schema[field.key] !== undefined || params[field.key] !== undefined)
+  const next = carried.map((field) => {
     const option = schema[field.key]
     // A user part's exposed number is labelled by what the person called it, not by its key.
     if (option?.kind === 'number' && field.kind === 'number') return { ...field, label: option.label, unit: option.unit }
@@ -498,7 +502,11 @@ export function describeBody(body, ops = defaultRegistry, variables = undefined)
       ]
     : []
 
-  const { params: shown, bound } = shownParamsOf(body.params ?? {}, variables)
+  // A composite is shown in its op's current shape (`TODO/core-060`: a legacy
+  // `{ spec: 'm10 hex' }` bolt reads as Type hex, Size m10). Reading never rewrites the
+  // record; the first edit does (`paramEdit.js`).
+  const own = entry?.kind === 'composite' ? normalizedParams(body.op, body.params ?? {}) : (body.params ?? {})
+  const { params: shown, bound } = shownParamsOf(own, variables)
   return {
     id: body.id,
     name: body.name,

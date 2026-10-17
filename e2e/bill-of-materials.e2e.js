@@ -115,7 +115,7 @@ test('the BOM tallies placed parts, adds a row per distinct spec, and drops a ro
   await dragRowIntoViewport(page, { op: 'hardware.bolt', fx: 0.5, fy: 0.3 })
   await showInspector(page)
   await expect(page.getByTestId('bom')).toBeVisible()
-  expect(await bomRows(page)).toEqual([{ op: 'hardware.bolt', text: 'Bolt M10 hex × 20 mm × 2' }])
+  expect(await bomRows(page)).toEqual([{ op: 'hardware.bolt', text: 'Bolt / screw M10 hex × 20 mm × 2' }])
   await expect(page.getByTestId('bom-total')).toHaveText('(2)')
 
   // A different part is a second row; the first row is unchanged.
