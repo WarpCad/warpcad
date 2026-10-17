@@ -26,9 +26,11 @@ avoidable token cost in the TODO workflow. So:
   fails an earlier one, and running them just buys more output to read. Say which
   stages were skipped.
 - **Green-stamp.** After a *full* green run, `node scripts/todo-progress.mjs stamp set`.
-  Before starting a full run, `node scripts/todo-progress.mjs stamp check` — exit 0
-  means the code is byte-identical to a tree that already passed everything, so report
-  "green (stamp match, not re-run)" instead of paying for the same run twice. Callers
+  Before starting a full run, `node scripts/todo-progress.mjs stamp gate` — it exits 1
+  at once on a stale stamp (run the tests). On a match (the code is byte-identical to a
+  tree that already passed everything, sha256 token printed) it asks "Run them again?" on a
+  terminal, or with no terminal waits 60s (`--wait=N`) and then exits 1; exit 0 means
+  skip, and you report "green (stamp match <token>, not re-run)". Callers
   that need an *independent* check (the `/run-todos` loop verifying an agent's claim)
   pass `--force` in the brief, which skips the check. A *targeted* run (one spec file),
   a `one`-scope run, or a run that skipped an engine never sets the stamp (see Scope below).

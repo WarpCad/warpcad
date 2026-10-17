@@ -1997,3 +1997,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** config resolves to guards + chromium-laptop + webkit-tablet with the marker → node check this session; 3x3 matrix → `playwright.config.js`
 **To Add:** none
+
+## [2026-10-17T00:18:33Z] — Test runs now say when the code already passed
+
+**Post:** WarpCad's test runner now fingerprints the whole working tree with a sha256 when a full run goes green. Ask for another run on identical code and it shows the hash, then asks, or waits 60 seconds with no terminal, before re-running. #OpenSource Built with Claude Code, reviewed by me.
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** gate exits 1 on stale, waits then exits 1 with no TTY, stamp check unchanged → run by hand this session; sha256 → `scripts/todo-progress.mjs`
+**To Add:** none

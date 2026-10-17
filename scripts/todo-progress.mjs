@@ -5,7 +5,7 @@
 //   node scripts/todo-progress.mjs step <id> <1-9> [--state=running] [--model=sonnet] [--note="..."]
 //   node scripts/todo-progress.mjs done <id>
 //   node scripts/todo-progress.mjs batch <done>/<size>
-//   node scripts/todo-progress.mjs stamp set | check
+//   node scripts/todo-progress.mjs stamp set | check | gate [--wait=60]
 //
 // `step`/`done`/`batch` write small JSON files under `.todo-progress/` (gitignored). A
 // Claude Code mod (`~/.claude/dev-mods/.../todo-progress`) polls that directory to show
@@ -15,11 +15,18 @@
 // untracked-but-not-ignored, minus TODO/, chat/ and .todo-progress/, which no test reads)
 // when a full test run goes green. `stamp check` exits 0 if the tree is unchanged since,
 // so a later caller (the commit gate) can skip re-running an identical, already-green suite.
+// The fingerprint is a sha256 (the "token" printed by `set`/`check`/`gate`).
+//
+// `stamp gate` is for a caller that is about to start a test run: exit 1 = go ahead and run,
+// exit 0 = the tree already passed, skip it. With a stale stamp it exits 1 at once. With a
+// matching one it asks "run again?" on a terminal (y = run, anything else = skip); with no
+// terminal it waits `--wait` seconds (default 60) so the run can be cancelled, then exits 1.
 
 import { createHash } from 'node:crypto'
 import { execFileSync } from 'node:child_process'
 import { mkdirSync, readFileSync, readdirSync, writeFileSync, statSync, unlinkSync } from 'node:fs'
 import { join } from 'node:path'
+import { createInterface } from 'node:readline'
 import { parseArgs } from 'node:util'
 
 const DIR = '.todo-progress'
@@ -73,7 +80,7 @@ function titleOf(id) {
   return ''
 }
 
-/** @returns {string} sha1 over the content of every file a test could read */
+/** @returns {string} sha256 over the content of every file a test could read */
 function fingerprint() {
   const git = (args, input) =>
     execFileSync('git', args, { input, maxBuffer: 1 << 28 }).toString('utf8')
@@ -92,7 +99,7 @@ function fingerprint() {
   const hashes = git(['hash-object', '--stdin-paths'], present.join('\n') + '\n')
     .trim()
     .split('\n')
-  const h = createHash('sha1')
+  const h = createHash('sha256')
   present.forEach((p, i) => h.update(`${p}\0${hashes[i]}\n`))
   return h.digest('hex')
 }
@@ -103,6 +110,7 @@ const { positionals, values } = parseArgs({
     state: { type: 'string', default: 'running' },
     model: { type: 'string' },
     note: { type: 'string' },
+    wait: { type: 'string', default: '60' },
   },
 })
 const [cmd, a, b] = positionals
@@ -133,15 +141,33 @@ if (cmd === 'step') {
   const m = /^(\d+)\/(\d+)$/.exec(a ?? '')
   if (!m) throw new Error('usage: batch <done>/<size>')
   writeJson(file('_batch'), { done: Number(m[1]), size: Number(m[2]), updatedAt: new Date().toISOString() })
-} else if (cmd === 'stamp' && (a === 'set' || a === 'check')) {
+} else if (cmd === 'stamp' && (a === 'set' || a === 'check' || a === 'gate')) {
   const fp = fingerprint()
   if (a === 'set') {
     writeJson(file('_green'), { fingerprint: fp, at: new Date().toISOString() })
-  } else {
+    console.log(`green-stamp: set ${fp}`)
+  } else if (a === 'check') {
     const ok = readJson(file('_green'))?.fingerprint === fp
-    console.log(ok ? 'green-stamp: match (tree unchanged since last green run)' : 'green-stamp: stale')
+    console.log(ok ? `green-stamp: match ${fp} (tree unchanged since last green run)` : 'green-stamp: stale')
     process.exit(ok ? 0 : 1)
+  } else {
+    const prev = readJson(file('_green'))
+    if (prev?.fingerprint !== fp) {
+      console.log('green-stamp: stale, run the tests')
+      process.exit(1)
+    }
+    console.log(`Tests already passed on this exact code: ${fp} (at ${prev.at}).`)
+    if (process.stdin.isTTY) {
+      const rl = createInterface({ input: process.stdin, output: process.stdout })
+      const answer = await new Promise((r) => rl.question('Run them again? [y/N] ', r))
+      rl.close()
+      process.exit(/^y/i.test(answer.trim()) ? 1 : 0)
+    }
+    const seconds = Number(values.wait)
+    console.log(`No terminal to ask: waiting ${seconds}s, then running again. Cancel now to skip.`)
+    await new Promise((r) => setTimeout(r, seconds * 1000))
+    process.exit(1)
   }
 } else {
-  throw new Error('usage: step | done | batch | stamp (see header of scripts/todo-progress.mjs)')
+  throw new Error('usage: step | done | batch | stamp set|check|gate (see header of scripts/todo-progress.mjs)')
 }

@@ -2830,3 +2830,16 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** config resolves to guards + chromium-laptop + webkit-tablet with the marker → node check this session; stamp not set on fast runs → `.claude/commands/test.md` diff
 **To Add:** none
+
+## [2026-10-17T00:18:33Z] — Test runs now say when the code already passed
+
+**Post:** Re-running a full test suite on code that already passed is wasted time, and an agent loop will do it without noticing. WarpCad's runner already kept a "green stamp"; it now uses a sha256 of every file a test can read, and a new `stamp gate` command acts on it.
+
+If the tree matches the last green run, the gate prints the hash and when it passed. On a terminal it asks before re-running. With no terminal it waits 60 seconds, then runs, so there is a window to cancel. A stale stamp runs the tests immediately, and `--force` still bypasses the gate.
+
+The `/test` skill now goes through the gate. Built with Claude Code, reviewed by me.
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** behavior → hand-run this session; stamp predates this change → `scripts/todo-progress.mjs` (git log 6f56a01, 2026-10-09)
+**To Add:** none
