@@ -6,8 +6,10 @@ priority: high
 model: sonnet
 milestone: M18 — Launch: publish, app.warpcad.com, Sentry and GA
 depends: []
-status: open
+status: done
 ---
+
+> **What shipped (2026-10-17):** as proposed. The real set of source files saying "ported from `jscad-`" also includes `src/core/kernel/group.js` (from `jscad-utils`), which the task list missed, so the section and the guard (`scripts/portedCodeProvenance.spec.js`) cover it. Step 5 (the `@jwc/jscad-gears` `package.json` licence field) is outside this repository and left to the owner.
 
 ## Problem
 

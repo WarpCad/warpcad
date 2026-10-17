@@ -172,6 +172,8 @@ renderer. The work was always the same: write a script, reload, look at the resu
 number, repeat. It produced real enclosures, gear trains and clamps, and it was slow whenever the
 shape you wanted to change was one you could already see on screen. WarpCad is the CAD that
 works the way those scripts do, without the reload.
+The tables and fixtures ported from those libraries are listed, with their provenance, under
+[Ported code and data](LICENSING.md#ported-code-and-data).
 
 The second root is about learning to build whole applications with AI tools, not only parts.
 Earlier in 2026 the author built [PiPiece](https://johnwebbcole.gitlab.io/pipiece-ui), a
