@@ -122,7 +122,7 @@ table to edit when a task opens, closes or changes priority — see the next sec
 
 | Milestone | Task | Kind | Priority | Model | State |
 |---|---|---|---|---|---|
-| M17 — Repeat, phone Library fix | ✅ [`ui-070`](ui-070-phone-inspector-tab-covers-open-library-sheet.md) At phone width the Inspector's collapsed tab is drawn over an open Library sheet's rows; dock it below the sheet | finding | high | sonnet | ✅ done |
+| M17 — Repeat, phone Library fix | ✅ [`ui-070`](done/ui-070-phone-inspector-tab-covers-open-library-sheet.md) At phone width the Inspector's collapsed tab is drawn over an open Library sheet's rows; dock it below the sheet | finding | high | sonnet | ✅ done |
 | M17 — Repeat, phone Library fix | [`core-061`](core-061-linked-repeat-record.md) A linked `pattern.repeat` record: one row re-places a body's steps at every matching part of another body and follows the first body's edits; BOM, repair dialog, merge, and a shared `repeat` AI tool. Requested by the user 2026-10-15 | feature | medium | opus | ▶ **ready** |
 | M17 — Repeat, phone Library fix | [`ui-069`](ui-069-repeat-placement-across-matching-parts.md) Repeat: place a part once against one target (a Pi's `hole1`), then apply the same steps to every matching target (`hole2`–`hole4`) as one Undo step, linked to the first. Requested by the user 2026-10-15 | feature | medium | opus | ⏳ blocked on `core-061` |
 | Findings | [`build-004`](build-004-sentry-error-reporting.md) Hook up Sentry error reporting and source-map upload in the build and the Pages workflow, with the token kept out of the bundle and the repo | feature | medium | sonnet | ▶ **ready** (unscheduled; no milestone yet) |
