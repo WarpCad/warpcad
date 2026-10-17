@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
 import { createDocument } from '../../document.js'
 import { parseProject } from '../../project.js'
@@ -13,6 +13,9 @@ import { piTFT24 } from './raspberrypi.piTFT24.js'
 import { DEFAULT_SCREEN_MODEL, SCREEN_MODELS, screen } from './raspberrypi.screen.js'
 import { touchDisplay7inch } from './raspberrypi.touchDisplay7inch.js'
 import { touchScreen2 } from './raspberrypi.touchScreen2.js'
+
+// Heavy kernel/library work: slow-but-correct under full-suite load, so a file-level budget (TODO/testing-004).
+vi.setConfig({ testTimeout: 30_000 })
 
 /** @typedef {import('../group.js').Group} Group */
 

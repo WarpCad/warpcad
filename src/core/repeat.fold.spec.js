@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import modeling from '@jscad/modeling'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
 import { LOCAL, partBoundsOf, piBoltOnHole1, piBoltRepeated } from './__fixtures__/piScenes.js'
 import { tallyBom } from './bom.js'
@@ -14,6 +14,9 @@ import { offeredFixesOf, repairChanges } from './repair.js'
 import { REPEAT_OP, detachRepeat, removeRepeatMember, repeatMoveRefusal } from './repeat.js'
 import { buildNameIndex, describeRow } from './timelineLabel.js'
 import { translateRecord } from './transform.js'
+
+// Heavy kernel/library work: slow-but-correct under full-suite load, so a file-level budget (TODO/testing-004).
+vi.setConfig({ testTimeout: 30_000 })
 
 /**
  * `TODO/core-061`: a linked `pattern.repeat` row, folded against a real Pi 5, a real

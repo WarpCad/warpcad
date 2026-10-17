@@ -3,7 +3,7 @@
  * The resolution policy inside the fold (`TODO/core-035`): which ops follow it, which
  * never do, and that `legacy` is byte-for-byte the pre-`core-035` geometry.
  */
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import modeling from '@jscad/modeling'
 
 import goldenJson from './__fixtures__/tessellation-legacy-golden.json'
@@ -11,6 +11,9 @@ import { digestOf, tessellationCases } from './__fixtures__/tessellationCases.js
 import { DEFAULT_SEGMENTS, evaluate, expand } from './index.js'
 import { isGroup, toGeom3 } from './group.js'
 import { policyFor, segmentsFor } from './tessellation.js'
+
+// Heavy kernel/library work: slow-but-correct under full-suite load, so a file-level budget (TODO/testing-004).
+vi.setConfig({ testTimeout: 30_000 })
 
 const { geometries } = modeling
 

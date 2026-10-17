@@ -3,7 +3,7 @@
 // `src/core/gear/mesh.js` — the crossed-axis rules core-046 wrote for helical gears, with the
 // worm as a gear kind of its own. The interference proof turns the pair through 12 worm
 // positions and asserts the overlap stays small and stable: it is point contact, so not zero.
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import modeling from '@jscad/modeling'
 
 import { GearAliasError } from '../../gear/aliases.js'
@@ -14,6 +14,9 @@ import { isGroup } from '../group.js'
 import { evaluateOp } from '../index.js'
 import { policyFor } from '../tessellation.js'
 import { WORM_PAIR_PARAMS, wormPair } from './gear.wormPair.js'
+
+// Heavy kernel/library work: slow-but-correct under full-suite load, so a file-level budget (TODO/testing-004).
+vi.setConfig({ testTimeout: 30_000 })
 
 const { booleans, maths, measurements, transforms } = modeling
 const DEG = Math.PI / 180

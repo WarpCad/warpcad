@@ -14,6 +14,9 @@ import {
   wallThickness,
 } from './measure.js'
 
+// Heavy kernel/library work: slow-but-correct under full-suite load, so a file-level budget (TODO/testing-004).
+vi.setConfig({ testTimeout: 30_000 })
+
 const { booleans, measurements, primitives, transforms } = modeling
 
 /**

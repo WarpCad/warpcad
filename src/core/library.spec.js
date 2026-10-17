@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import modeling from '@jscad/modeling'
 
 import {
@@ -38,6 +38,9 @@ import { evaluate, evaluateOp } from './kernel/index.js'
 import { createDocument } from './document.js'
 import * as libraryModule from './library.js'
 import { resetUserParts, setLibraryParts, setProjectParts } from './userPart.js'
+
+// Heavy kernel/library work: slow-but-correct under full-suite load, so a file-level budget (TODO/testing-004).
+vi.setConfig({ testTimeout: 30_000 })
 
 const { measurements } = modeling
 

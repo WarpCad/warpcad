@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import modeling from '@jscad/modeling'
 
 import { GearAliasError } from '../../gear/aliases.js'
@@ -13,6 +13,9 @@ import { policyFor } from '../tessellation.js'
 import { makeWatertight, openEdgesOf } from '../watertight.js'
 import { ring } from './gear.ring.js'
 import ringSource from './gear.ring.js?raw'
+
+// Heavy kernel/library work: slow-but-correct under full-suite load, so a file-level budget (TODO/testing-004).
+vi.setConfig({ testTimeout: 30_000 })
 
 const { booleans, geometries, measurements, transforms } = modeling
 

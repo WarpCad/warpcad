@@ -2974,3 +2974,22 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** inventory audit and outcomes per row → `TODO/done/docs-020-media-for-m9-and-open-features.md`; scripted-only recording → `e2e/docs/ai-chat.docs.js`
 **To Add:** none
+
+
+## [2026-10-17T12:10:00Z] — A flaky timeout, measured instead of raised
+
+One unit test (the overlap volume of two spheres) kept failing with a 5-second timeout in the full run and passing alone. The obvious fix is to raise the global timeout. I measured first.
+
+Alone, the slowest tests in the heavy specs take 1 to 2 seconds. In a full run on an idle machine they take 2 to 4 seconds. The failures only appeared when the CPU was shared: with two full unit runs at once (a stand-in for tests running beside the browser suite), 2 to 4 tests timed out in each of 6 runs, in four different files. It was never one test; seventeen specs of kernel, library and MCP work had no headroom.
+
+The fix is a 30-second budget declared at the top of each of those seventeen specs, plus a guard spec that fails if a listed heavy spec loses it. The global timeout is unchanged, so a genuinely hung test elsewhere still fails at 5 seconds. After: 0 timeouts in 3 idle runs and 0 in 6 doubled runs, and the idle suite takes the same 18 seconds.
+
+The honest limit: I stressed the machine with a second copy of the suite, not with the real browser run beside it.
+
+Built with Claude Code, reviewed by me.
+
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #Testing #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** timings and counts → `TODO/done/testing-004-measure-spec-lens-volume-times-out-under-full-suite-load.md`
+**To Add:** none

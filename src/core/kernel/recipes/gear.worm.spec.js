@@ -3,7 +3,7 @@
 // twisted through its whole length by `profile.extrudeLinear`'s `leadMm` — one
 // `extrudeFromSlices`, no boolean, so it is watertight by construction. Also the kernel's
 // `leadMm` path itself, and the vertex/time ceiling a long worm at Print resolution must fit.
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import modeling from '@jscad/modeling'
 
 import { GearAliasError } from '../../gear/aliases.js'
@@ -14,6 +14,9 @@ import { evaluate, evaluateOp, expand } from '../index.js'
 import { policyFor } from '../tessellation.js'
 import { openEdgesOf } from '../watertight.js'
 import { WORM_PARAMS, worm } from './gear.worm.js'
+
+// Heavy kernel/library work: slow-but-correct under full-suite load, so a file-level budget (TODO/testing-004).
+vi.setConfig({ testTimeout: 30_000 })
 
 const { geometries, measurements } = modeling
 

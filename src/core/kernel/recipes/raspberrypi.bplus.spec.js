@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import modeling from '@jscad/modeling'
 
 import { v1ColorToRecord } from '../colors.js'
@@ -8,6 +8,9 @@ import { evaluateOp, expand } from '../index.js'
 import { BPLUS_BOARD, MOUNTING_HOLES_MM, rpiParts } from '../tables/rpi-parts.js'
 import { bplus, BPLUS_MODELS, DEFAULT_CLEARANCE_MM } from './raspberrypi.bplus.js'
 import v1ReferenceJson from './__fixtures__/raspberrypi.bplus.v1-reference.json'
+
+// Heavy kernel/library work: slow-but-correct under full-suite load, so a file-level budget (TODO/testing-004).
+vi.setConfig({ testTimeout: 30_000 })
 
 /**
  * The fixture, widened to the shape the diff below reads it through — the checked-in

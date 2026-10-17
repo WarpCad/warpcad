@@ -1,11 +1,14 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import modeling from '@jscad/modeling'
 
 // The user's saved project from the TODO/core-051 report, as text.
 import chamferErrorProject from '../../../examples/chamfer error.ndjson?raw'
 
 import { alignInsetContours, chamferRim, filletRim, RIM_ORIENTATIONS } from './fillet.js'
+
+// Heavy kernel/library work: slow-but-correct under full-suite load, so a file-level budget (TODO/testing-004).
+vi.setConfig({ testTimeout: 30_000 })
 
 const { booleans, expansions, geometries, measurements, minkowski, modifiers, primitives, transforms } = modeling
 

@@ -2085,3 +2085,14 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** every picture comes from a Playwright spec and the media guard checks links and orphans → `e2e/docs/ai-chat.docs.js`, `e2e/docs-media.spec.js`; any call to the Anthropic API fails the spec → `e2e/docs/ai-chat.docs.js`
 **To Add:** `docs/media/ai-wing-airfoil.gif`, repo URL once public, docs site URL once it exists
+
+
+## [2026-10-17T12:10:00Z] — Flaky unit timeouts were seventeen slow specs, not one
+
+**Post:** A unit test kept timing out in the full run and passing alone. I assumed one slow test; it was seventeen kernel and library specs whose slowest test takes 1-4 s on a quiet machine. The 5 s default has no headroom once the CPU is shared. Two full runs at once: 2-4 timeouts every time (6 of 6). After giving those specs a 30 s budget: 0 of 6.
+
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #Testing #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** per-run timeout counts and per-spec timings → `TODO/done/testing-004-measure-spec-lens-volume-times-out-under-full-suite-load.md`; guard → `scripts/heavySpecTimeouts.spec.js`
+**To Add:** none

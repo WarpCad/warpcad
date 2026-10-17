@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
 import { v1ColorToRecord } from '../colors.js'
 import { boundsOf, isGroup, sizeOf, volumeOf } from '../group.js'
@@ -7,6 +7,9 @@ import { evaluateOp, expand } from '../index.js'
 import { HAT_MM } from './raspberrypi.hat.js'
 import { PITFT24_BUTTON_MIDLINES_MM } from './raspberrypi.piTFT24.js'
 import v1ReferenceJson from './__fixtures__/raspberrypi.smallDisplays.v1-reference.json'
+
+// Heavy kernel/library work: slow-but-correct under full-suite load, so a file-level budget (TODO/testing-004).
+vi.setConfig({ testTimeout: 30_000 })
 
 /**
  * @type {{ factories: Record<string, { names: string[], parts: Record<string, number[][]>,
