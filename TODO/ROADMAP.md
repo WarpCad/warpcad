@@ -61,18 +61,18 @@ run at all); see `TODO/done/build-001-project-scaffold.md`'s own note.
 
 ## Next up — recommended TODOs
 
-*Last reviewed 2026-10-17. Ranked by the user's order of 2026-10-17: today's goal first ([M18](#m18--launch-publish-appwarpcadcom-sentry-and-ga)), with the five clean-up tasks from the pre-publish review **before** the push to GitHub, then every other open task, then the gears last (as decided 2026-10-16).*
+*Last reviewed 2026-10-17 (core-065 taken out of the push prerequisites). Ranked by the user's order of 2026-10-17: today's goal first ([M18](#m18--launch-publish-appwarpcadcom-sentry-and-ga)), with the four clean-up tasks that still gate the push (`build-011`, `docs-023`, `docs-024`, `build-012`) from the pre-publish review **before** the push to GitHub, then every other open task, then the gears last (as decided 2026-10-16).*
 
 **Today's goal (2026-10-17):** publish to GitHub, make `warpcad.com` work, and get Sentry and GA working.
 
 | # | Task | Why now | Model |
 |---|---|---|---|
-| 1 | ▶ [`core-065`](core-065-wood-screw-holes-cite-asme-not-albany.md) Cite ASME B18.6.1 instead of Albany County Fasteners' chart | Clean-up before the push. **Stops to ask you** if the standard does not print the pilot-hole columns | sonnet |
-| 2 | ▶ [`build-011`](build-011-third-party-notices.md) Ship `THIRD-PARTY-NOTICES.txt` with the build and link it from Help | Clean-up before the push; the first deploy distributes the libraries | sonnet |
+| 1 | ⏸ [`core-065`](core-065-wood-screw-holes-cite-asme-not-albany.md) Cite ASME B18.6.1 instead of Albany County Fasteners' chart | **Decided 2026-10-17: keep the Albany table for now; no longer blocks the push.** Stays open to revisit; `build-011`'s notices must name the Albany chart | sonnet |
+| 2 | ✅ [`build-011`](build-011-third-party-notices.md) Ship `THIRD-PARTY-NOTICES.txt` with the build and link it from Help | Clean-up before the push; the first deploy distributes the libraries | sonnet |
 | 3 | ▶ [`docs-023`](docs-023-trademark-notice.md) Trademarks notice | Clean-up before the push | sonnet |
 | 4 | ▶ [`docs-024`](docs-024-ported-code-provenance-statement.md) Provenance statement for ported V1 code | Clean-up before the push. **Owner step first**: confirm no outside contributor's code is in the V1 libraries | sonnet |
 | 5 | ▶ [`build-012`](build-012-cut-lfs-bandwidth-in-ci-and-pages.md) Cache the LFS media instead of fetching it in four jobs per push | Clean-up before the push. **Owner step first**: read the free LFS quota | sonnet |
-| 6 | ▶ **Publish.** Merge into `main`, run the CI steps locally, push `main` to `github.com/WarpCad/warpcad` | Waits for rows 1–5 | — |
+| 6 | ▶ **Publish.** Merge into `main`, run the CI steps locally, push `main` to `github.com/WarpCad/warpcad` | Waits for rows 2–5 (row 1 parked) | — |
 | 7 | ▶ [`build-010`](build-010-serve-at-app-warpcad-com.md) Serve at `app.warpcad.com` (`public/CNAME`, guard, Pages custom domain) | The domain | sonnet |
 | 8 | ▶ [`build-009`](build-009-drop-sentry-vite-plugin.md) Drop the Sentry build plugin (FSL licence), upload maps with `curl` | Must land before Sentry is switched on | sonnet |
 | 9 | Owner: Sentry project, DSN, token and variables, then a Pages run (`build-004` VERIFY rows 1–5) | Sentry working | — |
@@ -96,15 +96,15 @@ run at all); see `TODO/done/build-001-project-scaffold.md`'s own note.
 
 **Runner order** (`/run-todos` follows table order): [M18](#m18--launch-publish-appwarpcadcom-sentry-and-ga) first, then the milestone tables and Findings as they appear in this file, then [M11](#m11--gears-the-jscad-gears-library-ported-and-extended) last. The tasks in the table above are the ones to take in that order. Inside M18 the five clean-up rows come first and the push waits for all five.
 
-**Owed to you, not to an agent:** the M16 and M17 five-minute free-form passes (owed since 2026-10-16); the M9, M10 passes (carried past per `TODO/BUDGET.md`); the M5–M8 and M12 passes (recorded as owed; whether any was done since is not written down here). The clean-up owner steps (`docs-024` authorship check, `build-012` quota check, `core-065` pilot-hole question) and the Sentry and GA owner rows are in M18.
+**Decided 2026-10-17:** the owner reports the M16 and M17 five-minute free-form passes done (details of what was tried and found not yet given; any issue becomes its own TODO). **Owed to you, not to an agent:** the M9, M10 passes (carried past per `TODO/BUDGET.md`); the M5–M8 and M12 passes (recorded as owed; whether any was done since is not written down here). The clean-up owner steps (`docs-024` authorship check, `build-012` quota check, `core-065` pilot-hole question) and the Sentry and GA owner rows are in M18.
 
 **The shape of what is blocked**
 
 ```
-M18  core-065 ┐
-     build-011 ┤
-     docs-023  ├─ (all five before) ─ Publish ─ build-010 ─ build-009 ─ Sentry (owner) ─ GA (owner)
-     docs-024  ┤
+M18  core-065 (parked, no longer gates the push)
+     build-011 ┐
+     docs-023  ┤
+     docs-024  ├─ (all four before) ─ Publish ─ build-010 ─ build-009 ─ Sentry (owner) ─ GA (owner)
      build-012 ┘
 M15  docs-022 ─ data-008 ─ data-009 ─ data-010 ─ data-011 ─ ui-062 ─┬─ io-010
                                                                      ├─ io-011
@@ -125,7 +125,7 @@ table to edit when a task opens, closes or changes priority — see the next sec
 | Milestone | Task | Kind | Priority | Model | State |
 |---|---|---|---|---|---|
 | M18 — Launch | [`core-065`](core-065-wood-screw-holes-cite-asme-not-albany.md) Wood-screw hole table cites ASME B18.6.1 instead of Albany County Fasteners' chart (stops to ask if the pilot columns are not in the standard) | finding | high | sonnet | ▶ **ready** |
-| M18 — Launch | [`build-011`](build-011-third-party-notices.md) Ship `THIRD-PARTY-NOTICES.txt` with the build and link it from Help | feature | high | sonnet | ▶ **ready** |
+| M18 — Launch | ✅ [`build-011`](build-011-third-party-notices.md) Ship `THIRD-PARTY-NOTICES.txt` with the build and link it from Help | feature | high | sonnet | ▶ **ready** |
 | M18 — Launch | [`docs-023`](docs-023-trademark-notice.md) A trademarks notice for the product and service names the app uses | feature | high | sonnet | ▶ **ready** |
 | M18 — Launch | [`docs-024`](docs-024-ported-code-provenance-statement.md) Provenance statement for ported V1 code and data (owner confirms authorship first) | finding | high | sonnet | ▶ **ready** (owner step first) |
 | M18 — Launch | [`build-012`](build-012-cut-lfs-bandwidth-in-ci-and-pages.md) Cache the Git LFS media instead of downloading it in four jobs per push | finding | high | sonnet | ▶ **ready** (owner step first) |
@@ -526,7 +526,7 @@ first five rows below.
 | id | Task | Kind | Depends | Acceptance |
 |---|---|---|---|---|
 | `core-065` | Wood-screw hole table: cite ASME B18.6.1 instead of Albany County Fasteners' © 2025 chart. Step 1 finds out what the standard prints; **stops to ask the user** if it lacks the pilot-hole columns | Finding | — | 2, 3, 5, 10, 15; `core-050`, `ui-052` repros |
-| `build-011` | Ship `THIRD-PARTY-NOTICES.txt` with the build (MIT, BSD, Apache-2.0 notices for every bundled library) and link it from the Help footer | Feature | — | 1 (production-build smoke); `ui-061` repro |
+| ✅ `build-011` | Ship `THIRD-PARTY-NOTICES.txt` with the build (MIT, BSD, Apache-2.0 notices for every bundled library) and link it from the Help footer | Feature | — | 1 (production-build smoke); `ui-061` repro |
 | `docs-023` | A trademarks notice for the product and service names the app uses (Raspberry Pi, iPhone, Galaxy, Pixel, Adafruit, Pimoroni, Claude, GitHub, Sentry, Google Analytics, OpenJSCAD) | Feature | — | none |
 | `docs-024` | A provenance statement for code and data ported from the author's JSCAD v1 libraries, written after the owner confirms no outside contributor's code is in them | Finding | — | none |
 | `build-012` | Cache the Git LFS media (72.7 MB, 74 GIFs) instead of downloading it in four jobs per push; the owner reads the free LFS quota first | Finding | — | 1 (smoke after the first deploy) |
@@ -1414,3 +1414,4 @@ convention going forward.
 | `build-004` | 2026-10-17 12:17 | ~16m wall clock (preflight 12:01 UTC; the baseline unit stage was folded into the single post-change run). RED first: `errorReporting.spec.js` and `sentry-build.spec.js` failed on the missing modules, and the `csp.e2e.js` assertion failed against a DSN-built production build (expected the Sentry host, got none). Typecheck was red once (Sentry 11 types: no `sendDefaultPii`, no `console` breadcrumb option; also found `dataCollection` defaults are on), fixed. Final: typecheck clean; unit 273 files / 6097 tests; fast e2e (chromium-laptop + webkit-tablet + guards) 884 passed / 134 skipped / 0 failed of 1018. `E2E_PREVIEW=1` `csp`+`help`+`pwa-update`+`app-icons` on all nine engine-viewport projects: 147 passed, 15 skipped, 0 failed; `csp.e2e.js` again with a fake DSN build on all nine: 27/27. Bundle +117.71 kB min / +39.91 kB gzip. Production builds checked with a fake token and an unreachable `SENTRY_URL`: maps generated then deleted, 0 `.map` and 0 `sourceMappingURL` in `dist/`, token absent from the bundle. Scenario 1 re-driven on the production build (laptop and phone Chromium): PASS, 0 Sentry requests. Live smoke NOT done (no account/DSN/token). No stamp (fast scope). |
 | `build-007` | 2026-10-17 12:35 | ~16m wall clock (preflight 12:19 UTC). RED first: `analytics.spec.js` and `analytics-build.spec.js` failed on the missing modules; the `csp.e2e.js` GA assertion failed on a `G-TEST000000` production build (stubbed `gtag.js` refused). Typecheck was red once (implicit-any in the new spec), fixed. Final: typecheck clean; unit 275 files / 6114 tests; fast e2e (chromium-laptop + webkit-tablet + guards) 885 passed / 138 skipped / 1 failed of 1024, the one red `ai-mcp-agent-pairing.e2e.js:35` (known flake, passes alone). `E2E_PREVIEW=1` `csp`+`help`+`pwa-update`+`app-icons`+`analytics-guard` on all nine engine-viewport projects (Firefox and WebKit included): 174 passed, 15 skipped, 0 failed; `csp`+`analytics-guard` with `GA_MEASUREMENT_ID=G-TEST000000` on all nine: 54/54. Bundle: own loader about 1.1 kB min / 0.7 kB gzip; main chunk differs by 12 bytes (the ID) with and without an ID; `gtag.js` itself is 439,625 B / 152,842 B gzip, loaded from Google only in a configured build. Scenario 1 re-driven on the production build, ID unset and fake ID, laptop and phone Chromium: PASS, 0 Google requests. Live GA verification NOT done (no property or ID). No stamp (fast scope). |
 | `perf-002` | 2026-10-17 | ~1h wall clock for this half (investigation by an Opus agent beforehand; clock from the typecheck at ~10:40 local). Investigation only, no source change. Bench `bench/bundle-load.mjs` (3 engines, cold and service-worker repeat, `none` / `slow4g` / `slow4g-cpu4`); five out-of-tree candidate builds plus defer-boot. Verdict: the >500 kB warning alone does not justify a split; defer-boot is ~330 ms (~9 %) faster cold on slow4g in all three engines. Filed `perf-003`. Unit 275 files / 6114 tests green; fast e2e 885 passed with only the known `ai-mcp-agent-pairing` flake, green alone; scenario 1 PASS. |
+| `build-011` | 2026-10-17 14:25 | ~15m wall clock (preflight 14:10 UTC). Typecheck clean; unit 275 files / 6114 tests before, `scripts` 10 files / 107 after. New `scripts/third-party-notices.{mjs,spec.js}` and `scripts/vite-plugin-notices.mjs`: `dist/THIRD-PARTY-NOTICES.txt` is 80,890 B / 1,479 lines, one entry per production package. Help footer link `help-notices-link`. New e2e case in `help.e2e.js`: 9/9 projects (phone, tablet, laptop x Chromium, WebKit, Firefox), footer snapshots at each; `E2E_PREVIEW=1` `help`+`pwa-update`+`csp` on all nine: 165 passed, 6 skipped, 0 failed. Scenario 1 re-driven on the production build at laptop and phone Chromium: PASS. `.test-fast` was moved aside for the all-engine runs and restored. No stamp (changed scope; full e2e not run). |

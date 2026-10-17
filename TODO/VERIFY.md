@@ -34,6 +34,15 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### build-011 — Third-party notices (2026-10-17 14:25)
+
+The file and the link are covered by the new `help.e2e.js` case and the production-build drive; what is left is judgment a script cannot make.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | Read `dist/THIRD-PARTY-NOTICES.txt` once: every entry has a licence text (the build warns for any package that ships none) and the Albany County Fasteners paragraph reads right. | Open | |
+| 2 | On a real iPhone, the two footer links wrap cleanly and each is easy to tap. | Open | |
+
 ### perf-002 — Bundle load time on the real deploy (2026-10-17 15:55)
 
 Every number in `bench/results/2026-10-17-perf-002.md` came from headless engines with software GL, throttling emulated in `vite preview` (HTTP/1.1, no TLS). Nothing here can be covered by a scripted scenario; it needs the real host and a real device.
@@ -49,7 +58,7 @@ No GA property or Measurement ID existed in the implementing session and Google 
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | Create a separate GA4 property for WarpCad and a web data stream for the hosted host (see the checklist in `TODO/done/build-007-google-analytics.md`); copy the `G-XXXXXXXXXX` Measurement ID. | Open | |
+| 1 | Create a separate GA4 property for WarpCad and a web data stream for the hosted host (see the checklist in `TODO/done/build-007-google-analytics.md`); copy the `G-XXXXXXXXXX` Measurement ID. | Open | 2026-10-17: owner reports the property and stream exist; Measurement ID `G-JFYXCZJ1HN` (public). Owner also reports `GA_MEASUREMENT_ID` is set in GitHub and the stream is configured (rows 2 and 3 as reported, not seen by the agent). Rows 4-6 need a deployed run. |
 | 2 | GitHub → Settings → Secrets and variables → Actions → Variables: add `GA_MEASUREMENT_ID` = the ID, then run the Pages workflow (`workflow_dispatch`). | Open | |
 | 3 | In the data stream turn **Enhanced measurement OFF** (all toggles, especially "Page changes based on browser history events"); set event data retention to 2 months; turn off Google signals under Data collection. | Open | |
 | 4 | Open the deployed app: GA → Reports → Realtime shows one active user and the page path with no `#` part; DebugView (Analytics Debugger extension) shows one `page_view`. | Open | |
@@ -62,8 +71,8 @@ The implementing session had no Sentry account, DSN, org, project or token, so t
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | Create a Sentry browser/Vue project; copy its DSN. Create an auth token with only `project:releases` and `org:read`, named for the Pages workflow. | Open | |
-| 2 | GitHub → Settings → Secrets and variables → Actions: variables `SENTRY_DSN`, `SENTRY_ORG`, `SENTRY_PROJECT`; secret `SENTRY_AUTH_TOKEN` (repo secret, because the `build` job has no `environment`). | Open | |
+| 1 | Create a Sentry browser/Vue project; copy its DSN. Create an auth token with only `project:releases` and `org:read`, named for the Pages workflow. | Open | 2026-10-17: project exists, DSN supplied by the owner (org `o4511265456128000`, project `4512273042964480`, ingest.us.sentry.io). Org slug `johnwebbcole`, project slug `warpcad`. Auth token created (organization token `warpcad-pages-ci`, scope `org:ci`); its value is not recorded here. Whether the GitHub variables and secret are set is not recorded yet. Not marked OK until row 2 is confirmed. |
+| 2 | GitHub → Settings → Secrets and variables → Actions: variables `SENTRY_DSN`, `SENTRY_ORG`, `SENTRY_PROJECT`; secret `SENTRY_AUTH_TOKEN` (repo secret, because the `build` job has no `environment`). | Open | 2026-10-17: the owner reports all four are set (three variables, one secret). Not marked OK: not seen by the agent, and the Pages run (row 3) has not happened. |
 | 3 | Run the Pages workflow with `workflow_dispatch`. The build log should show the Sentry plugin uploading (a `[sentry-vite-plugin] Error` line means the upload failed but the deploy still went out), and the Sentry release list should show the commit SHA. | Open | |
 | 4 | Smoke test: locally `VITE_SENTRY_DSN=<dsn> SENTRY_AUTH_TOKEN=<token> SENTRY_ORG=… SENTRY_PROJECT=… SENTRY_RELEASE=smoke VITE_SENTRY_RELEASE=smoke npm run build && npx vite preview`, open the page, run `setTimeout(() => { throw new Error('sentry smoke') })` in devtools. The event must arrive within a minute, with the original file and line (not minified names), the page URL without any `#fragment`, and no request data. Then delete the local `dist/`. | Open | |
 | 5 | On the deployed app (`app.warpcad.com`), DevTools console: no `Content Security Policy` errors mentioning the Sentry host (the CSP host comes from the DSN at build time). | Open | |

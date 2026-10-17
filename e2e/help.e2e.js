@@ -267,6 +267,30 @@ test.describe('Help from the main UI', () => {
     await expect(page.getByTestId('help-source')).toContainText('AGPL-3.0')
   })
 
+  test('the footer links to the third-party notices, beside the source link (build-011)', async ({ page, request, baseURL }) => {
+    await openHelpFromFileMenu(page)
+    await expect(page.getByTestId('help-current-page')).toContainText('Getting started')
+    const link = page.getByTestId('help-notices-link')
+    await link.scrollIntoViewIfNeeded()
+    await expect(link).toBeVisible()
+    await expect(link).toHaveAttribute('target', '_blank')
+    expect((await link.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(44)
+    const href = (await link.getAttribute('href')) ?? ''
+    expect(href).toMatch(/THIRD-PARTY-NOTICES\.txt$/)
+    // The footer must not push the sheet sideways at any width.
+    const scroll = page.getByTestId('help-scroll')
+    expect(await scroll.evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(true)
+    // The file itself is served as plain text and names the libraries it ships.
+    const res = await request.get(new URL(href, baseURL).toString())
+    expect(res.ok()).toBe(true)
+    expect(res.headers()['content-type']).toContain('text/plain')
+    const body = await res.text()
+    expect(body).toContain('\nthree ')
+    expect(body).toContain('\nvue ')
+    expect(body).toContain('Albany County Fasteners')
+    await expect(page.getByTestId('help-source')).toHaveScreenshot('help-footer.png', { maxDiffPixelRatio: 0.02 })
+  })
+
   test('? and F1 open it from the keyboard, but not while typing in a field', async ({ page }) => {
     await page.keyboard.press('?')
     await expect(page.getByTestId('help-sheet')).toBeVisible()

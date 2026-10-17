@@ -6,8 +6,10 @@ priority: high
 model: sonnet
 milestone: M18 — Launch: publish, app.warpcad.com, Sentry and GA
 depends: []
-status: open
+status: done
 ---
+
+> **Shipped as specified**, with two small differences: the footer links are separated by a margin, not a `·` (the dot orphaned itself at the start of the second line at 390 px); and the Workbox `navigateFallbackDenylist` gained `/\.txt$/`, so the installed service worker does not answer a new-tab navigation to the notices file with the app shell. The generated file also names the Albany County Fasteners pilot-hole guide, as `core-065`'s 2026-10-17 decision requires. The still is `e2e/help.e2e.js-snapshots/help-footer-*` (a snapshot of the footer in the new e2e case); no `e2e/docs/` shot was added or changed, because no existing Help still shows the footer. The docs sentence went in `docs/help.md` (the page that describes the footer), not `getting-started.md`.
 
 ## Goal
 

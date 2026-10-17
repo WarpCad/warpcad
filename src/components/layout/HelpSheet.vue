@@ -35,6 +35,8 @@ const update = useAppUpdateStore()
  * hosts a modified copy points this at its own repository.
  */
 const SOURCE_URL = 'https://github.com/WarpCad/warpcad'
+/** The licence notices of the bundled libraries, emitted by `scripts/vite-plugin-notices.mjs`. */
+const NOTICES_URL = `${import.meta.env.BASE_URL}THIRD-PARTY-NOTICES.txt`
 
 /** @type {import('vue').Ref<import('../../help/loader.js').HelpIndex | null>} */
 const index = ref(null)
@@ -271,6 +273,7 @@ onBeforeUnmount(() => {
               WarpCad is free software under the
               <abbr title="GNU Affero General Public License, version 3 or later">AGPL-3.0</abbr>.
               <a :href="SOURCE_URL" target="_blank" rel="noopener" data-testid="help-source-link">Source code</a>
+              <a :href="NOTICES_URL" target="_blank" rel="noopener" data-testid="help-notices-link">Third-party notices</a>
             </footer>
             <!-- The running build, and a manual check for a newer one (TODO/build-005). -->
             <div v-if="state === 'ready'" class="help__version" data-testid="help-version-row">
@@ -444,6 +447,11 @@ onBeforeUnmount(() => {
 
 .help__footer a {
   color: var(--accent);
+  /* A 44 px tap target; the two links wrap onto two lines at phone width. */
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  margin-right: 14px;
 }
 
 .help__footer abbr {

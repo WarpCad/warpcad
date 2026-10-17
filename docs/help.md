@@ -108,6 +108,16 @@ running. To find it:
 3. Press **Source code** under the line *WarpCad is free software under the AGPL-3.0*. The
    project's GitHub repository opens in a new tab.
 
+## The libraries WarpCad is built with
+
+WarpCad is built on open-source libraries (three.js, Vue and others), each under its own licence.
+To read them:
+
+1. Open **File ▾ → Help and documentation**.
+2. Scroll to the bottom of any page.
+3. Press **Third-party notices**, next to **Source code**. A plain-text page opens in a new tab,
+   listing every library with its version, licence and copyright line.
+
 ## See also
 
 - [Getting started in five minutes](getting-started.md)

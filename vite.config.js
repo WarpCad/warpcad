@@ -7,6 +7,7 @@ import { sentryVitePlugin } from '@sentry/vite-plugin'
 
 import { liveBridgePlugins } from './mcp/liveBridge.js'
 import { HELP_PRECACHE_GLOBS, helpRuntimeCaching, warpcadHelp } from './scripts/vite-plugin-help.mjs'
+import { warpcadNotices } from './scripts/vite-plugin-notices.mjs'
 import { manifestIcons } from './scripts/app-icons.mjs'
 import { addConnectSrc, connectHostFromDsn, sentryBuildOptions } from './scripts/sentry-build.mjs'
 import { addAnalyticsSources, measurementId } from './scripts/analytics-build.mjs'
@@ -143,6 +144,8 @@ export default defineConfig(({ command }) => ({
     vue(),
     // `TODO/ui-061`: docs/*.md rendered to help/<page>.html at build time (dev: on request).
     warpcadHelp(),
+    // `TODO/build-011`: THIRD-PARTY-NOTICES.txt beside index.html, linked from the Help footer.
+    warpcadNotices(),
     VitePWA({
       // `TODO/build-005`: a new worker installs, activates and takes control the moment it is
       // found (stated below, not left to the plugin's defaults). `src/pwa.js` intercepts the
@@ -161,6 +164,8 @@ export default defineConfig(({ command }) => ({
         // never point at hashed assets that were deleted by the deploy.
         cleanupOutdatedCaches: true,
         navigateFallback: 'index.html',
+        // The notices file opens in a tab of its own; the fallback must not answer it with the app.
+        navigateFallbackDenylist: [/\.txt$/],
         // The plugin's default globs plus the help text and still pictures, so Help opens
         // offline right after install. The GIFs are runtime-cached, not precached: they are
         // ~60 MB (see `scripts/vite-plugin-help.mjs`).
