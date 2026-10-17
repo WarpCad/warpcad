@@ -3174,3 +3174,19 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** `e2e/pi-hole-subtract.e2e.js` green on chromium, webkit and firefox at phone, tablet and laptop (red on the old toolbar code); rule in `src/core/booleanConsumes.js`; Repeat refusal in `src/core/repeat.js`
 **To Add:** none
+
+
+## [2026-10-17T23:59:00Z] — Leaving a step out of a linked copy without breaking the chain
+
+A linked Repeat in WarpCad copies a part's whole history onto other holes. When the Assistant had added a step to that first part, the sheet refused with "make the part by hand", which punished the person for something they did not do.
+
+The spec said two different things: "let Apply copy it" and "list it as not part of the repeat, with no copy of it". I shipped the second. Apply stays on, the step is listed with who made it, and the first part keeps it.
+
+The interesting part was leaving a step out of a chain. The Repeat record stores no origin, so it gets an optional list of step ids to skip. A skipped step passes its input straight through, so a later step of yours that read it reads what it read and nothing dangles. A copy starts re-running from the first step that mentions the target hole or the first skipped step, whichever is earlier, otherwise an early Assistant step would be baked into every copy. The refusal I expected to need, a step that cannot be skipped, turned out to be only the part's first step, because any step that takes another body in starts a new lineage.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #Testing
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** `src/core/repeat.fold.spec.js` (control with no skip follows the lift; with skip it does not; a later step reads through it; reaching back before the first Align; reload and Detach); `e2e/repeat-placement.e2e.js` new case on chromium, webkit and firefox at three sizes
+**To Add:** none

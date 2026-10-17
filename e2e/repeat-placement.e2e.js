@@ -225,8 +225,11 @@ async function pressApply(page) {
  * The user's request, end to end, up to and including **Apply to 3 more**.
  *
  * @param {import('@playwright/test').Page} page
+ * @param {{ beforeApply?: (ids: { pi: string, screen: string, bolt: string }) => Promise<void> }} [options]
+ *   `beforeApply` runs once Bolt 1 is seated and before the panel is read (`TODO/core-063`: a
+ *   step the user did not make lands on the first part).
  */
-async function repeatOnFourHoles(page) {
+async function repeatOnFourHoles(page, { beforeApply } = {}) {
   const { pi, screen } = await seatPiOnScreen(page)
 
   // The gate: nothing drilled into, no Repeat. A hole drilled into, Repeat.
@@ -287,6 +290,8 @@ async function repeatOnFourHoles(page) {
   await commitPopover(page, bolt, ['z'], { relation: 'inside', side: 'minus', offset: -5 })
   await expect(sheet).toBeVisible()
 
+  await beforeApply?.({ pi, screen, bolt })
+
   // The panel lists what it recorded and which steps get re-aimed.
   await expandPanel(page)
   await expect(page.getByTestId('repeat-step').filter({ hasText: /Align/ })).toHaveCount(2)
@@ -315,6 +320,75 @@ async function repeatOnFourHoles(page) {
   await expect(page.locator(`[data-testid="scene-bodies"] li[data-body-id="${repeat}"]`)).toHaveAttribute('data-body-volume', /.+/, { timeout: 30_000 })
   await expect(page.getByTestId('viewport')).toHaveAttribute('data-selected-id', repeat)
   return { pi, screen, bolt, repeat, bolt1 }
+}
+
+const ASSISTANT_KEY = 'sk-ant-api03-E2EREPEATSENTINEL-0123456789-abcdefghij'
+const CORS = { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*', 'access-control-allow-methods': 'POST, OPTIONS' }
+
+/** @param {object} data */
+const frame = (data) => `event: ${data.type}\ndata: ${JSON.stringify(data)}\n\n`
+
+/**
+ * One streamed Assistant reply in the Messages API's wire format (as `ai-chat.e2e.js` scripts it).
+ *
+ * @param {{ text?: string, calls?: Array<{ name: string, input: object }> }} step
+ * @param {number} turn
+ */
+function sse(step, turn) {
+  let body = frame({ type: 'message_start', message: { model: 'claude-opus-5-5', usage: { input_tokens: 1200, output_tokens: 1 } } })
+  let index = 0
+  if (step.text) {
+    body += frame({ type: 'content_block_start', index, content_block: { type: 'text', text: '' } })
+    body += frame({ type: 'content_block_delta', index, delta: { type: 'text_delta', text: step.text } })
+    body += frame({ type: 'content_block_stop', index })
+    index += 1
+  }
+  for (const [k, call] of (step.calls ?? []).entries()) {
+    body += frame({ type: 'content_block_start', index, content_block: { type: 'tool_use', id: `toolu_repeat_${turn}_${k}`, name: call.name, input: {} } })
+    body += frame({ type: 'content_block_delta', index, delta: { type: 'input_json_delta', partial_json: JSON.stringify(call.input) } })
+    body += frame({ type: 'content_block_stop', index })
+    index += 1
+  }
+  body += frame({ type: 'message_delta', delta: { stop_reason: (step.calls ?? []).length > 0 ? 'tool_use' : 'end_turn' }, usage: { output_tokens: 40 } })
+  body += frame({ type: 'message_stop' })
+  return body
+}
+
+/**
+ * The Assistant (the Anthropic API stubbed through Playwright routing, never a live model) lifts
+ * `bolt` by 3 mm: a step on the first part that the user did not make (`TODO/core-063`).
+ *
+ * @param {import('@playwright/test').Page} page
+ * @param {string} bolt
+ */
+async function assistantLiftsBolt(page, bolt) {
+  const script = [
+    { text: 'Lifting Bolt 1 by 3 mm.', calls: [{ name: 'operate', input: { op: 'transform.translate', operands: [{ id: bolt }], params: { deltaMm: [0, 0, 3] }, rationale: 'Lift the bolt 3 mm' } }] },
+    { text: 'Done.' },
+  ]
+  let requests = 0
+  await page.route('https://api.anthropic.com/**', async (route) => {
+    const request = route.request()
+    if (request.method() === 'OPTIONS') return route.fulfill({ status: 204, headers: CORS })
+    if (request.url().endsWith('/count_tokens')) {
+      return route.fulfill({ status: 200, headers: { ...CORS, 'content-type': 'application/json' }, body: '{"input_tokens":8}' })
+    }
+    requests += 1
+    const step = script[requests - 1]
+    if (step === undefined) return route.fulfill({ status: 500, headers: CORS, body: '{}' })
+    return route.fulfill({ status: 200, headers: { ...CORS, 'content-type': 'text/event-stream' }, body: sse(step, requests) })
+  })
+  await page.getByTestId('assistant-button').click()
+  await page.getByTestId('ai-key-input').fill(ASSISTANT_KEY)
+  await page.getByTestId('ai-key-save').click()
+  await expect(page.getByTestId('ai-key-status-text')).toContainText('Connected')
+  await page.getByTestId('ai-key-done').click()
+  await expect(page.getByTestId('assistant-panel')).toBeVisible()
+  await page.getByTestId('ai-input').fill('lift Bolt 1 by 3 mm')
+  await page.getByTestId('ai-send').click()
+  await expect(page.getByTestId('ai-assistant-message').last()).toHaveText('Done.', { timeout: 30_000 })
+  await page.getByTestId('assistant-close').click()
+  await expect(page.getByTestId('assistant-panel')).toHaveCount(0)
 }
 
 /** At phone width the panel may have shrunk to its bar: open it again. */
@@ -415,6 +489,38 @@ test('Repeat: one bolt placed by hand on hole1, Apply to 3 more, and all four bo
   await expect(bodiesOf(page, 'pattern.repeat')).toHaveCount(1)
   const after = await page.locator('[data-testid="scene-bodies"] li').evaluateAll((n) => n.map((x) => x.getAttribute('data-body-op')))
   expect(after).toEqual(before)
+})
+
+test('Repeat: a step the Assistant made on the first part is listed under Not part of the repeat, Apply stays on, and no copy carries it (TODO/core-063)', async ({
+  page,
+}) => {
+  test.setTimeout(240_000)
+  let boltId = ''
+  const ids = await repeatOnFourHoles(page, {
+    beforeApply: async ({ bolt }) => {
+      boltId = bolt
+      await assistantLiftsBolt(page, bolt)
+      await expandPanel(page)
+      // The panel says it in words a person can read, and Apply did not go grey.
+      const left = page.getByTestId('repeat-outside-step')
+      await expect(left).toHaveCount(1)
+      await expect(left).toHaveAttribute('data-origin', 'ai')
+      await expect(page.getByTestId('repeat-outside').getByTestId('repeat-outside-reason')).toHaveText('From the Assistant, so it is left out of the copies')
+      await expect(page.getByTestId('repeat-outside')).toContainText('Not part of the repeat')
+      await expect(page.getByTestId('repeat-reason')).toHaveCount(0)
+      await expect(page.getByTestId('repeat-apply')).toBeEnabled()
+      await expect(page.getByTestId('repeat-apply')).toHaveText('Apply to 3 more')
+      await shot(page, 'repeat-left-out')
+    },
+  })
+  expect(boltId).toBe(ids.bolt)
+  // The Assistant's lift moved Bolt 1 up 3 mm; the copies are where the user's own steps put them.
+  const read = await readFourBolts(page, ids)
+  for (const [hole, member] of Object.entries(read.members)) {
+    expect(Math.abs(member.centre[0] - member.hole[0]), `${hole} x`).toBeLessThan(TOL_MM)
+    expect(Math.abs(member.centre[1] - member.hole[1]), `${hole} y`).toBeLessThan(TOL_MM)
+    expect(Math.abs(read.bolt1.centre[2] - member.centre[2] - 3), `${hole} is 3 mm below Bolt 1`).toBeLessThan(TOL_MM)
+  }
 })
 
 test('Repeat body: source line, Go to Bolt 1, read-only Position, Remove this repeat, then Detach (TODO/ui-069)', async ({

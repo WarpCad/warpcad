@@ -201,10 +201,52 @@ describe('the session watcher', () => {
     expect(repeat.steps.map((step) => step.id)).toEqual(['bolt-turn', 'bolt-align', 'bolt-snap'])
     expect(repeat.outside.map((step) => step.id)).toEqual(['screen-nudge', 'bolt-ai-color'])
     expect(repeat.outside.map((step) => step.origin)).toEqual(['local', 'ai'])
-    // Bolt 1's lineage now holds a step the user did not make, and a linked repeat replays every
-    // step of Bolt 1 — so Apply says so rather than silently including it.
+    // Bolt 1's lineage now holds a step the user did not make (`TODO/core-063`): Apply is still
+    // on, and that step is listed as left out of the copies, with who made it.
+    expect(repeat.canApply).toBe(true)
+    expect(repeat.applyReason).toBeNull()
+    expect(repeat.leftOut).toEqual([{ id: 'bolt-ai-color', label: expect.any(String), reason: 'From the Assistant, so it is left out of the copies' }])
+  })
+
+  it('Apply writes the left-out step into the record, and the copies do not carry it (TODO/core-063)', () => {
+    const { documentStore, repeat } = armOnHole1()
+    firstScrew(documentStore)
+    const snapId = /** @type {string} */ (documentStore.raw.currentIdOf('bolt-1'))
+    documentStore.append({ id: 'bolt-ai-lift', op: 'transform.translate', target: snapId, supersedes: snapId, params: { vector: [0, 0, 3], rotation: [0, 0, 0] } }, { origin: 'mcp' })
+    expect(repeat.leftOut).toEqual([{ id: 'bolt-ai-lift', label: expect.any(String), reason: 'From Claude Code, so it is left out of the copies' }])
+    expect(repeat.apply()).toBe(true)
+    const record = documentStore.raw.entries.find((entry) => entry.record.op === REPEAT_OP)?.record
+    expect(record?.params?.skip).toEqual(['bolt-ai-lift'])
+    expect(repeat.notice?.text).toBe('Repeated Bolt 1 on 3 more holes')
+  })
+
+  it('no left-out step, no `skip` in the record (TODO/core-063)', () => {
+    const { documentStore, repeat } = armOnHole1()
+    firstScrew(documentStore)
+    expect(repeat.apply()).toBe(true)
+    expect(documentStore.raw.entries.find((entry) => entry.record.op === REPEAT_OP)?.record.params).not.toHaveProperty('skip')
+  })
+
+  it('when the only step that points at the seed is the Assistant’s, Apply is off and says exactly that (TODO/core-063)', () => {
+    const { documentStore, repeat } = armOnHole1()
+    firstScrew(documentStore, { upTo: 'turn' })
+    const turnId = /** @type {string} */ (documentStore.raw.currentIdOf('bolt-1'))
+    documentStore.append(
+      {
+        id: 'bolt-ai-align',
+        op: 'group.align',
+        target: turnId,
+        supersedes: turnId,
+        operands: [{ id: /** @type {string} */ (documentStore.raw.currentIdOf('pi-1')), pieces: 'hole1' }],
+        params: { axes: 'xy', deltaMm: 0 },
+      },
+      { origin: 'ai' },
+    )
+    expect(repeat.leftOut.map((step) => step.id)).toEqual(['bolt-ai-align'])
     expect(repeat.canApply).toBe(false)
-    expect(repeat.applyReason).toMatch(/Bolt 1 has a step you didn’t make/)
+    expect(repeat.applyReason).toBe(
+      'The only step that points at hole1 is from the Assistant, and it is left out of the copies, so there is nothing to repeat. Make that step yourself.',
+    )
   })
 
   it('deleting the subject mid-session ends the session with nothing applied', () => {

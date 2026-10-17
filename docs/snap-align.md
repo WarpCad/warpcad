@@ -277,10 +277,11 @@ Units are millimetres, with Z pointing up.
   closes that first.
 - **Apply to N more** is greyed until the first part exists, at least one step mentions the
   first hole, and at least one other target is ticked. Under the list the panel says why in red:
-  for example *Nothing in Bolt / screw 1's steps refers to hole1*. A step added by the
-  Assistant, Claude Code or a merge is listed under **Not part of the repeat**, and Apply is off
-  with a note, because a repeat copies *every* step of the first part: **Cancel** and make that
-  part by hand.
+  for example *Nothing in Bolt / screw 1's steps refers to hole1*. A step you did not make (one
+  the Assistant, Claude Code or a merge added to the first part) does not stop Apply. It is listed
+  under **Not part of the repeat** with a line saying who made it, and **no copy carries it**: the
+  first part keeps it, the copies are built from your steps alone. The example below ("A step you
+  did not make") walks through it.
 - **On a phone** the panel is a sheet at the bottom that shrinks to one bar (*Repeating on 4 ·
   Bolt / screw 1: 5 steps · Apply*) when you press in the 3D view or open the Library. The bar's
   own **Apply** works without opening the sheet; tap the bar's text to open it again.
@@ -306,6 +307,20 @@ The repeats are one body in the History, **Bolt / screw 1 ×3**, one row reading
   selects the first bolt, where its steps are edited. **Detach** turns each repeat into its own
   bolt, no longer linked (one Undo puts the link back), for the one screw that needs to be
   different.
+- **A step you did not make.** Say you press **⟳ Repeat**, make Bolt / screw 1 as
+  usual, and while the panel is open you ask the Assistant to *lift Bolt 1 by 3 mm*.
+  1. Look at the panel: under your steps there is now **Not part of the repeat**, and below it
+     *Move Bolt / screw 1 …* with the line *From the Assistant, so it is left out of the copies*.
+     (Claude Code reads *From Claude Code, …* and a merge reads *From a merge, …*.)
+  2. **Apply to 3 more** is still on. Tap it.
+  3. Bolt 1 stays 3 mm up. The three copies sit where your own steps put them, 3 mm lower, each on
+     its hole. Any step of yours made *after* the Assistant's still counts in the copies.
+
+  A step on a *different* shape is listed there too (*On another body, so it is not copied*).
+  Apply goes grey only when leaving the step out leaves nothing to repeat: if the only step that
+  points at the hole is the Assistant's, the panel says so (*The only step that points at hole1
+  is from the Assistant … Make that step yourself*), and you make that step by hand. Because the
+  copies leave the step out for good, **Detach** also gives you copies without it.
 - **A shape that was cut can't be repeated.** If the first part's steps include a Subtract (a plate
   drilled with the Pi's `hole1`, say), Repeat refuses with *so a repeat would copy the whole of it
   once per target*, because each copy would be a whole new plate. Drill each hole with its own

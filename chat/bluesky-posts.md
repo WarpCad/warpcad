@@ -2211,3 +2211,15 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** `e2e/pi-hole-subtract.e2e.js` drills hole1-hole3 with one Pi on nine projects; it failed on the old code with body-count 1; the docs movie `rpi-mounting-holes.gif` regenerated to show a second hole
 **To Add:** none
+
+
+## [2026-10-17T23:59:00Z] — Repeat no longer stops at a step you didn't make
+
+**Post:** In WarpCad, Repeat used to grey out Apply if the Assistant had touched the part you were copying. Now Apply stays on: the step is listed as not part of the repeat, with who made it, and the copies are built from your steps alone. The first part keeps the Assistant's change.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #RaspberryPi
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** `e2e/repeat-placement.e2e.js` new case on nine projects (scripted Assistant lifts the bolt 3 mm; copies sit 3 mm below it); it failed on the old sheet at the reason line; hand-driven at 1440x900 and 390x844
+**To Add:** none

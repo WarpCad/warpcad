@@ -126,6 +126,29 @@ describe('⟳ Repeat and the Repeat panel (TODO/ui-069)', () => {
     expect(panel().exists()).toBe(false)
   })
 
+  it('an Assistant step on the first part is listed under Not part of the repeat with its reason, and Apply stays on (TODO/core-063)', async () => {
+    mountBoth()
+    selection.select('pi-1')
+    selection.drillInto('hole1')
+    repeat.arm()
+    for (const record of boltSteps()) documentStore.append(record, LOCAL)
+    const tip = documentStore.raw.currentIdOf('bolt-1')
+    documentStore.append(
+      { id: 'bolt-ai-lift', op: 'transform.translate', target: tip, supersedes: tip, params: { vector: [0, 0, 3], rotation: [0, 0, 0] } },
+      { origin: 'ai' },
+    )
+    await nextTick()
+
+    const listed = body().findAll('[data-testid="repeat-outside-step"]')
+    expect(listed).toHaveLength(1)
+    expect(listed[0].attributes('data-origin')).toBe('ai')
+    expect(listed[0].get('[data-testid="repeat-outside-reason"]').text()).toBe('From the Assistant, so it is left out of the copies')
+    expect(body().find('[data-testid="repeat-reason"]').exists()).toBe(false)
+    expect(body().get('[data-testid="repeat-apply"]').attributes('disabled')).toBeUndefined()
+    await body().get('[data-testid="repeat-apply"]').trigger('click')
+    expect(documentStore.raw.entries.at(-1).record.params.skip).toEqual(['bolt-ai-lift'])
+  })
+
   it('shows the core’s reason live while no step mentions the seed', async () => {
     mountBoth()
     selection.select('pi-1')

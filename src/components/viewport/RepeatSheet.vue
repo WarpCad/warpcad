@@ -10,7 +10,9 @@
  *   ticked and locked (`repeat-target-<part>`).
  * - **Status** — what to do next, then *Recording Bolt 1: 3 steps* with each step listed (↻ on
  *   the ones re-aimed per target), and anything else committed since under **Not part of the
- *   repeat**.
+ *   repeat**, each with a one-line reason. A step on the first part that the Assistant, Claude Code
+ *   or a merge made is listed there too and left out of every copy (`TODO/core-063`); Apply stays
+ *   on.
  * - **Apply to N more** (`repeat-apply`) and **Cancel** (`repeat-cancel`; Escape is the
  *   Operations toolbar's, after its own popover — `ui-060`'s order).
  *
@@ -134,6 +136,7 @@ onBeforeUnmount(() => window.removeEventListener('pointerdown', onWindowPointerD
           <ul class="repeat__steps">
             <li v-for="step in repeat.outside" :key="step.id" class="repeat__step" data-testid="repeat-outside-step" :data-origin="step.origin">
               {{ step.label }}
+              <span class="repeat__why" data-testid="repeat-outside-reason">{{ step.reason }}</span>
             </li>
           </ul>
         </div>
@@ -276,6 +279,12 @@ onBeforeUnmount(() => window.removeEventListener('pointerdown', onWindowPointerD
 }
 
 .repeat__outside .repeat__steps {
+  color: var(--text-3);
+}
+
+.repeat__why {
+  display: block;
+  font-size: 11px;
   color: var(--text-3);
 }
 

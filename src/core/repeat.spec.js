@@ -170,3 +170,24 @@ describe('the rest of the record contract', () => {
     expect(defaultRepeatName('Bolt 1', 3)).toBe('Bolt 1 ×3')
   })
 })
+
+describe('`skip`: steps a repeat leaves out (TODO/core-063)', () => {
+  it('accepts a list of step ids and refuses anything else, naming the field', () => {
+    const document = boltOnHole1()
+    expect(repeatRefusal(document, params({ skip: ['bolt-snap'] }))).toBeNull()
+    expect(repeatRefusal(document, params({ skip: 'bolt-snap' }))).toMatch(/skip/)
+    expect(repeatRefusal(document, params({ skip: [7] }))).toMatch(/skip/)
+  })
+
+  it('refuses leaving out the source’s first step, which is the part itself', () => {
+    expect(repeatRefusal(boltOnHole1(), params({ skip: ['bolt-1'] }))).toBe(
+      "Bolt 1's first step is the part itself, so a repeat can't leave it out"
+    )
+  })
+
+  it('leaving out the only step that mentions the seed leaves nothing to re-aim: the usual refusal', () => {
+    expect(repeatRefusal(boltOnHole1(), params({ skip: ['bolt-align'] }))).toBe(
+      "Nothing in Bolt 1's steps refers to hole1, so every repeat would land on Bolt 1"
+    )
+  })
+})

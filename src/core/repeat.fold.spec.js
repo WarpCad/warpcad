@@ -490,3 +490,79 @@ describe('degenerate cases', () => {
     ).toThrow('A repeat has at most 64 targets; this one has 65')
   })
 })
+
+const AI = Object.freeze({ origin: 'ai' })
+
+/**
+ * Bolt 1 with a step the user did not make: the Assistant lifted it 3 mm after the user seated
+ * it. Returns the document and that step's id.
+ */
+function boltWithAssistantLift() {
+  const document = piBoltOnHole1()
+  const lift = translateRecord(document, 'bolt-1', [0, 0, 3])
+  document.append(lift, AI)
+  return { document, liftId: /** @type {string} */ (lift.id) }
+}
+
+describe('a step the user did not make is left out of every copy (TODO/core-063)', () => {
+  it('control: with no `skip`, every member repeats the Assistant’s lift too', () => {
+    const { document } = boltWithAssistantLift()
+    const seated = boltBounds(piBoltOnHole1())
+    document.append({ id: 'rep-1', op: REPEAT_OP, params: { source: 'bolt-1', seed: { id: 'pi-1', pieces: 'hole1' }, targets: TARGETS } }, LOCAL)
+    for (const target of TARGETS) expect(memberBounds(document, target)[0][2]).toBeCloseTo(seated[0][2] + 3, 6)
+  })
+
+  it('with `skip`, no member carries the lift, every member still sits on its hole, and Bolt 1 keeps its own', () => {
+    const { document, liftId } = boltWithAssistantLift()
+    const seated = boltBounds(piBoltOnHole1())
+    document.append({ id: 'rep-1', op: REPEAT_OP, params: { source: 'bolt-1', seed: { id: 'pi-1', pieces: 'hole1' }, targets: TARGETS, skip: [liftId] } }, LOCAL)
+    for (const target of TARGETS) {
+      const [min, max] = memberBounds(document, target)
+      expect(min[2]).toBeCloseTo(seated[0][2], 6)
+      expect(max[2]).toBeCloseTo(seated[1][2], 6)
+      expectOnItsHole(document, target)
+    }
+    expect(boltBounds(document)[0][2]).toBeCloseTo(seated[0][2] + 3, 6)
+    expect(bodyOf(document, 'rep-1').repeat?.members).toEqual(TARGETS)
+  })
+
+  it('a later step of the user’s own that reads the left-out step still builds: it reads what the step read', () => {
+    const { document, liftId } = boltWithAssistantLift()
+    const seated = boltBounds(piBoltOnHole1())
+    const nudge = translateRecord(document, 'bolt-1', [0, 0, 1])
+    expect(nudge.target).toBe(liftId)
+    document.append(nudge, LOCAL)
+    document.append({ id: 'rep-1', op: REPEAT_OP, params: { source: 'bolt-1', seed: { id: 'pi-1', pieces: 'hole1' }, targets: TARGETS, skip: [liftId] } }, LOCAL)
+    for (const target of TARGETS) expect(memberBounds(document, target)[0][2]).toBeCloseTo(seated[0][2] + 1, 6)
+  })
+
+  it('a left-out step before the first one that mentions the seed reaches back: the copies re-run from it', () => {
+    const baseline = piBoltRepeated({ targets: ['hole2'] })
+    const document = piBoltOnHole1()
+    // The turn is the user's own here; leaving it out is the same mechanism as leaving out a foreign step.
+    document.append({ id: 'rep-1', op: REPEAT_OP, params: { source: 'bolt-1', seed: { id: 'pi-1', pieces: 'hole1' }, targets: ['hole2'], skip: ['bolt-turn'] } }, LOCAL)
+    // Head-up with the turn, head-down without it: the head sits on the other side of the thread.
+    const headSide = (/** @type {WarpDocument} */ doc) => centre(memberBounds(doc, 'hole2.head'))[2] - centre(memberBounds(doc, 'hole2.thread'))[2]
+    expect(Math.sign(headSide(document))).toBe(-Math.sign(headSide(baseline)))
+    expectOnItsHole(document, 'hole2')
+  })
+
+  it('a skip id that is no longer in the lineage is ignored, so deleting the step later cannot break the repeat', () => {
+    const { document } = boltWithAssistantLift()
+    expect(() =>
+      document.append({ id: 'rep-1', op: REPEAT_OP, params: { source: 'bolt-1', seed: { id: 'pi-1', pieces: 'hole1' }, targets: ['hole2'], skip: ['gone-step'] } }, LOCAL)
+    ).not.toThrow()
+  })
+
+  it('survives save and reload, and Detach leaves the step out of each copy too', () => {
+    const { document, liftId } = boltWithAssistantLift()
+    const seated = boltBounds(piBoltOnHole1())
+    document.append({ id: 'rep-1', op: REPEAT_OP, params: { source: 'bolt-1', seed: { id: 'pi-1', pieces: 'hole1' }, targets: TARGETS, skip: [liftId] } }, LOCAL)
+    const reloaded = createDocument()
+    const { entries, rollbackAt, merge } = parseProject(serializeProject(document))
+    reloaded.loadEntries(entries, rollbackAt, undefined, { merge })
+    expect(memberBounds(reloaded, 'hole3')).toEqual(memberBounds(document, 'hole3'))
+    const created = detachRepeat(document, 'rep-1', LOCAL)
+    for (const id of created) expect(boundsOf(bodyOf(document, id).geometry)[0][2]).toBeCloseTo(seated[0][2], 6)
+  })
+})

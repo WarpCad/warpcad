@@ -17,7 +17,9 @@
  *   primitive, a My-parts drop). Its own **local** steps are listed as they land, each one that
  *   mentions the seed marked ↻. Anything else committed since arming — a step on another body,
  *   or an `ai`/`mcp`/`merge` step even on the subject — is listed as "not part of the repeat",
- *   so nothing is silently included or dropped.
+ *   each with its reason, so nothing is silently included or dropped. A step on the subject that
+ *   the user did not make (`leftOut`) is left out of every copy (`TODO/core-063`): Apply writes
+ *   its id into the record's `skip`.
  * - **Apply** appends one repeat (`source: subject`, `seed`, `targets: ticked − seed`) as one
  *   local step, selects the new repeat body and closes the session; a refusal stays in the
  *   panel and writes nothing. **Cancel** (and Escape) closes it and undoes nothing.
@@ -61,6 +63,7 @@ import { useTimelineStore } from './timeline.js'
  * @property {boolean} mentionsSeed It addresses the seed, so each repeat re-aims it (↻).
  * @property {string} origin
  * @property {boolean} onSubject It is one of the subject's own steps.
+ * @property {string} reason Why it is "not part of the repeat", one line, for the panel.
  */
 
 /**
@@ -79,6 +82,14 @@ const NOT_A_BODY = /^(asset|var)\./
 
 /** What a non-local origin is called, for the panel. */
 const ORIGIN_LABELS = Object.freeze({ ai: 'the Assistant', mcp: 'Claude Code', merge: 'a merge' })
+
+/**
+ * Who made a step the user did not, in the panel's words.
+ *
+ * @param {string} origin
+ * @returns {string}
+ */
+const whoMade = (origin) => /** @type {Record<string, string>} */ (ORIGIN_LABELS)[origin] ?? origin
 
 /**
  * Whether **⟳ Repeat** can arm, and why not — pure, so the gate is tested on its own.
@@ -217,6 +228,11 @@ export const useRepeatStore = defineStore('repeat', () => {
         mentionsSeed: seedRef !== null && mentionsSeed([record], seedRef, (ref) => raw.rootOf(ref)),
         origin,
         onSubject,
+        reason: onSubject
+          ? `From ${whoMade(origin)}, so it is left out of the copies`
+          : origin === 'local'
+            ? 'On another body, so it is not copied'
+            : `From ${whoMade(origin)}, on another body, so it is not copied`,
       }
       if (onSubject && origin === 'local') steps.push(step)
       else outside.push(step)
@@ -226,6 +242,12 @@ export const useRepeatStore = defineStore('repeat', () => {
 
   const steps = computed(() => classified.value.steps)
   const outside = computed(() => classified.value.outside)
+
+  /**
+   * The subject's own steps that the user did not make (`TODO/core-063`): left out of every copy,
+   * and written into the record's `skip` by Apply.
+   */
+  const leftOut = computed(() => outside.value.filter((step) => step.onSubject).map(({ id, label, reason }) => ({ id, label, reason })))
 
   const headline = computed(() => {
     if (!seed.value) return ''
@@ -259,6 +281,7 @@ export const useRepeatStore = defineStore('repeat', () => {
       source: subject.value.id,
       seed: { id: seed.value.bodyId, pieces: seed.value.partName },
       targets: [...targets.value],
+      ...(leftOut.value.length > 0 ? { skip: leftOut.value.map((step) => step.id) } : {}),
     }
   })
 
@@ -270,10 +293,11 @@ export const useRepeatStore = defineStore('repeat', () => {
     const current = subject.value
     if (!current || !params.value) return `Make the part on ${seed.value.partName} first`
     if (targets.value.length === 0) return `Tick at least one target besides ${seed.value.partName}`
-    const foreign = outside.value.find((step) => step.onSubject)
-    if (foreign) {
-      const who = /** @type {Record<string, string>} */ (ORIGIN_LABELS)[foreign.origin] ?? foreign.origin
-      return `${current.name} has a step you didn’t make (from ${who}). A repeat copies every step of ${current.name}, so Cancel and make the part by hand.`
+    // `TODO/core-063`: a step the user did not make is left out, not a reason to refuse. The one
+    // case that is a refusal of its own: the only step that points at the seed is one of those.
+    const foreignAim = outside.value.find((step) => step.onSubject && step.mentionsSeed)
+    if (foreignAim && !steps.value.some((step) => step.mentionsSeed)) {
+      return `The only step that points at ${seed.value.partName} is from ${whoMade(foreignAim.origin)}, and it is left out of the copies, so there is nothing to repeat. Make that step yourself.`
     }
     return repeatRefusal(documentStore.raw, params.value)
   })
@@ -440,6 +464,7 @@ export const useRepeatStore = defineStore('repeat', () => {
     subject,
     steps,
     outside,
+    leftOut,
     headline,
     status,
     libraryHint,

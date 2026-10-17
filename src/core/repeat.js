@@ -29,6 +29,16 @@
  * every member, and a step *appended* to the source after this row (a later gizmo drag) moves
  * the source alone. That is the linear timeline (`CLAUDE.md`), stated rather than worked around.
  *
+ * ## Steps a copy leaves out
+ *
+ * `params.skip` (`TODO/core-063`) names steps of the source's lineage that no copy re-runs. The
+ * sheet fills it with the steps the user did not make. A copy then re-runs from the first step
+ * that mentions the seed **or** the first left-out step, whichever comes first, so a left-out step
+ * ahead of the seed's first mention is not baked into the shared prefix. A left-out step passes
+ * its input through: a later step that read it reads what it read. (Every step after a lineage's
+ * first continues it, so there is always an input to pass through; the first step cannot be
+ * left out.)
+ *
  * ## One body, one member per target
  *
  * `bodies()` reports one Body per lineage, so the repeat is a **new lineage root** whose value
@@ -92,6 +102,11 @@ export const REPEAT_LINEAGE_OPS = Object.freeze(new Set(['style.recolor', 'style
  * @property {string[]} targets Part names on `seed.id`, each a member.
  * @property {Record<string, any>} [when] A condition per target (`{ ref, param, in }` or
  *   `{ var, in }`), written by the repair dialog's **Only when…**.
+ * @property {string[]} [skip] `TODO/core-063`: ids of steps in the source's lineage that every
+ *   copy leaves out — the steps the Repeat sheet lists under **Not part of the repeat** (an
+ *   Assistant, Claude Code or merge step on the first part). A left-out step is an identity for the
+ *   copies: a later step that read its result reads what it read. Ids no longer in the lineage
+ *   are ignored, so deleting such a step later cannot break the repeat.
  */
 
 /**
@@ -168,7 +183,10 @@ export function repeatParamsError(params) {
       if (!isPlainObject(condition)) return `\`when.${target}\` must be a condition`
     }
   }
-  const extra = Object.keys(params).find((key) => !['source', 'seed', 'targets', 'when'].includes(key))
+  if (params.skip !== undefined && !(Array.isArray(params.skip) && params.skip.every((id) => typeof id === 'string' && id.length > 0))) {
+    return '`skip` must be a list of step ids'
+  }
+  const extra = Object.keys(params).find((key) => !['source', 'seed', 'targets', 'when', 'skip'].includes(key))
   return extra === undefined ? null : `a repeat has no param \`${extra}\``
 }
 
@@ -331,6 +349,25 @@ export function repeatLabel(record) {
 }
 
 /**
+ * Where a copy starts re-running the source's lineage: the first step that mentions the seed, or
+ * the first left-out step (`TODO/core-063`), whichever comes first — a left-out step ahead of the
+ * seed's first mention must not stay baked into the prefix every copy shares. `-1` when no
+ * step that is re-run mentions the seed.
+ *
+ * @param {readonly OpRecord[]} lineage
+ * @param {RepeatSeed} seed
+ * @param {ReadonlySet<string>} skipped Ids of the left-out steps.
+ * @param {(id: string) => string | undefined} rootOf
+ * @returns {number}
+ */
+function firstReRun(lineage, seed, skipped, rootOf) {
+  const mention = lineage.findIndex((record) => !skipped.has(/** @type {string} */ (record.id)) && mentionsSeed([record], seed, rootOf))
+  if (mention < 0) return -1
+  const left = lineage.findIndex((record) => skipped.has(/** @type {string} */ (record.id)))
+  return left >= 0 && left < mention ? left : mention
+}
+
+/**
  * Why `id` cannot be used as a body here, or `null`.
  *
  * @param {RepeatView} view
@@ -380,7 +417,14 @@ export function checkRepeat(view, params) {
     seen.add(target)
   }
   const lineage = view.lineageOf(source)
-  if (!mentionsSeed(lineage, seed, view.rootOf)) {
+  const skipped = new Set(/** @type {RepeatParams} */ (params).skip ?? [])
+  // `TODO/core-063`: left-out steps. The first step is the part itself. Every later step of a
+  // lineage continues it (`supersedes`; a record that `consumes` starts a new lineage instead), so
+  // any other step can be passed through and left out.
+  if (skipped.has(/** @type {string} */ (lineage[0]?.id))) {
+    return `${sourceName}'s first step is the part itself, so a repeat can't leave it out`
+  }
+  if (!mentionsSeed(lineage.filter((record) => !skipped.has(/** @type {string} */ (record.id))), seed, view.rootOf)) {
     return `Nothing in ${sourceName}'s steps refers to ${seed.pieces}, so every repeat would land on ${sourceName}`
   }
   // `TODO/core-064`: a Subtract with a Pi's hole leaves the Pi in the scene, so the plate it
@@ -389,8 +433,10 @@ export function checkRepeat(view, params) {
   // — so the repeat would add one more complete plate per hole rather than drill the one plate.
   // Refused, with the way that does work. (Before core-064 a boolean always retired the seed,
   // so the seed check above refused this already; nothing that used to be accepted is refused.)
-  const from = lineage.findIndex((record) => mentionsSeed([record], seed, view.rootOf))
-  const consuming = lineage.slice(from).find((record) => record.consumes !== undefined)
+  // `core-063`: the copy starts at the first left-out step if that comes sooner (see
+  // {@link firstReRun}); the left-out steps themselves are not re-run, so they are not a cut here.
+  const from = firstReRun(lineage, seed, skipped, view.rootOf)
+  const consuming = lineage.slice(from).find((record) => record.consumes !== undefined && !skipped.has(/** @type {string} */ (record.id)))
   if (consuming !== undefined) {
     return (
       `${sourceName} is cut with ${seedName} › ${seed.pieces}, so a repeat would copy the whole of ${sourceName} once per target. ` +
@@ -471,6 +517,7 @@ export function repeatRecord(document, params) {
       source: params.source,
       seed: { id: params.seed.id, pieces: params.seed.pieces },
       targets: [...params.targets],
+      ...(params.skip !== undefined && params.skip.length > 0 ? { skip: [...params.skip] } : {}),
     },
   }
 }
@@ -600,7 +647,7 @@ export function moveRefusalText(sourceName, seedName) {
  * The substituted steps per target, kept per repeat record so a re-fold hands the kernel the
  * **same record objects** and its fold cache (`TODO/core-031`) can serve unchanged members.
  *
- * @type {WeakMap<OpRecord, { lineage: readonly OpRecord[], chains: Map<string, { from: number, records: OpRecord[] }> }>}
+ * @type {WeakMap<OpRecord, { lineage: readonly OpRecord[], chains: Map<string, { from: number, records: OpRecord[], originals: OpRecord[] }> }>}
  */
 const chainCache = new WeakMap()
 
@@ -631,7 +678,8 @@ function memberId(repeat, target, id) {
  * @param {readonly OpRecord[]} lineage
  * @param {string} target
  * @param {(id: string) => string | undefined} rootOf
- * @returns {{ from: number, records: OpRecord[] }}
+ * @returns {{ from: number, records: OpRecord[], originals: OpRecord[] }} `originals[i]` is the
+ *   lineage record `records[i]` is a copy of (left-out steps have no copy).
  */
 function chainFor(repeat, lineage, target, rootOf) {
   let cached = chainCache.get(repeat)
@@ -643,8 +691,9 @@ function chainFor(repeat, lineage, target, rootOf) {
   const hit = cached.chains.get(target)
   if (hit !== undefined) return hit
 
-  const seed = /** @type {RepeatParams} */ (repeat.params).seed
-  const from = lineage.findIndex((record) => substituteSeed(record, seed, target, rootOf) !== record)
+  const { seed, skip } = /** @type {RepeatParams} */ (repeat.params)
+  const skipped = new Set(skip ?? [])
+  const from = firstReRun(lineage, seed, skipped, rootOf)
   /** @type {Map<string, string>} */
   const renamed = new Map()
   /** @param {any} ref */
@@ -656,7 +705,15 @@ function chainFor(repeat, lineage, target, rootOf) {
   }
   /** @type {OpRecord[]} */
   const records = []
+  /** @type {OpRecord[]} */
+  const originals = []
   for (const original of from < 0 ? [] : lineage.slice(from)) {
+    if (skipped.has(/** @type {string} */ (original.id))) {
+      // Left out: a later step that read this one reads what this one read.
+      const through = refIdOf(original.supersedes) ?? refIdOf(original.target)
+      if (through !== undefined) renamed.set(/** @type {string} */ (original.id), renamed.get(through) ?? through)
+      continue
+    }
     const swapped = substituteSeed(original, seed, target, rootOf)
     const { name: _name, when: _when, ...rest } = swapped
     /** @type {OpRecord} */
@@ -667,8 +724,9 @@ function chainFor(repeat, lineage, target, rootOf) {
     if (copy.consumes !== undefined) copy.consumes = copy.consumes.map(rename)
     renamed.set(/** @type {string} */ (original.id), /** @type {string} */ (copy.id))
     records.push(copy)
+    originals.push(original)
   }
-  const chain = { from, records }
+  const chain = { from, records, originals }
   cached.chains.set(target, chain)
   return chain
 }
@@ -758,7 +816,7 @@ function buildMember(record, lineage, target, context) {
   const renamedIds = new Set(chain.records.map((step) => step.id))
   try {
     chain.records.forEach((step, index) => {
-      const original = lineage[chain.from + index]
+      const original = chain.originals[index]
       // Every operand this step reads that is not one of the member's own re-run steps.
       for (const ref of [step.target, ...(step.operands ?? [])]) {
         const id = refIdOf(ref)
@@ -857,9 +915,12 @@ function assemble(record, members, values) {
  * @param {(previous: string) => string} input.nextId
  * @param {string} input.name
  * @param {Record<string, any>} [input.when] The member's own condition, carried to the copy's root.
+ * @param {readonly string[]} [input.skip] Steps the repeat left out (`TODO/core-063`): the copy leaves
+ *   them out too, so it is what the member was.
  * @returns {OpRecord[]}
  */
-export function detachedLineage({ seed, lineage, target, rootOf, nextId, name, when }) {
+export function detachedLineage({ seed, lineage, target, rootOf, nextId, name, when, skip }) {
+  const skipped = new Set(skip ?? [])
   /** @type {Map<string, string>} */
   const renamed = new Map()
   /** @param {any} ref */
@@ -873,6 +934,11 @@ export function detachedLineage({ seed, lineage, target, rootOf, nextId, name, w
   const records = []
   for (const original of lineage) {
     const id = /** @type {string} */ (original.id)
+    if (skipped.has(id) && records.length > 0) {
+      const through = refIdOf(original.supersedes) ?? refIdOf(original.target)
+      if (through !== undefined) renamed.set(id, renamed.get(through) ?? through)
+      continue
+    }
     if (original.op === 'style.rename' && typeof original.supersedes === 'string') {
       renamed.set(id, renamed.get(original.supersedes) ?? original.supersedes)
       continue
@@ -939,6 +1005,7 @@ export function detachRepeat(document, bodyId, transaction) {
           nextId: (previous) => doc.nextId(`${previous}-${target}`),
           name: doc.nextName(stem),
           when: params.when?.[target],
+          skip: params.skip,
         })
         doc.appendAll(records, transaction)
         created.push(/** @type {string} */ (records[0].id))

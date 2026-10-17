@@ -1975,6 +1975,16 @@ three viewports (the 390 px fit is asserted there). What is left is the judgment
 | 1 | **Scenario 12 step 10, as an exploring human.** Roll back, move a body a later step uses, and decide whether the amber `broken` row plus **Re-link to the moved step** reads as clear or as clutter. Also whether the button label is understood without the docs. This is the `data-004` check 3 judgment, now with the button in place | Open | |
 
 
+### core-063 — Wording of the Repeat sheet for a step you did not make (2026-10-17 21:54)
+
+A step the Assistant, Claude Code or a merge added to the first part no longer stops Apply; the sheet lists it and the copies leave it out. The words are a judgment call and the spec's two halves disagreed, so the owner should read them once.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | **Decision for the owner:** the spec's Problem says "let Apply copy it", its Proposed fix and Testing say the step is *left out of every copy*. The second shipped. Is "Bolt 1 keeps the Assistant's step, the copies do not" what you wanted, or should the copies carry it? | Open | |
+| 2 | Read the line under *Not part of the repeat* cold: *From the Assistant, so it is left out of the copies* (and *From Claude Code…*, *From a merge…*, *On another body, so it is not copied*). Does it say clearly that Bolt 1 keeps the step? | Open | |
+| 3 | Read the one remaining refusal: *The only step that points at hole1 is from the Assistant, and it is left out of the copies, so there is nothing to repeat. Make that step yourself.* Clear, or too long on a phone? | Open | |
+
 ### core-064 — A Pi that survives its own hole Subtract (2026-10-17)
 
 One Pi now drills every hole: a Subtract that cuts with only the Pi's mounting holes (`hole1`-`hole4`, a Pi 5's `fan1hole`/`fan2hole`) leaves the Pi in the scene. Two judgment calls are still yours.
