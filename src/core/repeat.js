@@ -379,8 +379,23 @@ export function checkRepeat(view, params) {
     if (seen.has(target)) return `${target} is listed twice`
     seen.add(target)
   }
-  if (!mentionsSeed(view.lineageOf(source), seed, view.rootOf)) {
+  const lineage = view.lineageOf(source)
+  if (!mentionsSeed(lineage, seed, view.rootOf)) {
     return `Nothing in ${sourceName}'s steps refers to ${seed.pieces}, so every repeat would land on ${sourceName}`
+  }
+  // `TODO/core-064`: a Subtract with a Pi's hole leaves the Pi in the scene, so the plate it
+  // cut can now be a repeat's source with that Pi as the seed. A member re-runs every step from
+  // the first one that mentions the seed — here the cut itself, which builds a whole new plate
+  // — so the repeat would add one more complete plate per hole rather than drill the one plate.
+  // Refused, with the way that does work. (Before core-064 a boolean always retired the seed,
+  // so the seed check above refused this already; nothing that used to be accepted is refused.)
+  const from = lineage.findIndex((record) => mentionsSeed([record], seed, view.rootOf))
+  const consuming = lineage.slice(from).find((record) => record.consumes !== undefined)
+  if (consuming !== undefined) {
+    return (
+      `${sourceName} is cut with ${seedName} › ${seed.pieces}, so a repeat would copy the whole of ${sourceName} once per target. ` +
+      `Subtract the other parts one at a time instead: ${seedName} stays in the scene after each Subtract.`
+    )
   }
   return null
 }

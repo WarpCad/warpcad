@@ -345,7 +345,7 @@ test.describe('docs media: hardware, kit and Raspberry Pi library', () => {
     await heavySettle(page)
     const plateVolume = Number(await page.getByTestId('scene-bodies').locator('li[data-body-id="plate-1"]').getAttribute('data-body-volume'))
     await startMovie(page, 'rpi-mounting-holes')
-    // The plate is the base (first), the Pi's hole1 the tool (second).
+    // The plate is the base (first), the Pi's hole1 the tool (second); the Pi survives, so hole2 follows.
     await press(page, 'objects-row-plate-1')
     await expect(viewport(page)).toHaveAttribute('data-selected-id', 'plate-1')
     await page.waitForTimeout(300)
@@ -363,18 +363,41 @@ test.describe('docs media: hardware, kit and Raspberry Pi library', () => {
     await expect(page.getByTestId('operation-operand-rest')).toContainText('hole1')
     await page.waitForTimeout(500)
     await press(page, 'operation-subtract')
-    // Subtract consumes both operands into one body: the plate, same outline, one hole short of
-    // its volume (a 3.25 mm hole through 3 mm of plate is about 25 mm3; the app exposes no
-    // vertex count, and the volume drop is the measurable form of "it gained a hole").
-    await expect.poll(async () => Number(await viewport(page).getAttribute('data-body-count')), { timeout: 20000 }).toBe(1)
+    // The plate gains a hole and the Pi stays (`TODO/core-064`): two bodies, the plate's outline
+    // unchanged, a hole's volume short (a 3.25 mm hole through 3 mm of plate is about 25 mm3; the
+    // app exposes no vertex count, and the volume drop is the measurable form of "it gained a hole").
+    const cut = page.locator('[data-testid="scene-bodies"] li[data-body-op="boolean.subtract"]')
+    await expect(cut).toHaveCount(1, { timeout: 20000 })
     await bodies(page)
-    const result = await page.$eval('[data-testid="scene-bodies"] li', (n) => ({
-      bounds: n.getAttribute('data-body-bounds'),
-      volume: Number(n.getAttribute('data-body-volume')),
-    }))
-    expect(result.bounds).toBe(before['plate-1'].bounds.map((v) => v.toFixed(2)).join(','))
-    expect(plateVolume - result.volume).toBeGreaterThan(15)
-    expect(plateVolume - result.volume).toBeLessThan(35)
+    const cutId = /** @type {string} */ (await cut.getAttribute('data-body-id'))
+    const volumeOf = async () => Number(await cut.getAttribute('data-body-volume'))
+    const oneHole = await volumeOf()
+    expect(plateVolume - oneHole).toBeGreaterThan(15)
+    expect(plateVolume - oneHole).toBeLessThan(35)
+    expect(await cut.getAttribute('data-body-bounds')).toBe(before['plate-1'].bounds.map((v) => v.toFixed(2)).join(','))
+    await expect(viewport(page)).toHaveAttribute('data-body-count', '2')
+    await expect(page.getByTestId('objects-row-pi-1')).toBeVisible()
+    await page.waitForTimeout(900)
+    // The same Pi drills the second hole: select the drilled plate, tick hole2, Subtract again.
+    await press(page, `objects-row-${cutId}`)
+    await expect(viewport(page)).toHaveAttribute('data-selected-id', cutId)
+    await page.waitForTimeout(300)
+    await press(page, 'inspector-objects-header')
+    await expect(page.getByTestId('object-list')).toBeVisible()
+    const toggle = page.getByTestId('objects-expand-pi-1')
+    if ((await toggle.getAttribute('aria-expanded')) !== 'true') await press(page, 'objects-expand-pi-1')
+    const check2 = page.getByTestId('objects-part-check-pi-1-hole2')
+    await check2.scrollIntoViewIfNeeded()
+    await page.waitForTimeout(250)
+    await press(page, 'objects-part-check-pi-1-hole2')
+    await expect(viewport(page)).toHaveAttribute('data-selected-count', '2')
+    await expect(page.getByTestId('operation-operand-rest')).toContainText('hole2')
+    await page.waitForTimeout(500)
+    await press(page, 'operation-subtract')
+    await expect.poll(async () => Number(await cut.getAttribute('data-body-volume')), { timeout: 20000 }).toBeLessThan(oneHole - 15)
+    await bodies(page)
+    expect(oneHole - (await volumeOf())).toBeLessThan(35)
+    await expect(viewport(page)).toHaveAttribute('data-body-count', '2')
     await page.waitForTimeout(1200)
     await endMovie(page, 'rpi-mounting-holes', { fps: 8, width: 640 })
   })

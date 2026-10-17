@@ -29,6 +29,7 @@
  * @module ai/tools/operate
  */
 
+import { consumesOf } from '../../core/booleanConsumes.js'
 import { RIM_ORIENTATIONS } from '../../core/kernel/fillet.js'
 import { DEFAULT_ROTATE_AXIS, SNAP_SIDES, mirrorRotationDeg } from '../../core/kernel/group.js'
 import { acceptsOperandCount, registry as kernelRegistry } from '../../core/kernel/registry.js'
@@ -87,7 +88,8 @@ const FACE = /** @type {JsonSchema} */ ({
 
 /**
  * A boolean: named, the first operand as the base (`target`), the rest as `operands`,
- * and every operand **consumed** — the toolbar's `run()`.
+ * and every operand **consumed** — the toolbar's `run()` — except a Pi a Subtract drills
+ * with (`TODO/core-064`), by the same `consumesOf` the toolbar calls.
  *
  * @param {string} label
  * @param {string} description
@@ -104,7 +106,7 @@ function booleanSpec(label, description) {
       name: document.nextName(label),
       target: operands[0].ref,
       operands: operands.slice(1).map((operand) => operand.ref),
-      consumes: operands.map((operand) => operand.terminal),
+      consumes: consumesOf(document, op, operands),
     }),
   }
 }
@@ -168,7 +170,12 @@ function positionSpec(label, prefix, description, params, recordParams) {
  */
 export const OPERATIONS = Object.freeze({
   'boolean.union': booleanSpec('Union', 'Merge two or more bodies into one.'),
-  'boolean.subtract': booleanSpec('Subtract', 'Cut every later operand out of the first. Operands may name parts, e.g. a bolt’s "tap".'),
+  'boolean.subtract': booleanSpec(
+    'Subtract',
+    'Cut every later operand out of the first. Operands may name parts, e.g. a bolt’s "tap". ' +
+      'Cutting with only a Raspberry Pi’s mounting holes (pieces "hole1" … "hole4", "fan1hole", "fan2hole") leaves the Pi in place, ' +
+      'so the same Pi can drill the next hole; every other operand is used up.'
+  ),
   'boolean.intersect': booleanSpec('Intersect', 'Keep only the volume every operand shares.'),
 
   'group.assemble': {

@@ -109,7 +109,7 @@ import {
   PHONE_MODELS,
 } from './recipes/phoneModels.js'
 import { activeCoolingFan } from './recipes/raspberrypi.activeCoolingFan.js'
-import { BPLUS_MODELS, BPLUS_PART_ALIASES, DEFAULT_CLEARANCE_MM, bplus } from './recipes/raspberrypi.bplus.js'
+import { BPLUS_DRILL_PARTS, BPLUS_MODELS, BPLUS_PART_ALIASES, DEFAULT_CLEARANCE_MM, bplus } from './recipes/raspberrypi.bplus.js'
 import { boltSpecs } from './tables/bolt-specs.js'
 import { nutSpecs } from './tables/nut-specs.js'
 import { screwSpecs } from './tables/screw-specs.js'
@@ -2827,4 +2827,28 @@ export function hasEditableParams(op) {
  */
 export function partAliasesOf(op) {
   return PARAM_SCHEMAS[op]?.partAliases ?? Object.freeze({})
+}
+
+/**
+ * The recipes whose hidden hole parts **drill** (`TODO/core-064`): op → its drill part names.
+ * A `boolean.subtract` that cuts with only drill parts of one body leaves that body in the
+ * scene — the rule itself is `src/core/booleanConsumes.js`. Declared per recipe, never
+ * guessed from a part's name, so a fastener's `tap` (scenario 5: the bolt is used up) and a
+ * HAT's or a screen's holes keep today's behaviour until someone decides otherwise.
+ *
+ * @type {Readonly<Record<string, readonly string[]>>}
+ */
+const DRILL_PARTS = Object.freeze({
+  'raspberrypi.bplus': BPLUS_DRILL_PARTS,
+})
+
+/**
+ * The parts of `op`'s recipe that drill (`TODO/core-064`). Empty for every op that declares
+ * none, so a cut with any of its parts consumes it, as every boolean always has.
+ *
+ * @param {string} op
+ * @returns {readonly string[]}
+ */
+export function drillPartsOf(op) {
+  return Object.hasOwn(DRILL_PARTS, op) ? DRILL_PARTS[op] : Object.freeze([])
 }

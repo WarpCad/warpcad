@@ -98,6 +98,11 @@
  *
  * The two fields are mutually exclusive; a record setting both is rejected.
  *
+ * Which operands a boolean lists is the writer's call, made in one place:
+ * `booleanConsumes.js` (`TODO/core-064`). Every operand, except the Pi a Subtract
+ * drills with (`{ id, pieces: 'hole1' }`), which stays a live body. This module
+ * reads whatever `consumes` says and has no rule of its own.
+ *
  * ## A sketch is an ordinary primitive (`TODO/sketch-001`)
  *
  * `TODO/ui-020` once routed loose `sketch.line` records past the kernel into a parallel

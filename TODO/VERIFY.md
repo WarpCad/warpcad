@@ -751,7 +751,7 @@ The stills and movies are asserted, and scenarios 1, 2, 3 and 5 were driven by h
 | # | Check | Status | Notes |
 |---|---|---|---|
 | 1 | The Library has no Screw row (`hardware.screw` has no `ui` block), so a user cannot place a screw at all; `docs/hardware-library.md` says so. Decide whether to file the row (`registry.js` already names the defaults `m4`, 12, `PanHead`). | Open | |
-| 2 | Subtract with a Pi's `hole1` consumes the Pi along with the plate (one result body), so each extra hole needs another Pi. Is that what a user drilling four holes expects, or should the tool part survive? | Open | |
+| 2 | Subtract with a Pi's `hole1` consumed the Pi along with the plate, so each extra hole needed another Pi. Decided 2026-10-17: the tool part survives (`core-064`, see the entry at the end of this file). | Decided | |
 | 3 | Read `rpi-keepout.png` cold: the keep-out is a small 15 x 10 x 1 mm block by the display's power connector. Does the page make that clear, or does it read as a stray red box? | Open | |
 | 4 | Look at `resolution-low-vs-high.png`: is the Draft facet edge visible at the size it appears on the page? | Open | |
 | 5 | Read the new page's M12 example as someone who wants "an M3 screw": does it say clearly that the smallest metric bolt or screw is M4? | Open | |
@@ -1973,5 +1973,16 @@ three viewports (the 390 px fit is asserted there). What is left is the judgment
 | # | Check | Status | Notes |
 |---|---|---|---|
 | 1 | **Scenario 12 step 10, as an exploring human.** Roll back, move a body a later step uses, and decide whether the amber `broken` row plus **Re-link to the moved step** reads as clear or as clutter. Also whether the button label is understood without the docs. This is the `data-004` check 3 judgment, now with the button in place | Open | |
+
+
+### core-064 — A Pi that survives its own hole Subtract (2026-10-17)
+
+One Pi now drills every hole: a Subtract that cuts with only the Pi's mounting holes (`hole1`-`hole4`, a Pi 5's `fan1hole`/`fan2hole`) leaves the Pi in the scene. Two judgment calls are still yours.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | **Decision for the owner:** should the HAT's, the Camera Module's and the touch screens' mounting holes also keep their part when used to Subtract? Today only the Pi does; those still use their part up, as does the Ethernet jack, a `clearance-*` keep-out, a Pi's hole mixed with another piece, and a bolt's `tap` (scenario 5). One line per op in `DRILL_PARTS` (`src/core/kernel/registry.js`) switches one on. | Open | |
+| 2 | **Feel:** drill two holes with one Pi, then move the Pi. The holes already drilled stay where they were (each Subtract reads the Pi as it was at that step); only a later Subtract uses the new place. A model edit on the Pi (say Pi 4 to Pi 5) does re-fold the holes. Does the first read as a bug to someone who has not read `docs/hardware-library.md`? | Open | |
+| 3 | **Decision for the owner:** Repeat now refuses a source whose steps include a Subtract (from the seed's first mention onward), with *"... a repeat would copy the whole of <body> once per target. Subtract the other parts one at a time instead ..."*. It is not reachable from the UI today, so no one sees it by hand; it is there so a kept Pi cannot make Repeat add one whole extra plate per hole. Keep it, or drop it and accept that case? | Open | |
 
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

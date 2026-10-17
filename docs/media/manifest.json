@@ -229,15 +229,15 @@
   },
   "hardware-drag-bolt.gif": {
     "spec": "e2e/docs/hardware-library.docs.js",
-    "specHash": "3eccffffddd7f77567906256e47b102251b7af17e1e51dac7c92aa4257a44a02",
-    "bytes": 1217259,
-    "seconds": 9.2
+    "specHash": "ba3514397a50d40510e71232fc3eb828b3bcf27912cad929633591cd5f437746",
+    "bytes": 1192166,
+    "seconds": 9.1
   },
   "rpi-mounting-holes.gif": {
     "spec": "e2e/docs/hardware-library.docs.js",
-    "specHash": "3eccffffddd7f77567906256e47b102251b7af17e1e51dac7c92aa4257a44a02",
-    "bytes": 583633,
-    "seconds": 9.01
+    "specHash": "ba3514397a50d40510e71232fc3eb828b3bcf27912cad929633591cd5f437746",
+    "bytes": 942638,
+    "seconds": 13.51
   },
   "timeline-edit-step.gif": {
     "spec": "e2e/docs/timeline.docs.js",

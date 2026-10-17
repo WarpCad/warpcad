@@ -2199,3 +2199,15 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** `e2e/save-load-ui.e2e.js` green on chromium, webkit and firefox phone projects (it failed on all three before); drop point y=369 against a sheet top of y=366 -> probed with `elementFromPoint`; driven by hand with real touch events at 390x844
 **To Add:** none
+
+
+## [2026-10-17T23:30:00Z] — One Raspberry Pi, four holes
+
+**Post:** In WarpCad, drilling a plate with a Raspberry Pi's mounting hole used the Pi up, so four holes meant four Pis. Now the Pi stays after the Subtract and one board drills all four. Only the Pi's own hole parts do that: the Ethernet jack, a keep-out or a bolt's clearance still get used up. I also made Repeat refuse a cut plate, since it would copy the whole plate per hole.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #RaspberryPi
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** `e2e/pi-hole-subtract.e2e.js` drills hole1-hole3 with one Pi on nine projects; it failed on the old code with body-count 1; the docs movie `rpi-mounting-holes.gif` regenerated to show a second hole
+**To Add:** none

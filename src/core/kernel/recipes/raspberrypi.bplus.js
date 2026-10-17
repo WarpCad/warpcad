@@ -151,6 +151,19 @@ export const BPLUS_PART_ALIASES = Object.freeze({
 })
 
 /**
+ * The board's **drill** parts (`TODO/core-064`): the hidden hole cylinders this recipe drills
+ * its own board with — the four mounting holes, plus a Pi 5's two fan-mount holes. A Subtract
+ * that cuts with only these leaves the Pi in the scene, so one Pi can drill every hole of a
+ * plate (`src/core/booleanConsumes.js`). The `clearance-*` parts are not drills: they are
+ * keep-outs a case is cut around, and a cut with one still retires the Pi, as it always has.
+ * The names are the ones {@link bplus} places below; `raspberrypi.bplus.spec.js` checks that
+ * every one is a part of the model that has it.
+ *
+ * @type {readonly string[]}
+ */
+export const BPLUS_DRILL_PARTS = Object.freeze(['hole1', 'hole2', 'hole3', 'hole4', 'fan1hole', 'fan2hole'])
+
+/**
  * The motherboard: a rounded rectangle extruded to thickness, the same
  * `profile.roundedRectangle` → `profile.extrudeLinear` pair `kit.board` emits. V1's
  * `Board` leaves it in the positive quadrant with its underside on `z = 0`, which is

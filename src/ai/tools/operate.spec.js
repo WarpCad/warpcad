@@ -163,6 +163,26 @@ describe('operand ids — only ids the document issued, for bodies that are on s
     expect(record?.operands).toEqual([{ id: boltTerminal, pieces: 'tap' }])
     expect(record?.consumes).toEqual([plate, boltTerminal])
   })
+
+  it('subtracting a Pi’s hole1 leaves the Pi, so the next call can drill hole2 with it (TODO/core-064)', () => {
+    const document = createDocument({ replica: 'abcdef' })
+    const plate = place(document, 'primitive.cuboid', { x: 30, y: 30 }, { size: [100, 80, 2] })
+    const pi = place(document, 'raspberrypi.bplus', { x: 0, y: 0 })
+    const context = makeContext({ document })
+    for (const hole of ['hole1', 'hole2']) {
+      const base = /** @type {string} */ (document.currentIdOf(plate))
+      const piTerminal = /** @type {string} */ (document.currentIdOf(pi))
+      const result = /** @type {any} */ (
+        tools.run(context, 'operate', { op: 'boolean.subtract', operands: [{ id: document.rootOf(base) ?? base }, { id: pi, pieces: hole }] })
+      )
+      expect(result.error, hole).toBeUndefined()
+      const record = document.entries.at(-1)?.record
+      expect(record?.operands).toEqual([{ id: piTerminal, pieces: hole }])
+      expect(record?.consumes).toEqual([base])
+      expect(document.bodies().map((body) => body.id)).toContain(pi)
+    }
+    expect(document.bodies()).toHaveLength(2)
+  })
 })
 
 describe('the records operate writes are the ones the UI writes', () => {

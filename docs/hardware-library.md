@@ -201,11 +201,27 @@ falls. Each hole is also kept as a hidden part (`hole1` to `hole4`) for exactly 
    to list its parts, and tick the check beside `hole1`.
 3. The Operations toolbar names the plate and `hole1` as its two operands. Press **Subtract**.
 4. The plate gets one round 3.25 mm hole, in the exact spot the Pi's hole is, through its
-   full thickness. The Pi is used up by the Subtract (see
-   [Combining shapes](booleans.md)), so for the other three holes place another Pi in the
-   same spot and repeat with `hole2`, `hole3` and `hole4`.
+   full thickness. **The Pi stays where it is**: it is still in the Objects list, and the
+   [Bill of materials](bill-of-materials.md) still counts one board.
+5. For the next hole, click the drilled plate (it is now called **Subtract 1**), tick `hole2`
+   under the same **Raspberry Pi 1**, and press **Subtract** again. Repeat with `hole3` and
+   `hole4`. One Pi drills all four holes; you never place a second one.
 
-![Selecting a plate, ticking the Pi's hole1 part, and pressing Subtract: the plate now has a hole.](./media/rpi-mounting-holes.gif)
+The Pi's mounting holes (`hole1` to `hole4`, plus `fan1hole` and `fan2hole` on a Pi 5) are
+the only parts that leave the Pi in place. Cutting with any other piece, such as the Ethernet
+jack or a `clearance-*` keep-out, or with the Pi's hole *and* another piece together, still
+uses the Pi up, as every other Subtract does (see [Combining shapes](booleans.md)).
+
+Two things to know about a kept Pi:
+
+- **Each Subtract reads the Pi as it was at that step.** If you later *move* the Pi, the holes
+  already drilled stay where they were; only a Subtract you do after the move uses the new
+  position. Change the Pi itself (say its model, in the Inspector) and the holes follow.
+- **Repeat does not apply here.** [Repeat](snap-align.md#repeating-a-placement-on-every-hole) copies a part onto several holes;
+  it cannot drill one plate four times, because each copy would be a whole new plate. Use
+  one Subtract per hole, as above.
+
+![Selecting a plate, ticking the Pi's hole1 part and pressing Subtract: the plate has a hole and the Pi stays; then the drilled plate with hole2 of the same Pi, Subtract again: a second hole.](./media/rpi-mounting-holes.gif)
 
 ### Keep-out volumes
 

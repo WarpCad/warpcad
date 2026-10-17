@@ -107,7 +107,8 @@ export function snapPiBy(document, pieces) {
 
 /**
  * A case with the Pi's hidden `clearance-avjack` cut out of it — `ui-040`'s sub-part
- * Subtract, which consumes the whole Pi (a boolean always retires its operands).
+ * Subtract, which consumes the whole Pi: a clearance is a keep-out, not one of the Pi's drill
+ * parts, so the cut retires it (`TODO/core-064`; only a cut with the mounting holes keeps the Pi).
  *
  * @param {WarpDocument} document From {@link piAndCube}.
  * @returns {WarpDocument}

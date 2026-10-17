@@ -845,6 +845,24 @@ describe('OperationsToolbar — sub-part-addressed boolean operands (TODO/ui-040
     expect(record.consumes).toEqual(['base-1', 'group-1'])
   })
 
+  it('Subtract with a drilled-in Pi hole retires only the plate: the Pi stays, ready for the next hole (TODO/core-064)', async () => {
+    documentStore.append({ id: 'pi-1', op: 'raspberrypi.bplus', name: 'Raspberry Pi 1', params: { model: 4 } }, { origin: 'local' })
+    placeCuboid('plate-1', 'Plate 1', [40, 30, 0])
+    drillThenSelectBaseFirst('pi-1', 'hole1', 'plate-1')
+    expect(selection.ids).toEqual(['plate-1', 'pi-1'])
+
+    const wrapper = mount(OperationsToolbar)
+    const appendSpy = vi.spyOn(documentStore, 'append')
+    await wrapper.get('[data-testid="operation-subtract"]').trigger('click')
+
+    const record = appendSpy.mock.calls[0][0]
+    expect(record.operands).toEqual([{ id: 'pi-1', pieces: 'hole1' }])
+    expect(record.consumes).toEqual(['plate-1'])
+    expect(documentStore.bodies.map((candidate) => candidate.id)).toEqual(['pi-1', record.id])
+    // The result is selected, exactly as for any boolean; the Pi is simply deselected.
+    expect(selection.ids).toEqual([record.id])
+  })
+
   it('a whole-body selection still commits BARE ids — the regression every existing boolean depends on', async () => {
     placeGroupAndCuboid()
     selection.select('base-1')

@@ -205,9 +205,13 @@ Pi 4 (the case stays, just without that cut-out, on a Pi 5), or **Leave broken**
 - **Group ignores the part.** The `⊞ Group` button always uses the whole shape, even
   when a part is selected — the toolbar's note says so while a part is selected, so you
   do not have to remember it. Only Union, Subtract and Intersect read the part.
-- **The whole shape is still consumed.** Cutting with the Ethernet jack still uses up
-  the Pi as a separate object, exactly like any other Subtract. If you want to keep the
-  board, place a second one, or undo and use [Align](snap-align.md) to position a copy.
+- **The whole shape is still consumed**, with one exception. Cutting with the Ethernet jack
+  still uses up the Pi as a separate object, exactly like any other Subtract. If you want to
+  keep the board, place a second one, or undo and use [Align](snap-align.md) to position a
+  copy. The exception is a Raspberry Pi's *mounting holes* (`hole1` to `hole4`, and a Pi 5's
+  `fan1hole` and `fan2hole`): a Subtract that cuts with only those leaves the Pi in the
+  scene, so one Pi can drill every hole of a plate. See
+  [Example: drill a Pi's mounting hole into your own plate](hardware-library.md#example-drill-a-pis-mounting-hole-into-your-own-plate).
 
 A word about bolts specifically, because it changes what you get, not just how clear
 the intent is. A bolt's rendered outline is its **metal** — head and thread only, so

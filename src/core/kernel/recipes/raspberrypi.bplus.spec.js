@@ -6,7 +6,7 @@ import { v1ColorToRecord } from '../colors.js'
 import { boundsOf, calcSnap, isGroup, sizeOf } from '../group.js'
 import { evaluateOp, expand } from '../index.js'
 import { BPLUS_BOARD, MOUNTING_HOLES_MM, rpiParts } from '../tables/rpi-parts.js'
-import { bplus, BPLUS_MODELS, DEFAULT_CLEARANCE_MM } from './raspberrypi.bplus.js'
+import { bplus, BPLUS_DRILL_PARTS, BPLUS_MODELS, DEFAULT_CLEARANCE_MM } from './raspberrypi.bplus.js'
 import v1ReferenceJson from './__fixtures__/raspberrypi.bplus.v1-reference.json'
 
 // Heavy kernel/library work: slow-but-correct under full-suite load, so a file-level budget (TODO/testing-004).
@@ -824,6 +824,14 @@ describe('raspberrypi.bplus: the mounting holes are drilled through the board (T
     expect(holeIds.every(Boolean)).toBe(true)
     expect(/** @type {{ operands: string[] }} */ (mb).operands).toEqual(holeIds)
   })
+
+  it.each(BPLUS_MODELS.map((model) => [model]))(
+    'model %s: the drill parts a Subtract keeps the Pi for (TODO/core-064) are exactly the holes the board is drilled with',
+    (model) => {
+      const parts = Object.keys(board(model).parts)
+      expect(BPLUS_DRILL_PARTS.filter((name) => parts.includes(name))).toEqual(holeNames(model))
+    }
+  )
 
   it.each(BPLUS_MODELS.map((model) => [model]))('model %s: the hole parts stay hidden and named', (model) => {
     const group = board(model)

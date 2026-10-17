@@ -3158,3 +3158,19 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** sheet top 410.8 to 366.8 px at 390x844 -> throwaway probe, recorded in `TROUBLESHOOTING.md`; spec green on three phone engines -> `e2e/save-load-ui.e2e.js`; hand drive with CDP touch -> `TODO/ACCEPTANCE.md` scenarios 1 and 10 Last run lines
 **To Add:** none
+
+
+## [2026-10-17T23:30:00Z] — Whether a tool part should survive the cut
+
+A boolean in a CAD tool usually retires its operands: Subtract gives you one result body. In WarpCad that meant a Raspberry Pi used to drill a plate disappeared, and a plate with four mounting holes needed four Pis placed on top of each other.
+
+The decision was that the Pi should stay. The rule I ended up with is narrow on purpose: the cutting operand of a Subtract survives only when it names nothing but that part's declared drill holes (`hole1` to `hole4`, a Pi 5's two fan holes). Declared per recipe, not guessed from a name, so a bolt's clearance part, the Ethernet jack, a keep-out volume and a hole mixed with another piece all still use the part up. Nothing about the saved file changed, so an old project that lists the Pi as consumed still means that.
+
+One thing I added beyond the plan: Repeat now refuses when the part you are repeating was itself cut. With the Pi kept, it became possible to ask Repeat to copy a drilled plate onto every hole, and it would have added a whole new plate per hole. I also found the planned test premise was wrong: Repeat cannot drill one plate four times for the same reason, so the test drills with three separate Subtracts and checks that the Pi is still there and the bill of materials says one.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #Testing
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** `e2e/pi-hole-subtract.e2e.js` green on chromium, webkit and firefox at phone, tablet and laptop (red on the old toolbar code); rule in `src/core/booleanConsumes.js`; Repeat refusal in `src/core/repeat.js`
+**To Add:** none

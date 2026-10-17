@@ -309,6 +309,7 @@ import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import HelpButton from '../controls/HelpButton.vue'
 import AlignPopover from './AlignPopover.vue'
 
+import { consumesOf } from '../../core/booleanConsumes.js'
 import { DEFAULT_ROTATE_AXIS, mirrorRotationDeg } from '../../core/kernel/group.js'
 import { useSelectedOperands } from '../../composables/useSelectedBody.js'
 import { useDocumentStore } from '../../stores/document.js'
@@ -469,8 +470,15 @@ function run(op, label) {
     // retires, which is lineage bookkeeping, not an operand reference. Exactly
     // the distinction `ui-035` drew for `supersedes`: an object here would
     // break `bodies()` outright. A sub-part-addressed boolean still retires the
-    // whole composite it cut with, the same as a whole-body one.
-    consumes: operands.map((operand) => operand.terminalId),
+    // whole composite it cut with, the same as a whole-body one — except a
+    // Subtract that cuts with only a Pi's mounting holes, which leaves the Pi in
+    // the scene so it can drill the next hole (`TODO/core-064`). That rule is
+    // `core/booleanConsumes.js`'s, shared with the AI `operate` tool.
+    consumes: consumesOf(
+      documentStore.raw,
+      op,
+      operands.map((operand) => ({ terminal: operand.terminalId, ref: addressable ? operand.ref : operand.terminalId })),
+    ),
   }
 
   // `group.assemble` (TODO/ui-015) needs one display name per operand, so the
@@ -501,8 +509,9 @@ function run(op, label) {
     return
   }
 
-  // The operands are gone as independent bodies, so leaving them selected would
-  // point the Inspector and the gizmo at things that are no longer on screen.
+  // The operands are gone as independent bodies (all but a drilling Pi, which is
+  // simply deselected), so leaving them selected would point the Inspector and
+  // the gizmo at things that are no longer on screen.
   // Selecting the result instead hands it straight to the ordinary
   // selection → inspector → gizmo contract with no special case.
   selection.select(id)

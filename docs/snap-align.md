@@ -306,6 +306,11 @@ The repeats are one body in the History, **Bolt / screw 1 ×3**, one row reading
   selects the first bolt, where its steps are edited. **Detach** turns each repeat into its own
   bolt, no longer linked (one Undo puts the link back), for the one screw that needs to be
   different.
+- **A shape that was cut can't be repeated.** If the first part's steps include a Subtract (a plate
+  drilled with the Pi's `hole1`, say), Repeat refuses with *so a repeat would copy the whole of it
+  once per target*, because each copy would be a whole new plate. Drill each hole with its own
+  Subtract instead; the Pi stays in the scene for that
+  ([Example: drill a Pi's mounting hole](hardware-library.md#example-drill-a-pis-mounting-hole-into-your-own-plate)).
 - **Remove one repeat.** Tap the repeat's part (for example **hole3**) in the Objects list and
   press **Remove this repeat**. The other repeats stay.
 - **Deleting what a repeat follows asks first.** Delete Bolt 1 or the Pi and the Inspector asks
