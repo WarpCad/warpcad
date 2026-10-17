@@ -36,7 +36,7 @@ run at all); see `TODO/done/build-001-project-scaffold.md`'s own note.
 - ✅ [M3 — Booleans, selection-count gating, group/sub-part selection](#m3--booleans-selection-count-gating-groupsub-part-selection) — 7/7
 - ✅ [M4+ — Raspberry Pi accessory catalog, sketch mode, flagged-risk follow-ups](#m4--raspberry-pi-accessory-catalog-sketch-mode-flagged-risk-follow-ups) — 13/13
 - ✅ [M5 — Hardware Library surface, closing the fastener reachability gap](#m5--hardware-library-surface-closing-the-fastener-reachability-gap) — 7/7
-- ⬜ [M18 — Launch: publish, app.warpcad.com, Sentry and GA](#m18--launch-publish-appwarpcadcom-sentry-and-ga) — 0/2 — **runs first**
+- ⬜ [M18 — Launch: publish, app.warpcad.com, Sentry and GA](#m18--launch-publish-appwarpcadcom-sentry-and-ga) — 0/7 — **runs first; the five clean-up rows come before the push**
 - ⬜ [M16 — Next batch: naming, Align, in-app help, rotation, save/import fixes, merge reach](#m16--next-batch-naming-align-in-app-help-rotation-saveimport-fixes-merge-reach) — all rows done — **free-form pass owed**
 - ⬜ [M17 — Repeat across matching parts, and a phone Library fix](#m17--repeat-across-matching-parts-and-a-phone-library-fix) — 3/3 — all rows done — **free-form pass owed**
 - ✅ [M6 — Persistence, export, and timeline history editing](#m6--persistence-export-and-timeline-history-editing) — 23/23
@@ -61,41 +61,51 @@ run at all); see `TODO/done/build-001-project-scaffold.md`'s own note.
 
 ## Next up — recommended TODOs
 
-*Last reviewed 2026-10-17. Ranked by the user's order of 2026-10-17: today's goal first ([M18](#m18--launch-publish-appwarpcadcom-sentry-and-ga)), then every other open task, then the gears last (as decided 2026-10-16).*
+*Last reviewed 2026-10-17. Ranked by the user's order of 2026-10-17: today's goal first ([M18](#m18--launch-publish-appwarpcadcom-sentry-and-ga)), with the five clean-up tasks from the pre-publish review **before** the push to GitHub, then every other open task, then the gears last (as decided 2026-10-16).*
 
 **Today's goal (2026-10-17):** publish to GitHub, make `warpcad.com` work, and get Sentry and GA working.
 
 | # | Task | Why now | Model |
 |---|---|---|---|
-| 1 | ▶ **Publish.** Push `main` to `github.com/WarpCad/warpcad` once local CI parity passes (see M18 step 1) | Nothing is published yet; the Pages deploy only runs after CI passes on `main` | — |
-| 2 | ▶ [`build-010`](build-010-serve-at-app-warpcad-com.md) Serve at `app.warpcad.com` (`public/CNAME`, guard, Pages custom domain) | The domain | sonnet |
-| 3 | ▶ [`build-009`](build-009-drop-sentry-vite-plugin.md) Drop the Sentry build plugin (FSL licence) and upload maps with `curl` | Must land before Sentry is switched on | sonnet |
-| 4 | Owner: Sentry project, DSN, token and variables, then a Pages run (`build-004` VERIFY rows 1–5) | Sentry working | — |
-| 5 | Owner: GA property, Measurement ID, enhanced measurement off (`build-007` VERIFY rows 1–5) | GA working | — |
+| 1 | ▶ [`core-065`](core-065-wood-screw-holes-cite-asme-not-albany.md) Cite ASME B18.6.1 instead of Albany County Fasteners' chart | Clean-up before the push. **Stops to ask you** if the standard does not print the pilot-hole columns | sonnet |
+| 2 | ▶ [`build-011`](build-011-third-party-notices.md) Ship `THIRD-PARTY-NOTICES.txt` with the build and link it from Help | Clean-up before the push; the first deploy distributes the libraries | sonnet |
+| 3 | ▶ [`docs-023`](docs-023-trademark-notice.md) Trademarks notice | Clean-up before the push | sonnet |
+| 4 | ▶ [`docs-024`](docs-024-ported-code-provenance-statement.md) Provenance statement for ported V1 code | Clean-up before the push. **Owner step first**: confirm no outside contributor's code is in the V1 libraries | sonnet |
+| 5 | ▶ [`build-012`](build-012-cut-lfs-bandwidth-in-ci-and-pages.md) Cache the LFS media instead of fetching it in four jobs per push | Clean-up before the push. **Owner step first**: read the free LFS quota | sonnet |
+| 6 | ▶ **Publish.** Merge into `main`, run the CI steps locally, push `main` to `github.com/WarpCad/warpcad` | Waits for rows 1–5 | — |
+| 7 | ▶ [`build-010`](build-010-serve-at-app-warpcad-com.md) Serve at `app.warpcad.com` (`public/CNAME`, guard, Pages custom domain) | The domain | sonnet |
+| 8 | ▶ [`build-009`](build-009-drop-sentry-vite-plugin.md) Drop the Sentry build plugin (FSL licence), upload maps with `curl` | Must land before Sentry is switched on | sonnet |
+| 9 | Owner: Sentry project, DSN, token and variables, then a Pages run (`build-004` VERIFY rows 1–5) | Sentry working | — |
+| 10 | Owner: GA property, Measurement ID, enhanced measurement off (`build-007` VERIFY rows 1–5) | GA working | — |
 
 **Then the other open work, in this order:**
 
 | # | Task | Why this place | Model |
 |---|---|---|---|
-| 6 | ▶ [`ui-072`](ui-072-phone-library-drag-does-not-register.md) Phone Library drag does not register; `save-load-ui` fails on three phone projects | High-priority bug in shipped UI; not in CI, so it does not block the goal | sonnet |
-| 7 | ▶ [`core-064`](core-064-subtract-pi-hole-keeps-tool-part.md) Subtract with a Pi's `hole1` keeps the tool part | Decided 2026-10-17 | opus |
-| 8 | ▶ [`core-063`](core-063-repeat-apply-copies-foreign-steps.md) Repeat Apply copies a foreign step | Decided 2026-10-17 | sonnet |
-| 9 | ▶ [`ui-073`](ui-073-save-repeat-saves-its-source.md) Save to library saves a repeat's source | Decided 2026-10-17 | sonnet |
-| 10 | ▶ [`data-014`](data-014-merge-tie-prefers-local-step.md) Merge tie-break prefers the local step | Decided 2026-10-17; merge semantics, so opus | opus |
-| 11 | ▶ [`io-012`](io-012-warn-on-focus-when-file-may-have-changed.md) Warn on focus when the file may have changed (no file handle) | Decided 2026-10-17 | sonnet |
-| 12 | ▶ [`ui-075`](ui-075-live-mcp-access-phone-header-entry.md) Live MCP access entry in the phone header | Decided 2026-10-17 | sonnet |
-| 13 | ▶ [`ui-074`](ui-074-repeat-note-wording.md) Repeat note wording | Decided 2026-10-17; small | sonnet |
-| 14 | ▶ [`perf-003`](perf-003-defer-code-unused-at-boot.md) Defer code unused at boot (Sentry included) | Ready; faster cold start once Sentry is live | sonnet |
-| 15 | ▶ [`build-003`](build-003-native-mobile-shell-research.md) Research a native mobile shell | Research only; no code | opus |
-| 16+ | Gears: [`core-048`](core-048-gear-hub-bore-keyway-and-set-screw.md), [`ui-057`](ui-057-gears-library-section-and-inspector.md), [`ui-058`](ui-058-gear-mesh-operation.md), [`testing-002`](testing-002-acceptance-scenario-19-gear-train.md), [`core-049`](core-049-planetary-gear-set.md), [`core-062`](core-062-herringbone-relief-groove.md), [`docs-021`](docs-021-media-gears-and-porting-guide.md) | M11 runs last, as decided 2026-10-16 | — |
+| 11 | ▶ [`ui-072`](ui-072-phone-library-drag-does-not-register.md) Phone Library drag does not register; `save-load-ui` fails on three phone projects | High-priority bug in shipped UI; not in CI, so it does not block the goal | sonnet |
+| 12 | ▶ [`core-064`](core-064-subtract-pi-hole-keeps-tool-part.md) Subtract with a Pi's `hole1` keeps the tool part | Decided 2026-10-17 | opus |
+| 13 | ▶ [`core-063`](core-063-repeat-apply-copies-foreign-steps.md) Repeat Apply copies a foreign step | Decided 2026-10-17 | sonnet |
+| 14 | ▶ [`ui-073`](ui-073-save-repeat-saves-its-source.md) Save to library saves a repeat's source | Decided 2026-10-17 | sonnet |
+| 15 | ▶ [`data-014`](data-014-merge-tie-prefers-local-step.md) Merge tie-break prefers the local step | Decided 2026-10-17; merge semantics, so opus | opus |
+| 16 | ▶ [`io-012`](io-012-warn-on-focus-when-file-may-have-changed.md) Warn on focus when the file may have changed (no file handle) | Decided 2026-10-17 | sonnet |
+| 17 | ▶ [`ui-075`](ui-075-live-mcp-access-phone-header-entry.md) Live MCP access entry in the phone header | Decided 2026-10-17 | sonnet |
+| 18 | ▶ [`ui-074`](ui-074-repeat-note-wording.md) Repeat note wording | Decided 2026-10-17; small | sonnet |
+| 19 | ▶ [`perf-003`](perf-003-defer-code-unused-at-boot.md) Defer code unused at boot (Sentry included) | Ready; faster cold start once Sentry is live | sonnet |
+| 20 | ▶ [`build-003`](build-003-native-mobile-shell-research.md) Research a native mobile shell | Research only; no code | opus |
+| 21+ | Gears: [`core-048`](core-048-gear-hub-bore-keyway-and-set-screw.md), [`ui-057`](ui-057-gears-library-section-and-inspector.md), [`ui-058`](ui-058-gear-mesh-operation.md), [`testing-002`](testing-002-acceptance-scenario-19-gear-train.md), [`core-049`](core-049-planetary-gear-set.md), [`core-062`](core-062-herringbone-relief-groove.md), [`docs-021`](docs-021-media-gears-and-porting-guide.md) | M11 runs last, as decided 2026-10-16 | — |
 
-**Runner order** (`/run-todos` follows table order): [M18](#m18--launch-publish-appwarpcadcom-sentry-and-ga) first, then the milestone tables and Findings as they appear in this file, then [M11](#m11--gears-the-jscad-gears-library-ported-and-extended) last. The tasks in the table above are the ones to take in that order.
+**Runner order** (`/run-todos` follows table order): [M18](#m18--launch-publish-appwarpcadcom-sentry-and-ga) first, then the milestone tables and Findings as they appear in this file, then [M11](#m11--gears-the-jscad-gears-library-ported-and-extended) last. The tasks in the table above are the ones to take in that order. Inside M18 the five clean-up rows come first and the push waits for all five.
 
-**Owed to you, not to an agent:** the M16 and M17 five-minute free-form passes (owed since 2026-10-16); the M9, M10 passes (carried past per `TODO/BUDGET.md`); the M5–M8 and M12 passes (recorded as owed; whether any was done since is not written down here). The Sentry and GA owner rows are in M18.
+**Owed to you, not to an agent:** the M16 and M17 five-minute free-form passes (owed since 2026-10-16); the M9, M10 passes (carried past per `TODO/BUDGET.md`); the M5–M8 and M12 passes (recorded as owed; whether any was done since is not written down here). The clean-up owner steps (`docs-024` authorship check, `build-012` quota check, `core-065` pilot-hole question) and the Sentry and GA owner rows are in M18.
 
 **The shape of what is blocked**
 
 ```
+M18  core-065 ┐
+     build-011 ┤
+     docs-023  ├─ (all five before) ─ Publish ─ build-010 ─ build-009 ─ Sentry (owner) ─ GA (owner)
+     docs-024  ┤
+     build-012 ┘
 M15  docs-022 ─ data-008 ─ data-009 ─ data-010 ─ data-011 ─ ui-062 ─┬─ io-010
                                                                      ├─ io-011
                                                                      └─ ai-017 ─ ai-012 ─ ai-020   (M9 live bridge; ai-015 closed won't-do)
@@ -114,6 +124,11 @@ table to edit when a task opens, closes or changes priority — see the next sec
 
 | Milestone | Task | Kind | Priority | Model | State |
 |---|---|---|---|---|---|
+| M18 — Launch | [`core-065`](core-065-wood-screw-holes-cite-asme-not-albany.md) Wood-screw hole table cites ASME B18.6.1 instead of Albany County Fasteners' chart (stops to ask if the pilot columns are not in the standard) | finding | high | sonnet | ▶ **ready** |
+| M18 — Launch | [`build-011`](build-011-third-party-notices.md) Ship `THIRD-PARTY-NOTICES.txt` with the build and link it from Help | feature | high | sonnet | ▶ **ready** |
+| M18 — Launch | [`docs-023`](docs-023-trademark-notice.md) A trademarks notice for the product and service names the app uses | feature | high | sonnet | ▶ **ready** |
+| M18 — Launch | [`docs-024`](docs-024-ported-code-provenance-statement.md) Provenance statement for ported V1 code and data (owner confirms authorship first) | finding | high | sonnet | ▶ **ready** (owner step first) |
+| M18 — Launch | [`build-012`](build-012-cut-lfs-bandwidth-in-ci-and-pages.md) Cache the Git LFS media instead of downloading it in four jobs per push | finding | high | sonnet | ▶ **ready** (owner step first) |
 | M18 — Launch | [`build-010`](build-010-serve-at-app-warpcad-com.md) Serve the hosted app at `app.warpcad.com` (`public/CNAME`, guard, Pages custom domain) | feature | high | sonnet | ▶ **ready** |
 | M18 — Launch | [`build-009`](build-009-drop-sentry-vite-plugin.md) Drop `@sentry/vite-plugin` (FSL-1.1-Apache-2.0 via `sentry@0.45.0`); upload source maps with `curl` | finding | medium | sonnet | ▶ **ready** |
 | Findings | [`ui-072`](ui-072-phone-library-drag-does-not-register.md) Phone (390 px): the second Library drag does not register; `save-load-ui` fails on all three phone projects | finding | high | sonnet | ▶ **ready** |
@@ -254,7 +269,7 @@ milestone tables on 2026-10-12 — update them in the same edit that closes a ro
 | [M3 — Booleans, selection-count gating, group/sub-part selection](#m3--booleans-selection-count-gating-groupsub-part-selection) | ✅ | 7/7 | Booleans, selection-count gating, group and sub-part selection. |
 | [M4+ — Raspberry Pi accessory catalog, sketch mode, flagged-risk follow-ups](#m4--raspberry-pi-accessory-catalog-sketch-mode-flagged-risk-follow-ups) | ✅ | 13/13 | Raspberry Pi accessory catalog, sketch mode, fillet/chamfer UI. |
 | [M5 — Hardware Library surface, closing the fastener reachability gap](#m5--hardware-library-surface-closing-the-fastener-reachability-gap) | ✅ | 7/7 | Hardware Library surface; every fastener reachable; scenarios 3, 5 and 6 pass by hand. |
-| [M18 — Launch: publish, app.warpcad.com, Sentry and GA](#m18--launch-publish-appwarpcadcom-sentry-and-ga) | ⬜ | 0/2 | Publish, `app.warpcad.com`, Sentry and GA. Runs first, per the user's 2026-10-17 goal. |
+| [M18 — Launch: publish, app.warpcad.com, Sentry and GA](#m18--launch-publish-appwarpcadcom-sentry-and-ga) | ⬜ | 0/7 | Publish, `app.warpcad.com`, Sentry and GA. Runs first, per the user's 2026-10-17 goal; five pre-publish clean-up rows (`core-065`, `build-011`, `docs-023`, `docs-024`, `build-012`) come before the push. |
 | [M16 — Next batch: naming, Align, in-app help, rotation, save/import fixes, merge reach](#m16--next-batch-naming-align-in-app-help-rotation-saveimport-fixes-merge-reach) | ✅ | 18/18 | **Complete: `ui-068` (the Library remembers params) landed 2026-10-17. The five-minute free-form hand pass at phone/tablet/laptop is still owed, carried past per `TODO/BUDGET.md`.** The user waived the stop for that pass for the overnight run of 2026-10-16 only (see `TODO/BUDGET.md` Config); the pass itself is still owed. Rows moved from M6, M9, M13, M14, M15 and Findings, plus `ui-064` and `data-013`, `ui-065` (the translate ruler, added 2026-10-14), and `core-059`/`ui-067` (hand-placed split connectors, added 2026-10-15). |
 | [M17 — Repeat across matching parts, and a phone Library fix](#m17--repeat-across-matching-parts-and-a-phone-library-fix) | ✅ | 3/3 | **Complete: `ui-070`, `core-061` and `ui-069` (the Repeat button and panel) landed 2026-10-17. The five-minute free-form hand pass at phone/tablet/laptop is still owed, carried past per `TODO/BUDGET.md`.** |
 | [M6 — Persistence, export, and timeline history editing](#m6--persistence-export-and-timeline-history-editing) | ✅ | 23/23 | Autosave, File menu, hosted storage, export, History. `data-006` (the last open row) moved to M16; **free-form pass owed**. |
@@ -504,42 +519,62 @@ request rather than left to be rediscovered later:
 
 Set 2026-10-17 by the user: today's goal is to publish WarpCad to GitHub, make `warpcad.com` work,
 and get Sentry and GA working. Every other row in this file waits behind it
-([Next up](#next-up--recommended-todos)).
+([Next up](#next-up--recommended-todos)). The pre-publish licence review of the same day found four
+things to fix and one source to replace; the user put **all five before the push**, so they are the
+first five rows below.
 
 | id | Task | Kind | Depends | Acceptance |
 |---|---|---|---|---|
+| `core-065` | Wood-screw hole table: cite ASME B18.6.1 instead of Albany County Fasteners' © 2025 chart. Step 1 finds out what the standard prints; **stops to ask the user** if it lacks the pilot-hole columns | Finding | — | 2, 3, 5, 10, 15; `core-050`, `ui-052` repros |
+| `build-011` | Ship `THIRD-PARTY-NOTICES.txt` with the build (MIT, BSD, Apache-2.0 notices for every bundled library) and link it from the Help footer | Feature | — | 1 (production-build smoke); `ui-061` repro |
+| `docs-023` | A trademarks notice for the product and service names the app uses (Raspberry Pi, iPhone, Galaxy, Pixel, Adafruit, Pimoroni, Claude, GitHub, Sentry, Google Analytics, OpenJSCAD) | Feature | — | none |
+| `docs-024` | A provenance statement for code and data ported from the author's JSCAD v1 libraries, written after the owner confirms no outside contributor's code is in them | Finding | — | none |
+| `build-012` | Cache the Git LFS media (72.7 MB, 74 GIFs) instead of downloading it in four jobs per push; the owner reads the free LFS quota first | Finding | — | 1 (smoke after the first deploy) |
 | `build-010` | Serve the hosted app at `app.warpcad.com`: `public/CNAME`, a guard spec, the Pages custom domain | Feature | — | none (scenario 1 as a smoke check after deploy) |
 | `build-009` | Drop `@sentry/vite-plugin` (it pulls `sentry@0.45.0`, FSL-1.1-Apache-2.0) and upload source maps with `curl` from the Pages workflow | Finding | — | none |
 
-**Order of work, as the user set it.** Steps 2 and 3 are code; the rest are the owner's settings and
-accounts, which no agent can do. The owner rows point at the VERIFY rows that check them.
+**Order of work, as the user set it.** The code and prose rows are for the runner; the owner steps are
+settings and accounts no agent can do. The owner rows point at the VERIFY rows that check them.
 
-1. **Publish.** Commit this roadmap and the new TODO files on the current branch, merge into `main`
-   (a fast-forward; `main` has no commits the branch lacks), run the CI steps locally
-   (`spdx`, `licenses`, `mcp:licenses`, `typecheck`, unit, `guards`, and the two smoke projects), then
-   push `main` to `github.com/WarpCad/warpcad`. The repository exists and is public with no
-   commits yet. Pushing `main` triggers CI, and CI passing triggers the Pages deploy.
-2. **Domain.** `build-010`. Owner: Squarespace Domains, add `CNAME app → warpcad.github.io`; repository
-   Settings → Pages: Source "GitHub Actions", custom domain `app.warpcad.com`; then Enforce HTTPS
-   once the certificate is issued.
-3. **Sentry, code first.** `build-009` lands before any Sentry setting is switched on, because the
+*Clean-up, all before the push:*
+
+1. **`core-065`**, the ASME source. The first step is to find out what ASME B18.6.1 provides; if it
+   does not print the pilot-hole columns, the task stops and asks the owner which of three options to
+   take. It is the only clean-up row that can wait on you.
+2. **`build-011`**, the notices file and its Help link.
+3. **`docs-023`**, the trademarks notice.
+4. **`docs-024`**, the provenance statement. **Owner first:** in each V1 checkout
+   (`jscad-utils`, `jscad-hardware`, `jscad-raspberrypi`, `jscad-gears`, `PiPiece`) run
+   `git shortlog -sne` and look at its pull requests, then tell the task whether any outside
+   contributor's code is in a ported file.
+5. **`build-012`**, the LFS cache. **Owner first:** read the free Git LFS storage and bandwidth limits and
+   record the figures. This change can only be checked by the first two CI runs after the push.
+
+*Then:*
+
+6. **Publish.** The roadmap and TODO files are already committed on `wip/ai-023-live-access`
+   (`f6bfb3e`, `299bcec`, `ef25cf8`). When rows 1–5 are done, merge into `main` (a fast-forward; `main`
+   has no commits the branch lacks), run the CI steps locally (`spdx`, `licenses`, `mcp:licenses`,
+   `typecheck`, unit, `guards`, and the two smoke projects), then push `main` to
+   `github.com/WarpCad/warpcad`. The repository exists and is public with no commits yet. Pushing
+   `main` triggers CI, and CI passing triggers the Pages deploy.
+7. **Domain.** `build-010`. Owner: Squarespace Domains, add `CNAME app → warpcad.github.io`;
+   repository Settings → Pages: Source "GitHub Actions", custom domain `app.warpcad.com`; then Enforce
+   HTTPS once the certificate is issued.
+8. **Sentry, code first.** `build-009` lands before any Sentry setting is switched on, because the
    plugin it removes is the licence question decided 2026-10-17.
-4. **Sentry, owner.** `TODO/VERIFY.md` build-004 rows 1–5: create the Sentry project, copy the DSN,
+9. **Sentry, owner.** `TODO/VERIFY.md` build-004 rows 1–5: create the Sentry project, copy the DSN,
    create a token with only `project:releases` and `org:read`; set the variables `SENTRY_DSN`,
    `SENTRY_ORG`, `SENTRY_PROJECT` and the secret `SENTRY_AUTH_TOKEN`; run the Pages workflow; check
    the smoke event arrives with the original file and line. Row 6 is closed by `build-009`.
-5. **GA, owner.** `TODO/VERIFY.md` build-007 rows 1–5: create the GA4 property and web stream, set the
-   variable `GA_MEASUREMENT_ID`, turn **Enhanced measurement OFF**, and check Realtime and DebugView
-   show one page view with no `#` in the path.
-6. **Close.** Open `https://app.warpcad.com`, check the Help version line shows the deployed commit,
-   and check the console has no CSP error naming a Sentry or Google host. Then M18 is complete.
+10. **GA, owner.** `TODO/VERIFY.md` build-007 rows 1–5: create the GA4 property and web stream, set the
+    variable `GA_MEASUREMENT_ID`, turn **Enhanced measurement OFF**, and check Realtime and DebugView
+    show one page view with no `#` in the path.
+11. **Close.** Open `https://app.warpcad.com`, check the Help version line shows the deployed commit,
+    and check the console has no CSP error naming a Sentry or Google host. Then M18 is complete.
 
 **Milestone end:** the five-minute free-form pass on the live site at phone, tablet and laptop. Not a
 gate on the goal, but owed.
-
-| Milestone | | Progress | State |
-|---|---|---|---|
-| M18 | ⬜ | 0/2 | Publish, `app.warpcad.com`, Sentry, GA. Steps 1–6 above. |
 
 ---
 
