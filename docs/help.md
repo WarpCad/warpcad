@@ -67,6 +67,31 @@ you are running, never a newer or older copy from the internet.
 To check: open WarpCad once, turn the network off (airplane mode, or the browser's Offline
 setting), reload, and open **File ▾ → Help and documentation**.
 
+## Updating WarpCad
+
+WarpCad updates itself. When a new version is released, your browser fetches it in the
+background, and a banner appears at the bottom of the window: *A new version of WarpCad is
+available.* The banner is never in the way: it sits below the viewport, so the view, the
+navigation controls and the chat stay fully visible above it.
+
+![The window with the update banner along the bottom: A new version of WarpCad is available, with Reload and Later buttons](./screenshots/pwa-update-toast.png)
+
+1. Finish what you are doing. Your project is already kept in the browser (and in your file, if
+   you saved one), so a reload loses only what is on screen, such as an open pop-up.
+2. Click **Reload**. If you are in the middle of something (dragging, typing in a field, a
+   pop-up open, or a save that has not finished) the banner first asks *Reload anyway?*.
+3. The page restarts on the new version. **Later** hides the banner until the next time a
+   newer version is found.
+
+If you never see the banner, open **Help**, scroll to the version line at the bottom of any
+page and click **Check for updates**. It answers *You are on the latest version* or *Update
+found, reload to apply*. The number on that line (for example `0.0.0+a1b2c3d`) is the build you
+are running; after **Reload** it changes to the new one.
+
+A tab left open looks for a new version about every 30 minutes and whenever you switch back to
+it. A page you simply reload (without the banner) also picks up the new version, within a
+reload or two of its release. Updating never needs you to clear site data.
+
 ## Sharing a help view
 
 While the sheet is open, the address ends in `#/help/align` (or whichever topic or page you

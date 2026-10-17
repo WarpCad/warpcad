@@ -55,7 +55,8 @@ The Library's Raspberry Pi and Hardware items descend from the `jscad-raspberryp
 - [Using the built-in help](help.md) — the **?** in every tool pop-up's header, **File ▾ → Help
   and documentation**, and the **?** / **F1** keys: the whole documentation inside the app,
   opening on the section for the tool you are using, working offline, and leaving your
-  selection and open pop-up alone.
+  selection and open pop-up alone; also how WarpCad updates itself (the *new version* banner and
+  **Check for updates**).
 - [Combining shapes: Union, Subtract and Intersect](booleans.md) — the
   Operations toolbar, why its buttons stay dimmed until two shapes are selected,
   and how to tell which shape Subtract is about to cut.

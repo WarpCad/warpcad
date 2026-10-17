@@ -6,8 +6,10 @@ priority: high
 model: sonnet
 milestone: M10
 depends: []
-status: open
+status: done
 ---
+
+> **Shipped (2026-10-17).** As specified, with these differences. In `autoUpdate` mode the plugin's page code calls `location.reload()` the moment a new worker activates, so `src/pwa.js` passes `onNeedReload` to replace that with the banner; and `updateSW(true)` is a no-op in `autoUpdate` mode, so **Reload** is a plain `location.reload()` after `canReloadNow` (or the "Reload anyway?" question). `src/pwa.js` and a `virtual:pwa-register` type shim in `src/shims.d.ts` are new files not in the list; `stores/persistence.js` now exports `uiBusy`. The banner is the last in-flow row of the app column rather than a fixed overlay, so it cannot cover the nav chrome, gizmo or chat sheet. The unsaved check treats an unfinished autosave, an open pop-up/dialog, a sketch-tracing session, a drag, or a merge waiting on the open file as in progress. The delay observed on the real Pages site is not measured; see `TODO/VERIFY.md`. The decision note is `docs/decisions/hosting.md` "Update path"; no `TROUBLESHOOTING.md` entry was added (the root cause was confirmed in the generated worker and plugin source, not on Pages).
 
 ## Goal
 

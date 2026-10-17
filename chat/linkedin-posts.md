@@ -2937,3 +2937,21 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** sheet 159 px at 390x844 and overlay gap under 40 px → `e2e/mcp-connected-assistant.e2e.js`; transcript 0 px high at half height on a phone, measured by hand 2026-10-17; Inspector tab `visibility: hidden` under the sheet → `src/views/AppView.vue` phone rule, `TODO/ACCEPTANCE.md` scenario 6
 **To Add:** none
+
+## [2026-10-17T11:20:00Z] — The plugin's autoUpdate reloads the page for you, which is the problem
+
+**Post:** WarpCad caches its whole app shell in a service worker so the built-in Help works with no network. The cost showed up after a deploy: a reload served the old build until the new worker had installed, activated and taken control, and an open tab never learned a new version existed.
+
+The fix has three parts. The worker is told, explicitly, to skip waiting, claim its clients and delete outdated caches, and I checked the generated worker file rather than trusting the plugin's docs. The page asks the browser to re-fetch the worker every 30 minutes and when the tab becomes visible, plus a Check for updates button next to a version line in Help. And the build stamps the package version and commit into the page, so "am I on the new build?" can be read off the screen.
+
+The part that surprised me: vite-plugin-pwa's autoUpdate mode makes the page call location.reload() the moment a new worker activates. That is exactly the reload-under-the-user behaviour a CAD tool cannot have mid-drag. The plugin has a hook that replaces it, so the page shows a banner instead, and Reload asks first when a drag, a field edit, an open pop-up or an unfinished autosave is in progress.
+
+I tested it with two simulated deploys, swapping a patched copy of the build behind one server, on Chromium, Firefox and WebKit at phone, tablet and laptop size. What I have not done: measure the delay on the real GitHub Pages site, or try an installed iPhone PWA. Both are on the manual queue.
+
+Built with Claude Code, reviewed by me.
+
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #PWA #WebDev #Testing #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** plugin source: autoUpdate registers an `activated` listener that reloads unless `onNeedReload` is given → `node_modules/vite-plugin-pwa/dist/client/build/register.js` (v1.3.0); 36 of 36 on nine projects → `e2e/pwa-update.e2e.js`
+**To Add:** none

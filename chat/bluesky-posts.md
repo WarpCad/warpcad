@@ -2064,3 +2064,13 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** panel 159 px on a 390x844 phone, 111 px at 820 wide, scale readout within 40 px of the sheet → `e2e/mcp-connected-assistant.e2e.js` (9 engine-viewport projects); the hidden chat keeps its state → `src/components/ai/ChatPanel.spec.js`
 **To Add:** `docs/screenshots/mcp-connected.png`, repo URL once public, docs site URL once it exists
+
+## [2026-10-17T11:20:00Z] — A reload should show the new version
+
+**Post:** WarpCad is a PWA that caches its whole shell so Help works offline. The catch: after a deploy, a reload kept serving the old build until the new service worker had taken over, and an open tab was never told. Now a reload or two picks up the new version, a tab left open checks every 30 minutes, and a bottom banner says "A new version is available" with Reload, which asks first if you are mid-drag. Built with Claude Code, reviewed by me. #CAD #OpenSource
+
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** two simulated deploys, banner, Reload, project intact, on Chromium, Firefox and WebKit at three sizes (36 of 36 passed) → `e2e/pwa-update.e2e.js`; generated worker has skipWaiting, clientsClaim, cleanupOutdatedCaches → `dist/sw.js` after `npm run build`
+**To Add:** `docs/screenshots/pwa-update-toast.png`, real Pages delay once measured, repo URL once public, docs site URL once it exists

@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
+import { readFileSync } from 'node:fs'
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import { VitePWA } from 'vite-plugin-pwa'
@@ -47,7 +48,32 @@ function basePath(raw) {
   return trimmed === '' ? '/' : `/${trimmed}/`
 }
 
+/** The package version, shown in Help and in `<meta name="version">` (`TODO/build-005`). */
+const APP_VERSION = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8')).version
+/** The short commit this build was made from (`GITHUB_SHA` on Pages), `dev` when unset. */
+const APP_COMMIT = (process.env.GITHUB_SHA ?? '').slice(0, 7) || 'dev'
+
+/**
+ * Stamps the running build into the page as `<meta name="version" content="0.0.0+abc1234">`, so
+ * DevTools and tests can read it without the UI. It also changes `index.html`'s precache
+ * revision on every commit, so a deploy always yields a different service worker.
+ *
+ * @returns {import('vite').Plugin}
+ */
+function versionMeta() {
+  return {
+    name: 'warpcad-version-meta',
+    transformIndexHtml() {
+      return [{ tag: 'meta', attrs: { name: 'version', content: `${APP_VERSION}+${APP_COMMIT}` }, injectTo: 'head' }]
+    },
+  }
+}
+
 export default defineConfig({
+  define: {
+    __APP_VERSION__: JSON.stringify(APP_VERSION),
+    __APP_COMMIT__: JSON.stringify(APP_COMMIT),
+  },
   base: basePath(process.env.BASE_PATH),
   // Dedicated, strict port: with auto-increment-on-conflict (Vite's default),
   // a stray dev server from another project squatting on the default port
@@ -56,6 +82,7 @@ export default defineConfig({
   server: { port: 5183, strictPort: true },
   plugins: [
     devContentSecurityPolicy(),
+    versionMeta(),
     // `TODO/ai-012`: Claude Code edits the open tab, under `npm run dev` only (`apply: 'serve'`;
     // `vite build` output carries nothing of it). MCP at /mcp, the tab over the HMR socket.
     // `WARPCAD_LIVE_BRIDGE=0 npm run dev` leaves it out (default on); see docs/mcp.md.
@@ -64,11 +91,20 @@ export default defineConfig({
     // `TODO/ui-061`: docs/*.md rendered to help/<page>.html at build time (dev: on request).
     warpcadHelp(),
     VitePWA({
+      // `TODO/build-005`: a new worker installs, activates and takes control the moment it is
+      // found (stated below, not left to the plugin's defaults). `src/pwa.js` intercepts the
+      // plugin's automatic reload (`onNeedReload`) so the page is never reloaded under the user.
       registerType: 'autoUpdate',
       // The tab icons `index.html` links, precached so they survive going offline. The
       // manifest's own icons are precached by the plugin already.
       includeAssets: ['favicon.svg', 'favicon.ico', 'apple-touch-icon.png'],
       workbox: {
+        skipWaiting: true,
+        clientsClaim: true,
+        // Drop the previous build's precache entries on activate, so a stale index.html can
+        // never point at hashed assets that were deleted by the deploy.
+        cleanupOutdatedCaches: true,
+        navigateFallback: 'index.html',
         // The plugin's default globs plus the help text and still pictures, so Help opens
         // offline right after install. The GIFs are runtime-cached, not precached: they are
         // ~60 MB (see `scripts/vite-plugin-help.mjs`).

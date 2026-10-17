@@ -23,9 +23,11 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 
 import { loadHelpIndex, loadHelpPage } from '../../help/loader.js'
 import { TOPICS } from '../../help/topics.js'
+import { useAppUpdateStore } from '../../stores/appUpdate.js'
 import { useHelpStore } from '../../stores/help.js'
 
 const help = useHelpStore()
+const update = useAppUpdateStore()
 
 /**
  * Where this app's source lives. AGPL-3.0 §13: a hosted copy must offer its users the
@@ -270,6 +272,20 @@ onBeforeUnmount(() => {
               <abbr title="GNU Affero General Public License, version 3 or later">AGPL-3.0</abbr>.
               <a :href="SOURCE_URL" target="_blank" rel="noopener" data-testid="help-source-link">Source code</a>
             </footer>
+            <!-- The running build, and a manual check for a newer one (TODO/build-005). -->
+            <div v-if="state === 'ready'" class="help__version" data-testid="help-version-row">
+              <span data-testid="help-version">WarpCad {{ update.version }}+{{ update.commit }}</span>
+              <button
+                type="button"
+                class="help__btn"
+                data-testid="pwa-check-update"
+                :disabled="update.checking"
+                @click="update.check()"
+              >
+                {{ update.checking ? 'Checking…' : 'Check for updates' }}
+              </button>
+              <span v-if="update.message" class="help__version-message" role="status" data-testid="pwa-check-message">{{ update.message }}</span>
+            </div>
           </div>
         </div>
       </div>
@@ -278,6 +294,16 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
+.help__version {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+  margin-top: 8px;
+  color: var(--text-2);
+  font-size: 13px;
+}
+
 .help__backdrop {
   position: fixed;
   inset: 0;

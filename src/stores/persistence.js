@@ -983,6 +983,7 @@ export const usePersistenceStore = defineStore('persistence', () => {
     checkDiskFile,
     resolveDiskChange,
     showDiskPrompt,
+    uiBusy,
     setUiBusy,
     start,
     stop,

@@ -49,6 +49,49 @@ WebView later.
 | Netlify | Same as Cloudflare, with tighter free-tier caps. |
 | Vercel | Hobby-tier commercial-use restriction is a poor fit for an AGPL project anyone may host. |
 
+## Update path (`TODO/build-005`)
+
+Problem: the worker precaches the app shell, so a reload served the old build until a new worker
+had installed, activated and taken control, and an open tab was never told.
+
+| Option | Reload always fresh | Offline Help | Verdict |
+|---|---|---|---|
+| A. pipiece-ui's no-op worker (no precache) | yes | no | Rejected: breaks the `ui-061` offline Help and install-and-go on a phone. |
+| B. Keep the Workbox precache, fix the update path | yes, after a reload or two | yes | **Chosen.** |
+| C. No service worker | yes | no | Rejected: loses installability and offline entirely. |
+
+What B is, and was verified against the generated `dist/sw.js` (not the plugin's docs):
+
+- `skipWaiting`, `clientsClaim`, `cleanupOutdatedCaches` and `navigateFallback: 'index.html'` are
+  stated in `vite.config.js`; `index.html` is in the precache manifest with a revision, and the
+  revision changes per build because the build stamps `<meta name="version">` (package version +
+  short `GITHUB_SHA`) into it. The runtime-cached GIFs stay `docs/media/*.gif` only.
+- `registerType: 'autoUpdate'`: in the plugin (1.3.0) that makes the *page* call
+  `location.reload()` as soon as a new worker activates. `src/pwa.js` passes `onNeedReload`, which
+  replaces that reload with the update strip, so the page never reloads under the user. In
+  `autoUpdate` mode `updateSW(true)` is a no-op, so **Reload** is a plain `location.reload()`
+  (after `canReloadNow`, asking first while a drag, field edit, pop-up, unsaved autosave or
+  merge-waiting is in progress).
+- `registration.update()` runs every 30 minutes and when the tab becomes visible
+  (`src/core/appUpdate.js`), plus **Check for updates** in Help. `update()` bypasses the HTTP cache
+  for `sw.js`, which Pages serves with `max-age=600`; `e2e/pwa-update.e2e.js` serves `sw.js` with
+  that header and proves the update still lands.
+- Timeline on a navigation: reload 1 serves the old build from the precache while the browser
+  fetches the new `sw.js`, installs and activates it; reload 2 serves the new build.
+- Known trade-off: with `skipWaiting` the new worker controls the old page, and
+  `cleanupOutdatedCaches` removes the old hashed assets, so a lazy-loaded chunk requested by a page
+  that has not reloaded yet can 404. The strip exists to make that window short; the document is
+  in IndexedDB and the project file, so a reload loses only transient UI state.
+- Recovery if a bad worker ever ships: deploy a `sw.js` that calls `registration.unregister()`
+  (not built).
+- **Observed delay on the real Pages site: not yet measured** (needs a deploy and a phone; see the
+  `TODO/VERIFY.md` entry). The docs promise "within a reload or two" and "about 30 minutes", not
+  "immediately".
+- Engines: the e2e runs the service worker on Chromium, Firefox and WebKit (WebKit's Playwright
+  build cannot take the network offline *above* the worker, so the offline reload is asserted
+  there by precache contents only, as in `help.e2e.js`). Playwright does not model iOS standalone
+  mode; the installed-PWA check is manual.
+
 ## Revisit when
 
 - The kernel or another dependency needs `SharedArrayBuffer` (cross-origin isolation headers).

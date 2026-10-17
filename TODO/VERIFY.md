@@ -34,6 +34,15 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### build-005 — A reload picks up a new deploy, and an update banner (2026-10-17 11:20 UTC)
+
+The two-deploy behaviour is proven in Playwright against simulated deploys on all three engines, but the real GitHub Pages `sw.js` headers and an installed phone PWA cannot be simulated; the delay on Pages was not measured.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | After a real deploy to Pages, reload the open app on an installed iPhone/iPad PWA once or twice: Help's version line (`WarpCad x.y.z+<short sha>`) changes to the new commit, no site-data clearing. Note the observed delay and record it in `docs/decisions/hosting.md` "Update path". | Open | |
+| 2 | Leave the installed PWA open across a deploy: the bottom banner *A new version of WarpCad is available.* appears within about 30 minutes or on returning to the app; **Reload** applies it and the project is intact. | Open | |
+
 ### ui-071 — Assistant folds to its header while an MCP agent is connected (2026-10-17 UTC)
 
 Scenarios 25 and 24 (connected half) were driven; scenario 6 is partial because the phone rule that hides the Library, Inspector and History sheets under any open chat sheet predates this task and was left alone. Only the judgment calls are queued here.

@@ -35,6 +35,7 @@ import { startLiveBridge } from '../composables/useLiveBridge.js'
 import { startWebMcp } from '../composables/useWebMcp.js'
 import HelpEntryButton from '../components/layout/HelpEntryButton.vue'
 import HelpSheet from '../components/layout/HelpSheet.vue'
+import UpdateToast from '../components/layout/UpdateToast.vue'
 import HistoryControls from '../components/layout/HistoryControls.vue'
 import LibraryPanel from '../components/layout/LibraryPanel.vue'
 import SaveToLibrarySheet from '../components/layout/SaveToLibrarySheet.vue'
@@ -301,6 +302,9 @@ function onInspectorClaim() {
            tablet width, a column of this grid at laptop width. Never a modal. -->
       <ChatPanel />
     </main>
+    <!-- A newer build is installed (TODO/build-005): the last row of the column, in flow, so it
+         pushes the viewport up instead of covering the navigation chrome, gizmo or chat sheet. -->
+    <UpdateToast />
     <!-- The repair dialog (TODO/ui-052): over everything, opened by an Inspector
          dropdown, a History row's Edit, or a Resolve… button. -->
     <DependentRepairDialog />

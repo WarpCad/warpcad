@@ -28,6 +28,7 @@ export const DEFAULT_TOPIC = 'getting-started'
 export const TOPICS = Object.freeze({
   'getting-started': { page: 'getting-started', title: 'Getting started' },
   contents: { page: 'readme', title: 'All pages' },
+  updating: { page: 'help', anchor: 'updating-warpcad', title: 'Updating WarpCad' },
   // The Operations toolbar.
   boolean: { page: 'booleans', anchor: 'you-need-at-least-two-shapes-selected', title: 'Union, Subtract and Intersect' },
   group: { page: 'groups', anchor: 'you-need-at-least-two-shapes-selected', title: 'Group' },

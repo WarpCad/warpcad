@@ -45,3 +45,20 @@ interface ImportMeta {
     send(event: string, data?: any): void
   }
 }
+
+// `vite.config.js` `define` (`TODO/build-005`): the package version and short commit of this build.
+declare const __APP_VERSION__: string
+declare const __APP_COMMIT__: string
+
+// vite-plugin-pwa's virtual registration module (its own `client.d.ts` pulls in typings for every
+// framework, none of which is installed here), narrowed to what `src/pwa.js` uses.
+declare module 'virtual:pwa-register' {
+  export interface RegisterSWOptions {
+    immediate?: boolean
+    onNeedReload?: () => void
+    onOfflineReady?: () => void
+    onRegisteredSW?: (swUrl: string, registration: ServiceWorkerRegistration | undefined) => void
+    onRegisterError?: (error: unknown) => void
+  }
+  export function registerSW(options?: RegisterSWOptions): (reloadPage?: boolean) => Promise<void>
+}
