@@ -39,6 +39,36 @@ Runtime dependencies are all permissively licensed (MIT) and compatible with AGP
 `npm run licenses` fails if a production dependency's license is outside an allow-list, and
 `npm run spdx` fails if a tracked file lacks its marker. Both run in CI.
 
+## Trademarks and names
+
+Product and service names used in WarpCad belong to their owners. They appear only to identify
+the real part or service something is compatible with or talks to, and WarpCad is not affiliated
+with, or endorsed by, any of them. The repository contains no third-party logos or brand images.
+
+Parts and devices named in the Library and in the screen-size presets:
+
+- Raspberry Pi is a trademark of Raspberry Pi Ltd.
+- iPhone is a trademark of Apple Inc. (Apple is likewise a trademark of Apple Inc.)
+- Galaxy is a trademark of Samsung Electronics (Samsung likewise).
+- Pixel is a trademark of Google LLC.
+- Adafruit is a trademark of Adafruit Industries.
+- Pimoroni is a trademark of Pimoroni Ltd.
+
+Services the app calls or names:
+
+- Claude and Anthropic are trademarks of Anthropic, PBC. The chat panel calls the Claude API with
+  your own key.
+- GitHub is a trademark of GitHub, Inc.; gists and the project repository are hosted there.
+- Sentry is a trademark of Functional Software, Inc. (d/b/a Sentry); it receives error reports
+  only when the build is configured with a DSN.
+- Google Analytics is a trademark of Google LLC.
+- OpenJSCAD is the name of an open-source project whose code `@jscad/modeling` comes from; it is
+  named here to credit that work, not to claim any tie to it.
+
+The rule: a name identifies what a part is compatible with. If you add a part or service named after
+a third-party product, add its owner here (`scripts/trademarkNotice.spec.js` fails until you do), and
+add no third-party logo or brand image to the repository without a licence check.
+
 ## Contributing
 
 Contributions are accepted under the same licenses, certified with a

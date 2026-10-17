@@ -19,6 +19,9 @@ Thanks for helping. Before you open a pull request:
    `git add`ing them. CI runs `npm run spdx` and `npm run licenses`.
 4. Do not add code, assets or prompts copied from a source whose license is incompatible with
    AGPL-3.0 or CC BY-SA 4.0 (proprietary, "non-commercial", SSPL, and similar).
+5. No third-party logo or brand image goes into the repository without a licence check, and a new
+   third-party product name needs its owner added to
+   [Trademarks and names](LICENSING.md#trademarks-and-names).
 
 Project workflow (specs under `TODO/`, `/fix-todo`, acceptance scenarios) is described in
 [`CLAUDE.md`](CLAUDE.md) and [`TODO/README.md`](TODO/README.md).

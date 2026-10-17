@@ -6,8 +6,10 @@ priority: high
 model: sonnet
 milestone: M18 — Launch: publish, app.warpcad.com, Sentry and GA
 depends: []
-status: open
+status: done
 ---
+
+> **Shipped:** as proposed. Added a guard (`scripts/trademarkNotice.spec.js`), rule 5 in `CONTRIBUTING.md`, and used the absolute repository URL on the Help page because Help renders links to files outside `docs/` as plain text. The owners' names were not re-checked against their own trademark pages (no web access in the run); see `TODO/VERIFY.md`.
 
 ## Goal
 

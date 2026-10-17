@@ -299,7 +299,9 @@ WarpCad is copyleft. The code is [AGPL-3.0-or-later](LICENSE); the prompts, TODO
 slash commands and docs that were used to build it are [CC BY-SA 4.0](LICENSE-DOCS). If you
 modify or build on either and share the result, you share it under the same terms. See
 [LICENSING.md](LICENSING.md) for the path-by-path map and [CONTRIBUTING.md](CONTRIBUTING.md)
-for the sign-off every contribution needs. The running app links to this repository from the
+for the sign-off every contribution needs. Product and service names used in WarpCad belong to their
+owners and imply no affiliation or endorsement; see
+[Trademarks and names](LICENSING.md#trademarks-and-names). The running app links to this repository from the
 bottom of every Help page.
 
 Found a security problem? Please report it privately; see [SECURITY.md](SECURITY.md).

@@ -6,6 +6,8 @@ actually want (an M4 screw, a 608 bearing, a Pi 5), and what the hidden extras o
 are for. The dragging itself is covered in [Placing a shape](primitive-placement.md); this
 page doesn't repeat it.
 
+Part names such as Raspberry Pi identify what a part is compatible with, not an endorsement; see [Trademarks and names](https://github.com/WarpCad/warpcad/blob/main/LICENSING.md#trademarks-and-names).
+
 All sizes below are millimetres unless a part is named in inches (`1/4 socket`, `#8`).
 
 ## Hardware: bolts and screws, nuts, washers and bearings

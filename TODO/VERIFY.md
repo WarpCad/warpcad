@@ -36,6 +36,14 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### docs-023 — Trademarks notice (2026-10-17 19:52)
+
+The owner names in `LICENSING.md` "Trademarks and names" came from the TODO text; the run had no web access, so the spec's step "check each owner's own trademark page" is still open.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | Check each owner's current legal name and mark on its own trademark page (Raspberry Pi Ltd, Apple Inc., Samsung Electronics, Google LLC, Adafruit Industries, Pimoroni Ltd, Anthropic PBC, GitHub Inc., Functional Software Inc. d/b/a Sentry) and fix any sentence that differs | Open | |
+
 ### build-011 — Third-party notices (2026-10-17 14:25)
 
 The file and the link are covered by the new `help.e2e.js` case and the production-build drive; what is left is judgment a script cannot make.
