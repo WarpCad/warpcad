@@ -84,11 +84,10 @@ run at all); see `TODO/done/build-001-project-scaffold.md`'s own note.
 | 10 | ▶ [`data-014`](data-014-merge-tie-prefers-local-step.md) Merge tie-break prefers the local step | Decided 2026-10-17; merge semantics, so opus | opus |
 | 11 | ▶ [`io-012`](io-012-warn-on-focus-when-file-may-have-changed.md) Warn on focus when the file may have changed (no file handle) | Decided 2026-10-17 | sonnet |
 | 12 | ▶ [`ui-075`](ui-075-live-mcp-access-phone-header-entry.md) Live MCP access entry in the phone header | Decided 2026-10-17 | sonnet |
-| 13 | ▶ [`ui-076`](ui-076-combined-bolt-screw-library-entry.md) One Library entry for bolts and screws | Decided 2026-10-17; **confirm the reading first** (see the file) | sonnet |
-| 14 | ▶ [`ui-074`](ui-074-repeat-note-wording.md) Repeat note wording | Decided 2026-10-17; small | sonnet |
-| 15 | ▶ [`perf-003`](perf-003-defer-code-unused-at-boot.md) Defer code unused at boot (Sentry included) | Ready; faster cold start once Sentry is live | sonnet |
-| 16 | ▶ [`build-003`](build-003-native-mobile-shell-research.md) Research a native mobile shell | Research only; no code | opus |
-| 17+ | Gears: [`core-048`](core-048-gear-hub-bore-keyway-and-set-screw.md), [`ui-057`](ui-057-gears-library-section-and-inspector.md), [`ui-058`](ui-058-gear-mesh-operation.md), [`testing-002`](testing-002-acceptance-scenario-19-gear-train.md), [`core-049`](core-049-planetary-gear-set.md), [`core-062`](core-062-herringbone-relief-groove.md), [`docs-021`](docs-021-media-gears-and-porting-guide.md) | M11 runs last, as decided 2026-10-16 | — |
+| 13 | ▶ [`ui-074`](ui-074-repeat-note-wording.md) Repeat note wording | Decided 2026-10-17; small | sonnet |
+| 14 | ▶ [`perf-003`](perf-003-defer-code-unused-at-boot.md) Defer code unused at boot (Sentry included) | Ready; faster cold start once Sentry is live | sonnet |
+| 15 | ▶ [`build-003`](build-003-native-mobile-shell-research.md) Research a native mobile shell | Research only; no code | opus |
+| 16+ | Gears: [`core-048`](core-048-gear-hub-bore-keyway-and-set-screw.md), [`ui-057`](ui-057-gears-library-section-and-inspector.md), [`ui-058`](ui-058-gear-mesh-operation.md), [`testing-002`](testing-002-acceptance-scenario-19-gear-train.md), [`core-049`](core-049-planetary-gear-set.md), [`core-062`](core-062-herringbone-relief-groove.md), [`docs-021`](docs-021-media-gears-and-porting-guide.md) | M11 runs last, as decided 2026-10-16 | — |
 
 **Runner order** (`/run-todos` follows table order): [M18](#m18--launch-publish-appwarpcadcom-sentry-and-ga) first, then the milestone tables and Findings as they appear in this file, then [M11](#m11--gears-the-jscad-gears-library-ported-and-extended) last. The tasks in the table above are the ones to take in that order.
 
@@ -124,7 +123,6 @@ table to edit when a task opens, closes or changes priority — see the next sec
 | Findings | [`data-014`](data-014-merge-tie-prefers-local-step.md) Merge tie-break prefers the local step, not the replica id | finding | medium | opus | ▶ **ready** |
 | Findings | [`io-012`](io-012-warn-on-focus-when-file-may-have-changed.md) On focus, warn "this file may have changed" in browsers with no file handle | feature | medium | sonnet | ▶ **ready** |
 | Findings | [`ui-075`](ui-075-live-mcp-access-phone-header-entry.md) Live MCP access entry in the phone header | feature | medium | sonnet | ▶ **ready** |
-| Findings | [`ui-076`](ui-076-combined-bolt-screw-library-entry.md) One Library entry for bolts and screws (confirm the reading first) | feature | medium | sonnet | ▶ **ready** |
 | Findings | [`ui-074`](ui-074-repeat-note-wording.md) Repeat body Inspector note says the repeats follow every move | finding | low | sonnet | ▶ **ready** |
 | M17 — Repeat, phone Library fix | ✅ [`ui-070`](done/ui-070-phone-inspector-tab-covers-open-library-sheet.md) At phone width the Inspector's collapsed tab is drawn over an open Library sheet's rows; dock it below the sheet | finding | high | sonnet | ✅ done |
 | M17 — Repeat, phone Library fix | ✅ [`core-061`](done/core-061-linked-repeat-record.md) A linked `pattern.repeat` record: one row re-places a body's steps at every matching part of another body and follows the first body's edits; BOM, repair dialog, merge, and a shared `repeat` AI tool. Requested by the user 2026-10-15 | feature | medium | opus | ✅ done |
@@ -268,7 +266,7 @@ milestone tables on 2026-10-12 — update them in the same edit that closes a ro
 | [M13 — One Align tool](#m13--one-align-tool) | ➡️ | — | `ui-060` moved to M16. |
 | [M14 — Help inside the app](#m14--help-inside-the-app) | ➡️ | — | `ui-061` moved to M16. |
 | [M15 — A mergeable project file: the AI as a second writer](#m15--a-mergeable-project-file-the-ai-as-a-second-writer) | ⬜ | 0/10 | Mergeable project file. `io-010` and `io-011` moved to M16; 4 rows are reserved with no file. |
-| [Findings](#findings) | 🔶 | 6/17 | `build-004`, `build-007`, `perf-002`, `build-003` moved here from unscheduled 2026-10-16 to run before the gears. `core-051` (wrong geometry) fixed 2026-10-15; `ai-022` (a backwards tool description) fixed 2026-10-16. `testing-004` (a unit-test timeout under load) moved here from M16 on 2026-10-16 so it runs after the other milestones, ahead of the gears. `io-008` and `data-013` moved to M16. |
+| [Findings](#findings) | 🔶 | 6/16 | `build-004`, `build-007`, `perf-002`, `build-003` moved here from unscheduled 2026-10-16 to run before the gears. `core-051` (wrong geometry) fixed 2026-10-15; `ai-022` (a backwards tool description) fixed 2026-10-16. `testing-004` (a unit-test timeout under load) moved here from M16 on 2026-10-16 so it runs after the other milestones, ahead of the gears. `io-008` and `data-013` moved to M16. |
 | [M11 — Gears: the `jscad-gears` library, ported and extended](#m11--gears-the-jscad-gears-library-ported-and-extended) | 🔶 | 9/16 | Gears. **Runs last, after every other milestone and Findings (moved 2026-10-16 at the user's request).** `core-039` accepted 2026-10-16 (all eight calls as recommended); `core-040`, `core-041`, `core-042`, `core-043`, `core-044`, `core-045`, `core-046` and `core-047` done 2026-10-16 (`core-062`, the herringbone relief groove, filed from `core-042`); `ui-057` waits on `core-048`, which is next. |
 
 Every M0–M4 milestone closed with its own human free-form pass per `CLAUDE.md`'s Verification section
@@ -1067,7 +1065,6 @@ as a milestone table.) `io-008` and `data-013` moved to [M16](#m16--next-batch-n
 | `data-014` | Merge tie-break prefers the local step when two clocks tie. Decided 2026-10-17 | Finding | — | 1 (merge scenarios) |
 | `io-012` | On focus, warn "this file may have changed" in browsers with no file handle. Decided 2026-10-17 | Feature | — | 13 |
 | `ui-075` | Live MCP access entry in the phone header. Decided 2026-10-17 | Feature | — | 24, 25 |
-| `ui-076` | One Library entry for bolts and screws (the Library has no Screw row). Decided 2026-10-17; the reading needs confirming | Feature | — | 3 |
 | `ui-074` | Repeat body Inspector note says the repeats follow every move, but a later Pi move moves only the Pi. Decided 2026-10-17 | Finding | `core-061` | 15 |
 | `perf-003` | Defer the code the app does not use at boot (Sentry, the AI agent and tool registry, a dev-only provider); filed by `perf-002` with measured targets | Feature | `perf-002` | 1 |
 | `build-003` | Research how to package WarpCAD as an iOS and Android app that can host the MCP tool surface. Moved here from unscheduled 2026-10-16 | Feature | — | none |
