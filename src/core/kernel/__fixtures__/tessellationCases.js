@@ -144,8 +144,19 @@ function cyrb53(text, seed) {
 }
 
 /**
+ * Coordinates are rounded to a micrometre (1e-6 mm) before hashing. The same kernel call
+ * returns values that differ in the last ~15 bits on x86-64 and arm64 (measured 2026-10-17:
+ * largest difference 1.8e-14 mm, same polygon count and vertex order), and a byte-exact
+ * hash of the raw doubles then fails on one CPU and passes on the other. A micrometre is
+ * far below any real geometry change, and `resolution.spec.js` checks that a 1 µm-scale
+ * move still changes the digest.
+ */
+const DIGEST_QUANTUM_MM = 1e-6
+
+/**
  * A stable digest of a fold value: every polygon's every vertex, in order, for a solid;
- * for a Group, each named part's digest in part order (hidden parts included).
+ * for a Group, each named part's digest in part order (hidden parts included). Coordinates
+ * are rounded to `DIGEST_QUANTUM_MM` first.
  *
  * @param {any} value
  * @returns {string}
@@ -154,11 +165,13 @@ export function digestOf(value) {
   /** @type {string[]} */
   const chunks = []
   const hash = { update: (/** @type {string} */ text) => chunks.push(text) }
+  /** @param {number[]} v */
+  const quantize = (v) => v.map((x) => Math.round(x / DIGEST_QUANTUM_MM))
   /** @param {any} geometry */
   const feed = (geometry) => {
     const polygons = geometries.geom3.isA(geometry)
-      ? geometries.geom3.toPolygons(geometry).map((polygon) => polygon.vertices.map((v) => Array.from(v)))
-      : geometries.geom2.toSides(geometry).map((side) => side.map((v) => Array.from(v)))
+      ? geometries.geom3.toPolygons(geometry).map((polygon) => polygon.vertices.map((v) => quantize(Array.from(v))))
+      : geometries.geom2.toSides(geometry).map((side) => side.map((v) => quantize(Array.from(v))))
     hash.update(JSON.stringify(polygons))
   }
   if (isGroup(value)) {

@@ -68,6 +68,13 @@ describe('legacy folds byte-identically to the code before core-035', () => {
     expect(Object.keys(golden).sort()).toEqual(tessellationCases().map((c) => c.key).sort())
   })
 
+  it('the digest is still sensitive to a 0.001 mm move, so micrometre rounding hides no real change', () => {
+    const { primitives, transforms } = modeling
+    const cube = primitives.cuboid({ size: [20, 20, 20] })
+    const nudged = transforms.translate([0.001, 0, 0], cube)
+    expect(digestOf(nudged)).not.toBe(digestOf(cube))
+  })
+
   it('a legacy cylinder is the identical polygon set to an explicit DEFAULT_SEGMENTS one', () => {
     const implicit = fold([{ id: 'it', op: 'primitive.cylinder', params: { diameter: 50, height: 10 } }], 'legacy')
     const explicit = fold([
