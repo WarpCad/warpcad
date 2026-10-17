@@ -59,6 +59,7 @@ const SURFACES = Object.freeze([
   'src/components/layout/LibraryPanel.vue',
   'src/components/layout/SaveToLibrarySheet.vue',
   'src/components/features/SplitSheet.vue',
+  'src/components/viewport/RepeatSheet.vue',
   'src/components/ai/ChatPanel.vue',
   'src/components/ai/KeySheet.vue',
   'src/components/ai/SubscriptionRoute.vue',

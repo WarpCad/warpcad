@@ -16,9 +16,17 @@
  * safety net, as it is for every other step.
  */
 import { useDeleteCommands } from '../../composables/useDeleteCommands.js'
+import { useRepeatStore } from '../../stores/repeat.js'
 
 const commands = useDeleteCommands()
 const { enabled, reason, label, describe, error, target } = commands
+
+/**
+ * `TODO/ui-069`: deleting a body that repeats follow asks first — the one question this button
+ * ever asks, because the answer is not something Undo alone can express (the repeats can go
+ * too, or stay broken in History). Asked by the Delete key as well; answered here.
+ */
+const repeat = useRepeatStore()
 </script>
 
 <template>
@@ -42,10 +50,63 @@ const { enabled, reason, label, describe, error, target } = commands
     </button>
     <p v-if="!enabled" class="delete__reason" data-testid="inspector-delete-reason">{{ reason }}</p>
     <p v-if="error" class="delete__reason" data-testid="inspector-delete-error" role="alert">{{ error }}</p>
+    <div v-if="repeat.deleteConfirm" class="delete__confirm" role="alertdialog" data-testid="delete-repeats-confirm" :aria-label="repeat.deleteConfirm.question">
+      <p class="delete__question" data-testid="delete-repeats-question">{{ repeat.deleteConfirm.question }}</p>
+      <div class="delete__choices">
+        <button type="button" class="delete__choice delete__choice--danger" data-testid="delete-repeats-too" @click="commands.resolveDelete('with-repeats')">
+          Delete the repeats
+        </button>
+        <button type="button" class="delete__choice" data-testid="delete-repeats-leave-broken" @click="commands.resolveDelete('leave-broken')">
+          Leave broken
+        </button>
+        <button type="button" class="delete__choice" data-testid="delete-repeats-cancel" @click="commands.resolveDelete(null)">
+          Cancel
+        </button>
+      </div>
+    </div>
   </div>
 </template>
 
 <style scoped>
+.delete__confirm {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.delete__question {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--text-1);
+}
+
+.delete__choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.delete__choice {
+  min-height: var(--tap);
+  padding: 0 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface-1);
+  color: var(--text-1);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.delete__choice--danger {
+  border-color: var(--danger);
+  color: var(--danger);
+  font-weight: 600;
+}
+
 /*
  * Pinned to the bottom of the Inspector's scroll area (Step 2 of TODO/ui-051, measured):
  * the phone sheet shows 321px of a 958px Cube description and a 2,686px Pi one, so a

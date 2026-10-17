@@ -25,6 +25,7 @@ import SubscriptionRoute from '../components/ai/SubscriptionRoute.vue'
 import ConnectClaudeCode from '../components/ai/ConnectClaudeCode.vue'
 import MergeBanner from '../components/display/MergeBanner.vue'
 import MergeToast from '../components/display/MergeToast.vue'
+import RepeatToast from '../components/display/RepeatToast.vue'
 import SaveStatus from '../components/display/SaveStatus.vue'
 import FileMenu from '../components/storage/FileMenu.vue'
 import { bootStorage } from '../composables/useStorageBoot.js'
@@ -46,6 +47,7 @@ import { useAssistantStore } from '../stores/assistant.js'
 import { useHostedStore } from '../stores/hosted.js'
 import { useLibraryStore } from '../stores/library.js'
 import { usePersistenceStore } from '../stores/persistence.js'
+import { useRepeatStore } from '../stores/repeat.js'
 import { useSketchEditorStore } from '../stores/sketchEditor.js'
 import { useTimelineStore } from '../stores/timeline.js'
 
@@ -98,6 +100,9 @@ onMounted(() => {
  */
 /** @type {import('vue').Ref<'none' | 'tab' | 'open'>} */
 const inspectorSheet = ref('none')
+
+/** The Repeat session (`TODO/ui-069`): at phone width its shrunk bar lifts the Inspector sheet. */
+const repeat = useRepeatStore()
 
 /**
  * Whether the Library's phone-width bottom sheet is up.
@@ -260,6 +265,8 @@ function onInspectorClaim() {
          it sits at the top of the viewport under the header and pushes it down instead of
          covering the Operations toolbar or the nav chrome. -->
     <MergeToast />
+    <!-- What a Repeat's Apply did, with Undo (TODO/ui-069): the same in-flow slot. -->
+    <RepeatToast />
     <MergeBanner />
     <TimelineStrips />
     <main
@@ -268,6 +275,7 @@ function onInspectorClaim() {
       :data-library-sheet="libraryOpen ? 'open' : 'closed'"
       :data-timeline-sheet="timeline.open ? 'open' : 'none'"
       :data-chat-sheet="chatSheet"
+      :data-repeat-bar="repeat.armed && repeat.minimized ? 'true' : 'false'"
     >
       <LibraryPanel
         :collapse-signal="libraryCollapse"
@@ -395,6 +403,8 @@ function onInspectorClaim() {
      its collapsed tab is — both kept in step with the panel's own values. */
   --inspector-sheet-height: 38vh;
   --inspector-tab-height: 44px;
+  /* The Repeat panel's shrunk bar at phone width (`RepeatSheet.vue`, `TODO/ui-069`). */
+  --repeat-bar-height: 54px;
   /* How tall the History sheet is at phone width, and how far up from the
      bottom edge it has to start so the Library and Inspector tabs are not
      sitting on top of its last rows. Zero offset at widths where History is a
@@ -470,6 +480,26 @@ function onInspectorClaim() {
   .app__body[data-library-sheet='open'][data-inspector-sheet='tab'] {
     --inspector-bottom: 0px;
     --library-bottom: var(--inspector-tab-height);
+  }
+
+  /* The Repeat bar sits on the Library tab; the Inspector sheet lifts over it so the bar never
+     covers the sheet's sticky Delete row. An open Library sheet (the rule above) still wins. */
+  .app__body[data-repeat-bar='true'] {
+    --inspector-bottom: calc(var(--library-tab-height) + var(--repeat-bar-height));
+    --viewport-bottom-inset: calc(var(--library-tab-height) + var(--repeat-bar-height));
+  }
+
+  .app__body[data-repeat-bar='true'][data-inspector-sheet='tab'] {
+    --viewport-bottom-inset: calc(
+      var(--library-tab-height) + var(--repeat-bar-height) + var(--inspector-tab-height)
+    );
+  }
+
+  .app__body[data-repeat-bar='true'][data-inspector-sheet='open'] {
+    --viewport-bottom-inset: calc(
+      var(--library-tab-height) + var(--repeat-bar-height) + var(--inspector-tab-height) +
+        var(--inspector-sheet-height) + 12px
+    );
   }
 
   .app__body[data-timeline-sheet='open'] {

@@ -20,6 +20,7 @@ import { computed, ref, shallowRef } from 'vue'
 
 import { createDocument } from '../core/document.js'
 import { applyMergeUndo } from '../core/mergeUndo.js'
+import { appendRepeat as appendRepeatRecord, detachRepeat as detachRepeatRecords } from '../core/repeat.js'
 import { DEFAULT_RESOLUTION } from '../core/kernel/tessellation.js'
 import { createEvaluationChannel, evaluationWorkerAvailable } from '../core/kernel/evaluationClient.js'
 import { boundsOf, hasNamedParts, hiddenNamesOf, isGroup } from '../core/kernel/group.js'
@@ -505,21 +506,71 @@ export const useDocumentStore = defineStore('document', () => {
    * ever renders a gizmo or dimension lines on a body that is gone. A refusal puts the
    * selection back and rethrows; nothing else changed.
    *
+   * `options.leaveBroken` (`TODO/ui-069`): repeat rows (`TODO/core-061`) that follow a body
+   * being deleted, to flag **Leave broken** in the same step — the delete-confirm's second
+   * answer. Without it core refuses a delete that would break a repeat.
+   *
    * @param {readonly string[]} ids
+   * @param {{ leaveBroken?: readonly string[] }} [options]
    * @returns {readonly OpRecord[]}
    */
-  function deleteBodies(ids) {
+  function deleteBodies(ids, options = {}) {
     const selection = useSelectionStore()
     const meta = selectionMeta()
+    const leaveBroken = options.leaveBroken ?? []
     selection.clear()
     try {
-      const { records } = raw.deleteBodies(ids, { origin: 'local', meta })
+      const transaction = { origin: 'local', meta }
+      const { records } =
+        leaveBroken.length === 0
+          ? raw.deleteBodies(ids, transaction)
+          : raw.batch(
+              (doc) => {
+                doc.reviseRecords(leaveBroken.map((id) => ({ id, leftBroken: true })), transaction)
+                return doc.deleteBodies(ids, transaction)
+              },
+              {
+                label:
+                  ids.length === 1
+                    ? `Delete ${bodies.value.find((body) => body.id === ids[0])?.name ?? 'object'}`
+                    : `Delete ${ids.length} objects`,
+              },
+            )
       refresh()
       return records
     } catch (error) {
       restoreSelection(meta.selectionBefore, meta.subPartBefore, meta.addressesBefore)
       throw error
     }
+  }
+
+  /**
+   * Append a linked Repeat (`TODO/ui-069`'s Apply) — core's `appendRepeat`, the same call the
+   * AI `repeat` tool makes, as one local undo step labelled `Repeat → hole2, hole3, hole4`.
+   * Throws core's refusal unchanged, having written nothing.
+   *
+   * @param {import('../core/repeat.js').RepeatParams} params
+   * @returns {OpRecord} The appended record; its id is the new repeat body's.
+   */
+  function appendRepeat(params) {
+    const { record } = appendRepeatRecord(raw, params, { origin: 'local', meta: localMeta('local') })
+    refresh()
+    return record
+  }
+
+  /**
+   * **Detach** a repeat body (`TODO/ui-069`, core's `detachRepeat`): one independent body per
+   * member, one undo step, and those bodies become the selection. Throws core's refusal (a
+   * broken member, a source that is gone) unchanged, having written nothing.
+   *
+   * @param {string} bodyId
+   * @returns {string[]} The new bodies' ids.
+   */
+  function detachRepeat(bodyId) {
+    const created = detachRepeatRecords(raw, bodyId, { origin: 'local', meta: selectionMeta() })
+    refresh()
+    useSelectionStore().selectMany(created)
+    return created
   }
 
   /**
@@ -770,6 +821,8 @@ export const useDocumentStore = defineStore('document', () => {
     setBuildVolume,
     deleteBodies,
     removePart,
+    appendRepeat,
+    detachRepeat,
     mergeFrom,
     restoreAfterMerge,
     undo,

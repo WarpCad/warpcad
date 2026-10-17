@@ -31,6 +31,7 @@ import { brokenDependentsOf, brokenReferencesOf } from './dependents.js'
 import { boundsOf, hasNamedParts, hiddenNamesOf, isGroup, localBoundsOf } from './kernel/group.js'
 import { lookupEntry, normalizedParams, paramOptions, registry as defaultRegistry } from './kernel/registry.js'
 import { currentParamsRecordOf } from './paramEdit.js'
+import { REPEAT_OP, moveRefusalText } from './repeat.js'
 import { bindabilityError, bindableParams, isBinding, resolveParams, variablesOf } from './variables.js'
 
 /** @typedef {import('./document.js').Body} Body */
@@ -170,6 +171,12 @@ import { bindabilityError, bindableParams, isBinding, resolveParams, variablesOf
  *   the whole group — breaking CLAUDE.md's "gizmo and numeric fields drive the
  *   same underlying transform" contract — so the UI hides the gizmo and freezes
  *   the Transform fields whenever this is set.
+ * @property {import('./repeat.js').RepeatInfo} [repeat] `TODO/ui-069`: set on a repeat body
+ *   (`TODO/core-061`) and on any part drilled into one — what it repeats, on which targets,
+ *   and which members are broken. Its Parameters are then the **source's**, shown read-only.
+ * @property {string} [moveRefusal] `TODO/ui-069`: set on a whole repeat body. A repeat is
+ *   never moved or turned on its own (`core-061` decision 6), so the gizmo stays off and the
+ *   Transform fields are frozen, with this sentence where the gizmo would be.
  */
 
 /**
@@ -502,19 +509,26 @@ export function describeBody(body, ops = defaultRegistry, variables = undefined)
       ]
     : []
 
+  // `TODO/ui-069`: a repeat body's own params say *which* targets, not what anything is. Show
+  // the source's instead (what every member is), read-only — `paramEdit.js` refuses the edit, and
+  // the panel points at the source, where edits happen (`core-061` decision 6).
+  const repeat = body.op === REPEAT_OP ? body.repeat : undefined
+  const shownOp = repeat?.sourceOp ?? body.op
+  const shownEntry = repeat === undefined ? entry : lookupEntry(shownOp, ops)
   // A composite is shown in its op's current shape (`TODO/core-060`: a legacy
   // `{ spec: 'm10 hex' }` bolt reads as Type hex, Size m10). Reading never rewrites the
   // record; the first edit does (`paramEdit.js`).
-  const own = entry?.kind === 'composite' ? normalizedParams(body.op, body.params ?? {}) : (body.params ?? {})
+  const rawParams = repeat?.sourceParams ?? body.params ?? {}
+  const own = shownEntry?.kind === 'composite' ? normalizedParams(shownOp, rawParams) : rawParams
   const { params: shown, bound } = shownParamsOf(own, variables)
   return {
     id: body.id,
     name: body.name,
     op: body.op,
-    opLabel: entry?.ui?.label ?? body.op,
+    opLabel: repeat === undefined ? (entry?.ui?.label ?? body.op) : `Repeat of ${shownEntry?.ui?.label ?? shownOp}`,
     isRecipe: entry?.kind === 'composite',
     params: withBindings(
-      entry?.kind === 'composite' ? withSchema(fieldsFor(shown, entry), body.op, shown) : fieldsFor(shown, entry),
+      shownEntry?.kind === 'composite' ? withSchema(fieldsFor(shown, shownEntry), shownOp, shown) : fieldsFor(shown, shownEntry),
       bound,
     ),
     positionMm,
@@ -536,6 +550,7 @@ export function describeBody(body, ops = defaultRegistry, variables = undefined)
       [localMax[0], localMax[1], localMax[2]],
     ],
     ...(recipeColor ? { recipeColor } : {}),
+    ...(repeat === undefined ? {} : { repeat, moveRefusal: moveRefusalText(repeat.sourceName, repeat.seedName) }),
   }
 }
 
@@ -684,6 +699,8 @@ export function describeSubPart(body, partName, records, ops = defaultRegistry, 
     ],
     subPart: { groupName: body.name, partName },
     ...(recipeColor ? { recipeColor } : {}),
+    // `TODO/ui-069`: a member of a repeat — Delete here removes that one repeat.
+    ...(body.repeat === undefined ? {} : { repeat: body.repeat }),
   }
 }
 
@@ -753,7 +770,8 @@ export function describeSelection(bodies, selectedIds, options = {}) {
           brokenDependents: brokenDependentsOf(document, body.id),
           brokenReferences: brokenReferencesOf(document, body.id),
           condition: document.conditionOf(body.id),
-          ...(creation === undefined
+          // A repeat's params are its source's, bound (or not) on the source (`TODO/ui-069`).
+          ...(creation === undefined || creation.op === REPEAT_OP
             ? {}
             : {
                 bind: {

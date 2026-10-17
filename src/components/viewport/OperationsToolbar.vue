@@ -314,6 +314,7 @@ import { useSelectedOperands } from '../../composables/useSelectedBody.js'
 import { useDocumentStore } from '../../stores/document.js'
 import { useLibraryStore } from '../../stores/library.js'
 import { useOverlaysStore } from '../../stores/overlays.js'
+import { useRepeatStore } from '../../stores/repeat.js'
 import { useSelectionStore } from '../../stores/selection.js'
 import { useSplitSheetStore } from '../../stores/splitSheet.js'
 import { RIM_FACE_OPTIONS } from '../../core/timelineLabel.js'
@@ -543,6 +544,40 @@ function alignTitle() {
   return alignDisabled.value ? ALIGN_DISABLED_HINT : `${ALIGN_OPERATION.label} — ${ALIGN_OPERATION.hint}`
 }
 
+// --- Repeat (TODO/ui-069) ---------------------------------------------------
+
+/**
+ * **⟳ Repeat**, beside Align: an operation gated on a drilled-into part (one body, one named
+ * part, and at least one other part on it), never a Library entry — the Library is a creation
+ * surface (`CLAUDE.md`). It arms the session (`stores/repeat.js`) and the Repeat panel
+ * (`RepeatSheet.vue`) opens; pressed again while armed it closes the session, like Cancel.
+ */
+const REPEAT_OPERATION = Object.freeze({
+  op: 'pattern.repeat',
+  label: 'Repeat',
+  glyph: '⟳',
+  hint: 'Make one part on this one, then put the same part on every matching one',
+})
+
+const repeat = useRepeatStore()
+
+/** Disabled only while it can neither arm nor close a session. */
+const repeatDisabled = computed(() => !repeat.armed && !repeat.armGate.enabled)
+
+/** @returns {string} */
+function repeatTitle() {
+  if (repeat.armed) return 'Repeat — close the Repeat panel (the first part stays as it is)'
+  return repeat.armGate.enabled ? `${REPEAT_OPERATION.label} — ${REPEAT_OPERATION.hint}` : repeat.armGate.reason
+}
+
+function toggleRepeat() {
+  if (repeat.armed) {
+    repeat.cancel()
+    return
+  }
+  repeat.arm()
+}
+
 // --- Fillet / Chamfer (TODO/ui-027) -----------------------------------------
 
 /**
@@ -687,9 +722,20 @@ onBeforeUnmount(() => overlays.setOpen('ops-popover', false))
  * @param {KeyboardEvent} event
  */
 function onWindowKeydown(event) {
-  if (event.key !== 'Escape' || openPopover.value === null) return
-  event.preventDefault()
-  closePopover()
+  if (event.key !== 'Escape') return
+  if (openPopover.value !== null) {
+    event.preventDefault()
+    closePopover()
+    return
+  }
+  // `TODO/ui-069`: then the Repeat session — after the Align popover (`ui-060`'s Escape order),
+  // and never from inside another dialog, which owns its own Escape.
+  const focused = /** @type {Element | null} */ (event.target instanceof Element ? event.target : null)
+  const inOtherDialog = focused?.closest('[role="dialog"]:not([data-testid="repeat-sheet"])') != null
+  if (repeat.armed && !event.defaultPrevented && !inOtherDialog) {
+    event.preventDefault()
+    repeat.cancel()
+  }
 }
 
 onMounted(() => window.addEventListener('keydown', onWindowKeydown, true))
@@ -1384,6 +1430,23 @@ function commitMirror() {
       >
         <span class="ops__glyph" aria-hidden="true">{{ ALIGN_OPERATION.glyph }}</span>
         <span class="ops__label">{{ ALIGN_OPERATION.label }}</span>
+      </button>
+
+      <!-- Repeat (TODO/ui-069): beside Align, gated on one drilled-into part; arms the
+           Repeat panel (RepeatSheet.vue, mounted by the viewport) rather than a popover. -->
+      <button
+        type="button"
+        class="ops__btn"
+        :disabled="repeatDisabled"
+        data-testid="op-repeat"
+        :data-op="REPEAT_OPERATION.op"
+        :aria-expanded="repeat.armed"
+        :title="repeatTitle()"
+        :aria-label="repeatTitle()"
+        @click="toggleRepeat"
+      >
+        <span class="ops__glyph" aria-hidden="true">{{ REPEAT_OPERATION.glyph }}</span>
+        <span class="ops__label">{{ REPEAT_OPERATION.label }}</span>
       </button>
 
       <!-- Fillet/Chamfer (TODO/ui-027): this toolbar's first exactly-1-gated

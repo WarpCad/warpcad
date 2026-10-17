@@ -54,6 +54,10 @@ Subtract cut from what:
 
 ![A History row reading "Subtract Cube 1 + Cylinder 1"](./screenshots/timeline-boolean-row.png)
 
+A [Repeat](snap-align.md#repeating-a-placement-on-every-hole) is **one** row, however many
+parts it places: `Repeat → hole2, hole3, hole4`. Its `broken` label appears when the bolt it
+follows, or a hole it points at, no longer exists.
+
 A row can also carry a small label on the right:
 
 | Label | Meaning |

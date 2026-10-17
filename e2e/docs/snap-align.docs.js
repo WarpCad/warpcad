@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { test, expect } from '@playwright/test'
-import { openApp, loadScene, startMovie, endMovie, shot, settle } from './support.js'
+import { openApp, loadScene, startMovie, endMovie, humanDrag, shot, settle } from './support.js'
 
 /**
  * Docs media for `docs/snap-align.md` (`TODO/docs-012`, re-recorded for the one Align tool by
@@ -356,5 +356,150 @@ test.describe('docs media: align', () => {
     expect(Math.abs(hole.centre[0] - post.centre[0])).toBeLessThan(0.02)
     expect(Math.abs(hole.centre[1] - post.centre[1])).toBeLessThan(0.02)
     expect(Math.abs(mb.centre[2] - mb.size[2] / 2 - (post.centre[2] + post.size[2] / 2))).toBeLessThan(0.02)
+  })
+  /**
+   * `TODO/ui-069`: **⟳ Repeat**. Shared by the still and the movie: the Pi already seated on the
+   * screen's posts (a fixture), `hole1` drilled into, Repeat pressed, then one M2.5 bolt made the
+   * ordinary way — dragged in, turned head-up, Align X/Y to `hole1`, Snap Z Inside against `mb`
+   * with Offset -5. This returns the paced helpers the walk is made of.
+   *
+   * @param {import('@playwright/test').Page} page
+   * @param {{ pace?: number }} options `pace` is the pause after each action, ms.
+   */
+  const repeatAFourthBolt = async (page, { pace = 150 }) => {
+    const pause = () => page.waitForTimeout(pace)
+    const quick = async (testId) => {
+      const el = page.getByTestId(testId)
+      await el.scrollIntoViewIfNeeded()
+      const b = await el.boundingBox()
+      await glideTo(page, { x: b.x + b.width / 2, y: b.y + b.height / 2 })
+      await el.click()
+      await pause()
+    }
+    const typeQuick = async (testId, text) => {
+      const el = page.getByTestId(testId)
+      await el.click()
+      await el.fill(text)
+      await el.press('Enter')
+      await pause()
+    }
+    const afterMeasure = async (id, before) => {
+      await expect
+        .poll(async () => (await bodies(page))[id].bounds.join(','), { timeout: 15000 })
+        .not.toBe(before)
+      return (await bodies(page))[id].bounds.join(',')
+    }
+    const popover = page.getByTestId('align-popover')
+    return { pause, quick, typeQuick, afterMeasure, popover }
+  }
+
+  /** The fixture's Pi, seated; the Library's Bolt row set to an M2.5 socket cap, 12 mm. */
+  const setUpRepeatScene = async (page) => {
+    await openScene(page, 'pi-on-screen.ndjson')
+    await page.getByTestId('library-choice-hardware.bolt').selectOption('socket')
+    await page.getByTestId('library-choice-hardware.bolt-spec').selectOption('m2.5')
+    await openObjectList(page)
+    await page.getByTestId('objects-expand-pi-1').click()
+    await page.getByTestId('objects-part-pi-1-hole1').scrollIntoViewIfNeeded()
+    await page.getByTestId('objects-part-pi-1-hole1').click()
+    await expect(page.getByTestId('inspector-breadcrumb-part')).toHaveText('hole1')
+  }
+
+  /** Drag the Bolt row to an empty patch of the canvas, left of the panel. */
+  const dragBoltIn = async (page) => {
+    const row = page.getByTestId('library-row-hardware.bolt')
+    await row.scrollIntoViewIfNeeded()
+    const from = await row.boundingBox()
+    const canvas = await page.getByTestId('viewport-canvas').boundingBox()
+    await humanDrag(
+      page,
+      { x: from.x + from.width / 2, y: from.y + from.height / 2 },
+      { x: canvas.x + canvas.width * 0.3, y: canvas.y + canvas.height * 0.5 },
+      { steps: 20, ms: 700 },
+    )
+    const bolt = page.locator('[data-testid="scene-bodies"] li[data-body-op="hardware.bolt"]')
+    await expect(bolt).toHaveAttribute('data-body-volume', /.+/, { timeout: 30000 })
+    return /** @type {string} */ (await bolt.getAttribute('data-body-id'))
+  }
+
+  /** The Objects list with the Pi's parts showing (it collapses while a body's params are up). */
+  const showPiParts = async (page) => {
+    await openObjectList(page)
+    const toggle = page.getByTestId('objects-expand-pi-1')
+    if ((await toggle.getAttribute('aria-expanded')) !== 'true') await toggle.click()
+  }
+
+  /** Turn the bolt head-up and give it its steps: Align X/Y to hole1, Snap Z Inside against mb. */
+  const makeTheBolt = async (page, bolt, helpers) => {
+    const { pause, quick, typeQuick, afterMeasure, popover } = helpers
+    await typeQuick('inspector-param-length', '12')
+    await typeQuick('inspector-rotation-x', '180')
+    let bounds = (await bodies(page))[bolt].bounds.join(',')
+    // The bolt (first) and the Pi's hole1 (second).
+    await showPiParts(page)
+    await quick('objects-part-check-pi-1-hole1')
+    await quick('operation-align')
+    await expect(popover).toHaveAttribute('data-target', 'second')
+    await quick('align-x-center')
+    bounds = await afterMeasure(bolt, bounds)
+    await quick('align-y-center')
+    bounds = await afterMeasure(bolt, bounds)
+    await page.keyboard.press('Escape')
+    await expect(popover).toHaveCount(0)
+    // Back to the bolt alone, then the Pi's mb as the second part.
+    await showPiParts(page)
+    await quick(`objects-row-${bolt}`)
+    await showPiParts(page)
+    await quick('objects-part-check-pi-1-mb')
+    await quick('operation-align')
+    await expect(popover).toHaveAttribute('data-target', 'second')
+    await page.getByTestId('align-relation').selectOption('inside')
+    await page.getByTestId('align-offset').fill('-5')
+    await pause()
+    await quick('align-z-snap-minus')
+    await afterMeasure(bolt, bounds)
+    await page.keyboard.press('Escape')
+    await expect(popover).toHaveCount(0)
+  }
+
+  test('repeat-sheet still', async ({ page }) => {
+    await setUpRepeatScene(page)
+    await press(page, 'op-repeat')
+    await expect(page.getByTestId('repeat-sheet')).toBeVisible()
+    const helpers = await repeatAFourthBolt(page, {})
+    const bolt = await dragBoltIn(page)
+    await makeTheBolt(page, bolt, helpers)
+    await expect(page.getByTestId('repeat-step')).toHaveCount(5)
+    await expect(page.getByTestId('repeat-apply')).toBeEnabled()
+    await shot(page, 'repeat-sheet.png', { locator: page.getByTestId('repeat-sheet'), maxDiffPixelRatio: 0.03 })
+  })
+
+  test('repeat-placement', { tag: '@movie' }, async ({ page }) => {
+    await setUpRepeatScene(page)
+    // The scene and the Bolt row are ready; the camera is the default.
+    await startMovie(page, 'repeat-placement')
+    const helpers = await repeatAFourthBolt(page, { pace: 90 })
+    const { quick, typeQuick, pause } = helpers
+    await quick('op-repeat')
+    await expect(page.getByTestId('repeat-sheet')).toBeVisible()
+    await page.waitForTimeout(900)
+    const bolt = await dragBoltIn(page)
+    await makeTheBolt(page, bolt, helpers)
+    await page.waitForTimeout(700)
+    await quick('repeat-apply')
+    await expect(page.getByTestId('repeat-toast-text')).toHaveText('Repeated Bolt / screw 1 on 3 more holes')
+    await page.waitForTimeout(900)
+    // Bolt 1's Length 12 -> 16: all four follow.
+    await quick(`objects-row-${bolt}`)
+    await typeQuick('inspector-param-length', '16')
+    await expect
+      .poll(async () => {
+        const b = (await bodies(page))
+        const repeatBody = Object.values(b).find((body) => body.op === 'pattern.repeat')
+        return repeatBody ? repeatBody.bounds[5] - repeatBody.bounds[2] : 0
+      }, { timeout: 15000 })
+      .toBeGreaterThan(18)
+    await page.waitForTimeout(1500)
+    await endMovie(page, 'repeat-placement', { fps: 8, width: 640 })
   })
 })

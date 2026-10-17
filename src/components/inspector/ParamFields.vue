@@ -523,6 +523,11 @@ function onEnumChange(event, field) {
       rotate, combine and cut it as usual. To read the file in other units, change Units on its
       My parts row and place it again.
     </p>
+    <!-- A repeat body (TODO/ui-069): these are its source's parameters, changed on the source. -->
+    <p v-else-if="body.repeat && !isSubPart" class="params__note" data-testid="inspector-params-repeat-note">
+      These are {{ body.repeat.sourceName }}'s. Change them on {{ body.repeat.sourceName }} (Go to
+      {{ body.repeat.sourceName }} above) and every repeat follows.
+    </p>
     <p v-else-if="!editable && !isSubPart" class="params__note" data-testid="inspector-params-note">
       <template v-if="isRecipePart">
         These are catalogue values for a ready-made part whose options aren't described yet, so

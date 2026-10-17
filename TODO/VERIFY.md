@@ -34,6 +34,19 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### ui-069 — Repeat button and panel (2026-10-17 07:55 UTC)
+
+Acceptance 3, 6, 10, 12, 15, 22 and the `ui-063`, `ui-035`, `ui-060`, `ui-042`/`ui-049`, `core-034` repros were driven (emulated viewports only, no real phone or iPad). These are the judgment calls left.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | A step the Assistant, Claude Code or a merge added to the first part disables **Apply** with *"… has a step you didn't make … Cancel and make the part by hand"*, because `core-061` copies the source's whole lineage. The spec said such a step is just listed under *Not part of the repeat*. Keep the stricter rule, or let Apply copy it? | Open | |
+| 2 | The Inspector's note on a repeat body reads *"Move Bolt / screw 1 or Raspberry Pi 1; the repeats follow them"*, but a **new** move of either (gizmo or typed) after the Repeat moves only that part (driven: Pi +10 mm, bolts unchanged); only editing an earlier History step (the screen's Move row) carries everything. Is the wording misleading? It is `core-061`'s sentence, so changing it is a core edit. | Open | |
+| 3 | On a laptop the panel floats over the lower middle of the 3D view, so a first-drop point there lands on the panel. Does that cost anything in real use (you have to drop the bolt in the upper half)? On a real iPad, does the lifted tablet position (above the nav chrome) still leave room to see the Pi? | Open | |
+| 4 | **⟳ Repeat** is enabled on a Group's sub-part (it has other parts), seeding on a member that has no name family. Harmless, but should it need a numbered family like `hole1`? | Open | |
+| 5 | Phone: the shrunk bar lifts the Inspector sheet by 54 px while it is up. Real-thumb check that the bar, the Delete row and the Library tab all stay tappable. | Open | |
+| 6 | Docs example: the Z step is *Relation: Inside*, *Offset -5*, **Z ⊏ − face**. Does a first-time reader find the Rotation X = `180` step (head-up) without help? | Open | |
+
 ### core-061 — A linked Repeat record (2026-10-17 06:00 UTC)
 
 Acceptance 10, 12, 15, 22, 23 and the data-007, ui-052, core-024, ui-063, ui-038 and ai-022 repros were driven (emulated viewports only, no real phone). These are the judgment calls and the gap the drive left; `ui-069` owns the controls.
@@ -43,7 +56,7 @@ Acceptance 10, 12, 15, 22, 23 and the data-007, ui-052, core-024, ui-063, ui-038
 | 1 | *Save to library…* on a repeat body (*Bolt 1 ×3*) saves the repeat without its source, so dropping that part from My parts will not rebuild it. Decide whether it should refuse, or save the source with it. | Open | |
 | 2 | Edit Bolt 1's Length with the repeat on screen: do the three repeats change at the same moment as Bolt 1, or is there a visible lag that reads as "not linked"? | Open | |
 | 3 | Move the Pi after the bolts exist: only the Pi moves and the bolts stay (a later step is not consumed by earlier rows). Does that read as a bug to someone who did not read the docs? `ui-069` must explain it. | Open | |
-| 4 | Type a value into Position X on *Bolt 1 ×3*: nothing moves, but the refusal is an uncaught error, not a message. | Open | |
+| 4 | Type a value into Position X on *Bolt 1 ×3*: nothing moves, but the refusal is an uncaught error, not a message. | OK | Fixed by `ui-069`: the fields are read-only on a repeat body with a note; `e2e/repeat-placement.e2e.js` asserts no page error. |
 
 ### ui-068 — The Library remembers each part's last-used params (2026-10-17 02:30 UTC)
 

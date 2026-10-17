@@ -38,6 +38,7 @@ export const TOPICS = Object.freeze({
   resize: { page: 'resize-bisect', anchor: 'the-popovers-fields', title: 'Enlarge and Fit' },
   bisect: { page: 'resize-bisect', anchor: 'a-worked-example-bisect', title: 'Bisect' },
   split: { page: 'print-prep', anchor: 'the-split-sheet', title: 'Split' },
+  repeat: { page: 'snap-align', anchor: 'repeating-a-placement-on-every-hole', title: 'Repeat' },
   // The File menu's popovers and dialogs.
   file: { page: 'save-load', anchor: 'the-file-menu', title: 'File menu' },
   export: { page: 'export', anchor: 'exporting-a-file-step-by-step', title: 'Export' },

@@ -223,6 +223,97 @@ would hang the board under the post instead.
 (the item's own name) in the Inspector, or click empty space and start the
 selection again. The popover's top line always tells you which you are on.
 
+## Repeating a placement on every hole
+
+Some jobs are the same five steps, four times: an M2.5 bolt turned, centred on a hole and
+sunk into its post, once per mounting hole. **⟳ Repeat** does the first one with you, then
+copies the whole job to the other holes. You make **one** bolt the normal way; the app
+places the rest. The repeats stay **linked** to that first bolt (see below).
+
+Units are millimetres, with Z pointing up.
+
+1. Seat a Pi 5 on a Touchscreen 2's posts, as in
+   [Mounting a Raspberry Pi on a screen's posts](#mounting-a-raspberry-pi-on-a-screens-posts).
+2. In the Inspector's **Objects** list, open the Pi's parts and tap **hole1**. Press
+   **⟳ Repeat** in the toolbar, beside **⇔ Align**. The panel reads
+   **Repeat on Raspberry Pi 1 › hole1 and 3 more**, with **hole1** to **hole4** ticked
+   (**hole1** is the first part and stays ticked). Untick a hole to leave it out; tick another
+   part of the Pi to add it.
+3. In the Library, set the **Bolt / screw** row to **Type: Socket cap** and **Size: m2.5**,
+   and drag it into the 3D view. Drop it clear of the panel, which sits low in the view. In
+   the Inspector set **Length** to `12`. A new bolt starts head-down, so type `180` into
+   **Rotation X** to turn it head-up. The panel now reads *Recording Bolt / screw 1* and lists
+   what you have done.
+4. With the bolt selected, tick the Pi's **hole1** in the Objects list (the check next to
+   its name) and press **⇔ Align**. The top line reads **Aligning Bolt / screw 1 to
+   Raspberry Pi 1 › hole1**. Tap **X ◇ ctr** and **Y ◇ ctr**. The bolt's axis is now on
+   the hole's. Press **Escape** to close the popover (the Repeat panel stays open).
+5. Tap the bolt's row in the Objects list, then tick the Pi's **mb** (the circuit board) and
+   press **⇔ Align** again. Set **Relation** to *Inside*, set **Offset** to `-5`, and tap
+   **Z ⊏ − face**. The bolt's tip now ends 5 mm below the underside of the board, which is
+   5 mm inside the post. Press **Escape**.
+6. The panel lists five steps: the drop (*Move*), *Rotate*, two *Align* rows marked **↻**, and
+   *Snap*. The **↻** ones mention **hole1**, so each repeat aims them at its own hole; the
+   others are copied as they are. Press **Apply to 3 more**. Three more bolts appear on
+   **hole2**, **hole3** and **hole4**, each turned the same way, centred on its hole and 5 mm into
+   its post. A toast reads *Repeated Bolt / screw 1 on 3 more holes*, with **Undo**.
+7. Select **Bolt / screw 1** and change its **Length** from `12` to `16`. All four bolts get
+   longer.
+
+![The Repeat panel mid-session: hole1 to hole4 ticked, five steps recorded with two Align steps marked, and Apply to 3 more ready.](./screenshots/repeat-sheet.png)
+
+![A Pi on a screen: the Repeat button pressed on hole1, one bolt turned, aligned and snapped, then Apply to 3 more puts four bolts on the four holes, and a Length edit on the first one changes all four.](./media/repeat-placement.gif)
+
+### How it works
+
+- **Start first.** Press **⟳ Repeat** *before* you make the first part. The panel watches the
+  next shape you create and records every step you do to it. A bolt you finished earlier can't
+  be the first part: delete it and make it again with the panel open.
+- **Where the button is.** **⟳ Repeat** is on only when you have **one shape selected and drilled
+  into one named part**, such as a hole, and that shape has other parts. Otherwise it is
+  greyed with the reason (*Drill into a part first, such as a hole*, or *This part has no
+  others to repeat on*). Pressing it again, or **Cancel**, or **Escape**, ends the session and
+  keeps the first part as it is; nothing is undone. If an Align popover is open, **Escape**
+  closes that first.
+- **Apply to N more** is greyed until the first part exists, at least one step mentions the
+  first hole, and at least one other target is ticked. Under the list the panel says why in red:
+  for example *Nothing in Bolt / screw 1's steps refers to hole1*. A step added by the
+  Assistant, Claude Code or a merge is listed under **Not part of the repeat**, and Apply is off
+  with a note, because a repeat copies *every* step of the first part: **Cancel** and make that
+  part by hand.
+- **On a phone** the panel is a sheet at the bottom that shrinks to one bar (*Repeating on 4 ·
+  Bolt / screw 1: 5 steps · Apply*) when you press in the 3D view or open the Library. The bar's
+  own **Apply** works without opening the sheet; tap the bar's text to open it again.
+- While the panel is open the Library says *Repeating on 4 targets: drag the part you want
+  onto hole1*, and the other ticked holes are outlined in the 3D view so you can see where the
+  repeats will go.
+
+### Linked, not copied
+
+The repeats are one body in the History, **Bolt / screw 1 ×3**, one row reading
+*Repeat → hole2, hole3, hole4*. One **Undo** removes it and leaves Bolt 1.
+
+- **Edit Bolt 1's steps and every repeat follows**: its Parameters (Length, Size, Type),
+  an Align or Snap you **Edit** in History, a variable bound to its length.
+- **A new move of Bolt 1 moves Bolt 1 only, and so does a new move of the Pi.** Dragging either
+  one with the gizmo *after* the Repeat adds a step that comes later in History than the Repeat,
+  so the repeats don't see it. The repeat body has no gizmo of its own; the Inspector says
+  *Move Bolt / screw 1 or Raspberry Pi 1; the repeats follow them*, which holds for steps made
+  **before** the Repeat. To move the whole assembly, **Edit** an earlier step in
+  [History](timeline.md). In this example the Pi is aligned to the screen and the bolts to the Pi,
+  so editing the screen's **Move** row carries the Pi, Bolt 1 and all three repeats with it.
+- Select the repeat and the Inspector shows what it repeats and where. **Go to Bolt / screw 1**
+  selects the first bolt, where its steps are edited. **Detach** turns each repeat into its own
+  bolt, no longer linked (one Undo puts the link back), for the one screw that needs to be
+  different.
+- **Remove one repeat.** Tap the repeat's part (for example **hole3**) in the Objects list and
+  press **Remove this repeat**. The other repeats stay.
+- **Deleting what a repeat follows asks first.** Delete Bolt 1 or the Pi and the Inspector asks
+  *Delete the repeats too, or leave them broken?*: **Delete the repeats**, **Leave broken**
+  (the History row stays, labelled `broken`) or **Cancel**.
+- If a hole goes away, because you [changed the Pi's model](selection-and-inspector.md#changing-a-parts-model-or-size)
+  to one without it, the repair dialog (next section) has a row for that repeat.
+
 ## When the part you snapped to goes away
 
 An Align against a second shape's named part is **live**: it is worked out again whenever the
@@ -241,6 +332,7 @@ each row:
 |---|---|
 | **Only when Raspberry Pi 1's Model is Pi 4** | Keep the item, but only on a Pi 4. On a Pi 5 it simply isn't there (not broken, not drawn); switch back to a Pi 4 and it returns, still snapped. One design can then hold parts for several board revisions. |
 | **Remap to another part…** | Point the snap at a part the new board *does* have. Pre-filled only when the part really was renamed (a Pi 4's `camera` is a Pi 5's `camera0`); otherwise you choose. |
+| **Remove this repeat** | For a [Repeat](#repeating-a-placement-on-every-hole) aimed at that part: drop just that one repeat. The others stay. |
 | **Detach — keep it where it is** | The item stays exactly where it is now and forgets the link. Offered for the Align tool's snaps and aligns only. |
 | **Leave broken** | Make the change anyway and fix it later. |
 

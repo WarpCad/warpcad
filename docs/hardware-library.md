@@ -103,6 +103,10 @@ eight times; you set it up once.
 2. Drag **Nut** into the 3D view and set its **Spec** to `m2.5`.
 3. **Bill of materials** shows `Bolt / screw M2.5 socket × 8 mm × 1` and `Nut M2.5 × 1`.
 
+A bolt for every mounting hole of a board needs the same placement four times. To place one
+and have the app do the rest, see
+[Repeating a placement on every hole](snap-align.md#repeating-a-placement-on-every-hole).
+
 ### Example: a countersunk flat-head screw
 
 1. Open **Library → Hardware**. Next to **Bolt / screw**, choose **Type: Flat head** and **Size:

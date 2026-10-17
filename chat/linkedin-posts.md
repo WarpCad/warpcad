@@ -2903,3 +2903,21 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** Apply refused for a repeat member on the first hand drive, then Leave broken kept two members (16 mm³) and Remove this repeat gave "Cube 1 ×2" with Undo restoring three → driven in the app 2026-10-17; the fix → `src/stores/repairDialog.js`, `src/stores/repairDialog.spec.js`
 **To Add:** none
+
+## [2026-10-17T07:55:00Z] — The panel that covered the button you press next
+
+**Post:** I built a Repeat control for WarpCad: make one screw on a Raspberry Pi's first hole, press Apply, get the same screw on the other three. The logic passed its tests the first time. Then I drove it with a real pointer and found three layout bugs no unit test could see. On a laptop the Repeat panel sat on top of the Align button you need next. On a phone it covered the Library tab you need to open to fetch the screw, and its Apply button sat below the fold once the step list grew. When it shrank to a bar, the bar sat on the Inspector's Delete button.
+
+All three are the same mistake: a panel placed where it looked tidy, with no check against what the user presses next. The fix was a placement per screen size and a spec that measures the boxes, not just that the button exists. The spec runs on Chromium, Firefox and WebKit at phone, tablet and laptop size.
+
+One more thing I would not have guessed: after Repeat, moving the Pi moves only the Pi. The screws stay, because a new move comes later in the history than the Repeat. The note in the app says the opposite, and I have logged it for a person to decide.
+
+Not checked: real phone and iPad hardware (emulated only).
+
+Built with Claude Code, reviewed by me.
+
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #Testing #UX #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** the panel covered `operation-align` (a click timed out on "intercepts pointer events") before the move; box-overlap checks for the phone bar → `e2e/repeat-placement.e2e.js`; Pi moved +10 mm, bolts unchanged, then the screen's Move row edited +10 mm moved all four → driven by hand 2026-10-17
+**To Add:** none

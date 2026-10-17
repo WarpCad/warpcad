@@ -136,6 +136,7 @@ import ParamFields from './ParamFields.vue'
 import SketchBodyFields from './SketchBodyFields.vue'
 import SketchProfileFields from '../sketch/SketchProfileFields.vue'
 import DependentsBanner from './DependentsBanner.vue'
+import RepeatSection from './RepeatSection.vue'
 import ConditionRow from './ConditionRow.vue'
 import InspectorViewTabs from './InspectorViewTabs.vue'
 import VariablesPanel from './VariablesPanel.vue'
@@ -247,6 +248,19 @@ const body = computed(() => described.value.body)
  * consistent by both being absent rather than one of them lying.
  */
 const isSubPart = computed(() => Boolean(body.value?.subPart))
+
+/**
+ * Position and Rotation are read-only: on a drilled-into part (above), and on a repeat body
+ * (`TODO/ui-069`), which is never moved on its own — its members follow their source and
+ * seed (`core-061` decision 6), so the note names what to move instead.
+ */
+const transformFrozen = computed(() => isSubPart.value || Boolean(body.value?.moveRefusal))
+
+/** The last refusal a typed Position/Rotation met, shown under the fields rather than thrown. */
+const transformError = ref('')
+watch(() => body.value?.id, () => {
+  transformError.value = ''
+})
 
 const isOpen = ref(false)
 const splitSheet = useSplitSheetStore()
@@ -480,13 +494,19 @@ function commitTransformField(event, which, axisIndex) {
   // document's own formatting — which is also how a rejected value is undone,
   // with no separate "restore" path to keep in step.
   editingField.value = ''
+  transformError.value = ''
   // A drilled-into sub-part's fields are `readonly`, so this should be
   // unreachable — but the guard is here rather than assumed, because the one
   // thing worse than no gizmo in this state is a numeric field that silently
-  // moves the whole group (`TODO/ui-016`).
-  if (parsed === null || !selectedBody || isSubPart.value) return
-  if (which === 'position') transformCommands.setPositionAxis(selectedBody.id, axisIndex, parsed)
-  else transformCommands.setRotationAxis(selectedBody.id, axisIndex, parsed)
+  // moves the whole group (`TODO/ui-016`). The same for a repeat body (`TODO/ui-069`).
+  if (parsed === null || !selectedBody || transformFrozen.value) return
+  // A refusal from the command layer is shown, never left as an uncaught page error.
+  try {
+    if (which === 'position') transformCommands.setPositionAxis(selectedBody.id, axisIndex, parsed)
+    else transformCommands.setRotationAxis(selectedBody.id, axisIndex, parsed)
+  } catch (caught) {
+    transformError.value = caught instanceof Error ? caught.message : String(caught)
+  }
 }
 
 /**
@@ -829,6 +849,9 @@ watch([() => body.value?.id, colorPart], () => {
         <!-- A breakage committed with Leave broken (TODO/ui-052): on the body whose parts
              went missing and on the dependent, each with Resolve…. -->
         <DependentsBanner v-if="!body.subPart" :body="body" />
+        <!-- A linked Repeat (TODO/ui-069): what it repeats, Go to the source, Detach; drilled
+             into one member, what Delete does there. -->
+        <RepeatSection v-if="body.repeat" :body="body" />
 
         <!-- The Color control (TODO/ui-037). Its own small section, and the first
              one, because it is a single row: at phone width it is on screen the
@@ -917,10 +940,10 @@ watch([() => body.value?.id, colorPart], () => {
                 <span class="inspector__component-label">{{ axis.toUpperCase() }}</span>
                 <input
                   class="inspector__input"
-                  :class="{ 'inspector__input--editable': !isSubPart }"
+                  :class="{ 'inspector__input--editable': !transformFrozen }"
                   type="text"
                   inputmode="decimal"
-                  :readonly="isSubPart"
+                  :readonly="transformFrozen"
                   :data-testid="`inspector-position-${axis}`"
                   :aria-label="`Position ${axis.toUpperCase()} in millimetres`"
                   :value="fieldValue(`position-${index}`, formatMmValue(body.positionMm[index]))"
@@ -937,10 +960,10 @@ watch([() => body.value?.id, colorPart], () => {
                 <span class="inspector__component-label">{{ axis.toUpperCase() }}</span>
                 <input
                   class="inspector__input"
-                  :class="{ 'inspector__input--editable': !isSubPart }"
+                  :class="{ 'inspector__input--editable': !transformFrozen }"
                   type="text"
                   inputmode="decimal"
-                  :readonly="isSubPart"
+                  :readonly="transformFrozen"
                   :data-testid="`inspector-rotation-${axis}`"
                   :aria-label="`Rotation ${axis.toUpperCase()} in degrees`"
                   :value="fieldValue(`rotation-${index}`, formatDeg(body.rotationDeg[index]))"
@@ -975,7 +998,14 @@ watch([() => body.value?.id, colorPart], () => {
                toolbar's Align popover (`TODO/ui-060`). -->
         </section>
 
-        <p v-if="isSubPart" class="inspector__note" data-testid="inspector-transform-note">
+        <p v-if="transformError" class="inspector__note inspector__note--error" role="alert" data-testid="inspector-transform-error">
+          {{ transformError }}
+        </p>
+        <!-- In the gizmo's place on a repeat body (TODO/ui-069, core-061 decision 6). -->
+        <p v-if="body.moveRefusal && !isSubPart" class="inspector__note" data-testid="inspector-transform-note" data-repeat="true">
+          {{ body.moveRefusal }}. Position and rotation are shown here for measurement only.
+        </p>
+        <p v-else-if="isSubPart" class="inspector__note" data-testid="inspector-transform-note">
           You are looking inside {{ body.subPart?.groupName }}. A part is shown here for
           measurement only — move or turn the whole group instead, by stepping back up to
           it with the {{ body.subPart?.groupName }} link above.
@@ -1324,6 +1354,10 @@ watch([() => body.value?.id, colorPart], () => {
   font-size: 11px;
   line-height: 1.45;
   color: var(--text-3);
+}
+
+.inspector__note--error {
+  color: var(--danger);
 }
 
 /*

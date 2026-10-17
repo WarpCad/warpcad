@@ -157,21 +157,21 @@
   },
   "snap-operation.gif": {
     "spec": "e2e/docs/snap-align.docs.js",
-    "specHash": "0ff1905ff4f8e2d302dd14441b477a1ca4695943bc763d805c838be23f07f10f",
-    "bytes": 806979,
-    "seconds": 9.5
+    "specHash": "dfedbb0d60a79db640e5cdac206551189d2cd944977f95d610422a2e8ee2f579",
+    "bytes": 751041,
+    "seconds": 9.1
   },
   "align-operation.gif": {
     "spec": "e2e/docs/snap-align.docs.js",
-    "specHash": "0ff1905ff4f8e2d302dd14441b477a1ca4695943bc763d805c838be23f07f10f",
-    "bytes": 785747,
-    "seconds": 9.4
+    "specHash": "dfedbb0d60a79db640e5cdac206551189d2cd944977f95d610422a2e8ee2f579",
+    "bytes": 728436,
+    "seconds": 8.2
   },
   "snap-subpart-operand.gif": {
     "spec": "e2e/docs/snap-align.docs.js",
-    "specHash": "0ff1905ff4f8e2d302dd14441b477a1ca4695943bc763d805c838be23f07f10f",
-    "bytes": 761794,
-    "seconds": 12.01
+    "specHash": "dfedbb0d60a79db640e5cdac206551189d2cd944977f95d610422a2e8ee2f579",
+    "bytes": 722551,
+    "seconds": 10.13
   },
   "mirror-operation.gif": {
     "spec": "e2e/docs/mirror.docs.js",
@@ -374,9 +374,9 @@
   },
   "snap-subpart-both-sides.gif": {
     "spec": "e2e/docs/snap-align.docs.js",
-    "specHash": "0ff1905ff4f8e2d302dd14441b477a1ca4695943bc763d805c838be23f07f10f",
-    "bytes": 1842713,
-    "seconds": 18.88
+    "specHash": "dfedbb0d60a79db640e5cdac206551189d2cd944977f95d610422a2e8ee2f579",
+    "bytes": 1420402,
+    "seconds": 14.51
   },
   "gizmo-translate-ruler.gif": {
     "spec": "e2e/docs/selection-inspector.docs.js",
@@ -398,9 +398,9 @@
   },
   "align-to-origin-popover.gif": {
     "spec": "e2e/docs/snap-align.docs.js",
-    "specHash": "0ff1905ff4f8e2d302dd14441b477a1ca4695943bc763d805c838be23f07f10f",
-    "bytes": 473500,
-    "seconds": 6.9
+    "specHash": "dfedbb0d60a79db640e5cdac206551189d2cd944977f95d610422a2e8ee2f579",
+    "bytes": 302058,
+    "seconds": 6.4
   },
   "import-model-place.gif": {
     "spec": "e2e/docs/import-model.docs.js",
@@ -413,5 +413,11 @@
     "specHash": "45fef980d1d02aeef974db7ee33676084b26847d95b1c31729486ba89e1b1d7e",
     "bytes": 1269682,
     "seconds": 22.01
+  },
+  "repeat-placement.gif": {
+    "spec": "e2e/docs/snap-align.docs.js",
+    "specHash": "dfedbb0d60a79db640e5cdac206551189d2cd944977f95d610422a2e8ee2f579",
+    "bytes": 1905765,
+    "seconds": 15.63
   }
 }

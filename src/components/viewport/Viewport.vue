@@ -46,6 +46,7 @@ import VertexHandles from '../sketch/VertexHandles.vue'
 import SnapGuides from './SnapGuides.vue'
 import CutPlaneOverlay from './CutPlaneOverlay.vue'
 import SplitSheet from '../features/SplitSheet.vue'
+import RepeatSheet from './RepeatSheet.vue'
 import { createCutPlaneAnnotation, updateCutPlaneAnnotation } from '../../render/cutPlane.js'
 import { useSplitSheetStore } from '../../stores/splitSheet.js'
 import { useSelectedBody } from '../../composables/useSelectedBody.js'
@@ -139,6 +140,7 @@ import {
 import { useDocumentStore } from '../../stores/document.js'
 import { useHiddenPartVisibilityStore } from '../../stores/hiddenPartVisibility.js'
 import { useHoverHighlightStore } from '../../stores/hoverHighlight.js'
+import { useRepeatStore } from '../../stores/repeat.js'
 import { usePlacementStore } from '../../stores/placement.js'
 import { useSelectionStore } from '../../stores/selection.js'
 import { useAlignReferenceStore } from '../../stores/alignReference.js'
@@ -259,6 +261,8 @@ const preview = useTransformPreviewStore()
 const colorPreview = useColorPreviewStore()
 const hiddenPartVisibility = useHiddenPartVisibilityStore()
 const hoverHighlight = useHoverHighlightStore()
+/** A Repeat session (`TODO/ui-069`): its other ticked targets are outlined while it is armed. */
+const repeatSession = useRepeatStore()
 const transformCommands = useTransformCommands()
 const sketchEditor = useSketchEditorStore()
 const sketchCommands = useSketchEditorCommands()
@@ -552,6 +556,19 @@ let hoverTransient = null
 const hoverTwinCount = ref(0)
 const hoverTransientName = ref('')
 
+/**
+ * A Repeat session's target outlines (`TODO/ui-069`): every ticked target other than the seed,
+ * in the object list's hover tint (its x-ray material), so the user can see where the repeats
+ * will go. Kept apart from the hover's own twins — a hover change must not drop these, and a
+ * target is usually a **hidden** part (a Pi's `hole3`), so each gets a transient mesh the way a
+ * hovered hidden part does. Plain, non-reactive; the count is the only ref.
+ */
+/** @type {Mesh[]} */
+const repeatTwins = []
+/** @type {Mesh[]} */
+const repeatTransients = []
+const repeatOutlineCount = ref(0)
+
 // Pointer bookkeeping. Entries are allocated on pointerdown and mutated in
 // place on move, so pointermove itself allocates nothing.
 /** @type {Map<number, { x: number, y: number }>} */
@@ -837,7 +854,10 @@ function syncAnnotations() {
     for (const annotation of dimensionAnnotations) annotation.visible = false
     return
   }
-  if (body.subPart) {
+  if (body.subPart || body.moveRefusal) {
+    // `TODO/ui-069`: a repeat body (`moveRefusal`) is never moved on its own — its members
+    // follow their source and seed (`core-061` decision 6) — so no gizmo either; the Inspector
+    // says what to move instead.
     // Drilled into one named part of a group (`TODO/ui-016`). The dimension
     // lines below still draw — they *measure*, and measuring the clicked part is
     // the point of the feature — but the gizmo does not, because it is a drag
@@ -1874,6 +1894,7 @@ function syncBodies() {
   // body's container: take them off before any geometry is swapped or disposed, and put
   // them back at the end against whatever the scene now holds.
   removeHoverArtifacts()
+  removeRepeatOutlines()
   // Preview bodies carry the *same* lineage-root ids as live ones — they come
   // from the same records — so entering and leaving a preview adds and removes
   // exactly the meshes that differ, through the same additive path a normal
@@ -1948,6 +1969,7 @@ function syncBodies() {
   }
   applySelectionMaterial()
   applyHover()
+  applyRepeatOutlines()
   scheduleRender()
 }
 
@@ -2062,6 +2084,46 @@ function applyHover() {
   }
   hoverTwinCount.value = hoverTwins.length
   paintBodies()
+}
+
+/** Take the Repeat session's outline twins and transient meshes off the scene. */
+function removeRepeatOutlines() {
+  for (const twin of repeatTwins) twin.removeFromParent()
+  repeatTwins.length = 0
+  for (const transient of repeatTransients) {
+    transient.removeFromParent()
+    disposeMesh(transient)
+  }
+  repeatTransients.length = 0
+  repeatOutlineCount.value = 0
+}
+
+/**
+ * Outline the Repeat session's other ticked targets (`TODO/ui-069`), at session-change rate:
+ * arming, ticking a target, the seed body's mesh being rebuilt. A drawn part gets an x-ray twin;
+ * a hidden one a transient translucent mesh plus its twin, exactly as a hovered hidden part does.
+ */
+function applyRepeatOutlines() {
+  removeRepeatOutlines()
+  const bodyId = repeatSession.seed?.bodyId
+  const object = bodyId === undefined ? undefined : bodyMeshes.get(bodyId)
+  if (!(object instanceof ThreeGroup) || !xrayHoverMaterial || !bodyMaterial) {
+    scheduleRender()
+    return
+  }
+  for (const partName of repeatSession.outlined) {
+    let meshes = /** @type {Mesh[]} */ (object.children).filter((child) => child.userData.partName === partName)
+    if (meshes.length === 0) {
+      const transient = createHoverPartMesh(object.userData.geometry, partName, bodyMaterial, /** @type {string} */ (bodyId))
+      if (!transient) continue
+      object.add(transient)
+      repeatTransients.push(transient)
+      meshes = [transient]
+    }
+    for (const mesh of meshes) repeatTwins.push(addXrayTwin(mesh, xrayHoverMaterial))
+    repeatOutlineCount.value += 1
+  }
+  scheduleRender()
 }
 
 /**
@@ -2360,8 +2422,9 @@ function onGizmoShiftKey(event) {
 function onGizmoHandleDown(event) {
   const body = selected.value.body
   // Exactly one body, per control 4's precondition. The gizmo is not drawn in
-  // any other state, so this is a guard rather than a branch.
-  if (!body) return
+  // any other state, so this is a guard rather than a branch. Nor on a part or a repeat
+  // body (`TODO/ui-069`), where it is hidden.
+  if (!body || body.subPart || body.moveRefusal) return
   gizmoDrag.active = true
   gizmoDrag.kind = event.kind
   gizmoDrag.axisIndex = event.axisIndex
@@ -3639,6 +3702,8 @@ onMounted(() => {
     // The object list's hover (`TODO/ui-049`). The store hands out a fresh object only on
     // a real change, so this fires at hover-change rate, never pointer rate.
     watch(() => hoverHighlight.target, applyHover),
+    // A Repeat session's target outlines (`TODO/ui-069`): its seed and ticked targets.
+    watch(() => [repeatSession.seed?.bodyId, repeatSession.outlined.join(',')], applyRepeatOutlines),
     // The Inspector's colour picker, while it is open (`TODO/ui-037`): the mesh
     // follows every `input` event with no document write. Repaint only — the
     // selection has not changed, so the twins stay as they are.
@@ -3707,6 +3772,7 @@ onBeforeUnmount(() => {
   themeQuery = null
   canvasEl.value?.removeEventListener('webglcontextlost', onContextLost)
   removeHoverArtifacts()
+  removeRepeatOutlines()
   for (const object of bodyMeshes.values()) disposeBodyObject(object)
   bodyMeshes.clear()
   bodiesGroup.clear()
@@ -3763,6 +3829,7 @@ onBeforeUnmount(() => {
     :data-xray-twins="xrayTwinCount"
     :data-hover="hoverHighlight.target ? (hoverHighlight.target.partName === null ? hoverHighlight.target.bodyId : `${hoverHighlight.target.bodyId}/${hoverHighlight.target.partName}`) : ''"
     :data-hover-twins="hoverTwinCount"
+    :data-repeat-outlines="repeatOutlineCount"
     :data-hover-transient="hoverTransientName"
     :data-placing="placement.isDragging ? 'true' : 'false'"
     :data-ghost="ghostVisible ? 'visible' : 'hidden'"
@@ -3859,6 +3926,8 @@ onBeforeUnmount(() => {
     <SnapGuides :guides="snapGuides" />
     <CutPlaneOverlay :annotation="cutPlaneAnnotation" />
     <SplitSheet />
+    <!-- The Repeat panel (TODO/ui-069): open for a whole Repeat session, no backdrop. -->
+    <RepeatSheet />
     <!-- The sketch editor's outlines (TODO/sketch-001): the draft's profiles, the
          live drag, and the revolve axis. Pointer-transparent, so the canvas keeps every
          gesture (ui-020 finding #1). -->

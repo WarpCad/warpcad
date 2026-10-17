@@ -2044,3 +2044,13 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** Length 10 to 14 mm took the repeat from 274.506 to 333.033 mm³, exactly three times one bolt (111.011), driven by hand in the app; the record, its refusals and the repair rows → `src/core/repeat.js`, `src/core/repeat.fold.spec.js`; the `repeat` tool against the real MCP server → `mcp/server.spec.js`
 **To Add:** none (no UI yet, that is the next task)
+
+## [2026-10-17T07:55:00Z] — Press Repeat, make one screw, get four
+
+**Post:** WarpCad has a Repeat button now. Pick a Raspberry Pi's first mounting hole, press it, make one M2.5 screw the normal way (drag it in, turn it, align it, sink it 5 mm), and Apply puts the same screw on the other three holes. One Undo step, one History row, and it stays linked: lengthen the first screw and all four grow. Built with Claude Code, reviewed by me.
+
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** real-pointer flow on Chromium, Firefox and WebKit at phone, tablet and laptop size → `e2e/repeat-placement.e2e.js`; the record → `src/core/repeat.js`; the walkthrough and a recorded run → `docs/snap-align.md`
+**To Add:** `docs/media/repeat-placement.gif` (the whole flow), repo URL once public, docs site URL once it exists

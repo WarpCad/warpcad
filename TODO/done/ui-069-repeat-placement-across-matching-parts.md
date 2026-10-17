@@ -6,8 +6,37 @@ priority: medium
 model: opus
 milestone: M17
 depends: [core-061]
-status: open
+status: done
 ---
+
+> **Retirement note (2026-10-17):** shipped as specified, with these deviations and decisions.
+> **(1) Where the panel sits.** At tablet and laptop width the panel floats over the viewport's
+> *lower* middle, not "where the Align popover floats": built at the top it covered the Operations
+> toolbar, hiding the very **⇔ Align** button the user presses next (found driving the flow by
+> hand, then by the new e2e). At phone width it is a bottom sheet that sits **above** the Library
+> tab (not over it, or the user cannot open the Library to drag the first part in), its **Apply**
+> row is sticky so a long step list never pushes it below the fold, and the shrunk bar lifts the
+> Inspector sheet by its own height so it never covers the sheet's sticky **Delete** row
+> (`AppView.vue` `data-repeat-bar`, `--repeat-bar-height`).
+> **(2) A fifth Apply condition the spec did not list.** The spec says an AI/MCP/merge record that
+> touches the subject goes under *not part of the repeat*, but `core-061` replays the source's
+> **whole** lineage, so such a step would in fact be copied. The panel lists it under *Not part of the
+> repeat* **and** disables Apply with *"Bolt 1 has a step you didn't make (from the Assistant). A repeat
+> copies every step of Bolt 1, so Cancel and make the part by hand."* Kept as built; the user may
+> prefer to loosen it (copy it, or exclude it in `core-061`), which is a core change.
+> **(3) The steps list.** The drop's own *Move* is a step, so the spec's "three steps" is five in the
+> panel (Move, Rotate, two Align rows marked ↻, Snap); the docs say so.
+> **(4) Docs example.** Driven by hand: **Rotation X = 180** turns the bolt head-up; the Z button is
+> **Relation: Inside**, **Offset −5**, **Z ⊏ − face** against the Pi's `mb` (the tip lands 5 mm below the
+> board's underside, inside the post, checked to 0.02 mm).
+> **(5) Beyond the spec.** *Save to library…* on a repeat body still drops its source (spec silent;
+> already in `TODO/VERIFY.md` from `core-061`). The *Repeat* button while armed closes the session.
+> The Repeat toast is an in-flow strip under the header (the `MergeToast` slot). Typed-transform
+> refusals on a repeat body are caught into `inspector-transform-error` (this closes `core-061`'s
+> uncaught-error handoff), and a member's Delete reads **Remove this repeat**.
+> **Verified:** `e2e/repeat-placement.e2e.js` (5 tests) on all 9 engine-viewport projects, Firefox
+> included; acceptance scenarios 3, 6, 10, 12, 15, 22 and the `ui-063`, `ui-035`, `ui-060`,
+> `ui-042`/`ui-049`, `core-034` repros driven by hand (see `TODO/ACCEPTANCE.md`).
 
 ## Goal
 

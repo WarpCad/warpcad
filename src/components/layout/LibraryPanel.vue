@@ -72,6 +72,7 @@ import { summaryParamsFor } from '../../core/libraryDefaults.js'
 import { useLibraryDefaultsStore } from '../../stores/libraryDefaults.js'
 import { useLibraryStore } from '../../stores/library.js'
 import { usePlacementStore } from '../../stores/placement.js'
+import { useRepeatStore } from '../../stores/repeat.js'
 import { useTimelineStore } from '../../stores/timeline.js'
 import HelpButton from '../controls/HelpButton.vue'
 import UserPartMenu from './UserPartMenu.vue'
@@ -189,10 +190,14 @@ watch(
   () => setOpen(false),
 )
 
+/** A Repeat session (`TODO/ui-069`): its hint line here, and its phone sheet shrinks when this opens. */
+const repeat = useRepeatStore()
+
 /** @param {boolean} value */
 function setOpen(value) {
   if (isOpen.value === value) return
   isOpen.value = value
+  if (value) repeat.minimize()
   emit('open-change', value)
 }
 const dragEl = ref(/** @type {HTMLElement | null} */ (null))
@@ -356,6 +361,10 @@ onBeforeUnmount(stopTracking)
         </p>
         <HelpButton topic="library" class="library__help" />
       </div>
+      <!-- While a Repeat session is armed (TODO/ui-069): what to drag, and onto which part. -->
+      <p v-if="repeat.libraryHint" class="library__repeat-hint" data-testid="library-repeat-hint">
+        {{ repeat.libraryHint }}
+      </p>
       <template v-for="section in sections" :key="section.id">
         <h2 class="library__heading" :data-testid="`library-heading-${section.id}`">
           {{ section.title }}
@@ -703,6 +712,16 @@ onBeforeUnmount(stopTracking)
   font-size: 11px;
   line-height: 1.4;
   color: var(--text-3);
+}
+
+.library__repeat-hint {
+  margin: 0 0 6px;
+  padding: 6px 8px;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--text-1);
 }
 
 .library__rows {
