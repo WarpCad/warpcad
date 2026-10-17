@@ -6,8 +6,14 @@ priority: medium
 model: sonnet
 milestone: M9
 depends: [ai-012]
-status: open
+status: done
 ---
+
+> **What shipped (2026-10-16).** `WARPCAD_LIVE_BRIDGE=0` (also `false`, `off`, `no`) leaves the live
+  bridge out of `npm run dev`: no `/mcp` endpoint and no bridge socket handler. Default is on.
+  `liveBridgePlugins()` in `mcp/liveBridge.js` is spread into `vite.config.js`; covered by
+  `mcp/liveBridge.spec.js` and `e2e/live-bridge-opt-out.e2e.js` (Chromium, laptop). `vite preview`
+  never ran the bridge, so the setting changes nothing there; `docs/mcp.md` says so.
 
 ## Goal
 
