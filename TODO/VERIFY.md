@@ -36,6 +36,14 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### ui-072 — Phone Library sheet: how much canvas is left to drop into (2026-10-17 20:50)
+
+The finding turned out to be the spec dropping under the sheet. The app is correct, but the numbers behind it are a feel call: at 390x844 with the Inspector tab showing, the open Library sheet starts at y=366, so only about 313 px of canvas (y 53 to 366) is left to drop into, and the Operations toolbar and nav chrome overlap part of that.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | On a real phone, open the Library and drop two parts in a row: is the visible canvas strip tall enough to aim at without the toolbar or nav chrome getting in the way, and is it clear which row to scroll for (a row below the sheet's clip, such as Sphere, is hidden until the sheet is scrolled)? | Open | |
+
 ### build-010 — Owner checks to bring app.warpcad.com live (2026-10-17 20:20)
 
 The repository side is done (`public/CNAME`, guard, `dist/CNAME` confirmed in a real build). The domain is NOT live until the owner does rows 1-2, and none of this can run in CI because it needs the real DNS record. Do rows in order; the certificate in row 3 can take a while to issue.

@@ -5,8 +5,22 @@ kind: finding
 priority: high
 model: sonnet
 depends: []
-status: open
+status: done
 ---
+
+> **Retirement note (2026-10-17):** the app was correct; the spec's own drop points were wrong. Root
+> cause: `ui-070` lifts the open Library sheet 44 px above the Inspector's collapsed tab (the sheet top
+> moved from y=410 to y=366 at 390x844), and `e2e/save-load-ui.e2e.js` dropped at `fy` 0.4 and 0.42 of the
+> viewport (y=369 and y=385), which now land on the sheet. `Viewport.vue`'s `dropTarget.contains` hit-tests
+> with `elementFromPoint`, so a release over the sheet is rightly not a drop. The first drag in a test passed
+> only because the sheet had not yet been lifted; the tab appears once something exists. The "second drag"
+> and `ui-054`'s one drag after New both fell in the 366..410 band. Diagnosed by probing
+> `elementFromPoint` at the drop point after the first placement (`library-tab` / `library-panel`, not the
+> canvas). No app file changed. The spec's drops moved to `fy` 0.3 / 0.3 / 0.2 (clear of the sheet at all three
+> widths), and `dragRowIntoViewport` now throws "drop point ... is covered by <testid>" when the point is not
+> on the viewport, so a later layout shift fails with its cause rather than a body count that never moves. No
+> assertion was weakened. Driven by hand at 390x844 with real CDP touch drags (22-30 jittered steps, 14-34 ms
+> apart) and at 1440x900 with the mouse: both drags register when released over the visible canvas.
 
 ## Problem
 

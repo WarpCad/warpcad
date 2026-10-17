@@ -2187,3 +2187,15 @@ Hooked up Sentry to the browser build, with the rule that a build with no DSN se
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** guards -> `scripts/sentry-upload.spec.js` (7 tests, failing before, passing after); lockfile -> 495 lines removed, none added; decision note -> `docs/decisions/error-reporting.md`
 **To Add:** the log line from the first real upload run
+
+
+## [2026-10-17T21:30:00Z] — The phone bug that was my test's aim
+
+**Post:** A WarpCad test failed on every phone browser: the second Library drag placed nothing. It looked like a touch bug. It was the test. An earlier fix lifted the open Library sheet 44 px above the Inspector's tab, and the test still released the drag at a point that is now under the sheet. The app was right to ignore it. The helper now says what covers the drop point instead of just failing a body count.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #Testing #CAD
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** `e2e/save-load-ui.e2e.js` green on chromium, webkit and firefox phone projects (it failed on all three before); drop point y=369 against a sheet top of y=366 -> probed with `elementFromPoint`; driven by hand with real touch events at 390x844
+**To Add:** none

@@ -407,6 +407,24 @@ The header is a right-aligned flex row and the save-status chip (`SaveStatus.vue
 
 Read `FileMenu.vue` and `fileMenu.js` for a path that closes the menu behind the click (none), then reproduced under CPU contention with `--trace=retain-on-failure`, read the `after` snapshots (`aria-expanded` never became true), and probed the button's rect around an autosave.
 
+### 2026-10-17 — A phone Library drag "does not register" because the sheet moved under the spec's drop point, not because the drag broke
+
+**What happened:**
+
+`e2e/save-load-ui.e2e.js` failed on all three phone projects: a Library drag released over the viewport placed nothing (`data-body-count` stayed put). It looked like a touch-pointer fault and was filed as `ui-072`.
+
+**Why it happened:**
+
+`ui-070` lifts the open Library sheet 44 px above the Inspector's collapsed tab, so at 390x844 the sheet top moved from y=410 to y=366. The spec dropped at 0.4 and 0.42 of the viewport height (y=369, 385), which is now on the sheet. `Viewport.vue`'s `dropTarget.contains` asks `document.elementFromPoint`, so a release over the sheet is correctly not a drop. A first drag still passed because the tab, and so the lift, only appears once something exists. The helper dispatches its own `PointerEvent`s, so nothing in a fast-mode run (which skips the phone projects) noticed.
+
+**Fix / Prevention:**
+
+The spec's drops moved up (0.3, 0.3, 0.2), and `dragRowIntoViewport` now throws `drop point (x, y) is covered by <testid>` when `elementFromPoint` at the end point is not inside the viewport. When a phone drop "does nothing", probe `elementFromPoint` at the release point before suspecting the handler. Also: a Library row far down the list (Sphere) sits below the sheet's clip at 390 px and needs the sheet scrolled; a script that taps its coordinates hits the Inspector tab.
+
+**Steps taken to resolve:**
+
+Reproduced on chromium-phone, then a throwaway spec logged `elementFromPoint` at the second drop point after the first placement (`library-tab` inside `library-panel`, not `viewport-canvas`) and the panel rect before and after (top 410.8 to 366.8). Confirmed by hand with real CDP touch drags that releases over the visible canvas register.
+
 <!-- Template for new entries:
 
 ### YYYY-MM-DD — [Short title describing the discovery]

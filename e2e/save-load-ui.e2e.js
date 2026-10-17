@@ -152,6 +152,16 @@ async function dragRowIntoViewport(page, { op, fx, fy }) {
       const startY = from.top + from.height / 2
       const endX = to.left + to.width * fx
       const endY = to.top + to.height * fy
+      // At 390 px the open Library is a bottom sheet over the viewport (and `ui-070` lifts it
+      // above the Inspector's tab), so a drop point low in the viewport lands on the sheet,
+      // which a real release there would also miss. Name that, instead of a body count that
+      // never moves.
+      const under = document.elementFromPoint(endX, endY)
+      if (!under || !view.contains(under)) {
+        throw new Error(
+          `drop point (${Math.round(endX)}, ${Math.round(endY)}) is covered by ${under?.getAttribute('data-testid') ?? under?.tagName}, not the viewport; pick a higher fy`,
+        )
+      }
       const fire = (target, type, x, y) =>
         target.dispatchEvent(
           new PointerEvent(type, {
@@ -402,7 +412,7 @@ test.describe('the File ▾ menu is mounted in the header and stays reachable (a
   }, info) => {
     // Inspector sheet: a placed, selected body auto-opens it at phone width.
     await openLibrary(page)
-    await dragRowIntoViewport(page, { op: 'primitive.cuboid', fx: 0.3, fy: 0.4 })
+    await dragRowIntoViewport(page, { op: 'primitive.cuboid', fx: 0.3, fy: 0.3 })
     await expectBodyCount(page, 1)
     await closeLibrary(page)
     await page.getByTestId('timeline-toggle').click()
@@ -710,8 +720,8 @@ test.describe('Download copy and Open… (the fallback path — real download an
 
   test('the round trip: download a copy, change the scene, Open that file, and the change is gone', async ({ page }) => {
     await openLibrary(page)
-    await dragRowIntoViewport(page, { op: 'primitive.cuboid', fx: 0.3, fy: 0.4 })
-    await dragRowIntoViewport(page, { op: 'primitive.cylinder', fx: 0.65, fy: 0.42 })
+    await dragRowIntoViewport(page, { op: 'primitive.cuboid', fx: 0.3, fy: 0.3 })
+    await dragRowIntoViewport(page, { op: 'primitive.cylinder', fx: 0.65, fy: 0.3 })
     await expectBodyCount(page, 2)
     await closeLibrary(page)
 
@@ -722,7 +732,7 @@ test.describe('Download copy and Open… (the fallback path — real download an
     const saved = readFileSync(await download.path())
 
     await openLibrary(page)
-    await dragRowIntoViewport(page, { op: 'primitive.sphere', fx: 0.5, fy: 0.3 })
+    await dragRowIntoViewport(page, { op: 'primitive.sphere', fx: 0.5, fy: 0.2 })
     await expectBodyCount(page, 3)
     await closeLibrary(page)
 
@@ -866,7 +876,7 @@ test.describe('Save / Save As… (the native File System Access path, against a 
 
     // The scene still accepts a real Library drag on the first try (ui-053, scenario 1).
     await openLibrary(page)
-    await dragRowIntoViewport(page, { op: 'primitive.cuboid', fx: 0.3, fy: 0.4 })
+    await dragRowIntoViewport(page, { op: 'primitive.cuboid', fx: 0.3, fy: 0.3 })
     await closeLibrary(page)
     await expectBodyCount(page, 2)
   })

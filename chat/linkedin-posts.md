@@ -3142,3 +3142,19 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** package gone -> `scripts/sentry-upload.spec.js`; 495 lockfile lines removed -> `git diff --stat package-lock.json`; endpoint and fields -> Sentry's release-files API docs; decision -> `docs/decisions/error-reporting.md`
 **To Add:** the result of the first real upload run
+
+
+## [2026-10-17T21:30:00Z] — When the test, not the app, is the thing that moved
+
+**Post:** Three phone test projects went red on the same line in WarpCad: after the first drag from the Library, the second one placed nothing. A touch-handling bug was the obvious guess.
+
+I probed what sat under the release point instead. After the first placement the Library sheet had moved up 44 px, because an earlier fix docks it above the Inspector's collapsed tab, and the test's drop point was 3 px inside the sheet. The viewport decides what a drop means by asking the page what is actually under the pointer, so a release on the sheet is correctly not a drop. A human drops higher.
+
+So the fix is in the spec, not the app, and I only trusted that after driving the real app with touch events at 390 px, where both drags landed. The helper now throws "drop point is covered by library-panel" when that happens, so the next layout shift names its cause instead of a body count that never moves. The reason it hid for a while: the quick test run skips the phone projects.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #Testing #Debugging
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** sheet top 410.8 to 366.8 px at 390x844 -> throwaway probe, recorded in `TROUBLESHOOTING.md`; spec green on three phone engines -> `e2e/save-load-ui.e2e.js`; hand drive with CDP touch -> `TODO/ACCEPTANCE.md` scenarios 1 and 10 Last run lines
+**To Add:** none
