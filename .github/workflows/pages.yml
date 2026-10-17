@@ -27,19 +27,19 @@ jobs:
     if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ github.event.workflow_run.head_sha || github.sha }}
           lfs: false  # the GIFs come from the LFS cache below, not a fresh download (TODO/build-012).
       # docs/media GIFs are Git LFS objects (.gitattributes) and the Help pages bundle them, so this
       # job needs the real files; the cache keeps the 73 MB off GitHub's monthly LFS bandwidth.
       - uses: ./.github/actions/lfs-media
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: npm
       - id: pages
-        uses: actions/configure-pages@v5
+        uses: actions/configure-pages@v6
       - run: npm ci
       # The build bundles mcp/ (the AI tool registry), whose dependencies live in mcp/package.json.
       - run: npm run mcp:install
@@ -108,7 +108,7 @@ jobs:
         run: |
           find dist -name '*.map' -delete
           test -z "$(find dist -name '*.map')"
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@v5
         with:
           path: dist
 
@@ -120,4 +120,4 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
