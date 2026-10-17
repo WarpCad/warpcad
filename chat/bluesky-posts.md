@@ -2157,3 +2157,13 @@ Hooked up Sentry to the browser build, with the rule that a build with no DSN se
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** guard and file list → `scripts/portedCodeProvenance.spec.js` (15 tests, passing this session); section → `LICENSING.md` "Ported code and data", commit b54ee71
 **To Add:** none
+
+
+## [2026-10-17T20:12:00Z] — Stop CI from spending the LFS quota
+
+**Post:** WarpCad's 74 docs GIFs (73 MB) live in Git LFS, and four CI jobs downloaded them on every push. Now only the Pages build gets them, from a cache. The test jobs run on pointer files, which I checked by running the suite on a pointer-only checkout. #OpenSource #GitHubActions Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #OpenSource #GitHubActions
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** guard → `scripts/workflowLfs.spec.js` (6 tests, passing this session); pointer-only run → 6142 unit tests and the guards project, see `TODO/done/build-012-cut-lfs-bandwidth-in-ci-and-pages.md`; cache action → `.github/actions/lfs-media/action.yml`
+**To Add:** the byte counts from the first two runs on GitHub (cache miss, then hit); not measurable before the push

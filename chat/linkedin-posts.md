@@ -3092,3 +3092,19 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** owner confirmation → `TODO/done/docs-024-ported-code-provenance-statement.md` "Decided 2026-10-17"; guard and the missed `group.js` → `scripts/portedCodeProvenance.spec.js`; section → `LICENSING.md`, commit b54ee71; Hessmer notice and decision 6 → `docs/decisions/gears.md`
 **To Add:** none
+
+
+## [2026-10-17T20:12:00Z] — Four downloads of 73 MB per push, down to a cache
+
+**Post:** WarpCad keeps its 74 documentation GIFs (72.7 MB) in Git LFS. Going through the setup before the first push to GitHub, I counted four jobs that each fetched all of them on every push to main: the test job, two smoke jobs and the Pages build. That is roughly 290 MB a push against a free LFS bandwidth quota of 10 GiB a month, which GitHub's docs say is a hard stop when no budget is set.
+
+The fix has two parts. First, I asked which jobs read the GIF bytes at all. The unit tests and the docs-media guard only look at file names, sizes and a manifest, and the smoke specs never open Help, so those jobs now check out with `lfs: false`. I did not assume this: I ran the full unit suite and the guards project in a checkout that held only LFS pointer files, and both passed. Second, the Pages build does bundle the GIFs into Help, so it restores them through a small local composite action that caches `.git/lfs/objects`, keyed by a hash of the LFS pointer list. A hit downloads nothing.
+
+A spec now fails if any workflow goes back to `lfs: true`. What I cannot show yet is the effect on GitHub itself: the first two runs after the push will say whether the cache saves and then hits, and I will record those byte counts. The quota figures come from GitHub's public documentation, not my billing page, so I still need to confirm them on my account once the repository is published.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #OpenSource #GitHubActions
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** guard → `scripts/workflowLfs.spec.js`; pointer-only run and the 10 GiB figures → `docs/decisions/hosting.md` "Git LFS bandwidth"; action → `.github/actions/lfs-media/action.yml`
+**To Add:** the byte counts from the first two post-push runs

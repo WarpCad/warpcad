@@ -30,7 +30,10 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.event.workflow_run.head_sha || github.sha }}
-          lfs: true  # docs/media GIFs are Git LFS objects (.gitattributes); the Help pages bundle them.
+          lfs: false  # the GIFs come from the LFS cache below, not a fresh download (TODO/build-012).
+      # docs/media GIFs are Git LFS objects (.gitattributes) and the Help pages bundle them, so this
+      # job needs the real files; the cache keeps the 73 MB off GitHub's monthly LFS bandwidth.
+      - uses: ./.github/actions/lfs-media
       - uses: actions/setup-node@v4
         with:
           node-version: 24

@@ -6,8 +6,18 @@ priority: high
 model: sonnet
 milestone: M18 — Launch: publish, app.warpcad.com, Sentry and GA
 depends: []
-status: open
+status: done
 ---
+
+> **What shipped (2026-10-17).** The `test` job and both `smoke` legs now check out with `lfs: false`
+> and no LFS step: the unit suite and the `guards` project were run against a pointer-only worktree
+> (`GIT_LFS_SKIP_SMUDGE=1`) and pass, and the smoke specs never open Help or load a GIF. Only the Pages
+> build keeps the media, through the new local composite action `.github/actions/lfs-media` (so it is
+> used in one workflow, not three: the other two do not need the bytes). `scripts/workflowLfs.spec.js`
+> guards it. The quota figures are recorded in `docs/decisions/hosting.md` "Git LFS bandwidth" as from
+> GitHub's public docs, owner to confirm. The two post-push CI runs are in `TODO/VERIFY.md`. Found along
+> the way, not fixed here: with `CI=1` `docs-media.spec.js` already reports two stale movies
+> (`hardware-drag-bolt.gif`, `rpi-mounting-holes.gif`) as errors on `main`.
 
 ## Problem
 

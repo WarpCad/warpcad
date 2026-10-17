@@ -17,10 +17,14 @@ jobs:
     name: Unit, typecheck and guards
     runs-on: ubuntu-latest
     steps:
-      # docs/media GIFs live in Git LFS (.gitattributes); without lfs: true the checkout has pointer files.
+      # docs/media GIFs live in Git LFS (.gitattributes). This job leaves them as pointer files on
+      # purpose (lfs: false): the unit stage and the `guards` project read only file names, sizes and
+      # the manifest (e2e/docs-media.spec.js, scripts/help-build.spec.js), never GIF bytes, so
+      # downloading 73 MB per run would spend the monthly LFS bandwidth for nothing (TODO/build-012).
+      # The Pages build, which bundles the GIFs into Help, restores them from a cache instead.
       - uses: actions/checkout@v4
         with:
-          lfs: true
+          lfs: false
       - uses: actions/setup-node@v4
         with:
           node-version: 24
@@ -53,9 +57,10 @@ jobs:
           - browser: webkit
             project: smoke-webkit-tablet
     steps:
+      # lfs: false, as in the `test` job: the @smoke specs never open Help or load a GIF.
       - uses: actions/checkout@v4
         with:
-          lfs: true
+          lfs: false
       - uses: actions/setup-node@v4
         with:
           node-version: 24

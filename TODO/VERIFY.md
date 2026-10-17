@@ -36,6 +36,17 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### build-012 — LFS cache on the first two CI runs after the push (2026-10-17 20:12)
+
+The workflows run only on GitHub, so nothing here could be proved on the laptop. Locally verified: YAML lint, the guard `scripts/workflowLfs.spec.js`, and that unit plus `guards` pass on pointer files.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | First run after the push to `main`: open the **Pages** run's "Restore docs media from the LFS cache" step. Expect a cache **miss** (`Cache not found for input keys: lfs-media-...`), `git lfs pull` downloading about 72.7 MB, and "Cache saved" at the end. Record the downloaded byte count in the table in `docs/decisions/hosting.md` "Git LFS bandwidth". | Open | |
+| 2 | Second run (any later push to `main`, or a manual Pages `workflow_dispatch`): the same step must show **"Cache restored from key: lfs-media-..."** and `git lfs pull` fetching nothing (0 B). Record that byte count in the same table. | Open | |
+| 3 | In the CI run of the same pushes, the `test` and both `smoke` jobs must be green with no LFS step at all. If `Unit, typecheck and guards` fails on `docs-media.spec.js` with "stale movie: hardware-drag-bolt.gif / rpi-mounting-holes.gif", that is the separate pre-existing `CI=1` drift (re-record with `npm run docs:media`), not the LFS change. | Open | |
+| 4 | Owner: on the GitHub account billing page, confirm the Free plan's 10 GiB LFS storage and 10 GiB monthly bandwidth, then edit the figures in `hosting.md` if they differ. | Open | |
+
 ### docs-023 — Trademarks notice (2026-10-17 19:52)
 
 The owner names in `LICENSING.md` "Trademarks and names" came from the TODO text; the run had no web access, so the spec's step "check each owner's own trademark page" is still open.

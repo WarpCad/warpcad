@@ -1,0 +1,27 @@
+# Restores the docs/media GIFs (Git LFS, .gitattributes) without downloading them on every run.
+#
+# GitHub's free LFS bandwidth is a hard monthly quota (docs/decisions/hosting.md "Git LFS"), and the
+# 74 GIFs are about 73 MB. Call this right after `actions/checkout` with `lfs: false`. The LFS object
+# store (.git/lfs/objects) is cached under a key that hashes the pointer list, so a run on an unchanged
+# media set downloads nothing; a changed set misses once, downloads, and saves the new cache.
+# TODO/build-012. Licensed AGPL-3.0-or-later like the other CI files.
+# SPDX-License-Identifier: AGPL-3.0-or-later
+name: Restore docs media from the LFS cache
+description: Cache .git/lfs/objects keyed by the LFS pointer list, then git lfs pull and checkout.
+
+runs:
+  using: composite
+  steps:
+    - id: key
+      shell: bash
+      # Pointer files carry the object ids, so this needs no LFS download. -l prints the full sha256.
+      run: echo "hash=$(git lfs ls-files -l | cut -d' ' -f1 | sort | sha256sum | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
+    - uses: actions/cache@v4
+      with:
+        path: .git/lfs/objects
+        key: lfs-media-${{ steps.key.outputs.hash }}
+    # On a cache hit every object is already local, so the pull fetches nothing.
+    - shell: bash
+      run: git lfs pull
+    - shell: bash
+      run: git lfs checkout

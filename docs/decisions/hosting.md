@@ -92,6 +92,40 @@ What B is, and was verified against the generated `dist/sw.js` (not the plugin's
   there by precache contents only, as in `help.e2e.js`). Playwright does not model iOS standalone
   mode; the installed-PWA check is manual.
 
+## Git LFS bandwidth (`TODO/build-012`, 2026-10-17)
+
+`docs/media` holds 74 GIFs in Git LFS, 72.7 MB in all (`.gitattributes`). Before this change four
+checkouts fetched them on every push to `main` (the CI `test` job, both `smoke` matrix legs, the
+Pages build): about 290 MB a push.
+
+**Quota figures, recorded 2026-10-17 from GitHub's public Git LFS billing documentation (not from the
+owner's own billing screen):** GitHub Free personal accounts and Free organizations each include
+**10 GiB of LFS storage and 10 GiB of bandwidth a month**. Beyond that, usage is billed when a budget
+is set and blocked when none is, and the owner's billing page shows no budget, so the quota is a hard
+stop. At 290 MB a push that was roughly 35 pushes a month. **The owner still confirms these figures on
+their own account once the repository is published.**
+
+What changed:
+
+- Every checkout uses `lfs: false`. The `test` job (unit and `guards`) and both `smoke` legs leave the
+  GIFs as pointer files: they read file names, sizes and `docs/media/manifest.json`, never GIF bytes.
+  This was checked, not assumed: in a `GIT_LFS_SKIP_SMUDGE=1` worktree (pointers only) the whole unit
+  suite and the `guards` project pass.
+- The Pages build bundles the GIFs into Help, so it needs the real files. It uses the local composite
+  action `.github/actions/lfs-media`, which caches `.git/lfs/objects` under a key hashing the pointer
+  list (`git lfs ls-files -l | cut -d' ' -f1 | sort | sha256sum`), then runs `git lfs pull` and
+  `git lfs checkout`. A cache hit downloads nothing; a miss downloads once and saves the cache.
+- `scripts/workflowLfs.spec.js` fails if any workflow goes back to `lfs: true` or the Pages build stops
+  using the action.
+- The media stays in LFS and history is not rewritten.
+
+Measured on GitHub (to fill in after the first two runs following the push; see `TODO/VERIFY.md`):
+
+| Run | LFS download | Cache |
+|---|---|---|
+| First Pages build after the push | _pending_ | miss, saved |
+| Second Pages build | _pending_ | hit |
+
 ## Revisit when
 
 - The kernel or another dependency needs `SharedArrayBuffer` (cross-origin isolation headers).
