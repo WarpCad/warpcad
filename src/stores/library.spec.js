@@ -5,6 +5,7 @@
 import { createPinia, setActivePinia } from 'pinia'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { piBoltRepeated } from '../core/__fixtures__/piScenes.js'
 import { resetUserParts, setLibraryParts, effectiveUserPart } from '../core/userPart.js'
 import { cubeTriangles, binaryStl, asciiBytes } from '../io/__fixtures__/stl.js'
 import { setMeshWorkerFactory } from '../io/meshClient.js'
@@ -90,6 +91,18 @@ describe('Save to library — the gate follows the selection count', () => {
     expect(library.saveGate.enabled).toBe(false)
     expect(library.saveGate.reason).toMatch(/combine into group/i)
     expect(library.openSave()).toBe(false)
+  })
+
+  it('is disabled for a repeat body, with the reason on the gate (TODO/ui-076)', () => {
+    const { library, selection, documentStore } = setup()
+    documentStore.load(piBoltRepeated().entries.map((entry) => ({ ...entry })))
+    const repeat = documentStore.raw.bodies().find((body) => body.recordId === 'rep-1')
+    expect(repeat).toBeDefined()
+    selection.select(repeat.id)
+    expect(library.saveGate.enabled).toBe(false)
+    expect(library.saveGate.reason).toMatch(/repeat can't be saved/i)
+    expect(library.openSave()).toBe(false)
+    expect(library.saveOpen).toBe(false)
   })
 
   it('is disabled while a past step is being previewed', () => {

@@ -2,6 +2,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { createDocument } from '../../core/document.js'
+import { piBoltRepeated } from '../../core/__fixtures__/piScenes.js'
 import { makeContext } from './__fixtures__/context.js'
 import { createToolRegistry } from './index.js'
 
@@ -29,6 +30,19 @@ function setup() {
   const groupId = group.applied[0].bodyId
   return { document, ctx, run, proposals, groupId, plate }
 }
+
+describe('save_to_library refuses a repeat (TODO/ui-076)', () => {
+  it('returns core\'s refusal and builds no proposal', () => {
+    const document = piBoltRepeated()
+    const proposals = /** @type {any[]} */ ([])
+    const ctx = { ...makeContext({ document }), proposals }
+    const repeat = document.bodies().find((body) => body.recordId === 'rep-1')
+    if (!repeat) throw new Error('no repeat body')
+    const result = /** @type {any} */ (tools.run(ctx, 'save_to_library', { id: repeat.id, name: 'Rep' }))
+    expect(result.error).toMatch(/repeat can't be saved/i)
+    expect(proposals).toHaveLength(0)
+  })
+})
 
 describe('group.assemble takes explicit part names (so sub-parts stay addressable)', () => {
   it('names the parts as asked', () => {

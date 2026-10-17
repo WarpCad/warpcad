@@ -3190,3 +3190,16 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** `src/core/repeat.fold.spec.js` (control with no skip follows the lift; with skip it does not; a later step reads through it; reaching back before the first Align; reload and Detach); `e2e/repeat-placement.e2e.js` new case on chromium, webkit and firefox at three sizes
 **To Add:** none
+
+## [2026-10-17T23:59:30Z] — Save to library refuses a repeat
+
+**Post:** Saving a part to the WarpCad library is a finishing step, so it should not be repeatable or loopable. A Repeat (for example "Bolt 1 ×3") is a live link to its source; a saved part is a frozen snapshot. Mixing them would have meant carrying the pattern vocabulary into every project that dropped the part.
+
+Until now that was blocked only by accident: the button was enabled, and the tap ended in a deep "not allowed in a part" error. Now the button is disabled for a repeat, or a group holding one, and a visible line says to save the source instead. The same check backs `capturePart` and the AI assistant's save proposal, and a spec pins that the allowed-op list has no pattern ops.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** "enabled button, deep error" → `src/core/userPart.js` and `userPartTools.js` at HEAD; spec pin → `userPart.spec.js` diff; tests → session runs
+**To Add:** none

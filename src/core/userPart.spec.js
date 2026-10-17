@@ -3,11 +3,13 @@ import { afterEach, describe, expect, it } from 'vitest'
 import modeling from '@jscad/modeling'
 
 import { createDocument } from './document.js'
+import { piBoltRepeated } from './__fixtures__/piScenes.js'
 import { boundsOf, evaluate, evaluateOp, isGroup, policyFor } from './kernel/index.js'
 import { hiddenNamesOf, volumeOf } from './kernel/group.js'
 import { lookupEntry } from './kernel/registry.js'
 import { recordsForDrop } from './library.js'
 import {
+  ALLOWED_OP_PREFIXES,
   USER_PART_LIMITS,
   capturePart,
   effectiveUserPart,
@@ -362,6 +364,16 @@ describe('registered parts fold through the composite path', () => {
   it('an unregistered user op is unknown, exactly like any other op', () => {
     expect(lookupEntry('user.nothing')).toBeUndefined()
     expect(() => evaluateOp('user.nothing', {})).toThrow(/unknown op "user\.nothing"/)
+  })
+})
+
+describe('capturePart — a repeat is never saved (TODO/ui-076)', () => {
+  it('refuses a repeat body in core\'s own words, and keeps pattern. off the allowed list', () => {
+    const doc = piBoltRepeated()
+    const repeat = doc.bodies().find((body) => body.recordId === 'rep-1')
+    if (!repeat) throw new Error('no repeat body')
+    expect(() => capturePart(doc, repeat.id, { name: 'Rep' })).toThrow(/repeat can't be saved/i)
+    expect(ALLOWED_OP_PREFIXES.some((prefix) => 'pattern.repeat'.startsWith(prefix))).toBe(false)
   })
 })
 

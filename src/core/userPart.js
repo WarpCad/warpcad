@@ -50,6 +50,7 @@ import { evaluate, isGroup } from './kernel/index.js'
 import { RUNTIME_OP_PREFIX, lookupEntry, registry, setRuntimeEntries } from './kernel/registry.js'
 import { policyFor } from './kernel/tessellation.js'
 import { foldColorOverrides } from './colorOverride.js'
+import { REPEAT_OP } from './repeat.js'
 import { MESH_ASSET_OP, validateMeshAsset } from '../io/meshAsset.js'
 
 const { geom3 } = modeling.geometries
@@ -137,6 +138,13 @@ export const USER_PART_LIMITS = Object.freeze({
  * not heard of. An op must also be one this build
  * knows (or another `user.*` part the same set carries).
  */
+/**
+ * Why a repeat is never saved to the library (`TODO/ui-076`): saving is a one-shot final step,
+ * and a repeat is a live link to its source, so it can't live inside a frozen part. One sentence
+ * for the gate's reason line, `capturePart`'s refusal and the AI tool's error.
+ */
+export const REPEAT_SAVE_REASON = "A repeat can't be saved to the library — it's a live link to its source. Save the source part instead."
+
 export const ALLOWED_OP_PREFIXES = Object.freeze([
   'primitive.',
   'profile.',
@@ -1231,6 +1239,7 @@ export function capturePart(document, bodyId, options) {
     if (broken.has(String(record.id))) {
       throw new UserPartError(`"${label}" can't be saved as a part: step "${name}" is broken`)
     }
+    if (record.op === REPEAT_OP) throw new UserPartError(REPEAT_SAVE_REASON)
     if (!isAllowedOp(record.op)) {
       throw new UserPartError(`"${label}" can't be saved as a part: step "${name}" (${record.op}) is not allowed in a part`)
     }

@@ -16,12 +16,41 @@
  */
 
 import { labelForParam } from './inspector.js'
-import { USER_PART_LIMITS, USER_PART_PREFIX, slugify } from './userPart.js'
+import { REPEAT_OP } from './repeat.js'
+import { REPEAT_SAVE_REASON, USER_PART_LIMITS, USER_PART_PREFIX, slugify } from './userPart.js'
 
 /** @typedef {import('./userPart.js').UserPartDefinition} UserPartDefinition */
 /** @typedef {import('./userPart.js').ExposedParam} ExposedParam */
 /** @typedef {import('./document.js').WarpDocument} WarpDocument */
 /** @typedef {import('./kernel/registry.js').OpRecord} OpRecord */
+
+/**
+ * Whether a body's history holds a `pattern.repeat` step: the body is a repeat, or a group (or
+ * anything else) built from one. Walks `target` and `operands` the way `capturePart` does.
+ *
+ * @param {import('./document.js').WarpDocument} document
+ * @param {string} bodyId A body id (a lineage root).
+ * @returns {boolean} `false` for an unknown body.
+ */
+export function holdsRepeat(document, bodyId) {
+  const body = document.bodies().find((candidate) => candidate.id === bodyId)
+  if (body === undefined) return false
+  const seen = new Set()
+  const pending = [body.recordId]
+  while (pending.length > 0) {
+    const id = pending.pop()
+    if (id === undefined || seen.has(id)) continue
+    seen.add(id)
+    const record = document.recordOf(id)
+    if (record === undefined) continue
+    if (record.op === REPEAT_OP) return true
+    for (const ref of [record.target, ...(record.operands ?? [])]) {
+      const next = typeof ref === 'string' ? ref : ref?.id
+      if (typeof next === 'string') pending.push(next)
+    }
+  }
+  return false
+}
 
 /**
  * Whether *Save to library…* can run, and — when it cannot — the sentence that says why.
@@ -31,15 +60,17 @@ import { USER_PART_LIMITS, USER_PART_PREFIX, slugify } from './userPart.js'
  * @param {number} state.count How many bodies are selected.
  * @param {boolean} [state.previewing] A past History step is being previewed.
  * @param {boolean} [state.inactive] The one selected body is kept out of the fold by a condition.
+ * @param {boolean} [state.repeat] The one selected body is, or holds, a repeat (`holdsRepeat`).
  * @returns {{ enabled: boolean, reason: string }}
  */
-export function saveToLibraryGate({ count, previewing = false, inactive = false }) {
+export function saveToLibraryGate({ count, previewing = false, inactive = false, repeat = false }) {
   if (previewing) return { enabled: false, reason: 'Leave the History preview to save a part' }
   if (count === 0) return { enabled: false, reason: 'Select a group or body to save it to the library' }
   if (count > 1) {
     return { enabled: false, reason: 'Select exactly 1 — tap Combine into group to make several solids one, then save it' }
   }
   if (inactive) return { enabled: false, reason: "This step isn't built — its condition doesn't hold" }
+  if (repeat) return { enabled: false, reason: REPEAT_SAVE_REASON }
   return { enabled: true, reason: '' }
 }
 

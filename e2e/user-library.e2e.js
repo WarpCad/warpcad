@@ -379,3 +379,45 @@ test('the My parts menu: Duplicate, Rename, Export, and Delete that keeps a copy
   await input.press(menuFor('user.standoff'))
   await expect(page.getByTestId('user-part-delete')).toBeDisabled()
 })
+
+test('Save to library refuses a repeat, says why in a visible line, and still saves the source (TODO/ui-076)', async ({ page }) => {
+  // A real project file with a repeat in it (the Pi + bolt scene of core-061), opened through
+  // File ▸ Open… on an empty project — so there is no confirm step in the way.
+  const { piBoltRepeated } = await import('../src/core/__fixtures__/piScenes.js')
+  const { serializeProject } = await import('../src/core/project.js')
+  const text = serializeProject(piBoltRepeated())
+  // The native picker is a real OS dialog; force the <input type=file> fallback, which is a chooser event.
+  await page.addInitScript(() => {
+    Object.defineProperty(window, 'showSaveFilePicker', { value: undefined, configurable: true })
+    Object.defineProperty(window, 'showOpenFilePicker', { value: undefined, configurable: true })
+  })
+  await page.reload()
+  await expect(page.getByTestId('viewport')).toBeVisible()
+  await page.getByTestId('file-menu-button').click()
+  const chooserEvent = page.waitForEvent('filechooser')
+  await page.getByTestId('file-open').click()
+  const chooser = await chooserEvent
+  await chooser.setFiles({ name: 'repeat.ndjson', mimeType: 'text/plain', buffer: Buffer.from(text) })
+
+  const repeatRow = page.locator('[data-testid="scene-bodies"] li[data-body-id="rep-1"]')
+  await expect(repeatRow).toHaveCount(1, { timeout: 30_000 })
+  const inspector = page.getByTestId('inspector')
+  if ((await inspector.getAttribute('data-open')) !== 'true' && (await page.getByTestId('inspector-tab').isVisible())) {
+    await page.getByTestId('inspector-tab').click()
+    await expect(inspector).toHaveAttribute('data-open', 'true')
+  }
+  if (!(await page.getByTestId('object-list').isVisible())) await page.getByTestId('inspector-objects-header').click()
+  await expect(page.getByTestId('object-list')).toBeVisible()
+  await page.getByTestId('objects-row-rep-1').click()
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-selected-count', '1')
+
+  await expect(page.getByTestId('library-save')).toBeDisabled()
+  await expect(page.getByTestId('op-library-save')).toBeDisabled()
+  await expect(page.getByTestId('library-save-reason')).toContainText(/repeat can't be saved/i)
+  await expect(page.getByTestId('library-save-reason')).toContainText(/source/i)
+
+  // *Go to Bolt 1* is the way back to the source, an ordinary body: the same control is enabled for it.
+  await page.getByTestId('repeat-goto-source').click()
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-selected-count', '1')
+  await expect(page.getByTestId('library-save')).toBeEnabled()
+})

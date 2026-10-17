@@ -93,6 +93,14 @@ condition does not hold) and a History preview also dim it.
 Some histories cannot be saved: a step with a condition, or a broken step. The sheet stays
 open and names the step.
 
+### A repeat can't be saved
+
+Saving is a final step, and a **repeat** (⟳ Repeat, for example *Bolt 1 ×3*) is a live link to
+its source, so it can't live inside a saved part. Select a repeat, or a group built from one, and
+*Save to library…* is dimmed with the line *A repeat can't be saved to the library: it's a live
+link to its source. Save the source part instead.* To save the part, tap **Go to Bolt 1** in
+the Inspector to select the source, then tap *Save to library…*.
+
 ## Names
 
 A part's name is what you see in the Library. It cannot be empty, cannot be longer than 80

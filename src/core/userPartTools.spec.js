@@ -2,6 +2,7 @@
 import { afterEach, describe, expect, it } from 'vitest'
 
 import { createDocument } from './document.js'
+import { piBoltRepeated } from './__fixtures__/piScenes.js'
 import { lookupEntry, paramOptions, hasEditableParams } from './kernel/registry.js'
 import { definePartFromSelection } from './library.js'
 import { canEditParams, compositeParamEditRecord } from './paramEdit.js'
@@ -11,6 +12,7 @@ import {
   duplicatePart,
   exposableParams,
   exposedFrom,
+  holdsRepeat,
   partNameProblem,
   renamePart,
   saveToLibraryGate,
@@ -97,6 +99,26 @@ describe('saveToLibraryGate — exactly one body', () => {
   it('is disabled while previewing a past step, and for a body a condition keeps out', () => {
     expect(saveToLibraryGate({ count: 1, previewing: true }).enabled).toBe(false)
     expect(saveToLibraryGate({ count: 1, inactive: true }).enabled).toBe(false)
+  })
+})
+
+describe('saveToLibraryGate — a repeat is never saved (TODO/ui-076)', () => {
+  it('is disabled for a repeat, with a reason that says what to do instead', () => {
+    const gate = saveToLibraryGate({ count: 1, repeat: true })
+    expect(gate.enabled).toBe(false)
+    expect(gate.reason).toMatch(/repeat can't be saved/i)
+    expect(gate.reason).toMatch(/source/i)
+  })
+
+  it('holdsRepeat is true for a repeat body and false for its source', () => {
+    const document = piBoltRepeated()
+    const bodies = document.bodies()
+    const repeat = bodies.find((body) => body.recordId === 'rep-1')
+    expect(repeat).toBeDefined()
+    expect(holdsRepeat(document, /** @type {any} */ (repeat).id)).toBe(true)
+    expect(holdsRepeat(document, 'nope')).toBe(false)
+    const source = bodies.find((body) => body.id !== /** @type {any} */ (repeat).id && body.op?.startsWith('hardware.'))
+    if (source) expect(holdsRepeat(document, source.id)).toBe(false)
   })
 })
 

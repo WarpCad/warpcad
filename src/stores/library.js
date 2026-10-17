@@ -39,6 +39,7 @@ import {
   exposedFrom,
   partNameProblem,
   renamePart,
+  holdsRepeat,
   saveToLibraryGate,
   usageOf,
 } from '../core/userPartTools.js'
@@ -258,8 +259,13 @@ export const useLibraryStore = defineStore('library', () => {
   )
 
   /** Enabled-state and reason for every *Save to library…* control (selection **count**). */
+  const repeatSelected = computed(() => {
+    void documentStore.version
+    return selection.count === 1 && selection.onlyId !== null && holdsRepeat(documentStore.raw, selection.onlyId)
+  })
+
   const saveGate = computed(() =>
-    saveToLibraryGate({ count: selection.count, previewing: timeline.previewing, inactive: inactiveSelected.value })
+    saveToLibraryGate({ count: selection.count, previewing: timeline.previewing, inactive: inactiveSelected.value, repeat: repeatSelected.value })
   )
 
   const saveOpen = ref(false)

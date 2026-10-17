@@ -24,8 +24,8 @@
  */
 
 import { definePartFromSelection } from '../../core/library.js'
-import { effectiveUserParts } from '../../core/userPart.js'
-import { exposableParams, exposedFrom, partNameProblem } from '../../core/userPartTools.js'
+import { REPEAT_SAVE_REASON, effectiveUserParts } from '../../core/userPart.js'
+import { exposableParams, exposedFrom, holdsRepeat, partNameProblem } from '../../core/userPartTools.js'
 import { findBody } from './read.js'
 import { RATIONALE_PROPERTY, objectSchema } from './schema.js'
 
@@ -69,6 +69,7 @@ export function createSaveToLibraryTool() {
       const found = findBody(ctx.document, input.id)
       if (found.reason !== undefined) return { error: found.reason }
       const body = found.body
+      if (holdsRepeat(ctx.document, body.id)) return { error: REPEAT_SAVE_REASON }
       const name = String(input.name).trim()
       const nameProblem = partNameProblem(name, effectiveUserParts().map((part) => ({ op: part.op, name: part.name })))
       if (nameProblem) return { error: `${nameProblem}.` }

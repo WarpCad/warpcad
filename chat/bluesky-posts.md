@@ -2223,3 +2223,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** `e2e/repeat-placement.e2e.js` new case on nine projects (scripted Assistant lifts the bolt 3 mm; copies sit 3 mm below it); it failed on the old sheet at the reason line; hand-driven at 1440x900 and 390x844
 **To Add:** none
+
+## [2026-10-17T23:59:30Z] — Save to library refuses a repeat
+
+**Post:** In WarpCad, a repeat like "Bolt 1 ×3" can no longer be saved to your parts library. The button greys out and says why: a repeat is a live link to its source, so save the source instead. Saving stays a one-shot final step. Built with Claude Code, reviewed by me. #CAD #OpenSource
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** new unit specs failed before the fix; `e2e/user-library.e2e.js` new case 9/9 projects, session run; unit 6197 passed, session run
+**To Add:** none
