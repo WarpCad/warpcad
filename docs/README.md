@@ -27,6 +27,9 @@ The Library's Raspberry Pi and Hardware items descend from the `jscad-raspberryp
 
 ## Using WarpCad
 
+WarpCad is hosted at **https://app.warpcad.com**. Open it in any modern browser, and there is
+nothing to install. The pages below cover what each part of the app does.
+
 ![The WarpCad window with no model yet: the Library on the left, the 3D view with its grid, navigation pad and orientation triad, and the Operations toolbar.](./screenshots/app-overview.png)
 
 - [Getting started in five minutes](getting-started.md) — start here: place a Cube and a
@@ -137,7 +140,8 @@ The Library's Raspberry Pi and Hardware items descend from the `jscad-raspberryp
 - [Browser agents (WebMCP)](webmcp.md) — in Chrome with the WebMCP flag, an agent that runs in
   the browser drives the open project with no key and no helper program: the **Browser agents ·
   on / off** switch in the Assistant header, its rows marked **via webmcp** in History, **Undo AI
-  turn**, and exactly what an attached agent can see.
+  turn**, and exactly what an attached agent can see. It starts with the Chrome setup steps: the
+  WebMCP flag, the inspector extension, and how to check that the browser offers it.
 - [Moving around the 3D view](viewport-navigation.md) — orbit, pan, zoom, the
   orientation triad, touch gestures, and reading size off the grid.
 - [Using WarpCad on a phone or tablet](mobile.md) — where every control lives at phone and

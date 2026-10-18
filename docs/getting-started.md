@@ -7,8 +7,9 @@ hole through it, moved to where you want it, saved out as an `.stl` file you can
 slicer. Every step uses the real controls and says what you should see when it worked. The
 animation above is the whole thing at once; the steps below are the same moves one at a time.
 
-You need WarpCad open in a browser (see [Run it yourself](../README.md#run-it-yourself) in the
-README until it is hosted). It starts empty: the **Library** on the left, the 3D view in the
+You need WarpCad open in a browser. Go to **https://app.warpcad.com**; there is nothing to
+install. (To run your own copy instead, see [Run it yourself](../README.md#run-it-yourself) in the
+README.) It starts empty: the **Library** on the left, the 3D view in the
 middle with its grid, and the **Inspector** on the right. On a phone or tablet the panels
 fold into sheets; the steps are the same, and [Using WarpCad on a phone or
 tablet](mobile.md) says where each control moved to.

@@ -9,6 +9,11 @@ after that. This page covers [getting a key](#getting-a-key), then
 [asking for a part](#asking-for-a-part), [what the assistant checks](#what-the-assistant-checks)
 and [stopping and undoing](#stopping-and-undoing).
 
+**Want no key at all?** In Chrome with the WebMCP flag on, an agent that runs in the browser can
+drive the open project through the same tools, with nothing to paste. [Browser agents
+(WebMCP)](webmcp.md) has the Chrome setup steps, with links, and the Assistant header's
+**Browser agents** switch.
+
 ## Getting a key
 
 1. Open the [Anthropic console](https://console.anthropic.com/settings/keys) and create a key.

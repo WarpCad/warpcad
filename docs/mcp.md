@@ -173,7 +173,7 @@ in the viewport as it lands. No project file or API key is needed by WarpCad; th
 your chosen MCP client, and WarpCad supplies the tools.
 
 **Live mode works only when WarpCad runs with `npm run dev` on the same computer as the MCP
-client.** The hosted app cannot use it. Phone, tablet, and desktop browsers can all enable access
+client.** The hosted app at `app.warpcad.com` cannot use it. Phone, tablet, and desktop browsers can all enable access
 to the local endpoint. Access is off by default; while enabled, any local MCP client that can
 reach the loopback endpoint may read and change the open project.
 

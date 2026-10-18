@@ -72,11 +72,11 @@ run at all); see `TODO/done/build-001-project-scaffold.md`'s own note.
 | 3 | ✅ [`docs-023`](done/docs-023-trademark-notice.md) Trademarks notice | Clean-up before the push | sonnet |
 | 4 | ✅ [`docs-024`](done/docs-024-ported-code-provenance-statement.md) Provenance statement for ported V1 code | Clean-up before the push; the owner confirmed 2026-10-17 that no outside contributor's code is in the V1 libraries | sonnet |
 | 5 | ✅ [`build-012`](done/build-012-cut-lfs-bandwidth-in-ci-and-pages.md) Cache the LFS media instead of fetching it in four jobs per push | Clean-up before the push. Quota figures recorded 2026-10-17; the owner confirms them on their account after publishing | sonnet |
-| 6 | ▶ **Publish.** Merge into `main`, run the CI steps locally, push `main` to `github.com/WarpCad/warpcad` | Waits for rows 2–5 (row 1 parked). **Decided 2026-10-17:** the owner says the GitHub repository `WarpCad/warpcad` exists. No remote is configured in this clone yet, so `git remote add origin` is part of this step. **Decided 2026-10-17:** publish now. This branch (`wip/ai-023-live-access`) merges into `main` first. | — |
+| 6 | ✅ **Publish.** `main` is on `github.com/WarpCad/warpcad` at `f1ea2cc`, and CI and Pages are green (checked 2026-10-17 with `git ls-remote` and `gh`). `origin` is set. `wip/ai-023-live-access` is already an ancestor of `main`, so the merge this row planned was not needed. | Done 2026-10-17 | — |
 | 7 | ✅ [`build-010`](done/build-010-serve-at-app-warpcad-com.md) Serve at `app.warpcad.com` (`public/CNAME`, guard, Pages custom domain) | The domain | sonnet |
 | 8 | ✅ [`build-009`](done/build-009-drop-sentry-vite-plugin.md) Drop the Sentry build plugin (FSL licence), upload maps with `curl` | Must land before Sentry is switched on | sonnet |
-| 9 | Owner: Sentry project, DSN, token and variables, then a Pages run (`build-004` VERIFY rows 1–5) | Sentry working | — |
-| 10 | Owner: GA property, Measurement ID, enhanced measurement off (`build-007` VERIFY rows 1–5) | GA working | — |
+| 9 | ✅ Owner: Sentry. Variables and secret set; the Pages upload logged `Uploaded 10 source maps`; a deployed smoke event shows readable frames (`build-004` VERIFY rows 1–5 OK, `build-009` rows 1–4 OK) | Done 2026-10-17 | — |
+| 10 | ◐ Owner: GA. `GA_MEASUREMENT_ID` is set (`G-JFYXCZJ1HN`). Still open: enhanced measurement off, then the deployed Realtime, DebugView, console and `#`-path checks (`build-007` VERIFY rows 3–6) | GA working | — |
 
 **Then the other open work, in this order:**
 

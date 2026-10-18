@@ -9,14 +9,32 @@ are the same ones the in-app [Assistant](ai-partner.md) and [Claude Code](mcp.md
 WebMCP is **experimental**. Today only Chrome supports it, behind a flag, on desktop. In any
 other browser nothing changes: WarpCad doesn't show the control and doesn't register anything.
 
-## What you need
+## Set it up in Chrome
 
-- **Chrome 146 or newer, with the WebMCP flag on.** Open `chrome://flags/#enable-webmcp-testing`,
-  set it to **Enabled**, and relaunch Chrome.
-- **An agent that runs in the browser and can call a page's tools.** For example, Google's
-  **Model Context Tool Inspector** extension.
-- WarpCad opened over `https://` or from `localhost`. The browser offers WebMCP only to secure
-  pages.
+You need Chrome, an agent that runs in the browser, and WarpCad open on a secure page. These
+steps set up all three.
+
+1. **Update Chrome to 146 or newer.** Open the Chrome menu, then **Help → About Google Chrome**,
+   and let it update. The WebMCP guides don't agree on the exact minimum version. If the flag in
+   the next step isn't on the page, your Chrome is too old, or the feature is only in a preview
+   channel (Beta, Dev or Canary).
+2. **Turn on the WebMCP flag.** Paste `chrome://flags/#enable-webmcp-testing` into the address bar,
+   set the WebMCP testing entry to **Enabled**, and press **Relaunch**. A plain page refresh isn't
+   enough; the browser has to restart.
+3. **Install an agent that can call a page's tools.** This page uses Google's **Model Context Tool
+   Inspector**. It lists the tools a page offers in a DevTools side panel and can call them. Install
+   it from the Chrome Web Store by searching for *Model Context Tool Inspector*. Its source code is
+   at [github.com/beaufortfrancois/model-context-tool-inspector](https://github.com/beaufortfrancois/model-context-tool-inspector).
+   Several similarly named extensions exist, so check the publisher before you install one.
+4. **Open WarpCad on a secure page.** Use **https://app.warpcad.com**, or `http://localhost:5183`
+   when you run it yourself with `npm run dev`. Browsers offer WebMCP only on secure pages.
+5. **Check that the browser offers it.** Open DevTools (**⌥⌘I** on a Mac, **Ctrl+Shift+I** on
+   Windows), click the **Console** tab, type `navigator.modelContext` and press Enter. An object
+   means the browser offers WebMCP; `undefined` means it doesn't, so go back to step 1. Then, in
+   WarpCad, the Assistant header should show **Browser agents · on**.
+
+For a longer walk-through of testing WebMCP tools with the inspector, see the
+[MCPcat guide](https://mcpcat.io/guides/test-webmcp-tools-model-context-inspector).
 
 ## Try it: a cube with a sphere on top
 
