@@ -143,6 +143,9 @@ export default defineConfig({
     ],
     // Writes .test-progress/playwright.json for the progress/ETA mod.
     ['./scripts/test-progress/playwright.mjs'],
+    // Standard Playwright HTML report (playwright-report/, gitignored). `open: 'never'` keeps
+    // it from launching a server and blocking an unattended run on failure.
+    ['html', { outputFolder: 'playwright-report', open: 'never' }],
   ],
   webServer: {
     command: PREVIEW ? 'npm run build && npx vite preview --port 5184 --strictPort' : 'npm run dev',
