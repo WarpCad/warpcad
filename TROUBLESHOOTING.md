@@ -425,6 +425,20 @@ The spec's drops moved up (0.3, 0.3, 0.2), and `dragRowIntoViewport` now throws 
 
 Reproduced on chromium-phone, then a throwaway spec logged `elementFromPoint` at the second drop point after the first placement (`library-tab` inside `library-panel`, not `viewport-canvas`) and the panel rect before and after (top 410.8 to 366.8). Confirmed by hand with real CDP touch drags that releases over the visible canvas register.
 
+### 2026-10-18 — Full e2e run flakes on connected-panel and live-bridge specs under parallel load
+
+**What happened:**
+
+`e2e/mcp-connected-assistant.e2e.js` failed once with the sheet-to-readout gap at 73px (limit under 40px), and `e2e/docs/ai-live-bridge.docs.js` once timed out waiting for "enabled until". Both passed on isolated re-runs at phone and tablet, and passed on re-run of the full matrix's other specs.
+
+**Why it happened:**
+
+Not established. Both are timing-sensitive DOM measurements taken while a sheet or status is still animating or updating, and they failed only under the full run's parallel workers. Not yet confirmed to fail the same way on `main`.
+
+**Fix / Prevention:**
+
+Accepted as flakes for `ui-077` (`TODO/done/ui-077-show-version-in-header.md`). Open a `testing-*` finding to wait for settled geometry and status before measuring, rather than widening the 40px limit.
+
 <!-- Template for new entries:
 
 ### YYYY-MM-DD — [Short title describing the discovery]

@@ -36,6 +36,16 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### ui-077 — Version label in the header (2026-10-18 21:38)
+
+The label stacks under the title at 480px and below, as an interim layout chosen to avoid a
+header overflow (`ui-078` is open for the real 390px budget). Acceptance scenario 1 and the
+header's width were driven by hand; the readability of the stacked label on real hardware was not.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | On a real iPhone, the `WarpCad` / `dev` stack reads clearly in the top bar and the controls to its right stay tappable. | Open | |
+
 ### build-013 — Release action gates the Pages deploy (2026-10-18 10:30)
 
 The workflows are unit-guarded (`scripts/release-workflow.spec.js`) and release-it was dry-run

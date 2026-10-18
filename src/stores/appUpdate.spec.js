@@ -2,7 +2,7 @@
 import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { useAppUpdateStore } from './appUpdate.js'
+import { headerVersionLabel, useAppUpdateStore } from './appUpdate.js'
 
 describe('appUpdate store', () => {
   /** @type {ReturnType<typeof useAppUpdateStore>} */
@@ -40,6 +40,22 @@ describe('appUpdate store', () => {
   it('labels the build by its commit alone, never the placeholder package version (ai-024)', () => {
     expect(store.buildLabel).toBe(`build ${store.commit}`)
     expect(store.buildLabel).not.toMatch(/0\.0\.0|\+/)
+  })
+
+  it('headerVersionLabel shows v<version> and the commit once there is a release (ui-077)', () => {
+    expect(headerVersionLabel('1.0.0', 'a1b2c3d')).toBe('v1.0.0 · a1b2c3d')
+    expect(headerVersionLabel('1.0.0', 'dev')).toBe('v1.0.0 · dev')
+  })
+
+  it('headerVersionLabel shows dev for the 0.0.0 placeholder, never the placeholder version (ui-077)', () => {
+    expect(headerVersionLabel('0.0.0', 'a1b2c3d')).toBe('dev · a1b2c3d')
+    expect(headerVersionLabel('0.0.0', 'dev')).toBe('dev')
+    expect(headerVersionLabel('0.0.0', 'dev')).not.toMatch(/0\.0\.0/)
+  })
+
+  it('the store exposes the header label for the build it is running (ui-077)', () => {
+    expect(store.versionLabel).toBe(headerVersionLabel(store.version, store.commit))
+    expect(store.versionLabel).not.toMatch(/0\.0\.0|\+/)
   })
 
   it('check() reports the latest version, and clears checking', async () => {

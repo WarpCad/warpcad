@@ -57,6 +57,18 @@ which opens *Combining shapes*. On a phone, and in the narrow view column of a t
 has no room for it: open **File ▾ → Help and documentation** and pick *Combining shapes* from
 Contents.
 
+## The version in the top bar
+
+The top bar shows the release you are running, right after the **WarpCad** title. For example,
+it reads `v1.0.0 · a1b2c3d`: the version is the release, and the short code after the dot is
+the exact commit it was built from. A build made on your own machine, with no release yet,
+reads `dev`.
+
+To see the full build string:
+
+1. Click the **?** button (labelled **Help**) at the top of the window.
+2. Scroll to the version line at the bottom of any page. It names the version and the commit.
+
 ## Offline
 
 The text of every page and its still pictures are saved on your device the first time WarpCad

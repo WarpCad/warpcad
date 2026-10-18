@@ -5,8 +5,14 @@ kind: feature
 priority: medium
 model: sonnet
 depends: [build-013]
-status: open
+status: done
 ---
+
+> **Shipped as specified, with one interim layout choice.** The label reads `dev` for the `0.0.0`
+> placeholder and `v<version> · <commit>` once there is a release. At phone width (480px and
+> under) it stacks under the title rather than sitting beside it, because the row had no room left
+> (`ui-078`). The stack adds no width, but the wider 390px budget `ui-078` asks for is still
+> undecided, so `ui-078` stays open.
 
 ## Goal
 

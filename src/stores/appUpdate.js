@@ -17,6 +17,21 @@ import { ref } from 'vue'
 const VERSION = typeof __APP_VERSION__ === 'string' ? __APP_VERSION__ : '0.0.0'
 const COMMIT = typeof __APP_COMMIT__ === 'string' ? __APP_COMMIT__ : 'dev'
 
+/**
+ * The header's version label (`TODO/ui-077`). Once there is a release it reads `v<version> · <commit>`;
+ * a local build (commit `dev`) shows `v<version> · dev`. While the package is still on the `0.0.0`
+ * placeholder it reads `dev` in place of the version, so the placeholder never reaches the UI
+ * (`TODO/ai-024`), and keeps the commit after it when there is one.
+ *
+ * @param {string} version the package version, `0.0.0` before the first release
+ * @param {string} commit the short commit, or `dev` when unset
+ * @returns {string}
+ */
+export function headerVersionLabel(version, commit) {
+  if (version === '0.0.0') return commit === 'dev' ? 'dev' : `dev · ${commit}`
+  return `v${version} · ${commit}`
+}
+
 export const useAppUpdateStore = defineStore('appUpdate', () => {
   const version = VERSION
   const commit = COMMIT
@@ -26,6 +41,8 @@ export const useAppUpdateStore = defineStore('appUpdate', () => {
    * the full `version+commit` for tooling.
    */
   const buildLabel = `build ${COMMIT}`
+  /** The header's version label, `TODO/ui-077`; see {@link headerVersionLabel}. */
+  const versionLabel = headerVersionLabel(VERSION, COMMIT)
   /** A newer build has been installed and a reload would run it. */
   const needRefresh = ref(false)
   /** The first install finished: the app now works offline. */
@@ -116,6 +133,7 @@ export const useAppUpdateStore = defineStore('appUpdate', () => {
     version,
     commit,
     buildLabel,
+    versionLabel,
     needRefresh,
     offlineReady,
     checking,

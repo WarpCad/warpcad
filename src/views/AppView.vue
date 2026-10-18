@@ -45,6 +45,7 @@ import TimelineStrips from '../components/timeline/TimelineStrips.vue'
 import TimelineToggle from '../components/timeline/TimelineToggle.vue'
 import Viewport from '../components/viewport/Viewport.vue'
 import { useAiChatStore } from '../stores/aiChat.js'
+import { useAppUpdateStore } from '../stores/appUpdate.js'
 import { useAssistantStore } from '../stores/assistant.js'
 import { useHostedStore } from '../stores/hosted.js'
 import { useLibraryStore } from '../stores/library.js'
@@ -71,6 +72,7 @@ const aiChat = useAiChatStore()
 // library layer on mount, so My parts is populated in every new project and after a reload.
 // A blocked or empty store is an empty section, never a startup failure.
 const library = useLibraryStore()
+const appUpdate = useAppUpdateStore()
 /** The chat sheet's state for CSS: its height name while open, `none` otherwise (`TODO/ai-006`). */
 const chatSheet = computed(() => {
   if (assistant.view !== 'chat') return 'none'
@@ -239,7 +241,14 @@ function onInspectorClaim() {
 <template>
   <div class="app" data-testid="app-root">
     <header class="app__bar" data-testid="app-header">
-      <h1 class="app__title">WarpCad</h1>
+      <!-- The title and the version label (`TODO/ui-077`): read-only, always shown, never wraps.
+           Beside the title on a laptop; stacked under it at phone width, where the row has no room
+           for a second item (the stack uses the bar's spare height, not its width). The full build
+           string stays in Help's version row (`help-version`). -->
+      <div class="app__title-group">
+        <h1 class="app__title">WarpCad</h1>
+        <span class="app__version" data-testid="app-version">{{ appUpdate.versionLabel }}</span>
+      </div>
       <p class="app__hint" data-testid="app-hint">
         Drag a shape in from the Library · click a shape to inspect it · drag to orbit
       </p>
@@ -364,6 +373,35 @@ function onInspectorClaim() {
   font-weight: 650;
   letter-spacing: 0.02em;
   color: var(--text-1);
+}
+
+/* `TODO/ui-077`: the version label never wraps and never shrinks away; the hint truncates first. */
+.app__title-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.app__version {
+  white-space: nowrap;
+  font-size: 12px;
+  line-height: 1.2;
+  color: var(--text-2);
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 480px) {
+  /* Stacked under the title: the row is full at 390px, but the bar has ~10px of spare height. */
+  .app__title-group {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0;
+  }
+
+  .app__version {
+    font-size: 10px;
+  }
 }
 
 .app__hint {
