@@ -244,7 +244,7 @@ const HEIGHTS = /** @type {const} */ ([
                which has no spare width at phone width (its extra row costs the log its height). -->
           <HelpButton topic="assistant" class="chat__help" />
         </p>
-        <p v-if="chat.webMcpMessage" class="chat__warn" role="status" data-testid="ai-webmcp-message">{{ chat.webMcpMessage }}</p>
+        <p v-if="chat.webMcpMessage || chat.webMcpFailureText" class="chat__warn" role="status" data-testid="ai-webmcp-message">{{ [chat.webMcpFailureText, chat.webMcpMessage].filter(Boolean).join(' ') }}</p>
         <p v-if="assistant.storageNote" class="chat__warn" role="status" data-testid="assistant-storage-note">
           {{ assistant.storageNote }}
         </p>

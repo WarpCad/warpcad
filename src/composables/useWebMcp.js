@@ -17,11 +17,18 @@
  * Each call runs through `runOnTab` with origin `webmcp`, so it shares the working chip, History's
  * origin chip and **Undo AI turn** with Claude Code's calls, and their queue.
  *
+ * `TODO/ai-024`: what the link reports (registered, refused, the tab's visibility) goes to the chat
+ * store, which turns it into the chip's words and the diagnostic line. The diagnostic is also
+ * published where an agent can read it without opening the Assistant — `<meta name="warpcad-webmcp">`
+ * and one `console.info` per change — including `api=none` where the browser has no WebMCP.
+ *
  * @module composables/useWebMcp
  */
 
+import { watch } from 'vue'
+
 import { createWebMcpLink } from '../ai/webmcp/register.js'
-import { modelContextOf } from '../ai/webmcp/toolShape.js'
+import { aliasNavigatorModelContext, modelContextApiOf, modelContextOf } from '../ai/webmcp/toolShape.js'
 import { createWebMcpPreference } from '../storage/webMcpPreference.js'
 import { useAiChatStore } from '../stores/aiChat.js'
 import { runOnTab } from './useTabEndpoint.js'
@@ -44,9 +51,31 @@ const endpoint = {
   handle: (call, via) => runOnTab(call, { via }),
 }
 
-/** @returns {boolean} */
-function tabVisible() {
-  return typeof document === 'undefined' || document.visibilityState !== 'hidden'
+/** The `<meta>` the diagnostic line is published in. */
+export const DIAGNOSTIC_META = 'warpcad-webmcp'
+
+/**
+ * Put the diagnostic in `<meta name="warpcad-webmcp">` (created on first use) and log it once.
+ * Quiet where there is no DOM.
+ *
+ * @param {any} doc
+ * @param {string} line
+ */
+function publishDiagnostic(doc, line) {
+  try {
+    if (doc && typeof doc.querySelector === 'function' && doc.head) {
+      let meta = doc.querySelector(`meta[name="${DIAGNOSTIC_META}"]`)
+      if (!meta) {
+        meta = doc.createElement('meta')
+        meta.setAttribute('name', DIAGNOSTIC_META)
+        doc.head.appendChild(meta)
+      }
+      meta.setAttribute('content', line)
+    }
+  } catch {
+    // A locked-down embed: the chip still carries the same line.
+  }
+  console.info(`WarpCad WebMCP: ${line}`)
 }
 
 /**
@@ -61,22 +90,29 @@ export async function startWebMcp(options = {}) {
   if (started) return
   started = true
   const chat = useAiChatStore()
-  const modelContext = modelContextOf(options.env ?? globalThis)
+  const env = options.env ?? globalThis
+  const doc = env.document
+  /** @returns {boolean} */
+  const tabVisible = () => doc?.visibilityState !== 'hidden'
+
+  const modelContext = modelContextOf(env)
+  chat.webMcpApi = modelContextApiOf(env)
+  chat.webMcpVisible = tabVisible()
+  // Once now, then once per change: the line an agent reads to see why it has no tools.
+  watch(() => chat.webMcpDiagnostic, (line) => publishDiagnostic(doc, line), { immediate: true })
   if (modelContext === null) {
     chat.webMcp = 'unavailable'
     return
   }
+  aliasNavigatorModelContext(options.env ?? globalThis)
   preference = options.preference ?? createWebMcpPreference()
   link = createWebMcpLink({
     modelContext,
     endpoint,
     onChange: (state) => {
+      chat.webMcpVisible = state.visible
       chat.webMcpTools = state.registered.length
-      if (state.failed.length > 0) {
-        chat.webMcpMessage = `Another tab or page already offers ${state.failed.map((failure) => failure.name).join(', ')}; this tab could not register ${state.failed.length === 1 ? 'it' : 'them'}.`
-      } else if (chat.webMcpMessage.startsWith('Another tab')) {
-        chat.webMcpMessage = ''
-      }
+      chat.webMcpFailed = state.failed
     },
   })
   // On until the stored preference says otherwise; the chip shows the default straight away.
@@ -84,12 +120,10 @@ export async function startWebMcp(options = {}) {
   const on = await preference.load()
   chat.webMcp = on ? 'on' : 'off'
 
-  if (typeof document !== 'undefined') {
-    document.addEventListener('visibilitychange', () => void link?.update({ visible: tabVisible() }))
-  }
-  if (typeof window !== 'undefined') {
-    window.addEventListener('pagehide', () => void link?.update({ visible: false }))
-    window.addEventListener('pageshow', () => void link?.update({ visible: tabVisible() }))
+  doc?.addEventListener?.('visibilitychange', () => void link?.update({ visible: tabVisible() }))
+  if (typeof env.addEventListener === 'function') {
+    env.addEventListener('pagehide', () => void link?.update({ visible: false }))
+    env.addEventListener('pageshow', () => void link?.update({ visible: tabVisible() }))
   }
   await link.update({ enabled: on, visible: tabVisible() })
 }

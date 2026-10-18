@@ -514,6 +514,36 @@ describe('createWebMcpLink: registered only while enabled and visible', () => {
     expect(handle.failed).toEqual([])
   })
 
+  it('reports the switch and the tab’s visibility with every change, so the chip can say why nothing is registered (ai-024)', async () => {
+    const fake = fakeModelContext()
+    /** @type {import('./register.js').WebMcpLinkState[]} */
+    const states = []
+    const endpoint = createTabEndpoint({ document: () => createDocument() })
+    const handle = createWebMcpLink({ modelContext: fake.modelContext, endpoint, onChange: (state) => states.push(state) })
+    await handle.update({ enabled: true, visible: false })
+    expect(states.at(-1)).toEqual({ enabled: true, visible: false, registered: [], failed: [] })
+    await handle.update({ visible: true })
+    expect(states.at(-1)).toMatchObject({ enabled: true, visible: true, failed: [] })
+    expect(states.at(-1)?.registered).toEqual(allNames())
+    await handle.update({ enabled: false })
+    expect(states.at(-1)).toEqual({ enabled: false, visible: true, registered: [], failed: [] })
+  })
+
+  it('reports refusals while registered, and forgets them once nothing is offered (ai-024)', async () => {
+    const fake = fakeModelContext()
+    fake.tools.set('create', { name: 'create' })
+    /** @type {import('./register.js').WebMcpLinkState[]} */
+    const states = []
+    const endpoint = createTabEndpoint({ document: () => createDocument() })
+    const handle = createWebMcpLink({ modelContext: fake.modelContext, endpoint, onChange: (state) => states.push(state) })
+    await handle.update({ enabled: true, visible: true })
+    expect(states.at(-1)?.failed.map((failure) => failure.name)).toEqual(['create'])
+    expect(handle.failed.map((failure) => failure.name)).toEqual(['create'])
+    await handle.update({ visible: false })
+    expect(states.at(-1)?.failed).toEqual([])
+    expect(handle.failed).toEqual([])
+  })
+
   it('with no API it does nothing at all, and never throws', async () => {
     const endpoint = createTabEndpoint({ document: () => createDocument() })
     const handle = createWebMcpLink({ modelContext: null, endpoint })

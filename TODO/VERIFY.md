@@ -367,8 +367,8 @@ Everything automated ran against a **fake** `document.modelContext`; the real AP
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | Chrome 146+ with `chrome://flags/#enable-webmcp-testing` Enabled: open the Model Context Tool Inspector extension on WarpCad and confirm 19 tools list and `capture_view` is absent. | Open | |
-| 2 | Ask the agent *add a 40 mm cube and put a 20 mm sphere on top of it*: both appear, History shows one row with a `webmcp` chip, **Undo AI turn** removes both. | Open | |
+| 1 | Chrome 146+ with `chrome://flags/#enable-webmcp-testing` Enabled: open the Model Context Tool Inspector extension on WarpCad and confirm 19 tools list and `capture_view` is absent. | Issue | 2026-10-17, Chrome with flag, live (old) build: `getTools()` listed 20 tools, so registration works; the inspector extension was not used. Count is now 20 and `capture_view` absence not re-checked. |
+| 2 | Ask the agent *add a 40 mm cube and put a 20 mm sphere on top of it*: both appear, History shows one row with a `webmcp` chip, **Undo AI turn** removes both. | OK | 2026-10-17: with `navigator.modelContext` aliased, Claude in Chrome added a 10-cube row and Undo AI turn removed it (scenario 27). Without the alias it never found the tools; the app now sets the alias (`ai-024`). The 40 mm cube + sphere request itself was not run. |
 | 3 | Two WarpCad tabs open: confirm the agent reaches the tab you are looking at (Decision 13's visible-tab hypothesis; neither the spec nor Chrome's pages say what happens). | Open | |
 | 4 | Whether a deployed (https) app needs an origin-trial token before the API exists for ordinary visitors, and the trial's end date. `docs/webmcp.md` deliberately leaves this out until confirmed from Chrome's own page. | Open | |
 | 5 | Tool results against Chrome's 1.5K-character advice on a large project: `measure` and `check_printability` over many bodies come back whole with an `oversize` note, unmeasured. | Open | |

@@ -2241,3 +2241,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** registers on document.modelContext, navigator fallback → src/ai/webmcp/toolShape.js:108-115; visibility gate → src/composables/useWebMcp.js:49; fake-only specs → TODO/ROADMAP.md ai-021 Runner Log; the agent's probe and the failed task → the report pasted this session
 **To Add:** none
+
+## [2026-10-18T03:00:00Z] — WebMCP: WarpCad's side checked on real Chrome, chip now says why
+
+**Post:** Checked WarpCad's WebMCP on real Chrome: getTools() lists all 20 tools. Claude in Chrome never found them because it only probes navigator.modelContext; with that aliased it added ten cubes and one undo removed them. The app now sets the alias. The chip shows a tool count or why there are none. Built with Claude Code, reviewed by me. #CAD #WebMCP
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebMCP
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** alias made the agent succeed, undo removed ten cubes → screenshots pasted this session; 20 tools via getTools() → console screenshot pasted this session; agent probed navigator only → its reply pasted this session; chip label → src/ai/webmcp/status.js
+**To Add:** chip screenshot (docs/screenshots/webmcp-chip.png)

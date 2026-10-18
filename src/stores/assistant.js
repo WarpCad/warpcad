@@ -44,6 +44,20 @@ export const SESSION_ONLY_NOTE =
   'This browser blocked storage (a private window?), so the key is kept for this session only and will be gone after a reload.'
 
 /**
+ * `TODO/ai-024`: the no-key line when **Browser agents** is on — the Assistant header and the
+ * disabled composer both show it, word for word, from {@link useAssistantStore}'s `noKeyText`.
+ * It must be true: an agent can drive the project, but *this* box needs a key, so the way to use
+ * the agent is in the agent's own panel. Kept under about 120 characters so it wraps inside a
+ * 390 px header.
+ */
+export const BROWSER_AGENT_NO_KEY =
+  'A browser agent can drive this project. The box below needs an API key; to use your agent, ask it in its own panel.'
+
+/** The same line on the dev host, where a local MCP agent (live mode) is a route too. */
+export const BROWSER_AGENT_NO_KEY_DEV =
+  'A browser or local MCP agent can drive this project. The box below needs an API key; ask your agent in its own panel.'
+
+/**
  * @typedef {object} AssistantDependencies
  * @property {import('../storage/aiKey.js').AiKeyStore} keyStore
  * @property {typeof globalThis.fetch} [fetch]
@@ -129,15 +143,12 @@ export const useAssistantStore = defineStore('assistant', () => {
 
   /**
    * The no-key line, by route (Decision 13): the bare "paste one" only where a key is the only
-   * way in — a built or hosted copy with no WebMCP.
+   * way in — a built or hosted copy with no WebMCP. **One source** (`TODO/ai-024`): the header's
+   * status line and the disabled composer's reason both read it.
    */
   const noKeyText = computed(() => {
     const webMcp = useAiChatStore().webMcp
-    if (webMcp === 'on') {
-      return devHost.value
-        ? 'A browser agent or local MCP agent can drive this project; a key is optional.'
-        : 'A browser agent can drive this project; a key is optional.'
-    }
+    if (webMcp === 'on') return devHost.value ? BROWSER_AGENT_NO_KEY_DEV : BROWSER_AGENT_NO_KEY
     if (webMcp === 'off') {
       return devHost.value
         ? 'Browser agents are off: turn them on, enable live MCP access, or add a key.'
@@ -287,6 +298,7 @@ export const useAssistantStore = defineStore('assistant', () => {
     hasKey,
     mcpOnly,
     browserAgentOnly,
+    noKeyText,
     persisted,
     status,
     message,

@@ -12,7 +12,8 @@ and [stopping and undoing](#stopping-and-undoing).
 **Want no key at all?** In Chrome with the WebMCP flag on, an agent that runs in the browser can
 drive the open project through the same tools, with nothing to paste. [Browser agents
 (WebMCP)](webmcp.md) has the Chrome setup steps, with links, and the Assistant header's
-**Browser agents** switch.
+**Browser agents** switch. With no key, the panel says so plainly: the agent can drive the
+project, but the message box needs a key, so you type your requests in the agent's own panel.
 
 ## Getting a key
 
@@ -63,7 +64,9 @@ edits a project file. [Driving WarpCad from Claude Code](mcp.md) has the full wa
 
 If you run WarpCad yourself with `npm run dev`, any local MCP agent can change the project open
 in your browser tab instead of a file, and you watch each change land. This is **dev-host only**:
-WarpCad and the MCP client must run on the same computer. Access is off by default; the Assistant's
+WarpCad and the MCP client must run on the same computer. On the hosted app the **Live MCP access**
+sheet says it isn't available there and points you to [Browser agents](webmcp.md) and to
+[working on a project file](mcp.md#three-ways-in). Access is off by default; the Assistant's
 **Live MCP access** sheet offers timed leases, tab lifetime, or access until manually turned off.
 While enabled, any local MCP client that reaches the loopback endpoint may request access.
 

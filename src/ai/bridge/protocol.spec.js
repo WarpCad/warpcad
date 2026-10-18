@@ -1,11 +1,27 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { describe, expect, it } from 'vitest'
 
-import { ACCESS_LEASES, parseHostMessage, parseTabMessage } from './protocol.js'
+import { ACCESS_LEASES, LIVE_MCP_PATH, liveEndpointUrl, parseHostMessage, parseTabMessage } from './protocol.js'
 
 describe('live MCP access leases', () => {
   it('allows only the four consented durations plus explicit off', () => {
     expect(ACCESS_LEASES).toEqual(['15m', '1h', 'tab', 'unlimited', 'off'])
+  })
+})
+
+describe('liveEndpointUrl: the address a local MCP client uses (ai-024)', () => {
+  it('is the dev server’s port on this computer’s loopback, at /mcp', () => {
+    expect(LIVE_MCP_PATH).toBe('/mcp')
+    expect(liveEndpointUrl({ protocol: 'http:', port: '5183' })).toBe('http://127.0.0.1:5183/mcp')
+  })
+
+  it('keeps the loopback address when the page was opened from another device on the LAN', () => {
+    expect(liveEndpointUrl({ protocol: 'http:', hostname: '192.168.1.20', port: '5183' })).toBe('http://127.0.0.1:5183/mcp')
+  })
+
+  it('names no port when the page has none (the scheme’s default)', () => {
+    expect(liveEndpointUrl({ protocol: 'http:', port: '' })).toBe('http://127.0.0.1/mcp')
+    expect(liveEndpointUrl({ protocol: 'https:', port: '' })).toBe('https://127.0.0.1/mcp')
   })
 })
 

@@ -29,9 +29,12 @@ steps set up all three.
 4. **Open WarpCad on a secure page.** Use **https://app.warpcad.com**, or `http://localhost:5183`
    when you run it yourself with `npm run dev`. Browsers offer WebMCP only on secure pages.
 5. **Check that the browser offers it.** Open DevTools (**⌥⌘I** on a Mac, **Ctrl+Shift+I** on
-   Windows), click the **Console** tab, type `navigator.modelContext` and press Enter. An object
-   means the browser offers WebMCP; `undefined` means it doesn't, so go back to step 1. Then, in
-   WarpCad, the Assistant header should show **Browser agents · on**.
+   Windows), click the **Console** tab, type `document.modelContext` and press Enter. An object
+   means the browser offers WebMCP; `undefined` means it doesn't, so go back to step 1. (Older
+   Chromes put it on `navigator.modelContext` instead, and WarpCad uses that if it's all there is.
+   Current Chromes use `document`, so `navigator.modelContext` can be `undefined` even when WebMCP
+   works.) Then, in WarpCad, the Assistant header should show **Browser agents · on — 20 tools**
+   (the number is how many tools WarpCad is offering).
 
 For a longer walk-through of testing WebMCP tools with the inspector, see the
 [MCPcat guide](https://mcpcat.io/guides/test-webmcp-tools-model-context-inspector).
@@ -39,7 +42,7 @@ For a longer walk-through of testing WebMCP tools with the inspector, see the
 ## Try it: a cube with a sphere on top
 
 1. Open WarpCad in that Chrome and choose **Assistant**. In the Assistant panel's header, the
-   switch reads **Browser agents · on**. It is on by default.
+   switch reads **Browser agents · on — 20 tools**. It is on by default.
 2. In your agent (the Tool Inspector, for example), check that WarpCad's tools are listed:
    `create`, `operate`, `describe_scene` and the rest.
 3. Ask the agent: *Add a 40 mm cube and put a 20 mm sphere on top of it.*
@@ -51,7 +54,7 @@ For a longer walk-through of testing WebMCP tools with the inspector, see the
 
 Sizes are in millimetres, Z is up, and angles are in degrees, as everywhere in WarpCad.
 
-![WarpCad with the Assistant panel's "Browser agents · on" switch, a cube with a sphere on top in the viewport, and History rows "Cube 1 — placed" and "Sphere 1 — placed", each marked "via webmcp".](./screenshots/webmcp-chip.png)
+![WarpCad with the Assistant panel's "Browser agents · on — 20 tools" switch, a cube with a sphere on top in the viewport, and History rows "Cube 1 — placed" and "Sphere 1 — placed", each marked "via webmcp".](./screenshots/webmcp-chip.png)
 
 ## Turning it off
 
@@ -84,9 +87,11 @@ Assistant panel says so, and the choice lasts until you close the tab.
 - **Long answers come in pages.** Lists such as `describe_scene`, `get_timeline` and `list_ops` come
   back a page at a time, and each page says how to ask for the next (`offset`, and optionally
   `limit`).
-- **With no API key**, the Assistant panel says *A browser agent can drive this project; a key is
-  optional.* Its message box needs a key, so it's greyed out with that reason. Ask the agent
-  instead. (When you run WarpCad yourself with `npm run dev`, the line names Claude Code too.)
+- **With no API key**, the Assistant panel says *A browser agent can drive this project. The box
+  below needs an API key; to use your agent, ask it in its own panel.* The message box is greyed
+  out and repeats the same sentence. Type your request in the agent's panel (its side panel or
+  pop-up), not in WarpCad's box. (When you run WarpCad yourself with `npm run dev`, the line says
+  *a browser or local MCP agent* instead.)
 
 ## What an agent can see
 
@@ -106,15 +111,78 @@ what it does with that. If you don't want an agent to read a project, turn the s
 - **No key or token is involved.** WarpCad supplies the tools, and the agent runs on whatever
   account you set it up with.
 
+## If your agent can't see the tools
+
+Work through these in order. Each one takes a few seconds.
+
+1. **Ask the right object.** In the WarpCad tab's DevTools Console, type `document.modelContext`.
+   An object means the browser offers WebMCP. Don't go by `navigator.modelContext`: current
+   Chromes don't have it, so it's `undefined` even when WebMCP works. If `document.modelContext` is
+   `undefined` too, go back to [Set it up in Chrome](#set-it-up-in-chrome).
+2. **Keep the WarpCad tab in front.** WarpCad offers its tools only while its tab is visible. If
+   your agent opens its own tab or window and works from there, WarpCad's tab is hidden and offers
+   nothing. Bring the WarpCad tab back to the front, then ask the agent to list the page's tools
+   again.
+3. **Read the switch.** The Assistant header's switch says what WarpCad is offering right now:
+
+   | The switch says | What it means | What to do |
+   |---|---|---|
+   | **Browser agents · on — 20 tools** | The tools are registered. | If your agent still sees none, it isn't looking at this tab. Check which tab it's attached to. |
+   | **Browser agents · on, but the tab is hidden** | The switch is on, but this tab isn't in front, so nothing is offered. | Bring the tab to the front. |
+   | **Browser agents · on — registering…** | WarpCad is offering its tools right now. | Wait a moment. |
+   | **Browser agents · on — registration failed** | The browser refused every tool. The line under the header gives the browser's reason. | Usually another WarpCad tab has them. Close it, or switch to it and back. |
+   | **Browser agents · on — 18 tools, 2 refused** | Some names were already taken by another page. The line under the header names them. | Close the other page, or switch to it and back. |
+   | **Browser agents · off** | You turned it off. | Tap it to turn it on. |
+   | *(no switch at all)* | This browser doesn't offer WebMCP. | See step 1. |
+
+4. **Read the diagnostic.** The same facts are on the page in one line, for you or your agent. In
+   the Console, type
+   `document.querySelector('meta[name="warpcad-webmcp"]').content`. It answers something like
+   `api=document; enabled=on; visible=yes; registered=20; failed=[]`. WarpCad also prints this line
+   in the Console, starting *WarpCad WebMCP:*, when the page loads and whenever it changes.
+   `api=none` means the browser doesn't offer WebMCP. `visible=no` means the tab is hidden.
+   `failed=[…]` names the tools the browser refused.
+
+### Which agents are known to work
+
+Checked on 2026-10-17, Chrome with the WebMCP flag on, against the hosted app:
+
+- **WarpCad's side works.** `document.modelContext` is an object, the tab was visible, and
+  `await document.modelContext.getTools()` listed all 20 tools. You can run that line yourself to
+  check any browser.
+- **Claude in Chrome (the assistant pane)** first found nothing: it looked only at
+  `navigator.modelContext`, which Chrome removed in favour of `document.modelContext`. WarpCad now
+  also offers the same object as `navigator.modelContext` whenever the browser doesn't provide one,
+  so that probe succeeds. With that alias set by hand it added ten 10 mm cubes at 20 mm spacing
+  through the tools, and one **Undo AI turn** took all ten back. (Reminder for agents: `getTools()`
+  returns a promise, so `await` it.)
+- **Google's Model Context Tool Inspector** reads the same object, so it is the way to confirm
+  what WarpCad offers.
+
+No other agent has been tested yet; the check above was on the hosted app before the alias shipped, with the alias set by hand. Until one has, an agent that cannot reach the page's tools can
+still drive a project through the [file route](mcp.md) or, on a dev host, live MCP access.
+
+### Example: ten cubes in a row
+
+1. In Chrome 146 or newer with the WebMCP flag on, open **https://app.warpcad.com** and keep its
+   tab in front.
+2. In DevTools, open the **Console** and type `document.modelContext`. You should get an object.
+3. Choose **Assistant**. The switch reads **Browser agents · on — 20 tools**.
+4. Ask your agent: *Add ten 10 mm cubes spaced 20 mm apart along X.*
+5. Open **History** and watch it fill with ten rows, each marked **via webmcp**. **Undo AI turn**
+   takes all ten back in one step.
+
 ## When something goes wrong
 
 - **There's no Browser agents switch.** This browser doesn't offer WebMCP. Check the flag in
   `chrome://flags/#enable-webmcp-testing`, relaunch, and make sure WarpCad is open over `https://`
   or from `localhost`.
-- **The agent lists no WarpCad tools.** Check the switch says **on**, and that the WarpCad tab is
-  the one in front.
+- **The agent lists no WarpCad tools.** See [If your agent can't see the tools](#if-your-agent-cant-see-the-tools).
 - **"Another tab or page already offers …"** Another page has already registered a tool with the
   same name, for example a second WarpCad tab. Close the other tab, or switch to it and back.
+- **The Live MCP access sheet says this copy can't offer it.** Live MCP access is for a copy of
+  WarpCad you run yourself with `npm run dev`. On the hosted app, use this switch instead. The sheet
+  has a button that takes you to it.
 
 ## Not yet
 

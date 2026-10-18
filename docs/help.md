@@ -85,7 +85,7 @@ navigation controls and the chat stay fully visible above it.
 
 If you never see the banner, open **Help**, scroll to the version line at the bottom of any
 page and click **Check for updates**. It answers *You are on the latest version* or *Update
-found, reload to apply*. The number on that line (for example `0.0.0+a1b2c3d`) is the build you
+found, reload to apply*. The code on that line (for example *build a1b2c3d*) is the build you
 are running; after **Reload** it changes to the new one.
 
 A tab left open looks for a new version about every 30 minutes and whenever you switch back to

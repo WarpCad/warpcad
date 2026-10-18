@@ -5,8 +5,28 @@ kind: finding
 priority: high
 model: opus
 depends: []
-status: open
+status: done
 ---
+
+
+> **What shipped:** fixes 3, 4, 5, 6 and 7. Step 0 showed WarpCad registers all 20 tools and the tab
+> was visible, so Claude in Chrome's failure is an agent limitation (it probes only
+> `navigator.modelContext`); **fix 2 (relax the visibility gate) was deliberately not done**; instead
+> `startWebMcp` now aliases `navigator.modelContext` to `document.modelContext` when the browser has
+> none (Decision 13 addendum), because setting that alias by hand made Claude in Chrome find the tools
+> and complete the ten-cubes task. Not run: the background-tab case and a real agent re-prompted to use
+> `document.modelContext`; ACCEPTANCE 27 stays "not yet run against a real agent".
+
+## Findings (Step 0, 2026-10-17, Chrome with the flag, live app on the old build)
+
+- Foreground, tab `visible`: `document.modelContext` is a `ModelContext` (methods `registerTool`,
+  `getTools`, `executeTool`, `ontoolchange`); `navigator.modelContext` is `undefined`; the chip read
+  "Browser agents · on"; `await document.modelContext.getTools()` listed **20** tools. Registration works.
+- Claude in Chrome, asked for ten cubes in the foreground, ran a page script that checked only
+  `navigator.modelContext`, found nothing and stopped. **Agent limitation (branch 1): fix 2 is not
+  needed**; the visibility gate was not the cause.
+- With `navigator.modelContext` aliased by hand, the agent found it; its first `getTools()` read looked empty only because it didn't `await` the promise (it corrected itself: 20 tools, tab `visible`). It then added ten cubes; one Undo AI turn removed them. Visibility gate cleared.
+- Not run: the background-tab case.
 
 ## Problem
 

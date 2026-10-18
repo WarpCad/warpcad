@@ -37,6 +37,11 @@ describe('appUpdate store', () => {
     expect(typeof store.commit).toBe('string')
   })
 
+  it('labels the build by its commit alone, never the placeholder package version (ai-024)', () => {
+    expect(store.buildLabel).toBe(`build ${store.commit}`)
+    expect(store.buildLabel).not.toMatch(/0\.0\.0|\+/)
+  })
+
   it('check() reports the latest version, and clears checking', async () => {
     store.attach({ checkNow: vi.fn().mockResolvedValue('latest') })
     const pending = store.check()

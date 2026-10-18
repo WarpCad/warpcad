@@ -13,6 +13,10 @@
  *
  * The tooltip says plainly what "on" exposes: whatever a tool returns — body names, design intent,
  * sizes — goes to whichever agent is attached, which WarpCad cannot see.
+ *
+ * `TODO/ai-024`: "on" never stands alone. The chip counts the tools it offers (**on — 20 tools**) or
+ * says why it offers none (**on, but the tab is hidden**, **on — registration failed**), and carries
+ * the diagnostic line in `data-webmcp` (`stores/aiChat.js`, `ai/webmcp/status.js`).
  */
 import { computed } from 'vue'
 
@@ -23,9 +27,16 @@ const chat = useAiChatStore()
 const webMcp = useWebMcp()
 
 const on = computed(() => chat.webMcp === 'on')
+/** Why nothing is offered, ahead of the usual tooltip. */
+const why = computed(() => {
+  if (!on.value) return ''
+  if (!chat.webMcpVisible) return 'WarpCad offers its tools only while this tab is the one in front; come back to it and they are offered again. '
+  if (chat.webMcpFailureText) return `${chat.webMcpFailureText} `
+  return ''
+})
 const title = computed(() =>
   on.value
-    ? 'Agents running in this browser can read and change this project through WarpCad’s tools — and see what those tools return, such as part names and design intent. Each change is one Undo AI turn. Tap to turn off.'
+    ? `${why.value}Agents running in this browser can read and change this project through WarpCad’s tools — and see what those tools return, such as part names and design intent. Each change is one Undo AI turn. Tap to turn off.`
     : 'Browser agents cannot see WarpCad’s tools. Tap to let an agent running in this browser drive this project.',
 )
 </script>
@@ -39,11 +50,12 @@ const title = computed(() =>
     :aria-checked="on ? 'true' : 'false'"
     :data-state="chat.webMcp"
     :data-tools="chat.webMcpTools"
+    :data-webmcp="chat.webMcpDiagnostic"
     data-testid="ai-webmcp-switch"
     :title="title"
     @click="webMcp.toggle()"
   >
-    <span class="webmcp-chip__track" aria-hidden="true"><span class="webmcp-chip__thumb" /></span>{{ on ? 'Browser agents · on' : 'Browser agents · off' }}
+    <span class="webmcp-chip__track" aria-hidden="true"><span class="webmcp-chip__thumb" /></span>{{ chat.webMcpLabel }}
   </button>
 </template>
 

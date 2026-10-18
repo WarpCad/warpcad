@@ -98,6 +98,28 @@ export const PAGED_TOOLS = Object.freeze({
  * @property {number} [offset]
  */
 
+/** @param {any} candidate @returns {boolean} */
+const usable = (candidate) => Boolean(candidate) && typeof candidate.registerTool === 'function'
+
+/**
+ * Where the browser's WebMCP entry point was found: `document` (the current draft), `navigator`
+ * (older Chromes), or `none`. For the diagnostic an agent reads (`TODO/ai-024`); the same rule as
+ * {@link modelContextOf}, which prefers `document` and skips an object without `registerTool`.
+ * Never throws.
+ *
+ * @param {any} [env] `globalThis` in the app; a plain object in a spec.
+ * @returns {'document' | 'navigator' | 'none'}
+ */
+export function modelContextApiOf(env = globalThis) {
+  try {
+    if (usable(env?.document?.modelContext)) return 'document'
+    if (usable(env?.navigator?.modelContext)) return 'navigator'
+    return 'none'
+  } catch {
+    return 'none'
+  }
+}
+
 /**
  * The browser's WebMCP entry point, or `null`. Never throws: a missing API, a partial one, a
  * locked-down embed or plain Node all read as "not available".
@@ -107,10 +129,30 @@ export const PAGED_TOOLS = Object.freeze({
  */
 export function modelContextOf(env = globalThis) {
   try {
-    const candidate = env?.document?.modelContext ?? env?.navigator?.modelContext
-    return candidate && typeof candidate.registerTool === 'function' ? candidate : null
+    const api = modelContextApiOf(env)
+    return api === 'none' ? null : env[api].modelContext
   } catch {
     return null
+  }
+}
+
+/**
+ * `TODO/ai-024`: Chrome 153 dropped `navigator.modelContext` for `document.modelContext`, but a
+ * browser agent that probes only `navigator` reads "no WebMCP" and stops (Claude in Chrome did, on
+ * 2026-10-17; with this alias set by hand it found the tools and added ten cubes). So when the
+ * browser has the `document` API and `navigator` has none, expose the same object there. Never
+ * replaces a `navigator.modelContext` the browser provides; never throws.
+ *
+ * @param {any} [env] `globalThis` in the app; a plain object in a spec.
+ * @returns {boolean} Whether the alias was set.
+ */
+export function aliasNavigatorModelContext(env = globalThis) {
+  try {
+    if (modelContextApiOf(env) !== 'document' || !env.navigator || env.navigator.modelContext != null) return false
+    Object.defineProperty(env.navigator, 'modelContext', { value: env.document.modelContext, configurable: true })
+    return env.navigator.modelContext === env.document.modelContext
+  } catch {
+    return false
   }
 }
 

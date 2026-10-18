@@ -111,9 +111,14 @@ export async function registerWebMcpTools({ modelContext, endpoint, tools = crea
 }
 
 /**
+ * What the link reports after every settled update (`TODO/ai-024`): enough for the chip to say how
+ * many tools are offered, or why none are.
+ *
  * @typedef {object} WebMcpLinkState
+ * @property {boolean} enabled The switch, as last set.
+ * @property {boolean} visible The tab's visibility, as last set.
  * @property {string[]} registered
- * @property {{ name: string, message: string }[]} failed
+ * @property {{ name: string, message: string }[]} failed What the current registration refused; `[]` while nothing is registered.
  */
 
 /**
@@ -121,7 +126,8 @@ export async function registerWebMcpTools({ modelContext, endpoint, tools = crea
  * @property {(patch: { enabled?: boolean, visible?: boolean }) => Promise<void>} update Change the
  *   switch or the tab's visibility; resolves once the registrations match. Updates run in order.
  * @property {readonly string[]} registered What is registered right now.
- * @property {readonly { name: string, message: string }[]} failed What the last registration refused.
+ * @property {readonly { name: string, message: string }[]} failed What the current registration refused
+ *   (`[]` once it is unregistered).
  */
 
 /**
@@ -150,11 +156,12 @@ export function createWebMcpLink({ modelContext, endpoint, tools, onChange }) {
     if (!wanted && current !== null) {
       current.unregister()
       current = null
+      failed = []
     } else if (wanted && current === null) {
       current = await registerWebMcpTools({ modelContext, endpoint, ...(tools ? { tools } : {}) })
       failed = current.failed
     }
-    onChange?.({ registered: current?.registered ?? [], failed })
+    onChange?.({ enabled, visible, registered: current?.registered ?? [], failed })
   }
 
   return {

@@ -26,6 +26,23 @@
 /** The Vite custom-event name both ends use. */
 export const BRIDGE_EVENT = 'warpcad:bridge'
 
+/** The path the dev server serves the live MCP endpoint on (`mcp/liveBridge.js`). */
+export const LIVE_MCP_PATH = '/mcp'
+
+/**
+ * The address a local MCP client connects to (`TODO/ai-024`): the dev server's port on this
+ * computer's loopback. Always `127.0.0.1`, even when the page was opened from another device on
+ * the LAN, because the endpoint answers loopback requests only.
+ *
+ * @param {{ protocol?: string, hostname?: string, port?: string }} location The page's `window.location` (its host is ignored).
+ * @returns {string}
+ */
+export function liveEndpointUrl(location) {
+  const scheme = location.protocol === 'https:' ? 'https:' : 'http:'
+  const port = location.port ? `:${location.port}` : ''
+  return `${scheme}//127.0.0.1${port}${LIVE_MCP_PATH}`
+}
+
 /** Lease choices accepted by the host. */
 export const ACCESS_LEASES = /** @type {const} */ (['15m', '1h', 'tab', 'unlimited', 'off'])
 

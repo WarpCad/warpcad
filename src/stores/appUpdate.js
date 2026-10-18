@@ -20,6 +20,12 @@ const COMMIT = typeof __APP_COMMIT__ === 'string' ? __APP_COMMIT__ : 'dev'
 export const useAppUpdateStore = defineStore('appUpdate', () => {
   const version = VERSION
   const commit = COMMIT
+  /**
+   * What the UI shows for this build (`TODO/ai-024`): the commit alone. The package version is a
+   * placeholder (`0.0.0`) that only made the string look unreleased; `<meta name="version">` keeps
+   * the full `version+commit` for tooling.
+   */
+  const buildLabel = `build ${COMMIT}`
   /** A newer build has been installed and a reload would run it. */
   const needRefresh = ref(false)
   /** The first install finished: the app now works offline. */
@@ -109,6 +115,7 @@ export const useAppUpdateStore = defineStore('appUpdate', () => {
   return {
     version,
     commit,
+    buildLabel,
     needRefresh,
     offlineReady,
     checking,

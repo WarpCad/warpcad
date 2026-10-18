@@ -4220,4 +4220,22 @@ parts header in words and My parts is unchanged; a second file replaces the firs
 
 **Last run**: 2026-10-15 UTC (`io-009`) — **PASS** at laptop 1440x900 Chromium and phone 390x844 Chromium + WebKit for the import/size/target parts (real `page.mouse`, jittered 24-step drags, fresh profile). A hand-made sloppy ASCII L-bracket STL (T-junction at the inner corner, 3 decimals): row read 40 × 20 × 40 mm; placed complete; Subtract left one `boolean.subtract` body; the exported STL had 0 open edges and a volume of 4067 mm³ (a Monte Carlo check of bracket minus the cylinder gave 4023 ± 70). Reload kept the part and body; File ▸ New kept the part. Not driven: a real third-party STL, a slicer.
 
+### 27. An in-browser agent adds ten cubes (WebMCP)
+
+**Steps**:
+1. In Chrome 146+ with the WebMCP flag on, open the app to an empty scene with the WarpCad tab in
+   front. Open the Assistant. Read the **Browser agents** chip and the line under the header.
+2. In the page's DevTools Console run `document.modelContext` (an object means it is available).
+3. Ask your browser agent: *"Add ten evenly spaced 10 mm cubes along X."*
+4. Read History and the viewport. Then tap **Undo AI turn**.
+5. *Drive it differently on purpose:* send the tab to the background and ask again; turn the chip
+   off and on; open the Live MCP access dialog.
+
+**Expect**: The chip says "on" with a tool count, or says exactly why there are none (hidden tab,
+registration refused). The header and the disabled box give the same no-key sentence. Ten distinct
+cubes are visible, History shows rows marked **via webmcp**, and one Undo AI turn removes them
+all. On the hosted app the Live MCP dialog points to Browser agents instead of `npm run dev`.
+
+**Last run**: 2026-10-17 UTC (`ai-024`) — **PASS** on the hosted app (old build) in Chrome with the flag, laptop width, Claude in Chrome as the agent, with `navigator.modelContext` aliased by hand: ten 10 mm cubes along X at 20 mm spacing, ten History/Objects rows, one Undo AI turn left 0 objects. Without the alias the agent found no tools. Not driven: background tab, phone/tablet, the new chip text on a real agent run. The fake-`document.modelContext` e2e (`e2e/webmcp.e2e.js`) passes at three viewports.
+
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

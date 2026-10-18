@@ -6,9 +6,14 @@
  *
  * What it says, plainly, where it cannot work:
  *
- * - A built or hosted copy (no `npm run dev`): live editing is dev-host only.
+ * - A built or hosted copy (no `npm run dev`): live editing is dev-host only. `TODO/ai-024`: that is
+ *   not a dead end — the dialog says what live access is for, that this copy uses **Browser agents**
+ *   instead (a way to its switch, and its Help page), and that an MCP client can still work on a
+ *   saved project file (the three ways in).
+ * - The dev host: the endpoint address an MCP client connects to, so an agent can check it.
  * - WebKit (Safari, every iOS browser): works here under `npm run dev`; a hosted (https) copy can
- *   never connect, because WebKit blocks an https page from reaching the computer's loopback.
+ *   never connect, because WebKit blocks an https page from reaching the computer's loopback (said
+ *   only on the dev host — a hosted copy gets the Browser agents block in every engine).
  * - Chromium: may show its local-network-access prompt; the sheet says to choose Allow.
  *
  * The same control is available at phone and tablet widths. Access is disabled by default and
@@ -16,15 +21,20 @@
  */
 import { computed, ref } from 'vue'
 
+import { liveEndpointUrl } from '../../ai/bridge/protocol.js'
 import { useEscapeToClose } from '../../composables/useEscapeToClose.js'
 import { browserEngine, useLiveBridge } from '../../composables/useLiveBridge.js'
 import { useAiChatStore } from '../../stores/aiChat.js'
 import { useAssistantStore } from '../../stores/assistant.js'
+import { useHelpStore } from '../../stores/help.js'
 import ModalShell from '../storage/ModalShell.vue'
 
 const assistant = useAssistantStore()
 const chat = useAiChatStore()
+const help = useHelpStore()
 const bridge = useLiveBridge()
+/** Where a local MCP client connects (dev host only). */
+const endpointUrl = typeof window === 'undefined' ? liveEndpointUrl({ protocol: 'http:', port: '5183' }) : liveEndpointUrl(window.location)
 
 const open = computed(() => assistant.view === 'connect')
 const lease = ref(/** @type {'15m' | '1h' | 'tab' | 'unlimited'} */ ('15m'))
@@ -33,10 +43,10 @@ const engine = browserEngine()
 useEscapeToClose(() => open.value, () => close())
 
 const engineNote = computed(() => {
+  // On a hosted copy live access is out of reach in every engine; the hosted block says what to use.
+  if (chat.bridge === 'unavailable') return ''
   if (engine === 'webkit') {
-    return chat.bridge === 'unavailable'
-      ? 'Safari and every iPhone or iPad browser block a page served over https from reaching this computer, so a hosted copy of WarpCad cannot connect. Start WarpCad with npm run dev instead.'
-      : 'Safari works here because this page is served by npm run dev on this computer. A hosted (https) copy of WarpCad cannot connect: Safari blocks it.'
+    return 'Safari works here because this page is served by npm run dev on this computer. A hosted (https) copy of WarpCad cannot connect: Safari blocks it.'
   }
   if (engine === 'chromium') {
     return 'Chrome and Edge may ask to let this page reach devices on your local network. If they do, choose Allow.'
@@ -78,17 +88,43 @@ function close() {
 
 <template>
   <ModalShell :open="open" testid="ai-connect-sheet" title="Live MCP access" help-topic="claude-code" @backdrop="close()">
-    <p class="connect__text" data-testid="ai-connect-explain">
-      When enabled, <strong>any MCP client on this computer</strong> that can reach the local WarpCad
-      endpoint can read and change the project open in this tab. Changes appear in History as
-      <em>via mcp</em>; <strong>Undo AI turn</strong> can take them back. Access is off by default.
-    </p>
+    <div v-if="!available" class="connect__hosted" data-testid="ai-connect-hosted">
+      <p class="connect__text">
+        Live MCP access lets an MCP client on your computer, such as Claude Code, edit the project open
+        in a copy of WarpCad you run yourself with <code>npm run dev</code>. This copy can’t offer it.
+      </p>
+      <p class="connect__text">
+        Here, use <strong>Browser agents</strong> instead: an agent running in this browser drives the
+        project through the same tools.
+        <template v-if="chat.webMcp === 'unavailable'">This browser doesn’t offer WebMCP yet; the Help page says how to turn it on in Chrome.</template>
+      </p>
+      <div class="connect__actions">
+        <button v-if="chat.webMcp !== 'unavailable'" type="button" class="connect__button" data-testid="ai-connect-browser-agents" @click="assistant.open()">
+          Show the Browser agents switch
+        </button>
+        <button type="button" class="connect__button" data-testid="ai-connect-webmcp-help" @click="help.openPage('webmcp')">About browser agents</button>
+      </div>
+      <p class="connect__text">
+        An MCP client can also work on a saved project file; WarpCad merges its changes into the open
+        project.
+      </p>
+      <div class="connect__actions">
+        <button type="button" class="connect__button" data-testid="ai-connect-mcp-help" @click="help.openPage('mcp', 'three-ways-in')">The three ways in</button>
+      </div>
+    </div>
 
-    <p v-if="!available" class="connect__warn" role="note" data-testid="ai-connect-unavailable">
-      Live MCP access is available only when WarpCad is started with <code>npm run dev</code>. This copy cannot reach the local endpoint.
-    </p>
+    <template v-else>
+      <p class="connect__text" data-testid="ai-connect-explain">
+        When enabled, <strong>any MCP client on this computer</strong> that can reach the local WarpCad
+        endpoint can read and change the project open in this tab. Changes appear in History as
+        <em>via mcp</em>; <strong>Undo AI turn</strong> can take them back. Access is off by default.
+      </p>
+      <p class="connect__note" data-testid="ai-connect-endpoint" :data-endpoint="endpointUrl">
+        Endpoint: <code>{{ endpointUrl }}</code> (this computer only).
+      </p>
+    </template>
 
-    <p v-else-if="chat.bridge === 'connected'" class="connect__ok" role="status" data-testid="ai-connect-connected">
+    <p v-if="available && chat.bridge === 'connected'" class="connect__ok" role="status" data-testid="ai-connect-connected">
       Connected. Make requests in your MCP client; changes appear here as they land.
     </p>
 
@@ -123,7 +159,6 @@ function close() {
 <style scoped>
 .connect__text,
 .connect__note,
-.connect__warn,
 .connect__ok,
 .connect__status {
   margin: 0;
@@ -143,8 +178,14 @@ function close() {
   min-height: 1.4em;
 }
 
-.connect__warn {
-  color: var(--warn);
+.connect__hosted {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.connect__hosted .connect__actions {
+  justify-content: flex-start;
 }
 
 .connect__ok {

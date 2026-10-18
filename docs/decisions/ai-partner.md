@@ -1200,3 +1200,16 @@ moved twice already (`provideContext`/`clearContext` removed, `navigator` to `do
   - `TODO/ai-002`, `ai-004`, `ai-005`, `ai-009`; `TODO/ACCEPTANCE.md` scenario 8.
 
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->
+
+### Decision 13 addendum (2026-10-17, `ai-024`): alias `navigator.modelContext`
+
+Decision 13 stopped using `navigator.modelContext` (removed in Chrome 153). A real agent run showed
+the cost: Claude in Chrome probed only `navigator`, read "no WebMCP" and stopped, while
+`document.modelContext.getTools()` listed all 20 tools with the tab visible. Setting the alias by
+hand let it add ten cubes and one Undo AI turn removed them. So `startWebMcp` now sets
+`navigator.modelContext` to the same object **only when the browser provides none and
+`document.modelContext` is usable**, never replacing a real one (`aliasNavigatorModelContext`).
+Registration still goes through `document.modelContext`. Revisit if an agent starts reading
+`document`, or a Chrome release reuses the `navigator` name differently. The visibility gate
+(point 5) is unchanged: it was not the cause.
+

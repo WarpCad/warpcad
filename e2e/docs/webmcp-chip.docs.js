@@ -6,7 +6,7 @@ import { openApp, shot } from './support.js'
 
 /**
  * Docs media for `docs/webmcp.md` (`TODO/ai-021`, Decision 13): the Assistant header's
- * **Browser agents · on** switch, with the cube and the sphere a browser agent placed and their two
+ * **Browser agents · on — N tools** switch, with the cube and the sphere a browser agent placed and their two
  * History rows marked **via webmcp**. WebMCP is on by default, so there is no opt-in sheet to show;
  * the switch in its on state is the control the page documents. The agent is the fake
  * `document.modelContext` the e2e spec uses (the real API needs a Chrome flag a Playwright-launched
@@ -22,7 +22,8 @@ test.describe('docs media: browser agents (WebMCP)', () => {
     await expect.poll(() => registeredNames(page)).toContain('create')
 
     await page.getByTestId('assistant-button').click()
-    await expect(page.getByTestId('ai-webmcp-switch')).toHaveText('Browser agents · on')
+    // ai-024: the chip counts the tools it offers.
+    await expect(page.getByTestId('ai-webmcp-switch')).toHaveText(/^Browser agents · on — \d+ tools$/)
 
     const cube = await agentCall(page, 'create', { op: 'primitive.cuboid', positionMm: [0, 0, 0], rationale: 'a 40 mm cube' })
     expect(cube.ok).toBe(true)

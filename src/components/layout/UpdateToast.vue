@@ -46,7 +46,7 @@ const safe = computed(() =>
     <div v-if="update.needRefresh" class="update-strip" data-testid="pwa-update-toast">
       <p class="update-strip__text" data-testid="pwa-update-text">
         A new version of WarpCad is available.
-        <span class="update-strip__version" data-testid="pwa-update-current">You are on {{ update.version }}+{{ update.commit }}.</span>
+        <span class="update-strip__version" data-testid="pwa-update-current">You are on {{ update.buildLabel }}.</span>
         <template v-if="update.confirming">
           <strong data-testid="pwa-update-confirm-text">
             You have work in progress. The project is saved, but an open pop-up, drag or unfinished edit will be lost. Reload anyway?

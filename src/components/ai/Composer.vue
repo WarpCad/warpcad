@@ -44,9 +44,8 @@ async function onPicked(event) {
     <p v-if="assistant.mcpOnly" class="composer__pending" role="status" data-testid="ai-composer-reason">
       This box is off while {{ chat.bridge === 'connected' ? 'an MCP agent is connected' : 'live MCP access is enabled' }}. Make requests in your MCP client; changes appear here and in the viewport. To type here instead, add an API key under <strong>Key and model…</strong>.
     </p>
-    <p v-else-if="assistant.browserAgentOnly" class="composer__pending" role="status" data-testid="ai-composer-reason">
-      This box needs an API key (add one under <strong>Key and model…</strong>). Without one, ask the agent in your browser.
-    </p>
+    <!-- TODO/ai-024: the header's own words, from one string (`assistant.noKeyText`). -->
+    <p v-else-if="assistant.browserAgentOnly" class="composer__pending" role="status" data-testid="ai-composer-reason">{{ assistant.noKeyText }}</p>
     <ul v-if="chat.attachments.length > 0" class="composer__attachments" data-testid="ai-attachments">
       <li v-for="(attachment, index) in chat.attachments" :key="index" class="composer__thumb">
         <img :src="attachment.dataUrl" :alt="`Attached: ${attachment.name}`" />

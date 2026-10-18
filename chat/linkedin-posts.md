@@ -3216,3 +3216,16 @@ The WebMCP transport's specs have only ever used a fake modelContext, so no real
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** same as the BlueSky entry; header/composer copy → src/stores/assistant.js:138-139, src/components/ai/Composer.vue:48
 **To Add:** none
+
+## [2026-10-18T03:00:00Z] — WebMCP: WarpCad's side checked on real Chrome, chip now says why
+
+**Post:** A browser agent asked to add ten cubes to WarpCad added none, so I checked the WebMCP path on real Chrome instead of the fake the specs use. document.modelContext.getTools() lists all 20 WarpCad tools with the tab visible. The agent had only probed navigator.modelContext, which Chrome removed.
+
+With that alias set by hand it added the ten cubes, and one Undo AI turn removed them. So the app now sets the alias when the browser has none, and the tab-visibility gate stays as it was. The app also says more: the Browser agents chip shows a tool count or the exact reason there are none, one status line is readable from a meta tag and the console, the no-key copy is a single sentence, and the hosted Live MCP dialog points to Browser agents instead of npm run dev.
+
+Details are in docs/webmcp.md. Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebMCP
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** see the BlueSky entry of the same timestamp; hosted dialog and copy → src/components/ai/ConnectClaudeCode.vue, src/stores/assistant.js
+**To Add:** chip screenshot

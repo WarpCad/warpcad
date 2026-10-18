@@ -25,7 +25,8 @@
  *
  * **WebMCP** (`TODO/ai-021`, Decision 13): `webMcp` is the **Browser agents** chip — `unavailable`
  * where the browser has no WebMCP (no chip at all), otherwise `on` or `off` — and `webMcpTools` how
- * many tools are registered right now (0 while the tab is hidden). Its calls run on the same tab
+ * many tools are registered right now (0 while the tab is hidden). `TODO/ai-024`: `webMcpLabel` is
+ * the chip's words (a count, or why none), `webMcpDiagnostic` the one line an agent reads. Its calls run on the same tab
  * endpoint as Claude Code's, so they share `bridgeWorking` (with `workingOrigin` saying who),
  * `bridgeTurns` and `lastLanded` (`webmcp`). The orchestration is `composables/useWebMcp.js`.
  *
@@ -36,6 +37,7 @@ import { defineStore } from 'pinia'
 import { computed, ref, shallowRef } from 'vue'
 
 import { applyEvent } from '../ai/transcript.js'
+import * as webMcpStatusText from '../ai/webmcp/status.js'
 import { useDocumentStore } from './document.js'
 
 /** The bottom sheet's three snap heights at phone and tablet width. */
@@ -126,8 +128,28 @@ export const useAiChatStore = defineStore('aiChat', () => {
   const webMcp = ref(/** @type {'unavailable' | 'on' | 'off'} */ ('unavailable'))
   /** How many tools are registered on `document.modelContext` right now. */
   const webMcpTools = ref(0)
-  /** What the switch last needs to say (storage blocked, a name another tab holds), or ''. */
+  /** What the switch last needs to say (storage blocked), or ''. Refusals are {@link webMcpFailureText}. */
   const webMcpMessage = ref('')
+  /** `TODO/ai-024`: where the entry point was found — `document`, `navigator` (older Chromes) or `none`. */
+  const webMcpApi = ref(/** @type {'document' | 'navigator' | 'none'} */ ('none'))
+  /** `TODO/ai-024`: the tab's visibility as the link last saw it (tools are registered only while visible). */
+  const webMcpVisible = ref(true)
+  /** `TODO/ai-024`: what the current registration refused, by name, with the browser's reason. */
+  const webMcpFailed = shallowRef(/** @type {readonly { name: string, message: string }[]} */ ([]))
+  /** @type {import('vue').ComputedRef<import('../ai/webmcp/status.js').WebMcpStatus>} */
+  const webMcpStatus = computed(() => ({
+    api: webMcp.value === 'unavailable' ? 'none' : webMcpApi.value,
+    enabled: webMcp.value === 'on',
+    visible: webMcpVisible.value,
+    registered: webMcpTools.value,
+    failed: webMcpFailed.value,
+  }))
+  /** The chip's words: a count of tools, or why there are none — never a bare "on". */
+  const webMcpLabel = computed(() => webMcpStatusText.webMcpChipLabel(webMcpStatus.value))
+  /** `api=…; enabled=…; visible=…; registered=N; failed=[…]`, for an agent to read. */
+  const webMcpDiagnostic = computed(() => webMcpStatusText.webMcpDiagnostic(webMcpStatus.value))
+  /** The sentence under the header when the browser refused tools, or ''. */
+  const webMcpFailureText = computed(() => webMcpStatusText.webMcpFailureText(webMcpStatus.value))
 
   const canSend = computed(() => !running.value && attaching.value === 0 && (draft.value.trim() !== '' || attachments.value.length > 0))
   /** `TODO/ai-017`: **Watch** is a view of the running turn, so it is offered only during one. */
@@ -225,6 +247,13 @@ export const useAiChatStore = defineStore('aiChat', () => {
     webMcp,
     webMcpTools,
     webMcpMessage,
+    webMcpApi,
+    webMcpVisible,
+    webMcpFailed,
+    webMcpStatus,
+    webMcpLabel,
+    webMcpDiagnostic,
+    webMcpFailureText,
     canSend,
     canWatch,
     canUndoTurn,

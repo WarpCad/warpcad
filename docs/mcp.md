@@ -27,6 +27,19 @@ limits, and mark what they add in History. With your own API key, you can also t
 | **[Live mode](#live-mode-an-mcp-agent-edits-the-project-you-have-open)** | An MCP client and WarpCad running under `npm run dev`; access explicitly enabled in WarpCad | Any browser on the same computer as the local MCP client | In the open tab as they land, marked **via mcp** |
 | **[Browser agents (WebMCP)](webmcp.md)** | Chrome with the WebMCP flag, and an agent that runs in the browser | Any copy of WarpCad, hosted or local, on desktop Chrome | In the open tab as they land, marked **via webmcp** |
 
+**Which one to pick:**
+
+- **On the hosted app (`app.warpcad.com`) with an agent that runs in your browser:** use
+  **[Browser agents](webmcp.md)**. It's the only way to change the open tab on the hosted app.
+  Live mode isn't available there, and the **Live MCP access** sheet says so and sends you to the
+  switch.
+- **On the hosted app with Claude Code or another MCP client on your computer:** use **Claude Code
+  on a project file**. Save the project, point the client at the file, and switch back to WarpCad
+  to merge its changes.
+- **Running WarpCad yourself with `npm run dev`:** any of the three. Live mode shows each change as
+  it lands, and the **Live MCP access** sheet shows the endpoint address
+  (`http://127.0.0.1:5183/mcp`) so you can check your client is pointed at the right place.
+
 ## Try it: add a base plate from Claude Code
 
 You need a WarpCad checkout (see [Run it yourself](../README.md#run-it-yourself) for how to
@@ -173,7 +186,8 @@ in the viewport as it lands. No project file or API key is needed by WarpCad; th
 your chosen MCP client, and WarpCad supplies the tools.
 
 **Live mode works only when WarpCad runs with `npm run dev` on the same computer as the MCP
-client.** The hosted app at `app.warpcad.com` cannot use it. Phone, tablet, and desktop browsers can all enable access
+client.** The hosted app at `app.warpcad.com` cannot use it: its **Live MCP access** sheet says so,
+and points you to [Browser agents](webmcp.md) and to working on a project file instead. Phone, tablet, and desktop browsers can all enable access
 to the local endpoint. Access is off by default; while enabled, any local MCP client that can
 reach the loopback endpoint may read and change the open project.
 
@@ -197,7 +211,8 @@ reach the loopback endpoint may read and change the open project.
 2. Open WarpCad at `http://localhost:5183` in a browser on this computer.
 
 3. In WarpCad open **Assistant → Live MCP access**, choose **15 minutes**, and select **Enable
-  access**. The sheet explains that any local MCP client can use the enabled tab. Choose a longer
+  access**. The sheet explains that any local MCP client can use the enabled tab, and shows the
+  endpoint address (`http://127.0.0.1:5183/mcp`) your client should be registered with. Choose a longer
   lease only when you need it; you can turn access off from the same sheet at any time.
 
 4. In your MCP client, ask *add a 40 mm cube and a 20 mm sphere on top*. The bodies appear in the

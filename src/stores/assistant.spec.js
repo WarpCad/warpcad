@@ -8,7 +8,7 @@ import { serializeProject } from '../core/project.js'
 import { createAiKeyStore } from '../storage/aiKey.js'
 import { useAiChatStore } from './aiChat.js'
 import { useDocumentStore } from './document.js'
-import { setAssistantDependencies, useAssistantStore } from './assistant.js'
+import { BROWSER_AGENT_NO_KEY, BROWSER_AGENT_NO_KEY_DEV, setAssistantDependencies, useAssistantStore } from './assistant.js'
 import { useSettingsStore } from './settings.js'
 
 /**
@@ -173,7 +173,7 @@ describe('the assistant store', () => {
       expect(assistant.view).toBe('key')
     })
 
-    it('built or hosted, WebMCP on: an in-browser agent can drive the project and a key is optional', async () => {
+    it('built or hosted, WebMCP on: an in-browser agent can drive the project, and the box below needs a key (ai-024)', async () => {
       install()
       const assistant = useAssistantStore()
       await assistant.start()
@@ -181,8 +181,10 @@ describe('the assistant store', () => {
       chat.bridge = 'unavailable'
       chat.webMcp = 'on'
       expect(assistant.browserAgentOnly).toBe(true)
-      expect(assistant.statusText).toMatch(/browser agent can drive this project/)
-      expect(assistant.statusText).toMatch(/optional/)
+      expect(assistant.statusText).toBe('A browser agent can drive this project. The box below needs an API key; to use your agent, ask it in its own panel.')
+      expect(assistant.statusText).toBe(BROWSER_AGENT_NO_KEY)
+      expect(assistant.noKeyText).toBe(assistant.statusText)
+      expect(assistant.statusText).not.toMatch(/optional/)
       expect(assistant.statusText).not.toMatch(/paste/)
       expect(assistant.statusText).not.toMatch(/Claude Code/)
       // The panel, not the key sheet: that is where the Browser agents switch lives.
@@ -212,8 +214,15 @@ describe('the assistant store', () => {
       const chat = useAiChatStore()
       chat.bridge = 'idle'
       chat.webMcp = 'on'
-      expect(assistant.statusText).toMatch(/browser agent/)
-      expect(assistant.statusText).toMatch(/local MCP agent/)
+      expect(assistant.statusText).toBe(BROWSER_AGENT_NO_KEY_DEV)
+      expect(assistant.statusText).toMatch(/browser or local MCP agent/)
+      expect(assistant.statusText).toMatch(/needs an API key/)
+      expect(assistant.statusText).not.toMatch(/optional/)
+    })
+
+    it('both no-key lines fit about 120 characters, so they wrap inside a 390 px header (ai-024)', () => {
+      expect(BROWSER_AGENT_NO_KEY.length).toBeLessThanOrEqual(120)
+      expect(BROWSER_AGENT_NO_KEY_DEV.length).toBeLessThanOrEqual(120)
     })
 
     it('a key wins: with one stored nothing about WebMCP changes the connected line', async () => {

@@ -14,9 +14,15 @@
  * the registered tools, a log, and `call(name, input)` (what `executeTool` resolves to, parsed).
  *
  * @param {import('@playwright/test').Page} page
+ * @param {{ hidden?: boolean }} [options] `hidden`: the tab reports `visibilityState` `hidden` from
+ *   the start (`TODO/ai-024`: an agent driving a background tab finds no tools, and the chip says why).
  */
-export async function installFakeWebMcp(page) {
-  await page.addInitScript(() => {
+export async function installFakeWebMcp(page, options = {}) {
+  await page.addInitScript(({ hidden }) => {
+    if (hidden) {
+      Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => 'hidden' })
+      Object.defineProperty(document, 'hidden', { configurable: true, get: () => true })
+    }
     /** @type {Map<string, any>} */
     const tools = new Map()
     /** @type {string[]} */
@@ -51,8 +57,16 @@ export async function installFakeWebMcp(page) {
         return JSON.parse(JSON.stringify(await tool.execute(input, {})))
       },
     }
-  })
+  }, { hidden: options.hidden === true })
 }
+
+/**
+ * The diagnostic line WarpCad publishes for agents (`TODO/ai-024`), from `<meta name="warpcad-webmcp">`.
+ *
+ * @param {import('@playwright/test').Page} page
+ * @returns {Promise<string | null>}
+ */
+export const webMcpMeta = (page) => page.evaluate(() => document.querySelector('meta[name="warpcad-webmcp"]')?.getAttribute('content') ?? null)
 
 /** @param {import('@playwright/test').Page} page */
 export const registeredNames = (page) => page.evaluate(() => /** @type {any} */ (window).__webmcp.names())
