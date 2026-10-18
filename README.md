@@ -242,6 +242,7 @@ timeline
          : WarpCad attempt 1, 28-30 Aug, shelved
          : Attempt 2, 30 Aug to 5 Sep, shelved
          : Attempt 3 starts 5 Sep
+         : Initial version published at app.warpcad.com (17 Oct)
 ```
 
 ## Documentation
