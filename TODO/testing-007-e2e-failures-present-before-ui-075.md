@@ -8,6 +8,25 @@ depends: []
 status: open
 ---
 
+## Resolution (2026-10-18, uncommitted)
+
+Driven by hand with a debug spec at the phone viewport: the app is right and the specs were wrong.
+Once a body exists, the phone Library sheet sits higher (the scene-list bar docks under it,
+`ui-070`), so its handle is at about y=367. The specs' second drop at `fy: 0.4` (y about 369) landed
+on the sheet and was ignored, which is why `data-body-count` stayed at `1`.
+
+- `inspector-color-control`, `selection-inspector` (`:515`, `:807`) and `sketch-primitive`
+  (`:215`, `:463`): second drops moved to `fy: 0.3`. Green on chromium, firefox and webkit phone,
+  and chromium laptop.
+- `help.e2e.js` footer: the firefox/webkit laptop and phone baselines predated `build-011`'s
+  notices link; regenerated after looking at the image.
+- Not in this list, found in the same run: `ai-mcp-agent-pairing.e2e.js` asserted the transient
+  "enabled until" text when an attached client takes the bridge straight to `connected`; it now
+  asserts `data-state`. The `print-prep` still is `testing-008`.
+
+Left to do: the tablet and firefox/webkit laptop projects were not re-run for the three moved
+specs, and no acceptance scenario was re-driven by hand. Close with `/fix-todo` after a full run.
+
 ## Problem
 
 The full e2e run on 2026-10-18 was red, and the same specs fail with `ui-075`'s `AppView.vue`

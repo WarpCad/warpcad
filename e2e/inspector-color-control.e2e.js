@@ -184,8 +184,8 @@ async function showInspector(page) {
 
 // Apart from each other, and high enough to land on the grid rather than on a
 // phone-width sheet (ACCEPTANCE.md scenario 1's own measured note on drop points).
-const CUBE = { fx: 0.3, fy: 0.4 }
-const CYLINDER = { fx: 0.7, fy: 0.4 }
+const CUBE = { fx: 0.3, fy: 0.3 }
+const CYLINDER = { fx: 0.7, fy: 0.3 }
 // Where each body's own pixels are: a little above its drop point, since a
 // dropped body stands up from the grid.
 const CUBE_PIXEL = { fx: CUBE.fx, fy: CUBE.fy - 0.02 }

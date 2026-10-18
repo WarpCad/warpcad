@@ -551,7 +551,7 @@ test('a real (trusted) touch tap still selects a body after a trusted tap on emp
   // sheets. `closeLibrary` below keeps the canvas's rect from moving between
   // the drop and the first tap.
   await dragRowIntoViewport(page, { op: 'primitive.cuboid', fx: 0.85, fy: 0.25 })
-  await dragRowIntoViewport(page, { op: 'primitive.cylinder', fx: 0.6, fy: 0.4 })
+  await dragRowIntoViewport(page, { op: 'primitive.cylinder', fx: 0.6, fy: 0.3 })
   await closeLibrary(page)
   const [cube, cylinder] = await sceneBodies(page)
 
@@ -560,7 +560,7 @@ test('a real (trusted) touch tap still selects a body after a trusted tap on emp
   const point = (fx, fy) => ({ x: box.x + box.width * fx, y: box.y + box.height * fy })
   const empty = point(0.5, 0.06)
   const cubePoint = point(0.85, 0.25)
-  const cylinderPoint = point(0.6, 0.4)
+  const cylinderPoint = point(0.6, 0.3)
 
   // A trusted tap on empty canvas space clears the selection.
   await page.touchscreen.tap(empty.x, empty.y)
@@ -815,7 +815,7 @@ test('holding Shift makes a marquee add to the selection instead of replacing it
   // the test above — the phone-width Library sheet covers the lower part of
   // the viewport while it is open.
   await dragRowIntoViewport(page, { op: 'primitive.cuboid', fx: 0.15, fy: 0.25 })
-  await dragRowIntoViewport(page, { op: 'primitive.cylinder', fx: 0.8, fy: 0.4 })
+  await dragRowIntoViewport(page, { op: 'primitive.cylinder', fx: 0.8, fy: 0.3 })
   const [cube, cylinder] = await sceneBodies(page)
   await closeLibrary(page)
 

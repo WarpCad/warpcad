@@ -213,10 +213,10 @@ test('tube: drag Sketch in, two circles, inner Hole, Linear 30 mm, Done — one 
 })
 
 test('a sketch body counts as a boolean operand: Subtract it from a cube, and the result is one body', async ({ page }, info) => {
-  await dropRow(page, 'primitive.cuboid', 0.5, 0.4)
+  await dropRow(page, 'primitive.cuboid', 0.5, 0.3)
   await expect(page.getByTestId('viewport')).toHaveAttribute('data-body-count', '1')
   const [cube] = await sceneBodies(page)
-  await openNewSketch(page, 0.5, 0.4)
+  await openNewSketch(page, 0.5, 0.3)
   await drawTube(page)
   await page.getByTestId('sketch-done').click()
   await expect(page.getByTestId('viewport')).toHaveAttribute('data-body-count', '2')
@@ -461,9 +461,9 @@ test('Hole then Delete: the toolbar Delete removes only the selected outline, an
 })
 
 test('Delete in the editor never touches the body underneath (TODO/sketch-005)', async ({ page }, info) => {
-  await dropRow(page, 'primitive.cuboid', 0.3, 0.4)
+  await dropRow(page, 'primitive.cuboid', 0.3, 0.3)
   await expect(page.getByTestId('viewport')).toHaveAttribute('data-body-count', '1')
-  await openNewSketch(page, 0.7, 0.4)
+  await openNewSketch(page, 0.7, 0.3)
   await drawCircle(page, 15)
   await page.getByTestId('sketch-tool-select').click()
   const { cx, cy, pxPerMm } = await sketchScreen(page)

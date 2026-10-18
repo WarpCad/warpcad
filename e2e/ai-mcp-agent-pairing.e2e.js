@@ -32,7 +32,9 @@ test('any MCP client can use explicitly enabled live access, and off refuses wri
     await expect(page.getByTestId('ai-connect-explain')).toContainText('any MCP client on this computer')
     await page.getByTestId('ai-connect-lease').selectOption('15m')
     await page.getByTestId('ai-connect-enable').click()
-    await expect(page.getByTestId('ai-connect-status')).toContainText('enabled until')
+    // The spec's client is already attached, so the bridge can go straight to `connected` and the
+    // "enabled until" wording only shows for a frame: assert the state, not the transient text.
+    await expect(page.getByTestId('ai-connect-status')).toHaveAttribute('data-state', /^(enabled|connected)$/)
     await page.getByTestId('ai-connect-done').click()
 
     const cube = await client.call('create', {

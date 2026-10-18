@@ -3242,3 +3242,16 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** 33 px spare, 52 needed → measured header row this session; Firefox scrollWidth 397 vs 390 → e2e/ai-key.e2e.js this session
 **To Add:** docs/screenshots/file-menu-phone.png
+
+## 2026-10-18 — A red e2e run traced to drop points, not the app
+
+**Post:** A full end-to-end run came back with 29 failures. Twenty-one of them were phone-only and looked the same: the second body never appeared after a drag.
+
+Driving it by hand showed the app was right. Once any body exists, the phone Library sheet sits higher because the scene-list bar docks under it, and the specs dropped the second part at 40% of the viewport height, which is the sheet's handle. Moving the drops to 30% fixed all 21 on Chromium, Firefox and WebKit phone. Four Firefox and WebKit baselines had gone stale when the Help footer gained a notices link, and one MCP spec asserted wording that only shows for a frame. One screenshot flake passes alone and is filed as its own TODO.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #Playwright #WebGL
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** 29 failures, 21 phone-only → playwright report this session; sheet docks higher with a body → debug spec output this session; fixed on three phone engines → test run this session (199 passed); stale baselines → git diff and file dates; flake passes alone → docs-laptop run this session
+**To Add:** none

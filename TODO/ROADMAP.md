@@ -149,6 +149,7 @@ table to edit when a task opens, closes or changes priority — see the next sec
 | Findings | [`docs-025`](docs-025-live-mcp-phone-header-entry-docs.md) Document the phone header's Live MCP access entry, with a still | feature | medium | sonnet | ▶ **ready** after `ui-075` |
 | Findings | [`ui-078`](ui-078-phone-header-width-budget.md) The 390 px header has no width budget left; decide the layout before `ui-077` | finding | medium | sonnet | ▶ **ready** after `ui-075` |
 | Findings | [`testing-007`](testing-007-e2e-failures-present-before-ui-075.md) E2E specs failing on a clean tree: colour control, selection, sketch operand, help footer | finding | high | sonnet | ▶ **ready** |
+| Findings | [`testing-008`](testing-008-print-prep-split-sheet-still-flakes-under-load.md) Print-prep split-sheet still differs under full-suite load | finding | low | sonnet | ▶ **ready** |
 | Findings | [`ui-074`](ui-074-repeat-note-wording.md) Repeat body Inspector note says the repeats follow every move | finding | low | sonnet | ▶ **ready** |
 | M17 — Repeat, phone Library fix | ✅ [`ui-070`](done/ui-070-phone-inspector-tab-covers-open-library-sheet.md) At phone width the Inspector's collapsed tab is drawn over an open Library sheet's rows; dock it below the sheet | finding | high | sonnet | ✅ done |
 | M17 — Repeat, phone Library fix | ✅ [`core-061`](done/core-061-linked-repeat-record.md) A linked `pattern.repeat` record: one row re-places a body's steps at every matching part of another body and follows the first body's edits; BOM, repair dialog, merge, and a shared `repeat` AI tool. Requested by the user 2026-10-15 | feature | medium | opus | ✅ done |
@@ -1117,6 +1118,7 @@ as a milestone table.) `io-008` and `data-013` moved to [M16](#m16--next-batch-n
 | `docs-025` | Document the phone header's Live MCP access entry, with a still. Split from `ui-075` 2026-10-18 | Feature | `ui-075` | none |
 | `ui-078` | The 390 px header has no width budget left after `ui-075`; decide the layout before `ui-077`. Filed 2026-10-18 | Finding | `ui-075` | 24, 25 |
 | `testing-007` | E2E specs that fail on a clean tree (colour control, selection, sketch operand, help footer). Filed 2026-10-18 | Finding | — | 1, 5, 10 |
+| `testing-008` | Print-prep split-sheet docs still differs by 2% under full-suite load, passes alone. Filed 2026-10-18 | Finding | — | none |
 | `ui-074` | Repeat body Inspector note says the repeats follow every move, but a later Pi move moves only the Pi. Decided 2026-10-17 | Finding | `core-061` | 15 |
 | `perf-003` | Defer the code the app does not use at boot (Sentry, the AI agent and tool registry, a dev-only provider); filed by `perf-002` with measured targets | Feature | `perf-002` | 1 |
 | `build-003` | Research how to package WarpCAD as an iOS and Android app that can host the MCP tool surface. Moved here from unscheduled 2026-10-16 | Feature | — | none |

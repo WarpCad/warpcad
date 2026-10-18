@@ -2259,3 +2259,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** Firefox overflow 397 vs 390 → e2e/ai-key.e2e.js run this session; panel row laptop-only → src/components/ai/ConnectButton.vue
 **To Add:** docs/screenshots/file-menu-phone.png
+
+## 2026-10-18 — A red e2e run traced to drop points, not the app
+
+**Post:** 29 e2e failures after a full run. 21 were one cause: on a phone, once a body exists the Library sheet sits higher, and the specs dropped the second part right onto its handle. Moved the drops up, regenerated four stale Firefox/WebKit baselines. Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #Playwright
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** 29 failed, 21 phone second-body → playwright report this session; sheet handle y≈367, drop y≈369 → debug spec output this session; four baselines regenerated → git diff
+**To Add:** none
