@@ -89,6 +89,10 @@ run at all); see `TODO/done/build-001-project-scaffold.md`'s own note.
 | 15 | ▶ [`data-014`](data-014-merge-tie-prefers-local-step.md) Merge tie-break prefers the local step | Decided 2026-10-17; merge semantics, so opus | opus |
 | 16 | ▶ [`io-012`](io-012-warn-on-focus-when-file-may-have-changed.md) Warn on focus when the file may have changed (no file handle) | Decided 2026-10-17 | sonnet |
 | 17 | ▶ [`ui-075`](ui-075-live-mcp-access-phone-header-entry.md) Live MCP access entry in the phone header | Decided 2026-10-17 | sonnet |
+| 17b | ▶ [`testing-006`](testing-006-redrive-connected-scenarios-with-phone-header-entry.md) Hand-drive scenarios 24, 25 and the `ui-071` repro against the phone header entry | Closes `ui-075`; its Testing section requires it | sonnet |
+| 17c | ▶ [`docs-025`](docs-025-live-mcp-phone-header-entry-docs.md) Document the phone header's Live MCP access entry, with a still | Closes `ui-075`; the Documentation gate | sonnet |
+| 17d | ▶ [`ui-078`](ui-078-phone-header-width-budget.md) Give the 390 px header a real width budget | `ui-075` left about 7 px spare; must land before `ui-077` | sonnet |
+| 17e | ▶ [`testing-007`](testing-007-e2e-failures-present-before-ui-075.md) Triage the e2e specs that fail on a clean tree | Full suite is red without it; found 2026-10-18 | sonnet |
 | 18 | ▶ [`ui-074`](ui-074-repeat-note-wording.md) Repeat note wording | Decided 2026-10-17; small | sonnet |
 | 19 | ▶ [`perf-003`](perf-003-defer-code-unused-at-boot.md) Defer code unused at boot (Sentry included) | Ready; faster cold start once Sentry is live | sonnet |
 | 20 | ▶ [`build-003`](build-003-native-mobile-shell-research.md) Research a native mobile shell | Research only; no code | opus |
@@ -141,6 +145,10 @@ table to edit when a task opens, closes or changes priority — see the next sec
 | Findings | [`data-014`](data-014-merge-tie-prefers-local-step.md) Merge tie-break prefers the local step, not the replica id | finding | medium | opus | ▶ **ready** |
 | Findings | [`io-012`](io-012-warn-on-focus-when-file-may-have-changed.md) On focus, warn "this file may have changed" in browsers with no file handle | feature | medium | sonnet | ▶ **ready** |
 | Findings | [`ui-075`](ui-075-live-mcp-access-phone-header-entry.md) Live MCP access entry in the phone header | feature | medium | sonnet | ▶ **ready** |
+| Findings | [`testing-006`](testing-006-redrive-connected-scenarios-with-phone-header-entry.md) Hand-drive scenarios 24, 25 and the `ui-071` repro with the phone header entry | feature | medium | sonnet | ▶ **ready** after `ui-075` |
+| Findings | [`docs-025`](docs-025-live-mcp-phone-header-entry-docs.md) Document the phone header's Live MCP access entry, with a still | feature | medium | sonnet | ▶ **ready** after `ui-075` |
+| Findings | [`ui-078`](ui-078-phone-header-width-budget.md) The 390 px header has no width budget left; decide the layout before `ui-077` | finding | medium | sonnet | ▶ **ready** after `ui-075` |
+| Findings | [`testing-007`](testing-007-e2e-failures-present-before-ui-075.md) E2E specs failing on a clean tree: colour control, selection, sketch operand, help footer | finding | high | sonnet | ▶ **ready** |
 | Findings | [`ui-074`](ui-074-repeat-note-wording.md) Repeat body Inspector note says the repeats follow every move | finding | low | sonnet | ▶ **ready** |
 | M17 — Repeat, phone Library fix | ✅ [`ui-070`](done/ui-070-phone-inspector-tab-covers-open-library-sheet.md) At phone width the Inspector's collapsed tab is drawn over an open Library sheet's rows; dock it below the sheet | finding | high | sonnet | ✅ done |
 | M17 — Repeat, phone Library fix | ✅ [`core-061`](done/core-061-linked-repeat-record.md) A linked `pattern.repeat` record: one row re-places a body's steps at every matching part of another body and follows the first body's edits; BOM, repair dialog, merge, and a shared `repeat` AI tool. Requested by the user 2026-10-15 | feature | medium | opus | ✅ done |
@@ -1105,6 +1113,10 @@ as a milestone table.) `io-008` and `data-013` moved to [M16](#m16--next-batch-n
 | `data-014` | Merge tie-break prefers the local step when two clocks tie. Decided 2026-10-17 | Finding | — | 1 (merge scenarios) |
 | `io-012` | On focus, warn "this file may have changed" in browsers with no file handle. Decided 2026-10-17 | Feature | — | 13 |
 | `ui-075` | Live MCP access entry in the phone header. Decided 2026-10-17 | Feature | — | 24, 25 |
+| `testing-006` | Hand-drive scenarios 24, 25 and the `ui-071` repro against the phone header entry. Split from `ui-075` 2026-10-18 | Feature | `ui-075` | 24, 25 |
+| `docs-025` | Document the phone header's Live MCP access entry, with a still. Split from `ui-075` 2026-10-18 | Feature | `ui-075` | none |
+| `ui-078` | The 390 px header has no width budget left after `ui-075`; decide the layout before `ui-077`. Filed 2026-10-18 | Finding | `ui-075` | 24, 25 |
+| `testing-007` | E2E specs that fail on a clean tree (colour control, selection, sketch operand, help footer). Filed 2026-10-18 | Finding | — | 1, 5, 10 |
 | `ui-074` | Repeat body Inspector note says the repeats follow every move, but a later Pi move moves only the Pi. Decided 2026-10-17 | Finding | `core-061` | 15 |
 | `perf-003` | Defer the code the app does not use at boot (Sentry, the AI agent and tool registry, a dev-only provider); filed by `perf-002` with measured targets | Feature | `perf-002` | 1 |
 | `build-003` | Research how to package WarpCAD as an iOS and Android app that can host the MCP tool surface. Moved here from unscheduled 2026-10-16 | Feature | — | none |

@@ -18,6 +18,7 @@ import { computed, onMounted, ref, watch } from 'vue'
 import Inspector from '../components/inspector/Inspector.vue'
 import DependentRepairDialog from '../components/inspector/DependentRepairDialog.vue'
 import AssistantButton from '../components/ai/AssistantButton.vue'
+import LiveMcpButton from '../components/ai/LiveMcpButton.vue'
 import ChatPanel from '../components/ai/ChatPanel.vue'
 import AiWorkingChip from '../components/display/AiWorkingChip.vue'
 import KeySheet from '../components/ai/KeySheet.vue'
@@ -260,6 +261,8 @@ function onInspectorClaim() {
       <AiWorkingChip />
       <!-- App-level, not document-level (`TODO/ai-004`): always present, never gated on a
            selection or a key; with no key it opens the key sheet. -->
+      <!-- Phone only (TODO/ui-075): the way to Live MCP access the laptop-only panel row can't give. -->
+      <LiveMcpButton />
       <AssistantButton />
     </header>
     <!-- Between the header and the main area, deliberately outside the viewport
@@ -544,12 +547,21 @@ function onInspectorClaim() {
 
 @media (max-width: 480px) {
   .app__bar {
-    padding: 4px 10px;
-    gap: 8px;
+    padding: 4px 6px;
+    /* `TODO/ui-075`: the Live MCP access entry is a ninth 44px item in the ~390px row; tighter gaps
+       (not smaller targets) are what pay for it. */
+    gap: 4px;
+  }
+
+  .app__document-bar {
+    gap: 4px;
   }
 
   .app__title {
-    font-size: 14px;
+    /* `TODO/ui-075`: Firefox counts the bar's right padding in `scrollWidth`, so the row has to
+       end inside the padding, not just inside the viewport; 13px with no tracking buys ~9px. */
+    font-size: 13px;
+    letter-spacing: 0;
   }
 
   .app__hint {

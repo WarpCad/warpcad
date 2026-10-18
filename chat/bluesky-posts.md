@@ -2250,3 +2250,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** alias made the agent succeed, undo removed ten cubes → screenshots pasted this session; 20 tools via getTools() → console screenshot pasted this session; agent probed navigator only → its reply pasted this session; chip label → src/ai/webmcp/status.js
 **To Add:** chip screenshot (docs/screenshots/webmcp-chip.png)
+
+## 2026-10-18 — Live MCP access button in the phone header
+
+**Post:** On a phone, WarpCad's Live MCP access switch was only reachable from a panel that doesn't fit at 390 px. It now has its own button in the header. Fitting it meant Firefox's scrollWidth, which counts padding the others ignore. Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebMCP
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** Firefox overflow 397 vs 390 → e2e/ai-key.e2e.js run this session; panel row laptop-only → src/components/ai/ConnectButton.vue
+**To Add:** docs/screenshots/file-menu-phone.png

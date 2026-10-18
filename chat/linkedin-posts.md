@@ -3229,3 +3229,16 @@ Details are in docs/webmcp.md. Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** see the BlueSky entry of the same timestamp; hosted dialog and copy → src/components/ai/ConnectClaudeCode.vue, src/stores/assistant.js
 **To Add:** chip screenshot
+
+## 2026-10-18 — Live MCP access button in the phone header
+
+**Post:** WarpCad's Live MCP access control lived in the Assistant panel, which is laptop-only because a 44 px row more pushed Send out of the phone's half sheet. A phone user could see the status chip but not turn access on without a detour.
+
+The control now has its own 44 px button in the phone header and opens the same sheet. The row at 390 px had about 33 px spare and the button needed 52. Firefox also reports a flex row's end padding in scrollWidth, which Chromium and WebKit don't, so the first fix passed two engines and failed the third.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebMCP
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** 33 px spare, 52 needed → measured header row this session; Firefox scrollWidth 397 vs 390 → e2e/ai-key.e2e.js this session
+**To Add:** docs/screenshots/file-menu-phone.png
