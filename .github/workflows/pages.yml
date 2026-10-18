@@ -1,16 +1,24 @@
 # Deploys the production build to GitHub Pages (docs/decisions/hosting.md).
 #
-# Runs only after CI has passed on main, and builds exactly the commit CI tested. One-time setup:
-# repository Settings → Pages → Source: "GitHub Actions". Pages from a private repository needs a
-# paid plan, so on the free org plan this deploys once the repository is public.
+# No longer runs on a merge (TODO/build-013). It is called by release.yml with the new tag, or started
+# by hand with a ref (a tag, to rebuild an old release). One-time setup: repository Settings → Pages →
+# Source: "GitHub Actions". Pages from a private repository needs a paid plan, so on the free org plan
+# this deploys once the repository is public.
 name: Pages
 
 on:
-  workflow_run:
-    workflows: [CI]
-    types: [completed]
-    branches: [main]
+  workflow_call:
+    inputs:
+      ref:
+        description: Tag or commit to build and deploy
+        type: string
+        required: true
   workflow_dispatch:
+    inputs:
+      ref:
+        description: Tag or commit to build and deploy (blank = the selected branch head)
+        type: string
+        required: false
 
 permissions:
   contents: read
@@ -24,12 +32,11 @@ concurrency:
 
 jobs:
   build:
-    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+          ref: ${{ inputs.ref || github.sha }}
           lfs: false  # the GIFs come from the LFS cache below, not a fresh download (TODO/build-012).
       # docs/media GIFs are Git LFS objects (.gitattributes) and the Help pages bundle them, so this
       # job needs the real files; the cache keeps the 73 MB off GitHub's monthly LFS bandwidth.
@@ -38,6 +45,11 @@ jobs:
         with:
           node-version: 24
           cache: npm
+      # Sentry matches an error to its source maps by this string, so it must be the commit that is
+      # built. In a called workflow github.sha is the caller's commit, which is the one *before*
+      # release-it's version-bump commit that the tag points at.
+      - id: release
+        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
       - id: pages
         uses: actions/configure-pages@v5
       - run: npm ci
@@ -55,8 +67,8 @@ jobs:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
           SENTRY_ORG: ${{ vars.SENTRY_ORG }}
           SENTRY_PROJECT: ${{ vars.SENTRY_PROJECT }}
-          SENTRY_RELEASE: ${{ github.event.workflow_run.head_sha || github.sha }}
-          VITE_SENTRY_RELEASE: ${{ github.event.workflow_run.head_sha || github.sha }}
+          SENTRY_RELEASE: ${{ steps.release.outputs.sha }}
+          VITE_SENTRY_RELEASE: ${{ steps.release.outputs.sha }}
           # Page-view analytics (TODO/build-007, docs/decisions/analytics.md). Optional: with the
           # repository variable unset the build carries no tag and its CSP allows no Google host. The
           # measurement ID is public by design (a variable, not a secret).
@@ -73,7 +85,7 @@ jobs:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
           SENTRY_ORG: ${{ vars.SENTRY_ORG }}
           SENTRY_PROJECT: ${{ vars.SENTRY_PROJECT }}
-          SENTRY_RELEASE: ${{ github.event.workflow_run.head_sha || github.sha }}
+          SENTRY_RELEASE: ${{ steps.release.outputs.sha }}
         run: |
           set -euo pipefail
           if [ -z "$SENTRY_AUTH_TOKEN" ] || [ -z "$SENTRY_ORG" ] || [ -z "$SENTRY_PROJECT" ]; then

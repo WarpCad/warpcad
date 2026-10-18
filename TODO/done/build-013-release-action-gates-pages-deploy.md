@@ -5,8 +5,17 @@ kind: feature
 priority: medium
 model: sonnet
 depends: []
-status: open
+status: done
 ---
+
+> **Shipped (2026-10-18).** As specified, with three differences. (1) `release.yml` has no optional `ref`
+> input: release-it commits the bump onto `main`, so it can only release the head of `main`; rebuilding an
+> old tag is `pages.yml`'s own `ref` input. (2) The spec's `git.requireCleanWorkingTree` is not a release-it
+> key (it is `requireCleanWorkingDir`); the unknown key would have been silently ignored. (3) The `licenses`
+> scripts excluded `warpcad@0.0.0` by exact version, which a bump would have broken, so both now use
+> `--excludePrivatePackages`. `yaml` was added as a devDependency for the guard spec. `actionlint` is not
+> installed here, so the workflows are covered by the YAML spec only. The real release run is in
+> `TODO/VERIFY.md`.
 
 ## Goal
 

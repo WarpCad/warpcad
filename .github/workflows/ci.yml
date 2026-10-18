@@ -41,7 +41,7 @@ jobs:
       - run: npx playwright test --project=guards
 
 # A superseded pull-request run is cancelled. Pushes to main always finish, because pages.yml
-# deploys from the run that tested that commit.
+# release.yml refuses to tag a commit whose CI run here did not succeed.
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}

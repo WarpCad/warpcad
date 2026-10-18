@@ -36,6 +36,17 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### build-013 — Release action gates the Pages deploy (2026-10-18 10:30)
+
+The workflows are unit-guarded (`scripts/release-workflow.spec.js`) and release-it was dry-run
+locally, but a real run tags, pushes and deploys, and has to be started by the maintainer.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | Merge something to `main`: CI runs, no Pages run starts | Open | |
+| 2 | Actions → Release → Run (`major`): one `v1.0.0` tag, one GitHub release with notes, and the `pages` job (a `workflow_call`) deploys it. Confirm the called workflow chained under `GITHUB_TOKEN` and the bot could push to `main` | Open | |
+| 3 | Sentry shows the release named by the tagged commit's SHA and its source maps unminify a test error | Open | |
+
 ### ui-072 — Phone Library sheet: how much canvas is left to drop into (2026-10-17 20:50)
 
 The finding turned out to be the spec dropping under the sheet. The app is correct, but the numbers behind it are a feel call: at 390x844 with the Inspector tab showing, the open Library sheet starts at y=366, so only about 313 px of canvas (y 53 to 366) is left to drop into, and the Operations toolbar and nav chrome overlap part of that.

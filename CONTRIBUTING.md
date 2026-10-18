@@ -26,6 +26,24 @@ Thanks for helping. Before you open a pull request:
 Project workflow (specs under `TODO/`, `/fix-todo`, acceptance scenarios) is described in
 [`CLAUDE.md`](CLAUDE.md) and [`TODO/README.md`](TODO/README.md).
 
+## Cutting a release (maintainers)
+
+A merge to `main` runs CI and deploys nothing. Pages is built only by a release
+(`docs/decisions/release.md`):
+
+1. Wait for CI to go green on the head of `main`. The release refuses a commit whose CI run did
+   not succeed.
+2. **Actions → Release → Run workflow**, pick `patch`, `minor` or `major`. The first release is
+   `major` (`0.0.0` to `1.0.0`).
+3. The run bumps `package.json`, adds a section to `CHANGELOG.md` from the Conventional Commit
+   history, pushes the `vX.Y.Z` tag, creates the GitHub release with those notes, then builds and
+   deploys Pages from that tag. Read the release notes on the Releases page afterwards.
+
+Only `feat`, `fix`, `perf` and `revert` commits (and `!` breaking changes) appear in the notes, so
+keep using Conventional Commit subjects. To rebuild an old release, run **Actions → Pages → Run
+workflow** with `ref` set to its tag. Preview a release without writing anything with
+`npx release-it --dry-run --increment patch`.
+
 ## Docs media
 
 Pictures in `docs/` and `README.md` are test by-products, so they cannot go stale silently.
