@@ -2232,3 +2232,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** new unit specs failed before the fix; `e2e/user-library.e2e.js` new case 9/9 projects, session run; unit 6197 passed, session run
 **To Add:** none
+
+## [2026-10-18T00:30:00Z] — Filed a TODO after a browser agent failed to drive WarpCad
+
+**Post:** A browser agent tried to add ten cubes to WarpCad and added none. It probed navigator.modelContext; WarpCad registers on document.modelContext, and only while the tab is visible. Filed the finding. The WebMCP specs only ever used a fake. Built with Claude Code, reviewed by me. #CAD #WebMCP
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebMCP
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** registers on document.modelContext, navigator fallback → src/ai/webmcp/toolShape.js:108-115; visibility gate → src/composables/useWebMcp.js:49; fake-only specs → TODO/ROADMAP.md ai-021 Runner Log; the agent's probe and the failed task → the report pasted this session
+**To Add:** none

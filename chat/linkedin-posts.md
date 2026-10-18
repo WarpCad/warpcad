@@ -3203,3 +3203,16 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** "enabled button, deep error" → `src/core/userPart.js` and `userPartTools.js` at HEAD; spec pin → `userPart.spec.js` diff; tests → session runs
 **To Add:** none
+
+## [2026-10-18T00:30:00Z] — Filed a TODO after a browser agent failed to drive WarpCad
+
+**Post:** An AI agent running in Chrome tried to add ten cubes to WarpCad through WebMCP and added none. Its report said the API was undefined and the tools missing.
+
+Reading the code gave a more specific picture. WarpCad registers its tools on document.modelContext, and only while the tab is visible. The agent checked navigator.modelContext. The Assistant header also said "Browser agents · on" while the composer said it needed an API key, which read as a contradiction.
+
+The WebMCP transport's specs have only ever used a fake modelContext, so no real agent had exercised it. I filed ai-024: reproduce in real Chrome first, then fix the visibility gating, the copy, and the dead-end Live MCP dialog. Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebMCP #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** same as the BlueSky entry; header/composer copy → src/stores/assistant.js:138-139, src/components/ai/Composer.vue:48
+**To Add:** none
