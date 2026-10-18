@@ -223,6 +223,48 @@ After committing, show the social posts again so the user can copy them.
 
 ---
 
+## Step 10 — Push (never automatic)
+
+**Never run `git push` as part of this skill by default.** Pushing to the
+remote triggers the GitHub Actions pipelines (including the GitHub Pages
+deploy), and those cost money. A commit is local until the user says otherwise.
+
+Push only when one of these is true:
+
+- **The user's request said so**, e.g. "commit and push" or "push when done"
+  in this run's own instructions. Standing authorization to *commit* unattended
+  (the `/loop` or routine case in Step 9) does **not** count as authorization to
+  push.
+- **The user confirms after a prompt** (below).
+
+**When to prompt:** after a successful commit, decide whether the change is
+*significant*. It is significant if any of these hold:
+
+- it touches shipped code: `src/`, `mcp/`, or the build/runtime config
+  (`vite.config.*`, `index.html`, `package.json`);
+- it touches anything under `.github/` (workflows or deploy settings);
+- it adds or changes a dependency or a licence entry;
+- it changes more than 3 files or more than 100 changed lines
+  (`git diff --stat HEAD~1..HEAD` shows both).
+
+If it is significant, ask once, after the social posts:
+
+> "This commit is significant (<reason>). Push to `origin/<branch>` now? That
+> starts the pipelines, which cost money. (yes / no)"
+
+Wait for an answer. Push only on an explicit yes:
+
+```
+git push origin <branch>
+```
+
+If the change is **not** significant, do not ask and do not push. Say only that
+the commit is local and not pushed, e.g. "Committed locally; not pushed."
+
+If the user declines, or doesn't answer, leave the commit local and say so.
+
+---
+
 ## Post File Format
 
 ```markdown
