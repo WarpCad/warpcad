@@ -5,8 +5,10 @@ kind: feature
 priority: medium
 model: sonnet
 depends: [ui-075]
-status: open
+status: done
 ---
+
+> **Shipped:** as proposed. New phone-only still from `e2e/docs/ai-live-mcp-header.docs.js` (the header element, access enabled so the ring shows); `docs/ai-partner.md` and `docs/mcp.md` gained the phone route and the hosted-copy note. No existing still drifted. Acceptance scenarios: none (docs only), so Step 6 did not apply.
 
 ## Goal
 

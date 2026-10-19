@@ -73,7 +73,9 @@ While enabled, any local MCP client that reaches the loopback endpoint may reque
 1. From your WarpCad folder run `npm run mcp:add -- --dev`, then `npm run dev` and register the
   printed `http://127.0.0.1:5183/mcp` endpoint with your MCP client.
 2. Open WarpCad at `http://localhost:5183`, then choose **Assistant → Live MCP access** and enable
-  access for the time you need.
+  access for the time you need. On a phone, tap the **⇄** button in the header, left of
+  **Assistant**, pick **15 minutes**, tap **Enable access**, and copy the endpoint the sheet shows
+  into your MCP client.
 3. In your MCP client, ask *add a 40 mm cube*. It appears in the viewport, marked **via mcp** in
   History. Tap **Undo AI turn** to take it back.
 
@@ -81,6 +83,12 @@ No key is needed, and none is sent. With no key, the panel reports when live acc
 an MCP client is connected, and its message box is off: make requests in the agent's own client;
 the panel shows what lands. [Live mode](mcp.md#live-mode-an-mcp-agent-edits-the-project-you-have-open)
 covers browser behavior and what happens if you're mid-drag when a change arrives.
+
+![The phone header with the Live MCP access button, its ring showing access is on](screenshots/ai-live-mcp-header.png)
+
+The **⇄** button appears only at phone width, and only when you run WarpCad with `npm run dev`: it
+is absent on a hosted copy, where live access isn't available. A hollow ring in its corner means
+access is on; a solid dot means an agent is connected.
 
 ## Where the key lives
 
