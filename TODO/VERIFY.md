@@ -36,6 +36,15 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### ui-075 — Live MCP access entry in the phone header (2026-10-19 20:35)
+
+Scenarios 24/25 and the `ui-071` repro passed at 390 and 1440 px Chromium; these are the parts that need a real device or a judgment call.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | On a real iPhone (Safari), the header's Live MCP button ring/dot is legible and a tap does not hit **Redo**/**File** beside it (gaps are 4 px) | Open | |
+| 2 | Rotate to landscape: Undo, Redo, History, File, Help, the new button and Assistant all stay on the row | Open | |
+
 ### ui-077 — Version label in the header (2026-10-18 21:38)
 
 The label stacks under the title at 480px and below, as an interim layout chosen to avoid a

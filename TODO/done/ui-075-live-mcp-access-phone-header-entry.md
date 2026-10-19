@@ -6,9 +6,11 @@ priority: medium
 model: sonnet
 milestone: unscheduled (user request 2026-10-17)
 depends: []
-status: open
+status: done
 ---
 
+
+> **Shipped (2026-10-19):** the button itself landed in `511cf15`; this closes the ticket. Full run green on all three engines (typecheck, 6262 unit, e2e 4152 passed / 1136 viewport-gated skips / 0 failed). Hand-drive of scenarios 24 (connected half) and 25 and the `ui-071` repro at 1440 and 390 px Chromium: PASS. Not driven (left to `testing-006`): landscape, WebKit, a real phone.
 ## Goal
 
 At 390 px, a user with an API key saved can turn on Live MCP access. Today the entry lives
