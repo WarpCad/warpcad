@@ -60,7 +60,16 @@ problem being solved, or the decision behind the approach. Avoid
 restating what the diff already shows.>
 
 <Optional: "Fixes #issue" | "Breaks: <what changed>" | "Note: <anything reviewers should know>">
+
+<Known-failures trailer lines, only when `node scripts/todo-progress.mjs stamp attest` prints some>
 ```
+
+**Known failures.** The pre-push hook refuses failing tests that no commit in the pushed range
+names. Run `node scripts/todo-progress.mjs stamp attest` after Step 8's gate: when the stored unit/e2e
+results match the tree being committed and have failures, it prints one `Known-failures: <test id>`
+line per failure. Append them verbatim as the last lines of the message (a git trailer block, after a
+blank line). It prints nothing when there are none, or when the stored results are for different
+code. This never runs tests.
 
 **Good summary examples:**
 - `feat(sketch): add coincident constraint solving for endpoint drags`

@@ -353,6 +353,12 @@ Also independent of the open Stack decisions:
   test-progress mod). Never pass a bare `--reporter=…` to `vitest` or `playwright test` — it
   replaces the configured list and the mod goes dark. Use no flag, or append the progress
   reporter; exact spellings are in `.claude/commands/test.md` Notes.
+- **CI does not run on push.** `git push` of `main` is gated by `.githooks/pre-push` (installed by
+  `npm install`), which refuses unless a *full* unit run and a *full* e2e run were stored for the
+  pushed commit (`.todo-progress/_runs.json`, written by the progress reporters on every run, so a
+  run started by hand records itself). Failing tests do not block a push but each must be named in a
+  `Known-failures:` commit trailer (`node scripts/todo-progress.mjs stamp attest` prints them).
+  `release.yml` runs `ci.yml` itself. See `CONTRIBUTING.md` "Pushing".
 - **Types**: every exported function has a JSDoc signature. `npm run typecheck`
   (`tsc --noEmit`) is a test stage and a CI gate — a type error is a failing build.
 - **Always mock at the boundary**: the kernel worker, WebGL contexts, the File System

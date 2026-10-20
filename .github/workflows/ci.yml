@@ -1,14 +1,15 @@
 name: CI
 
 # One job: unit tests, typecheck, licence checks and the `guards` project. No browser runs in CI.
-# The e2e matrix (474 tests x 9 engine/viewport projects) is a local run
-# (`npm run test:e2e:headless`), because hosted runners bill every minute of it. The `smoke-*`
-# projects in playwright.config.js are still available for a local run; CI does not start them.
+# It does NOT run on push or pull_request, because hosted minutes cost money (TODO/build-014). The
+# safety net is the local `.githooks/pre-push` hook, which refuses a push of main unless the unit
+# suite and the full e2e matrix ran on the pushed commit. This workflow runs only when started by
+# hand or called by release.yml, so a release gets one clean-room run. Bring `pull_request` back
+# here when pull requests start. The e2e matrix is a local run (`npm run test:e2e:headless`).
 
 on:
-  push:
-    branches: [main]
-  pull_request:
+  workflow_dispatch:
+  workflow_call:
 
 jobs:
   test:
@@ -40,8 +41,6 @@ jobs:
       # so it needs no browser binary.
       - run: npx playwright test --project=guards
 
-# A superseded pull-request run is cancelled. Pushes to main always finish, because pages.yml
-# release.yml refuses to tag a commit whose CI run here did not succeed.
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  cancel-in-progress: false

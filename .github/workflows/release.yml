@@ -20,13 +20,17 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # Never tag a commit that failed its own tests. ci.yml no longer runs on push (TODO/build-014), so
+  # the release pays for one clean-room run itself.
+  test:
+    uses: ./.github/workflows/ci.yml
+
   release:
+    needs: test
     runs-on: ubuntu-latest
-    # contents: write pushes the bump commit and tag and creates the release; actions: read lets the
-    # gate below look up CI. Nothing else is granted.
+    # contents: write pushes the bump commit and tag and creates the release. Nothing else is granted.
     permissions:
       contents: write
-      actions: read
     outputs:
       tag: ${{ steps.tag.outputs.tag }}
     steps:
@@ -35,18 +39,6 @@ jobs:
           ref: main
           fetch-depth: 0  # release-it reads every tag and commit since the previous one
           lfs: false
-      # Never tag a commit that failed its own tests.
-      - name: Require a green CI run on this commit
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-          sha="$(git rev-parse HEAD)"
-          conclusion="$(gh run list --workflow ci.yml --commit "$sha" --json conclusion --jq '.[0].conclusion // "none"')"
-          if [ "$conclusion" != "success" ]; then
-            echo "::error::CI on $sha is '$conclusion', not 'success'. Wait for it or fix it before releasing."
-            exit 1
-          fi
       - uses: actions/setup-node@v4
         with:
           node-version: 24

@@ -6,6 +6,7 @@
 //   node scripts/todo-progress.mjs done <id>
 //   node scripts/todo-progress.mjs batch <done>/<size>
 //   node scripts/todo-progress.mjs stamp set | check | gate [--wait=60]
+//   node scripts/todo-progress.mjs stamp results | attest | verify-push   (TODO/build-014)
 //
 // `step`/`done`/`batch` write small JSON files under `.todo-progress/` (gitignored). A
 // Claude Code mod (`~/.claude/dev-mods/.../todo-progress`) polls that directory to show
@@ -21,13 +22,18 @@
 // exit 0 = the tree already passed, skip it. With a stale stamp it exits 1 at once. With a
 // matching one it asks "run again?" on a terminal (y = run, anything else = skip); with no
 // terminal it waits `--wait` seconds (default 60) so the run can be cancelled, then exits 1.
+//
+// The unit and e2e reporters (scripts/test-progress/) also store each finished run in
+// `.todo-progress/_runs.json` (fingerprint, scope, counts, failing test ids). `stamp results`
+// prints it, `stamp attest` prints the `Known-failures:` commit-message trailer for the
+// current tree, and `stamp verify-push` is the `.githooks/pre-push` entry point: it refuses a
+// push of main unless both suites ran in full on the pushed commit. It never runs tests.
 
-import { createHash } from 'node:crypto'
-import { execFileSync } from 'node:child_process'
-import { mkdirSync, readFileSync, readdirSync, writeFileSync, statSync, unlinkSync } from 'node:fs'
+import { mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { createInterface } from 'node:readline'
 import { parseArgs } from 'node:util'
+import { attestLines, fingerprint, prune, readRuns, verifyPush, SUITE_COMMANDS } from './todo-progress-lib.mjs'
 
 const DIR = '.todo-progress'
 const STEP_NAMES = [
@@ -53,18 +59,6 @@ function writeJson(path, value) {
   writeFileSync(path, JSON.stringify(value, null, 2) + '\n')
 }
 
-/** Delete progress files untouched for over a day so the directory can't grow forever. */
-function prune() {
-  try {
-    for (const f of readdirSync(DIR)) {
-      const p = join(DIR, f)
-      if (Date.now() - statSync(p).mtimeMs > 86_400_000) unlinkSync(p)
-    }
-  } catch {
-    /* directory doesn't exist yet */
-  }
-}
-
 /** @param {string} id @returns {string} the TODO's frontmatter title, or '' */
 function titleOf(id) {
   for (const dir of ['TODO', 'TODO/done']) {
@@ -78,30 +72,6 @@ function titleOf(id) {
     }
   }
   return ''
-}
-
-/** @returns {string} sha256 over the content of every file a test could read */
-function fingerprint() {
-  const git = (args, input) =>
-    execFileSync('git', args, { input, maxBuffer: 1 << 28 }).toString('utf8')
-  const paths = git(['ls-files', '-z', '-c', '-o', '--exclude-standard'])
-    .split('\0')
-    .filter((p) => p && !/^(TODO|chat|\.todo-progress)\//.test(p))
-  const sorted = [...new Set(paths)].sort()
-  const present = sorted.filter((p) => {
-    try {
-      statSync(p)
-      return true
-    } catch {
-      return false // tracked-but-deleted
-    }
-  })
-  const hashes = git(['hash-object', '--stdin-paths'], present.join('\n') + '\n')
-    .trim()
-    .split('\n')
-  const h = createHash('sha256')
-  present.forEach((p, i) => h.update(`${p}\0${hashes[i]}\n`))
-  return h.digest('hex')
 }
 
 const { positionals, values } = parseArgs({
@@ -141,9 +111,29 @@ if (cmd === 'step') {
   const m = /^(\d+)\/(\d+)$/.exec(a ?? '')
   if (!m) throw new Error('usage: batch <done>/<size>')
   writeJson(file('_batch'), { done: Number(m[1]), size: Number(m[2]), updatedAt: new Date().toISOString() })
-} else if (cmd === 'stamp' && (a === 'set' || a === 'check' || a === 'gate')) {
+} else if (cmd === 'stamp' && (a === 'set' || a === 'check' || a === 'gate' || a === 'results' || a === 'attest' || a === 'verify-push')) {
+  if (a === 'verify-push') {
+    const stdin = process.stdin.isTTY ? '' : readFileSync(0, 'utf8')
+    const { ok, lines } = verifyPush(stdin)
+    for (const l of lines) (ok ? console.log : console.error)(l)
+    process.exit(ok ? 0 : 1)
+  }
   const fp = fingerprint()
-  if (a === 'set') {
+  if (a === 'results') {
+    const runs = readRuns()
+    for (const suite of Object.keys(SUITE_COMMANDS)) {
+      const r = runs[suite]
+      if (!r) {
+        console.log(`${suite}: no result stored (run: ${SUITE_COMMANDS[suite]})`)
+        continue
+      }
+      const age = Math.round((Date.now() - Date.parse(r.at)) / 60_000)
+      const match = r.fingerprint === fp ? 'matches this tree' : 'DIFFERENT code than this tree'
+      console.log(`${suite}: ${r.scope}${r.moved ? ' (tree moved mid-run)' : ''}, ${r.passed} passed, ${r.failed} failed, ${r.skipped} skipped, ${age} min ago, ${match}`)
+    }
+  } else if (a === 'attest') {
+    for (const l of attestLines(readRuns(), fp)) console.log(l)
+  } else if (a === 'set') {
     writeJson(file('_green'), { fingerprint: fp, at: new Date().toISOString() })
     console.log(`green-stamp: set ${fp}`)
   } else if (a === 'check') {
@@ -169,5 +159,5 @@ if (cmd === 'step') {
     process.exit(1)
   }
 } else {
-  throw new Error('usage: step | done | batch | stamp set|check|gate (see header of scripts/todo-progress.mjs)')
+  throw new Error('usage: step | done | batch | stamp set|check|gate|results|attest|verify-push (see header of scripts/todo-progress.mjs)')
 }

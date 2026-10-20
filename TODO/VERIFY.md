@@ -36,6 +36,16 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### build-014 — Pre-push test gate (2026-10-20 22:05)
+
+Needs a real git remote, so only the unit-level logic is covered by tests.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | Scratch bare remote (`git init --bare`): push with the hook active through no result (refused), partial e2e (refused), full+green (allowed), full with failures and no trailer (refused), with trailer (allowed) | Open | |
+| 2 | LFS objects for a changed `docs/media/*.gif` arrive at that scratch remote (buffered stdin reached `git lfs pre-push`) | Open | |
+| 3 | After the first real push to `origin`, the Actions tab shows no new run | Open | |
+
 ### ui-075 — Live MCP access entry in the phone header (2026-10-19 20:35)
 
 Scenarios 24/25 and the `ui-071` repro passed at 390 and 1440 px Chromium; these are the parts that need a real device or a judgment call.

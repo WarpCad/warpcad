@@ -3296,3 +3296,18 @@ Checks: 6279 unit tests and 4152 end-to-end tests passed with none failing. Then
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** 6279 unit, 4152 passed/0 failed e2e → test runs this session; 3 rounds both directions → drive output this session; no format change → agent report, diff touches no format code
 **To Add:** none
+
+## 2026-10-20 — CI off for push; a pre-push hook checks the tests ran
+
+**Post:** I moved the safety net from hosted CI to the developer's machine. `ci.yml` now runs only when started by hand or called by the release workflow, so a push to main costs no runner minutes, and a release still gets one clean-room run before it can tag.
+
+In its place, a pre-push hook asks one question: did the unit suite and the full nine-project e2e matrix run on the commit being pushed? The test reporters store each finished run with a fingerprint of the code, and the hook recomputes that fingerprint from the pushed commit's tree. A filtered run, or an edit to the tree mid-run, never counts.
+
+A red run doesn't block the push, but every failing test id must appear in a `Known-failures:` trailer in the pushed range, so a failing tree is never pushed silently. The unit spec covers the matrix of refusals, the trailer rules and tag and delete pushes.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #OpenSource #DevTools
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** diff only for the design; 6312 unit tests and guards green → test runs this session
+**To Add:** none

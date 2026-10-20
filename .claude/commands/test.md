@@ -34,6 +34,12 @@ avoidable token cost in the TODO workflow. So:
   that need an *independent* check (the `/run-todos` loop verifying an agent's claim)
   pass `--force` in the brief, which skips the check. A *targeted* run (one spec file),
   a `one`-scope run, or a run that skipped an engine never sets the stamp (see Scope below).
+- **Stored results (`TODO/build-014`).** Separately from the stamp, the vitest and playwright
+  reporters write every finished run to `.todo-progress/_runs.json` (fingerprint, `full`/`partial`
+  scope, counts, failing test ids). A full, unfiltered e2e run therefore records itself with no extra
+  step. `.githooks/pre-push` reads that file and refuses a push of `main` unless unit and e2e both ran
+  in full on the pushed commit. A `one`, `changed` or `fast` run stores `partial`, which never vouches
+  for a push. `node scripts/todo-progress.mjs stamp results` shows what is stored.
 
 ### Scope — full matrix, or one e2e project
 
@@ -75,7 +81,7 @@ projects, and it is the expensive part of a run. The caller picks a scope in the
      shared stores, global styles), when no spec can be mapped to the change, or at a
      milestone boundary. Never narrow because the full run is slow and the change "looks
      small."
-  Report the list of specs run and why each was chosen. Like `one`, it never sets the stamp.
+  Report the list of specs run and why each was chosen. Like `one`, it never sets the stamp and stores a `partial` e2e result.
 - **Picking the project for `one`.** If the caller names one, use it. Otherwise pick
   **one at random** from the engine-viewport projects (`chromium-phone`, `chromium-tablet`,
   `chromium-laptop`, and the `firefox-*` / `webkit-*` equivalents; `webkit-*` and `firefox-*`

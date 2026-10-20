@@ -51,10 +51,10 @@ describe('release.yml', () => {
     expect(Object.entries(perms).filter(([, v]) => v === 'write').map(([k]) => k)).toEqual(['contents'])
   })
 
-  it('refuses a commit whose CI did not succeed, then runs release-it non-interactively', () => {
+  it('runs ci.yml as a called workflow first, then release-it non-interactively', () => {
     const text = read('.github/workflows/release.yml')
-    expect(text).toMatch(/ci\.yml/)
-    expect(text).toMatch(/conclusion/)
+    expect(release.jobs.test.uses).toBe('./.github/workflows/ci.yml')
+    expect(release.jobs.release.needs).toBe('test')
     expect(text).toMatch(/release-it .*--ci/)
   })
 
@@ -64,6 +64,33 @@ describe('release.yml', () => {
     expect(deploy.with.ref).toBeTruthy()
     expect(deploy.needs).toBe('release')
     expect(deploy.permissions).toMatchObject({ pages: 'write', 'id-token': 'write' })
+  })
+})
+
+describe('ci.yml (TODO/build-014)', () => {
+  const ci = parse(read('.github/workflows/ci.yml'))
+
+  it('never starts on a push or a pull request, so no hosted minutes are spent unasked', () => {
+    for (const trigger of ['push', 'pull_request', 'pull_request_target', 'schedule']) expect(triggers(ci)).not.toContain(trigger)
+    expect(triggers(ci).sort()).toEqual(['workflow_call', 'workflow_dispatch'])
+  })
+
+  it('has no other workflow that starts on a push', () => {
+    for (const f of ['pages.yml', 'release.yml']) expect(triggers(parse(read(`.github/workflows/${f}`)))).not.toContain('push')
+  })
+})
+
+describe('pre-push gate (TODO/build-014)', () => {
+  it('installs .githooks and gives the hook all four git-lfs stubs', () => {
+    expect(pkg.scripts.prepare).toContain('core.hooksPath .githooks')
+    for (const h of ['pre-push', 'post-commit', 'post-checkout', 'post-merge']) expect(read(`.githooks/${h}`)).toContain('git lfs')
+  })
+
+  it('feeds the refs to both git lfs pre-push and the check, LFS first', () => {
+    const hook = read('.githooks/pre-push')
+    expect(hook.indexOf('git lfs pre-push')).toBeGreaterThan(-1)
+    expect(hook.indexOf('git lfs pre-push')).toBeLessThan(hook.indexOf('stamp verify-push'))
+    expect(hook).toMatch(/refs="\$\(cat\)"/)
   })
 })
 

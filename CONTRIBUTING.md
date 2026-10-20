@@ -16,7 +16,7 @@ Thanks for helping. Before you open a pull request:
    license. Pull requests with unsigned commits will not be merged. If an AI agent helped
    write the change, the human submitting it is the one who signs off.
 3. New source and prose files need an SPDX marker — run `node scripts/spdx.mjs --fix` after
-   `git add`ing them. CI runs `npm run spdx` and `npm run licenses`.
+   `git add`ing them. The release's CI run (`ci.yml`) checks `npm run spdx` and `npm run licenses`; run them before you push.
 4. Do not add code, assets or prompts copied from a source whose license is incompatible with
    AGPL-3.0 or CC BY-SA 4.0 (proprietary, "non-commercial", SSPL, and similar).
 5. No third-party logo or brand image goes into the repository without a licence check, and a new
@@ -26,13 +26,40 @@ Thanks for helping. Before you open a pull request:
 Project workflow (specs under `TODO/`, `/fix-todo`, acceptance scenarios) is described in
 [`CLAUDE.md`](CLAUDE.md) and [`TODO/README.md`](TODO/README.md).
 
+## Pushing
+
+CI does not run on push or pull request, because hosted minutes cost money. A pre-push hook
+(`.githooks/pre-push`, installed by `npm install` through the `prepare` script) is the gate instead.
+It does not run the tests; it checks they ran on the commit you are pushing.
+
+1. `npm run test:unit -- --run`
+2. `npm run test:e2e:headless` (the full nine-project matrix, about 25 minutes)
+3. `node scripts/todo-progress.mjs stamp attest`. If it prints `Known-failures:` lines, paste them
+   into a commit message in the range you are pushing. It prints nothing when everything passed.
+4. `git push`
+
+Both reporters store each finished run in `.todo-progress/_runs.json` (`node scripts/todo-progress.mjs
+stamp results` shows it). Only an unfiltered run counts: `--project`, `--grep`, `--last-failed`,
+`--shard`, a file path, a unit name filter or watch mode all store a *partial* result, and so does
+editing the tree while a run is in progress. If a suite is missing, partial, or ran on different code,
+the push is refused and the message names the command to run:
+
+```
+push refused: the tests have not run on 1bcfd6e4a.
+  e2e: no result stored. Run: npm run test:e2e:headless
+```
+
+The fingerprint covers every file except `TODO/` and `chat/`, so a commit that edits `docs/`,
+`CLAUDE.md` or any other `*.md` after the last run invalidates the stored results and needs a re-run.
+`git push --no-verify` skips the hook; the Git LFS upload of the docs GIFs is part of the same hook,
+so `--no-verify` skips that too.
+
 ## Cutting a release (maintainers)
 
-A merge to `main` runs CI and deploys nothing. Pages is built only by a release
+A push to `main` runs no workflow and deploys nothing. Pages is built only by a release
 (`docs/decisions/release.md`):
 
-1. Wait for CI to go green on the head of `main`. The release refuses a commit whose CI run did
-   not succeed.
+1. Push `main` first (see Pushing above). The release runs `ci.yml` itself and stops if it fails.
 2. **Actions → Release → Run workflow**, pick `patch`, `minor` or `major`. The first release is
    `major` (`0.0.0` to `1.0.0`).
 3. The run bumps `package.json`, adds a section to `CHANGELOG.md` from the Conventional Commit

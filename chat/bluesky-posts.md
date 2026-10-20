@@ -2295,3 +2295,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** replica ids decided ties → agent probe, reported this session, and TODO/data-014 Problem; rank in the key → positionKey.js `insertTag` in diff
 **To Add:** none
+
+## 2026-10-20 — CI off for push; a pre-push hook checks the tests ran
+
+**Post:** Pushing to main no longer starts a GitHub Actions run, because hosted minutes cost money. A pre-push hook now refuses the push unless the unit suite and the full e2e matrix were recorded against the exact commit going out. Failures don't block it, but each has to be named in a commit trailer. Built with Claude Code, reviewed by me. #OpenSource #DevTools
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #OpenSource #DevTools
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** hook, trailer rule, ci.yml triggers → diff; 6312 unit passed, typecheck and guards clean → test runs this session
+**To Add:** none
