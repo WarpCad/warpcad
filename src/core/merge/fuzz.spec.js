@@ -5,7 +5,7 @@
  */
 import { describe, expect, it } from 'vitest'
 import { liveOrder, mergeStates } from './merge.js'
-import { compareKeys, keyBetween } from './positionKey.js'
+import { compareKeys, insertTag, keyBetween } from './positionKey.js'
 import { canonicalJSON, emptyMergeState, highestCounter } from './state.js'
 import { compareStamps } from '../replica.js'
 
@@ -88,8 +88,12 @@ function randomEdit(w, rand, all) {
   if (roll < 30 || order.length === 0) {
     const stamp = tick(w)
     const id = `op-${w.replica}-${stamp.counter}`
-    const key = keyAtGap(state, order, rand.int(order.length + 1), stamp)
-    state.entries.set(id, { record: { id, size: rand.int(100) }, origin: rand.pick(['local', 'ai']), born: stamp, pos: [key, stamp], rec: stamp })
+    const gap = rand.int(order.length + 1)
+    const size = rand.int(100)
+    const origin = rand.pick(['local', 'ai'])
+    // Keyed the way the document mints them (`insertTag`, `TODO/data-014`).
+    const key = keyAtGap(state, order, gap, insertTag(stamp, origin))
+    state.entries.set(id, { record: { id, size }, origin, born: stamp, pos: [key, stamp], rec: stamp })
     return
   }
   const id = rand.pick(order)
@@ -99,7 +103,7 @@ function randomEdit(w, rand, all) {
   } else if (roll < 57) {
     const rest = order.filter((other) => other !== id)
     const stamp = tick(w)
-    state.entries.set(id, { ...entry, pos: [keyAtGap(state, rest, rand.int(rest.length + 1), stamp), stamp] })
+    state.entries.set(id, { ...entry, pos: [keyAtGap(state, rest, rand.int(rest.length + 1), insertTag(stamp, entry.origin)), stamp] })
   } else if (roll < 67) {
     w.removed.set(id, entry)
     state.entries.delete(id)
@@ -195,14 +199,19 @@ describe('merge laws over three replicas from a shared base', () => {
   })
 })
 
+/** The rank `insertTag` gives an origin: `0` for a person's row, `1` for any other. */
+const rankOf = (/** @type {string} */ origin) => (origin === 'local' ? 0 : 1)
+
 /**
  * Three replicas each insert a run of rows at one gap of a shared base. With `ownGap`, the
- * gap's left neighbour is a row the first replica minted.
+ * gap's left neighbour is a row the first replica minted. With `ranked` (`TODO/data-014`), each
+ * run gets a random origin and is keyed through `insertTag`, as the document mints it.
  *
  * @param {number} seed
  * @param {boolean} ownGap
+ * @param {boolean} [ranked]
  */
-function runCase(seed, ownGap) {
+function runCase(seed, ownGap, ranked = false) {
   const rand = prng(seed)
   const baseWriter = writer(BASE_REPLICA, emptyMergeState(PROJECT))
   const owner = writer(REPLICAS[0], emptyMergeState(PROJECT))
@@ -222,8 +231,8 @@ function runCase(seed, ownGap) {
   const gap = lefts.length > 0 && rand.next() < 0.9 ? rand.pick(lefts) + 1 : (ownGap ? -1 : 0)
   if (gap < 0) return null
   const writers = REPLICAS.map((replica) => writer(replica, baseWriter.state))
-  /** @type {{ ids: string[], first: Stamp }[]} */
-  const runs = writers.map(() => ({ ids: [], first: { counter: 0, replica: '' } }))
+  /** @type {{ ids: string[], first: Stamp, origin: string }[]} */
+  const runs = writers.map(() => ({ ids: [], first: { counter: 0, replica: '' }, origin: ranked ? rand.pick(['local', 'ai', 'mcp']) : 'local' }))
   const keyOf = (/** @type {Writer} */ w, /** @type {string} */ id) => /** @type {MergeEntry} */ (w.state.entries.get(id)).pos[0]
   const after = gap < order.length ? order[gap] : null
   const lengths = writers.map(() => 1 + rand.int(6))
@@ -235,9 +244,10 @@ function runCase(seed, ownGap) {
     w.counter += rand.int(4)
     const stamp = tick(w)
     const previous = runs[i].ids.length > 0 ? runs[i].ids[runs[i].ids.length - 1] : gap > 0 ? order[gap - 1] : null
-    const key = keyBetween(previous === null ? null : keyOf(w, previous), after === null ? null : keyOf(w, after), stamp)
+    const tag = ranked ? insertTag(stamp, runs[i].origin) : stamp
+    const key = keyBetween(previous === null ? null : keyOf(w, previous), after === null ? null : keyOf(w, after), tag)
     const id = `op-${w.replica}-${stamp.counter}`
-    w.state.entries.set(id, { record: { id }, origin: 'local', born: stamp, pos: [key, stamp], rec: stamp })
+    w.state.entries.set(id, { record: { id }, origin: runs[i].origin, born: stamp, pos: [key, stamp], rec: stamp })
     if (runs[i].ids.length === 0) runs[i].first = stamp
     runs[i].ids.push(id)
   }
@@ -277,6 +287,41 @@ describe('position-key properties under merge', () => {
       const byStamp = [...result.runs].sort((x, y) => compareStamps(x.first, y.first))
       expect(byPosition.map((run) => run.ids[0]), `stamp order, seed ${seed}`).toEqual(byStamp.map((run) => run.ids[0]))
     }
+  })
+})
+
+describe('a same-clock tie prefers the local run (TODO/data-014)', () => {
+  /** @param {string[]} merged @param {string[]} ids */
+  const contiguous = (merged, ids) => {
+    const start = merged.indexOf(ids[0])
+    return ids.every((id, k) => merged[start + k] === id)
+  }
+
+  it('runs keyed through insertTag do not interleave, at either kind of gap (1 000 seeds each)', () => {
+    for (const ownGap of [false, true]) {
+      for (let seed = 1; seed <= 1000; seed += 1) {
+        const result = runCase(seed, ownGap, true)
+        if (result === null) continue
+        for (const run of result.runs) expect(contiguous(result.merged, run.ids), `contiguous, seed ${seed}`).toBe(true)
+      }
+    }
+  })
+
+  it('same-gap order is (counter, local first, replica) of the first stamp, at a gap after a base row (1 000 seeds)', () => {
+    let rankedTies = 0
+    for (let seed = 1; seed <= 1000; seed += 1) {
+      const result = /** @type {NonNullable<ReturnType<typeof runCase>>} */ (runCase(seed, false, true))
+      const byPosition = [...result.runs].sort((x, y) => result.merged.indexOf(x.ids[0]) - result.merged.indexOf(y.ids[0]))
+      const byRule = [...result.runs].sort((x, y) =>
+        x.first.counter - y.first.counter || rankOf(x.origin) - rankOf(y.origin) || compareStamps(x.first, y.first))
+      expect(byPosition.map((run) => run.ids[0]), `tie rule, seed ${seed}`).toEqual(byRule.map((run) => run.ids[0]))
+      for (const x of result.runs) {
+        for (const y of result.runs) {
+          if (x !== y && x.first.counter === y.first.counter && rankOf(x.origin) < rankOf(y.origin)) rankedTies += 1
+        }
+      }
+    }
+    expect(rankedTies).toBeGreaterThan(50)
   })
 })
 

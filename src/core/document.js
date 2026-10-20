@@ -467,7 +467,7 @@ import {
 import { ASSET_OP, validateImageAsset } from '../sketch/imageAsset.js'
 import { MESH_ASSET_OP, validateMeshAsset } from '../io/meshAsset.js'
 import { counterOfId, createClock, createProjectId, createReplicaId } from './replica.js'
-import { compareKeys, keysBetween } from './merge/positionKey.js'
+import { compareKeys, insertTag, keysBetween } from './merge/positionKey.js'
 import { LEGACY_STAMP, highestCounter } from './merge/state.js'
 import { diffStates, liveOrder, mergeStates, relatedness, resolveRollback } from './merge/merge.js'
 import { conflictAttribution } from './origin.js'
@@ -1891,7 +1891,9 @@ export function createDocument(options = {}) {
     const stamp = { counter: stampClock.tick(), replica: stampClock.replica }
 
     // Keys for new and moved rows: each run of them goes between its nearest kept neighbours,
-    // whose keys are in order (that is what `movedRows` guarantees).
+    // whose keys are in order (that is what `movedRows` guarantees). Tagged by `insertTag`, so a
+    // run whose first row a person made sorts first against a same-counter run from another
+    // replica at the same gap (`TODO/data-014`).
     /** @type {Map<string, string>} */
     const keyOf = new Map()
     const keyed = entries.filter((entry) => entry.record.id !== undefined)
@@ -1905,6 +1907,7 @@ export function createDocument(options = {}) {
         at += 1
         continue
       }
+      const head = keyed[at]
       /** @type {string[]} */
       const run = []
       while (at < keyed.length && !stays(/** @type {string} */ (keyed[at].record.id))) {
@@ -1912,7 +1915,7 @@ export function createDocument(options = {}) {
         at += 1
       }
       const high = at < keyed.length ? /** @type {EntryMeta} */ (mark.meta.get(/** @type {string} */ (keyed[at].record.id))).pos[0] : null
-      keysBetween(lastKept, high, run.length, stamp).forEach((key, index) => keyOf.set(run[index], key))
+      keysBetween(lastKept, high, run.length, insertTag(stamp, head.origin)).forEach((key, index) => keyOf.set(run[index], key))
     }
 
     /** @type {Map<string, EntryMeta>} */

@@ -5,8 +5,10 @@ kind: finding
 priority: medium
 model: opus
 depends: []
-status: open
+status: done
 ---
+
+> **What shipped (2026-10-20).** Not the literal "prefer the local replica's step": that is viewer-relative and would make replicas flag different rows. The user chose an origin-based rule instead. On a same-counter tie, a step whose origin is `local` sorts before any other origin; equal ranks fall back to replica id. The rank is fixed into the position key when it is minted (`insertTag` in `src/core/merge/positionKey.js`, used at the one mint site in `stampSince`), so ordering stays plain key comparison and the merge core is unchanged. No file-format change. Keys minted by older builds keep their undoubled tags (still deterministic). Recorded in `docs/decisions/document-sync.md`.
 
 ## Problem
 

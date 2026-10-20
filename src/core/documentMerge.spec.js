@@ -44,14 +44,16 @@ const BASE = [cube1, boxA, boxB]
 const clone = (records) => records.map((record) => structuredClone(record))
 
 /**
- * Two replicas of one seed file: the human (`hhhhhh`) and the other writer (`oooooo`).
+ * Two replicas of one seed file: the human (`hhhhhh` unless `replicas` says otherwise) and the
+ * other writer (`oooooo`).
  *
  * @param {any[]} [base]
+ * @param {[string, string]} [replicas] The human's and the other writer's replica ids.
  */
-function pair(base = BASE) {
+function pair(base = BASE, replicas = ['hhhhhh', 'oooooo']) {
   return {
-    human: createDocument({ replica: 'hhhhhh', actions: clone(base) }),
-    other: createDocument({ replica: 'oooooo', actions: clone(base) }),
+    human: createDocument({ replica: replicas[0], actions: clone(base) }),
+    other: createDocument({ replica: replicas[1], actions: clone(base) }),
   }
 }
 
@@ -86,14 +88,15 @@ function view(document) {
  * @param {(document: any) => void} humanEdit
  * @param {(document: any) => void} otherEdit
  * @param {any[]} [base]
+ * @param {[string, string]} [replicas] See {@link pair}.
  */
-function mergeBothWays(humanEdit, otherEdit, base = BASE) {
-  const first = pair(base)
+function mergeBothWays(humanEdit, otherEdit, base = BASE, replicas = undefined) {
+  const first = pair(base, replicas)
   humanEdit(first.human)
   otherEdit(first.other)
   const outcome = first.human.mergeFrom(first.other.mergeState(), MERGE)
 
-  const second = pair(base)
+  const second = pair(base, replicas)
   humanEdit(second.human)
   otherEdit(second.other)
   const reverse = second.other.mergeFrom(second.human.mergeState(), MERGE)
@@ -434,6 +437,95 @@ describe('the named conflicts (real kernel), merged in both orders', () => {
     const { change } = human.mergeFrom(other.mergeState(), MERGE)
     expect(change.added).toEqual(['theirs'])
     expect(change.revised).toEqual(['box-a'])
+  })
+})
+
+// ---------------------------------------------------------------------------
+// 4b. A same-clock tie prefers the step a person made (`TODO/data-014`)
+// ---------------------------------------------------------------------------
+
+describe('a same-clock tie prefers the step a person made, never the replica id (TODO/data-014)', () => {
+  const move = { id: 'move', op: 'transform.translate', target: 'cube-1', supersedes: 'cube-1', params: { vector: [5, 0, 0] } }
+  const fillet = { id: 'fillet', op: 'modify.filletRim', target: 'cube-1', supersedes: 'cube-1', params: { face: 'top', radius: 2 } }
+  /** Both replica-id orders: the human's id sorting first, and sorting last. */
+  const REPLICA_ORDERS = /** @type {[string, string][]} */ ([['hhhhhh', 'oooooo'], ['zzzzzz', 'aaaaaa']])
+
+  /**
+   * The move on the human's replica and the fillet on the other's, each one tick after the
+   * same seed — so their stamps tie on the counter.
+   *
+   * @param {{ origin: string }} moveOrigin
+   * @param {{ origin: string }} filletOrigin
+   * @param {[string, string]} replicas
+   */
+  function tied(moveOrigin, filletOrigin, replicas) {
+    const result = mergeBothWays((d) => d.append(structuredClone(move), moveOrigin), (d) => d.append(structuredClone(fillet), filletOrigin), BASE, replicas)
+    const state = result.document.mergeState()
+    expect(state.entries.get('move')?.born.counter).toBe(state.entries.get('fillet')?.born.counter)
+    return result
+  }
+
+  it.each(REPLICA_ORDERS)('a local move and an ai fillet: the fillet is flagged (human %s, other %s)', (human, other) => {
+    const { document, outcome } = tied(local, ai, [human, other])
+    expect(rowOf(document, 'move').broken).toBeNull()
+    expect(rowOf(document, 'fillet').broken).toBe('conflicts with step 4 (Move Cube 1)')
+    expect(outcome.conflicts).toEqual([
+      { id: 'fillet', step: 5, label: 'Fillet Cube 1', reason: 'conflicts with step 4 (Move Cube 1)', lostTo: 'move' },
+    ])
+  })
+
+  it.each(REPLICA_ORDERS)('a local move and an mcp fillet: the fillet is flagged (human %s, other %s)', (human, other) => {
+    const { document } = tied(local, { origin: 'mcp' }, [human, other])
+    expect(rowOf(document, 'move').broken).toBeNull()
+    expect(rowOf(document, 'fillet').broken).toBe('conflicts with step 4 (Move Cube 1)')
+  })
+
+  it.each(REPLICA_ORDERS)('an ai move and a local fillet: the move is flagged (human %s, other %s)', (human, other) => {
+    const { document } = tied(ai, local, [human, other])
+    expect(rowOf(document, 'fillet').broken).toBeNull()
+    expect(rowOf(document, 'move').broken).toBe('conflicts with step 4 (Fillet Cube 1)')
+  })
+
+  it.each([
+    ['local', 'local'],
+    ['ai', 'mcp'],
+  ])('two %s/%s steps fall back to the replica order, the same on every run', (moveOrigin, filletOrigin) => {
+    const runs = [0, 1].map(() => {
+      const { document } = tied({ origin: moveOrigin }, { origin: filletOrigin }, ['zzzzzz', 'aaaaaa'])
+      return view(document)
+    })
+    expect(runs[1]).toEqual(runs[0])
+    // `aaaaaa` (the other side, the fillet) sorts first, so the move is the row that folds second.
+    const flagged = runs[0].timeline.find((/** @type {any} */ row) => row.id === 'move')
+    expect(flagged?.broken).toMatch(/^conflicts with step 4 \(Fillet Cube 1/)
+    expect(runs[0].timeline.find((/** @type {any} */ row) => row.id === 'fillet')?.broken).toBeNull()
+  })
+
+  it('not a tie: the earlier stamp still wins, whoever made it', () => {
+    const { document } = mergeBothWays(
+      (d) => {
+        d.setStandingInstructions('Keep walls 2 mm.', local) // one tick ahead of the other side
+        d.append(structuredClone(move), local)
+      },
+      (d) => d.append(structuredClone(fillet), ai),
+      BASE,
+      ['hhhhhh', 'oooooo']
+    )
+    const state = document.mergeState()
+    expect(compareStamps(/** @type {any} */ (state.entries.get('fillet')).born, /** @type {any} */ (state.entries.get('move')).born)).toBeLessThan(0)
+    expect(rowOf(document, 'fillet').broken).toBeNull()
+    expect(rowOf(document, 'move').broken).toBe('conflicts with step 4 (Fillet Cube 1, via ai)')
+  })
+
+  it('the merged document is the document its own file loads to', () => {
+    const { document } = tied(local, ai, ['zzzzzz', 'aaaaaa'])
+    const parsed = parseProject(serializeProject(document))
+    const fresh = createDocument({ foldCache: null })
+    fresh.loadEntries(parsed.entries, parsed.rollbackAt, parsed.resolution, parsed)
+    const { state: _merged, ...mergedView } = view(document)
+    const { state: _fresh, ...freshView } = view(fresh)
+    expect(freshView).toEqual(mergedView)
+    expect(rowOf(fresh, 'move').broken).toBeNull()
   })
 })
 

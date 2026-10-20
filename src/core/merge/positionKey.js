@@ -19,6 +19,8 @@
  * 2. **Same-gap order follows the stamp.** A fresh insert at a gap is a function of the two
  *    neighbours alone, except for the trailing `(counter, replica)` tag — so two replicas
  *    inserting at one gap get the same prefix and digit, and the earlier stamp sorts first.
+ *    A document tags its inserts with {@link insertTag}, so on a counter tie a row a person
+ *    made (`local`) sorts first, and only then the replica id (`TODO/data-014`).
  *    **Exception:** when the left neighbour is a row the inserting replica minted itself, its
  *    insert continues that run in place (`MEMBER_DIGIT`), and sorts before another replica's
  *    insert at the same gap whatever the stamps. Without this, keys would grow by one segment
@@ -230,6 +232,33 @@ export function keyBetween(before, after, stamp) {
     return shallowestBetween(low, high, stamp, n)
   }
   return shallowestBetween(low, high, stamp, 0)
+}
+
+/**
+ * The tag a document mints an insert's key with (`TODO/data-014`): the stamp's counter doubled,
+ * plus one unless the row is `local` (made by a person, on some copy of the project).
+ *
+ * The flagged row of a same-gap conflict is the one that sorts second, and two concurrent
+ * inserts whose stamps tie on the counter used to be ordered by replica id alone — random per
+ * session, so which step lost changed from run to run. Doubling keeps every non-tie in stamp
+ * order (`2a + 1 < 2b` whenever `a < b`) and puts the `local` row first on a tie; two rows of
+ * the same rank still fall back to the replica id. The rank is fixed into the key when it is
+ * minted, from the row's own origin, which never changes. So the order is still plain key
+ * comparison: total, a function of the merged keys alone, the same on every replica, and what
+ * everything that keeps a log in key order (the document's moved-row detection, Redo by key)
+ * already assumes. Ranking at compare time instead would need the origin of a run's head, which
+ * a tombstone does not keep.
+ *
+ * Not for derived keys: those keep the raw legacy stamp (`state.js` `LEGACY_STAMP`), because a
+ * file omits every key equal to the derived one.
+ *
+ * @param {Stamp} stamp The insert's stamp.
+ * @param {string} origin The origin of the row the key is for (the run's first row).
+ * @returns {Stamp} A tag shaped like a stamp, for {@link keyBetween} / {@link keysBetween}; never
+ *   read back as a stamp.
+ */
+export function insertTag(stamp, origin) {
+  return { counter: stamp.counter * 2 + (origin === 'local' ? 0 : 1), replica: stamp.replica }
 }
 
 /**

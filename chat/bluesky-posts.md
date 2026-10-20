@@ -2286,3 +2286,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** full e2e 4152 passed / 0 failed / 1136 skipped, 6262 unit → test runs this session; hand-drive results → drive script output this session; iPhone untested → TODO/VERIFY.md row
 **To Add:** none
+
+## 2026-10-20 — Merge ties now go to the person's step
+
+**Post:** When a person's move and an AI fillet land on the same clock tick, which one got flagged as the conflict used to depend on random replica ids. Now the step a person made wins the tie; the rest still fall back to replica order. The rank lives in the position key, so every copy agrees. Built with Claude Code, reviewed by me. #CAD #OpenSource
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** replica ids decided ties → agent probe, reported this session, and TODO/data-014 Problem; rank in the key → positionKey.js `insertTag` in diff
+**To Add:** none

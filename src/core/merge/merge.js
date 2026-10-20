@@ -18,7 +18,9 @@
  *   the newer life wins whole. Within one life, each field group (record, position,
  *   `suppressed`, `leftBroken`) takes the later stamp. `origin` and `intent` travel with the
  *   record.
- * - **Order.** Live rows sorted by `(position key, born stamp)`.
+ * - **Order.** Live rows sorted by `(position key, born stamp)`. A same-gap tie between two
+ *   replicas is settled by the key alone: its tag puts a `local` row first on a counter tie
+ *   (`insertTag`, `TODO/data-014`), so nothing here reads an origin.
  * - **Registers and parts.** The later stamp wins.
  *
  * The result is commutative, associative and idempotent (`fuzz.spec.js`).

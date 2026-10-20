@@ -3283,3 +3283,16 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** button shipped 2026-10-18 → git log 511cf15; 4152/0/1136 and 6262 unit → test runs this session; ambiguous state → drive output this session
 **To Add:** none
+
+## 2026-10-20 — Merge ties now go to the person's step
+
+**Post:** In a project that two writers can edit, a conflict has to be flagged the same way on every copy. WarpCad's merge flagged the later of two steps in the merged log, and when two steps carried the same Lamport counter, replica ids (random per session) decided which was later. So a person's move and an AI fillet could trade places from one run to the next.
+
+The TODO asked to prefer the local step. That is relative to whoever is looking, and two copies would then flag different rows. The rule now is by origin: a step a person made sorts before any other origin on a tie, then replica id. It is fixed into the position key when the key is minted, so ordering is still plain key comparison and the merge code is unchanged. No file format change.
+
+Checks: 6279 unit tests and 4152 end-to-end tests passed with none failing. Then I merged a move against an MCP fillet three times in two browser contexts, in both directions, and both copies flagged the same step each time. Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** 6279 unit, 4152 passed/0 failed e2e → test runs this session; 3 rounds both directions → drive output this session; no format change → agent report, diff touches no format code
+**To Add:** none

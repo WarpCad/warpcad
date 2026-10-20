@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { describe, expect, it } from 'vitest'
 import { diffStates, liveOrder, mergeStates, relatedness, resolveRollback } from './merge.js'
-import { keyBetween } from './positionKey.js'
+import { insertTag, keyBetween, keysBetween } from './positionKey.js'
 import { canonicalJSON, emptyMergeState } from './state.js'
 
 /** @typedef {import('./state.js').MergeState} MergeState */
@@ -172,6 +172,66 @@ describe('record, position and flags', () => {
   it('orders by position key, then born stamp', () => {
     const same = stateOf([row('op-x', K1, s(4, B)), row('op-y', K1, s(4, A))])
     expect(liveOrder(same)).toEqual(['op-y', 'op-x'])
+  })
+})
+
+describe('a same-clock tie at one gap (TODO/data-014)', () => {
+  const Z = 'zzzzzz'
+  // Neither competitor is `A`, which minted `K3`: an insert after a replica's own row continues
+  // its run and sorts first whatever the tag (`positionKey.js`, the member exception).
+
+  /**
+   * One replica's row appended after `K3`, keyed the way the document mints it.
+   *
+   * @param {string} id
+   * @param {string} origin
+   * @param {import('../replica.js').Stamp} stamp
+   */
+  function appended(id, origin, stamp) {
+    return edited(base, (entries) => {
+      entries.set(id, row(id, keyBetween(K3, null, insertTag(stamp, origin)), stamp, { origin }))
+    })
+  }
+
+  it('the local step sorts first, whichever replica id is lower, in both merge orders', () => {
+    for (const [localReplica, otherReplica] of [[B, Z], [Z, B]]) {
+      for (const other of ['ai', 'mcp', 'webmcp', 'remote', 'programmatic', 'a file said this']) {
+        const merged = bothWays(appended('mine', 'local', s(4, localReplica)), appended('theirs', other, s(4, otherReplica)))
+        expect(liveOrder(merged), `${other} on ${otherReplica}`).toEqual(['op-1', 'op-2', 'op-3', 'mine', 'theirs'])
+      }
+    }
+  })
+
+  it('two steps of the same rank fall back to the replica order, stable across runs', () => {
+    for (const [first, second] of [['local', 'local'], ['ai', 'mcp'], ['mcp', 'ai']]) {
+      const runs = [0, 1].map(() => canonicalJSON(bothWays(appended('on-z', first, s(4, Z)), appended('on-b', second, s(4, B)))))
+      expect(runs[1]).toBe(runs[0])
+      const merged = bothWays(appended('on-z', first, s(4, Z)), appended('on-b', second, s(4, B)))
+      expect(liveOrder(merged).slice(3), `${first}/${second}`).toEqual(['on-b', 'on-z'])
+    }
+  })
+
+  it('not a tie: the earlier stamp sorts first, whoever made it', () => {
+    const merged = bothWays(appended('mine', 'local', s(5, B)), appended('theirs', 'ai', s(4, Z)))
+    expect(liveOrder(merged).slice(3)).toEqual(['theirs', 'mine'])
+    const reverse = bothWays(appended('mine', 'local', s(4, Z)), appended('theirs', 'ai', s(5, B)))
+    expect(liveOrder(reverse).slice(3)).toEqual(['mine', 'theirs'])
+  })
+
+  it('a run stays whole behind its head, and a tied local run goes first', () => {
+    const mine = edited(base, (entries) => {
+      keysBetween(K3, null, 3, insertTag(s(4, Z), 'local')).forEach((key, i) => entries.set(`mine-${i}`, row(`mine-${i}`, key, s(4, Z))))
+    })
+    const theirs = edited(base, (entries) => {
+      keysBetween(K3, null, 2, insertTag(s(4, B), 'ai')).forEach((key, i) => entries.set(`theirs-${i}`, row(`theirs-${i}`, key, s(4, B), { origin: 'ai' })))
+    })
+    expect(liveOrder(bothWays(mine, theirs)).slice(3)).toEqual(['mine-0', 'mine-1', 'mine-2', 'theirs-0', 'theirs-1'])
+  })
+
+  it('insertTag keeps the stamp order and puts a local insert first on a counter tie', () => {
+    expect(insertTag(s(4, Z), 'local')).toEqual({ counter: 8, replica: Z })
+    expect(insertTag(s(4, B), 'ai')).toEqual({ counter: 9, replica: B })
+    expect(insertTag(s(3, B), 'ai').counter).toBeLessThan(insertTag(s(4, Z), 'local').counter)
   })
 })
 

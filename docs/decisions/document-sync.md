@@ -375,6 +375,47 @@ and called them related. They merged silently.
   keep the origin they were written with (often `local`). Header **Undo** still never reaches
   them because the undo stack holds steps, not origins.
 
+### As built: `data-014` (2026-10-20), a same-clock tie prefers the step a person made
+
+When two concurrent rows conflict (a move and a fillet of one body), the flagged row is the one
+that folds second. For two rows inserted at one gap, that is the one whose position key sorts
+second. When the two inserts' stamps tied on the counter, only the replica id ordered them, and a
+replica id is random per tab, AI fork and MCP process. So which step lost changed from run to run.
+The user chose, on 2026-10-17, that the step a person made should win the tie.
+
+- **The rule is by origin, not by viewer.** A row with origin `local` (made by hand, on some copy
+  of the project) beats a row of any other origin (`ai`, `mcp`, `webmcp`, `remote`,
+  `programmatic`, anything a file declares). Two rows of the same rank still fall back to the
+  replica id. "Prefer *this device's* step" was rejected: it would make replicas flag different
+  rows and break convergence, for the same reason a conflict reason never says "by you"
+  (`data-013`).
+- **It lives in the key, at mint time.** A document tags an insert's key with
+  `insertTag(stamp, origin)`: the counter doubled, plus one unless the run's first row is
+  `local`. Every non-tie keeps stamp order (`2a + 1 < 2b` whenever `a < b`), and on a tie the
+  `local` key sorts first. The origin never changes, so the rank baked into a key never needs to
+  be re-read. The order is still plain key comparison: total, a function of the merged keys
+  alone, and the same on every replica in every merge order. The merge core reads no origin, and
+  merge stays commutative, associative and idempotent (`fuzz.spec.js`, now minting through
+  `insertTag`).
+- **Why not rank at compare time.** The document keeps its log in plain key order. Every
+  transaction treats an out-of-order pair as a move and re-keys it (`movedRows`), Redo after a
+  merge lands by key (`indexForKey`), and `keyBetween` refuses neighbours out of order. A
+  comparator that ranked by origin would put the log out of key order after a merge, so the next
+  local edit would write phantom moves. It would also need the origin of a run's head, which a
+  tombstone does not keep. Deciding the winner inside the fold was rejected too. The losing row
+  would be an earlier row that builds fine. A fresh load, the export worker's re-fold and the
+  tail shadow check fold the entries without their stamps, so they would fold it differently.
+- **No format change.** Key grammar, the `merge` section and record lines are unchanged. A tag
+  was never read as a stamp (`keysBetween` already mints `counter + i`). Derived (legacy) keys
+  keep the raw legacy stamp, because a file omits every key equal to the derived one.
+- **Limits.** The tie rule covers fresh inserts at one gap. The member exception above is
+  unchanged: an insert right after the inserting replica's own row continues that run and sorts
+  first whatever the stamps or origins. Keys minted before this build carry undoubled tags. Order
+  against them is still deterministic, but "the earlier stamp sorts first" holds only between
+  keys minted the same way.
+- The merge banner and the conflict reason are worded as before. They name the step that lost
+  and the one it lost to.
+
 ### Sources
 
 `Initial design.md` §1 ("Document model / sync — proposed as deferred, not resolved")

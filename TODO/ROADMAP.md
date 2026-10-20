@@ -61,9 +61,9 @@ run at all); see `TODO/done/build-001-project-scaffold.md`'s own note.
 
 ## Next up — recommended TODOs
 
-*Last reviewed 2026-10-17 (the GitHub repository is confirmed to exist). Ranked by the user's order of 2026-10-17: today's goal first ([M18](#m18--launch-publish-appwarpcadcom-sentry-and-ga)), with the four clean-up tasks that still gate the push (`build-011`, `docs-023`, `docs-024`, `build-012`) from the pre-publish review **before** the push to GitHub, then every other open task, then the gears last (as decided 2026-10-16).*
+*Last reviewed 2026-10-20. Ranked by the user's order: the goal first, then every other open task, then the gears last (as decided 2026-10-16).*
 
-**Today's goal (2026-10-17):** publish to GitHub, make `warpcad.com` work, and get Sentry and GA working.
+**Goal (updated 2026-10-20):** the launch is done. The app was published the weekend of 2026-10-18 and is served at `app.warpcad.com`. The next goal is to push the nine local commits (the release gate and the phone header work) so the Pages deploy runs only on a release, then cut the first release, `v1.0.0`, and finish GA's live checks. The original 2026-10-17 goal (publish, make `warpcad.com` work, get Sentry and GA running) is the one that is now mostly complete.
 
 | # | Task | Why now | Model |
 |---|---|---|---|
@@ -86,7 +86,7 @@ run at all); see `TODO/done/build-001-project-scaffold.md`'s own note.
 | 12 | ✅ [`core-064`](done/core-064-subtract-pi-hole-keeps-tool-part.md) Subtract with a Pi's `hole1` keeps the tool part | Decided 2026-10-17 | opus |
 | 13 | ✅ [`core-063`](done/core-063-repeat-apply-copies-foreign-steps.md) Repeat Apply copies a foreign step | Decided 2026-10-17 | sonnet |
 | 14 | ✅ [`ui-076`](done/ui-076-save-to-library-refuses-a-repeat.md) Save to library refuses a repeat (replaces `ui-073`) | Decided 2026-10-17 | sonnet |
-| 15 | ▶ [`data-014`](data-014-merge-tie-prefers-local-step.md) Merge tie-break prefers the local step | Decided 2026-10-17; merge semantics, so opus | opus |
+| 15 | ✅ [`data-014`](done/data-014-merge-tie-prefers-local-step.md) Merge tie-break prefers the local step | Decided 2026-10-17; merge semantics, so opus | opus |
 | 16 | ▶ [`io-012`](io-012-warn-on-focus-when-file-may-have-changed.md) Warn on focus when the file may have changed (no file handle) | Decided 2026-10-17 | sonnet |
 | 17 | ✅ [`ui-075`](done/ui-075-live-mcp-access-phone-header-entry.md) Live MCP access entry in the phone header | Decided 2026-10-17 | sonnet |
 | 17b | ▶ [`testing-006`](testing-006-redrive-connected-scenarios-with-phone-header-entry.md) Hand-drive scenarios 24, 25 and the `ui-071` repro against the phone header entry | Closes `ui-075`; its Testing section requires it | sonnet |
@@ -104,6 +104,10 @@ run at all); see `TODO/done/build-001-project-scaffold.md`'s own note.
 **Decided 2026-10-17:** the owner reports the M16 and M17 five-minute free-form passes done (details of what was tried and found not yet given; any issue becomes its own TODO). **Owed to you, not to an agent:** the M9, M10 passes (carried past per `TODO/BUDGET.md`); the M5–M8 and M12 passes (recorded as owed; whether any was done since is not written down here). The clean-up owner steps (`docs-024` authorship check, `build-012` quota check, `core-065` pilot-hole question) and the Sentry and GA owner rows are in M18.
 
 **Decided 2026-10-17:** the owner reports the free-form hand passes for M5, M6, M7, M8, M9, M10 and M12 done too (what was tried and found not given; any issue becomes its own TODO). No pass is owed now; the next one falls due when the next milestone completes.
+
+**Updated 2026-10-20:** the owner reports the launch was published the weekend of 2026-10-18. This supersedes the "hold the push" line that was written here earlier the same day, which was based on an out-of-date view of the remote. The remote (`origin/main`, head `e71813d`) has the launch, and `app.warpcad.com` serves it. **Not yet on the remote:** nine local commits, `8685b94` through `ee5b9d1`, which hold the release gate (`build-013`, `a4b0722`) and the phone header work (`ui-075`, `ui-077`). Until they are pushed, the Pages deploy still runs on every green CI run, not only on a release.
+
+**Decided 2026-10-20:** hold the push. The nine commits stay local for now, so the release gate is not yet live on GitHub and the first release check (`build-013`) waits. This replaces the earlier "Updated 2026-10-20" push question as the open item; the owner decides when to push.
 
 **The shape of what is blocked**
 
@@ -142,7 +146,7 @@ table to edit when a task opens, closes or changes priority — see the next sec
 | Findings | ✅ [`core-064`](done/core-064-subtract-pi-hole-keeps-tool-part.md) Subtract with a Pi's `hole1` keeps the tool part, so one Pi can drill several holes | finding | medium | opus | ✅ done 2026-10-17 |
 | Findings | ✅ [`core-063`](done/core-063-repeat-apply-copies-foreign-steps.md) Repeat Apply copies a foreign step, listed as "Not part of the repeat" | finding | medium | sonnet | ✅ done 2026-10-17 |
 | Findings | ✅ [`ui-076`](done/ui-076-save-to-library-refuses-a-repeat.md) Save to library refuses a repeat (`ui-073` superseded) | finding | medium | sonnet | done |
-| Findings | [`data-014`](data-014-merge-tie-prefers-local-step.md) Merge tie-break prefers the local step, not the replica id | finding | medium | opus | ▶ **ready** |
+| Findings | ✅ [`data-014`](done/data-014-merge-tie-prefers-local-step.md) Merge tie-break prefers the local step, not the replica id | finding | medium | opus | done |
 | Findings | [`io-012`](io-012-warn-on-focus-when-file-may-have-changed.md) On focus, warn "this file may have changed" in browsers with no file handle | feature | medium | sonnet | ▶ **ready** |
 | Findings | ✅ [`ui-075`](done/ui-075-live-mcp-access-phone-header-entry.md) Live MCP access entry in the phone header | feature | medium | sonnet | ▶ **ready** |
 | Findings | [`testing-006`](testing-006-redrive-connected-scenarios-with-phone-header-entry.md) Hand-drive scenarios 24, 25 and the `ui-071` repro with the phone header entry | feature | medium | sonnet | ▶ **ready** after `ui-075` |
@@ -1448,3 +1452,4 @@ convention going forward.
 | `ui-077` | 2026-10-18 21:38 | ~2h18m wall clock (preflight 19:20 UTC), including waits on background full-matrix runs and two user decisions. Version label in the header: `dev` for the 0.0.0 placeholder, `v<version> · <commit>` once released; stacked under the title at phone width as an interim layout (`ui-078` open for the wider budget). Shared store helper `headerVersionLabel`, e2e `app-header-version`, docs `help.md` section, regenerated `ai-working-chip`, `inspector-hidden-parts`, `sketch-sheet-phone` pictures (the latter two also picked up unrelated drift from `main`, reviewed and kept). Acceptance scenario 1 and closed findings `ai-024`, `build-005` driven by hand at 1440x900 and 390x844 (PASS). Full e2e: two timing flakes under parallel load (`mcp-connected-assistant` connected-panel gap, `ai-live-bridge` status), both passed on isolated re-run. |
 | `docs-025` | 2026-10-19 19:58 | ~5m wall clock. Phone route (⇄ header button) added to `docs/ai-partner.md` and `docs/mcp.md`, hosted-copy absence stated, new phone-only still `ai-live-mcp-header.png` generated by `e2e/docs/ai-live-mcp-header.docs.js` (the dead-link guard needed a placeholder PNG first). Typecheck, unit (6262), guards clean; docs-* projects 121 passed, no drift. No UI change, no scenarios. No stamp (changed scope). |
 | `ui-075` | 2026-10-19 20:35 | ~1h wall clock since the baseline run (the button shipped in `511cf15`; this invocation closed it). Full e2e green on all engines (4152 passed, 1136 viewport-gated skips, 0 failed), typecheck and 6262 unit green, stamp set. Scenarios 24 (connected half) and 25 and the `ui-071` repro hand-driven at 1440 and 390 px Chromium: PASS; landscape, WebKit and a real phone left to `testing-006`. |
+| `data-014` | 2026-10-20 18:57 | 41m |
