@@ -36,6 +36,14 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### io-012 — Warn on focus when the file may have changed (2026-10-21 15:21)
+
+Covered in Chromium by a unit spec and an e2e case, but Safari, Firefox and phones have no file handle, so the warning path was never run on those engines or devices. Also the Documentation section's `e2e/docs/` still was not added.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | On an iPhone (390×844) in Safari: open a project file, change it in another app, return to WarpCad. The status chip should read *This file may have changed. Use File ▾ → Merge file… to bring it in.* and wrap without pushing the header. | Open | |
+
 ### build-016 — CLA, licence text and the pre-push backstop (2026-10-21 14:39)
 
 The in-repo `cla` and `dco` checks and the GitHub settings they depend on can only be tested with a second account and by the owner applying settings. Part 6 is a legal review. These are not covered by any acceptance scenario.

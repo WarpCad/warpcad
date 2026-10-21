@@ -751,6 +751,28 @@ test.describe('Download copy and Open… (the fallback path — real download an
     await expect(page.getByTestId('save-status')).toContainText(`Opened ${download.suggestedFilename()} · 2 steps`)
   })
 
+  test('a file opened here cannot be watched: returning to the window says it may have changed (TODO/io-012)', async ({ page }) => {
+    await seedCubes(page, 2)
+    await openFileMenu(page)
+    const downloading = page.waitForEvent('download')
+    await page.getByTestId('file-save').click()
+    const download = await downloading
+    const saved = readFileSync(await download.path())
+
+    await openFileMenu(page)
+    await page.getByTestId('file-open').click()
+    const chooserEvent = page.waitForEvent('filechooser')
+    await page.getByTestId('file-open-confirm-replace').click()
+    const chooser = await chooserEvent
+    await chooser.setFiles({ name: download.suggestedFilename(), mimeType: 'text/plain', buffer: saved })
+    await expectBodyCount(page, 2)
+    await expect(page.getByTestId('save-status')).toContainText(`Opened ${download.suggestedFilename()}`)
+
+    await page.evaluate(() => window.dispatchEvent(new Event('focus')))
+    await expect(page.getByTestId('save-status')).toContainText('This file may have changed. Use File ▾ → Merge file… to bring it in.')
+    await expectBodyCount(page, 2)
+  })
+
   test('Open… while History is previewing replaces the document AND ends the preview', async ({ page }) => {
     await seedCubes(page, 2)
     await page.getByTestId('timeline-toggle').click()

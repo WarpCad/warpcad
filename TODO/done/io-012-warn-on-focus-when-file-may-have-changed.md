@@ -6,8 +6,15 @@ priority: medium
 model: sonnet
 milestone: unscheduled (user request 2026-10-17)
 depends: []
-status: open
+status: done
 ---
+
+> **What shipped (2026-10-21).** The warning lives in `src/stores/persistence.js`, not
+> `merge.js`: the focus handler, `checkDiskFile`, and the chip text are there. It shows on the
+> header status chip (`useStatusSurface.js`), which is the one status surface the strip uses.
+> It is set on focus or a return to the tab, cleared by a merge, a save, and a dismissal, and
+> is off for a project never opened from a file. Docs went to `docs/save-load.md`, since
+> `save-and-open.md` does not exist. No `e2e/docs/` still was added; see Documentation below.
 
 ## Goal
 

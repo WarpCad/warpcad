@@ -220,6 +220,20 @@ choose **File ▾ → Merge file…** instead of **Open…**. Its changes are ad
 yours are kept, there is no "Replace" question, and **Undo merge** takes it back out. See
 [Merging two copies of a project](merging.md).
 
+### When WarpCad can't see the file change
+
+On Safari, Firefox and phones, WarpCad cannot look at the file again after it opens it, so it
+cannot tell that another app changed it. When you open a file this way and come back to the
+WarpCad window, the status line in the top bar reads *This file may have changed. Use File ▾ →
+Merge file… to bring it in.* Nothing is read or merged for you. To bring the changes in:
+
+1. Tap **File ▾ → Merge file…**.
+2. Pick the file, the same one you opened.
+3. The status line goes away and the merge summary appears, with **Undo merge** on it.
+
+A save clears the line too. On Chromium desktop, which can read the file again, WarpCad merges the
+change by itself and this line never appears.
+
 A project is given its own identity the first time you change it, and the file keeps it on
 that same last line, so a copy of the project can be told from a different one when you
 **Merge file…**. A project you start with **New** and don't touch has none, and is saved as an

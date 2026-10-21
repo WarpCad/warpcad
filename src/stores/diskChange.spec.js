@@ -396,3 +396,49 @@ describe('what still asks: a different project, an unreadable file, Reload from 
     expect(persistence.diskChanged).toBe(false)
   })
 })
+
+describe('a file opened without a handle may have changed (TODO/io-012)', () => {
+  const MAY_HAVE_CHANGED = 'This file may have changed. Use File ▾ → Merge file… to bring it in.'
+
+  it('focus on a project opened from a handle-less file warns, and merges nothing', async () => {
+    const { persistence, documentStore } = await openedApp(fallbackFiles())
+    const version = documentStore.version
+    await persistence.checkDiskFile()
+    expect(persistence.fileMayHaveChanged).toBe(true)
+    expect(persistence.chipText).toBe(MAY_HAVE_CHANGED)
+    expect(persistence.chipTone).toBe('warn')
+    expect(persistence.diskChanged).toBe(false)
+    expect(documentStore.version).toBe(version)
+  })
+
+  it('a project that was never opened from a file raises no warning', async () => {
+    setPersistenceDependencies({ backend: quietBackend(), files: fallbackFiles() })
+    const persistence = usePersistenceStore()
+    await persistence.start()
+    await persistence.checkDiskFile()
+    expect(persistence.fileMayHaveChanged).toBe(false)
+  })
+
+  it('a watched native file is noticed by the disk check, not warned about', async () => {
+    const { files } = nativeFiles()
+    const { persistence } = await openedApp(files)
+    await persistence.checkDiskFile()
+    expect(persistence.fileMayHaveChanged).toBe(false)
+  })
+
+  it('Merge file… clears the warning', async () => {
+    const { persistence } = await openedApp(fallbackFiles())
+    await persistence.checkDiskFile()
+    expect(persistence.fileMayHaveChanged).toBe(true)
+    await persistence.mergeFile()
+    expect(persistence.fileMayHaveChanged).toBe(false)
+  })
+
+  it('a save clears the warning', async () => {
+    const { persistence } = await openedApp(fallbackFiles())
+    await persistence.checkDiskFile()
+    expect(persistence.fileMayHaveChanged).toBe(true)
+    await persistence.saveFile()
+    expect(persistence.fileMayHaveChanged).toBe(false)
+  })
+})

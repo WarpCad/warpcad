@@ -87,7 +87,7 @@ run at all); see `TODO/done/build-001-project-scaffold.md`'s own note.
 | 13 | ✅ [`core-063`](done/core-063-repeat-apply-copies-foreign-steps.md) Repeat Apply copies a foreign step | Decided 2026-10-17 | sonnet |
 | 14 | ✅ [`ui-076`](done/ui-076-save-to-library-refuses-a-repeat.md) Save to library refuses a repeat (replaces `ui-073`) | Decided 2026-10-17 | sonnet |
 | 15 | ✅ [`data-014`](done/data-014-merge-tie-prefers-local-step.md) Merge tie-break prefers the local step | Decided 2026-10-17; merge semantics, so opus | opus |
-| 16 | ▶ [`io-012`](io-012-warn-on-focus-when-file-may-have-changed.md) Warn on focus when the file may have changed (no file handle) | Decided 2026-10-17 | sonnet |
+| 16 | ✅ [`io-012`](done/io-012-warn-on-focus-when-file-may-have-changed.md) Warn on focus when the file may have changed (no file handle) | Decided 2026-10-17 | sonnet |
 | 17 | ✅ [`ui-075`](done/ui-075-live-mcp-access-phone-header-entry.md) Live MCP access entry in the phone header | Decided 2026-10-17 | sonnet |
 | 17b | ▶ [`testing-006`](testing-006-redrive-connected-scenarios-with-phone-header-entry.md) Hand-drive scenarios 24, 25 and the `ui-071` repro against the phone header entry | Closes `ui-075`; its Testing section requires it | sonnet |
 | 17c | ✅ [`docs-025`](done/docs-025-live-mcp-phone-header-entry-docs.md) Document the phone header's Live MCP access entry, with a still | Closes `ui-075`; the Documentation gate | sonnet |
@@ -150,7 +150,7 @@ table to edit when a task opens, closes or changes priority — see the next sec
 | Findings | ✅ [`core-063`](done/core-063-repeat-apply-copies-foreign-steps.md) Repeat Apply copies a foreign step, listed as "Not part of the repeat" | finding | medium | sonnet | ✅ done 2026-10-17 |
 | Findings | ✅ [`ui-076`](done/ui-076-save-to-library-refuses-a-repeat.md) Save to library refuses a repeat (`ui-073` superseded) | finding | medium | sonnet | done |
 | Findings | ✅ [`data-014`](done/data-014-merge-tie-prefers-local-step.md) Merge tie-break prefers the local step, not the replica id | finding | medium | opus | done |
-| Findings | [`io-012`](io-012-warn-on-focus-when-file-may-have-changed.md) On focus, warn "this file may have changed" in browsers with no file handle | feature | medium | sonnet | ▶ **ready** |
+| Findings | [`io-012`](done/io-012-warn-on-focus-when-file-may-have-changed.md) On focus, warn "this file may have changed" in browsers with no file handle | feature | medium | sonnet | ✅ **done** |
 | Findings | ✅ [`ui-075`](done/ui-075-live-mcp-access-phone-header-entry.md) Live MCP access entry in the phone header | feature | medium | sonnet | ▶ **ready** |
 | Findings | [`testing-006`](testing-006-redrive-connected-scenarios-with-phone-header-entry.md) Hand-drive scenarios 24, 25 and the `ui-071` repro with the phone header entry | feature | medium | sonnet | ▶ **ready** after `ui-075` |
 | Findings | ✅ [`docs-025`](done/docs-025-live-mcp-phone-header-entry-docs.md) Document the phone header's Live MCP access entry, with a still | feature | medium | sonnet | ▶ **ready** after `ui-075` |
@@ -1125,7 +1125,7 @@ as a milestone table.) `io-008` and `data-013` moved to [M16](#m16--next-batch-n
 | ✅ `core-063` | Repeat Apply copies a foreign step on the first part; decided 2026-10-17 to copy it and list it under *Not part of the repeat* | Finding | `core-061` | 10, 15 |
 | `ui-073` | Save to library on a repeat body saves its source part too, so the saved part rebuilds on drop. Decided 2026-10-17 | Finding | `core-061` | 22 |
 | `data-014` | Merge tie-break prefers the local step when two clocks tie. Decided 2026-10-17 | Finding | — | 1 (merge scenarios) |
-| `io-012` | On focus, warn "this file may have changed" in browsers with no file handle. Decided 2026-10-17 | Feature | — | 13 |
+| ✅ `io-012` | On focus, warn "this file may have changed" in browsers with no file handle. Decided 2026-10-17 | Feature | — | 13 |
 | `ui-075` | Live MCP access entry in the phone header. Decided 2026-10-17 | Feature | — | 24, 25 |
 | `testing-006` | Hand-drive scenarios 24, 25 and the `ui-071` repro against the phone header entry. Split from `ui-075` 2026-10-18 | Feature | `ui-075` | 24, 25 |
 | `docs-025` | Document the phone header's Live MCP access entry, with a still. Split from `ui-075` 2026-10-18 | Feature | `ui-075` | none |
@@ -1466,3 +1466,4 @@ convention going forward.
 | `build-015` | 2026-10-21 02:50 | ~2h10m wall clock (preflight 00:36 UTC; four full e2e runs). Default e2e run is now `vite preview` of an e2e build (`VITE_E2E_HOOKS=1`); `E2E_DEV=1` opts out. Found and fixed three dev-only assumptions: 20 specs importing `/src/*` (now `window.__e2eImport`, `src/e2eHooks.js`), 12 `new Function` helpers (CSP; now `evaluateHandle`), service-worker strip resizing canvases (worker blocked on every engine). Unit 6314 passed; e2e 4123 passed / 0 failed / 1165 skipped (947 s on preview; earlier dev runs ~21 min per the `ui-061` row, not re-measured; 57-test subset 23.9 s → 9.6 s). Acceptance scenarios not driven: no product surface changed (the hook is pruned from the shipped bundle, checked). |
 | `build-003` | 2026-10-20 23:00 | ~15m wall clock. Research only: `docs/decisions/native-mobile-shell.md` written by an Opus agent (proposed, not yet accepted). Recommends Capacitor 8 + outbound relay. No code, tests or scenarios touched. |
 | `build-016` | 2026-10-21 14:39 | 13m (preflight 14:26 UTC, skipped on a green stamp; retired with open items). Parts 1-5 shipped: CLA mechanism recorded, npm licence audit (47 packages, all permissive), `CLA.md`, in-repo `cla`/`dco` workflows (`contributor-assistant` archived today), pre-push backstop with scratch-repo walk. Unit spec 14/14. Open: Part 4 settings, Part 6 review, second-account PR test, build-014 re-run |
+| `io-012` | 2026-10-21 15:21 | ~40m wall clock (from 14:40 UTC). Warning on focus for a file opened without a handle (`persistence.js` `mayHaveChanged`, chip via `useStatusSurface.js`); cleared by merge, save, dismissal. Unit spec 28/28 (5 new, RED first); typecheck clean; unit 6335 green. E2E: new case green on chromium-laptop; full matrix 4130 passed, 2 failed (`viewport-scaffold` WebGL grid and scale readout, both reproduce on untouched HEAD), 1165 skipped. Acceptance scenarios not driven interactively. |

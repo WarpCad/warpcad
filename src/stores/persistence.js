@@ -100,6 +100,11 @@ const REFUSED_NOTICE_MS = 12000
 export const DISK_CHANGED_TEXT = 'File changed on disk — Reload'
 /** The chip's words while a change from the file waits for a quiet moment to merge (`TODO/io-010`). */
 export const WAITING_TEXT = 'Changes waiting to merge'
+/**
+ * The chip's words after focus or a return to a project opened from a file this browser cannot
+ * read again (`TODO/io-012`). It stays until a merge, a save, or a dismissal.
+ */
+export const MAY_HAVE_CHANGED_TEXT = 'This file may have changed. Use File ▾ → Merge file… to bring it in.'
 /** What the merge toast calls the source when every incoming row has origin `mcp`. */
 const MCP_SOURCE_NAME = 'Claude Code'
 
@@ -273,6 +278,10 @@ export const usePersistenceStore = defineStore('persistence', () => {
   const uiBusy = ref(false)
   /** Whether a change to the open file can be noticed at all (a native handle is held). */
   const diskCanWatch = ref(false)
+  /** The project came from a file this browser cannot read again (`TODO/io-012`). */
+  let unwatchedFile = false
+  /** Set on focus or a return to the tab, when {@link unwatchedFile} means nothing can be checked. */
+  const mayHaveChanged = ref(false)
   /** @type {Promise<void> | null} */
   let diskCheck = null
 
@@ -354,7 +363,7 @@ export const usePersistenceStore = defineStore('persistence', () => {
     if (loading.value) return 'saving'
     if (errorMessage.value) return 'error'
     if (loadWarning.value) return 'error'
-    if (diskChange.value !== null) return 'warn'
+    if (diskChange.value !== null || mayHaveChanged.value) return 'warn'
     if (autosaveState.value === 'saving') return 'saving'
     if (autosaveState.value === 'saved') return 'saved'
     return 'idle'
@@ -365,6 +374,7 @@ export const usePersistenceStore = defineStore('persistence', () => {
     if (errorMessage.value) return errorMessage.value
     if (loadWarning.value) return loadWarning.value
     if (diskChange.value !== null) return diskIssue.value === '' ? WAITING_TEXT : DISK_CHANGED_TEXT
+    if (mayHaveChanged.value) return MAY_HAVE_CHANGED_TEXT
     if (notice.value) return notice.value
     if (autosaveState.value === 'saving') return 'Saving…'
     if (autosaveState.value === 'saved') return `Saved · ${clock(savedAt.value)}`
@@ -587,6 +597,7 @@ export const usePersistenceStore = defineStore('persistence', () => {
     fileCapabilities.value = deps.files.capabilities
     if (result.ok) {
       errorMessage.value = ''
+      mayHaveChanged.value = false
       if (result.refusedName !== undefined) {
         // Not an error: the user's data is in the download. But the picker may have left an empty
         // file with a real project's name where they chose, and that part loses work if unread.
@@ -660,6 +671,8 @@ export const usePersistenceStore = defineStore('persistence', () => {
       diskKnown = picked.handle === undefined ? null : { text: picked.text, lastModified: picked.lastModified ?? null }
       clearPending()
       diskCanWatch.value = diskKnown !== null
+      unwatchedFile = diskKnown === null
+      mayHaveChanged.value = false
     }
     return opened
   }
@@ -719,6 +732,7 @@ export const usePersistenceStore = defineStore('persistence', () => {
     if (outcome.ok) {
       // A stale error from an earlier refused file never hides this success (`ui-033`).
       errorMessage.value = ''
+      mayHaveChanged.value = false
       showNotice(outcome.text, SAVED_NOTICE_MS)
     }
     return outcome
@@ -748,6 +762,8 @@ export const usePersistenceStore = defineStore('persistence', () => {
   /** The project no longer comes from the file this session was watching. */
   function forgetDisk() {
     diskKnown = null
+    unwatchedFile = false
+    mayHaveChanged.value = false
     clearPending()
     diskCanWatch.value = false
   }
@@ -762,7 +778,12 @@ export const usePersistenceStore = defineStore('persistence', () => {
   function checkDiskFile() {
     diskCheck ??= (async () => {
       const known = diskKnown
-      if (known === null || typeof deps.files.readCurrent !== 'function') return
+      if (known === null) {
+        // No handle, so no way to look at the file: say it may have changed instead (`TODO/io-012`).
+        if (unwatchedFile) mayHaveChanged.value = true
+        return
+      }
+      if (typeof deps.files.readCurrent !== 'function') return
       const read = await deps.files.readCurrent(known.lastModified === null ? undefined : { lastModified: known.lastModified })
       // Unreadable now (moved, deleted, permission withdrawn): say nothing here — a Save will
       // report it in its own words, and a focus is no time for an error.
@@ -946,6 +967,7 @@ export const usePersistenceStore = defineStore('persistence', () => {
   }
 
   function dismissError() {
+    mayHaveChanged.value = false
     errorMessage.value = ''
     loadWarning.value = ''
   }
@@ -980,6 +1002,7 @@ export const usePersistenceStore = defineStore('persistence', () => {
     askReloadFromDisk,
     diskPromptOpen,
     diskCanWatch,
+    fileMayHaveChanged: mayHaveChanged,
     checkDiskFile,
     resolveDiskChange,
     showDiskPrompt,
