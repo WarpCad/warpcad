@@ -3311,3 +3311,18 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** diff only for the design; 6312 unit tests and guards green → test runs this session
 **To Add:** none
+
+## 2026-10-21 — e2e now runs against the production build
+
+**Post:** The browser test suite for WarpCad now runs against the production build served by `vite preview`, with the dev server as an opt-out. The first full run failed 1106 tests, and none of them were product bugs: the suite had quietly depended on the dev server.
+
+Three things had to change. Twenty specs reached into the app's stores by importing `/src/…` URLs, which a bundle doesn't have, and serving the source next to the build would have loaded a second copy of every store. So a test-only loader now exists in the e2e build and is pruned from the shipped one. Twelve spec helpers rebuilt functions in the page with `new Function`, which the production CSP forbids; they now use Playwright's `evaluateHandle`. And the service worker's "ready to work offline" strip appeared at an unpredictable moment and shrank the canvas by 53 px under a snapshot, so the worker is blocked in the default run and the two specs about it opt back in.
+
+A 57-test subset went from 23.9 s on the dev server to 9.6 s on the build; the last full run passed with 0 failures and 1165 deliberate skips. Specs that need the dev-only live bridge now skip themselves unless run with `E2E_DEV=1`.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #Playwright #Vite #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** 1106 failures in first full run → run log this session; 20 specs, 12 helpers → diff; 53 px → debug output this session; 23.9 s → 9.6 s → timed runs this session; 0 failed / 1165 skipped → final full run this session
+**To Add:** none

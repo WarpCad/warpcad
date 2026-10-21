@@ -223,7 +223,7 @@ function changedPixels(page, a, b) {
 /** @param {import('@playwright/test').Page} page */
 async function clearSelection(page) {
   await page.evaluate(async () => {
-    const { useSelectionStore } = await import('/src/stores/selection.js')
+    const { useSelectionStore } = await window.__e2eImport('/src/stores/selection.js')
     useSelectionStore().clear()
   })
 }
@@ -331,7 +331,7 @@ test('Pi example: bind Model from its own value, give the cube a variable condit
 
   // The definition is after its consumer in the log — and the design still builds.
   const order = await page.evaluate(async () => {
-    const { useDocumentStore } = await import('/src/stores/document.js')
+    const { useDocumentStore } = await window.__e2eImport('/src/stores/document.js')
     return useDocumentStore().raw.entries.map((entry) => entry.record.op)
   })
   expect(order.indexOf('var.define')).toBeGreaterThan(order.indexOf('raspberrypi.bplus'))

@@ -13,7 +13,7 @@ test.describe('docs media: app update', () => {
     await openApp(page)
     await loadScene(page, 'cube-and-cylinder.ndjson', 2)
     await page.evaluate(async () => {
-      const { useAppUpdateStore } = await import('/src/stores/appUpdate.js')
+      const { useAppUpdateStore } = await window.__e2eImport('/src/stores/appUpdate.js')
       useAppUpdateStore().noteNeedRefresh()
     })
     await expect(page.getByTestId('pwa-update-toast')).toBeVisible()

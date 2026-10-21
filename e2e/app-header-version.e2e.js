@@ -49,8 +49,11 @@ test.describe('app header version label', () => {
 
   test('the header keeps the version label at this viewport', async ({ page }) => {
     await page.goto('/')
+    // The label's text is the build's version and commit, so it differs between builds; the layout
+    // around it is what this snapshot guards.
     await expect(page.getByTestId('app-header')).toHaveScreenshot('app-header-version.png', {
       maxDiffPixelRatio: 0.02,
+      mask: [page.getByTestId('app-version')],
     })
   })
 })

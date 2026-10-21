@@ -197,22 +197,27 @@ function storeApi(page) {
   return {
     /** @param {(api: any) => any} fn @param {any} [arg] */
     run: (fn, arg) =>
-      page.evaluate(
-        async ({ source, arg }) => {
-          const documentModule = await import('/src/stores/document.js')
-          const persistenceModule = await import('/src/stores/persistence.js')
-          const fileModule = await import('/src/storage/fileSystem.js')
-          const projectModule = await import('/src/core/project.js')
+      page
+        .evaluateHandle(async () => {
+          const documentModule = await window.__e2eImport('/src/stores/document.js')
+          const persistenceModule = await window.__e2eImport('/src/stores/persistence.js')
+          const fileModule = await window.__e2eImport('/src/storage/fileSystem.js')
+          const projectModule = await window.__e2eImport('/src/core/project.js')
           const api = {
             documentStore: documentModule.useDocumentStore(),
             persistence: persistenceModule.usePersistenceStore(),
             createFileStorage: fileModule.createFileStorage,
             serializeProject: projectModule.serializeProject,
           }
-          return await new Function('api', 'arg', `return (${source})(api, arg)`)(api, arg)
-        },
-        { source: fn.toString(), arg },
-      ),
+          return api
+        })
+        .then(async (handle) => {
+          try {
+            return await handle.evaluate(fn, arg)
+          } finally {
+            await handle.dispose()
+          }
+        }),
   }
 }
 

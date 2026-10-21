@@ -69,6 +69,7 @@ async function openHistory(page) {
 }
 
 test('a browser agent lists the tools, places a cube and a sphere and unions them; Undo AI turn takes the group back', async ({ page }, testInfo) => {
+  test.skip(process.env.E2E_PREVIEW === '1', 'asserts the dev host\'s live-access copy: E2E_DEV=1 npx playwright test e2e/webmcp.e2e.js')
   test.setTimeout(90_000)
   /** @type {string[]} */
   const errors = []

@@ -11,6 +11,7 @@ import { openApp, shot } from './support.js'
  * No movie: the interesting part happens in a second program. Laptop, Chromium only.
  */
 test.describe('docs media: live bridge', () => {
+  test.skip(process.env.E2E_PREVIEW === '1', 'the live bridge is dev-only: E2E_DEV=1 npm run docs:screenshots -- e2e/docs/ai-live-bridge.docs.js')
   test.skip(({ viewport }) => viewport?.width !== 1440, 'laptop-only')
   // Two tabs holding a lease at once make the bridge refuse as ambiguous: one worker, in order.
   test.describe.configure({ mode: 'serial' })

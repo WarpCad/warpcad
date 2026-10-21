@@ -36,6 +36,15 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### build-015 — e2e against the production build by default (2026-10-21 02:50)
+
+The default run now skips the specs that need the dev host's live bridge or scripted provider, so they no longer run unless asked.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | Run the dev-only specs once with `E2E_DEV=1`: `ai-scripted`, `webmcp`, `live-mcp-header-entry`, `ai-mcp-agent-pairing`, `mcp-connected-assistant`, and `docs/ai-chat`, `docs/ai-live-bridge`, `docs/ai-live-mcp-header` | Open | `docs/ai-live-bridge` "mcp-connected still" already fails on dev with and without this change |
+
+
 ### build-014 — Pre-push test gate (2026-10-20 22:05)
 
 Needs a real git remote, so only the unit-level logic is covered by tests.

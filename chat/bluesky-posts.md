@@ -2304,3 +2304,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** hook, trailer rule, ci.yml triggers → diff; 6312 unit passed, typecheck and guards clean → test runs this session
 **To Add:** none
+
+## 2026-10-21 — e2e now runs against the production build
+
+**Post:** WarpCad's browser tests now run against the built app, not the dev server. Doing that surfaced 20 specs importing source files by URL, 12 helpers the production CSP blocks, and a service-worker banner that resized canvases mid-snapshot. 57-spec subset: 23.9s to 9.6s. Built with Claude Code, reviewed by me. #CAD #WebGL
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** 20 specs / 12 helpers → diff (grep counts this session); banner resized canvas (53 px height difference) → debug output this session; 23.9s → 9.6s on 57 tests, chromium-laptop → two timed runs this session
+**To Add:** none

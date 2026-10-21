@@ -35,18 +35,23 @@ function storeApi(page) {
   return {
     /** @param {(api: any, arg: any) => any} fn @param {any} [arg] */
     run: (fn, arg) =>
-      page.evaluate(
-        async ({ source, arg }) => {
-          const documentModule = await import('/src/stores/document.js')
-          const selectionModule = await import('/src/stores/selection.js')
+      page
+        .evaluateHandle(async () => {
+          const documentModule = await window.__e2eImport('/src/stores/document.js')
+          const selectionModule = await window.__e2eImport('/src/stores/selection.js')
           const api = {
             documentStore: documentModule.useDocumentStore(),
             selection: selectionModule.useSelectionStore(),
           }
-          return await new Function('api', 'arg', `return (${source})(api, arg)`)(api, arg)
-        },
-        { source: fn.toString(), arg },
-      ),
+          return api
+        })
+        .then(async (handle) => {
+          try {
+            return await handle.evaluate(fn, arg)
+          } finally {
+            await handle.dispose()
+          }
+        }),
   }
 }
 
@@ -229,7 +234,17 @@ async function snapshotCanvas(page, key) {
     window.__faded = faded
   })
   try {
-    const box = await page.getByTestId('viewport-canvas').boundingBox()
+    // Clearing the selection reflows the panels around the canvas; wait for its box to hold still
+    // so both snapshots are the same size (the built app settles later than the dev server did).
+    const canvas = page.getByTestId('viewport-canvas')
+    let box = await canvas.boundingBox()
+    for (let attempt = 0; attempt < 20; attempt += 1) {
+      await page.waitForTimeout(100)
+      const next = await canvas.boundingBox()
+      const settled = JSON.stringify(next) === JSON.stringify(box)
+      box = next
+      if (settled) break
+    }
     const png = await page.screenshot({ clip: /** @type {any} */ (box) })
     await page.evaluate(
       async ({ b64, key }) => {
@@ -345,7 +360,7 @@ test('a legacy Bolt: type, size and fit are dropdowns, fit lists the chosen spec
   await expect(spec).toHaveValue('1/4')
   // Read off `boltSpecs['1/4 socket'].fitDiameterMm` — its own row, not a shared list.
   const fits = await page.evaluate(async () => {
-    const { boltSpecs } = await import('/src/core/kernel/tables/bolt-specs.js')
+    const { boltSpecs } = await window.__e2eImport('/src/core/kernel/tables/bolt-specs.js')
     return Object.keys(boltSpecs['1/4 socket'].fitDiameterMm)
   })
   await expect(fit.locator('option')).toHaveText(fits)

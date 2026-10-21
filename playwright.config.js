@@ -3,6 +3,25 @@ import { existsSync } from 'node:fs'
 import { defineConfig, devices } from '@playwright/test'
 
 /**
+ * The default run is against the **production build** served by `vite preview` (`TODO/build-015`),
+ * not the dev server: it is faster per spec (no on-demand module transforms) and it tests the code
+ * that ships. The dev server relaxes the Content-Security-Policy for its HMR websocket
+ * (`vite.config.js`), so only the built `index.html` carries the exact production policy, and only
+ * the build registers the production service worker.
+ *
+ * `E2E_DEV=1` is the explicit opt-out, for debugging and for the specs that are dev-only (live MCP
+ * access, scripted AI mode): `E2E_DEV=1 npx playwright test e2e/ai-scripted.e2e.js`.
+ *
+ * Specs that read the app's stores call `window.__e2eImport('/src/…')` (`src/e2eHooks.js`), which only an
+ * e2e build (`VITE_E2E_HOOKS=1`, set in the `webServer` command below) contains; a bundle has no `/src` URLs.
+ *
+ * Specs read `process.env.E2E_PREVIEW === '1'` to tell the two apart, so the config sets it here,
+ * before any worker loads this file (workers inherit the environment).
+ */
+if (process.env.E2E_DEV === '1') delete process.env.E2E_PREVIEW
+else process.env.E2E_PREVIEW = '1'
+
+/**
  * Two orthogonal axes, per CLAUDE.md: **viewport** (Responsive Layout's three
  * reference form factors) and **engine** (Browser Support's three rendering
  * engines). "All-Chromium coverage across all three viewports is not the same
@@ -44,10 +63,13 @@ const browserProjects = ENGINES.flatMap((engine) =>
       // phone/tablet projects there still prove layout and click behaviour,
       // and the touch-specific assertions skip themselves (see the spec).
       hasTouch: size.touch && engine.name !== 'firefox',
-      // WebKit's Playwright build cannot route requests a service worker issues, so against
-      // the production build (`E2E_PREVIEW=1`, which registers one) a stubbed API call would
-      // reach the real network. Block the worker there; Chromium routes through it fine.
-      ...(engine.name === 'webkit' && process.env.E2E_PREVIEW === '1' ? { serviceWorkers: 'block' } : {}),
+      // The production build registers a service worker that precaches the whole app and then shows
+      // a "ready to work offline" strip at a moment no spec controls, which resizes the canvas under
+      // a snapshot (found by `build-015`). So the default run blocks the worker on every engine, and
+      // the specs that exercise it opt in with `test.use({ serviceWorkers: 'allow' })`
+      // (`pwa-update`, `help`). WebKit's Playwright build also cannot route requests a worker issues,
+      // so a stubbed API call would reach the real network.
+      ...(process.env.E2E_PREVIEW === '1' ? { serviceWorkers: 'block' } : {}),
     },
   })),
 )
@@ -83,16 +105,11 @@ const docsProjects = VIEWPORTS.map((size) => ({
     hasTouch: size.touch,
     deviceScaleFactor: 2,
     launchOptions: { args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] },
+    // The picture must not depend on when the service worker finishes precaching (see above).
+    ...(process.env.E2E_PREVIEW === '1' ? { serviceWorkers: 'block' } : {}),
   },
 }))
 
-/**
- * `E2E_PREVIEW=1` runs the same specs against the **production build** served by
- * `vite preview` instead of the dev server (`TODO/ai-004`). The dev server relaxes the
- * Content-Security-Policy for its HMR websocket (`vite.config.js`), so only the built
- * `index.html` carries the exact production policy; this is how that policy, and the
- * production service worker, get exercised: `E2E_PREVIEW=1 npx playwright test e2e/csp.e2e.js`.
- */
 const PREVIEW = process.env.E2E_PREVIEW === '1'
 
 /**
@@ -148,9 +165,11 @@ export default defineConfig({
     ['html', { outputFolder: 'playwright-report', open: 'never' }],
   ],
   webServer: {
-    command: PREVIEW ? 'npm run build && npx vite preview --port 5184 --strictPort' : 'npm run dev',
+    command: PREVIEW ? 'VITE_E2E_HOOKS=1 npm run build && npx vite preview --port 5184 --strictPort' : 'VITE_E2E_HOOKS=1 npm run dev',
     url: ORIGIN,
-    reuseExistingServer: !process.env.CI,
+    // A preview server serves whatever `dist/` it was started on, so reusing one risks a stale
+    // build; the command above rebuilds, so only reuse it when asked (`E2E_REUSE=1`).
+    reuseExistingServer: !process.env.CI && (!PREVIEW || process.env.E2E_REUSE === '1'),
     timeout: PREVIEW ? 180_000 : 60_000,
   },
   use: {

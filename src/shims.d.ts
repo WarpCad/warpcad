@@ -33,12 +33,13 @@ declare module '*?raw' {
 // `import.meta.env` is replaced by Vite at build time. Only the flags the app reads are
 // declared (`DEV` gates the developer-only scripted provider, `TODO/ai-010`), rather than
 // pulling in all of `vite/client`'s ambient types. `BASE_URL` is the deploy base the help
-// loader prefixes (`TODO/ui-061`).
+// loader prefixes (`TODO/ui-061`). `VITE_E2E_HOOKS` is set only for the e2e build (`TODO/build-015`).
 //
 // `import.meta.hot` exists under `npm run dev` only (`undefined` in a build). The live bridge
 // (`TODO/ai-012`, `composables/useLiveBridge.js`) uses just these three calls of it.
 interface ImportMeta {
-  readonly env: { readonly DEV: boolean; readonly PROD: boolean; readonly MODE: string; readonly BASE_URL: string }
+  readonly env: { readonly DEV: boolean; readonly PROD: boolean; readonly MODE: string; readonly BASE_URL: string; readonly VITE_E2E_HOOKS?: string }
+  glob(pattern: string | string[]): Record<string, () => Promise<any>>
   readonly hot?: {
     on(event: string, listener: (data: any) => void): void
     off(event: string, listener: (data: any) => void): void

@@ -54,7 +54,7 @@ test.describe('docs media: variables', () => {
     await conditionCube(page)
     await page.getByTestId('inspector-breadcrumb-root').click()
     await page.evaluate(async () => {
-      const { useSelectionStore } = await import('/src/stores/selection.js')
+      const { useSelectionStore } = await window.__e2eImport('/src/stores/selection.js')
       useSelectionStore().clear()
     })
     await expect(page.getByTestId('variable-row-piModel')).toBeVisible()
@@ -90,7 +90,7 @@ test.describe('docs media: variables', () => {
     await conditionCube(page)
     await page.getByTestId('inspector-breadcrumb-root').click()
     await page.evaluate(async () => {
-      const { useSelectionStore } = await import('/src/stores/selection.js')
+      const { useSelectionStore } = await window.__e2eImport('/src/stores/selection.js')
       useSelectionStore().clear()
     })
     // 4. Change piModel in one place.

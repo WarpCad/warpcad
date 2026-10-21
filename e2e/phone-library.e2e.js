@@ -220,7 +220,7 @@ test('Subtract with the plate and only the plateau leaves a pocket, not a phone-
   // A 120 x 220 x 10 plate, top face at z = 0, and the TechWeave phone's slab underside level
   // with it, so only the 74 x 46 x 4 plateau is inside the plate.
   await page.evaluate(async () => {
-    const documentModule = await import('/src/stores/document.js')
+    const documentModule = await window.__e2eImport('/src/stores/document.js')
     const store = documentModule.useDocumentStore()
     store.append({
       id: 'plate',

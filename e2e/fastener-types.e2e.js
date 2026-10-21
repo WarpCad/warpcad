@@ -130,18 +130,23 @@ function bomRows(page) {
 function storeApi(page) {
   return {
     run: (fn, arg) =>
-      page.evaluate(
-        async ({ source, arg }) => {
-          const documentModule = await import('/src/stores/document.js')
-          const selectionModule = await import('/src/stores/selection.js')
+      page
+        .evaluateHandle(async () => {
+          const documentModule = await window.__e2eImport('/src/stores/document.js')
+          const selectionModule = await window.__e2eImport('/src/stores/selection.js')
           const api = {
             documentStore: documentModule.useDocumentStore(),
             selection: selectionModule.useSelectionStore(),
           }
-          return await new Function('api', 'arg', `return (${source})(api, arg)`)(api, arg)
-        },
-        { source: fn.toString(), arg },
-      ),
+          return api
+        })
+        .then(async (handle) => {
+          try {
+            return await handle.evaluate(fn, arg)
+          } finally {
+            await handle.dispose()
+          }
+        }),
   }
 }
 

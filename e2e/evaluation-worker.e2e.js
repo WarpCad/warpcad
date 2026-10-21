@@ -94,8 +94,8 @@ async function volumesBothWays(page) {
     return items.length > 0 && items.every((node) => node.hasAttribute('data-body-volume'))
   })
   return page.evaluate(async () => {
-    const { useDocumentStore } = await import('/src/stores/document.js')
-    const { measureGeometry } = await import('/src/core/kernel/measure.js')
+    const { useDocumentStore } = await window.__e2eImport('/src/stores/document.js')
+    const { measureGeometry } = await window.__e2eImport('/src/core/kernel/measure.js')
     const store = useDocumentStore()
     return store.raw.bodies().map((body) => ({
       id: body.id,

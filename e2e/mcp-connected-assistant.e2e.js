@@ -36,7 +36,7 @@ test.beforeEach(async ({ page }) => {
 /** @param {import('@playwright/test').Page} page @param {string} bridge */
 async function setBridge(page, bridge) {
   await page.evaluate(async (value) => {
-    const { useAiChatStore } = await import('/src/stores/aiChat.js')
+    const { useAiChatStore } = await window.__e2eImport('/src/stores/aiChat.js')
     useAiChatStore().bridge = value
   }, bridge)
 }
@@ -115,6 +115,7 @@ test('the connected panel is shorter than the chat, and the chip opens Live MCP 
 })
 
 test('Key and model… from the access sheet reaches the key sheet; saving a key brings the chat back', async ({ page }) => {
+  test.skip(process.env.E2E_PREVIEW === '1', 'turning live access off needs the dev host bridge: E2E_DEV=1 npx playwright test e2e/mcp-connected-assistant.e2e.js')
   await page.route('https://api.anthropic.com/**', async (route) => {
     if (route.request().method() === 'OPTIONS') return route.fulfill({ status: 204, headers: CORS })
     return route.fulfill({ status: 200, headers: CORS, contentType: 'application/json', body: JSON.stringify({ input_tokens: 8 }) })

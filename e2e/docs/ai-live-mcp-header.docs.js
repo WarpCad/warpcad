@@ -10,6 +10,7 @@ import { openApp, shot } from './support.js'
  * other widths or on a hosted copy.
  */
 test.describe('docs media: live MCP header button', () => {
+  test.skip(process.env.E2E_PREVIEW === '1', 'the live bridge is dev-only: E2E_DEV=1 npm run docs:screenshots -- e2e/docs/ai-live-mcp-header.docs.js')
   test.skip(({ viewport }) => viewport?.width !== 390, 'phone-only')
 
   test('ai-live-mcp-header still', async ({ page }) => {

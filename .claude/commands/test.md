@@ -137,7 +137,16 @@ workshop, e2e**. The component-workshop and e2e stages assume Storybook and Play
 respectively — both are carried-forward defaults from the previous attempt, not yet
 re-confirmed for this one (see `CLAUDE.md`'s Stack table). If a different tool gets
 picked at kickoff, update this table to match, and prefer that `webServer`/equivalent
-auto-starts the dev server and any workshop tool — never start those manually first.
+auto-starts its server and any workshop tool — never start those manually first.
+
+**The e2e stage runs against the production build** (`npm run build` + `vite preview`, port
+5184), not the dev server (`TODO/build-015`): the first run pays a one-off build, every spec
+then runs faster, and the production CSP and service worker are the ones under test. The
+config sets `E2E_PREVIEW=1` itself, which the specs read. `E2E_DEV=1` is the opt-out — it
+serves `npm run dev` on 5183 and is required for the dev-only specs (`ai-scripted`'s
+scripted mode, the live-MCP-access paths in `webmcp`, `library-remember-params`'s scripted
+test), which report themselves skipped in the default run. The production service worker is **blocked on every engine** by default (its "ready to work offline" strip resizes the canvas under snapshots at an unpredictable moment); the specs that exercise it (`pwa-update`, `help`) opt in with `test.use({ serviceWorkers: 'allow' })`. Specs that read the app's stores call `window.__e2eImport('/src/…')` (`src/e2eHooks.js`), present only in the e2e build (`VITE_E2E_HOOKS=1`), because a bundle has no `/src` URLs. A preview server is not reused
+between runs (it would serve a stale `dist/`); set `E2E_REUSE=1` to reuse one you know is fresh.
 
 > **This project is greenfield — none of this exists yet.** If `package.json` doesn't
 > yet define a stage listed below, skip it and say so in the report rather than

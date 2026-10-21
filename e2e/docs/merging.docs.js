@@ -28,9 +28,9 @@ test.describe('docs media: merging', () => {
    */
   const otherCopy = (page, records) =>
     page.evaluate(async (records) => {
-      const { useDocumentStore } = await import('/src/stores/document.js')
-      const { createDocument } = await import('/src/core/document.js')
-      const { parseProject, serializeProject } = await import('/src/core/project.js')
+      const { useDocumentStore } = await window.__e2eImport('/src/stores/document.js')
+      const { createDocument } = await window.__e2eImport('/src/core/document.js')
+      const { parseProject, serializeProject } = await window.__e2eImport('/src/core/project.js')
       const parsed = parseProject(serializeProject(useDocumentStore().raw))
       const copy = createDocument({ resolution: parsed.resolution })
       copy.loadEntries(parsed.entries, parsed.rollbackAt, parsed.resolution, parsed)
@@ -42,7 +42,7 @@ test.describe('docs media: merging', () => {
   /** @param {import('@playwright/test').Page} page @param {any} record */
   const appendHere = (page, record) =>
     page.evaluate(async (record) => {
-      const { useDocumentStore } = await import('/src/stores/document.js')
+      const { useDocumentStore } = await window.__e2eImport('/src/stores/document.js')
       useDocumentStore().append(record)
     }, record)
 

@@ -186,7 +186,7 @@ test.describe('docs media: hardware, kit and Raspberry Pi library', () => {
   const seedPlateAndPhone = async (page, { model, caseId }) => {
     await page.evaluate(
       async ({ model, caseId }) => {
-        const { useDocumentStore } = await import('/src/stores/document.js')
+        const { useDocumentStore } = await window.__e2eImport('/src/stores/document.js')
         const store = useDocumentStore()
         store.append({ id: 'plate-1', op: 'primitive.cuboid', name: 'Plate 1', params: { size: [100, 190, 10], center: [0, 0, -5] } })
         store.append({

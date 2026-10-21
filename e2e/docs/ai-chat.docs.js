@@ -60,6 +60,7 @@ async function askForWing(page, typingMs = 0) {
 }
 
 test.describe('docs media: the chat panel (scripted provider)', () => {
+  test.skip(process.env.E2E_PREVIEW === '1', 'the scripted provider is dev-only: E2E_DEV=1 npm run docs:screenshots -- e2e/docs/ai-chat.docs.js')
   test('ai-chat-panel still', async ({ page }, info) => {
     test.skip(info.project.name !== 'docs-laptop', 'laptop-only')
     await scriptedApp(page)

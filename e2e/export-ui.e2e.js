@@ -187,18 +187,23 @@ function storeApi(page) {
   return {
     /** @param {(api: any, arg: any) => any} fn @param {any} [arg] */
     run: (fn, arg) =>
-      page.evaluate(
-        async ({ source, arg }) => {
-          const documentModule = await import('/src/stores/document.js')
-          const selectionModule = await import('/src/stores/selection.js')
+      page
+        .evaluateHandle(async () => {
+          const documentModule = await window.__e2eImport('/src/stores/document.js')
+          const selectionModule = await window.__e2eImport('/src/stores/selection.js')
           const api = {
             documentStore: documentModule.useDocumentStore(),
             selection: selectionModule.useSelectionStore(),
           }
-          return await new Function('api', 'arg', `return (${source})(api, arg)`)(api, arg)
-        },
-        { source: fn.toString(), arg },
-      ),
+          return api
+        })
+        .then(async (handle) => {
+          try {
+            return await handle.evaluate(fn, arg)
+          } finally {
+            await handle.dispose()
+          }
+        }),
   }
 }
 
@@ -997,7 +1002,7 @@ test('the export really runs in a worker, and the file it writes is still closed
   const { name, bytes } = await pressExport(page)
 
   const usedWorker = await page.evaluate(async () => {
-    const { workerAvailable } = await import('/src/core/exportClient.js')
+    const { workerAvailable } = await window.__e2eImport('/src/core/exportClient.js')
     return workerAvailable()
   })
   expect(usedWorker, 'the worker answered — this is not silently the fallback path').toBe(true)

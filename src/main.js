@@ -23,3 +23,8 @@ startPwa(pinia)
 
 // `TODO/build-007`: page views only; inert without a build-time GA4 id, and on localhost/dev/tests.
 initAnalytics()
+
+// `TODO/build-015`: the e2e build only (`VITE_E2E_HOOKS=1`); pruned from the shipped bundle.
+if (import.meta.env.VITE_E2E_HOOKS === '1') {
+  /** @type {any} */ (window).__e2eImport = (/** @type {string} */ path) => import('./e2eHooks.js').then((hooks) => hooks.loadE2eModule(path))
+}

@@ -22,6 +22,7 @@ async function noHorizontalScroll(page) {
 }
 
 test('phone: the header entry opens the access sheet and fits the header', async ({ page }, testInfo) => {
+  test.skip(process.env.E2E_PREVIEW === '1', 'the entry exists only on the dev host: E2E_DEV=1 npx playwright test e2e/live-mcp-header-entry.e2e.js')
   test.skip(!testInfo.project.name.endsWith('phone'), 'The entry is the phone-width way in.')
   await page.goto('/')
   await expect(page.getByTestId('viewport')).toBeVisible()

@@ -9,6 +9,7 @@ const SNAPSHOT_DIR = join(process.cwd(), 'test-results', 'ai-mcp-agent-pairing')
 const REQUEST = 'add a 40 mm cube and a 20 mm sphere on top'
 
 test('any MCP client can use explicitly enabled live access, and off refuses writes', async ({ page, baseURL }, testInfo) => {
+  test.skip(process.env.E2E_PREVIEW === '1', 'the live MCP bridge exists only on the dev host: E2E_DEV=1 npx playwright test e2e/ai-mcp-agent-pairing.e2e.js')
   test.skip(testInfo.project.name !== 'chromium-laptop', 'The live HTTP endpoint is verified once at the laptop target; layout reachability is covered at all Chromium sizes.')
   test.setTimeout(90_000)
 
@@ -84,6 +85,7 @@ test('any MCP client can use explicitly enabled live access, and off refuses wri
 })
 
 test('the live-access control is reachable at phone, tablet, and laptop widths', async ({ page }, testInfo) => {
+  test.skip(process.env.E2E_PREVIEW === '1', 'the live MCP bridge exists only on the dev host: E2E_DEV=1 npx playwright test e2e/ai-mcp-agent-pairing.e2e.js')
   test.skip(!testInfo.project.name.startsWith('chromium-'), 'Chromium only: this local HTTP access control does not use WebGL, canvas, persistence, or cross-engine APIs.')
   await page.goto('/')
   await page.getByTestId('assistant-button').click()
