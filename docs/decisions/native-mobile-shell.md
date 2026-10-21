@@ -1,7 +1,8 @@
 # Native mobile shell: Capacitor, tools in the page, an outbound relay for outside agents
 
-**Status:** proposed 2026-10-20 (`TODO/build-003`). Research only: no code, no dependency, no
-roadmap row is added by this record. The recommendation at the end is for the user to accept or
+**Status:** proposed 2026-10-20 (`TODO/build-003`); revised 2026-10-21 with a head-to-head of
+Capacitor and Tauri 2 (Question 7), at the owner's request. Research only: no code, no dependency,
+no roadmap row is added by this record. The recommendation at the end is for the user to accept or
 reject.
 
 **The question.** What is the right way to turn the WarpCad PWA into an iOS and Android app that
@@ -34,10 +35,12 @@ How figures were gathered, **2026-10-20**:
 - **Platform behaviour**: Apple technotes TN3179 and TN2277, the WebKit blog, Capacitor's docs
   and source, Chrome's TWA docs, plus forum and bug reports where nothing official exists. Each
   of those is labelled.
-- **Not done**: no native build. No Xcode or Android Studio spike was run, so **native binary
-  sizes and on-device WebGL behaviour are unmeasured** and are labelled that way below. The
-  TODO allows a throwaway spike. It is the first follow-up row instead, because a real one needs
-  signing, a device and an Apple account.
+- **Not done**: no app was built or run. No Xcode or Android Studio spike was run, so
+  **on-device WebGL behaviour, memory and start-up time are unmeasured** and are labelled that way
+  below. The TODO allows a throwaway spike. It is the first follow-up row instead, because a real
+  one needs signing, a device and an Apple account. (The 2026-10-21 revision did measure the
+  **native code each shell links into an iOS app**: Capacitor's prebuilt framework, and a minimal
+  Tauri 2 library compiled for an iOS device. See Question 7.)
 
 Anything not verified is marked **unverified**.
 
@@ -84,7 +87,7 @@ These are read from the code, because questions 2 to 5 depend on them:
 | Native file save/open, share sheet, Keychain | Official `@capacitor/filesystem` 8.1.5 and `@capacitor/share` 8.0.3; community file picker and secure storage (see Q2, Q3) | `fs` and `dialog` plugins exist; mobile coverage per plugin is **unverified** (the plugin table's platform marks did not render). No official share plugin (community `sharesheet`); `stronghold` is an encrypted file, not the Keychain | Node `fs` inside the app sandbox | None. Web APIs only; the app has "no access to web state, like cookies and `localStorage`" | Cordova plugins (Capacitor also runs most of them) | iOS: whatever Swift you hand-edit into the template | None |
 | Local listener / outbound socket from native | Plugin or our own Swift/Kotlin; one generic HTTP-server plugin found (Q4) | Write it in Rust; the official `localhost` plugin serves assets, not an API | Node `http` / `net` | No | Old plugins (`cordova-plugin-webserver` last published 2022) | No | No |
 | JS runtime added to the bundle | **6,669 B gzip** (core + filesystem + share, measured) | **884 B gzip** (`invoke`, measured) | n/a | 0 | not measured | 0 | 0 |
-| Native binary size | **Unmeasured** (no build) | **Unmeasured** on mobile; Tauri states "less than 600KB" for a minimal app (desktop figure) | Embedding Node adds tens of MB (**unverified**, not measured) | Small Android wrapper (**unmeasured**) | Unmeasured | Unmeasured | 0 |
+| Native binary size | **~0.97 MB** iOS arm64 (`Capacitor` 860 KB + `Cordova` 110 KB, measured 2026-10-21, Q7); Android unmeasured | **4.5-7.8 MB** iOS arm64 for a minimal app with `fs`, `dialog`, `websocket` (compiled 2026-10-21, Q7); Tauri's "less than 600KB" is a desktop figure; Android unmeasured | Embedding Node adds tens of MB (**unverified**, not measured) | Small Android wrapper (**unmeasured**) | Unmeasured | Unmeasured | 0 |
 | Web payload shipped in the binary | `dist/`: 3.5 MB of assets, **plus 89 MB of Help GIFs** unless they are excluded or runtime-cached | Same | n/a | None (served from Pages) | Same as Capacitor | iOS: **unverified** whether it bundles or loads the live URL | None |
 | Licence | MIT | Apache-2.0 OR MIT | Node's licence (GitHub reports `NOASSERTION`) | Apache-2.0 | Apache-2.0 | GitHub reports `NOASSERTION` | n/a |
 | Stars | 16,913 | 112,067 (mostly desktop use) | 879 (fork); 2,597 (original, last push 2021) | 3,138 | 2,226 (ios) / 3,795 (android) | 3,797 | n/a |
@@ -345,11 +348,208 @@ process requires.
 
 ---
 
+## Question 7: Capacitor or Tauri 2, head to head (revisited 2026-10-21)
+
+The owner asked for this question to be reopened with only the two real contenders, because Rust
+is now well supported by coding agents, and to answer four things directly: which one serves the
+MCP tool surface and local file storage better, which has the smaller footprint when loading and
+running, which has the better security culture, and whether either has a record of App Store
+trouble. The target that matters most is **iOS**: the owner has an iPhone and no Android hardware
+(`TODO/build-016`, Part 1).
+
+How these figures were gathered, **2026-10-21**:
+
+- **Native size**: Capacitor's prebuilt `Capacitor.xcframework` and `Cordova.xcframework` from the
+  `capacitor-swift-pm` 8.5.3 release (2026-10-07), arm64 device slice, file size of the Mach-O
+  binary. Tauri: a scratch crate with `tauri` 2.12.5, `tauri-plugin-fs` 2.7.1,
+  `tauri-plugin-dialog` 2.8.3, `tauri-plugin-websocket` 2.5.0 and a nine-line `lib.rs`
+  (`Builder` + three plugins + `generate_context!`), compiled with `cargo build --release --lib
+  --target aarch64-apple-ios` (rustc 1.99.1, Xcode 27.1 iPhoneOS 27.1 SDK, Apple M4 Pro), size of
+  the stripped `cdylib`. Two profiles: size-optimised (`opt-level = "s"`, `lto = true`,
+  `codegen-units = 1`, `panic = "abort"`, `strip = true`) and a default-like one (`opt-level = 3`,
+  no LTO, 16 codegen units, stripped symbols). A `cdylib` is a proxy for what links into the app
+  executable, not the app itself.
+- **Crate tree and licences**: `cargo metadata --filter-platform aarch64-apple-ios` on the same
+  crate, walking normal (non-dev, non-build) dependencies from the root.
+- **Security**: GitHub repository security advisories (`repos/<r>/security-advisories`) and the
+  global advisory database (`/advisories?affects=<pkg>`), each project's `SECURITY.md`, and the
+  Radically Open Security report for Tauri 2.0 (`audits/Radically_Open_Security-v2-report.pdf` in
+  the Tauri repository, dated 2024-08-07, text extracted with PDFKit).
+- **Issues**: GitHub search counts (`type:issue`), labels `platform: iOS` / `platform: Android`
+  (Tauri) and `platform: ios` (Capacitor).
+- **App Store**: GitHub issue search for upload and review failures in both repositories, Apple's
+  "Third-party SDK requirements" page, Tauri's App Store distribution docs, and practitioner posts
+  (labelled as such).
+- **Not done**: no app on a device or simulator (this machine has no iOS simulator runtime and no
+  Android SDK). Runtime memory and cold start are therefore **unmeasured** for both.
+
+### 7a. MCP services and local file storage
+
+**The MCP tool surface is the same in both, because it is JavaScript in the page.** The registry
+(`src/ai/tools/`), the BYOK agent and `TabEndpoint` run in the WebView under either shell. Neither
+shell makes a tool faster, adds one, or changes the single-writer rules in Question 5. iOS suspends
+the **whole process** when the app is backgrounded (TN2277), Rust included, so a native Rust MCP
+server is as deaf in the background as a native Swift one: route B stays rejected under Tauri for
+the same reasons it is rejected under Capacitor.
+
+Where the shells *do* differ is the transport for route A and the file plumbing:
+
+| Need | Capacitor 8 | Tauri 2 |
+|---|---|---|
+| Relay socket from page JS (route A, first choice) | `WebSocket` in WKWebView: no Local Network prompt (TN3179). Open risk: mixed content from `capacitor://` / `https://localhost` (Q4) | Same `WebSocket` in the same WKWebView. Origin is `tauri://localhost` on iOS and `http://tauri.localhost` on Android by default; whether `ws://` to a LAN address is blocked from either is **unverified** (spike item, as for Capacitor) |
+| Relay socket from native code (route A, fallback if mixed content blocks it) | **No official plugin.** Our own Swift and Kotlin, or a community plugin to health-check | **Official `tauri-plugin-websocket`** 2.5.0 (Rust client, README marks iOS and Android supported). One implementation for both platforms. Still a native socket to a LAN address, so it **does** show the iOS Local Network prompt (TN3179) |
+| A native MCP SDK, if the relay client ever moved native | Swift SDK `modelcontextprotocol/swift-sdk` 0.12.1 (2026-05-07, 1,512 stars) and Kotlin SDK 0.15.0 (2026-07-28, 1,474 stars): two languages | `rmcp` 3.6.0 (2026-10-20, 4,037 stars): official Rust SDK, one language. Not needed by this record's design |
+| Write a project file into the app container | Official `@capacitor/filesystem` 8.1.5 | Official `tauri-plugin-fs` 2.7.1. Docs: on iOS and Android "Access is restricted to Application folder by default"; iOS needs a `PrivacyInfo.xcprivacy` declaring reason C617.1 |
+| Hand the file to the user (Save to Files) | Official `@capacitor/share` 8.0.3 | **No official share plugin** (the plugin list has none); community only |
+| Open a file the user picks | `<input type=file>` (works, Q3) or a community picker | `<input type=file>` (**unverified** in Tauri's WebView setup), or official `tauri-plugin-dialog` 2.8.3. Docs: iOS returns `file://` URIs, Android returns **content URIs**, and neither supports a folder picker |
+| Credentials in Keychain / Keystore | Community `@aparajita/capacitor-secure-storage` (1 maintainer) | **No official Keychain plugin.** `stronghold` is an encrypted file, not the Keychain; `biometric` is official but is not a secret store |
+| Blob `<a download>` | Broken (#5478), designed around in Q3 | **Unverified** |
+
+**Answer for 7a:** Tauri has one real advantage, an official native WebSocket that would remove
+route A's mixed-content risk with a single implementation if the spike shows the page cannot reach
+`ws://`. Capacitor has the more complete file story on iOS (official share, so **Save** reaches
+Files without community code). Neither changes how the tools themselves run.
+
+### 7b. Footprint when loading and running
+
+| | Capacitor 8 | Tauri 2 |
+|---|---|---|
+| Native code linked into the iOS app (arm64) | **~0.97 MB** (`Capacitor` 859,552 B + `Cordova` 110,136 B, prebuilt 8.5.3) | **4.46 MB** size-optimised, **7.78 MB** default-like (minimal app + `fs`, `dialog`, `websocket`, measured above) |
+| Native code on Android | Unmeasured | Unmeasured. One Rust `.so` per ABI; Play's App Bundle delivers one ABI per device. A third-party Tauri project reports ~40 MB per-ABI APKs, but that app carries its own large Rust libraries, so it is not a Tauri baseline |
+| JS runtime added to the page | 6,669 B gzip (measured 2026-10-20, Q1) | 884 B gzip (measured 2026-10-20, Q1) |
+| What dominates the download | The web payload in both: 3.5 MB of `dist/assets` plus 89 MB of Help GIFs unless excluded (Q1, Recommendation 7). With the GIFs bundled, the 3.5-6.8 MB native difference is under 8% of the app. **Without them it is not small**: it is about as large as the app's own 3.5 MB of assets | |
+| Asset loading at start-up | Bundled files served from disk through a `WKURLSchemeHandler` (Swift) | Bundled files served from disk through Tauri's custom-protocol handler (Rust) |
+| Running memory | **Unmeasured.** Both run the same system WebView, and WarpCad's memory is three.js, the meshes and the worker kernel inside the WebContent process, which is the same in both. The native side of either is a small fraction of that | Same |
+| Cold start | **Unmeasured.** Desktop Tauri-vs-Electron start-up claims found online do not apply: neither shell here ships a browser engine | Same |
+| Build-time cost | `npx cap sync` + Xcode; no new language | Rust toolchain + iOS targets + Xcode (+ NDK for Android). The minimal crate took **32.5 s** wall clock for a clean release build on an M4 Pro and **1.3 GB** of `target/` |
+
+**Answer for 7b:** neither has a meaningful running-footprint advantage. Both run the same WebView,
+which is where all of WarpCad's memory and frame time is. On disk, **Capacitor's native layer is
+about 4.5-8× smaller** on iOS (3.5-6.8 MB less), and Tauri's JS shim is about 5.8 KB smaller gzip.
+The native difference only disappears into the noise if the Help GIFs ship in the binary; if they
+are fetched on demand (Recommendation 7), Capacitor's app is noticeably smaller. Only the spike (follow-up row 1) can settle cold start and memory,
+and it should time both shells if Tauri is still in contention by then.
+
+### 7c. Security culture
+
+| Signal | Capacitor | Tauri |
+|---|---|---|
+| Independent audit | **None found** (web search 2026-10-21, no published audit of Capacitor or Ionic's framework) | **Two, both published in the repo.** Radically Open Security audited v1 (2022) and **v2 (2023-11-10 to 2024-08-03, 80 days, scope included "mobile platform support (iOS, Android)")**: 11 High, 2 Elevated, 3 Moderate, 5 Low, 2 Info; "All findings in this report have been resolved in the release candidate of Tauri v2." Funded by NLnet |
+| Published advisories | **1** repository advisory ever: GHSA-rvm3-566m-v7fv, **critical**, 2026-08-31: remote content could load at the app's own origin through the internal `/_capacitor_http_interceptor_` path, even with `CapacitorHttp` disabled. Fixed on the same day in 6.2.2, 7.6.9, 8.3.5, 8.4.3 and 8.5.1 (three majors back-patched) | **9** repository advisories since 2022 (plus 1 in `tauri-plugin-shell`, critical, 2025-04-02), with external researchers credited. The two newest are 2026-05-06 (medium, Android/Windows origin confusion lets `http://app.attacker.com` call local-only commands, fixed in 2.11.1) and 2026-09-26 (high, cross-WebView channel data theft through guessable sequential IDs, fixed in 2.11.6) |
+| Disclosure policy | Org-wide `SECURITY.md`: "report security vulnerabilities via email to security@outsystems.com". No timeline stated | `SECURITY.md`: GitHub private vulnerability reporting, coordinated disclosure, "within 90-Days", credit offered, no bounty |
+| Built-in limits on what page script can do | **None documented.** Capacitor's security guide covers CSP and SSL; it describes no permission system for which origins or frames may call which plugin. Any script running in the page can call every installed plugin | **Default-deny capabilities.** Each plugin command needs a permission granted to a named window, and file commands also need a path scope ("Permissions alone do not grant a scope"; deny overrides allow; `..` blocked). An optional isolation pattern screens every command |
+| Recurring bug classes | Too few advisories to tell | Two classes recur. **Origin checks** (2023-05 open redirect, 2024-05 iframes, 2026-05 Android origin confusion) and **guessable global IDs** (audit finding TAU2-044 in 2024, then the 2026-09 channel advisory) |
+
+Reading the table honestly:
+
+- **Tauri's culture is visibly stronger**: two funded third-party audits including mobile, published
+  in full, a documented disclosure process, credited reporters, and a permission model designed to
+  contain a compromised page. Its higher advisory count is mostly the result of that scrutiny; it is
+  not on its own evidence of worse code. The recurrences show the hard part (origin checks on
+  Android's `http://<scheme>.localhost` mapping) is still producing bugs, and 2026-05's was
+  Android-specific.
+- **Capacitor's record is thin rather than clean.** One advisory in the repository's life, no
+  audit, and an email-only policy. That could mean few bugs or little scrutiny, and the evidence
+  cannot tell which. The one advisory was critical and was back-patched across three majors on the
+  day it was published, which is a good sign about response.
+- **What it means for WarpCad.** The trust model in `ai-partner.md` assumes text in a loaded project
+  is hostile data. If that ever turned into script execution in the page, Capacitor would give the
+  attacker every installed plugin (file write, share sheet, the Keychain plugin holding the API key),
+  while Tauri would give only what the main window's capability grants. **The plugins proposed for
+  Capacitor are exactly the ones worth stealing**, so Capacitor needs compensating controls: the
+  existing production CSP kept strict inside the shell, `CapacitorHttp` left disabled, no
+  user-controlled links rendered as navigable anchors in the app, `server.allowNavigation` left
+  empty, and a floor of `@capacitor/ios` / `@capacitor/android` 8.5.1.
+
+### 7d. App Store record
+
+- **Rejection on review (guideline 4.2, "minimum functionality")** is a risk for any WebView app and
+  applies to both equally. The practitioner reports found for Tauri and for Capacitor agree that
+  bundled assets and real device integration (files, share sheet, Keychain) are what reviewers look
+  for, and these sources are mostly vendors or blog posts, not Apple. WarpCad is a full CAD app with
+  bundled assets, not a wrapped website, which is the strongest position under 4.2 either way.
+  **No rejection specific to either framework was found.**
+- **Apple names Capacitor and Cordova on its "commonly used third-party SDKs" list**, so a new app
+  that includes them must carry their privacy manifest, and their binaries must be signed. Capacitor
+  ships signed prebuilt frameworks to meet that. Tauri is not on the list; its Rust compiles into
+  the app, and the `fs` plugin needs the app's own privacy manifest entry (above).
+- **Capacitor's open App Store issues**: #8537 (opened 2026-07-23, open): a report that App Review
+  rejects apps with ITMS-90111 because the prebuilt frameworks were built with Xcode 26.0, and that
+  rebuilding them breaks Apple's SDK-signature check (ITMS-91065). The latest comment (2026-09-03)
+  suggests the cause is submitting from a macOS beta. **Unresolved.** A 9.0.0-alpha packaging bug
+  that failed upload validation (nested `Capacitor.framework`) was closed 2026-08-08.
+- **Tauri's open App Store issues** are in the build and upload pipeline, not review:
+  - #13578 (open since 2025-06-05): Transporter rejects the IPA because the bundle contains
+    `libapp.a` ("standalone executables or libraries … not permitted"); the reported workaround is
+    deleting `gen/apple`.
+  - #15066 (open since 2026-03-11): `ld: library not found for -lswiftCompatibility56` with Xcode
+    26. The issue notes Apple has required the iOS 26 SDK for submissions since 2026-04-28. A
+    maintainer could not reproduce it on fresh apps; one commenter traced it to the Metal toolchain.
+  - #15663 (open since 2026-07-06): app extensions such as a share extension lose their
+    entitlements when building with App Store Connect API-key auth, which is what CI signing uses.
+  - #15740 (open since 2026-07-18): signing identity not found by `xcodebuild` on clean CI runners
+    with Xcode 26.
+- **Mobile maturity by issue tracker**: Tauri `platform: iOS` 46 open / 88 closed, with **16 opened
+  and 4 closed** since 2026-04-21 (30 open are labelled bugs); `platform: Android` 91 / 116.
+  Capacitor `platform: ios` **10 open / 596 closed**, 2 opened since 2026-04-21. Only one named
+  Tauri iOS app on the App Store turned up (a Medium post about flow-like.com, not verified against
+  the store listing).
+
+**Answer for 7d:** no framework-specific review rejections were found for either. Tauri's iOS
+problems are packaging and CI-signing bugs, several still open, in exactly the step this project
+would automate (`build-0xx` store pipeline). Capacitor carries one open, unconfirmed report and has
+an obligation (privacy manifest plus signed SDK) that it already meets.
+
+### 7e. Rust and coding agents
+
+Agents do write Rust well, and the Rust compiler catches a class of mistakes that JavaScript does
+not. For this app, though, **the Rust in a Tauri shell is about nine lines** (the measured probe's
+whole `lib.rs`), because the geometry kernel (`@jscad/modeling`), the tools, the document model and
+the UI all stay JavaScript under the committed stack. Choosing Tauri would not move meaningful code
+into Rust. It would add a second language, a second toolchain and a second dependency ecosystem to
+the build and to the licence audit:
+
+- The minimal Tauri app links **270 crates** on iOS (normal dependencies, some of them compile-time
+  proc-macros), against Capacitor's two prebuilt frameworks plus its npm plugins.
+- Those crates carry licences that are **not on `npm run licenses`' allow-list**: `Unicode-3.0`
+  (19 crates, the `icu_*` / `zerovec` family), `CDLA-Permissive-2.0` (`webpki-roots`), `Zlib`
+  (in dual/triple-licence choices), and `MPL-2.0` (`cssparser`, `selectors`, `dtoa-short`,
+  `option-ext`). All are permissive or file-level, but each new allow-list entry is the owner's
+  decision (`CLAUDE.md`), and `license-checker` cannot see crates, so a `cargo-deny` gate would be
+  new tooling. This matters for `TODO/build-016` Part 2, which has to audit everything in the iOS
+  bundle.
+
+Rust would earn its place if WarpCad ever moved real work native (a Rust geometry kernel, or a
+native relay with its own logic). Nothing on the roadmap does.
+
+### 7f. Verdict
+
+| Concern | Better | Margin |
+|---|---|---|
+| MCP tool surface | Tie | Tools are page JS in both |
+| Relay transport if page `ws://` is blocked | **Tauri** | Official native WebSocket vs our own Swift + Kotlin |
+| File storage on iOS (save, share, open) | **Capacitor** | Official share plugin; Tauri has none |
+| Credentials in Keychain | **Capacitor**, narrowly | A community plugin exists; Tauri has no Keychain plugin |
+| Native size | **Capacitor** | ~1 MB vs 4.5-7.8 MB; as large as the app's own assets unless the Help GIFs ship |
+| JS size | Tauri | 0.9 KB vs 6.7 KB gzip |
+| Running memory, cold start | Tie (**unmeasured**) | Same WebView |
+| Security architecture and culture | **Tauri** | Audits, disclosure, default-deny capabilities |
+| iOS maturity and App Store pipeline | **Capacitor** | 10 vs 46 open iOS issues; Tauri's open issues sit in IPA upload and CI signing |
+| Toolchain and licence audit | **Capacitor** | No second language; 270 crates for Tauri |
+
+**Capacitor remains the recommendation for WarpCad's iOS app**, now with explicit security
+compensations (7c) that the 2026-10-20 version did not list. Tauri wins on security culture and on
+one transport detail, and loses on what this project needs first on iOS: the file and share path,
+the store pipeline, and a smaller audit surface for `build-016`. The two places Tauri would win are
+named in **Revisit when**, so the question reopens on evidence rather than preference.
+
+---
+
 ## Rejection table
 
 | Option | Why not |
 |---|---|
-| **Tauri 2 mobile** | Same WebViews as Capacitor, so no rendering or storage gain. But a Rust toolchain plus the NDK becomes a requirement for a JS project, file and share coverage on mobile is unverified, and there is no official share plugin. Mobile issues stay open far longer (34-44% open on the `platform: iOS/Android` labels, against Capacitor's 2.1% overall), and v3 is in alpha, so starting on v2 now means a major migration soon. Its real advantage, Rust for a native listener, serves route B, which is rejected. |
+| **Tauri 2 mobile** | Revisited head to head in Question 7 (2026-10-21). It is **better on security culture** (two published third-party audits including mobile, a 90-day disclosure policy, default-deny capabilities that would contain a compromised page) and has an official native WebSocket for route A. It loses on what the iOS app needs first: no official share plugin or Keychain plugin, so **Save** to Files needs community code; open iOS IPA-upload and CI-signing bugs (#13578, #15066, #15663, #15740) in the step this project would automate; 46 open iOS issues against Capacitor's 10; 4.5-7.8 MB of native code on iOS against ~1 MB; and 270 crates to licence-audit for `build-016`, with four licence families not on the allow-list. Same WebViews, so no rendering, storage or running-memory gain. The Rust surface would be about nine lines, so agent-friendliness with Rust does not move meaningful code. v3 is in alpha (milestone 25% complete on 2026-09-21), so starting on v2 means a major migration soon. |
 | **nodejs-mobile** | Not a shell, and its one promise ("`mcp/server.js` runs as-is") is false. The last release is **Node 18.20.4 (2024-10-07)**, while `mcp/package.json` requires **Node ≥ 22**. The Node 22 upgrade PR (#134) and a 16 KB page-size release request (#161) are open. Issues are 61% open, with 6 contributors. Even running, it is a stdio server that a laptop cannot reach. It has no `capture_view` or selection tools. It makes a second replica writing the file (Q5 case 5). |
 | **Android TWA (Bubblewrap)** | Android only, and functionally the installed PWA in Chrome: no native file save, no share-sheet file, no Keychain, no listener. Storage is Chrome's profile, cleared with Chrome's site data. The relay from an `https` page to a LAN `ws://` meets the same mixed-content and Local Network Access blocks as the hosted PWA (`ai-partner.md` spike, desktop; Android **unverified**). Kept as a cheap **Play Store listing** option if wanted later, not as the shell. |
 | **Cordova** | Same WKWebView / Android WebView, and Capacitor runs most Cordova plugins. Releases come months apart (ios `rel/8.1.1` 2026-07, android `rel/15.1.0` 2026-07) against Capacitor's weeks, and the server plugins found are from 2022. Nothing it offers that Capacitor does not. |
@@ -365,7 +565,14 @@ process requires.
 
 1. **Shell: Capacitor 8**, bundling the Vite build. Do not use `server.url`: App Store 2.5.2
    requires a self-contained app. The hypothesis is confirmed on maintenance, plugin coverage and
-   cost (6.7 KB gzip of JS runtime).
+   cost (6.7 KB gzip of JS runtime, ~1 MB of native code on iOS). Re-checked against Tauri 2 on
+   2026-10-21 (Question 7): Capacitor still wins on iOS file and share coverage, App Store pipeline
+   maturity and audit surface. Tauri is stronger on security culture, so Capacitor is taken
+   **with compensating controls**: pin `@capacitor/ios` / `@capacitor/android` ≥ 8.5.1
+   (GHSA-rvm3-566m-v7fv); keep `CapacitorHttp` disabled; keep the production CSP strict inside the
+   shell; leave `server.allowNavigation` empty; install only the plugins the app uses, since any
+   page script can call any installed plugin; and never render project-supplied text as a
+   navigable link in the shell.
 2. **Tools run in the page**, unchanged. The BYOK chat needs no MCP hop and keeps its one atomic
    `ai` merge.
 3. **Files**: a third `shell` mode in `src/storage/fileSystem.js`. Save means write to the container
@@ -396,7 +603,9 @@ process requires.
    native binary size; three.js frame time on a reference phone and tablet; context loss after
    backgrounding on iOS 26; IndexedDB after a forced low-storage condition; whether
    `capacitor://` blocks `ws://` to a LAN address; the CSP `<meta>` under the custom scheme;
-   `src/pwa.js` being inert; `<input type=file>` on both platforms; #5478 confirmed.
+   `src/pwa.js` being inert; `<input type=file>` on both platforms; #5478 confirmed. The
+   `ws://` result also settles Question 7's one Tauri-favouring transport row; if it is blocked,
+   build the same probe in Tauri and time cold start and memory in both before committing.
 2. `ui-0xx` / render: **WebGL context restore** (`webglcontextrestored` rebuilds the renderer, or
    an in-app Reload view). This extends the viewport subsystem, so re-drive the acceptance
    scenarios that touch the viewport.
@@ -419,13 +628,42 @@ process requires.
 - A hosted backend appears. Then the internet `wss://` relay becomes the better route A
   (it works on cellular, needs no LAN and shows no prompts).
 - WebKit or Android WebView ship WebMCP, or a mobile in-browser agent appears.
-- Tauri 3 reaches stable with documented mobile plugin coverage.
+- Tauri 3 reaches stable with documented mobile plugin coverage, **and** its open iOS IPA-upload
+  and CI-signing issues (#13578, #15066, #15663, #15740) are closed, **and** an official share or
+  Keychain plugin exists. Then re-run Question 7 with the spike timing both shells.
+- The spike (follow-up row 1) finds page JS cannot open `ws://` to the LAN. Route A then needs a
+  native socket, where Tauri's official `tauri-plugin-websocket` beats writing Swift and Kotlin
+  for Capacitor; weigh that against Question 7's other rows.
+- A Capacitor advisory or audit shows a page-to-plugin escalation that the compensating controls in
+  Recommendation 1 cannot contain, or WarpCad starts showing remote content in the shell. Tauri's
+  capability model is the reason to switch in either case.
+- WarpCad moves real work native (a Rust kernel, or a relay with its own logic). Then Rust's place
+  in the build is earned and Tauri's toolchain cost is already paid.
 - nodejs-mobile publishes a Node ≥ 22 release (it would still not fix reachability).
 - Apple changes guideline 4.2, 4.7 or 2.5.2, or the AGPL / App Store question is settled.
 
 ## Sources
 
-Fetched or checked 2026-10-20.
+Fetched or checked 2026-10-20, except Question 7's, which were fetched or measured 2026-10-21:
+
+- **Question 7, measured**: `ionic-team/capacitor-swift-pm` release 8.5.3 assets
+  (`Capacitor.xcframework.zip`, `Cordova.xcframework.zip`); a scratch Tauri crate compiled for
+  `aarch64-apple-ios` and read with `cargo metadata` (method in Question 7). Neither is kept.
+- **Question 7, GitHub**: repository advisories for `tauri-apps/tauri` and `ionic-team/capacitor`
+  (GHSA-rvm3-566m-v7fv, GHSA-w28w-mhc8-qvjv, GHSA-7gmj-67g7-phm9, GHSA-57fm-592m-34r7 read in full);
+  the global advisory database for `@capacitor/*` and the `tauri`, `tauri-plugin-*`, `wry` crates;
+  `SECURITY.md` in `tauri-apps/tauri` and `ionic-team/.github`; Tauri issues #13578, #15066, #15663,
+  #15740; Capacitor issue #8537; `tauri-apps/plugins-workspace` plugin list and READMEs;
+  `modelcontextprotocol/rust-sdk`, `swift-sdk` and `kotlin-sdk` releases.
+- **Question 7, audit**: Radically Open Security, "Penetration Test Report, Tauri 2.0", v1.0,
+  2024-08-07 (`audits/Radically_Open_Security-v2-report.pdf` in `tauri-apps/tauri`).
+- **Question 7, docs**: Tauri "File System" and "Dialog" plugin pages (`v2.tauri.app/plugin/`),
+  Tauri "App Store" distribution page; Capacitor "Security" guide
+  (`capacitorjs.com/docs/guides/security`); Apple "Third-party SDK requirements"
+  (`developer.apple.com/support/third-party-SDK-requirements/`).
+- **Question 7, anecdotal**: practitioner posts on guideline 4.2 for Tauri (takazudomodular.com) and
+  Capacitor (capgo.app, dev.to), mostly from vendors; a Medium post on shipping a Tauri iOS app
+  (flow-like.com); GeoLibre's Android build notes (APK sizes for its own app).
 
 - **GitHub API** (`gh api`): `ionic-team/capacitor`, `ionic-team/capacitor-plugins`,
   `tauri-apps/tauri` (and the `platform: iOS` / `platform: Android` label searches),

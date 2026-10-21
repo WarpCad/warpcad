@@ -2331,3 +2331,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** Capacitor 8 recommended, status proposed → docs/decisions/native-mobile-shell.md; DCO grants no relicensing right, one author in git history → TODO/build-016 text and git shortlog (466 commits, John Cole), 2026-10-21
 **To Add:** none
+
+## 2026-10-21T09:20:44-0500 — Capacitor vs Tauri 2 for the iOS app
+
+**Post:** Reopened the mobile-shell decision with only two contenders: Capacitor and Tauri 2. Tauri has the better security story (two published audits, default-deny capabilities). Capacitor still wins for iOS: ~1 MB native vs 4.5-7.8 MB, official share plugin, fewer open iOS bugs. Built with Claude Code, reviewed by me. #OpenSource #CAD
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #OpenSource #CAD
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** two audits, default-deny capabilities, ~1 MB vs 4.5-7.8 MB, share plugin, 10 vs 46 open iOS issues → docs/decisions/native-mobile-shell.md Question 7 (figures measured/fetched 2026-10-21 per the record, not re-run at commit time)
+**To Add:** none

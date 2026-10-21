@@ -3354,3 +3354,18 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** three corrected premises → "Shipped" note in TODO/done/build-003; VLC 2011 → decision record Recommendation 8; DCO vs CLA → TODO/build-016 Goal; no outside contribution merged → git log authors, 466 commits all John Cole
 **To Add:** none
+
+## 2026-10-21T09:20:44-0500 — Capacitor vs Tauri 2 for the iOS app
+
+**Post:** I reopened the decision on how to ship WarpCad as an iOS app, this time with only two contenders, Capacitor and Tauri 2. Tauri is stronger on security culture: two published third-party audits, one covering mobile, and a default-deny permission model that limits what a compromised page can call. Capacitor has one repository advisory and no published audit.
+
+Capacitor still comes out ahead for the iPhone build. Its prebuilt native code is about 1 MB on iOS against 4.5 to 7.8 MB for a minimal Tauri app I compiled, it has an official share plugin for saving to Files, and its iOS issue tracker has 10 open issues to Tauri's 46. Tauri's open App Store problems sit in IPA upload and CI signing, which is the step I would automate. Running memory and cold start are unmeasured for both; they use the same WebView.
+
+Because Tauri's security model is better, the record now lists compensating controls for Capacitor: a version floor, CapacitorHttp off, a strict CSP, and only the plugins the app uses. It also names the evidence that would reopen the question. The full comparison is in docs/decisions/native-mobile-shell.md.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource #Capacitor #Tauri
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** all figures → docs/decisions/native-mobile-shell.md Question 7 (measured/fetched 2026-10-21 per the record, not re-run at commit time)
+**To Add:** none
