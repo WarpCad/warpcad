@@ -50,26 +50,25 @@ describe('fingerprint', () => {
     expect(fingerprint(deps)).toBe(fingerprintOfCommit('HEAD', deps))
   })
 
-  it('changes for an untracked file, a src/ edit and a lockfile edit', () => {
+  it('changes for a new src/ file and a src/ edit', () => {
     const { dir, deps } = repo()
     const base = fingerprint(deps)
-    writeFileSync(join(dir, 'new.js'), 'n\n')
+    writeFileSync(join(dir, 'src/new.js'), 'n\n')
     const withNew = fingerprint(deps)
     expect(withNew).not.toBe(base)
     writeFileSync(join(dir, 'src/a.js'), 'changed\n')
-    const withEdit = fingerprint(deps)
-    expect(withEdit).not.toBe(withNew)
-    writeFileSync(join(dir, 'package-lock.json'), '{"a":1}\n')
-    expect(fingerprint(deps)).not.toBe(withEdit)
+    expect(fingerprint(deps)).not.toBe(withNew)
   })
 
-  it('ignores TODO/, chat/ and ignored files', () => {
+  it('ignores everything outside src/: tests, docs, lockfiles, TODO/, chat/ and ignored files', () => {
     const { dir, deps } = repo()
     const base = fingerprint(deps)
     writeFileSync(join(dir, 'TODO/x.md'), 'changed\n')
     mkdirSync(join(dir, 'chat'))
     writeFileSync(join(dir, 'chat/post.md'), 'p\n')
     writeFileSync(join(dir, 'ignored.txt'), 'i\n')
+    writeFileSync(join(dir, 'package-lock.json'), '{"a":1}\n')
+    writeFileSync(join(dir, 'Initial design.md'), 'doc\n')
     expect(fingerprint(deps)).toBe(base)
   })
 

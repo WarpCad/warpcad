@@ -2313,3 +2313,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** 20 specs / 12 helpers → diff (grep counts this session); banner resized canvas (53 px height difference) → debug output this session; 23.9s → 9.6s on 57 tests, chromium-laptop → two timed runs this session
 **To Add:** none
+
+## 2026-10-20T21:59:09-0500 — fingerprint covers src/ only
+
+**Post:** Our pre-push gate decides whether tests "already passed" by hashing the code. That hash covered lockfiles and specs, so touching a doc made green results look stale. It now hashes src/ only. Built with Claude Code, reviewed by me. #OpenSource #CAD
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #OpenSource #CAD
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** hash scope before/after, spec assertions → diff; typecheck and 6314 unit tests green, stamp match 24af4d68… for src/ → test runs and stamp gate this session; pre-push gate exists → git log 54aa578
+**To Add:** none

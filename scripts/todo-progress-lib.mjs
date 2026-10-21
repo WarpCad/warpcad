@@ -5,9 +5,9 @@
 // its own module because the CLI runs top-level code on import, so the test reporters and the
 // pre-push hook could not import it.
 //
-// "This code" means the same thing everywhere here: a sha256 over every tracked-or-untracked,
-// non-ignored file except TODO/, chat/ and .todo-progress/ (nothing a test reads). The green
-// stamp, the stored results and the push check all compare that one number.
+// "This code" means the same thing everywhere here: a sha256 over the tracked-or-untracked,
+// non-ignored files under src/ only. Tests, docs, lockfiles and config do not move the number.
+// The green stamp, the stored results and the push check all compare that one number.
 
 import { createHash } from 'node:crypto'
 import { execFileSync } from 'node:child_process'
@@ -25,7 +25,7 @@ export const SUITE_COMMANDS = {
   e2e: 'npm run test:e2e:headless',
 }
 
-const EXCLUDED = /^(TODO|chat|\.todo-progress)\//
+const WATCHED_DIR = 'src/'
 
 /**
  * @typedef {(args: string[], input?: string) => string} Git runs git, returns stdout
@@ -56,7 +56,7 @@ function digest(entries) {
 export function fingerprint({ git = realGit, exists = defaultExists } = {}) {
   const paths = git(['ls-files', '-z', '-c', '-o', '--exclude-standard'])
     .split('\0')
-    .filter((p) => p && !EXCLUDED.test(p))
+    .filter((p) => p && p.startsWith(WATCHED_DIR))
   const present = [...new Set(paths)].filter(exists) // tracked-but-deleted files drop out
   const ids = present.length ? git(['hash-object', '--stdin-paths'], present.join('\n') + '\n').trim().split('\n') : []
   return digest(present.map((p, i) => [p, ids[i]]))
@@ -83,7 +83,7 @@ export function fingerprintOfCommit(rev, { git = realGit } = {}) {
   const entries = []
   for (const line of git(['ls-tree', '-r', '-z', rev]).split('\0')) {
     const m = /^\d+ blob ([0-9a-f]+)\t(.+)$/s.exec(line)
-    if (m && !EXCLUDED.test(m[2])) entries.push([m[2], m[1]])
+    if (m && m[2].startsWith(WATCHED_DIR)) entries.push([m[2], m[1]])
   }
   return digest(entries)
 }

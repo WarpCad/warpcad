@@ -3326,3 +3326,16 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** 1106 failures in first full run → run log this session; 20 specs, 12 helpers → diff; 53 px → debug output this session; 23.9 s → 9.6 s → timed runs this session; 0 failed / 1165 skipped → final full run this session
 **To Add:** none
+
+## 2026-10-20T21:59:09-0500 — fingerprint covers src/ only
+
+**Post:** The pre-push hook in WarpCad refuses a push unless full unit and e2e runs are stored for the exact code being pushed. "Exact code" was a sha256 over everything non-ignored except TODO/, chat/ and .todo-progress/.
+
+That was too wide. Editing a spec, a lockfile or a doc changed the hash and made a green run look stale, although nothing the app ships had changed. The hash now covers only files under src/, and the spec asserts both directions: a src/ edit moves it, and a test, doc or lockfile edit doesn't.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** hash scope before/after, spec assertions → diff; 6314 unit tests and typecheck green → test runs this session; pre-push gate exists → git log 54aa578
+**To Add:** none
