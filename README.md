@@ -311,6 +311,8 @@ owners and imply no affiliation or endorsement; see
 [Trademarks and names](LICENSING.md#trademarks-and-names). The running app links to this repository from the
 bottom of every Help page.
 
+Contributions are accepted under a [contributor licence agreement](CLA.md) as well as the DCO, so the owner can also distribute an App Store build; see [the dual-licensing note](docs/decisions/app-store-licensing.md).
+
 Found a security problem? Please report it privately; see [SECURITY.md](SECURITY.md).
 Everyone taking part follows the [code of conduct](CODE_OF_CONDUCT.md).
 

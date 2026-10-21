@@ -5,8 +5,10 @@ kind: feature
 priority: high
 model: sonnet
 depends: [build-003]
-status: open
+status: done
 ---
+
+> **Retired with open items (2026-10-21).** Parts 1-5 shipped. The in-repo CLA check replaces `contributor-assistant/github-action`, which was archived the same day. Still outstanding: Part 4 GitHub settings (not applied), Part 6 lawyer review, the second-account throwaway PR test, and the `build-014` scratch-remote re-run. Each is logged in `TODO/VERIFY.md`.
 
 ## Goal
 

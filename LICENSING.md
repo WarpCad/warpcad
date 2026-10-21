@@ -33,6 +33,23 @@ Where a marker and this table disagree, the marker wins.
   code in this repository*, AGPL-3.0 applies.
 - Neither license stops you reading, studying or privately running any of it.
 
+## Distribution under other terms
+
+The public licence is unchanged: the code is AGPL-3.0-or-later and the prose is CC BY-SA 4.0, and
+every file's marker says so.
+
+The owner also distributes a separate build of the app, the iPhone app from the Apple App Store,
+under the owner's own terms. Apple's distribution terms add restrictions that the AGPL does not
+allow a distributor to add, so that build cannot be published under the AGPL alone. The owner may
+publish it because the owner holds the copyright in the code, or is licensed by each contributor
+under [`CLA.md`](CLA.md) to relicense it. Contributors keep their copyright. The App Store app still
+offers the corresponding source, as AGPL section 13 requires for the public build.
+
+The reasoning, the options compared and the rejection table are in
+[`docs/decisions/app-store-licensing.md`](docs/decisions/app-store-licensing.md). This is general
+engineering guidance, not legal advice; a lawyer's review is recorded there before any store
+submission.
+
 ## Dependencies
 
 Runtime dependencies are all permissively licensed (MIT) and compatible with AGPL-3.0.

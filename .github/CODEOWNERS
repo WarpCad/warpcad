@@ -1,0 +1,17 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# TODO/build-016 Part 4: the owner reviews every change to the licence, the contribution terms,
+# the repository's own automation, and the dependency manifests. Turn on "Require review from
+# Code Owners" for `main` (docs/decisions/app-store-licensing.md, the settings checklist).
+
+LICENSE                        @johnwebbcole
+LICENSE-DOCS                   @johnwebbcole
+LICENSING.md                   @johnwebbcole
+CLA.md                         @johnwebbcole
+CONTRIBUTING.md                @johnwebbcole
+.github/                       @johnwebbcole
+package.json                   @johnwebbcole
+package-lock.json              @johnwebbcole
+mcp/package.json               @johnwebbcole
+.githooks/                     @johnwebbcole
+scripts/spdx.mjs               @johnwebbcole
+scripts/check-contributors.mjs @johnwebbcole

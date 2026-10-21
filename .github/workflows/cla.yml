@@ -1,0 +1,138 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# TODO/build-016 Part 3: the CLA check. Commit status `cla` on the pull request's head commit.
+#
+# Why this is written in-repo and not `contributor-assistant/github-action`: that action was
+# archived on 2026-10-21 (GitHub reports `archived: true`), so it would never receive another fix
+# or a security patch. The check below is about 100 lines of `actions/github-script`, which is a
+# first-party action, pinned to a commit SHA.
+#
+# Safety: `pull_request_target` runs with the base repository's token and secrets. This workflow
+# never checks out or executes code from the pull request. It only reads the PR's metadata and
+# commit list through the API, and writes a commit status. Keep it that way: do not add a
+# `checkout` step here.
+#
+# Signatures live in `.github/cla-signatures.json` on the `cla-signatures` branch (created on the
+# first signature from the default branch). The `issue_comment` path records a signature; the
+# `pull_request_target` path checks it.
+
+name: CLA
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened]
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: write # the `cla-signatures` branch, written only on a signing comment
+  pull-requests: read
+  statuses: write # the `cla` commit status
+
+jobs:
+  cla:
+    name: cla
+    # On a comment, only a signing comment on a pull request does anything.
+    if: >
+      github.event_name == 'pull_request_target' ||
+      (github.event.issue.pull_request && contains(github.event.comment.body,
+      'I have read the CLA Document and I hereby sign the CLA'))
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
+        with:
+          script: |
+            const SIGN_PHRASE = 'I have read the CLA Document and I hereby sign the CLA'
+            // Logins whose commits are exempt. The owner's own work and bot changes to lockfiles
+            // and workflow pins (`.github/dependabot.yml`, the pinned actions) are not authored code.
+            const EXEMPT_LOGINS = ['johnwebbcole', 'dependabot[bot]', 'github-actions[bot]']
+            const SIGNATURES = '.github/cla-signatures.json'
+            const BRANCH = 'cla-signatures'
+            const { owner, repo } = context.repo
+
+            // Reads the signature list from the signatures branch, falling back to the default
+            // branch, and returns { signatures, sha } where sha is the blob to update (or null).
+            async function readSignatures(ref) {
+              try {
+                const { data } = await github.rest.repos.getContent({ owner, repo, path: SIGNATURES, ref })
+                const text = Buffer.from(data.content, 'base64').toString('utf8')
+                return { signatures: JSON.parse(text).signatures ?? [], sha: data.sha }
+              } catch (e) {
+                if (e.status !== 404) throw e
+                return { signatures: [], sha: null }
+              }
+            }
+
+            async function setStatus(sha, state, description) {
+              await github.rest.repos.createCommitStatus({
+                owner, repo, sha, state, context: 'cla', description,
+                target_url: `${process.env.GITHUB_SERVER_URL}/${owner}/${repo}/blob/${BRANCH}/${SIGNATURES}`,
+              })
+            }
+
+            // Figure out which pull request this run is about.
+            let prNumber
+            if (context.eventName === 'issue_comment') {
+              prNumber = context.payload.issue.number
+            } else {
+              prNumber = context.payload.pull_request.number
+            }
+            const { data: pr } = await github.rest.pulls.get({ owner, repo, pull_number: prNumber })
+            const headSha = pr.head.sha
+            const author = pr.user.login
+
+            // A signing comment: record it, but only when the commenter is the PR's author.
+            if (context.eventName === 'issue_comment') {
+              if (context.payload.comment.user.login !== author) {
+                core.info(`Ignoring the sign phrase from ${context.payload.comment.user.login}: not the PR author.`)
+                return
+              }
+              const { data: commits } = await github.rest.pulls.listCommits({ owner, repo, pull_number: prNumber, per_page: 100 })
+              const emails = [...new Set(commits.map((c) => c.commit.author.email.toLowerCase()))]
+              let branchExists = true
+              try {
+                await github.rest.repos.getBranch({ owner, repo, branch: BRANCH })
+              } catch (e) {
+                if (e.status !== 404) throw e
+                branchExists = false
+              }
+              if (!branchExists) {
+                const { data: base } = await github.rest.repos.getBranch({ owner, repo, branch: pr.base.repo.default_branch })
+                await github.rest.git.createRef({ owner, repo, ref: `refs/heads/${BRANCH}`, sha: base.commit.sha })
+              }
+              const { signatures, sha: blob } = await readSignatures(BRANCH)
+              const added = []
+              for (const email of emails) {
+                if (signatures.some((s) => s.login === author && s.email.toLowerCase() === email)) continue
+                added.push({ login: author, email, date: new Date().toISOString().slice(0, 10), version: 'CLA.md' })
+              }
+              const next = { signatures: [...signatures, ...added] }
+              await github.rest.repos.createOrUpdateFileContents({
+                owner, repo, path: SIGNATURES, branch: BRANCH,
+                message: `cla: sign-off from @${author} (PR #${prNumber})`,
+                content: Buffer.from(JSON.stringify(next, null, 2) + '\n').toString('base64'),
+                ...(blob ? { sha: blob } : {}),
+              })
+              core.info(`Recorded ${added.length} new signature(s) for @${author}.`)
+            }
+
+            // The check itself, on the head commit. Runs for every pull request event, and again
+            // after a signing comment so the status flips green without a new push.
+            const { signatures } = await readSignatures(BRANCH)
+            const { data: commits } = await github.rest.pulls.listCommits({ owner, repo, pull_number: prNumber, per_page: 100 })
+            const unsigned = []
+            for (const c of commits) {
+              const email = c.commit.author.email.toLowerCase()
+              const login = c.author?.login ?? ''
+              if (EXEMPT_LOGINS.includes(login) || email.endsWith('[bot]@users.noreply.github.com')) continue
+              if (signatures.some((s) => s.login === login || s.email.toLowerCase() === email)) continue
+              unsigned.push(`${c.sha.slice(0, 9)} (${c.commit.author.email})`)
+            }
+            if (unsigned.length === 0) {
+              await setStatus(headSha, 'success', 'Every author has signed the CLA.')
+            } else {
+              await setStatus(headSha, 'failure', `Not signed yet: ${unsigned.length} commit(s). Comment the CLA sentence on this PR.`)
+              core.setFailed(
+                `These commits are by authors who have not signed CLA.md: ${unsigned.join(', ')}. ` +
+                `Comment exactly: "${SIGN_PHRASE}". See CONTRIBUTING.md step 2.`,
+              )
+            }

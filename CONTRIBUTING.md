@@ -15,11 +15,17 @@ Thanks for helping. Before you open a pull request:
    change (or have the right to submit it) and agree it is released under the project's
    license. Pull requests with unsigned commits will not be merged. If an AI agent helped
    write the change, the human submitting it is the one who signs off.
-3. New source and prose files need an SPDX marker — run `node scripts/spdx.mjs --fix` after
+3. **Sign the Contributor Licence Agreement** ([`CLA.md`](CLA.md)) once, by commenting on your pull
+   request: `I have read the CLA Document and I hereby sign the CLA`. The `cla` check turns green
+   after that. Why a CLA as well as the DCO: the DCO certifies you may submit the change under the
+   project's licence, but it does not let the owner also distribute the app through the Apple App
+   Store, which needs a grant to relicense. The CLA is that grant; you keep your copyright, and the
+   public repository stays AGPL-3.0-or-later (see [`LICENSING.md`](LICENSING.md#distribution-under-other-terms)).
+4. New source and prose files need an SPDX marker — run `node scripts/spdx.mjs --fix` after
    `git add`ing them. The release's CI run (`ci.yml`) checks `npm run spdx` and `npm run licenses`; run them before you push.
-4. Do not add code, assets or prompts copied from a source whose license is incompatible with
+5. Do not add code, assets or prompts copied from a source whose license is incompatible with
    AGPL-3.0 or CC BY-SA 4.0 (proprietary, "non-commercial", SSPL, and similar).
-5. No third-party logo or brand image goes into the repository without a licence check, and a new
+6. No third-party logo or brand image goes into the repository without a licence check, and a new
    third-party product name needs its owner added to
    [Trademarks and names](LICENSING.md#trademarks-and-names).
 

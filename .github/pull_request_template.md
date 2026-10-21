@@ -10,6 +10,7 @@
 ## Checklist
 
 - [ ] Every commit is signed off (`git commit -s`, see `CONTRIBUTING.md`)
+- [ ] I have signed the CLA: I commented "I have read the CLA Document and I hereby sign the CLA" on this pull request (see `CLA.md`)
 - [ ] New files carry an SPDX marker (`node scripts/spdx.mjs --fix`)
 - [ ] `npm run typecheck` and `npm run test:unit -- --run` pass
 - [ ] A user-visible control is reachable from the real app: an `e2e/*.e2e.js` spec that navigates to `/`

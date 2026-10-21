@@ -36,6 +36,19 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### build-016 — CLA, licence text and the pre-push backstop (2026-10-21 14:39)
+
+The in-repo `cla` and `dco` checks and the GitHub settings they depend on can only be tested with a second account and by the owner applying settings. Part 6 is a legal review. These are not covered by any acceptance scenario.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | Second-account test PR, unsigned: `cla` and `dco` show failure, and the merge button is blocked | Open | |
+| 2 | Comment the CLA sentence from that account: `cla` turns green; `dco` passes once commits are signed off (`git commit -s`) | Open | |
+| 3 | Owner's and Dependabot's PRs are exempt from both checks | Open | |
+| 4 | Apply Part 4 GitHub settings (ruleset with `cla`/`dco`, code-owner review, contributor approval, squash-merge policy); checklist in `docs/decisions/app-store-licensing.md` | Open | Owner's action; not applied by the task |
+| 5 | Re-run `build-014`'s scratch-remote steps against the edited `.githooks/pre-push` | Open | The backstop's own walk passed (owner ok, unknown author refused) |
+| 6 | Part 6 lawyer review of `CLA.md`, governing-law clause (placeholder), AI authorship, docs-licence choice; record reviewer and date in the decision record | Open | Required before App Store submission |
+
 ### build-015 — e2e against the production build by default (2026-10-21 02:50)
 
 The default run now skips the specs that need the dev host's live bridge or scripted provider, so they no longer run unless asked.

@@ -1,0 +1,53 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# TODO/build-016 Part 4: the DCO check. Commit status `dco` on the pull request's head commit.
+# Every commit must carry a `Signed-off-by:` line that matches its author's name and email
+# (CONTRIBUTING.md step 2). The owner and the bots in `cla.yml` are exempt, as they are for the CLA.
+#
+# Like `cla.yml`, this runs on `pull_request_target` and never checks out the pull request's code.
+# It reads the commit list through the API only. The CI workflow (`ci.yml`) does not run on pull
+# requests (TODO/build-014), so this is the only check on them.
+
+name: DCO
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  pull-requests: read
+  statuses: write
+
+jobs:
+  dco:
+    name: dco
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
+        with:
+          script: |
+            const EXEMPT_LOGINS = ['johnwebbcole', 'dependabot[bot]', 'github-actions[bot]']
+            const { owner, repo } = context.repo
+            const prNumber = context.payload.pull_request.number
+            const headSha = context.payload.pull_request.head.sha
+
+            const commits = await github.paginate(github.rest.pulls.listCommits, { owner, repo, pull_number: prNumber, per_page: 100 })
+            const missing = []
+            for (const c of commits) {
+              const login = c.author?.login ?? ''
+              if (EXEMPT_LOGINS.includes(login) || c.commit.author.email.endsWith('[bot]@users.noreply.github.com')) continue
+              const { name, email } = c.commit.author
+              // The trailer must name this commit's author, exactly, on its own line.
+              const wanted = `Signed-off-by: ${name} <${email}>`
+              const signed = c.commit.message.split('\n').some((line) => line.trim() === wanted)
+              if (!signed) missing.push(c.sha.slice(0, 9))
+            }
+
+            if (missing.length === 0) {
+              await github.rest.repos.createCommitStatus({ owner, repo, sha: headSha, state: 'success', context: 'dco', description: 'Every commit is signed off.' })
+            } else {
+              await github.rest.repos.createCommitStatus({ owner, repo, sha: headSha, state: 'failure', context: 'dco', description: `${missing.length} commit(s) lack a Signed-off-by line.` })
+              core.setFailed(
+                `Commits without a matching Signed-off-by line: ${missing.join(', ')}. ` +
+                'Add it with `git commit -s --amend` (the last commit) or `git rebase --signoff main` (all of them), then force-push. See CONTRIBUTING.md step 2.',
+              )
+            }

@@ -7,4 +7,6 @@ command -v git-lfs >/dev/null 2>&1 || { printf >&2 "\n%s\n\n" "This repository i
 # stdin carries the refs once; both consumers need it.
 refs="$(cat)"
 printf '%s\n' "$refs" | git lfs pre-push "$@" || exit $?
+# TODO/build-016: refuse commits by an author who has not signed the CLA (CLA.md). Local git only.
+printf '%s\n' "$refs" | node scripts/check-contributors.mjs || exit $?
 printf '%s\n' "$refs" | node scripts/todo-progress.mjs stamp verify-push

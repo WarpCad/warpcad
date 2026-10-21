@@ -2,6 +2,8 @@
 # month's bumps arrive as one reviewable change instead of a stream. Every PR still has to pass
 # CI, including `npm run licenses` (a new transitive licence outside the allow-list fails there,
 # and widening the list is the maintainer's call — CLAUDE.md "Licensing").
+# CLA and DCO: the bot's commits are exempt from both checks (`.github/workflows/cla.yml`,
+# `dco.yml`). Bots change lockfiles and workflow pins, not authored code, so they do not sign.
 version: 2
 updates:
   - package-ecosystem: npm
