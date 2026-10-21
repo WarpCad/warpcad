@@ -2,6 +2,7 @@
 import { mkdirSync } from 'node:fs'
 import { join } from 'node:path'
 import { test, expect } from '@playwright/test'
+import { withRowSettings } from './support/libraryRow.js'
 
 /**
  * The one Bolt / screw Library row (`TODO/core-060`), driven against `/` — the running app.
@@ -177,45 +178,48 @@ test('one Bolt / screw row with Type and Size dropdowns; Size follows Type and f
   // No separate screw row: a screw is a Type of this one.
   await expect(page.getByTestId('library-row-hardware.screw')).toHaveCount(0)
 
-  const type = page.getByTestId('library-choice-hardware.bolt')
-  const size = page.getByTestId('library-choice-hardware.bolt-spec')
-  await expect(type).toBeVisible()
-  await expect(size).toBeVisible()
-  // The row's defaults are today's bolt exactly.
-  await expect(type).toHaveValue('hex')
-  await expect(size).toHaveValue('m10')
-  await expect(type.locator('option')).toHaveText(TYPES.map((entry) => entry.label))
+  // In the icons tier the dropdowns are in the row's pop-out (TODO/ui-084).
+  await withRowSettings(page, 'hardware.bolt', async () => {
+    const type = page.getByTestId('library-choice-hardware.bolt')
+    const size = page.getByTestId('library-choice-hardware.bolt-spec')
+    await expect(type).toBeVisible()
+    await expect(size).toBeVisible()
+    // The row's defaults are today's bolt exactly.
+    await expect(type).toHaveValue('hex')
+    await expect(size).toHaveValue('m10')
+    await expect(type.locator('option')).toHaveText(TYPES.map((entry) => entry.label))
 
-  // Each Type offers its own sizes, and a Type change strands the old size onto the new default.
-  const sizesOf = () => size.locator('option').evaluateAll((options) => options.map((o) => /** @type {HTMLOptionElement} */ (o).value))
-  // A Size the new Type also offers is kept (M10 is a socket-cap size too); one it does not offer
-  // falls back to the Type's own default.
-  let previous = 'm10'
-  for (const entry of TYPES) {
-    await type.selectOption(entry.type)
-    const offered = await sizesOf()
-    const expected = offered.includes(previous) ? previous : entry.size
-    await expect(size).toHaveValue(expected)
-    expect(offered).toContain(entry.size)
-    previous = expected
-  }
-  // And a Type switch that strands the Size lands on that Type's default.
-  await type.selectOption('hex')
-  await size.selectOption('m12')
-  await type.selectOption('woodPan')
-  await expect(size).toHaveValue('#8')
-  await type.selectOption('pan')
-  expect(await sizesOf()).toEqual(['m4'])
-  await type.selectOption('woodFlat')
-  const woodSizes = await sizesOf()
-  expect(woodSizes[0]).toBe('#2')
-  expect(woodSizes).toContain('#16')
-  expect(woodSizes).not.toContain('m4')
+    // Each Type offers its own sizes, and a Type change strands the old size onto the new default.
+    const sizesOf = () => size.locator('option').evaluateAll((options) => options.map((o) => /** @type {HTMLOptionElement} */ (o).value))
+    // A Size the new Type also offers is kept (M10 is a socket-cap size too); one it does not offer
+    // falls back to the Type's own default.
+    let previous = 'm10'
+    for (const entry of TYPES) {
+      await type.selectOption(entry.type)
+      const offered = await sizesOf()
+      const expected = offered.includes(previous) ? previous : entry.size
+      await expect(size).toHaveValue(expected)
+      expect(offered).toContain(entry.size)
+      previous = expected
+    }
+    // And a Type switch that strands the Size lands on that Type's default.
+    await type.selectOption('hex')
+    await size.selectOption('m12')
+    await type.selectOption('woodPan')
+    await expect(size).toHaveValue('#8')
+    await type.selectOption('pan')
+    expect(await sizesOf()).toEqual(['m4'])
+    await type.selectOption('woodFlat')
+    const woodSizes = await sizesOf()
+    expect(woodSizes[0]).toBe('#2')
+    expect(woodSizes).toContain('#16')
+    expect(woodSizes).not.toContain('m4')
 
-  // At phone width the two dropdowns are each a full-height tap target.
-  const box = await size.boundingBox()
-  expect(box?.height ?? 0).toBeGreaterThanOrEqual(31)
-  if (testInfo.project.name.endsWith('phone')) expect(box?.height ?? 0).toBeGreaterThanOrEqual(43)
+    // At phone width the two dropdowns are each a full-height tap target.
+    const box = await size.boundingBox()
+    expect(box?.height ?? 0).toBeGreaterThanOrEqual(31)
+    if (testInfo.project.name.endsWith('phone')) expect(box?.height ?? 0).toBeGreaterThanOrEqual(43)
+  })
 
   mkdirSync(SNAPSHOT_DIR, { recursive: true })
   await page.getByTestId('library-rows-hardware').screenshot({ path: join(SNAPSHOT_DIR, `hardware-${testInfo.project.name}.png`) })
@@ -227,8 +231,10 @@ test('dragging each Type in places it with that Type and Size, a tap part where 
   let index = 0
   for (const entry of TYPES) {
     await openLibrary(page)
-    await page.getByTestId('library-choice-hardware.bolt').selectOption(entry.type)
-    await page.getByTestId('library-choice-hardware.bolt-spec').selectOption(entry.size)
+    await withRowSettings(page, 'hardware.bolt', async () => {
+      await page.getByTestId('library-choice-hardware.bolt').selectOption(entry.type)
+      await page.getByTestId('library-choice-hardware.bolt-spec').selectOption(entry.size)
+    })
     await dragRowIntoViewport(page, { op: 'hardware.bolt', fx: 0.12 + index * 0.13, fy: 0.3 })
     index += 1
     await expect(page.getByTestId('viewport')).toHaveAttribute('data-body-count', String(index))
@@ -257,7 +263,7 @@ test('changing Type in the Inspector from Socket cap to Wood screw, flat head re
   page,
 }) => {
   await openLibrary(page)
-  await page.getByTestId('library-choice-hardware.bolt').selectOption('socket')
+  await withRowSettings(page, 'hardware.bolt', () => page.getByTestId('library-choice-hardware.bolt').selectOption('socket'))
   await dragRowIntoViewport(page, { op: 'hardware.bolt', fx: 0.4, fy: 0.3 })
   await showInspector(page)
   const [before] = await sceneBodies(page)

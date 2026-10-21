@@ -2,6 +2,7 @@
 import { mkdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { test, expect } from '@playwright/test'
+import { withRowSettings } from './support/libraryRow.js'
 
 /**
  * The Library remembers each part's last-used params, and the next drag uses them
@@ -135,10 +136,12 @@ async function placeM25Socket(page, at) {
 /** @param {import('@playwright/test').Page} page */
 async function expectBoltRowRemembers(page) {
   await openLibrary(page)
-  await expect(page.getByTestId(`library-choice-${BOLT}`)).toHaveValue('socket')
-  await expect(page.getByTestId(`library-choice-${BOLT}-spec`)).toHaveValue('m2.5')
-  await expect(page.getByTestId(`library-remembered-${BOLT}`)).toContainText('× 8 mm')
-  await expect(page.getByTestId(`library-reset-${BOLT}`)).toBeVisible()
+  await withRowSettings(page, BOLT, async () => {
+    await expect(page.getByTestId(`library-choice-${BOLT}`)).toHaveValue('socket')
+    await expect(page.getByTestId(`library-choice-${BOLT}-spec`)).toHaveValue('m2.5')
+    await expect(page.getByTestId(`library-remembered-${BOLT}`)).toContainText('× 8 mm')
+    await expect(page.getByTestId(`library-reset-${BOLT}`)).toBeVisible()
+  })
 }
 
 test.beforeEach(async ({ page }) => {
@@ -205,11 +208,13 @@ test('Reset puts the row back to Hex M10 x 20 and the summary and button go away
   await placeM25Socket(page, { fx: 0.4, fy: 0.2 })
   await expectBoltRowRemembers(page)
 
-  await page.getByTestId(`library-reset-${BOLT}`).click()
-  await expect(page.getByTestId(`library-reset-${BOLT}`)).toHaveCount(0)
-  await expect(page.getByTestId(`library-remembered-${BOLT}`)).toHaveCount(0)
-  await expect(page.getByTestId(`library-choice-${BOLT}`)).toHaveValue('hex')
-  await expect(page.getByTestId(`library-choice-${BOLT}-spec`)).toHaveValue('m10')
+  await withRowSettings(page, BOLT, async () => {
+    await page.getByTestId(`library-reset-${BOLT}`).click()
+    await expect(page.getByTestId(`library-reset-${BOLT}`)).toHaveCount(0)
+    await expect(page.getByTestId(`library-remembered-${BOLT}`)).toHaveCount(0)
+    await expect(page.getByTestId(`library-choice-${BOLT}`)).toHaveValue('hex')
+    await expect(page.getByTestId(`library-choice-${BOLT}-spec`)).toHaveValue('m10')
+  })
 
   await dragRowIntoViewport(page, { op: BOLT, fx: 0.7, fy: 0.25 })
   await expectBodyCount(page, 2)
@@ -231,9 +236,11 @@ test.describe('Chromium only', () => {
     await page.getByTestId('inspector-param-model').selectOption('5')
     await expect(page.getByTestId('inspector-param-model')).toHaveValue('5')
     await openLibrary(page)
-    await expect(page.getByTestId('library-choice-raspberrypi.bplus')).toHaveValue('5')
-    // The board has nothing else to say, so the row shows no summary line.
-    await expect(page.getByTestId('library-remembered-raspberrypi.bplus')).toHaveCount(0)
+    await withRowSettings(page, 'raspberrypi.bplus', async () => {
+      await expect(page.getByTestId('library-choice-raspberrypi.bplus')).toHaveValue('5')
+      // The board has nothing else to say, so the row shows no summary line.
+      await expect(page.getByTestId('library-remembered-raspberrypi.bplus')).toHaveCount(0)
+    })
   })
 
   test('an AI-origin screw does not change what the next drag drops', async ({ page }) => {
@@ -258,9 +265,11 @@ test.describe('Chromium only', () => {
     await expect(page.getByTestId('assistant-panel')).toBeHidden()
 
     await openLibrary(page)
-    await expect(page.getByTestId(`library-choice-${BOLT}`)).toHaveValue('hex')
-    await expect(page.getByTestId(`library-choice-${BOLT}-spec`)).toHaveValue('m10')
-    await expect(page.getByTestId(`library-remembered-${BOLT}`)).toHaveCount(0)
-    await expect(page.getByTestId(`library-reset-${BOLT}`)).toHaveCount(0)
+    await withRowSettings(page, BOLT, async () => {
+      await expect(page.getByTestId(`library-choice-${BOLT}`)).toHaveValue('hex')
+      await expect(page.getByTestId(`library-choice-${BOLT}-spec`)).toHaveValue('m10')
+      await expect(page.getByTestId(`library-remembered-${BOLT}`)).toHaveCount(0)
+      await expect(page.getByTestId(`library-reset-${BOLT}`)).toHaveCount(0)
+    })
   })
 })

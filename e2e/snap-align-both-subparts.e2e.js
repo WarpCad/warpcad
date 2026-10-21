@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { test, expect } from '@playwright/test'
+import { withRowSettings } from './support/libraryRow.js'
 import { mkdirSync } from 'node:fs'
 import { join } from 'node:path'
 
@@ -207,11 +208,13 @@ test('a Pi’s hole1 aligned onto a screen’s post, then its mb snapped onto th
   test.setTimeout(120_000)
   await openLibrary(page)
   await page.getByTestId('library-rows-raspberrypi').scrollIntoViewIfNeeded()
-  await page.getByTestId('library-choice-raspberrypi.bplus').selectOption('5')
+  await withRowSettings(page, 'raspberrypi.bplus', () => page.getByTestId('library-choice-raspberrypi.bplus').selectOption('5'))
   await dragFromLibrary(page, 'raspberrypi.bplus', 0.3, 0.2)
   const pi = await bodyIdOf(page, 'raspberrypi.bplus')
   // TODO/core-058: the six screens are one row now, picked by its Screen model dropdown.
-  await page.getByTestId('library-choice-raspberrypi.screen').selectOption('touchScreen2')
+  await withRowSettings(page, 'raspberrypi.screen', () =>
+    page.getByTestId('library-choice-raspberrypi.screen').selectOption('touchScreen2'),
+  )
   await dragFromLibrary(page, 'raspberrypi.screen', 0.7, 0.25)
   const screen = await bodyIdOf(page, 'raspberrypi.screen')
   await expect(page.getByTestId('viewport')).toHaveAttribute('data-body-count', '2')

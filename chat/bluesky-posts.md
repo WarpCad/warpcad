@@ -2340,3 +2340,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** two audits, default-deny capabilities, ~1 MB vs 4.5-7.8 MB, share plugin, 10 vs 46 open iOS issues → docs/decisions/native-mobile-shell.md Question 7 (figures measured/fetched 2026-10-21 per the record, not re-run at commit time)
 **To Add:** none
+
+## 2026-10-21T19:30:00-0500 — Library icon rail and compact viewport chrome (ui-084)
+
+**Post:** At tablet width, WarpCad's Library was still a 200 px column of labelled rows while the toolbar beside it had gone to icons. Now it's a 72 px icon rail: drag to place, tap for sizes. The nav pad and triad shrink too. #CAD #WebGL Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** 200 px labelled column at tablet before, 72 px rail after → TODO/done/ui-084 text and src/views/AppView.vue diff; toolbar had gone to icons → commit fe01ae5 (ui-079 stages 1-3)
+**To Add:** docs/screenshots/library-icon-rail.png, viewport-chrome-compact.png

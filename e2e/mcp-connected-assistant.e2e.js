@@ -105,10 +105,16 @@ test('the connected panel is shorter than the chat, and the chip opens Live MCP 
   expect((await panel.boundingBox()).height).toBeLessThan(open / 2)
   // The viewport's own overlays come down with the sheet: the scale readout sits just above it
   // (not 36% of the screen up, where the half sheet used to hold it), and never behind it.
-  const sheet = await panel.boundingBox()
-  const readout = await page.getByTestId('grid-scale-readout').boundingBox()
-  expect(readout.y + readout.height).toBeLessThanOrEqual(sheet.y + 1)
-  expect(sheet.y - (readout.y + readout.height)).toBeLessThan(40)
+  // The inset follows the sheet's measured height (a `ResizeObserver`), so wait for it to land:
+  // for a frame the readout holds the 160px fallback, which sits further above the sheet.
+  await expect
+    .poll(async () => {
+      const sheet = await panel.boundingBox()
+      const readout = await page.getByTestId('grid-scale-readout').boundingBox()
+      const gap = sheet.y - (readout.y + readout.height)
+      return gap >= -1 && gap < 40
+    })
+    .toBe(true)
   await page.getByTestId('ai-bridge-chip').click()
   await expect(page.getByTestId('ai-connect-sheet')).toBeVisible()
   await expect(page.getByTestId('ai-connect-disable')).toBeVisible()

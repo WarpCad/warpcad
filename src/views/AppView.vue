@@ -49,7 +49,7 @@ import { useAppUpdateStore } from '../stores/appUpdate.js'
 import { useAssistantStore } from '../stores/assistant.js'
 import { useHostedStore } from '../stores/hosted.js'
 import { useLibraryStore } from '../stores/library.js'
-import { LIBRARY_LABELS_MIN_PX, usePanelLayoutStore } from '../stores/panelLayout.js'
+import { usePanelLayoutStore } from '../stores/panelLayout.js'
 import { usePersistenceStore } from '../stores/persistence.js'
 import { useRepeatStore } from '../stores/repeat.js'
 import { useSketchEditorStore } from '../stores/sketchEditor.js'
@@ -256,23 +256,16 @@ onMounted(() => {
 })
 onBeforeUnmount(() => bodyObserver?.disconnect())
 
-/**
- * The Library track actually applied. Until the Library's icon rail and pop-out launchers exist
- * (`TODO/ui-079` stages 4–5), its only form above phone is the labelled column, which cannot hold
- * below 200px — so in the icons and pop-out tiers the track holds at that floor instead of the
- * store's 72/64px rail targets. The Operations tier is unaffected: it keys on the store's target
- * pane, and below the Library's labels tier that pane is already in Operations' icons range.
- */
-const libraryTrackPx = computed(() =>
-  panelLayout.layout.libraryTier === 'labels' ? panelLayout.layout.libraryWidthPx : LIBRARY_LABELS_MIN_PX,
-)
-
-/** `.app__body`'s inline custom properties: the side tracks, and the linked chat's height. */
+/** `.app__body`'s inline custom properties: the side tracks, the gizmo reserve, and the linked chat's height. */
 const bodyStyle = computed(() => {
   /** @type {Record<string, string>} */
   const style = {
-    '--library-width': `${libraryTrackPx.value}px`,
+    // The store's target track, applied as-is in every tier (`TODO/ui-084` removed the 200px hold
+    // that stood in for the icon rail until it existed).
+    '--library-width': `${panelLayout.layout.libraryWidthPx}px`,
     '--inspector-width': `${panelLayout.layout.inspectorWidthPx}px`,
+    // How much width the Operations toolbar leaves for the orientation gizmo (`TODO/ui-084`).
+    '--gizmo-reserve': `${panelLayout.layout.gizmoReservePx}px`,
   }
   if (chatSheet.value === 'linked' && aiChat.linkedHeight > 0) style['--chat-linked-height'] = `${aiChat.linkedHeight}px`
   return style
@@ -338,6 +331,7 @@ function onInspectorClaim() {
       class="app__body"
       :data-library-tier="panelLayout.layout.libraryTier"
       :data-ops-tier="panelLayout.layout.opsTier"
+      :data-chrome-tier="panelLayout.layout.chromeTier"
       :data-inspector-sheet="inspectorSheet"
       :data-library-sheet="libraryOpen ? 'open' : 'closed'"
       :data-timeline-sheet="timeline.open ? 'open' : 'none'"
@@ -505,24 +499,34 @@ function onInspectorClaim() {
  *     44px-tile rail that is ~1240px tall with dividers and the ? / ⋯ tiles, so the rail scrolls even
  *     at the 820×1180 tablet (1127px body). The 7-launcher section rail is ~410px (44px + 10px name).
  *
- *   | E (no chat)  | Library        | L (px)            | I (px)            | P (px)    | Operations |
- *   |--------------|----------------|-------------------|-------------------|-----------|------------|
- *   | ≥ 1276       | labels         | 224 → 240 at 1440 | 279.5 → 280       | ≥ 772     | labels     |
- *   | 1024 – 1275  | labels         | 200 – 224         | 249 – 279         | 575 – 771 | icons      |
- *   | 790 – 1023   | icons          | 72                | 221 – 249         | 497 – 702 | icons      |
- *   | 742 – 789    | pop-out        | 64                | 220 – 221         | 458 – 504 | icons      |
- *   | 641 – 741    | pop-out        | 64                | 220               | 357 – 457 | groups     |
- *   | ≤ 640        | phone sheet    | —                 | —                 | —         | phone icons|
+ * `TODO/ui-084` stage 1 added the viewport chrome's compact tier (Chromium / WebKit / Firefox):
+ *   Navigation pad, compact (the ≤ 480px form) ..... 190 / 194 / 194 × 164px, 8px in from the bottom left
+ *   Orientation gizmo, compact ..................... 106 × 138px in all three, 8px in from the top right
+ *   Gizmo reserve (`--gizmo-reserve`, below) ....... 184px full (130 + 12 + 42); 150px compact (106 + 8 + 36)
+ *   → chrome compact while P < 554: the full reserve leaves the 14-button icon row two lines only from
+ *     P − 24 − 184 − 14 ≥ 7 × 44 + 6 × 4 = 332. The compact reserve keeps the tablet (P = 523) on two lines.
+ *
+ *   | E (no chat)  | Library        | L (px)            | I (px)            | P (px)    | Operations | Chrome  |
+ *   |--------------|----------------|-------------------|-------------------|-----------|------------|---------|
+ *   | ≥ 1276       | labels         | 224 → 240 at 1440 | 279.5 → 280       | ≥ 772     | labels     | full    |
+ *   | 1024 – 1275  | labels         | 200 – 224         | 249 – 279         | 575 – 771 | icons      | full    |
+ *   | 855 – 1023   | icons (rail)   | 72                | 229 – 249         | 554 – 702 | icons      | full    |
+ *   | 790 – 854    | icons (rail)   | 72                | 221 – 229         | 497 – 553 | icons      | compact |
+ *   | 742 – 789    | pop-out (rail) | 64                | 220 – 221         | 458 – 504 | icons      | compact |
+ *   | 641 – 741    | pop-out (rail) | 64                | 220               | 357 – 457 | groups     | compact |
+ *   | ≤ 640        | phone sheet    | —                 | —                 | —         | phone icons| phone   |
  *
  *   I eases 220 → 280 linearly over E 780 → 1280; L eases 200 → 240 over E 1024 → 1440. Breakpoints
  *   moved from the provisional plan by measurement: Operations labels 1260 → 1276 (Firefox's labels
  *   need P ≥ 772 for two lines), Operations groups 734 → 742 (icons need P ≥ 458 for three lines),
  *   and so Library pop-out 780 → 790 (to stay 40px from 742; 820 is still 30px clear).
- *   The tablet (820) is Library icons / Operations icons with P ≈ 523; the laptop with the chat open
- *   (E = 1100) is Library labels at ~207px / Operations icons.
+ *   The tablet (820) is Library icons / Operations icons / chrome compact with P ≈ 523; the laptop
+ *   with the chat open (E = 1100) is Library labels at ~207px / Operations icons / chrome full.
+ *   Shrinking order: Operations icons 1276, Library icons 1024, chrome compact 855, Library pop-out
+ *   790, Operations groups 742, phone 640. "phone" chrome is the ≤ 480px media query, unchanged.
  *
- * Until the Library rail and pop-outs land (stages 4–5) the Library has only its labelled form, so
- * its applied track holds at 200px below the labels tier (`libraryTrackPx`).
+ * The applied Library track is the store's target in every tier. The pop-out tier shows the icon
+ * rail (in its 64px track) until `TODO/ui-081`'s section launchers land.
  */
 .app__body {
   position: relative;

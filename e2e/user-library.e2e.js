@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { test, expect } from '@playwright/test'
+import { showRowSettings, withRowSettings } from './support/libraryRow.js'
 
 /**
  * Save a group to the library and place it again (`TODO/ui-055`), driven against `/`.
@@ -273,9 +274,12 @@ test('Standoff: build a group, Save to library, reload, File > New, drag it in f
   if ((await toggle.getAttribute('aria-expanded')) !== 'true') await input.press(toggle)
   const row = page.getByTestId('library-row-user.standoff')
   await expect(row).toBeVisible()
-  await expect(page.getByTestId('library-thumb-user.standoff')).toBeVisible()
-  // The thumbnail is a real picture, not an empty canvas: it decoded to a non-zero size.
-  expect(await page.getByTestId('library-thumb-user.standoff').evaluate((img) => /** @type {HTMLImageElement} */ (img).naturalWidth)).toBeGreaterThan(0)
+  // In the icons tier the labelled row (with its thumbnail test id) is in the row's pop-out (TODO/ui-084).
+  await withRowSettings(page, 'user.standoff', async () => {
+    await expect(page.getByTestId('library-thumb-user.standoff')).toBeVisible()
+    // The thumbnail is a real picture, not an empty canvas: it decoded to a non-zero size.
+    expect(await page.getByTestId('library-thumb-user.standoff').evaluate((img) => /** @type {HTMLImageElement} */ (img).naturalWidth)).toBeGreaterThan(0)
+  })
 
   // Scenario 1's rule: the dropped part does not replace what is already there. A Cube first.
   const drops = DROPS(info)
@@ -296,7 +300,7 @@ test('Standoff: build a group, Save to library, reload, File > New, drag it in f
   expect(await partNames(page)).toEqual(original.parts)
   // It is "in this project" now.
   await openLibrary(page, input.press)
-  await expect(page.getByTestId('library-in-project-user.standoff')).toBeVisible()
+  await withRowSettings(page, 'user.standoff', () => expect(page.getByTestId('library-in-project-user.standoff')).toBeVisible())
 })
 
 test('a placed part shows its exposed size as a field, and editing it resizes the part with its sub-parts intact', async ({ page }, info) => {
@@ -335,7 +339,11 @@ test('the My parts menu: Duplicate, Rename, Export, and Delete that keeps a copy
   await expect(page.getByTestId('library-toast')).toHaveText('Saved Standoff')
 
   await openLibrary(page, input.press)
-  const menuFor = (op) => page.getByTestId(`user-part-menu-${op}`)
+  /** Open a My parts row's ⋯ menu; in the icons tier it is in the row's pop-out (TODO/ui-084). */
+  const openMenu = async (/** @type {string} */ op) => {
+    await showRowSettings(page, op)
+    await input.press(page.getByTestId(`user-part-menu-${op}`))
+  }
 
   // Place one so Delete has an instance to protect.
   const p = await viewportPoint(page, ...DROPS(info).c)
@@ -344,13 +352,13 @@ test('the My parts menu: Duplicate, Rename, Export, and Delete that keeps a copy
   await openLibrary(page, input.press)
 
   // Duplicate.
-  await input.press(menuFor('user.standoff'))
+  await openMenu('user.standoff')
   await expect(page.getByTestId('user-part-menu')).toBeVisible()
   await input.press(page.getByTestId('user-part-duplicate'))
   await expect(page.getByTestId('library-row-user.standoff-copy')).toBeVisible()
 
   // Rename, with its own validation: a duplicate name is refused.
-  await input.press(menuFor('user.standoff-copy'))
+  await openMenu('user.standoff-copy')
   await input.press(page.getByTestId('user-part-rename'))
   const rename = page.getByTestId('user-part-rename-input')
   await rename.fill('Standoff')
@@ -358,17 +366,17 @@ test('the My parts menu: Duplicate, Rename, Export, and Delete that keeps a copy
   await expect(page.getByTestId('user-part-rename-save')).toBeDisabled()
   await rename.fill('Spacer')
   await input.press(page.getByTestId('user-part-rename-save'))
-  await expect(page.getByTestId('library-row-user.standoff-copy')).toContainText('Spacer')
+  await expect(page.getByTestId('library-row-user.standoff-copy')).toHaveAttribute('data-label', 'Spacer')
 
   // Export hands the browser a part file.
   const download = page.waitForEvent('download')
-  await input.press(menuFor('user.standoff'))
+  await openMenu('user.standoff')
   await input.press(page.getByTestId('user-part-export'))
   expect((await download).suggestedFilename()).toBe('standoff.warpcad-part.json')
 
   // Delete a part with a placed instance: the default keeps a copy in the project.
   await openLibrary(page, input.press)
-  await input.press(menuFor('user.standoff'))
+  await openMenu('user.standoff')
   await input.press(page.getByTestId('user-part-delete'))
   await expect(page.getByTestId('user-part-delete-message')).toContainText(/1 placed instance/)
   await expect(page.getByTestId('user-part-delete-confirm')).toHaveText('Keep a copy in the project')
@@ -376,7 +384,7 @@ test('the My parts menu: Duplicate, Rename, Export, and Delete that keeps a copy
   // The placed geometry is untouched, and the row stays (from the project's copy), no longer a library one.
   await expect(page.getByTestId('viewport')).toHaveAttribute('data-body-count', '2')
   await expect(page.getByTestId('library-row-user.standoff')).toBeVisible()
-  await input.press(menuFor('user.standoff'))
+  await openMenu('user.standoff')
   await expect(page.getByTestId('user-part-delete')).toBeDisabled()
 })
 

@@ -52,7 +52,7 @@ On a phone:
 | Bottom-right | The scale readout. |
 | Bottom edge | The **Library** tab, and, once there is something in the scene, the **Objects** or **Inspector** tab above it. |
 
-![The same window on a tablet: the Library as a column on the left, the 3D view in the middle, the Inspector as a column on the right.](./screenshots/app-overview-tablet.png)
+![The same window on a tablet: the Library as a column of icons on the left, the 3D view in the middle, the Inspector as a column on the right.](./screenshots/app-overview-tablet.png)
 
 On a tablet there is room for columns: the **Library** is always on the left and the
 **Inspector** always on the right, so there are no sheets to open. Everything else is where
@@ -66,9 +66,14 @@ Primitives, Hardware, Kit Parts, Raspberry Pi. See
 
 ![The Library as a bottom sheet on a phone, listing Cube, Cylinder, Cone and the other Primitives.](./screenshots/library-sheet-phone.png)
 
-On a tablet it is the left-hand column and is always open:
+On a tablet the Library shrinks to a column of icons; tap an icon for its settings. See
+[When the window is narrow](primitive-placement.md#when-the-window-is-narrow). The navigation
+pad and the triad also shrink, with every button kept
+([compact form](viewport-navigation.md#the-navigation-pad-bottom-left)).
 
-![The Library as the left-hand column on a tablet.](./screenshots/library-sheet-tablet.png)
+The icon column is always open:
+
+![The Library as a column of icons on a tablet.](./screenshots/library-sheet-tablet.png)
 
 Open the Library *before* you start to drag, because a row has to be on screen to be
 dragged. If you open **History** or tap the Inspector's tab while the Library is up, the

@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { test, expect } from '@playwright/test'
+import { withRowSettings } from './support/libraryRow.js'
 
 /**
  * The six Raspberry Pi screens behind **one** Library row with a **Screen model** dropdown
@@ -149,21 +150,28 @@ test('one Screen row offers all six screens, and each drops as exactly that scre
     await expect(page.getByTestId(`library-row-raspberrypi.${old}`)).toHaveCount(0)
   }
   const row = page.getByTestId('library-row-raspberrypi.screen')
-  await expect(row).toContainText('Raspberry Pi Screen')
+  // The row's name: its label in the column, its `title`/`aria-label` as a rail tile (TODO/ui-084).
+  await expect(row).toHaveAttribute('data-label', 'Raspberry Pi Screen')
   const select = page.getByTestId('library-choice-raspberrypi.screen')
-  await expect(select).toHaveAttribute('aria-label', 'Screen model for Raspberry Pi Screen')
-  await expect(select.locator('option')).toHaveText(SCREENS.map((screen) => screen.label))
-  await expect(select).toHaveValue('touchDisplay7inch')
+  const box = await withRowSettings(page, 'raspberrypi.screen', async () => {
+    await expect(select).toHaveAttribute('aria-label', 'Screen model for Raspberry Pi Screen')
+    await expect(select.locator('option')).toHaveText(SCREENS.map((screen) => screen.label))
+    await expect(select).toHaveValue('touchDisplay7inch')
+    return select.boundingBox()
+  })
   // The very control the Pi board's Model dropdown is, at the same size — ui-031's 32 px
   // setting under a 44 px row, not a new control of its own.
-  const box = await select.boundingBox()
-  const piBox = await page.getByTestId('library-choice-raspberrypi.bplus').boundingBox()
+  const piBox = await withRowSettings(page, 'raspberrypi.bplus', () =>
+    page.getByTestId('library-choice-raspberrypi.bplus').boundingBox(),
+  )
   expect(box?.height ?? 0).toBeGreaterThanOrEqual(32)
   expect(box?.height).toBeCloseTo(piBox?.height ?? 0, 0)
 
   for (const [index, screen] of SCREENS.entries()) {
     await openLibrary(page)
-    await page.getByTestId('library-choice-raspberrypi.screen').selectOption(screen.model)
+    await withRowSettings(page, 'raspberrypi.screen', () =>
+      page.getByTestId('library-choice-raspberrypi.screen').selectOption(screen.model),
+    )
     // The upper part of the canvas: at phone width the reopened Library sheet covers
     // the lower half, and a release over the sheet is (rightly) no drop.
     await dragScreenRow(page, 0.15 + 0.14 * index, 0.18 + 0.03 * index)
@@ -179,7 +187,9 @@ test('one Screen row offers all six screens, and each drops as exactly that scre
 test('changing the Screen model in the Inspector rebuilds the placed screen in place (TODO/core-058)', async ({ page }) => {
   test.setTimeout(90_000)
   await openLibrary(page)
-  await page.getByTestId('library-choice-raspberrypi.screen').selectOption('touchScreen2')
+  await withRowSettings(page, 'raspberrypi.screen', () =>
+    page.getByTestId('library-choice-raspberrypi.screen').selectOption('touchScreen2'),
+  )
   await dragScreenRow(page, 0.5, 0.45)
   await expect(page.getByTestId('viewport')).toHaveAttribute('data-body-count', '1', { timeout: 15_000 })
   const [before] = await sceneBodies(page)

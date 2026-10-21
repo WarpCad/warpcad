@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { test, expect } from '@playwright/test'
+import { withRowSettings } from './support/libraryRow.js'
 import { mkdirSync } from 'node:fs'
 import { join } from 'node:path'
 import modeling from '@jscad/modeling'
@@ -64,7 +65,7 @@ test('a Raspberry Pi 5 dropped from the Library is drilled through its mounting 
   const rows = page.getByTestId('library-rows')
   if (!(await rows.isVisible())) await page.getByTestId('library-tab').click()
   await page.getByTestId('library-rows-raspberrypi').scrollIntoViewIfNeeded()
-  await page.getByTestId('library-choice-raspberrypi.bplus').selectOption('5')
+  await withRowSettings(page, 'raspberrypi.bplus', () => page.getByTestId('library-choice-raspberrypi.bplus').selectOption('5'))
 
   await page.evaluate(() => {
     const row = document.querySelector('[data-testid="library-row-raspberrypi.bplus"]')

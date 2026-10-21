@@ -1884,6 +1884,8 @@ function commitMirror() {
  * is the gizmo's own container width (130px) plus its `right: 12px` inset plus
  * a margin, so the row wraps to a second line before it ever reaches that
  * corner, regardless of how a narrower pane's width ends up divided around it.
+ * Since `TODO/ui-084` that number is `--gizmo-reserve`, which is 150px while the
+ * gizmo is in its compact form (106px plus an 8px inset plus a margin).
  */
 .ops {
   position: absolute;
@@ -1893,7 +1895,9 @@ function commitMirror() {
   flex-direction: column;
   gap: 6px;
   padding: 6px;
-  max-width: calc(100% - 24px - 184px);
+  /* `TODO/ui-084`: the reserve follows the chrome tier (`--gizmo-reserve`, set on `.app__body` from
+     the layout store: 184px full, 150px compact), so a compact gizmo gives the width back. */
+  max-width: calc(100% - 24px - var(--gizmo-reserve, 184px));
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   background: var(--surface-glass);

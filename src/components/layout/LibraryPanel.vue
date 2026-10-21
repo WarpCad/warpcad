@@ -34,7 +34,7 @@
  * handle**, so:
  *
  * - the drag gesture itself is byte-for-byte the one every other row uses —
- *   `onRowPointerDown` still reads a fixed payload off the row it was pressed on;
+ *   `LibraryRow` hands `startLibraryDrag` a fixed payload off the row it was pressed on;
  * - the choice is made *before* the drag, where it is visible, rather than in a
  *   modifier held during it or a dialog after it;
  * - the panel names no recipe: which rows have a choice, what param it sets and
@@ -44,8 +44,11 @@
  * The `<select>` is a sibling of the drag button rather than a child, because a
  * form control inside a `<button>` is invalid HTML and would never receive its own
  * pointer events. That sibling relationship is also what keeps a press on the
- * dropdown from starting a placement — `onRowPointerDown` is bound to the button
- * alone.
+ * dropdown from starting a placement — the gesture is bound to the button alone.
+ *
+ * Since `TODO/ui-084` a row is its own component (`LibraryRow.vue`, with `LibrarySection.vue`
+ * for a catalogue section), so the labelled column, the icon rail's tiles and the row pop-out
+ * share one row and one gesture (`src/composables/useLibraryDrag.js`).
  *
  * ## Input
  *
@@ -64,20 +67,20 @@
  * starts — the drag has to be able to end over the viewport, but auto-closing
  * mid-gesture would yank the row out from under the finger that is holding it.
  */
-import { nextTick, onBeforeUnmount, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 
 import { LIBRARY_SECTIONS } from '../../core/library.js'
-import { detailOf } from '../../core/bom.js'
-import { summaryParamsFor } from '../../core/libraryDefaults.js'
-import { useLibraryDefaultsStore } from '../../stores/libraryDefaults.js'
+import { stopLibraryDrag } from '../../composables/useLibraryDrag.js'
+import { useTierCrossfade } from '../../composables/useTierCrossfade.js'
 import { useLibraryStore } from '../../stores/library.js'
+import { usePanelLayoutStore } from '../../stores/panelLayout.js'
 import { usePlacementStore } from '../../stores/placement.js'
 import { useRepeatStore } from '../../stores/repeat.js'
-import { useTimelineStore } from '../../stores/timeline.js'
 import HelpButton from '../controls/HelpButton.vue'
-import UserPartMenu from './UserPartMenu.vue'
+import LibraryRail from './LibraryRail.vue'
+import LibraryRow from './LibraryRow.vue'
+import LibrarySection from './LibrarySection.vue'
 import { acceptAttribute } from '../../io/meshFormats/index.js'
-import { UNIT_SCALES } from '../../io/meshPart.js'
 
 const props = defineProps({
   /**
@@ -91,22 +94,14 @@ const props = defineProps({
 const emit = defineEmits(['open-change'])
 
 const placement = usePlacementStore()
-/**
- * §14, point 3: while a past step is being previewed, "Library rows
- * (drag-to-place)" are disabled along with everything else that would mutate
- * the document. Dropping a shape onto a viewport showing step 2 of 5 would
- * append it to the *latest* document, somewhere the user cannot see — the
- * silently-wrong outcome `SECOND-ATTEMPT.md` is a catalogue of.
- */
-const timeline = useTimelineStore()
 
 const sections = LIBRARY_SECTIONS
 /**
  * *My parts* (`TODO/ui-055`) is not in {@link LIBRARY_SECTIONS}: its rows are read live from
  * the registry's user-part layers (`library.userRows`), so a saved part appears without a
- * reload. It is rendered by the same row template, the same drag payload and the same
- * `onRowPointerDown` as every other section — the only differences are the ⋯ menu, the
- * thumbnail and the "in this project" dot.
+ * reload. It is rendered by the same row component (`LibraryRow`), the same drag payload and the
+ * same gesture as every other section — the only differences are the ⋯ menu, the thumbnail and
+ * the "in this project" dot.
  */
 const library = useLibraryStore()
 const isOpen = ref(false)
@@ -114,23 +109,46 @@ const importInput = ref(/** @type {HTMLInputElement | null} */ (null))
 const modelInput = ref(/** @type {HTMLInputElement | null} */ (null))
 /** The file types **Import model file…** offers (`.stl` today); no `capture`, so a phone offers Files. */
 const modelAccept = acceptAttribute()
-const UNIT_OPTIONS = Object.freeze([
-  { value: 'mm', label: 'mm' },
-  { value: 'cm', label: 'cm' },
-  { value: 'inch', label: 'inch' },
-])
 const fileDragOver = ref(false)
-const sheetEl = ref(/** @type {HTMLElement | null} */ (null))
+const panelEl = ref(/** @type {HTMLElement | null} */ (null))
+
+/**
+ * The Library's form (`TODO/ui-084`): the labelled column in the `labels` tier (and the phone
+ * sheet), the icon rail in the `icons` tier. The `popout` tier (E 641–789) is `TODO/ui-081`'s
+ * section launchers; until it lands it shows this rail too, in the store's 64px track.
+ *
+ * The swap crossfades (`useTierCrossfade`) so labels never squash mid-change. The content and the
+ * grid track change in the same render — the tier is swapped synchronously, and `AppView` applies
+ * the store's track with no transition — so the rail is in before the track narrows and the column
+ * is back only once the track is wide again. A drag under way survives the swap: the gesture's
+ * listeners live in `useLibraryDrag`, not in the row that started it.
+ */
+const panelLayout = usePanelLayoutStore()
+const { tier: libraryTier, fading: libraryFading } = useTierCrossfade(() => panelLayout.layout.libraryTier)
+const railForm = computed(() => libraryTier.value === 'icons' || libraryTier.value === 'popout')
+
+/** How long a newly revealed My parts tile pulses (ms); the CSS animation matches. */
+const PULSE_MS = 900
 
 // A part just saved (or imported, or duplicated) is brought into view: My parts sits below the
-// whole catalogue, so without this the new row appears off-screen in the column or the sheet.
+// whole catalogue, so without this the new row appears off-screen in the column or the sheet. In
+// the rail its tile also pulses once, since a 44px tile is easy to miss (TODO/ui-084).
 watch(
   () => library.revealOp,
   async (op) => {
     if (op === null) return
     await nextTick()
-    const row = sheetEl.value?.querySelector(`[data-testid="library-row-${CSS.escape(op)}"]`)
-    row?.scrollIntoView?.({ block: 'nearest' })
+    const rows = panelEl.value?.querySelectorAll('[data-testid^="library-row-"]') ?? []
+    const row = Array.from(rows).find((node) => /** @type {HTMLElement} */ (node).dataset.op === op)
+    if (!row) return
+    row.scrollIntoView?.({ block: 'nearest' })
+    if (!row.classList.contains('library__tile')) return
+    const item = /** @type {HTMLElement | null} */ (row.parentElement)
+    if (!item) return
+    item.dataset.pulse = 'true'
+    setTimeout(() => {
+      delete item.dataset.pulse
+    }, PULSE_MS)
   },
 )
 
@@ -176,15 +194,6 @@ async function onFileDrop(/** @type {DragEvent} */ event) {
   if (file) await library.importModel(file)
 }
 
-/**
- * @param {string} op
- * @param {Event} event
- */
-function onUnitsChange(op, event) {
-  const select = /** @type {HTMLSelectElement} */ (event.target)
-  void library.setMeshUnits(op, /** @type {keyof typeof UNIT_SCALES} */ (select.value))
-}
-
 watch(
   () => props.collapseSignal,
   () => setOpen(false),
@@ -202,7 +211,7 @@ function setOpen(value) {
 }
 const dragEl = ref(/** @type {HTMLElement | null} */ (null))
 
-/** Unsubscribe handle for the placement store's pointer feed. */
+/** Unsubscribe handle for the placement store's pointer feed while a drag is under way. */
 let unsubscribe = /** @type {(() => void) | null} */ (null)
 
 /**
@@ -223,116 +232,39 @@ function positionDragIcon() {
   el.style.opacity = overTarget ? '0' : '1'
 }
 
-/** @param {PointerEvent} event */
-function onWindowPointerMove(event) {
-  placement.move(event.clientX, event.clientY)
-}
+/**
+ * The one drag icon follows every Library drag, whichever row, tile or pop-out row started it
+ * (`LibraryRow` → `startLibraryDrag`). Subscribed for exactly the life of the placement, and
+ * synchronously, so the first `pointermove` already moves it.
+ */
+watch(
+  () => placement.isDragging,
+  (dragging) => {
+    unsubscribe?.()
+    unsubscribe = null
+    if (!dragging) return
+    unsubscribe = placement.subscribe(positionDragIcon)
+    positionDragIcon()
+  },
+  { flush: 'sync' },
+)
 
-/** @param {PointerEvent} event */
-function onWindowPointerUp(event) {
-  placement.drop(event.clientX, event.clientY)
-  stopTracking()
-}
-
-function onWindowPointerCancel() {
-  placement.cancel()
-  stopTracking()
-}
-
-function stopTracking() {
-  window.removeEventListener('pointermove', onWindowPointerMove)
-  window.removeEventListener('pointerup', onWindowPointerUp)
-  window.removeEventListener('pointercancel', onWindowPointerCancel)
+onBeforeUnmount(() => {
+  stopLibraryDrag()
   unsubscribe?.()
   unsubscribe = null
-}
-
-/**
- * The Library's memory of each part's last-used params (`TODO/ui-068`). It replaced this
- * file's own component-local `chosen` / `chosenExtra`: the row's dropdowns now read and write
- * the store, so a Type or Size changed in the Inspector moves them, and they survive a reload.
- */
-const remembered = useLibraryDefaultsStore()
-
-/**
- * The options an extra choice offers right now. A choice whose list depends on another one
- * (a fastener's Size follows its Type, `TODO/core-060`) computes it from the row's current
- * params; every other choice keeps its static list.
- *
- * @param {import('../../core/library.js').LibraryRow} row
- * @param {import('../../core/kernel/registry.js').OpUiChoice} extra
- * @returns {readonly import('../../core/kernel/registry.js').OpUiOption[]}
- */
-function extraOptions(row, extra) {
-  if (!extra.optionsFor) return extra.options
-  return extra.optionsFor(remembered.effectiveFor(row))
-}
-
-/**
- * A dropdown on a row changed: hand the picked value to the store, which reconciles whatever
- * depends on it (Type `pan` strands Size `m10`) through the registry, so the panel never
- * re-derives which size is the default for which type.
- *
- * The option is found by its text, because a `<select>` reports strings and a Pi's model is a
- * number.
- *
- * @param {import('../../core/library.js').LibraryRow} row
- * @param {string} param
- * @param {readonly import('../../core/kernel/registry.js').OpUiOption[]} options
- * @param {Event} event
- */
-function onChoiceChange(row, param, options, event) {
-  const text = /** @type {HTMLSelectElement} */ (event.target).value
-  const picked = options.find((option) => String(option.value) === text)
-  if (picked) remembered.setChoice(row, param, picked.value)
-}
-
-/**
- * The line under a row's label saying what a drag will now place, built with the Bill of
- * materials' own words (`detailOf`) so the two describe a part the same way. A row with
- * dropdowns leaves out what they already show. Empty when the row is at its defaults.
- *
- * @param {import('../../core/library.js').LibraryRow} row
- * @returns {string}
- */
-function summaryOf(row) {
-  if (!remembered.isCustom(row)) return ''
-  return detailOf(row.op, summaryParamsFor(row, remembered.effectiveFor(row)))
-}
-
-/**
- * @param {PointerEvent} event
- * @param {import('../../core/library.js').LibraryRow} row
- */
-function onRowPointerDown(event, row) {
-  // Left button / primary contact only: a right-click or a middle-click must not
-  // start a placement the user can't see themselves having started.
-  if (event.button !== 0) return
-  // Belt and braces with the `disabled` attribute below: a pointerdown can
-  // still arrive from a synthetic event or a stale gesture, and a placement
-  // started during a preview would commit against the wrong document.
-  if (timeline.previewing) return
-  event.preventDefault()
-  stopTracking()
-  unsubscribe = placement.subscribe(positionDragIcon)
-  window.addEventListener('pointermove', onWindowPointerMove)
-  window.addEventListener('pointerup', onWindowPointerUp)
-  window.addEventListener('pointercancel', onWindowPointerCancel)
-  // The variant is read **here**, once, at the start of the gesture — so the
-  // ghost and the committed record are built from the same choice even if the
-  // dropdown were somehow changed mid-drag.
-  placement.begin(row.op, row.label, event.clientX, event.clientY, remembered.overridesFor(row))
-}
-
-onBeforeUnmount(stopTracking)
+})
 </script>
 
 <template>
   <aside
+    ref="panelEl"
     class="library"
     data-testid="library-panel"
     :data-open="isOpen ? 'true' : 'false'"
     :data-dragging="placement.isDragging ? 'true' : 'false'"
+    :data-library-form="railForm ? 'rail' : 'column'"
+    :data-library-fading="libraryFading ? 'true' : 'false'"
   >
     <button
       type="button"
@@ -346,9 +278,12 @@ onBeforeUnmount(stopTracking)
       Library
     </button>
 
+    <!-- The icons tier (TODO/ui-084): the same rows as tiles. -->
+    <LibraryRail v-if="railForm" @import-part="importInput?.click()" @import-model="modelInput?.click()" />
+
     <div
+      v-else
       id="library-sheet"
-      ref="sheetEl"
       class="library__sheet"
       :data-file-over="fileDragOver ? 'true' : 'false'"
       @dragover="onFileDragOver"
@@ -365,102 +300,7 @@ onBeforeUnmount(stopTracking)
       <p v-if="repeat.libraryHint" class="library__repeat-hint" data-testid="library-repeat-hint">
         {{ repeat.libraryHint }}
       </p>
-      <template v-for="section in sections" :key="section.id">
-        <h2 class="library__heading" :data-testid="`library-heading-${section.id}`">
-          {{ section.title }}
-        </h2>
-        <!-- The primitives list keeps the bare `library-rows` id it has had since
-             ui-010: a dozen existing specs open the panel by waiting on it, and
-             renaming it would be churn with no reader-facing gain. Every other
-             section is `library-rows-<id>`. -->
-        <ul
-          class="library__rows"
-          :data-testid="section.id === 'primitive' ? 'library-rows' : `library-rows-${section.id}`"
-        >
-          <li
-            v-for="row in section.rows"
-            :key="row.op"
-            class="library__item"
-            :class="{ 'library__item--stacked': row.extraChoices.some((extra) => extra.optionsFor) }"
-          >
-            <div class="library__line">
-              <button
-                type="button"
-                class="library__row"
-                :class="{ 'library__row--active': placement.op === row.op }"
-                :data-testid="`library-row-${row.op}`"
-                :data-op="row.op"
-                :data-label="row.label"
-                :data-editor="row.editor ?? ''"
-                :disabled="timeline.previewing"
-                :title="timeline.previewing ? 'Leave the preview to place a shape' : undefined"
-                @pointerdown="onRowPointerDown($event, row)"
-              >
-                <span class="library__swatch" :data-shape="row.op" aria-hidden="true" />
-                {{ row.label }}
-              </button>
-              <!-- ↺ Reset (ui-068): only while the row is not at its registry defaults. A sibling of
-                   the drag button, never inside it, so pressing it cannot start a placement. -->
-              <button
-                v-if="remembered.isCustom(row)"
-                type="button"
-                class="library__reset"
-                :data-testid="`library-reset-${row.op}`"
-                :aria-label="`Reset ${row.label} to its default`"
-                :title="`Reset ${row.label} to its default`"
-                @click="remembered.reset(row.op)"
-              >
-                <span aria-hidden="true">↺</span>
-              </button>
-            </div>
-            <p
-              v-if="summaryOf(row)"
-              class="library__remembered"
-              :data-testid="`library-remembered-${row.op}`"
-            >
-              {{ summaryOf(row) }}
-            </p>
-            <!-- A variant picked before the drag (ui-031). Outside the button on
-                 purpose: a form control inside a <button> is invalid HTML and
-                 would never get its own pointer events — and keeping it a sibling
-                 is exactly what stops a press on it starting a placement. -->
-            <label v-if="row.choice" class="library__choice">
-              <span class="library__choice-label">{{ row.choice.label }}</span>
-              <select
-                :value="remembered.effectiveFor(row)[row.choice.param]"
-                class="library__choice-select"
-                @change="onChoiceChange(row, row.choice.param, row.choice.options, $event)"
-                :data-testid="`library-choice-${row.op}`"
-                :aria-label="`${row.choice.label} for ${row.label}`"
-              >
-                <option v-for="option in row.choice.options" :key="String(option.value)" :value="option.value">
-                  {{ option.label }}
-                </option>
-              </select>
-            </label>
-            <!-- A second pre-drag variant (core-057's Case beside its Model): the same
-                 control, one label per extra choice. -->
-            <label
-              v-for="extra in row.extraChoices"
-              :key="extra.param"
-              class="library__choice"
-            >
-              <span class="library__choice-label">{{ extra.label }}</span>
-              <select
-                :value="remembered.effectiveFor(row)[extra.param]"
-                class="library__choice-select"
-                @change="onChoiceChange(row, extra.param, extraOptions(row, extra), $event)"
-                :data-testid="`library-choice-${row.op}-${extra.param}`"
-                :aria-label="`${extra.label} for ${row.label}`"
-              >
-                <option v-for="option in extraOptions(row, extra)" :key="String(option.value)" :value="option.value">
-                  {{ option.label }}
-                </option>
-              </select>
-            </label>
-          </li>
-        </ul>
-      </template>
+      <LibrarySection v-for="section in sections" :key="section.id" :section="section" />
 
       <!-- My parts (TODO/ui-055): parts the person saved from a group. A collapsible section,
            so the fixed catalogue is not pushed off a phone sheet by a long personal list.
@@ -490,16 +330,6 @@ onBeforeUnmount(stopTracking)
         >
           Import part file…
         </button>
-        <input
-          ref="importInput"
-          type="file"
-          accept=".json,application/json"
-          class="library__file"
-          data-testid="library-import-input"
-          tabindex="-1"
-          aria-hidden="true"
-          @change="onImportFile"
-        />
         <button
           type="button"
           class="library__import"
@@ -509,18 +339,6 @@ onBeforeUnmount(stopTracking)
         >
           Import model file…
         </button>
-        <!-- The same visually-hidden-input recipe as the part-file input above (ui-055): in
-             the sheet's positioned box, so WebKit and Firefox do not grow the page. -->
-        <input
-          ref="modelInput"
-          type="file"
-          :accept="modelAccept"
-          class="library__file"
-          data-testid="library-import-model-input"
-          tabindex="-1"
-          aria-hidden="true"
-          @change="onModelFile"
-        />
       </div>
       <div v-show="library.expanded" id="library-user-body" data-testid="library-user-body">
         <p
@@ -542,103 +360,34 @@ onBeforeUnmount(stopTracking)
           Nothing saved yet. Select a group, then choose Save to library… — or choose Import model file… for an STL — and it appears here.
         </p>
         <ul class="library__rows" data-testid="library-rows-user">
-          <li
-            v-for="row in library.userRows"
-            :key="row.op"
-            class="library__item library__item--user"
-            :class="{ 'library__item--has-reset': remembered.isCustom(row) }"
-            :data-in-library="row.inLibrary ? 'true' : 'false'"
-          >
-            <button
-              type="button"
-              class="library__row"
-              :class="{ 'library__row--active': placement.op === row.op }"
-              :data-testid="`library-row-${row.op}`"
-              :data-op="row.op"
-              :data-label="row.label"
-              data-editor=""
-              :disabled="timeline.previewing"
-              :title="
-                timeline.previewing
-                  ? 'Leave the preview to place a shape'
-                  : row.userPart?.newerVersionAvailable
-                    ? `${row.label} — a newer version is saved in My parts; this project keeps the version it has`
-                    : undefined
-              "
-              @pointerdown="onRowPointerDown($event, row)"
-            >
-              <img
-                v-if="row.thumbnail"
-                class="library__thumb"
-                :src="row.thumbnail"
-                alt=""
-                draggable="false"
-                :data-testid="`library-thumb-${row.op}`"
-              />
-              <span v-else class="library__swatch library__swatch--part" aria-hidden="true" />
-              <span class="library__row-label">{{ row.label }}</span>
-              <span
-                v-if="row.usage > 0"
-                class="library__in-project"
-                :data-testid="`library-in-project-${row.op}`"
-                :title="`In this project (${row.usage} placed)`"
-                role="img"
-                :aria-label="`In this project, ${row.usage} placed`"
-              />
-            </button>
-            <button
-              v-if="remembered.isCustom(row)"
-              type="button"
-              class="library__reset"
-              :data-testid="`library-reset-${row.op}`"
-              :aria-label="`Reset ${row.label} to its default`"
-              :title="`Reset ${row.label} to its default`"
-              @click="remembered.reset(row.op)"
-            >
-              <span aria-hidden="true">↺</span>
-            </button>
-            <UserPartMenu :row="row" />
-            <p
-              v-if="summaryOf(row)"
-              class="library__remembered library__remembered--user"
-              :data-testid="`library-remembered-${row.op}`"
-            >
-              {{ summaryOf(row) }}
-            </p>
-            <div v-if="row.mesh" class="library__mesh" :data-testid="`library-mesh-${row.op}`">
-              <span
-                class="library__tag"
-                data-testid="library-mesh-tag"
-                :title="`Imported model, ${row.mesh.triangleCount.toLocaleString('en-US')} triangles`"
-                >Mesh</span
-              >
-              <span class="library__mesh-size" data-testid="library-mesh-size">{{ row.mesh.sizeText }}</span>
-              <label class="library__choice library__choice--mesh">
-                <span class="library__choice-label">Units</span>
-                <select
-                  class="library__choice-select"
-                  :value="row.mesh.units ?? 'mm'"
-                  :data-testid="`library-mesh-units-${row.op}`"
-                  :aria-label="`Units of ${row.label}`"
-                  @change="onUnitsChange(row.op, $event)"
-                >
-                  <option v-for="option in UNIT_OPTIONS" :key="option.value" :value="option.value">
-                    {{ option.label }}
-                  </option>
-                </select>
-              </label>
-              <span
-                v-if="!row.mesh.unitsConfirmed"
-                class="library__badge"
-                data-testid="library-mesh-assumed"
-                title="STL files carry no units. Check the size above; change Units if it looks wrong."
-                >Units assumed: mm</span
-              >
-            </div>
-          </li>
+          <LibraryRow v-for="row in library.userRows" :key="row.op" :row="row" user />
         </ul>
       </div>
     </div>
+
+    <!-- The file inputs behind Import part file… and Import model file…, shared by the column and
+         the rail's ⋯ menu. Visually hidden, in the panel's positioned box (ui-055), so WebKit and
+         Firefox do not grow the page. -->
+    <input
+      ref="importInput"
+      type="file"
+      accept=".json,application/json"
+      class="library__file"
+      data-testid="library-import-input"
+      tabindex="-1"
+      aria-hidden="true"
+      @change="onImportFile"
+    />
+    <input
+      ref="modelInput"
+      type="file"
+      :accept="modelAccept"
+      class="library__file"
+      data-testid="library-import-model-input"
+      tabindex="-1"
+      aria-hidden="true"
+      @change="onModelFile"
+    />
 
     <!-- Follows the pointer while the drag is over ordinary UI; the viewport's
          ghost mesh replaces it once the drag crosses into the 3D view. -->
@@ -656,11 +405,36 @@ onBeforeUnmount(stopTracking)
 
 <style scoped>
 .library {
+  /* The containing block for the visually-hidden file inputs (and, in the icons tier, the anchor
+     the rail's pop-out and callouts sit beside). The phone sheet overrides it with `absolute`. */
+  position: relative;
   display: flex;
   flex-direction: column;
   min-height: 0;
   background: var(--surface-1);
   border-right: 1px solid var(--border);
+}
+
+/* The tier crossfade (`TODO/ui-084`, `useTierCrossfade`): the form swaps in the same frame this
+   starts at 0.4, then it fades back up. A one-shot animation, never a standing transition. */
+.library[data-library-fading='true'] {
+  animation: library-tier-crossfade 150ms ease-out;
+}
+
+@keyframes library-tier-crossfade {
+  from {
+    opacity: 0.4;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .library[data-library-fading='true'] {
+    animation: none;
+  }
 }
 
 .library__tab {
@@ -686,12 +460,6 @@ onBeforeUnmount(stopTracking)
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--text-3);
-}
-
-/* A section heading that is not the first one needs room above it, or the two
-   lists read as one long list with a word in the middle. */
-.library__rows + .library__heading {
-  margin-top: 14px;
 }
 
 .library__hint-row {
@@ -730,265 +498,6 @@ onBeforeUnmount(stopTracking)
   margin: 0;
   padding: 0;
   list-style: none;
-}
-
-.library__item {
-  display: grid;
-  /* `minmax(0, 1fr)`, not the implicit auto track: a variant select with a long option
-     ("Galaxy S25 Ultra") must shrink to the panel rather than push the row wider than it. */
-  grid-template-columns: minmax(0, 1fr);
-  gap: 4px;
-}
-
-/* The variant control (ui-031). Indented under its row and visibly quieter than
-   it, so the row still reads as the thing you drag and this as a setting on it —
-   not as a second, competing control of equal weight. */
-.library__choice {
-  min-width: 0;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding-left: 28px;
-}
-
-.library__choice-label {
-  font-size: 11px;
-  color: var(--text-3);
-}
-
-.library__choice-select {
-  flex: 1;
-  min-width: 0;
-  /* 32px, not the row's 44px: this is a setting reached deliberately after
-     reading the row, not a primary tap target, and a second 44px control per row
-     would cost 12 rows' worth of height in a 46vh phone sheet. Still comfortably
-     above the ~24px a native select needs to be tappable. */
-  min-height: 32px;
-  padding: 2px 6px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  background: var(--surface-1);
-  color: var(--text-1);
-  font: inherit;
-  font-size: 12px;
-}
-
-/* WebKit's native select ignores `min-height` and draws 20px; an explicit height is honoured. */
-.library__item--stacked .library__choice-select {
-  height: 32px;
-}
-
-.library__choice-select:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 1px;
-}
-
-/* The drag row plus its ↺ Reset (ui-068), side by side; the button is 44 x 44 at the right edge. */
-.library__line {
-  display: flex;
-  align-items: stretch;
-  gap: 4px;
-}
-
-.library__line .library__row {
-  flex: 1;
-  min-width: 0;
-  width: auto;
-}
-
-.library__reset {
-  flex: none;
-  width: 44px;
-  min-height: 44px;
-  padding: 0;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  background: var(--surface-2);
-  color: var(--text-1);
-  font: inherit;
-  font-size: 18px;
-  line-height: 1;
-  cursor: pointer;
-}
-
-.library__reset:hover {
-  border-color: var(--border-strong);
-}
-
-.library__reset:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 1px;
-}
-
-/* What the next drag will place, in the Bill of materials' words (ui-068). Wraps under the label. */
-.library__remembered {
-  margin: 0;
-  padding-left: 28px;
-  font-size: 11px;
-  line-height: 1.4;
-  color: var(--text-2);
-  overflow-wrap: anywhere;
-}
-
-.library__remembered--user {
-  grid-column: 1 / -1;
-}
-
-.library__row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  width: 100%;
-  /* 44px keeps the row a real tap target at phone width (Responsive Layout). */
-  min-height: 44px;
-  padding: 6px 10px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  background: var(--surface-2);
-  color: var(--text-1);
-  font: inherit;
-  font-size: 13px;
-  text-align: left;
-  cursor: grab;
-  /* Without this, a touch-drag on a row is claimed by the browser for page
-     scrolling and never reaches the placement gesture at all — the same trap
-     render-001 hit on the canvas. */
-  touch-action: none;
-  user-select: none;
-}
-
-.library__row:hover {
-  border-color: var(--border-strong);
-}
-
-.library__row:active,
-.library__row--active {
-  cursor: grabbing;
-  border-color: var(--accent);
-}
-
-.library__swatch {
-  flex: none;
-  width: 18px;
-  height: 18px;
-  border: 1px solid var(--text-3);
-  background: linear-gradient(140deg, var(--border-strong), var(--surface-1));
-}
-
-.library__swatch[data-shape='primitive.sphere'] {
-  border-radius: 50%;
-}
-
-.library__swatch[data-shape='primitive.cylinder'],
-.library__swatch[data-shape='primitive.tube'] {
-  border-radius: 40% / 18%;
-}
-
-.library__swatch[data-shape='primitive.cone'],
-.library__swatch[data-shape='primitive.triangle'] {
-  clip-path: polygon(50% 0%, 100% 100%, 0% 100%);
-}
-
-.library__swatch[data-shape='primitive.hexagon'] {
-  clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);
-}
-
-/* Hardware (TODO/ui-030). Silhouettes cut from the same swatch the primitives
-   use rather than icon art: at 18px a bolt's profile and a washer's ring read
-   from across the panel, and a per-part SVG would be four assets to keep in step
-   with four recipes for no more legibility. */
-.library__swatch[data-shape='hardware.bolt'] {
-  /* Head across the top, shank down the middle — a bolt in elevation. */
-  clip-path: polygon(14% 0%, 86% 0%, 86% 34%, 66% 34%, 66% 100%, 34% 100%, 34% 34%, 14% 34%);
-}
-
-.library__swatch[data-shape='hardware.nut'] {
-  clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);
-  /* The bore, so a nut is not mistaken for the hexagon primitive above it. */
-  background:
-    radial-gradient(circle at 50% 50%, var(--surface-1) 0 26%, transparent 26%),
-    linear-gradient(140deg, var(--border-strong), var(--surface-1));
-}
-
-.library__swatch[data-shape='hardware.washer'],
-.library__swatch[data-shape='hardware.bearing'] {
-  border-radius: 50%;
-  background:
-    radial-gradient(circle at 50% 50%, var(--surface-1) 0 34%, transparent 34%),
-    linear-gradient(140deg, var(--border-strong), var(--surface-1));
-}
-
-/* A bearing's bore is the smaller of the two, which is what tells the two rings
-   apart at this size. */
-.library__swatch[data-shape='hardware.bearing'] {
-  background:
-    radial-gradient(circle at 50% 50%, var(--surface-1) 0 22%, transparent 22%),
-    linear-gradient(140deg, var(--border-strong), var(--surface-1));
-}
-
-/* Text (TODO/render-002): a capital T in elevation, same clip-path technique. */
-.library__swatch[data-shape='text.label'] {
-  clip-path: polygon(0% 0%, 100% 0%, 100% 24%, 62% 24%, 62% 100%, 38% 100%, 38% 24%, 0% 24%);
-}
-
-/* Kit parts and Raspberry Pi (TODO/ui-031). Grouped by *silhouette* rather than
-   one bespoke swatch per recipe: at 18px a board, a frame, a ring and a screen
-   are the only shapes that actually read, and fifteen near-identical rounded
-   rectangles would be fifteen assets to keep in step with no gain in legibility.
-   What distinguishes the rows at this size is their label; what the swatch says
-   is which *kind* of thing it is. */
-.library__swatch[data-shape^='kit.'],
-.library__swatch[data-shape^='raspberrypi.'] {
-  /* The default: a bare board. */
-  border-radius: 2px;
-}
-
-/* A frame — a board with its middle cut out. */
-.library__swatch[data-shape='kit.boardFrame'] {
-  background:
-    linear-gradient(var(--surface-1), var(--surface-1)) padding-box content-box,
-    linear-gradient(140deg, var(--border-strong), var(--surface-1));
-  padding: 4px;
-}
-
-/* An anchor and a standoff are both a bored cylinder, seen end-on. */
-.library__swatch[data-shape='kit.anchor'],
-.library__swatch[data-shape='raspberrypi.hatStandoff'] {
-  border-radius: 50%;
-  background:
-    radial-gradient(circle at 50% 50%, var(--surface-1) 0 30%, transparent 30%),
-    linear-gradient(140deg, var(--border-strong), var(--surface-1));
-}
-
-/* A populated board: the GPIO header as a stripe along one edge. */
-.library__swatch[data-shape='raspberrypi.bplus'],
-.library__swatch[data-shape='raspberrypi.hat'],
-.library__swatch[data-shape='raspberrypi.spacer'] {
-  background:
-    linear-gradient(to bottom, var(--text-3) 0 3px, transparent 3px),
-    linear-gradient(140deg, var(--border-strong), var(--surface-1));
-}
-
-/* A camera: the lens barrel, centred. */
-.library__swatch[data-shape='raspberrypi.cameraModule'] {
-  background:
-    radial-gradient(circle at 50% 50%, var(--text-3) 0 30%, transparent 30%),
-    linear-gradient(140deg, var(--border-strong), var(--surface-1));
-}
-
-/* A screen: an inset display area inside a bezel. */
-.library__swatch[data-shape='raspberrypi.screen'] {
-  background:
-    linear-gradient(var(--text-3), var(--text-3)) padding-box content-box,
-    linear-gradient(140deg, var(--border-strong), var(--surface-1));
-  padding: 3px;
-}
-
-/* A fan: a round hub in a square shroud. */
-.library__swatch[data-shape='raspberrypi.activeCoolingFan'] {
-  background:
-    radial-gradient(circle at 50% 50%, transparent 0 20%, var(--text-3) 20% 46%, transparent 46%),
-    linear-gradient(140deg, var(--border-strong), var(--surface-1));
 }
 
 /* --- My parts (TODO/ui-055) ----------------------------------------------------------- */
@@ -1084,41 +593,6 @@ onBeforeUnmount(stopTracking)
   }
 }
 
-.library__tag {
-  flex: none;
-  padding: 0 6px;
-  border: 1px solid var(--border-strong);
-  border-radius: 999px;
-  font-size: 10px;
-  line-height: 16px;
-  color: var(--text-2);
-}
-
-.library__mesh {
-  /* Under the row and its ⋯ button, across both columns of the user item's grid. */
-  grid-column: 1 / -1;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 4px 8px;
-  padding-left: 28px;
-  font-size: 11px;
-  color: var(--text-3);
-}
-
-.library__choice--mesh {
-  flex: 1 1 120px;
-  padding-left: 0;
-}
-
-.library__badge {
-  padding: 0 6px;
-  border-radius: 999px;
-  background: var(--surface-2);
-  font-size: 10px;
-  line-height: 16px;
-}
-
 .library__sheet[data-file-over='true'] {
   outline: 2px dashed var(--accent);
   outline-offset: -4px;
@@ -1138,49 +612,6 @@ onBeforeUnmount(stopTracking)
   line-height: 1.4;
   color: var(--danger);
   overflow-wrap: anywhere;
-}
-
-.library__item--user {
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: stretch;
-  gap: 4px;
-}
-
-.library__item--has-reset {
-  grid-template-columns: minmax(0, 1fr) auto auto;
-}
-
-.library__row-label {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.library__thumb {
-  flex: none;
-  width: 32px;
-  height: 32px;
-  border-radius: 3px;
-  background: var(--surface-1);
-  object-fit: contain;
-  /* The row, not the picture, is what receives the pointer that starts a placement. */
-  pointer-events: none;
-  -webkit-user-drag: none;
-}
-
-.library__swatch--part {
-  border-radius: 3px;
-  border-style: dashed;
-}
-
-.library__in-project {
-  flex: none;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--accent);
 }
 
 .library__drag-icon {
@@ -1215,13 +646,6 @@ onBeforeUnmount(stopTracking)
     background: var(--surface-glass);
     backdrop-filter: blur(8px);
     box-shadow: var(--shadow-overlay);
-  }
-
-  /* Rows whose Size follows their Type (core-060) stack their dropdowns, each a full
-     44px tap target like the row above them. */
-  .library__item--stacked .library__choice-select {
-    min-height: 44px;
-    height: 44px;
   }
 
   .library__tab {

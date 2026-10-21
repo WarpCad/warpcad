@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { test, expect } from '@playwright/test'
+import { withRowSettings } from './support/libraryRow.js'
 import { mkdirSync } from 'node:fs'
 import { join } from 'node:path'
 
@@ -236,11 +237,14 @@ test('the Raspberry Pi row places the model its own dropdown is set to', async (
   // core-014a's "one factory, not one draggable per revision" decision.
   await openLibrary(page, 'raspberrypi')
   const choice = page.getByTestId('library-choice-raspberrypi.bplus')
-  await expect(choice).toBeVisible()
-  // Defaults to the current-generation board, not the recipe's own V1-era model 2.
-  await expect(choice).toHaveValue('4')
+  // In the icons tier the dropdown is in the row's pop-out (TODO/ui-084).
+  await withRowSettings(page, 'raspberrypi.bplus', async () => {
+    await expect(choice).toBeVisible()
+    // Defaults to the current-generation board, not the recipe's own V1-era model 2.
+    await expect(choice).toHaveValue('4')
 
-  await choice.selectOption('5')
+    await choice.selectOption('5')
+  })
   await dragRowIntoViewport(page, { op: 'raspberrypi.bplus', fx: 0.35, fy: 0.3 })
 
   const bodies = await sceneBodies(page)
@@ -267,10 +271,10 @@ test('two different models from the same row place two different boards', async 
   await openLibrary(page, 'raspberrypi')
   const choice = page.getByTestId('library-choice-raspberrypi.bplus')
 
-  await choice.selectOption('2')
+  await withRowSettings(page, 'raspberrypi.bplus', () => choice.selectOption('2'))
   await dragRowIntoViewport(page, { op: 'raspberrypi.bplus', fx: 0.26, fy: 0.28 })
   await openLibrary(page, 'raspberrypi')
-  await choice.selectOption('5')
+  await withRowSettings(page, 'raspberrypi.bplus', () => choice.selectOption('5'))
   await dragRowIntoViewport(page, { op: 'raspberrypi.bplus', fx: 0.7, fy: 0.28 })
 
   const bodies = await sceneBodies(page)

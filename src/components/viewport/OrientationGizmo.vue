@@ -20,6 +20,7 @@
  */
 import { computed } from 'vue'
 import { rightFromSpherical, upFromSpherical, positionFromSpherical } from '../../render/camera.js'
+import { usePanelLayoutStore } from '../../stores/panelLayout.js'
 
 const props = defineProps({
   azimuthDeg: { type: Number, required: true },
@@ -39,6 +40,15 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['snap'])
+
+/**
+ * The chrome tier (`TODO/ui-084`): `compact` on a narrow viewport pane, from the layout store.
+ * Compact is the existing ≤ 480px form (96px dial, 30px caps, caption hidden); the phone keeps that
+ * media query and reports `full`. The caps keep their titles, so the hidden az/el caption loses no
+ * function — the triad itself shows the orientation.
+ */
+const panelLayout = usePanelLayoutStore()
+const chromeTier = computed(() => panelLayout.layout.chromeTier)
 
 const ORIGIN = Object.freeze({ x: 0, y: 0, z: 0 })
 const RADIUS = 33
@@ -104,6 +114,7 @@ const orientationLabel = computed(
     :data-disabled="disabled ? 'true' : 'false'"
     :data-azimuth="azimuthDeg.toFixed(2)"
     :data-elevation="elevationDeg.toFixed(2)"
+    :data-chrome-tier="chromeTier"
   >
     <div class="gizmo__dial" role="group" aria-label="Camera orientation">
       <svg class="gizmo__svg" viewBox="-50 -50 100 100" aria-hidden="true">
@@ -270,6 +281,29 @@ const orientationLabel = computed(
   font-family: var(--font-mono);
   font-size: 10px;
   color: var(--text-3);
+}
+
+/* The compact form (`TODO/ui-084`): the ≤ 480px rules below, keyed on the chrome tier as well.
+   Keep this block and the media block in step. */
+.gizmo[data-chrome-tier='compact'] {
+  top: 8px;
+  right: 8px;
+  padding: 4px;
+}
+
+.gizmo[data-chrome-tier='compact'] .gizmo__dial {
+  width: 96px;
+  height: 96px;
+}
+
+.gizmo[data-chrome-tier='compact'] .gizmo__cap {
+  width: 30px;
+  height: 30px;
+  font-size: 10px;
+}
+
+.gizmo[data-chrome-tier='compact'] .gizmo__caption {
+  display: none;
 }
 
 @media (max-width: 480px) {

@@ -36,6 +36,20 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### ui-084 — Library icon rail and compact viewport chrome (2026-10-21 19:19)
+
+Scenarios 1, 3, 7, 18 (Library half) and 26 were hand-driven, so this lists only what they did not cover.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | On a real iPad, drag a window or rotate between 1024 and 790 px wide and watch the Library column turn into the rail at its own step, then the pad and triad shrink, with no text squash and nothing over the triad | Open | |
+| 2 | Long-press a rail tile on touch: the name callout appears and a drag from the same tile still places (the long-press is unit-tested with fake timers only) | Open | |
+| 3 | Save a part to My parts and watch its new tile scroll into view and pulse once (no test covers the pulse) | Open | |
+| 4 | At about 641-700 px the compact pad overlaps the scale readout (also true at 760 before this task). Decide whether to file it as its own finding, or leave it to `ui-081` | Open | |
+| 5 | The new Cube, Sketch, board, phone and gear swatches also show in the labelled laptop column: look at them next to the existing ones | Open | |
+| 6 | Dropping a model file onto the rail does nothing (the labelled column accepts it); the rail's ⋯ menu is the way in. Confirm that is acceptable | Open | |
+
+
 ### io-012 — Warn on focus when the file may have changed (2026-10-21 15:21)
 
 Covered in Chromium by a unit spec and an e2e case, but Safari, Firefox and phones have no file handle, so the warning path was never run on those engines or devices. Also the Documentation section's `e2e/docs/` still was not added.

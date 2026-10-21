@@ -3,6 +3,7 @@ import { test, expect } from '@playwright/test'
 
 import { binaryStl, boxTriangles, asciiBytes, gridTriangles } from '../src/io/__fixtures__/stl.js'
 import { closeLibrary, isPhone, openLibrary, pointer, sceneBodies, viewportPoint } from './support/humanInput.js'
+import { withRowSettings } from './support/libraryRow.js'
 
 /**
  * Import a model file into My parts, place it, cut it (`TODO/io-009`), driven against `/`.
@@ -32,6 +33,9 @@ test.beforeEach(async ({ page }) => {
 /** Choose a file through the button's real file chooser. */
 async function chooseModel(page, input, file) {
   const chooser = page.waitForEvent('filechooser')
+  // In the icons tier Import model… is in the rail's ⋯ menu (TODO/ui-084).
+  const more = page.getByTestId('library-rail-more')
+  if (await more.isVisible().catch(() => false)) await input.press(more)
   await input.press(page.getByTestId('library-import-model'))
   await (await chooser).setFiles(file)
 }
@@ -49,15 +53,18 @@ test('import bracket.stl, check its size, drag it in, cut a cube out of it, relo
 
   const row = page.getByTestId('library-row-user.bracket')
   await expect(row).toBeVisible()
-  await expect(page.getByTestId('library-mesh-tag')).toHaveText('Mesh')
-  await expect(page.getByTestId('library-mesh-size')).toHaveText('40 × 20 × 10 mm')
-  await expect(page.getByTestId('library-mesh-assumed')).toHaveText('Units assumed: mm')
-  await expect(page.getByTestId('library-mesh-units-user.bracket')).toHaveValue('mm')
-  await expect(page.getByTestId('library-toast')).toHaveText('Imported bracket.stl — 12 triangles, 40 × 20 × 10 mm')
-  await expect(page.getByTestId('library-import-progress')).toHaveCount(0)
-  // A thumbnail was drawn from the mesh, not a swatch.
-  await expect(page.getByTestId('library-thumb-user.bracket')).toBeVisible()
-  expect(await page.getByTestId('library-thumb-user.bracket').evaluate((img) => /** @type {HTMLImageElement} */ (img).naturalWidth)).toBeGreaterThan(0)
+  // In the icons tier the mesh line and the thumbnail are in the row's pop-out (TODO/ui-084).
+  await withRowSettings(page, 'user.bracket', async () => {
+    await expect(page.getByTestId('library-mesh-tag')).toHaveText('Mesh')
+    await expect(page.getByTestId('library-mesh-size')).toHaveText('40 × 20 × 10 mm')
+    await expect(page.getByTestId('library-mesh-assumed')).toHaveText('Units assumed: mm')
+    await expect(page.getByTestId('library-mesh-units-user.bracket')).toHaveValue('mm')
+    await expect(page.getByTestId('library-toast')).toHaveText('Imported bracket.stl — 12 triangles, 40 × 20 × 10 mm')
+    await expect(page.getByTestId('library-import-progress')).toHaveCount(0)
+    // A thumbnail was drawn from the mesh, not a swatch.
+    await expect(page.getByTestId('library-thumb-user.bracket')).toBeVisible()
+    expect(await page.getByTestId('library-thumb-user.bracket').evaluate((img) => /** @type {HTMLImageElement} */ (img).naturalWidth)).toBeGreaterThan(0)
+  })
   await info.attach(`library-import-row-${info.project.name}`, { body: await page.screenshot(), contentType: 'image/png' })
   // The panel did not grow sideways (the hidden file input regression of ui-055).
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true)
@@ -111,7 +118,7 @@ test('import bracket.stl, check its size, drag it in, cut a cube out of it, relo
   await openLibrary(page, input.press)
   await ensureUserOpen(page, input)
   await expect(page.getByTestId('library-row-user.bracket')).toBeVisible()
-  await expect(page.getByTestId('library-mesh-size')).toHaveText('40 × 20 × 10 mm')
+  await withRowSettings(page, 'user.bracket', () => expect(page.getByTestId('library-mesh-size')).toHaveText('40 × 20 × 10 mm'))
 })
 
 test('Units: STL has none, so the row says so and re-reads the size when switched to inch', async ({ page }, info) => {
@@ -121,15 +128,17 @@ test('Units: STL has none, so the row says so and re-reads the size when switche
   // 1 × 0.5 × 0.25 file units: read as mm it is a speck; the file was drawn in inches.
   const tiny = { name: 'tiny.stl', mimeType: 'model/stl', buffer: Buffer.from(binaryStl(boxTriangles([1, 0.5, 0.25]))) }
   await chooseModel(page, input, tiny)
-  await expect(page.getByTestId('library-mesh-size')).toHaveText('1 × 0.5 × 0.25 mm')
-  await page.getByTestId('library-mesh-units-user.tiny').selectOption('inch')
-  await expect(page.getByTestId('library-mesh-size')).toHaveText('25.4 × 12.7 × 6.35 mm')
-  await expect(page.getByTestId('library-mesh-assumed')).toHaveCount(0)
+  await withRowSettings(page, 'user.tiny', async () => {
+    await expect(page.getByTestId('library-mesh-size')).toHaveText('1 × 0.5 × 0.25 mm')
+    await page.getByTestId('library-mesh-units-user.tiny').selectOption('inch')
+    await expect(page.getByTestId('library-mesh-size')).toHaveText('25.4 × 12.7 × 6.35 mm')
+    await expect(page.getByTestId('library-mesh-assumed')).toHaveCount(0)
+  })
   await page.reload()
   await expect(page.getByTestId('viewport')).toBeVisible()
   await openLibrary(page, input.press)
   await ensureUserOpen(page, input)
-  await expect(page.getByTestId('library-mesh-size')).toHaveText('25.4 × 12.7 × 6.35 mm')
+  await withRowSettings(page, 'user.tiny', () => expect(page.getByTestId('library-mesh-size')).toHaveText('25.4 × 12.7 × 6.35 mm'))
 })
 
 test('a text file named x.stl, and a file over the triangle cap, are refused in words and change nothing', async ({ page }, info) => {

@@ -327,6 +327,18 @@ test('the ghost preview shows the real part before the drop commits anything', a
         cancelable: true,
       }),
     )
+    // A first small move, still over the panel: an icon-rail tile begins placing only once the
+    // pointer leaves the tap slop (TODO/ui-084); a labelled row already began on the press.
+    window.dispatchEvent(
+      new PointerEvent('pointermove', {
+        pointerId: 13,
+        pointerType: 'mouse',
+        isPrimary: true,
+        clientX: box.left + box.width / 2,
+        clientY: box.top + box.height / 2 + 10,
+        bubbles: true,
+      }),
+    )
   })
   await expect(viewport).toHaveAttribute('data-placing', 'true')
   await expect(viewport).toHaveAttribute('data-ghost', 'hidden')

@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { test, expect } from '@playwright/test'
+import { withRowSettings } from './support/libraryRow.js'
 
 /**
  * The phone bottom-slot stacking (`TODO/ui-070`), driven against `/`.
@@ -105,9 +106,12 @@ test('an open Library keeps every row reachable when a drop leaves a body select
     expect(await centreIsReachable(page, id), id).toBe('')
   }
   // The last row's own dropdown, scrolled to the end of the sheet.
-  const select = page.getByTestId('library-choice-raspberrypi.screen')
-  await select.scrollIntoViewIfNeeded()
-  expect(await centreIsReachable(page, 'library-choice-raspberrypi.screen')).toBe('')
+  // (In the icons tier the dropdown is in the row's pop-out, TODO/ui-084.)
+  await withRowSettings(page, 'raspberrypi.screen', async () => {
+    const select = page.getByTestId('library-choice-raspberrypi.screen')
+    await select.scrollIntoViewIfNeeded()
+    expect(await centreIsReachable(page, 'library-choice-raspberrypi.screen')).toBe('')
+  })
 
   await page.screenshot({ path: test.info().outputPath('stacking.png') })
 })

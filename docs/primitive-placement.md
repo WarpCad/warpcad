@@ -35,6 +35,34 @@ from their defaults**, and neither Undo nor an AI edit changes what the next dra
   you start dragging — you cannot drag a row that is not on screen. Once a drag has
   started the sheet stays put; it will not close underneath your finger.
 
+## When the window is narrow
+
+![The Library as a column of icons down the left of a tablet-width window.](./screenshots/library-icon-rail.png)
+
+Between a laptop and a phone (a tablet, or a desktop window about 800 to 1,000 px wide) the
+Library turns into a narrow column of icons. It holds the same rows in the same order, and a thin
+divider separates the sections. Hover an icon, or press and hold it on a touch screen, to see its
+name. Dragging an icon into the 3D view places the part exactly as dragging a full row does.
+
+To change a part's settings, **tap the icon without dragging**. A small panel opens beside the
+column with the row's name, its lists (Type and Size, for example) and **Reset**:
+
+![The Bolt icon tapped: a panel with its Type and Size lists open beside the icon column.](./screenshots/library-row-popout.png)
+
+You can drag from that panel too. It fades while you drag so you can see where you are dropping,
+then comes back. Press **Escape** to close it. The **?** at the top of the column opens help, and
+**⋯** holds **Import part file…** and **Import model…**.
+
+**Example**
+
+1. On a tablet, or in a window about 900 px wide, the Library is a column of icons. Hover (or
+   long-press) an icon to see its name.
+2. Drag the Cube icon into the 3D view and release to place a cube.
+3. To pick a bolt size first, tap the Bolt icon without dragging. In the panel that opens, choose
+   **Socket cap** under Type, then **M5** under Size (hex bolts start at M10). Drag the Bolt row
+   from that panel into the view.
+4. Press Escape to close the panel.
+
 ## Placing your first shape
 
 ![The empty scene: the Library panel on the left, an empty grid in the 3D view](./screenshots/empty-scene.png)

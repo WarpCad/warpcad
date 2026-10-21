@@ -237,6 +237,10 @@ test('trace to scale: Set scale, Auto-trace the bracket (1 Solid + 2 Holes), del
   // Drag the diagonal's midpoint dot back onto the corner — the cut-off corner is restored. The
   // diagonal runs from the L's (900, 300) corner to its (450, 650) corner, so its dot is near
   // image px (675, 475).
+  // The Slices panel floats over the canvas and, at the tablet's wider pane (`TODO/ui-084`), covers
+  // the diagonal's dot — put it away first, as a person would before dragging there.
+  if ((await page.getByTestId('sketch-slices-panel').count()) > 0) await page.getByTestId('sketch-slices-toggle').click()
+  await expect(page.getByTestId('sketch-slices-panel')).toHaveCount(0)
   const box = await sketchScreen(page)
   const diagonal = await mmOnScreen(page, pxToMm([675, 475], mmPerPx, offsetMm))
   const mids = await page.locator('[data-testid^="sketch-midpoint-"]').evaluateAll((nodes) =>

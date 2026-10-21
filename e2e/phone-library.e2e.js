@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { test, expect } from '@playwright/test'
+import { withRowSettings } from './support/libraryRow.js'
 
 /**
  * The phone Library row (`TODO/core-057`), driven against `/` — the running app.
@@ -137,16 +138,19 @@ test('the phone row has Model and Case dropdowns, and a drop is a named group of
   await openLibrary(page, 'kit')
   const model = page.getByTestId('library-choice-kit.phone')
   const caseSelect = page.getByTestId('library-choice-kit.phone-case')
-  await expect(model).toBeVisible()
-  await expect(caseSelect).toBeVisible()
-  // Opens on the iPhone 17 Pro in a Slim case, and offers the handsets and the five presets.
-  await expect(model).toHaveValue('iphone-17-pro')
-  await expect(caseSelect).toHaveValue('slim')
-  await expect(model.locator('option')).toHaveCount(13)
-  await expect(caseSelect.locator('option')).toHaveText(['None', 'Slim', 'Protective', 'Rugged', 'TechWeave', 'Custom'])
+  // In the icons tier the dropdowns are in the row's pop-out (TODO/ui-084).
+  await withRowSettings(page, 'kit.phone', async () => {
+    await expect(model).toBeVisible()
+    await expect(caseSelect).toBeVisible()
+    // Opens on the iPhone 17 Pro in a Slim case, and offers the handsets and the five presets.
+    await expect(model).toHaveValue('iphone-17-pro')
+    await expect(caseSelect).toHaveValue('slim')
+    await expect(model.locator('option')).toHaveCount(13)
+    await expect(caseSelect.locator('option')).toHaveText(['None', 'Slim', 'Protective', 'Rugged', 'TechWeave', 'Custom'])
 
-  await model.selectOption('iphone-16')
-  await caseSelect.selectOption('protective')
+    await model.selectOption('iphone-16')
+    await caseSelect.selectOption('protective')
+  })
   await dragRowIntoViewport(page, { op: 'kit.phone', fx: 0.4, fy: 0.3 })
 
   const viewport = page.getByTestId('viewport')

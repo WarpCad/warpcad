@@ -42,6 +42,7 @@ const EXCEPTIONS = Object.freeze({
   'src/components/inspector/VariableUsageDialog.vue': 'a delete-confirm',
   'src/components/layout/UserPartMenu.vue': 'a row menu with rename/delete confirms',
   'src/components/layout/HelpSheet.vue': 'the help itself',
+  'src/components/layout/LibraryRowPopout.vue': 'one Library row\'s settings; the rail\'s own ? (LibraryPanel) is the help for the Library',
 })
 
 /** Surfaces with headers that are not caught by the pop-up test above but are named in the TODO. */

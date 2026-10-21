@@ -3369,3 +3369,16 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** all figures → docs/decisions/native-mobile-shell.md Question 7 (measured/fetched 2026-10-21 per the record, not re-run at commit time)
 **To Add:** none
+
+## 2026-10-21T19:30:00-0500 — Library icon rail and compact viewport chrome (ui-084)
+
+**Post:** WarpCad's panels already shrank in steps as the window narrowed, but only the Operations toolbar actually did. At the 820 px iPad width the Library was still a 200 px column of labelled rows with variant dropdowns, and the navigation pad and orientation triad kept their full size, which left the 3D view about 395 px wide.
+
+The Library is now a 72 px rail of icons between 790 and 1023 px. Dragging an icon places the part exactly as before; tapping one opens a small panel with that row's lists and Reset. The pad and triad switch to their compact forms below a measured threshold (a 554 px viewport pane, about 855 px of window), and the toolbar's reserved gizmo width drops from 184 to 150 px with them. The 3D view at 820 px is now 523 px wide.
+
+I drove five acceptance scenarios by hand at 820 and 900 px in Chromium and WebKit (26 of 26 checks each), and the full e2e matrix passed with Firefox included: 4,159 passed, 0 failed. The first full run had four failures; two were intended screenshot changes and two were tests that assumed the old, narrower pane. Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL #Vue
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** 395 px pane before, 523 px after at 820; 554 px threshold; 184 → 150 px reserve; 72 px rail between 790 and 1023 px → panelLayout.js diff and the agent's measurements this session; 26/26 checks on four configs → drive script output this session; 4,159 passed / 0 failed with Firefox → full e2e run this session; four first-run failures, two screenshot, two tests → triage this session
+**To Add:** docs/screenshots/library-row-popout.png

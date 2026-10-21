@@ -5,8 +5,25 @@ kind: finding
 priority: high
 model: opus
 depends: [ui-079]
-status: open
+status: done
 ---
+
+
+> **What shipped (2026-10-21).** Everything in Proposed fix stages 1-5, with these differences from the
+> plan. The `chromeTier` threshold is **pane P ≥ 554 (E = 855 with no chat)**, not the provisional ~900:
+> 554 is the smallest pane where the full 184 px gizmo reserve keeps the icon toolbar on two lines, and
+> it is measured in all three engines (full pad 205/209/209 × 188, compact 190/194/194 × 164; gizmo
+> 130 × 178 full, 106 × 138 compact). The gizmo reserve is `--gizmo-reserve`: 184 px full, 150 px
+> compact (156 would have wrapped the tablet toolbar to three lines). The drag gesture lives in
+> `src/composables/useLibraryDrag.js` (module-scope listeners, so a tier swap cannot kill a drag),
+> used only by `LibraryRow`. Eleven existing e2e specs now reach a row's settings through
+> `e2e/support/libraryRow.js` (`withRowSettings`) because at 820 px they live in the row pop-out.
+> `sketch-auto-trace` closes the Slices panel before its dot drag (at the wider tablet pane it floats over
+> the dot) and `mcp-connected-assistant` polls for the sheet inset instead of reading it in the frame
+> the sheet appears. The docs example's "Bolt, choose M5" needed **Socket cap** first (hex bolts start at
+> M10); the page says so. Not done: the pad overlaps the scale readout at E ≲ 700 (it did at 760 before
+> this task too), no file drop onto the rail, and the long-press callout and new-tile pulse have thin
+> coverage. See `TODO/VERIFY.md`.
 
 ## Problem
 

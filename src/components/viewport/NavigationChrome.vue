@@ -20,6 +20,15 @@
  */
 import { computed, ref, watch } from 'vue'
 import { MOUSE_NAV_PRESETS, useSettingsStore } from '../../stores/settings.js'
+import { usePanelLayoutStore } from '../../stores/panelLayout.js'
+
+/**
+ * The chrome tier (`TODO/ui-084`): `compact` when the computed viewport pane is narrow (the
+ * tablet's), from the layout store, never measured here. Compact is the existing ≤ 480px form;
+ * the phone keeps that media query and reports `full`, so nothing changes below 641px.
+ */
+const panelLayout = usePanelLayoutStore()
+const chromeTier = computed(() => panelLayout.layout.chromeTier)
 
 const props = defineProps({
   dragMode: {
@@ -134,6 +143,7 @@ const STEPS = Object.freeze([
     }"
     data-testid="navigation-chrome"
     :data-drag-mode="dragMode"
+    :data-chrome-tier="chromeTier"
   >
     <!-- The rows above the pad. `display: contents` everywhere except a
          collapsed raised phone cluster, where it is `display: none`
@@ -462,6 +472,40 @@ const STEPS = Object.freeze([
 .chrome__btn:active {
   background: var(--accent);
   color: var(--accent-contrast);
+}
+
+/* The compact form (`TODO/ui-084`): the ≤ 480px rules below, keyed on the chrome tier as well, so
+   the tablet's narrow pane gets them too. Every control, test id, title and `aria-label` stays; the
+   `ui-046` fold stays phone-only. Keep this block and the media block in step. */
+.chrome[data-chrome-tier='compact'] {
+  left: 8px;
+  bottom: calc(8px + var(--viewport-bottom-inset, 0px));
+  padding: 4px;
+}
+
+.chrome[data-chrome-tier='compact'] .chrome__btn {
+  width: var(--tap-compact);
+  height: var(--tap-compact);
+}
+
+.chrome[data-chrome-tier='compact'] .chrome__mode {
+  min-height: 30px;
+  font-size: 11px;
+}
+
+.chrome[data-chrome-tier='compact'] .chrome__gear {
+  min-height: 30px;
+  width: 26px;
+  font-size: 13px;
+}
+
+.chrome[data-chrome-tier='compact'] .chrome__presets {
+  min-width: 200px;
+}
+
+.chrome[data-chrome-tier='compact'] .chrome__preset {
+  min-height: 30px;
+  font-size: 11px;
 }
 
 @media (max-width: 480px) {

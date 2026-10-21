@@ -22,6 +22,15 @@
  * | `.ops` width for the icon row in ≤ 3 lines      | 250      | 250    | 250     |
  * | Orientation gizmo footprint (top-right, 12 in)  | 130×177  | 130×178| 130×179 |
  *
+ * `TODO/ui-084` stage 1 added the viewport chrome, measured the same way (the compact forms are
+ * the existing ≤ 480px rules, measured at a 390px and a 470px page):
+ *
+ * | Measured (px)                                   | Chromium | WebKit | Firefox |
+ * |-------------------------------------------------|----------|--------|---------|
+ * | Navigation pad, full (bottom-left, 12 in)       | 205×188  | 209×188| 209×188 |
+ * | Navigation pad, compact (8 in)                  | 190×164  | 194×164| 194×164 |
+ * | Orientation gizmo, compact (8 in)               | 106×138  | 106×138| 106×138 |
+ *
  * `.ops` is capped at `pane − 24 − 184` (`ui-015`'s gizmo-avoiding cap, so it can never reach
  * the gizmo whatever the tier). Hence the two Operations thresholds on the pane `P`:
  * labels while `P ≥ 559 + 208 + 5` (two lines, plus 5px for system-font variance), and icons
@@ -69,12 +78,32 @@ export const INSPECTOR_FULL_E_PX = 1280
 export const OPS_LABELS_MIN_PANE_PX = 772
 export const OPS_ICONS_MIN_PANE_PX = 458
 
+/**
+ * The viewport chrome's tier (`TODO/ui-084`), keyed on the computed pane like the Operations tier.
+ * From this pane width up the navigation pad and the orientation gizmo are full size; below it they
+ * take their compact form. It is the smallest pane where the full 184px gizmo reserve still leaves
+ * the 14-button icon toolbar on two lines: `.ops` inner width `P − 24 − 184 − 2·6 − 2·1` must hold
+ * `7 × 44 + 6 × 4 = 332`, so `P ≥ 554`, which is E = 855 with no chat.
+ */
+export const CHROME_FULL_MIN_PANE_PX = 554
+
+/**
+ * The width the Operations toolbar leaves for the orientation gizmo at the top right, per chrome
+ * tier (`.ops`'s `max-width: calc(100% − 24px − var(--gizmo-reserve))`). Full: the 130px gizmo,
+ * its 12px inset and `ui-015`'s 42px margin. Compact: the 106px gizmo and its 8px inset, plus a
+ * 36px margin, which still leaves the toolbar 48px clear of the gizmo and keeps the tablet
+ * reference's icon toolbar on two lines instead of three (P = 523.2 at 820).
+ */
+export const GIZMO_RESERVE_FULL_PX = 184
+export const GIZMO_RESERVE_COMPACT_PX = 150
+
 const LIBRARY_SLOPE = (LIBRARY_LABELS_MAX_PX - LIBRARY_LABELS_MIN_PX) / (LIBRARY_LABELS_FULL_E_PX - LIBRARY_LABELS_MIN_E_PX)
 const INSPECTOR_SLOPE = (INSPECTOR_MAX_PX - INSPECTOR_MIN_PX) / (INSPECTOR_FULL_E_PX - INSPECTOR_MIN_E_PX)
 
 /**
  * @typedef {'labels' | 'icons' | 'popout' | 'sheet'} LibraryTier
  * @typedef {'labels' | 'icons' | 'groups'} OpsTier
+ * @typedef {'full' | 'compact'} ChromeTier
  * @typedef {{
  *   phone: boolean,
  *   libraryTier: LibraryTier,
@@ -82,6 +111,8 @@ const INSPECTOR_SLOPE = (INSPECTOR_MAX_PX - INSPECTOR_MIN_PX) / (INSPECTOR_FULL_
  *   inspectorWidthPx: number,
  *   paneWidthPx: number,
  *   opsTier: OpsTier,
+ *   chromeTier: ChromeTier,
+ *   gizmoReservePx: number,
  * }} PanelLayout
  */
 
@@ -103,6 +134,10 @@ export function panelLayoutFor({ bodyWidthPx, chatColumn }) {
       inspectorWidthPx: 0,
       paneWidthPx: bodyWidthPx,
       opsTier: 'icons',
+      // The phone keeps its own compaction (`@media (max-width: 480px)` in `NavigationChrome.vue`
+      // and `OrientationGizmo.vue`) and the full reserve, exactly as before `TODO/ui-084`.
+      chromeTier: 'full',
+      gizmoReservePx: GIZMO_RESERVE_FULL_PX,
     }
   }
   const sharedPx = chatColumn && bodyWidthPx >= CHAT_COLUMN_MIN_WIDTH_PX ? bodyWidthPx - CHAT_COLUMN_WIDTH_PX : bodyWidthPx
@@ -130,8 +165,11 @@ export function panelLayoutFor({ bodyWidthPx, chatColumn }) {
   /** @type {OpsTier} */
   const opsTier =
     paneWidthPx >= OPS_LABELS_MIN_PANE_PX ? 'labels' : paneWidthPx >= OPS_ICONS_MIN_PANE_PX ? 'icons' : 'groups'
+  /** @type {ChromeTier} */
+  const chromeTier = paneWidthPx >= CHROME_FULL_MIN_PANE_PX ? 'full' : 'compact'
+  const gizmoReservePx = chromeTier === 'full' ? GIZMO_RESERVE_FULL_PX : GIZMO_RESERVE_COMPACT_PX
 
-  return { phone: false, libraryTier, libraryWidthPx, inspectorWidthPx, paneWidthPx, opsTier }
+  return { phone: false, libraryTier, libraryWidthPx, inspectorWidthPx, paneWidthPx, opsTier, chromeTier, gizmoReservePx }
 }
 
 /**

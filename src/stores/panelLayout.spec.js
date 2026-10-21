@@ -6,6 +6,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   CHAT_COLUMN_MIN_WIDTH_PX,
   CHAT_COLUMN_WIDTH_PX,
+  CHROME_FULL_MIN_PANE_PX,
+  GIZMO_RESERVE_COMPACT_PX,
+  GIZMO_RESERVE_FULL_PX,
   PANE_MIN_WIDTH_PX,
   PHONE_MAX_WIDTH_PX,
   panelLayoutFor,
@@ -21,47 +24,52 @@ import {
 /** Shrinking order: a panel's tiers from least to most compact (phone is its own flag). */
 const LIBRARY_RANK = { labels: 0, icons: 1, popout: 2 }
 const OPS_RANK = { labels: 0, icons: 1, groups: 2 }
+const CHROME_RANK = { full: 0, compact: 1 }
 
 /** The reference viewports (`CLAUDE.md` Responsive Layout) no breakpoint may sit near. */
 const REFERENCE_WIDTHS_PX = [820, 1440]
 
 /**
  * The expected table. `E = W` without chat; with chat, `E = W − 340` only from `W ≥ 1100`
- * (below that the chat is a bottom sheet over the viewport, not a grid column).
+ * (below that the chat is a bottom sheet over the viewport, not a grid column). The last column is
+ * the viewport chrome's tier (`TODO/ui-084`): compact from E = 854 down (P < 554).
  *
- * @type {[number, 'labels' | 'icons' | 'popout', 'labels' | 'icons' | 'groups'][]}
+ * @type {[number, 'labels' | 'icons' | 'popout', 'labels' | 'icons' | 'groups', 'full' | 'compact'][]}
  */
 const NO_CHAT_TABLE = [
-  [641, 'popout', 'groups'],
-  [700, 'popout', 'groups'],
-  [733, 'popout', 'groups'],
-  [734, 'popout', 'groups'],
-  [741, 'popout', 'groups'],
-  [742, 'popout', 'icons'],
-  [779, 'popout', 'icons'],
-  [780, 'popout', 'icons'],
-  [789, 'popout', 'icons'],
-  [790, 'icons', 'icons'],
-  [820, 'icons', 'icons'],
-  [900, 'icons', 'icons'],
-  [1023, 'icons', 'icons'],
-  [1024, 'labels', 'icons'],
-  [1100, 'labels', 'icons'],
-  [1200, 'labels', 'icons'],
-  [1259, 'labels', 'icons'],
-  [1260, 'labels', 'icons'],
-  [1275, 'labels', 'icons'],
-  [1276, 'labels', 'labels'],
-  [1280, 'labels', 'labels'],
-  [1440, 'labels', 'labels'],
+  [641, 'popout', 'groups', 'compact'],
+  [700, 'popout', 'groups', 'compact'],
+  [733, 'popout', 'groups', 'compact'],
+  [734, 'popout', 'groups', 'compact'],
+  [741, 'popout', 'groups', 'compact'],
+  [742, 'popout', 'icons', 'compact'],
+  [779, 'popout', 'icons', 'compact'],
+  [780, 'popout', 'icons', 'compact'],
+  [789, 'popout', 'icons', 'compact'],
+  [790, 'icons', 'icons', 'compact'],
+  [820, 'icons', 'icons', 'compact'],
+  [854, 'icons', 'icons', 'compact'],
+  [855, 'icons', 'icons', 'full'],
+  [900, 'icons', 'icons', 'full'],
+  [1023, 'icons', 'icons', 'full'],
+  [1024, 'labels', 'icons', 'full'],
+  [1100, 'labels', 'icons', 'full'],
+  [1200, 'labels', 'icons', 'full'],
+  [1259, 'labels', 'icons', 'full'],
+  [1260, 'labels', 'icons', 'full'],
+  [1275, 'labels', 'icons', 'full'],
+  [1276, 'labels', 'labels', 'full'],
+  [1280, 'labels', 'labels', 'full'],
+  [1440, 'labels', 'labels', 'full'],
 ]
 
 describe('panelLayoutFor — the width table (TODO/ui-079)', () => {
-  it.each(NO_CHAT_TABLE)('W=%i without chat: Library %s, Operations %s', (width, library, ops) => {
+  it.each(NO_CHAT_TABLE)('W=%i without chat: Library %s, Operations %s, chrome %s', (width, library, ops, chrome) => {
     const layout = panelLayoutFor({ bodyWidthPx: width, chatColumn: false })
     expect(layout.phone).toBe(false)
     expect(layout.libraryTier).toBe(library)
     expect(layout.opsTier).toBe(ops)
+    expect(layout.chromeTier).toBe(chrome)
   })
 
   it.each(NO_CHAT_TABLE)('W=%i with chat: the chat is a column only from 1100px', (width) => {
@@ -70,6 +78,8 @@ describe('panelLayoutFor — the width table (TODO/ui-079)', () => {
     const expected = panelLayoutFor({ bodyWidthPx: effective, chatColumn: false })
     expect(withChat.libraryTier).toBe(expected.libraryTier)
     expect(withChat.opsTier).toBe(expected.opsTier)
+    expect(withChat.chromeTier).toBe(expected.chromeTier)
+    expect(withChat.gizmoReservePx).toBe(expected.gizmoReservePx)
     expect(withChat.libraryWidthPx).toBeCloseTo(expected.libraryWidthPx, 2)
     expect(withChat.inspectorWidthPx).toBeCloseTo(expected.inspectorWidthPx, 2)
     expect(withChat.paneWidthPx).toBeCloseTo(expected.paneWidthPx, 2)
@@ -112,9 +122,44 @@ describe('panelLayoutFor — the width table (TODO/ui-079)', () => {
     expect(layout.phone).toBe(true)
     expect(layout.libraryTier).toBe('sheet')
     expect(layout.opsTier).toBe('icons')
+    // The phone keeps its own ≤ 480px media-query compaction and the 184px reserve, unchanged.
+    expect(layout.chromeTier).toBe('full')
+    expect(layout.gizmoReservePx).toBe(GIZMO_RESERVE_FULL_PX)
     expect(layout.libraryWidthPx).toBe(0)
     expect(layout.inspectorWidthPx).toBe(0)
     expect(layout.paneWidthPx).toBe(390)
+  })
+
+  it('the tablet reference (820) is compact chrome; E = 900 and the laptop keep the full chrome (TODO/ui-084)', () => {
+    expect(panelLayoutFor({ bodyWidthPx: 820, chatColumn: false }).chromeTier).toBe('compact')
+    expect(panelLayoutFor({ bodyWidthPx: 900, chatColumn: false }).chromeTier).toBe('full')
+    expect(panelLayoutFor({ bodyWidthPx: 1440, chatColumn: false }).chromeTier).toBe('full')
+    expect(panelLayoutFor({ bodyWidthPx: 1440, chatColumn: true }).chromeTier).toBe('full')
+  })
+
+  it('the gizmo reserve follows the chrome tier: 184px full, 150px compact (TODO/ui-084)', () => {
+    expect(GIZMO_RESERVE_FULL_PX).toBe(184)
+    expect(GIZMO_RESERVE_COMPACT_PX).toBe(150)
+    expect(panelLayoutFor({ bodyWidthPx: 1100, chatColumn: false }).gizmoReservePx).toBe(184)
+    expect(panelLayoutFor({ bodyWidthPx: 820, chatColumn: false }).gizmoReservePx).toBe(150)
+  })
+
+  /**
+   * Where the threshold comes from (`TODO/ui-084` stage 1). The icon toolbar is 14 buttons of 44px
+   * with 4px gaps (668px on one line in every engine) inside `.ops`'s 6px padding and 1px border,
+   * and `.ops` is capped at `P − 24 − reserve`. Two lines need 7 buttons per line.
+   */
+  it('compacts the chrome exactly where the full reserve would push the icon toolbar onto a third line', () => {
+    const twoLineInnerPx = 7 * 44 + 6 * 4
+    const linesAt = (/** @type {number} */ paneWidthPx, /** @type {number} */ reservePx) => {
+      const inner = paneWidthPx - 24 - reservePx - 2 * 6 - 2 * 1
+      return inner >= twoLineInnerPx ? 2 : 3
+    }
+    expect(linesAt(CHROME_FULL_MIN_PANE_PX, GIZMO_RESERVE_FULL_PX)).toBe(2)
+    expect(linesAt(CHROME_FULL_MIN_PANE_PX - 1, GIZMO_RESERVE_FULL_PX)).toBe(3)
+    // …and the compact reserve keeps the tablet reference's toolbar on two lines.
+    const tablet = panelLayoutFor({ bodyWidthPx: 820, chatColumn: false })
+    expect(linesAt(tablet.paneWidthPx, tablet.gizmoReservePx)).toBe(2)
   })
 
   it('is pure: the same input gives an equal answer, and it never reads the window', () => {
@@ -133,7 +178,7 @@ describe('panelLayoutFor — the breakpoint invariants, swept 1px at a time (TOD
   for (let e = 641; e <= 1600; e += 1) sweep.push({ e, layout: panelLayoutFor({ bodyWidthPx: e, chatColumn: false }) })
 
   /** Every E at which a tier changes, walking *down* from 1600, and which panel changed. */
-  const breakpoints = /** @type {{ e: number, panel: 'library' | 'ops', from: string, to: string }[]} */ ([])
+  const breakpoints = /** @type {{ e: number, panel: 'library' | 'ops' | 'chrome', from: string, to: string }[]} */ ([])
   for (let i = sweep.length - 1; i > 0; i -= 1) {
     const wider = sweep[i].layout
     const narrower = sweep[i - 1].layout
@@ -144,15 +189,23 @@ describe('panelLayoutFor — the breakpoint invariants, swept 1px at a time (TOD
     if (wider.opsTier !== narrower.opsTier) {
       breakpoints.push({ e: sweep[i].e, panel: 'ops', from: wider.opsTier, to: narrower.opsTier })
     }
+    if (wider.chromeTier !== narrower.chromeTier) {
+      breakpoints.push({ e: sweep[i].e, panel: 'chrome', from: wider.chromeTier, to: narrower.chromeTier })
+    }
   }
 
-  it('changes tiers in the agreed order: Operations icons, Library icons, Library pop-out, Operations groups', () => {
+  it('changes tiers in the agreed order: Operations icons, Library icons, chrome compact, Library pop-out, Operations groups', () => {
     expect(breakpoints.map(({ panel, to }) => `${panel}:${to}`)).toEqual([
       'ops:icons',
       'library:icons',
+      'chrome:compact',
       'library:popout',
       'ops:groups',
     ])
+  })
+
+  it('compacts the chrome at E = 855 and nowhere else (TODO/ui-084)', () => {
+    expect(breakpoints.filter(({ panel }) => panel === 'chrome').map(({ e }) => e)).toEqual([855])
   })
 
   it('never changes both panels at the same E', () => {
@@ -168,6 +221,7 @@ describe('panelLayoutFor — the breakpoint invariants, swept 1px at a time (TOD
         LIBRARY_RANK[/** @type {'labels'} */ (wider.libraryTier)],
       )
       expect(OPS_RANK[narrower.opsTier]).toBeGreaterThanOrEqual(OPS_RANK[wider.opsTier])
+      expect(CHROME_RANK[narrower.chromeTier]).toBeGreaterThanOrEqual(CHROME_RANK[wider.chromeTier])
     }
   })
 
@@ -201,6 +255,13 @@ describe('panelLayoutFor — the breakpoint invariants, swept 1px at a time (TOD
       expect(layout.paneWidthPx).toBeGreaterThanOrEqual(PANE_MIN_WIDTH_PX)
     }
     expect(PANE_MIN_WIDTH_PX).toBe(340)
+  })
+
+  it('the chrome tier keys on the computed pane alone: compact exactly while P < CHROME_FULL_MIN_PANE_PX', () => {
+    for (const { layout } of sweep) {
+      expect(layout.chromeTier).toBe(layout.paneWidthPx < CHROME_FULL_MIN_PANE_PX ? 'compact' : 'full')
+      expect(layout.gizmoReservePx).toBe(layout.chromeTier === 'compact' ? GIZMO_RESERVE_COMPACT_PX : GIZMO_RESERVE_FULL_PX)
+    }
   })
 
   it('holds the pane floor with the chat column open too', () => {

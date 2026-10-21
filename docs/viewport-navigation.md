@@ -74,6 +74,11 @@ Pressing the pad's buttons does the same as the gestures above — no mouse drag
 The buttons and the drag gesture are the same controls underneath, so the view
 never ends up in a state you can only reach one way.
 
+In a narrow window (a tablet, or a desktop window under about 860 px) the pad and the triad
+below shrink to a compact form to leave room for the toolbar. Every button is still there:
+
+![The 3D view at tablet width, with the navigation pad and the orientation triad in their compact form.](./screenshots/viewport-chrome-compact.png)
+
 ### On a phone: the pad folds away while a panel is open
 
 On a phone, opening a bottom panel (the Inspector, including its object list, or
