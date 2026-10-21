@@ -3339,3 +3339,18 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** hash scope before/after, spec assertions → diff; 6314 unit tests and typecheck green → test runs this session; pre-push gate exists → git log 54aa578
 **To Add:** none
+
+## 2026-10-21T08:24:54-0500 — native mobile shell research, and the App Store licence gap
+
+**Post:** WarpCad is a browser CAD app, and I wanted to know the right way to put it on a phone as a store app. I had an agent research it and wrote the result up as a decision record. The recommendation is Capacitor 8 wrapping the existing Vite build, with the AI tools still running inside the page.
+
+The record also corrected three assumptions in my own task: the MCP server cannot run on a phone as written, a listening socket alone does not trigger the iOS Local Network prompt, and a remote agent's turn lands as a group of batches, not one atomic merge.
+
+The sharper finding is licensing. The repo is AGPL-3.0, and the App Store's terms conflict with it, as VLC found in 2011. I can ship under separate terms only for code I own. Contributors currently sign a DCO, which does not grant that right, so I filed a task to add a CLA and repo enforcement before the first outside pull request. The record is in docs/decisions/native-mobile-shell.md.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource #AGPL
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** three corrected premises → "Shipped" note in TODO/done/build-003; VLC 2011 → decision record Recommendation 8; DCO vs CLA → TODO/build-016 Goal; no outside contribution merged → git log authors, 466 commits all John Cole
+**To Add:** none

@@ -6,8 +6,14 @@ priority: medium
 model: opus
 tags: [research]
 depends: []
-status: open
+status: done
 ---
+
+> **Shipped:** the decision record `docs/decisions/native-mobile-shell.md` (status: proposed, awaiting the
+> owner's acceptance). Recommends Capacitor 8 with an outbound relay for outside agents; corrects three of
+> this file's premises (`mcp/server.js` cannot run as-is on a phone; a TCP listener alone does not trigger the
+> iOS Local Network prompt; a relay turn is a group of `mcp`-origin batches, not one atomic `ai` merge). No
+> code or dependency changed.
 
 ## Goal
 

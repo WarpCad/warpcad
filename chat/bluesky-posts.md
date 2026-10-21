@@ -2322,3 +2322,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** hash scope before/after, spec assertions → diff; typecheck and 6314 unit tests green, stamp match 24af4d68… for src/ → test runs and stamp gate this session; pre-push gate exists → git log 54aa578
 **To Add:** none
+
+## 2026-10-21T08:24:54-0500 — native mobile shell research, and the App Store licence gap
+
+**Post:** Wrote up how WarpCad could ship as an iOS/Android app. Capacitor 8 wins; the tool surface stays in the page. The finding I didn't expect: AGPL plus DCO sign-offs isn't enough for the App Store, since I can only relicense code I own. So a CLA task is filed before any outside PR lands. Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #OpenSource #AGPL
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** Capacitor 8 recommended, status proposed → docs/decisions/native-mobile-shell.md; DCO grants no relicensing right, one author in git history → TODO/build-016 text and git shortlog (466 commits, John Cole), 2026-10-21
+**To Add:** none
