@@ -10,8 +10,10 @@ status: open
 
 > **Status (split, 2026-10-21).** Stages 1–3 are implemented (budget, `panelLayoutFor` and the
 > store, the fluid grid, the Operations icons tier) and still uncommitted at the time of writing.
-> Stages 4–5 moved to `TODO/ui-081-library-rail-and-popouts.md`, and stage 6 to
-> `TODO/ui-082-operations-groups-tier.md`. This file keeps stages 7 (motion and edges) and 8 (docs,
+> Stage 4 (Library icon rail and row pop-out) moved to
+> `TODO/ui-084-library-icons-and-compact-viewport-chrome.md`, which also adds a compact tier for
+> the navigation pad and orientation gizmo. Stage 5 (section pop-outs) moved to
+> `TODO/ui-081-library-rail-and-popouts.md`, and stage 6 to `TODO/ui-082-operations-groups-tier.md`. This file keeps stages 7 (motion and edges) and 8 (docs,
 > media, acceptance drive, hand drive), which wait on `ui-081` and `ui-082`. The file stays `open`.
 
 ## Problem
