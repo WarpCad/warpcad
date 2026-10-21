@@ -1,4 +1,4 @@
-# Initial Design — WarpCad2 on JSCAD V3
+# Initial Design — WarpCad on JSCAD V3
 
 Status: kickoff design draft. This expands the original design note (kept verbatim
 below as the source of intent) into the comparison, data model, catalog, mockups, and
@@ -454,7 +454,7 @@ actual shape of the underlying data, not a UI simplification imposed on top of i
 ### 7a. Drag-drop-to-place, with snap guides (laptop reference, 1440×900)
 
 ```
-┌─ WarpCad2 ──────────────────────────────────────────────────────────────────┐
+┌─ WarpCad ───────────────────────────────────────────────────────────────────┐
 │ [Project ▾]  [Undo] [Redo]                              [AI ●] [Save] [⚙]   │
 ├───────────────┬───────────────────────────────────────────┬─────────────────┤
 │ LIBRARY       │              VIEWPORT                      │ INSPECTOR       │
@@ -493,7 +493,7 @@ rule:
 ### 7b. Selection → move/rotate/dimensions/inspector
 
 ```
-┌─ WarpCad2 ──────────────────────────────────────────────────────────────────┐
+┌─ WarpCad ───────────────────────────────────────────────────────────────────┐
 │ ...                                                                          │
 ├───────────────┬───────────────────────────────────────────┬─────────────────┤
 │ LIBRARY       │              VIEWPORT                      │ INSPECTOR       │
@@ -539,7 +539,7 @@ rule:
 
 ```
 Tablet (touch-primary, persistent side panel still fits)      Phone (panels collapse to sheets)
-┌─ WarpCad2 ────────────────────────┐                          ┌─ WarpCad2 ──────────┐
+┌─ WarpCad ─────────────────────────┐                          ┌─ WarpCad ───────────┐
 │ [☰] Project        [AI] [Save]    │                          │ [☰]  [AI]  [Save]   │
 ├───────────┬────────────────────────┤                          ├──────────────────────┤
 │ LIBRARY   │      VIEWPORT          │                          │                      │
