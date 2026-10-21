@@ -51,6 +51,10 @@ jobs:
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          # `npm ci` ran `prepare`, which points core.hooksPath at .githooks. That pre-push gate wants
+          # a stored local test run and would refuse release-it's push; the `test` job above is this
+          # release's gate, so hooks are switched off here.
+          git config core.hooksPath /dev/null
           npx release-it --ci --increment "${{ inputs.bump }}"
       - id: tag
         run: echo "tag=v$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
