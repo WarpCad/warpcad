@@ -3382,3 +3382,16 @@ I drove five acceptance scenarios by hand at 820 and 900 px in Chromium and WebK
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** 395 px pane before, 523 px after at 820; 554 px threshold; 184 → 150 px reserve; 72 px rail between 790 and 1023 px → panelLayout.js diff and the agent's measurements this session; 26/26 checks on four configs → drive script output this session; 4,159 passed / 0 failed with Firefox → full e2e run this session; four first-run failures, two screenshot, two tests → triage this session
 **To Add:** docs/screenshots/library-row-popout.png
+
+## 2026-10-21T20:00:00-0500 — Release CI no longer runs Playwright guards
+
+**Post:** The WarpCad release workflow was failing on a Playwright step. CI checks out without Git LFS to save bandwidth, so the docs GIFs were pointer files and the docs-media guard flagged four of them as stale.
+
+The release doesn't need e2e of any kind, so I removed the step. It now runs unit tests, typecheck and licence checks. The guards still run locally in the pre-push hook.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** none
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** release calls ci.yml → release.yml; lfs: false → ci.yml; four stale-movie errors → pasted CI log
+**To Add:** none

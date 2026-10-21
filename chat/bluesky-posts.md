@@ -2349,3 +2349,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** 200 px labelled column at tablet before, 72 px rail after → TODO/done/ui-084 text and src/views/AppView.vue diff; toolbar had gone to icons → commit fe01ae5 (ui-079 stages 1-3)
 **To Add:** docs/screenshots/library-icon-rail.png, viewport-chrome-compact.png
+
+## 2026-10-21T20:00:00-0500 — Release CI no longer runs Playwright guards
+
+**Post:** Release workflow kept dying on an "e2e" step that CI never needed. It was the Playwright guards project, reading LFS pointer files instead of GIFs. Removed it; the guards stay in the local pre-push hook. Built with Claude Code, reviewed by me. #OpenSource
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** release calls ci.yml → release.yml; lfs: false, pointer files → ci.yml comment; four stale-movie errors → pasted CI log; diff only otherwise
+**To Add:** none

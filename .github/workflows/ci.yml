@@ -1,6 +1,6 @@
 name: CI
 
-# One job: unit tests, typecheck, licence checks and the `guards` project. No browser runs in CI.
+# One job: unit tests, typecheck and licence checks. No Playwright or browser runs in CI.
 # It does NOT run on push or pull_request, because hosted minutes cost money (TODO/build-014). The
 # safety net is the local `.githooks/pre-push` hook, which refuses a push of main unless the unit
 # suite and the full e2e matrix ran on the pushed commit. This workflow runs only when started by
@@ -13,11 +13,11 @@ on:
 
 jobs:
   test:
-    name: Unit, typecheck and guards
+    name: Unit, typecheck and licences
     runs-on: ubuntu-latest
     steps:
       # docs/media GIFs live in Git LFS (.gitattributes). This job leaves them as pointer files on
-      # purpose (lfs: false): the unit stage and the `guards` project read only file names, sizes and
+      # purpose (lfs: false): the unit stage reads only file names, sizes and
       # the manifest (e2e/docs-media.spec.js, scripts/help-build.spec.js), never GIF bytes, so
       # downloading 73 MB per run would spend the monthly LFS bandwidth for nothing (TODO/build-012).
       # The Pages build, which bundles the GIFs into Help, restores them from a cache instead.
@@ -37,9 +37,8 @@ jobs:
       - run: npm run mcp:licenses
       - run: npm run typecheck
       - run: npm run test:unit -- --run
-      # The `guards` project (e2e/naming.spec.js, e2e/docs-media.spec.js) reads files, not pages,
-      # so it needs no browser binary.
-      - run: npx playwright test --project=guards
+      # No Playwright here, not even the `guards` project: the release does not run e2e. The
+      # guards (e2e/naming.spec.js, e2e/docs-media.spec.js) run locally via the pre-push hook.
 
 concurrency:
   group: ci-${{ github.ref }}
