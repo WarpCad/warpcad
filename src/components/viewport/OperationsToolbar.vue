@@ -320,9 +320,21 @@ import { useSelectionStore } from '../../stores/selection.js'
 import { useSplitSheetStore } from '../../stores/splitSheet.js'
 import { RIM_FACE_OPTIONS } from '../../core/timelineLabel.js'
 import { useTimelineStore } from '../../stores/timeline.js'
+import { usePanelLayoutStore } from '../../stores/panelLayout.js'
+import { useTierCrossfade } from '../../composables/useTierCrossfade.js'
 
 const documentStore = useDocumentStore()
 const selection = useSelectionStore()
+
+/**
+ * The toolbar's tier (`TODO/ui-079`): `labels`, `icons` or `groups`, from the layout store's
+ * *computed* viewport-pane width — not the page width — so the tablet's ~520px pane gets the
+ * icon-only form that used to be phone-only. Phone is `icons` too, with its own compaction on top
+ * (the `max-width: 640px` block at the end of the styles). `groups` renders as icons until its
+ * launchers land (`ui-079` stage 6). A tier change crossfades rather than animating label widths.
+ */
+const panelLayout = usePanelLayoutStore()
+const { tier: opsTier, fading: opsFading } = useTierCrossfade(() => panelLayout.layout.opsTier)
 
 /**
  * The three operations, in the order §6 lists them. Each carries the label its
@@ -1377,6 +1389,8 @@ function commitMirror() {
     :data-enabled="disabled ? 'false' : 'true'"
     :data-error="runError ? 'true' : 'false'"
     :data-selected-count="selection.count"
+    :data-ops-tier="opsTier"
+    :data-ops-fading="opsFading ? 'true' : 'false'"
     role="group"
     aria-label="Boolean, group, snap/align, fillet/chamfer and resize/bisect operations"
   >
@@ -1389,7 +1403,8 @@ function commitMirror() {
         <span class="ops__swatch ops__swatch--base" aria-hidden="true" />first is the base
       </span>
       <!-- Two strings, one shown at a time by CSS (`TODO/ui-043`): the full
-           sentence above 640px, a short one at/below it so the legend never
+           sentence in the labels tier, a short one in the icons tier (the phone
+           and, since `TODO/ui-079`, the tablet's pane) so the legend never
            wraps to a second line there — see `DISABLED_HINT_SHORT`'s own
            comment for the measured overlap this closes. -->
       <span v-else-if="inactiveSelected" class="ops__legend" data-testid="operations-inactive-note">
@@ -1886,6 +1901,31 @@ function commitMirror() {
   box-shadow: var(--shadow-overlay);
 }
 
+/* The tier crossfade (`TODO/ui-079`, `useTierCrossfade`): the content swaps in the same frame
+   this starts at 0.4, then it fades back up. Label widths are never animated inside this
+   `flex-wrap` row, which would re-wrap on every frame and jump. A one-shot animation, not a
+   standing `opacity` transition: anything else that sets this box's opacity (a test hiding the
+   chrome to photograph the canvas) must take effect at once, not fade over 150ms. */
+.ops[data-ops-fading='true'] {
+  animation: ops-tier-crossfade 150ms ease-out;
+}
+
+@keyframes ops-tier-crossfade {
+  from {
+    opacity: 0.4;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ops[data-ops-fading='true'] {
+    animation: none;
+  }
+}
+
 .ops__badge {
   display: flex;
   align-items: center;
@@ -1923,13 +1963,43 @@ function commitMirror() {
 }
 
 /*
- * The disabled-state legend's short form (`TODO/ui-043`) stays hidden above
- * 640px, where the full sentence fits `.ops`'s own width on one line — see
+ * The disabled-state legend's short form (`TODO/ui-043`) stays hidden in the
+ * labels tier, where the full sentence fits `.ops`'s own width on one line — see
  * `DISABLED_HINT_SHORT`'s own comment in the script block for the measurement
  * that makes the swap necessary below that width.
  */
 .ops__legend-short {
   display: none;
+}
+
+/*
+ * The icons tier (`TODO/ui-079`): the same buttons, in the same order, with their labels hidden.
+ * This was the phone-only form (`ui-027`'s label hiding, `ui-043`'s short legend); it is now keyed
+ * on the toolbar's own tier, which comes from the *computed* viewport-pane width, so the tablet's
+ * pane gets it too instead of 14 labelled buttons wrapped two per row down over the scene. The
+ * name stays in every button's `title`/`aria-label` (`titleFor`, `exactOneTitleFor`), this
+ * toolbar's established long-press affordance. `groups` renders as icons until its launchers land.
+ *
+ * Above phone width the buttons are 44px (`--tap`) squares with the base 4px gap: that is the
+ * form stage 1 measured (668px on one line, ≤ 3 lines from a 250px-wide `.ops` in every engine),
+ * which is what `OPS_ICONS_MIN_PANE_PX` in `src/stores/panelLayout.js` is derived from. The
+ * phone's tighter 38px/2px compaction stays in the phone block at the end of this file.
+ */
+.ops:not([data-ops-tier='labels']) .ops__label {
+  display: none;
+}
+
+.ops:not([data-ops-tier='labels']) .ops__btn {
+  justify-content: center;
+  min-width: var(--tap);
+}
+
+.ops:not([data-ops-tier='labels']) .ops__legend-full {
+  display: none;
+}
+
+.ops:not([data-ops-tier='labels']) .ops__legend-short {
+  display: inline;
 }
 
 /*
@@ -2293,12 +2363,17 @@ function commitMirror() {
    * by long-pressing any of the four buttons instead (`titleFor`), which is
    * this toolbar's own established touch affordance for its disabled hint,
    * not a hover-only fallback.
+   *
+   * `TODO/ui-079`: every rule in this block is keyed on the toolbar's tier *and* this media
+   * query. Phone is always the `icons` tier (`panelLayoutFor`), so nothing here changed for the
+   * phone; the label hiding and the short legend moved out to the tier rules above, because the
+   * tablet's pane now uses them too. This block is the phone's extra compaction only.
    */
-  .ops__operands {
+  .ops:not([data-ops-tier='labels']) .ops__operands {
     display: none;
   }
 
-  .ops {
+  .ops:not([data-ops-tier='labels']) {
     top: 8px;
     left: 8px;
     padding: 2px 4px;
@@ -2329,15 +2404,9 @@ function commitMirror() {
 
   /*
    * The badge's disabled-state legend swaps to its short form here
-   * (`TODO/ui-043`) — see `DISABLED_HINT_SHORT`'s own script-block comment.
+   * (`TODO/ui-043`) — see `DISABLED_HINT_SHORT`'s own script-block comment. Since
+   * `TODO/ui-079` that swap is the icons tier's rule (above), which phone is always in.
    */
-  .ops__legend-full {
-    display: none;
-  }
-
-  .ops__legend-short {
-    display: inline;
-  }
 
   /*
    * The base rule's 4px row/column gap, tightened (`TODO/ui-043`): this row
@@ -2346,11 +2415,11 @@ function commitMirror() {
    * row-gaps. `--tap-compact` (the button size itself) and the row content are
    * both untouched — only the breathing room between rows/buttons shrinks.
    */
-  .ops__row {
+  .ops:not([data-ops-tier='labels']) .ops__row {
     gap: 2px;
   }
 
-  .ops__btn {
+  .ops:not([data-ops-tier='labels']) .ops__btn {
     /* Icon-only below (TODO/ui-027 made this necessary — see `.ops__label`'s
        own comment), so this is now a roughly square compact tap target, the
        same `--tap-compact` (38px) square `NavigationChrome.vue`'s own
@@ -2381,10 +2450,10 @@ function commitMirror() {
    * `title` already carries the same text, so nothing is lost for assistive
    * tech) shrinks 8 buttons from 4 wrapped rows of 2 back down to 2 rows of
    * 4, which clears the same gap comfortably at every selection state.
+   *
+   * `TODO/ui-079`: the hiding itself is now the icons tier's rule (above), which phone is
+   * always in, so the tablet's pane gets it too.
    */
-  .ops__label {
-    display: none;
-  }
 
   .ops__popover {
     /* Positioning is unchanged at this width — it is already `position: fixed`

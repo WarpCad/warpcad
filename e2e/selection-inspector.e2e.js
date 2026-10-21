@@ -558,7 +558,15 @@ test('a real (trusted) touch tap still selects a body after a trusted tap on emp
   const box = await page.getByTestId('viewport-canvas').boundingBox()
   if (!box) throw new Error('no canvas box')
   const point = (fx, fy) => ({ x: box.x + box.width * fx, y: box.y + box.height * fy })
-  const empty = point(0.5, 0.06)
+  // Empty canvas at the top, midway between the Operations toolbar's right edge and the
+  // orientation gizmo's left edge — derived from their boxes, not a fixed fraction, because
+  // the toolbar's width follows the pane (`TODO/ui-079`: at 820 the pane, and with it the
+  // toolbar's gizmo-avoiding cap, grew past the old 50% point).
+  const opsBox = await page.getByTestId('operations-toolbar').boundingBox()
+  const gizmoBox = await page.getByTestId('orientation-gizmo').boundingBox()
+  if (!opsBox || !gizmoBox) throw new Error('no toolbar or gizmo box')
+  expect(gizmoBox.x - (opsBox.x + opsBox.width)).toBeGreaterThan(20)
+  const empty = { x: (opsBox.x + opsBox.width + gizmoBox.x) / 2, y: point(0.5, 0.06).y }
   const cubePoint = point(0.85, 0.25)
   const cylinderPoint = point(0.6, 0.3)
 

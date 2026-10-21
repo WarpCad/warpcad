@@ -13,7 +13,7 @@
  * is not reachable from here is not shipped, whatever its own tests say
  * (PREVIOUS-ATTEMPT.md's core failure).
  */
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 
 import Inspector from '../components/inspector/Inspector.vue'
 import DependentRepairDialog from '../components/inspector/DependentRepairDialog.vue'
@@ -49,6 +49,7 @@ import { useAppUpdateStore } from '../stores/appUpdate.js'
 import { useAssistantStore } from '../stores/assistant.js'
 import { useHostedStore } from '../stores/hosted.js'
 import { useLibraryStore } from '../stores/library.js'
+import { LIBRARY_LABELS_MIN_PX, usePanelLayoutStore } from '../stores/panelLayout.js'
 import { usePersistenceStore } from '../stores/persistence.js'
 import { useRepeatStore } from '../stores/repeat.js'
 import { useSketchEditorStore } from '../stores/sketchEditor.js'
@@ -231,6 +232,52 @@ watch(
   { flush: 'sync' }
 )
 
+/**
+ * The tiered panel layout between laptop and phone width (`TODO/ui-079`): one `ResizeObserver` on
+ * `.app__body` writes one number to the layout store and nothing else; Vue batches the re-render
+ * and no component reads layout in response. The grid's side tracks come from the store as
+ * `--library-width` / `--inspector-width`, so they ease continuously as a window edge is dragged
+ * instead of jumping at 1100px. The chat's open state is the store's other input: from 1100px an
+ * open chat is a grid column, which takes 340px away from the three panels.
+ */
+const panelLayout = usePanelLayoutStore()
+/** @type {import('vue').Ref<HTMLElement | null>} */
+const appBody = ref(null)
+/** @type {ResizeObserver | null} */
+let bodyObserver = null
+watch(chatSheet, (sheet) => panelLayout.setChatColumn(sheet !== 'none'), { immediate: true, flush: 'sync' })
+onMounted(() => {
+  if (!appBody.value || typeof ResizeObserver === 'undefined') return
+  bodyObserver = new ResizeObserver((entries) => {
+    const entry = entries[entries.length - 1]
+    if (entry) panelLayout.setBodyWidth(entry.contentRect.width)
+  })
+  bodyObserver.observe(appBody.value)
+})
+onBeforeUnmount(() => bodyObserver?.disconnect())
+
+/**
+ * The Library track actually applied. Until the Library's icon rail and pop-out launchers exist
+ * (`TODO/ui-079` stages 4–5), its only form above phone is the labelled column, which cannot hold
+ * below 200px — so in the icons and pop-out tiers the track holds at that floor instead of the
+ * store's 72/64px rail targets. The Operations tier is unaffected: it keys on the store's target
+ * pane, and below the Library's labels tier that pane is already in Operations' icons range.
+ */
+const libraryTrackPx = computed(() =>
+  panelLayout.layout.libraryTier === 'labels' ? panelLayout.layout.libraryWidthPx : LIBRARY_LABELS_MIN_PX,
+)
+
+/** `.app__body`'s inline custom properties: the side tracks, and the linked chat's height. */
+const bodyStyle = computed(() => {
+  /** @type {Record<string, string>} */
+  const style = {
+    '--library-width': `${libraryTrackPx.value}px`,
+    '--inspector-width': `${panelLayout.layout.inspectorWidthPx}px`,
+  }
+  if (chatSheet.value === 'linked' && aiChat.linkedHeight > 0) style['--chat-linked-height'] = `${aiChat.linkedHeight}px`
+  return style
+})
+
 /** Tapping the Inspector's tab is a deliberate claim on the slot — the Library and History yield. */
 function onInspectorClaim() {
   libraryCollapse.value += 1
@@ -287,12 +334,15 @@ function onInspectorClaim() {
     <MergeBanner />
     <TimelineStrips />
     <main
+      ref="appBody"
       class="app__body"
+      :data-library-tier="panelLayout.layout.libraryTier"
+      :data-ops-tier="panelLayout.layout.opsTier"
       :data-inspector-sheet="inspectorSheet"
       :data-library-sheet="libraryOpen ? 'open' : 'closed'"
       :data-timeline-sheet="timeline.open ? 'open' : 'none'"
       :data-chat-sheet="chatSheet"
-      :style="chatSheet === 'linked' && aiChat.linkedHeight > 0 ? { '--chat-linked-height': `${aiChat.linkedHeight}px` } : undefined"
+      :style="bodyStyle"
       :data-repeat-bar="repeat.armed && repeat.minimized ? 'true' : 'false'"
     >
       <LibraryPanel
@@ -436,6 +486,44 @@ function onInspectorClaim() {
   min-height: 0;
 }
 
+/*
+ * The panel budget between laptop and phone width (`TODO/ui-079`). One number drives it: `W`, the
+ * width of `.app__body` (a `ResizeObserver`). `E = W − 340` when the chat is a grid column (W ≥ 1100
+ * and the chat is open), else `E = W`. `L`/`I` are the Library/Inspector target tracks and
+ * `P = E − L − I` the *computed* viewport pane. `panelLayoutFor` in `src/stores/panelLayout.js` is
+ * the code, and its spec enforces the invariants; this table must match it.
+ *
+ * Measured in stage 1 at 1440×900 in Chromium / WebKit / Firefox (widest engine used):
+ *   Operations row, labelled, one line ........... 1040 / 1064 / 1072px (14 buttons)
+ *   Operations row, icon-only (44px, gap 4) ...... 668px in all three
+ *   `.ops` for labelled in ≤ 2 lines ............. 541 / 554 / 559px  → labels while P ≥ 559 + 208 + 5 = 772
+ *   `.ops` for icons in ≤ 3 lines ................ 250px in all three  → icons while P ≥ 250 + 208 = 458
+ *   (`.ops` is capped at P − 24 − 184, `ui-015`'s gizmo-avoiding cap, in every tier)
+ *   Orientation gizmo ............................ 130×177 / 178 / 179px, 12px in from the top right
+ *   Navigation chrome (bottom left) .............. 205–209×188px; scale readout (bottom right) 163×50–52px
+ *   Library catalogue ............................ 24 rows in 6 headed sections (My parts empty); as a
+ *     44px-tile rail that is ~1240px tall with dividers and the ? / ⋯ tiles, so the rail scrolls even
+ *     at the 820×1180 tablet (1127px body). The 7-launcher section rail is ~410px (44px + 10px name).
+ *
+ *   | E (no chat)  | Library        | L (px)            | I (px)            | P (px)    | Operations |
+ *   |--------------|----------------|-------------------|-------------------|-----------|------------|
+ *   | ≥ 1276       | labels         | 224 → 240 at 1440 | 279.5 → 280       | ≥ 772     | labels     |
+ *   | 1024 – 1275  | labels         | 200 – 224         | 249 – 279         | 575 – 771 | icons      |
+ *   | 790 – 1023   | icons          | 72                | 221 – 249         | 497 – 702 | icons      |
+ *   | 742 – 789    | pop-out        | 64                | 220 – 221         | 458 – 504 | icons      |
+ *   | 641 – 741    | pop-out        | 64                | 220               | 357 – 457 | groups     |
+ *   | ≤ 640        | phone sheet    | —                 | —                 | —         | phone icons|
+ *
+ *   I eases 220 → 280 linearly over E 780 → 1280; L eases 200 → 240 over E 1024 → 1440. Breakpoints
+ *   moved from the provisional plan by measurement: Operations labels 1260 → 1276 (Firefox's labels
+ *   need P ≥ 772 for two lines), Operations groups 734 → 742 (icons need P ≥ 458 for three lines),
+ *   and so Library pop-out 780 → 790 (to stay 40px from 742; 820 is still 30px clear).
+ *   The tablet (820) is Library icons / Operations icons with P ≈ 523; the laptop with the chat open
+ *   (E = 1100) is Library labels at ~207px / Operations icons.
+ *
+ * Until the Library rail and pop-outs land (stages 4–5) the Library has only its labelled form, so
+ * its applied track holds at 200px below the labels tier (`libraryTrackPx`).
+ */
 .app__body {
   position: relative;
   display: grid;
@@ -559,17 +647,13 @@ function onInspectorClaim() {
   }
 }
 
+/* Persistent side panels, their widths from the layout store (`TODO/ui-079`) rather than fixed
+   210/220/280px tracks that jumped at 1100px. The phone switch itself stays this media query, not
+   the store's `phone` flag, because every panel's own sheet-or-column switch (Library, Inspector,
+   History, chat) is a `max-width: 640px` media query, and the grid has to agree with them exactly. */
 @media (min-width: 641px) {
   .app__body {
-    /* Wide enough for persistent side panels — narrow enough that the viewport
-       still owns most of the screen, including at the 820px tablet reference. */
-    grid-template-columns: 210px 1fr 220px;
-  }
-}
-
-@media (min-width: 1100px) {
-  .app__body {
-    grid-template-columns: 210px 1fr 280px;
+    grid-template-columns: var(--library-width, 200px) 1fr var(--inspector-width, 220px);
   }
 }
 
@@ -631,8 +715,10 @@ function onInspectorClaim() {
 
 /* Laptop: the chat is a persistent column, an explicit fourth grid cell. */
 @media (min-width: 1100px) {
+  /* The fourth track stays on this media query so it always agrees with `ChatPanel.vue`'s own
+     sheet-or-column switch (`max-width: 1099px`); the store takes the same 340px off `E`. */
   .app__body:not([data-chat-sheet='none']) {
-    grid-template-columns: 210px 1fr 280px 340px;
+    grid-template-columns: var(--library-width, 200px) 1fr var(--inspector-width, 280px) 340px;
   }
 
   .app__body > :deep(.chat) {

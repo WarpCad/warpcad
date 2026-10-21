@@ -19,6 +19,8 @@ import OperationsToolbar from './OperationsToolbar.vue'
 import { useDocumentStore } from '../../stores/document.js'
 import { useSelectionStore } from '../../stores/selection.js'
 import { useObjectListStore } from '../../stores/objectList.js'
+import { usePanelLayoutStore } from '../../stores/panelLayout.js'
+import { CROSSFADE_MS } from '../../composables/useTierCrossfade.js'
 
 /**
  * Fillet and Chamfer (`TODO/ui-027`) — the toolbar's first **exactly-1**-gated
@@ -1134,5 +1136,114 @@ describe('OperationsToolbar — Mirror (TODO/ui-039)', () => {
     selection.toggle('cube-2')
     await wrapper.vm.$nextTick()
     expect(body().find('[data-testid="mirror-popover"]').exists()).toBe(false)
+  })
+})
+
+describe('OperationsToolbar — the icons tier (TODO/ui-079)', () => {
+  /** @type {ReturnType<typeof usePanelLayoutStore>} */
+  let panelLayout
+
+  /** Let the crossfade's one-shot fade back up run out. */
+  function flushFrames() {
+    vi.advanceTimersByTime(CROSSFADE_MS)
+  }
+
+  /** @param {boolean} reduce */
+  function stubReducedMotion(reduce) {
+    vi.stubGlobal('matchMedia', (/** @type {string} */ query) => ({
+      matches: reduce && query.includes('prefers-reduced-motion'),
+      media: query,
+      addEventListener() {},
+      removeEventListener() {},
+    }))
+  }
+
+  beforeEach(() => {
+    setActivePinia(createPinia())
+    panelLayout = usePanelLayoutStore()
+    vi.useFakeTimers()
+    stubReducedMotion(false)
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
+    vi.unstubAllGlobals()
+  })
+
+  it('carries the layout store’s Operations tier on `.ops`, driven by the pane, not the page media query', async () => {
+    panelLayout.setBodyWidth(1440)
+    const wrapper = mount(OperationsToolbar)
+    expect(wrapper.get('[data-testid="operations-toolbar"]').attributes('data-ops-tier')).toBe('labels')
+
+    // The tablet reference: the pane calls for icons, which used to be phone-only.
+    panelLayout.setBodyWidth(820)
+    await wrapper.vm.$nextTick()
+    flushFrames()
+    await wrapper.vm.$nextTick()
+    expect(wrapper.get('[data-testid="operations-toolbar"]').attributes('data-ops-tier')).toBe('icons')
+
+    // Phone keeps the icon form (its own compaction is the phone media query on top).
+    panelLayout.setBodyWidth(390)
+    await wrapper.vm.$nextTick()
+    flushFrames()
+    await wrapper.vm.$nextTick()
+    expect(wrapper.get('[data-testid="operations-toolbar"]').attributes('data-ops-tier')).toBe('icons')
+  })
+
+  it('mounts in its tier with no fade, so the first frame is already right', () => {
+    panelLayout.setBodyWidth(820)
+    const wrapper = mount(OperationsToolbar)
+    const ops = wrapper.get('[data-testid="operations-toolbar"]')
+    expect(ops.attributes('data-ops-tier')).toBe('icons')
+    expect(ops.attributes('data-ops-fading')).toBe('false')
+  })
+
+  it('crossfades a tier change: dips, swaps while dipped, then fades back up', async () => {
+    panelLayout.setBodyWidth(1440)
+    const wrapper = mount(OperationsToolbar)
+    const ops = () => wrapper.get('[data-testid="operations-toolbar"]')
+    expect(ops().attributes('data-ops-fading')).toBe('false')
+
+    panelLayout.setBodyWidth(1100)
+    await wrapper.vm.$nextTick()
+    // Swapped to icons *while* dipped: the label never re-wraps visibly in a `flex-wrap` row.
+    expect(ops().attributes('data-ops-tier')).toBe('icons')
+    expect(ops().attributes('data-ops-fading')).toBe('true')
+
+    // Still fading just short of the animation's length; done once it has run.
+    vi.advanceTimersByTime(CROSSFADE_MS - 1)
+    await wrapper.vm.$nextTick()
+    expect(ops().attributes('data-ops-fading')).toBe('true')
+    flushFrames()
+    await wrapper.vm.$nextTick()
+    expect(ops().attributes('data-ops-fading')).toBe('false')
+  })
+
+  it('does not fade for a width change inside one tier', async () => {
+    panelLayout.setBodyWidth(1440)
+    const wrapper = mount(OperationsToolbar)
+    panelLayout.setBodyWidth(1400)
+    await wrapper.vm.$nextTick()
+    expect(wrapper.get('[data-testid="operations-toolbar"]').attributes('data-ops-fading')).toBe('false')
+  })
+
+  it('swaps instantly under prefers-reduced-motion', async () => {
+    stubReducedMotion(true)
+    panelLayout.setBodyWidth(1440)
+    const wrapper = mount(OperationsToolbar)
+    panelLayout.setBodyWidth(820)
+    await wrapper.vm.$nextTick()
+    const ops = wrapper.get('[data-testid="operations-toolbar"]')
+    expect(ops.attributes('data-ops-tier')).toBe('icons')
+    expect(ops.attributes('data-ops-fading')).toBe('false')
+  })
+
+  it('keeps every button’s name in its title and aria-label in the icons tier', () => {
+    panelLayout.setBodyWidth(820)
+    const wrapper = mount(OperationsToolbar)
+    for (const button of wrapper.findAll('.ops__btn')) {
+      expect(button.attributes('aria-label')).toBeTruthy()
+      expect(button.attributes('title')).toBe(button.attributes('aria-label'))
+    }
   })
 })

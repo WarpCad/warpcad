@@ -8,6 +8,12 @@ depends: []
 status: open
 ---
 
+> **Status (split, 2026-10-21).** Stages 1–3 are implemented (budget, `panelLayoutFor` and the
+> store, the fluid grid, the Operations icons tier) and still uncommitted at the time of writing.
+> Stages 4–5 moved to `TODO/ui-081-library-rail-and-popouts.md`, and stage 6 to
+> `TODO/ui-082-operations-groups-tier.md`. This file keeps stages 7 (motion and edges) and 8 (docs,
+> media, acceptance drive, hand drive), which wait on `ui-081` and `ui-082`. The file stays `open`.
+
 ## Problem
 
 Between the laptop layout and the phone layout (page width 641 px to about 1300 px) the Library
