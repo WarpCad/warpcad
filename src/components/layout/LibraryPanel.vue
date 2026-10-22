@@ -114,17 +114,27 @@ const panelEl = ref(/** @type {HTMLElement | null} */ (null))
 
 /**
  * The Library's form (`TODO/ui-084`): the labelled column in the `labels` tier (and the phone
- * sheet), the icon rail in the `icons` tier. The `popout` tier (E 641–789) is `TODO/ui-081`'s
- * section launchers; until it lands it shows this rail too, in the store's 64px track.
+ * sheet), the icon rail in the `icons` tier, and the same rail as **section launchers** in the
+ * `popout` tier (E 641–789, `TODO/ui-081`), in the store's 64px track.
  *
  * The swap crossfades (`useTierCrossfade`) so labels never squash mid-change. The content and the
  * grid track change in the same render — the tier is swapped synchronously, and `AppView` applies
  * the store's track with no transition — so the rail is in before the track narrows and the column
  * is back only once the track is wide again. A drag under way survives the swap: the gesture's
  * listeners live in `useLibraryDrag`, not in the row that started it.
+ *
+ * Leaving the `popout` tier waits for a drag under way to end (`TODO/ui-081`): the section pop-out
+ * the drag came from stays mounted (faded) until `pointerup`, then the swap closes it with no
+ * animation. Phone width (`sheet`) is never held: the bottom sheet's CSS has already taken over.
  */
 const panelLayout = usePanelLayoutStore()
-const { tier: libraryTier, fading: libraryFading } = useTierCrossfade(() => panelLayout.layout.libraryTier)
+/** The tier to render: the store's, except that a swap out of `popout` waits for the drag to end. */
+const heldTier = ref(panelLayout.layout.libraryTier)
+watch([() => panelLayout.layout.libraryTier, () => placement.isDragging], ([next, dragging]) => {
+  if (dragging && heldTier.value === 'popout' && next !== 'sheet') return
+  heldTier.value = next
+})
+const { tier: libraryTier, fading: libraryFading } = useTierCrossfade(() => heldTier.value)
 const railForm = computed(() => libraryTier.value === 'icons' || libraryTier.value === 'popout')
 
 /** How long a newly revealed My parts tile pulses (ms); the CSS animation matches. */
@@ -278,8 +288,14 @@ onBeforeUnmount(() => {
       Library
     </button>
 
-    <!-- The icons tier (TODO/ui-084): the same rows as tiles. -->
-    <LibraryRail v-if="railForm" @import-part="importInput?.click()" @import-model="modelInput?.click()" />
+    <!-- The icons tier (TODO/ui-084): the same rows as tiles. The pop-out tier (TODO/ui-081): the
+         same rail as section launchers, each opening its section beside the rail. -->
+    <LibraryRail
+      v-if="railForm"
+      :form="libraryTier === 'popout' ? 'launchers' : 'tiles'"
+      @import-part="importInput?.click()"
+      @import-model="modelInput?.click()"
+    />
 
     <div
       v-else

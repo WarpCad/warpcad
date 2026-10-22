@@ -63,6 +63,28 @@ then comes back. Press **Escape** to close it. The **?** at the top of the colum
    from that panel into the view.
 4. Press Escape to close the panel.
 
+### Narrower still: section buttons
+
+![The Library as a column of section buttons, with Hardware tapped and its list open beside the column.](./screenshots/library-section-popout.png)
+
+In a window narrower than that (about 650 to 790 px wide) the column of icons gives way to one
+button per section: **Primitives**, **Hardware**, **Kit Parts**, **Raspberry Pi**, **Text** and
+**My parts** (with how many parts you have saved). Tap a button to open that section's list beside
+the column, over the 3D view. The list is the full Library section, with names, lists and
+**Reset**, so you can choose a size and drag from it just as you would from the full Library.
+
+Only one list is open at a time: tapping another button switches to it. While you drag, the list
+fades so you can see where you are dropping, and it comes back when you let go, so you can place
+several parts in a row. Tapping the 3D view outside the list closes it and still selects as usual.
+The **?** and **⋯** buttons stay at the top of the column.
+
+**Example**
+
+1. Narrow the window to about 760 px. The Library becomes a short column of section buttons.
+2. Tap **Hardware** to open its list.
+3. Drag a Nut into the view. The list fades while you drag and comes back when you let go.
+4. Tap **Hardware** again, or press Escape, to close the list.
+
 ## Placing your first shape
 
 ![The empty scene: the Library panel on the left, an empty grid in the 3D view](./screenshots/empty-scene.png)

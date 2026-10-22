@@ -12,7 +12,10 @@ import { openApp, shot } from './support.js'
  *  - `viewport-chrome-compact`: the 3D view with the navigation pad and orientation triad in
  *    their compact form.
  *
- * `TODO/ui-081` adds `library-section-popout` (760×900) to this file.
+ * and, at 760×900 (the pop-out tier, which no reference viewport reaches, `TODO/ui-081`):
+ *
+ *  - `library-section-popout`: the Library as a column of section buttons, Hardware tapped and its
+ *    list open beside the column, over the 3D view.
  */
 
 test.describe('narrow window', () => {
@@ -32,6 +35,15 @@ test.describe('narrow window', () => {
     await page.getByTestId('library-choice-hardware.bolt').selectOption('socket')
     await page.getByTestId('library-choice-hardware.bolt-spec').selectOption('m5')
     await shot(page, 'library-row-popout.png')
+  })
+
+  test('library-section-popout still', async ({ page }) => {
+    await page.setViewportSize({ width: 760, height: 900 })
+    await openApp(page)
+    await expect(page.locator('.app__body')).toHaveAttribute('data-library-tier', 'popout')
+    await page.getByTestId('library-launcher-hardware').click()
+    await expect(page.getByTestId('library-section-popout')).toHaveAttribute('data-section', 'hardware')
+    await shot(page, 'library-section-popout.png')
   })
 
   test('viewport-chrome-compact still', async ({ page }) => {

@@ -17,6 +17,9 @@ import { pointer, sceneBodies, sleep, viewportPoint } from './support/humanInput
  * - **Flows** (the `-tablet` projects, 820×1180: trusted touch in Chromium, touch in WebKit, a
  *   mouse in Firefox, which has no touch emulation): drag Cube from the rail; tap Bolt, pick M5 in
  *   its row pop-out and drag from there; tap every gizmo cap and the pad's buttons.
+ * - **The pop-out tier** (`TODO/ui-081`, the `-tablet` projects resized to 760×900): the section
+ *   launchers, a section pop-out that fades during a drag and stays open after the drop, one
+ *   pop-out across kinds, and a widen past 790 that leaves nothing orphaned.
  * - **Phone unchanged** (`-phone` projects): the stage 1 measurements of the pad, the gizmo and the
  *   Library tab still hold, and no rail or chrome tier leaks in.
  *
@@ -67,6 +70,7 @@ async function measure(page) {
       toolbar: box('operations-toolbar'),
       scale: box('grid-scale-readout'),
       rail: box('library-rail'),
+      launchers: document.querySelectorAll('[data-testid^="library-launcher-"]').length,
       horizontalScroll: document.documentElement.scrollWidth > window.innerWidth,
     }
   })
@@ -95,6 +99,8 @@ test.describe('the panel tiers, swept across widths (TODO/ui-084)', () => {
       const railTier = expected.libraryTier === 'icons' || expected.libraryTier === 'popout'
       expect(m.rail !== null, `rail shown ${at}`).toBe(railTier)
       if (expected.libraryTier === 'icons') expect(m.library?.width ?? 0, `rail width ${at}`).toBeCloseTo(72, 0)
+      // The pop-out tier is the section launchers (`TODO/ui-081`); the icons tier is the tiles.
+      expect(m.launchers > 0, `section launchers ${at}`).toBe(expected.libraryTier === 'popout')
 
       if (expected.chromeTier === 'compact') {
         expect(m.gizmo?.width ?? 999, `compact gizmo width ${at}`).toBeLessThanOrEqual(108)
@@ -207,6 +213,150 @@ test.describe('the Library icon rail at the tablet reference (TODO/ui-084)', () 
     await expect(page.getByTestId('nav-step-up')).toHaveAttribute('aria-label', 'Orbit camera up')
     await press(page.getByTestId('nav-reset'))
     await page.screenshot({ path: join(SNAPSHOT_DIR, `chrome-compact-${testInfo.project.name}.png`) })
+  })
+})
+
+/**
+ * The pop-out tier (`TODO/ui-081`), which no reference viewport reaches: the `-tablet` projects
+ * (trusted touch in Chromium, touch in WebKit, a mouse in Firefox) resized to 760×900, where the
+ * Library is a 64px rail of section launchers and each opens a section pop-out.
+ */
+test.describe('the Library section launchers at 760×900 (TODO/ui-081)', () => {
+  test.beforeEach(async ({ page }, testInfo) => {
+    test.skip(!testInfo.project.name.endsWith('-tablet'), 'touch-primary projects, resized to the pop-out tier')
+    await page.setViewportSize({ width: 760, height: 900 })
+    await page.goto('/')
+    await expect(page.locator('.app__body')).toHaveAttribute('data-library-tier', 'popout')
+    await expect(page.getByTestId('library-launcher-hardware')).toBeVisible()
+  })
+
+  /** @param {import('@playwright/test').Page} page */
+  const openPopoutSlot = (page) =>
+    page.evaluate(async () => {
+      const { usePanelLayoutStore } = await window.__e2eImport('/src/stores/panelLayout.js')
+      return usePanelLayoutStore().openPopout
+    })
+
+  test('open Hardware, drag a Nut: the pop-out fades during the drag and is still open after the drop', async ({ page }, testInfo) => {
+    const { press, dragRow } = await pointer(page, testInfo)
+    const launcher = page.getByTestId('library-launcher-hardware')
+    await expect(page.getByTestId('library-section-popout')).toHaveCount(0)
+    await press(launcher)
+    const popout = page.getByTestId('library-section-popout')
+    await expect(popout).toBeVisible()
+    await expect(popout).toHaveAttribute('data-section', 'hardware')
+    await expect(launcher).toHaveAttribute('aria-expanded', 'true')
+    // Beside the 64px rail, over the viewport, and no wider than min(280, P − 32).
+    const rail = await page.getByTestId('library-panel').boundingBox()
+    const box = await popout.boundingBox()
+    expect(rail?.width ?? 0).toBeCloseTo(64, 0)
+    expect(box?.x ?? 0).toBeGreaterThanOrEqual((rail?.x ?? 0) + (rail?.width ?? 0))
+    expect(box?.width ?? 999).toBeLessThanOrEqual(280.5)
+    await sleep(200)
+    mkdirSync(SNAPSHOT_DIR, { recursive: true })
+    await page.screenshot({ path: join(SNAPSHOT_DIR, `section-popout-760-${testInfo.project.name}.png`) })
+
+    // Sample the pop-out every frame for the life of the drag.
+    await page.evaluate(() => {
+      const samples = /** @type {{ dragging: string | null, opacity: number, events: string }[]} */ ([])
+      Object.assign(window, { __popoutSamples: samples })
+      const tick = () => {
+        const el = document.querySelector('[data-testid="library-section-popout"]')
+        if (el) {
+          const style = getComputedStyle(el)
+          samples.push({ dragging: el.getAttribute('data-dragging'), opacity: Number(style.opacity), events: style.pointerEvents })
+        }
+        if (/** @type {any} */ (window).__popoutSampling !== false) requestAnimationFrame(tick)
+      }
+      requestAnimationFrame(tick)
+    })
+    const to = await viewportPoint(page, 0.6, 0.55)
+    await dragRow(page.getByTestId('library-row-hardware.nut'), to.x, to.y)
+    const samples = await page.evaluate(() => {
+      Object.assign(window, { __popoutSampling: false })
+      return /** @type {any} */ (window).__popoutSamples
+    })
+    const during = samples.filter((sample) => sample.dragging === 'true')
+    expect(during.length, 'frames sampled while dragging').toBeGreaterThan(0)
+    for (const sample of during) {
+      expect(sample.opacity).toBeCloseTo(0.25, 2)
+      expect(sample.events).toBe('none')
+    }
+
+    await expect(page.getByTestId('viewport')).toHaveAttribute('data-body-count', '1')
+    expect((await sceneBodies(page)).map((body) => body.op)).toEqual(['hardware.nut'])
+    // Back to full opacity and still open after the drop (decision confirmed 2026-10-21).
+    await expect(popout).toBeVisible()
+    await expect(popout).toHaveAttribute('data-dragging', 'false')
+    await expect.poll(() => popout.evaluate((el) => Number(getComputedStyle(el).opacity))).toBeCloseTo(1, 2)
+
+    await page.keyboard.press('Escape')
+    await expect(popout).toHaveCount(0)
+    await expect(launcher).toHaveAttribute('aria-expanded', 'false')
+    await expect(launcher).toBeFocused()
+  })
+
+  test('tapping the same launcher closes it; tapping another switches; a viewport tap closes it', async ({ page }, testInfo) => {
+    const { press } = await pointer(page, testInfo)
+    const popout = page.getByTestId('library-section-popout')
+    await press(page.getByTestId('library-launcher-primitive'))
+    await expect(popout).toHaveAttribute('data-section', 'primitive')
+    await press(page.getByTestId('library-launcher-kit'))
+    await expect(popout).toHaveCount(1)
+    await expect(popout).toHaveAttribute('data-section', 'kit')
+    await expect(page.getByTestId('library-launcher-primitive')).toHaveAttribute('aria-expanded', 'false')
+    await press(page.getByTestId('library-launcher-kit'))
+    await expect(popout).toHaveCount(0)
+
+    await press(page.getByTestId('library-launcher-hardware'))
+    await expect(popout).toBeVisible()
+    // Right of the pop-out's footprint (rail 64 + 6 + 280), clear of the toolbar and the pad.
+    const empty = await viewportPoint(page, 0.8, 0.45)
+    await page.mouse.click(empty.x, empty.y)
+    await expect(popout).toHaveCount(0)
+  })
+
+  test('opening a section pop-out closes an Operations group pop-out, and the reverse', async ({ page }, testInfo) => {
+    // `TODO/ui-082` has not built the Operations group pop-out yet; both share the one
+    // `openPopout` slot, so its claim on the slot stands in for it here.
+    const { press } = await pointer(page, testInfo)
+    await page.evaluate(async () => {
+      const { usePanelLayoutStore } = await window.__e2eImport('/src/stores/panelLayout.js')
+      usePanelLayoutStore().openPopout = 'ops-group:combine'
+    })
+    await press(page.getByTestId('library-launcher-hardware'))
+    await expect(page.getByTestId('library-section-popout')).toBeVisible()
+    expect(await openPopoutSlot(page)).toBe('library-section:hardware')
+
+    await page.evaluate(async () => {
+      const { usePanelLayoutStore } = await window.__e2eImport('/src/stores/panelLayout.js')
+      usePanelLayoutStore().openPopout = 'ops-group:combine'
+    })
+    await expect(page.getByTestId('library-section-popout')).toHaveCount(0)
+    await expect(page.getByTestId('library-launcher-hardware')).toHaveAttribute('aria-expanded', 'false')
+  })
+
+  test('widening past 790 with a pop-out open closes it and leaves no orphaned element', async ({ page }, testInfo) => {
+    const { press } = await pointer(page, testInfo)
+    await press(page.getByTestId('library-launcher-hardware'))
+    await expect(page.getByTestId('library-section-popout')).toBeVisible()
+    await page.setViewportSize({ width: 900, height: 900 })
+    await expect(page.locator('.app__body')).toHaveAttribute('data-library-tier', 'icons')
+    await expect(page.getByTestId('library-section-popout')).toHaveCount(0)
+    await expect(page.locator('[data-testid^="library-launcher-"]')).toHaveCount(0)
+    await expect(page.getByTestId('library-row-hardware.bolt')).toBeVisible()
+    expect(await openPopoutSlot(page)).toBe(null)
+    expect(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth)).toBe(false)
+
+    // Back down to the pop-out tier, then to phone width: nothing is left open at either.
+    await page.setViewportSize({ width: 760, height: 900 })
+    await expect(page.getByTestId('library-launcher-hardware')).toBeVisible()
+    await press(page.getByTestId('library-launcher-hardware'))
+    await expect(page.getByTestId('library-section-popout')).toBeVisible()
+    await page.setViewportSize({ width: 600, height: 900 })
+    await expect(page.locator('.app__body')).toHaveAttribute('data-library-tier', 'sheet')
+    await expect(page.getByTestId('library-section-popout')).toHaveCount(0)
+    expect(await openPopoutSlot(page)).toBe(null)
   })
 })
 

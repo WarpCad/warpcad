@@ -21,8 +21,18 @@
  *   top-right edge, with the same text and test id. It ignores the pointer, so it never blocks the
  *   Operations toolbar it may sit over.
  *
- * The section pop-out tier (`libraryTier === 'popout'`, E 641–789) is `TODO/ui-081`; until it
- * lands, `LibraryPanel` shows this rail there too, in the store's 64px track.
+ * ## The launcher form (`TODO/ui-081`)
+ *
+ * In the pop-out tier (`libraryTier === 'popout'`, E 641–789, the store's 64px track) `LibraryPanel`
+ * mounts this rail with `form="launchers"`: one **section launcher** per section (Primitives,
+ * Hardware, Kit Parts, Raspberry Pi, Gears, Text, then My parts with its count), each a 44px glyph
+ * with a 10px short name. A tap opens that section's **pop-out** (`LibrarySectionPopout`), in the
+ * same shared `openPopout` slot (`library-section:<id>`), so opening it closes any other pop-out of
+ * either panel and vice versa. Tapping it again closes it, Escape closes it and returns focus to the
+ * launcher, and a press outside closes it without swallowing the press. The top keeps ? and ⋯.
+ *
+ * A change of form (a tier change) closes whichever pop-out belonged to the form that is going, at
+ * once and without animation; the panel holds the form steady while a drag is under way.
  */
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 
@@ -34,11 +44,22 @@ import { useRepeatStore } from '../../stores/repeat.js'
 import HelpButton from '../controls/HelpButton.vue'
 import LibraryRow from './LibraryRow.vue'
 import LibraryRowPopout from './LibraryRowPopout.vue'
+import LibrarySectionPopout from './LibrarySectionPopout.vue'
+
+const props = defineProps({
+  /** `tiles` (the icons tier, `ui-084`) or `launchers` (the pop-out tier, `ui-081`). */
+  form: { type: /** @type {import('vue').PropType<'tiles' | 'launchers'>} */ (String), default: 'tiles' },
+})
 
 const emit = defineEmits(['import-part', 'import-model'])
 
 /** The `openPopout` prefix for a Library row pop-out. */
 const POPOUT_PREFIX = 'library-row:'
+/** The `openPopout` prefix for a Library section pop-out (`TODO/ui-081`). */
+const SECTION_PREFIX = 'library-section:'
+/** The section pop-out's widest, and its margin from the pane's far edge: `min(280, P − 32)`. */
+const SECTION_POPOUT_MAX_PX = 280
+const SECTION_POPOUT_MARGIN_PX = 32
 
 const sections = LIBRARY_SECTIONS
 const library = useLibraryStore()
@@ -80,6 +101,40 @@ watch(open, (now) => {
   if (now === null && openOp.value !== null) panelLayout.openPopout = null
 })
 
+/** The sections drawn as tiles: all of them in the tiles form, none in the launcher form. */
+const tileSections = computed(() => (props.form === 'tiles' ? sections : []))
+
+/** The launchers, in the column's section order, then My parts (`user`). */
+const launchers = [...sections.map((section) => ({ id: section.id, title: section.title })), { id: 'user', title: 'My parts' }]
+
+/** The section whose pop-out is open (`'user'` for My parts), or `null`. */
+const openSectionId = computed(() => {
+  const id = panelLayout.openPopout
+  return id !== null && id.startsWith(SECTION_PREFIX) ? id.slice(SECTION_PREFIX.length) : null
+})
+
+/** The open section, or `null` for My parts; `undefined` when none is open. */
+const openSection = computed(() => {
+  const id = openSectionId.value
+  if (id === null) return undefined
+  return sections.find((section) => section.id === id) ?? null
+})
+
+const sectionPopoutWidthPx = computed(() =>
+  Math.min(SECTION_POPOUT_MAX_PX, panelLayout.layout.paneWidthPx - SECTION_POPOUT_MARGIN_PX),
+)
+
+/** @param {string} id @returns {HTMLElement | null} */
+function launcherFor(id) {
+  return railEl.value?.querySelector(`[data-testid="library-launcher-${id}"]`) ?? null
+}
+
+/** A tap on a launcher: open its section, switch to it from another pop-out, or close it. */
+function onLaunch(/** @type {string} */ id) {
+  moreOpen.value = false
+  panelLayout.openPopout = openSectionId.value === id ? null : `${SECTION_PREFIX}${id}`
+}
+
 /** @param {string} op @returns {HTMLElement | null} */
 function tileFor(op) {
   const tiles = railEl.value?.querySelectorAll('.library__tile') ?? []
@@ -114,9 +169,16 @@ function onTap(/** @type {string} */ op) {
   void placePopout(op)
 }
 
+/** Close this rail's pop-out, a row's or a section's; another panel's is left alone. */
 function closePopout() {
-  if (openOp.value !== null) panelLayout.openPopout = null
+  if (openOp.value !== null || openSectionId.value !== null) panelLayout.openPopout = null
 }
+
+// A tier change swaps the form: the pop-out of the form that is going goes with it, at once.
+watch(
+  () => props.form,
+  () => closePopout(),
+)
 
 function toggleMore() {
   closePopout()
@@ -132,12 +194,18 @@ function choose(which) {
 
 // Escape closes whichever is open and hands focus back to what opened it.
 useEscapeToClose(
-  () => (openOp.value !== null || moreOpen.value) && !userPartUiOpen.value,
+  () => (openOp.value !== null || openSectionId.value !== null || moreOpen.value) && !userPartUiOpen.value,
   () => {
     const op = openOp.value
     if (op !== null) {
       panelLayout.openPopout = null
       void nextTick(() => tileFor(op)?.focus())
+      return
+    }
+    const sectionId = openSectionId.value
+    if (sectionId !== null) {
+      panelLayout.openPopout = null
+      void nextTick(() => launcherFor(sectionId)?.focus())
       return
     }
     moreOpen.value = false
@@ -160,7 +228,7 @@ function onDocumentPointerDown(event) {
 }
 
 watch(
-  () => openOp.value !== null || moreOpen.value,
+  () => openOp.value !== null || openSectionId.value !== null || moreOpen.value,
   (anything) => {
     if (anything) document.addEventListener('pointerdown', onDocumentPointerDown, true)
     else document.removeEventListener('pointerdown', onDocumentPointerDown, true)
@@ -195,7 +263,33 @@ onBeforeUnmount(() => {
         </button>
       </div>
 
-      <template v-for="section in sections" :key="section.id">
+      <!-- The pop-out tier (TODO/ui-081): one launcher per section, each opening its pop-out. -->
+      <ul v-if="form === 'launchers'" class="library-rail__launchers">
+        <li v-for="item in launchers" :key="item.id">
+          <button
+            type="button"
+            class="library-rail__launcher"
+            :data-testid="`library-launcher-${item.id}`"
+            :data-section="item.id"
+            :aria-expanded="openSectionId === item.id"
+            aria-controls="library-section-popout"
+            :aria-label="item.id === 'user' ? `My parts, ${library.userRows.length} saved` : item.title"
+            :title="item.title"
+            @click="onLaunch(item.id)"
+          >
+            <span class="library-rail__launcher-glyph" aria-hidden="true">
+              <span v-if="item.id === 'user'" class="library-rail__part-glyph" />
+              <template v-else>{{ item.title.charAt(0) }}</template>
+              <span v-if="item.id === 'user'" class="library-rail__badge" data-testid="library-user-count">{{
+                library.userRows.length
+              }}</span>
+            </span>
+            <span class="library-rail__launcher-name" aria-hidden="true">{{ item.title }}</span>
+          </button>
+        </li>
+      </ul>
+
+      <template v-for="section in tileSections" :key="section.id">
         <h2
           class="library-rail__divider"
           :data-testid="`library-heading-${section.id}`"
@@ -220,35 +314,37 @@ onBeforeUnmount(() => {
       </template>
 
       <!-- My parts (TODO/ui-055): still collapsible; the toggle is a tile with the count. -->
-      <h2 class="library-rail__divider" data-testid="library-heading-user" title="My parts" aria-label="My parts">
-        <span class="library-rail__hidden">My parts</span>
-      </h2>
-      <div class="library-rail__toggle-item">
-        <button
-          type="button"
-          class="library-rail__toggle"
-          data-testid="library-section-toggle-user"
-          :aria-expanded="library.expanded"
-          aria-controls="library-rail-user"
-          :aria-label="`My parts, ${library.userRows.length} saved`"
-          :title="`My parts (${library.userRows.length})`"
-          @click="library.expanded = !library.expanded"
-        >
-          <span class="library-rail__part-glyph" aria-hidden="true" />
-          <span class="library-rail__badge" data-testid="library-user-count">{{ library.userRows.length }}</span>
-        </button>
-      </div>
-      <ul v-show="library.expanded" id="library-rail-user" class="library-rail__tiles" data-testid="library-rows-user">
-        <LibraryRow
-          v-for="row in library.userRows"
-          :key="row.op"
-          :row="row"
-          user
-          variant="tile"
-          :expanded="openOp === row.op"
-          @tap="onTap(row.op)"
-        />
-      </ul>
+      <template v-if="form === 'tiles'">
+        <h2 class="library-rail__divider" data-testid="library-heading-user" title="My parts" aria-label="My parts">
+          <span class="library-rail__hidden">My parts</span>
+        </h2>
+        <div class="library-rail__toggle-item">
+          <button
+            type="button"
+            class="library-rail__toggle"
+            data-testid="library-section-toggle-user"
+            :aria-expanded="library.expanded"
+            aria-controls="library-rail-user"
+            :aria-label="`My parts, ${library.userRows.length} saved`"
+            :title="`My parts (${library.userRows.length})`"
+            @click="library.expanded = !library.expanded"
+          >
+            <span class="library-rail__part-glyph" aria-hidden="true" />
+            <span class="library-rail__badge" data-testid="library-user-count">{{ library.userRows.length }}</span>
+          </button>
+        </div>
+        <ul v-show="library.expanded" id="library-rail-user" class="library-rail__tiles" data-testid="library-rows-user">
+          <LibraryRow
+            v-for="row in library.userRows"
+            :key="row.op"
+            :row="row"
+            user
+            variant="tile"
+            :expanded="openOp === row.op"
+            @tap="onTap(row.op)"
+          />
+        </ul>
+      </template>
     </div>
 
     <div v-if="moreOpen" id="library-rail-menu" class="library-rail__menu" role="menu" data-testid="library-rail-menu">
@@ -288,6 +384,11 @@ onBeforeUnmount(() => {
     </div>
 
     <LibraryRowPopout v-if="open" :row="open.row" :user="open.user" :top-px="popoutTopPx" />
+    <LibrarySectionPopout
+      v-if="form === 'launchers' && openSection !== undefined"
+      :section="openSection"
+      :width-px="sectionPopoutWidthPx"
+    />
   </div>
 </template>
 
@@ -381,6 +482,77 @@ onBeforeUnmount(() => {
 .library-rail__toggle-item {
   display: flex;
   justify-content: center;
+}
+
+/* --- The section launchers (TODO/ui-081): a 44px glyph over a 10px short name, in 64px. */
+.library-rail__launchers {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.library-rail__launcher {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  width: 60px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--text-2);
+  font: inherit;
+  cursor: pointer;
+}
+
+.library-rail__launcher-glyph {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: var(--tap);
+  height: var(--tap);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+  color: var(--text-1);
+  font-size: 18px;
+  font-weight: 650;
+  line-height: 1;
+}
+
+.library-rail__launcher-name {
+  max-width: 100%;
+  font-size: 10px;
+  line-height: 1.15;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+.library-rail__launcher:hover .library-rail__launcher-glyph {
+  border-color: var(--border-strong);
+}
+
+.library-rail__launcher:focus-visible {
+  outline: none;
+}
+
+.library-rail__launcher:focus-visible .library-rail__launcher-glyph {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+/* Pressed / open: the launcher's section pop-out is showing. */
+.library-rail__launcher[aria-expanded='true'] {
+  color: var(--text-1);
+}
+
+.library-rail__launcher[aria-expanded='true'] .library-rail__launcher-glyph {
+  border-color: var(--accent);
+  background: var(--surface-1);
+  box-shadow: inset 0 0 0 1px var(--accent);
 }
 
 /* The generic part swatch (`library__swatch--part`'s look), drawn at tile size. */

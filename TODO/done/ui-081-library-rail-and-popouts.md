@@ -6,7 +6,7 @@ priority: high
 model: opus
 milestone: M1
 depends: [ui-079, ui-084]
-status: open
+status: done
 ---
 
 ## Goal

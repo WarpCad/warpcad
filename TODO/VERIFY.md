@@ -36,6 +36,16 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### ui-081 — Library section launchers and section pop-out (2026-10-22 14:54 UTC)
+
+Launchers and the section pop-out sit at 760 px only. Two things the scripted and driven runs did not settle.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | Dragging a row from the section pop-out's text can highlight that text (seen in the Raspberry Pi pop-out, all three engines, during a mouse drag). Decide whether a row drag should suppress text selection. | Open | |
+| 2 | Re-run the `ui-072` repro (phone Library drag does not register) against this change; it was not re-run before commit. | Open | |
+
+
 ### ui-084 — Library icon rail and compact viewport chrome (2026-10-21 19:19)
 
 Scenarios 1, 3, 7, 18 (Library half) and 26 were hand-driven, so this lists only what they did not cover.
