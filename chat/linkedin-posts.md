@@ -3395,3 +3395,16 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** release calls ci.yml → release.yml; lfs: false → ci.yml; four stale-movie errors → pasted CI log
 **To Add:** none
+
+## 2026-10-23T17:55:00-0500 — Operations toolbar folds into group launchers at ~720 px
+
+**Post:** Between a laptop and a phone there is a band of window widths, roughly 640 to 740 px for the viewport pane, where WarpCad's Operations toolbar could not fit a button per operation. It now folds into three launchers: Combine (Union, Subtract, Intersect, Group), Arrange (Align, Repeat, Mirror) and Shape (Fillet, Chamfer, Enlarge, Fit, Bisect, Split).
+
+The part I cared about is selection. Each launcher is disabled when none of its operations can run, with the reason in its tooltip, and otherwise carries a count of how many can. With two bodies selected, Combine reads 4; with one, it is greyed out and says "Select 2 or more solids". The groups are a hand-written table, not a dump of the operation registry, and each member keeps the gating it had on the flat toolbar.
+
+Phone width is unchanged. Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL #Vue #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** group membership and hand-written table → src/core/operationGroups.js; disabled title and count → hand-driven run this session; phone unchanged → TODO/done/ui-082 text and phone e2e assertion in the diff
+**To Add:** docs/screenshots/operations-groups.png

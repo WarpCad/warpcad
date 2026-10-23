@@ -71,6 +71,10 @@ On a tablet the Library shrinks to a column of icons; tap an icon for its settin
 pad and the triad also shrink, with every button kept
 ([compact form](viewport-navigation.md#the-navigation-pad-bottom-left)).
 
+In a window about 640–740 px wide, the Operations toolbar folds into Combine, Arrange and
+Shape launchers; see
+[Grouped toolbar on narrow windows](booleans.md#grouped-toolbar-on-narrow-windows).
+
 The icon column is always open:
 
 ![The Library as a column of icons on a tablet.](./screenshots/library-sheet-tablet.png)

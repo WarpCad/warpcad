@@ -1247,3 +1247,272 @@ describe('OperationsToolbar — the icons tier (TODO/ui-079)', () => {
     }
   })
 })
+
+/**
+ * The groups tier (`TODO/ui-082`): at a 720px body (pane 436, under `OPS_ICONS_MIN_PANE_PX`) the
+ * toolbar is the badge plus one row of group launchers and To library. Each launcher opens a
+ * pop-out listing its members, labelled, with the members' own gates and test ids. The pop-out
+ * lives in the layout store's shared `openPopout` slot (`ops-group:<id>`), so one pop-out at a time
+ * across the Library and the Operations toolbar.
+ */
+describe('OperationsToolbar — the groups tier (TODO/ui-082)', () => {
+  /** @type {ReturnType<typeof useDocumentStore>} */
+  let documentStore
+  /** @type {ReturnType<typeof useSelectionStore>} */
+  let selection
+  /** @type {ReturnType<typeof usePanelLayoutStore>} */
+  let panelLayout
+
+  beforeEach(() => {
+    setActivePinia(createPinia())
+    documentStore = useDocumentStore()
+    selection = useSelectionStore()
+    panelLayout = usePanelLayoutStore()
+    panelLayout.setBodyWidth(720)
+  })
+
+  /** @param {string} id */
+  function placeCube(id) {
+    documentStore.append(
+      { id, op: 'primitive.cuboid', name: id, params: { size: [10, 10, 10], center: [0, 0, 5] } },
+      { origin: 'local' },
+    )
+  }
+
+  function body() {
+    return new DOMWrapper(document.body)
+  }
+
+  /** @param {import('@vue/test-utils').VueWrapper} wrapper @param {string} id */
+  const launcher = (wrapper, id) => wrapper.get(`[data-testid="ops-group-${id}"]`)
+  /** @param {import('@vue/test-utils').VueWrapper} wrapper @param {string} id */
+  const badge = (wrapper, id) => wrapper.find(`[data-testid="ops-group-${id}-count"]`)
+
+  it('renders the badge, the three group launchers and To library — not the flat row of buttons', () => {
+    const wrapper = mount(OperationsToolbar)
+    const ops = wrapper.get('[data-testid="operations-toolbar"]')
+    expect(ops.attributes('data-ops-tier')).toBe('groups')
+    expect(wrapper.find('[data-testid="operations-count"]').exists()).toBe(true)
+    for (const id of ['combine', 'arrange', 'shape']) {
+      const button = launcher(wrapper, id)
+      expect(button.attributes('aria-expanded')).toBe('false')
+      expect(button.text()).toContain('▾')
+    }
+    expect(wrapper.find('[data-testid="op-library-save"]').exists()).toBe(true)
+    // Closed, the members are not on the toolbar at all.
+    for (const testid of ['operation-union', 'operation-align', 'op-repeat', 'operation-fillet', 'op-split']) {
+      expect(wrapper.find(`[data-testid="${testid}"]`).exists()).toBe(false)
+    }
+  })
+
+  it('Combine is disabled with one solid selected, titled with the boolean reason, and shows no badge', async () => {
+    placeCube('cube-1')
+    placeCube('cube-2')
+    selection.select('cube-1')
+    const wrapper = mount(OperationsToolbar)
+    const combine = launcher(wrapper, 'combine')
+    expect(combine.attributes('disabled')).toBeDefined()
+    expect(combine.attributes('title')).toBe('Select 2 or more solids')
+    expect(combine.attributes('aria-label')).toBe('Combine — Select 2 or more solids')
+    expect(badge(wrapper, 'combine').exists()).toBe(false)
+  })
+
+  it('Combine is enabled with two solids selected and its badge reads 4', async () => {
+    placeCube('cube-1')
+    placeCube('cube-2')
+    selection.select('cube-1')
+    selection.toggle('cube-2')
+    const wrapper = mount(OperationsToolbar)
+    expect(launcher(wrapper, 'combine').attributes('disabled')).toBeUndefined()
+    expect(badge(wrapper, 'combine').text()).toBe('4')
+  })
+
+  it('Shape’s badge counts only its exactly-one members: 6 with one solid, disabled with two', async () => {
+    placeCube('cube-1')
+    placeCube('cube-2')
+    selection.select('cube-1')
+    const wrapper = mount(OperationsToolbar)
+    expect(badge(wrapper, 'shape').text()).toBe('6')
+    // Arrange: Align and Mirror can run on one solid; Repeat needs a drilled-into part.
+    expect(badge(wrapper, 'arrange').text()).toBe('2')
+
+    selection.toggle('cube-2')
+    await wrapper.vm.$nextTick()
+    expect(launcher(wrapper, 'shape').attributes('disabled')).toBeDefined()
+    expect(launcher(wrapper, 'shape').attributes('title')).toBe('Select exactly 1 solid')
+    expect(badge(wrapper, 'shape').exists()).toBe(false)
+    expect(badge(wrapper, 'arrange').text()).toBe('1')
+  })
+
+  it('opening Combine shows its four members, labelled, with their own test ids and live enablement', async () => {
+    placeCube('cube-1')
+    placeCube('cube-2')
+    selection.select('cube-1')
+    selection.toggle('cube-2')
+    const wrapper = mount(OperationsToolbar)
+    await launcher(wrapper, 'combine').trigger('click')
+
+    expect(panelLayout.openPopout).toBe('ops-group:combine')
+    expect(launcher(wrapper, 'combine').attributes('aria-expanded')).toBe('true')
+    const popover = wrapper.get('[data-testid="ops-group-popover"]')
+    expect(popover.attributes('data-group')).toBe('combine')
+    const labels = []
+    for (const name of ['union', 'subtract', 'intersect', 'group']) {
+      const member = popover.get(`[data-testid="operation-${name}"]`)
+      expect(member.attributes('disabled')).toBeUndefined()
+      labels.push(member.text())
+    }
+    expect(labels.map((text) => text.replace(/^\W+\s*/, ''))).toEqual(['Union', 'Subtract', 'Intersect', 'Group'])
+    // Never a flat list of every operation: only Combine's members are in it.
+    expect(popover.find('[data-testid="operation-fillet"]').exists()).toBe(false)
+    expect(popover.find('[data-testid="operation-align"]').exists()).toBe(false)
+  })
+
+  it('a disabled member keeps its reason; Arrange’s Repeat shows why it cannot run', async () => {
+    placeCube('cube-1')
+    selection.select('cube-1')
+    const wrapper = mount(OperationsToolbar)
+    await launcher(wrapper, 'arrange').trigger('click')
+    const popover = wrapper.get('[data-testid="ops-group-popover"]')
+    const repeatMember = popover.get('[data-testid="op-repeat"]')
+    expect(repeatMember.attributes('disabled')).toBeDefined()
+    const reason = repeatMember.attributes('title') ?? ''
+    expect(reason.length).toBeGreaterThan(0)
+    expect(popover.text()).toContain(reason)
+    expect(popover.get('[data-testid="operation-align"]').attributes('disabled')).toBeUndefined()
+    expect(popover.get('[data-testid="operation-mirror"]').attributes('disabled')).toBeUndefined()
+  })
+
+  it('running Union from the pop-out closes it and appends the same record the toolbar button does', async () => {
+    placeCube('cube-1')
+    placeCube('cube-2')
+    selection.select('cube-1')
+    selection.toggle('cube-2')
+    const wrapper = mount(OperationsToolbar)
+    const appendSpy = vi.spyOn(documentStore, 'append')
+    await launcher(wrapper, 'combine').trigger('click')
+    await wrapper.get('[data-testid="ops-group-popover"] [data-testid="operation-union"]').trigger('click')
+
+    expect(appendSpy).toHaveBeenCalledTimes(1)
+    const [record] = appendSpy.mock.calls[0]
+    expect(record.op).toBe('boolean.union')
+    expect(record.target).toBe('cube-1')
+    expect(record.operands).toEqual(['cube-2'])
+    expect(documentStore.bodies).toHaveLength(1)
+    expect(panelLayout.openPopout).toBe(null)
+    expect(wrapper.find('[data-testid="ops-group-popover"]').exists()).toBe(false)
+  })
+
+  it('a member with its own popover closes the group first, then opens that popover as today', async () => {
+    placeCube('cube-1')
+    selection.select('cube-1')
+    const wrapper = mount(OperationsToolbar)
+    await launcher(wrapper, 'shape').trigger('click')
+    await wrapper.get('[data-testid="ops-group-popover"] [data-testid="operation-fillet"]').trigger('click')
+
+    expect(panelLayout.openPopout).toBe(null)
+    expect(wrapper.find('[data-testid="ops-group-popover"]').exists()).toBe(false)
+    expect(body().get('[data-testid="fillet-chamfer-popover"]').attributes('data-op')).toBe('modify.filletRim')
+  })
+
+  it('tapping the open launcher again closes it; tapping another switches', async () => {
+    placeCube('cube-1')
+    selection.select('cube-1')
+    const wrapper = mount(OperationsToolbar)
+    await launcher(wrapper, 'shape').trigger('click')
+    await launcher(wrapper, 'arrange').trigger('click')
+    expect(panelLayout.openPopout).toBe('ops-group:arrange')
+    expect(wrapper.findAll('[data-testid="ops-group-popover"]')).toHaveLength(1)
+    expect(launcher(wrapper, 'shape').attributes('aria-expanded')).toBe('false')
+    await launcher(wrapper, 'arrange').trigger('click')
+    expect(panelLayout.openPopout).toBe(null)
+    expect(wrapper.find('[data-testid="ops-group-popover"]').exists()).toBe(false)
+  })
+
+  it('only one pop-out at a time: a Library pop-out claiming the shared slot closes the group pop-out', async () => {
+    placeCube('cube-1')
+    selection.select('cube-1')
+    const wrapper = mount(OperationsToolbar)
+    await launcher(wrapper, 'shape').trigger('click')
+    expect(wrapper.find('[data-testid="ops-group-popover"]').exists()).toBe(true)
+
+    panelLayout.openPopout = 'library-section:hardware'
+    await wrapper.vm.$nextTick()
+    expect(wrapper.find('[data-testid="ops-group-popover"]').exists()).toBe(false)
+    expect(launcher(wrapper, 'shape').attributes('aria-expanded')).toBe('false')
+    // It does not take the slot back from the Library.
+    expect(panelLayout.openPopout).toBe('library-section:hardware')
+  })
+
+  it('a tier change (widening past a breakpoint) closes the pop-out and frees the slot, leaving nothing behind', async () => {
+    placeCube('cube-1')
+    selection.select('cube-1')
+    const wrapper = mount(OperationsToolbar)
+    await launcher(wrapper, 'shape').trigger('click')
+    expect(panelLayout.openPopout).toBe('ops-group:shape')
+
+    panelLayout.setBodyWidth(1440)
+    await wrapper.vm.$nextTick()
+    await wrapper.vm.$nextTick()
+    expect(wrapper.get('[data-testid="operations-toolbar"]').attributes('data-ops-tier')).toBe('labels')
+    expect(panelLayout.openPopout).toBe(null)
+    expect(wrapper.find('[data-testid="ops-group-popover"]').exists()).toBe(false)
+    expect(body().find('[data-testid="ops-group-popover"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid^="ops-group-"]').exists()).toBe(false)
+    // The flat row is back, with the members' own buttons.
+    expect(wrapper.find('[data-testid="operation-fillet"]').exists()).toBe(true)
+  })
+
+  it('a selection change that leaves no member runnable closes the open group', async () => {
+    placeCube('cube-1')
+    placeCube('cube-2')
+    selection.select('cube-1')
+    const wrapper = mount(OperationsToolbar)
+    await launcher(wrapper, 'shape').trigger('click')
+    selection.toggle('cube-2')
+    await wrapper.vm.$nextTick()
+    expect(panelLayout.openPopout).toBe(null)
+    expect(wrapper.find('[data-testid="ops-group-popover"]').exists()).toBe(false)
+  })
+
+  it('Escape closes the pop-out and hands focus back to its launcher', async () => {
+    placeCube('cube-1')
+    selection.select('cube-1')
+    const wrapper = mount(OperationsToolbar, { attachTo: document.body })
+    await launcher(wrapper, 'shape').trigger('click')
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
+    await wrapper.vm.$nextTick()
+    await wrapper.vm.$nextTick()
+    expect(panelLayout.openPopout).toBe(null)
+    expect(document.activeElement?.getAttribute('data-testid')).toBe('ops-group-shape')
+  })
+
+  it('a press outside the launcher and its pop-out closes it, without being swallowed', async () => {
+    placeCube('cube-1')
+    selection.select('cube-1')
+    const wrapper = mount(OperationsToolbar, { attachTo: document.body })
+    await launcher(wrapper, 'shape').trigger('click')
+    const outside = document.createElement('div')
+    document.body.appendChild(outside)
+    const event = new Event('pointerdown', { bubbles: true, cancelable: true })
+    outside.dispatchEvent(event)
+    await wrapper.vm.$nextTick()
+    expect(event.defaultPrevented).toBe(false)
+    expect(panelLayout.openPopout).toBe(null)
+    outside.remove()
+  })
+
+  it('the tablet’s icons tier and the phone keep the flat row: no launchers', () => {
+    panelLayout.setBodyWidth(820)
+    const tablet = mount(OperationsToolbar)
+    expect(tablet.find('[data-testid^="ops-group-"]').exists()).toBe(false)
+    expect(tablet.find('[data-testid="operation-union"]').exists()).toBe(true)
+    tablet.unmount()
+
+    panelLayout.setBodyWidth(390)
+    const phone = mount(OperationsToolbar)
+    expect(phone.get('[data-testid="operations-toolbar"]').attributes('data-ops-tier')).toBe('icons')
+    expect(phone.find('[data-testid^="ops-group-"]').exists()).toBe(false)
+    expect(phone.find('[data-testid="operation-mirror"]').exists()).toBe(true)
+  })
+})

@@ -238,6 +238,40 @@ The result is a new shape with its own name (`Union 1`, `Subtract 1`, `Intersect
 it behaves like any other: select it, move it, turn it, or feed it into another boolean
 with something else.
 
+## Grouped toolbar on narrow windows
+
+When the 3D view is squeezed to about 640–740 px wide (a small browser window, or a tablet
+with the Library and Inspector both open), the Operations toolbar no longer has room for a
+button per operation. It folds into three **group launchers** and the **To library** button:
+
+| Launcher | Holds |
+|---|---|
+| **Combine ▾** | Union, Subtract, Intersect, Group |
+| **Arrange ▾** | Align, Repeat, Mirror |
+| **Shape ▾** | Fillet, Chamfer, Enlarge, Fit, Bisect, Split |
+
+A small number on a launcher says how many of its operations can run with what you have
+selected, so you can tell before opening it. A launcher is greyed out when none of them can;
+hover or long-press it to read why. Opening a launcher lists its operations **with labels**,
+each enabled or greyed out on its own, with the reason shown under a greyed one.
+
+![The Operations toolbar as three launchers, with Combine open and its four operations listed.](./screenshots/operations-groups.png)
+
+**Example: union two shapes in a narrow window**
+
+1. Narrow the window to about 720 px and select two bodies. The toolbar shows **Combine ▾**
+   with a **4** badge.
+2. Tap **Combine ▾**. A list opens under it with Union, Subtract, Intersect and Group, each
+   labelled.
+3. Tap **Union**. The list closes and the two bodies become one.
+4. Select just one body and look at **Combine ▾** again. It is greyed out, and its tooltip says
+   "Select 2 or more solids".
+
+Only one list is open at a time: opening a Library list, or another launcher, closes it, and so
+does a tap outside it or **Esc**. Operations that need settings (Align, Repeat, Fillet,
+Chamfer, Enlarge, Fit, Bisect, Split, Mirror) close the list first, then open their usual
+panel. On a phone the toolbar keeps its rows of icons; see [Phone and tablet](mobile.md).
+
 ## Notes and gotchas
 
 - **Units are millimetres**, as everywhere else in WarpCad.

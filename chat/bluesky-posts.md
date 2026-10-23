@@ -2358,3 +2358,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** release calls ci.yml → release.yml; lfs: false, pointer files → ci.yml comment; four stale-movie errors → pasted CI log; diff only otherwise
 **To Add:** none
+
+## 2026-10-23T17:55:00-0500 — Operations toolbar folds into group launchers at ~720 px
+
+**Post:** At about 720 px wide the Operations toolbar had no room for a button per operation. It now folds into Combine, Arrange and Shape launchers with a count badge on each, and the badge tells you how many of its operations can run before you open it. Built with Claude Code, reviewed by me. #CAD #OpenSource
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** launchers, badge and groups → diff (src/core/operationGroups.js, OperationsToolbar.vue); 720 px → TODO/done/ui-082 text; badge 4 with two bodies selected → hand-driven run this session, WebKit and Chromium
+**To Add:** docs/screenshots/operations-groups.png

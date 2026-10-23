@@ -317,8 +317,9 @@ test.describe('the Library section launchers at 760×900 (TODO/ui-081)', () => {
   })
 
   test('opening a section pop-out closes an Operations group pop-out, and the reverse', async ({ page }, testInfo) => {
-    // `TODO/ui-082` has not built the Operations group pop-out yet; both share the one
-    // `openPopout` slot, so its claim on the slot stands in for it here.
+    // The Operations groups tier (`TODO/ui-082`) is not reached at 760 (the pane is in the icons
+    // tier), so its claim on the shared `openPopout` slot stands in for it here; the UI-driven
+    // direction is covered at 720 below.
     const { press } = await pointer(page, testInfo)
     await page.evaluate(async () => {
       const { usePanelLayoutStore } = await window.__e2eImport('/src/stores/panelLayout.js')
@@ -360,6 +361,162 @@ test.describe('the Library section launchers at 760×900 (TODO/ui-081)', () => {
   })
 })
 
+/**
+ * The Operations groups tier (`TODO/ui-082`), which no reference viewport reaches either: the
+ * `-tablet` projects resized to 720×900 (pane 436, under the icons tier's 458), where the toolbar is
+ * the badge plus Combine ▾, Arrange ▾, Shape ▾ and To library. The Library there is in its pop-out
+ * tier (`ui-081`), so cubes come from the Primitives section pop-out, and the second operand is added
+ * with the Objects list's check, the one multi-select a touch screen has.
+ */
+test.describe('the Operations group launchers at 720×900 (TODO/ui-082)', () => {
+  test.beforeEach(async ({ page }, testInfo) => {
+    test.skip(!testInfo.project.name.endsWith('-tablet'), 'touch-primary projects, resized to the groups tier')
+    await page.setViewportSize({ width: 720, height: 900 })
+    await page.goto('/')
+    await expect(page.getByTestId('operations-toolbar')).toHaveAttribute('data-ops-tier', 'groups')
+    await expect(page.getByTestId('ops-group-combine')).toBeVisible()
+  })
+
+  /** @param {import('@playwright/test').Page} page */
+  const openPopoutSlot = (page) =>
+    page.evaluate(async () => {
+      const { usePanelLayoutStore } = await window.__e2eImport('/src/stores/panelLayout.js')
+      return usePanelLayoutStore().openPopout
+    })
+
+  /**
+   * Drag `count` cubes in from the Primitives pop-out, then put the pop-out away.
+   *
+   * @param {import('@playwright/test').Page} page
+   * @param {Awaited<ReturnType<typeof pointer>>} input
+   * @param {number} count
+   */
+  async function placeCubes(page, input, count) {
+    await input.press(page.getByTestId('library-launcher-primitive'))
+    await expect(page.getByTestId('library-section-popout')).toBeVisible()
+    const drops = [
+      [0.55, 0.5],
+      [0.82, 0.62],
+    ]
+    for (let i = 0; i < count; i += 1) {
+      const to = await viewportPoint(page, drops[i][0], drops[i][1])
+      await input.dragRow(page.getByTestId('library-row-primitive.cuboid'), to.x, to.y)
+      await expect(page.getByTestId('viewport')).toHaveAttribute('data-body-count', String(i + 1))
+    }
+    await page.keyboard.press('Escape')
+    await expect(page.getByTestId('library-section-popout')).toHaveCount(0)
+  }
+
+  test('two cubes: Combine shows a 4 badge, its pop-out lists the four members, Union combines them', async ({ page }, testInfo) => {
+    const input = await pointer(page, testInfo)
+    await placeCubes(page, input, 2)
+    const combine = page.getByTestId('ops-group-combine')
+
+    // One cube selected (the drop selects what it placed): Combine cannot run, and says why.
+    await expect(page.getByTestId('viewport')).toHaveAttribute('data-selected-count', '1')
+    await expect(combine).toBeDisabled()
+    await expect(combine).toHaveAttribute('title', 'Select 2 or more solids')
+    await expect(page.getByTestId('ops-group-combine-count')).toHaveCount(0)
+    await expect(page.getByTestId('ops-group-shape-count')).toHaveText('6')
+
+    // Add the other cube through the Objects list's check.
+    if (!(await page.getByTestId('object-list').isVisible().catch(() => false))) {
+      await input.press(page.getByTestId('inspector-objects-header'))
+    }
+    await input.press(page.locator('[data-testid^="objects-check-cuboid-"][aria-checked="false"]'))
+    await expect(page.getByTestId('viewport')).toHaveAttribute('data-selected-count', '2')
+    await expect(combine).toBeEnabled()
+    await expect(page.getByTestId('ops-group-combine-count')).toHaveText('4')
+    await expect(page.getByTestId('ops-group-shape')).toBeDisabled()
+
+    await input.press(combine)
+    const popover = page.getByTestId('ops-group-popover')
+    await expect(popover).toBeVisible()
+    await expect(popover).toHaveAttribute('data-group', 'combine')
+    await expect(combine).toHaveAttribute('aria-expanded', 'true')
+    expect(await openPopoutSlot(page)).toBe('ops-group:combine')
+    for (const [name, label] of [
+      ['union', 'Union'],
+      ['subtract', 'Subtract'],
+      ['intersect', 'Intersect'],
+      ['group', 'Group'],
+    ]) {
+      const member = popover.getByTestId(`operation-${name}`)
+      await expect(member).toBeVisible()
+      await expect(member).toBeEnabled()
+      await expect(member).toContainText(label)
+    }
+    // The pop-out stays inside the viewport pane, clear of the orientation gizmo.
+    const pane = await page.getByTestId('viewport').boundingBox()
+    const box = await popover.boundingBox()
+    expect(intersects(box, await page.getByTestId('orientation-gizmo').boundingBox())).toBe(false)
+    expect((box?.x ?? 0) + (box?.width ?? 0)).toBeLessThanOrEqual((pane?.x ?? 0) + (pane?.width ?? 0))
+    await sleep(200)
+    mkdirSync(SNAPSHOT_DIR, { recursive: true })
+    await page.screenshot({ path: join(SNAPSHOT_DIR, `ops-groups-720-${testInfo.project.name}.png`) })
+
+    await input.press(popover.getByTestId('operation-union'))
+    await expect(popover).toHaveCount(0)
+    await expect(combine).toHaveAttribute('aria-expanded', 'false')
+    await expect(page.getByTestId('viewport')).toHaveAttribute('data-body-count', '1')
+    expect((await sceneBodies(page)).map((body) => body.op)).toEqual(['boolean.union'])
+    // The union is the one selection now: Combine is disabled again.
+    await expect(page.getByTestId('viewport')).toHaveAttribute('data-selected-count', '1')
+    await expect(combine).toBeDisabled()
+  })
+
+  test('a Shape member with its own popover: the group closes first, then Fillet’s popover opens', async ({ page }, testInfo) => {
+    const input = await pointer(page, testInfo)
+    await placeCubes(page, input, 1)
+    await input.press(page.getByTestId('ops-group-shape'))
+    const popover = page.getByTestId('ops-group-popover')
+    await expect(popover).toHaveAttribute('data-group', 'shape')
+    await input.press(popover.getByTestId('operation-fillet'))
+    await expect(popover).toHaveCount(0)
+    await expect(page.getByTestId('fillet-chamfer-popover')).toHaveAttribute('data-op', 'modify.filletRim')
+    await input.press(page.getByTestId('fillet-chamfer-cancel'))
+    await expect(page.getByTestId('fillet-chamfer-popover')).toHaveCount(0)
+  })
+
+  test('one pop-out across both panels: a Library launcher closes an open group pop-out', async ({ page }, testInfo) => {
+    const input = await pointer(page, testInfo)
+    await placeCubes(page, input, 1)
+    await input.press(page.getByTestId('ops-group-shape'))
+    await expect(page.getByTestId('ops-group-popover')).toBeVisible()
+    await input.press(page.getByTestId('library-launcher-hardware'))
+    await expect(page.getByTestId('library-section-popout')).toBeVisible()
+    await expect(page.getByTestId('ops-group-popover')).toHaveCount(0)
+    await expect(page.getByTestId('ops-group-shape')).toHaveAttribute('aria-expanded', 'false')
+    expect(await openPopoutSlot(page)).toBe('library-section:hardware')
+  })
+
+  test('widening past a breakpoint with a group pop-out open closes it and leaves no orphaned element', async ({ page }, testInfo) => {
+    const input = await pointer(page, testInfo)
+    await placeCubes(page, input, 1)
+    await input.press(page.getByTestId('ops-group-shape'))
+    await expect(page.getByTestId('ops-group-popover')).toBeVisible()
+
+    await page.setViewportSize({ width: 900, height: 900 })
+    await expect(page.getByTestId('operations-toolbar')).toHaveAttribute('data-ops-tier', 'icons')
+    await expect(page.getByTestId('ops-group-popover')).toHaveCount(0)
+    await expect(page.locator('[data-testid^="ops-group-"]')).toHaveCount(0)
+    await expect(page.getByTestId('operation-fillet')).toBeVisible()
+    expect(await openPopoutSlot(page)).toBe(null)
+    expect(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth)).toBe(false)
+
+    // Back to the groups tier, open it again, then to phone width: nothing is left open there.
+    await page.setViewportSize({ width: 720, height: 900 })
+    await expect(page.getByTestId('ops-group-shape')).toBeVisible()
+    await input.press(page.getByTestId('ops-group-shape'))
+    await expect(page.getByTestId('ops-group-popover')).toBeVisible()
+    await page.setViewportSize({ width: 600, height: 900 })
+    await expect(page.getByTestId('operations-toolbar')).toHaveAttribute('data-ops-tier', 'icons')
+    await expect(page.getByTestId('ops-group-popover')).toHaveCount(0)
+    await expect(page.locator('[data-testid^="ops-group-"]')).toHaveCount(0)
+    expect(await openPopoutSlot(page)).toBe(null)
+  })
+})
+
 test.describe('snapshots at the three reference viewports (TODO/ui-084)', () => {
   test('phone is unchanged; tablet is rail + compact chrome; laptop is labels + full chrome', async ({ page }, testInfo) => {
     await page.goto('/')
@@ -381,6 +538,10 @@ test.describe('snapshots at the three reference viewports (TODO/ui-084)', () => 
       expect(m.library?.width ?? 0).toBeCloseTo(390, 0)
       // The toolbar keeps the 184px gizmo reserve at phone width: 390 − 24 − 184.
       expect(m.toolbar?.width ?? 0).toBeCloseTo(182, 0)
+      // Phone keeps its rows of icons; it never adopts the group launchers (`TODO/ui-082`).
+      await expect(page.getByTestId('operations-toolbar')).toHaveAttribute('data-ops-tier', 'icons')
+      await expect(page.locator('[data-testid^="ops-group-"]')).toHaveCount(0)
+      await expect(page.getByTestId('operation-union')).toBeVisible()
     } else if (name.endsWith('-tablet')) {
       expect(m.libraryTier).toBe('icons')
       expect(m.chromeTier).toBe('compact')

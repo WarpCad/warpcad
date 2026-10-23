@@ -36,6 +36,15 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### ui-082 — Operations groups tier (2026-10-23 17:55)
+
+Scenarios 4 and 16 and the `ui-043`/`ui-015` repros passed with a real mouse. What no script or mouse run can judge is the feel of the pop-out under a finger.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | On a real iPad in Split View (or any window about 720 px wide), tap Combine ▾ with two bodies selected: the pop-out opens under the launcher without covering the orientation triad, Union is easy to hit, and a tap outside closes it | Open | |
+
+
 ### ui-081 — Library section launchers and section pop-out (2026-10-22 14:54 UTC)
 
 Launchers and the section pop-out sit at 760 px only. Two things the scripted and driven runs did not settle.

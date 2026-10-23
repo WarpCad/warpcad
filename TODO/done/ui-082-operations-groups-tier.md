@@ -6,8 +6,22 @@ priority: high
 model: opus
 milestone: M1
 depends: [ui-079]
-status: open
+status: done
 ---
+
+> ## What actually shipped
+>
+> As specified. The group table and `groupStates` live in `src/core/operationGroups.js` (the
+> `core/library.js` precedent), with the popover in `OperationsGroupPopover.vue`; the toolbar reuses its
+> existing gates, titles and handlers. Additions beyond the file: the group pop-out also closes on Escape
+> (focus returns to the launcher), on an outside press, and when a selection change leaves no member able
+> to run; an Escape with a group open no longer cancels an armed Repeat; `OperationsGroupPopover.vue` is
+> an exception in `helpButtons.spec.js` (members that open popovers carry their own help). A disabled
+> launcher's `title` is the lead member's reason ("Select 2 or more solids"); its `aria-label` adds the
+> group name. Scenarios 4 and 16 hand-driven at 720x900 in WebKit and Chromium (PASS; the real-mouse
+> canvas Shift-click gap recorded on 2026-10-21 still exists, so the second operand came from the Objects
+> check). `ui-043` and `ui-015` repros re-run: clear at 390, 820 and 720. Three failures also present on
+> clean `HEAD` are filed as `testing-009`.
 
 ## Goal
 

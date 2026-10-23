@@ -304,12 +304,15 @@
  *    literal `0` (the minimum face), the identical distinction the straight
  *    Offset field already has to make.
  */
-import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 
 import HelpButton from '../controls/HelpButton.vue'
 import AlignPopover from './AlignPopover.vue'
+import OperationsGroupPopover from './OperationsGroupPopover.vue'
 
 import { consumesOf } from '../../core/booleanConsumes.js'
+import { OPERATION_GROUPS, groupStates } from '../../core/operationGroups.js'
+import { useEscapeToClose } from '../../composables/useEscapeToClose.js'
 import { DEFAULT_ROTATE_AXIS, mirrorRotationDeg } from '../../core/kernel/group.js'
 import { useSelectedOperands } from '../../composables/useSelectedBody.js'
 import { useDocumentStore } from '../../stores/document.js'
@@ -330,8 +333,9 @@ const selection = useSelectionStore()
  * The toolbar's tier (`TODO/ui-079`): `labels`, `icons` or `groups`, from the layout store's
  * *computed* viewport-pane width — not the page width — so the tablet's ~520px pane gets the
  * icon-only form that used to be phone-only. Phone is `icons` too, with its own compaction on top
- * (the `max-width: 640px` block at the end of the styles). `groups` renders as icons until its
- * launchers land (`ui-079` stage 6). A tier change crossfades rather than animating label widths.
+ * (the `max-width: 640px` block at the end of the styles). `groups` is the badge plus one row of
+ * group launchers (`TODO/ui-082`, see "The groups tier" below). A tier change crossfades rather
+ * than animating label widths.
  */
 const panelLayout = usePanelLayoutStore()
 const { tier: opsTier, fading: opsFading } = useTierCrossfade(() => panelLayout.layout.opsTier)
@@ -749,6 +753,9 @@ function onWindowKeydown(event) {
     closePopover()
     return
   }
+  // `TODO/ui-082`: an open group pop-out is next; its own Escape handler closes it, so the
+  // Repeat session below is left alone by the same key press.
+  if (openGroupId.value !== null) return
   // `TODO/ui-069`: then the Repeat session — after the Align popover (`ui-060`'s Escape order),
   // and never from inside another dialog, which owns its own Escape.
   const focused = /** @type {Element | null} */ (event.target instanceof Element ? event.target : null)
@@ -1380,10 +1387,256 @@ function commitMirror() {
   selection.select(id)
   closePopover()
 }
+
+// --- To library (TODO/ui-055) -------------------------------------------------
+
+/** The Save to library button's title, shared by the flat row and the groups tier's row. */
+const librarySaveTitle = computed(() =>
+  library.saveGate.enabled ? 'Save to library… — save this group as a part' : library.saveGate.reason,
+)
+
+// --- The groups tier (TODO/ui-082) ------------------------------------------
+
+/**
+ * In the groups tier the toolbar is the badge plus one row of **group launchers** (Combine,
+ * Arrange, Shape — the hand-written table in `core/operationGroups.js`) and To library. A launcher
+ * opens a pop-out (`OperationsGroupPopover.vue`) listing its members with labels.
+ *
+ * - **The gates are the flat row's, read, never re-derived.** {@link groupMembers} resolves each
+ *   member from the same `disabled`/`alignDisabled`/`repeatDisabled`/`exactOneDisabled` computeds,
+ *   titles and handlers its flat-row button uses, so the selection-count rule (CLAUDE.md) survives
+ *   grouping unchanged, and a member keeps its own `data-testid`.
+ * - **A launcher is disabled when no member can run**, titled with its lead member's reason; when
+ *   some can, a count badge says how many, so enablement reads before the pop-out is opened.
+ * - **One pop-out at a time across both panels**: the open group is the layout store's shared
+ *   `openPopout` slot (`ops-group:<id>`), which the Library's row and section pop-outs use too
+ *   (`ui-081`). Taking the slot closes theirs; their taking it closes this one. A group pop-out may
+ *   cover the Library while open, the reverse of `LibrarySectionPopout`'s note.
+ * - **Running a member closes the group first**, then runs exactly as the flat-row button does — a
+ *   member with its own popover (Align, Fillet/Chamfer, Enlarge/Fit/Bisect, Split, Repeat) opens it
+ *   where it opens today.
+ * - It closes on a second tap of its launcher, a press outside, Escape (focus returns to the
+ *   launcher), a tier change (nothing is left behind when the launchers go), or a selection change
+ *   that leaves no member able to run.
+ *
+ * Phone (≤ 640px) is always the icons tier (`panelLayoutFor`), so it never sees this.
+ */
+const GROUP_PREFIX = 'ops-group:'
+
+/**
+ * @typedef {{ key: string, testid: string, op: string, label: string, glyph: string,
+ *   disabled: boolean, title: string, expanded: boolean | undefined, action: () => void }} GroupMember
+ */
+
+/**
+ * Every grouped member, resolved with the gate, title and handler its flat-row button uses.
+ *
+ * @type {import('vue').ComputedRef<Record<string, GroupMember>>}
+ */
+const groupMembers = computed(() => {
+  /** @type {Record<string, GroupMember>} */
+  const members = {}
+  for (const operation of OPERATIONS) {
+    const key = operation.label.toLowerCase()
+    members[key] = {
+      key,
+      testid: `operation-${key}`,
+      op: operation.op,
+      label: operation.label,
+      glyph: operation.glyph,
+      disabled: disabled.value,
+      title: titleFor(operation),
+      expanded: undefined,
+      action: () => run(operation.op, operation.label),
+    }
+  }
+  members.align = {
+    key: 'align',
+    testid: 'operation-align',
+    op: ALIGN_OPERATION.op,
+    label: ALIGN_OPERATION.label,
+    glyph: ALIGN_OPERATION.glyph,
+    disabled: alignDisabled.value,
+    title: alignTitle(),
+    expanded: openPopover.value === 'align',
+    action: toggleAlignPopover,
+  }
+  members.repeat = {
+    key: 'repeat',
+    testid: 'op-repeat',
+    op: REPEAT_OPERATION.op,
+    label: REPEAT_OPERATION.label,
+    glyph: REPEAT_OPERATION.glyph,
+    disabled: repeatDisabled.value,
+    title: repeatTitle(),
+    expanded: repeat.armed,
+    action: toggleRepeat,
+  }
+  members.mirror = {
+    key: 'mirror',
+    testid: 'operation-mirror',
+    op: MIRROR_OPERATION.op,
+    label: MIRROR_OPERATION.label,
+    glyph: MIRROR_OPERATION.glyph,
+    disabled: exactOneDisabled.value,
+    title: exactOneTitleFor(MIRROR_OPERATION),
+    expanded: openPopover.value === 'transform.mirror',
+    action: toggleMirrorPopover,
+  }
+  for (const operation of FILLET_CHAMFER_OPERATIONS) {
+    const key = operation.label.toLowerCase()
+    members[key] = {
+      key,
+      testid: `operation-${key}`,
+      op: operation.op,
+      label: operation.label,
+      glyph: operation.glyph,
+      disabled: exactOneDisabled.value,
+      title: exactOneTitleFor(operation),
+      expanded: openPopover.value === operation.op,
+      action: () => toggleFilletChamferPopover(operation.op),
+    }
+  }
+  for (const operation of RESIZE_OPERATIONS) {
+    const key = operation.label.toLowerCase()
+    members[key] = {
+      key,
+      testid: `operation-${key}`,
+      op: operation.op,
+      label: operation.label,
+      glyph: operation.glyph,
+      disabled: exactOneDisabled.value,
+      title: exactOneTitleFor(operation),
+      expanded: openPopover.value === operation.op,
+      action: () => toggleResizePopover(operation.op),
+    }
+  }
+  members.split = {
+    key: 'split',
+    testid: 'op-split',
+    op: SPLIT_OPERATION.op,
+    label: SPLIT_OPERATION.label,
+    glyph: SPLIT_OPERATION.glyph,
+    disabled: exactOneDisabled.value,
+    title: exactOneTitleFor(SPLIT_OPERATION),
+    expanded: splitSheet.isOpen,
+    action: toggleSplitSheet,
+  }
+  return members
+})
+
+/** Each launcher's state: enabled count, disabled, title (`groupStates`, unit-tested on its own). */
+const groups = computed(() => {
+  /** @type {Record<string, import('../../core/operationGroups.js').MemberState>} */
+  const states = {}
+  for (const [key, member] of Object.entries(groupMembers.value)) {
+    states[key] = { enabled: !member.disabled, reason: member.title }
+  }
+  return groupStates(OPERATION_GROUPS, states)
+})
+
+/** The group whose pop-out is open, or `null` (a Library pop-out, or none). */
+const openGroupId = computed(() => {
+  const id = panelLayout.openPopout
+  return id !== null && id.startsWith(GROUP_PREFIX) ? id.slice(GROUP_PREFIX.length) : null
+})
+
+/** The toolbar's root, for finding a launcher and the open group's footprint. */
+const opsEl = ref(/** @type {HTMLElement | null} */ (null))
+
+/**
+ * @param {import('../../core/operationGroups.js').GroupState} group
+ * @returns {GroupMember[]}
+ */
+function membersOf(group) {
+  return group.members.map((member) => groupMembers.value[member.key])
+}
+
+/** @param {string} id @returns {HTMLElement | null} */
+function launcherFor(id) {
+  return opsEl.value?.querySelector(`[data-testid="ops-group-${id}"]`) ?? null
+}
+
+/**
+ * A tap on a launcher: open its group (taking the shared slot from whatever had it), or close it.
+ *
+ * @param {string} id
+ * @returns {void}
+ */
+function toggleGroup(id) {
+  const group = groups.value.find((candidate) => candidate.id === id)
+  if (!group || group.disabled) return
+  panelLayout.openPopout = openGroupId.value === id ? null : `${GROUP_PREFIX}${id}`
+}
+
+/** Close this toolbar's group pop-out; another panel's pop-out is left alone. */
+function closeGroup() {
+  if (openGroupId.value !== null) panelLayout.openPopout = null
+}
+
+/**
+ * A tap on a member in the open pop-out: close the group, then run the member exactly as its
+ * flat-row button would.
+ *
+ * @param {string} key
+ * @returns {void}
+ */
+function runMember(key) {
+  const member = groupMembers.value[key]
+  if (!member || member.disabled) return
+  closeGroup()
+  member.action()
+}
+
+// The launchers go with the tier, so the pop-out goes with them, at once.
+watch(opsTier, (tier) => {
+  if (tier !== 'groups') closeGroup()
+})
+
+// Self-closing, as Align's popover is: nothing in the open group can run any more.
+watch(groups, (states) => {
+  const id = openGroupId.value
+  if (id !== null && states.find((state) => state.id === id)?.disabled) closeGroup()
+})
+
+useEscapeToClose(
+  () => openGroupId.value !== null,
+  () => {
+    const id = openGroupId.value
+    closeGroup()
+    if (id !== null) void nextTick(() => launcherFor(id)?.focus())
+  },
+)
+
+/**
+ * A press outside the open launcher and its pop-out closes it. Observed, never prevented, so a
+ * tap on the viewport still selects and a tap on a Library launcher still opens its section.
+ *
+ * @param {Event} event
+ */
+function onDocumentPointerDown(event) {
+  const id = openGroupId.value
+  if (id === null) return
+  const target = /** @type {Node | null} */ (event.target)
+  const slot = opsEl.value?.querySelector(`[data-group-slot="${id}"]`)
+  if (target && slot?.contains(target)) return
+  closeGroup()
+}
+
+watch(openGroupId, (id) => {
+  if (id !== null) document.addEventListener('pointerdown', onDocumentPointerDown, true)
+  else document.removeEventListener('pointerdown', onDocumentPointerDown, true)
+})
+
+onBeforeUnmount(() => {
+  document.removeEventListener('pointerdown', onDocumentPointerDown, true)
+  closeGroup()
+})
 </script>
 
 <template>
   <div
+    ref="opsEl"
     class="ops"
     data-testid="operations-toolbar"
     :data-enabled="disabled ? 'false' : 'true'"
@@ -1391,6 +1644,7 @@ function commitMirror() {
     :data-selected-count="selection.count"
     :data-ops-tier="opsTier"
     :data-ops-fading="opsFading ? 'true' : 'false'"
+    :data-group-open="opsTier === 'groups' && openGroupId !== null ? 'true' : 'false'"
     role="group"
     aria-label="Boolean, group, snap/align, fillet/chamfer and resize/bisect operations"
   >
@@ -1421,8 +1675,58 @@ function commitMirror() {
       <HelpButton topic="boolean" class="ops__help" />
     </p>
 
+    <!-- The groups tier (TODO/ui-082): one row of group launchers, each a compact square with its
+         glyph, a ▾ and a count of the members that can run; To library stays a button of its own.
+         Each launcher's pop-out sits in its slot so a press inside either is not "outside". -->
+    <div v-if="opsTier === 'groups'" class="ops__row" data-testid="operations-groups">
+      <div v-for="group in groups" :key="group.id" class="ops__group" :data-group-slot="group.id">
+        <button
+          type="button"
+          class="ops__btn ops__launcher"
+          :disabled="group.disabled"
+          :data-testid="`ops-group-${group.id}`"
+          :data-group="group.id"
+          aria-haspopup="dialog"
+          :aria-expanded="openGroupId === group.id"
+          :aria-controls="`ops-group-popover-${group.id}`"
+          :title="group.reason"
+          :aria-label="group.disabled ? `${group.label} — ${group.reason}` : group.reason"
+          @click="toggleGroup(group.id)"
+        >
+          <span class="ops__glyph" aria-hidden="true">{{ group.glyph }}</span>
+          <span class="ops__caret" aria-hidden="true">▾</span>
+          <span
+            v-if="!group.disabled"
+            class="ops__group-count"
+            :data-testid="`ops-group-${group.id}-count`"
+            aria-hidden="true"
+          >{{ group.enabledCount }}</span>
+        </button>
+        <OperationsGroupPopover
+          v-if="openGroupId === group.id"
+          :group-id="group.id"
+          :label="group.label"
+          :members="membersOf(group)"
+          @run="runMember"
+        />
+      </div>
 
-    <div class="ops__row">
+      <button
+        type="button"
+        class="ops__btn"
+        :disabled="!library.saveGate.enabled"
+        data-testid="op-library-save"
+        data-op="library.save"
+        :title="librarySaveTitle"
+        :aria-label="librarySaveTitle"
+        @click="library.openSave()"
+      >
+        <span class="ops__glyph" aria-hidden="true">▤</span>
+        <span class="ops__label">To library</span>
+      </button>
+    </div>
+
+    <div v-else class="ops__row">
       <button
         v-for="operation in OPERATIONS"
         :key="operation.op"
@@ -1539,8 +1843,8 @@ function commitMirror() {
         :disabled="!library.saveGate.enabled"
         data-testid="op-library-save"
         data-op="library.save"
-        :title="library.saveGate.enabled ? 'Save to library… — save this group as a part' : library.saveGate.reason"
-        :aria-label="library.saveGate.enabled ? 'Save to library… — save this group as a part' : library.saveGate.reason"
+        :title="librarySaveTitle"
+        :aria-label="librarySaveTitle"
         @click="library.openSave()"
       >
         <span class="ops__glyph" aria-hidden="true">▤</span>
@@ -1982,7 +2286,8 @@ function commitMirror() {
  * on the toolbar's own tier, which comes from the *computed* viewport-pane width, so the tablet's
  * pane gets it too instead of 14 labelled buttons wrapped two per row down over the scene. The
  * name stays in every button's `title`/`aria-label` (`titleFor`, `exactOneTitleFor`), this
- * toolbar's established long-press affordance. `groups` renders as icons until its launchers land.
+ * toolbar's established long-press affordance. These rules cover the `groups` tier too (its
+ * To library button and its launchers are icon-only); the groups rules below only add to them.
  *
  * Above phone width the buttons are 44px (`--tap`) squares with the base 4px gap: that is the
  * form stage 1 measured (668px on one line, ≤ 3 lines from a 250px-wide `.ops` in every engine),
@@ -2004,6 +2309,61 @@ function commitMirror() {
 
 .ops:not([data-ops-tier='labels']) .ops__legend-short {
   display: inline;
+}
+
+/*
+ * The groups tier (`TODO/ui-082`): on top of the icons rules above, every button on the row is a
+ * `--tap-compact` square (the launchers and To library), declared after the icons rule so it wins
+ * at the same specificity. The pop-out hangs under its launcher inside `.ops` (see
+ * `OperationsGroupPopover.vue`); `.ops` is lifted while one is open, the same way it is for an
+ * error, so the chrome that paints after it never covers the list.
+ */
+.ops[data-ops-tier='groups'] .ops__btn {
+  min-width: var(--tap-compact);
+  min-height: var(--tap-compact);
+  padding: 0 6px;
+}
+
+.ops[data-group-open='true'] {
+  z-index: 3;
+}
+
+.ops__group {
+  position: relative;
+}
+
+.ops__launcher {
+  position: relative;
+  gap: 2px;
+}
+
+.ops__caret {
+  font-size: 9px;
+  line-height: 1;
+  color: var(--text-3);
+}
+
+/* Pressed / open: its pop-out is showing. */
+.ops__launcher[aria-expanded='true'] {
+  border-color: var(--accent);
+  background: var(--surface-1);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+
+/* How many members can run: enablement reads before the pop-out is opened. */
+.ops__group-count {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  min-width: 16px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--accent-contrast);
+  font-size: 10px;
+  line-height: 16px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
 }
 
 /*

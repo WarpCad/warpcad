@@ -44,6 +44,7 @@ const EXCEPTIONS = Object.freeze({
   'src/components/layout/HelpSheet.vue': 'the help itself',
   'src/components/layout/LibraryRowPopout.vue': 'one Library row\'s settings; the rail\'s own ? (LibraryPanel) is the help for the Library',
   'src/components/layout/LibrarySectionPopout.vue': 'one Library section\'s rows, opened from the rail; the rail\'s own ? (LibraryPanel) is the help for the Library',
+  'src/components/viewport/OperationsGroupPopover.vue': 'a list of the Operations toolbar\'s own buttons; each member that opens a popover carries its ?, and at this pane width the File menu\'s Help row reaches Combining shapes (as for the icon row)',
 })
 
 /** Surfaces with headers that are not caught by the pop-up test above but are named in the TODO. */

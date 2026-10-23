@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { test, expect } from '@playwright/test'
 
-import { openApp, shot } from './support.js'
+import { loadScene, openApp, shot } from './support.js'
 
 /**
  * Docs media for "When the window is narrow" in `docs/primitive-placement.md` and the compact
@@ -16,6 +16,11 @@ import { openApp, shot } from './support.js'
  *
  *  - `library-section-popout`: the Library as a column of section buttons, Hardware tapped and its
  *    list open beside the column, over the 3D view.
+ *
+ * and, at 720×900 (the groups tier, `TODO/ui-082`):
+ *
+ *  - `operations-groups`: two bodies selected, the Operations toolbar as Combine / Arrange / Shape
+ *    launchers, Combine tapped and its four labelled members listed beneath it.
  */
 
 test.describe('narrow window', () => {
@@ -44,6 +49,25 @@ test.describe('narrow window', () => {
     await page.getByTestId('library-launcher-hardware').click()
     await expect(page.getByTestId('library-section-popout')).toHaveAttribute('data-section', 'hardware')
     await shot(page, 'library-section-popout.png')
+  })
+
+  test('operations-groups still', async ({ page }) => {
+    await page.setViewportSize({ width: 720, height: 900 })
+    await openApp(page)
+    await loadScene(page, 'cube-and-cylinder.ndjson', 2)
+    await expect(page.getByTestId('operations-toolbar')).toHaveAttribute('data-ops-tier', 'groups')
+    // Pane layout at 720 moves the bodies, so pick both from the Objects list's checks.
+    if (!(await page.getByTestId('object-list').isVisible().catch(() => false))) {
+      await page.getByTestId('inspector-objects-header').click()
+    }
+    for (let n = 0; n < 2; n++) {
+      await page.locator('[data-testid^="objects-check-"][aria-checked="false"]').first().click()
+    }
+    await expect(page.getByTestId('operations-toolbar')).toHaveAttribute('data-selected-count', '2')
+    await expect(page.getByTestId('ops-group-combine-count')).toHaveText('4')
+    await page.getByTestId('ops-group-combine').click()
+    await expect(page.getByTestId('ops-group-popover')).toHaveAttribute('data-group', 'combine')
+    await shot(page, 'operations-groups.png')
   })
 
   test('viewport-chrome-compact still', async ({ page }) => {
