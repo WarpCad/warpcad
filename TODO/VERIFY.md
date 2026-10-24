@@ -36,6 +36,14 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### ui-083 — Marquee start point under the Operations toolbar (2026-10-24 15:30)
+
+At laptop width the Operations toolbar sits over the top-left of the canvas, so a press there hits a toolbar button and never starts a marquee. The corner that works is bottom-right, and this is what `shift-select.e2e.js` and the scenario 4 drive now use. Whether that reads as a trap or as ordinary overlay behaviour is a judgment call, not a test.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | On a real laptop, and on the iPad in Split View, try to start a marquee at the top-left of the canvas. Does the toolbar's covered area read as a dead zone, and would a pan-first or a hint fix it? | Open | |
+
 ### ui-082 — Operations groups tier (2026-10-23 17:55)
 
 Scenarios 4 and 16 and the `ui-043`/`ui-015` repros passed with a real mouse. What no script or mouse run can judge is the feel of the pop-out under a finger.
