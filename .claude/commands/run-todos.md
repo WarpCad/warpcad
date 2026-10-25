@@ -155,7 +155,7 @@ scan at the first blocked one.
   runnable): close the current batch (`ended because: blocked on open dependencies`)
   and go to Step 6 with a 1-hour check-back rather than stopping indefinitely — deps
   may resolve from outside this loop.
-- **If there are no remaining ids at all** (everything in `TODO/ROADMAP.md` is `✅`):
+- **If there are no remaining ids at all** (`TODO/ROADMAP.md` has no open rows left; closed rows live in `TODO/ROADMAP-DONE.md`):
   close the batch (`ended because: backlog empty`), go to Step 6, then call
   `ScheduleWakeup` with `stop: true` after reporting — the backlog is finished, don't
   keep ticking.

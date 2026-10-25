@@ -28,6 +28,15 @@ without the `ui-082` diff), so none comes from that change.
 
 `io-012`'s completion row already recorded 1 and 2 as reproducing on untouched `HEAD`.
 
+**Cause of 3 and 4 (found 2026-10-25, full run while committing the roadmap split).** The version
+label is wider, not the header changed. The `app-header-version.png` baselines were last written on
+2026-10-20 (`8e0dde2`) and show the label as `dev`; `cf6c2d8` (`chore(release): v1.0.0`, 2026-10-21)
+moved `package.json` from `0.0.0` to `1.0.0`, and the production build now shows the real version
+there. The `mask` paints over the label, but the longer label pushes the hint text beside it to the
+right, which is the whole diff (`test-results/app-header-version*-chromium-laptop/*-diff.png`). The
+same run failed 4 on all nine engine-viewport projects (468 pixels, ratio 0.03) and 3 on
+`docs-laptop` (1110 pixels).
+
 ## Affected files
 
 - `e2e/viewport-scaffold.e2e.js` (the two tests above)
@@ -39,9 +48,11 @@ without the `ui-082` diff), so none comes from that change.
 1. Use `expect.poll` (or a retrying attribute assertion) for the scale readout. For the WebGL check,
    find why WebKit's canvas is not painted under load (context creation, first frame) and wait on a
    real settled signal, not a timeout.
-2. Look at the chip and version diff images together. If the header change is intended, regenerate both
-   baselines (`npm run docs:screenshots:update`; the e2e snapshot with `--update-snapshots`, headless) and
-   commit them; if not, fix the regression.
+2. Make the header snapshot independent of the version's length before regenerating anything:
+   give the version slot a fixed width, or mask the label and the hint together. Regenerating the
+   baselines alone passes until the next release changes the label's width. Then regenerate both
+   (`npm run docs:screenshots:update`; the e2e snapshot with `--update-snapshots`, headless) and
+   commit them.
 
 Do not loosen thresholds.
 

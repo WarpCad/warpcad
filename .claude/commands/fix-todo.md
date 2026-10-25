@@ -261,12 +261,20 @@ silently reintroducing a bug a past finding already fixed.
 ## Step 8 — Mark the roadmap entry done
 
 Find this id's row in `TODO/ROADMAP.md` (the milestone tables, or the
-`## Findings` table) and mark it complete in the same diff that will be
-committed — don't leave this for a later pass:
+`## Findings` table) and close it in the same diff that will be committed —
+don't leave this for a later pass. `TODO/ROADMAP.md` holds only open work, so the
+closed row moves out of it:
 
-1. Prefix the id cell with `✅ `, e.g. `| 23 | ✅ `core-005` | Extrude | M |`.
-2. Append one row to a `## Completion Log` table at the bottom of
-   `TODO/ROADMAP.md` (create the section, with a header row, if this is the
+1. Remove the row from its open table in `TODO/ROADMAP.md`, and from **All open
+   work** and **Next up** if it is listed there.
+2. Add the row to the matching milestone section in `TODO/ROADMAP-DONE.md`
+   (create the section, with the table header, if the milestone has none yet),
+   with the id cell prefixed `✅ `, e.g. `| ✅ `core-005` | Extrude | M |`. If the
+   milestone's last open row has just closed, move its heading to
+   `TODO/ROADMAP-DONE.md` and note the free-form human pass due, per `CLAUDE.md`'s
+   Verification section.
+3. Append one row to the `## Completion Log` table at the bottom of
+   `TODO/ROADMAP-DONE.md` (create the section, with a header row, if this is the
    first entry):
 
    ```

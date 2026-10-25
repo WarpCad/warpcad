@@ -105,6 +105,9 @@ M.
 - **`node bench/bundle-load.mjs --check --build baseline=dist`** after `npm run build`: all 7 steps in
   all three engines, offline included (no console or page error, Assistant and Help open, every
   emitted JS file precached, server-offline reload usable).
+- **`e2e/help-deep-link.e2e.js`** (`testing-012`) stays green: a cold `/#/help/<slug>` load must still
+  open Help, because the `warpcad.com` home page (M20) links every docs page that way. Deferring
+  `HelpSheet` would skip its `onMounted` hash read, and those links would land on an empty viewport.
 - **Unit (Vitest)**: `src/core/errorReporting.spec.js` — `initErrorReporting` with no/blank DSN still
   returns false and installs nothing; with a DSN it resolves the dynamic import (the existing
   `vi.mock('@sentry/vue')` still applies), calls `Sentry.init` with the same options, and an error

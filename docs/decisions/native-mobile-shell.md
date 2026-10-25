@@ -1,9 +1,42 @@
 # Native mobile shell: Capacitor, tools in the page, an outbound relay for outside agents
 
 **Status:** proposed 2026-10-20 (`TODO/build-003`); revised 2026-10-21 with a head-to-head of
-Capacitor and Tauri 2 (Question 7), at the owner's request. Research only: no code, no dependency,
-no roadmap row is added by this record. The recommendation at the end is for the user to accept or
-reject.
+Capacitor and Tauri 2 (Question 7), at the owner's request. **Decided 2026-10-24: Tauri 2** (owner
+decision, below), overriding the Capacitor recommendation at the end of this record.
+
+## Owner decision, 2026-10-24: Tauri 2, not Capacitor
+
+**Accepted 2026-10-24 by the owner, overriding Recommendation 1.** The iOS app is built with
+**Tauri 2** (the stable 2.x line, not the 3.0 alpha), in its own repository beside this one at
+`~/src/@WarpCad/warpcad-native`. The owner's stated reasons are Tauri's size (the 0.9 KB gzip page
+shim against Capacitor's 6.7 KB, Question 1) and its security structure (default-deny capabilities,
+two published audits, Question 7c). The comparison below is kept unchanged as the record of what
+was weighed.
+
+What this changes, and the roadmap rows that carry it (milestone M19 in `TODO/ROADMAP.md`):
+
+| Recommendation | Under Tauri | Row |
+|---|---|---|
+| 1. Shell: Capacitor 8 + compensating controls | Tauri 2 bundling the Vite build (no remote URL, App Store 2.5.2). Compensating controls become Tauri's own: one capability file granting the main window only the commands the app uses, fs scopes limited to the app's own folders, the production CSP kept strict, no remote navigation. Health check re-run at pull-in | `build-017` |
+| — | On-device probe of what Question 7 left unmeasured: binary size, cold start, memory, context loss, `ws://` from `tauri://localhost`, `<input type=file>`, Blob download, and which agents can reach an MCP server in the app | `build-018` |
+| 3. Files: a `shell` mode, Save = Share… | A `native-app` mode. Projects save **in place** to the app's Documents folder, which the Files app shows under *On My iPhone › WarpCad* (`UIFileSharingEnabled`, `LSSupportsOpeningDocumentsInPlace`), so Save needs no share plugin. Open uses `tauri-plugin-dialog`. Exports go through the same native write, never a Blob download | `io-014` |
+| 4. Storage: native mirror | Unchanged in intent; the mirror is written with `tauri-plugin-fs` | `io-015` |
+| 4. Credentials to Keychain | No official Tauri Keychain plugin: the `keyring` crate or a small Swift plugin of our own, chosen at the task's health check | `ai-025` |
+| 5. WebGL context restore before any store build | Unchanged | `render-006` |
+| 6. Outside reachability: route A only | **The owner also wants an MCP server inside the app** (route B, rejected above). It is built knowingly with route B's limits stated in the UI: it answers only while the app is on screen (TN2277), it listens on loopback by default, and LAN access is an explicit, timed, token-gated opt-in. Tauri's official Rust MCP SDK (`rmcp`) serves it; the tools stay the page's registry, relayed over Tauri IPC to `TabEndpoint`, so the host adds no tool. Route A (`ai-019`) stays reserved | `ai-026` |
+| 7, 8. Help GIFs, AGPL / App Store, enrolment, signing | Unchanged as owner decisions; scheduled with the store work | `build-019`, `build-020` |
+
+Two costs from Question 7 are accepted with this decision and are budgeted in the rows above: the
+open Tauri iOS packaging and CI-signing issues (#13578, #15066, #15663, #15740), which is why the
+TestFlight upload (`build-019`) runs early instead of last, and the crate licence audit, which needs
+a `cargo-deny` gate in the new repository (`build-017`, `build-020`).
+
+**Revisit when** (in addition to the list at the end): a Tauri iOS packaging bug blocks the App
+Store upload with no workaround, or the `build-018` probe shows a WebGL or storage behaviour in
+Tauri's WebView setup that Capacitor's (Question 1, "WebContent process killed") handles and Tauri
+does not.
+
+---
 
 **The question.** What is the right way to turn the WarpCad PWA into an iOS and Android app that
 can also expose the AI tool surface (`src/ai/tools/`) to an agent outside the phone?

@@ -3,7 +3,7 @@
  * The credential boundary (`TODO/io-002`) — where a user-supplied secret lives.
  *
  * `io-002`'s own Goal records the correction that made this file necessary:
- * `TODO/ROADMAP.md`'s M6 section says the hosted backend reuses "the same BYOK
+ * `TODO/ROADMAP-DONE.md`'s M6 section says the hosted backend reuses "the same BYOK
  * pattern the AI chat client already uses", and `src/ai/` is a `.gitkeep`. There
  * is no such pattern yet, so this is the **first** one — and it is written
  * generically (a key → record store, not a GitHub-specific one) precisely so the

@@ -5,7 +5,7 @@ kind: feature
 priority: medium
 model: opus
 milestone: M5
-depends: [core-073]
+depends: []
 status: open
 ---
 

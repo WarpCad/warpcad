@@ -2367,3 +2367,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** launchers, badge and groups → diff (src/core/operationGroups.js, OperationsToolbar.vue); 720 px → TODO/done/ui-082 text; badge 4 with two bodies selected → hand-driven run this session, WebKit and Chromium
 **To Add:** docs/screenshots/operations-groups.png
+
+## 2026-10-25T15:26:34-05:00 — Roadmap split into open and done; iOS app and home page planned
+
+**Post:** WarpCad's roadmap file had grown to 1,477 lines, most of it finished work. It now holds open work only (411 lines); the done milestones moved to their own file. Also planned: the iOS app on Tauri 2 (10 tasks) and a warpcad.com home page. Built with Claude Code, reviewed by me. #OpenSource
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** 1,477 → 411 lines → `git show HEAD:TODO/ROADMAP.md | wc -l` and `wc -l TODO/ROADMAP.md` this session; Tauri 2 → docs/decisions/native-mobile-shell.md owner decision 2026-10-24; 10 M19 tasks, 5 M20 → `grep milestone:` over TODO/ this session
+**To Add:** none

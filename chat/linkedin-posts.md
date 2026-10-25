@@ -3408,3 +3408,16 @@ Phone width is unchanged. Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** group membership and hand-written table → src/core/operationGroups.js; disabled title and count → hand-driven run this session; phone unchanged → TODO/done/ui-082 text and phone e2e assertion in the diff
 **To Add:** docs/screenshots/operations-groups.png
+
+## 2026-10-25T15:26:34-05:00 — Roadmap split into open and done; iOS app and home page planned
+
+**Post:** WarpCad's roadmap had become a history book. At 1,477 lines, most of it was finished milestones and a completion log, and the open work was scattered between them. The roadmap now holds only what is left to do, 411 lines, and finished rows move to a separate done file in the same commit that closes the task. The agent workflows that work through the backlog were updated to move rows there instead of ticking them in place.
+
+The same commit plans the next two milestones. The iOS app will be built with Tauri 2 rather than Capacitor, for its smaller page shim and default-deny permission model, as ten tasks running from the scaffold through a TestFlight build to an App Store submission that stops at my own button press. The second milestone is a home page at warpcad.com whose documentation links open straight into the app's built-in Help.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** 1,477 → 411 lines → wc -l on HEAD and working tree, this session; rows move on close → .claude/commands/fix-todo.md Step 8 diff; Tauri over Capacitor, shim size, default-deny → docs/decisions/native-mobile-shell.md owner decision 2026-10-24; ten tasks scaffold → TestFlight → stops at owner's submit → TODO/build-017, build-019, build-020 and grep of M19; Help deep links → TODO/docs-027, testing-012
+**To Add:** none

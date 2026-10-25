@@ -282,6 +282,7 @@ previous choice is rejected, not merely unconfirmed, and the question underneath
 | Document model / sync | **Committed** (accepted 2026-10-12, `docs-022`) | NDJSON project file with a hand-rolled, state-based merge (replica ids, Lamport stamps, position keys, tombstones; record lines byte-identical, merge metadata in the state line as version 2) — **no CRDT library**; Yjs/Automerge/Loro re-checked and rejected, and the earlier single-writer deferral kept as history — see `docs/decisions/document-sync.md`. The AI partner is the second writer that made it a goal (`docs/decisions/ai-partner.md`) |
 | LLM client | **Committed** (accepted 2026-10-06) | raw `fetch` to the Messages API behind a one-method provider interface, Anthropic-only v1, no dependency; `@anthropic-ai/sdk` rejected for now (fails the licence allow-list via a transitive Unlicense dep, 14% of the bundle) — see `docs/decisions/ai-partner.md` |
 | Error reporting | **Committed** (accepted 2026-10-17, `build-004`) | `@sentry/vue` 11.8.0 (source maps uploaded by a `curl` step in the Pages workflow; no build plugin, `build-009`), inert without `VITE_SENTRY_DSN`; one tested scrubber (`src/core/errorReporting.js`); ingest host derived from the DSN into the production CSP; token only as a GitHub secret — see `docs/decisions/error-reporting.md` |
+| Native iOS shell | **Committed** (owner decision 2026-10-24) | Tauri 2, in the sibling repository `~/src/@WarpCad/warpcad-native`, bundling this repo's Vite build; Capacitor's recommendation overridden — see `docs/decisions/native-mobile-shell.md` and milestone M19 |
 | MCP SDK | **Committed** (accepted 2026-10-06) | `@modelcontextprotocol/server` 2.3.1 (v2 split package, Apache-2.0), in its own `mcp/package.json` — see `docs/decisions/ai-partner.md` |
 
 ## Architecture
@@ -544,8 +545,9 @@ of the work, not scaffolding. Full map in `LICENSING.md`; the rules you must fol
 
 ## Working Files
 
-- `TODO/ROADMAP.md` — the ordered build plan. **Does not exist yet.** Create it during
-  kickoff: for each major capability, walk through the interaction-model questions in
+- `TODO/ROADMAP.md` — the ordered build plan, **open work only**. Closed rows move to
+  `TODO/ROADMAP-DONE.md`, which also holds the finished milestones, background decisions,
+  status history and Completion Log. Created during kickoff: for each major capability, walk through the interaction-model questions in
   `.claude/commands/feature.md` Phase 1 (Q10-16) *before* writing the roadmap entry, not
   after — the first attempt's prompt asked for lots of clarifying questions but got
   stack/storage questions back, not UI/UX ones, and paid for that gap later. Also
