@@ -5,10 +5,10 @@ kind: finding
 priority: high
 model: sonnet
 depends: []
-status: open
+status: done
 ---
 
-## Resolution (2026-10-18, uncommitted)
+## Resolution (2026-10-18, closed 2026-10-26)
 
 Driven by hand with a debug spec at the phone viewport: the app is right and the specs were wrong.
 Once a body exists, the phone Library sheet sits higher (the scene-list bar docks under it,
@@ -24,8 +24,12 @@ on the sheet and was ignored, which is why `data-body-count` stayed at `1`.
   "enabled until" text when an attached client takes the bridge straight to `connected`; it now
   asserts `data-state`. The `print-prep` still is `testing-008`.
 
-Left to do: the tablet and firefox/webkit laptop projects were not re-run for the three moved
-specs, and no acceptance scenario was re-driven by hand. Close with `/fix-todo` after a full run.
+Closed 2026-10-26: the changed-scope run (the five specs above, all nine engine-viewport projects)
+found one more stale baseline, `help-from-align.png` (the Align popover rows changed in `ui-086`/`ui-088`);
+regenerated for all nine projects after checking that everything around the masked images was right.
+Result: 529 passed, 0 failed, 94 skipped. Scenarios 1 and 4 and the `ui-072` phone repro were re-driven
+by hand (see `TODO/ACCEPTANCE.md`); scenario 4's two bodies did not overlap, so material removal was not
+re-checked.
 
 ## Problem
 
