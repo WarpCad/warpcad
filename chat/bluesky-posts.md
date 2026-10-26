@@ -2403,3 +2403,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** 180 ms track transition, 220 ms flag → diff (AppView.vue, panelLayout.js PANEL_ANIMATING_MS); compact-first / wide-after ordering → diff (contentTierFor + spec); reduced motion instant → diff (prefersReducedMotion, CSS media query) and e2e/panel-tiers.e2e.js
 **To Add:** docs/media/window-shrink.gif
+
+## 2026-10-26T23:30:00-05:00 — Operation panels can be moved
+
+**Post:** WarpCad's Align panel opened right on top of the two solids you were aligning, so you couldn't see which way a move went. It now has a grip: drag it, nudge it with the arrow keys, double-click to put it back. Works on the other operation panels too. #CAD #OpenSource Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** grip drag, arrow-key nudge, double-click reset, other operation panels → diff (PopoverGrip.vue, usePopoverDrag.js, OperationsToolbar.vue); panel covered the solids → TODO/done/ui-087 Problem text
+**To Add:** docs/screenshots/align-popover-moved.png

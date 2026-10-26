@@ -818,6 +818,7 @@ as a milestone table.) `io-008` and `data-013` moved to [M16](#m16--next-batch-n
 | `data-014` | Merge tie-break prefers the local step when two clocks tie. Decided 2026-10-17 | Finding | — | 1 (merge scenarios) |
 | ✅ `io-012` | On focus, warn "this file may have changed" in browsers with no file handle. Decided 2026-10-17 | Feature | — | 13 |
 | ✅ `ui-086` | Align popover: one seven-position row per axis (outside −, inside −, half −, center, half +, inside +, outside +) replaces the min/ctr/max grid, the Snap row and its Relation select; no record shape changes. Requested 2026-10-25 | Feature | — | 1, 3, 6, 10, 12; `ui-026/035/050/060/063/069`, `data-007` repros |
+| ✅ `ui-087` | Operation popovers (Align, Fillet/Chamfer, Enlarge/Fit/Bisect, Mirror): **Stage 1 only**, a grip to move the panel (drag, arrow keys, session memory, double-click reset). **Stages 2 (non-modal) and 3 (open beside the selection) are deferred and have no open row.** Reported 2026-10-26 | Finding | — | 1, 3, 4, 7 |
 | ✅ `ui-088` | Align popover: the `in` and `half` position icons redrawn (16-wide target, 4-wide block, dashed centre line) so they read apart at the current button size. Reported 2026-10-26 | Finding | — | 1, 3; `ui-086`, `ui-060` repros |
 | `ui-075` | Live MCP access entry in the phone header. Decided 2026-10-17 | Feature | — | 24, 25 |
 | `docs-025` | Document the phone header's Live MCP access entry, with a still. Split from `ui-075` 2026-10-18 | Feature | `ui-075` | none |
@@ -1143,5 +1144,6 @@ convention going forward.
 | `ui-085` | 2026-10-26 12:50 | ~30m wall clock (preflight 12:20 UTC). Two causes found by measuring in WebKit: the Help button's 8px overhang and the Pi variant `<select>`'s own 8px of scrollable overflow. |
 | `ui-089` | 2026-10-26 21:16 | ~1h11m wall clock from Step 1 (Step 3 was not stamped separately; three Opus agents: core layer, then render/UI/docs/e2e). Full e2e not green at commit time: 1 of this feature's tests failed on a sub-pixel eye height and was fixed; 5 header-version screenshots and 1 AI-chip docs shot are open `testing-009` / `testing-010`, carried over by decision. Acceptance scenarios not hand-driven yet. |
 | `ui-088` | 2026-10-26 22:00 | ~35m wall clock. Acceptance scenarios 1 and 3 and the `ui-086`/`ui-060` repros were **not hand-driven** (commit requested straight after the automated run); the position-order e2e from `ui-086` still passes. |
+| `ui-087` | 2026-10-26 23:01 | ~30m wall clock (22:37 UTC start), Stage 1 only, finished by Sonnet after a Haiku start. Re-drove scenarios 1, 3, 4, 7 by hand (real mouse; scenario 4's second operand by a synthetic Shift pointer event, the known real-mouse Shift-click gap). Full e2e not run (changed scope only). |
 
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

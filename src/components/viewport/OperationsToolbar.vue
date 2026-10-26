@@ -309,6 +309,7 @@ import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } 
 import HelpButton from '../controls/HelpButton.vue'
 import AlignPopover from './AlignPopover.vue'
 import OperationsGroupPopover from './OperationsGroupPopover.vue'
+import PopoverGrip from './PopoverGrip.vue'
 
 import { consumesOf } from '../../core/booleanConsumes.js'
 import { OPERATION_GROUPS, groupStates } from '../../core/operationGroups.js'
@@ -325,6 +326,7 @@ import { RIM_FACE_OPTIONS } from '../../core/timelineLabel.js'
 import { useTimelineStore } from '../../stores/timeline.js'
 import { usePanelLayoutStore } from '../../stores/panelLayout.js'
 import { useTierCrossfade } from '../../composables/useTierCrossfade.js'
+import { usePopoverDrag } from '../../composables/usePopoverDrag.js'
 
 const documentStore = useDocumentStore()
 const selection = useSelectionStore()
@@ -717,6 +719,9 @@ const openPopover = ref(
     null
   ),
 )
+// Dragging the popover's grip (`TODO/ui-087`): the frame is teleported, so the composable finds it
+// through the grip rather than through a ref.
+usePopoverDrag(openPopover)
 
 // Tell the app an operation popover is open, so a background hosted-conflict dialog is deferred
 // rather than stacked over it (TODO/ui-033, data-002 §11 rule 5: "no other popover or dialog
@@ -1935,6 +1940,7 @@ onBeforeUnmount(() => {
         data-testid="fillet-chamfer-popover"
         :data-op="openPopover"
       >
+        <PopoverGrip />
         <p class="ops__popover-note">
           {{ FILLET_CHAMFER_OPERATIONS.find((operation) => operation.op === openPopover)?.scopeNote }}
         </p>
@@ -1998,6 +2004,7 @@ onBeforeUnmount(() => {
         data-testid="resize-popover"
         :data-op="openPopover"
       >
+        <PopoverGrip />
         <template v-if="openPopover === 'modify.enlarge'">
           <p class="ops__popover-note">
             Grows (positive) or shrinks (negative) the shape by this many
@@ -2127,6 +2134,7 @@ onBeforeUnmount(() => {
         data-testid="mirror-popover"
         data-op="transform.mirror"
       >
+        <PopoverGrip />
         <p class="ops__popover-note">
           Adds a reflected <strong>copy</strong> on the other side of a plane.
           The original stays exactly where it is; the copy becomes the selection.

@@ -1,5 +1,7 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <script setup>
+import PopoverGrip from './PopoverGrip.vue'
+
 /**
  * The one **Align** popover (`TODO/ui-060`): Snap, Align and the Inspector's old Align to
  * origin row (`TODO/ui-050`), behind one **Target** dropdown. `OperationsToolbar.vue` owns
@@ -258,6 +260,7 @@ const positionColumns = POSITIONS.map(({ key, header }) => ({ key, header }))
 
 <template>
   <div class="align-popover" data-testid="align-popover" :data-target="target">
+    <PopoverGrip />
     <p class="align-popover__operands" data-testid="align-operands" :data-subpart="operands.some((operand) => operand.isSubPart) ? 'true' : 'false'">Aligning <strong data-testid="align-operand-moving">{{ moving?.label }}</strong> to <strong data-testid="align-operand-target">{{ target === 'origin' ? 'World origin' : second?.label }}</strong></p>
 
     <label v-if="second" class="align-popover__field">

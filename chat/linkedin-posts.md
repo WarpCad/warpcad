@@ -3460,3 +3460,16 @@ Under prefers-reduced-motion all of it is instant. Built with Claude Code, revie
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** tier sequence → docs/mobile.md diff; 180 ms / 220 ms / transitionend fallback → diff (AppView.vue, panelLayout.js); fluid change never animates → motionFor + spec; drag hold and WebKit reason → libraryTierDuringDrag JSDoc in diff; reduced motion → diff and e2e/panel-tiers.e2e.js
 **To Add:** docs/media/window-shrink.gif
+
+## 2026-10-26T23:30:00-05:00 — Operation panels can be moved
+
+**Post:** The Align panel in WarpCad opens in the middle of the viewport, which is exactly where the two solids you are aligning sit. You could press a position button but not see where the move went.
+
+This commit is the first of three planned stages: a grip on every operation panel, draggable by mouse or touch, nudged with the arrow keys, reset with a double-click, and remembered for the session. Making the panel non-modal and opening it beside the selection are still open.
+
+The drag has a unit spec and an Align e2e that runs on Chromium, Firefox and WebKit at phone, tablet and laptop sizes. Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** three stages, Stage 1 shipped → TODO/done/ui-087 note; e2e engines and sizes → this session's 128/128 run of snap-align-operation.e2e.js (9 projects) and the 9 baseline PNGs in the diff
+**To Add:** docs/screenshots/align-popover-moved.png

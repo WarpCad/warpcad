@@ -257,6 +257,12 @@ export const usePanelLayoutStore = defineStore('panelLayout', () => {
   const chatColumn = ref(false)
   /** @type {import('vue').Ref<string | null>} */
   const openPopout = ref(null)
+  /**
+   * Where each operation popover was last dragged to, in viewport px (`TODO/ui-087`), keyed by the
+   * popover's kind. Session only and never persisted: a stale position is more often wrong than right.
+   * @type {import('vue').Ref<Record<string, { left: number, top: number }>>}
+   */
+  const popoverPlacements = ref({})
 
   const layout = computed(() => panelLayoutFor({ bodyWidthPx: bodyWidthPx.value, chatColumn: chatColumn.value }))
   /**
@@ -281,6 +287,29 @@ export const usePanelLayoutStore = defineStore('panelLayout', () => {
   /** @param {boolean} open */
   function setChatColumn(open) {
     chatColumn.value = open
+  }
+
+  /**
+   * Record a popover's dragged position. An existing entry is updated in place, so a drag that
+   * writes on every pointer move does not allocate.
+   *
+   * @param {string} kind
+   * @param {number} left viewport px
+   * @param {number} top viewport px
+   */
+  function setPopoverPlacement(kind, left, top) {
+    const placed = popoverPlacements.value[kind]
+    if (placed) {
+      placed.left = left
+      placed.top = top
+    } else {
+      popoverPlacements.value[kind] = { left, top }
+    }
+  }
+
+  /** @param {string} kind */
+  function clearPopoverPlacement(kind) {
+    delete popoverPlacements.value[kind]
   }
 
   /** Whether the grid tracks are animating to a new tier. Never on the first render. */
@@ -332,12 +361,15 @@ export const usePanelLayoutStore = defineStore('panelLayout', () => {
     bodyWidthPx,
     chatColumn,
     openPopout,
+    popoverPlacements,
     layout,
     animating,
     libraryContentTier,
     opsContentTier,
     setBodyWidth,
     setChatColumn,
+    setPopoverPlacement,
+    clearPopoverPlacement,
     finishTrackAnimation,
   }
 })

@@ -196,5 +196,6 @@ full click-once/click-again mechanism.
 - [Selecting a shape, and reading its size](selection-and-inspector.md) — what
   selection does, and how drilling into one part of a group (including a
   Bisect result) works.
+- [Moving the panel out of the way](snap-align.md#moving-the-panel-out-of-the-way) — drag the grip at the top of the Enlarge, Fit and Bisect panels if it covers the shape you are working on.
 
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

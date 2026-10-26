@@ -2135,4 +2135,11 @@ One Pi now drills every hole: a Subtract that cuts with only the Pi's mounting h
 | 2 | **Feel:** drill two holes with one Pi, then move the Pi. The holes already drilled stay where they were (each Subtract reads the Pi as it was at that step); only a later Subtract uses the new place. A model edit on the Pi (say Pi 4 to Pi 5) does re-fold the holes. Does the first read as a bug to someone who has not read `docs/hardware-library.md`? | Open | |
 | 3 | **Decision for the owner:** Repeat now refuses a source whose steps include a Subtract (from the seed's first mention onward), with *"... a repeat would copy the whole of <body> once per target. Subtract the other parts one at a time instead ..."*. It is not reachable from the UI today, so no one sees it by hand; it is there so a kept Pi cannot make Repeat add one whole extra plate per hole. Keep it, or drop it and accept that case? | Open | |
 
+### ui-087 — Moving the operation panels (Stage 1)
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | **Feel, on a real iPhone and iPad:** drag the Align panel by its grip with a thumb. It should follow the finger at 1:1 with no page scroll or rubber-banding, and the grip (44 px tall on a phone) should be easy to hit. Only a scripted touch drag (Chromium CDP) has been tried. | open | |
+| 2 | **Safari desktop and Firefox:** drag, arrow-key nudge and double-click reset on the Align and Fillet panels (the e2e covers the Align drag on all three engines; the feel is unjudged). | open | |
+
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

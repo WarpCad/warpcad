@@ -5,8 +5,10 @@ kind: finding
 priority: medium
 model: sonnet
 depends: []
-status: open
+status: done
 ---
+
+> **Stage 1 shipped** (the movable popover: grip drag, arrow-key nudge, session memory, double-click reset, on every operation popover). **Stages 2 and 3 are deferred and still open**: the popover stays modal with its backdrop, and it still opens at the centre of the viewport, so it can still cover the solids on first open until the user moves it. This finding's own open questions (does a click on a solid re-target while Align is open; whether the position persists across reloads) are **unresolved**; Stage 1 kept the position for the session only, as the finding recommended. Stage 3's two placement designs are still to be settled.
 
 ## Problem
 

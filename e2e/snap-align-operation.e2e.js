@@ -792,3 +792,67 @@ test('the first Library drag after dismissing the Align popover with Escape stil
   await closeLibrary(page)
   await expect(page.getByTestId('viewport')).toHaveAttribute('data-body-count', '3')
 })
+
+/**
+ * `TODO/ui-087` stage 1: the Align popover moves by its grip. A real mouse drag with intermediate
+ * moves, the arrow-key nudge, a session-long memory across Escape and reopen, and the double-click
+ * reset. The popover is teleported over the scene, so each step reads its own bounding box rather
+ * than assuming a position; the clamp keeps it on-screen at every width, which is why the drag
+ * assertion is "moved left, still inside the viewport" rather than an exact pixel offset.
+ */
+test('the Align popover moves by its grip with a mouse drag and arrow keys, stays on-screen, remembers the spot, and resets on double-click (TODO/ui-087)', async ({
+  page,
+}) => {
+  await placeCubeAndCylinder(page)
+  await selectCubeThenCylinder(page)
+
+  await page.getByTestId('operation-align').click()
+  const popover = page.getByTestId('align-popover')
+  await expect(popover).toBeVisible()
+  const grip = page.getByTestId('popover-grip').first()
+  await expect(grip).toBeVisible()
+
+  const { width: vw, height: vh } = page.viewportSize()
+  const start = await popover.boundingBox()
+  expect(start).not.toBeNull()
+  const gripBox = await grip.boundingBox()
+  expect(gripBox).not.toBeNull()
+
+  // A real drag: press on the grip, move in steps so the handler sees several pointer moves.
+  const gripX = gripBox.x + gripBox.width / 2
+  const gripY = gripBox.y + gripBox.height / 2
+  await page.mouse.move(gripX, gripY)
+  await page.mouse.down()
+  await page.mouse.move(gripX - 60, gripY + 10, { steps: 4 })
+  await page.mouse.move(gripX - 120, gripY + 20, { steps: 4 })
+  await page.mouse.up()
+
+  const dragged = await popover.boundingBox()
+  expect(dragged).not.toBeNull()
+  expect(dragged.x).toBeLessThan(start.x)
+  expect(dragged.x).toBeGreaterThanOrEqual(0)
+  expect(dragged.y).toBeGreaterThanOrEqual(0)
+  expect(dragged.x + dragged.width).toBeLessThanOrEqual(vw + 0.5)
+  expect(dragged.y + dragged.height).toBeLessThanOrEqual(vh + 0.5)
+
+  // The keyboard path: focus the grip and nudge right by one step.
+  await grip.focus()
+  await page.keyboard.press('ArrowRight')
+  const nudged = await popover.boundingBox()
+  expect(nudged.x).toBeGreaterThan(dragged.x)
+
+  // Session memory: close, reopen, and the popover comes back where it was left.
+  await page.keyboard.press('Escape')
+  await expect(popover).toHaveCount(0)
+  await page.getByTestId('operation-align').click()
+  await expect(popover).toBeVisible()
+  const reopened = await popover.boundingBox()
+  expect(Math.abs(reopened.x - nudged.x)).toBeLessThan(1)
+  expect(Math.abs(reopened.y - nudged.y)).toBeLessThan(1)
+
+  // Double-click the grip: back to the stylesheet's centred default.
+  await grip.dblclick()
+  const centred = await popover.boundingBox()
+  expect(centred).not.toBeNull()
+  expect(Math.abs(centred.x - (vw - centred.width) / 2)).toBeLessThan(2)
+})

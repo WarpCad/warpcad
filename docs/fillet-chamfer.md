@@ -182,5 +182,6 @@ one that is too small to take it is refused too:
 - [Selecting a shape, and reading its size](selection-and-inspector.md) — what
   selection does, and how the Inspector's Size fields relate to a shape's
   actual current geometry.
+- [Moving the panel out of the way](snap-align.md#moving-the-panel-out-of-the-way) — drag the grip at the top of the Fillet and Chamfer panels if it covers the shape you are working on.
 
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

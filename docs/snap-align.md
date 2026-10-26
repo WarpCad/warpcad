@@ -448,6 +448,27 @@ Top to bottom:
   the origin). Defaults to `0`. Change it, then tap.
 - **Error line**: if the move can't be made, the reason appears here and nothing moves.
 
+## Moving the panel out of the way
+
+The Align panel opens near the middle of the 3D view, which is where new shapes tend to
+land, so it can sit on top of the two shapes you are aligning. You can move it.
+
+- **Drag the grip** (the row of dots at the very top of the panel). The panel follows your
+  pointer or finger and always stays fully on screen.
+- **Keyboard:** press Tab to focus the grip, then use the arrow keys. Each press moves the
+  panel 16 pixels; hold **Shift** for 64.
+- **Reopening** the panel puts it back where you left it, until you reload the page.
+- **Double-click the grip** to send the panel back to its usual spot.
+
+![The Align panel dragged to the right so the lug and the plate are both visible beside it](./screenshots/align-popover-moved.png)
+
+Example: select the lug and then the plate and tap **Align**. Drag the panel's grip to the
+right until the lug and the plate are both clear of it, then tap **X · outside −** and watch
+the move in the view. The panel stays open for the next axis. Moving the panel changes
+nothing in your model and does not change what is selected.
+
+The Fillet, Chamfer, Enlarge, Fit, Bisect and Mirror panels have the same grip.
+
 ## What happens to the two shapes
 
 Unlike Union, Subtract, Intersect or Group, **neither shape is retired.** The
