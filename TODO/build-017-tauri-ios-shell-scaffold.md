@@ -1,5 +1,5 @@
 ---
-title: Scaffold the Tauri 2 iOS app in a sibling repository, bundling the WarpCad build
+title: Scaffold the Tauri 2 app (iOS, iPadOS, macOS, Android, Windows) in a sibling repository, bundling the WarpCad build
 category: build
 kind: feature
 priority: high
@@ -13,11 +13,23 @@ status: open
 > beside this one) and makes small changes here. Commit each repository separately; this file
 > retires in this repository's commit. Creating a GitHub remote for the new repository is an
 > owner step (outward-facing): the task stops and asks before `gh repo create`.
+>
+> **This task is also the hand-off.** Its last step moves every native-app TODO out of this
+> repository into `warpcad-native/TODO/` (see "Hand-off of the native TODOs" below). After it, new
+> native work is filed in that repository, not here.
 
 ## Goal
 
-The owner decided on 2026-10-24 to ship WarpCad on iOS as a **Tauri 2** app, not Capacitor
-(`docs/decisions/native-mobile-shell.md`, "Owner decision"). Nothing native exists yet.
+The owner decided on 2026-10-24 to ship WarpCad as a **Tauri 2** app, not Capacitor
+(`docs/decisions/native-mobile-shell.md`, "Owner decision"), and widened the targets on 2026-10-26 from
+iOS alone to **five platforms: iOS, iPadOS, macOS, Android and Windows**. iOS and iPadOS are one Tauri
+target (`ios`): one bundle, one App Store record, an iPhone-and-iPad (universal) build. Nothing native
+exists yet.
+
+**Scope of this task:** scaffold all five targets and prove each *launches the bundled app*. iOS (on the
+owner's iPhone) is still the first-class target and the one the rest of M19 finishes. macOS, Android and
+Windows get a working scaffold and a smoke launch here; their signing, store and platform-specific
+features are follow-up rows filed in `warpcad-native` (see "Follow-up rows to file").
 
 Done means:
 
@@ -28,6 +40,16 @@ Done means:
   that installs and opens on the owner's iPhone from Xcode (development signing, the owner's
   personal team). `cargo tauri dev` runs the same shell as a **macOS** window. That is the quick
   iteration loop for every later M19 row, and it is where `ai-026`'s MCP server is first tested.
+- The other four targets are scaffolded and launch the same bundle:
+  - **macOS**: `cargo tauri dev` / `cargo tauri build` produce a `.app` on this machine.
+  - **iPadOS**: the iOS build runs on an iPad (universal, `TARGETED_DEVICE_FAMILY = 1,2`); the owner
+    confirms on their iPad, or on a simulator if none is at hand (WebGL does not count there).
+  - **Android**: `cargo tauri android init` succeeds and `cargo tauri android dev` launches on an
+    emulator or device. Needs Android Studio, the SDK/NDK and `ANDROID_HOME`/`NDK_HOME`; record what the
+    machine lacks and ask before installing several GB.
+  - **Windows**: this Mac cannot build it. Add a `windows-latest` GitHub Actions job that runs
+    `cargo tauri build` and uploads the unsigned installer; "launches" is verified by the owner on a
+    Windows machine, or recorded as not driven.
 - This repository gains a `build:native` script that produces the web bundle the shell ships, and
   one framework-free adapter, `src/native/shell.js`, that is the only code in `src/` that knows it
   is inside Tauri.
@@ -42,7 +64,7 @@ No new control. What the user sees changes in three places, all driven by `isNat
 - **Trigger**: launching the app from the iPhone home screen.
 - **Feedback**: the app opens straight to the viewport. There is no browser chrome, no
   "Install app" prompt, and no service-worker update toast. The Help version line reads
-  `WarpCad <version> (<commit>) · iOS app <shell version>`.
+  `WarpCad <version> (<commit>) · <platform> app <shell version>` (`iOS`, `macOS`, `Android`, `Windows`).
 - **Placement / Selection response / Selection count**: n/a. Every existing control behaves as in
   Safari at the same width. This task changes none of them.
 - **Small-screen behavior**: same as the PWA at 390×844. The viewport and sheets must respect the
@@ -52,12 +74,12 @@ No new control. What the user sees changes in three places, all driven by `isNat
 
 ## Documentation
 
-- **Page**: new `docs/ios-app.md` (+ sidebar entry, `.claude/commands/docs.md` Step 4): what the
-  iOS app is, how it differs from the web app (bundled offline copy, its own storage that does
+- **Page**: new `docs/native-apps.md` (+ sidebar entry, `.claude/commands/docs.md` Step 4): what the
+  native apps are (one section per platform), how they differ from the web app (bundled offline copy, its own storage that does
   **not** share projects with Safari's `app.warpcad.com`, files in the Files app once `io-014`
   lands), and, for contributors, how to build it from `warpcad-native`'s README.
 - **Example**: "Open WarpCad from your home screen. Tap **Library**, drag **Cube** into the view
-  and lift your finger. Open **Help ▾ → About** and check the version line ends in `iOS app`."
+  and lift your finger. Open **Help ▾ → About** and check the version line ends in `iOS app` (or `macOS app`, `Android app`, `Windows app` on those platforms)."
 - **Media**: none generated by Playwright yet, because no Playwright project drives the native
   shell. `e2e/docs-media.spec.js` requires every embedded picture to come from a spec, so this
   page embeds none. Say so on the page. Screenshots for the store listing are `build-020`'s.
@@ -70,7 +92,7 @@ No new control. What the user sees changes in three places, all driven by `isNat
   `src/main.rs`, `tauri.conf.json`, `capabilities/default.json`, `gen/apple/` (decide whether
   `gen/apple` is committed; Tauri issue #13578's upload workaround touches it, so record why).
 - `package.json` with `@tauri-apps/cli` 2.x pinned exactly, plus the scripts `ios:dev`,
-  `ios:build`, `mac:dev`.
+  `ios:build`, `mac:dev`, `mac:build`, `android:dev`, `android:build`, `win:build`.
 - `README.md`, `CLAUDE.md` (short: points at `../warpcad/CLAUDE.md` for every rule, plus what is
   specific here: Rust conventions, `cargo fmt`/`clippy`/`cargo deny` as gates), `LICENSE`
   (AGPL-3.0-or-later, same as WarpCad), SPDX markers on every file (copy `scripts/spdx.mjs`'s
@@ -82,7 +104,7 @@ No new control. What the user sees changes in three places, all driven by `isNat
 - `package.json`: `build:native` (`vite build --mode native`, output `dist-native/`).
 - `vite.config.js`: `mode === 'native'` sets `base: './'`, turns off GA (`__GA_MEASUREMENT_ID__`
   → `''`; the native app's privacy label is decided in `build-020`, and the safe default is no
-  analytics), leaves Sentry governed by `VITE_SENTRY_DSN`, and stamps `__SHELL__ = 'tauri-ios'`.
+  analytics), leaves Sentry governed by `VITE_SENTRY_DSN`, and stamps `__SHELL__` with the target (`tauri-ios`, `tauri-macos`, `tauri-android`, `tauri-windows`; the shell passes it through an env var read by the Vite mode).
 - `src/pwa.js`: no service-worker registration when `isNativeShell()`. Assets are local, and WKWebView
   service workers outside App-Bound Domains are unreliable (decision record Q2).
 - `src/native/shell.js` (new, framework-free): `isNativeShell(env)`, `invoke(cmd, args)` over
@@ -106,8 +128,9 @@ No new control. What the user sees changes in three places, all driven by `isNat
 2. Scaffold with `cargo install tauri-cli --version ^2 --locked`, then `cargo tauri init`
    (frontend dist `../../warpcad/dist-native`, no dev URL in release), then `cargo tauri ios init`.
    Bundle identifier: propose **`com.warpcad.app`** and **ask the owner to confirm**, because it
-   cannot change once an App Store Connect record exists. App name **WarpCad**. Minimum iOS:
-   whatever Tauri 2's template sets, recorded.
+   cannot change once an App Store Connect record exists. App name **WarpCad**. Minimum iOS,
+   macOS and Android API level: whatever Tauri 2's template sets, recorded. The identifier is shared by
+   all five targets.
 3. `beforeBuildCommand`: `npm --prefix ../warpcad run build:native`, with the sibling path in
    one variable (`WARPCAD_WEB`, default `../warpcad`) so a checkout elsewhere still works. Stamp
    the bundled commit (`git -C $WARPCAD_WEB rev-parse --short HEAD`) into the build.
@@ -125,16 +148,63 @@ No new control. What the user sees changes in three places, all driven by `isNat
    Question 7e found the last four in the tree. **Unicode-3.0, Zlib and CDLA-Permissive-2.0 are not
    on the npm allow-list today, so list them and ask the owner to approve them** before marking
    this done; do not add them silently.
-7. Origin: on iOS the app is served from `tauri://localhost`. Write it down in Question 8 as fixed
-   at first release, because changing the scheme later orphans every user's IndexedDB (decision
+7. Origin: on iOS and macOS the app is served from `tauri://localhost`; Android and Windows use
+   `http(s)://tauri.localhost` (Windows `app.windows[].useHttpsScheme` decides; pick `true` now). Write each
+   down in Question 8 as fixed at first release, because changing the scheme later orphans every user's IndexedDB (decision
    record Q2).
 8. **Simulator runtime**: this machine has none (`xcrun simctl list runtimes` is empty,
    2026-10-24). Install one with `xcodebuild -downloadPlatform iOS` (several GB; say so before
    starting), or go straight to the device if the owner prefers.
 
+## Hand-off of the native TODOs
+
+Do this **last**, once `warpcad-native` builds and its first commit exists. The owner's instruction
+(2026-10-26): once the new project is scaffolded, every TODO that pertains to the native app lives there.
+
+1. In `warpcad-native`, create `TODO/` with a `README.md` and `ROADMAP.md` modelled on this repository's
+   (same front matter, same row format, same SPDX/CC BY-SA 4.0 marker), and add `.claude/commands/`
+   copies of `fix-todo`, `run-todos` and `whats-next` that read the *native* repository's `TODO/`. Its
+   `CLAUDE.md` says: product rules (Interaction Model, Verification, Responsive Layout) are in
+   `../warpcad/CLAUDE.md`; this repository's `TODO/ACCEPTANCE.md` stays the single scenario list.
+2. `git mv`-equivalent (copy, then delete here, so each repository's history is honest) these files from
+   `warpcad/TODO/` to `warpcad-native/TODO/`, keeping their ids so existing references still resolve:
+   `build-018`, `build-019`, `build-020`, `render-006`, `io-014`, `io-015`, `ai-025`, `ai-026`,
+   `testing-011`. Also move `build-017` itself to `warpcad-native/TODO/` as a closed row in its
+   `ROADMAP-DONE.md`.
+3. Rows that edit **both** repositories (`render-006`, `io-014`, `io-015`, `ai-025`, `ai-026`) move too
+   but keep a `> Two repositories` banner naming the files they change in `../warpcad`. Their
+   web-side changes still need this repository's gates (`npm test`, e2e, the pre-push full run).
+4. Rewrite each moved file's relative links (`../` → `../../warpcad/` for docs, decisions and CLAUDE.md).
+5. In **this** repository: replace the M19 section of `TODO/ROADMAP.md` with a short pointer to
+   `~/src/@WarpCad/warpcad-native/TODO/ROADMAP.md`, drop the M19 rows from Next up and the milestone
+   table, move `build-017` to `ROADMAP-DONE.md`, fix links from `ROADMAP-DONE.md`, `ACCEPTANCE.md`,
+   `VERIFY.md`, `BUDGET.md`, `ai-027`..`ai-030` and `core-0*` that name moved ids (point them at the
+   new location), and update `CLAUDE.md`'s Stack row and `docs/decisions/native-mobile-shell.md`.
+6. Files that stay here because they are web-app work that merely mentions the native app:
+   `ai-027`..`ai-030`, `build-021`/`build-022`, `docs-026`/`docs-027`, `testing-012`, `ui-0*`, `core-*`.
+   Review each hit of `grep -il -E "tauri|native|ios"` and move only what is *about* the shell.
+7. Run `npm run spdx`, the link checks, and `node scripts/todo-progress.mjs` here, and `cargo fmt`,
+   `clippy`, `cargo deny` there. Commit each repository separately.
+
+## Follow-up rows to file (in `warpcad-native/TODO/`, as part of the hand-off)
+
+One row each, with the three Interaction Model fields where a control is involved:
+
+- **macOS**: Developer ID signing, notarization, a `.dmg`, and the Mac App Store question; menu bar
+  (File/Open/Save) wired to `io-014`'s file mode; window state restore.
+- **Android**: signing keystore (owner step), Play Console record, Android file access (SAF) for `io-014`,
+  Keystore-backed credentials for `ai-025`, back-button behaviour, and an Android WebView WebGL probe
+  (the `build-018` equivalent).
+- **Windows**: code-signing (owner decision: certificate vs Azure Trusted Signing), MSI/NSIS installer,
+  Microsoft Store question, WebView2 runtime check, Windows Credential Manager for `ai-025`.
+- **Desktop and Android variants of the existing M19 rows**: `io-014` (real file paths on desktop),
+  `ai-025` (per-OS credential store), `ai-026` (the in-app MCP server on desktop is *not* limited to
+  "while on screen"), `testing-011` (scenario 28 generalised per platform).
+- **CI**: a build matrix (macOS, Windows, Linux-for-Android) with unsigned artifacts.
+
 ## Effort
 
-L.
+XL (was L): five targets. Land iOS and macOS first and file the rest as follow-ups if time is short.
 
 ## Testing
 
@@ -150,6 +220,9 @@ L.
   navigation) and the `SECOND-ATTEMPT.md` lighting check (the scene is not too dark). Report
   PASS/FAIL per scenario with the device model and iOS version. Simulator results do not count for
   WebGL.
+- **Per platform smoke**: macOS launches and shows the viewport with a box placed; Android launches on an
+  emulator or device and shows the viewport; Windows builds in CI (launch recorded as owner-driven or not
+  driven); iPadOS recorded with device model. Report PASS / FAIL / not driven per platform.
 - `cargo fmt --check`, `cargo clippy -- -D warnings`, `cargo deny check` pass in the new repository.
 - `npm run build` (the PWA) is byte-identical in `dist/` apart from the hash churn. The native
   mode must not leak into the web build.

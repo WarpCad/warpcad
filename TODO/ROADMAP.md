@@ -29,7 +29,8 @@ Only what is still open. Everything finished is in [TODO/ROADMAP-DONE.md](ROADMA
 
 *Last reviewed 2026-10-26 (M19 scheduled first at the owner's request; `ai-027`–`ai-030` added as row 21).*
 
-**Goal:** this weekend, a native iOS app built with **Tauri 2** (owner decision 2026-10-24, not Capacitor) that
+**Goal:** this weekend, a native app built with **Tauri 2** (owner decision 2026-10-24, not Capacitor) for **iOS, iPadOS, macOS, Android and Windows**
+(widened 2026-10-26; iOS first) that
 bundles the full WarpCad build, saves real files the Files app can see, hosts an MCP server for agents, and is
 ready for the owner to submit to the App Store. It lives in the sibling repository `~/src/@WarpCad/warpcad-native`.
 See [M19](#m19--native-ios-app-tauri). The web push is still held on `testing-007` (row 12): M19 rows that change
@@ -37,7 +38,7 @@ this repository need the same green full run before they are pushed.
 
 | # | Task | Why now | Model |
 |---|---|---|---|
-| 1 | ▶ [`build-017`](build-017-tauri-ios-shell-scaffold.md) Scaffold the Tauri 2 iOS app beside this repo, bundling the build | Everything in M19 builds on it | opus |
+| 1 | ▶ [`build-017`](build-017-tauri-ios-shell-scaffold.md) Scaffold the Tauri 2 app (iOS, iPadOS, macOS, Android, Windows) beside this repo, bundling the build, then hand the native TODOs to it | Everything in M19 builds on it | opus |
 | 2 | [`build-018`](build-018-tauri-ios-device-probe.md) Measure the app on the iPhone; settle the decision record's unknowns | Its answers set `io-014`'s and `ai-026`'s scope | sonnet |
 | 3 | [`build-019`](build-019-ios-signing-and-testflight.md) Signing and a TestFlight build | Early on purpose: Tauri's open iOS bugs are in this step. **Owner steps first** (Apple Developer account, bundle id) | sonnet |
 | 4 | [`render-006`](render-006-webgl-context-restore.md) Restore the 3D view after a lost WebGL context | "Reload the page" is a dead end with no browser chrome | opus |
@@ -160,6 +161,12 @@ done is not listed here; its owed human passes are in [Owed](#open-work-outside-
 ### M19 — Native iOS app (Tauri)
 
 [↑ Contents](#contents)
+
+> **Widened 2026-10-26: targets are iOS, iPadOS, macOS, Android and Windows.** `build-017` scaffolds all five
+> and ends by **moving every native-app TODO (`build-018`–`build-020`, `render-006`, `io-014`, `io-015`, `ai-025`,
+> `ai-026`, `testing-011`) into `warpcad-native/TODO/`**; this section then shrinks to a pointer to
+> `~/src/@WarpCad/warpcad-native/TODO/ROADMAP.md`. The rows below keep their iOS wording until that move; the
+> per-platform follow-ups (macOS notarization, Android Play, Windows signing, per-OS credentials) are filed there.
 
 Added 2026-10-24 at the owner's request, scheduled first. The owner's goal is a native iOS app, working and ready to
 publish, this weekend. It is built with **Tauri 2**, overriding the Capacitor recommendation in
@@ -328,8 +335,13 @@ anyone prints a gear.
 Items that are open but have no row in a milestone table, or are not live work yet. `/run-todos` does not reach the
 first group, so each one needs a row before it can be scheduled.
 
-**Open files with no roadmap row:** none as of 2026-10-24. The four that lacked a row (`ui-079`, `testing-009`,
-`testing-005`, `testing-010`) now have Findings rows.
+**Open files with no roadmap row:**
+
+- [`core-075`](core-075-split-joint-catalog-keys-and-profiles.md) More ways to join split pieces — butterfly keys,
+  loose dowels and tenons, dovetails, puzzle tabs, laps, fingers, magnets (filed 2026-10-26 at the owner's request;
+  medium, opus, no dependencies). Needs a row before `/run-todos` reaches it.
+
+The four that lacked a row on 2026-10-24 (`ui-079`, `testing-009`, `testing-005`, `testing-010`) now have Findings rows.
 
 **Deferred, not scheduled**
 

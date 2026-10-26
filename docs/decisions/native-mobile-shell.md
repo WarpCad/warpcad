@@ -13,6 +13,8 @@ shim against Capacitor's 6.7 KB, Question 1) and its security structure (default
 two published audits, Question 7c). The comparison below is kept unchanged as the record of what
 was weighed.
 
+**Addendum, 2026-10-26: targets widened.** The owner also wants **iPadOS, macOS, Android and Windows**. Tauri 2 covers all five from one codebase (iOS and iPadOS are one `ios` target; Android uses `cargo tauri android`; macOS and Windows are the desktop targets). The Capacitor-vs-Tauri comparison below was iOS-weighted; Tauri's Android and Windows maturity, WebView2 and Android WebView WebGL behaviour, and per-OS signing are **unverified** and belong to the `build-017` health check (Question 8) and per-platform probes filed in `warpcad-native`. Once `build-017` scaffolds that repository, the native TODOs move there.
+
 What this changes, and the roadmap rows that carry it (milestone M19 in `TODO/ROADMAP.md`):
 
 | Recommendation | Under Tauri | Row |
