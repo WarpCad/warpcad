@@ -3447,3 +3447,16 @@ The icon unit tests now assert a minimum spacing between neighbouring positions,
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** diff only (AlignPositionIcon.vue and its spec); one-unit gap → TODO/ui-088 Problem text
 **To Add:** docs/screenshots/align-positions.png
+
+## 2026-10-26T17:24:09-05:00 — Panels ease between layouts as a window narrows
+
+**Post:** Between laptop and phone width, WarpCad's Library and Operations toolbar give up space in steps: labels go, then icons become section buttons, then the toolbar folds into Combine, Arrange and Shape. Until now each step was a jump. Now the grid columns ease to their new widths over 180 ms, but only when a panel actually changes form. Dragging a window edge inside one form still tracks the edge with no lag.
+
+The part that took care was the order of the swap. When a panel shrinks, its compact form goes in first, then the column narrows. When it grows, the column widens first and the wide form comes in after the grid's transitionend (with a 220 ms timer in case an engine never fires it). Text never has to fit a column mid-animation, so nothing wraps or squashes. A placement drag that started in the Library holds the Library's form until you let go, because on touch WebKit sends the rest of the gesture to the element that was pressed.
+
+Under prefers-reduced-motion all of it is instant. Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #Vue #WebDev
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** tier sequence → docs/mobile.md diff; 180 ms / 220 ms / transitionend fallback → diff (AppView.vue, panelLayout.js); fluid change never animates → motionFor + spec; drag hold and WebKit reason → libraryTierDuringDrag JSDoc in diff; reduced motion → diff and e2e/panel-tiers.e2e.js
+**To Add:** docs/media/window-shrink.gif

@@ -341,6 +341,9 @@ describe('LibraryPanel — the tier swap waits for a drag to end (TODO/ui-081)',
     placement.begin('hardware.nut', 'Nut', 10, 10)
     await nextTick()
     layout.setBodyWidth(900)
+    // The grid track has finished widening (`AppView`'s `transitionend`, ui-079 stage 7): only the
+    // drag is holding the launchers now.
+    layout.finishTrackAnimation()
     await nextTick()
     expect(wrapper.find('[data-testid="library-launcher-hardware"]').exists()).toBe(true)
     expect(wrapper.find('[data-testid="library-section-popout"]').exists()).toBe(true)
@@ -358,6 +361,8 @@ describe('LibraryPanel — the tier swap waits for a drag to end (TODO/ui-081)',
     const wrapper = mount(LibraryPanel, { attachTo: document.body })
     expect(wrapper.find('[data-testid="library-launcher-primitive"]').exists()).toBe(true)
     layout.setBodyWidth(900)
+    // Growing: the tiles come in once the track has widened (ui-079 stage 7's `transitionend`).
+    layout.finishTrackAnimation()
     await nextTick()
     expect(wrapper.find('[data-testid="library-launcher-primitive"]').exists()).toBe(false)
     expect(wrapper.find('.library__tile').exists()).toBe(true)

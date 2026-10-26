@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test'
 import { mkdirSync } from 'node:fs'
 import { join } from 'node:path'
 
-import { pointer, sceneBodies, sleep, viewportPoint } from './support/humanInput.js'
+import { pointer, sceneBodies, sleep, usesTrustedTouch, viewportPoint } from './support/humanInput.js'
 
 /**
  * The Library icon rail and the compact viewport chrome between laptop and phone width
@@ -514,6 +514,215 @@ test.describe('the Operations group launchers at 720×900 (TODO/ui-082)', () => 
     await expect(page.getByTestId('ops-group-popover')).toHaveCount(0)
     await expect(page.locator('[data-testid^="ops-group-"]')).toHaveCount(0)
     expect(await openPopoutSlot(page)).toBe(null)
+  })
+})
+
+/**
+ * Every frame's Library track, Library form and the motion flags, sampled from `requestAnimationFrame`
+ * (`TODO/ui-079` stage 7). `__motionReset()` clears the log between phases; `__motionLog` reads it.
+ *
+ * @param {import('@playwright/test').Page} page
+ */
+async function sampleMotion(page) {
+  await page.evaluate(() => {
+    /** @type {{ t: number, libraryWidth: number, form: string | null, animating: boolean, duration: string, property: string, opsFading: string | null, libraryFading: string | null }[]} */
+    let frames = []
+    const tick = () => {
+      const body = /** @type {HTMLElement} */ (document.querySelector('.app__body'))
+      const library = document.querySelector('[data-testid="library-panel"]')
+      const ops = document.querySelector('[data-testid="operations-toolbar"]')
+      const style = getComputedStyle(body)
+      frames.push({
+        t: performance.now(),
+        libraryWidth: library ? library.getBoundingClientRect().width : 0,
+        form: library?.getAttribute('data-library-form') ?? null,
+        animating: body.hasAttribute('data-panel-animating'),
+        duration: style.transitionDuration,
+        property: style.transitionProperty,
+        opsFading: ops?.getAttribute('data-ops-fading') ?? null,
+        libraryFading: library?.getAttribute('data-library-fading') ?? null,
+      })
+      requestAnimationFrame(tick)
+    }
+    requestAnimationFrame(tick)
+    Object.assign(window, {
+      __motionReset: () => {
+        frames = []
+      },
+      __motionLog: () => frames,
+    })
+  })
+  return {
+    reset: () => page.evaluate(() => /** @type {any} */ (window).__motionReset()),
+    /** @returns {Promise<{ t: number, libraryWidth: number, form: string | null, animating: boolean, duration: string, property: string, opsFading: string | null, libraryFading: string | null }[]>} */
+    log: () => page.evaluate(() => /** @type {any} */ (window).__motionLog()),
+  }
+}
+
+/**
+ * The flag's on-spans in a frame log, in ms.
+ *
+ * @param {{ t: number, animating: boolean }[]} frames
+ */
+function animatingSpans(frames) {
+  const spans = []
+  let since = -1
+  for (const frame of frames) {
+    if (frame.animating && since < 0) since = frame.t
+    if (!frame.animating && since >= 0) {
+      spans.push(frame.t - since)
+      since = -1
+    }
+  }
+  return { spans, stillOn: since >= 0 }
+}
+
+/**
+ * Motion and edges (`TODO/ui-079` stage 7), on the `-laptop` project of each engine, which resizes
+ * its own page. A tier change sets `data-panel-animating` on `.app__body` for ~220ms, which turns on
+ * `transition: grid-template-columns 180ms ease-out`; a width change inside a tier tracks the window
+ * edge instantly. Content swaps on the side of the animation where it never has to fit a moving
+ * track: the compact form first when shrinking, the wide form only once the track is wide.
+ */
+test.describe('tier changes animate the tracks, fluid changes do not (TODO/ui-079 stage 7)', () => {
+  test.beforeEach(async ({ page }, testInfo) => {
+    test.skip(!testInfo.project.name.endsWith('-laptop'), 'resizes its own page; once per engine')
+    await page.goto('/')
+    await expect(page.locator('.app__body')).toHaveAttribute('data-library-tier', 'labels')
+    await expect(page.getByTestId('library-panel')).toHaveAttribute('data-library-form', 'column')
+  })
+
+  test('the flag is set only across a tier boundary, for ~220ms, and the content swaps on the right side of it', async ({ page }) => {
+    const motion = await sampleMotion(page)
+    // Settled on first render: no flag, no transition.
+    await sleep(100)
+    expect((await motion.log()).some((frame) => frame.animating), 'flag on first render').toBe(false)
+
+    // A 1px resize inside every tier: tracks follow at once, nothing animates.
+    await motion.reset()
+    await page.setViewportSize({ width: 1439, height: SWEEP_HEIGHT })
+    await sleep(400)
+    const fluid = await motion.log()
+    expect(fluid.some((frame) => frame.animating), 'flag on a 1px resize').toBe(false)
+    expect(fluid.every((frame) => frame.duration === '0s'), 'transition on a 1px resize').toBe(true)
+
+    // Shrink across the Library and Operations breakpoints: labels → rail, Operations labels → icons.
+    await motion.reset()
+    await page.setViewportSize({ width: 900, height: SWEEP_HEIGHT })
+    await expect(page.locator('.app__body')).toHaveAttribute('data-library-tier', 'icons')
+    await expect(page.locator('.app__body')).not.toHaveAttribute('data-panel-animating', /.*/)
+    await sleep(100)
+    const shrink = await motion.log()
+    const shrinkSpans = animatingSpans(shrink)
+    expect(shrinkSpans.spans.length, 'one animating span while shrinking').toBe(1)
+    expect(shrinkSpans.spans[0]).toBeGreaterThan(150)
+    expect(shrinkSpans.spans[0]).toBeLessThan(700)
+    for (const frame of shrink.filter((f) => f.animating)) {
+      expect(frame.property).toContain('grid-template-columns')
+      expect(frame.duration).toBe('0.18s')
+    }
+    // Compact content first: the labelled column is never drawn in a track narrower than its own.
+    for (const frame of shrink.filter((f) => f.form === 'column')) expect(frame.libraryWidth).toBeGreaterThan(199.5)
+    // The track did move through the widths in between rather than jumping.
+    expect(shrink.some((f) => f.form === 'rail' && f.libraryWidth > 80 && f.libraryWidth < 230), 'an in-between track while shrinking').toBe(true)
+    // Operations crossfades rather than animating its labels.
+    expect(shrink.some((f) => f.opsFading === 'true'), 'Operations crossfade').toBe(true)
+
+    // Grow back: the track widens with the rail in it, and the column comes in only once it is wide.
+    await motion.reset()
+    await page.setViewportSize({ width: 1440, height: SWEEP_HEIGHT })
+    await expect(page.getByTestId('library-panel')).toHaveAttribute('data-library-form', 'column')
+    await expect(page.locator('.app__body')).not.toHaveAttribute('data-panel-animating', /.*/)
+    await sleep(100)
+    const grow = await motion.log()
+    expect(animatingSpans(grow).spans.length, 'one animating span while growing').toBe(1)
+    for (const frame of grow.filter((f) => f.form === 'column')) expect(frame.libraryWidth).toBeGreaterThan(239.5)
+    expect(grow.some((f) => f.form === 'rail' && f.libraryWidth > 80 && f.libraryWidth < 230), 'an in-between track while growing').toBe(true)
+  })
+
+  test('under prefers-reduced-motion every tier change is instant: no flag, no transition, no crossfade', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' })
+    const motion = await sampleMotion(page)
+    await page.setViewportSize({ width: 900, height: SWEEP_HEIGHT })
+    await expect(page.getByTestId('library-panel')).toHaveAttribute('data-library-form', 'rail')
+    await sleep(400)
+    await page.setViewportSize({ width: 1440, height: SWEEP_HEIGHT })
+    await expect(page.getByTestId('library-panel')).toHaveAttribute('data-library-form', 'column')
+    await sleep(400)
+    const frames = await motion.log()
+    expect(frames.some((f) => f.animating), 'flag under reduced motion').toBe(false)
+    expect(frames.every((f) => f.duration === '0s'), 'grid transition under reduced motion').toBe(true)
+    expect(frames.some((f) => f.opsFading === 'true' || f.libraryFading === 'true'), 'crossfade under reduced motion').toBe(false)
+    // The column is back in the frame its track is (at most one frame of rail in a wide track).
+    expect(frames.filter((f) => f.form === 'rail' && f.libraryWidth > 239.5).length).toBeLessThanOrEqual(1)
+  })
+})
+
+/**
+ * A tier change mid-drag (`TODO/ui-079` stage 7, "Resizing while something is open"): the row the
+ * press started on stays mounted, the drag keeps tracking and the drop still places the body; the
+ * content swap waits for `pointerup`. The `-laptop` projects shrink from 1100 (labels, a mouse); the
+ * `-tablet` projects grow from 820 (the icon rail) to 1100, with trusted touch in Chromium.
+ */
+test.describe('a tier change mid-drag does not drop the drag (TODO/ui-079 stage 7)', () => {
+  test('the drop still places the body, and the Library content swaps only after the release', async ({ page }, testInfo) => {
+    const laptop = testInfo.project.name.endsWith('-laptop')
+    const tablet = testInfo.project.name.endsWith('-tablet')
+    test.skip(!laptop && !tablet, 'the phone has no tiers to cross')
+    const [from, to] = laptop ? [1100, 900] : [820, 1100]
+    const [formBefore, formAfter] = laptop ? ['column', 'rail'] : ['rail', 'column']
+    await page.setViewportSize({ width: from, height: SWEEP_HEIGHT })
+    await page.goto('/')
+    const panel = page.getByTestId('library-panel')
+    await expect(panel).toHaveAttribute('data-library-form', formBefore)
+
+    const row = page.getByTestId('library-row-primitive.cuboid')
+    const box = await row.boundingBox()
+    if (!box) throw new Error('no Cube row')
+    const cdp = usesTrustedTouch(testInfo) ? await page.context().newCDPSession(page) : null
+    let at = { x: box.x + box.width / 2, y: box.y + box.height / 2 }
+    /** @param {{ x: number, y: number }} target */
+    const glide = async (target) => {
+      const steps = 16
+      const start = at
+      for (let i = 1; i <= steps; i += 1) {
+        const t = i / steps
+        at = { x: start.x + (target.x - start.x) * t, y: start.y + (target.y - start.y) * t }
+        if (cdp) await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ ...at, id: 1 }] })
+        else await page.mouse.move(at.x, at.y)
+        await sleep(14)
+      }
+    }
+    if (cdp) {
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ ...at, id: 1 }] })
+    } else {
+      await page.mouse.move(at.x, at.y, { steps: 3 })
+      await page.mouse.down()
+    }
+    await sleep(90)
+    await glide(await viewportPoint(page, 0.55, 0.5))
+    await expect(panel).toHaveAttribute('data-dragging', 'true')
+
+    // Cross the Library breakpoint with the finger still down.
+    await page.setViewportSize({ width: to, height: SWEEP_HEIGHT })
+    await expect(page.locator('.app__body')).toHaveAttribute('data-library-tier', laptop ? 'icons' : 'labels')
+    await sleep(450)
+    // Held: the form the drag started in, the pressed row still in the document, the drag alive.
+    await expect(panel).toHaveAttribute('data-library-form', formBefore)
+    await expect(panel).toHaveAttribute('data-dragging', 'true')
+    expect(await row.count()).toBe(1)
+
+    await glide(await viewportPoint(page, 0.6, 0.5))
+    await sleep(110)
+    if (cdp) await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] })
+    else await page.mouse.up()
+
+    await expect(page.getByTestId('viewport')).toHaveAttribute('data-body-count', '1')
+    expect((await sceneBodies(page)).map((body) => body.op)).toEqual(['primitive.cuboid'])
+    // The swap the resize asked for lands once the press is over.
+    await expect(panel).toHaveAttribute('data-library-form', formAfter)
+    await expect(panel).toHaveAttribute('data-dragging', 'false')
+    expect(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth)).toBe(false)
   })
 })
 

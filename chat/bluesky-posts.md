@@ -2394,3 +2394,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** block 6 to 4 wide of a 16-wide target, dashed centre line at x=12 → diff (AlignPositionIcon.vue); "a pixel apart" → TODO/ui-088 Problem text; same button size → diff touches no sizing
 **To Add:** docs/screenshots/align-positions.png
+
+## 2026-10-26T17:24:09-05:00 — Panels ease between layouts as a window narrows
+
+**Post:** As a WarpCad window narrows, the Library and the Operations toolbar shrink one step at a time, and each step now eases over 180 ms. Compact content goes in before a column narrows and wide content waits until it has widened, so labels never squash. Reduced motion turns it off. #CAD #Vue Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #Vue
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** 180 ms track transition, 220 ms flag → diff (AppView.vue, panelLayout.js PANEL_ANIMATING_MS); compact-first / wide-after ordering → diff (contentTierFor + spec); reduced motion instant → diff (prefersReducedMotion, CSS media query) and e2e/panel-tiers.e2e.js
+**To Add:** docs/media/window-shrink.gif

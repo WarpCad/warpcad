@@ -40,7 +40,7 @@
  */
 
 import { defineStore } from 'pinia'
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 
 /** At or below this `.app__body` width the phone layout (bottom sheets) applies, unchanged. */
 export const PHONE_MAX_WIDTH_PX = 640
@@ -173,8 +173,82 @@ export function panelLayoutFor({ bodyWidthPx, chatColumn }) {
 }
 
 /**
+ * How long `data-panel-animating` stays on `.app__body` after a tier change (`TODO/ui-079` stage
+ * 7). It turns on the grid's 180ms track transition; the extra 40ms lets the transition finish
+ * before the flag comes off, and it is also the fallback for a `transitionend` that never fires.
+ */
+export const PANEL_ANIMATING_MS = 220
+
+/** How compact each Library tier is: higher is more compact. The phone sheet is the most. */
+export const LIBRARY_TIER_RANK = Object.freeze({ labels: 0, icons: 1, popout: 2, sheet: 3 })
+
+/** How compact each Operations tier is: higher is more compact. */
+export const OPS_TIER_RANK = Object.freeze({ labels: 0, icons: 1, groups: 2 })
+
+/**
+ * What a change from one layout to the next calls for (`TODO/ui-079` stage 7). Pure, and no
+ * allocation: the store calls it on every observed width, once per frame while an edge is dragged.
+ *
+ * - `none`: every tier is unchanged. The fluid tracks follow the window edge at once.
+ * - `animate`: a Library, Operations or chrome tier changed above phone width, so the grid tracks
+ *   ease to their new widths.
+ * - `instant`: the change crosses the phone breakpoint, where the grid becomes one column and the
+ *   panels become sheets; there is nothing to interpolate.
+ *
+ * @param {PanelLayout} prev
+ * @param {PanelLayout} next
+ * @returns {'none' | 'animate' | 'instant'}
+ */
+export function motionFor(prev, next) {
+  if (prev.phone !== next.phone) return 'instant'
+  // Two phone layouts always agree on every tier, so they land on `none` here.
+  if (prev.libraryTier === next.libraryTier && prev.opsTier === next.opsTier && prev.chromeTier === next.chromeTier) return 'none'
+  return 'animate'
+}
+
+/**
+ * The content tier to render while the grid tracks animate (`TODO/ui-079` "Smoothness mechanics"):
+ * shrinking swaps to the compact form **first**, so it is already in before the track narrows;
+ * growing keeps the compact form until the track has widened, so the wide form never has to fit a
+ * column mid-animation. Text never squashes or wraps on the way.
+ *
+ * @template {string} T
+ * @param {Readonly<Record<T, number>>} rank how compact each tier is ({@link LIBRARY_TIER_RANK}, {@link OPS_TIER_RANK})
+ * @param {T} shown the tier on screen now
+ * @param {T} target the layout's tier
+ * @returns {T} `target`, unless it is less compact than `shown`, in which case `shown` for now
+ */
+export function contentTierFor(rank, shown, target) {
+  return rank[target] < rank[shown] ? shown : target
+}
+
+/**
+ * The Library tier while a placement drag may be under way (`TODO/ui-079` "Resizing while something
+ * is open"): a drag holds the tier it started in until `pointerup`, so a tier change never unmounts
+ * the row the press began on (on touch WebKit sends the rest of the gesture to that element). Phone
+ * width is taken at once: its media queries have already turned the panel into the sheet.
+ *
+ * @param {LibraryTier} held the tier on screen
+ * @param {LibraryTier} next the tier the layout now calls for
+ * @param {boolean} dragging whether a placement drag is under way
+ * @returns {LibraryTier}
+ */
+export function libraryTierDuringDrag(held, next, dragging) {
+  return dragging && next !== 'sheet' ? held : next
+}
+
+/** @returns {boolean} */
+function prefersReducedMotion() {
+  return typeof window !== 'undefined' && Boolean(window.matchMedia?.('(prefers-reduced-motion: reduce)').matches)
+}
+
+/**
  * The layout store: the one measured number, whether the chat is open, and which pop-out (of
  * either panel) is open — only one at a time across both (`ui-079` stages 5–6 use it).
+ *
+ * It also owns the tier-change motion (stage 7): `animating` is `.app__body`'s
+ * `data-panel-animating`, and `libraryContentTier` / `opsContentTier` are the tiers the panels
+ * render, which trail `layout` only while a track grows ({@link contentTierFor}).
  */
 export const usePanelLayoutStore = defineStore('panelLayout', () => {
   /** `.app__body` width in CSS px. Seeded synchronously so the first frame is the right tier. */
@@ -185,6 +259,12 @@ export const usePanelLayoutStore = defineStore('panelLayout', () => {
   const openPopout = ref(null)
 
   const layout = computed(() => panelLayoutFor({ bodyWidthPx: bodyWidthPx.value, chatColumn: chatColumn.value }))
+  /**
+   * Whether the observer has written once. Until it has, every change (that first write correcting
+   * the `innerWidth` seed, a chat restored open at startup) is still the first render, and never
+   * animates (`TODO/ui-079` stage 7).
+   */
+  let measured = false
 
   /**
    * The `ResizeObserver`'s one write. A zero or non-finite width (a detached or hidden body)
@@ -195,6 +275,7 @@ export const usePanelLayoutStore = defineStore('panelLayout', () => {
   function setBodyWidth(widthPx) {
     if (!Number.isFinite(widthPx) || widthPx <= 0) return
     bodyWidthPx.value = widthPx
+    measured = true
   }
 
   /** @param {boolean} open */
@@ -202,5 +283,61 @@ export const usePanelLayoutStore = defineStore('panelLayout', () => {
     chatColumn.value = open
   }
 
-  return { bodyWidthPx, chatColumn, openPopout, layout, setBodyWidth, setChatColumn }
+  /** Whether the grid tracks are animating to a new tier. Never on the first render. */
+  const animating = ref(false)
+  /** The tiers the panels render; see {@link contentTierFor}. Seeded settled, like `layout`. */
+  const libraryContentTier = ref(layout.value.libraryTier)
+  const opsContentTier = ref(layout.value.opsTier)
+  /** @type {ReturnType<typeof setTimeout> | undefined} */
+  let animatingTimer
+
+  /**
+   * The grid tracks have reached their new widths (`.app__body`'s `transitionend`): swap the wide
+   * content in. The flag stays on until its own timer, which does the same if the event never comes.
+   */
+  function finishTrackAnimation() {
+    libraryContentTier.value = layout.value.libraryTier
+    opsContentTier.value = layout.value.opsTier
+  }
+
+  /** Settle at once: no flag, the layout's tiers on screen. */
+  function settle() {
+    if (animatingTimer !== undefined) clearTimeout(animatingTimer)
+    animatingTimer = undefined
+    animating.value = false
+    finishTrackAnimation()
+  }
+
+  // Synchronous, so the flag, the content swap and the new tracks land in the same render. It runs
+  // for every observed width; `motionFor` returns `none` for all but a tier change.
+  watch(
+    layout,
+    (next, prev) => {
+      const motion = motionFor(prev, next)
+      if (motion === 'none') return
+      if (motion === 'instant' || !measured || prefersReducedMotion()) {
+        settle()
+        return
+      }
+      libraryContentTier.value = contentTierFor(LIBRARY_TIER_RANK, libraryContentTier.value, next.libraryTier)
+      opsContentTier.value = contentTierFor(OPS_TIER_RANK, opsContentTier.value, next.opsTier)
+      animating.value = true
+      if (animatingTimer !== undefined) clearTimeout(animatingTimer)
+      animatingTimer = setTimeout(settle, PANEL_ANIMATING_MS)
+    },
+    { flush: 'sync' },
+  )
+
+  return {
+    bodyWidthPx,
+    chatColumn,
+    openPopout,
+    layout,
+    animating,
+    libraryContentTier,
+    opsContentTier,
+    setBodyWidth,
+    setChatColumn,
+    finishTrackAnimation,
+  }
 })

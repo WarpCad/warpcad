@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { test, expect } from '@playwright/test'
 
-import { loadScene, openApp, shot } from './support.js'
+import { endMovie, loadScene, openApp, shot, startMovie } from './support.js'
 
 /**
  * Docs media for "When the window is narrow" in `docs/primitive-placement.md` and the compact
@@ -21,6 +21,12 @@ import { loadScene, openApp, shot } from './support.js'
  *
  *  - `operations-groups`: two bodies selected, the Operations toolbar as Combine / Arrange / Shape
  *    launchers, Combine tapped and its four labelled members listed beneath it.
+ *
+ * and the sweep (`TODO/ui-079`), a recording rather than a still:
+ *
+ *  - `window-shrink`: the window dragged from 1440 to 700 px wide, in steps, so the Library goes
+ *    labels → icons → section buttons and the Operations toolbar labels → icons → groups, one
+ *    panel at a time.
  */
 
 test.describe('narrow window', () => {
@@ -68,6 +74,20 @@ test.describe('narrow window', () => {
     await page.getByTestId('ops-group-combine').click()
     await expect(page.getByTestId('ops-group-popover')).toHaveAttribute('data-group', 'combine')
     await shot(page, 'operations-groups.png')
+  })
+
+  test('window-shrink movie @movie', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 })
+    await openApp(page)
+    await expect(page.locator('.app__body')).toHaveAttribute('data-library-tier', 'labels')
+    await startMovie(page, 'window-shrink')
+    for (let width = 1440; width >= 700; width -= 40) {
+      await page.setViewportSize({ width, height: 900 })
+      await page.waitForTimeout(220)
+    }
+    await expect(page.locator('.app__body')).toHaveAttribute('data-ops-tier', 'groups')
+    await page.waitForTimeout(600)
+    await endMovie(page, 'window-shrink', { fps: 8, width: 520 })
   })
 
   test('viewport-chrome-compact still', async ({ page }) => {

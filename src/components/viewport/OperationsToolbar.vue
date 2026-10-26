@@ -335,10 +335,11 @@ const selection = useSelectionStore()
  * icon-only form that used to be phone-only. Phone is `icons` too, with its own compaction on top
  * (the `max-width: 640px` block at the end of the styles). `groups` is the badge plus one row of
  * group launchers (`TODO/ui-082`, see "The groups tier" below). A tier change crossfades rather
- * than animating label widths.
+ * than animating label widths. The tier rendered is the store's *content* tier (`ui-079` stage 7):
+ * a more compact form comes in at once, a wider one only once the grid tracks have finished growing.
  */
 const panelLayout = usePanelLayoutStore()
-const { tier: opsTier, fading: opsFading } = useTierCrossfade(() => panelLayout.layout.opsTier)
+const { tier: opsTier, fading: opsFading } = useTierCrossfade(() => panelLayout.opsContentTier)
 
 /**
  * The three operations, in the order §6 lists them. Each carries the label its

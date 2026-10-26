@@ -93,6 +93,44 @@ Library and see the Cube's controls.
 
 ![The Library sheet open on a phone with a shape selected: the Inspector's tab sits along the bottom edge, under the sheet.](./screenshots/mobile-library-with-selection.png)
 
+## Narrow windows and tablets
+
+Between a laptop and a phone, WarpCad does not jump from one layout to the other. As a window
+gets narrower (or on a smaller display), the Library and the Operations toolbar each give up
+space in small steps, one panel at a time, so the 3D view stays usable. Going from wide to
+narrow:
+
+1. **Operations toolbar loses its labels.** The same buttons become icons; hold a finger on one
+   (or hover) to see its name.
+2. **The Library becomes a column of icons.** Drag an icon into the view to place it, or tap it
+   without dragging to open a small panel with its sizes and options.
+3. **The Library becomes section buttons.** Tap **Hardware**, say, and its list opens beside the
+   column over the 3D view.
+4. **The Operations toolbar becomes Combine, Arrange and Shape.** Each opens a short labelled
+   list of the tools in that group.
+
+Below 641 px the phone layout (sheets) takes over, as described above. The steps animate over
+about a fifth of a second; if your system asks for reduced motion, they happen instantly. Turning
+a panel's form mid-drag never loses the drag: the swap waits until you let go.
+
+![A window narrowed from laptop width to 700 px: the Library and the Operations toolbar shrink one after the other.](./media/window-shrink.gif)
+
+For example, in a window about 900 px wide:
+
+1. The Library is a column of icons. Hover (or long-press) an icon to see its name.
+2. Drag the **Bolt** icon into the 3D view and release to place a bolt.
+3. To pick a different bolt size first, tap the Bolt icon without dragging. A small panel opens
+   with its size list. Choose **M5**, then drag the Bolt row from that panel into the view.
+4. Narrow the window to about 720 px. The Library becomes a short column of section buttons. Tap
+   **Hardware** to open its list and drag a **Nut** into the view. The list fades while you drag
+   and comes back when you let go.
+5. Select two shapes. The toolbar shows **Combine ▾** with a "4" badge. Tap it and choose
+   **Union**.
+
+See [When the window is narrow](primitive-placement.md#when-the-window-is-narrow) for the Library
+and [Grouped toolbar on narrow windows](booleans.md#grouped-toolbar-on-narrow-windows) for the
+Operations toolbar.
+
 ## The Inspector
 
 Tap a shape in the 3D view and the **Inspector** sheet rises by itself, titled with the

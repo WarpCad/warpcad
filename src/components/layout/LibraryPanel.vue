@@ -73,7 +73,7 @@ import { LIBRARY_SECTIONS } from '../../core/library.js'
 import { stopLibraryDrag } from '../../composables/useLibraryDrag.js'
 import { useTierCrossfade } from '../../composables/useTierCrossfade.js'
 import { useLibraryStore } from '../../stores/library.js'
-import { usePanelLayoutStore } from '../../stores/panelLayout.js'
+import { libraryTierDuringDrag, usePanelLayoutStore } from '../../stores/panelLayout.js'
 import { usePlacementStore } from '../../stores/placement.js'
 import { useRepeatStore } from '../../stores/repeat.js'
 import HelpButton from '../controls/HelpButton.vue'
@@ -117,22 +117,21 @@ const panelEl = ref(/** @type {HTMLElement | null} */ (null))
  * sheet), the icon rail in the `icons` tier, and the same rail as **section launchers** in the
  * `popout` tier (E 641–789, `TODO/ui-081`), in the store's 64px track.
  *
- * The swap crossfades (`useTierCrossfade`) so labels never squash mid-change. The content and the
- * grid track change in the same render — the tier is swapped synchronously, and `AppView` applies
- * the store's track with no transition — so the rail is in before the track narrows and the column
- * is back only once the track is wide again. A drag under way survives the swap: the gesture's
- * listeners live in `useLibraryDrag`, not in the row that started it.
+ * The swap crossfades (`useTierCrossfade`) so labels never squash mid-change, and it follows the
+ * store's *content* tier (`ui-079` stage 7, `contentTierFor`): while the grid track animates, the
+ * rail comes in before the track narrows and the column only once the track is wide again.
  *
- * Leaving the `popout` tier waits for a drag under way to end (`TODO/ui-081`): the section pop-out
- * the drag came from stays mounted (faded) until `pointerup`, then the swap closes it with no
- * animation. Phone width (`sheet`) is never held: the bottom sheet's CSS has already taken over.
+ * Any tier change waits for a placement drag under way to end (`libraryTierDuringDrag`), so the
+ * row, tile or pop-out the press began on stays mounted until `pointerup` (the gesture's listeners
+ * live in `useLibraryDrag`, but on touch WebKit delivers the rest of the gesture to the pressed
+ * element); then the swap lands, and closes a pop-out whose launcher went, with no animation. Phone
+ * width (`sheet`) is never held: the bottom sheet's CSS has already taken over.
  */
 const panelLayout = usePanelLayoutStore()
-/** The tier to render: the store's, except that a swap out of `popout` waits for the drag to end. */
-const heldTier = ref(panelLayout.layout.libraryTier)
-watch([() => panelLayout.layout.libraryTier, () => placement.isDragging], ([next, dragging]) => {
-  if (dragging && heldTier.value === 'popout' && next !== 'sheet') return
-  heldTier.value = next
+/** The tier to render: the store's content tier, held while a drag is under way. */
+const heldTier = ref(panelLayout.libraryContentTier)
+watch([() => panelLayout.libraryContentTier, () => placement.isDragging], ([next, dragging]) => {
+  heldTier.value = libraryTierDuringDrag(heldTier.value, next, dragging)
 })
 const { tier: libraryTier, fading: libraryFading } = useTierCrossfade(() => heldTier.value)
 const railForm = computed(() => libraryTier.value === 'icons' || libraryTier.value === 'popout')

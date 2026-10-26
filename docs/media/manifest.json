@@ -443,5 +443,11 @@
     "specHash": "55ffa49cd0ab91a1e8e75fcc95e36411ded3804211ff33621edda36ecedbabda",
     "bytes": 1891956,
     "seconds": 14.88
+  },
+  "window-shrink.gif": {
+    "spec": "e2e/docs/narrow-window.docs.js",
+    "specHash": "568046b4cb23cd7ba9fbe169528a66c57289dbf074a488084cefc35789a07a98",
+    "bytes": 1936993,
+    "seconds": 7.63
   }
 }

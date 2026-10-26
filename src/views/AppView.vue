@@ -260,6 +260,18 @@ onMounted(() => {
 })
 onBeforeUnmount(() => bodyObserver?.disconnect())
 
+/**
+ * The grid's own track transition has run (`TODO/ui-079` stage 7): a growing panel's wide content
+ * can come in now. Only `.app__body`'s `grid-template-columns`; a child's transition bubbles here
+ * too and must not end the hold early. The store's timer covers an engine where this never fires.
+ *
+ * @param {TransitionEvent} event
+ */
+function onBodyTransitionEnd(event) {
+  if (event.target !== event.currentTarget || event.propertyName !== 'grid-template-columns') return
+  panelLayout.finishTrackAnimation()
+}
+
 /** `.app__body`'s inline custom properties: the side tracks, the gizmo reserve, and the linked chat's height. */
 const bodyStyle = computed(() => {
   /** @type {Record<string, string>} */
@@ -336,12 +348,14 @@ function onInspectorClaim() {
       :data-library-tier="panelLayout.layout.libraryTier"
       :data-ops-tier="panelLayout.layout.opsTier"
       :data-chrome-tier="panelLayout.layout.chromeTier"
+      :data-panel-animating="panelLayout.animating ? 'true' : null"
       :data-inspector-sheet="inspectorSheet"
       :data-library-sheet="libraryOpen ? 'open' : 'closed'"
       :data-timeline-sheet="timeline.open ? 'open' : 'none'"
       :data-chat-sheet="chatSheet"
       :style="bodyStyle"
       :data-repeat-bar="repeat.armed && repeat.minimized ? 'true' : 'false'"
+      @transitionend="onBodyTransitionEnd"
     >
       <LibraryPanel
         :collapse-signal="libraryCollapse"
@@ -529,8 +543,13 @@ function onInspectorClaim() {
  *   Shrinking order: Operations icons 1276, Library icons 1024, chrome compact 855, Library pop-out
  *   790, Operations groups 742, phone 640. "phone" chrome is the ≤ 480px media query, unchanged.
  *
- * The applied Library track is the store's target in every tier. The pop-out tier shows the icon
- * rail (in its 64px track) until `TODO/ui-081`'s section launchers land.
+ * The applied Library track is the store's target in every tier. The pop-out tier is the section
+ * launchers (`TODO/ui-081`) in its 64px track.
+ *
+ * Motion (stage 7): a tier change sets `data-panel-animating` for 220ms and the tracks ease over
+ * 180ms; the panels' content swaps compact-first when shrinking and only after the track has widened
+ * when growing (`contentTierFor`); a placement drag holds the Library's content until `pointerup`.
+ * Reduced motion makes all of it instant. A fluid width change inside a tier is never animated.
  */
 .app__body {
   position: relative;
@@ -662,6 +681,22 @@ function onInspectorClaim() {
 @media (min-width: 641px) {
   .app__body {
     grid-template-columns: var(--library-width, 200px) 1fr var(--inspector-width, 220px);
+  }
+
+  /* `TODO/ui-079` stage 7: only a *tier* change animates the tracks. The store sets this flag for
+     220ms on one (`PANEL_ANIMATING_MS`); a width change inside a tier never sets it, so dragging a
+     window edge keeps the fluid tracks on the edge instead of rubber-banding behind it. The flag
+     and the new tracks land in the same style change, which is what starts the transition. All
+     three engines interpolate these `var()`-built tracks (the e2e samples the in-between widths). */
+  .app__body[data-panel-animating] {
+    transition: grid-template-columns 180ms ease-out;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* The store never sets the flag under reduced motion; this covers the setting changing mid-way. */
+  .app__body[data-panel-animating] {
+    transition: none;
   }
 }
 

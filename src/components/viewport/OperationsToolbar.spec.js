@@ -1452,6 +1452,8 @@ describe('OperationsToolbar — the groups tier (TODO/ui-082)', () => {
     expect(panelLayout.openPopout).toBe('ops-group:shape')
 
     panelLayout.setBodyWidth(1440)
+    // Growing: the wider form comes in once the grid track has widened (ui-079 stage 7).
+    panelLayout.finishTrackAnimation()
     await wrapper.vm.$nextTick()
     await wrapper.vm.$nextTick()
     expect(wrapper.get('[data-testid="operations-toolbar"]').attributes('data-ops-tier')).toBe('labels')
@@ -1504,6 +1506,7 @@ describe('OperationsToolbar — the groups tier (TODO/ui-082)', () => {
 
   it('the tablet’s icons tier and the phone keep the flat row: no launchers', () => {
     panelLayout.setBodyWidth(820)
+    panelLayout.finishTrackAnimation()
     const tablet = mount(OperationsToolbar)
     expect(tablet.find('[data-testid^="ops-group-"]').exists()).toBe(false)
     expect(tablet.find('[data-testid="operation-union"]').exists()).toBe(true)

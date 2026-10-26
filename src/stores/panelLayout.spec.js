@@ -9,8 +9,14 @@ import {
   CHROME_FULL_MIN_PANE_PX,
   GIZMO_RESERVE_COMPACT_PX,
   GIZMO_RESERVE_FULL_PX,
+  LIBRARY_TIER_RANK,
+  OPS_TIER_RANK,
+  PANEL_ANIMATING_MS,
   PANE_MIN_WIDTH_PX,
   PHONE_MAX_WIDTH_PX,
+  contentTierFor,
+  libraryTierDuringDrag,
+  motionFor,
   panelLayoutFor,
   usePanelLayoutStore,
 } from './panelLayout.js'
@@ -313,5 +319,216 @@ describe('usePanelLayoutStore (TODO/ui-079)', () => {
     expect(store.layout.opsTier).toBe('icons')
     store.setChatColumn(false)
     expect(store.layout.opsTier).toBe('labels')
+  })
+})
+
+/**
+ * `TODO/ui-079` stage 7, "Motion and edges": a tier change animates the grid tracks, a fluid width
+ * change never does, and content swaps on the side of the animation where it never has to fit a
+ * column mid-move (compact content first when shrinking, wide content last when growing).
+ */
+describe('motionFor (TODO/ui-079 stage 7)', () => {
+  const at = (/** @type {number} */ bodyWidthPx) => panelLayoutFor({ bodyWidthPx, chatColumn: false })
+
+  it('is none for a width change inside every tier, however large', () => {
+    expect(motionFor(at(1440), at(1439))).toBe('none')
+    expect(motionFor(at(1440), at(1300))).toBe('none')
+    expect(motionFor(at(900), at(870))).toBe('none')
+  })
+
+  it('animates a Library, an Operations or a chrome tier change on its own', () => {
+    // Library labels → icons at E = 1024 (Operations and chrome stay put).
+    expect(motionFor(at(1024), at(1023))).toBe('animate')
+    // Operations labels → icons at E = 1276 (the Library stays labels).
+    expect(motionFor(at(1276), at(1275))).toBe('animate')
+    // Chrome full → compact at E = 855.
+    expect(motionFor(at(855), at(854))).toBe('animate')
+    // Growing is animated too.
+    expect(motionFor(at(760), at(1440))).toBe('animate')
+  })
+
+  it('is instant across the phone breakpoint, in either direction: the sheets take over there', () => {
+    expect(motionFor(at(700), at(600))).toBe('instant')
+    expect(motionFor(at(390), at(820))).toBe('instant')
+    expect(motionFor(at(390), at(600))).toBe('none')
+  })
+})
+
+describe('contentTierFor (TODO/ui-079 stage 7)', () => {
+  it('shrinking swaps to the compact content at once, before the track narrows', () => {
+    expect(contentTierFor(LIBRARY_TIER_RANK, 'labels', 'icons')).toBe('icons')
+    expect(contentTierFor(LIBRARY_TIER_RANK, 'icons', 'popout')).toBe('popout')
+    expect(contentTierFor(OPS_TIER_RANK, 'labels', 'groups')).toBe('groups')
+  })
+
+  it('growing keeps the compact content until the track has finished widening', () => {
+    expect(contentTierFor(LIBRARY_TIER_RANK, 'icons', 'labels')).toBe('icons')
+    expect(contentTierFor(LIBRARY_TIER_RANK, 'popout', 'icons')).toBe('popout')
+    expect(contentTierFor(OPS_TIER_RANK, 'groups', 'labels')).toBe('groups')
+  })
+
+  it('an unchanged tier is kept, and the phone sheet is always taken at once', () => {
+    expect(contentTierFor(OPS_TIER_RANK, 'icons', 'icons')).toBe('icons')
+    expect(contentTierFor(LIBRARY_TIER_RANK, 'labels', 'sheet')).toBe('sheet')
+  })
+})
+
+describe('libraryTierDuringDrag (TODO/ui-079 stage 7)', () => {
+  it('holds the shown tier while a drag is under way, so the pressed row is never unmounted', () => {
+    expect(libraryTierDuringDrag('labels', 'icons', true)).toBe('labels')
+    expect(libraryTierDuringDrag('icons', 'labels', true)).toBe('icons')
+    expect(libraryTierDuringDrag('popout', 'icons', true)).toBe('popout')
+  })
+
+  it('takes the new tier once the drag is over, and phone width at once even mid-drag', () => {
+    expect(libraryTierDuringDrag('labels', 'icons', false)).toBe('icons')
+    expect(libraryTierDuringDrag('popout', 'sheet', true)).toBe('sheet')
+  })
+})
+
+describe('usePanelLayoutStore motion (TODO/ui-079 stage 7)', () => {
+  /** @param {boolean} reduce */
+  function stubReducedMotion(reduce) {
+    vi.stubGlobal('matchMedia', (/** @type {string} */ query) => ({
+      matches: reduce && query.includes('prefers-reduced-motion'),
+      media: query,
+      addEventListener() {},
+      removeEventListener() {},
+    }))
+  }
+
+  beforeEach(() => {
+    setActivePinia(createPinia())
+    vi.useFakeTimers()
+    stubReducedMotion(false)
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
+    vi.unstubAllGlobals()
+    vi.restoreAllMocks()
+  })
+
+  it('starts settled: no animation on the first render, and the content tiers are the layout’s', () => {
+    vi.spyOn(window, 'innerWidth', 'get').mockReturnValue(820)
+    const store = usePanelLayoutStore()
+    expect(store.animating).toBe(false)
+    expect(store.libraryContentTier).toBe('icons')
+    expect(store.opsContentTier).toBe('icons')
+  })
+
+  it('the observer’s first write, and a chat restored open before it, are still the first render: no animation', () => {
+    vi.spyOn(window, 'innerWidth', 'get').mockReturnValue(1440)
+    const store = usePanelLayoutStore()
+    store.setChatColumn(true)
+    expect(store.animating).toBe(false)
+    expect(store.opsContentTier).toBe('icons')
+    // A body narrower than the window lands in another tier: corrected, not animated.
+    store.setBodyWidth(900)
+    expect(store.animating).toBe(false)
+    expect(store.libraryContentTier).toBe('icons')
+    // From then on a tier change animates.
+    store.setBodyWidth(1440)
+    expect(store.animating).toBe(true)
+  })
+
+  it('a fluid width change inside a tier never sets the flag', () => {
+    const store = usePanelLayoutStore()
+    store.setBodyWidth(1440)
+    vi.advanceTimersByTime(PANEL_ANIMATING_MS)
+    store.setBodyWidth(1439)
+    store.setBodyWidth(1300)
+    expect(store.animating).toBe(false)
+  })
+
+  it('shrinking across a tier: the flag is up for PANEL_ANIMATING_MS and the compact content is in at once', () => {
+    const store = usePanelLayoutStore()
+    store.setBodyWidth(1440)
+    vi.advanceTimersByTime(PANEL_ANIMATING_MS)
+    store.setBodyWidth(900)
+    expect(store.animating).toBe(true)
+    expect(store.libraryContentTier).toBe('icons')
+    expect(store.opsContentTier).toBe('icons')
+    vi.advanceTimersByTime(PANEL_ANIMATING_MS - 1)
+    expect(store.animating).toBe(true)
+    vi.advanceTimersByTime(1)
+    expect(store.animating).toBe(false)
+  })
+
+  it('growing across a tier: the wide content waits for the track, on transitionend or the timeout', () => {
+    const store = usePanelLayoutStore()
+    store.setBodyWidth(900)
+    vi.advanceTimersByTime(PANEL_ANIMATING_MS)
+    store.setBodyWidth(1440)
+    expect(store.animating).toBe(true)
+    expect(store.libraryContentTier).toBe('icons')
+    expect(store.opsContentTier).toBe('icons')
+    // The grid track's transitionend swaps the content in; the flag runs out on its own timer.
+    store.finishTrackAnimation()
+    expect(store.libraryContentTier).toBe('labels')
+    expect(store.opsContentTier).toBe('labels')
+    expect(store.animating).toBe(true)
+    vi.advanceTimersByTime(PANEL_ANIMATING_MS)
+    expect(store.animating).toBe(false)
+
+    // No transitionend at all (an engine that does not interpolate the tracks): the timeout swaps.
+    store.setBodyWidth(900)
+    vi.advanceTimersByTime(PANEL_ANIMATING_MS)
+    store.setBodyWidth(1440)
+    expect(store.libraryContentTier).toBe('icons')
+    vi.advanceTimersByTime(PANEL_ANIMATING_MS)
+    expect(store.libraryContentTier).toBe('labels')
+    expect(store.animating).toBe(false)
+  })
+
+  it('a grow reversed mid-animation takes the compact content at once, and a new change restarts the timer', () => {
+    const store = usePanelLayoutStore()
+    store.setBodyWidth(900)
+    vi.advanceTimersByTime(PANEL_ANIMATING_MS)
+    store.setBodyWidth(1440)
+    vi.advanceTimersByTime(PANEL_ANIMATING_MS - 20)
+    store.setBodyWidth(760)
+    expect(store.libraryContentTier).toBe('popout')
+    vi.advanceTimersByTime(PANEL_ANIMATING_MS - 1)
+    expect(store.animating).toBe(true)
+    vi.advanceTimersByTime(1)
+    expect(store.animating).toBe(false)
+    expect(store.libraryContentTier).toBe('popout')
+  })
+
+  it('under prefers-reduced-motion every tier change is instant: no flag, the content swaps at once', () => {
+    stubReducedMotion(true)
+    const store = usePanelLayoutStore()
+    store.setBodyWidth(900)
+    store.setBodyWidth(1440)
+    expect(store.animating).toBe(false)
+    expect(store.libraryContentTier).toBe('labels')
+    store.setBodyWidth(760)
+    expect(store.animating).toBe(false)
+    expect(store.libraryContentTier).toBe('popout')
+  })
+
+  it('crossing into or out of phone width is instant, and cancels an animation under way', () => {
+    const store = usePanelLayoutStore()
+    store.setBodyWidth(1440)
+    vi.advanceTimersByTime(PANEL_ANIMATING_MS)
+    store.setBodyWidth(900)
+    expect(store.animating).toBe(true)
+    store.setBodyWidth(600)
+    expect(store.animating).toBe(false)
+    expect(store.libraryContentTier).toBe('sheet')
+    store.setBodyWidth(1440)
+    expect(store.animating).toBe(false)
+    expect(store.libraryContentTier).toBe('labels')
+    expect(store.opsContentTier).toBe('labels')
+  })
+
+  it('opening the laptop chat column is a tier change like any other, and animates', () => {
+    const store = usePanelLayoutStore()
+    store.setBodyWidth(1440)
+    vi.advanceTimersByTime(PANEL_ANIMATING_MS)
+    store.setChatColumn(true)
+    expect(store.animating).toBe(true)
+    expect(store.opsContentTier).toBe('icons')
   })
 })
