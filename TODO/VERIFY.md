@@ -36,6 +36,16 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### ui-089 — Hide and show from the Objects list (2026-10-26 21:16)
+
+The e2e covers that the eye hides, the hidden piece is not clickable, the hide survives a reload and Show all brings it back. What only a person can judge is how it looks.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | The body row's eye in the mixed state (one part hidden) reads as "some hidden", not as shown or hidden, at laptop width | Open | |
+| 2 | The eye-slash on a hidden part row is readable next to the dimmed name, on the phone Inspector sheet at 390 px | Open | |
+| 3 | The `objects-hide-split-piece` docs still is correct: its magenta bar across the header is the docs helper's mask over the save status, as intended, not a stray element | Open | |
+
 ### ui-085 — Library sheet no longer scrolls sideways (2026-10-26 12:50)
 
 Fixed and spec'd on Playwright WebKit; real desktop Safari with a trackpad was not available here.

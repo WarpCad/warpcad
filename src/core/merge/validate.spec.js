@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest'
 import { MERGE_LIMITS, MergeSectionError, readMergeSection } from './validate.js'
 import { LEGACY_STAMP } from './state.js'
 import { keysBetween } from './positionKey.js'
+import { viewKey } from '../visibility.js'
 
 /**
  * `TODO/data-011`: the merge section is untrusted data from whoever wrote the file. One case
@@ -144,5 +145,31 @@ describe('readMergeSection', () => {
         expect(error).toBeInstanceOf(MergeSectionError)
       }
     }
+  })
+})
+
+describe('readMergeSection — view stamps (TODO/ui-089)', () => {
+  it('reads each body\'s and each part\'s stamp under its view key, and counts them toward the clock', () => {
+    const overlay = read({
+      viewStamps: { 'op-aaaaaa-1': { body: STAMP, parts: { 'Cube 1 A': [50, 'm42c2z'] } } },
+    })
+    expect(overlay.viewStamps.get(viewKey('op-aaaaaa-1'))).toEqual({ counter: 12, replica: 'k3f5xa' })
+    expect(overlay.viewStamps.get(viewKey('op-aaaaaa-1', 'Cube 1 A'))).toEqual({ counter: 50, replica: 'm42c2z' })
+    expect(overlay.highest).toBe(50)
+  })
+
+  it('an absent field is no stamps, and a stamp for a body the file does not hold is dropped, not refused', () => {
+    expect(read({}).viewStamps.size).toBe(0)
+    // A view setting must never cost the user the file.
+    expect(read({ viewStamps: { 'op-gone-9': { body: STAMP } } }).viewStamps.size).toBe(0)
+  })
+
+  it('refuses a malformed view stamp by naming the field', () => {
+    refused({ viewStamps: [] }, /`viewStamps` must be a map/)
+    refused({ viewStamps: { 'op-aaaaaa-1': 3 } }, /view stamps for "op-aaaaaa-1" must be an object/)
+    refused({ viewStamps: { 'op-aaaaaa-1': { parts: ['Cube 1 A'] } } }, /view stamps for "op-aaaaaa-1".*`parts` must be a map/)
+    refused({ viewStamps: { 'op-aaaaaa-1': { body: [9e15, 'k3f5xa'] } } }, /counter above/)
+    refused({ viewStamps: { 'op-aaaaaa-1': { parts: { 'Cube 1 A': 'soon' } } } }, /must be a stamp/)
+    refused({ viewStamps: { 'op-aaaaaa-1': { parts: { ['x'.repeat(MERGE_LIMITS.maxIdLength + 1)]: STAMP } } } }, /part name that is empty or longer/)
   })
 })

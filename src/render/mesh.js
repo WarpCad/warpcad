@@ -33,7 +33,8 @@ import {
 } from 'three'
 
 import { paintColorOf, recipeColorOf } from '../core/colorOverride.js'
-import { hasNamedParts, toGeom3 } from '../core/kernel/group.js'
+import { boundsOf, hasNamedParts, toGeom3 } from '../core/kernel/group.js'
+import { isBodyDrawn, isPartDrawn } from '../core/visibility.js'
 
 /** @typedef {import('@jscad/modeling').geometries.geom3.Geom3} Geom3 */
 /** @typedef {import('../core/kernel/group.js').Group} KernelGroup */
@@ -680,15 +681,22 @@ export function addXrayTwin(mesh, material) {
  * through it must reach whatever is really there. The caller owns it: remove it and
  * {@link disposeMesh} it when the hover ends.
  *
+ * A part the **user** hid (`TODO/ui-089`), or any part of a body the user hid, builds nothing:
+ * the preview shows a recipe's helper part, and must not bring back what the user took away.
+ *
  * @param {Geom3 | KernelGroup} geometry The body's geometry.
  * @param {string} partName
  * @param {MeshStandardMaterial} material Initial material; repainted by the caller.
  * @param {string} bodyId
+ * @param {import('../core/visibility.js').BodyView} [view] The body's Hide / Show switches, as
+ *   `document.bodies()` reports them; omitted, everything is shown.
  * @returns {Mesh | null} `null` unless `partName` is a hidden part of a group that is drawn
- *   part by part — a visible part already has a mesh, and a bare solid has no parts.
+ *   part by part — a visible part already has a mesh, and a bare solid has no parts — and
+ *   the user has not hidden it.
  */
-export function createHoverPartMesh(geometry, partName, material, bodyId) {
+export function createHoverPartMesh(geometry, partName, material, bodyId, view = {}) {
   if (!hasNamedParts(geometry)) return null
+  if (!isPartDrawn(view, partName)) return null
   const part = geometry.parts[partName]
   if (!part || geometry.names.includes(partName)) return null
   const mesh = new Mesh(geom3ToBufferGeometry(part), material)
@@ -812,6 +820,70 @@ export function createBodyObject(geometry, material, bodyId, shownHiddenNames = 
   const mesh = new Mesh(geom3ToBufferGeometry(toGeom3(geometry)), material)
   mesh.name = bodyId
   return mesh
+}
+
+/**
+ * Show or hide a body's scene object to match the user's **Hide** / **Show** (`TODO/ui-089`),
+ * through `visibility.js`'s one rule: the object follows the body's switch, and each part
+ * mesh (a `ui-047` shown hidden part and a `ui-049` hover transient included) follows the
+ * part rule, so **Show hidden parts** never brings back a part the user hid.
+ *
+ * Only `visible` flags change: no geometry is rebuilt, nothing re-tessellates and nothing is
+ * allocated, so it is safe to call on every scene sync. three.js skips an invisible subtree
+ * when it renders (twins and transients under a hidden mesh with it), but its raycaster does
+ * not: a pick filters on `pick.js`'s `isDrawn`.
+ *
+ * @param {Mesh | ThreeGroup} object What {@link createBodyObject} built.
+ * @param {import('../core/visibility.js').BodyView} view The body's switches, as
+ *   `document.bodies()` reports them.
+ * @param {boolean} [suppressed] Off whatever the switches say — the body the sketch editor
+ *   is drawing over.
+ * @returns {void}
+ */
+export function applyViewVisibility(object, view, suppressed = false) {
+  object.visible = !suppressed && isBodyDrawn(view)
+  if (!(object instanceof ThreeGroup)) return
+  for (const child of object.children) {
+    const partName = child.userData.partName
+    if (typeof partName === 'string') child.visible = isPartDrawn(view, partName)
+  }
+}
+
+/**
+ * The world bounds of everything the user has **not** hidden (`TODO/ui-089`): what framing
+ * fits to, so a user who hid all but one piece is shown that piece. A body's own drawn parts
+ * only, when some are hidden; a recipe's helper parts never count, as in `boundsOf`.
+ *
+ * @param {readonly ({ geometry: Geom3 | KernelGroup } & import('../core/visibility.js').BodyView)[]} bodies
+ * @returns {[number[], number[]] | null} `[min, max]` in millimetres, or `null` when nothing
+ *   is drawn — the caller then frames every body, as it did before anything could be hidden.
+ */
+export function drawnBoundsOf(bodies) {
+  const min = [Infinity, Infinity, Infinity]
+  const max = [-Infinity, -Infinity, -Infinity]
+  let drawn = 0
+  /** @param {readonly number[][]} bounds */
+  const take = ([partMin, partMax]) => {
+    for (let axis = 0; axis < 3; axis += 1) {
+      if (partMin[axis] < min[axis]) min[axis] = partMin[axis]
+      if (partMax[axis] > max[axis]) max[axis] = partMax[axis]
+    }
+    drawn += 1
+  }
+  for (const body of bodies) {
+    if (!isBodyDrawn(body)) continue
+    const geometry = body.geometry
+    if ((body.viewHiddenParts ?? []).length === 0 || !hasNamedParts(geometry)) {
+      take(boundsOf(geometry))
+      continue
+    }
+    for (const partName of geometry.names) {
+      const part = geometry.parts[partName]
+      if (!isPartDrawn(body, partName) || part.polygons.length === 0) continue
+      take(boundsOf(part))
+    }
+  }
+  return drawn === 0 ? null : [min, max]
 }
 
 /**

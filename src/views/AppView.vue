@@ -32,6 +32,7 @@ import FileMenu from '../components/storage/FileMenu.vue'
 import { bootStorage } from '../composables/useStorageBoot.js'
 import { useDeleteShortcut } from '../composables/useDeleteShortcut.js'
 import { useHelpShortcut } from '../composables/useHelpShortcut.js'
+import { useVisibilityShortcut } from '../composables/useVisibilityShortcut.js'
 import { startLiveBridge } from '../composables/useLiveBridge.js'
 import { startWebMcp } from '../composables/useWebMcp.js'
 import HelpEntryButton from '../components/layout/HelpEntryButton.vue'
@@ -86,6 +87,9 @@ const chatSheet = computed(() => {
 useDeleteShortcut()
 // `?` / F1 open the Help sheet (`TODO/ui-061`); the sheet itself is mounted once, below.
 useHelpShortcut()
+// H hides or shows the selection, Shift+H is Show all (`TODO/ui-089`) — the Objects list's
+// eyes are the primary route; this mirrors them for a keyboard.
+useVisibilityShortcut()
 onMounted(() => {
   void bootStorage({ persistence, hosted })
   void assistant.start()

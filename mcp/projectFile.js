@@ -147,6 +147,8 @@ export function loadProjectText(text, name, replica) {
       userParts: parsed.userParts,
       unavailableParts: parsed.unavailableParts,
       ...(parsed.merge !== undefined ? { merge: parsed.merge } : {}),
+      // `TODO/ui-089`: the user's hides, so a tool call's write keeps them rather than wiping them.
+      ...(parsed.viewHidden !== undefined ? { viewHidden: parsed.viewHidden } : {}),
     })
     return document
   } catch (error) {

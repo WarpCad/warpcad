@@ -33,6 +33,8 @@
  *   it keeps its bytes. Validated like any other field: a malformed volume refuses the file.
  * - the **user-part definitions** (`TODO/core-037`) the records use, as `parts: [definition]`
  *   in op order — see "User parts" below.
+ * - what the user **hid in the view** (`TODO/ui-089`), as `viewHidden` — see "View
+ *   visibility" below.
  *
  * A restore that dropped them would be silently unfaithful in the worst way — a
  * rolled-back document reopening fully rolled *forward* shows the user geometry
@@ -85,6 +87,22 @@
  * does not carry. The local library's copy is never substituted for a project's missing or
  * bad one; that would change a placed instance without the user choosing it.
  *
+ * ## View visibility (`TODO/ui-089`)
+ *
+ * The Objects list's eye: `viewHidden: { "<bodyId>": { "body": true, "parts": ["Cube 1 A"] } }`
+ * (`src/core/visibility.js` owns the shape and the rule). A view setting, not a modelling step,
+ * so not a record: as one, every toggle would be a History row and an Undo step. Written only
+ * when something is hidden, so a document that never hid anything keeps its bytes, and **a
+ * file without the field opens with everything visible** — every file from before it, with or
+ * without a state line, at either version. The line's version does not change for it: a build
+ * that predates it ignores the field (as it does `intents`) and opens the file with everything
+ * shown, which is the same outcome.
+ *
+ * The strictness rule applied to it: a wrong type (`viewHidden: 3`, a part list that is not
+ * names) is refused by name like any other malformed field. A body id naming no record, and a
+ * part name the body no longer has, are stale rather than malformed: ignored, and not written
+ * back on the next save, since a view setting must never cost the user the file.
+ *
  * ## Project variables (`TODO/core-050`)
  *
  * A variable is an ordinary record line (`op: 'var.define'`), and a binding is plain JSON in
@@ -130,6 +148,7 @@ import { INSTRUCTIONS_MAX_LENGTH, INTENT_MAX_LENGTH, cleanText } from './intent.
 import { DEFAULT_RESOLUTION, RESOLUTION_IDS, isResolution } from './kernel/tessellation.js'
 import { MergeSectionError, readMergeSection } from './merge/validate.js'
 import { encodeMergeSection } from './merge/section.js'
+import { normalizeViewHidden } from './visibility.js'
 import { compareStamps } from './replica.js'
 import { LEGACY_STAMP } from './merge/state.js'
 import { parseNdjson, serializeNdjson } from './ndjson.js'
@@ -175,7 +194,7 @@ export class ProjectFormatError extends Error {
 /**
  * Serialise a document to project text.
  *
- * @param {Pick<WarpDocument, 'entries' | 'rollbackAt'> & Partial<Pick<WarpDocument, 'resolution' | 'standingInstructions' | 'buildVolume' | 'userParts' | 'mergeState' | 'mergeClock'>>} document
+ * @param {Pick<WarpDocument, 'entries' | 'rollbackAt'> & Partial<Pick<WarpDocument, 'resolution' | 'standingInstructions' | 'buildVolume' | 'userParts' | 'mergeState' | 'mergeClock' | 'viewHidden'>>} document
  * @returns {string} `''` for an empty document at the new-document default; otherwise
  *   newline-terminated NDJSON.
  */
@@ -217,6 +236,9 @@ export function serializeProject(document) {
     (op) => carried.get(op)
   ).definitions
 
+  // `TODO/ui-089`: what the user hid, stale switches already dropped by the document.
+  const viewHidden = document.viewHidden?.() ?? null
+
   // `TODO/data-011`: the merge metadata, only where it says more than row order does.
   const merge =
     document.mergeState === undefined
@@ -225,7 +247,8 @@ export function serializeProject(document) {
           document.mergeState(),
           entries,
           document.mergeClock?.() ?? 0,
-          parts.map((definition) => definition.op)
+          parts.map((definition) => definition.op),
+          viewHidden
         )
 
   /** @type {object[]} */
@@ -242,6 +265,7 @@ export function serializeProject(document) {
     standingInstructions !== '' ||
     writesBuildVolume ||
     parts.length > 0 ||
+    viewHidden !== null ||
     merge !== null
   ) {
     lines.push({
@@ -258,6 +282,7 @@ export function serializeProject(document) {
         ? { buildVolume: { widthMm: buildVolume.widthMm, depthMm: buildVolume.depthMm, heightMm: buildVolume.heightMm } }
         : {}),
       ...(parts.length > 0 ? { parts } : {}),
+      ...(viewHidden !== null ? { viewHidden } : {}),
       ...(merge !== null ? { merge } : {}),
     })
   }
@@ -456,13 +481,14 @@ function boundNamesOf(record) {
  * line is adjusted so it never names a record that is no longer there.
  *
  * @param {string} text
- * @returns {{ entries: DocumentEntry[], rollbackAt: number | null, resolution: string, standingInstructions: string, buildVolume: import('./buildVolume.js').BuildVolume, userParts: import('./userPart.js').UserPartDefinition[], unavailableParts: Record<string, string>, merge?: import('./merge/validate.js').MergeOverlay, warnings: LoadWarning[] }}
+ * @returns {{ entries: DocumentEntry[], rollbackAt: number | null, resolution: string, standingInstructions: string, buildVolume: import('./buildVolume.js').BuildVolume, userParts: import('./userPart.js').UserPartDefinition[], unavailableParts: Record<string, string>, merge?: import('./merge/validate.js').MergeOverlay, viewHidden?: import('./visibility.js').ViewHiddenState, warnings: LoadWarning[] }}
  *   `standingInstructions` is `''` when the file has none (`TODO/ai-003`); `buildVolume` is the
  *   default when the file has none (`TODO/io-007`). `userParts` are the usable definitions the
  *   file carries and `unavailableParts` (op → reason) the parts its records name that are
  *   missing or bad (`TODO/core-037`) — hand both to `WarpDocument.loadEntries`. `merge`
  *   (`TODO/data-011`) is the validated merge section of a version-2 file, absent otherwise —
- *   hand it to `loadEntries` too.
+ *   hand it to `loadEntries` too. `viewHidden` (`TODO/ui-089`) is what the user hid, only
+ *   bodies the file holds, absent when nothing is — hand it to `loadEntries` as well.
  * @throws {ProjectFormatError} naming the line, or the offending field.
  */
 export function parseProject(text) {
@@ -674,6 +700,20 @@ export function parseProject(text) {
     if (!(rollbackAt >= 1 && rollbackAt < entries.length)) rollbackAt = null
   }
 
+  /** @type {import('./visibility.js').ViewHiddenState} */
+  let viewHidden = {}
+  if (state?.viewHidden !== undefined) {
+    try {
+      viewHidden = normalizeViewHidden(state.viewHidden)
+    } catch (error) {
+      throw new ProjectFormatError(`project-state: viewHidden — ${error instanceof Error ? error.message : String(error)}`)
+    }
+    // A body no record in the file names (or one this build dropped) is stale, not malformed.
+    for (const bodyId of Object.keys(viewHidden)) {
+      if (!ids.has(bodyId) || retiredIds.has(bodyId)) delete viewHidden[bodyId]
+    }
+  }
+
   const declared = state?.resolution
   if (declared !== undefined && !isResolution(declared)) {
     throw new ProjectFormatError(
@@ -708,6 +748,7 @@ export function parseProject(text) {
     userParts,
     unavailableParts,
     ...(merge !== undefined ? { merge } : {}),
+    ...(Object.keys(viewHidden).length > 0 ? { viewHidden } : {}),
     warnings,
   }
 }

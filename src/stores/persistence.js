@@ -393,7 +393,7 @@ export const usePersistenceStore = defineStore('persistence', () => {
    */
   function loadText(text) {
     try {
-      const { entries, rollbackAt, resolution, standingInstructions, buildVolume, userParts, unavailableParts, merge, warnings } =
+      const { entries, rollbackAt, resolution, standingInstructions, buildVolume, userParts, unavailableParts, merge, viewHidden, warnings } =
         parseProject(text)
       documentStore.load(entries, rollbackAt, resolution, {
         standingInstructions,
@@ -401,6 +401,8 @@ export const usePersistenceStore = defineStore('persistence', () => {
         userParts,
         unavailableParts,
         ...(merge !== undefined ? { merge } : {}),
+        // `TODO/ui-089`: what was hidden. Dropping it here would also turn its stamps into shows.
+        ...(viewHidden !== undefined ? { viewHidden } : {}),
       })
       return { ok: true, steps: entries.length, skipped: warnings.length > 0 ? describeSkipped(warnings) : '' }
     } catch (error) {

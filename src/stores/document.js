@@ -65,6 +65,12 @@ import { useSelectionStore } from './selection.js'
  * @property {import('../core/repeat.js').RepeatInfo} [repeat] `TODO/core-061`: a repeat
  *   body's source, seed, targets and member states, as `Body.repeat` reports them — what the
  *   BOM counts members by. Plain JSON. Absent on every other body.
+ * @property {true} [viewHidden] `TODO/ui-089`: the user hid this body in the view, as
+ *   `Body.viewHidden` reports it. Absent when shown. Read it through `src/core/visibility.js`
+ *   (`isBodyDrawn`, `isPartDrawn`, `eyeStateOf`), never by hand.
+ * @property {string[]} [viewHiddenParts] `TODO/ui-089`: the parts the user hid, as
+ *   `Body.viewHiddenParts` reports them. Absent when none. Not {@link BodySummary.hiddenPartNames},
+ *   which are a recipe's own helper parts.
  */
 /**
  * A body's measurements as far as they are known **right now**, without running a
@@ -175,6 +181,8 @@ export function summarizeBody(body) {
     partNames: composite ? [...geometry.names] : [],
     hiddenPartNames: composite ? [...hiddenNamesOf(geometry)] : [],
     ...(body.repeat !== undefined ? { repeat: body.repeat } : {}),
+    ...(body.viewHidden === true ? { viewHidden: body.viewHidden } : {}),
+    ...(body.viewHiddenParts !== undefined ? { viewHiddenParts: [...body.viewHiddenParts] } : {}),
   }
 }
 
@@ -378,6 +386,39 @@ export const useDocumentStore = defineStore('document', () => {
    */
   function setBuildVolume(volume) {
     raw.setBuildVolume(volume, { origin: 'local' })
+    refresh()
+  }
+
+  /**
+   * Hide or show one body, or one of its parts, in the view (`TODO/ui-089`) — core's
+   * `setViewHidden`, a `local` document change that bumps the version but is not an undo step,
+   * like the build volume.
+   *
+   * Rule 5 lives here, because the selection is a store: hiding something that is selected
+   * takes it out of the selection, so an operation never acts on an operand the user cannot see
+   * without having chosen it. A hidden body leaves it; so does a body addressed at the part
+   * just hidden — stepping it up to the whole body would make the hidden part an operand again.
+   * Selecting a hidden row from the Objects list afterwards is still allowed: that is a choice.
+   *
+   * @param {string} id
+   * @param {{ subPart?: string, hidden: boolean }} target
+   */
+  function setViewHidden(id, target) {
+    raw.setViewHidden(id, target, { origin: 'local' })
+    if (target.hidden) {
+      const selection = useSelectionStore()
+      const bodyId = raw.rootOf(id) ?? id
+      if (target.subPart === undefined || selection.partOf(bodyId) === target.subPart) selection.deselect(bodyId)
+    }
+    refresh()
+  }
+
+  /**
+   * **Show all** (`TODO/ui-089`) — core's `showAll`: every body and part back in one change, not
+   * an undo step. Nothing becomes hidden, so the selection is left alone.
+   */
+  function showAll() {
+    raw.showAll({ origin: 'local' })
     refresh()
   }
 
@@ -613,10 +654,11 @@ export const useDocumentStore = defineStore('document', () => {
    * @param {number | null} [rollbackAt]
    * @param {string} [nextResolution] The loaded design's resolution (`TODO/core-035`);
    *   `parseProject` supplies it. Omitted: the current one.
-   * @param {{ standingInstructions?: string, buildVolume?: import('../core/buildVolume.js').BuildVolume, userParts?: readonly import('../core/userPart.js').UserPartDefinition[], unavailableParts?: Readonly<Record<string, string>>, merge?: import('../core/merge/validate.js').MergeOverlay }} [options]
+   * @param {{ standingInstructions?: string, buildVolume?: import('../core/buildVolume.js').BuildVolume, userParts?: readonly import('../core/userPart.js').UserPartDefinition[], unavailableParts?: Readonly<Record<string, string>>, merge?: import('../core/merge/validate.js').MergeOverlay, viewHidden?: import('../core/visibility.js').ViewHiddenState }} [options]
    *   `TODO/ai-003`: the loaded project's standing instructions; omitted, the loaded project has
    *   none. `TODO/io-007`: its build volume; omitted, the default. `TODO/core-037`: the user-part
    *   definitions it carries and the parts it names that could not be loaded; omitted, none.
+   *   `TODO/ui-089`: what its user hid in the view; omitted, everything is shown.
    */
   function load(entries, rollbackAt = null, nextResolution = raw.resolution(), options = {}) {
     raw.loadEntries(entries, rollbackAt, nextResolution, {
@@ -625,6 +667,7 @@ export const useDocumentStore = defineStore('document', () => {
       userParts: options.userParts ?? [],
       unavailableParts: options.unavailableParts ?? {},
       ...(options.merge === undefined ? {} : { merge: options.merge }),
+      ...(options.viewHidden === undefined ? {} : { viewHidden: options.viewHidden }),
     })
     useSelectionStore().clear()
     loadRevision.value += 1
@@ -819,6 +862,8 @@ export const useDocumentStore = defineStore('document', () => {
     setStandingInstructions,
     buildVolume,
     setBuildVolume,
+    setViewHidden,
+    showAll,
     deleteBodies,
     removePart,
     appendRepeat,

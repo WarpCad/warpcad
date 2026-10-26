@@ -2,7 +2,9 @@
 import { describe, expect, it } from 'vitest'
 
 import { createOrbitCamera, STANDARD_VIEWS } from './camera.js'
-import { PICK_OFFSETS_PX, nearestOnPlane, ndcFromClient, projectToWorkingPlane } from './pick.js'
+import { BoxGeometry, Group, Mesh, MeshBasicMaterial, Raycaster, Vector3 } from 'three'
+
+import { PICK_OFFSETS_PX, firstDrawnHit, isDrawn, nearestOnPlane, ndcFromClient, projectToWorkingPlane } from './pick.js'
 
 /** @param {Record<string, any>} [options] */
 function camera(options = {}) {
@@ -183,5 +185,71 @@ describe('PICK_OFFSETS_PX (a ray that falls through a shared triangle edge, TODO
     expect(rest).toHaveLength(4)
     for (const [dx, dy] of rest) expect(Math.hypot(dx, dy)).toBeCloseTo(0.25, 12)
     expect(new Set(rest.map((offset) => offset.join(','))).size).toBe(4)
+  })
+})
+
+describe('firstDrawnHit — a hidden thing is never picked (TODO/ui-089)', () => {
+  // Two split pieces in one body container, A nearer the eye than B, and a second body
+  // behind both; a ray straight down -Y passes through all three.
+  function scene() {
+    const material = new MeshBasicMaterial()
+    const root = new Group()
+    const body = new Group()
+    body.name = 'cube-1'
+    const a = new Mesh(new BoxGeometry(10, 10, 10), material)
+    a.position.set(0, 40, 0)
+    a.name = 'cube-1'
+    a.userData.partName = 'Cube 1 A'
+    const b = new Mesh(new BoxGeometry(10, 10, 10), material)
+    b.position.set(0, 20, 0)
+    b.name = 'cube-1'
+    b.userData.partName = 'Cube 1 B'
+    body.add(a, b)
+    const behind = new Mesh(new BoxGeometry(10, 10, 10), material)
+    behind.name = 'cylinder-1'
+    root.add(body, behind)
+    root.updateMatrixWorld(true)
+    return { root, body, a, b, behind }
+  }
+
+  /** @param {Group} root */
+  function hitsThrough(root) {
+    return new Raycaster(new Vector3(0, 100, 0), new Vector3(0, -1, 0)).intersectObjects(root.children, true)
+  }
+
+  it('takes the nearest hit when everything is drawn', () => {
+    const { root, a } = scene()
+    expect(firstDrawnHit(hitsThrough(root))?.object).toBe(a)
+  })
+
+  it('goes through a hidden part to the part behind it', () => {
+    const { root, a, b } = scene()
+    a.visible = false
+    // three.js still reports the hidden mesh: the filter is what makes it unpickable.
+    expect(hitsThrough(root)[0].object).toBe(a)
+    expect(firstDrawnHit(hitsThrough(root))?.object).toBe(b)
+  })
+
+  it('goes through a hidden body, every part of it, to the body behind', () => {
+    const { root, body, behind } = scene()
+    body.visible = false
+    expect(firstDrawnHit(hitsThrough(root))?.object).toBe(behind)
+  })
+
+  it('is null when everything on the ray is hidden', () => {
+    const { root, body, behind } = scene()
+    body.visible = false
+    behind.visible = false
+    expect(firstDrawnHit(hitsThrough(root))).toBeNull()
+    expect(firstDrawnHit([])).toBeNull()
+  })
+
+  it('isDrawn reads the object and every ancestor', () => {
+    const { body, a, b } = scene()
+    expect(isDrawn(a)).toBe(true)
+    b.visible = false
+    expect(isDrawn(b)).toBe(false)
+    body.visible = false
+    expect(isDrawn(a)).toBe(false)
   })
 })

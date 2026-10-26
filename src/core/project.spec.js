@@ -12,6 +12,7 @@ import { ProjectFormatError, parseProject, serializeProject } from './project.js
 import { serializeNdjson } from './ndjson.js'
 import { mergeStates } from './merge/merge.js'
 import { canonicalJSON, highestCounter } from './merge/state.js'
+import { viewKey } from './visibility.js'
 
 /**
  * `TODO/io-001` — the on-storage / on-disk form of a whole document.
@@ -999,3 +1000,140 @@ describe('project file version 2 (merge section)', () => {
 })
 
 const RULES_FOR_MERGE = 'Always dimension in millimetres.'
+
+describe('user visibility on the state line (TODO/ui-089)', () => {
+  /** A body 40 × 90 × 40 split across Y into two named pieces — the spec's own example. */
+  function splitScenario() {
+    const document = createDocument()
+    document.append({ id: 'cube-1', op: 'primitive.cuboid', name: 'Cube 1', params: { size: [40, 90, 40], center: [0, 0, 20] } }, local)
+    document.append(
+      {
+        id: 'cube-1-split',
+        op: 'modify.splitWithJoint',
+        target: 'cube-1',
+        supersedes: 'cube-1',
+        params: { axis: 'y', offsetMm: 45, joint: 'none', clearanceMm: 0.2, names: ['Cube 1 A', 'Cube 1 B'] },
+      },
+      local,
+    )
+    document.append({ id: 'cyl-1', op: 'primitive.cuboid', name: 'Cylinder 1', params: { size: [10, 10, 10], center: [60, 0, 5] } }, local)
+    return document
+  }
+
+  /** @param {string} text */
+  const stateOf = (text) => JSON.parse(/** @type {string} */ (text.trimEnd().split('\n').at(-1)))
+
+  /** @param {string} text */
+  function open(text) {
+    const parsed = parseProject(text)
+    const document = createDocument()
+    document.loadEntries(parsed.entries, parsed.rollbackAt, parsed.resolution, {
+      standingInstructions: parsed.standingInstructions,
+      buildVolume: parsed.buildVolume,
+      userParts: parsed.userParts,
+      unavailableParts: parsed.unavailableParts,
+      ...(parsed.merge !== undefined ? { merge: parsed.merge } : {}),
+      ...(parsed.viewHidden !== undefined ? { viewHidden: parsed.viewHidden } : {}),
+    })
+    return document
+  }
+
+  /** @param {any} document */
+  const visibilityOf = (document) =>
+    document.bodies().map((/** @type {any} */ body) => [body.id, body.viewHidden === true, body.viewHiddenParts ?? []])
+
+  it('round-trips a body hide and a part hide, and the reopened file re-saves byte-identically', () => {
+    const document = splitScenario()
+    document.setViewHidden('cube-1', { subPart: 'Cube 1 A', hidden: true }, local)
+    document.setViewHidden('cyl-1', { hidden: true }, local)
+    const text = serializeProject(document)
+    expect(stateOf(text).viewHidden).toEqual({ 'cube-1': { parts: ['Cube 1 A'] }, 'cyl-1': { body: true } })
+    expect(parseProject(text).viewHidden).toEqual({ 'cube-1': { parts: ['Cube 1 A'] }, 'cyl-1': { body: true } })
+
+    const reopened = open(text)
+    expect(visibilityOf(reopened)).toEqual([['cube-1', false, ['Cube 1 A']], ['cyl-1', true, []]])
+    expect(serializeProject(reopened)).toBe(text)
+    expect(canonicalJSON(reopened.mergeState())).toBe(canonicalJSON(document.mergeState()))
+  })
+
+  it('every record line stays byte-identical: visibility lives only in the state line', () => {
+    const document = splitScenario()
+    const before = recordLinesOf(serializeProject(document))
+    document.setViewHidden('cube-1', { hidden: true }, local)
+    expect(recordLinesOf(serializeProject(document))).toBe(before)
+  })
+
+  it('a document that never hid anything writes no viewHidden, and showing everything again writes none', () => {
+    const document = splitScenario()
+    expect(serializeProject(document)).not.toContain('viewHidden')
+    document.setViewHidden('cube-1', { hidden: true }, local)
+    document.showAll(local)
+    const text = serializeProject(document)
+    expect(stateOf(text).viewHidden).toBeUndefined()
+    expect(parseProject(text).viewHidden).toBeUndefined()
+  })
+
+  it('a show is kept as a stamp, so after a reload a later show still beats an earlier hide', () => {
+    const document = splitScenario()
+    document.setViewHidden('cyl-1', { hidden: true }, local)
+    document.setViewHidden('cyl-1', { hidden: false }, local)
+    const text = serializeProject(document)
+    expect(stateOf(text).merge.viewStamps['cyl-1'].body).toBeDefined()
+    const shown = open(text).mergeState().viewHidden.get(viewKey('cyl-1'))
+    expect(shown?.[0]).toBe(false)
+    expect(shown).toEqual(document.mergeState().viewHidden.get(viewKey('cyl-1')))
+  })
+
+  it('every pre-feature file opens with everything visible and re-saves byte-identically', () => {
+    // No state line at all; a version-1 line; a version-2 line — none with the field.
+    const plain = serializeNdjson(splitScenario().records)
+    const versionOne =
+      plain + JSON.stringify({ warpcad: 'project-state', version: 1, suppressed: [], rollbackAt: 2 }) + '\n'
+    const edited = splitScenario()
+    edited.setBuildVolume({ widthMm: 180, depthMm: 180, heightMm: 180 }, local)
+    const versionTwo = serializeProject(edited)
+    expect(stateOf(versionTwo).version).toBe(2)
+    for (const text of [plain, versionOne, versionTwo]) {
+      expect(parseProject(text).viewHidden).toBeUndefined()
+      const reopened = open(text)
+      for (const body of reopened.bodies()) {
+        expect(body.viewHidden).toBeUndefined()
+        expect(body.viewHiddenParts).toBeUndefined()
+      }
+      if (text !== versionOne) expect(serializeProject(reopened)).toBe(text)
+      expect(serializeProject(reopened)).not.toContain('viewHidden')
+    }
+  })
+
+  it('an older build still opens the file: unknown state-line and merge-section fields are ignored at both versions', () => {
+    // What a build from before ui-089 sees. It reads only the fields it knows, so the file opens
+    // with everything shown — the outcome rule 2 already gives a file with no field.
+    const records = serializeNdjson(splitScenario().records)
+    for (const state of [
+      { warpcad: 'project-state', version: 1, someFutureField: { 'cube-1': { body: true } } },
+      { warpcad: 'project-state', version: 2, someFutureField: 1, merge: { clock: 3, someFutureMergeField: { 'cube-1': {} } } },
+    ]) {
+      expect(parseProject(records + JSON.stringify(state) + '\n').entries).toHaveLength(3)
+    }
+  })
+
+  it('refuses a malformed viewHidden by name', () => {
+    const records = serializeNdjson(splitScenario().records)
+    /** @param {unknown} viewHidden */
+    const withField = (viewHidden) => records + JSON.stringify({ warpcad: 'project-state', version: 1, viewHidden }) + '\n'
+    expect(() => parseProject(withField(3))).toThrow(ProjectFormatError)
+    expect(() => parseProject(withField(3))).toThrow(/project-state: viewHidden/)
+    expect(() => parseProject(withField({ 'cube-1': { parts: [1, 2] } }))).toThrow(/project-state: viewHidden.*`parts` must be a list of part names/)
+  })
+
+  it('ignores a hide naming no record, and drops it and any stale part name on the next save', () => {
+    const records = serializeNdjson(splitScenario().records)
+    const text =
+      records +
+      JSON.stringify({ warpcad: 'project-state', version: 1, viewHidden: { ghost: { body: true }, 'cube-1': { parts: ['Cube 1 A', 'Old piece'] } } }) +
+      '\n'
+    const reopened = open(text)
+    expect(visibilityOf(reopened)).toEqual([['cube-1', false, ['Cube 1 A']], ['cyl-1', false, []]])
+    expect(stateOf(serializeProject(reopened)).viewHidden).toEqual({ 'cube-1': { parts: ['Cube 1 A'] } })
+  })
+})

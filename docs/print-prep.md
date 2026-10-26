@@ -41,6 +41,10 @@ already has a long part), and rename it **Wing**.
 
 ![Dragging the cut plane's handle, typing offset 150, choosing Tongue and groove, pressing Apply, then File, Export and Print pieces](./media/print-prep-split.gif)
 
+To check the joint, hide one piece: see [Hide and show](selection-and-inspector.md#hide-and-show).
+
+![Cube 1 split across Y with Cube 1 A hidden from the Objects list, showing the sockets on Cube 1 B's cut face](./screenshots/objects-hide-split-piece.png)
+
 ## Try it: choose where the connectors go
 
 **Pins and sockets** and **Tongue and groove** pick their own places on the cut face. When you want a

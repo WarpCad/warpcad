@@ -22,6 +22,8 @@ import {
   OVERRIDE_HIGHLIGHT_INTENSITY,
   bodyObjectIsCurrent,
   paintBodyObject,
+  applyViewVisibility,
+  drawnBoundsOf,
 } from './mesh.js'
 
 const { primitives, measurements } = modeling
@@ -1039,5 +1041,108 @@ describe('bodyObjectIsCurrent — when an existing body mesh may be kept (TODO/u
   it('rebuilds when the record changed, or the shown hidden parts did', () => {
     expect(bodyObjectIsCurrent({ recordId: 'a', geometry: cube, hiddenShownKey: '' }, { recordId: 'b', geometry: cube }, '')).toBe(false)
     expect(bodyObjectIsCurrent({ recordId: 'a', geometry: cube, hiddenShownKey: '' }, { recordId: 'a', geometry: cube }, 'tap')).toBe(false)
+  })
+})
+
+describe('the user\'s Hide / Show in the view (TODO/ui-089)', () => {
+  const palette = BODY_COLORS.dark
+
+  /** Two pieces of a split, side by side along Y, plus a recipe-hidden helper part. */
+  function splitPieces() {
+    let group = createGroup('Cube 1')
+    group = add(group, primitives.cuboid({ size: [40, 45, 40], center: [0, -22.5, 20] }), 'Cube 1 A')
+    group = add(group, primitives.cuboid({ size: [40, 45, 40], center: [0, 22.5, 20] }), 'Cube 1 B')
+    group = add(group, primitives.cuboid({ size: [4, 4, 4], center: [0, 0, 20] }), 'tap', { hidden: true })
+    return group
+  }
+
+  /** @param {any} object @param {string} partName */
+  function partMesh(object, partName) {
+    return object.children.find((/** @type {any} */ child) => child.userData.partName === partName)
+  }
+
+  it('hides one part and leaves its sibling and the body drawn', () => {
+    const object = /** @type {any} */ (createBodyObject(splitPieces(), createBodyMaterial(palette.body), 'cube-1'))
+    applyViewVisibility(object, { viewHiddenParts: ['Cube 1 A'] })
+    expect(object.visible).toBe(true)
+    expect(partMesh(object, 'Cube 1 A').visible).toBe(false)
+    expect(partMesh(object, 'Cube 1 B').visible).toBe(true)
+  })
+
+  it('a hidden body hides every part; showing it restores each part to its own switch', () => {
+    const object = /** @type {any} */ (createBodyObject(splitPieces(), createBodyMaterial(palette.body), 'cube-1'))
+    applyViewVisibility(object, { viewHidden: true, viewHiddenParts: ['Cube 1 A'] })
+    expect(object.visible).toBe(false)
+    applyViewVisibility(object, { viewHiddenParts: ['Cube 1 A'] })
+    expect(object.visible).toBe(true)
+    expect(partMesh(object, 'Cube 1 A').visible).toBe(false)
+    expect(partMesh(object, 'Cube 1 B').visible).toBe(true)
+    applyViewVisibility(object, {})
+    expect(partMesh(object, 'Cube 1 A').visible).toBe(true)
+  })
+
+  it('a bare solid follows its body switch', () => {
+    const object = createBodyObject(primitives.cuboid({ size: [4, 4, 4] }), createBodyMaterial(palette.body), 'c')
+    applyViewVisibility(object, { viewHidden: true })
+    expect(object.visible).toBe(false)
+    applyViewVisibility(object, {})
+    expect(object.visible).toBe(true)
+  })
+
+  it('a suppressed body (the sketch editor\'s own) stays off whatever its switch says', () => {
+    const object = createBodyObject(splitPieces(), createBodyMaterial(palette.body), 'cube-1')
+    applyViewVisibility(object, {}, true)
+    expect(object.visible).toBe(false)
+  })
+
+  it('touches no geometry: the very same buffers before and after, so nothing re-tessellates', () => {
+    const object = /** @type {any} */ (createBodyObject(splitPieces(), createBodyMaterial(palette.body), 'cube-1'))
+    const before = object.children.map((/** @type {any} */ child) => child.geometry)
+    applyViewVisibility(object, { viewHiddenParts: ['Cube 1 A'] })
+    applyViewVisibility(object, {})
+    expect(object.children.map((/** @type {any} */ child) => child.geometry)).toEqual(before)
+    for (let index = 0; index < before.length; index += 1) expect(object.children[index].geometry).toBe(before[index])
+  })
+
+  it('Show hidden parts (ui-047) does not resurrect a recipe helper part the user hid', () => {
+    const object = /** @type {any} */ (createBodyObject(splitPieces(), createBodyMaterial(palette.body), 'cube-1', ['tap']))
+    applyViewVisibility(object, { viewHiddenParts: ['tap'] })
+    expect(partMesh(object, 'tap').userData.hiddenPart).toBe(true)
+    expect(partMesh(object, 'tap').visible).toBe(false)
+  })
+
+  it('the hover preview (ui-049) of a part the user hid builds nothing, nor for any part of a hidden body', () => {
+    const material = createBodyMaterial(palette.body)
+    expect(createHoverPartMesh(splitPieces(), 'tap', material, 'cube-1', { viewHiddenParts: ['tap'] })).toBeNull()
+    expect(createHoverPartMesh(splitPieces(), 'tap', material, 'cube-1', { viewHidden: true })).toBeNull()
+    expect(createHoverPartMesh(splitPieces(), 'tap', material, 'cube-1', { viewHiddenParts: ['Cube 1 A'] })).not.toBeNull()
+  })
+
+  describe('drawnBoundsOf — what Fit frames', () => {
+    const cube = primitives.cuboid({ size: [10, 10, 10], center: [0, 0, 5] })
+    const far = primitives.cuboid({ size: [10, 10, 10], center: [100, 0, 5] })
+
+    it('every body when nothing is hidden', () => {
+      const bounds = /** @type {number[][]} */ (drawnBoundsOf([{ geometry: cube }, { geometry: far }]))
+      expect(bounds[0][0]).toBeCloseTo(-5, 9)
+      expect(bounds[1][0]).toBeCloseTo(105, 9)
+    })
+
+    it('leaves out a hidden body', () => {
+      const bounds = /** @type {number[][]} */ (drawnBoundsOf([{ geometry: cube }, { geometry: far, viewHidden: true }]))
+      expect(bounds[1][0]).toBeCloseTo(5, 9)
+    })
+
+    it('leaves out a hidden part, framing only the part still drawn', () => {
+      const bounds = /** @type {number[][]} */ (drawnBoundsOf([{ geometry: splitPieces(), viewHiddenParts: ['Cube 1 A'] }]))
+      expect(bounds[0][1]).toBeCloseTo(0, 9)
+      expect(bounds[1][1]).toBeCloseTo(45, 9)
+    })
+
+    it('is null when nothing is drawn, so the caller can frame everything instead', () => {
+      expect(drawnBoundsOf([{ geometry: cube, viewHidden: true }])).toBeNull()
+      expect(drawnBoundsOf([{ geometry: splitPieces(), viewHiddenParts: ['Cube 1 A', 'Cube 1 B'] }])).toBeNull()
+      expect(drawnBoundsOf([])).toBeNull()
+    })
   })
 })

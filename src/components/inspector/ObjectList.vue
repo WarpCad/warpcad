@@ -36,8 +36,18 @@
  * that happens to focus a button is not keyboard focus. The hover is cleared on leave, on
  * collapsing a part's parent, and on unmount (a selection change swaps the Inspector's
  * content); the store clears it itself when a body leaves the scene.
+ *
+ * **Hide and show** (`TODO/ui-089`). Every body row and part row has an eye (`EyeToggle`) that
+ * hides or shows that thing in the 3D view — a view setting saved with the project, never an
+ * undo step. A body row's eye has a third state, *some parts hidden*, whose tap shows every
+ * part. A user-hidden row is dimmed and its eye slashed, with no text chip: the `hidden` chip
+ * stays the recipe's helper part. The count line adds `· N hidden · Show all` while anything
+ * is hidden. A hidden row still selects, so a cutter can be hidden and still ticked as an
+ * operand (rule 5).
  */
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+
+import EyeToggle from './EyeToggle.vue'
 
 import { useDocumentStore } from '../../stores/document.js'
 import { useHoverHighlightStore } from '../../stores/hoverHighlight.js'
@@ -94,7 +104,7 @@ const absentSteps = computed(() => {
  * scenarios and their specs name them); `parts` mode is one body, so its ids carry just
  * the part name.
  *
- * @param {string} kind `''` (the row button), `check`, `item`, `name` or `hidden`.
+ * @param {string} kind `''` (the row button), `check`, `item`, `name`, `hidden` or `eye`.
  * @param {string} bodyId
  * @param {string} partName
  * @returns {string}
@@ -147,6 +157,16 @@ function onPartCheck(id, partName) {
 function onInactiveClick(id) {
   emit('select-intent')
   selection.select(id)
+}
+
+/**
+ * A part row's eye (`TODO/ui-089`). Its own button, so it never selects the row it sits on.
+ *
+ * @param {string} id
+ * @param {string} partName
+ */
+function onPartEye(id, partName) {
+  objects.togglePartVisibility(id, partName)
 }
 
 /** Bodies a condition is keeping out of the fold, from the live document. */
@@ -301,6 +321,15 @@ watch(
       {{ objects.rows.length }} object{{ objects.rows.length === 1 ? '' : 's' }}<template
         v-if="selection.count > 0"
         > · {{ selection.count }} selected</template
+      ><template v-if="objects.hiddenCount > 0">
+        · {{ objects.hiddenCount }} hidden ·
+        <button
+          type="button"
+          class="list__show-all"
+          data-testid="objects-show-all"
+          :disabled="disabled"
+          @click="objects.showAll()"
+        >Show all</button></template
       >
     </p>
 
@@ -324,10 +353,11 @@ watch(
         :data-selected="row.selected ? 'true' : 'false'"
         :data-role="row.role"
         :data-expanded="row.expanded ? 'true' : 'false'"
+        :data-view-hidden="row.viewHidden ? 'true' : 'false'"
       >
         <div
           class="row"
-          :class="{ 'row--selected': row.selected }"
+          :class="{ 'row--selected': row.selected, 'row--view-hidden': row.viewHidden }"
           :data-testid="`objects-line-${row.id}`"
           :data-hovered="isHovered(row.id, null) ? 'true' : 'false'"
           @pointermove="onPointerMove($event, row.id, null)"
@@ -365,6 +395,13 @@ watch(
             </span>
             <span class="row__size">{{ row.size }}</span>
           </button>
+          <EyeToggle
+            :state="row.eye"
+            :name="row.name"
+            :disabled="disabled"
+            :data-testid="`objects-eye-${row.id}`"
+            @toggle="objects.toggleBodyVisibility(row.id)"
+          />
           <!-- A button, never an input: HistoryControls' Ctrl+Z guard treats any <input> as
                text entry. Not disabled with the rows — reading a part's name selects nothing. -->
           <button
@@ -395,10 +432,11 @@ watch(
             v-for="part in row.parts"
             :key="part.name"
             class="part"
-            :class="{ 'part--selected': part.selected, 'part--hidden': part.hidden }"
+            :class="{ 'part--selected': part.selected, 'part--hidden': part.hidden, 'part--view-hidden': !part.drawn }"
             :data-testid="partTestId('item', row.id, part.name)"
             :data-selected="part.selected ? 'true' : 'false'"
             :data-hidden="part.hidden ? 'true' : 'false'"
+            :data-view-hidden="part.drawn ? 'false' : 'true'"
             :data-hovered="isHovered(row.id, part.name) ? 'true' : 'false'"
             @pointermove="onPointerMove($event, row.id, part.name)"
             @pointerleave="onPointerLeave($event, row.id, part.name)"
@@ -433,6 +471,13 @@ watch(
                 >hidden</span
               >
             </button>
+            <EyeToggle
+              :state="part.viewHidden ? 'hidden' : 'shown'"
+              :name="part.name"
+              :disabled="disabled"
+              :data-testid="partTestId('eye', row.id, part.name)"
+              @toggle="onPartEye(row.id, part.name)"
+            />
           </li>
         </ul>
       </li>
@@ -480,10 +525,11 @@ watch(
       v-for="part in partsRow.parts"
       :key="part.name"
       class="part"
-      :class="{ 'part--selected': part.selected, 'part--hidden': part.hidden }"
+      :class="{ 'part--selected': part.selected, 'part--hidden': part.hidden, 'part--view-hidden': !part.drawn }"
       :data-testid="partTestId('item', partsRow.id, part.name)"
       :data-selected="part.selected ? 'true' : 'false'"
       :data-hidden="part.hidden ? 'true' : 'false'"
+      :data-view-hidden="part.drawn ? 'false' : 'true'"
       :data-hovered="isHovered(partsRow.id, part.name) ? 'true' : 'false'"
       @pointermove="onPointerMove($event, partsRow.id, part.name)"
       @pointerleave="onPointerLeave($event, partsRow.id, part.name)"
@@ -518,6 +564,13 @@ watch(
           >hidden</span
         >
       </button>
+      <EyeToggle
+        :state="part.viewHidden ? 'hidden' : 'shown'"
+        :name="part.name"
+        :disabled="disabled"
+        :data-testid="partTestId('eye', partsRow.id, part.name)"
+        @toggle="onPartEye(partsRow.id, part.name)"
+      />
     </li>
   </ul>
 </template>
@@ -542,6 +595,30 @@ watch(
   font-size: 11px;
   line-height: 1.4;
   color: var(--text-3);
+}
+
+/* Show all (TODO/ui-089): a text button on the count line, a full tap target tall so a thumb
+   finds it in the phone sheet. */
+.list__show-all {
+  min-height: var(--tap);
+  padding: 0 4px;
+  border: none;
+  background: transparent;
+  color: var(--accent);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.list__show-all:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.list__show-all:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
 }
 
 .list__note--reason {
@@ -692,6 +769,14 @@ watch(
   text-overflow: ellipsis;
   white-space: nowrap;
   font-weight: 600;
+}
+
+/* Hidden in the view (TODO/ui-089): the name and size dim, the check and the eye do not — the
+   eye-slash is the mark, and a hidden row still selects. No text chip: `hidden` is the
+   recipe's word (`.part__hidden`). */
+.row--view-hidden .row__body,
+.part--view-hidden .part__body {
+  opacity: 0.5;
 }
 
 /* A body a condition has switched off (TODO/ui-052): greyed, with its condition. */

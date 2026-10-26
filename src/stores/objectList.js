@@ -37,6 +37,13 @@
  * scene does not contain: a body past a rollback marker, or one whose step is
  * suppressed, has no summary at all and therefore no row.
  *
+ * ## Hide and show (`TODO/ui-089`)
+ *
+ * Each row also carries the eye's state, read through `src/core/visibility.js` (never by
+ * hand), and the actions here route a tap on an eye — or the `H` / `Shift+H` shortcut — to
+ * the document store's `setViewHidden` / `showAll`. Visibility is document state (the state
+ * line), not this store's; what lives here is only how a row reads it and what a tap means.
+ *
  * @module stores/objectList
  */
 
@@ -44,6 +51,7 @@ import { defineStore } from 'pinia'
 import { computed, ref, watch } from 'vue'
 
 import { formatMmValue } from '../core/units.js'
+import { eyeStateOf, hiddenCountOf, isBodyDrawn, isPartDrawn } from '../core/visibility.js'
 import { useDocumentStore } from './document.js'
 import { useSelectionStore } from './selection.js'
 import { useSketchEditorStore } from './sketchEditor.js'
@@ -65,6 +73,9 @@ import { useTimelineStore } from './timeline.js'
  * @property {PartRow[]} parts Visible parts in group order, then hidden ones. `[]` for a
  *   bare solid, whether or not the row is expanded — the rows carry the tree, the
  *   component decides when to draw it.
+ * @property {'shown' | 'hidden' | 'mixed'} eye `TODO/ui-089`: the body row's eye — `mixed`
+ *   when the body is shown with some part hidden.
+ * @property {boolean} viewHidden `TODO/ui-089`: the user hid the whole body (the row dims).
  * @property {string | null} drilledPart The part this body is currently addressed at, or
  *   `null` — shown on the row even while it is collapsed so an address is never invisible.
  *   Only ever set for a body that is in the selection.
@@ -79,6 +90,10 @@ import { useTimelineStore } from './timeline.js'
  * @property {number} order The parent body's 1-based place in the selection when this part
  *   is the addressed one, else 0 — Subtract's base is 1.
  * @property {'base' | 'secondary' | 'none'} role As {@link ObjectRow.role}, for this part.
+ * @property {boolean} viewHidden `TODO/ui-089`: the part's own Hide switch — what its eye
+ *   shows. Independent of the body's: a part of a hidden body keeps its own switch.
+ * @property {boolean} drawn `TODO/ui-089`: whether the part is in the view at all (its body
+ *   and it are both shown) — what dims the row.
  */
 
 export const useObjectListStore = defineStore('objectList', () => {
@@ -181,6 +196,8 @@ export const useObjectListStore = defineStore('objectList', () => {
           selected: addressed,
           order: addressed ? index + 1 : 0,
           role: addressed ? role : 'none',
+          viewHidden: (body.viewHiddenParts ?? []).includes(part.name),
+          drawn: isPartDrawn(body, part.name),
         }
       })
       return {
@@ -193,10 +210,15 @@ export const useObjectListStore = defineStore('objectList', () => {
         expandable,
         expanded: expandable && expandedIds.value.includes(body.id),
         parts: expandable ? parts : [],
+        eye: eyeStateOf(body),
+        viewHidden: !isBodyDrawn(body),
         drilledPart: drilled,
       }
     })
   )
+
+  /** `TODO/ui-089`: the count line's `N hidden` — a hidden body once, each hidden part once. */
+  const hiddenCount = computed(() => hiddenCountOf(bodies.value))
 
   /**
    * Whether the Inspector's Objects section is open for a selection of `count` bodies. At 0
@@ -353,9 +375,87 @@ export const useObjectListStore = defineStore('objectList', () => {
     return true
   }
 
+  // --- Hide and show (TODO/ui-089) ------------------------------------------
+
+  /**
+   * A body row's eye. Shown → hide the body; hidden → show it (each part back to its own
+   * switch); **some parts hidden** → show every part, leaving the body shown. A no-op while
+   * {@link disabledReason} is set and for a body the announced scene does not contain.
+   *
+   * @param {string} id
+   * @returns {boolean} Whether anything changed.
+   */
+  function toggleBodyVisibility(id) {
+    if (disabledReason.value) return false
+    const body = bodies.value.find((candidate) => candidate.id === id)
+    if (!body) return false
+    const eye = eyeStateOf(body)
+    if (eye === 'mixed') {
+      for (const subPart of body.viewHiddenParts ?? []) documentStore.setViewHidden(id, { subPart, hidden: false })
+    } else {
+      documentStore.setViewHidden(id, { hidden: eye === 'shown' })
+    }
+    return true
+  }
+
+  /**
+   * A part row's eye: flip that part's own switch.
+   *
+   * @param {string} id
+   * @param {string} partName
+   * @returns {boolean} Whether anything changed.
+   */
+  function togglePartVisibility(id, partName) {
+    if (disabledReason.value) return false
+    const body = bodies.value.find((candidate) => candidate.id === id)
+    if (!body) return false
+    const hidden = (body.viewHiddenParts ?? []).includes(partName)
+    documentStore.setViewHidden(id, { subPart: partName, hidden: !hidden })
+    return true
+  }
+
+  /**
+   * The `H` shortcut: hide the selection — each selected body, or the part it is addressed
+   * at — or, when every one of those is already hidden (rows ticked from the list), show
+   * them. Hiding takes them out of the selection (the document store's rule 5).
+   *
+   * @returns {boolean} Whether anything changed.
+   */
+  function toggleSelectionVisibility() {
+    if (disabledReason.value) return false
+    /** @type {{ id: string, subPart: string | null, hidden: boolean }[]} */
+    const targets = []
+    for (const id of selection.ids) {
+      const body = bodies.value.find((candidate) => candidate.id === id)
+      if (body === undefined) continue
+      const subPart = selection.partOf(id)
+      targets.push({ id, subPart, hidden: subPart ? (body.viewHiddenParts ?? []).includes(subPart) : !isBodyDrawn(body) })
+    }
+    if (targets.length === 0) return false
+    const hidden = !targets.every((target) => target.hidden)
+    for (const { id, subPart } of targets) documentStore.setViewHidden(id, { ...(subPart ? { subPart } : {}), hidden })
+    return true
+  }
+
+  /**
+   * **Show all** — every body and part back in the view. A no-op while read-only.
+   *
+   * @returns {boolean} Whether it ran.
+   */
+  function showAll() {
+    if (disabledReason.value) return false
+    documentStore.showAll()
+    return true
+  }
+
   return {
     bodies,
     rows,
+    hiddenCount,
+    toggleBodyVisibility,
+    togglePartVisibility,
+    toggleSelectionVisibility,
+    showAll,
     disabledReason,
     singleSectionOpen,
     multiSectionOpen,

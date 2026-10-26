@@ -352,8 +352,8 @@
  * stamp, a record stamp and stamps for the `suppressed`/`leftBroken` flags — beside the record,
  * never inside it, in a side table by record id (`metaById`), not on the entry objects, so
  * `entries` is exactly what it was for every reader that never merges. Per document:
- * tombstones (`dead`, id → stamp), four last-writer-wins registers and a stamp per user-part
- * definition. A log no edit here has stamped — a seed, a loaded file — **derives** it:
+ * tombstones (`dead`, id → stamp), four last-writer-wins registers, a stamp per user-part
+ * definition and (`TODO/ui-089`) a stamped switch per hidden-or-shown body and part. A log no edit here has stamped — a seed, a loaded file — **derives** it:
  * position keys from row order, every stamp counter 0 under the fixed replica `legacy`, a
  * register only where the value differs from what its absence means. Deterministic, so two
  * builds upgrading one file agree and their copies merge.
@@ -381,6 +381,7 @@
  * | `setResolution` | the `resolution` register |
  * | `setStandingInstructions` | the `standingInstructions` register |
  * | `setBuildVolume` | the `buildVolume` register |
+ * | `setViewHidden`, `showAll` (`TODO/ui-089`) | the view switch of each body or part whose Hide / Show changed |
  * | user-part adoption (inside the fold of a placement) | the part's definition stamp |
  * | `undo`, `redo`, `batch` | whatever the change they make is: Undo of a placement tombstones its rows, Redo brings them back with a fresh `born` that beats the tombstone, Undo of an edit stamps the old record as a new write |
  * | `loadEntries`, the seed | derive (above), never stamp |
@@ -455,6 +456,8 @@ import {
   setProjectParts,
 } from './userPart.js'
 import { foldColorOverrides } from './colorOverride.js'
+import { bodyViewOf, encodeViewHidden, normalizeViewHidden, viewHiddenMapOf, withViewHidden } from './visibility.js'
+import { isGroup } from './kernel/group.js'
 import {
   VARIABLE_LIMITS,
   VARIABLE_OP,
@@ -696,6 +699,10 @@ export class ReplayRejection extends Error {
  * @property {import('./repeat.js').RepeatInfo} [repeat] `TODO/core-061`: set on a
  *   `pattern.repeat` body only — its source, seed, targets, and which members are built, broken
  *   or switched off by their own condition.
+ * @property {true} [viewHidden] `TODO/ui-089`: the user hid this body in the view. Absent when
+ *   shown. A view setting (`src/core/visibility.js`), never the recipe's own `hidden` parts.
+ * @property {string[]} [viewHiddenParts] `TODO/ui-089`: the parts of this body the user hid,
+ *   in the body's part order — only parts it still has. Absent when none.
  */
 
 /**
@@ -793,6 +800,8 @@ export class ReplayRejection extends Error {
  * @property {Readonly<Record<string, string>>} [unavailableParts] `TODO/core-037`: op → why.
  * @property {import('./merge/validate.js').MergeOverlay} [merge] `TODO/data-011`: the
  *   validated merge section of a version-2 project file; omitted, the metadata is derived.
+ * @property {import('./visibility.js').ViewHiddenState} [viewHidden] `TODO/ui-089`: what the
+ *   loaded project's user hid; omitted, everything is shown.
  */
 
 /**
@@ -816,6 +825,12 @@ export class ReplayRejection extends Error {
  * @property {() => import('./buildVolume.js').BuildVolume} buildVolume `TODO/io-007`: the
  *   printer's build volume, a fresh copy — the default 220 × 220 × 250 mm until set.
  * @property {(volume: import('./buildVolume.js').BuildVolume, transaction: TransactionOptions) => void} setBuildVolume
+ * @property {() => import('./visibility.js').ViewHiddenState | null} viewHidden `TODO/ui-089`:
+ *   what the user hid, in the state line's shape, without stale switches (a body no record
+ *   names, a part the body no longer has); `null` when nothing is hidden.
+ * @property {(id: string, target: { subPart?: string, hidden: boolean }, transaction: TransactionOptions) => void} setViewHidden
+ *   `TODO/ui-089`: hide or show one body or one of its parts. A view setting: a version bump, never an undo step.
+ * @property {(transaction: TransactionOptions) => void} showAll `TODO/ui-089`: clear every hide.
  * @property {() => import('./userPart.js').UserPartDefinition[]} userParts `TODO/core-037`:
  *   the user-part definitions the project carries, in op order.
  * @property {(id: string) => string | undefined} currentIdOf
@@ -915,6 +930,22 @@ export class ReplayRejection extends Error {
  */
 
 /**
+ * `TODO/ui-089`: the view map a load starts with — validated (a malformed one throws, naming
+ * the field) and without the bodies no loaded record names. Nothing hidden when omitted.
+ *
+ * @param {import('./visibility.js').ViewHiddenState | undefined} state
+ * @param {readonly DocumentEntry[]} list The entries being loaded.
+ * @returns {Map<string, true>}
+ */
+function viewHiddenOfLoad(state, list) {
+  if (state === undefined) return new Map()
+  const ids = new Set(list.map((entry) => entry.record.id))
+  const normal = normalizeViewHidden(state)
+  for (const bodyId of Object.keys(normal)) if (!ids.has(bodyId)) delete normal[bodyId]
+  return viewHiddenMapOf(normal)
+}
+
+/**
  * Every mutator wrapped so its whole effect is stamped as one transaction — the module
  * note's table, as code. A mutator missing here would write nothing a merge can see.
  * (`append`, `setColorOverride`, `clearColorOverride`, `renameBody`, `deleteBodies` and `removePart` all
@@ -939,6 +970,8 @@ const STAMPED_MUTATORS = Object.freeze([
   'setResolution',
   'setStandingInstructions',
   'setBuildVolume',
+  'setViewHidden',
+  'showAll',
 ])
 
 /**
@@ -1569,6 +1602,22 @@ export function createDocument(options = {}) {
    */
   let buildVolume = { ...DEFAULT_BUILD_VOLUME }
   /**
+   * `TODO/ui-089`: what the user hid in the view, as `visibility.js`'s view map (one key per
+   * hidden body or part). Project metadata like {@link buildVolume} — outside the fold and both
+   * undo stacks, a version bump when it changes — because it builds nothing: geometry, the
+   * History, the BOM and Export never read it. Replaced, never mutated in place.
+   * @type {ReadonlyMap<string, true>}
+   */
+  let viewHidden = new Map()
+  /**
+   * `TODO/ui-089`: the merge metadata for {@link viewHidden} — the stamp of the last Hide or
+   * Show of each body or part, `[hidden, stamp]`. Kept apart from the values, as `metaById` is
+   * from `entries`. A show stays here as `[false, stamp]` so it can beat an older hide in a
+   * merge. Replaced, never mutated in place.
+   * @type {Map<string, [boolean, import('./replica.js').Stamp]>}
+   */
+  let viewStamps = new Map()
+  /**
    * `TODO/core-037`: the user-part definitions this project carries, by op. Project data
    * that travels on the state line (`project.js`), outside the fold's own state and both
    * undo stacks: a definition builds nothing by itself, and keeping one after its last
@@ -1786,6 +1835,8 @@ export function createDocument(options = {}) {
       dead,
       registers,
       partStamps,
+      viewHidden,
+      viewStamps,
     }
   }
 
@@ -1876,11 +1927,17 @@ export function createDocument(options = {}) {
     if (mark.standingInstructions !== standingInstructions) written.push('standingInstructions')
     if (!sameVolume(mark.buildVolume, buildVolume)) written.push('buildVolume')
     const newParts = [...userParts.keys()].filter((op) => !mark.partOps.has(op))
-    if (!changed && removed.length === 0 && moved.size === 0 && written.length === 0 && newParts.length === 0) {
+    // `TODO/ui-089`: every body or part whose Hide / Show changed, each its own switch.
+    const switched =
+      mark.viewHidden === viewHidden
+        ? []
+        : [...new Set([...mark.viewHidden.keys(), ...viewHidden.keys()])].filter((key) => mark.viewHidden.has(key) !== viewHidden.has(key))
+    if (!changed && removed.length === 0 && moved.size === 0 && written.length === 0 && newParts.length === 0 && switched.length === 0) {
       metaById = mark.meta
       dead = mark.dead
       registers = mark.registers
       partStamps = mark.partStamps
+      viewStamps = mark.viewStamps
       return
     }
 
@@ -1973,6 +2030,11 @@ export function createDocument(options = {}) {
       partStamps = new Map(mark.partStamps)
       for (const op of newParts) partStamps.set(op, stamp)
     }
+    viewStamps = mark.viewStamps
+    if (switched.length > 0) {
+      viewStamps = new Map(mark.viewStamps)
+      for (const key of switched) viewStamps.set(key, [viewHidden.has(key), stamp])
+    }
   }
 
   /**
@@ -2005,6 +2067,7 @@ export function createDocument(options = {}) {
       buildVolume: sameVolume(buildVolume, DEFAULT_BUILD_VOLUME) ? null : [{ ...buildVolume }, LEGACY_STAMP],
     }
     partStamps = new Map([...userParts.keys()].map((op) => [op, LEGACY_STAMP]))
+    viewStamps = new Map([...viewHidden.keys()].map((key) => [key, [true, LEGACY_STAMP]]))
   }
 
   /**
@@ -2070,6 +2133,12 @@ export function createDocument(options = {}) {
     partStamps = new Map(
       [...partStamps].map(([op, stamp]) => [op, overlay.partStamps.get(op) ?? stamp])
     )
+    // `TODO/ui-089`: a stamp's value is whether the state line lists the switch — a show is a
+    // stamp for a switch it does not list.
+    if (overlay.viewStamps.size > 0) {
+      viewStamps = new Map(viewStamps)
+      for (const [key, stamp] of overlay.viewStamps) viewStamps.set(key, [viewHidden.has(key), stamp])
+    }
     projectId = overlay.projectId
     stampClock.observe(overlay.highest)
   }
@@ -2533,6 +2602,41 @@ export function createDocument(options = {}) {
       broken: status.broken.map((member) => ({ ...member })),
       inactive: [...status.inactive],
     }
+  }
+
+  /**
+   * `TODO/ui-089`: a body with its visibility read off {@link viewHidden} — the fields only
+   * when something is hidden, so a body nobody hid is exactly what it was before. Part switches
+   * are matched against every part the geometry has (recipe-hidden ones too); a stale one is
+   * ignored here.
+   *
+   * @param {Body} body
+   * @returns {Body}
+   */
+  function withViewOf(body) {
+    if (viewHidden.size === 0) return body
+    const geometry = body.geometry
+    const view = bodyViewOf(viewHidden, body.id, isGroup(geometry) ? Object.keys(geometry.parts) : [])
+    if (!view.viewHidden && view.viewHiddenParts.length === 0) return body
+    return {
+      ...body,
+      ...(view.viewHidden ? { viewHidden: /** @type {const} */ (true) } : {}),
+      ...(view.viewHiddenParts.length > 0 ? { viewHiddenParts: view.viewHiddenParts } : {}),
+    }
+  }
+
+  /**
+   * `TODO/ui-089`: the parts a body has **now**, or `undefined` when it is not on screen (rolled
+   * back, switched off, absorbed, deleted), so its part switches cannot be judged stale.
+   *
+   * @param {string} rootId
+   * @returns {string[] | undefined}
+   */
+  function livePartNamesOf(rootId) {
+    if (!rootById.has(rootId) || mergedInto.has(rootId) || isDeletedRoot(rootId)) return undefined
+    const geometry = scene.byId.get(terminalByRoot.get(rootId) ?? rootId)
+    if (geometry === undefined) return undefined
+    return isGroup(geometry) ? Object.keys(geometry.parts) : []
   }
 
   /**
@@ -4274,6 +4378,8 @@ export function createDocument(options = {}) {
             `between 1 and ${nextEntries.length - 1} for a log of ${nextEntries.length} steps`
         )
       }
+      // `TODO/ui-089`: validated before anything changes, so a bad one refuses the whole load.
+      const loadedViewHidden = viewHiddenOfLoad(options.viewHidden, nextEntries)
       const previousParts = userParts
       const previousLayer = publishesUserParts ? projectPartsSnapshot() : null
       const loadedParts = options.userParts ?? []
@@ -4294,6 +4400,9 @@ export function createDocument(options = {}) {
       standingInstructions = cleanText(options.standingInstructions, INSTRUCTIONS_MAX_LENGTH)
       // `TODO/io-007`: likewise the build volume; omitted, the loaded project has the default.
       buildVolume = options.buildVolume === undefined ? { ...DEFAULT_BUILD_VOLUME } : normalizeBuildVolume(options.buildVolume)
+      // `TODO/ui-089`: likewise what was hidden; omitted, everything is shown. A body no loaded
+      // record names is stale, and dropped here as `parseProject` drops it.
+      viewHidden = loadedViewHidden
       // `TODO/data-010`: a loaded log is a log no edit here has stamped, so its metadata is
       // derived; `TODO/data-011`: a version-2 file's merge section is laid over that.
       deriveLegacy()
@@ -4370,6 +4479,68 @@ export function createDocument(options = {}) {
         return
       }
       buildVolume = next
+      document.version += 1
+    },
+
+    viewHidden() {
+      if (viewHidden.size === 0) return null
+      const ids = new Set(entries.map((entry) => entry.record.id))
+      /** @type {Map<string, string[] | undefined>} */
+      const partsOf = new Map()
+      return encodeViewHidden(viewHidden, (bodyId, partName) => {
+        if (!ids.has(bodyId)) return false
+        if (partName === undefined) return true
+        if (!partsOf.has(bodyId)) partsOf.set(bodyId, livePartNamesOf(bodyId))
+        // A body not on screen now (rolled back, switched off) keeps its part switches: only
+        // a body whose current geometry is known can say a part is gone.
+        const names = partsOf.get(bodyId)
+        return names === undefined || names.includes(partName)
+      })
+    },
+
+    /**
+     * `TODO/ui-089`: hide or show one body (`subPart` omitted) or one of its parts. A view
+     * setting, like the build volume: origin-tagged and a version bump (autosave and the
+     * save-status chip follow it), **not** an undo step, and no re-fold. Keyed by the lineage
+     * root, so a terminal record id addresses its body and a Split keeps the hide. A part name
+     * is not checked against the body's parts: a stale one is ignored on read and dropped on
+     * save, and refusing it here would make the UI race a re-split. The same value is a no-op.
+     */
+    setViewHidden(id, target, transaction) {
+      const origin = transaction?.origin
+      if (typeof origin !== 'string' || origin.length === 0) {
+        throw new Error(
+          'document.setViewHidden: a transaction origin is required — ' +
+            "every mutation is origin-tagged so undo/redo can be scoped to the local user's own edits"
+        )
+      }
+      const bodyId = rootById.get(id)
+      if (bodyId === undefined) throw new Error(`document.setViewHidden: no body "${String(id).slice(0, 80)}"`)
+      if (typeof target?.hidden !== 'boolean') throw new Error('document.setViewHidden: `hidden` must be true or false')
+      const subPart = target.subPart
+      if (subPart !== undefined && (typeof subPart !== 'string' || subPart === '')) {
+        throw new Error('document.setViewHidden: `subPart` must be a part name')
+      }
+      const next = withViewHidden(viewHidden, bodyId, { ...(subPart !== undefined ? { subPart } : {}), hidden: target.hidden })
+      if (next === viewHidden) return
+      viewHidden = next
+      document.version += 1
+    },
+
+    /**
+     * `TODO/ui-089`: **Show all** — clear every body and part hide in one change, under one
+     * stamp. Not an undo step; a no-op when nothing is hidden.
+     */
+    showAll(transaction) {
+      const origin = transaction?.origin
+      if (typeof origin !== 'string' || origin.length === 0) {
+        throw new Error(
+          'document.showAll: a transaction origin is required — ' +
+            "every mutation is origin-tagged so undo/redo can be scoped to the local user's own edits"
+        )
+      }
+      if (viewHidden.size === 0) return
+      viewHidden = new Map()
       document.version += 1
     },
 
@@ -5289,11 +5460,11 @@ export function createDocument(options = {}) {
         const paramsRecord = currentParamsRecordOf(lineage) ?? rootRecord
         const partOf = (/** @type {string} */ op) => userParts.get(op) ?? effectiveUserPart(op)
         if (rootRecord.op === REPEAT_OP) {
-          bodies.push(repeatBody(rootRecord, terminalId, lineage, geometry, partOf))
+          bodies.push(withViewOf(repeatBody(rootRecord, terminalId, lineage, geometry, partOf)))
           continue
         }
         const colorOverrides = colorOverridesOf(lineage, partOf)
-        bodies.push({
+        bodies.push(withViewOf({
           id: rootId,
           recordId: terminalId,
           // `TODO/core-038`: a `style.rename` in the lineage overrides the root's own name.
@@ -5303,7 +5474,7 @@ export function createDocument(options = {}) {
           rotationDeg: isVec3(carried) ? [carried[0], carried[1], carried[2]] : [0, 0, 0],
           ...(colorOverrides !== undefined ? { colorOverrides } : {}),
           geometry,
-        })
+        }))
       }
       return bodies
     },
@@ -5342,6 +5513,7 @@ export function createDocument(options = {}) {
         dead: new Map(dead),
         registers: { ...registers },
         parts: new Map([...userParts].map(([op, definition]) => [op, [definition, partStamps.get(op) ?? LEGACY_STAMP]])),
+        viewHidden: new Map(viewStamps),
       }
     },
 
@@ -5387,6 +5559,8 @@ export function createDocument(options = {}) {
         layer: publishesUserParts ? projectPartsSnapshot() : null,
         projectId,
         mintable,
+        viewHidden,
+        viewStamps,
       }
       try {
         /** @type {Map<string, import('./userPart.js').UserPartDefinition>} */
@@ -5438,6 +5612,9 @@ export function createDocument(options = {}) {
         registers = merged.registers
         partStamps = nextPartStamps
         projectId = merged.projectId
+        // `TODO/ui-089`: the merged switches as they are; the values are the ones left hidden.
+        viewStamps = merged.viewHidden
+        viewHidden = new Map([...merged.viewHidden].filter(([, [hidden]]) => hidden).map(([key]) => [key, true]))
         rebuildFrom(nextEntries, nextRollback, nextResolution, { tolerateAll: true, flagTolerated: true })
 
         // Flag what the fold had to tolerate. Derived, not written: the same merged log folds
@@ -5476,6 +5653,8 @@ export function createDocument(options = {}) {
         userParts = previous.userParts
         standingInstructions = previous.standingInstructions
         buildVolume = previous.buildVolume
+        viewHidden = previous.viewHidden
+        viewStamps = previous.viewStamps
         if (previous.layer !== null) restoreProjectParts(previous.layer)
         throw error
       }

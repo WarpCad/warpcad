@@ -157,6 +157,8 @@ export function mergeStateOfProject(parsed, foldCache) {
     userParts: parsed.userParts,
     unavailableParts: parsed.unavailableParts,
     ...(parsed.merge === undefined ? {} : { merge: parsed.merge }),
+    // `TODO/ui-089`: without it the file's view stamps would read as shows and un-hide things.
+    ...(parsed.viewHidden === undefined ? {} : { viewHidden: parsed.viewHidden }),
   })
   return scratch.mergeState()
 }

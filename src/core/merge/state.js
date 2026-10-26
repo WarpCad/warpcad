@@ -62,6 +62,10 @@
  *   including for a row a later Redo brought back.
  * @property {MergeRegisters} registers A `null` register has never been written.
  * @property {Map<string, Lww<unknown>>} parts User-part definitions by op.
+ * @property {Map<string, Lww<boolean>>} viewHidden `TODO/ui-089`: the user's Hide / Show, one
+ *   switch per body and per part, keyed by `src/core/visibility.js`'s `viewKey`. A show is kept
+ *   as `[false, stamp]`, not dropped, so a later show beats an earlier hide in a merge. Stamped
+ *   per key rather than as one register, so two replicas hiding different parts both keep theirs.
  */
 
 /**
@@ -98,6 +102,7 @@ export function emptyMergeState(projectId = null) {
     dead: new Map(),
     registers: { rollbackAfter: null, resolution: null, standingInstructions: null, buildVolume: null },
     parts: new Map(),
+    viewHidden: new Map(),
   }
 }
 
@@ -143,6 +148,7 @@ export function canonicalJSON(state) {
       return register === null ? null : [register[0], [register[1].counter, register[1].replica]]
     }),
     parts: sortedPairs(state.parts).map(([op, [definition, stamp]]) => [op, definition, [stamp.counter, stamp.replica]]),
+    viewHidden: sortedPairs(state.viewHidden).map(([key, [hidden, stamp]]) => [key, hidden, [stamp.counter, stamp.replica]]),
   })
 }
 
@@ -167,5 +173,6 @@ export function highestCounter(state) {
   for (const stamp of state.dead.values()) see(stamp)
   for (const name of REGISTER_NAMES) see(state.registers[name]?.[1])
   for (const [, stamp] of state.parts.values()) see(stamp)
+  for (const [, stamp] of state.viewHidden.values()) see(stamp)
   return highest
 }

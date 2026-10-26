@@ -22,6 +22,10 @@
  *   replicas is settled by the key alone: its tag puts a `local` row first on a counter tie
  *   (`insertTag`, `TODO/data-014`), so nothing here reads an origin.
  * - **Registers and parts.** The later stamp wins.
+ * - **View switches** (`TODO/ui-089`, the user's Hide / Show). The later stamp wins **per
+ *   key** — one body or one part — so a hide of `Cube 1 A` on one replica and of `Cylinder 1`
+ *   on another both survive, and a copy that never touched visibility (an AI turn's fork)
+ *   writes no stamp and so can never flip the user's choice.
  *
  * The result is commutative, associative and idempotent (`fuzz.spec.js`).
  *
@@ -208,7 +212,13 @@ export function mergeStates(a, b) {
     parts.set(op, /** @type {[unknown, Stamp]} */ (later(a.parts.get(op), b.parts.get(op))))
   }
 
-  return { projectId, entries, dead, registers, parts }
+  /** @type {MergeState['viewHidden']} */
+  const viewHidden = new Map()
+  for (const key of [...new Set([...a.viewHidden.keys(), ...b.viewHidden.keys()])].sort(compareIds)) {
+    viewHidden.set(key, /** @type {[boolean, Stamp]} */ (later(a.viewHidden.get(key), b.viewHidden.get(key))))
+  }
+
+  return { projectId, entries, dead, registers, parts, viewHidden }
 }
 
 /**

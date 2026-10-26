@@ -256,6 +256,22 @@ export const useSelectionStore = defineStore('selection', () => {
   }
 
   /**
+   * Take one body out of the selection **and forget its address** (`TODO/ui-089`: the body was
+   * just hidden). Unlike {@link toggle}, which parks the address so a body toggled straight
+   * back in keeps its part, a hidden body ticked back in from the Objects list comes back
+   * whole: the part it was addressed at may be the very thing that was hidden. Every other
+   * body keeps its place and its address. A body that is not selected is a no-op.
+   *
+   * @param {string | null | undefined} id
+   * @returns {void}
+   */
+  function deselect(id) {
+    if (!id) return
+    if (ids.value.includes(id)) ids.value = ids.value.filter((candidate) => candidate !== id)
+    if (Object.hasOwn(addressMap.value, id)) setAddress(id, null)
+  }
+
+  /**
    * Replace the selection with a whole set of ids, or add them to whatever is
    * already selected — the marquee-select response (`TODO/ui-024`): replacing
    * on a plain drag, matching what a plain click already does; adding when
@@ -306,6 +322,7 @@ export const useSelectionStore = defineStore('selection', () => {
     stepUp,
     restoreAddresses,
     clear,
+    deselect,
     has,
   }
 })

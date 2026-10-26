@@ -126,6 +126,7 @@ import { useSelectionStore } from '../../stores/selection.js'
 import { useHiddenPartVisibilityStore } from '../../stores/hiddenPartVisibility.js'
 import { useAlignReferenceStore } from '../../stores/alignReference.js'
 import ObjectList from './ObjectList.vue'
+import ViewHiddenNote from './ViewHiddenNote.vue'
 import BillOfMaterials from '../display/BillOfMaterials.vue'
 import DeleteButton from './DeleteButton.vue'
 import IntentLine from './IntentLine.vue'
@@ -840,6 +841,9 @@ watch([() => body.value?.id, colorPart], () => {
         <p class="inspector__op" data-testid="inspector-op" :data-op="body.op">
           {{ body.opLabel }}
         </p>
+        <!-- TODO/ui-089: selected from the list but hidden in the view — no outline, no gizmo,
+             so say why, with a Show that does what the row's eye does. -->
+        <ViewHiddenNote :body="body" />
         <!-- Save this group as a part for the Library (TODO/ui-055): exactly one selected. -->
         <SaveToLibraryButton v-if="!body.subPart" />
         <!-- TODO/ai-003: why this body exists, when a step in its history recorded it. -->

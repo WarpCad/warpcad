@@ -2,7 +2,8 @@
 import { describe, expect, it } from 'vitest'
 import { diffStates, liveOrder, mergeStates, relatedness, resolveRollback } from './merge.js'
 import { insertTag, keyBetween, keysBetween } from './positionKey.js'
-import { canonicalJSON, emptyMergeState } from './state.js'
+import { canonicalJSON, emptyMergeState, highestCounter } from './state.js'
+import { viewKey } from '../visibility.js'
 
 /** @typedef {import('./state.js').MergeState} MergeState */
 /** @typedef {import('./state.js').MergeEntry} MergeEntry */
@@ -372,5 +373,54 @@ describe('degenerate states', () => {
     const before = canonicalJSON(base)
     mergeStates(base, remove(base, 'op-1', s(5)))
     expect(canonicalJSON(base)).toBe(before)
+  })
+})
+
+describe('view visibility (TODO/ui-089): per body, per part, last writer wins', () => {
+  /**
+   * @param {MergeState} state
+   * @param {[string, [boolean, import('../replica.js').Stamp]][]} switches
+   * @returns {MergeState}
+   */
+  const withView = (state, switches) => ({ ...edited(state, () => {}), viewHidden: new Map([...state.viewHidden, ...switches]) })
+  const PART_A = viewKey('op-1', 'Cube 1 A')
+  const BODY_3 = viewKey('op-3')
+
+  it('a new state has no switches, and its canonical form says so', () => {
+    expect(emptyMergeState().viewHidden.size).toBe(0)
+    expect(JSON.parse(canonicalJSON(emptyMergeState())).viewHidden).toEqual([])
+  })
+
+  it('concurrent hides of different things both survive the merge', () => {
+    const one = withView(base, [[PART_A, [true, s(10, A)]]])
+    const other = withView(base, [[BODY_3, [true, s(10, B)]]])
+    const merged = bothWays(one, other)
+    expect(merged.viewHidden.get(PART_A)?.[0]).toBe(true)
+    expect(merged.viewHidden.get(BODY_3)?.[0]).toBe(true)
+  })
+
+  it('concurrent hide and show of the same part resolve to the later stamp, in either order', () => {
+    const hid = withView(base, [[PART_A, [true, s(10, A)]]])
+    const showedLater = withView(base, [[PART_A, [false, s(11, B)]]])
+    expect(bothWays(hid, showedLater).viewHidden.get(PART_A)?.[0]).toBe(false)
+    const hidLater = withView(base, [[PART_A, [true, s(12, A)]]])
+    expect(bothWays(hidLater, showedLater).viewHidden.get(PART_A)?.[0]).toBe(true)
+  })
+
+  it('a copy that never touched visibility leaves the other side\'s hides alone', () => {
+    // An AI fork merged back: either it never received the switch, or it holds it at the
+    // user's own stamp. Neither writes a stamp of its own, so neither can flip the user's choice.
+    const user = withView(base, [[PART_A, [true, s(20, A)]], [BODY_3, [false, s(21, A)]]])
+    const forkWithout = editSize(base, 'op-2', 30, s(22, B))
+    const forkWith = withView(editSize(base, 'op-2', 30, s(22, B)), [[PART_A, [true, s(20, A)]], [BODY_3, [false, s(21, A)]]])
+    for (const fork of [forkWithout, forkWith]) {
+      const merged = bothWays(user, fork)
+      expect(merged.viewHidden.get(PART_A)).toEqual([true, s(20, A)])
+      expect(merged.viewHidden.get(BODY_3)).toEqual([false, s(21, A)])
+    }
+  })
+
+  it('a view switch counts toward the highest stamp, so a clock observing the state moves past it', () => {
+    expect(highestCounter(withView(base, [[PART_A, [true, s(99, A)]]]))).toBe(99)
   })
 })

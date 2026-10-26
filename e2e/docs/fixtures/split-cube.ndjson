@@ -1,0 +1,2 @@
+{"id":"cube-1","op":"primitive.cuboid","name":"Cube 1","params":{"size":[40,90,40],"center":[0,0,20]}}
+{"id":"split-1","op":"modify.splitWithJoint","target":"cube-1","supersedes":"cube-1","params":{"axis":"y","offsetMm":45,"joint":"pins","clearanceMm":0.2,"names":["Cube 1 A","Cube 1 B"]}}

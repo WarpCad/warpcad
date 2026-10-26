@@ -780,6 +780,8 @@ the 3D view at all.
   a piece row (see below) and only that piece lights up. Nothing is selected by pointing;
   move away and the tint goes. Touch screens have no pointing, so on a phone the tap
   itself is the feedback.
+- **Tap the eye** at the right of a row to take that shape, or one of its pieces, out of
+  the 3D view and put it back. See [Hide and show](#hide-and-show).
 - You can mix the routes freely: click one shape in the 3D view, then add a hidden one
   from the list, or the other way round.
 - Each row shows the shape's name and its size (width × depth × height, in millimetres),
@@ -890,6 +892,60 @@ that default. For a hole the bolt actually slides through rather than jams in, a
 `tap` explicitly: either via its ▸ disclosure row here, or from the Inspector's own
 [**Parts**](#parts) section while the bolt is selected. Pointing at the `tap` row in
 either place previews the clearance as a translucent overlay before you cut with it.
+
+## Hide and show
+
+After a **Split**, the two pieces sit together exactly where the shape was, so the joint
+between them (the pins and sockets, or the tongue and groove) is on faces that cover each
+other. To look at one piece on its own, hide the other. Nothing moves and nothing is
+deleted: hiding only changes what the 3D view draws.
+
+![The Objects list with Cube 1 expanded and Cube 1 A hidden: its row is dimmed with a crossed-out eye, and the 3D view shows only Cube 1 B, with the sockets on its cut face](./screenshots/objects-hide-split-piece.png)
+
+- **The eye** is at the right of every row in the Inspector's object list: on each shape's
+  row (between its name and the ▸) and on each piece's row once you open the ▸. The same
+  eye is on the rows of a selected shape's **Parts** list. Tap it to hide that shape or
+  piece; tap it again to show it. A hidden row is dimmed and its eye is crossed out.
+- **A shape and its pieces have separate eyes.** A piece is drawn only when both it and its
+  shape are shown. Hiding `Cube 1` hides both pieces; showing it again brings back each
+  piece as it was, so a piece you hid stays hidden.
+- **Some pieces hidden.** When a shape is shown but one of its pieces is hidden, the shape's
+  eye is half filled. Tapping it then shows every piece.
+- **Show all.** While anything is hidden, the count line above the list reads, for example,
+  `3 objects · 1 hidden · Show all`. Tap **Show all** to bring everything back at once.
+- **Keyboard.** Press **H** to hide the selected shape (or the piece you have selected
+  inside it), or to show it again if it is already hidden. **Shift+H** is Show all. The
+  keys do nothing while you are typing in a field or editing a sketch.
+- **You cannot click a hidden shape.** A click where it was goes through to whatever is
+  behind it, and a selection box never picks it up. Hiding a shape that is selected takes
+  it out of the selection, so an operation never uses something you cannot see.
+- **You can still select it from the list.** Tick a hidden shape's box, or tap its name, and
+  it is selected as usual: the Inspector shows its fields with the note **Hidden in the view
+  · Show**, and the 3D view draws no outline and no gizmo for it, because there is nothing
+  on screen to attach them to. **Show** does the same as the eye. This is how you subtract a
+  cutter you have hidden to see the shape underneath: tick both rows, then press
+  **Subtract**.
+- **Hiding is not a modelling step.** It adds nothing to History, and **Undo** undoes your
+  last real change, not a hide. It is saved with the project, so a reload or a saved file
+  opened later shows the same things hidden.
+- **Export is unchanged.** A hidden shape or piece is still exported, still in **Print
+  pieces**, and still counted in the bill of materials.
+- **This is not Show hidden parts.** A bolt's `tap` and other pieces labelled *hidden* are
+  ready-made helper pieces that are never drawn unless you turn on
+  [Show hidden parts](hardware-library.md#fit-the-part-you-cant-see); that toggle does not
+  bring back a piece you hid with its eye, and **Show all** does not turn it on.
+
+### Worked example: look at both sides of a split joint
+
+1. Drag a **Cube** in from the Library and drop it on the grid.
+2. With it selected, choose **Enlarge** in the Operations toolbar, set **Y delta** to `50` and
+   press **Enlarge** in the popover. The 40 mm cube is now 40 × 90 × 40 mm (X × Y × Z).
+3. Choose **Split…**, keep the default plane across Y and the default pins, and press
+   **Apply**. The Objects list now shows `Cube 1` with a ▸.
+4. Tap ▸ beside `Cube 1`. Tap the eye on **Cube 1 A**. Piece A disappears and you are looking
+   at the cut face of **Cube 1 B**, with its sockets.
+5. Tap the eye on Cube 1 A again, then the eye on **Cube 1 B**. Now you see Cube 1 A's pins.
+6. Tap **Show all** on the Objects count line to bring everything back.
 
 ## Deleting objects and parts
 

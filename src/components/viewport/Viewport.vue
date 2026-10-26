@@ -105,6 +105,7 @@ import { createOffscreenCapture, setViewportCapture } from '../../render/offscre
 import { createViewport } from '../../render/scene.js'
 import {
   addXrayTwin,
+  applyViewVisibility,
   BODY_COLORS,
   createBodyMaterial,
   createBodyObject,
@@ -114,13 +115,15 @@ import {
   createXrayMaterial,
   disposeBodyObject,
   disposeMesh,
+  drawnBoundsOf,
   geom3ToBufferGeometry,
   paintBodyObject,
   updateBodyObject,
   bodyObjectIsCurrent,
 } from '../../render/mesh.js'
 import { colorIntToCssHex, ownOverrideOf } from '../../core/colorOverride.js'
-import { PICK_OFFSETS_PX, nearestOnPlane, ndcFromClient, projectToSketchPlane, projectToWorkingPlane } from '../../render/pick.js'
+import { PICK_OFFSETS_PX, firstDrawnHit, isDrawn, nearestOnPlane, ndcFromClient, projectToSketchPlane, projectToWorkingPlane } from '../../render/pick.js'
+import { isBodyDrawn, isPartDrawn } from '../../core/visibility.js'
 import { evaluateOp, policyFor, toGeom3 } from '../../core/kernel/index.js'
 import { boundsOf, hiddenNamesOf, isGroup } from '../../core/kernel/group.js'
 import {
@@ -844,7 +847,11 @@ watch(
  */
 function syncAnnotations() {
   const body = selected.value.body
-  if (!body) {
+  // `TODO/ui-089`: a selected body the user hid (or a drilled part they hid) has nothing on
+  // screen to attach a gizmo or dimension lines to. Allocation-free: a map lookup and a scan.
+  const view = body ? bodyMeshes.get(body.id)?.userData.view : undefined
+  const hidden = view !== undefined && (body?.subPart ? !isPartDrawn(view, body.subPart.partName) : !isBodyDrawn(view))
+  if (!body || hidden) {
     // Nothing selected, or two or more — either way there is no single body to
     // attach a gizmo to, and leaving the last one drawn would point at a solid
     // the user is no longer working on.
@@ -1851,9 +1858,21 @@ function requestSketchPreview() {
 /** While an existing sketch is open, its committed mesh hides behind the live preview. */
 function applySketchBodyVisibility() {
   for (const [id, object] of bodyMeshes) {
-    object.visible = !(sketchEditor.active && sketchEditor.bodyId === id)
+    // `TODO/ui-089`: through the user's Hide / Show too, so closing the editor brings back
+    // only what the user had not hidden.
+    applyViewVisibility(object, object.userData.view ?? {}, isSketchedBody(id))
   }
   scheduleRender()
+}
+
+/**
+ * Is this the body the sketch editor is drawing over (its mesh is hidden behind the preview)?
+ *
+ * @param {string} id
+ * @returns {boolean}
+ */
+function isSketchedBody(id) {
+  return sketchEditor.active && sketchEditor.bodyId === id
 }
 
 function measure() {
@@ -1931,8 +1950,15 @@ function syncBodies() {
       // What a hovered hidden part's transient mesh is built from (`TODO/ui-049`). A
       // reference to the evaluated result, never a copy, and never reactive.
       existing.userData.geometry = body.geometry
+      // `TODO/ui-089`: the user's Hide / Show, read by the hover, the x-ray twins and the
+      // gizmo; applied on every pass (visible flags only, no rebuild), before the early-out,
+      // because a hide changes the version without changing the geometry.
+      existing.userData.view = body
       const sameHiddenShown = existing.userData.hiddenShownKey === hiddenShownKey
-      if (current) continue
+      if (current) {
+        applyViewVisibility(existing, body, isSketchedBody(body.id))
+        continue
+      }
       // The body was transformed: swap in the new geometry and drop whatever
       // preview transform the drag left on the object, since the translation or
       // rotation is now baked into the vertices themselves. `updateBodyObject`
@@ -1946,6 +1972,7 @@ function syncBodies() {
         existing.position.set(0, 0, 0)
         existing.quaternion.identity()
         existing.userData.recordId = body.recordId
+        applyViewVisibility(existing, body, isSketchedBody(body.id))
         continue
       }
       bodiesGroup.remove(existing)
@@ -1958,6 +1985,8 @@ function syncBodies() {
     object.userData.colorOverrides = body.colorOverrides
     object.userData.recipeColors = isGroup(body.geometry) ? body.geometry.colors : undefined
     object.userData.geometry = body.geometry
+    object.userData.view = body
+    applyViewVisibility(object, body, isSketchedBody(body.id))
     bodyMeshes.set(body.id, object)
     bodiesGroup.add(object)
   }
@@ -2016,12 +2045,17 @@ function applySelectionMaterial() {
     // A selected body also gets an x-ray twin, because a body completely inside another
     // is occluded at every pixel and swapping its material alone changes nothing on the
     // canvas. Where it is not hidden the twin draws nothing. See `createXrayMaterial`.
-    if (role !== 'none') {
+    // `TODO/ui-089`: a body the user hid draws no outline, and nor does a part they hid —
+    // there is nothing on screen to outline. The user's switches, not `visible`, so the
+    // sketch editor's own body keeps its twins exactly as before.
+    const view = object.userData.view ?? {}
+    if (role !== 'none' && isBodyDrawn(view)) {
       const tint = role === 'base' ? xrayMaterial : xraySecondaryMaterial
       if (object instanceof ThreeGroup) {
         for (const child of object.children) {
           // A hover's transient hidden part is not part of the selection's picture.
           if (child.userData.hoverTransient) continue
+          if (!isPartDrawn(view, child.userData.partName)) continue
           xrayTwins.push(addXrayTwin(/** @type {Mesh} */ (child), tint))
         }
       } else {
@@ -2069,7 +2103,8 @@ function applyHover() {
       const parts = /** @type {Mesh[]} */ (object.children)
       meshes = target.partName === null ? parts : parts.filter((child) => child.userData.partName === target.partName)
       if (target.partName !== null && meshes.length === 0) {
-        const transient = createHoverPartMesh(object.userData.geometry, target.partName, bodyMaterial, target.bodyId)
+        // `TODO/ui-089`: never for a part, or of a body, the user hid.
+        const transient = createHoverPartMesh(object.userData.geometry, target.partName, bodyMaterial, target.bodyId, object.userData.view)
         if (transient) {
           object.add(transient)
           hoverTransient = transient
@@ -2080,6 +2115,8 @@ function applyHover() {
     } else if (target.partName === null) {
       meshes = [/** @type {Mesh} */ (object)]
     }
+    // `TODO/ui-089`: hovering the row of something the user hid lights nothing up.
+    meshes = meshes.filter(isDrawn)
     for (const mesh of meshes) hoverTwins.push(addXrayTwin(mesh, xrayHoverMaterial))
   }
   hoverTwinCount.value = hoverTwins.length
@@ -2114,7 +2151,7 @@ function applyRepeatOutlines() {
   for (const partName of repeatSession.outlined) {
     let meshes = /** @type {Mesh[]} */ (object.children).filter((child) => child.userData.partName === partName)
     if (meshes.length === 0) {
-      const transient = createHoverPartMesh(object.userData.geometry, partName, bodyMaterial, /** @type {string} */ (bodyId))
+      const transient = createHoverPartMesh(object.userData.geometry, partName, bodyMaterial, /** @type {string} */ (bodyId), object.userData.view)
       if (!transient) continue
       object.add(transient)
       repeatTransients.push(transient)
@@ -3329,9 +3366,10 @@ function raycastHit(clientXPx, clientYPx) {
     ndcFromClient(clientXPx + dxPx, clientYPx + dyPx, viewportRect, scratchNdc)
     pickNdc.set(scratchNdc.x, scratchNdc.y)
     raycaster.setFromCamera(pickNdc, viewport.graph.camera)
-    const hits = raycaster.intersectObjects(bodiesGroup.children, true)
-    if (hits.length === 0) continue
-    const object = hits[0].object
+    // `TODO/ui-089`: the raycaster reports hidden meshes too; a click goes through them.
+    const hit = firstDrawnHit(raycaster.intersectObjects(bodiesGroup.children, true))
+    if (hit === null) continue
+    const object = hit.object
     return { bodyId: object.name, partName: object.userData.partName }
   }
   return null
@@ -3427,7 +3465,11 @@ function finishMarquee(additive, clientXPx, clientYPx) {
   const enclosed = []
   if (viewport) {
     for (const body of documentStore.raw.bodies()) {
-      const [minMm, maxMm] = boundsOf(body.geometry)
+      // `TODO/ui-089`: a hidden body is never marqueed, and a body with hidden parts is
+      // judged by the parts still drawn.
+      const bounds = drawnBoundsOf([body])
+      if (bounds === null) continue
+      const [minMm, maxMm] = bounds
       updateBoxScreenBounds(orbit, minMm, maxMm, widthPx, heightPx, boxScreenBounds)
       if (marqueeIntersectsBox(marqueeRect, boxScreenBounds)) enclosed.push(body.id)
     }
@@ -3493,10 +3535,21 @@ function onReset() {
  * reloading would reopen the app to what looks like lost work
  * (`interaction-model-qa.md` §10). Orientation is kept; only target and distance
  * move. Reads the summaries' plain `bounds`, so no geometry is touched.
+ *
+ * `TODO/ui-089`: a project that comes back with things hidden is framed on what is still
+ * drawn, measured from the geometry; with nothing drawn at all, on everything, as before.
  */
 function frameLoadedContent() {
   const summaries = documentStore.bodies
   if (summaries.length === 0) return
+  if (summaries.some((body) => body.viewHidden || body.viewHiddenParts)) {
+    const drawn = drawnBoundsOf(documentStore.raw.bodies())
+    if (drawn !== null) {
+      orbit.frameBounds(drawn[0], drawn[1], heightPx > 0 ? widthPx / heightPx : 1)
+      scheduleRender()
+      return
+    }
+  }
   const min = [Infinity, Infinity, Infinity]
   const max = [-Infinity, -Infinity, -Infinity]
   for (const body of summaries) {
@@ -3881,7 +3934,9 @@ onBeforeUnmount(() => {
          signal, since rim material is genuinely removed either way.
          A composite's volume needs a kernel union, which runs in the evaluation
          worker (TODO/core-029): until it lands the attribute is ABSENT, never a
-         placeholder number — a spec waits for it rather than reading a guess. -->
+         placeholder number — a spec waits for it rather than reading a guess.
+         `data-view-hidden` / `data-view-hidden-parts` (TODO/ui-089): the user's Hide in
+         the view, which the canvas then does not draw. -->
     <ul class="viewport__bodies" data-testid="scene-bodies">
       <li
         v-for="body in announcedBodies"
@@ -3897,6 +3952,8 @@ onBeforeUnmount(() => {
         :data-selection-role="selectionRole(body.id)"
         :data-body-color="announcedColor(body)"
         :data-body-part-colors="announcedPartColors(body)"
+        :data-view-hidden="body.viewHidden ? 'true' : undefined"
+        :data-view-hidden-parts="body.viewHiddenParts?.join('|')"
       >
         {{ body.name }}
       </li>

@@ -803,6 +803,7 @@ as a milestone table.) `io-008` and `data-013` moved to [M16](#m16--next-batch-n
 
 | id | Task | Kind | Depends | Acceptance |
 |---|---|---|---|---|
+| ✅ `ui-089` | Hide and show bodies and parts from the Objects list (eye per row, Show all, `H` / `Shift+H`), saved with the project and merged per body and part, not an undo step, so either piece of a split can be seen alone. Reported 2026-10-26 while testing Split | Finding | — | 1, 5, 6, 10, 13, 17, 22 (not yet hand-driven) |
 | ✅ `ui-085` | The Library sheet scrolls sideways a few pixels in desktop Safari; the Help button's negative right margin and an `overflow-y`-only scroller. Filed 2026-10-25 | Finding | — | 1 |
 | ✅ `core-051` | Fillet and chamfer produce wrong geometry (material **added**, not removed) on any rim that has a hole — reported 2026-10-04 with `examples/chamfer error.ndjson` | Finding | — | 1, 12 |
 | ✅ `ai-022` | The `group.snap` tool description says `outside+` puts the first body on the second's + side; by `SNAP_SIDES` it is the − side — found by `ui-060` | Finding | — | none; `ui-060` repro |
@@ -1139,5 +1140,6 @@ convention going forward.
 | `ui-083` | 2026-10-24 15:30 | ~15m wall clock (preflight from 15:15 UTC). Spec error, not an app bug: the spec held Shift alone (pan) from a corner under the Union button; the Ctrl+Shift marquee from empty canvas already worked. Spec and finding corrected to the documented gesture |
 | `ui-086` | 2026-10-26 07:16 | ~4h57m wall clock (preflight 02:19 UTC), of which ~2h was a full e2e run that stalled at load 150-200 on this machine and had to be abandoned for a `changed` run; Playwright browsers also had to be reinstalled. The docs-media generator was run twice and its unrelated churn reverted. |
 | `ui-085` | 2026-10-26 12:50 | ~30m wall clock (preflight 12:20 UTC). Two causes found by measuring in WebKit: the Help button's 8px overhang and the Pi variant `<select>`'s own 8px of scrollable overflow. |
+| `ui-089` | 2026-10-26 21:16 | ~1h11m wall clock from Step 1 (Step 3 was not stamped separately; three Opus agents: core layer, then render/UI/docs/e2e). Full e2e not green at commit time: 1 of this feature's tests failed on a sub-pixel eye height and was fixed; 5 header-version screenshots and 1 AI-chip docs shot are open `testing-009` / `testing-010`, carried over by decision. Acceptance scenarios not hand-driven yet. |
 
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

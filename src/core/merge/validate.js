@@ -24,6 +24,7 @@
 import { isReplicaId } from '../replica.js'
 import { REGISTER_NAMES, LEGACY_REPLICA, LEGACY_STAMP } from './state.js'
 import { parseKey } from './positionKey.js'
+import { viewKey } from '../visibility.js'
 
 /** @typedef {import('../replica.js').Stamp} Stamp */
 
@@ -61,6 +62,9 @@ export const MERGE_LIMITS = Object.freeze({
  * @property {Map<string, Stamp>} dead Tombstones.
  * @property {Partial<Record<(typeof REGISTER_NAMES)[number], Stamp>>} registers
  * @property {Map<string, Stamp>} partStamps User-part op → the stamp that wrote its definition.
+ * @property {Map<string, Stamp>} viewStamps `TODO/ui-089`: view key (`visibility.js`'s
+ *   `viewKey`) → the stamp that last hid or showed that body or part. The value is the state
+ *   line's `viewHidden` (listed: hidden; not listed: shown). Only bodies the file holds.
  */
 
 /** A merge section this build refuses, with a message that names the field. */
@@ -143,6 +147,7 @@ export function readMergeSection(raw, recordIds) {
   const deadRaw = readMap(raw.dead, 'dead')
   const registersRaw = readMap(raw.registers, 'registers')
   const partStampsRaw = readMap(raw.partStamps, 'partStamps')
+  const viewStampsRaw = readMap(raw.viewStamps, 'viewStamps')
 
   // Counts before anything is walked or serialised.
   const rows = Math.max(Object.keys(posRaw).length, Object.keys(stampsRaw).length)
@@ -155,6 +160,9 @@ export function readMergeSection(raw, recordIds) {
   }
   if (Object.keys(partStampsRaw).length > MERGE_LIMITS.maxRows) {
     throw new MergeSectionError('merge: `partStamps` holds too many entries')
+  }
+  if (Object.keys(viewStampsRaw).length > MERGE_LIMITS.maxRows) {
+    throw new MergeSectionError('merge: `viewStamps` holds too many entries')
   }
   if (JSON.stringify(raw).length > MERGE_LIMITS.maxBytes) {
     throw new MergeSectionError(`merge: the section is larger than ${MERGE_LIMITS.maxBytes} characters`)
@@ -247,5 +255,35 @@ export function readMergeSection(raw, recordIds) {
     partStamps.set(op, see(readStamp(value, `\`partStamps\` for "${op.slice(0, 40)}"`)))
   }
 
-  return { projectId, highest, pos, stamps, dead, registers, partStamps }
+  // `TODO/ui-089`: by body, the body's own stamp and one per part. A body the file does not
+  // hold is dropped rather than refused: a view setting must never cost the user the file, and
+  // this build's own writer never names one (`section.js`).
+  /** @type {Map<string, Stamp>} */
+  const viewStamps = new Map()
+  let viewSwitches = 0
+  for (const [bodyId, entry] of Object.entries(viewStampsRaw)) {
+    checkId(bodyId, 'viewStamps')
+    const label = `"${bodyId.slice(0, 40)}"`
+    if (!isObject(entry)) throw new MergeSectionError(`merge: the view stamps for ${label} must be an object`)
+    if (entry.parts !== undefined && !isObject(entry.parts)) {
+      throw new MergeSectionError(`merge: the view stamps for ${label}: \`parts\` must be a map of part names to stamps`)
+    }
+    const parts = Object.entries(/** @type {Record<string, unknown>} */ (entry.parts ?? {}))
+    viewSwitches += parts.length + 1
+    if (viewSwitches > MERGE_LIMITS.maxRows) throw new MergeSectionError('merge: `viewStamps` holds too many entries')
+    const keep = recordIds.has(bodyId)
+    if (entry.body !== undefined) {
+      const stamp = see(readStamp(entry.body, `\`viewStamps\` body for ${label}`))
+      if (keep) viewStamps.set(viewKey(bodyId), stamp)
+    }
+    for (const [name, value] of parts) {
+      if (name.length === 0 || name.length > MERGE_LIMITS.maxIdLength) {
+        throw new MergeSectionError(`merge: the view stamps for ${label} name a part name that is empty or longer than ${MERGE_LIMITS.maxIdLength}`)
+      }
+      const stamp = see(readStamp(value, `\`viewStamps\` part "${name.slice(0, 40)}" of ${label}`))
+      if (keep) viewStamps.set(viewKey(bodyId, name), stamp)
+    }
+  }
+
+  return { projectId, highest, pos, stamps, dead, registers, partStamps, viewStamps }
 }

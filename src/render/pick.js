@@ -265,3 +265,40 @@ export function nearestOnPlane(items, xMm, yMm) {
   }
   return bestIndex
 }
+
+/**
+ * The scene-graph shape {@link isDrawn} walks: anything with a `visible` flag and a parent —
+ * a three.js `Object3D` in the app, a plain object in a spec. Duck-typed so this module keeps
+ * no three.js import.
+ *
+ * @typedef {{ visible: boolean, parent: Drawable | null }} Drawable
+ */
+
+/**
+ * Whether an object is drawn at all: it and every ancestor are `visible`. three.js skips an
+ * invisible object's whole subtree when it renders, but its raycaster does **not**, so a pick
+ * has to ask this itself (`TODO/ui-089`: a body or part the user hid must never be picked).
+ *
+ * @param {Drawable} object
+ * @returns {boolean}
+ */
+export function isDrawn(object) {
+  for (let current = /** @type {Drawable | null} */ (object); current !== null; current = current.parent) {
+    if (!current.visible) return false
+  }
+  return true
+}
+
+/**
+ * The nearest hit that is drawn (`TODO/ui-089`, rule 4): a ray through a hidden part goes on
+ * to whatever is behind it, or to empty space. `hits` is a raycaster's result, nearest first.
+ * Click-time only, and allocation-free.
+ *
+ * @template {{ object: Drawable }} Hit
+ * @param {readonly Hit[]} hits
+ * @returns {Hit | null}
+ */
+export function firstDrawnHit(hits) {
+  for (const hit of hits) if (isDrawn(hit.object)) return hit
+  return null
+}
