@@ -89,7 +89,9 @@ Done means the **native app itself hosts that endpoint**:
   It handles `initialize` (the same server instructions as `LIVE_SERVER_INSTRUCTIONS` in
   `mcp/liveHttp.js`, sent by the page at start, not copied into Rust), `tools/list` and
   `tools/call` (both relayed), and session tracking with the five-minute idle close from
-  `mcp/liveHttp.js`.
+  `mcp/liveHttp.js`. If `ai-028` / `ai-029` have landed, also `resources/list`/`resources/read`
+  for `warpcad://guide` and `prompts/list`/`prompts/get`, from `src/ai/` text sent by the page
+  like the instructions, never copied into Rust.
 - `src/mcp/gate.rs` (new): the request gate. A Host/Origin check equivalent to `mcp/bridge.js`
   `createRequestGate`; on LAN, the bearer token (constant-time compare, 256-bit random, regenerated
   on **New token**, never logged); lease state as set by the page; one-client/one-tab ambiguity
