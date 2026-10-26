@@ -148,7 +148,7 @@ starter buttons are a WarpCad control:
 - `e2e/ai-subscription-route.e2e.js`, `e2e/ai-mcp-agent-pairing.e2e.js`; `e2e/docs/ai-subscription-route.docs.js`,
   `e2e/docs/ai-live-mcp-header.docs.js`.
 - `docs/mcp.md`, `docs/ai-partner.md`.
-- `TODO/ai-026-mcp-server-in-the-native-app.md`: the native host relays `prompts/list` and
+- `TODO/M19-ai-026-mcp-server-in-the-native-app.md`: the native host relays `prompts/list` and
   `prompts/get` too. Already noted there.
 
 ## Proposed fix

@@ -25,7 +25,7 @@ status: done
 
 ## Goal
 
-Split from `TODO/ui-079-tiered-library-and-operations-panels.md`, stage 6. When the viewport
+Split from `TODO/FIND-ui-079-tiered-library-and-operations-panels.md`, stage 6. When the viewport
 pane falls into the groups range (about 641–741 px page width with no chat), the Operations
 toolbar becomes one row of **group launchers**. Each opens a pop-out with labelled members.
 `ui-079` stages 1–3 provide `data-ops-tier`, the icons tier and the shared `openPopout` field;

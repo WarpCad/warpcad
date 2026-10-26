@@ -17,7 +17,7 @@ status: done
 > slow link ~330 ms (~9 %) faster in Chromium, Firefox and WebKit (3,724 to 3,390 / 3,912 to 3,581 /
 > 3,777 to 3,436 ms at `slow4g`, medians of 7), with repeat and fast loads within spread; page JS on
 > the wire 601.4 to 534.8 kB. Delivered: `bench/bundle-load.mjs`, `bench/bundle-modules.mjs`,
-> `bench/results/2026-10-17-perf-002.md`. Filed as `TODO/perf-003-defer-code-unused-at-boot.md`.
+> `bench/results/2026-10-17-perf-002.md`. Filed as `TODO/FIND-perf-003-defer-code-unused-at-boot.md`.
 > **Not measured**: a real phone, GPU or network (headless, software GL, throttling emulated in the
 > server); HTTP/2 (`vite preview` is HTTP/1.1, GitHub Pages is HTTP/2); builds with a Sentry DSN or GA
 > id; an AI turn after deferral; phone and tablet viewports; long tasks after usable. The machine had

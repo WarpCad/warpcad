@@ -558,7 +558,8 @@ of the work, not scaffolding. Full map in `LICENSING.md`; the rules you must fol
 - `TODO/ACCEPTANCE.md` — the fixed set of 5-10 named end-to-end use cases the AI itself
   drives and reports PASS/FAIL against, per Verification above. **Does not exist yet.**
   Write it at kickoff, same session as the roadmap.
-- `TODO/` — one file per feature or finding; run one with `/fix-todo <id>`, or work
+- `TODO/` — one file per feature or finding, named `<MILESTONE>-<id>-<slug>.md` while open (`M19-`, `FIND-`, …; grouping
+  only — the run order is `TODO/ROADMAP.md`'s **Next up**) and `<id>-<slug>.md` once in `TODO/done/`; run one with `/fix-todo <id>`, or work
   through the backlog unattended with `/loop /run-todos` (see Acceptance Scenarios and
   the token-paced backlog runner, above).
 - `TODO/BUDGET.md` — the batch-size/check-in cadence for `/run-todos` and its

@@ -102,7 +102,7 @@ case). On any other tick, print nothing here beyond the usual one-line "next up"
 How to build it — a dry run of Step 2, writing nothing:
 
 1. Read `TODO/ROADMAP.md`'s milestone tables in file order and each open id's
-   `TODO/<id>-*.md` frontmatter (`depends`, `model`).
+   `TODO/*-<id>-*.md` frontmatter (`depends`, `model`).
 2. Simulate the scan: repeatedly take the earliest not-`✅` id whose `depends` are all
    done *or already placed earlier in this plan*, append it, and treat it as done. Keep
    going until nothing more is eligible. This is exactly the order Step 2 will produce
@@ -146,7 +146,7 @@ batch), if any.
 ## Step 2 — Pick the next candidate TODO
 
 Find the earliest not-`✅` id in `TODO/ROADMAP.md`'s milestone tables whose `depends`
-(from the corresponding `TODO/<id>-*.md` file's frontmatter) are all `status: done`.
+(from the corresponding `TODO/*-<id>-*.md` file's frontmatter) are all `status: done`.
 Skip and continue past any id that's blocked on an open dependency — don't stop the
 scan at the first blocked one.
 

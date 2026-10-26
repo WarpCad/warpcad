@@ -11,7 +11,7 @@ status: done
 
 ## Goal
 
-Split from `TODO/ui-079-tiered-library-and-operations-panels.md`, stage 5. The Library's icon rail
+Split from `TODO/FIND-ui-079-tiered-library-and-operations-panels.md`, stage 5. The Library's icon rail
 and row pop-out (stage 4) moved to `TODO/ui-084-library-icons-and-compact-viewport-chrome.md` on
 2026-10-21, so this file covers only the next step down: when `E` falls into the pop-out range
 (641–789 px with no chat), the 72 px icon rail gives way to a 64 px rail of **section

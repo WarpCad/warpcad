@@ -1,6 +1,6 @@
 # Fix a TODO Audit Finding
 
-Implement one `TODO/<category>-<NNN>-*.md` finding end to end: verify the baseline is
+Implement one `TODO/*<category>-<NNN>-*.md` finding end to end: verify the baseline is
 green, implement the fix with TDD, verify again — including the acceptance-scenario
 and regression-surface checks below, which is what this project's second attempt
 skipped — retire the file, and commit.
@@ -35,7 +35,9 @@ re-read files you just wrote, and read only the part of a big file you need.
 ## Step 1 — Locate the TODO
 
 Resolve the id to a file:
-- Match `TODO/<id>-*.md` (e.g. `core-013` → `TODO/core-013-cache-tessellation-results.md`).
+- Match `TODO/*-<id>-*.md`: open files carry a milestone prefix (`M19-`, `M20-`, `M18-`, `M05-`, `M11-`,
+  `FIND-`, `DEFER-`), so `core-013` → `TODO/FIND-core-013-cache-tessellation-results.md`. Closed files in
+  `TODO/done/` have no prefix.
 - If it's not in `TODO/`, check `TODO/done/`. If found there, tell the user it's
   already marked `done` and ask whether they want it redone or if they meant a
   different id — do not silently reopen it.
@@ -249,9 +251,10 @@ silently reintroducing a bug a past finding already fixed.
 
 - Set `status: done` in the file's frontmatter.
 - Move it into `TODO/done/` with `git mv` (`TODO/` is tracked, so the move
-  itself is part of the commit):
+  itself is part of the commit). **Drop the milestone prefix** — `TODO/done/` names are
+  `<id>-<slug>.md`, and every link into it assumes that:
   ```
-  git mv TODO/<id>-<slug>.md TODO/done/<id>-<slug>.md
+  git mv TODO/<PREFIX>-<id>-<slug>.md TODO/done/<id>-<slug>.md
   ```
 - If the fix was smaller or different from what the file proposed, add a
   one-paragraph note at the top explaining what actually shipped.
@@ -309,7 +312,7 @@ perf(core): cache tessellation results per shape revision (TODO/core-013)
 
 <why, 2-4 sentences>
 
-Resolves TODO/core-013-cache-tessellation-results.md (moved to TODO/done/).
+Resolves TODO/FIND-core-013-cache-tessellation-results.md (moved to TODO/done/core-013-cache-tessellation-results.md).
 ```
 
 **Before committing, write manual verification notes to `TODO/VERIFY.md`** — but

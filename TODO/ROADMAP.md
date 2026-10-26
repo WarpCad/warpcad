@@ -145,6 +145,7 @@ with their dependencies and acceptance columns; keep the two in step when a row 
 | Findings | [`ai-028`](FIND-ai-028-mcp-guide-resource.md) The full modelling guide as the MCP resource `warpcad://guide`, one text with the in-app prompt | feature | high | sonnet | ⏳ after `ai-027` |
 | Findings | [`ai-029`](FIND-ai-029-mcp-prompts-as-slash-commands.md) MCP prompts `start`, `build`, `check-print` (Claude Code slash commands), plus Copy starter buttons in the Assistant | feature | medium | sonnet | ⏳ after `ai-028` |
 | Findings | [`ai-030`](FIND-ai-030-list-ops-summary-and-filter.md) `list_ops` summary and per-op filter, so learning the catalogue stops costing ~7.6k tokens a call | feature | high | sonnet | ▶ **ready** |
+| Findings | [`io-016`](FIND-io-016-share-a-project-by-link.md) Share a project by link, with a read-only Shared view for the recipient | feature | high | opus | ▶ **ready** |
 | Findings | [`core-075`](FIND-core-075-split-joint-catalog-keys-and-profiles.md) More ways to join split pieces: butterfly keys, loose dowels and tenons, dovetails, puzzle tabs, laps, fingers, magnets | feature | medium | opus | ▶ **ready** (filed 2026-10-26 at the owner's request) |
 |  | `data-012` Tombstone and position-key compaction — `data-011` measured the section at 34-43% of an edited file (`bench/results/2026-10-12-data-011.md`), so the encoding proposals there are this task's starting point | reserved | — | — | 📝 no file yet; ▶ measured, ready to write up |
 |  | `io-013` Import another project's bodies into this one (id remap) | reserved | — | — | 📝 no file yet; waits on `ui-062` |
@@ -343,7 +344,7 @@ anyone prints a gear.
 Items that are open but have no row in a milestone table, or are not live work yet. `/run-todos` does not reach the
 first group, so each one needs a row before it can be scheduled.
 
-**Open files with no roadmap row:** none. (`core-075` got its Findings row on 2026-10-26.)
+**Open files with no roadmap row:** none. (`core-075` and `io-016` got their Findings rows on 2026-10-26.)
 
 The four that lacked a row on 2026-10-24 (`ui-079`, `testing-009`, `testing-005`, `testing-010`) now have Findings rows.
 

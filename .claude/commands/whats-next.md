@@ -22,7 +22,7 @@ match its rows. So derive the state from the files, and use the roadmap only for
 its **Next up** table is the user's stated run order, and its reserved rows name ids that
 have no file yet. Report every place where the roadmap and the files disagree.
 
-- **Open work** = `TODO/<category>-<NNN>-*.md` front matter with `status: open`. Skip
+- **Open work** = `TODO/<MILESTONE>-<category>-<NNN>-*.md` front matter with `status: open`. Skip
   `README.md`, `ROADMAP.md`, `BUDGET.md`, `VERIFY.md`, `ACCEPTANCE.md` and `NEW-TODO.md`.
 - **Closed work** = `TODO/done/*.md`.
 

@@ -61,7 +61,7 @@ also reached from outside the app:
 - `src/stores/help.js`, `src/components/layout/HelpSheet.vue` (only if the unknown-slug outcome
   needs a fix)
 - `docs/help.md`
-- `TODO/perf-003-defer-code-unused-at-boot.md` Testing: this spec named as a gate (done in the
+- `TODO/FIND-perf-003-defer-code-unused-at-boot.md` Testing: this spec named as a gate (done in the
   commit that wrote this file)
 
 ## Proposed fix

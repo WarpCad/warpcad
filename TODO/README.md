@@ -4,20 +4,32 @@ This directory holds one file per unit of planned work or audit finding. Each fi
 self-contained enough to be picked up and implemented independently, later, without
 re-reading the whole roadmap or audit.
 
-Implement one with `/fix-todo <id>`.
+Implement one with `/fix-todo <id>` (the id alone, without the milestone prefix). Not sure which
+one? Open `TODO/ROADMAP.md`: its first section, **Next up**, is the ranked list, and row 1 is the answer.
 
 ## Naming convention
 
 ```
-TODO/<category>-<NNN>-<kebab-title>.md
+TODO/<MILESTONE>-<category>-<NNN>-<kebab-title>.md      (open work)
+TODO/done/<category>-<NNN>-<kebab-title>.md             (closed work, no prefix)
 ```
+
+- `MILESTONE` — which part of `ROADMAP.md` the task belongs to, so `ls TODO` groups the
+  backlog by milestone. One of `M05`, `M11`, `M18`, `M19`, `M20` (the milestone's number,
+  zero-padded to two digits so it sorts), `FIND` (a row in the roadmap's **Findings**
+  table, which has no milestone), or `DEFER` (parked, not on the roadmap). It must agree
+  with the file's `milestone:` front matter and with the roadmap table the row sits in.
+  **This is grouping, not run order** — the order to work in is `ROADMAP.md`'s **Next up**
+  table. A task that moves to another milestone is renamed with `git mv`, and every link to
+  it is updated in the same commit. When a task closes, `/fix-todo` drops the prefix as it
+  moves the file into `TODO/done/`.
 
 - `category` — one of `build`, `core`, `data`, `render`, `sketch`, `ui`, `io`, `ai`,
   `perf`, `testing`, `docs`
 - `NNN` — zero-padded sequence number, unique within the category (`001`, `002`, ...)
 - `kebab-title` — short slug of the title
 
-Example: `TODO/core-003-boolean-features.md`
+Example: `TODO/M05-core-003-boolean-features.md`
 
 ### Categories
 
