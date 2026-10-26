@@ -3421,3 +3421,16 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** 1,477 → 411 lines → wc -l on HEAD and working tree, this session; rows move on close → .claude/commands/fix-todo.md Step 8 diff; Tauri over Capacitor, shim size, default-deny → docs/decisions/native-mobile-shell.md owner decision 2026-10-24; ten tasks scaffold → TestFlight → stops at owner's submit → TODO/build-017, build-019, build-020 and grep of M19; Help deep links → TODO/docs-027, testing-012
 **To Add:** none
+
+## 2026-10-26T02:17:08-05:00 — Align popover: seven positions per axis
+
+**Post:** The Align popover in WarpCad had two button grids and a Relation dropdown. To snap one part against another you chose Outside, Inside or Center, then read a button whose label changed with your choice. Two of its buttons were disabled and duplicated the Inside snaps.
+
+It is now one row per axis with seven icon buttons, from outside − through half −, center and half +, to outside +. The words sit once in a shared column header above the grid, and a caption under it spells out the button you hover or last tapped. No record format changed, so projects saved with the old popover replay the same. Against the world origin the seven buttons give three distinct results, because a point has no size, and the icons draw that.
+
+The strip is 328 px wide at 44 px per button, which fits a 390 px phone. Docs and the six Align animations were re-recorded. Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** two grids, Relation dropdown, two disabled duplicates → removed code in the diff and TODO/done/ui-086 Goal; no record change → TODO/done/ui-086 Proposed fix and snapAlignReplay.spec.js untouched in the diff; seven → three results against the origin → AlignPositionIcon.spec.js (this session, green); 328 px at 44 px, fits 390 px → TODO/done/ui-086 and the phone snapshot (352 px popover) this session; six animations → git status (six gifs in the diff)
+**To Add:** docs/screenshots/align-positions.png, docs/media/snap-operation.gif

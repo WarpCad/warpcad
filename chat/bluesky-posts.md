@@ -2376,3 +2376,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** 1,477 → 411 lines → `git show HEAD:TODO/ROADMAP.md | wc -l` and `wc -l TODO/ROADMAP.md` this session; Tauri 2 → docs/decisions/native-mobile-shell.md owner decision 2026-10-24; 10 M19 tasks, 5 M20 → `grep milestone:` over TODO/ this session
 **To Add:** none
+
+## 2026-10-26T02:17:08-05:00 — Align popover: seven positions per axis
+
+**Post:** WarpCad's Align popover made you pick a mode from a dropdown, then decode a button. Now each axis has one row of seven icon buttons, outside − to outside +, with the words in a shared header. Tap one and the body lands there. #CAD #OpenSource Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** one row of seven icon buttons per axis, shared header → diff (AlignPopover.vue, AlignGrid.vue, AlignPositionIcon.vue); previous dropdown plus two grids → git show 39a5a2d (ui-060, 2026-10-15) and the removed code in this diff
+**To Add:** docs/screenshots/align-positions.png

@@ -73,15 +73,6 @@ export const useAlignReferenceStore = defineStore('alignReference', () => {
   }
 
   /**
-   * The Align popover's Snap **Relation** (`TODO/ui-060`): `outside`, `inside` or `center`,
-   * remembered for the session like the Reference above — UI-only, never in the document
-   * (the record carries the resolved `orientation`, not this).
-   *
-   * @type {import('vue').Ref<'outside' | 'inside' | 'center'>}
-   */
-  const relation = ref(/** @type {'outside' | 'inside' | 'center'} */ ('outside'))
-
-  /**
    * True while the Align popover is open on **World origin** with 2 bodies selected
    * (`TODO/ui-060`): only the first-picked body is involved then, so `Viewport.vue` drops the
    * second one's teal role colour. Owned by the popover, which clears it when it closes.
@@ -90,5 +81,5 @@ export const useAlignReferenceStore = defineStore('alignReference', () => {
    */
   const originOnly = ref(false)
 
-  return { reference, get, set, clear, reset, relation, originOnly }
+  return { reference, get, set, clear, reset, originOnly }
 })

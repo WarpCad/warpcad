@@ -36,6 +36,16 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### ui-086 — Align popover: seven positions per axis (2026-10-26 07:16)
+
+Reachability, the numbers and the 390 px fit are covered by specs and scenarios 1, 3, 6, 10 and 12. These are the feel and legibility checks a script cannot make.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | On a real iPhone and iPad (Safari), the seven-icon strips read clearly at 44 px: can you tell **half −** from **inside −** by the icon alone, and does a tap land on the button you aimed at (no gaps between them)? | Open | |
+| 2 | In desktop Safari and Firefox, the header words (*out · in · half · ctr · half · in · out*) sit centred over their columns and the `− … +` rule spans the grid (the header uses CSS `subgrid`). | Open | |
+| 3 | The amber and teal icon colours are distinguishable on the light scheme (`prefers-color-scheme: light`) against the popover glass. | Open | |
+
 ### ui-083 — Marquee start point under the Operations toolbar (2026-10-24 15:30)
 
 At laptop width the Operations toolbar sits over the top-left of the canvas, so a press there hits a toolbar button and never starts a marquee. The corner that works is bottom-right, and this is what `shift-select.e2e.js` and the scenario 4 drive now use. Whether that reads as a trap or as ordinary overlay behaviour is a judgment call, not a test.

@@ -177,6 +177,7 @@ function sceneBodies(page) {
       op: node.getAttribute('data-body-op') ?? '',
       name: node.getAttribute('data-body-name') ?? '',
       center: node.getAttribute('data-body-center') ?? '',
+      bounds: node.getAttribute('data-body-bounds') ?? '',
     })),
   )
 }
@@ -321,8 +322,7 @@ test('closing the popover without committing changes nothing', async ({ page }) 
 
   await page.getByTestId('operation-align').click()
   await expect(page.getByTestId('align-popover')).toBeVisible()
-  // Picking a Relation and an offset is not a commit: only a grid tap is.
-  await page.getByTestId('align-relation').selectOption('inside')
+  // Typing an offset is not a commit: only a grid tap is.
   await page.getByTestId('align-offset').fill('4')
 
   await page.keyboard.press('Escape')
@@ -411,11 +411,10 @@ test('Snap moves the moving Cube flush outside the reference Cylinder on Z, with
   const popover = page.getByTestId('align-popover')
   await expect(popover).toBeVisible()
 
-  // `outside+` is Relation Outside, **− side**: the Cube ends up under the Cylinder
+  // `outside+` is the **outside −** button: the Cube ends up under the Cylinder
   // (`TODO/ui-060`'s Step 2 mapping onto `SNAP_SIDES`). The offset applies to the next tap.
   await page.getByTestId('align-offset').fill(String(OFFSET_MM))
-  await page.getByTestId('align-relation').selectOption('outside')
-  await page.getByTestId('align-z-snap-minus').click()
+  await page.getByTestId('align-z-outside-minus').click()
   await expect(popover).toBeVisible()
   await page.keyboard.press('Escape')
   await expect(popover).toHaveCount(0)
@@ -440,8 +439,7 @@ test('a body snapped to a shape follows when that shape is resized in the Inspec
   const [cube, cylinder] = await placeCubeAndCylinder(page)
   await selectCubeThenCylinder(page)
   await page.getByTestId('operation-align').click()
-  await page.getByTestId('align-relation').selectOption('outside')
-  await page.getByTestId('align-z-snap-minus').click() // outside+
+  await page.getByTestId('align-z-outside-minus').click() // outside+
   await page.keyboard.press('Escape')
   await expect(page.getByTestId('align-popover')).toHaveCount(0)
 
@@ -689,12 +687,71 @@ test('the popover stays on-screen and reachable at 390px width — no horizontal
   expect(scrollWidth).toBeLessThanOrEqual(clientWidth + 1)
 
   // Every grid button is a real 44px tap target, not a shrunken icon (`TODO/ui-060`).
-  for (const testid of ['align-x-min', 'align-y-center', 'align-z-max', 'align-x-snap-minus', 'align-z-snap-plus']) {
-    const controlBox = await page.getByTestId(testid).boundingBox()
-    expect(controlBox).not.toBeNull()
-    expect(controlBox.width).toBeGreaterThanOrEqual(44)
-    expect(controlBox.height).toBeGreaterThanOrEqual(44)
+  // The popover is wider than its siblings (`TODO/ui-086`) and seven of them share a row.
+  const popoverScroll = await popover.evaluate((el) => ({ scroll: el.scrollWidth, client: el.clientWidth }))
+  expect(popoverScroll.scroll).toBeLessThanOrEqual(popoverScroll.client)
+  for (const axis of ['x', 'y', 'z']) {
+    for (const key of POSITION_KEYS) {
+      const controlBox = await page.getByTestId(`align-${axis}-${key}`).boundingBox()
+      expect(controlBox).not.toBeNull()
+      expect(controlBox.width).toBeGreaterThanOrEqual(43.5)
+      expect(controlBox.height).toBeGreaterThanOrEqual(43.5)
+    }
   }
+  // Each header word sits over its column: centres within 1 px of the buttons below it.
+  const headers = await page.getByTestId('align-header').locator('span.align-grid__header').all()
+  expect(headers).toHaveLength(7)
+  for (const [index, key] of POSITION_KEYS.entries()) {
+    const word = await headers[index].boundingBox()
+    const button = await page.getByTestId(`align-x-${key}`).boundingBox()
+    expect(Math.abs(word.x + word.width / 2 - (button.x + button.width / 2))).toBeLessThanOrEqual(1)
+  }
+  await expect(popover).toHaveScreenshot('align-popover-seven-positions.png', { animations: 'disabled', maxDiffPixelRatio: 0.03 })
+})
+
+/** The seven positions, − to +, as the buttons' testid suffixes (`TODO/ui-086`). */
+const POSITION_KEYS = ['outside-minus', 'inside-minus', 'half-minus', 'center', 'half-plus', 'inside-plus', 'outside-plus']
+
+test('all seven positions on Z land the moving Cube where their words say, and the Cylinder never moves; a tap names itself in the caption (TODO/ui-086)', async ({
+  page,
+}) => {
+  const [cube, cylinder] = await placeCubeAndCylinder(page)
+  await selectCubeThenCylinder(page)
+  await page.getByTestId('operation-align').click()
+  await expect(page.getByTestId('align-popover')).toBeVisible()
+
+  const [, , cMinZ, , , cMaxZ] = cylinder.bounds.split(',').map(Number)
+  const cCentreZ = (cMinZ + cMaxZ) / 2
+  const height = CUBE_HALF[2] * 2
+  // [key, expected moving min z] — written out, not derived from the component's own table.
+  const expected = [
+    ['outside-minus', cMinZ - height], // + face on the target's − face
+    ['inside-minus', cMinZ], // − faces flush
+    ['half-minus', cCentreZ - height], // + face on the centre
+    ['center', cCentreZ - height / 2],
+    ['half-plus', cCentreZ], // − face on the centre
+    ['inside-plus', cMaxZ - height], // + faces flush
+    ['outside-plus', cMaxZ], // − face on the target's + face
+  ]
+  for (const [key, minZ] of expected) {
+    await page.getByTestId(`align-z-${key}`).click()
+    await expect(page.getByTestId('align-caption')).toContainText(/^Z /)
+    await expect
+      .poll(async () => Number((await sceneBodies(page)).find((body) => body.id === cube.id).bounds.split(',')[2]), { timeout: 15_000 })
+      .toBeCloseTo(minZ, 1)
+    expect((await sceneBodies(page)).find((body) => body.id === cylinder.id).bounds).toBe(cylinder.bounds)
+  }
+})
+
+test('World origin: outside + on Z sits the Cube on the grid (TODO/ui-086)', async ({ page }) => {
+  const [cube] = await placeCubeAndCylinder(page)
+  await selectCubeThenCylinder(page)
+  await page.getByTestId('operation-align').click()
+  await page.getByTestId('align-target').selectOption('origin')
+  await page.getByTestId('align-z-outside-plus').click()
+  await expect
+    .poll(async () => Number((await sceneBodies(page)).find((body) => body.id === cube.id).bounds.split(',')[2]), { timeout: 15_000 })
+    .toBeCloseTo(0, 1)
 })
 
 /**

@@ -250,7 +250,8 @@ function nonDegenerateFan(polygons) {
  * nearby is taken: amber and teal are the selection, blue the gizmo and `--accent`,
  * magenta the snap guides, sky blue a sketch line. Kept in step with `--hover-highlight`
  * in `src/styles/tokens.css`, which marks the hovered row in the list with the same colour
- * so the row and the geometry read as one thing.
+ * so the row and the geometry read as one thing. `selected` / `secondary` are likewise kept in
+ * step with `--role-moving` / `--role-target`, which colour the Align popover's position icons.
  */
 export const BODY_COLORS = Object.freeze({
   dark: Object.freeze({

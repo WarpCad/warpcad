@@ -157,21 +157,21 @@
   },
   "snap-operation.gif": {
     "spec": "e2e/docs/snap-align.docs.js",
-    "specHash": "dfedbb0d60a79db640e5cdac206551189d2cd944977f95d610422a2e8ee2f579",
-    "bytes": 751041,
-    "seconds": 9.1
+    "specHash": "c5860e691b10673677803d565337ae88e22290d22fe1caf8d9b4c67969f7fdb7",
+    "bytes": 1231557,
+    "seconds": 18.1
   },
   "align-operation.gif": {
     "spec": "e2e/docs/snap-align.docs.js",
-    "specHash": "dfedbb0d60a79db640e5cdac206551189d2cd944977f95d610422a2e8ee2f579",
-    "bytes": 728436,
-    "seconds": 8.2
+    "specHash": "c5860e691b10673677803d565337ae88e22290d22fe1caf8d9b4c67969f7fdb7",
+    "bytes": 1189501,
+    "seconds": 18.6
   },
   "snap-subpart-operand.gif": {
     "spec": "e2e/docs/snap-align.docs.js",
-    "specHash": "dfedbb0d60a79db640e5cdac206551189d2cd944977f95d610422a2e8ee2f579",
-    "bytes": 722551,
-    "seconds": 10.13
+    "specHash": "c5860e691b10673677803d565337ae88e22290d22fe1caf8d9b4c67969f7fdb7",
+    "bytes": 684051,
+    "seconds": 11.38
   },
   "mirror-operation.gif": {
     "spec": "e2e/docs/mirror.docs.js",
@@ -374,9 +374,9 @@
   },
   "snap-subpart-both-sides.gif": {
     "spec": "e2e/docs/snap-align.docs.js",
-    "specHash": "dfedbb0d60a79db640e5cdac206551189d2cd944977f95d610422a2e8ee2f579",
-    "bytes": 1420402,
-    "seconds": 14.51
+    "specHash": "c5860e691b10673677803d565337ae88e22290d22fe1caf8d9b4c67969f7fdb7",
+    "bytes": 1590912,
+    "seconds": 16.26
   },
   "gizmo-translate-ruler.gif": {
     "spec": "e2e/docs/selection-inspector.docs.js",
@@ -398,9 +398,9 @@
   },
   "align-to-origin-popover.gif": {
     "spec": "e2e/docs/snap-align.docs.js",
-    "specHash": "dfedbb0d60a79db640e5cdac206551189d2cd944977f95d610422a2e8ee2f579",
-    "bytes": 302058,
-    "seconds": 6.4
+    "specHash": "c5860e691b10673677803d565337ae88e22290d22fe1caf8d9b4c67969f7fdb7",
+    "bytes": 733149,
+    "seconds": 9.8
   },
   "import-model-place.gif": {
     "spec": "e2e/docs/import-model.docs.js",
@@ -416,9 +416,9 @@
   },
   "repeat-placement.gif": {
     "spec": "e2e/docs/snap-align.docs.js",
-    "specHash": "dfedbb0d60a79db640e5cdac206551189d2cd944977f95d610422a2e8ee2f579",
-    "bytes": 1905765,
-    "seconds": 15.63
+    "specHash": "c5860e691b10673677803d565337ae88e22290d22fe1caf8d9b4c67969f7fdb7",
+    "bytes": 2178823,
+    "seconds": 18.63
   },
   "ai-drawing-to-group.gif": {
     "spec": "e2e/docs/ai-drawing.docs.js",

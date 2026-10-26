@@ -138,12 +138,11 @@ async function inspectPart(page, bodyId, partName) {
 async function commitPopover(page, movingId, axes, snap) {
   const item = page.locator(`[data-testid="scene-bodies"] li[data-body-id="${movingId}"]`)
   if (snap) {
-    await page.getByTestId('align-relation').selectOption(snap.relation)
     if (snap.offset !== undefined) await page.getByTestId('align-offset').fill(String(snap.offset))
   }
   for (const axis of axes) {
     const before = await item.getAttribute('data-body-bounds')
-    await page.getByTestId(snap ? `align-${axis}-snap-${snap.side}` : `align-${axis}-center`).click()
+    await page.getByTestId(snap ? `align-${axis}-${snap.position}` : `align-${axis}-center`).click()
     await expect(page.getByTestId('align-error')).toHaveCount(0)
     await expect.poll(() => item.getAttribute('data-body-bounds'), { timeout: 15_000 }).not.toBe(before)
   }
@@ -189,7 +188,7 @@ async function seatPiOnScreen(page) {
   await checkPart(page, screen, 'piMountingPost1')
   await page.getByTestId('operation-align').click()
   await expect(page.getByTestId('align-popover')).toHaveAttribute('data-target', 'second')
-  await commitPopover(page, pi, ['z'], { relation: 'outside', side: 'plus' })
+  await commitPopover(page, pi, ['z'], { position: 'outside-plus' })
   return { pi, screen }
 }
 
@@ -290,7 +289,7 @@ async function repeatOnFourHoles(page, { beforeApply } = {}) {
   await checkPart(page, pi, 'mb')
   await page.getByTestId('operation-align').click()
   await expect(page.getByTestId('align-operand-target')).toHaveText('Raspberry Pi 1 › mb')
-  await commitPopover(page, bolt, ['z'], { relation: 'inside', side: 'minus', offset: -5 })
+  await commitPopover(page, bolt, ['z'], { position: 'inside-minus', offset: -5 })
   await expect(sheet).toBeVisible()
 
   await beforeApply?.({ pi, screen, bolt })

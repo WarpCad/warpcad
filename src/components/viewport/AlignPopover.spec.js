@@ -22,7 +22,7 @@ enableAutoUnmount(afterEach)
  * different: **A** (10 mm, centred `[0, 0, 5]`, so x −5..5) moves, **B** (20 mm, centred
  * `[100, 50, 10]`, so x 90..110, centre 100) is the target.
  */
-describe('AlignPopover (TODO/ui-060)', () => {
+describe('AlignPopover (TODO/ui-060, ui-086)', () => {
   /** @type {ReturnType<typeof useDocumentStore>} */
   let documentStore
   /** @type {ReturnType<typeof useSelectionStore>} */
@@ -86,18 +86,17 @@ describe('AlignPopover (TODO/ui-060)', () => {
       expect(wrapper.attributes('data-target')).toBe('origin')
     })
 
-    it('offers the drop shortcut and every grid button, but no Snap row and no offset', () => {
+    it('offers the drop shortcut and all seven positions per axis, but no offset', () => {
       placeAandB()
       selection.select('a')
       const wrapper = mount(AlignPopover)
       expect(wrapper.get('[data-testid="align-drop"]').attributes('disabled')).toBeUndefined()
       for (const axis of ['x', 'y', 'z']) {
-        for (const mode of ['min', 'center', 'max']) {
+        for (const mode of ['outside-minus', 'inside-minus', 'half-minus', 'center', 'half-plus', 'inside-plus', 'outside-plus']) {
           expect(wrapper.get(`[data-testid="align-${axis}-${mode}"]`).attributes('disabled')).toBeUndefined()
         }
       }
       expect(wrapper.find('[data-testid="align-relation"]').exists()).toBe(false)
-      expect(wrapper.find('[data-testid="align-x-snap-plus"]').exists()).toBe(false)
       expect(wrapper.find('[data-testid="align-offset"]').exists()).toBe(false)
     })
 
@@ -121,7 +120,7 @@ describe('AlignPopover (TODO/ui-060)', () => {
       const wrapper = mount(AlignPopover)
       const before = documentStore.raw.records.length
 
-      await wrapper.get('[data-testid="align-x-max"]').trigger('click')
+      await wrapper.get('[data-testid="align-x-outside-minus"]').trigger('click')
       expect(documentStore.raw.records.length).toBe(before + 1)
       expect(lastRecord().op).toBe('transform.translate')
       expect(lastRecord().params?.alignedTo).toBe(true)
@@ -129,7 +128,7 @@ describe('AlignPopover (TODO/ui-060)', () => {
       expect(boundsOf('a')[0][1]).toBeCloseTo(-5, 6)
       expect(selection.ids).toEqual(['a'])
 
-      await wrapper.get('[data-testid="align-x-max"]').trigger('click')
+      await wrapper.get('[data-testid="align-x-outside-minus"]').trigger('click')
       expect(documentStore.raw.records.length).toBe(before + 1)
     })
 
@@ -153,7 +152,7 @@ describe('AlignPopover (TODO/ui-060)', () => {
       const wrapper = mount(AlignPopover)
       await wrapper.get('[data-testid="align-reference"]').setValue('mb')
       expect(useAlignReferenceStore().get('pi-1')).toBe('mb')
-      await wrapper.get('[data-testid="align-z-min"]').trigger('click')
+      await wrapper.get('[data-testid="align-z-inside-minus"]').trigger('click')
       // The microSD hangs 1.5 mm under the board (`raspberrypi.bplus`), so with the board
       // on the grid the whole Pi's own floor is at −1.5.
       expect(boundsOf('pi-1')[0][2]).toBeCloseTo(-1.5, 6)
@@ -166,7 +165,7 @@ describe('AlignPopover (TODO/ui-060)', () => {
       const wrapper = mount(AlignPopover)
       expect(wrapper.find('[data-testid="align-reference"]').exists()).toBe(false)
       expect(wrapper.get('[data-testid="align-operands"]').text()).toBe('Aligning Raspberry Pi B+ › mb to World origin')
-      await wrapper.get('[data-testid="align-z-min"]').trigger('click')
+      await wrapper.get('[data-testid="align-z-inside-minus"]').trigger('click')
       expect(boundsOf('pi-1')[0][2]).toBeCloseTo(-1.5, 6)
     })
   })
@@ -184,28 +183,18 @@ describe('AlignPopover (TODO/ui-060)', () => {
       expect(wrapper.get('[data-testid="align-operands"]').text()).toBe('Aligning Cube A to Cube B')
     })
 
-    it('under Second selected: the Snap row and offset show, the shortcut and min/max are disabled with a hint, ctr is live', () => {
+    it('under Second selected: the offset shows and the shortcut is disabled with a hint', () => {
       placeAandB()
       selection.selectMany(['a', 'b'])
       const wrapper = mount(AlignPopover)
-      expect(wrapper.find('[data-testid="align-relation"]').exists()).toBe(true)
       expect(wrapper.find('[data-testid="align-offset"]').exists()).toBe(true)
       const drop = wrapper.get('[data-testid="align-drop"]')
       expect(drop.attributes('disabled')).toBeDefined()
       expect(drop.attributes('title')).toMatch(/World origin/)
-      for (const axis of ['x', 'y', 'z']) {
-        expect(wrapper.get(`[data-testid="align-${axis}-center"]`).attributes('disabled')).toBeUndefined()
-        for (const mode of ['min', 'max']) {
-          const button = wrapper.get(`[data-testid="align-${axis}-${mode}"]`)
-          expect(button.attributes('disabled')).toBeDefined()
-          expect(button.attributes('title')).toMatch(/Inside/)
-        }
-        expect(wrapper.get(`[data-testid="align-${axis}-snap-minus"]`).attributes('disabled')).toBeUndefined()
-        expect(wrapper.get(`[data-testid="align-${axis}-snap-plus"]`).attributes('disabled')).toBeUndefined()
-      }
     })
 
-    it('switching Target to World origin hides the Snap row and offset, enables the shortcut, and drops the second body’s role colour', async () => {
+
+    it('switching Target to World origin hides the offset, enables the shortcut, and drops the second body’s role colour', async () => {
       placeAandB()
       selection.selectMany(['a', 'b'])
       const wrapper = mount(AlignPopover)
@@ -213,7 +202,6 @@ describe('AlignPopover (TODO/ui-060)', () => {
       expect(alignReference.originOnly).toBe(false)
 
       await wrapper.get('[data-testid="align-target"]').setValue('origin')
-      expect(wrapper.find('[data-testid="align-relation"]').exists()).toBe(false)
       expect(wrapper.find('[data-testid="align-offset"]').exists()).toBe(false)
       expect(wrapper.get('[data-testid="align-drop"]').attributes('disabled')).toBeUndefined()
       expect(wrapper.get('[data-testid="align-operands"]').text()).toBe('Aligning Cube A to World origin')
@@ -235,7 +223,7 @@ describe('AlignPopover (TODO/ui-060)', () => {
       expect(selection.ids).toEqual(['a', 'b'])
     })
 
-    it('◇ ctr commits group.align in the record shape the old Align button wrote, and the selection stays as it was', async () => {
+    it('center commits group.align in the record shape the old Align button wrote, and the selection stays as it was', async () => {
       placeAandB()
       selection.selectMany(['a', 'b'])
       const wrapper = mount(AlignPopover)
@@ -263,72 +251,122 @@ describe('AlignPopover (TODO/ui-060)', () => {
       expect((min[0] + max[0]) / 2).toBeCloseTo(103, 6)
     })
 
-    it('each Relation × side maps one-to-one onto the six canonical SNAP_SIDES keys, named by where the body ends up', async () => {
-      placeAandB()
-      selection.selectMany(['a', 'b'])
-      const wrapper = mount(AlignPopover)
-      /** @type {Array<[string, 'minus' | 'plus', string]>} */
-      const table = [
-        ['outside', 'minus', 'outside+'],
-        ['outside', 'plus', 'outside-'],
-        ['inside', 'minus', 'inside-'],
-        ['inside', 'plus', 'inside+'],
-        ['center', 'minus', 'center+'],
-        ['center', 'plus', 'center-'],
-      ]
-      const seen = new Set()
-      for (const [relation, side, orientation] of table) {
-        await wrapper.get('[data-testid="align-relation"]').setValue(relation)
-        await wrapper.get(`[data-testid="align-x-snap-${side}"]`).trigger('click')
-        const record = lastRecord()
-        expect(record.op).toBe('group.snap')
-        expect(record.params).toEqual({ axes: 'x', orientation, deltaMm: 0 })
-        seen.add(record.params?.orientation)
-      }
-      expect(seen.size).toBe(6)
-    })
+    /**
+     * The seven positions, − to +, written out **literally** (not derived from the component's
+     * own table) so a flipped outside/half row fails. `[key, orientation-or-null, min x of A, origin spec]`.
+     * B spans x 90..110 (centre 100); A is 10 wide. Outside and half are crossed on purpose:
+     * `SNAP_SIDES`' sign names the moving body's touching face.
+     */
+    /** @type {Array<[string, string | null, number, 'min' | 'center' | 'max']>} */
+    const POSITIONS = [
+      ['outside-minus', 'outside+', 80, 'max'], // A's + face on B's − face
+      ['inside-minus', 'inside-', 90, 'min'], // − faces flush
+      ['half-minus', 'center+', 90, 'max'], // A's + face on B's centre
+      ['center', null, 95, 'center'], // centres together
+      ['half-plus', 'center-', 100, 'min'], // A's − face on B's centre
+      ['inside-plus', 'inside+', 100, 'max'], // + faces flush
+      ['outside-plus', 'outside-', 110, 'min'], // A's − face on B's + face
+    ]
 
-    it.each([
-      // [relation, side, expected moving min-x]: B spans x 90..110 (centre 100); A is 10 wide.
-      ['outside', 'minus', 80], // beside B on its − side: A's + face on B's − face
-      ['outside', 'plus', 110], // beside B on its + side: A's − face on B's + face
-      ['inside', 'minus', 90], // flush with B's − face, inside it
-      ['inside', 'plus', 100], // flush with B's + face, inside it
-      ['center', 'minus', 90], // covering B's − half: A's + face on B's centre
-      ['center', 'plus', 100], // covering B's + half: A's − face on B's centre
-    ])('%s %s side lands the moving body where its label says (min x = %d), and the target does not move', async (relation, side, minX) => {
+    it.each(POSITIONS)('%s commits the exact record and lands the moving body at min x = %d, target untouched', async (key, orientation, minX) => {
       placeAandB()
       selection.selectMany(['a', 'b'])
       const bBefore = boundsOf('b')
       const wrapper = mount(AlignPopover)
-      await wrapper.get('[data-testid="align-relation"]').setValue(relation)
-      await wrapper.get(`[data-testid="align-x-snap-${side}"]`).trigger('click')
+      await wrapper.get(`[data-testid="align-x-${key}"]`).trigger('click')
+      const record = lastRecord()
+      if (orientation === null) {
+        expect(record.op).toBe('group.align')
+        expect(record.params).toEqual({ axes: 'x', deltaMm: 0 })
+      } else {
+        expect(record.op).toBe('group.snap')
+        expect(record.params).toEqual({ axes: 'x', orientation, deltaMm: 0 })
+      }
       expect(boundsOf('a')[0][0]).toBeCloseTo(minX, 6)
       expect(boundsOf('a')[0][1]).toBeCloseTo(-5, 6) // Y untouched
       expect(boundsOf('b')).toEqual(bBefore)
     })
 
-    it('button labels follow the Relation', async () => {
+    it.each(POSITIONS)('%s against World origin commits the matching alignToOrigin spec', async (key, _orientation, _minX, spec) => {
+      placeAandB()
+      // B (x 90..110) moves, so every spec has somewhere to go: min 90 to 0, max 110 to 0, centre 100 to 0.
+      selection.selectMany(['b', 'a'])
+      const wrapper = mount(AlignPopover)
+      await wrapper.get('[data-testid="align-target"]').setValue('origin')
+      await wrapper.get(`[data-testid="align-x-${key}"]`).trigger('click')
+      const [min, max] = boundsOf('b')
+      const expected = { min: [0, 20], max: [-20, 0], center: [-10, 10] }[spec]
+      expect(min[0]).toBeCloseTo(expected[0], 6)
+      expect(max[0]).toBeCloseTo(expected[1], 6)
+    })
+
+    it('a moving body larger than the target overhangs under inside and half, and is not refused', async () => {
+      placeCuboid('big', 'Big', 40, [0, 0, 20])
+      placeCuboid('small', 'Small', 10, [100, 0, 5])
+      selection.selectMany(['big', 'small'])
+      const wrapper = mount(AlignPopover)
+      await wrapper.get('[data-testid="align-x-inside-minus"]').trigger('click')
+      expect(wrapper.find('[data-testid="align-error"]').exists()).toBe(false)
+      expect(boundsOf('big')[0][0]).toBeCloseTo(95, 6)
+      await wrapper.get('[data-testid="align-x-half-minus"]').trigger('click')
+      expect(boundsOf('big')[1][0]).toBeCloseTo(100, 6)
+    })
+
+    it('an already-flush inside − still appends (the record is the link) and moves by 0', async () => {
+      placeCuboid('a', 'A', 10, [5, 0, 5])
+      placeCuboid('b', 'B', 20, [10, 0, 10]) // both min x = 0
+      selection.selectMany(['a', 'b'])
+      const wrapper = mount(AlignPopover)
+      const before = documentStore.raw.records.length
+      await wrapper.get('[data-testid="align-x-inside-minus"]').trigger('click')
+      expect(documentStore.raw.records.length).toBe(before + 1)
+      expect(boundsOf('a')[0][0]).toBeCloseTo(0, 6)
+    })
+
+    it('coincident bodies under center stay put', async () => {
+      placeCuboid('a', 'A', 10, [0, 0, 5])
+      placeCuboid('b', 'B', 10, [0, 0, 5])
+      selection.selectMany(['a', 'b'])
+      const wrapper = mount(AlignPopover)
+      await wrapper.get('[data-testid="align-x-center"]').trigger('click')
+      expect(boundsOf('a')[0][0]).toBeCloseTo(-5, 6)
+    })
+
+    it('has no Relation select, no Snap row and no min/max buttons, and no button is disabled', () => {
       placeAandB()
       selection.selectMany(['a', 'b'])
       const wrapper = mount(AlignPopover)
-      expect(wrapper.get('[data-testid="align-x-snap-plus"]').text()).toContain('+ side')
-      await wrapper.get('[data-testid="align-relation"]').setValue('inside')
-      expect(wrapper.get('[data-testid="align-x-snap-plus"]').text()).toContain('+ face')
-      await wrapper.get('[data-testid="align-relation"]').setValue('center')
-      expect(wrapper.get('[data-testid="align-x-snap-minus"]').text()).toContain('− half')
-      expect(wrapper.get('[data-testid="align-x-snap-minus"]').attributes('title')).toMatch(/− half/)
+      expect(wrapper.find('[data-testid="align-relation"]').exists()).toBe(false)
+      for (const axis of ['x', 'y', 'z']) {
+        for (const old of ['snap-minus', 'snap-plus', 'min', 'max']) {
+          expect(wrapper.find(`[data-testid="align-${axis}-${old}"]`).exists()).toBe(false)
+        }
+        for (const [key] of POSITIONS) {
+          expect(wrapper.get(`[data-testid="align-${axis}-${key}"]`).attributes('disabled')).toBeUndefined()
+        }
+      }
     })
 
-    it('remembers the Relation for the session, across a close and reopen', async () => {
+    it('every position button has an aria-label naming its axis and position, the header is aria-hidden, and a tap sets the caption', async () => {
       placeAandB()
       selection.selectMany(['a', 'b'])
-      const first = mount(AlignPopover)
-      await first.get('[data-testid="align-relation"]').setValue('inside')
-      first.unmount()
-      const second = mount(AlignPopover)
-      expect(/** @type {HTMLSelectElement} */ (second.get('[data-testid="align-relation"]').element).value).toBe('inside')
+      const wrapper = mount(AlignPopover)
+      const caption = wrapper.get('[data-testid="align-caption"]')
+      expect(caption.text()).toMatch(/Tap where the moving body should end up/)
+      expect(caption.attributes('aria-live')).toBe('polite')
+      for (const axis of ['x', 'y', 'z']) {
+        for (const [key] of POSITIONS) {
+          const label = wrapper.get(`[data-testid="align-${axis}-${key}"]`).attributes('aria-label') ?? ''
+          expect(label.startsWith(axis.toUpperCase())).toBe(true)
+          expect(label.length).toBeGreaterThan(8)
+        }
+      }
+      expect(wrapper.get('[data-testid="align-header"]').attributes('aria-hidden')).toBe('true')
+      await wrapper.get('[data-testid="align-z-half-plus"]').trigger('click')
+      expect(caption.text()).toBe(wrapper.get('[data-testid="align-z-half-plus"]').attributes('aria-label'))
+      expect(caption.text()).toMatch(/^Z half \+/)
     })
+
 
     it('Measure from addresses the moving operand at that part against a second body', async () => {
       placePi()

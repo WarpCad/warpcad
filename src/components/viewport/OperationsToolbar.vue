@@ -1000,7 +1000,7 @@ watch(exactOneDisabled, (isDisabled) => {
 /**
  * Open the Align popover, or close it if its own button is clicked again (`TODO/ui-060`).
  * `AlignPopover.vue` is mounted fresh on every open, so its Target and Offset start over;
- * the Relation and Measure from are remembered for the session in `alignReference.js`.
+ * Measure from is remembered for the session in `alignReference.js`.
  *
  * @returns {void}
  */
@@ -2160,7 +2160,7 @@ onBeforeUnmount(() => {
 
       <!-- Align (TODO/ui-060): the frame is this file's `.ops__popover`, the contents are
            AlignPopover's. It stays open across taps; Escape or the backdrop closes it. -->
-      <AlignPopover v-else-if="openPopover === 'align'" class="ops__popover" />
+      <AlignPopover v-else-if="openPopover === 'align'" class="ops__popover ops__popover--align" />
     </Teleport>
   </div>
 </template>
@@ -2559,6 +2559,12 @@ onBeforeUnmount(() => {
   backdrop-filter: blur(6px);
   box-shadow: var(--shadow-overlay);
   z-index: 31;
+}
+
+/* The Align popover is wider than its siblings (`TODO/ui-086`): seven 44 px position buttons,
+   the axis letter and a 4 px gap are 328 px, which still fits a 390 px phone's 342 px. */
+.ops__popover--align {
+  width: min(352px, calc(100vw - 32px));
 }
 
 /* The ? sits in the popover's top-right corner (`TODO/ui-061`), out of flow so no field moves;

@@ -170,8 +170,7 @@ async function snapCubeTo(page, part) {
   // row per record). Y because that is where the jack moves between models: the Pi 4's
   // Ethernet midline is y = 10.25, the Pi 5's y = 45.75. A Z snap would sit under the
   // jack's bottom face, the board top on every model, and nothing would visibly follow.
-  await page.getByTestId('align-relation').selectOption('outside')
-  await page.getByTestId('align-y-snap-minus').click() // outside+
+  await page.getByTestId('align-y-outside-minus').click() // outside+
   await expect(page.getByTestId('align-error')).toHaveCount(0)
   await page.keyboard.press('Escape')
   await expect(page.getByTestId('align-popover')).toHaveCount(0)

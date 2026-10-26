@@ -44,6 +44,11 @@
      is already selected has to read as something different. Kept in step with
      `BODY_COLORS.*.hover` in `src/render/mesh.js`. */
   --hover-highlight: #b69cff;
+  /* The Align popover's position icons (`TODO/ui-086`): the moving body (first picked, amber)
+     and the target (second picked, teal), so an icon matches what the viewport shows. Not new
+     hues. Kept in step with `BODY_COLORS.*.selected` / `.secondary` in `src/render/mesh.js`. */
+  --role-moving: #ffc46b;
+  --role-target: #66d9c0;
   /* Committed sketch geometry (`TODO/ui-020`). Its own token for the same
      reason `--snap-guide` has one: a sketch line is a *different kind of thing*
      from every solid and overlay around it, and the whole point of its styling
@@ -99,6 +104,8 @@
     --accent-secondary: #0f8a72;
     /* Darkened for the same reason: a pale lilac marker is invisible on a white panel. */
     --hover-highlight: #6d3fd6;
+    --role-moving: #d4802a;
+    --role-target: #0f8a72;
     /* Darkened for the same reason as the two above: the dark theme's sky blue
        washes out against a near-white grid, and a sketch line a user cannot see
        is the exact failure this token exists to prevent. */

@@ -46,22 +46,23 @@ move anything against the World origin (the shape is already exactly there) does
 at all and does not add an empty step. Press **Escape**, or tap outside the popover, to
 close it.
 
-Units are **millimetres**, Z points **up**, and **min** is always the face with the
+Units are **millimetres**, Z points **up**, and **−** is always the side with the
 **smaller** coordinate (the underside on Z, the left face on X).
 
 ## A quick example: a lug against a plate
 
 Select a plate and a lug (the lug first) and press **⇔ Align**. The popover's top line
-reads `Aligning Lug 1 to Plate 1`. Leave **Snap** on *Outside* and, in the Snap grid, tap
-**X ⇤ + side**. The lug slides against the plate's +X side and stops flush with it, without
+reads `Aligning Lug 1 to Plate 1`. In the **X** row, tap **outside +** (the last button).
+The lug slides against the plate's +X side and stops flush with it, without
 merging: the plate has not moved, and both are still two separate shapes you can select on
 their own.
 
-![Clicking the lug, Shift-clicking the plate, pressing Align and tapping X plus side: the lug slides across until its face meets the plate's side](./media/snap-operation.gif)
+![Clicking the lug, Shift-clicking the plate, pressing Align and tapping X outside +: the lug slides across until its face meets the plate's side](./media/snap-operation.gif)
 
-To flush the lug against the plate's *−X* side instead, tap **X ⇥ − side**. Each Snap
-button is named for **where the moving shape ends up**: *− side* leaves it on the target's
-−X side, *+ side* on its +X side. Hover a button for the full sentence. See
+To put the lug against the plate's *−X* side instead, tap **X outside −** (the first
+button). Each button is named for **where the moving shape ends up**: *outside −* leaves
+it beyond the target's −X side, *outside +* beyond its +X side. Hover or tap a button and
+the line under the grid spells it out in a full sentence. See
 [the popover's fields](#the-popovers-fields).
 
 ## A worked example: centring a cube on a cylinder
@@ -70,15 +71,20 @@ button is named for **where the moving shape ends up**: *− side* leaves it on 
 2. Click the Cube, then hold **Shift** and click the Cylinder. The Cube is now the one that
    moves; the toolbar's badge reads `2 selected` and **⇔ Align** lights up.
 3. Click **⇔ Align**. The popover opens with **Target** set to `Second selected (Cylinder 1)`.
-4. Tap **Z ◇ ctr**.
+4. Tap **Z center** (the middle button of the **Z** row).
 5. The Cube moves to sit centred on the Cylinder along Z, while its X and Y position stay
    exactly as they were (only the tapped axis moves). The popover is still open: tap
-   **X ◇ ctr** as well and the Cube is centred along X too.
+   **X center** as well and the Cube is centred along X too.
+
+Now stand the Cube on the Cylinder: tap **Z outside +**, and the Cube's bottom face lands
+on the Cylinder's top face. Tap **Z half +** instead and the bottom face sits at the
+Cylinder's mid-height; tap **Z inside +** and the Cube's top lines up with the Cylinder's
+top. Switch **Target** to `World origin` and tap **Z outside +** to sit the Cube on the grid.
 
 Both solids remain separately selectable afterward. Click the Cylinder and it opens its own
 Inspector entry exactly as before. Nothing was combined.
 
-![Selecting a lug and a plate, pressing Align and tapping Y ctr: the lug moves along Y until it is centred on the plate, and does not move on X or Z](./media/align-operation.gif)
+![Selecting a lug and a plate, pressing Align and tapping Y center: the lug moves along Y until it is centred on the plate, and does not move on X or Z](./media/align-operation.gif)
 
 ## Aligning to the origin
 
@@ -99,9 +105,11 @@ popover offers:
   (see [Parts](selection-and-inspector.md#parts)) sets it to that part.
 - **Center on origin, sit on grid**, a full-width shortcut. It does the most common
   combination, X centre, Y centre, Z min, in one tap and one timeline step.
-- A grid of nine buttons, three per axis, each **⊢ min**, **◇ ctr** or **⊣ max**. **min**
-  moves the shape so the measured face with the smaller coordinate lands on 0 on that axis,
-  **max** does the same for the larger-coordinate face, and **ctr** centres it on 0.
+- The [seven-position grid](#the-popovers-fields), one row per axis. A point has no size, so
+  against the origin the seven buttons give three different results. **outside −**,
+  **half −** and **inside +** put the shape's larger-coordinate face on 0; **inside −**,
+  **half +** and **outside +** put its smaller-coordinate face on 0 (so **outside +** on Z
+  sits it on the grid); **center** centres it on 0.
 
 Aligning several shapes at once, as one combined unit, is not supported: select one shape,
 or [group](groups.md) them first and align the group.
@@ -113,7 +121,7 @@ or [group](groups.md) them first and align the group.
    `Aligning Raspberry Pi 1 to World origin`.
 3. Set **Measure from** to `mb` (the board itself; every part of the Pi keeps the short name
    its own recipe gave it, the same names the Inspector's Parts list shows).
-4. Tap **X ◇ ctr**, then **Y ◇ ctr**, then **Z ⊢ min**.
+4. Tap **X center**, then **Y center**, then **Z outside +** (it sits the board on the grid).
 
 The board's footprint is now centred on the origin in X and Y and its underside sits exactly
 on Z = 0. **Position Z** in the Inspector will not read `0`: it reads the whole Pi's own box
@@ -122,7 +130,7 @@ times to put the Pi back, or, with **Measure from** already on `mb`, tap **Cente
 origin, sit on grid** once instead: it does all three in a single step.
 
 Now Shift-click a **Cube** so two shapes are selected, switch **Target** to
-`Second selected (Cube 1)` and tap **X ⇤ + side** in the Snap grid (Relation **Outside**).
+`Second selected (Cube 1)` and tap **X outside +**.
 The Pi rests against the cube's +X face, measured by `mb`. Switch **Target** back to
 **World origin** to go back to the grid.
 
@@ -157,9 +165,9 @@ To do it, [drill into the part](selection-and-inspector.md) first:
    **Aligning Raspberry Pi 1 › ethernet to Cube 1**. That `›` is the
    confirmation you drilled to the depth you meant. (**Measure from** is hidden: the
    part you drilled into is what is measured.)
-6. Tap **X ◇ ctr** and **Y ◇ ctr**.
+6. Tap **X center** and **Y center**.
 
-![Clicking a screw, then ticking the Raspberry Pi's hole1 part in the Objects list, pressing Align and tapping X ctr and Y ctr: the screw moves until it sits on the mounting hole's axis](./media/snap-subpart-operand.gif)
+![Clicking a screw, then ticking the Raspberry Pi's hole1 part in the Objects list, pressing Align and tapping X center and Y center: the screw moves until it sits on the mounting hole's axis](./media/snap-subpart-operand.gif)
 
 The picture above does the same with a **mounting hole**: the screw is the moving shape,
 and the board's `hole1` part is the reference. A hole passes through the board and can't be
@@ -201,23 +209,23 @@ board itself against the top of the post. Units are millimetres, with Z pointing
    ticked, numbered `1` and `2`. (With a keyboard, Shift-clicking the **piMountingPost1**
    row does the same. Shift-clicking the screen's own row would add the *whole* screen.)
 4. Press **⇔ Align**. The top line reads
-   **Aligning Raspberry Pi 1 › hole1 to Touchscreen 2 1 › piMountingPost1**. Tap **X ◇ ctr**
-   and **Y ◇ ctr**. The axis of `hole1` is now on the axis of post 1. The whole
+   **Aligning Raspberry Pi 1 › hole1 to Touchscreen 2 1 › piMountingPost1**. Tap **X center**
+   and **Y center**. The axis of `hole1` is now on the axis of post 1. The whole
    board moved with it, so the other three holes are on the other three posts too: the
    board's holes are 58 × 49 mm apart, and so are the posts.
 5. Now the height. Press **Escape** to close the popover, then in the Objects list tap the
    Pi's **mb** part (the circuit board itself) and tick **piMountingPost1** on the screen
-   again. Press **⇔ Align**, leave **Snap** on *Outside* and tap **Z ⇤ + side**. The underside of `mb` now sits on the top of the post,
+   again. Press **⇔ Align**, tap **Z outside +**. The underside of `mb` now sits on the top of the post,
    with no gap and no overlap.
 
 Use **mb** for the height, not the hole and not the whole Pi. The hole runs from 3.34 mm
 below the board to 3.34 mm above it, so snapping the hole would leave the board floating.
 The whole Pi's lowest point is the underside of the microSD card, 1.5 mm below the board, so
-snapping the whole Pi would leave a 1.5 mm gap above the posts. **⇤ + side** leaves the
-moving part on the reference's +Z side, its bottom on the reference's top; **⇥ − side**
+snapping the whole Pi would leave a 1.5 mm gap above the posts. **outside +** leaves the
+moving part on the reference's +Z side, its bottom on the reference's top; **outside −**
 would hang the board under the post instead.
 
-![Ticking the Pi's hole1 and the screen's piMountingPost1 in the Objects list, aligning on X and Y, then re-addressing the Pi at mb and tapping Z plus side: the board drops onto the posts with its holes on the post axes](./media/snap-subpart-both-sides.gif)
+![Ticking the Pi's hole1 and the screen's piMountingPost1 in the Objects list, aligning on X and Y, then re-addressing the Pi at mb and tapping Z outside +: the board drops onto the posts with its holes on the post axes](./media/snap-subpart-both-sides.gif)
 
 **To go back to whole-item addressing**, click the breadcrumb's first segment
 (the item's own name) in the Inspector, or click empty space and start the
@@ -246,11 +254,11 @@ Units are millimetres, with Z pointing up.
    what you have done.
 4. With the bolt selected, tick the Pi's **hole1** in the Objects list (the check next to
    its name) and press **⇔ Align**. The top line reads **Aligning Bolt / screw 1 to
-   Raspberry Pi 1 › hole1**. Tap **X ◇ ctr** and **Y ◇ ctr**. The bolt's axis is now on
+   Raspberry Pi 1 › hole1**. Tap **X center** and **Y center**. The bolt's axis is now on
    the hole's. Press **Escape** to close the popover (the Repeat panel stays open).
 5. Tap the bolt's row in the Objects list, then tick the Pi's **mb** (the circuit board) and
-   press **⇔ Align** again. Set **Relation** to *Inside*, set **Offset** to `-5`, and tap
-   **Z ⊏ − face**. The bolt's tip now ends 5 mm below the underside of the board, which is
+   press **⇔ Align** again. Set **Offset** to `-5`, and tap
+   **Z inside −**. The bolt's tip now ends 5 mm below the underside of the board, which is
    5 mm inside the post. Press **Escape**.
 6. The panel lists five steps: the drop (*Move*), *Rotate*, two *Align* rows marked **↻**, and
    *Snap*. The **↻** ones mention **hole1**, so each repeat aims them at its own hole; the
@@ -395,7 +403,7 @@ design.
 
 ## The popover's fields
 
-![The Align popover for a lug and a plate: Target, the Center on origin shortcut, the min ctr max grid, the Snap relation and its minus and plus buttons, and Offset](./screenshots/snap-popover.png)
+![The Align popover for a lug and a plate: Target, the Center on origin shortcut, one row of seven position buttons per axis under a shared header, a caption line, and Offset](./screenshots/snap-popover.png)
 
 Top to bottom:
 
@@ -408,24 +416,32 @@ Top to bottom:
 - **Measure from**: which part of the moving shape is measured, or **Whole object**. Hidden
   for a plain solid, and hidden when you have already drilled into a part.
 - **Center on origin, sit on grid**: enabled only when **Target** is **World origin**. One
-  tap, one step.
-- **The min / ctr / max grid**, one row per axis. Against **World origin** every button
-  works, as in [Aligning to the origin](#aligning-to-the-origin). Against a **second
-  selected** shape, **◇ ctr** centres the moving shape on the target on that axis, and
-  **⊢ min** and **⊣ max** are dimmed: to line up low faces or high faces, use the Snap
-  row's **Inside** buttons.
-- **Snap**, only against a second shape: a **Relation** dropdown, then a **− / +** pair of
-  buttons per axis. The sign names **where the moving shape ends up** relative to the
-  target on that axis:
+  tap, one step. It is the same as tapping **X center**, **Y center** and **Z outside +**.
+- **The position grid**: one row per axis, X, Y and Z, each with seven buttons that read
+  from **−** on the left to **+** on the right. A thin `− … +` rule and a one-line header
+  (*out · in · half · ctr · half · in · out*) sit above the rows, and each button shows a
+  small picture: the amber block is the shape that moves, the teal outline is its target.
+  Every button names **where the moving shape ends up** along that axis:
 
-  | Relation | **−** button | **+** button |
-  |---|---|---|
-  | **Outside** | **⇥ − side**: your + face meets the target's − face, so you end up beside it on its − side | **⇤ + side**: your − face meets the target's + face, so you end up beside it on its + side |
-  | **Inside** | **⊏ − face**: inside, your − face flush with the target's − face | **⊐ + face**: inside, your + face flush with the target's + face |
-  | **Center** | **◁ − half**: your + face on the target's centre, covering its − half | **▷ + half**: your − face on the target's centre, covering its + half |
+  ![The position grid: a − to + rule, the column header, and three rows of seven icon buttons for X, Y and Z](./screenshots/align-positions.png)
 
-  The Relation is remembered while the page stays open. Hover a button for its full
-  sentence.
+  | Header | Button | Where the moving shape ends up | Faces that meet |
+  |---|---|---|---|
+  | **out** | **outside −** | beyond the target's − face | your + face on its − face |
+  | **in** | **inside −** | inside, − faces flush | your − face on its − face |
+  | **half** | **half −** | over the target's − half | your + face on its centre |
+  | **ctr** | **center** | centred on it | your centre on its centre |
+  | **half** | **half +** | over the target's + half | your − face on its centre |
+  | **in** | **inside +** | inside, + faces flush | your + face on its + face |
+  | **out** | **outside +** | beyond the target's + face | your − face on its + face |
+
+  Hover or focus a button, or tap it on a touch screen, and the **caption** under the grid
+  reads its full sentence (for example *"Z half +: your − face sits on the target's centre,
+  so you cover its + half"*). A tap commits at once. A moving shape bigger than the target
+  still works for **inside** and **half**; it simply overhangs. Against a **second
+  selected** shape the move follows the target afterwards. Against **World origin** it is a
+  one-time move, and the seven buttons give three distinct results because the origin is a
+  point (see [Aligning to the origin](#aligning-to-the-origin)).
 - **Offset (mm)**: a nudge, applied to the **next** tap against a second shape (not against
   the origin). Defaults to `0`. Change it, then tap.
 - **Error line**: if the move can't be made, the reason appears here and nothing moves.
@@ -441,8 +457,6 @@ still selects only that one.
 
 - **A per-axis offset.** The Offset field is a single millimetre value applied to the tap
   you make next, not a separate value per axis.
-- **Low-with-low / high-with-high against a second shape from the grid.** Use the Snap row's
-  **Inside** buttons for that.
 
 ## Notes and gotchas
 

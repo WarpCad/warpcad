@@ -133,6 +133,16 @@ test.describe('docs media: align', () => {
     await shot(page, 'snap-popover.png', { locator: page.getByTestId('align-popover') })
   })
 
+  test('align-positions still', async ({ page }) => {
+    await openScene(page, 'plate-and-lug.ndjson')
+    await selectLugThenPlate(page)
+    await press(page, 'operation-align')
+    await expect(page.getByTestId('align-popover')).toBeVisible()
+    await page.getByTestId('align-z-half-plus').hover()
+    await expect(page.getByTestId('align-caption')).toContainText('Z half +')
+    await shot(page, 'align-positions.png', { locator: page.locator('.align-grid') })
+  })
+
   test('snap-operation', { tag: '@movie' }, async ({ page }) => {
     await openScene(page, 'plate-and-lug.ndjson')
     const before = await bodies(page)
@@ -144,7 +154,7 @@ test.describe('docs media: align', () => {
     await expect(popover).toBeVisible()
     await page.waitForTimeout(700)
     // Outside, + side on X: the lug ends up on the plate's +X side (`outside-`). One tap commits.
-    const after = await tapAndSettle(page, 'align-x-snap-plus', 'lug-1', before)
+    const after = await tapAndSettle(page, 'align-x-outside-plus', 'lug-1', before)
     // Two bodies still: Snap moves one against the other and merges nothing.
     await expect(viewport(page)).toHaveAttribute('data-body-count', '2')
     expect(after['plate-1'].bounds).toEqual(before['plate-1'].bounds) // the reference never moved
@@ -342,7 +352,7 @@ test.describe('docs media: align', () => {
     await expect(page.getByTestId('align-operand-moving')).toHaveText('Raspberry Pi 1 › mb')
     await page.waitForTimeout(500)
     // Outside, + side on Z (`outside-`): the board's underside on the post's top.
-    await quick('align-z-snap-plus')
+    await quick('align-z-outside-plus')
     await afterMove(page, 'pi-1', aligned)
     await page.waitForTimeout(1000)
     await endMovie(page, 'snap-subpart-both-sides', { fps: 8, width: 640 })
@@ -453,10 +463,9 @@ test.describe('docs media: align', () => {
     await quick('objects-part-check-pi-1-mb')
     await quick('operation-align')
     await expect(popover).toHaveAttribute('data-target', 'second')
-    await page.getByTestId('align-relation').selectOption('inside')
     await page.getByTestId('align-offset').fill('-5')
     await pause()
-    await quick('align-z-snap-minus')
+    await quick('align-z-inside-minus')
     await afterMeasure(bolt, bounds)
     await page.keyboard.press('Escape')
     await expect(popover).toHaveCount(0)

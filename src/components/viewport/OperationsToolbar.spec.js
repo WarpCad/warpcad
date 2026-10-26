@@ -395,7 +395,7 @@ describe('OperationsToolbar — the one Align button (TODO/ui-060)', () => {
     expect(align.attributes('aria-expanded')).toBe('true')
 
     const before = documentStore.raw.records.length
-    await body().get('[data-testid="align-x-min"]').trigger('click')
+    await body().get('[data-testid="align-x-inside-minus"]').trigger('click')
     expect(documentStore.raw.records.length).toBe(before + 1)
     expect(body().find('[data-testid="align-popover"]').exists()).toBe(true)
 

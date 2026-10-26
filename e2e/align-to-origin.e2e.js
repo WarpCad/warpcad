@@ -286,9 +286,10 @@ test('Align is disabled with nothing selected; with one Cube it opens on World o
   await openAlign(page)
   await expect(page.getByTestId('align-popover')).toHaveAttribute('data-target', 'origin')
   await expect(page.getByTestId('align-operands')).toHaveText(/to World origin$/)
-  // One body: no Target dropdown, no Snap row, no offset; no Measure from on a bare solid.
+  // One body: no Target dropdown, no offset; no Measure from on a bare solid.
   await expect(page.getByTestId('align-target')).toHaveCount(0)
   await expect(page.getByTestId('align-relation')).toHaveCount(0)
+  await expect(page.getByTestId('align-x-half-plus')).toBeEnabled()
   await expect(page.getByTestId('align-offset')).toHaveCount(0)
   await expect(page.getByTestId('align-reference')).toHaveCount(0)
   await expect(page.getByTestId('align-drop')).toBeEnabled()
@@ -304,7 +305,7 @@ test('tapping X max on a Cube changes only X, and the popover stays open for the
 
   const before = parseCenter(cube.center)
   await openAlign(page)
-  await tapAndSettle(page, 'align-x-max', cube.id)
+  await tapAndSettle(page, 'align-x-inside-plus', cube.id)
   await expect(page.getByTestId('align-popover')).toBeVisible()
 
   const [after] = await sceneBodies(page)
@@ -340,7 +341,7 @@ test('drop a Pi, Measure from "mb": X ctr, Y ctr, Z min are three steps and thre
   // X then Y then Z without reopening: the popover stays open between taps.
   await tapAndSettle(page, 'align-x-center', piBefore.id)
   await tapAndSettle(page, 'align-y-center', piBefore.id)
-  await tapAndSettle(page, 'align-z-min', piBefore.id)
+  await tapAndSettle(page, 'align-z-inside-minus', piBefore.id)
   await closeAlign(page)
 
   expect((await readHistory(page)).steps).toBe(stepsBefore + 3)
@@ -405,7 +406,7 @@ test('after aligning, dragging the gizmo still keeps the Position fields and the
   await expect(page.getByTestId('viewport')).toHaveAttribute('data-selected-id', cube.id)
 
   await openAlign(page)
-  await tapAndSettle(page, 'align-x-min', cube.id)
+  await tapAndSettle(page, 'align-x-inside-minus', cube.id)
   await closeAlign(page)
   const [bodyAfterAlign] = await sceneBodies(page)
   const [minAfterAlign] = parseBounds(bodyAfterAlign.bounds)
@@ -476,20 +477,17 @@ test('two selected, Second selected: ◇ ctr centres on the second; each Snap Re
   expect((min[0] + max[0]) / 2).toBeCloseTo(cylCentreX, 1)
 
   // Outside, + side: the cube's − face on the cylinder's + face.
-  await page.getByTestId('align-relation').selectOption('outside')
-  await tapAndSettle(page, 'align-x-snap-plus', cube.id)
+  await tapAndSettle(page, 'align-x-outside-plus', cube.id)
   ;[min] = await cubeBounds()
   expect(min[0]).toBeCloseTo(cylMax[0], 1)
 
   // Inside, + face: the cube's + face flush with the cylinder's + face.
-  await page.getByTestId('align-relation').selectOption('inside')
-  await tapAndSettle(page, 'align-x-snap-plus', cube.id)
+  await tapAndSettle(page, 'align-x-inside-plus', cube.id)
   ;[, max] = await cubeBounds()
   expect(max[0]).toBeCloseTo(cylMax[0], 1)
 
   // Center, + half: the cube's − face on the cylinder's centre.
-  await page.getByTestId('align-relation').selectOption('center')
-  await tapAndSettle(page, 'align-x-snap-plus', cube.id)
+  await tapAndSettle(page, 'align-x-half-plus', cube.id)
   ;[min] = await cubeBounds()
   expect(min[0]).toBeCloseTo(cylCentreX, 1)
 
@@ -513,7 +511,7 @@ test('the popover fits 390px width without horizontal page scroll at ≥44px tap
   expect(box.x).toBeGreaterThanOrEqual(0)
   expect(box.x + box.width).toBeLessThanOrEqual(clientWidth + 1)
 
-  for (const testId of ['align-drop', 'align-x-min', 'align-y-center', 'align-z-max', 'align-x-snap-minus', 'align-z-snap-plus']) {
+  for (const testId of ['align-drop', 'align-x-outside-minus', 'align-x-inside-minus', 'align-x-half-minus', 'align-y-center', 'align-z-half-plus', 'align-z-inside-plus', 'align-z-outside-plus']) {
     const control = await page.getByTestId(testId).boundingBox()
     expect(control, testId).not.toBeNull()
     expect(control.width).toBeGreaterThanOrEqual(44)

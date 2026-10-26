@@ -12,17 +12,18 @@
  * - **World origin** is a *baked* `transform.translate` (`alignToOriginRecord`, through
  *   `useTransformCommands().alignToOrigin`). A one-shot placement; a no-op tap appends
  *   nothing.
- * - **Second selected** is a *parametric* `group.align` (`◇ ctr`) or `group.snap` (the Snap
- *   row), written in exactly the shape the old Snap/Align popover wrote, so old projects load
+ * - **Second selected** is a *parametric* `group.align` (center) or `group.snap` (the other six), written in exactly the shape the old Snap/Align popover wrote, so old projects load
  *   unchanged and the body keeps following its target (`data-007`). Such a tap always
  *   appends, even when nothing moves yet: the record *is* the link.
  *
- * ## The Snap row names where the body ends up
+ * ## Seven positions per axis, − to +
  *
- * `group.js`'s `SNAP_SIDES` sign names the moving body's face that touches, which reads
- * backwards on a button: `outside+` puts the body on the target's **−** side. So the buttons
- * say where the body lands and {@link SNAP_BUTTONS} maps each to its key, one to one over the
- * six canonical keys (the `above-*`/`below-*` aliases stay unexposed).
+ * One row per axis, outside −, inside −, half −, center, half +, inside +, outside + (`ui-086`),
+ * each naming where the body ends up along that axis. `group.js`'s `SNAP_SIDES` sign names the
+ * moving body's face that touches, which reads backwards on a button: `outside+` puts the body on
+ * the target's **−** side. {@link POSITIONS} maps each button to its key, so the crossing lives in
+ * one table (the `above-*`/`below-*` aliases stay unexposed). The words live outside the buttons —
+ * a shared column header and the caption — and each button carries only an icon.
  *
  * ## What is measured on the moving body
  *
@@ -41,6 +42,7 @@ import { computed, onBeforeUnmount, ref, watch, watchEffect } from 'vue'
 
 import HelpButton from '../controls/HelpButton.vue'
 import AlignGrid from './AlignGrid.vue'
+import AlignPositionIcon from './AlignPositionIcon.vue'
 
 import { useSelectedOperands } from '../../composables/useSelectedBody.js'
 import { useTransformCommands } from '../../composables/useTransformCommands.js'
@@ -49,60 +51,28 @@ import { useDocumentStore } from '../../stores/document.js'
 import { useSelectionStore } from '../../stores/selection.js'
 
 /** @typedef {'x' | 'y' | 'z'} Axis */
-/** @typedef {'outside' | 'inside' | 'center'} Relation */
-
-/** The Snap relations, in dropdown order. */
-const RELATIONS = Object.freeze([
-  { value: 'outside', label: 'Outside' },
-  { value: 'inside', label: 'Inside' },
-  { value: 'center', label: 'Center' },
-])
 
 /**
- * Relation × side → the `SNAP_SIDES` key it commits, the button's label and its full
- * sentence. Checked against `group.js`'s `[referenceSide, movingSide]` table: `outside+` is
- * `[0, 1]` (the body's max on the target's min), so it is the **−** side button.
+ * The seven buttons, − to +. `orientation` is the `SNAP_SIDES` key a Second-selected tap
+ * commits (`null` is `group.align`); `origin` is the `alignToOrigin` spec a World-origin tap
+ * commits. **The outside and half rows are crossed on purpose**: the key's sign names the
+ * moving body's touching face, so `outside+` puts the body on the target's **−** side and
+ * `center+` over its **−** half (`ui-060`, `ai-022`). Against the origin (a point) the seven
+ * collapse to three results; every button still does what its label says.
  *
- * @type {Readonly<Record<Relation, Record<'minus' | 'plus', { orientation: string, label: string, title: string }>>>}
+ * @type {ReadonlyArray<{ key: string, header: string, name: string, detail: string, orientation: string | null, origin: 'min' | 'center' | 'max' }>}
  */
-const SNAP_BUTTONS = Object.freeze({
-  outside: {
-    minus: {
-      orientation: 'outside+',
-      label: '⇥ − side',
-      title: 'Outside, − side: your + face meets the target’s − face, so you end up beside it on its − side',
-    },
-    plus: {
-      orientation: 'outside-',
-      label: '⇤ + side',
-      title: 'Outside, + side: your − face meets the target’s + face, so you end up beside it on its + side',
-    },
-  },
-  inside: {
-    minus: {
-      orientation: 'inside-',
-      label: '⊏ − face',
-      title: 'Inside, − face: your − face lines up with the target’s − face, inside it',
-    },
-    plus: {
-      orientation: 'inside+',
-      label: '⊐ + face',
-      title: 'Inside, + face: your + face lines up with the target’s + face, inside it',
-    },
-  },
-  center: {
-    minus: {
-      orientation: 'center+',
-      label: '◁ − half',
-      title: 'Center, − half: your + face sits on the target’s centre, so you cover its − half',
-    },
-    plus: {
-      orientation: 'center-',
-      label: '▷ + half',
-      title: 'Center, + half: your − face sits on the target’s centre, so you cover its + half',
-    },
-  },
-})
+const POSITIONS = Object.freeze([
+  { key: 'outside-minus', header: 'out', name: 'outside −', detail: 'your + face sits on the target’s − face, so you end up beyond its − side', orientation: 'outside+', origin: 'max' },
+  { key: 'inside-minus', header: 'in', name: 'inside −', detail: 'your − face lines up with the target’s − face, inside it', orientation: 'inside-', origin: 'min' },
+  { key: 'half-minus', header: 'half', name: 'half −', detail: 'your + face sits on the target’s centre, so you cover its − half', orientation: 'center+', origin: 'max' },
+  { key: 'center', header: 'ctr', name: 'center', detail: 'your centre sits on the target’s centre', orientation: null, origin: 'center' },
+  { key: 'half-plus', header: 'half', name: 'half +', detail: 'your − face sits on the target’s centre, so you cover its + half', orientation: 'center-', origin: 'min' },
+  { key: 'inside-plus', header: 'in', name: 'inside +', detail: 'your + face lines up with the target’s + face, inside it', orientation: 'inside+', origin: 'max' },
+  { key: 'outside-plus', header: 'out', name: 'outside +', detail: 'your − face sits on the target’s + face, so you end up beyond its + side', orientation: 'outside-', origin: 'min' },
+])
+
+const IDLE_CAPTION = 'Tap where the moving body should end up along each axis.'
 
 const documentStore = useDocumentStore()
 const selection = useSelectionStore()
@@ -230,25 +200,49 @@ function offset() {
 }
 
 /**
+ * One tap on one of the seven positions: a baked align-to-origin, or a parametric
+ * `group.align` / `group.snap` against the second body.
+ *
  * @param {Axis} axis
- * @param {string} mode `min`, `center` or `max`
+ * @param {string} key a {@link POSITIONS} key
  */
-function onGridTap(axis, mode) {
+function onPositionTap(axis, key) {
+  const position = POSITIONS.find((candidate) => candidate.key === key)
+  if (!position) return
+  tapped.value = sentence(axis, key)
   if (target.value === 'origin') {
-    alignToOrigin({ [axis]: /** @type {'min' | 'center' | 'max'} */ (mode) })
-  } else if (mode === 'center') {
+    alignToOrigin({ [axis]: position.origin })
+  } else if (position.orientation === null) {
     alignToSecond('group.align', { axes: axis, deltaMm: offset() })
+  } else {
+    alignToSecond('group.snap', { axes: axis, orientation: position.orientation, deltaMm: offset() })
   }
 }
 
 /**
+ * The full sentence for a button — its `aria-label`, `title` and caption.
+ *
  * @param {Axis} axis
- * @param {string} key `snap-minus` or `snap-plus`
+ * @param {string} key
+ * @returns {string}
  */
-function onSnapTap(axis, key) {
-  const side = key === 'snap-minus' ? 'minus' : 'plus'
-  const { orientation } = SNAP_BUTTONS[alignReference.relation][side]
-  alignToSecond('group.snap', { axes: axis, orientation, deltaMm: offset() })
+function sentence(axis, key) {
+  const position = POSITIONS.find((candidate) => candidate.key === key)
+  return position ? `${axis.toUpperCase()} ${position.name}: ${position.detail}` : ''
+}
+
+/** The button last tapped, so touch (no hover) still reads what just happened. */
+const tapped = ref('')
+/** The button hovered or focused, which wins over the last tap while it is. */
+const previewed = ref('')
+const caption = computed(() => previewed.value || tapped.value || IDLE_CAPTION)
+
+/**
+ * @param {Axis | null} axis
+ * @param {string | null} key
+ */
+function onPreview(axis, key) {
+  previewed.value = axis && key ? sentence(axis, key) : ''
 }
 
 /** "Center on origin, sit on grid": one record, not three. */
@@ -257,41 +251,9 @@ function onDrop() {
   alignToOrigin({ x: 'center', y: 'center', z: 'min' })
 }
 
-const GRID_LABEL = Object.freeze({ min: '⊢ min', center: '◇ ctr', max: '⊣ max' })
+/** The seven columns the grid draws, one per position. */
+const positionColumns = POSITIONS.map(({ key, header }) => ({ key, header }))
 
-/** The min / ctr / max columns, enabled per target. */
-const gridColumns = computed(() => {
-  const toOrigin = target.value === 'origin'
-  const faceHint = 'against a second object, use the Snap row’s Inside buttons to line faces up'
-  return [
-    {
-      key: 'min',
-      label: GRID_LABEL.min,
-      title: toOrigin ? 'min: the low face goes to 0' : `min: ${faceHint}`,
-      disabled: !toOrigin,
-    },
-    {
-      key: 'center',
-      label: GRID_LABEL.center,
-      title: toOrigin ? 'ctr: the centre goes to 0' : 'ctr: centre on the target',
-    },
-    {
-      key: 'max',
-      label: GRID_LABEL.max,
-      title: toOrigin ? 'max: the high face goes to 0' : `max: ${faceHint}`,
-      disabled: !toOrigin,
-    },
-  ]
-})
-
-/** The Snap row's two columns, labelled for the current Relation. */
-const snapColumns = computed(() => {
-  const buttons = SNAP_BUTTONS[alignReference.relation] ?? SNAP_BUTTONS.outside
-  return [
-    { key: 'snap-minus', label: buttons.minus.label, title: buttons.minus.title },
-    { key: 'snap-plus', label: buttons.plus.label, title: buttons.plus.title },
-  ]
-})
 </script>
 
 <template>
@@ -330,22 +292,25 @@ const snapColumns = computed(() => {
       Center on origin, sit on grid
     </button>
 
-    <AlignGrid :columns="gridColumns" label="Align" @tap="onGridTap" />
+    <AlignGrid
+      :columns="positionColumns"
+      label="Align"
+      segmented
+      :describe="sentence"
+      @tap="onPositionTap"
+      @preview="onPreview"
+    >
+      <template #default="{ column }">
+        <AlignPositionIcon :position="POSITIONS.findIndex((position) => position.key === column.key)" :point-target="target === 'origin'" />
+      </template>
+    </AlignGrid>
 
-    <template v-if="target === 'second'">
-      <label class="align-popover__field">
-        Snap
-        <select v-model="alignReference.relation" data-testid="align-relation">
-          <option v-for="choice in RELATIONS" :key="choice.value" :value="choice.value">{{ choice.label }}</option>
-        </select>
-      </label>
-      <AlignGrid :columns="snapColumns" label="Snap" @tap="onSnapTap" />
+    <p class="align-popover__caption" data-testid="align-caption" aria-live="polite">{{ caption }}</p>
 
-      <label class="align-popover__field">
-        Offset (mm)
-        <input type="number" v-model.number="offsetMm" data-testid="align-offset" />
-      </label>
-    </template>
+    <label v-if="target === 'second'" class="align-popover__field">
+      Offset (mm)
+      <input type="number" v-model.number="offsetMm" data-testid="align-offset" />
+    </label>
 
     <p v-if="opError" class="align-popover__error" data-testid="align-error">{{ opError }}</p>
 
@@ -395,6 +360,14 @@ const snapColumns = computed(() => {
   background: var(--surface-1);
   color: var(--text-1);
   font-size: 13px;
+}
+
+.align-popover__caption {
+  margin: 0;
+  min-height: 2.8em;
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--text-2);
 }
 
 .align-popover__drop {

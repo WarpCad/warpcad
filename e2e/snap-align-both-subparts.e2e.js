@@ -187,14 +187,13 @@ async function inspectPart(page, bodyId, partName) {
  * @param {import('@playwright/test').Page} page
  * @param {string} movingId
  * @param {('x' | 'y' | 'z')[]} axes
- * @param {{ relation: 'outside' | 'inside' | 'center', side: 'minus' | 'plus' }} [snap]
+ * @param {{ position: 'outside-minus' | 'inside-minus' | 'half-minus' | 'half-plus' | 'inside-plus' | 'outside-plus', offset?: number }} [snap]
  */
 async function commitPopover(page, movingId, axes, snap) {
   const item = page.locator(`[data-testid="scene-bodies"] li[data-body-id="${movingId}"]`)
-  if (snap) await page.getByTestId('align-relation').selectOption(snap.relation)
   for (const axis of axes) {
     const before = await item.getAttribute('data-body-bounds')
-    await page.getByTestId(snap ? `align-${axis}-snap-${snap.side}` : `align-${axis}-center`).click()
+    await page.getByTestId(snap ? `align-${axis}-${snap.position}` : `align-${axis}-center`).click()
     await expect(page.getByTestId('align-error')).toHaveCount(0)
     await expect.poll(() => item.getAttribute('data-body-bounds'), { timeout: 15_000 }).not.toBe(before)
   }
@@ -256,7 +255,7 @@ test('a Pi’s hole1 aligned onto a screen’s post, then its mb snapped onto th
   await expect(page.getByTestId('align-operand-target')).toHaveText(/› piMountingPost1$/)
   // `outside-` (the board's underside on the post's top) is Outside, **+ side**: the board
   // ends up on the post's + Z side (`TODO/ui-060`).
-  await commitPopover(page, pi, ['z'], { relation: 'outside', side: 'plus' })
+  await commitPopover(page, pi, ['z'], { position: 'outside-plus' })
 
   const mb = await inspectPart(page, pi, 'mb')
   const post = await inspectPart(page, screen, 'piMountingPost1')

@@ -152,7 +152,7 @@ test.describe('Help from a tool pop-up', () => {
     await expect(popover).toBeVisible()
 
     // Fields the user had already set: they must survive the round trip.
-    await page.getByTestId('align-relation').selectOption('inside')
+    await expect(page.getByTestId('align-target')).toHaveValue('second')
     await page.getByTestId('align-offset').fill('7')
     const boxBefore = await page.getByTestId('align-offset').boundingBox()
 
@@ -178,7 +178,7 @@ test.describe('Help from a tool pop-up', () => {
     await page.getByTestId('help-close').click()
     await expect(sheet).toBeHidden()
     await expect(popover).toBeVisible()
-    await expect(page.getByTestId('align-relation')).toHaveValue('inside')
+    await expect(page.getByTestId('align-target')).toHaveValue('second')
     await expect(page.getByTestId('align-offset')).toHaveValue('7')
     await expect(page.getByTestId('viewport')).toHaveAttribute('data-selected-count', '2')
     // The new header button did not move the pop-up's own controls.
