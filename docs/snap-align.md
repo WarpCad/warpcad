@@ -420,7 +420,9 @@ Top to bottom:
 - **The position grid**: one row per axis, X, Y and Z, each with seven buttons that read
   from **−** on the left to **+** on the right. A thin `− … +` rule and a one-line header
   (*out · in · half · ctr · half · in · out*) sit above the rows, and each button shows a
-  small picture: the amber block is the shape that moves, the teal outline is its target.
+  small picture: the amber block is the shape that moves, the teal outline is its target,
+  and the dashed teal line down the middle is the target's centre. **in** puts the block flush
+  against an edge of the outline; **half** puts a face of the block on the dashed line.
   Every button names **where the moving shape ends up** along that axis:
 
   ![The position grid: a − to + rule, the column header, and three rows of seven icon buttons for X, Y and Z](./screenshots/align-positions.png)

@@ -743,6 +743,17 @@ test('all seven positions on Z land the moving Cube where their words say, and t
   }
 })
 
+test('the in and half buttons draw visibly different icons, with a centre line to compare against (TODO/ui-088)', async ({ page }) => {
+  await placeCubeAndCylinder(page)
+  await selectCubeThenCylinder(page)
+  await page.getByTestId('operation-align').click()
+  await expect(page.getByTestId('align-popover')).toBeVisible()
+  const markup = async (key) => page.getByTestId(`align-x-${key}`).locator('svg').innerHTML()
+  expect(await markup('inside-minus')).not.toBe(await markup('half-minus'))
+  expect(await markup('inside-plus')).not.toBe(await markup('half-plus'))
+  await expect(page.getByTestId('align-x-half-minus').locator('[data-part="centre"]')).toHaveCount(1)
+})
+
 test('World origin: outside + on Z sits the Cube on the grid (TODO/ui-086)', async ({ page }) => {
   const [cube] = await placeCubeAndCylinder(page)
   await selectCubeThenCylinder(page)

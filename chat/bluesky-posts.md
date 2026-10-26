@@ -2385,3 +2385,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** one row of seven icon buttons per axis, shared header → diff (AlignPopover.vue, AlignGrid.vue, AlignPositionIcon.vue); previous dropdown plus two grids → git show 39a5a2d (ui-060, 2026-10-15) and the removed code in this diff
 **To Add:** docs/screenshots/align-positions.png
+
+## 2026-10-26T22:00:00-05:00 — Align icons: in vs half now readable
+
+**Post:** The Align popover's "in" and "half" icons were about a pixel apart, so you had to hover to tell them apart. The block is now a quarter of the target's width and a dashed line marks the target's centre. Same button size. #CAD #OpenSource Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** block 6 to 4 wide of a 16-wide target, dashed centre line at x=12 → diff (AlignPositionIcon.vue); "a pixel apart" → TODO/ui-088 Problem text; same button size → diff touches no sizing
+**To Add:** docs/screenshots/align-positions.png

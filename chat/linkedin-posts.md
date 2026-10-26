@@ -3434,3 +3434,16 @@ The strip is 328 px wide at 44 px per button, which fits a 390 px phone. Docs an
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** two grids, Relation dropdown, two disabled duplicates → removed code in the diff and TODO/done/ui-086 Goal; no record change → TODO/done/ui-086 Proposed fix and snapAlignReplay.spec.js untouched in the diff; seven → three results against the origin → AlignPositionIcon.spec.js (this session, green); 328 px at 44 px, fits 390 px → TODO/done/ui-086 and the phone snapshot (352 px popover) this session; six animations → git status (six gifs in the diff)
 **To Add:** docs/screenshots/align-positions.png, docs/media/snap-operation.gif
+
+## 2026-10-26T22:00:00-05:00 — Align icons: in vs half now readable
+
+**Post:** A small one in WarpCad's Align popover. The "inside" and "half" position buttons drew almost the same picture, because the moving block was wider than half the target and the two positions landed one unit apart in a 24-unit icon.
+
+The fix keeps the button size and changes the drawing: a 16-wide target, a 4-wide block, and a dashed line down the target's centre, which is the thing "half" is measured against. Against the World origin the line is the target, so it is drawn solid.
+
+The icon unit tests now assert a minimum spacing between neighbouring positions, so a later constant change can't bring the collapse back. Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** diff only (AlignPositionIcon.vue and its spec); one-unit gap → TODO/ui-088 Problem text
+**To Add:** docs/screenshots/align-positions.png

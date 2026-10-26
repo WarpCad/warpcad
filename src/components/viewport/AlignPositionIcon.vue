@@ -24,10 +24,12 @@ const props = defineProps({
 })
 
 /** The target box's x-extent in the 24-unit viewBox, and the moving block's width. */
-const TARGET_MIN = 7
-const TARGET_MAX = 17
+const TARGET_MIN = 4
+const TARGET_MAX = 20
 const CENTRE = (TARGET_MIN + TARGET_MAX) / 2
-const BLOCK = 6
+// A quarter of the target: wide enough to read, narrow enough that "inside" (flush with an edge)
+// and "half" (touching the centre) sit a block-width apart instead of one pixel (`TODO/ui-088`).
+const BLOCK = 4
 
 /**
  * The block's x origin per position, as `[anchor, side]`: which target coordinate it meets
@@ -62,6 +64,7 @@ const geometry = computed(() => {
 <template>
   <svg class="align-position-icon" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" focusable="false">
     <rect
+      v-if="!pointTarget"
       data-part="target"
       :x="geometry.targetX"
       y="5"
@@ -70,6 +73,17 @@ const geometry = computed(() => {
       fill="none"
       stroke="var(--role-target)"
       stroke-width="1.5"
+    />
+    <!-- The landmark "half" is measured against; against a point target it *is* the target. -->
+    <line
+      data-part="centre"
+      :x1="CENTRE"
+      :x2="CENTRE"
+      y1="2"
+      y2="22"
+      stroke="var(--role-target)"
+      stroke-width="1"
+      :stroke-dasharray="pointTarget ? undefined : '2 1.5'"
     />
     <rect data-part="moving" :x="geometry.blockX" y="8" :width="BLOCK" height="8" fill="var(--role-moving)" />
   </svg>
