@@ -78,6 +78,7 @@ const title = computed(() => props.section?.title ?? 'My parts')
   display: flex;
   flex-direction: column;
   padding: 10px 12px 12px;
+  overflow-x: hidden;
   overflow-y: auto;
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);

@@ -441,6 +441,9 @@ onBeforeUnmount(() => {
 .library__choice-select {
   flex: 1;
   min-width: 0;
+  /* WebKit reports a native select's inner text box as ~8px of scrollable overflow in the
+     ancestor scroller, though the select itself fits; `hidden` keeps it out (`TODO/ui-085`). */
+  overflow: hidden;
   /* 32px, not the row's 44px: this is a setting reached deliberately after
      reading the row, not a primary tap target, and a second 44px control per row
      would cost 12 rows' worth of height in a 46vh phone sheet. Still comfortably

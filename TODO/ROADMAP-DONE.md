@@ -803,6 +803,7 @@ as a milestone table.) `io-008` and `data-013` moved to [M16](#m16--next-batch-n
 
 | id | Task | Kind | Depends | Acceptance |
 |---|---|---|---|---|
+| ✅ `ui-085` | The Library sheet scrolls sideways a few pixels in desktop Safari; the Help button's negative right margin and an `overflow-y`-only scroller. Filed 2026-10-25 | Finding | — | 1 |
 | ✅ `core-051` | Fillet and chamfer produce wrong geometry (material **added**, not removed) on any rim that has a hole — reported 2026-10-04 with `examples/chamfer error.ndjson` | Finding | — | 1, 12 |
 | ✅ `ai-022` | The `group.snap` tool description says `outside+` puts the first body on the second's + side; by `SNAP_SIDES` it is the − side — found by `ui-060` | Finding | — | none; `ui-060` repro |
 | ✅ `testing-004` | `measure.spec.js`'s sphere-lens test times out under the full unit run (passes alone). Moved here from M16 on 2026-10-16 at the user's request so M16 runs first, overnight, without stopping (the gears were later moved after it, 2026-10-16); `TODO/BUDGET.md` Config says how the runner treats this flake until then | Finding | — | none |
@@ -1137,5 +1138,6 @@ convention going forward.
 | `ui-082` | 2026-10-23 17:55 | ~1h wall clock (preflight 17:19 UTC; Opus agent for RED/GREEN, ~9m). Operations groups tier at 641-741 px: Combine, Arrange and Shape launchers with count badges and a labelled member pop-out on the shared `openPopout` slot (`operationGroups.js`, `OperationsGroupPopover.vue`). Unit 6469 green, typecheck clean. Changed-scope e2e: Chromium and Firefox green; WebKit has two `viewport-scaffold` failures that also fail on clean `HEAD` (and `ai-working-chip` docs drift), filed as `testing-009`. Scenarios 4 and 16 hand-driven at 720x900, WebKit and Chromium: PASS; `ui-043` and `ui-015` repros clear. No ROADMAP row existed for this id. |
 | `ui-083` | 2026-10-24 15:30 | ~15m wall clock (preflight from 15:15 UTC). Spec error, not an app bug: the spec held Shift alone (pan) from a corner under the Union button; the Ctrl+Shift marquee from empty canvas already worked. Spec and finding corrected to the documented gesture |
 | `ui-086` | 2026-10-26 07:16 | ~4h57m wall clock (preflight 02:19 UTC), of which ~2h was a full e2e run that stalled at load 150-200 on this machine and had to be abandoned for a `changed` run; Playwright browsers also had to be reinstalled. The docs-media generator was run twice and its unrelated churn reverted. |
+| `ui-085` | 2026-10-26 12:50 | ~30m wall clock (preflight 12:20 UTC). Two causes found by measuring in WebKit: the Help button's 8px overhang and the Pi variant `<select>`'s own 8px of scrollable overflow. |
 
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

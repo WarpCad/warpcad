@@ -5,8 +5,10 @@ kind: finding
 priority: medium
 model: sonnet
 depends: []
-status: open
+status: done
 ---
+
+> **What shipped.** Measured in WebKit and Chromium: the Help button overhung the content edge by 8px (its `-8px` inline-end margin), and in WebKit the Raspberry Pi section's variant `<select>` added another 8px of scrollable overflow even though it fit its box. Fixes: `.library__help` keeps only its negative block margins, `.library__hint` takes `flex: 1; min-width: 0`, `.library__choice-select` got `overflow: hidden`, and `.library__sheet` and the section pop-out are vertical-only (`overflow-x: hidden`). The rail scroller already was. New spec `e2e/library-sheet-overflow.e2e.js` (labels tier, phone sheet, pop-out, rail; all three engines). `docs:screenshots` shows one drift, `ai-working-chip` (app header), which fails identically on the untouched tree.
 
 ## Problem
 

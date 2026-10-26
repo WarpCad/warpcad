@@ -466,6 +466,9 @@ onBeforeUnmount(() => {
   flex-direction: column;
   min-height: 0;
   padding: 10px 12px 14px;
+  /* Vertical only: with `overflow-y` alone the other axis computes to `auto` and the sheet
+     scrolls sideways by whatever pixel overflows (`TODO/ui-085`). */
+  overflow-x: hidden;
   overflow-y: auto;
 }
 
@@ -486,9 +489,16 @@ onBeforeUnmount(() => {
   margin: 0 0 10px;
 }
 
-/* The 44px target overhangs the hint's line instead of growing the row (`TODO/ui-061`). */
+/* The 44px target overhangs the hint's line instead of growing the row (`TODO/ui-061`). Only the
+   block margins are negative: an inline-end overhang past the content edge is scrollable overflow
+   in WebKit (`TODO/ui-085`). */
 .library__help {
-  margin: -14px -8px -14px 0;
+  margin: -14px 0;
+}
+
+.library__hint-row > .library__hint {
+  flex: 1;
+  min-width: 0;
 }
 
 .library__hint {

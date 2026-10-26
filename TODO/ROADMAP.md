@@ -127,7 +127,6 @@ with their dependencies and acceptance columns; keep the two in step when a row 
 | Findings | [`testing-008`](testing-008-print-prep-split-sheet-still-flakes-under-load.md) Print-prep split-sheet still differs under full-suite load | finding | low | sonnet | ▶ **ready** |
 | M5 — Hardware Library | [`core-074`](core-074-thread-geometry-recipes.md) Real helical threads: external and internal thread generator | feature | medium | opus | ▶ **ready** (dependency on `core-073` dropped 2026-10-24) |
 | M5 — Hardware Library | [`ui-080`](ui-080-threads-library-section-and-inspector.md) Threads section in the Library, drag-to-place, Inspector fields | feature | medium | sonnet | ⏳ after `core-074`, `ui-052` |
-| Findings | [`ui-085`](ui-085-library-sheet-scrolls-sideways-in-safari.md) The Library sheet scrolls sideways a few pixels in desktop Safari (not Chrome); headings and icons clip at the left | finding | medium | sonnet | ▶ **ready** (reported 2026-10-25 by the owner, Safari desktop) |
 | Findings | [`ui-074`](ui-074-repeat-note-wording.md) Repeat body Inspector note says the repeats follow every move | finding | low | sonnet | ▶ **ready** |
 | Findings | [`perf-003`](perf-003-defer-code-unused-at-boot.md) Defer the code the app does not use at boot (Sentry, the AI agent and tool registry, a dev-only provider) | feature | low | sonnet | ▶ **ready** (from `perf-002`) |
 | Findings | [`ui-079`](ui-079-tiered-library-and-operations-panels.md) Shrink the Library and Operations panels in steps between laptop and phone width | finding | high | opus | ▶ **ready** |
@@ -283,7 +282,6 @@ Open findings that belong to no single milestone. Closed findings are in
 | `testing-005` | Triage the ~347 open rows in `TODO/VERIFY.md`: move, graduate or close each | Finding | — | none |
 | `ui-079` | Shrink the Library and Operations panels in steps between laptop and phone width | Finding | — | 1, 5, 10 |
 | `testing-009` | Two WebKit viewport-scaffold specs fail under parallel load, and two app-header screenshots have drifted | Finding | — | none |
-| `ui-085` | The Library sheet scrolls sideways a few pixels in desktop Safari; the Help button's negative right margin and an `overflow-y`-only scroller are the likely cause. Filed 2026-10-25 | Finding | — | 1 |
 
 ---
 
@@ -388,7 +386,7 @@ One line per milestone. Closed milestones are listed in [ROADMAP-DONE.md](ROADMA
 | [M18 — Launch](#m18--launch-open-rows) | 1 | `core-065` (parked); GA checks and the close check. Publish, domain, Sentry and the clean-up rows are done. |
 | [M5 — Hardware Library](#m5--hardware-library-open-rows) | 2 | `core-074` and `ui-080`, the threads pair. Ready; `core-074` no longer depends on the deferred `core-073`. |
 | [M15 — Mergeable project file](#m15--a-mergeable-project-file-reserved-rows) | 4 reserved | `data-012`, `io-013`, `ai-018`, `ai-019`. No task files yet. |
-| [Findings](#findings-open-rows) | 11 | `testing-006`, `ui-078`, `testing-007`, `testing-008`, `ui-074`, `perf-003`, `testing-010`, `testing-005`, `ui-079`, `testing-009`, `ui-085`. |
+| [Findings](#findings-open-rows) | 10 | `testing-006`, `ui-078`, `testing-007`, `testing-008`, `ui-074`, `perf-003`, `testing-010`, `testing-005`, `ui-079`, `testing-009`. |
 | [M11 — Gears](#m11--gears-open-rows) | 7 | Runs last. `core-048`, `core-049`, `core-062`, `ui-057`, `ui-058`, `testing-002`, `docs-021`. |
 | Outside milestones | owed only | `build-016` owner steps; the deferred JSCAD V3 family. |
 

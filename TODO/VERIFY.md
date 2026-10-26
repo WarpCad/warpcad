@@ -36,6 +36,15 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### ui-085 — Library sheet no longer scrolls sideways (2026-10-26 12:50)
+
+Fixed and spec'd on Playwright WebKit; real desktop Safari with a trackpad was not available here.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | Desktop Safari on the deployed build: a sideways two-finger swipe over the Library does nothing, with "Show scroll bars" on Automatic and on Always | Open | |
+| 2 | The Help **?** now sits at the content edge (8px further left than before): confirm it still looks aligned with the hint | Open | |
+
 ### ui-086 — Align popover: seven positions per axis (2026-10-26 07:16)
 
 Reachability, the numbers and the 390 px fit are covered by specs and scenarios 1, 3, 6, 10 and 12. These are the feel and legibility checks a script cannot make.
