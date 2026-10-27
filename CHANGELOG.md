@@ -1,5 +1,28 @@
 # Changelog
 
+## [1.1.0](https://github.com/WarpCad/warpcad/compare/v1.0.0...v1.1.0) (2026-10-27)
+
+### Features
+
+* **core:** split with butterfly keys (TODO/core-075, stage 2) ([85d80fe](https://github.com/WarpCad/warpcad/commit/85d80feb87638f35d7f8184c1ee19a87028220c4))
+* **core:** split with loose dowels, printed or bought (TODO/core-075, stage 1) ([220b02d](https://github.com/WarpCad/warpcad/commit/220b02dbe69eb992d244d260daf5c3b79f91e227))
+* **core:** split with loose tenons and disc magnets (TODO/core-075, stage 3) ([0ae6f36](https://github.com/WarpCad/warpcad/commit/0ae6f362b2c94e9fdec0bf3ad9c0dd769ca4295c))
+* **core:** split with seam joints — dovetail, puzzle tabs, half lap, finger (TODO/core-075, stage 4) ([ebfb0ae](https://github.com/WarpCad/warpcad/commit/ebfb0ae636f2e52f48ccf478cd1dd9f3adbb588c))
+* **io:** share a project by link — Share sheet and read-only Shared view (TODO/io-016, stage 2) ([4b7be07](https://github.com/WarpCad/warpcad/commit/4b7be07bf6aea3b96c5000bb228d563d84091f86))
+* **io:** share-link format and decoder — the project inside the URL fragment (TODO/io-016, stage 1) ([8fbe0e5](https://github.com/WarpCad/warpcad/commit/8fbe0e541fea478a424a76bc1c79369900b4b117))
+* **ui:** ease the panel grid between tiers as the window narrows (TODO/ui-079 stage 7) ([adc1e36](https://github.com/WarpCad/warpcad/commit/adc1e36325fb47e7e1be2671f6239c65f80636e4))
+* **ui:** group the Operations toolbar into Combine/Arrange/Shape launchers between laptop and phone width (TODO/ui-082) ([9d0b5de](https://github.com/WarpCad/warpcad/commit/9d0b5de590c369a79e5de84bad5c182a44dae245))
+* **ui:** hide and show bodies and parts from the Objects list (TODO/ui-089) ([3b1bfcd](https://github.com/WarpCad/warpcad/commit/3b1bfcd66c288c51d2e7f90c325c87a823ff0f13))
+* **ui:** let the operation panels be moved by a grip (TODO/ui-087, stage 1) ([07f9ef1](https://github.com/WarpCad/warpcad/commit/07f9ef12f7d892d8947bbedf1872b0b1121b7649))
+* **ui:** Library section launchers and section pop-out between laptop and phone width (TODO/ui-081) ([6dff759](https://github.com/WarpCad/warpcad/commit/6dff7595f5578e37bd3d6e31d364ef510f3aae81))
+* **ui:** one seven-position row per axis in the Align popover (TODO/ui-086) ([09b971e](https://github.com/WarpCad/warpcad/commit/09b971e7e50904f98d65bd295f478330656ec494))
+
+### Bug Fixes
+
+* **ui:** correct the Shift-held marquee spec to the documented Ctrl+Shift gesture (TODO/ui-083) ([dedfbc0](https://github.com/WarpCad/warpcad/commit/dedfbc05a44dbd80553887f05c7defa0a22b48f2))
+* **ui:** make the Align popover's in and half icons read apart (TODO/ui-088) ([c058d68](https://github.com/WarpCad/warpcad/commit/c058d68385b087352fd1d7c452c529a703935bf6))
+* **ui:** stop the Library sheet scrolling sideways in Safari (TODO/ui-085) ([de57ec0](https://github.com/WarpCad/warpcad/commit/de57ec06299c8c040a56ae4fff3afe3e013582f2))
+
 ## 1.0.0 (2026-10-21)
 
 ### Features
