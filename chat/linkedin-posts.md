@@ -3473,3 +3473,16 @@ The drag has a unit spec and an Align e2e that runs on Chromium, Firefox and Web
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** three stages, Stage 1 shipped → TODO/done/ui-087 note; e2e engines and sizes → this session's 128/128 run of snap-align-operation.e2e.js (9 projects) and the 9 baseline PNGs in the diff
 **To Add:** docs/screenshots/align-popover-moved.png
+
+## 2026-10-26T19:31:00-05:00 — Release version no longer breaks the header snapshots
+
+**Post:** WarpCad's package version went from the 0.0.0 placeholder to 1.0.0 (commit cf6c2d8, 2026-10-21), and the header's visual snapshot started failing on all nine browser and viewport projects. The label beside the title is wider for a real release than for `dev`, and it pushed the hint text next to it sideways.
+
+The existing test masked the label, which hides its pixels but not its width, so the layout still moved. The tests now set the label to a fixed stand-in string before capturing, which keeps the layout around it stable for every future release. The docs screenshot helper got the same treatment.
+
+Two other specs got attention in the same pass: a WebKit zoom test that read its baseline before the canvas finished resizing, and a WebGL smoke test that occasionally read back a flat canvas. Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #Playwright
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** 1.0.0 → git log cf6c2d8 (2026-10-21); failed on all nine projects → Known-failures list from the user's run (app-header-version, 9 entries); mask keeps layout → this session's diff images; zoom baseline read pre-layout and WebGL flat read → diff and this session's failing runs (Received 10 vs before 10; colors 1)
+**To Add:** none

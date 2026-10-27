@@ -235,10 +235,20 @@ test('the grid labels its own dimensions without opening any panel', async ({ pa
 
 test('the scale readout follows the zoom level', async ({ page }) => {
   const readout = page.getByTestId('grid-scale-readout')
-  const before = Number(await readout.getAttribute('data-scale-mm'))
+  const read = async () => Number(await readout.getAttribute('data-scale-mm'))
+  // The canvas is still resizing as the panel grid settles after load, and the readout follows its
+  // width, so a baseline read straight after `goto` can be a pre-layout value. Wait until it holds.
+  let before = await read()
+  await expect
+    .poll(async () => {
+      const last = before
+      await page.waitForTimeout(250)
+      before = await read()
+      return before === last
+    })
+    .toBe(true)
   for (let i = 0; i < 6; i += 1) await page.getByTestId('nav-zoom-in').click()
-  const after = Number(await readout.getAttribute('data-scale-mm'))
-  expect(after).toBeLessThan(before)
+  await expect.poll(read).toBeLessThan(before)
 })
 
 test('WebGL actually draws a visible grid, not a blank or black rectangle', { tag: '@smoke' }, async ({ page }) => {
@@ -248,31 +258,39 @@ test('WebGL actually draws a visible grid, not a blank or black rectangle', { ta
   const state = await cameraState(page)
   expect(state.webgl, 'WebGL context should start on every supported engine').toBe('ready')
 
-  const stats = await page.evaluate(() => {
-    const source = /** @type {HTMLCanvasElement} */ (
-      document.querySelector('[data-testid="viewport-canvas"]')
-    )
-    const size = 96
-    const off = document.createElement('canvas')
-    off.width = size
-    off.height = size
-    const ctx = off.getContext('2d')
-    if (!ctx) throw new Error('no 2d context')
-    ctx.drawImage(source, 0, 0, size, size)
-    const { data } = ctx.getImageData(0, 0, size, size)
-    const colors = new Set()
-    let min = 255
-    let max = 0
-    let sum = 0
-    for (let i = 0; i < data.length; i += 4) {
-      const luma = (data[i] + data[i + 1] + data[i + 2]) / 3
-      min = Math.min(min, luma)
-      max = Math.max(max, luma)
-      sum += luma
-      colors.add((data[i] << 16) | (data[i + 1] << 8) | data[i + 2])
-    }
-    return { min, max, mean: sum / (data.length / 4), colors: colors.size }
-  })
+  const readStats = () =>
+    page.evaluate(() => {
+      const source = /** @type {HTMLCanvasElement} */ (
+        document.querySelector('[data-testid="viewport-canvas"]')
+      )
+      const size = 96
+      const off = document.createElement('canvas')
+      off.width = size
+      off.height = size
+      const ctx = off.getContext('2d')
+      if (!ctx) throw new Error('no 2d context')
+      ctx.drawImage(source, 0, 0, size, size)
+      const { data } = ctx.getImageData(0, 0, size, size)
+      const colors = new Set()
+      let min = 255
+      let max = 0
+      let sum = 0
+      for (let i = 0; i < data.length; i += 4) {
+        const luma = (data[i] + data[i + 1] + data[i + 2]) / 3
+        min = Math.min(min, luma)
+        max = Math.max(max, luma)
+        sum += luma
+        colors.add((data[i] << 16) | (data[i + 1] << 8) | data[i + 2])
+      }
+      return { min, max, mean: sum / (data.length / 4), colors: colors.size }
+    })
+  // Without preserveDrawingBuffer a read between composites can come back as one flat colour on a
+  // slow frame; retry briefly. A scene that really is blank or black never gets past this.
+  let stats = await readStats()
+  for (let i = 0; i < 20 && stats.colors <= 3; i += 1) {
+    await page.waitForTimeout(100)
+    stats = await readStats()
+  }
 
   expect(stats.colors, 'grid lines and background should be distinguishable').toBeGreaterThan(3)
   expect(stats.mean, 'the scene must not render essentially black').toBeGreaterThan(8)

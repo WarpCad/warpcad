@@ -98,6 +98,11 @@ export async function settle(page) {
  */
 export async function shot(page, name, options = {}) {
   await settle(page)
+  // The header's release label changes width with every version and shifts what sits beside it,
+  // so a picture taken at 1.0.0 would be stale at 1.0.1. Pin it to a fixed stand-in.
+  await page
+    .getByTestId('app-version')
+    .evaluateAll((els) => els.forEach((el) => (el.textContent = 'v0.0.0 · 0000000')))
   const target = options.locator ?? page
   await expect(target).toHaveScreenshot(name, {
     animations: 'disabled',

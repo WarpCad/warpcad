@@ -49,11 +49,14 @@ test.describe('app header version label', () => {
 
   test('the header keeps the version label at this viewport', async ({ page }) => {
     await page.goto('/')
-    // The label's text is the build's version and commit, so it differs between builds; the layout
-    // around it is what this snapshot guards.
+    // The label's text is the build's version and commit, so its width differs between builds and
+    // shifts the hint beside it; a mask would move with it. Pin the text to a fixed-width stand-in
+    // so the layout around the label is what this snapshot guards, release after release.
+    await page.getByTestId('app-version').evaluate((el) => {
+      el.textContent = 'v0.0.0 · 0000000'
+    })
     await expect(page.getByTestId('app-header')).toHaveScreenshot('app-header-version.png', {
       maxDiffPixelRatio: 0.02,
-      mask: [page.getByTestId('app-version')],
     })
   })
 })

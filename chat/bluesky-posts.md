@@ -2412,3 +2412,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** grip drag, arrow-key nudge, double-click reset, other operation panels → diff (PopoverGrip.vue, usePopoverDrag.js, OperationsToolbar.vue); panel covered the solids → TODO/done/ui-087 Problem text
 **To Add:** docs/screenshots/align-popover-moved.png
+
+## 2026-10-26T19:31:00-05:00 — Release version no longer breaks the header snapshots
+
+**Post:** Bumped WarpCad to 1.0.0 and the header snapshots broke: the version label got wider and nudged the hint text beside it. A mask can't fix that, because the mask moves with the label. The tests now pin the label to a fixed string before the screenshot. #CAD #Playwright Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #Playwright
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** package.json at 1.0.0 → git log cf6c2d8 (2026-10-21); label wider, hint shifted → diff of the failing run's actual vs expected PNG this session; mask moves with the element → Playwright mask paints the element's own box (this session's failing run); fix → diff (app-header-version.e2e.js, docs/support.js)
+**To Add:** none
